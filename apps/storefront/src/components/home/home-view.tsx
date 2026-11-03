@@ -4,13 +4,15 @@ import { loadFrame, type OpenShopPage, storefrontApi } from '@/lib/storefront';
 import { Icon } from '../icon';
 import { ProductCard } from '../product-card';
 import { ShopShell } from '../shop-shell';
+import { InstallCard } from './install-card';
 
 // The home's "New arrivals": a grid of four (STOREFRONT-DESIGN §2).
 const NEW_ON_HOME = 4;
 
 /** STOREFRONT-DESIGN §2, Slice 12b's read: the home from the shop's own data only -- the hero (Welcome, its name, its
-    first categories), the trust strip (cash on delivery, its delivery charges), its categories and its newest four.
-    Bestsellers and the wallet marks wait for their phases. `/cart` is this page with the cart open. */
+    first categories), the trust strip (cash on delivery, its delivery charges), its categories and its newest four,
+    and the app offered after a first order. Bestsellers and the wallet marks wait for their phases. `/cart` is this page
+    with the cart open. */
 export async function HomeView({
   page,
   startCartOpen,
@@ -97,6 +99,7 @@ export async function HomeView({
           <p className="sub">{words.t('no_results')}</p>
         )}
       </section>
+      <InstallCard language={words.language} shopName={page.info.name} />
     </ShopShell>
   );
 }

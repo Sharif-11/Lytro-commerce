@@ -18,6 +18,7 @@ import {
   Quantity,
 } from './buy-parts';
 import { Gallery } from './gallery';
+import { AddOnGroups, AskedFields, ComboInside, usePicks } from './pickers';
 import { AreaSheet, DeliveryBanner, ShareLinks, ShareSheet, SizeChartSheet } from './sheets';
 import { useDeliveryEstimate } from './use-delivery';
 
@@ -37,7 +38,8 @@ export interface ProductViewProps {
 type OpenSheet = 'size' | 'area' | 'share' | null;
 
 /** SFT-04, SFT-05, SFT-20: the product page as the prototype draws it (productPage, buyBox, buybar): the gallery, the
-    variant picker with each variant's own price and stock, the delivery charge, and adding to the cart. */
+    variant picker with each variant's own price and stock, a combo's parts, add-ons and what the shop asks (Slice 4.8e),
+    the delivery charge, and adding to the cart or going straight to checkout. */
 export function ProductView(props: ProductViewProps) {
   const { product, zones, shopPhone } = props;
   const words = useMemo(() => new Words(props.language), [props.language]);
@@ -50,12 +52,13 @@ export function ProductView(props: ProductViewProps) {
   const [areaId, setAreaId] = useState(props.areaId);
   const [sheet, setSheet] = useState<OpenSheet>(null);
   const [toast, setToast] = useState(false);
+  const picks = usePicks(product);
   const closeSheet = useCallback(() => {
     setSheet(null);
   }, []);
 
   const variant = choice.variantFor(selection);
-  const soldOut = product.variants.every((each) => !each.available);
+  const soldOut = product.variants.every((each) => !each.available) || !picks.canBeMade;
   const unavailable = !soldOut && (variant === null || !variant.available);
   // Only what can be bought is priced: a sold-out choice keeps the last answer instead of reading as undeliverable.
   const items = variant?.available ? [{ variantId: variant.id, quantity }] : null;
@@ -71,8 +74,9 @@ export function ProductView(props: ProductViewProps) {
     };
   }, [toast]);
 
-  const addToCart = () => {
-    if (!variant || unavailable || soldOut) return;
+  /** Adds what is picked, unless something asked of the shopper is missing, which then shows. */
+  const add = (): boolean => {
+    if (!variant || unavailable || soldOut || !picks.ready()) return false;
     const choiceText = product.options
       .map((option) => {
         const value = option.values.find((each) => each.id === selection[option.attributeId]);
@@ -80,7 +84,7 @@ export function ProductView(props: ProductViewProps) {
       })
       .filter((text) => text !== '')
       .join(' · ');
-    const added = browserCart().add({
+    return browserCart().add({
       variantId: variant.id,
       productSlug: product.slug,
       name: product.name,
@@ -88,8 +92,14 @@ export function ProductView(props: ProductViewProps) {
       price: variant.price,
       image: product.images[0]?.urls.thumbnail ?? null,
       quantity,
+      ...picks.lineFields,
     });
-    if (added) setToast(true);
+  };
+  const addToCart = () => {
+    if (add()) setToast(true);
+  };
+  const buyNow = () => {
+    if (add()) window.location.assign('/checkout');
   };
 
   const sizeChartLink = product.sizeChart ? (
@@ -104,7 +114,7 @@ export function ProductView(props: ProductViewProps) {
     </button>
   ) : null;
   const price = variant?.price ?? product.minPrice;
-  const total = price === null ? null : Number(price) * quantity;
+  const total = price === null ? null : (Number(price) + picks.addOnsPrice) * quantity;
   const areaSet = areaId !== null;
 
   return (
@@ -137,6 +147,7 @@ export function ProductView(props: ProductViewProps) {
               </span>
             </div>
           ) : null}
+          <ComboInside product={product} picks={picks} words={words} />
           {soldOut ? null : <Quantity value={quantity} words={words} onChange={setQuantity} />}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <DeliveryLine
@@ -153,6 +164,12 @@ export function ProductView(props: ProductViewProps) {
           {areaSet && estimate && !estimate.deliverable ? (
             <DeliveryBanner estimate={estimate} words={words} shopPhone={shopPhone} />
           ) : null}
+          {soldOut ? null : (
+            <>
+              <AddOnGroups product={product} picks={picks} words={words} />
+              <AskedFields product={product} picks={picks} words={words} />
+            </>
+          )}
           <div className="dbtns">
             {soldOut ? (
               <button type="button" className="btn ghost lg" disabled>
@@ -167,13 +184,12 @@ export function ProductView(props: ProductViewProps) {
                 <button type="button" className="btn ghost lg" onClick={addToCart}>
                   {words.t('add')}
                 </button>
-                <button type="button" className="btn primary lg" disabled>
+                <button type="button" className="btn primary lg" onClick={buyNow}>
                   {words.t('buy_now')}
                 </button>
               </>
             )}
           </div>
-          {soldOut || unavailable ? null : <p className="sub soon">{words.t('landing_soon')}</p>}
           <div className="acc">
             {product.description ? (
               <details open>

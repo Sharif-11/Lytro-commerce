@@ -137,9 +137,9 @@ const capturedInputSchema = z.object({
   value: textField(CAPTURED_VALUE_MAX_LENGTH),
 });
 
-// CMB-03: for a combo, each choice part's variant for each unit, in order -- the combo's quantity times the part's
-// quantity of them; a fixed part needs none. Which part (its position) and that each is allowed and on sale are the
-// server's check.
+// CMB-03: for a combo, each choice part's variant for each of its units in one combo, in order; every combo on the line
+// takes the same picks, and a fixed part needs none. Which part (its position) and that each is allowed and on sale are
+// the server's check.
 const comboChoiceSchema = z.object({
   part: z.number().int().min(1).max(COMBO_PARTS_MAX),
   variantIds: z
@@ -507,7 +507,14 @@ export type ReturnOrderInput = z.infer<typeof returnOrderSchema>;
 export const deliveryEstimateSchema = z.object({
   locationId: z.number().int().positive().optional(),
   items: z
-    .array(z.object({ variantId: catalogueIdSchema, quantity: positiveQuantityField }))
+    .array(
+      z.object({
+        variantId: catalogueIdSchema,
+        quantity: positiveQuantityField,
+        // MNU-02 (Slice 4.8e): the add-ons chosen, priced into the line as an order prices them; left out, the defaults.
+        modifiers: orderItemSchema.shape.modifiers,
+      }),
+    )
     .min(1)
     .max(ORDER_LINES_MAX),
 });

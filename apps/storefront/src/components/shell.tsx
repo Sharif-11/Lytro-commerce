@@ -69,6 +69,7 @@ export function Shell({
   footer,
   children,
   overlay,
+  tight,
 }: {
   language: Language;
   brand?: PublicBrand | null;
@@ -76,13 +77,14 @@ export function Shell({
   footer: ReactNode;
   children: ReactNode;
   overlay?: ReactNode;
+  tight?: boolean;
 }) {
   return (
     <Frame language={language} brand={brand}>
       <div className="shell">
         {header}
         <div className="scroll">
-          <div className="page">
+          <div className={tight ? 'page tight' : 'page'}>
             {children}
             {footer}
           </div>
@@ -106,7 +108,8 @@ export interface HeaderNav {
 // STOREFRONT-DESIGN §1: a wide screen's header names the first six categories.
 const NAV_CATEGORIES = 6;
 
-/** The header. `minimal` is the landing page's: the shop and the language only, no way into the catalogue (LND-01).
+/** The header. `minimal` is the landing page's: the shop and the language only, no way into the catalogue (LND-01);
+    with `homeLink`, an order's confirmation, the shop leads home.
     `home` is the storefront's: the shop, the categories on a wide screen, search and the cart. `back` is an inner
     page's: a way back and its title on a phone, the shop on a wide screen, then the same. */
 export function Header({
@@ -116,6 +119,7 @@ export function Header({
   title,
   backHref,
   nav,
+  homeLink,
 }: {
   shop: ShopFace;
   language: Language;
@@ -123,6 +127,7 @@ export function Header({
   title?: string;
   backHref?: string;
   nav?: HeaderNav;
+  homeLink?: boolean;
 }) {
   const words = new Words(language);
   const face = (
@@ -134,7 +139,13 @@ export function Header({
   if (variant === 'minimal') {
     return (
       <div className="hdr minimal">
-        <span className="shop">{face}</span>
+        {homeLink ? (
+          <a className="shop" href="/">
+            {face}
+          </a>
+        ) : (
+          <span className="shop">{face}</span>
+        )}
         <LanguageSwitch language={language} as="pill" />
       </div>
     );
@@ -193,8 +204,8 @@ export function Header({
 }
 
 /** SFT-21: the shop's name and logo, and whichever of its phone, email and address are set; none set, no contact
-    block. The storefront's links lead to its categories and the language (tracking and the account join with
-    Phase 4); the landing page's lead only out to the shop, and only while its storefront is on (SFT-16). */
+    block. The storefront's links lead to its categories, tracking and the language (the account joins with the sign-in
+    pages); the landing page's lead out to the shop, only while its storefront is on (SFT-16), and to tracking. */
 export function Footer({
   shop,
   language,
@@ -243,6 +254,7 @@ export function Footer({
         <div className="links">
           {landing && storefrontOn ? <a href="/">{words.t('browse_shop')}</a> : null}
           {landing ? null : <a href="/#categories">{words.t('categories')}</a>}
+          <a href="/track">{words.t('track')}</a>
           <LanguageSwitch language={language} as="link" />
         </div>
         <div className="pb">

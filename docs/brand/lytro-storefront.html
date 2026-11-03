@@ -297,6 +297,7 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .frame.desktop .sover{top:40px}
 .sover .sbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--surface)}
 .sbox{flex:1;display:flex;align-items:center;gap:8px;height:44px;border:1.5px solid var(--text);border-radius:var(--r-pill);padding:0 14px;background:var(--surface)}
+.page>.sbox{flex:none}
 .sbox svg.i{width:18px;height:18px;color:var(--subtle)}
 .sbox input{flex:1;border:0;outline:0;background:transparent;font-size:16px;min-width:0;color:var(--text)}
 .sbox.q{border-color:var(--line-strong)}
@@ -1413,7 +1414,7 @@ const E48_LINES = () => [
   { n: L('শিফন হিজাব', 'Chiffon hijab'), v: L('কালো', 'Black'), q: 2, p: 350 },
 ];
 const e48Sub = () => E48_LINES().reduce((a, l) => a + (l.p + (l.addon ? l.addon[1] : 0)) * l.q, 0);
-const e48Line = (l) => `<div class="cl"><span class="th">${l.n.slice(0, 1)}</span><div class="b"><div class="nm">${l.n}</div><div class="vr">${l.v ? l.v + ' × ' + l.q : '× ' + l.q}</div>${l.choices ? `<div class="vr">${t('e48Choices', { x: l.choices })}</div>` : ''}${l.addon ? `<div class="vr">${t('e48AddOn', { a: l.addon[0] })} ${money(l.addon[1])}</div>` : ''}<div class="row"><span></span><span class="price">${money((l.p + (l.addon ? l.addon[1] : 0)) * l.q)}</span></div></div></div>`;
+const e48Line = (l) => `<div class="cl"><span class="th">${l.n.slice(0, 1)}</span><div class="b"><div class="nm">${l.n}</div><div class="vr">${l.v ? l.v + ' × ' + l.q : '× ' + l.q}</div>${l.choices ? `<div class="vr">${t('e48Choices', { x: l.choices })}</div>` : ''}${l.addon ? `<div class="vr">${t('e48AddOn', { a: l.addon[0] })} ${money(l.addon[1])}</div>` : ''}${l.asked ? `<div class="vr">${l.asked[0]}: ${l.asked[1]}</div>` : ''}<div class="row"><span></span><span class="price">${money((l.p + (l.addon ? l.addon[1] : 0)) * l.q)}</span></div></div></div>`;
 const e48Sum = (o) => { o = o || {}; const sub = e48Sub(); const d = o.counter ? 0 : 70; return `<div class="sum"><div class="r"><span class="k">${t('subtotal')}</span><span>${money(sub)}</span></div><div class="r"><span class="k">${t('delivery')} · ${L(ZONE.inside.bn, ZONE.inside.en)}</span><span>${money(d)}</span></div><div class="r total"><span>${t('grand_total')}</span><span class="price">${money(sub + d)}</span></div><div class="r"><span class="k">${t('e48TaxIn')}</span><span>${money(166.67)}</span></div></div>`; };
 
 /* Checkout: one page, guest, cash on delivery (agreed). */
@@ -1427,9 +1428,11 @@ function e48Checkout(o) {
   const pay = `<div class="card2"><div class="sechead"><h2>${t('co_payment')}</h2></div><div class="line" style="margin:0">${I.cash}<span><b>${t('pay_cod')}</b> · ${t('pay_cod_hint')}</span></div><div style="opacity:.55;font-size:13px;display:flex;gap:8px;align-items:center">${later('phase5')}<span>${t('e48OnlineLater')}</span></div></div>`;
   const banners = o.adv
     ? `<div class="banner warn">${I.warn}<span><b>${t('e48AdvT')}</b><br>${t('e48AdvP')}</span></div><div style="display:flex;gap:8px">${`<button class="btn ghost sm" onclick="go('checkout')">${t('e48Remove')}</button><button class="btn ghost sm">${I.phone} ${t('e48CallShop')}</button>`}</div>`
-    : o.short ? `<div class="banner bad">${I.warn}<span><b>${t('e48ShortT')}</b><br>${t('e48ShortP')}</span></div>`
-      : o.errors ? `<div class="banner bad">${I.warn}<span>${t('err_fix', { n: 2 })}</span></div>` : '';
-  const side = `<div class="side"><div class="card2"><h3>${t('co_summary')}</h3>${E48_LINES().map(e48Line).join('')}${o.short ? `<div class="cl off"><span class="th">D</span><div class="b"><div class="nm">${L('ডেনিম জ্যাকেট', 'Denim jacket')}</div><div class="vr">M × 1</div><div class="note">${t('line_out')}</div><span class="rm">${t('remove')}</span></div></div>` : ''}${o.adv ? `<div class="cl off"><span class="th">L</span><div class="b"><div class="nm">${L('লন থ্রি-পিস', 'Lawn three-piece')}</div><div class="vr">L × 1</div><div class="note">${t('pay_adv', { n: 200 })}</div><span class="rm">${t('remove')}</span></div></div>` : ''}${e48Sum()}<button class="btn primary lg block" ${o.adv || o.nodelivery || o.short ? 'disabled' : ''} onclick="go('confirm-cod')">${t('e48Place')}</button></div></div>`;
+    : o.short ? `<div class="banner bad">${I.warn}<span><b>${t(o.shortAtCheck ? 'e48OutT' : 'e48ShortT')}</b><br>${t(o.shortAtCheck ? 'e48OutP' : 'e48ShortP')}</span></div>`
+      : o.failed ? `<div class="banner bad">${I.warn}<span><b>${t('e48FailT')}</b><br>${t('e48FailP')}</span></div>`
+        : o.busy ? `<div class="banner warn">${I.warn}<span><b>${t('e48BusyT')}</b><br>${t('e48BusyP')}</span></div>`
+          : o.errors ? `<div class="banner bad">${I.warn}<span>${t('err_fix', { n: 2 })}</span></div>` : '';
+  const side = `<div class="side"><div class="card2"><h3>${t('co_summary')}</h3>${E48_LINES().map((l, i) => e48Line(o.asked && i === 0 ? { ...l, asked: [t('e48Embroider'), 'Rafi'] } : l)).join('')}${o.short ? `<div class="cl off"><span class="th">D</span><div class="b"><div class="nm">${L('ডেনিম জ্যাকেট', 'Denim jacket')}</div><div class="vr">M × 1</div><div class="note">${t('line_out')}</div><span class="rm">${t('remove')}</span></div></div>` : ''}${o.adv ? `<div class="cl off"><span class="th">L</span><div class="b"><div class="nm">${L('লন থ্রি-পিস', 'Lawn three-piece')}</div><div class="vr">L × 1</div><div class="note">${t('pay_adv', { n: 200 })}</div><span class="rm">${t('remove')}</span></div></div>` : ''}${e48Sum()}<button class="btn primary lg block" ${o.adv || o.nodelivery || o.short ? 'disabled' : ''} onclick="go('confirm-cod')">${t('e48Place')}</button></div></div>`;
   return `<div><h1 class="pt">${t('co_title')}</h1></div>${banners}<div class="two"><div style="display:flex;flex-direction:column;gap:16px">${contact}${address}${pay}</div>${side}</div>`;
 }
 const coHdr48 = () => ({ hdr: { back: 'cart', title: t('co_title') }, tight: true });
@@ -1508,13 +1511,81 @@ def('combo', { group: G48, label: "Combo pack · what's inside, a size for each 
 /* A product's add-ons (MNU-01, MNU-02): their price adds to the line. */
 def('e48-addons', { group: G48, label: 'Product · an add-on: gift wrap', url: 'megh.lytro.app/p/cotton-panjabi', render: () => { const p = P[0]; return shell(pHdr(p), productPage(p).replace('<div class="dbtns">', `<div class="opt"><div class="lb"><span>${t('e48Addons')} · ${t('e48GiftWrap')}</span><span class="sub" style="font-size:12px">${t('e48Optional1')}</span></div><label class="radio on" style="padding:10px 12px;border:1px solid var(--line);border-radius:10px"><span class="dot"></span><span class="b"><span class="l1">${t('e48GiftWrap')}</span></span><span class="price" style="font-size:14px">+${money(50)}</span></label></div><div class="dbtns">`), buybar(p, { price: 1300 })); } });
 
-/* The cart, with a combo's choices, an add-on and the tax inside the total (TAX-03). */
-def('e48-cart', { base: 'product', group: G48, label: 'Cart · a combo, an add-on, the tax line', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), sheet(`${t('cart_title')} · ${t('cart_n', { n: 4 })}`, `<div class="lines">${E48_LINES().map(e48Line).join('')}</div>${e48Sum()}`, `<button class="btn ghost" onclick="go('home')">${t('continue_')}</button><button class="btn primary" onclick="go('checkout')">${t('checkout')}</button>`, { drawer: true, close: 'product' })) });
-
 /* The landing page's form takes the order now (LND-07 to LND-12). */
 def('landing', { group: G48, label: 'Landing page · the form takes the order', url: 'megh.lytro.app/l/cotton-panjabi', render: () => shell({ hdr: { minimal: true }, landing: true }, landingPage({ name: L('রুমানা আক্তার', 'Rumana Akter'), phone: '01711 223344', district: 'dhaka', thana: 'mirpur' }).replace(/<button class="btn primary lg block"[^>]*>/, `<button class="btn primary lg block" onclick="go('e48-landing-placed')">`), landingBar(P[0])) });
 def('e48-landing-placed', { group: G48, label: '· placed from the landing page', url: 'megh.lytro.app/l/cotton-panjabi', render: () => shell({ hdr: { minimal: true }, tight: true, nofoot: true }, e48Placed({ landing: true })) });
 def('e48-header', { group: G48, label: 'Header · the account icon (signed out)', url: 'megh.lytro.app', render: () => shell({}, homePage()) });
+
+/* v1.4 (Slice 4.8e's build, part 1): what building it needed and the group above did not draw. The questions a product
+   asks when ordering (ATR-08, agreed 2026-11-03: above Add to cart, optional, kept on the line and the order); a required
+   add-on left empty; a cart line whose add-ons no longer fit; nothing to check out; an order that did not go through;
+   tracking with no ID, one not found, delivered and returned; and the landing page's refusals. */
+Object.assign(S, {
+  e48AskedOpt: ['{name} (অপশনাল)', '{name} (optional)'],
+  e48Embroider: ['যে নাম এমব্রয়ডারি হবে', 'Name to embroider'],
+  e48AskedNumber: ['শুধু সংখ্যা লিখুন', 'Numbers only'],
+  e48Packing: ['প্যাকিং', 'Packing'],
+  e48PackPlain: ['সাধারণ', 'Plain'],
+  e48PackBox: ['গিফট বক্স', 'Gift box'],
+  e48Pick1: ['১টি বাছুন', 'Pick 1'],
+  e48PickErr: ['একটি বাছুন', 'Pick one'],
+  e48LineRefit: ['অপশন বদলে গেছে, মোট দামে ধরা হয়নি। সরিয়ে আবার রাখুন।', 'Its options changed, not in the total. Remove it and add it again.'],
+  e48OutT: ['ডেনিম জ্যাকেট স্টকে নেই', 'The Denim jacket is sold out'],
+  e48OutP: ['অর্ডার করতে এটা সরিয়ে দিন।', 'Remove it to place the order.'],
+  e48FailT: ['অর্ডার পাঠানো যায়নি', "The order didn't go through"],
+  e48FailP: ['ইন্টারনেট দেখে আবার চাপুন; দুবার চাপলেও একটাই অর্ডার হবে।', 'Check your connection and tap again; tapping twice never creates two orders.'],
+  e48BusyT: ['এখন অনেক বেশি চেষ্টা হয়েছে', 'Too many tries just now'],
+  e48BusyP: ['এক মিনিট পরে আবার চাপুন।', 'Tap again in a minute.'],
+  e48TrackHint: ['অর্ডারের পর পাওয়া ট্র্যাকিং আইডি দিন।', 'Enter the tracking ID you got when you ordered.'],
+  e48TrackNone: ['এই আইডিতে কোনো অর্ডার নেই। আইডি দেখে আবার খুঁজুন।', 'No order has that ID. Check it and try again.'],
+  e48Returned: ['রিটার্ন হয়েছে', 'Returned'],
+  e48CallLater: ['অর্ডার নম্বর {o}। শপ আপনাকে কল করে কনফার্ম করবে।', 'Order {o}. The shop will call you to confirm it.'],
+  err_name: ['নাম লিখুন', 'Enter your name'],
+});
+
+/* ATR-08: what the seller marked "asked when ordering", above Add to cart. */
+const askedField = (v) => `<div class="opt">${field(t('e48AskedOpt', { name: t('e48Embroider') }), input(v || '', ''))}</div>`;
+def('e48-asked', { group: G48, label: 'Product · what the shop asks when ordering (ATR-08)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => { const p = P[0]; return shell(pHdr(p), productPage(p).replace('<div class="dbtns">', `${askedField('Rafi')}<div class="dbtns">`), buybar(p)); } });
+const pickRow = (name, price, on) => `<label class="radio ${on ? 'on' : ''}" style="padding:10px 12px;border:1px solid var(--line);border-radius:10px"><span class="dot"></span><span class="b"><span class="l1">${name}</span></span><span class="price" style="font-size:14px">${price ? `+${money(price)}` : ''}</span></label>`;
+def('e48-addons-required', { group: G48, label: '· a required add-on left empty', url: 'megh.lytro.app/p/cotton-panjabi', render: () => { const p = P[0]; return shell(pHdr(p), productPage(p).replace('<div class="dbtns">', `<div class="opt"><div class="lb"><span>${t('e48Addons')} · ${t('e48Packing')}</span><span class="sub" style="font-size:12px">${t('e48Pick1')}</span></div>${pickRow(t('e48PackPlain'), 0, false)}${pickRow(t('e48PackBox'), 80, false)}<div class="field"><div class="err">${t('e48PickErr')}</div></div></div><div class="dbtns">`), buybar(p)); } });
+
+/* The cart keeps its stepper and Remove, with the choices, add-ons and answers on the line (replaces the summary lines
+   the first drawing reused). */
+const e48CartLine = (l) => `<div class="cl"><span class="th">${l.n.slice(0, 1)}</span><div class="b"><div class="nm">${l.n}</div>${l.v ? `<div class="vr">${l.v}</div>` : ''}${l.choices ? `<div class="vr">${t('e48Choices', { x: l.choices })}</div>` : ''}${l.addon ? `<div class="vr">${t('e48AddOn', { a: l.addon[0] })} ${money(l.addon[1])}</div>` : ''}${l.asked ? `<div class="vr">${l.asked[0]}: ${l.asked[1]}</div>` : ''}<div class="row">${qty(l.q)}<span class="price">${money((l.p + (l.addon ? l.addon[1] : 0)) * l.q)}</span></div><span class="rm">${t('remove')}</span></div></div>`;
+const e48CartLines = (asked) => E48_LINES().map((l, i) => (asked && i === 0 ? { ...l, asked: [t('e48Embroider'), 'Rafi'] } : l));
+const e48CartSum = () => { const sub = e48Sub(); const items = E48_LINES().reduce((a, l) => a + l.q, 0); return `<div class="sum"><div class="r"><span class="k">${t('subtotal')} · ${t('cart_n', { n: items })}</span><span class="price">${money(sub)}</span></div><div class="r"><span class="k">${t('delivery')} · ${L(ZONE.inside.bn, ZONE.inside.en)} <span class="lnk" style="color:var(--accent-text);cursor:pointer" onclick="go('cart-area')">${t('change')}</span></span><span>${money(70)}</span></div><div class="r total"><span>${t('total')}</span><span class="price">${money(sub + 70)}</span></div><div class="r"><span class="k">${t('e48TaxIn')}</span><span>${money(166.67)}</span></div></div><div class="sub" style="font-size:12px">${t('cart_est_note')}</div>`; };
+const e48CartFoot = () => `<button class="btn ghost" onclick="go('home')">${t('continue_')}</button><button class="btn primary" onclick="go('checkout')">${t('checkout')}</button>`;
+def('e48-cart', { base: 'product', group: G48, label: 'Cart · a combo, an add-on, an answer, the tax line', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), sheet(`${t('cart_title')} · ${t('cart_n', { n: 4 })}`, `<div>${e48CartLines(true).map(e48CartLine).join('')}</div>${e48CartSum()}`, e48CartFoot(), { drawer: true, close: 'product' })) });
+def('e48-cart-refit', { base: 'product', group: G48, label: "· a line whose add-ons no longer fit", url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), sheet(`${t('cart_title')} · ${t('cart_n', { n: 3 })}`, `<div>${E48_LINES().slice(1).map(e48CartLine).join('')}<div class="cl off"><span class="th">${pName(P[0]).slice(0, 1)}</span><div class="b"><div class="nm">${pName(P[0])}</div><div class="vr">${L('M · সাদা', 'M · White')}</div><div class="note">${t('e48LineRefit')}</div><span class="rm">${t('remove')}</span></div></div></div>${e48CartSum()}`, e48CartFoot(), { drawer: true, close: 'product' })) });
+
+/* Checkout: an answer on its line, nothing to check out, an item already sold out when the page checks it, an order that did not go through. */
+const coEmpty = () => `<div><h1 class="pt">${t('co_title')}</h1></div><div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:32px 0">${I.bag.replace('class="i"', 'class="i" style="width:40px;height:40px;color:var(--n300)"')}<b style="font-size:17px">${t('cart_empty')}</b><p class="sub">${t('cart_empty_hint')}</p><button class="btn ghost" onclick="go('home')">${t('continue_')}</button></div>`;
+def('e48-checkout-empty', { group: G48, label: '· nothing to check out', url: 'megh.lytro.app/checkout', render: () => shell(coHdr48(), coEmpty()) });
+def('e48-checkout-out', { group: G48, label: '· an item already sold out when the page checks', url: 'megh.lytro.app/checkout', render: () => shell(coHdr48(), e48Checkout({ short: true, shortAtCheck: true })) });
+def('e48-checkout-failed', { group: G48, label: "· the order didn't go through", url: 'megh.lytro.app/checkout', render: () => shell(coHdr48(), e48Checkout({ failed: true })) });
+def('e48-checkout-busy', { group: G48, label: '· too many tries (RTE-06)', url: 'megh.lytro.app/checkout', render: () => shell(coHdr48(), e48Checkout({ busy: true })) });
+def('e48-checkout-asked', { group: G48, label: '· an answer on its line (ATR-08)', url: 'megh.lytro.app/checkout', render: () => shell(coHdr48(), e48Checkout({ asked: true })) });
+
+/* Order placed, opened again later on another phone: the shopper's number is not shown to whoever holds the link. */
+def('e48-placed-later', { group: G48, label: '· opened later: no phone number shown', url: 'megh.lytro.app/order/K7F2M9QX', render: () => shell({ hdr: { minimal: true }, tight: true, nofoot: true }, e48Placed().replace(t('cf_p', { o: '#261031-0047', ph: '01711 223344' }), t('e48CallLater', { o: '#261031-0047' }))) });
+
+/* Tracking: no ID yet, an ID that finds nothing, delivered, returned. */
+const trSearch = (v) => `<div class="sbox">${I.search}<input value="${v || ''}" placeholder="${t('tr_id')}" style="font-family:ui-monospace,Menlo,monospace;letter-spacing:.08em"><button class="btn sm dark">${t('tr_find')}</button></div>`;
+def('e48-tracking-start', { group: G48, label: '· no ID yet', url: 'megh.lytro.app/track', render: () => shell(trHdr(), `<div><h1 class="pt">${t('tr_title')}</h1><div class="sub">${t('e48TrackHint')}</div></div>${trSearch('')}`) });
+def('e48-tracking-none', { group: G48, label: '· an ID that finds nothing', url: 'megh.lytro.app/track/K7F2M9QX', render: () => shell(trHdr(), `<div><h1 class="pt">${t('tr_title')}</h1></div>${trSearch('K7F2M9QX')}<div class="banner bad">${I.warn}<span>${t('e48TrackNone')}</span></div>`) });
+def('e48-tracking-delivered', { group: G48, label: '· delivered', url: 'megh.lytro.app/track/K7F2M9QX', render: () => shell(trHdr(), e48Track({ stage: 'delivered' })) });
+def('e48-tracking-returned', { group: G48, label: '· returned', url: 'megh.lytro.app/track/K7F2M9QX', render: () => shell(trHdr(), e48Track({ stage: 'delivered' }).replace(`<span class="st ok plain">${t('tr_delivered')}</span>`, `<span class="st out">${t('e48Returned')}</span>`)) });
+
+/* The landing page: the same questions and add-ons on the product, and its refusals in the form. The button stays where
+   it is drawn; a product needing an advance waits for online payment as checkout's does. */
+const landingFilled = { name: L('রুমানা আক্তার', 'Rumana Akter'), phone: '01711 223344', district: 'dhaka', thana: 'mirpur' };
+const landingBtn = (html, attrs, label) => html.replace(/<button class="btn primary lg block"[^>]*>[^<]*<\/button>/, `<button class="btn primary lg block" ${attrs}>${label}</button>`);
+const landingShell = (html) => shell({ hdr: { minimal: true }, landing: true }, html, landingBar(P[0]));
+def('e48-landing-picks', { group: G48, label: 'Landing page · add-ons and what the shop asks', url: 'megh.lytro.app/l/cotton-panjabi', render: () => landingShell(landingPage(landingFilled).replace(`<div class="desc" style="font-size:14px;color:var(--muted)">`, `<div class="opt"><div class="lb"><span>${t('e48Addons')} · ${t('e48GiftWrap')}</span><span class="sub" style="font-size:12px">${t('e48Optional1')}</span></div>${pickRow(t('e48GiftWrap'), 50, true)}</div>${askedField('')}<div class="desc" style="font-size:14px;color:var(--muted)">`)) });
+def('e48-landing-errors', { group: G48, label: '· field errors', url: 'megh.lytro.app/l/cotton-panjabi', render: () => landingShell(landingPage({ phone: '0171', district: 'dhaka', errPhone: true, errThana: true, errAddr: true }).replace(`<div class="ofrm" style="display:flex;flex-direction:column;gap:16px">`, `<div class="ofrm" style="display:flex;flex-direction:column;gap:16px"><div class="banner bad">${I.warn}<span>${t('err_fix', { n: 3 })}</span></div>`)) });
+def('e48-landing-nodelivery', { group: G48, label: '· no delivery to that thana (DLV-06)', url: 'megh.lytro.app/l/cotton-panjabi', render: () => landingShell(landingBtn(landingPage({ ...landingFilled, district: 'bandarban', thana: 'ruma' }), 'disabled', t('confirm_order')).replace(`<div class="line">${I.cash}`, `<div class="banner bad">${I.warn}<span><b>${t('no_delivery', { a: L('বান্দরবান', 'Bandarban') })}</b><br>${t('no_delivery_hint')}</span></div><div class="line">${I.cash}`)) });
+def('e48-landing-advance', { group: G48, label: '· a product needing an advance waits for Phase 5', url: 'megh.lytro.app/l/lawn-three-piece', render: () => landingShell(landingBtn(landingPage(landingFilled), 'disabled', t('confirm_order')).replace(`<div class="ofrm" style="display:flex;flex-direction:column;gap:16px">`, `<div class="ofrm" style="display:flex;flex-direction:column;gap:16px"><div class="banner warn">${I.warn}<span><b>${t('e48AdvT')}</b><br>${t('e48AdvP')}</span></div><div style="display:flex;gap:8px"><button class="btn ghost sm">${I.phone} ${t('e48CallShop')}</button></div>`)) });
+def('e48-landing-out', { group: G48, label: '· sold out', url: 'megh.lytro.app/l/kids-frock', render: () => landingShell(landingPage(landingFilled).replace(/<button class="btn primary lg block"[^>]*>[^<]*<\/button>/, `<button class="btn ghost lg block" disabled>${t('out')}</button>`)) });
 
 /* ---------- toolbar ---------- */
 (function init() {

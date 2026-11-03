@@ -11,6 +11,7 @@ import {
   type DeliveryEstimateInput,
 } from '@lytronix/validators';
 import { FieldsError, type InvalidField } from '../../../common/api-error';
+import type { ModifierGroupView, OrderableVariant } from '../../catalogue/types/catalogue';
 import {
   fromPaisa,
   quantityTimesCost,
@@ -19,13 +20,13 @@ import {
 } from '../../balance/services/money';
 import { ShopDeliveryRateService } from '../../balance/services/shop-delivery-rate.service';
 import { ProductService } from '../../catalogue/services/product.service';
-import type { OrderableVariant } from '../../catalogue/types/catalogue';
 import { comboFigures } from '../../inventory/services/combo-figures';
 import { DeliveryZoneService } from '../../delivery/services/delivery-zone.service';
 import { LocationService } from '../../delivery/services/location.service';
 import type { ResolvedZoneView } from '../../delivery/types/delivery';
 import type { OrderStore } from '../ports/order-store';
 import { ORDER_STORE } from '../tokens';
+import type { LineModifierSnapshot, OrderTaxLine } from '../types/orders';
 
 /** One item as pricing reads it: its price, quantity and discount, and how it delivers and is paid for. */
 export interface PricingLine {
@@ -101,6 +102,81 @@ export function taxesOf(
   return [...byClass.values()]
     .sort((a, b) => a.name.localeCompare(b.name) || Number(toPaisa(a.rate) - toPaisa(b.rate)))
     .map((row) => ({ name: row.name, rate: row.rate, amount: fromPaisa(row.amount) }));
+}
+
+/**
+ * MNU-02, MNU-03 (Slice 4.6b): the options chosen for a line -- each group named takes the options given, each group
+ * not named its defaults -- each group held to its least and most; a group or option not of the product is refused,
+ * naming it. The snapshot keeps each option's group, name and price change as they stand now.
+ */
+export function chooseModifiers(
+  groups: readonly ModifierGroupView[],
+  chosen: readonly { groupId: string; optionIds: string[] }[],
+  at: (field: string) => string,
+  problems: InvalidField[],
+): LineModifierSnapshot[] {
+  const byId = new Map(groups.map((group) => [group.id, group]));
+  const picked = new Map<string, string[]>();
+  chosen.forEach((choice, position) => {
+    const group = byId.get(choice.groupId);
+    if (!group) {
+      problems.push({
+        field: at(`modifiers.${String(position)}.groupId`),
+        problem: ServerFieldProblemCode.NotFound,
+        messageKey: 'ModifierGroupNotFound',
+      });
+      return;
+    }
+    if (picked.has(group.id)) {
+      problems.push({
+        field: at(`modifiers.${String(position)}.groupId`),
+        problem: FieldProblemCode.NotAllowed,
+      });
+      return;
+    }
+    const known = new Set(group.options.map((option) => option.id));
+    const unknown = choice.optionIds.findIndex((id) => !known.has(id));
+    if (unknown >= 0) {
+      problems.push({
+        field: at(`modifiers.${String(position)}.optionIds.${String(unknown)}`),
+        problem: ServerFieldProblemCode.NotFound,
+        messageKey: 'ModifierOptionNotFound',
+      });
+      return;
+    }
+    picked.set(group.id, [...new Set(choice.optionIds)]);
+  });
+  return groups.flatMap((group) => {
+    const ids =
+      picked.get(group.id) ??
+      group.options.filter((option) => option.isDefault).map((option) => option.id);
+    if (ids.length < group.minSelect || ids.length > group.maxSelect) {
+      problems.push({
+        field: at('modifiers'),
+        problem: ServerFieldProblemCode.OutOfRange,
+        messageKey: 'ModifierChoiceCount',
+        params: { group: group.name, min: group.minSelect, max: group.maxSelect },
+      });
+      return [];
+    }
+    return group.options
+      .filter((option) => ids.includes(option.id))
+      .map((option) => ({
+        groupId: group.id,
+        groupName: group.name,
+        optionId: option.id,
+        optionName: option.name,
+        priceChange: option.priceChange,
+      }));
+  });
+}
+
+/** MNU-02: a variant's price with its chosen options priced in. */
+export function priceWithModifiers(
+  base: string,
+  modifiers: readonly { priceChange: string }[],
+): string {
+  return fromPaisa(modifiers.reduce((sum, row) => sum + toPaisa(row.priceChange), toPaisa(base)));
 }
 
 /**
@@ -290,7 +366,10 @@ export class OrderPricing {
    * stock, whether it is still sold (Slice 12b: a cart checks its lines here) -- then what delivering the ones that can
    * be ordered to a thana would cost, and whether they can go there (DLV-06, DLV-07); before a thana is chosen, the
    * least and most any zone that delivers would charge. Only what is on sale and not sold out is priced (PRD-06,
-   * ATR-07); with none, nothing is.
+   * ATR-07); with none, nothing is. Slice 4.8e: a line's add-ons are priced in, as its order will price them, and the
+   * tax its total includes is said, so a cart and a checkout show what the order will. Add-ons that no longer fit --
+   * an option since removed, a required group now left empty -- are not refused here, since a cart must still open:
+   * the line says so (`choicesFit`), and its order would be refused.
    */
   async estimate(tenantId: string, input: DeliveryEstimateInput): Promise<DeliveryEstimate> {
     const location = input.locationId !== undefined ? await this.thanaOf(input.locationId) : null;
@@ -313,15 +392,25 @@ export class OrderPricing {
             available: false,
             itemTotal: null,
             advance: null,
+            paymentPolicy: null,
+            choicesFit: true,
           };
         }
         const available = variant.stockState !== StockState.Out;
+        const problems: InvalidField[] = [];
+        const modifiers = chooseModifiers(
+          variant.modifierGroups,
+          item.modifiers ?? [],
+          (field) => field,
+          problems,
+        );
+        const worked = priceWithModifiers(variant.price, modifiers);
+        const belowZero = toPaisa(worked) < 0n;
         if (available) {
           products.push(variant);
           lines.push({
-            // SFT-20: the estimate is of the delivery charge; tax is inside the prices, so none is worked out here.
-            taxRate: null,
-            unitPrice: variant.price,
+            taxRate: variant.taxClass?.rate ?? null,
+            unitPrice: belowZero ? variant.price : worked,
             quantity: item.quantity.toFixed(3),
             itemDiscount: '0.00',
             weightKg: variant.weightKg,
@@ -339,6 +428,8 @@ export class OrderPricing {
           available,
           itemTotal: null,
           advance: null,
+          paymentPolicy: variant.paymentPolicy,
+          choicesFit: problems.length === 0 && !belowZero,
         };
       });
       if (lines.length === 0) {
@@ -350,6 +441,7 @@ export class OrderPricing {
           range: null,
           deliverable: false,
           notDeliveredHere: [],
+          taxes: [],
         };
       }
       // The items' own totals and advances, which no zone changes.
@@ -368,7 +460,18 @@ export class OrderPricing {
         item.itemTotal = priced?.itemTotal ?? null;
         item.advance = priced?.advance ?? null;
       }
-      const goods = { lines: items, subtotal: itemsOnly.subtotal };
+      const goods = {
+        lines: items,
+        subtotal: itemsOnly.subtotal,
+        // TAX-03: what the items' total includes, a line per class; the delivery charge carries none.
+        taxes: taxesOf(
+          products.map((row, index) => ({
+            taxClassName: row.taxClass?.name ?? null,
+            taxRate: row.taxClass?.rate ?? null,
+            taxAmount: itemsOnly.lines[index]?.tax ?? '0.00',
+          })),
+        ),
+      };
       const chargeAt = (zoneCharge: string, extraChargePerKg: string): string =>
         priceOrder({
           fulfilmentType: FulfilmentType.Delivery,
@@ -432,6 +535,10 @@ export interface EstimateLine {
   itemTotal: string | null;
   /** PRD-08: the advance its product asks before delivery; null when it is not available. */
   advance: string | null;
+  /** PRD-08 (Slice 4.8e): how its product is paid for; null when it is no longer sold. */
+  paymentPolicy: PaymentPolicy | null;
+  /** MNU-03 (Slice 4.8e): whether the add-ons asked for would be taken; an order for them is refused otherwise. */
+  choicesFit: boolean;
 }
 
 /** SFT-20: a cart's items as they stand, and their delivery, to a thana or, before one is chosen, as a range. */
@@ -451,4 +558,6 @@ export interface DeliveryEstimate {
   deliverable: boolean;
   /** DLV-07: the products limited to other zones. */
   notDeliveredHere: string[];
+  /** TAX-03 (Slice 4.8e): what the items' total includes, a line per class and rate. */
+  taxes: OrderTaxLine[];
 }

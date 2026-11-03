@@ -1,6 +1,10 @@
 # Shopper storefront: design
 
-Status: v1.3, 2026-10-31 (ordering as Phase 4 built it, Slice 4.8e, the prototype's group "Phase 4 · ordering":
+Status: v1.4, 2026-11-03 (Slice 4.8e's build, part 1, §7b: what a product asks when ordering, on the product page and
+kept on the line and the order; a required add-on left empty; a cart line whose add-ons no longer fit; nothing to check
+out, an item sold out when the page checks, an order that did not go through; tracking with no ID, one not found,
+delivered and returned; the landing page's add-ons, questions and refusals). v1.3 of 2026-10-31 (ordering as Phase 4
+built it, Slice 4.8e, the prototype's group "Phase 4 · ordering":
 an account icon in the header, sign-in with phone and password and a code once at sign-up, my orders by phone, saved
 addresses, a one-page guest checkout with cash on delivery and the tax inside the total, the confirmation with no SMS
 promised, tracking with Confirmed and the courier line, a size for each unit of a combo, add-ons, the landing page's
@@ -52,8 +56,9 @@ and how to pay (cash on delivery, or the advance the product needs). Everything 
 7. **Offline is a page, not an error.** A lapsed or suspended shop shows "Back soon" with its own name
    (SFT-12); a switched-off storefront is not-found (SFT-16); a gone product is a branded 404 (LND-03).
 8. **Installable, and worth installing.** The storefront is a PWA under the shop's plain name and icon (its
-   dashboard's app is the one marked "Admin", TEN-17), offered after a first order rather than on arrival (SFT-14,
-   CCH-10): until Phase 4 brings orders, only the browser's own Install or Add to Home Screen offers it.
+   dashboard's app is the one marked "Admin", TEN-17), offered on its home after a first order rather than on arrival,
+   once, whatever the shopper answers (SFT-14, CCH-10); before then only the browser's own Install or Add to Home Screen
+   offers it.
 
 **Look.** Lytro's default identity: white, ink text, teal-700 for the one accent, Inter and Noto Sans
 Bengali for text, Plus Jakarta Sans for prices and headings, 8 and 12 px corners. A shop's own identity changes
@@ -142,8 +147,8 @@ total, with Remove (`cart-changed`). The summary shows items, delivery as "Set y
 range beneath until an area is set and the exact charge after, and the total as a range or a figure. The
 sentence under it says the charge is the one the order will carry (SFT-20). Nothing is reserved until
 checkout (SFT-05). "No delivery to Bandarban" blocks checkout with the shop's phone number (DLV-06). Empty
-state with "Keep shopping". Until Phase 4 opens ordering, Checkout shows switched off with "Online ordering opens
-soon." under it (`cart-soon`).
+state with "Keep shopping". `cart-soon` drew Checkout switched off until Phase 4; since Slice 4.8e it leads to the
+checkout (§7a, §7b).
 
 ## 6. Landing page (`/l/<slug>`)
 
@@ -151,8 +156,7 @@ The product, exactly as on the product page, then the order form in the same scr
 district, thana, the courier's area when the shop's default courier books by areas (CUS-13), address,
 comments (LND-07), and the summary with item total, delivery as a range until the thana is chosen, the
 grand total and the payment line, then "Confirm order" with "Tapping twice never creates two orders"
-(LND-09). Until Phase 4 the form is laid out and the button disabled, with a sentence saying so (Slice 12).
-A `?v=` link opens with that variant selected (LND-06). A gone product is a branded 404 (LND-03). On
+(LND-09). Since Slice 4.8e the form takes the order (§7a, §7b). A `?v=` link opens with that variant selected (LND-06). A gone product is a branded 404 (LND-03). On
 phones a pinned bar carries the product's price and "Order now", which scrolls to the form, so a shopper
 arriving from an ad never has to hunt for it; on desktop the form sits beside the product and the bar is
 not shown. The landing footer keeps the shop's contact, one small "Browse the whole shop" link to the
@@ -216,6 +220,37 @@ of §8's drawings are changed here to what Slices 4.1 to 4.7 built; the payment 
 - **The landing page** (`landing`, LND-07 to LND-12): the form takes the order now, cash on delivery, and the thank-you
   is the same confirmation (`e48-landing-placed`). The Meta Pixel fires ViewContent when it opens, InitiateCheckout at
   the first field and Purchase once placed, with the event id the server's Conversions API sends too (LND-15, LND-16).
+  Only the landing page loads the Pixel, not the storefront's other pages.
+
+## 7b. What building ordering needed (Slice 4.8e, part 1)
+
+Drawn in the same group, on 2026-11-03, before the build:
+
+- **What a product asks when ordering** (`e48-asked`, ATR-08, agreed 2026-11-03): each thing the seller marked asked when
+  ordering, above Add to cart, "(optional)" in its label. A number asked must be a number once anything is typed. The
+  answer stays on the cart line, the checkout's summary, the order and its tracking page.
+- **A required add-on left empty** (`e48-addons-required`): Add to cart says "Pick one" under the group.
+- **The cart** (`e48-cart`, replacing the first drawing, which reused the summary's lines): each line keeps its stepper and
+  Remove, with the choices, add-ons and answers on it, the total and Includes VAT under them. Two lines of one variant with
+  different choices stay two lines. A line whose add-ons no longer fit (an option since removed, a required group now
+  empty) stays visible, out of the total, saying so, with Remove (`e48-cart-refit`).
+- **Checkout**: nothing to check out shows the empty cart's words (`e48-checkout-empty`). A line already sold out or no
+  longer sold when the page checks is named in a banner and left out of the total, and Place order waits for its Remove
+  (`e48-checkout-out`). An order that did not go through keeps everything typed and says to tap again, the same key making
+  one order however many tries (`e48-checkout-failed`); too many tries says to wait a minute (`e48-checkout-busy`, RTE-06).
+- **Order placed, opened later**: the shopper's number comes from the phone that placed it and is never read from the
+  server (ORD-17), so opened elsewhere it says "The shop will call you" (`e48-placed-later`).
+- **Tracking**: `/track` with no ID asks for one (`e48-tracking-start`); an ID that finds nothing says so
+  (`e48-tracking-none`); delivered (`e48-tracking-delivered`) and returned (`e48-tracking-returned`) read as drawn. It works
+  while the storefront is switched off, with the landing page's frame, because the landing page's confirmation leads there
+  (LND-02, LND-11).
+- **The landing page**: the product's add-ons and questions sit above its description (`e48-landing-picks`); the form's
+  refusals are its field errors (`e48-landing-errors`), no delivery to the thana (`e48-landing-nodelivery`), a product that
+  needs an advance waiting for online payment (`e48-landing-advance`) and sold out (`e48-landing-out`).
+
+Built screens leave out what is drawn as Later: paying first with bKash or Nagad shows in the sketch only, until Phase 5,
+as on the dashboard. The account icon, Sign in to fill this in, Make an account and All your orders by phone come with the
+sign-in pages in part 2.
 
 ## 8. Later phases, drawn in full
 
@@ -271,9 +306,10 @@ delivery". A gateway wallet comes back through pay.lytro.app to the same three s
 | --- | --- | --- |
 | Shell, home, category, search, product | `GET /v1/shop` (name, slug, pixel, logo, contact, delivery zones, brand identity), `/v1/catalogue/categories` (with each category's product count, Slice 12b), `/v1/catalogue/products` (category, search, sort, in stock only, cursor; each row's swatches and when it was added, Slice 12b), `/v1/catalogue/products/:slug` (images, video, options, attributes, variants with stock state, size chart, payment policy, advance, delivery zones); the storefront on/off flag (SFT-16); the delivery estimate and the canonical district and thana list (SFT-20, CUS-08; Slice 12a) | |
 | Cart | client-side (SFT-05); the delivery estimate, which also answers each line's current price, stock and whether it is still sold (Slice 12b) | |
-| Landing page | the product detail; OG tags from it (LND-05) | order creation (Phase 4) |
+| Landing page | the product detail; OG tags from it (LND-05); order creation (Slice 4.2) | |
 | Offline and not found | the tenant state from the host (TEN-08, LIF-07) | |
-| Checkout, confirmation, tracking, account, combos | nothing | Phase 4's order creation, tracking and OTP endpoints; Phase 5's sessions; combos (CMB) |
+| Checkout, confirmation, tracking, combos, add-ons | order creation, tracking (Slice 4.2), combos (Slice 4.5), add-ons (Slice 4.6b); the delivery estimate with add-ons priced and the tax it includes; what a product asks; tracking with a combo's parts and the shopper's answers (Slice 4.8e) | Phase 5's sessions, for a product needing an advance |
+| Account | sign-up, sign-in, addresses, my orders (Slice 4.4b) | its pages (Slice 4.8e, part 2) |
 | Chat | nothing | Phase 7 |
 | PWA | the storefront's own manifest, its icons drawn by the server from the brand's icon, the logo or the monogram (Slice 12c) | |
 
@@ -281,7 +317,7 @@ delivery". A gateway wallet comes back through pay.lytro.app to the same three s
 
 Next.js standalone, one deployment resolving the shop from the host (TEN-07a). Routes: `/` home, `/c/[slug]`
 category, `/new` new arrivals, `/search`, `/p/[slug]` product, `/cart` (the drawer, also a page), `/l/[slug]` landing, `/track/[id]`,
-`/sign-in`, `/account`, `/checkout`, `/order/[id]`. Server components for everything cacheable (home,
+`/track`, `/sign-in`, `/account`, `/checkout`, `/order/[id]`. Server components for everything cacheable (home,
 category, product, landing, with the catalogue version in the request address, CCH-04), client components
 for the cart, the area sheet, the pickers and the forms (CCH-07). Slice 12c adds `/manifest.webmanifest`,
 `/icons/<file>`, `/sw.js` (versioned by the build) and `/offline`. Shared pieces: `product-card`, `gallery`,
@@ -294,5 +330,5 @@ the shell and recently viewed catalogue responses (CCH-10). Copy lives in one di
 `docs/brand/lytro-storefront.html` is self-contained. Its toolbar picks the screen (Browse, Product, Cart,
 Landing page, Later phases), the device (phone 390, tablet 820, desktop 1280), the language and the brand
 (Lytro default, or one of two example shops' identities, drawn from their tokens as the app does). Every button that leads somewhere in the design leads there in
-the sketch. It renders 58 screens with no horizontal overflow at any width and no missing strings in either
-language.
+the sketch. It renders 93 screens with no missing strings in either language and no horizontal overflow, but for the
+long Make an account button on `confirm-cod` in English on a phone, which the sign-in pages' part will wrap.

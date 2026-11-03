@@ -416,6 +416,78 @@ describeIfDatabase('choosing modifiers on an order (MNU-02, MNU-03)', () => {
 });
 
 describeIfDatabase('modifiers for shoppers (MNU-02, agreed 2026-10-30)', () => {
+  it('prices the add-ons into the estimate as the order does, and says when they no longer fit (Slice 4.8e)', async () => {
+    const shop = await openShop(port, texts, 'mod');
+    const made = await burger(shop);
+    const key = (
+      (await shop.post('/api-keys', { name: 'Website', websites: [SITE] })).body as { key: string }
+    ).key;
+    const headers = {
+      host: 'api.localhost',
+      authorization: `Bearer ${key}`,
+      origin: SITE,
+      'content-type': 'application/json',
+    };
+    const estimate = (variantId: string, modifiers?: unknown[]) =>
+      sendExact(
+        port,
+        'POST',
+        '/v1/delivery-estimate',
+        { items: [{ variantId, quantity: 2, ...(modifiers ? { modifiers } : {}) }] },
+        headers,
+      );
+    expect((await estimate(made.variantId)).body).toMatchObject({
+      lines: [{ price: '250.00', itemTotal: '500.00', choicesFit: true }],
+      subtotal: '500.00',
+    });
+    const egg = [{ groupId: groupId(made, 'Extras'), optionIds: [option(made, 'Extras', 'Egg')] }];
+    expect((await estimate(made.variantId, egg)).body).toMatchObject({
+      // The list price stays the variant's, so a cart can tell a shop's change of price.
+      lines: [{ price: '250.00', itemTotal: '540.00', choicesFit: true }],
+      subtotal: '540.00',
+    });
+
+    // The same line, placed, comes to what the estimate said.
+    const locations = (await shop.get('/locations')).body as {
+      zillas: { nameEn: string; thanas: { id: number; nameEn: string }[] }[];
+    };
+    const mirpur = locations.zillas
+      .find((row) => row.nameEn === 'Dhaka')
+      ?.thanas.find((row) => row.nameEn === 'Mirpur');
+    const ordered = await sendExact(
+      port,
+      'POST',
+      '/v1/orders',
+      {
+        customerName: 'Rahima',
+        phone: texts.freshPhone(),
+        locationId: mirpur?.id,
+        deliveryAddress: 'House 12',
+        items: [{ variantId: made.variantId, quantity: 2, modifiers: egg }],
+      },
+      { ...headers, 'idempotency-key': randomUUID() },
+    );
+    expect(ordered.status, JSON.stringify(ordered.body)).toBe(201);
+    expect((ordered.body as { subtotal: string }).subtotal).toBe('540.00');
+
+    // What an order would refuse, the estimate only marks: a cart must still open.
+    const emptied = [{ groupId: groupId(made, 'Spice level'), optionIds: [] }];
+    expect((await estimate(made.variantId, emptied)).body).toMatchObject({
+      lines: [{ onSale: true, available: true, choicesFit: false }],
+    });
+    const notOurs = [{ groupId: made.id, optionIds: [] }];
+    expect((await estimate(made.variantId, notOurs)).body).toMatchObject({
+      lines: [{ onSale: true, available: true, choicesFit: false }],
+    });
+    const cheap = await burger(shop, 5);
+    const below = [
+      { groupId: groupId(cheap, 'Extras'), optionIds: [option(cheap, 'Extras', 'No onion')] },
+    ];
+    expect((await estimate(cheap.variantId, below)).body).toMatchObject({
+      lines: [{ itemTotal: '10.00', choicesFit: false }],
+    });
+  });
+
   it('shows the groups on the public product, takes the choices on an order, and shows them back', async () => {
     const shop = await openShop(port, texts, 'mod');
     const made = await burger(shop);

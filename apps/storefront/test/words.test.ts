@@ -15,7 +15,9 @@ describe('Words (I18N-01)', () => {
     const english = new Words('en');
     expect(english.t('from', { p: money('1850') })).toBe('from ৳1,850');
     expect(english.t('deliv_range', { from: money(60), to: money(150) })).toBe('৳60 – ৳150');
-    expect(english.t('landing_soon')).not.toMatch(/Phase/);
+    expect(english.t('adv_t_n', { p: 'Lawn three-piece', n: 200 })).toBe(
+      'Lawn three-piece needs a ৳200 advance',
+    );
     expect(new Words('bn').t('off_p')).not.toMatch(/\{s\}/);
   });
 

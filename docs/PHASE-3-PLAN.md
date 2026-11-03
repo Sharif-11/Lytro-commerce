@@ -1930,7 +1930,7 @@ deployment can make are listed under criterion 1; the gaps found are in `KNOWN-G
      landing preview, nothing saved), TEN-18 (the mark with the brand identity on), AUTH-29 (continuing without paying).
    - **Built, but only partly proven:** the storefront has no rendered-page test, so SFT-01 to 03, SFT-13's header,
      SFT-21's footer, LND-01, LND-02, LND-14 and TEN-18's storefront mark rest on the API's tests and unit tests
-     (§105); CCH-09 (a replaced image's old address still serving), BND-09 (a large JSON answer never counted as media),
+     (§105, closed 2026-11-03 by Slice 4.8e); CCH-09 (a replaced image's old address still serving), BND-09 (a large JSON answer never counted as media),
      DLV-05 (a city as the home area, in the dashboard) and LND-18 (the page working with the pixel blocked) have no test.
    - **Not built, though counted here:** MED-12, the operator's view of media costs (§101); LEG-01's recording of the
      accepted terms and privacy versions (§102); SFT-17's plan sheet (§103). RTE-01's secret-key half needs secret keys

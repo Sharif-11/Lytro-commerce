@@ -1,10 +1,17 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
-import type { DeliveryEstimate, PublicProduct } from '@/lib/api/storefront-api';
-import { type Language, money, Words } from '@/lib/i18n/words';
+import { PaymentPolicy } from '@lytronix/validators/enums';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { DeliveryEstimate, PlacedOrder, PublicProduct } from '@/lib/api/storefront-api';
+import { totalWith } from '@/lib/cart/cart-check';
+import { type CartLine, estimateItemOf, orderItemOf } from '@/lib/cart/cart-store';
+import { type Language, money, plainNumber, Words } from '@/lib/i18n/words';
+import { ADDRESS_MAX, NAME_MAX, NOTE_MAX } from '@/lib/order/order-form';
 import { VariantChoice } from '@/lib/product/variant-choice';
 import { Icon } from '../icon';
+import { LineExtras, NoticeBanner, TaxRows } from '../order/order-parts';
+import { PlacedView } from '../order/placed-view';
+import { useOrderPlacing } from '../order/use-order-placing';
 import {
   DetailsList,
   OptionRows,
@@ -15,8 +22,10 @@ import {
   rangeText,
 } from '../product/buy-parts';
 import { Gallery } from '../product/gallery';
+import { AddOnGroups, AskedFields, ComboInside, usePicks } from '../product/pickers';
 import { AreaFields, DeliveryBanner, SizeChartSheet, zillaOf } from '../product/sheets';
-import { useDeliveryEstimate, useLocations } from '../product/use-delivery';
+import { useLocations, useSettledEstimate } from '../product/use-delivery';
+import { pixelEvent } from './pixel-events';
 
 export interface LandingViewProps {
   language: Language;
@@ -28,9 +37,11 @@ export interface LandingViewProps {
   initialEstimate: DeliveryEstimate | null;
 }
 
-/** LND-01, LND-06 to LND-08: the one-product page as the prototype draws it (landingPage, orderForm, landingBar): the
-    product with its picker, and the order form beside it with the totals worked out as the shopper picks. The form is
-    laid out but not sent until Phase 4 (agreed 2026-10-29), which one line says. */
+/** LND-01, LND-06 to LND-12: the one-product page as the prototype draws it (landingPage, orderForm, landingBar): the
+    product with its picker, and the order form beside it with the totals worked out as the shopper picks. The order is
+    placed without leaving the page, and the same address then shows its confirmation. A product needing to be paid for
+    first waits for Phase 5's payment step (`e48-landing-advance`). LND-15: InitiateCheckout at the form's first field,
+    and Purchase once placed, under the ID the server tells Meta (LND-16). */
 export function LandingView(props: LandingViewProps) {
   const { product } = props;
   const words = useMemo(() => new Words(props.language), [props.language]);
@@ -41,25 +52,20 @@ export function LandingView(props: LandingViewProps) {
   const [selection, setSelection] = useState(() => choice.initial(props.linkedVariantId));
   const [quantity, setQuantity] = useState(1);
   const [zillaId, setZillaId] = useState<number | null>(null);
-  const [thanaId, setThanaId] = useState<number | null>(props.areaId);
   const [sizeChart, setSizeChart] = useState(false);
+  const [placed, setPlaced] = useState<PlacedOrder | null>(null);
   const form = useRef<HTMLDivElement>(null);
+  const begun = useRef(false);
   const closeSizeChart = useCallback(() => {
     setSizeChart(false);
   }, []);
   const locations = useLocations(true);
+  const placing = useOrderPlacing({ initialThana: props.areaId, source: 'landing_page' });
+  const { fields, problems, notice } = placing;
+  const picks = usePicks(product);
 
   const variant = choice.variantFor(selection);
-  const soldOut = product.variants.every((each) => !each.available);
-  // Only what can be bought is priced: a sold-out choice keeps the last answer instead of reading as undeliverable.
-  const items = variant?.available ? [{ variantId: variant.id, quantity }] : null;
-  const estimate = useDeliveryEstimate(props.initialEstimate, items, thanaId);
-  const price = variant?.price ?? product.minPrice;
-  const itemTotal = price === null ? 0 : Number(price) * quantity;
-  const exact =
-    thanaId !== null && estimate?.deliverable === true && estimate.deliveryCharge !== null
-      ? Number(estimate.deliveryCharge)
-      : null;
+  const soldOut = product.variants.every((each) => !each.available) || !picks.canBeMade;
   const choiceText = product.options
     .map((option) => {
       const value = option.values.find((each) => each.id === selection[option.attributeId]);
@@ -68,6 +74,134 @@ export function LandingView(props: LandingViewProps) {
     .filter((text) => text !== '')
     .join(' · ');
   const thumbnail = product.images[0]?.urls.thumbnail ?? null;
+  const line: CartLine | null = variant?.available
+    ? {
+        variantId: variant.id,
+        productSlug: product.slug,
+        name: product.name,
+        choice: choiceText,
+        price: variant.price,
+        image: thumbnail,
+        quantity,
+        ...picks.lineFields,
+      }
+    : null;
+  // Only what can be bought is priced: a sold-out choice keeps the last answer instead of reading as undeliverable.
+  const answer = useSettledEstimate(
+    props.initialEstimate,
+    line ? [estimateItemOf(line)] : null,
+    fields.thanaId,
+  );
+  const { estimate } = answer;
+  const price = variant?.price ?? product.minPrice;
+  const worked = price === null ? 0 : (Number(price) + picks.addOnsPrice) * quantity;
+  // The server's own sum once it has answered for what is picked now (LND-08), the same sum until then.
+  const asked = answer.settled ? estimate?.lines[0]?.itemTotal : null;
+  const itemTotal = asked ? Number(asked) : worked;
+  const thana = fields.thanaId;
+  const exact =
+    thana !== null && estimate?.deliverable === true && estimate.deliveryCharge !== null
+      ? Number(estimate.deliveryCharge)
+      : null;
+  const range = thana === null ? (estimate?.range ?? null) : null;
+  const undeliverable = thana !== null && estimate !== null && !estimate.deliverable;
+  const total = totalWith(itemTotal, exact, range);
+  const paysFirst = product.paymentPolicy !== PaymentPolicy.None;
+
+  // LND-15: the purchase, with the same ID the server sends, so Meta counts it once (LND-16).
+  useEffect(() => {
+    if (!placed) return;
+    const items = placed.items.flatMap((item) => (item.variantId === null ? [] : [item]));
+    pixelEvent(
+      'track',
+      'Purchase',
+      {
+        content_ids: items.map((item) => item.variantId),
+        content_type: 'product',
+        currency: 'BDT',
+        value: Number(placed.grandTotal),
+        contents: items.map((item) => ({ id: item.variantId, quantity: Number(item.quantity) })),
+      },
+      { eventID: placed.purchaseEventId },
+    );
+  }, [placed]);
+
+  if (placed) {
+    return (
+      <PlacedView
+        language={props.language}
+        orderNumber={placed.orderNumber}
+        trackingId={placed.trackingId}
+        codAmount={placed.codAmount}
+        landing
+      />
+    );
+  }
+
+  /** LND-15: the shopper starts the form. */
+  const begin = () => {
+    if (begun.current) return;
+    begun.current = true;
+    pixelEvent('track', 'InitiateCheckout', {
+      content_ids: variant ? [variant.id] : product.variants.map((each) => each.id),
+      content_type: 'product',
+      currency: 'BDT',
+      value: itemTotal,
+    });
+  };
+
+  const confirm = async () => {
+    if (!line || !picks.ready()) return;
+    const order = await placing.place([orderItemOf(line)]);
+    if (order) setPlaced(order);
+  };
+
+  const canConfirm =
+    line !== null && !soldOut && !paysFirst && !undeliverable && !placing.placing && answer.settled;
+  const callShop = props.shopPhone ? (
+    <a className="btn ghost sm" href={`tel:${props.shopPhone}`}>
+      <Icon name="phone" /> {words.t('e48CallShop')}
+    </a>
+  ) : null;
+
+  let banner = null;
+  if (paysFirst && !soldOut) {
+    banner = (
+      <>
+        <NoticeBanner
+          tone="warn"
+          title={
+            product.paymentPolicy === PaymentPolicy.PartialAdvance && product.advanceAmount !== null
+              ? words.t('adv_t_n', { p: product.name, n: plainNumber(product.advanceAmount) })
+              : words.t('adv_t', { p: product.name })
+          }
+          text={words.t('e48AdvP')}
+        />
+        {callShop ? <div style={{ display: 'flex', gap: 8 }}>{callShop}</div> : null}
+      </>
+    );
+  } else if (notice?.kind === 'sold_out') {
+    banner = (
+      <NoticeBanner
+        tone="bad"
+        title={words.t('short_t', { p: product.name })}
+        text={words.t('e48ShortP')}
+      />
+    );
+  } else if (notice?.kind === 'advance') {
+    banner = <NoticeBanner tone="warn" title={words.t('e48FailT')} text={words.t('e48AdvP')} />;
+  } else if (notice?.kind === 'busy') {
+    banner = <NoticeBanner tone="warn" title={words.t('e48BusyT')} text={words.t('e48BusyP')} />;
+  } else if (notice?.kind === 'failed' || notice?.kind === 'recheck') {
+    banner = <NoticeBanner tone="bad" title={words.t('e48FailT')} text={words.t('e48FailP')} />;
+  } else if (problems.length > 0) {
+    banner = (
+      <div className="banner bad" role="alert">
+        <Icon name="warn" />
+        <span>{words.t('err_fix', { n: problems.length })}</span>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -101,7 +235,14 @@ export function LandingView(props: LandingViewProps) {
               ) : null
             }
           />
+          <ComboInside product={product} picks={picks} words={words} />
           {soldOut ? null : <Quantity value={quantity} words={words} onChange={setQuantity} />}
+          {soldOut ? null : (
+            <>
+              <AddOnGroups product={product} picks={picks} words={words} />
+              <AskedFields product={product} picks={picks} words={words} />
+            </>
+          )}
           {product.description ? (
             <div className="desc" style={{ fontSize: 14, color: 'var(--muted)' }}>
               {product.description}
@@ -128,37 +269,56 @@ export function LandingView(props: LandingViewProps) {
           className="ofrm"
           ref={form}
           style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+          onFocus={begin}
         >
-          <div className="banner info">
-            <Icon name="info" />
-            <span>{words.t('landing_soon')}</span>
-          </div>
+          {banner}
           <div className="card2">
             <h3>{words.t('your_details')}</h3>
             <div className="field">
               <label htmlFor="order-name">{words.t('name')}</label>
-              <input id="order-name" className="input" autoComplete="name" />
+              <input
+                id="order-name"
+                className={problems.includes('customerName') ? 'input bad' : 'input'}
+                autoComplete="name"
+                maxLength={NAME_MAX}
+                placeholder={words.t('name_ph')}
+                value={fields.customerName}
+                onChange={(event) => {
+                  placing.setField('customerName', event.target.value);
+                }}
+              />
+              {problems.includes('customerName') ? (
+                <div className="err">{words.t('err_name')}</div>
+              ) : null}
             </div>
             <div className="field">
               <label htmlFor="order-phone">{words.t('phone_')}</label>
               <input
                 id="order-phone"
-                className="input"
+                className={problems.includes('phone') ? 'input bad' : 'input'}
                 inputMode="tel"
                 autoComplete="tel-national"
                 placeholder="01XXXXXXXXX"
+                value={fields.phone}
+                onChange={(event) => {
+                  placing.setField('phone', event.target.value);
+                }}
               />
+              {problems.includes('phone') ? (
+                <div className="err">{words.t('err_phone')}</div>
+              ) : null}
             </div>
             <AreaFields
               locations={locations}
-              zillaId={zillaId ?? zillaOf(locations, thanaId)}
-              thanaId={thanaId}
+              zillaId={zillaId ?? zillaOf(locations, thana)}
+              thanaId={thana}
               words={words}
               onZilla={(id) => {
                 setZillaId(id);
-                setThanaId(null);
+                placing.setThana(null);
               }}
-              onThana={setThanaId}
+              onThana={placing.setThana}
+              thanaError={problems.includes('locationId') ? words.t('err_thana') : null}
             />
             <div className="field">
               <label htmlFor="order-address">{words.t('address')}</label>
@@ -166,12 +326,28 @@ export function LandingView(props: LandingViewProps) {
                 id="order-address"
                 className="textarea"
                 autoComplete="street-address"
+                maxLength={ADDRESS_MAX}
                 placeholder={words.t('address_ph')}
+                value={fields.deliveryAddress}
+                onChange={(event) => {
+                  placing.setField('deliveryAddress', event.target.value);
+                }}
               />
+              {problems.includes('deliveryAddress') ? (
+                <div className="err">{words.t('err_addr')}</div>
+              ) : null}
             </div>
             <div className="field">
               <label htmlFor="order-comments">{words.t('comments')}</label>
-              <textarea id="order-comments" className="textarea" />
+              <textarea
+                id="order-comments"
+                className="textarea"
+                maxLength={NOTE_MAX}
+                value={fields.shopperNote}
+                onChange={(event) => {
+                  placing.setField('shopperNote', event.target.value);
+                }}
+              />
             </div>
           </div>
         </div>
@@ -189,6 +365,15 @@ export function LandingView(props: LandingViewProps) {
                 <div className="vr">
                   {choiceText ? `${choiceText} × ${String(quantity)}` : `× ${String(quantity)}`}
                 </div>
+                <LineExtras
+                  parts={picks.lineFields.partsText}
+                  addOns={picks.lineFields.addOns?.map((row) => ({
+                    name: row.name,
+                    price: row.priceChange,
+                  }))}
+                  answers={picks.lineFields.answers}
+                  words={words}
+                />
               </div>
             </div>
             <div className="sum">
@@ -201,32 +386,39 @@ export function LandingView(props: LandingViewProps) {
                   {words.t('delivery')}
                   {exact !== null && estimate?.zone ? ` · ${words.pick(estimate.zone.name)}` : ''}
                 </span>
-                <span>
-                  {exact !== null
-                    ? money(exact)
-                    : estimate?.range && thanaId === null
-                      ? rangeText(estimate.range, words)
-                      : '—'}
-                </span>
+                <span>{exact !== null ? money(exact) : range ? rangeText(range, words) : '—'}</span>
               </div>
               <div className="r total">
                 <span>{words.t('grand_total')}</span>
                 <span className="price">
-                  {exact !== null
-                    ? money(itemTotal + exact)
-                    : estimate?.range && thanaId === null
-                      ? `${money(itemTotal + Number(estimate.range.from))} – ${money(itemTotal + Number(estimate.range.to))}`
-                      : money(itemTotal)}
+                  {total.from === total.to
+                    ? money(total.from)
+                    : `${money(total.from)} – ${money(total.to)}`}
                 </span>
               </div>
+              <TaxRows taxes={estimate?.taxes ?? []} words={words} />
             </div>
-            {thanaId !== null && estimate && !estimate.deliverable ? (
+            {undeliverable ? (
               <DeliveryBanner estimate={estimate} words={words} shopPhone={props.shopPhone} />
             ) : null}
             <PayLine product={product} words={words} />
-            <button type="button" className="btn primary lg block" disabled>
-              {words.t('confirm_order')}
-            </button>
+            {soldOut ? (
+              <button type="button" className="btn ghost lg block" disabled>
+                {words.t('out')}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn primary lg block"
+                disabled={!canConfirm}
+                aria-busy={placing.placing}
+                onClick={() => {
+                  void confirm();
+                }}
+              >
+                {words.t('confirm_order')}
+              </button>
+            )}
             <div className="sub" style={{ fontSize: 12, textAlign: 'center' }}>
               {words.t('idem_note')}
             </div>

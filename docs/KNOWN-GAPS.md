@@ -1979,7 +1979,12 @@ added the cards' swatches and the added date to the list. Pages stay at 43 to 48
 query now spends its time on and tune it, or accept the margin until production data says otherwise (CCH-12 allows
 tuning before another engine).
 
-## 105. The storefront's pages have no browser test — found 2026-10-30, open
+## 105. The storefront's pages have no browser test — found 2026-10-30, closed 2026-11-03
+
+Closed by Slice 4.8e's first PR: `apps/storefront/e2e` runs every item below and the ordering pages in a real browser, on
+a phone and a desktop, against a mocked server, and CI runs it (the "Storefront browser tests" step). `frame.spec.ts`
+holds this list.
+
 
 Found by Phase 3's close-out check. The storefront is proven through the API's tests and its own unit tests, and by
 each slice's real run, but no test opens a rendered page: two shops served by one app (SFT-01), the shop's root

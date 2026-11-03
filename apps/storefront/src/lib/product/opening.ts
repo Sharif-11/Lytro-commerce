@@ -23,6 +23,7 @@ export async function productOpening(
   const estimate = variant?.available
     ? await storefrontApi
         .estimate(page.shop, page.shopper, {
+          // The add-ons a page opens with are the defaults an estimate naming none takes.
           items: [{ variantId: variant.id, quantity: 1 }],
           ...(areaId === null ? {} : { locationId: areaId }),
         })

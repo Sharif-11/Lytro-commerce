@@ -451,6 +451,14 @@ export interface TrackingStep {
   at: Date;
 }
 
+/** ORD-17 (Slice 4.8e): an item on the tracking page, with what the checkout showed of it. */
+export interface TrackedItemView extends ShopperItemView {
+  /** ATR-08: what the shopper answered ("Name on the cake": "Rafi"). */
+  captured: { name: string; value: string }[];
+  /** CMB-04: a combo's parts as ordered, each its units in one combo; empty for any other item. */
+  components: { productName: string; attributes: LineAttributeSnapshot[]; quantity: string }[];
+}
+
 /**
  * ORD-17, SFT-08 (amended 2026-10-30, the storefront sketch's courier line): an order by its tracking ID: its status,
  * timeline, items and totals, and once it ships its courier and tracking link -- never its customer's address or phone.
@@ -460,7 +468,7 @@ export interface TrackedOrderView extends ShopperTotals {
   trackingId: string;
   status: OrderStatus;
   timeline: TrackingStep[];
-  items: ShopperItemView[];
+  items: TrackedItemView[];
   due: string;
   courier: { name: string | null; trackingCode: string | null; trackingLink: string | null } | null;
   /** Slice 5.2: an unverified order's open payment, to go back to; null for none. */

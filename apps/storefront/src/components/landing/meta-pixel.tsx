@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { flushPixelEvents } from './pixel-events';
 
 interface PixelQueue {
   (...args: unknown[]): void;
@@ -20,7 +21,8 @@ declare global {
 
 /** LND-15, LND-18: the shop's Meta Pixel on its landing page: `PageView` and `ViewContent` with the variant IDs the
     catalog feed lists (FED-02). Loaded only after the page is up and idle, so it never holds back the page or the form;
-    a blocked or failing script changes nothing on the page. Phase 4 adds `InitiateCheckout` and `Purchase`. */
+    a blocked or failing script changes nothing on the page. `InitiateCheckout` and `Purchase` are the form's own
+    (pixel-events.ts). */
 export function MetaPixel({
   pixelId,
   contentIds,
@@ -43,6 +45,7 @@ export function MetaPixel({
           currency: 'BDT',
           ...(value === null ? {} : { value }),
         });
+        flushPixelEvents();
       } catch {
         // LND-18: tracking never breaks the page.
       }

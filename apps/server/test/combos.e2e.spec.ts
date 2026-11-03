@@ -694,6 +694,37 @@ describeIfDatabase('a combo on the storefront (CMB-06, CMB-09)', () => {
     expect((await level(toner.variantId)).reserved).toBe('2.000');
     expect((await level(shirt.l)).reserved).toBe('1.000');
     expect((await level(shirt.m)).reserved).toBe('0.000');
+
+    // Slice 4.8e: its tracking names the parts as they were ordered, the choice made.
+    const tracked = await sendExact(
+      port,
+      'GET',
+      `/v1/track/${(ordered.body as { trackingId: string }).trackingId}`,
+      undefined,
+      { host: API_HOST, authorization: `Bearer ${key}`, origin: SITE },
+    );
+    expect(tracked.status, JSON.stringify(tracked.body)).toBe(200);
+    const [item] = (
+      tracked.body as {
+        items: {
+          components: {
+            productName: string;
+            attributes: { value: string }[];
+            quantity: string;
+          }[];
+        }[];
+      }
+    ).items;
+    expect(
+      item?.components.map((part) => [
+        part.productName,
+        part.attributes.map((row) => row.value),
+        part.quantity,
+      ]),
+    ).toEqual([
+      ['Toner', [], '2.000'],
+      ['T-shirt', ['L'], '1.000'],
+    ]);
   });
 });
 

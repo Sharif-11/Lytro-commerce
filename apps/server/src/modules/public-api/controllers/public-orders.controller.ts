@@ -83,7 +83,18 @@ class TrackedOrderDto extends createZodDto(
         at: z.coerce.date(),
       }),
     ),
-    items: z.array(itemSchema),
+    items: z.array(
+      itemSchema.extend({
+        captured: z.array(z.object({ name: z.string(), value: z.string() })),
+        components: z.array(
+          z.object({
+            productName: z.string(),
+            attributes: itemSchema.shape.attributes,
+            quantity: z.string(),
+          }),
+        ),
+      }),
+    ),
     ...totals,
     due: z.string(),
     courier: z
