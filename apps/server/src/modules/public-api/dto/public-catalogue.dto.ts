@@ -107,6 +107,14 @@ export class PublicProductDetailDto extends createZodDto(
         ),
       }),
     ),
+    // ATR-08 (Slice 4.8e): what the shop asks when it is ordered.
+    asked: z.array(
+      z.object({
+        attributeId: z.string(),
+        name: z.string(),
+        dataType: z.nativeEnum(AttributeDataType),
+      }),
+    ),
     // CMB-06, CMB-09: a combo's saving and "What's inside"; null for an ordinary product.
     combo: z
       .object({

@@ -105,6 +105,8 @@ export interface PublicProductDetail {
   combo: PublicCombo | null;
   /** MNU-01 (Slice 4.6b): what a shopper chooses as they order it; empty for none. */
   modifierGroups: ModifierGroupView[];
+  /** ATR-08 (Slice 4.8e): what the shop asks when it is ordered ("Name on the cake"); each answer is optional. */
+  asked: { attributeId: string; name: string; dataType: AttributeDataType }[];
 }
 
 /** CMB-06, CMB-09: what a combo holds, and what it saves against its parts bought apart. */

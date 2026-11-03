@@ -69,6 +69,12 @@ jobs:
           pnpm exec playwright install --with-deps chromium
           pnpm exec playwright test
 
+      # The storefront's pages in a real browser against a mocked server, on a phone and a desktop (KNOWN-GAPS §105), and
+      # each one beside the prototype's drawing of it, kept as pictures for the pull request.
+      - name: Storefront browser tests
+        working-directory: apps/storefront
+        run: pnpm exec playwright test
+
       # Slice 11.13b (PHASE-3-PLAN Slice 11's "done when"): a clothing, a cosmetics and a grocery seller sign up, make a
       # product, add stock, count it and buy more, on a phone in Bangla, against the built server and a fresh database
       # (walkthrough/global-setup.ts), never meeting inventory jargon or a field the shop type does not use.
@@ -84,4 +90,14 @@ jobs:
           path: |
             apps/dashboard/test-results/
             apps/dashboard/playwright-report/
+          retention-days: 14
+
+      - name: Keep the storefront's pictures and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storefront-browser-tests
+          path: |
+            apps/storefront/test-results/
+            apps/storefront/playwright-report/
           retention-days: 14

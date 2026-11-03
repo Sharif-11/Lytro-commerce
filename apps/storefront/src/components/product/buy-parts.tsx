@@ -39,11 +39,21 @@ export function PriceRow({
   const ranged =
     variant === null && product.maxPrice !== null && product.maxPrice !== product.minPrice;
   const price = variant?.price ?? product.minPrice;
+  // CMB-09: a combo's price, then what its parts come to apart, and what it saves.
+  const saving = product.combo?.saving ?? null;
   return (
     <div className="pricerow">
       {price !== null ? <span className="price">{money(price)}</span> : null}
       {ranged && product.maxPrice !== null ? (
         <span className="unit">– {money(product.maxPrice)}</span>
+      ) : null}
+      {saving !== null && price !== null ? (
+        <>
+          <span className="unit" style={{ textDecoration: 'line-through' }}>
+            {money(Number(price) + Number(saving))}
+          </span>
+          <span className="st ok plain">{words.t('save', { n: plainNumber(saving) })}</span>
+        </>
       ) : null}
       <StockChip
         state={soldOut ? StockState.Out : (variant?.stockState ?? product.stockState)}

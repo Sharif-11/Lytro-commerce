@@ -3,6 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createZodDto, ZodResponse } from 'nestjs-zod';
 import { z } from 'zod';
 import {
+  PaymentPolicy,
   StockState,
   deliveryEstimateSchema,
   type DeliveryEstimateInput,
@@ -12,6 +13,7 @@ import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { LocationService } from '../../delivery/services/location.service';
 import type { LocationsView } from '../../delivery/types/delivery';
 import { OrderPricing, type DeliveryEstimate } from '../../orders/services/order-pricing';
+import { taxLineSchema } from '../../team/dto/orders.dto';
 import type { PublicApiRequest } from '../guards/public-key.guard';
 import { PublicApi } from './public-shop.controller';
 
@@ -42,6 +44,8 @@ class DeliveryEstimateDto extends createZodDto(
         available: z.boolean(),
         itemTotal: z.string().nullable(),
         advance: z.string().nullable(),
+        paymentPolicy: z.nativeEnum(PaymentPolicy).nullable(),
+        choicesFit: z.boolean(),
       }),
     ),
     subtotal: z.string(),
@@ -52,6 +56,7 @@ class DeliveryEstimateDto extends createZodDto(
     range: z.object({ from: z.string(), to: z.string() }).nullable(),
     deliverable: z.boolean(),
     notDeliveredHere: z.array(z.string()),
+    taxes: z.array(taxLineSchema),
   }),
 ) {}
 

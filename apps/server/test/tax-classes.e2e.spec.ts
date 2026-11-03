@@ -328,6 +328,18 @@ describeIfDatabase('tax on an order (TAX-02, TAX-03)', () => {
       origin: 'https://myshop.com',
       'content-type': 'application/json',
     };
+    // Slice 4.8e: the estimate says what the order will, before it is placed.
+    const estimated = await sendExact(
+      port,
+      'POST',
+      '/v1/delivery-estimate',
+      { items: [{ variantId: pen.variantId, quantity: 2 }] },
+      headers,
+    );
+    expect(estimated.status, JSON.stringify(estimated.body)).toBe(200);
+    expect((estimated.body as { taxes: unknown }).taxes).toEqual([
+      { name: 'VAT', rate: '15.00', amount: '30.00' },
+    ]);
     const placed: HttpResult = await sendExact(
       port,
       'POST',

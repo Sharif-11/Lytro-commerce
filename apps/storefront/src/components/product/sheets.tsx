@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useId, useState } from 'react';
 import type {
   DeliveryEstimate,
   EstimateItem,
@@ -12,7 +12,7 @@ import { Icon } from '../icon';
 import { useDeliveryEstimate, useLocations } from './use-delivery';
 
 /** The prototype's sheet: from the bottom on a phone, a centred dialog on a wide screen; as a `drawer`, the cart's
-    full-height panel. Escape or the scrim closes. `footClass` is the footer's own variant (`soon`: a line under it). */
+    full-height panel. Escape or the scrim closes. */
 export function Sheet({
   title,
   words,
@@ -20,7 +20,6 @@ export function Sheet({
   children,
   footer,
   drawer,
-  footClass,
 }: {
   title: string;
   words: Words;
@@ -28,7 +27,6 @@ export function Sheet({
   children: ReactNode;
   footer?: ReactNode;
   drawer?: boolean;
-  footClass?: string;
 }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -56,7 +54,7 @@ export function Sheet({
           </button>
         </div>
         <div className="sb">{children}</div>
-        {footer ? <div className={footClass ? `sf ${footClass}` : 'sf'}>{footer}</div> : null}
+        {footer ? <div className="sf">{footer}</div> : null}
       </div>
     </div>
   );
@@ -180,7 +178,8 @@ export function zillaOf(locations: Locations | null, thanaId: number | null): nu
   return found?.id ?? null;
 }
 
-/** CUS-08: the zilla, then the thana in it; city police thanas grouped under their city. */
+/** CUS-08: the zilla, then the thana in it; city police thanas grouped under their city. The thana may carry a line
+    under it: what delivery there costs, or that it is still to be picked. */
 export function AreaFields({
   locations,
   zillaId,
@@ -188,6 +187,8 @@ export function AreaFields({
   words,
   onZilla,
   onThana,
+  thanaHelp,
+  thanaError,
 }: {
   locations: Locations | null;
   zillaId: number | null;
@@ -195,6 +196,8 @@ export function AreaFields({
   words: Words;
   onZilla: (id: number | null) => void;
   onThana: (id: number | null) => void;
+  thanaHelp?: string | null;
+  thanaError?: string | null;
 }) {
   const zilla = locations?.zillas.find((row) => row.id === zillaId) ?? null;
   const name = (row: { nameBn: string; nameEn: string }) =>
@@ -207,11 +210,13 @@ export function AreaFields({
     .filter((group) => group.thanas.length > 0);
   const plain = zilla?.thanas.filter((thana) => thana.cityCode === null) ?? [];
   const chosen = (value: string) => (value === '' ? null : Number(value));
+  const id = useId();
   return (
     <div className="grid2">
       <div className="field">
-        <label>{words.t('district')}</label>
+        <label htmlFor={`${id}-district`}>{words.t('district')}</label>
         <select
+          id={`${id}-district`}
           className="select"
           value={zillaId ?? ''}
           disabled={locations === null}
@@ -228,9 +233,10 @@ export function AreaFields({
         </select>
       </div>
       <div className="field">
-        <label>{words.t('thana')}</label>
+        <label htmlFor={`${id}-thana`}>{words.t('thana')}</label>
         <select
-          className="select"
+          id={`${id}-thana`}
+          className={thanaError ? 'select bad' : 'select'}
           value={thanaId ?? ''}
           disabled={zilla === null}
           onChange={(event) => {
@@ -253,6 +259,8 @@ export function AreaFields({
             </option>
           ))}
         </select>
+        {thanaHelp ? <div className="help">{thanaHelp}</div> : null}
+        {thanaError ? <div className="err">{thanaError}</div> : null}
       </div>
     </div>
   );

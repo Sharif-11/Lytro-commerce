@@ -4,6 +4,7 @@ import type {
   BrandFont,
   BrandSpacing,
   ItemCondition,
+  OrderStatus,
   PaymentPolicy,
   StockState,
   StockUnit,
@@ -138,6 +139,37 @@ export interface PublicProduct {
   paymentPolicy: PaymentPolicy;
   advanceAmount: string | null;
   deliveryZoneIds: string[];
+  /** MNU-01: what a shopper chooses as they order it; empty for none. */
+  modifierGroups: ModifierGroup[];
+  /** ATR-08: what the shop asks when it is ordered; each answer is optional. */
+  asked: AskedDetail[];
+  /** CMB-06, CMB-09: a combo's "What's inside" and its saving; null for an ordinary product. */
+  combo: PublicCombo | null;
+}
+
+export interface ModifierGroup {
+  id: string;
+  name: string;
+  minSelect: number;
+  maxSelect: number;
+  options: { id: string; name: string; priceChange: string; isDefault: boolean }[];
+}
+export interface AskedDetail {
+  attributeId: string;
+  name: string;
+  dataType: AttributeDataType;
+}
+export interface PublicComboPart {
+  position: number;
+  quantity: string;
+  productName: string;
+  image: ImageView | null;
+  choice: boolean;
+  variants: { variantId: string; productName: string; label: string; available: boolean }[];
+}
+export interface PublicCombo {
+  saving: string | null;
+  parts: PublicComboPart[];
 }
 
 /** A product as a list shows it (PRD-09): with its card's swatches (ATR-18) and when it was added (Slice 12b). */
@@ -189,9 +221,15 @@ export interface Locations {
   zillas: { id: number; nameEn: string; nameBn: string; thanas: LocationThana[] }[];
 }
 
+/** MNU-02: the options chosen in one of a product's add-on groups. */
+export interface ModifierChoice {
+  groupId: string;
+  optionIds: string[];
+}
 export interface EstimateItem {
   variantId: string;
   quantity: number;
+  modifiers?: ModifierChoice[];
 }
 /** SFT-20, Slice 12b: one item as it stands now. */
 export interface EstimateLine {
@@ -202,6 +240,15 @@ export interface EstimateLine {
   available: boolean;
   itemTotal: string | null;
   advance: string | null;
+  paymentPolicy: PaymentPolicy | null;
+  /** MNU-03: whether the add-ons asked for would be taken; an order for them is refused otherwise. */
+  choicesFit: boolean;
+}
+/** TAX-03: one class's tax a total includes. */
+export interface TaxLine {
+  name: string;
+  rate: string;
+  amount: string;
 }
 export interface DeliveryEstimate {
   lines: EstimateLine[];
@@ -211,7 +258,74 @@ export interface DeliveryEstimate {
   range: { from: string; to: string } | null;
   deliverable: boolean;
   notDeliveredHere: string[];
+  taxes: TaxLine[];
 }
+
+/** ORD-02: one item of an order, as a shopper's checkout names it. */
+export interface OrderItemInput extends EstimateItem {
+  captured?: { attributeId: string; value: string }[];
+  choices?: { part: number; variantIds: string[] }[];
+}
+export interface OrderInput {
+  customerName: string;
+  phone: string;
+  locationId: number;
+  deliveryAddress: string;
+  shopperNote?: string;
+  source: 'storefront' | 'landing_page';
+  items: OrderItemInput[];
+}
+
+/** ORD-17, LND-11: an item as the shopper sees it. */
+export interface ShopperItem {
+  variantId: string | null;
+  productName: string;
+  attributes: { name: string; value: string; variantDefining: boolean }[];
+  quantity: string;
+  stockUnit: StockUnit;
+  unitPrice: string;
+  itemTotal: string;
+  modifiers: { groupName: string; optionName: string; priceChange: string }[];
+}
+interface ShopperTotals {
+  subtotal: string;
+  deliveryCharge: string;
+  discount: string;
+  grandTotal: string;
+  codAmount: string;
+  taxes: TaxLine[];
+}
+/** ORD-02, LND-11: an order as placed; `purchaseEventId` is what the browser's `Purchase` carries (LND-16). */
+export interface PlacedOrder extends ShopperTotals {
+  orderNumber: string;
+  trackingId: string;
+  status: OrderStatus;
+  createdAt: string;
+  items: ShopperItem[];
+  purchaseEventId: string;
+}
+/** ORD-17: an item on the tracking page, with its answers and a combo's parts. */
+export interface TrackedItem extends ShopperItem {
+  captured: { name: string; value: string }[];
+  components: {
+    productName: string;
+    attributes: { name: string; value: string; variantDefining: boolean }[];
+    quantity: string;
+  }[];
+}
+export type TrackingStepName = 'placed' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+/** ORD-17: an order by its tracking ID -- never its customer's address or phone. */
+export interface TrackedOrder extends ShopperTotals {
+  orderNumber: string;
+  trackingId: string;
+  status: OrderStatus;
+  timeline: { step: TrackingStepName; at: string }[];
+  items: TrackedItem[];
+  due: string;
+  courier: { name: string | null; trackingCode: string | null; trackingLink: string | null } | null;
+}
+export type TrackingRead =
+  { kind: 'found'; order: TrackedOrder } | { kind: 'missing' } | { kind: 'busy' };
 
 /** One shopper's request: the host they asked for, their address and language, carried onto every call. */
 export interface ShopperRequest {
@@ -350,6 +464,35 @@ export class StorefrontApi {
     return StorefrontApi.required(answer, 'the delivery estimate');
   }
 
+  /** ORD-02, SFT-06: a shopper's order, once per key. The answer as it came: the page says what a refusal means. */
+  placeOrder(
+    shop: StorefrontShopContext,
+    shopper: ShopperRequest,
+    body: unknown,
+    idempotencyKey: string,
+  ): Promise<ServerAnswer<PlacedOrder>> {
+    return this.call<PlacedOrder>(shop, shopper, 'POST', '/v1/orders', body, {
+      'idempotency-key': idempotencyKey,
+    });
+  }
+
+  /** ORD-17, SFT-08: the order with this tracking ID, in any case. */
+  async track(
+    shop: StorefrontShopContext,
+    shopper: ShopperRequest,
+    trackingId: string,
+  ): Promise<TrackingRead> {
+    const answer = await this.call<TrackedOrder>(
+      shop,
+      shopper,
+      'GET',
+      `/v1/track/${encodeURIComponent(trackingId)}`,
+    );
+    if (answer.status === 404) return { kind: 'missing' };
+    if (answer.status === 429) return { kind: 'busy' };
+    return { kind: 'found', order: StorefrontApi.required(answer, 'the order') };
+  }
+
   /** One shared read per key for SHELL_TTL_MS; a failed read is not kept, so the next page asks again. */
   private kept<T>(key: string, read: () => Promise<T>): Promise<T> {
     const held = this.shells.get(key);
@@ -368,8 +511,10 @@ export class StorefrontApi {
     method: 'GET' | 'POST',
     path: string,
     body?: unknown,
+    extra: Record<string, string> = {},
   ): Promise<ServerAnswer<T>> {
     const headers: Record<string, string> = {
+      ...extra,
       ...this.edgeHeaders(shopper),
       authorization: `Bearer ${shop.key}`,
       origin: shop.origin,

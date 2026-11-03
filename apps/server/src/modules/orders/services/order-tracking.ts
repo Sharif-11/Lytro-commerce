@@ -5,6 +5,7 @@ import {
   StatusOverride,
   visibleOrderStatus,
 } from '@lytronix/validators';
+import type { SelectOrderLineComponent } from '@lytronix/db';
 import { ApiError } from '../../../common/api-error';
 import type { OrderStore } from '../ports/order-store';
 import { ORDER_STORE } from '../tokens';
@@ -16,6 +17,7 @@ import type {
   ShopperItemView,
   ShopperOrderPage,
   ShopperTotals,
+  TrackedItemView,
   TrackedOrderView,
   TrackingStep,
   TrackingStepName,
@@ -43,6 +45,29 @@ function itemsOf(lines: OrderLineRecord[]): ShopperItemView[] {
         priceChange: row.priceChange,
       })),
     }));
+}
+
+/** ORD-17 (Slice 4.8e): the items as tracking shows them, each with its answers and a combo's parts. */
+function trackedItemsOf(
+  lines: OrderLineRecord[],
+  components: readonly SelectOrderLineComponent[],
+): TrackedItemView[] {
+  const sorted = [...lines].sort((a, b) => a.position - b.position);
+  return itemsOf(sorted).map((item, index) => {
+    const line = sorted[index];
+    return {
+      ...item,
+      captured: (line?.capturedValues ?? []).map(({ name, value }) => ({ name, value })),
+      components: components
+        .filter((component) => component.orderLineId === line?.id)
+        .sort((a, b) => a.partPosition - b.partPosition)
+        .map((component) => ({
+          productName: component.productName,
+          attributes: component.attributeValues.filter((value) => value.variantDefining),
+          quantity: component.quantity,
+        })),
+    };
+  });
 }
 
 function totalsOf(order: OrderRecord, lines: readonly OrderLineRecord[]): ShopperTotals {
@@ -96,14 +121,18 @@ export function placedViewOf(order: OrderRecord, lines: OrderLineRecord[]): Plac
 }
 
 /** ORD-17, SFT-08: what tracking shows; the courier once the order has shipped, never the address or phone. */
-export function trackedViewOf(order: OrderRecord, lines: OrderLineRecord[]): TrackedOrderView {
+export function trackedViewOf(
+  order: OrderRecord,
+  lines: OrderLineRecord[],
+  components: readonly SelectOrderLineComponent[],
+): TrackedOrderView {
   const shipped = SHIPPED_FULFILLMENT.includes(order.fulfillmentStatus);
   return {
     orderNumber: order.orderNumber,
     trackingId: order.trackingId,
     status: shopperStatusOf(order),
     timeline: timelineOf(order),
-    items: itemsOf(lines),
+    items: trackedItemsOf(lines, components),
     ...totalsOf(order, lines),
     due: order.due,
     courier:
@@ -128,7 +157,13 @@ export class OrderTracking {
     return this.store.run(tenantId, async (tx) => {
       const order = await this.store.findByTrackingId(tx, tenantId, trackingId);
       if (!order) throw new ApiError('not_found', 'OrderNotFound', {});
-      return trackedViewOf(order, await this.store.listLines(tx, tenantId, [order.id]));
+      const lines = await this.store.listLines(tx, tenantId, [order.id]);
+      const components = await this.store.listComponents(
+        tx,
+        tenantId,
+        lines.map((line) => line.id),
+      );
+      return trackedViewOf(order, lines, components);
     });
   }
 

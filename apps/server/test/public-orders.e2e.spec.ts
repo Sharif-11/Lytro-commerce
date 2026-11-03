@@ -256,6 +256,50 @@ async function orderIdOf(trackingId: string): Promise<string> {
   return rows[0]?.id ?? '';
 }
 
+describeIfDatabase('what a product asks when ordering (ATR-08, Slice 4.8e)', () => {
+  it('lists it on the public product, keeps the answer, and tracking shows it back', async () => {
+    const shop = await openShop(port, texts, 'po');
+    const text = await shop.post('/attributes', { name: 'Message', dataType: 'text' });
+    expect(text.status, JSON.stringify(text.body)).toBe(201);
+    const asked = (text.body as { id: string }).id;
+    const cake = await product(shop, 'Cake', 1500, 3, {
+      attributes: [{ attributeId: asked, role: 'captured_at_order' }],
+    });
+    const plain = await product(shop, 'Candle', 100, 3);
+    const sf = await storefrontKey(shop);
+    const read = async (id: string) => {
+      const { slug } = (await shop.get(`/products/${id}`)).body as { slug: string };
+      return call(sf, 'GET', `/v1/catalogue/products/${slug}`, undefined);
+    };
+    expect((await read(cake.id)).body).toMatchObject({
+      asked: [{ attributeId: asked, name: 'Message', dataType: 'text' }],
+    });
+    expect((await read(plain.id)).body).toMatchObject({ asked: [] });
+
+    const made = await placed(sf, {
+      ...(await shopper(shop)),
+      items: [
+        {
+          variantId: cake.variantId,
+          quantity: 1,
+          captured: [{ attributeId: asked, value: 'Rafi' }],
+        },
+        { variantId: plain.variantId, quantity: 1 },
+      ],
+    });
+    const tracked = await track(sf, made.trackingId);
+    expect(tracked.status, JSON.stringify(tracked.body)).toBe(200);
+    expect(tracked.body).toMatchObject({
+      items: [
+        { captured: [{ name: 'Message', value: 'Rafi' }], components: [] },
+        { captured: [], components: [] },
+      ],
+    });
+    // Never what only the shop holds: no attribute's id, as staff's order view has.
+    expect(JSON.stringify(tracked.body)).not.toContain(asked);
+  });
+});
+
 describeIfDatabase('a shopper places an order (ORD-02, ORD-07, CCH-07, PRD-07)', () => {
   it('makes it pending through the storefront, priced from the database, holding its stock, its customer made', async () => {
     const shop = await openShop(port, texts, 'po');

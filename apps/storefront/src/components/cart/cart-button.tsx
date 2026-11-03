@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { areaCookieValue } from '@/lib/area';
-import { checkCart, type CheckedCart, type CheckedLine } from '@/lib/cart/cart-check';
-import { browserCart, CART_OPEN, type CartLine } from '@/lib/cart/cart-store';
+import { PaymentPolicy } from '@lytronix/validators/enums';
+import { checkCart, type CheckedCart, type CheckedLine, totalWith } from '@/lib/cart/cart-check';
+import { browserCart, CART_OPEN, type CartLine, estimateItemOf } from '@/lib/cart/cart-store';
 import { type Language, money, Words } from '@/lib/i18n/words';
 import type { DeliveryEstimate, EstimateItem } from '@/lib/api/storefront-api';
 import { Icon } from '../icon';
 import { InShell } from '../in-shell';
+import { LineExtras, TaxRows } from '../order/order-parts';
 import { rangeText, Stepper } from '../product/buy-parts';
 import { AreaSheet, DeliveryBanner, Sheet } from '../product/sheets';
 import { useDeliveryEstimate } from '../product/use-delivery';
@@ -43,10 +45,7 @@ export function CartButton(props: CartButtonProps) {
     setOpen('cart');
   }, []);
   const count = lines?.reduce((sum, line) => sum + line.quantity, 0) ?? 0;
-  const items =
-    lines === null || lines.length === 0
-      ? null
-      : lines.map((line) => ({ variantId: line.variantId, quantity: line.quantity }));
+  const items = lines === null || lines.length === 0 ? null : lines.map(estimateItemOf);
 
   return (
     <>
@@ -149,23 +148,26 @@ function CartDrawer({
       words={words}
       onClose={onClose}
       drawer
-      footClass="soon"
       footer={
         <>
           <button type="button" className="btn ghost" onClick={onClose}>
             {words.t('continue_')}
           </button>
-          {/* Slice 12's read: ordering opens with Phase 4; until then Checkout is drawn, switched off. */}
-          <button type="button" className="btn primary" disabled>
-            {words.t('checkout')}
-          </button>
-          <span className="soonline">{words.t('ordering_soon')}</span>
+          {cart.orderable && !undeliverable ? (
+            <a className="btn primary" href="/checkout">
+              {words.t('checkout')}
+            </a>
+          ) : (
+            <button type="button" className="btn primary" disabled>
+              {words.t('checkout')}
+            </button>
+          )}
         </>
       }
     >
       <div>
         {cart.lines.map((checked) => (
-          <CartLineRow key={checked.line.variantId} checked={checked} words={words} />
+          <CartLineRow key={checked.key} checked={checked} words={words} />
         ))}
       </div>
       {cart.orderable ? (
@@ -179,13 +181,13 @@ function CartDrawer({
 }
 
 function CartLineRow({ checked, words }: { checked: CheckedLine; words: Words }) {
-  const { line, state } = checked;
+  const { line, state, key } = checked;
   const remove = (
     <button
       type="button"
       className="rm"
       onClick={() => {
-        browserCart().remove(line.variantId);
+        browserCart().remove(key);
       }}
     >
       {words.t('remove')}
@@ -201,23 +203,31 @@ function CartLineRow({ checked, words }: { checked: CheckedLine; words: Words })
       {line.name}
     </a>
   );
-  if (state === 'out' || state === 'gone') {
+  if (state === 'out' || state === 'gone' || state === 'refit') {
     return (
       <div className="cl off">
         {thumb}
         <div className="b">
           {name}
           {line.choice ? <div className="vr">{line.choice}</div> : null}
-          <div className="note">{words.t(state === 'out' ? 'line_out' : 'line_gone')}</div>
+          <div className="note">
+            {words.t(
+              state === 'out' ? 'line_out' : state === 'gone' ? 'line_gone' : 'e48LineRefit',
+            )}
+          </div>
           {remove}
         </div>
       </div>
     );
   }
-  // The variant, then the advance its product asks, as the prototype's line writes them; either may be missing.
+  // The variant, then what its product asks first, as the prototype's line writes them; either may be missing.
   const detail = [
     line.choice,
-    checked.advance === null ? '' : words.t('pay_adv', { n: checked.advance }),
+    checked.paymentPolicy === PaymentPolicy.DeliveryChargeOnly
+      ? words.t('pay_dc')
+      : checked.advance === null
+        ? ''
+        : words.t('pay_adv', { n: checked.advance }),
   ]
     .filter((part) => part !== '')
     .join(' · ');
@@ -227,6 +237,12 @@ function CartLineRow({ checked, words }: { checked: CheckedLine; words: Words })
       <div className="b">
         {name}
         {detail !== '' ? <div className="vr">{detail}</div> : null}
+        <LineExtras
+          parts={line.partsText}
+          addOns={line.addOns?.map((row) => ({ name: row.name, price: row.priceChange }))}
+          answers={line.answers}
+          words={words}
+        />
         {checked.was !== null ? (
           <div className="note">{words.t('line_was', { p: money(checked.was) })}</div>
         ) : null}
@@ -234,7 +250,7 @@ function CartLineRow({ checked, words }: { checked: CheckedLine; words: Words })
           <Stepper
             value={line.quantity}
             onChange={(next) => {
-              browserCart().setQuantity(line.variantId, next);
+              browserCart().setQuantity(key, next);
             }}
           />
           <span className="price">{checked.total === null ? '' : money(checked.total)}</span>
@@ -275,14 +291,9 @@ function Summary({
       {words.t(key)}
     </button>
   );
-  let total = money(cart.subtotal);
-  if (exact !== null) total = money(cart.subtotal + exact);
-  else if (range !== null) {
-    total =
-      Number(range.from) === Number(range.to)
-        ? money(cart.subtotal + Number(range.from))
-        : `${money(cart.subtotal + Number(range.from))} – ${money(cart.subtotal + Number(range.to))}`;
-  }
+  const worked = totalWith(cart.subtotal, exact, range);
+  const total =
+    worked.from === worked.to ? money(worked.from) : `${money(worked.from)} – ${money(worked.to)}`;
   return (
     <>
       <div className="sum">
@@ -315,6 +326,7 @@ function Summary({
           <span>{words.t('total')}</span>
           <span className="price">{total}</span>
         </div>
+        <TaxRows taxes={estimate?.taxes ?? []} words={words} />
       </div>
       <div className="sub" style={{ fontSize: 12 }}>
         {words.t('cart_est_note')}
