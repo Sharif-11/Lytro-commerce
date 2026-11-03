@@ -93,30 +93,26 @@ beforeAll(async () => {
     .compile();
   ({ app, port } = await listenOn(moduleRef));
   queue = app.get(PaymentQueueService);
-  await app
-    .get(PlatformWalletsService)
-    .create(
-      {
-        provider: 'bKash',
-        number: '01700000000',
-        label: 'Personal',
-        enabled: true,
-        displayOrder: 0,
-      },
-      OPERATOR_ID,
-    );
-  await app
-    .get(PlatformWalletsService)
-    .create(
-      {
-        provider: 'Nagad',
-        number: '01700000001',
-        label: 'Personal',
-        enabled: true,
-        displayOrder: 1,
-      },
-      OPERATOR_ID,
-    );
+  await app.get(PlatformWalletsService).create(
+    {
+      provider: 'bKash',
+      number: '01700000000',
+      label: 'Personal',
+      enabled: true,
+      displayOrder: 0,
+    },
+    OPERATOR_ID,
+  );
+  await app.get(PlatformWalletsService).create(
+    {
+      provider: 'Nagad',
+      number: '01700000001',
+      label: 'Personal',
+      enabled: true,
+      displayOrder: 1,
+    },
+    OPERATOR_ID,
+  );
 });
 
 afterAll(async () => {
@@ -449,6 +445,16 @@ describeIfDatabase(
       expect(await balanceOf(shop)).toBe(500);
     });
 
+    it('takes an amount within 0.01 TK', async () => {
+      const shop = await openShop(port, texts, 'lyt');
+      const phone = await lytroPhone();
+      const quote = await quoteTopUp(shop);
+      const id = trx();
+      await typeTopUp(shop, quote.id, id);
+      expect(await forward(phone, receiptText(id, '499.99'))).toMatchObject({ status: 'matched' });
+      expect(await balanceOf(shop)).toBe(499.99);
+    });
+
     it('has no cap: a large top-up verifies by itself (agreed 2026-11-03)', async () => {
       const shop = await openShop(port, texts, 'lyt');
       const phone = await lytroPhone();
@@ -639,6 +645,12 @@ describeIfDatabase(
       expect((await shopRow(shop)).state).toBe('trial');
       expect(await paymentOf(quote.id)).toMatchObject({ status: 'rejected' });
       expect(await idUsed(id)).toBe(false);
+      // Typed again on a new request, that receipt is the operator's to sort out, not a verification.
+      const again = await quotePlan(shop);
+      const retyped = await typePlan(shop, again.id, id);
+      expect(retyped.body).toMatchObject({ status: 'needs_review' });
+      expect(await paymentOf(again.id)).toMatchObject({ review_reason: 'transaction_id_used' });
+      expect((await shopRow(shop)).state).toBe('trial');
     });
 
     it("refuses an ID another shop's payment already holds, for the operator", async () => {
@@ -686,6 +698,8 @@ describeIfDatabase(
       });
       expect(await balanceOf(shop)).toBe(0);
       expect(await messageOf(id)).toEqual([]);
+      const lytroPhones = await app.get(ListenerDevices).listForLytro();
+      expect(lytroPhones.devices.map((row) => row.id)).not.toContain(shopPhone.deviceId);
       // Lytro's phone then verifies it, in its own table.
       const lytro = await lytroPhone();
       expect(await forward(lytro, receiptText(id, '500.00'))).toMatchObject({ status: 'matched' });

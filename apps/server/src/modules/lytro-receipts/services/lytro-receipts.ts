@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { SelectLytroListenerMessage, Transaction } from '@lytronix/db';
 import {
   bdMobileNumber,
+  LISTENER_AMOUNT_SLACK_PAISA,
   LISTENER_OLD_RECEIPT_MINUTES,
   LISTENER_TEXT_KEPT_DAYS,
   ListenerMessageStatus,
@@ -37,9 +38,6 @@ export interface IncomingLytroReceipt {
   amount: string;
   senderNumber: string | null;
 }
-
-// VER-02: an amount matches within 0.01 TK.
-const AMOUNT_SLACK_PAISA = 1n;
 
 // BIL-15: a request nothing can verify any more -- and one already settled, whose ID a late receipt only confirms.
 const CLOSED: readonly PlanPaymentStatus[] = [
@@ -225,7 +223,7 @@ export class LytroReceipts {
     if (receipt.receivedAt.getTime() < quoted) return PaymentReviewReason.OldReceipt;
     const asked = toPaisa(payment.amount);
     const arrived = toPaisa(receipt.amount ?? '0');
-    if ((arrived > asked ? arrived - asked : asked - arrived) > AMOUNT_SLACK_PAISA) {
+    if ((arrived > asked ? arrived - asked : asked - arrived) > LISTENER_AMOUNT_SLACK_PAISA) {
       return PaymentReviewReason.Amount;
     }
     if (

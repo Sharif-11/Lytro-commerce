@@ -7,6 +7,7 @@ import type {
 } from '@lytronix/db';
 import {
   ActorType,
+  LISTENER_AMOUNT_SLACK_PAISA,
   LISTENER_OLD_RECEIPT_MINUTES,
   ListenerMessageStatus,
   PaymentReviewReason,
@@ -42,9 +43,6 @@ export interface IncomingReceipt {
   amount: string;
   senderNumber: string | null;
 }
-
-// VER-02: an amount matches within 0.01 TK.
-const AMOUNT_SLACK_PAISA = 1n;
 
 // PAY-14: a session a receipt may still settle, or send to staff.
 const STILL_OPEN: readonly PaymentSessionState[] = [
@@ -225,7 +223,7 @@ export class ReceiptMatcher {
     if (receipt.receivedAt.getTime() < pageOpened) return PaymentReviewReason.OldReceipt;
     const arrived = toPaisa(receipt.amount ?? '0');
     const apart = arrived > asked ? arrived - asked : asked - arrived;
-    if (apart > AMOUNT_SLACK_PAISA || asked > due) return PaymentReviewReason.Amount;
+    if (apart > LISTENER_AMOUNT_SLACK_PAISA || asked > due) return PaymentReviewReason.Amount;
     if (
       session.senderNumber !== null &&
       receipt.senderNumber !== null &&
