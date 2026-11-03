@@ -380,8 +380,23 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
   phones page staying in Slice 5.8. Design in `LISTENER-APP-DESIGN.md`, prototype in `docs/brand/lytro-listener.html`. Its §7
   lists four additions for Slice 5.4b: the shop's numbers and senders on the app's answers, recent receipts and counts,
   a phone unpairing itself, and test mode started from the phone (LSN-04 amended).
-- **Delivers:** the Android app: pairing by QR or code, reading receipt SMS from allowed senders in the background,
-  uploading with an offline queue, heartbeats, its version check and its status screens (LSN-24), sketched first.
+- **Build's read agreed 2026-11-03** (all as recommended): it **looks back through the inbox** on boot and at each report,
+  so it needs `READ_SMS` as well as `RECEIVE_SMS`, and only money-looking messages leave the phone; **the signing key stays on
+  the owner's computer** with a backup, PRs build with a throwaway debug key, one command per release, nothing that signs a real
+  release on GitHub; **two parts**, 5.5a core and 5.5b the rest of the sketch; **real phones are Xiaomi, Redmi and POCO only**,
+  so Oppo, Vivo and Samsung's battery paths stay unverified until someone can test them. Stated: `apps/listener-android` with its
+  own CI job, Android 7 and later, Jetpack Compose, emulator tests with injected SMS, the download page with 5.8's screens.
+- **5.5a's plan agreed 2026-11-03:** Android 15's block on SMS for an app installed from a browser was **tested and is real**,
+  so a help screen was drawn and built; the SIM question **lists all the shop's numbers**, and with none says so and carries on;
+  **a pairing link pairs straight away** (the owner's pick over the recommended filling the boxes, told a link sent by someone
+  else could pair the phone with their shop); the look-back **never reaches behind this phone's pairing** (recommended).
+- **Delivers (5.5a):** pairing by QR, link or code with every refusal; the SMS permission with Android's block, notifications
+  and the test; the receiver, the inbox's look-back and the filter; the private queue and its uploads; heartbeats; Home's
+  working, nothing yet, no internet, SMS off and no bKash number states. A revoked phone stops, clears its token and saved
+  messages, and goes back to pairing; an inactive shop or an old app holds its receipts.
+- **Delivers (5.5b):** the stopped screens (LSN-24), the battery step by maker, test mode (LSN-04), the menu and unpairing from
+  it, updates and the release signing. Two gaps to settle in its read: the menu's phone name, which no answer carries, and the
+  sender on a test receipt, which `GET /v1/listener/messages` lacks.
 
 ### Slice 5.6: Lytro's own payments on the page
 - **Delivers:** plans, add-ons and top-ups paid through a session to Lytro's wallets with no fee and no session limit
