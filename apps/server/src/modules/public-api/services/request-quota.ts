@@ -104,7 +104,10 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
 
   onModuleInit(): void {
     this.flusher = setInterval(() => {
-      void this.flush();
+      // Nothing has left the unflushed figure if this fails, so the next flush stores it; it must not end the server.
+      this.flush().catch((error: unknown) => {
+        this.logger.error('could not flush API request counts', error as Error);
+      });
     }, FLUSH_EVERY_MS);
     this.flusher.unref();
   }

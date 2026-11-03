@@ -36,6 +36,10 @@ export class DatabaseConnector {
       statement_timeout: settings.statementTimeoutMillis,
       application_name: settings.applicationName,
     });
+    // A connection lost while idle: the pool replaces it, but an 'error' event nobody listens for ends the process.
+    pool.on('error', (error) => {
+      console.error(`[database] idle connection lost: ${error.message}`);
+    });
     return {
       db: drizzle(pool, { schema }),
       close: () => pool.end(),
