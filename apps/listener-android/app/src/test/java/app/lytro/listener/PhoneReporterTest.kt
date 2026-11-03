@@ -11,8 +11,12 @@ import app.lytro.listener.engine.ReceiptUploader
 import app.lytro.listener.engine.isoOf
 import app.lytro.listener.sms.IncomingSms
 import app.lytro.listener.sms.SmsIntake
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import mockwebserver3.Dispatcher
+import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
+import mockwebserver3.RecordedRequest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -187,6 +191,24 @@ class PhoneReporterTest {
         assertNull(secrets.token)
         assertNull(askedSince)
         assertTrue(queue.saved.isEmpty())
+    }
+
+    @Test
+    fun `an answer already on its way cannot undo a revoke`() = runTest {
+        val guard = PhoneGuard(secrets, facts, queue) {}
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                runBlocking { guard.forget(PhoneStatus.Revoked("owner")) }
+                return connected()
+            }
+        }
+
+        reporter().report()
+
+        val left = facts.facts.value
+        assertEquals(PhoneStatus.Revoked("owner"), left.status)
+        assertTrue(left.accounts.isEmpty())
+        assertTrue(left.senders.isEmpty())
     }
 
     @Test

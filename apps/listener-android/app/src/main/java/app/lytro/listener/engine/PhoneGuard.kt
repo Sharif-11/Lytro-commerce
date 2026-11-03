@@ -1,10 +1,13 @@
 package app.lytro.listener.engine
 
 import app.lytro.listener.data.DeviceSecrets
+import app.lytro.listener.data.PhoneFacts
 import app.lytro.listener.data.PhoneFactsStore
 import app.lytro.listener.data.PhoneStatus
 import app.lytro.listener.data.ReceiptQueue
 import app.lytro.listener.net.ApiResult
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonPrimitive
 
 private const val REASON_BLOCKED = "installation_blocked"
@@ -52,8 +55,14 @@ class PhoneGuard(
         else -> Settled.Passing
     }
 
-    /** Ends this phone's pairing: the token and every saved message go, so nothing can reach a shop it left. */
-    suspend fun forget(status: PhoneStatus) {
+    /** A good answer: the phone is connected, and hears what came with it. */
+    fun connected(heard: (PhoneFacts) -> PhoneFacts = { it }) = whilePaired { heard(it).copy(status = PhoneStatus.Connected) }
+
+    /**
+     * Ends this phone's pairing: the token and every saved message go, so nothing can reach a shop it left. Nothing may
+     * interrupt it, since stopping the background work cancels the very report that may have met the refusal.
+     */
+    suspend fun forget(status: PhoneStatus) = withContext(NonCancellable) {
         stopBackground()
         secrets.token = null
         queue.clear()
@@ -66,7 +75,15 @@ class PhoneGuard(
     }
 
     private fun hold(status: PhoneStatus): Settled {
-        phone.update { it.copy(status = status) }
+        whilePaired { it.copy(status = status) }
         return Settled.Held
+    }
+
+    /**
+     * An answer still on its way when a refusal ended the pairing must not undo that. The token is read inside the update,
+     * where [forget]'s own write cannot slip past it.
+     */
+    private fun whilePaired(change: (PhoneFacts) -> PhoneFacts) {
+        phone.update { if (secrets.token == null) it else change(it) }
     }
 }

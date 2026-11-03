@@ -103,7 +103,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // LSN-19: however the phone lost its place, in the background or on a screen, it goes back to pairing.
         viewModelScope.launch {
             graph.phone.facts.collect {
-                if (graph.secrets.token == null && screen !in PAIRING_SCREENS) goToStart(it.status)
+                if (graph.secrets.token == null && mustLeave(it.status)) goToStart(it.status)
             }
         }
     }
@@ -385,7 +385,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             is ApiResult.Ok -> {
                 recent = answer.value
                 reachable = true
-                graph.phone.update { it.copy(status = PhoneStatus.Connected) }
+                graph.guard.connected()
                 // Back from no internet or an inactive plan: what was held goes now, since a shopper's page may be waiting on it.
                 if (graph.queue.size.value > 0) {
                     graph.uploader.drain()
@@ -419,6 +419,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         status is PhoneStatus.Revoked && status.reason != REASON_UNPAIRED_ITSELF -> Screen.Stopped
         else -> Screen.Welcome
     }
+
+    /** The token goes moments before the status saying why, so Welcome still gives way to the stopped screen. */
+    private fun mustLeave(status: PhoneStatus) =
+        screen !in PAIRING_SCREENS || (screen == Screen.Welcome && startScreenFor(status) == Screen.Stopped)
 
     private fun goToStart(status: PhoneStatus) {
         code = ""

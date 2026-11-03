@@ -11,9 +11,12 @@ import app.lytro.listener.engine.ReceiptUploader
 import app.lytro.listener.engine.isoOf
 import app.lytro.listener.net.UploadRequest
 import app.lytro.listener.net.apiJson
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
+import mockwebserver3.RecordedRequest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -59,6 +62,22 @@ class ReceiptUploaderTest {
 
     @After
     fun stop() = server.close()
+
+    @Test
+    fun `an answer already on its way cannot undo a revoke`() = runTest {
+        val guard = PhoneGuard(secrets, facts, queue) {}
+        queue.saved += saved(0)
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                runBlocking { guard.forget(PhoneStatus.Revoked("owner")) }
+                return okEnvelope(results(1))
+            }
+        }
+
+        uploader().drain()
+
+        assertEquals(PhoneStatus.Revoked("owner"), facts.facts.value.status)
+    }
 
     @Test
     fun `an answered message goes from the queue and is remembered, its text gone`() = runTest {

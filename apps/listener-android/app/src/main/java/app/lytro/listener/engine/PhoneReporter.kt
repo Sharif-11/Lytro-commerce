@@ -2,7 +2,6 @@ package app.lytro.listener.engine
 
 import app.lytro.listener.data.DeviceSecrets
 import app.lytro.listener.data.PhoneFactsStore
-import app.lytro.listener.data.PhoneStatus
 import app.lytro.listener.data.ReceiptQueue
 import app.lytro.listener.net.ApiResult
 import app.lytro.listener.net.ListenerApi
@@ -42,7 +41,7 @@ class PhoneReporter(
         // A clock set back must not silence the phone until it catches up.
         if (sinceLast < 0 || sinceLast >= HEARTBEAT_GAP_MS) {
             when (val answer = api.heartbeat()) {
-                is ApiResult.Ok -> phone.update {
+                is ApiResult.Ok -> guard.connected {
                     it.copy(
                         deviceName = answer.value.deviceName.ifEmpty { it.deviceName },
                         shopName = answer.value.shopName.ifEmpty { it.shopName },
@@ -52,7 +51,6 @@ class PhoneReporter(
                         lastHeartbeatAt = now,
                         lastReportAt = now,
                         clockOffsetMs = (millisOfIso(answer.value.serverTime) ?: now) - now,
-                        status = PhoneStatus.Connected,
                     )
                 }
                 is ApiResult.Refused -> if (guard.settle(answer) == Settled.Stopped) return Drain.Waiting

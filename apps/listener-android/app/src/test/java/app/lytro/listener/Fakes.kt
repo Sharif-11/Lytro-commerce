@@ -7,6 +7,8 @@ import app.lytro.listener.data.ReceiptQueue
 import app.lytro.listener.data.SavedMessage
 import app.lytro.listener.net.DeviceCredentials
 import app.lytro.listener.net.ListenerApi
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import mockwebserver3.MockResponse
@@ -57,7 +59,9 @@ class FakeQueue : ReceiptQueue {
 
     override suspend fun forgetSentBefore(cutoff: Long) = Unit
 
+    /** Stops if its caller was cancelled, as the real queue's move to its own thread does. */
     override suspend fun clear() {
+        currentCoroutineContext().ensureActive()
         saved.clear()
         sent.clear()
         count.value = 0
