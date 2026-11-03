@@ -396,8 +396,9 @@ class ScreensTest {
         lytro.everyDeviceCall = null
         tap(word(R.string.check_now))
 
-        shows(word(R.string.today_v))
+        shows(word(R.string.st_on))
         waitUntil("the held receipt went as soon as the shop was back") { lytro.sawUpload(trx) }
+        waitUntil("nothing is left saved") { graph.queue.size.value == 0 }
     }
 
     @Test
