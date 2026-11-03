@@ -1,12 +1,16 @@
 import { cookies, headers } from 'next/headers';
 import { permanentRedirect } from 'next/navigation';
 import { cache } from 'react';
+import { SHOPPER_COOKIE } from './account/shopper-cookie';
 import { AREA_COOKIE, parseArea } from './area';
 import { ServerApi } from './api/server-api';
 import {
   type PublicCategory,
   type PublicShop,
+  type ShopperAddress,
+  type ShopperOrderPage,
   type ShopperRequest,
+  type ShopperView,
   StorefrontApi,
   type StorefrontShopContext,
 } from './api/storefront-api';
@@ -91,6 +95,56 @@ export const loadProduct = cache(async (slug: string) => {
   if (page.state !== 'open') return null;
   return storefrontApi.product(page.shop, page.shopper, slug);
 });
+
+/** The token of the shopper signed in on this browser, as the cookie the storefront's server set holds it. */
+export async function shopperToken(): Promise<string | null> {
+  return (await cookies()).get(SHOPPER_COOKIE)?.value ?? null;
+}
+
+/** CUS-05: who is signed in, read once per request; null when no one is, or the server no longer takes the token. */
+export const loadShopper = cache(async (): Promise<ShopperView | null> => {
+  const [page, token] = await Promise.all([loadShopPage(), shopperToken()]);
+  if (page.state !== 'open' || token === null) return null;
+  const answer = await storefrontApi.shopperCall<ShopperView>(
+    page.shop,
+    page.shopper,
+    'GET',
+    'me',
+    token,
+  );
+  return answer.status === 200 ? answer.data : null;
+});
+
+/** CUS-06: the signed-in shopper's saved addresses; none when the read is refused. */
+export async function loadAddresses(page: OpenShopPage): Promise<ShopperAddress[]> {
+  const token = await shopperToken();
+  if (token === null) return [];
+  const answer = await storefrontApi.shopperCall<{ addresses: ShopperAddress[] }>(
+    page.shop,
+    page.shopper,
+    'GET',
+    'addresses',
+    token,
+  );
+  return answer.data?.addresses ?? [];
+}
+
+/** ORD-18: a page of the orders with the signed-in shopper's phone. */
+export async function loadOrders(
+  page: OpenShopPage,
+  number: number,
+): Promise<ShopperOrderPage | null> {
+  const token = await shopperToken();
+  if (token === null) return null;
+  const answer = await storefrontApi.shopperCall<ShopperOrderPage>(
+    page.shop,
+    page.shopper,
+    'GET',
+    `orders?page=${String(number)}`,
+    token,
+  );
+  return answer.data;
+}
 
 /** What every storefront page's frame shows besides the shop: its categories (kept a minute per shop, Slice 12b) and
     the shopper's remembered area for the cart (SFT-20). */

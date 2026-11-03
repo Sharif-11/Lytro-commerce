@@ -327,6 +327,49 @@ export interface TrackedOrder extends ShopperTotals {
 export type TrackingRead =
   { kind: 'found'; order: TrackedOrder } | { kind: 'missing' } | { kind: 'busy' };
 
+/** CUS-03, CUS-05: a shopper's account in this shop; the phone is the account and never changes. */
+export interface ShopperView {
+  id: string;
+  name: string;
+  phone: string;
+  createdAt: string;
+}
+/** CUS-06: a saved address; `location` is the thana as the canonical list names it, null if it has since gone. */
+export interface ShopperAddress {
+  id: string;
+  label: string;
+  location: {
+    id: number;
+    nameEn: string;
+    nameBn: string;
+    cityCode: string | null;
+    zillaId: number;
+  } | null;
+  deliveryAddress: string;
+  isDefault: boolean;
+}
+/** ORD-18: an order with the shopper's phone: its number, status and total, never a name or address. */
+export interface ShopperOrderRow {
+  orderNumber: string;
+  trackingId: string;
+  status: OrderStatus;
+  grandTotal: string;
+  createdAt: string;
+}
+export interface ShopperOrderPage {
+  orders: ShopperOrderRow[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+/** What the server answers on making an account or signing in; the token goes no further than the storefront's server. */
+export interface ShopperSignedIn {
+  token: string;
+  expiresAt: string;
+  shopper: ShopperView;
+}
+
 /** One shopper's request: the host they asked for, their address and language, carried onto every call. */
 export interface ShopperRequest {
   host: string;
@@ -493,6 +536,26 @@ export class StorefrontApi {
     return { kind: 'found', order: StorefrontApi.required(answer, 'the order') };
   }
 
+  /** CUS-03 to CUS-06, ORD-18: one call on the shopper's account, under their sign-in once there is one. The answer as
+      it came: the page says what a refusal means. */
+  shopperCall<T>(
+    shop: StorefrontShopContext,
+    shopper: ShopperRequest,
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    path: string,
+    token: string | null,
+    body?: unknown,
+  ): Promise<ServerAnswer<T>> {
+    return this.call<T>(
+      shop,
+      shopper,
+      method,
+      `/v1/shopper/${path}`,
+      body,
+      token === null ? {} : { 'x-shopper-token': token },
+    );
+  }
+
   /** One shared read per key for SHELL_TTL_MS; a failed read is not kept, so the next page asks again. */
   private kept<T>(key: string, read: () => Promise<T>): Promise<T> {
     const held = this.shells.get(key);
@@ -508,7 +571,7 @@ export class StorefrontApi {
   private call<T>(
     shop: StorefrontShopContext,
     shopper: ShopperRequest,
-    method: 'GET' | 'POST',
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
     path: string,
     body?: unknown,
     extra: Record<string, string> = {},

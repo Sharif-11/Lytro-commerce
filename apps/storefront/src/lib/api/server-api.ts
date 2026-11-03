@@ -21,7 +21,7 @@ export interface ServerAnswer<T> {
 }
 
 export interface ServerCall {
-  method: 'GET' | 'POST';
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   path: string;
   /** The host the server should take the request as being for. */
   host: string;

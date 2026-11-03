@@ -51,6 +51,12 @@ export const APP_COPY = {
   rule_range: ['{a} থেকে {b}টি বাছুন', 'Pick {a} to {b}'],
   // The prototype writes these in place, with its example customer.
   name_ph: ['যেমন: রুমানা আক্তার', 'e.g. Rumana Akter'],
+  // Slice 4.8e, part 2: words the prototype writes in place.
+  next_step: ['পরের ধাপ', 'Next'],
+  save_action: ['সেভ করুন', 'Save'],
+  edit: ['এডিট', 'Edit'],
+  password_now: ['এখনকার পাসওয়ার্ড', 'Current password'],
+  password_new: ['নতুন পাসওয়ার্ড', 'New password'],
   // Not drawn: the order's own discount, which staff may set, so its total still adds up.
   discount: ['ছাড়', 'Discount'],
 } as const satisfies Record<string, readonly [string, string]>;

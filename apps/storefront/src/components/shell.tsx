@@ -167,6 +167,10 @@ export function Header({
     nav ? (
       <>
         <SearchTools language={language} categories={nav.categories} phoneButton={phoneSearch} />
+        {/* Agreed: signed in it opens My account; signed out, /account leads to Sign in. */}
+        <a className="ib" href="/account" aria-label={words.t('account')}>
+          <Icon name="user" />
+        </a>
         <CartButton
           language={language}
           shopPhone={nav.shopPhone}
@@ -204,8 +208,8 @@ export function Header({
 }
 
 /** SFT-21: the shop's name and logo, and whichever of its phone, email and address are set; none set, no contact
-    block. The storefront's links lead to its categories, tracking and the language (the account joins with the sign-in
-    pages); the landing page's lead out to the shop, only while its storefront is on (SFT-16), and to tracking. */
+    block. The storefront's links lead to its categories, tracking, the account and the language; the landing page's lead
+    out to the shop, only while its storefront is on (SFT-16), and to tracking. */
 export function Footer({
   shop,
   language,
@@ -255,6 +259,7 @@ export function Footer({
           {landing && storefrontOn ? <a href="/">{words.t('browse_shop')}</a> : null}
           {landing ? null : <a href="/#categories">{words.t('categories')}</a>}
           <a href="/track">{words.t('track')}</a>
+          {landing ? null : <a href="/account">{words.t('account')}</a>}
           <LanguageSwitch language={language} as="link" />
         </div>
         <div className="pb">
