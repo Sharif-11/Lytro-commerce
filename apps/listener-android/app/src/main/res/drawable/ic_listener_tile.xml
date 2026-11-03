@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- docs/brand/icon-listener.svg, as the app bar's tile. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <path
+        android:fillColor="#063B38"
+        android:pathData="M112,0H400A112,112 0 0 1 512,112V400A112,112 0 0 1 400,512H112A112,112 0 0 1 0,400V112A112,112 0 0 1 112,0Z" />
+    <group
+        android:pivotX="32"
+        android:pivotY="32"
+        android:scaleX="4.6"
+        android:scaleY="4.6"
+        android:translateX="204"
+        android:translateY="244">
+        <path
+            android:pathData="M15,15V49H31L49,29"
+            android:strokeWidth="10"
+            android:strokeColor="#FFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+    <path
+        android:pathData="M336,150a60,60 0 0 1 60,60"
+        android:strokeWidth="30"
+        android:strokeColor="#F2A516"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M336,96a114,114 0 0 1 114,114"
+        android:strokeWidth="30"
+        android:strokeColor="#F2A516"
+        android:strokeLineCap="round" />
+</vector>

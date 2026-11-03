@@ -253,6 +253,9 @@ const D = {
   acctP: ['bKash-এর SMS যে ফোনে আসে, অ্যাপটি সেই ফোনেই থাকতে হবে।', 'The app must be on the phone that gets bKash’s SMS.'],
   yesHere: ['হ্যাঁ, এই ফোনেই', 'Yes, it’s in this phone'],
   noOther: ['না, অন্য ফোনে আছে', 'No, it’s in another phone'],
+  acctQs: ['এই নম্বরগুলোর কোনো একটির SIM কি এই ফোনেই আছে?', 'Is the SIM of one of these numbers in this phone?'],
+  cont: ['চালিয়ে যান', 'Continue'],
+  camOff: ['ক্যামেরার অনুমতি নেই। অনুমতি দিন, অথবা কোড টাইপ করুন।', 'The camera isn’t allowed. Allow it, or type the code instead.'],
 
   s1: ['ধাপ 1/3', 'Step 1 of 3'], s2: ['ধাপ 2/3', 'Step 2 of 3'], s3: ['ধাপ 3/3', 'Step 3 of 3'],
   smsT: ['SMS পড়ার অনুমতি দিন', 'Allow reading SMS'],
@@ -265,6 +268,11 @@ const D = {
   smsDT: ['অনুমতি ছাড়া অ্যাপ কাজ করবে না', 'The app can’t work without it'],
   smsDP: ['সেটিংসে গিয়ে Permissions → SMS → Allow করুন। এর আগে পেমেন্ট স্টাফকে হাতে ভেরিফাই করতে হবে।', 'In Settings, choose Permissions → SMS → Allow. Until then staff verify payments by hand.'],
   openSet: ['সেটিংস খুলুন', 'Open Settings'],
+  blkT: ['Android অনুমতিটি আটকে দিয়েছে', 'Android blocked this permission'],
+  blkP: ['ব্রাউজার থেকে ইনস্টল করা অ্যাপের SMS অনুমতি Android নিজে থেকে আটকে দেয়। এটা একবার চালু করলেই হবে।', 'Android blocks SMS for apps installed from a browser until you allow it. You only do this once.'],
+  blk1: ['নিচের বাটন চেপে App info খুলুন', 'Tap the button below to open App info'],
+  blk2: ['ওপরে ডানদিকের ⋮ মেনু থেকে “Allow restricted settings” চাপুন। পিন চাইলে দিন।', 'In the ⋮ menu at the top right, tap “Allow restricted settings”. Enter your PIN if asked.'],
+  blk3: ['এই অ্যাপে ফিরে এসে আবার অনুমতি দিন', 'Come back to this app and allow it again'],
   notT: ['নোটিফিকেশন চালু করুন', 'Turn on notifications'],
   notP: ['অ্যাপ চালু আছে কি না নোটিফিকেশনে সবসময় দেখা যাবে। কোনো সমস্যা হলে এখানেই জানাবে।', 'A notification always shows the app is running, and tells you if something goes wrong.'],
   turnOn: ['চালু করুন', 'Turn on'],
@@ -412,6 +420,7 @@ const S = {
 
   welcome: () => frame(`<div class="bd"><div style="display:flex;justify-content:flex-end"><span class="lang"><button class="${ST.lang === 'bn' ? 'on' : ''}" data-lang="bn">বাংলা</button><button class="${ST.lang === 'en' ? 'on' : ''}" data-lang="en">EN</button></span></div><h2>${t('welT')}</h2><div class="card" style="display:flex;flex-direction:column;gap:12px">${[['1', 'wel1'], ['2', 'wel2'], ['3', 'wel3']].map(([n, k]) => `<div class="li"><span class="num-c">${n}</span><span>${t(k)}</span></div>`).join('')}</div><div class="note warn">${ic('phone')}<span>${t('welN')}</span></div><div class="foot"><button class="btn" data-go="pair-scan">${t('start')}</button></div></div>`),
   'pair-scan': () => frame(`${band('warn', t('stOff'), t('stOffS'))}<div class="bd"><h2>${t('scanT')}</h2><p class="sm">${t('scanP')}</p><div class="cam"><div class="fr"><i></i><i></i><i></i><i></i>${qrSvg('#ffffff')}</div></div><div class="foot"><button class="btn sec" data-go="pair-type">${ic('keyboard')}${t('typeCode')}</button></div></div>`),
+  'pair-nocam': () => frame(`${band('warn', t('stOff'), t('stOffS'))}<div class="bd"><h2>${t('scanT')}</h2><p class="sm">${t('scanP')}</p><div class="cam" style="flex-direction:column;gap:12px;padding:16px;text-align:center"><p class="p">${t('camOff')}</p><button class="btn" style="width:auto">${t('allow')}</button></div><div class="foot"><button class="btn sec" data-go="pair-type">${ic('keyboard')}${t('typeCode')}</button></div></div>`),
   'pair-type': () => frame(`${band('warn', t('stOff'), t('stOffS'))}<div class="bd"><h2>${t('typeT')}</h2><p class="sm">${t('typeP')}</p>${codeBoxes('K7MP', '', 4)}<div class="foot"><button class="btn" disabled>${t('pair')}</button><button class="lnk" data-go="pair-scan">${t('useScan')}</button></div></div>`),
   'pair-full': () => frame(`${band('warn', t('stOff'), t('stOffS'))}<div class="bd"><h2>${t('typeT')}</h2><p class="sm">${t('typeP')}</p>${codeBoxes('K7MP4X2R')}<div class="foot"><button class="btn" data-go="paired">${t('pair')}</button><button class="lnk" data-go="pair-scan">${t('useScan')}</button></div></div>`),
   'pair-wrong': () => frame(`${band('warn', t('stOff'), t('stOffS'))}<div class="bd"><h2>${t('typeT')}</h2><p class="sm">${t('typeP')}</p>${codeBoxes('K7MP4X2H', 'bad')}<div class="err">${ic('alert')}<span>${t('eWrong')}</span></div><div class="foot"><button class="btn" data-go="pair-full">${t('retry')}</button></div></div>`),
@@ -420,6 +429,9 @@ const S = {
   'pair-limit': () => frame(`${band('warn', t('stOff'), t('stOffS'))}<div class="bd"><div class="big warn">${ic('phone')}</div><h2>${t('limT')}</h2><p class="p">${t('limP')}</p><div class="foot"><button class="btn" data-go="pair-full">${t('retry')}</button></div></div>`),
 
   paired: () => frame(`<div class="bd"><div class="big good">${ic('check')}</div><h2>${t('doneT')}</h2><p class="p">${t('acctQ')}</p>${acct()}<p class="sm">${t('acctP')}</p><div class="foot"><button class="btn" data-go="perm-sms">${t('yesHere')}</button><button class="btn sec" data-go="welcome">${t('noOther')}</button></div></div>`),
+  'paired-many': () => frame(`<div class="bd"><div class="big good">${ic('check')}</div><h2>${t('doneT')}</h2><p class="p">${t('acctQs')}</p>${acct()}<div class="card acct"><div><div class="lbl">bKash</div><b>01811-000002</b></div>${ic('wallet')}</div><p class="sm">${t('acctP')}</p><div class="foot"><button class="btn" data-go="perm-sms">${t('yesHere')}</button><button class="btn sec" data-go="welcome">${t('noOther')}</button></div></div>`),
+  'paired-none': () => frame(`<div class="bd"><div class="big good">${ic('check')}</div><h2>${t('doneT')}</h2><div class="note warn">${ic('alert')}<span>${t('stAcctS')}</span></div><p class="p">${t('acctNote')}</p><div class="foot"><button class="btn" data-go="perm-sms">${t('cont')}</button></div></div>`),
+  'perm-sms-blocked': () => frame(`<div class="bd">${stepper(1, t('s1'))}<div class="big dan">${ic('msg')}</div><h2>${t('blkT')}</h2><p class="p">${t('blkP')}</p><div class="card" style="display:flex;flex-direction:column;gap:12px">${[['1', 'blk1'], ['2', 'blk2'], ['3', 'blk3']].map(([n, k]) => `<div class="li"><span class="num-c">${n}</span><span>${t(k)}</span></div>`).join('')}</div><div class="foot"><button class="btn">${t('openSet')}</button><button class="btn sec" data-go="perm-sms-sys">${t('allow')}</button></div></div>`),
   'perm-sms': () => frame(`<div class="bd">${stepper(1, t('s1'))}<div class="big">${ic('msg')}</div><h2>${t('smsT')}</h2><p class="p">${t('smsP')}</p><div class="card" style="display:flex;flex-direction:column;gap:8px">${li('check', 'sms1')}${li('check', 'sms2')}${li('check', 'sms3')}</div><div class="note">${ic('help')}<span>${t('smsN')}</span></div><div class="foot"><button class="btn" data-go="perm-sms-sys">${t('allow')}</button></div></div>`),
   'perm-sms-sys': () => frame(`<div class="bd">${stepper(1, t('s1'))}<div class="big">${ic('msg')}</div><h2>${t('smsT')}</h2><p class="p">${t('smsP')}</p></div>${dlg('msg', 'Allow <b>Lytro Listener</b> to send and view SMS messages?', 'Allow', 'Don’t allow', 'perm-notif')}`),
   'perm-sms-no': () => frame(`<div class="bd">${stepper(1, t('s1'))}<div class="big dan">${ic('msg')}</div><h2>${t('smsDT')}</h2><p class="p">${t('smsDP')}</p><div class="foot"><button class="btn" data-go="perm-notif">${t('openSet')}</button></div></div>`),
@@ -468,8 +480,8 @@ const S = {
 
 const GROUPS = [
   ['Before the app', [['ref-dash', 'Dashboard: the pairing card (reference)'], ['install', 'Installing the APK']]],
-  ['First setup', [['welcome', 'Welcome'], ['pair-scan', 'Pair: scan the QR'], ['pair-type', 'Pair: type the code'], ['pair-full', 'Pair: code complete'], ['paired', 'Paired: the right phone?'], ['perm-sms', 'Step 1: SMS permission'], ['perm-sms-sys', 'Step 1: Android’s own dialog'], ['perm-notif', 'Step 2: notifications'], ['battery', 'Step 3: battery saver'], ['test-wait', 'Test: waiting for an SMS'], ['test-got', 'Test: it arrived']]],
-  ['When pairing is refused', [['pair-wrong', 'Wrong or lapsed code'], ['pair-tries', 'Too many tries'], ['pair-net', 'No internet'], ['pair-limit', 'Device limit reached (LSN-24)'], ['perm-sms-no', 'SMS permission refused']]],
+  ['First setup', [['welcome', 'Welcome'], ['pair-scan', 'Pair: scan the QR'], ['pair-type', 'Pair: type the code'], ['pair-full', 'Pair: code complete'], ['paired', 'Paired: the right phone?'], ['paired-many', 'Paired: several bKash numbers'], ['paired-none', 'Paired: no bKash number'], ['perm-sms', 'Step 1: SMS permission'], ['perm-sms-sys', 'Step 1: Android’s own dialog'], ['perm-notif', 'Step 2: notifications'], ['battery', 'Step 3: battery saver'], ['test-wait', 'Test: waiting for an SMS'], ['test-got', 'Test: it arrived']]],
+  ['When pairing is refused', [['pair-wrong', 'Wrong or lapsed code'], ['pair-tries', 'Too many tries'], ['pair-net', 'No internet'], ['pair-limit', 'Device limit reached (LSN-24)'], ['pair-nocam', 'Camera refused'], ['perm-sms-no', 'SMS permission refused'], ['perm-sms-blocked', 'SMS blocked by Android (15 and later, browser install)']]],
   ['Home', [['home-on', 'Working, with receipts'], ['home-empty', 'Working, nothing yet'], ['home-offline', 'No internet, receipts saved'], ['home-test', 'Test mode (LSN-04)']]],
   ['Home with a problem', [['home-perm', 'SMS permission lost'], ['home-battery', 'Battery saver risk'], ['home-acct', 'No active bKash account']]],
   ['Stopped (LSN-24)', [['inactive', 'Subscription inactive'], ['revoked-owner', 'Revoked by the owner'], ['revoked-flags', 'Revoked after flags'], ['blocked', 'Installation blocked'], ['update', 'Update required']]],

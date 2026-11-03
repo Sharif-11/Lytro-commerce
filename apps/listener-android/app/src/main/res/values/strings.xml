@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Bangla, the app's own language whatever the phone is set to. Every word is docs/brand/lytro-listener.html's, but for what it
+never needed to draw: how long ago in hours or days, "just now", and no internet with nothing saved.
+-->
+<resources>
+    <string name="app_name" translatable="false">Lytro Listener</string>
+    <string name="channel_status">অ্যাপ চালু আছে</string>
+    <string name="channel_problem">সমস্যা হলে</string>
+
+    <string name="st_on">চালু আছে</string>
+    <string name="st_on_s">পেমেন্ট SMS মিলছে</string>
+    <string name="st_on_s_report">পেমেন্ট SMS মিলছে · শেষ রিপোর্ট %1$s</string>
+    <string name="st_off">পেয়ার করা নেই</string>
+    <string name="st_off_s">একটা কোড দিয়ে ফোনটি শপের সাথে যুক্ত করুন</string>
+    <string name="st_net">ইন্টারনেট নেই</string>
+    <plurals name="st_net_s">
+        <item quantity="one">%1$dটি রিসিট ফোনে জমা আছে। নেট এলেই নিজে থেকে যাবে।</item>
+        <item quantity="other">%1$dটি রিসিট ফোনে জমা আছে। নেট এলেই নিজে থেকে যাবে।</item>
+    </plurals>
+    <string name="st_net_s_none">রিসিট এলে ফোনে জমা থাকবে। নেট এলেই নিজে থেকে যাবে।</string>
+    <string name="st_perm">SMS পড়ার অনুমতি বন্ধ</string>
+    <string name="st_perm_s">এখন কোনো পেমেন্ট নিজে থেকে ভেরিফাই হবে না</string>
+    <string name="st_acct">চালু আছে, তবে bKash নম্বর নেই</string>
+    <string name="st_acct_s">শপে কোনো bKash অ্যাকাউন্ট অ্যাক্টিভ নেই</string>
+    <string name="st_inact">সাবস্ক্রিপশন ইনঅ্যাক্টিভ</string>
+    <string name="st_upd">আপডেট দরকার</string>
+    <string name="upd_p">পেমেন্ট পাঠানো চালু রাখতে লিসেনার অ্যাপ আপডেট করুন। ততক্ষণ রিসিট ফোনে জমা থাকবে।</string>
+    <string name="inact_p">এই শপের সাবস্ক্রিপশন চালু নেই, তাই লিসেনার বন্ধ আছে। প্ল্যান রিনিউ হলে নিজে থেকেই চালু হবে।</string>
+
+    <string name="just_now">এইমাত্র</string>
+    <plurals name="minutes_ago">
+        <item quantity="one">%1$d মিনিট আগে</item>
+        <item quantity="other">%1$d মিনিট আগে</item>
+    </plurals>
+    <plurals name="hours_ago">
+        <item quantity="one">%1$d ঘণ্টা আগে</item>
+        <item quantity="other">%1$d ঘণ্টা আগে</item>
+    </plurals>
+    <plurals name="days_ago">
+        <item quantity="one">%1$d দিন আগে</item>
+        <item quantity="other">%1$d দিন আগে</item>
+    </plurals>
+
+    <string name="today_v">ভেরিফাই</string>
+    <string name="today_w">অপেক্ষায়</string>
+    <string name="today_s">স্টাফ চেক করবে</string>
+    <string name="recent">সাম্প্রতিক রিসিট</string>
+    <string name="today">আজ</string>
+    <string name="r_matched">অর্ডার #%1$s ভেরিফাই হয়েছে</string>
+    <string name="r_matched_no_order">ভেরিফাই হয়েছে</string>
+    <string name="r_wait">এখনও মেলেনি। কাস্টমার TrxID দিলে মিলে যাবে।</string>
+    <string name="r_amount">টাকার পরিমাণ মেলেনি। স্টাফ চেক করবে।</string>
+    <string name="r_review">স্টাফ চেক করবে।</string>
+    <string name="r_balance">ব্যালেন্স কম, তাই স্টাফ হাতে ভেরিফাই করবে</string>
+    <string name="r_queued">ফোনে জমা আছে</string>
+    <string name="r_reached">রিসিট Lytro-তে পৌঁছেছে</string>
+    <string name="r_test">পড়া গেছে। এই সেন্ডার তালিকায় নেই, তাই ভেরিফাই হবে না।</string>
+    <string name="r_dup">আগেই পাঠানো হয়েছে</string>
+    <string name="empty_t">এখনও কোনো রিসিট আসেনি</string>
+    <string name="empty_p">এই নম্বরে bKash-এ টাকা এলে রিসিট এখানে দেখা যাবে।</string>
+    <string name="only_b">এখন শুধু bKash-এর SMS পড়া হয়</string>
+
+    <string name="wel_t">bKash-এ টাকা এলে অর্ডার নিজে থেকে ভেরিফাই হবে</string>
+    <string name="wel_1">কাস্টমার আপনার bKash নম্বরে টাকা পাঠান</string>
+    <string name="wel_2">এই ফোনে bKash-এর SMS আসে</string>
+    <string name="wel_3">Lytro রিসিট মিলিয়ে অর্ডার ভেরিফাই করে</string>
+    <string name="wel_n">যে ফোনে শপের bKash নম্বরের SIM আছে, সেই ফোনেই অ্যাপটি চালান।</string>
+    <string name="start">শুরু করুন</string>
+
+    <string name="scan_t">QR কোড স্ক্যান করুন</string>
+    <string name="scan_p">ড্যাশবোর্ডে যান: সেটিংস → লিসেনার ফোন → ফোন পেয়ার করুন</string>
+    <string name="type_code">কোড টাইপ করুন</string>
+    <string name="cam_off">ক্যামেরার অনুমতি নেই। অনুমতি দিন, অথবা কোড টাইপ করুন।</string>
+    <string name="type_t">পেয়ারিং কোড দিন</string>
+    <string name="type_p">ড্যাশবোর্ডে দেখানো 8 অক্ষরের কোড। কোডটি 10 মিনিট চলে।</string>
+    <string name="pair">পেয়ার করুন</string>
+    <string name="use_scan">QR স্ক্যান করুন</string>
+    <plurals name="e_tries">
+        <item quantity="one">অনেকবার ভুল কোড দেওয়া হয়েছে। %1$d মিনিট পর আবার ট্রাই করুন।</item>
+        <item quantity="other">অনেকবার ভুল কোড দেওয়া হয়েছে। %1$d মিনিট পর আবার ট্রাই করুন।</item>
+    </plurals>
+    <string name="e_net">ইন্টারনেট নেই। নেট চালু করে আবার ট্রাই করুন।</string>
+    <string name="lim_t">এই প্ল্যানের সব ফোন পেয়ার করা আছে</string>
+    <string name="lim_p">আরেকটি পেয়ার করতে ড্যাশবোর্ড থেকে একটি ফোন ক্যানসেল করুন বা আপগ্রেড করুন।</string>
+    <string name="retry">আবার ট্রাই করুন</string>
+
+    <string name="done_t">%1$s-এর সাথে পেয়ার হয়েছে</string>
+    <string name="acct_q">এই নম্বরের SIM কি এই ফোনেই আছে?</string>
+    <string name="acct_qs">এই নম্বরগুলোর কোনো একটির SIM কি এই ফোনেই আছে?</string>
+    <string name="acct_p">bKash-এর SMS যে ফোনে আসে, অ্যাপটি সেই ফোনেই থাকতে হবে।</string>
+    <string name="yes_here">হ্যাঁ, এই ফোনেই</string>
+    <string name="no_other">না, অন্য ফোনে আছে</string>
+    <string name="cont">চালিয়ে যান</string>
+
+    <string name="s1">ধাপ 1/3</string>
+    <string name="s2">ধাপ 2/3</string>
+    <string name="sms_t">SMS পড়ার অনুমতি দিন</string>
+    <string name="sms_p">bKash-এর পেমেন্ট SMS Lytro-তে পাঠাতে অ্যাপের এই অনুমতি লাগে।</string>
+    <string name="sms_1">শুধু bKash-এর পেমেন্ট SMS পাঠানো হয়</string>
+    <string name="sms_2">অন্য কোনো SMS এই ফোনের বাইরে যায় না</string>
+    <string name="sms_3">এই অ্যাপ নিজে কখনও SMS পাঠায় না</string>
+    <string name="sms_n">Android-এর বার্তায় “send and view” লেখা থাকবে। ওটা Android-এর নিজের লেখা; এই অ্যাপ কোনো SMS পাঠায় না।</string>
+    <string name="allow">অনুমতি দিন</string>
+    <string name="sms_d_t">অনুমতি ছাড়া অ্যাপ কাজ করবে না</string>
+    <string name="sms_d_p">সেটিংসে গিয়ে Permissions → SMS → Allow করুন। এর আগে পেমেন্ট স্টাফকে হাতে ভেরিফাই করতে হবে।</string>
+    <string name="open_set">সেটিংস খুলুন</string>
+    <string name="blk_t">Android অনুমতিটি আটকে দিয়েছে</string>
+    <string name="blk_p">ব্রাউজার থেকে ইনস্টল করা অ্যাপের SMS অনুমতি Android নিজে থেকে আটকে দেয়। এটা একবার চালু করলেই হবে।</string>
+    <string name="blk_1">নিচের বাটন চেপে App info খুলুন</string>
+    <string name="blk_2">ওপরে ডানদিকের ⋮ মেনু থেকে “Allow restricted settings” চাপুন। পিন চাইলে দিন।</string>
+    <string name="blk_3">এই অ্যাপে ফিরে এসে আবার অনুমতি দিন</string>
+    <string name="not_t">নোটিফিকেশন চালু করুন</string>
+    <string name="not_p">অ্যাপ চালু আছে কি না নোটিফিকেশনে সবসময় দেখা যাবে। কোনো সমস্যা হলে এখানেই জানাবে।</string>
+    <string name="turn_on">চালু করুন</string>
+
+    <string name="t_t">একটা টেস্ট করে দেখি</string>
+    <string name="t_p">অন্য একটি ফোন থেকে এই নম্বরে অল্প টাকা Send Money করুন। SMS এলেই এখানে দেখা যাবে।</string>
+    <string name="t_wait">SMS-এর অপেক্ষায়…</string>
+    <string name="t_skip">পরে করব, পরের আসল পেমেন্টেই দেখব</string>
+    <string name="t_got_t">রিসিট পেয়েছি। সব ঠিক আছে।</string>
+    <string name="t_got_p">এখন থেকে bKash-এ টাকা এলে Lytro নিজে থেকে মিলিয়ে নেবে। অ্যাপটি খোলা রাখার দরকার নেই।</string>
+    <string name="finish">শেষ করুন</string>
+
+    <string name="fix_perm_n">কেউ অনুমতিটি বন্ধ করেছে, অথবা ফোন নিজে বন্ধ করে দিয়েছে। এই সময়ের রিসিট অনুমতি চালু করলে পাঠানো হবে।</string>
+    <string name="fix">ঠিক করুন</string>
+    <string name="acct_note">শপের মালিক ড্যাশবোর্ডের পেমেন্ট মেথড থেকে bKash অ্যাকাউন্ট অ্যাক্টিভ করলে রিসিট মিলবে।</string>
+
+    <string name="n_on">Lytro Listener চালু আছে। পেমেন্ট SMS মিলছে।</string>
+    <plurals name="n_net">
+        <item quantity="one">ইন্টারনেট নেই। %1$dটি রিসিট ফোনে জমা আছে।</item>
+        <item quantity="other">ইন্টারনেট নেই। %1$dটি রিসিট ফোনে জমা আছে।</item>
+    </plurals>
+    <string name="n_net_none">ইন্টারনেট নেই।</string>
+    <string name="n_perm">SMS পড়ার অনুমতি বন্ধ। ঠিক করতে ট্যাপ করুন।</string>
+    <string name="n_inact">সাবস্ক্রিপশন ইনঅ্যাক্টিভ। লিসেনার বন্ধ আছে।</string>
+    <string name="n_upd">আপডেট দরকার। ট্যাপ করে ডাউনলোড করুন।</string>
+</resources>

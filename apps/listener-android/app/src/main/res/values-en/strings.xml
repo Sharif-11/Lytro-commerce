@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_status">The app is running</string>
+    <string name="channel_problem">When something is wrong</string>
+
+    <string name="st_on">Working</string>
+    <string name="st_on_s">Matching payment SMS</string>
+    <string name="st_on_s_report">Matching payment SMS · last report %1$s</string>
+    <string name="st_off">Not paired</string>
+    <string name="st_off_s">Link this phone to your shop with a code</string>
+    <string name="st_net">No internet</string>
+    <plurals name="st_net_s">
+        <item quantity="one">%1$d receipt is saved on the phone and goes by itself when you’re back online.</item>
+        <item quantity="other">%1$d receipts are saved on the phone and go by themselves when you’re back online.</item>
+    </plurals>
+    <string name="st_net_s_none">Receipts are saved on the phone and go by themselves when you’re back online.</string>
+    <string name="st_perm">SMS permission is off</string>
+    <string name="st_perm_s">Nothing verifies by itself until this is fixed</string>
+    <string name="st_acct">Working, but no bKash number</string>
+    <string name="st_acct_s">Your shop has no active bKash account</string>
+    <string name="st_inact">Subscription inactive</string>
+    <string name="st_upd">Update required</string>
+    <string name="upd_p">Update the listener app to keep forwarding payments. Receipts stay saved on the phone until then.</string>
+    <string name="inact_p">This shop’s subscription isn’t active, so the listener is off. It comes back by itself when the plan renews.</string>
+
+    <string name="just_now">just now</string>
+    <plurals name="minutes_ago">
+        <item quantity="one">%1$d minute ago</item>
+        <item quantity="other">%1$d minutes ago</item>
+    </plurals>
+    <plurals name="hours_ago">
+        <item quantity="one">%1$d hour ago</item>
+        <item quantity="other">%1$d hours ago</item>
+    </plurals>
+    <plurals name="days_ago">
+        <item quantity="one">%1$d day ago</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
+
+    <string name="today_v">Verified</string>
+    <string name="today_w">Waiting</string>
+    <string name="today_s">Staff to check</string>
+    <string name="recent">Recent receipts</string>
+    <string name="today">Today</string>
+    <string name="r_matched">Order #%1$s verified</string>
+    <string name="r_matched_no_order">Verified</string>
+    <string name="r_wait">Not matched yet. It matches when the customer types the TrxID.</string>
+    <string name="r_amount">The amount didn’t match. Staff will check.</string>
+    <string name="r_review">Staff will check.</string>
+    <string name="r_balance">Balance too low, so staff will verify by hand</string>
+    <string name="r_queued">Saved on the phone</string>
+    <string name="r_reached">The receipt reached Lytro</string>
+    <string name="r_test">Read fine. This sender isn’t on the list, so it verifies nothing.</string>
+    <string name="r_dup">Already sent</string>
+    <string name="empty_t">No receipts yet</string>
+    <string name="empty_p">When money reaches this bKash number, the receipt shows here.</string>
+    <string name="only_b">Only bKash SMS are read for now</string>
+
+    <string name="wel_t">When money reaches bKash, orders verify by themselves</string>
+    <string name="wel_1">A customer sends money to your bKash number</string>
+    <string name="wel_2">bKash’s SMS reaches this phone</string>
+    <string name="wel_3">Lytro matches the receipt and verifies the order</string>
+    <string name="wel_n">Run this app on the phone that holds your shop’s bKash SIM.</string>
+    <string name="start">Get started</string>
+
+    <string name="scan_t">Scan the QR code</string>
+    <string name="scan_p">On the dashboard: Settings → Listener phones → Pair a phone</string>
+    <string name="type_code">Type the code instead</string>
+    <string name="cam_off">The camera isn’t allowed. Allow it, or type the code instead.</string>
+    <string name="type_t">Enter the pairing code</string>
+    <string name="type_p">The 8 characters on the dashboard. A code lasts 10 minutes.</string>
+    <string name="pair">Pair this phone</string>
+    <string name="use_scan">Scan a QR code instead</string>
+    <plurals name="e_tries">
+        <item quantity="one">Too many wrong codes. Try again in %1$d minute.</item>
+        <item quantity="other">Too many wrong codes. Try again in %1$d minutes.</item>
+    </plurals>
+    <string name="e_net">No internet. Turn it on and try again.</string>
+    <string name="lim_t">All your plan’s phones are paired</string>
+    <string name="lim_p">To pair another, revoke a phone on the dashboard, or upgrade.</string>
+    <string name="retry">Try again</string>
+
+    <string name="done_t">Paired with %1$s</string>
+    <string name="acct_q">Is this number’s SIM in this phone?</string>
+    <string name="acct_qs">Is the SIM of one of these numbers in this phone?</string>
+    <string name="acct_p">The app must be on the phone that gets bKash’s SMS.</string>
+    <string name="yes_here">Yes, it’s in this phone</string>
+    <string name="no_other">No, it’s in another phone</string>
+    <string name="cont">Continue</string>
+
+    <string name="s1">Step 1 of 3</string>
+    <string name="s2">Step 2 of 3</string>
+    <string name="sms_t">Allow reading SMS</string>
+    <string name="sms_p">The app needs this to send bKash’s payment SMS to Lytro.</string>
+    <string name="sms_1">Only bKash’s payment SMS are sent</string>
+    <string name="sms_2">No other SMS leaves this phone</string>
+    <string name="sms_3">This app never sends SMS itself</string>
+    <string name="sms_n">Android’s message will say “send and view”. That’s Android’s own wording; this app sends no SMS.</string>
+    <string name="allow">Allow</string>
+    <string name="sms_d_t">The app can’t work without it</string>
+    <string name="sms_d_p">In Settings, choose Permissions → SMS → Allow. Until then staff verify payments by hand.</string>
+    <string name="open_set">Open Settings</string>
+    <string name="blk_t">Android blocked this permission</string>
+    <string name="blk_p">Android blocks SMS for apps installed from a browser until you allow it. You only do this once.</string>
+    <string name="blk_1">Tap the button below to open App info</string>
+    <string name="blk_2">In the ⋮ menu at the top right, tap “Allow restricted settings”. Enter your PIN if asked.</string>
+    <string name="blk_3">Come back to this app and allow it again</string>
+    <string name="not_t">Turn on notifications</string>
+    <string name="not_p">A notification always shows the app is running, and tells you if something goes wrong.</string>
+    <string name="turn_on">Turn on</string>
+
+    <string name="t_t">Let’s test it</string>
+    <string name="t_p">From another phone, Send Money a small amount to this number. It shows here when the SMS arrives.</string>
+    <string name="t_wait">Waiting for the SMS…</string>
+    <string name="t_skip">Later, I’ll see it on the next real payment</string>
+    <string name="t_got_t">Got the receipt. All good.</string>
+    <string name="t_got_p">From now on Lytro matches bKash payments by itself. You don’t need to keep the app open.</string>
+    <string name="finish">Finish</string>
+
+    <string name="fix_perm_n">Someone turned it off, or the phone did. Receipts from this time go once it’s back on.</string>
+    <string name="fix">Fix it</string>
+    <string name="acct_note">Receipts match once the owner makes a bKash account active in Payment methods on the dashboard.</string>
+
+    <string name="n_on">Lytro Listener is working. Matching payment SMS.</string>
+    <plurals name="n_net">
+        <item quantity="one">No internet. %1$d receipt saved on the phone.</item>
+        <item quantity="other">No internet. %1$d receipts saved on the phone.</item>
+    </plurals>
+    <string name="n_net_none">No internet.</string>
+    <string name="n_perm">SMS permission is off. Tap to fix.</string>
+    <string name="n_inact">Subscription inactive. The listener is off.</string>
+    <string name="n_upd">Update required. Tap to download.</string>
+</resources>
