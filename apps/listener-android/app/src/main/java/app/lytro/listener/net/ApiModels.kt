@@ -20,6 +20,7 @@ data class PairRequest(
 data class Paired(
     val deviceId: String,
     val token: String,
+    val deviceName: String = "",
     val shopName: String,
     val heartbeatMinutes: Int,
     val accounts: List<Account> = emptyList(),
@@ -28,10 +29,15 @@ data class Paired(
 )
 
 @Serializable
+data class TestModeStarted(val testModeUntil: String)
+
+@Serializable
 data class Connected(
     val status: String,
     val heartbeatMinutes: Int,
     val serverTime: String,
+    val deviceName: String = "",
+    val shopName: String = "",
     val accounts: List<Account> = emptyList(),
     val senders: List<String> = emptyList(),
     val testModeUntil: String? = null,
@@ -57,6 +63,7 @@ data class Uploaded(val results: List<UploadResult>, val testModeUntil: String? 
 @Serializable
 data class RecentReceipt(
     val id: String,
+    val sender: String? = null,
     val method: String? = null,
     val amount: String? = null,
     val transactionId: String? = null,

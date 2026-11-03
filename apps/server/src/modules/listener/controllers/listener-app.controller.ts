@@ -24,6 +24,7 @@ class ListenerPairedDto extends createZodDto(
   z.object({
     deviceId: z.string(),
     token: z.string(),
+    deviceName: z.string(),
     shopName: z.string(),
     heartbeatMinutes: z.number(),
     ...appFacts,
@@ -34,6 +35,8 @@ class ListenerConnectedDto extends createZodDto(
     status: z.literal('connected'),
     heartbeatMinutes: z.number(),
     serverTime: z.coerce.date(),
+    deviceName: z.string(),
+    shopName: z.string(),
     ...appFacts,
   }),
 ) {}

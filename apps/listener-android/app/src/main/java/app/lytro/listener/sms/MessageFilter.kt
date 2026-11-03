@@ -24,17 +24,26 @@ fun looksLikeTransaction(text: String): Boolean {
         (AMOUNT.containsMatchIn(line) && BALANCE.containsMatchIn(line))
 }
 
+/** LSN-04: what test mode lets through from an unknown sender: an amount and a transaction ID. */
+fun looksLikeReceipt(text: String): Boolean {
+    val line = oneLine(text)
+    return TRANSACTION_ID.containsMatchIn(line) && AMOUNT.containsMatchIn(line)
+}
+
 /**
  * LSN-16, LISTENER-APP-DESIGN 2.4: what may leave this phone. bKash sends its sign-in codes from the same sender as its
- * receipts, so the sender alone is not enough: it must also look like a transaction. Everything else stays here.
+ * receipts, so the sender alone is not enough: it must also look like a transaction. Test mode (LSN-04) is the one exception,
+ * and the app says so: for its [10] minutes an unknown sender's message goes if it looks like a receipt. Everything else stays.
  */
-fun mayLeavePhone(sender: String, text: String, senders: List<String>): Boolean =
-    sender.isNotBlank() &&
-        sender.length <= SENDER_MAX_LENGTH &&
-        text.isNotBlank() &&
-        text.length <= MESSAGE_MAX_LENGTH &&
-        senders.any { it.equals(sender, ignoreCase = true) } &&
+fun mayLeavePhone(sender: String, text: String, senders: List<String>, testMode: Boolean = false): Boolean {
+    if (sender.isBlank() || sender.length > SENDER_MAX_LENGTH) return false
+    if (text.isBlank() || text.length > MESSAGE_MAX_LENGTH) return false
+    return if (senders.any { it.equals(sender, ignoreCase = true) }) {
         looksLikeTransaction(text)
+    } else {
+        testMode && looksLikeReceipt(text)
+    }
+}
 
 /**
  * What remembers a message once it is sent, so the inbox's look-back never sends it twice, without keeping its text. The

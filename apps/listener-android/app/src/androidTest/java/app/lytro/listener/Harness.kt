@@ -43,9 +43,10 @@ class FakeLytro {
     val paths = CopyOnWriteArrayList<String>()
     var accounts = """[{"method":"bkash","number":"$SHOP_NUMBER"}]"""
     var receipts = "[]"
+    var deviceName = "Counter phone"
     var pairAnswer: () -> MockResponse = {
         envelope(
-            """{"deviceId":"d1","token":"device-token","shopName":"Megh Fashion","heartbeatMinutes":15,
+            """{"deviceId":"d1","token":"device-token","deviceName":"Counter phone","shopName":"Megh Fashion","heartbeatMinutes":15,
             "accounts":$accounts,"senders":["bKash"],"testModeUntil":null}""",
             201,
         )
@@ -61,7 +62,7 @@ class FakeLytro {
                 everyDeviceCall?.let { return it() }
                 return when ("${request.method} $path") {
                     "POST heartbeat" -> envelope(
-                        """{"status":"connected","heartbeatMinutes":15,"serverTime":"${isoOf(System.currentTimeMillis())}",
+                        """{"status":"connected","heartbeatMinutes":15,"serverTime":"${isoOf(System.currentTimeMillis())}","deviceName":"$deviceName","shopName":"Megh Fashion",
                         "accounts":$accounts,"senders":["bKash"],"testModeUntil":null}""",
                     )
                     "POST messages" -> {
@@ -74,6 +75,7 @@ class FakeLytro {
                         """{"receipts":$receipts,"today":{"verified":5,"waiting":1,"toCheck":2}}""",
                     )
                     "POST unpair" -> envelope("""{"ok":true}""")
+                    "POST test-mode" -> envelope("""{"testModeUntil":"${isoOf(System.currentTimeMillis() + 600_000)}"}""")
                     else -> refusal(404, "not_found")
                 }
             }
@@ -87,8 +89,18 @@ class FakeLytro {
     fun sawUpload(text: String) = uploads.any { text in it }
 }
 
+/** Android's own battery exemption, on or off, as an owner sets it. */
+fun setBatteryExempt(exempt: Boolean) {
+    val sign = if (exempt) "+" else "-"
+    InstrumentationRegistry.getInstrumentation().uiAutomation
+        .executeShellCommand("dumpsys deviceidle whitelist $sign${appContext.packageName}")
+        .close()
+    Thread.sleep(500)
+}
+
 /** As if just installed: nothing paired, nothing saved. */
 fun resetApp() = runBlocking {
+    graph.settings.makerStepOpened = false
     graph.background.stop()
     graph.secrets.token = null
     graph.queue.clear()

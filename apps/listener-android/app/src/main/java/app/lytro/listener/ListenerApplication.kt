@@ -20,6 +20,9 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 
 /** The one place the app's parts are put together, each given what it depends on. */
@@ -59,9 +62,16 @@ class AppGraph(context: Context, apiBaseUrl: String) {
     )
 
     val guard = PhoneGuard(secrets, phone, queue, background::stop)
-    val intake = SmsIntake(secrets, phone, queue)
+    val intake = SmsIntake(secrets, phone, queue, clock)
     val uploader = ReceiptUploader(api, queue, phone, guard, clock)
     val reporter = PhoneReporter(api, secrets, phone, queue, guard, SmsInbox(app), intake, uploader, clock)
+
+    init {
+        // However a call met a problem, in the background or on a screen, the owner hears of it here, once.
+        scope.launch {
+            phone.facts.map { it.status }.distinctUntilChanged().collect(notifications::statusChanged)
+        }
+    }
 }
 
 val Context.graph: AppGraph

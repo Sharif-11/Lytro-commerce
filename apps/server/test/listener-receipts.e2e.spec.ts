@@ -1076,7 +1076,7 @@ describeIfDatabase("test mode and the app's own reads (LSN-04, Slice 5.5's sketc
       phoneHeaders(phone),
     );
     expect((recent.body as { receipts: unknown[] }).receipts).toMatchObject([
-      { ignoredReason: 'test_mode', transactionId: id },
+      { ignoredReason: 'test_mode', transactionId: id, sender: 'Stranger', method: 'bkash' },
     ]);
 
     // The real receipt from bKash still verifies it.
