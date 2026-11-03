@@ -236,8 +236,6 @@ export enum AuditAction {
   PlanLimitOverrideSet = 'plan_limit_override_set',
   PlanLimitOverrideRemoved = 'plan_limit_override_removed',
   PlanPaymentRejected = 'plan_payment_rejected',
-  // BIL-06 (Slice 5.6, agreed 2026-11-03): money for a plan or add-on at the wrong amount, put on the balance instead.
-  PlanPaymentCredited = 'plan_payment_credited',
   // TEN-30: the owner (or a holder of settings:manage) updating contact phone/email/business address.
   ShopSettingsUpdated = 'shop_settings_updated',
   // LIF-16/17: the owner's own data export -- one entry when requested, one when actually downloaded.
