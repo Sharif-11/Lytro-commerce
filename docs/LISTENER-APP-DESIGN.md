@@ -1,9 +1,10 @@
 # Lytro Listener: the Android app
 
-Status: v1, 2026-11-02. The design of Lytro Listener, the app a shop runs on the phone that holds its bKash SIM. It
+Status: v1.1, 2026-11-03. The design of Lytro Listener, the app a shop runs on the phone that holds its bKash SIM. It
 forwards payment receipt SMS to Lytro, so an order's advance verifies by itself. It is built in Phase 5 Slice 5.5
-(`PHASE-5-PLAN.md`); nothing of it exists in code yet, and this document is the spec for that work. The interactive
-prototype is `docs/brand/lytro-listener.html` (320, 360 and 412 px; Bangla with the EN toggle; every screen and state).
+(`PHASE-5-PLAN.md`) in `apps/listener-android`: setup, catching and sending SMS, and Home so far (5.5a); §3.3's stopped
+screens, the battery step, the menu and updates come with 5.5b. The interactive prototype is
+`docs/brand/lytro-listener.html` (320, 360 and 412 px; Bangla with the EN toggle; every screen and state).
 
 Requirements covered: `SRS-detailed.md` LSN-01 to LSN-24, VER-06, VER-07, TEN-16 (the icon), I18N. Brand:
 `BRAND-IDENTITY.md` 8.5.
@@ -17,6 +18,15 @@ Requirements covered: `SRS-detailed.md` LSN-01 to LSN-24, VER-06, VER-07, TEN-16
 | Installing | A signed APK from Lytro, linked from the dashboard. Google Play limits apps that read SMS; applying can come later. |
 | Screen language | Bangla, with an English switch on Welcome and in the menu. |
 | This sketch | The app. The dashboard's phones page is drawn in Slice 5.8; a reference frame shows only its pairing card. |
+
+**Decisions (5.5's build, agreed 2026-11-03).**
+
+| Point | Decided |
+| --- | --- |
+| Android's block on SMS | Real: Android 15 and later refuse SMS to an app installed from a browser, with no Allow to tap. A help screen leads the owner out (2.4). |
+| Several or no bKash numbers | Several are all listed under the one question. None: it says so, and setup carries on; Home keeps saying it (2.3). |
+| A pairing link | Pairs straight away, the owner's pick: one tap fewer, knowing a link sent by someone else could pair the phone with their shop, which the next screen names. A phone already paired ignores links (§7). |
+| How far the look-back reaches | 7 days, and never behind this phone's pairing: Home does not start full of old money, and a phone re-paired to another shop cannot send the last shop's receipts (§6). |
 
 ---
 
@@ -50,6 +60,10 @@ Pairing comes first, so the phone knows its shop before asking for anything. Eac
 **2.3 is there because it is the likeliest mistake.** Android cannot reliably tell an app the SIM's number, so the app
 asks. "No" unpairs this phone at once (the same call as the menu's Unpair, §7), so a one-phone plan's place is free for the
 right phone, and returns to Welcome, which says which phone the app belongs on. The right phone needs a new code.
+
+A shop can have **several** active bKash numbers: all are listed, under "is the SIM of one of these numbers in this phone?".
+With **none** there is nothing to ask, so the screen says the shop has no active bKash account and what the owner does about
+it, with one button, Continue; Home keeps saying it until a number is active.
 
 **2.4 Three promises, each true:**
 
@@ -87,6 +101,18 @@ checked on real phones before release (§7).
 
 SMS permission refused: "the app can't work without it", with Open Settings. Setup continues nowhere else until it is
 given, since nothing else matters without it.
+
+**Android's own block (seen on Android 16, 2026-11-03).** From Android 15, SMS is a restricted setting for an app installed
+from a downloaded or local file, which is how every shop gets this one. Android answers Allow with "App was denied access to
+SMS" and a Close button, with no way to allow it there. So when Android 15 or later refuses an app installed that way with no
+way of asking again, the next screen is not the refusal above but its way out: open App info, ⋮ at the top right, "Allow
+restricted settings", then back to the app, where Allow now shows Android's usual dialog. That menu item appears only after a
+refusal, which is why the app asks first and explains after. An app cannot read this setting itself (it is refused with a
+SecurityException), so the screen is chosen from the Android version, the install source and whether Android will ask again.
+A person who freed it and then refused twice also lands here; Open Settings is still the right button for them. Whether Xiaomi's
+own Android does the same is to be seen on a real phone.
+
+Camera refused: the camera's frame says so, with Allow, and "type the code instead" stays below it. Nothing else needs it.
 
 ## 3. Home
 
@@ -159,18 +185,24 @@ dashboard for up to that long. It verifies nothing, so holding the paired phone 
 
 ## 6. How it behaves
 
-Proposed for 5.5's build, to be settled there:
+Settled in 5.5's build:
 
-- **Catching SMS.** A manifest receiver for incoming SMS, kept alive by the foreground service; on boot and on each report,
-  it also reads the inbox for receipts it missed while killed. The server keeps each receipt once (VER-03), so reading one
-  twice is harmless.
+- **Catching SMS.** A manifest receiver for incoming SMS, kept alive by a foreground service of the kind `specialUse`, since
+  from Android 15 `dataSync` stops after 6 hours a day and may not start at boot. On boot and on each report it also reads the
+  inbox for receipts it missed while killed: allowed senders only, up to 7 days back and never behind this phone's pairing.
+  The server would keep a repeat only as "Already sent", on Home and against the volume flag (LSN-14), so the phone remembers
+  what it has sent by a fingerprint of it, never its text, and sends each message once.
 - **Filtering.** A message leaves the phone only if its sender is on the server's list and it looks like a transaction: a
   transaction ID, or an amount with a balance, the same test the server uses. bKash's sign-in codes come from the same sender,
   so the sender alone is not enough, and they must never reach Lytro. New wallets need no app update, only a server change.
   In test mode, an unknown sender's message is sent only if it looks like a receipt (an amount and a TrxID).
-- **Uploading.** Saved first to a private queue, then sent, retried with backoff. Removed once the server has it, so raw
-  SMS never lingers. No SMS text in logs.
-- **Reporting.** A heartbeat every 15 minutes (LSN-03), at most 4 an hour (LSN-13).
+- **Uploading.** Saved first to a private queue, then sent at once where that works, with background work as the fallback,
+  retried with backoff. Removed once the server has it, so raw SMS never lingers; a message the server answers with no status
+  stays to go again. At most 50 in a request and under 64 KB in bytes, and a message over 1,000 characters never leaves, since
+  the server would refuse the whole batch. No SMS text in logs. Unpaired or revoked, every saved message is deleted.
+- **Reporting.** A heartbeat right after pairing, since a phone counts online only once it has reported, then every 15 minutes
+  (LSN-03), at most 4 an hour (LSN-13). The server's time on its answer corrects a wrong phone clock, which would otherwise
+  make a receipt look like it comes from the future (LSN-15).
 - **The token and installation ID** are kept in Android's keystore-backed storage, excluded from backups, so a restored
   phone has to pair again rather than trip the installation flag (LSN-12).
 - **Android 7 and later,** in a small APK. QR reading must not need Google Play services.
@@ -192,7 +224,11 @@ The sketch assumes four things the server does not do yet. They go into Slice 5.
 | Test mode from the phone | §4 | `POST /v1/listener/test-mode` with `testModeUntil` on the answers |
 
 The QR needs no server change: it holds the code as a link, `lytro-listener://pair?code=K7MP4X2H`, which the dashboard draws
-in Slice 5.8, so a phone's own camera can open the app too.
+in Slice 5.8, so a phone's own camera can open the app too. Scanned or tapped, it pairs straight away (agreed 2026-11-03); a
+phone already paired ignores it, so no link can move a working phone to another shop.
+
+**The download page (Slice 5.8) must warn of Android's block** (§2's end): on Android 15 and later, step 1 of setup stops at
+"App was denied access to SMS" until the owner follows the app's help screen. It is expected, and the guide should say so.
 
 **Before release:** real bKash receipts for the parser (agreed in 5.4's read, the owner to forward a few); the makers'
 menu paths checked on real phones; the download page, in `SITE-PAGES-DESIGN.md`'s style; the signing key's backup.
