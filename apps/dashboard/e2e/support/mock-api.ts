@@ -46,6 +46,7 @@ import {
   type ProductsFixture,
 } from './products';
 import { deliveryAnswer, drawnDelivery, type DeliveryFixture } from './delivery';
+import { salesAnswer, type SalesFixture } from './sales';
 import { taxAnswer } from './tax';
 import { figuresAnswer, shopBatchesAnswer, stockPageAnswer, stockRead, stockWrite } from './stock';
 import { customerIdOf, customersAnswer, drawnCustomers, type CustomersFixture } from './customers';
@@ -112,6 +113,8 @@ export interface MoneyState {
 }
 
 export interface ShopState {
+  /** Slice 4.8d: what Sales reads. */
+  sales?: SalesFixture;
   language?: Language;
   /** The tenant's lifecycle state and how far its period end is, in days (negative: in the past). */
   state?: 'trial' | 'pay_as_you_go' | 'active' | 'grace' | 'read_only' | 'locked' | 'archived';
@@ -332,6 +335,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     home: {},
     ...given,
     money: { ...given.money },
+    sales: { ...given.sales },
   };
 }
 
@@ -375,6 +379,15 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   const money = state.money;
   if (path === '/me') return me(state);
   if (path === '/home') return home(state);
+  if (path === '/sales' || path === '/sales/best-sellers') {
+    return salesAnswer(
+      path,
+      url,
+      state.sales,
+      state.isOwner || state.permissions.includes('inventory:manage'),
+      state.language,
+    );
+  }
   if (path === '/products') {
     return productList((state.products ??= drawnProducts()), url, state.language);
   }

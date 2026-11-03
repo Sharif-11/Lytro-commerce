@@ -6,6 +6,7 @@ export type HubId = 'home' | 'orders' | 'shop' | 'money' | 'menu';
 export type SectionId =
   | 'orders'
   | 'customers'
+  | 'sales'
   | 'products'
   | 'categories'
   | 'attributes'
@@ -63,7 +64,7 @@ function section(id: SectionId, anyOf: readonly Permission[]): Section {
 
 // TENANT-DASHBOARD-DESIGN §3: the five hubs and the sections of the current state, as the prototype draws them
 // (docs/brand/lytro-dashboard.html, HUBS_CURRENT). Each section needs the permission its own read needs on the
-// server; Orders shows its list to whoever may read orders (Slice 4.8a), Customers theirs (Slice 4.8b). Add-ons is reached from Usage,
+// server; Orders shows its list to whoever may read orders (Slice 4.8a), Customers theirs (Slice 4.8b), Sales its figures (Slice 4.8d). Add-ons is reached from Usage,
 // Plan and the brand editor, not from the hub's own list.
 export const HUBS: readonly Hub[] = [
   { id: 'home', icon: 'home', label: 'hubHome', root: '/$shop', anyOf: [], sections: [] },
@@ -76,6 +77,7 @@ export const HUBS: readonly Hub[] = [
     sections: [
       section('orders', [Permission.OrdersRead]),
       section('customers', [Permission.CustomersRead]),
+      section('sales', [Permission.OrdersRead]),
     ],
   },
   {

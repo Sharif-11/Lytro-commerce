@@ -76,5 +76,6 @@
   "srchType": "Type an order number, a phone, a name or a product.",
   "secOrders": "Orders",
   "secCustomers": "Customers",
+  "secSales": "Sales",
   "sTax": "Tax"
 }

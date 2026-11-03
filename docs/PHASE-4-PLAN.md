@@ -428,7 +428,13 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   `short` to the stock page, and why each combo part stops it. Merged as #278. The second builds the combo editor to
   Part 31: Product or Combo pack, its parts by ticked variants, what they come to as they stand (a new
   `POST /products/combo-quote`, nothing written), New order's picker shared for whoever may edit products, the dialog for
-  a product inside combos, and the Combo tag on Products; what the sketch lacked is drawn first (v3.29), no migration.
+  a product inside combos, and the Combo tag on Products; what the sketch lacked is drawn first (v3.29), no migration. Merged
+  as #280. **Part d** builds Part 32: Sales in the Orders hub, the split following the period (agreed 2026-11-03), profit
+  for whoever may see costs and beside stock value, best sellers and a product's 12 months; what the sketch lacked is
+  drawn first (v3.30), with `kind` added to the best sellers' read and no migration. **Part e ships in two** (agreed
+  2026-11-03): ordering first, with the landing page's form, its Pixel events and a storefront browser suite that closes
+  KNOWN-GAPS §105; then the shopper's account. Shoppers are asked what a seller marked asked when ordering, on the
+  product page, optional.
 - **Sketch first** (`sketch-every-screen-before-building`): the status flow with the call log, Confirm, cancel
   reasons, Mark shipped and returns; the storefront's checkout for cash on delivery, the confirmation without an SMS
   promise, tracking with its Confirmed step; the Phase 5–7 parts of today's drawings shown as later.

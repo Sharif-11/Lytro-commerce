@@ -1,6 +1,8 @@
 # Tenant dashboard: the full design
 
-Status: v3.29, 2026-11-03 (a new combo with nothing inside, why one is out for each reason, changing or removing a
+Status: v3.30, 2026-11-03 (Sales as built: the split follows the period, quarters and years, a chart with many bars, a
+period with nothing delivered, See all, dates too long, a product's trend over 12 months, §7.34; v3.29 of 2026-11-03: a
+new combo with nothing inside, why one is out for each reason, changing or removing a
 part, a part sold by weight, a variant off sale, a product in several combos and a combo on Products, drawn as 4.8c's
 second part was built, §7.33; v3.28 of 2026-11-02: See the orders narrowed to those holding it, an add-on option's
 Remove, §7.33; v3.27 of
@@ -1569,23 +1571,31 @@ bar's search finds everything.
 
 *Slice 4.8d* (Part 32), from 4.8d's read (2026-10-31): the Orders hub's third tab, Orders · Customers · Sales.
 
-- **The period and the split** (`sales32`): a period button -- this month by default; last month, the last 3 months,
-  this year, or dates picked, at most 5 years (`sh-sales32-period`) -- and Week · Month · Quarter · Year, a week from
-  Saturday (STA-01). The first and last bucket are cut to the period, so they add up to the totals.
+- **The period and the split** (`sales32`): a period button -- this month by default; last month, the last 3 months
+  (this month and the two before it), this year, or dates picked, at most 5 years (`sh-sales32-period`,
+  `sh-sales32-long`) -- and Week · Month · Quarter · Year, a week from Saturday (STA-01). The first and last bucket are
+  cut to the period, so they add up to the totals. The split follows the period (agreed 2026-11-03): this month and last
+  month by week, the last 3 months and this year by month, picked dates by their length (up to 62 days by week, up to 2
+  years by month, longer by quarter); the seller can change it, until the period changes (`sales32-quarter`,
+  `sales32-year`).
 - **The figures**: orders; revenue, with the tax inside it beneath (TAX-03); delivery charges, apart from revenue.
   What counts is said under the page: delivered orders, each on the day it was placed, returns and discounts taken
   off, cancelled, failed and refunded orders never (STA-04).
 - **Revenue by week, month, quarter or year**: a bar for each, the last one marked, then each with its orders and
-  revenue, newest first (`sales32-month` for a year by month).
+  revenue, newest first (`sales32-month` for a year by month). Past 12 bars they keep their width and the chart scrolls
+  sideways, opening on the newest (`sales32-many`).
 - **Profit** (agreed; INV-18, D3-9): revenue less tax, less the cost of goods sold, and the profit, with how many sales
   had no cost recorded and that delivery charges are not in it until courier costs are recorded (Phase 6). Someone who
   may not see cost reads "Profit shows only to staff who may see costs" instead (`sales32-staff`).
 - **Best sellers** (STA-02): By units or By revenue (`sales32-revenue`), the top five with their rank, units, orders and
-  revenue, a combo as itself, and See all. A product opens its trend, month by month, units and revenue
-  (`sales32-product`, STA-03).
-- **Nothing delivered yet** (`sales32-empty`): sales appear after the first delivery.
+  revenue, a combo as itself, and See all, a sheet of the top 50 (`sh-sales32-all`). A product opens its trend over the
+  last 12 months, month by month, units and revenue (`sales32-product`, `sales32-product-none`, STA-03); a product since
+  deleted for good stays in the list and opens nothing.
+- **Nothing delivered yet** (`sales32-empty`): sales appear after the first delivery. A shop with sales, in a period
+  with none, says so instead (`sales32-none`).
 - **Beside stock value** (`stock-value32`, agreed): the Stock value page opens with this month's profit, its two
-  parts, and See sales; its lead line says profit comes from delivered orders.
+  parts, and See sales; its lead line says profit comes from delivered orders. It needs the orders too, so someone who
+  may see costs but not orders doesn't get the card.
 
 ## 8. Screens designed for later phases
 
