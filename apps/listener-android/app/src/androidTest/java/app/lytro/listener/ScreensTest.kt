@@ -75,6 +75,11 @@ class ScreensTest {
         compose.onNodeWithText(text).performClick()
     }
 
+    /** A tap on what may already have gone, for a step the app can also take by itself. */
+    private fun tapIfStillThere(text: String) {
+        runCatching { compose.onNodeWithText(text).performClick() }
+    }
+
     private fun typeCode(code: String = CODE) {
         tap(word(R.string.start))
         tap(word(R.string.type_code))
@@ -450,7 +455,9 @@ class ScreensTest {
         assertTrue("told of it", notificationSays(word(R.string.n_inact)))
 
         lytro.everyDeviceCall = null
-        tap(word(R.string.check_now))
+        // The app's own refresh every 30 seconds is the same call as this button, so it may get there first and take the
+        // button with it. Either way the phone has to come back.
+        tapIfStillThere(word(R.string.check_now))
 
         shows(word(R.string.st_on))
         waitUntil("the held receipt went as soon as the shop was back") { lytro.sawUpload(trx) }
