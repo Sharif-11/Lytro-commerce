@@ -1,6 +1,6 @@
 # Shopper storefront: design
 
-Status: v1.6, 2026-11-04 (the Phase 4 close-out, §7d: a measured product takes a part of its unit; the landing page says
+Status: v1.7, 2026-11-04 (Slice 5.8's part 2 sketch, §8a: the wallets at checkout, straight to the payment page, and the return). v1.6 of 2026-11-04 (the Phase 4 close-out, §7d: a measured product takes a part of its unit; the landing page says
 where a limited product goes, and a refusal names it). v1.5 of 2026-11-03 (Slice 4.8e's build, part 2, §7c: the account pages' refusals and empty states, an address
 edited or deleted, ten saved, the profile saved, a shopper's sign-in kept out of a browser's scripts). v1.4 of 2026-11-03
 (Slice 4.8e's build, part 1, §7b: what a product asks when ordering, on the product page and
@@ -302,40 +302,34 @@ Phase 7, chat: the bubble with an unread count and the widget on the product pag
 
 ### 8a. Paying: from the method chooser to the return
 
-The storefront never collects a payment (SFT-07). It chooses, hands over and receives the result.
+Redrawn 2026-11-04 (Slice 5.8's part 2 read), screens `pay58-*` and `pay-*`. The storefront never collects a payment (SFT-07). It chooses, hands over and receives the result.
 
-**Choosing.** The payment block of the checkout, and of a landing page whose product needs an advance,
-lists what the shop has enabled (SFT-10, WAL-05, WAL-15): cash on delivery when the policy allows it,
-then each wallet with its official mark from `docs/brand/third-party` in its own colours, never
-recoloured (bKash and Nagad today; Rocket and Upay as text in their colours until their marks are
-fetched), then bank transfer. The sentence under each wallet says how it pays, because the shop decides
-that per wallet (WAL-10): "Pay on bKash's own page; the order confirms the moment it goes through" for a
-wallet whose gateway is on, "Send money and enter the TrxID; we match it and confirm" for a manual one.
-With an advance the summary splits "Advance now" from "Pay on delivery" and the button reads "Place order
-and pay ৳200" (PRD-08, ORD-16).
+**Choosing.** Only an order owing an advance has a choice (PRD-08). An order owing nothing stays cash on delivery as Phase 4 built it, without the note that paying online comes later
+(`pay58-checkout-cod`). With an advance, cash on delivery is not offered. The payment block of the checkout (`pay58-checkout`), and of a landing page whose product needs one
+(`pay58-landing`), lists what the shop offers (SFT-10, WAL-05, WAL-15): each wallet with its official mark from `docs/brand/third-party` in its own colours, never recoloured (bKash and
+Nagad today; Rocket and Upay as text in their colours until their marks are fetched), then bank transfer. The sentence under each says how it pays, because the shop decides that per wallet
+(WAL-10): "Pay on bKash's own page; it is done as soon as the money moves" for a wallet on automated, "Send the money and enter the TrxID; it is matched and confirmed" for the rest. The
+summary splits "Advance now" from "Pay on delivery" and the button reads "Place order and pay ৳200" (PRD-08, ORD-16), with "You pay on the next page" under it.
 
-**Order held.** The order is created and its stock reserved with a 30-minute expiry (LND-10, INV-16). The
-page shows the chosen wallet's mark, the route it will take and "change", then one button: "Pay with
-bKash" for a gateway wallet, "Go to the payment page" for a manual one, with the lock line naming
-pay.lytro.app.
+**When it can't be paid.** A shop with no method on can't take the order: a banner says so, offering to remove the item or call the shop, and the button stays off (`pay58-checkout-none`). A new
+shop past its day's cap (TVR-04) answers after the button: the order wasn't placed and no money moved (`pay58-checkout-cap`).
 
-**Handing over.** A manual wallet opens the hosted page (PAYMENT-PAGE-DESIGN.md), the session already on
-that wallet's panel rather than the picker, with the shop as payee, the order number as the reference and
-the shop's active wallet number (PAY-01, PAY-05). A gateway wallet shows an interstitial, "Taking you to
-bKash", with the shop, the order number and the amount, and continues to the wallet's own checkout; the
-sketch never redraws the wallet's page (PAY-06). The sketch embeds the hosted page in a frame, exactly as
-the tenant sketch does for plan payments, so the hand-over can be walked.
+**Handing over.** No screen between: placing the order redirects straight to the payment page, opening on the chosen wallet (SFT-07, LND-10). A wallet on automated goes on from there to its own
+checkout; the sketch never redraws the wallet's page (PAY-06). The sketch shows the page in a frame only so the hand-over can be walked (`pay-hosted`).
 
-**Returning** (PAY-08, PAY-17). `verified` or `paid`: "Payment received, order confirmed", the advance
-received, the cash-on-delivery remainder, the tracking link. `checking` or `review`: "Checking your
-payment", the TrxID is matched within minutes and the order stays held. `cancelled` or `expired`: "Payment
-not completed" with the minutes left on the hold, "Try the payment again" and "Switch to cash on
-delivery". A gateway wallet comes back through pay.lytro.app to the same three states.
+**Returning** (PAY-08, PAY-11, PAY-17). The return address is the order's own page, which reads the order's tracking and never trusts the redirect. Each has the tracking ID. Paid (`pay-paid`):
+"Payment received", the advance paid, the rest on delivery, and that the shop will call to confirm, since a prepaid order still gets the usual call (ORD-51, D5-9). Being checked (`pay-checking`):
+"Checking your payment", that the page can be closed, the tracking link, and a way to correct the ID. Not paid with time left (`pay-cancelled`): the minutes left, "Try the payment again", and
+call or WhatsApp. There is no switch to cash on delivery, which PRD-08 refuses. Time ran out (`pay-expired`): the order was cancelled (ORD-08), what to do if money was sent, "Order again",
+and call or WhatsApp.
+
+**Coming back.** Tracking carries the open payment, so someone who closed the page finds it: "৳200 advance still to pay", the minutes left and "Pay now" (`pay58-tracking`), or that it is being
+checked (`pay58-tracking-checking`).
 
 | Where the shopper is | Served today | Still needed |
 | --- | --- | --- |
-| Method chooser | the product's payment policy and advance (public catalogue) | the shop's enabled methods with each wallet's level (Phase 5, WAL-06) |
-| Order held, hand-over, return | nothing | order creation with a payment session, the session's address and status, the return address on the shop's allow-list (Phase 4 and 5, ORD-02, PAY-01 to PAY-04) |
+| Method chooser | the product's payment policy and advance (public catalogue); the shop's methods with each wallet's way (`GET /v1/payment-methods`) | the order's advance, worked out by the server, in the delivery estimate |
+| Placing, the return, tracking | order creation with a payment session and its address, tracking with the open payment (Slice 5.2) | the shop's own address among the storefront key's websites, for the return address (PAY-04) |
 
 ---
 

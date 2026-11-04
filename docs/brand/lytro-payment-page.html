@@ -12,7 +12,7 @@
 /* Tailwind values the reference page uses, written out: sky-50/100/900, gray-100/200/500/600/900, yellow-50/100/300. */
 :root{
   --sky-50:#f0f9ff;--sky-100:#e0f2fe;--sky-900:#0c4a6e;--blue:#1e8fe0;
-  --g100:#f3f4f6;--g200:#e5e7eb;--g300:#d1d5db;--g500:#6b7280;--g600:#4b5563;--g900:#111827;
+  --g100:#f3f4f6;--g200:#e5e7eb;--g300:#d1d5db;--g500:#6b7280;--g600:#4b5563;--g700:#374151;--g900:#111827;
   --y50:#fefce8;--y100:#fef9c3;--y300:#fde047;
   --sh-sm:0 1px 2px rgba(0,0,0,.05);--sh-md:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);--sh-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);--sh-xl:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);
   --font:'Hind Siliguri',ui-sans-serif,system-ui,sans-serif;
@@ -48,7 +48,7 @@ svg.i{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke
 /* page: root → card → topbar + content; fixed bar */
 .pp{position:absolute;left:0;right:0;bottom:0;top:44px;overflow:auto;background:var(--sky-50)}
 .frame.desktop .pp{top:40px}
-.root{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
+.root{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0}
 .card{position:relative;width:100%;min-height:100%;padding:0 16px;background:transparent}
 .topbar{margin:8px;padding:8px;border-radius:12px;border:1px solid var(--sky-100);background:rgba(255,255,255,.65);box-shadow:0 8px 24px rgba(2,132,199,.08);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:space-between}
 .topbar button{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;color:var(--g900)}
@@ -80,7 +80,7 @@ svg.i{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .whead .amt{display:flex;align-items:center;gap:16px}
 .whead .amt i{display:block;width:1px;height:32px;background:var(--g200)}
 .whead .amt b{font-size:24px;font-weight:700;padding-right:12px;white-space:nowrap}
-.note{margin-top:16px;padding:6px 8px;border-radius:4px;background:var(--y50);border:1px solid var(--y100);color:var(--g600);font-weight:300;font-size:12px;text-align:center;opacity:.5;line-height:20px}
+.note{margin-top:16px;padding:6px 8px;border-radius:4px;background:var(--y50);border:1px solid var(--y100);color:var(--g700);font-weight:400;font-size:12px;text-align:center;line-height:20px}
 .note b{font-weight:700}
 .ccard{margin-top:8px;padding:24px;border-radius:12px;color:#fff;box-shadow:var(--sh-md);margin-bottom:12px}
 .ccard .ctitle{text-align:center;font-size:16px;font-weight:500;opacity:.95;margin-bottom:8px;line-height:24px}
@@ -89,7 +89,7 @@ svg.i{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .ccard .inp.bad{box-shadow:0 0 0 2px var(--y300)}
 .ccard .ierr{margin-top:6px;font-size:12px;font-weight:600;color:var(--y300);text-align:center}
 .ccard .ihead{margin-top:16px;padding-bottom:4px;margin-bottom:8px;border-bottom:1px solid rgba(0,0,0,.15);font-weight:700;font-size:14px;letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
-.ilist{list-style:none;font-size:12px;font-weight:300}
+.ilist{list-style:none;font-size:12px;font-weight:400}
 .ilist li{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.15)}
 .ilist li:last-child{border-bottom:0}
 .ilist li::before{content:"";width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.85);flex:none}
@@ -98,8 +98,8 @@ svg.i{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .ilist .copy svg.i{width:16px;height:16px}
 .ilist li span{flex:1;min-width:0}
 .fixid{display:block;width:100%;margin-top:12px;padding:8px 0;border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--blue);text-decoration:underline;cursor:pointer}
-.legal{margin-top:4px;font-size:12px;color:var(--g500);text-align:center;line-height:1.6}
-.legal a{color:var(--g600);text-decoration:underline}
+.legal{margin-top:4px;font-size:12px;color:var(--g700);text-align:center;line-height:1.6}
+.legal a{color:var(--g700);text-decoration:underline}
 .fixedbar{position:absolute;left:0;right:0;bottom:0;margin:0 auto;width:100%;padding:28px 16px max(14px, env(safe-area-inset-bottom));z-index:10;background:linear-gradient(to top,var(--sky-50) 60%,rgba(240,249,255,0))}
 .fixedbar .vbtn{display:flex;align-items:center;justify-content:center;width:100%;height:52px;border-radius:12px;color:#fff;font-size:16px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;box-shadow:var(--sh-lg)}
 .fixedbar .vbtn.disabled{background:var(--sky-100);color:var(--sky-900)}
@@ -109,12 +109,12 @@ svg.i{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .scard .ic{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .scard .ic svg{width:40px;height:40px}
 .scard h2{font-size:20px;font-weight:700}
-.scard p{font-size:14px;color:var(--g600);max-width:320px}
-.scard .det{width:100%;background:var(--g100);border-radius:8px;padding:4px 12px;margin-top:4px}
-.scard .kv{display:flex;justify-content:space-between;gap:12px;padding:8px 0;font-size:14px}
-.scard .kv + .kv{border-top:1px solid var(--g200)}
-.scard .kv .k{color:var(--g600)}
-.scard .kv .v{font-weight:600}
+.scard p{font-size:14px;color:var(--g700);max-width:320px}
+.det{width:100%;background:var(--g100);border-radius:8px;padding:4px 12px;margin-top:4px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:8px 0;font-size:14px}
+.kv + .kv{border-top:1px solid var(--g200)}
+.kv .k{color:var(--g700)}
+.kv .v{font-weight:600}
 .ring{position:relative;width:72px;height:72px}
 .ring svg{width:72px;height:72px;transform:rotate(-90deg)}
 .ring circle{fill:none;stroke-width:6}
@@ -139,9 +139,32 @@ svg.i{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .sheet .btn{display:flex;align-items:center;justify-content:center;width:100%;height:48px;border-radius:12px;background:var(--blue);color:#fff;font-size:16px;font-weight:700}
 .sheet .inp{height:44px;border:1px solid var(--g300);border-radius:8px;display:flex;align-items:center;padding:0 12px;color:var(--g500);margin-top:8px}
 
+/* what PAY-05 and later reads add, in the same language */
+.topbar button.hide{visibility:hidden}
+.topgap{height:12px}
+.contacts.tight{margin-top:0}
+.help{margin-top:4px;font-size:13px;color:var(--g700)}
+.timeleft{margin-top:8px;text-align:center;font-size:13px;color:var(--g700);font-variant-numeric:tabular-nums}
+.shopnote{margin-top:8px;padding:6px 8px;border-radius:4px;background:var(--g100);border:1px solid var(--g200);color:var(--g700);font-size:12px;text-align:center;line-height:20px}
+.shopnote b{font-weight:700}
+.ccard .inp.two{margin-top:8px;font-size:13px}
+.ccard .ileft{margin-top:6px;font-size:12px;font-weight:500;text-align:center}
+.ccard .ihead .cd{display:inline-flex;align-items:center;gap:4px;font-weight:600;letter-spacing:0;font-variant-numeric:tabular-nums}
+.ccard .ihead .cd svg.i{width:14px;height:14px}
+.testbar{margin:8px 16px 0;padding:6px 8px;border-radius:8px;background:#fef3c7;border:1px solid #fde68a;color:#78350f;font-size:13px;font-weight:600;text-align:center}
+.gwcard{margin:24px 16px 0;padding:16px;border-radius:12px;background:var(--y50);border:1px solid var(--y100);text-align:center}
+.gwcard h3{font-size:16px;font-weight:700}
+.gwcard p{margin-top:4px;font-size:14px;color:var(--g700)}
+.gwcard .row{display:flex;gap:8px;margin-top:12px}
+.gwbtn{flex:1;min-height:44px;padding:6px 8px;border-radius:12px;font-size:14px;font-weight:700;line-height:1.3}
+.gwbtn.line{background:#fff;border:1px solid var(--g300);color:var(--g900)}
+.spin{width:72px;height:72px;border-radius:50%;border:6px solid var(--g100);border-top-color:var(--blue);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sheet .det{margin-top:0}
+
 /* 640 and up: the centred card, exactly as the reference's sm: classes */
 @container (min-width: 640px){
-  .root{padding:0 16px;min-height:100%}
+  .root{padding:0 16px;min-height:100%;justify-content:center}
   .card{min-height:0;height:max-content;max-width:672px;border-radius:8px;box-shadow:var(--sh-xl);background:#fff;backdrop-filter:blur(4px);margin:24px auto}
   .topbar{margin:12px;padding:12px}
   .content{padding-bottom:32px}
@@ -155,7 +178,7 @@ svg.i{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke
   .sheet{width:440px;border-radius:16px;max-height:80%}
   .toast{left:50%;transform:translateX(-50%);width:360px;right:auto}
 }
-.brandrow .ref{font-size:13px;color:var(--g600);margin-top:2px}
+.brandrow .ref{font-size:13px;color:var(--g700);margin-top:2px}
 /* embedded inside the dashboard prototype: no toolbar, the page fills the iframe */
 body.embedded{background:var(--sky-50)}
 .embedded .tb,.embedded .caption{display:none}
@@ -163,7 +186,7 @@ body.embedded{background:var(--sky-50)}
 .embedded .frame{width:100%;height:100vh;border:0;border-radius:0;box-shadow:none}
 .embedded .statusbar,.embedded .urlbar{display:none}
 .embedded .pp{top:0}
-@media (prefers-reduced-motion: reduce){.tick path{animation:none;stroke-dashoffset:0}}
+@media (prefers-reduced-motion: reduce){.tick path{animation:none;stroke-dashoffset:0}.spin{animation:none}}
 </style>
 </head>
 <body>
@@ -171,10 +194,11 @@ body.embedded{background:var(--sky-50)}
   <span class="brand">lytro · payment page prototype</span>
   <label>State
     <select id="selScreen">
-      <optgroup label="Choose"><option value="pick">Method picker</option></optgroup>
-      <optgroup label="Wallet panels"><option value="bkash">bKash · Send Money</option><option value="bkash-agent">bKash · agent (Cash Out)</option><option value="bkash-merchant">bKash · merchant (Payment)</option><option value="nagad">Nagad · Send Money</option><option value="rocket">Rocket · Send Money</option><option value="upay">Upay · Send Money</option><option value="dup">bKash · duplicate TrxID error</option><option value="copied">bKash · number copied (toast)</option></optgroup>
-      <optgroup label="After verify"><option value="checking">Checking, listener online (12 s)</option><option value="checking-late">Checking, past 30 s</option><option value="manual">Manual check (listener offline)</option><option value="verified">Verified</option><option value="review">Needs review, the amount differs</option><option value="review-other">Needs review, any other reason</option><option value="rejected">Rejected with a reason</option><option value="expired">Expired</option><option value="paid">Already paid</option><option value="cancelled">Cancelled</option><option value="suspended">Page suspended</option></optgroup>
-      <optgroup label="Other"><option value="platform">Platform payment (Lytro, plan)</option><option value="report">Report this page (sheet)</option></optgroup>
+      <optgroup label="Choose"><option value="pick">Method picker</option><option value="details">View Details (sheet)</option><option value="test">A test account's page</option><option value="no-methods">No method on any more</option></optgroup>
+      <optgroup label="A wallet on automated"><option value="handing">Taking you to bKash</option><option value="gw-cancelled">Back from bKash, not finished</option><option value="gw-failed">Back from bKash, it failed</option></optgroup>
+      <optgroup label="Paying on the page"><option value="bkash">bKash · Send Money</option><option value="bkash-agent">bKash · agent (Cash Out)</option><option value="bkash-merchant">bKash · merchant (Payment)</option><option value="nagad">Nagad · Send Money</option><option value="rocket">Rocket · Send Money</option><option value="upay">Upay · Send Money</option><option value="bank">Bank transfer</option><option value="dup">bKash · duplicate TrxID error</option><option value="bad">bKash · a TrxID of the wrong shape</option><option value="copied">bKash · number copied (toast)</option></optgroup>
+      <optgroup label="After verify"><option value="checking">Checking, listener online (12 s)</option><option value="checking-late">Checking, past 30 s</option><option value="manual">The shop checks (no phone, or by hand)</option><option value="change">Changing a typed TrxID</option><option value="verified">Verified, returning</option><option value="verified-done">Verified, a link with no shop to return to</option><option value="review">Needs review, the amount</option><option value="review-sender">Needs review, the sender</option><option value="review-other">Needs review, any other reason</option><option value="rejected">Rejected, no money found</option><option value="rejected-note">Rejected, with the shop's note</option><option value="expired">Expired</option><option value="paid">Already paid</option><option value="cancelled">Cancelled</option></optgroup>
+      <optgroup label="Other"><option value="report">Report this page (sheet)</option><option value="report-other">Report, something else (sheet)</option><option value="reported">Report sent (toast)</option><option value="suspended">Page suspended</option><option value="missing">No such page</option></optgroup>
     </select>
   </label>
   <label>Device <span class="seg" id="segDevice"><button data-v="small">Small 320</button><button data-v="phone" class="on">Phone 390</button><button data-v="desktop">Desktop 1280</button></span></label>
@@ -182,13 +206,12 @@ body.embedded{background:var(--sky-50)}
   <span class="note">Spec: docs/PAYMENT-PAGE-DESIGN.md</span>
 </div>
 <div class="stage"><div id="frame" class="frame phone" data-lang="bn"></div></div>
-<p class="caption"><b>How to read this.</b> The layout follows the reference page element for element, with the same spacing values its markup uses: a frosted top bar with back and close; on the picker the shop's logo and name with "View Details", three contact buttons, the blue "Mobile Banking" bar, four logo tiles and the light "Pay" bar; on a wallet's screen the logo-and-amount header, the faded yellow note, the wallet-coloured card with the centred transaction-ID box and the INSTRUCTIONS list with yellow highlights and the black Copy button, and the fixed VERIFY TRANSACTION button. Below 640 px the page is full-bleed; from 640 px it is a 672 px white card centred on the page. bKash and Nagad use the official marks from <code>docs/brand/third-party/</code>; Rocket and Upay are text stand-ins until their marks are fetched. "Secured by Lytro", the PIN notice and "Report" are the one line the SRS adds under the card.</p>
+<p class="caption"><b>How to read this.</b> The layout follows the reference page element for element, with the same spacing values its markup uses. Redrawn for Slice 5.8's part 2 (<code>docs/PAYMENT-PAGE-DESIGN.md</code> v3): what PAY-05 asks that the reference lacks is drawn (the sender number, the countdown, the shop's note, bank transfer, the English switch); WhatsApp and call replace the three contact buttons; every wallet the shop takes shows, and one on automated hands on to its own checkout; nothing promises an SMS; the payments-to-Lytro version is gone. Bangla mode has Bangla labels throughout (PAY-22), and faded or light text is now readable. The real page is a redirect and is served by the server; this file only draws it. bKash and Nagad use the official marks from <code>docs/brand/third-party/</code>; Rocket and Upay are text stand-ins until their marks are fetched.</p>
 <script>
 const I = {
   back:'<path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>',
   x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   copy:'<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
-  headset:'<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H3z"/><path d="M21 14h-3a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h3z"/><path d="M3 14v-2a9 9 0 0 1 18 0v2"/><path d="M21 19a3 3 0 0 1-3 3h-3"/>',
   chat:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.5 9.5c0 2.5 3 5.5 5.5 5.5l1.5-1.5-2-1.5-1 1a4.5 4.5 0 0 1-2.5-2.5l1-1-1.5-2Z"/>',
   phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>',
   check:'<path d="M20 6 9 17l-5-5"/>', clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
@@ -197,25 +220,37 @@ const I = {
 };
 const ic = (n, s, sw) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="${s ? `width:${s}px;height:${s}px;` : ''}${sw ? `stroke-width:${sw}` : ''}">${I[n]}</svg>`;
 
+/* Bangla by default, with every visible word switching (PAY-22): the reference's English buttons have Bangla labels here. */
 const S = {
-  viewDetails:['View Details','View Details'],mobileBanking:['Mobile Banking','Mobile Banking'],pay:['Pay {a} BDT','Pay {a} BDT'],
-  note:['<b>নোট:</b> টাকা পাঠানোর ৫-১০ সেকেন্ড পর ভেরিফাই করবেন।','<b>Note:</b> verify 5 to 10 seconds after sending the money.'],
-  enterTrx:['ট্রান্সজেকশন আইডি দিন','Enter the transaction ID'],instructions:['INSTRUCTIONS','INSTRUCTIONS'],copy:['Copy','Copy'],verify:['VERIFY TRANSACTION','VERIFY TRANSACTION'],
-  dupErr:['এই ট্রান্সেকশন আইডি ইতিমধ্যে ব্যবহৃত হয়েছে','This transaction ID has already been used'],
-  legal:['🔒 Secured by Lytro · এই পেজ কখনো PIN বা OTP চায় না · <a href="#" onclick="go(\'report\');return false">রিপোর্ট করুন</a>','🔒 Secured by Lytro · This page never asks for your PIN or OTP · <a href="#" onclick="go(\'report\');return false">Report this page</a>'],
-  copiedNo:['নম্বর কপি হয়েছে: {n}','Number copied: {n}'],
-  checkingT:['SMS মেলানো হচ্ছে…','Matching the SMS…'],checkingP:['সাধারণত ১০ সেকেন্ড লাগে। এই পেজে থাকুন।','Usually about 10 seconds. Stay on this page.'],
-  lateT:['আমরা শিগগিরই কনফার্ম করব','We will confirm shortly'],lateP:['এই পেজ বন্ধ করলেও হবে। কনফার্ম হলে SMS পাবেন, আর দোকান জানবে।','You can close this page. You get an SMS when it is confirmed, and the shop is told.'],
-  manualT:['দোকান চেক করে কনফার্ম করবে','The shop will check and confirm'],manualP:['সাধারণত কিছুক্ষণের মধ্যে। কনফার্ম হলে SMS পাবেন।','Usually within a short while. You get an SMS when it is confirmed.'],
-  verifiedT:['পেমেন্ট হয়েছে','Paid'],verifiedP:['{s} সেকেন্ডে দোকানে ফিরছেন।','Returning to the shop in {s} seconds.'],
-  reviewT:['টাকা মিলছে না','The payment did not match'],reviewP:['SMS-এ ৳{a} এসেছে, পাঠানোর কথা ৳{b}। দোকান দেখে জানাবে; আপনার কিছু করতে হবে না।','The SMS shows ৳{a}, the amount was ৳{b}. The shop will check and let you know; nothing to do now.'],
-  rejectedT:['পেমেন্ট কনফার্ম হয়নি','Payment not confirmed'],rejectedReason:['দোকান বলেছে: "{r}"','The shop said: "{r}"'],
+  viewDetails:['বিস্তারিত','View Details'],mobileBanking:['মোবাইল ব্যাংকিং','Mobile Banking'],bankTransfer:['ব্যাংক ট্রান্সফার','Bank Transfer'],pay:['পেমেন্ট: {a} টাকা','Pay {a} BDT'],
+  orderRef:['অর্ডার {o}','Order {o}'],timeLeft:['সময় বাকি {m}','Time left {m}'],
+  note:['<b>নোট:</b> টাকা পাঠানোর 5-10 সেকেন্ড পর ভেরিফাই করবেন।','<b>Note:</b> verify 5 to 10 seconds after sending the money.'],
+  shopNote:['<b>দোকানের নোট:</b> {n}','<b>From the shop:</b> {n}'],shopNoteSample:['টাকা পাঠানোর সময় রেফারেন্সে অর্ডার নম্বর লিখুন।','Put your order number as the reference when you send.'],
+  enterTrx:['ট্রান্সজেকশন আইডি দিন','Enter the transaction ID'],fixTrx:['সঠিক ট্রান্সজেকশন আইডি দিন','Enter the right transaction ID'],senderPh:['যে নম্বর থেকে পাঠালেন (ঐচ্ছিক)','The number you sent from (optional)'],changesLeft:['আরও {n} বার বদলানো যাবে','You can change it {n} more times'],
+  instructions:['নির্দেশনা','INSTRUCTIONS'],copy:['কপি','Copy'],verify:['ভেরিফাই করুন','VERIFY TRANSACTION'],
+  dupErr:['এই ট্রান্সেকশন আইডি ইতিমধ্যে ব্যবহৃত হয়েছে','This transaction ID has already been used'],badShape:['6 থেকে 20টি অক্ষর বা সংখ্যা দিন','Use 6 to 20 letters and digits'],
+  secured:['এই পেজ কখনো PIN বা OTP চায় না','This page never asks for your PIN or OTP'],report:['রিপোর্ট করুন','Report this page'],otherLang:['English','বাংলা'],
+  copiedNo:['নম্বর কপি হয়েছে: {n}','Number copied: {n}'],reportedT:['রিপোর্ট পাঠানো হয়েছে','Report sent'],
+  help:['সমস্যা হলে দোকানে যোগাযোগ করুন','Having trouble? Contact the shop'],call:['কল করুন','Call'],
+  test:['টেস্ট পেমেন্ট: আসল টাকা কাটবে না।','Test payment: no real money moves.'],
+  handT:['bKash-এ নিয়ে যাওয়া হচ্ছে…','Taking you to bKash…'],handP:['পেমেন্ট শেষ হলে এখানেই ফিরবেন।','You come back here when it is done.'],
+  gwCancelT:['bKash-এ পেমেন্ট শেষ হয়নি','You did not finish on bKash'],gwFailT:['bKash পেমেন্টটি নিতে পারেনি','bKash could not take the payment'],gwP:['আবার চেষ্টা করুন, অথবা নিজে টাকা পাঠিয়ে TrxID দিন।','Try again, or send the money yourself and enter the TrxID.'],gwRetry:['আবার bKash-এ যান','Try bKash again'],gwHand:['নিজে টাকা পাঠান','Send it yourself'],
+  detailsT:['অর্ডারের বিস্তারিত','Order details'],orderNo:['অর্ডার নম্বর','Order number'],toPay:['এখন পেমেন্ট','To pay now'],
+  bankName:['ব্যাংক','Bank'],acctName:['অ্যাকাউন্টের নাম','Account name'],acctNo:['অ্যাকাউন্ট নম্বর','Account number'],branch:['শাখা','Branch'],routing:['রাউটিং','Routing'],swift:['SWIFT','SWIFT'],enterRef:['ব্যাংকের রেফারেন্স দিন','Enter the bank reference'],bankStep1:['এই অ্যাকাউন্টে {a} টাকা পাঠান:','Send {a} taka to this account:'],bankStep2:['পাঠানোর পর উপরের বক্সে রেফারেন্স দিয়ে ভেরিফাই করুন।','Then enter the reference in the box above and verify.'],
+  checkingT:['SMS মেলানো হচ্ছে…','Matching the SMS…'],checkingP:['সাধারণত 10 সেকেন্ড লাগে। এই পেজে থাকুন।','Usually about 10 seconds. Stay on this page.'],
+  lateT:['আমরা শিগগিরই কনফার্ম করব','We will confirm shortly'],lateP:['এই পেজ বন্ধ করলেও হবে। কনফার্ম হলে আপনার অর্ডারের পেজে দেখতে পাবেন।','You can close this page. Your order\'s page will show when it is confirmed.'],
+  manualT:['দোকান চেক করে কনফার্ম করবে','The shop will check and confirm'],manualP:['সাধারণত কিছুক্ষণের মধ্যে। এই পেজ বন্ধ করলেও হবে; কনফার্ম হলে আপনার অর্ডারের পেজে দেখতে পাবেন।','Usually within a short while. You can close this page; your order\'s page will show when it is confirmed.'],
+  verifiedT:['পেমেন্ট হয়েছে','Paid'],verifiedP:['{s} সেকেন্ডে দোকানে ফিরছেন।','Returning to the shop in {s} seconds.'],verifiedDoneP:['দোকান জেনে গেছে। আপনার আর কিছু করতে হবে না।','The shop has been told. There is nothing more to do.'],
+  reviewT:['টাকা মিলছে না','The amount did not match'],reviewP:['যে টাকা এসেছে তা এই পেমেন্টের সাথে মিলছে না। দোকান দেখে জানাবে; আপনার এখন কিছু করতে হবে না।','The money that arrived does not match this payment. The shop will check and let you know; nothing to do now.'],
+  reviewSenderT:['নম্বর মিলছে না','The number did not match'],reviewSenderP:['আপনার লেখা নম্বর থেকে এই টাকা আসেনি। দোকান দেখে জানাবে; আপনার এখন কিছু করতে হবে না।','This money did not come from the number you entered. The shop will check and let you know; nothing to do now.'],
+  reviewOtherT:['দোকান চেক করে জানাবে','The shop will check and let you know'],reviewOtherP:['আপনার এখন কিছু করতে হবে না।','Nothing to do now.'],
+  rejectedT:['পেমেন্ট কনফার্ম হয়নি','Payment not confirmed'],rejectNoPay:['এই TrxID-র টাকা দোকানের নম্বরে আসেনি।','No money for this TrxID reached the shop\'s number.'],rejectedNote:['দোকান বলেছে: "{r}"','The shop said: "{r}"'],
   expiredT:['সময় শেষ হয়ে গেছে','This payment link has expired'],expiredP:['টাকা পাঠিয়ে থাকলে দোকানকে ট্রান্সজেকশন আইডি জানান। না পাঠিয়ে থাকলে দোকানে ফিরে আবার শুরু করুন।','If you already sent the money, give the shop the transaction ID. If not, go back and start again.'],
-  paidT:['এই পেমেন্ট আগেই হয়েছে','This payment was already made'],cancelledT:['এই পেমেন্ট ক্যানসেল করা হয়েছে','This payment was cancelled'],cancelledP:['দোকান পেমেন্টটি বাতিল করেছে। নতুন করে অর্ডার করতে দোকানে ফিরুন।','The shop cancelled this payment. Go back to the shop to order again.'],
-  suspendedT:['এই পেমেন্ট পেজ এখন বন্ধ আছে','This payment page is closed right now'],
+  paidT:['এই পেমেন্ট আগেই হয়েছে','This payment was already made'],cancelledT:['এই পেমেন্ট ক্যানসেল করা হয়েছে','This payment was cancelled'],cancelledP:['নতুন করে অর্ডার করতে দোকানে ফিরুন।','Go back to the shop to order again.'],
+  suspendedT:['এই পেমেন্ট পেজ এখন বন্ধ আছে','This payment page is closed right now'],missingT:['এই পেমেন্ট পেজ পাওয়া যায়নি','This payment page was not found'],missingP:['লিংকটি ঠিক আছে কি না দেখুন, অথবা দোকানে যোগাযোগ করুন।','Check the link, or contact the shop.'],noMethodsT:['এই দোকান এখন অনলাইনে পেমেন্ট নিচ্ছে না','This shop is not taking online payments right now'],
   amount:['টাকা','Amount'],method:['মেথড','Method'],trx:['ট্রান্সজেকশন আইডি','Transaction ID'],time:['সময়','Time'],
-  backShop:['BACK TO SHOP','BACK TO SHOP'],retry:['TRY AGAIN','TRY AGAIN'],wrongTrx:['CHANGE TRANSACTION ID','CHANGE TRANSACTION ID'],wrongTrxLink:['TrxID ভুল দিয়েছেন? বদলান','Wrong TrxID? Change it'],reviewOtherT:['দোকান চেক করে জানাবে','The shop will check and let you know'],
-  reportTitle:['এই পেজ রিপোর্ট করুন','Report this page'],r1:['এটা আমার দোকান নয়','This is not the shop I ordered from'],r2:['টাকার পরিমাণ ভুল','The amount is wrong'],r3:['আমার PIN চেয়েছে','It asked for my PIN'],r4:['অন্য কিছু','Something else'],rNote:['কী হয়েছে, এক লাইনে (ঐচ্ছিক)','What happened, in a line (optional)'],sendReport:['রিপোর্ট পাঠান','Send report'],
+  backShop:['দোকানে ফিরুন','BACK TO SHOP'],retry:['আবার চেষ্টা করুন','TRY AGAIN'],wrongTrx:['TrxID বদলান','CHANGE TRANSACTION ID'],wrongTrxLink:['TrxID ভুল দিয়েছেন? বদলান','Wrong TrxID? Change it'],
+  reportTitle:['এই পেজ রিপোর্ট করুন','Report this page'],r1:['এটা আমার অর্ডার করা দোকান নয়','This is not the shop I ordered from'],r2:['টাকার পরিমাণ ভুল','The amount is wrong'],r3:['PIN বা কোড চেয়েছে','It asked for my PIN or a code'],r4:['অন্য কিছু','Something else'],rNote:['কী হয়েছে, এক লাইনে লিখুন','What happened, in a line'],sendReport:['রিপোর্ট পাঠান','Send report'],
 };
 let LANG = 'bn';
 const t = (k, v) => { let s = S[k] ? S[k][LANG === 'bn' ? 0 : 1] : k; if (v) for (const [a, b] of Object.entries(v)) s = s.split('{' + a + '}').join(b); return s; };
@@ -228,39 +263,57 @@ const W = {
   rocket: { name: 'Rocket', up: 'ROCKET', col: '#892C8C', ussd: '*322#', logo: '<span class="txt" style="color:#892C8C">Rocket</span>' },
   upay: { name: 'Upay', up: 'UPAY', col: '#1F4E98', ussd: '*268#', logo: '<span class="txt" style="color:#1F4E98">উপায়</span>' },
 };
+const BANK_COL = '#0f766e';
 const VERB = { personal: 'Send Money', agent: 'Cash Out', merchant: 'Payment' };
 const PAY_INIT = window.PAY_INIT || null;
-const CTX = Object.assign({ platform: false, amount: 250, ref: null, no: '01712345678', screen: 'pick', lang: 'bn' }, PAY_INIT || {});
+const CTX = Object.assign({ amount: 250, ref: '261104-0042', no: '01712345678', screen: 'pick', lang: 'bn' }, PAY_INIT || {});
 const SHOP = { name: ['মেঘ ফ্যাশন', 'Megh Fashion'], no: CTX.no, amount: CTX.amount };
 const ST = { device: 'phone', lang: CTX.lang, screen: CTX.screen, wallet: null };
+const LEFT = '29:40';
 const go = (s) => { ST.screen = s; const sel = document.getElementById('selScreen'); if (sel) sel.value = s; render(); };
-/* the host (the dashboard prototype) is told where the shopper went; standalone, the page just restarts */
+/* the host (the storefront prototype) is told where the shopper went; the real page redirects (PAY-08); standalone, the page just restarts */
 const payReturn = (status) => { if (window.parent && window.parent !== window) window.parent.postMessage({ type: 'pay-return', status }, '*'); else go('pick'); };
 /* the demo verify: checking, then verified after the listener's usual few seconds */
 const payVerify = () => { go('checking'); clearTimeout(ST.t); ST.t = setTimeout(() => { if (ST.screen === 'checking') go('verified'); }, 2500); };
-const ACT = { checking: "go(ST.wallet || 'bkash')", rejected: "go(ST.wallet || 'bkash')", verified: "payReturn('verified')", 'checking-late': "payReturn('checking')", manual: "payReturn('checking')", review: "payReturn('review')", 'review-other': "payReturn('review')", expired: "payReturn('expired')", paid: "payReturn('paid')", cancelled: "payReturn('cancelled')" };
+const ACT = { checking: "go('change')", change: "go('checking')", bank: "go('manual')", rejected: "go(ST.wallet || 'bkash')", 'rejected-note': "go(ST.wallet || 'bkash')", verified: "payReturn('verified')", 'checking-late': "payReturn('checking')", manual: "payReturn('checking')", review: "payReturn('review')", 'review-sender': "payReturn('review')", 'review-other': "payReturn('review')", expired: "payReturn('expired')", paid: "payReturn('paid')", cancelled: "payReturn('cancelled')" };
+/* where the back arrow leads; a screen with nowhere to go back to has no arrow */
+const BACK = { bkash: 'pick', 'bkash-agent': 'pick', 'bkash-merchant': 'pick', nagad: 'pick', rocket: 'pick', upay: 'pick', bank: 'pick', dup: 'pick', bad: 'pick', copied: 'pick', report: 'pick', 'report-other': 'pick', change: 'checking-late' };
+/* the session is still open on these, so close goes to the cancel address (PAY-01) */
+const OPEN = ['pick', 'test', 'details', 'reported', 'gw-cancelled', 'gw-failed', 'no-methods', ...Object.keys(BACK).filter((k) => k !== 'change')];
+const NO_TOPBAR = ['handing', 'suspended', 'missing', 'verified-done'];
 
 /* ---------- pieces ---------- */
-const topbar = (back) => `<div class="topbar"><button aria-label="back" ${back ? `onclick="go('${back}')"` : ''}>${ic('back', 28, 2.5)}</button><button aria-label="close" onclick="payReturn('cancelled')">${ic('x', 28, 2.5)}</button></div>`;
-const legal = () => `<p class="legal">${t('legal')}</p>`;
-const picker = (o) => `
-  <div class="brandrow"><span class="logo">${o.platform ? `<span class="mono" style="background:#063b38"><svg viewBox="0 0 64 64" width="28" height="28"><path d="M15 15V49H31L49 29" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>` : `<span class="mono">${L('ম', 'M')}</span>`}</span><div><div class="nm">${o.platform ? 'Lytro' : L(...SHOP.name)}</div>${CTX.ref ? `<div class="ref">${CTX.ref}</div>` : ''}<button class="pill">${t('viewDetails')}</button></div></div>
-  <div class="contacts"><button aria-label="support" style="color:var(--blue)">${ic('headset')}</button><button aria-label="whatsapp" style="color:#25D366">${ic('chat')}</button><button aria-label="call" style="color:var(--blue)">${ic('phone')}</button></div>
+const topbar = (back, close) => `<div class="topbar"><button class="${back ? '' : 'hide'}" aria-label="back" ${back ? `onclick="go('${back}')"` : ''}>${ic('back', 28, 2.5)}</button><button class="${close ? '' : 'hide'}" aria-label="close" ${close ? `onclick="${close}"` : ''}>${ic('x', 28, 2.5)}</button></div>`;
+const langLink = () => `<a href="#" onclick="setLang('${LANG === 'bn' ? 'en' : 'bn'}');return false">${t('otherLang')}</a>`;
+const legal = (bare) => `<p class="legal">🔒 Secured by Lytro · ${t('secured')}${bare ? '' : ` · <a href="#" onclick="go('report');return false">${t('report')}</a>`} · ${langLink()}</p>`;
+/* WhatsApp and call, from the shop's contact phone; left out when it isn't set (agreed 2026-11-04) */
+const contacts = (tight) => `<div class="contacts ${tight ? 'tight' : ''}"><button aria-label="WhatsApp" style="color:#25D366">${ic('chat')}</button><button aria-label="${t('call')}" style="color:var(--blue)">${ic('phone')}</button></div>`;
+const help = () => `<p class="help">${t('help')}</p>${contacts(true)}`;
+const gwCard = (kind) => `<div class="gwcard"><h3>${t(kind === 'failed' ? 'gwFailT' : 'gwCancelT')}</h3><p>${t('gwP')}</p><div class="row"><button class="gwbtn" style="background:${W.bkash.col};color:#fff" onclick="go('handing')">${t('gwRetry')}</button><button class="gwbtn line" onclick="go('bkash')">${t('gwHand')}</button></div></div>`;
+const picker = (o = {}) => `
+  ${o.test ? `<div class="testbar">${t('test')}</div>` : ''}
+  <div class="brandrow"><span class="logo"><span class="mono">${L('ম', 'M')}</span></span><div><div class="nm">${L(...SHOP.name)}</div><div class="ref">${t('orderRef', { o: CTX.ref })}</div><button class="pill" onclick="go('details')">${t('viewDetails')}</button></div></div>
+  ${contacts()}
+  ${o.gw ? gwCard(o.gw) : ''}
   <div class="sect">${t('mobileBanking')}</div>
   <div class="tiles">${['bkash', 'nagad', 'rocket', 'upay'].map(k => `<button class="tile" onclick="go('${k}')">${W[k].logo}</button>`).join('')}</div>
-  <div class="paybar">${t('pay', { a: Number(o.amount || SHOP.amount).toLocaleString('en-US') })}</div>`;
+  <div class="sect">${t('bankTransfer')}</div>
+  <div class="tiles"><button class="tile" onclick="go('bank')"><span class="txt" style="color:${BANK_COL}">${L('ব্যাংক', 'Bank')}</span></button></div>
+  <div class="paybar">${t('pay', { a: Number(SHOP.amount).toLocaleString('en-US') })}</div>
+  <p class="timeleft">${t('timeLeft', { m: LEFT })}</p>
+  ${legal()}`;
 
 function stepsFor(k, ty, no, amount) {
   const w = W[k]; const hl = (s) => `<b class="hl">${s}</b>`; const verb = hl(`"${VERB[ty]}"`);
   const numLine = (lead) => `${lead} ${hl(no)}<button class="copy" onclick="go('copied')">${ic('copy', 16)}${t('copy')}</button>`;
   const amtLine = L(`পরিমাণ: ${hl(Number(amount).toLocaleString('en-US'))} টাকা দিয়ে ${hl('SUBMIT')} করুন।`, `Amount: ${hl(Number(amount).toLocaleString('en-US'))} taka, then ${hl('SUBMIT')}.`);
-  const verifyLine = L(`${hl('Transaction ID')} দিয়ে ${hl('VERIFY')} করুন।`, `Enter the ${hl('Transaction ID')} and ${hl('VERIFY')}.`);
+  const verifyLine = L(`${hl('Transaction ID')} দিয়ে ${hl('ভেরিফাই')} করুন।`, `Enter the ${hl('Transaction ID')} and ${hl('VERIFY')}.`);
   if (k === 'bkash') return [
     L(`${hl(w.ussd)} ডায়াল করে আপনার ${hl(w.up)} মোবাইল মেনুতে যান অথবা ${hl(w.up)} অ্যাপে যান।`, `Dial ${hl(w.ussd)} to open your ${hl(w.up)} mobile menu, or open the ${hl(w.up)} app.`),
     L(`${verb} -এ ক্লিক করুন।`, `Tap ${verb}.`),
     numLine(L(ty === 'agent' ? 'এজেন্ট নম্বর হিসেবে এই নম্বরটি লিখুন:' : ty === 'merchant' ? 'মার্চেন্ট নম্বর হিসেবে এই নম্বরটি লিখুন:' : 'প্রাপক নম্বর হিসেবে এই নম্বরটি লিখুন:', ty === 'agent' ? 'Enter this as the agent number:' : ty === 'merchant' ? 'Enter this as the merchant number:' : 'Enter this as the recipient number:')),
     amtLine,
-    L(`এখন উপরের বক্সে আপনার ${hl('Transaction ID')} দিন এবং ${hl('VERIFY')} করুন।`, `Now enter your ${hl('Transaction ID')} in the box above and ${hl('VERIFY')}.`),
+    L(`এখন উপরের বক্সে আপনার ${hl('Transaction ID')} দিন এবং ${hl('ভেরিফাই')} করুন।`, `Now enter your ${hl('Transaction ID')} in the box above and ${hl('VERIFY')}.`),
   ];
   if (k === 'nagad') return [
     L(`${hl(w.ussd)} ডায়াল করে আপনার ${hl(w.up)} মোবাইল মেনুতে যান অথবা অ্যাপে যান।`, `Dial ${hl(w.ussd)} to open your ${hl(w.up)} mobile menu, or open the app.`),
@@ -273,62 +326,93 @@ function stepsFor(k, ty, no, amount) {
     numLine(L('প্রাপক নম্বর:', 'Recipient number:')), amtLine, verifyLine,
   ];
 }
+const shopNote = () => `<div class="shopnote">${t('shopNote', { n: t('shopNoteSample') })}</div>`;
+const countdown = () => `<span class="cd">${ic('clock', 14)}${LEFT}</span>`;
 function panel(k, ty, o = {}) {
   const w = W[k]; const no = o.no || SHOP.no; const amount = o.amount || SHOP.amount;
   return `<div class="whead"><span class="lbox">${w.logo}</span><span class="amt"><i></i><b>${Number(amount).toLocaleString('en-US')} ৳</b></span></div>
-  <div class="note">${t('note')}</div>
-  <div class="ccard" style="background:${w.col}"><p class="ctitle">${t('enterTrx')}</p><div class="inp ${o.dup ? 'val bad' : ''}">${o.dup ? '9F2KQ7' : t('enterTrx')}</div>${o.dup ? `<div class="ierr">${t('dupErr')}</div>` : ''}
-    <div class="ihead"><span>${t('instructions')}</span></div>
+  ${o.change ? '' : `<div class="note">${t('note')}</div>${shopNote()}`}
+  <div class="ccard" style="background:${w.col}"><p class="ctitle">${t(o.change ? 'fixTrx' : 'enterTrx')}</p><div class="inp ${o.val ? 'val' : ''} ${o.err ? 'bad' : ''}">${o.val || t('enterTrx')}</div>${o.err ? `<div class="ierr">${t(o.err)}</div>` : ''}<div class="inp two">${t('senderPh')}</div>${o.change ? `<div class="ileft">${t('changesLeft', { n: o.change })}</div>` : ''}
+    <div class="ihead"><span>${t('instructions')}</span>${o.change ? '' : countdown()}</div>
     <ul class="ilist">${stepsFor(k, ty, no, amount).map(s => `<li><span>${s}</span></li>`).join('')}</ul></div>
   ${legal()}`;
 }
+function bankPanel() {
+  const hl = (s) => `<b class="hl">${s}</b>`;
+  const row = (k, v, copy) => `<li><span>${t(k)}: ${hl(v)}${copy ? `<button class="copy" onclick="go('copied')">${ic('copy', 16)}${t('copy')}</button>` : ''}</span></li>`;
+  return `<div class="whead"><span class="lbox"><span class="txt" style="color:${BANK_COL}">${L('ব্যাংক', 'Bank')}</span></span><span class="amt"><i></i><b>${Number(SHOP.amount).toLocaleString('en-US')} ৳</b></span></div>
+  ${shopNote()}
+  <div class="ccard" style="background:${BANK_COL}"><p class="ctitle">${t('enterRef')}</p><div class="inp">${t('enterRef')}</div>
+    <div class="ihead"><span>${t('instructions')}</span>${countdown()}</div>
+    <ul class="ilist"><li><span>${t('bankStep1', { a: hl(Number(SHOP.amount).toLocaleString('en-US')) })}</span></li>${row('bankName', 'BRAC Bank')}${row('acctName', 'Megh Fashion')}${row('acctNo', '1501204567890001', true)}${row('branch', L('গুলশান', 'Gulshan'))}${row('routing', '060261726', true)}${row('swift', 'BRAKBDDH', true)}<li><span>${t('bankStep2')}</span></li></ul></div>
+  ${legal()}`;
+}
 const det = (rows) => `<div class="det">${rows.map(([k, v]) => `<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div>`;
-const fixId = () => `<button class="fixid" onclick="go(ST.wallet || 'bkash')">${t('wrongTrxLink')}</button>`;
-const scard = (icon, title, p, extra) => `<div class="scard">${icon}<h2>${title}</h2>${p ? `<p>${p}</p>` : ''}${extra || ''}</div>${legal()}`;
+const fixId = () => `<button class="fixid" onclick="go('change')">${t('wrongTrxLink')}</button>`;
+const scard = (icon, title, p, extra, bare) => `<div class="scard">${icon}<h2>${title}</h2>${p ? `<p>${p}</p>` : ''}${extra || ''}</div>${legal(bare)}`;
 const ring = (s) => `<div class="ring"><svg viewBox="0 0 72 72"><circle class="bg" cx="36" cy="36" r="32"/><circle class="fg" cx="36" cy="36" r="32"/></svg><span class="t">${s}s</span></div>`;
 const bigIcon = (n, bg, col) => `<span class="ic" style="background:${bg};color:${col}">${ic(n, 40, 2)}</span>`;
 const tick = () => `<span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>`;
 const trxRows = () => [[t('amount'), '250 ৳'], [t('method'), 'bKash · Send Money'], [t('trx'), '9F2KQ7X1']];
+const paidTime = () => [t('time'), L('আজ সকাল 11:48', 'Today 11:48 am')];
 
-/* ---------- screens: [content, fixed button label, button colour, back target] ---------- */
+/* ---------- screens: [content, fixed button label, button colour] ---------- */
+const bk = (o) => panel('bkash', 'personal', o);
 const SC = {
-  pick: () => [picker({ platform: CTX.platform }), null],
-  bkash: () => [panel('bkash', 'personal'), t('verify'), W.bkash.col],
+  pick: () => [picker(), null],
+  test: () => [picker({ test: true }), null],
+  'gw-cancelled': () => [picker({ gw: 'cancelled' }), null],
+  'gw-failed': () => [picker({ gw: 'failed' }), null],
+  handing: () => [scard('<div class="spin"></div>', t('handT'), t('handP')), null],
+  details: () => [picker(), null],
+  reported: () => [picker(), null],
+  'no-methods': () => [scard(bigIcon('lock', 'var(--g100)', 'var(--g600)'), t('noMethodsT'), '', help()), null],
+  bkash: () => [bk(), t('verify'), W.bkash.col],
   'bkash-agent': () => [panel('bkash', 'agent'), t('verify'), W.bkash.col],
   'bkash-merchant': () => [panel('bkash', 'merchant'), t('verify'), W.bkash.col],
   nagad: () => [panel('nagad', 'personal', { no: '01812345678' }), t('verify'), W.nagad.col],
   rocket: () => [panel('rocket', 'personal', { no: '017123456789' }), t('verify'), W.rocket.col],
   upay: () => [panel('upay', 'personal'), t('verify'), W.upay.col],
-  dup: () => [panel('bkash', 'personal', { dup: true }), t('verify'), W.bkash.col],
-  copied: () => [panel('bkash', 'personal'), t('verify'), W.bkash.col],
-  report: () => [panel('bkash', 'personal'), t('verify'), W.bkash.col],
-  platform: () => [panel('bkash', 'personal', { no: '01700000000', amount: 449 }), t('verify'), W.bkash.col],
-  checking: () => [scard(ring(12), t('checkingT'), t('checkingP'), det(trxRows())), t('wrongTrx'), 'var(--g500)'],
+  bank: () => [bankPanel(), t('verify'), BANK_COL],
+  dup: () => [bk({ val: '9F2KQ7X1', err: 'dupErr' }), t('verify'), W.bkash.col],
+  bad: () => [bk({ val: 'TX-12', err: 'badShape' }), t('verify'), W.bkash.col],
+  copied: () => [bk(), t('verify'), W.bkash.col],
+  report: () => [bk(), t('verify'), W.bkash.col],
+  'report-other': () => [bk(), t('verify'), W.bkash.col],
+  change: () => [bk({ val: '9F2KQ7X1', change: 3 }), t('wrongTrx'), W.bkash.col],
+  checking: () => [scard(ring(12), t('checkingT'), t('checkingP'), det(trxRows())), t('wrongTrx'), 'var(--g600)'],
   'checking-late': () => [scard(bigIcon('clock', 'var(--sky-100)', 'var(--sky-900)'), t('lateT'), t('lateP'), det(trxRows()) + fixId()), t('backShop'), 'var(--blue)'],
   manual: () => [scard(bigIcon('user', 'var(--sky-100)', 'var(--sky-900)'), t('manualT'), t('manualP'), det(trxRows()) + fixId()), t('backShop'), 'var(--blue)'],
-  verified: () => [scard(tick(), t('verifiedT'), t('verifiedP', { s: 5 }), det([...trxRows(), [t('time'), L('আজ সকাল 11:48', 'Today 11:48 am')]])), t('backShop'), '#15803d'],
-  review: () => [scard(bigIcon('search', 'var(--y50)', '#a16207'), t('reviewT'), t('reviewP', { a: 240, b: 250 }), det(trxRows()) + fixId()), t('backShop'), 'var(--blue)'],
-  'review-other': () => [scard(bigIcon('search', 'var(--sky-100)', 'var(--sky-900)'), t('reviewOtherT'), '', det(trxRows()) + fixId()), t('backShop'), 'var(--blue)'],
-  rejected: () => [scard(bigIcon('x', '#fee2e2', '#b91c1c'), t('rejectedT'), t('rejectedReason', { r: L('এই TrxID-র টাকা আমাদের নম্বরে আসেনি', 'No money arrived on our number for this TrxID') }), det(trxRows())), t('retry'), W.bkash.col],
-  expired: () => [scard(bigIcon('clock', 'var(--g100)', 'var(--g600)'), t('expiredT'), t('expiredP')), t('backShop'), 'var(--blue)'],
-  paid: () => [scard(bigIcon('check', '#dcfce7', '#15803d'), t('paidT'), '', det([[t('amount'), '250 ৳'], [t('method'), 'bKash'], [t('time'), L('আজ সকাল 11:48', 'Today 11:48 am')]])), t('backShop'), 'var(--blue)'],
-  cancelled: () => [scard(bigIcon('x', 'var(--g100)', 'var(--g600)'), t('cancelledT'), t('cancelledP')), t('backShop'), 'var(--blue)'],
-  suspended: () => [scard(bigIcon('lock', 'var(--g100)', 'var(--g600)'), t('suspendedT'), ''), null],
+  verified: () => [scard(tick(), t('verifiedT'), t('verifiedP', { s: 5 }), det([...trxRows(), paidTime()])), t('backShop'), '#15803d'],
+  'verified-done': () => [scard(tick(), t('verifiedT'), t('verifiedDoneP'), det([...trxRows(), paidTime()])), null],
+  review: () => [scard(bigIcon('search', 'var(--y50)', '#a16207'), t('reviewT'), t('reviewP'), det(trxRows()) + fixId()), t('backShop'), 'var(--blue)'],
+  'review-sender': () => [scard(bigIcon('search', 'var(--y50)', '#a16207'), t('reviewSenderT'), t('reviewSenderP'), det(trxRows()) + fixId()), t('backShop'), 'var(--blue)'],
+  'review-other': () => [scard(bigIcon('search', 'var(--sky-100)', 'var(--sky-900)'), t('reviewOtherT'), t('reviewOtherP'), det(trxRows()) + fixId()), t('backShop'), 'var(--blue)'],
+  rejected: () => [scard(bigIcon('x', '#fee2e2', '#b91c1c'), t('rejectedT'), t('rejectNoPay'), det(trxRows()) + help()), t('retry'), W.bkash.col],
+  'rejected-note': () => [scard(bigIcon('x', '#fee2e2', '#b91c1c'), t('rejectedT'), t('rejectedNote', { r: L('টাকা কম এসেছে, 200 টাকা বাকি', '200 taka short') }), det(trxRows()) + help()), t('retry'), W.bkash.col],
+  expired: () => [scard(bigIcon('clock', 'var(--g100)', 'var(--g600)'), t('expiredT'), t('expiredP'), help()), t('backShop'), 'var(--blue)'],
+  paid: () => [scard(bigIcon('check', '#dcfce7', '#15803d'), t('paidT'), '', det([[t('amount'), '250 ৳'], [t('method'), 'bKash'], paidTime()])), t('backShop'), 'var(--blue)'],
+  cancelled: () => [scard(bigIcon('x', 'var(--g100)', 'var(--g600)'), t('cancelledT'), t('cancelledP'), help()), t('backShop'), 'var(--blue)'],
+  suspended: () => [scard(bigIcon('lock', 'var(--g100)', 'var(--g600)'), t('suspendedT'), '', '', true), null],
+  missing: () => [scard(bigIcon('search', 'var(--g100)', 'var(--g600)'), t('missingT'), t('missingP'), '', true), null],
 };
-const BACK = { pick: null };
+const sheetOf = (title, closeTo, body, foot) => `<div class="scrim" onclick="go('${closeTo}')"><div class="sheet" onclick="event.stopPropagation()"><div class="sh"><h2>${title}</h2><button aria-label="close" onclick="go('${closeTo}')">${ic('x', 22)}</button></div><div class="sb">${body}</div>${foot ? `<div class="sf">${foot}</div>` : ''}</div></div>`;
+const reportSheet = (picked) => sheetOf(t('reportTitle'), 'bkash', `${['r1', 'r2', 'r3', 'r4'].map((k) => `<div class="opt"><span class="radio ${k === picked ? 'on' : ''}"></span>${t(k)}</div>`).join('')}${picked === 'r4' ? `<div class="inp">${t('rNote')}</div>` : ''}`, `<button class="btn" onclick="go('reported')">${t('sendReport')}</button>`);
+const detailsSheet = () => sheetOf(t('detailsT'), 'pick', det([[t('orderNo'), CTX.ref], [L('কটন পাঞ্জাবি · M', 'Cotton panjabi · M'), '× 1'], [L('শিফন হিজাব · কালো', 'Chiffon hijab · Black'), '× 2'], [t('toPay'), `${Number(SHOP.amount).toLocaleString('en-US')} ৳`]]));
 function render() {
   LANG = ST.lang;
   const f = document.getElementById('frame');
   f.className = 'frame ' + ST.device; f.dataset.lang = ST.lang;
-  const chrome = `<div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div><div class="urlbar"><span class="dots"><i></i><i></i><i></i></span><span class="url">🔒 pay.lytro.app/8f2kq7x1a9z3</span></div>`;
-  if (['bkash', 'nagad', 'rocket', 'upay'].includes(ST.screen)) ST.wallet = ST.screen;
+  const chrome = `<div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div><div class="urlbar"><span class="dots"><i></i><i></i><i></i></span><span class="url">🔒 pay.lytro.app/8f2kq7x1a9z3mQ4tYv0bLw</span></div>`;
+  if (['bkash', 'nagad', 'rocket', 'upay', 'bank'].includes(ST.screen)) ST.wallet = ST.screen;
   const [content, label, col] = SC[ST.screen]();
   const act = ACT[ST.screen] || 'payVerify()';
-  const isPanel = !['pick', 'checking', 'checking-late', 'manual', 'verified', 'review', 'review-other', 'rejected', 'expired', 'paid', 'cancelled', 'suspended'].includes(ST.screen);
+  const close = OPEN.includes(ST.screen) ? "payReturn('cancelled')" : ACT[ST.screen];
   const fixed = label ? `<div class="fixedbar"><button class="vbtn" style="background:${col}" onclick="${act}">${label}</button></div>` : '';
-  const sheet = ST.screen === 'report' ? `<div class="scrim" onclick="go('bkash')"><div class="sheet" onclick="event.stopPropagation()"><div class="sh"><h2>${t('reportTitle')}</h2><button onclick="go('bkash')">${ic('x', 22)}</button></div><div class="sb">${[['r1', false], ['r2', false], ['r3', true], ['r4', false]].map(([k, on]) => `<div class="opt"><span class="radio ${on ? 'on' : ''}"></span>${t(k)}</div>`).join('')}<div class="inp">${t('rNote')}</div></div><div class="sf"><button class="btn">${t('sendReport')}</button></div></div></div>` : '';
-  const toast = ST.screen === 'copied' ? `<div class="toast">${ic('check', 18)}${t('copiedNo', { n: SHOP.no })}</div>` : '';
-  f.innerHTML = chrome + `<div class="pp"><div class="root"><div class="card">${topbar(isPanel ? 'pick' : null)}<div class="content ${label ? 'has-fixed' : ''}">${content}</div></div></div>${fixed}</div>${sheet}${toast}`;
+  const sheet = ST.screen === 'report' ? reportSheet('r3') : ST.screen === 'report-other' ? reportSheet('r4') : ST.screen === 'details' ? detailsSheet() : '';
+  const toast = ST.screen === 'copied' ? `<div class="toast">${ic('check', 18)}${t('copiedNo', { n: SHOP.no })}</div>` : ST.screen === 'reported' ? `<div class="toast">${ic('check', 18)}${t('reportedT')}</div>` : '';
+  const bar = NO_TOPBAR.includes(ST.screen) ? '<div class="topgap"></div>' : topbar(BACK[ST.screen] || null, close);
+  f.innerHTML = chrome + `<div class="pp"><div class="root"><div class="card">${bar}<div class="content ${label ? 'has-fixed' : ''}">${content}</div></div></div>${fixed}</div>${sheet}${toast}`;
   if (PAY_INIT && ST.screen === 'verified') { clearTimeout(ST.t2); ST.t2 = setTimeout(() => { if (ST.screen === 'verified') payReturn('verified'); }, 5000); }
 }
 function setLang(l) { ST.lang = l; document.querySelectorAll('#segLang button').forEach(b => b.classList.toggle('on', b.dataset.v === l)); render(); }
