@@ -26,8 +26,8 @@ export class DrizzlePaymentMethodStore implements PaymentMethodStore {
     return this.methods.list(tx, tenantId);
   }
 
-  listOff(tx: Transaction, tenantId: string): Promise<PaymentMethod[]> {
-    return this.methods.listOff(tx, tenantId);
+  listOn(tx: Transaction, tenantId: string): Promise<PaymentMethod[]> {
+    return this.methods.listOn(tx, tenantId);
   }
 
   lockMethod(
@@ -47,8 +47,8 @@ export class DrizzlePaymentMethodStore implements PaymentMethodStore {
     return this.methods.replaceMethod(tx, tenantId, method, accounts);
   }
 
-  setOff(tx: Transaction, tenantId: string, method: PaymentMethod, off: boolean): Promise<void> {
-    return this.methods.setOff(tx, tenantId, method, off);
+  setOn(tx: Transaction, tenantId: string, method: PaymentMethod, on: boolean): Promise<void> {
+    return this.methods.setOn(tx, tenantId, method, on);
   }
 
   listWays(

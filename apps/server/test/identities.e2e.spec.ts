@@ -153,6 +153,49 @@ describeIfDatabase('sign-in methods on an account (AUTH-08, AUTH-26)', () => {
       headers,
     );
     expect(response.status).toBe(409);
+
+    // The refusal comes only once the code proves the number is theirs (AUTH-13), and it signs them in with that number
+    // without another text (AUTH-28's "Sign in with this number").
+    const texts = sms.countFor(other);
+    const signedIn = await postJson(port, '/auth/phone/verify', {
+      phone: other,
+      code: sms.codeFor(other),
+    });
+    expect(signedIn.status).toBe(200);
+    expect(signedIn.body).toMatchObject({ next: 'create-shop' });
+    expect(sms.countFor(other)).toBe(texts);
+  });
+
+  it('says nothing about who holds a number until its code is right (AUTH-13)', async () => {
+    const other = freshPhone();
+    await phoneOnlyAccount(other);
+    const session = await emailSession(freshEmail());
+    const headers = { ...PLATFORM, cookie: session.cookie, 'x-csrf-token': session.csrfToken };
+    await admin.query(
+      "UPDATE control.verification_challenges SET created_at = now() - interval '5 minutes' WHERE destination = $1",
+      [other],
+    );
+    const held = await postJson(
+      port,
+      '/me/identities/code',
+      { kind: 'phone', value: other },
+      headers,
+    );
+    const free = await postJson(
+      port,
+      '/me/identities/code',
+      { kind: 'phone', value: freshPhone() },
+      headers,
+    );
+    expect(held.status).toBe(free.status);
+    const wrong = sms.codeFor(other) === '000000' ? '111111' : '000000';
+    const refused = await postJson(
+      port,
+      '/me/identities/verify',
+      { kind: 'phone', value: other, code: wrong },
+      headers,
+    );
+    expect(refused.status).toBe(400);
   });
 
   it('refuses a wrong code when adding, with the attempts left', async () => {

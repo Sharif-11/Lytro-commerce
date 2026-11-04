@@ -1,6 +1,6 @@
 # Tenant dashboard: the full design
 
-Status: v3.32, 2026-11-04 (the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
+Status: v3.33, 2026-11-04 (Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
 shipment the balance can't pay for, serials at shipping scanned, pasted or typed, the Orders list by where an order came
 from; v3.31 of 2026-11-04: Payment methods in Settings, how a wallet's money is taken, bKash's keys, the owner's phone at
 sign-up and Balance's on-hold line, drawn for Slice 5.8's part 1, §7.35; v3.30 of 2026-11-03: Sales as built: the split follows
@@ -1651,9 +1651,17 @@ Slices 5.1 to 5.7.
   payment doesn't happen, and what can be spent (WAL-21). With nothing held there's no line.
 - **The checklist** (SUP-01): "Add a wallet number" stops being a later item and opens this page, done once a method is on
   with an active account.
-- **What the server still needs:** a `verify-phone` answer in sign-in's `next`, for an account with no phone and no shop,
-  and Create shop refused until it's done. Adding the phone already works (`me/identities`, AUTH-26). The rest is served
-  (Slices 5.1 and 5.7).
+- **As built** (Slice 5.8's part 1): sign-in's `next` answers `verify-phone` for an account with no phone and no shop, `/me`
+  carries `needsPhone`, and Create shop is refused until it's done, so the shop's owner identity is always its phone. A
+  number on another account is refused only once its code is right, so the step says nothing of who holds a number; Sign in
+  with this number uses that same code, with no second text. Every method starts off (WAL-05, amended; 0104), so a new
+  shop's page is what's drawn, and a method turned on with no account stays on with its warning. The radio's fee is the
+  platform's current rate. Beyond the drawing, each for a named reason: Resend on the sheet's code step (a lost text would
+  otherwise end it); Cash Out and Payment under an agent's and a merchant's type (PAY-05, drawn only for personal); a plain
+  line for deleting an account that isn't active; a line for bKash being out of reach, which is neither a refusal nor its
+  limit; and "add an account first" on keys with no account to receive the money. An account taking automated payments
+  returns the wallet to the listener when deleted, as removing its keys does. Pair a phone waits for part 4, so that line
+  stands alone. A Facebook account that gives a phone isn't told Facebook is its only way back in (AUTH-27).
 
 ### 7.36 The Phase 4 close-out's small screens
 

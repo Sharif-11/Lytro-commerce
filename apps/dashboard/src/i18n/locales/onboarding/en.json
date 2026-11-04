@@ -104,5 +104,11 @@
   "vTitle": "Verify your number",
   "vValid": "The code works for {{minutes}} minutes.",
   "vWrong": "Wrong code. {{n}} tries left.",
-  "yourLink": "Your link: {{host}}"
+  "yourLink": "Your link: {{host}}",
+  "obPhoneTitle": "Add your phone number",
+  "obPhoneLead": "You're signed in with {{way}}. Now verify a phone number, so customers can pay your shop online. The code costs you nothing.",
+  "obPhoneByEmail": "email",
+  "obPhoneTaken": "This number already has a Lytro account.",
+  "obPhoneOther": "Use another number",
+  "obPhoneSignIn": "Sign in with this number"
 }

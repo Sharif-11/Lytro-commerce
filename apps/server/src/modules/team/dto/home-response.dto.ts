@@ -53,6 +53,7 @@ export const homeViewSchema = z.object({
       firstProduct: z.boolean(),
       logo: z.boolean(),
       linkShared: z.boolean(),
+      wallet: z.boolean(),
       apiKey: z.boolean(),
     })
     .nullable(),

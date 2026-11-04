@@ -9,6 +9,118 @@ import { BOGURA, mockOnboarding, STARTER, TWELVE_MONTHS, typeCode } from './supp
 
 const PHONE = '+8801711234567';
 
+test('asks an owner verified by Google for a phone before Create shop, keeping what they brought', async ({
+  page,
+}) => {
+  const log = await mockOnboarding(page, { language: 'en', signedIn: true, noPhone: 'google' });
+  await page.addInitScript(() => {
+    sessionStorage.setItem(
+      'lytro.sign-up-intent',
+      JSON.stringify({ shop: 'megh', planId: null, termId: null }),
+    );
+  });
+  // Every way in leads here while there's no phone, with no skip.
+  await page.goto('/shops');
+  await expect(page).toHaveURL('/verify-phone');
+  await page.goto('/create-shop');
+  await expect(page).toHaveURL('/verify-phone');
+  await expect(page.getByRole('heading', { name: 'Add your phone number' })).toBeVisible();
+  await expect(page.getByText("You're signed in with Google.", { exact: false })).toBeVisible();
+  await expect(page.getByText('The code costs you nothing.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Your link: megh.lytro.app')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Back to sign-in' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /skip/i })).toHaveCount(0);
+
+  await page.getByLabel('Phone number').fill('12');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByText('Enter a valid Bangladeshi mobile number')).toBeVisible();
+  await page.getByLabel('Phone number').fill('1711234567');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByText('+880 1711 234 567', { exact: false })).toBeVisible();
+  expect(log.sent('POST', '/me/identities/code')).toEqual({
+    kind: 'phone',
+    value: PHONE,
+  });
+
+  await typeCode(page, '000000');
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page.getByText('Wrong code. 2 tries left.')).toBeVisible();
+  for (const [index, digit] of ['1', '2', '3', '4', '5', '6'].entries()) {
+    await page.getByRole('textbox', { name: new RegExp(`${String(index + 1)}/6$`) }).fill(digit);
+  }
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page).toHaveURL('/create-shop');
+  await expect(page.getByLabel('Shop link')).toHaveValue('megh');
+  expect(log.calls.filter((call) => call.path === '/me/identities/verify').at(-1)?.body).toEqual({
+    kind: 'phone',
+    value: PHONE,
+    code: '123456',
+  });
+});
+
+test('names the way they signed up, and the step is accessible', async ({ page }) => {
+  await mockOnboarding(page, { language: 'en', signedIn: true, noPhone: 'email' });
+  await page.goto('/verify-phone');
+  await expect(page.getByText("You're signed in with email.", { exact: false })).toBeVisible();
+  const result = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(result.violations.map((each) => each.id)).toEqual([]);
+});
+
+test('a number on another account is refused after its code, and signs in with that code, no second text', async ({
+  page,
+}) => {
+  const log = await mockOnboarding(page, { language: 'en', signedIn: true, noPhone: 'facebook' });
+  await page.goto('/verify-phone');
+  await expect(page.getByText("You're signed in with Facebook.", { exact: false })).toBeVisible();
+  await page.getByLabel('Phone number').fill('1711234567');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await typeCode(page, '409409');
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page.getByText('This number already has a Lytro account.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Back to sign-in' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Sign in with this number' }).click();
+  await expect(page).toHaveURL('/create-shop');
+  expect(log.sent('POST', '/auth/phone/verify')).toEqual({ phone: PHONE, code: '409409' });
+  expect(log.calls.filter((call) => call.path === '/me/identities/code')).toHaveLength(1);
+  expect(log.calls.filter((call) => call.path === '/auth/phone/code')).toHaveLength(0);
+});
+
+test('Use another number starts the step again, and an account with a phone never sees it', async ({
+  page,
+}) => {
+  await mockOnboarding(page, { language: 'en', signedIn: true, noPhone: 'google' });
+  await page.goto('/verify-phone');
+  await page.getByLabel('Phone number').fill('1711234567');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Use another number' }).click();
+  await expect(page.getByLabel('Phone number')).toHaveValue('');
+});
+
+test('the phone step is skipped for an account that has one', async ({ page }) => {
+  await mockOnboarding(page, { language: 'en', signedIn: true });
+  await page.goto('/verify-phone');
+  await expect(page).toHaveURL('/create-shop');
+});
+
+test('a Facebook account that gave a phone is not told Facebook is its only way back in', async ({
+  page,
+}) => {
+  await mockOnboarding(page, { language: 'en', signedIn: true, noPhone: 'facebook' });
+  await page.addInitScript(() => {
+    sessionStorage.setItem('lytro.recovery-note', 'facebook-only');
+  });
+  await page.goto('/verify-phone');
+  await page.getByLabel('Phone number').fill('1711234567');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await typeCode(page, '123456');
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page).toHaveURL('/create-shop');
+  expect(await page.evaluate(() => sessionStorage.getItem('lytro.recovery-note'))).toBeNull();
+});
+
 test('walks a new owner from the website to Home: code, shop, checkout, password, set-up', async ({
   page,
 }) => {

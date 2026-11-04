@@ -16,6 +16,8 @@ export interface Journey {
   signedIn?: boolean;
   /** The shop exists already. */
   hasShop?: boolean;
+  /** AUTH-28 (amended 2026-10-31): signed up by Google, Facebook or email, with no phone yet. */
+  noPhone?: 'google' | 'facebook' | 'email';
   /** LIF-21: an earlier shop of this account was deleted. */
   hasDeletedShop?: boolean;
   /** /me's shops once signed in with a shop; the prototype's own one by default. */
@@ -91,7 +93,7 @@ function locations(): unknown {
 }
 
 /** /me before the shop exists: signed in, no shop, and whether an earlier one was deleted. */
-function meWithoutShop(journey: Journey): unknown {
+function meWithoutShop(journey: Journey, needsPhone = false): unknown {
   return {
     subscriber: { id: 'sub-1' },
     isOwner: true,
@@ -100,6 +102,7 @@ function meWithoutShop(journey: Journey): unknown {
     tenant: null,
     shops: [],
     hasDeletedShop: journey.hasDeletedShop ?? false,
+    needsPhone,
   };
 }
 
@@ -111,6 +114,7 @@ export async function mockOnboarding(page: Page, journey: Journey = {}): Promise
   const language = journey.language ?? 'bn';
   const shop = shopState({ language, state: 'trial', periodEndDays: 30 });
   let signedIn = journey.signedIn ?? false;
+  let hasPhone = !journey.noPhone;
   let hasShop = journey.hasShop ?? false;
   const log: JourneyLog = {
     calls: [],
@@ -127,6 +131,8 @@ export async function mockOnboarding(page: Page, journey: Journey = {}): Promise
 
   const signIn = (): unknown => {
     signedIn = true;
+    // A sign-in by code is by phone, so that account has one, whichever account it was before.
+    hasPhone = true;
     return { next: hasShop ? 'dashboard' : 'create-shop', tenantId: null, csrfToken: 'csrf-e2e' };
   };
   const issued = { expiresInSeconds: 300, resendAfterSeconds: 60 };
@@ -149,12 +155,31 @@ export async function mockOnboarding(page: Page, journey: Journey = {}): Promise
 
     if (path === '/me') {
       if (!signedIn) return no(401, 'unauthenticated', 'Sign in to continue.');
-      if (!hasShop) return ok(meWithoutShop(journey));
+      if (!hasShop) return ok(meWithoutShop(journey, !hasPhone));
       const answer = shopAnswer(path, url, shop) as Record<string, unknown>;
       return ok(journey.shops ? { ...answer, shops: journey.shops } : answer);
     }
     if (path === '/auth/providers')
       return ok({ providers: journey.providers ?? ['google', 'facebook'] });
+    if (path === '/me/identities' && method === 'GET') {
+      return ok({
+        identities: [{ id: 'i-1', kind: journey.noPhone ?? 'phone', value: 'rumana@example.com' }],
+      });
+    }
+    if (path === '/me/identities/code') return ok(issued);
+    if (path === '/me/identities/verify') {
+      const { code } = body as { code: string };
+      if (code === '000000') {
+        return no(
+          400,
+          'validation_error',
+          language === 'bn' ? 'ভুল কোড। আর 2 বার চেষ্টা করা যাবে।' : 'Wrong code. 2 tries left.',
+        );
+      }
+      if (code === '409409') return no(409, 'conflict', 'This cannot be added.');
+      hasPhone = true;
+      return ok({ attached: 'phone' });
+    }
     if (path === '/auth/phone/code' || path === '/auth/forgot-password') return ok(issued);
     if (path === '/auth/phone/verify' || path === '/auth/forgot-password/verify') {
       if (journey.wrongCode) {
@@ -183,6 +208,11 @@ export async function mockOnboarding(page: Page, journey: Journey = {}): Promise
       );
     }
     if (path === '/shops' && method === 'POST') {
+      if (!hasPhone) {
+        return no(403, 'forbidden', 'Verify your phone number to open your shop.', {
+          next: 'verify-phone',
+        });
+      }
       if (journey.refuseShop) {
         return no(429, 'rate_limited', 'A shop was already opened from here recently.');
       }

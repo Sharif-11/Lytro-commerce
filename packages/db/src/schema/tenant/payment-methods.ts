@@ -108,10 +108,10 @@ export const paymentMethodWays = tenant.table(
 export type SelectWalletAccount = typeof walletAccounts.$inferSelect;
 export type InsertWalletAccount = typeof walletAccounts.$inferInsert;
 
-// WAL-05, WAL-15: a method the shop switched off -- shoppers see none of its accounts and it is not offered. A row
-// means off, so every method is on until switched off.
-export const paymentMethodsOff = tenant.table(
-  'payment_methods_off',
+// WAL-05 (amended 2026-11-04), WAL-15: a method the owner turned on. A row means on, so every method starts off, and
+// without one shoppers see none of its accounts and it is not offered.
+export const paymentMethodsOn = tenant.table(
+  'payment_methods_on',
   {
     tenantId: uuid('tenant_id').notNull(),
     method: paymentMethod('method').notNull(),

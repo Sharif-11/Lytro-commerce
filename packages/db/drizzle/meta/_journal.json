@@ -722,6 +722,13 @@
       "when": 1793766719909,
       "tag": "0102_erase_payment_sender",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1793939519909,
+      "tag": "0104_payment_methods_start_off",
+      "breakpoints": true
     }
   ]
 }

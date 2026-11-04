@@ -108,11 +108,11 @@ describeIfDatabase('Google and Facebook sign-in (AUTH-24, AUTH-27)', () => {
     expect((await get('/auth/oauth/twitter/start')).status).toBe(404);
   });
 
-  it('signs a new Google account in with no password, and sends it to create-shop', async () => {
+  it('signs a new Google account in with no password, and asks it for a phone', async () => {
     const state = await startFlow('google');
     const response = await callback('google', 'ok-alice', state);
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ next: 'create-shop', recovery: null });
+    expect(response.body).toMatchObject({ next: 'verify-phone', recovery: null });
     expect(response.headers['set-cookie']).toBeDefined();
 
     const account = await admin.query<{ password_hash: string | null }>(
@@ -151,7 +151,7 @@ describeIfDatabase('Google and Facebook sign-in (AUTH-24, AUTH-27)', () => {
     const state = await startFlow('facebook');
     const response = await callback('facebook', 'noemail-dave', state);
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ next: 'create-shop', recovery: 'facebook-only' });
+    expect(response.body).toMatchObject({ next: 'verify-phone', recovery: 'facebook-only' });
   });
 
   it('does not repeat the Facebook-only notice on a later sign-in', async () => {
@@ -170,24 +170,51 @@ describeIfDatabase('Google and Facebook sign-in (AUTH-24, AUTH-27)', () => {
     );
   });
 
-  // Regression: a Google-only account has neither a phone nor an email identity (only a google-kind row),
-  // and create-shop used to require one of those specifically, failing with a misleading "sign in to
-  // continue" instead of creating the shop.
-  it('creates a shop for an account that signed up through Google only, with no phone or email', async () => {
+  // AUTH-28 (amended 2026-10-31), TVR-01: a phone for every owner, so the shop can take payments.
+  it('asks an account made through Google for a phone until it has one, then opens its shop', async () => {
     const state = await startFlow('google');
     const signed = await callback('google', 'ok-shopowner', state);
     const cookie = cookieFrom(signed);
     const csrfToken = (signed.body as { csrfToken: string }).csrfToken;
+    const headers = { host: 'localhost', cookie, 'x-csrf-token': csrfToken };
+    const shopInput = { ownerName: 'Shop Owner', shopName: 'OAuth Shop' };
+    const needsPhone = async (): Promise<unknown> =>
+      ((await getJson(port, '/me', headers)).body as { needsPhone: unknown }).needsPhone;
 
-    const response = await postJson(
+    expect(await needsPhone()).toBe(true);
+    const refused = await postJson(port, '/shops', shopInput, headers);
+    expect(refused.status).toBe(403);
+    expect(refused.body).toMatchObject({ error: { details: { next: 'verify-phone' } } });
+
+    // Leaving and coming back still asks.
+    const again = await callback('google', 'ok-shopowner', await startFlow('google'));
+    expect(again.body).toMatchObject({ next: 'verify-phone' });
+
+    const phone = sms.freshPhone();
+    await postJson(port, '/me/identities/code', { kind: 'phone', value: phone }, headers);
+    const added = await postJson(
       port,
-      '/shops',
-      { ownerName: 'Shop Owner', shopName: 'OAuth Shop' },
-      { cookie, 'x-csrf-token': csrfToken },
+      '/me/identities/verify',
+      { kind: 'phone', value: phone, code: sms.codeFor(phone) },
+      headers,
     );
+    expect(added.status).toBe(200);
+    expect(await needsPhone()).toBe(false);
 
+    const nextTime = await callback('google', 'ok-shopowner', await startFlow('google'));
+    expect(nextTime.body).toMatchObject({ next: 'create-shop' });
+
+    const response = await postJson(port, '/shops', shopInput, headers);
     expect(response.status).toBe(201);
     expect(response.body).toMatchObject({ next: 'set-password' });
+    // The owner's phone is what payments and the trial limit go by.
+    const owner = await admin.query<{ value: string }>(
+      `SELECT identity.value FROM control.tenants shop
+       JOIN control.subscriber_identities identity ON identity.id = shop.owner_identity_id
+       WHERE shop.slug = 'oauth-shop'`,
+    );
+    expect(owner.rows[0]?.value).toBe(phone);
+    expect(await needsPhone()).toBe(false);
   });
 });
 

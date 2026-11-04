@@ -7,7 +7,7 @@ import {
 } from '@lytronix/validators';
 import {
   gatewayCredentialUses,
-  paymentMethodsOff,
+  paymentMethodsOn,
   paymentMethodWays,
   subscriberIdentities,
   tenants,
@@ -47,12 +47,12 @@ export class PaymentMethodRepository {
       .orderBy(asc(walletAccounts.method), asc(walletAccounts.position));
   }
 
-  async listOff(tx: Transaction, tenantId: string): Promise<PaymentMethod[]> {
+  async listOn(tx: Transaction, tenantId: string): Promise<PaymentMethod[]> {
     await this.transactions.setTenantContext(tx, tenantId);
     const rows = await tx
-      .select({ method: paymentMethodsOff.method })
-      .from(paymentMethodsOff)
-      .where(eq(paymentMethodsOff.tenantId, tenantId));
+      .select({ method: paymentMethodsOn.method })
+      .from(paymentMethodsOn)
+      .where(eq(paymentMethodsOn.tenantId, tenantId));
     return rows.map((row) => row.method);
   }
 
@@ -119,19 +119,19 @@ export class PaymentMethodRepository {
   }
 
   /** WAL-05: a method switched off, or on again. */
-  async setOff(
+  async setOn(
     tx: Transaction,
     tenantId: string,
     method: PaymentMethod,
-    off: boolean,
+    on: boolean,
   ): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
-    if (off) {
-      await tx.insert(paymentMethodsOff).values({ tenantId, method }).onConflictDoNothing();
+    if (on) {
+      await tx.insert(paymentMethodsOn).values({ tenantId, method }).onConflictDoNothing();
     } else {
       await tx
-        .delete(paymentMethodsOff)
-        .where(and(eq(paymentMethodsOff.tenantId, tenantId), eq(paymentMethodsOff.method, method)));
+        .delete(paymentMethodsOn)
+        .where(and(eq(paymentMethodsOn.tenantId, tenantId), eq(paymentMethodsOn.method, method)));
     }
   }
 
@@ -242,7 +242,7 @@ export class PaymentMethodRepository {
   async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
     await tx.delete(walletAccounts).where(eq(walletAccounts.tenantId, tenantId));
-    await tx.delete(paymentMethodsOff).where(eq(paymentMethodsOff.tenantId, tenantId));
+    await tx.delete(paymentMethodsOn).where(eq(paymentMethodsOn.tenantId, tenantId));
     await tx.delete(paymentMethodWays).where(eq(paymentMethodWays.tenantId, tenantId));
     // SEC-11 (Slice 5.7): the log of its credentials' uses goes with the shop.
     await tx.delete(gatewayCredentialUses).where(eq(gatewayCredentialUses.tenantId, tenantId));

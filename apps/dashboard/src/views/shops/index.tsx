@@ -13,7 +13,7 @@ import { appConfig } from '@/lib/app-config';
 /**
  * TEN-31, TEN-15: the landing after any sign-in. `/me` lists the shops the person may open: one opens at once,
  * several show the picker (the prototype's `shops`, with each shop's address and the person's role there, and no "new
- * shop"), none goes to create-shop (AUTH-12). "Opening your shop" shows while `/me` answers.
+ * shop"), none goes to create-shop (AUTH-12), by the phone step for an account without one (AUTH-28). "Opening your shop" shows while `/me` answers.
  */
 export function Shops(): React.JSX.Element {
   const { t } = useTranslation('onboarding');
@@ -26,8 +26,10 @@ export function Shops(): React.JSX.Element {
   useEffect(() => {
     if (!shops) return;
     if (only) void navigate({ to: '/$shop', params: { shop: only.slug }, replace: true });
-    else if (shops.length === 0) void navigate({ to: '/create-shop', replace: true });
-  }, [shops, only, navigate]);
+    else if (shops.length === 0) {
+      void navigate({ to: me.data?.needsPhone ? '/verify-phone' : '/create-shop', replace: true });
+    }
+  }, [shops, only, navigate, me.data?.needsPhone]);
 
   if (shops && shops.length > 1) {
     return (

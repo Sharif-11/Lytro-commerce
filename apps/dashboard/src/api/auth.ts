@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   createShopSchema,
@@ -10,6 +10,7 @@ import {
   verifyForgotPasswordSchema,
   verifySigninCodeSchema,
 } from '@lytronix/validators';
+import { ME_QUERY_KEY } from '@/api/me';
 import { attachReturn } from '@/session/attach-return';
 import { tenantSession } from '@/session/tenant-session';
 import { navigateForNextStep } from '@/session/next-step';
@@ -98,6 +99,7 @@ export function useRequestSigninCode() {
 
 export function useVerifyCode() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ phone, code }: { phone: string; code: string }) =>
       tenantSession.client.post<SignedInBody>(
@@ -106,6 +108,8 @@ export function useVerifyCode() {
       ),
     onSuccess: (data) => {
       tenantSession.setSignedIn(data.csrfToken);
+      // "Sign in with this number" changes account: the one before must not answer for this one.
+      queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
       navigateForNextStep(navigate, data.next);
     },
   });

@@ -77,5 +77,6 @@
   "secOrders": "অর্ডার",
   "secCustomers": "কাস্টমার",
   "secSales": "সেলস",
-  "sTax": "ট্যাক্স"
+  "sTax": "ট্যাক্স",
+  "sMethods": "পেমেন্ট মেথড"
 }

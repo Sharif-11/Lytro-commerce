@@ -85,7 +85,7 @@ describeIfDatabase('sign-in by emailed code (AUTH-08, AUTH-12)', () => {
     await post('/auth/email/code', { email });
     const response = await verify(email, mail.codeFor(email));
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ next: 'create-shop', tenantId: null });
+    expect(response.body).toMatchObject({ next: 'verify-phone', tenantId: null });
     expect(cookieFrom(response)).toContain('lytronix_session=');
   });
 
@@ -135,37 +135,45 @@ describeIfDatabase('sign-in by emailed code (AUTH-08, AUTH-12)', () => {
   });
 });
 
-describeIfDatabase('an owner enrolled by email only (AUTH-10, AUTH-27)', () => {
-  it('creates a shop with no phone, stores the owner email, and sends the shop-ready notice by email', async () => {
+describeIfDatabase('an owner who signed up by email (AUTH-10, AUTH-28, TVR-01)', () => {
+  it('gives a phone before the shop, then opens it with both, the shop-ready notice by text', async () => {
     const email = freshEmail();
     await post('/auth/email/code', { email });
     const signedIn = await verify(email, mail.codeFor(email));
     const session = signedIn.body as { csrfToken: string };
     const cookie = cookieFrom(signedIn);
+    const headers = { host: 'localhost', cookie, 'x-csrf-token': session.csrfToken };
+    const shopInput = { ownerName: 'Email Owner', shopName: 'Email Then Phone Shop' };
 
-    const shop = await post(
-      '/shops',
-      { ownerName: 'Email Owner', shopName: 'Email Only Shop' },
-      { cookie, 'x-csrf-token': session.csrfToken },
+    const refused = await post('/shops', shopInput, headers);
+    expect(refused.status).toBe(403);
+    expect(refused.body).toMatchObject({ error: { details: { next: 'verify-phone' } } });
+
+    const phone = sms.freshPhone();
+    expect(
+      (await post('/me/identities/code', { kind: 'phone', value: phone }, headers)).status,
+    ).toBe(200);
+    const added = await post(
+      '/me/identities/verify',
+      { kind: 'phone', value: phone, code: sms.codeFor(phone) },
+      headers,
     );
+    expect(added.status).toBe(200);
+
+    const shop = await post('/shops', shopInput, headers);
     expect(shop.status).toBe(201);
-    expect(shop.body).toMatchObject({ address: 'email-only-shop', next: 'set-password' });
+    expect(shop.body).toMatchObject({ address: 'email-then-phone-shop', next: 'set-password' });
 
     const owner = await admin.query<{ phone: string | null; email: string | null }>(
       'SELECT phone, email FROM tenant.users WHERE is_owner AND email = $1',
       [email],
     );
-    expect(owner.rows[0]).toEqual({ phone: null, email });
+    expect(owner.rows[0]).toEqual({ phone, email });
 
-    const notice = mail.sent.find((m) => m.to === email && m.subject === 'Your shop is ready');
-    expect(notice?.body).toContain('http://email-only-shop.localhost');
-
-    // D28: the notice goes through mail's own outbox now, not a direct fire-and-forget send.
-    const row = await admin.query<{ status: string }>(
-      "SELECT status FROM control.mail_outbox WHERE to_email = $1 AND kind = 'shop_ready'",
-      [email],
-    );
-    expect(row.rows[0]).toMatchObject({ status: 'sent' });
+    expect(
+      sms.sent.some((m) => m.toPhone === phone && m.body.includes('email-then-phone-shop')),
+    ).toBe(true);
+    expect(mail.sent.some((m) => m.to === email && m.subject === 'Your shop is ready')).toBe(false);
   });
 });
 

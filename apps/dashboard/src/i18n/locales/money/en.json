@@ -384,5 +384,7 @@
   "uPerDay": "resets each day",
   "uFullOrders": "Your plan handles {{limit}} orders this period, and that is used up. Upgrade, or wait for the next period.",
   "uFullOrdersDay": "Your plan handles {{limit}} orders a day, and today's are used up. More can be sent tomorrow.",
-  "uFullOrdersTrial": "The trial handles {{limit}} orders, and they are used up. Choose a plan to send more."
+  "uFullOrdersTrial": "The trial handles {{limit}} orders, and they are used up. Choose a plan to send more.",
+  "heldLabel": "On hold",
+  "heldNote": "Fees for open bKash checkouts, released by themselves if the payment doesn't happen. You can spend the other {{amount}}."
 }

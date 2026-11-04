@@ -9,8 +9,8 @@ export interface BeingChecked {
 
 /**
  * SUP-01: the set-up checklist's items the server can tell. "Shop created" and the delivery charges are done from the
- * start (the home-area defaults, DLV-01), shown with their amounts; the items that wait for later phases (a wallet
- * number, a courier, SMS events, a listener phone) are the dashboard's to grey out.
+ * start (the home-area defaults, DLV-01), shown with their amounts; the items that wait for later work (a courier,
+ * SMS events, a listener phone) are the dashboard's to grey out.
  */
 export interface SetupChecklist {
   /** The two zones' charges, and the home area they are named after ("Inside Dhaka city"). */
@@ -18,6 +18,8 @@ export interface SetupChecklist {
   firstProduct: boolean;
   logo: boolean;
   linkShared: boolean;
+  /** A payment method is on with an active account. */
+  wallet: boolean;
   apiKey: boolean;
 }
 
