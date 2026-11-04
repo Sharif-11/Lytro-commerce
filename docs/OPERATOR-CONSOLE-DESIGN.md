@@ -1,10 +1,16 @@
-# Operator console: design (v2)
+# Operator console: design (v3)
 
 The console at `admin.lytro.app` (`apps/operator`, D3-12), redesigned from scratch on 2026-10-21. Version 1
 (2026-10-19, inverted dark chrome) is retired; nothing from it or from the old `apps/admin` console was
 carried over. The interactive sketch is `docs/brand/lytro-operator.html`: every screen the backend serves
-today, from Phase 0 sign-in to Phase 3 Slice 9, on phone, tablet and desktop, in English and Bangla, with
+today, from Phase 0 sign-in to Phase 5's payments, on phone, tablet and desktop, in English and Bangla, with
 the later work drawn under its own group and marked "soon". The spec below is what the sketch shows.
+
+Version 3 (2026-11-04, Slice 5.8 part 5) adds what Phases 3 to 5 built after v2 was drawn: page reports, the
+queue's review facts, a shop's payment page, cap, phones and credential log, Lytro's own phones with their
+receipts and unreadable messages, every platform setting, and the sign-in limit. Phase 6's screens (courier
+areas, retiring a courier) are added once its routes exist. `apps/operator` is rebuilt to this document, in the
+order `PHASE-5-PLAN.md` Slice 5.8 records.
 
 **Who and where.** One or two people, mostly at a laptop, several times a day: matching wallet payments
 against the bKash and Nagad statements, answering sellers, and occasionally changing a price or a limit.
@@ -18,7 +24,7 @@ the seller and takes its reason in the same panel.
 **Rules**
 
 1. **The queue is the first thing after sign-in.** Today opens on what needs a person, with the queue's
-   count on the navigation item and on the phone tab.
+   count on the navigation item and on the phone tab, and the open page reports' count on theirs.
 2. **Evidence before action.** Amount, sender, TrxID, quote and age sit together on one row; Approve and
    Reject are the only buttons on it.
 3. **Consequence, reason, one button.** Suspend, restore, adjust, assign, override, reject, retire, delete:
@@ -50,10 +56,10 @@ in the top bar; Bangla copy uses the commerce vernacular the dashboard uses.
 ## 1. Shell
 
 **Desktop (1024 px and up).** A 248 px sidebar: the ink head with the eyebrow and wordmark, then the
-destinations in groups by how often they are opened: *Daily* (Today, Payment queue with its count, Shops),
-*Pricing* (Plans and prices, Billing terms, Rates), *Platform* (Settings, Platform wallets), *Catalogue*
-(Shop types, Attribute library, Option sets), *Later* (Reports, Audit log, Support inbox, Notices,
-Verification, Manual payments, Page reports, each greyed with "soon"), and the foot with the operator's
+destinations in groups by how often they are opened: *Daily* (Today, Payment queue with its count, Page reports with
+its count, Shops), *Pricing* (Plans and prices, Billing terms, Rates, Add-ons), *Platform* (Settings, Platform
+wallets, Lytro's phones), *Catalogue* (Shop types, Attribute library, Option sets), *Later* (Reports, Audit log,
+Support inbox, Notices, Verification, Manual payments, each greyed with "soon"), and the foot with the operator's
 email, Account and Sign out. The top bar holds the shop search with the `/` hint, the environment chip and
 the language toggle. Content is at most 1120 px wide.
 
@@ -77,6 +83,11 @@ sign-in, enrolment: the QR drawn in the browser from the otpauth URI, the key fo
 confirm, then the ten backup codes shown once with Copy all and Download. Three progress bars show where the
 person is. No "forgot password": the ADM-18 sentence sits under the form.
 
+**The limit (ADM-01, amended with the build).** The sellers' rule from AUTH-14: five failures in 15 minutes on
+one account lock it, wrong passwords and wrong codes counted together, and during the lock a right password or
+code is refused too. A wrong password says only that the email or password isn't right. Attempts left are shown
+only at the code step, once the password has been proven. A locked account sees the wait and a disabled button.
+
 ## 3. Today (`/`)
 
 **Job:** what needs a person, then what changed.
@@ -84,6 +95,9 @@ person is. No "forgot password": the ADM-18 sentence sits under the form.
 - Four figures from the queue itself: needs review (BIL-06, the amount differs, with the first case in
   words), pending (with the wallets involved), taka waiting, oldest waiting (with the shop). The first
   figure is flagged in marigold when it is above zero.
+- *Also waiting*: open page reports with the newest reason, Lytro's phones online with the one that is not,
+  unclaimed receipts, and today's unreadable messages. The first two are flagged in marigold when something is
+  wrong. Each opens its screen.
 - *Recent changes*: the last rate and setting changes from the rate histories and the settings' updated
   stamps, and the last suspension, each a row that opens its screen.
 - *Platform figures*: a dashed card for ADM-09's counts and revenue, not built.
@@ -102,11 +116,32 @@ person is. No "forgot password": the ADM-18 sentence sits under the form.
 - **Approve** (panel): the consequence in one sentence, "*Sadia Collection* goes on *Starter* for 1 month,
   active until *19 Nov 2026*. The invoice is issued and the owner is told by SMS. Approving twice has no
   second effect." (ADM-06); for a top-up, "*৳500* is credited to the balance, once." A needs-review payment
-  adds the warning that what was actually sent is credited and the difference recorded. The button is
-  "Approve ৳448". The toast names the shop and the plan.
+  says it accepts what arrived against the quote and activates anyway, with the amount that arrived in a field,
+  to change only if the statement says otherwise (ADM-06, BIL-06). The button is "Approve ৳448". The toast names
+  the shop and the plan.
+- **Why it waits** (BIL-06): a needs-review payment's panel opens on the reason in one sentence (the amount, the
+  sender, the wallet, an old receipt, a used TrxID, a closed request), then what was quoted, what the seller says
+  they sent and what a receipt says arrived.
+- **Put it on the balance** (BIL-06): for a plan, upgrade or add-on, from the payment panel. Nothing is activated,
+  the money goes on the balance once, the add-ons on it are cancelled and the owner is told. The amount is needed
+  when no receipt says. A top-up has no such action.
 - **Reject** (panel): nothing is credited, the seller reads the note on the plan page and can submit again;
   the note field; "Reject with note".
-- Empty: "Nothing waiting. New wallet payments appear here the moment a seller submits a TrxID."
+- Empty: "Nothing waiting. New wallet payments appear here when a seller submits a TrxID. Ones a Lytro phone
+  matches clear by themselves."
+
+## 4a. Page reports (`/page-reports`)
+
+**Job:** decide about a payment page a shopper says looks wrong (ADM-12, TVR-02).
+
+- Chips: Open with its count, Dismissed, Acted on. Open is what the page shows first.
+- One row per report: shop and address, the reason in words with the shopper's note under it, how long ago, the
+  status, and three buttons: Open the page (first, because looking comes before deciding), Suspend the page,
+  Dismiss. The row opens a panel with the same facts and the address it came from.
+- **Suspend the page** (panel, TVR-03): within a minute new payments are refused and open pages show
+  "unavailable"; the rest of the shop stays open; this shop's open reports are marked acted on. Reason required.
+- **Dismiss** (dialog): nothing is done to the shop, and it goes on the audit log.
+- Empty: "No open reports. A report appears here the moment a shopper sends one."
 
 ## 5. Shops (`/shops`, `/shops/:slug`)
 
@@ -119,6 +154,15 @@ person is. No "forgot password": the ADM-18 sentence sits under the form.
   override. A suspended shop shows the red banner with the date, the operator, the reason and what it
   means. Four facts: plan and version, period end with the day count, suspension date or "Not suspended",
   override count.
+- **Payments** card, first after the facts: the payment page's state with Suspend or Restore and, when
+  suspended, its date and reason (TVR-03); the new-shop cap, on or off and whether that is the shop's kind or set
+  for this shop, with Change (TVR-04: as its kind says, on, or off); and the credential log with its last use,
+  opening `/shops/:slug/credentials` (SEC-11: when, wallet, action, payment, result, never a key).
+- **Listener phones** card (LSN-20): "1 of 1" against the plan's limit, then each phone's name, model, app version,
+  last seen, today's count, state and flags, with Revoke (LSN-19) and Block (LSN-21). Block names the installation
+  and takes a reason: it pairs with no shop again and every phone on it is revoked.
+- **Add-ons** and **Effective limits** cards (PLN-13): what is running, how it was paid and whether it renews; each
+  limit as snapshot + override + add-ons.
 - **Limit overrides** card: each override with its value, the plan's own value beside it, the reason, who
   and when, and Remove; the empty sentence otherwise (PLN-11).
 - **Later** on the same page, as dashed cards: *Shop detail* (ADM-03: balance and frozen flag, usage
@@ -150,6 +194,15 @@ disabled with the reference count. The button is "Save as v4", or "Create plan".
 **Version history** (panel): each version with its date and what changed, the current one marked, and how
 many shops sit on each. **Delete refused** (dialog): the count that blocks it and PLN-08.
 
+## 6a. Add-ons (`/addons`)
+
+The catalogue a shop buys from (PLN-13): a table of item, kind (limit, pack, feature), what it raises, the unit,
+the price per month, how many are running and whether it is for sale, with Edit. New and Edit open one panel: names
+in both languages, kind, the limit it raises, unit size, price, the most a shop may buy at once, and For sale, after
+the sentence that a price change applies from now on and a running add-on keeps its price to its end. Retire is a
+dialog: no shop can buy it from now, the running ones continue and do not renew. A paid add-on waits in the queue
+like a plan payment.
+
 ## 7. Billing terms (`/billing-terms`)
 
 A table: the term with its Bangla label, months, the visible switch that saves at once, the pre-fill
@@ -164,14 +217,18 @@ that states how many invoices keep the term.
 One row per rate: its name, its unit in words, the effective-from date, the value large, Change and History.
 Change edits inline in the row with Save and Cancel (`PATCH /operator/rates/:key`, two decimals, RAT-08);
 saving shows the toast "Applies from the next charge" and opens the rate-change notice offer under the row,
-marked "soon" until NTC-13. History expands under the row: old → new, date, who, notice or none.
+marked "soon" until NTC-13. History expands under the row: old → new, date, who, notice or none. The nine rates
+include the listener's and the gateway's verification fees (RAT-15, RAT-16).
 
 ## 9. Settings (`/settings`)
 
-Two groups from `/operator/settings`: *Trial and top-up* (trial length, top-up minimum and maximum,
-BAL-04) and *Lifecycle after a paid period ends* (grace, read-only, locked, archived, LIF-26). Each row
-shows the server's description, the last change and who made it, the value large with its unit, and
-Change, which edits inline with a reason field (ADM-11). The side card "What these numbers do" draws the
+All 28 values from `/operator/settings`, in nine groups with a chip row to jump between them: *Trial and top-up*;
+*Lifecycle after a paid period ends* (LIF-26); *Orders and stock*; *Requests and limits*; *Online payments* (the
+new-shop cap, TVR-04); *Listener phones* (offline window, oldest app, the sender list); *Media*; *Catalogue in the
+shopper's browser* (CCH-03); *Terms and privacy* (LEG-01). Each row shows the server's description, the last change
+and who made it, the value large with its unit, and Change, which edits inline with a reason field (ADM-11). The
+sender list edits one per line, the order limit is a choice of two, and a terms or privacy version warns that it
+changes the same day new text is published. The side card "What these numbers do" draws the
 timeline the current values produce, from the period end through grace, read-only, locked and archived to
 the deletion day, so a change is checked against its effect before it is saved.
 
@@ -181,6 +238,22 @@ A table: provider with its colour dot, number in monospace, label, the Shown swi
 and Remove, with the sentence that sellers see these rows exactly as listed. The panel takes provider,
 number, label, order and Shown. Remove is a dialog: sellers stop seeing it at once; matched payments keep it
 on their invoices. A dashed card holds the place for gateway credentials (ADM-10).
+
+## 10a. Lytro's phones (`/phones`, `/phones/receipts`, `/phones/unread`)
+
+**Job:** keep the phones that read Lytro's own wallets working, and see what they could not place (PAY-21). Three
+tabs under one navigation item, with Pair a phone always at the top.
+
+- **Phones:** a banner when one is offline, saying its wallet's payments wait in the queue until it reports again.
+  One row per phone: name and model, app version, last seen, state, today's count, Revoke and Block. Empty says
+  every seller's wallet payment waits in the queue until one is paired.
+- **Pair a phone** (panel): the two steps, the eight-character code large, that it works once, when it runs out
+  (10 minutes, LSN-01) and New code.
+- **Receipts:** newest first, a search by the start of a TrxID, a sender number or an amount, chips by status with
+  counts (Unclaimed, With you, Used, Duplicate, Ignored). A row shows amount, TrxID, sender, phone, age and status
+  with the review reason. Its panel shows the message's text until it is removed (LSN-17) and opens the payment.
+- **Unreadable messages** (VER-06): the masked wording with numbers, people and notes removed, the day and the
+  count, a chip where a day reached the 20 that told the operator, and 7, 30 and 90 days.
 
 ## 11. Catalogue
 
@@ -213,7 +286,7 @@ the page.
 Drawn under their own sidebar group, each as a page with the "Not built yet" banner, the requirement id
 and the sentence on what it will hold, over a dashed sketch of its table or form: Reports (ADM-09), Audit
 log (ADM-08), Support inbox (SUP-04, SUP-05), Notices (NTC-01 to NTC-20), Verification queue (KYC-07,
-KYC-09), Manual payments and claims (ADM-14 to ADM-17), Page reports (ADM-12). Gateway credentials
+KYC-09), Manual payments and claims (ADM-14 to ADM-17). Gateway credentials
 (ADM-10), view-as (ADM-05), the shop detail facts (ADM-03) and the identity request (KYC-01) are dashed
 cards on the screens they belong to.
 
@@ -225,23 +298,32 @@ cards on the screens they belong to.
 | --- | --- | --- | --- |
 | Sign-in | `POST /auth/operator/signin`, `enroll`, `verify`, `backup-codes/regenerate`, `signout` | §2, §12 | break-glass recovery stays a database action (ADM-18) |
 | Shops | `GET /operator/tenants` (search, cursor), `suspend`, `restore`, `balance-adjust`, limit overrides, `plans/:id/assign` | §5 | ADM-02 filters, ADM-03 detail, ADM-05 view-as, ADM-08 actions, KYC-01 request |
-| Payments | `GET /operator/payment-queue`, `approve`, `reject` | §3, §4 | ADM-14 to ADM-17 |
+| Payments | `GET /operator/payment-queue`, `approve`, `credit`, `reject` | §3, §4 | ADM-14 to ADM-17 |
+| Page reports | `GET /operator/payment-page-reports`, `dismiss`; `tenants/:id/payment-page/suspend`, `restore`; `tenants/:id/new-shop-cap` | §4a, §5 | |
+| Phones | `tenants/:id/listener-devices`, `listener-devices/:id/revoke`, `listener-installations/block`; `lytro-listener/pairing-codes`, `devices`, `receipts`; `listener-unread` | §5, §10a | |
+| Credentials | `tenants/:id/gateway-credential-uses` | §5 | export for a dispute (SEC-11) |
+| Add-ons | `GET/POST/PATCH /operator/addons`, `retire` | §6a | |
 | Plans | `GET/POST/PATCH/DELETE /operator/plans`, `versions`, prices per term | §6 | |
 | Billing terms | `GET/POST/PATCH /operator/billing-terms`, `retire`, `DELETE` | §7 | |
 | Rates | `GET /operator/rates`, `history`, `PATCH` | §8 | NTC-13 notice offer |
 | Settings | `GET /operator/settings`, `PATCH /:key` | §9 | |
 | Wallets | `GET/POST/PATCH/DELETE /operator/platform-wallets` | §10 | ADM-10 gateways |
 | Catalogue | `GET/PATCH /operator/presets`, attributes and options, option sets | §11 | |
-| Reports, audit, inbox, notices, verification, page reports | nothing | | §13 |
+| Reports, audit, inbox, notices, verification | nothing | | §13 |
 
 ## 15. Backend additions this design needs
 
 | Need | Where | Why |
 | --- | --- | --- |
-| `shopName` and `slug` on payment-queue rows | payments | The queue rows show tenant ids only today; an operator matches by shop name. |
-| `GET /operator/tenants/:id` | tenancy | The shop page reloads by id; `findSummary` exists in the store but has no route (the contract lists it as not built). |
-| `updatedBy` on settings rows | platform settings | Settings show who changed a value; the row carries `updatedBy` already, the sketch assumes it is populated. |
-| Unused backup-code count | operator auth | The account page states "7 of 10 unused". |
+| The sign-in limit | operator auth | §2. `signin`, `enroll` and `verify` have no limit today. Amends ADM-01. |
+| `shopName`, `slug` and the wallet on payment-queue rows | payments | The queue rows show tenant ids only today; an operator matches by shop name and wallet. |
+| `GET /operator/tenants/:id` | tenancy | The shop page reloads by id; `findSummary` exists in the store but has no route. It must also say the suspension's reason, the plan's version, the payment page's state and reason, and the new-shop cap. |
+| A shop's add-ons and effective limits | billing | The shop page's two cards; no operator read exists. |
+| The operator's own email and unused backup-code count | operator auth | The sidebar foot and the account page ("7 of 10 unused"). There is no operator `me`. |
+| A name rather than a uuid for who changed something | platform settings, rates, overrides | The rows carry an operator's id; the screens show who. |
+| A reason on a setting or rate change | platform settings, rates | ADM-11 puts the reason on the audit log, and the sketch asks for it; `PATCH` takes only the value today. |
+| Today's recent changes | audit | One read, rather than a history call per rate. |
+| The installation on a phone's operator view | listener | Blocking needs `installationId`; the device view does not carry it. |
 | Price count per term | billing terms | "3 of 3 plans priced"; derivable client-side from every plan's prices meanwhile. |
 | Shops per attribute and per plan version | catalogue, plans | "Used by 412 shops", "v3 ×131"; derivable from counts the stores can add cheaply. |
 | ADM-03, ADM-08, ADM-09, ADM-14, NTC, KYC, SUP | later phases | Placeholders are drawn, nothing more. |
@@ -252,18 +334,21 @@ cards on the screens they belong to.
 | --- | --- | --- |
 | Sign-in | `/sign-in` | `views/sign-in` (credentials, enroll, backup-codes, verify steps, kept) |
 | Today | `/` | `views/today` (+ `queue-figures.tsx`, `recent-changes.tsx`) |
-| Payment queue | `/queue`, `/queue/$id` | `views/queue` (+ `queue-figures.tsx`, `payment-row.tsx`, `payment-panel.tsx`, `approve-panel.tsx`, `reject-panel.tsx`) |
-| Shops | `/shops`, `/shops/$slug` | `views/shops` (list), `views/shop` (+ `suspend-panel.tsx`, `restore-panel.tsx`, `adjust-panel.tsx`, `assign-panel.tsx`, `override-panel.tsx`, `overrides-card.tsx`) |
+| Payment queue | `/queue`, `/queue/$id` | `views/queue` (+ `queue-figures.tsx`, `payment-row.tsx`, `payment-panel.tsx`, `approve-panel.tsx`, `credit-panel.tsx`, `reject-panel.tsx`) |
+| Page reports | `/page-reports` | `views/page-reports` (+ `report-panel.tsx`, `suspend-page-panel.tsx`, `dismiss-dialog.tsx`) |
+| Shops | `/shops`, `/shops/$slug` | `views/shops` (list), `views/shop` (+ `suspend-panel.tsx`, `restore-panel.tsx`, `adjust-panel.tsx`, `assign-panel.tsx`, `override-panel.tsx`, `overrides-card.tsx`, `payments-card.tsx`, `cap-panel.tsx`, `phones-card.tsx`, `addons-card.tsx`), `/shops/$slug/credentials` |
 | Plans and prices | `/plans`, `/plans/$slug`, `/plans/$slug/versions` | `views/plans` (+ `price-matrix.tsx`, `plan-editor.tsx`, `versions-panel.tsx`) |
 | Billing terms | `/billing-terms` | `views/billing-terms` (+ `term-panel.tsx`) |
 | Rates | `/rates` | `views/rates` (+ `rate-row.tsx`) |
 | Settings | `/settings` | `views/settings` (+ `timeline-card.tsx`) |
 | Platform wallets | `/wallets` | `views/wallets` (+ `wallet-panel.tsx`) |
+| Lytro's phones | `/phones`, `/phones/receipts`, `/phones/unread` | `views/phones` (+ `pair-panel.tsx`, `revoke-panel.tsx`, `block-panel.tsx`, `receipts.tsx`, `receipt-panel.tsx`, `unread.tsx`; the revoke and block panels are shared with the shop page) |
+| Add-ons | `/addons` | `views/addons` (+ `addon-panel.tsx`, `retire-dialog.tsx`) |
 | Shop types | `/catalogue/shop-types` | `views/shop-types` (+ `preset-panel.tsx`) |
 | Attribute library | `/catalogue/attributes` | `views/attributes` (+ `attribute-panel.tsx`, `value-panel.tsx`) |
 | Option sets | `/catalogue/option-sets` | `views/option-sets` (+ `set-panel.tsx`) |
 | Account | `/account` | `views/account` (+ `codes-panel.tsx`) |
-| Later | `/reports`, `/audit`, `/inbox`, `/notices`, `/verification`, `/manual`, `/page-reports` | one `views/later` page fed by a list of requirement ids |
+| Later | `/reports`, `/audit`, `/inbox`, `/notices`, `/verification`, `/manual` | one `views/later` page fed by a list of requirement ids |
 
 Three primitives every screen shares, in `components/ui`: `panel.tsx` (bottom sheet under 640 px, right
 drawer above, with the consequence block, fields and footer), `data-table.tsx` (table from 640 px, stacked
@@ -277,5 +362,5 @@ the ink band and sidebar head, the four-tab phone bar and the More sheet.
 above), the device (phone 390, tablet 820, desktop 1366), the language and the data state (busy, nothing
 waiting, server error). Every button that leads somewhere in the design leads there in the sketch, so a
 reviewer can walk the sign-in, approve a payment, suspend and restore a shop, edit a plan and set a rate
-without the toolbar. It renders 64 screens with no horizontal overflow at any width and no missing
-strings in either language.
+without the toolbar. It renders 90 screens with no horizontal overflow on any device, in any data state, and no
+missing strings in either language.

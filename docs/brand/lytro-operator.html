@@ -371,6 +371,10 @@ svg.mk{stroke-width:10}
   .ttl h1{font-size:24px}
   .auth{margin-top:48px}
 }
+.grid-side{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.stat.lk{text-align:left;cursor:pointer;font:inherit}
+.stat.lk:hover{border-color:var(--line-strong)}
+@container (min-width: 1024px){.grid-side{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -454,16 +458,16 @@ const S = {
   reports: ['Reports','রিপোর্ট'], audit: ['Audit log','অডিট লগ'], inbox: ['Support inbox','সাপোর্ট ইনবক্স'], notices: ['Notices','নোটিশ'], verification: ['Verification','ভেরিফিকেশন'], manual: ['Manual payments','ম্যানুয়াল পেমেন্ট'], pagereports: ['Page reports','পেজ রিপোর্ট'], help: ['Help centre','হেল্প সেন্টার'], gateways: ['Gateways','গেটওয়ে'],
   search_ph: ['Find a shop by name or address','নাম বা অ্যাড্রেস দিয়ে শপ খুঁজুন'], signout: ['Sign out','সাইন আউট'], soon: ['soon','শীঘ্রই'], later_lbl: ['Later','পরে'],
   // common
-  cancel: ['Cancel','বাতিল'], close: ['Close','বন্ধ'], save: ['Save','সেভ'], edit: ['Edit','এডিট'], remove: ['Remove','সরান'], delete_: ['Delete','ডিলিট'], reason: ['Reason','কারণ'], reason_help: ['Required. Goes on the platform audit log.','লাগবেই। প্ল্যাটফর্ম অডিট লগে থাকবে।'],
+  cancel: ['Cancel','ক্যানসেল'], close: ['Close','বন্ধ'], save: ['Save','সেভ'], edit: ['Edit','এডিট'], remove: ['Remove','সরান'], delete_: ['Delete','ডিলিট'], reason: ['Reason','কারণ'], reason_help: ['Required. Goes on the platform audit log.','লাগবেই। প্ল্যাটফর্ম অডিট লগে থাকবে।'],
   copy: ['Copy','কপি'], copied: ['Copied','কপি হয়েছে'], loadmore: ['Load 20 more','আরও ২০টি'], open: ['Open','খুলুন'], done: ['Done','ঠিক আছে'], back: ['Back','ফিরুন'], new_: ['New','নতুন'], on: ['On','চালু'], off: ['Off','বন্ধ'], unlimited: ['Unlimited','আনলিমিটেড'], none: ['None','নেই'],
   loading: ['Loading…','লোড হচ্ছে…'], retry: ['Try again','আবার চেষ্টা'], err_title: ['The server did not answer','সার্ভার সাড়া দেয়নি'], err_body: ['Nothing was changed. Check the connection and try again.','কিছু বদলায়নি। কানেকশন দেখে আবার চেষ্টা করুন।'],
   ago_m: ['{n} min','{n} মিনিট'], ago_h: ['{n} h','{n} ঘণ্টা'], ago_d: ['{n} d','{n} দিন'], since: ['since {d}','{d} থেকে'], until: ['until {d}','{d} পর্যন্ত'], by: ['by {who}','{who}'], noexpiry: ['no expiry','মেয়াদ নেই'],
   // sign-in
-  si_title: ['Operator sign-in','অপারেটর সাইন-ইন'], si_lead: ['The platform console. Separate from any seller\'s dashboard.','প্ল্যাটফর্ম কনসোল। কোনো বিক্রেতার ড্যাশবোর্ড থেকে আলাদা।'], email: ['Email','ইমেইল'], password: ['Password','পাসওয়ার্ড'], continue_: ['Continue','এগিয়ে যান'],
+  si_title: ['Operator sign-in','অপারেটর লগইন'], si_lead: ['The platform console. Separate from any seller\'s dashboard.','প্ল্যাটফর্ম কনসোল। কোনো বিক্রেতার ড্যাশবোর্ড থেকে আলাদা।'], email: ['Email','ইমেইল'], password: ['Password','পাসওয়ার্ড'], continue_: ['Continue','এগিয়ে যান'],
   si_norecover: ['No "forgot password". Losing the authenticator and the backup codes is recovered by a logged break-glass action (ADM-18).','"পাসওয়ার্ড ভুলে গেছি" নেই। অথেন্টিকেটর ও ব্যাকআপ কোড দুটোই হারালে লগ করা ব্রেক-গ্লাস অ্যাকশনে ফেরানো হয় (ADM-18)।'],
-  vf_title: ['Enter your code','কোড দিন'], vf_lead: ['The 6-digit code from your authenticator app, or one backup code.','অথেন্টিকেটর অ্যাপের ৬ অঙ্কের কোড, বা একটা ব্যাকআপ কোড।'], code: ['Code','কোড'], signin: ['Sign in','সাইন ইন'], other_acct: ['Use a different account','অন্য অ্যাকাউন্ট'],
+  vf_title: ['Enter your code','কোড দিন'], vf_lead: ['The 6-digit code from your authenticator app, or one backup code.','অথেন্টিকেটর অ্যাপের ৬ অঙ্কের কোড, বা একটা ব্যাকআপ কোড।'], code: ['Code','কোড'], signin: ['Sign in','লগইন'], other_acct: ['Use a different account','অন্য অ্যাকাউন্ট'],
   vf_wrong: ['That code did not match. {n} attempts left before a 15-minute wait.','কোড মেলেনি। ১৫ মিনিট অপেক্ষার আগে আর {n} বার চেষ্টা করা যাবে।'],
-  en_title: ['Set up two-factor sign-in','টু-ফ্যাক্টর সাইন-ইন সেট করুন'], en_lead: ['Every operator account needs it (ADM-01). Scan with an authenticator app, then enter the 6-digit code it shows.','প্রতিটি অপারেটর অ্যাকাউন্টে লাগবে (ADM-01)। অথেন্টিকেটর অ্যাপে স্ক্যান করে ৬ অঙ্কের কোড দিন।'], en_key: ['Cannot scan? Enter this key by hand','স্ক্যান হচ্ছে না? এই কী হাতে লিখুন'], en_submit: ['Confirm and enable','কনফার্ম করে চালু করুন'],
+  en_title: ['Set up two-factor sign-in','টু-ফ্যাক্টর লগইন সেট করুন'], en_lead: ['Every operator account needs it (ADM-01). Scan with an authenticator app, then enter the 6-digit code it shows.','প্রতিটি অপারেটর অ্যাকাউন্টে লাগবে (ADM-01)। অথেন্টিকেটর অ্যাপে স্ক্যান করে ৬ অঙ্কের কোড দিন।'], en_key: ['Cannot scan? Enter this key by hand','স্ক্যান হচ্ছে না? এই কী হাতে লিখুন'], en_submit: ['Confirm and enable','কনফার্ম করে চালু করুন'],
   bc_title: ['Save your backup codes','ব্যাকআপ কোড সেভ করুন'], bc_lead: ['Each works once if you lose the authenticator. Shown only this one time.','অথেন্টিকেটর হারালে প্রতিটি একবার কাজ করবে। শুধু এই একবারই দেখানো হচ্ছে।'], bc_copy: ['Copy all','সব কপি'], bc_dl: ['Download .txt','.txt ডাউনলোড'], bc_done: ['I have saved these','সেভ করেছি'],
   // today
   td_title: ['Today','আজ'], td_sub: ['What needs a person, then what changed.','যা একজন মানুষের হাত চায়, তারপর যা বদলেছে।'], td_needs: ['Needs you','আপনার দরকার'], td_changes: ['Recent changes','সাম্প্রতিক বদল'], td_figures: ['Platform figures','প্ল্যাটফর্মের অঙ্ক'],
@@ -491,10 +495,10 @@ const S = {
   t_suspend: ['Suspend for cause','সাসপেন্ড করুন'], t_restore: ['Restore','রিস্টোর'], t_adjust: ['Adjust balance','ব্যালেন্স ঠিক করুন'], t_assign: ['Assign a plan','প্ল্যান দিন'], t_override: ['Add override','ওভাররাইড যোগ'],
   t_susp_note: ['Suspended {d} by {who}: "{r}". The storefront is offline; the owner keeps the dashboard and can top up.','{d} {who} সাসপেন্ড করেছেন: "{r}"। স্টোরফ্রন্ট অফলাইন; মালিক ড্যাশবোর্ড পাচ্ছেন, টপ-আপ করতে পারছেন।'],
   ov_title: ['Limit overrides','লিমিট ওভাররাইড'], ov_hint: ['A value set here replaces the plan\'s for this shop only (PLN-11).','এখানে দেওয়া মান শুধু এই শপের জন্য প্ল্যানেরটা বদলে দেয় (PLN-11)।'], ov_none: ['No overrides. The plan\'s limits apply as they are.','কোনো ওভাররাইড নেই। প্ল্যানের লিমিটই চলছে।'], ov_plan: ['plan: {v}','প্ল্যান: {v}'],
-  later_detail: ['Shop detail','শপের বিস্তারিত'], later_detail_hint: ['Balance and frozen flag, usage against every limit, errors in 24 h, failed SMS and bookings, last sign-in, open tickets, business summary (ADM-03). Waits for its endpoint.','ব্যালেন্স ও ফ্রোজেন ফ্ল্যাগ, প্রতিটি লিমিটের ব্যবহার, ২৪ ঘণ্টার এরর, ফেইল হওয়া SMS ও বুকিং, শেষ সাইন-ইন, খোলা টিকিট, বিজনেস সামারি (ADM-03)। এন্ডপয়েন্টের অপেক্ষায়।'],
+  later_detail: ['Shop detail','শপের বিস্তারিত'], later_detail_hint: ['Balance and frozen flag, usage against every limit, errors in 24 h, failed SMS and bookings, last sign-in, open tickets, business summary (ADM-03). Waits for its endpoint.','ব্যালেন্স ও ফ্রোজেন ফ্ল্যাগ, প্রতিটি লিমিটের ব্যবহার, ২৪ ঘণ্টার এরর, ফেইল হওয়া SMS ও বুকিং, শেষ লগইন, খোলা টিকিট, বিজনেস সামারি (ADM-03)। এন্ডপয়েন্টের অপেক্ষায়।'],
   later_actions: ['Operator actions on this shop','এই শপে অপারেটরের কাজ'], later_actions_hint: ['Every suspend, adjustment, assignment and override with who, when and why, from the platform audit log (ADM-08).','প্রতিটি সাসপেন্ড, অ্যাডজাস্ট, অ্যাসাইন ও ওভাররাইড — কে, কখন, কেন — প্ল্যাটফর্ম অডিট লগ থেকে (ADM-08)।'],
   later_viewas: ['View as this shop','এই শপ হিসেবে দেখুন'], later_viewas_hint: ['A read-only support session the owner approves from their dashboard (ADM-05).','মালিক ড্যাশবোর্ড থেকে অনুমতি দিলে রিড-অনলি সাপোর্ট সেশন (ADM-05)।'],
-  later_kyc: ['Request identity verification','আইডেন্টিটি ভেরিফিকেশন চান'], later_kyc_hint: ['Opens a NID check the owner completes from the dashboard (KYC-01).','মালিক ড্যাশবোর্ড থেকে NID যাচাই পূরণ করবেন (KYC-01)।'],
+  later_kyc: ['Request identity verification','আইডেন্টিটি ভেরিফিকেশন চান'], later_kyc_hint: ['Opens a NID check the owner completes from the dashboard (KYC-01).','মালিক ড্যাশবোর্ড থেকে NID ভেরিফিকেশন পূরণ করবেন (KYC-01)।'],
   sp_title: ['Suspend {shop}?','{shop} সাসপেন্ড?'], sp_cons: ['The storefront and landing pages go offline at once. The owner keeps the dashboard, can read orders and top up, and sees your reason. Their lifecycle state is untouched; restoring lifts only this.','স্টোরফ্রন্ট ও ল্যান্ডিং পেজ সাথে সাথে অফলাইন হবে। মালিক ড্যাশবোর্ড পাবেন, অর্ডার দেখতে ও টপ-আপ করতে পারবেন, আপনার কারণ দেখবেন। লাইফসাইকেল স্টেট বদলাবে না; রিস্টোর করলে শুধু এটাই ওঠে।'], sp_reason: ['Reason the seller will see','বিক্রেতা যে কারণ দেখবেন'], sp_btn: ['Suspend','সাসপেন্ড'],
   rs_title: ['Restore {shop}?','{shop} রিস্টোর?'], rs_cons: ['The storefront comes back online within a minute. The suspension stays on the audit log.','এক মিনিটের মধ্যে স্টোরফ্রন্ট ফিরবে। সাসপেনশন অডিট লগে থেকে যাবে।'], rs_btn: ['Restore','রিস্টোর'], restored: ['Restored. The storefront is back.','রিস্টোর হয়েছে। স্টোরফ্রন্ট ফিরেছে।'],
   aj_title: ['Adjust balance','ব্যালেন্স ঠিক করুন'], aj_cons: ['A correction, not a refund. Negative takes money off. The entry appears on the shop\'s statement with your reason (BAL-17).','সংশোধন, রিফান্ড নয়। ঋণাত্মক দিলে টাকা কাটে। শপের স্টেটমেন্টে আপনার কারণসহ থাকবে (BAL-17)।'], amount: ['Amount','টাকা'], aj_btn: ['Apply','প্রয়োগ'], adjusted: ['Applied. Balance is now {b}.','হয়েছে। ব্যালেন্স এখন {b}।'],
@@ -537,7 +541,7 @@ const S = {
   oe_title: ['Edit set','সেট এডিট'], oe_new: ['New option set','নতুন অপশন সেট'], oe_values: ['Values, one per line','মান, প্রতি লাইনে একটা'], oe_type: ['Offer first to shops of type','আগে যে ধরনের শপে'], oe_cons: ['Values shops already inserted from this set stay theirs; editing changes only what is offered next.','শপ যে মান আগেই নিয়েছে তা তাদের থাকে; এডিট শুধু পরের অফার বদলায়।'], oe_create: ['Create set','সেট তৈরি'],
   od_title: ['Delete this set?','এই সেট ডিলিট?'], od_cons: ['It stops being offered. Values shops already inserted from it stay with them.','আর অফার হবে না। শপ যা নিয়েছে তা থাকবে।'],
   // account
-  ac_sub: ['Your own operator sign-in.','আপনার নিজের অপারেটর সাইন-ইন।'], ac_codes: ['Backup codes','ব্যাকআপ কোড'], ac_codes_hint: ['{n} of 10 unused. Regenerating replaces every existing code; confirm with your password and a fresh authenticator code.','১০টির {n}টি অব্যবহৃত। নতুন করে বানালে সবগুলো বদলে যায়; পাসওয়ার্ড ও তাজা অথেন্টিকেটর কোড দিয়ে কনফার্ম করুন।'], ac_regen: ['Generate new codes','নতুন কোড বানান'], ac_session: ['This session','এই সেশন'], ac_session_line: ['Signed in {d} · {ua}','সাইন-ইন {d} · {ua}'], ac_lang: ['Console language','কনসোলের ভাষা'], ac_breakglass: ['Losing both the authenticator and the codes is recovered by a logged break-glass action on the database, after which 2FA must be re-enrolled (ADM-18).','অথেন্টিকেটর ও কোড দুটোই হারালে ডেটাবেসে লগ করা ব্রেক-গ্লাস অ্যাকশনে ফেরানো হয়, তারপর 2FA আবার এনরোল করতে হয় (ADM-18)।'],
+  ac_sub: ['Your own operator sign-in.','আপনার নিজের অপারেটর লগইন।'], ac_codes: ['Backup codes','ব্যাকআপ কোড'], ac_codes_hint: ['{n} of 10 unused. Regenerating replaces every existing code; confirm with your password and a fresh authenticator code.','১০টির {n}টি অব্যবহৃত। নতুন করে বানালে সবগুলো বদলে যায়; পাসওয়ার্ড ও তাজা অথেন্টিকেটর কোড দিয়ে কনফার্ম করুন।'], ac_regen: ['Generate new codes','নতুন কোড বানান'], ac_session: ['This session','এই সেশন'], ac_session_line: ['Signed in {d} · {ua}','লগইন {d} · {ua}'], ac_lang: ['Console language','কনসোলের ভাষা'], ac_breakglass: ['Losing both the authenticator and the codes is recovered by a logged break-glass action on the database, after which 2FA must be re-enrolled (ADM-18).','অথেন্টিকেটর ও কোড দুটোই হারালে ডেটাবেসে লগ করা ব্রেক-গ্লাস অ্যাকশনে ফেরানো হয়, তারপর 2FA আবার এনরোল করতে হয় (ADM-18)।'],
   rg_title: ['New backup codes','নতুন ব্যাকআপ কোড'], rg_cons: ['The ten current codes stop working the moment these are made.','এগুলো বানানোর সাথে সাথে বর্তমান দশটা কোড অকেজো হবে।'], rg_fresh: ['Fresh authenticator code','তাজা অথেন্টিকেটর কোড'], rg_btn: ['Generate','বানান'], rg_done: ['The old codes no longer work. Save these.','পুরোনো কোড আর কাজ করবে না। এগুলো সেভ করুন।'],
   // later screens
   lt_title: ['Not built yet','এখনো তৈরি হয়নি'], lt_body: ['This screen is drawn for the requirement it serves; the backend does not serve it today. The place it will take in the navigation is already reserved.','এই স্ক্রিন যে রিকোয়ারমেন্টের জন্য তা অনুযায়ী আঁকা; ব্যাকএন্ড এখনো দেয় না। নেভিগেশনে জায়গা রাখা আছে।'],
@@ -670,12 +674,13 @@ const NAV = [
   { grp: 'nav_later', later: true, items: [['reports', 'later-reports', 'chart'], ['audit', 'later-audit', 'history'], ['inbox', 'later-inbox', 'inbox'], ['notices', 'later-notices', 'bell'], ['verification', 'later-verification', 'id'], ['manual', 'later-manual', 'dollar'], ['pagereports', 'later-pagereports', 'flag']] },
 ];
 const queueCount = () => (ST.data === 'busy' ? PAYMENTS.length : 0);
+const navCount = (k) => (k === 'queue' ? queueCount() : k === 'pagereports' ? reportCount() : 0);
 function sidebar(active) {
   return `<aside class="sidebar">
     <div class="head"><span class="tile">${I.mark}</span><span class="words"><span class="eyebrow-op">${t('eyebrow')}</span>${wordmark('dark')}</span></div>
     <nav class="nav">${NAV.map((g) => `<div class="grp">${t(g.grp)}</div>${g.items.map(([k, scr, ic]) => g.later
       ? `<button class="it later" onclick="go('${scr}')">${I[ic]}<span>${t(k)}</span><span class="soon">${t('soon')}</span></button>`
-      : `<button class="it ${active === k ? 'on' : ''}" onclick="go('${scr}')">${I[ic]}<span>${t(k)}</span>${k === 'queue' && queueCount() ? `<span class="cnt">${queueCount()}</span>` : ''}</button>`).join('')}`).join('')}</nav>
+      : `<button class="it ${active === k ? 'on' : ''}" onclick="go('${scr}')">${I[ic]}<span>${t(k)}</span>${navCount(k) ? `<span class="cnt">${navCount(k)}</span>` : ''}</button>`).join('')}`).join('')}</nav>
     <div class="foot"><span class="av">${OP.initials}</span><span class="who"><b>${OP.email}</b><span>${t('account')} · <a href="#" onclick="go('account');return false">${t('open')}</a></span></span><button class="iconbtn" title="${t('signout')}" onclick="go('signin')">${I.logout}</button></div>
   </aside>`;
 }
@@ -893,27 +898,27 @@ def('tenant-override', { base: 'tenant', nav: 'tenants', label: '· add override
 /* ---------- Slice 10a: the add-on catalogue, a shop's add-ons, an add-on payment in the queue, the two new settings ---------- */
 Object.assign(S, {
   addons: ['Add-ons', 'অ্যাড-অন'],
-  ao_sub: ['What a shop can buy on top of its plan: limit add-ons, packs and features (PLN-13). Prices are per month; a retired item cannot be bought, and ones already bought run to their end.', 'প্ল্যানের উপরে দোকান যা কিনতে পারে: লিমিট অ্যাড-অন, প্যাক আর ফিচার (PLN-13)। দাম মাস হিসেবে; বন্ধ করা আইটেম আর কেনা যায় না, কেনা থাকলে মেয়াদ পর্যন্ত চলে।'],
+  ao_sub: ['What a shop can buy on top of its plan: limit add-ons, packs and features (PLN-13). Prices are per month; a retired item cannot be bought, and ones already bought run to their end.', 'প্ল্যানের উপরে শপ যা কিনতে পারে: লিমিট অ্যাড-অন, প্যাক আর ফিচার (PLN-13)। দাম মাস হিসেবে; বন্ধ করা আইটেম আর কেনা যায় না, কেনা থাকলে মেয়াদ পর্যন্ত চলে।'],
   ao_new: ['New item', 'নতুন আইটেম'], c_item: ['Item', 'আইটেম'], c_kind: ['Kind', 'ধরন'], c_raises: ['Raises', 'বাড়ায়'], c_unit: ['Unit', 'ইউনিট'], c_price: ['Price / month', 'দাম / মাস'], c_running: ['Running', 'চালু'],
   k_limit: ['Limit', 'লিমিট'], k_pack: ['Pack', 'প্যাক'], k_feature: ['Feature', 'ফিচার'], k_allowance: ['Allowance', 'অ্যালাউন্স'],
   ao_retired: ['Retired', 'বন্ধ'], ao_running: ['{n} running', '{n}টা চালু'], ao_bought: ['{n} bought this month', 'এ মাসে {n}টা কেনা'], ao_none: ['No add-ons yet', 'এখনো কোনো অ্যাড-অন নেই'],
-  ao_rule: ['A limit add-on and a feature renew with the plan unless the shop turns renewal off; a pack adds once and carries over until used. Pay-as-you-go shops renew in 30-day periods from the balance (PLN-14). Allowances arrive with Phase 7 (PLN-20).', 'লিমিট অ্যাড-অন আর ফিচার প্ল্যানের সাথে রিনিউ হয়, দোকান বন্ধ না করলে; প্যাক একবার যোগ হয়, শেষ না হওয়া পর্যন্ত থাকে। পে-অ্যাজ-ইউ-গো দোকানে ৩০ দিনের মেয়াদে ব্যালেন্স থেকে রিনিউ (PLN-14)। অ্যালাউন্স আসবে ফেজ ৭-এ (PLN-20)।'],
+  ao_rule: ['A limit add-on and a feature renew with the plan unless the shop turns renewal off; a pack adds once and carries over until used. Pay-as-you-go shops renew in 30-day periods from the balance (PLN-14). Allowances arrive with Phase 7 (PLN-20).', 'লিমিট অ্যাড-অন আর ফিচার প্ল্যানের সাথে রিনিউ হয়, শপ বন্ধ না করলে; প্যাক একবার যোগ হয়, শেষ না হওয়া পর্যন্ত থাকে। পে-অ্যাজ-ইউ-গো শপে ৩০ দিনের মেয়াদে ব্যালেন্স থেকে রিনিউ (PLN-14)। অ্যালাউন্স আসবে ফেজ ৭-এ (PLN-20)।'],
   ae_title: ['Edit {name}', '{name} এডিট'], ae_new: ['New add-on', 'নতুন অ্যাড-অন'],
   ae_cons: ['A price change applies to new purchases and to renewals from now on; an add-on already running keeps its price to its end.', 'দাম বদলালে এখন থেকে নতুন কেনা আর রিনিউতে লাগবে; চালু থাকা অ্যাড-অন মেয়াদ পর্যন্ত আগের দামে চলবে।'],
   ae_name_en: ['Name (English)', 'নাম (ইংরেজি)'], ae_name_bn: ['Name (Bangla)', 'নাম (বাংলা)'], ae_kind: ['Kind', 'ধরন'], ae_limit_key: ['Raises which limit', 'কোন লিমিট বাড়ায়'], ae_unit_size: ['Unit size', 'ইউনিটের মাপ'],
   ae_unit_help: ['What one bought unit adds: 500 products, 1 seat, 1 GB, 10 GB, 100,000 requests. A feature has none.', 'একটা কিনলে কতটা যোগ হয়: ৫০০ প্রোডাক্ট, ১ সিট, ১ GB, ১০ GB, ১,০০,০০০ রিকোয়েস্ট। ফিচারের কোনো মাপ নেই।'],
   ae_price: ['Price per month', 'মাসে দাম'], ae_price_help: ['Whole taka. A longer term is monthly × months; mid-period it is prorated by the days left (PLN-14). A pack is a one-off at this price.', 'পুরো টাকায়। লম্বা মেয়াদে মাসিক × মাস; মাঝপথে বাকি দিনে ভাগ (PLN-14)। প্যাক এই দামে একবার।'],
   ae_max: ['Most a shop may buy at once', 'একবারে বড়জোর'], ae_forsale: ['For sale', 'বিক্রি হচ্ছে'], ae_retire: ['Retire', 'বন্ধ করুন'],
-  ar_title: ['Retire {name}?', '{name} বন্ধ করবেন?'], ar_cons: ['No shop can buy it from now. The {n} running ones continue to their end and will not renew; their owners are told at the 7-day warning (PLN-13).', 'এখন থেকে কোনো দোকান কিনতে পারবে না। চালু থাকা {n}টা মেয়াদ পর্যন্ত চলবে, রিনিউ হবে না; ৭ দিন আগের সতর্কবার্তায় মালিকরা জানবেন (PLN-13)।'],
+  ar_title: ['Retire {name}?', '{name} বন্ধ করবেন?'], ar_cons: ['No shop can buy it from now. The {n} running ones continue to their end and will not renew; their owners are told at the 7-day warning (PLN-13).', 'এখন থেকে কোনো শপ কিনতে পারবে না। চালু থাকা {n}টা মেয়াদ পর্যন্ত চলবে, রিনিউ হবে না; ৭ দিন আগের সতর্কবার্তায় মালিকরা জানবেন (PLN-13)।'],
   ar_btn: ['Retire', 'বন্ধ করুন'],
-  ta_title: ['Add-ons', 'অ্যাড-অন'], ta_hint: ['Active add-ons raise this shop\'s limits on top of the plan snapshot and the overrides; packs are used up as they go (PLN-13, UPG-14).', 'চালু অ্যাড-অন স্ন্যাপশট আর ওভাররাইডের উপরে এই দোকানের লিমিট বাড়ায়; প্যাক খরচ হতে হতে ফুরোয় (PLN-13, UPG-14)।'],
+  ta_title: ['Add-ons', 'অ্যাড-অন'], ta_hint: ['Active add-ons raise this shop\'s limits on top of the plan snapshot and the overrides; packs are used up as they go (PLN-13, UPG-14).', 'চালু অ্যাড-অন স্ন্যাপশট আর ওভাররাইডের উপরে এই শপের লিমিট বাড়ায়; প্যাক খরচ হতে হতে ফুরোয় (PLN-13, UPG-14)।'],
   ta_ends: ['until {d}', '{d} পর্যন্ত'], ta_renew: ['renews with the plan', 'প্ল্যানের সাথে রিনিউ'], ta_norenew: ['renewal off', 'রিনিউ বন্ধ'], ta_paid: ['paid from the balance', 'ব্যালেন্স থেকে'], ta_paid_page: ['paid on the payment page', 'পেমেন্ট পেজে'],
   ta_packs: ['Packs this cycle', 'এই সাইকেলে প্যাক'], ta_pack_line: ['{n} × 10 GB bandwidth · {a} by auto-buy · {left} GB left', '{n} × ১০ GB ব্যান্ডউইথ · অটো-বাই {a}টা · {left} GB বাকি'],
   ta_auto: ['Auto-buy', 'অটো-বাই'], ta_auto_v: ['bandwidth on · requests off · at most {c} packs a cycle', 'ব্যান্ডউইথ চালু · রিকোয়েস্ট বন্ধ · সাইকেলে বড়জোর {c} প্যাক'],
   ta_effective: ['Effective limits', 'কার্যকর লিমিট'], ta_eff_hint: ['snapshot + override + add-ons; what every check reads (KNOWN-GAPS §83)', 'স্ন্যাপশট + ওভাররাইড + অ্যাড-অন; প্রতিটা চেক এটাই পড়ে (KNOWN-GAPS §83)'],
   ta_eff_products: ['Products', 'প্রোডাক্ট'], ta_eff_staff: ['Seats', 'সিট'], ta_eff_storage: ['Storage', 'স্টোরেজ'], ta_eff_bw: ['Bandwidth', 'ব্যান্ডউইথ'],
   addon: ['Add-on', 'অ্যাড-অন'], qa_line: ['{name} ×{q} · {n} days to {d}', '{name} ×{q} · {d} পর্যন্ত {n} দিন'],
-  qa_activate: ['Approving activates the add-on at once and raises the limit; the invoice follows. Rejecting leaves the shop as it is.', 'অ্যাপ্রুভ করলে অ্যাড-অন এখনই চালু হয়, লিমিট বাড়ে; ইনভয়েস তারপর। রিজেক্ট করলে দোকান যেমন আছে তেমনই।'],
+  qa_activate: ['Approving activates the add-on at once and raises the limit; the invoice follows. Rejecting leaves the shop as it is.', 'অ্যাপ্রুভ করলে অ্যাড-অন এখনই চালু হয়, লিমিট বাড়ে; ইনভয়েস তারপর। রিজেক্ট করলে শপ যেমন আছে তেমনই।'],
   qa_kind: ['Add-on (Slice 10a.2)', 'অ্যাড-অন (স্লাইস 10a.2)'],
   sn_metered_grace_percent: ['Grace past a metered limit', 'মিটারড লিমিটের পরের গ্রেস'], sn_auto_buy_packs_per_cycle: ['Auto-buy packs per cycle', 'সাইকেলে অটো-বাই প্যাক'],
 });
@@ -995,7 +1000,7 @@ const PA = { id: 'pay-9110', tenantId: 'ten-0001', kind: 'addon', amount: 99, cr
 def('queue-addon', { base: 'queue', nav: 'queue', label: '· an add-on payment (sheet, 10a.2)', group: 'Daily', url: 'admin.lytro.app/queue/pay-9110', bandTitle: 'queue', render: queuePage, sheet: () => { const p = PA; const ten = tenantOf(p.tenantId);
   return sheet(`${money(p.credit)} · ${t('addon')}`, ten.name, `
     <div class="banner info" style="background:var(--info-soft,#eef5ff)">${I.info}<div>${t('qa_activate')}</div></div>
-    <div class="kv"><span class="k">${t('c_shop')}</span><span class="v">${ten.name} · <a href="#" onclick="go('tenant-addons');return false">${ten.slug}.lytro.app</a></span>
+    <div class="kv"><span class="k">${t('c_shop')}</span><span class="v">${ten.name} · <a href="#" onclick="go('tenant');return false">${ten.slug}.lytro.app</a></span>
     <span class="k">${t('qa_kind')}</span><span class="v">${t('qa_line', { name: aoName(ADDON_ITEMS[0]), q: 1, n: 20, d: dateS('2026-11-14') })}</span>
     <span class="k">${t('c_sender')}</span><span class="v mono">${p.sender} · ${p.wallet}</span>
     <span class="k">${t('c_trx')}</span><span class="v mono">${p.trx} <button class="iconbtn" style="width:28px;height:28px">${I.copy}</button></span>
@@ -1243,9 +1248,418 @@ const LATER = [
   ['later-notices', 'NTC-01 to NTC-20', 'notices', ['Notices to shops: title, Bangla and English body, category, severity, audience, publish and end times, pinned, acknowledgement required; templates for rate change, maintenance, outage and policy; delivery and read counts.', 'শপগুলোকে নোটিশ: শিরোনাম, বাংলা ও ইংরেজি বডি, ক্যাটাগরি, গুরুত্ব, কাদের জন্য, প্রকাশ ও শেষের সময়, পিন, স্বীকৃতি লাগবে কি না; রেট বদল/মেইনটেন্যান্স/আউটেজ/পলিসির টেমপ্লেট; ডেলিভারি ও পড়ার সংখ্যা।'], () => `<div class="toolbar2">${btn(I.plus + 'New notice', 'primary', '', 'disabled')}${btn('Templates', 'ghost', '', 'disabled')}</div>${skelTable(5, ['2fr', '120px', '120px', '140px', '100px'])}`],
   ['later-verification', 'KYC-07, KYC-09', 'verification', ['The identity queue: submissions with the NID masked, status history, the three images through 5-minute signed links, approve or reject with a reason, reveal audited, four-eyes where two operators exist.', 'আইডেন্টিটি কিউ: NID মাস্ক করা সাবমিশন, স্টেটাস ইতিহাস, ৫ মিনিটের সাইনড লিংকে তিনটি ছবি, কারণসহ অ্যাপ্রুভ বা রিজেক্ট, রিভিল অডিটেড, দুজন অপারেটর থাকলে ফোর-আইজ।'], () => `<div class="chips"><span class="chip on">Pending review</span><span class="chip off">Verified</span><span class="chip off">Rejected</span></div>${skelTable(5, ['1.6fr', '140px', '140px', '120px'])}`],
   ['later-manual', 'ADM-14 to ADM-17', 'manual', ['Record a purchase, renewal, upgrade or top-up paid outside the normal flow: shop, kind, plan and term or amount, wallet, TrxID unique platform-wide, sender, time, evidence, reason; a second confirmation above ৳10,000 or ten entries a day; reversals, never edits; a daily digest by email. Shopper "I have paid" claims land in the same queue.', 'স্বাভাবিক পথের বাইরে দেওয়া পেমেন্ট রেকর্ড: শপ, ধরন, প্ল্যান ও টার্ম বা টাকা, ওয়ালেট, প্ল্যাটফর্মজুড়ে ইউনিক TrxID, প্রেরক, সময়, প্রমাণ, কারণ; ৳10,000-এর ওপরে বা দিনে দশটির বেশি হলে দ্বিতীয় কনফার্ম; রিভার্সাল, এডিট নয়; দৈনিক ইমেইল ডাইজেস্ট।'], () => `<div class="card later"><div class="grid2">${['Shop', 'Kind', 'Amount', 'Wallet', 'TrxID', 'Sender', 'Paid at', 'Evidence'].map((k) => `<div class="field"><label>${k}</label><div class="input" style="border-style:dashed;background:transparent"></div></div>`).join('')}</div></div>`],
-  ['later-pagereports', 'ADM-12', 'pagereports', ['"Report this page" from shoppers: open the page, suspend it, or dismiss, each audited.', 'ক্রেতাদের "এই পেজ রিপোর্ট করুন": পেজ খুলুন, সাসপেন্ড করুন বা বাদ দিন — প্রতিটি অডিটেড।'], () => skelTable(4, ['2fr', '1fr', '120px', '160px'])],
 ];
 for (const [id, req, key, body, sketch] of LATER) def(id, { nav: key, label: `${t(key)} · ${req}`, group: 'Later (design only)', url: `admin.lytro.app/${key}`, bandTitle: key, render: () => laterPage(key, req, t(key), L.lang === 'bn' ? body[1] : body[0], sketch()) });
+
+/* ---------- Phase 5 (Slice 5.8 part 5): the sign-in limit, the queue's review facts, page reports, a shop's payment page, cap, phones and credential log, Lytro's own phones, receipts, unreadable messages; every platform setting ---------- */
+Object.assign(S, {
+  /* the sign-in limit (ADM-01, amended with the build) */
+  si_bad: ['That email or password isn\'t right.', 'ইমেইল বা পাসওয়ার্ড মেলেনি।'],
+  si_locked_title: ['Too many failed tries', 'অনেকবার ভুল হয়েছে'],
+  si_locked: ['Five tries failed on this account in 15 minutes. Wait, then try again. Until then a right password or code is refused too.', '১৫ মিনিটে এই অ্যাকাউন্টে পাঁচবার ভুল হয়েছে। একটু অপেক্ষা করে আবার ট্রাই করুন। ততক্ষণ সঠিক পাসওয়ার্ড বা কোড দিলেও লগইন হবে না।'],
+  si_locked_wait: ['Try again in 15 minutes', '১৫ মিনিট পর আবার ট্রাই করুন'],
+
+  /* the queue: what the seller says, what arrived, why it waits (BIL-06) */
+  q_sub: ['Payments Lytro\'s phones could not match, and those still waiting for a receipt. Check each against the wallet statement. Approving activates the plan or credits the balance, once.', 'যেসব পেমেন্ট Lytro-র ফোন মেলাতে পারেনি, আর যেগুলোর রিসিট এখনো আসেনি। প্রতিটা ওয়ালেট স্টেটমেন্টের সাথে মিলিয়ে নিন। অ্যাপ্রুভ করলে প্ল্যান চালু হবে বা ব্যালেন্সে টাকা জমা হবে, একবারই।'],
+  q_empty_hint: ['New wallet payments appear here when a seller submits a TrxID. Ones a Lytro phone matches clear by themselves.', 'বিক্রেতা TrxID জমা দিলে এখানে আসবে। Lytro-র ফোন মিলিয়ে নিলে নিজে থেকেই সরে যাবে।'],
+  q_review_why: ['Quoted {q}, {s} arrived', 'কোট {q}, এসেছে {s}'],
+  rv_amount: ['The amount isn\'t what was quoted.', 'টাকার অঙ্ক কোটের সাথে মেলেনি।'],
+  rv_sender: ['The money came from a number the seller didn\'t name.', 'বিক্রেতা যে নম্বর দিয়েছেন, টাকা সেই নম্বর থেকে আসেনি।'],
+  rv_wallet: ['The money arrived on a different wallet from the one the seller chose.', 'বিক্রেতা যে ওয়ালেট বেছেছেন, টাকা সেখানে আসেনি।'],
+  rv_old_receipt: ['The receipt is older than this request.', 'রিসিটটা এই রিকোয়েস্টের চেয়ে পুরোনো।'],
+  rv_transaction_id_used: ['This TrxID is already on another payment.', 'এই TrxID আগেই আরেকটা পেমেন্টে আছে।'],
+  rv_request_closed: ['The seller\'s request had closed when the money arrived.', 'টাকা আসার আগেই বিক্রেতার রিকোয়েস্ট বন্ধ হয়ে গিয়েছিল।'],
+  pay_quoted: ['Quoted', 'কোট'], pay_sent: ['Seller says they sent', 'বিক্রেতা বলছেন পাঠিয়েছেন'], pay_arrived: ['A receipt says arrived', 'রিসিটে এসেছে'], pay_no_receipt: ['No receipt yet', 'এখনো রিসিট আসেনি'],
+  ap_review: ['This accepts {a} against a quote of {q} and activates it anyway. To activate nothing, put the money on the balance instead.', 'কোট {q}, কিন্তু {a} নিয়েই এটা চালু হয়ে যাবে। কিছু চালু করতে না চাইলে টাকাটা ব্যালেন্সে রাখুন।'],
+  ap_arrived: ['What arrived', 'কত এসেছে'], ap_arrived_help: ['Change this only if the wallet statement says otherwise.', 'ওয়ালেট স্টেটমেন্টে অন্য অঙ্ক থাকলে তবেই বদলান।'],
+  cr_open: ['Put the money on the balance instead', 'বরং টাকাটা ব্যালেন্সে রাখুন'],
+  cr_title: ['Put it on the balance?', 'ব্যালেন্সে রাখবেন?'],
+  cr_cons: ['Nothing is activated. <b>{a}</b> goes on <b>{shop}</b>\'s balance, once, and any add-ons on this payment are cancelled. The owner is told.', 'কিছুই চালু হবে না। <b>{shop}</b>-এর ব্যালেন্সে <b>{a}</b> জমা হবে, একবারই, আর এই পেমেন্টের অ্যাড-অন ক্যানসেল হবে। মালিক জানতে পারবেন।'],
+  cr_help: ['What the wallet statement shows. Needed when no receipt says.', 'ওয়ালেট স্টেটমেন্টে যা আছে। রিসিট না থাকলে এটা লাগবেই।'],
+  cr_btn: ['Put {a} on the balance', '{a} ব্যালেন্সে রাখুন'], cr_done: ['{a} is on {shop}\'s balance.', '{shop}-এর ব্যালেন্সে {a} জমা হয়েছে।'],
+
+  /* Today */
+  td_more: ['Also waiting', 'আরও যা দেখার'],
+  td_reports: ['Open page reports', 'খোলা পেজ রিপোর্ট'], td_reports_d: ['Newest: {r}', 'নতুনটা: {r}'], td_phones: ['Lytro\'s phones online', 'Lytro-র ফোন অনলাইন'], td_phones_d: ['{name} offline {ago}', '{name} অফলাইন, {ago}'], td_phones_ok: ['All reporting', 'সব ফোন চালু আছে'],
+  td_unclaimed: ['Unclaimed receipts', 'দাবি না হওয়া রিসিট'], td_unclaimed_d: ['Money nothing matched yet', 'এখনো কোনো পেমেন্টের সাথে মেলেনি'],
+  td_unread: ['Unreadable messages today', 'আজ পড়া যায়নি এমন মেসেজ'], td_unread_d: ['You\'re told at {n} in a day', 'দিনে {n}টা হলে জানানো হবে'],
+
+  /* page reports (ADM-12, TVR-02, TVR-03) */
+  pagereports: ['Page reports', 'পেজ রিপোর্ট'],
+  pr_sub: ['Shoppers report a payment page that looks wrong. Open the page, suspend it, or dismiss the report. Each is audited.', 'কোনো পেমেন্ট পেজ ঠিক না লাগলে ক্রেতারা রিপোর্ট করেন। পেজটা খুলে দেখুন, সাসপেন্ড করুন বা রিপোর্ট বাদ দিন। প্রতিটা অডিটে থাকে।'],
+  c_reason: ['Reason', 'কারণ'], c_reported: ['Reported', 'রিপোর্ট হয়েছে'],
+  prr_asked_for_pin: ['Asked for a PIN or code', 'PIN বা কোড চেয়েছে'], prr_wrong_shop: ['Not the shop they ordered from', 'যে শপে অর্ডার করেছেন সেটা নয়'], prr_wrong_amount: ['The wrong amount', 'টাকার অঙ্ক ভুল'], prr_other: ['Something else', 'অন্য কিছু'],
+  prs_open: ['Open', 'খোলা'], prs_dismissed: ['Dismissed', 'বাদ দেওয়া'], prs_acted: ['Acted on', 'ব্যবস্থা নেওয়া'],
+  pr_open_page: ['Open the page', 'পেজটা খুলুন'], pr_suspend: ['Suspend the page', 'পেজ সাসপেন্ড করুন'], pr_dismiss: ['Dismiss', 'বাদ দিন'], pr_page_off: ['Page suspended', 'পেজ সাসপেন্ডেড'],
+  pr_empty: ['No open reports', 'কোনো খোলা রিপোর্ট নেই'], pr_empty_hint: ['A report appears here the moment a shopper sends one.', 'ক্রেতা রিপোর্ট পাঠালেই এখানে আসবে।'],
+  pr_note: ['Shopper\'s note', 'ক্রেতার নোট'], pr_from: ['From', 'কোথা থেকে'], pr_when: ['Sent', 'পাঠিয়েছেন'], pr_none: ['No note', 'নোট নেই'], pr_handled: ['Handled', 'দেখা হয়েছে'],
+  ps_title: ['Suspend {shop}\'s payment page?', '{shop}-এর পেমেন্ট পেজ সাসপেন্ড করবেন?'],
+  ps_cons: ['Within a minute, new payments are refused and open pages show "unavailable". The rest of the shop stays open, and this shop\'s open reports are marked acted on.', 'এক মিনিটের মধ্যে নতুন পেমেন্ট বন্ধ হবে, খোলা পেজে "unavailable" দেখাবে। শপের বাকি সব চালু থাকবে, আর এই শপের খোলা রিপোর্টগুলোতে ব্যবস্থা নেওয়া হয়েছে বলে লেখা হবে।'],
+  ps_done: ['{shop}\'s payment page is suspended.', '{shop}-এর পেমেন্ট পেজ সাসপেন্ড হয়েছে।'],
+  pd_title: ['Dismiss this report?', 'এই রিপোর্ট বাদ দেবেন?'], pd_cons: ['Nothing is done to the shop. The report moves to Dismissed, and the dismissal is on the audit log.', 'শপের কিছুই বদলাবে না। রিপোর্টটা বাদ দেওয়া তালিকায় যাবে, আর অডিট লগে লেখা থাকবে।'], pd_done: ['Report dismissed.', 'রিপোর্ট বাদ দেওয়া হয়েছে।'],
+
+  /* a shop's payment cards */
+  sc_payments: ['Payments', 'পেমেন্ট'], pg_title: ['Payment page', 'পেমেন্ট পেজ'], pg_live: ['Taking payments', 'পেমেন্ট নিচ্ছে'], pg_off: ['Suspended', 'সাসপেন্ডেড'], pg_off_note: ['Suspended {d}: {r}', '{d} সাসপেন্ড হয়েছে: {r}'],
+  pg_restore: ['Restore the page', 'পেজ আবার চালু করুন'], pg_rs_title: ['Restore {shop}\'s payment page?', '{shop}-এর পেমেন্ট পেজ আবার চালু করবেন?'], pg_rs_cons: ['It takes payments again within a minute. The suspension stays on the audit log.', 'এক মিনিটের মধ্যে আবার পেমেন্ট নেবে। সাসপেনশনটা অডিট লগে থেকে যাবে।'], pg_rs_btn: ['Restore', 'আবার চালু করুন'],
+  cap_title: ['New-shop cap', 'নতুন শপের লিমিট'], cap_on: ['On', 'চালু'], cap_off: ['Off', 'বন্ধ'], cap_line: ['{a} a day for its first {n} days', 'প্রথম {n} দিন, দিনে {a}'], cap_by_kind: ['As its kind says', 'শপের ধরন অনুযায়ী'], cap_by_op: ['Set for this shop', 'এই শপের জন্য সেট করা'],
+  cap_sh_title: ['New-shop cap for {shop}', '{shop}-এর নতুন শপের লিমিট'],
+  cap_cons: ['A capped shop younger than {n} days can take at most {a} online in a day, counting payments still open. By default a pay-as-you-go shop is capped and a shop on a plan is not.', 'লিমিট চালু থাকলে {n} দিনের কম বয়সী শপ দিনে সর্বোচ্চ {a} অনলাইনে নিতে পারবে, খোলা পেমেন্ট ধরে। সাধারণত পে-অ্যাজ-ইউ-গো শপে এটা চালু থাকে, প্ল্যানের শপে থাকে না।'],
+  cap_opt_kind: ['As its kind says (off, it is on a plan)', 'শপের ধরন অনুযায়ী (বন্ধ, প্ল্যানে আছে)'], cap_opt_on: ['On for this shop', 'এই শপে চালু'], cap_opt_off: ['Off for this shop', 'এই শপে বন্ধ'],
+  cl_title: ['Credential log', 'ক্রেডেনশিয়াল লগ'], cl_hint: ['Every use of this shop\'s stored gateway keys, never the keys themselves.', 'এই শপের সেভ করা গেটওয়ে কী যতবার ব্যবহার হয়েছে, কী নিজে কখনো দেখানো হয় না।'], cl_open: ['Open the log', 'লগ খুলুন'], cl_last: ['Last used {d}', 'শেষ ব্যবহার {d}'],
+  cl_sub: ['For a dispute or something odd: a sudden jump in calls, or a call with no payment behind it.', 'কোনো বিরোধ বা অস্বাভাবিক কিছু হলে দেখার জন্য: হঠাৎ অনেক কল, বা পেমেন্ট ছাড়া কোনো কল।'],
+  c_when: ['When', 'কখন'], c_wallet: ['Wallet', 'ওয়ালেট'], c_action: ['Action', 'অ্যাকশন'], c_session: ['Payment', 'পেমেন্ট'], c_result: ['Result', 'ফল'],
+  ca_token: ['Asked for a token', 'টোকেন চেয়েছে'], ca_create: ['Opened a payment', 'পেমেন্ট খুলেছে'], ca_execute: ['Completed a payment', 'পেমেন্ট শেষ করেছে'], ca_query: ['Checked a payment', 'পেমেন্ট চেক করেছে'], cr_ok: ['Worked', 'সফল'], cr_fail: ['Failed', 'ব্যর্থ'], cr_none: ['None', 'নেই'], cl_empty: ['No uses yet', 'এখনো ব্যবহার হয়নি'], cl_empty_hint: ['This shop has no stored gateway keys in use.', 'এই শপের সেভ করা কোনো গেটওয়ে কী ব্যবহার হচ্ছে না।'],
+  ph_title: ['Listener phones', 'লিসেনার ফোন'], ph_of: ['{a} of {b}', '{b}টার মধ্যে {a}টা'], ph_line: ['{model} · app {v}', '{model} · অ্যাপ {v}'], ph_seen: ['seen {ago}', '{ago} দেখা গেছে'], ph_today: ['{n} today', 'আজ {n}টা'], ph_online: ['Online', 'অনলাইন'], ph_offline: ['Offline', 'অফলাইন'], ph_revoked: ['Revoked', 'ক্যানসেলড'], ph_flags: ['{n} flags', '{n}টা ফ্ল্যাগ'], ph_none: ['No phones paired.', 'কোনো ফোন পেয়ার করা নেই।'],
+  ph_revoke: ['Revoke', 'ক্যানসেল'], ph_block: ['Block', 'ব্লক'], ph_rv_title: ['Revoke {name}?', '{name} ক্যানসেল করবেন?'], ph_rv_cons: ['Within seconds this phone stops sending receipts and the app says it was revoked. Another phone can still be paired.', 'কয়েক সেকেন্ডের মধ্যে এই ফোন আর রিসিট পাঠাবে না, অ্যাপে ক্যানসেল হওয়ার কথা দেখাবে। অন্য ফোন পেয়ার করা যাবে।'],
+  ph_bl_title: ['Block this app installation?', 'এই অ্যাপ ইনস্টলেশন ব্লক করবেন?'], ph_bl_cons: ['It can pair with no shop again, and every phone on it is revoked now. The owner is told.', 'এটা আর কোনো শপে পেয়ার হবে না, আর এতে থাকা সব ফোন এখনই ক্যানসেল হবে। মালিক জানতে পারবেন।'], ph_install: ['Installation', 'ইনস্টলেশন'], ph_bl_btn: ['Block everywhere', 'সব জায়গায় ব্লক করুন'],
+
+  /* Lytro's own phones (PAY-21), receipts, unreadable messages (VER-06) */
+  phones: ['Lytro\'s phones', 'Lytro-র ফোন'], lp_sub: ['The phones that read messages on Lytro\'s own wallets and match sellers\' payments by themselves. What they can\'t match waits in the payment queue.', 'যে ফোনগুলো Lytro-র নিজের ওয়ালেটের মেসেজ পড়ে আর বিক্রেতাদের পেমেন্ট নিজে থেকে মিলিয়ে নেয়। যা মেলাতে পারে না, সেটা পেমেন্ট কিউতে অপেক্ষা করে।'],
+  lp_t_phones: ['Phones', 'ফোন'], lp_t_receipts: ['Receipts', 'রিসিট'], lp_t_unread: ['Unreadable messages', 'পড়া যায়নি এমন মেসেজ'],
+  lp_pair: ['Pair a phone', 'ফোন পেয়ার করুন'], lp_off: ['<b>{name}</b> has been offline {ago}. Payments to its wallet wait in the queue until it reports again.', '<b>{name}</b> {ago} ধরে অফলাইন। আবার চালু না হওয়া পর্যন্ত এর ওয়ালেটের পেমেন্ট কিউতে অপেক্ষা করবে।'],
+  lp_empty: ['No phones paired', 'কোনো ফোন পেয়ার করা নেই'], lp_empty_hint: ['Until one is paired, every seller\'s wallet payment waits in the queue for you.', 'ফোন পেয়ার না হওয়া পর্যন্ত বিক্রেতাদের সব ওয়ালেট পেমেন্ট আপনার জন্য কিউতে অপেক্ষা করবে।'],
+  c_phone: ['Phone', 'ফোন'], c_version: ['App', 'অ্যাপ'], c_seen: ['Last seen', 'শেষ দেখা'], c_uploads: ['Today', 'আজ'],
+  lp_p_sub: ['For Lytro\'s own wallets, not a shop\'s.', 'Lytro-র নিজের ওয়ালেটের জন্য, কোনো শপের নয়।'], lp_p_1: ['Put the wallet\'s SIM in the phone and install the Lytro listener app.', 'ফোনে ওয়ালেটের SIM রাখুন, Lytro লিসেনার অ্যাপ ইনস্টল করুন।'], lp_p_2: ['Open the app and type this code.', 'অ্যাপ খুলে এই কোডটা লিখুন।'], lp_p_code: ['Pairing code', 'পেয়ারিং কোড'], lp_p_exp: ['Works once. Runs out at {d}.', 'একবারই কাজ করবে। {d}-এ শেষ হবে।'], lp_p_new: ['New code', 'নতুন কোড'], lp_p_done: ['Done', 'হয়ে গেছে'],
+  rc_sub: ['What Lytro\'s phones forwarded, newest first.', 'Lytro-র ফোন যা পাঠিয়েছে, নতুনগুলো আগে।'], rc_search: ['Start of a TrxID, a sender number or an amount', 'TrxID-র শুরু, প্রেরকের নম্বর বা টাকার অঙ্ক'],
+  rs_matched: ['Used', 'ব্যবহার হয়েছে'], rs_unmatched: ['Unclaimed', 'দাবি হয়নি'], rs_needs_review: ['With you', 'আপনার কাছে'], rs_duplicate: ['Duplicate', 'ডুপ্লিকেট'], rs_ignored: ['Ignored', 'বাদ'],
+  c_received: ['Received', 'এসেছে'], rc_text: ['The message', 'মেসেজ'], rc_redacted: ['Its text has been removed, as every receipt\'s is after a while.', 'কিছুদিন পর সব রিসিটের লেখা মুছে যায়, এটারও গেছে।'], rc_open_pay: ['Open the payment', 'পেমেন্টটা খুলুন'], rc_empty: ['No receipts here', 'এখানে কোনো রিসিট নেই'], rc_empty_hint: ['Receipts appear as Lytro\'s phones send them.', 'Lytro-র ফোন পাঠালেই এখানে আসবে।'], rc_page: ['Page {a} of {b}', '{b} পেজের {a} নম্বর'],
+  ig_unknown_sender: ['Not from a wallet\'s sender', 'ওয়ালেটের সেন্ডার থেকে আসেনি'], ig_unknown_format: ['Couldn\'t be read', 'পড়া যায়নি'], ig_not_receipt: ['Not a receipt', 'রিসিট নয়'],
+  un_sub: ['Messages from a wallet\'s own sender that look like a payment but couldn\'t be read. Only their wording is kept, with numbers, people and notes removed, and how many came each day. A wording here means the reader needs updating.', 'ওয়ালেটের নিজের সেন্ডার থেকে আসা যেসব মেসেজ পেমেন্টের মতো দেখায় কিন্তু পড়া যায়নি। শুধু লেখার ধরনটা থাকে, নম্বর, নাম আর নোট বাদ দিয়ে, আর দিনে কতগুলো এসেছে। এখানে কিছু থাকলে বুঝবেন রিডারটা আপডেট করা দরকার।'],
+  un_days: ['Last {n} days', 'গত {n} দিন'], un_count: ['{n} messages', '{n}টা মেসেজ'], un_told: ['You were told', 'আপনাকে জানানো হয়েছে'], un_empty: ['Nothing unreadable', 'পড়া যায়নি এমন কিছু নেই'], un_empty_hint: ['Every wallet message in this period could be read.', 'এই সময়ের সব ওয়ালেট মেসেজ পড়া গেছে।'], c_wording: ['Wording', 'লেখার ধরন'], c_day: ['Day', 'দিন'], c_count: ['How many', 'কতগুলো'],
+
+  /* rates */
+  rn_listener_verification_pct: ['Listener verification fee', 'লিসেনার ভেরিফিকেশন ফি'], rn_gateway_verification_pct: ['Gateway verification fee', 'গেটওয়ে ভেরিফিকেশন ফি'],
+
+  /* every platform setting */
+  se_sub: ['Platform-wide values that are not rates. Each is live the moment it saves and goes on the audit log with your reason.', 'রেট ছাড়া প্ল্যাটফর্মজুড়ে যেসব মান। সেভ করলেই চালু হয়, আপনার কারণসহ অডিট লগে থাকে।'],
+  se_g1: ['Trial and top-up', 'ট্রায়াল ও টপ-আপ'], se_g2: ['Lifecycle after a paid period ends', 'পেইড মেয়াদ শেষে কী হয়'], se_g3: ['Orders and stock', 'অর্ডার ও স্টক'], se_g4: ['Requests and limits', 'রিকোয়েস্ট ও লিমিট'], se_g5: ['Online payments', 'অনলাইন পেমেন্ট'], se_g6: ['Listener phones', 'লিসেনার ফোন'], se_g7: ['Media', 'মিডিয়া'], se_g8: ['Catalogue in the shopper\'s browser', 'ক্রেতার ব্রাউজারে ক্যাটালগ'], se_g9: ['Terms and privacy', 'টার্মস ও প্রাইভেসি'],
+  sn_reservation_expiry_minutes: ['Unpaid order holds stock for', 'আনপেইড অর্ডার স্টক ধরে রাখে'], sn_order_limit_mode: ['Past the order limit', 'অর্ডার লিমিটের পরে'], ol_block: ['Block', 'ব্লক'], ol_allow_with_prompt: ['Allow, with a prompt to upgrade', 'চলবে, আপগ্রেডের প্রস্তাবসহ'],
+  sn_usage_grace_percent: ['Grace past a limit', 'লিমিটের পরে গ্রেস'], sn_fast_spend_percent: ['Fast-spend alert at', 'দ্রুত খরচের অ্যালার্ট'], sn_public_requests_per_visitor_per_minute: ['Requests per visitor', 'ভিজিটর প্রতি রিকোয়েস্ট'], sn_public_orders_per_shop_per_minute: ['Orders per shop', 'শপ প্রতি অর্ডার'], sn_payment_sessions_per_shop_per_minute: ['Payments opened per shop', 'শপ প্রতি খোলা পেমেন্ট'],
+  sn_new_shop_payment_cap_amount: ['New-shop cap, per day', 'নতুন শপের লিমিট, দিনে'], sn_new_shop_payment_cap_days: ['A shop counts as new for', 'শপ নতুন ধরা হয়'],
+  sn_listener_offline_minutes: ['A phone counts offline after', 'ফোন অফলাইন ধরা হয়'], sn_listener_min_app_version: ['Oldest app allowed', 'সবচেয়ে পুরোনো অ্যাপ'], sn_listener_senders: ['Wallet senders', 'ওয়ালেট সেন্ডার'],
+  sn_media_image_max_mb: ['Largest image', 'সবচেয়ে বড় ছবি'], sn_media_video_max_mb: ['Largest video', 'সবচেয়ে বড় ভিডিও'],
+  sn_catalogue_list_max_age_seconds: ['Product list kept for', 'প্রোডাক্ট লিস্ট থাকে'], sn_catalogue_list_stale_seconds: ['Older list still shown for', 'পুরোনো লিস্টও দেখায়'], sn_catalogue_detail_max_age_seconds: ['Product page kept for', 'প্রোডাক্ট পেজ থাকে'], sn_catalogue_search_max_age_seconds: ['Search results kept for', 'সার্চ রেজাল্ট থাকে'], sn_catalogue_categories_max_age_seconds: ['Category tree kept for', 'ক্যাটাগরি ট্রি থাকে'],
+  sn_terms_version: ['Terms version', 'টার্মস ভার্সন'], sn_privacy_version: ['Privacy version', 'প্রাইভেসি ভার্সন'],
+  u_minutes: ['minutes', 'মিনিট'], u_seconds: ['seconds', 'সেকেন্ড'], u_mb: ['MB', 'MB'], u_pct: ['%', '%'], u_per_min: ['a minute', 'মিনিটে'], u_days: ['days', 'দিন'],
+  se_version_warn: ['Change this the same day new text is published. New accounts record this version; accounts that already accepted keep theirs.', 'নতুন লেখা যেদিন প্রকাশ হবে, সেদিনই এটা বদলান। নতুন অ্যাকাউন্টে এই ভার্সন লেখা থাকবে, আগে যারা মেনেছেন তাদেরটা বদলাবে না।'],
+  se_senders_help: ['One sender on each line, as it appears on the phone.', 'প্রতি লাইনে একটা সেন্ডার, ফোনে যেভাবে দেখায়।'],
+});
+
+/* navigation: page reports is daily work now; Lytro's phones belongs with the platform */
+NAV[0].items.splice(2, 0, ['pagereports', 'pagereports', 'flag']);
+NAV[2].items.push(['phones', 'phones', 'phone']);
+const LATER_NAV = NAV.find((g) => g.later);
+LATER_NAV.items = LATER_NAV.items.filter(([k]) => k !== 'pagereports');
+
+/* ---------- fixtures ---------- */
+Object.assign(PAYMENTS[0], { sent: 449, arrived: 448, reason: 'amount' });
+Object.assign(PAYMENTS[1], { sent: 4741, arrived: 4700, reason: 'amount' });
+PAYMENTS.push({ id: 'pay-9111', tenantId: 'ten-0034', kind: 'top_up', planId: null, termId: null, amount: 2000, credit: 2000, status: 'needs_review', sender: '01611 223300', trx: 'BKH8S3D1F6', quotedAt: '2026-10-21T10:02:00+06:00', createdAt: '2026-10-21T10:15:00+06:00', wallet: 'bKash', sent: 2000, arrived: 2000, reason: 'sender' });
+const REPORTS = [
+  { id: 'rep-31', tenantId: 'ten-0040', reason: 'asked_for_pin', note: null, ip: '203.0.113.24', status: 'open', at: '2026-10-21T13:40:00+06:00' },
+  { id: 'rep-30', tenantId: 'ten-0007', reason: 'wrong_amount', note: 'The order said ৳1,250 but the page asked for ৳1,520.', ip: '203.0.113.87', status: 'open', at: '2026-10-21T10:22:00+06:00' },
+  { id: 'rep-29', tenantId: 'ten-0034', reason: 'other', note: 'It kept reloading and showed another shop\'s logo for a moment.', ip: '198.51.100.12', status: 'open', at: '2026-10-20T19:05:00+06:00' },
+  { id: 'rep-27', tenantId: 'ten-0001', reason: 'wrong_shop', note: null, ip: '198.51.100.40', status: 'dismissed', at: '2026-10-18T16:30:00+06:00', handledAt: '2026-10-18T18:02:00+06:00' },
+  { id: 'rep-22', tenantId: 'ten-0028', reason: 'asked_for_pin', note: 'They wanted my bKash PIN on a phone call too.', ip: null, status: 'acted', at: '2026-10-11T12:15:00+06:00', handledAt: '2026-10-11T12:40:00+06:00' },
+];
+const openReports = () => REPORTS.filter((r) => r.status === 'open');
+const reportCount = () => (ST.data === 'busy' ? openReports().length : 0);
+const SHOP_PHONES = {
+  active: 1, limit: 1,
+  devices: [
+    { id: 'd1', name: 'Counter phone', model: 'Xiaomi Redmi 12', app: '1.0.3', seen: '2026-10-21T14:22:00+06:00', online: true, status: 'active', today: 14, flags: 0, install: 'inst-7f3a92c1' },
+    { id: 'd2', name: 'Old phone', model: 'Samsung A15', app: '1.0.1', seen: '2026-09-30T11:10:00+06:00', online: false, status: 'revoked', today: 0, flags: 2, install: 'inst-21bb06fe' },
+  ],
+};
+const LYTRO_PHONES = [
+  { id: 'l1', name: 'Lytro bKash phone', model: 'Xiaomi Redmi 12', app: '1.0.3', seen: '2026-10-21T14:28:00+06:00', online: true, status: 'active', today: 23, flags: 0, install: 'inst-90de41aa' },
+  { id: 'l2', name: 'Lytro Nagad phone', model: 'Samsung A15', app: '1.0.3', seen: '2026-10-21T13:49:00+06:00', online: false, status: 'active', today: 6, flags: 0, install: 'inst-3c77ab10' },
+];
+const RECEIPTS = [
+  { id: 'r1', sender: 'bKash', method: 'bKash', amount: 448, trx: 'BKH7A2M9Q1', status: 'needs_review', reason: 'amount', from: '01712345678', phone: 'Lytro bKash phone', pay: 'pay-9101', at: '2026-10-21T11:38:00+06:00', text: 'You have received Tk 448.00 from 01712345678. Fee Tk 0.00. Balance Tk 12,040.50. TrxID BKH7A2M9Q1 at 21/10/2026 11:38' },
+  { id: 'r2', sender: 'bKash', method: 'bKash', amount: 699, trx: 'BKH3D8F1K2', status: 'matched', reason: null, from: '01755667788', phone: 'Lytro bKash phone', pay: 'pay-9099', at: '2026-10-21T11:12:00+06:00', text: 'You have received Tk 699.00 from 01755667788. Fee Tk 0.00. Balance Tk 11,592.50. TrxID BKH3D8F1K2 at 21/10/2026 11:12' },
+  { id: 'r3', sender: 'NAGAD', method: 'Nagad', amount: 1200, trx: 'NGD7W2E5R9', status: 'unmatched', reason: null, from: '01899001122', phone: 'Lytro Nagad phone', pay: null, at: '2026-10-21T09:47:00+06:00', text: 'Money Received. Amount: Tk 1,200.00 Sender: 01899001122 TxnID: NGD7W2E5R9 Balance: Tk 8,410.00' },
+  { id: 'r4', sender: 'bKash', method: 'bKash', amount: 699, trx: 'BKH3D8F1K2', status: 'duplicate', reason: null, from: '01755667788', phone: 'Lytro bKash phone', pay: null, at: '2026-10-21T11:13:00+06:00', text: null },
+  { id: 'r5', sender: '16216', method: null, amount: null, trx: null, status: 'ignored', reason: null, ignored: 'not_receipt', from: null, phone: 'Lytro bKash phone', pay: null, at: '2026-10-20T20:31:00+06:00', text: null },
+];
+const UNREAD = [
+  { day: '2026-10-21', shape: 'You have received Tk # from #. Ref #. Fee Tk #. Balance Tk #. TrxID # at #', count: 23 },
+  { day: '2026-10-21', shape: 'Cash In Tk # from #. Fee Tk #. TrxID # at #', count: 2 },
+  { day: '2026-10-20', shape: 'You have received Tk # from #. Ref #. Fee Tk #. Balance Tk #. TrxID # at #', count: 11 },
+  { day: '2026-10-19', shape: 'Money Received. Amount: Tk # Sender: # Ref: # TxnID: # Balance: Tk #', count: 4 },
+];
+const CRED_USES = [
+  { at: '2026-10-21T14:12:00+06:00', method: 'bKash', action: 'query', session: 'ps-8f2a', ok: true },
+  { at: '2026-10-21T14:11:00+06:00', method: 'bKash', action: 'execute', session: 'ps-8f2a', ok: true },
+  { at: '2026-10-21T14:10:00+06:00', method: 'bKash', action: 'create', session: 'ps-8f2a', ok: true },
+  { at: '2026-10-21T14:10:00+06:00', method: 'bKash', action: 'token', session: null, ok: true },
+  { at: '2026-10-21T09:03:00+06:00', method: 'bKash', action: 'create', session: 'ps-77c1', ok: false },
+];
+RATES.push(
+  { key: 'listener_verification_pct', value: '0.10', unit: 'ru_pct', since: '2026-11-02', history: [] },
+  { key: 'gateway_verification_pct', value: '1.00', unit: 'ru_pct', since: '2026-11-03', history: [] },
+);
+const SERVER_SETTINGS = [
+  ['trial_days', 30, 1, 'u_days', 'How many days a new shop stays on the Trial plan (TRL-01).', '2026-10-02', 'ops@lytro.app'],
+  ['top_up_min_amount', 100, 1, '৳', 'The smallest amount a tenant may top up in one payment, in TK (BAL-04).'],
+  ['top_up_max_amount', 50000, 1, '৳', 'The largest amount a tenant may top up in one payment, in TK (BAL-04).'],
+  ['grace_days', 3, 2, 'u_days', 'How many days of grace a lapsed tenant gets (LIF-26, 2.3).'],
+  ['read_only_days', 4, 2, 'u_days', 'How many days after grace a lapsed tenant stays read-only (LIF-26, 2.3).'],
+  ['locked_days', 8, 2, 'u_days', 'How many days after read-only a lapsed tenant stays locked (LIF-26, 2.3).'],
+  ['archived_days', 45, 2, 'u_days', 'How many days after locked a lapsed tenant stays archived before deletion (LIF-26, 2.3).'],
+  ['reservation_expiry_minutes', 30, 3, 'u_minutes', 'How many minutes an order awaiting online payment holds its stock (INV-16).'],
+  ['order_limit_mode', 'allow_with_prompt', 3, 'choice', 'Past the period\'s order-handling limit: block, or allow with a prompt to upgrade (QTA-03).'],
+  ['usage_grace_percent', 10, 4, 'u_pct', 'How far past its bandwidth or API request limit a shop is still served, as a percent of the limit (BND-03, RTE-03).'],
+  ['fast_spend_percent', 5, 4, 'u_pct', 'The share of a cycle\'s API requests that, spent in one hour, alerts the owner and the operator (RTE-12).'],
+  ['public_requests_per_visitor_per_minute', 120, 4, 'u_per_min', 'How many requests one visitor may make to one shop in a minute, through its public keys (RTE-06).'],
+  ['public_orders_per_shop_per_minute', 60, 4, 'u_per_min', 'How many orders shoppers may place in one shop in a minute, every plan alike (RTE-08).'],
+  ['payment_sessions_per_shop_per_minute', 60, 4, 'u_per_min', 'How many payments shoppers may open in one shop in a minute, every plan alike (RTE-08).'],
+  ['new_shop_payment_cap_amount', 20000, 5, '৳', 'The most a new shop\'s online payments may come to in a day, in TK, where the new-shop cap holds (TVR-04).'],
+  ['new_shop_payment_cap_days', 30, 5, 'u_days', 'How many days a shop counts as new for the new-shop payment cap (TVR-04).'],
+  ['listener_offline_minutes', 30, 6, 'u_minutes', 'How many minutes after its last report a listener phone counts offline (LSN-03, VER-07).'],
+  ['listener_min_app_version', '1.0.0', 6, 'text', 'The oldest listener app version that may call, as 1.2.3; older apps must update (LSN-18).'],
+  ['listener_senders', ['bKash', 'NAGAD', 'upay', '16216'], 6, 'list', 'The senders whose SMS count as a wallet\'s, for every shop (LSN-16).'],
+  ['media_image_max_mb', 5, 7, 'u_mb', 'The largest image one upload may be, in MB (STO-04).'],
+  ['media_video_max_mb', 100, 7, 'u_mb', 'The largest video one upload may be, in MB (STO-05).'],
+  ['catalogue_list_max_age_seconds', 30, 8, 'u_seconds', 'How long a shopper\'s browser keeps a product list, in seconds (CCH-03).'],
+  ['catalogue_list_stale_seconds', 120, 8, 'u_seconds', 'How long an older product list may still be shown while it is fetched again, in seconds (CCH-03).'],
+  ['catalogue_detail_max_age_seconds', 60, 8, 'u_seconds', 'How long a shopper\'s browser keeps a product page, in seconds (CCH-03).'],
+  ['catalogue_search_max_age_seconds', 30, 8, 'u_seconds', 'How long a shopper\'s browser keeps search results, in seconds (CCH-03).'],
+  ['catalogue_categories_max_age_seconds', 300, 8, 'u_seconds', 'How long a shopper\'s browser keeps the category tree, in seconds (CCH-03).'],
+  ['terms_version', '2026-11-04', 9, 'version', 'The terms of service in force, which a new account accepts: change it when new terms are published (LEG-01).', '2026-11-04', null],
+  ['privacy_version', '2026-11-04', 9, 'version', 'The privacy policy in force, which a new account accepts: change it when a new policy is published (LEG-01).', '2026-11-04', null],
+];
+SETTINGS.length = 0;
+SERVER_SETTINGS.forEach(([key, value, group, unit, desc, updatedAt, by]) => SETTINGS.push({ key, value, group, unit, desc, updatedAt: updatedAt || '2026-07-14', by: by || null }));
+
+/* ---------- sign-in: the limit's two screens ---------- */
+const authForm = (extra) => `<div class="card form">${field(t('email'), input('ops@lytro.app', '', '', 'type=email autocomplete=username'))}${field(t('password'), input('••••••••••••', '', '', 'type=password style="border-color:var(--danger)"'), null, extra)}${btn(t('continue_'), 'primary block', "go('signin-verify')")}</div>`;
+def('signin-bad', { bare: true, label: 'Sign-in · wrong email or password', group: 'Sign-in', url: 'admin.lytro.app/sign-in', render: () => authFrame(`<div><h1>${t('si_title')}</h1><div class="lead">${t('si_lead')}</div></div>${authForm(t('si_bad'))}<div class="note">${t('si_norecover')}</div>`) });
+def('signin-locked', { bare: true, label: 'Sign-in · locked after five failures', group: 'Sign-in', url: 'admin.lytro.app/sign-in', render: () => authFrame(`<div><h1>${t('si_title')}</h1><div class="lead">${t('si_lead')}</div></div><div class="banner bad">${I.clock}<div><b>${t('si_locked_title')}</b><div>${t('si_locked')}</div></div></div><div class="card form">${field(t('email'), input('ops@lytro.app', '', '', 'type=email autocomplete=username'))}${field(t('password'), input('', '', '', 'type=password'))}${btn(t('si_locked_wait'), 'primary block', '', 'disabled')}</div><div class="note">${t('si_norecover')}</div>`) });
+
+/* ---------- Today: what else needs a person ---------- */
+const todayBase = SCREENS.today.render;
+function alsoWaiting() {
+  const busy = ST.data === 'busy';
+  const reports = busy ? openReports() : [];
+  const on = busy ? LYTRO_PHONES.filter((p) => p.online).length : LYTRO_PHONES.length;
+  const off = busy ? LYTRO_PHONES.find((p) => !p.online) : null;
+  const unclaimed = busy ? RECEIPTS.filter((r) => r.status === 'unmatched').length : 0;
+  const unread = busy ? UNREAD.filter((u) => u.day === '2026-10-21').reduce((a, u) => a + u.count, 0) : 0;
+  return `<div class="sechead"><h2>${t('td_more')}</h2></div><div class="stats">
+    <button class="stat lk ${reports.length ? 'flag' : ''}" onclick="go('pagereports')"><span class="k">${t('td_reports')}</span><span class="v ${reports.length ? 'warn' : ''}">${reports.length}</span><span class="d">${reports.length ? t('td_reports_d', { r: t('prr_' + reports[0].reason) }) : t('st_nothing')}</span></button>
+    <button class="stat lk ${off ? 'flag' : ''}" onclick="go('phones')"><span class="k">${t('td_phones')}</span><span class="v ${off ? 'warn' : ''}">${t('ph_of', { a: on, b: LYTRO_PHONES.length })}</span><span class="d">${off ? t('td_phones_d', { name: off.name, ago: ago(off.seen) }) : t('td_phones_ok')}</span></button>
+    <button class="stat lk" onclick="go('receipts')"><span class="k">${t('td_unclaimed')}</span><span class="v">${unclaimed}</span><span class="d">${unclaimed ? t('td_unclaimed_d') : t('st_nothing')}</span></button>
+    <button class="stat lk" onclick="go('unread')"><span class="k">${t('td_unread')}</span><span class="v">${unread}</span><span class="d">${t('td_unread_d', { n: 20 })}</span></button>
+  </div>`;
+}
+SCREENS.today.render = () => { const page = todayBase(); return ST.data === 'error' ? page : page.replace('<div class="grid2">', alsoWaiting() + '<div class="grid2">'); };
+
+/* ---------- the queue's review facts, approve with what arrived, put it on the balance ---------- */
+const reviewFacts = (p) => `<span class="k">${t('pay_quoted')}</span><span class="v">${money(p.amount)}</span><span class="k">${t('pay_sent')}</span><span class="v">${money(p.sent)}</span><span class="k">${t('pay_arrived')}</span><span class="v">${p.arrived === null ? t('pay_no_receipt') : money(p.arrived)}</span>`;
+SCREENS['queue-payment'].sheet = () => { const p = P0; const ten = tenantOf(p.tenantId); const plan = planOf(p.planId); const term = termOf(p.termId);
+  return sheet(`${money(p.credit)} · ${t(p.kind)}`, ten.name, `
+    <div class="banner warn">${I.warn}<div><b>${t('rv_' + p.reason)}</b></div></div>
+    <div class="kv">${reviewFacts(p)}<span class="k">${t('c_shop')}</span><span class="v">${ten.name} · <a href="#" onclick="go('tenant');return false">${ten.slug}.lytro.app</a></span>
+    <span class="k">${t('pay_term')}</span><span class="v">${plan.name} v${plan.version} · ${termLabel(term)}</span>
+    <span class="k">${t('c_sender')}</span><span class="v mono">${p.sender} · ${p.wallet}</span>
+    <span class="k">${t('c_trx')}</span><span class="v mono">${p.trx} <button class="iconbtn" style="width:28px;height:28px">${I.copy}</button></span>
+    <span class="k">${t('pay_quoted_at')}</span><span class="v">${dateT(p.quotedAt)}</span>
+    <span class="k">${t('pay_submitted')}</span><span class="v">${dateT(p.createdAt)} · ${ago(p.createdAt)}</span></div>
+    <div class="note">${t('pay_statement')}</div>
+    ${btn(t('cr_open'), 'ghost block', "go('queue-credit')")}`, `${btn(t('reject'), 'ghost', "go('queue-reject')")}${btn(t('ap_btn', { a: money(p.credit) }), 'primary', "go('queue-approve')")}`, { row: true }); };
+SCREENS['queue-approve'].sheet = () => { const p = P0; const ten = tenantOf(p.tenantId); const plan = planOf(p.planId); const term = termOf(p.termId);
+  return sheet(t('ap_title'), `${ten.name} · ${money(p.credit)}`, `
+    ${consequence(t('ap_plan', { shop: ten.name, plan: plan.name, term: termLabel(term), until: dateS('2026-11-19') }), 'ok')}
+    <div class="banner warn">${I.warn}<div>${t('ap_review', { a: money(p.arrived), q: money(p.amount) })}</div></div>
+    ${field(t('ap_arrived'), `<div class="inwrap"><span class="pre">৳</span>${input(p.arrived, 'mono', '', 'inputmode=decimal')}</div>`, t('ap_arrived_help'))}
+    <div class="kv"><span class="k">${t('c_trx')}</span><span class="v mono">${p.trx}</span><span class="k">${t('c_sender')}</span><span class="v mono">${p.sender} · ${p.wallet}</span></div>`,
+    `${btn(t('cancel'), 'ghost', "go('queue-payment')")}${btn(t('ap_btn', { a: money(p.credit) }), 'primary', "go('queue-approved')")}`, { row: true }); };
+def('queue-credit', { base: 'queue', nav: 'queue', label: '· put it on the balance (sheet)', group: 'Daily', url: 'admin.lytro.app/queue/pay-9101', bandTitle: 'queue', render: queuePage, sheet: () => { const p = P0; const ten = tenantOf(p.tenantId);
+  return sheet(t('cr_title'), `${ten.name} · ${p.trx}`, `${consequence(t('cr_cons', { a: money(p.arrived), shop: ten.name }))}${field(t('ap_arrived'), `<div class="inwrap"><span class="pre">৳</span>${input(p.arrived, 'mono', '', 'inputmode=decimal')}</div>`, t('cr_help'))}`, `${btn(t('cancel'), 'ghost', "go('queue-payment')")}${btn(t('cr_btn', { a: money(p.arrived) }), 'primary', "go('queue-credited')")}`, { row: true, close: 'queue-payment' }); } });
+def('queue-credited', { base: 'queue', nav: 'queue', label: '· on the balance (toast)', group: 'Daily', url: 'admin.lytro.app/queue', bandTitle: 'queue', render: queuePage, toast: () => t('cr_done', { a: money(P0.arrived), shop: tenantOf(P0.tenantId).name }) });
+
+/* ---------- page reports ---------- */
+const reportState = (r) => (r.status === 'open' ? st('warn', t('prs_open')) : r.status === 'acted' ? st('bad', t('prs_acted')) : st('mute', t('prs_dismissed')));
+function reportRows(list, handled) {
+  const cols = [
+    { k: 'shop', label: t('c_shop'), w: 'minmax(170px,1.2fr)', cls: 'main' },
+    { k: 'reason', label: t('c_reason'), w: 'minmax(200px,1.6fr)' },
+    { k: 'age', label: t('c_reported'), w: '90px' },
+    { k: 'state', label: t('c_status'), w: '110px' },
+    { k: 'acts', label: '', w: handled ? '130px' : '280px', cls: 'acts' },
+  ];
+  const rows = list.map((r) => { const ten = tenantOf(r.tenantId); return { on: "go('pagereport')", cells: {
+    shop: `<div>${ten.name}</div><div style="font-size:12px;color:var(--subtle);font-weight:400">${ten.slug}.lytro.app</div>`,
+    reason: `<div>${t('prr_' + r.reason)}</div>${r.note ? `<div style="font-size:12px;color:var(--muted)">${r.note}</div>` : ''}`,
+    age: `<span class="num">${ago(r.at)}</span>`,
+    state: reportState(r),
+    acts: handled ? btn(t('pr_open_page'), 'ghost sm', 'event.stopPropagation()') : `${btn(t('pr_open_page'), 'primary sm', 'event.stopPropagation()')}${btn(t('pr_suspend'), 'ghost sm', "event.stopPropagation();go('pagereport-suspend')")}${btn(t('pr_dismiss'), 'quiet sm', "event.stopPropagation();go('pagereport-dismiss')")}`,
+  } }; });
+  return table(cols, rows, emptyBox(t('pr_empty'), t('pr_empty_hint'), 'flag'));
+}
+function reportsPage(status) {
+  const all = ST.data === 'busy' ? REPORTS : [];
+  const count = (s) => all.filter((r) => r.status === s).length;
+  const list = all.filter((r) => (status === 'open' ? r.status === 'open' : r.status !== 'open'));
+  const chip = (s, scr, active) => `<button class="chip ${active ? 'on' : ''}" onclick="go('${scr}')">${t('prs_' + s)} <span class="c">${count(s)}</span></button>`;
+  return `<div class="ttl"><div><h1>${t('pagereports')}</h1><div class="sub">${t('pr_sub')}</div></div></div>
+  ${ST.data === 'error' ? errorBox() : `<div class="chips">${chip('open', 'pagereports', status === 'open')}${chip('dismissed', 'pagereports-handled', status !== 'open')}${chip('acted', 'pagereports-handled', status !== 'open')}</div>${reportRows(list, status !== 'open')}`}`;
+}
+const R0 = REPORTS[0];
+def('pagereports', { nav: 'pagereports', label: 'Page reports', group: 'Daily', url: 'admin.lytro.app/page-reports', bandTitle: 'pagereports', render: () => reportsPage('open') });
+def('pagereports-handled', { base: 'pagereports', nav: 'pagereports', label: '· dismissed and acted on', group: 'Daily', url: 'admin.lytro.app/page-reports?status=handled', bandTitle: 'pagereports', render: () => reportsPage('handled') });
+def('pagereport', { base: 'pagereports', nav: 'pagereports', label: '· a report (sheet)', group: 'Daily', url: 'admin.lytro.app/page-reports/rep-31', bandTitle: 'pagereports', render: () => reportsPage('open'), sheet: () => { const ten = tenantOf(R0.tenantId);
+  return sheet(t('prr_' + R0.reason), ten.name, `<div class="kv"><span class="k">${t('c_shop')}</span><span class="v">${ten.name} · <a href="#" onclick="go('tenant');return false">${ten.slug}.lytro.app</a></span><span class="k">${t('pr_note')}</span><span class="v">${R0.note || t('pr_none')}</span><span class="k">${t('pr_when')}</span><span class="v">${dateT(R0.at)} · ${ago(R0.at)}</span><span class="k">${t('pr_from')}</span><span class="v mono">${R0.ip}</span></div>${btn(I.arrow + t('pr_open_page'), 'ghost block')}`, `${btn(t('pr_dismiss'), 'ghost', "go('pagereport-dismiss')")}${btn(t('pr_suspend'), 'primary', "go('pagereport-suspend')")}`, { row: true, close: 'pagereports' }); } });
+def('pagereport-suspend', { base: 'pagereports', nav: 'pagereports', label: '· suspend the page (sheet)', group: 'Daily', url: 'admin.lytro.app/page-reports/rep-31', bandTitle: 'pagereports', render: () => reportsPage('open'), sheet: () => { const ten = tenantOf(R0.tenantId);
+  return sheet(t('ps_title', { shop: ten.name }), `${ten.slug}.lytro.app`, `${consequence(t('ps_cons'), 'danger')}${reasonField()}`, `${btn(t('cancel'), 'ghost', "go('pagereport')")}${btn(t('pr_suspend'), 'danger', "go('pagereports')")}`, { row: true, close: 'pagereports' }); } });
+def('pagereport-dismiss', { base: 'pagereports', nav: 'pagereports', label: '· dismiss (dialog)', group: 'Daily', url: 'admin.lytro.app/page-reports/rep-31', bandTitle: 'pagereports', render: () => reportsPage('open'), sheet: () => sheet(t('pd_title'), `${tenantOf(R0.tenantId).name} · ${t('prr_' + R0.reason)}`, consequence(t('pd_cons')), `${btn(t('cancel'), 'ghost', "go('pagereport')")}${btn(t('pr_dismiss'), 'primary', "go('pagereports')")}`, { row: true, close: 'pagereports' }) });
+
+/* ---------- a shop's page: add-ons, payments, phones ---------- */
+const phoneChip = (d) => (d.status === 'revoked' ? st('mute', t('ph_revoked')) : d.online ? st('ok', t('ph_online')) : st('warn', t('ph_offline')));
+const phoneRow = (d, revokeTo, blockTo) => `<div class="row wrap"><span class="body"><span class="l1">${d.name} ${phoneChip(d)} ${d.flags ? st('mute plain', t('ph_flags', { n: d.flags })) : ''}</span><span class="l2">${t('ph_line', { model: d.model, v: d.app })} · ${t('ph_seen', { ago: ago(d.seen) })} · ${t('ph_today', { n: d.today })}</span></span>${d.status === 'revoked' ? '' : `<span style="display:flex;gap:4px">${btn(t('ph_revoke'), 'ghost sm', `go('${revokeTo}')`)}${btn(t('ph_block'), 'quiet sm', `go('${blockTo}')`)}</span>`}</div>`;
+function paymentsCards(x, o) {
+  const off = (o || {}).pageOff;
+  return `<div class="grid2">
+    <div class="card"><div class="sechead"><h3>${t('sc_payments')}</h3></div><div class="list" style="margin:8px -16px -16px">
+      <div class="row wrap"><span class="body"><span class="l1">${t('pg_title')} ${off ? st('bad', t('pg_off')) : st('ok', t('pg_live'))}</span>${off ? `<span class="l2">${t('pg_off_note', { d: dateS('2026-10-20'), r: 'Asked shoppers for their bKash PIN' })}</span>` : ''}</span>${off ? btn(I.play + t('pg_restore'), 'ghost sm', "go('tenant-page-restore')") : btn(I.pause + t('pr_suspend'), 'ghost sm', "go('tenant-page-suspend')")}</div>
+      <div class="row wrap"><span class="body"><span class="l1">${t('cap_title')} ${st('mute plain', t('cap_off'))}</span><span class="l2">${t('cap_by_kind')} · ${t('cap_line', { a: money(20000), n: 30 })}</span></span>${btn(t('change'), 'ghost sm', "go('tenant-cap')")}</div>
+      <div class="row wrap"><span class="body"><span class="l1">${t('cl_title')}</span><span class="l2">${t('cl_hint')} ${t('cl_last', { d: dateT(CRED_USES[0].at) })}</span></span>${btn(t('cl_open'), 'ghost sm', "go('tenant-credentials')")}</div>
+    </div></div>
+    <div class="card"><div class="sechead"><h3>${t('ph_title')}</h3><span class="num" style="font-weight:600">${t('ph_of', { a: SHOP_PHONES.active, b: SHOP_PHONES.limit })}</span></div><div class="list" style="margin:8px -16px -16px">${SHOP_PHONES.devices.map((d) => phoneRow(d, 'tenant-phone-revoke', 'tenant-phone-block')).join('')}</div></div>
+  </div>`;
+}
+const tenantBase = tenantPage;
+const LAST_LATER = '<div class="grid2">';
+tenantPage = (x) => { const page = tenantBase(x); const first = page.indexOf(LAST_LATER); const last = page.lastIndexOf(LAST_LATER); return page.slice(0, first) + paymentsCards(x) + page.slice(first, last) + addonsCard(x) + page.slice(last); };
+delete SCREENS['tenant-addons'];
+const shopScreen = { base: 'tenant', nav: 'tenants', group: 'Daily', url: 'admin.lytro.app/shops/rahim-fashion', bandTitle: 'tenants', back: 'tenants', render: () => tenantPage(T1) };
+const pageOffRender = () => tenantPage(T1).replace(paymentsCards(T1), paymentsCards(T1, { pageOff: true }));
+const backTo = (scr) => btn(t('cancel'), 'ghost', `go('${scr}')`);
+def('tenant-page-suspend', { ...shopScreen, label: '· suspend its payment page (sheet)', sheet: () => sheet(t('ps_title', { shop: T1.name }), `${T1.slug}.lytro.app`, `${consequence(t('ps_cons'), 'danger')}${reasonField()}`, `${backTo('tenant')}${btn(t('pr_suspend'), 'danger', "go('tenant-page-off')")}`, { row: true, close: 'tenant' }) });
+def('tenant-page-off', { ...shopScreen, label: 'Shop · payment page suspended', render: pageOffRender });
+def('tenant-page-restore', { ...shopScreen, base: 'tenant-page-off', label: '· restore its payment page (sheet)', render: pageOffRender, sheet: () => sheet(t('pg_rs_title', { shop: T1.name }), null, `${consequence(t('pg_rs_cons'), 'ok')}<div class="kv"><span class="k">${t('reason')}</span><span class="v">Asked shoppers for their bKash PIN</span></div>`, `${backTo('tenant-page-off')}${btn(t('pg_rs_btn'), 'primary', "go('tenant')")}`, { row: true, close: 'tenant-page-off' }) });
+def('tenant-cap', { ...shopScreen, label: '· new-shop cap (sheet)', sheet: () => sheet(t('cap_sh_title', { shop: T1.name }), null, `${consequence(t('cap_cons', { n: 30, a: money(20000) }))}<div style="display:flex;flex-direction:column;gap:12px">${chk(true, t('cap_opt_kind'))}${chk(false, t('cap_opt_on'))}${chk(false, t('cap_opt_off'))}</div>`, `${backTo('tenant')}${btn(t('save'), 'primary', "go('tenant')")}`, { row: true, close: 'tenant' }) });
+const revokeSheet = (d, close) => sheet(t('ph_rv_title', { name: d.name }), `${d.model} · ${t('ph_seen', { ago: ago(d.seen) })}`, consequence(t('ph_rv_cons'), 'danger'), `${backTo(close)}${btn(t('ph_revoke'), 'danger', `go('${close}')`)}`, { row: true, close });
+const blockSheet = (d, close) => sheet(t('ph_bl_title'), `${d.name} · ${d.model}`, `${consequence(t('ph_bl_cons'), 'danger')}<div class="kv"><span class="k">${t('ph_install')}</span><span class="v mono">${d.install}</span></div>${reasonField()}`, `${backTo(close)}${btn(t('ph_bl_btn'), 'danger', `go('${close}')`)}`, { row: true, close });
+def('tenant-phone-revoke', { ...shopScreen, label: '· revoke a phone (sheet)', sheet: () => revokeSheet(SHOP_PHONES.devices[0], 'tenant') });
+def('tenant-phone-block', { ...shopScreen, label: '· block an installation (sheet)', sheet: () => blockSheet(SHOP_PHONES.devices[0], 'tenant') });
+function credentialsPage() {
+  const list = ST.data === 'busy' ? CRED_USES : [];
+  const cols = [
+    { k: 'when', label: t('c_when'), w: '140px', cls: 'main' },
+    { k: 'wallet', label: t('c_wallet'), w: '90px' },
+    { k: 'action', label: t('c_action'), w: 'minmax(170px,1.2fr)' },
+    { k: 'session', label: t('c_session'), w: '110px' },
+    { k: 'result', label: t('c_result'), w: '90px' },
+  ];
+  const rows = list.map((u) => ({ cells: { when: `<span class="num">${dateT(u.at)}</span>`, wallet: u.method, action: t('ca_' + u.action), session: u.session ? `<span class="mono">${u.session}</span>` : `<span style="color:var(--subtle)">${t('cr_none')}</span>`, result: u.ok ? st('ok', t('cr_ok')) : st('bad', t('cr_fail')) } }));
+  return `<div class="crumbs"><a onclick="go('tenants')">${t('tenants')}</a>${I.chev}<a onclick="go('tenant')">${T1.name}</a>${I.chev}<span>${t('cl_title')}</span></div>
+  <div class="ttl"><div><h1>${t('cl_title')}</h1><div class="sub">${t('cl_sub')}</div></div></div>
+  ${ST.data === 'error' ? errorBox() : table(cols, rows, emptyBox(t('cl_empty'), t('cl_empty_hint'), 'key'))}`;
+}
+def('tenant-credentials', { base: 'tenant', nav: 'tenants', label: 'Shop · credential log', group: 'Daily', url: 'admin.lytro.app/shops/rahim-fashion/credentials', bandTitle: 'tenants', back: 'tenant', render: credentialsPage });
+
+/* ---------- Lytro's phones ---------- */
+const phoneTabs = (active) => `<div class="chips">${[['phones', 'lp_t_phones'], ['receipts', 'lp_t_receipts'], ['unread', 'lp_t_unread']].map(([scr, k]) => `<button class="chip ${active === scr ? 'on' : ''}" onclick="go('${scr}')">${t(k)}</button>`).join('')}</div>`;
+const phonesHead = () => `<div class="ttl"><div><h1>${t('phones')}</h1><div class="sub">${t('lp_sub')}</div></div><div class="actions">${btn(I.plus + t('lp_pair'), 'primary', "go('phone-pair')")}</div></div>`;
+function phonesPage() {
+  const list = ST.data === 'busy' ? LYTRO_PHONES : [];
+  const off = list.find((p) => !p.online);
+  const cols = [
+    { k: 'phone', label: t('c_phone'), w: 'minmax(180px,1.4fr)', cls: 'main' },
+    { k: 'version', label: t('c_version'), w: '70px' },
+    { k: 'seen', label: t('c_seen'), w: '100px' },
+    { k: 'state', label: t('c_status'), w: '100px' },
+    { k: 'today', label: t('c_uploads'), w: '70px', cls: 'r' },
+    { k: 'acts', label: '', w: '150px', cls: 'acts' },
+  ];
+  const rows = list.map((d) => ({ cells: { phone: `<div>${d.name}</div><div style="font-size:12px;color:var(--subtle);font-weight:400">${d.model}</div>`, version: `<span class="num">${d.app}</span>`, seen: `<span class="num">${ago(d.seen)}</span>`, state: phoneChip(d), today: `<span class="num">${d.today}</span>`, acts: `${btn(t('ph_revoke'), 'ghost sm', "go('phone-revoke')")}${btn(t('ph_block'), 'quiet sm', "go('phone-block')")}` } }));
+  return `${phonesHead()}${phoneTabs('phones')}${ST.data === 'error' ? errorBox() : `${off ? `<div class="banner warn">${I.warn}<div>${t('lp_off', { name: off.name, ago: ago(off.seen) })}</div></div>` : ''}${table(cols, rows, emptyBox(t('lp_empty'), t('lp_empty_hint'), 'phone'))}`}`;
+}
+const phoneScreen = { base: 'phones', nav: 'phones', group: 'Platform', url: 'admin.lytro.app/phones', bandTitle: 'phones', render: phonesPage };
+def('phones', { ...phoneScreen, label: 'Lytro\'s phones' });
+def('phone-pair', { ...phoneScreen, label: '· pair a phone (sheet)', sheet: () => sheet(t('lp_pair'), t('lp_p_sub'), `<ol style="margin:0 0 0 18px;display:flex;flex-direction:column;gap:6px"><li>${t('lp_p_1')}</li><li>${t('lp_p_2')}</li></ol><div class="card" style="text-align:center"><div class="hint">${t('lp_p_code')}</div><div class="mono" style="font-size:30px;font-weight:600;letter-spacing:.14em;margin:8px 0">K7F2M9QX</div><div class="hint">${t('lp_p_exp', { d: dateT('2026-10-21T14:40:00+06:00') })}</div></div>`, `${btn(t('lp_p_new'), 'ghost', '')}${btn(t('lp_p_done'), 'primary', "go('phones')")}`, { row: true, close: 'phones' }) });
+def('phone-revoke', { ...phoneScreen, label: '· revoke (sheet)', sheet: () => revokeSheet(LYTRO_PHONES[1], 'phones') });
+def('phone-block', { ...phoneScreen, label: '· block an installation (sheet)', sheet: () => blockSheet(LYTRO_PHONES[1], 'phones') });
+const receiptState = (r) => st(r.status === 'matched' ? 'ok' : r.status === 'needs_review' ? 'warn' : r.status === 'unmatched' ? 'info' : 'mute', t('rs_' + r.status));
+function receiptsPage() {
+  const list = ST.data === 'busy' ? RECEIPTS : [];
+  const count = (s) => list.filter((r) => r.status === s).length;
+  const cols = [
+    { k: 'money', label: t('c_amount'), w: '100px', cls: 'main' },
+    { k: 'trx', label: `${t('c_trx')} · ${t('c_sender')}`, w: 'minmax(170px,1.2fr)' },
+    { k: 'phone', label: t('c_phone'), w: 'minmax(130px,1fr)' },
+    { k: 'age', label: t('c_received'), w: '90px' },
+    { k: 'state', label: t('c_status'), w: '120px' },
+  ];
+  const rows = list.map((r) => ({ on: "go('receipt')", cells: {
+    money: r.amount === null ? `<span style="color:var(--subtle);font-weight:400">—</span>` : `<span class="money">${money(r.amount)}</span>`,
+    trx: r.trx ? `<span class="mono">${r.trx}</span><div class="mono" style="font-size:12px;color:var(--subtle)">${r.from} · ${r.method}</div>` : `<span class="mono">${r.sender}</span><div style="font-size:12px;color:var(--subtle)">${t('ig_' + r.ignored)}</div>`,
+    phone: r.phone, age: `<span class="num">${ago(r.at)}</span>`,
+    state: `${receiptState(r)}${r.reason ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${t('rv_' + r.reason)}</div>` : ''}`,
+  } }));
+  return `${phonesHead()}${phoneTabs('receipts')}<div class="sub" style="color:var(--muted)">${t('rc_sub')}</div>
+  <div class="search">${I.search}<input placeholder="${t('rc_search')}"></div>
+  ${ST.data === 'error' ? errorBox() : `<div class="chips"><span class="chip on">${t('all')} <span class="c">${list.length}</span></span>${['unmatched', 'needs_review', 'matched', 'duplicate', 'ignored'].map((s) => `<span class="chip">${t('rs_' + s)} <span class="c">${count(s)}</span></span>`).join('')}</div>${table(cols, rows, emptyBox(t('rc_empty'), t('rc_empty_hint'), 'inbox'))}${list.length ? `<div class="note" style="text-align:center">${t('rc_page', { a: 1, b: 3 })}</div>` : ''}`}`;
+}
+def('receipts', { base: 'phones', nav: 'phones', label: '· receipts', group: 'Platform', url: 'admin.lytro.app/phones/receipts', bandTitle: 'phones', render: receiptsPage });
+def('receipt', { base: 'receipts', nav: 'phones', label: '· a receipt (sheet)', group: 'Platform', url: 'admin.lytro.app/phones/receipts', bandTitle: 'phones', render: receiptsPage, sheet: () => { const r = RECEIPTS[0];
+  return sheet(`${money(r.amount)} · ${r.method}`, r.trx, `<div class="banner warn">${I.warn}<div><b>${t('rv_' + r.reason)}</b></div></div><div class="kv"><span class="k">${t('c_status')}</span><span class="v">${receiptState(r)}</span><span class="k">${t('c_sender')}</span><span class="v mono">${r.from}</span><span class="k">${t('c_phone')}</span><span class="v">${r.phone}</span><span class="k">${t('c_received')}</span><span class="v">${dateT(r.at)} · ${ago(r.at)}</span></div><div class="field"><label>${t('rc_text')}</label><div class="input mono" style="height:auto;padding:10px 12px;white-space:normal;line-height:1.5;font-size:13px">${r.text}</div></div>`, btn(t('rc_open_pay'), 'primary', "go('queue-payment')"), { close: 'receipts' }); } });
+function unreadPage() {
+  const list = ST.data === 'busy' ? UNREAD : [];
+  const cols = [
+    { k: 'shape', label: t('c_wording'), w: 'minmax(260px,2.4fr)', cls: 'main' },
+    { k: 'day', label: t('c_day'), w: '110px' },
+    { k: 'count', label: t('c_count'), w: '160px' },
+  ];
+  const rows = list.map((u) => ({ cells: { shape: `<span class="mono" style="font-size:13px;font-weight:400">${u.shape}</span>`, day: `<span class="num">${dateS(u.day)}</span>`, count: `<span class="num">${t('un_count', { n: u.count })}</span> ${u.count >= 20 ? st('warn', t('un_told')) : ''}` } }));
+  return `${phonesHead()}${phoneTabs('unread')}<div class="sub" style="color:var(--muted)">${t('un_sub')}</div>
+  ${ST.data === 'error' ? errorBox() : `<div class="chips">${[[7, true], [30, false], [90, false]].map(([n, on]) => `<span class="chip ${on ? 'on' : ''}">${t('un_days', { n })}</span>`).join('')}</div>${table(cols, rows, emptyBox(t('un_empty'), t('un_empty_hint'), 'inbox'))}`}`;
+}
+def('unread', { base: 'phones', nav: 'phones', label: '· unreadable messages', group: 'Platform', url: 'admin.lytro.app/phones/unread', bandTitle: 'phones', render: unreadPage });
+
+/* ---------- every platform setting, in nine groups ---------- */
+function settingValue(s) {
+  if (s.unit === 'list') return `<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">${s.value.map((v) => `<span class="st mute plain mono">${v}</span>`).join('')}</span>`;
+  if (s.unit === 'choice') return `<span style="font-weight:600;text-align:right">${t('ol_' + s.value)}</span>`;
+  if (s.unit === 'version' || s.unit === 'text') return `<span class="mono" style="font-weight:600">${s.value}</span>`;
+  if (s.unit === '৳') return `<span class="money" style="font-size:20px">${money(s.value)}</span>`;
+  return `<span class="money" style="font-size:20px">${s.value} <span style="font-size:13px;font-weight:500;color:var(--subtle)">${t(s.unit)}</span></span>`;
+}
+function settingEditor(s, editorFor) {
+  const save = `${btn(t('save'), 'primary sm', "go('settings')")}${btn(t('cancel'), 'ghost sm', "go('settings')")}`;
+  const reason = `<input class="input" placeholder="${t('reason')}" style="height:36px;width:220px;max-width:100%">`;
+  if (s.unit === 'list') return `<div style="flex:1 1 100%;display:flex;flex-direction:column;gap:8px">${field(t('sn_' + s.key), textarea(s.value.join('\n')), t('se_senders_help'))}<span style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${reason}${save}</span></div>`;
+  if (s.unit === 'choice') return `<span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${select([['block', t('ol_block')], ['allow_with_prompt', t('ol_allow_with_prompt')]], s.value)}${reason}${save}</span>`;
+  if (s.unit === 'version') return `<div style="flex:1 1 100%;display:flex;flex-direction:column;gap:8px"><div class="banner warn">${I.warn}<div>${t('se_version_warn')}</div></div><span style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input class="input inline mono" value="${s.value}" style="width:140px">${reason}${save}</span></div>`;
+  return `<span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="input inline mono" value="${s.value}" style="width:110px">${reason}${save}</span>`;
+}
+const CHANGE_SCREEN = { list: 'setting-senders', choice: 'setting-order-limit', version: 'setting-version' };
+settingsPage = (o) => {
+  o = o || {};
+  const row = (s) => `<div class="row" style="flex-wrap:wrap;gap:8px 12px"><span class="body"><span class="l1">${t('sn_' + s.key)}</span><span class="l2" style="white-space:normal">${s.desc}${s.by ? ` · ${t('se_updated', { d: dateS(s.updatedAt) })} · ${s.by}` : ''}</span></span>${o.editing === s.key ? settingEditor(s) : `<span style="min-width:90px;max-width:100%;text-align:right">${settingValue(s)}</span>${btn(t('change'), 'ghost sm', `go('${CHANGE_SCREEN[s.unit] || 'setting-change'}')`)}`}</div>`;
+  const group = (n) => `<div><div class="sechead"><h2>${t('se_g' + n)}</h2></div><div class="card flush" style="margin-top:8px"><div class="list">${SETTINGS.filter((s) => s.group === n).map(row).join('')}</div></div></div>`;
+  const v = (k) => SETTINGS.find((s) => s.key === k).value;
+  const g = v('grace_days'), r = g + v('read_only_days'), l = r + v('locked_days'), a = l + v('archived_days');
+  return `<div class="ttl"><div><h1>${t('settings')}</h1><div class="sub">${t('se_sub')}</div></div></div>
+  <div class="chips">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<span class="chip">${t('se_g' + n)}</span>`).join('')}</div>
+  <div class="grid-side">
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0">${[1, 2].map(group).join('')}</div>
+    <div class="card"><h3>${t('se_timeline')}</h3><div class="hint" style="margin-bottom:12px">${t('se_tl_hint')}</div><div class="timeline">
+      <div class="tstep"><div class="t">0 · ${t('tl_end')}</div></div>
+      <div class="tstep"><div class="t">0–${g} · ${t('sn_grace_days')}</div><div class="d">${t('tl_grace')}</div></div>
+      <div class="tstep"><div class="t">${g}–${r} · ${t('sn_read_only_days')}</div><div class="d">${t('tl_ro')}</div></div>
+      <div class="tstep"><div class="t">${r}–${l} · ${t('sn_locked_days')}</div><div class="d">${t('tl_locked')}</div></div>
+      <div class="tstep"><div class="t">${l}–${a} · ${t('sn_archived_days')}</div><div class="d">${t('tl_arch')}</div></div>
+      <div class="tstep end"><div class="t">${t('tl_del', { n: a })}</div></div></div></div>
+  </div>
+  ${[3, 4, 5, 6, 7, 8, 9].map(group).join('')}`;
+};
+const settingScreen = { base: 'settings', nav: 'settings', group: 'Platform', url: 'admin.lytro.app/settings', bandTitle: 'settings' };
+def('setting-senders', { ...settingScreen, label: '· change the senders', render: () => settingsPage({ editing: 'listener_senders' }) });
+def('setting-order-limit', { ...settingScreen, label: '· change a choice', render: () => settingsPage({ editing: 'order_limit_mode' }) });
+def('setting-version', { ...settingScreen, label: '· change a version', render: () => settingsPage({ editing: 'terms_version' }) });
 
 /* ---------- render ---------- */
 function setLang(l) { ST.lang = l; L.lang = l; document.querySelectorAll('#segLang button').forEach((b) => b.classList.toggle('on', b.dataset.v === l)); render(); }
