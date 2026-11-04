@@ -2020,6 +2020,15 @@ Slice 5.7 was built from bKash's documents and a fake, with one test against the
   blocked for an hour, while the shopper pays on the page. It costs nothing while there is one server; when there are more, the call needs
   a lock per account.
 
+## 108. `CUS-09`: a privacy delete left the customer's number on their payments — found 2026-11-04, fixed 2026-11-04
+
+The Phase 4 close-out check found that deleting a customer cleared the number from their payment sessions and receipts but
+not from `tenant.payments.sender_number`, and the order page still returned it. The app's database role could not update the
+column, and `tenant.guard_payment()` refused any change to a voided or refunded payment. Migration 0102 lets the app empty the
+number, and only empty it; a delete now does so on the customer's orders and on any payment or session from their number,
+keeping each transaction ID and amount. A customer deleted before the fix keeps the number on their payments unless it is
+cleaned by hand; their orders carry `customer_erased_at`, which finds them.
+
 ## 109. `DWN-14`: a shop owner with no email gets the final warning in the app only — found 2026-11-04, open
 
 `DWN-14` asks for the warning after the 30 days in the app, by push and by email. `sendFinalWarnings` sends the email only when the
@@ -2038,12 +2047,3 @@ The guard refuses moving an attribute already on a product between describing an
 existing informational attribute". An attribute not yet on the product isn't checked, though the code's comment says one "neither
 starts nor stops" splitting (`product.service.ts`). Past orders keep their text (`ATL-06`), so nothing breaks; it needs a decision
 whether a seller may add sizes to a product that has sold. Found by the Phase 4 close-out.
-
-## 108. `CUS-09`: a privacy delete left the customer's number on their payments — found 2026-11-04, fixed 2026-11-04
-
-The Phase 4 close-out check found that deleting a customer cleared the number from their payment sessions and receipts but
-not from `tenant.payments.sender_number`, and the order page still returned it. The app's database role could not update the
-column, and `tenant.guard_payment()` refused any change to a voided or refunded payment. Migration 0102 lets the app empty the
-number, and only empty it; a delete now does so on the customer's orders and on any payment or session from their number,
-keeping each transaction ID and amount. A customer deleted before the fix keeps the number on their payments unless it is
-cleaned by hand; their orders carry `customer_erased_at`, which finds them.
