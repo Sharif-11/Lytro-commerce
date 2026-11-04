@@ -1700,7 +1700,7 @@ architecture is whole when each phase arrives. Their endpoints do not exist yet.
   (Phase 7) and reading a pasted message (Phase 7), drawn greyed in §7.31.
 - **Customers** moved to §7.32 (Part 30, 2026-10-31); the customer's fraud level stays here (Phase 7).
 - **Payments** (Phase 5), the shop's incoming payments (its own payments to Lytro are Billing, §7.13): To verify
-  first (PAY-14) with the mismatch line, Approve and Reject, proof image;
+  first (PAY-14) with the mismatch line, Approve and Reject;
   listener health (VER-07); the verified list. **Payment methods** moved to §7.35 (Part 33, 2026-11-04).
 - **Notices** (Phase 7): pinned first, category chips, "I understand" (NTC-03 to 05). **SMS events** (Phase
   7): switches with the estimated monthly cost and the template link (SMS-02, 10, 12).
