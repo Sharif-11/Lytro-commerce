@@ -75,7 +75,7 @@ export function MediaSheet({
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-  // MED-09 (Part 33's `sh-media-past`): what each photo taken off in this sitting costs past orders.
+  // MED-09 (Part 34's `sh-media-past`): what each photo taken off in this sitting costs past orders.
   const [lost, setLost] = useState<ReadonlyMap<string, number>>(new Map());
   useEffect(() => {
     if (!open) setLost(new Map());

@@ -86,13 +86,13 @@ count as complete.
 
 | Family | Requirements |
 |---|---|
-| ORD | ORD-01, 02, 03, 04 (amended), 05, 06, 06a, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 40, 41 (amended), 43, 45, 46, 47, 48, 50, 51 (added), 52 (added) |
+| ORD | ORD-01, 03, 04 (amended), 05, 06, 06a, 09, 10, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 40, 41 (amended), 43, 45, 46, 47, 48, 50, 51 (added), 52 (added) |
 | QTA | QTA-01 – QTA-07 (the manual trigger; Phase 6's courier booking calls the same counting) |
 | CMB | CMB-01 – CMB-10 |
 | CUS | CUS-01 – CUS-07, CUS-09 |
 | STA | STA-01 – STA-04 |
 | TAX, MNU | TAX-01 – TAX-03, MNU-01 – MNU-04 |
-| LND | LND-07, 08, 09, 11, 12, 13, 15, 16 |
+| LND | LND-07, 08, 09, 12, 13, 15, 16 |
 | SFT | SFT-08, SFT-09, SFT-20 |
 | From Phase 3's partials | PRD-06, 07, 08, 13; ATR-07, 08, 09, 15; ATL-06; UOM-04; INV-14, 15, 17, 23, 24; MED-09; CCH-07; DAT-13; API-21; RTE-06; DLV-03, 04, 06, 07 |
 | PYG | PYG-02, 03, 04, 05, 14 (the order fee at handling, never at creation) |
@@ -101,6 +101,9 @@ count as complete.
 
 | Req | Done in this phase | Remaining | Finished in |
 |---|---|---|---|
+| ORD-02 | public keys create orders for shoppers (moved here at the close-out, §11) | a secret key with `orders:manage` | Phase 8 |
+| ORD-11 | edits with their totals worked out again (moved here at the close-out, §11) | the warning after courier booking | Phase 6 |
+| LND-11 | the confirmation after an order (moved here at the close-out, §11) | how to retry a failed or abandoned payment | Phase 5 |
 | ORD-07 | `pending` for cash on delivery; staff choose a status | `unverified` for an order awaiting an online payment | Phase 5 |
 | ORD-08 | confirming call, manual shipped and delivered, cancel and return moves with history | moves from payment events and courier reports | Phases 5, 6 |
 | ORD-20 | the in-app notice through the console stand-in, never for staff-entered orders | push and SMS | Phase 7 |
@@ -114,7 +117,7 @@ count as complete.
 | API-11 | required on order creation; reworked keys (D4-8) | required on payment sessions | Phase 5 |
 | LIM-02, LIM-04 | orders on the usage page and their counters | payment sessions | Phase 5 |
 | TRL-03, PLN-19 | handled orders on a trial; "unlimited" honoured for orders | paired device, sessions | Phase 5 |
-| DWN-12, DWN-14, DWN-15, UPG-10 | orders in the downgrade checklist and the per-period reset | payment sessions | Phase 5 |
+| DWN-12, DWN-14, DWN-15, UPG-10 | the new plan's order limit from the effective date and the per-period reset (corrected at the close-out, §11: the checklist lists what an owner can fix, and a count of handled orders isn't that) | payment sessions | Phase 5 |
 | AUD-01 | order created, edited, status changed, deleted; payment recorded; call logged | payment verified by the listener or gateway | Phase 5 |
 | LIF-16, LIF-19 | the export and the day-60 deletion include orders, customers and products (KNOWN-GAPS §13) | payments, chat, courier credentials | Phases 5–7 |
 
@@ -516,3 +519,66 @@ Same as Phase 3:
 - the isolation registry updated for any new shop-owned route
 - `KNOWN-GAPS.md` updated if anything listed here turns out not to hold
 - this plan's slice entry marked shipped with its PR number
+
+---
+
+## 11. Close-out check (2026-11-04)
+
+Checked after Slice 4.8 merged (#289), against §1's six criteria. Every slice is built. Three reviews read every requirement in
+§3.1 and §3.2 against the tests, looking for the assertion and not for a test that names the ID. What they found was fixed in
+three pull requests: the privacy fix (#293), the small screens (#295) and this check's own, which holds the server's fixes, the
+tests and this section.
+
+1. **Every completed requirement has a test or a recorded manual check: holds, with the exceptions below.**
+   - **Fixed by this check:**
+     - CUS-09: a privacy delete left the customer's number on their payments (KNOWN-GAPS §108).
+     - DLV-07: a combo holding a limited product went anywhere its own list allowed; it now goes only where every part may, and
+       the landing page says so and a refusal names the product.
+     - QTA-07: the monthly request stop refused orders; placing an order, the delivery estimate and locations are now served
+       past it, and counted (the user's pick over amending QTA-07).
+     - API-11: a missing key now answers `idempotency_key_required`. CMB-01: `kind` on an edit is refused. LIF-16: products are in
+       the export.
+     - Built because they were counted here and weren't (the user's pick, #295): MED-09's count, ORD-47's placeholder, PYG-03's Add
+       balance, INV-23 at shipping, LND-07's parts of a unit, DLV-07 on the landing page, LND-09's filter.
+   - **Moved to §3.2, since a later phase finishes them:** ORD-02 (secret keys, Phase 8), ORD-11 (the warning after booking,
+     Phase 6), LND-11 (retrying a payment, Phase 5).
+   - **Amended, the requirement and what was built having parted:** ORD-05, ORD-45, ORD-50, CUS-05, CMB-09, DLV-06's wording, API-07,
+     API-21, AUD-01, PYG-05, QTA-07, RTE-03, LIF-16. §3.2's downgrade row is corrected: the checklist lists what an owner can fix, and
+     a count of handled orders isn't that, so it has no orders row; the new plan's limit and the reset are tested instead.
+   - **Tested without naming the ID:** ORD-03 (through QTA-01 to QTA-04) and ORD-42 (whole-order shipped and delivered).
+   - **Manual checks recorded:**
+     - ORD-48: no scheduled job or bulk action removes an order for being old. The jobs read were the lifecycle tick, reservation and
+       payment-session expiry (these cancel, never delete), inventory expiry, the idempotency purge, the listener purge, and the media
+       and domain ticks; only the lifecycle tick reaches orders (LIF-19). The list's only bulk action prints labels.
+     - ORD-50, as amended: an order is removed only by `DELETE /orders/:id` (ORD-12, guarded in the database to unshipped and unpaid),
+       the day-60 deletion (LIF-19) and, keeping its row, a privacy delete (CUS-09). Editing an unshipped order may drop a line of it
+       (ORD-11). No public-key or operator route deletes an order.
+   - **Built, but only partly proven:**
+     - ORD-14: the page shows items, pricing, payments, courier, calls and a timeline, proven on a mocked API; there is no section for
+       the order's activity (KNOWN-GAPS §110).
+     - ORD-46: the staff read and tracking are proven after a hard delete. The label reads the same stored line. Orders have no
+       invoice yet, and the payments list shows no lines.
+     - LND-16: the test sees a send refused and the order unharmed, and doesn't run the worker's retries.
+     - CMB-07: the default weight and its override are proven; courier booking's use of it waits for Phase 6. Read in the code, not
+       run: a from-parts weight adds no per-kg charge, and the heaviest-variant rule counts only variants on sale when any are.
+     - LND-07: a shopper asking past the stock is refused by the server, since the public read gives a state and not a count.
+     - INV-23: the camera is tested with a stand-in for the phone's, not a real one.
+   - **Live only:** DAT-13 (100,000 orders), LIM-04 (reconciling the counters), LND-15 and LND-16 in Meta's event tester, CCH-07's
+     caching at the edge, LIF-16's ten minutes.
+2. **The order golden path: holds.** `order-golden-path.e2e.spec.ts` walks every step §1 names as one test, for one cosmetics shop on
+   pay-as-you-go, reading the two axes, the status, the levels, the ledger, the customer's totals, the sales figures, the plan's count
+   and the fees after each. The return step follows INV-17 and INV-18: both units' cost leaves the cost of goods, and the damaged one's
+   is reported as a loss.
+3. **The shopper path: holds.** An order from the storefront and one from a landing page, each submitted twice and tapped twice at once,
+   make one order each at the price the estimate showed; tracking shows no address, phone or name (`public-orders.e2e.spec.ts`). A
+   signed-in shopper sees their own orders only, and no token sees none (`shopper-accounts.e2e.spec.ts`). The pages themselves are
+   proven against a mocked server, and one run went through the real chain by hand in Slice 4.8e, which isn't in CI.
+4. **Concurrency: holds.** 50 orders at once get 50 consecutive numbers, and two orders racing for the last unit leave one refused
+   with nothing oversold (`orders.e2e.spec.ts`).
+5. **Limits: holds.** Order creation isn't refused for handling, on the staff and public routes with both limits used up; handling is
+   refused past a trial's real 40th order, from the plan's own figure, and past the day's limit, at Starter's real 60; the 11th order from
+   one visitor in a minute is refused (RTE-06).
+6. **CI green on `main`, every slice by pull request: holds** once this check's pull requests merge. A green Deploy run at this check
+   deployed nothing, because its staging and production jobs are skipped, so nothing here has run on a live deployment.
+
+Noted for later, none of them stopping this: KNOWN-GAPS §109 to §111. Phase 3's own open decisions (§101 to §104) are unchanged.

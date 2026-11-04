@@ -269,6 +269,77 @@ describeIfDatabase(
       expect(await service.checklist(shop.tenantId, later)).toBeNull();
     });
 
+    it('past the 30 days keeps the same blocks and every product and photo, with the final warning in the app and by email (DWN-14)', async () => {
+      const shop = await openShop(port, texts, 'downgrade-after');
+      await onLargePlan(shop);
+      const email = `${shop.slug}@example.com`;
+      await admin.query('UPDATE tenant.users SET email = $2 WHERE tenant_id = $1 AND is_owner', [
+        shop.tenantId,
+        email,
+      ]);
+      const photo = await uploadPhoto(shop);
+      expect(photo.status).toBe(201);
+      for (let index = 1; index <= 3; index += 1) {
+        expect(
+          (await shop.post('/products', { name: `P${String(index)}`, basePrice: 100 })).status,
+        ).toBe(201);
+      }
+      await override(shop, 'products', 2);
+      await downgradeNow(shop, new Date());
+      const { key } = (await shop.post('/api-keys', { name: 'Website', websites: [SITE] }))
+        .body as { key: string };
+      // What the shop holds, as it reads it.
+      const read = async () => ({
+        products: ((await shop.get('/products')).body as { products: { id: string }[] }).products
+          .map((row) => row.id)
+          .sort(),
+        media: (
+          (await shop.get('/media')).body as { media: { id: string; status: string }[] }
+        ).media.map((row) => [row.id, row.status]),
+      });
+      const before = await read();
+      expect(before.products).toHaveLength(3);
+      expect(before.media).toEqual([[photo.id, 'ready']]);
+      const over = [
+        { key: 'products', used: 3, limit: 2, fixed: false },
+        { key: 'storage_mb', used: 1, limit: 0, fixed: false },
+      ];
+
+      // The 30 days go by: the downgrade moves back, so every read here runs past them by the server's own clock.
+      await admin.query(
+        "UPDATE control.tenants SET downgraded_at = now() - interval '31 days' WHERE id = $1",
+        [shop.tenantId],
+      );
+      await app.get(DowngradeService).sendFinalWarnings(new Date());
+
+      // In the app: the checklist, its time run out, says when the final warning went and what is still over.
+      const checklist = await checklistOf(shop);
+      expect(new Date(checklist?.endsAt ?? Date.now()).getTime()).toBeLessThan(Date.now());
+      expect(checklist?.finalWarningAt).not.toBeNull();
+      expect(checklist?.items).toEqual(over);
+      // By email, with the export offered.
+      const mails = await admin.query<{ body: string }>(
+        `SELECT body FROM control.mail_outbox WHERE to_email = $1 AND kind = 'lifecycle_notice'`,
+        [email],
+      );
+      expect(mails.rows).toHaveLength(1);
+      expect(mails.rows[0]?.body).toContain('Nothing has been deleted or hidden');
+      expect(mails.rows[0]?.body).toContain('Settings, Export');
+
+      // The same blocks.
+      const refused = await shop.post('/products', { name: 'One more', basePrice: 100 });
+      expect(refused.status).toBe(402);
+      expect(errorOf(refused)).toMatchObject({
+        code: 'plan_limit_reached',
+        details: { metric: 'products', products: 2 },
+      });
+      expect((await uploadPhoto(shop)).status).toBe(402);
+
+      // Nothing deleted or hidden, in the dashboard or on the public catalogue.
+      expect(await read()).toEqual(before);
+      expect(await publicCount(key)).toBe(3);
+    });
+
     it('leaves no checklist when the smaller plan still fits, and a new plan clears an old one', async () => {
       const fits = await openShop(port, texts, 'downgrade-fits');
       await onLargePlan(fits);

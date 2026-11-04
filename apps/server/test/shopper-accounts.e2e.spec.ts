@@ -346,6 +346,12 @@ describeIfDatabase('signing in with phone and password (CUS-03, CUS-05)', () => 
     const shop = await shopWithKey();
     const other = await shopWithKey();
     const account = await signUp(shop);
+    // CCH-07: what a token reads never invites a shared cache to keep it.
+    for (const path of ['/me', '/addresses', '/orders']) {
+      const read = await call(shop, 'GET', path, undefined, as(account.token));
+      expect(read.status, path).toBe(200);
+      expect(String(read.headers['cache-control'] ?? ''), path).not.toMatch(/public|s-maxage/);
+    }
     expect((await call(other, 'GET', '/me', undefined, as(account.token))).status).toBe(401);
     expect((await signIn(other, account.shopper.phone)).status).toBe(401);
     expect((await call(shop, 'GET', '/me', undefined)).status).toBe(401);
@@ -577,6 +583,43 @@ describeIfDatabase("a shopper's orders (ORD-18)", () => {
       },
     );
     expect(tracked.status).toBe(200);
+  });
+
+  it('refuses a visitor with no sign-in, or an unknown one, and shows no order (SFT-09)', async () => {
+    const shop = await shopWithKey();
+    const phone = texts.freshPhone();
+    const made = await shop.owner.post('/products', {
+      name: 'Lamp',
+      basePrice: 300,
+      variants: [{ optionIds: [], openingStock: 5 }],
+    });
+    const variantId = (made.body as { variants: { id: string }[] }).variants[0]?.id ?? '';
+    const placed = await postJson(
+      port,
+      '/orders',
+      {
+        customerName: 'Rumana',
+        phone,
+        locationId: await mirpurId(shop),
+        deliveryAddress: 'House 12',
+        items: [{ variantId, quantity: 1 }],
+      },
+      shop.owner.headers({ 'idempotency-key': randomUUID() }),
+    );
+    expect(placed.status, JSON.stringify(placed.body)).toBe(201);
+    const { orderNumber } = placed.body as { orderNumber: string };
+    const account = await signUp(shop, phone);
+    expect(
+      ((await call(shop, 'GET', '/orders', undefined, as(account.token))).body as { total: number })
+        .total,
+    ).toBe(1);
+    for (const asked of [{}, as('not-a-token')]) {
+      const refused = await call(shop, 'GET', '/orders', undefined, asked);
+      expect(refused.status).toBe(401);
+      expect(errorOf(refused).code).toBe('unauthenticated');
+      expect(JSON.stringify(refused.body)).not.toContain(orderNumber);
+      expect(JSON.stringify(refused.body)).not.toContain(phone);
+    }
   });
 });
 

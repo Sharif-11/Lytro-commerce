@@ -160,9 +160,14 @@ describeIfDatabase("a shop's tax classes (TAX-01)", () => {
     const shop = await openShop(port, texts, 'tax');
     const vat = await named(shop, 'VAT', 15);
     const other = await named(shop, 'Reduced', 5);
-    expect((await product(shop, 'Before', 100)).taxClass).toBeNull();
+    const before = await product(shop, 'Before', 100);
+    expect(before.taxClass).toBeNull();
     const set = await shop.put('/tax-classes/default', { taxClassId: vat });
     expect((set.body as Classes).defaultId).toBe(vat);
+    // TAX-01: one made before the default keeps no class.
+    expect(
+      ((await shop.get(`/products/${before.id}`)).body as { taxClass: unknown }).taxClass,
+    ).toBe(null);
     const after = await product(shop, 'After', 100);
     expect(after.taxClass).toMatchObject({ id: vat, name: 'VAT', rate: '15.00' });
     expect((await product(shop, 'Untaxed', 100, { taxClassId: null })).taxClass).toBeNull();

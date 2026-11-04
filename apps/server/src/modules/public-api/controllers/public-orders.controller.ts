@@ -12,6 +12,7 @@ import {
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
+import { TakesOrders } from '../../../common/decorators/public-api';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { headerValue, type HttpResponse } from '../../../common/http';
 import { apiKeyCaller, requestHashOf } from '../../../common/idempotency/idempotency.service';
@@ -123,6 +124,7 @@ export class PublicOrdersController {
     @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
   ) {}
 
+  @TakesOrders()
   @Post('orders')
   @ResponseMessage('OrderCreated')
   @ApiOperation({
@@ -141,7 +143,8 @@ export class PublicOrdersController {
     const key = request.apiKey;
     if (!shop || !key) throw new Error('the public key guard names the shop and its key');
     const idempotencyKey = headerValue(request.headers['idempotency-key']);
-    if (!idempotencyKey) throw new ApiError('validation_error', 'IdempotencyKeyRequired', {});
+    if (!idempotencyKey)
+      throw new ApiError('idempotency_key_required', 'IdempotencyKeyRequired', {});
     await this.limits.admitOrder(shop, request, this.clock());
     const tenantId = shop.row.id;
     const placed = await this.orders.place(shop, body, key, this.clientIp.resolve(request), {

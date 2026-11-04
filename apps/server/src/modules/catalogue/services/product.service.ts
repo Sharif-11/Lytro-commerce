@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  ProductExportRow,
   ModifierGroupRow,
   NewModifierGroup,
   ProductStateCounts,
@@ -74,6 +75,7 @@ import type {
   ProductAttributeValueRecord,
   ProductAttributeView,
   ProductDefaults,
+  ExportedProduct,
   ProductDetail,
   ProductListItem,
   ProductPage,
@@ -89,7 +91,7 @@ import type {
 import { TaxClasses } from './tax-classes';
 import { CatalogueActivity, type ResolvedActor } from './catalogue-activity';
 import { CatalogueImages, refuseUnattachable } from './catalogue-images';
-import { ComboParts, type ComboPartValues } from './combo-parts';
+import { ComboParts, comboZones, type ComboPartValues } from './combo-parts';
 import { effectiveMode, effectiveVariant } from './effective-variant';
 import { settlePaymentPolicy } from './payment-policy';
 import { PresetService } from './preset.service';
@@ -204,6 +206,8 @@ function modifierGroupView(group: ModifierGroupRow): ModifierGroupView {
   };
 }
 
+const EXPORT_BATCH = 500;
+
 @Injectable()
 export class ProductService {
   constructor(
@@ -288,6 +292,43 @@ export class ProductService {
 
   get(tenantId: string, productId: string): Promise<ProductDetail> {
     return this.transactions.run((tx) => this.detail(tx, tenantId, productId));
+  }
+
+  /** LIF-16: every product of the shop and its variants, for its data export. */
+  listForExport(tenantId: string): Promise<ExportedProduct[]> {
+    return this.transactions.run(async (tx) => {
+      const all: ExportedProduct[] = [];
+      let after: string | null = null;
+      for (;;) {
+        const batch: ProductExportRow[] = await this.products.listForExport(
+          tx,
+          tenantId,
+          after,
+          EXPORT_BATCH,
+        );
+        const variants = await this.products.listVariantsForExport(
+          tx,
+          tenantId,
+          batch.map((row) => row.id),
+        );
+        const labels = await this.combos.labelsOf(
+          tx,
+          tenantId,
+          variants.map((row) => row.id),
+        );
+        for (const product of batch) {
+          all.push({
+            ...product,
+            variants: variants
+              .filter((row) => row.productId === product.id)
+              .map((row) => ({ ...row, label: labels.get(row.id) ?? '' })),
+          });
+        }
+        const last = batch.at(-1);
+        if (!last || batch.length < EXPORT_BATCH) return all;
+        after = last.id;
+      }
+    });
   }
 
   /** PRD-01, ATR-03, ATR-11: a product, its attributes and its variants, saved together or not at all. */
@@ -2067,6 +2108,33 @@ export class ProductService {
     );
   }
 
+  /** DLV-07: where a product can go, as a shopper and an order see it. */
+  deliveryZonesOf(tenantId: string, product: ProductDetail): Promise<string[]> {
+    return this.transactions.run((tx) => this.zonesWithin(tx, tenantId, product));
+  }
+
+  /**
+   * DLV-07: a product's own list; a combo goes only where every one of its parts may too. A part's choices can each be
+   * another product's, and the part can go wherever one of them can.
+   */
+  private async zonesWithin(
+    tx: Transaction,
+    tenantId: string,
+    product: ProductDetail,
+  ): Promise<string[]> {
+    if (product.kind !== ProductKind.Combo) return product.deliveryZoneIds;
+    const parts: string[][] = [];
+    for (const part of product.parts) {
+      const reach: string[][] = [];
+      const ids = new Set(
+        part.variants.filter((each) => each.available).map((each) => each.productId),
+      );
+      for (const id of ids) reach.push(await this.products.listDeliveryZoneIds(tx, tenantId, id));
+      parts.push(reach.some((zones) => zones.length === 0) ? [] : [...new Set(reach.flat())]);
+    }
+    return comboZones(product.deliveryZoneIds, parts);
+  }
+
   /**
    * ORD-46, D4-9: what an order needs of these products' live variants, inside the order's own transaction, read from
    * the same detail the product editor shows, so an order and the editor never disagree on a price or a charge.
@@ -2081,6 +2149,7 @@ export class ProductService {
       const detail = await this.detail(tx, tenantId, productId);
       const described = detail.attributes.filter((row) => row.role === AttributeRole.Informational);
       const photo = detail.images[0];
+      const zones = await this.zonesWithin(tx, tenantId, detail);
       for (const variant of detail.variants) {
         const effective = effectiveVariant(detail, variant);
         found.push({
@@ -2147,7 +2216,7 @@ export class ProductService {
               name: row.name,
               dataType: row.dataType,
             })),
-          deliveryZoneIds: detail.deliveryZoneIds,
+          deliveryZoneIds: zones,
           thumbnail: photo ? { mediaId: photo.id, url: photo.urls.thumbnail } : null,
         });
       }

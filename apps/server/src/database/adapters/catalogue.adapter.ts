@@ -17,7 +17,9 @@ import {
   type ProductImageRow,
   type MediaSize,
   type ProductListFilter,
+  type ProductExportRow,
   type ProductStateCounts,
+  type ProductVariantExportRow,
   type SizeChartContent,
   type SizeChartOwner,
   type Transaction,
@@ -369,6 +371,23 @@ export class DrizzleProductStore implements ProductStore {
 
   hasOrders(tx: Transaction, tenantId: string, productId: string): Promise<boolean> {
     return this.products.hasOrders(tx, tenantId, productId);
+  }
+
+  listForExport(
+    tx: Transaction,
+    tenantId: string,
+    afterId: string | null,
+    limit: number,
+  ): Promise<ProductExportRow[]> {
+    return this.products.listForExport(tx, tenantId, afterId, limit);
+  }
+
+  listVariantsForExport(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<ProductVariantExportRow[]> {
+    return this.products.listVariantsForExport(tx, tenantId, productIds);
   }
 
   listDeliveryZoneIds(tx: Transaction, tenantId: string, productId: string): Promise<string[]> {

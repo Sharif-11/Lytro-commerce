@@ -1,8 +1,10 @@
 # Tenant dashboard: the full design
 
-Status: v3.31, 2026-11-04 (the Phase 4 close-out's small screens, Part 33, §7.35: removing a photo on past orders, a
+Status: v3.32, 2026-11-04 (the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
 shipment the balance can't pay for, serials at shipping scanned, pasted or typed, the Orders list by where an order came
-from; v3.30 of 2026-11-03: Sales as built: the split follows the period, quarters and years, a chart with many bars, a
+from; v3.31 of 2026-11-04: Payment methods in Settings, how a wallet's money is taken, bKash's keys, the owner's phone at
+sign-up and Balance's on-hold line, drawn for Slice 5.8's part 1, §7.35; v3.30 of 2026-11-03: Sales as built: the split follows
+the period, quarters and years, a chart with many bars, a
 period with nothing delivered, See all, dates too long, a product's trend over 12 months, §7.34; v3.29 of 2026-11-03: a
 new combo with nothing inside, why one is out for each reason, changing or removing a
 part, a part sold by weight, a variant off sale, a product in several combos and a combo on Products, drawn as 4.8c's
@@ -156,7 +158,7 @@ waits for Phase 7; storefront settings wait for Slice 12; shortfall, returns and
 | Home | the job queue from stock, batches, money being checked or rejected, low balance, the plan's end and staff without a password; the fast-spend banner; the "Right now" tiles; the set-up checklist; the shop link | the order and payment job rows and the sales tiles (Phase 4, 5) |
 | Shop hub | Products (with photos and video), Categories, Attributes, Stock (checks, expiring, value and losses), Purchases (with suppliers), Delivery | shortfall, returns and profit (Phase 4, "Later phases") |
 | Money hub | Balance, Plan, Billing (the shop's payments to Lytro, with their invoices), Usage, Add-ons | Payments (the shop's incoming payments) and Payment methods (Phase 5); the hosted payment page (Phase 5, §7.19) |
-| Menu | Team, Activity, Settings (shop details, delivery, brand identity, API keys, Facebook and Meta, data export), Account; install the app, language, help, sign out | Notices (Phase 7); storefront settings and its banner slides (Slice 12); the settings rows for payment methods, couriers, listener, SMS and notifications under "Coming later" with their phase |
+| Menu | Team, Activity, Settings (shop details, delivery, brand identity, API keys, Facebook and Meta, data export), Account; install the app, language, help, sign out | Notices (Phase 7); storefront settings and its banner slides (Slice 12); the settings rows for couriers, listener, SMS and notifications under "Coming later" with their phase |
 | Shell | app bar with search (products) and **+** (Add product, Add stock, Top up); tab bar Home, Orders, Shop, Money, Menu; on desktop the rail, the header and, from 1280 px, the side column | the bell and notifications (Phase 7); the Orders tab opens a placeholder that says orders arrive in Phase 4; the + menu shows "New order" greyed with its phase |
 
 The "Later phases (design only)" group of the prototype keeps the Orders, Customers, Payments, Payment
@@ -177,7 +179,7 @@ of the business, not the platform's module names. Routes are under `app.lytro.ap
 | **Home** `/` | The queue, "Right now" tiles, set-up checklist, banners | any member | `GET /home` (Slice 11, §10) and `/me`; order and payment counts later |
 | **Orders** `/orders` | Orders, one order, new order, Customers | `orders:*`, `customers:read` | later (Phase 4); the tab opens the placeholder |
 | **Shop** `/products` | Products `/products`, one product `/products/:id`, new `/products/new`, Categories `/categories`, Attributes `/attributes` (with Option sets), Stock `/stock`, Stock checks `/stock/checks`, Expiring `/stock/expiring`, Stock value `/stock/value`, Purchases `/purchases` (one purchase `/purchases/:id`, Suppliers `/purchases/suppliers`), Delivery `/delivery` | `products:*`, `inventory:*` (costs and value only with `inventory:manage`, D3-9), `settings:manage` (delivery, business type) | built (Slices 1 to 9) |
-| **Money** `/balance` | Balance `/balance`, Plan `/plan`, Billing `/billing` (a payment opens from its row; on the phone at `/billing/:id`, drawn from the list), Usage `/usage`, Add-ons `/addons`; Payments, Payment methods later | `balance:*`, `payments:read/manage` | built (Phase 2, Slices 10 and 10a); the billing list is a Slice 11 addition (§10) |
+| **Money** `/balance` | Balance `/balance`, Plan `/plan`, Billing `/billing` (a payment opens from its row; on the phone at `/billing/:id`, drawn from the list), Usage `/usage`, Add-ons `/addons`; Payments later | `balance:*`, `payments:read/manage` | built (Phase 2, Slices 10 and 10a); the billing list is a Slice 11 addition (§10) |
 | **Menu** `/menu` | Team `/team` (+ `/team/roles`), Activity `/activity`, Settings `/settings` (Shop details `/settings/shop`, Brand identity `/settings/brand`, API keys `/settings/api-keys`, Facebook and Meta `/settings/meta`, Data export `/settings/export`), Account `/account`, Help, Language, Sign out; Notices later | per row: `keys:manage` for API keys, `settings:manage` for the rest of Settings, the owner alone for the export | built; the brand identity's backend is Slice 11 (§10) |
 
 Rows and sections a staff member lacks the permission for are **hidden, never disabled** (STF-11). The owner
@@ -1599,9 +1601,63 @@ bar's search finds everything.
   parts, and See sales; its lead line says profit comes from delivered orders. It needs the orders too, so someone who
   may see costs but not orders doesn't get the card.
 
-### 7.35 The Phase 4 close-out's small screens
+### 7.35 Payment methods (`/settings/payment-methods`), and the owner's phone
 
-*Part 33*, from the close-out's read (2026-11-04): what the check against the requirements found undrawn, drawn and built
+*Slice 5.8, part 1* (Part 33), from its read (2026-11-04). It replaces the Money section drawn on 2026-10-20, from before
+Slices 5.1 to 5.7.
+
+- **Where it lives** (agreed): in Settings, after Delivery, with the other things set up once, so Money stays about the
+  shop's own balance and bills (`pm33-settings`). Whoever holds `wallets:read` can open it: Settings shows such a person
+  only this row.
+- **The page** (`pm33`): one card per method -- bKash, Nagad, Rocket, Upay, bank transfer -- under one line saying money
+  comes straight to the shop's account, never through Lytro, and over one saying cash on delivery needs nothing here, a
+  product's advance being set on the product. Nothing set up yet says customers can't pay online until an account is added
+  (`pm33-first`). The page is at most 640 px wide, as Tax is.
+- **A method's card**: its mark (bKash's and Nagad's own, Rocket's and Upay's name in its colour, as the payment page
+  writes them), its name, the active number, and the on/off switch (WAL-05). Off, it folds to that head, saying how many
+  accounts stay saved. On, it lists its accounts: a radio for the one active (WAL-03), the number, the account's name, its
+  chips -- type, Active, Automated, Test -- and Edit. A method on with no account, or none active, says customers can't pay
+  by it yet (WAL-04). Below sits Add account, and on a method with one way, the line that staff check each payment, at no fee.
+- **An account** (`sh-pm33-account`, `sh-pm33-edit`): the number, the account's name, personal, agent or merchant with what
+  the customer will do (Send Money, Cash Out, Payment, PAY-05), and an optional note. A wrong number or one already saved is
+  said under the field (`sh-pm33-account-bad`, WAL-01, WAL-02). A new account comes back not active, since nothing activates
+  by itself (`pm33-added`, WAL-04). Edit holds Delete; deleting the active account says customers can't pay by that wallet
+  until another is active (`dlg-pm33-delete`). A bank account has its own fields (`sh-pm33-bank`, WAL-14).
+- **How you take money** (PAY-06, D5-7): only where a method has more than one way, bKash today. Three choices, each with
+  what it means and its fee: automated checkout 1.00%, the listener 0.10%, by hand none; the two fees free on a trial. The
+  rates are the platform's current ones (RAT-15, RAT-16), read from the server, never written into the page. On the listener
+  with no phone paired it says staff check by hand for now, and offers Pair a phone (`pm33`); with one, how many
+  (`pm33-paired`). That link opens with part 4; until then the line stands alone. On automated it adds that an open
+  checkout's fee is on hold, and that a balance too low never blocks the shopper, who pays on the page instead (`pm33-auto`,
+  WAL-21).
+- **bKash's keys** (`sh-pm33-gw`, WAL-09, WAL-10): the account that receives the money, the four fields from bKash's merchant
+  panel, and Test account for its sandbox. They're never shown again. Saving tests the connection (WAL-13), then asks
+  separately whether to turn automated checkout on (`sh-pm33-gw-ok`), so connecting never changes how money is taken by itself.
+  Choosing automated with no keys opens this sheet. Refused, it shows bKash's code and automated stays off (`sh-pm33-gw-bad`,
+  SEC-16). bKash's two tries an hour used up says so (`sh-pm33-gw-limit`). Once saved, Manage keys says they're saved and to
+  change them all four are entered again (`sh-pm33-gw-saved`), since the server keeps them whole, with Test connection and
+  Remove keys. Removing them stops automated checkout and returns bKash to the listener (`dlg-pm33-gw-remove`): the screen
+  chooses the listener first, then removes them. Keys that can no longer be read say so, while shoppers pay on the page
+  (`pm33-unreadable`, WAL-12).
+- **Staff who can view** (`pm33-staff`, WAL-07): the numbers, the chips, on or off and how money is taken, with no controls
+  and a line saying only the owner can change these. The keys show only as the Automated and Test chips.
+- **The owner's phone at sign-up** (AUTH-28 as amended 2026-10-31, TVR-01): someone verified by Google, Facebook or email is
+  asked for a phone before Create shop, with no skip (`ob33-phone`, `ob33-code`); Lytro pays for the code, and the page says
+  it costs them nothing. It keeps a claimed address and a picked plan, as the steps around it do. A number on another
+  account is refused, offering another number or to sign in with that one (`ob33-taken`). A phone sign-up never sees this.
+- **An owner with a shop and no phone** isn't locked out: Payment methods says customers can't pay online yet, and verifies
+  it in a sheet (`pm33-nophone`, `sh-pm33-phone`, `sh-pm33-code`, `sh-pm33-taken`). Staff see only the line.
+- **Balance** (`balance33`): while a checkout is open, an On hold line says what's held, that it's released by itself if the
+  payment doesn't happen, and what can be spent (WAL-21). With nothing held there's no line.
+- **The checklist** (SUP-01): "Add a wallet number" stops being a later item and opens this page, done once a method is on
+  with an active account.
+- **What the server still needs:** a `verify-phone` answer in sign-in's `next`, for an account with no phone and no shop,
+  and Create shop refused until it's done. Adding the phone already works (`me/identities`, AUTH-26). The rest is served
+  (Slices 5.1 and 5.7).
+
+### 7.36 The Phase 4 close-out's small screens
+
+*Part 34*, from the close-out's read (2026-11-04): what the check against the requirements found undrawn, drawn and built
 before Phase 4 closed.
 
 **Removing a photo that past orders show (MED-09).** A photo's × still takes it off when the product is saved, and nothing
@@ -1637,8 +1693,7 @@ architecture is whole when each phase arrives. Their endpoints do not exist yet.
 - **Customers** moved to §7.32 (Part 30, 2026-10-31); the customer's fraud level stays here (Phase 7).
 - **Payments** (Phase 5), the shop's incoming payments (its own payments to Lytro are Billing, §7.13): To verify
   first (PAY-14) with the mismatch line, Approve and Reject, proof image;
-  listener health (VER-07); the verified list. **Payment methods**: one card per type with accounts, the one
-  active radio, gateway credentials (WAL-01 to 13).
+  listener health (VER-07); the verified list. **Payment methods** moved to §7.35 (Part 33, 2026-11-04).
 - **Notices** (Phase 7): pinned first, category chips, "I understand" (NTC-03 to 05). **SMS events** (Phase
   7): switches with the estimated monthly cost and the template link (SMS-02, 10, 12).
 - **The bell and notifications** (Phase 7, decided 2026-10-22): the bell in both bars with its unread count; the

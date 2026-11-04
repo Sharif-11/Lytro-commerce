@@ -289,6 +289,77 @@ describeIfDatabase("deleting a customer's details at a privacy request (CUS-09)"
     });
   });
 
+  it('takes the number off its payments, voided and refunded too, and off any other order paid from it', async () => {
+    const shop = await openShop(port, texts, 'era');
+    const lamp = await product(shop, 'Lamp', 300);
+    const phone = freshMobile();
+    const someoneElse = freshMobile();
+    const order = await place(shop, lamp, phone);
+    const pay = async (on: Order, method: string, senderNumber: string): Promise<string> => {
+      const paid = await shop.post(`/orders/${on.id}/payments`, {
+        method,
+        amount: 100,
+        senderNumber,
+        transactionId: `TRX${String(randomInt(10_000_000, 99_999_999))}`,
+      });
+      expect(paid.status, JSON.stringify(paid.body)).toBe(201);
+      const { payments } = paid.body as { payments: { id: string }[] };
+      return payments[payments.length - 1]?.id ?? '';
+    };
+    const kept = await pay(order, 'bkash', someoneElse);
+    const voided = await pay(order, 'nagad', someoneElse);
+    const refunded = await pay(order, 'rocket', someoneElse);
+    expect(
+      (await shop.post(`/orders/${order.id}/payments/${voided}/void`, { reason: 'Mistake' }))
+        .status,
+    ).toBe(200);
+    const backed = await shop.post(`/orders/${order.id}/payments/${refunded}/refund`, {
+      note: 'Sent back',
+    });
+    expect(backed.status, JSON.stringify(backed.body)).toBe(200);
+    // Their number paid for someone else's order too, and that customer stays.
+    const other = await place(shop, lamp, someoneElse);
+    const fromTheirNumber = await pay(other, 'bkash', phone);
+    const fromAThird = await pay(other, 'bkash', freshMobile());
+    await deliver(shop, order);
+
+    const erased = await erase(shop, order.customerId ?? '');
+    expect(erased.status, JSON.stringify(erased.body)).toBe(200);
+
+    const stored = await admin.query<{
+      id: string;
+      sender_number: string | null;
+      transaction_id: string;
+      amount: string;
+    }>(
+      'SELECT id, sender_number, transaction_id, amount FROM tenant.payments WHERE tenant_id = $1',
+      [shop.tenantId],
+    );
+    const senderOf = (id: string): string | null | undefined =>
+      stored.rows.find((row) => row.id === id)?.sender_number;
+    const emptied = [kept, voided, refunded, fromTheirNumber];
+    for (const id of emptied) {
+      expect(senderOf(id), id).toBeNull();
+    }
+    expect(senderOf(fromAThird)).not.toBeNull();
+    const details = stored.rows.filter((row) => emptied.includes(row.id));
+    expect(details.every((row) => row.transaction_id.startsWith('TRX'))).toBe(true);
+    expect(details.every((row) => row.amount === '100.00')).toBe(true);
+    const view = (await shop.get(`/orders/${order.id}`)).body as {
+      payments: { senderNumber: string | null }[];
+    };
+    expect(view.payments.length).toBeGreaterThanOrEqual(3);
+    expect(view.payments.every((row) => row.senderNumber === null)).toBe(true);
+
+    // The number can only be emptied, and a voided payment stays as it was otherwise.
+    await expect(
+      admin.query("UPDATE tenant.payments SET sender_number = '01711111111' WHERE id = $1", [kept]),
+    ).rejects.toThrow(/can only be emptied/);
+    await expect(
+      admin.query("UPDATE tenant.payments SET void_reason = 'Other' WHERE id = $1", [voided]),
+    ).rejects.toThrow(/a voided payment stays void/);
+  });
+
   it('clears the name, phone and address from the customer and every order, keeping the totals', async () => {
     const shop = await openShop(port, texts, 'era');
     const lamp = await product(shop, 'Lamp', 300);

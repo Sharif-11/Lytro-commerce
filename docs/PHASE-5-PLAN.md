@@ -90,7 +90,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 5.5 | The technology, installing and screens settled in its sketch's read, 2026-11-02 (below); the device-integrity check (LSN-25, off by default) stays undrawn. |
 | 5.6 | Settled in its read, 2026-11-03 (below). |
 | 5.7 | Settled in its read, 2026-11-03 (below). |
-| 5.8 | Where the payment page lives (its own small app, or a host of the storefront app with its own policy, PAY-23); redirect, as SFT-07 says, rather than the frame the drawings show; the drawn page's extras (contact buttons, support chat, its fonts, an SMS promise) against PAY-05; "switch to cash on delivery" after a failed payment, which PRD-08 refuses. |
+| 5.8 | Five parts, each with its own read (agreed 2026-11-04, below). Part 1's is settled (below). For part 2: where the payment page lives (its own small app, or a host of the storefront app with its own policy, PAY-23); redirect, as SFT-07 says, rather than the frame the drawings show; the drawn page's extras (contact buttons, support chat, its fonts, an SMS promise) against PAY-05; "switch to cash on delivery" after a failed payment, which PRD-08 refuses. |
 
 ---
 
@@ -482,6 +482,18 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
 - **The sign-up phone** (Slice 5.1's read): the step after a Google, Facebook or email sign-up that verifies a phone,
   sketched with the rest, then server and screen together (AUTH-28 amended).
 - **Builds** them, pixel perfect to the approved sketch.
+- **The read, agreed 2026-11-04.** Five parts, shop setup first, each with a short read, a sketch and a build: (1) the sign-up
+  phone and Payment methods; (2) the payment page, and checkout's payment step and return; (3) Payments to verify, after
+  which a shop can take payments checked by hand; (4) listener phones, the app's download page and setup guide; (5) the
+  operator. **The operator console is rebuilt first** (the owner's pick over adding these to today's dark console): part 5
+  builds `apps/operator` to the approved light design (`OPERATOR-CONSOLE-DESIGN.md` v2), then its payment screens on it. Until
+  then Lytro's own phone is paired by a direct server call.
+- **Part 1's read, agreed 2026-11-04** (drawn as `TENANT-DASHBOARD-DESIGN.md` §7.35): Payment methods lives in Settings, not
+  Money. An owner verified another way gives a phone before Create shop, with no skip; a number on another account is
+  refused, offering to sign in with it or use another. An owner with a shop and no phone isn't locked out: Payment methods
+  says so and verifies it there. How a wallet's money is taken shows only where there's more than one way, with each fee.
+  bKash's keys go in a sheet with Test connection and a test-account switch, and are never shown again. Balance gains an
+  on-hold line, and the checklist's wallet item starts working.
 
 ---
 

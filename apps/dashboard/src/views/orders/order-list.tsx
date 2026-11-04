@@ -327,7 +327,7 @@ const SOURCES = [
   OrderSource.Api,
 ] as const;
 
-/** Orders placed between two days (ORD-13) and from where (LND-09), as Part 33's `o29-dates` draws it. */
+/** Orders placed between two days (ORD-13) and from where (LND-09), as Part 34's `o29-dates` draws it. */
 export function DatesSheet({
   open,
   filter,

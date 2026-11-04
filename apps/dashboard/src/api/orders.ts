@@ -67,7 +67,7 @@ export interface OrderFilter {
   /** INV-15 (Slice 4.8c): only the orders holding this variant's stock, and its name for the chip. */
   holding?: string;
   holdingName?: string;
-  /** LND-09: only the orders from here (Part 33's `o29-dates`). */
+  /** LND-09: only the orders from here (Part 34's `o29-dates`). */
   source?: OrderSource;
 }
 

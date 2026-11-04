@@ -11,6 +11,8 @@ import {
 import { ApiError } from '../../../common/api-error';
 import { toCsv } from '../../../common/csv';
 import { AuditService } from '../../audit/services/audit.service';
+import { ProductService } from '../../catalogue/services/product.service';
+import type { ExportedProduct } from '../../catalogue/types/catalogue';
 import { CustomerService } from '../../customers/services/customer.service';
 import type { CustomerRecord } from '../../customers/types/customers';
 import { OrderService } from '../../orders/services/order.service';
@@ -40,8 +42,8 @@ interface ExportedOrder {
   items: OrderLineRecord[];
 }
 
-/** LIF-16/17: the owner's own export of payments, the activity log, and (Phase 4) orders and customers -- products are
- * not exported yet (KNOWN-GAPS §13); another category is a data-fetcher addition here, not an architecture change. */
+/** LIF-16/17: the owner's own export of payments, the activity log, and (Phase 4) orders, customers and products; another
+ * category is a data-fetcher addition here, not an architecture change. */
 @Injectable()
 export class DataExportService {
   constructor(
@@ -53,6 +55,7 @@ export class DataExportService {
     @Inject(MailService) private readonly mail: MailService,
     @Inject(OrderService) private readonly orders: OrderService,
     @Inject(CustomerService) private readonly customers: CustomerService,
+    @Inject(ProductService) private readonly products: ProductService,
   ) {}
 
   async request(tenantId: string, ip?: string | null): Promise<DataExportRecord> {
@@ -124,7 +127,8 @@ export class DataExportService {
       const activity = await this.loadAllActivity(tenantId);
       const orders = await this.orders.exportAll(tenantId);
       const customers = await this.customers.listAll(tenantId);
-      const zip = await this.buildZip(invoices, activity, orders, customers);
+      const products = await this.products.listForExport(tenantId);
+      const zip = await this.buildZip(invoices, activity, orders, customers, products);
 
       const readyAt = new Date();
       const expiresAt = new Date(readyAt.getTime() + EXPIRY_MS);
@@ -167,6 +171,7 @@ export class DataExportService {
     activity: ActivityRecord[],
     orders: ExportedOrder[],
     customers: CustomerRecord[],
+    products: ExportedProduct[],
   ): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const archive = new ZipArchive();
@@ -343,6 +348,40 @@ export class DataExportService {
         { name: 'customers.csv' },
       );
       archive.append(JSON.stringify(customerRows, null, 2), { name: 'customers.json' });
+
+      // LIF-16: each product once, and each variant with what it costs and holds.
+      archive.append(
+        toCsv(
+          products.map((product) => ({
+            name: product.name,
+            slug: product.slug,
+            kind: product.kind,
+            active: String(product.active),
+            basePrice: product.basePrice,
+            stockUnit: product.stockUnit,
+          })),
+          ['name', 'slug', 'kind', 'active', 'basePrice', 'stockUnit'],
+        ),
+        { name: 'products.csv' },
+      );
+      archive.append(
+        toCsv(
+          products.flatMap((product) =>
+            product.variants.map((variant) => ({
+              slug: product.slug,
+              variant: variant.label,
+              sku: variant.sku ?? '',
+              barcode: variant.barcode ?? '',
+              price: variant.price ?? product.basePrice,
+              active: String(variant.active),
+              onHand: variant.onHand ?? '',
+            })),
+          ),
+          ['slug', 'variant', 'sku', 'barcode', 'price', 'active', 'onHand'],
+        ),
+        { name: 'product-variants.csv' },
+      );
+      archive.append(JSON.stringify(products, null, 2), { name: 'products.json' });
 
       void archive.finalize();
     });

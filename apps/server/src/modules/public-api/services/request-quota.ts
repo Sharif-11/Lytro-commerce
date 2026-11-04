@@ -127,9 +127,9 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
   /**
    * Counts the request against the shop's cycle; false once the cycle's allowance -- its own requests, then its packs
    * (RTE-11) -- and the grace after it are used up (RTE-03): past the allowance the shop is still served while its owner
-   * is told.
+   * is told. A route that takes orders is counted and never refused (QTA-07).
    */
-  async take(shop: ApiShop, now: Date): Promise<boolean> {
+  async take(shop: ApiShop, now: Date, takesOrders = false): Promise<boolean> {
     const limit = monthlyLimit(shop.limits);
     const cycleStart = usageCycleStart(shop.row, now);
     const key = cycleKey(shop.row.id, cycleStart);
@@ -142,7 +142,9 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
           ]);
     // Read after the wait, so two requests arriving together are judged one after the other.
     const pending = this.pendingOf(key, shop.row.id, cycleStart);
-    if (pastGrace(stored.requests + pending.count, limit, grace, stored.packs)) return false;
+    if (!takesOrders && pastGrace(stored.requests + pending.count, limit, grace, stored.packs)) {
+      return false;
+    }
     this.pending.set(key, {
       ...pending,
       count: pending.count + 1,

@@ -129,7 +129,9 @@ export class PublicCatalogue {
       const detail = await this.products.get(shop.row.id, found.productId);
       const combo =
         detail.kind === ProductKind.Combo ? await this.comboOf(shop.row.id, detail) : null;
-      return { ...publicDetail(detail), combo };
+      // DLV-07: a combo says where its parts can go, as an order holding it would be refused.
+      const deliveryZoneIds = await this.products.deliveryZonesOf(shop.row.id, detail);
+      return { ...publicDetail(detail), deliveryZoneIds, combo };
     });
   }
 

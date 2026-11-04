@@ -41,6 +41,7 @@ export function errorMessage(error: unknown, t: TFunction): string {
     case 'idempotency_conflict':
       return t('errors.conflict');
     case 'validation_error':
+    case 'idempotency_key_required':
       return t('errors.validation');
     case 'unauthenticated':
     case 'forbidden':

@@ -44,7 +44,7 @@ const allPicked = (items: OrderSerialItem[], picked: Map<string, string[]>) =>
   items.every((item) => (picked.get(keyOf(item)) ?? []).length === Number(item.quantity));
 
 /**
- * INV-23 (Part 33's `o29-ship-entry`): a serial by the camera, a pasted list, or typed, a USB or Bluetooth scanner typing
+ * INV-23 (Part 34's `o29-ship-entry`): a serial by the camera, a pasted list, or typed, a USB or Bluetooth scanner typing
  * too. Each one goes through the same check as opening stock, then must be one this item holds; a bad one is named under
  * the box, and the good ones are picked.
  */
@@ -130,7 +130,7 @@ function SerialEntry({
   );
 }
 
-/** PYG-03 (Part 33's `o29-ship-balance`): a shipment the balance can't pay the fee for offers Add balance. */
+/** PYG-03 (Part 34's `o29-ship-balance`): a shipment the balance can't pay the fee for offers Add balance. */
 function ShipRefusal({ error }: { error: unknown }): React.JSX.Element {
   const { t } = useTranslation('orders');
   const errorText = useErrorText();

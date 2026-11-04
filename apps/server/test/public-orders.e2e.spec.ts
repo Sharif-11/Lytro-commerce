@@ -8,6 +8,7 @@ import { PlatformSettingKey } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { ClientIp } from '../src/common/client-ip';
 import { headerValue, type HttpRequest } from '../src/common/http';
+import { PlanLimitOverridesService } from '../src/modules/billing/services/plan-limit-overrides.service';
 import type { OrderNotifier, PlacedOrderNotice } from '../src/modules/orders/ports/order-notifier';
 import { ORDER_NOTIFIER } from '../src/modules/orders/tokens';
 import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
@@ -389,6 +390,9 @@ describeIfDatabase('a shopper places an order (ORD-02, ORD-07, CCH-07, PRD-07)',
       discount: 50,
       deliveryCharge: 0,
       status: 'confirmed',
+      // ORD-40: neither axis is a shopper's to set.
+      paymentStatus: 'paid',
+      fulfillmentStatus: 'delivered',
       fulfilmentType: 'takeaway',
       items: [{ variantId: lamp.variantId, quantity: 1, unitPrice: 1 }],
     });
@@ -397,6 +401,8 @@ describeIfDatabase('a shopper places an order (ORD-02, ORD-07, CCH-07, PRD-07)',
       discount: 'not_allowed',
       deliveryCharge: 'not_allowed',
       status: 'not_allowed',
+      paymentStatus: 'not_allowed',
+      fulfillmentStatus: 'not_allowed',
       fulfilmentType: 'not_allowed',
       'items.0.unitPrice': 'not_allowed',
     });
@@ -493,6 +499,137 @@ describeIfDatabase(
       expect(errorOf(away)).toMatchObject({ details: { reason: 'zone_no_delivery' } });
       expect(await ordersOf(shop)).toBe(1);
     });
+
+    it('refuses a limited product where it accepts one with no limit, in the same zone (DLV-07)', async () => {
+      const shop = await openShop(port, texts, 'po');
+      const own = await ownKey(shop);
+      const zones = (await shop.get('/delivery-zones')).body as {
+        zones: { id: string; isHome: boolean }[];
+      };
+      const home = zones.zones.find((zone) => zone.isHome)?.id ?? '';
+      const fish = await product(shop, 'Frozen fish', 700, 5, { deliveryZoneIds: [home] });
+      const rice = await product(shop, 'Rice', 80, 5);
+      const chattogram = await shopper(shop, 'Panchlaish', 'Chattogram');
+      const limited = await order(own, {
+        ...chattogram,
+        items: [{ variantId: fish.variantId, quantity: 1 }],
+      });
+      expect(limited.status).toBe(409);
+      expect(errorOf(limited)).toMatchObject({ details: { reason: 'product_not_delivered_here' } });
+      expect(errorOf(limited).message).toContain('Frozen fish');
+      const both = await order(own, {
+        ...chattogram,
+        items: [
+          { variantId: rice.variantId, quantity: 1 },
+          { variantId: fish.variantId, quantity: 1 },
+        ],
+      });
+      expect(both.status).toBe(409);
+      expect(errorOf(both).message).toContain('Frozen fish');
+      expect(await ordersOf(shop)).toBe(0);
+      const accepted = await placed(own, {
+        ...chattogram,
+        items: [{ variantId: rice.variantId, quantity: 1 }],
+      });
+      expect(accepted).toMatchObject({ status: 'pending', deliveryCharge: '130.00' });
+    });
+
+    it('limits a combo to what every part allows, as a shopper sees it and an order is refused (DLV-07)', async () => {
+      const shop = await openShop(port, texts, 'po');
+      const own = await ownKey(shop);
+      const zones = (await shop.get('/delivery-zones')).body as {
+        zones: { id: string; isHome: boolean }[];
+      };
+      const home = zones.zones.find((zone) => zone.isHome)?.id ?? '';
+      const far = zones.zones.find((zone) => !zone.isHome)?.id ?? '';
+      const fish = await product(shop, 'Frozen fish', 700, 5, { deliveryZoneIds: [home] });
+      const rice = await product(shop, 'Rice', 80, 5);
+      const made = await shop.post('/products', {
+        name: 'Dinner pack',
+        basePrice: 750,
+        kind: 'combo',
+        parts: [
+          { quantity: 1, variantIds: [fish.variantId] },
+          { quantity: 1, variantIds: [rice.variantId] },
+        ],
+      });
+      expect(made.status, JSON.stringify(made.body)).toBe(201);
+      const pack = made.body as { slug: string; variants: { id: string }[] };
+      const variantId = pack.variants[0]?.id ?? '';
+
+      const page = await call(own, 'GET', `/v1/catalogue/products/${pack.slug}`, undefined);
+      expect(page.body).toMatchObject({ deliveryZoneIds: [home] });
+      // The editor still shows what was set on the combo itself.
+      const edited = await shop.get(`/products/${(made.body as { id: string }).id}`);
+      expect(edited.body).toMatchObject({ deliveryZoneIds: [] });
+
+      const chattogram = await shopper(shop, 'Panchlaish', 'Chattogram');
+      const items = [{ variantId, quantity: 1 }];
+      const seen = await call(own, 'POST', '/v1/delivery-estimate', {
+        locationId: chattogram.locationId,
+        items,
+      });
+      expect(seen.body).toMatchObject({ deliverable: false, notDeliveredHere: ['Dinner pack'] });
+      const refused = await order(own, { ...chattogram, items });
+      expect(refused.status).toBe(409);
+      expect(errorOf(refused)).toMatchObject({ details: { reason: 'product_not_delivered_here' } });
+      expect(errorOf(refused).message).toContain('Dinner pack');
+      expect(await ordersOf(shop)).toBe(0);
+      // Where the fish can go, the pack can.
+      const accepted = await placed(own, { ...(await shopper(shop)), items });
+      expect(accepted.status).toBe('pending');
+
+      // Parts that share no zone leave it nowhere to go.
+      const stranded = await shop.post('/products', {
+        name: 'Stranded pack',
+        basePrice: 750,
+        kind: 'combo',
+        parts: [
+          { quantity: 1, variantIds: [fish.variantId] },
+          {
+            quantity: 1,
+            variantIds: [
+              (await product(shop, 'Far tea', 80, 5, { deliveryZoneIds: [far] })).variantId,
+            ],
+          },
+        ],
+      });
+      expect(stranded.status, JSON.stringify(stranded.body)).toBe(201);
+      const nowhere = await order(own, {
+        ...(await shopper(shop)),
+        items: [
+          {
+            variantId: (stranded.body as { variants: { id: string }[] }).variants[0]?.id,
+            quantity: 1,
+          },
+        ],
+      });
+      expect(nowhere.status).toBe(409);
+      expect(errorOf(nowhere).message).toContain('Stranded pack');
+    });
+
+    it('refuses a form with an unknown thana, no phone or no address, by its field; nothing is made (LND-07)', async () => {
+      const shop = await openShop(port, texts, 'po');
+      const lamp = await product(shop, 'Lamp', 300, 5);
+      const sf = await storefrontKey(shop);
+      const form = {
+        ...(await shopper(shop)),
+        source: 'landing_page',
+        items: [{ variantId: lamp.variantId, quantity: 1 }],
+      };
+      const unknown = await order(sf, { ...form, locationId: 999_999 });
+      expect(unknown.status).toBe(400);
+      expect(fieldsOf(unknown)).toEqual({ locationId: 'not_found' });
+      const noPhone = await order(sf, { ...form, phone: undefined });
+      expect(noPhone.status).toBe(400);
+      expect(fieldsOf(noPhone)).toEqual({ phone: 'required' });
+      const noAddress = await order(sf, { ...form, deliveryAddress: undefined });
+      expect(noAddress.status).toBe(400);
+      expect(fieldsOf(noAddress)).toEqual({ deliveryAddress: 'required' });
+      expect(await ordersOf(shop)).toBe(0);
+      // The same form with all three is taken.
+      expect((await placed(sf, form)).status).toBe('pending');
+    });
   },
 );
 
@@ -509,7 +646,7 @@ describeIfDatabase(
       };
       const missing = await order(own, body, null);
       expect(missing.status).toBe(400);
-      expect(errorOf(missing).code).toBe('validation_error');
+      expect(errorOf(missing).code).toBe('idempotency_key_required');
       const key = randomUUID();
       const first = await order(own, body, key);
       const again = await order(own, body, key);
@@ -603,28 +740,373 @@ describeIfDatabase('the per-minute windows on orders (RTE-06, RTE-08, LND-12)', 
     const settings = app.get(PlatformSettingsService);
     await settings.set(PlatformSettingKey.PublicOrdersPerShopPerMinute, 3, randomUUID());
     try {
-      const shop = await openShop(port, texts, 'po');
-      const lamp = await product(shop, 'Lamp', 300, 50);
-      const own = await ownKey(shop);
-      const from = async (visitor: string) =>
-        order(
-          own,
-          { ...(await shopper(shop)), items: [{ variantId: lamp.variantId, quantity: 1 }] },
-          randomUUID(),
-          visitor,
+      // A shop on each plan, so longer than the default limit on a busy machine. Each moves to its plan after its product
+      // is made: on pay-as-you-go a new product is itself charged for.
+      for (const [plan, state] of [
+        ['Trial', 'trial'],
+        ['Starter', 'active'],
+        ['Pay-as-you-go', 'pay_as_you_go'],
+      ] as const) {
+        const shop = await openShop(port, texts, 'po');
+        const lamp = await product(shop, 'Lamp', 300, 50);
+        const own = await ownKey(shop);
+        await admin.query(
+          `UPDATE control.tenants SET state = $2,
+             plan_id = (SELECT id FROM control.plans WHERE name = $3),
+             plan_snapshot = (SELECT limits FROM control.plans WHERE name = $3)
+           WHERE id = $1`,
+          [shop.tenantId, state, plan],
         );
-      for (const visitor of ['198.51.100.11', '198.51.100.12', '198.51.100.13']) {
-        expect((await from(visitor)).status).toBe(201);
+        const from = async (visitor: string) =>
+          order(
+            own,
+            { ...(await shopper(shop)), items: [{ variantId: lamp.variantId, quantity: 1 }] },
+            randomUUID(),
+            visitor,
+          );
+        for (const visitor of ['198.51.100.11', '198.51.100.12', '198.51.100.13']) {
+          expect((await from(visitor)).status, plan).toBe(201);
+        }
+        expect((await from('198.51.100.14')).status, plan).toBe(429);
+        await app.get(RequestQuota).flush();
+        const { rows } = await admin.query<{ refused_orders: number }>(
+          'SELECT refused_orders FROM control.api_usage WHERE tenant_id = $1',
+          [shop.tenantId],
+        );
+        expect(
+          rows.map((row) => row.refused_orders),
+          plan,
+        ).toEqual([1]);
       }
-      expect((await from('198.51.100.14')).status).toBe(429);
-      await app.get(RequestQuota).flush();
-      const { rows } = await admin.query<{ refused_orders: number }>(
-        'SELECT refused_orders FROM control.api_usage WHERE tenant_id = $1',
-        [shop.tenantId],
-      );
-      expect(rows.map((row) => row.refused_orders)).toEqual([1]);
     } finally {
       await settings.set(PlatformSettingKey.PublicOrdersPerShopPerMinute, 60, randomUUID());
+    }
+  }, 60_000);
+});
+
+describeIfDatabase("orders past the month's requests (QTA-07, RTE-03, agreed 2026-11-04)", () => {
+  it('still takes an order and answers what checkout reads, counting them, while the rest stops', async () => {
+    const shop = await openShop(port, texts, 'po');
+    const lamp = await product(shop, 'Lamp', 300, 5);
+    const sf = await storefrontKey(shop);
+    await app
+      .get(PlanLimitOverridesService)
+      .set(shop.tenantId, 'requests_monthly', 2, 'request stop test', randomUUID());
+    const quota = app.get(RequestQuota);
+    let browsing = await call(sf, 'GET', '/v1/shop', undefined);
+    for (let tries = 0; tries < 10 && browsing.status === 200; tries += 1) {
+      await quota.flush();
+      browsing = await call(sf, 'GET', '/v1/shop', undefined);
+    }
+    expect(browsing.status).toBe(429);
+    expect(errorOf(browsing).code).toBe('quota_exceeded');
+    const { rows: before } = await admin.query<{ requests: string }>(
+      'SELECT coalesce(sum(requests), 0)::text AS requests FROM control.api_usage WHERE tenant_id = $1',
+      [shop.tenantId],
+    );
+
+    const who = await shopper(shop);
+    const items = [{ variantId: lamp.variantId, quantity: 1 }];
+    expect((await call(sf, 'GET', '/v1/locations', undefined)).status).toBe(200);
+    const seen = await call(sf, 'POST', '/v1/delivery-estimate', {
+      locationId: who.locationId,
+      items,
+    });
+    expect(seen.status, JSON.stringify(seen.body)).toBe(200);
+    expect((await placed(sf, { ...who, items })).status).toBe('pending');
+    expect(await ordersOf(shop)).toBe(1);
+
+    // They count, and everything else is still stopped.
+    await quota.flush();
+    const { rows: after } = await admin.query<{ requests: string }>(
+      'SELECT coalesce(sum(requests), 0)::text AS requests FROM control.api_usage WHERE tenant_id = $1',
+      [shop.tenantId],
+    );
+    expect(Number(after[0]?.requests)).toBeGreaterThanOrEqual(Number(before[0]?.requests) + 3);
+    expect((await call(sf, 'GET', '/v1/shop', undefined)).status).toBe(429);
+  });
+});
+
+describeIfDatabase('the shopper path (PHASE-4-PLAN §1, exit criterion 3)', () => {
+  it.each([
+    ['the storefront', {}, 'storefront'],
+    ['a landing page', { source: 'landing_page' }, 'landing_page'],
+  ])(
+    'an order from %s, submitted twice, is one order at the price shown, tracked with no address or phone',
+    async (_from, claimed, source) => {
+      const shop = await openShop(port, texts, 'po');
+      const shirt = await product(shop, 'Shirt', 500, 5);
+      const sf = await storefrontKey(shop);
+      const who = await shopper(shop);
+      const items = [{ variantId: shirt.variantId, quantity: 2 }];
+
+      // What the cart and the order form show, from the read each of them makes.
+      const shown = await call(sf, 'POST', '/v1/delivery-estimate', {
+        locationId: who.locationId,
+        items,
+      });
+      expect(shown.status, JSON.stringify(shown.body)).toBe(200);
+      expect(shown.body).toMatchObject({ subtotal: '1000.00', deliveryCharge: '70.00' });
+
+      const body = { ...who, ...claimed, items };
+      const key = randomUUID();
+      const first = await order(sf, body, key);
+      const again = await order(sf, body, key);
+      expect(first.status, JSON.stringify(first.body)).toBe(201);
+      expect(again.status, JSON.stringify(again.body)).toBe(201);
+      expect(again.headers['idempotent-replay']).toBe('true');
+      const made = first.body as Placed;
+      expect((again.body as Placed).orderNumber).toBe(made.orderNumber);
+      expect(made).toMatchObject({
+        subtotal: '1000.00',
+        deliveryCharge: '70.00',
+        grandTotal: '1070.00',
+        codAmount: '1070.00',
+      });
+      expect(await ordersOf(shop)).toBe(1);
+      const id = await orderIdOf(made.trackingId);
+      expect((await shop.get(`/orders/${id}`)).body).toMatchObject({
+        source,
+        grandTotal: '1070.00',
+      });
+      const stock = (await shop.get(`/products/${shirt.id}/stock`)).body as {
+        variants: { reserved: string }[];
+      };
+      expect(stock.variants[0]?.reserved).toBe('2.000');
+
+      // A double tap, both on their way at once, is still one order.
+      const tapped = {
+        ...(await shopper(shop)),
+        ...claimed,
+        items: [{ ...items[0], quantity: 1 }],
+      };
+      const tap = randomUUID();
+      const taps = await Promise.all([order(sf, tapped, tap), order(sf, tapped, tap)]);
+      expect(taps.map((tapResult) => tapResult.status)).toContain(201);
+      expect(await ordersOf(shop)).toBe(2);
+
+      const tracked = await track(sf, made.trackingId);
+      expect(tracked.status, JSON.stringify(tracked.body)).toBe(200);
+      expect(tracked.body).toMatchObject({ status: 'pending', grandTotal: '1070.00' });
+      const page = JSON.stringify(tracked.body);
+      expect(page).not.toContain(who.phone);
+      expect(page).not.toContain(who.deliveryAddress);
+      expect(page).not.toContain(who.customerName);
+    },
+  );
+
+  it("makes the same order through the storefront's key and the shop's own, but for its source and identifiers (SFT-06)", async () => {
+    const shop = await openShop(port, texts, 'po');
+    const shirt = await product(shop, 'Shirt', 500, 5);
+    const sf = await storefrontKey(shop);
+    const own = await ownKey(shop);
+    const body = {
+      ...(await shopper(shop)),
+      shopperNote: 'Call before coming',
+      items: [{ variantId: shirt.variantId, quantity: 2 }],
+    };
+    const fromSite = await placed(sf, body);
+    const fromApi = await placed(own, body);
+    const ids = [await orderIdOf(fromSite.trackingId), await orderIdOf(fromApi.trackingId)];
+
+    // What makes each order itself: who it is, where it came from and when. Everything else is the same.
+    const OWN = new Set([
+      'id',
+      'order_id',
+      'orderNumber',
+      'order_number',
+      'trackingId',
+      'tracking_id',
+      'purchaseEventId',
+      'source',
+      'createdAt',
+      'created_at',
+      'updatedAt',
+      'updated_at',
+      'at',
+    ]);
+    const shared = (value: unknown): unknown =>
+      JSON.parse(
+        JSON.stringify(value, (key, field: unknown) => (OWN.has(key) ? undefined : field)),
+      );
+
+    expect(shared(fromSite)).toEqual(shared(fromApi));
+    const [siteView, apiView] = await Promise.all(ids.map((id) => shop.get(`/orders/${id}`)));
+    expect(siteView?.body).toMatchObject({ source: 'storefront' });
+    expect(apiView?.body).toMatchObject({ source: 'api' });
+    expect(shared(siteView?.body)).toEqual(shared(apiView?.body));
+    // In the order list too.
+    const { orders } = (await shop.get('/orders')).body as {
+      orders: { id: string; source: string }[];
+    };
+    const inList = ids.map((id) => orders.find((row) => row.id === id));
+    expect(inList.map((row) => row?.source)).toEqual(['storefront', 'api']);
+    expect(shared(inList[0])).toEqual(shared(inList[1]));
+    // And as stored, order and items.
+    const stored = async (table: string, column: string) => {
+      const { rows } = await admin.query<{ row: Record<string, unknown> }>(
+        `SELECT to_jsonb(t) AS row FROM ${table} t WHERE ${column} = ANY($1)`,
+        [ids],
+      );
+      expect(rows).toHaveLength(2);
+      return rows.map(({ row }) => shared(row));
+    };
+    const [firstRow, secondRow] = await stored('tenant.orders', 'id');
+    expect(firstRow).toEqual(secondRow);
+    const [firstLine, secondLine] = await stored('tenant.order_lines', 'order_id');
+    expect(firstLine).toEqual(secondLine);
+  });
+});
+
+describeIfDatabase('a public order is taken whatever the shop has handled or holds', () => {
+  it('still takes one with every handling limit used up (QTA-07)', async () => {
+    const shop = await openShop(port, texts, 'po');
+    const lamp = await product(shop, 'Lamp', 300, 10);
+    const sf = await storefrontKey(shop);
+    const overrides = app.get(PlanLimitOverridesService);
+    for (const limit of ['orders_total', 'orders_handled_monthly', 'orders_handled_daily']) {
+      await overrides.set(shop.tenantId, limit, 1, 'handling limit test', randomUUID());
+    }
+    const items = [{ variantId: lamp.variantId, quantity: 1 }];
+    const send = async (made: Placed) =>
+      shop.post(`/orders/${await orderIdOf(made.trackingId)}/ship`, {
+        courierName: 'Steadfast',
+        trackingCode: 'SF-1',
+      });
+    const first = await placed(sf, { ...(await shopper(shop)), items });
+    expect((await send(first)).status).toBe(200);
+    const next = await placed(sf, { ...(await shopper(shop)), items });
+    expect(next.status).toBe('pending');
+    const refused = await send(next);
+    expect(refused.status).toBe(402);
+    expect(errorOf(refused).code).toBe('plan_limit_reached');
+    expect((await placed(sf, { ...(await shopper(shop)), items })).status).toBe('pending');
+  });
+
+  it('takes one on pay-as-you-go with nothing in the balance, and asks for it only at sending (PYG-03)', async () => {
+    const shop = await openShop(port, texts, 'po');
+    // Made on the trial: on pay-as-you-go a new product is itself charged for.
+    const lamp = await product(shop, 'Lamp', 300, 5);
+    await admin.query(
+      `UPDATE control.tenants SET state = 'pay_as_you_go',
+         plan_id = (SELECT id FROM control.plans WHERE name = 'Pay-as-you-go'),
+         plan_snapshot = (SELECT limits FROM control.plans WHERE name = 'Pay-as-you-go')
+       WHERE id = $1`,
+      [shop.tenantId],
+    );
+    const ledger = async () =>
+      (
+        await admin.query<{ id: string }>(
+          'SELECT id FROM tenant.balance_ledger WHERE tenant_id = $1',
+          [shop.tenantId],
+        )
+      ).rows;
+    expect(await ledger()).toEqual([]);
+    const made = await placed(await storefrontKey(shop), {
+      ...(await shopper(shop)),
+      items: [{ variantId: lamp.variantId, quantity: 1 }],
+    });
+    expect(made.status).toBe('pending');
+    expect(await ledger()).toEqual([]);
+    const id = await orderIdOf(made.trackingId);
+    const refused = await shop.post(`/orders/${id}/ship`, {
+      courierName: 'Steadfast',
+      trackingCode: 'SF-1',
+    });
+    expect(refused.status).toBe(429);
+    expect(errorOf(refused).code).toBe('quota_exceeded');
+    expect((await shop.get(`/orders/${id}`)).body).toMatchObject({
+      status: 'pending',
+      handledAt: null,
+    });
+  });
+
+  it('sends a guest no SMS and makes no account (CUS-07)', async () => {
+    const shop = await openShop(port, texts, 'po');
+    const lamp = await product(shop, 'Lamp', 300, 5);
+    const sf = await storefrontKey(shop);
+    const who = await shopper(shop);
+    const queued = async () => {
+      const { rows } = await admin.query<{ total: number }>(
+        'SELECT count(*)::int AS total FROM control.sms_outbox',
+      );
+      return rows[0]?.total;
+    };
+    const [sentBefore, queuedBefore] = [texts.sent.length, await queued()];
+    await placed(sf, { ...who, items: [{ variantId: lamp.variantId, quantity: 1 }] });
+    expect(texts.sent.length).toBe(sentBefore);
+    expect(texts.countFor(who.phone)).toBe(0);
+    expect(await queued()).toBe(queuedBefore);
+    const accounts = await admin.query(
+      'SELECT id FROM tenant.shoppers WHERE tenant_id = $1 AND phone = $2',
+      [shop.tenantId, who.phone],
+    );
+    expect(accounts.rows).toEqual([]);
+  });
+
+  it("finds a landing page's order in the list by its source, and none of the others (LND-09)", async () => {
+    const shop = await openShop(port, texts, 'po');
+    const lamp = await product(shop, 'Lamp', 300, 10);
+    const sf = await storefrontKey(shop);
+    const own = await ownKey(shop);
+    const items = [{ variantId: lamp.variantId, quantity: 1 }];
+    const landing = await placed(sf, { ...(await shopper(shop)), source: 'landing_page', items });
+    await placed(sf, { ...(await shopper(shop)), items });
+    await placed(own, { ...(await shopper(shop)), items });
+    const staff = await postJson(
+      port,
+      '/orders',
+      { ...(await shopper(shop)), items },
+      shop.headers({ 'idempotency-key': randomUUID() }),
+    );
+    expect(staff.status).toBe(201);
+    const found = await shop.get('/orders?source=landing_page');
+    expect(found.status, JSON.stringify(found.body)).toBe(200);
+    const list = found.body as { orders: { orderNumber: string; source: string }[]; total: number };
+    expect(list.total).toBe(1);
+    expect(list.orders.map((row) => [row.orderNumber, row.source])).toEqual([
+      [landing.orderNumber, 'landing_page'],
+    ]);
+    expect(await ordersOf(shop)).toBe(4);
+  });
+
+  it('orders at the price in the database, with an older one still in the catalogue cache (LND-13, CCH-07)', async () => {
+    const shop = await openShop(port, texts, 'po');
+    const shirt = await product(shop, 'Shirt', 500, 10);
+    const sf = await storefrontKey(shop);
+    const { slug } = (await shop.get(`/products/${shirt.id}`)).body as { slug: string };
+    const cataloguePrice = async () => {
+      const read = await call(sf, 'GET', `/v1/catalogue/products/${slug}`, undefined);
+      expect(read.status, JSON.stringify(read.body)).toBe(200);
+      return (read.body as { variants: { price: string }[] }).variants[0]?.price;
+    };
+    expect(await cataloguePrice()).toBe('500.00');
+    // Written past the catalogue's versions, so the cache cannot know: the answer it holds is now stale.
+    await admin.query('UPDATE tenant.products SET base_price = 650 WHERE id = $1', [shirt.id]);
+    expect(await cataloguePrice()).toBe('500.00');
+    const who = await shopper(shop);
+    const items = [{ variantId: shirt.variantId, quantity: 2 }];
+    // CCH-07: what the shopper is shown at checkout is the corrected price.
+    const shown = await call(sf, 'POST', '/v1/delivery-estimate', {
+      locationId: who.locationId,
+      items,
+    });
+    expect(shown.body).toMatchObject({ subtotal: '1300.00' });
+    const stale = await placed(sf, { ...who, source: 'landing_page', items });
+    expect(stale).toMatchObject({
+      subtotal: '1300.00',
+      grandTotal: '1370.00',
+      items: [{ itemTotal: '1300.00' }],
+    });
+    // A price changed the way the shop changes it reaches the very next order.
+    expect((await shop.patch(`/products/${shirt.id}`, { basePrice: 700 })).status).toBe(200);
+    const edited = await placed(sf, { ...(await shopper(shop)), source: 'landing_page', items });
+    expect(edited).toMatchObject({ subtotal: '1400.00', grandTotal: '1470.00' });
+    // CCH-07: neither an order nor its tracking invites a shared cache to keep it.
+    const made = await order(sf, { ...(await shopper(shop)), items });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    for (const answer of [made, await track(sf, (made.body as Placed).trackingId)]) {
+      expect(String(answer.headers['cache-control'] ?? '')).not.toMatch(/public|s-maxage/);
     }
   });
 });
@@ -696,6 +1178,54 @@ describeIfDatabase('tracking by ID (ORD-17, SFT-08)', () => {
     expect((await track(theirs, made.trackingId)).status).toBe(404);
     expect((await track(sf, 'ZZZZ2222')).status).toBe(404);
     expect((await track(sf, 'not-an-id')).status).toBe(404);
+  });
+
+  it('still shows the name, values, price and totals it was ordered at after the product is renamed and deleted for good (ORD-46)', async () => {
+    const shop = await openShop(port, texts, 'po');
+    const attributes = (await shop.get('/attributes')).body as {
+      id: string;
+      name: string;
+      scope: string;
+    }[];
+    const colour =
+      attributes.find((row) => row.name === 'Color' && row.scope === 'platform')?.id ?? '';
+    const options = await shop.post(`/attributes/${colour}/options/batch`, { values: ['Red'] });
+    const red = (options.body as { id: string }[])[0]?.id ?? '';
+    const made = await shop.post('/products', {
+      name: 'Lamp',
+      basePrice: 300,
+      stockTracking: 'not_tracked',
+      variantAttributes: [{ attributeId: colour, optionIds: [red] }],
+      variants: [{ optionIds: [red] }],
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    const lamp = made.body as { id: string; variants: { id: string }[] };
+    const sf = await storefrontKey(shop);
+    const ordered = await placed(sf, {
+      ...(await shopper(shop)),
+      items: [{ variantId: lamp.variants[0]?.id, quantity: 2 }],
+    });
+    const renamed = await shop.patch(`/products/${lamp.id}`, { name: 'Desk lamp', basePrice: 450 });
+    expect(renamed.status, JSON.stringify(renamed.body)).toBe(200);
+    expect((await shop.delete(`/products/${lamp.id}?hard=true`)).status).toBe(200);
+    expect((await shop.get(`/products/${lamp.id}`)).status).toBe(404);
+    const tracked = await track(sf, ordered.trackingId);
+    expect(tracked.status, JSON.stringify(tracked.body)).toBe(200);
+    expect(tracked.body).toMatchObject({
+      orderNumber: ordered.orderNumber,
+      items: [
+        {
+          productName: 'Lamp',
+          attributes: [{ name: 'Color', value: 'Red', variantDefining: true }],
+          quantity: '2.000',
+          unitPrice: '300.00',
+          itemTotal: '600.00',
+        },
+      ],
+      subtotal: '600.00',
+      deliveryCharge: '70.00',
+      grandTotal: '670.00',
+    });
   });
 
   it('holds one visitor to 60 tracking reads a minute', async () => {
