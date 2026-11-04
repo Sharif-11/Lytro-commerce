@@ -15,6 +15,8 @@ import type {
   PublicCategory,
   PublicProduct,
   PublicShop,
+  ShopperAddress,
+  ShopperOrderRow,
   TrackedOrder,
 } from '../../src/lib/api/storefront-api';
 
@@ -28,6 +30,15 @@ export interface ProductFixture {
   card: ProductCard;
   /** TAX-02: the class its price includes. */
   tax?: { name: string; rate: string } | null;
+}
+
+/** A shopper with an account at the shop. */
+export interface ShopperFixture {
+  phone: string;
+  password: string;
+  name: string;
+  addresses: ShopperAddress[];
+  orders: ShopperOrderRow[];
 }
 
 /** What the server does with the next order, before anything else about it. */
@@ -53,6 +64,11 @@ export interface ShopFixture {
   /** The tracking ID the next order gets. */
   trackingId: string;
   orderNumber: string;
+  shoppers: ShopperFixture[];
+  /** What the server answers the next requests for a code with, before anything else about them. */
+  nextCodes: { status: number; code: string }[];
+  /** How long a shopper waits to ask for a code again. */
+  resendAfterSeconds: number;
 }
 
 /** An order as the mocked server was sent it. */
@@ -77,7 +93,7 @@ export function idOf(name: string): string {
   ].join('-');
 }
 
-export const THANA = { dhanmondi: 2, mirpur: 3, ruma: 21 } as const;
+export const THANA = { dhanmondi: 2, mirpur: 3, tejgaon: 9, ruma: 21 } as const;
 export const VAT = { name: 'VAT', rate: '5.00' };
 // A date past any product's New tag.
 const LONG_AGO = '2026-01-01T00:00:00.000Z';
@@ -101,6 +117,7 @@ export function meghLocations(): Locations {
           [6, 'বাড্ডা', 'Badda'],
           [7, 'সাভার', 'Savar'],
           [8, 'ধামরাই', 'Dhamrai'],
+          [THANA.tejgaon, 'তেজগাঁও', 'Tejgaon'],
         ]),
       },
       {
@@ -142,7 +159,7 @@ export const ZONES: DeliveryZoneView[] = [
 
 function zoneOfThana(): Record<number, string> {
   const zones: Record<number, string> = {};
-  for (const id of [1, 2, 3, 4, 5, 6]) zones[id] = 'inside';
+  for (const id of [1, 2, 3, 4, 5, 6, 9]) zones[id] = 'inside';
   for (const id of [7, 8, 11, 12]) zones[id] = 'outside';
   for (const id of [20, 21]) zones[id] = 'none';
   return zones;
@@ -513,7 +530,67 @@ export function meghShop(language: Language, overrides: Partial<ShopFixture> = {
     nextOrders: [],
     trackingId: 'K7F2M9QX',
     orderNumber: '261031-0047',
+    shoppers: [],
+    nextCodes: [],
+    resendAfterSeconds: 60,
     ...overrides,
+  };
+}
+
+export const CODE = '123456';
+export const RUMANA_PASSWORD = 'mirpur-1234';
+
+/** `account-orders`: Rumana's account as the sketch draws it: her three orders, her home and her office. */
+export function rumana(language: Language, extra: Partial<ShopperFixture> = {}): ShopperFixture {
+  const row = (
+    orderNumber: string,
+    createdAt: string,
+    status: OrderStatus,
+    grandTotal: string,
+  ): ShopperOrderRow => ({
+    orderNumber,
+    trackingId: idOf(orderNumber).slice(0, 8).toUpperCase(),
+    status,
+    grandTotal,
+    createdAt,
+  });
+  const place = (id: number, nameBn: string, nameEn: string) => ({
+    id,
+    nameBn,
+    nameEn,
+    cityCode: null,
+    zillaId: 1,
+  });
+  return {
+    phone: '01711223344',
+    password: RUMANA_PASSWORD,
+    name: pick(language, 'রুমানা', 'Rumana'),
+    addresses: [
+      {
+        id: idOf('address-home'),
+        label: pick(language, 'বাসা', 'Home'),
+        location: place(THANA.mirpur, 'মিরপুর', 'Mirpur'),
+        deliveryAddress: pick(
+          language,
+          'বাসা ১২/বি, রোড ৩, মিরপুর ১০',
+          'House 12/B, Road 3, Mirpur 10',
+        ),
+        isDefault: true,
+      },
+      {
+        id: idOf('address-office'),
+        label: pick(language, 'অফিস', 'Office'),
+        location: place(THANA.tejgaon, 'তেজগাঁও', 'Tejgaon'),
+        deliveryAddress: pick(language, 'লেভেল ৫, কাওরান বাজার', 'Level 5, Kawran Bazar'),
+        isDefault: false,
+      },
+    ],
+    orders: [
+      row('261031-0047', '2026-10-31T05:42:00.000Z', OrderStatus.Shipped, '3570.00'),
+      row('261012-0008', '2026-10-12T05:42:00.000Z', OrderStatus.Delivered, '1320.00'),
+      row('260914-0003', '2026-09-14T05:42:00.000Z', OrderStatus.Delivered, '450.00'),
+    ],
+    ...extra,
   };
 }
 

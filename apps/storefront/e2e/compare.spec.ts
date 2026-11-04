@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { expect, type Page, test } from '@playwright/test';
 import type { CartLine } from '../src/lib/cart/cart-store';
 import {
+  CODE,
   eidCombo,
   EMBROIDER,
   GIFT_WRAP,
@@ -12,6 +13,8 @@ import {
   type Language,
   PACKING,
   panjabi,
+  rumana,
+  RUMANA_PASSWORD,
   THANA,
   type ShopFixture,
   threePiece,
@@ -19,7 +22,7 @@ import {
   VAT,
   WRAP,
 } from './support/fixtures';
-import { openShop, seedArea, seedCart } from './support/shop';
+import { openShop, seedArea, seedCart, signIn } from './support/shop';
 
 // STOREFRONT-DESIGN §11: each built screen beside the prototype's drawing of it, at the prototype's own frame sizes, saved
 // to test-results/compare for the pull request and CI's artifacts. No pixel baseline is committed: a font renders a little
@@ -43,6 +46,8 @@ interface Pair {
   shop?: (language: Language) => Partial<ShopFixture>;
   cart?: (language: Language) => CartLine[];
   area?: number;
+  /** Signed in as the shop's first shopper before the page opens. */
+  signedIn?: boolean;
   then?: (page: Page, language: Language) => Promise<void>;
 }
 
@@ -145,6 +150,32 @@ async function fillLanding(
 }
 
 const placeButton = (page: Page) => page.locator('.side .btn.primary.lg');
+
+const withRumana = (language: Language): Partial<ShopFixture> => ({ shoppers: [rumana(language)] });
+
+/** A wrong password, this many times, so the page says what the sketch draws of it. */
+async function tryPassword(page: Page, times: number) {
+  await page.locator('#si-phone').fill('01711 223344');
+  await page.locator('#si-password').fill('not-the-one');
+  for (let tries = 0; tries < times; tries += 1) {
+    const answered = page.waitForResponse('**/api/shopper/signin');
+    await page.locator('form button[type="submit"]').click();
+    await answered;
+    await expect(page.locator('.banner')).toBeVisible();
+  }
+}
+
+async function sendCode(page: Page) {
+  await page.locator('#su-phone').fill('01711 223344');
+  await page.locator('form button[type="submit"]').click();
+}
+
+async function toDetails(page: Page, code: string) {
+  await sendCode(page);
+  await page.locator('#su-code').fill(code);
+  await page.locator('form button[type="submit"]').click();
+  await expect(page.locator('#su-name')).toBeVisible();
+}
 
 async function placeAndWait(page: Page) {
   await expect(placeButton(page)).toBeEnabled();
@@ -599,6 +630,270 @@ const PAIRS: Pair[] = [
     then: fillLanding,
   },
   { name: 'landing-out', screen: 'e48-landing-out', path: '/l/kids-frock', then: fillLanding },
+  // The account (§7a, §7c).
+  {
+    name: 'signin',
+    screen: 'account-signin',
+    path: '/sign-in',
+    shop: withRumana,
+    then: async (page) => {
+      await page.locator('#si-phone').fill('01711 223344');
+    },
+  },
+  {
+    name: 'signin-wrong',
+    screen: 'e48-signin-wrong',
+    path: '/sign-in',
+    shop: withRumana,
+    then: async (page) => {
+      await tryPassword(page, 1);
+    },
+  },
+  {
+    name: 'signin-locked',
+    screen: 'e48-signin-locked',
+    path: '/sign-in',
+    shop: withRumana,
+    then: async (page) => {
+      await tryPassword(page, 6);
+    },
+  },
+  {
+    name: 'signin-badphone',
+    screen: 'e48-signin-badphone',
+    path: '/sign-in',
+    shop: withRumana,
+    then: async (page) => {
+      await page.locator('#si-phone').fill('0171');
+      await page.locator('#si-password').fill('x');
+      await page.locator('form button[type="submit"]').click();
+    },
+  },
+  {
+    name: 'forgot',
+    screen: 'e48-forgot',
+    path: '/sign-in',
+    shop: withRumana,
+    then: async (page) => {
+      await page.locator('#si-phone').fill('01711 223344');
+      await page.locator('form button[type="button"]').click();
+    },
+  },
+  {
+    name: 'signup',
+    screen: 'e48-signup',
+    path: '/sign-up',
+    then: async (page) => {
+      await page.locator('#su-phone').fill('01711 223344');
+    },
+  },
+  {
+    name: 'signup-taken',
+    screen: 'e48-signup-taken',
+    path: '/sign-up',
+    shop: withRumana,
+    then: async (page) => {
+      await sendCode(page);
+      await expect(page.locator('.banner')).toBeVisible();
+    },
+  },
+  {
+    name: 'signup-nosend',
+    screen: 'e48-signup-nosend',
+    path: '/sign-up',
+    shop: () => ({ nextCodes: [{ status: 429, code: 'quota_exceeded' }] }),
+    then: async (page) => {
+      await sendCode(page);
+      await expect(page.locator('.banner')).toBeVisible();
+    },
+  },
+  {
+    name: 'signup-failed',
+    screen: 'e48-signup-failed',
+    path: '/sign-up',
+    shop: () => ({ nextCodes: [{ status: 503, code: 'service_unavailable' }] }),
+    then: async (page) => {
+      await sendCode(page);
+      await expect(page.locator('.banner')).toBeVisible();
+    },
+  },
+  {
+    name: 'otp',
+    screen: 'account-otp',
+    path: '/sign-up',
+    then: async (page) => {
+      await sendCode(page);
+      await page.locator('#su-code').fill('481');
+    },
+  },
+  {
+    name: 'otp-wrong',
+    screen: 'e48-otp-wrong',
+    path: '/sign-up',
+    then: async (page) => {
+      await toDetails(page, '481906');
+      await page.locator('#su-name').fill('Rafi');
+      await page.locator('#su-password').fill('a-good-password');
+      await page.locator('form button[type="submit"]').click();
+      await expect(page.locator('#su-code')).toBeVisible();
+    },
+  },
+  {
+    name: 'otp-old',
+    screen: 'e48-otp-old',
+    path: '/sign-up',
+    shop: () => ({ resendAfterSeconds: 0 }),
+    then: async (page) => {
+      await toDetails(page, '000000');
+      await page.locator('#su-name').fill('Rafi');
+      await page.locator('#su-password').fill('a-good-password');
+      await page.locator('form button[type="submit"]').click();
+      await expect(page.locator('#su-code')).toBeVisible();
+    },
+  },
+  {
+    name: 'signup-details',
+    screen: 'e48-signup-details',
+    path: '/sign-up',
+    then: async (page, language) => {
+      await toDetails(page, CODE);
+      await page.locator('#su-name').fill(pick(language, 'রুমানা আক্তার', 'Rumana Akter'));
+    },
+  },
+  {
+    name: 'signup-details-errors',
+    screen: 'e48-signup-details-errors',
+    path: '/sign-up',
+    then: async (page) => {
+      await toDetails(page, CODE);
+      await page.locator('#su-password').fill('abcd');
+      await page.locator('form button[type="submit"]').click();
+    },
+  },
+  { name: 'orders', screen: 'account-orders', path: '/account', shop: withRumana, signedIn: true },
+  {
+    name: 'orders-empty',
+    screen: 'e48-orders-empty',
+    path: '/account',
+    shop: (language) => ({ shoppers: [rumana(language, { orders: [] })] }),
+    signedIn: true,
+  },
+  {
+    name: 'addresses',
+    screen: 'account-addresses',
+    path: '/account/addresses',
+    shop: withRumana,
+    signedIn: true,
+  },
+  {
+    name: 'addresses-empty',
+    screen: 'e48-addresses-empty',
+    path: '/account/addresses',
+    shop: (language) => ({ shoppers: [rumana(language, { addresses: [] })] }),
+    signedIn: true,
+  },
+  {
+    name: 'address-new',
+    screen: 'e48-address-new',
+    path: '/account/addresses',
+    shop: withRumana,
+    signedIn: true,
+    then: async (page) => {
+      await page.locator('button.btn.ghost.block').click();
+      await page.locator('[role="dialog"] .grid2 select').first().selectOption('1');
+    },
+  },
+  {
+    name: 'address-edit',
+    screen: 'e48-address-edit',
+    path: '/account/addresses',
+    shop: withRumana,
+    signedIn: true,
+    then: async (page) => {
+      await page.locator('button.btn.quiet').last().click();
+      await expect(page.locator('[role="dialog"]')).toBeVisible();
+    },
+  },
+  {
+    name: 'address-errors',
+    screen: 'e48-address-errors',
+    path: '/account/addresses',
+    shop: withRumana,
+    signedIn: true,
+    then: async (page) => {
+      await page.locator('button.btn.ghost.block').click();
+      await page.locator('[role="dialog"] .grid2 select').first().selectOption('1');
+      await page.locator('[role="dialog"] .sf .btn.primary').click();
+    },
+  },
+  {
+    name: 'address-full',
+    screen: 'e48-address-full',
+    path: '/account/addresses',
+    shop: (language) => {
+      const [home, office] = rumana(language).addresses;
+      if (!home || !office) throw new Error('Rumana has two addresses');
+      const more = Array.from({ length: 8 }, (_, at) => ({
+        ...office,
+        id: idOf(`more-${String(at)}`),
+      }));
+      return { shoppers: [rumana(language, { addresses: [home, office, ...more] })] };
+    },
+    signedIn: true,
+  },
+  {
+    name: 'profile',
+    screen: 'e48-profile',
+    path: '/account/profile',
+    shop: withRumana,
+    signedIn: true,
+  },
+  {
+    name: 'profile-saved',
+    screen: 'e48-profile-saved',
+    path: '/account/profile',
+    shop: withRumana,
+    signedIn: true,
+    then: async (page) => {
+      await page.locator('form .btn.primary').click();
+      await expect(page.locator('.toast')).toBeVisible();
+    },
+  },
+  {
+    name: 'password-wrong',
+    screen: 'e48-password-wrong',
+    path: '/account/profile',
+    shop: withRumana,
+    signedIn: true,
+    then: async (page) => {
+      await page.locator('#pf-current').fill('not-the-one');
+      await page.locator('#pf-new').fill('a-new-password');
+      await page.locator('form .btn.ghost').click();
+      await expect(page.locator('#pf-current ~ .err')).toBeVisible();
+    },
+  },
+  {
+    name: 'password-done',
+    screen: 'e48-password-done',
+    path: '/account/profile',
+    shop: withRumana,
+    signedIn: true,
+    then: async (page) => {
+      await page.locator('#pf-current').fill(RUMANA_PASSWORD);
+      await page.locator('#pf-new').fill('a-new-password');
+      await page.locator('form .btn.ghost').click();
+      await expect(page.locator('.toast')).toBeVisible();
+    },
+  },
+  {
+    name: 'checkout-signedin',
+    screen: 'e48-checkout-signedin',
+    path: '/checkout',
+    shop: (language) => ({ ...wrapped(language), shoppers: [rumana(language)] }),
+    cart: lines,
+    signedIn: true,
+  },
+  { name: 'header', screen: 'e48-header', path: '/' },
   // The catalogue's pages, whose base type this slice set to the prototype's.
   { name: 'category', screen: 'category', path: '/c/panjabi' },
   { name: 'new-arrivals', screen: 'new-arrivals', path: '/new' },
@@ -653,6 +948,7 @@ test.describe('the built storefront beside the prototype', () => {
           const shop = await openShop(app, pair.shop ?? (() => ({})), language);
           if (pair.cart) await seedCart(app, pair.cart(language));
           if (pair.area) await seedArea(app, shop, pair.area);
+          if (pair.signedIn) await signIn(app, shop);
           await app.goto(shop.url(pair.path));
           await app.waitForLoadState('networkidle');
           await app.evaluate(() => document.fonts.ready);

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { OrderStatus, StockState } from '@lytronix/validators/enums';
 import type {
@@ -8,7 +9,7 @@ import type {
   TaxLine,
   TrackedOrder,
 } from '../../src/lib/api/storefront-api';
-import type { ProductFixture, SentOrder, ShopFixture } from './fixtures';
+import { CODE, type ProductFixture, type SentOrder, type ShopFixture } from './fixtures';
 
 // The server as the storefront's own server meets it, over HTTP, because the pages are rendered there: which shop a host
 // serves, the public catalogue, the estimate and order creation. A test names its own shop (`POST /__shop`), by a slug
@@ -24,6 +25,12 @@ interface ShopState {
   placedByKey: Map<string, { hash: string; placed: unknown }>;
   /** How many order requests arrived, placed or not. */
   orderRequests: number;
+  /** CUS-03: each sign-in's phone by its token. */
+  tokens: Map<string, string>;
+  /** AUTH-14: wrong passwords by phone. */
+  wrongTries: Map<string, number>;
+  /** How many code and sign-in requests arrived. */
+  shopperRequests: number;
 }
 
 const shops = new Map<string, ShopState>();
@@ -352,6 +359,212 @@ function place(
   send(response, 201, placed);
 }
 
+const textOf = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback);
+const onlyDigits = (phone: unknown) => textOf(phone).replace(/\D/g, '');
+const WRONG_TRIES_LOCK = 5;
+const ORDERS_PAGE = 20;
+const ADDRESSES_MAX = 10;
+
+function signedInAnswer(state: ShopState, phone: string) {
+  const shopper = state.fixture.shoppers.find((row) => row.phone === phone);
+  if (!shopper) throw new Error(`no shopper ${phone}`);
+  const token = randomUUID();
+  state.tokens.set(token, phone);
+  return {
+    token,
+    expiresAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+    shopper: viewOf(shopper),
+  };
+}
+
+function viewOf(shopper: ShopFixture['shoppers'][number]) {
+  return {
+    id: shopper.phone,
+    name: shopper.name,
+    phone: shopper.phone,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  };
+}
+
+function locationOf(fixture: ShopFixture, locationId: number) {
+  for (const zilla of fixture.locations.zillas) {
+    const thana = zilla.thanas.find((row) => row.id === locationId);
+    if (thana) return { ...thana, zillaId: zilla.id };
+  }
+  return null;
+}
+
+/** The shopper's side of the public API (CUS-03 to CUS-06, ORD-18), by the server's rules as far as a page shows them. */
+async function shopperApi(
+  state: ShopState,
+  path: string,
+  url: URL,
+  request: IncomingMessage,
+  response: ServerResponse,
+): Promise<void> {
+  const { fixture } = state;
+  const method = request.method ?? 'GET';
+  const body = (method === 'POST' || method === 'PATCH' ? await readBody(request) : null) as Record<
+    string,
+    unknown
+  > | null;
+  if (path === 'code' && method === 'POST') {
+    state.shopperRequests += 1;
+    const refusal = fixture.nextCodes.shift();
+    if (refusal) {
+      fail(response, refusal.status, refusal.code);
+      return;
+    }
+    if (fixture.shoppers.some((row) => row.phone === onlyDigits(body?.['phone']))) {
+      fail(response, 409, 'conflict');
+      return;
+    }
+    send(response, 200, {
+      expiresInSeconds: 300,
+      resendAfterSeconds: fixture.resendAfterSeconds,
+    });
+    return;
+  }
+  if (path === 'signup' && method === 'POST') {
+    state.shopperRequests += 1;
+    const code = body?.['code'];
+    if (code === '000000') {
+      fail(response, 422, 'validation_error', {
+        fields: [{ field: 'code', problem: 'expired' }],
+      });
+      return;
+    }
+    if (code === '999999') {
+      fail(response, 429, 'rate_limited');
+      return;
+    }
+    if (code !== CODE) {
+      fail(response, 422, 'validation_error', {
+        fields: [{ field: 'code', problem: 'incorrect' }],
+      });
+      return;
+    }
+    const phone = onlyDigits(body?.['phone']);
+    fixture.shoppers.push({
+      phone,
+      password: textOf(body?.['password']),
+      name: textOf(body?.['name']),
+      addresses: [],
+      orders: [],
+    });
+    send(response, 201, signedInAnswer(state, phone));
+    return;
+  }
+  if (path === 'signin' && method === 'POST') {
+    state.shopperRequests += 1;
+    const phone = onlyDigits(body?.['phone']);
+    const tries = state.wrongTries.get(phone) ?? 0;
+    if (tries >= WRONG_TRIES_LOCK) {
+      fail(response, 429, 'rate_limited');
+      return;
+    }
+    const shopper = fixture.shoppers.find((row) => row.phone === phone);
+    if (!shopper || shopper.password !== body?.['password']) {
+      state.wrongTries.set(phone, tries + 1);
+      fail(response, 401, 'unauthenticated');
+      return;
+    }
+    send(response, 200, signedInAnswer(state, phone));
+    return;
+  }
+  const header = request.headers['x-shopper-token'];
+  const token = typeof header === 'string' ? header : '';
+  const shopper = fixture.shoppers.find((row) => row.phone === state.tokens.get(token));
+  if (!shopper) {
+    fail(response, 401, 'unauthenticated');
+    return;
+  }
+  if (path === 'signout' && method === 'POST') {
+    state.tokens.delete(token);
+    send(response, 200, { ok: true });
+    return;
+  }
+  if (path === 'me') {
+    if (method === 'PATCH') shopper.name = textOf(body?.['name']);
+    send(response, 200, viewOf(shopper));
+    return;
+  }
+  if (path === 'password' && method === 'POST') {
+    if (body?.['currentPassword'] !== shopper.password) {
+      fail(response, 422, 'validation_error', {
+        fields: [{ field: 'currentPassword', problem: 'incorrect' }],
+      });
+      return;
+    }
+    shopper.password = textOf(body['newPassword']);
+    for (const [held, phone] of state.tokens) {
+      if (phone === shopper.phone && held !== token) state.tokens.delete(held);
+    }
+    send(response, 200, { ok: true });
+    return;
+  }
+  if (path === 'orders') {
+    const page = Number(url.searchParams.get('page') ?? 1);
+    const total = shopper.orders.length;
+    send(response, 200, {
+      orders: shopper.orders.slice((page - 1) * ORDERS_PAGE, page * ORDERS_PAGE),
+      page,
+      limit: ORDERS_PAGE,
+      total,
+      pages: Math.ceil(total / ORDERS_PAGE),
+    });
+    return;
+  }
+  const defaultOne = (makeDefault: unknown, id: string) => {
+    if (makeDefault !== true) return;
+    for (const row of shopper.addresses) row.isDefault = row.id === id;
+  };
+  const addresses = () => ({
+    addresses: [...shopper.addresses].sort((a, b) => Number(b.isDefault) - Number(a.isDefault)),
+  });
+  if (path === 'addresses') {
+    if (method === 'POST') {
+      if (shopper.addresses.length >= ADDRESSES_MAX) {
+        fail(response, 409, 'conflict');
+        return;
+      }
+      const id = randomUUID();
+      shopper.addresses.push({
+        id,
+        label: textOf(body?.['label']),
+        location: locationOf(fixture, Number(body?.['locationId'])),
+        deliveryAddress: textOf(body?.['deliveryAddress']),
+        isDefault: shopper.addresses.length === 0,
+      });
+      defaultOne(body?.['isDefault'], id);
+      send(response, 201, addresses());
+      return;
+    }
+    send(response, 200, addresses());
+    return;
+  }
+  const one = /^addresses\/(.+)$/.exec(path)?.[1];
+  const address = shopper.addresses.find((row) => row.id === one);
+  if (!address) {
+    fail(response, 404, 'not_found');
+    return;
+  }
+  if (method === 'DELETE') {
+    shopper.addresses = shopper.addresses.filter((row) => row !== address);
+    const [next] = shopper.addresses;
+    if (address.isDefault && next) next.isDefault = true;
+    send(response, 200, addresses());
+    return;
+  }
+  address.label = textOf(body?.['label'], address.label);
+  address.deliveryAddress = textOf(body?.['deliveryAddress'], address.deliveryAddress);
+  if (body?.['locationId'] !== undefined) {
+    address.location = locationOf(fixture, Number(body['locationId']));
+  }
+  defaultOne(body?.['isDefault'], address.id);
+  send(response, 200, addresses());
+}
+
 function shopOfKey(request: IncomingMessage): ShopState | null {
   const bearer = /^Bearer key-(.+)$/.exec(request.headers.authorization ?? '');
   return bearer?.[1] ? (shops.get(bearer[1]) ?? null) : null;
@@ -365,6 +578,11 @@ async function publicApi(
 ): Promise<void> {
   const { fixture } = state;
   const path = url.pathname;
+  const shopperPath = /^\/v1\/shopper\/(.+)$/.exec(path)?.[1];
+  if (shopperPath) {
+    await shopperApi(state, shopperPath, url, request, response);
+    return;
+  }
   if (path === '/v1/shop') {
     send(response, 200, fixture.info);
     return;
@@ -429,14 +647,27 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
   const path = url.pathname;
   if (path === '/__shop' && request.method === 'POST') {
     const fixture = (await readBody(request)) as ShopFixture;
-    shops.set(fixture.slug, { fixture, orders: [], placedByKey: new Map(), orderRequests: 0 });
+    shops.set(fixture.slug, {
+      fixture,
+      orders: [],
+      placedByKey: new Map(),
+      orderRequests: 0,
+      tokens: new Map(),
+      wrongTries: new Map(),
+      shopperRequests: 0,
+    });
     send(response, 201, { slug: fixture.slug });
     return;
   }
   const orders = /^\/__orders\/(.+)$/.exec(path);
   if (orders?.[1]) {
     const state = shops.get(orders[1]);
-    send(response, 200, { orders: state?.orders ?? [], requests: state?.orderRequests ?? 0 });
+    send(response, 200, {
+      orders: state?.orders ?? [],
+      requests: state?.orderRequests ?? 0,
+      shopperRequests: state?.shopperRequests ?? 0,
+      shoppers: state?.fixture.shoppers ?? [],
+    });
     return;
   }
   if (path === '/api/v1/internal/storefront/context') {

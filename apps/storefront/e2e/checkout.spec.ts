@@ -393,13 +393,12 @@ test.describe('around it', () => {
     await expect(place(page)).toHaveCount(0);
   });
 
-  test('leaves out what comes later: paying first, and signing in', async ({ page }) => {
+  test('leaves out what comes later: paying first', async ({ page }) => {
     const shop = await openShop(page);
     await seedCart(page, [hijabLine()]);
     await page.goto(shop.url('/checkout'));
     await expect(page.locator('.card2', { hasText: 'Payment' })).toContainText('Cash on delivery');
     await expect(page.getByText('bKash')).toHaveCount(0);
-    await expect(page.getByText('Sign in')).toHaveCount(0);
   });
 
   test('the confirmation opened on another phone names no number (ORD-17)', async ({ page }) => {

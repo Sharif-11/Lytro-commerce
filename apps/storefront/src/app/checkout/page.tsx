@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { CheckoutView } from '@/components/order/checkout-view';
 import { OfflinePage } from '@/components/pages';
 import { Footer, Header, Shell } from '@/components/shell';
-import { loadFrame, loadShopPage } from '@/lib/storefront';
+import { loadAddresses, loadFrame, loadShopper, loadShopPage } from '@/lib/storefront';
 
 // SFT-06 (`checkout`, Slice 4.8e): one page, guest, cash on delivery. The cart lives in the browser, so the page is the
 // browser's; never kept by any cache (CCH-07).
@@ -24,7 +24,8 @@ export default async function CheckoutPage() {
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
   // SFT-16: a switched-off storefront answers its paths with not-found.
   if (page.state === 'missing' || !page.shop.storefrontEnabled) notFound();
-  const frame = await loadFrame(page);
+  const [frame, signedIn] = await Promise.all([loadFrame(page), loadShopper()]);
+  const addresses = signedIn === null ? [] : await loadAddresses(page);
   const language = page.words.language;
   return (
     <Shell
@@ -47,7 +48,13 @@ export default async function CheckoutPage() {
       }
       footer={<Footer shop={page.info} language={language} landing={false} storefrontOn />}
     >
-      <CheckoutView language={language} shopPhone={page.info.contact.phone} areaId={frame.areaId} />
+      <CheckoutView
+        language={language}
+        shopPhone={page.info.contact.phone}
+        areaId={frame.areaId}
+        shopper={signedIn}
+        addresses={addresses}
+      />
     </Shell>
   );
 }

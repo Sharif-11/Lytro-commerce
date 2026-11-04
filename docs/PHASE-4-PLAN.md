@@ -435,7 +435,8 @@ combos and statistics). If velocity suggests it, the rest can become Phase 4B wi
   2026-11-03): ordering first, with the landing page's form, its Pixel events and a storefront browser suite that closes
   KNOWN-GAPS §105 (built 2026-11-03, STOREFRONT-DESIGN v1.4 §7b, no migration: the public product lists what it asks;
   the estimate takes add-ons and says the tax; tracking names a combo's parts and the shopper's answers; LND-07 and
-  LND-15 amended); then the shopper's account. Shoppers are asked what a seller marked asked when ordering, on the
+  LND-15 amended; #286); then the shopper's account (built 2026-11-03, STOREFRONT-DESIGN v1.5 §7c, no server change: the
+  sign-in kept in an http-only cookie by the storefront's server). Shoppers are asked what a seller marked asked when ordering, on the
   product page, optional.
 - **Sketch first** (`sketch-every-screen-before-building`): the status flow with the call log, Confirm, cancel
   reasons, Mark shipped and returns; the storefront's checkout for cash on delivery, the confirmation without an SMS
