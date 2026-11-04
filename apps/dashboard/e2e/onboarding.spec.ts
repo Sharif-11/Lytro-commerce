@@ -120,8 +120,13 @@ test('signing in with a number whose account has a shop opens that shop, not Cre
   await page.getByRole('button', { name: 'Continue' }).click();
   await typeCode(page, '409409');
   await page.getByRole('button', { name: 'Verify' }).click();
+  const visited: string[] = [];
+  page.on('framenavigated', (frame) => visited.push(new URL(frame.url()).pathname));
   await page.getByRole('button', { name: 'Sign in with this number' }).click();
   await expect(page).toHaveURL(`/${SLUG}`);
+  // Straight there: the account before must not answer for this one, even for a moment.
+  expect(visited).not.toContain('/create-shop');
+  expect(visited).not.toContain('/verify-phone');
 });
 
 test('Use another number starts the step again, and an account with a phone never sees it', async ({
