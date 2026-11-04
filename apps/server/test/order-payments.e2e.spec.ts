@@ -497,11 +497,13 @@ describeIfDatabase('voiding a payment recorded by mistake (agreed 2026-10-30)', 
     const grants = await admin.query<{ column_name: string }>(
       "SELECT column_name FROM information_schema.column_privileges WHERE table_schema = 'tenant' AND table_name = 'payments' AND grantee = 'lytronix_app' AND privilege_type = 'UPDATE' ORDER BY column_name",
     );
-    // Slice 5.3: a payment may also be marked refunded (PAY-20), once, as payment-verify.e2e checks.
+    // Slice 5.3: a payment may also be marked refunded (PAY-20), once, as payment-verify.e2e checks. CUS-09: its sender
+    // number may be emptied, and only emptied, as customers.e2e checks.
     expect(grants.rows.map((row) => row.column_name)).toEqual([
       'refund_note',
       'refunded_at',
       'refunded_by',
+      'sender_number',
       'void_reason',
       'voided_at',
       'voided_by',

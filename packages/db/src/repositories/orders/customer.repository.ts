@@ -258,6 +258,22 @@ export class CustomerRepository {
             eq(listenerMessages.senderNumber, customer.phone),
           ),
         );
+      // The payments and sessions from this number, on whichever order: each keeps its transaction ID and amount.
+      await tx
+        .update(orderPayments)
+        .set({ senderNumber: null })
+        .where(
+          and(eq(orderPayments.tenantId, tenantId), eq(orderPayments.senderNumber, customer.phone)),
+        );
+      await tx
+        .update(paymentSessions)
+        .set({ senderNumber: null, updatedAt: now })
+        .where(
+          and(
+            eq(paymentSessions.tenantId, tenantId),
+            eq(paymentSessions.senderNumber, customer.phone),
+          ),
+        );
     }
     const erased = await tx
       .update(orders)
@@ -273,11 +289,15 @@ export class CustomerRepository {
       .returning({ id: orders.id });
     const ids = erased.map((row) => row.id);
     if (ids.length > 0) {
-      // Slice 5.3: the numbers its shopper paid from, on its orders' payment sessions.
+      // Slice 5.3: the numbers its shopper paid from, on its orders' payment sessions and payments.
       await tx
         .update(paymentSessions)
         .set({ senderNumber: null, updatedAt: now })
         .where(and(eq(paymentSessions.tenantId, tenantId), inArray(paymentSessions.orderId, ids)));
+      await tx
+        .update(orderPayments)
+        .set({ senderNumber: null })
+        .where(and(eq(orderPayments.tenantId, tenantId), inArray(orderPayments.orderId, ids)));
       // Slice 5.4b: a receipt on its orders keeps its ID and amount, and loses the number and the text that names it.
       await tx
         .update(listenerMessages)
