@@ -47,10 +47,13 @@ function remember(order: PlacedOrder, phone: string): void {
 export function useOrderPlacing(options: {
   initialThana: number | null;
   source: 'storefront' | 'landing_page';
+  /** What a signed-in shopper's account fills in at the start. */
+  initial?: Partial<OrderFields>;
 }) {
   const [fields, setFields] = useState<OrderFields>({
     ...NO_FIELDS,
     thanaId: options.initialThana,
+    ...options.initial,
   });
   const [problems, setProblems] = useState<OrderFieldName[]>([]);
   const [notice, setNotice] = useState<OrderNotice>(null);

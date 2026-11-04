@@ -1,5 +1,6 @@
 import { OrderStatus } from '@lytronix/validators/enums';
 import type { TrackedItem, TrackedOrder, TrackingStepName } from '@/lib/api/storefront-api';
+import { dayMonthTime } from '@/lib/i18n/dates';
 import { money, type Words } from '@/lib/i18n/words';
 import { quantityText } from '@/lib/order/order-form';
 import { Icon } from '../icon';
@@ -10,16 +11,6 @@ import { LineExtras, SummaryLine, TaxRows } from './order-parts';
 
 const STEPS = ['placed', 'confirmed', 'shipped', 'delivered'] as const;
 type Step = (typeof STEPS)[number];
-
-// The prototype writes a step's time the same in both languages (`31 Oct, 11:42`), on Dhaka's clock.
-const WHEN = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-  timeZone: 'Asia/Dhaka',
-});
 
 export function SearchBox({ value, words }: { value: string; words: Words }) {
   return (
@@ -119,11 +110,20 @@ function partsOf(item: TrackedItem): string | null {
     .join(', ');
 }
 
-export function TrackingView({ order, words }: { order: TrackedOrder; words: Words }) {
+export function TrackingView({
+  order,
+  words,
+  showAccount,
+}: {
+  order: TrackedOrder;
+  words: Words;
+  /** ORD-18: the way to every order with the phone; a landing page's frame has none. */
+  showAccount: boolean;
+}) {
   const at = new Map(order.timeline.map((row) => [row.step, row.at]));
   const when = (step: TrackingStepName) => {
     const time = at.get(step);
-    return time === undefined ? '' : WHEN.format(new Date(time));
+    return time === undefined ? '' : dayMonthTime(time);
   };
   const cancelled = isCancelled(order);
   const stage = stageOf(order);
@@ -258,6 +258,12 @@ export function TrackingView({ order, words }: { order: TrackedOrder; words: Wor
             </div>
             <TaxRows taxes={order.taxes} words={words} />
           </div>
+          {showAccount ? (
+            <a className="btn ghost block" href="/account">
+              <Icon name="user" />
+              {words.t('tr_phone')}
+            </a>
+          ) : null}
         </div>
       </div>
     </>

@@ -1,6 +1,8 @@
 # Shopper storefront: design
 
-Status: v1.4, 2026-11-03 (Slice 4.8e's build, part 1, §7b: what a product asks when ordering, on the product page and
+Status: v1.5, 2026-11-03 (Slice 4.8e's build, part 2, §7c: the account pages' refusals and empty states, an address
+edited or deleted, ten saved, the profile saved, a shopper's sign-in kept out of a browser's scripts). v1.4 of 2026-11-03
+(Slice 4.8e's build, part 1, §7b: what a product asks when ordering, on the product page and
 kept on the line and the order; a required add-on left empty; a cart line whose add-ons no longer fit; nothing to check
 out, an item sold out when the page checks, an order that did not go through; tracking with no ID, one not found,
 delivered and returned; the landing page's add-ons, questions and refusals). v1.3 of 2026-10-31 (ordering as Phase 4
@@ -249,8 +251,32 @@ Drawn in the same group, on 2026-11-03, before the build:
   needs an advance waiting for online payment (`e48-landing-advance`) and sold out (`e48-landing-out`).
 
 Built screens leave out what is drawn as Later: paying first with bKash or Nagad shows in the sketch only, until Phase 5,
-as on the dashboard. The account icon, Sign in to fill this in, Make an account and All your orders by phone come with the
-sign-in pages in part 2.
+as on the dashboard.
+
+## 7c. What building the account needed (Slice 4.8e, part 2)
+
+Drawn in the same group, on 2026-11-03, before the build:
+
+- **Sign in**: a phone that isn't one is the field's own error (`e48-signin-badphone`). Opened from Sign in to fill this in,
+  it leads back to the checkout, the cart unchanged.
+- **Sign up**: a phone with an account already leads to Sign in (`e48-signup-taken`); a shop whose balance can't pay for the
+  code says so with Call the shop (`e48-signup-nosend`, SMS-11, CUS-04); a text that failed says to try in a minute
+  (`e48-signup-failed`). The code step counts down to Resend (`account-otp`). The server checks the code only when the
+  account is made, so a wrong code is found on the last step, which leads back here with what was typed kept
+  (`e48-otp-wrong`); one run out, or too many wrong tries, asks for a new one (`e48-otp-old`). No name, or a password
+  outside 8 to 20, are the fields' own errors (`e48-signup-details-errors`).
+- **My orders**: none yet (`e48-orders-empty`), and Show more past a page of 20 (`e48-orders-more`).
+- **Saved addresses**: none yet (`e48-addresses-empty`); Edit opens the same sheet with Delete beside Save (`e48-address-edit`);
+  its fields' errors (`e48-address-errors`); ten saved holds Add an address (`e48-address-full`, CUS-06).
+- **Profile**: a toast on saving (`e48-profile-saved`) and on a new password, saying the shopper's other sign-ins ended
+  (`e48-password-done`); a wrong current password on its field (`e48-password-wrong`).
+- **The confirmation's Make an account** wraps on a phone, and is left out for someone already signed in, as Sign in to fill
+  this in and All your orders by phone follow who is signed in.
+
+**The sign-in itself** (not drawn): the server's token is kept in an http-only cookie on the shop's own host, set and cleared
+by the storefront's server, so no script in a browser can read it and every call carries it from there (as the shop's key,
+SFT-11). It lasts the token's 30 days. A token the server no longer takes leads to Sign in. A switched off storefront has no
+account pages (SFT-16).
 
 ## 8. Later phases, drawn in full
 
@@ -309,7 +335,7 @@ delivery". A gateway wallet comes back through pay.lytro.app to the same three s
 | Landing page | the product detail; OG tags from it (LND-05); order creation (Slice 4.2) | |
 | Offline and not found | the tenant state from the host (TEN-08, LIF-07) | |
 | Checkout, confirmation, tracking, combos, add-ons | order creation, tracking (Slice 4.2), combos (Slice 4.5), add-ons (Slice 4.6b); the delivery estimate with add-ons priced and the tax it includes; what a product asks; tracking with a combo's parts and the shopper's answers (Slice 4.8e) | Phase 5's sessions, for a product needing an advance |
-| Account | sign-up, sign-in, addresses, my orders (Slice 4.4b) | its pages (Slice 4.8e, part 2) |
+| Account | sign-up, sign-in, addresses, my orders (Slice 4.4b) | |
 | Chat | nothing | Phase 7 |
 | PWA | the storefront's own manifest, its icons drawn by the server from the brand's icon, the logo or the monogram (Slice 12c) | |
 
@@ -330,5 +356,4 @@ the shell and recently viewed catalogue responses (CCH-10). Copy lives in one di
 `docs/brand/lytro-storefront.html` is self-contained. Its toolbar picks the screen (Browse, Product, Cart,
 Landing page, Later phases), the device (phone 390, tablet 820, desktop 1280), the language and the brand
 (Lytro default, or one of two example shops' identities, drawn from their tokens as the app does). Every button that leads somewhere in the design leads there in
-the sketch. It renders 93 screens with no missing strings in either language and no horizontal overflow, but for the
-long Make an account button on `confirm-cod` in English on a phone, which the sign-in pages' part will wrap.
+the sketch. It renders every screen with no missing strings in either language and no horizontal overflow.

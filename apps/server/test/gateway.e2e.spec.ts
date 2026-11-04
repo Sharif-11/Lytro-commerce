@@ -11,6 +11,7 @@ import { ClientIp } from '../src/common/client-ip';
 import { headerValue, type HttpRequest } from '../src/common/http';
 import type { MessageKey } from '../src/common/i18n/message-key';
 import { translate } from '../src/common/i18n/messages';
+import { dhakaDate } from '../src/common/time';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
 import { RateService } from '../src/modules/balance/services/rate.service';
 import { LOW_BALANCE_NOTIFIER } from '../src/modules/balance/tokens';
@@ -1393,7 +1394,7 @@ describeIfDatabase('a test account (VER-11)', () => {
       ]);
       expect(await feesOf(setup.shop.tenantId)).toEqual([]);
 
-      const today = new Date().toISOString().slice(0, 10);
+      const today = dhakaDate(new Date());
       const salesOf = async (): Promise<{ orders: number }> => {
         const read = await setup.shop.get(`/sales?dateFrom=${today}&dateTo=${today}`);
         expect(read.status, JSON.stringify(read.body)).toBe(200);

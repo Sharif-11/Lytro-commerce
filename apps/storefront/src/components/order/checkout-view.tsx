@@ -11,6 +11,7 @@ import {
   totalWith,
 } from '@/lib/cart/cart-check';
 import { browserCart, estimateItemOf, lineKey, orderItemOf } from '@/lib/cart/cart-store';
+import type { ShopperAddress, ShopperView } from '@/lib/api/storefront-api';
 import { type Language, money, plainNumber, Words } from '@/lib/i18n/words';
 import { ADDRESS_MAX, NAME_MAX, NOTE_MAX } from '@/lib/order/order-form';
 import { useCart } from '../cart/use-cart';
@@ -25,6 +26,9 @@ export interface CheckoutViewProps {
   language: Language;
   shopPhone: string | null;
   areaId: number | null;
+  /** CUS-03, CUS-06: who is signed in, and what they saved; a guest has neither. */
+  shopper: ShopperView | null;
+  addresses: ShopperAddress[];
 }
 
 /** The note an item left out of the total carries. */
@@ -47,7 +51,18 @@ function advanceNote(line: CheckedLine, words: Words): string {
 export function CheckoutView(props: CheckoutViewProps) {
   const words = useMemo(() => new Words(props.language), [props.language]);
   const lines = useCart();
-  const form = useOrderPlacing({ initialThana: props.areaId, source: 'storefront' });
+  // Signed in, their name and phone, and their default address unless they already picked an area.
+  const opening = props.addresses.find((row) => row.isDefault) ?? props.addresses[0] ?? null;
+  const form = useOrderPlacing({
+    initialThana: props.areaId,
+    source: 'storefront',
+    initial: {
+      ...(props.shopper ? { customerName: props.shopper.name, phone: props.shopper.phone } : {}),
+      ...(opening?.location
+        ? { thanaId: opening.location.id, deliveryAddress: opening.deliveryAddress }
+        : {}),
+    },
+  });
   const { fields, problems, notice, placing } = form;
   const locations = useLocations(true);
   const [zillaId, setZillaId] = useState<number | null>(null);
@@ -242,6 +257,11 @@ export function CheckoutView(props: CheckoutViewProps) {
           <div className="card2">
             <div className="sechead">
               <h2>{words.t('co_contact')}</h2>
+              {props.shopper ? null : (
+                <a className="lnk" href="/sign-in?next=/checkout">
+                  {words.t('co_signin_lnk')}
+                </a>
+              )}
             </div>
             <div className="field">
               <label htmlFor="co-name">{words.t('name')}</label>
@@ -284,6 +304,32 @@ export function CheckoutView(props: CheckoutViewProps) {
             <div className="sechead">
               <h2>{words.t('co_address')}</h2>
             </div>
+            {props.addresses.length > 0 ? (
+              <div className="chips" style={{ margin: 0 }} role="group">
+                {props.addresses.map((saved) => {
+                  const on =
+                    saved.location?.id === thana &&
+                    saved.deliveryAddress === fields.deliveryAddress;
+                  return (
+                    <button
+                      key={saved.id}
+                      type="button"
+                      className={on ? 'chip on' : 'chip'}
+                      aria-pressed={on}
+                      disabled={saved.location === null}
+                      onClick={() => {
+                        setZillaId(saved.location?.zillaId ?? null);
+                        form.setThana(saved.location?.id ?? null);
+                        form.setField('deliveryAddress', saved.deliveryAddress);
+                      }}
+                    >
+                      {on ? <Icon name="pin" /> : null}
+                      {saved.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
             <AreaFields
               locations={locations}
               zillaId={zillaId ?? zillaOf(locations, thana)}

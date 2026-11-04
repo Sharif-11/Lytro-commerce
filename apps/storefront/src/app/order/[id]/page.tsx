@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { PlacedView } from '@/components/order/placed-view';
 import { OfflinePage } from '@/components/pages';
 import { Header, Shell } from '@/components/shell';
-import { loadShopPage, storefrontApi } from '@/lib/storefront';
+import { loadShopPage, shopperToken, storefrontApi } from '@/lib/storefront';
 
 // ORD-02, SFT-06 (`confirm-cod`): the confirmation a checkout leads to, in the minimal frame it is drawn in. The landing
 // page shows the same confirmation in place (LND-10).
@@ -31,6 +31,7 @@ export default async function OrderPlacedPage({ params }: Props) {
   const read = await storefrontApi.track(page.shop, page.shopper, decodeURIComponent(id));
   if (read.kind !== 'found') notFound();
   const language = page.words.language;
+  const signedIn = (await shopperToken()) !== null;
   return (
     <Shell
       brand={page.info.brand}
@@ -51,6 +52,7 @@ export default async function OrderPlacedPage({ params }: Props) {
         orderNumber={read.order.orderNumber}
         trackingId={read.order.trackingId}
         codAmount={read.order.codAmount}
+        offerAccount={page.shop.storefrontEnabled && !signedIn}
       />
     </Shell>
   );

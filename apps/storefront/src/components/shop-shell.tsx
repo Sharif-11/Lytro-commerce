@@ -11,6 +11,7 @@ export function ShopShell({
   title,
   current,
   startCartOpen,
+  tight,
   children,
 }: {
   page: OpenShopPage;
@@ -19,6 +20,7 @@ export function ShopShell({
   title?: string;
   current?: string;
   startCartOpen?: boolean;
+  tight?: boolean;
   children: ReactNode;
 }) {
   const language = page.words.language;
@@ -26,6 +28,7 @@ export function ShopShell({
     <Shell
       language={language}
       brand={page.info.brand}
+      tight={tight}
       header={
         <Header
           shop={page.info}

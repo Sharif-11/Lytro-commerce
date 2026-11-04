@@ -33,7 +33,11 @@ export default async function TrackedOrderPage({ params }: Props) {
   return (
     <TrackFrame page={page}>
       {read.kind === 'found' ? (
-        <TrackingView order={read.order} words={page.words} />
+        <TrackingView
+          order={read.order}
+          words={page.words}
+          showAccount={page.shop.storefrontEnabled}
+        />
       ) : (
         <TrackingRefused trackingId={trackingId} busy={read.kind === 'busy'} words={page.words} />
       )}

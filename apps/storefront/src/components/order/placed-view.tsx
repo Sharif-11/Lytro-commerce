@@ -14,12 +14,15 @@ export function PlacedView({
   trackingId,
   codAmount,
   landing,
+  offerAccount,
 }: {
   language: Language;
   orderNumber: string;
   trackingId: string;
   codAmount: string;
   landing?: boolean;
+  /** CUS-07: the way to an account, for someone not signed in; never at the order itself. */
+  offerAccount?: boolean;
 }) {
   const words = useMemo(() => new Words(language), [language]);
   const [phone, setPhone] = useState<string | null>(null);
@@ -100,6 +103,20 @@ export function PlacedView({
             </div>
           </div>
         </div>
+        {offerAccount ? (
+          <a
+            className="btn ghost block"
+            style={{
+              whiteSpace: 'normal',
+              height: 'auto',
+              minHeight: 44,
+              padding: '8px 14px',
+            }}
+            href="/sign-up"
+          >
+            <Icon name="user" /> {words.t('e48MakeAcct')}
+          </a>
+        ) : null}
       </div>
     </div>
   );
