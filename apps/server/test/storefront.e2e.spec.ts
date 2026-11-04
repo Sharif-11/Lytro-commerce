@@ -486,7 +486,7 @@ describeIfDatabase(
         },
         headers(),
       );
-      expect(elsewhere.status).toBe(422);
+      expect(elsewhere.status).toBe(400);
     });
   },
 );
