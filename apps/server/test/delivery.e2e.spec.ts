@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { randomUUID } from 'node:crypto';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
@@ -7,7 +8,7 @@ import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { getJson } from './support/http';
+import { getJson, postJson } from './support/http';
 import { errorOf, fieldsOf, openShop, staffWith, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
@@ -408,6 +409,60 @@ describeIfDatabase('managing zones (DLV-01, DLV-04, DLV-06)', () => {
       logged.rows.find((row) => row.action === 'delivery_zone_updated' && 'charge' in row.summary)
         ?.summary,
     ).toMatchObject({ charge: { from: '100.00', to: '110.00' } });
+  });
+
+  it('leaves an existing order at its old charge when the zone is re-priced; only new orders take the new one (DLV-04)', async () => {
+    const shop = await openShop(port, texts, 'reprice');
+    const outside = fallback(await settings(shop));
+    expect(outside.charge).toBe('130.00');
+    const rice = (
+      await shop.post('/products', {
+        name: 'Rice',
+        basePrice: 80,
+        variants: [{ optionIds: [], openingStock: 10 }],
+      })
+    ).body as { variants: { id: string }[] };
+    const locationId = await thanaId(shop, 'Sylhet', 'Sylhet Sadar');
+    const place = async () => {
+      const made = await postJson(
+        port,
+        '/orders',
+        {
+          customerName: 'Rahima Akter',
+          phone: texts.freshPhone(),
+          locationId,
+          deliveryAddress: 'House 12, Road 3',
+          items: [{ variantId: rice.variants[0]?.id, quantity: 1 }],
+        },
+        shop.headers({ 'idempotency-key': randomUUID() }),
+      );
+      expect(made.status, JSON.stringify(made.body)).toBe(201);
+      return made.body as { id: string; deliveryCharge: string };
+    };
+    const order = await place();
+    expect(order.deliveryCharge).toBe('130.00');
+
+    expect((await shop.patch(`/delivery-zones/${outside.id}`, { charge: 150 })).status).toBe(200);
+    const kept = {
+      deliveryCharge: '130.00',
+      grandTotal: '210.00',
+      deliveryZone: { charge: '130.00' },
+    };
+    expect((await shop.get(`/orders/${order.id}`)).body).toMatchObject(kept);
+    // ORD-46: nor does a later edit of that order work its stored charge out again.
+    const edited = await shop.patch(`/orders/${order.id}`, { notes: 'Call first' });
+    expect(edited.status, JSON.stringify(edited.body)).toBe(200);
+    expect(edited.body).toMatchObject(kept);
+    expect((await place()).deliveryCharge).toBe('150.00');
+
+    const logged = await admin.query<{ summary: Record<string, unknown> }>(
+      `SELECT summary FROM tenant.activity_log
+       WHERE tenant_id = $1 AND action = 'delivery_zone_updated' AND target_id = $2`,
+      [shop.tenantId, outside.id],
+    );
+    expect(logged.rows.map((row) => row.summary)).toEqual([
+      expect.objectContaining({ charge: { from: '130.00', to: '150.00' } }),
+    ]);
   });
 
   it('keeps the inside and outside zones, and holds at most 20 zones', async () => {

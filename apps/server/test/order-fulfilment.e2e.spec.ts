@@ -6,6 +6,7 @@ import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { OrderLimitMode, PlatformSettingKey, UsageMetric } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
+import { startOfDayDhaka } from '../src/common/time';
 import { PlanLimitOverridesService } from '../src/modules/billing/services/plan-limit-overrides.service';
 import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
@@ -13,6 +14,7 @@ import { USAGE_NOTICES } from '../src/modules/usage-warnings/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedBalance } from './support/database';
 import { postJson, type HttpResult } from './support/http';
+import { seedOrderFor } from './support/orders';
 import { errorOf, fieldsOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 import { UsageNoticeCapture } from './support/usage-notice-capture';
@@ -180,6 +182,41 @@ async function overrideLimit(tenantId: string, key: string, value: number | null
   await app
     .get(PlanLimitOverridesService)
     .set(tenantId, key, value, 'handling limit test', randomUUID());
+}
+
+/** LIM-02: one figure of the usage page, as the shop reads it. */
+async function usageFigure(shop: ShopClient, metric: UsageMetric) {
+  const usage = (await shop.get('/usage')).body as {
+    metrics: { metric: UsageMetric; used: number; limit: number | null; level: unknown }[];
+  };
+  return usage.metrics.find((figure) => figure.metric === metric);
+}
+
+/** The shop on Starter's own limits (2.1) rather than a trial's, part way through a paid period. */
+async function onStarter(shop: ShopClient): Promise<void> {
+  await admin.query(
+    `UPDATE control.tenants SET state = 'active',
+       plan_id = (SELECT id FROM control.plans WHERE name = 'Starter'),
+       plan_snapshot = (SELECT limits FROM control.plans WHERE name = 'Starter'),
+       period_start = now() - interval '10 days', period_end = now() + interval '20 days'
+     WHERE id = $1`,
+    [shop.tenantId],
+  );
+}
+
+/** QTA-03: runs the work with the period's limit refusing, then sets the mode back. */
+async function inBlockMode(work: () => Promise<void>): Promise<void> {
+  const settings = app.get(PlatformSettingsService);
+  await settings.set(PlatformSettingKey.OrderLimitMode, OrderLimitMode.Block, randomUUID());
+  try {
+    await work();
+  } finally {
+    await settings.set(
+      PlatformSettingKey.OrderLimitMode,
+      OrderLimitMode.AllowWithPrompt,
+      randomUUID(),
+    );
+  }
 }
 
 describeIfDatabase(
@@ -404,7 +441,7 @@ describeIfDatabase('returns, item by item (ORD-10, INV-17)', () => {
   });
 });
 
-describeIfDatabase('the handling limits (QTA-01 to QTA-06, TRL-03)', () => {
+describeIfDatabase('the handling limits (ORD-03, QTA-01 to QTA-06, TRL-03)', () => {
   it('holds a trial to its total, counted once per order, and shows it on the usage page', async () => {
     const shop = await openShop(port, texts, 'ful');
     await overrideLimit(shop.tenantId, 'orders_total', 2);
@@ -430,6 +467,34 @@ describeIfDatabase('the handling limits (QTA-01 to QTA-06, TRL-03)', () => {
         limit: 2,
       },
     );
+  });
+
+  it("stops a trial at its 40th handled order, by the plan's own figure (PHASE-4-PLAN §1, criterion 5)", async () => {
+    const shop = await openShop(port, texts, 'ful');
+    const lamp = await product(shop, 'Lamp', 300, 5);
+    // 39 handled already, by stored orders; the 40th and 41st are real.
+    for (let index = 0; index < 39; index += 1) {
+      await seedOrderFor(admin, shop.tenantId, randomUUID(), []);
+    }
+    await admin.query('UPDATE tenant.orders SET handled_at = now() WHERE tenant_id = $1', [
+      shop.tenantId,
+    ]);
+    const handled = (await shop.get('/usage')).body as {
+      metrics: { metric: UsageMetric; used: number; limit: number | null }[];
+    };
+    expect(
+      handled.metrics.find((figure) => figure.metric === UsageMetric.OrdersTotal),
+    ).toMatchObject({ used: 39, limit: 40 });
+    await shipped(shop, await place(shop, lamp.variantId, 1));
+    const fortyFirst = await place(shop, lamp.variantId, 1);
+    const refused = await ship(shop, fortyFirst);
+    expect(refused.status).toBe(402);
+    expect(errorOf(refused)).toMatchObject({
+      code: 'plan_limit_reached',
+      details: { metric: UsageMetric.OrdersTotal, limit: 40 },
+    });
+    // QTA-07: making orders is never limited by handling.
+    expect((await place(shop, lamp.variantId, 1)).status).toBe('pending');
   });
 
   it("lets the period's limit through with a prompt, or refuses it in block mode", async () => {
@@ -474,6 +539,185 @@ describeIfDatabase('the handling limits (QTA-01 to QTA-06, TRL-03)', () => {
       await shipped(shop, await place(shop, lamp.variantId, 1));
     }
     expect(notices.levelsFor(shop.tenantId, UsageMetric.OrdersTotal)).toContain(80);
+  });
+
+  it('counts no order made and cancelled, and one handed over once, whatever happens after (QTA-01)', async () => {
+    const shop = await openShop(port, texts, 'ful');
+    const lamp = await product(shop, 'Lamp', 300, 20);
+    for (let index = 0; index < 5; index += 1) {
+      const order = await place(shop, lamp.variantId, 1);
+      expect(
+        (await shop.post(`/orders/${order.id}/cancel`, { reason: 'customer_cancelled' })).status,
+      ).toBe(200);
+    }
+    expect(await usageFigure(shop, UsageMetric.OrdersTotal)).toMatchObject({ used: 0, limit: 40 });
+    const order = await takeaway(shop, lamp.variantId, 1);
+    expect((await shop.post(`/orders/${order.id}/hand-over`, {})).status).toBe(200);
+    expect((await usageFigure(shop, UsageMetric.OrdersTotal))?.used).toBe(1);
+    // QTA-01: a second try and a return are later steps of the same order, never another count.
+    expect((await shop.post(`/orders/${order.id}/hand-over`, {})).status).toBe(409);
+    const back = await shop.post(`/orders/${order.id}/returns`, {
+      items: [{ lineId: order.items[0]?.id, sellable: 1, damaged: 0 }],
+    });
+    expect(back.status, JSON.stringify(back.body)).toBe(200);
+    expect((await usageFigure(shop, UsageMetric.OrdersTotal))?.used).toBe(1);
+  });
+
+  it("warns of a plan's period once a level, past its limit too, and afresh in the next period (QTA-02)", async () => {
+    const shop = await openShop(port, texts, 'ful');
+    await onStarter(shop);
+    await overrideLimit(shop.tenantId, 'orders_handled_monthly', 5);
+    const lamp = await product(shop, 'Lamp', 300, 20);
+    const levels = () => notices.levelsFor(shop.tenantId, UsageMetric.OrdersMonthly);
+    const handle = async () => shipped(shop, await place(shop, lamp.variantId, 1));
+    await handle();
+    await handle();
+    expect(levels()).toEqual([]);
+    await handle();
+    expect(levels()).toEqual([50]);
+    await handle();
+    expect(levels()).toEqual([50, 80]);
+    await handle();
+    expect(levels()).toEqual([50, 80, 95]);
+    // Past the limit, in the prompting mode: nothing more to be told.
+    await handle();
+    expect(levels()).toEqual([50, 80, 95]);
+    // QTA-02: once per period, so a new one warns again from its own count.
+    await admin.query(
+      `UPDATE control.tenants SET period_start = $2, period_end = now() + interval '1 month' WHERE id = $1`,
+      [shop.tenantId, new Date()],
+    );
+    await handle();
+    await handle();
+    await handle();
+    await handle();
+    expect(levels()).toEqual([50, 80, 95, 50, 80]);
+  });
+
+  it("starts the day's count again at Asia/Dhaka's midnight, each order counted on the day first handled (QTA-05)", async () => {
+    const shop = await openShop(port, texts, 'ful');
+    await overrideLimit(shop.tenantId, 'orders_total', null);
+    await overrideLimit(shop.tenantId, 'orders_handled_daily', 1);
+    const lamp = await product(shop, 'Lamp', 300, 20);
+    const first = await shipped(shop, await place(shop, lamp.variantId, 1));
+    const second = await place(shop, lamp.variantId, 1);
+    const refused = await ship(shop, second);
+    expect(refused.status).toBe(402);
+    expect(errorOf(refused).details).toMatchObject({ metric: UsageMetric.OrdersDaily, limit: 1 });
+    // QTA-05: an order first handled in the last second of yesterday in Asia/Dhaka is yesterday's.
+    const today = startOfDayDhaka(new Date());
+    await admin.query('UPDATE tenant.orders SET handled_at = $2 WHERE id = $1', [
+      first.id,
+      new Date(today.getTime() - 1000),
+    ]);
+    expect((await usageFigure(shop, UsageMetric.OrdersDaily))?.used).toBe(0);
+    const sent = await shipped(shop, second);
+    expect(sent.handledAt).not.toBeNull();
+    expect(await usageFigure(shop, UsageMetric.OrdersDaily)).toMatchObject({ used: 1, limit: 1 });
+    // Delivering yesterday's order today is no second count.
+    expect((await shop.post(`/orders/${first.id}/deliver`, {})).status).toBe(200);
+    expect((await usageFigure(shop, UsageMetric.OrdersDaily))?.used).toBe(1);
+    // The first moment of the Asia/Dhaka day is today's, though UTC still calls it yesterday.
+    await admin.query('UPDATE tenant.orders SET handled_at = $2 WHERE id = $1', [second.id, today]);
+    const third = await ship(shop, await place(shop, lamp.variantId, 1));
+    expect(third.status).toBe(402);
+    expect(errorOf(third).details).toMatchObject({ metric: UsageMetric.OrdersDaily, limit: 1 });
+  });
+
+  it("refuses the 61st handling of a day on Starter, by the plan's own figure, in the prompting mode (QTA-06)", async () => {
+    const shop = await openShop(port, texts, 'ful');
+    await onStarter(shop);
+    const lamp = await product(shop, 'Lamp', 300, 5);
+    // 59 handled today already, by stored orders; the 60th and 61st are real.
+    for (let index = 0; index < 59; index += 1) {
+      await seedOrderFor(admin, shop.tenantId, randomUUID(), []);
+    }
+    await admin.query('UPDATE tenant.orders SET handled_at = now() WHERE tenant_id = $1', [
+      shop.tenantId,
+    ]);
+    expect(await usageFigure(shop, UsageMetric.OrdersDaily)).toMatchObject({ used: 59, limit: 60 });
+    await shipped(shop, await place(shop, lamp.variantId, 1));
+    const refused = await ship(shop, await place(shop, lamp.variantId, 1));
+    expect(refused.status).toBe(402);
+    expect(errorOf(refused)).toMatchObject({
+      code: 'plan_limit_reached',
+      details: { metric: UsageMetric.OrdersDaily, limit: 60 },
+    });
+    // Nothing stood in for the plan's figure, and the mode was the one that lets the period's limit through.
+    const overrides = await admin.query(
+      'SELECT limit_key FROM control.plan_limit_overrides WHERE tenant_id = $1',
+      [shop.tenantId],
+    );
+    expect(overrides.rows).toEqual([]);
+    const mode = await app.get(PlatformSettingsService).current(PlatformSettingKey.OrderLimitMode);
+    expect(mode?.value).toBe(OrderLimitMode.AllowWithPrompt);
+    expect((await place(shop, lamp.variantId, 1)).status).toBe('pending');
+  });
+
+  it("still makes a staff order with the period's and the day's limits both used up (QTA-07)", async () => {
+    const shop = await openShop(port, texts, 'ful');
+    await onStarter(shop);
+    await overrideLimit(shop.tenantId, 'orders_handled_monthly', 1);
+    await overrideLimit(shop.tenantId, 'orders_handled_daily', 1);
+    const lamp = await product(shop, 'Lamp', 300, 20);
+    await shipped(shop, await place(shop, lamp.variantId, 1));
+    expect(await usageFigure(shop, UsageMetric.OrdersMonthly)).toMatchObject({ used: 1, limit: 1 });
+    expect(await usageFigure(shop, UsageMetric.OrdersDaily)).toMatchObject({ used: 1, limit: 1 });
+    await inBlockMode(async () => {
+      const made = await place(shop, lamp.variantId, 1);
+      expect(made.status).toBe('pending');
+      expect((await ship(shop, made)).status).toBe(402);
+      expect((await place(shop, lamp.variantId, 1)).status).toBe('pending');
+    });
+  });
+
+  it('lets through with null what the same number refuses, and shows it as unlimited (PLN-19)', async () => {
+    const shop = await openShop(port, texts, 'ful');
+    await overrideLimit(shop.tenantId, 'orders_total', 1);
+    const lamp = await product(shop, 'Lamp', 300, 20);
+    await shipped(shop, await place(shop, lamp.variantId, 1));
+    const held = await place(shop, lamp.variantId, 1);
+    expect((await ship(shop, held)).status).toBe(402);
+    await overrideLimit(shop.tenantId, 'orders_total', null);
+    expect((await shipped(shop, held)).limitPrompt).toBeNull();
+    expect(await usageFigure(shop, UsageMetric.OrdersTotal)).toMatchObject({
+      used: 2,
+      limit: null,
+      level: null,
+    });
+
+    // A plan's day, then its period in the mode that refuses.
+    const paid = await openShop(port, texts, 'ful');
+    await onStarter(paid);
+    await overrideLimit(paid.tenantId, 'orders_handled_daily', 1);
+    await overrideLimit(paid.tenantId, 'orders_handled_monthly', 1);
+    const mug = await product(paid, 'Mug', 200, 20);
+    await shipped(paid, await place(paid, mug.variantId, 1));
+    await inBlockMode(async () => {
+      const past = await place(paid, mug.variantId, 1);
+      const day = await ship(paid, past);
+      expect(day.status).toBe(402);
+      expect(errorOf(day).details).toMatchObject({ metric: UsageMetric.OrdersDaily, limit: 1 });
+      await overrideLimit(paid.tenantId, 'orders_handled_daily', null);
+      const period = await ship(paid, past);
+      expect(period.status).toBe(402);
+      expect(errorOf(period).details).toMatchObject({
+        metric: UsageMetric.OrdersMonthly,
+        limit: 1,
+      });
+      await overrideLimit(paid.tenantId, 'orders_handled_monthly', null);
+      expect((await shipped(paid, past)).limitPrompt).toBeNull();
+    });
+    expect(await usageFigure(paid, UsageMetric.OrdersDaily)).toMatchObject({
+      used: 2,
+      limit: null,
+      level: null,
+    });
+    expect(await usageFigure(paid, UsageMetric.OrdersMonthly)).toMatchObject({
+      used: 2,
+      limit: null,
+      level: null,
+    });
   });
 });
 
@@ -529,6 +773,54 @@ describeIfDatabase('the pay-as-you-go order fee (PYG-02 to PYG-05, PYG-14)', () 
     expect(kept).toMatchObject({ fulfillmentStatus: 'unfulfilled', handledAt: null });
     expect(await onHand(shop, lamp.id)).toEqual({ onHand: '5.000', reserved: '1.000' });
     expect(await orderFees(shop.tenantId)).toEqual([]);
+  });
+
+  it('never charges an order cancelled before it was sent, or one left waiting (PYG-04)', async () => {
+    const shop = await payAsYouGo('100.00');
+    const lamp = await product(shop, 'Lamp', 300, 5);
+    const balance = async () => {
+      const { rows } = await admin.query<{ balance: string }>(
+        'SELECT sum(amount)::text AS balance FROM tenant.balance_ledger WHERE tenant_id = $1',
+        [shop.tenantId],
+      );
+      return rows[0]?.balance;
+    };
+    const before = await balance();
+    const order = await place(shop, lamp.variantId, 1);
+    await place(shop, lamp.variantId, 1);
+    expect(
+      (await shop.post(`/orders/${order.id}/cancel`, { reason: 'customer_cancelled' })).status,
+    ).toBe(200);
+    expect((await ship(shop, order)).status).toBe(409);
+    expect(await orderFees(shop.tenantId)).toEqual([]);
+    expect(await balance()).toBe(before);
+  });
+
+  it('never stops or prompts a pay-as-you-go shop for a monthly count, however many it handles (PYG-05)', async () => {
+    const shop = await payAsYouGo('100.00');
+    const lamp = await product(shop, 'Lamp', 300, 5);
+    // More handled this cycle than Starter's whole period holds. Its cycle runs from its creation (PYG-19), so the shop
+    // is made ten days old, and the orders were handled on an earlier day to keep the day's own limit (QTA-05) clear.
+    await admin.query(
+      `UPDATE control.tenants SET created_at = now() - interval '10 days' WHERE id = $1`,
+      [shop.tenantId],
+    );
+    for (let index = 0; index < 301; index += 1) {
+      await seedOrderFor(admin, shop.tenantId, randomUUID(), []);
+    }
+    await admin.query(
+      `UPDATE tenant.orders SET handled_at = now() - interval '2 days' WHERE tenant_id = $1`,
+      [shop.tenantId],
+    );
+    expect(await usageFigure(shop, UsageMetric.OrdersMonthly)).toMatchObject({
+      used: 301,
+      limit: null,
+    });
+    await inBlockMode(async () => {
+      const sent = await shipped(shop, await place(shop, lamp.variantId, 1));
+      expect(sent.limitPrompt).toBeNull();
+    });
+    expect(notices.levelsFor(shop.tenantId, UsageMetric.OrdersMonthly)).toEqual([]);
   });
 });
 

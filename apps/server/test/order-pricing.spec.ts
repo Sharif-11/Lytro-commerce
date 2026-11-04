@@ -153,6 +153,7 @@ describe('order numbers and tracking IDs (ORD-04, ORD-05)', () => {
       expect(id).toMatch(/^[2-9A-HJ-NP-Z]{8}$/);
       seen.add(id);
     }
-    expect(seen.size).toBe(100_000);
+    // Two random IDs meet in about one run in 220 of this many; an order simply draws again (ORD-05).
+    expect(seen.size).toBeGreaterThan(99_990);
   });
 });

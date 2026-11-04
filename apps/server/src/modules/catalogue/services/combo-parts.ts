@@ -12,6 +12,23 @@ import type { ComboStore } from '../ports/combo-store';
 import { COMBO_STORE } from '../tokens';
 import type { ComboPartView } from '../types/catalogue';
 
+/** No zone has this id: a combo whose parts share no zone is limited to it, since an empty list means no limit. */
+export const NOWHERE = '00000000-0000-0000-0000-000000000000';
+
+/**
+ * DLV-07: where a combo can go: its own list and each part's, where an empty list limits nothing. Parts that share no
+ * zone leave it nowhere to go.
+ */
+export function comboZones(
+  own: readonly string[],
+  parts: readonly (readonly string[])[],
+): string[] {
+  const [first, ...rest] = [own, ...parts].filter((zones) => zones.length > 0);
+  if (!first) return [];
+  const shared = first.filter((zone) => rest.every((zones) => zones.includes(zone)));
+  return shared.length > 0 ? shared : [NOWHERE];
+}
+
 /** A combo's parts as stored: each its quantity in one combo and the variants it may be. */
 export interface ComboPartValues {
   quantity: string;
@@ -134,6 +151,11 @@ export class ComboParts {
         ];
       }),
     }));
+  }
+
+  /** LIF-16: each variant's options ("M / Red"), as the export names it. */
+  labelsOf(tx: Transaction, tenantId: string, variantIds: string[]): Promise<Map<string, string>> {
+    return this.store.variantLabels(tx, tenantId, variantIds);
   }
 
   /** Slice 4.8c: each product's option names, one list per attribute, as a picker's row says them. */

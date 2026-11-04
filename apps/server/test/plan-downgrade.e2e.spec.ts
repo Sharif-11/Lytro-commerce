@@ -4,7 +4,7 @@ import { Test } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AuditAction, LedgerEntryType } from '@lytronix/validators';
+import { AuditAction, LedgerEntryType, UsageMetric } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { addMonths } from '../src/common/time';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
@@ -13,6 +13,8 @@ import { PurchaseService } from '../src/modules/billing/services/purchase.servic
 import { UpgradeService } from '../src/modules/billing/services/upgrade.service';
 import { StaffService, type StaffTenant } from '../src/modules/staff/services/staff.service';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
+import { TenantSummaries } from '../src/modules/tenancy/services/tenant-summaries.service';
+import { UsageService } from '../src/modules/usage/services/usage.service';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
 import { SmsCapture } from './support/sms-capture';
@@ -399,6 +401,64 @@ describeIfDatabase('the recurring tick’s own entry point (DWN-06/08/15/17)', (
     const notDueTenant = await tenantRow(notDueTenantId);
     expect(notDueTenant?.plan_id).toBe(highPlanId);
     expect(await downgrade.getScheduled(notDueTenantId)).not.toBeNull();
+  });
+
+  it("DWN-15: from the effective date the handled-orders and request limits are the new plan's", async () => {
+    const seedLimited = async (rank: number, limits: Record<string, number>): Promise<string> => {
+      const plan = await admin.query<{ id: string }>(
+        `INSERT INTO control.plans (name, rank, for_sale, version, limits, features)
+         VALUES ($1, $2, true, 1, $3, '{}') RETURNING id`,
+        [`Test Plan ${freshSlug()}`, rank, JSON.stringify({ staff: 10, ...limits })],
+      );
+      return plan.rows[0]?.id ?? '';
+    };
+    const rank = (nextRank += 2);
+    const highPlanId = await seedLimited(rank, {
+      orders_handled_monthly: 1500,
+      orders_handled_daily: 300,
+      requests_monthly: 600_000,
+    });
+    const lowPlanId = await seedLimited(rank - 1, {
+      orders_handled_monthly: 300,
+      orders_handled_daily: 60,
+      requests_monthly: 200_000,
+    });
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    await activateTenant(
+      tenantId,
+      highPlanId,
+      new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+      new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+    );
+    await downgrade.schedule(tenantId, lowPlanId);
+
+    // What the shop's limits read as every check and the usage page read them.
+    const limits = async () => {
+      const summary = await app.get(TenantSummaries).findById(tenantId);
+      if (!summary) throw new Error('the shop has a summary');
+      const { metrics } = await app.get(UsageService).usage(summary, new Date());
+      return Object.fromEntries(
+        [UsageMetric.OrdersMonthly, UsageMetric.OrdersDaily, UsageMetric.Requests].map((metric) => [
+          metric,
+          metrics.find((figure) => figure.metric === metric)?.limit,
+        ]),
+      );
+    };
+    await downgrade.applyDueChanges(new Date());
+    expect(await limits()).toEqual({
+      [UsageMetric.OrdersMonthly]: 1500,
+      [UsageMetric.OrdersDaily]: 300,
+      [UsageMetric.Requests]: 600_000,
+    });
+
+    await endPeriodNow(tenantId);
+    await downgrade.applyDueChanges(new Date());
+    expect((await tenantRow(tenantId))?.plan_id).toBe(lowPlanId);
+    expect(await limits()).toEqual({
+      [UsageMetric.OrdersMonthly]: 300,
+      [UsageMetric.OrdersDaily]: 60,
+      [UsageMetric.Requests]: 200_000,
+    });
   });
 });
 

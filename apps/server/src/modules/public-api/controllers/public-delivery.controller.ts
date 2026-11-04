@@ -8,6 +8,7 @@ import {
   deliveryEstimateSchema,
   type DeliveryEstimateInput,
 } from '@lytronix/validators';
+import { TakesOrders } from '../../../common/decorators/public-api';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { LocationService } from '../../delivery/services/location.service';
@@ -72,6 +73,7 @@ export class PublicDeliveryController {
     @Inject(OrderPricing) private readonly pricing: OrderPricing,
   ) {}
 
+  @TakesOrders()
   @Get('locations')
   @ResponseMessage('LocationsListed')
   @ApiOperation({ summary: 'The canonical zillas, cities and thanas every address uses (CUS-08)' })
@@ -80,6 +82,7 @@ export class PublicDeliveryController {
     return this.locations.list();
   }
 
+  @TakesOrders()
   @Post('delivery-estimate')
   @HttpCode(200)
   @ResponseMessage('DeliveryEstimated')

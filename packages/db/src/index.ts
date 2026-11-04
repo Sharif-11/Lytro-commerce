@@ -178,6 +178,8 @@ export {
   type ProductListRow,
   type ProductStateCounts,
   type ProductPatch,
+  type ProductExportRow,
+  type ProductVariantExportRow,
 } from './repositories/catalogue/product.repository';
 export { VariantRepository, type VariantPatch } from './repositories/catalogue/variant.repository';
 export { AdTrackingRepository } from './repositories/api/ad-tracking.repository';

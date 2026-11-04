@@ -4,7 +4,7 @@ import { Test } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AuditAction, LedgerEntryType, PlanPaymentStatus } from '@lytronix/validators';
+import { AuditAction, LedgerEntryType, PlanPaymentStatus, UsageMetric } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { addMonths } from '../src/common/time';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
@@ -12,8 +12,11 @@ import { PurchaseService } from '../src/modules/billing/services/purchase.servic
 import { UpgradeService } from '../src/modules/billing/services/upgrade.service';
 import { PaymentQueueService } from '../src/modules/billing/services/payment-queue.service';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
+import { TenantSummaries } from '../src/modules/tenancy/services/tenant-summaries.service';
+import { UsageService } from '../src/modules/usage/services/usage.service';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
+import { seedOrderFor } from './support/orders';
 import { SmsCapture } from './support/sms-capture';
 
 // Phase 2 slice 5: upgrade (UPG-01 to UPG-17). Same white-box pattern slices 3/4 used -- services are called
@@ -280,6 +283,32 @@ describeIfDatabase('confirming an upgrade (UPG-09, UPG-12, UPG-15 to UPG-17)', (
     );
     expect(log.rows).toHaveLength(1);
     expect(log.rows[0]?.summary.newPlanId).toBe(growthId);
+  });
+
+  it('UPG-10: handled orders read 0 as soon as the upgrade starts the new period, and count from there', async () => {
+    const { tenantId, growthId, growthTermId } = await seedExampleA();
+    const handled = async (at: Date, orders: number) => {
+      for (let index = 0; index < orders; index += 1) {
+        const id = randomUUID();
+        await seedOrderFor(admin, tenantId, id, []);
+        await admin.query('UPDATE tenant.orders SET handled_at = $2 WHERE id = $1', [id, at]);
+      }
+    };
+    const handledThisPeriod = async () => {
+      const summary = await app.get(TenantSummaries).findById(tenantId);
+      if (!summary) throw new Error('the shop has a summary');
+      const { metrics } = await app.get(UsageService).usage(summary, new Date());
+      return metrics.find((figure) => figure.metric === UsageMetric.OrdersMonthly)?.used;
+    };
+    await handled(new Date(Date.now() - DAY_MS), 3);
+    expect(await handledThisPeriod()).toBe(3);
+
+    const quote = await upgrade.quote(tenantId, growthId, growthTermId);
+    await upgrade.confirmFromBalance(quote.id, tenantId);
+    expect(await handledThisPeriod()).toBe(0);
+
+    await handled(new Date(), 1);
+    expect(await handledThisPeriod()).toBe(1);
   });
 
   it('UPG-16: paying by wallet leaves the balance unchanged until an operator approves it', async () => {

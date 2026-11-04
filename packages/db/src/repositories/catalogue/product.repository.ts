@@ -4,6 +4,7 @@ import {
   count,
   desc,
   eq,
+  gt,
   inArray,
   isNotNull,
   isNull,
@@ -12,7 +13,7 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
-import { StockState } from '@lytronix/validators';
+import { StockState, type ProductKind, type StockUnit } from '@lytronix/validators';
 import {
   catalogueState,
   orderLines,
@@ -22,6 +23,7 @@ import {
   productCategories,
   productSlugRedirects,
   productVariants,
+  stockLevels,
   products,
   type InsertProduct,
   type SelectProduct,
@@ -73,6 +75,28 @@ export interface ProductListFilter {
 export interface ProductListRow {
   product: SelectProduct;
   variantCount: number;
+}
+
+/** LIF-16: a product as the shop's export lists it. */
+export interface ProductExportRow {
+  id: string;
+  name: string;
+  slug: string;
+  kind: ProductKind;
+  active: boolean;
+  basePrice: string;
+  stockUnit: StockUnit;
+}
+
+/** LIF-16: a variant as the shop's export lists it. */
+export interface ProductVariantExportRow {
+  id: string;
+  productId: string;
+  sku: string | null;
+  barcode: string | null;
+  price: string | null;
+  active: boolean;
+  onHand: string | null;
 }
 
 // PRD-01 to PRD-05, PRD-15, LND-04, CCH-02: a shop's products, the categories they are filed in, their
@@ -367,6 +391,73 @@ export class ProductRepository {
   }
 
   /** DLV-07: the zones each product may be delivered to; a product with none goes wherever the shop delivers. */
+  /** LIF-16: a page of the shop's products for its export, by id; one deleted for good is no longer the shop's. */
+  async listForExport(
+    tx: Transaction,
+    tenantId: string,
+    afterId: string | null,
+    limit: number,
+  ): Promise<ProductExportRow[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select({
+        id: products.id,
+        name: products.name,
+        slug: products.slug,
+        kind: products.kind,
+        active: products.active,
+        basePrice: products.basePrice,
+        stockUnit: products.stockUnit,
+      })
+      .from(products)
+      .where(
+        and(
+          eq(products.tenantId, tenantId),
+          isNull(products.deletedAt),
+          afterId === null ? undefined : gt(products.id, afterId),
+        ),
+      )
+      .orderBy(asc(products.id))
+      .limit(limit);
+  }
+
+  /** LIF-16: those products' variants, each with what it holds; a shared stock's hidden holder is not one. */
+  async listVariantsForExport(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<ProductVariantExportRow[]> {
+    if (productIds.length === 0) return [];
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select({
+        id: productVariants.id,
+        productId: productVariants.productId,
+        sku: productVariants.sku,
+        barcode: productVariants.barcode,
+        price: productVariants.price,
+        active: productVariants.active,
+        onHand: stockLevels.onHand,
+      })
+      .from(productVariants)
+      .leftJoin(
+        stockLevels,
+        and(
+          eq(stockLevels.tenantId, productVariants.tenantId),
+          eq(stockLevels.variantId, productVariants.id),
+        ),
+      )
+      .where(
+        and(
+          eq(productVariants.tenantId, tenantId),
+          inArray(productVariants.productId, productIds),
+          isNull(productVariants.deletedAt),
+          eq(productVariants.isStockHolder, false),
+        ),
+      )
+      .orderBy(asc(productVariants.productId), asc(productVariants.id));
+  }
+
   async listDeliveryZoneIds(
     tx: Transaction,
     tenantId: string,
