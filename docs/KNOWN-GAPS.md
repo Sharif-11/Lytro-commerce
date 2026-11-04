@@ -2019,3 +2019,12 @@ Slice 5.7 was built from bKash's documents and a fake, with one test against the
   one server's shoppers share one call. Two servers asking at the same moment could still make a third call and get the app
   blocked for an hour, while the shopper pays on the page. It costs nothing while there is one server; when there are more, the call needs
   a lock per account.
+
+## 108. `CUS-09`: a privacy delete left the customer's number on their payments — found 2026-11-04, fixed 2026-11-04
+
+The Phase 4 close-out check found that deleting a customer cleared the number from their payment sessions and receipts but
+not from `tenant.payments.sender_number`, and the order page still returned it. The app's database role could not update the
+column, and `tenant.guard_payment()` refused any change to a voided or refunded payment. Migration 0102 lets the app empty the
+number, and only empty it; a delete now does so on the customer's orders and on any payment or session from their number,
+keeping each transaction ID and amount. A customer deleted before the fix keeps the number on their payments unless it is
+cleaned by hand; their orders carry `customer_erased_at`, which finds them.

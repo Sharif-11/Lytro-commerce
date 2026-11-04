@@ -715,6 +715,13 @@
       "when": 1793704675176,
       "tag": "0101_bkash_gateway",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1793766719909,
+      "tag": "0102_erase_payment_sender",
+      "breakpoints": true
     }
   ]
 }
