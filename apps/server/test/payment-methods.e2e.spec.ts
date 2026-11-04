@@ -105,18 +105,34 @@ async function shopperMethods(shop: ShopClient): Promise<ShopperMethod[]> {
 }
 
 describeIfDatabase("a shop's payment accounts (WAL-01 to WAL-05, WAL-14 to WAL-18)", () => {
-  it('starts with every method on and none with an account, and knows the owner signed up by phone', async () => {
+  it('starts with every method off and none with an account, and knows the owner signed up by phone', async () => {
     const shop = await openShop(port, texts, 'pay');
     const view = (await shop.get('/payment-methods')).body as Methods;
     expect(view.methods.map((row) => [row.method, row.kind, row.enabled, row.levels])).toEqual([
-      ['bkash', 'wallet', true, ['manual', 'listener', 'gateway']],
-      ['nagad', 'wallet', true, ['manual']],
-      ['rocket', 'wallet', true, ['manual']],
-      ['upay', 'wallet', true, ['manual']],
-      ['bank', 'bank', true, ['manual']],
+      ['bkash', 'wallet', false, ['manual', 'listener', 'gateway']],
+      ['nagad', 'wallet', false, ['manual']],
+      ['rocket', 'wallet', false, ['manual']],
+      ['upay', 'wallet', false, ['manual']],
+      ['bank', 'bank', false, ['manual']],
     ]);
     expect(view.methods.every((row) => row.accounts.length === 0)).toBe(true);
     expect(view.ownerPhoneVerified).toBe(true);
+  });
+
+  it('stays off until the owner turns it on, and offers shoppers nothing until then (WAL-05)', async () => {
+    const shop = await openShop(port, texts, 'pay');
+    await saved(shop, 'nagad', {
+      enabled: false,
+      accounts: [wallet('01811000009', { active: true })],
+    });
+    const off = (await shop.get('/payment-methods')).body as Methods;
+    expect(off.methods.find((row) => row.method === 'nagad')?.enabled).toBe(false);
+
+    // Turned on with nothing in it, it stays on: the owner's own choice, drawn with its warning.
+    await saved(shop, 'upay', { enabled: true, accounts: [] });
+    const on = (await shop.get('/payment-methods')).body as Methods;
+    expect(on.methods.find((row) => row.method === 'upay')?.enabled).toBe(true);
+    expect(on.methods.find((row) => row.method === 'rocket')?.enabled).toBe(false);
   });
 
   it('saves numbers in local form, one active, the first sent active winning, and logs the active one', async () => {

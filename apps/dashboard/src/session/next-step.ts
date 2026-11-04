@@ -11,6 +11,9 @@ type Navigate = ReturnType<typeof useNavigate>;
  */
 export function navigateForNextStep(navigate: Navigate, next: NextStep): void {
   switch (next) {
+    case 'verify-phone':
+      void navigate({ to: '/verify-phone' });
+      return;
     case 'create-shop':
       void navigate({ to: '/create-shop' });
       return;

@@ -48,6 +48,7 @@ import {
 import { deliveryAnswer, drawnDelivery, type DeliveryFixture } from './delivery';
 import { salesAnswer, type SalesFixture } from './sales';
 import { taxAnswer } from './tax';
+import { drawnMethods, methodsAnswer, type PaymentMethodsFixture } from './payment-methods';
 import { figuresAnswer, shopBatchesAnswer, stockPageAnswer, stockRead, stockWrite } from './stock';
 import { customerIdOf, customersAnswer, drawnCustomers, type CustomersFixture } from './customers';
 import { homeOrders, meghOrders, ordersAnswer, type OrdersFixture } from './orders';
@@ -88,6 +89,8 @@ export interface MoneyState {
   over?: { key: string; used: number; limit: number }[];
   /** The balance, in taka with paisa. */
   balance?: string;
+  /** WAL-21: what's on hold of it for open checkouts. */
+  held?: string;
   /** The unused-time credit an upgrade carries (UPG-03). */
   credit?: number;
   /** BIL-09: the server works out this amount instead of the one shown, and says so once. */
@@ -149,6 +152,8 @@ export interface ShopState {
   delivery?: DeliveryFixture | null;
   /** The person's ways to sign in where they differ from a phone (and an email with `money.hasEmail`). */
   identities?: IdentityFixture[] | null;
+  /** Slice 5.8: the shop's payment methods where they differ from the prototype's; the page's writes change them. */
+  paymentMethods?: PaymentMethodsFixture | null;
   /** GET /home's stock part; null when the person may not see stock. */
   stock?: { low: number; out: number } | null;
   /** Slice 4.8a: the shop's orders; the day Part 29 draws unless a test gives its own. */
@@ -230,6 +235,7 @@ export function me(state: Required<ShopState>): unknown {
       { slug: SLUG, shopName: shopName(state.language), role: state.isOwner ? 'owner' : 'staff' },
     ],
     hasDeletedShop: false,
+    needsPhone: false,
   };
 }
 
@@ -241,6 +247,7 @@ const READY = {
   firstProduct: true,
   logo: true,
   linkShared: true,
+  wallet: true,
   apiKey: false,
 };
 
@@ -274,7 +281,7 @@ export const DAY_ONE: ShopState = {
     products: { total: 0, active: 0 },
     balance: { amount: '0.00', low: false, freeSms: { used: 0, limit: 10 } },
     topUpsBeingChecked: { count: 0, amount: '0.00' },
-    checklist: { ...READY, firstProduct: false, logo: false, linkShared: false },
+    checklist: { ...READY, firstProduct: false, logo: false, linkShared: false, wallet: false },
     // Nothing ordered yet, so no order jobs and no Today tiles (Slice 4.8b).
     orders: { toConfirm: 0, callsDue: 0, toShip: 0, today: 0, yesterday: 0, monthSales: '0.00' },
   },
@@ -288,6 +295,8 @@ const RATES = [
   ['payg_order_fee_min', '20.0000'],
   ['payg_order_fee_pct', '1.5000'],
   ['payg_product_fee', '10.0000'],
+  ['listener_verification_pct', '0.1000'],
+  ['gateway_verification_pct', '1.0000'],
 ].map(([key, value]) => ({ key, value, effectiveFrom: '2026-10-01T00:00:00.000Z' }));
 
 function wallets(language: Language): unknown {
@@ -327,6 +336,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     keys: null,
     meta: null,
     identities: null,
+    paymentMethods: null,
     products: null,
     delivery: null,
     orders: null,
@@ -449,6 +459,7 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   if (path === '/balance') {
     return {
       amount: money.balance ?? '412.50',
+      held: money.held ?? '0.00',
       frozen: false,
       topUpMin: 100,
       topUpMax: 50000,
@@ -537,6 +548,7 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
   const keys = (state.keys ??= drawnKeys());
   const meta = (state.meta ??= drawnMeta());
   const identities = (state.identities ??= ownIdentities(money.hasEmail ?? false));
+  const paymentMethods = (state.paymentMethods ??= drawnMethods(state.language));
   // A connect leaves for the provider (AUTH-27); a blank page stands in for it.
   await page.route(`**${OAUTH_PAGE}**`, (route: Route) =>
     route.fulfill({ status: 200, contentType: 'text/html', body: '<p>provider</p>' }),
@@ -767,6 +779,22 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
           });
     }
     if (method === 'GET' && path === '/media/usage') return ok(storageAnswer(products));
+    // Slice 5.8's part 1: the payment methods.
+    const paying = methodsAnswer(
+      method,
+      path,
+      request.postDataJSON() as Record<string, unknown> | null,
+      paymentMethods,
+    );
+    if (paying && 'refused' in paying) {
+      const { status, code, message, details } = paying.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details),
+      });
+    }
+    if (paying) return ok(paying.data);
     // Slice 4.8c: the tax classes.
     const taxed = taxAnswer(
       method,
@@ -996,7 +1024,10 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
         body: refusal(code, message, details),
       });
     }
-    if (accounted) return ok(accounted.data);
+    if (accounted) {
+      if (path === '/me/identities/verify') paymentMethods.ownerPhoneVerified = true;
+      return ok(accounted.data);
+    }
     if (method === 'POST' && path.startsWith('/billing/')) return ok({ ok: true });
     // Slice 4.8b: the customers, read and changed.
     const customers = (state.customers ??= drawnCustomers());

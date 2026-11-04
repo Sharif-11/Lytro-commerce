@@ -4,6 +4,7 @@ import type {
   OauthProvider,
   VerifyAddIdentityInput,
 } from '@lytronix/validators';
+import { ME_QUERY_KEY } from '@/api/me';
 import { attachReturn } from '@/session/attach-return';
 import { tenantSession } from '@/session/tenant-session';
 import type { CodeIssued } from '@/types/auth';
@@ -27,15 +28,17 @@ export function useRequestIdentityCode() {
   });
 }
 
-/** A value held by another account is refused with `conflict`. */
+/** A value held by another account is refused with `conflict`. It settles once /me knows, which a phone changes. */
 export function useVerifyIdentity() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: VerifyAddIdentityInput) =>
       tenantSession.client.post<{ attached: true }>('/me/identities/verify', input),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: IDENTITIES_QUERY_KEY });
-    },
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: IDENTITIES_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY, exact: true }),
+      ]),
   });
 }
 

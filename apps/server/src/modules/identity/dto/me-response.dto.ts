@@ -59,5 +59,7 @@ export const meResponseSchema = z.object({
   ),
   // LIF-21: no shop open yet, and a deleted one whose balance the next shop takes over (create-shop's note).
   hasDeletedShop: z.boolean(),
+  // AUTH-28 (amended 2026-10-31): no shop to open and no verified phone, so a phone comes before create-shop.
+  needsPhone: z.boolean(),
 });
 export class MeResponseDto extends createZodDto(meResponseSchema) {}

@@ -100,6 +100,8 @@ export interface MeResponse {
   shops: ShopListing[];
   /** LIF-21: no shop open yet, and a deleted one whose balance the new shop takes over (create-shop's note). */
   hasDeletedShop: boolean;
+  /** AUTH-28 (amended 2026-10-31): no shop to open and no verified phone, so a phone comes before create-shop. */
+  needsPhone: boolean;
 }
 
 /** How the person signed in (TEN-31, AUTH-31). */

@@ -41,18 +41,6 @@ export class MailService {
     return { id, toEmail: to, subject, body };
   }
 
-  async queueShopReady(tx: Transaction, to: string, liveUrl: string): Promise<QueuedMailMessage> {
-    const subject = 'Your shop is ready';
-    const body = `Your shop is ready: ${liveUrl}`;
-    const id = await this.store.insert(tx, {
-      toEmail: to,
-      kind: MailKind.ShopReady,
-      subject,
-      body,
-    });
-    return { id, toEmail: to, subject, body };
-  }
-
   /** LIF-18, PYG-21: a platform-sent notice, never billed to the tenant (LIF-10's carve-out). */
   async queueLifecycleNotice(
     tx: Transaction,

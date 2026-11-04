@@ -493,7 +493,9 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
   refused, offering to sign in with it or use another. An owner with a shop and no phone isn't locked out: Payment methods
   says so and verifies it there. How a wallet's money is taken shows only where there's more than one way, with each fee.
   bKash's keys go in a sheet with Test connection and a test-account switch, and are never shown again. Balance gains an
-  on-hold line, and the checklist's wallet item starts working.
+  on-hold line, and the checklist's wallet item starts working. **Built** (as `TENANT-DASHBOARD-DESIGN.md` §7.35 records). One
+  thing the read didn't settle, which the sketch draws: every method now starts off until the owner turns it on (WAL-05
+  amended, migration 0104), since the server had them all on and a new shop would have opened on five warnings.
 
 ---
 

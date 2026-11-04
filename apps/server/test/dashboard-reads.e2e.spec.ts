@@ -338,6 +338,7 @@ describeIfDatabase('Home in one read (TENANT-DASHBOARD-DESIGN §7.1, SUP-01, STF
         firstProduct: true,
         logo: false,
         linkShared: false,
+        wallet: false,
         apiKey: false,
       },
     });
@@ -356,6 +357,23 @@ describeIfDatabase('Home in one read (TENANT-DASHBOARD-DESIGN §7.1, SUP-01, STF
       linkShared: true,
       apiKey: true,
     });
+
+    // SUP-01: the wallet item is done once a method is on with an active account, not before.
+    const account = { accountName: 'Rumana', number: '01711000001', accountType: 'personal' };
+    const wallet = async (): Promise<unknown> =>
+      ((await shop.get('/home')).body as { checklist: { wallet: unknown } }).checklist.wallet;
+    await shop.put('/payment-methods/bkash', { enabled: true, accounts: [account] });
+    expect(await wallet()).toBe(false);
+    await shop.put('/payment-methods/bkash', {
+      enabled: false,
+      accounts: [{ ...account, active: true }],
+    });
+    expect(await wallet()).toBe(false);
+    await shop.put('/payment-methods/bkash', {
+      enabled: true,
+      accounts: [{ ...account, active: true }],
+    });
+    expect(await wallet()).toBe(true);
   });
 
   it('shows a staff member only what their permissions reach, never the checklist', async () => {

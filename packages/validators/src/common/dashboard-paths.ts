@@ -16,6 +16,7 @@ export const DASHBOARD_PATHS = [
   'staff-sign-in',
   'unavailable',
   'verify-code',
+  'verify-phone',
 ] as const;
 
 export type DashboardPath = (typeof DASHBOARD_PATHS)[number];

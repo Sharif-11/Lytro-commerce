@@ -14,6 +14,7 @@ export const MESSAGE_KEYS = [
   'RequestTooLarge',
   'TooManyRequests',
   'CreateShopToContinue',
+  'VerifyPhoneToContinue',
   'SetPasswordToContinue',
   'ShopUnavailable',
   'PermissionDenied',

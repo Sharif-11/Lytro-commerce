@@ -55,9 +55,11 @@ export function accountWrite(
   }
   if (method === 'POST' && path === '/me/identities/verify') {
     if (body?.code === '000000') return refused(400, 'validation_error', 'That code is not right.');
+    // AUTH-26: a value another account holds, known only once its code is right.
+    if (body?.code === '409409') return refused(409, 'conflict', 'This cannot be added.');
     identities.push({
       id: `i-${String(identities.length + 10)}`,
-      kind: 'email',
+      kind: body?.kind === 'phone' ? 'phone' : 'email',
       value: typeof body?.value === 'string' ? body.value : '',
     });
     return { data: { attached: true } };

@@ -77,5 +77,6 @@
   "secOrders": "Orders",
   "secCustomers": "Customers",
   "secSales": "Sales",
-  "sTax": "Tax"
+  "sTax": "Tax",
+  "sMethods": "Payment methods"
 }

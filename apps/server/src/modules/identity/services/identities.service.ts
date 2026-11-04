@@ -36,6 +36,13 @@ export class IdentitiesService {
     return this.gateway.run((tx) => this.gateway.listIdentities(tx, subscriberId));
   }
 
+  /** AUTH-28 (amended 2026-10-31), TVR-01: whether the account has a verified phone, which opening a shop needs. */
+  hasPhone(subscriberId: string): Promise<boolean> {
+    return this.gateway.run(
+      async (tx) => (await this.gateway.findPhoneIdentityOf(tx, subscriberId)) !== null,
+    );
+  }
+
   requestCode(kind: 'phone' | 'email', value: string): Promise<CodeIssued> {
     const target = this.destination(kind, value);
     return this.codes.issue(target.destination, target.channel, ChallengeKind.Signin);
