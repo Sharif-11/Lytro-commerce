@@ -90,7 +90,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 5.5 | The technology, installing and screens settled in its sketch's read, 2026-11-02 (below); the device-integrity check (LSN-25, off by default) stays undrawn. |
 | 5.6 | Settled in its read, 2026-11-03 (below). |
 | 5.7 | Settled in its read, 2026-11-03 (below). |
-| 5.8 | Five parts, each with its own read (agreed 2026-11-04, below). Part 1's is settled (below). For part 2: where the payment page lives (its own small app, or a host of the storefront app with its own policy, PAY-23); redirect, as SFT-07 says, rather than the frame the drawings show; the drawn page's extras (contact buttons, support chat, its fonts, an SMS promise) against PAY-05; "switch to cash on delivery" after a failed payment, which PRD-08 refuses. |
+| 5.8 | Five parts, each with its own read (agreed 2026-11-04, below). Parts 1 and 2 are settled (below). |
 
 ---
 
@@ -105,7 +105,7 @@ this phase builds a working part and a named later phase finishes it. Notices de
 | Family | Requirements |
 |---|---|
 | WAL | WAL-01 (amended) – WAL-21 (WAL-18 by a manual check) |
-| PAY | PAY-01 – 08, 13 – 17, 19, 21 – 23; PAY-18 and PAY-20 if Slice 5.3's read keeps them |
+| PAY | PAY-01 – 08, 13 – 17, 19 – 23 (Slice 5.3's read kept PAY-20; PAY-18 withdrawn 2026-11-04) |
 | VER | VER-01 – VER-12 |
 | LSN | LSN-01 – LSN-24 (the should-haves as Slice 5.4's read settles) |
 | TVR | TVR-01 – TVR-04 |
@@ -292,8 +292,8 @@ Every route lands in `API-CONTRACT.md` with its slice; the isolation registry ga
 ### Slice 5.3: verifying by hand
 - **Read agreed 2026-10-31** (the first six as recommended): Meta's `Purchase` for an order paid in advance is sent
   **when its payment is verified** (a cash-on-delivery order's still on placing); staff **verify the amount that
-  arrived**, never more than is due, the rest staying due; **refunds now** as a record (PAY-20, ORD-44), **proof images
-  with the page** in Slice 5.8 (PAY-18); the **new-shop cap on for new pay-as-you-go shops** (20,000 TK a day for their
+  arrived**, never more than is due, the rest staying due; **refunds now** as a record (PAY-20, ORD-44), proof images
+  with the page in Slice 5.8 (PAY-18, since withdrawn: Slice 5.8's part 2 read); the **new-shop cap on for new pay-as-you-go shops** (20,000 TK a day for their
   first 30 days), off on a plan, switched per shop by the operator; **one payments list** of every typed ID and every
   payment, "to verify" one of its statuses; a rejection's reason from **a short list and a note**; and **one PR** (the
   owner's pick over two). PAY-07, PAY-14, PAY-19, TVR-04, LND-16, LIM-02, DWN-15 and UPG-10 amended. Settled building:
@@ -504,6 +504,12 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
   on-hold line, and the checklist's wallet item starts working. **Built** (as `TENANT-DASHBOARD-DESIGN.md` §7.35 records). One
   thing the read didn't settle, which the sketch draws: every method now starts off until the owner turns it on (WAL-05
   amended, migration 0104), since the server had them all on and a new shop would have opened on five warnings.
+- **Part 2's read, agreed 2026-11-04** (drawn in `PAYMENT-PAGE-DESIGN.md` v3 and `STOREFRONT-DESIGN.md` §8a). The payment page is **rendered by the server** (the owner's pick over its own small
+  app): templates, one stylesheet and two small scripts in `apps/server`, with its own Caddy block and PAY-23's policy. Placing an order **redirects straight to the page**, with no "Order held"
+  screen and no frame (SFT-07). After a failed payment the shopper **tries again or calls the shop**; "switch to cash on delivery" comes out (PRD-08), and past the 30 minutes the order is cancelled
+  (ORD-08). The page has **WhatsApp and call** from the shop's contact phone; support chat comes out. **Nothing promises an SMS**: the page points to the order's page, since a shop can turn that SMS
+  off, a low balance stops it, and it isn't sent yet. **No screenshot at all**: PAY-18 is withdrawn, overriding Slice 5.3's read. Stated, no objection: PAY-05's missing pieces drawn; the payments-to-Lytro
+  version out; Hind Siliguri from Lytro's own files; the server works out the order's advance; a shop with no method on says so plainly; two PRs, the page and then checkout with the return.
 
 ---
 
