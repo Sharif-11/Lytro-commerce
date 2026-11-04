@@ -140,9 +140,10 @@ Then, per host, one rule each and no path lists:
   carried both was removed on 2026-10-19; `apps/operator` replaced it the same day.
 - **`api.lytro.app`** → reverse-proxy `/v1/*` to `server` as `/api/v1/*`, with the edge secret added. Keys only:
   the backend refuses a session cookie here (API-14). This is the one address in the public API's documentation.
-- **`pay.lytro.app`** → the hosted payment page (built in Phase 5), served with a Content Security Policy that
-  allows only the platform's own scripts and styles and the wallets' logo images (PAY-23). Wallet gateways
-  return the shopper here; it confirms the payment, then redirects to the session's return address.
+- **`pay.lytro.app`** → `server`, with the edge secret added: the hosted payment page, drawn by the backend, which sets a
+  Content Security Policy allowing only the page's own files and the media Worker's address for a shop's logo (PAY-23). Every
+  address on this host is one of the page's own routes (`PaymentPageHost`). A wallet gateway returns to the public API,
+  which settles the payment and sends the shopper here, and the page redirects to the session's return address.
 - **`*.lytro.app`** (any other single-label host, a shop's own subdomain) → reverse-proxy to `storefront`,
   which reads `Host` itself to resolve which tenant to render (SFT-01). Every path belongs to the storefront,
   including the shopper sign-in (SFT-09); nothing here serves the dashboard.

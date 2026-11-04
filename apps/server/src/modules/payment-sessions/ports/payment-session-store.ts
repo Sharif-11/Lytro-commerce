@@ -8,6 +8,7 @@ import type {
   SelectPaymentSession,
   Transaction,
 } from '@lytronix/db';
+import type { PaymentOrderSummary } from '../types/payment-sessions';
 import type {
   GatewayResult,
   PaymentMethod,
@@ -36,6 +37,8 @@ export interface PaymentSessionStore {
     lock?: boolean,
   ): Promise<SelectPaymentSession | null>;
   orderNumberOf(tx: Transaction, tenantId: string, orderId: string): Promise<string>;
+  /** PAY-05, PAY-24: what the page's details name, and the order's tracking ID. */
+  orderSummaryOf(tx: Transaction, tenantId: string, orderId: string): Promise<PaymentOrderSummary>;
   /** VER-01 (Slice 5.3): a session by its id, held for a decision when `lock`. */
   findById(
     tx: Transaction,

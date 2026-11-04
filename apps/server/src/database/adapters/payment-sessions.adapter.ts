@@ -25,6 +25,7 @@ import type {
   PaymentSessionState,
   TenantState,
 } from '@lytronix/validators';
+import type { PaymentOrderSummary } from '../../modules/payment-sessions/types/payment-sessions';
 import type { PaymentSessionStore } from '../../modules/payment-sessions/ports/payment-session-store';
 import { DatabaseService } from '../database.service';
 
@@ -154,6 +155,10 @@ export class DrizzlePaymentSessionStore implements PaymentSessionStore {
 
   orderNumberOf(tx: Transaction, tenantId: string, orderId: string): Promise<string> {
     return this.sessions.orderNumberOf(tx, tenantId, orderId);
+  }
+
+  orderSummaryOf(tx: Transaction, tenantId: string, orderId: string): Promise<PaymentOrderSummary> {
+    return this.sessions.orderSummaryOf(tx, tenantId, orderId);
   }
 
   openForOrder(
