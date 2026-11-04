@@ -115,13 +115,22 @@ describeIfDatabase('Google and Facebook sign-in (AUTH-24, AUTH-27)', () => {
     expect(response.body).toMatchObject({ next: 'create-shop', recovery: null });
     expect(response.headers['set-cookie']).toBeDefined();
 
-    const account = await admin.query<{ password_hash: string | null }>(
-      `SELECT s.password_hash FROM control.subscribers s
+    const account = await admin.query<{
+      password_hash: string | null;
+      terms_version: string | null;
+      privacy_version: string | null;
+    }>(
+      `SELECT s.password_hash, s.terms_version, s.privacy_version FROM control.subscribers s
        JOIN control.subscriber_identities i ON i.subscriber_id = s.id
        WHERE i.kind = 'google' AND i.value = $1`,
       ['google-alice'],
     );
     expect(account.rows[0]?.password_hash).toBeNull();
+    // LEG-01: signing up by Google accepts them as a code does.
+    expect(account.rows[0]).toMatchObject({
+      terms_version: '2026-11-04',
+      privacy_version: '2026-11-04',
+    });
   });
 
   it('signs the same Google account back into the same subscriber', async () => {

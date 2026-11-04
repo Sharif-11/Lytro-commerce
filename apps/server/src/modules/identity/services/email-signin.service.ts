@@ -21,6 +21,7 @@ import type { SessionContext } from '../types/session';
 import type { SignedIn } from '../types/signed-in';
 import { SIGNUP_GATEWAY } from '../tokens';
 import type { SignupGateway } from '../ports/signup-gateway';
+import { LegalAcceptance } from './legal-acceptance';
 
 /** Sign-in and sign-up by an emailed code (AUTH-08, AUTH-24). A new address creates an account with no password. */
 @Injectable()
@@ -33,6 +34,7 @@ export class EmailSigninService {
     @Inject(EmailFormat) private readonly emailFormat: EmailFormat,
     @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
     @Inject(SignupRateLimiter) private readonly signupLimit: SignupRateLimiter,
+    @Inject(LegalAcceptance) private readonly acceptance: LegalAcceptance,
   ) {}
 
   requestCode(rawEmail: string) {
@@ -107,7 +109,7 @@ export class EmailSigninService {
   }
 
   private async createAccount(tx: Transaction, email: string): Promise<string> {
-    const subscriberId = await this.gateway.insertSubscriber(tx);
+    const subscriberId = await this.gateway.insertSubscriber(tx, await this.acceptance.now());
     await this.gateway.insertEmailIdentity(tx, { subscriberId, email, verifiedAt: new Date() });
     return subscriberId;
   }

@@ -1950,34 +1950,38 @@ The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (moj
 from an earlier session, not a code encoding bug. Shows up in the live-verified pricing page's output too
 (`/ ? ???`); re-seed or fix that one row directly rather than chasing a non-existent bug.
 
-## 101. `MED-12`: the operator cannot see media costs per shop — found 2026-10-30, open
+## 101. `MED-12`: the operator cannot see media costs per shop — found 2026-10-30, moved to Phase 8 on 2026-11-04
 
 Found by Phase 3's close-out check (PHASE-3-PLAN §11). §3.1 counts MED-10 to 13 as completed, but nothing shows the
 operator a month's R2 operations, Worker requests or the top consuming shops, and there is no alert at 80% of the budget;
 RUNBOOKS.md only says to set Cloudflare's own billing alert. The figures exist (Analytics Engine per shop, the
-`media_bandwidth` rows), so it is an operator read and a page. Open: build it now, or move MED-12 to a later phase.
+`media_bandwidth` rows), so it is an operator read and a page. Decided 2026-11-04: it moves to Phase 8 with the operator console. With no live shops
+there is nothing to watch yet; until then, Cloudflare's own billing alert protects against a surprise bill.
 
-## 102. `LEG-01`: the accepted terms and privacy versions are not recorded — found 2026-10-30, open
+## 102. `LEG-01`: the accepted terms and privacy versions are not recorded — found 2026-10-30, fixed 2026-11-04
 
 Found by Phase 3's close-out check. The entry screen shows the terms line (Slice 0), but `control.subscribers` has no
 `terms_version` or `privacy_version` column, though DATABASE-SCHEMA.md §2.1 lists both, and sign-up records neither nor
-the time. Accounts made until it is built record nothing; they would need a default version when it is. Open: where the
-current versions come from (a server setting or a platform setting) and building the recording.
+the time. Migration 0103 adds both and `terms_accepted_at`. The versions in force are two platform settings, changed when new
+text is published with no deploy, and every sign-up (phone, email, Google, Facebook) records them; a sign-up fails rather than
+record nothing. Staff an owner adds record nothing until they open a shop of their own. Accounts from before stay empty until then
+too. Re-accepting new terms isn't built: an account keeps what it accepted.
 
-## 103. `SFT-17`: the plan cards do not say the storefront is included — found 2026-10-30, open
+## 103. `SFT-17`: the plan cards do not say the storefront is included — found 2026-10-30, fixed 2026-11-04
 
 Found by Phase 3's close-out check. The storefront is on every plan (no plan check guards it), but the website's
 pricing names it only on the pay-as-you-go card; Starter, Growth and Pro list their limits and feature flags, so the
-acceptance ("the plan sheet lists it as included on Starter, Growth and Pro alike") does not hold. Open: a common
-line on every plan card, which changes the landing page's drawn pricing.
+acceptance ("the plan sheet lists it as included on Starter, Growth and Pro alike") did not hold. Each paid card now opens with
+"Your own storefront included", in the drawn pricing and on the site.
 
-## 104. `CCH-12`: catalogue search has little room under its 300 ms target — found 2026-10-30, open
+## 104. `CCH-12`: catalogue search has little room under its 300 ms target — found 2026-10-30, accepted 2026-11-04
 
 Found by Phase 3's close-out check, rerunning the 50,000-product test (`CATALOGUE_SLOW_TESTS=1`), which CI never runs.
 Three runs: 329, 277 and 249 ms at the 95th percentile, one over the target; Slice 9 measured 226 ms before Slice 12b
 added the cards' swatches and the added date to the list. Pages stay at 43 to 48 ms. Open: find what the search's
 query now spends its time on and tune it, or accept the margin until production data says otherwise (CCH-12 allows
-tuning before another engine).
+tuning before another engine). Decided 2026-11-04: accepted until real data says otherwise, since few early shops will hold
+50,000 products and a real server behaves differently from this test machine. Rerun it on staging or production-sized data.
 
 ## 105. The storefront's pages have no browser test — found 2026-10-30, closed 2026-11-03
 

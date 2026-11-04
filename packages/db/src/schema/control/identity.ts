@@ -10,6 +10,11 @@ export const subscribers = control.table('subscribers', {
   id: uuid('id').primaryKey().defaultRandom(),
   // Null for an OAuth-only subscriber (AUTH-24).
   passwordHash: text('password_hash'),
+  // LEG-01: what was accepted and when. Null for staff an owner added, who never saw the entry screen, until they open a
+  // shop of their own, and for an account from before these were recorded.
+  termsVersion: text('terms_version'),
+  privacyVersion: text('privacy_version'),
+  termsAcceptedAt: timestamp('terms_accepted_at', { withTimezone: true }),
   createdAt: createdAt(),
   lastSignInAt: timestamp('last_sign_in_at', { withTimezone: true }),
 });

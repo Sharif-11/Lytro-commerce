@@ -25,6 +25,7 @@ import type { OauthProviderPort } from '../ports/oauth-provider';
 import type { OauthStateStore } from '../ports/oauth-state-store';
 import type { SignupGateway } from '../ports/signup-gateway';
 import type { SignupSettings } from '../ports/signup-settings';
+import { LegalAcceptance } from './legal-acceptance';
 
 // AUTH-24: a provider sign-in must come back with the state it started with, within this window.
 export const OAUTH_STATE_TTL_MS = 10 * MINUTE_MS;
@@ -41,6 +42,7 @@ export class OauthService {
     @Inject(ENV) private readonly env: Pick<Env, 'OAUTH_CALLBACK_BASE'>,
     @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
     @Inject(SignupRateLimiter) private readonly signupLimit: SignupRateLimiter,
+    @Inject(LegalAcceptance) private readonly acceptance: LegalAcceptance,
   ) {}
 
   enabledProviders(): OauthProvider[] {
@@ -172,7 +174,7 @@ export class OauthService {
     kind: IdentityKind,
     accountId: string,
   ): Promise<string> {
-    const subscriberId = await this.gateway.insertSubscriber(tx);
+    const subscriberId = await this.gateway.insertSubscriber(tx, await this.acceptance.now());
     await this.gateway.insertIdentity(tx, {
       subscriberId,
       kind,
