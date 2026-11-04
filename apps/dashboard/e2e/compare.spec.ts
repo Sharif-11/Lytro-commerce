@@ -35,6 +35,14 @@ import { drawnPurchases, drawnSuppliers, otherStates } from './support/purchases
 import { drawnDelivery, type DeliveryFixture } from './support/delivery';
 import { drawnDomain, type DomainFixture } from './support/domain';
 import { drawnTax } from './support/tax';
+import {
+  automatedMethods,
+  drawnMethods,
+  nothingSetUp,
+  testAccountMethods,
+  unreadableMethods,
+  type PaymentMethodsFixture,
+} from './support/payment-methods';
 import { withEidCombo } from './support/combos';
 import { drawnPasswords, drawnTeam } from './support/team';
 import { indigoBrand, maroonBrand } from './support/themed';
@@ -1058,6 +1066,164 @@ const openClass = (name: RegExp) => async (page: Page) => {
   await page.getByRole('main').getByRole('button', { name }).click();
 };
 
+/** Part 33's shop, in Bangla, with what a state changes. */
+function methodsWith(change: (methods: PaymentMethodsFixture) => void): PaymentMethodsFixture {
+  const methods = drawnMethods('bn');
+  change(methods);
+  return methods;
+}
+
+const PM_PATH = '/settings/payment-methods';
+
+/** A pair of Part 33's page on a phone in Bangla, the shop as `methods` has it. */
+function pm(
+  name: string,
+  screen: string,
+  methods: PaymentMethodsFixture,
+  then?: (page: Page) => Promise<void>,
+  state: ShopState = {},
+): Pair {
+  return {
+    name,
+    screen,
+    device: 'phone',
+    language: 'bn',
+    path: PM_PATH,
+    state: { paymentMethods: methods, ...state },
+    ...(then ? { then } : {}),
+  };
+}
+
+const tapMain = (name: string | RegExp) => async (page: Page) => {
+  await page.getByRole('main').getByRole('button', { name }).first().click();
+};
+
+/** The four keys, as anything: they're never drawn back. */
+async function fillKeysInBangla(page: Page): Promise<void> {
+  await dialogOf(page).getByLabel('App key').fill('key');
+  await dialogOf(page).getByLabel('App secret').fill('secret');
+  await dialogOf(page).getByLabel('Username').fill('user');
+  await dialogOf(page).getByLabel('Password').fill('pass');
+}
+
+const connected = (test: { ok: boolean; code: string | null }): PaymentMethodsFixture =>
+  methodsWith((methods) => {
+    methods.test = test;
+  });
+
+async function connectBkash(page: Page): Promise<void> {
+  await tapMain('কানেক্ট করুন')(page);
+  await fillKeysInBangla(page);
+  await dialogOf(page).getByRole('button', { name: 'সেভ করে টেস্ট করুন' }).click();
+}
+
+async function openPhoneSheet(page: Page): Promise<void> {
+  await tapMain('ভেরিফাই করুন')(page);
+}
+
+async function sendPhoneCode(page: Page): Promise<void> {
+  await openPhoneSheet(page);
+  await dialogOf(page).getByLabel('ফোন নম্বর').fill('1711234567');
+  await dialogOf(page).getByRole('button', { name: 'কোড পাঠান' }).click();
+}
+
+const noPhone = (): PaymentMethodsFixture =>
+  methodsWith((methods) => {
+    methods.ownerPhoneVerified = false;
+  });
+
+/** Payment methods and Balance's on-hold line (Slice 5.8's part 1), beside Part 33's drawing of each. */
+const PAYMENT_METHODS: Pair[] = [
+  {
+    name: 'pm33-settings',
+    screen: 'pm33-settings',
+    device: 'phone',
+    language: 'bn',
+    path: '/settings',
+  },
+  pm('pm33', 'pm33', drawnMethods('bn')),
+  { ...pm('pm33', 'pm33', drawnMethods('en')), device: 'desktop', language: 'en' },
+  pm('pm33-first', 'pm33-first', nothingSetUp()),
+  pm(
+    'pm33-added',
+    'pm33-added',
+    methodsWith((methods) => {
+      const bkash = methods.methods[0];
+      if (bkash) bkash.accounts = [];
+    }),
+    async (page) => {
+      await tapMain('অ্যাকাউন্ট যোগ করুন')(page);
+      await dialogOf(page).getByLabel('bKash নম্বর').fill('01711234567');
+      await dialogOf(page).getByLabel('অ্যাকাউন্টের নাম').fill('মেঘ ফ্যাশন');
+      await dialogOf(page).getByRole('button', { name: 'মার্চেন্ট' }).click();
+      await dialogOf(page).getByRole('button', { name: 'সেভ করুন' }).click();
+    },
+  ),
+  pm(
+    'pm33-paired',
+    'pm33-paired',
+    methodsWith((methods) => {
+      methods.phones = 1;
+    }),
+  ),
+  pm('pm33-auto', 'pm33-auto', automatedMethods('bn')),
+  pm('pm33-auto-test', 'pm33-auto-test', testAccountMethods('bn')),
+  pm('pm33-unreadable', 'pm33-unreadable', unreadableMethods('bn')),
+  pm('pm33-nophone', 'pm33-nophone', noPhone()),
+  pm('pm33-staff', 'pm33-staff', drawnMethods('bn'), undefined, {
+    isOwner: false,
+    permissions: ['wallets:read'],
+  }),
+  pm('sh-pm33-account', 'sh-pm33-account', drawnMethods('bn'), tapMain('অ্যাকাউন্ট যোগ করুন')),
+  pm('sh-pm33-account-bad', 'sh-pm33-account-bad', drawnMethods('bn'), async (page) => {
+    await tapMain('অ্যাকাউন্ট যোগ করুন')(page);
+    await dialogOf(page).getByLabel('bKash নম্বর').fill('0171123');
+    await dialogOf(page).getByLabel('অ্যাকাউন্টের নাম').fill('মেঘ');
+    await dialogOf(page).getByRole('button', { name: 'সেভ করুন' }).click();
+  }),
+  pm('sh-pm33-edit', 'sh-pm33-edit', drawnMethods('bn'), tapMain('এডিট 01911 222 333')),
+  pm('dlg-pm33-delete', 'dlg-pm33-delete', drawnMethods('bn'), async (page) => {
+    await tapMain('এডিট 01711 234 567')(page);
+    await dialogOf(page).getByRole('button', { name: 'ডিলিট করুন' }).click();
+  }),
+  pm('sh-pm33-bank', 'sh-pm33-bank', drawnMethods('bn'), async (page) => {
+    await page
+      .getByRole('main')
+      .getByRole('button', { name: 'অ্যাকাউন্ট যোগ করুন' })
+      .last()
+      .click();
+  }),
+  pm('sh-pm33-gw', 'sh-pm33-gw', drawnMethods('bn'), tapMain('কানেক্ট করুন')),
+  pm('sh-pm33-gw-ok', 'sh-pm33-gw-ok', drawnMethods('bn'), connectBkash),
+  pm('sh-pm33-gw-bad', 'sh-pm33-gw-bad', connected({ ok: false, code: '2001' }), connectBkash),
+  pm(
+    'sh-pm33-gw-limit',
+    'sh-pm33-gw-limit',
+    connected({ ok: false, code: 'token_limit' }),
+    connectBkash,
+  ),
+  pm('sh-pm33-gw-saved', 'sh-pm33-gw-saved', automatedMethods('bn'), tapMain('কী ম্যানেজ করুন')),
+  pm('dlg-pm33-gw-remove', 'dlg-pm33-gw-remove', automatedMethods('bn'), async (page) => {
+    await tapMain('কী ম্যানেজ করুন')(page);
+    await dialogOf(page).getByRole('button', { name: 'কী রিমুভ করুন' }).click();
+  }),
+  pm('sh-pm33-phone', 'sh-pm33-phone', noPhone(), openPhoneSheet),
+  pm('sh-pm33-code', 'sh-pm33-code', noPhone(), sendPhoneCode),
+  pm('sh-pm33-taken', 'sh-pm33-taken', noPhone(), async (page) => {
+    await sendPhoneCode(page);
+    await typeCode(page, '409409');
+    await dialogOf(page).getByRole('button', { name: 'ভেরিফাই করুন' }).click();
+  }),
+  {
+    name: 'balance33',
+    screen: 'balance33',
+    device: 'phone',
+    language: 'bn',
+    path: '/balance',
+    state: { money: { held: '12.50', payments: [] } },
+  },
+];
+
 /** Tax, add-ons, Stock's cards, Home's job and See the orders (Slice 4.8c), beside Part 31's drawing of each. */
 const TAX_ADDONS_STOCK: Pair[] = [
   {
@@ -1768,6 +1934,7 @@ const PAIRS: Pair[] = [
   ...NEW_ORDER,
   ...CUSTOMERS,
   ...TAX_ADDONS_STOCK,
+  ...PAYMENT_METHODS,
   ...COMBO_EDITOR,
   ...SALES,
   {
@@ -4613,6 +4780,41 @@ const STEPS: Pair[] = [
     journey: { wrongCode: true },
     then: async (page) => {
       await typeCode(page, '444444');
+      await page.getByRole('button', { name: 'ভেরিফাই করুন' }).click();
+    },
+  },
+  {
+    name: 'ob33-phone',
+    screen: 'ob33-phone',
+    device: 'phone',
+    language: 'bn',
+    path: '/verify-phone',
+    journey: { signedIn: true, noPhone: 'google' },
+    intent: { shop: 'megh', planId: STARTER, termId: TWELVE_MONTHS },
+  },
+  {
+    name: 'ob33-code',
+    screen: 'ob33-code',
+    device: 'phone',
+    language: 'bn',
+    path: '/verify-phone',
+    journey: { signedIn: true, noPhone: 'google' },
+    then: async (page) => {
+      await page.getByLabel('ফোন নম্বর').fill('1711234567');
+      await page.getByRole('button', { name: 'এগিয়ে যান' }).click();
+    },
+  },
+  {
+    name: 'ob33-taken',
+    screen: 'ob33-taken',
+    device: 'phone',
+    language: 'bn',
+    path: '/verify-phone',
+    journey: { signedIn: true, noPhone: 'google' },
+    then: async (page) => {
+      await page.getByLabel('ফোন নম্বর').fill('1711234567');
+      await page.getByRole('button', { name: 'এগিয়ে যান' }).click();
+      await typeCode(page, '409409');
       await page.getByRole('button', { name: 'ভেরিফাই করুন' }).click();
     },
   },

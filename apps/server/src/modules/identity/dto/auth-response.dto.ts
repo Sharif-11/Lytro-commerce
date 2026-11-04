@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 
 const nextStepSchema = z.enum([
+  'verify-phone',
   'create-shop',
   'dashboard',
   'set-password',

@@ -6,7 +6,7 @@ import type { PlatformWallet } from '@/types/billing';
 const WALLET_COLOURS: Record<string, string> = {
   bkash: '#e2136e',
   nagad: '#f6921e',
-  rocket: '#7b2cbf',
+  rocket: '#892c8c',
   upay: '#1f4e98',
 };
 

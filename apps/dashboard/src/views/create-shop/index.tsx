@@ -1,9 +1,11 @@
 import { useState, type SyntheticEvent } from 'react';
+import { Navigate, useNavigate } from '@tanstack/react-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
 import { NAME_MAX_LENGTH, SLUG_MAX_LENGTH, SLUG_MIN_LENGTH } from '@lytronix/validators';
 import { ApiClientError } from '@lytronix/api-client';
 import { useCreateShop } from '@/api/auth';
-import { useMe } from '@/api/me';
+import { ME_QUERY_KEY, useMe } from '@/api/me';
 import { useAddressCheck } from '@/api/shop-setup';
 import { Icon } from '@/components/icon';
 import { OnboardingFrame } from '@/components/onboarding/frame';
@@ -26,12 +28,14 @@ const TYPING_REST_MS = 400;
  * link -- filled from the name's Latin letters as it is typed, until the owner edits it or brought one from the
  * website -- checked with the server as the owner pauses: free, or taken with the server's next free one to tap.
  * Both addresses are previewed. A refusal keeps everything typed (AUTH-30); an owner whose earlier shop was deleted is
- * told its balance comes along (LIF-21).
+ * told its balance comes along (LIF-21). An account with no phone gives one first (AUTH-28, TVR-01).
  */
 export function CreateShop(): React.JSX.Element {
   const { t } = useTranslation('onboarding');
   const errorText = useErrorText();
   const me = useMe();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const claimed = signUpIntent.read().shop;
   const [shopName, setShopName] = useState('');
   const [ownerName, setOwnerName] = useState('');
@@ -65,6 +69,12 @@ export function CreateShop(): React.JSX.Element {
       { ownerName: ownerName.trim(), shopName: shopName.trim(), address },
       {
         onError: (error) => {
+          // The phone step was left by another way in: the server sends them back to it.
+          if (error instanceof ApiClientError && error.details.next === 'verify-phone') {
+            void queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY, exact: true });
+            void navigate({ to: '/verify-phone' });
+            return;
+          }
           // The address went between the check and the press: the field says so, and the check asks again.
           const problems = error instanceof ApiClientError ? error.fieldProblems() : {};
           if (problems.address) {
@@ -98,6 +108,8 @@ export function CreateShop(): React.JSX.Element {
   ) : (
     rule
   );
+
+  if (me.data?.needsPhone) return <Navigate to="/verify-phone" replace />;
 
   return (
     <OnboardingFrame step={1} title={t('csTitle')} lead={t('csLead')}>

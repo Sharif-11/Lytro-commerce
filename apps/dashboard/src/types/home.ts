@@ -40,6 +40,8 @@ export interface HomeView {
     firstProduct: boolean;
     logo: boolean;
     linkShared: boolean;
+    /** A payment method is on with an active account. */
+    wallet: boolean;
     apiKey: boolean;
   } | null;
 }

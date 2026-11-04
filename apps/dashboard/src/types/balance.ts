@@ -3,6 +3,8 @@ import type { LedgerEntryType, RateKey } from '@lytronix/validators';
 /** Mirrors `BalanceSnapshot` and `LedgerEntry` in apps/server/src/modules/balance/types/ledger-entry.ts. */
 export interface BalanceSnapshot {
   amount: string;
+  /** WAL-21: held for open checkouts at a wallet, part of `amount`, ending by itself as each closes. */
+  held: string;
   frozen: boolean;
   /** BAL-04: the lowest and highest top-up the platform takes now, in whole taka. */
   topUpMin: number;

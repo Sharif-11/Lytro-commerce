@@ -1683,7 +1683,7 @@ CREATE UNIQUE INDEX ON tenant.wallet_accounts (tenant_id, method, lower(account_
     WHERE account_number IS NOT NULL;
 -- Gateway credentials and the account selected for automated payments (WAL-09, WAL-10) arrive with Slice 5.7.
 
-CREATE TABLE tenant.payment_methods_off (          -- WAL-05: a row means the shop switched that method off
+CREATE TABLE tenant.payment_methods_on (           -- WAL-05 (amended 2026-11-04, 0104): a row means the owner turned it on
     tenant_id       uuid NOT NULL,
     method          tenant.payment_method NOT NULL,
     created_at      timestamptz NOT NULL DEFAULT now(),

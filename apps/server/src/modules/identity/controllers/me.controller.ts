@@ -17,6 +17,7 @@ import { DomainService } from '../../domains/services/domain.service';
 import type { ImageView } from '../../../common/media-links';
 import { MediaService } from '../../media/services/media.service';
 import { StaffService } from '../../staff/services/staff.service';
+import { IdentitiesService } from '../services/identities.service';
 import { ShopMemberships, type ShopListing } from '../services/shop-memberships';
 import { isStaffSignIn } from '../services/staff-sign-in';
 import { TenantService } from '../../tenancy/services/tenant.service';
@@ -67,6 +68,9 @@ export interface MeResponse {
   /** LIF-21: the person has no shop open yet and owns a deleted one, whose balance the new shop takes over -- for
       create-shop's note. False whenever a shop is open, and for staff. */
   hasDeletedShop: boolean;
+  /** AUTH-28 (amended 2026-10-31): no shop to open and no verified phone, so a phone comes before create-shop. False
+      for staff, whose own sign-in opens no shop. */
+  needsPhone: boolean;
 }
 
 /**
@@ -104,6 +108,7 @@ export class MeController {
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(BillingTermsService) private readonly terms: BillingTermsService,
     @Inject(LifecycleService) private readonly lifecycle: LifecycleService,
+    @Inject(IdentitiesService) private readonly identities: IdentitiesService,
   ) {}
 
   @Get()
@@ -128,6 +133,10 @@ export class MeController {
     const hasDeletedShop =
       tenant === null && isOwner && subscriberId !== null
         ? await this.tenants.hasDeletedShop(subscriberId)
+        : false;
+    const needsPhone =
+      tenant === null && shops.length === 0 && isOwner && !staffSignIn && subscriberId !== null
+        ? !(await this.identities.hasPhone(subscriberId))
         : false;
     return {
       subscriber: { id: request.session?.subscriberId ?? '' },
@@ -156,6 +165,7 @@ export class MeController {
             },
       shops,
       hasDeletedShop,
+      needsPhone,
     };
   }
 

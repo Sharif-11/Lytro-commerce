@@ -32,6 +32,7 @@ export class SignedInSession {
     const staffShop = owned ? null : await this.staff.staffShopOfIn(tx, values.subscriberId);
     const staffTenantId = staffShop?.active === true ? staffShop.tenantId : null;
     const tenantId = owned?.id ?? staffTenantId;
+    const hasPhone = (await this.gateway.findPhoneIdentityOf(tx, values.subscriberId)) !== null;
     const opened = await this.sessions.open(tx, {
       subscriberId: values.subscriberId,
       tenantId,
@@ -40,7 +41,7 @@ export class SignedInSession {
       context: values.context,
     });
     return {
-      next: this.nextStep(values.mustSetPassword, owned, staffTenantId !== null),
+      next: this.nextStep(values.mustSetPassword, owned, staffTenantId !== null, hasPhone),
       tenantId,
       cookie: opened.cookie,
       csrfToken: opened.csrfToken,
@@ -51,13 +52,18 @@ export class SignedInSession {
     mustSetPassword: boolean,
     owned: OwnedTenant | null,
     worksInShop: boolean,
+    hasPhone: boolean,
   ): NextStep {
     if (mustSetPassword) return 'set-password';
-    if (owned === null) return worksInShop ? 'dashboard' : 'create-shop';
+    if (owned === null) {
+      if (worksInShop) return 'dashboard';
+      // AUTH-28 (amended 2026-10-31), TVR-01: a phone for every owner, before Create shop. A deleted shop's owner
+      // is never `owned` either, and opens a new one the same way (LIF-21).
+      return hasPhone ? 'create-shop' : 'verify-phone';
+    }
     if (owned.suspendedAt !== null) return 'unavailable';
     if (owned.state === TenantState.Locked || owned.state === TenantState.Archived)
       return 'renewal';
-    // A deleted shop is never `owned` -- its owner gets `create-shop` above and opens a new one (LIF-21).
     return 'dashboard';
   }
 }

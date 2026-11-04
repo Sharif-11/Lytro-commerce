@@ -14,6 +14,7 @@ import { ShopLinkSharing } from '../../balance/services/shop-link-sharing';
 import { ProductService } from '../../catalogue/services/product.service';
 import { DeliveryZoneService } from '../../delivery/services/delivery-zone.service';
 import { BatchService } from '../../inventory/services/batch.service';
+import { PaymentMethods } from '../../payment-methods/services/payment-methods';
 import { StockService } from '../../inventory/services/stock.service';
 import { OrderService } from '../../orders/services/order.service';
 import { SalesFigures } from '../../orders/services/sales-figures';
@@ -61,6 +62,7 @@ export class HomeService {
     @Inject(OrderService) private readonly orders: OrderService,
     @Inject(SalesFigures) private readonly sales: SalesFigures,
     @Inject(StockService) private readonly stockLevels: StockService,
+    @Inject(PaymentMethods) private readonly methods: PaymentMethods,
   ) {}
 
   async view(tenant: TenantSummary, userId: string | null, now = new Date()): Promise<HomeView> {
@@ -162,11 +164,12 @@ export class HomeService {
     firstProduct: boolean,
     now: Date,
   ): Promise<SetupChecklist> {
-    const [delivery, logo, linkShared, keys] = await Promise.all([
+    const [delivery, logo, linkShared, keys, wallet] = await Promise.all([
       this.zones.settings(tenantId),
       this.media.logoOf(tenantId),
       this.links.shared(tenantId),
       this.keys.list(tenantId),
+      this.methods.hasLiveAccount(tenantId),
     ]);
     const inside = delivery.zones.find((zone) => zone.isHome);
     const outside = delivery.zones.find((zone) => zone.isFallback);
@@ -179,6 +182,7 @@ export class HomeService {
       firstProduct,
       logo: logo !== null,
       linkShared,
+      wallet,
       apiKey: keys.some(
         (key) =>
           key.revokedAt === null &&

@@ -117,7 +117,11 @@ export const HUBS: readonly Hub[] = [
     sections: [
       section('team', [Permission.StaffRead]),
       section('activity', [Permission.AuditRead]),
-      section('settings', [Permission.SettingsManage, Permission.KeysManage]),
+      section('settings', [
+        Permission.SettingsManage,
+        Permission.KeysManage,
+        Permission.WalletsRead,
+      ]),
       section('account', []),
     ],
   },

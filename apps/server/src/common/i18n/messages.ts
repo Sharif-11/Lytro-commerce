@@ -31,6 +31,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Create your shop to continue.',
     bn: 'চালিয়ে যেতে আপনার শপ তৈরি করুন।',
   },
+  VerifyPhoneToContinue: {
+    en: 'Verify your phone number to open your shop.',
+    bn: 'শপ খুলতে আগে আপনার ফোন নম্বর ভেরিফাই করুন।',
+  },
   SetPasswordToContinue: {
     en: 'Set a password to continue.',
     bn: 'চালিয়ে যেতে একটি পাসওয়ার্ড সেট করুন।',

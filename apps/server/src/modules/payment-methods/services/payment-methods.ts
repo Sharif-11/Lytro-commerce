@@ -106,7 +106,8 @@ function shopperView(
 
 /**
  * WAL-01 to WAL-07, WAL-14 to WAL-18 (Phase 5 Slice 5.1, read agreed 2026-10-31): the accounts a shop takes money into,
- * method by method -- bKash, Nagad, Rocket, Upay and bank transfer (D5-6) -- and which methods are on. Only the owner
+ * method by method -- bKash, Nagad, Rocket, Upay and bank transfer (D5-6) -- and which methods the owner turned on, each
+ * starting off (WAL-05, amended 2026-11-04). Only the owner
  * changes them (WAL-07 amended); each save replaces the method's list whole, the first account sent active being the
  * only active one (WAL-03), nothing made active on its own (WAL-04), and is in the activity log with the active
  * account's number. Shoppers see a method's active account only while the method is on (WAL-05, WAL-06), and nothing
@@ -149,7 +150,7 @@ export class PaymentMethods {
       const firstActive = input.accounts.findIndex((row) => row.active === true);
       const accounts = input.accounts.map((row, index) => accountOf(row, index === firstActive));
       await this.store.replaceMethod(tx, tenantId, method, accounts);
-      await this.store.setOff(tx, tenantId, method, !input.enabled);
+      await this.store.setOn(tx, tenantId, method, input.enabled);
       const active = accounts[firstActive];
       await this.activity.record(
         tx,
@@ -176,11 +177,24 @@ export class PaymentMethods {
   /** The same, in the caller's transaction (Slice 5.2: an order's payment and the page's). */
   async forShoppersWithin(tx: Transaction, tenantId: string): Promise<ShopperPaymentMethod[]> {
     if (!(await this.store.ownerPhoneVerified(tx, tenantId))) return [];
-    const off = new Set<string>(await this.store.listOff(tx, tenantId));
+    return this.offeredWithin(tx, tenantId);
+  }
+
+  /** SUP-01: whether a method is on with an account to show, which ticks the checklist's wallet item. */
+  hasLiveAccount(tenantId: string): Promise<boolean> {
+    return this.store.run(
+      tenantId,
+      async (tx) => (await this.offeredWithin(tx, tenantId)).length > 0,
+    );
+  }
+
+  /** Each method that is on with the account it shows, whatever the owner's phone says. */
+  private async offeredWithin(tx: Transaction, tenantId: string): Promise<ShopperPaymentMethod[]> {
+    const on = new Set<string>(await this.store.listOn(tx, tenantId));
     const rows = await this.store.list(tx, tenantId);
     const chosen = await this.store.listWays(tx, tenantId);
     return ACCOUNT_METHODS.flatMap((method) => {
-      if (off.has(method)) return [];
+      if (!on.has(method)) return [];
       const way = chosen.find((row) => row.method === method)?.way ?? startingWayOf(method);
       // WAL-19: an account may take level 1 and level 3 apart; a shop on automated checkout may have none active by hand.
       const shown =
@@ -348,14 +362,14 @@ export class PaymentMethods {
   }
 
   private async viewWithin(tx: Transaction, tenantId: string): Promise<PaymentMethodsView> {
-    const off = new Set<string>(await this.store.listOff(tx, tenantId));
+    const on = new Set<string>(await this.store.listOn(tx, tenantId));
     const rows = await this.store.list(tx, tenantId);
     const chosen = await this.store.listWays(tx, tenantId);
     return {
       methods: ACCOUNT_METHODS.map((method) => ({
         method,
         kind: PAYMENT_METHOD_TYPES[method].kind,
-        enabled: !off.has(method),
+        enabled: on.has(method),
         levels: [...PAYMENT_METHOD_TYPES[method].levels],
         way: chosen.find((row) => row.method === method)?.way ?? startingWayOf(method),
         ways: waysOf(method),
