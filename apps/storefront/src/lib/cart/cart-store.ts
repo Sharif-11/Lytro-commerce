@@ -1,4 +1,6 @@
 import { ORDER_LINES_MAX } from '@lytronix/validators/common';
+import type { StockUnit } from '@lytronix/validators/enums';
+import { countedUnits } from '../product/quantity';
 import type { EstimateItem, ModifierChoice, OrderItemInput } from '../api/storefront-api';
 
 // SFT-05: the cart lives in the shopper's browser and reserves nothing; stock is held only when an order is placed. One
@@ -31,6 +33,9 @@ export interface CartLine {
   price: string;
   image: string | null;
   quantity: number;
+  /** LND-07, UOM-04: what the quantity is of; a line from before this has none, and is whole. */
+  stockUnit?: StockUnit;
+  sharedStock?: boolean;
   /** MNU-02: every add-on group's choice, as the order names them. */
   modifiers?: ModifierChoice[];
   addOns?: CartAddOn[];
@@ -140,7 +145,7 @@ export class CartStore {
   }
 
   count(): number {
-    return this.lines().reduce((sum, line) => sum + line.quantity, 0);
+    return this.lines().reduce((sum, line) => sum + countedUnits(line.stockUnit, line.quantity), 0);
   }
 
   private save(lines: CartLine[]): void {

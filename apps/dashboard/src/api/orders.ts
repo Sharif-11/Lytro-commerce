@@ -11,6 +11,7 @@ import {
   type CallOutcome,
   type CancelReason,
   type CreateOrderInput,
+  type OrderSource,
   type PaymentMethod,
   type StatusOverride,
   type UpdateOrderInput,
@@ -66,6 +67,8 @@ export interface OrderFilter {
   /** INV-15 (Slice 4.8c): only the orders holding this variant's stock, and its name for the chip. */
   holding?: string;
   holdingName?: string;
+  /** LND-09: only the orders from here (Part 33's `o29-dates`). */
+  source?: OrderSource;
 }
 
 function query(filter: OrderFilter, extra: Record<string, string>): string {
@@ -77,6 +80,7 @@ function query(filter: OrderFilter, extra: Record<string, string>): string {
     ...(filter.to ? { dateTo: filter.to } : {}),
     ...(filter.reason && filter.tab === 'cancelled' ? { cancelReason: filter.reason } : {}),
     ...(filter.holding ? { variantId: filter.holding } : {}),
+    ...(filter.source ? { source: filter.source } : {}),
     ...extra,
   }).toString();
 }

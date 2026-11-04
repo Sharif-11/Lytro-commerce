@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { StockUnit } from '@lytronix/validators/enums';
 import { expect, type Page, test } from '@playwright/test';
 import type { CartLine } from '../src/lib/cart/cart-store';
 import {
@@ -9,6 +10,7 @@ import {
   GIFT_WRAP,
   hijab,
   idOf,
+  makeProduct,
   jacket,
   type Language,
   PACKING,
@@ -52,6 +54,19 @@ interface Pair {
 }
 
 const pick = (language: Language, bn: string, en: string) => (language === 'bn' ? bn : en);
+
+/** LND-07: the sketch's rice, sold by the kg. */
+const measured = (language: Language): Partial<ShopFixture> => ({
+  products: [
+    makeProduct({
+      id: idOf('rice'),
+      slug: 'miniket-rice',
+      name: pick(language, 'মিনিকেট চাল', 'Miniket rice'),
+      price: 85,
+      stockUnit: StockUnit.Kg,
+    }),
+  ],
+});
 
 /** The prototype's `E48_LINES`: a panjabi with gift wrap, an Eid combo, two hijabs. */
 function drawnLines(language: Language): CartLine[] {
@@ -630,6 +645,25 @@ const PAIRS: Pair[] = [
     then: fillLanding,
   },
   { name: 'landing-out', screen: 'e48-landing-out', path: '/l/kids-frock', then: fillLanding },
+  {
+    name: 'product-kg',
+    screen: 'e48-product-kg',
+    path: '/p/miniket-rice',
+    shop: measured,
+    then: async (page) => {
+      await page.getByRole('button', { name: '+', exact: true }).first().click();
+    },
+  },
+  {
+    name: 'landing-kg',
+    screen: 'e48-landing-kg',
+    path: '/l/miniket-rice',
+    shop: measured,
+    then: async (page, language) => {
+      await page.getByRole('button', { name: '−', exact: true }).first().click();
+      await fillLanding(page, language);
+    },
+  },
   // The account (§7a, §7c).
   {
     name: 'signin',

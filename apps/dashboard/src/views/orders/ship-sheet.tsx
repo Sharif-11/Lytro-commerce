@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import { ApiClientError } from '@lytronix/api-client';
 import { formatTaka } from '@lytronix/ui';
+import { Permission, SerialFormat } from '@lytronix/validators';
 import { useCouriers, useHandOver, useOrderSerials, useShip, type SentSerials } from '@/api/orders';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
@@ -10,8 +13,11 @@ import { Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { useErrorText } from '@/hooks/use-error-text';
+import { addSerials, splitList, type SerialLine } from '@/lib/opening';
+import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { Order, OrderSerialItem } from '@/types/orders';
+import { SerialScanner } from '../product/serial-scanner';
 
 /** A serial-numbered part's key: its line, and a combo's component by its variant. */
 const keyOf = (item: Pick<OrderSerialItem, 'lineId' | 'variantId'>) =>
@@ -36,6 +42,119 @@ function sentOf(
 /** Every serial-numbered unit has its serial (INV-14). */
 const allPicked = (items: OrderSerialItem[], picked: Map<string, string[]>) =>
   items.every((item) => (picked.get(keyOf(item)) ?? []).length === Number(item.quantity));
+
+/**
+ * INV-23 (Part 33's `o29-ship-entry`): a serial by the camera, a pasted list, or typed, a USB or Bluetooth scanner typing
+ * too. Each one goes through the same check as opening stock, then must be one this item holds; a bad one is named under
+ * the box, and the good ones are picked.
+ */
+function SerialEntry({
+  item,
+  chosen,
+  units,
+  onChosen,
+}: {
+  item: OrderSerialItem;
+  chosen: string[];
+  units: number;
+  onChosen: (next: string[]) => void;
+}): React.JSX.Element {
+  const { t } = useTranslation('orders');
+  const { t: shopWords } = useTranslation('shop');
+  const [typed, setTyped] = useState('');
+  const [problem, setProblem] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+
+  /** What was entered, picked as far as it goes; true when all of it was taken. */
+  function take(entered: string[]): boolean {
+    const held: SerialLine[] = chosen.map((code) => ({ code, flag: null }));
+    const { lines, rest } = addSerials(held, entered, item.serialFormat, units, new Set());
+    const found = lines.slice(held.length);
+    const next = [...chosen];
+    let refused: string | null = rest.length > 0 ? t('serialsAllPicked', { count: units }) : null;
+    for (const line of found) {
+      if (line.flag) refused = `${line.code}: ${shopWords(`flag_${line.flag}`)}`;
+      else if (item.inStock.includes(line.code)) next.push(line.code);
+      else refused = t('serialNotInStock', { serial: line.code });
+    }
+    if (next.length > chosen.length) onChosen(next);
+    setProblem(refused);
+    if (refused === null) setTyped('');
+    return next.length > chosen.length;
+  }
+
+  return (
+    <div className="mb-2.5">
+      <Field
+        label={t('serialEntry')}
+        value={typed}
+        inputMode={item.serialFormat === SerialFormat.Imei ? 'numeric' : undefined}
+        enterKeyHint="done"
+        help={problem ? undefined : t('serialEntryHelp')}
+        error={problem ?? undefined}
+        suffix={
+          <button
+            type="button"
+            aria-label={t('serialScan')}
+            aria-pressed={scanning}
+            className="flex size-9 items-center justify-center text-primary"
+            onClick={() => {
+              setScanning(!scanning);
+            }}
+          >
+            <Icon name="scan" />
+          </button>
+        }
+        onChange={(event) => {
+          setTyped(event.target.value);
+          setProblem(null);
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter') return;
+          event.preventDefault();
+          take(splitList(typed));
+        }}
+        onPaste={(event) => {
+          const pasted = splitList(event.clipboardData.getData('text'));
+          if (pasted.length < 2) return;
+          event.preventDefault();
+          take(pasted);
+        }}
+      />
+      {scanning ? (
+        <div className="mt-2">
+          <SerialScanner onCode={(raw) => take([raw])} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** PYG-03 (Part 33's `o29-ship-balance`): a shipment the balance can't pay the fee for offers Add balance. */
+function ShipRefusal({ error }: { error: unknown }): React.JSX.Element {
+  const { t } = useTranslation('orders');
+  const errorText = useErrorText();
+  const { slug, viewer } = useShell();
+  if (!(error instanceof ApiClientError && error.code === 'quota_exceeded')) {
+    return <Banner tone="bad">{errorText(error)}</Banner>;
+  }
+  return (
+    <Banner
+      tone="bad"
+      action={
+        allows(viewer, [Permission.BalanceManage]) ? (
+          <Link to="/$shop/balance" params={{ shop: slug }} className="font-semibold text-primary">
+            {t('addBalance')}
+          </Link>
+        ) : undefined
+      }
+    >
+      <b>{t('lowBalanceT')}</b>
+      <br />
+      {t('lowBalanceP')}
+    </Banner>
+  );
+}
 
 /**
  * The IMEI of each unit sent (Part 29's `o29-ship-serial`, INV-14): per serial-numbered item, its serials in stock as
@@ -63,6 +182,16 @@ function SerialPicks({
             <p className="mb-2 text-[14px] text-fg-muted">
               {item.productName} · {t('unitsN', { count: units })} · {t('serialsHelp')}
             </p>
+            <SerialEntry
+              item={item}
+              chosen={chosen}
+              units={units}
+              onChosen={(serials) => {
+                const next = new Map(picked);
+                next.set(key, serials);
+                onPick(next);
+              }}
+            />
             <div className="flex flex-wrap gap-2">
               {item.inStock.map((serial) => {
                 const on = chosen.includes(serial);
@@ -111,7 +240,6 @@ export function ShipSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const { showToast } = useShell();
   const couriers = useCouriers();
   const serials = useOrderSerials(order.id);
@@ -163,7 +291,7 @@ export function ShipSheet({
         </Button>
       }
     >
-      {ship.isError ? <Banner tone="bad">{errorText(ship.error)}</Banner> : null}
+      {ship.isError ? <ShipRefusal error={ship.error} /> : null}
       <Field
         label={t('courier')}
         placeholder={t('courierPh')}
@@ -228,7 +356,6 @@ export function HandOverSerialSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const { showToast } = useShell();
   const handOver = useHandOver(order.id);
   const [picked, setPicked] = useState<Map<string, string[]>>(new Map());
@@ -262,7 +389,7 @@ export function HandOverSerialSheet({
       <p className="-mt-1 text-[14px] text-fg-muted">
         {t('handOverSerialHelp', { amount: formatTaka(due) })}
       </p>
-      {handOver.isError ? <Banner tone="bad">{errorText(handOver.error)}</Banner> : null}
+      {handOver.isError ? <ShipRefusal error={handOver.error} /> : null}
       <SerialPicks items={items} picked={picked} onPick={setPicked} />
     </Sheet>
   );

@@ -673,3 +673,35 @@ describeIfDatabase('freshness and caching (CCH-02 to CCH-06, CCH-08, RTE-04)', (
     expect((await version(keyOne)).split('.')[1]).toBe((await version(keyTwo)).split('.')[1]);
   });
 });
+
+describeIfDatabase('how much of a product can be ordered (LND-07, UOM-04)', () => {
+  it('names its unit, and says when it sells whole packs of one stock', async () => {
+    const shop = await openShop(port, texts, 'pub-detail');
+    const key = await keyFor(shop);
+    const size = await platformId(shop, 'Size');
+    const [decant] = await optionIds(shop, size, ['6 ml']);
+    const rice = await create(shop, {
+      name: 'Rice',
+      basePrice: 80,
+      stockUnit: 'kg',
+      variants: [{ optionIds: [], openingStock: 5 }],
+    });
+    const oud = await create(shop, {
+      name: 'Oud',
+      basePrice: 60,
+      stockUnit: 'ml',
+      sharedStock: true,
+      sharedOpeningStock: 200,
+      variantAttributes: [{ attributeId: size, optionIds: [decant] }],
+      variants: [{ optionIds: [decant], packAmount: 6, price: 60 }],
+    });
+    expect((await callApi(`/v1/catalogue/products/${rice.slug}`, key)).body).toMatchObject({
+      stockUnit: 'kg',
+      sharedStock: false,
+    });
+    expect((await callApi(`/v1/catalogue/products/${oud.slug}`, key)).body).toMatchObject({
+      stockUnit: 'ml',
+      sharedStock: true,
+    });
+  });
+});

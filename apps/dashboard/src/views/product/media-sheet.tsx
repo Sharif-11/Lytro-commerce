@@ -17,10 +17,12 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MediaKind, PRODUCT_IMAGES_MAX } from '@lytronix/validators';
+import { readPastOrdersLost } from '@/api/media';
 import { Icon } from '@/components/icon';
+import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { formatDuration } from '@/lib/dates';
@@ -73,7 +75,16 @@ export function MediaSheet({
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+  // MED-09 (Part 33's `sh-media-past`): what each photo taken off in this sitting costs past orders.
+  const [lost, setLost] = useState<ReadonlyMap<string, number>>(new Map());
+  useEffect(() => {
+    if (!open) setLost(new Map());
+  }, [open]);
   const ids = photos.map((photo) => photo.id);
+  const pastOrders = [...lost].reduce(
+    (sum, [id, orders]) => (ids.includes(id) ? sum : sum + orders),
+    0,
+  );
   const product = [...photos, ...(video ? [video] : [])].reduce((sum, item) => sum + item.bytes, 0);
   const room =
     photos.length + uploads.filter((each) => each.kind === MediaKind.Image).length <
@@ -114,6 +125,13 @@ export function MediaSheet({
     >
       <div className="flex flex-col gap-3">
         {storageFull && storage ? <StorageFullBanner storage={storage} /> : null}
+        {pastOrders > 0 ? (
+          <Banner tone="warn">
+            <b>{t('mmPastOrders', { count: pastOrders })}</b>
+            <br />
+            {t('mmPastOrdersP')}
+          </Banner>
+        ) : null}
         <p className="text-[14px] text-fg-muted">{t('mmDragHint', { max: PRODUCT_IMAGES_MAX })}</p>
         <DndContext
           sensors={sensors}
@@ -134,6 +152,9 @@ export function MediaSheet({
                   readOnly={readOnly}
                   onRemove={() => {
                     onRemove(photo.id);
+                    void readPastOrdersLost(photo.id).then((orders) => {
+                      if (orders > 0) setLost((was) => new Map(was).set(photo.id, orders));
+                    });
                   }}
                 />
               ))}

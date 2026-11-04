@@ -127,6 +127,8 @@ export interface PublicProduct {
   maxPrice: string | null;
   stockState: StockState;
   stockUnit: StockUnit;
+  /** INV-24, UOM-04: whole packs only. */
+  sharedStock: boolean;
   condition: ItemCondition;
   primaryCategoryId: string | null;
   categoryIds: string[];

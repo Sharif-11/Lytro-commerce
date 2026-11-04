@@ -5,6 +5,7 @@ import type { DeliveryEstimate, DeliveryZoneView, PublicProduct } from '@/lib/ap
 import { areaCookieValue } from '@/lib/area';
 import { browserCart, CART_OPEN } from '@/lib/cart/cart-store';
 import { type Language, money, Words } from '@/lib/i18n/words';
+import { quantityRule } from '@/lib/product/quantity';
 import { VariantChoice } from '@/lib/product/variant-choice';
 import { Icon } from '../icon';
 import {
@@ -48,7 +49,9 @@ export function ProductView(props: ProductViewProps) {
     [product.options, product.variants],
   );
   const [selection, setSelection] = useState(() => choice.initial(props.linkedVariantId));
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(
+    () => quantityRule(product.stockUnit, product.sharedStock).first,
+  );
   const [areaId, setAreaId] = useState(props.areaId);
   const [sheet, setSheet] = useState<OpenSheet>(null);
   const [toast, setToast] = useState(false);
@@ -92,6 +95,8 @@ export function ProductView(props: ProductViewProps) {
       price: variant.price,
       image: product.images[0]?.urls.thumbnail ?? null,
       quantity,
+      stockUnit: product.stockUnit,
+      sharedStock: product.sharedStock,
       ...picks.lineFields,
     });
   };
@@ -148,7 +153,15 @@ export function ProductView(props: ProductViewProps) {
             </div>
           ) : null}
           <ComboInside product={product} picks={picks} words={words} />
-          {soldOut ? null : <Quantity value={quantity} words={words} onChange={setQuantity} />}
+          {soldOut ? null : (
+            <Quantity
+              value={quantity}
+              unit={product.stockUnit}
+              sharedStock={product.sharedStock}
+              words={words}
+              onChange={setQuantity}
+            />
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <DeliveryLine
               estimate={estimate}

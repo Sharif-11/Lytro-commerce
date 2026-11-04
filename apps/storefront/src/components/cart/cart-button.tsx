@@ -6,6 +6,7 @@ import { PaymentPolicy } from '@lytronix/validators/enums';
 import { checkCart, type CheckedCart, type CheckedLine, totalWith } from '@/lib/cart/cart-check';
 import { browserCart, CART_OPEN, type CartLine, estimateItemOf } from '@/lib/cart/cart-store';
 import { type Language, money, Words } from '@/lib/i18n/words';
+import { countedUnits } from '@/lib/product/quantity';
 import type { DeliveryEstimate, EstimateItem } from '@/lib/api/storefront-api';
 import { Icon } from '../icon';
 import { InShell } from '../in-shell';
@@ -44,7 +45,8 @@ export function CartButton(props: CartButtonProps) {
   const backToCart = useCallback(() => {
     setOpen('cart');
   }, []);
-  const count = lines?.reduce((sum, line) => sum + line.quantity, 0) ?? 0;
+  const count =
+    lines?.reduce((sum, line) => sum + countedUnits(line.stockUnit, line.quantity), 0) ?? 0;
   const items = lines === null || lines.length === 0 ? null : lines.map(estimateItemOf);
 
   return (
@@ -249,6 +251,9 @@ function CartLineRow({ checked, words }: { checked: CheckedLine; words: Words })
         <div className="row">
           <Stepper
             value={line.quantity}
+            unit={line.stockUnit}
+            sharedStock={line.sharedStock ?? false}
+            words={words}
             onChange={(next) => {
               browserCart().setQuantity(key, next);
             }}

@@ -34,6 +34,8 @@ export interface OrderItemFixture {
   captured?: { attributeId: string; name: Words; value: string }[];
   /** A serial-numbered item's serials (INV-14): held to send, and sent. */
   serials?: { inStock: string[]; sent: string[] };
+  /** ORD-46, ORD-47: the photo it kept, which a test can make fail to load. */
+  thumbnail?: string;
 }
 
 export interface OrderFixture {
@@ -81,6 +83,8 @@ export interface OrderFixture {
   notes?: string | null;
   /** The month's limit the next ship passes (QTA-03), said in its reply. */
   limitOnShip?: number | null;
+  /** PYG-03: the shop's balance can't pay this order's fee, so shipping it is refused. */
+  balanceShort?: boolean;
   /** Said once, in the reply of the ship that passed it. */
   limitShown?: boolean;
 }
@@ -554,7 +558,7 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
         name: say(each.name, language) ?? '',
         value: each.value,
       })),
-      thumbnail: null,
+      thumbnail: item.thumbnail ? { mediaId: 'm-kept', url: item.thumbnail } : null,
       stockUnit: 'piece',
       listPrice: money(item.unitPrice),
       unitPrice: money(item.unitPrice),
@@ -681,6 +685,7 @@ export function ordersAnswer(
     const variant = url.searchParams.get('variantId');
     const from = url.searchParams.get('dateFrom');
     const to = url.searchParams.get('dateTo');
+    const source = url.searchParams.get('source');
     const limit = Number(url.searchParams.get('limit') ?? '20');
     const dayOf = (iso: string) =>
       new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka' }).format(new Date(iso));
@@ -690,6 +695,7 @@ export function ordersAnswer(
       .filter((order) => variant === null || (order.holds ?? []).includes(variant))
       .filter((order) => from === null || dayOf(order.createdAt) >= from)
       .filter((order) => to === null || dayOf(order.createdAt) <= to)
+      .filter((order) => source === null || order.source === source)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return {
       data: {
@@ -832,6 +838,11 @@ export function ordersAnswer(
   }
   if (action === 'ship') {
     if (!sendSerials()) return shortOfSerials;
+    if (order.balanceShort) {
+      return {
+        refused: { status: 429, code: 'quota_exceeded', message: 'Insufficient balance.' },
+      };
+    }
     order.courier = {
       name: String(body?.courierName),
       code:

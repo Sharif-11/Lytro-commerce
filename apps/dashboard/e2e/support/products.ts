@@ -91,6 +91,8 @@ export interface MediaFixture {
 
 /** The shop's products where they differ from the prototype's, its product limit (null for none), and its tree. */
 export interface ProductsFixture {
+  /** MED-09: how many past orders show each photo. */
+  pastOrders?: Record<string, number>;
   products: ProductFixture[];
   /** Slice 4.8c: what the combo editor's Add an item finds, and the combos a product is inside, by its id (PRD-13). */
   picker?: PickerProduct[];
@@ -526,7 +528,7 @@ export function mediaDetail(fixture: ProductsFixture, id: string): unknown {
       sizeCharts: 0,
       logo: false,
       brand: item.brand ?? false,
-      pastOrders: 0,
+      pastOrders: fixture.pastOrders?.[id] ?? 0,
     },
   };
 }

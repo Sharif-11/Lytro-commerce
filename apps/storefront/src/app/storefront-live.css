@@ -162,3 +162,20 @@ button.vb.gone {
   line-height: 12px;
   color: var(--subtle);
 }
+
+/* LND-07: a measured product's number can be typed, as drawn (`e48-product-kg`). */
+.qty.measured input {
+  width: 48px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  text-align: right;
+  padding: 0;
+  outline-offset: 2px;
+}
+.qty.measured .u {
+  min-width: 0;
+  padding: 0 8px 0 4px;
+  font-weight: 600;
+}

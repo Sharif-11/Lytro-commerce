@@ -6,9 +6,10 @@ import {
   ItemCondition,
   PaymentPolicy,
   StockState,
+  StockUnit,
   type UnitKind,
 } from '@lytronix/validators/enums';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import type {
   DeliveryEstimate,
   DeliveryZoneView,
@@ -17,6 +18,7 @@ import type {
   ProductVariant,
   PublicProduct,
 } from '@/lib/api/storefront-api';
+import { quantityRule, stepped, typedQuantity } from '@/lib/product/quantity';
 import type { Selection, VariantChoice } from '@/lib/product/variant-choice';
 import { money, plainNumber, type Words } from '@/lib/i18n/words';
 import { Icon } from '../icon';
@@ -168,15 +170,30 @@ export function OptionRows({
   );
 }
 
-const QUANTITY_LIMIT = 99;
+const UNIT_WORD = {
+  [StockUnit.Kg]: 'unit_kg',
+  [StockUnit.G]: 'unit_g',
+  [StockUnit.Liter]: 'unit_l',
+  [StockUnit.Ml]: 'unit_ml',
+} as const;
+
+function unitName(unit: StockUnit | undefined, words: Words): string {
+  return unit === undefined || !(unit in UNIT_WORD)
+    ? ''
+    : words.t(UNIT_WORD[unit as keyof typeof UNIT_WORD]);
+}
 
 /** The quantity: whole numbers from one. */
 export function Quantity({
   value,
+  unit,
+  sharedStock = false,
   words,
   onChange,
 }: {
   value: number;
+  unit?: StockUnit;
+  sharedStock?: boolean;
   words: Words;
   onChange: (next: number) => void;
 }) {
@@ -185,13 +202,78 @@ export function Quantity({
       <div className="lb">
         <span>{words.t('qty')}</span>
       </div>
-      <Stepper value={value} onChange={onChange} />
+      <Stepper
+        value={value}
+        unit={unit}
+        sharedStock={sharedStock}
+        words={words}
+        onChange={onChange}
+      />
     </div>
   );
 }
 
-/** The quantity stepper itself, as the product page and each cart line draw it. */
-export function Stepper({ value, onChange }: { value: number; onChange: (next: number) => void }) {
+/**
+ * The quantity stepper itself, as the product page and each cart line draw it; a measured product's number can be typed,
+ * and shows its unit (LND-07, UOM-04).
+ */
+export function Stepper({
+  value,
+  unit,
+  sharedStock = false,
+  words,
+  onChange,
+}: {
+  value: number;
+  unit?: StockUnit;
+  sharedStock?: boolean;
+  words: Words;
+  onChange: (next: number) => void;
+}) {
+  const rule = quantityRule(unit, sharedStock);
+  const [typed, setTyped] = useState<string | null>(null);
+  if (rule.measured) {
+    return (
+      <span className="qty measured">
+        <button
+          type="button"
+          aria-label="−"
+          disabled={value <= rule.step}
+          onClick={() => {
+            setTyped(null);
+            onChange(stepped(value, -rule.step, rule));
+          }}
+        >
+          <Icon name="minus" />
+        </button>
+        <input
+          inputMode="decimal"
+          aria-label={words.t('qty')}
+          value={typed ?? String(value)}
+          onChange={(event) => {
+            setTyped(event.target.value);
+            const next = typedQuantity(event.target.value, rule);
+            if (next !== null) onChange(next);
+          }}
+          onBlur={() => {
+            setTyped(null);
+          }}
+        />
+        <span className="u">{unitName(unit, words)}</span>
+        <button
+          type="button"
+          aria-label="+"
+          disabled={value >= rule.limit}
+          onClick={() => {
+            setTyped(null);
+            onChange(stepped(value, rule.step, rule));
+          }}
+        >
+          <Icon name="plus" />
+        </button>
+      </span>
+    );
+  }
   return (
     <span className="qty">
       <button
@@ -208,9 +290,9 @@ export function Stepper({ value, onChange }: { value: number; onChange: (next: n
       <button
         type="button"
         aria-label="+"
-        disabled={value >= QUANTITY_LIMIT}
+        disabled={value >= rule.limit}
         onClick={() => {
-          onChange(Math.min(QUANTITY_LIMIT, value + 1));
+          onChange(Math.min(rule.limit, value + 1));
         }}
       >
         <Icon name="plus" />

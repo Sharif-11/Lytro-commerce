@@ -551,6 +551,29 @@ test('Print label: 3 × 3 with the items, 2 × 3 without, the size kept for next
   );
 });
 
+test("a shipped order's label names the merchant, courier, tracking code and weight (ORD-19)", async ({
+  page,
+}) => {
+  await open(
+    page,
+    '/orders/o-47',
+    day((orders) => {
+      const sent = order(orders, 'o-47');
+      sent.status = 'shipped';
+      sent.courier = { name: 'Pathao', code: 'PTH-88213', at: sent.createdAt };
+      sent.items = [{ name: ['শাল', 'Shawl'], quantity: 2, unitPrice: 900, weightKg: 0.75 }];
+    }),
+  );
+  await fromMenu(page, 'Print label');
+  const print = sheet(page, 'Print label');
+  await expect(print).toContainText('Megh Fashion');
+  await expect(print).toContainText('#261031-0047');
+  await expect(print).toContainText('Pathao');
+  await expect(print).toContainText('PTH-88213');
+  await expect(print).toContainText('Weight 1.5 kg');
+  await expect(print).toContainText('COD');
+});
+
 test("orders picked in the list print their labels together, the list's only bulk action", async ({
   page,
 }) => {
@@ -599,4 +622,194 @@ test('a counter order with an IMEI is handed over with the serial of each unit',
     { serials: [{ lineId: 'o-45-line-0', serials: [IMEIS[1]] }] },
   ]);
   await expect(page.getByText('Delivered · ৳650 Cash')).toBeVisible();
+});
+
+test("a shipment the balance can't pay for offers Add balance, and changes nothing (PYG-03)", async ({
+  page,
+}) => {
+  await open(
+    page,
+    '/orders/o-44',
+    day((orders) => {
+      order(orders, 'o-44').balanceShort = true;
+    }),
+  );
+  await main(page).getByRole('button', { name: 'Mark shipped' }).click();
+  const ship = sheet(page, 'Mark shipped');
+  await ship.getByLabel('Courier').fill('Pathao');
+  await ship.getByLabel('Tracking code').fill('PTH-1');
+  await ship.getByRole('button', { name: 'Mark shipped' }).click();
+  await expect(ship.getByRole('alert')).toContainText("The balance can't pay this order's fee");
+  await expect(ship.getByRole('alert')).toContainText('Nothing changed on the order.');
+  const add = ship.getByRole('link', { name: 'Add balance' });
+  await expect(add).toHaveAttribute('href', `/${SLUG}/balance`);
+  await add.click();
+  await expect(page).toHaveURL(new RegExp(`/${SLUG}/balance$`));
+});
+
+test('staff who can not top up are told, with no Add balance to fail at (PYG-03)', async ({
+  page,
+}) => {
+  await open(page, '/orders/o-44', {
+    ...day((orders) => {
+      order(orders, 'o-44').balanceShort = true;
+    }),
+    isOwner: false,
+    permissions: ['orders:read', 'orders:manage'],
+  });
+  await main(page).getByRole('button', { name: 'Mark shipped' }).click();
+  const ship = sheet(page, 'Mark shipped');
+  await ship.getByLabel('Courier').fill('Pathao');
+  await ship.getByLabel('Tracking code').fill('PTH-1');
+  await ship.getByRole('button', { name: 'Mark shipped' }).click();
+  await expect(ship.getByRole('alert')).toContainText("The balance can't pay this order's fee");
+  await expect(ship.getByRole('link', { name: 'Add balance' })).toHaveCount(0);
+});
+
+test('serials at shipping are typed, pasted or scanned, and a wrong one is named (INV-23)', async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (codes: string[]) => {
+      const queue = [...codes];
+      Object.defineProperty(navigator, 'mediaDevices', {
+        configurable: true,
+        value: {
+          getUserMedia: () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 320;
+            canvas.height = 240;
+            canvas.getContext('2d')?.fillRect(0, 0, 320, 240);
+            return Promise.resolve(canvas.captureStream());
+          },
+        },
+      });
+      Object.defineProperty(window, 'BarcodeDetector', {
+        configurable: true,
+        value: class {
+          static getSupportedFormats(): Promise<string[]> {
+            return Promise.resolve(['code_128', 'qr_code']);
+          }
+          detect(): Promise<{ rawValue: string }[]> {
+            const next = queue.shift();
+            return Promise.resolve(next ? [{ rawValue: next }] : []);
+          }
+        },
+      });
+    },
+    [IMEIS[1]],
+  );
+  const log = await open(
+    page,
+    '/orders/o-44',
+    day((orders) => {
+      const confirmed = order(orders, 'o-44');
+      confirmed.items = [
+        {
+          name: ['স্মার্ট ওয়াচ', 'Smart watch'],
+          quantity: 3,
+          unitPrice: 1890,
+          serials: { inStock: [...IMEIS], sent: [] },
+        },
+      ];
+    }),
+  );
+  await main(page).getByRole('button', { name: 'Mark shipped' }).click();
+  const ship = sheet(page, 'Mark shipped');
+  await ship.getByLabel('Courier').fill('Pathao');
+  await ship.getByLabel('Tracking code').fill('PTH-88213');
+  const entry = ship.getByLabel('Scan, paste or type');
+
+  // Typed, as a USB scanner types: a number not in stock, a wrong check digit, then a right one.
+  await entry.fill('356938035643833');
+  await entry.press('Enter');
+  await expect(ship.getByText('356938035643833 is not in stock for this item')).toBeVisible();
+  await expect(ship.getByText('0 of 3 picked')).toBeVisible();
+  await entry.fill('356938035643810');
+  await entry.press('Enter');
+  await expect(ship.getByText(/356938035643810: /)).toBeVisible();
+  await expect(ship.getByText('0 of 3 picked')).toBeVisible();
+  await entry.fill(IMEIS[0]);
+  await entry.press('Enter');
+  await expect(ship.getByText('1 of 3 picked')).toBeVisible();
+  await expect(entry).toHaveValue('');
+
+  // The same one again is flagged and doesn't count twice.
+  await entry.fill(IMEIS[0]);
+  await entry.press('Enter');
+  await expect(ship.getByText('1 of 3 picked')).toBeVisible();
+
+  // By the camera.
+  await entry.fill('');
+  await ship.getByRole('button', { name: 'Scan with the camera' }).click();
+  await expect(ship.getByText('2 of 3 picked')).toBeVisible();
+  await ship.getByRole('button', { name: 'Scan with the camera' }).click();
+
+  // A pasted list: the last unit, and one more than the order has.
+  await entry.evaluate((input, pasted) => {
+    const clipboardData = new DataTransfer();
+    clipboardData.setData('text', pasted);
+    input.dispatchEvent(
+      new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }),
+    );
+  }, `${IMEIS[2]}\n356938035643841`);
+  await expect(ship.getByText('3 of 3 picked')).toBeVisible();
+  await expect(ship.getByText('All 3 units are picked')).toBeVisible();
+
+  await ship.getByRole('button', { name: 'Mark shipped' }).click();
+  await expect(ship).toBeHidden();
+  const body = sent(log, 'POST', '/orders/o-44/ship')[0] as { serials: { serials: string[] }[] };
+  expect([...(body.serials[0]?.serials ?? [])].sort()).toEqual([...IMEIS].sort());
+});
+
+test('a photo that has gone shows the placeholder, not a broken image (ORD-47)', async ({
+  page,
+}) => {
+  await page.route('**/gone.webp', (route) => route.fulfill({ status: 404 }));
+  await open(
+    page,
+    '/orders/o-44',
+    day((orders) => {
+      const placed = order(orders, 'o-44');
+      placed.items = [
+        {
+          name: ['শাল', 'Shawl'],
+          quantity: 1,
+          unitPrice: 900,
+          thumbnail: '/gone.webp',
+        },
+      ];
+    }),
+  );
+  const item = main(page).getByText('Shawl').first();
+  await expect(item).toBeVisible();
+  await expect(main(page).locator('img[src$="gone.webp"]')).toHaveCount(0);
+});
+
+test('the list shows only the orders from one place, and takes the filter off (LND-09)', async ({
+  page,
+}) => {
+  const log = await open(page, '/orders?tab=all');
+  await main(page).getByRole('button', { name: 'Dates' }).click();
+  const dates = sheet(page, 'Orders placed');
+  await expect(dates.getByText('Placed from')).toBeVisible();
+  await dates.getByRole('button', { name: 'Landing page' }).click();
+  await dates.getByRole('button', { name: 'Show orders' }).click();
+  await expect(page).toHaveURL(/source=landing_page/);
+  const asked = () =>
+    log.calls
+      .filter((call) => call.method === 'GET' && call.path === '/orders')
+      .map((call) => call.query);
+  await expect
+    .poll(() => asked().some((query) => query.includes('source=landing_page')))
+    .toBe(true);
+  const chip = main(page).getByRole('button', { name: /^Landing page\. Show every source/ });
+  await expect(chip).toBeVisible();
+  await expect(main(page).getByRole('button', { name: 'Dates' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await chip.click();
+  await expect(page).not.toHaveURL(/source=/);
+  await expect(chip).toHaveCount(0);
 });
