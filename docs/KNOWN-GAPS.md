@@ -2026,5 +2026,5 @@ The Phase 4 close-out check found that deleting a customer cleared the number fr
 not from `tenant.payments.sender_number`, and the order page still returned it. The app's database role could not update the
 column, and `tenant.guard_payment()` refused any change to a voided or refunded payment. Migration 0102 lets the app empty the
 number, and only empty it; a delete now does so on the customer's orders and on any payment or session from their number,
-keeping each transaction ID and amount. A customer deleted before the fix keeps the number on their payments; nothing live
-needed cleaning when this was written.
+keeping each transaction ID and amount. A customer deleted before the fix keeps the number on their payments unless it is
+cleaned by hand; their orders carry `customer_erased_at`, which finds them.
