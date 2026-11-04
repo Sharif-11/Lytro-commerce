@@ -482,6 +482,14 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
 - **The sign-up phone** (Slice 5.1's read): the step after a Google, Facebook or email sign-up that verifies a phone,
   sketched with the rest, then server and screen together (AUTH-28 amended).
 - **Builds** them, pixel perfect to the approved sketch.
+- **Part 5's read, the console, agreed 2026-11-04** (all the recommended picks). It runs beside parts 2 to 4, in its own
+  session. **All of it:** the sketch's 59 screens and the Phase 5 screens, with add-ons, shop types, attributes and option
+  sets last, so the owner can stop before them. **The sign-in limit is built now:** `/auth/operator/signin`, `enroll` and
+  `verify` had no limit, so AUTH-14's rule applies and ADM-01 is amended. **PRs by area:** the sketch
+  (`OPERATOR-CONSOLE-DESIGN.md` v3); the server's missing reads and the limit (§15 there); frame, sign-in and account; Today
+  and the queue; shops; the Phase 5 screens; pricing and platform; catalogue. **Tests as the dashboard's:** Playwright
+  against a mocked API on phone and desktop, in both languages, in CI on every PR that reaches the console. Phase 6's console
+  screens wait for its routes.
 - **The read, agreed 2026-11-04.** Five parts, shop setup first, each with a short read, a sketch and a build: (1) the sign-up
   phone and Payment methods; (2) the payment page, and checkout's payment step and return; (3) Payments to verify, after
   which a shop can take payments checked by hand; (4) listener phones, the app's download page and setup guide; (5) the
