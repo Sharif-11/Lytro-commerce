@@ -18,6 +18,8 @@ export interface Journey {
   hasShop?: boolean;
   /** AUTH-28 (amended 2026-10-31): signed up by Google, Facebook or email, with no phone yet. */
   noPhone?: 'google' | 'facebook' | 'email';
+  /** The account a sign-in by code reaches already has a shop ("Sign in with this number"). */
+  otherAccountHasShop?: boolean;
   /** LIF-21: an earlier shop of this account was deleted. */
   hasDeletedShop?: boolean;
   /** /me's shops once signed in with a shop; the prototype's own one by default. */
@@ -133,6 +135,7 @@ export async function mockOnboarding(page: Page, journey: Journey = {}): Promise
     signedIn = true;
     // A sign-in by code is by phone, so that account has one, whichever account it was before.
     hasPhone = true;
+    if (journey.otherAccountHasShop) hasShop = true;
     return { next: hasShop ? 'dashboard' : 'create-shop', tenantId: null, csrfToken: 'csrf-e2e' };
   };
   const issued = { expiresInSeconds: 300, resendAfterSeconds: 60 };

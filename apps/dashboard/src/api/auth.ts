@@ -10,7 +10,6 @@ import {
   verifyForgotPasswordSchema,
   verifySigninCodeSchema,
 } from '@lytronix/validators';
-import { ME_QUERY_KEY } from '@/api/me';
 import { attachReturn } from '@/session/attach-return';
 import { tenantSession } from '@/session/tenant-session';
 import { navigateForNextStep } from '@/session/next-step';
@@ -23,6 +22,18 @@ import type {
   SignedInBody,
   StaffSignedInBody,
 } from '@/types/auth';
+
+/**
+ * What every sign-in does first. It may change account (the phone step's "Sign in with this number", or its way back to
+ * sign-in), and the account before must not answer for this one: a shop's owner would land on Create shop.
+ */
+function useOpenSession(): (csrfToken: string) => void {
+  const queryClient = useQueryClient();
+  return (csrfToken) => {
+    tenantSession.setSignedIn(csrfToken);
+    queryClient.removeQueries();
+  };
+}
 
 // --- OAuth (AUTH-24) ---
 
@@ -48,6 +59,7 @@ export function useStartOauth() {
     behaviour. AUTH-27's recovery note is remembered for the password step. */
 export function useOauthCallback() {
   const navigate = useNavigate();
+  const openSession = useOpenSession();
   return useMutation({
     mutationFn: ({ provider, code, state }: { provider: string; code: string; state: string }) =>
       tenantSession.client.get<OauthSignedIn | OauthAttached>(
@@ -68,7 +80,7 @@ export function useOauthCallback() {
         }
         return;
       }
-      tenantSession.setSignedIn(data.csrfToken);
+      openSession(data.csrfToken);
       if (data.recovery === 'facebook-only') {
         try {
           sessionStorage.setItem(RECOVERY_NOTE_KEY, data.recovery);
@@ -99,7 +111,7 @@ export function useRequestSigninCode() {
 
 export function useVerifyCode() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const openSession = useOpenSession();
   return useMutation({
     mutationFn: ({ phone, code }: { phone: string; code: string }) =>
       tenantSession.client.post<SignedInBody>(
@@ -107,9 +119,7 @@ export function useVerifyCode() {
         verifySigninCodeSchema.parse({ phone, code }),
       ),
     onSuccess: (data) => {
-      tenantSession.setSignedIn(data.csrfToken);
-      // "Sign in with this number" changes account: the one before must not answer for this one.
-      queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+      openSession(data.csrfToken);
       navigateForNextStep(navigate, data.next);
     },
   });
@@ -117,6 +127,7 @@ export function useVerifyCode() {
 
 export function useSignInWithPassword() {
   const navigate = useNavigate();
+  const openSession = useOpenSession();
   return useMutation({
     mutationFn: ({ phone, password }: { phone: string; password: string }) =>
       tenantSession.client.post<SignedInBody>(
@@ -124,7 +135,7 @@ export function useSignInWithPassword() {
         passwordSigninSchema.parse({ phone, password }),
       ),
     onSuccess: (data) => {
-      tenantSession.setSignedIn(data.csrfToken);
+      openSession(data.csrfToken);
       navigateForNextStep(navigate, data.next);
     },
   });
@@ -202,6 +213,7 @@ export function useResendPasswordReset() {
 
 export function useVerifyForgotPassword() {
   const navigate = useNavigate();
+  const openSession = useOpenSession();
   return useMutation({
     mutationFn: ({ phone, code }: { phone: string; code: string }) =>
       tenantSession.client.post<SignedInBody>(
@@ -209,7 +221,7 @@ export function useVerifyForgotPassword() {
         verifyForgotPasswordSchema.parse({ phone, code }),
       ),
     onSuccess: (data) => {
-      tenantSession.setSignedIn(data.csrfToken);
+      openSession(data.csrfToken);
       // Always a must_set_password session (AUTH-19): the one destination, required.
       void navigate({ to: '/set-password', search: { required: true } });
     },
@@ -220,6 +232,7 @@ export function useVerifyForgotPassword() {
 
 export function useStaffSignIn() {
   const navigate = useNavigate();
+  const openSession = useOpenSession();
   return useMutation({
     mutationFn: ({ phone, password }: { phone: string; password: string }) =>
       tenantSession.client.post<StaffSignedInBody>(
@@ -227,7 +240,7 @@ export function useStaffSignIn() {
         passwordSigninSchema.parse({ phone, password }),
       ),
     onSuccess: (data) => {
-      tenantSession.setSignedIn(data.csrfToken);
+      openSession(data.csrfToken);
       if (data.next === 'set-password') {
         void navigate({ to: '/staff-set-password' });
       } else {

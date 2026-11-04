@@ -106,6 +106,24 @@ test('a number on another account is refused after its code, and signs in with t
   expect(log.calls.filter((call) => call.path === '/auth/phone/code')).toHaveLength(0);
 });
 
+test('signing in with a number whose account has a shop opens that shop, not Create shop', async ({
+  page,
+}) => {
+  await mockOnboarding(page, {
+    language: 'en',
+    signedIn: true,
+    noPhone: 'google',
+    otherAccountHasShop: true,
+  });
+  await page.goto('/verify-phone');
+  await page.getByLabel('Phone number').fill('1711234567');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await typeCode(page, '409409');
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await page.getByRole('button', { name: 'Sign in with this number' }).click();
+  await expect(page).toHaveURL(`/${SLUG}`);
+});
+
 test('Use another number starts the step again, and an account with a phone never sees it', async ({
   page,
 }) => {
