@@ -22,6 +22,8 @@ import {
   usedTransactionIds,
   type SelectPlanPayment,
   type SelectUsedTransactionId,
+  lytroListenerMessages,
+  tenants,
 } from '../../schema';
 import {
   BillingPaymentState,
@@ -29,6 +31,8 @@ import {
   type PaymentCancelReason,
   type PaymentReviewReason,
   type PlanPaymentKind,
+  ListenerMessageStatus,
+  type PaymentMethod,
 } from '@lytronix/validators';
 import type { Executor } from '../../transactions';
 
@@ -96,6 +100,16 @@ function stateCondition(state: BillingPaymentState): SQL | undefined {
 const decidedAt = sql`coalesce(${planPayments.verifiedAt}, ${planPayments.quotedAt} + interval '24 hours')`;
 
 // D2-1: control.plan_payments -- the pending -> needs_review/verified/rejected/expired/cancelled state machine.
+/**
+ * ADM-06: a payment as the operator's queue lists it, with its shop. `wallet` is the wallet a receipt says it arrived
+ * on: a seller names no wallet when paying Lytro, so it stays null until one of Lytro's phones has seen the money.
+ */
+export type QueuedPlanPaymentRow = SelectPlanPayment & {
+  shopName: string;
+  shopSlug: string;
+  wallet: PaymentMethod | null;
+};
+
 export class PlanPaymentsRepository {
   async insert(tx: Executor, values: NewPlanPayment): Promise<SelectPlanPayment> {
     const [row] = await tx.insert(planPayments).values(values).returning();
@@ -115,13 +129,33 @@ export class PlanPaymentsRepository {
   }
 
   // The operator queue: submitted (transaction ID attached) payments still awaiting a decision.
-  async listPending(tx: Executor, kind?: PlanPaymentKind): Promise<SelectPlanPayment[]> {
+  async listPending(tx: Executor, kind?: PlanPaymentKind): Promise<QueuedPlanPaymentRow[]> {
     const base = and(
       inArray(planPayments.status, [PlanPaymentStatus.Pending, PlanPaymentStatus.NeedsReview]),
       isNotNull(planPayments.transactionId),
     );
     const conditions = kind ? and(base, eq(planPayments.kind, kind)) : base;
-    return tx.select().from(planPayments).where(conditions).orderBy(desc(planPayments.quotedAt));
+    return tx
+      .select({
+        ...getTableColumns(planPayments),
+        shopName: tenants.shopName,
+        shopSlug: tenants.slug,
+        wallet: lytroListenerMessages.method,
+      })
+      .from(planPayments)
+      .innerJoin(tenants, eq(tenants.id, planPayments.tenantId))
+      .leftJoin(
+        lytroListenerMessages,
+        and(
+          eq(lytroListenerMessages.planPaymentId, planPayments.id),
+          inArray(lytroListenerMessages.status, [
+            ListenerMessageStatus.Matched,
+            ListenerMessageStatus.NeedsReview,
+          ]),
+        ),
+      )
+      .where(conditions)
+      .orderBy(desc(planPayments.quotedAt));
   }
 
   /**

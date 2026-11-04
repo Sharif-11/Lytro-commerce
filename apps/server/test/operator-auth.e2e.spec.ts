@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { cookieFrom, type HttpResult, postJson } from './support/http';
+import { cookieFrom, getJson, type HttpResult, postJson } from './support/http';
 
 // Operator sign-in, TOTP enrolment and backup codes, over real HTTP and the real database (ADM-01, SEC-14,
 // D8). Runs only when DATABASE_TEST_ADMIN_URL is set, which CI always does.
@@ -344,4 +344,198 @@ describeIfDatabase('operator verification and session (ADM-01, SEC-14)', () => {
     },
     BCRYPT_TIMEOUT_MS,
   );
+});
+
+describeIfDatabase("the sign-in limit (ADM-01, on AUTH-14's rule)", () => {
+  const failuresOf = async (email: string): Promise<number> => {
+    const counted = await admin.query<{ total: string }>(
+      `SELECT count(*) AS total FROM control.sign_in_failures f
+       JOIN control.operator_accounts a ON a.id = f.operator_id WHERE a.email = $1`,
+      [email],
+    );
+    return Number(counted.rows[0]?.total ?? 0);
+  };
+  const LIMIT_TIMEOUT_MS = 90_000;
+
+  it(
+    'counts wrong passwords and wrong codes together, says the tries left at the code, then refuses even the right ones',
+    async () => {
+      const email = freshEmail();
+      await createOperator(email);
+      const { secret } = await enroll(email);
+      const wrongCode = (await generate({ secret })) === '000000' ? '000001' : '000000';
+
+      // Two wrong passwords say nothing of how many are left.
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const wrong = await post('/auth/operator/signin', { email, password: 'wrong-password1' });
+        expect(wrong.status).toBe(401);
+        expect(JSON.stringify(wrong.body)).not.toContain('attemptsLeft');
+      }
+      // Three wrong codes, at the step where the password is proven, count down from what is left.
+      for (const left of [2, 1, 0]) {
+        const wrong = await post('/auth/operator/verify', {
+          email,
+          password: PASSWORD,
+          code: wrongCode,
+        });
+        expect(wrong.status).toBe(401);
+        expect(wrong.body).toMatchObject({
+          error: { code: 'unauthenticated', details: { attemptsLeft: left } },
+        });
+      }
+      expect(await failuresOf(email)).toBe(5);
+
+      const lockedPassword = await post('/auth/operator/signin', { email, password: PASSWORD });
+      expect(lockedPassword.status).toBe(429);
+      expect(lockedPassword.body).toMatchObject({ error: { code: 'rate_limited' } });
+      const lockedCode = await post('/auth/operator/verify', {
+        email,
+        password: PASSWORD,
+        code: await generate({ secret }),
+      });
+      expect(lockedCode.status).toBe(429);
+
+      // Past the fifteen minutes the right code signs in again.
+      await admin.query(
+        `UPDATE control.sign_in_failures SET created_at = now() - interval '16 minutes'
+         WHERE operator_id = (SELECT id FROM control.operator_accounts WHERE email = $1)`,
+        [email],
+      );
+      const back = await post('/auth/operator/verify', {
+        email,
+        password: PASSWORD,
+        code: await generate({ secret }),
+      });
+      expect(back.status).toBe(200);
+    },
+    LIMIT_TIMEOUT_MS,
+  );
+
+  it(
+    'counts a wrong code at enrolment, and a wrong backup code',
+    async () => {
+      const email = freshEmail();
+      await createOperator(email);
+      const signedIn = await post('/auth/operator/signin', { email, password: PASSWORD });
+      expect(signedIn.status).toBe(200);
+      const enrol = await post('/auth/operator/enroll', {
+        email,
+        password: PASSWORD,
+        code: '000000',
+      });
+      expect(enrol.status).toBe(400);
+      expect(await failuresOf(email)).toBe(1);
+
+      const { secret } = signedIn.body as { secret: string };
+      const enrolled = await post('/auth/operator/enroll', {
+        email,
+        password: PASSWORD,
+        code: await generate({ secret }),
+      });
+      expect(enrolled.status).toBe(200);
+      const backup = await post('/auth/operator/verify', {
+        email,
+        password: PASSWORD,
+        code: 'not-a-real-backup',
+      });
+      expect(backup.status).toBe(401);
+      expect(backup.body).toMatchObject({ error: { details: { attemptsLeft: 3 } } });
+    },
+    LIMIT_TIMEOUT_MS,
+  );
+
+  it(
+    'counts a wrong password or code when regenerating backup codes, and locks that too',
+    async () => {
+      const email = freshEmail();
+      await createOperator(email);
+      const session = await enroll(email);
+      const headers = { cookie: session.cookie, 'x-csrf-token': session.csrfToken };
+      const route = '/auth/operator/backup-codes/regenerate';
+      const wrongPassword = await post(
+        route,
+        { password: 'wrong-password1', code: await generate({ secret: session.secret }) },
+        headers,
+      );
+      expect(wrongPassword.status).toBe(401);
+      const wrongCode = await post(
+        route,
+        { password: PASSWORD, code: 'not-a-real-backup' },
+        headers,
+      );
+      expect(wrongCode.status).toBe(401);
+      expect(wrongCode.body).toMatchObject({ error: { details: { attemptsLeft: 3 } } });
+      await admin.query(
+        `INSERT INTO control.sign_in_failures (operator_id)
+         SELECT id FROM control.operator_accounts, generate_series(1, 3) WHERE email = $1`,
+        [email],
+      );
+      const locked = await post(
+        route,
+        { password: PASSWORD, code: await generate({ secret: session.secret }) },
+        headers,
+      );
+      expect(locked.status).toBe(429);
+    },
+    LIMIT_TIMEOUT_MS,
+  );
+
+  it(
+    "locks one operator only, and a seller's failures never count",
+    async () => {
+      const locked = freshEmail();
+      const other = freshEmail();
+      await createOperator(locked);
+      await createOperator(other);
+      await admin.query(
+        `INSERT INTO control.sign_in_failures (operator_id)
+         SELECT id FROM control.operator_accounts, generate_series(1, 5) WHERE email = $1`,
+        [locked],
+      );
+      expect(
+        (await post('/auth/operator/signin', { email: locked, password: PASSWORD })).status,
+      ).toBe(429);
+      expect(
+        (await post('/auth/operator/signin', { email: other, password: PASSWORD })).status,
+      ).toBe(200);
+    },
+    LIMIT_TIMEOUT_MS,
+  );
+});
+
+describeIfDatabase('who is signed in (GET /auth/operator/me)', () => {
+  it(
+    'says the email, the unused backup codes and when this session began',
+    async () => {
+      const email = freshEmail();
+      await createOperator(email);
+      const session = await enroll(email);
+      const headers = {
+        cookie: session.cookie,
+        'x-csrf-token': session.csrfToken,
+        'user-agent': 'Console test',
+      };
+      const me = await getJson(port, '/auth/operator/me', headers);
+      expect(me.status).toBe(200);
+      expect(me.body).toMatchObject({ email, unusedBackupCodes: 10 });
+      expect(new Date((me.body as { signedInAt: string }).signedInAt).getTime()).toBeGreaterThan(
+        Date.now() - 60_000,
+      );
+
+      // Using a backup code leaves nine.
+      const used = await post('/auth/operator/verify', {
+        email,
+        password: PASSWORD,
+        code: session.backupCodes[0],
+      });
+      expect(used.status).toBe(200);
+      const after = await getJson(port, '/auth/operator/me', headers);
+      expect(after.body).toMatchObject({ unusedBackupCodes: 9 });
+    },
+    BCRYPT_TIMEOUT_MS * 2,
+  );
+
+  it('needs an operator session', async () => {
+    expect((await getJson(port, '/auth/operator/me', {})).status).toBe(401);
+  });
 });

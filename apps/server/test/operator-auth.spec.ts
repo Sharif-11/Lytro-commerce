@@ -34,6 +34,7 @@ const BCRYPT_TIMEOUT_MS = 20_000;
 interface World {
   accounts: OperatorAccountRecord[];
   backupCodes: OperatorBackupCodeRecord[];
+  failures: { operatorId: string | null; at: Date }[];
   usedBackupCodeIds: Set<string>;
   sessions: (OperatorSessionRecord & {
     tokenHash: string;
@@ -49,6 +50,7 @@ function world(): World {
   return {
     accounts: [],
     backupCodes: [],
+    failures: [],
     usedBackupCodeIds: new Set(),
     sessions: [],
     platformAuditLog: [],
@@ -103,6 +105,8 @@ function build(state: World) {
         id: `s${String(state.counter)}`,
         operatorId: values.operatorId,
         csrfHash: values.csrfHash,
+        createdAt: state.now,
+        userAgent: values.userAgent,
         tokenHash: values.tokenHash,
         expiresAt: values.expiresAt,
         revokedAt: null,
@@ -120,6 +124,18 @@ function build(state: World) {
       if (session) session.revokedAt = at;
       return Promise.resolve();
     },
+    recordFailure: ({ operatorId }) => {
+      state.failures.push({ operatorId, at: state.now });
+      return Promise.resolve();
+    },
+    countFailuresSince: (operatorId, since) =>
+      Promise.resolve(
+        state.failures.filter((f) => f.operatorId === operatorId && f.at > since).length,
+      ),
+    emailsOf: (ids) =>
+      Promise.resolve(
+        new Map(state.accounts.filter((a) => ids.includes(a.id)).map((a) => [a.id, a.email])),
+      ),
   };
 
   const settings: OperatorSessionSettings = {
@@ -136,6 +152,8 @@ function build(state: World) {
       state.platformAuditLog.push(entry);
       return Promise.resolve();
     },
+    latest: () => Promise.resolve(null),
+    recent: () => Promise.resolve([]),
   };
   const service = new OperatorAuthService(
     gateway,
@@ -450,4 +468,69 @@ describe('operator session lookup and sign-out (SEC-14, D8)', () => {
     const { service } = build(world());
     expect(service.csrfMatches({ csrfHash: 'anything' }, undefined)).toBe(false);
   });
+});
+
+describe("operator sign-in, the limit (ADM-01, on AUTH-14's rule)", () => {
+  it(
+    'locks after five failures, even to the right password, until the fifteen minutes pass',
+    async () => {
+      const state = world();
+      const { service } = build(state);
+      addAccount(state, await new PasswordHasher().hash(PASSWORD));
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        await expect(service.signin(EMAIL, 'wrong password')).rejects.toMatchObject({
+          code: 'unauthenticated',
+        });
+      }
+      await expect(service.signin(EMAIL, PASSWORD)).rejects.toMatchObject({
+        code: 'rate_limited',
+        retryAfterSeconds: 15 * 60,
+      });
+
+      // The window slides: just inside it the lock holds, just past it the failures have aged out.
+      state.now = new Date(state.now.getTime() + 15 * 60 * 1000 - 1);
+      await expect(service.signin(EMAIL, PASSWORD)).rejects.toMatchObject({ code: 'rate_limited' });
+      state.now = new Date(state.now.getTime() + 2);
+      await expect(service.signin(EMAIL, PASSWORD)).resolves.toMatchObject({ next: 'enroll-2fa' });
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
+  it(
+    'stops at the limit without checking the password again',
+    async () => {
+      const state = world();
+      const { service } = build(state);
+      const account = addAccount(state, await new PasswordHasher().hash(PASSWORD));
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        state.failures.push({ operatorId: account.id, at: state.now });
+      }
+      await expect(service.signin(EMAIL, 'wrong password')).rejects.toMatchObject({
+        code: 'rate_limited',
+      });
+      // A refusal during the lock records no further failure, so the window can end.
+      expect(state.failures).toHaveLength(5);
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
+  it(
+    'counts an unknown email without locking anyone, and never another operator',
+    async () => {
+      const state = world();
+      const { service } = build(state);
+      const account = addAccount(state, await new PasswordHasher().hash(PASSWORD));
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        await expect(service.signin('nobody@lytronix.internal', PASSWORD)).rejects.toMatchObject({
+          code: 'unauthenticated',
+        });
+      }
+      expect(state.failures.every((failure) => failure.operatorId === null)).toBe(true);
+      await expect(service.signin(account.email, PASSWORD)).resolves.toMatchObject({
+        next: 'enroll-2fa',
+      });
+    },
+    BCRYPT_TIMEOUT_MS * 2,
+  );
 });

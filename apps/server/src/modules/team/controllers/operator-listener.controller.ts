@@ -30,7 +30,7 @@ import { ListenerDevices } from '../../listener/services/listener-devices';
 import { ListenerPairing } from '../../listener/services/listener-pairing';
 import { LytroReceipts } from '../../lytro-receipts/services/lytro-receipts';
 import type { LytroReceiptPage } from '../../lytro-receipts/types/lytro-receipts';
-import type { ListenerCode, ListenerDeviceList } from '../../listener/types/listener';
+import type { ListenerCode, OperatorListenerDeviceList } from '../../listener/types/listener';
 import { ListenerReceipts } from '../../listener-receipts/services/listener-receipts';
 import type { ListenerUnreadItem } from '../../listener-receipts/types/listener-receipts';
 import {
@@ -42,11 +42,11 @@ import {
   CredentialUsePageDto,
   InstallationBlockedDto,
   ListenerCodeDto,
-  ListenerDeviceListDto,
   ListenerReceiptsQueryDto,
   LytroReceiptPageDto,
   ListenerUnreadDto,
   ListenerUnreadQueryDto,
+  OperatorListenerDeviceListDto,
 } from '../dto/listener.dto';
 
 // LSN-20, LSN-21 (Phase 5 Slice 5.4a): Lytro's view of a shop's listener phones against its plan's limit, revoking any
@@ -70,8 +70,8 @@ export class OperatorListenerController {
   @ApiOperation({
     summary: "A shop's listener phones, with how many work and its plan's limit (LSN-20)",
   })
-  @ZodResponse({ type: ListenerDeviceListDto })
-  list(@Param('id') id: string): Promise<ListenerDeviceList> {
+  @ZodResponse({ type: OperatorListenerDeviceListDto })
+  list(@Param('id') id: string): Promise<OperatorListenerDeviceList> {
     return this.devices.listForOperator(this.idOf(id, 'ShopNotFound'));
   }
 
@@ -90,8 +90,8 @@ export class OperatorListenerController {
   @Get('lytro-listener/devices')
   @ResponseMessage('ListenerDevicesListed')
   @ApiOperation({ summary: "Lytro's own listener phones (PAY-21)" })
-  @ZodResponse({ type: ListenerDeviceListDto })
-  lytroDevices(): Promise<ListenerDeviceList> {
+  @ZodResponse({ type: OperatorListenerDeviceListDto })
+  lytroDevices(): Promise<OperatorListenerDeviceList> {
     return this.devices.listForLytro();
   }
 

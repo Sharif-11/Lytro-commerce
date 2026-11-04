@@ -228,6 +228,7 @@
   },
   "rates": {
     "title": "Rates",
+    "reason": "Reason",
     "lead": "Per-use charges. A new value applies from the next charge; the old one stays in the history.",
     "effectiveFrom": "since {{date}}",
     "newValue": "New value",
@@ -246,6 +247,7 @@
   },
   "settings": {
     "title": "Platform settings",
+    "reason": "Reason",
     "lead": "Platform-wide values that are not rates: the trial length, top-up bounds, lifecycle stage lengths.",
     "updatedAt": "Updated {{date}}",
     "newValue": "New value",

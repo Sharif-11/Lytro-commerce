@@ -1347,7 +1347,7 @@ export enum ParcelState {
   Cancelled = 'cancelled',
 }
 
-// CRR-08: the states in which a parcel stands for its order, so a second can't be booked. The unique index in migration 0105
+// CRR-08: the states in which a parcel stands for its order, so a second can't be booked. The unique index in migration 0107
 // (courier_parcels_live_key) spells out the same three.
 export const LIVE_PARCEL_STATES: readonly ParcelState[] = [
   ParcelState.Booking,

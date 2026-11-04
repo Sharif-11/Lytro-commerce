@@ -1,3 +1,4 @@
+import type { TenantOperatorFactsRow } from '@lytronix/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { TENANT_SUMMARY_STORE } from '../tokens';
 import type {
@@ -15,6 +16,11 @@ export class TenantSummaries {
 
   findById(tenantId: string): Promise<TenantSummary | null> {
     return this.store.findSummary(tenantId);
+  }
+
+  /** OPERATOR-CONSOLE-DESIGN §5: what the operator's shop page reads beyond a summary. */
+  operatorFacts(tenantId: string): Promise<TenantOperatorFactsRow | null> {
+    return this.store.operatorFacts(tenantId);
   }
 
   /** TEN-31: the shop a dashboard page names by its slug. */

@@ -29,6 +29,15 @@ export interface ListenerDeviceList {
   limit: number | null;
 }
 
+/** LSN-21: blocking an installation needs its id, which only the operator reads. */
+export type OperatorListenerDeviceView = ListenerDeviceView & { installationId: string };
+
+export interface OperatorListenerDeviceList {
+  devices: OperatorListenerDeviceView[];
+  active: number;
+  limit: number | null;
+}
+
 /** LSN-01: a pairing code, shown once, and when it runs out. */
 export interface ListenerCode {
   code: string;

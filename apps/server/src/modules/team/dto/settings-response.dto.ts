@@ -6,6 +6,7 @@ export const settingValueSchema = z.object({
   value: z.unknown(),
   description: z.string(),
   updatedBy: z.string().nullable(),
+  updatedByEmail: z.string().nullable(),
   updatedAt: z.date(),
 });
 export class SettingValueListDto extends createZodDto(settingValueSchema.array()) {}

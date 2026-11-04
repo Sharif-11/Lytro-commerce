@@ -164,7 +164,12 @@ export class PlatformSettingsService {
     return this.store.list();
   }
 
-  async set(key: PlatformSettingKey, value: unknown, operatorId: string): Promise<void> {
+  async set(
+    key: PlatformSettingKey,
+    value: unknown,
+    operatorId: string,
+    reason: string | null = null,
+  ): Promise<void> {
     validate(key, value);
     const current = await this.store.get(key);
     // ADM-08: the change and its platform audit entry commit together or not at all.
@@ -178,7 +183,7 @@ export class PlatformSettingsService {
         targetId: null,
         result: AuditResult.Success,
         ip: null,
-        summary: { key, oldValue: current?.value ?? null, newValue: value },
+        summary: { key, oldValue: current?.value ?? null, newValue: value, reason },
       });
     });
     // After the commit, so nothing can read the old value back into the cache in between.

@@ -2,10 +2,9 @@ import { z } from 'zod';
 import {
   CONSIGNMENT_ID_MAX_LENGTH,
   COURIER_FIELD_MAX_LENGTH,
-  ORDER_LINES_MAX,
   PARCEL_NOTE_MAX_LENGTH,
-  TRACKING_CODE_MAX_LENGTH,
-} from '../../common/limits';
+} from '../../common/courier-limits';
+import { ORDER_LINES_MAX, TRACKING_CODE_MAX_LENGTH } from '../../common/limits';
 import { CourierKey } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { itemSerialsSchema, serialsOnce } from '../orders/order';

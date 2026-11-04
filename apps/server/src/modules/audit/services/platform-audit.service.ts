@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { NewPlatformAuditEntry, Transaction } from '@lytronix/db';
+import type { NewPlatformAuditEntry, RecentAuditEntryRow, Transaction } from '@lytronix/db';
+import type { PlatformAuditAction } from '@lytronix/validators';
 import type { PlatformAuditStore } from '../ports/platform-audit-store';
 import { PLATFORM_AUDIT_STORE } from '../tokens';
 
@@ -21,5 +22,18 @@ export class PlatformAuditService {
    */
   recordWithin(tx: Transaction, entry: NewPlatformAuditEntry): Promise<void> {
     return this.store.insertWithin(tx, entry);
+  }
+
+  /** Who did this to this target last. */
+  latest(
+    action: PlatformAuditAction,
+    targetId: string,
+  ): Promise<{ actorId: string | null } | null> {
+    return this.store.latest(action, targetId);
+  }
+
+  /** The newest entries of these actions. */
+  recent(actions: readonly PlatformAuditAction[], limit: number): Promise<RecentAuditEntryRow[]> {
+    return this.store.recent(actions, limit);
   }
 }

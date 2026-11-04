@@ -247,7 +247,7 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
   fake; `/book` by claim, call, settle (D6-7, D6-10, D6-14); a lost answer settled by invoice (D6-11); cancelling
   (D6-8); the circuit breaker (CRR-26, CRR-18, CRR-19); the credential log.
 - **Done when:** exit criterion 3 and Steadfast's half of 2 and 6 pass with staff marking delivery by hand.
-- **Built as PR #301** (migration 0105).
+- **Built as PR #301** (migration 0107).
 - **Read, agreed 2026-11-04:**
   - **Who connects:** `couriers:manage`, the default courier too. Whoever holds `orders:manage` can see which couriers are
     connected, to book. Credentials are sealed and never returned, whoever enters them.

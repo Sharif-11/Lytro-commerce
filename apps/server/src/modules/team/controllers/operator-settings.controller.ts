@@ -11,6 +11,7 @@ import {
   OperatorSessionGuard,
   type OperatorSessionRequest,
 } from '../../operator/guards/operator-session.guard';
+import { OperatorDirectory } from '../../operator/services/operator-directory';
 import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
 import type { PlatformSettingValue } from '../../platform-settings/types/platform-setting';
 import { UpdateSettingDto } from '../dto/settings.dto';
@@ -33,14 +34,20 @@ function parseKey(key: string): PlatformSettingKey {
 export class OperatorSettingsController {
   constructor(
     @Inject(PlatformSettingsService) private readonly settings: PlatformSettingsService,
+    @Inject(OperatorDirectory) private readonly operators: OperatorDirectory,
   ) {}
 
   @Get()
   @ResponseMessage('SettingsListed')
   @ApiOperation({ summary: 'List every platform setting' })
   @ZodResponse({ type: SettingValueListDto })
-  list(): Promise<PlatformSettingValue[]> {
-    return this.settings.list();
+  async list(): Promise<(PlatformSettingValue & { updatedByEmail: string | null })[]> {
+    const settings = await this.settings.list();
+    const emails = await this.operators.emailsOf(settings.map((setting) => setting.updatedBy));
+    return settings.map((setting) => ({
+      ...setting,
+      updatedByEmail: setting.updatedBy === null ? null : (emails.get(setting.updatedBy) ?? null),
+    }));
   }
 
   @Patch(':key')
@@ -55,7 +62,7 @@ export class OperatorSettingsController {
   ): Promise<{ ok: true }> {
     const session = request.operatorSession;
     if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
-    await this.settings.set(parseKey(key), body.value, session.operatorId);
+    await this.settings.set(parseKey(key), body.value, session.operatorId, body.reason);
     return { ok: true };
   }
 }

@@ -1,6 +1,6 @@
 {
-  "id": "b0683a19-9283-4773-87ed-9150c464a0eb",
-  "prevId": "59f58e30-f458-4d66-b9a5-a2e6333fba30",
+  "id": "1a4ce808-5db1-491d-8721-d9d4b59502b3",
+  "prevId": "bcd91909-f939-4176-8673-e659b2c7e829",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -400,6 +400,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "operator_id": {
+          "name": "operator_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "ip": {
           "name": "ip",
           "type": "inet",
@@ -420,6 +426,27 @@
           "columns": [
             {
               "expression": "subscriber_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sign_in_failures_operator_idx": {
+          "name": "sign_in_failures_operator_idx",
+          "columns": [
+            {
+              "expression": "operator_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -465,6 +492,16 @@
           "tableTo": "subscribers",
           "schemaTo": "control",
           "columnsFrom": ["subscriber_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "sign_in_failures_operator_id_operator_accounts_id_fk": {
+          "name": "sign_in_failures_operator_id_operator_accounts_id_fk",
+          "tableFrom": "sign_in_failures",
+          "tableTo": "operator_accounts",
+          "schemaTo": "control",
+          "columnsFrom": ["operator_id"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
