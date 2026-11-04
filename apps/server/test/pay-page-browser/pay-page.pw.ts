@@ -36,7 +36,8 @@ for (const name of SCREENS) {
     const refused = await open(page, name);
     await page.setViewportSize({ width: 320, height: 616 });
     const measured = await page.evaluate<{ wide: number; text: string }>(
-      '({ wide: document.documentElement.scrollWidth - window.innerWidth, text: document.body.innerText })',
+      // Against 320 itself: on a phone the browser widens its viewport to fit whatever is too wide.
+      '({ wide: document.documentElement.scrollWidth - 320, text: document.body.innerText })',
     );
     expect(refused, 'the policy or the script refused something').toEqual([]);
     expect(measured.wide, 'wider than a 320 px phone').toBeLessThanOrEqual(0);

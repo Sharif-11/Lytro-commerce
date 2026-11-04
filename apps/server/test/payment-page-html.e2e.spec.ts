@@ -328,7 +328,8 @@ describeIfDatabase('what the page shows (PAY-05, PAY-22)', () => {
     expect(text).toContain('<html lang="en"');
     expect(text).toContain('VERIFY TRANSACTION');
     expect(text).toContain('Enter the transaction ID');
-    expect(text).toContain('name="lang" value="en"');
+    const form = text.slice(text.indexOf('id="payform"'), text.indexOf('</form>'));
+    expect(form).toContain('name="lang" value="en"');
     expect(text).toContain(`href="/${ref}?pick=1&amp;lang=en"`);
     // Nothing of the page's own words left in Bangla, but the link back to it.
     const body = text
@@ -336,6 +337,22 @@ describeIfDatabase('what the page shows (PAY-05, PAY-22)', () => {
       .replace(/<a href="[^"]*">বাংলা<\/a>/, '')
       .replace(/৳/g, '');
     expect(body).not.toMatch(/[ঀ-৿]/);
+  });
+
+  it('keeps the language through what a form answers (PAY-22)', async () => {
+    const ref = await placed(await payingShop(), 'bkash');
+    const refused = await raw('POST', `/${ref}/transaction`, {
+      method: 'bkash',
+      transactionId: 'TX-12',
+      lang: 'en',
+    });
+    expect(refused.text).toContain('Use 6 to 20 letters and digits');
+    const typed = await raw('POST', `/${ref}/transaction`, {
+      method: 'bkash',
+      transactionId: freshTrx(),
+      lang: 'en',
+    });
+    expect(typed.headers.location).toBe(`/${ref}?just=1&lang=en`);
   });
 
   it('never lets what a shop or a member of staff typed become markup (PAY-23)', async () => {
