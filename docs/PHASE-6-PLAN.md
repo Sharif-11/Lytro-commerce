@@ -90,7 +90,7 @@ Each is settled in its slice's read, before code, and recorded there.
 
 | Slice | To settle |
 |---|---|
-| 6.1 | Who may connect a courier: `couriers:manage`, as API-CONTRACT says, or the owner alone, as wallet credentials are. What staff may change on the booking sheet (COD is drawn as a field). The fee during the 30-second call: set aside first as D5-7 holds a gateway fee, or checked and charged after. Cancelling only the booking and booking again, with no second fee or count (QTA-01); Steadfast refuses a repeated invoice, so a new attempt needs its own. Showing a courier's refusal (CRR-07) against SEC-16; Slice 5.7 showed only a code. SEC-11's log: share the gateway's or its own. Steadfast's pickup requests and bulk booking of up to 500, neither of which the SRS has. |
+| 6.1 | Settled 2026-11-04: see Slice 6.1. |
 | 6.2 | When a Steadfast parcel counts as shipped: it has no pickup status, and `pending` means "with us, not yet attempted", so a real parcel should decide. Cash collected that differs from what's due. A delivered report the courier later reverses. A `cancelled` parcel: stop checking at once, or follow Steadfast's return statuses until it is back. Steadfast's other events (an address or COD changed in its panel, cancel and return requests) and its return request as a way to get back a parcel already picked up. A message with no token, since Steadfast's token is optional. A shop whose Steadfast account already sends its one address elsewhere. What the shopper's tracking page shows. Showing a connection's token again after connecting (CRR-03). |
 | 6.3 | **A real booking in Pathao's sandbox with no area.** If its address reading isn't good enough, D6-5 reopens for Pathao alone, and it joins RedX's area list. Keeping the merchant's password, or only the refresh token and asking again when that lapses. Which store a shop books from (required; a new store waits about an hour for approval). Whole taka: `amount_to_collect` is an integer and Lytro's amounts have decimals. Weight: required, 0.5 to 10 kg, and a product may have none. `item_quantity` is an integer and Lytro's quantities can be decimal. Whether the handshake carries the secret, and the answer to its later events. |
 | 6.4 | How RedX's areas are matched to thanas, and what the operator does with the unmatched. How often the list is refreshed. Keeping RedX's secret, which travels in the address, out of every log. What to send as `value`, which it requires, and weight in grams. A partly delivered parcel: it shows only in `delivery_type`, with no amount collected in the message. Its cancel answers "Request Accepted": whether that is enough to cancel the order. Which pickup store a shop books from. |
@@ -172,10 +172,13 @@ which bears directly on FRD-02 and OD-47.
   look up by our number, or needs areas. Shared code never asks which courier it is. Each runs one contract suite (CRR-21).
 - **Booking is claim, call, settle,** and no database transaction stays open across a 30-second call. The claim, in one
   short transaction, refuses what can't be booked and writes a `booking` parcel; a unique index allows one live parcel
-  per order (CRR-08). The call goes through the circuit breaker, scoped to shop and courier (CRR-26). Settling, in one
-  transaction, marks the parcel booked and moves the order, counts it, charges the fee, takes the stock and writes the
-  history. A parcel the courier accepted is never lost, whatever happens to settling. A refusal ends the claim and
-  changes nothing else; a lost answer leaves it `unknown` (D6-11).
+  per order (CRR-08). Because a courier's yes can't be taken back, whatever could refuse after it is dealt with here: the
+  order takes its place under the limits, the fee is held, and the stock step is tried and undone. The call goes through
+  the circuit breaker, scoped to shop and courier (CRR-26). An accepted parcel is written first and alone. Settling, in one
+  transaction, moves the order, charges the held fee, takes the stock and writes the history. A parcel the courier accepted
+  is never lost, whatever happens to settling: a stock problem is kept on the parcel for staff, and anything else is
+  finished by the minute pass. A refusal ends the claim and gives everything back; a lost answer leaves it `unknown` with
+  everything still set aside (D6-11).
 - **News has one path.** A message, the night check and Sync all end in one method, which ignores repeats and old news,
   maps the status through the adapter, moves the order through `OrderFulfilment` and adds the timeline entry.
 - **Messages are stored first.** The courier gets its answer inside its limit (Steadfast 5 seconds, Pathao 10) and the
@@ -197,11 +200,11 @@ In the `tenant` schema with RLS forced, unless marked `control`; money `numeric(
 
 | Table | What | For |
 |---|---|---|
-| `courier_connections` | courier key, sealed credentials, default flag, sealed message token, last message time, state | CRR-02 to CRR-05, CRR-20 |
+| `courier_connections` | courier key, sealed credentials, default flag, state; Slice 6.2 adds the sealed message token and last message time | CRR-02 to CRR-05, CRR-20 |
 | `control.courier_message_routes` | the hash of an address's token → shop and courier, so a message finds its shop before RLS applies; removed on disconnect | CRR-11, CRR-20 |
-| `courier_parcels` | an order's parcels, one live at a time: courier, booking state (`booking`, `booked`, `unknown`, `refused`, `cancelled`), consignment ID, tracking code, the courier's status and our reading of it, COD sent, weight, note, area, delivery charge, cash collected, payout ID and amount, paid flag, last news, last change, last check | CRR-06, CRR-08, CRR-14, CRR-15, CRR-17, CUS-12 |
+| `courier_parcels` | an order's parcels, one live at a time: courier, booking state (`booking`, `booked`, `unknown`, `refused`, `cancelled`), invoice, consignment ID, tracking code, the courier's status, COD sent, weight, note, area, delivery charge, its refusal, the fee held and its rates, whether it took the order's place, the serials named, when it settled and any problem doing so, its look-ups; Slices 6.2 and 6.5 add our reading of the status, cash collected, payout ID and amount, paid flag, last news, last change, last check | CRR-06, CRR-08, CRR-14, CRR-15, CRR-17, CUS-12 |
 | `courier_events` | a parcel's news: where it came from (message, check, Sync), a unique dedupe key, the raw status, messages in Bangla and English, its time | CRR-12, CRR-13 |
-| `courier_credential_uses` | every outbound call with a shop's credentials, without them; or the gateway's table, as Slice 6.1's read settles | SEC-11 |
+| `courier_credential_uses` | every outbound call with a shop's credentials, without them | SEC-11 |
 | `control.courier_areas` | as `DATABASE-SCHEMA.md` §2.5 | CUS-10 |
 | `control.courier_adapters` | an adapter's `retiring` state | CRR-23 to CRR-25 |
 
@@ -220,11 +223,13 @@ the planned `area_courier_key` and `courier_area_code` order columns are dropped
 | Team, `couriers:manage` | `PUT /api/v1/couriers/connections/:key/default` | the default courier (CRR-05) |
 | Team, `orders:manage` | `POST /api/v1/orders/:id/book` | books, with `Idempotency-Key` (API-11, CRR-06 to CRR-10) |
 | Team, `orders:manage` | `POST /api/v1/orders/:id/parcel/sync` | Sync (CRR-14) |
-| Team, `orders:manage` | `POST /api/v1/orders/:id/parcel/settle` | staff settle a lost answer (D6-11) |
+| Team, `orders:manage` | `POST /api/v1/orders/:id/parcel/settle` | staff settle a lost answer (D6-11), or finish a parcel whose stock wasn't ready |
+| Team, `orders:manage` | `POST /api/v1/orders/:id/parcel/cancel` | only the booking is cancelled and the order stays (QTA-01, Slice 6.1's read) |
 | Team, `orders:manage` | `POST /api/v1/orders/:id/cancel`, extended | a booked order's cancel (CRR-28) |
 | Team, `orders:manage` | `GET /api/v1/locations/:locationId/courier-areas` | a courier's areas in a thana (CUS-12), now staff only |
 | A courier | `POST /webhooks/couriers/:token` | its messages (CRR-11 to CRR-13, CRR-27) |
-| Operator | area list read, edit and refresh; `retiring`; what blocks removal; credential uses | CUS-10, CRR-23, CRR-24, SEC-11 |
+| Operator | `GET /api/v1/operator/tenants/:id/courier-credential-uses` | a shop's credential log (SEC-11) |
+| Operator | area list read, edit and refresh; `retiring`; what blocks removal | CUS-10, CRR-23, CRR-24 |
 
 ---
 
@@ -242,6 +247,40 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
   fake; `/book` by claim, call, settle (D6-7, D6-10, D6-14); a lost answer settled by invoice (D6-11); cancelling
   (D6-8); the circuit breaker (CRR-26, CRR-18, CRR-19); the credential log.
 - **Done when:** exit criterion 3 and Steadfast's half of 2 and 6 pass with staff marking delivery by hand.
+- **Read, agreed 2026-11-04:**
+  - **Who connects:** `couriers:manage`, the default courier too. Whoever holds `orders:manage` can see which couriers are
+    connected, to book. Credentials are sealed and never returned, whoever enters them.
+  - **The booking sheet:** the COD is shown, not editable; it always equals what the order says is due, and staff edit the
+    order to change it. Staff choose the courier, a note, serials, and a weight or area where that courier takes one.
+  - **The fee during the call:** set aside first, as D5-7 holds a gateway fee, with the order taking its place under the limits
+    the same way. Accepted, it is charged at the rates it was held at; refused, everything is released and the ledger shows
+    nothing; a lost answer stays on hold until it settles.
+  - **Cancelling only the booking:** allowed. Staff confirm they cancelled it in the courier's panel; the order stays
+    `processing` with its stock out, to be booked again or marked shipped by hand, with no second fee or count. Only a
+    cancelled booking gives the next attempt a new invoice (`261104-0017-2`), so a courier's refusal of a repeat still
+    guards a refused or not-booked retry.
+  - **A courier's refusal:** staff see its one short message field as plain text, cut to [200] characters and labelled as the
+    courier's. Shoppers never do, and a raw page or unreadable reply shows our own words, the detail in server logs. CRR-07 and
+    SEC-16 amended.
+  - **SEC-11's log:** its own table, leaving the gateway's code alone. The owner's call to overrule.
+  - **Steadfast's pickup requests and bulk booking:** left out; the SRS has neither. A later slice can add them if the first real
+    parcel (checkpoint 6A) or sellers show the need. Bulk has no common shape across couriers: Pathao's answers with no IDs.
+  - **One pull request,** the owner's choice over the two recommended.
+- **Found in building it, beyond the read:**
+  - The plan had settling count, charge and take stock after the courier's yes, but each of those can refuse, and by then the
+    parcel exists. So all three are dealt with at the claim (§3.6): the limit under the shop's handling lock, the fee held,
+    and the stock step tried in a savepoint and rolled back. Two bookings in flight can't name one serial.
+  - The minute pass (`courier_booking_tick`) settles what a request couldn't: a `booking` older than 2 minutes means the server
+    died, so its answer is lost; a lost answer is asked after by invoice from 2 minutes on, every 15 minutes, up to 8 times;
+    two "no such parcel" answers close it as not booked. Steadfast's by-invoice answer gives a status and no IDs, so a parcel
+    found that way shows no consignment ID until staff enter it, or Slice 6.2 reads one.
+  - **The owner's call to overrule: ORD-11.** Its pass criterion had an item edited after booking, but D6-7 took the stock out at
+    booking, so an item edit would have to return and take stock around a live parcel. After booking, the customer's details and
+    notes can change, with the warning (`courierRecordUnchanged`); items and what moves the totals are refused, and staff
+    cancel the order and enter a new one. ORD-11 amended.
+  - Trying wrong keys stops after 5 failures in 5 minutes, since Steadfast locks a key out at 10.
+  - A login the courier refuses at booking shows as a refusal; marking the connection and telling the owner (§3.6) comes with the
+    night check in Slice 6.2, which is what would otherwise keep calling.
 
 ### Slice 6.2: the courier's news
 - **Depends on:** 6.1.

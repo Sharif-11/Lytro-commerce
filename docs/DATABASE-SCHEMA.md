@@ -1641,8 +1641,9 @@ CREATE INDEX ON tenant.order_calls (tenant_id, order_id, called_at);
 ```
 
 The stock held for an order (`stock_reservations.order_id`, `order_line_id`) and the serials sold to one
-(`serial_numbers.sold_order_id`) are foreign keys to these tables since 0083. Courier columns (`area_courier_key`,
-`courier_area_code`, `courier_key`, `consignment_id`, CUS-12/13) arrive with Phase 6.
+(`serial_numbers.sold_order_id`) are foreign keys to these tables since 0083. An order's courier is on its parcel
+(`tenant.courier_parcels`, Phase 6 Slice 6.1), with its area (D6-5); `courier_name`, `tracking_code` and `tracking_link` here are
+filled on booking too.
 
 ### 3.4 Payments, wallets, couriers, balance
 
@@ -1805,16 +1806,73 @@ CREATE TABLE control.used_transaction_ids (
 -- VER-02 (Slice 5.3, migration 0097): every ID is kept in capitals, so the registry matches IDs ignoring case; a wallet
 -- ID is 6 to 20 letters and digits wherever it is typed. Claimed when a payment is recorded or verified.
 
+-- Phase 6 Slice 6.1 (migration 0105). RLS forced on all three. Slice 6.2 adds a connection's message token and last message
+-- time, and the parcel's reading of its news; Slice 6.5 its payout.
 CREATE TABLE tenant.courier_connections (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
     courier_key     text NOT NULL,
-    credentials_encrypted bytea NOT NULL,
-    is_default      boolean NOT NULL DEFAULT false,
-    webhook_secret  text NOT NULL,
-    status          text NOT NULL DEFAULT 'active',    -- active | retiring-aware via control's adapter registry
+    credentials     bytea NOT NULL,                    -- sealed (SEC-08); never returned (CRR-03)
+    is_default      boolean NOT NULL DEFAULT false,    -- CRR-05: unique per shop where true
+    state           tenant.courier_connection_state NOT NULL DEFAULT 'active',  -- active, login_refused
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
     UNIQUE (tenant_id, courier_key)
 );
+
+CREATE TABLE tenant.courier_parcels (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    order_id        uuid NOT NULL,                     -- (tenant_id, order_id) to orders, on delete cascade
+    courier_key     text NOT NULL,
+    connection_id   uuid,                              -- by value: disconnecting leaves its parcels (CRR-20)
+    state           tenant.parcel_state NOT NULL DEFAULT 'booking',  -- booking, booked, unknown, refused, cancelled
+    invoice         varchar(100) NOT NULL,             -- the order's number; suffixed once a booking of it was cancelled
+    consignment_id  varchar(100),
+    tracking_code   varchar(100),
+    courier_status  varchar(100),
+    cod             numeric(12,2) NOT NULL,            -- what the order said was due
+    note            varchar(500),
+    weight_kg       numeric(10,3),
+    area_code       text,                              -- D6-5: on the parcel, not the order
+    delivery_charge numeric(12,2),
+    fee_held        numeric(12,2) NOT NULL DEFAULT 0,  -- set aside until it settles; counts in the balance's held figure
+    fee_rates       jsonb,                             -- PYG-14: the rates it was held at
+    took_place      boolean NOT NULL DEFAULT false,    -- QTA-01: it took the order's place, so a refusal gives it back
+    serials         jsonb NOT NULL DEFAULT '[]',       -- INV-14: named at booking
+    serial_numbers  text[] NOT NULL DEFAULT '{}',      -- the same numbers alone, so two bookings can't name one
+    refusal         varchar(200),                      -- CRR-07: its courier's own short words
+    settled_at      timestamptz,                       -- when the order took it: moved, charged, stock out
+    settle_problem  text,                              -- the message key of a stock problem for staff to clear
+    look_ups        smallint NOT NULL DEFAULT 0,       -- D6-11: asked by our own number, how many times
+    not_found       smallint NOT NULL DEFAULT 0,
+    next_look_up_at timestamptz,
+    booked_by       uuid,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now()
+);
+-- CRR-08: two bookings at once make one parcel.
+CREATE UNIQUE INDEX courier_parcels_live_key ON tenant.courier_parcels (tenant_id, order_id)
+    WHERE state IN ('booking', 'booked', 'unknown');
+CREATE INDEX ON tenant.courier_parcels (tenant_id, order_id, created_at);
+CREATE INDEX ON tenant.courier_parcels (tenant_id)
+    WHERE fee_held > 0 AND settled_at IS NULL AND state IN ('booking', 'booked', 'unknown');
+CREATE INDEX ON tenant.courier_parcels (tenant_id, created_at)
+    WHERE settled_at IS NULL AND state IN ('booking', 'booked', 'unknown');
+CREATE INDEX ON tenant.courier_parcels (tenant_id, courier_key, consignment_id);
+
+-- SEC-11: every outbound call with a shop's courier credentials, never the credentials.
+CREATE TABLE tenant.courier_credential_uses (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    courier_key     text NOT NULL,
+    action          text NOT NULL,                     -- test, book, look_up, cancel
+    connection_id   uuid,                              -- none for a test of credentials not yet saved
+    order_id        uuid,
+    succeeded       boolean NOT NULL,
+    at              timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX ON tenant.courier_credential_uses (tenant_id, at);
 
 CREATE TYPE tenant.ledger_entry_type AS ENUM ('top_up', 'sms', 'ai', 'extraction', 'fraud_check',
     'order_fee', 'product_fee', 'plan_payment', 'adjustment', 'reversal',

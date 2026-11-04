@@ -14,6 +14,8 @@ import { InventoryExpiryTickWorker } from './services/inventory-expiry-tick-work
 import { ReservationExpiryTickWorker } from './services/reservation-expiry-tick-worker';
 import { PaymentSessionExpiryTickWorker } from './services/payment-session-expiry-tick-worker';
 import { ListenerPurgeTickWorker } from './services/listener-purge-tick-worker';
+import { CouriersModule } from '../../couriers/couriers.module';
+import { CourierBookingTickWorker } from './services/courier-booking-tick-worker';
 import { GatewayReconcileTickWorker } from './services/gateway-reconcile-tick-worker';
 import { GatewayModule } from '../../gateway/gateway.module';
 import { ListenerModule } from '../../listener/listener.module';
@@ -43,6 +45,7 @@ import { UsageNoticeWorker } from './services/usage-notice-worker';
     ListenerModule,
     ListenerReceiptsModule,
     GatewayModule,
+    CouriersModule,
     QueueModule,
     MessagingModule,
     BillingModule,
@@ -64,6 +67,7 @@ import { UsageNoticeWorker } from './services/usage-notice-worker';
     PaymentSessionExpiryTickWorker,
     ListenerPurgeTickWorker,
     GatewayReconcileTickWorker,
+    CourierBookingTickWorker,
     MediaProcessWorker,
     MediaProcessVideoWorker,
     MediaDeleteWorker,

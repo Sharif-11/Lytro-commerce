@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   ComboRepository,
+  CourierRepository,
   ListenerMessageRepository,
   OrderRepository,
   PaymentSessionRepository,
@@ -18,6 +19,7 @@ import {
   type OrderHomeCounts,
   type OrderListFilter,
   type OrderPatch,
+  type SelectCourierParcel,
   type StockVariantRow,
   type Transaction,
 } from '@lytronix/db';
@@ -52,7 +54,24 @@ export class DrizzleOrderStore implements OrderStore {
     @Inject(ComboRepository) private readonly combos: ComboRepository,
     @Inject(PaymentSessionRepository) private readonly sessions: PaymentSessionRepository,
     @Inject(ListenerMessageRepository) private readonly receipts: ListenerMessageRepository,
+    @Inject(CourierRepository) private readonly couriers: CourierRepository,
   ) {}
+
+  liveParcel(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<SelectCourierParcel | null> {
+    return this.couriers.liveParcel(tx, tenantId, orderId);
+  }
+
+  latestParcel(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<SelectCourierParcel | null> {
+    return this.couriers.latestParcel(tx, tenantId, orderId);
+  }
 
   insertComponents(
     tx: Transaction,

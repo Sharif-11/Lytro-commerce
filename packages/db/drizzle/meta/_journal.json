@@ -736,6 +736,13 @@
       "when": 1793790195023,
       "tag": "0104_payment_methods_start_off",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1793807103147,
+      "tag": "0105_courier_booking",
+      "breakpoints": true
     }
   ]
 }

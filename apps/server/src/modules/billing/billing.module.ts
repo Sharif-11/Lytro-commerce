@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CouriersModule } from '../couriers/couriers.module';
 import { IdempotencyModule } from '../../common/idempotency/idempotency.module';
 import { DrizzleAddonsStore } from '../../database/adapters/addons.adapter';
 import {
@@ -77,6 +78,7 @@ import {
     PurchasingModule,
     InventoryModule,
     OrdersModule,
+    CouriersModule,
     ShoppersModule,
     IdempotencyModule,
     CatalogueModule,

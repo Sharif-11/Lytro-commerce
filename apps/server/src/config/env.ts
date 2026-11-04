@@ -21,6 +21,8 @@ const envSchema = z.object({
   // WAL-09 (Phase 5 Slice 5.7): bKash's Tokenized Checkout, host and version. Its production address is to be confirmed with bKash.
   BKASH_SANDBOX_URL: z.string().url().default('https://tokenized.sandbox.bka.sh/v2'),
   BKASH_PRODUCTION_URL: z.string().url().default('https://tokenized.pay.bka.sh/v2'),
+  // Phase 6 Slice 6.1: Steadfast's API. It has no sandbox, so every booking on it is real.
+  STEADFAST_API_URL: z.string().url().default('https://portal.packzy.com/api/v1'),
   // Base domain the platform serves shops under: <slug>.<PLATFORM_DOMAIN> (decision R1, R2).
   PLATFORM_DOMAIN: z
     .string()

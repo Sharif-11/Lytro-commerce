@@ -1,3 +1,4 @@
+import type { CourierKey, ParcelState } from '@lytronix/validators';
 import type {
   LineAttributeSnapshot,
   LineCapturedSnapshot,
@@ -54,6 +55,28 @@ export type {
 export interface OrderPerson {
   id: string;
   name: string | null;
+}
+
+/** CRR-06, CRR-07, D6-11: the order's newest parcel as staff see it; the courier's refusal is for them alone. */
+export interface OrderParcelView {
+  courierKey: CourierKey;
+  state: ParcelState;
+  invoice: string;
+  consignmentId: string | null;
+  trackingCode: string | null;
+  courierStatus: string | null;
+  cod: string;
+  note: string | null;
+  weightKg: string | null;
+  areaCode: string | null;
+  deliveryCharge: string | null;
+  /** Its courier's own short words, when it refused. */
+  refusal: string | null;
+  /** The order has taken it: moved, counted, charged and its stock out. */
+  settled: boolean;
+  /** The message key of a stock problem staff must clear before it can settle. */
+  settleProblem: string | null;
+  createdAt: Date;
 }
 
 /**
@@ -263,6 +286,10 @@ export interface OrderView {
   payments: OrderPaymentView[];
   /** DLV-06, DLV-07: said when the order is entered or changed; empty when it is only read. */
   warnings: OrderWarning[];
+  /** CRR-06 (Phase 6). */
+  parcel: OrderParcelView | null;
+  /** ORD-11: said when details changed on an order already booked: the courier's record is not changed with them. */
+  courierRecordUnchanged: boolean;
   /**
    * QTA-03 (Slice 4.3): said when the order was just shipped or handed over past the period's handling limit, which
    * the operator's mode let through, so the owner is prompted to upgrade; null otherwise.

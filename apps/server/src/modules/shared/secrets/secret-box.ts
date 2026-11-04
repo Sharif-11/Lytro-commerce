@@ -13,6 +13,8 @@ export enum SecretPurpose {
   StorefrontKey = 'storefront_key',
   // WAL-09 (Slice 5.7): a wallet account's gateway credentials.
   GatewayCredentials = 'gateway_credentials',
+  // CRR-03 (Phase 6 Slice 6.1): a shop's credentials with a courier.
+  CourierCredentials = 'courier_credentials',
 }
 
 /** The key new values are sealed with, and the one before it while values are moved over (32 bytes each). */

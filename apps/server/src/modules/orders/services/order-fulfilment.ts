@@ -13,6 +13,7 @@ import {
   OrderHistoryField,
   OrderPaymentStatus,
   OrderStatus,
+  ParcelState,
   PaymentMethod,
   ReservationStatus,
   ServerFieldProblemCode,
@@ -23,7 +24,10 @@ import {
   type ShipOrderInput,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
-import { PayAsYouGoBillingService } from '../../balance/services/payg-billing.service';
+import {
+  PayAsYouGoBillingService,
+  type OrderFeeQuote,
+} from '../../balance/services/payg-billing.service';
 import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import { CustomerService } from '../../customers/services/customer.service';
@@ -40,6 +44,28 @@ import { PaymentRecorder } from './payment-recorder';
 
 function quantityText(units: number): string {
   return (units / 1000).toFixed(3);
+}
+
+/** Thrown to undo a check of the stock step, whose work is rolled back as soon as it has passed. */
+const STOCK_CHECKED = Symbol('stock checked');
+
+/** Read agreed 2026-11-04: what a booking set aside before calling its courier. */
+export interface BookingAside {
+  /** QTA-03: the period's limit it went past, for the prompt. */
+  passed: HandlingPassed | null;
+  fee: OrderFeeQuote | null;
+  /** It took the order's place under the limits, so a refusal gives that back. */
+  tookPlace: boolean;
+}
+
+/** CRR-06: a parcel the courier accepted, as the order takes it. */
+export interface AcceptedBooking {
+  courierName: string;
+  trackingCode: string | null;
+  trackingLink: string | null;
+  note: string;
+  serials: Departure['serials'];
+  fee: OrderFeeQuote | null;
 }
 
 /** How a whole order leaves the shop by hand (D4-7): with a courier, or handed to its customer at the counter. */
@@ -103,6 +129,187 @@ export class OrderFulfilment {
       serials: input.serials ?? [],
       courier: null,
     });
+  }
+
+  /** D6-10, CRR-09: refuses what can't be booked: what Mark shipped refuses, an open booking and one already booked. */
+  async lockForBooking(tx: Transaction, tenantId: string, orderId: string): Promise<OrderRecord> {
+    const order = await this.find(tx, tenantId, orderId);
+    this.refuseDeparture(order, 'ship');
+    const live = await this.store.liveParcel(tx, tenantId, order.id);
+    if (live !== null) {
+      this.refuseOpenBooking(live);
+      throw new ApiError('conflict', 'OrderAlreadyBooked', {});
+    }
+    return order;
+  }
+
+  /** The order, held until the transaction ends. */
+  lockWithin(tx: Transaction, tenantId: string, orderId: string): Promise<OrderRecord> {
+    return this.find(tx, tenantId, orderId);
+  }
+
+  /**
+   * Read agreed 2026-11-04: before a courier is called, the order takes its place under the limits and its fee is checked against
+   * what the balance can spend, once ever: the courier's yes can't be taken back, so nothing may be left to refuse it after.
+   * `handledAt` is what the counters read. The parcel holds the fee; the caller writes it there in this same transaction.
+   */
+  async setAsideWithin(
+    tx: Transaction,
+    shop: HandlingShop,
+    order: OrderRecord,
+    now: Date,
+  ): Promise<BookingAside> {
+    if (order.handledAt !== null) return { passed: null, fee: null, tookPlace: false };
+    const passed = await this.quota.admitWithin(tx, shop, now);
+    const fee =
+      shop.state === TenantState.PayAsYouGo
+        ? await this.payg.holdOrderFee(tx, shop.id, order.grandTotal)
+        : null;
+    await this.store.updateOrder(tx, shop.id, order.id, { handledAt: now });
+    return { passed, fee, tookPlace: true };
+  }
+
+  /** QTA-01: a booking that came to nothing gives back the place it took; the order was never handled. */
+  async giveBackPlaceWithin(tx: Transaction, tenantId: string, orderId: string): Promise<void> {
+    await this.store.updateOrder(tx, tenantId, orderId, { handledAt: null });
+  }
+
+  /**
+   * INV-14, INV-15: the stock step tried and undone, so what would refuse it after the courier's yes refuses the booking now.
+   * The notice it may send is the stand-in's log line (D4-10); Phase 7's has to go out with the transaction.
+   */
+  async checkStockWithin(
+    tx: Transaction,
+    tenantId: string,
+    order: OrderRecord,
+    serials: Departure['serials'],
+    who: ResolvedActor,
+  ): Promise<void> {
+    try {
+      await tx.transaction(async (trial) => {
+        await this.takeStockWithin(trial, tenantId, order, serials, who);
+        // Rolling back is how a savepoint ends with nothing done, and only a throw does it.
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw STOCK_CHECKED;
+      });
+    } catch (error) {
+      if (error !== STOCK_CHECKED) throw error;
+    }
+  }
+
+  /**
+   * CRR-06, D6-7, QTA-01, PYG-02, INV-14, INV-15, ORD-51: the courier accepted, so the order takes it: on its first booking the fee
+   * held is charged, its stock leaves with its serials, whoever booked it confirms it if no call had, and it moves to `processing`.
+   * Booked again after a cancelled booking, it only changes courier: stock, fee and count already happened (QTA-01).
+   */
+  async settleBookingWithin(
+    tx: Transaction,
+    tenantId: string,
+    order: OrderRecord,
+    booking: AcceptedBooking,
+    who: ResolvedActor,
+    now: Date,
+  ): Promise<OrderRecord> {
+    const patch: OrderPatch = {
+      courierName: booking.courierName,
+      trackingCode: booking.trackingCode,
+      trackingLink: booking.trackingLink,
+    };
+    const history: NewOrderHistory[] = [];
+    if (order.fulfillmentStatus === FulfillmentStatus.Unfulfilled) {
+      await this.takeStockWithin(tx, tenantId, order, booking.serials, who);
+      if (booking.fee !== null) {
+        await this.payg.chargeHeldOrderFee(tx, tenantId, order.id, order.grandTotal, booking.fee);
+      }
+      Object.assign(patch, { fulfillmentStatus: FulfillmentStatus.Processing });
+      if (order.confirmedAt === null) {
+        Object.assign(patch, { confirmedAt: now, confirmedBy: who.id });
+        history.push({
+          orderId: order.id,
+          field: OrderHistoryField.Confirmed,
+          oldValue: null,
+          newValue: OrderStatus.Confirmed,
+          note: null,
+          changedBy: who.id,
+        });
+      }
+    }
+    history.push(this.fulfilmentHistory(order, FulfillmentStatus.Processing, booking.note, who));
+    const updated = await this.store.updateOrder(tx, tenantId, order.id, patch);
+    await this.store.insertHistory(tx, tenantId, history);
+    await this.customers.recountWithin(tx, tenantId, [order.customerId]);
+    await this.record(tx, tenantId, who, updated, OrderStatus.Processing);
+    return updated;
+  }
+
+  /**
+   * Read agreed 2026-11-04: only the booking is called off. The order keeps its stock out, its fee and its count, and stays
+   * `processing`, to be booked again or marked shipped by hand; its courier and tracking go, with a line in its history.
+   */
+  async dropBookingWithin(
+    tx: Transaction,
+    tenantId: string,
+    order: OrderRecord,
+    note: string,
+    who: ResolvedActor,
+  ): Promise<OrderRecord> {
+    const updated = await this.store.updateOrder(tx, tenantId, order.id, {
+      courierName: null,
+      trackingCode: null,
+      trackingLink: null,
+    });
+    await this.store.insertHistory(tx, tenantId, [
+      this.fulfilmentHistory(order, order.fulfillmentStatus, note, who),
+    ]);
+    return updated;
+  }
+
+  /**
+   * ORD-10, CRR-28: a booked order cancelled: what stock it took comes back with the opposite movement, its serials in stock
+   * again, before the order is cancelled. Its fee and count stay (PYG-04, QTA-01).
+   */
+  async takeBackStockWithin(
+    tx: Transaction,
+    tenantId: string,
+    order: OrderRecord,
+    who: ResolvedActor,
+  ): Promise<void> {
+    const consumed = (await this.reservations.listForOrder(tx, tenantId, order.id)).filter(
+      (reservation) => reservation.status === ReservationStatus.Consumed,
+    );
+    if (consumed.length === 0) return;
+    const named = await this.returns.serialsFor(tx, tenantId, consumed);
+    for (const reservation of consumed) {
+      const pack = reservation.packAmount;
+      // INV-24: a size comes back counted in the packs it was ordered in.
+      const units =
+        pack === null
+          ? milli(reservation.quantity)
+          : Math.round((milli(reservation.quantity) * 1000) / milli(pack));
+      const sent = named.get(reservation.id)?.sent;
+      await this.returns.receive(
+        tx,
+        tenantId,
+        {
+          reservationId: reservation.id,
+          sellable: quantityText(units),
+          damaged: quantityText(0),
+          serials: sent === undefined ? null : { sellable: sent, damaged: [] },
+        },
+        who,
+      );
+    }
+  }
+
+  /** ATR-13, CMB-07: what the order weighs, each item at its own weight; null when any item has none. */
+  async weightWithin(tx: Transaction, tenantId: string, orderId: string): Promise<string | null> {
+    const lines = await this.store.listLines(tx, tenantId, [orderId]);
+    let grams = 0;
+    for (const line of lines) {
+      if (line.weightKg === null) return null;
+      grams += (milli(line.weightKg) * milli(line.quantity)) / 1000;
+    }
+    return (grams / 1000).toFixed(3);
   }
 
   /** ORD-42, agreed 2026-10-30: a shipped order delivered, its cash on delivery collected. */
@@ -283,6 +490,9 @@ export class OrderFulfilment {
     return this.store.run(shop.id, async (tx) => {
       const order = await this.find(tx, shop.id, orderId);
       this.refuseDeparture(order, departure.type);
+      // D6-13: by hand stays, unless a booking is open: only a settled parcel leaves the order free to go on.
+      const live = await this.store.liveParcel(tx, shop.id, order.id);
+      if (live !== null) this.refuseOpenBooking(live);
       const now = new Date();
       const passed = await this.handleWithin(tx, shop, order, now);
       await this.takeStockWithin(tx, shop.id, order, departure.serials, who);
@@ -346,7 +556,11 @@ export class OrderFulfilment {
     ) {
       throw new ApiError('conflict', 'OrderOnHoldNotSent', {});
     }
-    if (order.fulfillmentStatus !== FulfillmentStatus.Unfulfilled) {
+    // Booked already (Phase 6), it has not left yet and its stock is out: Mark shipped moves it on (D6-13).
+    if (
+      order.fulfillmentStatus !== FulfillmentStatus.Unfulfilled &&
+      order.fulfillmentStatus !== FulfillmentStatus.Processing
+    ) {
       throw new ApiError('conflict', 'OrderAlreadySent', {});
     }
     // D5-9 (agreed 2026-10-31): an order waiting on its advance leaves only once its payment is in.
@@ -356,6 +570,12 @@ export class OrderFulfilment {
     const delivery = order.fulfilmentType === FulfilmentType.Delivery;
     if (type === 'ship' && !delivery) throw new ApiError('conflict', 'HandOverInstead', {});
     if (type === 'hand_over' && delivery) throw new ApiError('conflict', 'ShipInstead', {});
+  }
+
+  /** CRR-08, D6-11: a booking out with its courier, with its answer lost, or accepted and not settled stops other moves. */
+  private refuseOpenBooking(parcel: { state: ParcelState; settledAt: Date | null }): void {
+    if (parcel.state === ParcelState.Booked && parcel.settledAt !== null) return;
+    throw new ApiError('conflict', 'OrderBookingOpen', { parcelState: parcel.state });
   }
 
   /**

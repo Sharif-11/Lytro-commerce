@@ -67,6 +67,9 @@ import { InventoryModule } from '../inventory/inventory.module';
 import { PurchasingModule } from '../purchasing/purchasing.module';
 import { OrdersModule } from '../orders/orders.module';
 import { OrdersController } from './controllers/orders.controller';
+import { CouriersController } from './controllers/couriers.controller';
+import { OperatorCouriersController } from './controllers/operator-couriers.controller';
+import { CouriersModule } from '../couriers/couriers.module';
 import { CustomersController } from './controllers/customers.controller';
 import { SalesController } from './controllers/sales.controller';
 import { TaxClassesController } from './controllers/tax-classes.controller';
@@ -110,6 +113,7 @@ import { CatalogueRequest } from './services/catalogue-request';
 // is Phase 2's actual plan/term/invoice logic module (PHASE-2-PLAN.md's architecture table), not an HTTP layer.
 @Module({
   imports: [
+    CouriersModule,
     IdentityModule,
     TenancyModule,
     StaffModule,
@@ -193,6 +197,8 @@ import { CatalogueRequest } from './services/catalogue-request';
     PurchaseOrdersController,
     ProductPurchasesController,
     OrdersController,
+    CouriersController,
+    OperatorCouriersController,
     CustomersController,
     TaxClassesController,
     PaymentMethodsController,
