@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { SLUG } from './support/mock-api';
+import { envelope, SLUG } from './support/mock-api';
 import { BOGURA, mockOnboarding, STARTER, TWELVE_MONTHS, typeCode } from './support/onboarding-api';
 
 // TENANT-DASHBOARD-DESIGN §6, Slice 11.4a: the steps before a shop -- sign-in, the code, create-shop, the checkout,
@@ -56,6 +56,24 @@ test('asks an owner verified by Google for a phone before Create shop, keeping w
     value: PHONE,
     code: '123456',
   });
+});
+
+test('signs in by Google with no phone and lands on the phone step', async ({ page }) => {
+  await mockOnboarding(page, { language: 'en', noPhone: 'google' });
+  await page.route('**/api/v1/auth/oauth/google/callback**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: envelope({
+        next: 'verify-phone',
+        tenantId: null,
+        csrfToken: 'csrf-e2e',
+        recovery: null,
+      }),
+    }),
+  );
+  await page.goto('/auth/oauth/google/callback?code=c&state=s');
+  await expect(page).toHaveURL('/verify-phone');
 });
 
 test('names the way they signed up, and the step is accessible', async ({ page }) => {

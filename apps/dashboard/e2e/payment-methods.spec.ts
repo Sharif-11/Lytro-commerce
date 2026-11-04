@@ -220,6 +220,20 @@ test('editing keeps the account and its place; deleting the active one says what
   await expect(bkash).not.toContainText('01711 234 567');
 });
 
+test('every save keeps a note on the accounts it did not touch', async ({ page }) => {
+  const methods = drawnMethods('en');
+  const spare = methods.methods[0]?.accounts[1];
+  if (spare) spare.note = 'Send Money only';
+  const log = await open(page, methods);
+  await card(page, 'bKash').getByRole('radio', { name: 'Make 01911 222 333 active' }).click();
+  await expect(card(page, 'bKash')).toContainText('Active: 01911 222 333');
+  const accounts = sent(log, 'PUT', '/payment-methods/bkash').at(-1)?.accounts as {
+    id: string;
+    note?: string;
+  }[];
+  expect(accounts.find((each) => each.id === 'bk-spare')?.note).toBe('Send Money only');
+});
+
 test('a bank account has its own fields, and turning a method off keeps what is saved', async ({
   page,
 }) => {
