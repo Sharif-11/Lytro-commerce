@@ -1,4 +1,4 @@
-import { asc, eq, isNotNull } from 'drizzle-orm';
+import { asc, eq, inArray, isNotNull } from 'drizzle-orm';
 import type { Executor } from '../../transactions';
 import { operatorAccounts } from '../../schema';
 
@@ -28,6 +28,15 @@ export class OperatorAccountRepository {
       .where(isNotNull(operatorAccounts.twoFactorConfirmedAt))
       .orderBy(asc(operatorAccounts.email));
     return rows.map((row) => row.email);
+  }
+
+  /** Who these operator ids are: rows that record an operator keep only its id. */
+  async emailsOf(db: Executor, ids: readonly string[]): Promise<Map<string, string>> {
+    const rows = await db
+      .select({ id: operatorAccounts.id, email: operatorAccounts.email })
+      .from(operatorAccounts)
+      .where(inArray(operatorAccounts.id, [...ids]));
+    return new Map(rows.map((row) => [row.id, row.email]));
   }
 
   async findByEmail(db: Executor, email: string): Promise<OperatorAccountRow | null> {

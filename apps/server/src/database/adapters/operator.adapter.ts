@@ -3,6 +3,7 @@ import {
   OperatorAccountRepository,
   OperatorBackupCodeRepository,
   OperatorSessionRepository,
+  SignInFailureRepository,
   TransactionRunner,
   type Transaction,
 } from '@lytronix/db';
@@ -25,6 +26,7 @@ export class DrizzleOperatorGateway implements OperatorGateway {
     @Inject(OperatorBackupCodeRepository)
     private readonly backupCodes: OperatorBackupCodeRepository,
     @Inject(OperatorSessionRepository) private readonly sessions: OperatorSessionRepository,
+    @Inject(SignInFailureRepository) private readonly failures: SignInFailureRepository,
   ) {}
 
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
@@ -93,10 +95,30 @@ export class DrizzleOperatorGateway implements OperatorGateway {
 
   async findActiveSession(tokenHash: string, now: Date): Promise<OperatorSessionRecord | null> {
     const row = await this.sessions.findActiveByTokenHash(this.database.handle.db, tokenHash, now);
-    return row ? { id: row.id, operatorId: row.operatorId, csrfHash: row.csrfHash } : null;
+    return row
+      ? {
+          id: row.id,
+          operatorId: row.operatorId,
+          csrfHash: row.csrfHash,
+          createdAt: row.createdAt,
+          userAgent: row.userAgent,
+        }
+      : null;
   }
 
   revokeSession(sessionId: string, at: Date): Promise<void> {
     return this.sessions.revoke(this.database.handle.db, sessionId, at);
+  }
+
+  recordFailure(values: { operatorId: string | null; ip: string | null }): Promise<void> {
+    return this.failures.insert(this.database.handle.db, values);
+  }
+
+  countFailuresSince(operatorId: string, since: Date): Promise<number> {
+    return this.failures.countSince(this.database.handle.db, { operatorId }, since);
+  }
+
+  emailsOf(ids: readonly string[]): Promise<Map<string, string>> {
+    return this.accounts.emailsOf(this.database.handle.db, ids);
   }
 }

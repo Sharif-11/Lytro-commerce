@@ -18,6 +18,7 @@ import type {
   PaymentNeedingAttention,
   PlanPaymentRecord,
   TenantPaymentRecord,
+  QueuedPlanPayment,
 } from '../types/plan-payment';
 
 const PENDING_LIKE: readonly PlanPaymentStatus[] = [
@@ -156,7 +157,7 @@ export class PlanPaymentsService {
   }
 
   /** The operator payment-queue: every submitted (transaction-ID attached), still-undecided payment. */
-  listPending(kind?: PlanPaymentKind): Promise<PlanPaymentRecord[]> {
+  listPending(kind?: PlanPaymentKind): Promise<QueuedPlanPayment[]> {
     return this.store.run((tx) => this.store.listPending(tx, kind));
   }
 

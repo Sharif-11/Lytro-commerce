@@ -10,6 +10,7 @@ import type { Transaction } from '@lytronix/db';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { originAllowed, sessionCookieName } from '../../../common/cookies';
 import { HOUR_MS } from '../../../common/time';
+import { SIGNIN_MAX_FAILURES, SIGNIN_WINDOW_MS } from '../../identity/services/sign-in-lockout';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { OPERATOR_GATEWAY, OPERATOR_SETTINGS } from '../tokens';
 import type {
@@ -22,6 +23,7 @@ import { TotpService } from './totp.service';
 import type {
   OpenedOperatorSession,
   OperatorEnrolled,
+  OperatorMe,
   OperatorSessionContext,
   OperatorSessionSettings,
   OperatorSigninResult,
@@ -47,8 +49,12 @@ export class OperatorAuthService {
   ) {}
 
   /** Password only. Never opens a session — tells the caller whether to enroll or enter a code next. */
-  async signin(email: string, password: string): Promise<OperatorSigninResult> {
-    const account = await this.authenticate(email, password);
+  async signin(
+    email: string,
+    password: string,
+    ip: string | null = null,
+  ): Promise<OperatorSigninResult> {
+    const account = await this.authenticate(email, password, ip);
     if (account.twoFactorConfirmedAt !== null) {
       return { next: 'verify-2fa' };
     }
@@ -68,7 +74,7 @@ export class OperatorAuthService {
     code: string,
     context: OperatorSessionContext,
   ): Promise<OperatorEnrolled> {
-    const account = await this.authenticate(email, password);
+    const account = await this.authenticate(email, password, context.ip);
     if (account.twoFactorConfirmedAt !== null) {
       throw new ApiError('conflict', 'TwoFactorAlreadyEnrolled', {});
     }
@@ -79,6 +85,7 @@ export class OperatorAuthService {
       !TOTP_CODE_PATTERN.test(code) ||
       !(await this.totp.verifyCode(account.twoFactorSecret, code))
     ) {
+      await this.gateway.recordFailure({ operatorId: account.id, ip: context.ip });
       throw new FieldsError([
         { field: 'code', problem: ServerFieldProblemCode.Incorrect, messageKey: 'CodeIncorrect' },
       ]);
@@ -104,7 +111,7 @@ export class OperatorAuthService {
     code: string,
     context: OperatorSessionContext,
   ): Promise<OpenedOperatorSession> {
-    const account = await this.authenticate(email, password);
+    const account = await this.authenticate(email, password, context.ip);
     if (account.twoFactorConfirmedAt === null || account.twoFactorSecret === null) {
       throw new ApiError('forbidden', 'TwoFactorIncomplete', { next: 'enroll-2fa' });
     }
@@ -113,7 +120,7 @@ export class OperatorAuthService {
       if (await this.totp.verifyCode(account.twoFactorSecret, code)) {
         return this.gateway.run((tx) => this.openSession(tx, account.id, context));
       }
-      throw this.invalidCode();
+      throw await this.wrongCode(account.id, context.ip);
     }
 
     const candidates = await this.gateway.run((tx) =>
@@ -127,7 +134,7 @@ export class OperatorAuthService {
         });
       }
     }
-    throw this.invalidCode();
+    throw await this.wrongCode(account.id, context.ip);
   }
 
   /**
@@ -140,16 +147,19 @@ export class OperatorAuthService {
     operatorId: string,
     password: string,
     code: string,
+    ip: string | null = null,
   ): Promise<string[]> {
+    await this.refuseIfLocked(operatorId);
     const account = await this.gateway.run((tx) => this.gateway.findById(tx, operatorId));
     if (!account || !(await this.passwords.verify(password, account.passwordHash))) {
+      await this.gateway.recordFailure({ operatorId, ip });
       throw new ApiError('unauthenticated', 'OperatorCredentialsWrong', {});
     }
     if (account.twoFactorConfirmedAt === null || account.twoFactorSecret === null) {
       throw new ApiError('forbidden', 'TwoFactorIncomplete', { next: 'enroll-2fa' });
     }
     if (!(await this.verifySecondFactor(account.id, account.twoFactorSecret, code))) {
-      throw this.invalidCode();
+      throw await this.wrongCode(account.id, ip);
     }
 
     const backupCodes = this.generateBackupCodes();
@@ -195,6 +205,24 @@ export class OperatorAuthService {
     return false;
   }
 
+  /** Who is signed in, for the sidebar's foot and the account page ("7 of 10 unused"). */
+  async me(session: OperatorSessionRecord): Promise<OperatorMe> {
+    const [account, codes] = await this.gateway.run(
+      async (tx) =>
+        [
+          await this.gateway.findById(tx, session.operatorId),
+          await this.gateway.findValidBackupCodes(tx, session.operatorId),
+        ] as const,
+    );
+    if (!account) throw new ApiError('unauthenticated', 'SignInToContinue', {});
+    return {
+      email: account.email,
+      unusedBackupCodes: codes.length,
+      signedInAt: session.createdAt,
+      userAgent: session.userAgent,
+    };
+  }
+
   async resolve(cookieHeader: string | undefined): Promise<OperatorSessionRecord | null> {
     const token = this.readToken(cookieHeader);
     if (token === null) return null;
@@ -228,15 +256,45 @@ export class OperatorAuthService {
   }
 
   /** A password-only check, with the same timing whether the email is unknown or the password is wrong (AUTH-13's rule, applied to operators too). */
-  private async authenticate(email: string, password: string): Promise<OperatorAccountRecord> {
+  private async authenticate(
+    email: string,
+    password: string,
+    ip: string | null,
+  ): Promise<OperatorAccountRecord> {
     const account = await this.gateway.run((tx) => this.gateway.findByEmail(tx, email));
+    if (account) await this.refuseIfLocked(account.id);
     const ok = account
       ? await this.passwords.verify(password, account.passwordHash)
       : await this.passwords.verifyAbsent(password);
     if (!account || !ok) {
+      await this.gateway.recordFailure({ operatorId: account?.id ?? null, ip });
       throw new ApiError('unauthenticated', 'OperatorCredentialsWrong', {});
     }
     return account;
+  }
+
+  /** ADM-01, on AUTH-14's rule: five failures in fifteen minutes lock the account, even to the right password. */
+  private async refuseIfLocked(operatorId: string): Promise<void> {
+    if ((await this.failuresInWindow(operatorId)) >= SIGNIN_MAX_FAILURES) {
+      throw new ApiError('rate_limited', 'TooManyFailedSignins', {}, SIGNIN_WINDOW_MS / 1000);
+    }
+  }
+
+  private failuresInWindow(operatorId: string): Promise<number> {
+    const since = new Date(this.settings.now().getTime() - SIGNIN_WINDOW_MS);
+    return this.gateway.countFailuresSince(operatorId, since);
+  }
+
+  /** A wrong code counts, and says how many tries are left: the password has been proven by this point. */
+  private async wrongCode(operatorId: string, ip: string | null): Promise<ApiError> {
+    await this.gateway.recordFailure({ operatorId, ip });
+    const attemptsLeft = Math.max(
+      SIGNIN_MAX_FAILURES - (await this.failuresInWindow(operatorId)),
+      0,
+    );
+    return new ApiError('unauthenticated', 'OperatorCodeWrong', { attemptsLeft }, undefined, {
+      attemptsLeft,
+    });
   }
 
   private async openSession(
@@ -283,9 +341,5 @@ export class OperatorAuthService {
 
   private digest(value: string): string {
     return createHash('sha256').update(value).digest('hex');
-  }
-
-  private invalidCode(): ApiError {
-    return new ApiError('unauthenticated', 'BackupCodeInvalid', {});
   }
 }

@@ -47,6 +47,10 @@ export interface TenantSummaryRow {
   suspendedAt: Date | null;
   planId: string | null;
   planName: string | null;
+  /** PLN-02: the version of its plan the shop bought. */
+  planVersion: number | null;
+  /** PLN-11: how many overrides the shop has. */
+  overrideCount: number;
   /** PLN-05, PLN-06, PLN-11, PLN-13: the shop's own limits: its plan snapshot, its overrides, its active add-ons. */
   planLimits: PlanLimits | null;
   /** UPG-10, PYG-19: with the state and creation date, what the shop's usage cycles are counted from. */
@@ -61,7 +65,9 @@ export interface TenantSummaryRow {
   autoRenewEnabled: boolean;
 }
 
-// PLN-11: a shop's overrides as one object, read with the shop itself.
+// PLN-11: a shop's overrides as one object, read with the shop itself. A select using this or `addonUnitsOf(tenants.id)`
+// must join another table: from one table alone, Drizzle writes `tenants.id` as a bare "id", which the subquery reads as
+// its own table's id, and it silently finds nothing.
 const overridesOfShop = sql<Record<string, unknown> | null>`(
   SELECT jsonb_object_agg(o.limit_key, o.value)
   FROM control.plan_limit_overrides o
@@ -89,9 +95,18 @@ function summaryOf<
     overrides: Record<string, unknown> | null;
     addons: Record<string, number> | null;
   },
->(row: R): Omit<R, 'planSnapshot' | 'overrides' | 'addons'> & { planLimits: PlanLimits | null } {
+>(
+  row: R,
+): Omit<R, 'planSnapshot' | 'overrides' | 'addons'> & {
+  planLimits: PlanLimits | null;
+  overrideCount: number;
+} {
   const { planSnapshot, overrides, addons, ...rest } = row;
-  return { ...rest, planLimits: limitsOf(planSnapshot, overrides, addons) };
+  return {
+    ...rest,
+    planLimits: limitsOf(planSnapshot, overrides, addons),
+    overrideCount: Object.keys(overrides ?? {}).length,
+  };
 }
 
 // LIF-24: the operator's own keyset cursor for search() -- the latest-created tenant the caller has already
@@ -102,6 +117,18 @@ export interface TenantSearchCursor {
 }
 
 export type TenantSearchRow = TenantSummaryRow;
+
+/** OPERATOR-CONSOLE-DESIGN §5: a shop's suspensions, its new-shop cap, and the parts of its limits. */
+export interface TenantOperatorFactsRow {
+  planVersion: number | null;
+  planSnapshot: PlanLimits | null;
+  overrides: Record<string, unknown> | null;
+  addons: Record<string, number> | null;
+  suspendedReason: string | null;
+  paymentPageSuspendedAt: Date | null;
+  paymentPageSuspendedReason: string | null;
+  newShopCap: boolean | null;
+}
 
 export class TenantRepository {
   /** INV-13, INV-16, MED-04: every shop not yet deleted, for the daily passes that visit each one. */
@@ -117,6 +144,26 @@ export class TenantRepository {
   async findSummaryById(db: Database, id: string): Promise<TenantSummaryRow | null> {
     const rows = await this.summaryQuery(db).where(eq(tenants.id, id)).limit(1);
     return rows[0] ? summaryOf(rows[0]) : null;
+  }
+
+  /** OPERATOR-CONSOLE-DESIGN §5: what the operator's shop page reads beyond a summary. */
+  async findOperatorFacts(db: Database, id: string): Promise<TenantOperatorFactsRow | null> {
+    const rows = await db
+      .select({
+        planVersion: tenants.planVersionSnapshot,
+        planSnapshot: tenants.planSnapshot,
+        overrides: overridesOfShop,
+        addons: addonUnitsOf(tenants.id),
+        suspendedReason: tenants.suspendedReason,
+        paymentPageSuspendedAt: tenants.paymentPageSuspendedAt,
+        paymentPageSuspendedReason: tenants.paymentPageSuspendedReason,
+        newShopCap: tenants.newShopCap,
+      })
+      .from(tenants)
+      .leftJoin(plans, eq(plans.id, tenants.planId))
+      .where(eq(tenants.id, id))
+      .limit(1);
+    return rows[0] ?? null;
   }
 
   /** TEN-31: the shop a dashboard page names by its slug. */
@@ -135,6 +182,7 @@ export class TenantRepository {
         suspendedAt: tenants.suspendedAt,
         planId: tenants.planId,
         planName: plans.name,
+        planVersion: tenants.planVersionSnapshot,
         planSnapshot: tenants.planSnapshot,
         overrides: overridesOfShop,
         addons: addonUnitsOf(tenants.id),
@@ -180,6 +228,7 @@ export class TenantRepository {
         suspendedAt: tenants.suspendedAt,
         planId: tenants.planId,
         planName: plans.name,
+        planVersion: tenants.planVersionSnapshot,
         planSnapshot: tenants.planSnapshot,
         overrides: overridesOfShop,
         addons: addonUnitsOf(tenants.id),

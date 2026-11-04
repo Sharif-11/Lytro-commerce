@@ -21,6 +21,14 @@ export interface OpenedOperatorSession {
 export type OperatorSigninResult =
   { next: 'enroll-2fa'; secret: string; uri: string } | { next: 'verify-2fa' };
 
+/** What the console shows of who is signed in: the sidebar's foot and the account page. */
+export interface OperatorMe {
+  email: string;
+  unusedBackupCodes: number;
+  signedInAt: Date;
+  userAgent: string | null;
+}
+
 /** `enroll`'s result additionally carries the ten backup codes, shown once (ADM-01). */
 export interface OperatorEnrolled extends OpenedOperatorSession {
   backupCodes: string[];

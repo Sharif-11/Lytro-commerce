@@ -310,7 +310,24 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Incorrect email or password.',
     bn: 'ইমেইল বা পাসওয়ার্ড সঠিক নয়।',
   },
-  BackupCodeInvalid: { en: 'That code is not valid.', bn: 'এই কোডটি সঠিক নয়।' },
+  OperatorCodeWrong: {
+    en: (p) => {
+      const left = Number(p.attemptsLeft);
+      if (left === 0) return 'That code did not match. Wait 15 minutes before trying again.';
+      return `That code did not match. ${String(left)} ${left === 1 ? 'attempt' : 'attempts'} left before a 15-minute wait.`;
+    },
+    bn: (p) =>
+      Number(p.attemptsLeft) === 0
+        ? 'কোড মেলেনি। ১৫ মিনিট পর আবার ট্রাই করুন।'
+        : `কোড মেলেনি। ১৫ মিনিট অপেক্ষার আগে আর ${String(p.attemptsLeft)} বার ট্রাই করা যাবে।`,
+  },
+  OperatorAccountRetrieved: { en: 'Account retrieved.', bn: 'অ্যাকাউন্ট পাওয়া গেছে।' },
+  OperatorShopRetrieved: { en: 'Shop retrieved.', bn: 'শপ পাওয়া গেছে।' },
+  OperatorShopAddonsRetrieved: {
+    en: "The shop's add-ons retrieved.",
+    bn: 'শপের অ্যাড-অন পাওয়া গেছে।',
+  },
+  RecentChangesListed: { en: 'Recent changes retrieved.', bn: 'সাম্প্রতিক বদল পাওয়া গেছে।' },
 
   RoleHeldByMembers: {
     en: (p) => {

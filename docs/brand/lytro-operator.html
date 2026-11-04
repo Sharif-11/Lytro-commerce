@@ -759,7 +759,7 @@ function queueStats() {
   const oldest = list.length ? list.reduce((a, p) => (new Date(p.createdAt) < new Date(a.createdAt) ? p : a)) : null;
   return `<div class="stats">
     <div class="stat ${review.length ? 'flag' : ''}"><span class="k">${t('st_review')}</span><span class="v ${review.length ? 'warn' : ''}">${review.length}</span><span class="d">${review.length ? t('q_review_why', { q: money(review[0].amount), s: money(review[0].credit) }) : t('st_nothing')}</span></div>
-    <div class="stat"><span class="k">${t('st_pending')}</span><span class="v">${list.length - review.length}</span><span class="d">${list.length ? [...new Set(list.map((p) => p.wallet))].join(' · ') : t('st_nothing')}</span></div>
+    <div class="stat"><span class="k">${t('st_pending')}</span><span class="v">${list.length - review.length}</span><span class="d">${list.length ? t('pay_no_receipt') : t('st_nothing')}</span></div>
     <div class="stat"><span class="k">${t('st_taka')}</span><span class="v">${money(taka)}</span><span class="d">${t('n_payments', { n: list.length })}</span></div>
     <div class="stat"><span class="k">${t('st_oldest')}</span><span class="v">${oldest ? ago(oldest.createdAt) : '—'}</span><span class="d">${oldest ? tenantOf(oldest.tenantId).name : t('st_nothing')}</span></div>
   </div>`;
@@ -794,7 +794,7 @@ function payRows(list) {
       shop: `<div>${ten.name}</div><div style="font-size:12px;color:var(--subtle);font-weight:400">${ten.slug}.lytro.app</div>`,
       kind: `<div>${kindLabel(p.kind)}</div><div style="font-size:12px;color:var(--subtle)">${plan ? `${plan.name} · ${termLabel(term)}` : t('q_credit', { a: money(p.credit) })}</div>`,
       amount: `<span class="money">${money(p.credit)}</span>${p.credit !== p.amount ? `<div style="font-size:12px;color:var(--warning)">${t('c_quoted').toLowerCase()} ${money(p.amount)}</div>` : ''}`,
-      sender: `<span class="mono">${p.sender}</span><div class="mono" style="font-size:12px;color:var(--subtle)">${p.trx} · ${p.wallet}</div>`,
+      sender: `<span class="mono">${p.sender}</span><div class="mono" style="font-size:12px;color:var(--subtle)">${p.trx}${p.wallet ? ` · ${p.wallet}` : ''}</div>`,
       age: `<span class="num">${ago(p.createdAt)}</span>`,
       status: payStatus(p),
       acts: `${btn(t('approve'), 'primary sm', "event.stopPropagation();go('queue-approve')")}${btn(t('reject'), 'ghost sm', "event.stopPropagation();go('queue-reject')")}`,
@@ -913,9 +913,9 @@ Object.assign(S, {
   ar_btn: ['Retire', 'বন্ধ করুন'],
   ta_title: ['Add-ons', 'অ্যাড-অন'], ta_hint: ['Active add-ons raise this shop\'s limits on top of the plan snapshot and the overrides; packs are used up as they go (PLN-13, UPG-14).', 'চালু অ্যাড-অন স্ন্যাপশট আর ওভাররাইডের উপরে এই শপের লিমিট বাড়ায়; প্যাক খরচ হতে হতে ফুরোয় (PLN-13, UPG-14)।'],
   ta_ends: ['until {d}', '{d} পর্যন্ত'], ta_renew: ['renews with the plan', 'প্ল্যানের সাথে রিনিউ'], ta_norenew: ['renewal off', 'রিনিউ বন্ধ'], ta_paid: ['paid from the balance', 'ব্যালেন্স থেকে'], ta_paid_page: ['paid on the payment page', 'পেমেন্ট পেজে'],
-  ta_packs: ['Packs this cycle', 'এই সাইকেলে প্যাক'], ta_pack_line: ['{n} × 10 GB bandwidth · {a} by auto-buy · {left} GB left', '{n} × ১০ GB ব্যান্ডউইথ · অটো-বাই {a}টা · {left} GB বাকি'],
-  ta_auto: ['Auto-buy', 'অটো-বাই'], ta_auto_v: ['bandwidth on · requests off · at most {c} packs a cycle', 'ব্যান্ডউইথ চালু · রিকোয়েস্ট বন্ধ · সাইকেলে বড়জোর {c} প্যাক'],
-  ta_effective: ['Effective limits', 'কার্যকর লিমিট'], ta_eff_hint: ['snapshot + override + add-ons; what every check reads (KNOWN-GAPS §83)', 'স্ন্যাপশট + ওভাররাইড + অ্যাড-অন; প্রতিটা চেক এটাই পড়ে (KNOWN-GAPS §83)'],
+  ta_pack_bw: ['Bandwidth packs', 'ব্যান্ডউইথ প্যাক'], ta_pack_req: ['Request packs', 'রিকোয়েস্ট প্যাক'], ta_left: ['{v} left', '{v} বাকি'],
+  ta_auto_on: ['auto-buy on', 'অটো-বাই চালু'], ta_auto_off: ['auto-buy off', 'অটো-বাই বন্ধ'],
+  ta_effective: ['Effective limits', 'কার্যকর লিমিট'], ta_eff_hint: ['The plan\'s value, or the override that replaces it, plus add-ons. What every check reads.', 'প্ল্যানের মান, বা তার বদলে দেওয়া ওভাররাইড, সাথে অ্যাড-অন। প্রতিটা চেক এটাই পড়ে।'], ta_eff_plan: ['plan {v}', 'প্ল্যান {v}'], ta_eff_ov: ['override {v}', 'ওভাররাইড {v}'], ta_eff_ao: ['add-ons +{v}', 'অ্যাড-অন +{v}'],
   ta_eff_products: ['Products', 'প্রোডাক্ট'], ta_eff_staff: ['Seats', 'সিট'], ta_eff_storage: ['Storage', 'স্টোরেজ'], ta_eff_bw: ['Bandwidth', 'ব্যান্ডউইথ'],
   addon: ['Add-on', 'অ্যাড-অন'], qa_line: ['{name} ×{q} · {n} days to {d}', '{name} ×{q} · {d} পর্যন্ত {n} দিন'],
   qa_activate: ['Approving activates the add-on at once and raises the limit; the invoice follows. Rejecting leaves the shop as it is.', 'অ্যাপ্রুভ করলে অ্যাড-অন এখনই চালু হয়, লিমিট বাড়ে; ইনভয়েস তারপর। রিজেক্ট করলে শপ যেমন আছে তেমনই।'],
@@ -982,13 +982,13 @@ function addonsCard(x) {
     { a: ADDON_ITEMS[1], q: 1, end: '2026-11-14', renew: false, paid: 'ta_paid_page' },
     { a: ADDON_ITEMS[5], q: 1, end: '2026-11-14', renew: true, paid: 'ta_paid' },
   ];
-  const eff = (k, snap, ov, ao, fmt) => `<div class="row wrap" style="min-height:40px;padding:6px 16px"><span class="body"><span class="l1">${t(k)}: <b>${fmt(snap + ov + ao)}</b></span><span class="l2 num">${fmt(snap)} + ${fmt(ov)} + ${fmt(ao)}</span></span></div>`;
+  const eff = (k, snap, ov, ao, fmt) => `<div class="row wrap" style="min-height:40px;padding:6px 16px"><span class="body"><span class="l1">${t(k)}: <b>${fmt((ov || snap) + ao)}</b></span><span class="l2 num">${ov ? t('ta_eff_ov', { v: fmt(ov) }) : t('ta_eff_plan', { v: fmt(snap) })}${ao ? ` · ${t('ta_eff_ao', { v: fmt(ao) })}` : ''}</span></span></div>`;
   const n = (v) => Number(v).toLocaleString('en-US');
   return `<div class="grid2">
     <div class="card"><div class="sechead"><h3>${t('ta_title')}</h3><span class="lnk" onclick="go('addons')">${t('addons')}</span></div><div class="hint">${t('ta_hint')}</div>
       <div class="list" style="margin:8px -16px 0">${active.map((r) => `<div class="row wrap"><span class="body"><span class="l1">${aoName(r.a)} <span class="num" style="color:var(--subtle);font-weight:400">×${r.q}</span> ${kindChip(r.a.kind)}</span><span class="l2">${t('ta_ends', { d: dateS(r.end) })} · ${r.renew ? t('ta_renew') : `<span style="color:var(--warning)">${t('ta_norenew')}</span>`} · ${t(r.paid)} · ${money(r.a.price)}/${L.lang === 'bn' ? 'মাস' : 'mo'}</span></span></div>`).join('')}
-      <div class="row wrap"><span class="body"><span class="l1">${t('ta_packs')}</span><span class="l2 num">${t('ta_pack_line', { n: 2, a: 1, left: 6.2 })}</span></span></div>
-      <div class="row wrap"><span class="body"><span class="l1">${t('ta_auto')}</span><span class="l2">${t('ta_auto_v', { c: 3 })}</span></span></div></div></div>
+      <div class="row wrap"><span class="body"><span class="l1">${t('ta_pack_bw')}</span><span class="l2 num">${t('ta_left', { v: '6.2 GB' })} · ${t('ta_auto_on')}</span></span></div>
+      <div class="row wrap"><span class="body"><span class="l1">${t('ta_pack_req')}</span><span class="l2 num">${t('ta_left', { v: '40,000' })} · ${t('ta_auto_off')}</span></span></div></div></div>
     <div class="card"><div class="sechead"><h3>${t('ta_effective')}</h3></div><div class="hint">${t('ta_eff_hint')}</div><div class="list" style="margin:8px -16px -16px">
       ${eff('ta_eff_products', 100, 0, 500, n)}${eff('ta_eff_staff', 2, 0, 1, n)}${eff('ta_eff_storage', 2048, 0, 0, (v) => (v / 1024) + ' GB')}${eff('ta_eff_bw', 30, 0, 20, (v) => v + ' GB')}</div></div>
   </div>`;
@@ -1265,7 +1265,6 @@ Object.assign(S, {
   q_review_why: ['Quoted {q}, {s} arrived', 'কোট {q}, এসেছে {s}'],
   rv_amount: ['The amount isn\'t what was quoted.', 'টাকার অঙ্ক কোটের সাথে মেলেনি।'],
   rv_sender: ['The money came from a number the seller didn\'t name.', 'বিক্রেতা যে নম্বর দিয়েছেন, টাকা সেই নম্বর থেকে আসেনি।'],
-  rv_wallet: ['The money arrived on a different wallet from the one the seller chose.', 'বিক্রেতা যে ওয়ালেট বেছেছেন, টাকা সেখানে আসেনি।'],
   rv_old_receipt: ['The receipt is older than this request.', 'রিসিটটা এই রিকোয়েস্টের চেয়ে পুরোনো।'],
   rv_transaction_id_used: ['This TrxID is already on another payment.', 'এই TrxID আগেই আরেকটা পেমেন্টে আছে।'],
   rv_request_closed: ['The seller\'s request had closed when the money arrived.', 'টাকা আসার আগেই বিক্রেতার রিকোয়েস্ট বন্ধ হয়ে গিয়েছিল।'],
@@ -1352,6 +1351,7 @@ const LATER_NAV = NAV.find((g) => g.later);
 LATER_NAV.items = LATER_NAV.items.filter(([k]) => k !== 'pagereports');
 
 /* ---------- fixtures ---------- */
+PAYMENTS.filter((p) => p.status === 'pending').forEach((p) => { p.wallet = null; });
 Object.assign(PAYMENTS[0], { sent: 449, arrived: 448, reason: 'amount' });
 Object.assign(PAYMENTS[1], { sent: 4741, arrived: 4700, reason: 'amount' });
 PAYMENTS.push({ id: 'pay-9111', tenantId: 'ten-0034', kind: 'top_up', planId: null, termId: null, amount: 2000, credit: 2000, status: 'needs_review', sender: '01611 223300', trx: 'BKH8S3D1F6', quotedAt: '2026-10-21T10:02:00+06:00', createdAt: '2026-10-21T10:15:00+06:00', wallet: 'bKash', sent: 2000, arrived: 2000, reason: 'sender' });

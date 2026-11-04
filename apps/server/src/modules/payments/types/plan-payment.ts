@@ -1,6 +1,7 @@
 import type {
   BillingPaymentState,
   PaymentCancelReason,
+  PaymentMethod,
   PaymentReviewReason,
   PlanPaymentKind,
   PlanPaymentMethod,
@@ -51,3 +52,10 @@ export interface PaymentNeedingAttention {
   amount: string;
   state: BillingPaymentState;
 }
+
+/** ADM-06: a payment as the operator's queue reads it, with its shop and the wallet a receipt says it arrived on. */
+export type QueuedPlanPayment = PlanPaymentRecord & {
+  shopName: string;
+  shopSlug: string;
+  wallet: PaymentMethod | null;
+};
