@@ -100,6 +100,13 @@ jobs:
         working-directory: apps/storefront
         run: pnpm exec playwright test
 
+      # Slice 5.8's part 2: the payment page in a real browser, drawn from fixtures under its real policy, on a phone and a
+      # desktop, each screen beside the prototype's drawing of it, kept as pictures for the pull request.
+      - name: Payment page browser tests
+        if: steps.scope.outputs.paymentPage == 'true'
+        working-directory: apps/server
+        run: pnpm exec playwright test
+
       # Slice 11.13b (PHASE-3-PLAN Slice 11's "done when"): a clothing, a cosmetics and a grocery seller sign up, make a
       # product, add stock, count it and buy more, on a phone in Bangla, against the built server and a fresh database
       # (walkthrough/global-setup.ts), never meeting inventory jargon or a field the shop type does not use.
@@ -128,4 +135,15 @@ jobs:
           path: |
             apps/storefront/test-results/
             apps/storefront/playwright-report/
+          retention-days: 14
+
+      - name: Keep the payment page's pictures and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: payment-page-browser-tests
+          if-no-files-found: ignore
+          path: |
+            apps/server/test-results/
+            apps/server/playwright-report/
           retention-days: 14

@@ -824,7 +824,7 @@ describeIfDatabase(
 
       bkash.authorise(paymentId);
       const back = await returned(ref, { paymentID: paymentId, status: 'success' });
-      expect(back).toEqual({ status: 302, location: `http://pay.localhost/${ref}` });
+      expect(back).toEqual({ status: 302, location: `http://pay.localhost/${ref}?just=1` });
 
       const done = await sessionOf(ref);
       expect(done).toMatchObject({

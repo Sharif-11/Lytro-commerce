@@ -18,6 +18,7 @@ function runs(scope) {
     scope.browser && 'browser',
     scope.dashboard && 'dashboard',
     scope.storefront && 'storefront',
+    scope.paymentPage && 'paymentPage',
     scope.walkthrough && 'walkthrough',
   ].filter(Boolean);
 }
@@ -31,13 +32,13 @@ for (const [name, changed, reached, expected] of [
     'the server',
     ['apps/server/src/a.ts'],
     ['@lytronix/server'],
-    ['code', 'browser', 'walkthrough'],
+    ['code', 'browser', 'paymentPage', 'walkthrough'],
   ],
   [
     'the database package',
     ['packages/db/src/a.ts'],
     ['@lytronix/db', '@lytronix/server'],
-    ['code', 'browser', 'walkthrough'],
+    ['code', 'browser', 'paymentPage', 'walkthrough'],
   ],
   [
     'the dashboard',
@@ -64,7 +65,7 @@ for (const [name, changed, reached, expected] of [
     'the validators, which everything uses',
     ['packages/validators/src/a.ts'],
     ALL_PACKAGES,
-    ['code', 'browser', 'dashboard', 'storefront', 'walkthrough'],
+    ['code', 'browser', 'dashboard', 'storefront', 'paymentPage', 'walkthrough'],
   ],
   [
     "the dashboard's prototype, which its browser tests read",
@@ -77,6 +78,12 @@ for (const [name, changed, reached, expected] of [
     ['docs/brand/lytro-storefront.html'],
     [],
     ['code', 'browser', 'storefront'],
+  ],
+  [
+    "the payment page's prototype, which its browser tests read",
+    ['docs/brand/lytro-payment-page.html'],
+    [],
+    ['code', 'browser', 'paymentPage'],
   ],
 ]) {
   test(`a change to ${name} runs what it can reach`, () => {
@@ -101,7 +108,14 @@ for (const path of [
 ]) {
   test(`a change to ${path} runs everything`, () => {
     const scope = scopeOf([path], []);
-    assert.deepEqual(runs(scope), ['code', 'browser', 'dashboard', 'storefront', 'walkthrough']);
+    assert.deepEqual(runs(scope), [
+      'code',
+      'browser',
+      'dashboard',
+      'storefront',
+      'paymentPage',
+      'walkthrough',
+    ]);
     assert.equal(scope.affected, '');
     assert.match(scope.why, /outside every package/);
   });

@@ -1,6 +1,6 @@
 # Hosted payment page: manual payments by Send Money
 
-Status: v3, 2026-11-04 (Slice 5.8's part 2 read: where it lives, WhatsApp and call, no SMS promise, no screenshot). v2 of
+Status: v3.1, 2026-11-04 (built, §7). v3 of 2026-11-04 (Slice 5.8's part 2 read: where it lives, WhatsApp and call, no SMS promise, no screenshot). v2 of
 2026-10-20, amended 2026-11-02 (Slice 5.4b: correcting a typed ID, and what a review tells a shopper). The design of
 `pay.lytro.app/<session>`, the page a shopper lands on to pay a shop by bKash, Nagad, Rocket, Upay or bank transfer. A wallet
 on automated hands the shopper on to its own checkout from here (PAY-06). The platform's own payments stay in the dashboard's
@@ -138,7 +138,7 @@ Tapping Verify sends the transaction ID (PAY-07) and the coloured card is replac
 icon, title, one line, a grey detail box); the fixed button changes with the state. The page checks the session every 3 seconds (PAY-17). The shopper
 may correct a typed ID up to 3 times until someone decides (PAY-07, agreed 2026-11-02): the button or link shows while `idChangesLeft` is above 0, then
 goes. The change screen (`change`) is the wallet's screen with the ID filled in, "সঠিক ট্রান্সজেকশন আইডি দিন" and "আরও 3 বার বদলানো যাবে". Bangla labels in the table have these English
-words: দোকানে ফিরুন, BACK TO SHOP; TrxID বদলান, CHANGE TRANSACTION ID; আবার চেষ্টা করুন, TRY AGAIN.
+words: দোকানে ফিরুন, BACK TO SHOP; TrxID বদলান, CHANGE TRANSACTION ID.
 
 | State | Card | Fixed button |
 | --- | --- | --- |
@@ -150,7 +150,7 @@ words: দোকানে ফিরুন, BACK TO SHOP; TrxID বদলান, 
 | `needs_review`, the amount (PAY-14) | magnifier, "টাকা মিলছে না", "যে টাকা এসেছে তা এই পেমেন্টের সাথে মিলছে না। দোকান দেখে জানাবে; আপনার এখন কিছু করতে হবে না।", and the same link | দোকানে ফিরুন |
 | `needs_review`, the sender | magnifier, "নম্বর মিলছে না", "আপনার লেখা নম্বর থেকে এই টাকা আসেনি। দোকান দেখে জানাবে; আপনার এখন কিছু করতে হবে না।", and the same link | দোকানে ফিরুন |
 | `needs_review`, any other reason (`other`) | magnifier, "দোকান চেক করে জানাবে", "আপনার এখন কিছু করতে হবে না।", since the rest are the shop's own (its balance, an old receipt), and the same link | দোকানে ফিরুন |
-| `failed`, rejected (PAY-14) | cross, "পেমেন্ট কনফার্ম হয়নি", the reason in the page's words or the staff's note verbatim ("দোকান বলেছে: …"), the rows, "সমস্যা হলে দোকানে যোগাযোগ করুন" and the contact buttons | আবার চেষ্টা করুন (reopens the wallet screen in the same session, PAY-08) |
+| `failed`, rejected (PAY-14) | cross, "পেমেন্ট কনফার্ম হয়নি", the reason in the page's words or the staff's note verbatim ("দোকান বলেছে: …"), then "তাই অর্ডারটি ক্যানসেল হয়েছে।" (or, on a staff link, whose order stays, "নতুন লিংকের জন্য দোকানে যোগাযোগ করুন।"), the rows, "সমস্যা হলে দোকানে যোগাযোগ করুন" and the contact buttons. No way to pay again here: rejecting cancels a checkout's order and frees its stock (D5-4) | দোকানে ফিরুন |
 | `expired` (PAY-03) | clock, "সময় শেষ হয়ে গেছে", what to do either way, and the contact buttons | দোকানে ফিরুন (cancel address) |
 | already `verified` on reopen (PAY-03) | tick, "এই পেমেন্ট আগেই হয়েছে", amount · method · time | দোকানে ফিরুন |
 | `cancelled` (PAY-12) | cross, "এই পেমেন্ট ক্যানসেল করা হয়েছে", "নতুন করে অর্ডার করতে দোকানে ফিরুন।", and the contact buttons | দোকানে ফিরুন |
@@ -196,13 +196,13 @@ All of these are drawn now.
 
 | Need | Why | State |
 | --- | --- | --- |
-| `GET /pay/:ref` renders the page from the session's read | §1, PAY-05, PAY-23 | to build |
+| `GET /pay/:ref` renders the page from the session's read | §1, PAY-05, PAY-23 | built (Slice 5.8) |
 | The read: shop, order number, amount, state, expiry, methods with each `way`, return and cancel addresses, what was typed, `review`, `rejected`, `listenerOnline`, `idChangesLeft`, `gatewayResult`, `test` | §1, §2 | built (Slices 5.2 to 5.7) |
-| The shop's contact phone, and the order's item names and quantities, on the read | §1.2 | to add |
+| The shop's contact phone, and the order's tracking ID, item names, quantities and who opened the session, on the read | §1.2 | built (Slice 5.8) |
 | Sending and correcting a transaction ID and sender number | PAY-07, PAY-16 | built |
 | A report, limited per IP | TVR-02 | built |
 | Asking for a wallet's checkout, and the wallet's return | PAY-06, VER-08, VER-09 | built |
-| Where a link with no return address leads: the order's tracking page on the shop's storefront, when it has one | §2, PAY-24 | to add |
+| Where a link with no return address leads: the order's tracking page on the shop's storefront, when it has one | §2, PAY-24 | built (Slice 5.8) |
 
 ---
 
@@ -213,3 +213,24 @@ fall through to the storefront. Templates, one stylesheet, two small scripts (th
 transaction form posts as a plain form, so a phone that fails to run a script can still pay. PAY-23's policy: scripts, styles, fonts and fetches from the page's own origin, images from
 it and the media Worker's address for the shop's logo, no framing, no plugin, no `<base>`, and forms only to itself. The wallet colours, marks, USSD codes and step sentences are data keyed by
 method type and account type, so a new type is a row, not a page change.
+
+---
+
+## 7. As built (Slice 5.8's part 2)
+
+`apps/server/src/modules/payment-page`: `page/` draws a session's screen as a pure function of its read and its address, every value escaped by one `html` tag; `controllers/payment-page-html.controller.ts`
+takes the forms; `services/payment-page-host.ts` turns every address on the host into one of the page's routes, or a page that wasn't found, so nothing else on the server can be reached from it. The
+stylesheet, script, fonts and wallet marks are in `apps/server/assets/pay`, read once at start. The page works with no script: forms post, sheets open by the address (`#report`, `#details`), and a
+waiting page refreshes itself. The script adds the copy buttons, the running clocks, the 3-second check (`GET /<ref>/status`, the screen the server would draw now) and the timed return.
+
+Where the build differs from the reference or the first sketch, each with its reason, all drawn in the prototype too:
+
+- **A rejected payment offers no Try again.** The first sketch carried it over, but PAY-14 and D5-4 cancel a checkout's order on rejection and free its stock.
+- **A deeper blue and a paler yellow.** White on the reference's `#1e8fe0` is 3.4:1, and its yellow `#fde047` on bKash's pink 3.7:1, both short of the 4.5:1 small text needs. The blue is `#0b6cb3` everywhere, the
+  highlighted words `#fef9c3`; the error ring keeps the yellow.
+- **The time paid** reads "4 Nov, 11:48 am", not the sketch's "today".
+- **A page for too many tries** (`busy`, RTE-06), which the sketch doesn't draw, on the same card as a page that wasn't found.
+- **Back to shop** returns with `session_id` and `status` (PAY-08). Neither is proof of anything (PAY-11); the shop's order page reads the truth.
+
+`apps/server/test/payment-page-html.e2e.spec.ts` takes it through real orders. `apps/server/test/pay-page-browser` draws every screen from fixtures in a real browser, under its real policy, with accessibility
+checks, at 320 px, and beside the prototype; CI keeps those pictures.

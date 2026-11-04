@@ -13,6 +13,7 @@ const PLACED = [/^docs\//, /^apps\//, /^packages\//, /^[^/]+\.md$/];
 // The files outside a package that its tests read: each browser suite draws its screens beside its prototype.
 const DASHBOARD_PROTOTYPE = 'docs/brand/lytro-dashboard.html';
 const STOREFRONT_PROTOTYPE = 'docs/brand/lytro-storefront.html';
+const PAYMENT_PAGE_PROTOTYPE = 'docs/brand/lytro-payment-page.html';
 
 function everything(why) {
   return {
@@ -21,6 +22,7 @@ function everything(why) {
     browser: true,
     dashboard: true,
     storefront: true,
+    paymentPage: true,
     walkthrough: true,
     why,
   };
@@ -34,14 +36,16 @@ export function scopeOf(changed, reached) {
   const has = (name) => reached.includes(`@lytronix/${name}`);
   const dashboard = has('dashboard') || changed.includes(DASHBOARD_PROTOTYPE);
   const storefront = has('storefront') || changed.includes(STOREFRONT_PROTOTYPE);
+  const paymentPage = has('server') || changed.includes(PAYMENT_PAGE_PROTOTYPE);
   // The walkthrough is the one browser test against the real server; the other two mock it.
   const walkthrough = has('dashboard') || has('server');
   return {
     affected: '--affected',
-    code: reached.length > 0 || dashboard || storefront,
-    browser: dashboard || storefront || walkthrough,
+    code: reached.length > 0 || dashboard || storefront || paymentPage,
+    browser: dashboard || storefront || paymentPage || walkthrough,
     dashboard,
     storefront,
+    paymentPage,
     walkthrough,
     why: `This change reaches ${reached.join(', ') || 'no package'}`,
   };
@@ -80,6 +84,7 @@ function run() {
     ['Lint, unit and server tests', scope.code ? scope.affected || 'all' : false],
     ['Dashboard browser tests', scope.dashboard],
     ['Storefront browser tests', scope.storefront],
+    ['Payment page browser tests', scope.paymentPage],
     ['Walkthrough against the real server', scope.walkthrough],
   ].map(([check, runs]) => `| ${check} | ${runs === false ? 'skipped' : String(runs)} |`);
   const summary = [`${why}.`, '', '| Check | Runs |', '| --- | --- |', ...shown, ''];

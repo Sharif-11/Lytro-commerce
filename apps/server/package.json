@@ -39,7 +39,9 @@
     "zod": "^3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@nestjs/testing": "^10",
+    "@playwright/test": "1.64.0",
     "@types/archiver": "^8.0.0",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^20",

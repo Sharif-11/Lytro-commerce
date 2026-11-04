@@ -24,6 +24,7 @@ import {
   paymentPageReportSchema,
   PaymentPageReviewReason,
   PaymentRejectReason,
+  PaymentSessionSource,
   PaymentSessionState,
   paymentSubmissionSchema,
   WalletAccountType,
@@ -41,12 +42,12 @@ import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { GatewayCheckouts, type StartedCheckout } from '../../gateway/services/gateway-checkout';
 import { PAYMENT_PAGE_ORIGIN } from '../../payment-sessions/tokens';
 import { PaymentSubmissions } from '../../listener-receipts/services/payment-submissions';
-import { MediaService } from '../../media/services/media.service';
 import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
 import type { PaymentPageSession } from '../../payment-sessions/types/payment-sessions';
 import type { PublicApiRequest } from '../../public-api/guards/public-key.guard';
 import { API_CLOCK } from '../../public-api/tokens';
 import { PaymentPageGuard } from '../guards/payment-page.guard';
+import { PaymentPageReader, type PaymentPageShop } from '../services/payment-page-reader';
 
 /** VER-08: the one route here that answers with an address rather than the envelope. */
 interface RedirectingResponse {
@@ -54,9 +55,7 @@ interface RedirectingResponse {
 }
 
 /** PAY-05: the page as it is shown -- the shop's name and logo beside the session. */
-type PaymentPageView = PaymentPageSession & {
-  shop: { name: string; logo: { id: string; urls: { main: string; thumbnail: string } } | null };
-};
+type PaymentPageView = PaymentPageSession & { shop: PaymentPageShop };
 
 class PaymentSubmissionDto extends createZodDto(paymentSubmissionSchema) {}
 class PaymentIdChangeDto extends createZodDto(paymentIdChangeSchema) {}
@@ -72,8 +71,14 @@ class PaymentPageDto extends createZodDto(
       logo: z
         .object({ id: z.string(), urls: z.object({ main: z.string(), thumbnail: z.string() }) })
         .nullable(),
+      contactPhone: z.string().nullable(),
     }),
     orderNumber: z.string(),
+    trackingId: z.string(),
+    items: z.array(
+      z.object({ name: z.string(), attributes: z.array(z.string()), quantity: z.string() }),
+    ),
+    source: z.nativeEnum(PaymentSessionSource),
     amount: z.string(),
     state: z.nativeEnum(PaymentSessionState),
     expiresAt: z.coerce.date(),
@@ -131,7 +136,7 @@ export class PaymentPageController {
   constructor(
     @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
     @Inject(PaymentSubmissions) private readonly submissions: PaymentSubmissions,
-    @Inject(MediaService) private readonly media: MediaService,
+    @Inject(PaymentPageReader) private readonly reader: PaymentPageReader,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
     @Inject(API_CLOCK) private readonly clock: () => Date,
     @Inject(GatewayCheckouts) private readonly checkouts: GatewayCheckouts,
@@ -233,7 +238,8 @@ export class PaymentPageController {
     const shop = request.apiShop;
     if (!shop) throw new Error('the payment page guard names the shop');
     await this.checkouts.returned(shop.row.id, ref, { paymentId, status });
-    response.redirect(302, `${this.pageOrigin}/${ref}`);
+    // Back from paying: the page returns to the shop if it went through, and offers another try if it didn't.
+    response.redirect(302, `${this.pageOrigin}/${ref}?just=1`);
   }
 
   @Post(':ref/report')
@@ -261,8 +267,7 @@ export class PaymentPageController {
     return { ok: true };
   }
 
-  /** PAY-05, TEN-16: the shop's name and logo, nothing else of its brand (BRN-04). */
-  private async shopOf(tenantId: string, name: string): Promise<PaymentPageView['shop']> {
-    return { name, logo: await this.media.logoOf(tenantId) };
+  private shopOf(tenantId: string, name: string): Promise<PaymentPageShop> {
+    return this.reader.shopOf(tenantId, name);
   }
 }
