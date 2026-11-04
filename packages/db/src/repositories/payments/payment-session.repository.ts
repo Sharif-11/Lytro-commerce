@@ -9,6 +9,7 @@ import {
 } from '@lytronix/validators';
 import {
   orderPayments,
+  orderLines,
   orders,
   paymentSessionRefs,
   paymentSessions,
@@ -190,6 +191,40 @@ export class PaymentSessionRepository {
     // An order is numbered in its own transaction, before any session is opened for it.
     if (!row?.orderNumber) throw new Error('a session names an order the shop has not numbered');
     return row.orderNumber;
+  }
+
+  /** PAY-05, PAY-24 (Slice 5.8's part 2): what the page's details name, and the order's tracking ID. */
+  async orderSummaryOf(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<{
+    trackingId: string;
+    items: { name: string; attributes: string[]; quantity: string }[];
+  }> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [order] = await tx
+      .select({ trackingId: orders.trackingId })
+      .from(orders)
+      .where(and(eq(orders.tenantId, tenantId), eq(orders.id, orderId)));
+    if (!order) throw new Error('a session names an order the shop does not have');
+    const rows = await tx
+      .select({
+        name: orderLines.productName,
+        attributes: orderLines.attributeValues,
+        quantity: orderLines.quantity,
+      })
+      .from(orderLines)
+      .where(and(eq(orderLines.tenantId, tenantId), eq(orderLines.orderId, orderId)))
+      .orderBy(asc(orderLines.position));
+    return {
+      trackingId: order.trackingId,
+      items: rows.map((row) => ({
+        name: row.name,
+        attributes: row.attributes.map((attribute) => attribute.value),
+        quantity: row.quantity,
+      })),
+    };
   }
 
   /** ORD-17: the open session of the order with this tracking ID, if it has one. */

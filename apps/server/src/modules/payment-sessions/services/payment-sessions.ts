@@ -589,9 +589,13 @@ export class PaymentSessions {
     now: Date,
     offered?: ShopperPaymentMethod[],
   ): Promise<PaymentPageSession> {
+    const order = await this.store.orderSummaryOf(tx, tenantId, session.orderId);
     return {
       sessionId: session.id,
       orderNumber: await this.store.orderNumberOf(tx, tenantId, session.orderId),
+      trackingId: order.trackingId,
+      items: order.items,
+      source: session.source,
       amount: session.amount,
       state: stateAt(session, now),
       expiresAt: session.expiresAt,

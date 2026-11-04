@@ -5,6 +5,7 @@ import type {
   PaymentPageReportReason,
   PaymentRejectReason,
   PaymentPageReportStatus,
+  PaymentSessionSource,
   PaymentSessionState,
 } from '@lytronix/validators';
 import type { OrderPaymentLink } from '../../orders/types/orders';
@@ -13,11 +14,19 @@ import type { ShopperPaymentMethod } from '../../payment-methods/types/payment-m
 /** PAY-01: a session just opened -- the page's address, the amount and when it runs out. */
 export type OpenedPayment = OrderPaymentLink;
 
+/** PAY-05, PAY-24 (Slice 5.8's part 2): what the page's details name, and the order's tracking ID. */
+export interface PaymentOrderSummary {
+  trackingId: string;
+  items: { name: string; attributes: string[]; quantity: string }[];
+}
+
 /** PAY-05, PAY-17: what the payment page shows of a session, beside the shop's name and logo. */
-export interface PaymentPageSession {
+export interface PaymentPageSession extends PaymentOrderSummary {
   /** Kept on the server: the page's routes leave it out. */
   sessionId: string;
   orderNumber: string;
+  /** Whether a rejected payment cancelled its order (a checkout's) or left it as it is (a staff link's). */
+  source: PaymentSessionSource;
   amount: string;
   state: PaymentSessionState;
   expiresAt: Date;

@@ -11,7 +11,7 @@
 <style>
 /* Tailwind values the reference page uses, written out: sky-50/100/900, gray-100/200/500/600/900, yellow-50/100/300. */
 :root{
-  --sky-50:#f0f9ff;--sky-100:#e0f2fe;--sky-900:#0c4a6e;--blue:#1e8fe0;
+  --sky-50:#f0f9ff;--sky-100:#e0f2fe;--sky-900:#0c4a6e;--blue:#0b6cb3;
   --g100:#f3f4f6;--g200:#e5e7eb;--g300:#d1d5db;--g500:#6b7280;--g600:#4b5563;--g700:#374151;--g900:#111827;
   --y50:#fefce8;--y100:#fef9c3;--y300:#fde047;
   --sh-sm:0 1px 2px rgba(0,0,0,.05);--sh-md:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);--sh-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);--sh-xl:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);
@@ -87,13 +87,13 @@ svg.i{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .ccard .inp{height:44px;border-radius:8px;background:#fff;color:var(--g500);display:flex;align-items:center;justify-content:center;font-size:15px;padding:0 12px;box-shadow:var(--sh-sm)}
 .ccard .inp.val{color:var(--g900);font-weight:600;letter-spacing:.04em}
 .ccard .inp.bad{box-shadow:0 0 0 2px var(--y300)}
-.ccard .ierr{margin-top:6px;font-size:12px;font-weight:600;color:var(--y300);text-align:center}
+.ccard .ierr{margin-top:6px;font-size:12px;font-weight:600;color:var(--y100);text-align:center}
 .ccard .ihead{margin-top:16px;padding-bottom:4px;margin-bottom:8px;border-bottom:1px solid rgba(0,0,0,.15);font-weight:700;font-size:14px;letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
 .ilist{list-style:none;font-size:12px;font-weight:400}
 .ilist li{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.15)}
 .ilist li:last-child{border-bottom:0}
 .ilist li::before{content:"";width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.85);flex:none}
-.ilist .hl{font-weight:700;color:var(--y300);font-size:16px;line-height:1.3}
+.ilist .hl{font-weight:700;color:var(--y100);font-size:16px;line-height:1.3}
 .ilist .copy{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:8px;background:var(--g900);color:#fff;font-size:14px;font-weight:500;margin-left:8px;vertical-align:middle;box-shadow:var(--sh-sm)}
 .ilist .copy svg.i{width:16px;height:16px}
 .ilist li span{flex:1;min-width:0}
@@ -244,7 +244,7 @@ const S = {
   reviewT:['টাকা মিলছে না','The amount did not match'],reviewP:['যে টাকা এসেছে তা এই পেমেন্টের সাথে মিলছে না। দোকান দেখে জানাবে; আপনার এখন কিছু করতে হবে না।','The money that arrived does not match this payment. The shop will check and let you know; nothing to do now.'],
   reviewSenderT:['নম্বর মিলছে না','The number did not match'],reviewSenderP:['আপনার লেখা নম্বর থেকে এই টাকা আসেনি। দোকান দেখে জানাবে; আপনার এখন কিছু করতে হবে না।','This money did not come from the number you entered. The shop will check and let you know; nothing to do now.'],
   reviewOtherT:['দোকান চেক করে জানাবে','The shop will check and let you know'],reviewOtherP:['আপনার এখন কিছু করতে হবে না।','Nothing to do now.'],
-  rejectedT:['পেমেন্ট কনফার্ম হয়নি','Payment not confirmed'],rejectNoPay:['এই TrxID-র টাকা দোকানের নম্বরে আসেনি।','No money for this TrxID reached the shop\'s number.'],rejectedNote:['দোকান বলেছে: "{r}"','The shop said: "{r}"'],
+  rejectedT:['পেমেন্ট কনফার্ম হয়নি','Payment not confirmed'],rejectNoPay:['এই TrxID-র টাকা দোকানের নম্বরে আসেনি।','No money for this TrxID reached the shop\'s number.'],rejectedNote:['দোকান বলেছে: "{r}"','The shop said: "{r}"'],rejectedCancelled:['তাই অর্ডারটি ক্যানসেল হয়েছে।','So the order was cancelled.'],
   expiredT:['সময় শেষ হয়ে গেছে','This payment link has expired'],expiredP:['টাকা পাঠিয়ে থাকলে দোকানকে ট্রান্সজেকশন আইডি জানান। না পাঠিয়ে থাকলে দোকানে ফিরে আবার শুরু করুন।','If you already sent the money, give the shop the transaction ID. If not, go back and start again.'],
   paidT:['এই পেমেন্ট আগেই হয়েছে','This payment was already made'],cancelledT:['এই পেমেন্ট ক্যানসেল করা হয়েছে','This payment was cancelled'],cancelledP:['নতুন করে অর্ডার করতে দোকানে ফিরুন।','Go back to the shop to order again.'],
   suspendedT:['এই পেমেন্ট পেজ এখন বন্ধ আছে','This payment page is closed right now'],missingT:['এই পেমেন্ট পেজ পাওয়া যায়নি','This payment page was not found'],missingP:['লিংকটি ঠিক আছে কি না দেখুন, অথবা দোকানে যোগাযোগ করুন।','Check the link, or contact the shop.'],noMethodsT:['এই দোকান এখন অনলাইনে পেমেন্ট নিচ্ছে না','This shop is not taking online payments right now'],
@@ -275,7 +275,7 @@ const go = (s) => { ST.screen = s; const sel = document.getElementById('selScree
 const payReturn = (status) => { if (window.parent && window.parent !== window) window.parent.postMessage({ type: 'pay-return', status }, '*'); else go('pick'); };
 /* the demo verify: checking, then verified after the listener's usual few seconds */
 const payVerify = () => { go('checking'); clearTimeout(ST.t); ST.t = setTimeout(() => { if (ST.screen === 'checking') go('verified'); }, 2500); };
-const ACT = { checking: "go('change')", change: "go('checking')", bank: "go('manual')", rejected: "go(ST.wallet || 'bkash')", 'rejected-note': "go(ST.wallet || 'bkash')", verified: "payReturn('verified')", 'checking-late': "payReturn('checking')", manual: "payReturn('checking')", review: "payReturn('review')", 'review-sender': "payReturn('review')", 'review-other': "payReturn('review')", expired: "payReturn('expired')", paid: "payReturn('paid')", cancelled: "payReturn('cancelled')" };
+const ACT = { checking: "go('change')", change: "go('checking')", bank: "go('manual')", rejected: "payReturn('failed')", 'rejected-note': "payReturn('failed')", verified: "payReturn('verified')", 'checking-late': "payReturn('checking')", manual: "payReturn('checking')", review: "payReturn('review')", 'review-sender': "payReturn('review')", 'review-other': "payReturn('review')", expired: "payReturn('expired')", paid: "payReturn('paid')", cancelled: "payReturn('cancelled')" };
 /* where the back arrow leads; a screen with nowhere to go back to has no arrow */
 const BACK = { bkash: 'pick', 'bkash-agent': 'pick', 'bkash-merchant': 'pick', nagad: 'pick', rocket: 'pick', upay: 'pick', bank: 'pick', dup: 'pick', bad: 'pick', copied: 'pick', report: 'pick', 'report-other': 'pick', change: 'checking-late' };
 /* the session is still open on these, so close goes to the cancel address (PAY-01) */
@@ -388,8 +388,8 @@ const SC = {
   review: () => [scard(bigIcon('search', 'var(--y50)', '#a16207'), t('reviewT'), t('reviewP'), det(trxRows()) + fixId()), t('backShop'), 'var(--blue)'],
   'review-sender': () => [scard(bigIcon('search', 'var(--y50)', '#a16207'), t('reviewSenderT'), t('reviewSenderP'), det(trxRows()) + fixId()), t('backShop'), 'var(--blue)'],
   'review-other': () => [scard(bigIcon('search', 'var(--sky-100)', 'var(--sky-900)'), t('reviewOtherT'), t('reviewOtherP'), det(trxRows()) + fixId()), t('backShop'), 'var(--blue)'],
-  rejected: () => [scard(bigIcon('x', '#fee2e2', '#b91c1c'), t('rejectedT'), t('rejectNoPay'), det(trxRows()) + help()), t('retry'), W.bkash.col],
-  'rejected-note': () => [scard(bigIcon('x', '#fee2e2', '#b91c1c'), t('rejectedT'), t('rejectedNote', { r: L('টাকা কম এসেছে, 200 টাকা বাকি', '200 taka short') }), det(trxRows()) + help()), t('retry'), W.bkash.col],
+  rejected: () => [scard(bigIcon('x', '#fee2e2', '#b91c1c'), t('rejectedT'), `${t('rejectNoPay')} ${t('rejectedCancelled')}`, det(trxRows()) + help()), t('backShop'), 'var(--blue)'],
+  'rejected-note': () => [scard(bigIcon('x', '#fee2e2', '#b91c1c'), t('rejectedT'), `${t('rejectedNote', { r: '200 taka short' })} ${t('rejectedCancelled')}`, det(trxRows()) + help()), t('backShop'), 'var(--blue)'],
   expired: () => [scard(bigIcon('clock', 'var(--g100)', 'var(--g600)'), t('expiredT'), t('expiredP'), help()), t('backShop'), 'var(--blue)'],
   paid: () => [scard(bigIcon('check', '#dcfce7', '#15803d'), t('paidT'), '', det([[t('amount'), '250 ৳'], [t('method'), 'bKash'], paidTime()])), t('backShop'), 'var(--blue)'],
   cancelled: () => [scard(bigIcon('x', 'var(--g100)', 'var(--g600)'), t('cancelledT'), t('cancelledP'), help()), t('backShop'), 'var(--blue)'],

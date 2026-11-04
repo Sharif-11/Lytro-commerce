@@ -109,6 +109,15 @@ admin.lytro.app {
 	import operator_spa
 }
 
+# pay.lytro.app: the payment page, drawn by the backend, which sets the page's Content Security Policy itself (PAY-23,
+# Slice 5.8's part 2). The backend's PaymentPageHost turns every address on this host into one of the page's own routes,
+# so nothing else on the server can be reached from here. No wildcard below takes it: an exact host wins.
+pay.lytro.app {
+	reverse_proxy {$SERVER_UPSTREAM:server:3000} {
+		header_up x-lytronix-edge-secret {$TRUSTED_EDGE_SECRET}
+	}
+}
+
 # api.lytro.app: the public API, keys only (API-14). /v1/* is proxied as /api/v1/* with the edge secret.
 api.lytro.app {
 	handle_path /v1/* {

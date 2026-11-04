@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { API_LABEL } from '../../../common/shop-address';
+import { API_LABEL, PAY_LABEL } from '../../../common/shop-address';
 import { SlugFormat } from './slug-format';
 import { PLATFORM_DOMAIN } from '../tokens';
 
@@ -40,6 +40,11 @@ export class HostClassifier {
     const withoutPort = raw.trim().toLowerCase().replace(/:\d+$/, '');
     const withoutDot = withoutPort.endsWith('.') ? withoutPort.slice(0, -1) : withoutPort;
     return HOSTNAME_PATTERN.test(withoutDot) ? withoutDot : null;
+  }
+
+  /** PAY-01 (Slice 5.8's part 2): whether a request's host is the payment page's own. */
+  isPaymentPage(raw: string | undefined): boolean {
+    return this.normalize(raw) === `${PAY_LABEL}.${this.platform}`;
   }
 
   /** Decides what a request's host refers to. Performs no lookups. */
