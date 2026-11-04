@@ -1,8 +1,8 @@
 name: CI
 
+# A pull request runs the checks it could fail (.github/scripts/ci-scope.mjs). Main's one full run is Deploy's verify job,
+# which calls this workflow, so a merge isn't checked twice.
 on:
-  push:
-    branches: [main]
   pull_request:
   # Lets deploy.yml call this workflow directly for its own verify step, instead of keeping a second,
   # separately-maintained copy of these same steps — the drift that let the Postgres service and the E2E
@@ -10,6 +10,8 @@ on:
   workflow_call:
 
 jobs:
+  # The ruleset requires this job, so a check a change can't fail is skipped step by step: a path filter on the workflow
+  # would leave the pull request waiting for a result that never comes.
   verify:
     runs-on: ubuntu-latest
     # Database tests need a real Postgres; the superuser here creates the test database and roles.
@@ -27,8 +29,14 @@ jobs:
           --health-retries 10
     env:
       DATABASE_TEST_ADMIN_URL: postgres://postgres:ci_only_password@localhost:5432/postgres
+      # What a pull request is compared with to see what it affects; read only with --affected.
+      TURBO_SCM_BASE: origin/${{ github.base_ref }}
+      TURBO_SCM_HEAD: HEAD
     steps:
       - uses: actions/checkout@v5
+        with:
+          # The whole history: in a shallow checkout Turborepo counts everything as changed.
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
 
@@ -41,37 +49,54 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Test the rules for what runs
+        run: node --test .github/scripts/ci-scope.test.mjs
+
+      - name: Work out what this change can affect
+        id: scope
+        run: node .github/scripts/ci-scope.mjs
+
       - name: Typecheck
+        if: steps.scope.outputs.code == 'true'
         run: pnpm typecheck
 
       - name: Lint
-        run: pnpm lint
+        if: steps.scope.outputs.code == 'true'
+        run: pnpm exec turbo run lint ${{ steps.scope.outputs.affected }}
 
       - name: Format check
         run: pnpm format:check
 
       - name: Unit tests
-        run: pnpm test
+        if: steps.scope.outputs.code == 'true'
+        # Through Turborepo directly: `pnpm test` is pnpm's own command, and refuses --affected.
+        run: pnpm exec turbo run test ${{ steps.scope.outputs.affected }}
 
       # The dashboard's Help row opens the support WhatsApp the deployment names, and shows only with one; the browser
       # tests below check it with this number, which is not a real one and never deployed.
       - name: Build all apps
+        if: steps.scope.outputs.code == 'true'
         run: pnpm build
         env:
           VITE_SUPPORT_WHATSAPP: '8801000000000'
+
+      - name: Install the test browser
+        if: steps.scope.outputs.browser == 'true'
+        working-directory: apps/dashboard
+        run: pnpm exec playwright install --with-deps chromium
 
       # The dashboard's screens in a real browser against a mocked API, on a phone and a desktop
       # (TENANT-DASHBOARD-DESIGN §11), and each one beside the prototype's drawing of it, kept as pictures for the
       # pull request. The walkthrough against a real server follows.
       - name: Dashboard browser tests
+        if: steps.scope.outputs.dashboard == 'true'
         working-directory: apps/dashboard
-        run: |
-          pnpm exec playwright install --with-deps chromium
-          pnpm exec playwright test
+        run: pnpm exec playwright test
 
       # The storefront's pages in a real browser against a mocked server, on a phone and a desktop (KNOWN-GAPS §105), and
       # each one beside the prototype's drawing of it, kept as pictures for the pull request.
       - name: Storefront browser tests
+        if: steps.scope.outputs.storefront == 'true'
         working-directory: apps/storefront
         run: pnpm exec playwright test
 
@@ -79,6 +104,7 @@ jobs:
       # product, add stock, count it and buy more, on a phone in Bangla, against the built server and a fresh database
       # (walkthrough/global-setup.ts), never meeting inventory jargon or a field the shop type does not use.
       - name: Dashboard walkthrough against the real server
+        if: steps.scope.outputs.walkthrough == 'true'
         working-directory: apps/dashboard
         run: pnpm exec playwright test -c playwright.walkthrough.config.ts
 
@@ -87,6 +113,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dashboard-browser-tests
+          if-no-files-found: ignore
           path: |
             apps/dashboard/test-results/
             apps/dashboard/playwright-report/
@@ -97,6 +124,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: storefront-browser-tests
+          if-no-files-found: ignore
           path: |
             apps/storefront/test-results/
             apps/storefront/playwright-report/
