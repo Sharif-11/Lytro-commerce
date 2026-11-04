@@ -2,6 +2,7 @@ import type { OauthProvider } from '@lytronix/validators';
 import { identityKind } from '../enums';
 import { inet, text, timestamp, uniqueIndex, uuid, index } from 'drizzle-orm/pg-core';
 import { control, createdAt } from '../shared';
+import { operatorAccounts } from './operator';
 
 // Note: `control.identity_kind` is created by the migration; the enum is declared here so columns can use it.
 
@@ -47,11 +48,14 @@ export const signInFailures = control.table(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     subscriberId: uuid('subscriber_id').references(() => subscribers.id),
+    // ADM-01 (amended 2026-11-04): an operator account's failed sign-ins, on AUTH-14's rule.
+    operatorId: uuid('operator_id').references(() => operatorAccounts.id),
     ip: inet('ip'),
     createdAt: createdAt(),
   },
   (t) => [
     index('sign_in_failures_subscriber_idx').on(t.subscriberId, t.createdAt),
+    index('sign_in_failures_operator_idx').on(t.operatorId, t.createdAt),
     index('sign_in_failures_ip_idx').on(t.ip, t.createdAt),
   ],
 );

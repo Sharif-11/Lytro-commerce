@@ -68,6 +68,7 @@ export const rateHistoryEntrySchema = z.object({
   oldValue: z.string().nullable(),
   newValue: z.string(),
   changedBy: z.string().nullable(),
+  changedByEmail: z.string().nullable(),
   noticeId: z.string().nullable(),
   changedAt: z.date(),
 });
@@ -83,6 +84,8 @@ export const tenantSummarySchema = z.object({
   suspendedAt: z.date().nullable(),
   planId: z.string().nullable(),
   planName: z.string().nullable(),
+  planVersion: z.number().nullable(),
+  overrideCount: z.number(),
   periodEnd: z.date().nullable(),
 });
 export class TenantSummaryDto extends createZodDto(tenantSummarySchema) {}

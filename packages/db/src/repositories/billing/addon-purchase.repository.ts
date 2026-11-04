@@ -142,6 +142,7 @@ export interface ActiveAddonRow {
   retiredAt: Date | null;
   /** The catalogue's price for a month of one now, what renewing it would cost. */
   monthlyPrice: string;
+  paidFrom: 'balance' | 'wallet';
 }
 
 /**
@@ -508,6 +509,7 @@ export class AddonPurchaseRepository {
         renews: addonPurchases.renews,
         retiredAt: addons.retiredAt,
         monthlyPrice: addons.price,
+        paidFrom: addonPurchases.paidFrom,
       })
       .from(addonPurchases)
       .innerJoin(addons, eq(addons.id, addonPurchases.addonId))

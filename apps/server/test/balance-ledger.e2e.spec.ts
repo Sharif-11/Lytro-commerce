@@ -732,7 +732,11 @@ describeIfDatabase('balance and rates over HTTP (controller wiring)', () => {
       const list = await get('/operator/rates', headers);
       expect(list.status).toBe(200);
 
-      const changed = await patch('/operator/rates/fraud_check', { value: 2 }, headers);
+      const changed = await patch(
+        '/operator/rates/fraud_check',
+        { value: 2, reason: 'Courier check cost rose' },
+        headers,
+      );
       expect(changed.status).toBe(200);
 
       const tenantId = await freshTenant();
@@ -754,7 +758,11 @@ describeIfDatabase('balance and rates over HTTP (controller wiring)', () => {
       await createOperator(email);
       const session = await enrollOperator(email);
       const headers = { cookie: session.cookie, 'x-csrf-token': session.csrfToken };
-      const response = await patch('/operator/rates/not_a_real_key', { value: 1 }, headers);
+      const response = await patch(
+        '/operator/rates/not_a_real_key',
+        { value: 1, reason: 'No such rate' },
+        headers,
+      );
       expect(response.status).toBe(404);
       expect(errorOf(response)).toMatchObject({ code: 'not_found' });
     },

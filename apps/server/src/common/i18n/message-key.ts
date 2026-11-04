@@ -99,7 +99,11 @@ export const MESSAGE_KEYS = [
   'TwoFactorNeedsNewCode',
   'TwoFactorIncomplete',
   'OperatorCredentialsWrong',
-  'BackupCodeInvalid',
+  'OperatorCodeWrong',
+  'OperatorAccountRetrieved',
+  'OperatorShopRetrieved',
+  'OperatorShopAddonsRetrieved',
+  'RecentChangesListed',
 
   // Staff / roles
   'RoleHeldByMembers',

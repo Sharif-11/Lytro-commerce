@@ -11,6 +11,7 @@ import {
   OperatorSessionGuard,
   type OperatorSessionRequest,
 } from '../../operator/guards/operator-session.guard';
+import { OperatorDirectory } from '../../operator/services/operator-directory';
 import { RateService } from '../../balance/services/rate.service';
 import type { RateHistoryEntry, RateValue } from '../../balance/types/rate';
 import { UpdateRateDto } from '../dto/balance.dto';
@@ -31,7 +32,10 @@ function parseKey(key: string): RateKey {
 @SkipTenant()
 @UseGuards(OperatorSessionGuard)
 export class OperatorRatesController {
-  constructor(@Inject(RateService) private readonly rates: RateService) {}
+  constructor(
+    @Inject(RateService) private readonly rates: RateService,
+    @Inject(OperatorDirectory) private readonly operators: OperatorDirectory,
+  ) {}
 
   @Get()
   @ResponseMessage('RatesListed')
@@ -45,8 +49,15 @@ export class OperatorRatesController {
   @ResponseMessage('RateHistoryRetrieved')
   @ApiOperation({ summary: "List a rate's change history" })
   @ZodResponse({ type: [RateHistoryEntryDto] })
-  history(@Param('key') key: string): Promise<RateHistoryEntry[]> {
-    return this.rates.history(parseKey(key));
+  async history(
+    @Param('key') key: string,
+  ): Promise<(RateHistoryEntry & { changedByEmail: string | null })[]> {
+    const entries = await this.rates.history(parseKey(key));
+    const emails = await this.operators.emailsOf(entries.map((entry) => entry.changedBy));
+    return entries.map((entry) => ({
+      ...entry,
+      changedByEmail: entry.changedBy === null ? null : (emails.get(entry.changedBy) ?? null),
+    }));
   }
 
   @Patch(':key')
@@ -66,6 +77,7 @@ export class OperatorRatesController {
       body.value.toFixed(2),
       session.operatorId,
       body.noticeId ?? null,
+      body.reason,
     );
     return { ok: true };
   }

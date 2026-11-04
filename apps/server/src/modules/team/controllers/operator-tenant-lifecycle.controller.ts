@@ -28,6 +28,9 @@ import { TenantSummaries } from '../../tenancy/services/tenant-summaries.service
 import type { TenantSearchCursor } from '../../tenancy/ports/tenant-summary-store';
 import { SearchTenantsDto, SuspendTenantDto } from '../dto/balance.dto';
 import { TenantSummaryPageDto } from '../dto/balance-response.dto';
+import { OperatorShopAddonsDto, OperatorShopDto } from '../dto/operator-console.dto';
+import { OperatorShops } from '../services/operator-shops';
+import type { OperatorShop, OperatorShopAddons } from '../types/operator-shop';
 
 // LIF-24: an operator suspending a tenant for cause, or restoring one -- independent of the tenant's own
 // lifecycle `state`, the same split DashboardGuard/TenantResolver already check (`suspendedAt` directly).
@@ -41,6 +44,7 @@ export class OperatorTenantLifecycleController {
   constructor(
     @Inject(LifecycleService) private readonly lifecycle: LifecycleService,
     @Inject(TenantSummaries) private readonly tenants: TenantSummaries,
+    @Inject(OperatorShops) private readonly shops: OperatorShops,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
 
@@ -58,6 +62,28 @@ export class OperatorTenantLifecycleController {
       entries: page.entries,
       nextCursor: page.nextCursor ? this.encodeCursor(page.nextCursor) : null,
     };
+  }
+
+  @Get(':id')
+  @ResponseMessage('OperatorShopRetrieved')
+  @ApiOperation({
+    summary:
+      "A shop's page in the console: its plan's version, why and by whom it is suspended, its payment page and new-shop cap",
+  })
+  @ZodResponse({ type: OperatorShopDto })
+  find(@Param('id') id: string): Promise<OperatorShop> {
+    return this.shops.find(id);
+  }
+
+  @Get(':id/addons')
+  @ResponseMessage('OperatorShopAddonsRetrieved')
+  @ApiOperation({
+    summary:
+      "A shop's running add-ons and packs, and each limit as its plan, override and add-ons make it",
+  })
+  @ZodResponse({ type: OperatorShopAddonsDto })
+  addons(@Param('id') id: string): Promise<OperatorShopAddons> {
+    return this.shops.addonsOf(id);
   }
 
   private encodeCursor(cursor: TenantSearchCursor): string {

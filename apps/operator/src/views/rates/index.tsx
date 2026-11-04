@@ -23,12 +23,14 @@ export function Rates(): React.JSX.Element {
   const updateRate = useUpdateRate();
   const [editing, setEditing] = useState<RateKey | null>(null);
   const [draft, setDraft] = useState('');
+  const [reason, setReason] = useState('');
   const [historyKey, setHistoryKey] = useState<RateKey | null>(null);
   const history = useRateHistory(historyKey);
 
   function startEdit(rate: RateValue): void {
     updateRate.reset();
     setDraft(rate.value);
+    setReason('');
     setEditing(rate.key);
   }
 
@@ -40,7 +42,7 @@ export function Rates(): React.JSX.Element {
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
     if (!editing) return;
-    updateRate.mutate({ key: editing, value: Number(draft) }, { onSuccess: cancelEdit });
+    updateRate.mutate({ key: editing, value: Number(draft), reason }, { onSuccess: cancelEdit });
   }
 
   return (
@@ -100,6 +102,15 @@ export function Rates(): React.JSX.Element {
                 value={draft}
                 onChange={(event) => {
                   setDraft(event.target.value);
+                }}
+              />
+              <TextField
+                label={t('rates.reason')}
+                name="reason"
+                required
+                value={reason}
+                onChange={(event) => {
+                  setReason(event.target.value);
                 }}
               />
               {updateRate.isError ? (

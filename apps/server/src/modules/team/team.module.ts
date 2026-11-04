@@ -103,6 +103,8 @@ import {
   OperatorPresetsController,
 } from './controllers/operator-catalogue.controller';
 import { CatalogueRequest } from './services/catalogue-request';
+import { OperatorRecentChangesController } from './controllers/operator-recent-changes.controller';
+import { OperatorShops } from './services/operator-shops';
 
 // The team's HTTP routes. They sit outside the staff module because they need the identity and tenancy gates,
 // and tenancy already imports the staff module. Slice 1's balance/rates routes, and slice 2's plan/term
@@ -151,6 +153,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     OperatorRatesController,
     OperatorBalanceController,
     OperatorTenantLifecycleController,
+    OperatorRecentChangesController,
     OperatorPaymentPagesController,
     PaymentsController,
     ListenerController,
@@ -202,6 +205,7 @@ import { CatalogueRequest } from './services/catalogue-request';
     HomeController,
   ],
   providers: [
+    OperatorShops,
     StaffSigninService,
     ActivityListService,
     ClientIp,

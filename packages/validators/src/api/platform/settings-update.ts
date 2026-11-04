@@ -1,3 +1,4 @@
+import { suspendTenantSchema } from './tenant-suspend';
 import { z } from 'zod';
 
 // PATCH /operator/settings/:key (LIF-26): the value's real shape depends on the key (validated per-key in
@@ -5,5 +6,7 @@ import { z } from 'zod';
 // new key with a different value shape is added.
 export const updateSettingSchema = z.object({
   value: z.union([z.number(), z.string(), z.boolean()]),
+  // ADM-11: the reason goes on the platform audit log with the change.
+  reason: suspendTenantSchema.shape.reason,
 });
 export type UpdateSettingInput = z.infer<typeof updateSettingSchema>;

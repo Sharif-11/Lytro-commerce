@@ -359,3 +359,6 @@ export {
   PlatformLibraryRepository,
   type PlatformOptionSetPatch,
 } from './repositories/catalogue/platform-library.repository';
+export type { TenantOperatorFactsRow } from './repositories/tenancy/tenant.repository';
+export type { RecentAuditEntryRow } from './repositories/platform/platform-audit-log.repository';
+export type { QueuedPlanPaymentRow } from './repositories/billing/plan-payments.repository';

@@ -110,7 +110,7 @@ only at the code step, once the password has been proven. A locked account sees 
 - The four figures, then filter chips by kind with counts and "Needs review only".
 - One row per payment, needs-review first: shop and address; kind with the plan and term, or "Credits ৳…
   to the balance" for a top-up; the amount large, with the quoted amount beneath when it differs; sender
-  number with TrxID and wallet in monospace; waiting time; the status chip; Approve and Reject. The row opens
+  number with TrxID in monospace, and the wallet once a receipt has seen the money (a seller names no wallet when paying Lytro); waiting time; the status chip; Approve and Reject. The row opens
   the payment panel with the same facts and the sentence "Match this against the wallet statement before
   approving."
 - **Approve** (panel): the consequence in one sentence, "*Sadia Collection* goes on *Starter* for 1 month,
@@ -120,7 +120,7 @@ only at the code step, once the password has been proven. A locked account sees 
   to change only if the statement says otherwise (ADM-06, BIL-06). The button is "Approve ৳448". The toast names
   the shop and the plan.
 - **Why it waits** (BIL-06): a needs-review payment's panel opens on the reason in one sentence (the amount, the
-  sender, the wallet, an old receipt, a used TrxID, a closed request), then what was quoted, what the seller says
+  sender, an old receipt, a used TrxID, a closed request), then what was quoted, what the seller says
   they sent and what a receipt says arrived.
 - **Put it on the balance** (BIL-06): for a plan, upgrade or add-on, from the payment panel. Nothing is activated,
   the money goes on the balance once, the add-ons on it are cancelled and the owner is told. The amount is needed
@@ -161,8 +161,9 @@ only at the code step, once the password has been proven. A locked account sees 
 - **Listener phones** card (LSN-20): "1 of 1" against the plan's limit, then each phone's name, model, app version,
   last seen, today's count, state and flags, with Revoke (LSN-19) and Block (LSN-21). Block names the installation
   and takes a reason: it pairs with no shop again and every phone on it is revoked.
-- **Add-ons** and **Effective limits** cards (PLN-13): what is running, how it was paid and whether it renews; each
-  limit as snapshot + override + add-ons.
+- **Add-ons** and **Effective limits** cards (PLN-13): what is running, how it was paid and whether it renews; what
+  is left of the packs and whether auto-buy is on; each limit as its plan's value, or the override that replaces it
+  (PLN-11), plus add-ons.
 - **Limit overrides** card: each override with its value, the plan's own value beside it, the reason, who
   and when, and Remove; the empty sentence otherwise (PLN-11).
 - **Later** on the same page, as dashed cards: *Shop detail* (ADM-03: balance and frozen flag, usage
@@ -313,17 +314,25 @@ cards on the screens they belong to.
 
 ## 15. Backend additions this design needs
 
+Built with the server PR of Slice 5.8 part 5:
+
+| Need | Route | Why |
+| --- | --- | --- |
+| The sign-in limit | `/auth/operator/signin`, `enroll`, `verify`, `backup-codes/regenerate` | §2. Amends ADM-01. |
+| Shop name, slug and wallet on payment-queue rows | `GET /operator/payment-queue` | An operator matches by shop name. The wallet is the one a receipt names: null until one of Lytro's phones has seen the money. |
+| One shop | `GET /operator/tenants/:id` | The shop page: plan version, who suspended it and why, the payment page, the new-shop cap. |
+| Plan version and override count on a search's rows | `GET /operator/tenants` | The list's columns. |
+| A shop's add-ons and each limit's parts | `GET /operator/tenants/:id/addons` | The shop page's two cards. |
+| Who is signed in | `GET /auth/operator/me` | The sidebar's foot and the account page ("7 of 10 unused"). |
+| An email rather than a uuid for who changed something | `updatedByEmail`, `changedByEmail`, `setByEmail` | The rows keep an operator's id; the screens show who. |
+| A reason on a setting or rate change | `PATCH /operator/settings/:key`, `/operator/rates/:key` | ADM-11 puts the reason on the audit log. |
+| Today's recent changes | `GET /operator/recent-changes` | One read, rather than a history call per rate. |
+| The installation on a phone's operator view | `tenants/:id/listener-devices`, `lytro-listener/devices` | Blocking needs `installationId`. |
+
+Still to come, with the screens that need them:
+
 | Need | Where | Why |
 | --- | --- | --- |
-| The sign-in limit | operator auth | §2. `signin`, `enroll` and `verify` have no limit today. Amends ADM-01. |
-| `shopName`, `slug` and the wallet on payment-queue rows | payments | The queue rows show tenant ids only today; an operator matches by shop name and wallet. |
-| `GET /operator/tenants/:id` | tenancy | The shop page reloads by id; `findSummary` exists in the store but has no route. It must also say the suspension's reason, the plan's version, the payment page's state and reason, and the new-shop cap. |
-| A shop's add-ons and effective limits | billing | The shop page's two cards; no operator read exists. |
-| The operator's own email and unused backup-code count | operator auth | The sidebar foot and the account page ("7 of 10 unused"). There is no operator `me`. |
-| A name rather than a uuid for who changed something | platform settings, rates, overrides | The rows carry an operator's id; the screens show who. |
-| A reason on a setting or rate change | platform settings, rates | ADM-11 puts the reason on the audit log, and the sketch asks for it; `PATCH` takes only the value today. |
-| Today's recent changes | audit | One read, rather than a history call per rate. |
-| The installation on a phone's operator view | listener | Blocking needs `installationId`; the device view does not carry it. |
 | Price count per term | billing terms | "3 of 3 plans priced"; derivable client-side from every plan's prices meanwhile. |
 | Shops per attribute and per plan version | catalogue, plans | "Used by 412 shops", "v3 ×131"; derivable from counts the stores can add cheaply. |
 | ADM-03, ADM-08, ADM-09, ADM-14, NTC, KYC, SUP | later phases | Placeholders are drawn, nothing more. |

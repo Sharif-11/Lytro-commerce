@@ -138,3 +138,43 @@ export function shopLimitsOf(
 ): PlanLimits | null {
   return withAddons(withOverrides(snapshot, overrides), addons);
 }
+
+/** One limit as a shop's plan, override and add-ons make it. A value of null means unlimited. */
+export interface LimitPart {
+  key: string;
+  plan: unknown;
+  /** PLN-11: an override replaces the plan's value for this shop, so it is not added to it. */
+  overridden: boolean;
+  override: unknown;
+  addons: number;
+  effective: unknown;
+}
+
+/** PLN-11, PLN-13: the parts behind shopLimitsOf, for the operator's shop page. */
+export function limitPartsOf(
+  snapshot: PlanLimits | null,
+  overrides: Readonly<Record<string, unknown>> | null,
+  addons: Readonly<Record<string, number>> | null,
+): LimitPart[] {
+  const overrideList = Object.entries(overrides ?? {}).map(([limitKey, value]) => ({
+    limitKey,
+    value,
+  }));
+  const addonList = Object.entries(addons ?? {}).map(([limitKey, units]) => ({ limitKey, units }));
+  const effective = (shopLimitsOf(snapshot, overrideList, addonList) ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const plan = (snapshot ?? {}) as Record<string, unknown>;
+  return Object.keys(effective).map((key) => {
+    const overridden = overrides !== null && key in overrides;
+    return {
+      key,
+      plan: plan[key] ?? null,
+      overridden,
+      override: overridden ? overrides[key] : null,
+      addons: addons?.[key] ?? 0,
+      effective: effective[key] ?? null,
+    };
+  });
+}
