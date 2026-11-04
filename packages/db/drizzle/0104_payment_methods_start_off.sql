@@ -44,3 +44,7 @@ BEGIN
 END $$;
 --> statement-breakpoint
 DROP TABLE tenant.payment_methods_off;
+--> statement-breakpoint
+-- TEN-26, TEN-31: /verify-phone is a page on the dashboard host (AUTH-28), so no shop may ever take it as its address.
+INSERT INTO control.reserved_slugs (slug, reason) VALUES ('verify-phone', 'dashboard')
+ON CONFLICT (slug) DO NOTHING;
