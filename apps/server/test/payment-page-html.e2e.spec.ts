@@ -501,7 +501,12 @@ describeIfDatabase('how it ends (PAY-03, PAY-08, PAY-14)', () => {
     expect(verified.status, JSON.stringify(verified.body)).toBe(200);
     const page = await raw('GET', `/${ref}?just=1`);
     expect(screenOf(page)).toBe('verified');
-    const back = `${RETURN}?session_id=${sessionId}&amp;status=verified`;
+    const { rows } = await admin.query<{ tracking_id: string }>(
+      `SELECT o.tracking_id FROM tenant.orders o
+       JOIN tenant.payment_sessions s ON s.order_id = o.id WHERE s.ref = $1`,
+      [ref],
+    );
+    const back = `${RETURN}?session_id=${sessionId}&amp;status=verified&amp;tracking_id=${rows[0]?.tracking_id ?? ''}`;
     expect(page.text).toContain(`content="5;url=${back}"`);
     expect(page.text).toContain(`href="${back}"`);
     const later = await raw('GET', `/${ref}`);

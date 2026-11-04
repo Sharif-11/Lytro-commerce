@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { PaymentPolicy } from '@lytronix/validators/enums';
+import { type PaymentMethod, PaymentPolicy } from '@lytronix/validators/enums';
 import { areaCookieValue } from '@/lib/area';
 import {
   checkCart,
@@ -11,7 +11,7 @@ import {
   totalWith,
 } from '@/lib/cart/cart-check';
 import { browserCart, estimateItemOf, lineKey, orderItemOf } from '@/lib/cart/cart-store';
-import type { ShopperAddress, ShopperView } from '@/lib/api/storefront-api';
+import type { ShopperAddress, ShopperPaymentMethod, ShopperView } from '@/lib/api/storefront-api';
 import { type Language, money, plainNumber, Words } from '@/lib/i18n/words';
 import { ADDRESS_MAX, lineQuantityText, NAME_MAX, NOTE_MAX } from '@/lib/order/order-form';
 import { useCart } from '../cart/use-cart';
@@ -20,6 +20,7 @@ import { rangeText } from '../product/buy-parts';
 import { AreaFields, DeliveryBanner, zillaOf } from '../product/sheets';
 import { useLocations, useSettledEstimate } from '../product/use-delivery';
 import { LineExtras, NoticeBanner, OffLine, SummaryLine, TaxRows } from './order-parts';
+import { AdvanceRows, PayChooser, PayNextHint } from './pay-chooser';
 import { useOrderPlacing } from './use-order-placing';
 
 export interface CheckoutViewProps {
@@ -29,6 +30,8 @@ export interface CheckoutViewProps {
   /** CUS-03, CUS-06: who is signed in, and what they saved; a guest has neither. */
   shopper: ShopperView | null;
   addresses: ShopperAddress[];
+  /** WAL-06, SFT-10: how this shop can be paid first. */
+  methods: ShopperPaymentMethod[];
 }
 
 /** The note an item left out of the total carries. */
@@ -45,9 +48,10 @@ function advanceNote(line: CheckedLine, words: Words): string {
   return words.t(line.paymentPolicy === PaymentPolicy.FullPrepayment ? 'pay_full' : 'pay_dc');
 }
 
-/** SFT-06, DLV-06, ORD-06a (`checkout`, Slice 4.8e): one page, guest, cash on delivery. A line the shop can't take as it
-    stands is named and left out of the total, and Place order waits for its Remove. A line needing to be paid for first
-    waits for Phase 5's payment step, so it is asked about once, then kept out of what is priced. */
+/** SFT-06, SFT-07, DLV-06, ORD-06a (`checkout`, `pay58-checkout`): one page, guest. A line the shop can't take as it stands is
+    named and left out of the total, and Place order waits for its Remove. An order owing an advance chooses how to pay it and
+    goes straight to the payment page; one owing none is cash on delivery. With no way to pay, a line needing to be paid for
+    first is asked about once, then kept out of what is priced (`pay58-checkout-none`). */
 export function CheckoutView(props: CheckoutViewProps) {
   const words = useMemo(() => new Words(props.language), [props.language]);
   const lines = useCart();
@@ -69,6 +73,8 @@ export function CheckoutView(props: CheckoutViewProps) {
   // The lines the shop refused as sold out, and those found to need paying first, by their keys.
   const [refused, setRefused] = useState<ReadonlySet<string>>(new Set());
   const [held, setHeld] = useState<ReadonlyMap<string, CheckedLine>>(new Map());
+  const canPayFirst = props.methods.length > 0;
+  const [method, setMethod] = useState<PaymentMethod | null>(props.methods[0]?.method ?? null);
 
   const all = lines ?? [];
   const priced = all.filter((line) => !refused.has(lineKey(line)) && !held.has(lineKey(line)));
@@ -84,18 +90,21 @@ export function CheckoutView(props: CheckoutViewProps) {
 
   // A line needing to be paid for first is taken out of the sum once the shop says so; the next answer is the rest's.
   useEffect(() => {
-    const found = cart.lines.filter(paysFirst);
+    const found = canPayFirst ? [] : cart.lines.filter(paysFirst);
     if (found.length === 0) return;
     setHeld((before) => {
       const next = new Map(before);
       for (const line of found) next.set(line.key, line);
       return next;
     });
-  }, [cart.lines]);
+  }, [cart.lines, canPayFirst]);
 
   const heldLines = all.flatMap((line) => held.get(lineKey(line)) ?? []);
   const offLines = [...cart.lines.filter(isOffLine), ...refusedLines];
-  const counted = cart.lines.filter((line) => line.total !== null && !paysFirst(line));
+  const counted = cart.lines.filter(
+    (line) => line.total !== null && (canPayFirst || !paysFirst(line)),
+  );
+  const paying = canPayFirst && counted.some(paysFirst);
   const subtotal = counted.reduce((sum, line) => sum + (line.total ?? 0), 0);
   const thana = fields.thanaId;
   const zone = thana !== null ? (estimate?.zone ?? null) : null;
@@ -106,9 +115,11 @@ export function CheckoutView(props: CheckoutViewProps) {
   const range = thana === null ? (estimate?.range ?? null) : null;
   const undeliverable = thana !== null && estimate !== null && !estimate.deliverable;
   const total = totalWith(subtotal, exact, range);
+  const advance = paying && estimate?.advance ? Number(estimate.advance) : null;
   const canPlace =
     counted.length > 0 &&
     heldLines.length === 0 &&
+    (!paying || method !== null) &&
     offLines.length === 0 &&
     !undeliverable &&
     !placing &&
@@ -122,10 +133,14 @@ export function CheckoutView(props: CheckoutViewProps) {
   };
 
   const place = async () => {
-    const placed = await form.place(counted.map((line) => orderItemOf(line.line)));
+    const placed = await form.place(
+      counted.map((line) => orderItemOf(line.line)),
+      paying && method !== null ? { method } : undefined,
+    );
     if (placed) {
       browserCart().clear();
-      window.location.assign(`/order/${placed.trackingId}`);
+      // SFT-07: an advance goes straight to the payment page.
+      window.location.assign(placed.payment?.paymentUrl ?? `/order/${placed.trackingId}`);
     }
   };
 
@@ -187,15 +202,15 @@ export function CheckoutView(props: CheckoutViewProps) {
       <>
         <NoticeBanner
           tone="warn"
-          title={
+          title={words.t('pay58NoneT')}
+          text={
             firstHeld.advance !== null && firstHeld.paymentPolicy === PaymentPolicy.PartialAdvance
-              ? words.t('adv_t_n', {
+              ? words.t('pay58NoneP', {
                   p: firstHeld.line.name,
                   n: plainNumber(firstHeld.advance),
                 })
-              : words.t('adv_t', { p: firstHeld.line.name })
+              : words.t('pay58NonePAny', { p: firstHeld.line.name })
           }
-          text={words.t('e48AdvP')}
         />
         <div style={{ display: 'flex', gap: 8 }}>
           <button
@@ -232,7 +247,20 @@ export function CheckoutView(props: CheckoutViewProps) {
       />
     );
   } else if (notice?.kind === 'advance') {
-    banner = <NoticeBanner tone="warn" title={words.t('e48FailT')} text={words.t('e48AdvP')} />;
+    banner = (
+      <NoticeBanner tone="warn" title={words.t('e48FailT')} text={words.t('pay58MethodGone')} />
+    );
+  } else if (notice?.kind === 'no_method' || notice?.kind === 'cap') {
+    banner = (
+      <>
+        <NoticeBanner
+          tone="warn"
+          title={words.t(notice.kind === 'cap' ? 'pay58CapT' : 'pay58NoneT')}
+          text={words.t(notice.kind === 'cap' ? 'pay58CapP' : 'pay58NoneLate')}
+        />
+        {callShop ? <div style={{ display: 'flex', gap: 8 }}>{callShop}</div> : null}
+      </>
+    );
   } else if (notice?.kind === 'busy') {
     banner = <NoticeBanner tone="warn" title={words.t('e48BusyT')} text={words.t('e48BusyP')} />;
   } else if (notice?.kind === 'failed' || notice?.kind === 'recheck') {
@@ -376,17 +404,27 @@ export function CheckoutView(props: CheckoutViewProps) {
               />
             </div>
           </div>
-          <div className="card2">
-            <div className="sechead">
-              <h2>{words.t('co_payment')}</h2>
+          {paying ? (
+            <PayChooser
+              methods={props.methods}
+              chosen={method}
+              advance={advance}
+              words={words}
+              onChoose={setMethod}
+            />
+          ) : (
+            <div className="card2">
+              <div className="sechead">
+                <h2>{words.t('co_payment')}</h2>
+              </div>
+              <div className="line" style={{ margin: 0 }}>
+                <Icon name="cash" />
+                <span>
+                  <b>{words.t('pay_cod')}</b> · {words.t('pay_cod_hint')}
+                </span>
+              </div>
             </div>
-            <div className="line" style={{ margin: 0 }}>
-              <Icon name="cash" />
-              <span>
-                <b>{words.t('pay_cod')}</b> · {words.t('pay_cod_hint')}
-              </span>
-            </div>
-          </div>
+          )}
         </div>
         <div className="side">
           <div className="card2">
@@ -403,6 +441,9 @@ export function CheckoutView(props: CheckoutViewProps) {
                 }
                 total={checked.total ?? 0}
               >
+                {paysFirst(checked) ? (
+                  <div className="vr">{advanceNote(checked, words)}</div>
+                ) : null}
                 <LineExtras
                   parts={checked.line.partsText}
                   addOns={checked.line.addOns?.map((row) => ({
@@ -463,6 +504,13 @@ export function CheckoutView(props: CheckoutViewProps) {
               {heldLines.length === 0 ? (
                 <TaxRows taxes={estimate?.taxes ?? []} words={words} />
               ) : null}
+              {paying ? (
+                <AdvanceRows
+                  advance={advance}
+                  total={total.from === total.to ? total.from : null}
+                  words={words}
+                />
+              ) : null}
             </div>
             <button
               type="button"
@@ -473,8 +521,13 @@ export function CheckoutView(props: CheckoutViewProps) {
                 void place();
               }}
             >
-              {words.t('e48Place')}
+              {!paying
+                ? words.t('e48Place')
+                : advance === null
+                  ? words.t('pay58PlaceAny')
+                  : words.t('place_adv', { n: plainNumber(advance) })}
             </button>
+            {paying ? <PayNextHint words={words} /> : null}
           </div>
         </div>
       </div>

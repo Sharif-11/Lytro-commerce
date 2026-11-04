@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { StockUnit } from '@lytronix/validators/enums';
+import { OrderStatus, PaymentSessionState, StockUnit } from '@lytronix/validators/enums';
 import { expect, type Page, test } from '@playwright/test';
 import type { CartLine } from '../src/lib/cart/cart-store';
 import {
@@ -229,6 +229,45 @@ function drawnTracked(language: Language, stage: Parameters<typeof trackedOrder>
   };
 }
 
+/** The sketch's cart with an advance: what it already draws, and a three-piece asking ৳200. */
+const advanceCart = (language: Language) => [
+  ...lines(language),
+  {
+    variantId: idOf('lawn-L'),
+    productSlug: 'lawn-three-piece',
+    name: pick(language, 'লন থ্রি-পিস', 'Lawn three-piece'),
+    choice: 'L',
+    price: '1850.00',
+    image: null,
+    quantity: 1,
+  },
+];
+
+/** An order that owed the sketch's ৳200, as tracking reads it. */
+const owedShop =
+  (status: OrderStatus, state: PaymentSessionState | null) =>
+  (language: Language): Partial<ShopFixture> => ({
+    tracked: {
+      K7F2M9QX: {
+        ...trackedOrder(language, 'placed'),
+        orderNumber: '261104-0042',
+        status,
+        grandTotal: '5420.00',
+        codAmount: '5220.00',
+        due: '5220.00',
+        payment:
+          state === null
+            ? null
+            : {
+                paymentUrl: 'http://localhost:4181/__pay/K7F2M9QX',
+                amount: '200.00',
+                expiresAt: new Date(Date.now() + 18 * 60_000).toISOString(),
+                state,
+              },
+      },
+    },
+  });
+
 const PAIRS: Pair[] = [
   // Checkout (§7a, §7b).
   {
@@ -263,22 +302,71 @@ const PAIRS: Pair[] = [
   },
   {
     name: 'checkout-advance',
-    screen: 'e48-checkout-advance',
+    screen: 'pay58-checkout',
     path: '/checkout',
     shop: wrapped,
-    cart: (language) => [
-      ...lines(language),
-      {
-        variantId: idOf('lawn-L'),
-        productSlug: 'lawn-three-piece',
-        name: pick(language, 'লন থ্রি-পিস', 'Lawn three-piece'),
-        choice: 'L',
-        price: '1850.00',
-        image: null,
-        quantity: 1,
-      },
-    ],
+    cart: advanceCart,
     then: fillCheckout,
+  },
+  {
+    name: 'checkout-none',
+    screen: 'pay58-checkout-none',
+    path: '/checkout',
+    shop: (language) => ({ ...wrapped(language), paymentMethods: [] }),
+    cart: advanceCart,
+    then: fillCheckout,
+  },
+  {
+    name: 'checkout-cap',
+    screen: 'pay58-checkout-cap',
+    path: '/checkout',
+    shop: (language) => ({
+      ...wrapped(language),
+      nextOrders: [
+        { refuse: { status: 409, code: 'conflict', details: { reason: 'new_shop_cap' } } },
+      ],
+    }),
+    cart: advanceCart,
+    then: async (page, language) => {
+      await fillCheckout(page, language);
+      await page.locator('.side .btn.primary').click();
+    },
+  },
+  {
+    name: 'pay-paid',
+    screen: 'pay-paid',
+    path: '/order/K7F2M9QX',
+    shop: owedShop(OrderStatus.Pending, null),
+  },
+  {
+    name: 'pay-checking',
+    screen: 'pay-checking',
+    path: '/order/K7F2M9QX',
+    shop: owedShop(OrderStatus.Unverified, PaymentSessionState.Checking),
+  },
+  {
+    name: 'pay-unpaid',
+    screen: 'pay-cancelled',
+    path: '/order/K7F2M9QX',
+    shop: owedShop(OrderStatus.Unverified, PaymentSessionState.AwaitingPayment),
+  },
+  {
+    name: 'pay-expired',
+    screen: 'pay-expired',
+    path: '/order/K7F2M9QX',
+    shop: owedShop(OrderStatus.Cancelled, PaymentSessionState.Expired),
+  },
+  {
+    name: 'pay-tracking',
+    screen: 'pay58-tracking',
+    path: '/track/K7F2M9QX',
+    shop: owedShop(OrderStatus.Unverified, PaymentSessionState.AwaitingPayment),
+  },
+  {
+    name: 'pay-tracking-checking',
+    screen: 'pay58-tracking-checking',
+    path: '/track/K7F2M9QX',
+    shop: owedShop(OrderStatus.Unverified, PaymentSessionState.Checking),
   },
   {
     name: 'checkout-short',
@@ -640,7 +728,7 @@ const PAIRS: Pair[] = [
   },
   {
     name: 'landing-advance',
-    screen: 'e48-landing-advance',
+    screen: 'pay58-landing',
     path: '/l/lawn-three-piece',
     then: fillLanding,
   },

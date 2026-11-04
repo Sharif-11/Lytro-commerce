@@ -1,4 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
+import { PaymentPolicy } from '@lytronix/validators/enums';
 import { EMBROIDER, GIFT_WRAP, idOf, panjabi, THANA, threePiece, WRAP } from './support/fixtures';
 import {
   alertOn,
@@ -322,24 +323,23 @@ test.describe('what the shop refuses', () => {
     await expect(place(page)).toBeEnabled();
   });
 
-  test('an item needing an advance waits for online payment, with Remove it or Call the shop (D4-2)', async ({
+  const lawnLine = () => ({
+    ...panjabiLine(),
+    variantId: idOf('lawn-L'),
+    productSlug: 'lawn-three-piece',
+    name: 'Lawn three-piece',
+    choice: 'L',
+    price: '1850.00',
+  });
+
+  test('with no way to pay, an item needing an advance waits, with Remove it or Call the shop (D4-2)', async ({
     page,
   }) => {
-    const shop = await openShop(page);
-    await seedCart(page, [
-      hijabLine(),
-      {
-        ...panjabiLine(),
-        variantId: idOf('lawn-L'),
-        productSlug: 'lawn-three-piece',
-        name: 'Lawn three-piece',
-        choice: 'L',
-        price: '1850.00',
-      },
-    ]);
+    const shop = await openShop(page, () => ({ paymentMethods: [] }));
+    await seedCart(page, [hijabLine(), lawnLine()]);
     await page.goto(shop.url('/checkout'));
+    await expect(alertOn(page)).toContainText("This shop isn't taking online payments right now");
     await expect(alertOn(page)).toContainText('Lawn three-piece needs a ৳200 advance');
-    await expect(alertOn(page)).toContainText("Online payment isn't open yet");
     await expect(page.getByRole('link', { name: 'Call the shop' })).toHaveAttribute(
       'href',
       'tel:01711-223344',
@@ -353,6 +353,101 @@ test.describe('what the shop refuses', () => {
     await expect(page.locator('.cl.off')).toHaveCount(0);
     await fillOrderForm(page);
     await expect(place(page)).toBeEnabled();
+  });
+
+  test('an order owing an advance chooses a wallet, splits the sum and goes straight to the page (SFT-07)', async ({
+    page,
+  }) => {
+    const shop = await openShop(page);
+    await seedCart(page, [hijabLine(), lawnLine()]);
+    await page.goto(shop.url('/checkout'));
+    await fillOrderForm(page);
+    // Cash on delivery isn't offered, and every wallet says how it pays.
+    const payment = page.locator('.card2', { hasText: 'Advance now ৳200' });
+    await expect(payment).not.toContainText('Cash on delivery');
+    await expect(payment.locator('.radio')).toHaveCount(5);
+    await expect(payment.locator('.radio', { hasText: 'bKash' })).toContainText(
+      "Pay on bKash's own page",
+    );
+    await expect(payment.locator('.radio', { hasText: 'Nagad' })).toContainText('enter the TrxID');
+    await expect(payment.locator('.radio', { hasText: 'Bank transfer' })).toContainText(
+      'the reference',
+    );
+    await expect(page.locator('.side .sum')).toContainText('Advance now');
+    await expect(page.locator('.side .sum')).toContainText('Pay on delivery');
+    await expect(page.locator('.side')).toContainText('You pay on the next page');
+    await payment.locator('.radio', { hasText: 'Nagad' }).click();
+    await page.getByRole('button', { name: 'Place order and pay ৳200' }).click();
+    await page.waitForURL(/\/__pay\/K7F2M9QX$/);
+    await expect(page.getByRole('heading', { name: 'The payment page' })).toBeVisible();
+    const {
+      orders: [sent],
+    } = await shop.sent();
+    const body = sent?.body as {
+      payment: { method: string; returnUrl: string; cancelUrl?: string };
+    };
+    expect(body.payment.method).toBe('nagad');
+    expect(body.payment.returnUrl).toMatch(/^https?:\/\/[^/]+\/order\/return$/);
+    expect(body.payment.cancelUrl).toBeUndefined();
+    // The cart is spent: the order is held.
+    await page.goBack();
+    await page.goto(shop.url('/checkout'));
+    await expect(page.locator('h1', { hasText: 'Checkout' })).toBeVisible();
+    await expect(page.getByText('Your cart is empty')).toBeVisible();
+  });
+
+  test('an advance holding the delivery charge names no figure until the thana is known (PRD-08)', async ({
+    page,
+  }) => {
+    const shop = await openShop(page, (language) => ({
+      products: [threePiece(language)].map((row) => ({
+        ...row,
+        product: {
+          ...row.product,
+          paymentPolicy: PaymentPolicy.DeliveryChargeOnly,
+          advanceAmount: null,
+        },
+      })),
+    }));
+    await seedCart(page, [lawnLine()]);
+    await page.goto(shop.url('/checkout'));
+    await expect(
+      page.getByRole('button', { name: 'Place order and pay', exact: true }),
+    ).toBeVisible();
+    await fillOrderForm(page);
+    await expect(page.getByRole('button', { name: 'Place order and pay ৳70' })).toBeVisible();
+  });
+
+  test('a new shop past its day’s cap, or a method gone: nothing placed, everything kept', async ({
+    page,
+  }) => {
+    const shop = await openShop(page, () => ({
+      nextOrders: [
+        { refuse: { status: 409, code: 'conflict', details: { reason: 'new_shop_cap' } } },
+        { refuse: { status: 409, code: 'conflict', details: { reason: 'no_payment_method' } } },
+        {
+          refuse: {
+            status: 422,
+            code: 'validation_error',
+            details: { fields: [{ field: 'payment.method', problem: 'not_allowed' }] },
+          },
+        },
+      ],
+    }));
+    await seedCart(page, [lawnLine()]);
+    await page.goto(shop.url('/checkout'));
+    await fillOrderForm(page);
+    const button = page.getByRole('button', { name: 'Place order and pay ৳200' });
+    await button.click();
+    await expect(alertOn(page)).toContainText("can't take more online payments today");
+    // Up where it can be read, not left above someone down by the button.
+    await expect(alertOn(page)).toBeInViewport();
+    await expect(page.getByRole('link', { name: 'Call the shop' })).toBeVisible();
+    await button.click();
+    await expect(alertOn(page)).toContainText("isn't taking online payments right now");
+    await button.click();
+    await expect(alertOn(page)).toContainText("This way of paying isn't available now");
+    await expect(page.locator('.side')).toContainText('Lawn three-piece');
   });
 
   test('too many tries says to wait a minute (RTE-06)', async ({ page }) => {
@@ -393,7 +488,9 @@ test.describe('around it', () => {
     await expect(place(page)).toHaveCount(0);
   });
 
-  test('leaves out what comes later: paying first', async ({ page }) => {
+  test('an order owing no advance is cash on delivery, and sends no payment (PRD-08)', async ({
+    page,
+  }) => {
     const shop = await openShop(page);
     await seedCart(page, [hijabLine()]);
     await page.goto(shop.url('/checkout'));

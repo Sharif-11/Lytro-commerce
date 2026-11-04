@@ -58,6 +58,7 @@ class DeliveryEstimateDto extends createZodDto(
     deliverable: z.boolean(),
     notDeliveredHere: z.array(z.string()),
     taxes: z.array(taxLineSchema),
+    advance: z.string().nullable(),
   }),
 ) {}
 

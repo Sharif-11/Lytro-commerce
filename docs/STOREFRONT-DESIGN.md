@@ -1,6 +1,6 @@
 # Shopper storefront: design
 
-Status: v1.7, 2026-11-04 (Slice 5.8's part 2 sketch, §8a: the wallets at checkout, straight to the payment page, and the return). v1.6 of 2026-11-04 (the Phase 4 close-out, §7d: a measured product takes a part of its unit; the landing page says
+Status: v1.8, 2026-11-05 (built, §8a). v1.7 of 2026-11-04 (Slice 5.8's part 2 sketch, §8a: the wallets at checkout, straight to the payment page, and the return). v1.6 of 2026-11-04 (the Phase 4 close-out, §7d: a measured product takes a part of its unit; the landing page says
 where a limited product goes, and a refusal names it). v1.5 of 2026-11-03 (Slice 4.8e's build, part 2, §7c: the account pages' refusals and empty states, an address
 edited or deleted, ten saved, the profile saved, a shopper's sign-in kept out of a browser's scripts). v1.4 of 2026-11-03
 (Slice 4.8e's build, part 1, §7b: what a product asks when ordering, on the product page and
@@ -326,10 +326,12 @@ and call or WhatsApp.
 **Coming back.** Tracking carries the open payment, so someone who closed the page finds it: "৳200 advance still to pay", the minutes left and "Pay now" (`pay58-tracking`), or that it is being
 checked (`pay58-tracking-checking`).
 
-| Where the shopper is | Served today | Still needed |
-| --- | --- | --- |
-| Method chooser | the product's payment policy and advance (public catalogue); the shop's methods with each wallet's way (`GET /v1/payment-methods`) | the order's advance, worked out by the server, in the delivery estimate |
-| Placing, the return, tracking | order creation with a payment session and its address, tracking with the open payment (Slice 5.2) | the shop's own address among the storefront key's websites, for the return address (PAY-04) |
+**As built.** The storefront's own server adds the return address, `<the shop's address>/order/return`, on the address the storefront's key names (PAY-04); a shop on its own domain is led there from it (Slice 13). The order has no tracking ID yet when that address is given, so the payment page adds `tracking_id` as it returns, and that page goes on to `/order/<tracking ID>`. The order's page reads the order's tracking and never the redirect (PAY-11): only the wording of a rejected payment rests on what the redirect said. While a payment is being checked it looks again every 10 seconds. A product paid for first tells Meta nothing from the browser: the server sends `Purchase` once the payment is verified. The wording says what the payment page says of a rejected payment (`PAYMENT-PAGE-DESIGN.md` §2).
+
+| Where the shopper is | Served |
+| --- | --- |
+| Method chooser | the shop's methods with each wallet's way (`GET /v1/payment-methods`); the order's advance by the order's own sum, null until known (`POST /v1/delivery-estimate`) |
+| Placing, the return, tracking | order creation with a payment session and its address, tracking with the open payment |
 
 ---
 
