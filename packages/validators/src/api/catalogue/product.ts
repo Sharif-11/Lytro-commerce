@@ -517,12 +517,22 @@ export const updateProductSchema = z
     basePrice: productFields.basePrice.optional(),
     // INV-24: switched where the variants are saved, since each one needs its pack amount with it.
     sharedStock: z.unknown().optional(),
+    // CMB-01: fixed when it is made.
+    kind: z.unknown().optional(),
     // CMB-01: a combo's parts, the whole list as it should now be; open orders keep what they reserved (agreed
     // 2026-10-30). Only a combo has parts, the server's check.
     parts: comboPartsField.optional(),
   })
   .superRefine((value, ctx) => {
     checkFields(value, ctx);
+    if (value.kind !== undefined) {
+      refuse(
+        ctx,
+        ['kind'],
+        FieldProblemCode.NotAllowed,
+        'A product stays a product, and a combo a combo: make a new one instead.',
+      );
+    }
     if (value.sharedStock !== undefined) {
       refuse(
         ctx,

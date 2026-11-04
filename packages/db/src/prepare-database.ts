@@ -39,6 +39,8 @@ export class TestDatabasePreparer {
           IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${TEST_APP_ROLE}') THEN
             CREATE ROLE ${TEST_APP_ROLE} LOGIN PASSWORD '${TEST_APP_PASSWORD}' NOSUPERUSER NOBYPASSRLS;
           END IF;
+        -- Suites start side by side: another can make the role between this one's look and its make.
+        EXCEPTION WHEN duplicate_object OR unique_violation THEN NULL;
         END $$`);
       await maintenance.query(`DROP DATABASE IF EXISTS ${database} WITH (FORCE)`);
       await maintenance.query(`CREATE DATABASE ${database}`);

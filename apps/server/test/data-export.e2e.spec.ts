@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
+import { inflateRawSync } from 'node:zlib';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
@@ -10,7 +11,14 @@ import { DataExportService } from '../src/modules/data-export/services/data-expo
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { SmsCapture } from './support/sms-capture';
-import { cookieFrom, getBinary, getJson, postJson, type HttpResult } from './support/http';
+import {
+  cookieFrom,
+  deleteJson,
+  getBinary,
+  getJson,
+  postJson,
+  type HttpResult,
+} from './support/http';
 import { passFirstSignIn } from './support/shop-client';
 
 // LIF-16/17: the owner's own export of payments and the activity log. White-box for generation (the same
@@ -120,6 +128,33 @@ async function viewerSession(who: Owner): Promise<Record<string, string>> {
   };
 }
 
+/** The files of a zip by name, read from its central directory: the local headers of a streamed zip hold no sizes. */
+function filesIn(zip: Buffer): Map<string, string> {
+  const end = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  let at = zip.readUInt32LE(end + 16);
+  const files = new Map<string, string>();
+  for (let left = zip.readUInt16LE(end + 10); left > 0; left -= 1) {
+    const nameLength = zip.readUInt16LE(at + 28);
+    const name = zip.toString('utf8', at + 46, at + 46 + nameLength);
+    const local = zip.readUInt32LE(at + 42);
+    const start = local + 30 + zip.readUInt16LE(local + 26) + zip.readUInt16LE(local + 28);
+    const body = zip.subarray(start, start + zip.readUInt32LE(at + 20));
+    files.set(name, (zip.readUInt16LE(at + 10) === 8 ? inflateRawSync(body) : body).toString());
+    at += 46 + nameLength + zip.readUInt16LE(at + 30) + zip.readUInt16LE(at + 32);
+  }
+  return files;
+}
+
+/** A CSV's rows by their columns; the values a test writes here hold no commas or quotes. */
+function csvRows(csv: string | undefined): Record<string, string>[] {
+  const [header, ...lines] = (csv ?? '').split('\n');
+  const columns = (header ?? '').split(',');
+  return lines.map((line) => {
+    const values = line.split(',');
+    return Object.fromEntries(columns.map((column, index) => [column, values[index] ?? '']));
+  });
+}
+
 beforeAll(async () => {
   if (!ADMIN_URL) return;
   const { adminDbUrl, appDbUrl } = await prepareTestDatabase(ADMIN_URL, DB_NAME);
@@ -190,6 +225,158 @@ describeIfDatabase('requesting and listing an export (LIF-16)', () => {
     const expired = await get(`/exports/${exportId}/download`, shopCall(who));
     expect(expired.status).toBe(404);
     expect(errorOf(expired)).toMatchObject({ code: 'not_found' });
+  });
+
+  it("holds every order and customer of the shop, as CSV and JSON, and none of another shop's", async () => {
+    const who = await owner();
+    const other = await owner();
+    const lampOf = async (shop: Owner, price: number): Promise<string> => {
+      const made = await post(
+        '/products',
+        { name: 'Lamp', basePrice: price, variants: [{ optionIds: [], openingStock: 10 }] },
+        shopCall(shop),
+      );
+      expect(made.status, JSON.stringify(made.body)).toBe(201);
+      return (made.body as { variants: { id: string }[] }).variants[0]?.id ?? '';
+    };
+    const place = async (shop: Owner, body: Record<string, unknown>): Promise<string> => {
+      const made = await post('/orders', body, {
+        ...shopCall(shop),
+        'idempotency-key': randomUUID(),
+      });
+      expect(made.status, JSON.stringify(made.body)).toBe(201);
+      return (made.body as { orderNumber: string }).orderNumber;
+    };
+    const locations = (await get('/locations', shopCall(who))).body as {
+      zillas: { nameEn: string; thanas: { id: number; nameEn: string }[] }[];
+    };
+    const locationId = locations.zillas
+      .find((row) => row.nameEn === 'Dhaka')
+      ?.thanas.find((row) => row.nameEn === 'Mirpur')?.id;
+    const rahima = texts.freshPhone();
+    const karim = texts.freshPhone();
+    const stranger = texts.freshPhone();
+    const lamp = await lampOf(who, 300);
+    // LIF-16: a product deleted for good is no longer the shop's to export.
+    const gone = await post(
+      '/products',
+      { name: 'Old shawl', basePrice: 900, variants: [{ optionIds: [] }] },
+      shopCall(who),
+    );
+    expect(gone.status, JSON.stringify(gone.body)).toBe(201);
+    const removed = await deleteJson(
+      port,
+      `/products/${(gone.body as { id: string }).id}?hard=true`,
+      shopCall(who),
+    );
+    expect(removed.status, JSON.stringify(removed.body)).toBe(200);
+    const delivered = {
+      customerName: 'Rahima Akter',
+      phone: rahima,
+      locationId,
+      deliveryAddress: 'House 12 Road 3',
+      items: [{ variantId: lamp, quantity: 2 }],
+    };
+    const first = await place(who, delivered);
+    const second = await place(who, delivered);
+    const third = await place(who, {
+      customerName: 'Karim Mia',
+      phone: karim,
+      fulfilmentType: 'takeaway',
+      items: [{ variantId: lamp, quantity: 1 }],
+    });
+    await place(other, {
+      customerName: 'Someone Else',
+      phone: stranger,
+      fulfilmentType: 'takeaway',
+      items: [{ variantId: await lampOf(other, 900), quantity: 1 }],
+    });
+
+    const requested = await post('/exports', {}, shopCall(who));
+    const exportId = (requested.body as { id: string }).id;
+    await dataExport.generate(await tenantIdOf(who.slug), exportId);
+    const downloaded = await getBinary(port, `/exports/${exportId}/download`, shopCall(who));
+    expect(downloaded.status).toBe(200);
+    const files = filesIn(downloaded.body);
+
+    const byNumber = <T extends { orderNumber?: string }>(rows: T[]) =>
+      [...rows].sort((a, b) => String(a.orderNumber).localeCompare(String(b.orderNumber)));
+    const rahimaOrder = {
+      customerName: 'Rahima Akter',
+      customerPhone: rahima,
+      deliveryAddress: 'House 12 Road 3',
+      fulfilmentType: 'delivery',
+      source: 'dashboard',
+      subtotal: '600.00',
+      deliveryCharge: '70.00',
+      grandTotal: '670.00',
+    };
+    const karimOrder = {
+      customerName: 'Karim Mia',
+      customerPhone: karim,
+      fulfilmentType: 'takeaway',
+      subtotal: '300.00',
+      deliveryCharge: '0.00',
+      grandTotal: '300.00',
+    };
+    const orderRows = byNumber(csvRows(files.get('orders.csv')));
+    expect(orderRows.map((row) => row['orderNumber'])).toEqual([first, second, third]);
+    expect(orderRows).toEqual([
+      expect.objectContaining(rahimaOrder),
+      expect.objectContaining(rahimaOrder),
+      expect.objectContaining(karimOrder),
+    ]);
+    const ordersJson = byNumber(
+      JSON.parse(files.get('orders.json') ?? '[]') as {
+        orderNumber: string;
+        items: { productName: string; quantity: string; itemTotal: string }[];
+      }[],
+    );
+    expect(ordersJson).toEqual([
+      expect.objectContaining({ orderNumber: first, ...rahimaOrder }),
+      expect.objectContaining({ orderNumber: second, ...rahimaOrder }),
+      expect.objectContaining({ orderNumber: third, ...karimOrder }),
+    ]);
+    expect(ordersJson[0]?.items).toEqual([
+      expect.objectContaining({ productName: 'Lamp', quantity: '2.000', itemTotal: '600.00' }),
+    ]);
+    expect(byNumber(csvRows(files.get('order-items.csv')))).toEqual([
+      expect.objectContaining({ orderNumber: first, productName: 'Lamp', quantity: '2.000' }),
+      expect.objectContaining({ orderNumber: second, productName: 'Lamp', quantity: '2.000' }),
+      expect.objectContaining({ orderNumber: third, productName: 'Lamp', quantity: '1.000' }),
+    ]);
+
+    const byName = <T extends { name?: string }>(rows: T[]) =>
+      [...rows].sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    expect(byName(csvRows(files.get('customers.csv')))).toEqual([
+      expect.objectContaining({ name: 'Karim Mia', phone: karim, orderCount: '1' }),
+      expect.objectContaining({ name: 'Rahima Akter', phone: rahima, orderCount: '2' }),
+    ]);
+    expect(byName(JSON.parse(files.get('customers.json') ?? '[]') as { name: string }[])).toEqual([
+      expect.objectContaining({ name: 'Karim Mia', phone: karim, orderCount: 1 }),
+      expect.objectContaining({ name: 'Rahima Akter', phone: rahima, orderCount: 2 }),
+    ]);
+
+    // LIF-16: each product and its variants, with what it costs and holds.
+    const products = JSON.parse(files.get('products.json') ?? '[]') as {
+      name: string;
+      basePrice: string;
+      variants: { sku: string | null; onHand: string | null }[];
+    }[];
+    expect(products.map((row) => [row.name, row.basePrice])).toEqual([['Lamp', '300.00']]);
+    expect(products[0]?.variants).toHaveLength(1);
+    expect(csvRows(files.get('products.csv'))).toEqual([
+      expect.objectContaining({ name: 'Lamp', kind: 'standard', basePrice: '300.00' }),
+    ]);
+    expect(csvRows(files.get('product-variants.csv'))).toEqual([
+      expect.objectContaining({ price: '300.00', onHand: products[0]?.variants[0]?.onHand }),
+    ]);
+
+    // SEC-02: nothing of the other shop's, in any file. Order numbers are each shop's own, so they may match.
+    for (const [name, content] of files) {
+      expect(content, name).not.toContain(stranger);
+      expect(content, name).not.toContain('Someone Else');
+    }
   });
 });
 

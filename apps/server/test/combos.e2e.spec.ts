@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { randomInt, randomUUID } from 'node:crypto';
+import { request as httpRequest } from 'node:http';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
@@ -16,8 +17,8 @@ import { SmsCapture } from './support/sms-capture';
 // Phase 4 Slice 4.5, agreed 2026-10-30: combo packs -- a combo made of other products' variants, a part fixed or a
 // choice, holding no stock of its own and in stock by what its parts can make (CMB-01, CMB-02, CMB-08, CMB-10); on an
 // order, each combo its components, held, shipped with their serials and taken back whole (CMB-03 to CMB-05); every
-// sale in stock history naming its order and its combo (CMB-05); and on the storefront, what is inside and what it
-// saves (CMB-06, CMB-09). Runs only when DATABASE_TEST_ADMIN_URL is set.
+// sale in stock history naming its order and its combo (CMB-05); its weight and delivery (CMB-07); and on the storefront,
+// what is inside and what it saves (CMB-06, CMB-09). Runs only when DATABASE_TEST_ADMIN_URL is set.
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_combos_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
@@ -72,12 +73,14 @@ interface Component {
   partPosition: number;
   variantId: string | null;
   productName: string;
+  attributes: { value: string }[];
   quantity: string;
 }
 
 interface Order {
   id: string;
   orderNumber: string;
+  trackingId: string;
   status: string;
   fulfillmentStatus: string;
   items: { id: string; productName: string; unitPrice: string; components: Component[] }[];
@@ -128,12 +131,13 @@ async function product(
   return { id: body.id, variantId: body.variants[0]?.id ?? '' };
 }
 
-/** A product in sizes M and L, each with this much stock. */
+/** A product in sizes M and L, each with this much stock and, in that order, anything of its own. */
 async function sized(
   shop: ShopClient,
   name: string,
   price: number,
   stock: number,
+  own: Record<string, unknown>[] = [],
 ): Promise<{ id: string; m: string; l: string }> {
   const attributes = (await shop.get('/attributes')).body as {
     id: string;
@@ -147,7 +151,7 @@ async function sized(
     name,
     basePrice: price,
     variantAttributes: [{ attributeId: size, optionIds: ids }],
-    variants: ids.map((id) => ({ optionIds: [id], openingStock: stock })),
+    variants: ids.map((id, at) => ({ optionIds: [id], openingStock: stock, ...own[at] })),
   });
   expect(made.status, JSON.stringify(made.body)).toBe(201);
   const body = made.body as { id: string; variants: { id: string; optionIds: string[] }[] };
@@ -215,6 +219,68 @@ async function level(variantId: string): Promise<{ onHand: string; reserved: str
   return { onHand: row?.on_hand ?? '0.000', reserved: row?.reserved ?? '0.000' };
 }
 
+/** CMB-02, INV-19: the number the catalogue's caches are keyed by. */
+async function catalogueVersion(tenantId: string): Promise<number> {
+  const result = await admin.query<{ version: string }>(
+    'SELECT version FROM tenant.catalogue_state WHERE tenant_id = $1',
+    [tenantId],
+  );
+  return Number(result.rows[0]?.version ?? 0);
+}
+
+async function websiteKey(shop: ShopClient): Promise<string> {
+  const made = await shop.post('/api-keys', { name: 'Website', websites: [SITE] });
+  expect(made.status, JSON.stringify(made.body)).toBe(201);
+  return (made.body as { key: string }).key;
+}
+
+/** A shopper's order, as the shop's website sends it. */
+async function publicOrder(shop: ShopClient, key: string, items: unknown[]): Promise<HttpResult> {
+  return sendExact(
+    port,
+    'POST',
+    '/v1/orders',
+    { ...(await delivery(shop)), items },
+    {
+      host: API_HOST,
+      authorization: `Bearer ${key}`,
+      origin: SITE,
+      'content-type': 'application/json',
+      'idempotency-key': randomUUID(),
+    },
+  );
+}
+
+/** CMB-09, FED-02: the shop's Meta catalog feed by its columns, as Meta's fetcher reads it; nothing here is quoted. */
+async function feedOf(shop: ShopClient): Promise<Record<string, string>[]> {
+  const link = await shop.get('/catalog-feed');
+  expect(link.status, JSON.stringify(link.body)).toBe(200);
+  const text = await new Promise<string>((resolve, reject) => {
+    const req = httpRequest(
+      {
+        host: '127.0.0.1',
+        port,
+        path: new URL((link.body as { url: string }).url).pathname,
+        method: 'GET',
+        headers: { host: API_HOST },
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => {
+          resolve(Buffer.concat(chunks).toString('utf8'));
+        });
+      },
+    );
+    req.on('error', reject);
+    req.end();
+  });
+  const [header, ...lines] = text.split('\n').map((line) => line.split(','));
+  return lines.map((cells) =>
+    Object.fromEntries((header ?? []).map((name, at) => [name, cells[at] ?? ''])),
+  );
+}
+
 describeIfDatabase('a combo made of its parts (CMB-01, CMB-02, CMB-08, CMB-10)', () => {
   it('makes a combo of fixed and choice parts that holds no stock, in stock by what its parts can make', async () => {
     const shop = await openShop(port, texts, 'cmb');
@@ -236,6 +302,13 @@ describeIfDatabase('a combo made of its parts (CMB-01, CMB-02, CMB-08, CMB-10)',
       [1, '2.000', [toner.variantId]],
       [2, '1.000', [shirt.m, shirt.l]],
     ]);
+    // CMB-01: a combo stays one, and a product a product.
+    const backToProduct = await shop.patch(`/products/${pack.id}`, { kind: 'standard' });
+    expect(backToProduct.status).toBe(400);
+    expect(fieldsOf(backToProduct)).toEqual({ kind: 'not_allowed' });
+    const intoCombo = await shop.patch(`/products/${toner.id}`, { kind: 'combo' });
+    expect(intoCombo.status).toBe(400);
+    expect(fieldsOf(intoCombo)).toEqual({ kind: 'not_allowed' });
     // Two Toners a combo out of four on the shelf make two, whatever the shirts allow: low against 5.
     expect((await stockOf(shop, pack.id)).combo).toEqual({
       canMake: 2,
@@ -252,6 +325,93 @@ describeIfDatabase('a combo made of its parts (CMB-01, CMB-02, CMB-08, CMB-10)',
       limitedBy: { position: 1, productName: 'Toner', available: '1.000' },
     });
     expect(await stored(pack.id)).toEqual(['out', 'out']);
+  });
+
+  it('shows what its scarcest part can make, and selling the last of that part turns it out and moves the catalogue version (CMB-02)', async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    const cleanser = await product(shop, 'Cleanser', 300, 5);
+    const toner = await product(shop, 'Toner', 400, 3);
+    const serum = await product(shop, 'Serum', 600, 8);
+    const pack = await combo(shop, 'Skincare combo', 1100, [
+      { quantity: 1, variantIds: [cleanser.variantId] },
+      { quantity: 1, variantIds: [toner.variantId] },
+      { quantity: 1, variantIds: [serum.variantId] },
+    ]);
+    expect((await stockOf(shop, pack.id)).combo?.canMake).toBe(3);
+    const start = await catalogueVersion(shop.tenantId);
+
+    // INV-19: two sold leave the Toner low and the combo low, so no state moved and neither did the version.
+    await shipped(shop, await placed(shop, [{ variantId: toner.variantId, quantity: 2 }]));
+    expect((await stockOf(shop, pack.id)).combo?.canMake).toBe(1);
+    expect(await stored(pack.id)).toEqual(['low', 'low']);
+    expect(await catalogueVersion(shop.tenantId)).toBe(start);
+
+    await shipped(shop, await placed(shop, [{ variantId: toner.variantId, quantity: 1 }]));
+    expect((await stockOf(shop, pack.id)).combo?.canMake).toBe(0);
+    expect(await stored(pack.id)).toEqual(['out', 'out']);
+    expect(await catalogueVersion(shop.tenantId)).toBeGreaterThan(start);
+  });
+
+  it("moves the catalogue version for the combo's state alone, its part's own staying as it was (CMB-02)", async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    // Twenty-two Soaps at twenty a combo make one; three sold leave nineteen, still in stock, and no combo.
+    const soap = await product(shop, 'Soap', 100, 22);
+    const pack = await combo(shop, 'Soap crate', 1500, [
+      { quantity: 20, variantIds: [soap.variantId] },
+    ]);
+    expect(await stored(pack.id)).toEqual(['low', 'low']);
+    const start = await catalogueVersion(shop.tenantId);
+    await placed(shop, [{ variantId: soap.variantId, quantity: 3 }]);
+    expect(await stored(soap.id)).toEqual(['in', 'in']);
+    expect(await stored(pack.id)).toEqual(['out', 'out']);
+    expect(await catalogueVersion(shop.tenantId)).toBe(start + 1);
+  });
+
+  it('counts a combo as one product toward the plan, refusing one at the limit (CMB-10)', async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    await admin.query(
+      `INSERT INTO control.plan_limit_overrides (tenant_id, limit_key, value, reason, set_by)
+       VALUES ($1, 'products', '3', 'test', gen_random_uuid())`,
+      [shop.tenantId],
+    );
+    const toner = await product(shop, 'Toner', 400, 4);
+    const serum = await product(shop, 'Serum', 600, 3);
+    const parts = [
+      { quantity: 1, variantIds: [toner.variantId] },
+      { quantity: 1, variantIds: [serum.variantId] },
+    ];
+    await combo(shop, 'Skincare combo', 900, parts);
+    const refused = await shop.post('/products', {
+      name: 'Second combo',
+      basePrice: 900,
+      kind: 'combo',
+      parts,
+    });
+    expect(refused.status).toBe(402);
+    expect(errorOf(refused).code).toBe('plan_limit_reached');
+    expect(errorOf(refused).details).toMatchObject({ products: 3 });
+  });
+
+  it('takes ten parts and refuses an eleventh (CMB-10)', async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    const parts: { quantity: number; variantIds: string[] }[] = [];
+    for (let n = 1; n <= 11; n += 1) {
+      const item = await product(shop, `Item ${String(n)}`, 100, 5);
+      parts.push({ quantity: 1, variantIds: [item.variantId] });
+    }
+    const pack = await combo(shop, 'Ten parts', 900, parts.slice(0, 10));
+    expect(pack.parts).toHaveLength(10);
+    const made = await shop.post('/products', {
+      name: 'Eleven parts',
+      basePrice: 900,
+      kind: 'combo',
+      parts,
+    });
+    expect(made.status).toBe(400);
+    expect(fieldsOf(made)).toEqual({ parts: 'too_many' });
+    const changed = await shop.patch(`/products/${pack.id}`, { parts });
+    expect(changed.status).toBe(400);
+    expect(fieldsOf(changed)).toEqual({ parts: 'too_many' });
   });
 
   it('refuses what a combo may not be: its own variants or stock, a combo inside, a part twice, half a choice', async () => {
@@ -365,6 +525,17 @@ describeIfDatabase('a combo made of its parts (CMB-01, CMB-02, CMB-08, CMB-10)',
       [toner.variantId],
       [serum.variantId],
     ]);
+
+    // CMB-08: taken out of both combos, the part can go for good.
+    for (const id of [pack.id, copied.id]) {
+      const without = await shop.patch(`/products/${id}`, {
+        parts: [{ quantity: 1, variantIds: [toner.variantId] }],
+      });
+      expect(without.status, JSON.stringify(without.body)).toBe(200);
+    }
+    const removed = await shop.delete(`/products/${serum.id}?hard=true`);
+    expect(removed.status, JSON.stringify(removed.body)).toBe(200);
+    expect((await shop.get(`/products/${serum.id}`)).status).toBe(404);
   });
 });
 
@@ -464,6 +635,172 @@ describeIfDatabase('a combo on an order (CMB-03, CMB-04)', () => {
     expect(errorOf(none).message).toContain('Gift combo');
     expect((await level(toner.variantId)).reserved).toBe('0.000');
   });
+
+  it('shows a past order as it was after a part is renamed and repriced and it and the combo are deleted for good', async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    const cleanser = await product(shop, 'Cleanser', 900, 5);
+    const toner = await product(shop, 'Toner', 800, 5);
+    const serum = await sized(shop, 'Serum', 1100, 5);
+    const pack = await combo(shop, 'Skincare combo', 2450, [
+      { quantity: 1, variantIds: [cleanser.variantId] },
+      { quantity: 1, variantIds: [toner.variantId] },
+      { quantity: 1, variantIds: [serum.m, serum.l] },
+    ]);
+    const made = await shipped(
+      shop,
+      await placed(shop, [
+        { variantId: pack.variantId, quantity: 1, choices: [{ part: 3, variantIds: [serum.l] }] },
+      ]),
+    );
+    expect((await shop.post(`/orders/${made.id}/deliver`, {})).status).toBe(200);
+
+    const renamed = await shop.patch(`/products/${serum.id}`, {
+      name: 'Serum Plus',
+      basePrice: 1500,
+    });
+    expect(renamed.status, JSON.stringify(renamed.body)).toBe(200);
+    const repriced = await shop.patch(`/products/${pack.id}`, { basePrice: 3000 });
+    expect(repriced.status, JSON.stringify(repriced.body)).toBe(200);
+    expect((await shop.delete(`/products/${pack.id}?hard=true`)).status).toBe(200);
+    expect((await shop.delete(`/products/${serum.id}?hard=true`)).status).toBe(200);
+
+    const read = (await shop.get(`/orders/${made.id}`)).body as Order;
+    const [line] = read.items;
+    expect(line).toMatchObject({ productName: 'Skincare combo', unitPrice: '2450.00' });
+    expect(
+      line?.components.map((component) => [
+        component.productName,
+        component.attributes.map((row) => row.value),
+        component.quantity,
+      ]),
+    ).toEqual([
+      ['Cleanser', [], '1.000'],
+      ['Toner', [], '1.000'],
+      ['Serum', ['L'], '1.000'],
+    ]);
+    // ORD-46: and its tracking page, from the same lines.
+    const tracked = await sendExact(port, 'GET', `/v1/track/${made.trackingId}`, undefined, {
+      host: API_HOST,
+      authorization: `Bearer ${await websiteKey(shop)}`,
+      origin: SITE,
+    });
+    expect(tracked.status, JSON.stringify(tracked.body)).toBe(200);
+    expect(tracked.body).toMatchObject({
+      items: [
+        {
+          productName: 'Skincare combo',
+          unitPrice: '2450.00',
+          components: [
+            { productName: 'Cleanser', attributes: [], quantity: '1.000' },
+            { productName: 'Toner', attributes: [], quantity: '1.000' },
+            { productName: 'Serum', attributes: [{ value: 'L' }], quantity: '1.000' },
+          ],
+        },
+      ],
+      grandTotal: '2520.00',
+    });
+  });
+
+  it("holds, ships and takes back the serum an open order was made with after the combo's serum is swapped for a toner (CMB-04)", async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    const cleanser = await product(shop, 'Cleanser', 900, 5);
+    const toner = await product(shop, 'Toner', 800, 5);
+    const serum = await product(shop, 'Serum', 1100, 5);
+    const pack = await combo(shop, 'Skincare combo', 1800, [
+      { quantity: 1, variantIds: [cleanser.variantId] },
+      { quantity: 1, variantIds: [serum.variantId] },
+    ]);
+    const made = await placed(shop, [{ variantId: pack.variantId, quantity: 1 }]);
+    const swapped = await shop.patch(`/products/${pack.id}`, {
+      parts: [
+        { quantity: 1, variantIds: [cleanser.variantId] },
+        { quantity: 1, variantIds: [toner.variantId] },
+      ],
+    });
+    expect(swapped.status, JSON.stringify(swapped.body)).toBe(200);
+    expect((await level(serum.variantId)).reserved).toBe('1.000');
+    expect((await level(toner.variantId)).reserved).toBe('0.000');
+
+    const sent = await shipped(shop, made);
+    expect(sent.items[0]?.components.map((component) => component.productName)).toEqual([
+      'Cleanser',
+      'Serum',
+    ]);
+    expect(await level(serum.variantId)).toEqual({ onHand: '4.000', reserved: '0.000' });
+    expect(await level(toner.variantId)).toEqual({ onHand: '5.000', reserved: '0.000' });
+
+    expect((await shop.post(`/orders/${made.id}/deliver`, {})).status).toBe(200);
+    const back = await shop.post(`/orders/${made.id}/returns`, {
+      items: [{ lineId: sent.items[0]?.id, sellable: 1, damaged: 0 }],
+    });
+    expect(back.status, JSON.stringify(back.body)).toBe(200);
+    expect((await level(serum.variantId)).onHand).toBe('5.000');
+    expect((await level(toner.variantId)).onHand).toBe('5.000');
+
+    // A combo ordered now takes the parts as they are.
+    await placed(shop, [{ variantId: pack.variantId, quantity: 1 }]);
+    expect((await level(toner.variantId)).reserved).toBe('1.000');
+    expect((await level(serum.variantId)).reserved).toBe('0.000');
+  });
+});
+
+describeIfDatabase("a combo's weight and delivery (CMB-07)", () => {
+  it('weighs its parts unless given its own weight, and with no charge of its own is charged the zone', async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    const cleanser = await product(shop, 'Cleanser', 300, 9, { weightKg: 0.2 });
+    const toner = await product(shop, 'Toner', 400, 9, { weightKg: 0.2 });
+    const serum = await product(shop, 'Serum', 600, 9, { weightKg: 0.2 });
+    const parts = [
+      { quantity: 1, variantIds: [cleanser.variantId] },
+      { quantity: 1, variantIds: [toner.variantId] },
+      { quantity: 1, variantIds: [serum.variantId] },
+    ];
+    const pack = await combo(shop, 'Skincare combo', 1100, parts);
+    // The editor's figure and the line agree, and three of one 200 g item weigh the same.
+    const quoted = await shop.post('/products/combo-quote', { parts });
+    expect(quoted.body).toMatchObject({ weightKg: '0.600' });
+    const threeOfOne = await shop.post('/products/combo-quote', {
+      parts: [{ quantity: 3, variantIds: [cleanser.variantId] }],
+    });
+    expect(threeOfOne.body).toMatchObject({ weightKg: '0.600' });
+
+    const made = await placed(shop, [{ variantId: pack.variantId, quantity: 1 }]);
+    expect(made.items[0]).toMatchObject({
+      weightKg: '0.600',
+      ownDeliveryCharge: null,
+      deliveryCharge: '0.00',
+    });
+    // Mirpur is in the shop's home zone, at its 70 TK.
+    expect(made).toMatchObject({ deliveryCharge: '70.00', deliveryZone: { charge: '70.00' } });
+
+    const set = await shop.patch(`/products/${pack.id}`, { weightKg: 0.5 });
+    expect(set.status, JSON.stringify(set.body)).toBe(200);
+    const heavier = await placed(shop, [{ variantId: pack.variantId, quantity: 1 }]);
+    expect(heavier.items[0]).toMatchObject({ weightKg: '0.500' });
+    expect(heavier).toMatchObject({ deliveryCharge: '70.00' });
+  });
+
+  it('counts a choice part at its heaviest allowed variant, whichever is chosen', async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    const cleanser = await product(shop, 'Cleanser', 300, 9, { weightKg: 0.2 });
+    const shirt = await sized(shop, 'T-shirt', 450, 5, [{ weightKg: 0.25 }, { weightKg: 0.4 }]);
+    const parts = [
+      { quantity: 1, variantIds: [cleanser.variantId] },
+      { quantity: 2, variantIds: [shirt.m, shirt.l] },
+    ];
+    // 0.2 kg, and two shirts at the L's 0.4 kg.
+    const quoted = await shop.post('/products/combo-quote', { parts });
+    expect(quoted.body).toMatchObject({ weightKg: '1.000' });
+    const pack = await combo(shop, 'Gift combo', 1100, parts);
+    const made = await placed(shop, [
+      {
+        variantId: pack.variantId,
+        quantity: 1,
+        choices: [{ part: 2, variantIds: [shirt.m, shirt.m] }],
+      },
+    ]);
+    expect(made.items[0]).toMatchObject({ weightKg: '1.000' });
+  });
 });
 
 describeIfDatabase('a combo shipped and returned (CMB-05)', () => {
@@ -554,6 +891,10 @@ describeIfDatabase('a combo shipped and returned (CMB-05)', () => {
 
     const split = await back([{ lineId: comboLine?.id, sellable: 1, damaged: 1 }]);
     expect(fieldsOf(split)).toEqual({ 'items.0.sellable': 'not_allowed' });
+    // CMB-05: half a combo does not come back.
+    const half = await back([{ lineId: comboLine?.id, sellable: 0.5, damaged: 0 }]);
+    expect(half.status).toBe(400);
+    expect(fieldsOf(half)).toEqual({ 'items.0.sellable': 'not_allowed' });
     const stray = await back([
       {
         lineId: comboLine?.id,
@@ -725,6 +1066,108 @@ describeIfDatabase('a combo on the storefront (CMB-06, CMB-09)', () => {
       ['Toner', [], '2.000'],
       ['T-shirt', ['L'], '1.000'],
     ]);
+  });
+
+  it('refuses a shopper choosing a sold-out variant, naming the combo and holding nothing (CMB-03)', async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    const key = await websiteKey(shop);
+    const toner = await product(shop, 'Toner', 400, 4);
+    const polo = await sized(shop, 'Polo', 650, 1);
+    const pack = await combo(shop, 'Polo combo', 1000, [
+      { quantity: 1, variantIds: [toner.variantId] },
+      { quantity: 1, variantIds: [polo.m, polo.l] },
+    ]);
+    // The last L goes to an order of its own; the M keeps the combo on sale.
+    await placed(shop, [{ variantId: polo.l, quantity: 1 }]);
+    const choosing = (variantId: string) => [
+      { variantId: pack.variantId, quantity: 1, choices: [{ part: 2, variantIds: [variantId] }] },
+    ];
+
+    const refused = await publicOrder(shop, key, choosing(polo.l));
+    expect(refused.status, JSON.stringify(refused.body)).toBe(409);
+    expect(errorOf(refused).code).toBe('conflict');
+    expect(errorOf(refused).message).toContain('Polo combo');
+    expect((await level(toner.variantId)).reserved).toBe('0.000');
+    expect((await level(polo.l)).reserved).toBe('1.000');
+
+    const taken = await publicOrder(shop, key, choosing(polo.m));
+    expect(taken.status, JSON.stringify(taken.body)).toBe(201);
+    expect((await level(toner.variantId)).reserved).toBe('1.000');
+    expect((await level(polo.m)).reserved).toBe('1.000');
+  });
+
+  it("raises the saving, never the combo's price, when a part's price rises (CMB-06)", async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    const key = await websiteKey(shop);
+    const cleanser = await product(shop, 'Cleanser', 900, 5);
+    const toner = await product(shop, 'Toner', 800, 5);
+    const serum = await product(shop, 'Serum', 1100, 5);
+    const pack = await combo(shop, 'Skincare combo', 2450, [
+      { quantity: 1, variantIds: [cleanser.variantId] },
+      { quantity: 1, variantIds: [toner.variantId] },
+      { quantity: 1, variantIds: [serum.variantId] },
+    ]);
+    const read = async () => {
+      const answer = await sendExact(
+        port,
+        'GET',
+        `/v1/catalogue/products/${pack.slug}`,
+        undefined,
+        {
+          host: API_HOST,
+          authorization: `Bearer ${key}`,
+          origin: SITE,
+        },
+      );
+      expect(answer.status, JSON.stringify(answer.body)).toBe(200);
+      return answer.body as {
+        minPrice: string;
+        variants: { price: string }[];
+        combo: { saving: string | null };
+      };
+    };
+    // Parts worth 2,800 in a 2,450 combo.
+    expect(await read()).toMatchObject({
+      minPrice: '2450.00',
+      variants: [{ price: '2450.00' }],
+      combo: { saving: '350.00' },
+    });
+
+    const raised = await shop.patch(`/products/${serum.id}`, { basePrice: 1300 });
+    expect(raised.status, JSON.stringify(raised.body)).toBe(200);
+    expect(await read()).toMatchObject({
+      minPrice: '2450.00',
+      variants: [{ price: '2450.00' }],
+      combo: { saving: '550.00' },
+    });
+    const sold = await placed(shop, [{ variantId: pack.variantId, quantity: 1 }]);
+    expect(sold.items[0]?.unitPrice).toBe('2450.00');
+  });
+
+  it('lists each combo in the feed as one row with its own variant, however many parts and choices it has (CMB-09)', async () => {
+    const shop = await openShop(port, texts, 'cmb');
+    const toner = await product(shop, 'Toner', 400, 4);
+    const polo = await sized(shop, 'Polo', 650, 5);
+    const skincare = await combo(shop, 'Skincare combo', 1000, [
+      { quantity: 2, variantIds: [toner.variantId] },
+      { quantity: 1, variantIds: [polo.m, polo.l] },
+    ]);
+    const polos = await combo(shop, 'Three polos', 1700, [
+      { quantity: 3, variantIds: [polo.m, polo.l] },
+    ]);
+    const rows = await feedOf(shop);
+    for (const [pack, title, price] of [
+      [skincare, 'Skincare combo', '1000.00 BDT'],
+      [polos, 'Three polos', '1700.00 BDT'],
+    ] as const) {
+      expect(rows.filter((row) => row['item_group_id'] === pack.id)).toEqual([
+        expect.objectContaining({ id: pack.variantId, title, price }),
+      ]);
+    }
+    // Its parts stay their own products' rows, each once.
+    expect(rows.map((row) => row['id']).sort()).toEqual(
+      [toner.variantId, polo.m, polo.l, skincare.variantId, polos.variantId].sort(),
+    );
   });
 });
 

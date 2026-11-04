@@ -14,6 +14,8 @@ export const ERROR_CODES = [
   'quota_exceeded',
   'service_unavailable',
   'internal_error',
+  // API-11: an order or payment session sent with no Idempotency-Key.
+  'idempotency_key_required',
   // API-11: a replayed Idempotency-Key whose body doesn't match the original request.
   'idempotency_conflict',
   // LSN-18 (Phase 5 Slice 5.4a): the listener app is older than the platform's minimum and must be updated.

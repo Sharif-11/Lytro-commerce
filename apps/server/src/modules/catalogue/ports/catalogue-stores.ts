@@ -4,7 +4,9 @@ import type {
   PresetPatch,
   ProductImageRow,
   ProductListFilter,
+  ProductExportRow,
   ProductStateCounts,
+  ProductVariantExportRow,
   SizeChartContent,
   SizeChartOwner,
   Transaction,
@@ -365,6 +367,17 @@ export interface ProductStore {
   /** INV-24: clears every pack amount of a product that stops sharing its stock. */
   clearPackAmounts(tx: Transaction, tenantId: string, productId: string): Promise<void>;
   /** DLV-07: the zones the product may be delivered to. */
+  listForExport(
+    tx: Transaction,
+    tenantId: string,
+    afterId: string | null,
+    limit: number,
+  ): Promise<ProductExportRow[]>;
+  listVariantsForExport(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+  ): Promise<ProductVariantExportRow[]>;
   listDeliveryZoneIds(tx: Transaction, tenantId: string, productId: string): Promise<string[]>;
   /** MNU-01 (Slice 4.6b): the product's modifier groups, replaced whole. */
   replaceModifierGroups(

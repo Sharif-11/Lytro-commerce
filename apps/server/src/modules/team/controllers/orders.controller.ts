@@ -120,7 +120,7 @@ export class OrdersController {
     @Res({ passthrough: true }) response: HttpResponse,
   ): Promise<unknown> {
     const key = headerValue(request.headers['idempotency-key']);
-    if (!key) throw new ApiError('validation_error', 'IdempotencyKeyRequired', {});
+    if (!key) throw new ApiError('idempotency_key_required', 'IdempotencyKeyRequired', {});
     // ORD-22, agreed 2026-10-30: recording the payment that comes with it is payments:manage's, as on its own route.
     if (
       body.payment !== undefined &&

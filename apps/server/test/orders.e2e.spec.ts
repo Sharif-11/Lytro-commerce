@@ -3,11 +3,11 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AuditAction } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { translate } from '../src/common/i18n/messages';
-import { dhakaDate } from '../src/common/time';
+import { DAY_MS, dhakaDate } from '../src/common/time';
 import { DataExportService } from '../src/modules/data-export/services/data-export.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
@@ -203,10 +203,11 @@ async function customerOf(tenantId: string, phone: string) {
   return result.rows[0];
 }
 
-const today = (): string => {
-  const day = dhakaDate(new Date());
-  return `${day.slice(2, 4)}${day.slice(5, 7)}${day.slice(8, 10)}`;
-};
+/** ORD-04: a day as an order number starts it, YYMMDD. */
+const numberPrefix = (day: string): string =>
+  `${day.slice(2, 4)}${day.slice(5, 7)}${day.slice(8, 10)}`;
+
+const today = (): string => numberPrefix(dhakaDate(new Date()));
 
 describeIfDatabase('entering an order (ORD-01, ORD-04, ORD-05, ORD-06, PRD-07)', () => {
   it('numbers it by the day, prices it from the variants, holds its stock and logs it', async () => {
@@ -297,6 +298,58 @@ describeIfDatabase('entering an order (ORD-01, ORD-04, ORD-05, ORD-06, PRD-07)',
     );
   });
 
+  it('starts the next day in Asia/Dhaka again at 0001 (ORD-04)', async () => {
+    const shop = await openShop(port, texts, 'ord');
+    const cake = await product(shop, 'Cake', 1200, null);
+    const numbered = async (): Promise<string> =>
+      (
+        await place(shop, {
+          ...(await delivery(shop)),
+          items: [{ variantId: cake.variantId, quantity: 1 }],
+        })
+      ).orderNumber;
+    const day = dhakaDate(new Date());
+    const next = dhakaDate(new Date(Date.now() + DAY_MS));
+    // An order's number comes from the clock as it is made and the counter kept for that day, never from any order's
+    // date, so re-dating an order would prove nothing: the clock itself goes past midnight in Dhaka (18:00 UTC). The
+    // server runs in this process, and only Date is faked.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date(`${day}T23:59:00+06:00`));
+      expect(await numbered()).toBe(`${numberPrefix(day)}-0001`);
+      expect(await numbered()).toBe(`${numberPrefix(day)}-0002`);
+      vi.setSystemTime(new Date(`${next}T00:01:00+06:00`));
+      expect(await numbered()).toBe(`${numberPrefix(next)}-0001`);
+      expect(await numbered()).toBe(`${numberPrefix(next)}-0002`);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('ignores a client setting the payment or fulfilment status, on entering an order and on editing it (ORD-40)', async () => {
+    const shop = await openShop(port, texts, 'ord');
+    const shirt = await product(shop, 'Shirt', 500, 5);
+    const claimed = { paymentStatus: 'paid', fulfillmentStatus: 'delivered' };
+    const asMade = { paymentStatus: 'unverified', fulfillmentStatus: 'unfulfilled' };
+    const order = await place(shop, {
+      ...(await delivery(shop)),
+      ...claimed,
+      items: [{ variantId: shirt.variantId, quantity: 1 }],
+    });
+    expect(order).toMatchObject({ ...asMade, status: 'pending' });
+
+    const edited = await shop.patch(`/orders/${order.id}`, { notes: 'Ring first', ...claimed });
+    expect(edited.status, JSON.stringify(edited.body)).toBe(200);
+    expect(edited.body).toMatchObject({ ...asMade, status: 'pending' });
+    await shop.patch(`/orders/${order.id}`, claimed);
+    expect((await shop.get(`/orders/${order.id}`)).body).toMatchObject({
+      ...asMade,
+      status: 'pending',
+    });
+    // Stock still held, so nothing took the claim for a sale.
+    expect(await reserved(shirt.variantId)).toBe('1.000');
+  });
+
   it('gives two orders racing for the last unit one order and one refusal, never overselling (INV-01)', async () => {
     const shop = await openShop(port, texts, 'ord');
     const vase = await product(shop, 'Last vase', 900, 1);
@@ -382,6 +435,24 @@ describeIfDatabase('what an order needs (ORD-01, MNU-04, UOM-04, PRD-06)', () =>
     expect(fieldsOf(await send(shop, { fulfilmentType: 'dine_in', items: [] }))).toMatchObject({
       tableRef: 'required',
     });
+    // MNU-04: a takeaway needs its phone, as a dine-in does not.
+    const noPhone = await send(shop, {
+      fulfilmentType: 'takeaway',
+      customerName: 'Rafi',
+      items: [{ variantId: tea.variantId, quantity: 1 }],
+    });
+    expect(noPhone.status).toBe(400);
+    expect(fieldsOf(noPhone)).toEqual({ phone: 'required' });
+    // MNU-04: and a dine-in has no courier step.
+    const couriered = await shop.post(`/orders/${table.id}/ship`, {
+      courierName: 'Steadfast',
+      trackingCode: 'SF-1001',
+    });
+    expect(couriered.status).toBe(409);
+    expect((await shop.get(`/orders/${table.id}`)).body).toMatchObject({
+      fulfillmentStatus: 'unfulfilled',
+      courierName: null,
+    });
   });
 
   it('takes a fraction only of a measured unit, and lets staff order an inactive product', async () => {
@@ -393,6 +464,12 @@ describeIfDatabase('what an order needs (ORD-01, MNU-04, UOM-04, PRD-06)', () =>
       items: [{ variantId: rice.variantId, quantity: 2.5 }],
     });
     expect(order.items[0]).toMatchObject({ quantity: '2.500', itemTotal: '225.00' });
+    // UOM-04's own example.
+    const half = await place(shop, {
+      ...(await delivery(shop)),
+      items: [{ variantId: rice.variantId, quantity: 0.5 }],
+    });
+    expect(half.items[0]).toMatchObject({ quantity: '0.500', itemTotal: '45.00' });
     const fraction = await send(shop, {
       ...(await delivery(shop)),
       items: [{ variantId: soap.variantId, quantity: 0.5 }],
@@ -402,6 +479,54 @@ describeIfDatabase('what an order needs (ORD-01, MNU-04, UOM-04, PRD-06)', () =>
     await place(shop, {
       ...(await delivery(shop)),
       items: [{ variantId: soap.variantId, quantity: 1 }],
+    });
+  });
+
+  it('takes only whole packs of a size drawing on shared stock, though its unit is measured (UOM-04, INV-24)', async () => {
+    const shop = await openShop(port, texts, 'ord');
+    const attributes = (await shop.get('/attributes')).body as {
+      id: string;
+      name: string;
+      scope: string;
+    }[];
+    const size =
+      attributes.find((row) => row.name === 'Size' && row.scope === 'platform')?.id ?? '';
+    const options = await shop.post(`/attributes/${size}/options/batch`, {
+      values: ['3 ml', '6 ml'],
+    });
+    const ids = (options.body as { id: string; value: string }[]).map((row) => row.id);
+    const made = await shop.post('/products', {
+      name: 'Oud',
+      basePrice: 10,
+      stockUnit: 'ml',
+      sharedStock: true,
+      sharedOpeningStock: 200,
+      variantAttributes: [{ attributeId: size, optionIds: ids }],
+      variants: [
+        { optionIds: [ids[0]], packAmount: 3, price: 30 },
+        { optionIds: [ids[1]], packAmount: 6, price: 60 },
+      ],
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    const decant = (made.body as Product).variants.find(
+      (variant) => variant.optionIds[0] === ids[1],
+    );
+
+    const refused = await send(shop, {
+      ...(await delivery(shop)),
+      items: [{ variantId: decant?.id, quantity: 1.5 }],
+    });
+    expect(refused.status).toBe(400);
+    expect(fieldsOf(refused)).toEqual({ 'items.0.quantity': 'not_whole_number' });
+
+    const whole = await place(shop, {
+      ...(await delivery(shop)),
+      items: [{ variantId: decant?.id, quantity: 2 }],
+    });
+    expect(whole.items[0]).toMatchObject({
+      quantity: '2.000',
+      packAmount: '6.000',
+      itemTotal: '120.00',
     });
   });
 });
@@ -456,6 +581,57 @@ describeIfDatabase('delivery and advance (ORD-06a, RAT-14, PRD-08, ORD-16, DLV-0
     });
     // PRD-08's example: a 1,200 TK shirt delivered outside the city at 130 TK asks 130 first.
     expect(outside).toMatchObject({ advanceDue: '130.00', codAmount: '1200.00' });
+  });
+
+  it("weighs and charges a line by its own variant's figures where it has them, else by its product's (ATR-13)", async () => {
+    const shop = await openShop(port, texts, 'ord');
+    expect((await shop.patch('/shop-settings', { extraDeliveryChargePerKg: 20 })).status).toBe(200);
+    const attributes = (await shop.get('/attributes')).body as {
+      id: string;
+      name: string;
+      scope: string;
+    }[];
+    const size =
+      attributes.find((row) => row.name === 'Size' && row.scope === 'platform')?.id ?? '';
+    const options = await shop.post(`/attributes/${size}/options/batch`, {
+      values: ['250 g', '500 g', '1 kg', '3 kg'],
+    });
+    const ids = (options.body as { id: string }[]).map((row) => row.id);
+    const made = await shop.post('/products', {
+      name: 'Honey',
+      basePrice: 400,
+      stockTracking: 'not_tracked',
+      weightKg: 0.25,
+      deliveryCharge: 100,
+      deliveryMode: 'default',
+      variantAttributes: [{ attributeId: size, optionIds: ids }],
+      variants: [
+        { optionIds: [ids[0]] },
+        { optionIds: [ids[1]], deliveryCharge: 60 },
+        { optionIds: [ids[2]], weightKg: 1, deliveryMode: 'adjustable' },
+        { optionIds: [ids[3]], weightKg: 3, deliveryCharge: 150, deliveryMode: 'adjustable' },
+      ],
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    const variants = (made.body as Product).variants;
+    const order = await place(shop, {
+      ...(await delivery(shop)),
+      items: ids.map((id) => ({
+        variantId: variants.find((variant) => variant.optionIds[0] === id)?.id,
+        quantity: 2,
+      })),
+    });
+    expect(order.items).toMatchObject([
+      // Nothing of its own: the product's 0.25 kg and 100 TK a unit, by Default.
+      { weightKg: '0.250', ownDeliveryCharge: '100.00', deliveryCharge: '200.00' },
+      // Its own 60 TK a unit, on the product's weight.
+      { weightKg: '0.250', ownDeliveryCharge: '60.00', deliveryCharge: '120.00' },
+      // Its own 1 kg and mode, on the product's charge: 100 + 20 x the 1 kg over.
+      { weightKg: '1.000', ownDeliveryCharge: '100.00', deliveryCharge: '120.00' },
+      // All its own: 150 + 20 x the 5 kg over.
+      { weightKg: '3.000', ownDeliveryCharge: '150.00', deliveryCharge: '250.00' },
+    ]);
+    expect(order.deliveryCharge).toBe('690.00');
   });
 
   it('warns staff of a no-delivery zone and of a product limited to other zones, and still saves', async () => {
@@ -608,6 +784,113 @@ describeIfDatabase('the line as it was (ORD-46, ATR-08, ATR-09, PRD-13)', () => 
     });
   });
 
+  it('keeps the weight and delivery charge on the line after the product is deleted for good (PRD-13, ORD-46)', async () => {
+    const shop = await openShop(port, texts, 'ord');
+    const jar = await product(shop, 'Honey jar', 400, null, {
+      weightKg: 0.6,
+      deliveryCharge: 120,
+      deliveryMode: 'default',
+    });
+    const order = await place(shop, {
+      ...(await delivery(shop)),
+      items: [{ variantId: jar.variantId, quantity: 2 }],
+    });
+    const asOrdered = {
+      productName: 'Honey jar',
+      unitPrice: '400.00',
+      weightKg: '0.600',
+      ownDeliveryCharge: '120.00',
+      deliveryCharge: '240.00',
+    };
+    expect(order.items[0]).toMatchObject(asOrdered);
+    expect(order).toMatchObject({ deliveryCharge: '240.00', grandTotal: '1040.00' });
+
+    const changed = await shop.patch(`/products/${jar.id}`, {
+      weightKg: 2,
+      deliveryCharge: 300,
+    });
+    expect(changed.status, JSON.stringify(changed.body)).toBe(200);
+    const removed = await shop.delete(`/products/${jar.id}?hard=true`);
+    expect(removed.status, JSON.stringify(removed.body)).toBe(200);
+    const row = await admin.query('SELECT 1 FROM tenant.products WHERE id = $1', [jar.id]);
+    expect(row.rows).toEqual([]);
+
+    const read = (await shop.get(`/orders/${order.id}`)).body as Order;
+    expect(read.items[0]).toMatchObject(asOrdered);
+    expect(read).toMatchObject({ deliveryCharge: '240.00', grandTotal: '1040.00' });
+  });
+
+  it('keeps the old text on the line after an attribute and its option are renamed and retired (ATL-06, ATR-09)', async () => {
+    const shop = await openShop(port, texts, 'ord');
+    const attributes = (await shop.get('/attributes')).body as {
+      id: string;
+      name: string;
+      scope: string;
+    }[];
+    const material =
+      attributes.find((row) => row.name === 'Material' && row.scope === 'platform')?.id ?? '';
+    const own = async (name: string, dataType: string): Promise<string> => {
+      const made = await shop.post('/attributes', { name, dataType });
+      expect(made.status, JSON.stringify(made.body)).toBe(201);
+      return (made.body as { id: string }).id;
+    };
+    const value = async (attributeId: string, text: string): Promise<string> => {
+      const made = await shop.post(`/attributes/${attributeId}/options/batch`, { values: [text] });
+      expect(made.status, JSON.stringify(made.body)).toBe(201);
+      return (made.body as { id: string }[])[0]?.id ?? '';
+    };
+    // "Color" and "Material" are the platform's, which a shop can't rename: its own attributes are what it can.
+    const colour = await own('Colour', 'enum_single');
+    const ruby = await value(colour, 'Ruby');
+    const care = await own('Care', 'text');
+    const cotton = await value(material, '100% Cotton');
+    const made = await shop.post('/products', {
+      name: 'T-shirt',
+      basePrice: 450,
+      variantAttributes: [{ attributeId: colour, optionIds: [ruby] }],
+      variants: [{ optionIds: [ruby], openingStock: 3 }],
+      attributes: [
+        { attributeId: material, role: 'informational', optionIds: [cotton] },
+        { attributeId: care, role: 'informational', textValue: 'Hand wash' },
+      ],
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    const variantId = (made.body as Product).variants[0]?.id;
+    const items = [{ variantId, quantity: 1 }];
+    const order = await place(shop, { ...(await delivery(shop)), items });
+    const onTheLine = (read: Order) =>
+      read.items[0]?.attributes.map((row) => [row.name, row.value, row.variantDefining]);
+    const asOrdered = [
+      ['Colour', 'Ruby', true],
+      ['Material', '100% Cotton', false],
+      ['Care', 'Hand wash', false],
+    ];
+    expect(onTheLine(order)).toEqual(asOrdered);
+    const change = async (path: string, body: unknown): Promise<void> => {
+      const changed = await shop.patch(path, body);
+      expect(changed.status, JSON.stringify(changed.body)).toBe(200);
+    };
+    const readBack = async () => (await shop.get(`/orders/${order.id}`)).body as Order;
+
+    await change(`/attributes/${colour}`, { name: 'Hue' });
+    await change(`/attributes/${colour}/options/${ruby}`, { value: 'Crimson' });
+    await change(`/attributes/${material}/options/${cotton}`, { value: 'Pure cotton' });
+    await change(`/attributes/${care}`, { name: 'Washing' });
+    expect(onTheLine(await readBack())).toEqual(asOrdered);
+    // The rename did reach what is sold now.
+    expect(onTheLine(await place(shop, { ...(await delivery(shop)), items }))).toEqual([
+      ['Hue', 'Crimson', true],
+      ['Material', 'Pure cotton', false],
+      ['Washing', 'Hand wash', false],
+    ]);
+
+    await change(`/attributes/${colour}/options/${ruby}`, { retired: true });
+    await change(`/attributes/${colour}`, { retired: true });
+    await change(`/attributes/${material}/options/${cotton}`, { retired: true });
+    await change(`/attributes/${care}`, { retired: true });
+    expect(onTheLine(await readBack())).toEqual(asOrdered);
+  });
+
   it('refuses to change which attributes split a product once it has orders (ATR-15)', async () => {
     const shop = await openShop(port, texts, 'ord');
     const attributes = (await shop.get('/attributes')).body as {
@@ -634,6 +917,47 @@ describeIfDatabase('the line as it was (ORD-46, ATR-08, ATR-09, PRD-13)', () => 
     const refused = await shop.put(`/products/${shirt.id}/variants`, unsplit);
     expect(refused.status).toBe(409);
     expect(errorOf(refused).code).toBe('conflict');
+  });
+
+  it('lets an attribute describing a product start to split it only until it has orders, saying to make a new product (ATR-15)', async () => {
+    const shop = await openShop(port, texts, 'ord');
+    const attributes = (await shop.get('/attributes')).body as {
+      id: string;
+      name: string;
+      scope: string;
+    }[];
+    const size =
+      attributes.find((row) => row.name === 'Size' && row.scope === 'platform')?.id ?? '';
+    const options = await shop.post(`/attributes/${size}/options/batch`, { values: ['M', 'L'] });
+    const ids = (options.body as { id: string }[]).map((row) => row.id);
+    const described = async (name: string): Promise<Product> => {
+      const made = await shop.post('/products', {
+        name,
+        basePrice: 450,
+        attributes: [{ attributeId: size, role: 'informational', optionIds: [ids[0]] }],
+        variants: [{ optionIds: [], openingStock: 3 }],
+      });
+      expect(made.status, JSON.stringify(made.body)).toBe(201);
+      return made.body as Product;
+    };
+    const split = {
+      variantAttributes: [{ attributeId: size, optionIds: ids }],
+      variants: ids.map((id) => ({ optionIds: [id] })),
+    };
+
+    const fresh = await described('Polo');
+    const allowed = await shop.put(`/products/${fresh.id}/variants`, split);
+    expect(allowed.status, JSON.stringify(allowed.body)).toBe(200);
+
+    const ordered = await described('T-shirt');
+    await place(shop, {
+      ...(await delivery(shop)),
+      items: [{ variantId: ordered.variants[0]?.id, quantity: 1 }],
+    });
+    const refused = await shop.put(`/products/${ordered.id}/variants`, split);
+    expect(refused.status).toBe(409);
+    expect(errorOf(refused).code).toBe('conflict');
+    expect(errorOf(refused).message).toBe(translate('VariantSplitFixed', 'bn'));
   });
 });
 
@@ -731,6 +1055,56 @@ describeIfDatabase('calls, holds and cancelling (ORD-41, ORD-51, ORD-52, ORD-10)
     expect(await activity(shop.tenantId, AuditAction.OrderCallLogged)).toBe(3);
   });
 
+  it('writes one status-changed entry for each status move: held, cleared, shipped, delivered, cancelled, handed over (AUD-01)', async () => {
+    const shop = await openShop(port, texts, 'ord');
+    const shirt = await product(shop, 'Shirt', 500, 5);
+    const movesOf = async (orderId: string): Promise<(string | null)[]> => {
+      const { rows } = await admin.query<{ moved: string | null }>(
+        `SELECT summary->>'to' AS moved FROM tenant.activity_log
+         WHERE tenant_id = $1 AND action = $2 AND target_id = $3 ORDER BY created_at`,
+        [shop.tenantId, AuditAction.OrderStatusChanged, orderId],
+      );
+      return rows.map((row) => row.moved);
+    };
+    const sent = await place(shop, {
+      ...(await delivery(shop)),
+      items: [{ variantId: shirt.variantId, quantity: 1 }],
+    });
+    expect(await movesOf(sent.id)).toEqual([]);
+    expect((await shop.post(`/orders/${sent.id}/override`, { override: 'hold' })).status).toBe(200);
+    expect(await movesOf(sent.id)).toEqual(['hold']);
+    expect((await shop.post(`/orders/${sent.id}/override`, { override: null })).status).toBe(200);
+    expect(await movesOf(sent.id)).toEqual(['hold', null]);
+    const handed = { courierName: 'Steadfast', trackingCode: 'SF-1001' };
+    expect((await shop.post(`/orders/${sent.id}/ship`, handed)).status).toBe(200);
+    expect(await movesOf(sent.id)).toEqual(['hold', null, 'shipped']);
+    expect((await shop.post(`/orders/${sent.id}/deliver`, {})).status).toBe(200);
+    expect(await movesOf(sent.id)).toEqual(['hold', null, 'shipped', 'delivered']);
+    // A move refused moved nothing.
+    expect((await shop.post(`/orders/${sent.id}/deliver`, {})).status).toBe(409);
+    expect(await movesOf(sent.id)).toHaveLength(4);
+
+    const dropped = await place(shop, {
+      ...(await delivery(shop)),
+      items: [{ variantId: shirt.variantId, quantity: 1 }],
+    });
+    const cancel = { reason: 'duplicate' };
+    expect((await shop.post(`/orders/${dropped.id}/cancel`, cancel)).status).toBe(200);
+    expect((await shop.post(`/orders/${dropped.id}/cancel`, cancel)).status).toBe(409);
+    expect(await movesOf(dropped.id)).toEqual(['cancelled']);
+
+    // Shipped and delivered in one step is one action, so one entry.
+    const counter = await place(shop, {
+      fulfilmentType: 'takeaway',
+      customerName: 'Rafi',
+      phone: freshMobile(),
+      items: [{ variantId: shirt.variantId, quantity: 1 }],
+    });
+    expect((await shop.post(`/orders/${counter.id}/hand-over`, {})).status).toBe(200);
+    expect(await movesOf(counter.id)).toEqual(['delivered']);
+    expect(await activity(shop.tenantId, AuditAction.OrderStatusChanged)).toBe(6);
+  });
+
   it('holds and clears by hand, cancels with a reason releasing stock once, and filters by that reason', async () => {
     const shop = await openShop(port, texts, 'ord');
     const shirt = await product(shop, 'Shirt', 500, 5);
@@ -753,6 +1127,15 @@ describeIfDatabase('calls, holds and cancelling (ORD-41, ORD-51, ORD-52, ORD-10)
     const cancelled = await shop.post(`/orders/${order.id}/cancel`, { reason: 'fake_order' });
     expect(cancelled.status).toBe(200);
     expect(cancelled.body).toMatchObject({ status: 'cancelled', cancelReason: 'fake_order' });
+    // ORD-08: the cancel is in the history, with its note, its time and who did it.
+    expect((cancelled.body as Order).history.at(-1)).toMatchObject({
+      field: 'status_override',
+      from: null,
+      to: 'cancelled',
+      note: 'fake_order',
+      by: { id: expect.any(String) as string },
+      at: expect.any(String) as string,
+    });
     expect(await reserved(shirt.variantId)).toBe('0.000');
     expect((await shop.post(`/orders/${order.id}/cancel`, { reason: 'duplicate' })).status).toBe(
       409,
@@ -898,6 +1281,19 @@ describeIfDatabase('the order list (ORD-13, ORD-45, DAT-13)', () => {
       [first.id, 'partial_delivered'],
     ]);
     expect(((await shop.get('/orders?paymentStatus=paid')).body as Page).total).toBe(0);
+    // ORD-45: each axis finds the order that really moved along it, and only that one.
+    const sent = made[1] as Order;
+    const done = made[2] as Order;
+    const handled = { courierName: 'Steadfast', trackingCode: 'SF-1001' };
+    expect((await shop.post(`/orders/${sent.id}/ship`, handled)).status).toBe(200);
+    expect((await shop.post(`/orders/${done.id}/ship`, handled)).status).toBe(200);
+    expect((await shop.post(`/orders/${done.id}/deliver`, {})).status).toBe(200);
+    const idsOn = async (query: string): Promise<string[]> =>
+      ((await shop.get(`/orders?${query}`)).body as Page).orders.map((row) => row.id);
+    expect(await idsOn('fulfillmentStatus=shipped')).toEqual([sent.id]);
+    expect(await idsOn('fulfillmentStatus=delivered')).toEqual([done.id]);
+    expect(await idsOn('paymentStatus=paid')).toEqual([done.id]);
+    expect(await idsOn('paymentStatus=paid&fulfillmentStatus=shipped')).toEqual([]);
     const day = dhakaDate(new Date());
     expect(((await shop.get(`/orders?dateFrom=${day}&dateTo=${day}`)).body as Page).total).toBe(22);
     expect(((await shop.get('/orders?dateTo=2020-01-01')).body as Page).total).toBe(0);
@@ -948,7 +1344,7 @@ describeIfDatabase('idempotency on order creation (API-11, ORD-21, D4-8)', () =>
     const body = { ...(await delivery(shop)), items: [{ variantId: cake.variantId, quantity: 1 }] };
     const missing = await send(shop, body, null);
     expect(missing.status).toBe(400);
-    expect(errorOf(missing).code).toBe('validation_error');
+    expect(errorOf(missing).code).toBe('idempotency_key_required');
     const key = randomUUID();
     const first = await send(shop, body, key);
     const again = await send(shop, body, key);

@@ -1,6 +1,8 @@
 import type {
   LineAttributeSnapshot,
+  ProductExportRow,
   ProductStateCounts,
+  ProductVariantExportRow,
   SelectAttribute,
   SelectAttributeOption,
   SelectBusinessTypePreset,
@@ -293,6 +295,11 @@ export interface ModifierGroupView {
 }
 
 /** CMB-01: one part of a combo -- its quantity in one combo and the variants it may be (one: a fixed part). */
+/** LIF-16: a product and its variants, as the shop's export lists them. */
+export interface ExportedProduct extends ProductExportRow {
+  variants: (ProductVariantExportRow & { label: string })[];
+}
+
 export interface ComboPartView {
   position: number;
   quantity: string;

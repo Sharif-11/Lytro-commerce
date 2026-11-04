@@ -1,5 +1,7 @@
 import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { ApiError } from '../../../common/api-error';
+import { TAKES_ORDERS } from '../../../common/decorators/public-api';
 import { headerValue, type HttpRequest, type HttpResponse } from '../../../common/http';
 import { CLOSED_STATES } from '../../tenancy/services/tenant-resolver.service';
 import type { CachedTenant } from '../../tenancy/types/cached-tenant';
@@ -35,6 +37,7 @@ export class PublicKeyGuard implements CanActivate {
     @Inject(VisitorLimit) private readonly visitors: VisitorLimit,
     @Inject(RequestQuota) private readonly quota: RequestQuota,
     @Inject(API_CLOCK) private readonly clock: () => Date,
+    @Inject(Reflector) private readonly reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -67,7 +70,8 @@ export class PublicKeyGuard implements CanActivate {
     }
 
     await this.visitors.admit(shop, request, response, now);
-    if (!(await this.quota.take(shop, now))) {
+    const takesOrders = this.reflector.get<boolean>(TAKES_ORDERS, context.getHandler());
+    if (!(await this.quota.take(shop, now, takesOrders))) {
       throw new ApiError('quota_exceeded', 'RequestsUsedUp', {});
     }
 

@@ -165,8 +165,23 @@ describeIfDatabase('public API keys in the dashboard (API-01, API-02, API-21)', 
       [shop.tenantId, made.id],
     );
     expect(logged.rows.map((row) => row.action)).toEqual(['api_key_created']);
+    expect(logged.rows[0]?.summary).toContain('"name": "Main website"');
     expect(logged.rows[0]?.summary).toContain(made.prefix);
     expect(logged.rows[0]?.summary).not.toContain(made.key);
+  });
+
+  it("writes a key's revocation to the activity log by its name, never its value (API-21)", async () => {
+    const shop = await openShop(port, texts, 'key-audit');
+    const made = await makeKey(shop, { name: 'Old website' });
+    expect((await shop.post(`/api-keys/${made.id}/revoke`, {})).status).toBe(200);
+    const logged = await admin.query<{ summary: Record<string, unknown> }>(
+      `SELECT summary FROM tenant.activity_log
+       WHERE tenant_id = $1 AND target_id = $2 AND action = 'api_key_revoked'`,
+      [shop.tenantId, made.id],
+    );
+    expect(logged.rows).toHaveLength(1);
+    expect(logged.rows[0]?.summary).toMatchObject({ name: 'Old website' });
+    expect(JSON.stringify(logged.rows)).not.toContain(made.key);
   });
 
   it('refuses a website address that is not a bare https origin, and an expiry already past', async () => {
@@ -294,6 +309,21 @@ describeIfDatabase('the public API host (API-03 to API-05, API-08, API-14, API-2
       (await getJson(port, '/public/shop', { ...auth, host: `${shop.slug}.localhost` })).status,
     ).toBe(404);
     expect((await callApi('/v1/me', key)).status).toBe(404);
+    // API-07: a public key moves no order and reaches no wallet setting or SMS.
+    for (const path of ['/v1/orders/anything/ship', '/v1/payment-methods', '/v1/sms/send']) {
+      const refused = await sendExact(
+        port,
+        'POST',
+        path,
+        {},
+        {
+          host: API_HOST,
+          ...auth,
+          'content-type': 'application/json',
+        },
+      );
+      expect(refused.status, path).toBe(404);
+    }
     // Not even a route that needs no shop: the API host takes key authentication only.
     expect((await getJson(port, '/plans', { host: 'localhost' })).status).toBe(200);
     expect((await callApi('/v1/plans', key)).status).toBe(404);

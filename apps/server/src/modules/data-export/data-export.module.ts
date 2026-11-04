@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DrizzleDataExportStore } from '../../database/adapters/data-export.adapter';
 import { AuditModule } from '../audit/audit.module';
+import { CatalogueModule } from '../catalogue/catalogue.module';
 import { CustomersModule } from '../customers/customers.module';
 import { OrdersModule } from '../orders/orders.module';
 import { PaymentsModule } from '../payments/payments.module';
@@ -20,6 +21,7 @@ import { DATA_EXPORT_STORE } from './tokens';
     QueueModule,
     OrdersModule,
     CustomersModule,
+    CatalogueModule,
   ],
   providers: [{ provide: DATA_EXPORT_STORE, useClass: DrizzleDataExportStore }, DataExportService],
   exports: [DataExportService],

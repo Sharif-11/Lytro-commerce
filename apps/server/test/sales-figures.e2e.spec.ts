@@ -316,6 +316,114 @@ describeIfDatabase('sales by week, month, quarter or year (STA-01, STA-04)', () 
     SLOW,
   );
 
+  it(
+    'leaves what was never sold out of every figure, trend and best seller, and counts a part refund (STA-04)',
+    async () => {
+      const shop = await openShop(port, texts, 'sal');
+      const kept = await product(shop, 'Kept', 300, 20, 100);
+      // Each left-out order holds a product of its own, so any figure it reached names it.
+      const refunded = await product(shop, 'Refunded', 400, 5, 100);
+      const failed = await product(shop, 'Failed', 400, 5, 100);
+      const sandbox = await product(shop, 'Sandbox', 400, 5, 100);
+      const cancelled = await product(shop, 'Cancelled', 400, 5, 100);
+      const undelivered = await product(shop, 'Undelivered', 400, 5, 100);
+      const returned = await product(shop, 'Returned', 400, 5, 100);
+      const line = (of: { variantId: string }) => [{ variantId: of.variantId, quantity: 1 }];
+      await sold(shop, '2026-10-05', [{ variantId: kept.variantId, quantity: 2 }]);
+
+      const giveBack = async (order: Order, paymentIndex = 0) => {
+        const read = (await shop.get(`/orders/${order.id}`)).body as { payments: { id: string }[] };
+        const refund = await shop.post(
+          `/orders/${order.id}/payments/${read.payments[paymentIndex]?.id ?? ''}/refund`,
+          { note: 'Sent back by bKash' },
+        );
+        expect(refund.status, JSON.stringify(refund.body)).toBe(200);
+        return refund.body as { paymentStatus: string };
+      };
+      // Every payment given back.
+      const refund = await sold(shop, '2026-10-06', line(refunded));
+      expect((await giveBack(refund)).paymentStatus).toBe('refunded');
+      // Its payment failed.
+      const failure = await sold(shop, '2026-10-07', line(failed));
+      await admin.query(
+        `UPDATE tenant.orders SET payment_status = 'payment_failed' WHERE id = $1`,
+        [failure.id],
+      );
+      // VER-11: a sandbox account's payment, flagged test.
+      const test = await sold(shop, '2026-10-08', line(sandbox));
+      const flagged = await admin.query(
+        'UPDATE tenant.payments SET test = true WHERE order_id = $1',
+        [test.id],
+      );
+      expect(flagged.rowCount).toBe(1);
+      const dropped = await place(shop, { fulfilmentType: 'takeaway', items: line(cancelled) });
+      expect(
+        (await shop.post(`/orders/${dropped.id}/cancel`, { reason: 'duplicate' })).status,
+      ).toBe(200);
+      await placedOn(dropped, '2026-10-09');
+      // On its way: shipped, its cash not yet collected.
+      if (!locations) locations = (await shop.get('/locations')).body as Locations;
+      const mirpur = locations.zillas
+        .find((row) => row.nameEn === 'Dhaka')
+        ?.thanas.find((row) => row.nameEn === 'Mirpur');
+      const away = await place(shop, {
+        locationId: mirpur?.id,
+        deliveryAddress: 'House 12, Road 3',
+        items: line(undelivered),
+      });
+      const sent = await shop.post(`/orders/${away.id}/ship`, {
+        courierName: 'Steadfast',
+        trackingCode: 'SF-1',
+      });
+      expect(sent.status, JSON.stringify(sent.body)).toBe(200);
+      await placedOn(away, '2026-10-10');
+      const all = await sold(shop, '2026-10-11', line(returned));
+      const back = await shop.post(`/orders/${all.id}/returns`, {
+        items: [{ lineId: all.items[0]?.id, sellable: 1, damaged: 0 }],
+      });
+      expect(back.status, JSON.stringify(back.body)).toBe(200);
+
+      const expected = {
+        orders: 1,
+        units: [{ unit: 'piece', quantity: '2.000' }],
+        revenue: '600.00',
+        tax: '0.00',
+        deliveryCharges: '0.00',
+        profit: {
+          revenueLessTax: '600.00',
+          costOfGoods: '200.00',
+          profit: '400.00',
+          unknownCost: 0,
+        },
+      };
+      const read = await sales(shop, `${OCTOBER}&bucket=month`);
+      expect(read.totals).toEqual(expected);
+      expect(read.buckets).toEqual([expect.objectContaining(expected)]);
+      for (const by of ['units', 'revenue']) {
+        const best = await bestSellers(shop, `${OCTOBER}&by=${by}`);
+        expect(best.products.map((row) => [row.name, row.orders])).toEqual([['Kept', 1]]);
+      }
+      for (const left of [refunded, failed, sandbox, cancelled, undelivered, returned]) {
+        const trend = await sales(shop, `${OCTOBER}&bucket=month&productId=${left.id}`);
+        expect(trend.totals).toMatchObject({ orders: 0, units: [], revenue: '0.00' });
+      }
+
+      // Only a full refund leaves it out: with cash still kept, the order was still sold.
+      const part = await product(shop, 'Part refund', 400, 5, 100);
+      const partly = await place(shop, {
+        fulfilmentType: 'takeaway',
+        items: line(part),
+        payment: { method: 'cash', amount: 100 },
+      });
+      expect((await shop.post(`/orders/${partly.id}/hand-over`, {})).status).toBe(200);
+      await placedOn(partly, '2026-10-12');
+      expect((await giveBack(partly)).paymentStatus).not.toBe('refunded');
+      const trend = await sales(shop, `${OCTOBER}&bucket=month&productId=${part.id}`);
+      expect(trend.totals.orders).toBe(1);
+    },
+    SLOW,
+  );
+
   it('refuses a period that ends before it starts, runs over five years, or a split it does not know', async () => {
     const shop = await openShop(port, texts, 'sal');
     const backwards = await shop.get('/sales?dateFrom=2026-10-10&dateTo=2026-10-01');
@@ -373,6 +481,48 @@ describeIfDatabase('best sellers and trends (STA-02, STA-03, STA-04)', () => {
       // The combo's profit is its price less its clips' cost: two pairs, four clips at 20 each.
       const pairSales = await sales(shop, `${OCTOBER}&bucket=month&productId=${pair.id}`);
       expect(pairSales.totals.profit).toMatchObject({ costOfGoods: '80.00', profit: '100.00' });
+    },
+    SLOW,
+  );
+
+  it(
+    "gives a combo line's profit as its price less its three components' costs as they left, whatever stock costs later (CMB-06)",
+    async () => {
+      const shop = await openShop(port, texts, 'sal');
+      const cleanser = await product(shop, 'Cleanser', 900, 5, 300);
+      const toner = await product(shop, 'Toner', 800, 5, 250);
+      const serum = await product(shop, 'Serum', 1100, 5, 400);
+      const made = await shop.post('/products', {
+        name: 'Skincare combo',
+        basePrice: 2450,
+        kind: 'combo',
+        parts: [
+          { quantity: 1, variantIds: [cleanser.variantId] },
+          { quantity: 1, variantIds: [toner.variantId] },
+          { quantity: 1, variantIds: [serum.variantId] },
+        ],
+      });
+      expect(made.status, JSON.stringify(made.body)).toBe(201);
+      const pack = made.body as { id: string; variants: { id: string }[] };
+      await sold(shop, '2026-10-06', [{ variantId: pack.variants[0]?.id ?? '', quantity: 1 }]);
+      const expected = {
+        revenue: '2450.00',
+        profit: {
+          revenueLessTax: '2450.00',
+          costOfGoods: '950.00',
+          profit: '1500.00',
+          unknownCost: 0,
+        },
+      };
+      const read = () => sales(shop, `${OCTOBER}&bucket=month&productId=${pack.id}`);
+      expect((await read()).totals).toMatchObject(expected);
+
+      const added = await shop.post(
+        `/products/${serum.id}/variants/${serum.variantId}/stock-additions`,
+        { quantity: 1, unitCost: 900 },
+      );
+      expect(added.status, JSON.stringify(added.body)).toBe(200);
+      expect((await read()).totals).toMatchObject(expected);
     },
     SLOW,
   );

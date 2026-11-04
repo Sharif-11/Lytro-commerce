@@ -178,8 +178,8 @@ early for this alone was rejected). `GET /exports`/`GET /exports/:id/download` a
 (`LIF-16`'s own wording names the owner, not a staff permission); the download route writes raw bytes
 directly via Express's response object (`@Res()`), the first route in this codebase to bypass the JSON
 envelope, since a zip isn't JSON. Phase 4 Slice 4.1 (2026-10-29) added orders (`orders.csv`, `order-items.csv`,
-`orders.json`) and customers (`customers.csv`, `customers.json`), proven in `orders.e2e.spec.ts`. Products are still
-not exported; that is a data-fetcher addition to the same worker, not an architecture change. Available in every non-offline state including `archived` (an explicit widening beyond
+`orders.json`) and customers (`customers.csv`, `customers.json`), proven in `orders.e2e.spec.ts`. The Phase 4
+close-out added products (`products.csv`, `product-variants.csv`, `products.json`). Available in every non-offline state including `archived` (an explicit widening beyond
 `LIF-16`'s own literal `read_only`/`locked` wording — see that row), never while suspended. Proven by
 `apps/server/test/data-export.e2e.spec.ts` (4 tests: generation producing a real zip, 24-hour expiry,
 owner-only gating, cross-tenant isolation) plus the isolation registry entries CI checks.
@@ -2019,3 +2019,22 @@ Slice 5.7 was built from bKash's documents and a fake, with one test against the
   one server's shoppers share one call. Two servers asking at the same moment could still make a third call and get the app
   blocked for an hour, while the shopper pays on the page. It costs nothing while there is one server; when there are more, the call needs
   a lock per account.
+
+## 109. `DWN-14`: a shop owner with no email gets the final warning in the app only — found 2026-11-04, open
+
+`DWN-14` asks for the warning after the 30 days in the app, by push and by email. `sendFinalWarnings` sends the email only when the
+owner has one, push waits for Phase 7, and nothing goes by SMS. An owner who signed up by phone alone sees it only by opening the
+dashboard. Push should close it; if it doesn't reach them, this wants an SMS. Found by the Phase 4 close-out.
+
+## 110. `ORD-14`: the order page has no section for the order's activity — found 2026-11-04, open
+
+`ORD-14` lists "the activity for that order" beside the timeline. The page shows the calls and a timeline of status moves with who made
+them, and the Activity page has the rest, with no way to see one order's. No sketch draws such a section. The choice is to draw and
+build one, or amend `ORD-14` to say the timeline is it, which looks enough. Found by the Phase 4 close-out.
+
+## 111. `ATR-15`: a product with orders can start splitting by a new attribute — found 2026-11-04, open
+
+The guard refuses moving an attribute already on a product between describing and splitting once it has orders, as `ATR-15` says of "an
+existing informational attribute". An attribute not yet on the product isn't checked, though the code's comment says one "neither
+starts nor stops" splitting (`product.service.ts`). Past orders keep their text (`ATL-06`), so nothing breaks; it needs a decision
+whether a seller may add sizes to a product that has sold. Found by the Phase 4 close-out.
