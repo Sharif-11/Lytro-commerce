@@ -1,6 +1,6 @@
 {
   "id": "59f58e30-f458-4d66-b9a5-a2e6333fba30",
-  "prevId": "f4c0cc68-f04c-459b-8614-abe2d28fe960",
+  "prevId": "321fd3fe-5918-4c9b-b3d3-30b996551d9e",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -645,6 +645,24 @@
         "password_hash": {
           "name": "password_hash",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "terms_version": {
+          "name": "terms_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "privacy_version": {
+          "name": "privacy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "terms_accepted_at": {
+          "name": "terms_accepted_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },

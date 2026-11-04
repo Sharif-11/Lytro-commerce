@@ -5,6 +5,13 @@ import { subscriberIdentities, subscribers, tenants } from '../../schema';
 
 // AUTH-08: a value belongs to at most one subscriber per kind. The unique index on (kind, value) enforces it; a
 // violation surfaces as a unique-violation error, which the server maps to a clear answer.
+/** LEG-01: the terms and privacy versions an account accepted, and when. */
+export interface AcceptedTerms {
+  termsVersion: string;
+  privacyVersion: string;
+  termsAcceptedAt: Date;
+}
+
 export class AccountRepository {
   async findSubscriberByIdentity(
     db: Executor,
@@ -43,10 +50,26 @@ export class AccountRepository {
     await db.update(subscribers).set({ passwordHash }).where(eq(subscribers.id, subscriberId));
   }
 
-  async insertSubscriber(db: Executor): Promise<string> {
-    const [row] = await db.insert(subscribers).values({}).returning({ id: subscribers.id });
+  /** A new account; `accepted` is left out only for staff an owner adds, who haven't seen the entry screen. */
+  async insertSubscriber(db: Executor, accepted?: AcceptedTerms): Promise<string> {
+    const [row] = await db
+      .insert(subscribers)
+      .values(accepted ?? {})
+      .returning({ id: subscribers.id });
     if (!row) throw new Error('insert returned no subscriber');
     return row.id;
+  }
+
+  /** LEG-01: an account with nothing recorded accepts now; one that has a record keeps it. */
+  async recordAcceptance(
+    db: Executor,
+    subscriberId: string,
+    accepted: AcceptedTerms,
+  ): Promise<void> {
+    await db
+      .update(subscribers)
+      .set(accepted)
+      .where(and(eq(subscribers.id, subscriberId), isNull(subscribers.termsVersion)));
   }
 
   async insertIdentity(

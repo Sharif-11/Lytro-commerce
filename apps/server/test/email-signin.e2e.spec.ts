@@ -87,6 +87,14 @@ describeIfDatabase('sign-in by emailed code (AUTH-08, AUTH-12)', () => {
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ next: 'verify-phone', tenantId: null });
     expect(cookieFrom(response)).toContain('lytronix_session=');
+    // LEG-01: signing up by email accepts them as a phone does.
+    const account = await admin.query(
+      `SELECT s.terms_version, s.privacy_version FROM control.subscribers s
+       JOIN control.subscriber_identities i ON i.subscriber_id = s.id
+       WHERE i.kind = 'email' AND i.value = $1`,
+      [email.toLowerCase()],
+    );
+    expect(account.rows).toEqual([{ terms_version: '2026-11-04', privacy_version: '2026-11-04' }]);
   });
 
   it('signs a returning address into the same account, and treats the address case-insensitively', async () => {

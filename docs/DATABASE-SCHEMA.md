@@ -43,9 +43,11 @@ At launch both live in the same PostgreSQL instance. The split is what lets a fu
 CREATE TABLE control.subscribers (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     password_hash   text,                -- null for an OAuth-only subscriber (AUTH-24)
-    terms_version   text NOT NULL,       -- LEG-01: the terms of service accepted at sign-up
-    privacy_version text NOT NULL,       -- LEG-01: the privacy policy accepted at sign-up
-    created_at      timestamptz NOT NULL DEFAULT now(),  -- also the time of acceptance (LEG-01)
+    terms_version   text,                -- LEG-01: the terms of service accepted; null for staff an owner added, until
+                                         -- they open a shop of their own, and for an account from before these were kept
+    privacy_version text,                -- LEG-01: the privacy policy accepted, likewise
+    terms_accepted_at timestamptz,       -- LEG-01: when, likewise
+    created_at      timestamptz NOT NULL DEFAULT now(),
     last_sign_in_at timestamptz
 );
 

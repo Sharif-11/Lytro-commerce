@@ -713,6 +713,9 @@ export enum PlatformSettingKey {
   ListenerSenders = 'listener_senders',
   // QTA-03 (editable): what handling an order past the period's limit does -- refused, or done with a prompt to upgrade.
   OrderLimitMode = 'order_limit_mode',
+  // LEG-01 (editable): the terms and privacy versions now in force, which a new account accepts.
+  TermsVersion = 'terms_version',
+  PrivacyVersion = 'privacy_version',
 }
 
 // QTA-03: the period's handling limit refuses the handling action, or lets it through and prompts an upgrade.

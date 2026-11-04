@@ -7,6 +7,7 @@ import { BalanceService } from '../../balance/services/balance.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { SlugService } from '../../tenancy/services/slug.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
+import { LegalAcceptance } from './legal-acceptance';
 import { SessionService } from './session.service';
 import { TrialLimiter } from './trial-limiter';
 import { SIGNUP_GATEWAY, SIGNUP_SETTINGS } from '../tokens';
@@ -31,6 +32,7 @@ export class ShopCreationService {
     @Inject(SessionService) private readonly sessions: SessionService,
     @Inject(TrialLimiter) private readonly trialLimiter: TrialLimiter,
     @Inject(BalanceService) private readonly balance: BalanceService,
+    @Inject(LegalAcceptance) private readonly acceptance: LegalAcceptance,
   ) {}
 
   async createShop(
@@ -55,6 +57,8 @@ export class ShopCreationService {
         }
         const email = await this.gateway.findEmailIdentityOf(tx, session.subscriberId);
         await this.trialLimiter.refuseIfTooMany(tx, phone.id, ip);
+        // LEG-01: staff an owner added first see the entry screen's line on their way to a shop of their own.
+        await this.gateway.recordAcceptance(tx, session.subscriberId, await this.acceptance.now());
         const created = await this.tenants.createTrialShop(tx, {
           identityId: phone.id,
           subscriberId: session.subscriberId,

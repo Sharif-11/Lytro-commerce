@@ -22,6 +22,7 @@ import type { SessionContext } from '../types/session';
 import type { SignedIn } from '../types/signed-in';
 import { SIGNUP_GATEWAY } from '../tokens';
 import type { SignupGateway } from '../ports/signup-gateway';
+import { LegalAcceptance } from './legal-acceptance';
 
 /** Sign-in and sign-up by one-time code (AUTH-01, AUTH-04, AUTH-08, AUTH-12). */
 @Injectable()
@@ -34,6 +35,7 @@ export class SigninService {
     @Inject(PhoneNumberFormat) private readonly phoneFormat: PhoneNumberFormat,
     @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
     @Inject(SignupRateLimiter) private readonly signupLimit: SignupRateLimiter,
+    @Inject(LegalAcceptance) private readonly acceptance: LegalAcceptance,
   ) {}
 
   async requestCode(rawPhone: string) {
@@ -131,7 +133,7 @@ export class SigninService {
   }
 
   private async createAccount(tx: Transaction, phone: string): Promise<string> {
-    const subscriberId = await this.gateway.insertSubscriber(tx);
+    const subscriberId = await this.gateway.insertSubscriber(tx, await this.acceptance.now());
     await this.gateway.insertPhoneIdentity(tx, { subscriberId, phone, verifiedAt: new Date() });
     return subscriberId;
   }
