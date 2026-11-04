@@ -4,6 +4,7 @@ import {
   AccountRepository,
   ChallengeRepository,
   TransactionRunner,
+  type AcceptedTerms,
   type Transaction,
 } from '@lytronix/db';
 import { UniqueViolation } from '../../common/errors/unique-violation';
@@ -124,8 +125,12 @@ export class DrizzleSignupGateway implements SignupGateway {
     }
   }
 
-  insertSubscriber(tx: Transaction): Promise<string> {
-    return this.accounts.insertSubscriber(tx);
+  insertSubscriber(tx: Transaction, accepted: AcceptedTerms): Promise<string> {
+    return this.accounts.insertSubscriber(tx, accepted);
+  }
+
+  recordAcceptance(tx: Transaction, subscriberId: string, accepted: AcceptedTerms): Promise<void> {
+    return this.accounts.recordAcceptance(tx, subscriberId, accepted);
   }
 
   markPhoneVerified(

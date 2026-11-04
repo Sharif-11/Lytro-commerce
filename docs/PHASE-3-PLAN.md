@@ -88,7 +88,7 @@ Rules used below:
 - **Partial** means this phase builds a working part, and a named later phase finishes the rest.
 - Notices delivered through the D3-5 stub count as complete, the same rule Phase 2 applied to `BAL-13`.
 
-### 3.1 Completed by this phase (192)
+### 3.1 Completed by this phase (191)
 
 | Family | Requirements | Count |
 |---|---|---|
@@ -99,7 +99,7 @@ Rules used below:
 | INV | INV-01 – INV-13, INV-18, 19, 20, 21, 22 | 18 |
 | PUR | PUR-01 – PUR-10 | 10 |
 | PST | PST-01 – PST-06 (PST-05: per-shop-type form layout; PST-06: categories that behave like another shop type) | 6 |
-| MED | MED-01 – 08, MED-10 – 13 | 12 |
+| MED | MED-01 – 08, MED-10, 11, 13 (MED-12 moved to Phase 8 on 2026-11-04, KNOWN-GAPS §101) | 11 |
 | STO | STO-02 – 07, STO-09 (video compression, added 2026-10-17) | 7 |
 | BND | BND-01 – 09 (04: auto-buy packs, with add-ons) | 9 |
 | RTE | RTE-02, 03, 04, 05, 07, 10, 11 (11: request packs, with add-ons) | 7 |
@@ -173,6 +173,7 @@ Rules used below:
 
 | Req | Why | Goes to |
 |---|---|---|
+| MED-12 | the operator's view of media costs belongs with the operator console (decided 2026-11-04, KNOWN-GAPS §101) | Phase 8 |
 | QTA-01 – 07 | counted at order handling, which needs orders (D3-3) | Phase 4 (manual trigger), Phase 6 (courier trigger) |
 | RTE-08, RTE-09 | order creations and payment sessions per minute or period | Phases 4, 5 |
 | SFT-06, 08, 09, 20 | checkout, tracking, shopper accounts, delivery estimate (by delivery zone) | Phase 4 |
@@ -1932,8 +1933,9 @@ deployment can make are listed under criterion 1; the gaps found are in `KNOWN-G
      SFT-21's footer, LND-01, LND-02, LND-14 and TEN-18's storefront mark rest on the API's tests and unit tests
      (§105, closed 2026-11-03 by Slice 4.8e); CCH-09 (a replaced image's old address still serving), BND-09 (a large JSON answer never counted as media),
      DLV-05 (a city as the home area, in the dashboard) and LND-18 (the page working with the pixel blocked) have no test.
-   - **Not built, though counted here:** MED-12, the operator's view of media costs (§101); LEG-01's recording of the
-     accepted terms and privacy versions (§102); SFT-17's plan sheet (§103). RTE-01's secret-key half needs secret keys
+   - **Not built, though counted here:** MED-12, the operator's view of media costs (§101, moved to Phase 8 on 2026-11-04);
+     LEG-01's recording of the accepted terms and privacy versions (§102, built 2026-11-04); SFT-17's plan sheet (§103, built
+     2026-11-04). RTE-01's secret-key half needs secret keys
      (Phase 8), so RTE-01 moved to §3.2.
    - **Manual checks recorded:** MED-06 -- the risk register accepts media loss with no backup (SRS.md §17), and
      LEG-02's terms list includes it; the terms text itself is Phase 9. MED-07 -- the scopes hold (the Worker's

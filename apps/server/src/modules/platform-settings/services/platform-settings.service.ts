@@ -68,6 +68,10 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'How many payments shoppers may open in one shop in a minute, every plan alike (RTE-08).',
   [PlatformSettingKey.OrderLimitMode]:
     "Past the period's order-handling limit: block, or allow with a prompt to upgrade (QTA-03).",
+  [PlatformSettingKey.TermsVersion]:
+    'The terms of service in force, which a new account accepts: change it when new terms are published (LEG-01).',
+  [PlatformSettingKey.PrivacyVersion]:
+    'The privacy policy in force, which a new account accepts: change it when a new policy is published (LEG-01).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -75,6 +79,9 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
 const isPositiveInt = (value: unknown): boolean =>
   typeof value === 'number' && Number.isInteger(value) && value > 0;
 const isAppVersion = (value: unknown): boolean => appVersionField.safeParse(value).success;
+// LEG-01: a version's name, such as a date.
+const isLegalVersion = (value: unknown): boolean =>
+  typeof value === 'string' && value.trim() !== '' && value.length <= 40;
 // LSN-16: a list of senders, each as an SMS names it.
 const isSenderList = (value: unknown): boolean =>
   Array.isArray(value) &&
@@ -115,6 +122,8 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.ListenerSenders]: isSenderList,
   [PlatformSettingKey.NewShopPaymentCapDays]: isPositiveInt,
   [PlatformSettingKey.OrderLimitMode]: isOrderLimitMode,
+  [PlatformSettingKey.TermsVersion]: isLegalVersion,
+  [PlatformSettingKey.PrivacyVersion]: isLegalVersion,
 };
 
 function validate(key: PlatformSettingKey, value: unknown): void {

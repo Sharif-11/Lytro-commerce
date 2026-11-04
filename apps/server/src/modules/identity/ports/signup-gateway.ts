@@ -1,4 +1,4 @@
-import type { Transaction } from '@lytronix/db';
+import type { AcceptedTerms, Transaction } from '@lytronix/db';
 import type { IdentityKind } from '@lytronix/validators';
 import type { TenantState } from '@lytronix/validators';
 
@@ -23,7 +23,8 @@ export interface SignupGateway {
   ): Promise<{ passwordHash: string | null } | null>;
   setPasswordHash(tx: Transaction, subscriberId: string, passwordHash: string): Promise<void>;
   markSignedIn(tx: Transaction, subscriberId: string, at: Date): Promise<void>;
-  insertSubscriber(tx: Transaction): Promise<string>;
+  insertSubscriber(tx: Transaction, accepted: AcceptedTerms): Promise<string>;
+  recordAcceptance(tx: Transaction, subscriberId: string, accepted: AcceptedTerms): Promise<void>;
   insertPhoneIdentity(
     tx: Transaction,
     values: { subscriberId: string; phone: string; verifiedAt: Date },

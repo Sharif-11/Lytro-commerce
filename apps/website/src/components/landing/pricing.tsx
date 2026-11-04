@@ -8,6 +8,7 @@ import type { AppUrls } from '@/lib/urls';
 import { PricingCards, type PaygView, type PricingView } from './pricing-cards';
 
 const text = {
+  storefrontIncluded: { bn: 'নিজের স্টোরফ্রন্ট সহ', en: 'Your own storefront included' },
   eyebrow: { bn: 'প্রাইসিং', en: 'Pricing' },
   title: {
     bn: 'আগে কাজ করে কিনা দেখুন, তারপর সিদ্ধান্ত নিন',
@@ -116,7 +117,8 @@ export class PricingViewBuilder {
     limits: PlanCatalogue['plans'][number]['limits'],
     features: Record<string, boolean>,
   ): string[] {
-    const lines: string[] = [];
+    // SFT-17: on every plan at no extra cost, so every card says so.
+    const lines: string[] = [this.copy.of(text.storefrontIncluded)];
     const count = (value: number | null) =>
       value === null
         ? this.copy.of(text.unlimited)

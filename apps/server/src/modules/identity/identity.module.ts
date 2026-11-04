@@ -13,6 +13,7 @@ import { DrizzleTrialCreationStore } from '../../database/adapters/trial-creatio
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
 import { AuditModule } from '../audit/audit.module';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { BalanceModule } from '../balance/balance.module';
 import { BillingModule } from '../billing/billing.module';
 import { BrandModule } from '../brand/brand.module';
@@ -28,6 +29,7 @@ import { IdentitiesService } from './services/identities.service';
 import { DrizzleOauthStateStore } from '../../database/adapters/oauth-state.adapter';
 import { FacebookOauthProvider } from './providers/facebook-oauth.provider';
 import { GoogleOauthProvider } from './providers/google-oauth.provider';
+import { LegalAcceptance } from './services/legal-acceptance';
 import { OauthService } from './services/oauth.service';
 import { MeController } from './controllers/me.controller';
 import { ShopsController } from './controllers/shops.controller';
@@ -79,6 +81,7 @@ import {
   // StaffModule's only here for MeController's permissions lookup (D32) — no cycle: StaffModule only imports
   // the leaf AuditModule, never IdentityModule back.
   imports: [
+    PlatformSettingsModule,
     TenancyModule,
     MessagingModule,
     MailModule,
@@ -102,6 +105,7 @@ import {
     IdentitiesController,
   ],
   providers: [
+    LegalAcceptance,
     { provide: CHALLENGE_STORE, useClass: DrizzleChallengeStore },
     { provide: SESSION_STORE, useClass: DrizzleSessionStore },
     {

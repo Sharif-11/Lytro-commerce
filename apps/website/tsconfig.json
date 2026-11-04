@@ -17,6 +17,13 @@
     },
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
-  "include": ["next-env.d.ts", "src", "test", "next.config.ts", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "src",
+    "test",
+    "next.config.ts",
+    "vitest.config.ts",
+    ".next/types/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }

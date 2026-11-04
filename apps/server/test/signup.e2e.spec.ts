@@ -1,12 +1,16 @@
 import 'dotenv/config';
+import { randomUUID } from 'node:crypto';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PlatformSettingKey } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
+import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
+import { openShop } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 import { cookieFrom, type HttpResult, postJson } from './support/http';
 
@@ -249,6 +253,121 @@ describeIfDatabase('sign-up by phone, end to end', () => {
         details: { fields: [{ field: 'code', problem: 'invalid_format' }] },
       },
     });
+  });
+});
+
+describeIfDatabase('what an account accepted (LEG-01)', () => {
+  const FIRST = '2026-11-04';
+  const LATER = '2027-01-15';
+
+  async function acceptedBy(phone: string) {
+    const { rows } = await admin.query<{
+      terms_version: string | null;
+      privacy_version: string | null;
+      terms_accepted_at: Date | null;
+      id: string;
+    }>(
+      `SELECT s.id, s.terms_version, s.privacy_version, s.terms_accepted_at FROM control.subscribers s
+       JOIN control.subscriber_identities i ON i.subscriber_id = s.id
+       WHERE i.kind = 'phone' AND i.value = $1`,
+      [phone],
+    );
+    const row = rows[0];
+    if (!row) throw new Error(`no account for ${phone}`);
+    return row;
+  }
+
+  /** New terms published, for the length of a check; only the terms, so the two are seen to be apart. */
+  async function withNewTerms(check: () => Promise<void>): Promise<void> {
+    const settings = app.get(PlatformSettingsService);
+    await settings.set(PlatformSettingKey.TermsVersion, LATER, randomUUID());
+    try {
+      await check();
+    } finally {
+      await settings.set(PlatformSettingKey.TermsVersion, FIRST, randomUUID());
+    }
+  }
+
+  it('records both versions and the time when the account is made', async () => {
+    const before = Date.now();
+    const phone = texts.freshPhone();
+    await enter(phone);
+    const account = await acceptedBy(phone);
+    expect(account).toMatchObject({ terms_version: FIRST, privacy_version: FIRST });
+    const at = account.terms_accepted_at?.getTime() ?? 0;
+    expect(at).toBeGreaterThanOrEqual(before - 1000);
+    expect(at).toBeLessThanOrEqual(Date.now() + 1000);
+  });
+
+  it('records the version in force for a new account, and leaves an older one what it accepted', async () => {
+    const older = texts.freshPhone();
+    const session = await enter(older);
+    const was = await acceptedBy(older);
+    await withNewTerms(async () => {
+      const newer = texts.freshPhone();
+      await enter(newer);
+      expect(await acceptedBy(newer)).toMatchObject({
+        terms_version: LATER,
+        privacy_version: FIRST,
+      });
+      // Opening a shop accepts nothing new for an account with a record: re-accepting isn't built.
+      const shop = await createShop(session, { ownerName: 'Rahim', shopName: 'Old Terms House' });
+      expect(shop.status, JSON.stringify(shop.body)).toBe(201);
+      expect(await acceptedBy(older)).toEqual(was);
+    });
+  });
+
+  it('leaves staff an owner adds with nothing, until they open a shop of their own', async () => {
+    const shop = await openShop(port, texts, 'terms');
+    await admin.query(
+      "UPDATE control.tenants SET plan_id = (SELECT id FROM control.plans WHERE name = 'Starter'), plan_snapshot = (SELECT limits FROM control.plans WHERE name = 'Starter') WHERE id = $1",
+      [shop.tenantId],
+    );
+    const role = await shop.post('/roles', { name: 'Packer', permissions: ['orders:read'] });
+    expect(role.status, JSON.stringify(role.body)).toBe(201);
+    const phone = texts.freshPhone();
+    const added = await shop.post('/staff', {
+      phone,
+      password: 'staff-pass-1',
+      roleIds: [(role.body as { id: string }).id],
+    });
+    expect(added.status, JSON.stringify(added.body)).toBe(201);
+    expect(await acceptedBy(phone)).toMatchObject({
+      terms_version: null,
+      privacy_version: null,
+      terms_accepted_at: null,
+    });
+
+    // They reach the entry screen, with its line, on the way to a shop of their own.
+    const entered = await enter(phone);
+    const own = await createShop(entered, { ownerName: 'Karim', shopName: 'Their Own House' });
+    expect(own.status, JSON.stringify(own.body)).toBe(201);
+    const account = await acceptedBy(phone);
+    expect(account).toMatchObject({ terms_version: FIRST, privacy_version: FIRST });
+    expect(account.terms_accepted_at).not.toBeNull();
+  });
+
+  it('refuses to make an account it cannot record, rather than record nothing', async () => {
+    const settings = app.get(PlatformSettingsService);
+    const real = settings.current.bind(settings);
+    const missing = vi
+      .spyOn(settings, 'current')
+      .mockImplementation((key) =>
+        key === PlatformSettingKey.PrivacyVersion ? Promise.resolve(null) : real(key),
+      );
+    try {
+      const phone = texts.freshPhone();
+      await post('/auth/phone/code', { phone });
+      const refused = await post('/auth/phone/verify', { phone, code: texts.codeFor(phone) });
+      expect(refused.status).toBe(500);
+      const { rows } = await admin.query(
+        "SELECT 1 FROM control.subscriber_identities WHERE kind = 'phone' AND value = $1",
+        [phone],
+      );
+      expect(rows).toEqual([]);
+    } finally {
+      missing.mockRestore();
+    }
   });
 });
 
