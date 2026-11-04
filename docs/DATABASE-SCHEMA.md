@@ -1787,7 +1787,7 @@ CREATE UNIQUE INDEX payments_live_transaction_key ON tenant.payments (tenant_id,
     WHERE transaction_id IS NOT NULL AND voided_at IS NULL;
 CREATE UNIQUE INDEX payments_session_key ON tenant.payments (tenant_id, session_id) WHERE session_id IS NOT NULL;
 -- The application role may update only the void and (Slice 5.3) refund columns; a voided payment stays void and a
--- refunded one refunded (tenant.guard_payment).
+-- refunded one refunded (tenant.guard_payment), but for its sender number, which a privacy delete empties (CUS-09).
 
 -- Decided 2026-10-02: a plain unique index on tenant.payments/payment_sessions.transaction_id
 -- only enforces platform-wide uniqueness while those rows exist. Once a tenant is hard-deleted

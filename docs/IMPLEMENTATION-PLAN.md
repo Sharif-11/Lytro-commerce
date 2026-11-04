@@ -172,6 +172,12 @@ code fix).
 
 **Delivers:** booking and tracking, adapter by adapter, starting with the one the SRS names as launch-required.
 
+**Detailed plan: `PHASE-6-PLAN.md`** (2026-11-04) — eight slices; server work beside Phase 5's Slice 5.8, screens last. Scope changes made there, summarised:
+- **Messages bring the live news, and one check a night covers the rest** (D6-3, D6-4). No courier registers an address for us, so the owner pastes it into the courier's panel, which is optional.
+- **A courier's area is chosen at booking, only where it requires one** (D6-5). `CUS-13`'s picker on every order form, in item 6 below, is withdrawn.
+- **One parcel per order, and stock leaves at booking** (D6-6, D6-7).
+- **Cancelling a booked order** needs staff's confirmation where the courier has no cancel call (D6-8). Courier money is recorded as each courier tells it, with no settlement page (D6-9).
+
 1. **Steadfast first** (`CRR-01` names it explicitly) — book, track, webhook (HMAC verification per the real vendor docs), contract test (`CRR-21`) passing before it touches a real tenant.
 2. **Pathao second** — exercises the registration-handshake requirement (`CRR-27`) the Steadfast adapter didn't need, proving the adapter interface actually generalizes rather than being accidentally Steadfast-shaped.
 3. **RedX third** — exercises the bilingual-message storage and payout-event-routing logic (`CRR-12`) neither of the first two adapters needed.
