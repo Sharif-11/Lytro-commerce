@@ -4,8 +4,10 @@ import {
   PlatformAuditLogRepository,
   TransactionRunner,
   type NewPlatformAuditEntry,
+  type RecentAuditEntryRow,
   type Transaction,
 } from '@lytronix/db';
+import type { PlatformAuditAction } from '@lytronix/validators';
 import type { AuditStore } from '../../modules/audit/ports/audit-store';
 import type { PlatformAuditStore } from '../../modules/audit/ports/platform-audit-store';
 import type {
@@ -76,5 +78,16 @@ export class DrizzlePlatformAuditStore implements PlatformAuditStore {
 
   insertWithin(tx: Transaction, entry: NewPlatformAuditEntry): Promise<void> {
     return this.log.insert(tx, entry);
+  }
+
+  latest(
+    action: PlatformAuditAction,
+    targetId: string,
+  ): Promise<{ actorId: string | null } | null> {
+    return this.log.latest(this.database.handle.db, action, targetId);
+  }
+
+  recent(actions: readonly PlatformAuditAction[], limit: number): Promise<RecentAuditEntryRow[]> {
+    return this.log.recent(this.database.handle.db, actions, limit);
   }
 }

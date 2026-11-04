@@ -52,6 +52,7 @@ export class RateService {
     newValue: string,
     operatorId: string,
     noticeId: string | null,
+    reason: string | null = null,
   ): Promise<void> {
     const numeric = Number(newValue);
     if (!Number.isFinite(numeric) || numeric < 0) {
@@ -76,7 +77,7 @@ export class RateService {
         targetId: null,
         result: AuditResult.Success,
         ip: null,
-        summary: { key, oldValue: current?.value ?? null, newValue, noticeId },
+        summary: { key, oldValue: current?.value ?? null, newValue, noticeId, reason },
       });
     });
     // RAT-02: effective immediately, not after the cache's own TTL expires. After the commit, so nothing can read

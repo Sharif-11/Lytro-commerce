@@ -12,7 +12,7 @@ import type {
 } from '@lytronix/db';
 import type { AddonRenewal, UsageMetric } from '@lytronix/validators';
 import type { MessageKey } from '../../../common/i18n/message-key';
-import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
+import type { PlanPaymentRecord, QueuedPlanPayment } from '../../payments/types/plan-payment';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
@@ -94,5 +94,5 @@ export interface ShopAddons {
   packs: ShopPack[];
 }
 
-/** ADM-06: a payment waiting in the operator's queue, with the add-ons it pays for. */
-export type QueuedPayment = PlanPaymentRecord & { addons: PaymentAddon[] };
+/** ADM-06: a payment waiting in the operator's queue, with its shop and the add-ons it pays for. */
+export type QueuedPayment = QueuedPlanPayment & { addons: PaymentAddon[] };

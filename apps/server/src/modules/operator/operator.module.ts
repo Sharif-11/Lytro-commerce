@@ -9,6 +9,8 @@ import { PasswordHasher } from '../identity/services/password-hasher';
 import { OperatorAuthController } from './controllers/operator-auth.controller';
 import { OperatorSessionGuard } from './guards/operator-session.guard';
 import { OperatorAuthService } from './services/operator-auth.service';
+import { OperatorDirectory } from './services/operator-directory';
+import { RecentChanges } from './services/recent-changes';
 import { TotpService } from './services/totp.service';
 import { OPERATOR_GATEWAY, OPERATOR_SETTINGS } from './tokens';
 import type { OperatorSessionSettings } from './types/session';
@@ -40,9 +42,11 @@ import type { OperatorSessionSettings } from './types/session';
     PasswordHasher,
     TotpService,
     OperatorAuthService,
+    OperatorDirectory,
+    RecentChanges,
     OperatorSessionGuard,
     ClientIp,
   ],
-  exports: [OperatorAuthService, OperatorSessionGuard],
+  exports: [OperatorAuthService, OperatorDirectory, RecentChanges, OperatorSessionGuard],
 })
 export class OperatorModule {}
