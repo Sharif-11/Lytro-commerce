@@ -402,7 +402,8 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Sales · Slice 4.8d (Part 32)"><option value="sales32-quarter">Sales · this year by quarter</option><option value="sales32-year">· two years by year</option><option value="sales32-many">· three years by month: the chart scrolls</option><option value="sales32-none">· nothing delivered in this period</option><option value="sales32-product-none">· a product not sold in 12 months</option><option value="sh-sales32-all">· best sellers, all of them (sheet)</option><option value="sh-sales32-long">· dates over five years (sheet)</option><option value="sales32">Sales · this month by week, best sellers by units</option><option value="sales32-revenue">· best sellers by revenue</option><option value="sales32-month">· this year by month</option><option value="sales32-product">· a product's trend</option><option value="sh-sales32-period">· the period (sheet)</option><option value="sales32-staff">· someone who may not see costs</option><option value="sales32-empty">· nothing delivered yet</option><option value="stock-value32">Stock value · this month's profit beside it</option></optgroup>
       <optgroup label="Installed apps · Slice 12c (Part 27)"><option value="menu-install">Menu · install the dashboard: "Megh Fashion Admin", a gear on its icon</option><option value="menu-install-ios">· on an iPhone</option></optgroup>
       <optgroup label="Walkthrough findings · Slice 11.13b (Part 26)"><option value="product">Product · the variant table: no SKU column; the SKU is in the variant sheet</option><option value="sh-variant-sku-taken">· an SKU another variant has: the name marked, the sheet says why</option><option value="stock-no-batches">Stock · a shop that keeps no batches: no Expiring figure</option><option value="stock-check-pick-plain">· its count pick sheet: no batch note</option><option value="sh-receive">Purchase · It arrived: the note without a requirement id</option></optgroup>
-      <optgroup label="Later phases (design only)"><option value="order-book">Book courier (sheet)</option><option value="payments">Payments</option><option value="methods">Payment methods</option><option value="notices">Notices</option><option value="sms">SMS events</option><option value="notifications">Notifications · panel from the bell (Phase 7)</option><option value="notifications-empty">· nothing yet (Phase 7)</option><option value="notifications-read">· all read (Phase 7)</option><option value="notifications-all">Notifications · full page (Phase 7)</option><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option></optgroup>
+      <optgroup label="Payment methods · Slice 5.8, part 1 (Part 33)"><option value="ob33-phone">Sign-up · phone after Google, Facebook or email</option><option value="ob33-code">· its code</option><option value="ob33-taken">· number on another account</option><option value="pm33-settings">Settings · the row, moved from Coming later</option><option value="pm33">Payment methods · bKash by listener, no phone paired</option><option value="pm33-first">· nothing set up yet</option><option value="pm33-added">· a new account comes back not active (toast)</option><option value="pm33-paired">· a phone paired</option><option value="pm33-auto">· bKash on automated checkout</option><option value="pm33-auto-test">· automated on a test account</option><option value="pm33-unreadable">· keys can no longer be read</option><option value="pm33-nophone">· the owner has no verified phone</option><option value="pm33-staff">· staff who can view</option><option value="sh-pm33-account">· add an account (sheet)</option><option value="sh-pm33-account-bad">· a wrong number (sheet)</option><option value="sh-pm33-edit">· edit an account (sheet)</option><option value="dlg-pm33-delete">· delete the active account (dialog)</option><option value="sh-pm33-bank">· add a bank account (sheet)</option><option value="sh-pm33-gw">· connect bKash checkout (sheet)</option><option value="sh-pm33-gw-ok">· connected, turn it on (sheet)</option><option value="sh-pm33-gw-bad">· bKash refused (sheet)</option><option value="sh-pm33-gw-limit">· two tries an hour used (sheet)</option><option value="sh-pm33-gw-saved">· keys saved (sheet)</option><option value="dlg-pm33-gw-remove">· remove the keys (dialog)</option><option value="sh-pm33-phone">· verify a phone from the banner (sheet)</option><option value="sh-pm33-code">· its code (sheet)</option><option value="sh-pm33-taken">· number on another account (sheet)</option><option value="balance33">Balance · fees on hold</option></optgroup>
+      <optgroup label="Later phases (design only)"><option value="order-book">Book courier (sheet)</option><option value="payments">Payments</option><option value="notices">Notices</option><option value="sms">SMS events</option><option value="notifications">Notifications · panel from the bell (Phase 7)</option><option value="notifications-empty">· nothing yet (Phase 7)</option><option value="notifications-read">· all read (Phase 7)</option><option value="notifications-all">Notifications · full page (Phase 7)</option><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option></optgroup>
     </select>
   </label>
   <label>Device <span class="seg" id="segDevice"><button data-v="phone" class="on">Phone 390</button><button data-v="tablet">Tablet 820</button><button data-v="desktop">Desktop 1280</button></span></label>
@@ -598,7 +599,7 @@ const CUSTOMERS = [
   { name: ['তানভীর আহমেদ', 'Tanvir Ahmed'], phone: '01615 551 234', orders: 3, spent: 2970, last: ['গতকাল', 'yesterday'] },
   { name: ['মাহমুদ হাসান', 'Mahmud Hasan'], phone: '01722 998 877', orders: 1, spent: 1200, last: ['18 Oct', '18 Oct'] },
 ];
-const HUBS = { home: { sec: [] }, orders: { sec: ['orders', 'customers'] }, shop: { sec: ['products', 'categories', 'stock', 'purchases', 'delivery'] }, money: { sec: ['payments', 'methods', 'balance', 'plan', 'invoices', 'usage'] }, menu: { sec: ['team', 'activity', 'notices', 'settings', 'account'] } };
+const HUBS = { home: { sec: [] }, orders: { sec: ['orders', 'customers'] }, shop: { sec: ['products', 'categories', 'stock', 'purchases', 'delivery'] }, money: { sec: ['payments', 'balance', 'plan', 'invoices', 'usage'] }, menu: { sec: ['team', 'activity', 'notices', 'settings', 'account'] } };
 const SECLBL = { orders: 'secOrders', customers: 'secCustomers', products: 'secProducts', categories: 'secCategories', stock: 'secStock', purchases: 'secPurchases', delivery: 'secDelivery', payments: 'secPayments', methods: 'secMethods', balance: 'secBalance', plan: 'secPlan', invoices: 'secInvoices', usage: 'secUsage', team: 'secTeam', activity: 'secActivity', notices: 'secNotices', settings: 'secSettings', account: 'secAccount' };
 let COUNTS = () => ST.shop === 'new' ? {} : { orders: 2, payments: 2, notices: 2, stock: 2 };
 const ST = { device: 'phone', lang: 'bn', shop: 'working', screen: 'home' };
@@ -686,7 +687,7 @@ SCREENS.home = { hub: 'home', title: 'hubHome', path: '', render() {
     job('teal', 'users', t('jobStaff', { n: 1 }), 1, 'team'),
   ];
   const checklist = n ? `<div class="card flush"><div style="padding:16px 16px 8px"><div class="sechead"><h2>${t('setupTitle')}</h2><span class="hint">${t('setupDone', { d: 2, t: 6 })}</span></div><div class="bar" style="margin-top:10px"><i style="width:33%"></i></div></div><div class="list">
-    ${ck(true, 'ckShop')}${ck(true, 'ckDelivery', t('ckDeliveryD'), 'delivery')}${ck(false, 'ckProduct', null, 'product')}${ck(false, 'ckLogo', null, 'shopdetails')}${ck(false, 'ckWallet', null, 'methods')}${ck(false, 'ckShare', null, 'home')}
+    ${ck(true, 'ckShop')}${ck(true, 'ckDelivery', t('ckDeliveryD'), 'delivery')}${ck(false, 'ckProduct', null, 'product')}${ck(false, 'ckLogo', null, 'shopdetails')}${ck(false, 'ckWallet', null, 'pm33')}${ck(false, 'ckShare', null, 'home')}
     <div class="daylbl">${t('setupLater')}</div>${ck(false, 'ckCourier', null, 'settings')}${ck(false, 'ckSms', null, 'sms')}${ck(false, 'ckListener', null, 'settings')}${ck(false, 'ckApi', null, 'settings')}</div></div>`
     : `<button class="card row" style="min-height:56px" onclick="go('settings')"><span class="lead" style="background:var(--success-soft);color:var(--success)">${ic('check')}</span><span class="body"><span class="l1">${t('setupTitle')} · ${t('setupDone', { d: 6, t: 6 })}</span><span class="l2">${t('setupLater')}: ${t('ckCourier')}, ${t('ckSms')}, ${t('ckListener')}</span></span>${ic('right')}</button>`;
   const link = `<div class="card"><h3>${t('shopLink')}</h3><div class="field" style="margin:8px 0 12px"><div class="ctl"><span class="val">megh.lytro.app</span><button class="btn xs o">${t('copy')}</button></div></div><div class="actions">${btn('o sm', ic('share') + ' Facebook')}${btn('o sm', ic('share') + ' WhatsApp')}</div></div>`;
@@ -849,7 +850,7 @@ SCREENS.delivery = { hub: 'shop', sec: 'delivery', title: 'secDelivery', path: '
 /* Money */
 const payRow = (m, amt, l2, time, state, k) => `<div class="row"><span class="lead" style="background:#fff;border:1px solid var(--line);font-size:11px;font-weight:700;color:${m === 'bKash' ? '#e2136e' : m === 'Nagad' ? '#f6921e' : '#7b2cbf'}">${m}</span><span class="body"><span class="l1 num">${money(amt)}</span><span class="l2 num">${l2}</span></span><span class="trail"><span class="st ${state}">${t(k)}</span><span class="time only-desk">${time}</span></span></div>`;
 SCREENS.payments = { hub: 'money', sec: 'payments', title: 'secPayments', path: '/payments', render: () => `${title('secPayments', btn('o sm', ic('download') + ' CSV'))}${secChips('money', 'payments')}
-  ${isNew() ? `<div class="card">${empty('banknote', L('পেমেন্ট এলে এখানে দেখাবে। আগে একটা ওয়ালেট নম্বর দিন।', 'Payments will appear here. Add a wallet number first.'), btn('p sm', t('addAccount'), "onclick=\"go('methods')\""))}</div>` : `
+  ${isNew() ? `<div class="card">${empty('banknote', L('পেমেন্ট এলে এখানে দেখাবে। আগে একটা ওয়ালেট নম্বর দিন।', 'Payments will appear here. Add a wallet number first.'), btn('p sm', t('addAccount'), "onclick=\"go('pm33')\""))}</div>` : `
   <div class="banner neu" style="padding:8px 12px">${ic('smartphone')}<span class="b">${t('listenerOk', { n: 4 })}</span></div>
   <div class="toolrow">${searchBox(L('TrxID, নম্বর বা অর্ডার', 'TrxID, number or order'))}<button class="iconbtn">${ic('calendar')}</button></div>${chips([{ l: t('toVerify'), on: true, c: 2 }, { l: t('all'), c: 14 }, { l: t('verified'), c: 11 }, { l: t('failed'), c: 1 }, { l: t('refunded') }])}
   <div class="card flush list">
@@ -857,9 +858,6 @@ SCREENS.payments = { hub: 'money', sec: 'payments', title: 'secPayments', path: 
     <div style="padding:12px 16px;display:flex;flex-direction:column;gap:10px">${payRow('Nagad', 1200, `TrxID N7Q2ZX · #0036`, 'গতকাল', 'warn', 'needsReview')}<div class="banner warn" style="padding:10px 12px">${ic('alert')}<span class="b">${t('mismatchSender', { a: '01555 123 456' })}</span></div><div class="actions">${btn('a sm', t('approve'))}${btn('o sm', t('reject'))}</div></div>
   </div>
   <div class="card flush"><div class="daylbl">${t('verified')} · ${L('আজ', 'today')}</div><div class="list">${payRow('bKash', 500, 'TrxID 9F2KQ7 · 01819 876 543 · #0039', '9:31', 'ok', 'verified')}${payRow('Nagad', 990, 'TrxID 3M8KLP · 01615 551 234 · #0038', 'গতকাল', 'ok', 'verified')}</div></div>`}` };
-SCREENS.methods = { hub: 'money', sec: 'methods', title: 'secMethods', path: '/payment-methods', render: () => `${title('secMethods')}${secChips('money', 'methods')}
-  <div class="banner info">${ic('check')}<span class="b">${t('phoneVerifiedNote')}</span></div>
-  ${[['bKash', '#e2136e', true, [['01711 234 567', 'merchant', true, 'verifyLevel'], ['01911 222 333', 'personal', false, 'verifyLevel']], true], ['Nagad', '#f6921e', true, [['01711 234 567', 'personal', true, 'verifyLevel']]], ['Rocket', '#7b2cbf', false, []], [L('ব্যাংক', 'Bank'), '#2c3f3e', false, []]].map(([m, col, on, accs, gw]) => `<div class="card flush"><div class="row" style="min-height:56px"><span class="lead" style="background:#fff;border:1px solid var(--line);font-size:11px;font-weight:700;color:${col}">${m}</span><span class="body"><span class="l1">${m}</span><span class="l2">${accs.length ? accs.length + ' ' + L('অ্যাকাউন্ট', 'accounts') : L('অ্যাকাউন্ট নেই', 'No accounts')}${m === L('ব্যাংক', 'Bank') ? ' · ' + t('manualOnly') : ''}</span></span><span class="switch ${on ? 'on' : ''}"></span></div>${accs.length ? `<div class="list" style="border-top:1px solid var(--line)">${accs.map(([no, ty, act, vl]) => `<div class="row" style="min-height:52px"><span class="radio ${act ? 'on' : ''}"></span><span class="body"><span class="l1 num" style="font-size:15px">${no} <span class="st neu">${t(ty)}</span>${act ? ` <span class="st ok">${t('activeAcc')}</span>` : ''}</span><span class="l2">${t(vl)}</span></span></div>`).join('')}</div>` : ''}<div style="padding:8px 16px 12px;display:flex;gap:8px">${btn('o sm', ic('plus') + ' ' + t('addAccount'))}${gw ? btn('g sm', t('gateway')) : ''}</div></div>`).join('')}` };
 SCREENS.balance = { hub: 'money', sec: 'balance', title: 'secBalance', path: '/balance', render: () => { const frozen = isRO(); return `${title('secBalance')}${secChips('money', 'balance')}
   <div class="two"><div style="display:flex;flex-direction:column;gap:16px">
   <div class="card"><div class="sechead"><span class="hint">${t('balanceTitle')}</span>${frozen ? `<span class="st neu">${t('frozen')}</span>` : ''}</div><div class="num" style="font-size:36px;font-weight:600;letter-spacing:-.02em;margin:4px 0 12px">${money(isNew() ? 0 : 412.5, true)}</div>${frozen ? `<p class="hint">${t('frozenNote')}</p>` : `<div class="kv" style="padding:0 0 6px"><span class="k">${t('freeSms')}</span><span class="v num">${isNew() ? '0 / 8' : '6 / 10'}</span></div><div class="bar"><i style="width:${isNew() ? 0 : 60}%"></i></div><div class="actions" style="margin-top:14px">${btn('a', t('topUp'), "onclick=\"go('topup')\"")}${btn('g', t('rates'))}</div>`}</div>
@@ -926,7 +924,7 @@ SCREENS.notices = { hub: 'menu', sec: 'notices', title: 'secNotices', path: '/no
   <div class="card flush list">${[['n1', 'nRate', 'warn', true, true], ['n2', 'nMaint', 'neu', true], ['n3', 'nFeature', 'info', false]].map(([k, c, col, unread, pin]) => `<button class="row" style="align-items:flex-start"><span class="lead" style="background:var(--${col === 'warn' ? 'warning' : col === 'info' ? 'info' : 'n100'}${col === 'neu' ? '' : '-soft'});color:var(--${col === 'warn' ? 'warning' : col === 'info' ? 'info' : 'n700'})">${ic('megaphone')}</span><span class="body"><span class="l1" style="white-space:normal;${unread ? 'font-weight:600' : 'font-weight:400'}">${t(k)}</span><span class="l2">${t(c)}${pin ? ' · ' + t('pinned') : ''} · 18 Oct</span></span>${unread ? '<span class="notice-dot" style="margin-top:8px"></span>' : ''}</button>`).join('')}</div>
   <div class="card"><div class="eyebrow">${t('nRate')} · 18 Oct</div><h3 style="margin-top:6px">${t('n1')}</h3><p class="hint" style="margin-top:6px">${L('1 নভেম্বর থেকে প্রতি SMS অংশে ৳0.60 কাটা হবে। আগের SMS-এর হিসাব বদলাবে না।', 'From 1 Nov each SMS part costs ৳0.60. Past SMS do not change.')}</p><div class="actions" style="margin-top:12px">${btn('p sm', t('understand'))}</div></div>` };
 SCREENS.settings = { hub: 'menu', sec: 'settings', title: 'secSettings', path: '/settings', render: () => `${title('secSettings')}${secChips('menu', 'settings')}
-  <div class="card flush menu list">${menuRow('shop', 'sShop', t('sShopD'), 'shopdetails')}${menuRow('truck', 'sDelivery', t('sDeliveryD'), 'delivery')}${menuRow('banknote', 'sMethods', t('sMethodsD'), 'methods')}${menuRow('box', 'sCourier', t('sCourierD'), 'settings')}${menuRow('smartphone', 'sListener', t('sListenerD'), 'settings')}${menuRow('sms', 'sSms', t('sSmsD'), 'sms')}${menuRow('bell', 'sNotif', t('sNotifD'), 'settings')}</div>
+  <div class="card flush menu list">${menuRow('shop', 'sShop', t('sShopD'), 'shopdetails')}${menuRow('truck', 'sDelivery', t('sDeliveryD'), 'delivery')}${menuRow('banknote', 'sMethods', t('sMethodsD'), 'pm33')}${menuRow('box', 'sCourier', t('sCourierD'), 'settings')}${menuRow('smartphone', 'sListener', t('sListenerD'), 'settings')}${menuRow('sms', 'sSms', t('sSmsD'), 'sms')}${menuRow('bell', 'sNotif', t('sNotifD'), 'settings')}</div>
   <div class="card flush menu list">${menuRow('key', 'sApi', t('sApiD'), 'settings')}${menuRow('trend', 'sAds', t('sAdsD'), 'settings')}${menuRow('image', 'sBrand', t('sBrandD'), 'settings')}${menuRow('globe', 'sStore', t('sStoreD'), 'settings')}${menuRow('download', 'sExport', t('sExportD'), 'settings')}</div>` };
 SCREENS.shopdetails = { hub: 'menu', sec: 'settings', title: 'sShop', back: true, base: 'settings', path: '/settings/shop', render: () => `${title('sShop')}<div class="two"><div style="display:flex;flex-direction:column;gap:16px">
   <div class="card" style="display:flex;flex-direction:column;gap:12px"><h3>${t('sShop')}</h3>${field(t('shopName'), L(...SHOP.name))}<div class="field"><label>${t('logo')}</label><div class="row" style="padding:0"><span class="mono lg">${L('ম', 'M')}</span><span class="body"><span class="l2">${t('logoNote')}</span></span>${btn('o xs', L('আপলোড', 'Upload'))}</div></div>${field(t('bizType'), t('bizClothing'), { trail: ic('down'), help: t('bizNote') })}</div>
@@ -1067,9 +1065,9 @@ Object.assign(S, {
 });
 
 /* ---------- scope: current (Phase 0 to 3 Slice 3) vs later designs ---------- */
-const LATER = new Set(['orders', 'order', 'order-book', 'order-new', 'customers', 'customer', 'payments', 'methods', 'usage', 'notices', 'purchases', 'sms', 'notifications', 'search']);
+const LATER = new Set(['orders', 'order', 'order-book', 'order-new', 'customers', 'customer', 'payments', 'usage', 'notices', 'purchases', 'sms', 'notifications', 'search']);
 const HUBS_CURRENT = { home: [], orders: [], shop: ['products', 'categories', 'attributes', 'stock', 'delivery'], money: ['balance', 'plan', 'invoices'], menu: ['team', 'activity', 'settings', 'account'] };
-const HUBS_LATER = { home: [], orders: ['orders', 'customers'], shop: ['products', 'categories', 'stock', 'purchases', 'delivery'], money: ['payments', 'methods', 'balance', 'plan', 'invoices', 'usage'], menu: ['team', 'activity', 'notices', 'settings', 'account'] };
+const HUBS_LATER = { home: [], orders: ['orders', 'customers'], shop: ['products', 'categories', 'stock', 'purchases', 'delivery'], money: ['payments', 'balance', 'plan', 'invoices', 'usage'], menu: ['team', 'activity', 'notices', 'settings', 'account'] };
 SECLBL.attributes = 'secAttributes';
 function applyScope() {
   const later = LATER.has(ST.screen);
@@ -1132,7 +1130,7 @@ SCREENS.home = { hub: 'home', title: 'hubHome', path: '', render() {
     ...(ST.shop === 'trialend' ? [job('mar', 'calendar', t('jobTrial', { n: 3 }), null, 'plan')] : []),
   ];
   const later = (k, p) => `<div class="row later" style="min-height:48px"><span class="checkbox"></span><span class="body"><span class="l1" style="font-size:15px">${t(k)}</span></span><span class="phase">${t('laterPhase', { p })}</span></div>`;
-  const checklist = n ? `<div class="card flush"><div style="padding:16px 16px 8px"><div class="sechead"><h2>${t('setupTitle')}</h2><span class="hint">${t('setupDone', { d: 2, t: 4 })}</span></div><div class="bar" style="margin-top:10px"><i style="width:50%"></i></div></div><div class="list">${ck(true, 'ckShop')}${ck(true, 'ckDelivery', t('ckDeliveryD'), 'delivery')}${ck(false, 'ckProduct', null, 'product')}${ck(false, 'ckShare', null, 'home')}${later('ckLogo', L('স্লাইস 6', 'Slice 6'))}${later('ckWallet', L('ফেজ 5', 'Phase 5'))}<div class="daylbl">${t('setupLater')}</div>${later('ckCourier', L('ফেজ 6', 'Phase 6'))}${later('ckSms', L('ফেজ 7', 'Phase 7'))}${later('ckListener', L('ফেজ 5', 'Phase 5'))}${later('ckApi', L('স্লাইস 8', 'Slice 8'))}</div></div>`
+  const checklist = n ? `<div class="card flush"><div style="padding:16px 16px 8px"><div class="sechead"><h2>${t('setupTitle')}</h2><span class="hint">${t('setupDone', { d: 2, t: 4 })}</span></div><div class="bar" style="margin-top:10px"><i style="width:50%"></i></div></div><div class="list">${ck(true, 'ckShop')}${ck(true, 'ckDelivery', t('ckDeliveryD'), 'delivery')}${ck(false, 'ckProduct', null, 'product')}${ck(false, 'ckShare', null, 'home')}${later('ckLogo', L('স্লাইস 6', 'Slice 6'))}${ck(false, 'ckWallet', null, 'pm33')}<div class="daylbl">${t('setupLater')}</div>${later('ckCourier', L('ফেজ 6', 'Phase 6'))}${later('ckSms', L('ফেজ 7', 'Phase 7'))}${later('ckListener', L('ফেজ 5', 'Phase 5'))}${later('ckApi', L('স্লাইস 8', 'Slice 8'))}</div></div>`
     : `<button class="card row" style="min-height:56px" onclick="go('settings')"><span class="lead" style="background:var(--success-soft);color:var(--success)">${ic('check')}</span><span class="body"><span class="l1">${t('setupTitle')} · ${t('setupDone', { d: 4, t: 4 })}</span><span class="l2">${t('setupLater')}: ${t('ckCourier')}, ${t('ckSms')}, ${t('ckListener')}</span></span>${ic('right')}</button>`;
   const link = `<div class="card"><h3>${t('shopLink')}</h3><div class="field" style="margin:8px 0 12px"><div class="ctl"><span class="val">megh.lytro.app</span><button class="btn xs o">${t('copy')}</button></div></div><div class="actions">${btn('o sm', ic('share') + ' Facebook')}${btn('o sm', ic('share') + ' WhatsApp')}</div></div>`;
   const now = n
@@ -5468,6 +5466,208 @@ SCREENS['sales32-product-none'] = { ...SA32, back: true, base: 'sales32', path: 
 const _stockValue32 = SCREENS['stock-value'].render;
 SCREENS['stock-value32'] = { ...SCREENS['stock-value'], render: () => _stockValue32().replace('<div class="two"><div style="display:flex;flex-direction:column;gap:16px">', `<div class="two"><div style="display:flex;flex-direction:column;gap:16px"><div class="card"><div class="eyebrow">${t('sa32ProfitBeside')}</div><div class="num" style="font-size:28px;font-weight:800;margin-top:4px">${money(137720)}</div><div class="hint">${t('sa32LessTax')} ${money(336120)} · ${t('sa32Cost')} ${money(198400)}</div><div style="margin-top:10px">${btn('o sm', t('sa32SeeSales'), "onclick=\"go('sales32')\"")}</div></div>`) };
 SCREENS['stock-value'] = SCREENS['stock-value32'];
+/* ---------- Part 33: design doc v3.31 (2026-11-04), for Slice 5.8's part 1 (its read). An owner who signed up by Google,
+   Facebook or email verifies a phone before Create shop, with no skip; one who has a shop and no phone is told on Payment
+   methods, which moves from Money to Settings. A wallet's card: on or off, its accounts, one active; where a wallet has
+   more than one way, bKash today, how the owner takes its money, with each fee; the gateway's credentials in a sheet, never
+   shown again. Balance gains its on-hold line, and the checklist's wallet item starts working. ---------- */
+Object.assign(S, {
+  ob33Title: ['আপনার ফোন নম্বর দিন', 'Add your phone number'],
+  ob33Lead: ['Google দিয়ে লগইন হয়েছে। এবার একটি ফোন নম্বর ভেরিফাই করুন, এতে কাস্টমাররা আপনার শপে অনলাইনে পে করতে পারবে। কোডের জন্য আপনার কোনো চার্জ নেই।', "You're signed in with Google. Now verify a phone number, so customers can pay your shop online. The code costs you nothing."],
+  ob33Taken: ['এই নম্বরে অন্য একটি Lytro অ্যাকাউন্ট আছে।', 'This number already has a Lytro account.'],
+  ob33Other: ['অন্য নম্বর দিন', 'Use another number'],
+  ob33SignIn: ['এই নম্বর দিয়ে লগইন করুন', 'Sign in with this number'],
+
+  pm33RowD: ['ওয়ালেট আর ব্যাংক অ্যাকাউন্ট', 'Wallets and bank accounts'],
+  pm33Lead: ['কাস্টমার যেসব ওয়ালেট বা ব্যাংকে টাকা পাঠাবে। টাকা সরাসরি আপনার অ্যাকাউন্টে আসে, Lytro-র মাধ্যমে আসে না।', 'Where your customers send money. It comes straight to your account, never through Lytro.'],
+  pm33Cod: ['ক্যাশ অন ডেলিভারির জন্য এখানে কিছু সেট করতে হয় না। কোন প্রোডাক্টে অ্যাডভান্স লাগবে, সেটা প্রোডাক্টেই ঠিক করবেন।', 'Cash on delivery needs nothing here. Whether a product needs an advance is set on the product.'],
+  pm33First: ['অনলাইনে টাকা নিতে একটি ওয়ালেট বা ব্যাংক অ্যাকাউন্ট যোগ করুন। এর আগে কাস্টমার অনলাইনে পে করতে পারবে না।', "Add a wallet or bank account to take money online. Until then customers can't pay online."],
+  pm33NoPhone: ['আপনার ফোন নম্বর ভেরিফাই করা নেই, তাই কাস্টমার অনলাইনে পে করতে পারবে না।', "Your phone number isn't verified, so customers can't pay online."],
+  pm33VerifyNow: ['ভেরিফাই করুন', 'Verify'],
+  pm33Staff: ['এগুলো শুধু শপের মালিক বদলাতে পারেন।', 'Only the shop owner can change these.'],
+
+  pm33On: ['চালু', 'On'],
+  pm33Off: ['বন্ধ', 'Off'],
+  pm33OffSaved: ['বন্ধ · {n}টি অ্যাকাউন্ট সেভ করা আছে', 'Off · {n} accounts saved'],
+  pm33OffSaved_1: ['বন্ধ · {n}টি অ্যাকাউন্ট সেভ করা আছে', 'Off · {n} account saved'],
+  pm33ActiveIs: ['অ্যাক্টিভ: {no}', 'Active: {no}'],
+  pm33NoAccount: ['কোনো অ্যাকাউন্ট নেই', 'No account yet'],
+  pm33NeedAccount: ['অ্যাকাউন্ট যোগ না করা পর্যন্ত এখানে কাস্টমার পে করতে পারবে না।', "Customers can't pay this way until you add an account."],
+  pm33NoneActive: ['কোনো অ্যাকাউন্ট অ্যাক্টিভ নেই, তাই কাস্টমার নম্বর দেখতে পাবে না। একটি বেছে নিন।', 'No account is active, so customers see no number. Pick one.'],
+  pm33Add: ['অ্যাকাউন্ট যোগ করুন', 'Add account'],
+  pm33Added: ['অ্যাকাউন্ট যোগ হয়েছে। অ্যাক্টিভ করলে কাস্টমার এই নম্বরে টাকা পাঠাবে।', 'Account added. Make it active and customers will send money to this number.'],
+  pm33Automated: ['অটোমেটিক', 'Automated'],
+  pm33Test: ['টেস্ট', 'Test'],
+
+  pm33WayTitle: ['টাকা কীভাবে নেবেন', 'How you take money'],
+  pm33WayAuto: ['অটোমেটিক চেকআউট', 'Automated checkout'],
+  pm33WayAutoD: ['কাস্টমার bKash-এর নিজের পেজে পে করবে, সাথে সাথে কনফার্ম হবে। ফি {f}%, ট্রায়ালে ফ্রি।', "Customers pay on bKash's own page and it confirms at once. Fee {f}%, free on a trial."],
+  pm33WayListener: ['লিসেনার', 'Listener'],
+  pm33WayListenerD: ['আপনার ফোনে আসা SMS মিলিয়ে পেমেন্ট নিজে থেকেই কনফার্ম হবে। ফি {f}%, ট্রায়ালে ফ্রি।', 'The SMS on your phone confirms the payment by itself. Fee {f}%, free on a trial.'],
+  pm33WayManual: ['ম্যানুয়াল', 'By hand'],
+  pm33WayManualD: ['কাস্টমার TrxID দেবে, স্টাফ চেক করে কনফার্ম করবে। কোনো ফি নেই।', 'Customers enter the TrxID and your staff check it. No fee.'],
+  pm33WayIs: ['টাকা নেওয়া হচ্ছে: {w}', 'Money is taken by: {w}'],
+  pm33NoPaired: ['এখনো কোনো ফোন পেয়ার করা নেই, তাই আপাতত স্টাফ হাতে চেক করবে।', 'No phone is paired yet, so your staff check by hand for now.'],
+  pm33Pair: ['ফোন পেয়ার করুন', 'Pair a phone'],
+  pm33Paired: ['{n}টি ফোন পেয়ার করা আছে।', '{n} phones paired.'],
+  pm33Paired_1: ['{n}টি ফোন পেয়ার করা আছে।', '{n} phone paired.'],
+  pm33Connect: ['কানেক্ট করুন', 'Connect'],
+  pm33ManageKeys: ['কী ম্যানেজ করুন', 'Manage keys'],
+  pm33AutoNote: ['চেকআউট খোলা থাকলে তার ফি ব্যালেন্সে হোল্ড থাকে। ব্যালেন্সে ফি না থাকলে কাস্টমার পেমেন্ট পেজে পে করবে, পেমেন্ট আটকাবে না।', "While a checkout is open, its fee is on hold in your balance. If your balance can't cover it, customers pay on the payment page instead, so no payment is blocked."],
+  pm33ManualOnly: ['স্টাফ চেক করে কনফার্ম করবে। কোনো ফি নেই।', 'Your staff check each payment. No fee.'],
+  pm33Unreadable: ['bKash-এর কী আর পড়া যাচ্ছে না, তাই কাস্টমার এখন পেমেন্ট পেজে পে করছে। কী আবার দিন।', "bKash's keys can no longer be read, so customers pay on the payment page for now. Enter them again."],
+  pm33ReEnter: ['আবার দিন', 'Enter again'],
+
+  pm33AccAdd: ['{w} অ্যাকাউন্ট যোগ করুন', 'Add a {w} account'],
+  pm33AccEdit: ['{w} অ্যাকাউন্ট এডিট', 'Edit {w} account'],
+  pm33Number: ['{w} নম্বর', '{w} number'],
+  pm33Name: ['অ্যাকাউন্টের নাম', 'Account name'],
+  pm33Type: ['অ্যাকাউন্টের ধরন', 'Account type'],
+  pm33TypeP: ['কাস্টমার Send Money করবে।', 'Customers use Send Money.'],
+  pm33Note: ['কাস্টমারের জন্য নোট (অপশনাল)', 'Note for customers (optional)'],
+  pm33BadNo: ['নম্বরটি ঠিক নেই। 01 দিয়ে শুরু করে 11 সংখ্যা দিন।', "That number isn't right. Enter 11 digits starting with 01."],
+  pm33DelTitle: ['অ্যাকাউন্ট ডিলিট করবেন?', 'Delete this account?'],
+  pm33DelActive: ['এটাই {w}-এর অ্যাক্টিভ অ্যাকাউন্ট। ডিলিট করলে অন্য একটি অ্যাক্টিভ না করা পর্যন্ত কাস্টমার {w}-এ পে করতে পারবে না।', "This is {w}'s active account. Delete it and customers can't pay by {w} until you make another one active."],
+  pm33Keep: ['রাখুন', 'Keep it'],
+  pm33Del: ['ডিলিট করুন', 'Delete'],
+
+  pm33BankAdd: ['ব্যাংক অ্যাকাউন্ট যোগ করুন', 'Add a bank account'],
+  pm33BankName: ['ব্যাংকের নাম', 'Bank name'],
+  pm33BankNo: ['অ্যাকাউন্ট নম্বর', 'Account number'],
+  pm33Branch: ['ব্রাঞ্চ (অপশনাল)', 'Branch (optional)'],
+  pm33Routing: ['রাউটিং নম্বর (অপশনাল)', 'Routing number (optional)'],
+  pm33Swift: ['SWIFT কোড (অপশনাল)', 'SWIFT code (optional)'],
+  pm33Instr: ['কাস্টমারের জন্য নির্দেশনা (অপশনাল)', 'Instructions for customers (optional)'],
+  pm33Bank: ['ব্যাংক ট্রান্সফার', 'Bank transfer'],
+
+  pm33GwTitle: ['bKash চেকআউট কানেক্ট করুন', 'Connect bKash checkout'],
+  pm33GwLead: ['bKash মার্চেন্ট প্যানেল থেকে এই চারটি দিন। সেভ করার পর এগুলো আর দেখানো হবে না।', "Enter these four from your bKash merchant panel. Once saved, they're never shown again."],
+  pm33GwAccount: ['কোন অ্যাকাউন্টে টাকা আসবে', 'The account that receives the money'],
+  pm33GwKey: ['App key', 'App key'],
+  pm33GwSecret: ['App secret', 'App secret'],
+  pm33GwUser: ['Username', 'Username'],
+  pm33GwPass: ['Password', 'Password'],
+  pm33GwTest: ['টেস্ট অ্যাকাউন্ট', 'Test account'],
+  pm33GwTestD: ['bKash-এর sandbox ব্যবহার হবে, আসল টাকা আসবে না।', "Uses bKash's sandbox, so no real money comes in."],
+  pm33GwSave: ['সেভ করে টেস্ট করুন', 'Save and test'],
+  pm33GwTestBtn: ['কানেকশন টেস্ট করুন', 'Test connection'],
+  pm33GwBad: ['bKash কানেক্ট করতে দেয়নি (কোড {c})। কীগুলো আবার দেখে নিন। অটোমেটিক চেকআউট বন্ধই আছে।', "bKash refused the connection (code {c}). Check the keys. Automated checkout stays off."],
+  pm33GwLimit: ['এখন টেস্ট করা গেল না। bKash ঘণ্টায় দুইবারের বেশি চেষ্টা নেয় না, একটু পরে আবার করুন।', "Couldn't test just now. bKash takes only two tries an hour, so try again later."],
+  pm33GwOk: ['bKash কানেক্ট হয়েছে।', 'bKash is connected.'],
+  pm33GwOn: ['চালু করুন', 'Turn it on'],
+  pm33GwLater: ['পরে করব', 'Not now'],
+  pm33GwSaved: ['কী সেভ করা আছে। বদলাতে হলে চারটিই আবার দিন।', 'Keys are saved. To change them, enter all four again.'],
+  pm33GwChange: ['সেভ করুন', 'Save'],
+  pm33GwRemove: ['কী রিমুভ করুন', 'Remove keys'],
+  pm33GwRmTitle: ['কী রিমুভ করবেন?', 'Remove the keys?'],
+  pm33GwRmText: ['অটোমেটিক চেকআউট বন্ধ হবে, আর bKash-এর পেমেন্ট লিসেনারে ফিরে যাবে।', "Automated checkout stops, and bKash's payments go back to the listener."],
+
+  pm33PhoneTitle: ['ফোন নম্বর ভেরিফাই করুন', 'Verify your phone number'],
+  pm33PhoneLead: ['এই নম্বরটি আপনার অ্যাকাউন্টে যোগ হবে, এটা দিয়ে লগইনও করতে পারবেন। কোডের জন্য আপনার কোনো চার্জ নেই।', 'This number joins your account, and you can sign in with it too. The code costs you nothing.'],
+  pm33PhoneSend: ['কোড পাঠান', 'Send code'],
+
+  pm33Held: ['হোল্ডে আছে', 'On hold'],
+  pm33HeldD: ['খোলা bKash চেকআউটের ফি। পেমেন্ট না হলে নিজে থেকেই ছাড়া পাবে। বাকি {a} খরচ করতে পারবেন।', "Fees for open bKash checkouts, released by themselves if the payment doesn't happen. You can spend the other {a}."],
+});
+
+/* What a wallet looks like here: its own mark, or its name in its colour as the page writes Rocket and Upay. */
+const PM33_MARK = {
+  bkash: '<img src="third-party/bkash.png" alt="bKash" style="object-fit:contain">',
+  nagad: '<img src="third-party/nagad.png" alt="Nagad" style="object-fit:contain">',
+  rocket: '<span style="font-size:11px;font-weight:700;color:#892C8C">Rocket</span>',
+  upay: '<span style="font-size:11px;font-weight:700;color:#1F4E98">Upay</span>',
+  bank: `<span style="color:var(--n700);display:flex">${ic('banknote')}</span>`,
+};
+const pm33Mark = (m) => `<span class="lead" style="background:#fff;border:1px solid var(--line);padding:3px">${PM33_MARK[m]}</span>`;
+const pm33Link = (label, to) => `<a class="lnk" href="#" onclick="go('${to}');return false" style="color:var(--primary);font-weight:600">${label}</a>`;
+const pm33Acc = (a, ro) => `<div class="row" style="min-height:64px">${ro ? '' : `<span class="radio ${a.on ? 'on' : ''}"></span>`}<span class="body"><span class="l1 num" style="font-size:15px">${a.no}</span><span class="l2">${a.name()}</span><span style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px"><span class="st neu">${t(a.ty)}</span>${a.on ? `<span class="st ok">${t('activeAcc')}</span>` : ''}${a.auto ? `<span class="st ok">${t('pm33Automated')}</span>` : ''}${a.test ? `<span class="st warn">${t('pm33Test')}</span>` : ''}</span></span>${ro ? '' : pm33Link(t('edit'), 'sh-pm33-edit')}</div>`;
+const pm33WayRow = (k, on, extra) => `<div class="row" style="padding:10px 0;min-height:44px;align-items:flex-start"><span class="radio ${on ? 'on' : ''}" style="margin-top:1px"></span><span class="body"><span class="l1" style="font-size:15px">${t(`pm33Way${k}`)}</span><span class="l2" style="white-space:normal">${t(`pm33Way${k}D`, { f: k === 'Auto' ? '1.00' : '0.10' })}</span>${extra || ''}</span></div>`;
+const pm33Ways = (w) => `<div style="padding:12px 16px 4px;border-top:1px solid var(--line)"><div style="font-size:14px;font-weight:600">${t('pm33WayTitle')}</div>
+  ${pm33WayRow('Auto', w.sel === 'auto', `<div style="margin-top:6px">${w.keys ? pm33Link(t('pm33ManageKeys'), 'sh-pm33-gw-saved') : pm33Link(t('pm33Connect'), 'sh-pm33-gw')}</div>${w.sel === 'auto' ? `<p class="hint" style="margin:6px 0 0">${t('pm33AutoNote')}</p>` : ''}`)}
+  ${pm33WayRow('Listener', w.sel === 'listener', w.sel === 'listener' ? `<p class="hint" style="margin:6px 0 0">${w.paired ? t('pm33Paired', { n: w.paired }) : t('pm33NoPaired')} ${pm33Link(t('pm33Pair'), 'pm33')}</p>` : '')}
+  ${pm33WayRow('Manual', w.sel === 'manual')}</div>`;
+const pm33Card = (c, ro) => {
+  const active = c.accs.find((a) => a.on);
+  const sub = !c.live ? (c.accs.length ? t('pm33OffSaved', { n: c.accs.length }) : t('pm33Off')) : active ? t('pm33ActiveIs', { no: active.no }) : c.accs.length ? t('pm33NoneActive').split(/[,،]/)[0] : t('pm33NoAccount');
+  const warn = !c.live || ro ? '' : !c.accs.length ? t('pm33NeedAccount') : !active ? t('pm33NoneActive') : '';
+  return `<div class="card flush"><div class="row" style="min-height:60px">${pm33Mark(c.m)}<span class="body"><span class="l1">${c.name()}</span><span class="l2 num">${sub}</span></span>${ro ? `<span class="st ${c.live ? 'ok' : 'neu'}">${t(c.live ? 'pm33On' : 'pm33Off')}</span>` : `<span class="switch ${c.live ? 'on' : ''}"></span>`}</div>
+    ${c.live && c.accs.length ? `<div class="list" style="border-top:1px solid var(--line)">${c.accs.map((a) => pm33Acc(a, ro)).join('')}</div>` : ''}
+    ${warn ? `<div style="padding:0 16px 12px">${banner('warn', warn)}</div>` : ''}
+    ${c.bad ? `<div style="padding:0 16px 12px">${banner('warn', t('pm33Unreadable'), t('pm33ReEnter'), 'sh-pm33-gw')}</div>` : ''}
+    ${c.live && c.way && !ro ? pm33Ways(c.way) : ''}
+    ${c.live && c.way && ro ? `<div style="padding:12px 16px;border-top:1px solid var(--line)" class="hint">${t('pm33WayIs', { w: t(c.way.sel === 'auto' ? 'pm33WayAuto' : c.way.sel === 'listener' ? 'pm33WayListener' : 'pm33WayManual') })}</div>` : ''}
+    ${c.live && !c.way ? `<div style="padding:10px 16px;border-top:1px solid var(--line)" class="hint">${t('pm33ManualOnly')}</div>` : ''}
+    ${c.live && !ro ? `<div style="padding:8px 16px 12px;display:flex;gap:8px">${btn('o sm', `${ic('plus')} ${t('pm33Add')}`, `onclick="go('${c.m === 'bank' ? 'sh-pm33-bank' : 'sh-pm33-account'}')"`)}</div>` : ''}</div>`;
+};
+const PM33_MEGH = () => L('মেঘ ফ্যাশন', 'Megh Fashion');
+const PM33_RUMANA = () => L('রুমানা আক্তার', 'Rumana Akter');
+const pm33Page = (o = {}) => {
+  const auto = o.auto || o.unreadable;
+  const main = { no: '01711 234 567', ty: 'merchant', on: !o.added, name: PM33_MEGH, auto, test: o.test };
+  const spare = { no: '01911 222 333', ty: 'personal', on: false, name: PM33_RUMANA };
+  const way = { sel: auto ? 'auto' : 'listener', keys: auto, paired: o.paired };
+  const cards = o.first
+    ? [{ m: 'bkash', name: () => 'bKash', live: false, accs: [] }, { m: 'nagad', name: () => 'Nagad', live: false, accs: [] }, { m: 'rocket', name: () => 'Rocket', live: false, accs: [] }, { m: 'upay', name: () => 'Upay', live: false, accs: [] }, { m: 'bank', name: () => t('pm33Bank'), live: false, accs: [] }]
+    : [
+        { m: 'bkash', name: () => 'bKash', live: true, accs: o.added ? [main] : [main, spare], way, bad: o.unreadable },
+        { m: 'nagad', name: () => 'Nagad', live: true, accs: [{ no: '01711 234 567', ty: 'personal', on: true, name: PM33_RUMANA }] },
+        { m: 'rocket', name: () => 'Rocket', live: false, accs: [{ no: '017112345678', ty: 'personal', on: false, name: PM33_RUMANA }] },
+        { m: 'upay', name: () => 'Upay', live: false, accs: [] },
+        { m: 'bank', name: () => t('pm33Bank'), live: true, accs: [] },
+      ];
+  return `${title('sMethods')}<div style="display:flex;flex-direction:column;gap:14px;max-width:640px"><p class="hint" style="margin:0">${t('pm33Lead')}</p>
+    ${o.staff ? banner('neu', t('pm33Staff')) : ''}
+    ${o.nophone ? banner('warn', t('pm33NoPhone'), t('pm33VerifyNow'), 'sh-pm33-phone') : ''}
+    ${o.first ? banner('info', t('pm33First')) : ''}
+    ${cards.map((c) => pm33Card(c, o.staff)).join('')}
+    <p class="hint" style="margin:0">${t('pm33Cod')}</p></div>`;
+};
+const PM33 = { hub: 'menu', sec: 'settings', title: 'sMethods', back: true, base: 'settings', path: '/settings/payment-methods' };
+SCREENS.pm33 = { ...PM33, render: () => pm33Page() };
+SCREENS['pm33-first'] = { ...PM33, render: () => pm33Page({ first: true }) };
+SCREENS['pm33-added'] = { ...PM33, render: () => pm33Page({ added: true }), toast: () => `${ic('check')} ${t('pm33Added')}` };
+SCREENS['pm33-paired'] = { ...PM33, render: () => pm33Page({ paired: 1 }) };
+SCREENS['pm33-auto'] = { ...PM33, render: () => pm33Page({ auto: true }) };
+SCREENS['pm33-auto-test'] = { ...PM33, render: () => pm33Page({ auto: true, test: true }) };
+SCREENS['pm33-unreadable'] = { ...PM33, render: () => pm33Page({ unreadable: true }) };
+SCREENS['pm33-nophone'] = { ...PM33, render: () => pm33Page({ nophone: true }) };
+SCREENS['pm33-staff'] = { ...PM33, render: () => pm33Page({ staff: true }) };
+
+/* An account: its number, name, type and note. Nothing activates by itself, so a new one comes back unselected. */
+const pm33Types = () => chips([{ l: t('personal'), on: true }, { l: t('agent') }, { l: t('merchant') }]);
+const pm33AccBody = (o = {}) => `${field(t('pm33Number', { w: 'bKash' }), o.bad ? '0171123' : o.edit ? '01911 222 333' : null, { ph: '01XXXXXXXXX', bad: o.bad, err: o.bad ? t('pm33BadNo') : undefined })}${field(t('pm33Name'), o.edit ? PM33_RUMANA() : null)}<div class="field"><label>${t('pm33Type')}</label>${pm33Types()}<p class="hint" style="margin:6px 0 0">${t('pm33TypeP')}</p></div>${field(t('pm33Note'), null, { ta: true })}`;
+SCREENS['sh-pm33-account'] = { ...SCREENS.pm33, base: 'pm33', sheet: () => sheet(t('pm33AccAdd', { w: 'bKash' }), pm33AccBody(), btn('p', t('save'), "onclick=\"go('pm33-added')\"")) };
+SCREENS['sh-pm33-account-bad'] = { ...SCREENS.pm33, base: 'pm33', sheet: () => sheet(t('pm33AccAdd', { w: 'bKash' }), pm33AccBody({ bad: true }), btn('p', t('save'))) };
+SCREENS['sh-pm33-edit'] = { ...SCREENS.pm33, base: 'pm33', sheet: () => sheet(t('pm33AccEdit', { w: 'bKash' }), pm33AccBody({ edit: true }), btn('g', t('pm33Del'), "style=\"color:var(--danger)\" onclick=\"go('dlg-pm33-delete')\"") + btn('p', t('save'), "onclick=\"go('pm33')\"")) };
+SCREENS['dlg-pm33-delete'] = { ...SCREENS.pm33, base: 'pm33', sheet: () => dlg(t('pm33DelTitle'), t('pm33DelActive', { w: 'bKash' }), btn('o', t('pm33Keep'), "onclick=\"go('pm33')\"") + btn('d', t('pm33Del'), "onclick=\"go('pm33')\""), 'pm33') };
+SCREENS['sh-pm33-bank'] = { ...SCREENS.pm33, base: 'pm33', sheet: () => sheet(t('pm33BankAdd'), `${field(t('pm33BankName'), null)}${field(t('pm33Name'), null)}${field(t('pm33BankNo'), null)}${field(t('pm33Branch'), null)}${field(t('pm33Routing'), null)}${field(t('pm33Swift'), null)}${field(t('pm33Instr'), null, { ta: true })}`, btn('p', t('save'), "onclick=\"go('pm33')\"")) };
+
+/* The gateway's four credentials: saved, tested, then automated is turned on as its own step. Never shown again. */
+const pm33GwFields = () => `${field(t('pm33GwKey'), null)}${field(t('pm33GwSecret'), null)}${field(t('pm33GwUser'), null)}${field(t('pm33GwPass'), null)}<div class="row" style="padding:10px 0;min-height:44px"><span class="body"><span class="l1" style="font-size:15px">${t('pm33GwTest')}</span><span class="l2" style="white-space:normal">${t('pm33GwTestD')}</span></span><span class="switch"></span></div>`;
+const pm33GwBody = (top) => `${top || ''}<p class="hint" style="margin:0 0 4px">${t('pm33GwLead')}</p>${field(t('pm33GwAccount'), `01711 234 567 · ${t('merchant')}`, { trail: ic('down') })}${pm33GwFields()}`;
+SCREENS['sh-pm33-gw'] = { ...SCREENS.pm33, base: 'pm33', sheet: () => sheet(t('pm33GwTitle'), pm33GwBody(), btn('p', t('pm33GwSave'), "onclick=\"go('sh-pm33-gw-ok')\"")) };
+SCREENS['sh-pm33-gw-bad'] = { ...SCREENS.pm33, base: 'pm33', sheet: () => sheet(t('pm33GwTitle'), pm33GwBody(banner('bad', t('pm33GwBad', { c: 2001 }))), btn('p', t('pm33GwSave'))) };
+SCREENS['sh-pm33-gw-limit'] = { ...SCREENS.pm33, base: 'pm33', sheet: () => sheet(t('pm33GwTitle'), pm33GwBody(banner('warn', t('pm33GwLimit'))), btn('p', t('pm33GwSave'))) };
+SCREENS['sh-pm33-gw-ok'] = { ...SCREENS.pm33, base: 'pm33', sheet: () => sheet(t('pm33GwTitle'), `${banner('info', t('pm33GwOk'))}<p class="hint" style="margin:0">${t('pm33WayAutoD', { f: '1.00' })}</p><p class="hint" style="margin:8px 0 0">${t('pm33AutoNote')}</p>`, btn('o', t('pm33GwLater'), "onclick=\"go('pm33')\"") + btn('p', t('pm33GwOn'), "onclick=\"go('pm33-auto')\"")) };
+SCREENS['sh-pm33-gw-saved'] = { ...SCREENS['pm33-auto'], base: 'pm33-auto', sheet: () => sheet(t('pm33GwTitle'), `${banner('neu', t('pm33GwSaved'))}${field(t('pm33GwAccount'), `01711 234 567 · ${t('merchant')}`, { trail: ic('down') })}${pm33GwFields()}<div class="actions" style="margin-top:8px">${btn('o sm', t('pm33GwTestBtn'))}${btn('g sm', t('pm33GwRemove'), "style=\"color:var(--danger)\" onclick=\"go('dlg-pm33-gw-remove')\"")}</div>`, btn('p', t('pm33GwChange'), "onclick=\"go('pm33-auto')\"")) };
+SCREENS['dlg-pm33-gw-remove'] = { ...SCREENS['pm33-auto'], base: 'pm33-auto', sheet: () => dlg(t('pm33GwRmTitle'), t('pm33GwRmText'), btn('o', t('pm33Keep'), "onclick=\"go('pm33-auto')\"") + btn('d', t('pm33GwRemove'), "onclick=\"go('pm33')\""), 'pm33-auto') };
+
+/* The owner's phone, from the banner on the page, where it can be skipped until now. */
+SCREENS['sh-pm33-phone'] = { ...SCREENS['pm33-nophone'], base: 'pm33-nophone', sheet: () => sheet(t('pm33PhoneTitle'), `<p class="hint" style="margin:0 0 4px">${t('pm33PhoneLead')}</p>${field(t('phoneLabel'), null, { pre: '+880', ph: '1XXXXXXXXX' })}`, btn('p', t('pm33PhoneSend'), "onclick=\"go('sh-pm33-code')\"")) };
+SCREENS['sh-pm33-code'] = { ...SCREENS['pm33-nophone'], base: 'pm33-nophone', sheet: () => sheet(t('vTitle'), `<p class="hint" style="margin:0 0 8px">${t('vLead', { phone: '+880 1711 234 567' })}</p>${codeBoxes(3)}<p class="hint" style="margin-top:12px">${t('vValid')}</p>`, btn('p', t('vSubmit'), "onclick=\"go('pm33')\"")) };
+SCREENS['sh-pm33-taken'] = { ...SCREENS['pm33-nophone'], base: 'pm33-nophone', sheet: () => sheet(t('pm33PhoneTitle'), `${field(t('phoneLabel'), '1711 234 567', { pre: '+880', bad: true, err: t('ob33Taken') })}`, btn('p', t('ob33Other'), "onclick=\"go('sh-pm33-phone')\"")) };
+
+/* AUTH-28 (amended 2026-10-31): after Google, Facebook or email, the phone, before Create shop. */
+SCREENS['ob33-phone'] = { bare: true, path: '/verify-phone', render: () => obFrame({ step: 0, title: t('ob33Title'), lead: t('ob33Lead'), body: `${intentChips()}${field(t('phoneLabel'), null, { pre: '+880', ph: '1XXXXXXXXX' })}${btn('p w', t('cont'), "onclick=\"go('ob33-code')\"")}<div class="links"><a href="#" onclick="go('ob-signin');return false">${t('backSignIn')}</a></div>` }) };
+SCREENS['ob33-code'] = { bare: true, path: '/verify-phone', render: () => obFrame({ step: 0, title: t('vTitle'), lead: t('vLead', { phone: '+880 1711 234 567' }), body: `${otp(3)}<p class="hint">${t('vValid')}</p>${btn('p w', t('vSubmit'), "onclick=\"go('ob-create')\"")}<div class="links"><span class="hint">${t('vResendIn', { s: 42 })}</span><a href="#" onclick="go('ob33-phone');return false">${t('ob33Other')}</a></div>` }) };
+SCREENS['ob33-taken'] = { bare: true, path: '/verify-phone', render: () => obFrame({ step: 0, title: t('ob33Title'), lead: t('ob33Lead'), body: `${field(t('phoneLabel'), '1711 234 567', { pre: '+880', bad: true, err: t('ob33Taken') })}${btn('p w', t('ob33Other'), "onclick=\"go('ob33-phone')\"")}${btn('o w', t('ob33SignIn'), "onclick=\"go('ob-verify')\"")}<div class="links"><a href="#" onclick="go('ob-signin');return false">${t('backSignIn')}</a></div>` }) };
+
+/* Settings gains the row and loses it from Coming later; Balance gains its on-hold line. */
+const _settings33 = SCREENS.settings.render;
+SCREENS.settings = { ...SCREENS.settings, render: () => _settings33().replace(`${menuRow('truck', 'sDelivery', t('sDeliveryD'), 'delivery')}`, `${menuRow('truck', 'sDelivery', t('sDeliveryD'), 'delivery')}${menuRow('banknote', 'sMethods', t('pm33RowD'), 'pm33')}`).split('<div class="row later"').filter((part, at) => at === 0 || !part.includes(`>${t('sMethods')}<`)).join('<div class="row later"') };
+SCREENS['pm33-settings'] = SCREENS.settings;
+const _balance33 = SCREENS.balance.render;
+SCREENS.balance33 = { ...SCREENS.balance, render: () => _balance33().replace('<div class="kv" style="padding:0 0 6px">', `<div class="kv" style="padding:0 0 2px"><span class="k">${t('pm33Held')}</span><span class="v num">${money(12.5, true)}</span></div><p class="hint" style="margin:0 0 12px">${t('pm33HeldD', { a: money(400, true) })}</p><div class="kv" style="padding:0 0 6px">`) };
 (function init() { const h = location.hash.replace('#', ''); if (h && SCREENS[h]) { ST.screen = h; document.getElementById('selScreen').value = h; } render(); })();
 </script>
 </body>

@@ -31,6 +31,7 @@ claim box ──?shop=megh──►  1  /sign-in  phone | Google | Facebook     
 pricing pick ─&plan=&term=►    │
                                ├─ phone ──► 1b /verify-code  6 digits, 5 min, resend 60 s   (AUTH-05..07, 13, 14)
                                └─ Google/Facebook ──► provider ──► /auth/oauth/:p/callback  (AUTH-24)
+                               │    └─ 1c /verify-phone  a phone and its code, no skip, Lytro pays   (AUTH-28 amended 2026-10-31, TVR-01)
                                │
                         server answers `next`:
                                ├─ create-shop ──► 2  /create-shop  name, link (live check), owner, address   (AUTH-10, 11, 28; TEN-26)
@@ -57,6 +58,9 @@ staff ──► /staff-sign-in  phone + owner-set password ──► new passwor
 
 ### Step 1b, code (`/verify-code`)
 - Six boxes, auto-advance, backspace, paste of a full code; "valid for 5 minutes"; resend disabled for 60 seconds then at most 5 per hour (AUTH-05..07); wrong-code message with tries left and the 15-minute lock after five (AUTH-06, 14); "use a password instead" for accounts that have one.
+
+### Step 1c, a phone for every owner (`/verify-phone`)
+Added 2026-11-04 for Slice 5.8's part 1 (`TENANT-DASHBOARD-DESIGN.md` §7.35): someone verified by Google, Facebook or email gives a phone before Create shop, with no skip, so their shop can take payments (TVR-01). The code is Lytro's cost and the page says so. The phone joins the account as a further identity (AUTH-26). A number on another account is refused, offering another number or to sign in with that one. A claimed address and a picked plan are kept. A phone sign-up never sees this step.
 
 ### Step 2, create shop (`/create-shop`)
 - Shop name (required, up to 60 characters, any script). Shop link pre-filled from the claimed address, else from the Latin letters of the name, else empty for the owner to type (AUTH-11). The suffix shows `.lytro.app`, and under the field two previews: the customer address `<slug>.lytro.app` and the owner's dashboard address `app.lytro.app/<slug>` (TEN-31).
