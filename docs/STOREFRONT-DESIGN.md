@@ -1,6 +1,7 @@
 # Shopper storefront: design
 
-Status: v1.5, 2026-11-03 (Slice 4.8e's build, part 2, §7c: the account pages' refusals and empty states, an address
+Status: v1.6, 2026-11-04 (the Phase 4 close-out, §7d: a measured product takes a part of its unit; the landing page says
+where a limited product goes, and a refusal names it). v1.5 of 2026-11-03 (Slice 4.8e's build, part 2, §7c: the account pages' refusals and empty states, an address
 edited or deleted, ten saved, the profile saved, a shopper's sign-in kept out of a browser's scripts). v1.4 of 2026-11-03
 (Slice 4.8e's build, part 1, §7b: what a product asks when ordering, on the product page and
 kept on the line and the order; a required add-on left empty; a cart line whose add-ons no longer fit; nothing to check
@@ -277,6 +278,18 @@ Drawn in the same group, on 2026-11-03, before the build:
 by the storefront's server, so no script in a browser can read it and every call carries it from there (as the shop's key,
 SFT-11). It lasts the token's 30 days. A token the server no longer takes leads to Sign in. A switched off storefront has no
 account pages (SFT-16).
+
+## 7d. What the Phase 4 close-out added
+
+**A part of a unit (LND-07, UOM-04).** A product measured in kg, g, litres or ml takes a part of its unit, on its page, on its
+landing page and in the cart. Its stepper shows the unit, and its number can be typed (`e48-product-kg`, `e48-landing-kg`): + and −
+move a kg or a litre by half and g or ml by the hundred, opening at 1 and 100. Anything that isn't a quantity is ignored, and leaving
+the box shows what still stands. A shared stock's variants sell whole packs (INV-24), so they keep the plain stepper, and the public
+read says which with `sharedStock`. In the bag, 1.5 kg of rice counts as one thing.
+
+**Where a limited product goes (DLV-07).** The landing page shows "Delivers to … only" as the product page does (`e48-landing-limited`).
+Where a product can't go to the chosen thana, the banner names it, on the product page, the landing page, the cart and the checkout:
+"Frozen fish can't be delivered to this address." It doesn't list the zones it does go to, since a cart may hold several products.
 
 ## 8. Later phases, drawn in full
 

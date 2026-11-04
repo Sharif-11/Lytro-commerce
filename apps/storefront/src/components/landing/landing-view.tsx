@@ -2,11 +2,17 @@
 
 import { PaymentPolicy } from '@lytronix/validators/enums';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { DeliveryEstimate, PlacedOrder, PublicProduct } from '@/lib/api/storefront-api';
+import type {
+  DeliveryEstimate,
+  DeliveryZoneView,
+  PlacedOrder,
+  PublicProduct,
+} from '@/lib/api/storefront-api';
 import { totalWith } from '@/lib/cart/cart-check';
 import { type CartLine, estimateItemOf, orderItemOf } from '@/lib/cart/cart-store';
 import { type Language, money, plainNumber, Words } from '@/lib/i18n/words';
-import { ADDRESS_MAX, NAME_MAX, NOTE_MAX } from '@/lib/order/order-form';
+import { ADDRESS_MAX, lineQuantityText, NAME_MAX, NOTE_MAX } from '@/lib/order/order-form';
+import { quantityRule } from '@/lib/product/quantity';
 import { VariantChoice } from '@/lib/product/variant-choice';
 import { Icon } from '../icon';
 import { LineExtras, NoticeBanner, TaxRows } from '../order/order-parts';
@@ -20,6 +26,7 @@ import {
   PriceRow,
   Quantity,
   rangeText,
+  LimitedLine,
 } from '../product/buy-parts';
 import { Gallery } from '../product/gallery';
 import { AddOnGroups, AskedFields, ComboInside, usePicks } from '../product/pickers';
@@ -32,6 +39,7 @@ export interface LandingViewProps {
   shopName: string;
   shopPhone: string | null;
   product: PublicProduct;
+  zones: DeliveryZoneView[];
   linkedVariantId: string | null;
   areaId: number | null;
   initialEstimate: DeliveryEstimate | null;
@@ -50,7 +58,10 @@ export function LandingView(props: LandingViewProps) {
     [product.options, product.variants],
   );
   const [selection, setSelection] = useState(() => choice.initial(props.linkedVariantId));
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(
+    () => quantityRule(product.stockUnit, product.sharedStock).first,
+  );
+  const shownQuantity = lineQuantityText({ quantity, stockUnit: product.stockUnit }, words);
   const [zillaId, setZillaId] = useState<number | null>(null);
   const [sizeChart, setSizeChart] = useState(false);
   const [placed, setPlaced] = useState<PlacedOrder | null>(null);
@@ -236,7 +247,18 @@ export function LandingView(props: LandingViewProps) {
             }
           />
           <ComboInside product={product} picks={picks} words={words} />
-          {soldOut ? null : <Quantity value={quantity} words={words} onChange={setQuantity} />}
+          {product.deliveryZoneIds.length > 0 ? (
+            <LimitedLine product={product} zones={props.zones} words={words} />
+          ) : null}
+          {soldOut ? null : (
+            <Quantity
+              value={quantity}
+              unit={product.stockUnit}
+              sharedStock={product.sharedStock}
+              words={words}
+              onChange={setQuantity}
+            />
+          )}
           {soldOut ? null : (
             <>
               <AddOnGroups product={product} picks={picks} words={words} />
@@ -363,7 +385,7 @@ export function LandingView(props: LandingViewProps) {
               <div className="b">
                 <div className="nm">{product.name}</div>
                 <div className="vr">
-                  {choiceText ? `${choiceText} × ${String(quantity)}` : `× ${String(quantity)}`}
+                  {choiceText ? `${choiceText} × ${shownQuantity}` : `× ${shownQuantity}`}
                 </div>
                 <LineExtras
                   parts={picks.lineFields.partsText}

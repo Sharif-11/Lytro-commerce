@@ -61,7 +61,12 @@ export function OrdersScreen({
   const shown = orderId ?? orders[0]?.id ?? null;
   const none = everything.data === 0;
   const filtered = Boolean(
-    filter.q?.trim() || filter.from || filter.to || filter.reason || filter.holding,
+    filter.q?.trim() ||
+    filter.from ||
+    filter.to ||
+    filter.reason ||
+    filter.holding ||
+    filter.source,
   );
 
   // The search's pause: a write of the search box still to come.
@@ -123,7 +128,7 @@ export function OrdersScreen({
           <button
             type="button"
             aria-label={t('dates')}
-            aria-pressed={Boolean(filter.from || filter.to)}
+            aria-pressed={Boolean(filter.from || filter.to || filter.source)}
             onClick={() => {
               setDating(true);
             }}
@@ -145,6 +150,20 @@ export function OrdersScreen({
           ) : null}
         </div>
       )}
+      {filter.source ? (
+        <div className="mb-2.5 flex flex-wrap gap-2">
+          <Chip
+            on
+            aria-label={`${t(`source_${filter.source}`)}. ${t('sourceClear')}`}
+            onClick={() => {
+              show({ source: undefined });
+            }}
+          >
+            {t(`source_${filter.source}`)}
+            <Icon name="x" />
+          </Chip>
+        </div>
+      ) : null}
       {filter.holding ? (
         <div className="mb-2.5 flex flex-wrap gap-2">
           <Chip
@@ -228,12 +247,12 @@ export function OrdersScreen({
         />
       ) : null}
       <DatesSheet
-        key={`${filter.from ?? ''}-${filter.to ?? ''}`}
+        key={`${filter.from ?? ''}-${filter.to ?? ''}-${filter.source ?? ''}`}
         open={dating}
         filter={filter}
-        onShow={(from, to) => {
+        onShow={(from, to, source) => {
           setDating(false);
-          show({ from, to });
+          show({ from, to, source });
         }}
         onClose={() => {
           setDating(false);

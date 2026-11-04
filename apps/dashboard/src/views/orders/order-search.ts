@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CancelReason } from '@lytronix/validators';
+import { CancelReason, OrderSource } from '@lytronix/validators';
 import { ALL_TABS, type OrderFilter } from '@/api/orders';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -13,6 +13,7 @@ export const ordersSearch = z.object({
   reason: z.nativeEnum(CancelReason).optional().catch(undefined),
   holding: z.string().min(1).optional().catch(undefined),
   holdingName: z.string().optional().catch(undefined),
+  source: z.nativeEnum(OrderSource).optional().catch(undefined),
 });
 
 export type OrdersSearch = z.infer<typeof ordersSearch>;
@@ -27,6 +28,7 @@ export function searchOf(filter: OrderFilter): Record<string, string | undefined
     reason: filter.tab === 'cancelled' ? filter.reason : undefined,
     holding: filter.holding,
     holdingName: filter.holding ? filter.holdingName : undefined,
+    source: filter.source,
   };
 }
 
@@ -40,5 +42,6 @@ export function filterOf(search: OrdersSearch): OrderFilter {
     reason: search.reason,
     holding: search.holding,
     holdingName: search.holdingName,
+    source: search.source,
   };
 }

@@ -133,6 +133,12 @@ export const placedPhoneKey = (trackingId: string): string => `lytro-placed-${tr
 export const ORDERED_KEY = 'lytro-ordered';
 
 /** The units a quantity is said in: a measure names its unit (`× 1.5 কেজি`), a count stands alone. */
+/** A cart line's quantity, with its unit when it has one (LND-07). */
+export const lineQuantityText = (
+  line: { quantity: number; stockUnit?: StockUnit },
+  words: Words,
+): string => quantityText(line.quantity, line.stockUnit ?? StockUnit.Piece, words);
+
 export function quantityText(quantity: string | number, unit: StockUnit, words: Words): string {
   const amount = String(Number(quantity));
   switch (unit) {

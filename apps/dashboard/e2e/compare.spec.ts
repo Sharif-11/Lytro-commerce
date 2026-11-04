@@ -288,6 +288,70 @@ const ORDERS: Pair[] = [
     },
   },
   {
+    name: 'order-ship-entry',
+    screen: 'o29-ship-entry',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-44',
+    state: { orders: serialDay('o-44', 'confirmed') },
+    then: async (page) => {
+      await page.getByRole('button', { name: 'শিপড মার্ক করুন' }).click();
+      const ship = page.getByRole('dialog');
+      await ship.getByLabel('কুরিয়ার').fill('Pathao');
+      await ship.getByLabel('ট্র্যাকিং কোড').fill('PTH-88213');
+    },
+  },
+  {
+    name: 'order-ship-entry-flag',
+    screen: 'o29-ship-entry-flag',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-44',
+    state: { orders: serialDay('o-44', 'confirmed') },
+    then: async (page) => {
+      await page.getByRole('button', { name: 'শিপড মার্ক করুন' }).click();
+      const ship = page.getByRole('dialog');
+      await ship.getByLabel('কুরিয়ার').fill('Pathao');
+      await ship.getByLabel('ট্র্যাকিং কোড').fill('PTH-88213');
+      await ship.getByRole('button', { name: '356938035643809' }).click();
+      const entry = ship.getByLabel('স্ক্যান, পেস্ট বা টাইপ করুন');
+      await entry.fill('356938035643833');
+      await entry.press('Enter');
+    },
+  },
+  {
+    name: 'order-ship-balance',
+    screen: 'o29-ship-balance',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    state: {
+      orders: (() => {
+        const short = meghOrders();
+        const one = short.orders.find((each) => each.id === 'o-47');
+        if (one) {
+          one.status = 'confirmed';
+          one.balanceShort = true;
+        }
+        return short;
+      })(),
+    },
+    then: async (page) => {
+      await page.getByRole('button', { name: 'শিপড মার্ক করুন' }).click();
+      const ship = page.getByRole('dialog');
+      await ship.getByLabel('কুরিয়ার').fill('Steadfast');
+      await ship.getByLabel('ট্র্যাকিং কোড').fill('SF-2610-4471');
+      await ship.getByRole('button', { name: 'শিপড মার্ক করুন' }).click();
+    },
+  },
+  {
+    name: 'orders-source',
+    screen: 'o29-source',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders?source=landing_page',
+  },
+  {
     name: 'order-return',
     screen: 'o29-return',
     device: 'phone',
@@ -3614,6 +3678,13 @@ function editorPairs(): Pair[] {
     one('pf-errors', '/products/new', { then: tap('সেভ করুন') }),
     one('sh-media', '/products/p-1', { then: tap('ছবি 1') }),
     one('sh-media', '/products/p-1', { then: tap('Photo 1') }, 'desktop', 'en'),
+    one('sh-media-past', '/products/p-1', {
+      state: { products: { ...drawnProducts(), pastOrders: { 'm-3': 12 } } },
+      then: async (page) => {
+        await page.getByRole('button', { name: 'ছবি 1' }).click();
+        await page.getByRole('dialog').getByRole('button', { name: 'ছবি 3 সরান' }).click();
+      },
+    }),
     one('sh-media-full', '/products/p-1', {
       state: {
         products: { ...drawnProducts(), storage: { full: true, usedBytes: 2048 * 1024 * 1024 } },

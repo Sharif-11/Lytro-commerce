@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
-import { OrderStatus, type CancelReason } from '@lytronix/validators';
+import { OrderSource, OrderStatus, type CancelReason } from '@lytronix/validators';
 import {
   MORE_TABS,
   ORDER_TABS,
@@ -320,7 +320,14 @@ export function OrderRow({
   );
 }
 
-/** Orders placed between two days (ORD-13), as Part 29's `o29-dates` draws it. */
+const SOURCES = [
+  OrderSource.Dashboard,
+  OrderSource.Storefront,
+  OrderSource.LandingPage,
+  OrderSource.Api,
+] as const;
+
+/** Orders placed between two days (ORD-13) and from where (LND-09), as Part 34's `o29-dates` draws it. */
 export function DatesSheet({
   open,
   filter,
@@ -329,12 +336,17 @@ export function DatesSheet({
 }: {
   open: boolean;
   filter: OrderFilter;
-  onShow: (from: string | undefined, to: string | undefined) => void;
+  onShow: (
+    from: string | undefined,
+    to: string | undefined,
+    source: OrderSource | undefined,
+  ) => void;
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
   const [from, setFrom] = useState(filter.from ?? '');
   const [to, setTo] = useState(filter.to ?? '');
+  const [source, setSource] = useState(filter.source);
   return (
     <Sheet
       open={open}
@@ -347,14 +359,15 @@ export function DatesSheet({
             onClick={() => {
               setFrom('');
               setTo('');
-              onShow(undefined, undefined);
+              setSource(undefined);
+              onShow(undefined, undefined, undefined);
             }}
           >
             {t('datesClear')}
           </Button>
           <Button
             onClick={() => {
-              onShow(from || undefined, to || undefined);
+              onShow(from || undefined, to || undefined, source);
             }}
           >
             {t('datesShow')}
@@ -381,6 +394,28 @@ export function DatesSheet({
             setTo(event.target.value);
           }}
         />
+      </div>
+      <h3 className="mt-1 text-[16px] font-semibold">{t('sourceTitle')}</h3>
+      <div className="flex flex-wrap gap-2">
+        <Chip
+          on={source === undefined}
+          onClick={() => {
+            setSource(undefined);
+          }}
+        >
+          {t('sourceAll')}
+        </Chip>
+        {SOURCES.map((each) => (
+          <Chip
+            key={each}
+            on={source === each}
+            onClick={() => {
+              setSource(each);
+            }}
+          >
+            {t(`source_${each}`)}
+          </Chip>
+        ))}
       </div>
     </Sheet>
   );

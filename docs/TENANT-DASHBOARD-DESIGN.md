@@ -1,7 +1,10 @@
 # Tenant dashboard: the full design
 
-Status: v3.31, 2026-11-04 (Payment methods in Settings, how a wallet's money is taken, bKash's keys, the owner's phone at
-sign-up and Balance's on-hold line, drawn for Slice 5.8's part 1, §7.35; v3.30 of 2026-11-03: Sales as built: the split follows the period, quarters and years, a chart with many bars, a
+Status: v3.32, 2026-11-04 (the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
+shipment the balance can't pay for, serials at shipping scanned, pasted or typed, the Orders list by where an order came
+from; v3.31 of 2026-11-04: Payment methods in Settings, how a wallet's money is taken, bKash's keys, the owner's phone at
+sign-up and Balance's on-hold line, drawn for Slice 5.8's part 1, §7.35; v3.30 of 2026-11-03: Sales as built: the split follows
+the period, quarters and years, a chart with many bars, a
 period with nothing delivered, See all, dates too long, a product's trend over 12 months, §7.34; v3.29 of 2026-11-03: a
 new combo with nothing inside, why one is out for each reason, changing or removing a
 part, a part sold by weight, a variant off sale, a product in several combos and a combo on Products, drawn as 4.8c's
@@ -1651,6 +1654,33 @@ Slices 5.1 to 5.7.
 - **What the server still needs:** a `verify-phone` answer in sign-in's `next`, for an account with no phone and no shop,
   and Create shop refused until it's done. Adding the phone already works (`me/identities`, AUTH-26). The rest is served
   (Slices 5.1 and 5.7).
+
+### 7.36 The Phase 4 close-out's small screens
+
+*Part 34*, from the close-out's read (2026-11-04): what the check against the requirements found undrawn, drawn and built
+before Phase 4 closed.
+
+**Removing a photo that past orders show (MED-09).** A photo's × still takes it off when the product is saved, and nothing
+asks first. When it is also on past orders and nothing else shows it, the Photos and video sheet says so at once, in a warning
+banner at the top: "12 past orders will lose this photo. Saving deletes it. Everything else on those orders stays." The count
+comes from `GET /media/:id`, `uses.pastOrders`. A photo another product still shows warns of nothing, since it isn't deleted
+(`sh-media-past`).
+
+**A photo that has gone (ORD-47).** An item whose photo no longer loads shows the same placeholder as one that never had a
+photo, not a broken image. The rest of the line stays (ORD-46).
+
+**A shipment the balance can't pay for (PYG-03).** Mark shipped and Hand over, refused because the balance can't cover the
+order's fee, say so in the sheet's banner with **Add balance**, leading to Balance; the order stays as it was. Staff without
+`balance:manage` get the same words and no link (`o29-ship-balance`).
+
+**Serials at shipping (INV-23).** Above the chips of serials held, a box takes a serial typed, or as a USB or Bluetooth scanner
+types it, a list pasted one per line, or the camera by its Scan button. Each goes through the same check as opening stock, then
+must be one this item holds. A good one is picked as if its chip was tapped; a bad one is named under the box, and stays in it to
+fix: not in stock, a wrong IMEI, or already picked. Past the order's units it says all are picked (`o29-ship-entry`,
+`o29-ship-entry-flag`). Mark shipped and Hand over share it.
+
+**The Orders list by source (LND-09).** The dates sheet gains Placed from: All, Staff, Storefront, Landing page, Your website.
+Choosing one shows it as a removable chip over the list, like Holding (`o29-dates`, `o29-source`).
 
 ## 8. Screens designed for later phases
 

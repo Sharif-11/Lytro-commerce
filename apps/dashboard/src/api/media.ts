@@ -30,6 +30,29 @@ export function inUse(uses: MediaUses): boolean {
 }
 
 /**
+ * MED-09: the past orders that lose a photo taken off this product: none when something else still shows it, since only
+ * then is it deleted. The product it comes off counts as one of `products` until it is saved.
+ */
+export function pastOrdersLost(uses: MediaUses): number {
+  const elsewhere =
+    uses.logo ||
+    uses.brand ||
+    uses.products > 1 ||
+    uses.videos + uses.categories + uses.swatches + uses.sizeCharts > 0;
+  return elsewhere ? 0 : uses.pastOrders;
+}
+
+/** GET /media/:id (MED-09): how many past orders would lose this photo. A failed read warns of none. */
+export async function readPastOrdersLost(id: string): Promise<number> {
+  try {
+    const detail = await tenantSession.client.get<MediaDetail>(`/media/${id}`);
+    return pastOrdersLost(detail.uses);
+  } catch {
+    return 0;
+  }
+}
+
+/**
  * PRD-11, agreed 2026-10-27: items a product let go of, deleted when nothing else shows them, so storage frees; a copy
  * that shares a photo keeps it (PRD-18). Past orders do not hold one back: they show a placeholder (MED-09). A failure
  * leaves the item in the shop's media, where it does no harm.

@@ -39,6 +39,22 @@ import { OrderSheets, type OrderSheet } from './order-actions';
 import { choicesOf, voidable } from './order-choices';
 import { atCounter, useOrderWords } from './order-words';
 
+/** ORD-47: an item's photo, as ORD-46 kept it, or the placeholder once it is gone or was never there. */
+function ItemPicture({ url }: { url: string | null }): React.JSX.Element {
+  const [gone, setGone] = useState(false);
+  if (url === null || gone) return <Icon name="image" />;
+  return (
+    <img
+      src={url}
+      alt=""
+      className="size-full object-cover"
+      onError={() => {
+        setGone(true);
+      }}
+    />
+  );
+}
+
 /** A call's chip and dot: confirmed in green, no answer in amber, call later in blue, cancelled in red. */
 const CALL_LOOK: Record<CallOutcome, { tone: StatusTone; dot: TimelineDot; word: string }> = {
   [CallOutcome.Confirmed]: { tone: 'ok', dot: 'on', word: 'outConfirmed' },
@@ -452,11 +468,7 @@ function ItemsCard({ items }: { items: OrderItem[] }): React.JSX.Element {
           return (
             <div key={item.id} className="flex min-h-16 items-start gap-3 px-4 py-3">
               <span className="flex size-12 flex-none items-center justify-center overflow-hidden rounded-button bg-gradient-to-br from-neutral-100 to-neutral-200 text-neutral-400">
-                {item.thumbnail ? (
-                  <img src={item.thumbnail.url} alt="" className="size-full object-cover" />
-                ) : (
-                  <Icon name="image" />
-                )}
+                <ItemPicture url={item.thumbnail?.url ?? null} />
               </span>
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="text-[16px] font-medium">

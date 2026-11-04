@@ -1,5 +1,6 @@
 import { PaymentPolicy } from '@lytronix/validators/enums';
 import type { DeliveryEstimate, EstimateLine } from '../api/storefront-api';
+import { countedUnits } from '../product/quantity';
 import { addOnsPriceOf, type CartLine, lineKey } from './cart-store';
 
 // Slice 12b's read: each time the cart opens its lines are checked against the shop, in the one delivery estimate it
@@ -112,7 +113,10 @@ export function checkCart(
   const counted = checked.filter((line) => line.total !== null);
   return {
     lines: checked,
-    items: counted.reduce((sum, line) => sum + line.line.quantity, 0),
+    items: counted.reduce(
+      (sum, line) => sum + countedUnits(line.line.stockUnit, line.line.quantity),
+      0,
+    ),
     subtotal: counted.reduce((sum, line) => sum + (line.total ?? 0), 0),
     orderable: counted.length > 0,
   };

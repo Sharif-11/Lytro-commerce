@@ -285,6 +285,15 @@ test.describe('the Meta Pixel (LND-15, LND-16, LND-18)', () => {
     await page.goto(shop.url('/l/cotton-panjabi'));
     await expect.poll(() => eventNamed(page, 'ViewContent')).toBeTruthy();
     expect((await pixelCalls(page)).map((call) => call.name)).toEqual(['PageView', 'ViewContent']);
+    // LND-15: the product, its value and currency, by the IDs the catalog feed lists.
+    expect(await eventNamed(page, 'ViewContent')).toMatchObject({
+      data: {
+        content_ids: expect.arrayContaining([idOf('panjabi-M White')]) as string[],
+        content_type: 'product',
+        currency: 'BDT',
+        value: 1250,
+      },
+    });
 
     await page.getByLabel('Name', { exact: true }).focus();
     await expect.poll(() => eventNamed(page, 'InitiateCheckout')).toBeTruthy();

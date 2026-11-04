@@ -77,6 +77,7 @@ export default async function LandingPage({ params, searchParams }: Props) {
           shopName={page.info.name}
           shopPhone={page.info.contact.phone}
           product={product}
+          zones={page.info.deliveryZones}
           linkedVariantId={opening.linkedVariantId}
           areaId={opening.areaId}
           initialEstimate={opening.estimate}

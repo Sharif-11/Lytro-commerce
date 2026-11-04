@@ -248,3 +248,35 @@ test('deleting a product for good deletes the photos nothing else shows', async 
   await expect(page).toHaveURL(`/${SLUG}/products`);
   await expect.poll(() => deleted(log).sort()).toEqual(['m-1', 'm-2', 'm-3']);
 });
+
+test('removing a photo says how many past orders lose it, and still lets it go (MED-09)', async ({
+  page,
+}) => {
+  const products = drawnProducts();
+  products.pastOrders = { 'm-3': 12 };
+  const log = await open(page, 'p-1', { products });
+  await main(page).getByRole('button', { name: 'Photo 1' }).click();
+  await expect(sheet(page).getByText(/past orders? will lose/)).toHaveCount(0);
+  await sheet(page).getByRole('button', { name: 'Remove photo 3', exact: true }).click();
+  await expect(sheet(page).getByRole('alert')).toContainText('12 past orders will lose this photo');
+  await expect(sheet(page).getByRole('alert')).toContainText('Saving deletes it.');
+  await sheet(page).getByRole('button', { name: 'Done' }).click();
+  await save(page).click();
+  await expect(toast(page)).toBeVisible();
+  await expect.poll(() => deleted(log)).toEqual(['m-3']);
+});
+
+test('a photo another product still shows warns of nothing, since it stays (MED-09)', async ({
+  page,
+}) => {
+  const products = drawnProducts();
+  products.pastOrders = { 'm-2': 12 };
+  const [shirt] = products.products;
+  if (shirt) products.products.push({ ...shirt, id: 'p-9', imageIds: ['m-2'] });
+  await open(page, 'p-1', { products });
+  await main(page).getByRole('button', { name: 'Photo 1' }).click();
+  const asked = page.waitForResponse((response) => response.url().includes('/media/m-2'));
+  await sheet(page).getByRole('button', { name: 'Remove photo 2', exact: true }).click();
+  await asked;
+  await expect(sheet(page).getByText(/past orders? will lose/)).toHaveCount(0);
+});

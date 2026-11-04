@@ -86,6 +86,8 @@ export interface PublicProductDetail {
   maxPrice: string | null;
   stockState: StockState;
   stockUnit: StockUnit;
+  /** INV-24, UOM-04: its variants draw from one stock in whole packs, so a part of one can't be ordered. */
+  sharedStock: boolean;
   /** FED-02: new, refurbished or used. */
   condition: ItemCondition;
   primaryCategoryId: string | null;

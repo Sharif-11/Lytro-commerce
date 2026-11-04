@@ -50,6 +50,7 @@ export class PublicProductDetailDto extends createZodDto(
     maxPrice: z.string().nullable(),
     stockState: z.nativeEnum(StockState),
     stockUnit: z.nativeEnum(StockUnit),
+    sharedStock: z.boolean(),
     condition: z.nativeEnum(ItemCondition),
     primaryCategoryId: z.string().nullable(),
     categoryIds: z.array(z.string()),

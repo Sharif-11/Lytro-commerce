@@ -335,6 +335,15 @@ export function DeliveryBanner({
   shopPhone: string | null;
 }) {
   const zone = estimate.zone ? words.pick(estimate.zone.name) : '';
+  // DLV-07: the zone takes deliveries, and these products don't go there.
+  if (estimate.notDeliveredHere.length > 0 && estimate.zone?.noDelivery !== true) {
+    return (
+      <div className="banner bad">
+        <Icon name="warn" />
+        <span>{words.t('limited_hint', { p: estimate.notDeliveredHere.join(', ') })}</span>
+      </div>
+    );
+  }
   if (!estimate.deliverable || estimate.deliveryCharge === null) {
     return (
       <div className="banner bad">

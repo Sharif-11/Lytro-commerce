@@ -13,7 +13,7 @@ import {
 import { browserCart, estimateItemOf, lineKey, orderItemOf } from '@/lib/cart/cart-store';
 import type { ShopperAddress, ShopperView } from '@/lib/api/storefront-api';
 import { type Language, money, plainNumber, Words } from '@/lib/i18n/words';
-import { ADDRESS_MAX, NAME_MAX, NOTE_MAX } from '@/lib/order/order-form';
+import { ADDRESS_MAX, lineQuantityText, NAME_MAX, NOTE_MAX } from '@/lib/order/order-form';
 import { useCart } from '../cart/use-cart';
 import { Icon } from '../icon';
 import { rangeText } from '../product/buy-parts';
@@ -398,8 +398,8 @@ export function CheckoutView(props: CheckoutViewProps) {
                 image={checked.line.image}
                 detail={
                   checked.line.choice !== ''
-                    ? `${checked.line.choice} × ${String(checked.line.quantity)}`
-                    : `× ${String(checked.line.quantity)}`
+                    ? `${checked.line.choice} × ${lineQuantityText(checked.line, words)}`
+                    : `× ${lineQuantityText(checked.line, words)}`
                 }
                 total={checked.total ?? 0}
               >
@@ -419,7 +419,7 @@ export function CheckoutView(props: CheckoutViewProps) {
                 key={checked.key}
                 name={checked.line.name}
                 image={checked.line.image}
-                detail={`${checked.line.choice === '' ? '' : `${checked.line.choice} `}× ${String(checked.line.quantity)}`}
+                detail={`${checked.line.choice === '' ? '' : `${checked.line.choice} `}× ${lineQuantityText(checked.line, words)}`}
                 note={offNote(checked, words)}
                 words={words}
                 onRemove={() => {
@@ -432,7 +432,7 @@ export function CheckoutView(props: CheckoutViewProps) {
                 key={checked.key}
                 name={checked.line.name}
                 image={checked.line.image}
-                detail={`${checked.line.choice === '' ? '' : `${checked.line.choice} `}× ${String(checked.line.quantity)}`}
+                detail={`${checked.line.choice === '' ? '' : `${checked.line.choice} `}× ${lineQuantityText(checked.line, words)}`}
                 note={advanceNote(checked, words)}
                 words={words}
                 onRemove={() => {

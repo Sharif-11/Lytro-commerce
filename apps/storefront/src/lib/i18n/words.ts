@@ -54,5 +54,10 @@ export function money(amount: string | number): string {
 
 /** An amount without the sign, for words that carry it themselves (`৳{n} advance`). */
 export function plainNumber(amount: string | number): string {
-  return Number(amount).toLocaleString('en-US', { maximumFractionDigits: 2 });
+  const value = Number(amount);
+  // A part of a taka is two figures, ৳42.50: half a kg of something makes these ordinary (LND-07).
+  return value.toLocaleString('en-US', {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
 }

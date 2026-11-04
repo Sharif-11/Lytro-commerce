@@ -190,6 +190,9 @@ interface ProductSpec {
   deliveryZoneIds?: string[];
   soldOutPairs?: string[];
   tax?: ProductFixture['tax'];
+  /** LND-07: a measured product takes a part of its unit, unless it is a shared stock's whole packs. */
+  stockUnit?: StockUnit;
+  sharedStock?: boolean;
   extra?: Partial<PublicProduct>;
 }
 
@@ -254,6 +257,7 @@ export function makeProduct(spec: ProductSpec): ProductFixture {
     }
   }
   const product: PublicProduct = {
+    sharedStock: spec.sharedStock ?? false,
     id: spec.id,
     slug: spec.slug,
     name: spec.name,
@@ -261,7 +265,7 @@ export function makeProduct(spec: ProductSpec): ProductFixture {
     minPrice: money(spec.price),
     maxPrice: money(spec.price),
     stockState,
-    stockUnit: StockUnit.Piece,
+    stockUnit: spec.stockUnit ?? StockUnit.Piece,
     condition: ItemCondition.New,
     primaryCategoryId: spec.categoryId ?? null,
     categoryIds: spec.categoryId ? [spec.categoryId] : [],

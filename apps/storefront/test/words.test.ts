@@ -36,7 +36,7 @@ describe('Words (I18N-01)', () => {
 
   it('writes money as the prototype does, in both languages', () => {
     expect(money('1850.00')).toBe('৳1,850');
-    expect(money(12_500.5)).toBe('৳12,500.5');
+    expect(money(12_500.5)).toBe('৳12,500.50');
   });
 });
 
