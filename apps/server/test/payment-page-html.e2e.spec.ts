@@ -594,6 +594,18 @@ describeIfDatabase('reporting the page (TVR-02)', () => {
 });
 
 describeIfDatabase('a wallet on automated (PAY-06)', () => {
+  it("comes back from the wallet's checkout as arriving from paying (PAY-08)", async () => {
+    const ref = await placed(await payingShop(), 'bkash');
+    const back = await raw(
+      'GET',
+      `/v1/pay/${ref}/gateway-return?status=cancel`,
+      null,
+      'api.localhost',
+    );
+    expect(back.status).toBe(302);
+    expect(back.headers.location).toBe(`http://pay.localhost/${ref}?just=1`);
+  });
+
   it('hands on to the wallet, and pays here when there is nowhere to send them', async () => {
     const setup = await payingShop();
     const ref = await placed(setup, 'bkash');
