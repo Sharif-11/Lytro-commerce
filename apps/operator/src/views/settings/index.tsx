@@ -24,10 +24,12 @@ export function Settings(): React.JSX.Element {
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState<string>('');
   const [draftFlag, setDraftFlag] = useState(false);
+  const [reason, setReason] = useState('');
 
   function startEdit(setting: PlatformSetting): void {
     update.reset();
     setEditing(setting.key);
+    setReason('');
     if (typeof setting.value === 'boolean') setDraftFlag(setting.value);
     else setDraft(String(setting.value));
   }
@@ -45,7 +47,7 @@ export function Settings(): React.JSX.Element {
         : typeof setting.value === 'number'
           ? Number(draft)
           : draft;
-    update.mutate({ key: setting.key, value }, { onSuccess: cancelEdit });
+    update.mutate({ key: setting.key, value, reason }, { onSuccess: cancelEdit });
   }
 
   return (
@@ -117,6 +119,15 @@ export function Settings(): React.JSX.Element {
                   }}
                 />
               )}
+              <TextField
+                label={t('settings.reason')}
+                name={`reason-${setting.key}`}
+                required
+                value={reason}
+                onChange={(event) => {
+                  setReason(event.target.value);
+                }}
+              />
               {update.isError ? <ErrorBanner message={errorMessage(update.error, t)} /> : null}
               <div className="flex gap-2">
                 <Button type="submit" fit loading={update.isPending}>

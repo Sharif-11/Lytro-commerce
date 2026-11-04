@@ -7,6 +7,7 @@ import {
   PaymentReviewReason,
   PLAN_PAYMENT_METHODS,
   planLimitsSchema,
+  PaymentMethod,
 } from '@lytronix/validators';
 
 export const billingTermSchema = z.object({
@@ -80,7 +81,10 @@ export const planLimitOverrideSchema = z.object({
   setAt: z.date(),
 });
 export class PlanLimitOverrideDto extends createZodDto(planLimitOverrideSchema) {}
-export class PlanLimitOverrideListDto extends createZodDto(planLimitOverrideSchema.array()) {}
+// The list says who set each one, by email; a single one's reply does not need it.
+export class PlanLimitOverrideListDto extends createZodDto(
+  planLimitOverrideSchema.extend({ setByEmail: z.string().nullable() }).array(),
+) {}
 
 // D2-1: control.plan_payments -- a purchase/renewal/upgrade/top-up quote or submission. `/billing/purchase`,
 // `/upgrade/confirm` and `/balance/top-up/confirm` all carry `IdempotencyInterceptor`, which replays a cached
@@ -132,6 +136,10 @@ export const paymentAddonSchema = z.object({
 });
 export const queuedPaymentSchema = planPaymentSchema.extend({
   addons: z.array(paymentAddonSchema),
+  shopName: z.string(),
+  shopSlug: z.string(),
+  // The wallet a receipt says it arrived on: null until one of Lytro's phones has seen the money.
+  wallet: z.nativeEnum(PaymentMethod).nullable(),
   // BIL-06 (Slice 5.6, agreed 2026-11-03): what the seller says they sent, what arrived, and why it waits. For the operator
   // only: the shop's own routes never read these.
   amountSent: z.string().nullable(),

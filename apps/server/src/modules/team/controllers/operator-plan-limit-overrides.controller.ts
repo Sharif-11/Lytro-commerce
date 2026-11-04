@@ -22,6 +22,7 @@ import {
   type OperatorSessionRequest,
 } from '../../operator/guards/operator-session.guard';
 import { PlanLimitOverridesService } from '../../billing/services/plan-limit-overrides.service';
+import { OperatorDirectory } from '../../operator/services/operator-directory';
 import type { PlanLimitOverrideRecord } from '../../billing/types/plan-assignment';
 import { SetPlanLimitOverrideDto } from '../dto/billing.dto';
 import { PlanLimitOverrideDto, PlanLimitOverrideListDto } from '../dto/billing-response.dto';
@@ -34,14 +35,22 @@ import { PlanLimitOverrideDto, PlanLimitOverrideListDto } from '../dto/billing-r
 export class OperatorPlanLimitOverridesController {
   constructor(
     @Inject(PlanLimitOverridesService) private readonly overrides: PlanLimitOverridesService,
+    @Inject(OperatorDirectory) private readonly operators: OperatorDirectory,
   ) {}
 
   @Get()
   @ResponseMessage('LimitOverridesListed')
   @ApiOperation({ summary: "List a tenant's plan-limit overrides" })
   @ZodResponse({ type: PlanLimitOverrideListDto })
-  list(@Param('tenantId') tenantId: string): Promise<PlanLimitOverrideRecord[]> {
-    return this.overrides.listForTenant(tenantId);
+  async list(
+    @Param('tenantId') tenantId: string,
+  ): Promise<(PlanLimitOverrideRecord & { setByEmail: string | null })[]> {
+    const overrides = await this.overrides.listForTenant(tenantId);
+    const emails = await this.operators.emailsOf(overrides.map((override) => override.setBy));
+    return overrides.map((override) => ({
+      ...override,
+      setByEmail: emails.get(override.setBy) ?? null,
+    }));
   }
 
   @Post()

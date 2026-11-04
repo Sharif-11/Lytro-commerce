@@ -1,3 +1,4 @@
+import type { TenantOperatorFactsRow } from '@lytronix/db';
 import type { TenantSummary } from '../types/tenant-summary';
 
 export interface TenantSearchCursor {
@@ -5,8 +6,14 @@ export interface TenantSearchCursor {
   id: string;
 }
 
+/** PLN-02, PLN-11: a search's row also says its plan's version and how many overrides it has. */
+export type TenantSearchEntry = TenantSummary & {
+  planVersion: number | null;
+  overrideCount: number;
+};
+
 export interface TenantSearchPage {
-  entries: TenantSummary[];
+  entries: TenantSearchEntry[];
   nextCursor: TenantSearchCursor | null;
 }
 
@@ -15,6 +22,8 @@ export interface TenantSearchPage {
 export interface TenantSummaryStore {
   findSummary(tenantId: string): Promise<TenantSummary | null>;
   findSummaryBySlug(slug: string): Promise<TenantSummary | null>;
+  /** OPERATOR-CONSOLE-DESIGN §5: what the operator's shop page reads beyond a summary. */
+  operatorFacts(tenantId: string): Promise<TenantOperatorFactsRow | null>;
   search(
     query: string | null,
     cursor: TenantSearchCursor | null,

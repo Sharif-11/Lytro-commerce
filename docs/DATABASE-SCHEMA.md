@@ -103,13 +103,15 @@ CREATE TABLE control.verification_challenges (
 CREATE TABLE control.sign_in_failures (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     subscriber_id   uuid REFERENCES control.subscribers(id),  -- null when the number has no account
+    operator_id     uuid REFERENCES control.operator_accounts(id),  -- an operator's sign-in (ADM-01); null otherwise
     ip              inet,                                     -- the client address (D14); stored, not used for the lock
     created_at      timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX ON control.sign_in_failures (subscriber_id, created_at);
+CREATE INDEX ON control.sign_in_failures (operator_id, created_at);
 ```
 
-AUTH-14: five failures for one account in fifteen minutes lock it. The count is taken over a sliding window from `sign_in_failures`, so old failures age out and nothing needs resetting.
+AUTH-14, ADM-01: five failures for one account, a seller's or an operator's, in fifteen minutes lock it. The count is taken over a sliding window from `sign_in_failures`, so old failures age out and nothing needs resetting.
 
 ### 2.1b OAuth sign-in states
 

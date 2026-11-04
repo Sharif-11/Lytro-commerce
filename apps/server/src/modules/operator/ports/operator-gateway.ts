@@ -27,6 +27,8 @@ export interface OperatorSessionRecord {
   id: string;
   operatorId: string;
   csrfHash: string;
+  createdAt: Date;
+  userAgent: string | null;
 }
 
 /**
@@ -52,4 +54,9 @@ export interface OperatorGateway {
   insertSession(tx: Transaction, values: NewOperatorSessionValues): Promise<void>;
   findActiveSession(tokenHash: string, now: Date): Promise<OperatorSessionRecord | null>;
   revokeSession(sessionId: string, at: Date): Promise<void>;
+  /** ADM-01 (AUTH-14's rule): committed on its own, so it survives the failed request. */
+  recordFailure(values: { operatorId: string | null; ip: string | null }): Promise<void>;
+  countFailuresSince(operatorId: string, since: Date): Promise<number>;
+  /** Who these operator ids are. */
+  emailsOf(ids: readonly string[]): Promise<Map<string, string>>;
 }

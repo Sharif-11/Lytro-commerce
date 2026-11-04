@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Inject, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { ClientIp } from '../../../common/client-ip';
@@ -22,12 +22,13 @@ import {
 import {
   OperatorBackupCodesDto,
   OperatorEnrolledDto,
+  OperatorMeDto,
   OperatorSignedInDto,
 } from '../dto/operator-auth-response.dto';
 import { OperatorSessionGuard } from '../guards/operator-session.guard';
 import { OperatorAuthService } from '../services/operator-auth.service';
 import type { OperatorSessionRecord } from '../ports/operator-gateway';
-import type { OperatorSigninResult } from '../types/session';
+import type { OperatorMe, OperatorSigninResult } from '../types/session';
 
 interface OperatorSignedInBody {
   csrfToken: string;
@@ -56,8 +57,20 @@ export class OperatorAuthController {
   @ApiBody({ type: OperatorSigninDto })
   signin(
     @Body(new ZodValidationPipe(operatorSigninSchema)) body: OperatorSigninDto,
+    @Req() request: HttpRequest,
   ): Promise<OperatorSigninResult> {
-    return this.operators.signin(body.email, body.password);
+    return this.operators.signin(body.email, body.password, this.clientIp.context(request).ip);
+  }
+
+  @Get('me')
+  @UseGuards(OperatorSessionGuard)
+  @ResponseMessage('OperatorAccountRetrieved')
+  @ApiOperation({ summary: 'Who is signed in, and how many backup codes are unused' })
+  @ZodResponse({ type: OperatorMeDto })
+  me(
+    @Req() request: HttpRequest & { operatorSession: OperatorSessionRecord },
+  ): Promise<OperatorMe> {
+    return this.operators.me(request.operatorSession);
   }
 
   @Post('enroll')
@@ -120,7 +133,12 @@ export class OperatorAuthController {
     @Req() request: HttpRequest & { operatorSession: OperatorSessionRecord },
   ): Promise<{ backupCodes: string[] }> {
     return this.operators
-      .regenerateBackupCodes(request.operatorSession.operatorId, body.password, body.code)
+      .regenerateBackupCodes(
+        request.operatorSession.operatorId,
+        body.password,
+        body.code,
+        this.clientIp.context(request).ip,
+      )
       .then((backupCodes) => ({ backupCodes }));
   }
 

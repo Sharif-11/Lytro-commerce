@@ -15,6 +15,7 @@ import {
   type StageLengthsSnapshot,
   type PaygCandidateRow,
   type RevocationCandidateRow,
+  type TenantOperatorFactsRow,
   type Transaction,
 } from '@lytronix/db';
 import {
@@ -292,6 +293,10 @@ export class DrizzleTenantSummaryStore implements TenantSummaryStore {
 
   findSummaryBySlug(slug: string): Promise<TenantSummary | null> {
     return this.tenants.findSummaryBySlug(this.database.handle.db, slug);
+  }
+
+  operatorFacts(tenantId: string): Promise<TenantOperatorFactsRow | null> {
+    return this.tenants.findOperatorFacts(this.database.handle.db, tenantId);
   }
 
   async search(

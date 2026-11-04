@@ -33,6 +33,14 @@ export const listenerDeviceSchema = z.object({
   uploadsToday: z.number(),
 });
 export class ListenerDeviceDto extends createZodDto(listenerDeviceSchema) {}
+// LSN-21: blocking an installation needs its id, which only the operator reads.
+export class OperatorListenerDeviceListDto extends createZodDto(
+  z.object({
+    devices: z.array(listenerDeviceSchema.extend({ installationId: z.string() })),
+    active: z.number(),
+    limit: z.number().nullable(),
+  }),
+) {}
 export class ListenerDeviceListDto extends createZodDto(
   z.object({
     devices: z.array(listenerDeviceSchema),

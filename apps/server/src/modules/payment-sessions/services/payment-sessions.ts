@@ -45,6 +45,7 @@ import type { PaymentNotifier, PaymentToVerifyNotice } from '../ports/payment-no
 import type { PaymentSessionStore } from '../ports/payment-session-store';
 import { PAYMENT_NOTIFIER, PAYMENT_PAGE_ORIGIN, PAYMENT_SESSION_STORE } from '../tokens';
 import type { OpenedPayment, PaymentPageSession, TrackedPayment } from '../types/payment-sessions';
+import { newShopCapHolds } from './new-shop-cap';
 
 // PAY-23: 128 random bits, written in 22 URL-safe characters.
 const REF_BYTES = 16;
@@ -692,7 +693,7 @@ export class PaymentSessions {
     now: Date,
   ): Promise<void> {
     const shop = await this.store.newShopOf(tx, tenantId);
-    if (!shop || !(shop.newShopCap ?? shop.state === TenantState.PayAsYouGo)) return;
+    if (!shop || !newShopCapHolds(shop.newShopCap, shop.state)) return;
     const days = await this.figure(
       PlatformSettingKey.NewShopPaymentCapDays,
       NEW_SHOP_PAYMENT_CAP_DAYS,
