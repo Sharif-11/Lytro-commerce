@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiClientError, errorMessage } from '@lytronix/api-client';
 import { Button, ErrorBanner, TextField } from '@lytronix/ui';
 import { useRegenerateBackupCodes } from '@/api/operator-auth';
+import { Consequence } from '@/components/ui/consequence';
 import { Panel } from '@/components/ui/panel';
 import { BackupCodes } from '@/views/sign-in/backup-codes';
 import { typedCode } from '@/views/sign-in/typed-code';
@@ -98,9 +99,7 @@ export function CodesPanel({
         </>
       }
     >
-      <div className="rounded-lg border border-l-[3px] border-line border-l-danger bg-neutral-50 px-3.5 py-3 text-[14px] leading-[1.55]">
-        {t('account.newConsequence')}
-      </div>
+      <Consequence tone="danger">{t('account.newConsequence')}</Consequence>
       <form id={FORM} onSubmit={handleSubmit} className="flex flex-col gap-3.5">
         <TextField
           label={t('signIn.password')}
