@@ -968,6 +968,15 @@ describeIfDatabase(
       const after = await read(to.shop, order.id);
       expect(after.status).toBe('shipped');
       expect(after.parcel?.news).toHaveLength(1);
+      // Its address is gone, not just unanswered: connecting again makes a new pair, and the old one finds no shop.
+      const { rows } = await admin.query(
+        'SELECT 1 FROM control.courier_message_routes WHERE tenant_id = $1',
+        [to.shop.tenantId],
+      );
+      expect(rows).toHaveLength(0);
+      const again = await connect(to.shop);
+      expect(again.address).not.toBe(to.address);
+      expect((await postMessage(to, messageOf(order, 'delivered'))).status).toBe(404);
     });
 
     it('keeps another shop out of the address routes (SEC-02)', async () => {
