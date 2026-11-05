@@ -14,7 +14,10 @@ import { EnvironmentParser } from './config/env';
 class Application {
   async start(): Promise<void> {
     const env = new EnvironmentParser().parse();
-    const app = await NestFactory.create<NestExpressApplication>(AppModule);
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+      // CRR-11: a courier's signature is over the body exactly as it arrived.
+      rawBody: true,
+    });
     new HttpSetup().apply(app);
 
     // API docs, generated from the same Zod DTOs every route already validates request/response against

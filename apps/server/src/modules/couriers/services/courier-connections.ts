@@ -4,6 +4,7 @@ import {
   AuditAction,
   CourierCallAction,
   CourierConnectionState,
+  CourierMessagesState,
   FieldProblemCode,
   type ConnectCourierInput,
   type CourierKey,
@@ -23,6 +24,7 @@ import {
 import type { CourierStore } from '../ports/courier-store';
 import { COURIER_CLOCK, COURIER_STORE } from '../tokens';
 import { CourierCalls } from './courier-calls';
+import { CourierMessages, type MessageAddress } from './courier-messages';
 import { CourierRegistry } from './courier-registry';
 
 // Steadfast locks a key out for an hour after 10 failures in 5 minutes, correct keys included (§3.6), so a shop trying keys stops
@@ -51,6 +53,9 @@ export interface CourierConnectionView {
   hasCredentials: true;
   state: CourierConnectionState;
   connectedAt: Date;
+  /** CRR-02, D6-3: whether its messages are arriving, none yet, or arriving without the token. */
+  messages: CourierMessagesState;
+  lastMessageAt: Date | null;
 }
 
 /** A connection opened for one call (SEC-09). */
@@ -73,6 +78,7 @@ export class CourierConnections {
     @Inject(COURIER_STORE) private readonly store: CourierStore,
     @Inject(CourierRegistry) private readonly registry: CourierRegistry,
     @Inject(CourierCalls) private readonly calls: CourierCalls,
+    @Inject(CourierMessages) private readonly messages: CourierMessages,
     @Inject(SecretBox) private readonly box: SecretBox,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(COURIER_CLOCK) private readonly clock: () => Date,
@@ -100,7 +106,7 @@ export class CourierConnections {
     tenantId: string,
     input: ConnectCourierInput,
     actor: CatalogueActor,
-  ): Promise<CourierConnectionView> {
+  ): Promise<CourierConnectionView & { message: MessageAddress }> {
     const adapter = this.adapterOf(input.courierKey);
     const who = await this.activity.resolve(tenantId, actor);
     const saved = await this.store.run(tenantId, (tx) =>
@@ -144,7 +150,9 @@ export class CourierConnections {
         { type: 'courier', id: row.id },
         { courierKey: adapter.key, replaced: saved !== null },
       );
-      return this.viewOf(row);
+      // CRR-02: what to paste into the courier's panel; connecting never waits on it.
+      const message = await this.messages.makeIfMissing(tx, tenantId, adapter.key, row);
+      return { ...this.viewOf(row), message };
     });
   }
 
@@ -154,6 +162,7 @@ export class CourierConnections {
     await this.store.run(tenantId, async (tx) => {
       const row = await this.store.deleteConnection(tx, tenantId, courierKey);
       if (!row) throw new ApiError('not_found', 'CourierNotConnected', {});
+      await this.messages.forgetRoute(tx, row.id);
       if (row.isDefault) {
         const [next] = await this.store.listConnections(tx, tenantId);
         if (next) {
@@ -345,6 +354,13 @@ export class CourierConnections {
       hasCredentials: true,
       state: row.state,
       connectedAt: row.createdAt,
+      messages:
+        row.unsignedAt !== null
+          ? CourierMessagesState.TokenMissing
+          : row.lastMessageAt !== null
+            ? CourierMessagesState.Arriving
+            : CourierMessagesState.NoneYet,
+      lastMessageAt: row.lastMessageAt,
     };
   }
 }

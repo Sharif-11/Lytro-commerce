@@ -27,6 +27,7 @@ import { IdempotencyInterceptor } from '../../../common/idempotency/idempotency.
 import { dashboardCaller, requestHashOf } from '../../../common/idempotency/idempotency.service';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { CourierBooking } from '../../couriers/services/courier-booking';
+import { CourierChecks } from '../../couriers/services/courier-checks';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { OrderFulfilment } from '../../orders/services/order-fulfilment';
@@ -93,6 +94,7 @@ export class OrdersController {
     @Inject(CatalogueRequest) private readonly request: CatalogueRequest,
     @Inject(OrderPicker) private readonly picking: OrderPicker,
     @Inject(CourierBooking) private readonly booking: CourierBooking,
+    @Inject(CourierChecks) private readonly checks: CourierChecks,
   ) {}
 
   @Get()
@@ -352,6 +354,22 @@ export class OrdersController {
       this.request.idOf(id, 'OrderNotFound'),
       body,
       this.request.actorOf(request),
+    );
+  }
+
+  @Post(':id/parcel/sync')
+  @HttpCode(200)
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('ParcelSynced')
+  @ApiOperation({
+    summary:
+      "Ask the courier where this order's parcel stands; within 10 minutes of the last ask, or once it has finished, the saved answer shows with no call (CRR-14)",
+  })
+  @ZodResponse({ type: OrderViewDto })
+  syncParcel(@Param('id') id: string, @Req() request: DashboardRequest): Promise<OrderView> {
+    return this.checks.sync(
+      this.request.tenantIdOf(request),
+      this.request.idOf(id, 'OrderNotFound'),
     );
   }
 

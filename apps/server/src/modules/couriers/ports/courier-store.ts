@@ -1,9 +1,14 @@
 import type {
+  CourierConnectionPatch,
   CourierParcelPatch,
   NewCourierCredentialUse,
+  NewCourierEvent,
   NewCourierParcel,
+  ParcelCheckWindow,
   SelectCourierConnection,
   SelectCourierCredentialUse,
+  SelectCourierEvent,
+  SelectCourierMessageRoute,
   SelectCourierParcel,
   Transaction,
 } from '@lytronix/db';
@@ -79,6 +84,52 @@ export interface CourierStore {
     now: Date,
     limit: number,
   ): Promise<SelectCourierParcel[]>;
+  updateConnection(
+    tx: Transaction,
+    tenantId: string,
+    connectionId: string,
+    patch: CourierConnectionPatch,
+    now: Date,
+  ): Promise<void>;
+  /** CRR-13: stored once; null when it has come before. */
+  insertEvent(
+    tx: Transaction,
+    tenantId: string,
+    values: NewCourierEvent,
+  ): Promise<SelectCourierEvent | null>;
+  findEvent(tx: Transaction, tenantId: string, eventId: string): Promise<SelectCourierEvent | null>;
+  lockEvent(tx: Transaction, tenantId: string, eventId: string): Promise<SelectCourierEvent | null>;
+  finishEvent(
+    tx: Transaction,
+    tenantId: string,
+    eventId: string,
+    values: { parcelId: string | null; problem: string | null },
+    now: Date,
+  ): Promise<void>;
+  unappliedEvents(
+    tx: Transaction,
+    tenantId: string,
+    storedBefore: Date,
+    limit: number,
+  ): Promise<SelectCourierEvent[]>;
+  parcelForNews(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+    ids: { consignmentId: string | null; invoice: string | null },
+  ): Promise<SelectCourierParcel | null>;
+  dueForCheck(
+    tx: Transaction,
+    tenantId: string,
+    window: ParcelCheckWindow,
+  ): Promise<SelectCourierParcel[]>;
+  /** CRR-11: read before any tenant context exists. */
+  findRoute(tokenHash: string): Promise<SelectCourierMessageRoute | null>;
+  replaceRoute(
+    tx: Transaction,
+    values: { tokenHash: string; tenantId: string; courierKey: CourierKey; connectionId: string },
+  ): Promise<void>;
+  deleteRoute(tx: Transaction, connectionId: string): Promise<void>;
   /** SEC-11: runs on its own, so the log failing never touches the call it records. */
   recordUse(tenantId: string, use: NewCourierCredentialUse): Promise<void>;
   listUses(

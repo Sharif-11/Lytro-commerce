@@ -3,9 +3,10 @@ import {
   OrderStatus,
   SHIPPED_FULFILLMENT,
   StatusOverride,
+  TRACKED_MESSAGE_MAX_LENGTH,
   visibleOrderStatus,
 } from '@lytronix/validators';
-import type { SelectOrderLineComponent } from '@lytronix/db';
+import type { SelectCourierEvent, SelectOrderLineComponent } from '@lytronix/db';
 import { ApiError } from '../../../common/api-error';
 import type { OrderStore } from '../ports/order-store';
 import { ORDER_STORE } from '../tokens';
@@ -125,6 +126,7 @@ export function trackedViewOf(
   order: OrderRecord,
   lines: OrderLineRecord[],
   components: readonly SelectOrderLineComponent[],
+  latest: SelectCourierEvent | null = null,
 ): TrackedOrderView {
   const shipped = SHIPPED_FULFILLMENT.includes(order.fulfillmentStatus);
   return {
@@ -141,6 +143,15 @@ export function trackedViewOf(
             name: order.courierName,
             trackingCode: order.trackingCode,
             trackingLink: order.trackingLink,
+          }
+        : null,
+    // CRR-12, read agreed 2026-11-05: never before it ships, and never more than the courier's words about the parcel.
+    courierMessage:
+      shipped && latest !== null
+        ? {
+            en: latest.messageEn?.slice(0, TRACKED_MESSAGE_MAX_LENGTH) ?? null,
+            bn: latest.messageBn?.slice(0, TRACKED_MESSAGE_MAX_LENGTH) ?? null,
+            at: latest.receivedAt,
           }
         : null,
     payment: null,
@@ -163,7 +174,8 @@ export class OrderTracking {
         tenantId,
         lines.map((line) => line.id),
       );
-      return trackedViewOf(order, lines, components);
+      const latest = await this.store.latestCourierMessage(tx, tenantId, order.id);
+      return trackedViewOf(order, lines, components, latest);
     });
   }
 

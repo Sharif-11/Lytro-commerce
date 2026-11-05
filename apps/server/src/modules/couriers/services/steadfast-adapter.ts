@@ -1,5 +1,6 @@
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { CourierKey } from '@lytronix/validators';
+import { COURIER_MESSAGE_MAX_LENGTH, CourierKey, ParcelReading } from '@lytronix/validators';
 import {
   CourierNoAnswer,
   type BookingAnswer,
@@ -7,9 +8,12 @@ import {
   type CourierAccount,
   type CourierAdapter,
   type CourierLimits,
+  type CourierNews,
   type CourierRefusal,
   type LookUpAnswer,
+  type MessageHeaders,
   type ParcelBooking,
+  type TrackAnswer,
 } from '../ports/courier-adapter';
 import { COURIER_FETCH, STEADFAST_URL } from '../tokens';
 import {
@@ -30,7 +34,59 @@ const LIMITS: CourierLimits = {
   addressMax: 490,
   noteMax: 480,
   weightKg: null,
+  // It allows 1,000 a minute.
+  callsPerMinute: 300,
 };
+// CRR-29, read agreed 2026-11-05: `pending` is "with us, not yet attempted", which the first real parcel will confirm. Its
+// `*_approval_pending` are the rider's word, "do not settle your books on it". `cancelled` means it comes back to the shop.
+const READINGS: Readonly<Record<string, ParcelReading>> = {
+  in_review: ParcelReading.Booked,
+  pending: ParcelReading.WithCourier,
+  hold: ParcelReading.Hold,
+  delivered_approval_pending: ParcelReading.Unconfirmed,
+  partial_delivered_approval_pending: ParcelReading.Unconfirmed,
+  cancelled_approval_pending: ParcelReading.Unconfirmed,
+  unknown_approval_pending: ParcelReading.Unconfirmed,
+  delivered: ParcelReading.Delivered,
+  partial_delivered: ParcelReading.PartlyDelivered,
+  cancelled: ParcelReading.Returning,
+  exceptional: ParcelReading.Problem,
+  unknown: ParcelReading.Problem,
+};
+const STATUS_EVENT = 'delivery_status';
+// Read agreed 2026-11-05: its words about the parcel's journey may reach a shopper; a change made in its panel never does.
+const SHOPPER_EVENTS: ReadonlySet<string> = new Set([STATUS_EVENT, 'tracking_update']);
+const CHANGED_EVENT = 'consignment_update';
+// Its message times name no zone; it is a Bangladeshi service.
+const DHAKA_OFFSET = '+06:00';
+
+function headerOf(headers: MessageHeaders, name: string): string | null {
+  const value = headers[name];
+  const first = Array.isArray(value) ? value[0] : value;
+  return first !== undefined && first !== '' ? first : null;
+}
+
+/** "Partial Delivered" and `partial_delivered` are the same status: its guide and its samples differ in how they write it. */
+function statusOf(words: string | null): string | null {
+  return words === null
+    ? null
+    : words
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, '_');
+}
+
+function timeOf(words: string | null): Date | null {
+  if (words === null) return null;
+  const zoned = /[zZ]|[+-]\d{2}:?\d{2}$/.test(words);
+  const at = new Date(zoned ? words : `${words.replace(' ', 'T')}${DHAKA_OFFSET}`);
+  return Number.isNaN(at.getTime()) ? null : at;
+}
+
+/** A courier's words as they are kept: plain text on one line, within what's stored. */
+function wordsOf(words: string | null): string | null {
+  return refusalWords(words, COURIER_MESSAGE_MAX_LENGTH);
+}
 const TRACKING_PAGE = 'https://steadfast.com.bd/t/';
 // Its body says what happened; a 200 can hide a failure there (Appendix A).
 const SUCCESS = '200';
@@ -110,6 +166,91 @@ export class SteadfastAdapter implements CourierAdapter {
 
   trackingLink(trackingCode: string): string {
     return `${TRACKING_PAGE}${encodeURIComponent(trackingCode)}`;
+  }
+
+  /** CRR-14, CRR-15: one parcel's status, by its number or else ours. Asked twice for one status, it has one key. */
+  async track(
+    account: CourierAccount,
+    parcel: { consignmentId: string | null; invoice: string },
+  ): Promise<TrackAnswer> {
+    const path =
+      parcel.consignmentId !== null
+        ? `/status_by_cid/${encodeURIComponent(parcel.consignmentId)}`
+        : `/status_by_invoice/${encodeURIComponent(parcel.invoice)}`;
+    const response = await this.request(account, 'GET', path);
+    const rawStatus = statusOf(textOf(response.body, 'delivery_status'));
+    if (rawStatus !== null) {
+      return {
+        outcome: 'found',
+        news: {
+          dedupeKey: `asked:${parcel.consignmentId ?? parcel.invoice}:${rawStatus}`,
+          event: STATUS_EVENT,
+          statusEvent: true,
+          forShopper: false,
+          consignmentId: parcel.consignmentId,
+          invoice: parcel.invoice,
+          rawStatus,
+          reading: READINGS[rawStatus] ?? null,
+          messageEn: null,
+          messageBn: null,
+          cashCollected: null,
+          deliveryCharge: null,
+          codAtCourier: null,
+          happenedAt: null,
+        },
+      };
+    }
+    if (response.status === 404 || codeOf(response.body, 'status') === '404') {
+      return { outcome: 'not_found' };
+    }
+    return { outcome: 'refused', refusal: this.refusalOrThrow(response) };
+  }
+
+  /** CRR-11: its `X-Signature`, a hex HMAC-SHA256 of the raw body keyed with the token. */
+  verifyMessage(token: string, rawBody: Buffer, headers: MessageHeaders): boolean {
+    const said = headerOf(headers, 'x-signature');
+    if (said === null) return false;
+    const expected = createHmac('sha256', token).update(rawBody).digest();
+    const given = Buffer.from(said, 'hex');
+    return given.length === expected.length && timingSafeEqual(given, expected);
+  }
+
+  /** CRR-12, CRR-13: its messages, by the fields its guide names; it resends a retry with the same `Idempotency-Key`. */
+  readMessage(rawBody: Buffer, headers: MessageHeaders): CourierNews | null {
+    let body: unknown;
+    try {
+      body = JSON.parse(rawBody.toString('utf8'));
+    } catch {
+      return null;
+    }
+    if (typeof body !== 'object' || body === null || Array.isArray(body)) return null;
+    const reply = body as CourierReply;
+    const event =
+      textOf(reply, 'notification_type') ?? textOf(reply, 'event') ?? textOf(reply, 'type');
+    if (event === null) return null;
+    const statusEvent = event === STATUS_EVENT;
+    const rawStatus = statusEvent ? statusOf(textOf(reply, 'status')) : null;
+    const reading = rawStatus !== null ? (READINGS[rawStatus] ?? null) : null;
+    const finished =
+      reading === ParcelReading.Delivered || reading === ParcelReading.PartlyDelivered;
+    return {
+      dedupeKey:
+        headerOf(headers, 'idempotency-key') ??
+        `sent:${createHash('sha256').update(rawBody).digest('hex')}`,
+      event,
+      statusEvent,
+      forShopper: SHOPPER_EVENTS.has(event),
+      consignmentId: codeOf(reply, 'consignment_id'),
+      invoice: textOf(reply, 'invoice'),
+      rawStatus,
+      reading,
+      messageEn: wordsOf(textOf(reply, 'tracking_message')),
+      messageBn: null,
+      cashCollected: finished ? codeOf(reply, 'cod_amount') : null,
+      deliveryCharge: codeOf(reply, 'delivery_charge'),
+      codAtCourier: event === CHANGED_EVENT ? codeOf(reply, 'cod_amount') : null,
+      happenedAt: timeOf(textOf(reply, 'updated_at')),
+    };
   }
 
   /** D6-11: its answer names the parcel's status, not its IDs, so those stay for staff or a later read to fill. */

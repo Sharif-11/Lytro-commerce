@@ -709,6 +709,12 @@ export const MESSAGE_KEYS = [
   'ParcelNothingToCancel',
   'ParcelCancelConfirmNeeded',
   'SerialBeingBooked',
+  'CourierAddressNotKnown',
+  'CourierMessageNotVerified',
+  'CourierAddressShown',
+  'CourierAddressReplaced',
+  'ParcelSynced',
+  'ParcelNothingToSync',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

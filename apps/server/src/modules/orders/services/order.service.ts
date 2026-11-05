@@ -152,6 +152,9 @@ export interface NewOrderSpec {
  */
 export type OnlinePayment = 'ready' | 'not_sent' | 'unavailable';
 
+// CRR-12: how much of a parcel's news its order shows.
+const PARCEL_NEWS_SHOWN = 50;
+
 // The server acting on its own: the minute pass cancelling an order whose advance never came (D5-4).
 const SYSTEM: ResolvedActor = { id: null, ip: null, type: ActorType.System };
 
@@ -1651,6 +1654,10 @@ export class OrderService {
       id === null ? null : { id, name: names.get(id) ?? null };
     const location =
       order.locationId !== null ? await this.locations.thana(order.locationId) : null;
+    const parcelNews =
+      parcel !== null
+        ? await this.store.listParcelEvents(tx, tenantId, parcel.id, PARCEL_NEWS_SHOWN)
+        : [];
     return {
       id: order.id,
       orderNumber: order.orderNumber,
@@ -1762,6 +1769,18 @@ export class OrderService {
               settled: parcel.settledAt !== null,
               settleProblem: parcel.settleProblem,
               createdAt: parcel.createdAt,
+              reading: parcel.reading,
+              cashCollected: parcel.cashCollected,
+              codAtCourier: parcel.codAtCourier,
+              lastNewsAt: parcel.lastNewsAt,
+              noNews: parcel.checksStoppedAt !== null,
+              attention: parcel.attention,
+              news: parcelNews.map((row) => ({
+                source: row.source,
+                rawStatus: row.rawStatus,
+                message: { en: row.messageEn, bn: row.messageBn },
+                at: row.receivedAt,
+              })),
             },
       courierRecordUnchanged: false,
       limitPrompt,
