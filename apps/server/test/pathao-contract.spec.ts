@@ -188,7 +188,7 @@ describe('Pathao, as its sandbox answered on 2026-11-05', () => {
     await expect(adapter.logIn(PATHAO_FIELDS)).rejects.toThrow('no readable answer');
   });
 
-  it('renews with no password, keeps the store, and the old pair stops working', async () => {
+  it('renews with no password, keeps the store, and the old refresh token stops working', async () => {
     pathao.reset();
     const old = account();
     const answer = await adapter.renewLogin(old);
@@ -197,10 +197,6 @@ describe('Pathao, as its sandbox answered on 2026-11-05', () => {
     expect(pathao.refreshes()[0]?.body).not.toHaveProperty('password');
     expect(answer.credentials['storeId']).toBe('2');
     expect(answer.credentials['refreshToken']).not.toBe(old.credentials.refreshToken);
-    await expect(adapter.testConnection(old)).resolves.toMatchObject({
-      outcome: 'refused',
-      refusal: { login: true },
-    });
     await expect(adapter.renewLogin(old)).resolves.toMatchObject({
       outcome: 'refused',
       refusal: { login: true },

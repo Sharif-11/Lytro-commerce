@@ -1,6 +1,7 @@
-// A stand-in for Pathao's API (Phase 6 Slice 6.3), behaving as its sandbox did when tried on 2026-11-05: a login gives tokens, a refresh works
-// once and kills the pair before it, a wrong login is a 400, a bad token a 401, an unknown parcel a 404, and decimals in an amount or a
-// quantity are refused with field errors. A repeated order number makes a second parcel. Injected as COURIER_FETCH, so nothing leaves.
+// A stand-in for Pathao's API (Phase 6 Slice 6.3), behaving as its sandbox did when tried on 2026-11-05: a login gives tokens, a refresh token
+// works once, a wrong login is a 400, a bad token a 401, an unknown parcel a 404, and decimals in an amount or a quantity are refused with
+// field errors. A repeated order number makes a second parcel. Injected as COURIER_FETCH, so nothing leaves. The old access token also ends
+// here at a refresh, the stricter of what the sandbox did: it refused one and went on taking another, so Lytro must never rely on it.
 
 export const PATHAO_CLIENT_ID = 'pathao-client-id-1234';
 export const PATHAO_CLIENT_SECRET = 'pathao-client-secret-5678';
@@ -175,7 +176,7 @@ export class FakePathao {
         if (this.behaviour.refreshTimesOut.used) this.endAll();
         throw new DOMException('timed out', 'TimeoutError');
       }
-      // One use: the refresh token and every access token before it stop working.
+      // One use, and the stricter reading of what happens to the access token before it.
       this.endAll();
     } else {
       return refused;

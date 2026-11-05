@@ -118,7 +118,7 @@ function refusalOf(response: CourierResponse, login: boolean): CourierRefusal {
 
 /**
  * CRR-01, CRR-06, D6-5, D6-11, D6-14 (Phase 6 Slice 6.3, read agreed 2026-11-05): Pathao, from its merchant document and tried in its
- * sandbox. A login with the merchant's password gives tokens, and each renewal kills the pair before it, so Lytro keeps the tokens and
+ * sandbox. A login with the merchant's password gives tokens, and a refresh token works once, so Lytro keeps the newest pair and
  * never the password. Every booking names a pickup store. It reads the area from the address, which is why the thana must be in it. It
  * takes whole taka and whole quantities. A repeated order number makes a second parcel and it can't be asked by our number, so a lost
  * answer goes to staff, and there is no cancel call. Its proof of a message is the secret itself, sent unchanged, so unlike Steadfast's
@@ -167,7 +167,7 @@ export class PathaoAdapter implements CourierAdapter {
     return Number.isNaN(ends) || ends - now.getTime() < RENEW_BEFORE_MS;
   }
 
-  /** Works once: from here on the old pair is refused, so what comes back must be kept in place of it. */
+  /** Works once: from here on the old refresh token is refused, so what comes back must be kept in place of it. */
   renewLogin(account: CourierAccount): Promise<LogInAnswer> {
     return this.issue(
       account.credentials,

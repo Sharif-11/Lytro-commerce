@@ -342,8 +342,8 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
     address naming no place was accepted at ৳60 with no refusal. The rate is the only sign of what it read, so this shows
     Dhaka from elsewhere and not one zilla from another, and reading a parcel back shows no area. A delivery order always
     has a thana's ID, so booking refuses only one no longer in the list. Pathao's charge is recorded on the parcel.
-  - **Tokens only.** The owner types the password once to connect; Lytro logs in and throws it away. A refresh works once
-    and ends the pair before it, so one renewal runs at a time, and a lost answer can mean the owner logs in again.
+  - **Tokens only.** The owner types the password once to connect; Lytro logs in and throws it away. A refresh token works
+    once, so one renewal runs at a time, and a lost answer can mean the owner logs in again.
   - **One store per connection,** set when connecting: used without asking if the account has one active, chosen by the
     owner if several, changeable later. Staff choose nothing at booking.
   - **Whole taka: round up** (the owner's pick; refusing and letting staff fix it was recommended). ৳499.50 asks Pathao
@@ -355,7 +355,7 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
   - **Its test of an address** is answered at any known address without the secret, because it moves nothing, and
     doesn't count as a message arriving. Every real message needs the secret.
   - **One PR.**
-- **Built:** against a fake made from what the sandbox answered. The contract suite passes for both couriers, with two
+- **Built as PR #311,** no migration, against a fake made from what the sandbox answered. The contract suite passes for both couriers, with two
   allowances Pathao needed: it has no rider's-word status, and its proof doesn't cover the body. **Exit criterion 8 holds
   with small exceptions,** all of them things the next courier can use. In booking: a renewal before the claim, the
   checks an adapter declares, and the order's total quantity. In order code: what the courier was asked to collect, for
@@ -503,9 +503,10 @@ Source: its merchant API document and webhook page, in the merchant panel; rate 
 
 - **Access:** `api-hermes.pathao.com`; sandbox `courier-api-sandbox.pathao.com`, with published test logins. Client ID and
   secret plus the merchant's email and password; `POST /aladdin/api/v1/issue-token` lasts 5 days by its document and 90 in
-  the sandbox (2026-11-05), so the answer's `expires_in` decides. A refresh returns a new access and refresh token, needs
-  no password, and ends the pair before it: the old refresh token then gets 400 and the old access token 401. A wrong login
-  is also 400. About 60 calls a minute (second-hand).
+  the sandbox (2026-11-05), so the answer's `expires_in` decides. A refresh returns a new access and refresh token and
+  needs no password. The old refresh token then gets 400. The old access token was refused in one try and went on working
+  through two refreshes in another, so nothing relies on it either way. A wrong login is also 400. About 60 calls a minute
+  (second-hand).
 - **Booking:** `POST /aladdin/api/v1/orders`. Required: `store_id`, name (3 to 100 characters), phone (11 characters),
   address (10 to 220), `delivery_type` (48 normal, 12 on demand), `item_type` (1 document, 2 parcel), `item_quantity`
   (integer), `item_weight` (0.5 to 10 kg), `amount_to_collect` (integer). City, zone and area are optional, and "our
