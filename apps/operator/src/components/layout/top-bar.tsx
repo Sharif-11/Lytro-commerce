@@ -31,7 +31,7 @@ export function TopBar(): React.JSX.Element {
       event.preventDefault();
       // Under 1024 px this bar isn't drawn; a keyboard there goes to Shops, where the search is.
       if (field.current?.offsetParent) field.current.focus();
-      else void navigate({ to: '/tenants' });
+      else void navigate({ to: '/shops' });
     }
     window.addEventListener('keydown', onKey);
     return () => {
@@ -42,7 +42,7 @@ export function TopBar(): React.JSX.Element {
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
     const q = query.trim();
-    void navigate({ to: '/tenants', search: q ? { q } : {} });
+    void navigate({ to: '/shops', search: q ? { q } : {} });
   }
 
   return (

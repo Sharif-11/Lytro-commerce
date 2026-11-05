@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { HoldingPage } from '@/views/later';
+import { Today } from '@/views/today';
 
 export const Route = createFileRoute('/_console/')({
-  component: () => <HoldingPage titleKey="nav.today" />,
+  component: Today,
 });
