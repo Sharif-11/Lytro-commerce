@@ -19,6 +19,13 @@ export const addonSchema = z.object({
 export class AddonDto extends createZodDto(addonSchema) {}
 export class AddonListDto extends createZodDto(addonSchema.array()) {}
 
+// PLN-13: the operator's catalogue says how many of each are running, and how many packs went this month.
+export const operatorAddonSchema = addonSchema.extend({
+  running: z.number(),
+  boughtThisMonth: z.number(),
+});
+export class OperatorAddonListDto extends createZodDto(operatorAddonSchema.array()) {}
+
 // PLN-14: an add-on for sale to this shop; the price is whole taka for one, to the period's end, or null. Slice 11.5c:
 // why it can't be bought now, the amount for each quantity one request buys, the days left and a next period's price.
 export const addonOfferSchema = z.object({

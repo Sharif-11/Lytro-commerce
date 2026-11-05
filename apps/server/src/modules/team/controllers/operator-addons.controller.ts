@@ -19,12 +19,12 @@ import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { AddonCatalogueService } from '../../billing/services/addon-catalogue.service';
 import type { PlanOperator } from '../../billing/services/plans.service';
-import type { AddonRecord } from '../../billing/types/addon';
+import type { AddonRecord, OperatorAddonRecord } from '../../billing/types/addon';
 import {
   OperatorSessionGuard,
   type OperatorSessionRequest,
 } from '../../operator/guards/operator-session.guard';
-import { AddonDto, AddonListDto } from '../dto/addons-response.dto';
+import { AddonDto, OperatorAddonListDto } from '../dto/addons-response.dto';
 import { CreateAddonDto, UpdateAddonDto } from '../dto/billing.dto';
 
 // PLN-13: the operator's add-on catalogue, retired items included.
@@ -41,9 +41,9 @@ export class OperatorAddonsController {
   @Get()
   @ResponseMessage('AddonsListed')
   @ApiOperation({ summary: 'List every add-on, including retired ones' })
-  @ZodResponse({ type: AddonListDto })
-  list(): Promise<AddonRecord[]> {
-    return this.catalogue.listAll();
+  @ZodResponse({ type: OperatorAddonListDto })
+  list(): Promise<OperatorAddonRecord[]> {
+    return this.catalogue.listForOperator();
   }
 
   @Post()

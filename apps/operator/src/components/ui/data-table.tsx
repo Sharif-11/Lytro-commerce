@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { ConsoleIcon, type ConsoleIconName } from './console-icon';
+import { TABLE_HEADER_WORD } from './sizes';
 
 export interface Column<Row> {
   key: string;
@@ -14,9 +15,6 @@ export interface Column<Row> {
   actions?: boolean;
   cell: (row: Row) => ReactNode;
 }
-
-const HEADER_WORD =
-  'text-[12px] font-semibold tracking-[0.04em] text-fg-muted uppercase bn:text-[13px] bn:tracking-normal bn:normal-case';
 
 function cellClass(column: { main?: boolean; right?: boolean; actions?: boolean }): string {
   if (column.main)
@@ -54,6 +52,7 @@ export function DataTable<Row>({
   rows,
   rowKey,
   onOpen,
+  faded,
   loading = false,
   empty,
 }: {
@@ -61,6 +60,8 @@ export function DataTable<Row>({
   rows: Row[];
   rowKey: (row: Row) => string;
   onOpen?: (row: Row) => void;
+  /** A row kept for the record, greyed by its colour: opacity would take its words under the contrast rule. */
+  faded?: (row: Row) => boolean;
   loading?: boolean;
   empty: ReactNode;
 }): React.JSX.Element {
@@ -91,7 +92,7 @@ export function DataTable<Row>({
     >
       <div className="hidden items-center gap-3 border-b border-line bg-neutral-50 px-4 py-2.5 sm:grid sm:grid-cols-[var(--cols)]">
         {columns.map((column) => (
-          <span key={column.key} className={HEADER_WORD}>
+          <span key={column.key} className={TABLE_HEADER_WORD}>
             {column.label}
           </span>
         ))}
@@ -108,7 +109,7 @@ export function DataTable<Row>({
           }
           className={`grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 border-t border-line px-4 py-3 first:border-t-0 sm:min-h-[52px] sm:grid-cols-[var(--cols)] sm:gap-3 sm:py-2.5 [.hidden+&]:border-t-0 ${
             onOpen ? 'cursor-pointer' : ''
-          }`}
+          } ${faded?.(row) ? 'text-fg-muted' : ''}`}
         >
           {columns.map((column) => (
             <div key={column.key} className={cellClass(column)}>

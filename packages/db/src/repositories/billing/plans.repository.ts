@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { count, eq, isNotNull, sql } from 'drizzle-orm';
 import type { PlanLimits } from '@lytronix/validators';
 import {
   planAssignments,
@@ -117,6 +117,24 @@ export class PlansRepository {
     ];
     const results = await Promise.all(checks);
     return results.some((rows) => rows.length > 0);
+  }
+
+  /** PLN-02: how many shops sit on each version of each plan, as their snapshots say. */
+  async shopsByVersion(
+    db: Executor,
+  ): Promise<{ planId: string; version: number; shops: number }[]> {
+    const rows = await db
+      .select({
+        planId: tenants.planId,
+        version: tenants.planVersionSnapshot,
+        shops: count(),
+      })
+      .from(tenants)
+      .where(isNotNull(tenants.planId))
+      .groupBy(tenants.planId, tenants.planVersionSnapshot);
+    return rows.flatMap(({ planId, version, shops }) =>
+      planId === null || version === null ? [] : [{ planId, version, shops }],
+    );
   }
 
   /** Throws nothing -- the caller checks isReferenced first; this only runs when it's safe. */

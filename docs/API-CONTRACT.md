@@ -379,7 +379,7 @@ adjust/view-as screens, which are still genuinely not built.
 | POST | `/api/v1/operator/payment-page-reports/:id/dismiss` | operator | Built in Phase 5 Slice 5.2b (ADM-12). An open report dismissed, nothing done to the shop; one already handled, or unknown, is `not_found` (`PaymentPageReportNotFound`). In the platform log (`payment_page_report_dismissed`). `{ ok: true }`. |
 | POST | `/api/v1/operator/tenants/:id/balance-adjust` | operator | `{ amount, reason }` (ADM-04). **Built**, as a manual balance correction (`BAL-17`) — response is the resulting `LedgerEntry`, not a bare ok. |
 | POST | `/api/v1/operator/tenants/:id/view-as` | operator | **Not built.** `{ reason }` — issues a scoped, read-only, time-limited session (ADM-05) — still genuinely future work. |
-| GET | `/api/v1/operator/plans` | operator | Includes not-for-sale plans. |
+| GET | `/api/v1/operator/plans` | operator | Includes not-for-sale plans. Each also says `shopsByVersion` (`[{ version, shops }]`) and `deletable`, false once anything references it (PLN-02, PLN-08). |
 | POST | `/api/v1/operator/plans` | operator | `{ name, description?, rank, forSale, limits, features }` — creates version 1 (PLN-01/03). Prices are set separately, per term, below — never inline on create. |
 | PATCH | `/api/v1/operator/plans/:id` | operator | Same body, partial; every edit snapshots the prior version to `control.plan_versions` first and increments `version` (PLN-02, D2-3). Never changes a period already paid for (PLN-06). |
 | DELETE | `/api/v1/operator/plans/:id` | operator | `409 conflict` if any snapshot references it — retire (`forSale: false` via PATCH) instead (PLN-08). |
@@ -388,11 +388,12 @@ adjust/view-as screens, which are still genuinely not built.
 | GET | `/api/v1/operator/plans/:planId/prices` | operator | A plan's price across every billing term — nested under the plan, not the term, since a price is a (plan, term) pair (TRM-03). |
 | PUT | `/api/v1/operator/plans/:planId/prices/:billingTermId` | operator | `{ price }` — sets or replaces the price for that pair (TRM-03). |
 | DELETE | `/api/v1/operator/plans/:planId/prices/:billingTermId` | operator | Removes the price for that pair. |
-| GET | `/api/v1/operator/billing-terms` | operator | Includes hidden/retired terms. |
+| GET | `/api/v1/operator/billing-terms` | operator | Includes hidden/retired terms. Each also says `invoices`, how many were paid for it, and `deletable` (TRM-05). |
+| GET | `/api/v1/operator/billing-terms/prices` | operator | Every plan's price for every term, for the price matrix (TRM-03). |
 | POST | `/api/v1/operator/billing-terms` | operator | `{ labelBn, labelEn, months, visible, displayOrder, defaultDiscountPct?, tenantId? }` (TRM-01, TRM-14). |
 | PATCH | `/api/v1/operator/billing-terms/:id` | operator | Affects future purchases only — an existing snapshot keeps the term as bought (TRM-11). |
-| DELETE | `/api/v1/operator/billing-terms/:id` | operator | `409 conflict` if any snapshot used it — retire (`visible: false` via PATCH) instead (TRM-05). |
-| GET | `/api/v1/operator/addons` | operator | The add-on catalogue, retired items included (PLN-13). |
+| DELETE | `/api/v1/operator/billing-terms/:id` | operator | `409 conflict` while a price, a payment or a shop's current period names it — retire it instead (TRM-05). |
+| GET | `/api/v1/operator/addons` | operator | The add-on catalogue, retired items included, each with `running` (units running now) and `boughtThisMonth` (packs, since the month began in Dhaka) (PLN-13). |
 | POST | `/api/v1/operator/addons` | operator | `{ key, kind, limitKey?, unitSize?, price, labelEn, labelBn }`: a limit add-on or a pack names the limit it raises and how much one adds, in that limit's unit; a feature names neither, and its key is the plan feature it switches on. `price` is whole taka -- a month, or one pack. A taken key is a field error. Audited (ADM-08). |
 | PATCH | `/api/v1/operator/addons/:id` | operator | Any of `price`, `unitSize`, `labelEn`, `labelBn`; applies to the next purchase, never one already made. Audited. |
 | POST | `/api/v1/operator/addons/:id/retire` | operator | No longer for sale; what shops bought runs to its end (PLN-13). Audited. |
@@ -402,7 +403,7 @@ adjust/view-as screens, which are still genuinely not built.
 | GET | `/api/v1/operator/rates` | operator | |
 | GET | `/api/v1/operator/rates/:key/history` | operator | Every change to one rate (RAT-09), with `changedByEmail`. |
 | PATCH | `/api/v1/operator/rates/:key` | operator | `{ value, reason, noticeId? }` — immediate effect, never retroactive (RAT-02). The reason goes on the platform audit log (ADM-11). |
-| PATCH | `/api/v1/operator/settings/:key` | operator | `{ value, reason }`. The reason goes on the platform audit log (ADM-11). `GET /operator/settings` gives each row's `updatedByEmail`. |
+| PATCH | `/api/v1/operator/settings/:key` | operator | `{ value, reason }`, the value a number, words, yes/no or a list of words, as that setting holds (LSN-16's senders are the list). The reason goes on the platform audit log (ADM-11). `GET /operator/settings` gives each row's `updatedByEmail`. |
 | GET | `/api/v1/operator/presets` | operator | The shop-type presets with their defaults, suggestions and up-front fields (PST-04). |
 | PATCH | `/api/v1/operator/presets/:key` | operator | Any of `labelBn`, `labelEn`, `defaultStockUnit`, `defaultBatch`, `defaultSerial`, `defaultSerialFormat` (`imei` or `any`), `defaultNotTracked`, `defaultLowStock`, `suggestedAttributeIds` (platform attributes only), `suggestedCategories`, `upFrontFields` (PST-04, PST-05). Batches and serials together are refused. Applies to the next product created, never an existing one (PST-03). Audited. |
 | GET | `/api/v1/operator/attributes` | operator | The platform's attributes with their platform values, retired ones included (ATL-01). Shops' own are never listed here. |

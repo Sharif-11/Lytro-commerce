@@ -218,6 +218,172 @@ const PAIRS: Pair[] = [
     then: (page) => page.locator('main section button').first().click(),
   },
   { screen: 'unread', path: '/phones/unread' },
+  { screen: 'plans', path: '/plans' },
+  {
+    screen: 'plan-edit',
+    path: '/plans',
+    then: (page) => page.getByRole('button', { name: /(Edit|এডিট) Starter/ }).click(),
+  },
+  { screen: 'plan-new', path: '/plans', then: press('New plan', 'নতুন প্ল্যান') },
+  {
+    screen: 'plan-versions',
+    path: '/plans',
+    then: async (page) => {
+      await page.getByRole('button', { name: /(Edit|এডিট) Starter/ }).click();
+      await page
+        .getByRole('dialog')
+        .getByRole('button', { name: /Version history|ভার্সন ইতিহাস/ })
+        .click();
+    },
+  },
+  { screen: 'terms', path: '/billing-terms' },
+  {
+    screen: 'term-edit',
+    path: '/billing-terms',
+    then: (page) =>
+      page
+        .getByRole('button', { name: /^(Edit|এডিট)$/ })
+        .nth(1)
+        .click(),
+  },
+  { screen: 'term-new', path: '/billing-terms', then: press('New term', 'নতুন টার্ম') },
+  {
+    screen: 'term-retire',
+    path: '/billing-terms',
+    then: (page) =>
+      page
+        .getByRole('button', { name: /^(Retire|রিটায়ার)$/ })
+        .nth(1)
+        .click(),
+  },
+  { screen: 'rates', path: '/rates' },
+  {
+    screen: 'rate-change',
+    path: '/rates',
+    then: (page) =>
+      page
+        .getByRole('button', { name: /^(Change|বদলান): / })
+        .first()
+        .click(),
+  },
+  {
+    screen: 'rate-history',
+    path: '/rates',
+    then: (page) =>
+      page
+        .getByRole('button', { name: /^(History|ইতিহাস): / })
+        .nth(4)
+        .click(),
+  },
+  { screen: 'addons', path: '/addons' },
+  { screen: 'addon-edit', path: '/addons', then: press('Edit', 'এডিট') },
+  { screen: 'addon-new', path: '/addons', then: press('New item', 'নতুন আইটেম') },
+  {
+    screen: 'addon-retire',
+    path: '/addons',
+    then: (page) =>
+      page
+        .getByRole('button', { name: /^(Retire|বন্ধ করুন)$/ })
+        .nth(1)
+        .click(),
+  },
+  { screen: 'settings', path: '/settings' },
+  {
+    screen: 'setting-change',
+    path: '/settings',
+    then: (page) =>
+      page
+        .getByRole('button', { name: /^(Change|বদলান): / })
+        .first()
+        .click(),
+  },
+  {
+    screen: 'setting-senders',
+    path: '/settings',
+    then: (page) =>
+      page
+        .getByRole('button', { name: /^(Change: Wallet senders|বদলান: ওয়ালেট সেন্ডার)/ })
+        .click(),
+  },
+  {
+    screen: 'setting-order-limit',
+    path: '/settings',
+    then: (page) =>
+      page.getByRole('button', { name: /^(Change: Past the order|বদলান: অর্ডার লিমিটের)/ }).click(),
+  },
+  {
+    screen: 'setting-version',
+    path: '/settings',
+    then: (page) =>
+      page.getByRole('button', { name: /^(Change: Terms version|বদলান: টার্মস ভার্সন)/ }).click(),
+  },
+  { screen: 'wallets', path: '/wallets' },
+  { screen: 'wallet-new', path: '/wallets', then: press('Add wallet', 'ওয়ালেট যোগ') },
+  { screen: 'wallet-edit', path: '/wallets', then: press('Edit', 'এডিট') },
+  {
+    screen: 'wallet-remove',
+    path: '/wallets',
+    then: (page) =>
+      page
+        .getByRole('button', { name: /^(Remove|সরান)$/ })
+        .nth(2)
+        .click(),
+  },
+  { screen: 'shoptypes', path: '/catalogue/shop-types' },
+  {
+    screen: 'shoptype-edit',
+    path: '/catalogue/shop-types',
+    then: (page) =>
+      page
+        .getByRole('button', { name: /^(Edit|এডিট)$/ })
+        .nth(1)
+        .click(),
+  },
+  { screen: 'attributes', path: '/catalogue/attributes' },
+  {
+    screen: 'attribute-new',
+    path: '/catalogue/attributes',
+    then: press('New attribute', 'নতুন অ্যাট্রিবিউট'),
+  },
+  {
+    screen: 'attribute-detail',
+    path: '/catalogue/attributes',
+    then: (page) =>
+      page
+        .getByRole('button', { name: /^(Open|খুলুন): / })
+        .first()
+        .click(),
+  },
+  {
+    screen: 'attribute-value',
+    path: '/catalogue/attributes',
+    then: async (page) => {
+      await page
+        .getByRole('button', { name: /^(Open|খুলুন): / })
+        .first()
+        .click();
+      await page
+        .getByRole('dialog')
+        .getByRole('button', { name: /Add a value|মান যোগ/ })
+        .click();
+    },
+  },
+  { screen: 'optionsets', path: '/catalogue/option-sets' },
+  { screen: 'optionset-edit', path: '/catalogue/option-sets', then: press('Edit', 'এডিট') },
+  {
+    screen: 'optionset-new',
+    path: '/catalogue/option-sets',
+    then: press('New option set', 'নতুন অপশন সেট'),
+  },
+  {
+    screen: 'optionset-delete',
+    path: '/catalogue/option-sets',
+    then: (page) =>
+      page
+        .getByRole('button', { name: /^(Delete|ডিলিট)$/ })
+        .nth(3)
+        .click(),
+  },
   { screen: 'later-audit', path: '/audit' },
   { screen: 'later-reports', path: '/reports' },
   { screen: 'later-manual', path: '/manual' },

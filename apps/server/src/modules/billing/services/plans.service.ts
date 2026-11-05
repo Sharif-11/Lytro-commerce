@@ -11,7 +11,7 @@ import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import type { NewPlanValues, PlanEditValues, PlansStore } from '../ports/plans-store';
 import { PLANS_STORE } from '../tokens';
-import type { PlanRecord, PlanVersionRecord } from '../types/plan';
+import type { OperatorPlanRecord, PlanRecord, PlanVersionRecord } from '../types/plan';
 
 /** The operator making a plan change, as the platform audit log names them (ADM-08). */
 export interface PlanOperator {
@@ -58,6 +58,25 @@ export class PlansService {
   /** Includes not-for-sale plans, for the operator's own list. */
   listAll(): Promise<PlanRecord[]> {
     return this.store.run((tx) => this.store.listAll(tx));
+  }
+
+  /** The operator's list: how many shops sit on each version (PLN-02), and whether it can still go (PLN-08). */
+  listForOperator(): Promise<OperatorPlanRecord[]> {
+    return this.store.run(async (tx) => {
+      const plans = await this.store.listAll(tx);
+      const counts = await this.store.shopsByVersion(tx);
+      const rows: OperatorPlanRecord[] = [];
+      for (const plan of plans) {
+        rows.push({
+          ...plan,
+          shopsByVersion: counts
+            .filter((each) => each.planId === plan.id)
+            .map(({ version, shops }) => ({ version, shops })),
+          deletable: !(await this.store.isReferenced(tx, plan.id)),
+        });
+      }
+      return rows;
+    });
   }
 
   /** PYG-01: the plan a pay-as-you-go shop is on, never for sale, whose limits are shown beside the plans that are. */

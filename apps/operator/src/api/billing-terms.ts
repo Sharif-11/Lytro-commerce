@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CreateBillingTermInput, UpdateBillingTermInput } from '@lytronix/validators';
 import { operatorSession } from '@/session/operator-session';
-import type { BillingTerm } from '@/types/operator';
+import type { BillingTerm, OperatorBillingTerm } from '@/types/operator';
 
 export const BILLING_TERMS_QUERY_KEY = ['operator', 'billing-terms'] as const;
 
@@ -9,7 +9,7 @@ export const BILLING_TERMS_QUERY_KEY = ['operator', 'billing-terms'] as const;
 export function useBillingTerms() {
   return useQuery({
     queryKey: BILLING_TERMS_QUERY_KEY,
-    queryFn: () => operatorSession.client.get<BillingTerm[]>('/operator/billing-terms'),
+    queryFn: () => operatorSession.client.get<OperatorBillingTerm[]>('/operator/billing-terms'),
   });
 }
 

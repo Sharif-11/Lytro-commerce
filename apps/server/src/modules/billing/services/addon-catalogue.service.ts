@@ -11,10 +11,11 @@ import {
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
+import { startOfMonthDhaka } from '../../../common/time';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import type { AddonsStore } from '../ports/addons-store';
 import { ADDONS_STORE, CLOCK } from '../tokens';
-import type { AddonRecord } from '../types/addon';
+import type { AddonRecord, OperatorAddonRecord } from '../types/addon';
 import type { PlanOperator } from './plans.service';
 
 /**
@@ -29,9 +30,21 @@ export class AddonCatalogueService {
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
 
-  /** The operator's list, retired items too. */
-  listAll(): Promise<AddonRecord[]> {
-    return this.store.run((tx) => this.store.list(tx, true));
+  /** The operator's list, retired items too, with how many are running and how many packs went this month. */
+  listForOperator(): Promise<OperatorAddonRecord[]> {
+    return this.store.run(async (tx) => {
+      const now = this.clock();
+      const addons = await this.store.list(tx, true);
+      const counts = await this.store.catalogueCounts(tx, now, startOfMonthDhaka(now));
+      return addons.map((addon) => {
+        const count = counts.find((each) => each.addonId === addon.id);
+        return {
+          ...addon,
+          running: count?.running ?? 0,
+          boughtThisMonth: count?.boughtThisMonth ?? 0,
+        };
+      });
+    });
   }
 
   async create(input: CreateAddonInput, operator: PlanOperator): Promise<AddonRecord> {

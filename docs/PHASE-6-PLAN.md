@@ -361,7 +361,7 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
   checks an adapter declares, and the order's total quantity. In order code: what the courier was asked to collect, for
   the rounding rule, and adding up the quantity. Connecting and messages grew more: login, renewal, stores, the test of
   an address and answer headers. **Not tried:** its sandbox can't send messages, so the test of an address, its event
-  names and `collected_amount` need a real account, as checkpoint 6A does for Steadfast. `KNOWN-GAPS` §114 lists them.
+  names and `collected_amount` need a real account, as checkpoint 6A does for Steadfast. `KNOWN-GAPS` §117 lists them.
 
 ### Slice 6.4: RedX and its areas
 - **Depends on:** 6.2. Can run beside 6.3.

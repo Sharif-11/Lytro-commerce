@@ -2,10 +2,10 @@ import { suspendTenantSchema } from './tenant-suspend';
 import { z } from 'zod';
 
 // PATCH /operator/settings/:key (LIF-26): the value's real shape depends on the key (validated per-key in
-// PlatformSettingsService) -- this schema only accepts a JSON scalar, so the DTO never needs updating when a
-// new key with a different value shape is added.
+// PlatformSettingsService) -- this schema only accepts a JSON scalar or a list of strings (LSN-16's senders), so the
+// DTO never needs updating when a new key with one of those shapes is added.
 export const updateSettingSchema = z.object({
-  value: z.union([z.number(), z.string(), z.boolean()]),
+  value: z.union([z.number(), z.string(), z.boolean(), z.array(z.string())]),
   // ADM-11: the reason goes on the platform audit log with the change.
   reason: suspendTenantSchema.shape.reason,
 });
