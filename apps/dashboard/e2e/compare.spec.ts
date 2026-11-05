@@ -15,6 +15,7 @@ import {
 import { drawnActivity } from './support/activity';
 import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
 import { drawnIdentities } from './support/account';
+import { drawnShopPayments, type ShopPaymentsFixture } from './support/shop-payments';
 import { emptyMeta } from './support/meta';
 import { drawnExports, drawnSettings } from './support/settings';
 import { brandImage, drawnBrand, type BrandFixture } from './support/brand';
@@ -56,7 +57,7 @@ import {
 } from './support/mock-api';
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
 import type { AddonsFixture, UsageFixture } from './support/usage';
-import { meghOrders, type OrdersFixture } from './support/orders';
+import { meghOrders, type OrderFixture, type OrdersFixture } from './support/orders';
 
 // TENANT-DASHBOARD-DESIGN §11: each built screen beside the prototype's drawing of it, at the prototype's own frame
 // sizes, saved to test-results/compare for the pull request and CI's artifacts. No pixel baseline is committed: a
@@ -1910,7 +1911,86 @@ const SALES: Pair[] = [
   },
 ];
 
+// TENANT-DASHBOARD-DESIGN §7.36 to §7.38, Slice 5.8's parts 3 and 4 (Part 35).
+const pay35 = (
+  name: string,
+  path: string,
+  then?: (page: Page) => Promise<void>,
+  fixture: () => ShopPaymentsFixture = drawnShopPayments,
+): Pair => ({
+  name,
+  screen: name,
+  device: 'phone',
+  language: 'bn',
+  path,
+  state: { shopPayments: fixture() },
+  then,
+});
+const firstButton = (label: string | RegExp) => async (page: Page) => {
+  await page
+    .getByRole('main')
+    .getByRole('button', typeof label === 'string' ? { name: label, exact: true } : { name: label })
+    .first()
+    .click();
+};
+/** Megh's order with an advance owed, and a payment on it where a refund is drawn. */
+const orderWith = (change: (order: OrderFixture) => void) => {
+  const orders = meghOrders();
+  const order = orders.orders.find((each) => each.id === 'o-44');
+  if (order) change(order);
+  return orders;
+};
+const o35 = (
+  name: string,
+  change: (order: OrderFixture) => void,
+  then: (page: Page) => Promise<void>,
+): Pair => ({
+  name,
+  screen: name,
+  device: 'phone',
+  language: 'bn',
+  path: '/orders/o-44',
+  state: { orders: orderWith(change) },
+  then,
+});
+const owesAdvance = (order: OrderFixture): void => {
+  order.advanceDue = 200;
+};
+const paid = (order: OrderFixture): void => {
+  order.payments = [
+    {
+      method: 'bkash',
+      amount: 500,
+      sender: '+8801819876543',
+      trxId: '9F2KQ7M1',
+      at: '2026-10-31T04:00:00.000Z',
+    },
+  ];
+};
+const PAYMENTS_AND_PHONES: Pair[] = [
+  pay35('pay35', '/payments'),
+  pay35('pay35-all', '/payments?tab=all'),
+  pay35('pay35-receipts', '/payments?tab=receipts'),
+  pay35('sh-pay35-approve-amt', '/payments', firstButton('অ্যাপ্রুভ')),
+  pay35('sh-pay35-reject', '/payments', firstButton('রিজেক্ট')),
+  pay35('sh-pay35-detail', '/payments?tab=verified', firstButton(/৳500/)),
+  pay35('lp35', '/settings/listener'),
+  pay35('lp35-first', '/settings/listener', undefined, () => ({
+    ...drawnShopPayments(),
+    phones: [],
+  })),
+  pay35('sh-lp35-pair', '/settings/listener', firstButton('ফোন পেয়ার করুন')),
+  pay35('sh-lp35-phone', '/settings/listener', firstButton(/Rumana/)),
+  o35('sh-o35-link', owesAdvance, firstButton('পেমেন্ট লিংক পাঠান')),
+  o35('sh-o35-link-made', owesAdvance, async (page) => {
+    await firstButton('পেমেন্ট লিংক পাঠান')(page);
+    await page.getByRole('dialog').getByRole('button', { name: 'লিংক তৈরি করুন' }).click();
+  }),
+  o35('sh-o35-refund', paid, firstButton('রিফান্ড')),
+];
+
 const PAIRS: Pair[] = [
+  ...PAYMENTS_AND_PHONES,
   { name: 'home', screen: 'home', device: 'phone', language: 'bn', path: '' },
   { name: 'home', screen: 'home', device: 'tablet', language: 'bn', path: '' },
   { name: 'home', screen: 'home', device: 'desktop', language: 'en', path: '' },

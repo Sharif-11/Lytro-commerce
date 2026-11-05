@@ -49,6 +49,7 @@ import { deliveryAnswer, drawnDelivery, type DeliveryFixture } from './delivery'
 import { salesAnswer, type SalesFixture } from './sales';
 import { taxAnswer } from './tax';
 import { drawnMethods, methodsAnswer, type PaymentMethodsFixture } from './payment-methods';
+import { drawnShopPayments, shopPaymentsAnswer, type ShopPaymentsFixture } from './shop-payments';
 import { figuresAnswer, shopBatchesAnswer, stockPageAnswer, stockRead, stockWrite } from './stock';
 import { customerIdOf, customersAnswer, drawnCustomers, type CustomersFixture } from './customers';
 import { homeOrders, meghOrders, ordersAnswer, type OrdersFixture } from './orders';
@@ -154,6 +155,12 @@ export interface ShopState {
   identities?: IdentityFixture[] | null;
   /** Slice 5.8: the shop's payment methods where they differ from the prototype's; the page's writes change them. */
   paymentMethods?: PaymentMethodsFixture | null;
+  /** Slice 5.8, parts 3 and 4: the shop's incoming payments and listener phones. */
+  shopPayments?: ShopPaymentsFixture | null;
+  /** GET /home's count of what waits to be verified, where a test wants the queue's row. */
+  paymentsToVerify?: number;
+  /** GET /home's checklist with no wallet on, as a new shop has. */
+  walletOff?: boolean;
   /** GET /home's stock part; null when the person may not see stock. */
   stock?: { low: number; out: number } | null;
   /** Slice 4.8a: the shop's orders; the day Part 29 draws unless a test gives its own. */
@@ -248,6 +255,7 @@ const READY = {
   logo: true,
   linkShared: true,
   wallet: true,
+  listenerPhone: false,
   apiKey: false,
 };
 
@@ -258,11 +266,12 @@ function home(state: Required<ShopState>): unknown {
     balance: { amount: '412.50', low: false, freeSms: { used: 6, limit: 10 } },
     topUpsBeingChecked: { count: 1, amount: '500.00' },
     paymentsBeingChecked: null,
+    paymentsToVerify: state.paymentsToVerify,
     paymentNeedingYou: state.money.needing ?? null,
     staffWithoutPassword: 0,
     fastSpendAlertedAt: null,
     // The checklist is the owner's alone (SUP-01).
-    checklist: state.isOwner ? READY : null,
+    checklist: state.isOwner ? { ...READY, wallet: !state.walletOff } : null,
     // Slice 4.8b: the orders' jobs, for someone who may read orders.
     orders:
       state.isOwner || state.permissions.includes('orders:read')
@@ -337,6 +346,9 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     meta: null,
     identities: null,
     paymentMethods: null,
+    shopPayments: null,
+    paymentsToVerify: 0,
+    walletOff: false,
     products: null,
     delivery: null,
     orders: null,
@@ -549,6 +561,8 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
   const meta = (state.meta ??= drawnMeta());
   const identities = (state.identities ??= ownIdentities(money.hasEmail ?? false));
   const paymentMethods = (state.paymentMethods ??= drawnMethods(state.language));
+  const phonesNamed = state.shopPayments !== null;
+  const shopPayments = (state.shopPayments ??= drawnShopPayments());
   // A connect leaves for the provider (AUTH-27); a blank page stands in for it.
   await page.route(`**${OAUTH_PAGE}**`, (route: Route) =>
     route.fulfill({ status: 200, contentType: 'text/html', body: '<p>provider</p>' }),
@@ -780,12 +794,15 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
     }
     if (method === 'GET' && path === '/media/usage') return ok(storageAnswer(products));
     // Slice 5.8's part 1: the payment methods.
-    const paying = methodsAnswer(
-      method,
-      path,
-      request.postDataJSON() as Record<string, unknown> | null,
-      paymentMethods,
-    );
+    const paying =
+      path === '/listener/devices' && phonesNamed
+        ? undefined
+        : methodsAnswer(
+            method,
+            path,
+            request.postDataJSON() as Record<string, unknown> | null,
+            paymentMethods,
+          );
     if (paying && 'refused' in paying) {
       const { status, code, message, details } = paying.refused;
       return route.fulfill({
@@ -1049,6 +1066,31 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       });
     }
     if (customered) return ok(customered.data);
+    // Slice 5.8, parts 3 and 4: the shop's incoming payments and its phones.
+    const incoming = shopPaymentsAnswer(
+      method,
+      path,
+      url,
+      request.postDataJSON() as Record<string, unknown> | null,
+      shopPayments,
+    );
+    if (incoming && 'csv' in incoming) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'text/csv; charset=utf-8',
+        headers: { 'Content-Disposition': 'attachment; filename="payments.csv"' },
+        body: incoming.csv,
+      });
+    }
+    if (incoming && 'refused' in incoming) {
+      const { status, code, message, details } = incoming.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details),
+      });
+    }
+    if (incoming) return ok(incoming.data);
     // Slice 4.8a: the orders, read and changed.
     const ordered = ordersAnswer(
       method,

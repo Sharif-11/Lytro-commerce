@@ -13,7 +13,12 @@ const ENDING_SOON_DAYS = 7;
 export type JobTone = 'red' | 'marigold' | 'teal';
 
 export type JobPath =
-  '/$shop/orders' | '/$shop/stock' | '/$shop/balance' | '/$shop/plan' | '/$shop/team';
+  | '/$shop/orders'
+  | '/$shop/stock'
+  | '/$shop/balance'
+  | '/$shop/payments'
+  | '/$shop/plan'
+  | '/$shop/team';
 
 export interface Job {
   key: string;
@@ -53,6 +58,17 @@ export function jobsOf(home: HomeView, { t, viewer, tenant, now }: JobContext): 
       text: t('jobShort', { count: short }),
       count: short,
       to: '/$shop/stock',
+    });
+  }
+  const toVerify = home.paymentsToVerify ?? 0;
+  if (toVerify > 0) {
+    jobs.push({
+      key: 'toVerify',
+      tone: 'marigold',
+      icon: 'banknote',
+      text: t('jobVerify', { count: toVerify }),
+      count: toVerify,
+      to: '/$shop/payments',
     });
   }
   const orders = home.orders;

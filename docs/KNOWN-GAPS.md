@@ -2068,3 +2068,12 @@ order records; that `updated_at` with no zone is Dhaka's time, since news older 
 `/status_by_cid` answers `delivery_status` as `/status_by_invoice` does; and how a parcel found by invoice, which brings no IDs, gets
 its consignment number, which today takes a message or staff. A wrong field name shows as an event that moves nothing, and the
 night check still brings the status, so none of these can move an order wrongly except `pending` and `cod_amount`.
+
+## 113. A direct download can answer for another of the owner's shops — found 2026-11-05, open
+
+The server tells which shop a dashboard call is for from the `x-lytro-shop` header, and answers for the shop the session started on when
+it's missing. A plain link can't send a header, so the Balance statement's CSV (`ledgerExportUrl`) and the export file's download
+(`exportDownloadUrl`) open the wrong shop's data for an owner who has more than one and is on another: that owner's own data, never
+someone else's. A Balance CSV would come from the wrong shop without saying so; an export would answer not found. Payments' CSV
+(Slice 5.8, part 3) fetches through `ApiClient.file` and saves the result, which names the shop as every other call does. The two old
+links can do the same. Nothing is live yet, so nobody has hit this. Left for the owner's word rather than changed in that PR.

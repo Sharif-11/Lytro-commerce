@@ -13,6 +13,7 @@ export type SectionId =
   | 'stock'
   | 'purchases'
   | 'delivery'
+  | 'payments'
   | 'balance'
   | 'plan'
   | 'billing'
@@ -102,6 +103,7 @@ export const HUBS: readonly Hub[] = [
     root: '/$shop/balance',
     anyOf: [],
     sections: [
+      section('payments', [Permission.PaymentsRead]),
       section('balance', [Permission.BalanceRead]),
       section('plan', [Permission.PaymentsRead]),
       section('billing', [Permission.PaymentsRead]),
@@ -121,6 +123,7 @@ export const HUBS: readonly Hub[] = [
         Permission.SettingsManage,
         Permission.KeysManage,
         Permission.WalletsRead,
+        Permission.ListenerRead,
       ]),
       section('account', []),
     ],

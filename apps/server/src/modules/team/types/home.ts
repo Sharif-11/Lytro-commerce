@@ -20,6 +20,8 @@ export interface SetupChecklist {
   linkShared: boolean;
   /** A payment method is on with an active account. */
   wallet: boolean;
+  /** A listener phone is paired and not cancelled (Slice 5.8, part 4). */
+  listenerPhone: boolean;
   apiKey: boolean;
 }
 
@@ -40,6 +42,8 @@ export interface HomeView {
   topUpsBeingChecked: BeingChecked | null;
   /** BIL-04, PLN-14: plan and add-on payments being checked -- payments:read. */
   paymentsBeingChecked: BeingChecked | null;
+  /** Slice 5.8, part 3: transaction IDs shoppers typed, waiting for staff -- payments:read. */
+  paymentsToVerify: number | null;
   /**
    * BIL-19: the rejected or lapsed payment to act on, until the shop pays again or the attention days pass -- a
    * top-up with balance:read, the rest with payments:read; null also when there is none.

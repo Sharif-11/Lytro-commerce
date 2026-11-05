@@ -56,11 +56,15 @@ test('opens a new shop on its checklist, with nothing in the queue yet (SUP-01)'
     'href',
     '#shop-link',
   );
-  // The wallet number opens its page (Slice 5.8); the listener comes with part 4, the courier with 6, SMS events with 7.
+  // The wallet number and the listener phone open their pages (Slice 5.8); the courier comes with 6, SMS events with 7.
   await expect(
     main(page).getByRole('link', { name: 'পেমেন্টের জন্য ওয়ালেট নম্বর দিন' }),
   ).toHaveAttribute('href', `/${SLUG}/settings/payment-methods`);
-  await expect(main(page).getByText('ফেজ 5-এ আসছে')).toHaveCount(1);
+  await expect(main(page).getByText('ফেজ 5-এ আসছে')).toHaveCount(0);
+  await expect(main(page).getByRole('link', { name: 'লিসেনার ফোন পেয়ার করুন' })).toHaveAttribute(
+    'href',
+    `/${SLUG}/settings/listener`,
+  );
   await expect(main(page).getByText('ফেজ 6-এ আসছে')).toBeVisible();
   await expect(main(page).getByText('ফেজ 7-এ আসছে')).toBeVisible();
 

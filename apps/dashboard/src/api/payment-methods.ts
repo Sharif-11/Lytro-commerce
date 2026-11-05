@@ -15,10 +15,11 @@ import type { GatewayTest, PaymentMethodsView } from '@/types/payment-methods';
 export const PAYMENT_METHODS_QUERY_KEY = ['payment-methods'] as const;
 
 /** GET /payment-methods: every method with its accounts, and whether the owner's phone is verified. */
-export function usePaymentMethods() {
+export function usePaymentMethods(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: PAYMENT_METHODS_QUERY_KEY,
     queryFn: () => tenantSession.client.get<PaymentMethodsView>('/payment-methods'),
+    enabled: options.enabled ?? true,
   });
 }
 
@@ -99,14 +100,5 @@ export function useSelectAutomated() {
         `/payment-methods/accounts/${accountId}/automated`,
       ),
     onSuccess: changed,
-  });
-}
-
-/** GET /listener/devices, for how many phones are paired (LSN-20). */
-export function useListenerPhones(options: { enabled?: boolean } = {}) {
-  return useQuery({
-    queryKey: ['listener', 'devices'],
-    queryFn: () => tenantSession.client.get<{ active: number }>('/listener/devices'),
-    enabled: options.enabled ?? true,
   });
 }

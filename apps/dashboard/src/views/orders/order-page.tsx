@@ -36,7 +36,7 @@ import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { Order, OrderCall, OrderHistory, OrderItem, OrderPayment } from '@/types/orders';
 import { OrderSheets, type OrderSheet } from './order-actions';
-import { choicesOf, voidable } from './order-choices';
+import { choicesOf, refundable, voidable } from './order-choices';
 import { atCounter, useOrderWords } from './order-words';
 
 /** ORD-47: an item's photo, as ORD-46 kept it, or the placeholder once it is gone or was never there. */
@@ -203,11 +203,18 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
       <PaymentsCard
         order={order}
         canRecord={can.recordPayment}
+        canLink={can.paymentLink}
         onRecord={() => {
           setOpen({ kind: 'pay' });
         }}
+        onLink={() => {
+          setOpen({ kind: 'link' });
+        }}
         onVoid={(payment) => {
           setOpen({ kind: 'void', payment });
+        }}
+        onRefund={(payment) => {
+          setOpen({ kind: 'refund', payment });
         }}
       />
       {counter ? null : <ShippingCard order={order} />}
@@ -566,13 +573,19 @@ function PricingCard({ order }: { order: Order }): React.JSX.Element {
 function PaymentsCard({
   order,
   canRecord,
+  canLink,
   onRecord,
+  onLink,
   onVoid,
+  onRefund,
 }: {
   order: Order;
   canRecord: boolean;
+  canLink: boolean;
   onRecord: () => void;
+  onLink: () => void;
   onVoid: (payment: OrderPayment) => void;
+  onRefund: (payment: OrderPayment) => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
   const { viewer } = useShell();
@@ -606,9 +619,24 @@ function PaymentsCard({
                   }
                 : null
             }
+            onRefund={
+              refundable(payment, may)
+                ? () => {
+                    onRefund(payment);
+                  }
+                : null
+            }
           />
         ))
       )}
+      {canLink ? (
+        <div className="mt-2.5">
+          <Button tone="outline" size="sm" onClick={onLink}>
+            <Icon name="share" />
+            {t('linkSend')}
+          </Button>
+        </div>
+      ) : null}
     </Card>
   );
 }
@@ -616,9 +644,11 @@ function PaymentsCard({
 function PaymentRow({
   payment,
   onVoid,
+  onRefund,
 }: {
   payment: OrderPayment;
   onVoid: (() => void) | null;
+  onRefund: (() => void) | null;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
   const words = useOrderWords();
@@ -626,47 +656,68 @@ function PaymentRow({
   const wallet = walletColour(payment.method);
   const cashLike =
     payment.method === PaymentMethod.CashOnDelivery || payment.method === PaymentMethod.Cash;
+  const gone = payment.voided !== null || payment.refunded !== null;
   return (
-    <div className="flex items-center gap-3 pt-3">
-      {wallet ? (
-        <span
-          className="flex size-10 flex-none items-center justify-center rounded-button border border-line bg-white text-[11px] font-bold"
-          style={{ color: wallet }}
-        >
-          {words.method(payment.method)}
-        </span>
-      ) : (
-        <span className="flex size-10 flex-none items-center justify-center rounded-button bg-neutral-100 text-fg-muted">
-          <Icon name={payment.method === PaymentMethod.CashOnDelivery ? 'truck' : 'banknote'} />
-        </span>
-      )}
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span
-          className={`num text-[16px] font-medium ${payment.voided ? 'text-fg-muted line-through' : ''}`}
-        >
-          {formatTaka(payment.amount)} ·{' '}
-          {cashLike || !payment.transactionId
-            ? words.method(payment.method)
-            : t('trxId', { id: payment.transactionId })}
-        </span>
-        <span className="num text-[14px] text-fg-muted">
-          {[
-            payment.senderNumber ? bangladeshiPhone.grouped(payment.senderNumber) : null,
-            t('payBy', { who: payment.verifiedBy?.name ?? '', time: when(payment.verifiedAt) }),
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-        </span>
-        {payment.voided ? (
-          <span className="text-[14px] text-danger-text">
-            {t('voided', { reason: payment.voided.reason })}
+    <div className="pt-3">
+      <div className="flex items-center gap-3">
+        {wallet ? (
+          <span
+            className="flex size-10 flex-none items-center justify-center rounded-button border border-line bg-white text-[11px] font-bold"
+            style={{ color: wallet }}
+          >
+            {words.method(payment.method)}
           </span>
-        ) : null}
-      </span>
-      {onVoid ? (
-        <Button tone="ghost" size="xs" onClick={onVoid}>
-          {t('voidIt')}
-        </Button>
+        ) : (
+          <span className="flex size-10 flex-none items-center justify-center rounded-button bg-neutral-100 text-fg-muted">
+            <Icon name={payment.method === PaymentMethod.CashOnDelivery ? 'truck' : 'banknote'} />
+          </span>
+        )}
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span
+            className={`num text-[16px] font-medium ${gone ? 'text-fg-muted line-through' : ''}`}
+          >
+            {formatTaka(payment.amount)} ·{' '}
+            {cashLike || !payment.transactionId
+              ? words.method(payment.method)
+              : t('trxId', { id: payment.transactionId })}
+          </span>
+          <span className="num text-[14px] text-fg-muted">
+            {[
+              payment.senderNumber ? bangladeshiPhone.grouped(payment.senderNumber) : null,
+              t('payBy', { who: payment.verifiedBy?.name ?? '', time: when(payment.verifiedAt) }),
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </span>
+          {payment.voided ? (
+            <span className="text-[14px] text-danger-text">
+              {t('voided', { reason: payment.voided.reason })}
+            </span>
+          ) : null}
+          {payment.refunded ? (
+            <span className="text-[14px] text-fg-muted">
+              {t('refundedLine', {
+                note: payment.refunded.note,
+                who: payment.refunded.by?.name ?? '',
+                time: when(payment.refunded.at),
+              })}
+            </span>
+          ) : null}
+        </span>
+      </div>
+      {onVoid || onRefund ? (
+        <div className="mt-1.5 ms-[52px] flex gap-2">
+          {onRefund ? (
+            <Button tone="ghost" size="xs" onClick={onRefund}>
+              {t('refundIt')}
+            </Button>
+          ) : null}
+          {onVoid ? (
+            <Button tone="ghost" size="xs" onClick={onVoid}>
+              {t('voidIt')}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

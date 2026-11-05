@@ -28,7 +28,7 @@ import { useShell } from '@/shell/shell-context';
 import type { Order, OrderPayment } from '@/types/orders';
 import { PrintSheet } from './labels';
 import { CANCEL_REASONS, useOrderWords } from './order-words';
-import { RecordPaymentSheet, VoidSheet } from './payment-sheets';
+import { PaymentLinkSheet, RecordPaymentSheet, RefundSheet, VoidSheet } from './payment-sheets';
 import { ReturnSheet } from './return-sheet';
 import { HandOverSerialSheet, ShipSheet } from './ship-sheet';
 import type { OrderChoices } from './order-choices';
@@ -46,6 +46,8 @@ export type OrderSheet =
   | { kind: 'return' }
   | { kind: 'pay' }
   | { kind: 'void'; payment: OrderPayment }
+  | { kind: 'refund'; payment: OrderPayment }
+  | { kind: 'link' }
   | { kind: 'print' };
 
 /** The sheet the order page has open, made afresh each time it opens: a new call is not the last one. */
@@ -86,6 +88,10 @@ export function OrderSheets({
       return <ReturnSheet order={order} onClose={onClose} />;
     case 'pay':
       return <RecordPaymentSheet order={order} onClose={onClose} />;
+    case 'refund':
+      return <RefundSheet order={order} payment={open.payment} onClose={onClose} />;
+    case 'link':
+      return <PaymentLinkSheet order={order} onClose={onClose} />;
     case 'void':
       return <VoidSheet order={order} payment={open.payment} onClose={onClose} />;
     case 'print':

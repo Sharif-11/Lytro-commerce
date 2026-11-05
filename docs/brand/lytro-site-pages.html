@@ -250,6 +250,38 @@
     .app-main { padding-top: 40px; }
   }
   @media (prefers-reduced-motion: reduce) { .btn { transition: none; } html { scroll-behavior: auto; } }
+
+  /* The listener app's download page (Slice 5.8, part 4). The QR is for someone reading this on a computer: a phone can't scan itself. */
+  .dl-hero { display: grid; gap: 28px; align-items: center; }
+  .dl-main { min-width: 0; }
+  .dl-btn { margin-top: 22px; }
+  .dl-meta { margin-top: 10px; font-size: 0.875rem; color: #eef9f7; }
+  .dl-soon { display: none; margin-top: 22px; }
+  .dl-soon-note { margin-bottom: 14px; color: #fff; font-weight: 600; }
+  .soon .dl-ready { display: none; }
+  .soon .dl-soon { display: block; }
+  .dl-qr { display: none; justify-items: center; gap: 10px; text-align: center; font-size: 0.875rem; color: #eef9f7; max-width: 220px; }
+  .dl-qr-box { background: #fff; padding: 8px; border-radius: 14px; line-height: 0; }
+  @media (min-width: 900px) { .dl-hero { grid-template-columns: 1fr auto; } .dl-qr { display: grid; } .soon .dl-qr { display: none; } }
+  .dl-sec { padding-block: 40px 56px; }
+  .dl-col { display: flex; flex-direction: column; gap: 20px; max-width: 720px; }
+  .dl-col h2 { font-size: 1.375rem; }
+  .dl-col .sec-head { margin: 20px 0 0; }
+  .dl-warn { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: var(--mari-100); color: var(--ink); font-weight: 600; }
+  .dl-warn svg { flex: none; margin-top: 2px; }
+  .dl-steps { margin: 0; padding: 0; list-style: none; counter-reset: dl; display: flex; flex-direction: column; gap: 14px; }
+  .dl-steps > li { counter-increment: dl; position: relative; padding-inline-start: 42px; min-height: 30px; }
+  .dl-steps > li::before { content: counter(dl); position: absolute; inset-inline-start: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--teal-100); color: var(--teal-800); font: 600 0.875rem var(--font-ui); }
+  .dl-steps b { display: block; }
+  .dl-steps span { display: block; color: var(--muted); margin-top: 2px; }
+  .dl-steps.small { margin-top: 14px; gap: 10px; }
+  .dl-callout { padding: 18px; border-color: var(--mari-300); }
+  .dl-callout h3 { font-size: 1.0625rem; margin-bottom: 6px; }
+  .dl-sum { margin-top: 12px; }
+  .dl-sum summary { cursor: pointer; font-weight: 600; color: var(--teal-700); min-height: 32px; }
+  .dl-help { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .dl-help .btn { min-height: 44px; }
+  .dl-sum code { display: block; margin-top: 6px; padding: 10px 12px; border-radius: 8px; background: var(--n50); font-size: 0.8125rem; overflow-wrap: anywhere; }
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -279,7 +311,7 @@
     <span class="lbl" data-en="Prototype">প্রোটোটাইপ</span>
     <a href="#about" data-page="about" data-en="About">আমাদের সম্পর্কে</a>
     <a href="#contact" data-page="contact" data-en="Contact">যোগাযোগ</a>
-    <a href="#signup" data-page="signup" data-en="Sign-up flow">সাইন-আপ ফ্লো</a>
+    <a href="#signup" data-page="signup" data-en="Sign-up flow">সাইন-আপ ফ্লো</a><a href="#listener" data-page="listener" data-en="Listener app">লিসেনার অ্যাপ</a><a href="#listener-soon" data-page="listener-soon" data-en="· not ready yet">· এখনও তৈরি নয়</a>
     <div class="lang" role="group" aria-label="Language"><button type="button" id="lang-bn" aria-pressed="true">বাং</button><button type="button" id="lang-en" aria-pressed="false">EN</button></div>
   </div>
 </div>
@@ -359,6 +391,87 @@
     </div>
   </section>
   <footer class="site"><div class="wrap"><span class="wordmark"><svg class="wmk" style="height:26px"><use href="#wordmark"/></svg></span><nav><a href="#about" data-en="About">আমাদের সম্পর্কে</a><a href="#contact" data-en="Contact">যোগাযোগ</a><a href="#" data-en="Terms">টার্মস</a><a href="#" data-en="Privacy">প্রাইভেসি</a></nav><span>© 2026 Lytro by Lytronix</span></div></footer>
+</div>
+
+<!-- ============================== LISTENER APP (Slice 5.8, part 4) ============================== -->
+<div class="page" id="page-listener" hidden>
+  <header class="nav">
+    <div class="wrap">
+      <a href="#about" class="wordmark" aria-label="Lytro"><svg class="wmk"><use href="#wordmark"/></svg></a>
+      <nav class="nav-links" aria-label="Main"><a href="#" data-en="Features">ফিচার</a><a href="#" data-en="Pricing">প্রাইসিং</a><a href="#" data-en="FAQ">প্রশ্নোত্তর</a><a href="#about" data-en="About">আমাদের সম্পর্কে</a><a href="#contact" data-en="Contact">যোগাযোগ</a></nav>
+      <div class="acts"><a href="#" class="login" data-en="Log in">লগইন</a><a href="#signup" class="btn btn-accent cta" data-en="Open a free shop">ফ্রি দোকান খুলুন</a></div>
+    </div>
+  </header>
+  <section class="band on-dark">
+    <div class="glow" aria-hidden="true"></div><div class="grid" aria-hidden="true"></div>
+    <div class="wrap dl-hero">
+      <div class="dl-main">
+        <div class="crumbs"><span>lytro.app</span><span>/</span><b data-en="Listener app">লিসেনার অ্যাপ</b></div>
+        <h1 data-en="Download the listener app">লিসেনার অ্যাপ ডাউনলোড করুন</h1>
+        <p class="lead" data-en="Run Lytro Listener on the phone with your shop’s bKash SIM, and payments verify themselves from bKash’s SMS.">যে ফোনে শপের bKash নম্বরের SIM আছে, সেই ফোনে Lytro Listener চালালে bKash-এর SMS মিলিয়ে পেমেন্ট নিজে থেকেই ভেরিফাই হয়।</p>
+        <div class="dl-ready">
+          <a href="#listener" class="btn btn-accent dl-btn"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-en="Download the APK">APK ডাউনলোড করুন</span></a>
+          <p class="dl-meta num" data-en="Version 1.0.0 · 9 MB · Android 7 or later">ভার্সন 1.0.0 · 9 MB · Android 7 বা তার পরের ভার্সন</p>
+        </div>
+        <div class="dl-soon">
+          <p class="dl-soon-note" data-en="The app isn’t ready to download yet. It will be here when it is.">অ্যাপটি এখনও ডাউনলোডের জন্য তৈরি হয়নি। তৈরি হলে এখানেই পাওয়া যাবে।</p>
+          <a href="#contact" class="btn btn-ghost" data-en="Talk to us">আমাদের সাথে কথা বলুন</a>
+        </div>
+      </div>
+      <div class="dl-qr dl-ready">
+        <div class="dl-qr-box" id="dl-qr-box"></div>
+        <p data-en="On a computer? Scan this with your phone.">কম্পিউটারে আছেন? ফোনের ক্যামেরা দিয়ে স্ক্যান করুন।</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="dl-sec">
+    <div class="wrap dl-col">
+      <div class="dl-warn" role="note"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-en="Download only from lytro.app. Don’t install a file anyone sends you.">শুধু lytro.app থেকে ডাউনলোড করুন। অন্য কেউ ফাইল পাঠালে ইনস্টল করবেন না।</span></div>
+
+      <div class="sec-head"><h2 data-en="Install it">ইনস্টল করুন</h2></div>
+      <ol class="dl-steps">
+        <li><b data-en="Download the APK">APK ডাউনলোড করুন</b></li>
+        <li data-en="If Android asks, allow your browser under “Install unknown apps”">Android জিজ্ঞেস করলে “Install unknown apps” থেকে ব্রাউজারটিকে Allow করুন</li>
+        <li data-en="If Play Protect warns you, tap “More details” → “Install anyway”">Play Protect সতর্ক করলে “More details” → “Install anyway” চাপুন</li>
+        <li data-en="Open the app and finish setup">অ্যাপটি খুলে সেটআপ শেষ করুন</li>
+      </ol>
+
+      <div class="card dl-callout">
+        <h3 data-en="On Android 15 or later">Android 15 বা তার পরের ফোনে</h3>
+        <p data-en="When the app asks for SMS, Android may say “App was denied access to SMS”. Nothing is wrong: Android blocks SMS for apps installed from a browser until you allow it. You only do this once, and the app shows you these steps:">SMS-এর অনুমতি চাইলে Android বলতে পারে “App was denied access to SMS”। এতে ভয়ের কিছু নেই: ব্রাউজার থেকে ইনস্টল করা অ্যাপের SMS অনুমতি Android নিজে থেকে আটকে দেয়। এটা একবার চালু করলেই হবে, আর অ্যাপই ধাপগুলো দেখিয়ে দেবে:</p>
+        <ol class="dl-steps small">
+          <li data-en="Open App info from the app’s button">অ্যাপের বাটন চেপে App info খুলুন</li>
+          <li data-en="In the ⋮ menu at the top right, tap “Allow restricted settings”. Enter your PIN if asked.">ওপরে ডানদিকের ⋮ মেনু থেকে “Allow restricted settings” চাপুন। পিন চাইলে দিন।</li>
+          <li data-en="Come back to the app and allow it again">অ্যাপে ফিরে এসে আবার অনুমতি দিন</li>
+        </ol>
+      </div>
+
+      <div class="sec-head" id="setup"><h2 data-en="Setup guide">সেটআপ গাইড</h2></div>
+      <ol class="dl-steps">
+        <li><b data-en="Pair the phone">ফোন পেয়ার করুন</b><span data-en="In the dashboard, go to Settings → Listener phones → Pair a phone. Scan the QR in the app, or type the code. A code stays open for 10 minutes.">ড্যাশবোর্ডে যান: সেটিংস → লিসেনার ফোন → ফোন পেয়ার করুন। অ্যাপে QR স্ক্যান করুন, অথবা কোডটি টাইপ করুন। কোড 10 মিনিট খোলা থাকে।</span></li>
+        <li><b data-en="Allow reading SMS">SMS পড়ার অনুমতি দিন</b><span data-en="Only bKash’s payment SMS are sent. No other SMS leaves the phone, and the app never sends SMS itself.">শুধু bKash-এর পেমেন্ট SMS পাঠানো হয়। অন্য কোনো SMS ফোনের বাইরে যায় না, আর এই অ্যাপ নিজে কখনও SMS পাঠায় না।</span></li>
+        <li><b data-en="Turn on notifications">নোটিফিকেশন চালু করুন</b><span data-en="A notification always shows the app is running, and tells you if something goes wrong.">অ্যাপ চালু আছে কি না নোটিফিকেশনে সবসময় দেখা যাবে। কোনো সমস্যা হলে এখানেই জানাবে।</span></li>
+        <li><b data-en="Exempt it from the battery saver">ব্যাটারি সেভার থেকে বাদ দিন</b><span data-en="Otherwise the phone may stop the app, and payments won’t verify by themselves.">না হলে ফোন অ্যাপটি বন্ধ করে দিতে পারে, তখন পেমেন্ট নিজে থেকে ভেরিফাই হবে না।</span></li>
+        <li><b data-en="Test it">একটা টেস্ট করুন</b><span data-en="From another phone, Send Money a small amount to the shop’s number. It shows in the app when the SMS arrives.">অন্য একটি ফোন থেকে শপের নম্বরে অল্প টাকা Send Money করুন। SMS এলেই অ্যাপে দেখা যাবে।</span></li>
+      </ol>
+      <p class="muted dl-after" data-en="After that, keep the phone on. With no internet, receipts wait on the phone for up to 7 days and go by themselves when it’s back.">এরপর ফোনটি চালু রাখুন। নেট না থাকলে রিসিট ফোনে জমা থাকে, 7 দিন পর্যন্ত, আর নেট এলেই নিজে থেকে যায়।</p>
+
+      <div class="dl-ready">
+        <div class="sec-head"><h2 data-en="Updates">আপডেট</h2></div>
+        <p class="muted" data-en="When an update is needed, the app tells you. Download it from this page and install it over the old one. The phone stays paired.">আপডেট দরকার হলে অ্যাপই জানাবে। এই পেজ থেকে নতুন ভার্সন ডাউনলোড করে পুরোনোটির ওপরেই ইনস্টল করুন। ফোনের পেয়ারিং ঠিক থাকবে।</p>
+        <details class="dl-sum">
+          <summary data-en="Check the file (SHA-256)">ফাইলটি মিলিয়ে দেখুন (SHA-256)</summary>
+          <code class="num">3f8a2c91d04be67a15c0f27e8b94d1a6c7e35f02ab1864d9ee70c23f5a916b48</code>
+        </details>
+      </div>
+      <div class="dl-help">
+        <p class="muted" data-en="Stuck on a step? Message us.">কোনো ধাপে আটকে গেছেন? আমাদের মেসেজ করুন।</p>
+        <a href="#contact" class="btn btn-outline" data-en="WhatsApp us">WhatsApp করুন</a>
+      </div>
+    </div>
+  </section>
+  <footer class="site"><div class="wrap"><span class="wordmark"><svg class="wmk" style="height:26px"><use href="#wordmark"/></svg></span><nav><a href="#about" data-en="About">আমাদের সম্পর্কে</a><a href="#contact" data-en="Contact">যোগাযোগ</a><a href="#listener" data-en="Listener app">লিসেনার অ্যাপ</a></nav></div></footer>
 </div>
 
 <!-- ============================== CONTACT ============================== -->
@@ -553,14 +666,28 @@
     if (saved === 'en') setLang('en');
 
     /* Page switcher by hash */
-    var pages = ['about', 'contact', 'signup'];
+    var pages = ['about', 'contact', 'signup', 'listener'];
     function showPage(name) {
       if (pages.indexOf(name) < 0) name = 'about';
       pages.forEach(function (p) { document.getElementById('page-' + p).hidden = (p !== name); });
       document.querySelectorAll('.proto a[data-page]').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-page') === name); });
       window.scrollTo(0, 0);
     }
-    function route() { showPage((location.hash || '#about').slice(1)); }
+    function route() {
+      var name = (location.hash || '#about').slice(1);
+      var soon = name === 'listener-soon';
+      showPage(soon ? 'listener' : name);
+      document.getElementById('page-listener').classList.toggle('soon', soon);
+      document.querySelectorAll('.proto a[data-page]').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-page') === name); });
+    }
+    /* A drawing of a QR, not a working one: the built page draws the real one. */
+    (function () {
+      var size = 25, dots = '';
+      function finder(x, y) { return 'M' + x + ' ' + y + 'h7v7h-7zM' + (x + 1) + ' ' + (y + 1) + 'v5h5v-5zM' + (x + 2) + ' ' + (y + 2) + 'h3v3h-3z'; }
+      function inFinder(x, y) { return (x < 8 && y < 8) || (x > size - 9 && y < 8) || (x < 8 && y > size - 9); }
+      for (var y = 0; y < size; y += 1) for (var x = 0; x < size; x += 1) if (!inFinder(x, y) && (x * 7 + y * 13 + x * y) % 3 === 0) dots += 'M' + x + ' ' + y + 'h1v1h-1z';
+      document.getElementById('dl-qr-box').innerHTML = '<svg viewBox="-1 -1 27 27" width="156" height="156" shape-rendering="crispEdges" role="img" aria-label="QR"><path fill="#10201f" fill-rule="evenodd" d="' + finder(0, 0) + finder(size - 7, 0) + finder(0, size - 7) + dots + '"/></svg>';
+    })();
     window.addEventListener('hashchange', route); route();
 
     /* Contact form */

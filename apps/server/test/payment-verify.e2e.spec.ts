@@ -329,6 +329,22 @@ function getText(
 const PAYMENT = { method: 'bkash', returnUrl: `${WEBSITE}/thanks` };
 
 describeIfDatabase('verifying a payment by hand (VER-01, VER-12, PAY-15, D5-9)', () => {
+  it("counts what waits on Home's queue, until staff decide (Slice 5.8, part 3)", async () => {
+    const setup = await payingShop();
+    const waiting = async (): Promise<unknown> =>
+      ((await setup.shop.get('/home')).body as { paymentsToVerify: unknown }).paymentsToVerify;
+    expect(await waiting()).toBe(0);
+    const first = await typedOrder(setup, 'hom1234567');
+    const second = await typedOrder(setup, 'hom7654321');
+    expect(await waiting()).toBe(2);
+    expect((await verify(setup.shop, first.sessionId)).status).toBe(200);
+    expect(await waiting()).toBe(1);
+    expect(
+      (await reject(setup.shop, second.sessionId, { reason: 'no_payment_found' })).status,
+    ).toBe(200);
+    expect(await waiting()).toBe(0);
+  });
+
   it('verifies a typed ID for the amount asked: staff told, claimed platform-wide, the order moves on, audited', async () => {
     const setup = await payingShop();
     const tenantId = setup.shop.tenantId;

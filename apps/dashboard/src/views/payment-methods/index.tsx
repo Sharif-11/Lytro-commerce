@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PaymentWay, RateKey } from '@lytronix/validators';
 import { useCurrentRates } from '@/api/balance';
+import { useListenerPhones } from '@/api/listener';
 import {
   useChooseWay,
-  useListenerPhones,
   usePaymentMethods,
   useSaveMethod,
   useSelectAutomated,

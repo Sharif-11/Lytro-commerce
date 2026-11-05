@@ -2,6 +2,7 @@
 // is drawn once here; sections refer to icons by name so the set stays consistent.
 const paths = {
   check: 'M5 12.5 9.5 17 19 7',
+  download: 'M12 4v11 M7 11l5 5 5-5 M5 20h14',
   shield: 'M12 3 4 6v6c0 4.5 3.4 7.8 8 9 4.6-1.2 8-4.5 8-9V6l-8-3Z M9 12l2 2 4-4',
   truck:
     'M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6ZM7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm11 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z',

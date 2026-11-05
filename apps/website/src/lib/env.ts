@@ -17,6 +17,8 @@ export class SiteEnvironment {
   readonly liveFeatures: ReadonlySet<string>;
   readonly contactWebhookUrl: string | undefined;
   readonly support: SupportContact;
+  /** Where the listener app's file and `latest.json` live (SITE-PAGES-DESIGN §6). */
+  readonly listenerDownloadUrl: string;
 
   constructor(env: NodeJS.ProcessEnv = process.env) {
     this.serverUrl = SiteEnvironment.trimSlash(env.SERVER_URL ?? 'http://localhost:3000');
@@ -30,6 +32,9 @@ export class SiteEnvironment {
         .filter((item) => item.length > 0),
     );
     this.contactWebhookUrl = SiteEnvironment.blankToUndefined(env.CONTACT_WEBHOOK_URL);
+    this.listenerDownloadUrl = SiteEnvironment.trimSlash(
+      env.LISTENER_DOWNLOAD_URL ?? 'https://download.lytro.app',
+    );
     this.support = {
       whatsapp: SiteEnvironment.blankToUndefined(env.SUPPORT_WHATSAPP) ?? null,
       phone: SiteEnvironment.blankToUndefined(env.SUPPORT_PHONE) ?? null,
