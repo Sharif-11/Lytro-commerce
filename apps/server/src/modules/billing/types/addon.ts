@@ -17,6 +17,12 @@ import type { InvoiceRecord } from '../../payments/types/invoice';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
 export type AddonRecord = AddonRow;
+
+/** PLN-13: an item as the operator's catalogue shows it. */
+export interface OperatorAddonRecord extends AddonRecord {
+  running: number;
+  boughtThisMonth: number;
+}
 export type AddonPurchaseRecord = AddonPurchaseRow;
 export type ActiveAddon = ActiveAddonRow;
 export type RenewingAddon = RenewingAddonRow;

@@ -6,44 +6,571 @@ export const NOW = '2026-10-21T14:30:00+06:00';
 
 const CREATED = '2026-01-01T00:00:00.000Z';
 
+/** The sketch's limits on a plan, without the per-minute limit KNOWN-GAPS §82 took off plans. */
+function planLimits(
+  products: number,
+  monthly: number | null,
+  staff: number,
+  storage: number,
+  bandwidth: number,
+  smsTotal: number | null,
+  smsMonthly: number | null,
+  devices: number,
+  retention: number,
+  requests: number,
+): Record<string, number | null> {
+  return {
+    products,
+    orders_handled_monthly: monthly,
+    staff,
+    storage_mb: storage,
+    bandwidth_gb: bandwidth,
+    essential_sms_total: smsTotal,
+    essential_sms_monthly: smsMonthly,
+    paired_devices: devices,
+    activity_retention_days: retention,
+    requests_monthly: requests,
+  };
+}
+
 export function drawnPlans(): Record<string, unknown>[] {
-  const plan = (id: string, name: string, rank: number, forSale: boolean, version: number) => ({
+  const plan = (
+    id: string,
+    name: string,
+    rank: number,
+    forSale: boolean,
+    version: number,
+    limits: Record<string, number | null>,
+    features: Record<string, boolean>,
+    description: string,
+    shopsByVersion: { version: number; shops: number }[],
+  ) => ({
     id,
     name,
-    description: null,
+    description,
     rank,
     forSale,
     version,
-    limits: { products: 100, staff: 2, storage_mb: 2048, bandwidth_gb: 30 },
-    features: {},
-    createdAt: CREATED,
+    limits,
+    features,
+    createdAt: '2026-07-14T00:00:00.000Z',
+    shopsByVersion,
+    deletable: false,
   });
+  const small = { custom_domain: false, ai_reply: false, api: true, payment_page: true };
+  const large = { custom_domain: true, ai_reply: true, api: true, payment_page: true };
   return [
-    plan('p-trial', 'Trial', 0, false, 2),
-    plan('p-payg', 'Pay-as-you-go', 1, false, 1),
-    plan('p-starter', 'Starter', 2, true, 3),
-    plan('p-growth', 'Growth', 3, true, 2),
-    plan('p-pro', 'Pro', 4, true, 1),
+    plan(
+      'p-trial',
+      'Trial',
+      0,
+      false,
+      2,
+      planLimits(20, 40, 1, 200, 5, 8, null, 1, 30, 20000),
+      small,
+      'Thirty days to reach a first order.',
+      [{ version: 2, shops: 310 }],
+    ),
+    plan(
+      'p-payg',
+      'Pay-as-you-go',
+      1,
+      false,
+      1,
+      planLimits(25, null, 1, 250, 10, null, 5, 1, 30, 100000),
+      small,
+      'No subscription; a fee on every fulfilled order.',
+      [{ version: 1, shops: 44 }],
+    ),
+    plan(
+      'p-starter',
+      'Starter',
+      2,
+      true,
+      3,
+      planLimits(100, 300, 2, 2048, 30, null, 10, 1, 30, 200000),
+      small,
+      'A small shop with one helper.',
+      [
+        { version: 3, shops: 131 },
+        { version: 2, shops: 57 },
+      ],
+    ),
+    plan(
+      'p-growth',
+      'Growth',
+      3,
+      true,
+      2,
+      planLimits(1000, 1500, 5, 4096, 100, null, 15, 2, 90, 600000),
+      large,
+      'A growing shop with staff and its own domain.',
+      [{ version: 2, shops: 71 }],
+    ),
+    plan(
+      'p-pro',
+      'Pro',
+      4,
+      true,
+      1,
+      planLimits(5000, 6000, 15, 8192, 300, null, 20, 5, 365, 2000000),
+      large,
+      'Many staff, many devices, a year of history.',
+      [{ version: 1, shops: 19 }],
+    ),
   ];
 }
 
+/** Starter's two earlier versions. A stored version records when it was replaced. */
+export function drawnPlanVersions(): Record<string, Record<string, unknown>[]> {
+  const starter = (version: number, recordedAt: string, products: number, monthly: number) => ({
+    id: `pv-${String(version)}`,
+    planId: 'p-starter',
+    version,
+    name: 'Starter',
+    description: null,
+    rank: 2,
+    forSale: true,
+    limits: planLimits(products, monthly, 2, 2048, 30, null, 10, 1, 30, 200000),
+    features: { custom_domain: false, ai_reply: false, api: true, payment_page: true },
+    recordedAt,
+  });
+  return {
+    'p-starter': [
+      starter(1, '2026-08-12T00:00:00.000Z', 80, 250),
+      starter(2, '2026-09-29T00:00:00.000Z', 80, 300),
+    ],
+  };
+}
+
 export function drawnTerms(): Record<string, unknown>[] {
-  const term = (id: string, labelEn: string, labelBn: string, months: number) => ({
+  const term = (
+    id: string,
+    labelEn: string,
+    labelBn: string,
+    months: number,
+    displayOrder: number,
+    defaultDiscountPct: string | null,
+    invoices: number,
+    more: Record<string, unknown> = {},
+  ) => ({
     id,
     labelEn,
     labelBn,
     months,
     visible: true,
-    displayOrder: months,
-    defaultDiscountPct: null,
+    displayOrder,
+    defaultDiscountPct,
     tenantId: null,
     retiredAt: null,
     createdAt: CREATED,
+    invoices,
+    deletable: false,
+    ...more,
   });
   return [
-    term('t1', '1 month', '১ মাস', 1),
-    term('t6', '6 months', '৬ মাস', 6),
-    term('t12', '12 months', '১২ মাস', 12),
+    term('t1', '1 month', '১ মাস', 1, 1, null, 412),
+    term('t6', '6 months', '৬ মাস', 6, 2, '5.00', 57),
+    term('t12', '12 months', '১২ মাস', 12, 3, '12.00', 96),
+    term('t3x', 'Launch offer · 3 months', 'লঞ্চ অফার · ৩ মাস', 3, 4, '20.00', 3, {
+      visible: false,
+      tenantId: 'ten-0007',
+      retiredAt: '2026-09-30T00:00:00.000Z',
+    }),
+  ];
+}
+
+export function drawnPrices(): { planId: string; billingTermId: string; price: string }[] {
+  const prices: [string, string, number][] = [
+    ['p-starter', 't1', 449],
+    ['p-starter', 't6', 2559],
+    ['p-starter', 't12', 4741],
+    ['p-starter', 't3x', 1077],
+    ['p-growth', 't1', 699],
+    ['p-growth', 't6', 3984],
+    ['p-growth', 't12', 7381],
+    ['p-pro', 't1', 999],
+    ['p-pro', 't6', 5694],
+    ['p-pro', 't12', 10549],
+  ];
+  return prices.map(([planId, billingTermId, price]) => ({
+    planId,
+    billingTermId,
+    price: `${String(price)}.00`,
+  }));
+}
+
+export function drawnRates(): Record<string, unknown>[] {
+  const rate = (key: string, value: string, effectiveFrom: string) => ({
+    key,
+    value,
+    effectiveFrom: `${effectiveFrom}T00:00:00.000Z`,
+  });
+  return [
+    rate('sms_per_unit', '0.40', '2026-09-01'),
+    rate('ai_reply', '1.00', '2026-07-14'),
+    rate('fraud_check', '2.00', '2026-07-14'),
+    rate('payg_order_fee_min', '20.00', '2026-07-14'),
+    rate('payg_order_fee_pct', '1.50', '2026-10-02'),
+    rate('payg_product_fee', '10.00', '2026-07-14'),
+    rate('sms_unit_size_chars', '160.00', '2026-07-14'),
+    rate('listener_verification_pct', '0.10', '2026-11-02'),
+    rate('gateway_verification_pct', '1.00', '2026-11-03'),
+  ];
+}
+
+export function drawnRateHistory(): Record<string, Record<string, unknown>[]> {
+  const line = (id: number, key: string, oldValue: string, newValue: string, day: string) => ({
+    id,
+    key,
+    oldValue,
+    newValue,
+    changedBy: 'op-1',
+    changedByEmail: 'ops@lytro.app',
+    noticeId: null,
+    changedAt: `${day}T00:00:00.000Z`,
+  });
+  return {
+    sms_per_unit: [line(1, 'sms_per_unit', '0.35', '0.40', '2026-09-01')],
+    payg_order_fee_pct: [
+      line(2, 'payg_order_fee_pct', '1.50', '2.00', '2026-08-01'),
+      line(3, 'payg_order_fee_pct', '2.00', '1.50', '2026-10-02'),
+    ],
+  };
+}
+
+export function drawnWallets(): Record<string, unknown>[] {
+  const wallet = (
+    id: string,
+    provider: string,
+    number: string,
+    label: string | null,
+    enabled: boolean,
+    displayOrder: number,
+  ) => ({ id, provider, number, label, enabled, displayOrder, createdAt: CREATED });
+  return [
+    wallet('w1', 'bKash', '01711 000000', 'Lytronix · personal', true, 1),
+    wallet('w2', 'Nagad', '01811 000000', 'Lytronix · personal', true, 2),
+    wallet('w3', 'Rocket', '01911 0000001', null, false, 3),
+  ];
+}
+
+export function drawnCatalogueAddons(): Record<string, unknown>[] {
+  const addon = (
+    key: string,
+    labelEn: string,
+    labelBn: string,
+    kind: string,
+    limitKey: string | null,
+    unitSize: number | null,
+    price: number,
+    counts: { running?: number; bought?: number },
+    retiredAt: string | null = null,
+  ) => ({
+    id: `addon-${key}`,
+    key,
+    kind,
+    limitKey,
+    unitSize,
+    price: `${String(price)}.00`,
+    labelEn,
+    labelBn,
+    retiredAt,
+    createdAt: CREATED,
+    running: counts.running ?? 0,
+    boughtThisMonth: counts.bought ?? 0,
+  });
+  return [
+    addon(
+      'products_500',
+      'Extra 500 products',
+      'আরও ৫০০ প্রোডাক্ট',
+      'limit',
+      'products',
+      500,
+      149,
+      {
+        running: 41,
+      },
+    ),
+    addon('seat', 'One seat', 'একটা সিট', 'limit', 'staff', 1, 49, { running: 118 }),
+    addon('storage_1gb', '1 GB storage', '১ GB স্টোরেজ', 'limit', 'storage_mb', 1024, 29, {
+      running: 63,
+    }),
+    addon('bandwidth_10gb', '10 GB bandwidth', '১০ GB ব্যান্ডউইথ', 'pack', 'bandwidth_gb', 10, 30, {
+      bought: 212,
+    }),
+    addon(
+      'requests_100k',
+      '100,000 requests',
+      '১,০০,০০০ রিকোয়েস্ট',
+      'pack',
+      'requests_monthly',
+      100000,
+      20,
+      { bought: 37 },
+    ),
+    addon('brand_identity', 'Brand identity', 'ব্র্যান্ড আইডেন্টিটি', 'feature', null, null, 149, {
+      running: 26,
+    }),
+    addon(
+      'storage_500mb',
+      '500 MB storage',
+      '৫০০ MB স্টোরেজ',
+      'limit',
+      'storage_mb',
+      512,
+      19,
+      { running: 4 },
+      '2026-10-20T00:00:00.000Z',
+    ),
+  ];
+}
+
+export function drawnPresets(): Record<string, unknown>[] {
+  const preset = (
+    key: string,
+    labelEn: string,
+    labelBn: string,
+    stockUnit: string,
+    stockTracking: string,
+    batchTracked: boolean,
+    serialTracked: boolean,
+    serialFormat: string,
+    low: number,
+    suggestedCategories: string[],
+    suggestedAttributeIds: string[],
+    upFrontFields: string[],
+  ) => ({
+    key,
+    labelEn,
+    labelBn,
+    defaults: {
+      stockUnit,
+      stockTracking,
+      batchTracked,
+      serialTracked,
+      serialFormat,
+      lowStockThreshold: `${String(low)}.000`,
+      suggestedCategories,
+      suggestedAttributeIds,
+      upFrontFields,
+    },
+  });
+  return [
+    preset(
+      'clothing',
+      'Clothing',
+      'পোশাক',
+      'piece',
+      'tracked',
+      false,
+      false,
+      'any',
+      5,
+      ['Sarees', 'Three-piece', 'Panjabi', 'Shirts', 'T-shirts', 'Kids', 'Hijab', 'Lungi'],
+      ['a1', 'a2', 'a3'],
+      ['sizeChart', 'deliveryCharge'],
+    ),
+    preset(
+      'mobiles_gadgets',
+      'Mobiles and gadgets',
+      'মোবাইল ও গ্যাজেট',
+      'piece',
+      'tracked',
+      false,
+      true,
+      'imei',
+      2,
+      ['Phones', 'Chargers', 'Earbuds', 'Cases', 'Power banks', 'Smart watches'],
+      ['a4', 'a5', 'a1', 'a7'],
+      ['serialTracked', 'itemCondition', 'paymentPolicy', 'lowStockThreshold'],
+    ),
+    preset(
+      'electronics',
+      'Electronics',
+      'ইলেকট্রনিক্স',
+      'piece',
+      'tracked',
+      false,
+      true,
+      'any',
+      2,
+      ['Fans', 'Lights', 'Kitchen', 'Audio', 'Cables'],
+      ['a4', 'a7'],
+      ['serialTracked', 'itemCondition', 'weightKg'],
+    ),
+    preset(
+      'cosmetics',
+      'Cosmetics',
+      'কসমেটিক্স',
+      'piece',
+      'tracked',
+      true,
+      false,
+      'any',
+      5,
+      ['Skin care', 'Make-up', 'Hair', 'Fragrance', 'Men'],
+      ['a4'],
+      ['batchTracked', 'lowStockThreshold'],
+    ),
+    preset(
+      'grocery',
+      'Grocery',
+      'মুদি',
+      'kg',
+      'tracked',
+      true,
+      false,
+      'any',
+      10,
+      ['Rice', 'Oil', 'Spices', 'Snacks', 'Drinks', 'Household'],
+      ['a4', 'a6'],
+      ['batchTracked', 'weightKg', 'lowStockThreshold'],
+    ),
+    preset(
+      'food_bakery',
+      'Food and bakery',
+      'খাবার ও বেকারি',
+      'piece',
+      'not_tracked',
+      false,
+      false,
+      'any',
+      0,
+      ['Cakes', 'Pastry', 'Bread', 'Frozen', 'Pitha'],
+      ['a6'],
+      ['stockTracking', 'deliveryCharge', 'paymentPolicy'],
+    ),
+    preset(
+      'pharmacy',
+      'Pharmacy',
+      'ফার্মেসি',
+      'piece',
+      'tracked',
+      true,
+      false,
+      'any',
+      20,
+      ['Medicine', 'Baby care', 'Devices', 'Supplements'],
+      ['a4'],
+      ['batchTracked', 'lowStockThreshold'],
+    ),
+    preset(
+      'shoes_bags',
+      'Shoes and bags',
+      'জুতা ও ব্যাগ',
+      'piece',
+      'tracked',
+      false,
+      false,
+      'any',
+      3,
+      ['Men', 'Women', 'Kids', 'Bags', 'Sandals'],
+      ['a2', 'a1', 'a3'],
+      ['sizeChart', 'itemCondition'],
+    ),
+    preset(
+      'books_stationery',
+      'Books and stationery',
+      'বই ও স্টেশনারি',
+      'piece',
+      'tracked',
+      false,
+      false,
+      'any',
+      3,
+      ['Fiction', 'Academic', 'Children', 'Pens', 'Notebooks'],
+      [],
+      ['itemCondition', 'weightKg'],
+    ),
+  ];
+}
+
+export function drawnAttributes(): Record<string, unknown>[] {
+  const option = (
+    id: string,
+    value: string,
+    swatchColor: string | null = null,
+    retired = false,
+  ) => ({
+    id,
+    value,
+    swatchColor,
+    swatchImage: null,
+    scope: 'platform',
+    retired,
+  });
+  const attribute = (
+    id: string,
+    name: string,
+    dataType: string,
+    unitKind: string | null,
+    retired: boolean,
+    options: ReturnType<typeof option>[],
+  ) => ({ id, name, dataType, unitKind, scope: 'platform', retired, options });
+  return [
+    attribute('a1', 'Colour', 'enum_single', null, false, [
+      option('c1', 'Black', '#111111'),
+      option('c2', 'White', '#ffffff'),
+      option('c3', 'Red', '#c8323b'),
+      option('c4', 'Navy', '#1f2f5c'),
+      option('c5', 'Maroon', '#7a1f25'),
+      option('c6', 'Olive', '#6b7a2a'),
+      option('c7', 'Sky blue', '#7fc8f8'),
+      option('c8', 'Gold', '#d4a017', true),
+    ]),
+    attribute('a2', 'Size', 'enum_single', null, false, [
+      option('s1', 'XS'),
+      option('s2', 'S'),
+      option('s3', 'M'),
+      option('s4', 'L'),
+      option('s5', 'XL'),
+      option('s6', 'XXL'),
+      option('s7', 'Free size'),
+    ]),
+    attribute('a3', 'Material', 'text', null, false, []),
+    attribute('a4', 'Brand', 'text', null, false, []),
+    attribute('a5', 'Storage', 'enum_single', null, false, [
+      option('t1', '64 GB'),
+      option('t2', '128 GB'),
+      option('t3', '256 GB'),
+      option('t4', '512 GB'),
+      option('t5', '1 TB'),
+    ]),
+    attribute('a6', 'Weight', 'number_with_unit', 'weight', false, []),
+    attribute('a7', 'Warranty', 'enum_single', null, false, [
+      option('w1', 'None'),
+      option('w2', '6 months'),
+      option('w3', '1 year'),
+      option('w4', '2 years'),
+    ]),
+    attribute('a8', 'Pattern', 'enum_multi', null, true, [
+      option('p1', 'Plain'),
+      option('p2', 'Printed'),
+      option('p3', 'Check'),
+    ]),
+  ];
+}
+
+export function drawnOptionSets(): Record<string, unknown>[] {
+  const set = (id: string, name: string, options: string[], presetKey: string | null) => ({
+    id,
+    name,
+    options,
+    scope: 'platform',
+    presetKey,
+  });
+  return [
+    set('o1', 'Clothing sizes', ['XS', 'S', 'M', 'L', 'XL', 'XXL'], 'clothing'),
+    set(
+      'o2',
+      'Shoe sizes, EU',
+      ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45'],
+      'shoes_bags',
+    ),
+    set('o3', 'Phone storage', ['64 GB', '128 GB', '256 GB', '512 GB'], 'mobiles_gadgets'),
+    set('o4', 'Basic colours', ['Black', 'White', 'Red', 'Blue', 'Green'], null),
   ];
 }
 
@@ -958,12 +1485,148 @@ export function drawnAddons(): Record<string, unknown> {
 }
 
 export function drawnSettings(): Record<string, unknown>[] {
-  const setting = (key: string, value: number | string | boolean) => ({
+  const setting = (
+    key: string,
+    value: number | string | string[],
+    description: string,
+    changed?: { at: string; by: string | null },
+  ) => ({
     key,
     value,
-    description: key,
-    updatedBy: null,
-    updatedAt: CREATED,
+    description,
+    updatedBy: changed?.by ? 'op-1' : null,
+    updatedByEmail: changed?.by ?? null,
+    updatedAt: changed?.at ?? '2026-07-14T00:00:00.000Z',
   });
-  return [setting('new_shop_payment_cap_amount', 20000), setting('new_shop_payment_cap_days', 30)];
+  return [
+    setting('trial_days', 30, 'How many days a new shop stays on the Trial plan (TRL-01).', {
+      at: '2026-10-02T00:00:00.000Z',
+      by: 'ops@lytro.app',
+    }),
+    setting(
+      'top_up_min_amount',
+      100,
+      'The smallest amount a tenant may top up in one payment, in TK (BAL-04).',
+    ),
+    setting(
+      'top_up_max_amount',
+      50000,
+      'The largest amount a tenant may top up in one payment, in TK (BAL-04).',
+    ),
+    setting('grace_days', 3, 'How many days of grace a lapsed tenant gets (LIF-26, 2.3).'),
+    setting(
+      'read_only_days',
+      4,
+      'How many days after grace a lapsed tenant stays read-only (LIF-26, 2.3).',
+    ),
+    setting(
+      'locked_days',
+      8,
+      'How many days after read-only a lapsed tenant stays locked (LIF-26, 2.3).',
+    ),
+    setting(
+      'archived_days',
+      45,
+      'How many days after locked a lapsed tenant stays archived before deletion (LIF-26, 2.3).',
+    ),
+    setting(
+      'reservation_expiry_minutes',
+      30,
+      'How many minutes an order awaiting online payment holds its stock (INV-16).',
+    ),
+    setting(
+      'order_limit_mode',
+      'allow_with_prompt',
+      "Past the period's order-handling limit: block, or allow with a prompt to upgrade (QTA-03).",
+    ),
+    setting(
+      'usage_grace_percent',
+      10,
+      'How far past its bandwidth or API request limit a shop is still served, as a percent of the limit (BND-03, RTE-03).',
+    ),
+    setting(
+      'fast_spend_percent',
+      5,
+      "The share of a cycle's API requests that, spent in one hour, alerts the owner and the operator (RTE-12).",
+    ),
+    setting(
+      'public_requests_per_visitor_per_minute',
+      120,
+      'How many requests one visitor may make to one shop in a minute, through its public keys (RTE-06).',
+    ),
+    setting(
+      'public_orders_per_shop_per_minute',
+      60,
+      'How many orders shoppers may place in one shop in a minute, every plan alike (RTE-08).',
+    ),
+    setting(
+      'payment_sessions_per_shop_per_minute',
+      60,
+      'How many payments shoppers may open in one shop in a minute, every plan alike (RTE-08).',
+    ),
+    setting(
+      'new_shop_payment_cap_amount',
+      20000,
+      "The most a new shop's online payments may come to in a day, in TK, where the new-shop cap holds (TVR-04).",
+    ),
+    setting(
+      'new_shop_payment_cap_days',
+      30,
+      'How many days a shop counts as new for the new-shop payment cap (TVR-04).',
+    ),
+    setting(
+      'listener_offline_minutes',
+      30,
+      'How many minutes after its last report a listener phone counts offline (LSN-03, VER-07).',
+    ),
+    setting(
+      'listener_min_app_version',
+      '1.0.0',
+      'The oldest listener app version that may call, as 1.2.3; older apps must update (LSN-18).',
+    ),
+    setting(
+      'listener_senders',
+      ['bKash', 'NAGAD', 'upay', '16216'],
+      "The senders whose SMS count as a wallet's, for every shop (LSN-16).",
+    ),
+    setting('media_image_max_mb', 5, 'The largest image one upload may be, in MB (STO-04).'),
+    setting('media_video_max_mb', 100, 'The largest video one upload may be, in MB (STO-05).'),
+    setting(
+      'catalogue_list_max_age_seconds',
+      30,
+      "How long a shopper's browser keeps a product list, in seconds (CCH-03).",
+    ),
+    setting(
+      'catalogue_list_stale_seconds',
+      120,
+      'How long an older product list may still be shown while it is fetched again, in seconds (CCH-03).',
+    ),
+    setting(
+      'catalogue_detail_max_age_seconds',
+      60,
+      "How long a shopper's browser keeps a product page, in seconds (CCH-03).",
+    ),
+    setting(
+      'catalogue_search_max_age_seconds',
+      30,
+      "How long a shopper's browser keeps search results, in seconds (CCH-03).",
+    ),
+    setting(
+      'catalogue_categories_max_age_seconds',
+      300,
+      "How long a shopper's browser keeps the category tree, in seconds (CCH-03).",
+    ),
+    setting(
+      'terms_version',
+      '2026-11-04',
+      'The terms of service in force, which a new account accepts: change it when new terms are published (LEG-01).',
+      { at: '2026-11-04T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'privacy_version',
+      '2026-11-04',
+      'The privacy policy in force, which a new account accepts: change it when a new policy is published (LEG-01).',
+      { at: '2026-11-04T00:00:00.000Z', by: null },
+    ),
+  ];
 }

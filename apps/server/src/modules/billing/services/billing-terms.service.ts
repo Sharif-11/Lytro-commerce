@@ -10,7 +10,11 @@ import type {
   NewBillingTermValues,
 } from '../ports/billing-terms-store';
 import { BILLING_TERMS_STORE, CLOCK } from '../tokens';
-import type { BillingTermRecord, PlanPriceRecord } from '../types/billing-term';
+import type {
+  BillingTermRecord,
+  OperatorBillingTermRecord,
+  PlanPriceRecord,
+} from '../types/billing-term';
 
 /** control.billing_terms and control.plan_prices (TRM-01 to TRM-16). */
 @Injectable()
@@ -53,6 +57,28 @@ export class BillingTermsService {
 
   listAll(): Promise<BillingTermRecord[]> {
     return this.store.run((tx) => this.store.listAll(tx));
+  }
+
+  /** The operator's list: the invoices each term sits on, and whether it can still go (TRM-05). */
+  listForOperator(): Promise<OperatorBillingTermRecord[]> {
+    return this.store.run(async (tx) => {
+      const terms = await this.store.listAll(tx);
+      const counts = await this.store.invoiceCounts(tx);
+      const rows: OperatorBillingTermRecord[] = [];
+      for (const term of terms) {
+        rows.push({
+          ...term,
+          invoices: counts.find((each) => each.billingTermId === term.id)?.invoices ?? 0,
+          deletable: !(await this.store.isUsed(tx, term.id)),
+        });
+      }
+      return rows;
+    });
+  }
+
+  /** TRM-03: every plan's price for every term, for the price matrix. */
+  listAllPrices(): Promise<PlanPriceRecord[]> {
+    return this.store.run((tx) => this.store.listAllPrices(tx));
   }
 
   async findById(id: string): Promise<BillingTermRecord> {
@@ -169,7 +195,7 @@ export class BillingTermsService {
     });
   }
 
-  /** TRM-05: a term priced for any plan isn't deletable, only retirable. TRM-16: audited, with what it was. */
+  /** TRM-05: a term a price, a payment or a shop names isn't deletable, only retirable. TRM-16: audited, with what it was. */
   async delete(id: string, operatorId: string, ip?: string | null): Promise<void> {
     await this.store.run(async (tx) => {
       const term = await this.store.findById(tx, id);

@@ -44,6 +44,10 @@ export class DrizzleAddonsStore implements AddonsStore {
     return this.addons.list(tx, includeRetired);
   }
 
+  catalogueCounts(tx: Transaction, now: Date, monthStart: Date) {
+    return this.purchases.catalogueCounts(tx, now, monthStart);
+  }
+
   findById(tx: Transaction, id: string): Promise<AddonRecord | null> {
     return this.addons.findById(tx, id);
   }

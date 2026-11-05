@@ -2060,3 +2060,23 @@ that guide; what `/status_by_invoice` answers for an invoice it doesn't know, re
 those; the shape of a refused booking, read from `message` or the first of `errors`; and that a success names `consignment_id`
 and `tracking_code` as the guide's sample does. If the unknown-invoice answer turns out to be something else, the look-ups keep
 reporting no answer and the booking waits for staff, so nothing is released wrongly.
+
+## 113. `TRM-05`: a term could be deleted while something still used it — found 2026-11-05, fixed 2026-11-05
+
+The check only asked whether a price named the term. A shop's current period names it with no foreign key, so deleting a term with no
+prices left that shop pointing at nothing, and a payment naming it made the delete fail as a server error rather than a refusal. The
+console's Delete made it reachable. A term is now in use while a price, a payment or a shop's current period names it, and the operator's
+list says so before Delete is tried.
+
+## 114. `LSN-16`: the sender list could not be changed — found 2026-11-05, fixed 2026-11-05
+
+The setting only holds a list, and the route's validator only took a number, words or a yes/no, so no change could ever reach it. Nothing
+had tried, since the old Settings page drew every value as one field. The route takes a list of strings now; the setting's own check
+still refuses anything else, and every other setting still refuses a list.
+
+## 115. `ATL-01`: how many shops use a platform attribute isn't shown — found 2026-11-05, open
+
+The sketch drew "Used by 412 shops" on the attribute library. A shop's product attributes sit behind row security, which only a superuser
+or a role with BYPASSRLS can see across, so the operator's connection would count nothing. No requirement asks for the figure. Showing it
+needs a way to read across shops, such as a function that returns only the count, and that widens what crosses the tenant boundary, so it
+was left out of the screen and the sketch. It needs a decision whether the figure is worth that.

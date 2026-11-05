@@ -1,146 +1,173 @@
-import { useState, type SyntheticEvent } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSettings, useUpdateSetting } from '@/api/settings';
-import { errorMessage } from '@lytronix/api-client';
-import {
-  Button,
-  Card,
-  CheckboxRow,
-  EmptyLine,
-  ErrorBanner,
-  formatDateTime,
-  Page,
-  PageHeader,
-  TextField,
-} from '@lytronix/ui';
+import { Button } from '@lytronix/ui';
+import { PlatformSettingKey } from '@lytronix/validators';
+import { useSettings } from '@/api/settings';
+import { chipClass } from '@/components/ui/chip-class';
+import { Chips } from '@/components/ui/chips';
+import { ConsolePage, PageTitle, SectionTitle } from '@/components/ui/console-page';
+import { RowLines } from '@/components/ui/list-row';
+import { LoadFailed } from '@/components/ui/load-failed';
+import { SMALL_BUTTON } from '@/components/ui/sizes';
+import { useToast } from '@/components/ui/use-toast';
+import { formatDay } from '@/lib/format';
+import { SETTING_GROUPS, SETTING_SHAPES, type SettingShape } from '@/lib/setting-shapes';
+import { settingWords } from '@/lib/setting-words';
 import type { PlatformSetting } from '@/types/operator';
+import { SettingEditor } from './setting-editor';
+import { SettingValue } from './setting-value';
+import { TimelineCard } from './timeline-card';
 
-/** LIF-26: every platform-wide value that is not a rate (trial length, top-up bounds, lifecycle stage
-    lengths), edited in place. The server tells each key's type by its current value. */
+const groupId = (group: number): string => `settings-group-${String(group)}`;
+
+function SettingRow({
+  setting,
+  shape,
+  editing,
+  onEdit,
+  onDraft,
+  onDone,
+}: {
+  setting: PlatformSetting;
+  shape: SettingShape;
+  editing: boolean;
+  onEdit: () => void;
+  onDraft: (words: string) => void;
+  onDone: () => void;
+}): React.JSX.Element {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const name = t(`settingNames.${setting.key}`, { defaultValue: setting.key });
+  return (
+    <div className="flex min-h-[60px] flex-wrap items-center gap-x-3 gap-y-2 border-t border-line px-4 py-3 first:border-t-0">
+      <RowLines
+        wrap
+        className="basis-full sm:basis-0"
+        title={name}
+        detail={`${setting.description}${
+          setting.updatedByEmail
+            ? ` · ${t('settings.updated', { d: formatDay(setting.updatedAt) })} · ${setting.updatedByEmail}`
+            : ''
+        }`}
+      />
+      {editing ? (
+        <SettingEditor
+          setting={setting}
+          unit={shape.unit}
+          onDraft={onDraft}
+          onCancel={onDone}
+          onSaved={(sent) => {
+            toast(t('settings.saved', { name, value: settingWords(setting.key, sent, t) }));
+            onDone();
+          }}
+        />
+      ) : (
+        <>
+          <span className="ml-auto max-w-full min-w-[90px] text-right sm:ml-0">
+            <SettingValue setting={setting} unit={shape.unit} />
+          </span>
+          <Button
+            type="button"
+            tone="outline"
+            small
+            fit
+            className={SMALL_BUTTON}
+            aria-label={`${t('settings.change')}: ${name}`}
+            onClick={onEdit}
+          >
+            {t('settings.change')}
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** OPERATOR-CONSOLE-DESIGN §9: every platform value that is not a rate, in nine groups. */
 export function Settings(): React.JSX.Element {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const settings = useSettings();
-  const update = useUpdateSetting();
   const [editing, setEditing] = useState<string | null>(null);
-  const [draft, setDraft] = useState<string>('');
-  const [draftFlag, setDraftFlag] = useState(false);
-  const [reason, setReason] = useState('');
+  const [draft, setDraft] = useState<string | null>(null);
+  const rows = settings.data ?? [];
 
-  function startEdit(setting: PlatformSetting): void {
-    update.reset();
-    setEditing(setting.key);
-    setReason('');
-    if (typeof setting.value === 'boolean') setDraftFlag(setting.value);
-    else setDraft(String(setting.value));
-  }
+  /** A stage's length as the timeline draws it: what is being typed once it is a number, else what is saved. */
+  const days = (key: string): number => {
+    if (editing === key && draft !== null) {
+      const typed = Number(draft);
+      if (Number.isInteger(typed) && typed > 0) return typed;
+    }
+    return Number(rows.find((setting) => setting.key === key)?.value ?? 0);
+  };
 
-  function cancelEdit(): void {
-    update.reset();
+  const finish = (): void => {
     setEditing(null);
-  }
+  };
 
-  function handleSubmit(event: SyntheticEvent<HTMLFormElement>, setting: PlatformSetting): void {
-    event.preventDefault();
-    const value =
-      typeof setting.value === 'boolean'
-        ? draftFlag
-        : typeof setting.value === 'number'
-          ? Number(draft)
-          : draft;
-    update.mutate({ key: setting.key, value, reason }, { onSuccess: cancelEdit });
-  }
+  const group = (number: number): React.JSX.Element => (
+    <section key={number} id={groupId(number)} className="flex min-w-0 scroll-mt-4 flex-col gap-2">
+      <SectionTitle>{t(`settings.groups.${String(number)}`)}</SectionTitle>
+      <div className="overflow-hidden rounded-card border border-line bg-surface">
+        {SETTING_SHAPES.filter((shape) => shape.group === number).map((shape) => {
+          const setting = rows.find((each) => each.key === shape.key);
+          if (!setting) return null;
+          return (
+            <SettingRow
+              key={shape.key}
+              setting={setting}
+              shape={shape}
+              editing={editing === shape.key}
+              onEdit={() => {
+                setEditing(shape.key);
+                setDraft(null);
+              }}
+              onDraft={setDraft}
+              onDone={finish}
+            />
+          );
+        })}
+      </div>
+    </section>
+  );
 
   return (
-    <Page narrow>
-      <PageHeader title={t('settings.title')} lead={t('settings.lead')} />
-      {settings.isLoading ? <EmptyLine>{t('common.loading')}</EmptyLine> : null}
-      {settings.isError ? <ErrorBanner message={errorMessage(settings.error, t)} /> : null}
-      {settings.data?.map((setting) => (
-        <Card key={setting.key}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[15px] font-bold text-fg">
-                {t(`settingNames.${setting.key}`, { defaultValue: setting.key })}
-              </p>
-              <p className="text-[13px] text-fg-muted">{setting.description}</p>
-              <p className="mt-1 text-[12px] text-fg-muted">
-                {t('settings.updatedAt', {
-                  date: formatDateTime(setting.updatedAt, i18n.language),
-                })}
-              </p>
-            </div>
-            {editing === setting.key ? null : (
-              <div className="flex items-center gap-3">
-                <span className="num text-[20px] font-bold text-fg">
-                  {typeof setting.value === 'boolean'
-                    ? setting.value
-                      ? t('common.on')
-                      : t('common.off')
-                    : String(setting.value)}
-                </span>
-                <Button
-                  type="button"
-                  tone="outline"
-                  small
-                  fit
-                  onClick={() => {
-                    startEdit(setting);
-                  }}
-                >
-                  {t('common.edit')}
-                </Button>
-              </div>
-            )}
+    <ConsolePage>
+      <PageTitle title={t('nav.settings')} lead={t('settings.lead')} />
+      {settings.isError ? (
+        <LoadFailed
+          onRetry={() => {
+            void settings.refetch();
+          }}
+        />
+      ) : settings.isLoading ? (
+        <section
+          aria-busy="true"
+          className="flex flex-col gap-4 rounded-card border border-line bg-surface p-4"
+        >
+          <span className="skel w-4/5" />
+          <span className="skel w-3/5" />
+        </section>
+      ) : (
+        <>
+          <Chips>
+            {SETTING_GROUPS.map((number) => (
+              <a key={number} href={`#${groupId(number)}`} className={chipClass(false)}>
+                {t(`settings.groups.${String(number)}`)}
+              </a>
+            ))}
+          </Chips>
+          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <div className="flex min-w-0 flex-col gap-4">{[1, 2].map(group)}</div>
+            <TimelineCard
+              grace={days(PlatformSettingKey.GraceDays)}
+              readOnly={days(PlatformSettingKey.ReadOnlyDays)}
+              locked={days(PlatformSettingKey.LockedDays)}
+              archived={days(PlatformSettingKey.ArchivedDays)}
+            />
           </div>
-          {editing === setting.key ? (
-            <form
-              onSubmit={(event) => {
-                handleSubmit(event, setting);
-              }}
-              className="mt-4 space-y-3"
-            >
-              {typeof setting.value === 'boolean' ? (
-                <CheckboxRow
-                  label={t('settings.enabled')}
-                  checked={draftFlag}
-                  onChange={setDraftFlag}
-                />
-              ) : (
-                <TextField
-                  label={t('settings.newValue')}
-                  name={`value-${setting.key}`}
-                  type={typeof setting.value === 'number' ? 'number' : 'text'}
-                  step="any"
-                  required
-                  autoFocus
-                  value={draft}
-                  onChange={(event) => {
-                    setDraft(event.target.value);
-                  }}
-                />
-              )}
-              <TextField
-                label={t('settings.reason')}
-                name={`reason-${setting.key}`}
-                required
-                value={reason}
-                onChange={(event) => {
-                  setReason(event.target.value);
-                }}
-              />
-              {update.isError ? <ErrorBanner message={errorMessage(update.error, t)} /> : null}
-              <div className="flex gap-2">
-                <Button type="submit" fit loading={update.isPending}>
-                  {t('common.save')}
-                </Button>
-                <Button type="button" tone="outline" fit onClick={cancelEdit}>
-                  {t('common.cancel')}
-                </Button>
-              </div>
-            </form>
-          ) : null}
-        </Card>
-      ))}
-    </Page>
+          {[3, 4, 5, 6, 7, 8, 9].map(group)}
+        </>
+      )}
+    </ConsolePage>
   );
 }

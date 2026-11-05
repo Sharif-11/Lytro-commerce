@@ -1,7 +1,10 @@
-import { and, eq, isNull, or } from 'drizzle-orm';
+import { and, count, eq, isNotNull, isNull, or } from 'drizzle-orm';
 import {
   billingTerms,
+  invoices,
+  planPayments,
   planPrices,
+  tenants,
   type SelectBillingTerm,
   type SelectPlanPrice,
 } from '../../schema';
@@ -71,13 +74,38 @@ export class BillingTermsRepository {
   }
 
   /** TRM-05: a term priced for any plan isn't deletable. */
+  /** TRM-05: whether a price, a payment or a shop's current period names this term. */
   async isUsed(db: Executor, id: string): Promise<boolean> {
+    const checks = [
+      db
+        .select({ id: planPrices.billingTermId })
+        .from(planPrices)
+        .where(eq(planPrices.billingTermId, id))
+        .limit(1),
+      db
+        .select({ id: planPayments.id })
+        .from(planPayments)
+        .where(eq(planPayments.billingTermId, id))
+        .limit(1),
+      db.select({ id: tenants.id }).from(tenants).where(eq(tenants.billingTermId, id)).limit(1),
+    ];
+    for (const check of checks) {
+      if ((await check).length > 0) return true;
+    }
+    return false;
+  }
+
+  /** How many invoices were paid for each term. An invoice keeps the term's label, and its payment the term. */
+  async invoiceCounts(db: Executor): Promise<{ billingTermId: string; invoices: number }[]> {
     const rows = await db
-      .select({ planId: planPrices.planId })
-      .from(planPrices)
-      .where(eq(planPrices.billingTermId, id))
-      .limit(1);
-    return rows.length > 0;
+      .select({ billingTermId: planPayments.billingTermId, invoices: count() })
+      .from(invoices)
+      .innerJoin(planPayments, eq(invoices.planPaymentId, planPayments.id))
+      .where(isNotNull(planPayments.billingTermId))
+      .groupBy(planPayments.billingTermId);
+    return rows.flatMap(({ billingTermId, invoices: paid }) =>
+      billingTermId === null ? [] : [{ billingTermId, invoices: paid }],
+    );
   }
 
   async delete(db: Executor, id: string): Promise<void> {
@@ -95,6 +123,10 @@ export class PlanPricesRepository {
         target: [planPrices.planId, planPrices.billingTermId],
         set: { price },
       });
+  }
+
+  async listAll(db: Executor): Promise<SelectPlanPrice[]> {
+    return db.select().from(planPrices);
   }
 
   async listForPlan(db: Executor, planId: string): Promise<SelectPlanPrice[]> {

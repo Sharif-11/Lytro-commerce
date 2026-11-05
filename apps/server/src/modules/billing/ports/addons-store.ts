@@ -17,6 +17,11 @@ import type {
 export interface AddonsStore {
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
   list(tx: Transaction, includeRetired: boolean): Promise<AddonRecord[]>;
+  catalogueCounts(
+    tx: Transaction,
+    now: Date,
+    monthStart: Date,
+  ): Promise<{ addonId: string; running: number; boughtThisMonth: number }[]>;
   findById(tx: Transaction, id: string): Promise<AddonRecord | null>;
   insert(tx: Transaction, values: NewAddonValues): Promise<AddonRecord>;
   update(tx: Transaction, id: string, edit: AddonEdit): Promise<AddonRecord | null>;

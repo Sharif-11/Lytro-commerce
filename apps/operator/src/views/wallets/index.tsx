@@ -1,160 +1,221 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { errorMessage } from '@lytronix/api-client';
+import { Button, ErrorBanner } from '@lytronix/ui';
 import {
-  useCreatePlatformWallet,
   useDeletePlatformWallet,
   usePlatformWallets,
   useUpdatePlatformWallet,
 } from '@/api/platform-wallets';
-import { errorMessage } from '@lytronix/api-client';
-import {
-  Button,
-  Card,
-  ConfirmDialog,
-  EmptyLine,
-  ErrorBanner,
-  Page,
-  PageHeader,
-  Tag,
-} from '@lytronix/ui';
+import { ActionPanel } from '@/components/ui/action-panel';
+import { ConsoleIcon } from '@/components/ui/console-icon';
+import { Consequence } from '@/components/ui/consequence';
+import { ConsolePage, PageTitle } from '@/components/ui/console-page';
+import { DataTable, EmptyBox, type Column } from '@/components/ui/data-table';
+import { LaterCard } from '@/components/ui/later-card';
+import { LoadFailed } from '@/components/ui/load-failed';
+import { QUIET_BUTTON, SMALL_BUTTON } from '@/components/ui/sizes';
+import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/components/ui/use-toast';
 import type { PlatformWallet } from '@/types/operator';
-import { WalletForm, type WalletFormValues } from './wallet-form';
+import { providerColour } from './providers';
+import { WalletPanel } from './wallet-panel';
 
-type Panel = { mode: 'create' } | { mode: 'edit'; wallet: PlatformWallet } | null;
+type Open = { step: 'new' } | { step: 'edit' | 'remove'; wallet: PlatformWallet } | null;
 
-/** BIL-08: the bKash and Nagad numbers sellers send plan payments and top-ups to, in display order. */
+function RemovePanel({
+  wallet,
+  onClose,
+}: {
+  wallet: PlatformWallet;
+  onClose: () => void;
+}): React.JSX.Element {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const remove = useDeletePlatformWallet();
+  const named = `${wallet.provider} · ${wallet.number}`;
+  return (
+    <ActionPanel
+      title={t('wallets.removeTitle')}
+      sub={named}
+      onClose={onClose}
+      actionLabel={t('wallets.remove')}
+      danger
+      pending={remove.isPending}
+      error={remove.isError ? errorMessage(remove.error, t) : null}
+      onSubmit={() => {
+        remove.mutate(wallet.id, {
+          onSuccess: () => {
+            toast(t('wallets.removed', { wallet: named }));
+            onClose();
+          },
+        });
+      }}
+    >
+      <Consequence tone="danger">{t('wallets.removeConsequence')}</Consequence>
+    </ActionPanel>
+  );
+}
+
+/** OPERATOR-CONSOLE-DESIGN §10: the numbers sellers send plan payments and top-ups to. */
 export function Wallets(): React.JSX.Element {
   const { t } = useTranslation();
+  const toast = useToast();
   const wallets = usePlatformWallets();
-  const create = useCreatePlatformWallet();
   const update = useUpdatePlatformWallet();
-  const remove = useDeletePlatformWallet();
-  const [panel, setPanel] = useState<Panel>(null);
-  const [deleting, setDeleting] = useState<PlatformWallet | null>(null);
-
-  function closePanel(): void {
-    setPanel(null);
-    create.reset();
-    update.reset();
-  }
-
-  function handleSubmit(values: WalletFormValues): void {
-    if (panel?.mode === 'create') {
-      create.mutate(values, { onSuccess: closePanel });
-    } else if (panel?.mode === 'edit') {
-      update.mutate({ id: panel.wallet.id, ...values }, { onSuccess: closePanel });
-    }
-  }
-
+  const [open, setOpen] = useState<Open>(null);
   const sorted = [...(wallets.data ?? [])].sort((a, b) => a.displayOrder - b.displayOrder);
+  const close = (): void => {
+    setOpen(null);
+  };
+
+  const columns: Column<PlatformWallet>[] = [
+    {
+      key: 'provider',
+      label: t('wallets.cProvider'),
+      width: '150px',
+      main: true,
+      cell: (wallet) => (
+        <span className="inline-flex items-center gap-2">
+          <span
+            className="size-2.5 rounded-full"
+            style={{ background: providerColour(wallet.provider) }}
+          />
+          {wallet.provider}
+        </span>
+      ),
+    },
+    {
+      key: 'number',
+      label: t('wallets.cNumber'),
+      width: '160px',
+      cell: (wallet) => <span className="mono">{wallet.number}</span>,
+    },
+    {
+      key: 'label',
+      label: t('wallets.cLabel'),
+      width: 'minmax(160px,1fr)',
+      cell: (wallet) => wallet.label ?? <span className="text-fg-muted">{t('wallets.none')}</span>,
+    },
+    {
+      key: 'shown',
+      label: t('wallets.cShown'),
+      width: '100px',
+      cell: (wallet) => (
+        <Switch
+          checked={wallet.enabled}
+          disabled={update.isPending}
+          label={`${t('wallets.cShown')}: ${wallet.provider} ${wallet.number}`}
+          onChange={(enabled) => {
+            update.mutate(
+              { id: wallet.id, enabled },
+              {
+                onSuccess: () => {
+                  toast(
+                    t(enabled ? 'wallets.shownOn' : 'wallets.shownOff', {
+                      wallet: `${wallet.provider} ${wallet.number}`,
+                    }),
+                  );
+                },
+              },
+            );
+          }}
+        />
+      ),
+    },
+    {
+      key: 'order',
+      label: t('wallets.order'),
+      width: '80px',
+      right: true,
+      cell: (wallet) => <span className="tabular-nums">{wallet.displayOrder}</span>,
+    },
+    {
+      key: 'acts',
+      label: '',
+      width: '150px',
+      actions: true,
+      cell: (wallet) => (
+        <>
+          <Button
+            type="button"
+            tone="outline"
+            small
+            fit
+            className={SMALL_BUTTON}
+            onClick={() => {
+              setOpen({ step: 'edit', wallet });
+            }}
+          >
+            {t('common.edit')}
+          </Button>
+          <Button
+            type="button"
+            tone="ghost"
+            small
+            fit
+            className={`${SMALL_BUTTON} ${QUIET_BUTTON}`}
+            onClick={() => {
+              setOpen({ step: 'remove', wallet });
+            }}
+          >
+            {t('wallets.remove')}
+          </Button>
+        </>
+      ),
+    },
+  ];
 
   return (
-    <Page narrow>
-      <PageHeader
-        title={t('wallets.title')}
+    <ConsolePage>
+      <PageTitle
+        title={t('nav.wallets')}
         lead={t('wallets.lead')}
-        action={
-          panel === null ? (
-            <Button
-              type="button"
-              fit
-              onClick={() => {
-                setPanel({ mode: 'create' });
-              }}
-            >
-              {t('wallets.add')}
-            </Button>
-          ) : null
+        actions={
+          <Button
+            type="button"
+            small
+            fit
+            className="flex-[1_1_auto] sm:flex-none"
+            onClick={() => {
+              setOpen({ step: 'new' });
+            }}
+          >
+            <ConsoleIcon name="plus" size={18} />
+            {t('wallets.new')}
+          </Button>
         }
       />
-
-      {panel !== null ? (
-        <WalletForm
-          mode={panel.mode}
-          initial={panel.mode === 'edit' ? panel.wallet : undefined}
-          pending={create.isPending || update.isPending}
-          error={
-            create.isError
-              ? errorMessage(create.error, t)
-              : update.isError
-                ? errorMessage(update.error, t)
-                : null
+      {update.isError ? <ErrorBanner message={errorMessage(update.error, t)} /> : null}
+      {wallets.isError ? (
+        <LoadFailed
+          onRetry={() => {
+            void wallets.refetch();
+          }}
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={sorted}
+          rowKey={(wallet) => wallet.id}
+          loading={wallets.isLoading}
+          empty={
+            <EmptyBox icon="wallet" title={t('wallets.empty')} hint={t('wallets.emptyHint')} />
           }
-          onCancel={closePanel}
-          onSubmit={handleSubmit}
+        />
+      )}
+      <LaterCard heading="h2" title={t('wallets.gateways')} hint={t('wallets.gatewaysHint')} />
+      {open?.step === 'new' ? (
+        <WalletPanel
+          wallet={null}
+          nextOrder={Math.max(0, ...sorted.map((wallet) => wallet.displayOrder)) + 1}
+          onClose={close}
         />
       ) : null}
-
-      {wallets.isLoading ? <EmptyLine>{t('common.loading')}</EmptyLine> : null}
-      {wallets.isError ? <ErrorBanner message={errorMessage(wallets.error, t)} /> : null}
-      {wallets.data && wallets.data.length === 0 ? (
-        <EmptyLine>{t('wallets.empty')}</EmptyLine>
+      {open?.step === 'edit' ? (
+        <WalletPanel wallet={open.wallet} nextOrder={open.wallet.displayOrder} onClose={close} />
       ) : null}
-      {sorted.length > 0 ? (
-        <Card className="divide-y divide-line !p-0">
-          {sorted.map((wallet) => (
-            <div key={wallet.id} className="flex flex-wrap items-center gap-3 px-4 py-3.5">
-              <div className="min-w-0 flex-1">
-                <p className="flex flex-wrap items-center gap-2 text-[15px] font-bold text-fg">
-                  {wallet.provider}
-                  <span className="num font-semibold text-fg-muted">{wallet.number}</span>
-                  {!wallet.enabled ? <Tag tone="neutral">{t('wallets.disabled')}</Tag> : null}
-                </p>
-                <p className="text-[13px] text-fg-muted">
-                  {wallet.label ?? t('wallets.noLabel')} ·{' '}
-                  {t('wallets.order', { n: wallet.displayOrder })}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  tone="outline"
-                  small
-                  fit
-                  onClick={() => {
-                    setPanel({ mode: 'edit', wallet });
-                  }}
-                >
-                  {t('common.edit')}
-                </Button>
-                <Button
-                  type="button"
-                  tone="danger"
-                  small
-                  fit
-                  onClick={() => {
-                    setDeleting(wallet);
-                  }}
-                >
-                  {t('common.delete')}
-                </Button>
-              </div>
-            </div>
-          ))}
-        </Card>
-      ) : null}
-
-      <ConfirmDialog
-        open={deleting !== null}
-        title={t('wallets.deleteTitle')}
-        message={deleting ? `${deleting.provider} ${deleting.number}` : null}
-        error={remove.isError ? errorMessage(remove.error, t) : null}
-        confirmLabel={t('common.delete')}
-        danger
-        pending={remove.isPending}
-        onConfirm={() => {
-          if (!deleting) return;
-          remove.mutate(deleting.id, {
-            onSuccess: () => {
-              setDeleting(null);
-            },
-          });
-        }}
-        onCancel={() => {
-          setDeleting(null);
-          remove.reset();
-        }}
-      />
-    </Page>
+      {open?.step === 'remove' ? <RemovePanel wallet={open.wallet} onClose={close} /> : null}
+    </ConsolePage>
   );
 }

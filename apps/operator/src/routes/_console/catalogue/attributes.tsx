@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { HoldingPage } from '@/views/later';
+import { Attributes } from '@/views/attributes';
 
 export const Route = createFileRoute('/_console/catalogue/attributes')({
-  component: () => <HoldingPage titleKey="nav.attributes" />,
+  component: Attributes,
 });

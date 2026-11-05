@@ -205,10 +205,11 @@ many shops sit on each. **Delete refused** (dialog): the count that blocks it an
 
 The catalogue a shop buys from (PLN-13): a table of item, kind (limit, pack, feature), what it raises, the unit,
 the price per month, how many are running and whether it is for sale, with Edit. New and Edit open one panel: names
-in both languages, kind, the limit it raises, unit size, price, the most a shop may buy at once, and For sale, after
-the sentence that a price change applies from now on and a running add-on keeps its price to its end. Retire is a
-dialog: no shop can buy it from now, the running ones continue and do not renew. A paid add-on waits in the queue
-like a plan payment.
+in both languages, the key (on a new item only: the server fixes it), kind and the limit it raises (fixed once made),
+unit size and price, after the sentence that a price change applies from now on and a running add-on keeps its price to
+its end. How many a shop may buy at once is one rule for every item (`ADDON_QUANTITY_MAX`), so it isn't in the panel.
+Retire is its own dialog, with no way back: no shop can buy it from now, the running ones continue and do not renew, and
+their owners see that in their dashboards. A paid add-on waits in the queue like a plan payment.
 
 ## 7. Billing terms (`/billing-terms`)
 
@@ -222,8 +223,8 @@ that states how many invoices keep the term.
 ## 8. Rates (`/rates`)
 
 One row per rate: its name, its unit in words, the effective-from date, the value large, Change and History.
-Change edits inline in the row with Save and Cancel (`PATCH /operator/rates/:key`, two decimals, RAT-08);
-saving shows the toast "Applies from the next charge" and opens the rate-change notice offer under the row,
+Change edits inline in the row with a reason (ADM-11), Save and Cancel (`PATCH /operator/rates/:key`, two decimals,
+RAT-08); saving shows the toast "Applies from the next charge" and opens the rate-change notice offer under the row,
 marked "soon" until NTC-13. History expands under the row: old → new, date, who, notice or none. The nine rates
 include the listener's and the gateway's verification fees (RAT-15, RAT-16).
 
@@ -272,10 +273,12 @@ categories as removable chips, the suggested attributes as chips from the librar
 as a checklist, after the sentence that only products created from now are affected.
 
 **Attribute library** (`/catalogue/attributes`, ATL-01, ATL-05): one row per platform attribute: name with a
-"retired" chip when retired, data type, unit kind, the values as chips with swatches, how many shops use
-it; Open. New attribute (panel): name, data type, unit kind, after the sentence that the type never changes
-afterwards. The attribute panel: Rename and Retire with the retire sentence, then the platform values with
-their swatches, each with Rename and Retire, and "Add a value" (value, optional swatch colour).
+"retired" chip when retired, data type, unit kind, the values as chips with swatches; Open. How many shops use one isn't
+shown: their attributes sit behind row security, and reading across shops needs a decision (KNOWN-GAPS §115). New
+attribute (panel): name, the data type (one option, several options, a number, text, yes/no), and unit kind for a
+number, after the sentence that the type never changes afterwards. The attribute panel: Rename and Retire with the
+retire sentence (Bring back, once retired), then the platform values with their swatches, each with Rename and Retire,
+and "Add a value" (value, optional swatch colour).
 
 **Option sets** (`/catalogue/option-sets`, ATR-16): a table of set, values as chips, "offered first to"
 the shop type or every shop; Edit and Delete. The panel: name, values one per line, the shop type; editing
@@ -336,12 +339,21 @@ Built with the server PR of Slice 5.8 part 5:
 | Today's recent changes | `GET /operator/recent-changes` | One read, rather than a history call per rate. |
 | The installation on a phone's operator view | `tenants/:id/listener-devices`, `lytro-listener/devices` | Blocking needs `installationId`. |
 
+Built with the pricing, platform and catalogue screens, with no migration:
+
+| Need | Route | Why |
+| --- | --- | --- |
+| Every plan's price at once | `GET /operator/billing-terms/prices` | The matrix and the terms' priced counts, rather than a read per plan. |
+| Shops per plan version, and whether a plan can go | `shopsByVersion`, `deletable` on `GET /operator/plans` | "v3 ×131", and Delete says why it can't before it is tried. |
+| Invoices per term, and whether a term can go | `invoices`, `deletable` on `GET /operator/billing-terms` | The retire sentence, and Delete. TRM-05 now also counts payments and a shop's current period (KNOWN-GAPS §113). |
+| How many of each add-on are running | `running`, `boughtThisMonth` on `GET /operator/addons` | The table and the retire sentence. |
+| The sender list as a list | `PATCH /operator/settings/listener_senders` | The route refused the only shape the setting holds (KNOWN-GAPS §114). |
+
 Still to come, with the screens that need them:
 
 | Need | Where | Why |
 | --- | --- | --- |
-| Price count per term | billing terms | "3 of 3 plans priced"; derivable client-side from every plan's prices meanwhile. |
-| Shops per attribute and per plan version | catalogue, plans | "Used by 412 shops", "v3 ×131"; derivable from counts the stores can add cheaply. |
+| Shops per attribute | catalogue | "Used by 412 shops"; not built: a shop's attributes sit behind row security (KNOWN-GAPS §115). |
 | ADM-03, ADM-08, ADM-09, ADM-14, NTC, KYC, SUP | later phases | Placeholders are drawn, nothing more. |
 
 ## 16. Mapping onto `apps/operator`
@@ -353,15 +365,15 @@ Still to come, with the screens that need them:
 | Payment queue | `/queue`, `/queue/$id` | `views/queue` (+ `queue-figures.tsx`, `payment-panel.tsx`, `approve-panel.tsx`, `credit-panel.tsx`, `reject-panel.tsx`) |
 | Page reports | `/page-reports` | `views/page-reports` (its panels within; suspending shares the shop's `suspend-page-panel.tsx`) |
 | Shops | `/shops`, `/shops/$id` (the server reads a shop by its id), `/shops/$id/credentials` | `views/shops` (list), `views/shop` (+ `shop-panels.tsx`, `overrides-card.tsx`, `payments-card.tsx`, `suspend-page-panel.tsx`, `phones-card.tsx`, `addons-card.tsx`, `credentials.tsx`) |
-| Plans and prices | `/plans`, `/plans/$slug`, `/plans/$slug/versions` | `views/plans` (+ `price-matrix.tsx`, `plan-editor.tsx`, `versions-panel.tsx`) |
+| Plans and prices | `/plans` (panels open in place) | `views/plans` (+ `price-matrix.tsx`, `plan-editor.tsx`, `versions-panel.tsx`, `plan-history.ts`) |
 | Billing terms | `/billing-terms` | `views/billing-terms` (+ `term-panel.tsx`) |
 | Rates | `/rates` | `views/rates` (+ `rate-row.tsx`) |
-| Settings | `/settings` | `views/settings` (+ `timeline-card.tsx`) |
+| Settings | `/settings` | `views/settings` (+ `setting-editor.tsx`, `setting-value.tsx`, `timeline-card.tsx`) |
 | Platform wallets | `/wallets` | `views/wallets` (+ `wallet-panel.tsx`) |
 | Lytro's phones | `/phones`, `/phones/receipts`, `/phones/unread` | `views/phones` (+ `phones-head.tsx`, `phone-panels.tsx`, `receipts.tsx`, `unread.tsx`; the revoke and block panels are shared with the shop page) |
-| Add-ons | `/addons` | `views/addons` (+ `addon-panel.tsx`, `retire-dialog.tsx`) |
+| Add-ons | `/addons` | `views/addons` (+ `addon-panel.tsx`, with the retire dialog) |
 | Shop types | `/catalogue/shop-types` | `views/shop-types` (+ `preset-panel.tsx`) |
-| Attribute library | `/catalogue/attributes` | `views/attributes` (+ `attribute-panel.tsx`, `value-panel.tsx`) |
+| Attribute library | `/catalogue/attributes` | `views/attributes` (+ `attribute-panels.tsx`) |
 | Option sets | `/catalogue/option-sets` | `views/option-sets` (+ `set-panel.tsx`) |
 | Account | `/account` | `views/account` (+ `codes-panel.tsx`) |
 | Later | `/reports`, `/audit`, `/inbox`, `/notices`, `/verification`, `/manual` | one `views/later` page fed by a list of requirement ids |
@@ -372,10 +384,9 @@ cards below, driven by one column list, with the empty and error states) and `fi
 strip). The shell replaces `console-shell.tsx`: the light theme from `packages/ui`'s dashboard role tokens,
 the ink band and sidebar head, the four-tab phone bar and the More sheet.
 
-**Built so far (Slice 5.8 part 5).** The frame, sign-in, account and the later pages; Today, the queue, shops, page reports
-and Lytro's phones. Plans, billing terms, rates, settings and wallets still sit in the new frame and theme with their old
-layouts until their pull request, which also brings add-ons and the catalogue; those three hold their places with a page
-that says the screen is coming.
+**Built (Slice 5.8 part 5).** Every screen above. Panels on the pricing, platform and catalogue screens open in place, as a
+shop's do, rather than at addresses of their own: nothing needs to link to one. Phase 6's console screens wait for the courier
+routes.
 
 **What the queue says and doesn't.** A row's amount, and the approve button's, is what a receipt says arrived, else the quote,
 never what the seller typed. Approving sends an amount only if the operator changed the one shown. Putting money on the

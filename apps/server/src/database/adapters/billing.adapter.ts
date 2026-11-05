@@ -85,6 +85,10 @@ export class DrizzlePlansStore implements PlansStore {
     return this.plans.isReferenced(tx, id);
   }
 
+  shopsByVersion(tx: Transaction) {
+    return this.plans.shopsByVersion(tx);
+  }
+
   delete(tx: Transaction, id: string) {
     return this.plans.delete(tx, id);
   }
@@ -136,12 +140,20 @@ export class DrizzleBillingTermsStore implements BillingTermsStore {
     return this.terms.isUsed(tx, id);
   }
 
+  invoiceCounts(tx: Transaction) {
+    return this.terms.invoiceCounts(tx);
+  }
+
   delete(tx: Transaction, id: string) {
     return this.terms.delete(tx, id);
   }
 
   setPrice(tx: Transaction, planId: string, billingTermId: string, price: string) {
     return this.prices.set(tx, planId, billingTermId, price);
+  }
+
+  listAllPrices(tx: Transaction) {
+    return this.prices.listAll(tx);
   }
 
   listPricesForPlan(tx: Transaction, planId: string) {
