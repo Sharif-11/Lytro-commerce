@@ -511,6 +511,13 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
   off, a low balance stops it, and it isn't sent yet. **No screenshot at all**: PAY-18 is withdrawn, overriding Slice 5.3's read. Stated, no objection: PAY-05's missing pieces drawn; the payments-to-Lytro
   version out; Hind Siliguri from Lytro's own files; the server works out the order's advance; a shop with no method on says so plainly; two PRs, the page and then checkout with the return.
   **Built:** the page (`PAYMENT-PAGE-DESIGN.md` §7), then checkout's payment step and the return (`STOREFRONT-DESIGN.md` §8a).
+- **Parts 3 and 4's read, agreed 2026-11-05** (drawn in `TENANT-DASHBOARD-DESIGN.md` §7.36 to §7.38 and `SITE-PAGES-DESIGN.md` §6; one PR holding the sketch and the
+  build, the owner's call). **The app is on a public page, `lytro.app/listener`, with the file on its own R2 bucket at `download.lytro.app`,** no sign-in, a QR for computers and the SHA-256
+  shown; the owner uploads each release in Cloudflare's panel. **Approve always opens a sheet** with the amount that arrived, over the first sketch's one tap, since it records money. **Phone
+  receipts are a tab on Payments,** including money with no order. **Send payment link and Refund go on the order's Payment card,** which the server had (PAY-24, PAY-20) with no button.
+  Stated, no objection: Payments first in Money, with the Proof button gone; Reject asks the agreed reasons and says what happens to the order; Listener phones in Settings with a QR, a typed code
+  and Open in the app; install and setup guide on one page, with Android 15's block; until a signed app exists the page says it isn't ready. **Built** to those sections, with `GET /home` gaining
+  `paymentsToVerify` and the checklist's `listenerPhone`.
 
 ---
 

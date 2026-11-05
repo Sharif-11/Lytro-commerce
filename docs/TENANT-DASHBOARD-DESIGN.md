@@ -1,6 +1,6 @@
 # Tenant dashboard: the full design
 
-Status: v3.33, 2026-11-04 (Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
+Status: v3.34, 2026-11-05 (Payments and Listener phones, drawn and built together for Slice 5.8's parts 3 and 4, §7.36 to §7.38; v3.33 of 2026-11-04: Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
 shipment the balance can't pay for, serials at shipping scanned, pasted or typed, the Orders list by where an order came
 from; v3.31 of 2026-11-04: Payment methods in Settings, how a wallet's money is taken, bKash's keys, the owner's phone at
 sign-up and Balance's on-hold line, drawn for Slice 5.8's part 1, §7.35; v3.30 of 2026-11-03: Sales as built: the split follows
@@ -1690,6 +1690,72 @@ fix: not in stock, a wrong IMEI, or already picked. Past the order's units it sa
 **The Orders list by source (LND-09).** The dates sheet gains Placed from: All, Staff, Storefront, Landing page, Your website.
 Choosing one shows it as a removable chip over the list, like Holding (`o29-dates`, `o29-source`).
 
+### 7.36 Payments (`/payments`)
+
+*Slice 5.8, part 3* (Part 35), from its read (2026-11-05). It replaces the Payments drawing from before Slices 5.3 to 5.7.
+
+- **Where it lives:** first in Money, which now opens on it. Whoever holds `payments:read` sees it; the other Money sections are
+  unchanged. Phase 5's money coming in is the daily work, and Balance is one chip away.
+- **The tabs** (`pay35`): To verify with its count, Phone receipts, All, Verified, Rejected, Refunded, Voided, in the address so
+  Back from an order returns to the same list. Search takes a TrxID, number or order; the filter takes how it came and the dates;
+  both are the server's (PAY-19).
+- **To verify:** each payment shows its wallet's mark, the amount, the TrxID and number, the order as a link and the time, with no
+  status pill since the tab already says it. Under it, why it waits (VER-02 to VER-05, WAL-21) in one line, what was asked against
+  what the SMS says (`pay35-reasons` has every reason), or, for bKash with a phone paired and no receipt, that none has come. Then
+  Approve and Reject, for `payments:verify`. The list reads itself again every 30 seconds, since a phone may verify a payment while
+  staff look. *Departure from the first sketch:* the Proof button is gone (PAY-18 withdrawn), and rows wrap rather than cut off an
+  order number.
+- **Approve always opens a sheet** (agreed, over the first sketch's one tap; `sh-pay35-approve`), since it records money and moves
+  the order on. The amount starts as what the SMS says, else what was asked, and staff can change it (Slice 5.3: verify what
+  arrived). Less than asked says the rest stays due; more than the order has due is refused beside the amount.
+- **Reject** (`sh-pay35-reject`) asks the agreed reason: no money arrived, already used, or something else with a note the shopper
+  reads. It says what happens: a checkout's order is cancelled and its stock let go, a payment link's order stays as it is (D5-4).
+- **Phone receipts** (agreed: a tab on Payments, for `payments:verify`; `pay35-receipts`): what the phones read, money that matched
+  no order included. A row opens its details and, until it's removed at 90 days, the SMS itself. One with no order says it matches
+  by itself if the shopper gives that TrxID on the payment page. No CSV and no filter here: both are about payments.
+- **Every other tab** shows how many and how much the filter holds, test payments left out (VER-11), then the rows by day. A row
+  opens its details (`sh-pay35-detail`, VER-12): how it came, how it was verified, by whom and when, and the way to its order.
+- **CSV** is fetched by the page, not linked: the server tells the shop from the `x-lytro-shop` header, which a plain link can't
+  send, so a link would answer for whichever shop the session started on.
+- **The phones' line** (`pay35Health`, VER-07), for `listener:read`: seen so many minutes ago; not seen for a while, with See phones;
+  or none paired, with Pair a phone. A shop none of whose wallets listens isn't told, since it wouldn't be true of it.
+- **A new shop** (`pay35-new`), with no wallet on and no payment ever, sees only "Add a wallet number first". A shop that turned its
+  wallets off keeps its list.
+- **Home:** the queue's row "4 payments to verify" (`GET /home`'s `paymentsToVerify`) opens this page.
+
+### 7.37 Listener phones (`/settings/listener`)
+
+*Slice 5.8, part 4* (Part 35), from its read (2026-11-05). The address the app's pairing screen names.
+
+- **Where it lives:** in Settings, after Payment methods, moved from Coming later. Whoever holds `listener:read` sees it;
+  `listener:manage` and the owner can change things (LSN-09). Payment methods' Pair a phone and Home's checklist item open it.
+- **The page** (`lp35`), at most 640 px wide: one line on what the app does; how many of the plan's phones are paired (LSN-08); each
+  phone with its name, model, when it was last seen, today's receipts and Online or Offline (LSN-03, LSN-20); then those cancelled,
+  with why and when. A link to the download page and guide is always there.
+- **None yet** (`lp35-first`) gives the three steps and the guide. **The plan full** (`lp35-full`) drops Pair a phone and offers
+  plans; cancelling a phone frees its place. **Another phone trying its access** (`lp35-flag`, LSN-12) is said at the top.
+- **Pair a phone** (`sh-lp35-pair`, LSN-01): opening the sheet makes one code, shown as a QR and as `K7MP 4X2H`, with what's left of its
+  10 minutes. The QR holds `lytro-listener://pair?code=`, so a phone's own camera can open the app too. On a phone, Open in the app
+  is the same link, since a phone can't scan itself. The sheet looks for the phone every 5 seconds and says so when it arrives
+  (`sh-lp35-pair-done`). An expired code asks for a new one. The QR is drawn as squares in the page, in black on white whatever the
+  shop's theme: the dashboard's policy allows no `data:` picture.
+- **A phone's sheet** (`sh-lp35-phone`): its name to change, its model, version, pairing date, last seen and receipts today. Cancel
+  this phone asks first (`dlg-lp35-cancel`), since it stops at once and has to pair again (LSN-19). Revoke is ক্যানসেল in Bangla,
+  per the glossary.
+
+### 7.38 The order's Payment card: Send payment link and Refund
+
+*Slice 5.8, part 3* (Part 35), agreed 2026-11-05. The server had both (PAY-24, PAY-20), with no button and no drawing.
+
+- **Send payment link** (`o35-unpaid`) sits under the payments for `orders:manage`, while something is due and not at the counter.
+  Its sheet offers the advance or all that's due where they differ (`sh-o35-link`), else says the one amount (`sh-o35-link-one`). Then
+  the link to copy or send on WhatsApp to the customer's number (`sh-o35-link-made`); nothing goes until someone sends it. A payment
+  being checked is the server's refusal said plainly; no method on offers Payment methods. The "Phase 5" line comes off the card.
+- **Refund** sits beside Void under a live payment, for `payments:manage` (`o35`). Its sheet says plainly that it only keeps a record
+  and Lytro sends no money, and needs a note (`sh-o35-refund`). The payment is then struck through with the note, who and when
+  (`o35-refunded`), and its amount goes back on the due. Any live payment can be refunded, cash on delivery collected included; Void
+  stays as it was, for one recorded by mistake.
+
 ## 8. Screens designed for later phases
 
 Kept in the prototype under "Later phases (design only)", exactly as designed on 2026-10-20, so the
@@ -1699,9 +1765,7 @@ architecture is whole when each phase arrives. Their endpoints do not exist yet.
   is **Book courier** (`order-book`, Phase 6: courier, area, COD, weight, note) and, on the order, the fraud chip
   (Phase 7) and reading a pasted message (Phase 7), drawn greyed in §7.31.
 - **Customers** moved to §7.32 (Part 30, 2026-10-31); the customer's fraud level stays here (Phase 7).
-- **Payments** (Phase 5), the shop's incoming payments (its own payments to Lytro are Billing, §7.13): To verify
-  first (PAY-14) with the mismatch line, Approve and Reject;
-  listener health (VER-07); the verified list. **Payment methods** moved to §7.35 (Part 33, 2026-11-04).
+- **Payments** moved to §7.36 and **Payment methods** to §7.35 (Parts 35 and 33).
 - **Notices** (Phase 7): pinned first, category chips, "I understand" (NTC-03 to 05). **SMS events** (Phase
   7): switches with the estimated monthly cost and the template link (SMS-02, 10, 12).
 - **The bell and notifications** (Phase 7, decided 2026-10-22): the bell in both bars with its unread count; the

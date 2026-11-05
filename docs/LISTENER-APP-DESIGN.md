@@ -223,7 +223,8 @@ Settled in 5.5's build:
   phone has to pair again rather than trip the installation flag (LSN-12).
 - **Android 7 and later,** in a small APK. QR reading must not need Google Play services.
 
-**Installing and updating.** The dashboard links to a download page on `lytro.app` with the guide drawn in the prototype.
+**Installing and updating.** The dashboard links to a download page, `lytro.app/listener` (SITE-PAGES-DESIGN §6, built in Slice 5.8,
+with the file on its own bucket at `download.lytro.app`), with the guide drawn in the prototype. The menu's Help opens its setup guide.
 Android asks to allow installs from the browser, and Play Protect may warn; both are in the guide, with a warning to
 download only from `lytro.app`. An update is the same download, offered when the server's minimum rises (LSN-18). The
 signing key is kept out of the repo, and losing it means every shop reinstalling, so it needs a backup plan before release.
