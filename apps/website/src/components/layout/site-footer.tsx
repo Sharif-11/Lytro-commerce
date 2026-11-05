@@ -24,6 +24,7 @@ const text = {
   company: { bn: 'কোম্পানি', en: 'Company' },
   about: { bn: 'আমাদের সম্পর্কে', en: 'About us' },
   contact: { bn: 'যোগাযোগ', en: 'Contact' },
+  listener: { bn: 'লিসেনার অ্যাপ', en: 'Listener app' },
   made: {
     bn: 'ঢাকায় তৈরি, সারা বাংলাদেশের সেলারদের জন্য',
     en: 'Made in Dhaka, for sellers across Bangladesh',
@@ -53,6 +54,7 @@ export function SiteFooter({ language }: { language: Language }) {
   const help: FooterLink[] = [
     { href: '/#faq', label: copy.of(text.faq) },
     { href: '/contact', label: copy.of(text.setupHelp) },
+    { href: '/listener', label: copy.of(text.listener) },
     ...(env.support.whatsapp
       ? [
           {

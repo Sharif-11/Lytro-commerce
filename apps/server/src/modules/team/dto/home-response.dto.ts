@@ -31,6 +31,7 @@ export const homeViewSchema = z.object({
     .nullable(),
   topUpsBeingChecked: beingCheckedSchema.nullable(),
   paymentsBeingChecked: beingCheckedSchema.nullable(),
+  paymentsToVerify: z.number().int().nullable(),
   // BIL-19: the rejected or lapsed payment to act on, if any.
   paymentNeedingYou: z
     .object({
@@ -54,6 +55,7 @@ export const homeViewSchema = z.object({
       logo: z.boolean(),
       linkShared: z.boolean(),
       wallet: z.boolean(),
+      listenerPhone: z.boolean(),
       apiKey: z.boolean(),
     })
     .nullable(),

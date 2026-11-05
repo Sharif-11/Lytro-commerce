@@ -339,6 +339,7 @@ describeIfDatabase('Home in one read (TENANT-DASHBOARD-DESIGN §7.1, SUP-01, STF
         logo: false,
         linkShared: false,
         wallet: false,
+        listenerPhone: false,
         apiKey: false,
       },
     });
@@ -387,6 +388,7 @@ describeIfDatabase('Home in one read (TENANT-DASHBOARD-DESIGN §7.1, SUP-01, STF
       balance: null,
       topUpsBeingChecked: null,
       paymentsBeingChecked: null,
+      paymentsToVerify: null,
       paymentNeedingYou: null,
       staffWithoutPassword: null,
       fastSpendAlertedAt: null,

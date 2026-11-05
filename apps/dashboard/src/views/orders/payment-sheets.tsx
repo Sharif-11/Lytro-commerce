@@ -1,14 +1,26 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from '@tanstack/react-router';
 import { formatTaka } from '@lytronix/ui';
-import { PaymentMethod } from '@lytronix/validators';
-import { useRecordPayment, useVoidPayment } from '@/api/orders';
+import { ApiClientError } from '@lytronix/api-client';
+import { PaymentMethod, Permission } from '@lytronix/validators';
+import {
+  useMakePaymentLink,
+  useRecordPayment,
+  useRefundPayment,
+  useVoidPayment,
+} from '@/api/orders';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chips';
+import { buttonClass } from '@/components/ui/classes';
+import { CopyButton } from '@/components/ui/copy-button';
 import { Field } from '@/components/ui/field';
+import { Kv, RadioMark } from '@/components/ui/kv';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
+import { bangladeshiPhone } from '@/lib/phone';
+import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { Order, OrderPayment } from '@/types/orders';
 import { useOrderWords } from './order-words';
@@ -214,6 +226,223 @@ export function VoidSheet({
           setReason(event.target.value);
         }}
       />
+    </Sheet>
+  );
+}
+
+const REFUND_NOTE_MAX_LENGTH = 500;
+
+/**
+ * Refund (the prototype's `sh-o35-refund`, PAY-20, ORD-44): a record of money given back, which says plainly that Lytro sends
+ * none. The payment stops counting, so what it paid goes back on the order's due.
+ */
+export function RefundSheet({
+  order,
+  payment,
+  onClose,
+}: {
+  order: Order;
+  payment: OrderPayment;
+  onClose: () => void;
+}): React.JSX.Element {
+  const { t } = useTranslation('orders');
+  const errorText = useErrorText();
+  const refund = useRefundPayment(order.id);
+  const [note, setNote] = useState('');
+  return (
+    <Sheet
+      open
+      title={t('refundTitle')}
+      onClose={onClose}
+      footer={
+        <>
+          <Button tone="outline" onClick={onClose}>
+            {t('refundKeep')}
+          </Button>
+          <Button
+            tone="danger"
+            busy={refund.isPending}
+            disabled={note.trim().length === 0}
+            onClick={() => {
+              refund.mutate({ paymentId: payment.id, note: note.trim() }, { onSuccess: onClose });
+            }}
+          >
+            {t('refundGo')}
+          </Button>
+        </>
+      }
+    >
+      <p className="-mt-1 text-[14px] text-fg-muted">
+        {t('refundText', { amount: formatTaka(payment.amount) })}
+      </p>
+      {refund.isError ? <Banner tone="bad">{errorText(refund.error)}</Banner> : null}
+      <Field
+        label={t('refundNote')}
+        placeholder={t('refundPlaceholder')}
+        value={note}
+        maxLength={REFUND_NOTE_MAX_LENGTH}
+        onChange={(event) => {
+          setNote(event.target.value);
+        }}
+      />
+    </Sheet>
+  );
+}
+
+/** One choice of amount for the link, its figure on the right. */
+function LinkChoice({
+  on,
+  label,
+  amount,
+  onChoose,
+}: {
+  on: boolean;
+  label: string;
+  amount: string;
+  onChoose: () => void;
+}): React.JSX.Element {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={on}
+      className="flex min-h-11 w-full items-center gap-3 py-2.5 text-left text-[15px]"
+      onClick={onChoose}
+    >
+      <RadioMark on={on} />
+      <span className="flex-1">{label}</span>
+      <span className="num font-semibold">{amount}</span>
+    </button>
+  );
+}
+
+/**
+ * Send payment link (the prototype's `sh-o35-link`, PAY-24): the advance or everything due where they differ, then the link to copy
+ * or send on WhatsApp. It only makes the link: nothing goes to the customer until someone sends it.
+ */
+export function PaymentLinkSheet({
+  order,
+  onClose,
+}: {
+  order: Order;
+  onClose: () => void;
+}): React.JSX.Element {
+  const { t } = useTranslation('orders');
+  const errorText = useErrorText();
+  const { slug, viewer } = useShell();
+  const make = useMakePaymentLink(order.id);
+  const due = Number(order.due);
+  const advance = Number(order.advanceDue);
+  // PAY-24: the link asks the advance still owed, else what is due, unless staff ask for all of it.
+  const choosing = advance > 0 && advance < due;
+  const [full, setFull] = useState(false);
+  const link = make.data;
+  const refused = make.error instanceof ApiClientError ? make.error : null;
+  const noMethod = refused?.details.reason === 'no_payment_method';
+
+  if (link) {
+    const phone = order.customerPhone ? bangladeshiPhone.forWhatsapp(order.customerPhone) : null;
+    const message = t('linkMessage', {
+      amount: formatTaka(link.amount),
+      order: order.orderNumber,
+      url: link.paymentUrl,
+    });
+    return (
+      <Sheet
+        open
+        title={t('linkReady')}
+        onClose={onClose}
+        footer={
+          <>
+            <CopyButton text={link.paymentUrl} size="md" />
+            {phone ? (
+              <a
+                href={`https://wa.me/${phone}?text=${encodeURIComponent(message)}`}
+                target="_blank"
+                rel="noreferrer"
+                className={buttonClass('primary', 'md')}
+              >
+                {t('linkWhatsapp')}
+              </a>
+            ) : null}
+          </>
+        }
+      >
+        <div>
+          <Kv label={t('linkAmount')} value={formatTaka(link.amount)} />
+        </div>
+        <Field label={t('linkLabel')} value={link.paymentUrl} readOnly />
+        <p className="m-0 text-[14px] text-fg-muted">{t('linkOpen')}</p>
+      </Sheet>
+    );
+  }
+
+  return (
+    <Sheet
+      open
+      title={t('linkSend')}
+      onClose={onClose}
+      footer={
+        noMethod ? undefined : (
+          <Button
+            wide
+            busy={make.isPending}
+            onClick={() => {
+              make.mutate(choosing && full ? { full: true } : {});
+            }}
+          >
+            {t('linkMake')}
+          </Button>
+        )
+      }
+    >
+      {choosing ? (
+        <fieldset className="m-0 border-0 p-0">
+          <legend className="mb-1 text-[14px] font-medium">{t('linkAmount')}</legend>
+          <div className="flex flex-col [&>*+*]:border-t [&>*+*]:border-line">
+            <LinkChoice
+              on={!full}
+              label={t('linkAdvance')}
+              amount={formatTaka(advance)}
+              onChoose={() => {
+                setFull(false);
+              }}
+            />
+            <LinkChoice
+              on={full}
+              label={t('linkAll')}
+              amount={formatTaka(due)}
+              onChoose={() => {
+                setFull(true);
+              }}
+            />
+          </div>
+        </fieldset>
+      ) : (
+        <p className="m-0 text-[16px]">
+          {t('linkOne', { amount: formatTaka(advance > 0 ? Math.min(advance, due) : due) })}
+        </p>
+      )}
+      {noMethod ? (
+        <Banner
+          tone="warn"
+          action={
+            allows(viewer, [Permission.WalletsRead]) ? (
+              <Link
+                to="/$shop/settings/payment-methods"
+                params={{ shop: slug }}
+                className="font-semibold whitespace-nowrap text-primary underline"
+              >
+                {t('linkSeeMethods')}
+              </Link>
+            ) : undefined
+          }
+        >
+          {t('linkNoMethod')}
+        </Banner>
+      ) : make.isError ? (
+        <Banner tone="warn">{errorText(make.error)}</Banner>
+      ) : null}
     </Sheet>
   );
 }

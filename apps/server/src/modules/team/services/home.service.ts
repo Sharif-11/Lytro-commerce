@@ -14,7 +14,9 @@ import { ShopLinkSharing } from '../../balance/services/shop-link-sharing';
 import { ProductService } from '../../catalogue/services/product.service';
 import { DeliveryZoneService } from '../../delivery/services/delivery-zone.service';
 import { BatchService } from '../../inventory/services/batch.service';
+import { ListenerDevices } from '../../listener/services/listener-devices';
 import { PaymentMethods } from '../../payment-methods/services/payment-methods';
+import { PaymentsList } from '../../payment-review/services/payments-list';
 import { StockService } from '../../inventory/services/stock.service';
 import { OrderService } from '../../orders/services/order.service';
 import { SalesFigures } from '../../orders/services/sales-figures';
@@ -63,6 +65,8 @@ export class HomeService {
     @Inject(SalesFigures) private readonly sales: SalesFigures,
     @Inject(StockService) private readonly stockLevels: StockService,
     @Inject(PaymentMethods) private readonly methods: PaymentMethods,
+    @Inject(PaymentsList) private readonly shopPayments: PaymentsList,
+    @Inject(ListenerDevices) private readonly phones: ListenerDevices,
   ) {}
 
   async view(tenant: TenantSummary, userId: string | null, now = new Date()): Promise<HomeView> {
@@ -89,6 +93,7 @@ export class HomeService {
       fastSpend,
       short,
       orders,
+      toVerify,
     ] = await Promise.all([
       counts ? this.products.stateCounts(tenant.id) : null,
       may(Permission.InventoryRead)
@@ -111,6 +116,7 @@ export class HomeService {
         : null,
       may(Permission.InventoryRead) ? this.stockLevels.shortProducts(tenant.id) : null,
       may(Permission.OrdersRead) ? this.orderFigures(tenant.id, now) : null,
+      may(Permission.PaymentsRead) ? this.shopPayments.toVerifyCount(tenant.id) : null,
     ]);
 
     return {
@@ -136,6 +142,7 @@ export class HomeService {
           : null,
       topUpsBeingChecked: topUps,
       paymentsBeingChecked: plans,
+      paymentsToVerify: toVerify,
       paymentNeedingYou: needingYou,
       staffWithoutPassword: staff,
       fastSpendAlertedAt: fastSpend,
@@ -164,12 +171,13 @@ export class HomeService {
     firstProduct: boolean,
     now: Date,
   ): Promise<SetupChecklist> {
-    const [delivery, logo, linkShared, keys, wallet] = await Promise.all([
+    const [delivery, logo, linkShared, keys, wallet, phones] = await Promise.all([
       this.zones.settings(tenantId),
       this.media.logoOf(tenantId),
       this.links.shared(tenantId),
       this.keys.list(tenantId),
       this.methods.hasLiveAccount(tenantId),
+      this.phones.list(tenantId),
     ]);
     const inside = delivery.zones.find((zone) => zone.isHome);
     const outside = delivery.zones.find((zone) => zone.isFallback);
@@ -183,6 +191,7 @@ export class HomeService {
       logo: logo !== null,
       linkShared,
       wallet,
+      listenerPhone: phones.active > 0,
       apiKey: keys.some(
         (key) =>
           key.revokedAt === null &&

@@ -27,6 +27,12 @@ export class BangladeshiPhone {
       : value;
   }
 
+  /** `01712345678` or `+8801712345678` → `8801712345678`, as a WhatsApp link wants it. */
+  forWhatsapp(value: string): string {
+    const local = this.local(value);
+    return local.length === 11 ? `88${local}` : value.replace(/\D/g, '');
+  }
+
   /** `+8801712345678` → `+880 1712 345 678`, as the number a code went to is written. */
   international(value: string): string {
     const part = this.localPart(value);
