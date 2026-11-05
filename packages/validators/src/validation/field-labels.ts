@@ -76,6 +76,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   components: { en: 'Combo items', bn: 'কম্বোর আইটেম' },
   condition: { en: 'Condition', bn: 'কন্ডিশন' },
   areaCode: { en: 'Courier area', bn: 'কুরিয়ারের এরিয়া' },
+  storeId: { en: 'Pickup store', bn: 'পিকআপ স্টোর' },
   consignmentId: { en: 'Consignment ID', bn: 'কনসাইনমেন্ট ID' },
   contactEmail: { en: 'Contact email', bn: 'কন্টাক্ট ইমেইল' },
   contactPhone: { en: 'Contact phone', bn: 'কন্টাক্ট ফোন' },
