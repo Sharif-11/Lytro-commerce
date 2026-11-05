@@ -25,6 +25,8 @@ export interface HomeView {
   balance: { amount: string; low: boolean; freeSms: { used: number; limit: number | null } } | null;
   topUpsBeingChecked: BeingChecked | null;
   paymentsBeingChecked: BeingChecked | null;
+  /** Slice 5.8, part 3: transaction IDs shoppers typed, waiting for staff. */
+  paymentsToVerify: number | null;
   /** BIL-19: the rejected or lapsed payment to Lytro to act on, if any. */
   paymentNeedingYou: {
     id: string;
@@ -42,6 +44,8 @@ export interface HomeView {
     linkShared: boolean;
     /** A payment method is on with an active account. */
     wallet: boolean;
+    /** A listener phone is paired and not cancelled. */
+    listenerPhone: boolean;
     apiKey: boolean;
   } | null;
 }

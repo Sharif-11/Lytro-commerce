@@ -78,6 +78,8 @@ Then, for each release, raise `versionCode` and `versionName` in `app/build.grad
 
 ```
 LYTRO_LISTENER_KEY=~/lytro-signing/lytro-listener-release.properties ./gradlew :app:listenerRelease
+# Then, in Cloudflare's panel, upload build/release/lytro-listener-<version>.apk to the downloads bucket,
+# and only after that build/release/latest.json, which is what makes lytro.app/listener offer it.
 ```
 
 It refuses without a key. It leaves `app/build/release/lytro-listener-<version>.apk` and its `.sha256`. To force old phones to update

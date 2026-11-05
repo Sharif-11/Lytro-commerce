@@ -74,6 +74,15 @@ export interface OrderFixture {
     /** Marked refunded, with its note (Slice 5.3). */
     refunded?: string | null;
   }[];
+  /** The advance still owed (ORD-08). */
+  advanceDue?: number;
+  /** What POST /orders/:id/payment-link refuses with, where a test wants that. */
+  linkRefused?: {
+    status: number;
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  };
   /** INV-15: the variants whose stock it holds. */
   holds?: string[];
   /** Its customer was deleted at a privacy request (CUS-09). */
@@ -526,7 +535,7 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
     deliveryCharge: money(order.deliveryCharge),
     deliveryChargeByHand: false,
     discount: money(order.discount ?? 0),
-    advanceDue: '0.00',
+    advanceDue: money(order.advanceDue ?? 0),
     due: money(Math.max(0, total - paid)),
     // Clothing at 5% VAT, inside the price (TAX-03); a combo is not taxed (Part 29's ৳42.86 on the T-shirts' ৳900).
     taxes: [
@@ -712,6 +721,33 @@ export function ordersAnswer(
       .flatMap((order) => (order.courier ? [order.courier] : []))
       .sort((a, b) => b.at.localeCompare(a.at));
     return { data: { couriers: [...new Set(shipped.map((each) => each.name))] } };
+  }
+  const refunding = /^\/orders\/([^/]+)\/payments\/([^/]+)\/refund$/.exec(path);
+  if (method === 'POST' && refunding) {
+    const order = fixture.orders.find((each) => each.id === refunding[1]);
+    const index = Number((refunding[2] ?? '').split('-pay-')[1]);
+    const payment = order?.payments?.[index];
+    if (!order || !payment)
+      return { refused: { status: 404, code: 'not_found', message: 'Not found' } };
+    payment.refunded = String(body?.note);
+    return { data: detail(order, language, customerOf(order.id)) };
+  }
+  const linking = /^\/orders\/([^/]+)\/payment-link$/.exec(path);
+  if (method === 'POST' && linking) {
+    const order = fixture.orders.find((each) => each.id === linking[1]);
+    if (!order) return { refused: { status: 404, code: 'not_found', message: 'Not found' } };
+    if (order.linkRefused) return { refused: order.linkRefused };
+    const view = detail(order, language, customerOf(order.id));
+    const due = Number(view.due);
+    const advance = order.advanceDue ?? 0;
+    const amount = body?.full || advance <= 0 ? due : Math.min(advance, due);
+    return {
+      data: {
+        paymentUrl: `https://pay.lytro.app/psn_${order.id}`,
+        amount: money(amount),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      },
+    };
   }
   const voiding = /^\/orders\/([^/]+)\/payments\/([^/]+)\/void$/.exec(path);
   if (method === 'POST' && voiding) {

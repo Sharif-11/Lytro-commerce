@@ -78,5 +78,7 @@
   "secCustomers": "Customers",
   "secSales": "Sales",
   "sTax": "Tax",
-  "sMethods": "Payment methods"
+  "sMethods": "Payment methods",
+  "secPayments": "Payments",
+  "sListener": "Listener phones"
 }

@@ -235,6 +235,19 @@ describeIfDatabase('pairing a listener phone (LSN-01, LSN-03, LSN-09, LSN-11, LS
     expect(await platformLogged(shop.tenantId, 'listener_device_paired')).toBe(1);
   });
 
+  it("ticks Home's checklist with a phone paired, and unticks it when that phone is cancelled", async () => {
+    const shop = await openShop(port, texts, 'lis');
+    const listening = async (): Promise<unknown> =>
+      ((await shop.get('/home')).body as { checklist: { listenerPhone: unknown } }).checklist
+        .listenerPhone;
+    expect(await listening()).toBe(false);
+    const phone = await paired(shop);
+    expect(await listening()).toBe(true);
+    const cancelled = await shop.post(`/listener/devices/${phone.deviceId}/revoke`, {});
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200);
+    expect(await listening()).toBe(false);
+  });
+
   it('refuses a code run out, five wrong codes from one caller, and a code refused ten times', async () => {
     const shop = await openShop(port, texts, 'lis');
     const lapsed = await newCode(shop);

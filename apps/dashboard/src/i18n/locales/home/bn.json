@@ -57,5 +57,7 @@
   "stMonthSales": "এই মাসের বিক্রি",
   "stMonthSalesD": "ডেলিভারড অর্ডার",
   "jobShort_one": "{{count}}টি প্রোডাক্ট অর্ডারের জন্য কম পড়েছে",
-  "jobShort_other": "{{count}}টি প্রোডাক্ট অর্ডারের জন্য কম পড়েছে"
+  "jobShort_other": "{{count}}টি প্রোডাক্ট অর্ডারের জন্য কম পড়েছে",
+  "jobVerify_one": "{{count}}টি পেমেন্ট ভেরিফাই বাকি",
+  "jobVerify_other": "{{count}}টি পেমেন্ট ভেরিফাই বাকি"
 }

@@ -144,7 +144,12 @@ tasks.register("listenerRelease") {
         layout.buildDirectory.file("outputs/apk/release/app-release.apk").get().asFile.copyTo(apk, overwrite = true)
         val sha256 = MessageDigest.getInstance("SHA-256").digest(apk.readBytes()).joinToString("") { "%02x".format(it) }
         out.resolve("${apk.name}.sha256").writeText("$sha256  ${apk.name}\n")
+        // What lytro.app/listener reads to offer this file (SITE-PAGES-DESIGN 6). Upload the APK first, then this.
+        out.resolve("latest.json").writeText(
+            """{"version":"$version","file":"${apk.name}","sha256":"$sha256","bytes":${apk.length()}}""" + "\n",
+        )
         println("Release $version: $apk")
         println("SHA-256: $sha256")
+        println("Upload to the downloads bucket: ${apk.name}, then latest.json")
     }
 }

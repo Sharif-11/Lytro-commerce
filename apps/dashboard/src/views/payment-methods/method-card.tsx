@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PaymentMethod, PaymentMethodKind, PaymentWay } from '@lytronix/validators';
+import { Link } from '@tanstack/react-router';
+import { PaymentWay } from '@lytronix/validators';
 import { Icon } from '@/components/icon';
+import { MethodMark } from '@/components/method-mark';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -9,36 +11,22 @@ import { RadioMark } from '@/components/ui/kv';
 import { RowList } from '@/components/ui/list-row';
 import { StatusTag } from '@/components/ui/status-tag';
 import { Switch } from '@/components/ui/switch';
-import { walletColour } from '@/lib/wallet-marks';
+import { useShell } from '@/shell/shell-context';
 import type { PaymentAccount, PaymentMethodRow } from '@/types/payment-methods';
 import { accountNumberOf, methodName, typeWord } from './words';
 
-// The wallets whose own logo the sketch shows; Rocket and Upay are their names in their colours, a bank an icon.
-const LOGOS: Partial<Record<PaymentMethod, string>> = {
-  [PaymentMethod.Bkash]: '/third-party/bkash.png',
-  [PaymentMethod.Nagad]: '/third-party/nagad.png',
-};
+const linkClass = 'font-semibold whitespace-nowrap text-primary underline';
 
-function MethodMark({ row, name }: { row: PaymentMethodRow; name: string }): React.JSX.Element {
-  const logo = LOGOS[row.method];
+/** Payment methods' way to Listener phones (the prototype's `pm33Pair`). */
+function PairLink(): React.JSX.Element {
+  const { t } = useTranslation('menu');
+  const { slug } = useShell();
   return (
-    <span className="flex size-10 flex-none items-center justify-center overflow-hidden rounded-button border border-line bg-white p-[3px]">
-      {logo ? (
-        <img src={logo} alt={name} className="size-full object-contain" />
-      ) : row.kind === PaymentMethodKind.Bank ? (
-        <span className="flex text-fg-muted">
-          <Icon name="banknote" />
-        </span>
-      ) : (
-        <span className="text-[11px] font-bold" style={{ color: walletColour(row.method) }}>
-          {name}
-        </span>
-      )}
-    </span>
+    <Link to="/$shop/settings/listener" params={{ shop: slug }} className={linkClass}>
+      {t('lpPair')}
+    </Link>
   );
 }
-
-const linkClass = 'font-semibold whitespace-nowrap text-primary underline';
 
 /** What an account is, in its row's line of chips: its type, Active, Automated, Test. */
 function AccountChips({ account }: { account: PaymentAccount }): React.JSX.Element {
@@ -177,7 +165,7 @@ export function MethodCard({
   return (
     <Card flush>
       <div className="flex min-h-[60px] items-center gap-3 px-4 py-3">
-        <MethodMark row={row} name={name} />
+        <MethodMark method={row.method} name={name} />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="overflow-hidden text-[16px] font-medium text-ellipsis whitespace-nowrap">
             {name}
@@ -299,7 +287,7 @@ export function MethodCard({
             >
               {row.way === PaymentWay.Listener ? (
                 <p className="mt-1.5 text-[14px] text-fg-muted">
-                  {phones > 0 ? t('pmPaired', { count: phones }) : t('pmNoPaired')}
+                  {phones > 0 ? t('pmPaired', { count: phones }) : t('pmNoPaired')} <PairLink />
                 </p>
               ) : null}
             </WayRow>

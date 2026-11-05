@@ -52,6 +52,45 @@ describe('a request', () => {
     expect(second.headers().get('x-lytro-shop')).toBeNull();
   });
 
+  it('fetches a file naming the shop, which a plain link could not', async () => {
+    const answered = new Response('at,amount\n', {
+      status: 200,
+      headers: { 'Content-Type': 'text/csv' },
+    });
+    const fetched = vi.fn().mockResolvedValue(answered);
+    vi.stubGlobal('fetch', fetched);
+    const client = new ApiClient({
+      baseUrl: '/api/v1',
+      getCsrfToken: () => null,
+      getShop: () => 'megh',
+    });
+    const file = await client.file('/payments/export');
+    expect(await file.text()).toBe('at,amount\n');
+    const [url, init] = fetched.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/v1/payments/export');
+    expect(new Headers(init.headers).get('x-lytro-shop')).toBe('megh');
+    expect(init.credentials).toBe('include');
+  });
+
+  it("says the server's refusal of a file, as any other call does", async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: false,
+            statusCode: 403,
+            message: 'You may not export these.',
+            errors: { code: 'forbidden', details: {} },
+          }),
+          { status: 403 },
+        ),
+      ),
+    );
+    const client = new ApiClient({ baseUrl: '/api/v1', getCsrfToken: () => null });
+    await expect(client.file('/payments/export')).rejects.toThrow('You may not export these.');
+  });
+
   it('names no shop when the app has none to give (the operator console)', async () => {
     const sent = stubFetch(ok({}));
     await new ApiClient({ baseUrl: '/api/v1', getCsrfToken: () => null }).delete('/x');

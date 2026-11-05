@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { PaymentListFilter, PaymentListRow, Transaction } from '@lytronix/db';
 import {
+  PaymentListStatus,
   bdMobileNumber,
   ServerFieldProblemCode,
   type PaymentListQuery,
@@ -46,6 +47,16 @@ export class PaymentsList {
         amount: found.amount,
       };
     });
+  }
+
+  /** Home's queue (Slice 5.8, part 3): how many transaction IDs wait for staff. */
+  async toVerifyCount(tenantId: string): Promise<number> {
+    const { total } = await this.list(tenantId, {
+      status: PaymentListStatus.ToVerify,
+      page: 1,
+      limit: 1,
+    });
+    return total;
   }
 
   /** PAY-19: every payment the filter holds, up to the export's limit, for the CSV. */

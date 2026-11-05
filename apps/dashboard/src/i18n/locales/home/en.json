@@ -57,5 +57,7 @@
   "stMonthSales": "This month's sales",
   "stMonthSalesD": "Delivered orders",
   "jobShort_one": "{{count}} product short for orders",
-  "jobShort_other": "{{count}} products short for orders"
+  "jobShort_other": "{{count}} products short for orders",
+  "jobVerify_one": "{{count}} payment to verify",
+  "jobVerify_other": "{{count}} payments to verify"
 }

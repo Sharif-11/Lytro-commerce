@@ -22,7 +22,7 @@ describe('the hubs a person sees', () => {
       ['home', '/$shop'],
       ['orders', '/$shop/orders'],
       ['shop', '/$shop/products'],
-      ['money', '/$shop/balance'],
+      ['money', '/$shop/payments'],
       ['menu', '/$shop/menu'],
     ]);
   });
@@ -32,7 +32,7 @@ describe('the hubs a person sees', () => {
     expect(visibleHubs(counter).map(({ hub, to }) => [hub.id, to])).toEqual([
       ['home', '/$shop'],
       ['shop', '/$shop/stock'],
-      ['money', '/$shop/plan'],
+      ['money', '/$shop/payments'],
       ['menu', '/$shop/menu'],
     ]);
     expect(visibleSections(hubOf('shop'), counter).map((s) => s.id)).toEqual([

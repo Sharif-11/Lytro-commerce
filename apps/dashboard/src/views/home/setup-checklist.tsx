@@ -35,6 +35,7 @@ interface ItemProps {
     | '/$shop/products/new'
     | '/$shop/settings/shop'
     | '/$shop/settings/payment-methods'
+    | '/$shop/settings/listener'
     | '/$shop/settings/api-keys';
   /** A place on this page instead (the link card). */
   href?: string;
@@ -142,7 +143,11 @@ export function SetupChecklist({
         </div>
         <Later label={t('ckCourier')} phase={6} />
         <Later label={t('ckSms')} phase={7} />
-        <Later label={t('ckListener')} phase={5} />
+        <Item
+          done={checklist.listenerPhone}
+          label={t('ckListener')}
+          to="/$shop/settings/listener"
+        />
         <Item done={checklist.apiKey} label={t('ckApi')} to="/$shop/settings/api-keys" />
       </div>
     </Card>

@@ -15,6 +15,7 @@ type SettingsPath =
   | '/$shop/settings/shop'
   | '/$shop/delivery'
   | '/$shop/settings/payment-methods'
+  | '/$shop/settings/listener'
   | '/$shop/settings/brand'
   | '/$shop/settings/storefront'
   | '/$shop/settings/tax'
@@ -59,6 +60,13 @@ const ROWS: readonly {
     anyOf: [Permission.SettingsManage],
   },
   {
+    icon: 'smartphone',
+    title: 'sListener',
+    sub: 'sListenerD',
+    to: '/$shop/settings/listener',
+    anyOf: [Permission.ListenerRead],
+  },
+  {
     icon: 'globe',
     title: 'sStore',
     sub: 'sStoreD',
@@ -98,7 +106,6 @@ const ROWS: readonly {
 // What the shop will set up later, greyed with the phase it arrives in (the prototype's "Coming later").
 const LATER: readonly { icon: IconName; title: string; phase: number }[] = [
   { icon: 'box', title: 'sCourier', phase: 6 },
-  { icon: 'smartphone', title: 'sListener', phase: 5 },
   { icon: 'sms', title: 'sSms', phase: 7 },
   { icon: 'bell', title: 'sNotif', phase: 7 },
 ];

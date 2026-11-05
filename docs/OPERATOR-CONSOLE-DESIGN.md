@@ -274,7 +274,7 @@ as a checklist, after the sentence that only products created from now are affec
 
 **Attribute library** (`/catalogue/attributes`, ATL-01, ATL-05): one row per platform attribute: name with a
 "retired" chip when retired, data type, unit kind, the values as chips with swatches; Open. How many shops use one isn't
-shown: their attributes sit behind row security, and reading across shops needs a decision (KNOWN-GAPS §115). New
+shown: their attributes sit behind row security, and reading across shops needs a decision (KNOWN-GAPS §116). New
 attribute (panel): name, the data type (one option, several options, a number, text, yes/no), and unit kind for a
 number, after the sentence that the type never changes afterwards. The attribute panel: Rename and Retire with the
 retire sentence (Bring back, once retired), then the platform values with their swatches, each with Rename and Retire,
@@ -345,15 +345,15 @@ Built with the pricing, platform and catalogue screens, with no migration:
 | --- | --- | --- |
 | Every plan's price at once | `GET /operator/billing-terms/prices` | The matrix and the terms' priced counts, rather than a read per plan. |
 | Shops per plan version, and whether a plan can go | `shopsByVersion`, `deletable` on `GET /operator/plans` | "v3 ×131", and Delete says why it can't before it is tried. |
-| Invoices per term, and whether a term can go | `invoices`, `deletable` on `GET /operator/billing-terms` | The retire sentence, and Delete. TRM-05 now also counts payments and a shop's current period (KNOWN-GAPS §113). |
+| Invoices per term, and whether a term can go | `invoices`, `deletable` on `GET /operator/billing-terms` | The retire sentence, and Delete. TRM-05 now also counts payments and a shop's current period (KNOWN-GAPS §114). |
 | How many of each add-on are running | `running`, `boughtThisMonth` on `GET /operator/addons` | The table and the retire sentence. |
-| The sender list as a list | `PATCH /operator/settings/listener_senders` | The route refused the only shape the setting holds (KNOWN-GAPS §114). |
+| The sender list as a list | `PATCH /operator/settings/listener_senders` | The route refused the only shape the setting holds (KNOWN-GAPS §115). |
 
 Still to come, with the screens that need them:
 
 | Need | Where | Why |
 | --- | --- | --- |
-| Shops per attribute | catalogue | "Used by 412 shops"; not built: a shop's attributes sit behind row security (KNOWN-GAPS §115). |
+| Shops per attribute | catalogue | "Used by 412 shops"; not built: a shop's attributes sit behind row security (KNOWN-GAPS §116). |
 | ADM-03, ADM-08, ADM-09, ADM-14, NTC, KYC, SUP | later phases | Placeholders are drawn, nothing more. |
 
 ## 16. Mapping onto `apps/operator`

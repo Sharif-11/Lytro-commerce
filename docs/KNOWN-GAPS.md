@@ -2069,20 +2069,29 @@ order records; that `updated_at` with no zone is Dhaka's time, since news older 
 its consignment number, which today takes a message or staff. A wrong field name shows as an event that moves nothing, and the
 night check still brings the status, so none of these can move an order wrongly except `pending` and `cod_amount`.
 
-## 113. `TRM-05`: a term could be deleted while something still used it — found 2026-11-05, fixed 2026-11-05
+## 113. A direct download can answer for another of the owner's shops — found 2026-11-05, open
+
+The server tells which shop a dashboard call is for from the `x-lytro-shop` header, and answers for the shop the session started on when
+it's missing. A plain link can't send a header, so the Balance statement's CSV (`ledgerExportUrl`) and the export file's download
+(`exportDownloadUrl`) open the wrong shop's data for an owner who has more than one and is on another: that owner's own data, never
+someone else's. A Balance CSV would come from the wrong shop without saying so; an export would answer not found. Payments' CSV
+(Slice 5.8, part 3) fetches through `ApiClient.file` and saves the result, which names the shop as every other call does. The two old
+links can do the same. Nothing is live yet, so nobody has hit this. Left for the owner's word rather than changed in that PR.
+
+## 114. `TRM-05`: a term could be deleted while something still used it — found 2026-11-05, fixed 2026-11-05
 
 The check only asked whether a price named the term. A shop's current period names it with no foreign key, so deleting a term with no
 prices left that shop pointing at nothing, and a payment naming it made the delete fail as a server error rather than a refusal. The
 console's Delete made it reachable. A term is now in use while a price, a payment or a shop's current period names it, and the operator's
 list says so before Delete is tried.
 
-## 114. `LSN-16`: the sender list could not be changed — found 2026-11-05, fixed 2026-11-05
+## 115. `LSN-16`: the sender list could not be changed — found 2026-11-05, fixed 2026-11-05
 
 The setting only holds a list, and the route's validator only took a number, words or a yes/no, so no change could ever reach it. Nothing
 had tried, since the old Settings page drew every value as one field. The route takes a list of strings now; the setting's own check
 still refuses anything else, and every other setting still refuses a list.
 
-## 115. `ATL-01`: how many shops use a platform attribute isn't shown — found 2026-11-05, open
+## 116. `ATL-01`: how many shops use a platform attribute isn't shown — found 2026-11-05, open
 
 The sketch drew "Used by 412 shops" on the attribute library. A shop's product attributes sit behind row security, which only a superuser
 or a role with BYPASSRLS can see across, so the operator's connection would count nothing. No requirement asks for the figure. Showing it

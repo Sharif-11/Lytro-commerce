@@ -68,9 +68,7 @@ fun ColumnScope.MenuScreen(model: AppViewModel, language: String) {
                 }
                 Card(verticalPadding = 3.dp) {
                     MenuRow(LytroIcons.Flask, stringResource(R.string.test_mode), stringResource(R.string.test_mode_v), first = true, onClick = model::startTestMode)
-                    if (hasSupport) {
-                        MenuRow(LytroIcons.Help, stringResource(R.string.help), stringResource(R.string.help_v), onClick = { openSupport(context) })
-                    }
+                    MenuRow(LytroIcons.Help, stringResource(R.string.help), stringResource(R.string.help_v), onClick = { openGuide(context) })
                 }
                 if (model.menuFailed) ErrorLine(LytroIcons.WifiOff, stringResource(R.string.e_net))
             }
