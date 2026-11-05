@@ -14,6 +14,7 @@ const PLACED = [/^docs\//, /^apps\//, /^packages\//, /^[^/]+\.md$/];
 const DASHBOARD_PROTOTYPE = 'docs/brand/lytro-dashboard.html';
 const STOREFRONT_PROTOTYPE = 'docs/brand/lytro-storefront.html';
 const PAYMENT_PAGE_PROTOTYPE = 'docs/brand/lytro-payment-page.html';
+const OPERATOR_PROTOTYPE = 'docs/brand/lytro-operator.html';
 
 function everything(why) {
   return {
@@ -23,6 +24,7 @@ function everything(why) {
     dashboard: true,
     storefront: true,
     paymentPage: true,
+    operator: true,
     walkthrough: true,
     why,
   };
@@ -37,15 +39,17 @@ export function scopeOf(changed, reached) {
   const dashboard = has('dashboard') || changed.includes(DASHBOARD_PROTOTYPE);
   const storefront = has('storefront') || changed.includes(STOREFRONT_PROTOTYPE);
   const paymentPage = has('server') || changed.includes(PAYMENT_PAGE_PROTOTYPE);
-  // The walkthrough is the one browser test against the real server; the other two mock it.
+  const operator = has('operator') || changed.includes(OPERATOR_PROTOTYPE);
+  // The walkthrough is the one browser test against the real server; the others mock it.
   const walkthrough = has('dashboard') || has('server');
   return {
     affected: '--affected',
-    code: reached.length > 0 || dashboard || storefront || paymentPage,
-    browser: dashboard || storefront || paymentPage || walkthrough,
+    code: reached.length > 0 || dashboard || storefront || paymentPage || operator,
+    browser: dashboard || storefront || paymentPage || operator || walkthrough,
     dashboard,
     storefront,
     paymentPage,
+    operator,
     walkthrough,
     why: `This change reaches ${reached.join(', ') || 'no package'}`,
   };
@@ -85,6 +89,7 @@ function run() {
     ['Dashboard browser tests', scope.dashboard],
     ['Storefront browser tests', scope.storefront],
     ['Payment page browser tests', scope.paymentPage],
+    ['Console browser tests', scope.operator],
     ['Walkthrough against the real server', scope.walkthrough],
   ].map(([check, runs]) => `| ${check} | ${runs === false ? 'skipped' : String(runs)} |`);
   const summary = [`${why}.`, '', '| Check | Runs |', '| --- | --- |', ...shown, ''];

@@ -1,34 +1,19 @@
 import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
-import { LanguageToggle, Wordmark } from '@lytronix/ui';
+import { ConsoleWordmark, Eyebrow, OperatorTile } from './lockup';
 
-/** The sign-in screens' frame: the OPERATOR eyebrow and wordmark, one card, nothing else. */
-export function AuthFrame({
-  title,
-  lead,
-  children,
-}: {
-  title: string;
-  lead?: ReactNode;
-  children: ReactNode;
-}): React.JSX.Element {
-  const { t } = useTranslation();
+/** The sign-in screens' frame: the operator lockup over one narrow column, nothing else. */
+export function AuthFrame({ children }: { children: ReactNode }): React.JSX.Element {
   return (
-    <main className="flex min-h-screen flex-col bg-chrome text-fg">
-      <header className="flex h-16 items-center justify-between px-4 sm:px-6">
-        <div>
-          <p className="eyebrow">{t('shell.eyebrow')}</p>
-          <Wordmark height={24} tone="light" />
+    <main className="flex min-h-dvh flex-col bg-page leading-[1.45] text-fg">
+      <div className="mx-auto flex w-full max-w-[440px] flex-col gap-4 px-4 pt-6 pb-10 lg:mt-12">
+        <div className="flex items-center gap-3 pt-2 pb-1">
+          <OperatorTile size={44} />
+          <div className="flex flex-col gap-0.5">
+            <Eyebrow onLight />
+            <ConsoleWordmark size={24} onLight />
+          </div>
         </div>
-        <LanguageToggle />
-      </header>
-      <div className="mx-auto flex w-full max-w-[460px] flex-1 flex-col px-4 pt-6 pb-10">
-        <section className="rounded-sheet border border-line bg-surface p-6 shadow-card sm:p-8">
-          <h1 className="heading text-[24px] text-fg">{title}</h1>
-          {lead ? <p className="mt-2 text-[14px] text-fg-muted">{lead}</p> : null}
-          <div className="mt-6">{children}</div>
-        </section>
-        <p className="mt-6 text-center text-[12px] text-fg-muted">{t('shell.footer')}</p>
+        {children}
       </div>
     </main>
   );

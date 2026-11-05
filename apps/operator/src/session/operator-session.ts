@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { ApiClient } from '@lytronix/api-client';
 
 // The CSRF token is only ever sent once, in the enroll or verify response body (SEC-14); only its hash is
@@ -6,9 +7,9 @@ import { ApiClient } from '@lytronix/api-client';
 const CSRF_STORAGE_KEY = 'lytro.operator.csrf';
 
 /**
- * Holds the operator session's CSRF token. There is no `/me` for operators, so nothing here depends on a
- * fetched profile: `isSignedIn` answers synchronously from the token alone, and a 401 on any console call
- * is what reveals an expired cookie (the console layout then clears this and returns to sign-in).
+ * Holds the operator session's CSRF token. Nothing here depends on a fetched profile: `isSignedIn` answers
+ * synchronously from the token alone, and a 401 on any console call is what reveals an expired cookie (main.tsx
+ * then clears this and returns to sign-in). The server words its refusals in the console's language, not the browser's.
  */
 export class OperatorSession {
   readonly client: ApiClient;
@@ -16,7 +17,11 @@ export class OperatorSession {
 
   constructor(baseUrl = '/api/v1') {
     this.csrfToken = OperatorSession.readStoredToken();
-    this.client = new ApiClient({ baseUrl, getCsrfToken: () => this.csrfToken });
+    this.client = new ApiClient({
+      baseUrl,
+      getCsrfToken: () => this.csrfToken,
+      getLanguage: () => i18n.language || null,
+    });
   }
 
   /** Called after a successful enroll or verify response. */

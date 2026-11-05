@@ -1,54 +1,29 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '@lytronix/ui';
-import { downloadText } from '@/lib/download';
-import { useCopy } from '@/lib/use-copy';
+import { BackupCodes } from './backup-codes';
+import { StepHeading, Steps } from './sign-in-parts';
 
-interface BackupCodesStepProps {
-  codes: string[];
-  onContinue: () => void;
-  continueLabel?: string;
-}
-
-/** Shown exactly once after enrolment or a regeneration (ADM-01): the codes cannot be retrieved later, so
-    copy-all and download are both offered. Shared with the account screen. */
+/** The first sign-in's last step: the ten codes, then into the console. */
 export function BackupCodesStep({
+  email,
   codes,
   onContinue,
-  continueLabel,
-}: BackupCodesStepProps): React.JSX.Element {
+}: {
+  email: string;
+  codes: string[];
+  onContinue: () => void;
+}): React.JSX.Element {
   const { t } = useTranslation();
-  const [copied, copy] = useCopy();
-
   return (
-    <div className="space-y-5">
-      <ul className="mono grid grid-cols-2 gap-x-4 gap-y-2 rounded-card border border-line bg-surface-alt p-4 text-[14px] text-fg">
-        {codes.map((code) => (
-          <li key={code}>{code}</li>
-        ))}
-      </ul>
-      <div className="grid grid-cols-2 gap-2">
-        <Button
-          type="button"
-          tone="outline"
-          onClick={() => {
-            copy(codes.join('\n'));
-          }}
-        >
-          {copied ? t('common.copied') : t('common.copy')}
-        </Button>
-        <Button
-          type="button"
-          tone="outline"
-          onClick={() => {
-            downloadText('lytro-operator-backup-codes.txt', codes.join('\n'));
-          }}
-        >
-          {t('common.download')}
+    <>
+      <Steps done={3} total={3} email={email} />
+      <StepHeading title={t('backupCodes.title')} lead={t('backupCodes.lead')} />
+      <div className="flex min-w-0 flex-col gap-3.5 rounded-card border border-line bg-surface p-4">
+        <BackupCodes codes={codes} />
+        <Button type="button" small onClick={onContinue}>
+          {t('backupCodes.continue')}
         </Button>
       </div>
-      <Button type="button" onClick={onContinue}>
-        {continueLabel ?? t('backupCodes.continue')}
-      </Button>
-    </div>
+    </>
   );
 }

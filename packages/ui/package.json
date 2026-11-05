@@ -2,7 +2,7 @@
   "name": "@lytronix/ui",
   "version": "0.0.0",
   "private": true,
-  "description": "Lytro's design tokens and basic components for the browser apps (D3-12): one definition, themed per app by styles/light.css (the dashboard) or styles/console.css (the operator console).",
+  "description": "Lytro's design tokens and basic components for the browser apps (D3-12): one definition, themed per app by styles/light.css (the dashboard), with styles/console.css over it for the operator console.",
   "type": "module",
   "sideEffects": [
     "*.css"
