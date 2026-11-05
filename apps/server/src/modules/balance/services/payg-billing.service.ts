@@ -1,10 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
 import { LedgerEntryType, RateKey } from '@lytronix/validators';
+import { ApiError } from '../../../common/api-error';
 import type { LedgerEntry } from '../types/ledger-entry';
 import { BalanceService } from './balance.service';
 import { RateService } from './rate.service';
 import { fromPaisa, percentOf, rateToPaisa, toPaisa } from './money';
+
+/** PYG-02, PYG-14: an order's fee as worked out, with the rates it was worked out on. */
+export interface OrderFeeQuote {
+  amount: string;
+  minimum: string;
+  percent: string;
+}
 
 /**
  * PYG-02/PYG-16: the pay-as-you-go order-fee and product-creation-fee charges. Built against the ledger
@@ -36,6 +44,48 @@ export class PayAsYouGoBillingService {
     orderId: string,
     orderTotal: string,
   ): Promise<LedgerEntry | null> {
+    const quote = await this.quoteOrderFee(orderTotal);
+    return quote === null ? null : this.chargeQuote(tx, tenantId, orderId, orderTotal, quote);
+  }
+
+  /**
+   * PYG-03, D5-7's way, read agreed 2026-11-04: before a courier is called, the fee is worked out and the balance, less what is
+   * already held, must cover it, or the booking is refused as a charge would be. The parcel holds it from here until it settles.
+   * Null when the rates make it no charge.
+   */
+  async holdOrderFee(
+    tx: Transaction,
+    tenantId: string,
+    orderTotal: string,
+  ): Promise<OrderFeeQuote | null> {
+    const quote = await this.quoteOrderFee(orderTotal);
+    if (quote === null) return null;
+    const held = await this.balance.heldWithin(tx, tenantId);
+    if (held.frozen) throw new ApiError('tenant_offline', 'BalanceFrozen', {});
+    if (toPaisa(held.amount) < toPaisa(quote.amount)) {
+      throw new ApiError('quota_exceeded', 'InsufficientBalance', { balance: held.amount });
+    }
+    return quote;
+  }
+
+  /**
+   * D5-7's way: the fee held for a booking, charged now the courier has accepted, at the rates it was held at. The parcel exists and
+   * can't be refused, so a balance frozen or run down meanwhile charges nothing, as a held gateway fee does; null then.
+   */
+  async chargeHeldOrderFee(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+    orderTotal: string,
+    quote: OrderFeeQuote,
+  ): Promise<LedgerEntry | null> {
+    const held = await this.balance.heldWithin(tx, tenantId);
+    if (held.frozen || toPaisa(held.amount) < toPaisa(quote.amount)) return null;
+    return this.chargeQuote(tx, tenantId, orderId, orderTotal, quote);
+  }
+
+  /** PYG-02: the greater of the minimum and the percentage, on rates as they stand; null when that comes to nothing. */
+  private async quoteOrderFee(orderTotal: string): Promise<OrderFeeQuote | null> {
     const [min, pct] = await Promise.all([
       this.rates.current(RateKey.PaygOrderFeeMin),
       this.rates.current(RateKey.PaygOrderFeePct),
@@ -46,12 +96,21 @@ export class PayAsYouGoBillingService {
     const pctPaisa = percentOf(toPaisa(orderTotal), pct.value);
     const feePaisa = pctPaisa > minPaisa ? pctPaisa : minPaisa;
     if (feePaisa === 0n) return null;
+    return { amount: fromPaisa(feePaisa), minimum: min.value, percent: pct.value };
+  }
 
+  private chargeQuote(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+    orderTotal: string,
+    quote: OrderFeeQuote,
+  ): Promise<LedgerEntry> {
     return this.balance.charge(tx, {
       tenantId,
       type: LedgerEntryType.OrderFee,
-      amount: fromPaisa(feePaisa),
-      reference: { orderId, orderTotal, minimum: min.value, percent: pct.value },
+      amount: quote.amount,
+      reference: { orderId, orderTotal, minimum: quote.minimum, percent: quote.percent },
     });
   }
 

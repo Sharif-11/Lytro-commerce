@@ -1,0 +1,120 @@
+import { describe, expect, it } from 'vitest';
+import type {
+  CourierAccount,
+  CourierAdapter,
+  ParcelBooking,
+} from '../../src/modules/couriers/ports/courier-adapter';
+import { CourierNoAnswer } from '../../src/modules/couriers/ports/courier-adapter';
+
+/** What a courier's fake must let the suite do, however its own API works. */
+export interface CourierContractSetup {
+  adapter: CourierAdapter;
+  /** A working account, and one the courier refuses. */
+  account: CourierAccount;
+  badAccount: CourierAccount;
+  booking: ParcelBooking;
+  /** Credential values that must never appear in anything an adapter says. */
+  secrets: string[];
+  reset(): void;
+  /** How many parcels the courier now holds. */
+  parcels(): number;
+  /** The next booking is refused for a reason of the courier's own, in these words. */
+  nextBookingRefused(words: string): void;
+  /** The next booking gets no answer, though the parcel is made. */
+  nextBookingLost(): void;
+  /** The courier answers a web page instead. */
+  nextBookingPage(): void;
+}
+
+/**
+ * CRR-21 (Phase 6 Slice 6.1): the suite every courier adapter passes before it is enabled for any shop: what it declares, booking, a
+ * refusal, a lost answer and, where it can, asking by our own number or cancelling. Slice 6.2 adds its message parsing, verification
+ * and dedupe; Slices 6.3 and 6.4 run this same suite on Pathao and RedX, which is what exit criterion 8 rests on.
+ */
+export function courierContract(name: string, setup: () => CourierContractSetup): void {
+  describe(`the courier contract: ${name} (CRR-21)`, () => {
+    it('declares what shared code needs, and nothing of a shop', () => {
+      const { adapter } = setup();
+      expect(adapter.name.length).toBeGreaterThan(0);
+      expect(adapter.credentialFields.length).toBeGreaterThan(0);
+      expect(adapter.limits.addressMax).toBeGreaterThan(0);
+      expect(adapter.limits.nameMax).toBeGreaterThan(0);
+      expect(adapter.limits.noteMax).toBeGreaterThan(0);
+      expect(adapter.limits.phoneDigits).toBe(11);
+      expect(typeof adapter.needsArea).toBe('boolean');
+    });
+
+    it('accepts working credentials without making a parcel, and refuses others', async () => {
+      const contract = setup();
+      contract.reset();
+      await expect(contract.adapter.testConnection(contract.account)).resolves.toEqual({
+        outcome: 'accepted',
+      });
+      const refused = await contract.adapter.testConnection(contract.badAccount);
+      expect(refused).toMatchObject({ outcome: 'refused', refusal: { login: true } });
+      expect(contract.parcels()).toBe(0);
+    });
+
+    it('books one parcel and names its consignment', async () => {
+      const contract = setup();
+      contract.reset();
+      const answer = await contract.adapter.book(contract.account, contract.booking);
+      expect(answer.outcome).toBe('accepted');
+      if (answer.outcome !== 'accepted') return;
+      expect(answer.parcel.consignmentId.length).toBeGreaterThan(0);
+      expect(contract.parcels()).toBe(1);
+    });
+
+    it('returns a refusal in the courier’s own short words, as plain text', async () => {
+      const contract = setup();
+      contract.reset();
+      contract.nextBookingRefused(`<b>Refused</b> ${'x'.repeat(400)}`);
+      const answer = await contract.adapter.book(contract.account, contract.booking);
+      expect(answer.outcome).toBe('refused');
+      if (answer.outcome !== 'refused') return;
+      expect(answer.refusal.login).toBe(false);
+      expect(answer.refusal.message?.length).toBeLessThanOrEqual(200);
+      expect(answer.refusal.message).not.toContain('<b>');
+      expect(contract.parcels()).toBe(0);
+    });
+
+    it('throws no answer when one is lost, never calling it refused', async () => {
+      const contract = setup();
+      contract.reset();
+      contract.nextBookingLost();
+      await expect(
+        contract.adapter.book(contract.account, contract.booking),
+      ).rejects.toBeInstanceOf(CourierNoAnswer);
+      contract.reset();
+      contract.nextBookingPage();
+      await expect(
+        contract.adapter.book(contract.account, contract.booking),
+      ).rejects.toBeInstanceOf(CourierNoAnswer);
+    });
+
+    it('says no credential in anything it answers or throws', async () => {
+      const contract = setup();
+      contract.reset();
+      const said: string[] = [];
+      said.push(JSON.stringify(await contract.adapter.testConnection(contract.badAccount)));
+      contract.nextBookingLost();
+      await contract.adapter.book(contract.account, contract.booking).catch((error: unknown) => {
+        said.push(String(error), JSON.stringify(error));
+      });
+      for (const secret of contract.secrets) {
+        expect(said.join(' ')).not.toContain(secret);
+      }
+    });
+
+    it('asks by our own number, if it says it can', async () => {
+      const contract = setup();
+      contract.reset();
+      const { adapter, account, booking } = contract;
+      const lookUp = adapter.lookUp?.bind(adapter);
+      if (!lookUp) return;
+      await expect(lookUp(account, booking.invoice)).resolves.toEqual({ outcome: 'not_found' });
+      await adapter.book(account, booking);
+      await expect(lookUp(account, booking.invoice)).resolves.toMatchObject({ outcome: 'found' });
+    });
+  });
+}

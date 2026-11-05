@@ -12,6 +12,7 @@ import {
   Req,
   Res,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiBody, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
@@ -22,8 +23,10 @@ import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { headerValue, type HttpResponse } from '../../../common/http';
+import { IdempotencyInterceptor } from '../../../common/idempotency/idempotency.interceptor';
 import { dashboardCaller, requestHashOf } from '../../../common/idempotency/idempotency.service';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
+import { CourierBooking } from '../../couriers/services/courier-booking';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { OrderFulfilment } from '../../orders/services/order-fulfilment';
@@ -65,6 +68,7 @@ import {
   UpdateOrderDto,
   VoidPaymentDto,
 } from '../dto/orders.dto';
+import { BookOrderDto, CancelParcelDto, SettleParcelDto } from '../dto/couriers.dto';
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
 
@@ -88,6 +92,7 @@ export class OrdersController {
     @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
     @Inject(CatalogueRequest) private readonly request: CatalogueRequest,
     @Inject(OrderPicker) private readonly picking: OrderPicker,
+    @Inject(CourierBooking) private readonly booking: CourierBooking,
   ) {}
 
   @Get()
@@ -264,7 +269,8 @@ export class OrdersController {
   @RequirePermission(Permission.OrdersManage)
   @ResponseMessage('OrderCancelled')
   @ApiOperation({
-    summary: 'Cancel an order that has not shipped, with its reason; its stock is let go (ORD-52)',
+    summary:
+      'Cancel an order that has not shipped, with its reason; its stock is let go, or, booked with a courier, comes back, with the parcel cancelled there or confirmed by staff (ORD-52, CRR-28)',
   })
   @ApiBody({ type: CancelOrderDto })
   @ZodResponse({ type: OrderViewDto })
@@ -273,7 +279,7 @@ export class OrdersController {
     @Body(new ZodValidationPipe(CancelOrderDto.schema)) body: CancelOrderDto,
     @Req() request: DashboardRequest,
   ): Promise<OrderView> {
-    return this.orders.cancel(
+    return this.booking.cancelOrder(
       this.request.tenantIdOf(request),
       this.request.idOf(id, 'OrderNotFound'),
       body,
@@ -299,6 +305,77 @@ export class OrdersController {
         this.request.idOf(id, 'OrderNotFound'),
       ),
     };
+  }
+
+  @Post(':id/book')
+  @HttpCode(200)
+  @UseInterceptors(IdempotencyInterceptor)
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('OrderBooked')
+  @ApiOperation({
+    summary:
+      'Book a delivery order with its courier, once per Idempotency-Key: the courier called, then the order handled (counted, charged on pay-as-you-go), its stock out with its serials and moved to processing; a refusal changes nothing, and a lost answer stays open until it is settled (CRR-05 to CRR-10, CRR-18, API-11, D6-7)',
+  })
+  @ApiHeader({ name: 'Idempotency-Key', required: false })
+  @ApiBody({ type: BookOrderDto })
+  @ZodResponse({ type: OrderViewDto })
+  book(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(BookOrderDto.schema)) body: BookOrderDto,
+    @Req() request: DashboardRequest,
+  ): Promise<OrderView> {
+    return this.booking.book(
+      this.shopOf(request),
+      this.request.idOf(id, 'OrderNotFound'),
+      body,
+      this.request.actorOf(request),
+    );
+  }
+
+  @Post(':id/parcel/settle')
+  @HttpCode(200)
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('ParcelSettled')
+  @ApiOperation({
+    summary:
+      "Settle an order's booking from what the courier's panel says after a lost answer, or finish one whose stock wasn't ready (CRR-18, D6-11)",
+  })
+  @ApiBody({ type: SettleParcelDto })
+  @ZodResponse({ type: OrderViewDto })
+  settleParcel(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(SettleParcelDto.schema)) body: SettleParcelDto,
+    @Req() request: DashboardRequest,
+  ): Promise<OrderView> {
+    return this.booking.settle(
+      this.request.tenantIdOf(request),
+      this.request.idOf(id, 'OrderNotFound'),
+      body,
+      this.request.actorOf(request),
+    );
+  }
+
+  @Post(':id/parcel/cancel')
+  @HttpCode(200)
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('ParcelCancelled')
+  @ApiOperation({
+    summary:
+      'Cancel only the booking and keep the order, to book again or mark shipped by hand, with no second fee or count (QTA-01, CRR-28)',
+  })
+  @ApiBody({ type: CancelParcelDto })
+  @ZodResponse({ type: OrderViewDto })
+  cancelParcel(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(CancelParcelDto.schema)) body: CancelParcelDto,
+    @Req() request: DashboardRequest,
+  ): Promise<OrderView> {
+    return this.booking.cancelBooking(
+      this.request.tenantIdOf(request),
+      this.request.idOf(id, 'OrderNotFound'),
+      body,
+      this.request.actorOf(request),
+    );
   }
 
   @Post(':id/ship')

@@ -373,6 +373,8 @@ export const cancelOrderSchema = z
   .object({
     reason: z.nativeEnum(CancelReason),
     note: textField(CANCEL_NOTE_MAX_LENGTH).optional(),
+    // CRR-28: a booked order, where the courier has no cancel call: staff say they cancelled it in the courier's panel.
+    courierCancelled: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
     if (value.reason === CancelReason.Other && value.note === undefined) {
@@ -410,14 +412,14 @@ const trackingLinkField = z
 
 // INV-14, INV-23: the serials leaving with one item, one per unit, as written on the units. On a combo's line, the
 // serial-tracked component they belong to (CMB-05).
-const itemSerialsSchema = z.object({
+export const itemSerialsSchema = z.object({
   lineId: catalogueIdSchema,
   variantId: catalogueIdSchema.optional(),
   serials: serialsField,
 });
 
 /** Each item's serials (a combo's, each component's) are given once. */
-function serialsOnce(
+export function serialsOnce(
   items: { lineId: string; variantId?: string }[] | undefined,
   ctx: Ctx,
   path: string,

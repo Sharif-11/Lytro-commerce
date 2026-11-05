@@ -76,6 +76,7 @@ import {
   PaymentPageReportRepository,
   PaymentListRepository,
   ListenerRepository,
+  CourierRepository,
   GatewayCredentialUseRepository,
   ListenerMessageRepository,
   LytroMessageRepository,
@@ -255,6 +256,11 @@ import { DatabaseService } from './database.service';
         new GatewayCredentialUseRepository(transactions),
     },
     {
+      provide: CourierRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new CourierRepository(transactions),
+    },
+    {
       provide: ListenerMessageRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new ListenerMessageRepository(transactions),
@@ -428,6 +434,7 @@ import { DatabaseService } from './database.service';
     PaymentListRepository,
     ListenerRepository,
     GatewayCredentialUseRepository,
+    CourierRepository,
     ListenerMessageRepository,
     LytroMessageRepository,
     MediaRepository,

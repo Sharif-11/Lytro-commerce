@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { CourierConnections } from '../../couriers/services/courier-connections';
 import type { PaygCandidateRow } from '@lytronix/db';
 import {
   ActorType,
@@ -101,6 +102,7 @@ export class LifecycleService {
     @Inject(MediaEraser) private readonly media: MediaEraser,
     @Inject(BrandEraser) private readonly brand: BrandEraser,
     @Inject(PaymentMethodsEraser) private readonly paymentMethods: PaymentMethodsEraser,
+    @Inject(CourierConnections) private readonly couriers: CourierConnections,
     @Inject(PaymentSessionsEraser) private readonly paymentSessions: PaymentSessionsEraser,
     @Inject(ListenerDevices) private readonly listener: ListenerDevices,
     @Inject(DomainEraser) private readonly domain: DomainEraser,
@@ -356,6 +358,7 @@ export class LifecycleService {
     // Phase 5 Slice 5.2: the payment sessions, which name the orders, and the references that found them.
     await this.paymentSessions.deleteAllForTenant(tenantId);
     await this.listener.deleteAllForTenant(tenantId); // LSN-23: the shop's listener codes and phones.
+    await this.couriers.deleteAllForTenant(tenantId); // LIF-19: connections, parcels and the credential log.
     await this.orders.deleteAllForTenant(tenantId);
     await this.shoppers.deleteAllForTenant(tenantId);
     await this.idempotency.deleteAllForTenant(tenantId);

@@ -1835,6 +1835,164 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Gateway credentials removed.',
     bn: 'গেটওয়ের ক্রেডেনশিয়াল মুছে ফেলা হয়েছে।',
   },
+  CourierAdaptersListed: { en: 'Couriers listed.', bn: 'কুরিয়ারের তালিকা।' },
+  CourierConnectionsListed: {
+    en: 'Connected couriers listed.',
+    bn: 'কানেক্ট করা কুরিয়ারের তালিকা।',
+  },
+  CourierConnected: { en: 'Courier connected.', bn: 'কুরিয়ার কানেক্ট হয়েছে।' },
+  CourierDisconnected: { en: 'Courier disconnected.', bn: 'কুরিয়ার ডিসকানেক্ট হয়েছে।' },
+  CourierDefaultChanged: { en: 'Default courier changed.', bn: 'ডিফল্ট কুরিয়ার বদলানো হয়েছে।' },
+  CourierCredentialUsesListed: {
+    en: 'Courier credential uses listed.',
+    bn: 'কুরিয়ার ক্রেডেনশিয়াল ব্যবহারের তালিকা।',
+  },
+  CourierNotAvailable: {
+    en: 'That courier isn’t available.',
+    bn: 'এই কুরিয়ারটি এখন পাওয়া যাচ্ছে না।',
+  },
+  CourierNotConnected: {
+    en: 'That courier isn’t connected to this shop.',
+    bn: 'এই কুরিয়ারটি আপনার শপে কানেক্ট করা নেই।',
+  },
+  NoDefaultCourier: {
+    en: 'Connect a courier first, or choose one for this order.',
+    bn: 'আগে একটি কুরিয়ার কানেক্ট করুন, অথবা এই অর্ডারের জন্য একটি বেছে নিন।',
+  },
+  CourierRefusedKeys: {
+    en: (p) =>
+      `${String(p['courier'])} didn’t accept these keys, and nothing was saved. It said: ${String(p['message'])}`,
+    bn: (p) =>
+      `${String(p['courier'])} এই কী গ্রহণ করেনি, তাই কিছুই সেভ হয়নি। তারা জানিয়েছে: ${String(p['message'])}`,
+  },
+  CourierRefusedKeysNoReason: {
+    en: (p) => `${String(p['courier'])} didn’t accept these keys, and nothing was saved.`,
+    bn: (p) => `${String(p['courier'])} এই কী গ্রহণ করেনি, তাই কিছুই সেভ হয়নি।`,
+  },
+  CourierNotAnswering: {
+    en: (p) =>
+      `${String(p['courier'])} isn’t answering right now. Nothing was sent, so try again in a minute.`,
+    bn: (p) =>
+      `${String(p['courier'])} এখন সাড়া দিচ্ছে না। কিছুই পাঠানো হয়নি, এক মিনিট পরে আবার চেষ্টা করুন।`,
+  },
+  CourierConnectTooManyTries: {
+    en: 'Too many tries with keys the courier refused. Check them in its panel, then try again in five minutes.',
+    bn: 'কুরিয়ার বারবার কী গ্রহণ করেনি। তাদের প্যানেলে কী চেক করে পাঁচ মিনিট পরে আবার চেষ্টা করুন।',
+  },
+  CourierCallsPerMinute: {
+    en: 'Too many bookings in a minute. Wait a moment and try again.',
+    bn: 'এক মিনিটে অনেক বেশি বুকিং হয়ে গেছে। একটু অপেক্ষা করে আবার চেষ্টা করুন।',
+  },
+  CourierRefused: {
+    en: (p) =>
+      `${String(p['courier'])} refused this, and the order is unchanged. It said: ${String(p['message'])}`,
+    bn: (p) =>
+      `${String(p['courier'])} এটি নেয়নি, অর্ডারে কোনো পরিবর্তন হয়নি। তারা জানিয়েছে: ${String(p['message'])}`,
+  },
+  CourierRefusedNoReason: {
+    en: (p) =>
+      `${String(p['courier'])} refused this, and the order is unchanged. It gave no reason, so check its panel.`,
+    bn: (p) =>
+      `${String(p['courier'])} এটি নেয়নি, অর্ডারে কোনো পরিবর্তন হয়নি। কারণ জানায়নি, তাদের প্যানেলে দেখুন।`,
+  },
+  CourierAnswerLost: {
+    en: (p) =>
+      `${String(p['courier'])} didn’t answer in time, so this parcel may or may not exist. Don’t book it again yet: check the order in a few minutes, or look in the courier’s panel.`,
+    bn: (p) =>
+      `${String(p['courier'])} সময়মতো উত্তর দেয়নি, তাই পার্সেলটি বুক হয়েছে কিনা নিশ্চিত নয়। এখনই আবার বুক করবেন না: কয়েক মিনিট পরে অর্ডারটি দেখুন, অথবা কুরিয়ারের প্যানেলে চেক করুন।`,
+  },
+  CourierNeedsRecipient: {
+    en: (p) =>
+      `${String(p['courier'])} needs the customer’s name, phone and address, and this order doesn’t have them all.`,
+    bn: (p) =>
+      `${String(p['courier'])}-এর জন্য কাস্টমারের নাম, ফোন ও ঠিকানা লাগবে, এই অর্ডারে সবগুলো নেই।`,
+  },
+  CourierNameTooLong: {
+    en: (p) =>
+      `${String(p['courier'])} takes a name of up to ${String(p['limit'])} characters. Shorten it on the order, or choose another courier.`,
+    bn: (p) =>
+      `${String(p['courier'])} সর্বোচ্চ ${String(p['limit'])} অক্ষরের নাম নেয়। অর্ডারে নামটি ছোট করুন, অথবা অন্য কুরিয়ার বেছে নিন।`,
+  },
+  CourierNameTooShort: {
+    en: (p) =>
+      `${String(p['courier'])} needs a name of at least ${String(p['limit'])} characters. Change it on the order, or choose another courier.`,
+    bn: (p) =>
+      `${String(p['courier'])}-এর জন্য নাম কমপক্ষে ${String(p['limit'])} অক্ষরের হতে হবে। অর্ডারে নামটি বদলান, অথবা অন্য কুরিয়ার বেছে নিন।`,
+  },
+  CourierPhoneNotTaken: {
+    en: (p) =>
+      `${String(p['courier'])} needs a mobile number of ${String(p['limit'])} digits. Correct it on the order.`,
+    bn: (p) =>
+      `${String(p['courier'])}-এর জন্য ${String(p['limit'])} সংখ্যার মোবাইল নম্বর লাগবে। অর্ডারে নম্বরটি ঠিক করুন।`,
+  },
+  CourierAddressTooLong: {
+    en: (p) =>
+      `${String(p['courier'])} takes an address of up to ${String(p['limit'])} characters, thana and district included. Shorten it on the order, or choose another courier.`,
+    bn: (p) =>
+      `${String(p['courier'])} থানা ও জেলাসহ সর্বোচ্চ ${String(p['limit'])} অক্ষরের ঠিকানা নেয়। অর্ডারে ঠিকানাটি ছোট করুন, অথবা অন্য কুরিয়ার বেছে নিন।`,
+  },
+  CourierAddressTooShort: {
+    en: (p) =>
+      `${String(p['courier'])} needs an address of at least ${String(p['limit'])} characters. Add to it on the order.`,
+    bn: (p) =>
+      `${String(p['courier'])}-এর জন্য ঠিকানা কমপক্ষে ${String(p['limit'])} অক্ষরের হতে হবে। অর্ডারে ঠিকানাটি আরও লিখুন।`,
+  },
+  CourierNoteTooLong: {
+    en: (p) => `${String(p['courier'])} takes a note of up to ${String(p['limit'])} characters.`,
+    bn: (p) => `${String(p['courier'])} সর্বোচ্চ ${String(p['limit'])} অক্ষরের নোট নেয়।`,
+  },
+  CourierAreaNeeded: {
+    en: (p) => `Choose the ${String(p['courier'])} area for this address before booking.`,
+    bn: (p) => `বুক করার আগে এই ঠিকানার জন্য ${String(p['courier'])}-এর এরিয়া বেছে নিন।`,
+  },
+  CourierWeightNeeded: {
+    en: (p) =>
+      `${String(p['courier'])} needs a weight, and this order’s items don’t all have one. Enter it here.`,
+    bn: (p) =>
+      `${String(p['courier'])}-এর জন্য ওজন লাগবে, এই অর্ডারের সব প্রোডাক্টে ওজন দেওয়া নেই। এখানে ওজন লিখুন।`,
+  },
+  CourierWeightOutOfRange: {
+    en: (p) => `${String(p['courier'])} takes a weight of up to ${String(p['limit'])} kg.`,
+    bn: (p) => `${String(p['courier'])} সর্বোচ্চ ${String(p['limit'])} কেজি পর্যন্ত নেয়।`,
+  },
+  OrderBooked: { en: 'Booked with the courier.', bn: 'কুরিয়ারে বুক হয়েছে।' },
+  OrderAlreadyBooked: {
+    en: 'This order is already booked with a courier.',
+    bn: 'এই অর্ডারটি আগেই কুরিয়ারে বুক করা হয়েছে।',
+  },
+  OrderBookingOpen: {
+    en: 'This order’s booking isn’t finished yet. Settle it first.',
+    bn: 'এই অর্ডারের বুকিং এখনো শেষ হয়নি। আগে সেটি ঠিক করুন।',
+  },
+  OrderBookedCancelOnItsPage: {
+    en: 'This order is booked with a courier, so cancel it from its page.',
+    bn: 'এই অর্ডারটি কুরিয়ারে বুক করা আছে, তাই অর্ডারের পেজ থেকে ক্যানসেল করুন।',
+  },
+  OrderStockHasLeft: {
+    en: 'This order’s stock left with its booking, so its items and totals can’t change. Cancel it and enter a new order instead.',
+    bn: 'বুকিংয়ের সাথে এই অর্ডারের স্টক বের হয়ে গেছে, তাই প্রোডাক্ট বা টোটাল বদলানো যাবে না। অর্ডারটি ক্যানসেল করে নতুন অর্ডার দিন।',
+  },
+  ParcelSettled: { en: 'Booking settled.', bn: 'বুকিং ঠিক করা হয়েছে।' },
+  ParcelCancelled: {
+    en: 'Booking cancelled. The order stays, to book again or mark shipped.',
+    bn: 'বুকিং ক্যানসেল হয়েছে। অর্ডারটি আছে, আবার বুক করতে পারবেন অথবা শিপড মার্ক করতে পারবেন।',
+  },
+  ParcelNothingToSettle: {
+    en: 'This order has no booking to settle.',
+    bn: 'এই অর্ডারে ঠিক করার মতো কোনো বুকিং নেই।',
+  },
+  ParcelNothingToCancel: {
+    en: 'This order has no booking to cancel.',
+    bn: 'এই অর্ডারে ক্যানসেল করার মতো কোনো বুকিং নেই।',
+  },
+  ParcelCancelConfirmNeeded: {
+    en: 'Cancel this parcel in the courier’s panel first, then confirm here that you did.',
+    bn: 'আগে কুরিয়ারের প্যানেলে পার্সেলটি ক্যানসেল করুন, তারপর এখানে নিশ্চিত করুন।',
+  },
+  SerialBeingBooked: {
+    en: 'One of these serials is being booked with another order. Choose another, or try again in a moment.',
+    bn: 'এর মধ্যে একটি সিরিয়াল অন্য অর্ডারে বুক হচ্ছে। অন্য সিরিয়াল বেছে নিন, অথবা একটু পরে আবার চেষ্টা করুন।',
+  },
   GatewayCredentialsNeeded: {
     en: 'Save this account’s gateway credentials first.',
     bn: 'আগে এই অ্যাকাউন্টের গেটওয়ে ক্রেডেনশিয়াল সেভ করুন।',

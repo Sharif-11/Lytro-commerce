@@ -347,6 +347,13 @@ export enum AuditAction {
   GatewayCredentialsSaved = 'gateway_credentials_saved',
   GatewayCredentialsRemoved = 'gateway_credentials_removed',
   GatewayAccountSelected = 'gateway_account_selected',
+  // AUD-01, CRR-02 to CRR-05, CRR-20 (Phase 6 Slice 6.1): a shop's courier connections.
+  CourierConnected = 'courier_connected',
+  CourierDisconnected = 'courier_disconnected',
+  CourierDefaultChanged = 'courier_default_changed',
+  // Slice 6.1, read agreed 2026-11-04: a booking cancelled with the order kept, and a lost answer settled by staff (D6-11).
+  ParcelCancelled = 'parcel_cancelled',
+  ParcelSettled = 'parcel_settled',
   PaymentWayChosen = 'payment_way_chosen',
   PaymentRejected = 'payment_rejected',
   OrderPaymentRefunded = 'order_payment_refunded',
@@ -486,6 +493,8 @@ export enum QueueName {
   ListenerPurgeTick = 'listener_purge_tick',
   // VER-09 (Slice 5.7): a checkout that ran out with no return from the wallet is asked after before it closes.
   GatewayReconcileTick = 'gateway_reconcile_tick',
+  // D6-11 (Phase 6 Slice 6.1): bookings whose answer was lost are asked after, and accepted ones not yet settled are finished.
+  CourierBookingTick = 'courier_booking_tick',
   // MED-03: an uploaded file to validate and turn into what is stored; MED-07, MED-09: stored files to delete, with the
   // deletion job's own key.
   MediaProcess = 'media_process',
@@ -1315,6 +1324,43 @@ export enum PaymentWay {
 export enum GatewayResult {
   Cancelled = 'cancelled',
   Failed = 'failed',
+}
+
+// CRR-01 (Phase 6): the couriers there are adapters for. Steadfast first, then Pathao and RedX (D6-2).
+export enum CourierKey {
+  Steadfast = 'steadfast',
+}
+
+// CRR-15, D6-4: a connection whose login the courier refuses makes no more calls until it is fixed.
+export enum CourierConnectionState {
+  Active = 'active',
+  LoginRefused = 'login_refused',
+}
+
+// CRR-06, CRR-08, CRR-18, CRR-28, D6-11: a parcel's booking. `booking` is out with the courier; `unknown` lost its answer, so it
+// may exist; `refused` never existed; `cancelled` was booked and has been called off.
+export enum ParcelState {
+  Booking = 'booking',
+  Booked = 'booked',
+  Unknown = 'unknown',
+  Refused = 'refused',
+  Cancelled = 'cancelled',
+}
+
+// CRR-08: the states in which a parcel stands for its order, so a second can't be booked. The unique index in migration 0107
+// (courier_parcels_live_key) spells out the same three.
+export const LIVE_PARCEL_STATES: readonly ParcelState[] = [
+  ParcelState.Booking,
+  ParcelState.Booked,
+  ParcelState.Unknown,
+];
+
+// SEC-11 (Slice 6.1): what a stored courier credential was used for.
+export enum CourierCallAction {
+  Test = 'test',
+  Book = 'book',
+  LookUp = 'look_up',
+  Cancel = 'cancel',
 }
 
 // SEC-11 (Slice 5.7): what a stored gateway credential was used for.

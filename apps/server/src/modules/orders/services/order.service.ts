@@ -14,6 +14,7 @@ import {
   bdMobileNumber,
   CallOutcome,
   FieldProblemCode,
+  FulfillmentStatus,
   FulfilmentType,
   fulfilmentProblems,
   MEASURED_STOCK_UNITS,
@@ -21,6 +22,7 @@ import {
   OrderPaymentStatus,
   OrderSource,
   OrderStatus,
+  ParcelState,
   ServerFieldProblemCode,
   SHIPPED_FULFILLMENT,
   StatusOverride,
@@ -635,6 +637,9 @@ export class OrderService {
     return this.store.run(tenantId, async (tx) => {
       const order = await this.find(tx, tenantId, orderId, true);
       this.refuseClosed(order);
+      const live = await this.store.liveParcel(tx, tenantId, order.id);
+      this.refuseOpenBooking(live);
+      this.refuseStockEdit(order, input);
       const merged = {
         customerName: input.customerName !== undefined ? input.customerName : order.customerName,
         phone: input.phone !== undefined ? input.phone : order.customerPhone,
@@ -828,12 +833,14 @@ export class OrderService {
         { type: 'order', id: order.id },
         { orderNumber: order.orderNumber, fields: Object.keys(input) },
       );
-      return this.viewWithin(
+      const view = await this.viewWithin(
         tx,
         tenantId,
         updated,
         this.warningsOf(destination, planned, variants),
       );
+      // ORD-11: what the courier was told stays as it was, so whoever changed this is told so.
+      return live !== null ? { ...view, courierRecordUnchanged: true } : view;
     });
   }
 
@@ -866,6 +873,7 @@ export class OrderService {
       if (input.outcome === CallOutcome.Cancelled && this.shipped(order)) {
         throw new ApiError('conflict', 'OrderShippedReturnInstead', {});
       }
+      if (input.outcome === CallOutcome.Cancelled) await this.refuseBooked(tx, tenantId, order);
       await this.store.insertCall(tx, tenantId, {
         orderId: order.id,
         outcome: input.outcome,
@@ -956,6 +964,7 @@ export class OrderService {
         throw new ApiError('conflict', 'OrderIsCancelled', {});
       }
       if (this.shipped(order)) throw new ApiError('conflict', 'OrderShippedReturnInstead', {});
+      await this.refuseBooked(tx, tenantId, order);
       const updated = await this.cancelWithin(
         tx,
         tenantId,
@@ -990,6 +999,7 @@ export class OrderService {
       if (order.statusOverride === StatusOverride.Cancelled) {
         throw new ApiError('conflict', 'OrderIsCancelled', {});
       }
+      this.refuseOpenBooking(await this.store.liveParcel(tx, tenantId, order.id));
       const to = input.override as StatusOverride | null;
       if (to === order.statusOverride && order.holdUntil === null) {
         return this.viewWithin(tx, tenantId, order, []);
@@ -1029,6 +1039,13 @@ export class OrderService {
     await this.store.run(tenantId, async (tx) => {
       const order = await this.find(tx, tenantId, orderId, true);
       if (this.shipped(order) || PAID.includes(order.paymentStatus)) {
+        throw new ApiError('conflict', 'OrderCannotBeDeleted', {});
+      }
+      // CRR-28: an order booked with a courier has stock out and a parcel to answer for, so it is cancelled instead.
+      if (
+        order.fulfillmentStatus === FulfillmentStatus.Processing ||
+        (await this.store.liveParcel(tx, tenantId, order.id)) !== null
+      ) {
         throw new ApiError('conflict', 'OrderCannotBeDeleted', {});
       }
       await this.reservations.releaseOrder(tx, tenantId, order.id);
@@ -1100,12 +1117,79 @@ export class OrderService {
     return SHIPPED_FULFILLMENT.includes(order.fulfillmentStatus);
   }
 
+  /** CRR-08, D6-11: while a booking is out, its answer lost, or not settled, the order doesn't change under it. */
+  private refuseOpenBooking(parcel: { state: ParcelState; settledAt: Date | null } | null): void {
+    if (parcel === null || (parcel.state === ParcelState.Booked && parcel.settledAt !== null)) {
+      return;
+    }
+    throw new ApiError('conflict', 'OrderBookingOpen', { parcelState: parcel.state });
+  }
+
+  /** CRR-28: a booked order is cancelled by the route that deals with its parcel, never by one that would lose its stock. */
+  private async refuseBooked(tx: Transaction, tenantId: string, order: OrderRecord): Promise<void> {
+    if (
+      order.fulfillmentStatus === FulfillmentStatus.Processing ||
+      (await this.store.liveParcel(tx, tenantId, order.id)) !== null
+    ) {
+      throw new ApiError('conflict', 'OrderBookedCancelOnItsPage', {});
+    }
+  }
+
+  /**
+   * ORD-11, D6-7 (Slice 6.1): once booked its stock has left, so its items and whatever moves its totals stay as they were. The
+   * customer's details and notes can still change, and the courier's record doesn't change with them.
+   */
+  private refuseStockEdit(order: OrderRecord, input: UpdateOrderInput): void {
+    if (order.fulfillmentStatus !== FulfillmentStatus.Processing) return;
+    if (
+      input.items !== undefined ||
+      input.discount !== undefined ||
+      input.deliveryCharge !== undefined ||
+      input.locationId !== undefined ||
+      input.fulfilmentType !== undefined
+    ) {
+      throw new ApiError('conflict', 'OrderStockHasLeft', {});
+    }
+  }
+
   /** ORD-11: a cancelled order is final, and a shipped one changes by a return. */
   private refuseClosed(order: OrderRecord): void {
     if (order.statusOverride === StatusOverride.Cancelled) {
       throw new ApiError('conflict', 'OrderIsCancelled', {});
     }
     if (this.shipped(order)) throw new ApiError('conflict', 'OrderHasShipped', {});
+  }
+
+  /**
+   * CRR-28, ORD-52: cancels a booked order with its reason, in the caller's transaction, once its parcel and stock are dealt with.
+   * Its fee and count stay (PYG-04, QTA-01).
+   */
+  async cancelBookedWithin(
+    tx: Transaction,
+    tenantId: string,
+    order: OrderRecord,
+    input: CancelOrderInput,
+    who: ResolvedActor,
+    now: Date,
+  ): Promise<OrderView> {
+    const updated = await this.cancelWithin(
+      tx,
+      tenantId,
+      order,
+      input.reason,
+      input.note ?? null,
+      who,
+      now,
+    );
+    await this.activity.record(
+      tx,
+      tenantId,
+      who,
+      AuditAction.OrderStatusChanged,
+      { type: 'order', id: order.id },
+      { orderNumber: order.orderNumber, to: StatusOverride.Cancelled, reason: input.reason },
+    );
+    return this.viewWithin(tx, tenantId, updated, []);
   }
 
   /**
@@ -1124,6 +1208,7 @@ export class OrderService {
     if (
       order.statusOverride === StatusOverride.Cancelled ||
       this.shipped(order) ||
+      order.fulfillmentStatus === FulfillmentStatus.Processing ||
       order.paymentStatus !== OrderPaymentStatus.PendingVerification
     ) {
       return false;
@@ -1541,11 +1626,12 @@ export class OrderService {
     warnings: OrderWarning[],
     limitPrompt: OrderView['limitPrompt'] = null,
   ): Promise<OrderView> {
-    const [lines, calls, history, payments] = [
+    const [lines, calls, history, payments, parcel] = [
       await this.store.listLines(tx, tenantId, [order.id]),
       await this.store.listCalls(tx, tenantId, order.id),
       await this.store.listHistory(tx, tenantId, order.id),
       await this.store.listPayments(tx, tenantId, order.id),
+      await this.store.latestParcel(tx, tenantId, order.id),
     ];
     const components = await this.store.listComponents(
       tx,
@@ -1657,6 +1743,27 @@ export class OrderService {
         sessionId: row.sessionId,
       })),
       warnings,
+      parcel:
+        parcel === null
+          ? null
+          : {
+              courierKey: parcel.courierKey,
+              state: parcel.state,
+              invoice: parcel.invoice,
+              consignmentId: parcel.consignmentId,
+              trackingCode: parcel.trackingCode,
+              courierStatus: parcel.courierStatus,
+              cod: parcel.cod,
+              note: parcel.note,
+              weightKg: parcel.weightKg,
+              areaCode: parcel.areaCode,
+              deliveryCharge: parcel.deliveryCharge,
+              refusal: parcel.refusal,
+              settled: parcel.settledAt !== null,
+              settleProblem: parcel.settleProblem,
+              createdAt: parcel.createdAt,
+            },
+      courierRecordUnchanged: false,
       limitPrompt,
     };
   }
