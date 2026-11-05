@@ -91,7 +91,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | Slice | To settle |
 |---|---|
 | 6.1 | Settled 2026-11-04: see Slice 6.1. |
-| 6.2 | When a Steadfast parcel counts as shipped: it has no pickup status, and `pending` means "with us, not yet attempted", so a real parcel should decide. Cash collected that differs from what's due. A delivered report the courier later reverses. A `cancelled` parcel: stop checking at once, or follow Steadfast's return statuses until it is back. Steadfast's other events (an address or COD changed in its panel, cancel and return requests) and its return request as a way to get back a parcel already picked up. A message with no token, since Steadfast's token is optional. A shop whose Steadfast account already sends its one address elsewhere. What the shopper's tracking page shows. Showing a connection's token again after connecting (CRR-03). |
+| 6.2 | Settled 2026-11-05: see Slice 6.2. |
 | 6.3 | **A real booking in Pathao's sandbox with no area.** If its address reading isn't good enough, D6-5 reopens for Pathao alone, and it joins RedX's area list. Keeping the merchant's password, or only the refresh token and asking again when that lapses. Which store a shop books from (required; a new store waits about an hour for approval). Whole taka: `amount_to_collect` is an integer and Lytro's amounts have decimals. Weight: required, 0.5 to 10 kg, and a product may have none. `item_quantity` is an integer and Lytro's quantities can be decimal. Whether the handshake carries the secret, and the answer to its later events. |
 | 6.4 | How RedX's areas are matched to thanas, and what the operator does with the unmatched. How often the list is refreshed. Keeping RedX's secret, which travels in the address, out of every log. What to send as `value`, which it requires, and weight in grams. A partly delivered parcel: it shows only in `delivery_type`, with no amount collected in the message. Its cancel answers "Request Accepted": whether that is enough to cancel the order. Which pickup store a shop books from. |
 | 6.5 | Steadfast's payouts: read on the night run, or when its payout message arrives. Whether its one-call "what we owe you" figure earns a line, given D6-9 has no settlement page. Profit's wording, and INV-18's delivery charges. |
@@ -182,7 +182,8 @@ which bears directly on FRD-02 and OD-47.
 - **News has one path.** A message, the night check and Sync all end in one method, which ignores repeats and old news,
   maps the status through the adapter, moves the order through `OrderFulfilment` and adds the timeline entry.
 - **Messages are stored first.** The courier gets its answer inside its limit (Steadfast 5 seconds, Pathao 10) and the
-  news is applied off a queue, so a slow apply never looks like a failed delivery. The address's token finds the shop
+  news is applied just after the answer, with the minute pass applying anything a restart left stored, so a slow apply
+  never looks like a failed delivery. The address's token finds the shop
   before any adapter code runs (CRR-11). The raw body is kept for Steadfast's signature. Steadfast retries twice in
   about 2 minutes, so an outage can lose a message: the night check is what makes that harmless.
 - **The night check** runs on one server at a time, picks due parcels from an index, spreads them out and paces each
@@ -200,10 +201,10 @@ In the `tenant` schema with RLS forced, unless marked `control`; money `numeric(
 
 | Table | What | For |
 |---|---|---|
-| `courier_connections` | courier key, sealed credentials, default flag, state; Slice 6.2 adds the sealed message token and last message time | CRR-02 to CRR-05, CRR-20 |
+| `courier_connections` | courier key, sealed credentials, default flag, state; sealed message address token and signing token, last message time, when a message last failed verification, when the owner was last told of a broken paste | CRR-02 to CRR-05, CRR-20 |
 | `control.courier_message_routes` | the hash of an address's token → shop and courier, so a message finds its shop before RLS applies; removed on disconnect | CRR-11, CRR-20 |
-| `courier_parcels` | an order's parcels, one live at a time: courier, booking state (`booking`, `booked`, `unknown`, `refused`, `cancelled`), invoice, consignment ID, tracking code, the courier's status, COD sent, weight, note, area, delivery charge, its refusal, the fee held and its rates, whether it took the order's place, the serials named, when it settled and any problem doing so, its look-ups; Slices 6.2 and 6.5 add our reading of the status, cash collected, payout ID and amount, paid flag, last news, last change, last check | CRR-06, CRR-08, CRR-14, CRR-15, CRR-17, CUS-12 |
-| `courier_events` | a parcel's news: where it came from (message, check, Sync), a unique dedupe key, the raw status, messages in Bangla and English, its time | CRR-12, CRR-13 |
+| `courier_parcels` | an order's parcels, one live at a time: courier, booking state (`booking`, `booked`, `unknown`, `refused`, `cancelled`), invoice, consignment ID, tracking code, the courier's status, COD sent, weight, note, area, delivery charge, its refusal, the fee held and its rates, whether it took the order's place, the serials named, when it settled and any problem doing so, its look-ups; our reading of the status, the cash its courier reports, a COD changed in its panel, what staff should look at, last news, last change, last message, last check, when checks stopped; Slice 6.5 adds payout ID and amount and the paid flag | CRR-06, CRR-08, CRR-14, CRR-15, CRR-17, CUS-12 |
+| `courier_events` | a parcel's news: where it came from (message, check, Sync), a unique dedupe key, the raw status, our reading, messages in Bangla and English, its time, what the adapter read, whether it has been applied | CRR-12, CRR-13 |
 | `courier_credential_uses` | every outbound call with a shop's credentials, without them | SEC-11 |
 | `control.courier_areas` | as `DATABASE-SCHEMA.md` §2.5 | CUS-10 |
 | `control.courier_adapters` | an adapter's `retiring` state | CRR-23 to CRR-25 |
@@ -223,11 +224,12 @@ the planned `area_courier_key` and `courier_area_code` order columns are dropped
 | Team, `couriers:manage` | `PUT /api/v1/couriers/connections/:key/default` | the default courier (CRR-05) |
 | Team, `orders:manage` | `POST /api/v1/orders/:id/book` | books, with `Idempotency-Key` (API-11, CRR-06 to CRR-10) |
 | Team, `orders:manage` | `POST /api/v1/orders/:id/parcel/sync` | Sync (CRR-14) |
+| Team, `couriers:manage` | `GET`, `POST /api/v1/couriers/connections/:key/address` | what to paste, shown again, or a new pair (CRR-02, CRR-03) |
 | Team, `orders:manage` | `POST /api/v1/orders/:id/parcel/settle` | staff settle a lost answer (D6-11), or finish a parcel whose stock wasn't ready |
 | Team, `orders:manage` | `POST /api/v1/orders/:id/parcel/cancel` | only the booking is cancelled and the order stays (QTA-01, Slice 6.1's read) |
 | Team, `orders:manage` | `POST /api/v1/orders/:id/cancel`, extended | a booked order's cancel (CRR-28) |
 | Team, `orders:manage` | `GET /api/v1/locations/:locationId/courier-areas` | a courier's areas in a thana (CUS-12), now staff only |
-| A courier | `POST /webhooks/couriers/:token` | its messages (CRR-11 to CRR-13, CRR-27) |
+| A courier | `POST /api/v1/webhooks/couriers/:token` | its messages (CRR-11 to CRR-13, CRR-27) |
 | Operator | `GET /api/v1/operator/tenants/:id/courier-credential-uses` | a shop's credential log (SEC-11) |
 | Operator | area list read, edit and refresh; `retiring`; what blocks removal | CUS-10, CRR-23, CRR-24 |
 
@@ -291,6 +293,40 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
   broken-paste notice.
 - **Done when:** exit criteria 2, 4, 5 and 7 pass for Steadfast. **Checkpoint 6A:** Steadfast works end to end on the
   server, and one real parcel has been booked with a real message received (exit criterion 9, Steadfast's half).
+- **Read, agreed 2026-11-05:**
+  - **Shipped:** at Steadfast's `pending`, "with us, not yet attempted". The first real parcel confirms it; if `pending` turns out to
+    come before collection, it is one line in the adapter's status map.
+  - **Cash that differs from what's due:** the order records what the courier reports, so ৳900 of ৳1,000 leaves ৳100 due and staff
+    are told. More than is due records what's due, and staff are told of the extra. No amount records what's due, as Mark
+    delivered does; a partly delivered report with no amount records nothing, because nothing says how much.
+  - **A delivered report the courier later reverses:** the status and cash stay. The parcel shows the courier's new status and staff
+    are told, and they decide with the tools they have.
+  - **A `cancelled` parcel:** checks stop at once. Messages still show, and stock only returns when staff count it. An order not yet
+    shipped can be cancelled with no confirmation, since the courier has already said it is coming back.
+  - **Other events:** shown in the parcel's history, moving nothing. A COD changed in the panel is also saved on the parcel and
+    flagged. Asking for a parcel back stays in Steadfast's panel.
+  - **A message with no good signature:** refused and logged. The connection shows the token is missing and the owner is told, at most
+    once a day; the night check and Sync keep orders moving.
+  - **An account whose one address is taken:** the night check and Sync serve it. Connecting never needs the paste (D6-3).
+  - **The address and token:** shown again at any time to `couriers:manage`, with a way to make a new pair, because neither is the
+    courier's credential. CRR-03 amended.
+  - **Tracking:** the steps plus the courier's latest message, once shipped, as plain text cut to [200] characters; never the COD, the
+    charge, a refusal or a change made in a panel.
+  - **One pull request.**
+  - **The real test:** a separate Steadfast profile for Lytro, if the owner finds in the panel that a profile has its own message
+    address; otherwise this reopens. It needs a tunnel to a local server and the dev database migrated, which needs the owner's word.
+- **Found in building it, beyond the read:**
+  - News is applied just after the courier has its answer, not through a job queue: it is durable from the moment it is stored,
+    and the minute pass applies what a restart left, so a queue would add a wait and nothing else.
+  - A message about a parcel whose answer was lost proves it exists, so it settles the lost answer first (D6-11).
+  - A login Steadfast refuses during a check stops that connection's calls for the run at once. A test call then decides: if it
+    passes, the 401 was a parcel on another profile and nothing is marked; if it fails too, the connection is marked and the owner
+    told, and it asks nothing more until the keys change (§3.6). Booking still only shows a refusal, because a person is there.
+  - A check can't give an amount, since Steadfast's status call names none, so a delivered parcel found by a check or Sync records what's
+    due. Only a message brings a differing amount.
+  - The night's time is fixed in its schedule; the other three figures are platform settings. CRR-15 says "at about".
+  - **Not done here: the real parcel.** Exit criterion 9 and checkpoint 6A wait for the owner's Steadfast key and profile, and
+    `KNOWN-GAPS` §112 lists what it must confirm.
 
 ### Slice 6.3: Pathao
 - **Depends on:** 6.2.

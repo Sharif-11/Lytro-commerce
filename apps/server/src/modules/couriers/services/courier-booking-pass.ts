@@ -8,6 +8,7 @@ import { COURIER_CLOCK, COURIER_STORE } from '../tokens';
 import { CourierBooking, FIRST_LOOK_UP_AFTER_MS } from './courier-booking';
 import { CourierCalls } from './courier-calls';
 import { CourierConnections } from './courier-connections';
+import { CourierNewsPath } from './courier-news-path';
 
 // How many of a shop's parcels one pass looks at.
 const PER_SHOP = 50;
@@ -38,6 +39,7 @@ export class CourierBookingPass {
     @Inject(CourierBooking) private readonly booking: CourierBooking,
     @Inject(CourierConnections) private readonly connections: CourierConnections,
     @Inject(CourierCalls) private readonly calls: CourierCalls,
+    @Inject(CourierNewsPath) private readonly news: CourierNewsPath,
     @Inject(COURIER_CLOCK) private readonly clock: () => Date,
   ) {}
 
@@ -57,6 +59,8 @@ export class CourierBookingPass {
   private async runShop(tenantId: string): Promise<number> {
     const now = this.clock();
     const stuckBefore = new Date(now.getTime() - FIRST_LOOK_UP_AFTER_MS);
+    // Slice 6.2: a message stored and not applied, say because the server restarted just after answering it.
+    await this.news.applyDue(tenantId, new Date(now.getTime() - MINUTE_MS));
     const due = await this.store.run(tenantId, (tx) =>
       this.store.dueForPass(tx, tenantId, stuckBefore, now, PER_SHOP),
     );

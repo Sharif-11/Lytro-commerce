@@ -1993,6 +1993,27 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'One of these serials is being booked with another order. Choose another, or try again in a moment.',
     bn: 'এর মধ্যে একটি সিরিয়াল অন্য অর্ডারে বুক হচ্ছে। অন্য সিরিয়াল বেছে নিন, অথবা একটু পরে আবার চেষ্টা করুন।',
   },
+  CourierAddressNotKnown: {
+    en: 'This address isn’t known.',
+    bn: 'এই ঠিকানাটি চেনা যায়নি।',
+  },
+  CourierMessageNotVerified: {
+    en: 'This message could not be verified.',
+    bn: 'এই মেসেজটি ভেরিফাই করা যায়নি।',
+  },
+  CourierAddressShown: {
+    en: 'Address and token shown.',
+    bn: 'ঠিকানা ও টোকেন দেখানো হয়েছে।',
+  },
+  CourierAddressReplaced: {
+    en: 'New address and token made. Paste both into the courier’s panel; the old ones have stopped working.',
+    bn: 'নতুন ঠিকানা ও টোকেন তৈরি হয়েছে। দুটোই কুরিয়ারের প্যানেলে পেস্ট করুন; আগেরগুলো আর কাজ করবে না।',
+  },
+  ParcelSynced: { en: 'Status checked.', bn: 'স্ট্যাটাস চেক করা হয়েছে।' },
+  ParcelNothingToSync: {
+    en: 'This order has no booked parcel to check.',
+    bn: 'এই অর্ডারে চেক করার মতো কোনো বুক করা পার্সেল নেই।',
+  },
   GatewayCredentialsNeeded: {
     en: 'Save this account’s gateway credentials first.',
     bn: 'আগে এই অ্যাকাউন্টের গেটওয়ে ক্রেডেনশিয়াল সেভ করুন।',

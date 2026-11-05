@@ -15,6 +15,8 @@ export enum SecretPurpose {
   GatewayCredentials = 'gateway_credentials',
   // CRR-03 (Phase 6 Slice 6.1): a shop's credentials with a courier.
   CourierCredentials = 'courier_credentials',
+  // CRR-03 (Slice 6.2): a connection's message address token and signing token.
+  CourierMessages = 'courier_messages',
 }
 
 /** The key new values are sealed with, and the one before it while values are moved over (32 bytes each). */

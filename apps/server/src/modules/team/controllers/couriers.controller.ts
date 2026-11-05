@@ -25,13 +25,16 @@ import {
   type CourierAdapterView,
   type CourierConnectionView,
 } from '../../couriers/services/courier-connections';
+import { CourierMessages, type MessageAddress } from '../../couriers/services/courier-messages';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import {
   ConnectCourierDto,
   CourierAdapterListDto,
+  CourierConnectedDto,
   CourierConnectionDto,
   CourierConnectionListDto,
+  MessageAddressDto,
 } from '../dto/couriers.dto';
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
@@ -51,6 +54,7 @@ function courierKeyOf(key: string): CourierKey {
 export class CouriersController {
   constructor(
     @Inject(CourierConnections) private readonly connections: CourierConnections,
+    @Inject(CourierMessages) private readonly messages: CourierMessages,
     @Inject(CatalogueRequest) private readonly request: CatalogueRequest,
   ) {}
 
@@ -86,11 +90,11 @@ export class CouriersController {
       "Connect a courier or replace its credentials; a test call must pass before anything is saved, and blank fields keep what's saved (CRR-02, CRR-03)",
   })
   @ApiBody({ type: ConnectCourierDto })
-  @ZodResponse({ type: CourierConnectionDto })
+  @ZodResponse({ type: CourierConnectedDto })
   connect(
     @Body(new ZodValidationPipe(ConnectCourierDto.schema)) body: ConnectCourierDto,
     @Req() request: DashboardRequest,
-  ): Promise<CourierConnectionView> {
+  ): Promise<CourierConnectionView & { message: MessageAddress }> {
     return this.connections.connect(
       this.request.tenantIdOf(request),
       body,
@@ -115,6 +119,38 @@ export class CouriersController {
       this.request.actorOf(request),
     );
     return { ok: true };
+  }
+
+  @Get('connections/:key/address')
+  @RequirePermission(Permission.CouriersManage)
+  @ResponseMessage('CourierAddressShown')
+  @ApiOperation({
+    summary:
+      "What to paste into the courier's panel: Lytro's own address and token, shown again at any time, never the courier's credentials (CRR-02, CRR-03)",
+  })
+  @ZodResponse({ type: MessageAddressDto })
+  address(@Param('key') key: string, @Req() request: DashboardRequest): Promise<MessageAddress> {
+    return this.messages.addressOf(this.request.tenantIdOf(request), courierKeyOf(key));
+  }
+
+  @Post('connections/:key/address')
+  @HttpCode(200)
+  @RequirePermission(Permission.CouriersManage)
+  @ResponseMessage('CourierAddressReplaced')
+  @ApiOperation({
+    summary:
+      'A new address and token, if the old pair leaked: the old pair stops working at once, so both must be pasted again (CRR-03)',
+  })
+  @ZodResponse({ type: MessageAddressDto })
+  replaceAddress(
+    @Param('key') key: string,
+    @Req() request: DashboardRequest,
+  ): Promise<MessageAddress> {
+    return this.messages.replaceAddress(
+      this.request.tenantIdOf(request),
+      courierKeyOf(key),
+      this.request.actorOf(request),
+    );
   }
 
   @Put('connections/:key/default')

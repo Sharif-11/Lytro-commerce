@@ -9,3 +9,11 @@ export const CONSIGNMENT_ID_MAX_LENGTH = 100;
 export const PARCEL_INVOICE_MAX_LENGTH = 100;
 export const PARCEL_NOTE_MAX_LENGTH = 500;
 export const COURIER_STATUS_MAX_LENGTH = 100;
+// Slice 6.2: how much of a courier's message is kept, and how much of it a shopper's tracking shows.
+export const COURIER_MESSAGE_MAX_LENGTH = 500;
+export const TRACKED_MESSAGE_MAX_LENGTH = 200;
+// CRR-14, CRR-15, D6-4: the night check's and Sync's figures, until the operator's settings say otherwise.
+export const DEFAULT_COURIER_CHECK_MIN_AGE_HOURS = 6;
+export const DEFAULT_COURIER_CHECK_QUIET_HOURS = 24;
+export const DEFAULT_COURIER_CHECK_STOP_DAYS = 30;
+export const DEFAULT_COURIER_SYNC_MINUTES = 10;

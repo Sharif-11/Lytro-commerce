@@ -2,8 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { refusalWords } from '../src/modules/couriers/services/courier-http';
 import { SteadfastAdapter } from '../src/modules/couriers/services/steadfast-adapter';
 import { courierContract } from './support/courier-contract';
-import { FakeSteadfast, RIGHT_API_KEY, RIGHT_SECRET_KEY } from './support/fake-steadfast';
+import {
+  FakeSteadfast,
+  RIGHT_API_KEY,
+  RIGHT_SECRET_KEY,
+  signatureOf,
+} from './support/fake-steadfast';
 
+const MESSAGE_TOKEN = 'the-token-the-owner-pasted';
 const steadfast = new FakeSteadfast();
 const adapter = new SteadfastAdapter('https://portal.packzy.com/api/v1', steadfast.fetch);
 const ACCOUNT = {
@@ -41,6 +47,33 @@ courierContract('Steadfast', () => ({
   },
   nextBookingPage: () => {
     steadfast.behaviour = { bookingPage: true };
+  },
+  messageToken: MESSAGE_TOKEN,
+  message: (status) => {
+    const body = JSON.stringify({
+      notification_type: 'delivery_status',
+      consignment_id: 1424107,
+      invoice: '261104-0017',
+      cod_amount: 370,
+      status,
+      delivery_charge: 60,
+      tracking_message: 'Status changed.',
+      updated_at: '2026-11-05 12:45:30',
+    });
+    const headers = { 'idempotency-key': `key-${status}` };
+    return {
+      rawBody: Buffer.from(body),
+      headers,
+      good: { ...headers, 'x-signature': signatureOf(body, MESSAGE_TOKEN) },
+    };
+  },
+  strangeStatus: 'teleported',
+  deliveredStatus: 'delivered',
+  unconfirmedStatus: 'delivered_approval_pending',
+  parcelStandsAt: (status) => {
+    for (const each of steadfast.consignments) {
+      steadfast.statuses.set(String(each.consignmentId), status);
+    }
   },
 }));
 
@@ -107,6 +140,47 @@ describe('Steadfast, as its guide says (Appendix A)', () => {
       refusal: { message: 'The invoice has already been taken.', login: false },
     });
     expect(steadfast.consignments).toHaveLength(1);
+  });
+
+  it('reads its statuses however its samples write them, and its times as Dhaka’s', () => {
+    const body = JSON.stringify({
+      notification_type: 'delivery_status',
+      consignment_id: 77,
+      invoice: 'INV-9',
+      cod_amount: 900.5,
+      status: 'Partial Delivered',
+      delivery_charge: 60,
+      tracking_message: '<b>Half</b> delivered',
+      updated_at: '2026-11-05 12:45:30',
+    });
+    expect(adapter.readMessage(Buffer.from(body), { 'idempotency-key': 'k1' })).toMatchObject({
+      dedupeKey: 'k1',
+      statusEvent: true,
+      forShopper: true,
+      consignmentId: '77',
+      invoice: 'INV-9',
+      rawStatus: 'partial_delivered',
+      reading: 'partly_delivered',
+      messageEn: 'Half delivered',
+      cashCollected: '900.5',
+      deliveryCharge: '60',
+      happenedAt: new Date('2026-11-05T06:45:30.000Z'),
+    });
+  });
+
+  it('counts a COD only on a result, and a change in its panel as a change', () => {
+    const read = (fields: Record<string, unknown>) =>
+      adapter.readMessage(Buffer.from(JSON.stringify(fields)), {});
+    expect(
+      read({ notification_type: 'delivery_status', status: 'pending', cod_amount: 500 }),
+    ).toMatchObject({ cashCollected: null, codAtCourier: null });
+    const changed = read({
+      notification_type: 'consignment_update',
+      consignment_id: 77,
+      cod_amount: 450,
+    });
+    expect(changed).toMatchObject({ statusEvent: false, forShopper: false, codAtCourier: '450' });
+    expect(changed?.dedupeKey).toMatch(/^sent:/);
   });
 
   it('gives a tracking page for a code', () => {

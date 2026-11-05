@@ -7,6 +7,7 @@ import {
   CourierCallAction,
   CourierConnectionState,
   CourierKey,
+  CourierMessagesState,
   settleParcelSchema,
 } from '@lytronix/validators';
 
@@ -39,8 +40,16 @@ const courierConnectionSchema = z.object({
   hasCredentials: z.literal(true),
   state: z.nativeEnum(CourierConnectionState),
   connectedAt: z.coerce.date(),
+  messages: z.nativeEnum(CourierMessagesState),
+  lastMessageAt: z.coerce.date().nullable(),
 });
 export class CourierConnectionDto extends createZodDto(courierConnectionSchema) {}
+// CRR-02, CRR-03: what a seller pastes into the courier's panel; Lytro's own, not the courier's credentials.
+const messageAddressSchema = z.object({ address: z.string(), token: z.string() });
+export class MessageAddressDto extends createZodDto(messageAddressSchema) {}
+export class CourierConnectedDto extends createZodDto(
+  courierConnectionSchema.extend({ message: messageAddressSchema }),
+) {}
 export class CourierConnectionListDto extends createZodDto(
   z.object({ connections: z.array(courierConnectionSchema) }),
 ) {}

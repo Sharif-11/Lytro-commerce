@@ -6,6 +6,7 @@ import {
   desc,
   eq,
   inArray,
+  isNotNull,
   isNull,
   lte,
   ne,
@@ -22,12 +23,16 @@ import {
 import {
   courierConnections,
   courierCredentialUses,
+  courierEvents,
+  courierMessageRoutes,
   courierParcels,
   type SelectCourierConnection,
   type SelectCourierCredentialUse,
+  type SelectCourierEvent,
+  type SelectCourierMessageRoute,
   type SelectCourierParcel,
 } from '../../schema';
-import type { Transaction, TransactionRunner } from '../../transactions';
+import type { Executor, Transaction, TransactionRunner } from '../../transactions';
 
 const LIVE = [...LIVE_PARCEL_STATES];
 
@@ -50,8 +55,36 @@ export type CourierParcelPatch = Partial<
     | 'lookUps'
     | 'notFound'
     | 'nextLookUpAt'
+    | 'reading'
+    | 'lastNewsAt'
+    | 'lastChangeAt'
+    | 'lastMessageAt'
+    | 'lastCheckAt'
+    | 'checksStoppedAt'
+    | 'cashCollected'
+    | 'codAtCourier'
+    | 'attention'
   >
 >;
+
+export type CourierConnectionPatch = Partial<
+  Pick<
+    SelectCourierConnection,
+    'state' | 'messageSecrets' | 'lastMessageAt' | 'unsignedAt' | 'pasteWarnedAt'
+  >
+>;
+
+export type NewCourierEvent = Omit<
+  typeof courierEvents.$inferInsert,
+  'id' | 'tenantId' | 'receivedAt' | 'appliedAt' | 'problem' | 'parcelId'
+>;
+
+/** Slice 6.2: what the night check needs to choose its parcels (D6-4). */
+export interface ParcelCheckWindow {
+  createdBefore: Date;
+  quietBefore: Date;
+  limit: number;
+}
 
 /** SEC-11 (Slice 6.1): one outbound call made with a stored courier credential, without the credential. */
 export interface NewCourierCredentialUse {
@@ -151,6 +184,22 @@ export class CourierRepository {
       )
       .returning();
     return row ?? null;
+  }
+
+  async updateConnection(
+    tx: Transaction,
+    tenantId: string,
+    connectionId: string,
+    patch: CourierConnectionPatch,
+    now: Date,
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .update(courierConnections)
+      .set({ ...patch, updatedAt: now })
+      .where(
+        and(eq(courierConnections.tenantId, tenantId), eq(courierConnections.id, connectionId)),
+      );
   }
 
   /** CRR-05: this connection is the shop's default and no other is; null when it isn't connected. */
@@ -360,6 +409,220 @@ export class CourierRepository {
       .limit(limit);
   }
 
+  /**
+   * CRR-13: stores a piece of news once; null when it has been stored before. A courier's retry, or the same answer asked for
+   * twice, adds nothing.
+   */
+  async insertEvent(
+    tx: Transaction,
+    tenantId: string,
+    values: NewCourierEvent,
+  ): Promise<SelectCourierEvent | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .insert(courierEvents)
+      .values({ tenantId, ...values })
+      .onConflictDoNothing({
+        target: [courierEvents.tenantId, courierEvents.courierKey, courierEvents.dedupeKey],
+      })
+      .returning();
+    return row ?? null;
+  }
+
+  async findEvent(
+    tx: Transaction,
+    tenantId: string,
+    eventId: string,
+  ): Promise<SelectCourierEvent | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select()
+      .from(courierEvents)
+      .where(and(eq(courierEvents.tenantId, tenantId), eq(courierEvents.id, eventId)));
+    return row ?? null;
+  }
+
+  /** The event, held until the transaction ends, so two passes can't apply it twice. */
+  async lockEvent(
+    tx: Transaction,
+    tenantId: string,
+    eventId: string,
+  ): Promise<SelectCourierEvent | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select()
+      .from(courierEvents)
+      .where(and(eq(courierEvents.tenantId, tenantId), eq(courierEvents.id, eventId)))
+      .for('update');
+    return row ?? null;
+  }
+
+  async finishEvent(
+    tx: Transaction,
+    tenantId: string,
+    eventId: string,
+    values: { parcelId: string | null; problem: string | null },
+    now: Date,
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .update(courierEvents)
+      .set({ ...values, appliedAt: now })
+      .where(and(eq(courierEvents.tenantId, tenantId), eq(courierEvents.id, eventId)));
+  }
+
+  /** The minute pass's work: news stored before this and not applied yet, oldest first. */
+  async unappliedEvents(
+    tx: Transaction,
+    tenantId: string,
+    storedBefore: Date,
+    limit: number,
+  ): Promise<SelectCourierEvent[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select()
+      .from(courierEvents)
+      .where(
+        and(
+          eq(courierEvents.tenantId, tenantId),
+          isNull(courierEvents.appliedAt),
+          lte(courierEvents.receivedAt, storedBefore),
+        ),
+      )
+      .orderBy(asc(courierEvents.receivedAt), asc(courierEvents.id))
+      .limit(limit);
+  }
+
+  /**
+   * The parcel a piece of news is about, by the courier's number and otherwise by our own. An invoice can be on an earlier refused
+   * parcel of the order too, so a live one comes first, then the newest.
+   */
+  async parcelForNews(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+    ids: { consignmentId: string | null; invoice: string | null },
+  ): Promise<SelectCourierParcel | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const bySame = [
+      ...(ids.consignmentId !== null ? [eq(courierParcels.consignmentId, ids.consignmentId)] : []),
+      ...(ids.invoice !== null ? [eq(courierParcels.invoice, ids.invoice)] : []),
+    ];
+    if (bySame.length === 0) return null;
+    const [row] = await tx
+      .select()
+      .from(courierParcels)
+      .where(
+        and(
+          eq(courierParcels.tenantId, tenantId),
+          eq(courierParcels.courierKey, courierKey),
+          or(...bySame),
+        ),
+      )
+      .orderBy(
+        sql`CASE WHEN ${courierParcels.state} IN ('booking', 'booked', 'unknown') THEN 0 ELSE 1 END`,
+        desc(courierParcels.createdAt),
+      )
+      .limit(1);
+    return row ?? null;
+  }
+
+  /** CRR-12: a parcel's news, newest first, for the order page. */
+  async listEvents(
+    tx: Transaction,
+    tenantId: string,
+    parcelId: string,
+    limit: number,
+  ): Promise<SelectCourierEvent[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select()
+      .from(courierEvents)
+      .where(and(eq(courierEvents.tenantId, tenantId), eq(courierEvents.parcelId, parcelId)))
+      .orderBy(desc(courierEvents.receivedAt), desc(courierEvents.id))
+      .limit(limit);
+  }
+
+  /** Slice 6.2 read: the courier's latest words about an order's newest parcel, for its tracking. */
+  async latestMessage(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<SelectCourierEvent | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select({ event: courierEvents })
+      .from(courierEvents)
+      .innerJoin(courierParcels, eq(courierParcels.id, courierEvents.parcelId))
+      .where(
+        and(
+          eq(courierEvents.tenantId, tenantId),
+          eq(courierParcels.orderId, orderId),
+          inArray(courierParcels.state, LIVE),
+          sql`(${courierEvents.messageEn} IS NOT NULL OR ${courierEvents.messageBn} IS NOT NULL)`,
+          sql`${courierEvents.news}->>'forShopper' = 'true'`,
+        ),
+      )
+      .orderBy(desc(courierEvents.receivedAt), desc(courierEvents.id))
+      .limit(1);
+    return row?.event ?? null;
+  }
+
+  /** D6-4: the night check's parcels, oldest first: on their way, old enough and quiet long enough. */
+  async dueForCheck(
+    tx: Transaction,
+    tenantId: string,
+    window: ParcelCheckWindow,
+  ): Promise<SelectCourierParcel[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select()
+      .from(courierParcels)
+      .where(
+        and(
+          eq(courierParcels.tenantId, tenantId),
+          eq(courierParcels.state, ParcelState.Booked),
+          isNotNull(courierParcels.settledAt),
+          isNull(courierParcels.checksStoppedAt),
+          lte(courierParcels.createdAt, window.createdBefore),
+          sql`(${courierParcels.reading} IS NULL OR ${courierParcels.reading} NOT IN ('delivered', 'partly_delivered', 'returning'))`,
+          or(
+            isNull(courierParcels.lastMessageAt),
+            lte(courierParcels.lastMessageAt, window.quietBefore),
+          ),
+        ),
+      )
+      .orderBy(asc(courierParcels.createdAt), asc(courierParcels.id))
+      .limit(window.limit);
+  }
+
+  /** CRR-11: whose connection a message address belongs to; read before any tenant context exists. */
+  async findRoute(db: Executor, tokenHash: string): Promise<SelectCourierMessageRoute | null> {
+    const [row] = await db
+      .select()
+      .from(courierMessageRoutes)
+      .where(eq(courierMessageRoutes.tokenHash, tokenHash));
+    return row ?? null;
+  }
+
+  /** CRR-03: a connection's one address; a new one replaces the old, which stops working at once. */
+  async replaceRoute(
+    tx: Transaction,
+    values: { tokenHash: string; tenantId: string; courierKey: CourierKey; connectionId: string },
+  ): Promise<void> {
+    await tx
+      .delete(courierMessageRoutes)
+      .where(eq(courierMessageRoutes.connectionId, values.connectionId));
+    await tx.insert(courierMessageRoutes).values(values);
+  }
+
+  /** CRR-20: a disconnected courier's address is refused from now on. */
+  async deleteRoute(tx: Transaction, connectionId: string): Promise<void> {
+    await tx
+      .delete(courierMessageRoutes)
+      .where(eq(courierMessageRoutes.connectionId, connectionId));
+  }
+
   async insertUse(
     tx: Transaction,
     tenantId: string,
@@ -390,6 +653,8 @@ export class CourierRepository {
   /** LIF-19: the day-60 deletion's couriers step. Parcels go with their orders too; this is safe to run either way. */
   async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
+    await tx.delete(courierEvents).where(eq(courierEvents.tenantId, tenantId));
+    await tx.delete(courierMessageRoutes).where(eq(courierMessageRoutes.tenantId, tenantId));
     await tx.delete(courierParcels).where(eq(courierParcels.tenantId, tenantId));
     await tx.delete(courierConnections).where(eq(courierConnections.tenantId, tenantId));
     await tx.delete(courierCredentialUses).where(eq(courierCredentialUses.tenantId, tenantId));

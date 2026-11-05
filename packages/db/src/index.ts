@@ -304,9 +304,12 @@ export {
 } from './repositories/payments/gateway-credential-use.repository';
 export {
   CourierRepository,
+  type CourierConnectionPatch,
   type CourierParcelPatch,
   type NewCourierCredentialUse,
+  type NewCourierEvent,
   type NewCourierParcel,
+  type ParcelCheckWindow,
 } from './repositories/couriers/courier.repository';
 export {
   LytroMessageRepository,
