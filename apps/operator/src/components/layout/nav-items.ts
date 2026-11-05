@@ -2,9 +2,9 @@ import type { ConsoleIconName } from '@/components/ui/console-icon';
 
 export type ConsolePath =
   | '/'
-  | '/payment-queue'
+  | '/queue'
   | '/page-reports'
-  | '/tenants'
+  | '/shops'
   | '/plans'
   | '/billing-terms'
   | '/rates'
@@ -45,9 +45,9 @@ export const navGroups: NavGroup[] = [
     labelKey: 'nav.daily',
     items: [
       { to: '/', labelKey: 'nav.today', icon: 'home' },
-      { to: '/payment-queue', labelKey: 'nav.paymentQueue', icon: 'queue', count: 'queue' },
+      { to: '/queue', labelKey: 'nav.paymentQueue', icon: 'queue', count: 'queue' },
       { to: '/page-reports', labelKey: 'nav.pageReports', icon: 'flag', count: 'reports' },
-      { to: '/tenants', labelKey: 'nav.shops', icon: 'store' },
+      { to: '/shops', labelKey: 'nav.shops', icon: 'store' },
     ],
   },
   {
@@ -92,8 +92,8 @@ export const navGroups: NavGroup[] = [
 /** The phone's four tabs; the fourth, More, opens the sheet. */
 export const phoneTabs: NavItem[] = [
   { to: '/', labelKey: 'nav.today', icon: 'home' },
-  { to: '/payment-queue', labelKey: 'nav.paymentQueue', icon: 'queue', count: 'queue' },
-  { to: '/tenants', labelKey: 'nav.shops', icon: 'store' },
+  { to: '/queue', labelKey: 'nav.paymentQueue', icon: 'queue', count: 'queue' },
+  { to: '/shops', labelKey: 'nav.shops', icon: 'store' },
 ];
 
 const ACCOUNT = '/account';

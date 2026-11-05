@@ -12,23 +12,47 @@ export function Band({ onMenu }: { onMenu: () => void }): React.JSX.Element {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const titleKey = bandTitleKey(pathname);
+  // A page inside Shops shows the way back in place of the lockup.
+  const inShop = /^\/shops\/([^/]+)(\/credentials)?$/.exec(pathname);
   return (
     <header className="flex h-[52px] flex-none items-center gap-3 bg-chrome pr-3 pl-4 text-white lg:hidden">
-      <span className="flex min-w-0 items-center gap-2.5">
-        <OperatorTile size={32} />
-        <span className="flex min-w-0 flex-col gap-0.5 leading-[1.1]">
-          <Eyebrow />
-          {titleKey ? (
-            <span className="truncate font-display text-[16px] font-extrabold tracking-[-0.02em] text-white">
-              {t(titleKey)}
-            </span>
+      {inShop ? (
+        <>
+          {inShop[2] && inShop[1] ? (
+            <Link
+              to="/shops/$id"
+              params={{ id: inShop[1] }}
+              aria-label={t('common.back')}
+              className={BUTTON}
+            >
+              <ConsoleIcon name="back" />
+            </Link>
           ) : (
-            <ConsoleWordmark size={17} />
+            <Link to="/shops" aria-label={t('common.back')} className={BUTTON}>
+              <ConsoleIcon name="back" />
+            </Link>
           )}
+          <span className="min-w-0 truncate font-display text-[15px] font-extrabold tracking-[-0.02em] text-white">
+            {titleKey ? t(titleKey) : null}
+          </span>
+        </>
+      ) : (
+        <span className="flex min-w-0 items-center gap-2.5">
+          <OperatorTile size={32} />
+          <span className="flex min-w-0 flex-col gap-0.5 leading-[1.1]">
+            <Eyebrow />
+            {titleKey ? (
+              <span className="truncate font-display text-[16px] font-extrabold tracking-[-0.02em] text-white">
+                {t(titleKey)}
+              </span>
+            ) : (
+              <ConsoleWordmark size={17} />
+            )}
+          </span>
         </span>
-      </span>
+      )}
       <span className="flex-1" />
-      <Link to="/tenants" aria-label={t('shell.searchOpen')} className={BUTTON}>
+      <Link to="/shops" aria-label={t('shell.searchOpen')} className={BUTTON}>
         <ConsoleIcon name="search" />
       </Link>
       <button type="button" aria-label={t('nav.menu')} onClick={onMenu} className={BUTTON}>

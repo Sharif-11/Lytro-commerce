@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { HoldingPage } from '@/views/later';
+import { PageReports } from '@/views/page-reports';
 
 export const Route = createFileRoute('/_console/page-reports')({
-  component: () => <HoldingPage titleKey="nav.pageReports" />,
+  validateSearch: (search: Record<string, unknown>): { view?: 'handled' } =>
+    search.view === 'handled' ? { view: 'handled' } : {},
+  component: PageReports,
 });

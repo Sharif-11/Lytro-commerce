@@ -15,19 +15,34 @@ export function PageTitle({
   title,
   lead,
   tag,
+  actions,
 }: {
   title: string;
   lead?: ReactNode;
   tag?: ReactNode;
+  /** The screen's buttons: under the title on a phone, beside it from 640 px. */
+  actions?: ReactNode;
 }): React.JSX.Element {
   return (
-    <div className="min-w-0">
-      <h1 className="text-[22px] leading-[1.3] font-bold tracking-[-0.01em] lg:text-[24px]">
-        {title} {tag}
-      </h1>
-      {lead ? <div className="mt-0.5 max-w-[720px] text-[14px] text-fg-muted">{lead}</div> : null}
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0 flex-auto">
+        <h1 className="text-[22px] leading-[1.3] font-bold tracking-[-0.01em] lg:text-[24px]">
+          {title} {tag}
+        </h1>
+        {lead ? <div className="mt-0.5 max-w-[720px] text-[14px] text-fg-muted">{lead}</div> : null}
+      </div>
+      {actions ? (
+        <div className="flex flex-[1_1_100%] flex-wrap items-center gap-2 sm:ml-auto sm:flex-none">
+          {actions}
+        </div>
+      ) : null}
     </div>
   );
+}
+
+/** A heading over one part of a screen. */
+export function SectionTitle({ children }: { children: ReactNode }): React.JSX.Element {
+  return <h2 className="text-[16px] font-semibold">{children}</h2>;
 }
 
 /** The console's card: flat, with a hairline. */

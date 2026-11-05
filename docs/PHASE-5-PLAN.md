@@ -489,7 +489,8 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
   (`OPERATOR-CONSOLE-DESIGN.md` v3); the server's missing reads and the limit (§15 there); frame, sign-in and account; Today
   and the queue; shops; the Phase 5 screens; pricing and platform; catalogue. **Tests as the dashboard's:** Playwright
   against a mocked API on phone and desktop, in both languages, in CI on every PR that reaches the console. Phase 6's console
-  screens wait for its routes.
+  screens wait for its routes. **Fewer PRs, the owner's call on 2026-11-05:** after frame, sign-in and account (#305), two
+  remain: Today, the queue, shops and the Phase 5 screens; then pricing, platform and catalogue.
 - **The read, agreed 2026-11-04.** Five parts, shop setup first, each with a short read, a sketch and a build: (1) the sign-up
   phone and Payment methods; (2) the payment page, and checkout's payment step and return; (3) Payments to verify, after
   which a shop can take payments checked by hand; (4) listener phones, the app's download page and setup guide; (5) the
