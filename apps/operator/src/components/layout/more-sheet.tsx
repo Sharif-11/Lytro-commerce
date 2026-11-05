@@ -8,7 +8,8 @@ import { Panel } from '@/components/ui/panel';
 import { useOtherLanguage } from '@/lib/use-other-language';
 import { navGroups } from './nav-items';
 
-const ROW = 'flex min-h-[60px] w-full items-center gap-3 border-t border-line px-4 py-3 text-left';
+const ROW =
+  'flex min-h-[60px] w-full flex-none items-center gap-3 border-t border-line px-4 py-3 text-left first:border-t-0';
 
 function RowBody({
   icon,
