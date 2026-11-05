@@ -23,8 +23,7 @@ async function open(page: Page, name: string, query = ''): Promise<string[]> {
   });
   page.on('pageerror', (error) => refused.push(error.message));
   await page.request.get(`/__fixture?name=${name}`);
-  // Not to the load event: the handing-over screen is already posting by then.
-  await page.goto(`/${REF}${query}${SHEETS[name] ?? ''}`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`/${REF}${query}${SHEETS[name] ?? ''}`);
   await page.evaluate('document.fonts.ready.then(() => true)');
   return refused;
 }

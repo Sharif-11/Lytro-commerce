@@ -35,6 +35,7 @@ import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedBalance } from './support/database';
 import { BKASH_SECRET_WORDS, FakeBkash, RIGHT_SECRET } from './support/fake-bkash';
 import { getJson, postJson, sendExact, type HttpResult } from './support/http';
+import { payPage, screenOf } from './support/pay-page';
 import { LowBalanceCapture } from './support/low-balance-capture';
 import { errorOf, openShop, staffWith, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
@@ -1774,5 +1775,101 @@ describeIfDatabase("the log of a credential's uses (SEC-11)", () => {
     await started(await placed(setup));
     const page = await app.get(CredentialUses).list(setup.shop.tenantId, 1, 50);
     expect(page.uses.map((row) => [row.action, row.succeeded])).toEqual([['token', false]]);
+  });
+});
+
+describeIfDatabase("through the page itself (Slice 5.8's part 2, PAY-06, VER-09)", () => {
+  const paymentIdIn = (text: string): string => {
+    const found = /paymentId=([\w-]+)/.exec(text)?.[1];
+    if (!found) throw new Error('no wallet checkout on the page');
+    return found;
+  };
+
+  it('hands on to the wallet, then comes back paid and returns to the shop', async () => {
+    const setup = await automate(await paidShop());
+    const ref = await placed(setup);
+
+    // A session on automated goes straight on: the page posts for it, since starting one isn't a read.
+    const handing = await payPage(port, 'GET', `/${ref}`);
+    expect(screenOf(handing)).toBe('handing');
+    expect(handing.text).toContain(`action="/${ref}/checkout"`);
+    expect(handing.text).toContain('data-auto="1"');
+
+    // A form may not redirect to another site under the page's policy: this page refreshes there instead.
+    const went = await payPage(port, 'POST', `/${ref}/checkout`, { method: 'bkash' });
+    expect(went.status).toBe(200);
+    expect(went.text).toMatch(
+      /http-equiv="refresh" content="0;url=https:\/\/payment\.bkash\.test\//,
+    );
+    expect(String(went.headers['content-security-policy'])).toContain("form-action 'self'");
+    const paymentId = paymentIdIn(went.text);
+
+    bkash.authorise(paymentId);
+    const back = await returned(ref, { paymentID: paymentId, status: 'success' });
+    const path = (back.location ?? '').replace('http://pay.localhost', '');
+    const paid = await payPage(port, 'GET', path);
+    expect(screenOf(paid)).toBe('verified');
+    expect(paid.text).toMatch(/data-return="https:\/\/myshop\.com\/thanks\?[^"]*status=verified/);
+    expect(paid.text).toContain('tracking_id=');
+  });
+
+  it('a shopper who left the wallet may try it again or pay by hand, on the same session', async () => {
+    const setup = await automate(await paidShop());
+    const ref = await placed(setup);
+    const went = await payPage(port, 'POST', `/${ref}/checkout`, { method: 'bkash' });
+    await returned(ref, { paymentID: paymentIdIn(went.text), status: 'cancel' });
+
+    const left = await payPage(port, 'GET', `/${ref}`);
+    expect(screenOf(left)).toBe('pick');
+    expect(left.text).toContain('bKash-এ পেমেন্ট শেষ হয়নি');
+    expect(left.text).toContain(`href="/${ref}?w=bkash"`);
+    expect(left.text).toContain(`href="/${ref}?w=bkash&amp;hand=1"`);
+    expect(screenOf(await payPage(port, 'GET', `/${ref}?w=bkash`))).toBe('handing');
+
+    // By hand: the number and steps, and an ID typed there is taken like any other.
+    const byHand = await payPage(port, 'GET', `/${ref}?w=bkash&hand=1`);
+    expect(screenOf(byHand)).toBe('wallet');
+    expect(byHand.text).toContain('data-copy="01711000001"');
+    const typed = await payPage(port, 'POST', `/${ref}/transaction`, {
+      method: 'bkash',
+      transactionId: 'BYHAND12345',
+    });
+    expect(typed.status).toBe(303);
+  });
+
+  it('says so when the wallet could not take it', async () => {
+    const setup = await automate(await paidShop());
+    const ref = await placed(setup);
+    const went = await payPage(port, 'POST', `/${ref}/checkout`, { method: 'bkash' });
+    await returned(ref, { paymentID: paymentIdIn(went.text), status: 'failure' });
+    const left = await payPage(port, 'GET', `/${ref}?lang=en`);
+    expect(screenOf(left)).toBe('pick');
+    expect(left.text).toContain('bKash could not take the payment');
+  });
+
+  it('never blocks the shopper: with the fee short they pay on the page (WAL-21)', async () => {
+    const setup = await automate(await paidShop('0.00'));
+    const ref = await placed(setup);
+    const went = await payPage(port, 'POST', `/${ref}/checkout`, { method: 'bkash' });
+    expect(went.status).toBe(303);
+    expect(went.headers.location).toBe(`/${ref}?w=bkash&hand=1`);
+    expect(screenOf(await payPage(port, 'GET', String(went.headers.location)))).toBe('wallet');
+  });
+
+  it('a test payment says it is one on every screen, paid included (VER-11)', async () => {
+    const setup = await automate(await paidShop(), { sandbox: true });
+    const ref = await placed(setup);
+    const STRIP = 'টেস্ট পেমেন্ট: আসল টাকা কাটবে না।';
+    const went = await payPage(port, 'POST', `/${ref}/checkout`, { method: 'bkash' });
+    expect((await payPage(port, 'GET', `/${ref}`)).text).toContain(STRIP);
+    const paymentId = paymentIdIn(went.text);
+    bkash.authorise(paymentId);
+    await returned(ref, { paymentID: paymentId, status: 'success' });
+    const paid = await payPage(port, 'GET', `/${ref}?just=1`);
+    expect(screenOf(paid)).toBe('verified');
+    expect(paid.text).toContain(STRIP);
+    // A real payment says nothing of the kind.
+    const real = await automate(await paidShop());
+    expect((await payPage(port, 'GET', `/${await placed(real)}`)).text).not.toContain(STRIP);
   });
 });

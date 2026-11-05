@@ -3,9 +3,15 @@ import { notFound } from 'next/navigation';
 import { CheckoutView } from '@/components/order/checkout-view';
 import { OfflinePage } from '@/components/pages';
 import { Footer, Header, Shell } from '@/components/shell';
-import { loadAddresses, loadFrame, loadShopper, loadShopPage } from '@/lib/storefront';
+import {
+  loadAddresses,
+  loadFrame,
+  loadShopper,
+  loadShopPage,
+  storefrontApi,
+} from '@/lib/storefront';
 
-// SFT-06 (`checkout`, Slice 4.8e): one page, guest, cash on delivery. The cart lives in the browser, so the page is the
+// SFT-06, SFT-07 (`checkout`, `pay58-checkout`): one page, guest. The cart lives in the browser, so the page is the
 // browser's; never kept by any cache (CCH-07).
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +30,11 @@ export default async function CheckoutPage() {
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
   // SFT-16: a switched-off storefront answers its paths with not-found.
   if (page.state === 'missing' || !page.shop.storefrontEnabled) notFound();
-  const [frame, signedIn] = await Promise.all([loadFrame(page), loadShopper()]);
+  const [frame, signedIn, methods] = await Promise.all([
+    loadFrame(page),
+    loadShopper(),
+    storefrontApi.paymentMethods(page.shop, page.shopper),
+  ]);
   const addresses = signedIn === null ? [] : await loadAddresses(page);
   const language = page.words.language;
   return (
@@ -54,6 +64,7 @@ export default async function CheckoutPage() {
         areaId={frame.areaId}
         shopper={signedIn}
         addresses={addresses}
+        methods={methods}
       />
     </Shell>
   );

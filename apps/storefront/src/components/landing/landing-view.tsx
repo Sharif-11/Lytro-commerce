@@ -1,11 +1,12 @@
 'use client';
 
-import { PaymentPolicy } from '@lytronix/validators/enums';
+import { type PaymentMethod, PaymentPolicy } from '@lytronix/validators/enums';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   DeliveryEstimate,
   DeliveryZoneView,
   PlacedOrder,
+  ShopperPaymentMethod,
   PublicProduct,
 } from '@/lib/api/storefront-api';
 import { totalWith } from '@/lib/cart/cart-check';
@@ -16,6 +17,7 @@ import { quantityRule } from '@/lib/product/quantity';
 import { VariantChoice } from '@/lib/product/variant-choice';
 import { Icon } from '../icon';
 import { LineExtras, NoticeBanner, TaxRows } from '../order/order-parts';
+import { AdvanceRows, PayChooser, PayNextHint } from '../order/pay-chooser';
 import { PlacedView } from '../order/placed-view';
 import { useOrderPlacing } from '../order/use-order-placing';
 import {
@@ -43,13 +45,16 @@ export interface LandingViewProps {
   linkedVariantId: string | null;
   areaId: number | null;
   initialEstimate: DeliveryEstimate | null;
+  /** WAL-06, SFT-10: how this shop can be paid first; asked for only when the product needs it. */
+  methods: ShopperPaymentMethod[];
 }
 
 /** LND-01, LND-06 to LND-12: the one-product page as the prototype draws it (landingPage, orderForm, landingBar): the
     product with its picker, and the order form beside it with the totals worked out as the shopper picks. The order is
     placed without leaving the page, and the same address then shows its confirmation. A product needing to be paid for
-    first waits for Phase 5's payment step (`e48-landing-advance`). LND-15: InitiateCheckout at the form's first field,
-    and Purchase once placed, under the ID the server tells Meta (LND-16). */
+    first chooses how, and goes straight to the payment page (`pay58-landing`, LND-10). LND-15: InitiateCheckout at the
+    form's first field, and Purchase once placed, under the ID the server tells Meta (LND-16); one paid first is the server's
+    to tell, once its payment is verified. */
 export function LandingView(props: LandingViewProps) {
   const { product } = props;
   const words = useMemo(() => new Words(props.language), [props.language]);
@@ -118,6 +123,9 @@ export function LandingView(props: LandingViewProps) {
   const undeliverable = thana !== null && estimate !== null && !estimate.deliverable;
   const total = totalWith(itemTotal, exact, range);
   const paysFirst = product.paymentPolicy !== PaymentPolicy.None;
+  const paying = paysFirst && props.methods.length > 0;
+  const [method, setMethod] = useState<PaymentMethod | null>(props.methods[0]?.method ?? null);
+  const advance = paying && estimate?.advance ? Number(estimate.advance) : null;
 
   // LND-15: the purchase, with the same ID the server sends, so Meta counts it once (LND-16).
   useEffect(() => {
@@ -163,12 +171,23 @@ export function LandingView(props: LandingViewProps) {
 
   const confirm = async () => {
     if (!line || !picks.ready()) return;
-    const order = await placing.place([orderItemOf(line)]);
-    if (order) setPlaced(order);
+    const order = await placing.place(
+      [orderItemOf(line)],
+      paying && method !== null ? { method } : undefined,
+    );
+    if (!order) return;
+    // SFT-07, LND-10: an advance goes straight to the payment page.
+    if (order.payment) window.location.assign(order.payment.paymentUrl);
+    else setPlaced(order);
   };
 
   const canConfirm =
-    line !== null && !soldOut && !paysFirst && !undeliverable && !placing.placing && answer.settled;
+    line !== null &&
+    !soldOut &&
+    (!paysFirst || (paying && method !== null)) &&
+    !undeliverable &&
+    !placing.placing &&
+    answer.settled;
   const callShop = props.shopPhone ? (
     <a className="btn ghost sm" href={`tel:${props.shopPhone}`}>
       <Icon name="phone" /> {words.t('e48CallShop')}
@@ -176,17 +195,17 @@ export function LandingView(props: LandingViewProps) {
   ) : null;
 
   let banner = null;
-  if (paysFirst && !soldOut) {
+  if (paysFirst && !paying && !soldOut) {
     banner = (
       <>
         <NoticeBanner
           tone="warn"
-          title={
+          title={words.t('pay58NoneT')}
+          text={
             product.paymentPolicy === PaymentPolicy.PartialAdvance && product.advanceAmount !== null
-              ? words.t('adv_t_n', { p: product.name, n: plainNumber(product.advanceAmount) })
-              : words.t('adv_t', { p: product.name })
+              ? words.t('pay58NoneOne', { p: product.name, n: plainNumber(product.advanceAmount) })
+              : words.t('pay58NoneOneAny', { p: product.name })
           }
-          text={words.t('e48AdvP')}
         />
         {callShop ? <div style={{ display: 'flex', gap: 8 }}>{callShop}</div> : null}
       </>
@@ -200,7 +219,20 @@ export function LandingView(props: LandingViewProps) {
       />
     );
   } else if (notice?.kind === 'advance') {
-    banner = <NoticeBanner tone="warn" title={words.t('e48FailT')} text={words.t('e48AdvP')} />;
+    banner = (
+      <NoticeBanner tone="warn" title={words.t('e48FailT')} text={words.t('pay58MethodGone')} />
+    );
+  } else if (notice?.kind === 'no_method' || notice?.kind === 'cap') {
+    banner = (
+      <>
+        <NoticeBanner
+          tone="warn"
+          title={words.t(notice.kind === 'cap' ? 'pay58CapT' : 'pay58NoneT')}
+          text={words.t(notice.kind === 'cap' ? 'pay58CapP' : 'pay58NoneLate')}
+        />
+        {callShop ? <div style={{ display: 'flex', gap: 8 }}>{callShop}</div> : null}
+      </>
+    );
   } else if (notice?.kind === 'busy') {
     banner = <NoticeBanner tone="warn" title={words.t('e48BusyT')} text={words.t('e48BusyP')} />;
   } else if (notice?.kind === 'failed' || notice?.kind === 'recheck') {
@@ -419,11 +451,28 @@ export function LandingView(props: LandingViewProps) {
                 </span>
               </div>
               <TaxRows taxes={estimate?.taxes ?? []} words={words} />
+              {paying ? (
+                <AdvanceRows
+                  advance={advance}
+                  total={total.from === total.to ? total.from : null}
+                  words={words}
+                />
+              ) : null}
             </div>
             {undeliverable ? (
               <DeliveryBanner estimate={estimate} words={words} shopPhone={props.shopPhone} />
             ) : null}
-            <PayLine product={product} words={words} />
+            {paying ? (
+              <PayChooser
+                methods={props.methods}
+                chosen={method}
+                advance={advance}
+                words={words}
+                onChoose={setMethod}
+              />
+            ) : (
+              <PayLine product={product} words={words} />
+            )}
             {soldOut ? (
               <button type="button" className="btn ghost lg block" disabled>
                 {words.t('out')}
@@ -438,9 +487,14 @@ export function LandingView(props: LandingViewProps) {
                   void confirm();
                 }}
               >
-                {words.t('confirm_order')}
+                {!paying
+                  ? words.t('confirm_order')
+                  : advance === null
+                    ? words.t('pay58PlaceAny')
+                    : words.t('place_adv', { n: plainNumber(advance) })}
               </button>
             )}
+            {paying && !soldOut ? <PayNextHint words={words} /> : null}
             <div className="sub" style={{ fontSize: 12, textAlign: 'center' }}>
               {words.t('idem_note')}
             </div>

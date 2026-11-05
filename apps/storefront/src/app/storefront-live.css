@@ -1,6 +1,19 @@
 /* What the prototype draws as a placeholder, filled with the shop's real content (Slice 12a). The prototype's rules
    stay in storefront.css as drawn; these only let a real photo, video or link sit where its placeholder sat. */
 
+/* A wallet's mark, as the prototype's later rules draw it (STOREFRONT-DESIGN §8a). */
+.wlogo img {
+  height: 22px;
+  display: block;
+}
+.wlogo.txt {
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  background: transparent;
+  padding: 0;
+}
+
 /* The type the prototype's body sets, which its page frame stands in for here. */
 .frame {
   font-size: 14px;

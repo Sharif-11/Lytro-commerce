@@ -2,7 +2,12 @@ import { Controller, Get, Inject, Req } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createZodDto, ZodResponse } from 'nestjs-zod';
 import { z } from 'zod';
-import { PaymentMethod, PaymentMethodKind, WalletAccountType } from '@lytronix/validators';
+import {
+  PaymentMethod,
+  PaymentMethodKind,
+  PaymentWay,
+  WalletAccountType,
+} from '@lytronix/validators';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { PaymentMethods } from '../../payment-methods/services/payment-methods';
 import type { ShopperPaymentMethod } from '../../payment-methods/types/payment-methods';
@@ -15,6 +20,8 @@ class PublicPaymentMethodsDto extends createZodDto(
       z.object({
         method: z.nativeEnum(PaymentMethod),
         kind: z.nativeEnum(PaymentMethodKind),
+        // PAY-06: what a checkout tells the shopper of how it pays.
+        way: z.nativeEnum(PaymentWay),
         accountName: z.string(),
         number: z.string().nullable(),
         accountType: z.nativeEnum(WalletAccountType).nullable(),

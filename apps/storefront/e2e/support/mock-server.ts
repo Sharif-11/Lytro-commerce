@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { OrderStatus, StockState } from '@lytronix/validators/enums';
+import {
+  OrderStatus,
+  PaymentPolicy,
+  PaymentSessionState,
+  StockState,
+} from '@lytronix/validators/enums';
 import type {
   DeliveryEstimate,
   EstimateLine,
@@ -122,6 +127,26 @@ function taxesOf(rows: { tax: ProductFixture['tax']; total: number }[]): TaxLine
   return [...byClass.values()];
 }
 
+/** PRD-08: what an order of these owes first, as the server's own sum has it; null until the thana is known, for a charge. */
+function advanceOf(
+  counted: readonly { total: number; row: ProductFixture }[],
+  charge: number | null,
+): string | null {
+  const firstDelivery = counted.some(({ row }) =>
+    [PaymentPolicy.FullPrepayment, PaymentPolicy.DeliveryChargeOnly].includes(
+      row.product.paymentPolicy,
+    ),
+  );
+  if (firstDelivery && charge === null) return null;
+  const lines = counted.reduce((sum, { row, total }) => {
+    if (row.product.paymentPolicy === PaymentPolicy.FullPrepayment) return sum + total;
+    return row.product.paymentPolicy === PaymentPolicy.PartialAdvance
+      ? sum + Number(row.product.advanceAmount ?? 0)
+      : sum;
+  }, 0);
+  return money(lines + (firstDelivery ? (charge ?? 0) : 0));
+}
+
 function estimate(
   fixture: ShopFixture,
   body: {
@@ -172,6 +197,7 @@ function estimate(
       deliverable: false,
       notDeliveredHere: [],
       taxes: [],
+      advance: null,
     };
   }
   const zones = fixture.info.deliveryZones;
@@ -194,6 +220,7 @@ function estimate(
       deliverable: !zone.noDelivery && away.length === 0,
       notDeliveredHere: away,
       taxes,
+      advance: advanceOf(counted, Number(zone.charge)),
     };
   }
   const charges = zones
@@ -211,6 +238,7 @@ function estimate(
     deliverable: charges.length > 0,
     notDeliveredHere: [],
     taxes,
+    advance: advanceOf(counted, null),
   };
 }
 
@@ -220,6 +248,7 @@ interface OrderBody {
   locationId?: number;
   deliveryAddress?: string;
   items: OrderItemInput[];
+  payment?: { method?: string; returnUrl?: string };
 }
 
 /** The order as tracking reads it, from what was sent. */
@@ -282,6 +311,7 @@ function trackedFrom(fixture: ShopFixture, body: OrderBody): TrackedOrder {
     codAmount: grandTotal,
     taxes: taxesOf(taxed),
     due: grandTotal,
+    payment: null,
     courier: null,
   };
 }
@@ -325,7 +355,41 @@ function place(
     fail(response, 422, 'validation_error', { fields: problems });
     return;
   }
-  const tracked = trackedFrom(fixture, body);
+  // PRD-08, ORD-02: an order owing an advance names how it is paid, and starts waiting for it.
+  const counted = body.items.flatMap((item) => {
+    const found = findVariant(fixture, item.variantId);
+    return found ? [{ row: found.row, total: Number(found.variant.price) * item.quantity }] : [];
+  });
+  const owesFirst = counted.some(({ row }) => row.product.paymentPolicy !== PaymentPolicy.None);
+  if (owesFirst && !body.payment) {
+    fail(response, 422, 'validation_error', {
+      fields: [{ field: 'payment', problem: 'required' }],
+    });
+    return;
+  }
+  if (owesFirst && fixture.paymentMethods.length === 0) {
+    fail(response, 409, 'conflict', { reason: 'no_payment_method' });
+    return;
+  }
+  const made = trackedFrom(fixture, body);
+  const advance = owesFirst ? advanceOf(counted, Number(made.deliveryCharge)) : null;
+  const payment =
+    advance === null
+      ? null
+      : {
+          paymentUrl: `http://localhost:${String(MOCK_PORT)}/__pay/${made.trackingId}`,
+          amount: advance,
+          expiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
+        };
+  const tracked: TrackedOrder =
+    advance === null
+      ? made
+      : {
+          ...made,
+          status: OrderStatus.Unverified,
+          codAmount: money(Number(made.grandTotal) - Number(advance)),
+          payment: payment && { ...payment, state: PaymentSessionState.AwaitingPayment },
+        };
   const placed = {
     orderNumber: tracked.orderNumber,
     trackingId: tracked.trackingId,
@@ -339,7 +403,7 @@ function place(
     codAmount: tracked.codAmount,
     taxes: tracked.taxes,
     purchaseEventId: `purchase.${tracked.trackingId}`,
-    payment: null,
+    payment,
   };
   const commit = () => {
     state.placedByKey.set(key, { hash, placed });
@@ -619,6 +683,10 @@ async function publicApi(
     send(response, 200, row.product);
     return;
   }
+  if (path === '/v1/payment-methods') {
+    send(response, 200, { methods: fixture.paymentMethods });
+    return;
+  }
   if (path === '/v1/delivery-estimate' && request.method === 'POST') {
     const body = (await readBody(request)) as Parameters<typeof estimate>[1];
     send(response, 200, estimate(fixture, body));
@@ -645,6 +713,12 @@ async function publicApi(
 async function handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
   const url = new URL(request.url ?? '/', `http://localhost:${String(MOCK_PORT)}`);
   const path = url.pathname;
+  // SFT-07: where an order's advance is paid, the payment page's own host in production.
+  if (path.startsWith('/__pay/')) {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end('<!doctype html><title>The payment page</title><h1>The payment page</h1>');
+    return;
+  }
   if (path === '/__shop' && request.method === 'POST') {
     const fixture = (await readBody(request)) as ShopFixture;
     shops.set(fixture.slug, {

@@ -209,14 +209,38 @@ test.describe('what the form refuses', () => {
     await expect(confirm(page)).toBeDisabled();
   });
 
-  test('a product needing an advance waits for online payment, with Call the shop (D4-2)', async ({
+  test('with no way to pay, a product needing an advance waits, with Call the shop (D4-2)', async ({
+    page,
+  }) => {
+    const shop = await openShop(page, (language) => ({
+      products: [threePiece(language)],
+      paymentMethods: [],
+    }));
+    await page.goto(shop.url('/l/lawn-three-piece'));
+    await expect(alertOn(page)).toContainText("This shop isn't taking online payments right now");
+    await expect(alertOn(page)).toContainText('Lawn three-piece needs a ৳200 advance');
+    await expect(page.getByRole('link', { name: 'Call the shop' })).toBeVisible();
+    await expect(confirm(page)).toBeDisabled();
+  });
+
+  test('a product needing an advance chooses a wallet and goes straight to the page (LND-10)', async ({
     page,
   }) => {
     const shop = await openShop(page, (language) => ({ products: [threePiece(language)] }));
     await page.goto(shop.url('/l/lawn-three-piece'));
-    await expect(alertOn(page)).toContainText('Lawn three-piece needs a ৳200 advance');
-    await expect(page.getByRole('link', { name: 'Call the shop' })).toBeVisible();
-    await expect(confirm(page)).toBeDisabled();
+    await fillOrderForm(page);
+    const payment = page.locator('.card2', { hasText: 'Advance now ৳200' }).first();
+    await expect(payment.locator('.radio')).toHaveCount(5);
+    await page.locator('.radio', { hasText: 'Nagad' }).click();
+    await page.getByRole('button', { name: 'Place order and pay ৳200' }).click();
+    await page.waitForURL(/\/__pay\/K7F2M9QX$/);
+    const {
+      orders: [sent],
+    } = await shop.sent();
+    expect((sent?.body as { payment: { method: string }; source: string }).payment.method).toBe(
+      'nagad',
+    );
+    expect((sent?.body as { source: string }).source).toBe('landing_page');
   });
 
   test('a sold-out product says so where the button is', async ({ page }) => {

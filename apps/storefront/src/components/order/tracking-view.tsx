@@ -1,8 +1,9 @@
-import { OrderStatus } from '@lytronix/validators/enums';
+import { OrderStatus, PaymentSessionState } from '@lytronix/validators/enums';
 import type { TrackedItem, TrackedOrder, TrackingStepName } from '@/lib/api/storefront-api';
 import { dayMonthTime } from '@/lib/i18n/dates';
-import { money, type Words } from '@/lib/i18n/words';
+import { money, plainNumber, type Words } from '@/lib/i18n/words';
 import { quantityText } from '@/lib/order/order-form';
+import { minutesLeft } from '@/lib/order/payment-return';
 import { Icon } from '../icon';
 import { LineExtras, SummaryLine, TaxRows } from './order-parts';
 
@@ -110,6 +111,43 @@ function partsOf(item: TrackedItem): string | null {
     .join(', ');
 }
 
+/** ORD-17, PAY-03 (`pay58-tracking`): someone who closed the payment page finds it here, or that it is being checked. */
+function OpenPayment({ payment, words }: { payment: TrackedOrder['payment']; words: Words }) {
+  if (payment?.state === PaymentSessionState.AwaitingPayment) {
+    return (
+      <>
+        <div className="banner warn">
+          <Icon name="clock" />
+          <span>
+            <b>{words.t('pay58TrackDueT', { n: plainNumber(payment.amount) })}</b>
+            <br />
+            {words.t('pay58TrackDueP', { m: minutesLeft(payment.expiresAt, Date.now()) })}
+          </span>
+        </div>
+        <a className="btn primary lg block" href={payment.paymentUrl}>
+          {words.t('pay58PayNow')}
+        </a>
+      </>
+    );
+  }
+  if (
+    payment?.state === PaymentSessionState.Checking ||
+    payment?.state === PaymentSessionState.NeedsReview
+  ) {
+    return (
+      <div className="banner info">
+        <Icon name="clock" />
+        <span>
+          <b>{words.t('pay58CheckT')}</b>
+          <br />
+          {words.t('pay58TrackCheckP')}
+        </span>
+      </div>
+    );
+  }
+  return null;
+}
+
 export function TrackingView({
   order,
   words,
@@ -134,6 +172,7 @@ export function TrackingView({
 
   return (
     <>
+      {cancelled ? null : <OpenPayment payment={order.payment} words={words} />}
       <div>
         <h1 className="pt">{words.t('tr_title')}</h1>
       </div>
