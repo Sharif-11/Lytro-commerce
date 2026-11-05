@@ -1,4 +1,4 @@
-import type { CourierKey } from '@lytronix/validators';
+import type { CourierKey, ParcelReading } from '@lytronix/validators';
 
 /** CRR-03, SEC-09: the account a call runs on, its credentials opened only for the call. */
 export interface CourierAccount {
@@ -21,6 +21,8 @@ export interface CourierLimits {
   noteMax: number;
   /** A courier that takes a weight needs one; null for one that doesn't take it (ATR-13, CMB-07). */
   weightKg: { min: number; max: number } | null;
+  /** §3.6: how fast one connection may be asked after its parcels, kept well under what the courier allows. */
+  callsPerMinute: number;
 }
 
 /** CRR-06: one parcel as sent to a courier. */
@@ -65,6 +67,38 @@ export type LookUpAnswer =
     }
   | { outcome: 'not_found' };
 
+/** CRR-12, CRR-13, CRR-29 (Slice 6.2): one piece of news as an adapter read it, whichever way it came. */
+export interface CourierNews {
+  /** The courier's own key for this delivery where it sends one, otherwise worked out from what identifies it. */
+  dedupeKey: string;
+  event: string;
+  /** It says where the parcel stands; other events show and move nothing. */
+  statusEvent: boolean;
+  /** Read agreed 2026-11-05: its words may show on the shopper's tracking. */
+  forShopper: boolean;
+  consignmentId: string | null;
+  invoice: string | null;
+  rawStatus: string | null;
+  /** Null for a status the adapter doesn't recognise, which shows and moves nothing, and is logged. */
+  reading: ParcelReading | null;
+  messageEn: string | null;
+  messageBn: string | null;
+  cashCollected: string | null;
+  deliveryCharge: string | null;
+  /** The COD as changed in the courier's own panel. */
+  codAtCourier: string | null;
+  happenedAt: Date | null;
+}
+
+/** A message's headers, as they arrived. */
+export type MessageHeaders = Record<string, string | string[] | undefined>;
+
+/** CRR-14, CRR-15: what asking where a parcel stands found. */
+export type TrackAnswer =
+  | { outcome: 'found'; news: CourierNews }
+  | { outcome: 'not_found' }
+  | { outcome: 'refused'; refusal: CourierRefusal };
+
 export type CancelAnswer =
   { outcome: 'cancelled' } | { outcome: 'refused'; refusal: CourierRefusal };
 
@@ -103,6 +137,15 @@ export interface CourierAdapter {
   trackingLink(trackingCode: string): string | null;
   /** D6-11: asks by our own number, for a courier that can. */
   lookUp?(account: CourierAccount, invoice: string): Promise<LookUpAnswer>;
+  /** CRR-14, CRR-15: where one parcel stands; a change it finds takes the same path as a message. */
+  track(
+    account: CourierAccount,
+    parcel: { consignmentId: string | null; invoice: string },
+  ): Promise<TrackAnswer>;
+  /** CRR-11: this courier's own proof that a message came from it, against the token the owner pasted. */
+  verifyMessage(token: string, rawBody: Buffer, headers: MessageHeaders): boolean;
+  /** CRR-12, CRR-13: what a verified message says; null if it can't be read. */
+  readMessage(rawBody: Buffer, headers: MessageHeaders): CourierNews | null;
   /** D6-8: calls off a booked parcel, for a courier that can; otherwise staff confirm they did it in its panel. */
   cancel?(account: CourierAccount, consignmentId: string): Promise<CancelAnswer>;
 }

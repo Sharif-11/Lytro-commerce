@@ -2,6 +2,8 @@
 // refused, status by invoice, failures said in a 200's body, and no sandbox behind it. Injected as COURIER_FETCH, so nothing
 // leaves the machine. It counts the calls it gets: exit criterion 7 proves the rules on calls from these.
 
+import { createHmac } from 'node:crypto';
+
 export const RIGHT_API_KEY = 'steadfast-api-key-1234';
 export const RIGHT_SECRET_KEY = 'steadfast-secret-key-5678';
 
@@ -36,6 +38,15 @@ interface Behaviour {
   lookUpTimesOut?: boolean;
   /** Called with each booking while it is out with the courier. */
   whileBooking?: () => Promise<void>;
+  /** Asking after a parcel answers 401 though the keys are good, as its guide says a parcel on another profile does. */
+  otherProfile?: boolean;
+  /** Every key is refused from now on. */
+  keysRevoked?: boolean;
+}
+
+/** A message as Steadfast's guide says it signs one: a hex HMAC-SHA256 of the raw body, keyed with the pasted token. */
+export function signatureOf(body: string, token: string): string {
+  return createHmac('sha256', token).update(body).digest('hex');
 }
 
 function reply(status: number, body: unknown): Response {
@@ -49,6 +60,8 @@ export class FakeSteadfast {
   readonly calls: SteadfastCall[] = [];
   readonly consignments: FakeConsignment[] = [];
   behaviour: Behaviour = {};
+  /** Where each consignment stands, by its number; its answers read from here. */
+  readonly statuses = new Map<string, string>();
   private nextId = 1424107;
 
   /** The stand-in for `fetch`. */
@@ -67,6 +80,7 @@ export class FakeSteadfast {
     });
     if (this.behaviour.down) throw new DOMException('timed out', 'TimeoutError');
     if (
+      this.behaviour.keysRevoked === true ||
       headers.get('Api-Key') !== RIGHT_API_KEY ||
       headers.get('Secret-Key') !== RIGHT_SECRET_KEY
     ) {
@@ -76,6 +90,15 @@ export class FakeSteadfast {
     if (path === '/create_order' && body !== null) return this.createOrder(body);
     if (path.startsWith('/status_by_invoice/')) {
       return this.statusByInvoice(decodeURIComponent(path.slice('/status_by_invoice/'.length)));
+    }
+    if (path.startsWith('/status_by_cid/')) {
+      if (this.behaviour.otherProfile === true) {
+        return reply(401, { status: 401, message: 'Unauthorized.' });
+      }
+      const status = this.statuses.get(decodeURIComponent(path.slice('/status_by_cid/'.length)));
+      return status === undefined
+        ? reply(404, { status: 404, message: 'Consignment not found.' })
+        : reply(200, { status: 200, delivery_status: status });
     }
     return reply(404, { status: 404, message: 'Not found.' });
   };
@@ -92,7 +115,13 @@ export class FakeSteadfast {
   reset(): void {
     this.calls.length = 0;
     this.consignments.length = 0;
+    this.statuses.clear();
     this.behaviour = {};
+  }
+
+  /** The calls asking where a parcel stands. */
+  statusCalls(): SteadfastCall[] {
+    return this.calls.filter((call) => call.path.startsWith('/status_by_'));
   }
 
   private async createOrder(body: Record<string, unknown>): Promise<Response> {
@@ -154,6 +183,7 @@ export class FakeSteadfast {
     const made = { consignmentId: this.nextId, invoice, body };
     this.nextId += 1;
     this.consignments.push(made);
+    this.statuses.set(String(made.consignmentId), 'in_review');
     return made;
   }
 }

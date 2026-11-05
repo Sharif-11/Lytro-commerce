@@ -119,7 +119,7 @@ test('a locked account is refused the right password too, and another address ma
 
 test('a lock ends when the server says it does', async ({ page }) => {
   await page.clock.install();
-  const log = await open(page, { failures: 5 });
+  const log = await open(page, { failures: 5, ownClock: true });
   await credentials(page);
   await expect(page.getByRole('button', { name: 'Try again in 15 minutes' })).toBeDisabled();
   log.state.failures = 0;

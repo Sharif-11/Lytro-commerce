@@ -351,6 +351,8 @@ export enum AuditAction {
   CourierConnected = 'courier_connected',
   CourierDisconnected = 'courier_disconnected',
   CourierDefaultChanged = 'courier_default_changed',
+  // CRR-03 (Slice 6.2): a connection's message address and token replaced.
+  CourierAddressReplaced = 'courier_address_replaced',
   // Slice 6.1, read agreed 2026-11-04: a booking cancelled with the order kept, and a lost answer settled by staff (D6-11).
   ParcelCancelled = 'parcel_cancelled',
   ParcelSettled = 'parcel_settled',
@@ -495,6 +497,8 @@ export enum QueueName {
   GatewayReconcileTick = 'gateway_reconcile_tick',
   // D6-11 (Phase 6 Slice 6.1): bookings whose answer was lost are asked after, and accepted ones not yet settled are finished.
   CourierBookingTick = 'courier_booking_tick',
+  // CRR-15, D6-4 (Slice 6.2): once a night, parcels on their way that no message has told of are asked after.
+  CourierNightTick = 'courier_night_tick',
   // MED-03: an uploaded file to validate and turn into what is stored; MED-07, MED-09: stored files to delete, with the
   // deletion job's own key.
   MediaProcess = 'media_process',
@@ -723,6 +727,11 @@ export enum PlatformSettingKey {
   // QTA-03 (editable): what handling an order past the period's limit does -- refused, or done with a prompt to upgrade.
   OrderLimitMode = 'order_limit_mode',
   // LEG-01 (editable): the terms and privacy versions now in force, which a new account accepts.
+  // CRR-14, CRR-15, D6-4 (Slice 6.2): keeping calls to couriers down.
+  CourierCheckMinAgeHours = 'courier_check_min_age_hours',
+  CourierCheckQuietHours = 'courier_check_quiet_hours',
+  CourierCheckStopDays = 'courier_check_stop_days',
+  CourierSyncMinutes = 'courier_sync_minutes',
   TermsVersion = 'terms_version',
   PrivacyVersion = 'privacy_version',
 }
@@ -1361,6 +1370,52 @@ export enum CourierCallAction {
   Book = 'book',
   LookUp = 'look_up',
   Cancel = 'cancel',
+  // Slice 6.2: Sync, or the night check, asking where a parcel stands.
+  Track = 'track',
+}
+
+// CRR-29 (Slice 6.2): what a courier's status means here. Each adapter maps its own onto these, and shared code reads only these.
+export enum ParcelReading {
+  // In the courier's system, not yet with it.
+  Booked = 'booked',
+  WithCourier = 'with_courier',
+  // The courier itself calls this unconfirmed: the rider's word, which settles nothing.
+  Unconfirmed = 'unconfirmed',
+  Hold = 'hold',
+  Delivered = 'delivered',
+  PartlyDelivered = 'partly_delivered',
+  Returning = 'returning',
+  // Something is wrong with it, by the courier's word; it shows and moves nothing.
+  Problem = 'problem',
+}
+
+// D6-4, read agreed 2026-11-05: a parcel the night check no longer asks after. Its messages still show.
+export const FINISHED_PARCEL_READINGS: readonly ParcelReading[] = [
+  ParcelReading.Delivered,
+  ParcelReading.PartlyDelivered,
+  ParcelReading.Returning,
+];
+
+// CRR-13: how a piece of courier news reached us.
+export enum CourierNewsSource {
+  Message = 'message',
+  Check = 'check',
+  Sync = 'sync',
+}
+
+// Slice 6.2 read: what staff should look at on a parcel; nothing has moved on its account.
+export enum ParcelAttention {
+  CashDiffers = 'cash_differs',
+  CodChanged = 'cod_changed',
+  ReportAfterDelivered = 'report_after_delivered',
+  DeliveredAfterCancel = 'delivered_after_cancel',
+}
+
+// CRR-02, D6-3, read agreed 2026-11-05: how a connection's messages stand, for the owner.
+export enum CourierMessagesState {
+  NoneYet = 'none_yet',
+  Arriving = 'arriving',
+  TokenMissing = 'token_missing',
 }
 
 // SEC-11 (Slice 5.7): what a stored gateway credential was used for.

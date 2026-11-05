@@ -281,6 +281,11 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // Phase 6 Slice 6.1, checked in test/courier-booking.e2e.spec.ts: a shop's parcels and connections are its own.
   'POST /orders/:id/book': "another shop's order answers 404, with nothing sent to any courier",
   'POST /orders/:id/parcel/settle': "another shop's order answers 404",
+  'POST /orders/:id/parcel/sync':
+    "another shop's order answers 404, with nothing asked of any courier",
+  'GET /couriers/connections/:key/address': "shows only the session shop's own address and token",
+  'POST /couriers/connections/:key/address':
+    "replaces only the session shop's own address and token",
   'POST /orders/:id/parcel/cancel': "another shop's order answers 404",
   'GET /couriers/adapters':
     'returns the same platform-wide couriers regardless of which shop calls it',

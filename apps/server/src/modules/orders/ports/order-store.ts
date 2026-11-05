@@ -7,6 +7,7 @@ import type {
   NewOrderHistory,
   NewOrderPayment,
   OrderHomeCounts,
+  SelectCourierEvent,
   SelectCourierParcel,
   OrderLinePatch,
   OrderListFilter,
@@ -43,6 +44,19 @@ export interface OrderStore {
     tenantId: string,
     orderId: string,
   ): Promise<SelectCourierParcel | null>;
+  /** CRR-12 (Slice 6.2): a parcel's news, newest first, up to `limit`. */
+  listParcelEvents(
+    tx: Transaction,
+    tenantId: string,
+    parcelId: string,
+    limit: number,
+  ): Promise<SelectCourierEvent[]>;
+  /** Read agreed 2026-11-05: the courier's latest words about an order's live parcel, for its tracking. */
+  latestCourierMessage(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<SelectCourierEvent | null>;
   /** The variants an item may name, with their products, as the stock ledger knows them. */
   findVariants(tx: Transaction, tenantId: string, variantIds: string[]): Promise<StockVariantRow[]>;
   /** ORD-04: the day's next number, gap-free; the day's counter stays locked until the transaction ends. */

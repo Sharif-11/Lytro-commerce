@@ -1808,8 +1808,7 @@ CREATE TABLE control.used_transaction_ids (
 -- VER-02 (Slice 5.3, migration 0097): every ID is kept in capitals, so the registry matches IDs ignoring case; a wallet
 -- ID is 6 to 20 letters and digits wherever it is typed. Claimed when a payment is recorded or verified.
 
--- Phase 6 Slice 6.1 (migration 0107). RLS forced on all three. Slice 6.2 adds a connection's message token and last message
--- time, and the parcel's reading of its news; Slice 6.5 its payout.
+-- Phase 6 Slice 6.1 (migration 0107) and 6.2 (0108). RLS forced on all four tenant tables. Slice 6.5 adds a parcel's payout.
 CREATE TABLE tenant.courier_connections (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
@@ -1817,6 +1816,10 @@ CREATE TABLE tenant.courier_connections (
     credentials     bytea NOT NULL,                    -- sealed (SEC-08); never returned (CRR-03)
     is_default      boolean NOT NULL DEFAULT false,    -- CRR-05: unique per shop where true
     state           tenant.courier_connection_state NOT NULL DEFAULT 'active',  -- active, login_refused
+    message_secrets bytea,                             -- sealed: its address's token and the signing token (CRR-03)
+    last_message_at timestamptz,                       -- CRR-02: null shows "no messages yet"
+    unsigned_at     timestamptz,                       -- when a message last failed verification; a good one clears it
+    paste_warned_at timestamptz,                       -- CRR-15: the owner is told of a broken paste at most once a day
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
     UNIQUE (tenant_id, courier_key)
@@ -1850,9 +1853,23 @@ CREATE TABLE tenant.courier_parcels (
     not_found       smallint NOT NULL DEFAULT 0,
     next_look_up_at timestamptz,
     booked_by       uuid,
+    reading         text,                              -- CRR-29: what its courier's status means here (ParcelReading)
+    last_news_at    timestamptz,                       -- the courier's own time; older news changes nothing
+    last_change_at  timestamptz,                       -- D6-4: when its status last changed
+    last_message_at timestamptz,                       -- D6-4: when a message last told of it
+    last_check_at   timestamptz,                       -- CRR-14: when Lytro last asked
+    checks_stopped_at timestamptz,                     -- D6-4: 30 days with no change; shows "no news", and Sync restarts it
+    cash_collected  numeric(12,2),                     -- ORD-43: what its courier reports
+    cod_at_courier  numeric(12,2),                     -- a COD changed in the courier's panel
+    attention       text,                              -- what staff should look at (ParcelAttention)
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now()
 );
+-- D6-4: the night check's pick, oldest first.
+CREATE INDEX ON tenant.courier_parcels (tenant_id, created_at)
+    WHERE state = 'booked' AND settled_at IS NOT NULL AND checks_stopped_at IS NULL
+      AND (reading IS NULL OR reading NOT IN ('delivered', 'partly_delivered', 'returning'));
+CREATE INDEX ON tenant.courier_parcels (tenant_id, courier_key, invoice);
 -- CRR-08: two bookings at once make one parcel.
 CREATE UNIQUE INDEX courier_parcels_live_key ON tenant.courier_parcels (tenant_id, order_id)
     WHERE state IN ('booking', 'booked', 'unknown');
@@ -1863,12 +1880,43 @@ CREATE INDEX ON tenant.courier_parcels (tenant_id, created_at)
     WHERE settled_at IS NULL AND state IN ('booking', 'booked', 'unknown');
 CREATE INDEX ON tenant.courier_parcels (tenant_id, courier_key, consignment_id);
 
+-- CRR-12, CRR-13: a parcel's news, whichever way it came; a message is stored first, and applied after the courier has its answer.
+CREATE TABLE tenant.courier_events (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    parcel_id       uuid REFERENCES tenant.courier_parcels (id) ON DELETE CASCADE,  -- none for a parcel Lytro didn't book
+    courier_key     text NOT NULL,
+    source          text NOT NULL,                     -- message, check, sync
+    dedupe_key      text NOT NULL,                     -- its courier's own key where it sends one, else worked out
+    raw_status      varchar(100),
+    reading         text,
+    message_en      varchar(500),
+    message_bn      varchar(500),
+    happened_at     timestamptz,
+    news            jsonb NOT NULL,                    -- what the adapter read: IDs, cash, charge, COD; never the raw body
+    received_at     timestamptz NOT NULL DEFAULT now(),
+    applied_at      timestamptz,
+    problem         text,
+    UNIQUE (tenant_id, courier_key, dedupe_key)
+);
+CREATE INDEX ON tenant.courier_events (parcel_id, received_at);
+CREATE INDEX ON tenant.courier_events (tenant_id, received_at) WHERE applied_at IS NULL;
+
+-- CRR-11, CRR-20: finds a message's shop before any tenant data is read; goes when the courier is disconnected or the address replaced.
+CREATE TABLE control.courier_message_routes (
+    token_hash      text PRIMARY KEY,                  -- SHA-256 of the address's token
+    tenant_id       uuid NOT NULL,
+    courier_key     text NOT NULL,
+    connection_id   uuid NOT NULL UNIQUE,
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+
 -- SEC-11: every outbound call with a shop's courier credentials, never the credentials.
 CREATE TABLE tenant.courier_credential_uses (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
     courier_key     text NOT NULL,
-    action          text NOT NULL,                     -- test, book, look_up, cancel
+    action          text NOT NULL,                     -- test, book, look_up, cancel, track
     connection_id   uuid,                              -- none for a test of credentials not yet saved
     order_id        uuid,
     succeeded       boolean NOT NULL,

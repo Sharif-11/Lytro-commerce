@@ -6,6 +6,7 @@
 @theme {
   --color-chrome: #061211;
   --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --font-display: 'Plus Jakarta Sans', 'Inter', 'Noto Sans Bengali', sans-serif;
 
   /* Type and size, a notch denser: 14 px controls and copy, 13 px labels. */
   --text-ui: 14px;

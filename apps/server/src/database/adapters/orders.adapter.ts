@@ -19,6 +19,7 @@ import {
   type OrderHomeCounts,
   type OrderListFilter,
   type OrderPatch,
+  type SelectCourierEvent,
   type SelectCourierParcel,
   type StockVariantRow,
   type Transaction,
@@ -71,6 +72,23 @@ export class DrizzleOrderStore implements OrderStore {
     orderId: string,
   ): Promise<SelectCourierParcel | null> {
     return this.couriers.latestParcel(tx, tenantId, orderId);
+  }
+
+  listParcelEvents(
+    tx: Transaction,
+    tenantId: string,
+    parcelId: string,
+    limit: number,
+  ): Promise<SelectCourierEvent[]> {
+    return this.couriers.listEvents(tx, tenantId, parcelId, limit);
+  }
+
+  latestCourierMessage(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<SelectCourierEvent | null> {
+    return this.couriers.latestMessage(tx, tenantId, orderId);
   }
 
   insertComponents(

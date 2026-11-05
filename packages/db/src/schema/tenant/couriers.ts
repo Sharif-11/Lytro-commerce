@@ -15,6 +15,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import {
   CONSIGNMENT_ID_MAX_LENGTH,
+  COURIER_MESSAGE_MAX_LENGTH,
   COURIER_REFUSAL_MAX_LENGTH,
   COURIER_STATUS_MAX_LENGTH,
   CourierConnectionState,
@@ -25,6 +26,9 @@ import {
   TRACKING_CODE_MAX_LENGTH,
   type CourierCallAction,
   type CourierKey,
+  type CourierNewsSource,
+  type ParcelAttention,
+  type ParcelReading,
 } from '@lytronix/validators';
 import { bytea, createdAt, tenant } from '../shared';
 import { orders } from './orders';
@@ -48,6 +52,14 @@ export const courierConnections = tenant.table(
     credentials: bytea('credentials').notNull(),
     isDefault: boolean('is_default').notNull().default(false),
     state: courierConnectionState('state').notNull().default(CourierConnectionState.Active),
+    // CRR-02, CRR-03 (Slice 6.2): its message address's token and the token messages are signed with, sealed; shown to whoever
+    // holds couriers:manage, since neither is the courier's own credential.
+    messageSecrets: bytea('message_secrets'),
+    lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
+    // Read agreed 2026-11-05: when a message last came without a good signature, so the owner can be told to paste the token.
+    unsignedAt: timestamp('unsigned_at', { withTimezone: true }),
+    // CRR-15: when the owner was last told a pasted address may be broken, at most once a day.
+    pasteWarnedAt: timestamp('paste_warned_at', { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -115,6 +127,19 @@ export const courierParcels = tenant.table(
     notFound: smallint('not_found').notNull().default(0),
     nextLookUpAt: timestamp('next_look_up_at', { withTimezone: true }),
     bookedBy: uuid('booked_by'),
+    // CRR-29 (Slice 6.2): what its courier's status means here, and when the courier said so, so older news changes nothing.
+    reading: text('reading').$type<ParcelReading>(),
+    lastNewsAt: timestamp('last_news_at', { withTimezone: true }),
+    // D6-4: when its status last changed, when a message last told of it, and when Lytro last asked.
+    lastChangeAt: timestamp('last_change_at', { withTimezone: true }),
+    lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
+    lastCheckAt: timestamp('last_check_at', { withTimezone: true }),
+    // D6-4: 30 days with no change stop the checks and show "no news"; Sync starts them again.
+    checksStoppedAt: timestamp('checks_stopped_at', { withTimezone: true }),
+    // Read agreed 2026-11-05: the cash its courier reports, the COD if changed in its panel, and what staff should look at.
+    cashCollected: money('cash_collected'),
+    codAtCourier: money('cod_at_courier'),
+    attention: text('attention').$type<ParcelAttention>(),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -139,8 +164,61 @@ export const courierParcels = tenant.table(
     index('courier_parcels_unsettled_idx')
       .on(t.tenantId, t.createdAt)
       .where(sql`${t.settledAt} IS NULL AND ${t.state} IN ('booking', 'booked', 'unknown')`),
+    // D6-4: the night check's pick, oldest first.
+    index('courier_parcels_night_idx')
+      .on(t.tenantId, t.createdAt)
+      .where(
+        sql`${t.state} = 'booked' AND ${t.settledAt} IS NOT NULL AND ${t.checksStoppedAt} IS NULL AND (${t.reading} IS NULL OR ${t.reading} NOT IN ('delivered', 'partly_delivered', 'returning'))`,
+      ),
+    index('courier_parcels_invoice_idx').on(t.tenantId, t.courierKey, t.invoice),
     // Slice 6.2: a courier's news finds its parcel by the courier's number.
     index('courier_parcels_consignment_idx').on(t.tenantId, t.courierKey, t.consignmentId),
+  ],
+);
+
+/** Slice 6.2: one piece of courier news as an adapter read it, kept until it has been applied. */
+export interface StoredCourierNews {
+  event: string;
+  statusEvent: boolean;
+  /** Read agreed 2026-11-05: its words may show on the shopper's tracking; never a refusal or a change made in a panel. */
+  forShopper: boolean;
+  consignmentId: string | null;
+  invoice: string | null;
+  cashCollected: string | null;
+  deliveryCharge: string | null;
+  codAtCourier: string | null;
+}
+
+// CRR-12, CRR-13 (Phase 6 Slice 6.2): a parcel's news, whichever way it came. A message is stored first and applied after the courier
+// has its answer, so a slow apply never looks like a failed delivery. The unique key is what makes a repeat add nothing. A message
+// for a parcel Lytro didn't book has no parcel and moves nothing.
+export const courierEvents = tenant.table(
+  'courier_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    parcelId: uuid('parcel_id').references(() => courierParcels.id, { onDelete: 'cascade' }),
+    courierKey: text('courier_key').$type<CourierKey>().notNull(),
+    source: text('source').$type<CourierNewsSource>().notNull(),
+    dedupeKey: text('dedupe_key').notNull(),
+    rawStatus: varchar('raw_status', { length: COURIER_STATUS_MAX_LENGTH }),
+    reading: text('reading').$type<ParcelReading>(),
+    messageEn: varchar('message_en', { length: COURIER_MESSAGE_MAX_LENGTH }),
+    messageBn: varchar('message_bn', { length: COURIER_MESSAGE_MAX_LENGTH }),
+    // When the courier says it happened; older news than a parcel holds changes nothing (CRR-29).
+    happenedAt: timestamp('happened_at', { withTimezone: true }),
+    news: jsonb('news').$type<StoredCourierNews>().notNull(),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+    appliedAt: timestamp('applied_at', { withTimezone: true }),
+    problem: text('problem'),
+  },
+  (t) => [
+    unique('courier_events_dedupe_key').on(t.tenantId, t.courierKey, t.dedupeKey),
+    index('courier_events_parcel_idx').on(t.parcelId, t.receivedAt),
+    // The minute pass's work: what a message stored and nothing has applied yet.
+    index('courier_events_unapplied_idx')
+      .on(t.tenantId, t.receivedAt)
+      .where(sql`${t.appliedAt} IS NULL`),
   ],
 );
 
@@ -164,3 +242,4 @@ export const courierCredentialUses = tenant.table(
 export type SelectCourierConnection = typeof courierConnections.$inferSelect;
 export type SelectCourierParcel = typeof courierParcels.$inferSelect;
 export type SelectCourierCredentialUse = typeof courierCredentialUses.$inferSelect;
+export type SelectCourierEvent = typeof courierEvents.$inferSelect;

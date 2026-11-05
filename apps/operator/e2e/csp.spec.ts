@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { RAHIM, REVIEW_RENEWAL } from './support/console-data';
 import { mockApi } from './support/mock-api';
 
 // The console under its own Content Security Policy, read from deploy/Caddyfile's `(operator_csp)` block -- the one
@@ -65,7 +66,7 @@ test('every screen loads with nothing refused', async ({ page }) => {
   const found: string[] = [];
   for (const path of paths) {
     await page.goto('about:blank');
-    await page.goto(path);
+    await page.goto(path.replace('$id', path.startsWith('/queue') ? REVIEW_RENEWAL : RAHIM));
     await page.waitForLoadState('networkidle');
     if ((await page.locator('#root > *').count()) === 0) found.push(`${path}: nothing drawn`);
     for (const each of await refused()) found.push(`${path}: ${each}`);

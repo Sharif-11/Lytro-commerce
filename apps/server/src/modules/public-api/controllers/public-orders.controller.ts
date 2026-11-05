@@ -105,6 +105,9 @@ class TrackedOrderDto extends createZodDto(
         trackingLink: z.string().nullable(),
       })
       .nullable(),
+    courierMessage: z
+      .object({ en: z.string().nullable(), bn: z.string().nullable(), at: z.coerce.date() })
+      .nullable(),
     payment: openedPaymentSchema.extend({ state: z.nativeEnum(PaymentSessionState) }).nullable(),
   }),
 ) {}

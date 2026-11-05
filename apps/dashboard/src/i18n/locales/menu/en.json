@@ -75,6 +75,7 @@
     "courier_connected": "{{actor}} connected a courier",
     "courier_disconnected": "{{actor}} disconnected a courier",
     "courier_default_changed": "{{actor}} changed the default courier",
+    "courier_address_replaced": "{{actor}} made a new courier message address",
     "parcel_cancelled": "{{actor}} cancelled a courier booking",
     "parcel_settled": "{{actor}} settled a courier booking",
     "gateway_credentials_saved": "{{actor}} saved gateway credentials",
