@@ -5,14 +5,17 @@ import type { PlanPayment } from '@/types/operator';
 
 export const PAYMENT_QUEUE_QUERY_KEY = ['operator', 'payment-queue'] as const;
 
+export function fetchPaymentQueue(kind: PlanPaymentKind | null): Promise<PlanPayment[]> {
+  return operatorSession.client.get<PlanPayment[]>(
+    `/operator/payment-queue${kind ? `?kind=${kind}` : ''}`,
+  );
+}
+
 /** ADM-06: every payment awaiting review, optionally one kind. */
 export function usePaymentQueue(kind: PlanPaymentKind | null) {
   return useQuery({
     queryKey: [...PAYMENT_QUEUE_QUERY_KEY, kind ?? 'all'],
-    queryFn: () =>
-      operatorSession.client.get<PlanPayment[]>(
-        `/operator/payment-queue${kind ? `?kind=${kind}` : ''}`,
-      ),
+    queryFn: () => fetchPaymentQueue(kind),
   });
 }
 

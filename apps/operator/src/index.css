@@ -1,4 +1,5 @@
 @import 'tailwindcss';
-/* Lytro's tokens and the console's inverted theme (packages/ui, BRAND-IDENTITY §8.4). */
+/* Lytro's tokens, the light theme, and the console's band and density over it (packages/ui, BRAND-IDENTITY §8.4). */
 @import '@lytronix/ui/base.css';
+@import '@lytronix/ui/light.css';
 @import '@lytronix/ui/console.css';

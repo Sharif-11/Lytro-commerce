@@ -1,45 +1,108 @@
-import type { IconName } from '@lytronix/ui';
+import type { ConsoleIconName } from '@/components/ui/console-icon';
 
-export type ConsoleSection =
-  | 'payment-queue'
-  | 'tenants'
-  | 'plans'
-  | 'billing-terms'
-  | 'rates'
-  | 'settings'
-  | 'wallets'
-  | 'account';
+export type ConsolePath =
+  | '/'
+  | '/payment-queue'
+  | '/page-reports'
+  | '/tenants'
+  | '/plans'
+  | '/billing-terms'
+  | '/rates'
+  | '/addons'
+  | '/settings'
+  | '/wallets'
+  | '/phones'
+  | '/catalogue/shop-types'
+  | '/catalogue/attributes'
+  | '/catalogue/option-sets'
+  | '/reports'
+  | '/audit'
+  | '/inbox'
+  | '/notices'
+  | '/verification'
+  | '/manual'
+  | '/account';
+
+export type NavCount = 'queue' | 'reports';
 
 export interface NavItem {
-  section: ConsoleSection;
-  to:
-    | '/payment-queue'
-    | '/tenants'
-    | '/plans'
-    | '/billing-terms'
-    | '/rates'
-    | '/settings'
-    | '/wallets'
-    | '/account';
+  to: ConsolePath;
   labelKey: string;
-  icon: IconName;
+  icon: ConsoleIconName;
+  count?: NavCount;
 }
 
-/** The one list of destinations the sidebar and the phone nav both render. Order follows how often an
-    operator opens each: the queue and tenants daily, the catalogue rarely. No permission gating: the
-    operator session guard alone gates every console route today. */
-export const navItems: NavItem[] = [
-  { section: 'payment-queue', to: '/payment-queue', labelKey: 'nav.paymentQueue', icon: 'wallet' },
-  { section: 'tenants', to: '/tenants', labelKey: 'nav.tenants', icon: 'store' },
-  { section: 'plans', to: '/plans', labelKey: 'nav.plans', icon: 'tag' },
+export interface NavGroup {
+  labelKey: string;
+  /** Drawn for later work (OPERATOR-CONSOLE-DESIGN rule 8): each carries "soon". */
+  later?: boolean;
+  items: NavItem[];
+}
+
+/** The one list of destinations the sidebar and the phone's More sheet both render, by how often each is opened. */
+export const navGroups: NavGroup[] = [
   {
-    section: 'billing-terms',
-    to: '/billing-terms',
-    labelKey: 'nav.billingTerms',
-    icon: 'calendar',
+    labelKey: 'nav.daily',
+    items: [
+      { to: '/', labelKey: 'nav.today', icon: 'home' },
+      { to: '/payment-queue', labelKey: 'nav.paymentQueue', icon: 'queue', count: 'queue' },
+      { to: '/page-reports', labelKey: 'nav.pageReports', icon: 'flag', count: 'reports' },
+      { to: '/tenants', labelKey: 'nav.shops', icon: 'store' },
+    ],
   },
-  { section: 'rates', to: '/rates', labelKey: 'nav.rates', icon: 'signal' },
-  { section: 'settings', to: '/settings', labelKey: 'nav.settings', icon: 'settings' },
-  { section: 'wallets', to: '/wallets', labelKey: 'nav.wallets', icon: 'phone' },
-  { section: 'account', to: '/account', labelKey: 'nav.account', icon: 'shield' },
+  {
+    labelKey: 'nav.pricing',
+    items: [
+      { to: '/plans', labelKey: 'nav.plans', icon: 'tag' },
+      { to: '/billing-terms', labelKey: 'nav.billingTerms', icon: 'calendar' },
+      { to: '/rates', labelKey: 'nav.rates', icon: 'signal' },
+      { to: '/addons', labelKey: 'nav.addons', icon: 'dollar' },
+    ],
+  },
+  {
+    labelKey: 'nav.platform',
+    items: [
+      { to: '/settings', labelKey: 'nav.settings', icon: 'settings' },
+      { to: '/wallets', labelKey: 'nav.wallets', icon: 'wallet' },
+      { to: '/phones', labelKey: 'nav.phones', icon: 'phone' },
+    ],
+  },
+  {
+    labelKey: 'nav.catalogue',
+    items: [
+      { to: '/catalogue/shop-types', labelKey: 'nav.shopTypes', icon: 'layers' },
+      { to: '/catalogue/attributes', labelKey: 'nav.attributes', icon: 'list' },
+      { to: '/catalogue/option-sets', labelKey: 'nav.optionSets', icon: 'grid' },
+    ],
+  },
+  {
+    labelKey: 'nav.later',
+    later: true,
+    items: [
+      { to: '/reports', labelKey: 'nav.reports', icon: 'chart' },
+      { to: '/audit', labelKey: 'nav.audit', icon: 'history' },
+      { to: '/inbox', labelKey: 'nav.inbox', icon: 'inbox' },
+      { to: '/notices', labelKey: 'nav.notices', icon: 'bell' },
+      { to: '/verification', labelKey: 'nav.verification', icon: 'id' },
+      { to: '/manual', labelKey: 'nav.manual', icon: 'dollar' },
+    ],
+  },
 ];
+
+/** The phone's four tabs; the fourth, More, opens the sheet. */
+export const phoneTabs: NavItem[] = [
+  { to: '/', labelKey: 'nav.today', icon: 'home' },
+  { to: '/payment-queue', labelKey: 'nav.paymentQueue', icon: 'queue', count: 'queue' },
+  { to: '/tenants', labelKey: 'nav.shops', icon: 'store' },
+];
+
+const ACCOUNT = '/account';
+
+/** What the phone's band names on this page; Today, the home of the console, shows the wordmark instead. */
+export function bandTitleKey(pathname: string): string | null {
+  if (pathname === ACCOUNT) return 'nav.account';
+  const item = navGroups
+    .flatMap((group) => group.items)
+    .find(({ to }) => to !== '/' && (pathname === to || pathname.startsWith(`${to}/`)));
+  return item?.labelKey ?? null;
+}

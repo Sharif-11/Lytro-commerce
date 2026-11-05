@@ -5,12 +5,20 @@ const MARK_PATH = 'M15 15V49H31L49 29';
 export function Mark({
   size = 28,
   color = 'currentColor',
+  cropped = false,
 }: {
   size?: number;
   color?: string;
+  /** Without the clear space around it, as the first letter of a wordmark set in text. */
+  cropped?: boolean;
 }): React.JSX.Element {
   return (
-    <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
+    <svg
+      viewBox={cropped ? '10 10 44 44' : '0 0 64 64'}
+      width={size}
+      height={size}
+      aria-hidden="true"
+    >
       <path
         d={MARK_PATH}
         fill="none"

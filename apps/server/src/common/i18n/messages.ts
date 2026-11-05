@@ -307,8 +307,8 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     bn: 'প্রথমে 2FA এনরোলমেন্ট সম্পন্ন করুন।',
   },
   OperatorCredentialsWrong: {
-    en: 'Incorrect email or password.',
-    bn: 'ইমেইল বা পাসওয়ার্ড সঠিক নয়।',
+    en: "That email or password isn't right.",
+    bn: 'ইমেইল বা পাসওয়ার্ড মেলেনি।',
   },
   OperatorCodeWrong: {
     en: (p) => {

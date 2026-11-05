@@ -48,6 +48,11 @@ export interface ApiClientOptions {
    * operator console, which never acts as a shop.
    */
   getShop?: () => string | null;
+  /**
+   * The language the app is showing, for the server's words (I18N-01). Read at call time, since the person can switch
+   * it; without it the browser's own language is what the server sees.
+   */
+  getLanguage?: () => string | null;
 }
 
 /**
@@ -63,6 +68,8 @@ export class ApiClient {
     headers.set('Content-Type', 'application/json');
     const shop = this.options.getShop?.() ?? null;
     if (shop !== null) headers.set(SHOP_HEADER, shop);
+    const language = this.options.getLanguage?.() ?? null;
+    if (language !== null) headers.set('Accept-Language', language);
     if (MUTATING_METHODS.has(method)) {
       const csrfToken = this.options.getCsrfToken();
       if (csrfToken !== null) headers.set(CSRF_HEADER, csrfToken);

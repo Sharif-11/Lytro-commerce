@@ -16,7 +16,10 @@
     "save": "Save",
     "loadMore": "Load more",
     "on": "On",
-    "off": "Off"
+    "off": "Off",
+    "retry": "Try again",
+    "loadFailedTitle": "The server did not answer",
+    "loadFailedBody": "Nothing was changed. Check the connection and try again."
   },
   "errors": {
     "rateLimited": "Too many attempts. Please try again later.",
@@ -30,38 +33,71 @@
     "planLimited": "The plan does not allow that."
   },
   "shell": {
-    "eyebrow": "Operator",
-    "footer": "Lytro operator console · Lytronix"
+    "eyebrow": "OPERATOR",
+    "environments": {
+      "production": "production",
+      "staging": "staging",
+      "local": "local"
+    },
+    "search": "Find a shop by name or address",
+    "searchOpen": "Find a shop",
+    "soon": "soon",
+    "open": "Open"
   },
   "nav": {
     "primary": "Console",
     "menu": "Menu",
+    "tabs": "Main tabs",
+    "more": "More",
+    "daily": "Daily",
+    "pricing": "Pricing",
+    "platform": "Platform",
+    "catalogue": "Catalogue",
+    "later": "Later",
+    "today": "Today",
     "paymentQueue": "Payment queue",
-    "tenants": "Tenants",
-    "plans": "Plans",
+    "pageReports": "Page reports",
+    "shops": "Shops",
+    "plans": "Plans and prices",
     "billingTerms": "Billing terms",
     "rates": "Rates",
+    "addons": "Add-ons",
     "settings": "Settings",
     "wallets": "Platform wallets",
+    "phones": "Lytro's phones",
+    "shopTypes": "Shop types",
+    "attributes": "Attribute library",
+    "optionSets": "Option sets",
+    "reports": "Reports",
+    "audit": "Audit log",
+    "inbox": "Support inbox",
+    "notices": "Notices",
+    "verification": "Verification",
+    "manual": "Manual payments",
     "account": "Account"
   },
   "signIn": {
     "title": "Operator sign-in",
     "lead": "The platform console. Separate from any seller's dashboard.",
     "email": "Email",
-    "password": "Password"
+    "password": "Password",
+    "noRecovery": "No \"forgot password\". Losing the authenticator and the backup codes is recovered by a logged break-glass action (ADM-18).",
+    "lockedTitle": "Too many failed tries",
+    "locked": "Five tries failed on this account in 15 minutes. Wait, then try again. Until then a right password or code is refused too.",
+    "lockedWait": "Try again in 15 minutes"
   },
   "enroll": {
     "title": "Set up two-factor sign-in",
-    "lead": "Scan this code with an authenticator app, then enter the 6-digit code it shows.",
+    "lead": "Every operator account needs it (ADM-01). Scan with an authenticator app, then enter the 6-digit code it shows.",
     "qrAlt": "Authenticator QR code",
     "secretLabel": "Cannot scan? Enter this key by hand",
-    "codeLabel": "6-digit code",
     "submit": "Confirm and enable"
   },
   "backupCodes": {
     "title": "Save your backup codes",
-    "lead": "Each code works once if you lose the authenticator. They are shown only this one time.",
+    "lead": "Each works once if you lose the authenticator. Shown only this one time.",
+    "copyAll": "Copy all",
+    "download": "Download .txt",
     "continue": "I have saved these"
   },
   "verify": {
@@ -74,10 +110,18 @@
   "account": {
     "title": "Account",
     "lead": "Your own operator sign-in.",
-    "regenerateTitle": "New backup codes",
-    "regenerateLead": "Replaces every existing backup code. Confirm with your password and a fresh authenticator code.",
+    "codes": "Backup codes",
+    "codesHint": "{{count}} of 10 unused. Regenerating replaces every existing code; confirm with your password and a fresh authenticator code.",
     "regenerate": "Generate new codes",
-    "regenerated": "The old codes no longer work. Save these."
+    "session": "This session",
+    "sessionLine": "Signed in {{date}} · {{browser}}",
+    "sessionLineOnly": "Signed in {{date}}",
+    "breakGlass": "Losing both the authenticator and the codes is recovered by a logged break-glass action on the database, after which 2FA must be re-enrolled (ADM-18).",
+    "newTitle": "New backup codes",
+    "newConsequence": "The ten current codes stop working the moment these are made.",
+    "freshCode": "Fresh authenticator code",
+    "generate": "Generate",
+    "generated": "The old codes no longer work. Save these."
   },
   "queue": {
     "title": "Payment queue",
@@ -100,7 +144,8 @@
     "purchase": "Purchase",
     "renewal": "Renewal",
     "upgrade": "Upgrade",
-    "top_up": "Top-up"
+    "top_up": "Top-up",
+    "addon": "Add-on"
   },
   "paymentStatuses": {
     "pending": "Pending",
@@ -279,5 +324,45 @@
     "create": "Add wallet",
     "empty": "No wallets yet.",
     "deleteTitle": "Remove this wallet?"
+  },
+  "later": {
+    "title": "Not built yet",
+    "body": "This screen is drawn for the requirement it serves; the backend does not serve it today. The place it will take in the navigation is already reserved.",
+    "holding": "This screen comes with a later part of the console rebuild.",
+    "leads": {
+      "reports": "Shops by state and plan, platform revenue by week, month, quarter and year, top consumers of storage, bandwidth and SMS with CSV export.",
+      "audit": "Every operator action across all shops: actor, action, shop, old and new value, reason, time. Filter by shop, actor, action and date. Entries can never be edited.",
+      "inbox": "Tickets from owners and staff with the shop, plan, state and recent errors attached; filters by status, plan and age; canned replies; internal notes; overdue flagged against the plan's response target.",
+      "notices": "Notices to shops: title, Bangla and English body, category, severity, audience, publish and end times, pinned, acknowledgement required; templates for rate change, maintenance, outage and policy; delivery and read counts.",
+      "verification": "The identity queue: submissions with the NID masked, status history, the three images through 5-minute signed links, approve or reject with a reason, reveal audited, four-eyes where two operators exist.",
+      "manual": "Record a purchase, renewal, upgrade or top-up paid outside the normal flow: shop, kind, plan and term or amount, wallet, TrxID unique platform-wide, sender, time, evidence, reason; a second confirmation above ৳10,000 or ten entries a day; reversals, never edits; a daily digest by email. Shopper \"I have paid\" claims land in the same queue."
+    },
+    "drawn": {
+      "shops": "Shops",
+      "paying": "Paying",
+      "revenue": "Revenue, this month",
+      "topUps": "Top-ups, this month",
+      "revenueChart": "revenue by period",
+      "shop": "Shop",
+      "actor": "Actor",
+      "action": "Action",
+      "date": "Date",
+      "open": "Open",
+      "overdue": "Overdue",
+      "waiting": "Waiting on seller",
+      "closed": "Closed",
+      "newNotice": "New notice",
+      "templates": "Templates",
+      "pendingReview": "Pending review",
+      "verified": "Verified",
+      "rejected": "Rejected",
+      "kind": "Kind",
+      "amount": "Amount",
+      "wallet": "Wallet",
+      "trxId": "TrxID",
+      "sender": "Sender",
+      "paidAt": "Paid at",
+      "evidence": "Evidence"
+    }
   }
 }
