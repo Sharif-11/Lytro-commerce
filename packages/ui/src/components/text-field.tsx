@@ -13,13 +13,13 @@ interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 const shell = (error: boolean) =>
-  `flex min-h-12 items-center rounded-control border bg-field transition focus-within:ring-2 ${
+  `flex min-h-field items-center rounded-control border bg-field transition focus-within:ring-2 ${
     error
       ? 'border-danger focus-within:ring-field-error-ring'
       : 'border-control-line focus-within:border-line-active focus-within:ring-field-ring'
   }`;
 
-/** The one text input: 48 px tall, 16 px text so phones never zoom, the error or hint under it. */
+/** The one text input, sized by the theme: 48 px and 16 px text on the dashboard so phones never zoom. */
 export function TextField({
   label,
   error,
@@ -35,7 +35,7 @@ export function TextField({
   const inputId = id ?? name;
   return (
     <label className="block" htmlFor={inputId}>
-      <span className="mb-1.5 block text-label font-bold text-fg">{label}</span>
+      <span className="mb-1.5 block text-label font-field-label text-field-label">{label}</span>
       <div className={shell(Boolean(error))}>
         {leading ? (
           <span className="num shrink-0 border-r border-line pr-3 pl-3.5 text-ui font-semibold text-fg-muted">
@@ -46,7 +46,7 @@ export function TextField({
           id={inputId}
           name={name}
           {...props}
-          className={`${mono ? 'mono' : 'num'} min-w-0 flex-1 bg-transparent px-3.5 py-2.5 text-base text-fg placeholder:text-placeholder focus:outline-none disabled:opacity-field-disabled ${className ?? ''}`}
+          className={`${mono ? 'mono' : 'num'} min-w-0 flex-1 bg-transparent px-field py-2.5 text-input text-fg placeholder:text-placeholder focus:outline-none disabled:opacity-field-disabled ${className ?? ''}`}
         />
         {suffix ? (
           <span className="num shrink-0 pr-3.5 text-copy font-semibold whitespace-nowrap text-fg-muted">
@@ -55,7 +55,7 @@ export function TextField({
         ) : null}
       </div>
       {error ? (
-        <span role="alert" className="mt-1.5 block text-[13px] font-semibold text-danger">
+        <span role="alert" className="mt-1.5 block text-[13px] font-field-error text-danger">
           {error}
         </span>
       ) : hint ? (
@@ -77,18 +77,18 @@ export function TextArea({
   const inputId = id ?? name;
   return (
     <label className="block" htmlFor={inputId}>
-      <span className="mb-1.5 block text-label font-bold text-fg">{label}</span>
+      <span className="mb-1.5 block text-label font-field-label text-field-label">{label}</span>
       <div className={shell(Boolean(error))}>
         <textarea
           id={inputId}
           name={name}
           rows={3}
           {...props}
-          className={`min-w-0 flex-1 resize-y bg-transparent px-3.5 py-2.5 text-base text-fg placeholder:text-placeholder focus:outline-none ${className ?? ''}`}
+          className={`min-w-0 flex-1 resize-y bg-transparent px-field py-2.5 text-input text-fg placeholder:text-placeholder focus:outline-none ${className ?? ''}`}
         />
       </div>
       {error ? (
-        <span role="alert" className="mt-1.5 block text-[13px] font-semibold text-danger">
+        <span role="alert" className="mt-1.5 block text-[13px] font-field-error text-danger">
           {error}
         </span>
       ) : null}

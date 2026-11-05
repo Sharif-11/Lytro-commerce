@@ -1,7 +1,7 @@
 import type { ReactNode, SelectHTMLAttributes } from 'react';
 
 const control =
-  'min-h-12 w-full rounded-control border border-control-line bg-field px-3.5 text-base text-fg focus:border-line-active focus:ring-2 focus:ring-field-ring focus:outline-none';
+  'min-h-field w-full rounded-control border border-control-line bg-field px-field text-input text-fg focus:border-line-active focus:ring-2 focus:ring-field-ring focus:outline-none';
 
 /** A labelled native select in the text field's clothes. */
 export function SelectField({
@@ -13,7 +13,7 @@ export function SelectField({
 }: SelectHTMLAttributes<HTMLSelectElement> & { label: string; name: string; children: ReactNode }) {
   return (
     <label className="block" htmlFor={name}>
-      <span className="mb-1.5 block text-label font-bold text-fg">{label}</span>
+      <span className="mb-1.5 block text-label font-field-label text-field-label">{label}</span>
       <select id={name} name={name} {...props} className={`${control} ${className}`}>
         {children}
       </select>

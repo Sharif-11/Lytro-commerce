@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useSearchTenants } from '@/api/tenants';
 import { errorMessage } from '@lytronix/api-client';
@@ -13,10 +14,16 @@ const SEARCH_DEBOUNCE_MS = 300;
     the balance, set a limit override, assign a plan. Container: the search and which tenant is open. */
 export function Tenants(): React.JSX.Element {
   const { t } = useTranslation();
-  const [typed, setTyped] = useState('');
-  const [query, setQuery] = useState('');
+  const { q: sent } = useSearch({ from: '/_console/tenants' });
+  const [typed, setTyped] = useState(sent ?? '');
+  const [query, setQuery] = useState(sent ?? '');
   const [selected, setSelected] = useState<TenantSummary | null>(null);
   const tenants = useSearchTenants(query);
+
+  // The top bar's search can send another word while this screen is open.
+  useEffect(() => {
+    if (sent !== undefined) setTyped(sent);
+  }, [sent]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {

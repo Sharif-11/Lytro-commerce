@@ -277,10 +277,11 @@ apps/dashboard/e2e/          Playwright against the built app and a mocked API (
 
 ## 6b. Operator app (apps/operator)
 
-Built 2026-10-19 as its own Vite + React app at `admin.lytro.app` (D3-12), the inverted console of
-`BRAND-IDENTITY.md` §8.4: dark chrome, teal-400 primary, marigold eyebrow, English by default with the Bangla
-toggle. Same stack and the same layering as §6a; no `/me` for operators, so the session holder answers from
-the CSRF token alone and a 401 on any call clears it (`main.tsx`).
+Built 2026-10-19 as its own Vite + React app at `admin.lytro.app` (D3-12), and being rebuilt to
+`OPERATOR-CONSOLE-DESIGN.md` from 2026-11-05: the dashboard's light theme with the ink band and marigold eyebrow of
+`BRAND-IDENTITY.md` §8.4, English by default with the Bangla toggle. Same stack and the same layering as §6a. The
+session holder answers from the CSRF token alone, and a 401 on any call clears it (`main.tsx`), except a step-up's,
+whose 401 is a mistyped password or code. `GET /auth/operator/me` says who is signed in, for the screens that show it.
 
 ```
 apps/operator/src/
@@ -292,8 +293,10 @@ apps/operator/src/
                            limit overrides, assign plan), plans (form, list, prices, versions), billing-terms,
                            rates, settings, wallets, account (backup-code regeneration)
   components/
-    layout/                console-shell (sidebar from 1024 px, menu sheet below), auth-frame, nav-items; every
-                           primitive comes from @lytronix/ui, in the console theme (§6c)
+    layout/                console-shell (sidebar and top bar from 1024 px, the band below, the tabs under 640 px),
+                           more-sheet, auth-frame, lockup, nav-items
+    ui/                    what the console's screens share: panel, console-page, banner, load-failed, console-icon;
+                           forms and buttons come from @lytronix/ui, in the console theme (§6c)
   api/                     operator-auth, plans, billing-terms, rates, settings, tenants, payment-queue,
                            platform-wallets
   session/                 operator-session.ts (CSRF key lytro.operator.csrf, the ApiClient)
@@ -316,7 +319,7 @@ Extracted 2026-10-19 (PHASE-3-PLAN Slice 0b) from the two apps' copies, with no 
 packages/ui/src/
   styles/base.css          brand scales, type, shape and base classes, the same in every app
   styles/light.css         the dashboard's theme: the semantic roles at their light values (BRAND-IDENTITY §8.2)
-  styles/console.css       the operator console's inverted theme (§8.4)
+  styles/console.css       the operator console's band and density, over light.css (§8.4)
   components/              button, chip and tag, confirm-dialog, fields, icon, language-toggle, notice,
                            text-field (+ textarea), wordmark
   format/                  formatTaka, formatTakaExact, daysUntil, formatDate, formatDateTime

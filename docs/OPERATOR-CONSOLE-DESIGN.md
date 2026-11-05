@@ -64,9 +64,12 @@ email, Account and Sign out. The top bar holds the shop search with the `/` hint
 the language toggle. Content is at most 1120 px wide.
 
 **Phone and tablet (under 1024 px).** The ink band carries the eyebrow and the section title, a search
-icon and the menu; a page inside a section shows a back arrow instead. Four tabs: Today, Payment queue
-with its badge, Shops, More. More is a sheet listing every other destination, Account, the language and
-Sign out. Panels open as bottom sheets.
+icon and the menu; a page inside a section shows a back arrow instead. Under 640 px, four tabs: Today, Payment queue
+with its badge, Shops, More. More, which the band's menu also opens, is a sheet listing every destination, Account,
+the language and Sign out. Panels open as bottom sheets under 640 px and as the drawer from there up.
+
+**Search.** Sending a search opens Shops with the word; focus alone doesn't, so tabbing past the field leaves the screen
+alone. Under 1024 px the band's icon opens Shops.
 
 **Panels.** Every action opens a panel: a 460 px right-hand drawer on desktop, a bottom sheet on phone,
 with the title, the consequence block, the fields and the buttons in a footer. Closing it returns to the
@@ -81,12 +84,15 @@ ADM-01 in one container: email and password, then either verification (one field
 code or a backup code; a wrong code shows the attempts left before the 15-minute wait) or, for a first
 sign-in, enrolment: the QR drawn in the browser from the otpauth URI, the key for manual entry, one code to
 confirm, then the ten backup codes shown once with Copy all and Download. Three progress bars show where the
-person is. No "forgot password": the ADM-18 sentence sits under the form.
+person is. No "forgot password": the ADM-18 sentence sits under the form. The code field at verification keeps a full
+keyboard on a phone, since a backup code has letters; enrolment and new codes, which ask for the authenticator's, keep
+the numeric one.
 
 **The limit (ADM-01, amended with the build).** The sellers' rule from AUTH-14: five failures in 15 minutes on
 one account lock it, wrong passwords and wrong codes counted together, and during the lock a right password or
 code is refused too. A wrong password says only that the email or password isn't right. Attempts left are shown
-only at the code step, once the password has been proven. A locked account sees the wait and a disabled button.
+only at the code step, once the password has been proven. A locked account sees the wait and a disabled button, at
+whichever step it locked; the button returns when the server would answer again, or for another address.
 
 ## 3. Today (`/`)
 
@@ -280,7 +286,8 @@ changes only what is offered next. Delete is a dialog: values shops already inse
 Backup codes: how many of ten are unused, and "Generate new codes" (panel: the sentence that the current
 codes stop working, password, a fresh authenticator code; the new codes then show once with Copy all and
 Download). This session: signed-in time and browser, Sign out, the language. The ADM-18 sentence closes
-the page.
+the page. A mistyped password or code in the panel says so under its field and leaves the operator signed in. The new
+codes stay on screen through Escape or a tap outside, since nothing can show them again.
 
 ## 13. Later (design only)
 
@@ -364,6 +371,10 @@ drawer above, with the consequence block, fields and footer), `data-table.tsx` (
 cards below, driven by one column list, with the empty and error states) and `figures.tsx` (the stat
 strip). The shell replaces `console-shell.tsx`: the light theme from `packages/ui`'s dashboard role tokens,
 the ink band and sidebar head, the four-tab phone bar and the More sheet.
+
+**Built so far (Slice 5.8 part 5).** The frame, sign-in, account and the later pages. Until their own pull requests, the
+screens not rebuilt yet sit in the new frame and theme at their old paths (`/payment-queue`, `/tenants`), and Today, Page
+reports, Add-ons, Lytro's phones and the catalogue hold their places with a page that says the screen is coming.
 
 ## 17. The prototype
 

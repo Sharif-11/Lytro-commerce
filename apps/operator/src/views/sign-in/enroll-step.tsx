@@ -1,20 +1,33 @@
 import { useEffect, useState, type SyntheticEvent } from 'react';
 import QRCode from 'qrcode';
 import { useTranslation } from 'react-i18next';
-import { Button, ErrorBanner, TextField } from '@lytronix/ui';
+import { ApiClientError, errorMessage } from '@lytronix/api-client';
+import { Button } from '@lytronix/ui';
+import { ConsoleIcon } from '@/components/ui/console-icon';
 import { useCopy } from '@/lib/use-copy';
+import { CodeField, FormCard, StepHeading, Steps } from './sign-in-parts';
+import { typedCode } from './typed-code';
+
+const QR_SIZE = 168;
 
 interface EnrollStepProps {
+  email: string;
   secret: string;
   uri: string;
   onSubmit: (code: string) => void;
   pending: boolean;
-  error: string | null;
+  error: unknown;
+}
+
+/** The key in fours, as authenticator apps show it; a copy keeps it whole. */
+function inFours(secret: string): string {
+  return secret.replace(/(.{4})(?=.)/g, '$1 ');
 }
 
 /** First sign-in (ADM-01): the server never renders a QR image (D30); `qrcode` draws the otpauth URI here,
     in the browser, and the secret stays shown for manual entry. */
 export function EnrollStep({
+  email,
   secret,
   uri,
   onSubmit,
@@ -29,7 +42,7 @@ export function EnrollStep({
   useEffect(() => {
     let cancelled = false;
     QRCode.toDataURL(uri, {
-      width: 220,
+      width: QR_SIZE,
       margin: 1,
       color: { dark: '#10201f', light: '#ffffff' },
     })
@@ -46,57 +59,61 @@ export function EnrollStep({
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
-    onSubmit(code.trim());
+    onSubmit(typedCode(code));
   }
 
+  const problem =
+    error instanceof ApiClientError
+      ? (error.fieldProblems().code ?? errorMessage(error, t))
+      : error
+        ? errorMessage(error, t)
+        : undefined;
+
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
-      <div className="flex justify-center">
+    <>
+      <Steps done={2} total={3} email={email} />
+      <StepHeading title={t('enroll.title')} lead={t('enroll.lead')} />
+      <FormCard onSubmit={handleSubmit}>
         {qr ? (
           <img
             src={qr}
             alt={t('enroll.qrAlt')}
-            width={220}
-            height={220}
-            className="rounded-card bg-white p-2"
+            width={QR_SIZE}
+            height={QR_SIZE}
+            className="mx-auto rounded-lg border border-line"
           />
         ) : (
-          <div className="h-[220px] w-[220px] animate-pulse rounded-card bg-surface-alt" />
+          <div className="skel mx-auto size-[168px]" />
         )}
-      </div>
-
-      <div>
-        <p className="mb-1.5 text-[13px] font-bold text-fg">{t('enroll.secretLabel')}</p>
-        <button
-          type="button"
-          onClick={() => {
-            copy(secret);
-          }}
-          className="mono flex min-h-12 w-full items-center justify-between gap-3 rounded-control border border-line-strong bg-surface-alt px-3.5 text-left text-[14px] text-fg"
-        >
-          <span className="truncate">{secret}</span>
-          <span className="shrink-0 font-sans text-[12px] font-bold text-brand-300">
-            {copied ? t('common.copied') : t('common.copy')}
-          </span>
-        </button>
-      </div>
-
-      <TextField
-        label={t('enroll.codeLabel')}
-        name="code"
-        inputMode="numeric"
-        autoComplete="one-time-code"
-        required
-        mono
-        value={code}
-        onChange={(event) => {
-          setCode(event.target.value);
-        }}
-      />
-      {error ? <ErrorBanner message={error} /> : null}
-      <Button type="submit" loading={pending}>
-        {t('enroll.submit')}
-      </Button>
-    </form>
+        <div>
+          <p className="mb-1.5 text-label font-field-label text-field-label">
+            {t('enroll.secretLabel')}
+          </p>
+          <div className="mono flex min-h-field items-center justify-between gap-2 rounded-control border border-line-strong bg-surface py-1 pr-1 pl-3 text-[14px] break-all">
+            <span className="min-w-0">{inFours(secret)}</span>
+            <button
+              type="button"
+              aria-label={copied ? t('common.copied') : t('common.copy')}
+              onClick={() => {
+                copy(secret);
+              }}
+              className="inline-flex size-9 flex-none items-center justify-center rounded-lg text-neutral-700 hover:bg-neutral-100"
+            >
+              <ConsoleIcon name={copied ? 'check' : 'copy'} />
+            </button>
+          </div>
+        </div>
+        <CodeField
+          label={t('verify.codeLabel')}
+          value={code}
+          onChange={setCode}
+          error={problem}
+          digitsOnly
+        />
+        <Button type="submit" small loading={pending}>
+          {t('enroll.submit')}
+        </Button>
+      </FormCard>
+    </>
   );
 }

@@ -71,6 +71,7 @@ export default defineConfig({
   test: {
     // jsdom, not Node: the session holder reads sessionStorage.
     environment: 'jsdom',
-    exclude: [...configDefaults.exclude],
+    // e2e/ is Playwright's (pnpm exec playwright test), not vitest's.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 });
