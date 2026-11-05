@@ -474,6 +474,32 @@ export class AddonPurchaseRepository {
   }
 
   /** LIM-01: the packs the shop bought since this time, for the suggestion two cycles running. */
+  /**
+   * PLN-13: for the operator's catalogue, across shops: the units of each item running now, and the packs bought since
+   * the month began. A pack has no running period of its own: it holds what it bought until used.
+   */
+  async catalogueCounts(
+    db: Executor,
+    now: Date,
+    monthStart: Date,
+  ): Promise<{ addonId: string; running: number; boughtThisMonth: number }[]> {
+    const active = sql`${addonPurchases.status} = ${AddonPurchaseStatus.Active}`;
+    const nowIso = now.toISOString();
+    return db
+      .select({
+        addonId: addonPurchases.addonId,
+        running: sql<number>`coalesce(sum(${addonPurchases.quantity}) filter (where ${active}
+          and ${addonPurchases.kind} <> ${AddonKind.Pack}
+          and (${addonPurchases.startsAt} is null or ${addonPurchases.startsAt} <= ${nowIso})
+          and ${addonPurchases.expiresAt} > ${nowIso}), 0)::int`,
+        boughtThisMonth: sql<number>`coalesce(sum(${addonPurchases.quantity}) filter (where ${active}
+          and ${addonPurchases.kind} = ${AddonKind.Pack}
+          and ${addonPurchases.purchasedAt} >= ${monthStart.toISOString()}), 0)::int`,
+      })
+      .from(addonPurchases)
+      .groupBy(addonPurchases.addonId);
+  }
+
   async listPackPurchases(db: Executor, tenantId: string, since: Date): Promise<PackPurchaseRow[]> {
     const rows = await db
       .select({ limitKey: addonPurchases.limitKey, purchasedAt: addonPurchases.purchasedAt })

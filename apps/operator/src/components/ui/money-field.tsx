@@ -9,6 +9,7 @@ export function MoneyField({
   hint,
   error,
   required = true,
+  startHere = true,
 }: {
   label: string;
   name: string;
@@ -17,6 +18,8 @@ export function MoneyField({
   hint?: ReactNode;
   error?: string;
   required?: boolean;
+  /** Whether the panel opens with the cursor here, when it is the panel's one field. */
+  startHere?: boolean;
 }): React.JSX.Element {
   return (
     <label className="block" htmlFor={name}>
@@ -35,7 +38,7 @@ export function MoneyField({
           inputMode="decimal"
           autoComplete="off"
           required={required}
-          data-autofocus
+          data-autofocus={startHere ? true : undefined}
           value={value}
           onChange={(event) => {
             onChange(event.target.value);

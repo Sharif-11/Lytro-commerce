@@ -161,17 +161,3 @@ export function LaterPage({ page }: { page: LaterKey }): React.JSX.Element {
     </ConsolePage>
   );
 }
-
-/** A destination the server already serves, whose screen comes with a later part of the rebuild. */
-export function HoldingPage({ titleKey }: { titleKey: string }): React.JSX.Element {
-  const { t } = useTranslation();
-  return (
-    <ConsolePage>
-      <PageTitle title={t(titleKey)} />
-      <Banner tone="info" icon="info">
-        <b className="font-semibold">{t('later.title')}</b>
-        <div>{t('later.holding')}</div>
-      </Banner>
-    </ConsolePage>
-  );
-}

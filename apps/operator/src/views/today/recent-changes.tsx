@@ -6,6 +6,7 @@ import { ConsoleIcon, type ConsoleIconName } from '@/components/ui/console-icon'
 import { ConsoleCard } from '@/components/ui/console-page';
 import { CardList, LIST_ROW, RowIcon, RowLines } from '@/components/ui/list-row';
 import { formatDay } from '@/lib/format';
+import { settingChangeWords } from '@/lib/setting-words';
 import type { RecentChange } from '@/types/operator';
 
 function value(of: unknown): string {
@@ -55,7 +56,7 @@ function ChangeRow({ change }: { change: RecentChange }): React.JSX.Element | nu
         <Link to="/settings" className={LIST_ROW}>
           <ChangeBody
             icon="settings"
-            title={`${t(`settingNames.${key}`, { defaultValue: key })}: ${from}`}
+            title={`${t(`settingNames.${key}`, { defaultValue: key })}: ${settingChangeWords(key, change.oldValue, change.newValue, t)}`}
             change={change}
           />
         </Link>

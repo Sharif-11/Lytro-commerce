@@ -1,23 +1,24 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type {
   AssignPlanInput,
   CreatePlanInput,
   SetPlanPriceInput,
   UpdatePlanInput,
 } from '@lytronix/validators';
+import { BILLING_TERMS_QUERY_KEY } from '@/api/billing-terms';
 import { operatorSession } from '@/session/operator-session';
-import type { Plan, PlanAssignment, PlanPrice, PlanVersion } from '@/types/operator';
+import type { OperatorPlan, Plan, PlanAssignment, PlanPrice, PlanVersion } from '@/types/operator';
 
 export const PLANS_QUERY_KEY = ['operator', 'plans'] as const;
 export const planVersionsKey = (planId: string) =>
   [...PLANS_QUERY_KEY, planId, 'versions'] as const;
-export const planPricesKey = (planId: string) => [...PLANS_QUERY_KEY, planId, 'prices'] as const;
+export const PRICES_QUERY_KEY = ['operator', 'plan-prices'] as const;
 
 /** Every plan, including not-for-sale ones (PLN-01). */
 export function usePlans() {
   return useQuery({
     queryKey: PLANS_QUERY_KEY,
-    queryFn: () => operatorSession.client.get<Plan[]>('/operator/plans'),
+    queryFn: () => operatorSession.client.get<OperatorPlan[]>('/operator/plans'),
   });
 }
 
@@ -31,13 +32,11 @@ export function usePlanVersions(planId: string | null) {
   });
 }
 
-/** TRM-03: a plan's price per billing term. */
-export function usePlanPrices(planId: string | null) {
+/** TRM-03: every plan's price per billing term: the matrix, and the terms' priced counts. */
+export function usePlanPrices() {
   return useQuery({
-    queryKey: planPricesKey(planId ?? ''),
-    queryFn: () =>
-      operatorSession.client.get<PlanPrice[]>(`/operator/plans/${planId ?? ''}/prices`),
-    enabled: planId !== null,
+    queryKey: PRICES_QUERY_KEY,
+    queryFn: () => operatorSession.client.get<PlanPrice[]>('/operator/billing-terms/prices'),
   });
 }
 
@@ -75,6 +74,15 @@ export function useDeletePlan() {
   });
 }
 
+/** A price decides what a term's and a plan's Delete may do, as well as the matrix. */
+function afterPriceChange(queryClient: QueryClient): Promise<unknown> {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: PRICES_QUERY_KEY }),
+    queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY }),
+    queryClient.invalidateQueries({ queryKey: BILLING_TERMS_QUERY_KEY }),
+  ]);
+}
+
 export function useSetPlanPrice() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -87,9 +95,8 @@ export function useSetPlanPrice() {
         `/operator/plans/${planId}/prices/${billingTermId}`,
         input,
       ),
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: planPricesKey(variables.planId) });
-    },
+    // Waits for the new prices, so a cell doesn't show the old one between saving and the read.
+    onSuccess: () => afterPriceChange(queryClient),
   });
 }
 
@@ -100,9 +107,7 @@ export function useRemovePlanPrice() {
       operatorSession.client.delete<{ ok: true }>(
         `/operator/plans/${planId}/prices/${billingTermId}`,
       ),
-    onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: planPricesKey(variables.planId) });
-    },
+    onSuccess: () => afterPriceChange(queryClient),
   });
 }
 

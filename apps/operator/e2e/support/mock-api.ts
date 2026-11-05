@@ -1,11 +1,19 @@
 import type { Page, Route } from '@playwright/test';
 import {
   drawnAddons,
+  drawnAttributes,
+  drawnCatalogueAddons,
   drawnChanges,
   drawnCredentialUses,
   drawnLytroPhones,
+  drawnOptionSets,
   drawnPayments,
   drawnPlans,
+  drawnPlanVersions,
+  drawnPresets,
+  drawnPrices,
+  drawnRateHistory,
+  drawnRates,
   drawnReceipts,
   drawnReports,
   drawnSettings,
@@ -13,6 +21,7 @@ import {
   drawnShops,
   drawnTerms,
   drawnUnread,
+  drawnWallets,
   NOW,
   shopDetail,
   shopSummary,
@@ -21,6 +30,7 @@ import {
   type ReportFixture,
   type ShopFixture,
 } from './console-data';
+import { pricingAnswer, type PricingState } from './pricing-mock';
 
 // The console against a mocked API: each /api/v1 call answered in the server's own envelope ({ success, statusCode,
 // message, data }), so a screen's every state can be shown without a server. The sign-in follows the server's rule
@@ -51,7 +61,7 @@ export const DRAWN_CODES = [
 export const CHROME_ON_WINDOWS =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 
-export interface ConsoleState {
+export interface ConsoleState extends Partial<PricingState> {
   language?: Language;
   /** Whether the browser starts signed in. */
   signedIn?: boolean;
@@ -250,9 +260,6 @@ function consoleAnswer(
     state.refuseWrite = null;
     return { refused: [refuse.status, refuse.code, refuse.message] };
   }
-  if (path === '/operator/plans') return { data: drawnPlans() };
-  if (path === '/operator/billing-terms') return { data: drawnTerms() };
-  if (path === '/operator/settings') return { data: drawnSettings() };
   if (path === '/operator/recent-changes') return { data: state.changes };
   if (path === '/operator/payment-queue') return { data: state.payments };
   const queued = /^\/operator\/payment-queue\/([^/]+)\/(approve|credit|reject)$/.exec(path);
@@ -316,6 +323,8 @@ function consoleAnswer(
   }
   const assigned = /^\/operator\/plans\/([^/]+)\/assign$/.exec(path);
   if (assigned) return { data: { id: 'assign-1', planId: assigned[1] } };
+  const priced = pricingAnswer(method, path, body, state);
+  if (priced) return priced;
   if (path === '/operator/tenants') {
     const word = (url.searchParams.get('query') ?? '').toLowerCase();
     const limit = Number(url.searchParams.get('limit') ?? 20);
@@ -447,6 +456,18 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
     changes: drawnChanges(),
     credentialUses: drawnCredentialUses(),
     addons: drawnAddons(),
+    plans: drawnPlans(),
+    planVersions: drawnPlanVersions(),
+    terms: drawnTerms(),
+    prices: drawnPrices(),
+    rates: drawnRates(),
+    rateHistory: drawnRateHistory(),
+    settings: drawnSettings(),
+    wallets: drawnWallets(),
+    catalogueAddons: drawnCatalogueAddons(),
+    presets: drawnPresets(),
+    attributes: drawnAttributes(),
+    optionSets: drawnOptionSets(),
     failing: {},
     refuseWrite: null,
     ownClock: false,

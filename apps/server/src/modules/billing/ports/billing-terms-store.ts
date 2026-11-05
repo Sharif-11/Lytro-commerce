@@ -35,8 +35,10 @@ export interface BillingTermsStore {
   ): Promise<BillingTermRecord | null>;
   retire(tx: Transaction, id: string, at: Date): Promise<BillingTermRecord | null>;
   isUsed(tx: Transaction, id: string): Promise<boolean>;
+  invoiceCounts(tx: Transaction): Promise<{ billingTermId: string; invoices: number }[]>;
   delete(tx: Transaction, id: string): Promise<void>;
   setPrice(tx: Transaction, planId: string, billingTermId: string, price: string): Promise<void>;
+  listAllPrices(tx: Transaction): Promise<PlanPriceRecord[]>;
   listPricesForPlan(tx: Transaction, planId: string): Promise<PlanPriceRecord[]>;
   removePrice(tx: Transaction, planId: string, billingTermId: string): Promise<void>;
 }

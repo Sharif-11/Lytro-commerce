@@ -1,154 +1,163 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useBillingTerms } from '@/api/billing-terms';
-import {
-  useCreatePlan,
-  useDeletePlan,
-  usePlanPrices,
-  usePlanVersions,
-  usePlans,
-  useRemovePlanPrice,
-  useSetPlanPrice,
-  useUpdatePlan,
-} from '@/api/plans';
 import { errorMessage } from '@lytronix/api-client';
-import { Button, ConfirmDialog, EmptyLine, ErrorBanner, Page, PageHeader } from '@lytronix/ui';
-import type { Plan } from '@/types/operator';
-import { PlanForm, type PlanFormValues } from './plan-form';
-import { PlanList } from './plan-list';
-import { PlanPrices } from './plan-prices';
-import { PlanVersions } from './plan-versions';
+import { Button } from '@lytronix/ui';
+import { useBillingTerms } from '@/api/billing-terms';
+import { useDeletePlan, usePlanPrices, usePlans } from '@/api/plans';
+import { ActionPanel } from '@/components/ui/action-panel';
+import { ConsoleIcon } from '@/components/ui/console-icon';
+import { Consequence } from '@/components/ui/consequence';
+import { ConsolePage, PageTitle } from '@/components/ui/console-page';
+import { EmptyBox } from '@/components/ui/data-table';
+import { LoadFailed } from '@/components/ui/load-failed';
+import { NOTE } from '@/components/ui/sizes';
+import { useToast } from '@/components/ui/use-toast';
+import type { OperatorPlan } from '@/types/operator';
+import { PlanEditor } from './plan-editor';
+import { PriceMatrix } from './price-matrix';
+import { VersionsPanel } from './versions-panel';
 
-type Panel = { mode: 'create' } | { mode: 'edit'; plan: Plan } | null;
+type Open = { step: 'new' } | { step: 'edit' | 'versions' | 'delete'; planId: string } | null;
 
-/** PLN-01..03, TRM-03: the plan catalogue with each plan's prices per term and its version history, both
-    shown under whichever plan is open for edit. Container: owns the fetches, the mutations and the panel. */
+function DeletePanel({
+  plan,
+  onClose,
+  onCancel,
+}: {
+  plan: OperatorPlan;
+  onClose: () => void;
+  onCancel: () => void;
+}): React.JSX.Element {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const remove = useDeletePlan();
+  return (
+    <ActionPanel
+      title={t('plans.delete')}
+      sub={`${plan.name} · v${String(plan.version)}`}
+      onClose={onClose}
+      onCancel={onCancel}
+      actionLabel={t('plans.delete')}
+      danger
+      pending={remove.isPending}
+      error={remove.isError ? errorMessage(remove.error, t) : null}
+      onSubmit={() => {
+        remove.mutate(plan.id, {
+          onSuccess: () => {
+            toast(t('plans.deleted', { name: plan.name }));
+            onClose();
+          },
+        });
+      }}
+    >
+      <Consequence tone="danger">{t('plans.deleteConsequence')}</Consequence>
+    </ActionPanel>
+  );
+}
+
+/** OPERATOR-CONSOLE-DESIGN §6: what plans exist, what they allow, and what each costs for how long. */
 export function Plans(): React.JSX.Element {
   const { t } = useTranslation();
   const plans = usePlans();
   const terms = useBillingTerms();
-  const createPlan = useCreatePlan();
-  const updatePlan = useUpdatePlan();
-  const deletePlan = useDeletePlan();
-  const setPrice = useSetPlanPrice();
-  const removePrice = useRemovePlanPrice();
-  const [panel, setPanel] = useState<Panel>(null);
-  const [deleting, setDeleting] = useState<Plan | null>(null);
-
-  const editingId = panel?.mode === 'edit' ? panel.plan.id : null;
-  const prices = usePlanPrices(editingId);
-  const versions = usePlanVersions(editingId);
-
-  function closePanel(): void {
-    setPanel(null);
-    createPlan.reset();
-    updatePlan.reset();
-  }
-
-  function handleSubmit(values: PlanFormValues): void {
-    if (panel?.mode === 'create') {
-      createPlan.mutate(values, { onSuccess: closePanel });
-    } else if (panel?.mode === 'edit') {
-      updatePlan.mutate({ id: panel.plan.id, ...values }, { onSuccess: closePanel });
-    }
-  }
-
+  const prices = usePlanPrices();
+  const [open, setOpen] = useState<Open>(null);
+  const sorted = [...(plans.data ?? [])].sort((a, b) => a.rank - b.rank);
+  const live = (terms.data ?? [])
+    .filter((term) => term.retiredAt === null)
+    .sort((a, b) => a.displayOrder - b.displayOrder);
+  const failed = plans.isError || terms.isError || prices.isError;
+  const loading = plans.isLoading || terms.isLoading || prices.isLoading;
+  const close = (): void => {
+    setOpen(null);
+  };
+  const chosen = open && open.step !== 'new' ? sorted.find((p) => p.id === open.planId) : undefined;
   return (
-    <Page>
-      <PageHeader
-        title={t('plans.title')}
-        lead={plans.data ? t('plans.count', { count: plans.data.length }) : undefined}
-        action={
-          panel === null ? (
-            <Button
-              type="button"
-              fit
-              onClick={() => {
-                setPanel({ mode: 'create' });
-              }}
-            >
-              {t('plans.add')}
-            </Button>
-          ) : null
+    <ConsolePage>
+      <PageTitle
+        title={t('nav.plans')}
+        lead={t('plans.lead')}
+        actions={
+          <Button
+            type="button"
+            small
+            fit
+            className="flex-[1_1_auto] sm:flex-none"
+            onClick={() => {
+              setOpen({ step: 'new' });
+            }}
+          >
+            <ConsoleIcon name="plus" size={18} />
+            {t('plans.new')}
+          </Button>
         }
       />
-
-      {panel !== null ? (
-        <>
-          <PlanForm
-            mode={panel.mode}
-            initial={panel.mode === 'edit' ? panel.plan : undefined}
-            pending={createPlan.isPending || updatePlan.isPending}
-            error={
-              createPlan.isError
-                ? errorMessage(createPlan.error, t)
-                : updatePlan.isError
-                  ? errorMessage(updatePlan.error, t)
-                  : null
-            }
-            onCancel={closePanel}
-            onSubmit={handleSubmit}
-          />
-          {panel.mode === 'edit' ? (
-            <>
-              <PlanPrices
-                terms={(terms.data ?? []).filter((term) => term.retiredAt === null)}
-                prices={prices.data ?? []}
-                pending={setPrice.isPending || removePrice.isPending}
-                error={
-                  setPrice.isError
-                    ? errorMessage(setPrice.error, t)
-                    : removePrice.isError
-                      ? errorMessage(removePrice.error, t)
-                      : null
-                }
-                onSet={(billingTermId, price) => {
-                  setPrice.mutate({ planId: panel.plan.id, billingTermId, price });
-                }}
-                onRemove={(billingTermId) => {
-                  removePrice.mutate({ planId: panel.plan.id, billingTermId });
-                }}
-              />
-              <PlanVersions versions={versions.data} loading={versions.isLoading} />
-            </>
-          ) : null}
-        </>
-      ) : null}
-
-      {plans.isLoading ? <EmptyLine>{t('common.loading')}</EmptyLine> : null}
-      {plans.isError ? <ErrorBanner message={errorMessage(plans.error, t)} /> : null}
-      {plans.data ? (
-        <PlanList
-          plans={plans.data}
-          onEdit={(plan) => {
-            setPanel({ mode: 'edit', plan });
+      {failed ? (
+        <LoadFailed
+          onRetry={() => {
+            void plans.refetch();
+            void terms.refetch();
+            void prices.refetch();
           }}
-          onDelete={setDeleting}
+        />
+      ) : loading ? (
+        <section
+          aria-busy="true"
+          className="flex flex-col gap-4 rounded-card border border-line bg-surface p-4"
+        >
+          <span className="skel w-4/5" />
+          <span className="skel w-3/5" />
+        </section>
+      ) : sorted.length === 0 ? (
+        <section className="rounded-card border border-line bg-surface">
+          <EmptyBox icon="tag" title={t('plans.empty')} hint={t('plans.emptyHint')} />
+        </section>
+      ) : (
+        <PriceMatrix
+          plans={sorted}
+          terms={live}
+          prices={prices.data ?? []}
+          onEdit={(plan) => {
+            setOpen({ step: 'edit', planId: plan.id });
+          }}
+        />
+      )}
+      <div className={NOTE}>
+        {t('plans.rule1')} {t('plans.rule2')}
+      </div>
+      {open?.step === 'new' ? (
+        <PlanEditor
+          plan={null}
+          allPlans={sorted}
+          onClose={close}
+          onVersions={close}
+          onDelete={close}
         />
       ) : null}
-
-      <ConfirmDialog
-        open={deleting !== null}
-        title={t('plans.deleteTitle')}
-        message={deleting?.name}
-        error={deletePlan.isError ? errorMessage(deletePlan.error, t) : null}
-        confirmLabel={t('common.delete')}
-        danger
-        pending={deletePlan.isPending}
-        onConfirm={() => {
-          if (!deleting) return;
-          deletePlan.mutate(deleting.id, {
-            onSuccess: () => {
-              setDeleting(null);
-              if (editingId === deleting.id) closePanel();
-            },
-          });
-        }}
-        onCancel={() => {
-          setDeleting(null);
-          deletePlan.reset();
-        }}
-      />
-    </Page>
+      {open?.step === 'edit' && chosen ? (
+        <PlanEditor
+          key={chosen.id}
+          plan={chosen}
+          allPlans={sorted}
+          onClose={close}
+          onVersions={() => {
+            setOpen({ step: 'versions', planId: chosen.id });
+          }}
+          onDelete={() => {
+            setOpen({ step: 'delete', planId: chosen.id });
+          }}
+        />
+      ) : null}
+      {open?.step === 'versions' && chosen ? <VersionsPanel plan={chosen} onClose={close} /> : null}
+      {open?.step === 'delete' && chosen ? (
+        <DeletePanel
+          plan={chosen}
+          onClose={close}
+          onCancel={() => {
+            setOpen({ step: 'edit', planId: chosen.id });
+          }}
+        />
+      ) : null}
+    </ConsolePage>
   );
 }

@@ -320,13 +320,8 @@ test.describe('on a phone', () => {
   });
 });
 
-test('a screen not rebuilt yet says so, and one for later names its requirement', async ({
-  page,
-}) => {
+test('a screen for later names its requirement', async ({ page }) => {
   await mockApi(page);
-  await page.goto('/addons');
-  await expect(page.getByRole('heading', { name: 'Add-ons' })).toBeVisible();
-  await expect(page.getByText('This screen comes with a later part')).toBeVisible();
   await page.goto('/audit');
   await expect(page.getByRole('heading', { name: 'Audit log' })).toBeVisible();
   await expect(page.getByText('Not built yet')).toBeVisible();

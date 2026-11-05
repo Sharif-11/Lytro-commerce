@@ -26,12 +26,12 @@ import {
 import { PlanAssignmentService } from '../../billing/services/plan-assignment.service';
 import { PlansService, type PlanOperator } from '../../billing/services/plans.service';
 import type { PlanAssignmentRecord } from '../../billing/types/plan-assignment';
-import type { PlanRecord, PlanVersionRecord } from '../../billing/types/plan';
+import type { OperatorPlanRecord, PlanRecord, PlanVersionRecord } from '../../billing/types/plan';
 import { AssignPlanDto, CreatePlanDto, UpdatePlanDto } from '../dto/billing.dto';
 import {
   PlanAssignmentDto,
+  OperatorPlanListDto,
   PlanDto,
-  PlanListDto,
   PlanVersionListDto,
 } from '../dto/billing-response.dto';
 
@@ -56,9 +56,9 @@ export class OperatorPlansController {
   @Get()
   @ResponseMessage('PlansListed')
   @ApiOperation({ summary: 'List every plan, including not-for-sale ones' })
-  @ZodResponse({ type: PlanListDto })
-  list(): Promise<PlanRecord[]> {
-    return this.plans.listAll();
+  @ZodResponse({ type: OperatorPlanListDto })
+  list(): Promise<OperatorPlanRecord[]> {
+    return this.plans.listForOperator();
   }
 
   @Post()

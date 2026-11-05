@@ -32,6 +32,7 @@ export interface PlansStore {
   findPayAsYouGo(tx: Transaction): Promise<PlanRecord | null>;
   update(tx: Transaction, id: string, edit: PlanEditValues): Promise<PlanRecord | null>;
   isReferenced(tx: Transaction, id: string): Promise<boolean>;
+  shopsByVersion(tx: Transaction): Promise<{ planId: string; version: number; shops: number }[]>;
   delete(tx: Transaction, id: string): Promise<void>;
   listVersions(tx: Transaction, planId: string): Promise<PlanVersionRecord[]>;
 }

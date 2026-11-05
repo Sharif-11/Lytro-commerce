@@ -66,7 +66,7 @@ test('says what changed, each change opening where it was made', async ({ page }
   await expect(main.getByRole('link', { name: /^SMS.*0\.35 → 0\.40/ })).toContainText(
     'ops@lytro.app',
   );
-  await main.getByRole('link', { name: /Trial length: 7 → 30/ }).click();
+  await main.getByRole('link', { name: /Trial length: 7 → 30 days/ }).click();
   await expect(page).toHaveURL('/settings');
   await page.goBack();
   await main.getByRole('link', { name: 'Dhaka Gadget House suspended' }).click();

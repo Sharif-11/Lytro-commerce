@@ -14,7 +14,15 @@ import { MEDIA_STORAGE } from '../src/modules/media/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { cookieFrom, getJson, patchJson, postJson, type HttpResult } from './support/http';
+import {
+  cookieFrom,
+  deleteJson,
+  getJson,
+  patchJson,
+  postJson,
+  putJson,
+  type HttpResult,
+} from './support/http';
 import { MemoryStorage } from './support/memory-storage';
 import { openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
@@ -567,6 +575,254 @@ describeIfDatabase("a phone's installation is the operator's to read (LSN-21)", 
         ),
       ) as { revoked: number };
       expect(blocked.revoked).toBe(1);
+    },
+    SLOW_MS,
+  );
+});
+
+describeIfDatabase('the sender list (LSN-16)', () => {
+  it(
+    'takes a list of senders, the only shape it holds, and refuses anything else',
+    async () => {
+      const operator = await signedInOperator();
+      const path = '/operator/settings/listener_senders';
+      const senders = ['bKash', 'NAGAD', 'upay', 'Rocket'];
+      ok(await patchJson(port, path, { value: senders, reason: 'Added Rocket' }, operator.headers));
+      const rows = ok(await getJson(port, '/operator/settings', operator.headers)) as {
+        key: string;
+        value: unknown;
+      }[];
+      expect(rows.find((row) => row.key === 'listener_senders')?.value).toEqual(senders);
+
+      const words = await patchJson(
+        port,
+        path,
+        { value: 'bKash', reason: 'Words' },
+        operator.headers,
+      );
+      expect(words.status).toBe(400);
+      const empty = await patchJson(port, path, { value: [], reason: 'None' }, operator.headers);
+      expect(empty.status).toBe(400);
+      // A list means nothing to any other setting.
+      const number = await patchJson(
+        port,
+        '/operator/settings/trial_days',
+        { value: ['30'], reason: 'A list' },
+        operator.headers,
+      );
+      expect(number.status).toBe(400);
+    },
+    SLOW_MS,
+  );
+});
+
+describeIfDatabase('what the pricing screens read (OPERATOR-CONSOLE-DESIGN §6, §6a, §7)', () => {
+  interface PlanRow {
+    id: string;
+    shopsByVersion: { version: number; shops: number }[];
+    deletable: boolean;
+  }
+  interface TermRow {
+    id: string;
+    invoices: number;
+    deletable: boolean;
+  }
+  interface AddonRow {
+    key: string;
+    id: string;
+    running: number;
+    boughtThisMonth: number;
+  }
+
+  it(
+    "counts the shops on each of a plan's versions, and says when it can no longer go (PLN-02, PLN-08)",
+    async () => {
+      const operator = await signedInOperator();
+      const created = await postJson(
+        port,
+        '/operator/plans',
+        { name: `Versions ${randomUUID().slice(0, 8)}`, rank: 8100, forSale: false, limits: {} },
+        operator.headers,
+      );
+      const id = (ok(created, 201) as { id: string }).id;
+      const read = async (): Promise<PlanRow | undefined> =>
+        (ok(await getJson(port, '/operator/plans', operator.headers)) as PlanRow[]).find(
+          (each) => each.id === id,
+        );
+      expect(await read()).toMatchObject({ shopsByVersion: [], deletable: true });
+
+      const first = await openShop(port, texts, 'console-v1');
+      const second = await openShop(port, texts, 'console-v2');
+      const third = await openShop(port, texts, 'console-v2b');
+      const place = (tenantId: string, version: number) =>
+        admin.query(
+          `UPDATE control.tenants SET plan_id = $1, plan_version_snapshot = $2 WHERE id = $3`,
+          [id, version, tenantId],
+        );
+      await place(first.tenantId, 1);
+      ok(await patchJson(port, `/operator/plans/${id}`, { rank: 8101 }, operator.headers));
+      await place(second.tenantId, 2);
+      await place(third.tenantId, 2);
+      // A shop on another plan counts for that plan alone.
+      const elsewhere = await openShop(port, texts, 'console-elsewhere');
+      const otherPlan = ok(
+        await postJson(
+          port,
+          '/operator/plans',
+          { name: `Other ${randomUUID().slice(0, 8)}`, rank: 8102, forSale: false, limits: {} },
+          operator.headers,
+        ),
+        201,
+      ) as { id: string };
+      await admin.query(
+        `UPDATE control.tenants SET plan_id = $1, plan_version_snapshot = 1 WHERE id = $2`,
+        [otherPlan.id, elsewhere.tenantId],
+      );
+
+      const after = await read();
+      expect(after?.deletable).toBe(false);
+      expect(after?.shopsByVersion).toEqual(
+        expect.arrayContaining([
+          { version: 1, shops: 1 },
+          { version: 2, shops: 2 },
+        ]),
+      );
+      expect(after?.shopsByVersion).toHaveLength(2);
+    },
+    SLOW_MS,
+  );
+
+  it(
+    'a term stays while a price, a payment or a shop names it, and counts its invoices (TRM-05)',
+    async () => {
+      const operator = await signedInOperator();
+      const term = ok(
+        await postJson(
+          port,
+          '/operator/billing-terms',
+          { labelBn: 'দুই মাস', labelEn: 'Two months', months: 2 },
+          operator.headers,
+        ),
+        201,
+      ) as { id: string };
+      const read = async (): Promise<TermRow | undefined> =>
+        (ok(await getJson(port, '/operator/billing-terms', operator.headers)) as TermRow[]).find(
+          (each) => each.id === term.id,
+        );
+      expect(await read()).toMatchObject({ invoices: 0, deletable: true });
+
+      // A price, read back with every other plan's from the one route the matrix uses.
+      const plan = ok(
+        await postJson(
+          port,
+          '/operator/plans',
+          { name: `Priced ${randomUUID().slice(0, 8)}`, rank: 8200, forSale: false, limits: {} },
+          operator.headers,
+        ),
+        201,
+      ) as { id: string };
+      ok(
+        await putJson(
+          port,
+          `/operator/plans/${plan.id}/prices/${term.id}`,
+          { price: 899 },
+          operator.headers,
+        ),
+      );
+      const prices = ok(
+        await getJson(port, '/operator/billing-terms/prices', operator.headers),
+      ) as { planId: string; billingTermId: string; price: string }[];
+      expect(prices).toContainEqual({ planId: plan.id, billingTermId: term.id, price: '899.00' });
+      expect((await read())?.deletable).toBe(false);
+      await admin.query(`DELETE FROM control.plan_prices WHERE billing_term_id = $1`, [term.id]);
+      expect((await read())?.deletable).toBe(true);
+
+      // A shop's current period names it, with no foreign key to refuse the delete.
+      const shop = await openShop(port, texts, 'console-term');
+      await admin.query(`UPDATE control.tenants SET billing_term_id = $1 WHERE id = $2`, [
+        term.id,
+        shop.tenantId,
+      ]);
+      expect((await read())?.deletable).toBe(false);
+      const whileHeld = await deleteJson(
+        port,
+        `/operator/billing-terms/${term.id}`,
+        operator.headers,
+      );
+      expect(whileHeld.status).toBe(409);
+      await admin.query(`UPDATE control.tenants SET billing_term_id = NULL WHERE id = $1`, [
+        shop.tenantId,
+      ]);
+      expect((await read())?.deletable).toBe(true);
+
+      // A payment names it, and its invoice counts.
+      const payment = await admin.query<{ id: string }>(
+        `INSERT INTO control.plan_payments (tenant_id, kind, billing_term_id, amount, status)
+         VALUES ($1, 'purchase', $2, 899, 'verified') RETURNING id`,
+        [shop.tenantId, term.id],
+      );
+      expect(await read()).toMatchObject({ invoices: 0, deletable: false });
+      const afterPayment = await deleteJson(
+        port,
+        `/operator/billing-terms/${term.id}`,
+        operator.headers,
+      );
+      expect(afterPayment.status).toBe(409);
+      await admin.query(
+        `INSERT INTO control.invoices (tenant_id, number, kind, amount, plan_payment_id)
+         VALUES ($1, $2, 'purchase', 899, $3)`,
+        [shop.tenantId, 8_000_000 + Math.floor(Math.random() * 900_000), payment.rows[0]?.id],
+      );
+      expect(await read()).toMatchObject({ invoices: 1, deletable: false });
+    },
+    SLOW_MS,
+  );
+
+  it(
+    "counts what is running of each add-on now, and this month's packs (PLN-13)",
+    async () => {
+      const operator = await signedInOperator();
+      const read = async (key: string): Promise<AddonRow> => {
+        const rows = ok(await getJson(port, '/operator/addons', operator.headers)) as AddonRow[];
+        const row = rows.find((each) => each.key === key);
+        if (!row) throw new Error(`no add-on ${key}`);
+        return row;
+      };
+      const seat = await read('extra_seat');
+      const pack = await read('bandwidth_pack');
+      const shop = await openShop(port, texts, 'console-addons');
+      const bought = (
+        addon: AddonRow,
+        kind: string,
+        quantity: number,
+        status: string,
+        startsAt: string,
+        expiresAt: string,
+        purchasedAt: string,
+      ) =>
+        admin.query(
+          `INSERT INTO control.addon_purchases
+             (tenant_id, addon_id, kind, quantity, price, status, paid_from, starts_at, expires_at, purchased_at)
+           VALUES ($1, $2, $3, $4, 49, $5, 'balance',
+                   now() + $6::interval, now() + $7::interval, now() + $8::interval)`,
+          [shop.tenantId, addon.id, kind, quantity, status, startsAt, expiresAt, purchasedAt],
+        );
+
+      await bought(seat, 'limit', 2, 'active', '-1 day', '10 days', '-1 day');
+      // None of these is running: ended, not paid, and the renewal that starts when this one ends.
+      await bought(seat, 'limit', 4, 'active', '-40 days', '-1 day', '-40 days');
+      await bought(seat, 'limit', 8, 'pending', '-1 day', '10 days', '-1 day');
+      await bought(seat, 'limit', 16, 'active', '10 days', '40 days', '-1 day');
+      await bought(pack, 'pack', 3, 'active', '-1 second', '300 days', '-1 second');
+      await bought(pack, 'pack', 32, 'active', '-70 days', '300 days', '-70 days');
+      await bought(pack, 'pack', 64, 'cancelled', '-1 second', '300 days', '-1 second');
+
+      const seatAfter = await read('extra_seat');
+      expect(seatAfter.running - seat.running).toBe(2);
+      expect(seatAfter.boughtThisMonth).toBe(seat.boughtThisMonth);
+      const packAfter = await read('bandwidth_pack');
+      expect(packAfter.boughtThisMonth - pack.boughtThisMonth).toBe(3);
+      expect(packAfter.running).toBe(pack.running);
     },
     SLOW_MS,
   );

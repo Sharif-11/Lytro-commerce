@@ -1,157 +1,213 @@
-import { useState, type SyntheticEvent } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { RateKey } from '@lytronix/validators';
-import { useRateHistory, useRates, useUpdateRate } from '@/api/rates';
 import { errorMessage } from '@lytronix/api-client';
-import {
-  Button,
-  Card,
-  EmptyLine,
-  ErrorBanner,
-  formatDate,
-  formatDateTime,
-  Page,
-  PageHeader,
-  TextField,
-} from '@lytronix/ui';
+import { Button } from '@lytronix/ui';
+import { RateKey } from '@lytronix/validators';
+import { useRateHistory, useRates, useUpdateRate } from '@/api/rates';
+import { ConsoleIcon } from '@/components/ui/console-icon';
+import { ConsolePage, PageTitle, SoonTag } from '@/components/ui/console-page';
+import { InlineForm } from '@/components/ui/inline-form';
+import { RowIcon, RowLines } from '@/components/ui/list-row';
+import { LoadFailed } from '@/components/ui/load-failed';
+import { INLINE_FIELD, LARGE_VALUE, QUIET_BUTTON, SMALL_BUTTON } from '@/components/ui/sizes';
+import { useToast } from '@/components/ui/use-toast';
+import { formatDay } from '@/lib/format';
 import type { RateValue } from '@/types/operator';
+import { RATE_UNITS, rateWords } from './rate-words';
 
-/** RAT-02/08/09: seven rates, each one number, edited in place with its history under the row. */
-export function Rates(): React.JSX.Element {
-  const { t, i18n } = useTranslation();
-  const rates = useRates();
-  const updateRate = useUpdateRate();
-  const [editing, setEditing] = useState<RateKey | null>(null);
-  const [draft, setDraft] = useState('');
+const UNDER_THE_ROW =
+  'flex flex-col gap-2 border-t border-line bg-neutral-50 px-4 py-3 text-[13px]';
+const KEYS = Object.values(RateKey);
+// A phone gives the name its own line, beside the icon: on one line with the value and buttons, it had no room.
+const ROW_WORDS = 'basis-[calc(100%-52px)] sm:basis-0';
+
+function RateEditor({
+  rate,
+  onCancel,
+  onSaved,
+}: {
+  rate: RateValue;
+  onCancel: () => void;
+  onSaved: () => void;
+}): React.JSX.Element {
+  const { t } = useTranslation();
+  const update = useUpdateRate();
+  const [value, setValue] = useState(String(Number(rate.value)));
   const [reason, setReason] = useState('');
-  const [historyKey, setHistoryKey] = useState<RateKey | null>(null);
-  const history = useRateHistory(historyKey);
-
-  function startEdit(rate: RateValue): void {
-    updateRate.reset();
-    setDraft(rate.value);
-    setReason('');
-    setEditing(rate.key);
-  }
-
-  function cancelEdit(): void {
-    updateRate.reset();
-    setEditing(null);
-  }
-
-  function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
-    event.preventDefault();
-    if (!editing) return;
-    updateRate.mutate({ key: editing, value: Number(draft), reason }, { onSuccess: cancelEdit });
-  }
-
   return (
-    <Page narrow>
-      <PageHeader title={t('rates.title')} lead={t('rates.lead')} />
-      {rates.isLoading ? <EmptyLine>{t('common.loading')}</EmptyLine> : null}
-      {rates.isError ? <ErrorBanner message={errorMessage(rates.error, t)} /> : null}
-      {rates.data?.map((rate) => (
-        <Card key={rate.key}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[15px] font-bold text-fg">{t(`rateNames.${rate.key}`)}</p>
-              <p className="text-[13px] text-fg-muted">
-                {t('rates.effectiveFrom', { date: formatDate(rate.effectiveFrom, i18n.language) })}
-              </p>
-            </div>
-            {editing === rate.key ? null : (
-              <div className="flex items-center gap-3">
-                <span className="num text-[20px] font-bold text-fg">{rate.value}</span>
-                <Button
-                  type="button"
-                  tone="outline"
-                  small
-                  fit
-                  onClick={() => {
-                    startEdit(rate);
-                  }}
-                >
-                  {t('common.edit')}
-                </Button>
-                <Button
-                  type="button"
-                  tone="ghost"
-                  small
-                  fit
-                  aria-expanded={historyKey === rate.key}
-                  onClick={() => {
-                    setHistoryKey((current) => (current === rate.key ? null : rate.key));
-                  }}
-                >
-                  {t('rates.history')}
-                </Button>
-              </div>
-            )}
+    <InlineForm
+      reason={reason}
+      onReason={setReason}
+      pending={update.isPending}
+      canSave={value.trim() !== ''}
+      error={update.isError ? errorMessage(update.error, t) : null}
+      onCancel={onCancel}
+      onSubmit={() => {
+        update.mutate(
+          { key: rate.key, value: Number(value), reason: reason.trim() },
+          { onSuccess: onSaved },
+        );
+      }}
+    >
+      <input
+        name="value"
+        aria-label={t(`rateNames.${rate.key}`)}
+        inputMode="decimal"
+        value={value}
+        onChange={(event) => {
+          setValue(event.target.value);
+        }}
+        className={`${INLINE_FIELD} mono w-[110px] text-right`}
+      />
+    </InlineForm>
+  );
+}
+
+function RateHistory({ rate }: { rate: RateValue }): React.JSX.Element {
+  const { t } = useTranslation();
+  const history = useRateHistory(rate.key);
+  const lines = [...(history.data ?? [])].sort((a, b) => b.changedAt.localeCompare(a.changedAt));
+  return (
+    <div className={UNDER_THE_ROW}>
+      {history.isError ? (
+        <LoadFailed
+          onRetry={() => {
+            void history.refetch();
+          }}
+        />
+      ) : history.isLoading ? (
+        <span className="skel w-3/5" />
+      ) : lines.length === 0 ? (
+        <span className="text-fg-muted">{t('rates.noHistory')}</span>
+      ) : (
+        lines.map((line) => (
+          <div key={line.id} className="flex flex-wrap justify-between gap-3">
+            <span className="tabular-nums">
+              {line.oldValue === null ? '–' : rateWords(rate.key, line.oldValue)} →{' '}
+              {rateWords(rate.key, line.newValue)}
+            </span>
+            <span className="text-fg-muted">
+              {[
+                formatDay(line.changedAt),
+                line.changedByEmail,
+                t(line.noticeId ? 'rates.withNotice' : 'rates.noNotice'),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
           </div>
+        ))
+      )}
+    </div>
+  );
+}
 
-          {editing === rate.key ? (
-            <form onSubmit={handleSubmit} className="mt-4 space-y-3">
-              <TextField
-                label={t('rates.newValue')}
-                name="value"
-                type="number"
-                step="0.01"
-                min={0}
-                required
-                autoFocus
-                value={draft}
-                onChange={(event) => {
-                  setDraft(event.target.value);
-                }}
-              />
-              <TextField
-                label={t('rates.reason')}
-                name="reason"
-                required
-                value={reason}
-                onChange={(event) => {
-                  setReason(event.target.value);
-                }}
-              />
-              {updateRate.isError ? (
-                <ErrorBanner message={errorMessage(updateRate.error, t)} />
-              ) : null}
-              <div className="flex gap-2">
-                <Button type="submit" fit loading={updateRate.isPending}>
-                  {t('common.save')}
-                </Button>
-                <Button type="button" tone="outline" fit onClick={cancelEdit}>
-                  {t('common.cancel')}
-                </Button>
+/** OPERATOR-CONSOLE-DESIGN §8: the per-use charges, changed in their rows. */
+export function Rates(): React.JSX.Element {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const rates = useRates();
+  const [editing, setEditing] = useState<RateKey | null>(null);
+  const [showing, setShowing] = useState<RateKey | null>(null);
+  const [offering, setOffering] = useState<RateKey | null>(null);
+  const rows = [...(rates.data ?? [])].sort((a, b) => KEYS.indexOf(a.key) - KEYS.indexOf(b.key));
+  return (
+    <ConsolePage>
+      <PageTitle title={t('nav.rates')} lead={t('rates.lead')} />
+      {rates.isError ? (
+        <LoadFailed
+          onRetry={() => {
+            void rates.refetch();
+          }}
+        />
+      ) : rates.isLoading ? (
+        <section
+          aria-busy="true"
+          className="flex flex-col gap-4 rounded-card border border-line bg-surface p-4"
+        >
+          <span className="skel w-4/5" />
+          <span className="skel w-3/5" />
+        </section>
+      ) : (
+        <section className="overflow-hidden rounded-card border border-line bg-surface">
+          {rows.map((rate) => (
+            <div key={rate.key} className="border-t border-line first:border-t-0">
+              <div className="flex min-h-[60px] flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+                <RowIcon name="signal" />
+                <RowLines
+                  wrap
+                  className={ROW_WORDS}
+                  title={t(`rateNames.${rate.key}`, { defaultValue: rate.key })}
+                  detail={`${t(`rates.units.${RATE_UNITS[rate.key]}`)} · ${t('rates.since', {
+                    d: formatDay(rate.effectiveFrom),
+                  })}`}
+                />
+                {editing === rate.key ? (
+                  <RateEditor
+                    rate={rate}
+                    onCancel={() => {
+                      setEditing(null);
+                    }}
+                    onSaved={() => {
+                      setEditing(null);
+                      setOffering(rate.key);
+                      toast(t('rates.saved'));
+                    }}
+                  />
+                ) : (
+                  <>
+                    <span className={`${LARGE_VALUE} ml-[52px] min-w-20 sm:ml-0 sm:text-right`}>
+                      {rateWords(rate.key, rate.value)}
+                    </span>
+                    <span className="ml-auto flex gap-1 sm:ml-0">
+                      <Button
+                        type="button"
+                        tone="outline"
+                        small
+                        fit
+                        className={SMALL_BUTTON}
+                        aria-label={`${t('rates.change')}: ${t(`rateNames.${rate.key}`)}`}
+                        onClick={() => {
+                          setEditing(rate.key);
+                          setOffering(null);
+                        }}
+                      >
+                        {t('rates.change')}
+                      </Button>
+                      <Button
+                        type="button"
+                        tone="ghost"
+                        small
+                        fit
+                        aria-expanded={showing === rate.key}
+                        aria-label={`${t('rates.history')}: ${t(`rateNames.${rate.key}`)}`}
+                        className={`${SMALL_BUTTON} ${QUIET_BUTTON}`}
+                        onClick={() => {
+                          setShowing(showing === rate.key ? null : rate.key);
+                        }}
+                      >
+                        {t('rates.history')}
+                      </Button>
+                    </span>
+                  </>
+                )}
               </div>
-            </form>
-          ) : null}
-
-          {historyKey === rate.key ? (
-            <div className="mt-4 border-t border-line pt-3">
-              {history.isLoading ? (
-                <p className="text-[13px] text-fg-muted">{t('common.loading')}</p>
-              ) : null}
-              {history.data && history.data.length === 0 ? (
-                <p className="text-[13px] text-fg-muted">{t('rates.noHistory')}</p>
-              ) : null}
-              {history.data && history.data.length > 0 ? (
-                <ul className="num space-y-1 text-[13px] text-fg-muted">
-                  {history.data.map((entry) => (
-                    <li key={entry.id}>
-                      {t('rates.historyLine', {
-                        old: entry.oldValue ?? '–',
-                        new: entry.newValue,
-                        date: formatDateTime(entry.changedAt, i18n.language),
-                      })}
-                    </li>
-                  ))}
-                </ul>
+              {showing === rate.key ? <RateHistory rate={rate} /> : null}
+              {offering === rate.key ? (
+                <div className={UNDER_THE_ROW}>
+                  <div className="flex flex-wrap justify-between gap-3">
+                    <span className="inline-flex items-center gap-1.5">
+                      <ConsoleIcon name="bell" size={16} />
+                      {t('rates.notice')} <SoonTag />
+                    </span>
+                    <span className="text-fg-muted">{t('rates.noticeLater')}</span>
+                  </div>
+                </div>
               ) : null}
             </div>
-          ) : null}
-        </Card>
-      ))}
-    </Page>
+          ))}
+        </section>
+      )}
+    </ConsolePage>
   );
 }

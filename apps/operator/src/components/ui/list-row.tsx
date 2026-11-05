@@ -15,14 +15,16 @@ export function RowLines({
   title,
   detail,
   wrap = false,
+  className = '',
 }: {
   title: ReactNode;
   detail?: ReactNode;
   wrap?: boolean;
+  className?: string;
 }): React.JSX.Element {
   const line = wrap ? '' : 'truncate';
   return (
-    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+    <span className={`flex min-w-0 flex-1 flex-col gap-0.5 ${className}`}>
       <span className={`text-[15px] font-medium ${line}`}>{title}</span>
       {detail ? <span className={`text-[13px] text-fg-muted ${line}`}>{detail}</span> : null}
     </span>

@@ -25,6 +25,13 @@ export const billingTermSchema = z.object({
 export class BillingTermDto extends createZodDto(billingTermSchema) {}
 export class BillingTermListDto extends createZodDto(billingTermSchema.array()) {}
 
+// TRM-05: the operator's list says what sits on a term, and whether it can still go.
+export const operatorBillingTermSchema = billingTermSchema.extend({
+  invoices: z.number(),
+  deletable: z.boolean(),
+});
+export class OperatorBillingTermListDto extends createZodDto(operatorBillingTermSchema.array()) {}
+
 export const planPriceSchema = z.object({
   planId: z.string(),
   billingTermId: z.string(),
@@ -45,6 +52,13 @@ export const planSchema = z.object({
 });
 export class PlanDto extends createZodDto(planSchema) {}
 export class PlanListDto extends createZodDto(planSchema.array()) {}
+
+// PLN-02, PLN-08: the operator's list says how many shops sit on each version, and whether a plan can still go.
+export const operatorPlanSchema = planSchema.extend({
+  shopsByVersion: z.array(z.object({ version: z.number(), shops: z.number() })),
+  deletable: z.boolean(),
+});
+export class OperatorPlanListDto extends createZodDto(operatorPlanSchema.array()) {}
 
 export const planVersionSchema = z.object({
   id: z.string(),

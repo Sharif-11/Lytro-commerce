@@ -25,9 +25,17 @@ import {
   type OperatorSessionRequest,
 } from '../../operator/guards/operator-session.guard';
 import { BillingTermsService } from '../../billing/services/billing-terms.service';
-import type { BillingTermRecord, PlanPriceRecord } from '../../billing/types/billing-term';
+import type {
+  BillingTermRecord,
+  OperatorBillingTermRecord,
+  PlanPriceRecord,
+} from '../../billing/types/billing-term';
 import { CreateBillingTermDto, SetPlanPriceDto, UpdateBillingTermDto } from '../dto/billing.dto';
-import { BillingTermDto, BillingTermListDto, PlanPriceListDto } from '../dto/billing-response.dto';
+import {
+  BillingTermDto,
+  OperatorBillingTermListDto,
+  PlanPriceListDto,
+} from '../dto/billing-response.dto';
 
 // TRM-01 to TRM-16: the operator's billing-term editor, plus per-plan pricing (TRM-03).
 @ApiTags('Operator Billing Terms')
@@ -43,9 +51,17 @@ export class OperatorBillingTermsController {
   @Get()
   @ResponseMessage('BillingTermsListed')
   @ApiOperation({ summary: 'List every billing term, including hidden and retired ones' })
-  @ZodResponse({ type: BillingTermListDto })
-  list(): Promise<BillingTermRecord[]> {
-    return this.terms.listAll(); // includes hidden/retired terms, unlike the public route
+  @ZodResponse({ type: OperatorBillingTermListDto })
+  list(): Promise<OperatorBillingTermRecord[]> {
+    return this.terms.listForOperator(); // includes hidden/retired terms, unlike the public route
+  }
+
+  @Get('prices')
+  @ResponseMessage('PlanPricesListed')
+  @ApiOperation({ summary: "Every plan's price for every term, for the price matrix" })
+  @ZodResponse({ type: PlanPriceListDto })
+  prices(): Promise<PlanPriceRecord[]> {
+    return this.terms.listAllPrices();
   }
 
   @Post()

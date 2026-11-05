@@ -12,6 +12,12 @@ export interface PlanRecord {
   createdAt: Date;
 }
 
+/** PLN-02, PLN-08: a plan as the operator's list shows it. */
+export interface OperatorPlanRecord extends PlanRecord {
+  shopsByVersion: { version: number; shops: number }[];
+  deletable: boolean;
+}
+
 export interface PlanVersionRecord {
   id: string;
   planId: string;

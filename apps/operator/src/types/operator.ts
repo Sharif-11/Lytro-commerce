@@ -1,6 +1,7 @@
 import type {
   AddonKind,
   AddonRenewal,
+  AttributeDataType,
   CredentialUseAction,
   ListenerDeviceStatus,
   ListenerIgnoredReason,
@@ -13,8 +14,13 @@ import type {
   PlanPaymentKind,
   PlanPaymentStatus,
   PlatformAuditAction,
+  ProductFormField,
   RateKey,
+  SerialFormat,
+  StockTracking,
+  StockUnit,
   TenantState,
+  UnitKind,
 } from '@lytronix/validators';
 
 /**
@@ -57,6 +63,12 @@ export interface Plan {
   createdAt: string;
 }
 
+/** `operatorPlanSchema`: a plan as GET /operator/plans lists it. */
+export interface OperatorPlan extends Plan {
+  shopsByVersion: { version: number; shops: number }[];
+  deletable: boolean;
+}
+
 export interface PlanVersion {
   id: string;
   planId: string;
@@ -87,6 +99,12 @@ export interface BillingTerm {
   tenantId: string | null;
   retiredAt: string | null;
   createdAt: string;
+}
+
+/** `operatorBillingTermSchema`: a term as GET /operator/billing-terms lists it. */
+export interface OperatorBillingTerm extends BillingTerm {
+  invoices: number;
+  deletable: boolean;
 }
 
 /** apps/server/src/modules/billing/types/plan-assignment.ts. */
@@ -124,6 +142,7 @@ export interface RateHistoryEntry {
   oldValue: string | null;
   newValue: string;
   changedBy: string | null;
+  changedByEmail: string | null;
   noticeId: string | null;
   changedAt: string;
 }
@@ -131,10 +150,71 @@ export interface RateHistoryEntry {
 /** apps/server/src/modules/platform-settings/types/platform-setting.ts. */
 export interface PlatformSetting {
   key: string;
-  value: number | string | boolean;
+  value: number | string | boolean | string[];
   description: string;
   updatedBy: string | null;
+  updatedByEmail: string | null;
   updatedAt: string;
+}
+
+/** `operatorAddonSchema` in apps/server/src/modules/team/dto/addons-response.dto.ts. */
+export interface OperatorAddon {
+  id: string;
+  key: string;
+  kind: AddonKind;
+  limitKey: string | null;
+  unitSize: number | null;
+  price: string;
+  labelEn: string;
+  labelBn: string;
+  retiredAt: string | null;
+  createdAt: string;
+  running: number;
+  boughtThisMonth: number;
+}
+
+/** `presetViewSchema` in apps/server/src/modules/team/dto/catalogue-response.dto.ts. */
+export interface ShopTypePreset {
+  key: string;
+  labelBn: string;
+  labelEn: string;
+  defaults: {
+    stockUnit: StockUnit;
+    stockTracking: StockTracking;
+    batchTracked: boolean;
+    serialTracked: boolean;
+    serialFormat: SerialFormat;
+    lowStockThreshold: string;
+    suggestedAttributeIds: string[];
+    suggestedCategories: string[];
+    upFrontFields: ProductFormField[];
+  };
+}
+
+/** `optionViewSchema` there. */
+export interface LibraryOption {
+  id: string;
+  value: string;
+  swatchColor: string | null;
+  retired: boolean;
+}
+
+/** `attributeViewSchema` there. */
+export interface LibraryAttribute {
+  id: string;
+  name: string;
+  dataType: AttributeDataType;
+  unitKind: UnitKind | null;
+  retired: boolean;
+  options: LibraryOption[];
+}
+
+/** `optionSetViewSchema` there. */
+export interface LibraryOptionSet {
+  id: string;
+  name: string;
+  options: string[];
+  presetKey: string | null;
 }
 
 /** `tenantSummarySchema` in apps/server/src/modules/team/dto/balance-response.dto.ts. */
