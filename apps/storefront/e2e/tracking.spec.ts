@@ -246,7 +246,7 @@ test.describe('an order that owed an advance (PAY-08, PAY-11, PAY-17)', () => {
 
   test('time ran out, or staff rejected it: what to do, and no way to pay', async ({ page }) => {
     const shop = await openShop(page, (language) => ({
-      tracked: { K7F2M9QX: owing(language, OrderStatus.Cancelled, PaymentSessionState.Expired) },
+      tracked: { K7F2M9QX: owing(language, OrderStatus.Cancelled, null) },
     }));
     await page.goto(shop.url('/order/K7F2M9QX'));
     await expect(

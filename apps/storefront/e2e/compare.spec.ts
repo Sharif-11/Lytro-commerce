@@ -354,7 +354,7 @@ const PAIRS: Pair[] = [
     name: 'pay-expired',
     screen: 'pay-expired',
     path: '/order/K7F2M9QX',
-    shop: owedShop(OrderStatus.Cancelled, PaymentSessionState.Expired),
+    shop: owedShop(OrderStatus.Cancelled, null),
   },
   {
     name: 'pay-tracking',
