@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { useTranslation } from 'react-i18next';
 import {
   useOperatorEnroll,
   useOperatorSignIn,
   useOperatorVerify,
   type Credentials,
 } from '@/api/operator-auth';
-import { errorMessage } from '@lytronix/api-client';
 import { AuthFrame } from '@/components/layout/auth-frame';
 import { BackupCodesStep } from './backup-codes-step';
 import { CredentialsStep } from './credentials-step';
 import { EnrollStep } from './enroll-step';
+import { isLockedOut, useLockout } from './lockout';
 import { VerifyStep } from './verify-step';
 
 type Step =
@@ -23,36 +22,39 @@ type Step =
 /**
  * One container for the whole flow (ADM-01), not three routed screens: every step re-asserts email and
  * password (there is no "pending enrolment" session), so they live only in this component's state and
- * never in a URL.
+ * never in a URL. A lock at any step returns to the first, where it shows.
  */
 export function SignIn(): React.JSX.Element {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>({ kind: 'credentials' });
   const [credentials, setCredentials] = useState<Credentials>({ email: '', password: '' });
   const signIn = useOperatorSignIn();
   const enroll = useOperatorEnroll();
   const verify = useOperatorVerify();
+  const lockout = useLockout();
 
   function enterConsole(): void {
-    void navigate({ to: '/payment-queue' });
+    void navigate({ to: '/' });
   }
 
-  const copy = {
-    credentials: { title: t('signIn.title'), lead: t('signIn.lead') },
-    enroll: { title: t('enroll.title'), lead: t('enroll.lead') },
-    'backup-codes': { title: t('backupCodes.title'), lead: t('backupCodes.lead') },
-    verify: { title: t('verify.title'), lead: t('verify.lead') },
-  }[step.kind];
+  function onRefused(error: unknown): void {
+    if (!isLockedOut(error)) return;
+    lockout.start(error);
+    setStep({ kind: 'credentials' });
+  }
 
   return (
-    <AuthFrame title={copy.title} lead={copy.lead}>
+    <AuthFrame>
       {step.kind === 'credentials' ? (
         <CredentialsStep
+          initialEmail={credentials.email}
+          locked={lockout.locked}
           pending={signIn.isPending}
-          error={signIn.isError ? errorMessage(signIn.error, t) : null}
+          error={signIn.error}
+          onEmailEdit={lockout.clear}
           onSubmit={(submitted) => {
             signIn.mutate(submitted, {
+              onError: onRefused,
               onSuccess: (data) => {
                 setCredentials(submitted);
                 setStep(
@@ -68,14 +70,16 @@ export function SignIn(): React.JSX.Element {
 
       {step.kind === 'enroll' ? (
         <EnrollStep
+          email={credentials.email}
           secret={step.secret}
           uri={step.uri}
           pending={enroll.isPending}
-          error={enroll.isError ? errorMessage(enroll.error, t) : null}
+          error={enroll.error}
           onSubmit={(code) => {
             enroll.mutate(
               { ...credentials, code },
               {
+                onError: onRefused,
                 onSuccess: (data) => {
                   setStep({ kind: 'backup-codes', codes: data.backupCodes });
                 },
@@ -86,18 +90,23 @@ export function SignIn(): React.JSX.Element {
       ) : null}
 
       {step.kind === 'backup-codes' ? (
-        <BackupCodesStep codes={step.codes} onContinue={enterConsole} />
+        <BackupCodesStep email={credentials.email} codes={step.codes} onContinue={enterConsole} />
       ) : null}
 
       {step.kind === 'verify' ? (
         <VerifyStep
+          email={credentials.email}
           pending={verify.isPending}
-          error={verify.isError ? errorMessage(verify.error, t) : null}
+          error={verify.error}
           onSubmit={(code) => {
-            verify.mutate({ ...credentials, code }, { onSuccess: enterConsole });
+            verify.mutate(
+              { ...credentials, code },
+              { onError: onRefused, onSuccess: enterConsole },
+            );
           }}
           onBack={() => {
             verify.reset();
+            signIn.reset();
             setStep({ kind: 'credentials' });
           }}
         />

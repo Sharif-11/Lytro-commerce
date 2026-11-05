@@ -51,7 +51,7 @@ Two screens and a set of end states, all inside one frame.
 
 Top to bottom, centred:
 
-1. **Test strip**, on a test account's page only (VER-11): "টেস্ট পেমেন্ট: আসল টাকা কাটবে না।", amber, 8 px below the bar.
+1. **Test strip**, on every screen of a payment through a test account, "Paid" included, so nobody takes it for real money (VER-11): "টেস্ট পেমেন্ট: আসল টাকা কাটবে না।", amber, 8 px below the bar.
 2. **Brand row** (24 px below the bar): the shop's logo in a 56 px circle, or its monogram on a teal tile (TEN-16), the shop name bold
    18 px, the order number under it (PAY-05), and a **বিস্তারিত** pill (28 px, rounded, 1 px grey border) that opens a sheet with the order
    number, what is being paid for (each item's name and quantity) and the amount.

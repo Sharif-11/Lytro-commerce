@@ -19,13 +19,14 @@ function runs(scope) {
     scope.dashboard && 'dashboard',
     scope.storefront && 'storefront',
     scope.paymentPage && 'paymentPage',
+    scope.operator && 'operator',
     scope.walkthrough && 'walkthrough',
   ].filter(Boolean);
 }
 
 for (const [name, changed, reached, expected] of [
   ['the docs', ['docs/PHASE-6-PLAN.md'], [], []],
-  ['another drawing', ['docs/brand/lytro-operator.html'], [], []],
+  ['another drawing', ['docs/brand/lytro-listener.html'], [], []],
   ['a root Markdown file', ['README.md'], [], []],
   ['the listener app, which has its own workflow', ['apps/listener-android/app/a.kt'], [], []],
   [
@@ -52,20 +53,31 @@ for (const [name, changed, reached, expected] of [
     ['@lytronix/storefront'],
     ['code', 'browser', 'storefront'],
   ],
-  ['the operator console', ['apps/operator/src/a.tsx'], ['@lytronix/operator'], ['code']],
+  [
+    'the operator console',
+    ['apps/operator/src/a.tsx'],
+    ['@lytronix/operator'],
+    ['code', 'browser', 'operator'],
+  ],
+  [
+    "the console's drawing, which its tests set beside its screens",
+    ['docs/brand/lytro-operator.html'],
+    [],
+    ['code', 'browser', 'operator'],
+  ],
   ['the website', ['apps/website/src/a.tsx'], ['@lytronix/website'], ['code']],
   ['the media Worker', ['apps/media-worker/src/a.ts'], ['@lytronix/media-worker'], ['code']],
   [
     'the shared screens package',
     ['packages/ui/src/a.tsx'],
     ['@lytronix/dashboard', '@lytronix/operator', '@lytronix/ui'],
-    ['code', 'browser', 'dashboard', 'walkthrough'],
+    ['code', 'browser', 'dashboard', 'operator', 'walkthrough'],
   ],
   [
     'the validators, which everything uses',
     ['packages/validators/src/a.ts'],
     ALL_PACKAGES,
-    ['code', 'browser', 'dashboard', 'storefront', 'paymentPage', 'walkthrough'],
+    ['code', 'browser', 'dashboard', 'storefront', 'paymentPage', 'operator', 'walkthrough'],
   ],
   [
     "the dashboard's prototype, which its browser tests read",
@@ -114,6 +126,7 @@ for (const path of [
       'dashboard',
       'storefront',
       'paymentPage',
+      'operator',
       'walkthrough',
     ]);
     assert.equal(scope.affected, '');

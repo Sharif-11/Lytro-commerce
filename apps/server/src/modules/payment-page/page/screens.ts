@@ -59,11 +59,13 @@ export type PageScreen =
 
 /** PAY-08: the session's address to return to, with its ID and status; a link with none leads to the order's page. */
 export function returnAddressOf(data: PageData, status: string): string | null {
-  const { returnUrl, sessionId } = data.session;
+  const { returnUrl, sessionId, trackingId } = data.session;
   if (returnUrl === null) return data.orderPageUrl;
   const address = new URL(returnUrl);
   address.searchParams.set('session_id', sessionId);
   address.searchParams.set('status', status);
+  // A return address is given as the order is placed, before it has a tracking ID.
+  address.searchParams.set('tracking_id', trackingId);
   return address.toString();
 }
 

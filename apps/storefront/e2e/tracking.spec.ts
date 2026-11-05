@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { OrderStatus, PaymentSessionState } from '@lytronix/validators/enums';
+import type { TrackedOrder } from '../src/lib/api/storefront-api';
 import { trackedOrder } from './support/fixtures';
 import { alertOn, openShop } from './support/shop';
 
@@ -159,4 +161,133 @@ test('in the storefront, its frame leads home', async ({ page }) => {
   const shop = await openShop(page);
   await page.goto(shop.url('/track'));
   await expect(page.locator('.hdr .back')).toHaveAttribute('href', '/');
+});
+
+test.describe('an order that owed an advance (PAY-08, PAY-11, PAY-17)', () => {
+  const owing = (
+    language: Parameters<typeof trackedOrder>[0],
+    status: OrderStatus,
+    state: PaymentSessionState | null,
+    due = '2670.00',
+  ): TrackedOrder => ({
+    ...trackedOrder(language, 'placed'),
+    status,
+    codAmount: '2670.00',
+    due,
+    payment:
+      state === null
+        ? null
+        : {
+            paymentUrl: 'http://localhost:4181/__pay/K7F2M9QX',
+            amount: '200.00',
+            expiresAt: new Date(Date.now() + 18 * 60_000).toISOString(),
+            state,
+          },
+  });
+
+  test('the return goes on to the order, whatever the redirect claims of it', async ({ page }) => {
+    const shop = await openShop(page, (language) => ({
+      tracked: {
+        K7F2M9QX: owing(language, OrderStatus.Unverified, PaymentSessionState.AwaitingPayment),
+      },
+    }));
+    await page.goto(shop.url('/order/return?tracking_id=K7F2M9QX&status=verified&session_id=x'));
+    await page.waitForURL(/\/order\/K7F2M9QX$/);
+    // A forged "verified" changes nothing: the order says it isn't paid.
+    await expect(page.getByRole('heading', { name: 'Payment not completed' })).toBeVisible();
+    await expect(page.locator('.placed')).toContainText('held for 18 more minutes');
+    await expect(page.getByRole('link', { name: 'Try the payment again' })).toHaveAttribute(
+      'href',
+      'http://localhost:4181/__pay/K7F2M9QX',
+    );
+    await expect(page.getByRole('link', { name: 'Call the shop' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute(
+      'href',
+      'https://wa.me/8801711223344',
+    );
+    await expect(page.getByText('cash on delivery', { exact: false })).toHaveCount(0);
+  });
+
+  test('a return with no order named is not found', async ({ page }) => {
+    const shop = await openShop(page);
+    const answer = await page.goto(shop.url('/order/return'));
+    expect(answer?.status()).toBe(404);
+  });
+
+  test('paid: what was paid, what is left, and that the shop still calls (D5-9)', async ({
+    page,
+  }) => {
+    const shop = await openShop(page, (language) => ({
+      tracked: { K7F2M9QX: owing(language, OrderStatus.Pending, null) },
+    }));
+    await page.goto(shop.url('/order/K7F2M9QX'));
+    await expect(page.getByRole('heading', { name: 'Payment received' })).toBeVisible();
+    await expect(page.locator('.placed')).toContainText('The shop will call to confirm');
+    await expect(page.locator('.placed')).toContainText('Advance paid');
+    await expect(page.locator('.placed .sum')).toContainText('৳200');
+    await expect(page.locator('.placed .sum')).toContainText('৳2,670');
+    await expect(page.getByText('order confirmed', { exact: false })).toHaveCount(0);
+  });
+
+  test('being checked: it can be closed, and it looks again by itself', async ({ page }) => {
+    const shop = await openShop(page, (language) => ({
+      tracked: { K7F2M9QX: owing(language, OrderStatus.Unverified, PaymentSessionState.Checking) },
+    }));
+    await page.goto(shop.url('/order/K7F2M9QX'));
+    await expect(page.getByRole('heading', { name: 'Checking your payment' })).toBeVisible();
+    await expect(page.locator('.placed')).toContainText('You can close this page');
+    await expect(page.getByRole('link', { name: 'Wrong TrxID? Change it' })).toBeVisible();
+    await expect(page.getByText('SMS')).toHaveCount(0);
+    const looked = page.waitForRequest((request) => request.url().includes('/order/K7F2M9QX'), {
+      timeout: 15_000,
+    });
+    await looked;
+  });
+
+  test('time ran out, or staff rejected it: what to do, and no way to pay', async ({ page }) => {
+    const shop = await openShop(page, (language) => ({
+      tracked: { K7F2M9QX: owing(language, OrderStatus.Cancelled, null) },
+    }));
+    await page.goto(shop.url('/order/K7F2M9QX'));
+    await expect(
+      page.getByRole('heading', { name: 'Time ran out, so the order was cancelled' }),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Order again' })).toHaveAttribute('href', '/');
+    await expect(page.getByRole('link', { name: 'Try the payment again' })).toHaveCount(0);
+    await page.goto(shop.url('/order/return?tracking_id=K7F2M9QX&status=failed'));
+    await expect(
+      page.getByRole('heading', { name: 'Payment not confirmed, so the order was cancelled' }),
+    ).toBeVisible();
+  });
+
+  test('an order that owed nothing keeps the ordinary confirmation', async ({ page }) => {
+    const shop = await openShop(page, (language) => ({
+      tracked: { K7F2M9QX: trackedOrder(language, 'placed') },
+    }));
+    await page.goto(shop.url('/order/K7F2M9QX'));
+    await expect(page.locator('.placed')).not.toContainText('Advance paid');
+    await expect(page.getByRole('link', { name: 'Track the order' })).toBeVisible();
+  });
+
+  test('tracking offers the open payment, then says it is being checked', async ({ page }) => {
+    const shop = await openShop(page, (language) => ({
+      tracked: {
+        K7F2M9QX: owing(language, OrderStatus.Unverified, PaymentSessionState.AwaitingPayment),
+        CHECKING: {
+          ...owing(language, OrderStatus.Unverified, PaymentSessionState.Checking),
+          trackingId: 'CHECKING',
+        },
+      },
+    }));
+    await page.goto(shop.url('/track/K7F2M9QX'));
+    await expect(page.locator('.banner.warn')).toContainText('৳200 advance still to pay');
+    await expect(page.locator('.banner.warn')).toContainText('within 18 minutes');
+    await expect(page.getByRole('link', { name: 'Pay now' })).toHaveAttribute(
+      'href',
+      'http://localhost:4181/__pay/K7F2M9QX',
+    );
+    await page.goto(shop.url('/track/CHECKING'));
+    await expect(page.locator('.banner.info')).toContainText('Checking your payment');
+    await expect(page.getByRole('link', { name: 'Pay now' })).toHaveCount(0);
+  });
 });

@@ -16,6 +16,14 @@ import type {
 export type OperatorSigninResult =
   { next: 'enroll-2fa'; secret: string; uri: string } | { next: 'verify-2fa' };
 
+/** GET /auth/operator/me. */
+export interface OperatorMe {
+  email: string;
+  unusedBackupCodes: number;
+  signedInAt: string;
+  userAgent: string | null;
+}
+
 export interface OperatorEnrolled {
   csrfToken: string;
   backupCodes: string[];

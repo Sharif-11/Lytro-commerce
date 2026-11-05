@@ -68,6 +68,7 @@ describe('the answer to an order (ORD-02)', () => {
     });
     expect(readOrderAnswer(422, fields('items.0.modifiers'))).toEqual({ kind: 'recheck' });
     expect(readOrderAnswer(422, fields('payment'))).toEqual({ kind: 'advance' });
+    expect(readOrderAnswer(422, fields('payment.method'))).toEqual({ kind: 'advance' });
   });
 
   it('tells sold out, no delivery and paying first apart', () => {
@@ -85,9 +86,10 @@ describe('the answer to an order (ORD-02)', () => {
     for (const reason of ['zone_no_delivery', 'product_not_delivered_here']) {
       expect(readOrderAnswer(409, conflict({ reason }))).toEqual({ kind: 'no_delivery' });
     }
-    for (const reason of ['no_payment_method', 'new_shop_cap']) {
-      expect(readOrderAnswer(409, conflict({ reason }))).toEqual({ kind: 'advance' });
-    }
+    expect(readOrderAnswer(409, conflict({ reason: 'no_payment_method' }))).toEqual({
+      kind: 'no_method',
+    });
+    expect(readOrderAnswer(409, conflict({ reason: 'new_shop_cap' }))).toEqual({ kind: 'cap' });
   });
 
   it('reads too many tries, a spent key, and anything else as worth trying again', () => {

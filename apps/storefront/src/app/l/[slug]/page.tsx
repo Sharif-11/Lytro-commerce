@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
+import { PaymentPolicy } from '@lytronix/validators/enums';
 import { LandingView } from '@/components/landing/landing-view';
 import { MetaPixel } from '@/components/landing/meta-pixel';
 import { OfflinePage } from '@/components/pages';
@@ -7,7 +8,7 @@ import { Footer, Header, Shell } from '@/components/shell';
 import { keptQuery, productOpening } from '@/lib/product/opening';
 import { productMetadata } from '@/lib/product/product-metadata';
 import { VariantChoice } from '@/lib/product/variant-choice';
-import { loadProduct, loadShopPage } from '@/lib/storefront';
+import { loadProduct, loadShopPage, storefrontApi } from '@/lib/storefront';
 
 // LND-01, LND-02: every active product's own page at /l/<slug>: that product only, no cart and no way into the
 // catalogue. It follows the shop's visibility, not the storefront switch (SFT-16), so it keeps working with the
@@ -44,6 +45,11 @@ export default async function LandingPage({ params, searchParams }: Props) {
 
   const { product } = read;
   const opening = await productOpening(page, product, v);
+  // WAL-06: only a product paid for first needs to know how this shop can be paid.
+  const methods =
+    product.paymentPolicy === PaymentPolicy.None
+      ? []
+      : await storefrontApi.paymentMethods(page.shop, page.shopper);
   const language = page.words.language;
   // LND-15: the IDs the catalog feed lists: the linked variant, or every variant the page offers.
   const choice = new VariantChoice(product.options, product.variants);
@@ -81,6 +87,7 @@ export default async function LandingPage({ params, searchParams }: Props) {
           linkedVariantId={opening.linkedVariantId}
           areaId={opening.areaId}
           initialEstimate={opening.estimate}
+          methods={methods}
         />
       </Shell>
       {page.info.metaPixelId ? (

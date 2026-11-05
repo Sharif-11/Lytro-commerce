@@ -31,6 +31,7 @@ import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedBalance } from './support/database';
 import { LowBalanceCapture } from './support/low-balance-capture';
 import { getJson, postJson, sendExact, type HttpResult } from './support/http';
+import { payPage, screenOf } from './support/pay-page';
 import { errorOf, openShop, staffWith, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
@@ -1459,5 +1460,97 @@ describeIfDatabase('the receipts staff read (agreed 2026-11-02)', () => {
     const theirs = await getJson(port, '/listener/receipts', verifier);
     expect(theirs.status).toBe(200);
     expect(theirs.body).toMatchObject({ total: 0 });
+  });
+});
+
+describeIfDatabase("through the page itself (Slice 5.8's part 2, VER-02, VER-04, PAY-17)", () => {
+  const type = (ref: string, transactionId: string, senderNumber = SENDER_NUMBER) =>
+    payPage(port, 'POST', `/${ref}/transaction`, { method: 'bkash', transactionId, senderNumber });
+  const status = async (ref: string, query = ''): Promise<string> =>
+    (JSON.parse((await payPage(port, 'GET', `/${ref}/status${query}`)).text) as { screen: string })
+      .screen;
+
+  it('shows a phone matching it, then sees the receipt arrive and returns to the shop', async () => {
+    const setup = await paidShop();
+    const phone = await phoneOf(setup.shop);
+    const ref = await placed(setup);
+    const id = trx();
+    const typed = await type(ref, id);
+    expect(typed.status).toBe(303);
+
+    const waiting = await payPage(port, 'GET', String(typed.headers.location));
+    expect(screenOf(waiting)).toBe('checking');
+    expect(waiting.text).toContain('SMS মেলানো হচ্ছে');
+    expect(waiting.text).toContain('data-typed=');
+    expect(waiting.text).toContain('data-poll="1"');
+    expect(await status(ref)).toBe('checking');
+
+    await forward(phone, receiptText(id));
+
+    // What the page's own check reads, which is what makes it go on by itself (PAY-17).
+    expect(await status(ref, '?just=1')).toBe('verified');
+    const paid = await payPage(port, 'GET', `/${ref}?just=1`);
+    expect(screenOf(paid)).toBe('verified');
+    expect(paid.text).toContain('status=verified');
+    expect(paid.text).toContain(id);
+  });
+
+  it('settles at once when the receipt came first (VER-04)', async () => {
+    const setup = await paidShop();
+    const phone = await phoneOf(setup.shop);
+    const ref = await placed(setup);
+    const id = trx();
+    await forward(phone, receiptText(id));
+    const typed = await type(ref, id);
+    expect(screenOf(await payPage(port, 'GET', String(typed.headers.location)))).toBe('verified');
+  });
+
+  it('past 30 seconds says it will confirm shortly, and the page may be closed (PAY-17)', async () => {
+    const setup = await paidShop();
+    await phoneOf(setup.shop);
+    const ref = await placed(setup);
+    await type(ref, trx());
+    await admin.query(
+      "UPDATE tenant.payment_sessions SET submitted_at = now() - interval '31 seconds' WHERE ref = $1",
+      [ref],
+    );
+    const late = await payPage(port, 'GET', `/${ref}`);
+    expect(screenOf(late)).toBe('late');
+    expect(late.text).toContain('এই পেজ বন্ধ করলেও হবে');
+    expect(late.text).not.toContain('SMS পাবেন');
+    expect(await status(ref)).toBe('late');
+  });
+
+  it('says plainly when the amount or the sender did not match, and lets the ID be corrected', async () => {
+    const setup = await paidShop();
+    const phone = await phoneOf(setup.shop);
+
+    const short = await placed(setup);
+    const shortId = trx();
+    await type(short, shortId);
+    await forward(phone, receiptText(shortId, '250.00'));
+    const amount = await payPage(port, 'GET', `/${short}`);
+    expect(screenOf(amount)).toBe('review');
+    expect(amount.text).toContain('টাকা মিলছে না');
+    expect(amount.text).toContain('?change=1');
+
+    const other = await placed(setup);
+    const otherId = trx();
+    await type(other, otherId, '01911000009');
+    await forward(phone, receiptText(otherId));
+    expect(screenOf(await payPage(port, 'GET', `/${other}`))).toBe('review-sender');
+  });
+
+  it('leaves a wallet checked by hand with staff, whatever a phone reports (agreed 2026-11-03)', async () => {
+    const setup = await paidShop();
+    const phone = await phoneOf(setup.shop);
+    const way = await setup.shop.put('/payment-methods/bkash/way', { way: 'manual' });
+    expect(way.status, JSON.stringify(way.body)).toBe(200);
+    const ref = await placed(setup);
+    const id = trx();
+    await type(ref, id);
+    expect(screenOf(await payPage(port, 'GET', `/${ref}`))).toBe('manual');
+    await forward(phone, receiptText(id));
+    expect(screenOf(await payPage(port, 'GET', `/${ref}`))).toBe('manual');
   });
 });

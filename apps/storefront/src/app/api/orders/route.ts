@@ -19,8 +19,14 @@ export async function POST(request: Request): Promise<Response> {
   if (!page.shop.storefrontEnabled && (body as { source?: unknown }).source !== 'landing_page') {
     return Response.json({ code: 'not_found' }, { status: 404 });
   }
+  // SFT-07, PAY-04: an advance's return address, on the shop's own address, the one its key names. A shop on its own domain
+  // is led there from this address (Slice 13); the page says which order it was, as it can't be known yet.
+  const { payment } = body as { payment?: { method?: unknown } };
+  const sent = payment
+    ? { ...body, payment: { ...payment, returnUrl: `${page.shop.origin}/order/return` } }
+    : body;
   try {
-    const answer = await storefrontApi.placeOrder(page.shop, page.shopper, body, key);
+    const answer = await storefrontApi.placeOrder(page.shop, page.shopper, sent, key);
     return Response.json(
       { data: answer.data, code: answer.code, details: answer.details },
       { status: answer.status, headers: noStore },

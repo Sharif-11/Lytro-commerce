@@ -22,6 +22,7 @@ const answered = (lines: EstimateLine[]): DeliveryEstimate => ({
   deliverable: true,
   notDeliveredHere: [],
   taxes: [],
+  advance: null,
 });
 const sold = (
   variantId: string,

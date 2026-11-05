@@ -41,7 +41,7 @@ One product brand, five surfaces. Surfaces are named by what they are for, never
 | Marketing site (`apps/website`) | Lytro | Full brand. |
 | Tenant dashboard, PWA and native (`apps/dashboard`, today `apps/admin`) | Lytro (app name); the tenant's shop name in the navigation | Chrome colours and components are Lytro's; the identity shown is the tenant's (TEN-8). A "Powered by Lytro" mark stays. |
 | Shopper storefront PWA (`apps/storefront`) | The tenant's shop name | Lytro supplies neutral defaults only. "Powered by Lytro" in the footer and "Secured by Lytro" on the hosted payment page. |
-| Operator console (`apps/operator`, `admin.lytro.app`) | Lytro Operator | Full brand, inverted chrome, so it can never be mistaken for a tenant dashboard. |
+| Operator console (`apps/operator`, `admin.lytro.app`) | Lytro Operator | Full brand, with the ink band and the marigold eyebrow (§8.4), so it can never be mistaken for a tenant dashboard. |
 | Android SMS listener | Lytro Listener | Full brand, utility treatment. |
 
 Attribution wording changes from "Powered by Lytronix" to "Powered by Lytro". This touches TEN-8 in the SRS and the `common.poweredBy` strings; see section 11.
@@ -210,7 +210,7 @@ Used for manual payments only. A wallet whose gateway the seller has connected s
 
 ## 9. Tokens
 
-`docs/brand/tokens.css` is the source of truth with light and dark roles. In code, `packages/ui` carries them: `styles/base.css` for the scales, type and shape, and `styles/light.css` (dashboard) and `styles/console.css` (operator console) for the roles the shared components use. `tailwind-theme.css` is the `@theme` block to paste into both Tailwind apps; it keeps the `brand-*` and `accent-*` names so existing classes keep working. `tokens.json` is for native code and design tools. `android-colors.xml` is for the listener and the native wrapper.
+`docs/brand/tokens.css` is the source of truth with light and dark roles. In code, `packages/ui` carries them: `styles/base.css` for the scales, type and shape, and `styles/light.css` for the roles the shared components use, with `styles/console.css` over it for the operator console's band and density. `tailwind-theme.css` is the `@theme` block to paste into both Tailwind apps; it keeps the `brand-*` and `accent-*` names so existing classes keep working. `tokens.json` is for native code and design tools. `android-colors.xml` is for the listener and the native wrapper.
 
 ---
 
@@ -245,7 +245,7 @@ Used for manual payments only. A wallet whose gateway the seller has connected s
 3. Replace `apps/admin/public/logo.svg` with `icon-dashboard.svg` and re-run `npx pwa-assets-generator`.
 4. In `apps/admin/vite.config.ts` and `index.html`, set `theme_color` to `#0a4f4b` and `background_color` to `#f6f9f8`. The current `#0d9488` matches nothing.
 5. Change `common.poweredBy` in `bn.json` and `en.json` to "Powered by Lytro" once TEN-8's wording is amended in `SRS.md` to name Lytro rather than Lytronix.
-6. Give the operator shell its inverted chrome and the operator favicon.
+6. Give the operator shell its ink band and the operator favicon.
 7. Set the storefront's metadata title to the tenant's name and add the footer attribution and payment-page "Secured by Lytro" mark.
 8. Outline the three text-based SVGs to paths in Figma and replace them.
 9. File the trademark at the Department of Patents, Designs and Trademarks (classes 9, 35, 42), and secure the lytro.app domain (chosen 2026-10-18), lytro.com.bd as a defensive registration, and social handles.

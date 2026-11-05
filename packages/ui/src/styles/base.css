@@ -37,6 +37,15 @@
   --radius-control: 10px;
   --radius-card: 14px;
   --radius-sheet: 20px;
+
+  /* A field's size and its label's weight, which a theme may make denser. These are the dashboard's. */
+  --min-height-field: 3rem;
+  --spacing-field: 0.875rem;
+  --text-input: 1rem;
+  --text-input--line-height: 1.5;
+  --font-weight-field-label: 700;
+  --font-weight-field-error: 600;
+  --color-field-label: var(--color-fg);
 }
 
 html {

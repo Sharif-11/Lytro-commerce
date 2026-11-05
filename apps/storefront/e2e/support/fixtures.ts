@@ -6,6 +6,9 @@ import {
   PaymentPolicy,
   StockState,
   StockUnit,
+  PaymentMethod,
+  PaymentMethodKind,
+  PaymentWay,
 } from '@lytronix/validators/enums';
 import type {
   DeliveryZoneView,
@@ -18,6 +21,7 @@ import type {
   ShopperAddress,
   ShopperOrderRow,
   TrackedOrder,
+  ShopperPaymentMethod,
 } from '../../src/lib/api/storefront-api';
 
 // A shop as the mocked server answers for it (docs/brand/lytro-storefront.html's fixtures: Megh Fashion, its zones, its
@@ -61,6 +65,8 @@ export interface ShopFixture {
   thanaZones: Record<number, string>;
   tracked: Record<string, TrackedOrder>;
   nextOrders: NextOrder[];
+  /** WAL-06: how a shopper may pay this shop first. */
+  paymentMethods: ShopperPaymentMethod[];
   /** The tracking ID the next order gets. */
   trackingId: string;
   orderNumber: string;
@@ -488,9 +494,19 @@ export function newShirt(language: Language, now: Date = new Date()): ProductFix
 }
 
 /** Megh Fashion, the shop every test and picture starts from. */
+/** The sketch's wallets: bKash on automated, the others checked, then the bank. */
+export const MEGH_METHODS: ShopperPaymentMethod[] = [
+  { method: PaymentMethod.Bkash, kind: PaymentMethodKind.Wallet, way: PaymentWay.Automated },
+  { method: PaymentMethod.Nagad, kind: PaymentMethodKind.Wallet, way: PaymentWay.Listener },
+  { method: PaymentMethod.Rocket, kind: PaymentMethodKind.Wallet, way: PaymentWay.Manual },
+  { method: PaymentMethod.Upay, kind: PaymentMethodKind.Wallet, way: PaymentWay.Listener },
+  { method: PaymentMethod.Bank, kind: PaymentMethodKind.Bank, way: PaymentWay.Manual },
+];
+
 export function meghShop(language: Language, overrides: Partial<ShopFixture> = {}): ShopFixture {
   return {
     slug: 'megh',
+    paymentMethods: MEGH_METHODS,
     outcome: 'open',
     storefrontEnabled: true,
     info: {
@@ -682,6 +698,7 @@ export function trackedOrder(
     codAmount: '2870.00',
     taxes: [{ name: 'VAT', rate: '5.00', amount: '133.33' }],
     due: '2870.00',
+    payment: null,
     courier:
       stage === 'shipped' || stage === 'delivered' || stage === 'returned'
         ? {
