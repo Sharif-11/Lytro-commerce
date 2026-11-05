@@ -4694,7 +4694,7 @@ function o29Payments(o) {
     list = `<p class="hint" style="margin-top:6px">${o.counter ? t('o29NoPaymentsCounter') : t('o29NoPayments')}</p>`;
   }
   return `<div class="card"><div class="sechead"><h2>${t('payment')}</h2>${can && !o.paid ? `<button class="lnk" onclick="go('o29-pay')">${t('recordPay')}</button>` : ''}</div>${list}
-    ${can && !o.paid && !o.counter && !o.withPayment ? `<div style="margin-top:10px">${btn('o sm', `${ic('share')} ${t('p35SendLink')}`, "onclick=\"go('sh-o35-link')\"")}</div>` : ''}</div>`;
+    ${can && !o.paid && !o.counter ? `<div style="margin-top:10px">${btn('o sm', `${ic('share')} ${t('p35SendLink')}`, "onclick=\"go('sh-o35-link')\"")}</div>` : ''}</div>`;
 }
 function o29Calls(o) {
   const calls = o.calls || [];
@@ -5804,7 +5804,7 @@ Object.assign(S, {
   p35LinkOne: ['এই লিংকে কাস্টমার {a} পে করতে পারবে।', 'The customer can pay {a} with this link.'],
   p35LinkReady: ['লিংক তৈরি হয়েছে', 'Link ready'],
   p35LinkOpen: ['লিংকটি 24 ঘণ্টা খোলা থাকবে। নতুন লিংক বানালে এটি আর কাজ করবে না।', "It's open for 24 hours. Making a new link replaces this one."],
-  p35Copy: ['কপি করুন', 'Copy'],
+  p35Copy: ['কপি', 'Copy'],
   p35Wa: ['WhatsApp', 'WhatsApp'],
   p35LinkChecking: ['এই অর্ডারের একটি পেমেন্ট চেক হচ্ছে। সেটি শেষ হলে নতুন লিংক বানান।', "A payment on this order is being checked. Make a new link once that's done."],
   p35LinkNoMethod: ['কোনো পেমেন্ট মেথড চালু নেই, তাই লিংক বানানো যাবে না।', "No payment method is on, so a link can't be made."],
@@ -5966,7 +5966,7 @@ SCREENS['sh-o35-link-one'] = { ...SCREENS['o35-unpaid'], sheet: () => sheet(t('p
 SCREENS['sh-o35-link-made'] = { ...SCREENS['o35-unpaid'], sheet: () => sheet(t('p35LinkReady'), `${p35Kv(t('p35Amount'), money(200))}${field(t('p35FromLink'), 'pay.lytro.app/psn_8f3k2m9q')}<p class="hint" style="margin:0">${t('p35LinkOpen')}</p>`, btn('o', `${ic('copy')} ${t('p35Copy')}`) + btn('p', `${ic('message')} ${t('p35Wa')}`)) };
 SCREENS['sh-o35-link-checking'] = { ...SCREENS['o35-unpaid'], sheet: () => sheet(t('p35SendLink'), `${banner('warn', t('p35LinkChecking'))}`, btn('p', t('p35Done'), "onclick=\"go('o35-unpaid')\"")) };
 SCREENS['sh-o35-link-nomethod'] = { ...SCREENS['o35-unpaid'], sheet: () => sheet(t('p35SendLink'), banner('warn', t('p35LinkNoMethod'), t('p35SeeMethods'), 'pm33')) };
-SCREENS['sh-o35-refund'] = { ...SCREENS.o35, sheet: () => sheet(t('p35RefundT'), `<p class="hint" style="margin:-4px 0 12px">${t('p35RefundP', { a: money(500) })}</p>${field(t('p35Note'), null, { ta: true, ph: t('p35RefundPh') })}`, btn('o', t('pm33Keep'), "onclick=\"go('o35')\"") + btn('d', t('p35RefundGo'), "onclick=\"go('o35-refunded')\"")) };
+SCREENS['sh-o35-refund'] = { ...SCREENS.o35, sheet: () => sheet(t('p35RefundT'), `<p class="hint" style="margin:-4px 0 12px">${t('p35RefundP', { a: money(500) })}</p>${field(t('p35Note'), null, { ph: t('p35RefundPh') })}`, btn('o', t('pm33Keep'), "onclick=\"go('o35')\"") + btn('d', t('p35RefundGo'), "onclick=\"go('o35-refunded')\"")) };
 
 /* Settings gains the row and loses it from Coming later. */
 const _settings35 = SCREENS.settings.render;

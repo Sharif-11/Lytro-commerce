@@ -10,6 +10,7 @@ import {
   useRefundPayment,
   useVoidPayment,
 } from '@/api/orders';
+import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chips';
@@ -354,7 +355,7 @@ export function PaymentLinkSheet({
         onClose={onClose}
         footer={
           <>
-            <CopyButton text={link.paymentUrl} size="md" />
+            <CopyButton text={link.paymentUrl} size="md" icon />
             {phone ? (
               <a
                 href={`https://wa.me/${phone}?text=${encodeURIComponent(message)}`}
@@ -362,6 +363,7 @@ export function PaymentLinkSheet({
                 rel="noreferrer"
                 className={buttonClass('primary', 'md')}
               >
+                <Icon name="message" />
                 {t('linkWhatsapp')}
               </a>
             ) : null}

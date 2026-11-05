@@ -1713,8 +1713,10 @@ Choosing one shows it as a removable chip over the list, like Holding (`o29-date
 - **Phone receipts** (agreed: a tab on Payments, for `payments:verify`; `pay35-receipts`): what the phones read, money that matched
   no order included. A row opens its details and, until it's removed at 90 days, the SMS itself. One with no order says it matches
   by itself if the shopper gives that TrxID on the payment page. No CSV and no filter here: both are about payments.
-- **Every other tab** shows how many and how much the filter holds, test payments left out (VER-11), then the rows by day. A row
-  opens its details (`sh-pay35-detail`, VER-12): how it came, how it was verified, by whom and when, and the way to its order.
+- **Every other tab** shows how many, then the rows by day. A status's own tab also totals its money, test payments left out (VER-11);
+  All doesn't, since the server sums whatever the filter holds, and across every status that would add rejected and voided money to
+  what really came in. A row opens its details (`sh-pay35-detail`, VER-12): how it came, how it was verified, by whom and when, and the
+  way to its order.
 - **CSV** is fetched by the page, not linked: the server tells the shop from the `x-lytro-shop` header, which a plain link can't
   send, so a link would answer for whichever shop the session started on.
 - **The phones' line** (`pay35Health`, VER-07), for `listener:read`: seen so many minutes ago; not seen for a while, with See phones;
@@ -1727,11 +1729,12 @@ Choosing one shows it as a removable chip over the list, like Holding (`o29-date
 
 *Slice 5.8, part 4* (Part 35), from its read (2026-11-05). The address the app's pairing screen names.
 
-- **Where it lives:** in Settings, after Payment methods, moved from Coming later. Whoever holds `listener:read` sees it;
-  `listener:manage` and the owner can change things (LSN-09). Payment methods' Pair a phone and Home's checklist item open it.
+- **Where it lives:** in Settings, after Payment methods, moved from Coming later. Whoever holds `listener:read` sees it, Settings
+  showing such a person only this row; `listener:manage` and the owner can change things (LSN-09). Payment methods' Pair a phone and
+  Home's checklist item open it.
 - **The page** (`lp35`), at most 640 px wide: one line on what the app does; how many of the plan's phones are paired (LSN-08); each
-  phone with its name, model, when it was last seen, today's receipts and Online or Offline (LSN-03, LSN-20); then those cancelled,
-  with why and when. A link to the download page and guide is always there.
+  phone with its name, model, when it was last seen, today's receipts and Online or Offline (LSN-03, LSN-20), one just paired saying
+  it hasn't been seen yet (`lp35-new`); then those cancelled, with why and when. A link to the download page and guide is always there.
 - **None yet** (`lp35-first`) gives the three steps and the guide. **The plan full** (`lp35-full`) drops Pair a phone and offers
   plans; cancelling a phone frees its place. **Another phone trying its access** (`lp35-flag`, LSN-12) is said at the top.
 - **Pair a phone** (`sh-lp35-pair`, LSN-01): opening the sheet makes one code, shown as a QR and as `K7MP 4X2H`, with what's left of its
@@ -1749,7 +1752,8 @@ Choosing one shows it as a removable chip over the list, like Holding (`o29-date
 
 - **Send payment link** (`o35-unpaid`) sits under the payments for `orders:manage`, while something is due and not at the counter.
   Its sheet offers the advance or all that's due where they differ (`sh-o35-link`), else says the one amount (`sh-o35-link-one`). Then
-  the link to copy or send on WhatsApp to the customer's number (`sh-o35-link-made`); nothing goes until someone sends it. A payment
+  the link to copy or send on WhatsApp to the customer's number, in the 880 form WhatsApp needs however the number is held
+  (`sh-o35-link-made`); nothing goes until someone sends it. A payment
   being checked is the server's refusal said plainly; no method on offers Payment methods. The "Phase 5" line comes off the card.
 - **Refund** sits beside Void under a live payment, for `payments:manage` (`o35`). Its sheet says plainly that it only keeps a record
   and Lytro sends no money, and needs a note (`sh-o35-refund`). The payment is then struck through with the note, who and when

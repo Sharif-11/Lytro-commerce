@@ -87,12 +87,11 @@ export function PhoneSheet({
           <>
             <Button
               tone="ghost"
-              className="text-danger-text"
               onClick={() => {
                 setAsking(true);
               }}
             >
-              {t('lpCancel')}
+              <span className="text-danger">{t('lpCancel')}</span>
             </Button>
             <Button
               busy={rename.isPending}
