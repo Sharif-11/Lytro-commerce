@@ -60,7 +60,8 @@ describe('ListenerReleases', () => {
   });
 
   it('is null until a release is uploaded', async () => {
-    expect(await new ListenerReleases(BASE, answering({}, 404)).latest()).toBeNull();
+    // A good body, so it's the status that refuses it: some error pages answer with whatever they hold.
+    expect(await new ListenerReleases(BASE, answering(GOOD, 404)).latest()).toBeNull();
   });
 
   it('is null when the bucket cannot be reached, so the page still renders', async () => {
