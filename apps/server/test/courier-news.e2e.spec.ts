@@ -286,7 +286,7 @@ async function send(
   headers: Record<string, string> = {},
 ): Promise<void> {
   const answered = await postMessage(to, body, headers);
-  expect(answered.status, JSON.stringify(answered.body)).toBe(200);
+  expect(answered.status, JSON.stringify(answered.body)).toBe(202);
   await applied(to.shop.tenantId);
 }
 
@@ -463,7 +463,7 @@ describeIfDatabase(
         postMessage(to, body, key),
         postMessage(to, body, key),
       ]);
-      expect(answers.map((answer) => answer.status)).toEqual([200, 200, 200]);
+      expect(answers.map((answer) => answer.status)).toEqual([202, 202, 202]);
       await applied(to.shop.tenantId);
       expect(await eventsOf(to.shop.tenantId)).toBe(1);
       const after = await read(to.shop, order.id);
@@ -1013,7 +1013,7 @@ describeIfDatabase(
         to.shop.tenantId,
       ]);
       const answered = await postMessage(to, messageOf(order, 'delivered'));
-      expect(answered.status).toBe(200);
+      expect(answered.status).toBe(202);
       await admin.query("UPDATE control.tenants SET state = 'active' WHERE id = $1", [
         to.shop.tenantId,
       ]);

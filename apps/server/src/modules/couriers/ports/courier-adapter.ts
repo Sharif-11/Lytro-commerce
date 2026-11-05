@@ -23,6 +23,8 @@ export interface CourierLimits {
   weightKg: { min: number; max: number } | null;
   /** §3.6: how fast one connection may be asked after its parcels, kept well under what the courier allows. */
   callsPerMinute: number;
+  /** Slice 6.3, read agreed 2026-11-05: it takes no paisa, so it is asked for the next whole taka up. */
+  wholeTakaCod?: boolean;
 }
 
 /** CRR-06: one parcel as sent to a courier. */
@@ -35,6 +37,8 @@ export interface ParcelBooking {
   note: string | null;
   weightKg: string | null;
   areaCode: string | null;
+  /** The order's items added up, which may not be whole: 1.5 kg of one thing is 1.5. */
+  quantity: string;
 }
 
 /** CRR-06: a parcel the courier accepted. */
@@ -105,6 +109,26 @@ export type CancelAnswer =
 export type ConnectionAnswer =
   { outcome: 'accepted' } | { outcome: 'refused'; refusal: CourierRefusal };
 
+/** Slice 6.3, read agreed 2026-11-05: what a login left to keep, in place of what the owner typed. */
+export type LogInAnswer =
+  | { outcome: 'accepted'; credentials: Record<string, string> }
+  | { outcome: 'refused'; refusal: CourierRefusal };
+
+/** Slice 6.3: a store a courier lists for an account. */
+export interface PickupStore {
+  id: string;
+  name: string;
+  address: string | null;
+  active: boolean;
+}
+
+export type StoresAnswer =
+  { outcome: 'found'; stores: PickupStore[] } | { outcome: 'refused'; refusal: CourierRefusal };
+
+/** Slice 6.3, read agreed 2026-11-05: the one store chosen for a connection, kept with its sealed credentials. */
+export const PICKUP_STORE_ID = 'storeId';
+export const PICKUP_STORE_NAME = 'storeName';
+
 /**
  * CRR-18: the courier gave no answer that can be read: a timeout, a lost connection, a server error or a page. The call may have
  * worked, so a booking stays unknown and is never retried blindly. It counts toward the circuit (PRF-05).
@@ -129,6 +153,8 @@ export interface CourierAdapter {
   readonly limits: CourierLimits;
   /** D6-5, CRR-10: it can't book without one of its own areas. */
   readonly needsArea: boolean;
+  /** D6-5, read agreed 2026-11-05: it reads the area from the address, and without a thana it silently reads Dhaka. */
+  readonly needsThana: boolean;
   /** WAL-13's way: checks the credentials without creating a parcel. */
   testConnection(account: CourierAccount): Promise<ConnectionAnswer>;
   /** CRR-06, CRR-18: one attempt; never retried here or by a caller. */
@@ -148,4 +174,16 @@ export interface CourierAdapter {
   readMessage(rawBody: Buffer, headers: MessageHeaders): CourierNews | null;
   /** D6-8: calls off a booked parcel, for a courier that can; otherwise staff confirm they did it in its panel. */
   cancel?(account: CourierAccount, consignmentId: string): Promise<CancelAnswer>;
+  /** Slice 6.3: for a courier that logs in, turns what the owner typed into what is kept. Without it, what they typed is kept. */
+  logIn?(fields: Readonly<Record<string, string>>): Promise<LogInAnswer>;
+  /** Slice 6.3: for a courier whose login ends, whether these credentials should be renewed by now. */
+  renewalDue?(credentials: Readonly<Record<string, string>>, now: Date): boolean;
+  /** Slice 6.3: may work only once, so what it answers must be kept. Shared code holds the connection so no two run together. */
+  renewLogin?(account: CourierAccount): Promise<LogInAnswer>;
+  /** Slice 6.3: for a courier whose every booking names a store, the stores it lists for this account. */
+  pickupStores?(account: CourierAccount): Promise<StoresAnswer>;
+  /** CRR-27: the test a courier sends when its panel adds an address, which moves nothing and so needs no proof. */
+  isAddressTest?(rawBody: Buffer): boolean;
+  /** CRR-27: headers this courier wants on the answer to its messages. */
+  messageAnswerHeaders?(): Record<string, string>;
 }

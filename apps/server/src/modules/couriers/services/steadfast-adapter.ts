@@ -19,8 +19,11 @@ import { COURIER_FETCH, STEADFAST_URL } from '../tokens';
 import {
   callCourier,
   codeOf,
+  headerOf,
   refusalWords,
+  statusOf,
   textOf,
+  timeOf,
   type CourierReply,
   type CourierResponse,
 } from './courier-http';
@@ -57,31 +60,6 @@ const STATUS_EVENT = 'delivery_status';
 // Read agreed 2026-11-05: its words about the parcel's journey may reach a shopper; a change made in its panel never does.
 const SHOPPER_EVENTS: ReadonlySet<string> = new Set([STATUS_EVENT, 'tracking_update']);
 const CHANGED_EVENT = 'consignment_update';
-// Its message times name no zone; it is a Bangladeshi service.
-const DHAKA_OFFSET = '+06:00';
-
-function headerOf(headers: MessageHeaders, name: string): string | null {
-  const value = headers[name];
-  const first = Array.isArray(value) ? value[0] : value;
-  return first !== undefined && first !== '' ? first : null;
-}
-
-/** "Partial Delivered" and `partial_delivered` are the same status: its guide and its samples differ in how they write it. */
-function statusOf(words: string | null): string | null {
-  return words === null
-    ? null
-    : words
-        .trim()
-        .toLowerCase()
-        .replace(/[\s-]+/g, '_');
-}
-
-function timeOf(words: string | null): Date | null {
-  if (words === null) return null;
-  const zoned = /[zZ]|[+-]\d{2}:?\d{2}$/.test(words);
-  const at = new Date(zoned ? words : `${words.replace(' ', 'T')}${DHAKA_OFFSET}`);
-  return Number.isNaN(at.getTime()) ? null : at;
-}
 
 /** A courier's words as they are kept: plain text on one line, within what's stored. */
 function wordsOf(words: string | null): string | null {
@@ -120,6 +98,7 @@ export class SteadfastAdapter implements CourierAdapter {
   readonly credentialFields = FIELDS;
   readonly limits = LIMITS;
   readonly needsArea = false;
+  readonly needsThana = false;
 
   constructor(
     @Inject(STEADFAST_URL) private readonly baseUrl: string,

@@ -1955,6 +1955,35 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: (p) => `${String(p['courier'])} takes a weight of up to ${String(p['limit'])} kg.`,
     bn: (p) => `${String(p['courier'])} সর্বোচ্চ ${String(p['limit'])} কেজি পর্যন্ত নেয়।`,
   },
+  CourierThanaNeeded: {
+    en: (p) =>
+      `${String(p['courier'])} works out the area from the thana. Add this order’s thana before booking.`,
+    bn: (p) =>
+      `${String(p['courier'])} থানা দেখে এরিয়া ঠিক করে। বুক করার আগে এই অর্ডারের থানা যোগ করুন।`,
+  },
+  CourierStoreNeeded: {
+    en: (p) => `Choose which ${String(p['courier'])} store your parcels leave from before booking.`,
+    bn: (p) => `বুক করার আগে ${String(p['courier'])}-এর কোন স্টোর থেকে পার্সেল যাবে, তা বেছে নিন।`,
+  },
+  CourierStoreNotFound: {
+    en: (p) => `${String(p['courier'])} doesn’t list that store as active for this account.`,
+    bn: (p) => `এই অ্যাকাউন্টে ${String(p['courier'])}-এর অ্যাক্টিভ স্টোরের মধ্যে এটি নেই।`,
+  },
+  CourierHasNoStores: {
+    en: 'This courier has no stores to choose from.',
+    bn: 'এই কুরিয়ারে বেছে নেওয়ার মতো কোনো স্টোর নেই।',
+  },
+  CourierLoginNeeded: {
+    en: (p) =>
+      `Your ${String(p['courier'])} login has ended. Connect it again with your password to keep booking.`,
+    bn: (p) =>
+      `আপনার ${String(p['courier'])} লগইনের মেয়াদ শেষ। বুকিং চালু রাখতে পাসওয়ার্ড দিয়ে আবার কানেক্ট করুন।`,
+  },
+  CourierStoresListed: { en: 'Courier stores listed.', bn: 'কুরিয়ারের স্টোরের তালিকা।' },
+  CourierPickupStoreChanged: {
+    en: 'Pickup store changed.',
+    bn: 'পিকআপ স্টোর বদলানো হয়েছে।',
+  },
   OrderBooked: { en: 'Booked with the courier.', bn: 'কুরিয়ারে বুক হয়েছে।' },
   OrderAlreadyBooked: {
     en: 'This order is already booked with a courier.',

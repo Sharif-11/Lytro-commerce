@@ -26,6 +26,11 @@ export interface CourierStore {
     courierKey: CourierKey,
   ): Promise<SelectCourierConnection | null>;
   findDefaultConnection(tx: Transaction, tenantId: string): Promise<SelectCourierConnection | null>;
+  lockConnection(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+  ): Promise<SelectCourierConnection | null>;
   saveConnection(
     tx: Transaction,
     tenantId: string,

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { SelectCourierConnection, Transaction } from '@lytronix/db';
 import {
   AuditAction,
@@ -8,6 +8,7 @@ import {
   FieldProblemCode,
   type ConnectCourierInput,
   type CourierKey,
+  type SetPickupStoreInput,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { CircuitOpen } from '../../../common/circuit-breaker';
@@ -18,11 +19,16 @@ import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import { SecretBox, SecretPurpose } from '../../shared/secrets/secret-box';
 import {
   CourierNoAnswer,
+  PICKUP_STORE_ID,
+  PICKUP_STORE_NAME,
   type CourierAccount,
   type CourierAdapter,
+  type LogInAnswer,
+  type PickupStore,
 } from '../ports/courier-adapter';
+import type { CourierNotifier } from '../ports/courier-notifier';
 import type { CourierStore } from '../ports/courier-store';
-import { COURIER_CLOCK, COURIER_STORE } from '../tokens';
+import { COURIER_CLOCK, COURIER_NOTIFIER, COURIER_STORE } from '../tokens';
 import { CourierCalls } from './courier-calls';
 import { CourierMessages, type MessageAddress } from './courier-messages';
 import { CourierRegistry } from './courier-registry';
@@ -40,6 +46,10 @@ export interface CourierAdapterView {
   name: string;
   credentialFields: string[];
   needsArea: boolean;
+  /** Read agreed 2026-11-05: an order needs a thana before this courier can book it. */
+  needsThana: boolean;
+  /** Read agreed 2026-11-05: its bookings leave from one store, chosen for the connection. */
+  hasStores: boolean;
   takesWeight: boolean;
   /** D6-8: it can be cancelled from Lytro; otherwise staff confirm they did it in its panel. */
   canCancel: boolean;
@@ -56,6 +66,8 @@ export interface CourierConnectionView {
   /** CRR-02, D6-3: whether its messages are arriving, none yet, or arriving without the token. */
   messages: CourierMessagesState;
   lastMessageAt: Date | null;
+  /** Read agreed 2026-11-05: where its parcels leave from; null for a courier with no stores, or none chosen yet. */
+  pickupStore: { id: string; name: string } | null;
 }
 
 /** A connection opened for one call (SEC-09). */
@@ -72,6 +84,7 @@ export interface OpenedConnection {
  */
 @Injectable()
 export class CourierConnections {
+  private readonly logger = new Logger('CourierConnections');
   private readonly failures = new SlidingWindow(CONNECT_WINDOW_MS);
 
   constructor(
@@ -81,6 +94,7 @@ export class CourierConnections {
     @Inject(CourierMessages) private readonly messages: CourierMessages,
     @Inject(SecretBox) private readonly box: SecretBox,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(COURIER_NOTIFIER) private readonly notifier: CourierNotifier,
     @Inject(COURIER_CLOCK) private readonly clock: () => Date,
   ) {}
 
@@ -91,6 +105,8 @@ export class CourierConnections {
       name: adapter.name,
       credentialFields: [...adapter.credentialFields],
       needsArea: adapter.needsArea,
+      needsThana: adapter.needsThana,
+      hasStores: adapter.pickupStores !== undefined,
       takesWeight: adapter.limits.weightKg !== null,
       canCancel: adapter.cancel !== undefined,
     }));
@@ -123,7 +139,15 @@ export class CourierConnections {
         CONNECT_WINDOW_MS / 1000,
       );
     }
-    await this.tryCredentials(adapter, tenantId, saved?.id ?? null, credentials, bucket, now);
+    const logged = await this.tryCredentials(
+      adapter,
+      tenantId,
+      saved?.id ?? null,
+      credentials,
+      bucket,
+      now,
+    );
+    const kept = await this.withStore(adapter, tenantId, saved, logged);
 
     return this.store.run(tenantId, async (tx) => {
       const others = await this.store.listConnections(tx, tenantId);
@@ -132,11 +156,7 @@ export class CourierConnections {
         tenantId,
         {
           courierKey: adapter.key,
-          credentials: this.box.seal(
-            JSON.stringify(credentials),
-            SecretPurpose.CourierCredentials,
-            tenantId,
-          ),
+          credentials: this.sealed(kept, tenantId),
           isDefault: others.length === 0,
           state: CourierConnectionState.Active,
         },
@@ -232,6 +252,143 @@ export class CourierConnections {
     return row && row.state === CourierConnectionState.Active ? this.opened(row, tenantId) : null;
   }
 
+  /**
+   * Slice 6.3, read agreed 2026-11-05: renews a login that needs it, before anything else is set aside for a call, and refuses to go on with
+   * one that has ended. It may work only once, so the connection is held across this one call, which is the only courier call ever made
+   * inside a transaction: it is rare, it holds nothing but this connection, and whoever waited finds it done. Lytro doesn't keep the
+   * password, so if the courier refuses, the connection stops and the owner is told to log in again. A courier with no login that ends
+   * passes straight through.
+   */
+  async renewIfDue(tenantId: string, courierKey: CourierKey | undefined): Promise<void> {
+    const found = await this.store.run(tenantId, (tx) =>
+      courierKey !== undefined
+        ? this.store.findConnection(tx, tenantId, courierKey)
+        : this.store.findDefaultConnection(tx, tenantId),
+    );
+    const adapter = found ? this.registry.of(found.courierKey) : undefined;
+    if (!found || !adapter?.renewLogin || !adapter.renewalDue) return;
+    const renewalDue = adapter.renewalDue.bind(adapter);
+    const renewLogin = adapter.renewLogin.bind(adapter);
+    const key = found.courierKey;
+    const needsLogin = () =>
+      new ApiError('conflict', 'CourierLoginNeeded', { courierKey: key }, undefined, {
+        courier: adapter.name,
+      });
+    if (found.state !== CourierConnectionState.Active) throw needsLogin();
+    if (!renewalDue(this.opened(found, tenantId).account.credentials, this.clock())) return;
+    let outcome: 'fine' | 'refused' | 'ended';
+    try {
+      outcome = await this.store.run(tenantId, async (tx): Promise<typeof outcome> => {
+        const row = await this.store.lockConnection(tx, tenantId, key);
+        if (!row) return 'fine';
+        // Whoever held it found the login refused, and has told the owner.
+        if (row.state !== CourierConnectionState.Active) return 'ended';
+        const { account } = this.opened(row, tenantId);
+        if (!renewalDue(account.credentials, this.clock())) return 'fine';
+        const answer = await this.calls.run(
+          adapter,
+          {
+            tenantId,
+            connectionId: row.id,
+            orderId: null,
+            action: CourierCallAction.Renew,
+          },
+          () => renewLogin(account),
+        );
+        const now = this.clock();
+        if (answer.outcome === 'accepted') {
+          await this.store.updateConnection(
+            tx,
+            tenantId,
+            row.id,
+            { credentials: this.sealed(answer.credentials, tenantId) },
+            now,
+          );
+          return 'fine';
+        }
+        await this.store.updateConnection(
+          tx,
+          tenantId,
+          row.id,
+          { state: CourierConnectionState.LoginRefused },
+          now,
+        );
+        return 'refused';
+      });
+    } catch (error) {
+      if (this.gaveNoAnswer(error)) throw this.notAnswering(adapter);
+      throw error;
+    }
+    if (outcome === 'refused') {
+      await this.tellLoginRefused(tenantId, key);
+    }
+    if (outcome !== 'fine') throw needsLogin();
+  }
+
+  /** Read agreed 2026-11-05: the stores the courier lists for this account, and which is chosen. */
+  async pickupStores(
+    tenantId: string,
+    courierKey: CourierKey,
+  ): Promise<{ stores: PickupStore[]; chosenId: string | null }> {
+    const adapter = this.adapterOf(courierKey);
+    if (!adapter.pickupStores) throw new ApiError('not_found', 'CourierHasNoStores', {});
+    await this.renewIfDue(tenantId, courierKey);
+    const row = await this.store.run(tenantId, (tx) =>
+      this.store.findConnection(tx, tenantId, courierKey),
+    );
+    if (!row) throw new ApiError('not_found', 'CourierNotConnected', {});
+    const { account } = this.opened(row, tenantId);
+    return {
+      stores: await this.storesOf(adapter, account),
+      chosenId: account.credentials[PICKUP_STORE_ID] ?? null,
+    };
+  }
+
+  /** Read agreed 2026-11-05: which store this courier's parcels leave from; it must be one the courier lists as active right now. */
+  async setPickupStore(
+    tenantId: string,
+    courierKey: CourierKey,
+    input: SetPickupStoreInput,
+    actor: CatalogueActor,
+  ): Promise<CourierConnectionView> {
+    const adapter = this.adapterOf(courierKey);
+    const who = await this.activity.resolve(tenantId, actor);
+    const { stores } = await this.pickupStores(tenantId, courierKey);
+    const store = stores.find((each) => each.id === input.storeId && each.active);
+    if (!store) {
+      throw new ApiError('conflict', 'CourierStoreNotFound', {}, undefined, {
+        courier: adapter.name,
+      });
+    }
+    return this.store.run(tenantId, async (tx) => {
+      // Held, so a renewal finishing now can't be overwritten with the tokens it has just ended.
+      const row = await this.store.lockConnection(tx, tenantId, courierKey);
+      if (!row) throw new ApiError('not_found', 'CourierNotConnected', {});
+      const credentials = {
+        ...this.opened(row, tenantId).account.credentials,
+        [PICKUP_STORE_ID]: store.id,
+        [PICKUP_STORE_NAME]: store.name,
+      };
+      const sealed = this.sealed(credentials, tenantId);
+      await this.store.updateConnection(
+        tx,
+        tenantId,
+        row.id,
+        { credentials: sealed },
+        this.clock(),
+      );
+      await this.activity.record(
+        tx,
+        tenantId,
+        who,
+        AuditAction.CourierPickupStoreChanged,
+        { type: 'courier', id: row.id },
+        { courierKey, storeId: store.id },
+      );
+      return this.viewOf({ ...row, credentials: sealed });
+    });
+  }
+
   /** LIF-19: the day-60 deletion's couriers step. */
   deleteAllForTenant(tenantId: string): Promise<void> {
     return this.store.deleteAllForTenant(tenantId);
@@ -263,15 +420,20 @@ export class CourierConnections {
     credentials: Record<string, string>,
     bucket: string,
     now: Date,
-  ): Promise<void> {
+  ): Promise<Record<string, string>> {
     const account = { tenantId, connectionId: connectionId ?? '', credentials };
+    const logIn = adapter.logIn?.bind(adapter);
     try {
       const answer = await this.calls.run(
         adapter,
         { tenantId, connectionId, orderId: null, action: CourierCallAction.Test },
-        () => adapter.testConnection(account),
+        async (): Promise<LogInAnswer> => {
+          if (logIn) return logIn(credentials);
+          const tested = await adapter.testConnection(account);
+          return tested.outcome === 'accepted' ? { outcome: 'accepted', credentials } : tested;
+        },
       );
-      if (answer.outcome === 'accepted') return;
+      if (answer.outcome === 'accepted') return answer.credentials;
       this.failures.take(bucket, CONNECT_FAILURES, now.getTime());
       const { message } = answer.refusal;
       throw new ApiError(
@@ -282,17 +444,93 @@ export class CourierConnections {
         { courier: adapter.name, message: message ?? '' },
       );
     } catch (error) {
-      if (error instanceof CircuitOpen || error instanceof CourierNoAnswer) {
-        throw new ApiError(
-          'service_unavailable',
-          'CourierNotAnswering',
-          { courierKey: adapter.key },
-          RETRY_AFTER_SECONDS,
-          { courier: adapter.name },
-        );
-      }
+      if (this.gaveNoAnswer(error)) throw this.notAnswering(adapter);
       throw error;
     }
+  }
+
+  private gaveNoAnswer(error: unknown): boolean {
+    return error instanceof CircuitOpen || error instanceof CourierNoAnswer;
+  }
+
+  private notAnswering(adapter: CourierAdapter): ApiError {
+    return new ApiError(
+      'service_unavailable',
+      'CourierNotAnswering',
+      { courierKey: adapter.key },
+      RETRY_AFTER_SECONDS,
+      { courier: adapter.name },
+    );
+  }
+
+  private async tellLoginRefused(tenantId: string, courierKey: CourierKey): Promise<void> {
+    try {
+      await this.notifier.connectionTrouble({ tenantId, courierKey, trouble: 'login_refused' });
+    } catch (error) {
+      this.logger.error('could not tell the owner of a refused login', error as Error);
+    }
+  }
+
+  private async storesOf(adapter: CourierAdapter, account: CourierAccount): Promise<PickupStore[]> {
+    const pickupStores = adapter.pickupStores?.bind(adapter);
+    if (!pickupStores) return [];
+    try {
+      const answer = await this.calls.run(
+        adapter,
+        {
+          tenantId: account.tenantId,
+          connectionId: account.connectionId || null,
+          orderId: null,
+          action: CourierCallAction.Test,
+        },
+        () => pickupStores(account),
+      );
+      if (answer.outcome === 'found') return answer.stores;
+      const { message } = answer.refusal;
+      throw new ApiError(
+        'conflict',
+        message === null ? 'CourierRefusedNoReason' : 'CourierRefused',
+        { courierKey: adapter.key, courierMessage: message },
+        undefined,
+        { courier: adapter.name, message: message ?? '' },
+      );
+    } catch (error) {
+      if (this.gaveNoAnswer(error)) throw this.notAnswering(adapter);
+      throw error;
+    }
+  }
+
+  /**
+   * Read agreed 2026-11-05: the store connecting leaves chosen: the one chosen before if it's still active, otherwise the only active one.
+   * With several to choose from, or the list out of reach, the connection is made and booking asks for a store until one is set.
+   */
+  private async withStore(
+    adapter: CourierAdapter,
+    tenantId: string,
+    saved: SelectCourierConnection | null,
+    credentials: Record<string, string>,
+  ): Promise<Record<string, string>> {
+    if (!adapter.pickupStores) return credentials;
+    const before = saved ? this.opened(saved, tenantId).account.credentials : {};
+    const account = { tenantId, connectionId: saved?.id ?? '', credentials };
+    let active: PickupStore[];
+    try {
+      active = (await this.storesOf(adapter, account)).filter((store) => store.active);
+    } catch (error) {
+      if (!(error instanceof ApiError)) throw error;
+      this.logger.warn(`could not list ${adapter.key} stores on tenant ${tenantId}`);
+      return credentials;
+    }
+    const chosen =
+      active.find((store) => store.id === before[PICKUP_STORE_ID]) ??
+      (active.length === 1 ? active[0] : undefined);
+    return chosen
+      ? { ...credentials, [PICKUP_STORE_ID]: chosen.id, [PICKUP_STORE_NAME]: chosen.name }
+      : credentials;
+  }
+
+  private sealed(credentials: Record<string, string>, tenantId: string): Buffer {
+    return this.box.seal(JSON.stringify(credentials), SecretPurpose.CourierCredentials, tenantId);
   }
 
   /** CRR-02, CRR-03: every field the courier needs, from the request or, left blank, what is saved; nothing it doesn't. */
@@ -361,6 +599,14 @@ export class CourierConnections {
             ? CourierMessagesState.Arriving
             : CourierMessagesState.NoneYet,
       lastMessageAt: row.lastMessageAt,
+      pickupStore: this.storeOf(row),
     };
+  }
+
+  private storeOf(row: SelectCourierConnection): { id: string; name: string } | null {
+    if (!this.adapterOf(row.courierKey).pickupStores) return null;
+    const { credentials } = this.opened(row, row.tenantId).account;
+    const id = credentials[PICKUP_STORE_ID];
+    return id ? { id, name: credentials[PICKUP_STORE_NAME] ?? '' } : null;
   }
 }

@@ -7,3 +7,6 @@ export const STEADFAST_URL = Symbol('STEADFAST_URL');
 export const COURIER_NOTIFIER = Symbol('COURIER_NOTIFIER');
 export const COURIER_MESSAGE_ORIGIN = Symbol('COURIER_MESSAGE_ORIGIN');
 export const COURIER_PAUSE = Symbol('COURIER_PAUSE');
+// Slice 6.3: where Pathao is, and what it wants on the answers to its messages.
+export const PATHAO_URL = Symbol('PATHAO_URL');
+export const PATHAO_TEST_ANSWER = Symbol('PATHAO_TEST_ANSWER');

@@ -34,9 +34,11 @@ export interface CourierContractSetup {
   strangeStatus: string;
   /** Sets where the booked parcel stands at the courier. */
   parcelStandsAt(status: string): void;
-  /** One status it stands behind as delivered, and one that is only its rider's word. */
+  /** One status it stands behind as delivered, and one that is only its rider's word, for a courier that has such a status. */
   deliveredStatus: string;
-  unconfirmedStatus: string;
+  unconfirmedStatus: string | null;
+  /** Whether its proof covers the message's body. Pathao's is the secret itself, so it can't. */
+  proofCoversBody: boolean;
 }
 
 /**
@@ -120,12 +122,14 @@ export function courierContract(name: string, setup: () => CourierContractSetup)
     });
 
     it('accepts a message only with this courier’s own proof (CRR-11)', () => {
-      const { adapter, messageToken, message, deliveredStatus } = setup();
+      const { adapter, messageToken, message, deliveredStatus, proofCoversBody } = setup();
       const { rawBody, headers, good } = message(deliveredStatus);
       expect(adapter.verifyMessage(messageToken, rawBody, good)).toBe(true);
       expect(adapter.verifyMessage(messageToken, rawBody, headers)).toBe(false);
       expect(adapter.verifyMessage('another-token', rawBody, good)).toBe(false);
-      expect(adapter.verifyMessage(messageToken, Buffer.from('{"forged":true}'), good)).toBe(false);
+      expect(adapter.verifyMessage(messageToken, Buffer.from('{"forged":true}'), good)).toBe(
+        !proofCoversBody,
+      );
     });
 
     it('gives one message one key, however many times it is sent (CRR-13)', () => {
@@ -147,7 +151,9 @@ export function courierContract(name: string, setup: () => CourierContractSetup)
         statusEvent: true,
         reading: ParcelReading.Delivered,
       });
-      expect(read(unconfirmedStatus)?.reading).toBe(ParcelReading.Unconfirmed);
+      if (unconfirmedStatus !== null) {
+        expect(read(unconfirmedStatus)?.reading).toBe(ParcelReading.Unconfirmed);
+      }
       expect(read(strangeStatus)).toMatchObject({ statusEvent: true, reading: null });
     });
 

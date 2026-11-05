@@ -23,6 +23,10 @@ const envSchema = z.object({
   BKASH_PRODUCTION_URL: z.string().url().default('https://tokenized.pay.bka.sh/v2'),
   // Phase 6 Slice 6.1: Steadfast's API. It has no sandbox, so every booking on it is real.
   STEADFAST_API_URL: z.string().url().default('https://portal.packzy.com/api/v1'),
+  // Slice 6.3: Pathao's API, and the value its page says to answer its messages with. Without it, messages are still answered, which its
+  // document says is enough unless an account is strict.
+  PATHAO_API_URL: z.string().url().default('https://api-hermes.pathao.com/aladdin/api/v1'),
+  PATHAO_WEBHOOK_INTEGRATION_SECRET: z.string().min(1).optional(),
   // Base domain the platform serves shops under: <slug>.<PLATFORM_DOMAIN> (decision R1, R2).
   PLATFORM_DOMAIN: z
     .string()

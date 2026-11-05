@@ -353,6 +353,8 @@ export enum AuditAction {
   CourierDefaultChanged = 'courier_default_changed',
   // CRR-03 (Slice 6.2): a connection's message address and token replaced.
   CourierAddressReplaced = 'courier_address_replaced',
+  // Slice 6.3: the store a courier's parcels leave from.
+  CourierPickupStoreChanged = 'courier_pickup_store_changed',
   // Slice 6.1, read agreed 2026-11-04: a booking cancelled with the order kept, and a lost answer settled by staff (D6-11).
   ParcelCancelled = 'parcel_cancelled',
   ParcelSettled = 'parcel_settled',
@@ -1338,6 +1340,7 @@ export enum GatewayResult {
 // CRR-01 (Phase 6): the couriers there are adapters for. Steadfast first, then Pathao and RedX (D6-2).
 export enum CourierKey {
   Steadfast = 'steadfast',
+  Pathao = 'pathao',
 }
 
 // CRR-15, D6-4: a connection whose login the courier refuses makes no more calls until it is fixed.
@@ -1372,6 +1375,8 @@ export enum CourierCallAction {
   Cancel = 'cancel',
   // Slice 6.2: Sync, or the night check, asking where a parcel stands.
   Track = 'track',
+  // Slice 6.3: a courier whose login ends, renewing it.
+  Renew = 'renew',
 }
 
 // CRR-29 (Slice 6.2): what a courier's status means here. Each adapter maps its own onto these, and shared code reads only these.
