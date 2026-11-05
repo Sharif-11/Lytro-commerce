@@ -293,6 +293,7 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
   broken-paste notice.
 - **Done when:** exit criteria 2, 4, 5 and 7 pass for Steadfast. **Checkpoint 6A:** Steadfast works end to end on the
   server, and one real parcel has been booked with a real message received (exit criterion 9, Steadfast's half).
+- **Built as PR #308** (migration 0108), against the fake; checkpoint 6A's real parcel is still to do.
 - **Read, agreed 2026-11-05:**
   - **Shipped:** at Steadfast's `pending`, "with us, not yet attempted". The first real parcel confirms it; if `pending` turns out to
     come before collection, it is one line in the adapter's status map.
