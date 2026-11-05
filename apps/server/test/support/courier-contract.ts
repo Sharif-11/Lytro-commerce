@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { ParcelReading } from '@lytronix/validators';
 import type {
   CourierAccount,
   CourierAdapter,
+  MessageHeaders,
   ParcelBooking,
 } from '../../src/modules/couriers/ports/courier-adapter';
 import { CourierNoAnswer } from '../../src/modules/couriers/ports/courier-adapter';
@@ -24,6 +26,17 @@ export interface CourierContractSetup {
   nextBookingLost(): void;
   /** The courier answers a web page instead. */
   nextBookingPage(): void;
+  /** A status message for this parcel, as this courier sends one, and what it should read as (Slice 6.2). */
+  message: (status: string) => { rawBody: Buffer; headers: MessageHeaders; good: MessageHeaders };
+  /** The token the owner pasted for this courier's messages. */
+  messageToken: string;
+  /** A status this courier never sends. */
+  strangeStatus: string;
+  /** Sets where the booked parcel stands at the courier. */
+  parcelStandsAt(status: string): void;
+  /** One status it stands behind as delivered, and one that is only its rider's word. */
+  deliveredStatus: string;
+  unconfirmedStatus: string;
 }
 
 /**
@@ -104,6 +117,58 @@ export function courierContract(name: string, setup: () => CourierContractSetup)
       for (const secret of contract.secrets) {
         expect(said.join(' ')).not.toContain(secret);
       }
+    });
+
+    it('accepts a message only with this courier’s own proof (CRR-11)', () => {
+      const { adapter, messageToken, message, deliveredStatus } = setup();
+      const { rawBody, headers, good } = message(deliveredStatus);
+      expect(adapter.verifyMessage(messageToken, rawBody, good)).toBe(true);
+      expect(adapter.verifyMessage(messageToken, rawBody, headers)).toBe(false);
+      expect(adapter.verifyMessage('another-token', rawBody, good)).toBe(false);
+      expect(adapter.verifyMessage(messageToken, Buffer.from('{"forged":true}'), good)).toBe(false);
+    });
+
+    it('gives one message one key, however many times it is sent (CRR-13)', () => {
+      const { adapter, message, deliveredStatus } = setup();
+      const { rawBody, good } = message(deliveredStatus);
+      const first = adapter.readMessage(rawBody, good);
+      const again = adapter.readMessage(rawBody, good);
+      expect(first?.dedupeKey).toBeTruthy();
+      expect(again?.dedupeKey).toBe(first?.dedupeKey);
+    });
+
+    it('maps what it stands behind, and not its rider’s word or a status it doesn’t know (CRR-29)', () => {
+      const { adapter, message, deliveredStatus, unconfirmedStatus, strangeStatus } = setup();
+      const read = (status: string) => {
+        const { rawBody, good } = message(status);
+        return adapter.readMessage(rawBody, good);
+      };
+      expect(read(deliveredStatus)).toMatchObject({
+        statusEvent: true,
+        reading: ParcelReading.Delivered,
+      });
+      expect(read(unconfirmedStatus)?.reading).toBe(ParcelReading.Unconfirmed);
+      expect(read(strangeStatus)).toMatchObject({ statusEvent: true, reading: null });
+    });
+
+    it('reads nothing from what isn’t a message', () => {
+      const { adapter } = setup();
+      expect(adapter.readMessage(Buffer.from('<html>'), {})).toBeNull();
+      expect(adapter.readMessage(Buffer.from('[1,2]'), {})).toBeNull();
+    });
+
+    it('says where a booked parcel stands, and a repeat of that has one key (CRR-14)', async () => {
+      const contract = setup();
+      contract.reset();
+      const { adapter, account, booking } = contract;
+      const answer = await adapter.book(account, booking);
+      if (answer.outcome !== 'accepted') throw new Error('it should have booked');
+      contract.parcelStandsAt(contract.deliveredStatus);
+      const parcel = { consignmentId: answer.parcel.consignmentId, invoice: booking.invoice };
+      const first = await adapter.track(account, parcel);
+      const again = await adapter.track(account, parcel);
+      expect(first).toMatchObject({ outcome: 'found', news: { reading: ParcelReading.Delivered } });
+      expect(first).toEqual(again);
     });
 
     it('asks by our own number, if it says it can', async () => {

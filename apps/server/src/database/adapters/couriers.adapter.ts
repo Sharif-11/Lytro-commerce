@@ -3,11 +3,16 @@ import {
   CourierRepository,
   TenantRepository,
   TransactionRunner,
+  type CourierConnectionPatch,
   type CourierParcelPatch,
   type NewCourierCredentialUse,
+  type NewCourierEvent,
   type NewCourierParcel,
+  type ParcelCheckWindow,
   type SelectCourierConnection,
   type SelectCourierCredentialUse,
+  type SelectCourierEvent,
+  type SelectCourierMessageRoute,
   type SelectCourierParcel,
   type Transaction,
 } from '@lytronix/db';
@@ -140,6 +145,91 @@ export class DrizzleCourierStore implements CourierStore {
     limit: number,
   ): Promise<SelectCourierParcel[]> {
     return this.couriers.dueForPass(tx, tenantId, stuckBefore, now, limit);
+  }
+
+  updateConnection(
+    tx: Transaction,
+    tenantId: string,
+    connectionId: string,
+    patch: CourierConnectionPatch,
+    now: Date,
+  ): Promise<void> {
+    return this.couriers.updateConnection(tx, tenantId, connectionId, patch, now);
+  }
+
+  insertEvent(
+    tx: Transaction,
+    tenantId: string,
+    values: NewCourierEvent,
+  ): Promise<SelectCourierEvent | null> {
+    return this.couriers.insertEvent(tx, tenantId, values);
+  }
+
+  findEvent(
+    tx: Transaction,
+    tenantId: string,
+    eventId: string,
+  ): Promise<SelectCourierEvent | null> {
+    return this.couriers.findEvent(tx, tenantId, eventId);
+  }
+
+  lockEvent(
+    tx: Transaction,
+    tenantId: string,
+    eventId: string,
+  ): Promise<SelectCourierEvent | null> {
+    return this.couriers.lockEvent(tx, tenantId, eventId);
+  }
+
+  finishEvent(
+    tx: Transaction,
+    tenantId: string,
+    eventId: string,
+    values: { parcelId: string | null; problem: string | null },
+    now: Date,
+  ): Promise<void> {
+    return this.couriers.finishEvent(tx, tenantId, eventId, values, now);
+  }
+
+  unappliedEvents(
+    tx: Transaction,
+    tenantId: string,
+    storedBefore: Date,
+    limit: number,
+  ): Promise<SelectCourierEvent[]> {
+    return this.couriers.unappliedEvents(tx, tenantId, storedBefore, limit);
+  }
+
+  parcelForNews(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+    ids: { consignmentId: string | null; invoice: string | null },
+  ): Promise<SelectCourierParcel | null> {
+    return this.couriers.parcelForNews(tx, tenantId, courierKey, ids);
+  }
+
+  dueForCheck(
+    tx: Transaction,
+    tenantId: string,
+    window: ParcelCheckWindow,
+  ): Promise<SelectCourierParcel[]> {
+    return this.couriers.dueForCheck(tx, tenantId, window);
+  }
+
+  findRoute(tokenHash: string): Promise<SelectCourierMessageRoute | null> {
+    return this.couriers.findRoute(this.database.handle.db, tokenHash);
+  }
+
+  replaceRoute(
+    tx: Transaction,
+    values: { tokenHash: string; tenantId: string; courierKey: CourierKey; connectionId: string },
+  ): Promise<void> {
+    return this.couriers.replaceRoute(tx, values);
+  }
+
+  deleteRoute(tx: Transaction, connectionId: string): Promise<void> {
+    return this.couriers.deleteRoute(tx, connectionId);
   }
 
   recordUse(tenantId: string, use: NewCourierCredentialUse): Promise<void> {

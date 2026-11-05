@@ -1,4 +1,10 @@
-import type { CourierKey, ParcelState } from '@lytronix/validators';
+import type {
+  CourierKey,
+  CourierNewsSource,
+  ParcelAttention,
+  ParcelReading,
+  ParcelState,
+} from '@lytronix/validators';
 import type {
   LineAttributeSnapshot,
   LineCapturedSnapshot,
@@ -77,6 +83,23 @@ export interface OrderParcelView {
   /** The message key of a stock problem staff must clear before it can settle. */
   settleProblem: string | null;
   createdAt: Date;
+  /** CRR-29: what its courier's status means here. */
+  reading: ParcelReading | null;
+  /** ORD-43: the cash its courier reports, and the COD if changed in its panel. */
+  cashCollected: string | null;
+  codAtCourier: string | null;
+  lastNewsAt: Date | null;
+  /** D6-4: asked after for 30 days with no change, so checks stopped; Sync starts them again. */
+  noNews: boolean;
+  /** Read agreed 2026-11-05: what staff should look at; nothing moved on its account. */
+  attention: ParcelAttention | null;
+  /** CRR-12: its news, newest first, in the courier's words. */
+  news: {
+    source: CourierNewsSource;
+    rawStatus: string | null;
+    message: { en: string | null; bn: string | null };
+    at: Date;
+  }[];
 }
 
 /**
@@ -498,6 +521,8 @@ export interface TrackedOrderView extends ShopperTotals {
   items: TrackedItemView[];
   due: string;
   courier: { name: string | null; trackingCode: string | null; trackingLink: string | null } | null;
+  /** CRR-12, read agreed 2026-11-05: its courier's latest words once shipped, in whichever language it gave, plain and cut short. */
+  courierMessage: { en: string | null; bn: string | null; at: Date } | null;
   /** Slice 5.2: an unverified order's open payment, to go back to; null for none. */
   payment: (OrderPaymentLink & { state: PaymentSessionState }) | null;
 }

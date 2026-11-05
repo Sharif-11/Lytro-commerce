@@ -10,7 +10,7 @@ export async function listenOn(
   moduleRef: TestingModule,
   options: { publicApiHost?: boolean } = {},
 ): Promise<{ app: INestApplication; port: number }> {
-  const app = moduleRef.createNestApplication<NestExpressApplication>();
+  const app = moduleRef.createNestApplication<NestExpressApplication>({ rawBody: true });
   new HttpSetup().apply(app, options);
   await app.listen(0, '127.0.0.1');
   const port = (app.getHttpServer().address() as AddressInfo).port;

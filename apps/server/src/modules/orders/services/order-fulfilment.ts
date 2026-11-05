@@ -58,6 +58,14 @@ export interface BookingAside {
   tookPlace: boolean;
 }
 
+/** Slice 6.2: what a courier reports of a parcel's end, and in whose words. */
+export interface CourierDelivery {
+  partly: boolean;
+  /** What it says it collected; null when it doesn't say. */
+  reported: string | null;
+  line: string;
+}
+
 /** CRR-06: a parcel the courier accepted, as the order takes it. */
 export interface AcceptedBooking {
   courierName: string;
@@ -312,6 +320,81 @@ export class OrderFulfilment {
     return (grams / 1000).toFixed(3);
   }
 
+  /** CRR-29, D6-12 (Slice 6.2): the courier stands behind having the parcel, so a booked order is shipped. Stock left at booking. */
+  async courierShippedWithin(
+    tx: Transaction,
+    tenantId: string,
+    order: OrderRecord,
+    line: string,
+    who: ResolvedActor,
+    now: Date,
+  ): Promise<OrderRecord> {
+    const updated = await this.store.updateOrder(tx, tenantId, order.id, {
+      fulfillmentStatus: FulfillmentStatus.Shipped,
+      shippedAt: now,
+    });
+    await this.store.insertHistory(tx, tenantId, [
+      this.fulfilmentHistory(order, FulfillmentStatus.Shipped, line, who),
+    ]);
+    await this.customers.recountWithin(tx, tenantId, [order.customerId]);
+    await this.record(tx, tenantId, who, updated, OrderStatus.Shipped);
+    return updated;
+  }
+
+  /**
+   * ORD-42, ORD-43, D6-6, CRR-29 (Slice 6.2, read agreed 2026-11-05): a courier's confirmed report of a parcel's end. The cash recorded
+   * is what it reports, so ৳900 of ৳1,000 leaves ৳100 due, and more than is due records what's due; `differs` says staff should
+   * look. No amount: a whole delivery collects what's due, as Mark delivered does, and a part of one records nothing, since nothing
+   * says how much. Stock doesn't move: staff count what came back (ORD-10, INV-17).
+   */
+  async courierDeliveredWithin(
+    tx: Transaction,
+    tenantId: string,
+    order: OrderRecord,
+    report: CourierDelivery,
+    who: ResolvedActor,
+    now: Date,
+  ): Promise<{ updated: OrderRecord; differs: boolean }> {
+    const owed = Number(order.due);
+    const reported = report.reported === null ? null : Number(report.reported);
+    const collected = reported === null ? (report.partly ? 0 : owed) : Math.min(reported, owed);
+    const differs = reported !== null && (reported > owed || (!report.partly && reported !== owed));
+    const to = report.partly ? FulfillmentStatus.PartiallyDelivered : FulfillmentStatus.Delivered;
+    const history: NewOrderHistory[] = [this.fulfilmentHistory(order, to, report.line, who)];
+    const standing: OrderPatch =
+      collected > 0
+        ? await this.payments.addWithin(
+            tx,
+            tenantId,
+            order,
+            {
+              method: PaymentMethod.CashOnDelivery,
+              amount: collected.toFixed(2),
+              senderNumber: null,
+              transactionId: null,
+            },
+            who,
+            history,
+          )
+        : {};
+    const updated = await this.store.updateOrder(tx, tenantId, order.id, {
+      fulfillmentStatus: to,
+      shippedAt: order.shippedAt ?? now,
+      ...(report.partly ? {} : { deliveredAt: now }),
+      ...standing,
+    });
+    await this.store.insertHistory(tx, tenantId, history);
+    await this.customers.recountWithin(tx, tenantId, [order.customerId]);
+    await this.record(
+      tx,
+      tenantId,
+      who,
+      updated,
+      report.partly ? OrderStatus.PartialDelivered : OrderStatus.Delivered,
+    );
+    return { updated, differs };
+  }
+
   /** ORD-42, agreed 2026-10-30: a shipped order delivered, its cash on delivery collected. */
   async deliver(tenantId: string, orderId: string, actor: CatalogueActor): Promise<OrderView> {
     const who = await this.activity.resolve(tenantId, actor);
@@ -353,9 +436,11 @@ export class OrderFulfilment {
     const who = await this.activity.resolve(tenantId, actor);
     return this.store.run(tenantId, async (tx) => {
       const order = await this.find(tx, tenantId, orderId);
+      // D6-6: a parcel partly delivered has staff say which items came back.
       if (
         order.fulfillmentStatus !== FulfillmentStatus.Shipped &&
-        order.fulfillmentStatus !== FulfillmentStatus.Delivered
+        order.fulfillmentStatus !== FulfillmentStatus.Delivered &&
+        order.fulfillmentStatus !== FulfillmentStatus.PartiallyDelivered
       ) {
         throw new ApiError('conflict', 'OrderNotShipped', {});
       }

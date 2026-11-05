@@ -56,6 +56,14 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'How many orders shoppers may place in one shop in a minute, every plan alike (RTE-08).',
   [PlatformSettingKey.ListenerOfflineMinutes]:
     'How many minutes after its last report a listener phone counts offline (LSN-03, VER-07).',
+  [PlatformSettingKey.CourierCheckMinAgeHours]:
+    'How many hours old a parcel must be before the night check asks after it (CRR-15).',
+  [PlatformSettingKey.CourierCheckQuietHours]:
+    'How many hours without a courier message before the night check asks after a parcel (CRR-15).',
+  [PlatformSettingKey.CourierCheckStopDays]:
+    'How many days with no change before a parcel stops being checked and shows no news (CRR-15).',
+  [PlatformSettingKey.CourierSyncMinutes]:
+    'How many minutes a Sync shows its saved answer before it may ask the courier again (CRR-14).',
   [PlatformSettingKey.ListenerMinAppVersion]:
     'The oldest listener app version that may call, as 1.2.3; older apps must update (LSN-18).',
   [PlatformSettingKey.ListenerSenders]:
@@ -118,6 +126,10 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.PaymentSessionsPerShopPerMinute]: isPositiveInt,
   [PlatformSettingKey.NewShopPaymentCapAmount]: isPositiveInt,
   [PlatformSettingKey.ListenerOfflineMinutes]: isPositiveInt,
+  [PlatformSettingKey.CourierCheckMinAgeHours]: isPositiveInt,
+  [PlatformSettingKey.CourierCheckQuietHours]: isPositiveInt,
+  [PlatformSettingKey.CourierCheckStopDays]: isPositiveInt,
+  [PlatformSettingKey.CourierSyncMinutes]: isPositiveInt,
   [PlatformSettingKey.ListenerMinAppVersion]: isAppVersion,
   [PlatformSettingKey.ListenerSenders]: isSenderList,
   [PlatformSettingKey.NewShopPaymentCapDays]: isPositiveInt,

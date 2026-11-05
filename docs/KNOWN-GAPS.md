@@ -2061,6 +2061,14 @@ those; the shape of a refused booking, read from `message` or the first of `erro
 and `tracking_code` as the guide's sample does. If the unknown-invoice answer turns out to be something else, the look-ups keep
 reporting no answer and the booking waits for staff, so nothing is released wrongly.
 
+Slice 6.2 adds to that list: that `pending` comes once Steadfast has the parcel, since an order then shows shipped and can no longer be
+cancelled; that a message names its event in `notification_type`, with `event` and `type` also read in case; how it writes a
+status, read case-blind with spaces as underscores; that `cod_amount` on a delivered message is the cash collected, which is what the
+order records; that `updated_at` with no zone is Dhaka's time, since news older than a parcel holds changes nothing; that
+`/status_by_cid` answers `delivery_status` as `/status_by_invoice` does; and how a parcel found by invoice, which brings no IDs, gets
+its consignment number, which today takes a message or staff. A wrong field name shows as an event that moves nothing, and the
+night check still brings the status, so none of these can move an order wrongly except `pending` and `cod_amount`.
+
 ## 113. `TRM-05`: a term could be deleted while something still used it — found 2026-11-05, fixed 2026-11-05
 
 The check only asked whether a price named the term. A shop's current period names it with no foreign key, so deleting a term with no

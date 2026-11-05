@@ -750,6 +750,13 @@
       "when": 1793815821457,
       "tag": "0107_courier_booking",
       "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1793863124301,
+      "tag": "0108_courier_news",
+      "breakpoints": true
     }
   ]
 }

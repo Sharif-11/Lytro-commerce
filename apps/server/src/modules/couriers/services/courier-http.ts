@@ -52,12 +52,15 @@ export function codeOf(reply: CourierReply | null, field: string): string | null
  * CRR-07, SEC-16 as amended (read agreed 2026-11-04): a courier's own words as staff may read them: plain text on one line, with no
  * markup, cut to [200] characters. Nothing else of a courier's reply ever reaches a person.
  */
-export function refusalWords(words: string | null): string | null {
+export function refusalWords(
+  words: string | null,
+  maxLength = COURIER_REFUSAL_MAX_LENGTH,
+): string | null {
   if (words === null) return null;
   const plain = words
     .replace(/<[^>]*>/g, ' ')
     .replace(/[\p{Cc}\s]+/gu, ' ')
     .trim();
   if (plain.length === 0) return null;
-  return plain.slice(0, COURIER_REFUSAL_MAX_LENGTH);
+  return plain.slice(0, maxLength);
 }

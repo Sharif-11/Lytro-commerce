@@ -7,6 +7,7 @@ import {
   COURIER_CALLS_PER_MINUTE,
   CourierCallAction,
   FulfillmentStatus,
+  ParcelReading,
   ParcelState,
   StatusOverride,
   type BookOrderInput,
@@ -679,6 +680,8 @@ export class CourierBooking {
     parcel: SelectCourierParcel,
     courierCancelled: boolean | undefined,
   ): Promise<void> {
+    // Read agreed 2026-11-05: the courier has already said it is coming back, so there is nothing to call off.
+    if (parcel.reading === ParcelReading.Returning) return;
     const opened = await this.store.run(tenantId, (tx) =>
       this.connections.openedWithin(tx, tenantId, parcel.courierKey),
     );
