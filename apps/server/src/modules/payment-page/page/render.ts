@@ -258,7 +258,6 @@ class PageDrawing {
         >${markOf(row.method, this.words)}</a
       >`;
     return html`<h1 class="vh">${this.words.of('title')}</h1>
-      ${session.test ? html`<div class="testbar">${this.words.of('test')}</div>` : ''}
       <div class="brandrow">
         <span class="logo">
           ${
@@ -937,7 +936,10 @@ class PageDrawing {
           <div class="root">
             <div class="card">
               ${this.bar()}
-              <div class="content ${fixed ? 'has-fixed' : ''}">${this.content()}</div>
+              <div class="content ${fixed ? 'has-fixed' : ''}">
+                ${this.session.test ? html`<div class="testbar">${this.words.of('test')}</div>` : ''}
+                ${this.content()}
+              </div>
             </div>
           </div>
           ${fixed}
