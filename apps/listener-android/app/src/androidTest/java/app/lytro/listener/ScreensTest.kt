@@ -533,7 +533,8 @@ class ScreensTest {
         shows("01711-000001")
         shows(BuildConfig.VERSION_NAME)
         // The server knows only the oldest version it takes, so nothing here claims to be up to date.
-        compose.onNodeWithText(word(R.string.help)).assertDoesNotExist()
+        // Help opens the setup guide, so it's here with or without a support number.
+        shows(word(R.string.help))
     }
 
     @Test
