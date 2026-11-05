@@ -1,6 +1,5 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
-import { request as httpRequest } from 'node:http';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
@@ -10,6 +9,7 @@ import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { postJson, sendExact, type HttpResult } from './support/http';
+import { payPage, screenOf, type PayPageAnswer } from './support/pay-page';
 import { openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
@@ -23,7 +23,6 @@ const WEBSITE = 'https://myshop.com';
 const RETURN = `${WEBSITE}/thanks`;
 const CANCEL = `${WEBSITE}/sorry`;
 const PAGE_URL = /^http:\/\/pay\.localhost\/([A-Za-z0-9_-]{22})$/;
-const HOST = 'pay.localhost';
 // The public API keeps a shop's row a few seconds (api-key-authenticator.ts).
 const PAST_SHOP_LOOKUP_MS = 6_100;
 
@@ -53,54 +52,13 @@ afterAll(async () => {
   await admin.end();
 });
 
-interface Page {
-  status: number;
-  headers: Record<string, string | string[] | undefined>;
-  text: string;
-}
-
-/** A page as a browser gets it, on whichever host: text, not JSON. */
 function raw(
   method: 'GET' | 'POST',
   path: string,
   body: Readonly<Record<string, string>> | null = null,
-  host = HOST,
-): Promise<Page> {
-  const data = body === null ? '' : new URLSearchParams(body).toString();
-  return new Promise((resolve, reject) => {
-    const req = httpRequest(
-      {
-        host: '127.0.0.1',
-        port,
-        path,
-        method,
-        headers: {
-          host,
-          ...(body === null
-            ? {}
-            : {
-                'content-type': 'application/x-www-form-urlencoded',
-                'content-length': Buffer.byteLength(data),
-              }),
-        },
-      },
-      (res) => {
-        let text = '';
-        res.on('data', (chunk: Buffer) => {
-          text += chunk.toString();
-        });
-        res.on('end', () => {
-          resolve({ status: res.statusCode ?? 0, headers: res.headers, text });
-        });
-      },
-    );
-    req.on('error', reject);
-    req.end(data);
-  });
-}
-
-function screenOf(page: Page): string | undefined {
-  return /data-screen="([a-z-]+)"/.exec(page.text)?.[1];
+  host?: string,
+): Promise<PayPageAnswer> {
+  return payPage(port, method, path, body, host);
 }
 
 interface Setup {
@@ -501,7 +459,12 @@ describeIfDatabase('how it ends (PAY-03, PAY-08, PAY-14)', () => {
     expect(verified.status, JSON.stringify(verified.body)).toBe(200);
     const page = await raw('GET', `/${ref}?just=1`);
     expect(screenOf(page)).toBe('verified');
-    const back = `${RETURN}?session_id=${sessionId}&amp;status=verified`;
+    const { rows } = await admin.query<{ tracking_id: string }>(
+      `SELECT o.tracking_id FROM tenant.orders o
+       JOIN tenant.payment_sessions s ON s.order_id = o.id WHERE s.ref = $1`,
+      [ref],
+    );
+    const back = `${RETURN}?session_id=${sessionId}&amp;status=verified&amp;tracking_id=${rows[0]?.tracking_id ?? ''}`;
     expect(page.text).toContain(`content="5;url=${back}"`);
     expect(page.text).toContain(`href="${back}"`);
     const later = await raw('GET', `/${ref}`);

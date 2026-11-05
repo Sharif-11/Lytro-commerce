@@ -2,6 +2,94 @@
 // "Megh", its ৳70/৳130 zones and its phone number into a few lines). Each line here either replaces one of those with
 // a line that takes the shop's real values, or is a line the prototype had no screen for. COPY stays as drawn.
 export const APP_COPY = {
+  // Slice 5.8's part 2 (STOREFRONT-DESIGN §8a): the wallets at checkout, and the return.
+  pay58Gateway: [
+    '{w}-এর নিজের পেজে পেমেন্ট; টাকা কাটলেই হয়ে যাবে',
+    "Pay on {w}'s own page; it is done as soon as the money moves",
+  ],
+  pay58Manual: [
+    'টাকা পাঠিয়ে TrxID দিন; মিলিয়ে কনফার্ম করা হবে',
+    'Send the money and enter the TrxID; it is matched and confirmed',
+  ],
+  pay58Bank: [
+    'ব্যাংকে টাকা পাঠিয়ে রেফারেন্স দিন; শপ দেখে কনফার্ম করবে',
+    'Transfer the money and enter the reference; the shop checks and confirms',
+  ],
+  pay58Next: ['পরের পেজে পেমেন্ট করবেন', 'You pay on the next page'],
+  pay58PlaceAny: ['অর্ডার দিয়ে পেমেন্ট করুন', 'Place order and pay'],
+  pay58NoneT: [
+    'এই শপ এখন অনলাইনে পেমেন্ট নিচ্ছে না',
+    "This shop isn't taking online payments right now",
+  ],
+  pay58NoneP: [
+    '{p}-এ ৳{n} অগ্রিম লাগে, তাই এটা এখন অর্ডার করা যাবে না। এটা সরিয়ে বাকিটা অর্ডার করুন, বা শপকে কল করুন।',
+    "{p} needs a ৳{n} advance, so it can't be ordered right now. Remove it and order the rest, or call the shop.",
+  ],
+  pay58NonePAny: [
+    '{p}-এ আগে পেমেন্ট লাগে, তাই এটা এখন অর্ডার করা যাবে না। এটা সরিয়ে বাকিটা অর্ডার করুন, বা শপকে কল করুন।',
+    "{p} has to be paid for first, so it can't be ordered right now. Remove it and order the rest, or call the shop.",
+  ],
+  pay58NoneOne: [
+    '{p}-এ ৳{n} অগ্রিম লাগে, তাই এটা এখন অর্ডার করা যাবে না। অর্ডার করতে শপকে কল করুন।',
+    "{p} needs a ৳{n} advance, so it can't be ordered right now. Call the shop to order it.",
+  ],
+  pay58NoneOneAny: [
+    '{p}-এ আগে পেমেন্ট লাগে, তাই এটা এখন অর্ডার করা যাবে না। অর্ডার করতে শপকে কল করুন।',
+    "{p} has to be paid for first, so it can't be ordered right now. Call the shop to order it.",
+  ],
+  pay58NoneLate: [
+    'অর্ডারটি হয়নি, টাকাও কাটেনি। শপকে কল করে অর্ডার করতে পারেন।',
+    "The order wasn't placed and no money moved. You can call the shop to order.",
+  ],
+  pay58CapT: [
+    'এই শপ আজ আর অনলাইনে পেমেন্ট নিতে পারছে না',
+    "This shop can't take more online payments today",
+  ],
+  pay58CapP: [
+    'অর্ডারটি হয়নি, টাকাও কাটেনি। কাল আবার চেষ্টা করুন, বা শপকে কল করুন।',
+    "The order wasn't placed and no money moved. Try again tomorrow, or call the shop.",
+  ],
+  pay58MethodGone: [
+    'এই পেমেন্ট মেথড এখন নেই। পেজটি আবার খুলে অন্য একটি বেছে নিন।',
+    "This way of paying isn't available now. Open the page again and choose another.",
+  ],
+  pay58PaidT: ['পেমেন্ট পাওয়া গেছে', 'Payment received'],
+  pay58PaidP: [
+    'অর্ডার {o}। শপ কল করে অর্ডার কনফার্ম করবে।',
+    'Order {o}. The shop will call to confirm it.',
+  ],
+  pay58Paid: ['অগ্রিম দিয়েছেন', 'Advance paid'],
+  pay58CheckT: ['পেমেন্ট চেক করা হচ্ছে', 'Checking your payment'],
+  pay58CheckP: [
+    'অর্ডার {o} ধরে রাখা আছে। এই পেজ বন্ধ করলেও হবে; কনফার্ম হলে এখানে দেখতে পাবেন।',
+    "Order {o} is being held. You can close this page; it will show here once it's confirmed.",
+  ],
+  pay58FixId: ['TrxID ভুল দিয়েছেন? বদলান', 'Wrong TrxID? Change it'],
+  pay58UnpaidP: [
+    'অর্ডার {o} আরও {m} মিনিট ধরে রাখা আছে। আবার চেষ্টা করুন; সমস্যা হলে শপকে কল করুন।',
+    'Order {o} is held for {m} more minutes. Try again, or call the shop if something is wrong.',
+  ],
+  pay58GoneT: ['সময় শেষ, অর্ডারটি ক্যানসেল হয়েছে', 'Time ran out, so the order was cancelled'],
+  pay58GoneP: [
+    'টাকা পাঠিয়ে থাকলে শপকে কল করে TrxID জানান। না পাঠিয়ে থাকলে আবার অর্ডার করতে পারেন।',
+    'If you already sent the money, call the shop with the TrxID. If not, you can order again.',
+  ],
+  pay58RejectedT: [
+    'পেমেন্ট কনফার্ম হয়নি, অর্ডারটি ক্যানসেল হয়েছে',
+    'Payment not confirmed, so the order was cancelled',
+  ],
+  pay58RejectedP: [
+    'টাকা পাঠিয়ে থাকলে শপকে কল করে জানান। চাইলে আবার অর্ডার করতে পারেন।',
+    'If you did send the money, call the shop. You can also order again.',
+  ],
+  pay58Again: ['আবার অর্ডার করুন', 'Order again'],
+  pay58TrackDueT: ['৳{n} অগ্রিম এখনো বাকি', '৳{n} advance still to pay'],
+  pay58TrackDueP: [
+    '{m} মিনিটের মধ্যে পেমেন্ট না হলে অর্ডারটি ক্যানসেল হবে।',
+    "If it isn't paid within {m} minutes, the order is cancelled.",
+  ],
+  pay58PayNow: ['পেমেন্ট করুন', 'Pay now'],
+  pay58TrackCheckP: ['কনফার্ম হলে এখানে দেখতে পাবেন।', "It will show here once it's confirmed."],
   // The prototype draws two fixed zones; a shop has its own, so the range is built from them (SFT-20).
   deliv_range: ['{from} – {to}', '{from} – {to}'],
   // LIF-07: a closed shop is named to nobody, so its page cannot say whose it is.

@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { randomUUID } from 'node:crypto';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
@@ -423,3 +424,69 @@ describeIfDatabase('what the storefront reads (TEN-16, TEN-30, DLV-01, DLV-07, C
     });
   });
 });
+
+describeIfDatabase(
+  "an advance through the storefront's own key (SFT-07, PAY-04, Slice 5.8's part 2)",
+  () => {
+    it('takes the return address the storefront gives, on the address its key names', async () => {
+      const shop = await openShop(port, texts, 'sfp');
+      const saved = await shop.put('/payment-methods/bkash', {
+        enabled: true,
+        accounts: [
+          {
+            accountName: 'Rahim Store',
+            number: '01711000001',
+            accountType: 'personal',
+            active: true,
+          },
+        ],
+      });
+      expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+      const made = await product(shop, {
+        name: 'Saree',
+        basePrice: 1000,
+        paymentPolicy: 'partial_advance',
+        advanceAmount: 300,
+        variants: [{ optionIds: [], openingStock: 10 }],
+      });
+      const opened = await open(shop);
+      const locationId = await thana(shop, 'Dhaka', 'Mirpur');
+      const body = {
+        customerName: 'Rahima',
+        phone: texts.freshPhone(),
+        locationId,
+        deliveryAddress: 'House 12',
+        source: 'storefront',
+        items: [{ variantId: made.variantId, quantity: 1 }],
+      };
+      const headers = (): Record<string, string> => ({
+        host: API_HOST,
+        authorization: `Bearer ${opened.key}`,
+        origin: opened.origin,
+        'content-type': 'application/json',
+        'idempotency-key': randomUUID(),
+      });
+      const placed = await sendExact(
+        port,
+        'POST',
+        '/v1/orders',
+        { ...body, payment: { method: 'bkash', returnUrl: `${opened.origin}/order/return` } },
+        headers(),
+      );
+      expect(placed.status, JSON.stringify(placed.body)).toBe(201);
+      expect((placed.body as { payment: { amount: string } }).payment.amount).toBe('300.00');
+      // PAY-04: any other address is refused.
+      const elsewhere = await sendExact(
+        port,
+        'POST',
+        '/v1/orders',
+        {
+          ...body,
+          payment: { method: 'bkash', returnUrl: 'https://elsewhere.example/order/return' },
+        },
+        headers(),
+      );
+      expect(elsewhere.status).toBe(400);
+    });
+  },
+);

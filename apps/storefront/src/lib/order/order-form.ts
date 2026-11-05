@@ -48,6 +48,7 @@ export function orderBody(
   fields: OrderFields,
   items: OrderItemInput[],
   source: 'storefront' | 'landing_page',
+  payment?: OrderInput['payment'],
 ): OrderInput {
   const note = fields.shopperNote.trim();
   return {
@@ -58,6 +59,7 @@ export function orderBody(
     ...(note === '' ? {} : { shopperNote: note }),
     source,
     items,
+    ...(payment ? { payment } : {}),
   };
 }
 
@@ -72,8 +74,12 @@ export type OrderOutcome =
   | { kind: 'sold_out'; variantId: string | null }
   /** The shop or a product does not deliver to the thana (DLV-06, DLV-07). */
   | { kind: 'no_delivery' }
-  /** An item needs paying first (PRD-08); that step comes with Phase 5. */
+  /** The way of paying chosen isn't offered any more (WAL-06). */
   | { kind: 'advance' }
+  /** The shop has no way to be paid now, and the order needs one (PRD-08). */
+  | { kind: 'no_method' }
+  /** A new shop past its day's online payments (TVR-04). */
+  | { kind: 'cap' }
   /** Too many tries (RTE-06, RTE-08). */
   | { kind: 'busy' }
   /** It may not have arrived: the same key tried again makes one order (SFT-06). */
@@ -110,13 +116,14 @@ export function readOrderAnswer(status: number, answer: OrderAnswer | null): Ord
   const fields = refusedFields(details);
   if (fields.length > 0) {
     const named = fields.map((row) => row.field);
-    if (named.includes('payment')) return { kind: 'advance' };
+    if (named.some((field) => field.startsWith('payment'))) return { kind: 'advance' };
     const ours = named.filter((field) => OUR_FIELDS.includes(field)) as OrderFieldName[];
     return ours.length > 0 ? { kind: 'fields', fields: ours } : { kind: 'recheck' };
   }
   if (code === 'conflict') {
     const reason = details['reason'];
-    if (reason === 'no_payment_method' || reason === 'new_shop_cap') return { kind: 'advance' };
+    if (reason === 'no_payment_method') return { kind: 'no_method' };
+    if (reason === 'new_shop_cap') return { kind: 'cap' };
     if (reason === 'zone_no_delivery' || reason === 'product_not_delivered_here') {
       return { kind: 'no_delivery' };
     }

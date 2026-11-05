@@ -250,11 +250,7 @@ export function priceOrder(input: PricingInput): OrderPrice {
   });
   const anyZoneLine = input.lines.some((line) => line.ownDeliveryCharge === null);
   // PRD-08: a prepaid line, or one asking its delivery charge first, asks the order's delivery charge once.
-  const deliveryFirst = input.lines.some(
-    (line) =>
-      line.paymentPolicy === PaymentPolicy.FullPrepayment ||
-      line.paymentPolicy === PaymentPolicy.DeliveryChargeOnly,
-  );
+  const deliveryFirst = asksDeliveryFirst(input.lines);
   const zoneCharged =
     delivering && anyZoneLine && input.zoneCharge !== null ? toPaisa(input.zoneCharge) : null;
   const workedOut = (zoneCharged ?? 0n) + lines.reduce((sum, line) => sum + line.delivery, 0n);
@@ -442,6 +438,7 @@ export class OrderPricing {
           deliverable: false,
           notDeliveredHere: [],
           taxes: [],
+          advance: null,
         };
       }
       // The items' own totals and advances, which no zone changes.
@@ -493,13 +490,22 @@ export class OrderPricing {
       if (location !== null) {
         const { zone, extraChargePerKg } = await this.deliveryWithin(tx, tenantId, location);
         const notDeliveredHere = limitedAway(zone.id);
+        const delivered = priceOrder({
+          fulfilmentType: FulfilmentType.Delivery,
+          zoneCharge: zone.charge,
+          extraChargePerKg,
+          lines,
+          discount: '0.00',
+          deliveryChargeByHand: null,
+        });
         return {
           ...goods,
           zone: { id: zone.id, name: zone.label, charge: zone.charge, noDelivery: zone.noDelivery },
-          deliveryCharge: chargeAt(zone.charge, extraChargePerKg),
+          deliveryCharge: delivered.deliveryCharge,
           range: null,
           deliverable: !zone.noDelivery && notDeliveredHere.length === 0,
           notDeliveredHere,
+          advance: delivered.advanceDue,
         };
       }
       const extraChargePerKg = await this.rates.within(tx, tenantId);
@@ -516,9 +522,20 @@ export class OrderPricing {
         range: from !== undefined && to !== undefined ? { from, to } : null,
         deliverable: charges.length > 0,
         notDeliveredHere: [],
+        // PRD-08: an advance holding the delivery charge isn't known until the thana is.
+        advance: asksDeliveryFirst(lines) ? null : itemsOnly.advanceDue,
       };
     });
   }
+}
+
+/** PRD-08: a prepaid line, or one asking its delivery charge first, asks the order's delivery charge first too. */
+function asksDeliveryFirst(lines: readonly Pick<PricingLine, 'paymentPolicy'>[]): boolean {
+  return lines.some(
+    (line) =>
+      line.paymentPolicy === PaymentPolicy.FullPrepayment ||
+      line.paymentPolicy === PaymentPolicy.DeliveryChargeOnly,
+  );
 }
 
 /** SFT-20, Slice 12b: one item of an estimate as it stands now. */
@@ -543,6 +560,8 @@ export interface EstimateLine {
 
 /** SFT-20: a cart's items as they stand, and their delivery, to a thana or, before one is chosen, as a range. */
 export interface DeliveryEstimate {
+  /** PRD-08 (Slice 5.8's part 2): the advance an order of these would owe, by the order's own sum; null until known. */
+  advance: string | null;
   lines: EstimateLine[];
   /** The available items' total. */
   subtotal: string;

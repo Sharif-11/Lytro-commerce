@@ -5,7 +5,11 @@ import type {
   BrandSpacing,
   ItemCondition,
   OrderStatus,
+  PaymentMethod,
+  PaymentMethodKind,
   PaymentPolicy,
+  PaymentSessionState,
+  PaymentWay,
   StockState,
   StockUnit,
   UnitKind,
@@ -253,6 +257,8 @@ export interface TaxLine {
   amount: string;
 }
 export interface DeliveryEstimate {
+  /** PRD-08: the advance an order of these would owe, by the order's own sum; null until known. */
+  advance: string | null;
   lines: EstimateLine[];
   subtotal: string;
   zone: DeliveryZoneView | null;
@@ -276,6 +282,15 @@ export interface OrderInput {
   shopperNote?: string;
   source: 'storefront' | 'landing_page';
   items: OrderItemInput[];
+  /** PRD-08, SFT-07: the wallet chosen for an advance. The storefront's own server adds the return address. */
+  payment?: { method: PaymentMethod };
+}
+
+/** WAL-06, PAY-06: a way a shopper may pay this shop, and how it takes the money. */
+export interface ShopperPaymentMethod {
+  method: PaymentMethod;
+  kind: PaymentMethodKind;
+  way: PaymentWay;
 }
 
 /** ORD-17, LND-11: an item as the shopper sees it. */
@@ -305,6 +320,8 @@ export interface PlacedOrder extends ShopperTotals {
   createdAt: string;
   items: ShopperItem[];
   purchaseEventId: string;
+  /** LND-10, SFT-07: where an advance is paid; null for cash on delivery. */
+  payment: { paymentUrl: string; amount: string; expiresAt: string } | null;
 }
 /** ORD-17: an item on the tracking page, with its answers and a combo's parts. */
 export interface TrackedItem extends ShopperItem {
@@ -324,6 +341,13 @@ export interface TrackedOrder extends ShopperTotals {
   timeline: { step: TrackingStepName; at: string }[];
   items: TrackedItem[];
   due: string;
+  /** ORD-17 (Slice 5.2): an unverified order's open payment. */
+  payment: {
+    paymentUrl: string;
+    amount: string;
+    expiresAt: string;
+    state: PaymentSessionState;
+  } | null;
   courier: { name: string | null; trackingCode: string | null; trackingLink: string | null } | null;
 }
 export type TrackingRead =
@@ -507,6 +531,20 @@ export class StorefrontApi {
     );
     if (answer.status === 422 || answer.status === 400) return null;
     return StorefrontApi.required(answer, 'the delivery estimate');
+  }
+
+  /** WAL-06, PAY-06: how a shopper may pay; none is what a checkout has when this can't be read, and the order says why. */
+  async paymentMethods(
+    shop: StorefrontShopContext,
+    shopper: ShopperRequest,
+  ): Promise<ShopperPaymentMethod[]> {
+    const answer = await this.call<{ methods: ShopperPaymentMethod[] }>(
+      shop,
+      shopper,
+      'GET',
+      '/v1/payment-methods',
+    );
+    return (answer.data?.methods ?? []).map(({ method, kind, way }) => ({ method, kind, way }));
   }
 
   /** ORD-02, SFT-06: a shopper's order, once per key. The answer as it came: the page says what a refusal means. */

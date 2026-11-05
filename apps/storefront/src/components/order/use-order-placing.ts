@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
-import type { OrderItemInput, PlacedOrder } from '@/lib/api/storefront-api';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { OrderInput, OrderItemInput, PlacedOrder } from '@/lib/api/storefront-api';
 import {
   NO_FIELDS,
   ORDERED_KEY,
@@ -58,6 +58,11 @@ export function useOrderPlacing(options: {
   const [problems, setProblems] = useState<OrderFieldName[]>([]);
   const [notice, setNotice] = useState<OrderNotice>(null);
   const [placing, setPlacing] = useState(false);
+  // What a refusal says is at the top of the page, and on a phone the shopper is down by the button.
+  useEffect(() => {
+    if (notice)
+      document.querySelector('.banner[role="alert"]')?.scrollIntoView({ block: 'center' });
+  }, [notice]);
   const key = useRef('');
   if (key.current === '' && typeof window !== 'undefined') key.current = crypto.randomUUID();
   const running = useRef(false);
@@ -76,7 +81,10 @@ export function useOrderPlacing(options: {
 
   /** Sends the order when its fields are right; the placed order, or null with the problem shown. */
   const place = useCallback(
-    async (items: OrderItemInput[]): Promise<PlacedOrder | null> => {
+    async (
+      items: OrderItemInput[],
+      payment?: OrderInput['payment'],
+    ): Promise<PlacedOrder | null> => {
       if (running.current) return null;
       const wrong = orderFieldProblems(fields);
       setProblems(wrong);
@@ -87,7 +95,7 @@ export function useOrderPlacing(options: {
       running.current = true;
       setPlacing(true);
       setNotice(null);
-      const outcome = await send(orderBody(fields, items, options.source), key.current);
+      const outcome = await send(orderBody(fields, items, options.source, payment), key.current);
       running.current = false;
       setPlacing(false);
       if (outcome.kind === 'placed') {

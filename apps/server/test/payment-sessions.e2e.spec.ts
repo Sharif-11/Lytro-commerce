@@ -280,6 +280,66 @@ describeIfDatabase('the payment page (PAY-05, PAY-07, PAY-16, PAY-17)', () => {
     expect((await page('not-a-ref')).status).toBe(404);
   });
 
+  it('the estimate names the advance the order then owes, and the methods say how each pays (PRD-08, PAY-06)', async () => {
+    const setup = await payingShop();
+    const estimate = (locationId?: number) =>
+      sendExact(
+        port,
+        'POST',
+        '/v1/delivery-estimate',
+        {
+          items: [{ variantId: setup.variantId, quantity: 1 }],
+          ...(locationId === undefined ? {} : { locationId }),
+        },
+        keyHeaders(setup.key),
+      );
+    expect((await estimate()).body).toMatchObject({ advance: '300.00' });
+    expect((await estimate(setup.locationId)).body).toMatchObject({ advance: '300.00' });
+    const placed = await order(setup, {
+      payment: { method: 'bkash', returnUrl: `${WEBSITE}/thanks` },
+    });
+    expect((placed.body as Placed).payment?.amount).toBe('300.00');
+    const methods = await sendExact(
+      port,
+      'GET',
+      '/v1/payment-methods',
+      undefined,
+      keyHeaders(setup.key),
+    );
+    expect(methods.body).toMatchObject({ methods: [{ method: 'bkash', way: 'listener' }] });
+
+    // An advance holding the delivery charge isn't known until the thana is, then is the order's own.
+    const first = await setup.shop.post('/products', {
+      name: 'Delivered first',
+      basePrice: 1000,
+      paymentPolicy: 'delivery_charge_only',
+      variants: [{ optionIds: [], openingStock: 10 }],
+    });
+    const variantId = (first.body as { variants: { id: string }[] }).variants[0]?.id ?? '';
+    const asked = (locationId?: number) =>
+      sendExact(
+        port,
+        'POST',
+        '/v1/delivery-estimate',
+        {
+          items: [{ variantId, quantity: 1 }],
+          ...(locationId === undefined ? {} : { locationId }),
+        },
+        keyHeaders(setup.key),
+      );
+    expect((await asked()).body).toMatchObject({ advance: null });
+    const known = (await asked(setup.locationId)).body as {
+      advance: string;
+      deliveryCharge: string;
+    };
+    expect(known.advance).toBe(known.deliveryCharge);
+    const made = await order(
+      { ...setup, variantId },
+      { payment: { method: 'bkash', returnUrl: `${WEBSITE}/thanks` } },
+    );
+    expect((made.body as Placed).payment?.amount).toBe(known.advance);
+  });
+
   it('refuses an ID a payment already holds, one of the wrong form, and a method the shop does not take', async () => {
     const setup = await payingShop();
     const ref = refOf((await order(setup, { payment: PAYMENT })).body as Placed);

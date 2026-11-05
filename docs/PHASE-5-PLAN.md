@@ -511,7 +511,7 @@ criterion 2 by hand, and 3). If velocity suggests it, the rest can become Phase 
   (ORD-08). The page has **WhatsApp and call** from the shop's contact phone; support chat comes out. **Nothing promises an SMS**: the page points to the order's page, since a shop can turn that SMS
   off, a low balance stops it, and it isn't sent yet. **No screenshot at all**: PAY-18 is withdrawn, overriding Slice 5.3's read. Stated, no objection: PAY-05's missing pieces drawn; the payments-to-Lytro
   version out; Hind Siliguri from Lytro's own files; the server works out the order's advance; a shop with no method on says so plainly; two PRs, the page and then checkout with the return.
-  **The page is built** (`PAYMENT-PAGE-DESIGN.md` §7). Checkout's payment step and the return are the next PR.
+  **Built:** the page (`PAYMENT-PAGE-DESIGN.md` §7), then checkout's payment step and the return (`STOREFRONT-DESIGN.md` §8a).
 
 ---
 
