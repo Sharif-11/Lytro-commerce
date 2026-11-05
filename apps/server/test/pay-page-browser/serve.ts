@@ -47,12 +47,6 @@ createServer((request, response) => {
     send(response, 200, { 'Content-Type': type }, readFileSync(join(ASSETS, name)));
     return;
   }
-  // Starting a wallet's checkout is the server's tests' to prove: here the handing-over screen stays to be looked at.
-  if (request.method === 'POST') {
-    response.writeHead(204);
-    response.end();
-    return;
-  }
   const query = Object.fromEntries(url.searchParams);
   const asked = askOf(query);
   const headers = pageHeaders(undefined);
@@ -74,5 +68,7 @@ createServer((request, response) => {
     );
     return;
   }
-  send(response, 200, headers, drawPage(data, ask, now, ASSET_URLS, fixture.options ?? {}));
+  // Sending itself on is the server's tests' to prove: here the handing-over screen stays to be looked at.
+  const page = drawPage(data, ask, now, ASSET_URLS, fixture.options ?? {});
+  send(response, 200, headers, page.replace(' data-auto="1"', ''));
 }).listen(PORT);
