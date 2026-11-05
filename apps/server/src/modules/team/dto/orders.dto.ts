@@ -5,6 +5,7 @@ import {
   CallOutcome,
   cancelOrderSchema,
   CancelReason,
+  CourierKey,
   createOrderSchema,
   DeliveryMode,
   FulfillmentStatus,
@@ -18,6 +19,7 @@ import {
   OrderSource,
   OrderStatus,
   overrideOrderSchema,
+  ParcelState,
   handOverOrderSchema,
   PaymentMethod,
   PaymentPolicy,
@@ -231,6 +233,26 @@ const orderViewSchema = z.object({
     }),
   ),
   warnings: z.array(warningSchema),
+  parcel: z
+    .object({
+      courierKey: z.nativeEnum(CourierKey),
+      state: z.nativeEnum(ParcelState),
+      invoice: z.string(),
+      consignmentId: z.string().nullable(),
+      trackingCode: z.string().nullable(),
+      courierStatus: z.string().nullable(),
+      cod: z.string(),
+      note: z.string().nullable(),
+      weightKg: z.string().nullable(),
+      areaCode: z.string().nullable(),
+      deliveryCharge: z.string().nullable(),
+      refusal: z.string().nullable(),
+      settled: z.boolean(),
+      settleProblem: z.string().nullable(),
+      createdAt: z.coerce.date(),
+    })
+    .nullable(),
+  courierRecordUnchanged: z.boolean(),
   limitPrompt: z.object({ metric: z.literal('orders_monthly'), limit: z.number() }).nullable(),
 });
 export class OrderViewDto extends createZodDto(orderViewSchema) {}

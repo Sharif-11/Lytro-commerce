@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   BalanceLedgerRepository,
   PaymentSessionRepository,
+  CourierRepository,
   PlatformWalletsRepository,
   RatesRepository,
   ShopSettingsRepository,
@@ -34,14 +35,20 @@ export class DrizzleBalanceLedgerStore implements BalanceLedgerStore {
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(BalanceLedgerRepository) private readonly ledger: BalanceLedgerRepository,
     @Inject(PaymentSessionRepository) private readonly sessions: PaymentSessionRepository,
+    @Inject(CourierRepository) private readonly couriers: CourierRepository,
   ) {}
 
   run<T>(_tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T> {
     return this.transactions.run(this.database.handle.db, work);
   }
 
-  feesHeld(tx: Transaction, tenantId: string): Promise<string> {
-    return this.sessions.feesHeld(tx, tenantId);
+  /** WAL-21, read agreed 2026-11-04: what open checkouts and bookings out with a courier have set aside. */
+  async feesHeld(tx: Transaction, tenantId: string): Promise<string> {
+    const [checkouts, bookings] = [
+      await this.sessions.feesHeld(tx, tenantId),
+      await this.couriers.feesHeld(tx, tenantId),
+    ];
+    return (Number(checkouts) + Number(bookings)).toFixed(2);
   }
 
   async insert(tx: Transaction, entry: NewLedgerEntry): Promise<LedgerEntry> {

@@ -2051,3 +2051,12 @@ The guard refuses moving an attribute already on a product between describing an
 existing informational attribute". An attribute not yet on the product isn't checked, though the code's comment says one "neither
 starts nor stops" splitting (`product.service.ts`). Past orders keep their text (`ATL-06`), so nothing breaks; it needs a decision
 whether a seller may add sizes to a product that has sold. Found by the Phase 4 close-out.
+
+## 112. `CRR-21`: what Steadfast's adapter assumes, untried on a real account — found 2026-11-04, open until checkpoint 6A
+
+Steadfast has no sandbox, so Slice 6.1 runs against a fake built from its panel's guide, and every booking on a real key would be a real
+parcel. Slice 6.2's real parcel (exit criterion 9) has to confirm: its tracking page, `steadfast.com.bd/t/<code>`, which isn't in
+that guide; what `/status_by_invoice` answers for an invoice it doesn't know, read as a 404 here, since a lost answer closes on two of
+those; the shape of a refused booking, read from `message` or the first of `errors`; and that a success names `consignment_id`
+and `tracking_code` as the guide's sample does. If the unknown-invoice answer turns out to be something else, the look-ups keep
+reporting no answer and the booking waits for staff, so nothing is released wrongly.

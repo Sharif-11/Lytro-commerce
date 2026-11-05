@@ -1,0 +1,135 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Inject,
+  Param,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
+import { connectCourierSchema, Permission, type CourierKey } from '@lytronix/validators';
+import { ApiError } from '../../../common/api-error';
+import { Dashboard } from '../../../common/decorators/dashboard';
+import { RequirePermission } from '../../../common/decorators/require-permission';
+import { ResponseMessage } from '../../../common/decorators/response-message';
+import { OkDto } from '../../../common/dto/ok.dto';
+import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
+import {
+  CourierConnections,
+  type CourierAdapterView,
+  type CourierConnectionView,
+} from '../../couriers/services/courier-connections';
+import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
+import { SessionGuard } from '../../identity/guards/session.guard';
+import {
+  ConnectCourierDto,
+  CourierAdapterListDto,
+  CourierConnectionDto,
+  CourierConnectionListDto,
+} from '../dto/couriers.dto';
+import { PermissionGuard } from '../guards/permission.guard';
+import { CatalogueRequest } from '../services/catalogue-request';
+
+function courierKeyOf(key: string): CourierKey {
+  const known = connectCourierSchema.shape.courierKey.safeParse(key);
+  if (!known.success) throw new ApiError('not_found', 'CourierNotAvailable', {});
+  return known.data;
+}
+
+// CRR-01 to CRR-05, CRR-20 (Phase 6 Slice 6.1, read agreed 2026-11-04): the couriers there are, and a shop's connections to them.
+// Connecting is `couriers:manage`; whoever books can see which couriers are connected, never their credentials.
+@ApiTags('Couriers')
+@Controller('couriers')
+@Dashboard({})
+@UseGuards(SessionGuard, DashboardGuard, PermissionGuard)
+export class CouriersController {
+  constructor(
+    @Inject(CourierConnections) private readonly connections: CourierConnections,
+    @Inject(CatalogueRequest) private readonly request: CatalogueRequest,
+  ) {}
+
+  @Get('adapters')
+  @RequirePermission([Permission.CouriersManage, Permission.OrdersManage])
+  @ResponseMessage('CourierAdaptersListed')
+  @ApiOperation({
+    summary: 'The couriers available, and the credential fields each needs (CRR-01)',
+  })
+  @ZodResponse({ type: CourierAdapterListDto })
+  adapters(): { adapters: CourierAdapterView[] } {
+    return { adapters: this.connections.adapters() };
+  }
+
+  @Get('connections')
+  @RequirePermission([Permission.CouriersManage, Permission.OrdersManage])
+  @ResponseMessage('CourierConnectionsListed')
+  @ApiOperation({
+    summary:
+      "The shop's connected couriers, with whether each has credentials, never what they are (CRR-03)",
+  })
+  @ZodResponse({ type: CourierConnectionListDto })
+  async list(@Req() request: DashboardRequest): Promise<{ connections: CourierConnectionView[] }> {
+    return { connections: await this.connections.list(this.request.tenantIdOf(request)) };
+  }
+
+  @Post('connections')
+  @HttpCode(200)
+  @RequirePermission(Permission.CouriersManage)
+  @ResponseMessage('CourierConnected')
+  @ApiOperation({
+    summary:
+      "Connect a courier or replace its credentials; a test call must pass before anything is saved, and blank fields keep what's saved (CRR-02, CRR-03)",
+  })
+  @ApiBody({ type: ConnectCourierDto })
+  @ZodResponse({ type: CourierConnectionDto })
+  connect(
+    @Body(new ZodValidationPipe(ConnectCourierDto.schema)) body: ConnectCourierDto,
+    @Req() request: DashboardRequest,
+  ): Promise<CourierConnectionView> {
+    return this.connections.connect(
+      this.request.tenantIdOf(request),
+      body,
+      this.request.actorOf(request),
+    );
+  }
+
+  @Delete('connections/:key')
+  @RequirePermission(Permission.CouriersManage)
+  @ResponseMessage('CourierDisconnected')
+  @ApiOperation({
+    summary: 'Disconnect a courier; its credentials go and past parcels stay (CRR-20)',
+  })
+  @ZodResponse({ type: OkDto })
+  async disconnect(
+    @Param('key') key: string,
+    @Req() request: DashboardRequest,
+  ): Promise<{ ok: true }> {
+    await this.connections.disconnect(
+      this.request.tenantIdOf(request),
+      courierKeyOf(key),
+      this.request.actorOf(request),
+    );
+    return { ok: true };
+  }
+
+  @Put('connections/:key/default')
+  @RequirePermission(Permission.CouriersManage)
+  @ResponseMessage('CourierDefaultChanged')
+  @ApiOperation({ summary: "The shop's default courier, which booking starts from (CRR-05)" })
+  @ZodResponse({ type: CourierConnectionDto })
+  setDefault(
+    @Param('key') key: string,
+    @Req() request: DashboardRequest,
+  ): Promise<CourierConnectionView> {
+    return this.connections.setDefault(
+      this.request.tenantIdOf(request),
+      courierKeyOf(key),
+      this.request.actorOf(request),
+    );
+  }
+}

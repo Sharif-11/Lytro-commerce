@@ -278,6 +278,16 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /orders/:id/override': "another shop's order answers 404",
   // Phase 4 Slice 4.3, checked in test/order-fulfilment.e2e.spec.ts.
   'POST /orders/:id/ship': "another shop's order answers 404 and keeps its stock held",
+  // Phase 6 Slice 6.1, checked in test/courier-booking.e2e.spec.ts: a shop's parcels and connections are its own.
+  'POST /orders/:id/book': "another shop's order answers 404, with nothing sent to any courier",
+  'POST /orders/:id/parcel/settle': "another shop's order answers 404",
+  'POST /orders/:id/parcel/cancel': "another shop's order answers 404",
+  'GET /couriers/adapters':
+    'returns the same platform-wide couriers regardless of which shop calls it',
+  'GET /couriers/connections': "lists only the session shop's own connections",
+  'POST /couriers/connections': "saves only into the session shop's own connections",
+  'DELETE /couriers/connections/:key': "removes only the session shop's own connection",
+  'PUT /couriers/connections/:key/default': "changes only the session shop's own default",
   'POST /orders/:id/hand-over': "another shop's order answers 404",
   'POST /orders/:id/deliver': "another shop's order answers 404",
   'POST /orders/:id/returns': "another shop's order answers 404",

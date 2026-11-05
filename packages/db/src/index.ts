@@ -303,6 +303,12 @@ export {
   type NewGatewayCredentialUse,
 } from './repositories/payments/gateway-credential-use.repository';
 export {
+  CourierRepository,
+  type CourierParcelPatch,
+  type NewCourierCredentialUse,
+  type NewCourierParcel,
+} from './repositories/couriers/courier.repository';
+export {
   LytroMessageRepository,
   type NewLytroMessage,
 } from './repositories/listener/lytro-message.repository';
