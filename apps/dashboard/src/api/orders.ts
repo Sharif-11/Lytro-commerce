@@ -25,6 +25,7 @@ import type {
   OrderQuote,
   OrderSerialItem,
 } from '@/types/orders';
+import type { PaymentLink } from '@/types/payments';
 import { PRODUCTS_QUERY_KEY } from './catalogue';
 import { HOME_QUERY_KEY } from './home';
 
@@ -160,7 +161,7 @@ export function useOrdersById(ids: readonly string[], options: { enabled?: boole
 }
 
 /** After a change: the order as it now is, the lists and counts, Home, and the stock when it moved. */
-function useOrderChanged(stock: boolean): (order?: Order) => void {
+export function useOrderChanged(stock: boolean): (order?: Order) => void {
   const queryClient = useQueryClient();
   return (order) => {
     if (order) queryClient.setQueryData([...ORDERS_QUERY_KEY, order.id], order);
@@ -334,6 +335,28 @@ export function useVoidPayment(id: string) {
     mutationFn: ({ paymentId, reason }: { paymentId: string; reason: string }) =>
       tenantSession.client.post<Order>(`/orders/${id}/payments/${paymentId}/void`, { reason }),
     onSuccess: changed,
+  });
+}
+
+/** POST /orders/:id/payments/:paymentId/refund (PAY-20): money given back, a record only. */
+export function useRefundPayment(id: string) {
+  const changed = useOrderChanged(false);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ paymentId, note }: { paymentId: string; note: string }) =>
+      tenantSession.client.post<Order>(`/orders/${id}/payments/${paymentId}/refund`, { note }),
+    onSuccess: (order) => {
+      changed(order);
+      void queryClient.invalidateQueries({ queryKey: ['payments'] });
+    },
+  });
+}
+
+/** POST /orders/:id/payment-link (PAY-24): the page to send the customer, open 24 hours; a new one replaces the last. */
+export function useMakePaymentLink(id: string) {
+  return useMutation({
+    mutationFn: (body: { full?: boolean }) =>
+      tenantSession.client.post<PaymentLink>(`/orders/${id}/payment-link`, body),
   });
 }
 

@@ -79,6 +79,7 @@ implement the earlier path-split layout (the dashboard on the apex and on every 
 | `admin.lytro.app` | VPS IP | operator console (`apps/operator`, its own build, D3-12) |
 | `api.lytro.app` | VPS IP | the public API at `/v1/...` (`apps/server`), API keys only (API-14) |
 | `pay.lytro.app` | VPS IP | the hosted payment page for manual payments, and the return address for wallet gateways (PAY-01, PAY-06); Phase 5 |
+| `download.lytro.app` | the downloads bucket (an R2 custom domain, not the VPS) | the listener app's file and `latest.json` (§8, SITE-PAGES-DESIGN §6) |
 | `media.lytro.app` | the media Worker (a Cloudflare Workers custom domain, not the VPS) | every shop's media (`apps/media-worker`, MED-02, BND-01): metered, then the Worker's cache, then R2. No Cloudflare cache rule sits in front of it. The media bucket's own public address stays off in production, or requests would skip the metering |
 | `*.lytro.app` (wildcard) | VPS IP | every shop's public pages: storefront and landing pages (`apps/storefront`) only. Covers every tenant automatically; no per-shop DNS entry is ever created. `app`, `admin` and `www` are reserved labels (TEN-26), so no shop can take them. |
 
@@ -229,6 +230,15 @@ for `active`) with zero infrastructure work on this platform's side per tenant.
    namespace's id as `MEDIA_EDGE_KV_NAMESPACE_ID`; record it in RUNBOOKS §2. Every minute the server then totals each
    shop's bandwidth and writes the blocked list and each shop's website addresses. Without the token, nothing is
    counted or blocked.
+
+**The listener app's downloads (Slice 5.8, part 4).** Its own public R2 bucket, so nothing else is ever public by mistake:
+
+1. Make a bucket named `lytro-downloads`, and connect the custom domain `download.lytro.app` to it. Keep its r2.dev address off.
+2. Nothing else: no API token, no Worker and no setting on the server. The website asks `https://download.lytro.app`
+   (`LISTENER_DOWNLOAD_URL` to change it). Until `latest.json` is there, `lytro.app/listener` says the app isn't ready.
+3. For each release, `listenerRelease` (`apps/listener-android/README.md`) writes the two files. Upload the APK first and then
+   `latest.json`, in Cloudflare's panel, so the page never offers a file that isn't there yet. Keep the old APKs: a shop may be
+   part-way through a download. A new version's page shows within five minutes.
 
 **The server's fonts** (Phase 3 Slice 11.1b): the server draws each shop's app-icon monogram from the fonts in
 `apps/server/assets/fonts` (TEN-17), found three folders above `dist/modules/shop-app`. The server's image carries

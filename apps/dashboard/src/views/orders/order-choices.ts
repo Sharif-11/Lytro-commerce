@@ -30,6 +30,9 @@ export function choicesOf(order: Order, may: (permission: Permission) => boolean
     returnItems: manage && order.status === OrderStatus.Delivered && toReturn,
     // ORD-15: a payment by hand, while something is due (D4-6).
     recordPayment: pay && order.status !== OrderStatus.Cancelled && Number(order.due) > 0,
+    // PAY-24 (Part 35): a link the customer pays through, while something is due. At the counter they're standing there.
+    paymentLink:
+      manage && order.status !== OrderStatus.Cancelled && Number(order.due) > 0 && !counter,
     // Every order prints its label, for anyone who may see it (ORD-19 amended).
     print: true,
   };
@@ -44,5 +47,9 @@ export const voidable = (payment: OrderPayment, may: (permission: Permission) =>
   payment.voided === null &&
   payment.refunded === null &&
   payment.method !== PaymentMethod.CashOnDelivery;
+
+/** A payment staff may mark refunded (PAY-20): any live one, cash on delivery collected included. */
+export const refundable = (payment: OrderPayment, may: (permission: Permission) => boolean) =>
+  may(Permission.PaymentsManage) && payment.voided === null && payment.refunded === null;
 
 export type OrderChoices = ReturnType<typeof choicesOf>;

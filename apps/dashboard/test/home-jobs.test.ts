@@ -24,6 +24,7 @@ const QUIET: HomeView = {
   balance: { amount: '480.50', low: false, freeSms: { used: 0, limit: 100 } },
   topUpsBeingChecked: { count: 0, amount: '0' },
   paymentsBeingChecked: { count: 0, amount: '0' },
+  paymentsToVerify: 0,
   paymentNeedingYou: null,
   staffWithoutPassword: 0,
   fastSpendAlertedAt: null,
@@ -56,6 +57,20 @@ const ACTIVE = tenant(TenantState.Active, 30);
 describe('the jobs on Home', () => {
   it('has no rows when nothing needs the person', () => {
     expect(jobsOf(QUIET, { t, viewer: OWNER, tenant: ACTIVE, now: NOW })).toEqual([]);
+  });
+
+  it('counts the payments waiting for staff, which opens Payments (Slice 5.8, part 3)', () => {
+    const jobs = jobsOf(
+      { ...QUIET, paymentsToVerify: 4 },
+      { t, viewer: OWNER, tenant: ACTIVE, now: NOW },
+    );
+    expect(jobs).toMatchObject([
+      { key: 'toVerify', count: 4, to: '/$shop/payments', tone: 'marigold' },
+    ]);
+    // Someone who may not read payments has no part to count.
+    expect(
+      jobsOf({ ...QUIET, paymentsToVerify: null }, { t, viewer: OWNER, tenant: ACTIVE, now: NOW }),
+    ).toEqual([]);
   });
 
   it('heads the queue with a rejected or lapsed payment, which opens it in Billing (BIL-19)', () => {

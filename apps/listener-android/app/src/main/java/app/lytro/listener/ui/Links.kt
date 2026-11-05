@@ -16,6 +16,9 @@ fun openSupport(context: Context) = openPage(context, "https://wa.me/${BuildConf
 /** LSN-18: an update is the same download as the first install (LISTENER-APP-DESIGN 6). */
 fun openDownload(context: Context) = openPage(context, BuildConfig.DOWNLOAD_URL)
 
+/** The download page's setup guide, which also says how to reach support (SITE-PAGES-DESIGN 6). */
+fun openGuide(context: Context) = openPage(context, "${BuildConfig.DOWNLOAD_URL}#setup")
+
 private fun openPage(context: Context, url: String) {
     try {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))

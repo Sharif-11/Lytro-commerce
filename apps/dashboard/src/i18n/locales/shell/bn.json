@@ -78,5 +78,7 @@
   "secCustomers": "কাস্টমার",
   "secSales": "সেলস",
   "sTax": "ট্যাক্স",
-  "sMethods": "পেমেন্ট মেথড"
+  "sMethods": "পেমেন্ট মেথড",
+  "secPayments": "পেমেন্ট",
+  "sListener": "লিসেনার ফোন"
 }

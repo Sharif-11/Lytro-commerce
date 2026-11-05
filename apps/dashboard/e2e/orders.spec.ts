@@ -519,6 +519,215 @@ test('a payment marked refunded can no longer be voided (Slice 5.3)', async ({ p
   await expect(main(page).getByRole('button', { name: 'Void' })).toHaveCount(0);
 });
 
+test('Refund is a record: it says so, needs a note, and the amount goes back on the due', async ({
+  page,
+}) => {
+  const log = await open(
+    page,
+    '/orders/o-44',
+    day((orders) => {
+      order(orders, 'o-44').payments = [
+        {
+          method: 'bkash',
+          amount: 500,
+          sender: '+8801819876543',
+          trxId: '9F2KQ7M1',
+          at: '2026-10-31T04:00:00.000Z',
+        },
+      ];
+    }),
+  );
+  await expect(main(page).getByRole('button', { name: 'Void' })).toBeVisible();
+  await main(page).getByRole('button', { name: 'Refund' }).click();
+  const refunding = sheet(page, 'Mark this payment refunded?');
+  await expect(refunding).toContainText('This only keeps a record: Lytro sends no money');
+  await expect(refunding).toContainText("৳500 goes back on the order's due.");
+  await expect(refunding.getByRole('button', { name: 'Mark refunded' })).toBeDisabled();
+  await refunding.getByLabel('Note').fill('   ');
+  await expect(refunding.getByRole('button', { name: 'Mark refunded' })).toBeDisabled();
+  await refunding.getByLabel('Note').fill('Sent back by bKash');
+  await expectAccessible(page);
+  await refunding.getByRole('button', { name: 'Mark refunded' }).click();
+  await expect(main(page)).toContainText('Refunded: Sent back by bKash');
+  await expect(main(page).getByRole('button', { name: 'Refund' })).toHaveCount(0);
+  await expect(main(page).getByRole('button', { name: 'Void' })).toHaveCount(0);
+  expect(sent(log, 'POST', '/orders/o-44/payments/o-44-pay-0/refund')).toEqual([
+    { note: 'Sent back by bKash' },
+  ]);
+});
+
+test('Refund is for whoever may manage payments; a voided payment has none', async ({ page }) => {
+  await open(
+    page,
+    '/orders/o-44',
+    day((orders) => {
+      order(orders, 'o-44').payments = [
+        {
+          method: 'bkash',
+          amount: 500,
+          sender: '+8801819876543',
+          trxId: '9F2KQ7M1',
+          at: '2026-10-31T04:00:00.000Z',
+          voided: 'A mistake',
+        },
+      ];
+    }),
+  );
+  await expect(main(page)).toContainText('Voided: A mistake');
+  await expect(main(page).getByRole('button', { name: 'Refund' })).toHaveCount(0);
+  await open(page, '/orders/o-44', {
+    ...day((orders) => {
+      order(orders, 'o-44').payments = [
+        {
+          method: 'bkash',
+          amount: 500,
+          sender: '+8801819876543',
+          trxId: '9F2KQ7M1',
+          at: '2026-10-31T04:00:00.000Z',
+        },
+      ];
+    }),
+    isOwner: false,
+    permissions: ['orders:read', 'orders:manage'],
+  });
+  await expect(main(page)).toContainText('৳500 · TrxID 9F2KQ7M1');
+  await expect(main(page).getByRole('button', { name: 'Refund' })).toHaveCount(0);
+  await expect(main(page).getByRole('button', { name: 'Send payment link' })).toBeVisible();
+});
+
+test('Send payment link: the advance or all of it, then copy or WhatsApp', async ({ page }) => {
+  const log = await open(
+    page,
+    '/orders/o-44',
+    day((orders) => {
+      order(orders, 'o-44').advanceDue = 200;
+    }),
+  );
+  await main(page).getByRole('button', { name: 'Send payment link' }).click();
+  const linking = sheet(page, 'Send payment link');
+  await expect(linking.getByRole('radio', { name: /The advance/ })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await expect(linking.getByRole('radio', { name: /The advance/ })).toContainText('৳200');
+  await expect(linking.getByRole('radio', { name: /All that's due/ })).toContainText('৳3,780');
+  await expectAccessible(page);
+  // Nothing is made until staff ask.
+  expect(sent(log, 'POST', '/orders/o-44/payment-link')).toEqual([]);
+  await linking.getByRole('button', { name: 'Make the link' }).click();
+  const made = sheet(page, 'Link ready');
+  await expect(made).toContainText('৳200');
+  await expect(made.getByLabel('Payment link')).toHaveValue('https://pay.lytro.app/psn_o-44');
+  await expect(made).toContainText("It's open for 24 hours. Making a new link replaces this one.");
+  expect(sent(log, 'POST', '/orders/o-44/payment-link')).toEqual([{}]);
+  const whatsapp = made.getByRole('link', { name: 'WhatsApp' });
+  const href = (await whatsapp.getAttribute('href')) ?? '';
+  expect(href).toContain('https://wa.me/8801922333444?text=');
+  const message = decodeURIComponent(href.split('?text=')[1] ?? '');
+  expect(message).toContain('Please pay ৳200 for your order #');
+  expect(message).toContain('https://pay.lytro.app/psn_o-44');
+  await expect(made.getByRole('button', { name: 'Copy' })).toBeVisible();
+  await expectAccessible(page);
+});
+
+test('Send payment link: WhatsApp gets the 880 form, as the server holds the number or not', async ({
+  page,
+}) => {
+  // Held as the shopper typed it, which is how the server sends most numbers.
+  await open(
+    page,
+    '/orders/o-44',
+    day((orders) => {
+      order(orders, 'o-44').phone = '01922333444';
+    }),
+  );
+  await main(page).getByRole('button', { name: 'Send payment link' }).click();
+  await sheet(page, 'Send payment link').getByRole('button', { name: 'Make the link' }).click();
+  const href = await sheet(page, 'Link ready')
+    .getByRole('link', { name: 'WhatsApp' })
+    .getAttribute('href');
+  expect(href).toContain('https://wa.me/8801922333444?text=');
+});
+
+test('Send payment link: choosing all of it says so to the server', async ({ page }) => {
+  const log = await open(
+    page,
+    '/orders/o-44',
+    day((orders) => {
+      order(orders, 'o-44').advanceDue = 200;
+    }),
+  );
+  await main(page).getByRole('button', { name: 'Send payment link' }).click();
+  const linking = sheet(page, 'Send payment link');
+  await linking.getByRole('radio', { name: /All that's due/ }).click();
+  await linking.getByRole('button', { name: 'Make the link' }).click();
+  await expect(sheet(page, 'Link ready')).toContainText('৳3,780');
+  expect(sent(log, 'POST', '/orders/o-44/payment-link')).toEqual([{ full: true }]);
+});
+
+test('Send payment link: with no advance there is one amount to say', async ({ page }) => {
+  await open(page, '/orders/o-44');
+  await main(page).getByRole('button', { name: 'Send payment link' }).click();
+  const linking = sheet(page, 'Send payment link');
+  await expect(linking).toContainText('The customer can pay ৳3,780 with this link.');
+  await expect(linking.getByRole('radio')).toHaveCount(0);
+});
+
+test('Send payment link: what the server refuses is said plainly', async ({ page }) => {
+  await open(
+    page,
+    '/orders/o-44',
+    day((orders) => {
+      order(orders, 'o-44').linkRefused = {
+        status: 409,
+        code: 'conflict',
+        message: "A payment on this order is being checked. Make a new link once that's done.",
+      };
+    }),
+  );
+  await main(page).getByRole('button', { name: 'Send payment link' }).click();
+  await sheet(page, 'Send payment link').getByRole('button', { name: 'Make the link' }).click();
+  await expect(sheet(page, 'Send payment link')).toContainText(
+    'A payment on this order is being checked.',
+  );
+});
+
+test('Send payment link: no method on offers the way there', async ({ page }) => {
+  await open(
+    page,
+    '/orders/o-44',
+    day((orders) => {
+      order(orders, 'o-44').linkRefused = {
+        status: 409,
+        code: 'conflict',
+        message: 'No method.',
+        details: { reason: 'no_payment_method' },
+      };
+    }),
+  );
+  await main(page).getByRole('button', { name: 'Send payment link' }).click();
+  const linking = sheet(page, 'Send payment link');
+  await linking.getByRole('button', { name: 'Make the link' }).click();
+  await expect(linking).toContainText("No payment method is on, so a link can't be made.");
+  await expect(linking.getByRole('link', { name: 'See payment methods' })).toHaveAttribute(
+    'href',
+    `/${SLUG}/settings/payment-methods`,
+  );
+  await expect(linking.getByRole('button', { name: 'Make the link' })).toHaveCount(0);
+});
+
+test('Send payment link: not on a cancelled order, or one with nothing due', async ({ page }) => {
+  await open(
+    page,
+    '/orders/o-44',
+    day((orders) => {
+      order(orders, 'o-44').status = 'cancelled';
+    }),
+  );
+  await expect(main(page)).toContainText('#261031-0044');
+  await expect(main(page).getByRole('button', { name: 'Send payment link' })).toHaveCount(0);
+});
+
 test('Print label: 3 × 3 with the items, 2 × 3 without, the size kept for next time', async ({
   page,
 }) => {

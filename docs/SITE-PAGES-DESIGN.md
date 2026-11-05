@@ -70,6 +70,7 @@ Follows AUTH-28 exactly: identity, create shop, optional password. The prototype
 | Contact | `apps/website` | `/contact` | Built 2026-10-19: `app/contact/page.tsx`, `contact-form.tsx` and the server action in `actions.ts`, with the rules in `lib/contact/contact-submission.ts`. Channel values come from `SUPPORT_WHATSAPP`, `SUPPORT_PHONE` and `SUPPORT_EMAIL`, so placeholders cannot ship. The form posts to `CONTACT_WEBHOOK_URL`; without one it tells the visitor to use WhatsApp instead of pretending to send. "Open now" is computed in Dhaka time in the browser. |
 | Sign-up | `apps/dashboard` | `/sign-in`, `/verify-code`, `/create-shop`, `/checkout`, `/set-password`, `/set-up` | Built 2026-10-19 as a fresh app to this shell (`components/ui/step-frame.tsx`); the map of screens to files is in `ONBOARDING-FLOW-DESIGN.md` §5. |
 | Footer and nav | `apps/website` | | Add About and Contact to the nav and footer when the pages exist, per the landing-page spec. |
+| Listener app | `apps/website` | `/listener` | Slice 5.8, part 4: §6. In the footer under Help, not the nav: it's for shops already on Lytro. |
 
 ---
 
@@ -79,3 +80,28 @@ Follows AUTH-28 exactly: identity, create shop, optional password. The prototype
 - Team cards stay empty until people agree to be shown.
 - Terms and Privacy pages are linked from the sign-up screen and the footer but are not designed here; they are legal content first.
 - The Google and Facebook buttons use the official marks from `docs/brand/third-party/` (full set and README arrive with the logos PR); the built buttons must still follow each provider's sign-in branding rules.
+
+---
+
+## 6. The listener app (`lytro.app/listener`)
+
+Slice 5.8, part 4, read agreed 2026-11-05. Drawn in `brand/lytro-site-pages.html` (`#listener`, and `#listener-soon` before a release).
+The address the app itself opens for an update (`DOWNLOAD_URL`), and what the dashboard links to. Public, with no sign-in: the phone
+installing it may not be signed in anywhere. Bangla first, with the app's own words, so the guide and the app say the same thing.
+
+- **The top:** what the app does, Download the APK, the version, size and "Android 7 or later". On a computer, a QR of this page, since
+  the file is no use there; it opens the page and not the file, so the guide comes with it.
+- **The warning:** download only from lytro.app, and never install a file someone sends.
+- **Install it:** the four steps, including Android's "Install unknown apps" and Play Protect's "Install anyway".
+- **On Android 15 or later:** step 1 of setup can stop at "App was denied access to SMS", which is expected for an app installed from
+  a browser. The three steps out are the app's own (LISTENER-APP-DESIGN §2).
+- **Setup guide** (`#setup`, where the app's Help opens): pair, allow SMS, notifications, battery, a test; then keep the phone on.
+- **Updates:** the app says when one is needed, and it's the same download over the old one. The SHA-256 is folded under the updates.
+- **Help:** WhatsApp, when the site has a number.
+
+**Where the file lives** (agreed): its own public R2 bucket on `download.lytro.app` (DEPLOYMENT.md). The release command writes
+`latest.json` beside the APK, and the owner uploads the APK and then that file in Cloudflare's panel. The page reads `latest.json` every
+few minutes, so a release shows without a redeploy. It takes the file's name from there but always builds the address itself, on
+the bucket, so nothing in that file can send a shop elsewhere.
+
+**Before a release exists,** or if the bucket can't be read, the page says the app isn't ready and offers Talk to us; the guide stays.

@@ -93,6 +93,27 @@ export class ApiClient {
     return (body as Partial<ApiSuccessBody<T>> | null)?.data as T;
   }
 
+  /**
+   * A file the server sends rather than JSON, as a page's own request, so it names the shop as every other call does. A
+   * plain link can't send that header, and the server would then answer for the shop the session started on.
+   */
+  async file(path: string): Promise<Blob> {
+    const headers = new Headers();
+    const shop = this.options.getShop?.() ?? null;
+    if (shop !== null) headers.set(SHOP_HEADER, shop);
+    const language = this.options.getLanguage?.() ?? null;
+    if (language !== null) headers.set('Accept-Language', language);
+    const response = await fetch(`${this.options.baseUrl}${path}`, {
+      headers,
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      const body: unknown = await response.json().catch(() => null);
+      throw this.toError(response, body);
+    }
+    return response.blob();
+  }
+
   get<T>(path: string): Promise<T> {
     return this.request<T>(path);
   }
