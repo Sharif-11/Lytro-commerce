@@ -349,16 +349,16 @@ Still to come, with the screens that need them:
 | Screen | Route | View |
 | --- | --- | --- |
 | Sign-in | `/sign-in` | `views/sign-in` (credentials, enroll, backup-codes, verify steps, kept) |
-| Today | `/` | `views/today` (+ `queue-figures.tsx`, `recent-changes.tsx`) |
-| Payment queue | `/queue`, `/queue/$id` | `views/queue` (+ `queue-figures.tsx`, `payment-row.tsx`, `payment-panel.tsx`, `approve-panel.tsx`, `credit-panel.tsx`, `reject-panel.tsx`) |
-| Page reports | `/page-reports` | `views/page-reports` (+ `report-panel.tsx`, `suspend-page-panel.tsx`, `dismiss-dialog.tsx`) |
-| Shops | `/shops`, `/shops/$slug` | `views/shops` (list), `views/shop` (+ `suspend-panel.tsx`, `restore-panel.tsx`, `adjust-panel.tsx`, `assign-panel.tsx`, `override-panel.tsx`, `overrides-card.tsx`, `payments-card.tsx`, `cap-panel.tsx`, `phones-card.tsx`, `addons-card.tsx`), `/shops/$slug/credentials` |
+| Today | `/` | `views/today` (+ `also-waiting.tsx`, `recent-changes.tsx`; the figures are the queue's) |
+| Payment queue | `/queue`, `/queue/$id` | `views/queue` (+ `queue-figures.tsx`, `payment-panel.tsx`, `approve-panel.tsx`, `credit-panel.tsx`, `reject-panel.tsx`) |
+| Page reports | `/page-reports` | `views/page-reports` (its panels within; suspending shares the shop's `suspend-page-panel.tsx`) |
+| Shops | `/shops`, `/shops/$id` (the server reads a shop by its id), `/shops/$id/credentials` | `views/shops` (list), `views/shop` (+ `shop-panels.tsx`, `overrides-card.tsx`, `payments-card.tsx`, `suspend-page-panel.tsx`, `phones-card.tsx`, `addons-card.tsx`, `credentials.tsx`) |
 | Plans and prices | `/plans`, `/plans/$slug`, `/plans/$slug/versions` | `views/plans` (+ `price-matrix.tsx`, `plan-editor.tsx`, `versions-panel.tsx`) |
 | Billing terms | `/billing-terms` | `views/billing-terms` (+ `term-panel.tsx`) |
 | Rates | `/rates` | `views/rates` (+ `rate-row.tsx`) |
 | Settings | `/settings` | `views/settings` (+ `timeline-card.tsx`) |
 | Platform wallets | `/wallets` | `views/wallets` (+ `wallet-panel.tsx`) |
-| Lytro's phones | `/phones`, `/phones/receipts`, `/phones/unread` | `views/phones` (+ `pair-panel.tsx`, `revoke-panel.tsx`, `block-panel.tsx`, `receipts.tsx`, `receipt-panel.tsx`, `unread.tsx`; the revoke and block panels are shared with the shop page) |
+| Lytro's phones | `/phones`, `/phones/receipts`, `/phones/unread` | `views/phones` (+ `phones-head.tsx`, `phone-panels.tsx`, `receipts.tsx`, `unread.tsx`; the revoke and block panels are shared with the shop page) |
 | Add-ons | `/addons` | `views/addons` (+ `addon-panel.tsx`, `retire-dialog.tsx`) |
 | Shop types | `/catalogue/shop-types` | `views/shop-types` (+ `preset-panel.tsx`) |
 | Attribute library | `/catalogue/attributes` | `views/attributes` (+ `attribute-panel.tsx`, `value-panel.tsx`) |
@@ -372,9 +372,15 @@ cards below, driven by one column list, with the empty and error states) and `fi
 strip). The shell replaces `console-shell.tsx`: the light theme from `packages/ui`'s dashboard role tokens,
 the ink band and sidebar head, the four-tab phone bar and the More sheet.
 
-**Built so far (Slice 5.8 part 5).** The frame, sign-in, account and the later pages. Until their own pull requests, the
-screens not rebuilt yet sit in the new frame and theme at their old paths (`/payment-queue`, `/tenants`), and Today, Page
-reports, Add-ons, Lytro's phones and the catalogue hold their places with a page that says the screen is coming.
+**Built so far (Slice 5.8 part 5).** The frame, sign-in, account and the later pages; Today, the queue, shops, page reports
+and Lytro's phones. Plans, billing terms, rates, settings and wallets still sit in the new frame and theme with their old
+layouts until their pull request, which also brings add-ons and the catalogue; those three hold their places with a page
+that says the screen is coming.
+
+**What the queue says and doesn't.** A row's amount, and the approve button's, is what a receipt says arrived, else the quote,
+never what the seller typed. Approving sends an amount only if the operator changed the one shown. Putting money on the
+balance needs an amount the operator typed, unless a receipt says. Nothing here promises that the owner is told, or a period's
+end date: owner notices come with Phase 7, and the server doesn't say the date before it acts.
 
 ## 17. The prototype
 

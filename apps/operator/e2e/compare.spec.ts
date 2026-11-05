@@ -2,6 +2,7 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
+import { addonPayment, drawnPayments, drawnShops, GADGET, RAHIM } from './support/console-data';
 import {
   CODE,
   EMAIL,
@@ -54,6 +55,30 @@ async function code(page: Page, typed: string): Promise<void> {
 }
 
 const SIGNED_OUT: ConsoleState = { signedIn: false };
+
+/** A button by its English or Bangla words. */
+function press(en: string, bn: string): (page: Page) => Promise<void> {
+  return (page) =>
+    page
+      .getByRole('button', { name: new RegExp(`^(${en}|${bn})`) })
+      .first()
+      .click();
+}
+
+const RAHIM_PAGE = '/shops/ten-0001';
+const PAGE_OFF: ConsoleState = {
+  shops: drawnShops().map((each) =>
+    each.id === RAHIM
+      ? {
+          ...each,
+          paymentPageSuspension: {
+            at: '2026-10-20T00:00:00.000Z',
+            reason: 'Asked shoppers for their bKash PIN',
+          },
+        }
+      : each,
+  ),
+};
 
 const PAIRS: Pair[] = [
   { screen: 'signin', bare: true, path: '/sign-in', state: SIGNED_OUT },
@@ -132,6 +157,67 @@ const PAIRS: Pair[] = [
         .click(),
     only: ['phone'],
   },
+  { screen: 'today', path: '/' },
+  { screen: 'queue', path: '/queue' },
+  { screen: 'queue-payment', path: '/queue/pay-9101' },
+  { screen: 'queue-approve', path: '/queue/pay-9101?step=approve' },
+  { screen: 'queue-reject', path: '/queue/pay-9101?step=reject' },
+  { screen: 'queue-credit', path: '/queue/pay-9101?step=credit' },
+  {
+    screen: 'queue-addon',
+    path: '/queue/pay-9110',
+    state: { payments: [...drawnPayments(), addonPayment()] },
+  },
+  { screen: 'tenants', path: '/shops' },
+  { screen: 'tenant', path: RAHIM_PAGE },
+  { screen: 'tenant-suspended', path: `/shops/${GADGET}` },
+  { screen: 'tenant-suspend', path: RAHIM_PAGE, then: press('Suspend for cause', 'সাসপেন্ড করুন') },
+  { screen: 'tenant-restore', path: `/shops/${GADGET}`, then: press('Restore', 'রিস্টোর') },
+  {
+    screen: 'tenant-adjust',
+    path: RAHIM_PAGE,
+    then: press('Adjust balance', 'ব্যালেন্স ঠিক করুন'),
+  },
+  { screen: 'tenant-assign', path: RAHIM_PAGE, then: press('Assign a plan', 'প্ল্যান দিন') },
+  { screen: 'tenant-override', path: RAHIM_PAGE, then: press('Add override', 'ওভাররাইড যোগ') },
+  { screen: 'tenant-page-off', path: RAHIM_PAGE, state: PAGE_OFF },
+  {
+    screen: 'tenant-page-suspend',
+    path: RAHIM_PAGE,
+    then: press('Suspend the page', 'পেজ সাসপেন্ড করুন'),
+  },
+  {
+    screen: 'tenant-page-restore',
+    path: RAHIM_PAGE,
+    state: PAGE_OFF,
+    then: press('Restore the page', 'পেজ আবার চালু করুন'),
+  },
+  { screen: 'tenant-cap', path: RAHIM_PAGE, then: press('Change', 'বদলান') },
+  { screen: 'tenant-phone-revoke', path: RAHIM_PAGE, then: press('Revoke', 'ক্যানসেল') },
+  { screen: 'tenant-phone-block', path: RAHIM_PAGE, then: press('Block', 'ব্লক') },
+  { screen: 'tenant-credentials', path: `${RAHIM_PAGE}/credentials` },
+  { screen: 'pagereports', path: '/page-reports' },
+  { screen: 'pagereports-handled', path: '/page-reports?view=handled' },
+  {
+    screen: 'pagereport',
+    path: '/page-reports',
+    then: (page) => page.locator('main section button').first().click(),
+  },
+  {
+    screen: 'pagereport-suspend',
+    path: '/page-reports',
+    then: press('Suspend the page', 'পেজ সাসপেন্ড করুন'),
+  },
+  { screen: 'pagereport-dismiss', path: '/page-reports', then: press('Dismiss$', 'বাদ দিন') },
+  { screen: 'phones', path: '/phones' },
+  { screen: 'phone-pair', path: '/phones', then: press('Pair a phone', 'ফোন পেয়ার করুন') },
+  { screen: 'receipts', path: '/phones/receipts' },
+  {
+    screen: 'receipt',
+    path: '/phones/receipts',
+    then: (page) => page.locator('main section button').first().click(),
+  },
+  { screen: 'unread', path: '/phones/unread' },
   { screen: 'later-audit', path: '/audit' },
   { screen: 'later-reports', path: '/reports' },
   { screen: 'later-manual', path: '/manual' },

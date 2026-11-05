@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { CODE, EMAIL, mockApi, PASSWORD } from './support/mock-api';
+import { CODE, EMAIL, mockApi, paymentsOf, PASSWORD } from './support/mock-api';
 
 // OPERATOR-CONSOLE-DESIGN §1: the frame around every screen. On a desktop the sidebar and the top bar; on a phone the ink
 // band, the four tabs and the More sheet.
@@ -19,9 +19,9 @@ function tabs(page: Page): Locator {
 
 const DESTINATIONS = [
   ['Today', '/'],
-  ['Payment queue', '/payment-queue'],
+  ['Payment queue', '/queue'],
   ['Page reports', '/page-reports'],
-  ['Shops', '/tenants'],
+  ['Shops', '/shops'],
   ['Plans and prices', '/plans'],
   ['Billing terms', '/billing-terms'],
   ['Rates', '/rates'],
@@ -56,7 +56,7 @@ test.describe('on a desktop', () => {
     }
     const names = await sidebar(page).getByRole('link').allInnerTexts();
     expect(names.map((name) => name.split('\n')[0])).toEqual(DESTINATIONS.map(([label]) => label));
-    await expect(page.getByText(EMAIL)).toBeVisible();
+    await expect(page.getByRole('complementary').getByText(EMAIL)).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible();
   });
 
@@ -88,11 +88,11 @@ test.describe('on a desktop', () => {
 
   test('keeps the counts current while the console sits open', async ({ page }) => {
     await page.clock.install();
-    const log = await mockApi(page, { queue: 3 });
+    const log = await mockApi(page, { queue: 3, ownClock: true });
     await page.goto('/');
     const queue = sidebar(page).getByRole('link', { name: /^Payment queue/ });
     await expect(queue).toHaveText(/Payment queue\s*3/);
-    log.state.queue = 5;
+    log.state.payments = paymentsOf(5);
     await page.clock.runFor(60_000);
     await expect(queue).toHaveText(/Payment queue\s*5/);
   });
@@ -165,30 +165,30 @@ test.describe('on a desktop', () => {
     await mockApi(page);
     await page.goto('/rates');
     await expect(page.getByRole('heading', { name: 'Rates' })).toBeVisible();
-    const search = page.getByRole('searchbox', { name: 'Find a shop by name or address' });
+    const search = page.getByRole('banner').filter({ visible: true }).getByRole('searchbox');
     await page.keyboard.press('/');
     await expect(search).toBeFocused();
     await expect(search).toHaveValue('');
     await search.fill('megh');
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL('/tenants?q=megh');
-    await expect(page.getByLabel('Search', { exact: true })).toHaveValue('megh');
+    await expect(page).toHaveURL('/shops?q=megh');
+    await expect(page.getByRole('main').getByRole('searchbox')).toHaveValue('megh');
   });
 
   test('a search sent while Shops is open changes what it searches for', async ({ page }) => {
     await mockApi(page);
-    await page.goto('/tenants?q=megh');
-    await expect(page.getByLabel('Search', { exact: true })).toHaveValue('megh');
-    await page.getByRole('searchbox', { name: 'Find a shop by name or address' }).fill('rumi');
+    await page.goto('/shops?q=megh');
+    await expect(page.getByRole('main').getByRole('searchbox')).toHaveValue('megh');
+    await page.getByRole('banner').filter({ visible: true }).getByRole('searchbox').fill('rumi');
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL('/tenants?q=rumi');
-    await expect(page.getByLabel('Search', { exact: true })).toHaveValue('rumi');
+    await expect(page).toHaveURL('/shops?q=rumi');
+    await expect(page.getByRole('main').getByRole('searchbox')).toHaveValue('rumi');
   });
 
   test('"/" types into a field already being typed in', async ({ page }) => {
     await mockApi(page);
-    await page.goto('/tenants');
-    const field = page.getByLabel('Search', { exact: true });
+    await page.goto('/shops');
+    const field = page.getByRole('main').getByRole('searchbox');
     await field.click();
     await page.keyboard.type('a/b');
     await expect(field).toHaveValue('a/b');
@@ -197,7 +197,7 @@ test.describe('on a desktop', () => {
   test('tabbing past the search leaves the screen alone', async ({ page }) => {
     await mockApi(page);
     await page.goto('/rates');
-    await page.getByRole('searchbox', { name: 'Find a shop by name or address' }).focus();
+    await page.getByRole('banner').filter({ visible: true }).getByRole('searchbox').focus();
     await expect(page).toHaveURL('/rates');
   });
 
@@ -250,7 +250,7 @@ test.describe('on a phone', () => {
     await page.goto('/rates');
     await expect(page.getByRole('banner').getByText('Rates')).toBeVisible();
     await page.getByRole('link', { name: 'Find a shop' }).click();
-    await expect(page).toHaveURL('/tenants');
+    await expect(page).toHaveURL('/shops');
   });
 
   test('More lists every destination, the account, the language and sign-out', async ({ page }) => {
@@ -303,7 +303,7 @@ test.describe('on a phone', () => {
     await page.goto('/rates');
     await expect(page.getByRole('main').getByRole('heading', { name: 'Rates' })).toBeVisible();
     await page.keyboard.press('/');
-    await expect(page).toHaveURL('/tenants');
+    await expect(page).toHaveURL('/shops');
   });
 
   test('no screen scrolls sideways', async ({ page }) => {
@@ -324,8 +324,8 @@ test('a screen not rebuilt yet says so, and one for later names its requirement'
   page,
 }) => {
   await mockApi(page);
-  await page.goto('/phones');
-  await expect(page.getByRole('heading', { name: "Lytro's phones" })).toBeVisible();
+  await page.goto('/addons');
+  await expect(page.getByRole('heading', { name: 'Add-ons' })).toBeVisible();
   await expect(page.getByText('This screen comes with a later part')).toBeVisible();
   await page.goto('/audit');
   await expect(page.getByRole('heading', { name: 'Audit log' })).toBeVisible();

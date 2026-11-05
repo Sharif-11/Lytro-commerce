@@ -1,7 +1,18 @@
 import type {
+  AddonKind,
+  AddonRenewal,
+  CredentialUseAction,
+  ListenerDeviceStatus,
+  ListenerIgnoredReason,
+  ListenerMessageStatus,
+  PaymentMethod,
+  PaymentPageReportReason,
+  PaymentPageReportStatus,
+  PaymentReviewReason,
   PlanLimits,
   PlanPaymentKind,
   PlanPaymentStatus,
+  PlatformAuditAction,
   RateKey,
   TenantState,
 } from '@lytronix/validators';
@@ -96,6 +107,7 @@ export interface PlanLimitOverride {
   value: number | boolean | null;
   reason: string;
   setBy: string;
+  setByEmail: string | null;
   setAt: string;
 }
 
@@ -134,6 +146,8 @@ export interface TenantSummary {
   suspendedAt: string | null;
   planId: string | null;
   planName: string | null;
+  planVersion: number | null;
+  overrideCount: number;
   periodEnd: string | null;
 }
 
@@ -158,6 +172,182 @@ export interface PlanPayment {
   verifiedBy: string | null;
   verifiedAt: string | null;
   createdAt: string;
+}
+
+/** `paymentAddonSchema` in apps/server/src/modules/team/dto/billing-response.dto.ts. */
+export interface PaymentAddon {
+  id: string;
+  key: string;
+  labelEn: string;
+  labelBn: string;
+  quantity: number;
+  price: string;
+  status: string;
+  startsAt: string | null;
+  expiresAt: string;
+}
+
+/** `queuedPaymentSchema` there: a payment as the queue lists it. */
+export interface QueuedPayment extends PlanPayment {
+  submittedAt: string | null;
+  addons: PaymentAddon[];
+  shopName: string;
+  shopSlug: string;
+  wallet: PaymentMethod | null;
+  amountSent: string | null;
+  amountArrived: string | null;
+  reviewReason: PaymentReviewReason | null;
+}
+
+/** `operatorShopSchema` in apps/server/src/modules/team/dto/operator-console.dto.ts. */
+export interface OperatorShop {
+  id: string;
+  slug: string;
+  shopName: string;
+  state: TenantState;
+  createdAt: string;
+  planId: string | null;
+  planName: string | null;
+  planVersion: number | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  overrideCount: number;
+  suspension: { at: string; reason: string | null; by: string | null } | null;
+  paymentPageSuspension: { at: string; reason: string | null } | null;
+  newShopCap: { set: boolean | null; holds: boolean };
+}
+
+/** `operatorShopAddonsSchema` there. */
+export interface ShopAddon {
+  id: string;
+  key: string;
+  kind: AddonKind;
+  labelEn: string;
+  labelBn: string;
+  quantity: number;
+  expiresAt: string;
+  renewal: AddonRenewal;
+  monthlyPrice: string;
+  paidFrom: 'balance' | 'wallet';
+}
+
+export interface ShopPack {
+  metric: 'bandwidth' | 'requests';
+  left: number;
+  autoBuy: boolean;
+}
+
+export interface LimitPart {
+  key: string;
+  plan: unknown;
+  overridden: boolean;
+  override: unknown;
+  addons: number;
+  effective: unknown;
+}
+
+export interface ShopAddons {
+  addons: ShopAddon[];
+  packs: ShopPack[];
+  limits: LimitPart[];
+}
+
+/** `recentChangeSchema` there. */
+export interface RecentChange {
+  id: number;
+  action: PlatformAuditAction;
+  at: string;
+  by: string | null;
+  key: string | null;
+  oldValue: unknown;
+  newValue: unknown;
+  reason: string | null;
+  shop: { id: string; name: string; slug: string } | null;
+}
+
+/** `PaymentPageReportListDto` in apps/server/src/modules/team/dto/payment-pages.dto.ts. */
+export interface PaymentPageReport {
+  id: string;
+  shop: { id: string; name: string; slug: string; paymentPageSuspended: boolean };
+  paymentUrl: string;
+  reason: PaymentPageReportReason;
+  note: string | null;
+  ip: string | null;
+  status: PaymentPageReportStatus;
+  createdAt: string;
+  handledAt: string | null;
+}
+
+/** apps/server/src/modules/team/dto/listener.dto.ts. */
+export interface ListenerDevice {
+  id: string;
+  name: string;
+  model: string | null;
+  appVersion: string;
+  pairedAt: string;
+  lastSeenAt: string | null;
+  online: boolean;
+  status: ListenerDeviceStatus;
+  flags: number;
+  uploadsToday: number;
+  installationId: string;
+}
+
+export interface ListenerDeviceList {
+  devices: ListenerDevice[];
+  active: number;
+  limit: number | null;
+}
+
+export interface ListenerCode {
+  code: string;
+  expiresAt: string;
+}
+
+export interface LytroReceipt {
+  id: string;
+  method: PaymentMethod | null;
+  amount: string | null;
+  transactionId: string | null;
+  status: ListenerMessageStatus;
+  reviewReason: PaymentReviewReason | null;
+  ignoredReason: ListenerIgnoredReason | null;
+  receivedAt: string;
+  senderNumber: string | null;
+  deviceId: string;
+  planPaymentId: string | null;
+  text: string | null;
+}
+
+export interface LytroReceiptPage {
+  receipts: LytroReceipt[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
+export interface UnreadShape {
+  day: string;
+  shape: string;
+  count: number;
+}
+
+export interface CredentialUse {
+  method: PaymentMethod;
+  action: CredentialUseAction;
+  accountId: string;
+  sessionId: string | null;
+  succeeded: boolean;
+  at: string;
+}
+
+export interface CredentialUsePage {
+  uses: CredentialUse[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
 }
 
 /** apps/server/src/modules/balance/types/platform-wallet.ts. */
