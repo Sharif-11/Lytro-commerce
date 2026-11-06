@@ -128,6 +128,8 @@ interface Parcel {
   cashCollected: string | null;
   attention: string | null;
   deliveryCharge: string | null;
+  paidAt: string | null;
+  payoutId: string | null;
   news: { source: string; rawStatus: string | null }[];
 }
 
@@ -931,14 +933,22 @@ describeIfDatabase(
       expect(after.fulfillmentStatus).toBe('processing');
     });
 
-    it('shows being paid in the history and moves nothing', async () => {
+    it('marks the parcel paid with its invoice and moves nothing else (CRR-12, CRR-17)', async () => {
       const to = await connectedShop();
       const { variantId } = await product(to.shop);
       const order = await booked(to.shop, await place(to.shop, variantId));
-      await send(to, order, 'order.paid', { invoice_id: 'INV-9' });
+      const body = messageOf(order, 'order.paid', { invoice_id: 'INV-9' });
+      expect((await postMessage(to, body)).status).toBe(202);
+      await applied(to.shop.tenantId);
       const after = await read(to.shop, order.id);
       expect(after.parcel?.reading).not.toBe('delivered');
       expect(after.parcel?.courierStatus).toBe('pending');
+      expect(after.parcel).toMatchObject({ paidAt: body.updated_at, payoutId: 'INV-9' });
+      // Being paid goes to the payout records, not the parcel's journey.
+      expect(after.parcel?.news).toEqual([]);
+      // The first word of it stands.
+      await send(to, order, 'order.paid', { invoice_id: 'INV-10' });
+      expect((await read(to.shop, order.id)).parcel).toMatchObject({ payoutId: 'INV-9' });
     });
 
     it('records a partly delivered parcel with the cash it says, and stock waits for staff', async () => {

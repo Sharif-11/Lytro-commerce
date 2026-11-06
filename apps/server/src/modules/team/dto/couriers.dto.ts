@@ -15,6 +15,8 @@ import {
   courierAreasForOrderSchema,
   courierAreasQuerySchema,
   CourierAreaMatch,
+  courierPayoutsQuerySchema,
+  ParcelReading,
   refreshCourierAreasSchema,
 } from '@lytronix/validators';
 
@@ -25,6 +27,7 @@ export class AssignCourierAreaDto extends createZodDto(assignCourierAreaSchema) 
 export class ConfirmCourierAreasDto extends createZodDto(confirmCourierAreasSchema) {}
 export class RefreshCourierAreasDto extends createZodDto(refreshCourierAreasSchema) {}
 export class CourierAreasForOrderDto extends createZodDto(courierAreasForOrderSchema) {}
+export class CourierPayoutsQueryDto extends createZodDto(courierPayoutsQuerySchema) {}
 
 // CUS-10 (Slice 6.4): one of a courier's areas, for the operator.
 const courierAreaSchema = z.object({
@@ -146,5 +149,46 @@ export class CourierCredentialUsePageDto extends createZodDto(
     limit: z.number(),
     total: z.number(),
     pages: z.number(),
+  }),
+) {}
+
+// CRR-17 (Slice 6.5): a payout a courier made the shop, its figures as the courier gave them.
+const courierPayoutSchema = z.object({
+  id: z.string(),
+  courierKey: z.nativeEnum(CourierKey),
+  payoutId: z.string(),
+  amount: z.string(),
+  charges: z.string().nullable(),
+  total: z.string().nullable(),
+  method: z.string().nullable(),
+  paidAt: z.coerce.date(),
+  madeAt: z.coerce.date().nullable(),
+  parcels: z.number(),
+  ours: z.number(),
+});
+
+export class CourierPayoutListDto extends createZodDto(
+  z.object({
+    payouts: z.array(courierPayoutSchema),
+    page: z.number(),
+    limit: z.number(),
+    total: z.number(),
+    pages: z.number(),
+  }),
+) {}
+
+// CRR-17 (Slice 6.5): one payout and the shop's orders it settled; no courier gives an amount for one parcel.
+export class CourierPayoutDto extends createZodDto(
+  courierPayoutSchema.extend({
+    orders: z.array(
+      z.object({
+        orderId: z.string(),
+        orderNumber: z.string().nullable(),
+        cod: z.string(),
+        cashCollected: z.string().nullable(),
+        deliveryCharge: z.string().nullable(),
+        reading: z.nativeEnum(ParcelReading).nullable(),
+      }),
+    ),
   }),
 ) {}

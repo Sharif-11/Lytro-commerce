@@ -19,6 +19,7 @@ import {
   Permission,
   type CourierAreasForOrderQuery,
   type CourierKey,
+  type CourierPayoutsQuery,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { Dashboard } from '../../../common/decorators/dashboard';
@@ -35,6 +36,12 @@ import {
   type CourierConnectionView,
 } from '../../couriers/services/courier-connections';
 import { CourierMessages, type MessageAddress } from '../../couriers/services/courier-messages';
+import {
+  CourierPayouts,
+  type CourierPayoutListView,
+  type CourierPayoutOrderView,
+  type CourierPayoutView,
+} from '../../couriers/services/courier-payouts';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import {
@@ -45,6 +52,9 @@ import {
   CourierAreaChoicesDto,
   CourierAreasForOrderDto,
   CourierConnectionListDto,
+  CourierPayoutDto,
+  CourierPayoutListDto,
+  CourierPayoutsQueryDto,
   CourierStoreListDto,
   MessageAddressDto,
   SetPickupStoreDto,
@@ -69,6 +79,7 @@ export class CouriersController {
     @Inject(CourierConnections) private readonly connections: CourierConnections,
     @Inject(CourierMessages) private readonly messages: CourierMessages,
     @Inject(CourierAreaList) private readonly areas: CourierAreaList,
+    @Inject(CourierPayouts) private readonly payouts: CourierPayouts,
     @Inject(OrderFulfilment) private readonly fulfilment: OrderFulfilment,
     @Inject(CatalogueRequest) private readonly request: CatalogueRequest,
   ) {}
@@ -88,6 +99,33 @@ export class CouriersController {
   ): Promise<{ thana: CourierAreaChoice[]; zilla: CourierAreaChoice[] }> {
     const order = await this.fulfilment.placeOf(this.request.tenantIdOf(request), query.orderId);
     return this.areas.forOrder(courierKeyOf(key), order, query.q);
+  }
+
+  @Get('payouts')
+  @RequirePermission(Permission.PaymentsRead)
+  @ResponseMessage('CourierPayoutsListed')
+  @ApiOperation({
+    summary:
+      "What couriers have paid the shop, the newest first, each courier's figures as it gave them (CRR-17)",
+  })
+  @ZodResponse({ type: CourierPayoutListDto })
+  payoutList(
+    @Query(new ZodValidationPipe(CourierPayoutsQueryDto.schema)) query: CourierPayoutsQuery,
+    @Req() request: DashboardRequest,
+  ): Promise<CourierPayoutListView> {
+    return this.payouts.list(this.request.tenantIdOf(request), query);
+  }
+
+  @Get('payouts/:id')
+  @RequirePermission(Permission.PaymentsRead)
+  @ResponseMessage('CourierPayoutFound')
+  @ApiOperation({ summary: "One courier payout, with the shop's orders it settled (CRR-17)" })
+  @ZodResponse({ type: CourierPayoutDto })
+  payout(
+    @Param('id') id: string,
+    @Req() request: DashboardRequest,
+  ): Promise<CourierPayoutView & { orders: CourierPayoutOrderView[] }> {
+    return this.payouts.one(this.request.tenantIdOf(request), id);
   }
 
   @Get('adapters')

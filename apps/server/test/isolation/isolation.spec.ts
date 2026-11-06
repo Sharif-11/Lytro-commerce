@@ -181,6 +181,8 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /couriers/connections',
       'GET /couriers/connections/:key/address',
       'GET /couriers/connections/:key/stores',
+      'GET /couriers/payouts',
+      'GET /couriers/payouts/:id',
       'GET /customers',
       'GET /customers/:id',
       'GET /delivery-zones',

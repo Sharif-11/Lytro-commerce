@@ -71,7 +71,7 @@ between a courier and a shop never passes through Lytro.
 | D6-6 | **Part of an order delivered.** Couriers report on the whole parcel, not item by item. | One parcel per order. A partly delivered report shows the order as partly delivered with the cash collected; staff say which items came back, sellable or damaged. `partially_shipped` stays unused. ORD-42 amended. | Slices 6.1, 6.2 |
 | D6-7 | **When stock leaves.** Today it leaves at Mark shipped. | At booking, working as Mark shipped does: stock, serials, handling count and fee in one step, while a person is there to choose serials. CRR-06, ORD-10, INV-14, INV-15 amended, and CRR-22, which contradicted PYG-02: booking costs nothing of its own, and pay-as-you-go's order fee is charged as PYG-02 says. | Slice 6.1 |
 | D6-8 | **Cancelling a booked order.** Only RedX's document has a cancel call. | RedX is cancelled from Lytro. For the others, Lytro asks whether staff have cancelled it in the courier's panel, then cancels the order and brings the stock back. The fee and count stay (PYG-04, QTA-01). A later delivered report goes to staff and reopens nothing. Added as CRR-28. | Slice 6.1 |
-| D6-9 | **Courier money.** Steadfast lists payouts with amounts; Pathao and RedX say a parcel was paid, without one. | Lytro records what each tells: paid or not on each parcel, with the amount and delivery charge where given. Profit subtracts known charges and says how many orders have none. No page adds up what a courier owes. CRR-17 amended. | Slice 6.5 |
+| D6-9 | **Courier money.** Steadfast lists payouts with amounts; Pathao and RedX say a parcel was paid, without one. | Lytro records what each tells: paid or not on each parcel, with the amount and delivery charge where given. Profit subtracts known charges and says how many orders have none. No page adds up what a courier owes. CRR-17 amended. Amended 2026-11-06 by Slice 6.5's read: no courier gives an amount per parcel, so the payout keeps it; delivery stays out of profit, and couriers' charges are a figure of their own. | Slice 6.5 |
 
 **D6-10 to D6-14 follow from those or from existing requirements.** They weren't asked in the read, so the owner can
 overrule any of them when reviewing this plan.
@@ -94,7 +94,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 6.2 | Settled 2026-11-05: see Slice 6.2. |
 | 6.3 | Settled 2026-11-05: see Slice 6.3. |
 | 6.4 | Settled 2026-11-06: see Slice 6.4. |
-| 6.5 | Steadfast's payouts: read on the night run, or when its payout message arrives. Whether its one-call "what we owe you" figure earns a line, given D6-9 has no settlement page. Profit's wording, and INV-18's delivery charges. |
+| 6.5 | Settled 2026-11-06: see Slice 6.5. |
 | 6.6 | What "a suggested alternative courier" is (CRR-25). |
 | 6.7 | Settled by its sketch: see that slice. |
 
@@ -203,7 +203,8 @@ In the `tenant` schema with RLS forced, unless marked `control`; money `numeric(
 |---|---|---|
 | `courier_connections` | courier key, sealed credentials, default flag, state; sealed message address token and signing token, last message time, when a message last failed verification, when the owner was last told of a broken paste | CRR-02 to CRR-05, CRR-20 |
 | `control.courier_message_routes` | the hash of an address's token → shop and courier, so a message finds its shop before RLS applies; removed on disconnect | CRR-11, CRR-20 |
-| `courier_parcels` | an order's parcels, one live at a time: courier, booking state (`booking`, `booked`, `unknown`, `refused`, `cancelled`), invoice, consignment ID, tracking code, the courier's status, COD sent, weight, note, area, delivery charge, its refusal, the fee held and its rates, whether it took the order's place, the serials named, when it settled and any problem doing so, its look-ups; our reading of the status, the cash its courier reports, a COD changed in its panel, what staff should look at, last news, last change, last message, last check, when checks stopped; Slice 6.5 adds payout ID and amount and the paid flag | CRR-06, CRR-08, CRR-14, CRR-15, CRR-17, CUS-12 |
+| `courier_parcels` | an order's parcels, one live at a time: courier, booking state (`booking`, `booked`, `unknown`, `refused`, `cancelled`), invoice, consignment ID, tracking code, the courier's status, COD sent, weight, note, area, delivery charge, its refusal, the fee held and its rates, whether it took the order's place, the serials named, when it settled and any problem doing so, its look-ups; our reading of the status, the cash its courier reports, a COD changed in its panel, what staff should look at, last news, last change, last message, last check, when checks stopped; Slice 6.5 adds when it was paid and the payout that did, the amount staying on the payout | CRR-06, CRR-08, CRR-14, CRR-15, CRR-17, CUS-12 |
+| `courier_payouts` | Slice 6.5: a payout as its courier gives it (ID, amount, charges, total, method, dates), how many parcels it settled and how many Lytro booked | CRR-17 |
 | `courier_events` | a parcel's news: where it came from (message, check, Sync), a unique dedupe key, the raw status, our reading, messages in Bangla and English, its time, what the adapter read, whether it has been applied | CRR-12, CRR-13 |
 | `courier_credential_uses` | every outbound call with a shop's credentials, without them | SEC-11 |
 | `control.courier_areas` | as `DATABASE-SCHEMA.md` §2.5 | CUS-10 |
@@ -396,6 +397,31 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
 - **Depends on:** 6.2.
 - **Delivers:** a parcel's paid flag, payout and charge (CRR-17, D6-9) from what each courier tells; known charges in
   profit, saying how many orders have none (INV-18).
+- **Read, agreed 2026-11-06.** Steadfast's live payouts were read once, read-only, with the owner's own key: 8 payouts on
+  one page, oldest first, with no page count. Each has its ID, amount, charges, total, method (Bank), status and dates;
+  one payout lists the parcels it settled with their numbers, but **no amount for any parcel**. Its guide has no "payout
+  made" message, only a `payment_request` whose meaning it doesn't give.
+  - **How payouts arrive: message, else night.** The message is used once a real one shows it reports payouts. Until
+    then the night run reads new payouts after the check: one call for the list, and one for each payout not yet read.
+    (The owner first chose the message alone; asked again once the guide showed no payout message.)
+  - **What's kept:** a payout keeps its figures as Steadfast gives them, and its parcels take its ID and date. Pathao's
+    and RedX's `paid` messages mark the parcel paid, Pathao's with its invoice, neither with an amount.
+  - **Payout check: show only.** Its figures are never compared with the cash recorded, since its own fees would make
+    false alarms.
+  - **"What we owe you": left out** (the owner's pick; a line showing Steadfast's own figure was recommended).
+  - **Profit: delivery stays out of it** (the owner's pick; counting both ways where known was recommended). Couriers'
+    charges are a figure of their own beside what shoppers paid for delivery, with how many orders have none. CRR-17 and
+    INV-18 amended.
+  - **PRs: one.**
+- **Built as PR #316,** migration 0111 (`tenant.courier_payouts`, a parcel's `paid_at` and `payout_id`, where a
+  connection's payout read starts). Calls stay down: a shop is asked only while one of that courier's finished parcels
+  waits to be paid (changed within the check's [30] days), so most nights cost nothing; a payout made before the oldest
+  waiting parcel was booked is never opened; the list is read from the page the last night reached, a page shorter than a
+  full one being the last ([8] at least, as the live list showed), at most [10] pages a night. A payout still being made
+  up is listed again later. A parcel is matched by the courier's number, or by ours only where Lytro never learned the
+  courier's, which the payout then fills in. Being paid stays off the parcel's news (CRR-12). The screens come with
+  Slice 6.7. **Not tried:** a real `payment_request`, Pathao's `order.paid` and RedX's `paid`; `KNOWN-GAPS` §123 lists
+  them.
 
 ### Slice 6.6: retiring a courier
 - **Depends on:** 6.1.

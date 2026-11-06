@@ -21,3 +21,9 @@ export const DEFAULT_COURIER_SYNC_MINUTES = 10;
 export const COURIER_AREA_PAGE_SIZE = 50;
 export const COURIER_AREA_PAGE_MAX = 200;
 export const COURIER_AREA_SEARCH_MAX = 50;
+// CRR-17 (Slice 6.5): a courier's payout ID and how it paid, as kept; how many of its payout pages one night reads for a
+// shop; and a page of payouts for the shop.
+export const COURIER_PAYOUT_ID_MAX_LENGTH = 64;
+export const COURIER_PAYOUT_METHOD_MAX_LENGTH = 40;
+export const COURIER_PAYOUT_PAGES_PER_NIGHT = 10;
+export const COURIER_PAYOUT_PAGE_SIZE = 50;

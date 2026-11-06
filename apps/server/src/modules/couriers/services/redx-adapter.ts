@@ -57,7 +57,8 @@ const READINGS: Readonly<Record<string, ParcelReading>> = {
   returned: ParcelReading.Returning,
   cancelled: ParcelReading.Returning,
 };
-const OTHER_STATUSES: ReadonlySet<string> = new Set(['paid']);
+const PAID = 'paid';
+const OTHER_STATUSES: ReadonlySet<string> = new Set([PAID]);
 
 function wordsOf(words: string | null): string | null {
   return refusalWords(words, COURIER_MESSAGE_MAX_LENGTH);
@@ -222,6 +223,8 @@ export class RedxAdapter implements CourierAdapter {
           deliveryCharge: codeOf(info, 'charge'),
           codAtCourier: null,
           happenedAt: null,
+          paid: rawStatus === PAID,
+          payoutId: null,
         },
       };
     }
@@ -264,6 +267,9 @@ export class RedxAdapter implements CourierAdapter {
       deliveryCharge: null,
       codAtCourier: null,
       happenedAt: timeOf(when),
+      // CRR-12, CRR-17: being paid names no amount and no payout.
+      paid: rawStatus === PAID,
+      payoutId: null,
     };
   }
 

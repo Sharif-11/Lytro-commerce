@@ -18,6 +18,7 @@ import { CourierBooking } from './services/courier-booking';
 import { CourierBookingPass } from './services/courier-booking-pass';
 import { CourierCalls } from './services/courier-calls';
 import { CourierChecks } from './services/courier-checks';
+import { CourierPayouts } from './services/courier-payouts';
 import { CourierConnections } from './services/courier-connections';
 import { CourierMessages } from './services/courier-messages';
 import { CourierNewsPath } from './services/courier-news-path';
@@ -84,6 +85,7 @@ import {
     CourierBooking,
     CourierNewsPath,
     CourierChecks,
+    CourierPayouts,
     CourierBookingPass,
   ],
   exports: [
@@ -93,6 +95,7 @@ import {
     CourierBooking,
     CourierBookingPass,
     CourierChecks,
+    CourierPayouts,
     COURIER_NOTIFIER,
   ],
 })

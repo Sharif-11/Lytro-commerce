@@ -259,6 +259,8 @@ const orderViewSchema = z.object({
       lastNewsAt: z.coerce.date().nullable(),
       noNews: z.boolean(),
       attention: z.nativeEnum(ParcelAttention).nullable(),
+      paidAt: z.coerce.date().nullable(),
+      payoutId: z.string().nullable(),
       news: z.array(
         z.object({
           source: z.nativeEnum(CourierNewsSource),
