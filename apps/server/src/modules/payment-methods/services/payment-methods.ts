@@ -147,6 +147,12 @@ export class PaymentMethods {
           : [],
       );
       if (strangers.length > 0) throw new FieldsError(strangers);
+      // WAL-11: a shopper paying through an account at its wallet keeps it until they are done (found at the Phase 5 close-out).
+      const kept = new Set(input.accounts.map((row) => row.id));
+      const removed = current.filter((row) => !kept.has(row.id)).map((row) => row.id);
+      if (await this.store.checkoutOpenOn(tx, tenantId, removed)) {
+        throw new ApiError('conflict', 'PaymentAccountCheckoutOpen', {});
+      }
       const firstActive = input.accounts.findIndex((row) => row.active === true);
       const accounts = input.accounts.map((row, index) => accountOf(row, index === firstActive));
       await this.store.replaceMethod(tx, tenantId, method, accounts);
@@ -315,6 +321,9 @@ export class PaymentMethods {
   ): Promise<SelectWalletAccount> {
     const who = await this.activity.resolve(tenantId, actor);
     return this.store.run(tenantId, async (tx) => {
+      if (await this.store.checkoutOpenOn(tx, tenantId, [accountId])) {
+        throw new ApiError('conflict', 'PaymentAccountCheckoutOpen', {});
+      }
       const row = await this.store.setGateway(tx, tenantId, accountId, null);
       if (!row) throw new ApiError('not_found', 'PaymentAccountNotFound', {});
       await this.activity.record(

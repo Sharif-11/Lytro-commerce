@@ -2023,6 +2023,37 @@ describeIfDatabase('what the Phase 5 close-out found (VER-01, VER-09, PAY-15, WA
   );
 
   it(
+    "keeps an account and its keys while a shopper's checkout on it is open (WAL-11)",
+    async () => {
+      const setup = await automate(await paidShop());
+      const ref = await placed(setup);
+      const { paymentId } = await started(ref);
+      const keys = await setup.shop.delete(`/payment-methods/accounts/${setup.accountId}/gateway`);
+      expect(keys.status, JSON.stringify(keys.body)).toBe(409);
+      expect(errorOf(keys).message).toBe(said('PaymentAccountCheckoutOpen'));
+      const replaced = await setup.shop.put('/payment-methods/bkash', {
+        enabled: true,
+        accounts: [
+          {
+            accountName: 'New number',
+            number: '01711000009',
+            accountType: 'personal',
+            active: true,
+          },
+        ],
+      });
+      expect(replaced.status, JSON.stringify(replaced.body)).toBe(409);
+      expect((await bkashOf(setup.shop)).accounts[0]?.hasCredentials).toBe(true);
+      // Once the shopper is back, both may go.
+      await returned(ref, { paymentID: paymentId, status: 'cancel' });
+      expect(
+        (await setup.shop.delete(`/payment-methods/accounts/${setup.accountId}/gateway`)).status,
+      ).toBe(200);
+    },
+    SLOW,
+  );
+
+  it(
     'makes one bKash payment when the shopper taps twice, and refuses a staff link while they are at bKash',
     async () => {
       const setup = await automate(await paidShop());
