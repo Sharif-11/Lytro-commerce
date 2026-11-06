@@ -43,6 +43,7 @@ export * from './tenant/couriers';
 export * from './tenant/sms-log';
 export * from './control/courier-message-routes';
 export * from './control/courier-areas';
+export * from './control/courier-adapters';
 export * from './tenant/listener-messages';
 export * from './tenant/payment-sessions';
 export * from './control/payment-session-refs';

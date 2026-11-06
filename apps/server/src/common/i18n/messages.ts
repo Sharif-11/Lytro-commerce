@@ -2029,6 +2029,44 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'That courier payout wasn’t found.',
     bn: 'কুরিয়ারের এই পেআউটটি পাওয়া যায়নি।',
   },
+  CouriersListed: { en: 'Couriers listed.', bn: 'কুরিয়ারের তালিকা।' },
+  CourierRetired: {
+    en: 'The courier is being retired. Shops connected to it have been told.',
+    bn: 'কুরিয়ারটি রিটায়ার হচ্ছে। যেসব শপ কানেক্টেড, তাদের জানানো হয়েছে।',
+  },
+  CourierRetireUndone: {
+    en: 'The courier is back. Shops connected to it have been told.',
+    bn: 'কুরিয়ারটি আবার চালু হয়েছে। যেসব শপ কানেক্টেড, তাদের জানানো হয়েছে।',
+  },
+  CourierRemoved: {
+    en: 'The courier is removed. Its parcels keep their records.',
+    bn: 'কুরিয়ারটি রিমুভ করা হয়েছে। এর পার্সেলের রেকর্ড থেকে যাবে।',
+  },
+  CourierBlockingListed: {
+    en: 'The orders still waiting on this courier.',
+    bn: 'যেসব অর্ডার এখনো এই কুরিয়ারের ওপর নির্ভর করছে।',
+  },
+  CourierRetiring: {
+    en: (p) => `${String(p['courier'])} is being retired from Lytro, so it can’t be connected now.`,
+    bn: (p) => `${String(p['courier'])} Lytro থেকে রিটায়ার হচ্ছে, তাই এখন কানেক্ট করা যাবে না।`,
+  },
+  CourierAlreadyRetiring: {
+    en: 'This courier is already being retired.',
+    bn: 'এই কুরিয়ারটি আগেই রিটায়ার হচ্ছে।',
+  },
+  CourierNotRetiring: {
+    en: 'This courier isn’t being retired.',
+    bn: 'এই কুরিয়ারটি রিটায়ার হচ্ছে না।',
+  },
+  CourierSuggestionInvalid: {
+    en: 'Suggest another courier that is still active.',
+    bn: 'এখনো চালু আছে এমন অন্য একটি কুরিয়ার সাজেস্ট করুন।',
+  },
+  CourierRemovalBlocked: {
+    en: (p) => `${String(p['n'])} orders still wait on this courier, so it can’t be removed yet.`,
+    bn: (p) =>
+      `${String(p['n'])}টি অর্ডার এখনো এই কুরিয়ারের ওপর নির্ভর করছে, তাই এখনই রিমুভ করা যাবে না।`,
+  },
   OrderBooked: { en: 'Booked with the courier.', bn: 'কুরিয়ারে বুক হয়েছে।' },
   OrderAlreadyBooked: {
     en: 'This order is already booked with a courier.',

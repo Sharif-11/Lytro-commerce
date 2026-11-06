@@ -69,6 +69,7 @@ import { OrdersModule } from '../orders/orders.module';
 import { OrdersController } from './controllers/orders.controller';
 import { CouriersController } from './controllers/couriers.controller';
 import { OperatorCourierAreasController } from './controllers/operator-courier-areas.controller';
+import { OperatorCourierRetiringController } from './controllers/operator-courier-retiring.controller';
 import { OperatorCouriersController } from './controllers/operator-couriers.controller';
 import { CouriersModule } from '../couriers/couriers.module';
 import { CustomersController } from './controllers/customers.controller';
@@ -204,6 +205,7 @@ import { OperatorShops } from './services/operator-shops';
     CouriersController,
     OperatorCouriersController,
     OperatorCourierAreasController,
+    OperatorCourierRetiringController,
     CustomersController,
     TaxClassesController,
     PaymentMethodsController,

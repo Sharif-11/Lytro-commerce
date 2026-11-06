@@ -135,8 +135,8 @@ export class CouriersController {
     summary: 'The couriers available, and the credential fields each needs (CRR-01)',
   })
   @ZodResponse({ type: CourierAdapterListDto })
-  adapters(): { adapters: CourierAdapterView[] } {
-    return { adapters: this.connections.adapters() };
+  async adapters(@Req() request: DashboardRequest): Promise<{ adapters: CourierAdapterView[] }> {
+    return { adapters: await this.connections.adapters(this.request.tenantIdOf(request)) };
   }
 
   @Get('connections')

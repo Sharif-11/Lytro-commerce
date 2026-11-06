@@ -13,4 +13,6 @@ export const PATHAO_TEST_ANSWER = Symbol('PATHAO_TEST_ANSWER');
 // Slice 6.4: where RedX is, couriers' area lists, and Lytro's own tokens for reading them.
 export const REDX_URL = Symbol('REDX_URL');
 export const COURIER_AREA_STORE = Symbol('COURIER_AREA_STORE');
+// CRR-23 to CRR-25 (Slice 6.6): each courier's platform-wide state.
+export const COURIER_ADAPTER_STORE = Symbol('COURIER_ADAPTER_STORE');
 export const COURIER_AREA_TOKENS = Symbol('COURIER_AREA_TOKENS');

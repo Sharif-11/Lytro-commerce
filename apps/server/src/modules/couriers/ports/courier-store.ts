@@ -1,5 +1,7 @@
 import type {
+  BlockingParcelRow,
   CourierConnectionPatch,
+  CourierShopFacts,
   CourierParcelPatch,
   NewCourierCredentialUse,
   NewCourierEvent,
@@ -15,7 +17,7 @@ import type {
   SelectCourierPayout,
   Transaction,
 } from '@lytronix/db';
-import type { CourierConnectionState, CourierKey } from '@lytronix/validators';
+import type { CourierAdapterState, CourierConnectionState, CourierKey } from '@lytronix/validators';
 
 /** Phase 6 Slice 6.1: each shop's courier connections, its parcels and the log of its credentials' uses. */
 export interface CourierStore {
@@ -167,6 +169,15 @@ export interface CourierStore {
     tenantId: string,
     payout: Pick<SelectCourierPayout, 'courierKey' | 'payoutId'>,
   ): Promise<PayoutParcelRow[]>;
+  /** CRR-24 (Slice 6.6): the courier's state, read shared in a booking's claim so removal waits for it. */
+  adapterStateWithin(tx: Transaction, courierKey: CourierKey): Promise<CourierAdapterState>;
+  blockingParcels(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+    paidSince: Date,
+  ): Promise<BlockingParcelRow[]>;
+  shopFacts(tx: Transaction, tenantId: string, courierKey: CourierKey): Promise<CourierShopFacts>;
   /** CRR-11: read before any tenant context exists. */
   findRoute(tokenHash: string): Promise<SelectCourierMessageRoute | null>;
   replaceRoute(

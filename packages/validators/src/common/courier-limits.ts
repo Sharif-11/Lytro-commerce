@@ -27,3 +27,7 @@ export const COURIER_PAYOUT_ID_MAX_LENGTH = 64;
 export const COURIER_PAYOUT_METHOD_MAX_LENGTH = 40;
 export const COURIER_PAYOUT_PAGES_PER_NIGHT = 10;
 export const COURIER_PAYOUT_PAGE_SIZE = 50;
+// CRR-24 (Slice 6.6): the operator's reason for retiring, undoing or removing a courier, kept in the platform audit log only; and how
+// many blocking orders one answer lists.
+export const COURIER_RETIRE_REASON_MAX_LENGTH = 500;
+export const COURIER_BLOCKING_SHOWN = 200;

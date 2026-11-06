@@ -1,7 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { SelectCourierConnection, Transaction } from '@lytronix/db';
+import type { SelectCourierAdapter, SelectCourierConnection, Transaction } from '@lytronix/db';
 import {
   AuditAction,
+  CourierAdapterState,
   CourierCallAction,
   CourierConnectionState,
   CourierMessagesState,
@@ -26,9 +27,10 @@ import {
   type LogInAnswer,
   type PickupStore,
 } from '../ports/courier-adapter';
+import type { CourierAdapterStore } from '../ports/courier-adapter-store';
 import type { CourierNotifier } from '../ports/courier-notifier';
 import type { CourierStore } from '../ports/courier-store';
-import { COURIER_CLOCK, COURIER_NOTIFIER, COURIER_STORE } from '../tokens';
+import { COURIER_ADAPTER_STORE, COURIER_CLOCK, COURIER_NOTIFIER, COURIER_STORE } from '../tokens';
 import { CourierCalls } from './courier-calls';
 import { CourierMessages, type MessageAddress } from './courier-messages';
 import { CourierRegistry } from './courier-registry';
@@ -53,6 +55,8 @@ export interface CourierAdapterView {
   takesWeight: boolean;
   /** D6-8: it can be cancelled from Lytro; otherwise staff confirm they did it in its panel. */
   canCancel: boolean;
+  /** CRR-23 (Slice 6.6): being retired; listed only for a shop already connected to it. */
+  retiring: boolean;
 }
 
 /** CRR-03: a connection as anyone sees it: whether it has credentials, never what they are. */
@@ -68,6 +72,9 @@ export interface CourierConnectionView {
   lastMessageAt: Date | null;
   /** Read agreed 2026-11-05: where its parcels leave from; null for a courier with no stores, or none chosen yet. */
   pickupStore: { id: string; name: string } | null;
+  /** CRR-23, CRR-25 (Slice 6.6): being retired, and the courier the operator suggests instead. */
+  retiring: boolean;
+  suggestedKey: CourierKey | null;
 }
 
 /** A connection opened for one call (SEC-09). */
@@ -89,6 +96,7 @@ export class CourierConnections {
 
   constructor(
     @Inject(COURIER_STORE) private readonly store: CourierStore,
+    @Inject(COURIER_ADAPTER_STORE) private readonly adapterStates: CourierAdapterStore,
     @Inject(CourierRegistry) private readonly registry: CourierRegistry,
     @Inject(CourierCalls) private readonly calls: CourierCalls,
     @Inject(CourierMessages) private readonly messages: CourierMessages,
@@ -98,23 +106,40 @@ export class CourierConnections {
     @Inject(COURIER_CLOCK) private readonly clock: () => Date,
   ) {}
 
-  /** CRR-01. */
-  adapters(): CourierAdapterView[] {
-    return this.registry.all().map((adapter) => ({
-      key: adapter.key,
-      name: adapter.name,
-      credentialFields: [...adapter.credentialFields],
-      needsArea: adapter.needsArea,
-      needsThana: adapter.needsThana,
-      hasStores: adapter.pickupStores !== undefined,
-      takesWeight: adapter.limits.weightKg !== null,
-      canCancel: adapter.cancel !== undefined,
-    }));
+  /** CRR-01, CRR-23 (Slice 6.6): a removed courier is gone, and a retiring one is offered only to a shop already connected to it. */
+  async adapters(tenantId: string): Promise<CourierAdapterView[]> {
+    const states = await this.states();
+    const connected = new Set(
+      (await this.store.run(tenantId, (tx) => this.store.listConnections(tx, tenantId))).map(
+        (row) => row.courierKey,
+      ),
+    );
+    return this.registry
+      .all()
+      .filter((adapter) => {
+        const state = this.stateOf(states, adapter.key);
+        return (
+          state === CourierAdapterState.Active ||
+          (state === CourierAdapterState.Retiring && connected.has(adapter.key))
+        );
+      })
+      .map((adapter) => ({
+        key: adapter.key,
+        name: adapter.name,
+        credentialFields: [...adapter.credentialFields],
+        needsArea: adapter.needsArea,
+        needsThana: adapter.needsThana,
+        hasStores: adapter.pickupStores !== undefined,
+        takesWeight: adapter.limits.weightKg !== null,
+        canCancel: adapter.cancel !== undefined,
+        retiring: this.stateOf(states, adapter.key) === CourierAdapterState.Retiring,
+      }));
   }
 
   async list(tenantId: string): Promise<CourierConnectionView[]> {
+    const states = await this.states();
     const rows = await this.store.run(tenantId, (tx) => this.store.listConnections(tx, tenantId));
-    return rows.map((row) => this.viewOf(row));
+    return rows.map((row) => this.viewOf(row, states));
   }
 
   /** CRR-02, CRR-03, CRR-04: connects a courier, or replaces its credentials. Refused credentials save nothing. */
@@ -128,6 +153,16 @@ export class CourierConnections {
     const saved = await this.store.run(tenantId, (tx) =>
       this.store.findConnection(tx, tenantId, input.courierKey),
     );
+    // CRR-23 (Slice 6.6): a retiring courier takes no new shop, and a shop already connected may still replace its keys.
+    const states = await this.states();
+    const state = this.stateOf(states, adapter.key);
+    if (state === CourierAdapterState.Removed)
+      throw new ApiError('not_found', 'CourierNotAvailable', {});
+    if (state === CourierAdapterState.Retiring && !saved) {
+      throw new ApiError('conflict', 'CourierRetiring', { courierKey: adapter.key }, undefined, {
+        courier: adapter.name,
+      });
+    }
     const credentials = this.credentialsOf(adapter, input, saved, tenantId);
     const bucket = `${tenantId}:${adapter.key}`;
     const now = this.clock();
@@ -172,7 +207,7 @@ export class CourierConnections {
       );
       // CRR-02: what to paste into the courier's panel; connecting never waits on it.
       const message = await this.messages.makeIfMissing(tx, tenantId, adapter.key, row);
-      return { ...this.viewOf(row), message };
+      return { ...this.viewOf(row, states), message };
     });
   }
 
@@ -218,7 +253,7 @@ export class CourierConnections {
         { type: 'courier', id: row.id },
         { courierKey },
       );
-      return this.viewOf(row);
+      return this.viewOf(row, await this.states());
     });
   }
 
@@ -238,6 +273,10 @@ export class CourierConnections {
         courierKey !== undefined ? 'CourierNotConnected' : 'NoDefaultCourier',
         {},
       );
+    }
+    // CRR-24 (Slice 6.6): read shared, so removing this courier waits for this claim, and no claim starts once it is removed.
+    if ((await this.store.adapterStateWithin(tx, row.courierKey)) === CourierAdapterState.Removed) {
+      throw new ApiError('conflict', 'CourierNotAvailable', {});
     }
     return this.opened(row, tenantId);
   }
@@ -385,7 +424,7 @@ export class CourierConnections {
         { type: 'courier', id: row.id },
         { courierKey, storeId: store.id },
       );
-      return this.viewOf({ ...row, credentials: sealed });
+      return this.viewOf({ ...row, credentials: sealed }, await this.states());
     });
   }
 
@@ -584,7 +623,24 @@ export class CourierConnections {
     return adapter;
   }
 
-  private viewOf(row: SelectCourierConnection): CourierConnectionView {
+  /** Slice 6.6: each courier's platform-wide state; a courier with no row is active. */
+  private async states(): Promise<Map<CourierKey, SelectCourierAdapter>> {
+    return new Map((await this.adapterStates.all()).map((row) => [row.courierKey, row]));
+  }
+
+  private stateOf(
+    states: Map<CourierKey, SelectCourierAdapter>,
+    courierKey: CourierKey,
+  ): CourierAdapterState {
+    return states.get(courierKey)?.state ?? CourierAdapterState.Active;
+  }
+
+  private viewOf(
+    row: SelectCourierConnection,
+    states: Map<CourierKey, SelectCourierAdapter>,
+  ): CourierConnectionView {
+    const platform = states.get(row.courierKey);
+    const retiring = platform?.state === CourierAdapterState.Retiring;
     return {
       courierKey: row.courierKey,
       name: this.adapterOf(row.courierKey).name,
@@ -600,6 +656,8 @@ export class CourierConnections {
             : CourierMessagesState.NoneYet,
       lastMessageAt: row.lastMessageAt,
       pickupStore: this.storeOf(row),
+      retiring,
+      suggestedKey: retiring ? platform.suggestedKey : null,
     };
   }
 

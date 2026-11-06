@@ -95,7 +95,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 6.3 | Settled 2026-11-05: see Slice 6.3. |
 | 6.4 | Settled 2026-11-06: see Slice 6.4. |
 | 6.5 | Settled 2026-11-06: see Slice 6.5. |
-| 6.6 | What "a suggested alternative courier" is (CRR-25). |
+| 6.6 | Settled 2026-11-06: see Slice 6.6. |
 | 6.7 | Settled by its sketch: see that slice. |
 
 ---
@@ -426,6 +426,21 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
 ### Slice 6.6: retiring a courier
 - **Depends on:** 6.1.
 - **Delivers:** CRR-23 to CRR-25: the operator's `retiring`, what blocks removal, and the notice through a stand-in port.
+- **Read, agreed 2026-11-06:**
+  - **The suggested courier:** the operator picks one other active courier when retiring.
+  - **A shop's default on it moves** (the owner's pick; leaving it until the shop changes it was recommended): to the
+    suggested courier if the shop has it, else its longest-connected other courier; a shop with no other keeps it.
+  - **What blocks removal:** a parcel still on its way, and a delivered one still waiting for the courier's payout, for
+    the [30] days the night run waits.
+  - **Removal:** the operator's action, refused with the blocking orders listed; when clear, every shop's keys and
+    message address go and its parcels stay; a developer deletes its code later.
+  - **Undo:** allowed; shops told are told it's back, and defaults that moved stay.
+  - **The notice:** Lytro's fixed words in Bangla and English; no note from the operator.
+  - **Keys:** a shop already connected may still replace them; only connecting fresh is refused.
+- **Built as PR #TBD,** migration 0112 (`control.courier_adapters`). Found in building it: a booking not yet settled
+  blocks removal too; and a booking's claim reads the courier's state shared, so removal waits for any claim in flight
+  and counts its parcel, and none starts once removed. Each shop's notice and an activity line ("Lytro is retiring a
+  courier the shop uses") are written as the server; the operator's reason goes to the platform audit log only.
 
 ### Slice 6.7: the screens
 - **Depends on:** 6.1 to 6.6.

@@ -371,6 +371,9 @@ export enum AuditAction {
   CourierAddressReplaced = 'courier_address_replaced',
   // Slice 6.3: the store a courier's parcels leave from.
   CourierPickupStoreChanged = 'courier_pickup_store_changed',
+  // CRR-23, CRR-25 (Slice 6.6): Lytro retiring a courier the shop is connected to, and undoing it.
+  CourierRetiring = 'courier_retiring',
+  CourierRetiringUndone = 'courier_retiring_undone',
   // Slice 6.1, read agreed 2026-11-04: a booking cancelled with the order kept, and a lost answer settled by staff (D6-11).
   ParcelCancelled = 'parcel_cancelled',
   ParcelSettled = 'parcel_settled',
@@ -641,6 +644,10 @@ export enum PlatformAuditAction {
   CourierAreaAssigned = 'courier_area_assigned',
   CourierAreasConfirmed = 'courier_areas_confirmed',
   CourierAreasRefreshed = 'courier_areas_refreshed',
+  // CRR-23, CRR-24 (Slice 6.6): the operator retiring a courier, undoing it, and removing it for good.
+  CourierRetired = 'courier_retired',
+  CourierRetireUndone = 'courier_retire_undone',
+  CourierRemoved = 'courier_removed',
 }
 
 // BAL-02: what a balance-ledger entry is for. One list, shared by every module that ever charges or credits a
@@ -1456,6 +1463,21 @@ export enum CourierAreaState {
   Suggested = 'suggested',
   Assigned = 'assigned',
   Retired = 'retired',
+}
+
+// CRR-23, CRR-24 (Slice 6.6): a courier as the platform holds it. Retiring keeps every shop already connected working and lets no
+// new one connect; removed is for good, once nothing waits on it, and its code then goes.
+export enum CourierAdapterState {
+  Active = 'active',
+  Retiring = 'retiring',
+  Removed = 'removed',
+}
+
+// CRR-24 (Slice 6.6): why an order still holds a courier back from being removed.
+export enum CourierBlockReason {
+  NotSettled = 'not_settled',
+  OnItsWay = 'on_its_way',
+  AwaitingPayout = 'awaiting_payout',
 }
 
 // CRR-02, D6-3, read agreed 2026-11-05: how a connection's messages stand, for the owner.

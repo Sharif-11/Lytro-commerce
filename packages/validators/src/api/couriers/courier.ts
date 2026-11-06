@@ -4,6 +4,7 @@ import {
   COURIER_AREA_PAGE_MAX,
   COURIER_AREA_PAGE_SIZE,
   COURIER_FIELD_MAX_LENGTH,
+  COURIER_RETIRE_REASON_MAX_LENGTH,
   PARCEL_NOTE_MAX_LENGTH,
 } from '../../common/courier-limits';
 import { ORDER_LINES_MAX, TRACKING_CODE_MAX_LENGTH } from '../../common/limits';
@@ -77,6 +78,22 @@ export const courierAreasForOrderSchema = z
   })
   .strict();
 export type CourierAreasForOrderQuery = z.infer<typeof courierAreasForOrderSchema>;
+
+/** The operator's reason, for the platform audit log only; shops are told in Lytro's own words (Slice 6.6's read). */
+const retireReason = z.string().trim().min(1).max(COURIER_RETIRE_REASON_MAX_LENGTH);
+
+/**
+ * POST operator/couriers/:key/retire (CRR-23, CRR-25, Slice 6.6, read agreed 2026-11-06): the one other active courier shops are told to
+ * use instead, and why.
+ */
+export const retireCourierSchema = z
+  .object({ suggestedKey: z.nativeEnum(CourierKey), reason: retireReason })
+  .strict();
+export type RetireCourierInput = z.infer<typeof retireCourierSchema>;
+
+/** POST operator/couriers/:key/undo-retire and :key/remove (Slice 6.6): why. */
+export const courierReasonSchema = z.object({ reason: retireReason }).strict();
+export type CourierReasonInput = z.infer<typeof courierReasonSchema>;
 
 /** GET couriers/payouts (CRR-17, Slice 6.5): the payouts a courier has made the shop, newest first, one courier's or all. */
 export const courierPayoutsQuerySchema = z
