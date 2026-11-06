@@ -1805,6 +1805,8 @@ export class OrderService {
               lastNewsAt: parcel.lastNewsAt,
               noNews: parcel.checksStoppedAt !== null,
               attention: parcel.attention,
+              paidAt: parcel.paidAt,
+              payoutId: parcel.payoutId,
               news: parcelNews.map((row) => ({
                 source: row.source,
                 rawStatus: row.rawStatus,

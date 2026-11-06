@@ -93,6 +93,9 @@ export interface OrderParcelView {
   noNews: boolean;
   /** Read agreed 2026-11-05: what staff should look at; nothing moved on its account. */
   attention: ParcelAttention | null;
+  /** CRR-17 (Slice 6.5): when its courier said it paid the shop for it, and the payout that did where it named one. */
+  paidAt: Date | null;
+  payoutId: string | null;
   /** CRR-12: its news, newest first, in the courier's words. */
   news: {
     source: CourierNewsSource;

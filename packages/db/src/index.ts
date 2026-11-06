@@ -323,7 +323,9 @@ export {
   type NewCourierCredentialUse,
   type NewCourierEvent,
   type NewCourierParcel,
+  type NewCourierPayout,
   type ParcelCheckWindow,
+  type PayoutParcelRow,
 } from './repositories/couriers/courier.repository';
 export {
   CourierAreaRepository,

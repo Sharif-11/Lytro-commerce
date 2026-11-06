@@ -5,6 +5,7 @@ import {
   count,
   desc,
   eq,
+  gte,
   inArray,
   isNotNull,
   isNull,
@@ -14,6 +15,7 @@ import {
   sql,
 } from 'drizzle-orm';
 import {
+  FINISHED_PARCEL_READINGS,
   LIVE_PARCEL_STATES,
   ParcelState,
   type CourierCallAction,
@@ -26,11 +28,14 @@ import {
   courierEvents,
   courierMessageRoutes,
   courierParcels,
+  courierPayouts,
+  orders,
   type SelectCourierConnection,
   type SelectCourierCredentialUse,
   type SelectCourierEvent,
   type SelectCourierMessageRoute,
   type SelectCourierParcel,
+  type SelectCourierPayout,
 } from '../../schema';
 import type { Executor, Transaction, TransactionRunner } from '../../transactions';
 
@@ -64,15 +69,40 @@ export type CourierParcelPatch = Partial<
     | 'cashCollected'
     | 'codAtCourier'
     | 'attention'
+    | 'paidAt'
+    | 'payoutId'
   >
 >;
 
 export type CourierConnectionPatch = Partial<
   Pick<
     SelectCourierConnection,
-    'credentials' | 'state' | 'messageSecrets' | 'lastMessageAt' | 'unsignedAt' | 'pasteWarnedAt'
+    | 'credentials'
+    | 'state'
+    | 'messageSecrets'
+    | 'lastMessageAt'
+    | 'unsignedAt'
+    | 'pasteWarnedAt'
+    | 'payoutPage'
+    | 'payoutPageSize'
   >
 >;
+
+/** CRR-17 (Slice 6.5): a payout as read from its courier. */
+export type NewCourierPayout = Omit<
+  typeof courierPayouts.$inferInsert,
+  'id' | 'tenantId' | 'readAt' | 'parcels' | 'ours'
+>;
+
+/** CRR-17 (Slice 6.5): one parcel a payout settled, with the order it was for. */
+export interface PayoutParcelRow {
+  orderId: string;
+  orderNumber: string | null;
+  cod: string;
+  cashCollected: string | null;
+  deliveryCharge: string | null;
+  reading: SelectCourierParcel['reading'];
+}
 
 export type NewCourierEvent = Omit<
   typeof courierEvents.$inferInsert,
@@ -558,7 +588,14 @@ export class CourierRepository {
     return tx
       .select()
       .from(courierEvents)
-      .where(and(eq(courierEvents.tenantId, tenantId), eq(courierEvents.parcelId, parcelId)))
+      .where(
+        and(
+          eq(courierEvents.tenantId, tenantId),
+          eq(courierEvents.parcelId, parcelId),
+          // CRR-12 (Slice 6.5): being paid goes to the payout records, not the parcel's journey.
+          sql`(${courierEvents.news}->>'paid') IS DISTINCT FROM 'true'`,
+        ),
+      )
       .orderBy(desc(courierEvents.receivedAt), desc(courierEvents.id))
       .limit(limit);
   }
@@ -614,6 +651,152 @@ export class CourierRepository {
       )
       .orderBy(asc(courierParcels.createdAt), asc(courierParcels.id))
       .limit(window.limit);
+  }
+
+  /**
+   * CRR-17 (Slice 6.5): when the oldest of a courier's parcels still waiting to be paid was booked: finished, not yet paid and
+   * changed since `changedSince`. Null when none waits, so nothing need be asked.
+   */
+  async oldestUnpaid(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+    changedSince: Date,
+  ): Promise<Date | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select({ oldest: courierParcels.createdAt })
+      .from(courierParcels)
+      .where(
+        and(
+          eq(courierParcels.tenantId, tenantId),
+          eq(courierParcels.courierKey, courierKey),
+          eq(courierParcels.state, ParcelState.Booked),
+          isNull(courierParcels.paidAt),
+          inArray(courierParcels.reading, [...FINISHED_PARCEL_READINGS]),
+          gte(courierParcels.lastChangeAt, changedSince),
+        ),
+      )
+      .orderBy(asc(courierParcels.createdAt))
+      .limit(1);
+    return row?.oldest ?? null;
+  }
+
+  /** Which of these payouts have been read before. */
+  async knownPayouts(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+    payoutIds: readonly string[],
+  ): Promise<Set<string>> {
+    if (payoutIds.length === 0) return new Set();
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select({ payoutId: courierPayouts.payoutId })
+      .from(courierPayouts)
+      .where(
+        and(
+          eq(courierPayouts.tenantId, tenantId),
+          eq(courierPayouts.courierKey, courierKey),
+          inArray(courierPayouts.payoutId, [...payoutIds]),
+        ),
+      );
+    return new Set(rows.map((row) => row.payoutId));
+  }
+
+  /** A payout read for the first time; null when it has been read already. */
+  async insertPayout(
+    tx: Transaction,
+    tenantId: string,
+    values: NewCourierPayout,
+  ): Promise<SelectCourierPayout | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .insert(courierPayouts)
+      .values({ tenantId, ...values })
+      .onConflictDoNothing()
+      .returning();
+    return row ?? null;
+  }
+
+  /** How many parcels a payout settled, and how many of those Lytro booked. */
+  async countPayout(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    counts: { parcels: number; ours: number },
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .update(courierPayouts)
+      .set(counts)
+      .where(and(eq(courierPayouts.tenantId, tenantId), eq(courierPayouts.id, id)));
+  }
+
+  /** CRR-17: the shop's payouts, the newest paid first; one courier's, or every courier's. */
+  async listPayouts(
+    tx: Transaction,
+    tenantId: string,
+    filter: { courierKey: CourierKey | null; offset: number; limit: number },
+  ): Promise<{ rows: SelectCourierPayout[]; total: number }> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const where = and(
+      eq(courierPayouts.tenantId, tenantId),
+      ...(filter.courierKey !== null ? [eq(courierPayouts.courierKey, filter.courierKey)] : []),
+    );
+    const [totals] = await tx.select({ total: count() }).from(courierPayouts).where(where);
+    const rows = await tx
+      .select()
+      .from(courierPayouts)
+      .where(where)
+      .orderBy(desc(courierPayouts.paidAt), desc(courierPayouts.id))
+      .limit(filter.limit)
+      .offset(filter.offset);
+    return { rows, total: totals?.total ?? 0 };
+  }
+
+  async findPayout(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+  ): Promise<SelectCourierPayout | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select()
+      .from(courierPayouts)
+      .where(and(eq(courierPayouts.tenantId, tenantId), eq(courierPayouts.id, id)));
+    return row ?? null;
+  }
+
+  /** CRR-17: the parcels Lytro booked that a payout settled, with their orders, oldest first. */
+  async payoutParcels(
+    tx: Transaction,
+    tenantId: string,
+    payout: Pick<SelectCourierPayout, 'courierKey' | 'payoutId'>,
+  ): Promise<PayoutParcelRow[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select({
+        orderId: courierParcels.orderId,
+        orderNumber: orders.orderNumber,
+        cod: courierParcels.cod,
+        cashCollected: courierParcels.cashCollected,
+        deliveryCharge: courierParcels.deliveryCharge,
+        reading: courierParcels.reading,
+      })
+      .from(courierParcels)
+      .innerJoin(
+        orders,
+        and(eq(orders.tenantId, courierParcels.tenantId), eq(orders.id, courierParcels.orderId)),
+      )
+      .where(
+        and(
+          eq(courierParcels.tenantId, tenantId),
+          eq(courierParcels.courierKey, payout.courierKey),
+          eq(courierParcels.payoutId, payout.payoutId),
+        ),
+      )
+      .orderBy(asc(courierParcels.createdAt), asc(courierParcels.id));
   }
 
   /** CRR-11: whose connection a message address belongs to; read before any tenant context exists. */
@@ -674,6 +857,7 @@ export class CourierRepository {
   async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
     await tx.delete(courierEvents).where(eq(courierEvents.tenantId, tenantId));
+    await tx.delete(courierPayouts).where(eq(courierPayouts.tenantId, tenantId));
     await tx.delete(courierMessageRoutes).where(eq(courierMessageRoutes.tenantId, tenantId));
     await tx.delete(courierParcels).where(eq(courierParcels.tenantId, tenantId));
     await tx.delete(courierConnections).where(eq(courierConnections.tenantId, tenantId));

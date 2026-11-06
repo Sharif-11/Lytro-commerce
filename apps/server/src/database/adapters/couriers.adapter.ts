@@ -8,12 +8,15 @@ import {
   type NewCourierCredentialUse,
   type NewCourierEvent,
   type NewCourierParcel,
+  type NewCourierPayout,
   type ParcelCheckWindow,
+  type PayoutParcelRow,
   type SelectCourierConnection,
   type SelectCourierCredentialUse,
   type SelectCourierEvent,
   type SelectCourierMessageRoute,
   type SelectCourierParcel,
+  type SelectCourierPayout,
   type Transaction,
 } from '@lytronix/db';
 import type { CourierConnectionState, CourierKey } from '@lytronix/validators';
@@ -223,6 +226,61 @@ export class DrizzleCourierStore implements CourierStore {
     window: ParcelCheckWindow,
   ): Promise<SelectCourierParcel[]> {
     return this.couriers.dueForCheck(tx, tenantId, window);
+  }
+
+  oldestUnpaid(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+    changedSince: Date,
+  ): Promise<Date | null> {
+    return this.couriers.oldestUnpaid(tx, tenantId, courierKey, changedSince);
+  }
+
+  knownPayouts(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+    payoutIds: readonly string[],
+  ): Promise<Set<string>> {
+    return this.couriers.knownPayouts(tx, tenantId, courierKey, payoutIds);
+  }
+
+  insertPayout(
+    tx: Transaction,
+    tenantId: string,
+    values: NewCourierPayout,
+  ): Promise<SelectCourierPayout | null> {
+    return this.couriers.insertPayout(tx, tenantId, values);
+  }
+
+  countPayout(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    counts: { parcels: number; ours: number },
+  ): Promise<void> {
+    return this.couriers.countPayout(tx, tenantId, id, counts);
+  }
+
+  listPayouts(
+    tx: Transaction,
+    tenantId: string,
+    filter: { courierKey: CourierKey | null; offset: number; limit: number },
+  ): Promise<{ rows: SelectCourierPayout[]; total: number }> {
+    return this.couriers.listPayouts(tx, tenantId, filter);
+  }
+
+  findPayout(tx: Transaction, tenantId: string, id: string): Promise<SelectCourierPayout | null> {
+    return this.couriers.findPayout(tx, tenantId, id);
+  }
+
+  payoutParcels(
+    tx: Transaction,
+    tenantId: string,
+    payout: Pick<SelectCourierPayout, 'courierKey' | 'payoutId'>,
+  ): Promise<PayoutParcelRow[]> {
+    return this.couriers.payoutParcels(tx, tenantId, payout);
   }
 
   findRoute(tokenHash: string): Promise<SelectCourierMessageRoute | null> {

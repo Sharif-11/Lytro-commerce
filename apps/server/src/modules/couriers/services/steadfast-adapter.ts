@@ -1,6 +1,12 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
-import { Inject, Injectable } from '@nestjs/common';
-import { COURIER_MESSAGE_MAX_LENGTH, CourierKey, ParcelReading } from '@lytronix/validators';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  COURIER_MESSAGE_MAX_LENGTH,
+  COURIER_PAYOUT_ID_MAX_LENGTH,
+  COURIER_PAYOUT_METHOD_MAX_LENGTH,
+  CourierKey,
+  ParcelReading,
+} from '@lytronix/validators';
 import {
   CourierNoAnswer,
   type BookingAnswer,
@@ -10,16 +16,22 @@ import {
   type CourierLimits,
   type CourierNews,
   type CourierRefusal,
+  type ListedPayout,
   type LookUpAnswer,
   type MessageHeaders,
+  type PaidParcel,
   type ParcelBooking,
+  type PayoutAnswer,
+  type PayoutsAnswer,
   type TrackAnswer,
 } from '../ports/courier-adapter';
 import { COURIER_FETCH, STEADFAST_URL } from '../tokens';
 import {
+  bodyOf,
   callCourier,
   codeOf,
   headerOf,
+  moneyOf,
   refusalWords,
   statusOf,
   textOf,
@@ -60,6 +72,12 @@ const STATUS_EVENT = 'delivery_status';
 // Read agreed 2026-11-05: its words about the parcel's journey may reach a shopper; a change made in its panel never does.
 const SHOPPER_EVENTS: ReadonlySet<string> = new Set([STATUS_EVENT, 'tracking_update']);
 const CHANGED_EVENT = 'consignment_update';
+// Slice 6.5, read agreed 2026-11-06: its guide names this event and not what it carries, so until a real one shows that, it moves
+// nothing and only the names of its fields are logged; payouts come from the night run's read of its list.
+const PAYMENT_EVENT = 'payment_request';
+// Slice 6.5: its live payout list (2026-11-06) ran oldest first with no page count, 8 on its one page, so a page holds at least 8.
+const PAYOUT_PAGE_AT_LEAST = 8;
+const PAID = 'paid';
 
 /** A courier's words as they are kept: plain text on one line, within what's stored. */
 function wordsOf(words: string | null): string | null {
@@ -99,6 +117,8 @@ export class SteadfastAdapter implements CourierAdapter {
   readonly limits = LIMITS;
   readonly needsArea = false;
   readonly needsThana = false;
+  readonly payoutPageAtLeast = PAYOUT_PAGE_AT_LEAST;
+  private readonly logger = new Logger('Steadfast');
 
   constructor(
     @Inject(STEADFAST_URL) private readonly baseUrl: string,
@@ -176,6 +196,8 @@ export class SteadfastAdapter implements CourierAdapter {
           deliveryCharge: null,
           codAtCourier: null,
           happenedAt: null,
+          paid: false,
+          payoutId: null,
         },
       };
     }
@@ -207,6 +229,11 @@ export class SteadfastAdapter implements CourierAdapter {
     const event =
       textOf(reply, 'notification_type') ?? textOf(reply, 'event') ?? textOf(reply, 'type');
     if (event === null) return null;
+    if (event === PAYMENT_EVENT) {
+      this.logger.log(
+        `a ${PAYMENT_EVENT} message, with fields: ${Object.keys(reply).sort().join(', ')}`,
+      );
+    }
     const statusEvent = event === STATUS_EVENT;
     const rawStatus = statusEvent ? statusOf(textOf(reply, 'status')) : null;
     const reading = rawStatus !== null ? (READINGS[rawStatus] ?? null) : null;
@@ -229,6 +256,74 @@ export class SteadfastAdapter implements CourierAdapter {
       deliveryCharge: codeOf(reply, 'delivery_charge'),
       codAtCourier: event === CHANGED_EVENT ? codeOf(reply, 'cod_amount') : null,
       happenedAt: timeOf(textOf(reply, 'updated_at')),
+      paid: false,
+      payoutId: null,
+    };
+  }
+
+  /**
+   * CRR-17 (Slice 6.5): one page of its payouts, oldest first, as its live list showed (2026-11-06). A payout is read only once
+   * its label says paid; one with no ID or no readable amount is left out and logged, never guessed at.
+   */
+  async payouts(account: CourierAccount, page: number): Promise<PayoutsAnswer> {
+    const response = await this.request(account, 'GET', `/payments?page=${String(page)}`);
+    const rows = response.body?.['payments'];
+    if (!this.succeeded(response) || !Array.isArray(rows)) {
+      return { outcome: 'refused', refusal: this.refusalOrThrow(response) };
+    }
+    const payouts: ListedPayout[] = [];
+    let unreadable = 0;
+    for (const row of rows) {
+      const payout = this.payoutOf(bodyOf(row));
+      if (payout === null) unreadable += 1;
+      else payouts.push(payout);
+    }
+    if (unreadable > 0) this.logger.warn(`${String(unreadable)} payouts could not be read`);
+    return { outcome: 'found', payouts };
+  }
+
+  /** CRR-17 (Slice 6.5): the parcels one payout settled. It names no amount for any one of them. */
+  async payout(account: CourierAccount, payoutId: string): Promise<PayoutAnswer> {
+    const response = await this.request(
+      account,
+      'GET',
+      `/payments/${encodeURIComponent(payoutId)}`,
+    );
+    const payment = bodyOf(response.body?.['payment']);
+    const rows = payment?.['consignments'];
+    if (this.succeeded(response) && Array.isArray(rows)) {
+      const parcels: PaidParcel[] = rows
+        .map((row) => bodyOf(row))
+        .filter((row): row is CourierReply => row !== null)
+        .map((row) => ({
+          consignmentId: codeOf(row, 'consignment_id'),
+          invoice: textOf(row, 'invoice'),
+        }))
+        .filter((parcel) => parcel.consignmentId !== null || parcel.invoice !== null);
+      return { outcome: 'found', parcels };
+    }
+    if (response.status === 404 || codeOf(response.body, 'status') === '404') {
+      return { outcome: 'not_found' };
+    }
+    return { outcome: 'refused', refusal: this.refusalOrThrow(response) };
+  }
+
+  private payoutOf(row: CourierReply | null): ListedPayout | null {
+    const payoutId = codeOf(row, 'payment_id');
+    const amount = moneyOf(row, 'amount');
+    if (payoutId === null || payoutId.length > COURIER_PAYOUT_ID_MAX_LENGTH || amount === null) {
+      return null;
+    }
+    const paidAt = timeOf(textOf(row, 'paid_at'));
+    return {
+      payoutId,
+      amount,
+      charges: moneyOf(row, 'charges'),
+      total: moneyOf(row, 'total'),
+      method: refusalWords(textOf(row, 'method'), COURIER_PAYOUT_METHOD_MAX_LENGTH),
+      paid: statusOf(textOf(row, 'status_label')) === PAID && paidAt !== null,
+      paidAt,
+      madeAt: timeOf(textOf(row, 'created_at')),
     };
   }
 

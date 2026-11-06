@@ -83,6 +83,7 @@ const READINGS: Readonly<Record<string, ParcelReading>> = {
   paid_return: ParcelReading.Returning,
   pickup_cancelled: ParcelReading.Problem,
 };
+const PAID_EVENT = 'paid';
 // Events that say nothing of where the parcel stands. A store's events aren't about a parcel at all. Being paid is Slice 6.5's.
 const OTHER_EVENTS: ReadonlySet<string> = new Set([
   'updated',
@@ -265,6 +266,8 @@ export class PathaoAdapter implements CourierAdapter {
           deliveryCharge: null,
           codAtCourier: null,
           happenedAt: timeOf(textOf(data, 'updated_at')),
+          paid: false,
+          payoutId: null,
         },
       };
     }
@@ -314,6 +317,9 @@ export class PathaoAdapter implements CourierAdapter {
       deliveryCharge: codeOf(reply, 'delivery_fee'),
       codAtCourier: null,
       happenedAt: timeOf(when),
+      // CRR-17, read agreed 2026-11-06: being paid names its payment invoice and no amount (second-hand, not yet seen).
+      paid: event === PAID_EVENT,
+      payoutId: event === PAID_EVENT ? codeOf(reply, 'invoice_id') : null,
     };
   }
 

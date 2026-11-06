@@ -221,6 +221,8 @@ interface Order {
     consignmentId: string | null;
     reading: string | null;
     areaCode: string | null;
+    paidAt: string | null;
+    payoutId: string | null;
     news: { rawStatus: string | null; message: { en: string | null; bn: string | null } }[];
   } | null;
   payments: { amount: string }[];
@@ -684,14 +686,22 @@ describeIfDatabase('RedX’s news (CRR-11 to CRR-13, CRR-29, read agreed 2026-11
     expect(moved.map((notice) => notice.reading)).toEqual(['with_courier', 'partly_delivered']);
   });
 
-  it('shows being paid and moves nothing', async () => {
+  it('marks the parcel paid with no amount or payout, and moves nothing else (CRR-12, CRR-17)', async () => {
     const shop = await connectedShop();
     const at = await thanas(shop);
     const order = await booked(shop, await place(shop, at['mirpur'] ?? 0, await variant(shop)), {
       areaCode: '110',
     });
+    await send(shop, order, 'ready-for-delivery');
     await send(shop, order, 'paid');
-    expect((await read(shop, order.id)).fulfillmentStatus).toBe('processing');
+    const after = await read(shop, order.id);
+    expect(after.fulfillmentStatus).toBe('shipped');
+    expect(after.parcel?.paidAt).not.toBeNull();
+    expect(after.parcel?.payoutId).toBeNull();
+    // Its words about being paid stay off the parcel's journey.
+    expect(after.parcel?.news.map((each) => each.message.en)).toEqual([
+      'Parcel is ready-for-delivery.',
+    ]);
   });
 
   it('brings the status by the night check, from its parcel details', async () => {

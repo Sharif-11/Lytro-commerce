@@ -78,6 +78,15 @@ export const courierAreasForOrderSchema = z
   .strict();
 export type CourierAreasForOrderQuery = z.infer<typeof courierAreasForOrderSchema>;
 
+/** GET couriers/payouts (CRR-17, Slice 6.5): the payouts a courier has made the shop, newest first, one courier's or all. */
+export const courierPayoutsQuerySchema = z
+  .object({
+    courierKey: z.nativeEnum(CourierKey).optional(),
+    page: z.coerce.number().int().min(1).default(1),
+  })
+  .strict();
+export type CourierPayoutsQuery = z.infer<typeof courierPayoutsQuerySchema>;
+
 /**
  * POST orders/:id/book (CRR-05, CRR-06, D6-7, read agreed 2026-11-04): what staff choose when booking. The cash on delivery is
  * not here: it is always what the order says is due. Left out, `courierKey` is the shop's default courier. Weight and area
