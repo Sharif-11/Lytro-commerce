@@ -1258,8 +1258,9 @@ export class OrderService {
   ): Promise<OrderRecord> {
     await this.reservations.releaseOrder(tx, tenantId, order.id);
     // Its page takes no more money: a session still awaiting payment closes, as when the order is paid another way. One
-    // where the shopper typed an ID is left for staff (agreed 2026-11-01; found missing at the Phase 5 close-out).
-    await this.store.closeAwaitingPayment(tx, tenantId, order.id);
+    // where the shopper typed an ID is left for staff (agreed 2026-11-01), and one at a wallet's checkout for its return,
+    // which sends any money that moved there to staff (found missing at the Phase 5 close-out).
+    await this.store.closeAwaitingPayment(tx, tenantId, order.id, true);
     const updated = await this.store.updateOrder(tx, tenantId, order.id, {
       statusOverride: StatusOverride.Cancelled,
       holdUntil: null,

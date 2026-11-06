@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
 import {
   PaymentSessionState,
   type GatewayResult,
@@ -109,6 +109,7 @@ export class PaymentSessionRepository {
     tx: Transaction,
     tenantId: string,
     orderId: string,
+    keepWalletTry = false,
   ): Promise<number> {
     await this.transactions.setTenantContext(tx, tenantId);
     const rows = await tx
@@ -119,6 +120,11 @@ export class PaymentSessionRepository {
           eq(paymentSessions.tenantId, tenantId),
           eq(paymentSessions.orderId, orderId),
           eq(paymentSessions.state, PaymentSessionState.AwaitingPayment),
+          // Asked to, a try at a wallet's checkout still open is left for its return or the minute pass, so money that
+          // moves there is settled or sent to staff, never dropped (found at the Phase 5 close-out).
+          keepWalletTry
+            ? or(isNull(paymentSessions.gatewayPaymentId), isNotNull(paymentSessions.gatewayResult))
+            : undefined,
         ),
       )
       .returning({ id: paymentSessions.id });

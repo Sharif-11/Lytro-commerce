@@ -259,6 +259,16 @@ export class PaymentMethods {
     return row ? this.openedOf(row) : null;
   }
 
+  /** VER-12: an account by its id, in the caller's transaction, as a payment records what it was paid into. */
+  async accountWithin(
+    tx: Transaction,
+    tenantId: string,
+    accountId: string,
+  ): Promise<{ accountId: string; accountName: string; number: string | null } | null> {
+    const row = await this.store.findAccount(tx, tenantId, accountId);
+    return row ? { accountId: row.id, accountName: row.accountName, number: row.number } : null;
+  }
+
   /** WAL-11: an account's credentials by its id, whatever is selected now; null when they don't open (WAL-12). */
   accountCredentials(tenantId: string, accountId: string): Promise<OpenedGatewayAccount | null> {
     return this.store.run(tenantId, async (tx) => {

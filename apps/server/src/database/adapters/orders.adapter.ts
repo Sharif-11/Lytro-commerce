@@ -190,8 +190,13 @@ export class DrizzleOrderStore implements OrderStore {
     return this.receipts.releaseOfPayment(tx, tenantId, paymentId);
   }
 
-  async closeAwaitingPayment(tx: Transaction, tenantId: string, orderId: string): Promise<void> {
-    await this.sessions.cancelAwaitingForOrder(tx, tenantId, orderId);
+  async closeAwaitingPayment(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+    keepWalletTry = false,
+  ): Promise<void> {
+    await this.sessions.cancelAwaitingForOrder(tx, tenantId, orderId, keepWalletTry);
   }
 
   refundPayment(

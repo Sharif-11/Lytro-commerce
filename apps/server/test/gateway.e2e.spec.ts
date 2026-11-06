@@ -22,7 +22,9 @@ import { GatewayReconcile } from '../src/modules/gateway/services/gateway-reconc
 import { GATEWAY_CLOCK, GATEWAY_FETCH } from '../src/modules/gateway/tokens';
 import type {
   GatewayAttentionNotice,
+  MoneyForClosedOrderNotice,
   PaymentToVerifyNotice,
+  PaymentVerifiedNotice,
 } from '../src/modules/payment-sessions/ports/payment-notifier';
 import { PaymentMethodsEraser } from '../src/modules/payment-methods/services/payment-methods-eraser';
 import { PaymentSessionExpiry } from '../src/modules/payment-sessions/services/payment-session-expiry';
@@ -68,6 +70,8 @@ const bkash = new FakeBkash();
 const texts = new SmsCapture();
 const lowBalance = new LowBalanceCapture();
 const toVerify: PaymentToVerifyNotice[] = [];
+const verifiedNotices: PaymentVerifiedNotice[] = [];
+const closedNotices: MoneyForClosedOrderNotice[] = [];
 const attention: GatewayAttentionNotice[] = [];
 
 const visitorIp = {
@@ -111,8 +115,14 @@ beforeAll(async () => {
         toVerify.push(notice);
         return Promise.resolve();
       },
-      paymentVerified: () => Promise.resolve(),
-      moneyForClosedOrder: () => Promise.resolve(),
+      paymentVerified: (notice: PaymentVerifiedNotice) => {
+        verifiedNotices.push(notice);
+        return Promise.resolve();
+      },
+      moneyForClosedOrder: (notice: MoneyForClosedOrderNotice) => {
+        closedNotices.push(notice);
+        return Promise.resolve();
+      },
       gatewayNeedsAttention: (notice: GatewayAttentionNotice) => {
         attention.push(notice);
         return Promise.resolve();
@@ -1160,9 +1170,12 @@ describeIfDatabase('who goes to the wallet at all (PAY-06, WAL-10, WAL-19)', () 
 describeIfDatabase('an order that can no longer take the money (VER-09)', () => {
   it('sends nobody to bKash for an order cancelled, or one owing less than the page asks', async () => {
     const setup = await automate(await paidShop());
+    // Cancelled, its page has closed (found at the Phase 5 close-out), so there is nothing to start.
     const cancelled = await placed(setup);
     await cancelOrder(setup.shop, (await sessionOf(cancelled)).order_id);
-    expect(await started(cancelled)).toEqual({ redirectUrl: null, paymentId: '' });
+    const gone = await checkout(cancelled);
+    expect(gone.status).toBe(409);
+    expect(errorOf(gone).message).toBe(said('PaymentSessionClosed'));
 
     const shrunk = await placed(setup);
     await owes((await sessionOf(shrunk)).order_id, '299.99');
@@ -1881,4 +1894,152 @@ describeIfDatabase("through the page itself (Slice 5.8's part 2, PAY-06, VER-09)
     const real = await automate(await paidShop());
     expect((await payPage(port, 'GET', `/${await placed(real)}`)).text).not.toContain(STRIP);
   });
+});
+
+describeIfDatabase('what the Phase 5 close-out found (VER-01, VER-09, PAY-15, WAL-19)', () => {
+  function heardBy<T extends { tenantId: string }>(notices: T[], setup: Setup): T[] {
+    return notices.filter((row) => row.tenantId === setup.shop.tenantId);
+  }
+
+  it(
+    'tells staff of a payment the gateway verified, and of one sent to them, with what bKash says arrived',
+    async () => {
+      const setup = await automate(await paidShop());
+      const ref = await placed(setup);
+      const { paymentId } = await started(ref);
+      bkash.authorise(paymentId);
+      await returned(ref, { paymentID: paymentId, status: 'success' });
+      const done = await sessionOf(ref);
+      expect(done.state).toBe('verified');
+      expect(heardBy(verifiedNotices, setup)).toEqual([
+        expect.objectContaining({
+          sessionId: done.id,
+          amount: '300.00',
+          transactionId: done.transaction_id,
+        }),
+      ]);
+
+      const short = await automate(await paidShop());
+      bkash.behave(short.appKey, { paidAmount: '200.00' });
+      const shortRef = await placed(short);
+      const first = await started(shortRef);
+      bkash.authorise(first.paymentId);
+      await returned(shortRef, { paymentID: first.paymentId, status: 'success' });
+      expect((await sessionOf(shortRef)).state).toBe('needs_review');
+      expect(heardBy(toVerify, short)).toEqual([
+        expect.objectContaining({ method: 'bkash', amount: '200.00' }),
+      ]);
+      expect(heardBy(verifiedNotices, short)).toEqual([]);
+    },
+    SLOW,
+  );
+
+  it(
+    'sends money that moved to staff when the order is cancelled while bKash takes it',
+    async () => {
+      const setup = await automate(await paidShop());
+      const ref = await placed(setup);
+      const { paymentId } = await started(ref);
+      const session = await sessionOf(ref);
+      bkash.behave(setup.appKey, {
+        duringExecute: () => cancelOrder(setup.shop, session.order_id),
+      });
+      bkash.authorise(paymentId);
+      await returned(ref, { paymentID: paymentId, status: 'success' });
+      expect(bkash.executesOf(setup.appKey)).toHaveLength(1);
+      expect(await sessionOf(ref)).toMatchObject({ state: 'needs_review', fee_held: '0.00' });
+      expect(await paymentsOfOrder(session.order_id)).toEqual([]);
+      expect(await feesOf(setup.shop.tenantId)).toEqual([]);
+      expect(heardBy(toVerify, setup)).toHaveLength(1);
+    },
+    SLOW,
+  );
+
+  it(
+    "takes the gateway's payment when the shopper typed an ID on the page while bKash took it",
+    async () => {
+      const setup = await automate(await paidShop());
+      const ref = await placed(setup);
+      const { paymentId } = await started(ref);
+      bkash.behave(setup.appKey, {
+        duringExecute: async () => {
+          expect((await typeId(ref, 'TYPEDMEAN1')).status).toBe(201);
+        },
+      });
+      bkash.authorise(paymentId);
+      await returned(ref, { paymentID: paymentId, status: 'success' });
+      const done = await sessionOf(ref);
+      expect(done.state).toBe('verified');
+      expect(done.transaction_id).not.toBe('TYPEDMEAN1');
+      expect(await paymentsOfOrder(done.order_id)).toEqual([
+        expect.objectContaining({
+          verification_level: 'gateway',
+          transaction_id: done.transaction_id,
+          amount: '300.00',
+        }),
+      ]);
+      expect(await feesOf(setup.shop.tenantId)).toHaveLength(1);
+    },
+    SLOW,
+  );
+
+  it(
+    'records the account a checkout ran on, though another takes payments by hand (WAL-19)',
+    async () => {
+      const setup = await paidShop();
+      const saved = await setup.shop.put('/payment-methods/bkash', {
+        enabled: true,
+        accounts: [
+          {
+            accountName: 'Rahim Store',
+            number: '01711000001',
+            accountType: 'personal',
+            active: true,
+          },
+          {
+            accountName: 'Rahim Merchant',
+            number: '01711000005',
+            accountType: 'merchant',
+            active: false,
+          },
+        ],
+      });
+      expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+      const merchant = (await bkashOf(setup.shop)).accounts.find(
+        (row) => row.number === '01711000005',
+      );
+      const automated = await automate({ ...setup, accountId: merchant?.id ?? '' });
+      const ref = await placed(automated);
+      const { paymentId } = await started(ref);
+      bkash.authorise(paymentId);
+      await returned(ref, { paymentID: paymentId, status: 'success' });
+      const { rows } = await admin.query<{ paid_to: { accountId: string; number: string } | null }>(
+        'SELECT paid_to FROM tenant.payment_sessions WHERE ref = $1',
+        [ref],
+      );
+      expect(rows[0]?.paid_to).toMatchObject({ accountId: merchant?.id, number: '01711000005' });
+    },
+    SLOW,
+  );
+
+  it(
+    'makes one bKash payment when the shopper taps twice, and refuses a staff link while they are at bKash',
+    async () => {
+      const setup = await automate(await paidShop());
+      const ref = await placed(setup);
+      const [one, two] = await Promise.all([checkout(ref), checkout(ref)]);
+      expect([one.status, two.status]).toEqual([200, 200]);
+      const url = (one.body as { redirectUrl: string | null }).redirectUrl;
+      expect(url).toMatch(/^https:/);
+      expect((two.body as { redirectUrl: string | null }).redirectUrl).toBe(url);
+      expect(bkash.createsOf(setup.appKey)).toHaveLength(1);
+      expect(await balanceOf(setup.shop)).toMatchObject({ held: '3.00' });
+
+      const session = await sessionOf(ref);
+      const link = await setup.shop.post(`/orders/${session.order_id}/payment-link`, {});
+      expect(link.status, JSON.stringify(link.body)).toBe(409);
+      expect((await sessionOf(ref)).state).toBe('awaiting_payment');
+    },
+    SLOW,
+  );
 });
