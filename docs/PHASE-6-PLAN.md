@@ -437,7 +437,7 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
   - **Undo:** allowed; shops told are told it's back, and defaults that moved stay.
   - **The notice:** Lytro's fixed words in Bangla and English; no note from the operator.
   - **Keys:** a shop already connected may still replace them; only connecting fresh is refused.
-- **Built as PR #TBD,** migration 0112 (`control.courier_adapters`). Found in building it: a booking not yet settled
+- **Built as PR #320,** migration 0112 (`control.courier_adapters`). Found in building it: a booking not yet settled
   blocks removal too; and a booking's claim reads the courier's state shared, so removal waits for any claim in flight
   and counts its parcel, and none starts once removed. Each shop's notice and an activity line ("Lytro is retiring a
   courier the shop uses") are written as the server; the operator's reason goes to the platform audit log only.
