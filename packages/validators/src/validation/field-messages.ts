@@ -140,6 +140,15 @@ const TEMPLATES: Readonly<Record<FieldProblemCode, Template>> = {
     en: 'Change something before saving.',
     bn: 'সেভ করার আগে কিছু পরিবর্তন করুন।',
   }),
+  // SMS-10: the variable's braces stay as written, since only `{label}`, `{min}`, `{max}` and `{length}` are filled.
+  [FieldProblemCode.MissingVariable]: same({
+    en: 'Keep {order_number} in the message, so it says which order it is about.',
+    bn: 'মেসেজে {order_number} রাখুন, যাতে বোঝা যায় কোন অর্ডারের কথা।',
+  }),
+  [FieldProblemCode.UnknownVariable]: same({
+    en: "This message names a variable it can't fill in. Use only the ones listed for it.",
+    bn: 'মেসেজে এমন একটি ভ্যারিয়েবল আছে যা এখানে বসানো যায় না। শুধু তালিকার ভ্যারিয়েবলগুলো ব্যবহার করুন।',
+  }),
 };
 
 // "More than 0" rather than "at least 0": the limit itself is not allowed.

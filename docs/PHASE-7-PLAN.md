@@ -94,6 +94,10 @@ overrule any of them when reviewing this plan.
 | D7-25 | **The unit and the rate** (Slice 7.1's read). BulkSMSBD charges 0.35 TK a part, Bangla or English. | **67 characters a unit, at 0.55 TK**, whatever the language: 67 is one Bangla part once a message needs two, so no SMS costs Lytro more than it earns. SMS-09 and RAT-13's default moves from 75 (the seeded rate too, unless an operator has changed it). | Slice 7.1 |
 | D7-26 | **The codes' words** (the owner's, 2026-11-06), in BulkSMSBD's OTP shape. | Sign-in: "Lytro-এ লগইনের জন্য OTP হচ্ছে {code}। কারো সাথে শেয়ার করবেন না।" Reset: "Lytro-এ পাসওয়ার্ড রিসেটের জন্য OTP হচ্ছে {code}। …" A shopper's: "{shop}-এ সাইন আপের জন্য OTP হচ্ছে {code}। …", or in English "Your {shop} OTP is {code}. Do not share it with anyone." (SMS-16 amended.) | Slice 7.1 |
 | D7-27 | **SMS-11's per-IP limit**, left for later in Phase 1 (D16). With real SMS, codes asked for made-up numbers from one address would cost Lytro money. | At most **20 code SMS an hour from one address** in production, across every phone, a setting (`CODE_SMS_PER_IP_PER_HOUR`); an address the server can't trust isn't counted (D14), as SUP-08's isn't. To revisit against measured traffic, since many phones can share one carrier address. | Slice 7.1 |
+| D7-28 | **Slice 7.2's words** (the owner's pick of the drafts, 2026-11-06). | Placed: "অর্ডার {order_number} পেয়েছি, মোট ৳{amount}। ধন্যবাদ!" Verified: "অর্ডার {order_number}-এর ৳{amount} পেমেন্ট পেয়েছি।" Shipped: "অর্ডার {order_number} পাঠানো হয়েছে: {tracking_link}" Delivered: "অর্ডার {order_number} ডেলিভারি হয়েছে। ধন্যবাদ!" Cancelled: "অর্ডার {order_number} ক্যানসেল করা হয়েছে।" New order: "নতুন অর্ডার {order_number}, মোট ৳{amount}।" To verify: "অর্ডার {order_number}-এর ৳{amount} পেমেন্ট ভেরিফাই করুন।" Six fit one unit with a typical shop name; shipped is two, its link making it so whatever link it is. | Slice 7.2 |
+| D7-29 | **The tracking link** (Slice 7.2's read). Only Steadfast gives a courier link. | The order's tracking page on the shop's storefront, at its own domain when it has one; with the storefront off, the courier's link, else its tracking code. | Slice 7.2 |
+| D7-30 | **Who gets what** (Slice 7.2's read). | The new-order alert and payment needs verification go to the owner's own phone only; staff get them as notifications (Slice 7.3). The shopper's five go for delivery orders from any source, takeaway and dine-in getting none; the new-order alert only for an order from outside the shop. | Slice 7.2 |
+| D7-31 | **The rest of Slice 7.2's read**, all the recommended answers. | The estimate counts the last 30 days' orders, a new shop seeing the cost per order (SMS-12). The three essential SMS keep the platform's words, listed as always on (SMS-19). An optional shorter SMS name every SMS starts with (SMS-16). No spend cap until the owner sets one, warned at 80% by email (SMS-13). | Slice 7.2 |
 
 ### 2.1 Points left to each slice's read
 
@@ -238,6 +242,10 @@ checks whether FRD-01's `fraud:check` is `fraud:read` or needs its own name.
   variables, the shop name put first, reset to default (SMS-10, SMS-16, SMS-19, I18N-03); each sent where its event
   happens (§3.4); the spend cap and its 80% warning (SMS-13); the estimated cost (SMS-12); the per-event report
   (SMS-14); optional SMS in trial (SMS-15).
+- **Built** (read agreed 2026-11-06, D7-28 to D7-31): each event is queued in the transaction where its order changes,
+  at the single place it changes, then worded, refused at the cap, charged at the SMS rate (never below zero) and sent
+  from its own job, which gives the charge back when the send fails and tries again. `tenant.sms_settings` keeps only
+  what the owner changed. The routes are `/sms/settings` (with its estimates), `/sms/report` and `/sms/log`.
 
 ### Slice 7.3: email, the bell and push
 - **Depends on:** 7.0.

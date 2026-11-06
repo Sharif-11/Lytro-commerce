@@ -2385,30 +2385,38 @@ CREATE TABLE control.scheduled_plan_changes (
 ## 5. SMS, push and notifications
 
 ```sql
+-- SMS-02, SMS-10, SMS-13, SMS-16, SMS-19 (built in Phase 7 Slice 7.2): a row once the owner changes anything. Only
+-- what the owner changed is kept: every other switch and template follows the platform's default (SMS-03), so "reset"
+-- takes a template out. A per-shop sender ID (SMS-16) is not built: BulkSMSBD's account has one.
 CREATE TABLE tenant.sms_settings (
     tenant_id       uuid PRIMARY KEY,
-    events          jsonb NOT NULL DEFAULT '{}',    -- {"order_placed": true, "order_delivered": false, ...} (SMS-01/02/03)
-    templates       jsonb NOT NULL DEFAULT '{}',    -- {"order_placed": "{{shop_name}}: your order..."} (SMS-10)
-    sender_id       text,
-    monthly_spend_cap numeric(10,2)
+    events          jsonb NOT NULL DEFAULT '{}',    -- the switches changed: {"order_delivered": true, ...} (SMS-02)
+    templates       jsonb NOT NULL DEFAULT '{}',    -- the templates edited: {"order_placed": "অর্ডার {order_number} ..."}
+    sms_name        varchar(60),                    -- SMS-16: what every SMS starts with; null for the shop's name
+    monthly_spend_cap numeric(10,2),                -- SMS-13: null for none
+    updated_at      timestamptz NOT NULL DEFAULT now()
 );
+-- Row-level security to the shop's own row; the server reads, inserts and updates it.
 
--- SMS-07, SMS-17 (built in Phase 7 Slice 7.1): one row for each SMS a shop's use sent, failed to send or was refused.
--- Slice 7.2 adds the order events' kinds and the order they're about.
+-- SMS-07, SMS-17 (built in Phase 7 Slices 7.1 and 7.2): one row for each SMS a shop's use sent, failed to send or was
+-- refused: its codes, and its order events with the order and the words sent (a code's words are never kept).
 CREATE TABLE tenant.sms_log (
     id              bigserial PRIMARY KEY,
     tenant_id       uuid NOT NULL,
-    kind            text NOT NULL,                  -- signin_code | staff_reset_code | shopper_code
+    kind            text NOT NULL,                  -- signin_code | staff_reset_code | shopper_code, or an SMS event (SMS-01)
+    order_id        uuid,                           -- an SMS event's order; no foreign key, the log outlives it
+    body            text,                           -- an SMS event's words
     to_phone        varchar(15) NOT NULL,
     units           integer NOT NULL CHECK (units > 0),          -- SMS-09: ceil(length / unit_size)
     cost            numeric(10,2) NOT NULL CHECK (cost >= 0),     -- what the balance paid; 0 within the allowance
     is_essential    boolean NOT NULL,
     status          text NOT NULL,                  -- sent | failed | blocked (D7-15: no delivery reports)
-    blocked_reason  text,                           -- set exactly when blocked: insufficient_balance (SMS-07)
+    blocked_reason  text,                           -- set exactly when blocked: insufficient_balance | balance_frozen | spend_cap
     provider_message_id text,
     created_at      timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX ON tenant.sms_log (tenant_id, created_at);
+CREATE INDEX ON tenant.sms_log (tenant_id, order_id);
 -- Row-level security to the shop's own rows; the server inserts and reads, never changes a row.
 -- SCL-05 partitioning candidate, same as order_status_history.
 

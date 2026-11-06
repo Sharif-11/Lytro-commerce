@@ -2149,3 +2149,14 @@ When a code's first send fails, the shop gets back what it took (SMS-08) and a b
 chance at delivering it (D27). If the retry succeeds, the code went out free: the retry job doesn't know whose use the
 code was. The leak is small, at most one SMS within the code's five minutes, and only while BulkSMSBD is failing. Closing
 it means the job carries the shop and charges, or counts, on a successful retry.
+
+## 124. `SMS-08`, `SMS-01`: what a crash or two quick changes can do to an order SMS — found 2026-11-06, open
+
+An order SMS is charged, sent and logged as three steps of its job (Slice 7.2). If the server stops after the charge and
+before the send's outcome is known, the job runs again: the shop is charged a second time and the first charge is never
+given back, at most one SMS's price (0.55 to 1.10 TK) each time it happens. Closing it means writing the job's progress
+with the charge, so a second run finds the first charge and sends against it.
+
+The jobs are also taken in no fixed order, so an order cancelled within seconds of being placed may send "cancelled"
+before "placed". Both are true and both are charged; only their order is off.
+

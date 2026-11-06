@@ -771,6 +771,13 @@
       "when": 1793955250731,
       "tag": "0110_sms_real",
       "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1793975418652,
+      "tag": "0111_sms_events",
+      "breakpoints": true
     }
   ]
 }

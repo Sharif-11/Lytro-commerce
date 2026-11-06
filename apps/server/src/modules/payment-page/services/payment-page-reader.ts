@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { mainOrigin } from '../../../common/shop-address';
+import { trackingPageUrl } from '../../../common/shop-address';
 import type { Env } from '../../../config/env';
 import { ENV } from '../../../config/tokens';
 import { ShopStorefrontService } from '../../balance/services/shop-storefront.service';
@@ -39,7 +39,7 @@ export class PaymentPageReader {
   async orderPageOf(tenantId: string, slug: string, trackingId: string): Promise<string | null> {
     if (!(await this.storefront.isOn(tenantId))) return null;
     const host = await this.domains.servingHost(tenantId);
-    return `${mainOrigin(this.env, slug, host)}/track/${encodeURIComponent(trackingId)}`;
+    return trackingPageUrl(this.env, slug, host, trackingId);
   }
 
   /** What the page is drawn from. */

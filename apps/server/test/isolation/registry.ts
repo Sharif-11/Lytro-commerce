@@ -290,6 +290,12 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /couriers/adapters':
     'returns the same platform-wide couriers regardless of which shop calls it',
   'GET /couriers/connections': "lists only the session shop's own connections",
+  // Checked in test/sms-events.e2e.spec.ts (Slice 7.2): one shop's SMS settings, log and report never show another's.
+  'GET /sms/settings': "shows only the session shop's own SMS settings and spend",
+  'PATCH /sms/settings': "changes only the session shop's own SMS settings",
+  'POST /sms/settings/templates/:event/reset': "resets only the session shop's own template",
+  'GET /sms/report': "counts only the session shop's own SMS",
+  'GET /sms/log': "lists only the session shop's own SMS; another shop's order ID lists none",
   'POST /couriers/connections': "saves only into the session shop's own connections",
   'DELETE /couriers/connections/:key': "removes only the session shop's own connection",
   'PUT /couriers/connections/:key/default': "changes only the session shop's own default",

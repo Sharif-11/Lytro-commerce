@@ -27,6 +27,19 @@ export function mainOrigin(
   return ownDomain === null ? shopOrigin(env, slug) : hostOrigin(env, ownDomain);
 }
 
+/**
+ * ORD-17: an order's tracking page on the shop's storefront, at its main address. The one place its shape is written:
+ * the payment page links to it (PAY-24), and the shipped SMS sends it (SMS-01, Slice 7.2).
+ */
+export function trackingPageUrl(
+  env: { NODE_ENV: string; PLATFORM_DOMAIN: string },
+  slug: string,
+  ownDomain: string | null,
+  trackingId: string,
+): string {
+  return `${mainOrigin(env, slug, ownDomain)}/track/${encodeURIComponent(trackingId)}`;
+}
+
 function hostOrigin(env: { NODE_ENV: string }, host: string): string {
   return `${env.NODE_ENV === 'production' ? 'https' : 'http'}://${host}`;
 }

@@ -11,3 +11,4 @@ export * from './order-status';
 export * from './measure';
 export * from './payment-methods';
 export * from './transaction-id';
+export * from './sms-templates';

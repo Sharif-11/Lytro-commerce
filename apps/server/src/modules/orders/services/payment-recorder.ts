@@ -4,15 +4,17 @@ import {
   AuditAction,
   OrderHistoryField,
   OrderPaymentStatus,
+  PaymentMethod,
   ServerFieldProblemCode,
+  SmsEvent,
   StatusOverride,
   type OrderPaymentInput,
-  type PaymentMethod,
   type VerificationLevel,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
+import { SmsEventQueue } from '../../sms-events/services/sms-event-queue';
 import type { OrderStore } from '../ports/order-store';
 import { ORDER_STORE } from '../tokens';
 import type { OrderPaymentRecord, OrderRecord } from '../types/orders';
@@ -84,6 +86,7 @@ export class PaymentRecorder {
   constructor(
     @Inject(ORDER_STORE) private readonly store: OrderStore,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(SmsEventQueue) private readonly smsEvents: SmsEventQueue,
   ) {}
 
   /**
@@ -181,6 +184,17 @@ export class PaymentRecorder {
         payment.id,
         entry.sessionId ?? null,
       );
+    }
+    // SMS-01 (Slice 7.2): every payment that comes in verified, however it came, tells the shopper -- except cash on
+    // delivery, which the delivered SMS covers.
+    if (entry.method !== PaymentMethod.CashOnDelivery) {
+      await this.smsEvents.queue(tx, {
+        tenantId,
+        orderId: order.id,
+        events: [SmsEvent.PaymentVerified],
+        amount: entry.amount,
+        ref: payment.id,
+      });
     }
     const standing = await this.standingWithin(tx, tenantId, order, order);
     this.noteStanding(order, standing, paymentWords(entry), who, history);

@@ -67,7 +67,20 @@ export {
   EssentialSmsUsageRepository,
   type NewEssentialSmsUsage,
 } from './repositories/messaging/essential-sms-usage.repository';
-export { SmsLogRepository, type NewSmsLogEntry } from './repositories/messaging/sms-log.repository';
+export {
+  SmsLogRepository,
+  type NewSmsLogEntry,
+  type SmsLogPage,
+  type SmsReportRow,
+} from './repositories/messaging/sms-log.repository';
+export {
+  SmsSettingsRepository,
+  type SmsSettingsChange,
+} from './repositories/messaging/sms-settings.repository';
+export {
+  SmsEventCountsRepository,
+  type SmsEventCounts,
+} from './repositories/messaging/sms-event-counts.repository';
 export {
   OperatorAccountRepository,
   type OperatorAccountRow,

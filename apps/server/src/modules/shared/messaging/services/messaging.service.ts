@@ -67,6 +67,14 @@ export class MessagingService {
     return { id, toPhone: phone, body };
   }
 
+  /**
+   * SMS-01 (Slice 7.2): sends a shop's SMS event now, from its own job, which keeps it in the shop's SMS log and tries
+   * again itself. The provider's failure is thrown as it came (SmsRefused when BulkSMSBD said no).
+   */
+  sendNow(message: { toPhone: string; body: string }): Promise<SmsSent> {
+    return this.provider.send(message);
+  }
+
   /** Sends a one-time code during its request. A failure is recorded, then reported, since no code arrived. */
   async deliverOtp(message: QueuedMessage): Promise<SmsSent> {
     try {

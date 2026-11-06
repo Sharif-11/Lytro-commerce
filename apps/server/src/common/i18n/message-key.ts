@@ -732,6 +732,12 @@ export const MESSAGE_KEYS = [
   'CourierAddressReplaced',
   'ParcelSynced',
   'ParcelNothingToSync',
+  // SMS-02 to SMS-19 (Slice 7.2): a shop's SMS settings, report and log.
+  'SmsSettingsRead',
+  'SmsSettingsSaved',
+  'SmsTemplateReset',
+  'SmsReportRead',
+  'SmsLogListed',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

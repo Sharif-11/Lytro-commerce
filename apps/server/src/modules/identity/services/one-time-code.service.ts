@@ -3,6 +3,7 @@ import {
   ChallengeChannel,
   type ChallengeKind,
   ServerFieldProblemCode,
+  SmsBlockedReason,
   type SmsLogKind,
   SmsLogStatus,
 } from '@lytronix/validators';
@@ -106,7 +107,7 @@ export class OneTimeCodeService {
           cost: '0',
           isEssential: true,
           status: SmsLogStatus.Blocked,
-          blockedReason: 'insufficient_balance',
+          blockedReason: SmsBlockedReason.InsufficientBalance,
         });
       }
       throw error;
