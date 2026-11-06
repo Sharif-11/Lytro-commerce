@@ -1,6 +1,6 @@
 # Phase 7 plan: SMS, notifications, the notice board, fraud checks and reading orders
 
-Status: agreed 2026-11-06. D7-1 to D7-12 and D7-21 were settled with the owner that day. D7-13 to D7-20 and D7-22 follow from them or
+Status: agreed 2026-11-06. D7-1 to D7-12, D7-21 and D7-22 were settled with the owner that day. D7-13 to D7-20 follow from them or
 from existing requirements, and are raised with this plan, so the owner can overrule any of them. Builds on
 `IMPLEMENTATION-PLAN.md` Phase 7, with these changes:
 
@@ -73,9 +73,9 @@ check a phone number before shipping a cash-on-delivery order, and paste a custo
 | D7-10 | **When.** Phase 6 goes one slice at a time in another session. | Phase 7 is built beside it, in its own session, also one slice at a time. The two touch different code. | the whole phase |
 | D7-11 | **Push.** | In-app notifications and **web push** to a subscribed phone or computer (NTF-01 to NTF-04). Email for warnings and notices (NTF-05, NTF-06, NTC-06). | Slices 7.3, 7.4 |
 | D7-12 | **Credentials.** | Each provider's key goes in a local file outside every repository, which the slice names and never opens or prints. The BulkSMSBD key pasted in the read must be replaced with a new one first. | every provider slice |
-| D7-21 | **When an SMS really goes out** (the owner's call, 2026-11-06). Every SMS costs money. | By the server's mode. **Test:** never sent, only recorded, whatever any setting says. **Development:** the stand-in writes it to the log, unless `SMS_FORCE_REAL=true` is set and BulkSMSBD's login is there, and then it really goes out. **Production:** always sent for real, and a server missing BulkSMSBD's login refuses to start rather than quietly logging. | Slice 7.1 |
+| D7-21 | **When an SMS really goes out** (the owner's call, 2026-11-06). Every SMS costs money. | By the server's mode. **Test:** never sent, only recorded, whatever any setting says. **Development:** the stand-in writes it to the log, unless `SMS_FORCE_REAL=true` is set and BulkSMSBD's login is there, and then it really goes out. **Production, staging included:** always sent for real, and a server missing BulkSMSBD's login refuses to start rather than quietly logging. | Slice 7.1 |
 
-**D7-13 to D7-20, and D7-22, follow from those or from existing requirements.** They weren't asked in the read, so the owner can
+**D7-13 to D7-20 follow from those or from existing requirements.** They weren't asked in the read, so the owner can
 overrule any of them when reviewing this plan.
 
 | # | Decision | Decided | Affects |
@@ -88,7 +88,7 @@ overrule any of them when reviewing this plan.
 | D7-18 | **The pasted message.** | It goes to Gemini, on a paid tier that doesn't train on it, and Lytro keeps only the draft and the count, never the message (as `order_extractions` already says). | Slice 7.6 |
 | D7-19 | **Notices from the console.** The console's Rates page shows "Offer a rate-change notice" as coming soon. | The notice board's operator routes come in Slice 7.4, and the console's screens for them in Slice 7.7, which also makes the rate-change offer real (NTC-13). | Slices 7.4, 7.7 |
 | D7-20 | **What the screens stopped promising.** The console and storefront dropped "the owner is told by SMS" and "no SMS is promised" while nothing was sent. | Slice 7.7 brings back each sentence once its message really goes out, checked against the code, not the sketch. | Slice 7.7 |
-| D7-22 | **The same rule for every provider that costs money or reaches a real person.** | Email (Resend), web push and Gemini follow D7-21: recorded in test, the stand-in in development unless its own force flag (`EMAIL_FORCE_REAL`, `PUSH_FORCE_REAL`, `AI_FORCE_REAL`) is set, real in production. | Slices 7.3, 7.6 |
+| D7-22 | **The same rule for every provider that costs money or reaches a real person** (the owner's call, 2026-11-06). | Email (Resend), web push and Gemini follow D7-21: recorded in test, the stand-in in development unless its own force flag (`EMAIL_FORCE_REAL`, `PUSH_FORCE_REAL`, `AI_FORCE_REAL`) is set, real in production and staging. | Slices 7.3, 7.6 |
 
 ### 2.1 Points left to each slice's read
 
@@ -96,7 +96,7 @@ Each is settled in its slice's read, before code, and recorded there.
 
 | Slice | To settle |
 |---|---|
-| 7.1 | **A real SMS to the owner's phone first, over HTTPS** (D7-2), sent from development with `SMS_FORCE_REAL` (D7-21). Whether a staging server, which runs in production mode, should send real SMS or have its own switch. Whether BulkSMSBD has delivery reports (D7-15), the server addresses it must allow (its code 1032), its OTP format ("Your {Brand} OTP is XXXX") against the codes Lytro sends today, and Bangla's cost in parts. |
+| 7.1 | **A real SMS to the owner's phone first, over HTTPS** (D7-2), sent from development with `SMS_FORCE_REAL` (D7-21). Staging sends for real, as production does. Whether BulkSMSBD has delivery reports (D7-15), the server addresses it must allow (its code 1032), its OTP format ("Your {Brand} OTP is XXXX") against the codes Lytro sends today, and Bangla's cost in parts. |
 | 7.2 | The ten events' Bangla defaults, worded to the owner's style guide. Which events need a tracking link, and which link. What "estimated monthly cost" (SMS-12) counts from for a new shop. |
 | 7.3 | Resend's sending domain and its DNS records, the bounce message (NTF-06), and how long a notification is kept. Which events a user can switch off (NTF-04): essential ones like "payment to verify" may stay on. |
 | 7.4 | How a notice's Bangla and English bodies are written in the console (bold, links and lists, NTC-01) and kept safe (NTC-16). Whether the status page (NTC-14) is in this release. |
