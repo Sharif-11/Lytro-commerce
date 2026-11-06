@@ -79,13 +79,39 @@ export enum SmsKind {
   LifecycleNotice = 'lifecycle_notice',
 }
 
-// SMS-07, SMS-17 (Phase 7 Slice 7.1): what a shop's own SMS log holds, read agreed 2026-11-06: the codes that come from
-// the shop's own use, which the free allowance and then the balance pay for, and its shoppers' sign-up codes, which
-// the balance always pays for. Slice 7.2 adds the shop's SMS events.
+// SMS-07, SMS-17 (Phase 7 Slice 7.1): the codes a shop's own SMS log holds, read agreed 2026-11-06: the codes that come
+// from the shop's own use, which the free allowance and then the balance pay for, and its shoppers' sign-up codes, which
+// the balance always pays for. The log's other rows are the shop's SMS events (SmsEvent, Slice 7.2).
 export enum SmsLogKind {
   SigninCode = 'signin_code',
   StaffResetCode = 'staff_reset_code',
   ShopperCode = 'shopper_code',
+}
+
+// SMS-01 (Phase 7 Slice 7.2, read agreed 2026-11-06): the shop's own SMS events, each with its switch and its template,
+// always paid from the balance (D7-23). The first five go to the shopper, for delivery orders only; the last two to the
+// owner's phone. SMS-01's three essential events are the codes above and the shop-ready SMS, in the platform's words.
+export enum SmsEvent {
+  OrderPlaced = 'order_placed',
+  PaymentVerified = 'payment_verified',
+  OrderShipped = 'order_shipped',
+  OrderDelivered = 'order_delivered',
+  OrderCancelled = 'order_cancelled',
+  NewOrderAlert = 'new_order_alert',
+  PaymentToVerify = 'payment_to_verify',
+}
+
+/** SMS-07: what one row of a shop's SMS log was: a code, or one of its SMS events. */
+export type SmsLogEntryKind = SmsLogKind | SmsEvent;
+
+// SMS-07, SMS-13, SMS-15: why an SMS was not sent.
+export enum SmsBlockedReason {
+  // SMS-06: the balance can't pay for it, and no SMS takes it below zero.
+  InsufficientBalance = 'insufficient_balance',
+  // SMS-15, BAL-07: a lapsed shop's balance is frozen, so nothing is charged or sent.
+  BalanceFrozen = 'balance_frozen',
+  // SMS-13: the month's spend cap the owner set is reached.
+  SpendCap = 'spend_cap',
 }
 
 // SMS-07, SMS-17: what became of one. Sent means the provider accepted it; it has no delivery reports (D7-15).
@@ -543,6 +569,9 @@ export enum QueueName {
   DomainCheckTick = 'domain_check_tick',
   // API-11, KNOWN-GAPS §106: once a day, every idempotency key past its 24 hours goes, with the reply stored for it.
   IdempotencyPurgeTick = 'idempotency_purge_tick',
+  // SMS-01 (Slice 7.2): one of a shop's SMS events, queued in the transaction where it happened, then worded, charged and
+  // sent apart from it, so the SMS never holds up or undoes the order.
+  OrderSms = 'order_sms',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -709,6 +738,8 @@ export enum UsageMetric {
   OrdersMonthly = 'orders_monthly',
   OrdersTotal = 'orders_total',
   OrdersDaily = 'orders_daily',
+  // SMS-13 (Slice 7.2): the month's SMS event spend, in taka, against the cap the owner set; warned at 80% only.
+  SmsSpend = 'sms_spend',
 }
 
 // LIF-26: every platform-wide editable value that isn't a per-use rate (those are RateKey above). Add a key

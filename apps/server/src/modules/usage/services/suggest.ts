@@ -100,7 +100,9 @@ function addonSuggestion(
   let packsAgain = false;
   for (const figure of figures) {
     if (!near(figure) || figure.limit === null) continue;
-    const { key, unit } = metricLimitKey(figure.metric);
+    const known = metricLimitKey(figure.metric);
+    if (!known) return null;
+    const { key, unit } = known;
     const addon = choice.addons.find((option) => option.limitKey === key);
     if (!addon) return null;
     if (addon.pack && choice.packsTwoCycles?.has(figure.metric)) packsAgain = true;

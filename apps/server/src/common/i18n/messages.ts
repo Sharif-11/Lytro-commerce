@@ -1840,6 +1840,15 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Gateway credentials removed.',
     bn: 'গেটওয়ের ক্রেডেনশিয়াল মুছে ফেলা হয়েছে।',
   },
+  // SMS-02 to SMS-19 (Slice 7.2): a shop's SMS settings, report and log.
+  SmsSettingsRead: { en: 'SMS settings.', bn: 'SMS সেটিংস।' },
+  SmsSettingsSaved: { en: 'SMS settings saved.', bn: 'SMS সেটিংস সেভ হয়েছে।' },
+  SmsTemplateReset: {
+    en: 'The message is back to its default wording.',
+    bn: 'মেসেজটি আগের ডিফল্ট লেখায় ফিরেছে।',
+  },
+  SmsReportRead: { en: 'SMS report.', bn: 'SMS রিপোর্ট।' },
+  SmsLogListed: { en: 'SMS sent and refused, listed.', bn: 'পাঠানো ও আটকানো SMS-এর তালিকা।' },
   CourierAdaptersListed: { en: 'Couriers listed.', bn: 'কুরিয়ারের তালিকা।' },
   CourierConnectionsListed: {
     en: 'Connected couriers listed.',

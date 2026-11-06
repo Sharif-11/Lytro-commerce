@@ -17,6 +17,7 @@ import {
   PaymentMethod,
   ReservationStatus,
   ServerFieldProblemCode,
+  SmsEvent,
   StatusOverride,
   TenantState,
   type HandOverOrderInput,
@@ -34,6 +35,7 @@ import { CustomerService } from '../../customers/services/customer.service';
 import { milli } from '../../inventory/services/stock-state';
 import { ReservationService } from '../../inventory/services/reservation.service';
 import { StockReturnService } from '../../inventory/services/stock-return.service';
+import { SmsEventQueue } from '../../sms-events/services/sms-event-queue';
 import type { ReservationRecord } from '../../inventory/types/inventory';
 import type { OrderStore } from '../ports/order-store';
 import { ORDER_STORE } from '../tokens';
@@ -107,6 +109,7 @@ export class OrderFulfilment {
     @Inject(CustomerService) private readonly customers: CustomerService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(PaymentRecorder) private readonly payments: PaymentRecorder,
+    @Inject(SmsEventQueue) private readonly smsEvents: SmsEventQueue,
   ) {}
 
   /** ORD-09, D4-7: a delivery order sent with a courier, the whole order at once. */
@@ -350,6 +353,11 @@ export class OrderFulfilment {
       fulfillmentStatus: FulfillmentStatus.Shipped,
       shippedAt: now,
     });
+    await this.smsEvents.queue(tx, {
+      tenantId,
+      orderId: order.id,
+      events: [SmsEvent.OrderShipped],
+    });
     await this.store.insertHistory(tx, tenantId, [
       this.fulfilmentHistory(order, FulfillmentStatus.Shipped, line, who),
     ]);
@@ -409,6 +417,11 @@ export class OrderFulfilment {
       ...(report.partly ? {} : { deliveredAt: now }),
       ...standing,
     });
+    await this.smsEvents.queue(tx, {
+      tenantId,
+      orderId: order.id,
+      events: [SmsEvent.OrderDelivered],
+    });
     await this.store.insertHistory(tx, tenantId, history);
     await this.customers.recountWithin(tx, tenantId, [order.customerId]);
     await this.record(
@@ -441,6 +454,11 @@ export class OrderFulfilment {
       };
       history.push(this.fulfilmentHistory(order, FulfillmentStatus.Delivered, null, who));
       const updated = await this.store.updateOrder(tx, tenantId, order.id, patch);
+      await this.smsEvents.queue(tx, {
+        tenantId,
+        orderId: order.id,
+        events: [SmsEvent.OrderDelivered],
+      });
       await this.store.insertHistory(tx, tenantId, history);
       await this.customers.recountWithin(tx, tenantId, [order.customerId]);
       await this.record(tx, tenantId, who, updated, OrderStatus.Delivered);
@@ -649,6 +667,13 @@ export class OrderFulfilment {
         to = OrderStatus.Delivered;
       }
       const updated = await this.store.updateOrder(tx, shop.id, order.id, patch);
+      // SMS-01 (Slice 7.2): a hand-over is a takeaway's or a dine-in's, which send the shopper nothing; queued all the same,
+      // so the one rule for who is sent what stays with the SMS.
+      await this.smsEvents.queue(tx, {
+        tenantId: shop.id,
+        orderId: order.id,
+        events: [to === OrderStatus.Delivered ? SmsEvent.OrderDelivered : SmsEvent.OrderShipped],
+      });
       await this.store.insertHistory(tx, shop.id, history);
       await this.customers.recountWithin(tx, shop.id, [order.customerId]);
       await this.record(tx, shop.id, who, updated, to);

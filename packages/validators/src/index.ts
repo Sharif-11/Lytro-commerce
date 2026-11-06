@@ -25,6 +25,7 @@ export * from './api/couriers/courier';
 export * from './api/payment-methods/payment-methods';
 export * from './api/payment-methods/gateway';
 export * from './api/payment-methods/payment-sessions';
+export * from './api/sms/sms-settings';
 export * from './api/listener/listener';
 export * from './api/customers/customer';
 export * from './api/customers/shopper';

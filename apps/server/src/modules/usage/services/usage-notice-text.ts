@@ -1,4 +1,4 @@
-import { PACK_AUTO_BUY_CAP, UsageMetric } from '@lytronix/validators';
+import { PACK_AUTO_BUY_CAP, takaFigure, UsageMetric } from '@lytronix/validators';
 import { DAY_MS } from '../../../common/time';
 import type { UsageNotice } from '../../usage-warnings/types/usage-notice';
 import { GB } from '../../media/services/media-bandwidth';
@@ -26,6 +26,7 @@ const NAMES: Readonly<Record<UsageMetric, string>> = {
   [UsageMetric.OrdersMonthly]: 'orders handled this period',
   [UsageMetric.OrdersTotal]: 'orders handled',
   [UsageMetric.OrdersDaily]: 'orders handled today',
+  [UsageMetric.SmsSpend]: 'SMS spend',
 };
 
 // What stops for shoppers when a metric that serves them is used up (BND-03, RTE-03).
@@ -132,6 +133,20 @@ export function noticeText(
   const room = roomLine(usage.suggestions);
   const served = SERVED[notice.metric];
   const resets = day(usage.cycleEnd);
+  if (notice.metric === UsageMetric.SmsSpend) {
+    // SMS-13 (Slice 7.2): the owner's own cap, so nothing to buy and no plan to suggest; by email only (`smsDue`).
+    const share = Math.round((notice.used * 100) / notice.limit);
+    const spent = takaFigure(notice.used.toFixed(2));
+    const cap = takaFigure(notice.limit.toFixed(2));
+    return {
+      subject: `${shopName}: ${String(share)}% of your SMS spend cap used`,
+      body:
+        `${shopName}'s order SMS have cost ${spent} TK of the ${cap} TK cap you set for this month. At the cap they ` +
+        `stop until the month ends on ${resets}; sign-in codes and the shop-ready SMS still go out. Raise or remove ` +
+        'the cap in SMS settings.',
+      sms: '',
+    };
+  }
   if (notice.level === 'fast_spend') {
     const share = Math.round((notice.used * 100) / notice.limit);
     return {

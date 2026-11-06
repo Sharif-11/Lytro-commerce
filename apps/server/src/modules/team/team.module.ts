@@ -56,6 +56,7 @@ import { CatalogFeedController } from './controllers/catalog-feed.controller';
 import { PublicApiModule } from '../public-api/public-api.module';
 import { DataExportController } from './controllers/data-export.controller';
 import { DataExportModule } from '../data-export/data-export.module';
+import { SmsEventsModule } from '../sms-events/sms-events.module';
 import { SmsUsageModule } from '../sms-usage/sms-usage.module';
 import { ActivityListService } from './services/activity-list.service';
 import { StaffSigninService } from './services/staff-signin.service';
@@ -68,6 +69,7 @@ import { PurchasingModule } from '../purchasing/purchasing.module';
 import { OrdersModule } from '../orders/orders.module';
 import { OrdersController } from './controllers/orders.controller';
 import { CouriersController } from './controllers/couriers.controller';
+import { SmsController } from './controllers/sms.controller';
 import { OperatorCourierAreasController } from './controllers/operator-courier-areas.controller';
 import { OperatorCourierRetiringController } from './controllers/operator-courier-retiring.controller';
 import { OperatorCouriersController } from './controllers/operator-couriers.controller';
@@ -130,6 +132,7 @@ import { OperatorShops } from './services/operator-shops';
     PlatformSettingsModule,
     IdempotencyModule,
     DataExportModule,
+    SmsEventsModule,
     SmsUsageModule,
     CatalogueModule,
     DeliveryModule,
@@ -205,6 +208,7 @@ import { OperatorShops } from './services/operator-shops';
     ProductPurchasesController,
     OrdersController,
     CouriersController,
+    SmsController,
     OperatorCouriersController,
     OperatorCourierAreasController,
     OperatorCourierRetiringController,

@@ -2156,6 +2156,16 @@ Steadfast's payouts were read once from the owner's live account: 8 payouts on o
 
 The live payout read also showed that Steadfast's tracking links are `steadfast.com.bd/tl/` with a token of its own, not `/t/` with the tracking code as Lytro builds them (§112): the first real parcel should check the link a shopper is given.
 
+## 124. `SMS-08`, `SMS-01`: what a crash or two quick changes can do to an order SMS — found 2026-11-06, open
+
+An order SMS is charged, sent and logged as three steps of its job (Slice 7.2). If the server stops after the charge and
+before the send's outcome is known, the job runs again: the shop is charged a second time and the first charge is never
+given back, at most one SMS's price (0.55 to 1.10 TK) each time it happens. Closing it means writing the job's progress
+with the charge, so a second run finds the first charge and sends against it.
+
+The jobs are also taken in no fixed order, so an order cancelled within seconds of being placed may send "cancelled"
+before "placed". Both are true and both are charged; only their order is off.
+
 ## 125. `ORD-30`, `D7-37`: reading delivery details has read only made-up messages — found 2026-11-06, open until real messages are read on a key with billing on
 
 Slice 7.6 chose Gemini 3.5 Flash-Lite on 21 made-up messages written for its read (104 of 105 fields right), and three of them went through the built adapter. The Gemini key given for the read is on Google's free tier, where Google may use what it is sent and people may read it, so no real customer's message has gone to Gemini (D7-18). Before launch the owner turns billing on for the key's project, and a set of real messages, names and numbers changed, is read: the slice's done-when, and the check that 0.10 TK a read (D7-36) still covers what a real message costs. The free tier also held reads to a few a minute, so how fast a read is on the paid tier is unmeasured too. A shop's reads a minute and Gemini's circuit are kept in memory, exact while there is one server, as §119 says of the others.

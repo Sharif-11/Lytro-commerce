@@ -680,7 +680,7 @@ Covers: `LSN-02`, `LSN-03`, `LSN-10`, `LSN-11`, `LSN-13`, `LSN-15`, `LSN-16`, `L
 
 **S08-01 Event defaults and essential lock.**
 Steps: inspect a new tenant's SMS settings; attempt to toggle an essential event off.
-Expected: order placed/verified/shipped/cancelled default on, delivered/new-order-alert/payment-needs-verification default off; essential toggles are disabled, not togglable.
+Expected: order placed/verified/shipped/cancelled default on, delivered/new-order-alert/payment-needs-verification default off; the three essential SMS are listed as always on, with no switch and no template (Slice 7.2's read). A takeaway or dine-in order sends the shopper nothing, and an order staff enter sends no new-order alert.
 Covers: `SMS-01` to `SMS-03`.
 
 **S08-02 Essential allowance, overage charging, and the trial figure.**
@@ -701,7 +701,7 @@ Covers: `SMS-06`.
 
 **S08-05 Tenant-editable SMS templates, Bangla default.**
 Steps: 1) Inspect a new tenant's templates — confirm Bangla. 2) Edit the "order placed" template into English, observing live character/cost count. 3) Save. 4) Trigger that event. 5) Reset to default.
-Expected: default is Bangla; live count updates while typing; only the edited event sends in English afterward, others stay Bangla; reset restores original wording; shop name is prepended automatically and isn't part of the editable body.
+Expected: default is Bangla; live count updates while typing; only the edited event sends in English afterward, others stay Bangla; reset restores original wording; the shop's name, or the shorter SMS name it set, is prepended automatically and isn't part of the editable body.
 Covers: `SMS-19`, `SMS-16`, `I18N-03`.
 
 **S08-06 Notifications are fixed copy, not tenant-editable.**
@@ -739,9 +739,9 @@ Steps: 1) Insert order number, tracking link, and amount variables into a templa
 Expected: variables substitute correctly with no raw placeholder text leaking through; each of the three independent OTP limits (phone/IP/tenant) enforces on its own axis.
 Covers: `SMS-10`, `SMS-11`.
 
-**S08-13 Optional SMS blocked in trial and lapsed states.**
-Steps: attempt to trigger an optional (non-essential) SMS event during `trial`, and again during `locked`.
-Expected: refused in both states per the same codes `BAL-06`/`BAL-07` already define for balance usability — optional SMS never slips through just because the event itself fired.
+**S08-13 Optional SMS in trial, refused in lapsed states.**
+Steps: trigger an optional (non-essential) SMS event during `trial`, and again once the balance is frozen in `locked`.
+Expected: in `trial` it is sent and charged like an active shop's (SMS-15, amended 2026-10-15); in `locked` it is refused and logged `blocked: balance_frozen` -- optional SMS never slips through just because the event itself fired.
 Covers: `SMS-15`.
 
 **S08-14 Rate-change triggers a prefilled notice offer.**

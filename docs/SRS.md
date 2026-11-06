@@ -381,8 +381,6 @@ Only wallet-kind methods (bKash, Nagad, Rocket) support the automatic levels; ba
 
 Each SMS is a named event the tenant switches on or off, and every SMS except a small free allowance of essential ones is paid from the prepaid balance.
 
-**Not built beyond transactional OTP/reset SMS, added 2026-10-16** — `apps/server/src/modules/shared/messaging/` only sends sign-in codes and password-reset codes; there is no event-toggle concept, no template editor, no per-plan essential-SMS counter or enforcement, and no spend cap anywhere in the codebase. Order-triggered events specifically need an orders module that doesn't exist yet (same root cause as `KNOWN-GAPS.md` #11); the essential-allowance metering itself isn't wired up even independent of that.
-
 **Events (tenant chooses which send)**
 
 | Event | Sent to | Default | Kind |
@@ -392,8 +390,8 @@ Each SMS is a named event the tenant switches on or off, and every SMS except a 
 | Order shipped, with tracking link | Shopper | On | Optional |
 | Order delivered | Shopper | Off | Optional |
 | Order cancelled or rejected | Shopper | On | Optional |
-| New order alert | Owner or admin | Off | Optional (push is free) |
-| Payment needs verification | Admin | Off | Optional |
+| New order alert, for an order from outside the shop | Owner | Off | Optional (push is free) |
+| Payment needs verification | Owner | Off | Optional |
 | Shopper sign-in OTP | Shopper | Required | Essential |
 | Staff password reset | Staff | Required | Essential |
 | Shop ready, with the shop's URL | Owner | Required | Essential |
@@ -401,8 +399,8 @@ Each SMS is a named event the tenant switches on or off, and every SMS except a 
 **Requirements**
 
 - **SMS-1 Free essential allowance.** Each plan includes a monthly number of essential SMS (Starter 10, Growth 15, Pro 20; the trial has 8 in total, raised 2026-10-02 to match the trial's extension to one month). The number is a per-tenant setting with plan defaults. Above it, essential SMS are charged at the same per-SMS price as any other.
-- **SMS-2 Templates.** Templates are editable with variables (order number, tracking link, amount) and show a live character and SMS-part count. Bangla text has a shorter per-part limit, so a long message can cost several parts. Every template ships pre-written in Bangla and can be reset to that default at any time; push and in-app notifications, unlike SMS, are fixed platform wording and are not tenant-editable.
-- **SMS-3 Cost visibility.** Each switch shows an estimated monthly cost from the tenant's recent order volume. A per-event usage report shows where the balance goes.
+- **SMS-2 Templates.** The order events' templates are editable with variables (order number, amount, tracking link, customer name) and show a live character and unit count, with the shop's name, or a shorter SMS name it sets, in front. Every template ships pre-written in Bangla and can be reset to that default at any time. The essential SMS (codes and the shop-ready SMS) keep the platform's words. Shopper SMS go for delivery orders only. Push and in-app notifications, unlike SMS, are fixed platform wording and are not tenant-editable.
+- **SMS-3 Cost visibility.** Each switch shows an estimated monthly cost from the shop's last 30 days of orders (a new shop sees the cost per order). A per-event report shows where the balance goes, and an optional monthly spend cap stops the order SMS when reached, with an email at 80%.
 - **SMS-4 Counting.** For billing and the free allowance, an SMS is counted in units of a configurable size (default 67 characters, one Bangla part), regardless of language: up to 67 characters is 1 unit, 68–134 is 2 units, 135–201 is 3 units, and so on. This is a simpler billing unit than the SMS provider's own technical segmentation, and the per-unit rate is set to cover the provider's real cost across typical lengths. A message the provider reports as failed is not charged and does not use the allowance.
 - **SMS-5 Empty balance.** No SMS is sent when the balance cannot pay for it, essential or optional, and no SMS takes the balance below zero; the low-balance notice warns the tenant first. Essential SMS are free up to the allowance, then charged. A sign-in code refused this way says why, so the owner can use their password or top up.
 - **SMS-6 OTP abuse control.** OTP requests are limited per phone number, per IP and per tenant, with a resend cooldown. Blocked attempts are not sent and not charged.

@@ -14,6 +14,8 @@ export interface LimitUse {
   used: number;
   /** null is unlimited (PLN-19), and warns of nothing. */
   limit: number | null;
+  /** The shares warned of, when not LIM-01's 50, 80 and 95: SMS-13's spend cap warns at 80 alone. */
+  shares?: readonly number[];
 }
 
 /**
@@ -36,7 +38,7 @@ export class UsageWarnings {
     if (!shop) return;
     const cycleStart = usageCycleStart(shop, this.clock());
     const warned = await this.store.warned(tx, use.tenantId, use.metric, cycleStart);
-    const reached = warningDue(use.used, use.limit, warned);
+    const reached = warningDue(use.used, use.limit, warned, use.shares);
     if (reached === null) return;
     await this.store.setWarned(tx, use.tenantId, use.metric, cycleStart, reached);
     await this.notices.queue(tx, {

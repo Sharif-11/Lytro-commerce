@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   LedgerEntryType,
   SHOPPER_CODES_PER_SHOP_PER_HOUR,
+  SmsBlockedReason,
   SmsLogKind,
   SmsLogStatus,
   type Language,
@@ -105,7 +106,9 @@ export class ShopperCodes {
       })
       .catch(async (error: unknown) => {
         if (error instanceof ApiError && error.messageKey === 'ShopCannotSendCode') {
-          await logged(SmsLogStatus.Blocked, '0', { blockedReason: 'insufficient_balance' });
+          await logged(SmsLogStatus.Blocked, '0', {
+            blockedReason: SmsBlockedReason.InsufficientBalance,
+          });
         }
         throw error;
       });

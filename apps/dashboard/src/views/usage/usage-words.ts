@@ -29,6 +29,9 @@ export const METRIC_KEY: Readonly<Record<UsageMetric, string>> = {
   [UsageMetric.OrdersMonthly]: 'uOrders',
   [UsageMetric.OrdersTotal]: 'uOrdersTrial',
   [UsageMetric.OrdersDaily]: 'uOrdersDay',
+  // SMS-13 (Slice 7.2): the spend cap is the owner's own setting, never a plan's, so the usage page never lists it; its
+  // warning is an email. Named as SMS should a figure ever carry it.
+  [UsageMetric.SmsSpend]: 'uSms',
 };
 
 // QTA-01, QTA-04, TRL-03 (Slice 4.8b, the prototype's `usage`): the orders handled head the card.
