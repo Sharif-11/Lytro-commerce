@@ -3,6 +3,7 @@ import { ENV } from '../../config/tokens';
 import type { Env } from '../../config/env';
 import { DrizzleShopperStore } from '../../database/adapters/shoppers.adapter';
 import { BalanceModule } from '../balance/balance.module';
+import { SmsUsageModule } from '../sms-usage/sms-usage.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { OneTimeCodeHasher } from '../identity/services/one-time-code-hasher';
@@ -20,7 +21,7 @@ import { SHOPPER_STORE, SHOPPERS_CLOCK } from './tokens';
 // password pieces this needs. It uses identity's code and password hashers (its own instances), the balance for the
 // codes' cost, delivery's thana list, and catalogue's activity log writer.
 @Module({
-  imports: [BalanceModule, CatalogueModule, DeliveryModule, MessagingModule],
+  imports: [BalanceModule, CatalogueModule, DeliveryModule, MessagingModule, SmsUsageModule],
   providers: [
     { provide: SHOPPER_STORE, useClass: DrizzleShopperStore },
     { provide: SHOPPERS_CLOCK, useValue: () => new Date() },

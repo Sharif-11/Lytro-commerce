@@ -65,8 +65,9 @@ export class AuthController {
   @ZodResponse({ type: CodeIssuedDto })
   requestCode(
     @Body(new ZodValidationPipe(RequestSigninCodeDto.schema)) body: RequestSigninCodeDto,
+    @Req() request: HttpRequest,
   ): Promise<CodeIssued> {
-    return this.signin.requestCode(body.phone);
+    return this.signin.requestCode(body.phone, this.clientIp.resolve(request));
   }
 
   @Post('phone/verify')
@@ -154,8 +155,9 @@ export class AuthController {
   @ZodResponse({ type: CodeIssuedDto })
   requestReset(
     @Body(new ZodValidationPipe(ForgotPasswordDto.schema)) body: ForgotPasswordDto,
+    @Req() request: HttpRequest,
   ): Promise<CodeIssued> {
-    return this.forgot.request(body.phone);
+    return this.forgot.request(body.phone, this.clientIp.resolve(request));
   }
 
   @Post('forgot-password/resend')
@@ -169,8 +171,9 @@ export class AuthController {
   @ZodResponse({ type: CodeIssuedDto })
   resendReset(
     @Body(new ZodValidationPipe(ForgotPasswordDto.schema)) body: ForgotPasswordDto,
+    @Req() request: HttpRequest,
   ): Promise<CodeIssued> {
-    return this.forgot.resend(body.phone);
+    return this.forgot.resend(body.phone, this.clientIp.resolve(request));
   }
 
   @Post('forgot-password/email')

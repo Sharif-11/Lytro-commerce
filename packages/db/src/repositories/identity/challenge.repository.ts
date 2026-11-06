@@ -17,6 +17,7 @@ export class ChallengeRepository {
       kind: ChallengeKind;
       codeHash: string;
       expiresAt: Date;
+      requestedIp?: string | null;
     },
   ): Promise<ChallengeRow> {
     const rows = await db.insert(verificationChallenges).values(values).returning();
@@ -62,6 +63,26 @@ export class ChallengeRepository {
           eq(verificationChallenges.destination, destination),
           eq(verificationChallenges.channel, channel),
           eq(verificationChallenges.kind, kind),
+          gt(verificationChallenges.createdAt, since),
+        ),
+      );
+    return rows[0]?.total ?? 0;
+  }
+
+  /** SMS-11: the codes one client address asked for on a channel since a moment, whatever their phone or kind. */
+  async countFromIpSince(
+    db: Executor,
+    ip: string,
+    channel: ChallengeChannel,
+    since: Date,
+  ): Promise<number> {
+    const rows = await db
+      .select({ total: count() })
+      .from(verificationChallenges)
+      .where(
+        and(
+          eq(verificationChallenges.requestedIp, ip),
+          eq(verificationChallenges.channel, channel),
           gt(verificationChallenges.createdAt, since),
         ),
       );

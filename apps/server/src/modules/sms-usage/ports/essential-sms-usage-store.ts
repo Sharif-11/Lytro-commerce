@@ -10,12 +10,14 @@ export interface UsageCycleTenant {
 
 /** control.essential_sms_usage (AUTH-21). */
 export interface EssentialSmsUsageStore {
-  /** Joins the caller's own transaction -- written alongside the SMS send it's counting. */
+  /** Joins the caller's own transaction -- written alongside the SMS send it's counting. Returns the row's ID. */
   record(
     tx: Transaction,
-    values: { tenantId: string; kind: SmsKind; parts: number },
-  ): Promise<void>;
-  /** Sum of `parts` for the tenant from `since` (inclusive), or every row ever when `since` is null. */
-  sumPartsSince(tenantId: string, since: Date | null): Promise<number>;
+    values: { tenantId: string; kind: SmsKind; units: number },
+  ): Promise<string>;
+  /** SMS-08: removes what an SMS that never went out took. */
+  delete(tx: Transaction, id: string): Promise<void>;
+  /** Sum of `units` for the tenant from `since` (inclusive), or every row ever when `since` is null. */
+  sumUnitsSince(tenantId: string, since: Date | null): Promise<number>;
   findCycleTenant(tenantId: string): Promise<UsageCycleTenant | null>;
 }

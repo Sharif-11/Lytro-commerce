@@ -44,10 +44,20 @@ export class DrizzleChallengeStore implements ChallengeStore {
       kind: ChallengeKind;
       codeHash: string;
       expiresAt: Date;
+      requestedIp: string | null;
     },
   ): Promise<{ id: string; createdAt: Date }> {
     const row = await this.challenges.insert(tx, input);
     return { id: row.id, createdAt: row.createdAt };
+  }
+
+  countFromIpSince(
+    tx: Transaction,
+    ip: string,
+    channel: ChallengeChannel,
+    since: Date,
+  ): Promise<number> {
+    return this.challenges.countFromIpSince(tx, ip, channel, since);
   }
 
   recordWrongAttempt(tx: Transaction, challengeId: string): Promise<number> {

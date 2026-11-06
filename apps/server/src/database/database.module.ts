@@ -69,6 +69,7 @@ import {
   CustomerRepository,
   SalesRepository,
   ShopperRepository,
+  SmsLogRepository,
   TaxClassRepository,
   ModifierRepository,
   PaymentMethodRepository,
@@ -283,6 +284,11 @@ import { DatabaseService } from './database.service';
       useFactory: (transactions: TransactionRunner) => new ShopperRepository(transactions),
     },
     {
+      provide: SmsLogRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new SmsLogRepository(transactions),
+    },
+    {
       provide: MediaRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new MediaRepository(transactions),
@@ -428,6 +434,7 @@ import { DatabaseService } from './database.service';
     CustomerRepository,
     SalesRepository,
     ShopperRepository,
+    SmsLogRepository,
     TaxClassRepository,
     ModifierRepository,
     PaymentMethodRepository,

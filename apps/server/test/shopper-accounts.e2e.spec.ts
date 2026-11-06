@@ -130,7 +130,7 @@ function as(token: string): Record<string, string> {
 /** The sign-up code the shop texted to this phone, read by its own words (a shop's name may hold digits too). */
 function codeIn(phone: string): string {
   const last = [...texts.sent].reverse().find((text) => text.toPhone === phone);
-  return /(?:code is|কোড) (\d{6})/.exec(last?.body ?? '')?.[1] ?? '';
+  return /(?:OTP is|OTP হচ্ছে) (\d{6})/.exec(last?.body ?? '')?.[1] ?? '';
 }
 
 async function sendCode(
@@ -166,9 +166,9 @@ async function ledger(tenantId: string, type: string): Promise<string[]> {
   return result.rows.map((row) => row.amount);
 }
 
-/** SMS-09: what a text costs at the seeded rate -- its length over 75 characters, at 0.55 TK a unit. */
+/** SMS-09: what a text costs at the seeded rate -- its length over 67 characters (D7-13), at 0.55 TK a unit. */
 function costOf(body: string): string {
-  return (Math.ceil(Array.from(body).length / 75) * 0.55).toFixed(2);
+  return (Math.ceil(Array.from(body).length / 67) * 0.55).toFixed(2);
 }
 
 let mirpur: number | null = null;
@@ -204,7 +204,11 @@ describeIfDatabase(
       expect(sent.status, JSON.stringify(sent.body)).toBe(200);
       expect(sent.body).toEqual({ expiresInSeconds: 300, resendAfterSeconds: 60 });
       const text = [...texts.sent].reverse().find((row) => row.toPhone === phone);
-      expect(text?.body).toContain(`Shop ${shop.owner.slug}: your sign-up code is`);
+      expect(text?.body).toMatch(
+        new RegExp(
+          `^Your Shop ${shop.owner.slug} OTP is \\d{6}\\. Do not share it with anyone\\.$`,
+        ),
+      );
       expect(await ledger(shop.owner.tenantId, 'sms')).toEqual([`-${costOf(text?.body ?? '')}`]);
       expect(await usage()).toBe(freeBefore);
       const made = await call(shop, 'POST', '/signup', {

@@ -26,8 +26,16 @@ export interface ChallengeStore {
       kind: ChallengeKind;
       codeHash: string;
       expiresAt: Date;
+      requestedIp: string | null;
     },
   ): Promise<{ id: string; createdAt: Date }>;
+  /** SMS-11: the codes one client address asked for on a channel since a moment, whatever their phone. */
+  countFromIpSince(
+    tx: Transaction,
+    ip: string,
+    channel: ChallengeChannel,
+    since: Date,
+  ): Promise<number>;
   recordWrongAttempt(tx: Transaction, challengeId: string): Promise<number>;
   lock(tx: Transaction, challengeId: string, until: Date): Promise<void>;
 }
