@@ -1984,6 +1984,40 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Pickup store changed.',
     bn: 'পিকআপ স্টোর বদলানো হয়েছে।',
   },
+  CourierHasNoAreas: {
+    en: 'This courier has no areas of its own.',
+    bn: 'এই কুরিয়ারের নিজস্ব কোনো এরিয়া নেই।',
+  },
+  CourierAreasTokenMissing: {
+    en: (p) =>
+      `Lytro's own ${String(p['courier'])} token isn't set, so its area list can't be read.`,
+    bn: (p) =>
+      `Lytro-র নিজস্ব ${String(p['courier'])} টোকেন সেট করা নেই, তাই এরিয়ার তালিকা আনা যাচ্ছে না।`,
+  },
+  CourierAreasEmpty: {
+    en: (p) => `${String(p['courier'])} sent an empty area list, so nothing was changed.`,
+    bn: (p) => `${String(p['courier'])} খালি এরিয়ার তালিকা পাঠিয়েছে, তাই কিছুই বদলানো হয়নি।`,
+  },
+  CourierAreaNotFound: {
+    en: (p) =>
+      p['courier'] === undefined
+        ? 'That courier area wasn’t found.'
+        : `That ${String(p['courier'])} area isn’t one of its areas in this order’s district. Choose another.`,
+    bn: (p) =>
+      p['courier'] === undefined
+        ? 'কুরিয়ারের এই এরিয়াটি পাওয়া যায়নি।'
+        : `এই অর্ডারের জেলায় ${String(p['courier'])}-এর এমন কোনো এরিয়া নেই। অন্য একটি বেছে নিন।`,
+  },
+  CourierAreasListed: { en: 'Courier areas listed.', bn: 'কুরিয়ারের এরিয়ার তালিকা।' },
+  CourierAreaAssigned: { en: 'Courier area placed.', bn: 'কুরিয়ারের এরিয়া থানায় বসানো হয়েছে।' },
+  CourierAreasConfirmed: {
+    en: 'Suggested areas confirmed.',
+    bn: 'সাজেস্ট করা এরিয়াগুলো কনফার্ম করা হয়েছে।',
+  },
+  CourierAreasRefreshed: {
+    en: 'Courier areas read again.',
+    bn: 'কুরিয়ারের এরিয়ার তালিকা আবার আনা হয়েছে।',
+  },
   OrderBooked: { en: 'Booked with the courier.', bn: 'কুরিয়ারে বুক হয়েছে।' },
   OrderAlreadyBooked: {
     en: 'This order is already booked with a courier.',

@@ -37,8 +37,11 @@ export interface CourierContractSetup {
   /** One status it stands behind as delivered, and one that is only its rider's word, for a courier that has such a status. */
   deliveredStatus: string;
   unconfirmedStatus: string | null;
-  /** Whether its proof covers the message's body. Pathao's is the secret itself, so it can't. */
-  proofCoversBody: boolean;
+  /**
+   * What proves a message is the courier's: a signature over its body (Steadfast), the secret itself, which can't cover the body
+   * (Pathao), or only the address it was sent to (RedX, read agreed 2026-11-06).
+   */
+  proof: 'body' | 'secret' | 'address';
 }
 
 /**
@@ -122,13 +125,18 @@ export function courierContract(name: string, setup: () => CourierContractSetup)
     });
 
     it('accepts a message only with this courier’s own proof (CRR-11)', () => {
-      const { adapter, messageToken, message, deliveredStatus, proofCoversBody } = setup();
+      const { adapter, messageToken, message, deliveredStatus, proof } = setup();
       const { rawBody, headers, good } = message(deliveredStatus);
       expect(adapter.verifyMessage(messageToken, rawBody, good)).toBe(true);
+      if (proof === 'address') {
+        // No proof of its own: the address's token, checked before any adapter code runs, is all there is.
+        expect(adapter.verifyMessage(messageToken, rawBody, headers)).toBe(true);
+        return;
+      }
       expect(adapter.verifyMessage(messageToken, rawBody, headers)).toBe(false);
       expect(adapter.verifyMessage('another-token', rawBody, good)).toBe(false);
       expect(adapter.verifyMessage(messageToken, Buffer.from('{"forged":true}'), good)).toBe(
-        !proofCoversBody,
+        proof !== 'body',
       );
     });
 

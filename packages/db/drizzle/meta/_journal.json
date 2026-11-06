@@ -757,6 +757,13 @@
       "when": 1793863124301,
       "tag": "0108_courier_news",
       "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1793952616730,
+      "tag": "0109_courier_areas",
+      "breakpoints": true
     }
   ]
 }

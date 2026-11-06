@@ -16,6 +16,7 @@ import { PaymentSessionExpiryTickWorker } from './services/payment-session-expir
 import { ListenerPurgeTickWorker } from './services/listener-purge-tick-worker';
 import { CouriersModule } from '../../couriers/couriers.module';
 import { CourierBookingTickWorker } from './services/courier-booking-tick-worker';
+import { CourierAreasTickWorker } from './services/courier-areas-tick-worker';
 import { CourierNightTickWorker } from './services/courier-night-tick-worker';
 import { GatewayReconcileTickWorker } from './services/gateway-reconcile-tick-worker';
 import { GatewayModule } from '../../gateway/gateway.module';
@@ -70,6 +71,7 @@ import { UsageNoticeWorker } from './services/usage-notice-worker';
     GatewayReconcileTickWorker,
     CourierBookingTickWorker,
     CourierNightTickWorker,
+    CourierAreasTickWorker,
     MediaProcessWorker,
     MediaProcessVideoWorker,
     MediaDeleteWorker,

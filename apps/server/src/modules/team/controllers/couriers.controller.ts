@@ -8,12 +8,18 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { connectCourierSchema, Permission, type CourierKey } from '@lytronix/validators';
+import {
+  connectCourierSchema,
+  Permission,
+  type CourierAreasForOrderQuery,
+  type CourierKey,
+} from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
@@ -21,6 +27,8 @@ import { ResponseMessage } from '../../../common/decorators/response-message';
 import { OkDto } from '../../../common/dto/ok.dto';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import type { PickupStore } from '../../couriers/ports/courier-adapter';
+import { CourierAreaList, type CourierAreaChoice } from '../../couriers/services/courier-area-list';
+import { OrderFulfilment } from '../../orders/services/order-fulfilment';
 import {
   CourierConnections,
   type CourierAdapterView,
@@ -34,6 +42,8 @@ import {
   CourierAdapterListDto,
   CourierConnectedDto,
   CourierConnectionDto,
+  CourierAreaChoicesDto,
+  CourierAreasForOrderDto,
   CourierConnectionListDto,
   CourierStoreListDto,
   MessageAddressDto,
@@ -58,8 +68,27 @@ export class CouriersController {
   constructor(
     @Inject(CourierConnections) private readonly connections: CourierConnections,
     @Inject(CourierMessages) private readonly messages: CourierMessages,
+    @Inject(CourierAreaList) private readonly areas: CourierAreaList,
+    @Inject(OrderFulfilment) private readonly fulfilment: OrderFulfilment,
     @Inject(CatalogueRequest) private readonly request: CatalogueRequest,
   ) {}
+
+  @Get(':key/areas')
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('CourierAreasListed')
+  @ApiOperation({
+    summary:
+      "The courier's own areas staff can choose for an order: its thana's first, then a search of its zilla (CUS-12)",
+  })
+  @ZodResponse({ type: CourierAreaChoicesDto })
+  async areasFor(
+    @Param('key') key: string,
+    @Query(new ZodValidationPipe(CourierAreasForOrderDto.schema)) query: CourierAreasForOrderQuery,
+    @Req() request: DashboardRequest,
+  ): Promise<{ thana: CourierAreaChoice[]; zilla: CourierAreaChoice[] }> {
+    const order = await this.fulfilment.placeOf(this.request.tenantIdOf(request), query.orderId);
+    return this.areas.forOrder(courierKeyOf(key), order, query.q);
+  }
 
   @Get('adapters')
   @RequirePermission([Permission.CouriersManage, Permission.OrdersManage])

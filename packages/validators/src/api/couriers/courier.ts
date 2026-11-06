@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import {
   CONSIGNMENT_ID_MAX_LENGTH,
+  COURIER_AREA_PAGE_MAX,
+  COURIER_AREA_PAGE_SIZE,
   COURIER_FIELD_MAX_LENGTH,
   PARCEL_NOTE_MAX_LENGTH,
 } from '../../common/courier-limits';
 import { ORDER_LINES_MAX, TRACKING_CODE_MAX_LENGTH } from '../../common/limits';
-import { CourierKey } from '../../db/enums';
+import { CourierAreaState, CourierKey } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { itemSerialsSchema, serialsOnce } from '../orders/order';
 
@@ -30,6 +32,51 @@ export const setPickupStoreSchema = z
   .object({ storeId: z.string().trim().min(1).max(COURIER_FIELD_MAX_LENGTH) })
   .strict();
 export type SetPickupStoreInput = z.infer<typeof setPickupStoreSchema>;
+
+/** GET operator/courier-areas (CUS-10, Slice 6.4): a courier's areas, by how they stand, a zilla or a name. */
+export const courierAreasQuerySchema = z
+  .object({
+    courierKey: z.nativeEnum(CourierKey),
+    state: z.nativeEnum(CourierAreaState).optional(),
+    zillaId: z.coerce.number().int().positive().optional(),
+    q: z.string().trim().min(1).max(COURIER_FIELD_MAX_LENGTH).optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(COURIER_AREA_PAGE_MAX)
+      .default(COURIER_AREA_PAGE_SIZE),
+  })
+  .strict();
+export type CourierAreasQuery = z.infer<typeof courierAreasQuerySchema>;
+
+/** PUT operator/courier-areas/:id (CUS-10): the thana an area belongs to, or null to take it off one. */
+export const assignCourierAreaSchema = z
+  .object({ thanaId: z.number().int().positive().nullable() })
+  .strict();
+export type AssignCourierAreaInput = z.infer<typeof assignCourierAreaSchema>;
+
+/** POST operator/courier-areas/confirm (read agreed 2026-11-06): suggested areas the operator agrees with, many at a time. */
+export const confirmCourierAreasSchema = z
+  .object({ ids: z.array(z.string().uuid()).min(1).max(COURIER_AREA_PAGE_MAX) })
+  .strict();
+export type ConfirmCourierAreasInput = z.infer<typeof confirmCourierAreasSchema>;
+
+/** POST operator/courier-areas/refresh (read agreed 2026-11-06): reads a courier's area list again now. */
+export const refreshCourierAreasSchema = z
+  .object({ courierKey: z.nativeEnum(CourierKey) })
+  .strict();
+export type RefreshCourierAreasInput = z.infer<typeof refreshCourierAreasSchema>;
+
+/** GET couriers/:key/areas (CUS-12): the areas staff can choose for an order, its thana's first, then a search of its zilla. */
+export const courierAreasForOrderSchema = z
+  .object({
+    orderId: z.string().uuid(),
+    q: z.string().trim().min(1).max(COURIER_FIELD_MAX_LENGTH).optional(),
+  })
+  .strict();
+export type CourierAreasForOrderQuery = z.infer<typeof courierAreasForOrderSchema>;
 
 /**
  * POST orders/:id/book (CRR-05, CRR-06, D6-7, read agreed 2026-11-04): what staff choose when booking. The cash on delivery is

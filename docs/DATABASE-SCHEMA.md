@@ -1911,6 +1911,26 @@ CREATE TABLE control.courier_message_routes (
     created_at      timestamptz NOT NULL DEFAULT now()
 );
 
+-- CUS-10, CUS-12 (Slice 6.4, migration 0109): a courier's own areas, one platform-wide list, read weekly with Lytro's own
+-- token. Retired, never deleted, so an old parcel's area keeps its name.
+CREATE TABLE control.courier_areas (
+    id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    courier_key        text NOT NULL,
+    area_code          text NOT NULL,                  -- the courier's own id for it
+    name               text NOT NULL,
+    district_name      text NOT NULL,                  -- as the courier writes it
+    post_code          text,
+    zilla_id           smallint,                       -- matched from district_name; where staff search for it
+    thana_id           integer,                        -- where it counts: named after its thana, or placed by the operator
+    suggested_thana_id integer,                        -- a match the operator hasn't confirmed
+    match              text NOT NULL,                  -- own_name, operator, suggested, none
+    retired_at         timestamptz,
+    refreshed_at       timestamptz NOT NULL,
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    updated_at         timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (courier_key, area_code)
+);
+
 -- SEC-11: every outbound call with a shop's courier credentials, never the credentials.
 CREATE TABLE tenant.courier_credential_uses (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
