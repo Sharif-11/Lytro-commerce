@@ -13,11 +13,20 @@ import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { GatewayReconcileTickWorker } from '../src/modules/shared/queue-workers/services/gateway-reconcile-tick-worker';
 import { PaymentSessionExpiryTickWorker } from '../src/modules/shared/queue-workers/services/payment-session-expiry-tick-worker';
 import { listenOn } from './support/bootstrap';
-import { prepareTestDatabase, seedBalance } from './support/database';
+import { prepareTestDatabase } from './support/database';
 import { FakeBkash, RIGHT_SECRET } from './support/fake-bkash';
-import { sendExact, type HttpResult } from './support/http';
+import type { HttpResult } from './support/http';
 import { payPage, screenOf } from './support/pay-page';
-import { openShop, type ShopClient } from './support/shop-client';
+import {
+  ACTIVE_NUMBER,
+  OLD_NUMBER,
+  PrepaidPath,
+  receiptOf,
+  SENDER_NUMBER,
+  trx,
+  type PrepaidShop,
+} from './support/prepaid-path';
+import type { ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 import { expectLedgerAgrees } from './support/stock-ledger';
 
@@ -33,16 +42,12 @@ const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_payment_golden_path_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
 const STOREFRONT_SECRET = 'payment-golden-path-e2e-storefront-secret-0123456789';
-const PAGE_URL = /^http:\/\/pay\.localhost\/([A-Za-z0-9_-]{22})$/;
-const ACTIVE_NUMBER = '01711000001';
-const OLD_NUMBER = '01711000007';
-const SENDER_NUMBER = '01811000002';
-const APP_VERSION = '1.0.0';
 const SLOW = 120_000;
 
 let app: INestApplication;
 let port: number;
 let admin: pg.Client;
+let path: PrepaidPath;
 const texts = new SmsCapture();
 const bkash = new FakeBkash();
 const toVerify: PaymentToVerifyNotice[] = [];
@@ -78,6 +83,7 @@ beforeAll(async () => {
     })
     .compile();
   ({ app, port } = await listenOn(moduleRef));
+  path = new PrepaidPath(port, admin, texts, STOREFRONT_SECRET);
 });
 
 afterAll(async () => {
@@ -86,14 +92,6 @@ afterAll(async () => {
   await admin.end();
   delete process.env['STOREFRONT_SECRET'];
 });
-
-interface Shop {
-  shop: ShopClient;
-  productId: string;
-  variantId: string;
-  locationId: number;
-  accountId: string;
-}
 
 interface Order {
   id: string;
@@ -127,100 +125,6 @@ interface Figures {
   fees: string[];
   /** The shirt on hand and reserved. */
   stock: [string, string];
-}
-
-/** A clothing shop past its trial, with 100 TK of balance, a shirt needing a 300 TK advance, and bKash taken. */
-async function clothingShop(prefix: string): Promise<Shop> {
-  const shop = await openShop(port, texts, prefix);
-  expect((await shop.put('/business-type', { businessType: 'clothing' })).status).toBe(200);
-  await admin.query(
-    `UPDATE control.tenants SET state = 'active',
-       plan_snapshot = coalesce(plan_snapshot, '{}'::jsonb) || '{"paired_devices": 5, "staff": 10}'::jsonb
-     WHERE id = $1`,
-    [shop.tenantId],
-  );
-  await seedBalance(admin, shop.tenantId, '100.00');
-  // Two accounts, the old one switched off: the page must show the active one alone.
-  const saved = await shop.put('/payment-methods/bkash', {
-    enabled: true,
-    accounts: [
-      { accountName: 'Old number', number: OLD_NUMBER, accountType: 'personal', active: false },
-      { accountName: 'Nodi Fashion', number: ACTIVE_NUMBER, accountType: 'personal', active: true },
-    ],
-  });
-  expect(saved.status, JSON.stringify(saved.body)).toBe(200);
-  const methods = (await shop.get('/payment-methods')).body as {
-    methods: { method: string; accounts: { id: string; number: string }[] }[];
-  };
-  const accountId =
-    methods.methods
-      .find((row) => row.method === 'bkash')
-      ?.accounts.find((row) => row.number === ACTIVE_NUMBER)?.id ?? '';
-  const made = await shop.post('/products', {
-    name: 'Cotton shirt',
-    basePrice: 1000,
-    paymentPolicy: 'partial_advance',
-    advanceAmount: 300,
-    variants: [{ optionIds: [], openingStock: 10 }],
-  });
-  expect(made.status, JSON.stringify(made.body)).toBe(201);
-  const product = made.body as { id: string; variants: { id: string }[] };
-  const { zillas } = (await shop.get('/locations')).body as {
-    zillas: { nameEn: string; thanas: { id: number; nameEn: string }[] }[];
-  };
-  const mirpur = zillas
-    .find((row) => row.nameEn === 'Dhaka')
-    ?.thanas.find((row) => row.nameEn === 'Mirpur');
-  return {
-    shop,
-    productId: product.id,
-    variantId: product.variants[0]?.id ?? '',
-    locationId: mirpur?.id ?? 0,
-    accountId,
-  };
-}
-
-/** A landing-page order through the shop's storefront key, as its landing page sends it: the payment page's reference. */
-async function landingOrder(setup: Shop): Promise<{ ref: string; orderId: string }> {
-  const context = await sendExact(
-    port,
-    'GET',
-    `/api/v1/internal/storefront/context?host=${encodeURIComponent(`${setup.shop.slug}.localhost`)}`,
-    undefined,
-    { host: 'localhost', 'x-lytro-storefront': STOREFRONT_SECRET },
-  );
-  const found = (context.body as { shop: { key: string; origin: string } | null }).shop;
-  if (!found) throw new Error('an open shop has a storefront key');
-  const made = await sendExact(
-    port,
-    'POST',
-    '/v1/orders',
-    {
-      customerName: 'Rahima Akter',
-      phone: texts.freshPhone(),
-      locationId: setup.locationId,
-      deliveryAddress: 'House 12, Road 3',
-      source: 'landing_page',
-      items: [{ variantId: setup.variantId, quantity: 1 }],
-      payment: { method: 'bkash', returnUrl: `${found.origin}/thanks` },
-    },
-    {
-      host: 'api.localhost',
-      authorization: `Bearer ${found.key}`,
-      origin: found.origin,
-      'content-type': 'application/json',
-      'idempotency-key': randomUUID(),
-    },
-  );
-  expect(made.status, JSON.stringify(made.body)).toBe(201);
-  const url = (made.body as { payment: { paymentUrl: string } | null }).payment?.paymentUrl ?? '';
-  const ref = PAGE_URL.exec(url)?.[1];
-  if (!ref) throw new Error(`no payment page in ${url}`);
-  const { rows } = await admin.query<{ order_id: string }>(
-    'SELECT order_id FROM tenant.payment_sessions WHERE ref = $1',
-    [ref],
-  );
-  return { ref, orderId: rows[0]?.order_id ?? '' };
 }
 
 /** The page as the shopper's browser gets it. */
@@ -287,7 +191,7 @@ function pathOf(order: Order): [string, string | null][] {
 }
 
 /** Reads every figure §1 names, as the shop and the database each hold them, and checks they agree. */
-function checker(setup: Shop, ref: string, orderId: string) {
+function checker(setup: PrepaidShop, ref: string, orderId: string) {
   return async (expected: Figures): Promise<Order> => {
     const { shop } = setup;
     const sessions = await admin.query<{
@@ -400,16 +304,12 @@ const PATH: [string, string | null][] = [
   ['fulfillment_status', 'delivered'],
 ];
 
-function trx(): string {
-  return randomBytes(5).toString('hex').toUpperCase();
-}
-
 describeIfDatabase('the prepaid golden path (PHASE-5-PLAN §1, exit criterion 2)', () => {
   it(
     'by staff: the shopper types the ID on the page, staff verify it, and no fee is charged',
     async () => {
-      const setup = await clothingShop('paystaff');
-      const { ref, orderId } = await landingOrder(setup);
+      const setup = await path.shop('paystaff');
+      const { ref, orderId, sessionId } = await path.landingOrder(setup);
       const agrees = checker(setup, ref, orderId);
       const placed = await agrees(PLACED);
       expect(placed).toMatchObject({
@@ -442,17 +342,12 @@ describeIfDatabase('the prepaid golden path (PHASE-5-PLAN §1, exit criterion 2)
       });
       expect(toVerify.filter((row) => row.tenantId === setup.shop.tenantId)).toHaveLength(1);
 
-      const sessionId = (
-        await admin.query<{ id: string }>('SELECT id FROM tenant.payment_sessions WHERE ref = $1', [
-          ref,
-        ])
-      ).rows[0]?.id;
-      const verified = await setup.shop.post(`/payments/${sessionId ?? ''}/verify`, {});
+      const verified = await setup.shop.post(`/payments/${sessionId}/verify`, {});
       expect(verified.status, JSON.stringify(verified.body)).toBe(200);
       const paid = paidBy('manual', 'staff', id);
       await agrees(paid);
       // Verifying it again moves nothing.
-      expect((await setup.shop.post(`/payments/${sessionId ?? ''}/verify`, {})).status).toBe(409);
+      expect((await setup.shop.post(`/payments/${sessionId}/verify`, {})).status).toBe(409);
       await agrees(paid);
       expect(screenOf(await page('GET', `/${ref}`))).toBe('paid');
 
@@ -465,28 +360,10 @@ describeIfDatabase('the prepaid golden path (PHASE-5-PLAN §1, exit criterion 2)
   it(
     "by the listener: a paired phone forwards bKash's receipt, the payment verifies itself and 0.10% is charged once",
     async () => {
-      const setup = await clothingShop('paylisten');
-      const code = await setup.shop.post('/listener/pairing-codes', {});
-      expect(code.status, JSON.stringify(code.body)).toBe(201);
-      const installationId = `install-${randomUUID()}`;
-      const paired = await sendExact(
-        port,
-        'POST',
-        '/v1/listener/pair',
-        { code: (code.body as { code: string }).code, installationId, model: 'Redmi 12' },
-        { host: 'api.localhost', 'content-type': 'application/json', 'x-app-version': APP_VERSION },
-      );
-      expect(paired.status, JSON.stringify(paired.body)).toBe(201);
-      const phone = {
-        host: 'api.localhost',
-        authorization: `Bearer ${(paired.body as { token: string }).token}`,
-        'x-installation-id': installationId,
-        'x-app-version': APP_VERSION,
-      };
-      const beat = await sendExact(port, 'POST', '/v1/listener/heartbeat', undefined, phone);
-      expect(beat.status, JSON.stringify(beat.body)).toBe(200);
+      const setup = await path.shop('paylisten');
+      const phone = await path.pairPhone(setup.shop);
 
-      const { ref, orderId } = await landingOrder(setup);
+      const { ref, orderId } = await path.landingOrder(setup);
       const agrees = checker(setup, ref, orderId);
       await agrees(PLACED);
       const wallet = await page('GET', `/${ref}`);
@@ -509,19 +386,7 @@ describeIfDatabase('the prepaid golden path (PHASE-5-PLAN §1, exit criterion 2)
       });
       expect(toVerify.filter((row) => row.tenantId === setup.shop.tenantId)).toHaveLength(0);
 
-      const receipt = {
-        sender: 'bKash',
-        text: `You have received Tk 300.00 from ${SENDER_NUMBER}. Fee Tk 0.00. Balance Tk 1,300.00. TrxID ${id} at 05/11/2026 13:58`,
-        receivedAt: new Date().toISOString(),
-      };
-      const forward = (): Promise<HttpResult> =>
-        sendExact(
-          port,
-          'POST',
-          '/v1/listener/messages',
-          { messages: [receipt] },
-          { ...phone, 'content-type': 'application/json' },
-        );
+      const forward = (): Promise<HttpResult> => path.forward(phone, receiptOf(id));
       const sent = await forward();
       expect(sent.status, JSON.stringify(sent.body)).toBe(200);
       expect((sent.body as { results: { status: string }[] }).results[0]?.status).toBe('matched');
@@ -547,7 +412,7 @@ describeIfDatabase('the prepaid golden path (PHASE-5-PLAN §1, exit criterion 2)
   it(
     "by the gateway: the page hands on to bKash's checkout, 1.00% is held, and charged once when bKash says it is paid",
     async () => {
-      const setup = await clothingShop('paygate');
+      const setup = await path.shop('paygate');
       const appKey = `key-${randomUUID()}`;
       const credentials = await setup.shop.put(
         `/payment-methods/accounts/${setup.accountId}/gateway`,
@@ -568,7 +433,7 @@ describeIfDatabase('the prepaid golden path (PHASE-5-PLAN §1, exit criterion 2)
       const way = await setup.shop.put('/payment-methods/bkash/way', { way: 'automated' });
       expect(way.status, JSON.stringify(way.body)).toBe(200);
 
-      const { ref, orderId } = await landingOrder(setup);
+      const { ref, orderId } = await path.landingOrder(setup);
       const agrees = checker(setup, ref, orderId);
       await agrees(PLACED);
       await refusedBeforePaid(setup.shop, orderId);
