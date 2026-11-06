@@ -1,13 +1,13 @@
 import { useTranslation } from 'react-i18next';
-import { exportDownloadUrl, useExports, useRequestExport } from '@/api/exports';
+import { downloadExport, useExports, useRequestExport } from '@/api/exports';
 import { Icon, type IconName } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { buttonClass } from '@/components/ui/classes';
 import { EmptyState } from '@/components/ui/empty-state';
 import { rowClass, RowList } from '@/components/ui/list-row';
 import { StatusTag } from '@/components/ui/status-tag';
+import { useDownload } from '@/hooks/use-download';
 import { useErrorText } from '@/hooks/use-error-text';
 import { formatClock, formatDayMonthYear } from '@/lib/dates';
 import { fileSize } from '@/lib/limits';
@@ -33,6 +33,7 @@ export function ExportsView(): React.JSX.Element {
   const { viewer } = useShell();
   const exports = useExports({ enabled: viewer.isOwner });
   const request = useRequestExport();
+  const saving = useDownload();
   const ask = (): void => {
     request.mutate();
   };
@@ -48,8 +49,8 @@ export function ExportsView(): React.JSX.Element {
       }
     >
       <p className="text-[14px] text-fg-muted">{t('exLead')}</p>
-      {exports.isError || request.isError ? (
-        <Banner tone="bad">{errorText(exports.error ?? request.error)}</Banner>
+      {exports.isError || request.isError || saving.error ? (
+        <Banner tone="bad">{errorText(exports.error ?? request.error ?? saving.error)}</Banner>
       ) : null}
       {exports.data ? (
         <Card flush>
@@ -81,9 +82,15 @@ export function ExportsView(): React.JSX.Element {
                     </span>
                   </span>
                   {each.status === 'ready' ? (
-                    <a href={exportDownloadUrl(each.id)} className={buttonClass('primary', 'xs')}>
+                    <Button
+                      size="xs"
+                      busy={saving.busy}
+                      onClick={() => {
+                        void saving.run(() => downloadExport(each.id));
+                      }}
+                    >
                       {t('exReady')}
-                    </a>
+                    </Button>
                   ) : each.status === 'failed' ? (
                     <Button tone="outline" size="xs" busy={request.isPending} onClick={ask}>
                       {t('exFailed')}

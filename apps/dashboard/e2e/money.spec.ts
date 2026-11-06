@@ -61,10 +61,16 @@ test('shows the balance, its statement with each row named, and the chips that r
   expect(last.searchParams.get('type')).toBe(
     'order_fee,product_fee,verification_fee,extraction,fraud_check',
   );
-  await expect(main(page).getByRole('link', { name: 'CSV' })).toHaveAttribute(
-    'href',
-    '/api/v1/balance/ledger/export?type=order_fee%2Cproduct_fee%2Cverification_fee%2Cextraction%2Cfraud_check',
+  // KNOWN-GAPS §113: fetched as every call is, so it names this shop, with the chosen kind of entry.
+  const asked = page.waitForRequest((request) => request.url().includes('/balance/ledger/export'));
+  const saved = page.waitForEvent('download');
+  await main(page).getByRole('button', { name: 'CSV' }).click();
+  const request = await asked;
+  expect(request.headers()['x-lytro-shop']).toBe(SLUG);
+  expect(new URL(request.url()).searchParams.get('type')).toBe(
+    'order_fee,product_fee,verification_fee,extraction,fraud_check',
   );
+  expect((await saved).suggestedFilename()).toBe('balance-statement.csv');
 });
 
 test("says a top-up is being checked, or was rejected with support's note and Details", async ({

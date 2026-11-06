@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ledgerExportUrl, useLedger } from '@/api/balance';
+import { downloadLedger, useLedger } from '@/api/balance';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip, ChipRow } from '@/components/ui/chips';
-import { buttonClass } from '@/components/ui/classes';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { Taka } from '@/components/ui/taka';
+import { useDownload } from '@/hooks/use-download';
 import { useErrorText } from '@/hooks/use-error-text';
 import { dayLabel, formatDayMonthYear, formatTime, groupByDay } from '@/lib/dates';
 import { signedTaka } from '@/lib/money';
@@ -79,6 +79,7 @@ export function Statement({
   const { t, i18n } = useTranslation('money');
   const { t: tDefault } = useTranslation();
   const errorText = useErrorText();
+  const saving = useDownload();
   const [chip, setChip] = useState('all');
   const [dates, setDates] = useState({ from: '', to: '' });
   const [draft, setDraft] = useState(dates);
@@ -115,10 +116,17 @@ export function Statement({
             <Icon name="calendar" />
             {t('dates')}
           </Button>
-          <a href={ledgerExportUrl(filters)} className={buttonClass('outline', 'xs')}>
+          <Button
+            tone="outline"
+            size="xs"
+            busy={saving.busy}
+            onClick={() => {
+              void saving.run(() => downloadLedger(filters));
+            }}
+          >
             <Icon name="download" />
             CSV
-          </a>
+          </Button>
         </span>
       </div>
       <div className="px-4 pb-2">
@@ -136,6 +144,11 @@ export function Statement({
           ))}
         </ChipRow>
       </div>
+      {saving.error ? (
+        <div className="px-4 pb-4">
+          <Banner tone="bad">{errorText(saving.error)}</Banner>
+        </div>
+      ) : null}
       {ledger.isLoading ? <SkeletonRows count={3} /> : null}
       {ledger.isError ? (
         <div className="px-4 pb-4">
