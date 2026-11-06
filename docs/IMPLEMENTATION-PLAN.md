@@ -193,6 +193,14 @@ code fix).
 
 **Delivers:** every remaining third-party-dependent feature, all behind the circuit breaker built in Phase 6.
 
+**Detailed plan: `PHASE-7-PLAN.md`** (2026-11-06) — eight slices, built beside Phase 6, screens last. Scope changes made
+there, summarised:
+- **Chat and AI replies move to the next release** (D7-1): `CHT-*`, Messenger and `AI-*` are out. Shoppers and shops talk
+  over WhatsApp and Messenger outside Lytro. AI reads orders from pasted text only, through Gemini.
+- **Fraud checks use courier feedback only** (D7-5, D7-6), free at launch (D7-7). The paid aggregator and the shared
+  counts across shops (`control.fraud_hashes`, FRD-09 to FRD-13) move to the next release.
+- **Providers:** BulkSMSBD for SMS, Resend for email, web push for devices (D7-2, D7-3, D7-11).
+
 - `SMS-01` to `SMS-19` — the ten events, tenant-editable templates (Bangla default), the balance-charging rules.
 - `NTF-*`, `NTC-*` — push/in-app notifications (fixed platform copy, per the `I18N-03` decision), the notice board.
 - `I18N-03` fully wired — this is the natural point to confirm the whole localization system (dashboard, storefront, SMS, notices, error messages from `SEC-16`) is consistent, since every piece now exists.

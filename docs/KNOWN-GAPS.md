@@ -2104,6 +2104,14 @@ Pathao's adapter runs against a fake made from what its sandbox answered on 2026
 
 A shop that books nothing for longer than its refresh token lasts is asked to log in again the next time it books, since nothing renews a login that isn't being used.
 
+## 118. `SMS-09`, `SMS-04`: SMS are charged in one unit and counted against the allowance in another — found 2026-11-06, open until Slice 7.1
+
+SMS-09 counts an SMS, for billing and for the free allowance alike, in units of the unit size (75 characters by default),
+whatever the language. The shopper sign-up code is charged that way, but the essential allowance counts the phone
+network's own parts (`countSmsParts`), which differ for Bangla and for long messages. The allowance is also only counted
+and warned about, never enforced. Nothing is wrong on a bill yet, since only the sign-up code is charged, but the two
+would disagree once order SMS are. Found while planning Phase 7; Slice 7.1 moves both to SMS-09's units (D7-13).
+
 ## 119. `CRR-21`: what RedX's adapter assumes, its sandbox being a canned mock — found 2026-11-06, open until its real parcel
 
 RedX's sandbox answers every booking with the same tracking ID and can't give parcel details, so its adapter runs against a fake made from its OpenAPI document and the live area list. A real account has to confirm: what `/parcel/info` answers, read here as `status`, `delivery_type` and `charge` under `parcel` or at the top; that `ready-for-delivery` comes once it has the parcel, since an order then shows shipped and can no longer be cancelled; that a part delivery arrives as `delivered` with `delivery_type` `partial-delivery`; how its messages write their fields and times; that a repeated `merchant_invoice_id` makes a second parcel, as no refusal is documented; and that a real cancel answers 2xx with `success` true. Its document gives no lengths or weight range, so Lytro's own are used. Of these, `ready-for-delivery` and the part delivery's reading can move an order wrongly.
