@@ -1,6 +1,6 @@
 # Tenant dashboard: the full design
 
-Status: v3.34, 2026-11-05 (Payments and Listener phones, drawn and built together for Slice 5.8's parts 3 and 4, §7.36 to §7.38; v3.33 of 2026-11-04: Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
+Status: v3.35, 2026-11-06 (Couriers, booking, the order's Courier card and courier money, drawn for Phase 6 Slice 6.7, §7.39, Part 36; v3.34 of 2026-11-05: Payments and Listener phones, drawn and built together for Slice 5.8's parts 3 and 4, §7.36 to §7.38; v3.33 of 2026-11-04: Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
 shipment the balance can't pay for, serials at shipping scanned, pasted or typed, the Orders list by where an order came
 from; v3.31 of 2026-11-04: Payment methods in Settings, how a wallet's money is taken, bKash's keys, the owner's phone at
 sign-up and Balance's on-hold line, drawn for Slice 5.8's part 1, §7.35; v3.30 of 2026-11-03: Sales as built: the split follows
@@ -1760,14 +1760,95 @@ Choosing one shows it as a removable chip over the list, like Holding (`o29-date
   (`o35-refunded`), and its amount goes back on the due. Any live payment can be refunded, cash on delivery collected included; Void
   stays as it was, for one recorded by mistake.
 
+### 7.39 Couriers (`/settings/couriers`), booking, the order's Courier card, and courier money
+
+*Phase 6 Slice 6.7* (Part 36), read agreed 2026-11-06; the server is Slices 6.1 to 6.6. Both apps in one sketch, built
+in one PR after Slice 6.6. Every courier is shown by its name, never its logo.
+
+- **Settings › Couriers** (`c36`): Couriers leaves Coming later for a row under Delivery (`c36-settings`). The lead says
+  the shop's own accounts, one-tap booking, news that arrives by itself, and money that never passes through Lytro.
+  Connected couriers come first: the default marked, a retiring one marked, the pickup store where its courier has stores,
+  and whether its messages arrive: *Messages arriving · last 10 min ago* in success tone, *No messages yet*, *Messages
+  arrive without the token* (`c36-token`), or the night check finding news no message brought (`c36-broken`), each in
+  warning tone. A refused Pathao login shows in danger tone (`c36-login`). Below, the couriers still to connect, each
+  with what it asks for. None connected shows all three (`c36-first`). Staff who may book but not manage see the list
+  with no actions (`c36-ro`).
+- **Connecting** (`sh-c36-connect-*`): the courier's own fields, named as its panel names them: Steadfast's API key and
+  secret key; Pathao's client ID, client secret, and the email and password the shop logs in to Pathao with, the
+  password used once and never kept; RedX's API token, with a note that every RedX booking needs one of its areas. Test
+  and connect checks the keys once and makes no parcel. The courier's own words refusing (`sh-c36-refused`), and five
+  wrong tries in five minutes (`sh-c36-toomany`), save nothing.
+- **The paste step** (`sh-c36-paste-*`, agreed: written steps, no screenshots): once connected, "Last step: paste this
+  address into Steadfast's panel", the address and the token (Pathao calls it Secret; RedX needs the address alone)
+  each with Copy, then numbered steps naming the panel's own menu words, and a note that a courier may rename its menus.
+  It can be skipped: Lytro then asks once a night. **The menu words are written from each courier's guide and must be
+  checked against its live panel when this is built.**
+- **A connection** (`c36-steadfast`, `c36-pathao`, `c36-redx`): its message state with what to do when none have come;
+  Default as a switch; the pickup store (`sh-c36-store`: the stores the courier lists, inactive ones shown but not
+  choosable; RedX may have none, and then uses its own default); the paste steps again, with Get a new address, which
+  stops the old one at once (`sh-c36-again-*`, `dlg-c36-newpair`); Replace keys, where a blank field keeps what is saved
+  (`sh-c36-replace`); Log in again for Pathao (`sh-c36-login`); Disconnect, which removes the keys and address while
+  past parcels keep their record (`dlg-c36-disconnect`).
+- **Retiring** (Slice 6.6's read): the Couriers page says the courier is being retired, that bookings and news with it
+  still work, and either that the shop's default is now the courier the operator suggested (`c36-retiring`) or to
+  connect it (`c36-retiring-only`). A shop not connected isn't offered it (`c36-retiring-new`). Its connection carries
+  the same line, and disconnecting it says it can't be connected again (`dlg-c36-disconnect-retiring`). Undone, it says
+  the courier is back (`c36-back`). The bell carries the notice (`c36-notice`), a stand-in until Phase 7 sends it.
+- **Booking** (agreed: Book courier is the confirmed order's one next step; `c36-order`). Ship by hand moves to the more
+  menu, for an order sent another way (`c36-menu`); a shop with no courier keeps Mark shipped. The order's Shipping card
+  becomes the Courier card: "Not booked yet". The sheet (`sh-c36-book`) asks only what its courier needs: the connected
+  couriers as chips with the default chosen; the cash to collect, locked, being what the order has due (CRR-06);
+  Pathao's whole-taka note when the due has paisa (`sh-c36-book-pathao`) and the store it leaves from; a weight where
+  the courier takes one, from the items, starting at 0.5 kg where some have none (`sh-c36-book-pathao-weight`); RedX's
+  area with the thana's areas first, a likely one marked, and a search of the district (`sh-c36-book-redx`,
+  `-search`), the thana's one own-name area chosen by itself (`-auto`), none chosen refused (`-none`); serials as Ship
+  asks them (`sh-c36-book-serial`); a note; and that booking takes the stock out and counts as this month's order. The
+  courier's refusal in its own words, or with no reason (`sh-c36-book-refused`, `-refused-none`); a value past the
+  courier's limit, refused before anything is sent (`sh-c36-book-limit`); Pathao's ended login
+  (`sh-c36-book-login`); a courier not answering (`sh-c36-book-down`); a balance short of the fee
+  (`sh-c36-book-balance`). Booked, a toast with the consignment ID (`c36-booked`).
+- **A lost answer** (`c36-lost`): the banner says no answer came, that Lytro asks the courier by the order number every
+  15 minutes, and Settle it is the bar's step (`sh-c36-settle`: booked, with its consignment ID, or not made). Pathao,
+  which can't be asked by our number, says staff settle it from its panel (`c36-lost-pathao`). A parcel accepted whose
+  stock couldn't be taken offers Try again (`c36-stock-problem`).
+- **The Courier card** (`c36-shipped`), in place of Shipping: the courier with our reading as a chip (Booked, With the
+  courier, On hold, The rider's word, Delivered, Partly delivered, Coming back, A problem reported) and its own status
+  under it; the tracking code with Track on the courier; the consignment ID, the COD sent, what it collected, and its
+  charge ("not told yet" until it says); when it was last checked, or that Sync inside 10 minutes shows the saved answer
+  (`c36-synced`); its news, newest first, each with where it came from (Message, Night check, Sync) and the courier's
+  raw status, in the viewer's language where it sent both (`c36-redx-news`); Sync in its header. Paid: "Paid by
+  Steadfast · 6 Nov · payout AAA-10000123" (`c36-paid`), or RedX's "says it paid" with no payout (`c36-paid-redx`);
+  delivered and not yet paid says so (`c36-delivered`). Needs a look, with Mark as seen: less cash than the COD and
+  what stays due (`c36-look-cash`), the COD changed in its panel (`c36-look-cod`), delivered after a cancel
+  (`c36-look-cancelled`), coming back after delivered (`c36-look-after`). Partly delivered and coming back say to count
+  what returns with Return items, the bar's step (`c36-partly`, `c36-returning`). Thirty days with no news says checks
+  stopped and Sync starts them (`c36-nonews`). Being paid never shows in its news (CRR-12).
+- **Cancelling** (`c36-booked-menu`): Cancel the booking keeps the order to book again or ship by hand. Steadfast and
+  Pathao, with no cancel call, are confirmed from the courier's panel with a tick (`sh-c36-cancel-sf`); RedX is asked
+  (`dlg-c36-cancel-redx`), and no clear answer means confirming from its panel (`sh-c36-cancel-redx-noanswer`). The fee
+  and the month's count stay. Cancelling a booked order says the same, that the stock comes back, and that a delivered
+  report arriving later is shown and reopens nothing (`sh-c36-cancel-order`).
+- **The Orders list** (agreed): under the customer, one line for a booked order's parcel, "Steadfast · with the
+  courier", or warning-toned "Needs a look" (`c36-list`). A Needs a look tab with its count gathers them, until each is
+  marked seen (`c36-list-look`).
+- **Payments › Courier payouts** (agreed: a tab on Payments, for whoever may read payments; `c36-payouts`): newest paid
+  first, each with its amount, the courier, the date paid, the method, how many parcels it settled and how many were
+  Lytro's orders, and its ID. A payout (`sh-c36-payout`): its amount, charges, total, method, when paid and made, as the
+  courier sent them, never checked against the cash; the shop's orders in it with each one's COD, charge and reading,
+  and how many more weren't booked through Lytro. None yet, and no courier connected (`c36-payouts-empty`,
+  `c36-payouts-none`). The tab is on every Payments tab row.
+- **Sales** (`c36-sales`): a fourth figure, Courier charges, with how many orders a courier carried without naming a
+  charge. Profit's note now says delivery is in it neither way.
+- **Home**: the checklist's Connect a courier leaves Later for a live step (`c36-home`, the New shop state).
+
 ## 8. Screens designed for later phases
 
 Kept in the prototype under "Later phases (design only)", exactly as designed on 2026-10-20, so the
 architecture is whole when each phase arrives. Their endpoints do not exist yet.
 
-- **Orders, the order and New order** moved to §7.31 (Part 29, 2026-10-31) as Phase 4 built them. What stays here
-  is **Book courier** (`order-book`, Phase 6: courier, area, COD, weight, note) and, on the order, the fraud chip
-  (Phase 7) and reading a pasted message (Phase 7), drawn greyed in §7.31.
+- **Orders, the order and New order** moved to §7.31 (Part 29, 2026-10-31) as Phase 4 built them; **Book courier** moved to
+  §7.39 (Part 36, 2026-11-06). What stays here is, on the order, the fraud chip (Phase 7) and reading a pasted message
+  (Phase 7), drawn greyed in §7.31.
 - **Customers** moved to §7.32 (Part 30, 2026-10-31); the customer's fraud level stays here (Phase 7).
 - **Payments** moved to §7.36 and **Payment methods** to §7.35 (Parts 35 and 33).
 - **Notices** (Phase 7): pinned first, category chips, "I understand" (NTC-03 to 05). **SMS events** (Phase
@@ -1838,6 +1919,10 @@ brand identity.
 | `hasAccount` on each `GET /customers` row | customers | the list's "Has an account" (§7.32) | built (4.8 reads) |
 | `stock.short` (products whose orders hold more than is on hand) on `GET /home` | inventory | Home's "short for orders" job (§7.33) | built (4.8 reads) |
 | the shop's combos with `canMake` and what limits it (`limitedBy`), on `GET /inventory/stock`'s rows | inventory | Stock's combos card (§7.33) | built (4.8 reads) |
+| Each `GET /orders` row's live parcel: its courier, reading and attention; `attention=any` to filter by it, with its count among the tabs | orders | the list's courier line and the Needs a look tab (§7.39) | Slice 6.7's build |
+| Marking a parcel's attention seen (`POST /orders/:id/parcel/seen`), which clears it and keeps the history | couriers | Mark as seen (§7.39) | Slice 6.7's build |
+| A retiring courier: `retiring` on each `GET /couriers/connections` row, left out of `GET /couriers/adapters` for a shop not connected, and the suggested courier named | couriers | §7.39's retiring lines (Slice 6.6) | Slice 6.6 |
+| The retiring and back notices, and a parcel needing a look, to the bell | notifications | `c36-notice` | Phase 7 (a stand-in until then) |
 | `POST /products/combo-quote`: what a combo's parts come to, saved or not (bought apart, saving, can make, limited by, issues, weight, each part's price and photo) | catalogue | the combo editor (§7.33) | built (4.8c) |
 | New order's picker for whoever may edit products too, with `optionNames` on its rows, `stockUnit`, and `onSale` on its variants | catalogue | the combo editor's Add an item (§7.33) | built (4.8c) |
 
