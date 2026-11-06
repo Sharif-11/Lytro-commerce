@@ -11,10 +11,10 @@ export class SmsCapture {
   down = false;
 
   readonly provider = {
-    send: (message: SentText): Promise<void> => {
+    send: (message: SentText): Promise<{ providerMessageId: string }> => {
       if (this.down) return Promise.reject(new Error('provider down'));
       this.sent.push(message);
-      return Promise.resolve();
+      return Promise.resolve({ providerMessageId: `capture-${String(this.sent.length)}` });
     },
   };
 

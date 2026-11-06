@@ -79,6 +79,22 @@ export enum SmsKind {
   LifecycleNotice = 'lifecycle_notice',
 }
 
+// SMS-07, SMS-17 (Phase 7 Slice 7.1): what a shop's own SMS log holds, read agreed 2026-11-06: the codes that come from
+// the shop's own use, which the free allowance and then the balance pay for, and its shoppers' sign-up codes, which
+// the balance always pays for. Slice 7.2 adds the shop's SMS events.
+export enum SmsLogKind {
+  SigninCode = 'signin_code',
+  StaffResetCode = 'staff_reset_code',
+  ShopperCode = 'shopper_code',
+}
+
+// SMS-07, SMS-17: what became of one. Sent means the provider accepted it; it has no delivery reports (D7-15).
+export enum SmsLogStatus {
+  Sent = 'sent',
+  Failed = 'failed',
+  Blocked = 'blocked',
+}
+
 export enum SmsStatus {
   Pending = 'pending',
   Sending = 'sending',

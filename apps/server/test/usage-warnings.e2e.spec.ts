@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { randomBytes } from 'node:crypto';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { UsageMetric } from '@lytronix/validators';
+import { SmsLogKind, UsageMetric } from '@lytronix/validators';
 import pg from 'pg';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -255,7 +255,9 @@ describeIfDatabase('warnings as a limit is used (LIM-01)', () => {
       app
         .get(DatabaseService)
         .handle.db.transaction((tx) =>
-          app.get(EssentialSmsUsageService).recordSigninOtp(tx, shop.tenantId, 'Lytro code 123456'),
+          app
+            .get(EssentialSmsUsageService)
+            .takeForCode(tx, shop.tenantId, 'Lytro code 123456', SmsLogKind.SigninCode),
         );
     await count();
     expect(await levels(shop.tenantId, UsageMetric.EssentialSmsTotal)).toEqual([50]);

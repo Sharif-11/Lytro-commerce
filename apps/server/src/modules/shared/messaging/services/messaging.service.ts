@@ -7,7 +7,7 @@ import type { JobQueue } from '../../queue/ports/job-queue';
 import { JOB_QUEUE } from '../../queue/tokens';
 import { MESSAGE_STORE, MESSAGING_CLOCK, SMS_PROVIDER } from '../tokens';
 import type { MessageStore } from '../ports/message-store';
-import type { SmsProvider } from '../ports/sms-provider';
+import type { SmsProvider, SmsSent } from '../ports/sms-provider';
 import type { ClaimedMessage, QueuedMessage, SmsRetryPayload } from '../types/messages';
 
 // SMS-18, D6, AUTH-05.
@@ -36,10 +36,11 @@ export class MessagingService {
     code: string,
     purpose: ChallengeKind,
   ): Promise<QueuedMessage> {
+    // The owner's own words (Slice 7.1's read, 2026-11-06), in the shape BulkSMSBD asks codes to take.
     const body =
       purpose === ChallengeKind.Reset
-        ? `Your password reset code is ${code}. It expires in 5 minutes. Do not share it.`
-        : `Your verification code is ${code}. It expires in 5 minutes. Do not share it.`;
+        ? `Lytro-এ পাসওয়ার্ড রিসেটের জন্য OTP হচ্ছে ${code}। কারো সাথে শেয়ার করবেন না।`
+        : `Lytro-এ লগইনের জন্য OTP হচ্ছে ${code}। কারো সাথে শেয়ার করবেন না।`;
     const id = await this.store.insert(tx, { toPhone: phone, kind: SmsKind.Otp, body: null });
     return { id, toPhone: phone, body };
   }
@@ -67,10 +68,11 @@ export class MessagingService {
   }
 
   /** Sends a one-time code during its request. A failure is recorded, then reported, since no code arrived. */
-  async deliverOtp(message: QueuedMessage): Promise<void> {
+  async deliverOtp(message: QueuedMessage): Promise<SmsSent> {
     try {
-      await this.provider.send({ toPhone: message.toPhone, body: message.body });
+      const sent = await this.provider.send({ toPhone: message.toPhone, body: message.body });
       await this.store.markSent(message.id, this.clock());
+      return sent;
     } catch (error) {
       await this.store.markFailed(message.id, {
         error: this.describe(error),

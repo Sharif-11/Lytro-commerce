@@ -6,6 +6,7 @@ import {
   ChallengeKind,
   SignInMethod,
   ServerFieldProblemCode,
+  SmsLogKind,
 } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
 import { ApiError, FieldsError } from '../../../common/api-error';
@@ -19,6 +20,7 @@ import { EmailFormat } from './email-format';
 import { PhoneNumberFormat } from './phone-number-format';
 import { SignInAudit } from './sign-in-audit';
 import { SignInLockout } from './sign-in-lockout';
+import { ShopUse } from './shop-use';
 import { SignedInSession } from './signed-in-session';
 import type { SessionContext } from '../types/session';
 import type { SignedIn } from '../types/signed-in';
@@ -39,11 +41,16 @@ export class ForgotPasswordService {
     @Inject(PhoneNumberFormat) private readonly phoneFormat: PhoneNumberFormat,
     @Inject(EmailFormat) private readonly emailFormat: EmailFormat,
     @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
+    @Inject(ShopUse) private readonly shopUse: ShopUse,
   ) {}
 
-  request(rawPhone: string): Promise<CodeIssued> {
-    return this.requestFor(this.phoneFormat.normalize(rawPhone), ChallengeChannel.Sms, (tx, d) =>
-      this.gateway.findSubscriberByPhone(tx, d),
+  request(rawPhone: string, ip: string | null = null): Promise<CodeIssued> {
+    return this.requestFor(
+      this.phoneFormat.normalize(rawPhone),
+      ChallengeChannel.Sms,
+      (tx, d) => this.gateway.findSubscriberByPhone(tx, d),
+      RESET_COOLDOWN_MS,
+      ip,
     );
   }
 
@@ -54,12 +61,13 @@ export class ForgotPasswordService {
    * enumeration-safe (AUTH-17): same silent-swallow, same generic reply regardless of account existence or
    * whether the cooldown blocked a real send -- only the cooldown duration passed to `requestFor` differs.
    */
-  resend(rawPhone: string): Promise<CodeIssued> {
+  resend(rawPhone: string, ip: string | null = null): Promise<CodeIssued> {
     return this.requestFor(
       this.phoneFormat.normalize(rawPhone),
       ChallengeChannel.Sms,
       (tx, d) => this.gateway.findSubscriberByPhone(tx, d),
       RESEND_COOLDOWN_MS,
+      ip,
     );
   }
 
@@ -95,12 +103,23 @@ export class ForgotPasswordService {
     channel: ChallengeChannel,
     lookup: Lookup,
     cooldownMs: number = RESET_COOLDOWN_MS,
+    ip: string | null = null,
   ): Promise<CodeIssued> {
     if (destination !== null) {
       const account = await this.gateway.run((tx) => lookup(tx, destination));
       if (account !== null) {
         try {
-          await this.codes.issue(destination, channel, ChallengeKind.Reset, cooldownMs);
+          // AUTH-21 (Slice 7.1): a staff member's reset code is their shop's use; the owner's own stays Lytro's cost.
+          const shopId =
+            channel === ChallengeChannel.Sms
+              ? await this.shopUse.shopOf(account.subscriberId, { owner: false })
+              : null;
+          await this.codes.issue(destination, channel, ChallengeKind.Reset, {
+            cooldownMs,
+            countedTo:
+              shopId === null ? null : { tenantId: shopId, kind: SmsLogKind.StaffResetCode },
+            ip,
+          });
         } catch (error) {
           // A refused or undelivered reset code gets the same reply as success, so the caller learns nothing.
           if (!(error instanceof ApiError)) throw error;

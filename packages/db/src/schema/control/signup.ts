@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { bigserial, check, index, integer, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { bigserial, check, index, inet, integer, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { ChallengeChannel, ChallengeKind, SmsKind, SmsStatus } from '@lytronix/validators';
 import { control, createdAt } from '../shared';
 
@@ -19,10 +19,14 @@ export const verificationChallenges = control.table(
     lockedUntil: timestamp('locked_until', { withTimezone: true }),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(), // AUTH-05: five minutes
     consumedAt: timestamp('consumed_at', { withTimezone: true }), // single use
+    // SMS-11 (Phase 7 Slice 7.1): the client address that asked (D14), so one address can't send codes to many phones.
+    // Null when the server can't trust the address; such a request is never counted.
+    requestedIp: inet('requested_ip'),
     createdAt: createdAt(),
   },
   (t) => [
     index('verification_challenges_destination_idx').on(t.destination, t.channel, t.createdAt),
+    index('verification_challenges_ip_idx').on(t.requestedIp, t.createdAt),
   ],
 );
 

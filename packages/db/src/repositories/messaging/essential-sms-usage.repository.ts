@@ -6,23 +6,33 @@ import { essentialSmsUsage } from '../../schema';
 export interface NewEssentialSmsUsage {
   tenantId: string;
   kind: SmsKind;
-  parts: number;
+  units: number;
 }
 
 // AUTH-21: the tenant's free essential-SMS allowance usage, one row per SMS actually counted.
 export class EssentialSmsUsageRepository {
-  async insert(db: Executor, values: NewEssentialSmsUsage): Promise<void> {
-    await db.insert(essentialSmsUsage).values(values);
+  async insert(db: Executor, values: NewEssentialSmsUsage): Promise<string> {
+    const [row] = await db
+      .insert(essentialSmsUsage)
+      .values(values)
+      .returning({ id: essentialSmsUsage.id });
+    if (!row) throw new Error('insert returned no essential SMS usage row');
+    return row.id;
   }
 
-  /** Sum of `parts` for the tenant since `since` (inclusive), or every row ever when `since` is null. */
-  async sumPartsSince(db: Executor, tenantId: string, since: Date | null): Promise<number> {
+  /** SMS-08: an SMS that never went out gives back what it took from the allowance. */
+  async delete(db: Executor, id: string): Promise<void> {
+    await db.delete(essentialSmsUsage).where(eq(essentialSmsUsage.id, id));
+  }
+
+  /** Sum of `units` for the tenant since `since` (inclusive), or every row ever when `since` is null. */
+  async sumUnitsSince(db: Executor, tenantId: string, since: Date | null): Promise<number> {
     const where =
       since === null
         ? eq(essentialSmsUsage.tenantId, tenantId)
         : and(eq(essentialSmsUsage.tenantId, tenantId), gte(essentialSmsUsage.createdAt, since));
     const rows = await db
-      .select({ total: sql<string>`coalesce(sum(${essentialSmsUsage.parts}), 0)` })
+      .select({ total: sql<string>`coalesce(sum(${essentialSmsUsage.units}), 0)` })
       .from(essentialSmsUsage)
       .where(where);
     return Number(rows[0]?.total ?? 0);

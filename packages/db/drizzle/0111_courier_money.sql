@@ -20,7 +20,8 @@ ALTER TABLE "tenant"."courier_connections" ADD COLUMN "payout_page_size" smallin
 ALTER TABLE "tenant"."courier_parcels" ADD COLUMN "paid_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "tenant"."courier_parcels" ADD COLUMN "payout_id" varchar(64);--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "courier_payouts_paid_idx" ON "tenant"."courier_payouts" USING btree ("tenant_id","paid_at");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "courier_parcels_payout_idx" ON "tenant"."courier_parcels" USING btree ("tenant_id","courier_key","payout_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "courier_parcels_payout_idx" ON "tenant"."courier_parcels" USING btree ("tenant_id","courier_key","payout_id");
+--> statement-breakpoint
 -- ---------------------------------------------------------------------------------------------
 -- Hand-written security (not expressible in Drizzle). Phase 6 Slice 6.5, read agreed 2026-11-06.
 -- ---------------------------------------------------------------------------------------------

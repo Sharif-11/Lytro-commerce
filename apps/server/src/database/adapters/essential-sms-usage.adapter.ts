@@ -18,13 +18,17 @@ export class DrizzleEssentialSmsUsageStore implements EssentialSmsUsageStore {
 
   record(
     tx: Transaction,
-    values: { tenantId: string; kind: SmsKind; parts: number },
-  ): Promise<void> {
+    values: { tenantId: string; kind: SmsKind; units: number },
+  ): Promise<string> {
     return this.usage.insert(tx, values);
   }
 
-  sumPartsSince(tenantId: string, since: Date | null): Promise<number> {
-    return this.usage.sumPartsSince(this.database.handle.db, tenantId, since);
+  delete(tx: Transaction, id: string): Promise<void> {
+    return this.usage.delete(tx, id);
+  }
+
+  sumUnitsSince(tenantId: string, since: Date | null): Promise<number> {
+    return this.usage.sumUnitsSince(this.database.handle.db, tenantId, since);
   }
 
   async findCycleTenant(tenantId: string): Promise<UsageCycleTenant | null> {

@@ -4,10 +4,10 @@ import {
   AuditResult,
   ChallengeChannel,
   ChallengeKind,
-  LAPSED_TENANT_STATES,
   SignInMethod,
   FieldProblemCode,
   ServerFieldProblemCode,
+  SmsLogKind,
 } from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
 import { ApiError, FieldsError } from '../../../common/api-error';
@@ -23,6 +23,7 @@ import type { SignedIn } from '../types/signed-in';
 import { SIGNUP_GATEWAY } from '../tokens';
 import type { SignupGateway } from '../ports/signup-gateway';
 import { LegalAcceptance } from './legal-acceptance';
+import { ShopUse } from './shop-use';
 
 /** Sign-in and sign-up by one-time code (AUTH-01, AUTH-04, AUTH-08, AUTH-12). */
 @Injectable()
@@ -36,26 +37,22 @@ export class SigninService {
     @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
     @Inject(SignupRateLimiter) private readonly signupLimit: SignupRateLimiter,
     @Inject(LegalAcceptance) private readonly acceptance: LegalAcceptance,
+    @Inject(ShopUse) private readonly shopUse: ShopUse,
   ) {}
 
-  async requestCode(rawPhone: string) {
+  async requestCode(rawPhone: string, ip: string | null = null) {
     const phone = this.requirePhone(rawPhone);
-    // AUTH-21: a known phone signing in by code is choosing that over its own password, so the code costs
-    // that shop's essential-SMS allowance -- a brand-new phone (sign-up) has no shop yet to charge it to.
+    // AUTH-21, SMS-04: a known phone signing in by code is choosing that over its own password, so the code is that
+    // shop's own use -- the shop it owns, or else the one it's staff of (Slice 7.1). A brand-new phone (sign-up) has
+    // no shop yet; in a lapsed shop the code is the platform letting the owner back in (LIF-10), never counted.
     const existing = await this.gateway.run((tx) => this.gateway.findSubscriberByPhone(tx, phone));
-    const owned = existing
-      ? await this.gateway.run((tx) => this.gateway.findOwnedTenant(tx, existing.subscriberId))
+    const shopId = existing
+      ? await this.shopUse.shopOf(existing.subscriberId, { owner: true })
       : null;
-    // LIF-10, SMS-04: in a lapsed shop the code is the platform letting the owner back in to restore it --
-    // never counted toward the free allowance, never charged.
-    const countedTo = owned && !LAPSED_TENANT_STATES.includes(owned.state) ? owned.id : null;
-    return this.codes.issue(
-      phone,
-      ChallengeChannel.Sms,
-      ChallengeKind.Signin,
-      undefined,
-      countedTo,
-    );
+    return this.codes.issue(phone, ChallengeChannel.Sms, ChallengeKind.Signin, {
+      countedTo: shopId === null ? null : { tenantId: shopId, kind: SmsLogKind.SigninCode },
+      ip,
+    });
   }
 
   async verifyCode(

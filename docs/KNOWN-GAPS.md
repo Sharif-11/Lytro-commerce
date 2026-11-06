@@ -2107,13 +2107,17 @@ Pathao's adapter runs against a fake made from what its sandbox answered on 2026
 
 A shop that books nothing for longer than its refresh token lasts is asked to log in again the next time it books, since nothing renews a login that isn't being used.
 
-## 118. `SMS-09`, `SMS-04`: SMS are charged in one unit and counted against the allowance in another — found 2026-11-06, open until Slice 7.1
+## 118. `SMS-09`, `SMS-04`: SMS are charged in one unit and counted against the allowance in another — found 2026-11-06, fixed 2026-11-06
 
 SMS-09 counts an SMS, for billing and for the free allowance alike, in units of the unit size (75 characters by default),
 whatever the language. The shopper sign-up code is charged that way, but the essential allowance counts the phone
 network's own parts (`countSmsParts`), which differ for Bangla and for long messages. The allowance is also only counted
 and warned about, never enforced. Nothing is wrong on a bill yet, since only the sign-up code is charged, but the two
 would disagree once order SMS are. Found while planning Phase 7; Slice 7.1 moves both to SMS-09's units (D7-13).
+
+Fixed in Slice 7.1: one count, `SmsUnits`, prices every code for the allowance and the balance alike, at the new
+67-character unit (D7-25), and the network's parts are no longer counted anywhere. The allowance is enforced: a shop's
+own code past it is charged from the balance, and refused when the balance can't pay (D7-23).
 
 ## 119. `VER-09`, `WAL-21`: what holds on one server only — found 2026-11-06, open
 
@@ -2138,6 +2142,13 @@ in bKash's panel. Asking after every closed session with an unsettled bKash paym
 RedX's sandbox answers every booking with the same tracking ID and can't give parcel details, so its adapter runs against a fake made from its OpenAPI document and the live area list. A real account has to confirm: what `/parcel/info` answers, read here as `status`, `delivery_type` and `charge` under `parcel` or at the top; that `ready-for-delivery` comes once it has the parcel, since an order then shows shipped and can no longer be cancelled; that a part delivery arrives as `delivered` with `delivery_type` `partial-delivery`; how its messages write their fields and times; that a repeated `merchant_invoice_id` makes a second parcel, as no refusal is documented; and that a real cancel answers 2xx with `success` true. Its document gives no lengths or weight range, so Lytro's own are used. Of these, `ready-for-delivery` and the part delivery's reading can move an order wrongly.
 
 Its messages carry no signature, so the address's token is their only proof. Lytro never logs it, but a proxy or host in front of the server must not log the full path of `/api/v1/webhooks/couriers/` either. Until `REDX_AREAS_TOKEN` is set, the area list can't be read and RedX can't book. Of its 2,866 live areas, 1,078 suggestions and 929 unmatched ones wait for the operator; until then staff still find them by searching the district.
+
+## 122. `SMS-08`: a code that fails, then goes out on its retry, costs the shop nothing — found 2026-11-06, open
+
+When a code's first send fails, the shop gets back what it took (SMS-08) and a bounded background retry gets a second
+chance at delivering it (D27). If the retry succeeds, the code went out free: the retry job doesn't know whose use the
+code was. The leak is small, at most one SMS within the code's five minutes, and only while BulkSMSBD is failing. Closing
+it means the job carries the shop and charges, or counts, on a successful retry.
 
 ## 123. `CRR-17`: courier money rests on payout answers read once and messages never seen — found 2026-11-06, open until each courier's first real payout
 

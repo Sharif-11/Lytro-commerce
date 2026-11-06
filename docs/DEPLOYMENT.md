@@ -257,6 +257,13 @@ needs no route through Caddy. `apps/storefront/.env.example` lists them.
 from a secrets manager, never from a committed file; the server refuses to start in production without it. Its
 rotation is RUNBOOKS §3.
 
+**SMS** (Phase 7 Slice 7.1, D7-21): set `BULKSMSBD_API_KEY` and `BULKSMSBD_SENDER_ID` on the server from a secrets
+manager, never from a committed file. Production, staging included, sends every SMS for real and refuses to start
+without them. BulkSMSBD is called over HTTPS only (`BULKSMSBD_BASE_URL`, default `https://bulksmsbd.net/api`). If the
+account keeps an allowed-address list, the server's public address must be on it, or every SMS is refused (its code
+1032). `CODE_SMS_PER_IP_PER_HOUR` (default 20 in production) caps the code SMS one client address may ask for in an
+hour (SMS-11).
+
 ## 9. Fits the existing CI/CD pipeline (`ENGINEERING-STANDARDS.md` §7) without changing it
 
 That section already specifies build-once/promote-with-a-smoke-test/manual-production-approval. This section

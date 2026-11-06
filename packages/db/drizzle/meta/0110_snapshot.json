@@ -1,5 +1,5 @@
 {
-  "id": "d108dadd-f9a8-4ff4-a6bc-66736d2f3a29",
+  "id": "e6a23249-5341-47a9-acf3-1ddc79bb2e94",
   "prevId": "b4a47efd-7d2a-4e3b-8ba4-fe4ec7b22315",
   "version": "7",
   "dialect": "postgresql",
@@ -1745,6 +1745,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "requested_ip": {
+          "name": "requested_ip",
+          "type": "inet",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -1765,6 +1771,27 @@
             },
             {
               "expression": "channel",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "verification_challenges_ip_idx": {
+          "name": "verification_challenges_ip_idx",
+          "columns": [
+            {
+              "expression": "requested_ip",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -3988,8 +4015,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "parts": {
-          "name": "parts",
+        "units": {
+          "name": "units",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -11343,19 +11370,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "payout_page": {
-          "name": "payout_page",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "payout_page_size": {
-          "name": "payout_page_size",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -11882,18 +11896,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "paid_at": {
-          "name": "paid_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "payout_id": {
-          "name": "payout_id",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -12072,33 +12074,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "courier_parcels_payout_idx": {
-          "name": "courier_parcels_payout_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "courier_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "payout_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -12115,129 +12090,6 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "tenant.courier_payouts": {
-      "name": "courier_payouts",
-      "schema": "tenant",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "courier_key": {
-          "name": "courier_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "payout_id": {
-          "name": "payout_id",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "amount": {
-          "name": "amount",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "charges": {
-          "name": "charges",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "total": {
-          "name": "total",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "method": {
-          "name": "method",
-          "type": "varchar(40)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "paid_at": {
-          "name": "paid_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "made_at": {
-          "name": "made_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "parcels": {
-          "name": "parcels",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "ours": {
-          "name": "ours",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "read_at": {
-          "name": "read_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "courier_payouts_paid_idx": {
-          "name": "courier_payouts_paid_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "paid_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "courier_payouts_payout_key": {
-          "name": "courier_payouts_payout_key",
-          "nullsNotDistinct": false,
-          "columns": ["tenant_id", "courier_key", "payout_id"]
-        }
-      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -15554,6 +15406,121 @@
         "addons_kind_check": {
           "name": "addons_kind_check",
           "value": "\"control\".\"addons\".\"kind\" in ('limit','pack','feature','allowance')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "tenant.sms_log": {
+      "name": "sms_log",
+      "schema": "tenant",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "to_phone": {
+          "name": "to_phone",
+          "type": "varchar(15)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "units": {
+          "name": "units",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cost": {
+          "name": "cost",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_essential": {
+          "name": "is_essential",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "blocked_reason": {
+          "name": "blocked_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_message_id": {
+          "name": "provider_message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "sms_log_tenant_idx": {
+          "name": "sms_log_tenant_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "sms_log_units_check": {
+          "name": "sms_log_units_check",
+          "value": "\"tenant\".\"sms_log\".\"units\" > 0"
+        },
+        "sms_log_cost_check": {
+          "name": "sms_log_cost_check",
+          "value": "\"tenant\".\"sms_log\".\"cost\" >= 0"
+        },
+        "sms_log_status_check": {
+          "name": "sms_log_status_check",
+          "value": "\"tenant\".\"sms_log\".\"status\" in ('sent', 'failed', 'blocked') AND (\"tenant\".\"sms_log\".\"status\" = 'blocked') = (\"tenant\".\"sms_log\".\"blocked_reason\" IS NOT NULL)"
         }
       },
       "isRLSEnabled": false

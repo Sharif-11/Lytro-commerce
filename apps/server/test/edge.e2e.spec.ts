@@ -41,6 +41,10 @@ beforeAll(async () => {
   process.env['STOREFRONT_SECRET'] = 'storefront-secret-0123456789abcdef0123';
   // Slice 13: and with the address a shop's root domain points at.
   process.env['PLATFORM_ADDRESSES'] = '203.0.113.10';
+  // Phase 7 Slice 7.1 (D7-21): and with BulkSMSBD's login, since production sends SMS for real. Placeholders: the
+  // provider is replaced below, so nothing here ever reaches BulkSMSBD.
+  process.env['BULKSMSBD_API_KEY'] = 'test-placeholder-key';
+  process.env['BULKSMSBD_SENDER_ID'] = 'test-placeholder-sender';
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(SMS_PROVIDER)

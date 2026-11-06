@@ -54,11 +54,13 @@ import { SessionService } from './services/session.service';
 import type { SessionSettings } from './types/session';
 import { ShopCreationService } from './services/shop-creation.service';
 import { ShopMemberships } from './services/shop-memberships';
+import { ShopUse } from './services/shop-use';
 import { EmailFormat } from './services/email-format';
 import { EmailSigninService } from './services/email-signin.service';
 import { SigninService } from './services/signin.service';
 import {
   CHALLENGE_STORE,
+  CODE_SMS_PER_IP,
   FACEBOOK_PROVIDER,
   GOOGLE_PROVIDER,
   OAUTH_PROVIDERS,
@@ -140,6 +142,12 @@ import {
         env.SIGNUP_RATE_LIMIT_PER_IP ?? (env.NODE_ENV === 'production' ? 10 : 1000),
     },
     SignupRateLimiter,
+    {
+      provide: CODE_SMS_PER_IP,
+      inject: [ENV],
+      useFactory: (env: Env): number =>
+        env.CODE_SMS_PER_IP_PER_HOUR ?? (env.NODE_ENV === 'production' ? 20 : 1000),
+    },
     AddressChecks,
     { provide: TRIAL_CREATION_STORE, useClass: DrizzleTrialCreationStore },
     {
@@ -190,6 +198,7 @@ import {
     SessionGuard,
     OwnAccountGuard,
     ShopMemberships,
+    ShopUse,
     DashboardGuard,
     ClientIp,
     SignInLockout,

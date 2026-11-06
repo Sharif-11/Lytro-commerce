@@ -90,13 +90,27 @@ CREATE TABLE control.sessions (
 
 CREATE TABLE control.verification_challenges (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    phone           text NOT NULL,
+    destination     text NOT NULL,                       -- the phone or email address, normalised (AUTH-02)
+    channel         text NOT NULL DEFAULT 'sms',         -- sms | email (AUTH-27)
     kind            text NOT NULL DEFAULT 'signin',      -- signin | reset (AUTH-17)
     code_hash       text NOT NULL,                       -- keyed hash, never the code (AUTH-05)
     attempts        integer NOT NULL DEFAULT 0,          -- AUTH-06: five wrong codes lock the challenge
     locked_until    timestamptz,
     expires_at      timestamptz NOT NULL,                -- five minutes (AUTH-05)
     consumed_at     timestamptz,                         -- single use
+    requested_ip    inet,                                -- who asked (D14), for SMS-11's per-IP limit; null when unknown
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX ON control.verification_challenges (destination, channel, created_at);
+CREATE INDEX ON control.verification_challenges (requested_ip, created_at);   -- SMS-11 (Phase 7 Slice 7.1)
+
+-- AUTH-21, SMS-04: the free essential SMS a shop's own use took, in SMS-09's units (D7-13). A row is removed when
+-- its SMS never went out (SMS-08); what goes past the allowance is a balance charge instead, never a row here.
+CREATE TABLE control.essential_sms_usage (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    kind            text NOT NULL,                       -- otp
+    units           integer NOT NULL,
     created_at      timestamptz NOT NULL DEFAULT now()
 );
 
@@ -2406,22 +2420,23 @@ CREATE TABLE tenant.sms_settings (
     monthly_spend_cap numeric(10,2)
 );
 
+-- SMS-07, SMS-17 (built in Phase 7 Slice 7.1): one row for each SMS a shop's use sent, failed to send or was refused.
+-- Slice 7.2 adds the order events' kinds and the order they're about.
 CREATE TABLE tenant.sms_log (
     id              bigserial PRIMARY KEY,
     tenant_id       uuid NOT NULL,
-    order_id        uuid,
-    event_key       text NOT NULL,
+    kind            text NOT NULL,                  -- signin_code | staff_reset_code | shopper_code
     to_phone        varchar(15) NOT NULL,
-    body_length     integer NOT NULL,
-    units           integer NOT NULL,               -- SMS-09: ceil(length / unit_size)
-    cost            numeric(10,2) NOT NULL,
+    units           integer NOT NULL CHECK (units > 0),          -- SMS-09: ceil(length / unit_size)
+    cost            numeric(10,2) NOT NULL CHECK (cost >= 0),     -- what the balance paid; 0 within the allowance
     is_essential    boolean NOT NULL,
-    status          text NOT NULL DEFAULT 'sent',    -- sent | delivered | failed | blocked
-    blocked_reason  text,
+    status          text NOT NULL,                  -- sent | failed | blocked (D7-15: no delivery reports)
+    blocked_reason  text,                           -- set exactly when blocked: insufficient_balance (SMS-07)
     provider_message_id text,
     created_at      timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX ON tenant.sms_log (tenant_id, created_at DESC);
+CREATE INDEX ON tenant.sms_log (tenant_id, created_at);
+-- Row-level security to the shop's own rows; the server inserts and reads, never changes a row.
 -- SCL-05 partitioning candidate, same as order_status_history.
 
 CREATE TABLE tenant.push_subscriptions (

@@ -1,15 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   LedgerEntryType,
-  RateKey,
   SHOPPER_CODES_PER_SHOP_PER_HOUR,
+  SmsLogKind,
+  SmsLogStatus,
   type Language,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { SmsDeliveryError } from '../../../common/errors/sms-delivery';
 import { HOUR_MS } from '../../../common/time';
 import { BalanceService } from '../../balance/services/balance.service';
-import { RateService } from '../../balance/services/rate.service';
+import { SmsLog } from '../../sms-usage/services/sms-log';
+import { type SmsPrice, SmsUnits } from '../../sms-usage/services/sms-units';
 import {
   CODE_TTL_MS,
   HOURLY_CODE_CAP,
@@ -21,11 +23,11 @@ import type { ShopperStore } from '../ports/shopper-store';
 import { SHOPPER_STORE, SHOPPERS_CLOCK } from '../tokens';
 import type { ShopperCodeSent } from '../types/shoppers';
 
-/** What the code's SMS says, in the shopper's language, under the shop's name. */
+/** What the code's SMS says, in the shopper's language, under the shop's name -- the shape BulkSMSBD asks codes for. */
 function codeText(lang: Language, shopName: string, code: string): string {
   return lang === 'en'
-    ? `${shopName}: your sign-up code is ${code}. It expires in 5 minutes. Don't share it.`
-    : `${shopName}: আপনার সাইন আপ কোড ${code}। 5 মিনিটের মধ্যে ব্যবহার করুন। কাউকে দেবেন না।`;
+    ? `Your ${shopName} OTP is ${code}. Do not share it with anyone.`
+    : `${shopName}-এ সাইন আপের জন্য OTP হচ্ছে ${code}। কারো সাথে শেয়ার করবেন না।`;
 }
 
 /**
@@ -42,8 +44,9 @@ export class ShopperCodes {
     @Inject(SHOPPER_STORE) private readonly store: ShopperStore,
     @Inject(OneTimeCodeHasher) private readonly hasher: OneTimeCodeHasher,
     @Inject(BalanceService) private readonly balance: BalanceService,
-    @Inject(RateService) private readonly rates: RateService,
+    @Inject(SmsUnits) private readonly smsUnits: SmsUnits,
     @Inject(MessagingService) private readonly messaging: MessagingService,
+    @Inject(SmsLog) private readonly smsLog: SmsLog,
     @Inject(SHOPPERS_CLOCK) private readonly clock: () => Date,
   ) {}
 
@@ -55,40 +58,62 @@ export class ShopperCodes {
     const now = this.clock();
     const code = this.hasher.generate();
     const body = codeText(lang, shop.name, code);
-    const sent = await this.store.run(shop.id, async (tx) => {
-      if (await this.store.findByPhone(tx, shop.id, phone)) {
-        throw new ApiError('conflict', 'ShopperAlreadyRegistered', {});
-      }
-      const latest = await this.store.latestCode(tx, shop.id, phone);
-      const since = now.getTime() - (latest?.createdAt.getTime() ?? 0);
-      if (latest && since < RESEND_COOLDOWN_MS) {
-        throw new ApiError(
-          'rate_limited',
-          'CodeSentRecently',
-          {},
-          Math.ceil((RESEND_COOLDOWN_MS - since) / 1000),
-        );
-      }
-      const hourAgo = new Date(now.getTime() - HOUR_MS);
-      if (
-        (await this.store.countCodesSince(tx, shop.id, phone, hourAgo)) >= HOURLY_CODE_CAP ||
-        (await this.store.countCodesSince(tx, shop.id, null, hourAgo)) >=
-          SHOPPER_CODES_PER_SHOP_PER_HOUR
-      ) {
-        throw new ApiError('rate_limited', 'TooManyCodesRequested', {}, HOUR_MS / 1000);
-      }
-      const entry = await this.charge(tx, shop.id, body);
-      const row = await this.store.insertCode(tx, shop.id, {
-        phone,
-        codeHash: this.hasher.hash(code, phone),
-        expiresAt: new Date(now.getTime() + CODE_TTL_MS),
-        createdAt: now,
+    const price = await this.smsUnits.priceOf(body);
+    const logged = (status: SmsLogStatus, cost: string, more: object = {}) =>
+      this.smsLog.record({
+        tenantId: shop.id,
+        kind: SmsLogKind.ShopperCode,
+        toPhone: phone,
+        units: price.units,
+        cost,
+        isEssential: false,
+        status,
+        ...more,
       });
-      const message = await this.messaging.queueShopperCode(tx, phone, body);
-      return { entry, codeId: row.id, message };
-    });
+    const sent = await this.store
+      .run(shop.id, async (tx) => {
+        if (await this.store.findByPhone(tx, shop.id, phone)) {
+          throw new ApiError('conflict', 'ShopperAlreadyRegistered', {});
+        }
+        const latest = await this.store.latestCode(tx, shop.id, phone);
+        const since = now.getTime() - (latest?.createdAt.getTime() ?? 0);
+        if (latest && since < RESEND_COOLDOWN_MS) {
+          throw new ApiError(
+            'rate_limited',
+            'CodeSentRecently',
+            {},
+            Math.ceil((RESEND_COOLDOWN_MS - since) / 1000),
+          );
+        }
+        const hourAgo = new Date(now.getTime() - HOUR_MS);
+        if (
+          (await this.store.countCodesSince(tx, shop.id, phone, hourAgo)) >= HOURLY_CODE_CAP ||
+          (await this.store.countCodesSince(tx, shop.id, null, hourAgo)) >=
+            SHOPPER_CODES_PER_SHOP_PER_HOUR
+        ) {
+          throw new ApiError('rate_limited', 'TooManyCodesRequested', {}, HOUR_MS / 1000);
+        }
+        const entry = await this.charge(tx, shop.id, price);
+        const row = await this.store.insertCode(tx, shop.id, {
+          phone,
+          codeHash: this.hasher.hash(code, phone),
+          expiresAt: new Date(now.getTime() + CODE_TTL_MS),
+          createdAt: now,
+        });
+        const message = await this.messaging.queueShopperCode(tx, phone, body);
+        return { entry, codeId: row.id, message };
+      })
+      .catch(async (error: unknown) => {
+        if (error instanceof ApiError && error.messageKey === 'ShopCannotSendCode') {
+          await logged(SmsLogStatus.Blocked, '0', { blockedReason: 'insufficient_balance' });
+        }
+        throw error;
+      });
     try {
-      await this.messaging.deliverOtp(sent.message);
+      const delivered = await this.messaging.deliverOtp(sent.message);
+      await logged(SmsLogStatus.Sent, sent.entry.amount.replace('-', ''), {
+        providerMessageId: delivered.providerMessageId,
+      });
     } catch (error) {
       if (!(error instanceof SmsDeliveryError)) throw error;
       await this.store.run(shop.id, async (tx) => {
@@ -100,6 +125,7 @@ export class ShopperCodes {
           reference: { reverses: sent.entry.id, reason: 'sms_not_sent' },
         });
       });
+      await logged(SmsLogStatus.Failed, '0');
       throw new ApiError('service_unavailable', 'CodeSendFailed', {}, RESEND_COOLDOWN_MS / 1000);
     }
     return { expiresInSeconds: CODE_TTL_MS / 1000, resendAfterSeconds: RESEND_COOLDOWN_MS / 1000 };
@@ -109,20 +135,14 @@ export class ShopperCodes {
   private async charge(
     tx: Parameters<Parameters<ShopperStore['run']>[1]>[0],
     tenantId: string,
-    body: string,
+    price: SmsPrice,
   ): Promise<{ id: number; amount: string }> {
-    const [rate, unitSize] = await Promise.all([
-      this.rates.current(RateKey.SmsPerUnit),
-      this.rates.current(RateKey.SmsUnitSizeChars),
-    ]);
-    if (!rate || !unitSize) throw new Error('SMS rates are not seeded');
-    const units = Math.ceil(Array.from(body).length / Number(unitSize.value));
     try {
       return await this.balance.charge(tx, {
         tenantId,
         type: LedgerEntryType.Sms,
-        units: String(units),
-        rateUsed: rate.value,
+        units: String(price.units),
+        rateUsed: price.rate,
         reference: { kind: 'shopper_code' },
       });
     } catch (error) {

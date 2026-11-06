@@ -1697,6 +1697,11 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This phone already has an account here. Sign in with your password.',
     bn: 'এই ফোন নম্বরে এখানে আগেই অ্যাকাউন্ট আছে। পাসওয়ার্ড দিয়ে লগইন করুন।',
   },
+  // SMS-06 (Slice 7.1, the owner's call 2026-11-06): said plainly, though it shows the phone belongs to a shop.
+  ShopCannotPayForCode: {
+    en: "Your shop's balance can't pay for this code. Sign in with your password or top up.",
+    bn: 'শপের ব্যালেন্সে এই কোডের টাকা নেই। পাসওয়ার্ড দিয়ে লগইন করুন বা টপ-আপ করুন।',
+  },
   ShopCannotSendCode: {
     en: "This shop can't send a sign-up code right now. Please try again later.",
     bn: 'এই শপ এখন সাইন আপ কোড পাঠাতে পারছে না। পরে আবার ট্রাই করুন।',
