@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ChallengeChannel, ChallengeKind } from '@lytronix/validators';
+import {
+  ChallengeChannel,
+  ChallengeKind,
+  RateKey,
+  SmsLogKind,
+  SmsLogStatus,
+} from '@lytronix/validators';
 import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../src/common/api-error';
 import {
@@ -26,6 +32,11 @@ import type { JobQueue } from '../src/modules/shared/queue/ports/job-queue';
 import type { EssentialSmsUsageStore } from '../src/modules/sms-usage/ports/essential-sms-usage-store';
 import { EssentialSmsUsageService } from '../src/modules/sms-usage/services/essential-sms-usage.service';
 import type { UsageWarnings } from '../src/modules/usage-warnings/services/usage-warnings';
+import type { BalanceService } from '../src/modules/balance/services/balance.service';
+import type { RateService } from '../src/modules/balance/services/rate.service';
+import type { SmsLogEntry } from '../src/modules/sms-usage/ports/sms-log-store';
+import { SmsLog } from '../src/modules/sms-usage/services/sms-log';
+import { SmsUnits } from '../src/modules/sms-usage/services/sms-units';
 
 // AUTH-05 to AUTH-07, tested through the real service with fake ports. Codes of every kind share these rules.
 const SECRET = 's'.repeat(32);
@@ -43,7 +54,15 @@ interface World {
   mailFails: boolean;
   counter: number;
   queued: { queueName: string; payload: unknown }[];
-  essentialSmsUsage: { tenantId: string; kind: string; parts: number }[];
+  essentialSmsUsage: { id: string; tenantId: string; kind: string; units: number }[];
+  /** The shop's limits as the usage warnings read them; null is unlimited. */
+  limits: Record<string, number> | null;
+  balanceRefuses: boolean;
+  charges: { id: number; amount: string; units: string; rateUsed: string }[];
+  credits: { amount: string; type: string; reference: unknown }[];
+  smsLog: SmsLogEntry[];
+  /** SMS-11: code SMS one address may ask for in an hour. */
+  smsPerIp: number;
 }
 
 function world(): World {
@@ -59,6 +78,12 @@ function world(): World {
     counter: 0,
     queued: [],
     essentialSmsUsage: [],
+    limits: null,
+    balanceRefuses: false,
+    charges: [],
+    credits: [],
+    smsLog: [],
+    smsPerIp: 1000,
   };
 }
 
@@ -80,6 +105,12 @@ function build(state: World) {
             c.createdAt > since,
         ).length,
       ),
+    countFromIpSince: (_tx, ip, channel, since) =>
+      Promise.resolve(
+        state.challenges.filter(
+          (c) => c.requestedIp === ip && c.channel === channel && c.createdAt > since,
+        ).length,
+      ),
     create: (_tx, input) => {
       state.counter += 1;
       const id = `c${String(state.counter)}`;
@@ -93,6 +124,7 @@ function build(state: World) {
         consumedAt: null,
         lockedUntil: null,
         attempts: 0,
+        requestedIp: input.requestedIp,
         createdAt: state.now,
       });
       return Promise.resolve({ id, createdAt: state.now });
@@ -133,7 +165,7 @@ function build(state: World) {
     send: (message) => {
       if (state.smsFails) return Promise.reject(new Error('provider down'));
       state.sent.push(message);
-      return Promise.resolve();
+      return Promise.resolve({ providerMessageId: `p-${String(state.sent.length)}` });
     },
   };
   const jobQueue: JobQueue = {
@@ -179,18 +211,62 @@ function build(state: World) {
 
   const essentialSmsUsageStore: EssentialSmsUsageStore = {
     record: (_tx, values) => {
-      state.essentialSmsUsage.push(values);
+      state.counter += 1;
+      const id = `usage-${String(state.counter)}`;
+      state.essentialSmsUsage.push({ id, ...values });
+      return Promise.resolve(id);
+    },
+    delete: (_tx, id) => {
+      state.essentialSmsUsage = state.essentialSmsUsage.filter((row) => row.id !== id);
       return Promise.resolve();
     },
-    sumPartsSince: () => Promise.resolve(0),
+    sumUnitsSince: (tenantId) =>
+      Promise.resolve(
+        state.essentialSmsUsage
+          .filter((row) => row.tenantId === tenantId)
+          .reduce((sum, row) => sum + row.units, 0),
+      ),
     findCycleTenant: () => Promise.resolve(null),
   };
-  // LIM-01: the allowance's warnings are the usage warnings' own spec; here they decide nothing.
+  // LIM-01: the allowance's warnings are the usage warnings' own spec; here they only read the limits.
   const quietWarnings = {
     check: () => Promise.resolve(),
-    limitsOf: () => Promise.resolve(null),
+    limitsOf: () => Promise.resolve(state.limits),
   } as unknown as UsageWarnings;
-  const essentialSms = new EssentialSmsUsageService(essentialSmsUsageStore, quietWarnings);
+  // SMS-09: the seeded rates, 0.55 TK a 67-character unit (D7-13).
+  const rates = {
+    current: (key: RateKey) =>
+      Promise.resolve({ value: key === RateKey.SmsPerUnit ? '0.5500' : '67.0000' }),
+  } as unknown as RateService;
+  // BAL-10: the balance refuses a charge it can't pay; otherwise it records it.
+  const balance = {
+    charge: (_tx: Transaction, input: { units: string; rateUsed: string }) => {
+      if (state.balanceRefuses) {
+        return Promise.reject(new ApiError('quota_exceeded', 'InsufficientBalance', {}));
+      }
+      state.counter += 1;
+      const amount = `-${(Number(input.units) * Number(input.rateUsed)).toFixed(2)}`;
+      const entry = { id: state.counter, amount, units: input.units, rateUsed: input.rateUsed };
+      state.charges.push(entry);
+      return Promise.resolve(entry);
+    },
+    credit: (_tx: Transaction, input: { amount: string; type: string; reference: unknown }) => {
+      state.credits.push(input);
+      return Promise.resolve({});
+    },
+  } as unknown as BalanceService;
+  const essentialSms = new EssentialSmsUsageService(
+    essentialSmsUsageStore,
+    quietWarnings,
+    new SmsUnits(rates),
+    balance,
+  );
+  const smsLog = new SmsLog({
+    record: (entry) => {
+      state.smsLog.push(entry);
+      return Promise.resolve();
+    },
+  });
 
   const gateway = { run: <T>(work: (tx: Transaction) => Promise<T>) => work(TX) };
   const codes = new OneTimeCodeService(
@@ -201,8 +277,10 @@ function build(state: World) {
     messaging,
     mail,
     essentialSms,
+    smsLog,
+    state.smsPerIp,
   );
-  return { codes, messaging, mail, challenges, essentialSmsUsage: state.essentialSmsUsage };
+  return { codes, messaging, mail, challenges };
 }
 
 /** The code most recently texted, read back from the provider log, since the outbox never stores a code. */
@@ -275,7 +353,7 @@ describe('requesting a code (AUTH-05, AUTH-07)', () => {
     await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN);
     advance(state, RESEND_COOLDOWN_MS);
     await codes.issue(PHONE, ChallengeChannel.Sms, ChallengeKind.Reset);
-    expect(state.sent.at(-1)?.body).toContain('password reset code');
+    expect(state.sent.at(-1)?.body).toContain('পাসওয়ার্ড রিসেটের জন্য');
     const signinCode = state.challenges.filter((c) => c.kind === SIGNIN);
     const resetCode = state.challenges.filter((c) => c.kind === ChallengeKind.Reset);
     expect(signinCode).toHaveLength(1);
@@ -283,49 +361,184 @@ describe('requesting a code (AUTH-05, AUTH-07)', () => {
   });
 });
 
-describe('AUTH-21: essential-SMS allowance for a sign-in code to an existing shop', () => {
+describe("AUTH-21, SMS-04 to SMS-08: a code that is a shop's own use", () => {
   const TENANT_ID = 'tenant-1';
+  const COUNTED = { tenantId: TENANT_ID, kind: SmsLogKind.SigninCode };
+  // The owner's words (Slice 7.1's read): one 67-character unit, at 0.55 TK.
+  const SIGNIN_TEXT = /^Lytro-এ লগইনের জন্য OTP হচ্ছে \d{6}। কারো সাথে শেয়ার করবেন না।$/;
 
-  it('with no tenantId (sign-up), nothing is counted', async () => {
+  it('with nothing counted (sign-up), nothing is taken or logged', async () => {
     const state = world();
-    const { codes, essentialSmsUsage } = build(state);
+    const { codes } = build(state);
     await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN);
-    expect(essentialSmsUsage).toHaveLength(0);
+    expect(state.essentialSmsUsage).toHaveLength(0);
+    expect(state.charges).toHaveLength(0);
+    expect(state.smsLog).toHaveLength(0);
   });
 
-  it('with a tenantId (sign-in to an existing shop), counts the SMS against that shop', async () => {
+  it("within the allowance, the code is free: counted to the shop's allowance and logged at no cost", async () => {
     const state = world();
-    const { codes, essentialSmsUsage } = build(state);
-    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN, undefined, TENANT_ID);
-    expect(essentialSmsUsage).toHaveLength(1);
-    expect(essentialSmsUsage[0]).toMatchObject({ tenantId: TENANT_ID, kind: 'otp' });
-    expect(essentialSmsUsage[0]?.parts).toBeGreaterThan(0);
+    const { codes } = build(state);
+    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN, { countedTo: COUNTED });
+    expect(state.sent[0]?.body).toMatch(SIGNIN_TEXT);
+    expect(
+      state.essentialSmsUsage.map(({ tenantId, kind, units }) => ({ tenantId, kind, units })),
+    ).toEqual([{ tenantId: TENANT_ID, kind: 'otp', units: 1 }]);
+    expect(state.charges).toHaveLength(0);
+    expect(state.smsLog).toEqual([
+      {
+        tenantId: TENANT_ID,
+        kind: SmsLogKind.SigninCode,
+        toPhone: PHONE,
+        units: 1,
+        cost: '0',
+        isEssential: true,
+        status: SmsLogStatus.Sent,
+        providerMessageId: 'p-1',
+      },
+    ]);
   });
 
-  it('AUTH-13/P1-E10: the request-code response is identical whether or not a tenantId is passed', async () => {
+  it('past the allowance, the code is charged from the balance at the SMS rate', async () => {
+    const state = world();
+    state.limits = { essential_sms_monthly: 1 };
+    const { codes } = build(state);
+    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN, { countedTo: COUNTED });
+    advance(state, RESEND_COOLDOWN_MS);
+    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN, { countedTo: COUNTED });
+    expect(state.essentialSmsUsage).toHaveLength(1);
+    expect(
+      state.charges.map(({ amount, units, rateUsed }) => ({ amount, units, rateUsed })),
+    ).toEqual([{ amount: '-0.55', units: '1', rateUsed: '0.5500' }]);
+    expect(state.smsLog.map((row) => [row.status, row.cost])).toEqual([
+      [SmsLogStatus.Sent, '0'],
+      [SmsLogStatus.Sent, '0.55'],
+    ]);
+  });
+
+  it("TRL-03: a trial's total is the allowance, whatever its month says", async () => {
+    const state = world();
+    state.limits = { essential_sms_total: 0, essential_sms_monthly: 50 };
+    const { codes } = build(state);
+    await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN, { countedTo: COUNTED });
+    expect(state.essentialSmsUsage).toHaveLength(0);
+    expect(state.charges).toHaveLength(1);
+  });
+
+  it("SMS-06: when the balance can't pay, nothing is sent and the refusal says why", async () => {
+    const state = world();
+    state.limits = { essential_sms_monthly: 0 };
+    state.balanceRefuses = true;
+    const { codes } = build(state);
+    await expect(
+      codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN, { countedTo: COUNTED }),
+    ).rejects.toMatchObject({ code: 'quota_exceeded', messageKey: 'ShopCannotPayForCode' });
+    expect(state.sent).toHaveLength(0);
+    expect(state.smsLog).toEqual([
+      {
+        tenantId: TENANT_ID,
+        kind: SmsLogKind.SigninCode,
+        toPhone: PHONE,
+        units: 1,
+        cost: '0',
+        isEssential: true,
+        status: SmsLogStatus.Blocked,
+        blockedReason: 'insufficient_balance',
+      },
+    ]);
+  });
+
+  it('SMS-08: a code that fails to send gives back the allowance it used', async () => {
+    const state = world();
+    state.smsFails = true;
+    const { codes } = build(state);
+    await expect(
+      codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN, { countedTo: COUNTED }),
+    ).rejects.toMatchObject({ messageKey: 'CodeSendFailed' });
+    expect(state.essentialSmsUsage).toHaveLength(0);
+    expect(state.smsLog.map((row) => [row.status, row.cost])).toEqual([[SmsLogStatus.Failed, '0']]);
+  });
+
+  it('SMS-08: a charged code that fails to send is credited back', async () => {
+    const state = world();
+    state.limits = { essential_sms_monthly: 0 };
+    state.smsFails = true;
+    const { codes } = build(state);
+    await expect(
+      codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN, { countedTo: COUNTED }),
+    ).rejects.toMatchObject({ messageKey: 'CodeSendFailed' });
+    const charge = state.charges[0];
+    expect(state.credits).toEqual([
+      {
+        tenantId: TENANT_ID,
+        type: 'reversal',
+        amount: '0.55',
+        reference: { reverses: charge?.id, reason: 'sms_not_sent' },
+      },
+    ]);
+  });
+
+  it('AUTH-13/P1-E10: within the allowance, the response reads the same counted or not', async () => {
     const state = world();
     const { codes } = build(state);
     const unknown = await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN);
     advance(state, RESEND_COOLDOWN_MS);
-    const known = await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN, undefined, TENANT_ID);
+    const known = await codes.issue(PHONE, ChallengeChannel.Sms, SIGNIN, { countedTo: COUNTED });
     expect(known).toEqual(unknown);
   });
 
-  it('issue() itself only gates on channel, not kind -- Reset is excluded by its callers never passing a tenantId', async () => {
+  it("issue() counts whatever its caller says is the shop's use, a reset code too", async () => {
     const state = world();
-    const { codes, essentialSmsUsage } = build(state);
-    // ForgotPasswordService (the real Reset caller) never passes a tenantId, since there's no password
-    // alternative to a reset -- this test proves that exclusion lives at the caller, not inside issue()
-    // itself, which would otherwise happily count a Reset code too if one were ever passed in.
-    await codes.issue(PHONE, ChallengeChannel.Sms, ChallengeKind.Reset, undefined, TENANT_ID);
-    expect(essentialSmsUsage).toHaveLength(1);
+    const { codes } = build(state);
+    // ForgotPasswordService passes a shop only for a staff member's reset; the owner's own is Lytro's cost.
+    await codes.issue(PHONE, ChallengeChannel.Sms, ChallengeKind.Reset, {
+      countedTo: { tenantId: TENANT_ID, kind: SmsLogKind.StaffResetCode },
+    });
+    expect(state.sent[0]?.body).toMatch(
+      /^Lytro-এ পাসওয়ার্ড রিসেটের জন্য OTP হচ্ছে \d{6}। কারো সাথে শেয়ার করবেন না।$/,
+    );
+    expect(state.essentialSmsUsage).toHaveLength(1);
+    expect(state.smsLog[0]?.kind).toBe(SmsLogKind.StaffResetCode);
   });
 
-  it('an email-channel code never counts, even with a tenantId', async () => {
+  it('an email-channel code never counts, even when its caller names a shop', async () => {
     const state = world();
-    const { codes, essentialSmsUsage } = build(state);
-    await codes.issue('owner@example.com', ChallengeChannel.Email, SIGNIN, undefined, TENANT_ID);
-    expect(essentialSmsUsage).toHaveLength(0);
+    const { codes } = build(state);
+    await codes.issue('owner@example.com', ChallengeChannel.Email, SIGNIN, { countedTo: COUNTED });
+    expect(state.essentialSmsUsage).toHaveLength(0);
+    expect(state.smsLog).toHaveLength(0);
+  });
+});
+
+describe('SMS-11, D7-27: code SMS from one address', () => {
+  const IP = '203.0.113.5';
+
+  it('stops at the cap across every phone, for an hour, and never touches another address', async () => {
+    const state = world();
+    state.smsPerIp = 2;
+    const { codes } = build(state);
+    await codes.issue('01711111111', ChallengeChannel.Sms, SIGNIN, { ip: IP });
+    await codes.issue('01722222222', ChallengeChannel.Sms, ChallengeKind.Reset, { ip: IP });
+    await expect(
+      codes.issue('01733333333', ChallengeChannel.Sms, SIGNIN, { ip: IP }),
+    ).rejects.toMatchObject({ code: 'rate_limited', messageKey: 'TooManyCodesRequested' });
+    expect(state.sent).toHaveLength(2);
+    await codes.issue('01733333333', ChallengeChannel.Sms, SIGNIN, { ip: '198.51.100.7' });
+    advance(state, 60 * 60 * 1000 + 1);
+    await codes.issue('01744444444', ChallengeChannel.Sms, SIGNIN, { ip: IP });
+    expect(state.sent).toHaveLength(4);
+  });
+
+  it('never counts an address the server cannot trust, or an email code', async () => {
+    const state = world();
+    state.smsPerIp = 1;
+    const { codes } = build(state);
+    await codes.issue('01711111111', ChallengeChannel.Sms, SIGNIN, { ip: null });
+    await codes.issue('01722222222', ChallengeChannel.Sms, SIGNIN);
+    await codes.issue('a@example.com', ChallengeChannel.Email, SIGNIN, { ip: IP });
+    await codes.issue('b@example.com', ChallengeChannel.Email, SIGNIN, { ip: IP });
+    await codes.issue('01733333333', ChallengeChannel.Sms, SIGNIN, { ip: IP });
+    expect(state.challenges.map((c) => c.requestedIp)).toEqual([null, null, IP, IP, IP]);
   });
 });
 

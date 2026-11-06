@@ -40,6 +40,7 @@ export * from './tenant/orders';
 export * from './tenant/payment-methods';
 export * from './tenant/gateway-credential-uses';
 export * from './tenant/couriers';
+export * from './tenant/sms-log';
 export * from './control/courier-message-routes';
 export * from './tenant/listener-messages';
 export * from './tenant/payment-sessions';

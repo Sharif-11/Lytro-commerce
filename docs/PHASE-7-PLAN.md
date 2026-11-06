@@ -82,13 +82,18 @@ overrule any of them when reviewing this plan.
 |---|---|---|---|
 | D7-13 | **One way to count an SMS.** The shopper sign-up code charges by SMS-09's units (characters ÷ the unit size), but the essential allowance counts the phone network's parts, so the two disagree (KNOWN-GAPS §118). | SMS-09's units, for charging and for the allowance alike, as SMS-09 says. The allowance is enforced, not only counted. | Slice 7.1 |
 | D7-14 | **Who hears what, and how.** Today seven notifiers only write to the log, and low balance only emails. | Each becomes a notification: in-app and push to the users with the matching permission (NTF-03). Email only for NTF-05's warnings and for notices (NTC-06). SMS only for SMS-01's events. | Slices 7.2, 7.3 |
-| D7-15 | **Delivery reports** (SMS-17). BulkSMSBD's page shows no delivery-report call. | The log shows sent and failed from the provider's answer. Delivered is shown only if BulkSMSBD offers reports, found in Slice 7.1's read. | Slice 7.1 |
+| D7-15 | **Delivery reports** (SMS-17). BulkSMSBD's page shows no delivery-report call. | The log shows sent and failed from the provider's answer, and blocked for an SMS refused before it went (SMS-07). **Settled in Slice 7.1's read (2026-11-06): sent and failed only**, no delivered. | Slice 7.1 |
 | D7-16 | **A rate for reading orders.** ORD-34 charges an extraction rate, and none exists. | A new rate, `ai_extraction`, set by the operator before launch. The chat-reply rate (`ai_reply`) isn't shown to shops or the operator while chat is out, so no screen offers what doesn't exist. | Slice 7.6 |
 | D7-17 | **Allowances.** | Allowances for reading orders are built in this release, and allowance becomes a kind a shop can buy. Allowances for fraud checks follow D7-7. | Slice 7.6 |
 | D7-18 | **The pasted message.** | It goes to Gemini, on a paid tier that doesn't train on it, and Lytro keeps only the draft and the count, never the message (as `order_extractions` already says). | Slice 7.6 |
 | D7-19 | **Notices from the console.** The console's Rates page shows "Offer a rate-change notice" as coming soon. | The notice board's operator routes come in Slice 7.4, and the console's screens for them in Slice 7.7, which also makes the rate-change offer real (NTC-13). | Slices 7.4, 7.7 |
 | D7-20 | **What the screens stopped promising.** The console and storefront dropped "the owner is told by SMS" and "no SMS is promised" while nothing was sent. | Slice 7.7 brings back each sentence once its message really goes out, checked against the code, not the sketch. | Slice 7.7 |
 | D7-22 | **The same rule for every provider that costs money or reaches a real person** (the owner's call, 2026-11-06). | Email (Resend), web push and Gemini follow D7-21: recorded in test, the stand-in in development unless its own force flag (`EMAIL_FORCE_REAL`, `PUSH_FORCE_REAL`, `AI_FORCE_REAL`) is set, real in production and staging. | Slices 7.3, 7.6 |
+| D7-23 | **What a shop's own SMS costs** (the owner's call, Slice 7.1's read, 2026-11-06). | Every essential SMS is free up to the shop's allowance, then charged from its balance; with no balance it isn't sent. The floor is **0 TK, not −5 TK** (SMS-06 amended). The shop's own use (the owner's pick) is a sign-in code to an existing shop, its owner's or a staff member's, and a staff member's reset code; sign-up codes, the owner's own reset code, the shop-ready SMS and notices to a lapsed shop stay Lytro's cost (AUTH-21 amended). SMS a shop sends its shoppers, and Slice 7.2's order SMS to the shop, are always charged. | Slices 7.1, 7.2 |
+| D7-24 | **A code the shop can't pay for** (the owner's call, 2026-11-06). | The sign-in refusal says why: "Your shop's balance can't pay for this code. Sign in with your password or top up." It shows that the phone has a shop, the one exception to AUTH-13 (amended). A staff reset keeps AUTH-17's same reply. | Slice 7.1 |
+| D7-25 | **The unit and the rate** (Slice 7.1's read). BulkSMSBD charges 0.35 TK a part, Bangla or English. | **67 characters a unit, at 0.55 TK**, whatever the language: 67 is one Bangla part once a message needs two, so no SMS costs Lytro more than it earns. SMS-09 and RAT-13's default moves from 75 (the seeded rate too, unless an operator has changed it). | Slice 7.1 |
+| D7-26 | **The codes' words** (the owner's, 2026-11-06), in BulkSMSBD's OTP shape. | Sign-in: "Lytro-এ লগইনের জন্য OTP হচ্ছে {code}। কারো সাথে শেয়ার করবেন না।" Reset: "Lytro-এ পাসওয়ার্ড রিসেটের জন্য OTP হচ্ছে {code}। …" A shopper's: "{shop}-এ সাইন আপের জন্য OTP হচ্ছে {code}। …", or in English "Your {shop} OTP is {code}. Do not share it with anyone." (SMS-16 amended.) | Slice 7.1 |
+| D7-27 | **SMS-11's per-IP limit**, left for later in Phase 1 (D16). With real SMS, codes asked for made-up numbers from one address would cost Lytro money. | At most **20 code SMS an hour from one address** in production, across every phone, a setting (`CODE_SMS_PER_IP_PER_HOUR`); an address the server can't trust isn't counted (D14), as SUP-08's isn't. To revisit against measured traffic, since many phones can share one carrier address. | Slice 7.1 |
 
 ### 2.1 Points left to each slice's read
 
@@ -221,9 +226,10 @@ checks whether FRD-01's `fraud:check` is `fraud:read` or needs its own name.
 ### Slice 7.1: SMS that really goes out
 - **Depends on:** 7.0.
 - **Delivers:** BulkSMSBD's adapter and fake, with its contract suite; the circuit breaker around it; `tenant.sms_log`;
-  one way to count units for charging and the allowance, the allowance enforced (D7-13); essential SMS to −5 TK and
-  optional to zero (SMS-06); a failed SMS charged nothing (SMS-08); blocked SMS logged (SMS-07); sign-in and reset limits
-  checked against SMS-11; the three modes and the force flag (D7-21). Today's codes and notices move onto the real provider unchanged.
+  one way to count units for charging and the allowance, the allowance enforced (D7-13); no SMS below zero (SMS-06,
+  D7-23); a failed SMS charged nothing (SMS-08); blocked SMS logged (SMS-07); sign-in and reset limits checked against
+  SMS-11, with its per-IP limit built (D7-27); the three modes and the force flag (D7-21). Today's codes, in the owner's
+  words (D7-26), and notices move onto the real provider.
 - **Done when:** one real SMS has reached the owner's phone and the contract suite passes.
 
 ### Slice 7.2: the shop's SMS events and templates
@@ -358,6 +364,9 @@ From the owner's account page, pasted in the read (its key isn't copied here):
 - **OTP format:** "Your {Brand/Company Name} OTP is XXXX".
 - **Not on the page:** HTTPS (the page shows `http://`; Lytro uses `https://` only, D7-2) and delivery reports. A third-party package shows only the
   submission answer, with a message ID ([rihabrahman/bulksmsbd-laravel](https://packagist.org/packages/rihabrahman/bulksmsbd-laravel)).
+- **Tried in Slice 7.1's read (2026-11-06), from development:** the balance call and the send both answer over
+  `https://`. Three real SMS reached the owner's phone, Bangla among them. Each part cost 0.35 TK, Bangla or English.
+  There was no 1032 from the development machine; the server's own address is checked when it's deployed.
 
 ### Resend (email)
 Chosen on third-party comparisons from 2026, which put its free tier at a few thousand emails a month, with low-priced

@@ -4,18 +4,19 @@ import { Test } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { LedgerEntryType } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
+import { BalanceService } from '../src/modules/balance/services/balance.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
-import { countSmsParts } from '../src/modules/shared/messaging/sms-parts';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { SmsCapture } from './support/sms-capture';
 import { cookieFrom, getJson, postJson } from './support/http';
 
-// AUTH-21: the tenant's essential-SMS allowance usage, over real HTTP and the real database. A sign-up
-// code (no shop yet) and the shop-ready SMS are both platform cost; a sign-in code to an already-existing
-// shop is the owner's own choice (they have a password) and counts. Runs only when DATABASE_TEST_ADMIN_URL
-// is set.
+// AUTH-21, SMS-04 to SMS-08: the shop's essential-SMS allowance, over real HTTP and the real database. A sign-up
+// code (no shop yet) and the shop-ready SMS are both platform cost; a sign-in code to an existing shop, its owner's
+// or a staff member's, and a staff member's reset code are the shop's own use: free within its allowance, then
+// charged from its balance, never below zero (Slice 7.1). Runs only when DATABASE_TEST_ADMIN_URL is set.
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_essential_sms_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
@@ -30,6 +31,9 @@ const post = (path: string, payload: unknown, headers: Record<string, string> = 
 const get = (path: string, headers: Record<string, string> = {}) => getJson(port, path, headers);
 
 const freshSlug = (): string => `s${randomUUID().replace(/-/g, '').slice(0, 10)}`;
+
+/** SMS-09, D7-13: a text's units at the seeded 67-character unit, whatever the language. */
+const unitsOf = (body: string): number => Math.max(1, Math.ceil(Array.from(body).length / 67));
 
 /** AUTH-07's own 60-second resend cooldown is per (destination, channel, kind) regardless of whether the
  * latest challenge was ever consumed -- this test needs a second real code on the same phone right away. */
@@ -121,7 +125,7 @@ describeIfDatabase('AUTH-21: essential-SMS allowance', () => {
     expect(verifyResponse.status).toBe(200);
     expect((verifyResponse.body as { suggestPassword: boolean }).suggestPassword).toBe(true);
 
-    const expectedParts = countSmsParts(texts.sent.at(-1)?.body ?? '').parts;
+    const expectedParts = unitsOf(texts.sent.at(-1)?.body ?? '');
     const usage = await get('/balance/essential-sms', shopCall(who));
     expect(usage.body).toMatchObject({ monthlyUsed: expectedParts, totalUsed: expectedParts });
 
@@ -185,13 +189,266 @@ async function usageRows(tenantId: string): Promise<number> {
   return rows.rowCount ?? 0;
 }
 
-async function seedUsage(tenantId: string, parts: number, daysAgo: number): Promise<void> {
+async function seedUsage(tenantId: string, units: number, daysAgo: number): Promise<void> {
   await admin.query(
-    `INSERT INTO control.essential_sms_usage (tenant_id, kind, parts, created_at)
+    `INSERT INTO control.essential_sms_usage (tenant_id, kind, units, created_at)
      VALUES ($1, 'otp', $2, now() - make_interval(days => $3))`,
-    [tenantId, parts, daysAgo],
+    [tenantId, units, daysAgo],
   );
 }
+
+/** PLN-11: the shop's free SMS, set straight on it -- a trial's total is the allowance (TRL-03). */
+async function allowance(tenantId: string, total: number): Promise<void> {
+  await admin.query(
+    `INSERT INTO control.plan_limit_overrides (tenant_id, limit_key, value, reason, set_by)
+     VALUES ($1, 'essential_sms_total', $2, 'test', $3)
+     ON CONFLICT (tenant_id, limit_key) DO UPDATE SET value = EXCLUDED.value`,
+    [tenantId, JSON.stringify(total), randomUUID()],
+  );
+}
+
+async function topUp(tenantId: string, amount: string): Promise<void> {
+  await app.get(BalanceService).creditStandalone({ tenantId, amount, type: LedgerEntryType.TopUp });
+}
+
+/** The balance's SMS charges and their reversals, oldest first. */
+async function smsMoney(tenantId: string): Promise<string[][]> {
+  const rows = await admin.query<{ type: string; amount: string }>(
+    `SELECT type, amount::text AS amount FROM tenant.balance_ledger
+     WHERE tenant_id = $1 AND type IN ('sms', 'reversal') ORDER BY id`,
+    [tenantId],
+  );
+  return rows.rows.map((row) => [row.type, row.amount]);
+}
+
+interface LoggedSms {
+  kind: string;
+  status: string;
+  units: number;
+  cost: string;
+  is_essential: boolean;
+  blocked_reason: string | null;
+  provider_message_id: string | null;
+}
+
+async function smsLog(tenantId: string): Promise<LoggedSms[]> {
+  const rows = await admin.query<LoggedSms>(
+    `SELECT kind, status, units, cost::text AS cost, is_essential, blocked_reason, provider_message_id
+     FROM tenant.sms_log WHERE tenant_id = $1 ORDER BY id`,
+    [tenantId],
+  );
+  return rows.rows;
+}
+
+/** A staff member of the shop with a password, on Starter so the shop has a seat for them (D3-9). */
+async function staffOf(who: Owner): Promise<string> {
+  const tenantId = await tenantIdOf(who.slug);
+  await admin.query(
+    "UPDATE control.tenants SET plan_id = (SELECT id FROM control.plans WHERE name = 'Starter'), plan_snapshot = (SELECT limits FROM control.plans WHERE name = 'Starter') WHERE id = $1",
+    [tenantId],
+  );
+  const role = await post(
+    '/roles',
+    { name: 'Readers', permissions: ['products:read'] },
+    shopCall(who),
+  );
+  expect(role.status, JSON.stringify(role.body)).toBe(201);
+  const phone = texts.freshPhone();
+  const made = await post(
+    '/staff',
+    { phone, password: 'staff-pass-2468', roleIds: [(role.body as { id: string }).id] },
+    shopCall(who),
+  );
+  expect(made.status, JSON.stringify(made.body)).toBe(201);
+  return phone;
+}
+
+describeIfDatabase("SMS-04 to SMS-08 (Slice 7.1): the shop's own codes, free then charged", () => {
+  const SIGNIN_TEXT = /^Lytro-এ লগইনের জন্য OTP হচ্ছে \d{6}। কারো সাথে শেয়ার করবেন না।$/;
+
+  it('is free as far as the allowance reaches, then charged from the balance at the SMS rate', async () => {
+    const who = await owner();
+    const tenantId = await tenantIdOf(who.slug);
+    await allowance(tenantId, 1);
+    await topUp(tenantId, '10.00');
+
+    await passCooldown(who.phone);
+    expect((await post('/auth/phone/code', { phone: who.phone })).status).toBe(200);
+    const body = texts.sent.at(-1)?.body ?? '';
+    expect(body).toMatch(SIGNIN_TEXT);
+    expect(unitsOf(body)).toBe(1);
+    // D7-25: migration 0109 moved the seeded unit from 75 to 67 characters.
+    const unit = await admin.query<{ value: string }>(
+      "SELECT value::text AS value FROM control.rates WHERE key = 'sms_unit_size_chars'",
+    );
+    expect(unit.rows.map((row) => Number(row.value))).toEqual([67]);
+    expect(await usageRows(tenantId)).toBe(1);
+    expect(await smsMoney(tenantId)).toEqual([]);
+
+    await passCooldown(who.phone);
+    expect((await post('/auth/phone/code', { phone: who.phone })).status).toBe(200);
+    expect(await usageRows(tenantId)).toBe(1);
+    expect(await smsMoney(tenantId)).toEqual([['sms', '-0.55']]);
+    const logged = await smsLog(tenantId);
+    expect(
+      logged.map((row) => [
+        row.kind,
+        row.status,
+        row.units,
+        row.cost,
+        row.is_essential,
+        row.blocked_reason,
+      ]),
+    ).toEqual([
+      ['signin_code', 'sent', 1, '0.00', true, null],
+      ['signin_code', 'sent', 1, '0.55', true, null],
+    ]);
+    for (const row of logged) expect(row.provider_message_id).toMatch(/^capture-\d+$/);
+  });
+
+  it('SMS-06: with no allowance left and no balance, no code is made or sent, and the refusal says why', async () => {
+    const who = await owner();
+    const tenantId = await tenantIdOf(who.slug);
+    await allowance(tenantId, 0);
+    await passCooldown(who.phone);
+    const textsBefore = texts.countFor(who.phone);
+    const codesBefore = await admin.query(
+      'SELECT 1 FROM control.verification_challenges WHERE destination = $1',
+      [who.phone],
+    );
+
+    const refused = await post(
+      '/auth/phone/code',
+      { phone: who.phone },
+      { 'accept-language': 'bn' },
+    );
+    expect(refused.status).toBe(429);
+    expect(refused.body).toMatchObject({
+      error: {
+        code: 'quota_exceeded',
+        message: 'শপের ব্যালেন্সে এই কোডের টাকা নেই। পাসওয়ার্ড দিয়ে লগইন করুন বা টপ-আপ করুন।',
+      },
+    });
+    expect(texts.countFor(who.phone)).toBe(textsBefore);
+    const codesAfter = await admin.query(
+      'SELECT 1 FROM control.verification_challenges WHERE destination = $1',
+      [who.phone],
+    );
+    expect(codesAfter.rowCount).toBe(codesBefore.rowCount);
+    expect(await smsMoney(tenantId)).toEqual([]);
+    expect(await smsLog(tenantId)).toEqual([
+      {
+        kind: 'signin_code',
+        status: 'blocked',
+        units: 1,
+        cost: '0.00',
+        is_essential: true,
+        blocked_reason: 'insufficient_balance',
+        provider_message_id: null,
+      },
+    ]);
+
+    // No code was made, so no resend wait started: a top-up lets the very next ask through.
+    await topUp(tenantId, '1.00');
+    expect((await post('/auth/phone/code', { phone: who.phone })).status).toBe(200);
+    expect(await smsMoney(tenantId)).toEqual([['sms', '-0.55']]);
+  });
+
+  it('SMS-06: the balance is never taken below zero for a code', async () => {
+    const who = await owner();
+    const tenantId = await tenantIdOf(who.slug);
+    await allowance(tenantId, 0);
+    await topUp(tenantId, '0.50');
+    await passCooldown(who.phone);
+    expect((await post('/auth/phone/code', { phone: who.phone })).status).toBe(429);
+    expect(await smsMoney(tenantId)).toEqual([]);
+  });
+
+  it('SMS-08: a charged code that fails to send is given back, and logged as failed', async () => {
+    const who = await owner();
+    const tenantId = await tenantIdOf(who.slug);
+    await allowance(tenantId, 0);
+    await topUp(tenantId, '10.00');
+    await passCooldown(who.phone);
+    texts.down = true;
+    try {
+      expect((await post('/auth/phone/code', { phone: who.phone })).status).toBe(503);
+    } finally {
+      texts.down = false;
+    }
+    expect(await smsMoney(tenantId)).toEqual([
+      ['sms', '-0.55'],
+      ['reversal', '0.55'],
+    ]);
+    expect((await smsLog(tenantId)).map((row) => [row.status, row.cost])).toEqual([
+      ['failed', '0.00'],
+    ]);
+  });
+
+  it('SMS-08: a free code that fails to send uses none of the allowance', async () => {
+    const who = await owner();
+    const tenantId = await tenantIdOf(who.slug);
+    await passCooldown(who.phone);
+    texts.down = true;
+    try {
+      expect((await post('/auth/phone/code', { phone: who.phone })).status).toBe(503);
+    } finally {
+      texts.down = false;
+    }
+    expect(await usageRows(tenantId)).toBe(0);
+  });
+
+  it("AUTH-21: a staff member's sign-in code comes out of their shop's allowance", async () => {
+    const who = await owner();
+    const tenantId = await tenantIdOf(who.slug);
+    const staffPhone = await staffOf(who);
+    const before = await usageRows(tenantId);
+    expect((await post('/auth/phone/code', { phone: staffPhone })).status).toBe(200);
+    expect(await usageRows(tenantId)).toBe(before + 1);
+    expect((await smsLog(tenantId)).map((row) => row.kind)).toEqual(['signin_code']);
+  });
+
+  it("AUTH-21: a staff member's reset code is their shop's use; the owner's own reset is Lytro's", async () => {
+    const who = await owner();
+    const tenantId = await tenantIdOf(who.slug);
+    const staffPhone = await staffOf(who);
+
+    expect((await post('/auth/forgot-password', { phone: who.phone })).status).toBe(200);
+    expect(texts.sent.at(-1)?.toPhone).toBe(who.phone);
+    expect(await usageRows(tenantId)).toBe(0);
+
+    expect((await post('/auth/forgot-password', { phone: staffPhone })).status).toBe(200);
+    const body = texts.sent.at(-1)?.body ?? '';
+    expect(texts.sent.at(-1)?.toPhone).toBe(staffPhone);
+    expect(body).toMatch(
+      /^Lytro-এ পাসওয়ার্ড রিসেটের জন্য OTP হচ্ছে \d{6}। কারো সাথে শেয়ার করবেন না।$/,
+    );
+    expect(await usageRows(tenantId)).toBe(1);
+    expect((await smsLog(tenantId)).map((row) => row.kind)).toEqual(['staff_reset_code']);
+  });
+
+  it("AUTH-17: a staff member's reset the shop can't pay for reads the same as any other", async () => {
+    const who = await owner();
+    const tenantId = await tenantIdOf(who.slug);
+    const staffPhone = await staffOf(who);
+    await allowance(tenantId, 0);
+    const reply = await post('/auth/forgot-password', { phone: staffPhone });
+    expect(reply.status).toBe(200);
+    expect(reply.body).toEqual({ expiresInSeconds: 300, resendAfterSeconds: 120 });
+    expect(texts.countFor(staffPhone)).toBe(0);
+    expect((await smsLog(tenantId)).map((row) => row.status)).toEqual(['blocked']);
+  });
+
+  it("SMS-07: a shop's SMS log is held to its own rows, as every shop table is", async () => {
+    const { rows } = await admin.query<{ forced: boolean; policies: number }>(
+      `SELECT c.relforcerowsecurity AS forced,
+         (SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'tenant' AND p.tablename = 'sms_log') AS policies
+       FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = 'tenant' AND c.relname = 'sms_log'`,
+    );
+    expect(rows).toEqual([{ forced: true, policies: 1 }]);
+  });
+});
 
 describeIfDatabase('LIF-10, SMS-04: a sign-in code to a lapsed shop is never counted', () => {
   it('counts nothing in grace, read-only, locked or archived, and counts again once live', async () => {

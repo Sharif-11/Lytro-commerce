@@ -566,6 +566,7 @@ export const MESSAGE_KEYS = [
   // a forgotten password (CUS-03 to CUS-06, CUS-14).
   'ShopperAlreadyRegistered',
   'ShopCannotSendCode',
+  'ShopCannotPayForCode',
   'ShopperAccountNotFound',
   'ShopperAddressNotFound',
   'TooManyAddresses',

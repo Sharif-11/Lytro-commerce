@@ -27,6 +27,19 @@ const envSchema = z.object({
   // document says is enough unless an account is strict.
   PATHAO_API_URL: z.string().url().default('https://api-hermes.pathao.com/aladdin/api/v1'),
   PATHAO_WEBHOOK_INTEGRATION_SECRET: z.string().min(1).optional(),
+  // Phase 7 Slice 7.1 (D7-2, D7-21): BulkSMSBD, only ever over HTTPS. Its login is required in production, staging
+  // included; in development the stand-in logs each SMS unless SMS_FORCE_REAL is set, and then the login is required.
+  BULKSMSBD_BASE_URL: z
+    .string()
+    .url()
+    .refine((value) => value.startsWith('https://'), { message: 'must be an https address' })
+    .default('https://bulksmsbd.net/api'),
+  BULKSMSBD_API_KEY: z.string().min(1).optional(),
+  BULKSMSBD_SENDER_ID: z.string().min(1).optional(),
+  SMS_FORCE_REAL: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   // Base domain the platform serves shops under: <slug>.<PLATFORM_DOMAIN> (decision R1, R2).
   PLATFORM_DOMAIN: z
     .string()
@@ -72,6 +85,9 @@ const envSchema = z.object({
   // machine that creates many tenants from one address in a single run, so only production defaults to it;
   // the limiter itself is identical in every environment — this only changes the threshold.
   SIGNUP_RATE_LIMIT_PER_IP: z.coerce.number().int().positive().optional(),
+  // SMS-11, D7-27 (Phase 7 Slice 7.1): code SMS one client address may ask for in an hour, across every phone. Only
+  // production defaults to the strict value (20), for the same reason: the e2e suites ask from one loopback address.
+  CODE_SMS_PER_IP_PER_HOUR: z.coerce.number().int().positive().optional(),
   // AUTH-09: free-trial shop creations per verified identity and per client IP, each counted over a rolling
   // window (days). Same reasoning as SIGNUP_RATE_LIMIT_PER_IP above -- nearly every e2e test calls POST
   // /shops more than once from the same loopback IP, so only production defaults to the strict SRS value.
@@ -202,6 +218,24 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
           code: z.ZodIssueCode.custom,
           path: [key],
           message: 'required when CLOUDFLARE_API_TOKEN is set',
+        });
+      }
+    }
+  }
+  // D7-21: a server that sends SMS for real never quietly falls back to logging them.
+  if (
+    value.NODE_ENV === 'production' ||
+    (value.NODE_ENV === 'development' && value.SMS_FORCE_REAL)
+  ) {
+    for (const key of ['BULKSMSBD_API_KEY', 'BULKSMSBD_SENDER_ID'] as const) {
+      if (!value[key]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message:
+            value.NODE_ENV === 'production'
+              ? 'required in production: SMS are sent for real'
+              : 'required when SMS_FORCE_REAL is set',
         });
       }
     }

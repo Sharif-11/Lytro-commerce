@@ -14,6 +14,7 @@ import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import type { CodeIssued } from '../types/code-issued';
 import { ApiError } from '../../../common/api-error';
+import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { OkDto } from '../../../common/dto/ok.dto';
@@ -35,7 +36,10 @@ import type { IdentityKind } from '@lytronix/validators';
 @Dashboard({ lapsed: true, withoutShop: true })
 @UseGuards(SessionGuard, OwnAccountGuard, DashboardGuard)
 export class IdentitiesController {
-  constructor(@Inject(IdentitiesService) private readonly identities: IdentitiesService) {}
+  constructor(
+    @Inject(IdentitiesService) private readonly identities: IdentitiesService,
+    @Inject(ClientIp) private readonly clientIp: ClientIp,
+  ) {}
 
   @Get()
   @ResponseMessage('IdentitiesListed')
@@ -56,8 +60,9 @@ export class IdentitiesController {
   @ZodResponse({ type: CodeIssuedDto })
   requestCode(
     @Body(new ZodValidationPipe(AddIdentityCodeDto.schema)) body: AddIdentityCodeDto,
+    @Req() request: DashboardRequest,
   ): Promise<CodeIssued> {
-    return this.identities.requestCode(body.kind, body.value);
+    return this.identities.requestCode(body.kind, body.value, this.clientIp.resolve(request));
   }
 
   @Post('verify')

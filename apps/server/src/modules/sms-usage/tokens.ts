@@ -1,1 +1,2 @@
 export const ESSENTIAL_SMS_USAGE_STORE = Symbol('ESSENTIAL_SMS_USAGE_STORE');
+export const SMS_LOG_STORE = Symbol('SMS_LOG_STORE');

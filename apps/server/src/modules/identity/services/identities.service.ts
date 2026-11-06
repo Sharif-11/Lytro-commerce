@@ -43,9 +43,13 @@ export class IdentitiesService {
     );
   }
 
-  requestCode(kind: 'phone' | 'email', value: string): Promise<CodeIssued> {
+  requestCode(
+    kind: 'phone' | 'email',
+    value: string,
+    ip: string | null = null,
+  ): Promise<CodeIssued> {
     const target = this.destination(kind, value);
-    return this.codes.issue(target.destination, target.channel, ChallengeKind.Signin);
+    return this.codes.issue(target.destination, target.channel, ChallengeKind.Signin, { ip });
   }
 
   async verifyAdd(

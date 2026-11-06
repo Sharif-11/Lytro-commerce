@@ -3,11 +3,11 @@ import { SmsKind } from '@lytronix/validators';
 import { control, createdAt } from '../shared';
 import { tenants } from './tenancy';
 
-// AUTH-21: one row per SMS actually counted against a tenant's free essential allowance -- today only
-// SMS-18's shop-ready text (SmsKind.ShopReady). Sign-up/sign-in codes and lifecycle notices (SmsKind.Otp /
-// SmsKind.LifecycleNotice) are platform cost and never write here (the LIF-10 carve-out). Read live via
-// COUNT/SUM, never a denormalised running counter that would need its own monthly-reset job -- SMS volume
-// per tenant is small at this platform's declared scale (ENGINEERING-STANDARDS.md §0: 500 tenants, one VPS).
+// AUTH-21, SMS-04: one row per SMS the free essential allowance paid for -- the shop's own sign-in codes and staff reset
+// codes, as far as the allowance reaches (Slice 7.1, read agreed 2026-11-06). Sign-up codes, the shop-ready text and
+// notices to a lapsed shop are platform cost and never write here (the LIF-10 carve-out). Counted in SMS-09's units,
+// the same as charging (D7-13). Read live via SUM, never a denormalised running counter that would need its own
+// monthly-reset job -- SMS volume per tenant is small at this platform's declared scale.
 export const essentialSmsUsage = control.table(
   'essential_sms_usage',
   {
@@ -16,7 +16,7 @@ export const essentialSmsUsage = control.table(
       .notNull()
       .references(() => tenants.id),
     kind: text('kind').$type<SmsKind>().notNull(),
-    parts: integer('parts').notNull(),
+    units: integer('units').notNull(),
     createdAt: createdAt(),
   },
   (t) => [index('essential_sms_usage_tenant_idx').on(t.tenantId, t.createdAt)],

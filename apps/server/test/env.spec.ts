@@ -38,6 +38,8 @@ describe('loadEnv platform settings', () => {
       STOREFRONT_SECRET: SECRET,
       DATA_ENCRYPTION_KEY: DATA_KEY,
       PLATFORM_ADDRESSES: '203.0.113.10',
+      BULKSMSBD_API_KEY: 'key',
+      BULKSMSBD_SENDER_ID: 'sender',
     });
     expect(env.TRUSTED_EDGE_SECRET).toBe(SECRET);
   });
@@ -49,6 +51,8 @@ describe('loadEnv platform settings', () => {
       TRUSTED_EDGE_SECRET: SECRET,
       STOREFRONT_SECRET: SECRET,
       DATA_ENCRYPTION_KEY: DATA_KEY,
+      BULKSMSBD_API_KEY: 'key',
+      BULKSMSBD_SENDER_ID: 'sender',
     };
     expect(() => new EnvironmentParser().parse(production)).toThrow(/PLATFORM_ADDRESSES/);
     expect(() =>

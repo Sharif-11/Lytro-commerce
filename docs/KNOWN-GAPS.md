@@ -2104,10 +2104,21 @@ Pathao's adapter runs against a fake made from what its sandbox answered on 2026
 
 A shop that books nothing for longer than its refresh token lasts is asked to log in again the next time it books, since nothing renews a login that isn't being used.
 
-## 118. `SMS-09`, `SMS-04`: SMS are charged in one unit and counted against the allowance in another — found 2026-11-06, open until Slice 7.1
+## 118. `SMS-09`, `SMS-04`: SMS are charged in one unit and counted against the allowance in another — found 2026-11-06, fixed 2026-11-06
 
 SMS-09 counts an SMS, for billing and for the free allowance alike, in units of the unit size (75 characters by default),
 whatever the language. The shopper sign-up code is charged that way, but the essential allowance counts the phone
 network's own parts (`countSmsParts`), which differ for Bangla and for long messages. The allowance is also only counted
 and warned about, never enforced. Nothing is wrong on a bill yet, since only the sign-up code is charged, but the two
 would disagree once order SMS are. Found while planning Phase 7; Slice 7.1 moves both to SMS-09's units (D7-13).
+
+Fixed in Slice 7.1: one count, `SmsUnits`, prices every code for the allowance and the balance alike, at the new
+67-character unit (D7-25), and the network's parts are no longer counted anywhere. The allowance is enforced: a shop's
+own code past it is charged from the balance, and refused when the balance can't pay (D7-23).
+
+## 119. `SMS-08`: a code that fails, then goes out on its retry, costs the shop nothing — found 2026-11-06, open
+
+When a code's first send fails, the shop gets back what it took (SMS-08) and a bounded background retry gets a second
+chance at delivering it (D27). If the retry succeeds, the code went out free: the retry job doesn't know whose use the
+code was. The leak is small, at most one SMS within the code's five minutes, and only while BulkSMSBD is failing. Closing
+it means the job carries the shop and charges, or counts, on a successful retry.
