@@ -185,7 +185,7 @@ Each is settled in its slice's read, before code, and recorded there.
 
 ## 4. Database work
 
-Migrations start at 0109, after Phase 6's. Each slice brings `DATABASE-SCHEMA.md` in line with what it builds.
+Migrations follow Phase 6's, numbered in the order slices merge (Slice 7.1 is 0110). Each slice brings `DATABASE-SCHEMA.md` in line with what it builds.
 
 | Table | Holds | Slice |
 |---|---|---|

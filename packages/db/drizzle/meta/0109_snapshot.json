@@ -1,5 +1,5 @@
 {
-  "id": "e6a23249-5341-47a9-acf3-1ddc79bb2e94",
+  "id": "b4a47efd-7d2a-4e3b-8ba4-fe4ec7b22315",
   "prevId": "d99e8050-dc0c-42ba-9db1-67409ddf1a49",
   "version": "7",
   "dialect": "postgresql",
@@ -1745,12 +1745,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "requested_ip": {
-          "name": "requested_ip",
-          "type": "inet",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -1771,27 +1765,6 @@
             },
             {
               "expression": "channel",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "verification_challenges_ip_idx": {
-          "name": "verification_challenges_ip_idx",
-          "columns": [
-            {
-              "expression": "requested_ip",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4015,8 +3988,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "units": {
-          "name": "units",
+        "parts": {
+          "name": "parts",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -12094,121 +12067,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tenant.sms_log": {
-      "name": "sms_log",
-      "schema": "tenant",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "bigserial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "to_phone": {
-          "name": "to_phone",
-          "type": "varchar(15)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "units": {
-          "name": "units",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "cost": {
-          "name": "cost",
-          "type": "numeric(10, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "is_essential": {
-          "name": "is_essential",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "blocked_reason": {
-          "name": "blocked_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "provider_message_id": {
-          "name": "provider_message_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "sms_log_tenant_idx": {
-          "name": "sms_log_tenant_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "sms_log_units_check": {
-          "name": "sms_log_units_check",
-          "value": "\"tenant\".\"sms_log\".\"units\" > 0"
-        },
-        "sms_log_cost_check": {
-          "name": "sms_log_cost_check",
-          "value": "\"tenant\".\"sms_log\".\"cost\" >= 0"
-        },
-        "sms_log_status_check": {
-          "name": "sms_log_status_check",
-          "value": "\"tenant\".\"sms_log\".\"status\" in ('sent', 'failed', 'blocked') AND (\"tenant\".\"sms_log\".\"status\" = 'blocked') = (\"tenant\".\"sms_log\".\"blocked_reason\" IS NOT NULL)"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "control.courier_message_routes": {
       "name": "courier_message_routes",
       "schema": "control",
@@ -12253,6 +12111,155 @@
           "name": "courier_message_routes_connection_id_unique",
           "nullsNotDistinct": false,
           "columns": ["connection_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "control.courier_areas": {
+      "name": "courier_areas",
+      "schema": "control",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "courier_key": {
+          "name": "courier_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area_code": {
+          "name": "area_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "district_name": {
+          "name": "district_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "post_code": {
+          "name": "post_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zilla_id": {
+          "name": "zilla_id",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "thana_id": {
+          "name": "thana_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "suggested_thana_id": {
+          "name": "suggested_thana_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "match": {
+          "name": "match",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retired_at": {
+          "name": "retired_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refreshed_at": {
+          "name": "refreshed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "courier_areas_thana_idx": {
+          "name": "courier_areas_thana_idx",
+          "columns": [
+            {
+              "expression": "courier_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "thana_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "courier_areas_zilla_idx": {
+          "name": "courier_areas_zilla_idx",
+          "columns": [
+            {
+              "expression": "courier_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "zilla_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "courier_areas_code": {
+          "name": "courier_areas_code",
+          "nullsNotDistinct": false,
+          "columns": ["courier_key", "area_code"]
         }
       },
       "policies": {},

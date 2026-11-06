@@ -517,6 +517,8 @@ export enum QueueName {
   CourierBookingTick = 'courier_booking_tick',
   // CRR-15, D6-4 (Slice 6.2): once a night, parcels on their way that no message has told of are asked after.
   CourierNightTick = 'courier_night_tick',
+  // CUS-10 (Slice 6.4): once a week, the area lists of the couriers that have one are read again.
+  CourierAreasTick = 'courier_areas_tick',
   // MED-03: an uploaded file to validate and turn into what is stored; MED-07, MED-09: stored files to delete, with the
   // deletion job's own key.
   MediaProcess = 'media_process',
@@ -635,6 +637,10 @@ export enum PlatformAuditAction {
   ListenerLimitRefused = 'listener_limit_refused',
   ListenerVolumeFlagged = 'listener_volume_flagged',
   ListenerInstallationBlocked = 'listener_installation_blocked',
+  // CUS-10 (Phase 6 Slice 6.4): the operator assigning a courier's area to a thana, confirming suggested ones, or reading the list again.
+  CourierAreaAssigned = 'courier_area_assigned',
+  CourierAreasConfirmed = 'courier_areas_confirmed',
+  CourierAreasRefreshed = 'courier_areas_refreshed',
 }
 
 // BAL-02: what a balance-ledger entry is for. One list, shared by every module that ever charges or credits a
@@ -1357,6 +1363,7 @@ export enum GatewayResult {
 export enum CourierKey {
   Steadfast = 'steadfast',
   Pathao = 'pathao',
+  RedX = 'redx',
 }
 
 // CRR-15, D6-4: a connection whose login the courier refuses makes no more calls until it is fixed.
@@ -1430,6 +1437,23 @@ export enum ParcelAttention {
   CodChanged = 'cod_changed',
   ReportAfterDelivered = 'report_after_delivered',
   DeliveredAfterCancel = 'delivered_after_cancel',
+}
+
+// CUS-10 (Phase 6 Slice 6.4, read agreed 2026-11-06): how a courier's area came to its thana. Only an area named after its thana, or
+// one the operator placed, counts; a name in brackets or a near spelling is a suggestion until the operator confirms it.
+export enum CourierAreaMatch {
+  OwnName = 'own_name',
+  Operator = 'operator',
+  Suggested = 'suggested',
+  None = 'none',
+}
+
+// The operator's lists of a courier's areas.
+export enum CourierAreaState {
+  Unassigned = 'unassigned',
+  Suggested = 'suggested',
+  Assigned = 'assigned',
+  Retired = 'retired',
 }
 
 // CRR-02, D6-3, read agreed 2026-11-05: how a connection's messages stand, for the owner.

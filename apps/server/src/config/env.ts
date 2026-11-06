@@ -27,6 +27,10 @@ const envSchema = z.object({
   // document says is enough unless an account is strict.
   PATHAO_API_URL: z.string().url().default('https://api-hermes.pathao.com/aladdin/api/v1'),
   PATHAO_WEBHOOK_INTEGRATION_SECRET: z.string().min(1).optional(),
+  // Slice 6.4: RedX's API, and Lytro's own RedX token, used only to read its area list (read agreed 2026-11-06). Without it the list
+  // can't be read, and RedX can't book until it has been.
+  REDX_API_URL: z.string().url().default('https://openapi.redx.com.bd/v1.0.0-beta'),
+  REDX_AREAS_TOKEN: z.string().min(1).optional(),
   // Phase 7 Slice 7.1 (D7-2, D7-21): BulkSMSBD, only ever over HTTPS. Its login is required in production, staging
   // included; in development the stand-in logs each SMS unless SMS_FORCE_REAL is set, and then the login is required.
   BULKSMSBD_BASE_URL: z

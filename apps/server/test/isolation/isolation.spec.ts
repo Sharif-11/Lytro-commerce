@@ -176,6 +176,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /brand',
       'GET /catalog-feed',
       'GET /categories',
+      'GET /couriers/:key/areas',
       'GET /couriers/adapters',
       'GET /couriers/connections',
       'GET /couriers/connections/:key/address',

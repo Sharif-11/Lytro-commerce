@@ -93,7 +93,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 6.1 | Settled 2026-11-04: see Slice 6.1. |
 | 6.2 | Settled 2026-11-05: see Slice 6.2. |
 | 6.3 | Settled 2026-11-05: see Slice 6.3. |
-| 6.4 | How RedX's areas are matched to thanas, and what the operator does with the unmatched. How often the list is refreshed. Keeping RedX's secret, which travels in the address, out of every log. What to send as `value`, which it requires, and weight in grams. A partly delivered parcel: it shows only in `delivery_type`, with no amount collected in the message. Its cancel answers "Request Accepted": whether that is enough to cancel the order. Which pickup store a shop books from. |
+| 6.4 | Settled 2026-11-06: see Slice 6.4. |
 | 6.5 | Steadfast's payouts: read on the night run, or when its payout message arrives. Whether its one-call "what we owe you" figure earns a line, given D6-9 has no settlement page. Profit's wording, and INV-18's delivery charges. |
 | 6.6 | What "a suggested alternative courier" is (CRR-25). |
 | 6.7 | Settled by its sketch: see that slice. |
@@ -369,6 +369,28 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
   sheet's area choice (CUS-12, CRR-10); both-language messages; its `paid` event routed away from the timeline (CRR-12);
   the cancel call (D6-8); its secret kept out of logs.
 - **Done when:** the contract suite passes for all three.
+- **Read, agreed 2026-11-06.** RedX's sandbox is a canned mock: one "Test Area", one tracking ID for every booking, parcel
+  details that always answer "Service is currently unreachable", and a cancel that answers "Request Accepted" with a 503,
+  even for a parcel that doesn't exist. So the live area list was read once, read-only, with the owner's own token: 2,866
+  areas, all 64 districts matching Lytro's zillas. By name, 793 (28%) are named after a thana in their district, 1,078
+  (38%) give one only in brackets, like "Kakoli(Banani)", and 929 (32%) match nothing, 340 of them in Dhaka. Brackets can
+  mislead: "Duaripara-Pallabi(Mirpur 12)" names Mirpur though it is in Pallabi.
+  - **Matching:** only an area named after its thana counts; brackets and near spellings are suggestions the operator
+    confirms, many at a time; the rest wait. Until then every area is still found in its district.
+  - **Refresh:** weekly, and when the operator asks, with Lytro's own RedX token in server settings, never a shop's.
+  - **Auto-pick:** only where the thana's one area is named after it; everywhere else staff choose, the thana's areas
+    first, then the district by search.
+  - **Trust:** the address alone, like a secret link, kept out of every log and replaceable.
+  - **Value:** the goods' worth, before the delivery charge. **Weight:** in grams, with Pathao's rule for a missing one.
+  - **Part delivery:** partly delivered, no cash recorded by itself; staff record what came.
+  - **Cancel:** only a clear success cancels; anything else is no answer, and staff confirm in RedX's panel. This now
+    applies to every courier with a cancel call.
+  - **Store:** like Pathao's, but booking never waits: with none chosen, RedX uses its own default.
+  - **PRs: one** (the owner's pick; two, areas first, was recommended).
+- **Built as PR #313,** migration 0109, against a fake made from its document and what the sandbox showed. Shared code grew where the adapter
+  declares it (an area chosen from the list, the goods' worth, a store that may be left out) and in one rule for every
+  courier: a cancel with no clear answer asks staff to confirm. The operator's screens for areas come with Slice 6.7.
+  **Not tried:** a real RedX booking, message, cancel or parcel details; `KNOWN-GAPS` §121 lists them.
 
 ### Slice 6.5: courier money
 - **Depends on:** 6.2.
@@ -384,7 +406,8 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
 - **Sketch first** (`sketch-every-screen-before-building`), design doc and HTML mock: Settings' couriers and connecting,
   with each courier's paste step written for a seller, step by step; choosing a pickup store, and logging in again when
   a login has ended (Slice 6.3); "no messages yet"; the booking sheet redrawn with serials, a weight that starts at
-  0.5 kg where the items don't all have one (Slice 6.3), and an area only where needed, a limit's message and a lost answer's choices; the order page's parcel, its
+  0.5 kg where the items don't all have one (Slice 6.3), and an area only where needed, the thana's areas first and a
+  search of the district (Slice 6.4), a limit's message and a lost answer's choices; the order page's parcel, its
   courier status and news, Sync; cancelling a booked order; paid marks and the delivery charge; profit's note; tracking's
   courier news; the setup checklist's "connect a courier" (SUP-01). Storefront's courier area field comes out.
 - **Builds** them, pixel perfect to the approved sketch, in Bangla and English to the owner's style guide.
@@ -442,7 +465,7 @@ outside every repo, which I name when it's needed and never open or print.
 | A shop's Steadfast key is locked out for an hour | a refused login stops calls at once, and the owner is told (§3.6) |
 | Pathao's address reading sends parcels to the wrong area | tried in its sandbox on 2026-11-05 and D6-5 stands (Slice 6.3); a live account may read differently, and its charge on the parcel is where a wrong rate would show |
 | Pathao holds an account's real password | settled in Slice 6.3: the password isn't kept, and a lost renewal means the owner logs in again |
-| RedX's secret travels in the address | kept out of request logs (Slice 6.4); the address's token is the only proof its messages carry (CRR-11) |
+| RedX's secret travels in the address | settled in Slice 6.4: no log line holds it, and it can be replaced; a proxy or host in front of the server must not log the path either (`KNOWN-GAPS` §121) |
 | A courier's status list changes | an unknown status shows and moves nothing, and is logged for the adapter to be updated |
 | Phase size (eight slices) | checkpoint 6A after Slice 6.2; RedX and the rest can become Phase 6B without re-planning, and screens could be cut to Steadfast first |
 
@@ -549,3 +572,6 @@ Source: its OpenAPI document, in the merchant panel.
   `pickup-pending`. **Partial delivery shows in `delivery_type`, not `status`:** `partial-delivery` and `partial-return`,
   beside `regular`, `reverse`, `exchange-delivery` and `exchange-return`.
 - **Cancelling:** `PATCH /parcels` with `status` set to `cancelled` answers "Request Accepted". There is no payout list.
+- **Tried 2026-11-06:** the sandbox is a canned mock (Slice 6.4's read). It requires `value` (and takes 0), a known
+  `delivery_area_id` and a `delivery_area`, and takes a mismatched area name, any weight, cash with paisa, a 600-character
+  address, a `+880` phone and no pickup store. The live list had 2,866 areas, 2,019 of them with no post code.

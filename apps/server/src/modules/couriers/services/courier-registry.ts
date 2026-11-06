@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { CourierKey } from '@lytronix/validators';
 import type { CourierAdapter } from '../ports/courier-adapter';
 import { PathaoAdapter } from './pathao-adapter';
+import { RedxAdapter } from './redx-adapter';
 import { SteadfastAdapter } from './steadfast-adapter';
 
 /**
@@ -15,10 +16,12 @@ export class CourierRegistry {
   constructor(
     @Inject(SteadfastAdapter) steadfast: SteadfastAdapter,
     @Inject(PathaoAdapter) pathao: PathaoAdapter,
+    @Inject(RedxAdapter) redx: RedxAdapter,
   ) {
     this.byKey = new Map<CourierKey, CourierAdapter>([
       [steadfast.key, steadfast],
       [pathao.key, pathao],
+      [redx.key, redx],
     ]);
   }
 

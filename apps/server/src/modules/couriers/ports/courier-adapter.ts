@@ -39,6 +39,10 @@ export interface ParcelBooking {
   areaCode: string | null;
   /** The order's items added up, which may not be whole: 1.5 kg of one thing is 1.5. */
   quantity: string;
+  /** CUS-12: the area's name as the courier lists it, beside its code; null for a courier with no areas. */
+  areaName: string | null;
+  /** Read agreed 2026-11-06: what the goods are worth on the order, before the delivery charge, for a courier that asks. */
+  goodsValue: string;
 }
 
 /** CRR-06: a parcel the courier accepted. */
@@ -125,6 +129,17 @@ export interface PickupStore {
 export type StoresAnswer =
   { outcome: 'found'; stores: PickupStore[] } | { outcome: 'refused'; refusal: CourierRefusal };
 
+/** CUS-10 (Slice 6.4): one of a courier's own areas, as its list gives it. */
+export interface ListedArea {
+  areaCode: string;
+  name: string;
+  districtName: string;
+  postCode: string | null;
+}
+
+export type AreasAnswer =
+  { outcome: 'found'; areas: ListedArea[] } | { outcome: 'refused'; refusal: CourierRefusal };
+
 /** Slice 6.3, read agreed 2026-11-05: the one store chosen for a connection, kept with its sealed credentials. */
 export const PICKUP_STORE_ID = 'storeId';
 export const PICKUP_STORE_NAME = 'storeName';
@@ -182,6 +197,10 @@ export interface CourierAdapter {
   renewLogin?(account: CourierAccount): Promise<LogInAnswer>;
   /** Slice 6.3: for a courier whose every booking names a store, the stores it lists for this account. */
   pickupStores?(account: CourierAccount): Promise<StoresAnswer>;
+  /** Read agreed 2026-11-06: a courier that takes a store but goes without one, using its own default, so booking never waits. */
+  readonly storeOptional?: boolean;
+  /** CUS-10 (Slice 6.4): for a courier that needs its own area, its whole list; read with Lytro's own account, not a shop's. */
+  listAreas?(account: CourierAccount): Promise<AreasAnswer>;
   /** CRR-27: the test a courier sends when its panel adds an address, which moves nothing and so needs no proof. */
   isAddressTest?(rawBody: Buffer): boolean;
   /** CRR-27: headers this courier wants on the answer to its messages. */

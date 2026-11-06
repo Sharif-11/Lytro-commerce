@@ -293,6 +293,7 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /couriers/connections': "saves only into the session shop's own connections",
   'DELETE /couriers/connections/:key': "removes only the session shop's own connection",
   'PUT /couriers/connections/:key/default': "changes only the session shop's own default",
+  'GET /couriers/:key/areas': "offers areas only for the session shop's own order",
   'GET /couriers/connections/:key/stores': "lists the stores of the session shop's own connection",
   'PUT /couriers/connections/:key/store': "changes only the session shop's own pickup store",
   'POST /orders/:id/hand-over': "another shop's order answers 404",

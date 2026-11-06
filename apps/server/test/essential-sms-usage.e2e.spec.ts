@@ -277,7 +277,7 @@ describeIfDatabase("SMS-04 to SMS-08 (Slice 7.1): the shop's own codes, free the
     const body = texts.sent.at(-1)?.body ?? '';
     expect(body).toMatch(SIGNIN_TEXT);
     expect(unitsOf(body)).toBe(1);
-    // D7-25: migration 0109 moved the seeded unit from 75 to 67 characters.
+    // D7-25: migration 0110 moved the seeded unit from 75 to 67 characters.
     const unit = await admin.query<{ value: string }>(
       "SELECT value::text AS value FROM control.rates WHERE key = 'sms_unit_size_chars'",
     );
