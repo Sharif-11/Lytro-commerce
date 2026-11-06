@@ -280,6 +280,65 @@ describeIfDatabase('what the page shows (PAY-05, PAY-22)', () => {
     expect(screenOf(await raw('GET', `/${ref}?pick=1`))).toBe('pick');
   });
 
+  // Found untested at the Phase 5 close-out.
+  it('gives each kind of account its own steps, each wallet its mark, a bank every detail, and a shop with no logo its letter (PAY-05)', async () => {
+    const setup = await payingShop();
+    const account = (accountType: string) => ({
+      enabled: true,
+      accounts: [{ accountName: 'Rahim Store', number: '01711000002', accountType, active: true }],
+    });
+    expect((await setup.shop.put('/payment-methods/bkash', account('agent'))).status).toBe(200);
+    const agent = await raw('GET', `/${await placed(setup, 'bkash')}`);
+    expect(agent.text).toContain('&quot;Cash Out&quot;');
+    expect(agent.text).not.toContain('&quot;Send Money&quot;');
+    expect((await setup.shop.put('/payment-methods/bkash', account('merchant'))).status).toBe(200);
+    const merchant = await raw('GET', `/${await placed(setup, 'bkash')}`);
+    expect(merchant.text).toContain('&quot;Payment&quot;');
+
+    const nagad = await setup.shop.put('/payment-methods/nagad', {
+      enabled: true,
+      accounts: [
+        {
+          accountName: 'Rahim Store',
+          number: '01811000001',
+          accountType: 'personal',
+          active: true,
+        },
+      ],
+    });
+    expect(nagad.status, JSON.stringify(nagad.body)).toBe(200);
+    const bank = await setup.shop.put('/payment-methods/bank', {
+      enabled: true,
+      accounts: [
+        {
+          accountName: 'Rahim Store',
+          bankName: 'City Bank',
+          accountNumber: '1234567890',
+          branch: 'Gulshan',
+          routingNumber: '225261725',
+          swiftCode: 'CIBLBDDH',
+          active: true,
+        },
+      ],
+    });
+    expect(bank.status, JSON.stringify(bank.body)).toBe(200);
+    const ref = await placed(setup);
+    const pick = await raw('GET', `/${ref}?pick=1`);
+    expect(pick.text).toContain('/assets/bkash.png');
+    expect(pick.text).toContain('/assets/nagad.png');
+    // No logo: the shop's first letter heads the picker.
+    expect(pick.text).toContain('<span class="mono">');
+    const onNagad = await raw('GET', `/${ref}?w=nagad`);
+    expect(screenOf(onNagad)).toBe('wallet');
+    expect(onNagad.text).toContain('data-copy="01811000001"');
+    expect(onNagad.text).toContain('*167#');
+    expect(onNagad.text).not.toContain('*247#');
+    const onBank = await raw('GET', `/${ref}?w=bank`);
+    for (const detail of ['City Bank', '1234567890', 'Gulshan', '225261725', 'CIBLBDDH']) {
+      expect(onBank.text).toContain(detail);
+    }
+  });
+
   it('switches every word to English and keeps the choice through the page (PAY-22)', async () => {
     const ref = await placed(await payingShop(), 'bkash');
     const { text } = await raw('GET', `/${ref}?lang=en`);

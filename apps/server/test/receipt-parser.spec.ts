@@ -30,6 +30,28 @@ describe('reading a bKash SMS (LSN-06)', () => {
     ).toMatchObject({ kind: 'receipt', amount: '500.00', transactionId: '7HT3B9XW2C' });
   });
 
+  // Found at the Phase 5 close-out: the payer writes the reference, and bKash prints it before its own TrxID. Taking the
+  // first would let a made-up ID verify one order while the real one pays another.
+  it('never takes a TrxID the payer wrote in the reference: two different IDs verify nothing', () => {
+    for (const reference of [
+      'TrxID FAKE123456',
+      'TrxID: FAKE123456 at 01/11/2026 10:00',
+      'trx id fake123456',
+    ]) {
+      expect(
+        parseMessage(
+          `You have received Tk 300.00 from 01811000002. Ref ${reference}. Fee Tk 0.00. Balance Tk 1,300.00. TrxID 9AB1CD2EFG at 05/11/2026 13:58`,
+        ),
+      ).toEqual({ kind: 'unknown' });
+    }
+    // The same ID written again in the reference is still that one payment.
+    expect(
+      parseMessage(
+        'You have received Tk 300.00 from 01811000002. Ref TrxID 9AB1CD2EFG. Fee Tk 0.00. Balance Tk 1,300.00. TrxID 9AB1CD2EFG at 05/11/2026 13:58',
+      ),
+    ).toMatchObject({ kind: 'receipt', transactionId: '9AB1CD2EFG', amount: '300.00' });
+  });
+
   it("reads a merchant account's payment and an agent's cash out", () => {
     expect(
       parseMessage(

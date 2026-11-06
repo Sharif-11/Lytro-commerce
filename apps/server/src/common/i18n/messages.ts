@@ -2076,6 +2076,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: "That account isn't one of this method's.",
     bn: 'এই অ্যাকাউন্টটি এই মেথডের নয়।',
   },
+  PaymentAccountCheckoutOpen: {
+    en: 'A customer is paying through this account at the wallet right now. Try again in a few minutes.',
+    bn: 'একজন কাস্টমার এখন এই অ্যাকাউন্টে পেমেন্ট করছেন। কয়েক মিনিট পর আবার ট্রাই করুন।',
+  },
   NoPaymentMethod: {
     en: "This shop can't take an advance online right now. Please contact the shop.",
     bn: 'এই শপ এখন অনলাইনে অ্যাডভান্স নিতে পারছে না। শপের সাথে যোগাযোগ করুন।',

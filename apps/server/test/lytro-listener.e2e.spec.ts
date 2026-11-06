@@ -433,6 +433,46 @@ describeIfDatabase(
       expect(rows).toHaveLength(1);
     });
 
+    // Found untested at the Phase 5 close-out: PLN-14's part in the wallet step (D5-3).
+    it('activates an add-on paid in the wallet step, through the same step (PLN-14)', async () => {
+      const shop = await openShop(port, texts, 'lyt');
+      const phone = await lytroPhone();
+      const plan = await quotePlan(shop);
+      const planId0 = trx();
+      expect((await typePlan(shop, plan.id, planId0)).status).toBe(201);
+      expect(await forward(phone, receiptText(planId0, '449.00'))).toMatchObject({
+        status: 'matched',
+      });
+      expect((await shopRow(shop)).state).toBe('active');
+
+      const addon = await admin.query<{ id: string }>(
+        "SELECT id FROM control.addons WHERE key = 'extra_seat'",
+      );
+      const quoted = await shop.post('/addons/quote', { addonId: addon.rows[0]?.id });
+      expect(quoted.status, JSON.stringify(quoted.body)).toBe(201);
+      const payment = (quoted.body as { payment: { id: string; amount: string } }).payment;
+      const id = trx();
+      const typed = await shop.post('/addons/purchase', {
+        paymentId: payment.id,
+        method: 'wallet',
+        transactionId: id,
+        senderNumber: SENDER,
+        amountPaid: Number(payment.amount),
+      });
+      expect(typed.status, JSON.stringify(typed.body)).toBe(201);
+      type Mine = { addons: { key: string }[] };
+      expect(((await shop.get('/addons/mine')).body as Mine).addons).toEqual([]);
+      expect(
+        await forward(phone, receiptText(id, Number(payment.amount).toFixed(2))),
+      ).toMatchObject({
+        status: 'matched',
+      });
+      expect(((await shop.get('/addons/mine')).body as Mine).addons).toEqual([
+        expect.objectContaining({ key: 'extra_seat' }),
+      ]);
+      expect(await paymentOf(payment.id)).toMatchObject({ status: 'verified' });
+    });
+
     it('trusts the receipt over what the seller typed: a typed amount that differs still verifies when the money is right', async () => {
       const shop = await openShop(port, texts, 'lyt');
       const phone = await lytroPhone();

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { tenantSession } from '@/session/tenant-session';
+import { downloadFile } from './download';
 import type { DataExport } from '@/types/data-export';
 
 export const EXPORTS_QUERY_KEY = ['exports'] as const;
@@ -28,7 +29,7 @@ export function useRequestExport() {
   });
 }
 
-/** A ready export's file, opened by the browser directly with the session cookie. */
-export function exportDownloadUrl(id: string): string {
-  return `/api/v1/exports/${encodeURIComponent(id)}/download`;
+/** A ready export's file, for the shop the owner is on (KNOWN-GAPS §113). */
+export async function downloadExport(id: string): Promise<void> {
+  await downloadFile(`/exports/${encodeURIComponent(id)}/download`, `data-export-${id}.zip`);
 }

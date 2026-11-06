@@ -41,6 +41,25 @@ function orderTakes(
   );
 }
 
+/** What settling a completed payment came to, for staff to hear once its transaction is in. */
+type Settled =
+  | {
+      kind: 'verified' | 'review';
+      orderNumber: string;
+      method: PaymentMethod;
+      amount: string;
+      transactionId: string;
+    }
+  | { kind: 'closed'; orderNumber: string; amount: string; transactionId: string }
+  | null;
+
+/** Sessions a completed payment may still settle: awaiting it, or another payment of it being checked. */
+const SETTLES: readonly PaymentSessionState[] = [
+  PaymentSessionState.AwaitingPayment,
+  PaymentSessionState.Checking,
+  PaymentSessionState.NeedsReview,
+];
+
 /** PAY-06: what starting a checkout came to: bKash's address, or null for the shopper to pay on the page instead. */
 export interface StartedCheckout {
   redirectUrl: string | null;
@@ -58,6 +77,9 @@ export interface StartedCheckout {
 export class GatewayCheckouts {
   private readonly logger = new Logger('GatewayCheckouts');
 
+  /** Starts in flight on this server, so a second tap shares the first's payment at bKash (found at the Phase 5 close-out). */
+  private readonly starting = new Map<string, Promise<StartedCheckout>>();
+
   constructor(
     @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
     @Inject(PaymentMethods) private readonly methods: PaymentMethods,
@@ -70,8 +92,26 @@ export class GatewayCheckouts {
     @Inject(GATEWAY_CLOCK) private readonly clock: () => Date,
   ) {}
 
-  /** PAY-06: the shopper chose a wallet: its own checkout's address, when the shop takes that wallet's money there. */
-  async start(tenantId: string, ref: string, method: PaymentMethod): Promise<StartedCheckout> {
+  /**
+   * PAY-06: the shopper chose a wallet: its own checkout's address, when the shop takes that wallet's money there. Two starts
+   * at once, as a second tap sends, share one: bKash makes one payment, and both get its address.
+   */
+  start(tenantId: string, ref: string, method: PaymentMethod): Promise<StartedCheckout> {
+    const key = `${tenantId}:${ref}:${method}`;
+    const running = this.starting.get(key);
+    if (running) return running;
+    const begun = this.startOnce(tenantId, ref, method).finally(() => {
+      this.starting.delete(key);
+    });
+    this.starting.set(key, begun);
+    return begun;
+  }
+
+  private async startOnce(
+    tenantId: string,
+    ref: string,
+    method: PaymentMethod,
+  ): Promise<StartedCheckout> {
     const now = this.clock();
     const prepared = await this.sessions.inTransaction(async (tx) => {
       const session = await this.sessions.lockOpenByRefWithin(tx, tenantId, ref, now);
@@ -259,9 +299,21 @@ export class GatewayCheckouts {
     paid: Extract<GatewayStanding, { status: 'completed' }>,
     now: Date,
   ): Promise<void> {
-    await this.sessions.inTransaction(async (tx) => {
+    const settled = await this.sessions.inTransaction(async (tx): Promise<Settled> => {
       const session = await this.sessions.lockByIdWithin(tx, tenantId, sessionId);
-      if (session.state !== PaymentSessionState.AwaitingPayment) return;
+      // Settled already: a second return, or the minute pass after one, changes nothing (VER-09).
+      if (session.state === PaymentSessionState.Verified) return null;
+      const orderNumber = await this.sessions.orderNumberWithin(tx, tenantId, session.orderId);
+      // The money moved at bKash while staff closed the session: it is never dropped, and staff are told of it (found at the
+      // Phase 5 close-out). A session another payment of it was being checked on takes the gateway's, which bKash verified.
+      if (!SETTLES.includes(session.state)) {
+        return {
+          kind: 'closed',
+          orderNumber,
+          amount: Number(paid.amount).toFixed(2),
+          transactionId: paid.transactionId,
+        };
+      }
       const order = await this.orders.lockWithin(tx, tenantId, session.orderId);
       const heldFee = session.feeHeld;
       const typed = await this.sessions.gatewayPaidWithin(tx, tenantId, session, {
@@ -269,10 +321,17 @@ export class GatewayCheckouts {
         senderNumber: paid.payerNumber,
         at: now,
       });
+      // Staff hear what bKash says arrived, which is what a review is about.
+      const told = {
+        orderNumber,
+        method: typed.method ?? PaymentMethod.Bkash,
+        amount: Number(paid.amount).toFixed(2),
+        transactionId: paid.transactionId,
+      };
       const reason = await this.reasonAgainst(tx, typed, order, paid);
       if (reason !== null) {
         await this.sessions.toReviewWithin(tx, tenantId, typed.id, reason);
-        return;
+        return { kind: 'review', ...told };
       }
       await this.fees.chargeHeldGateway(tx, tenantId, heldFee, {
         sessionId: typed.id,
@@ -287,6 +346,44 @@ export class GatewayCheckouts {
         typed.amount,
         { id: null, ip: null, type: ActorType.System },
         VerificationLevel.Gateway,
+      );
+      return { kind: 'verified', ...told };
+    });
+    await this.tellStaff(tenantId, sessionId, settled);
+  }
+
+  /** VER-01, PAY-15: staff hear of a gateway payment as of one the listener checked: verified, or waiting for them. */
+  private async tellStaff(tenantId: string, sessionId: string, settled: Settled): Promise<void> {
+    if (settled === null) return;
+    const { orderNumber, amount, transactionId } = settled;
+    let told: Promise<void>;
+    if (settled.kind === 'verified') {
+      told = this.notifier.paymentVerified({
+        tenantId,
+        sessionId,
+        orderNumber,
+        amount,
+        transactionId,
+      });
+    } else if (settled.kind === 'review') {
+      told = this.notifier.paymentToVerify({
+        tenantId,
+        sessionId,
+        orderNumber,
+        method: settled.method,
+        amount,
+        transactionId,
+      });
+    } else {
+      told = this.notifier.moneyForClosedOrder({ tenantId, orderNumber, amount, transactionId });
+    }
+    if (settled.kind === 'closed') {
+      this.logger.error(`a gateway payment arrived for a closed session of tenant ${tenantId}`);
+    }
+    await told.catch((error: unknown) => {
+      const name = error instanceof Error ? error.name : 'Error';
+      this.logger.error(
+        `could not tell staff of a gateway payment for tenant ${tenantId}: ${name}`,
       );
     });
   }

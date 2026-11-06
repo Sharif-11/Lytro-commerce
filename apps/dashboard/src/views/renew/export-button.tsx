@@ -1,11 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { IdentityKind } from '@lytronix/validators';
-import { exportDownloadUrl, useExports, useRequestExport } from '@/api/exports';
+import { downloadExport, useExports, useRequestExport } from '@/api/exports';
 import { useIdentities } from '@/api/identities';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
-import { buttonClass } from '@/components/ui/classes';
+import { useDownload } from '@/hooks/use-download';
 import { useErrorText } from '@/hooks/use-error-text';
 import { fileSize } from '@/lib/limits';
 import type { DataExport } from '@/types/data-export';
@@ -30,6 +30,7 @@ export function ExportButton(): React.JSX.Element {
   const errorText = useErrorText();
   const exports = useExports();
   const request = useRequestExport();
+  const saving = useDownload();
   const identities = useIdentities();
   const latest = latestOf(exports.data ?? []);
   const hasEmail = (identities.data?.identities ?? []).some(
@@ -45,11 +46,19 @@ export function ExportButton(): React.JSX.Element {
       </Button>
     );
   } else if (latest?.status === 'ready') {
+    const ready = latest;
     control = (
-      <a href={exportDownloadUrl(latest.id)} className={buttonClass('ghost', 'md', true)}>
+      <Button
+        tone="ghost"
+        wide
+        busy={saving.busy}
+        onClick={() => {
+          void saving.run(() => downloadExport(ready.id));
+        }}
+      >
         <Icon name="download" />
-        {t('exportReady', { size: fileSize(latest.fileSizeBytes ?? 0) })}
-      </a>
+        {t('exportReady', { size: fileSize(ready.fileSizeBytes ?? 0) })}
+      </Button>
     );
   } else {
     control = (
@@ -70,7 +79,9 @@ export function ExportButton(): React.JSX.Element {
   return (
     <>
       {control}
-      {request.isError ? <Banner tone="bad">{errorText(request.error)}</Banner> : null}
+      {request.isError || saving.error ? (
+        <Banner tone="bad">{errorText(request.error ?? saving.error)}</Banner>
+      ) : null}
     </>
   );
 }

@@ -275,6 +275,10 @@ only adds concrete artifacts to it, nothing new in process:
     Caddy's config, or shipped as a plain build artifact that Caddy's container mounts at that app's
     directory.
   - Every artifact still goes staging → smoke test → manual production promotion.
+  - **Phase 5's milestone (OBS-08):** with staging up, run
+    `pnpm --filter @lytronix/server exec tsx scripts/order-payment-check.ts` against a demonstration shop on bKash's sandbox, once
+    for a wallet the listener checks and once for one on automated checkout. Its settings are at the top of the script; it moves no
+    money and exits 1 on the first step that fails. Monitored probes running it every [15] minutes are Phase 9's.
 - **The two static apps release independently (D3-12).** A change to one doesn't rebuild or redeploy the
   other. A seller-dashboard release can never change the operator console, and the reverse.
 - **A static app's deploy is cheaper than the others.** Its files are swapped behind the already-running

@@ -1,3 +1,5 @@
+import type { ListenerRevokeReason } from '@lytronix/validators';
+
 /** LSN-12: a phone revoked after too many calls from another app installation, as its owner and Lytro are told. */
 export interface ListenerAutoRevokedNotice {
   /** Null for Lytro's own phone (Slice 5.6). */
@@ -15,6 +17,14 @@ export interface ListenerVolumeNotice {
   name: string;
 }
 
+/** LSN-21: a shop's phone Lytro revoked, or whose app installation it blocked, as the shop's owner is told. */
+export interface ListenerLytroRevokedNotice {
+  tenantId: string;
+  deviceId: string;
+  name: string;
+  reason: ListenerRevokeReason;
+}
+
 /** VER-06 (amended 2026-11-02): today's unreadable messages passed the mark, as Lytro is told. */
 export interface ListenerUnreadNotice {
   day: string;
@@ -27,6 +37,8 @@ export interface ListenerUnreadNotice {
  */
 export interface ListenerNotifier {
   deviceAutoRevoked(notice: ListenerAutoRevokedNotice): Promise<void>;
+  /** LSN-21 (found missing at the Phase 5 close-out). */
+  deviceRevokedByLytro(notice: ListenerLytroRevokedNotice): Promise<void>;
   volumeFlagged(notice: ListenerVolumeNotice): Promise<void>;
   unreadMessages(notice: ListenerUnreadNotice): Promise<void>;
 }

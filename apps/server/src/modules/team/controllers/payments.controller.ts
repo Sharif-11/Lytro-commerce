@@ -14,7 +14,6 @@ import {
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { Permission, type PaymentListQuery } from '@lytronix/validators';
-import { toCsv } from '../../../common/csv';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -23,6 +22,7 @@ import { DashboardGuard, type DashboardRequest } from '../../identity/guards/das
 import { SessionGuard } from '../../identity/guards/session.guard';
 import type { OrderView } from '../../orders/types/orders';
 import { PaymentReview } from '../../payment-review/services/payment-review';
+import { paymentsCsv } from '../../payment-review/services/payments-csv';
 import { PaymentsList } from '../../payment-review/services/payments-list';
 import type { PaymentPage } from '../../payment-review/types/payment-review';
 import { OrderViewDto } from '../dto/orders.dto';
@@ -80,38 +80,7 @@ export class PaymentsController {
     @Res() response: RawResponse,
   ): Promise<void> {
     const rows = await this.payments.exportAll(this.request.tenantIdOf(request), query);
-    const csv = toCsv(
-      rows.map((row) => ({
-        at: row.at.toISOString(),
-        orderNumber: row.order.orderNumber,
-        status: row.status,
-        method: row.method,
-        amount: row.amount,
-        senderNumber: row.senderNumber,
-        transactionId: row.transactionId,
-        source: row.source,
-        verificationLevel: row.verificationLevel,
-        decidedBy: row.decidedBy?.name ?? null,
-        decidedAt: row.decidedAt?.toISOString() ?? null,
-        rejectReason: row.rejectReason,
-        note: row.note,
-      })),
-      [
-        'at',
-        'orderNumber',
-        'status',
-        'method',
-        'amount',
-        'senderNumber',
-        'transactionId',
-        'source',
-        'verificationLevel',
-        'decidedBy',
-        'decidedAt',
-        'rejectReason',
-        'note',
-      ],
-    );
+    const csv = paymentsCsv(rows);
     response
       .status(200)
       .set({
