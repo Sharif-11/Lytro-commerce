@@ -62,7 +62,7 @@ check a phone number before shipping a cash-on-delivery order, and paste a custo
 | # | Decision | Decided | Affects |
 |---|---|---|---|
 | D7-1 | **Scope.** About 95 requirements, more than Phase 6. | In: SMS, notifications, the notice board, fraud checks, reading orders from text, and `PLN-20`'s allowances. Out, for the next release: chat between shoppers and shops (`CHT-*`, Messenger `CHT-08` included) and AI replies (`AI-*`). Shoppers and shops use WhatsApp and Messenger outside Lytro. | the whole phase |
-| D7-2 | **SMS provider.** Only a stand-in that writes to the log exists. | **BulkSMSBD**, where the owner already has an account, behind one adapter so another can replace it. | Slice 7.1 |
+| D7-2 | **SMS provider.** Only a stand-in that writes to the log exists. | **BulkSMSBD**, where the owner already has an account, behind one adapter so another can replace it. Always over **HTTPS** (the owner's call, 2026-11-06), never `http://`. | Slice 7.1 |
 | D7-3 | **Email provider.** Only a stand-in exists. | **Resend**, behind one adapter. | Slice 7.3 |
 | D7-4 | **AI provider for reading orders.** | **Google Gemini**, behind one adapter, with the provider and model a setting (AI-10's rule, applied to reading orders). | Slice 7.6 |
 | D7-5 | **Fraud sources.** FRD-02 names three: courier history, a paid aggregator, and Lytro's shared counts. | **Courier feedback only.** No paid aggregator in this release (OD-47 stays open); its adapter can come later. | Slice 7.5 |
@@ -94,7 +94,7 @@ Each is settled in its slice's read, before code, and recorded there.
 
 | Slice | To settle |
 |---|---|
-| 7.1 | **A real SMS to the owner's phone first.** Whether BulkSMSBD answers on HTTPS (its page shows `http://`, which would send the key unencrypted), whether it has delivery reports (D7-15), the server addresses it must allow (its code 1032), its OTP format ("Your {Brand} OTP is XXXX") against the codes Lytro sends today, and Bangla's cost in parts. |
+| 7.1 | **A real SMS to the owner's phone first, over HTTPS** (D7-2). Whether BulkSMSBD has delivery reports (D7-15), the server addresses it must allow (its code 1032), its OTP format ("Your {Brand} OTP is XXXX") against the codes Lytro sends today, and Bangla's cost in parts. |
 | 7.2 | The ten events' Bangla defaults, worded to the owner's style guide. Which events need a tracking link, and which link. What "estimated monthly cost" (SMS-12) counts from for a new shop. |
 | 7.3 | Resend's sending domain and its DNS records, the bounce message (NTF-06), and how long a notification is kept. Which events a user can switch off (NTF-04): essential ones like "payment to verify" may stay on. |
 | 7.4 | How a notice's Bangla and English bodies are written in the console (bold, links and lists, NTC-01) and kept safe (NTC-16). Whether the status page (NTC-14) is in this release. |
@@ -292,7 +292,7 @@ needed and never open or print.
 
 | Slice | Needs |
 |---|---|
-| 7.1 | A **new** BulkSMSBD key (the one pasted in the read replaced), the sender ID, and the server addresses allowed in BulkSMSBD's panel |
+| 7.1 | `C:\Users\Dell\lytro-worktrees\bulksmsbd.env`, filled in: a **new** BulkSMSBD key (the one pasted in the read replaced), the sender ID and a test phone; and the server addresses allowed in BulkSMSBD's panel |
 | 7.3 | A Resend account, and DNS records for the sending domain at Cloudflare |
 | 7.5 | A Steadfast and a Pathao production key that may be used for checks, since Pathao's sandbox has no real history |
 | 7.6 | A Gemini API key on a paid tier (D7-18), and a set of real customer messages with the names and numbers changed |
@@ -316,7 +316,7 @@ needed and never open or print.
 
 | Risk | Response |
 |---|---|
-| BulkSMSBD answers only on HTTP | Slice 7.1's read checks HTTPS first; without it, the key travels unencrypted and the owner decides whether to accept that or change provider |
+| BulkSMSBD answers only on HTTP | Lytro calls it over HTTPS only (D7-2); if HTTPS fails, Slice 7.1 stops and the owner chooses another provider rather than sending the key unencrypted |
 | BulkSMSBD has no delivery reports | the log shows sent and failed only (D7-15) |
 | A key pasted in the read | the owner replaces it before Slice 7.1 (D7-12) |
 | Bangla SMS cost more parts on the network than SMS-09's units suggest | the per-unit rate is set to cover it (SMS-09); Slice 7.1 measures a real Bangla message |
@@ -354,7 +354,7 @@ From the owner's account page, pasted in the read (its key isn't copied here):
   "masking SMS must be sent in Bengali"; 1031 account not verified; 1032 IP not whitelisted; and others for account and
   price set-up.
 - **OTP format:** "Your {Brand/Company Name} OTP is XXXX".
-- **Not on the page:** HTTPS (the page shows `http://`) and delivery reports. A third-party package shows only the
+- **Not on the page:** HTTPS (the page shows `http://`; Lytro uses `https://` only, D7-2) and delivery reports. A third-party package shows only the
   submission answer, with a message ID ([rihabrahman/bulksmsbd-laravel](https://packagist.org/packages/rihabrahman/bulksmsbd-laravel)).
 
 ### Resend (email)
