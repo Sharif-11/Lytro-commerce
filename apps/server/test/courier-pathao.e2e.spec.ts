@@ -326,6 +326,7 @@ describeIfDatabase('connecting Pathao (Slice 6.3, read agreed 2026-11-05)', () =
       hasStores: true,
       takesWeight: true,
       canCancel: false,
+      retiring: false,
     });
     expect(adapters.find((each) => each['key'] === 'steadfast')).toMatchObject({
       needsThana: false,
