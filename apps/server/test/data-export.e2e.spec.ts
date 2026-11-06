@@ -17,6 +17,7 @@ import {
   getBinary,
   getJson,
   postJson,
+  putJson,
   type HttpResult,
 } from './support/http';
 import { passFirstSignIn } from './support/shop-client';
@@ -376,6 +377,107 @@ describeIfDatabase('requesting and listing an export (LIF-16)', () => {
     for (const [name, content] of files) {
       expect(content, name).not.toContain(stranger);
       expect(content, name).not.toContain('Someone Else');
+    }
+  });
+});
+
+describeIfDatabase("a shop's money in its export (LIF-16, Phase 5)", () => {
+  // Found at the Phase 5 close-out: the export held no shopper payments and no wallet accounts, though Slice 5.1 counted them.
+  it('holds every payment shoppers made and the accounts paid into, never a gateway key', async () => {
+    const who = await owner();
+    const shop = shopCall(who);
+    const saved = await putJson(
+      port,
+      '/payment-methods/bkash',
+      {
+        enabled: true,
+        accounts: [
+          {
+            accountName: 'Rahim Store',
+            number: '01711000001',
+            accountType: 'personal',
+            active: true,
+          },
+        ],
+      },
+      shop,
+    );
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+    const accountId = (
+      saved.body as { methods: { method: string; accounts: { id: string }[] }[] }
+    ).methods.find((row) => row.method === 'bkash')?.accounts[0]?.id;
+    const secret = `export-must-not-hold-${randomUUID()}`;
+    const keys = await putJson(
+      port,
+      `/payment-methods/accounts/${accountId ?? ''}/gateway`,
+      {
+        appKey: 'app-key-1',
+        appSecret: secret,
+        username: 'merchant',
+        password: secret,
+        sandbox: true,
+      },
+      shop,
+    );
+    expect(keys.status, JSON.stringify(keys.body)).toBe(200);
+    const made = await post(
+      '/products',
+      { name: 'Lamp', basePrice: 300, variants: [{ optionIds: [], openingStock: 5 }] },
+      shop,
+    );
+    const variantId = (made.body as { variants: { id: string }[] }).variants[0]?.id;
+    const placed = await post(
+      '/orders',
+      {
+        customerName: 'Rahima Akter',
+        phone: texts.freshPhone(),
+        fulfilmentType: 'takeaway',
+        items: [{ variantId, quantity: 1 }],
+      },
+      { ...shop, 'idempotency-key': randomUUID() },
+    );
+    expect(placed.status, JSON.stringify(placed.body)).toBe(201);
+    const order = placed.body as { id: string; orderNumber: string };
+    const paid = await post(
+      `/orders/${order.id}/payments`,
+      { method: 'bkash', amount: 300, transactionId: 'EXPORT1234', senderNumber: '01811000002' },
+      shop,
+    );
+    expect(paid.status, JSON.stringify(paid.body)).toBe(201);
+
+    const requested = await post('/exports', {}, shop);
+    const exportId = (requested.body as { id: string }).id;
+    await dataExport.generate(await tenantIdOf(who.slug), exportId);
+    const downloaded = await getBinary(port, `/exports/${exportId}/download`, shop);
+    expect(downloaded.status).toBe(200);
+    const files = filesIn(downloaded.body);
+    expect(csvRows(files.get('order-payments.csv'))).toEqual([
+      expect.objectContaining({
+        orderNumber: order.orderNumber,
+        status: 'verified',
+        method: 'bkash',
+        amount: '300.00',
+        transactionId: 'EXPORT1234',
+        senderNumber: '01811000002',
+      }),
+    ]);
+    expect(JSON.parse(files.get('order-payments.json') ?? '[]')).toHaveLength(1);
+    expect(csvRows(files.get('wallet-accounts.csv'))).toEqual([
+      expect.objectContaining({
+        method: 'bkash',
+        accountName: 'Rahim Store',
+        number: '01711000001',
+        active: 'true',
+        hasCredentials: 'true',
+      }),
+    ]);
+    expect(JSON.parse(files.get('wallet-accounts.json') ?? '[]')).toEqual([
+      expect.objectContaining({ number: '01711000001', hasCredentials: true }),
+    ]);
+    // WAL-09: the keys stay sealed, in every file.
+    for (const [name, content] of files) {
+      expect(content, name).not.toContain(secret);
+      expect(content, name).not.toContain('app-key-1');
     }
   });
 });

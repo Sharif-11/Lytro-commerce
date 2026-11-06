@@ -157,10 +157,14 @@ test('Data export lists each request in its state, and asks again', async ({ pag
   await expect(main(page).getByText('20 Oct 2026 · 11:50')).toBeVisible();
   await expect(main(page).getByText('Preparing')).toBeVisible();
   await expect(main(page).getByText('CSV + JSON · 18 MB · lasts 24 hours')).toBeVisible();
-  await expect(main(page).getByRole('link', { name: 'Download' })).toHaveAttribute(
-    'href',
-    '/api/v1/exports/export-2/download',
+  // KNOWN-GAPS §113: fetched as every call is, so it names this shop.
+  const asked = page.waitForRequest((request) =>
+    request.url().includes('/exports/export-2/download'),
   );
+  const saved = page.waitForEvent('download');
+  await main(page).getByRole('button', { name: 'Download' }).click();
+  expect((await asked).headers()['x-lytro-shop']).toBeTruthy();
+  expect((await saved).suggestedFilename()).toBe('data-export-export-2.zip');
   await expectAccessible(page);
   await main(page).getByRole('button', { name: 'Failed, try again' }).click();
   await expect.poll(() => log.calls.filter((call) => call.method === 'POST').length).toBe(1);

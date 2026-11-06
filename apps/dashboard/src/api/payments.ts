@@ -3,6 +3,7 @@ import type { PaymentListStatus, PaymentMethod, PaymentRejectReason } from '@lyt
 import { PaymentListStatus as Status } from '@lytronix/validators';
 import { useOrderChanged } from '@/api/orders';
 import { tenantSession } from '@/session/tenant-session';
+import { downloadFile } from './download';
 import type { Order } from '@/types/orders';
 import type { ShopPaymentsPage } from '@/types/payments';
 
@@ -62,13 +63,7 @@ export function useToVerifyCount() {
 /** GET /payments/export: the same filters as a file, fetched so that it names this shop, then saved. */
 export async function downloadPayments(filters: PaymentFilters): Promise<void> {
   const query = paymentParams(filters).toString();
-  const file = await tenantSession.client.file(`/payments/export${query ? `?${query}` : ''}`);
-  const url = URL.createObjectURL(file);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'payments.csv';
-  link.click();
-  URL.revokeObjectURL(url);
+  await downloadFile(`/payments/export${query ? `?${query}` : ''}`, 'payments.csv');
 }
 
 /** After a decision: the order as it now is, every list of payments, and Home. The list is read again after a refusal too. */

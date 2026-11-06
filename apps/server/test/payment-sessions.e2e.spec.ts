@@ -381,11 +381,19 @@ describeIfDatabase("the window's end (PAY-03, D5-4, D5-5)", () => {
     const expiry = app.get(PaymentSessionExpiry);
     const run = await expiry.runTick(new Date());
     expect(run.expired).toBeGreaterThanOrEqual(1);
-    expect(await staffOrder(setup.shop, unpaid.trackingId)).toMatchObject({
+    const lapsed = await staffOrder(setup.shop, unpaid.trackingId);
+    expect(lapsed).toMatchObject({
       status: 'cancelled',
       cancelReason: 'advance_not_paid',
       paymentStatus: 'payment_failed',
     });
+    // ORD-08: the payment status's move is in the history too (found at the Phase 5 close-out).
+    expect(
+      (lapsed['history'] as { field: string; to: string | null }[]).map((row) => [
+        row.field,
+        row.to,
+      ]),
+    ).toContainEqual(['payment_status', 'payment_failed']);
     expect(await staffOrder(setup.shop, typed.trackingId)).toMatchObject({
       status: 'unverified',
       paymentStatus: 'pending_verification',
@@ -413,6 +421,28 @@ describeIfDatabase("the window's end (PAY-03, D5-4, D5-5)", () => {
       keyHeaders(setup.key),
     );
     expect(tracked.body).toMatchObject({ status: 'cancelled', payment: null });
+  });
+
+  // Found at the Phase 5 close-out: a cancelled order's page stayed open and took money for an order that was gone.
+  it('closes the page when staff cancel its order, so it takes no money; an ID already typed waits for staff', async () => {
+    const setup = await payingShop();
+    const open = (await order(setup, { payment: PAYMENT })).body as Placed;
+    const typed = (await order(setup, { payment: PAYMENT })).body as Placed;
+    expect((await pay(refOf(typed), { method: 'bkash', transactionId: 'TYPED67890' })).status).toBe(
+      201,
+    );
+    for (const placed of [open, typed]) {
+      const found = await staffOrder(setup.shop, placed.trackingId);
+      const cancelled = await setup.shop.post(`/orders/${String(found['id'])}/cancel`, {
+        reason: 'other',
+        note: 'The shopper rang',
+      });
+      expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200);
+    }
+    expect(((await page(refOf(open))).body as Page).state).toBe('cancelled');
+    const after = await pay(refOf(open), { method: 'bkash', transactionId: 'AFTER12345' });
+    expect(after.status, JSON.stringify(after.body)).toBe(409);
+    expect(((await page(refOf(typed))).body as Page).state).toBe('checking');
   });
 });
 

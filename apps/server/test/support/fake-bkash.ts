@@ -33,6 +33,8 @@ interface Behaviour {
   trxField?: 'trxID' | 'none';
   /** What arrives at execute, when it isn't what was asked. */
   paidAmount?: string;
+  /** Runs while execute is under way, once the money has moved: what staff or the shopper did in that moment. */
+  duringExecute?: () => Promise<void>;
   /** The transaction ID bKash gives, when a test needs it to be a certain one. */
   trxId?: string;
 }
@@ -189,7 +191,7 @@ export class FakeBkash {
     });
   }
 
-  private execute(call: BkashCall, behaviour: Behaviour): Promise<Response> {
+  private async execute(call: BkashCall, behaviour: Behaviour): Promise<Response> {
     const payment = this.paymentOf(call);
     if (!payment) return answer({ externalCode: '2002', errorMessageEn: 'Invalid payment ID' });
     if (payment.state === 'completed') {
@@ -199,6 +201,7 @@ export class FakeBkash {
       return answer({ externalCode: '2056', errorMessageEn: 'Invalid payment state' });
     }
     payment.state = 'completed';
+    await behaviour.duringExecute?.();
     if (behaviour.executeTimesOut) {
       return Promise.reject(new DOMException('The operation timed out', 'TimeoutError'));
     }

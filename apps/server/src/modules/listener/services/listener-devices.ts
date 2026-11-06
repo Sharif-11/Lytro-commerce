@@ -15,8 +15,9 @@ import { DAY_MS } from '../../../common/time';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
+import type { ListenerNotifier } from '../ports/listener-notifier';
 import type { ListenerStore } from '../ports/listener-store';
-import { LISTENER_CLOCK, LISTENER_STORE } from '../tokens';
+import { LISTENER_CLOCK, LISTENER_NOTIFIER, LISTENER_STORE } from '../tokens';
 import type {
   ListenerDeviceList,
   ListenerDeviceView,
@@ -39,6 +40,7 @@ export class ListenerDevices {
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
     @Inject(LISTENER_CLOCK) private readonly clock: () => Date,
+    @Inject(LISTENER_NOTIFIER) private readonly notifier: ListenerNotifier,
   ) {}
 
   /** LSN-08, LSN-20: the shop's phones, how many work, and its plan's limit. */
@@ -129,32 +131,34 @@ export class ListenerDevices {
     });
   }
 
-  /** LSN-19, LSN-21: Lytro revokes a phone of any shop. */
-  operatorRevoke(id: string, operatorId: string, ip: string | null): Promise<void> {
-    return this.store.run(async (tx) => {
-      const device = await this.store.findDevice(tx, null, id, true);
-      if (!device) throw new ApiError('not_found', 'ListenerDeviceNotFound', {});
-      if (device.revokedAt !== null) {
+  /** LSN-19, LSN-21: Lytro revokes a phone of any shop, and the shop's owner is told. */
+  async operatorRevoke(id: string, operatorId: string, ip: string | null): Promise<void> {
+    const device = await this.store.run(async (tx) => {
+      const found = await this.store.findDevice(tx, null, id, true);
+      if (!found) throw new ApiError('not_found', 'ListenerDeviceNotFound', {});
+      if (found.revokedAt !== null) {
         throw new ApiError('conflict', 'ListenerDeviceAlreadyRevoked', {});
       }
-      await this.revokeWithin(tx, device, ListenerRevokeReason.Operator, {
+      await this.revokeWithin(tx, found, ListenerRevokeReason.Operator, {
         actor: { id: null, ip, type: ActorType.PlatformSupport },
         platformActor: { type: PlatformActorType.Operator, id: operatorId },
       });
+      return found;
     });
+    await this.tellOwners([device], ListenerRevokeReason.Operator);
   }
 
   /**
    * LSN-21: an app installation blocked across the platform -- it pairs with no shop again, and every phone it paired is
-   * revoked, each in both logs. How many phones it revoked.
+   * revoked, each in both logs, and each shop's owner told. How many phones it revoked.
    */
-  blockInstallation(
+  async blockInstallation(
     installationId: string,
     reason: string,
     operatorId: string,
     ip: string | null,
   ): Promise<number> {
-    return this.store.run(async (tx) => {
+    const devices = await this.store.run(async (tx) => {
       await this.store.block(tx, { installationId, reason, blockedBy: operatorId });
       const devices = await this.store.lockLiveForInstallation(tx, installationId);
       for (const device of devices) {
@@ -173,8 +177,28 @@ export class ListenerDevices {
         ip,
         summary: { installationId, reason, revoked: devices.length },
       });
-      return devices.length;
+      return devices;
     });
+    await this.tellOwners(devices, ListenerRevokeReason.InstallationBlocked);
+    return devices.length;
+  }
+
+  /** LSN-21: each shop's owner hears of its phone Lytro revoked; Lytro's own phones have no shop to tell. */
+  private async tellOwners(
+    devices: readonly SelectListenerDevice[],
+    reason: ListenerRevokeReason,
+  ): Promise<void> {
+    for (const device of devices) {
+      if (device.tenantId === null) continue;
+      await this.notifier
+        .deviceRevokedByLytro({
+          tenantId: device.tenantId,
+          deviceId: device.id,
+          name: device.name,
+          reason,
+        })
+        .catch(() => undefined);
+    }
   }
 
   /** LSN-05: codes spent or run out a day ago, and phones revoked [30] days ago, removed. Safe to run again. */

@@ -38,5 +38,11 @@ export interface PaymentMethodStore {
     id: string,
   ): Promise<void>;
   findAccount(tx: Transaction, tenantId: string, id: string): Promise<SelectWalletAccount | null>;
+  /** WAL-11: whether a shopper's checkout at the wallet is still open on any of these accounts. */
+  checkoutOpenOn(
+    tx: Transaction,
+    tenantId: string,
+    accountIds: readonly string[],
+  ): Promise<boolean>;
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
 }

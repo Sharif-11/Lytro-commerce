@@ -25,6 +25,7 @@ export type ParsedMessage =
 // The amount, as bKash writes it: "Tk 1,500.00".
 const MONEY = String.raw`Tk\.?\s*([\d,]+(?:\.\d{1,2})?)`;
 const TRANSACTION_ID = /\bTrx\s?ID[:\s]+([A-Za-z0-9]+)/i;
+const TRANSACTION_IDS = new RegExp(TRANSACTION_ID.source, 'gi');
 // The most an amount may be: numeric(12, 2).
 const AMOUNT_MAX = 9_999_999_999.99;
 
@@ -57,6 +58,12 @@ function looksLikeTransaction(text: string): boolean {
  */
 export function parseMessage(text: string): ParsedMessage {
   const line = text.replace(/\s+/g, ' ').trim();
+  // The payer writes the reference, and bKash prints it before its own TrxID: a receipt naming two different IDs could be
+  // made to name any, so it is read as wording Lytro does not know, and staff check it (found at the Phase 5 close-out).
+  const named = new Set(
+    [...line.matchAll(TRANSACTION_IDS)].map((found) => found[1]?.toUpperCase()),
+  );
+  if (named.size > 1) return { kind: 'unknown' };
   const id = transactionIdField.safeParse(TRANSACTION_ID.exec(line)?.[1]);
   for (const pattern of MONEY_IN) {
     const found = pattern.exec(line);

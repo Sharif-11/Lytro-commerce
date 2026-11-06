@@ -10,7 +10,10 @@ import { ClientIp } from '../src/common/client-ip';
 import { headerValue, type HttpRequest } from '../src/common/http';
 import type { MessageKey } from '../src/common/i18n/message-key';
 import { translate } from '../src/common/i18n/messages';
-import type { ListenerAutoRevokedNotice } from '../src/modules/listener/ports/listener-notifier';
+import type {
+  ListenerAutoRevokedNotice,
+  ListenerLytroRevokedNotice,
+} from '../src/modules/listener/ports/listener-notifier';
 import { ListenerDevices } from '../src/modules/listener/services/listener-devices';
 import { LISTENER_NOTIFIER } from '../src/modules/listener/tokens';
 import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
@@ -38,6 +41,7 @@ let port: number;
 let admin: pg.Client;
 const texts = new SmsCapture();
 const revokedNotices: ListenerAutoRevokedNotice[] = [];
+const lytroRevoked: ListenerLytroRevokedNotice[] = [];
 
 /** Lets a test play several callers: the address is the `x-test-visitor` header's, else the socket's. */
 const visitorIp = {
@@ -69,6 +73,10 @@ beforeAll(async () => {
     .useValue({
       deviceAutoRevoked: (notice: ListenerAutoRevokedNotice) => {
         revokedNotices.push(notice);
+        return Promise.resolve();
+      },
+      deviceRevokedByLytro: (notice: ListenerLytroRevokedNotice) => {
+        lytroRevoked.push(notice);
         return Promise.resolve();
       },
     })
@@ -286,6 +294,18 @@ describeIfDatabase('pairing a listener phone (LSN-01, LSN-03, LSN-09, LSN-11, LS
 });
 
 describeIfDatabase("the plan's phones and the shop's state (LSN-07, LSN-08, LSN-18)", () => {
+  // Found at the Phase 5 close-out: both counted the shop's phones before either was in, and both passed.
+  it('lets one of two phones pairing at the same moment on a one-phone plan in (LSN-08)', async () => {
+    const shop = await openShop(port, texts, 'lis');
+    const [codeA, codeB] = [await newCode(shop), await newCode(shop)];
+    const both = await Promise.all([
+      pair(codeA, `install-${randomUUID()}`, { visitor: '198.51.100.71' }),
+      pair(codeB, `install-${randomUUID()}`, { visitor: '198.51.100.72' }),
+    ]);
+    expect(both.map((row) => row.status).sort((a, b) => a - b)).toEqual([201, 402]);
+    expect((await devicesOf(shop)).active).toBe(1);
+  });
+
   it("holds a Trial shop to one phone, in both logs; revoking frees the place and refuses the phone's next call", async () => {
     const shop = await openShop(port, texts, 'lis');
     const spare = await newCode(shop);
@@ -442,6 +462,15 @@ describeIfDatabase("the shop's and Lytro's view of phones (LSN-19 to LSN-21, SEC
         details: { reason: 'installation_blocked' },
       });
     }
+    // LSN-21: each shop's owner is told (found missing at the Phase 5 close-out).
+    for (const [shop, phone] of [
+      [first, one],
+      [second, two],
+    ] as const) {
+      expect(lytroRevoked.filter((row) => row.tenantId === shop.tenantId)).toEqual([
+        expect.objectContaining({ deviceId: phone.deviceId, reason: 'installation_blocked' }),
+      ]);
+    }
     const third = await openShop(port, texts, 'lis');
     const blocked = await pair(await newCode(third), 'install-shared01', {
       visitor: '198.51.100.90',
@@ -465,6 +494,9 @@ describeIfDatabase("the shop's and Lytro's view of phones (LSN-19 to LSN-21, SEC
     const fourth = await paired(third);
     await devices.operatorRevoke(fourth.deviceId, OPERATOR_ID, '203.0.113.9');
     expect(errorOf(await heartbeat(fourth))).toMatchObject({ details: { reason: 'operator' } });
+    expect(lytroRevoked.filter((row) => row.tenantId === third.tenantId)).toEqual([
+      expect.objectContaining({ deviceId: fourth.deviceId, reason: 'operator' }),
+    ]);
     await expect(devices.operatorRevoke(fourth.deviceId, OPERATOR_ID, null)).rejects.toMatchObject({
       code: 'conflict',
     });

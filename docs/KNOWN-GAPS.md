@@ -2069,7 +2069,7 @@ order records; that `updated_at` with no zone is Dhaka's time, since news older 
 its consignment number, which today takes a message or staff. A wrong field name shows as an event that moves nothing, and the
 night check still brings the status, so none of these can move an order wrongly except `pending` and `cod_amount`.
 
-## 113. A direct download can answer for another of the owner's shops — found 2026-11-05, open
+## 113. A direct download can answer for another of the owner's shops — found 2026-11-05, fixed 2026-11-06
 
 The server tells which shop a dashboard call is for from the `x-lytro-shop` header, and answers for the shop the session started on when
 it's missing. A plain link can't send a header, so the Balance statement's CSV (`ledgerExportUrl`) and the export file's download
@@ -2077,6 +2077,9 @@ it's missing. A plain link can't send a header, so the Balance statement's CSV (
 someone else's. A Balance CSV would come from the wrong shop without saying so; an export would answer not found. Payments' CSV
 (Slice 5.8, part 3) fetches through `ApiClient.file` and saves the result, which names the shop as every other call does. The two old
 links can do the same. Nothing is live yet, so nobody has hit this. Left for the owner's word rather than changed in that PR.
+
+**Fixed** (2026-11-06, the user's pick at the Phase 5 close-out): both now fetch through the client, as Payments' CSV does, so they name
+the shop the owner is on; browser tests check the header and the file's name.
 
 ## 114. `TRM-05`: a term could be deleted while something still used it — found 2026-11-05, fixed 2026-11-05
 
@@ -2112,7 +2115,25 @@ network's own parts (`countSmsParts`), which differ for Bangla and for long mess
 and warned about, never enforced. Nothing is wrong on a bill yet, since only the sign-up code is charged, but the two
 would disagree once order SMS are. Found while planning Phase 7; Slice 7.1 moves both to SMS-09's units (D7-13).
 
-## 119. `CRR-21`: what RedX's adapter assumes, its sandbox being a canned mock — found 2026-11-06, open until its real parcel
+## 119. `VER-09`, `WAL-21`: what holds on one server only — found 2026-11-06, open
+
+Two rules hold within one server process. Two starts of one checkout at once, as a second tap sends, share one bKash payment through a
+map in that server's memory (added at the Phase 5 close-out), and the once-a-day notice that a shop's balance can't hold a fee is
+remembered in memory, so a restart sends it again the same day. §107's token calls are the same kind. With one server they hold. A second
+server needs each in the database: a lock per session for the first, a row per shop and day for the notice.
+
+## 120. `VER-01`, `VER-09`: a gateway review keeps no amount bKash reported, and one race is open — found 2026-11-06, open
+
+A gateway payment sent to staff records why, but not the amount bKash says it took: the session has no column for it, and Payments words a
+receipt's amount as what the SMS says. Staff are told the amount in the notice, and Approve starts from the amount asked. bKash executes
+the amount Lytro created the payment for, so the two differ only if bKash reports otherwise. Keeping it needs a migration and Payments'
+words for a gateway's report.
+
+Separately, a bKash execute that times out leaves its session for the minute pass to ask after (VER-09). If staff record the advance
+another way before that pass, the page closes and the pass no longer asks, so money bKash took would wait unrecorded until staff find it
+in bKash's panel. Asking after every closed session with an unsettled bKash payment would close it.
+
+## 121. `CRR-21`: what RedX's adapter assumes, its sandbox being a canned mock — found 2026-11-06, open until its real parcel
 
 RedX's sandbox answers every booking with the same tracking ID and can't give parcel details, so its adapter runs against a fake made from its OpenAPI document and the live area list. A real account has to confirm: what `/parcel/info` answers, read here as `status`, `delivery_type` and `charge` under `parcel` or at the top; that `ready-for-delivery` comes once it has the parcel, since an order then shows shipped and can no longer be cancelled; that a part delivery arrives as `delivered` with `delivery_type` `partial-delivery`; how its messages write their fields and times; that a repeated `merchant_invoice_id` makes a second parcel, as no refusal is documented; and that a real cancel answers 2xx with `success` true. Its document gives no lengths or weight range, so Lytro's own are used. Of these, `ready-for-delivery` and the part delivery's reading can move an order wrongly.
 

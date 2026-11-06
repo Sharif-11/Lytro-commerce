@@ -390,7 +390,7 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
 - **Built as PR #313,** migration 0109, against a fake made from its document and what the sandbox showed. Shared code grew where the adapter
   declares it (an area chosen from the list, the goods' worth, a store that may be left out) and in one rule for every
   courier: a cancel with no clear answer asks staff to confirm. The operator's screens for areas come with Slice 6.7.
-  **Not tried:** a real RedX booking, message, cancel or parcel details; `KNOWN-GAPS` §119 lists them.
+  **Not tried:** a real RedX booking, message, cancel or parcel details; `KNOWN-GAPS` §121 lists them.
 
 ### Slice 6.5: courier money
 - **Depends on:** 6.2.
@@ -465,7 +465,7 @@ outside every repo, which I name when it's needed and never open or print.
 | A shop's Steadfast key is locked out for an hour | a refused login stops calls at once, and the owner is told (§3.6) |
 | Pathao's address reading sends parcels to the wrong area | tried in its sandbox on 2026-11-05 and D6-5 stands (Slice 6.3); a live account may read differently, and its charge on the parcel is where a wrong rate would show |
 | Pathao holds an account's real password | settled in Slice 6.3: the password isn't kept, and a lost renewal means the owner logs in again |
-| RedX's secret travels in the address | settled in Slice 6.4: no log line holds it, and it can be replaced; a proxy or host in front of the server must not log the path either (`KNOWN-GAPS` §119) |
+| RedX's secret travels in the address | settled in Slice 6.4: no log line holds it, and it can be replaced; a proxy or host in front of the server must not log the path either (`KNOWN-GAPS` §121) |
 | A courier's status list changes | an unknown status shows and moves nothing, and is logged for the adapter to be updated |
 | Phase size (eight slices) | checkpoint 6A after Slice 6.2; RedX and the rest can become Phase 6B without re-planning, and screens could be cut to Steadfast first |
 
