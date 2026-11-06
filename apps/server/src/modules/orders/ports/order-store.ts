@@ -100,7 +100,16 @@ export interface OrderStore {
   /** Slice 5.4b: a voided payment's receipt is unclaimed again. */
   releaseReceiptOfPayment(tx: Transaction, tenantId: string, paymentId: string): Promise<void>;
   /** Agreed 2026-11-01: the order's payment page still awaiting money closed, the order being paid in full. */
-  closeAwaitingPayment(tx: Transaction, tenantId: string, orderId: string): Promise<void>;
+  /**
+   * The order's page awaiting payment closes. With `keepWalletTry`, one whose shopper is at a wallet's checkout stays for its
+   * return, so money that moved there reaches staff; without, it closes too, and the wallet never takes it.
+   */
+  closeAwaitingPayment(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+    keepWalletTry?: boolean,
+  ): Promise<void>;
   /** PAY-20, ORD-44 (Slice 5.3): a payment marked refunded with a note. */
   refundPayment(
     tx: Transaction,

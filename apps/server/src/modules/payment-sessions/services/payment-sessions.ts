@@ -177,7 +177,9 @@ export class PaymentSessions {
       }
       const open = await this.store.openForOrder(tx, tenantId, order.id);
       if (open) {
-        if (open.state !== PaymentSessionState.AwaitingPayment) {
+        // A try at the wallet's checkout still open may yet bring money, so it is left to end (found at the Phase 5 close-out).
+        const atWallet = open.gatewayPaymentId !== null && open.gatewayResult === null;
+        if (open.state !== PaymentSessionState.AwaitingPayment || atWallet) {
           throw new ApiError('conflict', 'PaymentBeingChecked', {});
         }
         await this.store.setState(tx, tenantId, open.id, PaymentSessionState.Cancelled);
@@ -408,8 +410,11 @@ export class PaymentSessions {
     session: SelectPaymentSession,
     paid: { transactionId: string; senderNumber: string | null; at: Date },
   ): Promise<SelectPaymentSession> {
-    const offered = await this.methods.forShoppersWithin(tx, tenantId);
-    const account = offered.find((row) => row.accountId === session.gatewayAccountId);
+    // The account the checkout ran on, whichever the page shows shoppers paying by hand (WAL-19; found at the close-out).
+    const account =
+      session.gatewayAccountId === null
+        ? null
+        : await this.methods.accountWithin(tx, tenantId, session.gatewayAccountId);
     return this.store.gatewayPaid(tx, tenantId, session.id, {
       ...paid,
       paidTo: account

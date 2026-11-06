@@ -18,6 +18,11 @@ import type { CustomerRecord } from '../../customers/types/customers';
 import { OrderService } from '../../orders/services/order.service';
 import type { OrderLineRecord, OrderRecord } from '../../orders/types/orders';
 import type { ActivityRecord } from '../../audit/types/activity';
+import { PaymentMethods } from '../../payment-methods/services/payment-methods';
+import type { PaymentMethodsView } from '../../payment-methods/types/payment-methods';
+import { paymentsCsv } from '../../payment-review/services/payments-csv';
+import { PaymentsList } from '../../payment-review/services/payments-list';
+import type { PaymentListItem } from '../../payment-review/types/payment-review';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 import { StaffService } from '../../staff/services/staff.service';
@@ -56,6 +61,8 @@ export class DataExportService {
     @Inject(OrderService) private readonly orders: OrderService,
     @Inject(CustomerService) private readonly customers: CustomerService,
     @Inject(ProductService) private readonly products: ProductService,
+    @Inject(PaymentsList) private readonly payments: PaymentsList,
+    @Inject(PaymentMethods) private readonly methods: PaymentMethods,
   ) {}
 
   async request(tenantId: string, ip?: string | null): Promise<DataExportRecord> {
@@ -128,7 +135,13 @@ export class DataExportService {
       const orders = await this.orders.exportAll(tenantId);
       const customers = await this.customers.listAll(tenantId);
       const products = await this.products.listForExport(tenantId);
-      const zip = await this.buildZip(invoices, activity, orders, customers, products);
+      // LIF-16 (Phase 5, found missing at its close-out): the money shoppers paid, and the accounts it was paid into.
+      const payments = await this.payments.everyPayment(tenantId);
+      const methods = await this.methods.list(tenantId);
+      const zip = await this.buildZip(invoices, activity, orders, customers, products, {
+        payments,
+        methods,
+      });
 
       const readyAt = new Date();
       const expiresAt = new Date(readyAt.getTime() + EXPIRY_MS);
@@ -172,6 +185,7 @@ export class DataExportService {
     orders: ExportedOrder[],
     customers: CustomerRecord[],
     products: ExportedProduct[],
+    money: { payments: PaymentListItem[]; methods: PaymentMethodsView },
   ): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const archive = new ZipArchive();
@@ -382,6 +396,63 @@ export class DataExportService {
         { name: 'product-variants.csv' },
       );
       archive.append(JSON.stringify(products, null, 2), { name: 'products.json' });
+
+      // LIF-16, PAY-19 (Phase 5): every payment shoppers made, as Payments lists them, in the same CSV its download gives.
+      archive.append(paymentsCsv(money.payments), { name: 'order-payments.csv' });
+      archive.append(JSON.stringify(money.payments, null, 2), { name: 'order-payments.json' });
+
+      // LIF-16, WAL-09 (Phase 5): the accounts shoppers pay into. Whether one holds gateway keys, never the keys.
+      const accounts = money.methods.methods.flatMap((method) =>
+        method.accounts.map((account) => ({
+          method: method.method,
+          enabled: method.enabled,
+          way: method.way,
+          accountName: account.accountName,
+          number: account.number,
+          accountType: account.accountType,
+          bankName: account.bankName,
+          accountNumber: account.accountNumber,
+          branch: account.branch,
+          routingNumber: account.routingNumber,
+          swiftCode: account.swiftCode,
+          note: account.note,
+          active: account.active,
+          automated: account.automated,
+          hasCredentials: account.hasCredentials,
+          sandbox: account.sandbox,
+        })),
+      );
+      // CSV holds text: each yes or no as `true` or `false`.
+      const accountRows = accounts.map((row) => ({
+        ...row,
+        enabled: String(row.enabled),
+        active: String(row.active),
+        automated: String(row.automated),
+        hasCredentials: String(row.hasCredentials),
+        sandbox: String(row.sandbox),
+      }));
+      archive.append(
+        toCsv(accountRows, [
+          'method',
+          'enabled',
+          'way',
+          'accountName',
+          'number',
+          'accountType',
+          'bankName',
+          'accountNumber',
+          'branch',
+          'routingNumber',
+          'swiftCode',
+          'note',
+          'active',
+          'automated',
+          'hasCredentials',
+          'sandbox',
+        ]),
+        { name: 'wallet-accounts.csv' },
+      );
+      archive.append(JSON.stringify(accounts, null, 2), { name: 'wallet-accounts.json' });
 
       void archive.finalize();
     });

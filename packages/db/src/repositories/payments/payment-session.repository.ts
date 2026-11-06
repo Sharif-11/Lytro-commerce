@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
 import {
   PaymentSessionState,
   type GatewayResult,
@@ -109,6 +109,7 @@ export class PaymentSessionRepository {
     tx: Transaction,
     tenantId: string,
     orderId: string,
+    keepWalletTry = false,
   ): Promise<number> {
     await this.transactions.setTenantContext(tx, tenantId);
     const rows = await tx
@@ -119,6 +120,11 @@ export class PaymentSessionRepository {
           eq(paymentSessions.tenantId, tenantId),
           eq(paymentSessions.orderId, orderId),
           eq(paymentSessions.state, PaymentSessionState.AwaitingPayment),
+          // Asked to, a try at a wallet's checkout still open is left for its return or the minute pass, so money that
+          // moves there is settled or sent to staff, never dropped (found at the Phase 5 close-out).
+          keepWalletTry
+            ? or(isNull(paymentSessions.gatewayPaymentId), isNotNull(paymentSessions.gatewayResult))
+            : undefined,
         ),
       )
       .returning({ id: paymentSessions.id });
@@ -177,7 +183,14 @@ export class PaymentSessionRepository {
     const [open] = await tx
       .select({ total: sql<string>`coalesce(sum(${paymentSessions.amount}), 0)::text` })
       .from(paymentSessions)
-      .where(and(eq(paymentSessions.tenantId, tenantId), inArray(paymentSessions.state, OPEN)));
+      .where(
+        and(
+          eq(paymentSessions.tenantId, tenantId),
+          inArray(paymentSessions.state, OPEN),
+          // A test checkout's money never counts (VER-11), open or verified (found at the Phase 5 close-out).
+          eq(paymentSessions.test, false),
+        ),
+      );
     return (Number(verified?.total ?? 0) + Number(open?.total ?? 0)).toFixed(2);
   }
 
@@ -254,6 +267,50 @@ export class PaymentSessionRepository {
   }
 
   /** The order's open session, if it has one. */
+  /** WAL-11: whether a shopper's try at a wallet's checkout is still open on any of these accounts. */
+  async walletTryOpenOn(
+    tx: Transaction,
+    tenantId: string,
+    accountIds: readonly string[],
+  ): Promise<boolean> {
+    if (accountIds.length === 0) return false;
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select({ id: paymentSessions.id })
+      .from(paymentSessions)
+      .where(
+        and(
+          eq(paymentSessions.tenantId, tenantId),
+          inArray(paymentSessions.gatewayAccountId, [...accountIds]),
+          eq(paymentSessions.state, PaymentSessionState.AwaitingPayment),
+          isNull(paymentSessions.gatewayResult),
+        ),
+      )
+      .limit(1);
+    return row !== undefined;
+  }
+
+  /**
+   * The order's open sessions, held, so a caller about to hold the order takes them first: verifying, the minute pass and a
+   * wallet's settling hold a session and then its order, and holding them the other way round could deadlock with them
+   * (found at the Phase 5 close-out).
+   */
+  async lockOpenForOrder(tx: Transaction, tenantId: string, orderId: string): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .select({ id: paymentSessions.id })
+      .from(paymentSessions)
+      .where(
+        and(
+          eq(paymentSessions.tenantId, tenantId),
+          eq(paymentSessions.orderId, orderId),
+          inArray(paymentSessions.state, OPEN),
+        ),
+      )
+      .orderBy(asc(paymentSessions.id))
+      .for('update');
+  }
+
   async openForOrder(
     tx: Transaction,
     tenantId: string,

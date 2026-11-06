@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   PaymentMethodRepository,
+  PaymentSessionRepository,
   TransactionRunner,
   type NewPaymentAccount,
   type SelectWalletAccount,
@@ -16,7 +17,16 @@ export class DrizzlePaymentMethodStore implements PaymentMethodStore {
     @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(PaymentMethodRepository) private readonly methods: PaymentMethodRepository,
+    @Inject(PaymentSessionRepository) private readonly sessions: PaymentSessionRepository,
   ) {}
+
+  checkoutOpenOn(
+    tx: Transaction,
+    tenantId: string,
+    accountIds: readonly string[],
+  ): Promise<boolean> {
+    return this.sessions.walletTryOpenOn(tx, tenantId, accountIds);
+  }
 
   run<T>(_tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T> {
     return this.transactions.run(this.database.handle.db, work);

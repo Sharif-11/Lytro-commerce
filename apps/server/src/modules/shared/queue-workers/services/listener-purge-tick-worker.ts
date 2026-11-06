@@ -4,8 +4,9 @@ import { ListenerDevices } from '../../../listener/services/listener-devices';
 import { ListenerReceipts } from '../../../listener-receipts/services/listener-receipts';
 import { PgBossClient } from '../../queue/services/pg-boss-client';
 
-// LSN-05: once a day, in the quiet hours.
+// LSN-05: once a day, in the quiet hours of Asia/Dhaka (with no zone pg-boss read it as UTC: found at the close-out).
 const LISTENER_PURGE_CRON = '23 3 * * *';
+const LISTENER_PURGE_TZ = 'Asia/Dhaka';
 
 /**
  * Registers the listener purge (Phase 5 Slice 5.4a): spent or lapsed pairing codes a day old and phones revoked [30]
@@ -23,7 +24,12 @@ export class ListenerPurgeTickWorker implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     await this.pgBoss.boss.createQueue(QueueName.ListenerPurgeTick);
-    await this.pgBoss.boss.schedule(QueueName.ListenerPurgeTick, LISTENER_PURGE_CRON, {});
+    await this.pgBoss.boss.schedule(
+      QueueName.ListenerPurgeTick,
+      LISTENER_PURGE_CRON,
+      {},
+      { tz: LISTENER_PURGE_TZ },
+    );
     await this.pgBoss.boss.work(QueueName.ListenerPurgeTick, async () => {
       const now = new Date();
       const purged = await this.devices.purge(now);

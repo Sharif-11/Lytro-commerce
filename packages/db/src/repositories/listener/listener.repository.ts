@@ -172,7 +172,14 @@ export class ListenerRepository {
   }
 
   /** LSN-08: the shop's paired phones still working. */
+  /**
+   * LSN-08: the shop's phones still working, counted under a lock held to the end of the caller's transaction, so two
+   * pairings at once count one after the other and can't both pass the plan's limit (found at the Phase 5 close-out).
+   */
   async countLive(db: Executor, tenantId: string): Promise<number> {
+    await db.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${`listener_pairing:${tenantId}`}, 0))`,
+    );
     const [row] = await db
       .select({ total: count() })
       .from(listenerDevices)

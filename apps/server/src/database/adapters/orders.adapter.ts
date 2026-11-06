@@ -190,8 +190,13 @@ export class DrizzleOrderStore implements OrderStore {
     return this.receipts.releaseOfPayment(tx, tenantId, paymentId);
   }
 
-  async closeAwaitingPayment(tx: Transaction, tenantId: string, orderId: string): Promise<void> {
-    await this.sessions.cancelAwaitingForOrder(tx, tenantId, orderId);
+  async closeAwaitingPayment(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+    keepWalletTry = false,
+  ): Promise<void> {
+    await this.sessions.cancelAwaitingForOrder(tx, tenantId, orderId, keepWalletTry);
   }
 
   refundPayment(
@@ -241,12 +246,14 @@ export class DrizzleOrderStore implements OrderStore {
     return this.orders.numberOrder(tx, tenantId, id, orderNumber);
   }
 
-  findOrder(
+  async findOrder(
     tx: Transaction,
     tenantId: string,
     id: string,
     lock: boolean,
   ): Promise<OrderRecord | null> {
+    // A session before its order, as every money path holds them (found at the Phase 5 close-out).
+    if (lock) await this.sessions.lockOpenForOrder(tx, tenantId, id);
     return this.orders.findOrder(tx, tenantId, id, lock);
   }
 

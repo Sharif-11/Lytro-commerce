@@ -363,11 +363,16 @@ test("an archived shop's Renew says until when its data is kept, and offers a re
   await expect(
     page.getByText(/^প্ল্যান 20 দিন আগে শেষ হয়েছে। ডেটা \d+ \S+ \d{4} পর্যন্ত রাখা আছে/),
   ).toBeVisible();
-  await expect(
-    page.getByRole('link', {
-      name: 'এক্সপোর্ট ডাউনলোড করুন (18 MB) · 24 ঘণ্টা পর্যন্ত পাওয়া যাবে',
-    }),
-  ).toHaveAttribute('href', '/api/v1/exports/export-9/download');
+  // KNOWN-GAPS §113: fetched as every call is, so it names this shop.
+  const asked = page.waitForRequest((request) =>
+    request.url().includes('/exports/export-9/download'),
+  );
+  const saved = page.waitForEvent('download');
+  await page
+    .getByRole('button', { name: 'এক্সপোর্ট ডাউনলোড করুন (18 MB) · 24 ঘণ্টা পর্যন্ত পাওয়া যাবে' })
+    .click();
+  expect((await asked).headers()['x-lytro-shop']).toBeTruthy();
+  expect((await saved).suggestedFilename()).toBe('data-export-export-9.zip');
   await expect(page.getByRole('button', { name: 'লগআউট' })).toBeVisible();
 });
 

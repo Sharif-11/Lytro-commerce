@@ -1066,6 +1066,26 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       });
     }
     if (customered) return ok(customered.data);
+    // KNOWN-GAPS §113 (Phase 5 close-out): files the dashboard fetches through its client, so they name the shop.
+    if (method === 'GET' && path === '/balance/ledger/export') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'text/csv; charset=utf-8',
+        headers: { 'Content-Disposition': 'attachment; filename="balance-statement.csv"' },
+        body: 'at,type,amount\n',
+      });
+    }
+    const exportFile = /^\/exports\/([^/]+)\/download$/.exec(path);
+    if (method === 'GET' && exportFile) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/zip',
+        headers: {
+          'Content-Disposition': `attachment; filename="data-export-${exportFile[1] ?? ''}.zip"`,
+        },
+        body: Buffer.from('PK'),
+      });
+    }
     // Slice 5.8, parts 3 and 4: the shop's incoming payments and its phones.
     const incoming = shopPaymentsAnswer(
       method,

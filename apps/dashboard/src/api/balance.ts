@@ -3,6 +3,7 @@ import type { ConfirmTopUpInput, LedgerEntryType, QuoteTopUpInput } from '@lytro
 import { HOME_QUERY_KEY } from '@/api/home';
 import { PAYMENTS_QUERY_KEY } from '@/api/payment-keys';
 import { tenantSession } from '@/session/tenant-session';
+import { downloadFile } from './download';
 import type { BalanceSnapshot, EssentialSmsUsage, LedgerPage, RateValue } from '@/types/balance';
 import type { PlanPayment } from '@/types/billing';
 
@@ -49,10 +50,10 @@ export function useLedger(filters: LedgerFilters, options: { enabled?: boolean }
   });
 }
 
-/** GET /balance/ledger/export: a CSV download, opened by the browser directly with the session cookie. */
-export function ledgerExportUrl(filters: LedgerFilters): string {
+/** GET /balance/ledger/export: the statement's CSV, for the shop the owner is on (KNOWN-GAPS §113). */
+export async function downloadLedger(filters: LedgerFilters): Promise<void> {
   const query = ledgerParams(filters).toString();
-  return `/api/v1/balance/ledger/export${query ? `?${query}` : ''}`;
+  await downloadFile(`/balance/ledger/export${query ? `?${query}` : ''}`, 'balance-statement.csv');
 }
 
 export function useCurrentRates(options: { enabled?: boolean } = {}) {
