@@ -75,7 +75,7 @@ free. Lytro's own payments from sellers use the same listener, from the dashboar
 | D5-6 | **Wallets for manual payment.** WAL-01 lists bKash, Nagad and Rocket; the payment page design, ORD-15 and the payment methods already built include Upay. | bKash, Nagad, Rocket and Upay (wallet kind) and bank transfer (bank kind). WAL-01 amended. The listener reads bKash's receipts first, and the others once real samples arrive (LSN-06). | Slices 5.1, 5.4 |
 | D5-7 | **Gateways.** | bKash's tokenized checkout only; Nagad's later (OD-07). Lytro applies for bKash's sandbox early enough for Slice 5.7. Amended 2026-11-03: the owner chooses for each wallet how its money is taken -- automated checkout, the listener or by hand (PAY-06). | Slice 5.7 |
 | D5-8 | **Moved out of this phase.** PAY-09 – 12 (signed webhooks, their retries, the secret-key read and cancel) are must-haves, but webhooks and secret keys are Phase 8 (D4-5). | They go to Phase 8, with the shop API. Phase 5 serves Lytro's own storefront, landing pages and staff, which read a session's state from the server. | Scope |
-| D5-9 | **A prepaid order's flow** (agreed in Phase 4's read, D4-3). | Unverified until its payment is verified, then New (`pending`) and the usual confirming call (ORD-51). An order waiting on its advance is not confirmed or shipped (agreed 2026-10-31 in Slice 5.1's read); staff who received the money another way record it (ORD-22), which verifies it. | Slice 5.3 |
+| D5-9 | **A prepaid order's flow** (agreed in Phase 4's read, D4-3). | Unverified until its payment is verified, then New (`pending`) and the usual confirming call (ORD-51). An order waiting on its advance is not confirmed or shipped (agreed 2026-10-31 in Slice 5.1's read); staff who received the money another way record it (ORD-22), which verifies it. Agreed 2026-11-06 (the close-out, the user's pick): an advance voided or refunded after it was verified leaves the order plain unverified, free to confirm and ship; staff decide whether it still needs one. | Slice 5.3 |
 
 ### 2.1 Points left to each slice's read
 
@@ -104,13 +104,13 @@ this phase builds a working part and a named later phase finishes it. Notices de
 
 | Family | Requirements |
 |---|---|
-| WAL | WAL-01 (amended) – WAL-21 (WAL-18 by a manual check) |
+| WAL | WAL-01 (amended) – WAL-21 (WAL-18's registry by a manual check, §11; retiring a type in §3.2) |
 | PAY | PAY-01 – 08, 13 – 17, 19 – 23 (Slice 5.3's read kept PAY-20; PAY-18 withdrawn 2026-11-04) |
 | VER | VER-01 – VER-12 |
 | LSN | LSN-01 – LSN-24 (the should-haves as Slice 5.4's read settles) |
 | TVR | TVR-01 – TVR-04 |
 | RAT | RAT-15, RAT-16 |
-| From Phase 4's partials | ORD-07, ORD-08 (payment events), SFT-06 (payment methods), SFT-07, SFT-10, LND-10, INV-16, RTE-08 (payment sessions), API-07 (payment sessions), API-11 (required on sessions), LIM-02, LIM-04, TRL-03, PLN-19, DWN-12, DWN-14, DWN-15, UPG-10 (sessions and devices), AUD-01 (verified by the listener or the gateway), LIF-16, LIF-19 (payments, wallet accounts, devices, credentials); ORD-44 with PAY-20 |
+| From Phase 4's partials | ORD-07, ORD-08 (payment events), SFT-06 (payment methods), SFT-07, SFT-10, LND-10, INV-16, RTE-08 (payment sessions), API-07 (payment sessions), API-11 (required on sessions), LIM-02, TRL-03, PLN-19, DWN-12, DWN-14, DWN-15, UPG-10 (sessions and devices), AUD-01 (verified by the listener or the gateway), LIF-16, LIF-19 (payments, wallet accounts, devices, credentials); ORD-44 with PAY-20 |
 | Lytro's own payments | PAY-21 and the wallet step's part of AUTH-29, BIL-03, BAL-03 and PLN-14 (D5-3, amended 2026-11-03) |
 
 ### 3.2 Partially completed by this phase
@@ -121,7 +121,9 @@ this phase builds a working part and a named later phase finishes it. Notices de
 | LSN-06 | bKash's receipts | Nagad, Rocket and Upay as real samples arrive | when samples arrive |
 | SEC-11 | a gateway credential's use logged per shop in `tenant.gateway_credential_uses`, for the operator (Slice 5.7) | the full security pass | Phase 9 |
 | RTE-08, RTE-09 | session windows on the in-process limiter (D4-13) | exact counters in PostgreSQL (RED-11) | Phase 9 |
-| OBS-08 | the scripted order-and-payment check, run on staging for this phase's milestone | monitored probes | Phase 9 |
+| OBS-08 | the scripted order-and-payment check (`apps/server/scripts/order-payment-check.ts`), proven against a server; its run on staging for this phase's milestone waits for a staging deployment (§11) | monitored probes | Phase 9 |
+| WAL-18 | the types as a registry, checked by hand (§11) | retiring a type, with the couriers' retire-then-remove lifecycle (CRR-23, CRR-24) | Phase 8 |
+| LIM-04 | nothing: its only piece here, the session counters, went with RTE-09 (withdrawn 2026-10-31) | reconciling the counters on a live deployment | Phase 9 |
 
 ### 3.3 Listed for Phase 5 but not built here
 
@@ -590,3 +592,69 @@ Same as Phase 4, plus the money rule in §8:
 - the isolation registry updated for any new shop-owned route
 - `KNOWN-GAPS.md` updated if anything listed here turns out not to hold
 - this plan's slice entry marked shipped with its PR number
+
+## 11. Close-out check (2026-11-06)
+
+Checked after Slice 5.8 merged (#310), against §1's eight criteria. Every slice is built. Three reviews read every requirement in §3.1 and
+§3.2 against the tests and the code behind them, looking for the assertion and not for a test that names the ID. What they found was fixed
+in this check's own pull request, which holds the fixes, the tests, this section and the SRS's amendments. The user settled four points
+(2026-11-06): a voided or refunded advance (D5-9), the milestone (criterion 7), KNOWN-GAPS §113, and fixing every small issue found.
+
+1. **Every completed requirement has a test or a recorded manual check: holds, with the exceptions below.**
+   - **Fixed by this check:**
+     - LSN-06, VER-02: bKash prints the payer's reference before its own TrxID, and the parser took the first, so a made-up ID in a
+       reference could verify one order while the real one paid another by hand. A receipt naming two different IDs now verifies nothing.
+     - PAY-03, D5-4: cancelling an order left its page taking money. A session still awaiting payment now closes; one with a typed ID stays
+       for staff, and one whose shopper is at bKash's checkout stays for its return, so money taken there reaches staff.
+     - VER-01, PAY-15: a gateway payment verified, or sent to staff, told nobody; the gateway had marked staff told. Both now notify.
+     - VER-09: money bKash took while staff changed the session was dropped; it is now settled or sent to staff. Two starts of one checkout
+       at once made two bKash payments; they share one. A staff link waits while the shopper is at bKash.
+     - WAL-11, WAL-19: an account or its keys could be removed while a checkout ran on it; they now stay until it ends. The account a
+       checkout ran on is the one recorded.
+     - TVR-04: an open test checkout counted toward the new-shop cap. ORD-08: the unpaid cancel's payment status had no history line.
+     - LSN-08: two phones pairing at once could pass the plan's limit; the count runs under the shop's lock. LSN-05: the purge ran at 09:23
+       in Dhaka; it runs at 03:23. LSN-21: the owner is now told of a phone Lytro revoked or blocked.
+     - Holding an order now takes its open session first, as verifying, the minute pass and settling do. The two orders could deadlock;
+       a 25-round probe never reproduced it, so this fix rests on reading.
+     - KNOWN-GAPS §113 (the user's pick): Balance's CSV and the export's download now name the shop.
+   - **Built because they were counted here and weren't:** LIF-16's export now holds the payments shoppers made and the wallet accounts
+     paid into, never a key; LSN-21's owner notice; OBS-08's script (criterion 7).
+   - **Moved to §3.2, since a later phase finishes them:** WAL-18's retiring of a type (Phase 8, with the operator's tooling); LIM-04,
+     whose only Phase 5 piece went with RTE-09 (its reconciling is live-only, Phase 9).
+   - **Amended, the requirement and what was built having parted:** WAL-01, WAL-04, WAL-06, TVR-01, RAT-15, BIL-03, PLN-14, LSN-07,
+     LSN-10, LSN-21, PAY-01, SFT-07, PAY-02, PAY-06, PAY-07, PAY-13, API-11, LIF-16; D5-9 by the user's decision.
+   - **Tested by this check, built but asserted nowhere:** WAL-15, WAL-17 and VER-01 for bank transfer, PAY-02, PAY-05's account types,
+     marks, bank details and monogram, WAL-20 on pay-as-you-go and a refund, AUD-01's gateway entry, LSN-05, LSN-07, LSN-09, PLN-19's
+     paired devices and PLN-14 in the wallet step (`phase-5-requirements.e2e.spec.ts` and the specs of each area).
+   - **Manual checks recorded:**
+     - WAL-18: a type of an existing kind is one row in `PAYMENT_METHOD_TYPES` (its kind, number lengths and verification levels), its
+       `payment_method` value with a migration, and the page's row for its USSD code and mark (`page/wallets.ts`). Order, session and
+       page logic read only the common shape; nothing else names a type.
+   - **Not built, open in KNOWN-GAPS:** §117 (what holds on one server only), §118 (a gateway review keeps no amount bKash reports, and
+     one race after a timed-out execute).
+   - **Live only:** a real completed bKash payment (VER-08, VER-09, §107); real receipts for LSN-06; the Xiaomi test; LIF-16's ten minutes;
+     LIM-04; the milestone's run on staging.
+2. **The prepaid golden path: holds.** `payment-golden-path.e2e.spec.ts` walks §1's path as one test for each level, each for one clothing
+   shop: a landing-page order for a shirt needing a 300 TK advance, its stock held, the page showing the active bKash account alone, the
+   order refused a confirming call or shipping before its advance, then verified by staff (no fee), by a paired phone's receipt (0.30, once)
+   or at bKash's checkout (3.00 held, then charged once), on to its call, shipped and delivered collecting only the 770 TK left. After every
+   step it reads the session, the order's two axes, the payments, the balance and its ledger and the stock, and re-derives each. Eight
+   deliberate breaks of its money rules were each caught. The gateway is a fake bKash; the real sandbox's completed payment is §107's.
+3. **The unpaid paths: holds.** An order with no ID typed when its window ends is cancelled ("advance not paid"), its stock let go and its
+   payment status recorded, while one with an ID typed waits (`payment-sessions.e2e.spec.ts`); a rejected payment cancels its order
+   (`payment-verify.e2e.spec.ts`); money after a cancellation goes to staff and reopens nothing (`listener-receipts.e2e.spec.ts`).
+4. **Exactly once: holds.** `payment-exactly-once.e2e.spec.ts` sends two callers at once: one ID typed at two shops, one payment verified
+   twice, verified and rejected, two phones forwarding one receipt, money recorded by hand while the session verifies, and one refund twice.
+   A gateway return sent twice at once settles once (`gateway.e2e.spec.ts`).
+5. **The balance never blocks a shopper: holds.** Too little balance sends the shopper to the page with a once-a-day notice
+   (`gateway.e2e.spec.ts`), and a listener match to free review (`listener-receipts.e2e.spec.ts`).
+6. **Lytro's own payments: holds.** A plan bought in the wallet step and verified by Lytro's phone activates once, with no fee and no cap,
+   and an add-on bought there too (`lytro-listener.e2e.spec.ts`).
+7. **The milestone: built, its run waits for staging** (the user's pick). `apps/server/scripts/order-payment-check.ts` places an order
+   needing an advance as a website would, opens its page, follows bKash's checkout to its address when the shop takes bKash there, and reads
+   the tracking, moving no money; `order-payment-check.e2e.spec.ts` runs it against a server for a listener shop, a gateway shop and a key
+   refused. Run against a staging shop with bKash's sandbox, for one wallet by the listener and one by the gateway, it closes this criterion.
+8. **CI green on `main`, every slice by pull request: holds** once this check's pull request merges. A green Deploy run deploys nothing,
+   because its staging and production jobs are skipped.
+
+Noted for later, none of them stopping this: KNOWN-GAPS §117 and §118. §107 is unchanged.
