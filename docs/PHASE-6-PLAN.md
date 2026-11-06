@@ -387,7 +387,7 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
     applies to every courier with a cancel call.
   - **Store:** like Pathao's, but booking never waits: with none chosen, RedX uses its own default.
   - **PRs: one** (the owner's pick; two, areas first, was recommended).
-- **Built:** against a fake made from its document and what the sandbox showed. Shared code grew where the adapter
+- **Built as PR #313,** migration 0109, against a fake made from its document and what the sandbox showed. Shared code grew where the adapter
   declares it (an area chosen from the list, the goods' worth, a store that may be left out) and in one rule for every
   courier: a cancel with no clear answer asks staff to confirm. The operator's screens for areas come with Slice 6.7.
   **Not tried:** a real RedX booking, message, cancel or parcel details; `KNOWN-GAPS` §119 lists them.
