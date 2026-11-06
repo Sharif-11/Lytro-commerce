@@ -1,9 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  CourierAdapterRepository,
   CourierRepository,
   TenantRepository,
   TransactionRunner,
+  type BlockingParcelRow,
   type CourierConnectionPatch,
+  type CourierShopFacts,
   type CourierParcelPatch,
   type NewCourierCredentialUse,
   type NewCourierEvent,
@@ -19,7 +22,7 @@ import {
   type SelectCourierPayout,
   type Transaction,
 } from '@lytronix/db';
-import type { CourierConnectionState, CourierKey } from '@lytronix/validators';
+import type { CourierAdapterState, CourierConnectionState, CourierKey } from '@lytronix/validators';
 import type { CourierStore } from '../../modules/couriers/ports/courier-store';
 import { DatabaseService } from '../database.service';
 
@@ -30,6 +33,7 @@ export class DrizzleCourierStore implements CourierStore {
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(CourierRepository) private readonly couriers: CourierRepository,
     @Inject(TenantRepository) private readonly tenants: TenantRepository,
+    @Inject(CourierAdapterRepository) private readonly adapters: CourierAdapterRepository,
   ) {}
 
   run<T>(tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T> {
@@ -281,6 +285,23 @@ export class DrizzleCourierStore implements CourierStore {
     payout: Pick<SelectCourierPayout, 'courierKey' | 'payoutId'>,
   ): Promise<PayoutParcelRow[]> {
     return this.couriers.payoutParcels(tx, tenantId, payout);
+  }
+
+  adapterStateWithin(tx: Transaction, courierKey: CourierKey): Promise<CourierAdapterState> {
+    return this.adapters.sharedState(tx, courierKey);
+  }
+
+  blockingParcels(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+    paidSince: Date,
+  ): Promise<BlockingParcelRow[]> {
+    return this.couriers.blockingParcels(tx, tenantId, courierKey, paidSince);
+  }
+
+  shopFacts(tx: Transaction, tenantId: string, courierKey: CourierKey): Promise<CourierShopFacts> {
+    return this.couriers.shopFacts(tx, tenantId, courierKey);
   }
 
   findRoute(tokenHash: string): Promise<SelectCourierMessageRoute | null> {

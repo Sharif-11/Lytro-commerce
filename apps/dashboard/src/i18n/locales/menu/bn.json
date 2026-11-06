@@ -77,6 +77,8 @@
     "courier_default_changed": "{{actor}} ডিফল্ট কুরিয়ার বদলেছেন",
     "courier_address_replaced": "{{actor}} কুরিয়ারের নতুন মেসেজ ঠিকানা তৈরি করেছেন",
     "courier_pickup_store_changed": "{{actor}} কুরিয়ারের পিকআপ স্টোর বদলেছেন",
+    "courier_retiring": "Lytro শপের একটি কুরিয়ার রিটায়ার করছে; এখনকার বুকিং আগের মতোই চলবে",
+    "courier_retiring_undone": "Lytro যে কুরিয়ারটি রিটায়ার করছিল, সেটি আবার চালু হয়েছে",
     "parcel_cancelled": "{{actor}} একটি কুরিয়ার বুকিং ক্যানসেল করেছেন",
     "parcel_settled": "{{actor}} একটি কুরিয়ার বুকিং ঠিক করেছেন",
     "gateway_credentials_saved": "{{actor}} গেটওয়ের ক্রেডেনশিয়াল সেভ করেছেন",

@@ -1972,6 +1972,17 @@ CREATE TABLE control.courier_areas (
     UNIQUE (courier_key, area_code)
 );
 
+-- CRR-23 to CRR-25 (Slice 6.6, migration 0112): each courier's platform-wide state; no row is active. A booking's claim reads
+-- it FOR SHARE and removal holds it FOR UPDATE, so removal waits for a claim in flight and no claim starts once removed.
+CREATE TABLE control.courier_adapters (
+    courier_key     text PRIMARY KEY,
+    state           text NOT NULL DEFAULT 'active',  -- active, retiring, removed
+    suggested_key   text,                            -- the courier shops are told to use instead
+    retiring_since  timestamptz,
+    removed_at      timestamptz,
+    updated_at      timestamptz NOT NULL DEFAULT now()
+);
+
 -- SEC-11: every outbound call with a shop's courier credentials, never the credentials.
 CREATE TABLE tenant.courier_credential_uses (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),

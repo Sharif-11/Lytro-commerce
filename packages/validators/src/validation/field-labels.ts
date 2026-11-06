@@ -226,6 +226,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   rank: { en: 'Rank', bn: 'র‍্যাংক' },
   rate: { en: 'Rate', bn: 'রেট' },
   reason: { en: 'Reason', bn: 'কারণ' },
+  suggestedKey: { en: 'Suggested courier', bn: 'সাজেস্ট করা কুরিয়ার' },
   rejected: { en: 'Rejected', bn: 'রিজেক্টেড' },
   rejectReason: { en: 'Reason for rejecting', bn: 'রিজেক্টের কারণ' },
   renews: { en: 'Renews', bn: 'রিনিউ হবে' },

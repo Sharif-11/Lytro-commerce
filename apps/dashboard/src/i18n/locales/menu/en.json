@@ -77,6 +77,8 @@
     "courier_default_changed": "{{actor}} changed the default courier",
     "courier_address_replaced": "{{actor}} made a new courier message address",
     "courier_pickup_store_changed": "{{actor}} changed the courier pickup store",
+    "courier_retiring": "Lytro is retiring a courier the shop uses; bookings with it still work for now",
+    "courier_retiring_undone": "A courier Lytro was retiring is back",
     "parcel_cancelled": "{{actor}} cancelled a courier booking",
     "parcel_settled": "{{actor}} settled a courier booking",
     "gateway_credentials_saved": "{{actor}} saved gateway credentials",

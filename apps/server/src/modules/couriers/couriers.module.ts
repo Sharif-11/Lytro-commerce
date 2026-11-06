@@ -3,6 +3,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 import { apiOrigin } from '../../common/shop-address';
 import type { Env } from '../../config/env';
 import { ENV } from '../../config/tokens';
+import { DrizzleCourierAdapterStore } from '../../database/adapters/courier-adapters.adapter';
 import { DrizzleCourierAreaStore } from '../../database/adapters/courier-areas.adapter';
 import { DrizzleCourierStore } from '../../database/adapters/couriers.adapter';
 import { AuditModule } from '../audit/audit.module';
@@ -19,6 +20,7 @@ import { CourierBookingPass } from './services/courier-booking-pass';
 import { CourierCalls } from './services/courier-calls';
 import { CourierChecks } from './services/courier-checks';
 import { CourierPayouts } from './services/courier-payouts';
+import { CourierRetiring } from './services/courier-retiring';
 import { CourierConnections } from './services/courier-connections';
 import { CourierMessages } from './services/courier-messages';
 import { CourierNewsPath } from './services/courier-news-path';
@@ -28,6 +30,7 @@ import { RedxAdapter } from './services/redx-adapter';
 import { SteadfastAdapter } from './services/steadfast-adapter';
 import {
   COURIER_AREA_STORE,
+  COURIER_ADAPTER_STORE,
   COURIER_AREA_TOKENS,
   COURIER_CLOCK,
   COURIER_FETCH,
@@ -69,6 +72,7 @@ import {
     },
     { provide: REDX_URL, inject: [ENV], useFactory: (env: Env) => env.REDX_API_URL },
     { provide: COURIER_AREA_STORE, useClass: DrizzleCourierAreaStore },
+    { provide: COURIER_ADAPTER_STORE, useClass: DrizzleCourierAdapterStore },
     {
       provide: COURIER_AREA_TOKENS,
       inject: [ENV],
@@ -86,6 +90,7 @@ import {
     CourierNewsPath,
     CourierChecks,
     CourierPayouts,
+    CourierRetiring,
     CourierBookingPass,
   ],
   exports: [
@@ -96,6 +101,7 @@ import {
     CourierBookingPass,
     CourierChecks,
     CourierPayouts,
+    CourierRetiring,
     COURIER_NOTIFIER,
   ],
 })

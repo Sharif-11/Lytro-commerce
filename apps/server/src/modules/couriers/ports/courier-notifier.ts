@@ -34,6 +34,23 @@ export interface ConnectionTroubleNotice {
 }
 
 /**
+ * CRR-25 (Slice 6.6, read agreed 2026-11-06): a courier the shop is connected to is being retired. Lytro's fixed words name the courier
+ * the operator suggested and, where the shop's default moved, the courier it moved to.
+ */
+export interface CourierRetiringNotice {
+  tenantId: string;
+  courierKey: CourierKey;
+  suggestedKey: CourierKey;
+  defaultMovedTo: CourierKey | null;
+}
+
+/** Slice 6.6: a courier being retired is back; defaults that moved stay where they are. */
+export interface CourierBackNotice {
+  tenantId: string;
+  courierKey: CourierKey;
+}
+
+/**
  * CRR-15, CRR-28, NTF-03, D4-10 (Phase 6 Slice 6.2): who hears about a courier's news. A stand-in until Phase 7 delivers it in-app and
  * by push, as the order and payment notices are.
  */
@@ -41,4 +58,6 @@ export interface CourierNotifier {
   parcelNeedsAttention(notice: ParcelAttentionNotice): Promise<void>;
   parcelMoved(notice: ParcelMovedNotice): Promise<void>;
   connectionTrouble(notice: ConnectionTroubleNotice): Promise<void>;
+  courierRetiring(notice: CourierRetiringNotice): Promise<void>;
+  courierBack(notice: CourierBackNotice): Promise<void>;
 }

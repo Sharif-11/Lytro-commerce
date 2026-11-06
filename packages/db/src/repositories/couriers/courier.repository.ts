@@ -94,6 +94,25 @@ export type NewCourierPayout = Omit<
   'id' | 'tenantId' | 'readAt' | 'parcels' | 'ours'
 >;
 
+/** CRR-24 (Slice 6.6): a parcel that holds its courier back from being removed, and the order it is for. */
+export interface BlockingParcelRow {
+  orderId: string;
+  orderNumber: string | null;
+  state: SelectCourierParcel['state'];
+  settledAt: Date | null;
+  reading: SelectCourierParcel['reading'];
+  paidAt: Date | null;
+  lastChangeAt: Date | null;
+  fulfillmentStatus: string;
+}
+
+/** CRR-23 (Slice 6.6): one shop's ties to a courier, for the operator's couriers page. */
+export interface CourierShopFacts {
+  connected: boolean;
+  isDefault: boolean;
+  onTheirWay: number;
+}
+
 /** CRR-17 (Slice 6.5): one parcel a payout settled, with the order it was for. */
 export interface PayoutParcelRow {
   orderId: string;
@@ -797,6 +816,93 @@ export class CourierRepository {
         ),
       )
       .orderBy(asc(courierParcels.createdAt), asc(courierParcels.id));
+  }
+
+  /**
+   * CRR-24 (Slice 6.6): this shop's parcels that hold a courier back from being removed: a booking not yet settled; one settled whose
+   * order hasn't been delivered, part delivered, returned or cancelled; and one whose courier reported a result and hasn't paid for it,
+   * changed since `paidSince`. A cancelled booking or a refused one holds nothing back.
+   */
+  async blockingParcels(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+    paidSince: Date,
+  ): Promise<BlockingParcelRow[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const finished = [...FINISHED_PARCEL_READINGS];
+    return tx
+      .select({
+        orderId: courierParcels.orderId,
+        orderNumber: orders.orderNumber,
+        state: courierParcels.state,
+        settledAt: courierParcels.settledAt,
+        reading: courierParcels.reading,
+        paidAt: courierParcels.paidAt,
+        lastChangeAt: courierParcels.lastChangeAt,
+        fulfillmentStatus: orders.fulfillmentStatus,
+      })
+      .from(courierParcels)
+      .innerJoin(
+        orders,
+        and(eq(orders.tenantId, courierParcels.tenantId), eq(orders.id, courierParcels.orderId)),
+      )
+      .where(
+        and(
+          eq(courierParcels.tenantId, tenantId),
+          eq(courierParcels.courierKey, courierKey),
+          or(
+            inArray(courierParcels.state, [ParcelState.Booking, ParcelState.Unknown]),
+            and(eq(courierParcels.state, ParcelState.Booked), isNull(courierParcels.settledAt)),
+            and(
+              eq(courierParcels.state, ParcelState.Booked),
+              sql`${orders.fulfillmentStatus} IN ('processing', 'shipped')`,
+              sql`${orders.statusOverride} IS DISTINCT FROM 'cancelled'`,
+            ),
+            and(
+              eq(courierParcels.state, ParcelState.Booked),
+              inArray(courierParcels.reading, finished),
+              isNull(courierParcels.paidAt),
+              gte(courierParcels.lastChangeAt, paidSince),
+            ),
+          ),
+        ),
+      )
+      .orderBy(asc(courierParcels.createdAt), asc(courierParcels.id));
+  }
+
+  /** CRR-23 (Slice 6.6): whether this shop is connected to a courier, whether it is its default, and how many of its parcels are on their way. */
+  async shopFacts(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+  ): Promise<CourierShopFacts> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [connection] = await tx
+      .select({ isDefault: courierConnections.isDefault })
+      .from(courierConnections)
+      .where(
+        and(
+          eq(courierConnections.tenantId, tenantId),
+          eq(courierConnections.courierKey, courierKey),
+        ),
+      );
+    const [moving] = await tx
+      .select({ total: count() })
+      .from(courierParcels)
+      .where(
+        and(
+          eq(courierParcels.tenantId, tenantId),
+          eq(courierParcels.courierKey, courierKey),
+          eq(courierParcels.state, ParcelState.Booked),
+          sql`(${courierParcels.reading} IS NULL OR ${courierParcels.reading} NOT IN ('delivered', 'partly_delivered', 'returning'))`,
+        ),
+      );
+    return {
+      connected: connection !== undefined,
+      isDefault: connection?.isDefault ?? false,
+      onTheirWay: moving?.total ?? 0,
+    };
   }
 
   /** CRR-11: whose connection a message address belongs to; read before any tenant context exists. */

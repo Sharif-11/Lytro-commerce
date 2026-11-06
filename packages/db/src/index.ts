@@ -313,7 +313,13 @@ export {
   type NewCourierPayout,
   type ParcelCheckWindow,
   type PayoutParcelRow,
+  type BlockingParcelRow,
+  type CourierShopFacts,
 } from './repositories/couriers/courier.repository';
+export {
+  CourierAdapterRepository,
+  type CourierAdapterPatch,
+} from './repositories/couriers/courier-adapter.repository';
 export {
   CourierAreaRepository,
   type CourierAreaFilter,

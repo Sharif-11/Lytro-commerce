@@ -15,7 +15,11 @@ import {
   courierAreasForOrderSchema,
   courierAreasQuerySchema,
   CourierAreaMatch,
+  CourierAdapterState,
+  CourierBlockReason,
   courierPayoutsQuerySchema,
+  courierReasonSchema,
+  retireCourierSchema,
   ParcelReading,
   refreshCourierAreasSchema,
 } from '@lytronix/validators';
@@ -28,6 +32,51 @@ export class ConfirmCourierAreasDto extends createZodDto(confirmCourierAreasSche
 export class RefreshCourierAreasDto extends createZodDto(refreshCourierAreasSchema) {}
 export class CourierAreasForOrderDto extends createZodDto(courierAreasForOrderSchema) {}
 export class CourierPayoutsQueryDto extends createZodDto(courierPayoutsQuerySchema) {}
+export class RetireCourierDto extends createZodDto(retireCourierSchema) {}
+export class CourierReasonDto extends createZodDto(courierReasonSchema) {}
+
+// CRR-23 (Slice 6.6): a courier as the operator sees it, and how many shops lean on it.
+const operatorCourierSchema = z.object({
+  key: z.nativeEnum(CourierKey),
+  name: z.string(),
+  state: z.nativeEnum(CourierAdapterState),
+  suggestedKey: z.nativeEnum(CourierKey).nullable(),
+  retiringSince: z.coerce.date().nullable(),
+  removedAt: z.coerce.date().nullable(),
+  shops: z.number(),
+  defaultFor: z.number(),
+  onTheirWay: z.number(),
+});
+export class OperatorCourierListDto extends createZodDto(
+  z.object({ couriers: z.array(operatorCourierSchema) }),
+) {}
+export class CourierRetiredDto extends createZodDto(
+  z.object({ courier: operatorCourierSchema, told: z.number(), defaultsMoved: z.number() }),
+) {}
+export class CourierRetireUndoneDto extends createZodDto(
+  z.object({ courier: operatorCourierSchema, told: z.number() }),
+) {}
+export class CourierRemovedDto extends createZodDto(
+  z.object({ courier: operatorCourierSchema, disconnected: z.number() }),
+) {}
+// CRR-24 (Slice 6.6): the orders holding a courier back from removal.
+export class CourierBlockingDto extends createZodDto(
+  z.object({
+    courierKey: z.nativeEnum(CourierKey),
+    total: z.number(),
+    orders: z.array(
+      z.object({
+        tenantId: z.string(),
+        shopName: z.string(),
+        slug: z.string(),
+        orderId: z.string(),
+        orderNumber: z.string().nullable(),
+        reason: z.nativeEnum(CourierBlockReason),
+        waitsUntil: z.coerce.date().nullable(),
+      }),
+    ),
+  }),
+) {}
 
 // CUS-10 (Slice 6.4): one of a courier's areas, for the operator.
 const courierAreaSchema = z.object({
@@ -89,6 +138,7 @@ export class CourierAdapterListDto extends createZodDto(
         hasStores: z.boolean(),
         takesWeight: z.boolean(),
         canCancel: z.boolean(),
+        retiring: z.boolean(),
       }),
     ),
   }),
@@ -105,6 +155,9 @@ const courierConnectionSchema = z.object({
   messages: z.nativeEnum(CourierMessagesState),
   lastMessageAt: z.coerce.date().nullable(),
   pickupStore: z.object({ id: z.string(), name: z.string() }).nullable(),
+  // CRR-23, CRR-25 (Slice 6.6): being retired, and the courier the operator suggests instead.
+  retiring: z.boolean(),
+  suggestedKey: z.nativeEnum(CourierKey).nullable(),
 });
 export class CourierConnectionDto extends createZodDto(courierConnectionSchema) {}
 // CRR-02, CRR-03: what a seller pastes into the courier's panel; Lytro's own, not the courier's credentials.
