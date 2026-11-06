@@ -1,6 +1,6 @@
 # Shopper storefront: design
 
-Status: v1.8, 2026-11-05 (built, §8a). v1.7 of 2026-11-04 (Slice 5.8's part 2 sketch, §8a: the wallets at checkout, straight to the payment page, and the return). v1.6 of 2026-11-04 (the Phase 4 close-out, §7d: a measured product takes a part of its unit; the landing page says
+Status: v1.9, 2026-11-06 (Phase 6 Slice 6.7's sketch, §7e: tracking shows the courier's own latest words; checkout asks no courier area). v1.8 of 2026-11-05 (built, §8a). v1.7 of 2026-11-04 (Slice 5.8's part 2 sketch, §8a: the wallets at checkout, straight to the payment page, and the return). v1.6 of 2026-11-04 (the Phase 4 close-out, §7d: a measured product takes a part of its unit; the landing page says
 where a limited product goes, and a refusal names it). v1.5 of 2026-11-03 (Slice 4.8e's build, part 2, §7c: the account pages' refusals and empty states, an address
 edited or deleted, ten saved, the profile saved, a shopper's sign-in kept out of a browser's scripts). v1.4 of 2026-11-03
 (Slice 4.8e's build, part 1, §7b: what a product asks when ordering, on the product page and
@@ -290,6 +290,20 @@ read says which with `sharedStock`. In the bag, 1.5 kg of rice counts as one thi
 **Where a limited product goes (DLV-07).** The landing page shows "Delivers to … only" as the product page does (`e48-landing-limited`).
 Where a product can't go to the chosen thana, the banner names it, on the product page, the landing page, the cart and the checkout:
 "Frozen fish can't be delivered to this address." It doesn't list the zones it does go to, since a cart may hold several products.
+
+## 7e. The courier, on the shopper's side (Phase 6 Slice 6.7)
+
+Read agreed 2026-11-06; drawn under "Couriers · Phase 6 Slice 6.7".
+
+- **Tracking** (`t67-tracking`): once shipped, the courier line becomes the courier's own latest words about the journey,
+  with when it said them, then Track on the courier and the tracking code. Only words a courier sends about the parcel's
+  journey show, never a refusal or a change made in its panel (Slice 6.2's read); where the courier sends both
+  languages, the shopper's shows (CRR-12, `t67-tracking-redx`). A part delivery and a parcel going back to the shop say
+  so plainly above the order (`t67-tracking-partly`, `t67-tracking-back`).
+- **Checkout asks no courier area.** Staff choose one at booking, and only for a courier that needs it (D6-5, CUS-12).
+  The checkout built in Slice 4.8e already has none; the field comes out of the early Later-phases drawing too.
+- **The link to check:** Steadfast's real tracking pages are `steadfast.com.bd/tl/` with a token of its own, not `/t/`
+  with the tracking code as Lytro builds them (`KNOWN-GAPS` §112). The first real parcel confirms which works.
 
 ## 8. Later phases, drawn in full
 

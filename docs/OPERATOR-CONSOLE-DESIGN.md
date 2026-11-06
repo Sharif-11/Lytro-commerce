@@ -1,4 +1,4 @@
-# Operator console: design (v3)
+# Operator console: design (v4)
 
 The console at `admin.lytro.app` (`apps/operator`, D3-12), redesigned from scratch on 2026-10-21. Version 1
 (2026-10-19, inverted dark chrome) is retired; nothing from it or from the old `apps/admin` console was
@@ -11,6 +11,10 @@ queue's review facts, a shop's payment page, cap, phones and credential log, Lyt
 receipts and unreadable messages, every platform setting, and the sign-in limit. Phase 6's screens (courier
 areas, retiring a courier) are added once its routes exist. `apps/operator` is rebuilt to this document, in the
 order `PHASE-5-PLAN.md` Slice 5.8 records.
+
+Version 4 (2026-11-06, Phase 6 Slice 6.7's sketch) adds the couriers (§10b): the three couriers with retiring, undoing it
+and removing one once nothing waits on it, as Slice 6.6's read agreed; RedX's areas placed in thanas (Slice 6.4); and a
+shop's courier key log (§5). They are drawn before Slice 6.6's routes exist; §15 lists what the build needs.
 
 **Who and where.** One or two people, mostly at a laptop, several times a day: matching wallet payments
 against the bKash and Nagad statements, answering sellers, and occasionally changing a price or a limit.
@@ -164,6 +168,10 @@ whichever step it locked; the button returns when the server would answer again,
   suspended, its date and reason (TVR-03); the new-shop cap, on or off and whether that is the shop's kind or set
   for this shop, with Change (TVR-04: as its kind says, on, or off); and the credential log with its last use,
   opening `/shops/:slug/credentials` (SEC-11: when, wallet, action, payment, result, never a key).
+- **Couriers** card, after the payments cards (v4): the courier key log with its last use, opening
+  `/shops/:slug/courier-keys` (SEC-11: when, courier, action, the order, result, never a key; the actions are checked
+  the keys, booked a parcel, looked for a parcel by our number, cancelled a parcel, asked where a parcel is, renewed the
+  login, read payouts), paged.
 - **Listener phones** card (LSN-20): "1 of 1" against the plan's limit, then each phone's name, model, app version,
   last seen, today's count, state and flags, with Revoke (LSN-19) and Block (LSN-21). Block names the installation
   and takes a reason: it pairs with no shop again and every phone on it is revoked.
@@ -263,6 +271,49 @@ tabs under one navigation item, with Pair a phone always at the top.
 - **Unreadable messages** (VER-06): the masked wording with numbers, people and notes removed, the day and the
   count, a chip where a day reached the 20 that told the operator, and 7, 30 and 90 days.
 
+## 10b. Couriers (`/couriers`, `/couriers/redx-areas`)
+
+**Job:** keep the couriers shops can connect in order, and give RedX the areas its bookings need (CRR-23 to CRR-25,
+CUS-10). Two tabs under one navigation item in Platform, as Lytro's phones has.
+
+- **Couriers:** one row per courier: its name and key, state (Active, Retiring, Removed), shops connected, how many have it
+  as their default, and parcels on their way; cards on phones. An active courier offers **Retire**; a retiring one shows
+  "Retiring since 19 Oct · suggests Pathao" under its name, a warning banner above the table, and **Undo retiring** and
+  **Remove**; a removed one is faded with "Removed 18 Nov. Past parcels and orders keep its name.", and no actions.
+- **Retire** (panel): "Retire RedX?", how many shops are connected; **Suggest instead**, a select of the other active
+  couriers, the one every connected shop is told to connect for new bookings (Slice 6.6 read 1). Two consequence blocks:
+  how many shops are told in Lytro's own words (read 7) that it is retiring and which courier is suggested; that it leaves
+  the list of couriers to connect, while shops already connected keep booking, tracking and getting its news and can still
+  replace their keys, and a shop that disconnects it can't connect it again (read 8); and how many shops have it as their
+  default, which moves to the suggested courier where they are connected to it and to their longest-connected other courier
+  otherwise, the rest keeping it (reads 2 and 5). A reason for the audit log, which shops never see. A danger button.
+- **Undo retiring** (panel): it can be connected again; the shops told it was retiring hear it's back; the defaults that
+  moved stay where they are (read 6). A reason.
+- **Remove**, while anything waits on it: the panel says it can't be removed yet and how many orders in how many shops wait,
+  why removal waits (a parcel on its way with it, or a delivered parcel still waiting for its payout, up to 30 days after the
+  parcel last changed; read 3), then a wrapping list of each order's number, shop and reason: "On its way" with the
+  courier's status, "Its booking isn't settled", or "Delivered 18 Oct, its payout not in yet · Stops waiting 17 Nov".
+  Only Close.
+- **Remove**, once nothing waits: "Remove RedX for good?", a danger consequence (it deletes the keys and message addresses
+  of the shops still connected and disappears from every list; past parcels and orders keep its name and news; it can't be
+  undone; a developer then deletes its code; read 4), a reason and a danger button. The toast says the code can now go.
+- **RedX areas:** the sentence on why they matter; "2,866 areas · read 19 Oct, 03:00 · again every Sunday at 03:00" with
+  **Refresh now** (the toast gives listed, new, renamed, retired and back, as the refresh answers); chips with counts: All,
+  Suggested, No thana, In a thana, Retired by RedX (the live list would load 793 in a thana by their own names, 1,100
+  suggested and 973 matching nothing); a name search and a district select. A row: the area's name and code, district, post
+  code or a dash, its thana or "Suggested: Banani" in warning tone or "No thana", how it matched (Own name, Placed by you,
+  Suggested, No match) and **Place** or **Change**; an area RedX dropped is faded with the date it went and no action.
+  Suggested is the tab that opens: rows have checkboxes, "2 selected", **Confirm 2** and Clear, with the note to check
+  the brackets ("Duaripara-Pallabi(Mirpur 12)" names Mirpur but is in Pallabi). Paged, 50 to a page.
+- **Place** / **Change** (panel): the area and its code, a thana search over the thanas with their districts, and the
+  consequence: staff booking an order in that thana see it among the thana's areas, and its district becomes the
+  thana's. Change adds **Take it off the thana**.
+- **Confirm** (panel): "Confirm 2 suggested areas?", their names, and that each then counts in the thana suggested for it
+  and can still be moved later.
+- **Lytro's token not set:** a warning banner naming `REDX_AREAS_TOKEN`, saying the list can't be read and RedX can't book
+  until it is set and the list has been read once; Refresh now disabled; the empty table says to set the token, then
+  refresh.
+
 ## 11. Catalogue
 
 **Shop types** (`/catalogue/shop-types`, PST-02 to PST-05): one row per preset: labels in both languages
@@ -312,7 +363,8 @@ cards on the screens they belong to.
 | Payments | `GET /operator/payment-queue`, `approve`, `credit`, `reject` | §3, §4 | ADM-14 to ADM-17 |
 | Page reports | `GET /operator/payment-page-reports`, `dismiss`; `tenants/:id/payment-page/suspend`, `restore`; `tenants/:id/new-shop-cap` | §4a, §5 | |
 | Phones | `tenants/:id/listener-devices`, `listener-devices/:id/revoke`, `listener-installations/block`; `lytro-listener/pairing-codes`, `devices`, `receipts`; `listener-unread` | §5, §10a | |
-| Credentials | `tenants/:id/gateway-credential-uses` | §5 | export for a dispute (SEC-11) |
+| Credentials | `tenants/:id/gateway-credential-uses`, `tenants/:id/courier-credential-uses` | §5 | export for a dispute (SEC-11) |
+| Couriers | `GET /operator/courier-areas`, `PUT /:id`, `POST confirm`, `POST refresh` | §10b | retiring, undoing and removing, until Slice 6.6 builds them |
 | Add-ons | `GET/POST/PATCH /operator/addons`, `retire` | §6a | |
 | Plans | `GET/POST/PATCH/DELETE /operator/plans`, `versions`, prices per term | §6 | |
 | Billing terms | `GET/POST/PATCH /operator/billing-terms`, `retire`, `DELETE` | §7 | |
@@ -356,6 +408,19 @@ Still to come, with the screens that need them:
 | Shops per attribute | catalogue | "Used by 412 shops"; not built: a shop's attributes sit behind row security (KNOWN-GAPS §116). |
 | ADM-03, ADM-08, ADM-09, ADM-14, NTC, KYC, SUP | later phases | Placeholders are drawn, nothing more. |
 
+For the couriers (v4), with Slice 6.6 and Slice 6.7's build:
+
+| Need | Route | Why |
+| --- | --- | --- |
+| Each courier's state, shops connected, defaults and parcels on their way | `GET /operator/couriers` | §10b's table (Slice 6.6). |
+| Retire, with the suggested courier and a reason, answering how many were told and whose defaults moved | `POST /operator/couriers/:key/retire` | Slice 6.6 reads 1, 2, 5 and 7. |
+| Undo retiring, with a reason | `POST /operator/couriers/:key/undo-retire` | Slice 6.6 read 6. |
+| What still waits on a courier: each order's number, shop, why, and until when for a payout | `GET /operator/couriers/:key/blocking` | Remove's first panel (read 3). |
+| Remove, with a reason, refused with the same list while anything waits | `POST /operator/couriers/:key/remove` | Read 4. |
+| Counts by state, when the list was last read, and whether Lytro's token is set | `GET /operator/courier-areas` | The chips and the header; today it answers only the page and its total. |
+| The thanas with their districts, for the place panel | the locations the shops' address forms read | The operator has no route of its own for them yet. |
+| The order's number on each courier key log row | `GET /operator/tenants/:id/courier-credential-uses` | It answers the order's id only. |
+
 ## 16. Mapping onto `apps/operator`
 
 | Screen | Route | View |
@@ -385,8 +450,8 @@ strip). The shell replaces `console-shell.tsx`: the light theme from `packages/u
 the ink band and sidebar head, the four-tab phone bar and the More sheet.
 
 **Built (Slice 5.8 part 5).** Every screen above. Panels on the pricing, platform and catalogue screens open in place, as a
-shop's do, rather than at addresses of their own: nothing needs to link to one. Phase 6's console screens wait for the courier
-routes.
+shop's do, rather than at addresses of their own: nothing needs to link to one. Phase 6's console screens are drawn in v4
+(§10b and §5's Couriers card) and built with Slice 6.7's build, after Slice 6.6 adds the routes §15 lists.
 
 **What the queue says and doesn't.** A row's amount, and the approve button's, is what a receipt says arrived, else the quote,
 never what the seller typed. Approving sends an amount only if the operator changed the one shown. Putting money on the
@@ -399,5 +464,5 @@ end date: owner notices come with Phase 7, and the server doesn't say the date b
 above), the device (phone 390, tablet 820, desktop 1366), the language and the data state (busy, nothing
 waiting, server error). Every button that leads somewhere in the design leads there in the sketch, so a
 reviewer can walk the sign-in, approve a payment, suspend and restore a shop, edit a plan and set a rate
-without the toolbar. It renders 90 screens with no horizontal overflow on any device, in any data state, and no
-missing strings in either language.
+without the toolbar. It renders 114 screens with no horizontal overflow on any device, in any data state, and no
+missing strings in either language; v4's courier screens are the toolbar group "Couriers · Phase 6 Slice 6.7".

@@ -1669,6 +1669,247 @@ def('setting-senders', { ...settingScreen, label: '· change the senders', rende
 def('setting-order-limit', { ...settingScreen, label: '· change a choice', render: () => settingsPage({ editing: 'order_limit_mode' }) });
 def('setting-version', { ...settingScreen, label: '· change a version', render: () => settingsPage({ editing: 'terms_version' }) });
 
+/* ---------- Phase 6 Slice 6.7 (design v4): couriers. The couriers shops can connect, with retiring (CRR-23, CRR-25), undoing it
+   and removing one once nothing waits on it (CRR-24), as Slice 6.6's read agreed; RedX's areas placed in thanas (CUS-10, Slice
+   6.4); and a shop's courier key log (SEC-11). ---------- */
+I.truck = '<svg class="i" viewBox="0 0 24 24"><path d="M3 6h11v10H3z"/><path d="M14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.5"/><circle cx="17" cy="17.5" r="1.5"/></svg>';
+I.pin = '<svg class="i" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+Object.assign(S, {
+  couriers: ['Couriers', 'কুরিয়ার'],
+  cou_sub: ['The couriers shops can connect. Retiring one stops new connections while shops already connected keep booking; removing it comes once nothing waits on it.', 'যেসব কুরিয়ার শপগুলো কানেক্ট করতে পারে। কোনোটা রিটায়ার করলে নতুন কানেকশন বন্ধ হয়, যারা আগে থেকে কানেক্টেড তারা বুকিং চালিয়ে যায়। কিছুই অপেক্ষায় না থাকলে তবেই রিমুভ করা যায়।'],
+  cou_t_couriers: ['Couriers', 'কুরিয়ার'], cou_t_areas: ['RedX areas', 'RedX এরিয়া'],
+  c_courier: ['Courier', 'কুরিয়ার'], c_shops: ['Shops connected', 'কানেক্টেড শপ'], c_default: ['Default for', 'যাদের ডিফল্ট'], c_onway: ['Parcels on their way', 'পথে থাকা পার্সেল'],
+  cs_active: ['Active', 'চালু'], cs_retiring: ['Retiring', 'রিটায়ারিং'], cs_removed: ['Removed', 'রিমুভড'],
+  cou_shops: ['{n} shops', '{n}টা শপ'],
+  cou_retiring_line: ['Retiring since {d} · suggests {s}', '{d} থেকে রিটায়ারিং · সাজেস্ট: {s}'],
+  cou_removed_line: ['Removed {d}. Past parcels and orders keep its name.', '{d} রিমুভ করা হয়েছে। আগের পার্সেল আর অর্ডারে এর নাম থেকে যায়।'],
+  cou_retire: ['Retire', 'রিটায়ার'], cou_undo: ['Undo retiring', 'রিটায়ার বাতিল'], cou_remove: ['Remove', 'রিমুভ'],
+  cou_retiring_banner: ['<b>{c}</b> is retiring. Shops already connected keep booking with it; no new shop can connect it.', '<b>{c}</b> রিটায়ার হচ্ছে। যারা আগে থেকে কানেক্টেড তারা এতে বুকিং চালিয়ে যাচ্ছে, নতুন কোনো শপ এটা কানেক্ট করতে পারবে না।'],
+
+  ret_title: ['Retire {c}?', '{c} রিটায়ার করবেন?'],
+  ret_sub: ['{n} shops are connected to it', '{n}টা শপ এতে কানেক্টেড'],
+  ret_suggest: ['Suggest instead', 'এর বদলে সাজেস্ট করুন'],
+  ret_suggest_help: ['The courier every connected shop is told to connect for new bookings.', 'নতুন বুকিংয়ের জন্য কানেক্টেড প্রতিটা শপকে যে কুরিয়ার কানেক্ট করতে বলা হবে।'],
+  ret_cons: ['<b>{n} shops</b> are told, in Lytro\'s own words, that {c} is retiring and that {s} is suggested. {c} leaves the list of couriers to connect. Shops already connected keep booking, tracking and getting its news, and can still replace their keys; a shop that disconnects it can\'t connect it again.', '<b>{n}টা শপকে</b> Lytro-র নিজের ভাষায় জানানো হবে যে {c} রিটায়ার হচ্ছে, আর {s} সাজেস্ট করা হচ্ছে। কানেক্ট করার তালিকা থেকে {c} সরে যাবে। যারা আগে থেকে কানেক্টেড তারা বুকিং, ট্র্যাকিং আর এর আপডেট পেতে থাকবে, কী-ও বদলাতে পারবে; কেউ ডিসকানেক্ট করলে আর কানেক্ট করতে পারবে না।'],
+  ret_defaults: ['<b>{m} shops</b> have it as their default. It moves to {s} for the {a} connected to {s}, and to their longest-connected other courier for {b}. {k} have no other courier and keep it.', '<b>{m}টা শপের</b> ডিফল্ট কুরিয়ার এটা। যাদের {s} কানেক্ট করা আছে এমন {a}টা শপের ডিফল্ট হবে {s}, আর {b}টা শপের ডিফল্ট হবে তাদের সবচেয়ে পুরোনো অন্য কুরিয়ার। {k}টা শপের অন্য কোনো কুরিয়ার নেই, তাদের ডিফল্ট বদলাবে না।'],
+  ret_reason_help: ['Required. Goes on the platform audit log; shops never see it.', 'লাগবেই। প্ল্যাটফর্ম অডিট লগে থাকবে, শপগুলো এটা দেখবে না।'],
+  ret_btn: ['Retire {c}', '{c} রিটায়ার করুন'], ret_done: ['{c} is retiring. {n} shops were told.', '{c} রিটায়ার হচ্ছে। {n}টা শপকে জানানো হয়েছে।'],
+
+  rst_title: ['Undo retiring {c}?', '{c}-এর রিটায়ার বাতিল করবেন?'],
+  rst_cons: ['{c} can be connected again. The {n} shops told it was retiring hear it\'s back. The {m} defaults that moved stay where they are.', '{c} আবার কানেক্ট করা যাবে। রিটায়ারের খবর পাওয়া {n}টা শপকে জানানো হবে যে এটা ফিরে এসেছে। যে {m}টা শপের ডিফল্ট বদলেছিল, সেগুলো যেমন আছে তেমনই থাকবে।'],
+  rst_btn: ['Undo retiring', 'রিটায়ার বাতিল করুন'], rst_done: ['{c} is active again. {n} shops were told.', '{c} আবার চালু। {n}টা শপকে জানানো হয়েছে।'],
+
+  rmv_blocked_title: ['{c} can\'t be removed yet', '{c} এখনো রিমুভ করা যাবে না'],
+  rmv_blocked_sub: ['{n} orders in {s} shops still wait on it', '{s}টা শপের {n}টা অর্ডার এখনো এর ওপর নির্ভর করছে'],
+  rmv_blocked_cons: ['Removal waits while any order has a parcel on its way with {c}, or a delivered parcel still waiting for {c}\'s payout. A payout is waited for up to 30 days after the parcel last changed.', 'কোনো অর্ডারের পার্সেল {c}-এর কাছে পথে থাকলে, বা ডেলিভারি হওয়া কোনো পার্সেলের পেআউট {c} থেকে এখনো না এলে, রিমুভ করা যাবে না। পার্সেলের শেষ আপডেটের পর ৩০ দিন পর্যন্ত পেআউটের জন্য অপেক্ষা করা হয়।'],
+  c_order: ['Order', 'অর্ডার'],
+  rmv_onway: ['On its way · {s}', 'পথে আছে · {s}'], rmv_unsettled: ['Its booking isn\'t settled', 'বুকিং এখনো ঠিক হয়নি'],
+  rmv_payout: ['Delivered {d}, its payout not in yet', '{d} ডেলিভারি হয়েছে, পেআউট এখনো আসেনি'], rmv_until: ['Stops waiting {d}', '{d} পর্যন্ত'],
+  rmv_title: ['Remove {c} for good?', '{c} একেবারে রিমুভ করবেন?'],
+  rmv_cons: ['Nothing waits on {c} now. Removing it deletes the keys and message addresses of the <b>{n} shops</b> still connected, and it disappears from every list. Past parcels and orders keep its name and their news. It can\'t be undone. A developer then deletes its code.', 'এখন {c}-এর ওপর কিছুই অপেক্ষা করছে না। রিমুভ করলে এখনো কানেক্টেড <b>{n}টা শপের</b> কী আর মেসেজ অ্যাড্রেস মুছে যাবে, আর এটা সব তালিকা থেকে সরে যাবে। আগের পার্সেল আর অর্ডারে এর নাম আর আপডেট থেকে যাবে। এটা আর ফেরানো যাবে না। এরপর একজন ডেভেলপার এর কোড মুছে দেবেন।'],
+  rmv_btn: ['Remove {c}', '{c} রিমুভ করুন'], rmv_done: ['{c} is removed. A developer can now delete its code.', '{c} রিমুভ হয়েছে। এখন ডেভেলপার এর কোড মুছতে পারেন।'],
+
+  ar_sub: ['RedX needs one of its own areas on every booking. An area counts in a thana once it\'s named after it or you place it there. The rest wait for you, and staff still find them by searching the district.', 'RedX-এ প্রতিটা বুকিংয়ে ওদের নিজেদের একটা এরিয়া লাগে। কোনো এরিয়ার নাম থানার নামে হলে, বা আপনি থানায় বসালে, সেটা ওই থানায় ধরা হয়। বাকিগুলো আপনার অপেক্ষায় থাকে, আর স্টাফরা জেলায় সার্চ করে সেগুলো খুঁজে পায়।'],
+  ar_read: ['{n} areas · read {d} · again every Sunday at 03:00', '{n}টা এরিয়া · {d} পড়া হয়েছে · প্রতি রবিবার রাত ৩টায় আবার'],
+  ar_refresh: ['Refresh now', 'এখনই রিফ্রেশ করুন'],
+  ar_s_all: ['All', 'সব'], ar_s_suggested: ['Suggested', 'সাজেস্টেড'], ar_s_unassigned: ['No thana', 'থানা নেই'], ar_s_assigned: ['In a thana', 'থানায় আছে'], ar_s_retired: ['Retired by RedX', 'RedX বাদ দিয়েছে'],
+  ar_zilla: ['District', 'জেলা'], ar_all_zillas: ['All districts', 'সব জেলা'], ar_search: ['Area name', 'এরিয়ার নাম'],
+  c_area: ['Area', 'এরিয়া'], c_district: ['District', 'জেলা'], c_post: ['Post code', 'পোস্ট কোড'], c_thana: ['Thana', 'থানা'], c_match: ['How', 'কীভাবে'],
+  m_own_name: ['Own name', 'নিজের নামে'], m_operator: ['Placed by you', 'আপনি বসিয়েছেন'], m_suggested: ['Suggested', 'সাজেস্টেড'], m_none: ['No match', 'মেলেনি'],
+  ar_sugg: ['Suggested: {th}', 'সাজেস্ট: {th}'], ar_no_thana: ['No thana', 'থানা নেই'], ar_retired_on: ['Gone from RedX\'s list {d}. Old parcels still show it.', '{d} RedX-এর তালিকা থেকে বাদ গেছে। পুরোনো পার্সেলে এখনো দেখায়।'],
+  ar_place: ['Place', 'বসান'], ar_change: ['Change', 'বদলান'],
+  ar_selected: ['{n} selected', '{n}টা বাছাই করা'], ar_confirm_n: ['Confirm {n}', '{n}টা কনফার্ম করুন'], ar_clear: ['Clear', 'বাদ দিন'],
+  ar_check: ['Check the brackets before confirming: "Duaripara-Pallabi(Mirpur 12)" names Mirpur, but it is in Pallabi.', 'কনফার্ম করার আগে ব্র্যাকেট দেখে নিন: "Duaripara-Pallabi(Mirpur 12)"-এ মিরপুর লেখা, কিন্তু এটা পল্লবীতে।'],
+  arp_title: ['Place {a} in a thana', '{a} থানায় বসান'], arp_now: ['Now: {th}', 'এখন: {th}'], arp_find: ['Find a thana', 'থানা খুঁজুন'],
+  arp_cons: ['Staff booking an order in {th} see it among the thana\'s areas. Its district becomes {z}, the thana\'s.', '{th} থানার অর্ডার বুক করার সময় স্টাফরা এটা থানার এরিয়ার মধ্যে দেখবে। এর জেলা হবে থানার জেলা, {z}।'],
+  arp_off: ['Take it off the thana', 'থানা থেকে সরান'], arp_done: ['{a} is in {th}.', '{a} এখন {th}-এ।'],
+  arc_title: ['Confirm {n} suggested areas?', '{n}টা সাজেস্টেড এরিয়া কনফার্ম করবেন?'],
+  arc_cons: ['Each counts in the thana suggested for it, so staff booking there see it among the thana\'s areas. You can still move one later.', 'প্রতিটা এরিয়া তার সাজেস্ট করা থানায় ধরা হবে, ফলে ওই থানায় বুক করার সময় স্টাফরা এটা দেখবে। পরে চাইলে যেকোনোটা সরাতে পারবেন।'],
+  arc_done: ['{n} areas confirmed.', '{n}টা এরিয়া কনফার্ম হয়েছে।'],
+  arr_done: ['RedX\'s areas read again: {l} listed, {a} new, {r} renamed, {x} retired, {b} back.', 'RedX-এর এরিয়া আবার পড়া হয়েছে: মোট {l}টা, নতুন {a}টা, নাম বদলেছে {r}টা, বাদ গেছে {x}টা, ফিরে এসেছে {b}টা।'],
+  arr_notoken: ['Lytro\'s own RedX token isn\'t set (<span class="mono">REDX_AREAS_TOKEN</span>), so the list can\'t be read. RedX can\'t book until it is set and the list has been read once.', 'Lytro-র নিজের RedX টোকেন সেট করা নেই (<span class="mono">REDX_AREAS_TOKEN</span>), তাই তালিকা পড়া যাচ্ছে না। টোকেন সেট করে একবার তালিকা পড়া না হওয়া পর্যন্ত RedX-এ বুকিং হবে না।'],
+  ar_empty: ['No areas read yet', 'এখনো কোনো এরিয়া পড়া হয়নি'], ar_empty_hint: ['Set the token, then refresh.', 'টোকেন সেট করে রিফ্রেশ করুন।'],
+
+  sc_couriers: ['Couriers', 'কুরিয়ার'],
+  ckl_title: ['Courier key log', 'কুরিয়ার কী লগ'],
+  ckl_hint: ['Every call Lytro made with this shop\'s courier keys, never the keys themselves.', 'এই শপের কুরিয়ার কী দিয়ে Lytro যতবার কল করেছে, কী নিজে কখনো দেখানো হয় না।'],
+  ckl_sub: ['For a dispute or something odd: calls the shop didn\'t expect, a run of failures, or a courier saying a key was misused.', 'কোনো বিরোধ বা অস্বাভাবিক কিছু হলে দেখার জন্য: শপ আশা করেনি এমন কল, একের পর এক ব্যর্থ কল, বা কুরিয়ার যদি বলে কী অপব্যবহার হয়েছে।'],
+  cka_test: ['Checked the keys', 'কী চেক করেছে'], cka_book: ['Booked a parcel', 'পার্সেল বুক করেছে'], cka_look_up: ['Looked for a parcel by our number', 'আমাদের নম্বর দিয়ে পার্সেল খুঁজেছে'], cka_cancel: ['Cancelled a parcel', 'পার্সেল ক্যানসেল করেছে'], cka_track: ['Asked where a parcel is', 'পার্সেল কোথায় জানতে চেয়েছে'], cka_renew: ['Renewed the login', 'লগইন রিনিউ করেছে'], cka_payouts: ['Read payouts', 'পেআউট পড়েছে'],
+  ckl_empty: ['No calls yet', 'এখনো কোনো কল হয়নি'], ckl_empty_hint: ['This shop has no courier connected, or hasn\'t booked yet.', 'এই শপে কোনো কুরিয়ার কানেক্ট করা নেই, বা এখনো বুক করেনি।'],
+});
+
+/* Sample data: the three couriers as a busy platform might stand; RedX is the one drawn retiring (D6-2: the most work, and the one that
+   can be dropped without touching the others). */
+const COURIERS6 = [
+  { key: 'steadfast', name: 'Steadfast', shops: 212, dflt: 180, onway: 1342 },
+  { key: 'pathao', name: 'Pathao', shops: 64, dflt: 21, onway: 410 },
+  { key: 'redx', name: 'RedX', shops: 17, dflt: 6, onway: 58 },
+];
+const RETIRE6 = { a: 2, b: 1, k: 3 };
+const BLOCKING6 = [
+  { shop: 'Rahim Fashion', order: '261019-0042', why: 'onway', s: 'delivery-in-progress' },
+  { shop: 'Dhaka Gadget House', order: '261020-0007', why: 'onway', s: 'agent-hold' },
+  { shop: 'Dhaka Gadget House', order: '261018-0031', why: 'payout', d: '2026-10-18', u: '2026-11-17' },
+  { shop: 'Mim Bakery', order: '261021-0003', why: 'unsettled' },
+];
+const AREAS6 = [
+  { name: 'Kakoli(Banani)', code: '1173', district: ['Dhaka', 'ঢাকা'], post: null, sugg: ['Banani', 'বনানী'], match: 'suggested', state: 'suggested', on: true },
+  { name: 'Banasree(Rampura)', code: '1188', district: ['Dhaka', 'ঢাকা'], post: null, sugg: ['Rampura', 'রামপুরা'], match: 'suggested', state: 'suggested', on: true },
+  { name: 'Duaripara-Pallabi(Mirpur 12)', code: '2210', district: ['Dhaka', 'ঢাকা'], post: '1216', sugg: ['Mirpur', 'মিরপুর'], match: 'suggested', state: 'suggested', on: false },
+  { name: 'Mirpur 10', code: '110', district: ['Dhaka', 'ঢাকা'], post: '1216', thana: ['Mirpur', 'মিরপুর'], match: 'own_name', state: 'assigned' },
+  { name: 'Gulshan 1', code: '101', district: ['Dhaka', 'ঢাকা'], post: '1212', thana: ['Gulshan', 'গুলশান'], match: 'own_name', state: 'assigned' },
+  { name: 'Bashundhara R/A', code: '1290', district: ['Dhaka', 'ঢাকা'], post: null, thana: ['Vatara', 'ভাটারা'], match: 'operator', state: 'assigned' },
+  { name: 'Notun Bazar', code: '1301', district: ['Dhaka', 'ঢাকা'], post: null, match: 'none', state: 'unassigned' },
+  { name: 'Agrabad', code: '4100', district: ['Chattogram', 'চট্টগ্রাম'], post: '4100', match: 'none', state: 'unassigned' },
+  { name: 'Old Kalabagan', code: '9', district: ['Dhaka', 'ঢাকা'], post: null, thana: ['Dhanmondi', 'ধানমন্ডি'], match: 'operator', state: 'retired', gone: '2026-10-12' },
+];
+/* As the live list of 2026-11-06 would load: 793 named after their thana, 1,100 suggested (1,078 by brackets, 22 by near spellings),
+   973 matching nothing (post codes aren't used); one more drawn as retired by RedX. */
+const AREA_COUNTS6 = { all: 2867, suggested: 1100, unassigned: 973, assigned: 793, retired: 1 };
+const CCR_USES = [
+  { at: '2026-10-21T14:12:00+06:00', courier: 'Steadfast', action: 'book', order: '261021-0047', ok: true },
+  { at: '2026-10-21T13:40:00+06:00', courier: 'Pathao', action: 'renew', order: null, ok: true },
+  { at: '2026-10-21T11:02:00+06:00', courier: 'Pathao', action: 'book', order: '261021-0031', ok: false },
+  { at: '2026-10-20T23:01:00+06:00', courier: 'Steadfast', action: 'payouts', order: null, ok: true },
+  { at: '2026-10-20T23:00:00+06:00', courier: 'Steadfast', action: 'track', order: '261019-0042', ok: true },
+  { at: '2026-10-20T15:20:00+06:00', courier: 'Steadfast', action: 'look_up', order: '261020-0019', ok: true },
+  { at: '2026-10-20T15:18:00+06:00', courier: 'Steadfast', action: 'book', order: '261020-0019', ok: false },
+  { at: '2026-10-19T10:05:00+06:00', courier: 'RedX', action: 'cancel', order: '261018-0044', ok: true },
+  { at: '2026-10-18T09:00:00+06:00', courier: 'Steadfast', action: 'test', order: null, ok: true },
+];
+
+const L2 = (pair) => (L.lang === 'bn' ? pair[1] : pair[0]);
+const nfmt = (n) => Number(n).toLocaleString('en-US');
+const couTabs = (active) => `<div class="chips">${[['couriers', 'cou_t_couriers'], ['courier-areas', 'cou_t_areas']].map(([scr, k]) => `<button class="chip ${active === scr ? 'on' : ''}" onclick="go('${scr}')">${t(k)}</button>`).join('')}</div>`;
+const couHead = () => `<div class="ttl"><div><h1>${t('couriers')}</h1><div class="sub">${t('cou_sub')}</div></div></div>`;
+const couState = (s) => st(s === 'active' ? 'ok' : s === 'retiring' ? 'warn' : 'mute', t('cs_' + s));
+const line6 = (text) => `<div style="font-size:13px;color:var(--muted);font-weight:400;white-space:normal">${text}</div>`;
+
+/* The couriers. `o.redx` is RedX's state in the drawing: active, retiring or removed. */
+function couriersPage(o) {
+  o = o || {};
+  const redx = o.redx || 'active';
+  const cols = [
+    { k: 'courier', label: t('c_courier'), w: 'minmax(200px,1.6fr)', cls: 'main' },
+    { k: 'state', label: t('c_status'), w: '110px' },
+    { k: 'shops', label: t('c_shops'), w: '120px' },
+    { k: 'dflt', label: t('c_default'), w: '110px' },
+    { k: 'onway', label: t('c_onway'), w: '130px' },
+    { k: 'acts', label: '', w: '220px', cls: 'acts' },
+  ];
+  const rows = COURIERS6.map((c) => {
+    const s = c.key === 'redx' ? redx : 'active';
+    const removed = s === 'removed';
+    const sub = s === 'retiring' ? line6(t('cou_retiring_line', { d: dateS('2026-10-19'), s: 'Pathao' })) : removed ? line6(t('cou_removed_line', { d: dateS('2026-11-18') })) : '';
+    const acts = removed ? '' : s === 'retiring'
+      ? `${btn(t('cou_undo'), 'ghost sm', "go('courier-undo')")}${btn(t('cou_remove'), 'quiet sm', `go('${o.clear ? 'courier-remove' : 'courier-remove-blocked'}')`)}`
+      : btn(t('cou_retire'), 'ghost sm', c.key === 'redx' ? "go('courier-retire')" : '');
+    return { cls: removed ? 'faded' : '', cells: {
+      courier: `<div>${c.name} <span class="mono" style="font-size:12px;color:var(--muted);font-weight:400">${c.key}</span></div>${sub}`,
+      state: couState(s),
+      shops: `<span class="num">${removed ? 0 : nfmt(c.shops)}</span>`,
+      dflt: `<span class="num">${removed ? 0 : nfmt(s === 'retiring' ? RETIRE6.k : c.dflt)}</span>`,
+      onway: `<span class="num">${removed ? 0 : nfmt(o.clear && c.key === 'redx' ? 0 : c.onway)}</span>`,
+      acts,
+    } };
+  });
+  const banner6 = redx === 'retiring' ? `<div class="banner warn">${I.warn}<div>${t('cou_retiring_banner', { c: 'RedX' })}</div></div>` : '';
+  return `${couHead()}${couTabs('couriers')}${ST.data === 'error' ? errorBox() : `${banner6}${table(cols, rows, '')}`}`;
+}
+const couScreen = { base: 'couriers', nav: 'couriers', group: 'Couriers · Phase 6 Slice 6.7', url: 'admin.lytro.app/couriers', bandTitle: 'couriers', render: () => couriersPage() };
+const retiringRender = () => couriersPage({ redx: 'retiring' });
+def('couriers', { ...couScreen, label: 'Couriers · all three active' });
+def('courier-retire', { ...couScreen, label: '· retire RedX (sheet)', sheet: () => sheet(t('ret_title', { c: 'RedX' }), t('ret_sub', { n: 17 }), `${field(t('ret_suggest'), select([['pathao', 'Pathao'], ['steadfast', 'Steadfast']], 'pathao'), t('ret_suggest_help'))}${consequence(t('ret_cons', { n: 17, c: 'RedX', s: 'Pathao' }))}${consequence(t('ret_defaults', { m: 6, s: 'Pathao', a: RETIRE6.a, b: RETIRE6.b, k: RETIRE6.k }))}${field(t('reason'), textarea('', ''), t('ret_reason_help'))}`, `${backTo('couriers')}${btn(t('ret_btn', { c: 'RedX' }), 'danger', "go('courier-retiring')")}`, { row: true, close: 'couriers' }) });
+def('courier-retiring', { ...couScreen, base: 'courier-retiring', label: 'Couriers · RedX retiring', render: retiringRender, toast: () => t('ret_done', { c: 'RedX', n: 17 }) });
+def('courier-undo', { ...couScreen, base: 'courier-retiring', label: '· undo retiring (sheet)', render: retiringRender, sheet: () => sheet(t('rst_title', { c: 'RedX' }), t('ret_sub', { n: 17 }), `${consequence(t('rst_cons', { c: 'RedX', n: 17, m: RETIRE6.a + RETIRE6.b }), 'ok')}${reasonField()}`, `${backTo('courier-retiring')}${btn(t('rst_btn'), 'primary', "go('courier-undone')")}`, { row: true, close: 'courier-retiring' }) });
+def('courier-undone', { ...couScreen, label: '· undone (toast)', toast: () => t('rst_done', { c: 'RedX', n: 17 }) });
+/* In a panel the list wraps rather than tabulates: the reasons are long, and the panel is narrow on every device. */
+const blockingTable = () => `<div class="card flush"><div class="list">${BLOCKING6.map((b) => {
+  const why = b.why === 'onway' ? `<span style="color:var(--warning);font-weight:500">${t('rmv_onway', { s: b.s })}</span>` : b.why === 'payout' ? `<span style="color:var(--info);font-weight:500">${t('rmv_payout', { d: dateS(b.d) })}</span> · ${t('rmv_until', { d: dateS(b.u) })}` : t('rmv_unsettled');
+  return `<div class="row wrap"><span class="body"><span class="l1"><span class="num">#${b.order}</span> · ${b.shop}</span><span class="l2" style="white-space:normal;color:var(--muted)">${why}</span></span></div>`;
+}).join('')}</div></div>`;
+def('courier-remove-blocked', { ...couScreen, base: 'courier-retiring', label: '· remove: still waited on (sheet)', render: retiringRender, sheet: () => sheet(t('rmv_blocked_title', { c: 'RedX' }), t('rmv_blocked_sub', { n: BLOCKING6.length, s: 3 }), `${consequence(t('rmv_blocked_cons', { c: 'RedX' }))}${blockingTable()}`, btn(t('close'), 'ghost', "go('courier-retiring')"), { close: 'courier-retiring' }) });
+const clearRender = () => couriersPage({ redx: 'retiring', clear: true });
+def('courier-retiring-clear', { ...couScreen, base: 'courier-retiring-clear', label: 'Couriers · RedX retiring, nothing waiting', render: clearRender });
+def('courier-remove', { ...couScreen, base: 'courier-retiring-clear', label: '· remove for good (sheet)', render: clearRender, sheet: () => sheet(t('rmv_title', { c: 'RedX' }), t('ret_sub', { n: 17 }), `${consequence(t('rmv_cons', { c: 'RedX', n: 17 }), 'danger')}${reasonField()}`, `${backTo('courier-retiring-clear')}${btn(t('rmv_btn', { c: 'RedX' }), 'danger', "go('courier-removed')")}`, { row: true, close: 'courier-retiring-clear' }) });
+def('courier-removed', { ...couScreen, base: 'courier-removed', label: 'Couriers · RedX removed', render: () => couriersPage({ redx: 'removed' }), toast: () => t('rmv_done', { c: 'RedX' }) });
+def('couriers-error', { ...couScreen, label: '· the server did not answer', render: () => { const d = ST.data; ST.data = 'error'; const html = couriersPage(); ST.data = d; return html; } });
+
+/* RedX's areas. `o.tab` is the state chip; the Suggested tab can select rows and confirm them together. */
+const matchChip = (m) => st(m === 'own_name' ? 'ok plain' : m === 'operator' ? 'info plain' : m === 'suggested' ? 'warn plain' : 'mute plain', t('m_' + m));
+function areasPage(o) {
+  o = o || {};
+  const tab = o.tab || 'suggested';
+  const busy = ST.data === 'busy' && !o.notoken;
+  const counts = busy ? AREA_COUNTS6 : { all: 0, suggested: 0, unassigned: 0, assigned: 0, retired: 0 };
+  const list = busy ? AREAS6.filter((a) => tab === 'all' || a.state === tab) : [];
+  const pick = tab === 'suggested';
+  const picked = list.filter((a) => a.on).length;
+  const cols = [
+    ...(pick ? [{ k: 'pick', label: '', w: '36px' }] : []),
+    { k: 'area', label: t('c_area'), w: 'minmax(200px,1.6fr)', cls: 'main' },
+    { k: 'district', label: t('c_district'), w: '110px' },
+    { k: 'post', label: t('c_post'), w: '90px' },
+    { k: 'thana', label: t('c_thana'), w: 'minmax(130px,1fr)' },
+    { k: 'match', label: t('c_match'), w: '130px' },
+    { k: 'acts', label: '', w: '100px', cls: 'acts' },
+  ];
+  const rows = list.map((a) => ({ cls: a.state === 'retired' ? 'faded' : '', cells: {
+    pick: chk(a.on, ''),
+    area: `<div>${a.name} <span class="mono" style="font-size:12px;color:var(--muted);font-weight:400">${a.code}</span></div>${a.gone ? line6(t('ar_retired_on', { d: dateS(a.gone) })) : ''}`,
+    district: L2(a.district),
+    post: a.post ? `<span class="num">${a.post}</span>` : `<span style="color:var(--muted)">—</span>`,
+    thana: a.thana ? L2(a.thana) : a.sugg ? `<span style="color:var(--warning)">${t('ar_sugg', { th: L2(a.sugg) })}</span>` : `<span style="color:var(--muted)">${t('ar_no_thana')}</span>`,
+    match: matchChip(a.match),
+    acts: a.state === 'retired' ? '' : btn(a.thana ? t('ar_change') : t('ar_place'), 'ghost sm', `go('${a.thana ? 'courier-area-change' : 'courier-area-place'}')`),
+  } }));
+  const chips = `<div class="chips">${['all', 'suggested', 'unassigned', 'assigned', 'retired'].map((s) => `<button class="chip ${tab === s ? 'on' : ''}" onclick="go('${s === 'suggested' ? 'courier-areas' : 'courier-areas-' + s}')">${t('ar_s_' + s)} <span class="c">${nfmt(counts[s])}</span></button>`).join('')}</div>`;
+  const filters = `<div class="toolbar2"><div class="search" style="flex:1 1 220px;min-width:0">${I.search}<input placeholder="${t('ar_search')}"></div><div style="flex:0 1 240px;min-width:180px">${select([['all', t('ar_all_zillas')], ['dhaka', L2(['Dhaka', 'ঢাকা'])], ['ctg', L2(['Chattogram', 'চট্টগ্রাম'])]], 'all')}</div></div>`;
+  const head = `<div class="row wrap" style="padding:0;gap:8px 12px"><span class="body"><span class="l2" style="white-space:normal;color:var(--muted)">${busy ? t('ar_read', { n: nfmt(counts.all - counts.retired), d: dateT('2026-10-19T03:00:00+06:00') }) : ''}</span></span>${btn(I.refresh + t('ar_refresh'), 'ghost sm', o.notoken ? '' : "go('courier-areas-refreshed')", o.notoken ? 'disabled' : '')}</div>`;
+  const notoken = o.notoken ? `<div class="banner warn">${I.warn}<div>${t('arr_notoken')}</div></div>` : '';
+  const bar = pick && busy ? `<div class="toolbar2"><span style="font-weight:600">${t('ar_selected', { n: picked })}</span>${btn(t('ar_confirm_n', { n: picked }), 'primary sm', "go('courier-areas-confirm')")}${btn(t('ar_clear'), 'quiet sm')}</div><div class="note">${t('ar_check')}</div>` : '';
+  return `${couHead()}${couTabs('courier-areas')}<div class="sub" style="color:var(--muted)">${t('ar_sub')}</div>${notoken}${head}
+  ${ST.data === 'error' ? errorBox() : `${chips}${filters}${bar}${table(cols, rows, emptyBox(t('ar_empty'), t('ar_empty_hint'), 'pin'))}${list.length ? `<div class="note" style="text-align:center">${t('rc_page', { a: 1, b: tab === 'all' ? 58 : tab === 'suggested' ? 22 : tab === 'unassigned' ? 20 : 16 })}</div>` : ''}`}`;
+}
+const areaScreen = { base: 'courier-areas', nav: 'couriers', group: 'Couriers · Phase 6 Slice 6.7', url: 'admin.lytro.app/couriers/redx-areas', bandTitle: 'couriers', render: () => areasPage() };
+def('courier-areas', { ...areaScreen, label: 'RedX areas · suggested, two picked' });
+def('courier-areas-all', { ...areaScreen, base: 'courier-areas-all', label: '· all', render: () => areasPage({ tab: 'all' }) });
+def('courier-areas-unassigned', { ...areaScreen, base: 'courier-areas-unassigned', label: '· no thana', render: () => areasPage({ tab: 'unassigned' }) });
+def('courier-areas-assigned', { ...areaScreen, base: 'courier-areas-assigned', label: '· in a thana', render: () => areasPage({ tab: 'assigned' }) });
+def('courier-areas-retired', { ...areaScreen, base: 'courier-areas-retired', label: '· retired by RedX', render: () => areasPage({ tab: 'retired' }) });
+def('courier-areas-notoken', { ...areaScreen, base: 'courier-areas-notoken', label: '· Lytro\'s token not set', render: () => areasPage({ notoken: true }) });
+def('courier-areas-confirm', { ...areaScreen, label: '· confirm the picked suggestions (sheet)', sheet: () => sheet(t('arc_title', { n: 2 }), 'Kakoli(Banani) · Banasree(Rampura)', consequence(t('arc_cons')), `${backTo('courier-areas')}${btn(t('ar_confirm_n', { n: 2 }), 'primary', "go('courier-areas-confirmed')")}`, { row: true, close: 'courier-areas' }) });
+def('courier-areas-confirmed', { ...areaScreen, label: '· confirmed (toast)', toast: () => t('arc_done', { n: 2 }) });
+def('courier-areas-refreshed', { ...areaScreen, label: '· refreshed (toast)', toast: () => t('arr_done', { l: '2,866', a: 4, r: 1, x: 2, b: 0 }) });
+const thanaPick = (now) => `<div class="field"><label>${t('c_thana')}</label><div class="search">${I.search}<input placeholder="${t('arp_find')}" value="${now ? '' : L2(['Badda', 'বাড্ডা'])}"></div></div><div class="list" style="margin:0 -16px">${[[['Badda', 'বাড্ডা'], ['Dhaka', 'ঢাকা'], !now], [['Banani', 'বনানী'], ['Dhaka', 'ঢাকা'], false], [['Vatara', 'ভাটারা'], ['Dhaka', 'ঢাকা'], now]].map(([th, z, on]) => `<button class="row"><span class="body"><span class="l1">${L2(th)}</span><span class="l2" style="color:var(--muted)">${L2(z)}</span></span>${on ? I.check : ''}</button>`).join('')}</div>`;
+def('courier-area-place', { ...areaScreen, base: 'courier-areas-unassigned', label: '· place an area (sheet)', render: () => areasPage({ tab: 'unassigned' }), sheet: () => sheet(t('arp_title', { a: 'Notun Bazar' }), `1301 · ${L2(['Dhaka', 'ঢাকা'])}`, `${thanaPick(false)}${consequence(t('arp_cons', { th: L2(['Badda', 'বাড্ডা']), z: L2(['Dhaka', 'ঢাকা']) }))}`, `${backTo('courier-areas-unassigned')}${btn(t('save'), 'primary', "go('courier-area-placed')")}`, { row: true, close: 'courier-areas-unassigned' }) });
+def('courier-area-placed', { ...areaScreen, base: 'courier-areas-unassigned', label: '· placed (toast)', render: () => areasPage({ tab: 'unassigned' }), toast: () => t('arp_done', { a: 'Notun Bazar', th: L2(['Badda', 'বাড্ডা']) }) });
+def('courier-area-change', { ...areaScreen, base: 'courier-areas-assigned', label: '· change or take off a thana (sheet)', render: () => areasPage({ tab: 'assigned' }), sheet: () => sheet(t('arp_title', { a: 'Bashundhara R/A' }), `1290 · ${t('arp_now', { th: L2(['Vatara', 'ভাটারা']) })}`, `${thanaPick(true)}${consequence(t('arp_cons', { th: L2(['Vatara', 'ভাটারা']), z: L2(['Dhaka', 'ঢাকা']) }))}`, `${btn(t('arp_off'), 'quiet', "go('courier-areas-assigned')")}${btn(t('save'), 'primary', "go('courier-areas-assigned')")}`, { row: true, close: 'courier-areas-assigned' }) });
+
+/* A shop's courier key log (SEC-11), beside its gateway one; the shop page gains a Couriers card leading to it. */
+function courierLogPage() {
+  const list = ST.data === 'busy' ? CCR_USES : [];
+  const cols = [
+    { k: 'when', label: t('c_when'), w: '140px', cls: 'main' },
+    { k: 'courier', label: t('c_courier'), w: '100px' },
+    { k: 'action', label: t('c_action'), w: 'minmax(200px,1.4fr)' },
+    { k: 'order', label: t('c_order'), w: '130px' },
+    { k: 'result', label: t('c_result'), w: '90px' },
+  ];
+  const rows = list.map((u) => ({ cells: { when: `<span class="num">${dateT(u.at)}</span>`, courier: u.courier, action: t('cka_' + u.action), order: u.order ? `<span class="num">#${u.order}</span>` : `<span style="color:var(--muted)">${t('cr_none')}</span>`, result: u.ok ? st('ok', t('cr_ok')) : st('bad', t('cr_fail')) } }));
+  return `<div class="crumbs"><a onclick="go('tenants')">${t('tenants')}</a>${I.chev}<a onclick="go('tenant')">${T1.name}</a>${I.chev}<span>${t('ckl_title')}</span></div>
+  <div class="ttl"><div><h1>${t('ckl_title')}</h1><div class="sub">${t('ckl_sub')}</div></div></div>
+  ${ST.data === 'error' ? errorBox() : `${table(cols, rows, emptyBox(t('ckl_empty'), t('ckl_empty_hint'), 'truck'))}${list.length ? `<div class="note" style="text-align:center">${t('rc_page', { a: 1, b: 4 })}</div>` : ''}`}`;
+}
+const courierCard = () => `<div class="card"><div class="sechead"><h3>${t('sc_couriers')}</h3></div><div class="list" style="margin:8px -16px -16px"><div class="row wrap"><span class="body"><span class="l1">${t('ckl_title')}</span><span class="l2" style="white-space:normal">${t('ckl_hint')} ${t('cl_last', { d: dateT(CCR_USES[0].at) })}</span></span>${btn(t('cl_open'), 'ghost sm', "go('tenant-courier-log')")}</div></div></div>`;
+const tenantBase6 = tenantPage;
+tenantPage = (x) => { const page = tenantBase6(x); const cards = paymentsCards(x); const at = page.indexOf(cards); return at < 0 ? page : page.slice(0, at + cards.length) + courierCard() + page.slice(at + cards.length); };
+def('tenant-courier-card', { ...shopScreen, group: 'Couriers · Phase 6 Slice 6.7', label: 'Shop · its Couriers card' });
+def('tenant-courier-log', { base: 'tenant', nav: 'tenants', label: 'Shop · courier key log', group: 'Couriers · Phase 6 Slice 6.7', url: 'admin.lytro.app/shops/rahim-fashion/courier-keys', bandTitle: 'tenants', back: 'tenant', render: courierLogPage });
+
+/* navigation: couriers belong with the platform */
+NAV[2].items.push(['couriers', 'couriers', 'truck']);
+
 /* ---------- render ---------- */
 function setLang(l) { ST.lang = l; L.lang = l; document.querySelectorAll('#segLang button').forEach((b) => b.classList.toggle('on', b.dataset.v === l)); render(); }
 function render() {

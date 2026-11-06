@@ -452,7 +452,24 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
   courier status and news, Sync; cancelling a booked order; paid marks and the delivery charge; profit's note; tracking's
   courier news; the setup checklist's "connect a courier" (SUP-01). Storefront's courier area field comes out.
 - **Builds** them, pixel perfect to the approved sketch, in Bangla and English to the owner's style guide.
-- **The operator's screens** for areas and retiring wait for the console's rebuild; the API serves them until then.
+- **The operator's screens** for areas and retiring were to wait for the console's rebuild; it finished (#310), so they
+  join this slice.
+- **Read, agreed 2026-11-06:**
+  - **Both apps:** the shop dashboard and the console: RedX's area list, retiring and removing a courier, and a shop's
+    courier key log.
+  - **PRs (the owner's words): the sketch of both in one PR now; one PR building both after Slice 6.6.**
+  - **Payouts:** a Courier payouts tab on Money › Payments, for whoever may read payments; each order's parcel shows its
+    paid mark.
+  - **Paste steps:** written, numbered, per courier, with copy buttons; no screenshots, which go stale and could carry
+    a key.
+  - **A confirmed order's next step:** Book courier, with Ship by hand in the more menu; a shop with no courier keeps
+    Mark shipped.
+  - **The Orders list:** a short line for where a booked order's parcel stands, and a Needs a look tab with its count.
+    Both need the list's rows to carry the live parcel and an attention filter, added in the build.
+- **Sketched** as `TENANT-DASHBOARD-DESIGN` §7.39 (v3.35, prototype Part 36), `OPERATOR-CONSOLE-DESIGN` §10b (v4) and
+  `STOREFRONT-DESIGN` §7e (v1.9). What the build adds to the server is in each document's backend list: the list's
+  parcel and attention filter, marking attention seen, retiring on the connection, the area list's counts and token
+  state, the console's thana list, and the order number in a shop's courier key log.
 
 ---
 
