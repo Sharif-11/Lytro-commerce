@@ -1433,6 +1433,7 @@ describeIfDatabase('a test account (VER-11)', () => {
     'stays out of the new-shop payment cap (TVR-04)',
     async () => {
       const settings = app.get(PlatformSettingsService);
+      const before = await settings.current(PlatformSettingKey.NewShopPaymentCapAmount);
       await settings.set(PlatformSettingKey.NewShopPaymentCapAmount, 500, randomUUID());
       try {
         const setup = await freshShop();
@@ -1451,9 +1452,17 @@ describeIfDatabase('a test account (VER-11)', () => {
         await returned(ref, { paymentID: paymentId, status: 'success' });
         expect((await sessionOf(ref)).state).toBe('verified');
         // Counted, 300 + 300 would be past the cap of 500.
+        const second = await placed(sandbox);
+        // Nor does a test checkout left open count while its money may yet come (found at the Phase 5 close-out).
+        await started(second);
+        await started(await placed(sandbox));
         await placed(sandbox);
       } finally {
-        await settings.set(PlatformSettingKey.NewShopPaymentCapAmount, 10000, randomUUID());
+        await settings.set(
+          PlatformSettingKey.NewShopPaymentCapAmount,
+          Number(before?.value ?? 20000),
+          randomUUID(),
+        );
       }
     },
     SLOW,

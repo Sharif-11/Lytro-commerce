@@ -177,7 +177,14 @@ export class PaymentSessionRepository {
     const [open] = await tx
       .select({ total: sql<string>`coalesce(sum(${paymentSessions.amount}), 0)::text` })
       .from(paymentSessions)
-      .where(and(eq(paymentSessions.tenantId, tenantId), inArray(paymentSessions.state, OPEN)));
+      .where(
+        and(
+          eq(paymentSessions.tenantId, tenantId),
+          inArray(paymentSessions.state, OPEN),
+          // A test checkout's money never counts (VER-11), open or verified (found at the Phase 5 close-out).
+          eq(paymentSessions.test, false),
+        ),
+      );
     return (Number(verified?.total ?? 0) + Number(open?.total ?? 0)).toFixed(2);
   }
 
