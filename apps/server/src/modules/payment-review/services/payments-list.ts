@@ -59,6 +59,24 @@ export class PaymentsList {
     return total;
   }
 
+  /** LIF-16: every payment the shop holds, page by page with no limit, for its data export. */
+  async everyPayment(tenantId: string): Promise<PaymentListItem[]> {
+    const filter = this.filterOf({ page: 1, limit: EXPORT_ROWS_MAX });
+    const all: PaymentListItem[] = [];
+    for (let offset = 0; ; offset += EXPORT_ROWS_MAX) {
+      const page = await this.store.run(tenantId, async (tx) => {
+        const found = await this.store.list(tx, tenantId, filter, {
+          offset,
+          limit: EXPORT_ROWS_MAX,
+        });
+        const person = await this.peopleOf(tx, tenantId, found.rows);
+        return found.rows.map((row) => this.itemOf(row, person));
+      });
+      all.push(...page);
+      if (page.length < EXPORT_ROWS_MAX) return all;
+    }
+  }
+
   /** PAY-19: every payment the filter holds, up to the export's limit, for the CSV. */
   exportAll(tenantId: string, query: PaymentListQuery): Promise<PaymentListItem[]> {
     const filter = this.filterOf(query);
