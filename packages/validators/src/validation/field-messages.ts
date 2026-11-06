@@ -140,10 +140,11 @@ const TEMPLATES: Readonly<Record<FieldProblemCode, Template>> = {
     en: 'Change something before saving.',
     bn: 'সেভ করার আগে কিছু পরিবর্তন করুন।',
   }),
-  // SMS-10: the variable's braces stay as written, since only `{label}`, `{min}`, `{max}` and `{length}` are filled.
+  // SMS-10: named in words, since a message's braces are only ever its own placeholders; the screen shows the
+  // order number's variable beside the template.
   [FieldProblemCode.MissingVariable]: same({
-    en: 'Keep {order_number} in the message, so it says which order it is about.',
-    bn: 'মেসেজে {order_number} রাখুন, যাতে বোঝা যায় কোন অর্ডারের কথা।',
+    en: 'Keep the order number in the message, so it says which order it is about.',
+    bn: 'মেসেজে অর্ডার নম্বর রাখুন, যাতে বোঝা যায় কোন অর্ডারের কথা।',
   }),
   [FieldProblemCode.UnknownVariable]: same({
     en: "This message names a variable it can't fill in. Use only the ones listed for it.",
