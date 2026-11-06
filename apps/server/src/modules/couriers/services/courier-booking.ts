@@ -29,6 +29,7 @@ import { OrderService } from '../../orders/services/order.service';
 import type { OrderRecord, OrderView } from '../../orders/types/orders';
 import {
   CourierNoAnswer,
+  PICKUP_STORE_ID,
   type AcceptedParcel,
   type BookingAnswer,
   type CancelAnswer,
@@ -98,6 +99,8 @@ export class CourierBooking {
   ): Promise<OrderView> {
     this.takeCall(shop.id);
     const who = await this.activity.resolve(shop.id, actor);
+    // Before the claim: nothing is set aside for a login that has ended, and renewing proves nothing about the parcel.
+    await this.connections.renewIfDue(shop.id, input.courierKey);
     const claim = await this.claim(shop, orderId, input, who);
     const { adapter, account } = claim.connection;
     let answer: BookingAnswer;
@@ -295,7 +298,7 @@ export class CourierBooking {
       const order = await this.fulfilment.lockForBooking(tx, shop.id, orderId);
       const connection = await this.connections.chosenWithin(tx, shop.id, input.courierKey);
       const { adapter } = connection;
-      const booking = await this.bookingOf(tx, shop.id, order, input, adapter);
+      const booking = await this.bookingOf(tx, shop.id, order, input, connection);
       const now = this.clock();
       const aside = await this.fulfilment.setAsideWithin(tx, shop, order, now);
       // Booked before and called off, its stock is already out: only a first booking takes any.
@@ -332,15 +335,17 @@ export class CourierBooking {
 
   /**
    * CRR-06, CRR-10, CRR-30, D6-14: the parcel as this courier will get it, or a refusal saying what to change, before anything is
-   * sent. Cash on delivery is what the order says is due (read agreed 2026-11-04).
+   * sent. Cash on delivery is what the order says is due (read agreed 2026-11-04). The address is the order's own text with its thana
+   * and zilla: a courier reads the address as written, and riders read it too.
    */
   private async bookingOf(
     tx: Transaction,
     tenantId: string,
     order: OrderRecord,
     input: BookOrderInput,
-    adapter: CourierAdapter,
+    connection: { adapter: CourierAdapter; account: CourierAccount },
   ): Promise<ParcelBooking> {
+    const { adapter, account } = connection;
     const { limits, name: courier } = adapter;
     if (
       order.customerName === null ||
@@ -360,7 +365,14 @@ export class CourierBooking {
     if (phone?.length !== limits.phoneDigits) {
       throw this.limitError('CourierPhoneNotTaken', adapter, limits.phoneDigits);
     }
-    const address = await this.addressOf(order);
+    const area = order.locationId !== null ? await this.locations.areaOf(order.locationId) : null;
+    // A delivery order always has a thana's ID, so this is one no longer in the list, which this courier couldn't read an area from.
+    if (adapter.needsThana && area === null) {
+      throw this.limitError('CourierThanaNeeded', adapter);
+    }
+    const address = [order.deliveryAddress, area?.thana.nameEn, area?.zilla.nameEn]
+      .filter((part) => part !== undefined && part !== '')
+      .join(', ');
     if (address.length > limits.addressMax) {
       throw this.limitError('CourierAddressTooLong', adapter, limits.addressMax);
     }
@@ -374,15 +386,20 @@ export class CourierBooking {
     if (adapter.needsArea && input.areaCode === undefined) {
       throw this.limitError('CourierAreaNeeded', adapter);
     }
+    if (adapter.pickupStores !== undefined && !account.credentials[PICKUP_STORE_ID]) {
+      throw this.limitError('CourierStoreNeeded', adapter);
+    }
     return {
       invoice: await this.invoiceOf(tx, tenantId, order),
       recipientName: name,
       recipientPhone: phone,
       recipientAddress: address,
-      cod: order.due,
+      // Read agreed 2026-11-05: the order keeps its exact amount, and the parcel records what the courier was asked to collect.
+      cod: limits.wholeTakaCod ? Math.ceil(Number(order.due)).toFixed(2) : order.due,
       note,
       weightKg: await this.weightOf(tx, tenantId, order, input, adapter),
       areaCode: adapter.needsArea ? (input.areaCode ?? null) : null,
+      quantity: await this.fulfilment.quantityWithin(tx, tenantId, order.id),
     };
   }
 
@@ -392,14 +409,6 @@ export class CourierBooking {
       courier: adapter.name,
       limit: limit ?? 0,
     });
-  }
-
-  /** The order's own text with its thana and zilla: a courier reads the address as written, and riders read it too. */
-  private async addressOf(order: OrderRecord): Promise<string> {
-    const area = order.locationId !== null ? await this.locations.areaOf(order.locationId) : null;
-    return [order.deliveryAddress, area?.thana.nameEn, area?.zilla.nameEn]
-      .filter((part) => part !== null && part !== undefined && part !== '')
-      .join(', ');
   }
 
   /** Steadfast refuses a repeated invoice: the order's own number, and a suffix only once a booking of it was cancelled. */

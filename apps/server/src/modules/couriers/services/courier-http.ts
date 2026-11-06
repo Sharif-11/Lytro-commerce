@@ -1,7 +1,10 @@
 import { COURIER_CALL_TIMEOUT_SECONDS, COURIER_REFUSAL_MAX_LENGTH } from '@lytronix/validators';
-import { CourierNoAnswer } from '../ports/courier-adapter';
+import { CourierNoAnswer, type MessageHeaders } from '../ports/courier-adapter';
 
 export type CourierReply = Record<string, unknown>;
+
+// A courier's times with no zone are Dhaka's: these are Bangladeshi services.
+const DHAKA_OFFSET = '+06:00';
 
 /** A courier's answer: its status, and its body if that was a JSON object. */
 export interface CourierResponse {
@@ -46,6 +49,36 @@ export function codeOf(reply: CourierReply | null, field: string): string | null
   const value = reply?.[field];
   if (typeof value === 'number' && Number.isFinite(value)) return String(value);
   return textOf(reply, field);
+}
+
+/** A part of a reply, if it is a JSON object. */
+export function bodyOf(value: unknown): CourierReply | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as CourierReply)
+    : null;
+}
+
+export function headerOf(headers: MessageHeaders, name: string): string | null {
+  const value = headers[name];
+  const first = Array.isArray(value) ? value[0] : value;
+  return first !== undefined && first !== '' ? first : null;
+}
+
+/** "Partial Delivered" and `partial_delivered` are one status: couriers' guides and samples differ in how they write them. */
+export function statusOf(words: string | null): string | null {
+  return words === null
+    ? null
+    : words
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, '_');
+}
+
+export function timeOf(words: string | null): Date | null {
+  if (words === null) return null;
+  const zoned = /[zZ]|[+-]\d{2}:?\d{2}$/.test(words);
+  const at = new Date(zoned ? words : `${words.replace(' ', 'T')}${DHAKA_OFFSET}`);
+  return Number.isNaN(at.getTime()) ? null : at;
 }
 
 /**

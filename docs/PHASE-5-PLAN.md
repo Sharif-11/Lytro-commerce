@@ -630,7 +630,7 @@ in this check's own pull request, which holds the fixes, the tests, this section
      - WAL-18: a type of an existing kind is one row in `PAYMENT_METHOD_TYPES` (its kind, number lengths and verification levels), its
        `payment_method` value with a migration, and the page's row for its USSD code and mark (`page/wallets.ts`). Order, session and
        page logic read only the common shape; nothing else names a type.
-   - **Not built, open in KNOWN-GAPS:** §117 (what holds on one server only), §118 (a gateway review keeps no amount bKash reports, and
+   - **Not built, open in KNOWN-GAPS:** §119 (what holds on one server only), §120 (a gateway review keeps no amount bKash reports, and
      one race after a timed-out execute).
    - **Live only:** a real completed bKash payment (VER-08, VER-09, §107); real receipts for LSN-06; the Xiaomi test; LIF-16's ten minutes;
      LIM-04; the milestone's run on staging.
@@ -657,4 +657,4 @@ in this check's own pull request, which holds the fixes, the tests, this section
 8. **CI green on `main`, every slice by pull request: holds** once this check's pull request merges. A green Deploy run deploys nothing,
    because its staging and production jobs are skipped.
 
-Noted for later, none of them stopping this: KNOWN-GAPS §117 and §118. §107 is unchanged.
+Noted for later, none of them stopping this: KNOWN-GAPS §119 and §120. §107 is unchanged.

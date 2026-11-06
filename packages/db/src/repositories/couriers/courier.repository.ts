@@ -70,7 +70,7 @@ export type CourierParcelPatch = Partial<
 export type CourierConnectionPatch = Partial<
   Pick<
     SelectCourierConnection,
-    'state' | 'messageSecrets' | 'lastMessageAt' | 'unsignedAt' | 'pasteWarnedAt'
+    'credentials' | 'state' | 'messageSecrets' | 'lastMessageAt' | 'unsignedAt' | 'pasteWarnedAt'
   >
 >;
 
@@ -183,6 +183,26 @@ export class CourierRepository {
         ),
       )
       .returning();
+    return row ?? null;
+  }
+
+  /** Slice 6.3: held while a courier's one-use login is renewed, so two can't both try it. */
+  async lockConnection(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+  ): Promise<SelectCourierConnection | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select()
+      .from(courierConnections)
+      .where(
+        and(
+          eq(courierConnections.tenantId, tenantId),
+          eq(courierConnections.courierKey, courierKey),
+        ),
+      )
+      .for('update');
     return row ?? null;
   }
 

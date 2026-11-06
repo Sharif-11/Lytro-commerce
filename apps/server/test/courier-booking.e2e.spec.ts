@@ -296,6 +296,8 @@ describeIfDatabase('connecting a courier (CRR-01 to CRR-05, CRR-20, SEC-11)', ()
       name: 'Steadfast',
       credentialFields: ['apiKey', 'secretKey'],
       needsArea: false,
+      needsThana: false,
+      hasStores: false,
       takesWeight: false,
       canCancel: false,
     });

@@ -92,7 +92,7 @@ Each is settled in its slice's read, before code, and recorded there.
 |---|---|
 | 6.1 | Settled 2026-11-04: see Slice 6.1. |
 | 6.2 | Settled 2026-11-05: see Slice 6.2. |
-| 6.3 | **A real booking in Pathao's sandbox with no area.** If its address reading isn't good enough, D6-5 reopens for Pathao alone, and it joins RedX's area list. Keeping the merchant's password, or only the refresh token and asking again when that lapses. Which store a shop books from (required; a new store waits about an hour for approval). Whole taka: `amount_to_collect` is an integer and Lytro's amounts have decimals. Weight: required, 0.5 to 10 kg, and a product may have none. `item_quantity` is an integer and Lytro's quantities can be decimal. Whether the handshake carries the secret, and the answer to its later events. |
+| 6.3 | Settled 2026-11-05: see Slice 6.3. |
 | 6.4 | How RedX's areas are matched to thanas, and what the operator does with the unmatched. How often the list is refreshed. Keeping RedX's secret, which travels in the address, out of every log. What to send as `value`, which it requires, and weight in grams. A partly delivered parcel: it shows only in `delivery_type`, with no amount collected in the message. Its cancel answers "Request Accepted": whether that is enough to cancel the order. Which pickup store a shop books from. |
 | 6.5 | Steadfast's payouts: read on the night run, or when its payout message arrives. Whether its one-call "what we owe you" figure earns a line, given D6-9 has no settlement page. Profit's wording, and INV-18's delivery charges. |
 | 6.6 | What "a suggested alternative courier" is (CRR-25). |
@@ -336,6 +336,32 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
   lost answer goes to staff (D6-11).
 - **Done when:** the contract suite passes, shared code didn't change (exit criterion 8), and a sandbox booking with no
   area has been tried first.
+- **Read, agreed 2026-11-05, with the sandbox tried first:**
+  - **No area picker, so D6-5 stands.** Lytro's own form of address, text with thana and zilla, got the expected rate for
+    all 64 zillas: ৳60 for Dhaka, ৳80 twice and ৳110 for the rest. A zilla with no thana stayed at the Dhaka rate, and an
+    address naming no place was accepted at ৳60 with no refusal. The rate is the only sign of what it read, so this shows
+    Dhaka from elsewhere and not one zilla from another, and reading a parcel back shows no area. A delivery order always
+    has a thana's ID, so booking refuses only one no longer in the list. Pathao's charge is recorded on the parcel.
+  - **Tokens only.** The owner types the password once to connect; Lytro logs in and throws it away. A refresh token works
+    once, so one renewal runs at a time, and a lost answer can mean the owner logs in again.
+  - **One store per connection,** set when connecting: used without asking if the account has one active, chosen by the
+    owner if several, changeable later. Staff choose nothing at booking.
+  - **Whole taka: round up** (the owner's pick; refusing and letting staff fix it was recommended). ৳499.50 asks Pathao
+    for ৳500. The order counts as paid in full at ৳499.50 and staff aren't told of the extra. Anything else that arrives
+    is still told.
+  - **Weight:** what the items weigh if all are known, otherwise staff give it, with the ship sheet starting at 0.5 kg.
+    Lighter than 0.5 is sent as 0.5, and above 10 kg is refused, though the sandbox took both 0.2 and 11.
+  - **Quantity:** the total, rounded up, so 1.5 kg sends 2. Lytro's stock and prices don't change.
+  - **Its test of an address** is answered at any known address without the secret, because it moves nothing, and
+    doesn't count as a message arriving. Every real message needs the secret.
+  - **One PR.**
+- **Built as PR #311,** no migration, against a fake made from what the sandbox answered. The contract suite passes for both couriers, with two
+  allowances Pathao needed: it has no rider's-word status, and its proof doesn't cover the body. **Exit criterion 8 holds
+  with small exceptions,** all of them things the next courier can use. In booking: a renewal before the claim, the
+  checks an adapter declares, and the order's total quantity. In order code: what the courier was asked to collect, for
+  the rounding rule, and adding up the quantity. Connecting and messages grew more: login, renewal, stores, the test of
+  an address and answer headers. **Not tried:** its sandbox can't send messages, so the test of an address, its event
+  names and `collected_amount` need a real account, as checkpoint 6A does for Steadfast. `KNOWN-GAPS` §117 lists them.
 
 ### Slice 6.4: RedX and its areas
 - **Depends on:** 6.2. Can run beside 6.3.
@@ -356,8 +382,9 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
 ### Slice 6.7: the screens
 - **Depends on:** 6.1 to 6.6.
 - **Sketch first** (`sketch-every-screen-before-building`), design doc and HTML mock: Settings' couriers and connecting,
-  with each courier's paste step written for a seller, step by step; "no messages yet"; the booking sheet redrawn with
-  serials and an area only where needed, a limit's message and a lost answer's choices; the order page's parcel, its
+  with each courier's paste step written for a seller, step by step; choosing a pickup store, and logging in again when
+  a login has ended (Slice 6.3); "no messages yet"; the booking sheet redrawn with serials, a weight that starts at
+  0.5 kg where the items don't all have one (Slice 6.3), and an area only where needed, a limit's message and a lost answer's choices; the order page's parcel, its
   courier status and news, Sync; cancelling a booked order; paid marks and the delivery charge; profit's note; tracking's
   courier news; the setup checklist's "connect a courier" (SUP-01). Storefront's courier area field comes out.
 - **Builds** them, pixel perfect to the approved sketch, in Bangla and English to the owner's style guide.
@@ -413,8 +440,8 @@ outside every repo, which I name when it's needed and never open or print.
 | Sellers don't paste, or paste wrongly | a normal step with written instructions; "no messages yet"; the night check keeps every order moving, a day late at worst; Sync when staff need it now |
 | A Steadfast account already sends its one message address elsewhere | the night check serves it; settled in Slice 6.2's read |
 | A shop's Steadfast key is locked out for an hour | a refused login stops calls at once, and the owner is told (§3.6) |
-| Pathao's address reading sends parcels to the wrong area | tried in its sandbox first; D6-5 reopens for Pathao if it isn't good enough |
-| Pathao holds an account's real password | Slice 6.3's read: keep only the refresh token if that holds up |
+| Pathao's address reading sends parcels to the wrong area | tried in its sandbox on 2026-11-05 and D6-5 stands (Slice 6.3); a live account may read differently, and its charge on the parcel is where a wrong rate would show |
+| Pathao holds an account's real password | settled in Slice 6.3: the password isn't kept, and a lost renewal means the owner logs in again |
 | RedX's secret travels in the address | kept out of request logs (Slice 6.4); the address's token is the only proof its messages carry (CRR-11) |
 | A courier's status list changes | an unknown status shows and moves nothing, and is logged for the adapter to be updated |
 | Phase size (eight slices) | checkpoint 6A after Slice 6.2; RedX and the rest can become Phase 6B without re-planning, and screens could be cut to Steadfast first |
@@ -475,13 +502,18 @@ Source: its own API guide and webhook page, in the merchant panel.
 Source: its merchant API document and webhook page, in the merchant panel; rate limits are second-hand.
 
 - **Access:** `api-hermes.pathao.com`; sandbox `courier-api-sandbox.pathao.com`, with published test logins. Client ID and
-  secret plus the merchant's email and password; `POST /aladdin/api/v1/issue-token` lasts 5 days, and a refresh returns
-  a new access and refresh token. About 60 calls a minute (second-hand).
+  secret plus the merchant's email and password; `POST /aladdin/api/v1/issue-token` lasts 5 days by its document and 90 in
+  the sandbox (2026-11-05), so the answer's `expires_in` decides. A refresh returns a new access and refresh token and
+  needs no password. The old refresh token then gets 400. The old access token was refused in one try and went on working
+  through two refreshes in another, so nothing relies on it either way. A wrong login is also 400. About 60 calls a minute
+  (second-hand).
 - **Booking:** `POST /aladdin/api/v1/orders`. Required: `store_id`, name (3 to 100 characters), phone (11 characters),
   address (10 to 220), `delivery_type` (48 normal, 12 on demand), `item_type` (1 document, 2 parcel), `item_quantity`
   (integer), `item_weight` (0.5 to 10 kg), `amount_to_collect` (integer). City, zone and area are optional, and "our
   system will populate it automatically based on the recipient_address". `merchant_order_id` is optional, with no
-  documented refusal of a repeat and no lookup by it. The answer gives `consignment_id`, `order_status`, `delivery_fee`.
+  documented refusal of a repeat and no lookup by it, and the sandbox made a second parcel for one. The answer gives
+  `consignment_id`, `order_status`, `delivery_fee`. In the sandbox, naming a city needs a zone too (Sylhet has 51), decimals
+  in the amount or quantity are refused, an amount of 0 is taken, and weights of 0.2 and 11 were taken at ৳60 and ৳225.
   Bulk answers 202 with no consignment IDs, so it can't be tracked straight away.
 - **Reading status:** `GET /aladdin/api/v1/orders/{id}/info`, one at a time. `order_status_slug`, `updated_at`, `invoice_id`.
 - **Messages:** a callback address and a secret the merchant sets in the panel, which sends the secret unchanged as

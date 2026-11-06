@@ -33,6 +33,8 @@ interface MessageSecrets {
 export interface Received {
   stored: string | null;
   tenantId: string | null;
+  /** CRR-27: what this courier wants on the answer. */
+  answerHeaders: Record<string, string>;
 }
 
 function hashOf(token: string): string {
@@ -72,13 +74,14 @@ export class CourierMessages {
     const route = await this.store.findRoute(hashOf(token));
     if (!route) throw new ApiError('not_found', 'CourierAddressNotKnown', {});
     const { tenantId, courierKey } = route;
+    const answerHeaders = this.registry.of(courierKey)?.messageAnswerHeaders?.() ?? {};
     // LIF-13: recorded through `locked`, and from `archived` logged and ignored.
     const shop = await this.shops.findById(tenantId);
     if (!shop || shop.state === TenantState.Archived || shop.state === TenantState.Deleted) {
       this.logger.warn(
         `a ${courierKey} message for a closed shop, tenant ${tenantId}, was ignored`,
       );
-      return { stored: null, tenantId: null };
+      return { stored: null, tenantId: null, answerHeaders };
     }
     const adapter = this.registry.of(courierKey);
     const connection = await this.store.run(tenantId, (tx) =>
@@ -87,6 +90,8 @@ export class CourierMessages {
     if (!adapter || !connection?.messageSecrets) {
       throw new ApiError('not_found', 'CourierAddressNotKnown', {});
     }
+    // CRR-27, read agreed 2026-11-05: answered at any good address, because it moves nothing and doesn't even count as a message arriving.
+    if (adapter.isAddressTest?.(rawBody)) return { stored: null, tenantId: null, answerHeaders };
     const secrets = this.secretsFrom(connection.messageSecrets, tenantId);
     const now = this.clock();
     if (!adapter.verifyMessage(secrets.token, rawBody, headers)) {
@@ -107,7 +112,7 @@ export class CourierMessages {
       return this.storeNews(tx, tenantId, courierKey, news, CourierNewsSource.Message);
     });
     if (news === null) this.logger.warn(`a ${courierKey} message could not be read`);
-    return { stored: event, tenantId };
+    return { stored: event, tenantId, answerHeaders };
   }
 
   /** CRR-13: news stored once; the id to apply, or null when it has come before. */

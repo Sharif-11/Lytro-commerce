@@ -31,6 +31,7 @@ courierContract('Steadfast', () => ({
     note: null,
     weightKg: null,
     areaCode: null,
+    quantity: '1.000',
   },
   secrets: [RIGHT_API_KEY, RIGHT_SECRET_KEY, 'bad-key', 'bad-secret'],
   reset: () => {
@@ -70,6 +71,7 @@ courierContract('Steadfast', () => ({
   strangeStatus: 'teleported',
   deliveredStatus: 'delivered',
   unconfirmedStatus: 'delivered_approval_pending',
+  proofCoversBody: true,
   parcelStandsAt: (status) => {
     for (const each of steadfast.consignments) {
       steadfast.statuses.set(String(each.consignmentId), status);
@@ -89,6 +91,7 @@ describe('Steadfast, as its guide says (Appendix A)', () => {
       note: 'Fragile',
       weightKg: '1.000',
       areaCode: null,
+      quantity: '1.000',
     });
     expect(steadfast.bookings()[0]).toEqual({
       method: 'POST',
@@ -117,6 +120,7 @@ describe('Steadfast, as its guide says (Appendix A)', () => {
       note: null,
       weightKg: null,
       areaCode: null,
+      quantity: '1.000',
     });
     expect(steadfast.bookings()[0]?.body).not.toHaveProperty('note');
     expect(steadfast.bookings()[0]?.body).toMatchObject({ cod_amount: 0 });
@@ -133,6 +137,7 @@ describe('Steadfast, as its guide says (Appendix A)', () => {
       note: null,
       weightKg: null,
       areaCode: null,
+      quantity: '1.000',
     };
     await adapter.book(ACCOUNT, booking);
     await expect(adapter.book(ACCOUNT, booking)).resolves.toEqual({

@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Req,
+  Res,
   type RawBodyRequest,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -14,7 +15,7 @@ import { ZodResponse } from 'nestjs-zod';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { OkDto } from '../../../common/dto/ok.dto';
-import type { HttpRequest } from '../../../common/http';
+import type { HttpRequest, HttpResponse } from '../../../common/http';
 import type { MessageHeaders } from '../ports/courier-adapter';
 import { CourierMessages } from '../services/courier-messages';
 import { CourierNewsPath } from '../services/courier-news-path';
@@ -32,8 +33,9 @@ export class CourierMessagesController {
     @Inject(CourierNewsPath) private readonly news: CourierNewsPath,
   ) {}
 
+  // CRR-27: 202 for every courier: Pathao requires it, Steadfast takes any 2xx, and it says what happened: stored, to be applied.
   @Post(':token')
-  @HttpCode(200)
+  @HttpCode(202)
   @ResponseMessage('Success')
   @ApiOperation({
     summary:
@@ -44,13 +46,15 @@ export class CourierMessagesController {
     @Param('token') token: string,
     @Req() request: RawBodyRequest<HttpRequest>,
     @Headers() headers: MessageHeaders,
+    @Res({ passthrough: true }) response: HttpResponse,
   ): Promise<{ ok: true }> {
     const received = await this.messages.receive(
       token,
       request.rawBody ?? Buffer.alloc(0),
       headers,
     );
-    const { stored, tenantId } = received;
+    const { stored, tenantId, answerHeaders } = received;
+    for (const [name, value] of Object.entries(answerHeaders)) response.setHeader(name, value);
     if (stored !== null && tenantId !== null) {
       // After the answer: if the server stops first, the minute pass applies what was stored.
       setImmediate(() => {
