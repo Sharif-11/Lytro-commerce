@@ -19,6 +19,7 @@ import { CourierConnections } from './services/courier-connections';
 import { CourierMessages } from './services/courier-messages';
 import { CourierNewsPath } from './services/courier-news-path';
 import { CourierRegistry } from './services/courier-registry';
+import { PathaoAdapter } from './services/pathao-adapter';
 import { SteadfastAdapter } from './services/steadfast-adapter';
 import {
   COURIER_CLOCK,
@@ -27,6 +28,8 @@ import {
   COURIER_NOTIFIER,
   COURIER_PAUSE,
   COURIER_STORE,
+  PATHAO_TEST_ANSWER,
+  PATHAO_URL,
   STEADFAST_URL,
 } from './tokens';
 
@@ -43,7 +46,14 @@ import {
     { provide: COURIER_FETCH, useValue: (...args: Parameters<typeof fetch>) => fetch(...args) },
     { provide: COURIER_CLOCK, useValue: (): Date => new Date() },
     { provide: STEADFAST_URL, inject: [ENV], useFactory: (env: Env) => env.STEADFAST_API_URL },
+    { provide: PATHAO_URL, inject: [ENV], useFactory: (env: Env) => env.PATHAO_API_URL },
+    {
+      provide: PATHAO_TEST_ANSWER,
+      inject: [ENV],
+      useFactory: (env: Env) => env.PATHAO_WEBHOOK_INTEGRATION_SECRET ?? null,
+    },
     SteadfastAdapter,
+    PathaoAdapter,
     CourierRegistry,
     CourierCalls,
     CourierMessages,

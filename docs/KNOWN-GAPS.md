@@ -2097,3 +2097,9 @@ The sketch drew "Used by 412 shops" on the attribute library. A shop's product a
 or a role with BYPASSRLS can see across, so the operator's connection would count nothing. No requirement asks for the figure. Showing it
 needs a way to read across shops, such as a function that returns only the count, and that widens what crosses the tenant boundary, so it
 was left out of the screen and the sketch. It needs a decision whether the figure is worth that.
+
+## 117. `CRR-21`: what Pathao's adapter assumes, tried only in its sandbox — found 2026-11-05, open until its real parcel
+
+Pathao's adapter runs against a fake made from what its sandbox answered on 2026-11-05. The sandbox can't send messages, and it may not behave as a live account does. A real account has to confirm: that its test of an address arrives as `{ "event": "webhook_integration" }`, and whether the value it asks for on the answer is the same for every account, since it's one server setting here, `PATHAO_WEBHOOK_INTEGRATION_SECRET`; how its messages write their events, read here as `order.at-the-sorting-hub` or `At_the_Sorting_HUB` alike; that `order.picked` comes once it really has the parcel, since an order then shows shipped and can no longer be cancelled; that `collected_amount` is the cash collected, and comes on delivered and partly delivered messages; how long a live token and refresh token last, the sandbox saying 90 days where the document says 5; that a live account reads addresses as the sandbox did, which shows only in the rate; and that a live account refuses weights outside 0.5 to 10 kg, which the sandbox took. A wrong event name shows as an event that moves nothing, and the night check still brings the status, so of these only `order.picked` and `collected_amount` can move an order wrongly.
+
+A shop that books nothing for longer than its refresh token lasts is asked to log in again the next time it books, since nothing renews a login that isn't being used.

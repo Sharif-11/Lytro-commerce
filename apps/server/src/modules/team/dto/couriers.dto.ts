@@ -8,10 +8,12 @@ import {
   CourierConnectionState,
   CourierKey,
   CourierMessagesState,
+  setPickupStoreSchema,
   settleParcelSchema,
 } from '@lytronix/validators';
 
 export class ConnectCourierDto extends createZodDto(connectCourierSchema) {}
+export class SetPickupStoreDto extends createZodDto(setPickupStoreSchema) {}
 export class BookOrderDto extends createZodDto(bookOrderSchema) {}
 export class SettleParcelDto extends createZodDto(settleParcelSchema) {}
 export class CancelParcelDto extends createZodDto(cancelParcelSchema) {}
@@ -25,6 +27,8 @@ export class CourierAdapterListDto extends createZodDto(
         name: z.string(),
         credentialFields: z.array(z.string()),
         needsArea: z.boolean(),
+        needsThana: z.boolean(),
+        hasStores: z.boolean(),
         takesWeight: z.boolean(),
         canCancel: z.boolean(),
       }),
@@ -42,6 +46,7 @@ const courierConnectionSchema = z.object({
   connectedAt: z.coerce.date(),
   messages: z.nativeEnum(CourierMessagesState),
   lastMessageAt: z.coerce.date().nullable(),
+  pickupStore: z.object({ id: z.string(), name: z.string() }).nullable(),
 });
 export class CourierConnectionDto extends createZodDto(courierConnectionSchema) {}
 // CRR-02, CRR-03: what a seller pastes into the courier's panel; Lytro's own, not the courier's credentials.
@@ -52,6 +57,21 @@ export class CourierConnectedDto extends createZodDto(
 ) {}
 export class CourierConnectionListDto extends createZodDto(
   z.object({ connections: z.array(courierConnectionSchema) }),
+) {}
+
+// Slice 6.3, read agreed 2026-11-05: the stores a courier lists for this account, and which is chosen.
+export class CourierStoreListDto extends createZodDto(
+  z.object({
+    stores: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        address: z.string().nullable(),
+        active: z.boolean(),
+      }),
+    ),
+    chosenId: z.string().nullable(),
+  }),
 ) {}
 
 // SEC-11: a shop's log of its courier credentials' uses, for the operator.

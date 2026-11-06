@@ -1813,7 +1813,7 @@ CREATE TABLE tenant.courier_connections (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
     courier_key     text NOT NULL,
-    credentials     bytea NOT NULL,                    -- sealed (SEC-08); never returned (CRR-03)
+    credentials     bytea NOT NULL,                    -- sealed (SEC-08); never returned (CRR-03). Pathao: its tokens and chosen store, never the password
     is_default      boolean NOT NULL DEFAULT false,    -- CRR-05: unique per shop where true
     state           tenant.courier_connection_state NOT NULL DEFAULT 'active',  -- active, login_refused
     message_secrets bytea,                             -- sealed: its address's token and the signing token (CRR-03)
@@ -1916,7 +1916,7 @@ CREATE TABLE tenant.courier_credential_uses (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
     courier_key     text NOT NULL,
-    action          text NOT NULL,                     -- test, book, look_up, cancel, track
+    action          text NOT NULL,                     -- test, book, look_up, cancel, track, renew
     connection_id   uuid,                              -- none for a test of credentials not yet saved
     order_id        uuid,
     succeeded       boolean NOT NULL,

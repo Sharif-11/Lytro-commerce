@@ -52,6 +52,14 @@ export class DrizzleCourierStore implements CourierStore {
     return this.couriers.findConnection(tx, tenantId, courierKey);
   }
 
+  lockConnection(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+  ): Promise<SelectCourierConnection | null> {
+    return this.couriers.lockConnection(tx, tenantId, courierKey);
+  }
+
   findDefaultConnection(
     tx: Transaction,
     tenantId: string,

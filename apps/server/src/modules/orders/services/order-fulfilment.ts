@@ -63,6 +63,8 @@ export interface CourierDelivery {
   partly: boolean;
   /** What it says it collected; null when it doesn't say. */
   reported: string | null;
+  /** What it was asked to collect, which for a courier taking whole taka can be just over what's due. */
+  asked: string;
   line: string;
 }
 
@@ -320,6 +322,12 @@ export class OrderFulfilment {
     return (grams / 1000).toFixed(3);
   }
 
+  /** Slice 6.3: the order's items added up, for a courier that asks how many. */
+  async quantityWithin(tx: Transaction, tenantId: string, orderId: string): Promise<string> {
+    const lines = await this.store.listLines(tx, tenantId, [orderId]);
+    return (lines.reduce((total, line) => total + milli(line.quantity), 0) / 1000).toFixed(3);
+  }
+
   /** CRR-29, D6-12 (Slice 6.2): the courier stands behind having the parcel, so a booked order is shipped. Stock left at booking. */
   async courierShippedWithin(
     tx: Transaction,
@@ -358,7 +366,16 @@ export class OrderFulfilment {
     const owed = Number(order.due);
     const reported = report.reported === null ? null : Number(report.reported);
     const collected = reported === null ? (report.partly ? 0 : owed) : Math.min(reported, owed);
-    const differs = reported !== null && (reported > owed || (!report.partly && reported !== owed));
+    // Read agreed 2026-11-05: collecting the next whole taka up, as it was asked to, is no difference: the order is paid in full.
+    const onlyRounding =
+      reported !== null &&
+      reported === Number(report.asked) &&
+      reported > owed &&
+      reported - owed < 1;
+    const differs =
+      reported !== null &&
+      !onlyRounding &&
+      (reported > owed || (!report.partly && reported !== owed));
     const to = report.partly ? FulfillmentStatus.PartiallyDelivered : FulfillmentStatus.Delivered;
     const history: NewOrderHistory[] = [this.fulfilmentHistory(order, to, report.line, who)];
     const standing: OrderPatch =

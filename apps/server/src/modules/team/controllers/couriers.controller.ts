@@ -20,6 +20,7 @@ import { RequirePermission } from '../../../common/decorators/require-permission
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { OkDto } from '../../../common/dto/ok.dto';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
+import type { PickupStore } from '../../couriers/ports/courier-adapter';
 import {
   CourierConnections,
   type CourierAdapterView,
@@ -34,7 +35,9 @@ import {
   CourierConnectedDto,
   CourierConnectionDto,
   CourierConnectionListDto,
+  CourierStoreListDto,
   MessageAddressDto,
+  SetPickupStoreDto,
 } from '../dto/couriers.dto';
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
@@ -149,6 +152,43 @@ export class CouriersController {
     return this.messages.replaceAddress(
       this.request.tenantIdOf(request),
       courierKeyOf(key),
+      this.request.actorOf(request),
+    );
+  }
+
+  @Get('connections/:key/stores')
+  @RequirePermission(Permission.CouriersManage)
+  @ResponseMessage('CourierStoresListed')
+  @ApiOperation({
+    summary:
+      'The stores this courier lists for the account, and which one parcels leave from, for a courier that has stores (Slice 6.3)',
+  })
+  @ZodResponse({ type: CourierStoreListDto })
+  stores(
+    @Param('key') key: string,
+    @Req() request: DashboardRequest,
+  ): Promise<{ stores: PickupStore[]; chosenId: string | null }> {
+    return this.connections.pickupStores(this.request.tenantIdOf(request), courierKeyOf(key));
+  }
+
+  @Put('connections/:key/store')
+  @RequirePermission(Permission.CouriersManage)
+  @ResponseMessage('CourierPickupStoreChanged')
+  @ApiOperation({
+    summary:
+      "The one store this courier's parcels leave from; it must be one the courier lists as active (Slice 6.3)",
+  })
+  @ApiBody({ type: SetPickupStoreDto })
+  @ZodResponse({ type: CourierConnectionDto })
+  setStore(
+    @Param('key') key: string,
+    @Body(new ZodValidationPipe(SetPickupStoreDto.schema)) body: SetPickupStoreDto,
+    @Req() request: DashboardRequest,
+  ): Promise<CourierConnectionView> {
+    return this.connections.setPickupStore(
+      this.request.tenantIdOf(request),
+      courierKeyOf(key),
+      body,
       this.request.actorOf(request),
     );
   }

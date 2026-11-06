@@ -97,6 +97,7 @@ export class CourierChecks {
       parcel.lastCheckAt !== null &&
       now.getTime() - parcel.lastCheckAt.getTime() < limit * MINUTE_MS;
     if (finished || recent) return this.viewOf(tenantId, orderId);
+    await this.connections.renewIfDue(tenantId, parcel.courierKey);
     const opened = await this.store.run(tenantId, (tx) =>
       this.connections.openedWithin(tx, tenantId, parcel.courierKey),
     );
@@ -192,9 +193,12 @@ export class CourierChecks {
       if (!opened.has(parcel.courierKey)) {
         opened.set(
           parcel.courierKey,
-          await this.store.run(tenantId, (tx) =>
-            this.connections.openedWithin(tx, tenantId, parcel.courierKey),
-          ),
+          // A login that can't be renewed tonight, or has ended, means no calls for this courier tonight.
+          (await this.renewed(tenantId, parcel.courierKey))
+            ? await this.store.run(tenantId, (tx) =>
+                this.connections.openedWithin(tx, tenantId, parcel.courierKey),
+              )
+            : null,
         );
       }
       const connection = opened.get(parcel.courierKey);
@@ -225,6 +229,16 @@ export class CourierChecks {
       await this.pause(MINUTE_MS / connection.adapter.limits.callsPerMinute);
     }
     return { checked, moved };
+  }
+
+  private async renewed(tenantId: string, courierKey: CourierKey): Promise<boolean> {
+    try {
+      await this.connections.renewIfDue(tenantId, courierKey);
+      return true;
+    } catch (error) {
+      if (!(error instanceof ApiError)) throw error;
+      return false;
+    }
   }
 
   private ask(

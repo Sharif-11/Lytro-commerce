@@ -23,6 +23,15 @@ export const connectCourierSchema = z
 export type ConnectCourierInput = z.infer<typeof connectCourierSchema>;
 
 /**
+ * PUT couriers/connections/:key/store (Phase 6 Slice 6.3, read agreed 2026-11-05): the one store a shop's parcels leave from, for a
+ * courier that has stores. It must be one the courier lists as active for this account.
+ */
+export const setPickupStoreSchema = z
+  .object({ storeId: z.string().trim().min(1).max(COURIER_FIELD_MAX_LENGTH) })
+  .strict();
+export type SetPickupStoreInput = z.infer<typeof setPickupStoreSchema>;
+
+/**
  * POST orders/:id/book (CRR-05, CRR-06, D6-7, read agreed 2026-11-04): what staff choose when booking. The cash on delivery is
  * not here: it is always what the order says is due. Left out, `courierKey` is the shop's default courier. Weight and area
  * count only where the courier takes them.

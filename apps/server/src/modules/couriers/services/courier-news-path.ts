@@ -255,7 +255,7 @@ export class CourierNewsPath {
       tx,
       tenantId,
       order,
-      { partly: reading === ParcelReading.PartlyDelivered, reported, line },
+      { partly: reading === ParcelReading.PartlyDelivered, reported, asked: parcel.cod, line },
       COURIER_REPORT,
       now,
     );
