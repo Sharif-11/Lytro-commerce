@@ -14,6 +14,7 @@ export const RATE_UNITS: Record<RateKey, RateUnit> = {
   [RateKey.SmsUnitSizeChars]: 'characters',
   [RateKey.ListenerVerificationPct]: 'paymentPercent',
   [RateKey.GatewayVerificationPct]: 'paymentPercent',
+  [RateKey.AiExtraction]: 'taka',
 };
 
 /** A rate as the list shows it: ৳0.4, 1.5%, 160. */

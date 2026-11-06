@@ -303,4 +303,14 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   weightKg: { en: 'Weight (kg)', bn: 'ওজন (কেজি)' },
   zillaIds: { en: 'Districts', bn: 'জেলা' },
   zoneIds: { en: 'Delivery zones', bn: 'ডেলিভারি জোন' },
+  // ORD-30 to ORD-34 (Phase 7 Slice 7.6): the parts of a read of delivery details.
+  allowanceLeft: { en: 'Uses left', bn: 'বাকি ব্যবহার' },
+  charged: { en: 'Charged', bn: 'চার্জ' },
+  confidence: { en: 'Confidence', bn: 'নিশ্চয়তা' },
+  draft: { en: 'Draft', bn: 'ড্রাফট' },
+  fields: { en: 'Fields', bn: 'ফিল্ড' },
+  paidFrom: { en: 'Paid from', bn: 'যেখান থেকে পেমেন্ট' },
+  thana: { en: 'Thana', bn: 'থানা' },
+  written: { en: 'As written', bn: 'যেমন লেখা' },
+  zilla: { en: 'District', bn: 'জেলা' },
 };

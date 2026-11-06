@@ -282,6 +282,8 @@ describeIfDatabase('buying an add-on from the balance (PLN-14, BIL-08, BIL-12)',
     const shop = await openShop(port, texts, 'addons');
     const offers = await offersOf(shop);
     expect(offers.map((offer) => offer.addon.key).sort()).toEqual([
+      // Phase 7 Slice 7.6: the first allowance (PLN-20).
+      'address_reads_200',
       'bandwidth_pack',
       'brand_identity',
       'extra_products',

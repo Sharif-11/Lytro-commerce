@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { transactionIdField } from '../../common/transaction-id';
-import { ADDON_QUANTITY_MAX, AddonKind, PLAN_PAYMENT_METHODS } from '../../db/enums';
+import {
+  ADDON_QUANTITY_MAX,
+  AddonKind,
+  AllowanceService,
+  PLAN_PAYMENT_METHODS,
+} from '../../db/enums';
 import { planLimitsSchema } from '../../db/plans/plan-limits';
 import { requireWalletFields } from './purchase';
 
@@ -9,9 +14,13 @@ const limitKeys = Object.keys(planLimitsSchema.shape).filter(
   (key) => key !== 'activity_retention_days',
 ) as [string, ...string[]];
 
+// PLN-20 (Slice 7.6): the services an allowance add-on can cover.
+const allowanceServices: readonly string[] = Object.values(AllowanceService);
+
 // POST /operator/addons (PLN-13): one item of the catalogue. A limit add-on and a pack name the limit they raise and
-// how much one unit adds, in that limit's own unit; a feature add-on names neither. Prices are whole taka: a month
-// of a limit or feature add-on, or one pack.
+// how much one unit adds, in that limit's own unit; an allowance names the service it covers and how many uses one
+// unit holds (PLN-20); a feature add-on names neither. Prices are whole taka: a month of a limit, feature or allowance
+// add-on, or one pack.
 export const createAddonSchema = z
   .object({
     key: z
@@ -19,14 +28,33 @@ export const createAddonSchema = z
       .trim()
       .regex(/^[a-z][a-z0-9_]{1,49}$/),
     kind: z.nativeEnum(AddonKind),
-    limitKey: z.enum(limitKeys).nullable().default(null),
+    limitKey: z
+      .enum([...limitKeys, ...allowanceServices] as [string, ...string[]])
+      .nullable()
+      .default(null),
     unitSize: z.number().int().positive().nullable().default(null),
     price: z.coerce.number().int().positive(),
     labelEn: z.string().trim().min(1).max(100),
     labelBn: z.string().trim().min(1).max(100),
   })
   .superRefine((value, ctx) => {
-    const raises = value.kind === AddonKind.Limit || value.kind === AddonKind.Pack;
+    const raises =
+      value.kind === AddonKind.Limit ||
+      value.kind === AddonKind.Pack ||
+      value.kind === AddonKind.Allowance;
+    if (
+      value.limitKey !== null &&
+      (value.kind === AddonKind.Allowance) !== allowanceServices.includes(value.limitKey)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['limitKey'],
+        message:
+          value.kind === AddonKind.Allowance
+            ? 'An allowance names the service it covers.'
+            : 'Only an allowance names a service.',
+      });
+    }
     for (const field of ['limitKey', 'unitSize'] as const) {
       if (raises === (value[field] === null)) {
         ctx.addIssue({

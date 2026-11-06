@@ -45,6 +45,9 @@ beforeAll(async () => {
   // provider is replaced below, so nothing here ever reaches BulkSMSBD.
   process.env['BULKSMSBD_API_KEY'] = 'test-placeholder-key';
   process.env['BULKSMSBD_SENDER_ID'] = 'test-placeholder-sender';
+  // Phase 7 Slice 7.6 (D7-22): and with Gemini's key, since production reads messages for real. A placeholder: no
+  // message is read here.
+  process.env['GEMINI_API_KEY'] = 'test-placeholder-key';
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(SMS_PROVIDER)

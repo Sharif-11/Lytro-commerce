@@ -745,6 +745,12 @@ export const MESSAGE_KEYS = [
   'CourierAddressReplaced',
   'ParcelSynced',
   'ParcelNothingToSync',
+  // Phase 7 Slice 7.6: reading a customer's delivery details from a pasted message (ORD-30 to ORD-34)
+  'AddressRead',
+  'AddressReadTextOnly',
+  'AddressReadUnavailable',
+  'AddressReadUnreadable',
+  'TooManyAddressReads',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

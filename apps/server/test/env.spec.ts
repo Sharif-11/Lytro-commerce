@@ -40,6 +40,7 @@ describe('loadEnv platform settings', () => {
       PLATFORM_ADDRESSES: '203.0.113.10',
       BULKSMSBD_API_KEY: 'key',
       BULKSMSBD_SENDER_ID: 'sender',
+      GEMINI_API_KEY: 'key',
     });
     expect(env.TRUSTED_EDGE_SECRET).toBe(SECRET);
   });
@@ -53,6 +54,7 @@ describe('loadEnv platform settings', () => {
       DATA_ENCRYPTION_KEY: DATA_KEY,
       BULKSMSBD_API_KEY: 'key',
       BULKSMSBD_SENDER_ID: 'sender',
+      GEMINI_API_KEY: 'key',
     };
     expect(() => new EnvironmentParser().parse(production)).toThrow(/PLATFORM_ADDRESSES/);
     expect(() =>

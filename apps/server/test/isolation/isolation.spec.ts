@@ -329,6 +329,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'POST /orders/:id/returns',
       'POST /orders/:id/ship',
       'POST /orders/quote',
+      'POST /orders/read-address',
       'POST /payment-methods/accounts/:id/automated',
       'POST /payment-methods/accounts/:id/gateway/test',
       'POST /payments/:id/reject',

@@ -2348,11 +2348,11 @@ CREATE TABLE control.plan_assignments (
 
 CREATE TABLE control.addons (                      -- PLN-13, migration 0073
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    key             text NOT NULL UNIQUE,           -- seeded: extra_products | extra_seat | extra_storage | brand_identity | bandwidth_pack | request_pack
+    key             text NOT NULL UNIQUE,           -- seeded: extra_products | extra_seat | extra_storage | brand_identity | bandwidth_pack | request_pack | address_reads_200 (0113)
     kind            text NOT NULL CHECK (kind IN ('limit', 'pack', 'feature', 'allowance')),  -- PLN-13, amended 2026-10-18; allowance: PLN-20
-    limit_key       text,                           -- the plan limit a limit add-on or a pack raises (products, staff, storage_mb, ...); null for a feature
-    unit_size       integer,                        -- how much one adds, in that limit's own unit; null for a feature
-    price           numeric(10,2) NOT NULL,         -- whole taka: a month of a limit or feature add-on, or one pack
+    limit_key       text,                           -- the plan limit a limit add-on or a pack raises (products, staff, storage_mb, ...); the service an allowance covers (address_reads, PLN-20); null for a feature
+    unit_size       integer,                        -- how much one adds, in that limit's own unit, or an allowance's uses; null for a feature
+    price           numeric(10,2) NOT NULL,         -- whole taka: a month of a limit, feature or allowance add-on, or one pack
     label_en        text NOT NULL,
     label_bn        text NOT NULL,
     retired_at      timestamptz,                    -- no longer for sale; what was bought runs to its end
@@ -2528,18 +2528,23 @@ CREATE TABLE tenant.fraud_checks (
 );
 CREATE INDEX ON tenant.fraud_checks (tenant_id, phone, checked_at DESC);
 
--- ORD-30 to ORD-34, PLN-20: one row per successful order read from text. The pasted message itself is
--- not kept; the row exists to show what each read used.
+-- ORD-30 to ORD-34, PLN-20 (migration 0113, Phase 7 Slice 7.6): one row per charged read of a customer's delivery
+-- details. A read that found nothing is free and leaves none. The pasted message is never kept (D7-18). An address-read
+-- allowance's uses are its rows. RLS like every tenant table; the app may only read and insert.
 CREATE TABLE tenant.order_extractions (
-    id              bigserial PRIMARY KEY,
-    tenant_id       uuid NOT NULL,
-    user_id         uuid NOT NULL,
-    input_chars     integer NOT NULL CHECK (input_chars BETWEEN 1 AND 4000),  -- ORD-33
-    confidence      numeric(4,3),
-    paid_from       text NOT NULL CHECK (paid_from IN ('balance', 'allowance')),
-    created_at      timestamptz NOT NULL DEFAULT now()
+    id                bigserial PRIMARY KEY,
+    tenant_id         uuid NOT NULL,
+    user_id           uuid,                          -- the staff member; null for the owner's own session (AUD-02)
+    input_chars       integer NOT NULL CHECK (input_chars BETWEEN 1 AND 4000),  -- ORD-33
+    confidence        numeric(4,3) NOT NULL,
+    paid_from         text NOT NULL,                 -- 'balance' | 'allowance'
+    cost              numeric(10,2) NOT NULL CHECK (cost >= 0),  -- what the balance paid; 0 when an allowance did
+    addon_purchase_id uuid REFERENCES control.addon_purchases(id),
+    created_at        timestamptz NOT NULL DEFAULT now(),
+    CHECK (paid_from IN ('balance', 'allowance') AND (paid_from = 'allowance') = (addon_purchase_id IS NOT NULL))
 );
-CREATE INDEX ON tenant.order_extractions (tenant_id, created_at DESC);
+CREATE INDEX ON tenant.order_extractions (tenant_id, created_at);
+CREATE INDEX ON tenant.order_extractions (addon_purchase_id);
 
 CREATE TABLE tenant.fraud_rules (
     tenant_id       uuid PRIMARY KEY,

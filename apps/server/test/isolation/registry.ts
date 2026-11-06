@@ -264,6 +264,10 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /orders':
     "another shop's variant is not_found and nothing is saved; a key is the session shop's own",
   'POST /orders/quote': "another shop's variant is not_found",
+  // Phase 7 Slice 7.6, checked in test/address-reads.e2e.spec.ts: it names no shop's IDs. The read is charged to the
+  // session shop, from its own balance or its own allowance, and its row is under that shop's RLS.
+  'POST /orders/read-address':
+    "charges only the session shop's own balance or allowance; it takes no other shop's IDs",
   'GET /orders/:id': "another shop's order answers 404",
   // Slice 4.8a, checked in test/orders.e2e.spec.ts: only the session shop's own couriers.
   'GET /orders/couriers': "lists only the session shop's own couriers",

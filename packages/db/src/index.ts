@@ -147,6 +147,7 @@ export {
   type AddonActivation,
   type AddonPurchaseRow,
   type AddonUnits,
+  type CountingAllowance,
   type CyclePackFields,
   type NewAddonPurchaseValues,
   type PackPurchaseRow,
@@ -270,6 +271,10 @@ export {
   type OrderSummaryRow,
 } from './repositories/orders/order.repository';
 export { CustomerRepository } from './repositories/orders/customer.repository';
+export {
+  OrderExtractionRepository,
+  type NewOrderExtraction,
+} from './repositories/orders/order-extraction.repository';
 export {
   SalesRepository,
   type BestSellerRow,

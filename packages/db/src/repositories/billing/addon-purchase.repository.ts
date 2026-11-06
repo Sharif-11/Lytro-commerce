@@ -125,6 +125,13 @@ export interface AddonUnits {
 }
 
 /** PLN-14: an add-on the shop has now, as the dashboard lists it. */
+/** PLN-20: an allowance a shop holds now, with the uses its quantity bought. */
+export interface CountingAllowance {
+  id: string;
+  uses: number;
+  expiresAt: Date;
+}
+
 export interface ActiveAddonRow {
   id: string;
   addonId: string;
@@ -547,5 +554,36 @@ export class AddonPurchaseRepository {
         ),
       )
       .orderBy(asc(addonPurchases.purchasedAt));
+  }
+
+  /**
+   * PLN-20 (Phase 7 Slice 7.6): the shop's allowances for one service that count now, the soonest to end first, locked so
+   * two uses at once can't both take the last one.
+   */
+  async countingAllowancesForUpdate(
+    db: Executor,
+    tenantId: string,
+    service: string,
+  ): Promise<CountingAllowance[]> {
+    return (
+      db
+        .select({
+          id: addonPurchases.id,
+          uses: sql<number>`(${addonPurchases.quantity} * ${addonPurchases.unitSize})::int`,
+          expiresAt: addonPurchases.expiresAt,
+        })
+        .from(addonPurchases)
+        .where(
+          and(
+            eq(addonPurchases.tenantId, tenantId),
+            eq(addonPurchases.kind, AddonKind.Allowance),
+            eq(addonPurchases.limitKey, service),
+            counting(),
+          ),
+        )
+        .orderBy(asc(addonPurchases.expiresAt), asc(addonPurchases.purchasedAt))
+        // Only this table is read, so this locks its rows alone; Postgres refuses `OF` with a schema-qualified name.
+        .for('update')
+    );
   }
 }

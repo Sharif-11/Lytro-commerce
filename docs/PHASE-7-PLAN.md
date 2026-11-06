@@ -70,7 +70,7 @@ check a phone number before shipping a cash-on-delivery order, and paste a custo
 | D7-7 | **Price of a check.** With courier feedback only, a check costs Lytro nothing. | The charge (FRD-03) is built, but the fraud-check rate is **zero at launch**, raisable from Rates without a release. Allowances for fraud checks (PLN-20) wait until the check has a price. | Slices 7.5, 7.6 |
 | D7-8 | **Shared counts across shops** (FRD-09, FRD-10, FRD-12, FRD-13). | **Next release.** They need many shops to say anything, and a line in the terms about sharing. | Slice 7.5 |
 | D7-9 | **How it's built.** | Server slices first, then one sketch-and-screens pass for the dashboard and the console, sketched before it's built. | Slice 7.7 |
-| D7-10 | **When.** Phase 6 goes one slice at a time in another session. | Phase 7 is built beside it, in its own session, also one slice at a time. The two touch different code. | the whole phase |
+| D7-10 | **When.** Phase 6 goes one slice at a time in another session. | Phase 7 is built beside it, in its own session, also one slice at a time. The two touch different code. Amended 2026-11-06 (the owner's word): Slice 7.6 is built in a second session beside Slice 7.2, since it touches neither SMS nor couriers. | the whole phase |
 | D7-11 | **Push.** | In-app notifications and **web push** to a subscribed phone or computer (NTF-01 to NTF-04). Email for warnings and notices (NTF-05, NTF-06, NTC-06). | Slices 7.3, 7.4 |
 | D7-12 | **Credentials.** | Each provider's key goes in a local file outside every repository, which the slice names and never opens or prints. The BulkSMSBD key pasted in the read must be replaced with a new one first. | every provider slice |
 | D7-21 | **When an SMS really goes out** (the owner's call, 2026-11-06). Every SMS costs money. | By the server's mode. **Test:** never sent, only recorded, whatever any setting says. **Development:** the stand-in writes it to the log, unless `SMS_FORCE_REAL=true` is set and BulkSMSBD's login is there, and then it really goes out. **Production, staging included:** always sent for real, and a server missing BulkSMSBD's login refuses to start rather than quietly logging. | Slice 7.1 |
@@ -83,8 +83,8 @@ overrule any of them when reviewing this plan.
 | D7-13 | **One way to count an SMS.** The shopper sign-up code charges by SMS-09's units (characters ÷ the unit size), but the essential allowance counts the phone network's parts, so the two disagree (KNOWN-GAPS §118). | SMS-09's units, for charging and for the allowance alike, as SMS-09 says. The allowance is enforced, not only counted. | Slice 7.1 |
 | D7-14 | **Who hears what, and how.** Today seven notifiers only write to the log, and low balance only emails. | Each becomes a notification: in-app and push to the users with the matching permission (NTF-03). Email only for NTF-05's warnings and for notices (NTC-06). SMS only for SMS-01's events. | Slices 7.2, 7.3 |
 | D7-15 | **Delivery reports** (SMS-17). BulkSMSBD's page shows no delivery-report call. | The log shows sent and failed from the provider's answer, and blocked for an SMS refused before it went (SMS-07). **Settled in Slice 7.1's read (2026-11-06): sent and failed only**, no delivered. | Slice 7.1 |
-| D7-16 | **A rate for reading orders.** ORD-34 charges an extraction rate, and none exists. | A new rate, `ai_extraction`, set by the operator before launch. The chat-reply rate (`ai_reply`) isn't shown to shops or the operator while chat is out, so no screen offers what doesn't exist. | Slice 7.6 |
-| D7-17 | **Allowances.** | Allowances for reading orders are built in this release, and allowance becomes a kind a shop can buy. Allowances for fraud checks follow D7-7. | Slice 7.6 |
+| D7-16 | **A rate for reading orders.** ORD-34 charges an extraction rate, and none exists. | A new rate, `ai_extraction`, set by the operator before launch (0.10 TK a read, D7-36). The chat-reply rate (`ai_reply`) isn't shown to shops or the operator while chat is out, so no screen offers what doesn't exist. | Slice 7.6 |
+| D7-17 | **Allowances.** | Allowances for reading orders are built in this release, and allowance becomes a kind a shop can buy (the first, D7-36). Allowances for fraud checks follow D7-7. | Slice 7.6 |
 | D7-18 | **The pasted message.** | It goes to Gemini, on a paid tier that doesn't train on it, and Lytro keeps only the draft and the count, never the message (as `order_extractions` already says). | Slice 7.6 |
 | D7-19 | **Notices from the console.** The console's Rates page shows "Offer a rate-change notice" as coming soon. | The notice board's operator routes come in Slice 7.4, and the console's screens for them in Slice 7.7, which also makes the rate-change offer real (NTC-13). | Slices 7.4, 7.7 |
 | D7-20 | **What the screens stopped promising.** The console and storefront dropped "the owner is told by SMS" and "no SMS is promised" while nothing was sent. | Slice 7.7 brings back each sentence once its message really goes out, checked against the code, not the sketch. | Slice 7.7 |
@@ -94,6 +94,12 @@ overrule any of them when reviewing this plan.
 | D7-25 | **The unit and the rate** (Slice 7.1's read). BulkSMSBD charges 0.35 TK a part, Bangla or English. | **67 characters a unit, at 0.55 TK**, whatever the language: 67 is one Bangla part once a message needs two, so no SMS costs Lytro more than it earns. SMS-09 and RAT-13's default moves from 75 (the seeded rate too, unless an operator has changed it). | Slice 7.1 |
 | D7-26 | **The codes' words** (the owner's, 2026-11-06), in BulkSMSBD's OTP shape. | Sign-in: "Lytro-এ লগইনের জন্য OTP হচ্ছে {code}। কারো সাথে শেয়ার করবেন না।" Reset: "Lytro-এ পাসওয়ার্ড রিসেটের জন্য OTP হচ্ছে {code}। …" A shopper's: "{shop}-এ সাইন আপের জন্য OTP হচ্ছে {code}। …", or in English "Your {shop} OTP is {code}. Do not share it with anyone." (SMS-16 amended.) | Slice 7.1 |
 | D7-27 | **SMS-11's per-IP limit**, left for later in Phase 1 (D16). With real SMS, codes asked for made-up numbers from one address would cost Lytro money. | At most **20 code SMS an hour from one address** in production, across every phone, a setting (`CODE_SMS_PER_IP_PER_HOUR`); an address the server can't trust isn't counted (D14), as SUP-08's isn't. To revisit against measured traffic, since many phones can share one carrier address. | Slice 7.1 |
+| D7-32 | **What the AI reads** (the owner's words, Slice 7.6's read, 2026-11-06: "extracting customer delivery address only from customer text"). | The customer's delivery details only: name, phone, zilla, thana, the address line, and a delivery note when the customer writes one. No items, delivery charge, advance or cash on delivery, so no product list goes to Gemini. ORD-30 amended. | Slice 7.6 |
+| D7-33 | **Places** (Slice 7.6's read). | Gemini names the zilla and thana in English; Lytro matches them to its own list with the rules the couriers' areas use (one definition, now `PlaceMatcher` in delivery). A thana by its own name is found, a near one is filled in to check, and one off the list is left as written. No courier area is suggested: areas are picked at booking. ORD-31 amended. | Slice 7.6 |
+| D7-34 | **What a read costs** (Slice 7.6's read). | Charged only when it finds a name with a phone, or a zilla on the list; anything less costs nothing. An answer that can't be used, or none in time (15 seconds), costs nothing either (ORD-33). ORD-34 amended. A shop's reads are held to 30 a minute, a flood guard and an operator setting. | Slice 7.6 |
+| D7-35 | **The model** (the owner's pick after the tries, 2026-11-06). | Gemini 3.5 Flash-Lite. On 21 made-up messages it got 104 of 105 fields right, half its answers came in 1.4 seconds or less and none in more than 2.2 (Appendix A). The AI and its model are operator settings (`address_read_provider`, `address_read_model`), AI-10's rule. | Slice 7.6 |
+| D7-36 | **The rate and the allowance** (the owner's picks, 2026-11-06). | 0.10 TK a read, about Lytro's cost (0.04 TK) and a margin. The first allowance: "200 reads 20 tk per month", the same price a read, bought only in a paid period (PLN-20). Both are editable data. | Slice 7.6 |
+| D7-37 | **Real messages** (the owner's call, 2026-11-06). The key given for the read is on Google's free tier, where Google may use what it is sent. | Built against a fake now; the free key read only made-up messages. Before launch the owner turns billing on and real messages, names and numbers changed, are tried: the slice's done-when. | Slice 7.6 |
 
 ### 2.1 Points left to each slice's read
 
@@ -106,7 +112,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 7.3 | Resend's sending domain and its DNS records, the bounce message (NTF-06), and how long a notification is kept. Which events a user can switch off (NTF-04): essential ones like "payment to verify" may stay on. |
 | 7.4 | How a notice's Bangla and English bodies are written in the console (bold, links and lists, NTC-01) and kept safe (NTC-16). Whether the status page (NTC-14) is in this release. |
 | 7.5 | **What each courier's check returns, tried with a real key:** Steadfast's score, Pathao's success-rate call (Appendix A), RedX's if it has one, once Slice 6.4 lands. How the level (low, medium, high, unknown) is worked out from the counts. Whether checks stay refused in trial (FRD-08) now that they're free. |
-| 7.6 | **Real pasted messages read by Gemini first**, in Bangla, English and the two mixed, to choose the model and set the rate. How thanas are matched (ORD-31), and the confidence shown. |
+| 7.6 | **Real pasted messages read by Gemini first**, in Bangla, English and the two mixed, to choose the model and set the rate. How thanas are matched (ORD-31), and the confidence shown. **Settled in Slice 7.6's read (2026-11-06):** D7-32 to D7-37. Made-up messages chose the model; the real ones wait for a key with billing on (D7-37). |
 | 7.7 | Settled by its sketch: see that slice. |
 
 ---
@@ -131,7 +137,7 @@ Each is settled in its slice's read, before code, and recorded there.
 |---|---|---|---|
 | SMS-17 | sent and failed, from the provider's answer | delivered, if BulkSMSBD offers no reports (D7-15) | Slice 7.1's read |
 | FRD-02 | courier history and the shop's own orders | the paid aggregator and the platform's shared counts | next release (D7-5, D7-8) |
-| PLN-20 | allowances for reading orders | allowances for fraud checks | once checks have a price (D7-7) |
+| PLN-20 | allowances for reading delivery details: bought in a paid period, used before the balance, renewed with the plan | allowances for fraud checks; the uses left on the usage page, with LIM-01's warnings | once checks have a price (D7-7); Slice 7.7, with the usage page |
 | NTC-20 | the routes | secret keys with `notices:read` | Phase 8, with secret keys |
 
 ### 3.3 Listed for Phase 7 but not built here (next release)
@@ -196,8 +202,8 @@ Migrations follow Phase 6's, numbered in the order slices merge (Slice 7.1 is 01
 | a bounce flag on the owner's email | NTF-06 | 7.3 |
 | `control.notices`, `control.notice_versions`, `control.notice_reads`, `control.notice_acknowledgments` | notices, their earlier versions (NTC-08), reads and acknowledgments | 7.4 |
 | `tenant.fraud_checks`, `tenant.fraud_rules` | each check and its result (FRD-01, FRD-04), and the automatic rule (FRD-05). No shared-counts column in this release | 7.5 |
-| `tenant.order_extractions` | each read, without the message (D7-18) | 7.6 |
-| the `ai_extraction` rate, an allowance's uses on an add-on purchase | D7-16, D7-17 | 7.6 |
+| `tenant.order_extractions` | each charged read, without the message (D7-18): its length, confidence and cost, and the allowance that paid, if one did; an allowance's uses are its rows | 7.6 |
+| the `ai_extraction` rate, the first allowance item, the read's three operator settings | D7-16, D7-17, D7-35, D7-36 | 7.6 |
 
 ---
 
@@ -210,7 +216,7 @@ Migrations follow Phase 6's, numbered in the order slices merge (Slice 7.1 is 01
 | Team, `notices:read` | `GET /api/v1/notices`, `POST /api/v1/notices/:id/read`, `POST /api/v1/notices/:id/acknowledge` | NTC-03, NTC-05, NTC-09 |
 | Operator | `GET`, `POST`, `PATCH /api/v1/operator/notices`, `POST /api/v1/operator/notices/:id/withdraw`, `GET /api/v1/operator/notices/:id/acknowledgments` | NTC-01, NTC-05, NTC-08 |
 | Team, `fraud:check` | `POST /api/v1/fraud-checks`, `GET /api/v1/fraud-checks?phone=`; `GET`, `PUT /api/v1/fraud-checks/rule` | FRD-01, FRD-05, FRD-07 |
-| Team, `orders:manage` | `POST /api/v1/orders/read-from-text` | ORD-30 to ORD-34 |
+| Team, `orders:manage` | `POST /api/v1/orders/read-address` | ORD-30 to ORD-34 (D7-32) |
 | Providers | `POST /api/v1/webhooks/email/resend` | bounces (NTF-06), signed |
 
 The permission names already exist (`SmsRead`, `SmsManage`, `NoticesRead`, `FraudRead`, `FraudManage`). Slice 7.5's read
@@ -261,12 +267,14 @@ checks whether FRD-01's `fraud:check` is `fraud:read` or needs its own name.
 
 ### Slice 7.6: reading an order from a message
 - **Depends on:** 7.0.
+- **Narrowed by its read (D7-32 to D7-37):** the customer's delivery details only, placed by Lytro's own matcher, charged
+  only when something is found.
 - **Delivers:** Gemini's adapter and fake, the provider and model a setting; the draft with its confidence (ORD-30);
   thanas matched to Lytro's list (ORD-31); images, empty and long input refused (ORD-32, ORD-33); the `ai_extraction`
   rate and the charge, or a use from an allowance (ORD-34, D7-16); allowances a shop can buy (D7-17); `ai_reply`
   hidden.
 - **Done when:** a set of real pasted messages, in Bangla, English and the two mixed, reads well enough to fill the
-  form, and the rate is set from what it costs.
+  form, and the rate is set from what it costs. The real messages wait for a key with billing on (D7-37).
 
 ### Slice 7.7: the screens
 - **Depends on:** 7.1 to 7.6.
@@ -379,6 +387,21 @@ Third-party trackers put Gemini 2.5 Flash-Lite at about $0.10 per million input 
 tokens ([morphllm](https://www.morphllm.com/gemini-api-pricing)), so a read of a pasted message costs a small fraction
 of a taka. Newer Flash-Lite models are listed higher. The model and price are to confirm on Google's own page
 (`ai.google.dev/gemini-api/docs/pricing`) in Slice 7.6.
+
+- **Google's own pages, read in Slice 7.6 (2026-11-06; `ai.google.dev` now goes to `aistudio.google.com/docs`):**
+  stable text models include 3.6 Flash ($0.75 in and $3.75 out per million tokens to 2026-12-31, then $1.50 and
+  $7.50), 3.5 Flash-Lite ($0.30 and $2.50) and 3.1 Flash-Lite ($0.25 and $1.50); 2.5 Flash is deprecated and goes to
+  3.5 Flash-Lite from 2026-12-01. On the paid tier (billing on), prompts aren't used to improve Google's products and
+  are kept a limited time for abuse checks only; on the free tier they are used, and people may read them. The API
+  can answer as JSON to a given schema.
+- **Tried in Slice 7.6's read (2026-11-06), 21 made-up messages** in Bangla, English and the two mixed, with old
+  spellings, landmarks, two phones, and two messages with no address: a read sends about 430 tokens and gets about
+  70 back. 3.5 Flash-Lite got 104 of 105 fields right, half its answers in 1.4 seconds or less, the slowest 2.2;
+  3.1 Flash-Lite also 104 but some reads took 15 to 30 seconds and one never answered; 3.6 Flash "thinks" first,
+  about ten times the cost, and without it wrote "Kotwali" for town thanas. A line on police thanas made "Tongi" read
+  as Gazipur Sadar; "Fatullah", written in Bangla, stays off the list for staff to pick. At about 122 TK to the dollar
+  a read costs Lytro about 0.04 TK on 3.5 Flash-Lite. Three of those messages went through the built adapter too
+  (`gemini-live.spec.ts`).
 
 ### The couriers' checks
 - **Steadfast:** `/fraud_check/score/{phone}`, with the shop's own key (`PHASE-6-PLAN.md` Appendix A).

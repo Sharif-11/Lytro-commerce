@@ -1,7 +1,7 @@
 import { CourierAreaMatch } from '@lytronix/validators';
-import type { ZillaView } from '../../delivery/types/delivery';
+import type { ZillaView } from '../types/delivery';
 
-/** Where one of a courier's areas goes among Lytro's zillas and thanas. */
+/** Where a named place goes among Lytro's zillas and thanas: a courier's area, or a place a customer wrote. */
 export interface AreaPlace {
   zillaId: number | null;
   thanaId: number | null;
@@ -101,12 +101,13 @@ function closest(name: string, among: string[], least: number): string | null {
 }
 
 /**
- * CUS-10 (Phase 6 Slice 6.4, read agreed 2026-11-06): where a courier's area goes. Its district finds the zilla, so it can always be
+ * CUS-10 (Phase 6 Slice 6.4, read agreed 2026-11-06), ORD-31 (Phase 7 Slice 7.6, read agreed 2026-11-06): where a
+ * courier's area, or a zilla and thana read from a customer's message, goes. Its district finds the zilla, so it can always be
  * searched there. It counts in a thana only when it is named after it: the same name, the name and then more ("Mirpur 10"), or the
  * same name romanised another way. A thana named only in its brackets, or a near spelling, is a suggestion for the operator, since
  * "Duaripara-Pallabi(Mirpur 12)" names Mirpur though it is in Pallabi. Shared post codes were tried and left out: most areas have none.
  */
-export class CourierAreaMatcher {
+export class PlaceMatcher {
   private readonly zillas: Map<string, ZillaView>;
 
   constructor(zillas: readonly ZillaView[]) {

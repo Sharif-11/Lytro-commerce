@@ -20,6 +20,7 @@ export * from './api/purchasing/purchase-order';
 export * from './api/purchasing/receipt';
 export * from './api/orders/order';
 export * from './api/orders/sales';
+export * from './api/orders/address-read';
 export * from './api/couriers/courier';
 export * from './api/payment-methods/payment-methods';
 export * from './api/payment-methods/gateway';

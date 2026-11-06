@@ -2378,6 +2378,26 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Installation blocked.',
     bn: 'ইনস্টলেশন ব্লক করা হয়েছে।',
   },
+  AddressRead: {
+    en: 'Delivery details read.',
+    bn: 'ডেলিভারির তথ্য পড়া হয়েছে।',
+  },
+  AddressReadTextOnly: {
+    en: "Only text can be read for now. Paste the message's text, not a picture.",
+    bn: 'এখন শুধু লেখা পড়া যায়। ছবি নয়, মেসেজের লেখাটা পেস্ট করুন।',
+  },
+  AddressReadUnavailable: {
+    en: "Couldn't read the message just now. Try again in a minute; nothing was charged.",
+    bn: 'এই মুহূর্তে মেসেজটা পড়া গেল না। এক মিনিট পর আবার ট্রাই করুন; কোনো টাকা কাটা হয়নি।',
+  },
+  AddressReadUnreadable: {
+    en: "The message's details couldn't be read this time. Nothing was charged; try again.",
+    bn: 'এবার মেসেজের তথ্য পড়া গেল না। কোনো টাকা কাটা হয়নি; আবার ট্রাই করুন।',
+  },
+  TooManyAddressReads: {
+    en: 'Too many messages read in the last minute. Try again shortly.',
+    bn: 'গত এক মিনিটে অনেক মেসেজ পড়া হয়েছে। একটু পরে আবার ট্রাই করুন।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

@@ -5,6 +5,7 @@ import {
   AuditResult,
   type RateKey,
   FieldProblemCode,
+  SHOWN_RATE_KEYS,
 } from '@lytronix/validators';
 import { FieldsError } from '../../../common/api-error';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
@@ -38,8 +39,12 @@ export class RateService {
     return value;
   }
 
+  /**
+   * RAT-06, D7-16 (Phase 7 Slice 7.6): the rates a shop and the operator are shown -- every one but chat's reply rate,
+   * which stays stored while nothing offers chat (D7-1).
+   */
   async list(): Promise<RateValue[]> {
-    return this.store.list();
+    return (await this.store.list()).filter((rate) => SHOWN_RATE_KEYS.includes(rate.key));
   }
 
   async history(key: RateKey): Promise<RateHistoryEntry[]> {

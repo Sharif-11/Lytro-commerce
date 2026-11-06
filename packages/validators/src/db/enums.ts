@@ -685,7 +685,15 @@ export enum RateKey {
   ListenerVerificationPct = 'listener_verification_pct',
   // RAT-15 (Phase 5 Slice 5.7): the gateway's verification fee, a percent of the payment.
   GatewayVerificationPct = 'gateway_verification_pct',
+  // ORD-34, D7-16 (Phase 7 Slice 7.6): one read of a customer's delivery details from a pasted message.
+  AiExtraction = 'ai_extraction',
 }
+
+// RAT-01, D7-16: the rates a shop or the operator is shown. The chat-reply rate stays stored, but nothing offers chat in
+// this release (D7-1), so no screen shows a price for it.
+export const SHOWN_RATE_KEYS: readonly RateKey[] = Object.values(RateKey).filter(
+  (key) => key !== RateKey.AiReply,
+);
 
 // LIM-02: what the usage page shows, each against the shop's limit. Essential SMS is per cycle on a paid plan and in
 // total on a trial (TRL-03), whichever the shop's limits set.
@@ -765,6 +773,32 @@ export enum PlatformSettingKey {
   CourierSyncMinutes = 'courier_sync_minutes',
   TermsVersion = 'terms_version',
   PrivacyVersion = 'privacy_version',
+  // AI-10, D7-4 (Phase 7 Slice 7.6): the AI that reads a customer's delivery details, and its model, switched by the
+  // operator without a release.
+  AddressReadProvider = 'address_read_provider',
+  AddressReadModel = 'address_read_model',
+  // ORD-33 (Slice 7.6, editable): how many address reads one shop may make in a minute, a flood guard.
+  AddressReadsPerShopPerMinute = 'address_reads_per_shop_per_minute',
+}
+
+// AI-10, D7-4: the AIs Lytro can read a pasted message with. One today; the setting names which.
+export enum AiProvider {
+  Gemini = 'gemini',
+}
+
+// ORD-30 (amended 2026-11-06, Slice 7.6's read): how sure a read is of each delivery detail. Found: read and, for a
+// place, matched to Lytro's list by its own name. Check: read, but a near match or a number that isn't a mobile, for
+// staff to look at. Missing: not in the message, or no place on the list.
+export enum AddressFieldState {
+  Found = 'found',
+  Check = 'check',
+  Missing = 'missing',
+}
+
+// PLN-20: what paid for one use of a pay-per-use service -- the balance at the rate, or an allowance add-on's use.
+export enum PerUsePaidFrom {
+  Balance = 'balance',
+  Allowance = 'allowance',
 }
 
 // QTA-03: the period's handling limit refuses the handling action, or lets it through and prompts an upgrade.
@@ -866,8 +900,19 @@ export enum AddonKind {
   Allowance = 'allowance',
 }
 
-// PLN-13: the add-on kinds a shop can buy so far; packs follow in Slice 10a.3 and allowances in Phase 7.
-export const BUYABLE_ADDON_KINDS: readonly AddonKind[] = [AddonKind.Limit, AddonKind.Feature];
+// PLN-13: the add-on kinds bought by quote, for the period (packs are bought apart, by POST /addons/packs). Allowances
+// joined in Phase 7 Slice 7.6 (D7-17).
+export const BUYABLE_ADDON_KINDS: readonly AddonKind[] = [
+  AddonKind.Limit,
+  AddonKind.Feature,
+  AddonKind.Allowance,
+];
+
+// PLN-13, PLN-20: the pay-per-use services an allowance add-on can cover, named in its `limitKey`. Reading delivery
+// details from Slice 7.6; fraud checks join once they have a price (D7-7).
+export enum AllowanceService {
+  AddressReads = 'address_reads',
+}
 
 // BRN-05: the feature add-on that switches a shop's own brand identity on.
 export const BRAND_IDENTITY_ADDON = 'brand_identity';

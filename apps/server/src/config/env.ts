@@ -44,6 +44,19 @@ const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  // Phase 7 Slice 7.6 (D7-4, D7-22): Gemini, which reads a customer's delivery details from a pasted message, only over
+  // HTTPS. Its key is required in production, staging included; in development a stand-in answers unless AI_FORCE_REAL
+  // is set, and then the key is required. The key's Google project must have billing on (D7-18).
+  GEMINI_BASE_URL: z
+    .string()
+    .url()
+    .refine((value) => value.startsWith('https://'), { message: 'must be an https address' })
+    .default('https://generativelanguage.googleapis.com/v1beta'),
+  GEMINI_API_KEY: z.string().min(1).optional(),
+  AI_FORCE_REAL: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   // Base domain the platform serves shops under: <slug>.<PLATFORM_DOMAIN> (decision R1, R2).
   PLATFORM_DOMAIN: z
     .string()
@@ -243,6 +256,21 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
         });
       }
     }
+  }
+  // D7-22: a server that reads messages with Gemini for real never quietly falls back to the stand-in.
+  if (
+    (value.NODE_ENV === 'production' ||
+      (value.NODE_ENV === 'development' && value.AI_FORCE_REAL)) &&
+    !value.GEMINI_API_KEY
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['GEMINI_API_KEY'],
+      message:
+        value.NODE_ENV === 'production'
+          ? 'required in production: messages are read by Gemini'
+          : 'required when AI_FORCE_REAL is set',
+    });
   }
   if (value.NODE_ENV === 'production' && !value.DATA_ENCRYPTION_KEY) {
     ctx.addIssue({

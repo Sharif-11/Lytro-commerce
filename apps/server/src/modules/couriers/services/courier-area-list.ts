@@ -19,7 +19,7 @@ import { LocationService } from '../../delivery/services/location.service';
 import { CourierNoAnswer, type CourierAdapter } from '../ports/courier-adapter';
 import type { CourierAreaStore } from '../ports/courier-area-store';
 import { COURIER_AREA_STORE, COURIER_AREA_TOKENS, COURIER_CLOCK } from '../tokens';
-import { CourierAreaMatcher } from './courier-area-matching';
+import { PlaceMatcher } from '../../delivery/services/place-matching';
 import { CourierRegistry } from './courier-registry';
 
 // A courier's token for its area list, by courier: Lytro's own account, never a shop's (read agreed 2026-11-06).
@@ -157,7 +157,7 @@ export class CourierAreaList {
       });
     }
     const known = new Set((await this.store.allOf(courierKey)).map((row) => row.areaCode));
-    const matcher = new CourierAreaMatcher((await this.locations.list()).zillas);
+    const matcher = new PlaceMatcher((await this.locations.list()).zillas);
     const added = answer.areas
       .filter((area) => !known.has(area.areaCode))
       .map((area) => ({ ...area, ...matcher.place(area) }));
