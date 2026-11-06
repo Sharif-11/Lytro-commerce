@@ -4,9 +4,11 @@ import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { EDGE_HEADER } from '../src/common/guards/tenant.guard';
+import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { getJson } from './support/http';
+import { SmsCapture } from './support/sms-capture';
 
 // An unhandled, non-ApiError exception must still answer the documented error shape, with nothing internal
 // leaked (SEC-16, P1-N03) — even in a production-like configuration, and even to a request that claims to be
@@ -33,8 +35,15 @@ beforeAll(async () => {
   process.env['STOREFRONT_SECRET'] = 'storefront-secret-0123456789abcdef0123';
   // Slice 13: and with the address a shop's root domain points at.
   process.env['PLATFORM_ADDRESSES'] = '203.0.113.10';
+  // Phase 7 Slice 7.1 (D7-21): and with BulkSMSBD's login, since production sends SMS for real. Placeholders: the
+  // provider is replaced below, so nothing here ever reaches BulkSMSBD.
+  process.env['BULKSMSBD_API_KEY'] = 'test-placeholder-key';
+  process.env['BULKSMSBD_SENDER_ID'] = 'test-placeholder-sender';
 
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+    .overrideProvider(SMS_PROVIDER)
+    .useValue(new SmsCapture().provider)
+    .compile();
   ({ app, port } = await listenOn(moduleRef));
 });
 
