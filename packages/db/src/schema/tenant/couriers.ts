@@ -3,6 +3,7 @@ import {
   boolean,
   foreignKey,
   index,
+  integer,
   jsonb,
   numeric,
   smallint,
@@ -16,6 +17,8 @@ import {
 import {
   CONSIGNMENT_ID_MAX_LENGTH,
   COURIER_MESSAGE_MAX_LENGTH,
+  COURIER_PAYOUT_ID_MAX_LENGTH,
+  COURIER_PAYOUT_METHOD_MAX_LENGTH,
   COURIER_REFUSAL_MAX_LENGTH,
   COURIER_STATUS_MAX_LENGTH,
   CourierConnectionState,
@@ -60,6 +63,10 @@ export const courierConnections = tenant.table(
     unsignedAt: timestamp('unsigned_at', { withTimezone: true }),
     // CRR-15: when the owner was last told a pasted address may be broken, at most once a day.
     pasteWarnedAt: timestamp('paste_warned_at', { withTimezone: true }),
+    // CRR-17 (Slice 6.5): Steadfast lists payouts oldest first with no page count, so the night run starts where new ones may be,
+    // and learns how many a full page holds once it has seen one followed by another.
+    payoutPage: smallint('payout_page').notNull().default(1),
+    payoutPageSize: smallint('payout_page_size'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -140,6 +147,10 @@ export const courierParcels = tenant.table(
     cashCollected: money('cash_collected'),
     codAtCourier: money('cod_at_courier'),
     attention: text('attention').$type<ParcelAttention>(),
+    // CRR-17, D6-9 (Slice 6.5): when its courier says it paid the shop for it, and the payout that did where it names one. No
+    // courier gives an amount for one parcel, so the amount stays on the payout.
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    payoutId: varchar('payout_id', { length: COURIER_PAYOUT_ID_MAX_LENGTH }),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -173,6 +184,8 @@ export const courierParcels = tenant.table(
     index('courier_parcels_invoice_idx').on(t.tenantId, t.courierKey, t.invoice),
     // Slice 6.2: a courier's news finds its parcel by the courier's number.
     index('courier_parcels_consignment_idx').on(t.tenantId, t.courierKey, t.consignmentId),
+    // CRR-17 (Slice 6.5): a payout's parcels.
+    index('courier_parcels_payout_idx').on(t.tenantId, t.courierKey, t.payoutId),
   ],
 );
 
@@ -187,6 +200,9 @@ export interface StoredCourierNews {
   cashCollected: string | null;
   deliveryCharge: string | null;
   codAtCourier: string | null;
+  /** CRR-12, CRR-17 (Slice 6.5): it says the courier paid the shop for the parcel; news kept before then has neither. */
+  paid?: boolean;
+  payoutId?: string | null;
 }
 
 // CRR-12, CRR-13 (Phase 6 Slice 6.2): a parcel's news, whichever way it came. A message is stored first and applied after the courier
@@ -222,6 +238,34 @@ export const courierEvents = tenant.table(
   ],
 );
 
+// CRR-17, D6-9 (Phase 6 Slice 6.5, read agreed 2026-11-06): a payout a courier made the shop, its figures kept as the courier gives
+// them and never checked against the cash recorded, since its own fees would make false alarms. It gives no amount for one parcel,
+// so its parcels carry its ID and it keeps the amount. `parcels` is how many it settled and `ours` how many of those Lytro booked.
+// One is read once: the unique key is what keeps a second night from reading it again.
+export const courierPayouts = tenant.table(
+  'courier_payouts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    courierKey: text('courier_key').$type<CourierKey>().notNull(),
+    payoutId: varchar('payout_id', { length: COURIER_PAYOUT_ID_MAX_LENGTH }).notNull(),
+    amount: money('amount').notNull(),
+    charges: money('charges'),
+    total: money('total'),
+    method: varchar('method', { length: COURIER_PAYOUT_METHOD_MAX_LENGTH }),
+    paidAt: timestamp('paid_at', { withTimezone: true }).notNull(),
+    // When the courier made it up, by its own clock.
+    madeAt: timestamp('made_at', { withTimezone: true }),
+    parcels: integer('parcels').notNull().default(0),
+    ours: integer('ours').notNull().default(0),
+    readAt: timestamp('read_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('courier_payouts_payout_key').on(t.tenantId, t.courierKey, t.payoutId),
+    index('courier_payouts_paid_idx').on(t.tenantId, t.paidAt),
+  ],
+);
+
 // SEC-11 (Slice 6.1, read agreed 2026-11-04: its own table): every outbound call made with a shop's courier credentials -- when, to
 // which courier, what for and for which order, and whether it worked -- never a credential. It goes with the shop at day 60.
 export const courierCredentialUses = tenant.table(
@@ -243,3 +287,4 @@ export type SelectCourierConnection = typeof courierConnections.$inferSelect;
 export type SelectCourierParcel = typeof courierParcels.$inferSelect;
 export type SelectCourierCredentialUse = typeof courierCredentialUses.$inferSelect;
 export type SelectCourierEvent = typeof courierEvents.$inferSelect;
+export type SelectCourierPayout = typeof courierPayouts.$inferSelect;

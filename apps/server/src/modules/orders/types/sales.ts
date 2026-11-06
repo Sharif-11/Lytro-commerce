@@ -24,6 +24,12 @@ export interface SalesFigureView {
   tax: string;
   /** What the orders were charged for delivery; null for one product. */
   deliveryCharges: string | null;
+  /**
+   * CRR-17, INV-18 (Slice 6.5, read agreed 2026-11-06): what their couriers charged where a courier said, beside what shoppers
+   * paid; never taken off profit. `unknownCourierCharges` counts the orders a courier carried without saying. Null for one product.
+   */
+  courierCharges: string | null;
+  unknownCourierCharges: number | null;
   profit?: SalesProfitView;
 }
 

@@ -96,6 +96,10 @@ export interface CourierNews {
   /** The COD as changed in the courier's own panel. */
   codAtCourier: string | null;
   happenedAt: Date | null;
+  /** CRR-12, CRR-17 (Slice 6.5): it says the courier paid the shop for the parcel, which moves nothing else. */
+  paid: boolean;
+  /** The payout or invoice it was paid in, where the courier names one. */
+  payoutId: string | null;
 }
 
 /** A message's headers, as they arrived. */
@@ -139,6 +143,34 @@ export interface ListedArea {
 
 export type AreasAnswer =
   { outcome: 'found'; areas: ListedArea[] } | { outcome: 'refused'; refusal: CourierRefusal };
+
+/** CRR-17 (Slice 6.5): one payout as a courier lists it, its figures as the courier gives them. */
+export interface ListedPayout {
+  payoutId: string;
+  amount: string;
+  charges: string | null;
+  total: string | null;
+  method: string | null;
+  /** Only a payout the courier says is paid is read; one still being made up is listed again later. */
+  paid: boolean;
+  paidAt: Date | null;
+  /** When the courier made it up. */
+  madeAt: Date | null;
+}
+
+export type PayoutsAnswer =
+  { outcome: 'found'; payouts: ListedPayout[] } | { outcome: 'refused'; refusal: CourierRefusal };
+
+/** CRR-17 (Slice 6.5): a parcel a payout settled, by the courier's number and ours; no courier gives an amount for one. */
+export interface PaidParcel {
+  consignmentId: string | null;
+  invoice: string | null;
+}
+
+export type PayoutAnswer =
+  | { outcome: 'found'; parcels: PaidParcel[] }
+  | { outcome: 'not_found' }
+  | { outcome: 'refused'; refusal: CourierRefusal };
 
 /** Slice 6.3, read agreed 2026-11-05: the one store chosen for a connection, kept with its sealed credentials. */
 export const PICKUP_STORE_ID = 'storeId';
@@ -205,4 +237,13 @@ export interface CourierAdapter {
   isAddressTest?(rawBody: Buffer): boolean;
   /** CRR-27: headers this courier wants on the answer to its messages. */
   messageAnswerHeaders?(): Record<string, string>;
+  /**
+   * CRR-17 (Slice 6.5): one page of the payouts a courier lists for an account, for a courier that lists them. Pages count from 1,
+   * oldest first, as Steadfast's do; past the last, a page is empty.
+   */
+  payouts?(account: CourierAccount, page: number): Promise<PayoutsAnswer>;
+  /** CRR-17 (Slice 6.5): the parcels one payout settled. */
+  payout?(account: CourierAccount, payoutId: string): Promise<PayoutAnswer>;
+  /** Slice 6.5: its payout pages hold at least this many, so a shorter one is the last; with no page count, that is how it ends. */
+  readonly payoutPageAtLeast?: number;
 }

@@ -189,7 +189,11 @@ describe('RedX, as its document says and its sandbox showed (Appendix A)', () =>
       forShopper: false,
       reading: null,
       rawStatus: null,
+      // CRR-12, CRR-17 (Slice 6.5): being paid, with no amount and no payout named.
+      paid: true,
+      payoutId: null,
     });
+    expect(adapter.readMessage(messageBody('delivered'))).toMatchObject({ paid: false });
   });
 
   it('gives a step one key, and a new one when the same step comes again later', () => {

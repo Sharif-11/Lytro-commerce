@@ -53,6 +53,8 @@ interface Figure {
   revenue: string;
   tax: string;
   deliveryCharges: string | null;
+  courierCharges: string | null;
+  unknownCourierCharges: number | null;
   profit?: { revenueLessTax: string; costOfGoods: string; profit: string; unknownCost: number };
 }
 
@@ -291,6 +293,9 @@ describeIfDatabase('sales by week, month, quarter or year (STA-01, STA-04)', () 
         revenue: '825.00',
         tax: '107.61',
         deliveryCharges: '0.00',
+        // CRR-17 (Slice 6.5): sent by hand, with no courier booked, so no courier charge to know.
+        courierCharges: '0.00',
+        unknownCourierCharges: 0,
         // Three lamps kept at 100 each: four sold less the one back.
         profit: {
           revenueLessTax: '717.39',
@@ -389,6 +394,8 @@ describeIfDatabase('sales by week, month, quarter or year (STA-01, STA-04)', () 
         revenue: '600.00',
         tax: '0.00',
         deliveryCharges: '0.00',
+        courierCharges: '0.00',
+        unknownCourierCharges: 0,
         profit: {
           revenueLessTax: '600.00',
           costOfGoods: '200.00',

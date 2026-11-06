@@ -4,12 +4,15 @@ import type {
   NewCourierCredentialUse,
   NewCourierEvent,
   NewCourierParcel,
+  NewCourierPayout,
   ParcelCheckWindow,
+  PayoutParcelRow,
   SelectCourierConnection,
   SelectCourierCredentialUse,
   SelectCourierEvent,
   SelectCourierMessageRoute,
   SelectCourierParcel,
+  SelectCourierPayout,
   Transaction,
 } from '@lytronix/db';
 import type { CourierConnectionState, CourierKey } from '@lytronix/validators';
@@ -128,6 +131,42 @@ export interface CourierStore {
     tenantId: string,
     window: ParcelCheckWindow,
   ): Promise<SelectCourierParcel[]>;
+  /** CRR-17 (Slice 6.5): when the oldest parcel still waiting to be paid was booked; null when none waits. */
+  oldestUnpaid(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+    changedSince: Date,
+  ): Promise<Date | null>;
+  knownPayouts(
+    tx: Transaction,
+    tenantId: string,
+    courierKey: CourierKey,
+    payoutIds: readonly string[],
+  ): Promise<Set<string>>;
+  /** Null when the payout has been read already. */
+  insertPayout(
+    tx: Transaction,
+    tenantId: string,
+    values: NewCourierPayout,
+  ): Promise<SelectCourierPayout | null>;
+  countPayout(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    counts: { parcels: number; ours: number },
+  ): Promise<void>;
+  listPayouts(
+    tx: Transaction,
+    tenantId: string,
+    filter: { courierKey: CourierKey | null; offset: number; limit: number },
+  ): Promise<{ rows: SelectCourierPayout[]; total: number }>;
+  findPayout(tx: Transaction, tenantId: string, id: string): Promise<SelectCourierPayout | null>;
+  payoutParcels(
+    tx: Transaction,
+    tenantId: string,
+    payout: Pick<SelectCourierPayout, 'courierKey' | 'payoutId'>,
+  ): Promise<PayoutParcelRow[]>;
   /** CRR-11: read before any tenant context exists. */
   findRoute(tokenHash: string): Promise<SelectCourierMessageRoute | null>;
   replaceRoute(

@@ -2018,6 +2018,12 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Courier areas read again.',
     bn: 'কুরিয়ারের এরিয়ার তালিকা আবার আনা হয়েছে।',
   },
+  CourierPayoutsListed: { en: 'Courier payouts listed.', bn: 'কুরিয়ারের পেআউটের তালিকা।' },
+  CourierPayoutFound: { en: 'Courier payout found.', bn: 'কুরিয়ারের পেআউট পাওয়া গেছে।' },
+  CourierPayoutNotFound: {
+    en: 'That courier payout wasn’t found.',
+    bn: 'কুরিয়ারের এই পেআউটটি পাওয়া যায়নি।',
+  },
   OrderBooked: { en: 'Booked with the courier.', bn: 'কুরিয়ারে বুক হয়েছে।' },
   OrderAlreadyBooked: {
     en: 'This order is already booked with a courier.',

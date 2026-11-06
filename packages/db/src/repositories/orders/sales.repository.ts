@@ -1,6 +1,7 @@
 import { sql, type SQL } from 'drizzle-orm';
 import {
   OrderPaymentStatus,
+  ParcelState,
   type ProductKind,
   SalesRanking,
   StatusOverride,
@@ -15,11 +16,16 @@ export interface SalesPeriod {
   to: Date;
 }
 
-/** STA-01, STA-03: one Asia/Dhaka day's counted orders and the delivery charges they carried. */
+/**
+ * STA-01, STA-03: one Asia/Dhaka day's counted orders and the delivery charges they carried. CRR-17 (Slice 6.5): what their
+ * couriers charged, where a courier said, and how many went by a courier that didn't say.
+ */
 export interface SalesDayOrders {
   day: string;
   orders: number;
   deliveryCharges: string;
+  courierCharges: string;
+  unknownCourierCharges: number;
 }
 
 /** STA-01, STA-03: one day's items in one stock unit -- the units kept, their revenue and the tax inside it. */
@@ -104,10 +110,21 @@ export class SalesRepository {
         ? sql``
         : sql`AND EXISTS (SELECT 1 FROM tenant.order_lines l WHERE l.tenant_id = o.tenant_id
             AND l.order_id = o.id AND l.product_id = ${productId} AND l.returned_quantity < l.quantity)`;
-    const result = await tx.execute<{ day: string; orders: number; delivery_charges: string }>(sql`
+    // CRR-17 (Slice 6.5): the parcel that went, one at most an order; a cancelled booking charged nothing here.
+    const result = await tx.execute<{
+      day: string;
+      orders: number;
+      delivery_charges: string;
+      courier_charges: string;
+      unknown_courier_charges: number;
+    }>(sql`
       SELECT ${DAY} AS day, count(*)::int AS orders,
-        sum(o.delivery_charge)::numeric(14, 2)::text AS delivery_charges
+        sum(o.delivery_charge)::numeric(14, 2)::text AS delivery_charges,
+        coalesce(sum(p.delivery_charge), 0)::numeric(14, 2)::text AS courier_charges,
+        (count(p.id) - count(p.delivery_charge))::int AS unknown_courier_charges
       FROM tenant.orders o
+      LEFT JOIN tenant.courier_parcels p ON p.tenant_id = o.tenant_id AND p.order_id = o.id
+        AND p.state = ${ParcelState.Booked}
       WHERE ${counted(tenantId, period)} ${holding}
       GROUP BY 1
       ORDER BY 1`);
@@ -115,6 +132,8 @@ export class SalesRepository {
       day: row.day,
       orders: row.orders,
       deliveryCharges: row.delivery_charges,
+      courierCharges: row.courier_charges,
+      unknownCourierCharges: row.unknown_courier_charges,
     }));
   }
 

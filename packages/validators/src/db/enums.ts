@@ -1384,6 +1384,8 @@ export enum CourierCallAction {
   Track = 'track',
   // Slice 6.3: a courier whose login ends, renewing it.
   Renew = 'renew',
+  // Slice 6.5: reading a courier's payouts, the list or one of them.
+  Payouts = 'payouts',
 }
 
 // CRR-29 (Slice 6.2): what a courier's status means here. Each adapter maps its own onto these, and shared code reads only these.

@@ -51,6 +51,17 @@ export function codeOf(reply: CourierReply | null, field: string): string | null
   return textOf(reply, field);
 }
 
+// What numeric(12, 2) holds.
+const MONEY = /^\d{1,10}(\.\d{1,2})?$/;
+
+/** CRR-17 (Slice 6.5): a sum of money in a reply, as a number or as its text, to the paisa; null if it isn't one. */
+export function moneyOf(reply: CourierReply | null, field: string): string | null {
+  const value = reply?.[field];
+  const text = typeof value === 'number' && Number.isFinite(value) ? String(value) : value;
+  if (typeof text !== 'string' || !MONEY.test(text.trim())) return null;
+  return Number(text.trim()).toFixed(2);
+}
+
 /** A part of a reply, if it is a JSON object. */
 export function bodyOf(value: unknown): CourierReply | null {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
