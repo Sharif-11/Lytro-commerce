@@ -413,7 +413,7 @@ Each server slice starts with its read (§2.1). Every new route joins `test/isol
     charges are a figure of their own beside what shoppers paid for delivery, with how many orders have none. CRR-17 and
     INV-18 amended.
   - **PRs: one.**
-- **Built as PR #TBD,** migration 0111 (`tenant.courier_payouts`, a parcel's `paid_at` and `payout_id`, where a
+- **Built as PR #316,** migration 0111 (`tenant.courier_payouts`, a parcel's `paid_at` and `payout_id`, where a
   connection's payout read starts). Calls stay down: a shop is asked only while one of that courier's finished parcels
   waits to be paid (changed within the check's [30] days), so most nights cost nothing; a payout made before the oldest
   waiting parcel was booked is never opened; the list is read from the page the last night reached, a page shorter than a
