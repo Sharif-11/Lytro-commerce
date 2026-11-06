@@ -199,6 +199,92 @@ describe('Steadfast, as its guide says (Appendix A)', () => {
   it('gives a tracking page for a code', () => {
     expect(adapter.trackingLink('15BAEB8A')).toBe('https://steadfast.com.bd/t/15BAEB8A');
   });
+
+  it('keeps a payment message as news that moves nothing, until a real one shows what it carries (Slice 6.5)', () => {
+    const read = adapter.readMessage(
+      Buffer.from(JSON.stringify({ notification_type: 'payment_request', amount: 900 })),
+      {},
+    );
+    expect(read).toMatchObject({
+      statusEvent: false,
+      forShopper: false,
+      paid: false,
+      payoutId: null,
+    });
+  });
+});
+
+describe('Steadfast’s payouts, as its live list answered on 2026-11-06 (CRR-17, Slice 6.5)', () => {
+  it('reads a page of its payouts, oldest first, with its figures and Dhaka’s times', async () => {
+    steadfast.reset();
+    steadfast.pay('AAA-10000001', [{ consignmentId: 1, invoice: 'A' }], '2026-11-01 15:30:00');
+    steadfast.pay('AAA-10000002', [], '2026-11-02 09:00:00', {
+      status_label: 'Processing',
+      paid_at: null,
+    });
+    const answer = await adapter.payouts(ACCOUNT, 1);
+    expect(steadfast.callsTo('/payments')).toHaveLength(1);
+    expect(answer).toEqual({
+      outcome: 'found',
+      payouts: [
+        {
+          payoutId: 'AAA-10000001',
+          amount: '1840.00',
+          charges: '160.00',
+          total: '2000.00',
+          method: 'Bank',
+          paid: true,
+          paidAt: new Date('2026-11-01T09:30:00.000Z'),
+          madeAt: new Date('2026-11-01T09:30:00.000Z'),
+        },
+        expect.objectContaining({ payoutId: 'AAA-10000002', paid: false, paidAt: null }),
+      ],
+    });
+    expect(adapter.payoutPageAtLeast).toBe(8);
+    await expect(adapter.payouts(ACCOUNT, 2)).resolves.toEqual({ outcome: 'found', payouts: [] });
+  });
+
+  it('leaves out a payout with no ID, an ID too long to keep, or no amount it can read', async () => {
+    steadfast.reset();
+    steadfast.pay('', []);
+    steadfast.pay('X'.repeat(65), []);
+    steadfast.pay('AAA-3', [], undefined, { amount: 'a lot' as unknown as number });
+    steadfast.pay('AAA-4', [], undefined, { amount: 99.5 });
+    const answer = await adapter.payouts(ACCOUNT, 1);
+    expect(answer.outcome === 'found' ? answer.payouts.map((each) => each.payoutId) : []).toEqual([
+      'AAA-4',
+    ]);
+    expect(answer.outcome === 'found' ? answer.payouts[0]?.amount : null).toBe('99.50');
+  });
+
+  it('reads the parcels one payout settled, by its number and ours, and says when there is no such payout', async () => {
+    steadfast.reset();
+    steadfast.pay('AAA-5', [
+      { consignmentId: 1424107, invoice: '261104-0017' },
+      { consignmentId: 1424108, invoice: '261104-0018' },
+    ]);
+    await expect(adapter.payout(ACCOUNT, 'AAA-5')).resolves.toEqual({
+      outcome: 'found',
+      parcels: [
+        { consignmentId: '1424107', invoice: '261104-0017' },
+        { consignmentId: '1424108', invoice: '261104-0018' },
+      ],
+    });
+    expect(steadfast.callsTo('/payments/AAA-5')).toHaveLength(1);
+    await expect(adapter.payout(ACCOUNT, 'AAA-6')).resolves.toEqual({ outcome: 'not_found' });
+  });
+
+  it('reads wrong keys as a refused login, and no answer as no answer', async () => {
+    steadfast.reset();
+    const bad = { ...ACCOUNT, credentials: { apiKey: 'bad-key', secretKey: 'bad-secret' } };
+    await expect(adapter.payouts(bad, 1)).resolves.toMatchObject({
+      outcome: 'refused',
+      refusal: { login: true },
+    });
+    steadfast.behaviour = { payoutsTimeOut: true };
+    await expect(adapter.payouts(ACCOUNT, 1)).rejects.toThrow('no readable answer');
+    await expect(adapter.payout(ACCOUNT, 'AAA-1')).rejects.toThrow('no readable answer');
+  });
 });
 
 describe('a courier’s words as staff read them (SEC-16 as amended)', () => {

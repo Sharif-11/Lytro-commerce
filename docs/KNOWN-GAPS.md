@@ -2149,3 +2149,9 @@ When a code's first send fails, the shop gets back what it took (SMS-08) and a b
 chance at delivering it (D27). If the retry succeeds, the code went out free: the retry job doesn't know whose use the
 code was. The leak is small, at most one SMS within the code's five minutes, and only while BulkSMSBD is failing. Closing
 it means the job carries the shop and charges, or counts, on a successful retry.
+
+## 123. `CRR-17`: courier money rests on payout answers read once and messages never seen — found 2026-11-06, open until each courier's first real payout
+
+Steadfast's payouts were read once from the owner's live account: 8 payouts on one page, oldest first, with no page count and no amount for any parcel. Lytro reads them that way. How many a full page holds is unknown, so a page with fewer than 8 counts as the last until the night run sees a full page followed by another; a list that turned out newest first would leave new payouts unread past the first page. A payout is read only once its label says `paid` with a paid date; any other label is listed again each night. Its `payment_request` message is kept as news that moves nothing, and only the names of its fields are logged, so the first real one shows whether it reports payouts and can replace the night's read (Slice 6.5's read). Pathao's `order.paid` is read from second-hand notes as naming its payment invoice in `invoice_id`; its `payment_invoice` event, and RedX's `paid`, haven't been seen live either. A paid message for a parcel Lytro didn't book changes nothing.
+
+The live payout read also showed that Steadfast's tracking links are `steadfast.com.bd/tl/` with a token of its own, not `/t/` with the tracking code as Lytro builds them (§112): the first real parcel should check the link a shopper is given.

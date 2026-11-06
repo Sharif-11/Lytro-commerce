@@ -328,6 +328,27 @@ describe('Pathao, as its sandbox answered on 2026-11-05', () => {
     },
   );
 
+  it('reads being paid with its payment invoice, and nothing else as paid (CRR-17)', () => {
+    expect(
+      adapter.readMessage(messageBody('order.paid', { invoice_id: 'INV-2611-77' })),
+    ).toMatchObject({
+      statusEvent: false,
+      paid: true,
+      payoutId: 'INV-2611-77',
+      happenedAt: new Date('2026-11-05T15:35:09.000Z'),
+    });
+    expect(adapter.readMessage(messageBody('order.paid'))).toMatchObject({
+      paid: true,
+      payoutId: null,
+    });
+    for (const event of ['order.payment-invoice', 'order.paid-return', 'order.delivered']) {
+      expect(adapter.readMessage(messageBody(event, { invoice_id: 'INV-1' }))).toMatchObject({
+        paid: false,
+        payoutId: null,
+      });
+    }
+  });
+
   it('takes the cash only on a result, with its charge and our number', () => {
     expect(
       adapter.readMessage(messageBody('order.delivered', { collected_amount: 500 })),

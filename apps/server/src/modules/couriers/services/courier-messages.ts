@@ -141,6 +141,8 @@ export class CourierMessages {
         cashCollected: news.cashCollected,
         deliveryCharge: news.deliveryCharge,
         codAtCourier: news.codAtCourier,
+        paid: news.paid,
+        payoutId: news.payoutId,
       },
     });
     return event?.id ?? null;

@@ -40,6 +40,12 @@ function figureOf(rows: DayRows, productView: boolean): SalesFigureView {
     deliveryCharges: productView
       ? null
       : fromPaisa(paisaSum(rows.orders.map((row) => row.deliveryCharges))),
+    courierCharges: productView
+      ? null
+      : fromPaisa(paisaSum(rows.orders.map((row) => row.courierCharges))),
+    unknownCourierCharges: productView
+      ? null
+      : rows.orders.reduce((sum, row) => sum + row.unknownCourierCharges, 0),
   };
   if (rows.cost === null) return figure;
   const cost = paisaSum(rows.cost.map((row) => row.value));
@@ -56,7 +62,9 @@ function figureOf(rows: DayRows, productView: boolean): SalesFigureView {
  * STA-01 to STA-04, INV-18 (Phase 4 Slice 4.7, agreed 2026-10-30): a shop's sales from its delivered orders, each on
  * the day it was placed -- order counts, units, revenue with the tax inside it and the delivery charges, split into
  * weeks (from Saturday), months, quarters or years; one product's trend; the best sellers. Profit -- the items less
- * their tax, less the cost of the goods kept -- only for a caller who may see cost (D3-9).
+ * their tax, less the cost of the goods kept -- only for a caller who may see cost (D3-9). Couriers' charges are a figure
+ * of their own beside the delivery charges, with how many orders went without one (CRR-17, Slice 6.5); profit leaves
+ * delivery out both ways.
  */
 @Injectable()
 export class SalesFigures {

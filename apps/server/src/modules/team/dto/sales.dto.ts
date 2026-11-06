@@ -8,6 +8,9 @@ const salesFigureSchema = z.object({
   revenue: z.string(),
   tax: z.string(),
   deliveryCharges: z.string().nullable(),
+  // CRR-17, INV-18 (Slice 6.5): what couriers charged where they said, and how many orders they carried without saying.
+  courierCharges: z.string().nullable(),
+  unknownCourierCharges: z.number().nullable(),
   // INV-18, D3-9: only for a caller with inventory:manage.
   profit: z
     .object({

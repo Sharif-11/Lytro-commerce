@@ -7,6 +7,7 @@ import type {
 } from '@lytronix/db';
 import {
   ActorType,
+  COURIER_PAYOUT_ID_MAX_LENGTH,
   CourierNewsSource,
   FulfillmentStatus,
   ParcelAttention,
@@ -166,6 +167,14 @@ export class CourierNewsPath {
         : {}),
       ...(news.deliveryCharge !== null ? { deliveryCharge: news.deliveryCharge } : {}),
     };
+    // CRR-12, CRR-17 (Slice 6.5): being paid goes on the parcel and moves nothing else. The first word of it stands.
+    if (news.paid === true && parcel.paidAt === null) {
+      patch.paidAt = event.happenedAt ?? now;
+      const payoutId = news.payoutId ?? null;
+      if (payoutId !== null && payoutId.length <= COURIER_PAYOUT_ID_MAX_LENGTH) {
+        patch.payoutId = payoutId;
+      }
+    }
     let attention: ParcelAttention | null = null;
     if (news.codAtCourier !== null && Number(news.codAtCourier) !== Number(parcel.cod)) {
       patch.codAtCourier = news.codAtCourier;

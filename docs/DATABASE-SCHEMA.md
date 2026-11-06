@@ -1834,6 +1834,8 @@ CREATE TABLE tenant.courier_connections (
     last_message_at timestamptz,                       -- CRR-02: null shows "no messages yet"
     unsigned_at     timestamptz,                       -- when a message last failed verification; a good one clears it
     paste_warned_at timestamptz,                       -- CRR-15: the owner is told of a broken paste at most once a day
+    payout_page     smallint NOT NULL DEFAULT 1,       -- CRR-17 (Slice 6.5): the payout page the night run starts on
+    payout_page_size smallint,                         -- how many a full payout page holds, once seen; null until then
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
     UNIQUE (tenant_id, courier_key)
@@ -1876,6 +1878,8 @@ CREATE TABLE tenant.courier_parcels (
     cash_collected  numeric(12,2),                     -- ORD-43: what its courier reports
     cod_at_courier  numeric(12,2),                     -- a COD changed in the courier's panel
     attention       text,                              -- what staff should look at (ParcelAttention)
+    paid_at         timestamptz,                       -- CRR-17 (Slice 6.5): when its courier says it paid the shop for it
+    payout_id       varchar(64),                       -- the payout or invoice that did, where the courier names one
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now()
 );
@@ -1893,6 +1897,29 @@ CREATE INDEX ON tenant.courier_parcels (tenant_id)
 CREATE INDEX ON tenant.courier_parcels (tenant_id, created_at)
     WHERE settled_at IS NULL AND state IN ('booking', 'booked', 'unknown');
 CREATE INDEX ON tenant.courier_parcels (tenant_id, courier_key, consignment_id);
+-- CRR-17: a payout's parcels.
+CREATE INDEX ON tenant.courier_parcels (tenant_id, courier_key, payout_id);
+
+-- CRR-17, D6-9 (Slice 6.5, read agreed 2026-11-06): a payout a courier made the shop, its figures as the courier gives them,
+-- shown and never checked against the cash recorded. No courier gives an amount for one parcel, so the parcels carry its ID.
+-- Read once: the unique key keeps a second night from reading it again. RLS forced; cleared with the shop at day 60 (LIF-19).
+CREATE TABLE tenant.courier_payouts (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    courier_key     text NOT NULL,
+    payout_id       varchar(64) NOT NULL,              -- the courier's own, e.g. Steadfast's payment_id
+    amount          numeric(12,2) NOT NULL,
+    charges         numeric(12,2),
+    total           numeric(12,2),
+    method          varchar(40),                       -- e.g. Bank
+    paid_at         timestamptz NOT NULL,
+    made_at         timestamptz,                       -- when the courier made it up
+    parcels         integer NOT NULL DEFAULT 0,        -- how many parcels it settled
+    ours            integer NOT NULL DEFAULT 0,        -- how many of those Lytro booked
+    read_at         timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, courier_key, payout_id)
+);
+CREATE INDEX ON tenant.courier_payouts (tenant_id, paid_at);
 
 -- CRR-12, CRR-13: a parcel's news, whichever way it came; a message is stored first, and applied after the courier has its answer.
 CREATE TABLE tenant.courier_events (
@@ -1950,7 +1977,7 @@ CREATE TABLE tenant.courier_credential_uses (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
     courier_key     text NOT NULL,
-    action          text NOT NULL,                     -- test, book, look_up, cancel, track, renew
+    action          text NOT NULL,                     -- test, book, look_up, cancel, track, renew, payouts
     connection_id   uuid,                              -- none for a test of credentials not yet saved
     order_id        uuid,
     succeeded       boolean NOT NULL,

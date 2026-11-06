@@ -21,6 +21,28 @@ export interface FakeConsignment {
   body: Record<string, unknown>;
 }
 
+/** Slice 6.5: one payout, in the shape its live list gave (2026-11-06); its parcels come only with the payout itself. */
+export interface FakePayout {
+  payment_id: string;
+  amount: number;
+  method: string;
+  due_bills: number;
+  paid_bills: number;
+  charges: number;
+  total: number;
+  status_label: string;
+  created_at: string;
+  ready_at: string;
+  paid_at: string | null;
+  consignments: {
+    consignment_id: number;
+    invoice: string;
+    tracking_code: string;
+    cod_amount: number;
+    status: string;
+  }[];
+}
+
 interface Behaviour {
   /** Booking is refused with this status and body. */
   refuseBooking?: { status: number; body: unknown };
@@ -42,6 +64,8 @@ interface Behaviour {
   otherProfile?: boolean;
   /** Every key is refused from now on. */
   keysRevoked?: boolean;
+  /** Its payout calls time out. */
+  payoutsTimeOut?: boolean;
 }
 
 /** A message as Steadfast's guide says it signs one: a hex HMAC-SHA256 of the raw body, keyed with the pasted token. */
@@ -62,6 +86,9 @@ export class FakeSteadfast {
   behaviour: Behaviour = {};
   /** Where each consignment stands, by its number; its answers read from here. */
   readonly statuses = new Map<string, string>();
+  /** Slice 6.5: its payouts, oldest first, as its live list ran, and how many a page of that list holds. */
+  readonly payouts: FakePayout[] = [];
+  payoutPageSize = 8;
   private nextId = 1424107;
 
   /** The stand-in for `fetch`. */
@@ -87,6 +114,7 @@ export class FakeSteadfast {
       return reply(401, { status: 401, message: 'Unauthorized.' });
     }
     if (path === '/get_balance') return reply(200, { status: 200, current_balance: 0 });
+    if (path === '/payments' || path.startsWith('/payments/')) return this.payoutsAnswer(url, path);
     if (path === '/create_order' && body !== null) return this.createOrder(body);
     if (path.startsWith('/status_by_invoice/')) {
       return this.statusByInvoice(decodeURIComponent(path.slice('/status_by_invoice/'.length)));
@@ -116,12 +144,79 @@ export class FakeSteadfast {
     this.calls.length = 0;
     this.consignments.length = 0;
     this.statuses.clear();
+    this.payouts.length = 0;
+    this.payoutPageSize = 8;
     this.behaviour = {};
   }
 
   /** The calls asking where a parcel stands. */
   statusCalls(): SteadfastCall[] {
     return this.calls.filter((call) => call.path.startsWith('/status_by_'));
+  }
+
+  /** Slice 6.5: the calls reading payouts, the list's pages and single payouts. */
+  payoutCalls(): string[] {
+    return this.calls
+      .filter((call) => call.path === '/payments' || call.path.startsWith('/payments/'))
+      .map((call) => call.path);
+  }
+
+  /** A paid payout of these consignments, made and paid at `at` (Dhaka's time, as it writes it). */
+  pay(
+    paymentId: string,
+    consignments: { consignmentId: number | string; invoice: string }[],
+    at = '2026-11-06 12:00:00',
+    extra: Partial<FakePayout> = {},
+  ): FakePayout {
+    const payout: FakePayout = {
+      payment_id: paymentId,
+      amount: 1840,
+      method: 'Bank',
+      due_bills: 0,
+      paid_bills: consignments.length,
+      charges: 160,
+      total: 2000,
+      status_label: 'paid',
+      created_at: at,
+      ready_at: at,
+      paid_at: at,
+      consignments: consignments.map((each) => ({
+        consignment_id: Number(each.consignmentId),
+        invoice: each.invoice,
+        tracking_code: `TRK${String(each.consignmentId)}`,
+        cod_amount: 1000,
+        status: 'delivered',
+      })),
+      ...extra,
+    };
+    this.payouts.push(payout);
+    return payout;
+  }
+
+  private payoutsAnswer(url: URL, path: string): Response {
+    if (this.behaviour.payoutsTimeOut) throw new DOMException('timed out', 'TimeoutError');
+    if (path === '/payments') {
+      const page = Number(url.searchParams.get('page') ?? '1');
+      const from = (page - 1) * this.payoutPageSize;
+      return reply(200, {
+        status: 200,
+        alertClass: 'success',
+        message: 'Payments retrieved successfully.',
+        payments: this.payouts
+          .slice(from, from + this.payoutPageSize)
+          // Its list leaves a payout's parcels out; they come only with the payout itself.
+          .map((payout) => {
+            const listed: Partial<FakePayout> = { ...payout };
+            delete listed.consignments;
+            return listed;
+          }),
+      });
+    }
+    const wanted = decodeURIComponent(path.slice('/payments/'.length));
+    const payout = this.payouts.find((each) => each.payment_id === wanted);
+    return payout === undefined
+      ? reply(404, { status: 404, message: 'Payment not found.' })
+      : reply(200, { status: 200, payment: payout });
   }
 
   private async createOrder(body: Record<string, unknown>): Promise<Response> {
