@@ -10,10 +10,65 @@ import {
   CourierMessagesState,
   setPickupStoreSchema,
   settleParcelSchema,
+  assignCourierAreaSchema,
+  confirmCourierAreasSchema,
+  courierAreasForOrderSchema,
+  courierAreasQuerySchema,
+  CourierAreaMatch,
+  refreshCourierAreasSchema,
 } from '@lytronix/validators';
 
 export class ConnectCourierDto extends createZodDto(connectCourierSchema) {}
 export class SetPickupStoreDto extends createZodDto(setPickupStoreSchema) {}
+export class CourierAreasQueryDto extends createZodDto(courierAreasQuerySchema) {}
+export class AssignCourierAreaDto extends createZodDto(assignCourierAreaSchema) {}
+export class ConfirmCourierAreasDto extends createZodDto(confirmCourierAreasSchema) {}
+export class RefreshCourierAreasDto extends createZodDto(refreshCourierAreasSchema) {}
+export class CourierAreasForOrderDto extends createZodDto(courierAreasForOrderSchema) {}
+
+// CUS-10 (Slice 6.4): one of a courier's areas, for the operator.
+const courierAreaSchema = z.object({
+  id: z.string(),
+  courierKey: z.nativeEnum(CourierKey),
+  areaCode: z.string(),
+  name: z.string(),
+  districtName: z.string(),
+  postCode: z.string().nullable(),
+  zillaId: z.number().nullable(),
+  thanaId: z.number().nullable(),
+  suggestedThanaId: z.number().nullable(),
+  match: z.nativeEnum(CourierAreaMatch),
+  retiredAt: z.coerce.date().nullable(),
+});
+export class CourierAreaDto extends createZodDto(courierAreaSchema) {}
+export class CourierAreaPageDto extends createZodDto(
+  z.object({
+    areas: z.array(courierAreaSchema),
+    page: z.number(),
+    limit: z.number(),
+    total: z.number(),
+    pages: z.number(),
+  }),
+) {}
+export class CourierAreasConfirmedDto extends createZodDto(z.object({ confirmed: z.number() })) {}
+export class CourierAreasRefreshedDto extends createZodDto(
+  z.object({
+    listed: z.number(),
+    added: z.number(),
+    renamed: z.number(),
+    retired: z.number(),
+    back: z.number(),
+  }),
+) {}
+// CUS-12: what staff can choose for an order, the thana's areas first.
+const areaChoiceSchema = z.object({
+  areaCode: z.string(),
+  name: z.string(),
+  suggested: z.boolean(),
+});
+export class CourierAreaChoicesDto extends createZodDto(
+  z.object({ thana: z.array(areaChoiceSchema), zilla: z.array(areaChoiceSchema) }),
+) {}
 export class BookOrderDto extends createZodDto(bookOrderSchema) {}
 export class SettleParcelDto extends createZodDto(settleParcelSchema) {}
 export class CancelParcelDto extends createZodDto(cancelParcelSchema) {}

@@ -10,3 +10,7 @@ export const COURIER_PAUSE = Symbol('COURIER_PAUSE');
 // Slice 6.3: where Pathao is, and what it wants on the answers to its messages.
 export const PATHAO_URL = Symbol('PATHAO_URL');
 export const PATHAO_TEST_ANSWER = Symbol('PATHAO_TEST_ANSWER');
+// Slice 6.4: where RedX is, couriers' area lists, and Lytro's own tokens for reading them.
+export const REDX_URL = Symbol('REDX_URL');
+export const COURIER_AREA_STORE = Symbol('COURIER_AREA_STORE');
+export const COURIER_AREA_TOKENS = Symbol('COURIER_AREA_TOKENS');

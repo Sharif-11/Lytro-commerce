@@ -322,6 +322,15 @@ export class OrderFulfilment {
     return (grams / 1000).toFixed(3);
   }
 
+  /** CUS-12 (Slice 6.4): where an order goes, for choosing its courier area; one this shop can't see is not found. */
+  async placeOf(tenantId: string, orderId: string): Promise<{ locationId: number | null }> {
+    const order = await this.store.run(tenantId, (tx) =>
+      this.store.findOrder(tx, tenantId, orderId, false),
+    );
+    if (!order) throw new ApiError('not_found', 'OrderNotFound', {});
+    return { locationId: order.locationId };
+  }
+
   /** Slice 6.3: the order's items added up, for a courier that asks how many. */
   async quantityWithin(tx: Transaction, tenantId: string, orderId: string): Promise<string> {
     const lines = await this.store.listLines(tx, tenantId, [orderId]);

@@ -17,3 +17,7 @@ export const DEFAULT_COURIER_CHECK_MIN_AGE_HOURS = 6;
 export const DEFAULT_COURIER_CHECK_QUIET_HOURS = 24;
 export const DEFAULT_COURIER_CHECK_STOP_DAYS = 30;
 export const DEFAULT_COURIER_SYNC_MINUTES = 10;
+// CUS-10, CUS-12 (Slice 6.4): a page of a courier's areas for the operator, and how many a booking's search shows.
+export const COURIER_AREA_PAGE_SIZE = 50;
+export const COURIER_AREA_PAGE_MAX = 200;
+export const COURIER_AREA_SEARCH_MAX = 50;

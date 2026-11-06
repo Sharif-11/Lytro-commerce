@@ -3,7 +3,9 @@ import { setTimeout as wait } from 'node:timers/promises';
 import { apiOrigin } from '../../common/shop-address';
 import type { Env } from '../../config/env';
 import { ENV } from '../../config/tokens';
+import { DrizzleCourierAreaStore } from '../../database/adapters/courier-areas.adapter';
 import { DrizzleCourierStore } from '../../database/adapters/couriers.adapter';
+import { AuditModule } from '../audit/audit.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { OrdersModule } from '../orders/orders.module';
@@ -11,6 +13,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { CourierMessagesController } from './controllers/courier-messages.controller';
 import { ConsoleCourierNotifier } from './services/console-courier-notifier';
+import { CourierAreaList } from './services/courier-area-list';
 import { CourierBooking } from './services/courier-booking';
 import { CourierBookingPass } from './services/courier-booking-pass';
 import { CourierCalls } from './services/courier-calls';
@@ -20,8 +23,11 @@ import { CourierMessages } from './services/courier-messages';
 import { CourierNewsPath } from './services/courier-news-path';
 import { CourierRegistry } from './services/courier-registry';
 import { PathaoAdapter } from './services/pathao-adapter';
+import { RedxAdapter } from './services/redx-adapter';
 import { SteadfastAdapter } from './services/steadfast-adapter';
 import {
+  COURIER_AREA_STORE,
+  COURIER_AREA_TOKENS,
   COURIER_CLOCK,
   COURIER_FETCH,
   COURIER_MESSAGE_ORIGIN,
@@ -30,13 +36,21 @@ import {
   COURIER_STORE,
   PATHAO_TEST_ANSWER,
   PATHAO_URL,
+  REDX_URL,
   STEADFAST_URL,
 } from './tokens';
 
 // CRR-01 to CRR-30 (Phase 6, Slice 6.1 first): couriers as plugins, a shop's connections to them, and booking an order. It sits above
 // orders, which know a parcel only as data, so the team's routes and the minute pass read it and none of them depends back on it.
 @Module({
-  imports: [CatalogueModule, DeliveryModule, OrdersModule, PlatformSettingsModule, TenancyModule],
+  imports: [
+    AuditModule,
+    CatalogueModule,
+    DeliveryModule,
+    OrdersModule,
+    PlatformSettingsModule,
+    TenancyModule,
+  ],
   controllers: [CourierMessagesController],
   providers: [
     { provide: COURIER_NOTIFIER, useClass: ConsoleCourierNotifier },
@@ -52,9 +66,18 @@ import {
       inject: [ENV],
       useFactory: (env: Env) => env.PATHAO_WEBHOOK_INTEGRATION_SECRET ?? null,
     },
+    { provide: REDX_URL, inject: [ENV], useFactory: (env: Env) => env.REDX_API_URL },
+    { provide: COURIER_AREA_STORE, useClass: DrizzleCourierAreaStore },
+    {
+      provide: COURIER_AREA_TOKENS,
+      inject: [ENV],
+      useFactory: (env: Env) => (env.REDX_AREAS_TOKEN ? { redx: env.REDX_AREAS_TOKEN } : {}),
+    },
     SteadfastAdapter,
     PathaoAdapter,
+    RedxAdapter,
     CourierRegistry,
+    CourierAreaList,
     CourierCalls,
     CourierMessages,
     CourierConnections,
@@ -64,6 +87,7 @@ import {
     CourierBookingPass,
   ],
   exports: [
+    CourierAreaList,
     CourierConnections,
     CourierMessages,
     CourierBooking,

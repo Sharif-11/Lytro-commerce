@@ -312,6 +312,13 @@ export {
   type ParcelCheckWindow,
 } from './repositories/couriers/courier.repository';
 export {
+  CourierAreaRepository,
+  type CourierAreaFilter,
+  type CourierAreaRefreshCounts,
+  type ListedCourierArea,
+  type MatchedCourierArea,
+} from './repositories/couriers/courier-area.repository';
+export {
   LytroMessageRepository,
   type NewLytroMessage,
 } from './repositories/listener/lytro-message.repository';

@@ -41,6 +41,8 @@ const BOOKING = {
   weightKg: '1.000',
   areaCode: null,
   quantity: '1.000',
+  areaName: null,
+  goodsValue: '370.00',
 };
 
 function messageBody(event: string, extra: Record<string, unknown> = {}): Buffer {
@@ -104,7 +106,7 @@ courierContract('Pathao', () => {
     strangeStatus: 'teleported',
     deliveredStatus: 'delivered',
     unconfirmedStatus: null,
-    proofCoversBody: false,
+    proof: 'secret',
     parcelStandsAt: (status) => {
       for (const each of pathao.parcels) pathao.statuses.set(each.consignmentId, status);
     },

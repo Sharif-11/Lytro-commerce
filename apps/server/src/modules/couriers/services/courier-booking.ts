@@ -40,6 +40,7 @@ import {
 } from '../ports/courier-adapter';
 import type { CourierStore } from '../ports/courier-store';
 import { COURIER_CLOCK, COURIER_STORE } from '../tokens';
+import { CourierAreaList } from './courier-area-list';
 import { CourierCalls } from './courier-calls';
 import { CourierConnections } from './courier-connections';
 import { CourierRegistry } from './courier-registry';
@@ -87,6 +88,7 @@ export class CourierBooking {
     @Inject(OrderFulfilment) private readonly fulfilment: OrderFulfilment,
     @Inject(OrderService) private readonly orders: OrderService,
     @Inject(LocationService) private readonly locations: LocationService,
+    @Inject(CourierAreaList) private readonly areas: CourierAreaList,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(COURIER_CLOCK) private readonly clock: () => Date,
   ) {}
@@ -383,12 +385,17 @@ export class CourierBooking {
     if (note !== null && note.length > limits.noteMax) {
       throw this.limitError('CourierNoteTooLong', adapter, limits.noteMax);
     }
-    if (adapter.needsArea && input.areaCode === undefined) {
-      throw this.limitError('CourierAreaNeeded', adapter);
-    }
-    if (adapter.pickupStores !== undefined && !account.credentials[PICKUP_STORE_ID]) {
+    if (
+      adapter.pickupStores !== undefined &&
+      adapter.storeOptional !== true &&
+      !account.credentials[PICKUP_STORE_ID]
+    ) {
       throw this.limitError('CourierStoreNeeded', adapter);
     }
+    // CUS-12, CRR-10, read agreed 2026-11-06: the courier's own area, chosen by staff or, in one case, by itself; never a guess.
+    const courierArea = adapter.needsArea
+      ? await this.areas.choose(adapter, order, input.areaCode)
+      : null;
     return {
       invoice: await this.invoiceOf(tx, tenantId, order),
       recipientName: name,
@@ -398,8 +405,11 @@ export class CourierBooking {
       cod: limits.wholeTakaCod ? Math.ceil(Number(order.due)).toFixed(2) : order.due,
       note,
       weightKg: await this.weightOf(tx, tenantId, order, input, adapter),
-      areaCode: adapter.needsArea ? (input.areaCode ?? null) : null,
+      areaCode: courierArea?.areaCode ?? null,
+      areaName: courierArea?.name ?? null,
       quantity: await this.fulfilment.quantityWithin(tx, tenantId, order.id),
+      // Read agreed 2026-11-06: what the goods are worth, before the delivery charge.
+      goodsValue: Math.max(0, Number(order.grandTotal) - Number(order.deliveryCharge)).toFixed(2),
     };
   }
 
@@ -719,14 +729,13 @@ export class CourierBooking {
         () => cancel(account, consignmentId),
       );
     } catch (error) {
+      // Read agreed 2026-11-06: anything but a clear yes is no answer, so staff confirm in its panel, as for a courier with no call.
       if (error instanceof CircuitOpen || error instanceof CourierNoAnswer) {
-        throw new ApiError(
-          'service_unavailable',
-          'CourierNotAnswering',
-          { courierKey: adapter.key },
-          RETRY_AFTER_SECONDS,
-          { courier: adapter.name },
-        );
+        if (courierCancelled === true) return;
+        throw new ApiError('conflict', 'ParcelCancelConfirmNeeded', {
+          courierKey: parcel.courierKey,
+          courierNotAnswering: true,
+        });
       }
       throw error;
     }

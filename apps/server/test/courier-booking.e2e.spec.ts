@@ -1349,10 +1349,11 @@ describeIfDatabase('what another courier may declare (exit criterion 8, D6-5, D6
         expect(errorOf(refused).details).toMatchObject({ courierMessage: 'Already picked up.' });
       },
     );
+    // Read agreed 2026-11-06: no answer is not a yes, so staff are asked to confirm it in the courier's panel.
     await declaring({ cancel: () => Promise.reject(new CourierNoAnswer('down')) }, async () => {
-      expect((await shop.post(`/orders/${order.id}/cancel`, { reason: 'duplicate' })).status).toBe(
-        503,
-      );
+      const unanswered = await shop.post(`/orders/${order.id}/cancel`, { reason: 'duplicate' });
+      expect(unanswered.status).toBe(409);
+      expect(errorOf(unanswered).details).toMatchObject({ courierNotAnswering: true });
     });
     expect(await read(shop, order.id)).toMatchObject({
       status: 'processing',
@@ -1397,6 +1398,15 @@ describeIfDatabase('what another courier may declare (exit criterion 8, D6-5, D6
       const refused = await book(shop, order.id);
       expect(refused.status).toBe(409);
       expect(steadfast.bookings()).toEqual([]);
+      // Slice 6.4 (CUS-12): an area is one of the courier's own, in the order's zilla.
+      expect((await book(shop, order.id, { areaCode: 'A-42' })).status).toBe(409);
+      await admin.query(
+        `INSERT INTO control.courier_areas (courier_key, area_code, name, district_name, zilla_id, match, refreshed_at)
+         SELECT 'steadfast', 'A-42', 'Area 42', 'Dhaka', l.zilla_id, 'none', now()
+         FROM tenant.orders o JOIN control.locations l ON l.id = o.location_id WHERE o.id = $1
+         ON CONFLICT DO NOTHING`,
+        [order.id],
+      );
       const sent = await booked(shop, order, { areaCode: 'A-42' });
       expect(sent.parcel?.areaCode).toBe('A-42');
     });
