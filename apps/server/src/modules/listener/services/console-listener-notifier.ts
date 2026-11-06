@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type {
   ListenerAutoRevokedNotice,
+  ListenerLytroRevokedNotice,
   ListenerNotifier,
   ListenerUnreadNotice,
   ListenerVolumeNotice,
@@ -17,6 +18,13 @@ export class ConsoleListenerNotifier implements ListenerNotifier {
   deviceAutoRevoked(notice: ListenerAutoRevokedNotice): Promise<void> {
     this.logger.warn(
       `tenant ${notice.tenantId ?? 'Lytro'}: listener phone ${notice.name} revoked after ${String(notice.flags)} flags`,
+    );
+    return Promise.resolve();
+  }
+
+  deviceRevokedByLytro(notice: ListenerLytroRevokedNotice): Promise<void> {
+    this.logger.warn(
+      `tenant ${notice.tenantId}: listener phone ${notice.name} revoked by Lytro (${notice.reason})`,
     );
     return Promise.resolve();
   }
