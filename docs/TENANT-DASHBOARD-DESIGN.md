@@ -1,6 +1,8 @@
 # Tenant dashboard: the full design
 
-Status: v3.36, 2026-11-07 (the Phase 6 close-out: editing a booked order, §7.39, Part 36's `c36-edit` and `c36-edited`; v3.35 of 2026-11-06: Couriers, booking, the order's Courier card and courier money, drawn for Phase 6 Slice 6.7, §7.39, Part 36; v3.34 of 2026-11-05: Payments and Listener phones, drawn and built together for Slice 5.8's parts 3 and 4, §7.36 to §7.38; v3.33 of 2026-11-04: Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
+Status: v3.37, 2026-11-07 (Phase 7 for the seller -- SMS settings, the log and the report, the bell, its switches and
+push, the bounced email, Lytro's notice board with its marquee and prompt, the fake order check, reading a pasted
+message and the reads allowance -- drawn for Slice 7.7, §7.40, Part 37; v3.36 of 2026-11-07: the Phase 6 close-out: editing a booked order, §7.39, Part 36's `c36-edit` and `c36-edited`; v3.35 of 2026-11-06: Couriers, booking, the order's Courier card and courier money, drawn for Phase 6 Slice 6.7, §7.39, Part 36; v3.34 of 2026-11-05: Payments and Listener phones, drawn and built together for Slice 5.8's parts 3 and 4, §7.36 to §7.38; v3.33 of 2026-11-04: Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
 shipment the balance can't pay for, serials at shipping scanned, pasted or typed, the Orders list by where an order came
 from; v3.31 of 2026-11-04: Payment methods in Settings, how a wallet's money is taken, bKash's keys, the owner's phone at
 sign-up and Balance's on-hold line, drawn for Slice 5.8's part 1, §7.35; v3.30 of 2026-11-03: Sales as built: the split follows
@@ -1793,7 +1795,7 @@ in one PR after Slice 6.6. Every courier is shown by its name, never its logo.
   still work, and either that the shop's default is now the courier the operator suggested (`c36-retiring`) or to
   connect it (`c36-retiring-only`). A shop not connected isn't offered it (`c36-retiring-new`). Its connection carries
   the same line, and disconnecting it says it can't be connected again (`dlg-c36-disconnect-retiring`). Undone, it says
-  the courier is back (`c36-back`), for [7] days (the owner's pick, 2026-11-07), to the shops that were told. The bell carries the notice (`c36-notice`), a stand-in until Phase 7 sends it.
+  the courier is back (`c36-back`), for [7] days (the owner's pick, 2026-11-07), to the shops that were told. The bell carries the notice (`c36-notice`), a stand-in until Phase 7 sends it; drawn for real in §7.40 (`p37-bell-couriers`).
 - **Booking** (agreed: Book courier is the confirmed order's one next step; `c36-order`). Ship by hand moves to the more
   menu, for an order sent another way (`c36-menu`); a shop with no courier keeps Mark shipped. The order's Shipping card
   becomes the Courier card: "Not booked yet". The sheet (`sh-c36-book`) asks only what its courier needs: the connected
@@ -1847,21 +1849,153 @@ in one PR after Slice 6.6. Every courier is shown by its name, never its logo.
   charge. Profit's note now says delivery is in it neither way.
 - **Home**: the checklist's Connect a courier leaves Later for a live step (`c36-home`, the New shop state).
 
+### 7.40 Phase 7 for the seller: SMS, the bell, Lytro's notices, fake order checks, reading a message, allowances
+
+*Phase 7 Slice 7.7* (Part 37), read agreed 2026-11-07 (both apps, the notice board drawn from the SRS and 7.4's read,
+one sketch PR now and one build PR after 7.4). Drawn from what the server on main serves (Slices 7.1, 7.2, 7.3, 7.5,
+7.6) and from 7.4's routes on its branch (D7-53 to D7-59); where a screen needs more, §10 lists it for the build PR.
+
+- **The shell.** The bell is in both bars on every screen, its badge the unread count (NTF-01). **Notices** joins the
+  Menu hub between Activity and Settings, with its unread count on the side list, the Menu row and the tab's dot
+  (NTC-03). Settings' "Coming later" card is gone: **SMS**, **Notifications** and **Fake order check** are live rows
+  under Listener phones (`p37-settings`). The old later-phase drawings (`notices`, `sms`, `notifications`,
+  `notifications-*`) and 6.7's `c36-notice` now open these screens.
+- **SMS** (`/settings/sms`, `p37-sms`; `sms:read` sees it, `sms:manage` changes it). Tabs Settings, Log and Report. The
+  ten SMS in three groups: **to your customers** (Order placed, Payment received, Order shipped, Delivered,
+  Order cancelled; delivery orders only, from anywhere), **to you** (New order, Payment to verify; the owner's phone,
+  staff get the bell instead), and **always sent** (a customer's sign-up code, a staff reset code, Shop ready), locked
+  with Lytro's own words and who pays: the sign-up code from the balance, the reset code from the free SMS then the
+  balance, Shop ready free. Each event shows its switch, when it goes, the SMS as the next one would read with a
+  sample order (the SMS name in front), its parts and the estimate: "about ৳29.15 a month · 53 in 30 days", "৳0.55 an
+  order" before the first order (`p37-sms-new`), "about ৳24.20 a month if on" for one switched off (SMS-10, SMS-12).
+  The side cards: the **SMS name** (`p37-sh-sms-name`: a shorter name fits more into one part); **spent this month**,
+  what order SMS cost since the cycle began, with no cap until one is set (`p37-sh-sms-cap`, at least ৳1,
+  `p37-sh-sms-cap-bad`), the rule written out (an email at 80%, order SMS stop at the cap until the cycle restarts,
+  codes still go), and its states at 80% (`p37-sms-cap80`) and reached (`p37-sms-capped`); and **how it is counted**
+  (67 characters a part, ৳0.55, Bangla or English alike). A low balance says an SMS it can't pay for isn't sent and
+  shows as blocked (`p37-sms-lowbal`); staff who may only read see the states, not the switches (`p37-sms-ro`).
+- **An SMS's words** (`p37-sh-sms-tpl-*`): its switch, the words with each variable as a named pill (Order number,
+  Amount, Customer's name, Tracking link) rather than braces, the ones it may insert, what the customer (or the owner)
+  gets with a sample order, its characters, parts and cost, and "Back to Lytro's words" once edited (SMS-19,
+  `p37-sh-sms-tpl-edited`, `p37-sms-reset`). Over 67 characters warns it costs double (`-long`); Order shipped says its
+  link always makes 2 parts. Taking out the order number (`-keep`) or naming what the SMS can't fill (`-unknown`) is
+  refused before saving, in the server's own rules.
+- **The log** (`p37-sms-log`, GET `/sms/log`): newest first, each SMS's kind, phone, its order linked, the words (never a
+  code), Sent, Failed ("the SMS service refused it; nothing was charged") or Blocked with its reason (the balance
+  couldn't pay, the plan ended and the balance is frozen, the cap was reached), its parts and cost or "Free SMS".
+  "Sent" means the provider took it; no delivery report comes back (D7-15). Empty: `p37-sms-log-empty`. **The report**
+  (`p37-sms-report`, GET `/sms/report`): the last 30 days or picked dates (up to 92), summed by kind (sent, failed,
+  blocked, parts, cost, total), and each day's cost as bars; `p37-sms-report-empty`.
+- **Sign-in** (D7-24): a code the shop's balance can't pay for says so in the server's words, with "Use a password
+  instead" as the button (`p37-signin-cantpay`). The sign-in note now says a code past the free SMS is ৳0.55 from the
+  balance (D7-23).
+- **The bell** (`p37-bell`, GET `/notifications`): Today and Earlier, each row in the server's own words and the
+  reader's language: a new order, a payment to verify, "From Lytro: <title>" (a notice), a parcel's news, a parcel
+  to check, a courier being retired or back, a courier connection, low stock, a low balance, a renewal. Unread rows
+  marked, Mark all read (`p37-bell-read`), the gear to the switches, See all, and "Kept for 30 days" (D7-39). Nothing
+  yet (`p37-bell-empty`); a staff member hears only their role's kinds (`p37-bell-staff`); the courier notices 6.7
+  left as a stand-in (`p37-bell-couriers`). The full page (`p37-bell-all`) groups by day; its old filter chips are gone,
+  as no route filters by kind or unread.
+- **Notifications** (`/settings/notifications`, `p37-prefs`, GET/PUT `/notifications/preferences`): the kinds the person
+  can hear, grouped Orders, Payments, Couriers, Stock, Photos and video, Account, each a switch covering the bell and
+  push on every device; money and account kinds and Lytro's notices "Always on" with a lock (D7-40). The switches are
+  the person's own. Staff see their role's kinds (`p37-prefs-staff`). **Push on this device**, first on a phone: Turn
+  on push, the browser's own question (`p37-push-ask`), on for this device with Send a test and Turn off
+  (`p37-push-on`), the test arriving with "sent to 2 devices · 1 old device removed" (`p37-push-tested`), blocked in the
+  browser (`p37-push-blocked`), and iPhone's Home Screen first (`p37-push-ios`). **Email**, for the owner: where it
+  goes and what it always carries. **Language**: email and push come in the language chosen in the account.
+- **Each person's language** (D7-41): the Account page's Bangla/English choice says "Email and push come in this
+  language", and saving it says so (`p37-lang`, `p37-lang-saved`, PUT `/me/language`).
+- **A bounced email** (NTF-06, D7-38): for the owner, a banner on every page, "Email to you isn't arriving, so Lytro has
+  stopped emailing you. Fix your email" (`p37-bounced`, from `/me`'s `emailBounced`); its bell notice
+  (`p37-bounced-bell`); the Account page's email marked not arriving, with how it starts again and Change email
+  (`p37-bounced-account`, `p37-bounced-fixed`).
+- **A new version** (NTF-07, D7-44): "A new version of Lytro is ready" with Update, kept until tapped, above the tab bar
+  or bottom right (`p37-update`).
+- **Notices** (`/notices`, `p37-notices`, GET `/notices`): the unread count, the lead, search, category chips (All, Rate
+  change, Maintenance, New feature, Policy, Security, General), pinned first then newest; each row with its severity
+  edge (urgent red, important marigold), Pinned, its category, Urgent or Important, "Updated <date>", "Press 'I
+  understand'" for the owner or "Understood <date>", the title, two lines of its text, the date and an unread dot.
+  One category (`p37-notices-cat`), a search with nothing (`p37-notices-search`), none yet (`p37-notices-empty`), staff
+  (`p37-notices-staff`). **A notice** (`p37-notice`, GET `/notices/:id`): From Lytro, category, severity, title,
+  published and updated dates (`p37-notice-updated`), the body as the Markdown subset renders it (paragraphs, bold,
+  lists, https links opening a new tab), and, when the other language is all it has, a line saying so
+  (`p37-notice-fallback`, NTC-15). One that asks for it gives the owner **বুঝেছি / I understand**, once for the shop
+  (`p37-notice-ack`, `p37-notice-acked`: pressed, and in the shop's activity); staff get no button, only who must press
+  it or that the owner did (`p37-notice-staff`, `-staff-acked`). Home's jobs gain "1 notice needs your 'I understand'"
+  (`p37-home-ack`, from the summary's `toAcknowledge`).
+- **Urgent, important, maintenance** (D7-54, D7-55, GET `/notices/summary`). An urgent notice scrolls in a red band under
+  the top bar on every page until the person closes it; tapping opens it (`p37-marquee`, on an order
+  `p37-marquee-order`, two at once `p37-marquee-two`, closed `p37-marquee-closed`: it stays on the board). Still when the
+  person asks for reduced motion. An important one is a dialog at the next sign-in, "1 of 2", with Later and Read it
+  (`p37-prompt`). Maintenance is a band on every page counting down, "Maintenance in 1 day 4 hours: 9 Nov, 2:00–3:00
+  am", from publishing to the window's end, then "under way until 3:00 am" (`p37-maint`, `p37-maint-now`); the notice's
+  page shows days, hours and minutes (`p37-notice-maint`, `-maint-now`).
+- **A lapsed shop** (NTC-07): read-only, the owner reads and acknowledges (`p37-notices-ro`, `p37-notice-ro`); locked,
+  the Renew page carries "Notices from Lytro · 2 unread" to the board (`p37-locked`); archived, the purchase page shows
+  the urgent notice alone (`p37-archived`). Staff of a locked shop never reach it.
+- **The fake order check** (D7-45 to D7-52), figures only, never a level, under the name the rates already use. **On
+  New order**, once the phone is valid, the form reads the number's latest check, asking no one; with none it offers
+  "Check this number · Steadfast's record and your shop's past orders · free" (`p37-new-fraud-ask`), so typing never
+  costs anything should checks get a price. A check shows Steadfast's delivered, returned and cancelled percentages as
+  three figures and a bar, the size of its record ("medium · 8"), merchants' reports and Steadfast's own categories,
+  its doubtful mark, then the shop's own delivered, returned and cancelled (the customer's own reasons), when and what
+  it cost, and "figures only, no verdict; the order is never held up" (`p37-new-fraud`, `-reports`). An answer reused
+  within 3 days says from when (`p37-new-fraud-known`); Steadfast not connected, with Connect Steadfast (`-nosf`);
+  Steadfast not answering (`-failed`); the minute's limit (`-minute`); a trial while checks are free (`-trial`) and once
+  they are charged (`-trial-paid`), both in the server's words. **On the order** the automatic check sits in the
+  Customer card in place of Part 29's greyed line, "checked by itself when the order came", with Check again
+  (`p37-order-fraud`, `-reports`), being checked (`-pending`), not checked under the smallest amount (`-skipped`),
+  checked again (`-again`), the minute's limit (`-minute`), Steadfast not connected or not answering (`-nosf`,
+  `-failed`); staff who see the order but can't check get no button (`-staff`); a lapsed shop says checks wait for a
+  renewal (`-ro`). **On the customer's page**, a card above the last address (`p37-cust-fraud`, never checked
+  `p37-cust-fraud-none`). The Orders list carries no marker: with no level there is nothing to flag.
+- **Fake order check in Settings** (`/settings/fraud-checks`, `p37-fraud-rule`, GET/PUT `/fraud-checks/rule`;
+  `fraud:manage` changes it): "Check every new COD order" (on until changed; takeaway and dine-in never), "Only from this
+  amount", empty for every order (`-min`), off with "check by hand from the order's page" (`-off`), where the figures
+  come from (Steadfast with the shop's own keys, or Not connected with Connect, `-nosf`; the shop's past orders, always,
+  free; Pathao and RedX if they publish a check), the cost (free for now), staff who may only read (`-ro`), saved
+  (`-saved`).
+- **Reading a message** (`POST /orders/read-address`, D7-32 to D7-37): New order's first card, in place of Part 29's
+  greyed one, "From the customer's message": what it fills in and that the message isn't kept, the box, Read the details
+  and Clear, and its cost (৳0.10 from the balance, or the reads left in a pack; nothing found costs nothing)
+  (`p37-read`, `-pasted`, `-allowance`). Read, the form fills in and the card says "Filled 5 of 6 from the message.
+  Check the marked fields" with what it cost (`p37-read-done`): a field to check carries a marigold "Check this" and
+  edge, a thana that matched nothing keeps what was written ("The message says 'ফতুল্লা', which matches no thana.
+  Pick the thana"), and the delivery charge waits for it; a near match says what was written (`p37-read-check`, paid
+  from the pack); one not in the message says so. Bangla digits come back as Western ones. The phone, now valid,
+  offers the check (`p37-read-fraud`). Refused, in the server's words: nothing found, not charged (`-none`); a picture
+  (`-image`); nothing pasted (`-empty`); over 4,000 characters with the count (`-long`); the minute's limit
+  (`-minute`); not read just now, not charged (`-unavailable`); no balance and no reads left, with Top up and 200 reads
+  (`-nobal`).
+- **Allowances** (PLN-20, D7-17, D7-36): the add-on shop gains **Pay per use**, "Address reads from messages · 200 ·
+  ৳20/month", Buy (`p37-addons`): the sheet (`p37-sh-reads-buy`) as other add-ons buy, reads this period 0 → 200, due now
+  for the days left, renewing with the plan; bought (`p37-addons-bought`), active with the reads left (`-active`); the
+  trial "Needs a plan" (`-trial`) and pay-as-you-go "With a monthly or longer plan", each read ৳0.10 from the balance
+  (`-payg`). **Usage** gains a Pay per use card: 57 of 200 until 9 Nov, then ৳0.10 a read (`p37-usage`); at 90%
+  (`p37-usage-low`); no pack, paid per read with this cycle's count and the pack to buy (`p37-usage-none`).
+- **The SMS an action sends** (D7-20, checked against where Slice 7.2 queues each event): New order says the customer
+  gets the Order placed SMS and its cost (`p37-new-sms`); Mark shipped, the shipped SMS with the tracking link
+  (`p37-o-ship`); Book courier, that it goes once the courier picks the parcel up (`p37-o-book`); Cancel, that the
+  customer is told by SMS, or that it is switched off (`p37-o-cancel`, `-cancel-off`); Record a payment, that a
+  verified payment sends Payment received (`p37-o-pay`). Each links to SMS settings and shows only while its switch is
+  on. The order shows its own SMS from the log (`p37-o-sms`). Lines the screens had that the code no longer bears out
+  are corrected: a part is 67 characters, a read is ৳0.10 and named for the address, the fake order check is free, and
+  chat AI is gone from Balance's rates and statement (`p37-balance`); the low-balance warning no longer mentions chat
+  AI; the bell no longer says every notification matches an email.
+
 ## 8. Screens designed for later phases
 
 Kept in the prototype under "Later phases (design only)", exactly as designed on 2026-10-20, so the
 architecture is whole when each phase arrives. Their endpoints do not exist yet.
 
 - **Orders, the order and New order** moved to §7.31 (Part 29, 2026-10-31) as Phase 4 built them; **Book courier** moved to
-  §7.39 (Part 36, 2026-11-06). What stays here is, on the order, the fraud chip (Phase 7) and reading a pasted message
-  (Phase 7), drawn greyed in §7.31.
-- **Customers** moved to §7.32 (Part 30, 2026-10-31); the customer's fraud level stays here (Phase 7).
+  §7.39 (Part 36, 2026-11-06). The fake order check and reading a pasted message, drawn greyed in §7.31, moved to
+  §7.40 (Part 37, 2026-11-07).
+- **Customers** moved to §7.32 (Part 30, 2026-10-31); the customer's fake order check to §7.40, as figures, not a level.
 - **Payments** moved to §7.36 and **Payment methods** to §7.35 (Parts 35 and 33).
-- **Notices** (Phase 7): pinned first, category chips, "I understand" (NTC-03 to 05). **SMS events** (Phase
-  7): switches with the estimated monthly cost and the template link (SMS-02, 10, 12).
-- **The bell and notifications** (Phase 7, decided 2026-10-22): the bell in both bars with its unread count; the
-  panel from the top right with Today and Earlier, an icon per kind, unread rows marked, a row's own action, Mark
-  all read; nothing yet; all read; the full page with filters (NTF-01). The dashboard has no bell before then.
+- **Notices**, **SMS events** and **the bell** moved to §7.40 (Part 37, 2026-11-07) as Phase 7 built them; their old
+  drawings leave the Later group and open Part 37's.
 - **Storefront settings** (Slice 12): the home page's banner slides as a carousel or one banner with two tiles,
   the slide editor with the focal point and both crops, the home page line (`storefront`, `sh-slide`).
 - **Shortfall** moved to §7.33 and **returns** to the order (§7.31), so the old `sh-return` sheet is gone; **profit**
@@ -1916,7 +2050,7 @@ brand identity.
 | Archived products listed (`archived=true`, with their count) and restored (`POST /products/:id/restore`); the shop's product limit on the list (`productLimit`); the largest image and video on `GET /media/usage` | catalogue, media | §7.3, §7.4, §7.23 (PRD-13, STO-04, STO-05) | built (11.7a) |
 | Invoice PDF | billing | BIL-13 | later |
 | Pay-as-you-go estimate | billing | PYG-12 (needs order history) | later |
-| The notifications feed behind the bell | notifications | §8 (NTF-01) | Phase 7 |
+| The notifications feed behind the bell | notifications | §7.40 (NTF-01) | built (7.3) |
 | Orders, customers, payments, couriers, SMS, notices; storefront settings | Phases 4 to 8; Slice 12 | §8 | later |
 | `area { thana, zilla }` and `unansweredCalls` on each `GET /orders` row | orders | the list's "Mirpur, Dhaka" and "No answer ×2" (§7.31) | built (4.8 reads) |
 | the customer's order count on `GET /orders/:id` | orders | the order's "4 orders" link to the customer (§7.31) | built (4.8 reads) |
@@ -1928,7 +2062,13 @@ brand identity.
 | Each `GET /orders` row's live parcel: its courier, reading and attention; `attention=any` to filter by it, with its count among the tabs | orders | the list's courier line and the Needs a look tab (§7.39) | Slice 6.7's build |
 | Marking a parcel's attention seen (`POST /orders/:id/parcel/seen`), which clears it and keeps the history | couriers | Mark as seen (§7.39) | Slice 6.7's build |
 | A retiring courier: `retiring` on each `GET /couriers/connections` row, left out of `GET /couriers/adapters` for a shop not connected, and the suggested courier named | couriers | §7.39's retiring lines (Slice 6.6) | Slice 6.6 |
-| The retiring and back notices, and a parcel needing a look, to the bell | notifications | `c36-notice` | Phase 7 (a stand-in until then) |
+| The retiring and back notices, and a parcel needing a look, to the bell | notifications | `c36-notice`, `p37-bell-couriers` | built (7.3) |
+| An order's automatic check as it stands -- being checked, done (with the check), or not run and why (the rule off, under its smallest amount, refused) -- on `GET /orders/:id` or `GET /fraud-checks?orderId=` | fraud checks | the order's "being checked" and "not checked under ৳500" (§7.40) | Slice 7.7's build |
+| On `GET /usage`, each allowance's uses, what is left and when it ends, the reads made this cycle without one, and LIM-01's levels for it (with the email at the same shares) | usage, billing | Usage's Pay per use card and its 90% banner (§7.40) | Slice 7.7's build (deferred from 7.6) |
+| On `GET /addons`, an active allowance's uses left; and the reads left before a read, for the paste card's cost line (on `GET /usage`, or the read route's own `GET`) | billing, address reads | the add-on row and "143 reads left in your pack" (§7.40) | Slice 7.7's build |
+| On `GET /sms/settings`, the phone the owner's SMS go to, and each essential SMS's words and who pays, so the dashboard keeps no copy of the platform's codes' words | SMS events | SMS's "To you" and "Always sent" groups (§7.40) | Slice 7.7's build |
+| `lytro_notice` as a locked notification kind, the notice board's shop routes and the summary | notices | §7.40's board, marquee, prompt, countdown and switches | Slice 7.4 |
+| courier_connection's Bangla body says "কি" where it means "কী" (notification-words.ts) | notifications | the bell's courier row (§7.40) | Slice 7.7's build |
 | `POST /products/combo-quote`: what a combo's parts come to, saved or not (bought apart, saving, can make, limited by, issues, weight, each part's price and photo) | catalogue | the combo editor (§7.33) | built (4.8c) |
 | New order's picker for whoever may edit products too, with `optionNames` on its rows, `stockUnit`, and `onSale` on its variants | catalogue | the combo editor's Add an item (§7.33) | built (4.8c) |
 

@@ -119,6 +119,10 @@ overrule any of them when reviewing this plan.
 | D7-50 | **The automatic check** (the read). FRD-05 made it an optional rule. | On for every new cash-on-delivery delivery, from any source, run apart from the order. The owner may switch it off or set a smallest amount. Takeaway and dine-in aren't checked. Amends FRD-05. | Slice 7.5 |
 | D7-51 | **Permissions** (the read). | `fraud:read` runs a check and reads results; it is FRD-01's `fraud:check`. `fraud:manage` changes the automatic check. | Slice 7.5 |
 | D7-52 | **Steadfast's answer, tried with a live key** (2026-11-07: three phones and a malformed number). | Whole percentages, a size band (`none`, `low`, `medium`) with a figure (`8` with medium, `1` with low), merchants' reports, and null counts and score (`scoring_disabled: true`), in 0.3 to 0.7 seconds. A malformed number got someone's figures too, so a number's form is checked before asking. What the figure counts isn't documented (KNOWN-GAPS §128). | Slice 7.5 |
+| D7-60 | **The notice board's screens** (Slice 7.7's read, 2026-11-07, the owner's pick). Slice 7.4's server was being built in another session. | Drawn now, from NTC-01 to NTC-19 and Slice 7.4's agreed read (D7-53 to D7-59), and redrawn if 7.4's shapes change before it merges. | Slice 7.7 |
+| D7-61 | **What the sketch covers** (the read). | Both apps, everything §6 lists for 7.7, and what earlier slices left for it: the console's settings for fraud checks and reading orders, courier notices in the bell (6.7), each person's language and the bounced email (7.3), and the reads left on the usage page (7.6). | Slice 7.7 |
+| D7-62 | **Its PRs** (the read). | One sketch PR for both apps now, docs only, and one build PR for both after Slice 7.4 merges. Phase 8's server slices go on in between. | Slice 7.7 |
+| D7-63 | **Where staff see a phone's fake order check** (the read). | On the new-order form once the phone is valid, before the order is made (the latest check, and a button to check it; never on its own while typing); on the order, the automatic check's result with "Check again"; and on the customer. The automatic rule's switch is in Settings. | Slice 7.7 |
 
 ### 2.1 Points left to each slice's read
 
@@ -132,7 +136,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 7.4 | How a notice's Bangla and English bodies are written in the console (bold, links and lists, NTC-01) and kept safe (NTC-16). Whether the status page (NTC-14) is in this release. |
 | 7.5 | **What each courier's check returns, tried with a real key:** Steadfast's score, Pathao's success-rate call (Appendix A), RedX's if it has one, once Slice 6.4 lands. How the level (low, medium, high, unknown) is worked out from the counts. Whether checks stay refused in trial (FRD-08) now that they're free. **Settled in Slice 7.5's read (2026-11-07):** D7-45 to D7-52. Pathao and RedX publish no check, there is no level, and trials may check while checks are free. |
 | 7.6 | **Real pasted messages read by Gemini first**, in Bangla, English and the two mixed, to choose the model and set the rate. How thanas are matched (ORD-31), and the confidence shown. **Settled in Slice 7.6's read (2026-11-06):** D7-32 to D7-37. Made-up messages chose the model; the real ones wait for a key with billing on (D7-37). |
-| 7.7 | Settled by its sketch: see that slice. |
+| 7.7 | Settled by its sketch: see that slice. **Read agreed 2026-11-07:** D7-60 to D7-63. |
 
 ---
 
@@ -321,6 +325,10 @@ checks whether FRD-01's `fraud:check` is `fraud:read` or needs its own name.
   allowances in the add-on catalogue.
 - **Builds** them, pixel perfect to the approved sketch, in Bangla and English to the owner's style guide, and brings
   back the sentences the screens dropped while nothing was sent (D7-20).
+- **Sketched (2026-11-07, D7-60 to D7-63):** the dashboard's Part 37 (128 screens, `TENANT-DASHBOARD-DESIGN.md`
+  §7.40) and the console's Notices and Pricing and platform screens (44, `OPERATOR-CONSOLE-DESIGN.md` §10c). The
+  build needs a few server additions, listed in each design doc (§10 and §15). Drawing it found two faults in
+  Slice 7.6's allowance (KNOWN-GAPS §131).
 
 ---
 
