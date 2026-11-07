@@ -52,6 +52,7 @@
     "listener_test_mode_started": "একটা লিসেনার ফোন থেকে টেস্ট মোড চালু হয়েছে",
     "media_deleted": "{{actor}} একটা ছবি ডিলিট করেছেন",
     "new_shop_cap_set": "Lytro সাপোর্ট নতুন শপের পেমেন্ট লিমিট বদলেছে",
+    "notice_acknowledged": "{{actor}} Lytro-এর একটি নোটিশে “বুঝেছি” চেপেছেন",
     "option_set_created": "{{actor}} অপশন সেট যোগ করেছেন",
     "option_set_deleted": "{{actor}} অপশন সেট ডিলিট করেছেন",
     "order_call_logged": "{{actor}} কাস্টমারকে কল করেছেন",

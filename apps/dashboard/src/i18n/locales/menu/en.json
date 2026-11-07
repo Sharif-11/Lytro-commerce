@@ -52,6 +52,7 @@
     "listener_test_mode_started": "Test mode was switched on from a listener phone",
     "media_deleted": "{{actor}} deleted a photo",
     "new_shop_cap_set": "Lytro support changed the new-shop payment limit",
+    "notice_acknowledged": "{{actor}} said “I understand” to a notice from Lytro",
     "option_set_created": "{{actor}} added an option set",
     "option_set_deleted": "{{actor}} deleted an option set",
     "order_call_logged": "{{actor}} logged a call to a customer",
