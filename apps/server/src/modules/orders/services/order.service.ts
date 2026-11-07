@@ -52,6 +52,7 @@ import type { ResolvedZoneView } from '../../delivery/types/delivery';
 import { ReservationService } from '../../inventory/services/reservation.service';
 import { OrderCombos } from './order-combos';
 import { milli } from '../../inventory/services/stock-state';
+import { FraudCheckQueue } from '../../fraud-checks/services/fraud-check-queue';
 import { SmsEventQueue } from '../../sms-events/services/sms-event-queue';
 import { StaffService } from '../../staff/services/staff.service';
 import type { OrderStore } from '../ports/order-store';
@@ -275,6 +276,7 @@ export class OrderService {
     @Inject(PaymentRecorder) private readonly payments: PaymentRecorder,
     @Inject(OrderCombos) private readonly combos: OrderCombos,
     @Inject(SmsEventQueue) private readonly smsEvents: SmsEventQueue,
+    @Inject(FraudCheckQueue) private readonly fraudChecks: FraudCheckQueue,
   ) {}
 
   /**
@@ -449,6 +451,20 @@ export class OrderService {
       orderId: order.id,
       events: [SmsEvent.OrderPlaced, SmsEvent.NewOrderAlert],
     });
+    // FRD-05, D7-50 (Slice 7.5): a delivery collecting cash, from any source, is checked apart from the order, by the
+    // shop's rule; queued here so it commits with the order or not at all.
+    if (
+      order.fulfilmentType === FulfilmentType.Delivery &&
+      order.customerPhone !== null &&
+      toPaisa(order.codAmount) > 0n
+    ) {
+      await this.fraudChecks.queue(tx, {
+        tenantId,
+        orderId: order.id,
+        phone: order.customerPhone,
+        codAmount: order.codAmount,
+      });
+    }
     await this.activity.record(
       tx,
       tenantId,

@@ -757,6 +757,13 @@ export const MESSAGE_KEYS = [
   'AddressReadUnavailable',
   'AddressReadUnreadable',
   'TooManyAddressReads',
+  // Phase 7 Slice 7.5: fraud checks (FRD-01 to FRD-08)
+  'FraudCheckRun',
+  'FraudCheckRead',
+  'FraudRuleRead',
+  'FraudRuleSaved',
+  'FraudCheckNeedsPlan',
+  'TooManyFraudChecks',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

@@ -2169,3 +2169,21 @@ before "placed". Both are true and both are charged; only their order is off.
 ## 125. `ORD-30`, `D7-37`: reading delivery details has read only made-up messages — found 2026-11-06, open until real messages are read on a key with billing on
 
 Slice 7.6 chose Gemini 3.5 Flash-Lite on 21 made-up messages written for its read (104 of 105 fields right), and three of them went through the built adapter. The Gemini key given for the read is on Google's free tier, where Google may use what it is sent and people may read it, so no real customer's message has gone to Gemini (D7-18). Before launch the owner turns billing on for the key's project, and a set of real messages, names and numbers changed, is read: the slice's done-when, and the check that 0.10 TK a read (D7-36) still covers what a real message costs. The free tier also held reads to a few a minute, so how fast a read is on the paid tier is unmeasured too. A shop's reads a minute and Gemini's circuit are kept in memory, exact while there is one server, as §119 says of the others.
+
+## 128. `FRD-01`, `D7-52`: Steadfast's fraud check is read from one try of three phones — found 2026-11-07, open until a month of real checks
+
+Slice 7.5 built the check to the answer Steadfast gave a live key on 2026-11-07, for three phones and a malformed number.
+
+- **Its own score is switched off.** It sends `scoring_disabled: true` and its counts are null; only whole percentages, a
+  size band and a figure come back. If Steadfast switches its score on or starts giving counts, Lytro ignores them until
+  the adapter reads them.
+- **The figure isn't documented.** It came as `8` with the band `medium` and `1` with `low`. It's shown as Steadfast gives
+  it, without saying what it counts.
+- **A malformed number got an answer.** `0171` came back with someone's figures, not a refusal. Lytro checks a number's
+  form before asking, so none reaches Steadfast; a well-formed number that belongs to no one may still get figures.
+- **The fraud categories were empty for all three phones,** so their shape is guessed: text, or an object with a name or
+  a label.
+- **Only Steadfast has a check.** A shop that uses only Pathao or RedX sees its own orders alone (D7-45, D7-46).
+
+Closing it: after launch, read a sample of real answers (a phone with reports, its categories, a larger band) and adjust
+the adapter to them.

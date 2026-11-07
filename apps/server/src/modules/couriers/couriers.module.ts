@@ -19,6 +19,7 @@ import { CourierBooking } from './services/courier-booking';
 import { CourierBookingPass } from './services/courier-booking-pass';
 import { CourierCalls } from './services/courier-calls';
 import { CourierChecks } from './services/courier-checks';
+import { CourierFraudScores } from './services/courier-fraud-scores';
 import { CourierPayouts } from './services/courier-payouts';
 import { CourierRetiring } from './services/courier-retiring';
 import { CourierConnections } from './services/courier-connections';
@@ -90,6 +91,7 @@ import {
     CourierNewsPath,
     CourierChecks,
     CourierPayouts,
+    CourierFraudScores,
     CourierRetiring,
     CourierBookingPass,
   ],
@@ -101,6 +103,7 @@ import {
     CourierBookingPass,
     CourierChecks,
     CourierPayouts,
+    CourierFraudScores,
     CourierRetiring,
     COURIER_NOTIFIER,
   ],

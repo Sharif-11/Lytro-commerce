@@ -300,6 +300,14 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /sms/settings/templates/:event/reset': "resets only the session shop's own template",
   'GET /sms/report': "counts only the session shop's own SMS",
   'GET /sms/log': "lists only the session shop's own SMS; another shop's order ID lists none",
+  // Phase 7 Slice 7.5, checked in test/fraud-checks.e2e.spec.ts: a shop's checks and rule are its own, under its RLS. A
+  // check names a phone, not a shop's ID; it asks Steadfast with the session shop's own key and reuses only its own answers.
+  'POST /fraud-checks':
+    "checks with the session shop's own Steadfast key and own orders; reuses only its own answers",
+  'GET /fraud-checks':
+    "reads only the session shop's own checks; another shop's check of a phone shows none",
+  'GET /fraud-checks/rule': "reads only the session shop's own automatic check",
+  'PUT /fraud-checks/rule': "changes only the session shop's own automatic check",
   'POST /couriers/connections': "saves only into the session shop's own connections",
   'DELETE /couriers/connections/:key': "removes only the session shop's own connection",
   'PUT /couriers/connections/:key/default': "changes only the session shop's own default",

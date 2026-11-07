@@ -520,9 +520,10 @@ lapsed one, chooses it with `billing/pay-as-you-go` (PYG-10, LIF-15).
 
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
-| POST | `/api/v1/fraud/check` | session/secret, `fraud:check` | `{ phone, orderId? }` → level, summary, sources (FRD-01/02). Charged only when a result is returned (FRD-03). |
-| GET | `/api/v1/fraud/rules` | session, `fraud:read` | |
-| PATCH | `/api/v1/fraud/rules` | session, `fraud:manage` | `{ autoCheckCodAbove?, contributeToSharedData }` (FRD-05/10). |
+| POST | `/api/v1/fraud-checks` | session, `fraud:read` (FRD-01's `fraud:check`, D7-51) | `{ phone }`, any written form of a Bangladeshi mobile; another is a 400 before any courier is asked. Accepts `Idempotency-Key` (API-11). 201 → `{ id, phone, checkedAt, trigger, orderId, sources: [{ source: steadfast \| own_orders, state: answered \| not_connected \| failed, cached }], steadfast: { deliveredPercent, cancelledPercent, returnedPercent, volumeBand, volumeRange, reports, doubtful, categories } \| null, ownOrders: { delivered, returned, cancelled }, cost }`. Figures only, no level (D7-48). Charged only when Steadfast answered, at the fraud-check rate, zero at launch (FRD-03). Refused: `tenant_offline` for a lapsed shop, `plan_feature_unavailable` for a trial while checks are charged (FRD-08), `quota_exceeded` for a balance short of the rate, `rate_limited` past the minute's checks (FRD-07). |
+| GET | `/api/v1/fraud-checks?phone=` | session, `fraud:read` | `{ latest }`: the phone's latest check, by staff or on an order, or null; asks no one (FRD-01). |
+| GET | `/api/v1/fraud-checks/rule` | session, `fraud:read` | `{ codOrders, minAmount }`; `{ true, null }` until the owner changes it (FRD-05, D7-50). |
+| PUT | `/api/v1/fraud-checks/rule` | session, `fraud:manage` | `{ codOrders, minAmount \| null }` → the rule. FRD-10's sharing switch comes with the shared counts (D7-8). |
 
 ## 15. SMS listener app
 

@@ -36,6 +36,8 @@ import { PublicApiModule } from '../../public-api/public-api.module';
 import { MetaPurchaseWorker } from './services/meta-purchase-worker';
 import { SmsEventsModule } from '../../sms-events/sms-events.module';
 import { SmsEventWorker } from './services/sms-event-worker';
+import { FraudChecksModule } from '../../fraud-checks/fraud-checks.module';
+import { FraudCheckWorker } from './services/fraud-check-worker';
 import { PackAutoBuyWorker } from './services/pack-auto-buy-worker';
 import { UsageNoticeWorker } from './services/usage-notice-worker';
 
@@ -62,6 +64,7 @@ import { UsageNoticeWorker } from './services/usage-notice-worker';
     DomainsModule,
     IdempotencyModule,
     SmsEventsModule,
+    FraudChecksModule,
   ],
   providers: [
     SmsRetryWorker,
@@ -86,6 +89,7 @@ import { UsageNoticeWorker } from './services/usage-notice-worker';
     DomainCheckTickWorker,
     IdempotencyPurgeTickWorker,
     SmsEventWorker,
+    FraudCheckWorker,
   ],
 })
 export class QueueWorkersModule {}

@@ -87,6 +87,8 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     "The AI's model for reading delivery details, as the AI names it, such as gemini-3.5-flash-lite (AI-10, D7-4).",
   [PlatformSettingKey.AddressReadsPerShopPerMinute]:
     'How many messages one shop may have read in a minute, a flood guard (ORD-33).',
+  [PlatformSettingKey.FraudChecksPerShopPerMinute]:
+    'How many fraud checks one shop may run in a minute, by staff or on new orders (FRD-07).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -151,6 +153,7 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.AddressReadProvider]: isAiProvider,
   [PlatformSettingKey.AddressReadModel]: isModelName,
   [PlatformSettingKey.AddressReadsPerShopPerMinute]: isPositiveInt,
+  [PlatformSettingKey.FraudChecksPerShopPerMinute]: isPositiveInt,
 };
 
 function validate(key: PlatformSettingKey, value: unknown): void {
