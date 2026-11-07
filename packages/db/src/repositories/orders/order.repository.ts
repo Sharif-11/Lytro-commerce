@@ -22,11 +22,16 @@ import {
   OrderStatus,
   ReservationStatus,
   type CancelReason,
+  type CourierKey,
   type FulfillmentStatus,
   type OrderPaymentStatus,
   type OrderSource,
+  type ParcelAttention,
+  type ParcelReading,
+  type ParcelState,
 } from '@lytronix/validators';
 import {
+  courierParcels,
   orderCalls,
   orderCounters,
   orderLines,
@@ -63,6 +68,15 @@ export interface OrderListFilter {
   customerId: string | null;
   /** INV-15: the orders with an active hold on this variant's stock. */
   holdingVariantId: string | null;
+  /** Slice 6.7: only the orders with a parcel a courier reported something on that staff haven't marked seen. */
+  attention: boolean;
+}
+
+/** Slice 6.7: an order's live parcel as its list row shows it. */
+export interface OrderListParcel {
+  courierKey: CourierKey;
+  state: ParcelState;
+  reading: ParcelReading | null;
 }
 
 /**
@@ -75,6 +89,9 @@ export type OrderRow = Omit<SelectOrder, 'orderNumber'> & { orderNumber: string 
 export interface OrderSummaryRow extends OrderRow {
   items: number;
   unansweredCalls: number;
+  /** Slice 6.7: its live parcel (CRR-08 allows one), and what a courier reported that staff should look at, on any of its parcels. */
+  parcel: OrderListParcel | null;
+  attention: ParcelAttention | null;
 }
 
 /** Home's order figures (Slice 4.8b): what waits, and what was placed today and yesterday. */
@@ -393,6 +410,23 @@ export class OrderRepository {
         ),
       );
     }
+    if (filter.attention) {
+      // A cancelled parcel can carry it too: delivered after its booking was called off.
+      conditions.push(
+        exists(
+          tx
+            .select({ one: sql`1` })
+            .from(courierParcels)
+            .where(
+              and(
+                eq(courierParcels.tenantId, orders.tenantId),
+                eq(courierParcels.orderId, orders.id),
+                isNotNull(courierParcels.attention),
+              ),
+            ),
+        ),
+      );
+    }
     if (filter.from !== null) conditions.push(gte(orders.createdAt, filter.from));
     if (filter.before !== null) conditions.push(lt(orders.createdAt, filter.before));
     if (filter.search !== null) {
@@ -418,6 +452,13 @@ export class OrderRepository {
         items: sql<number>`coalesce(${items.items}, 0)`,
         unansweredCalls: sql<number>`(SELECT count(*)::int FROM ${orderCalls} c
           WHERE c.tenant_id = ${orders.tenantId} AND c.order_id = ${orders.id} AND c.outcome = ${CallOutcome.NoAnswer})`,
+        parcel: sql<OrderListParcel | null>`(SELECT json_build_object('courierKey', p.courier_key, 'state', p.state, 'reading', p.reading)
+          FROM ${courierParcels} p
+          WHERE p.tenant_id = ${orders.tenantId} AND p.order_id = ${orders.id} AND p.state IN ('booking', 'booked', 'unknown')
+          ORDER BY p.created_at DESC LIMIT 1)`,
+        attention: sql<ParcelAttention | null>`(SELECT p.attention FROM ${courierParcels} p
+          WHERE p.tenant_id = ${orders.tenantId} AND p.order_id = ${orders.id} AND p.attention IS NOT NULL
+          ORDER BY p.updated_at DESC LIMIT 1)`,
       })
       .from(orders)
       .leftJoin(items, eq(items.orderId, orders.id))
@@ -431,6 +472,8 @@ export class OrderRepository {
         ...numbered(row.order),
         items: row.items,
         unansweredCalls: row.unansweredCalls,
+        parcel: row.parcel,
+        attention: row.attention,
       })),
       total: counted[0]?.total ?? 0,
     };

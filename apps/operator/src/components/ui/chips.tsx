@@ -17,7 +17,7 @@ export function ChipCount({ on, count }: { on: boolean; count: number }): React.
         on ? 'bg-white/20 text-white' : 'bg-neutral-100 text-neutral-700'
       }`}
     >
-      {count}
+      {count.toLocaleString('en-US')}
     </span>
   );
 }

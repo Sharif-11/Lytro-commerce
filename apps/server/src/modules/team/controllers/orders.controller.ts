@@ -411,6 +411,22 @@ export class OrdersController {
     );
   }
 
+  @Post(':id/parcel/seen')
+  @HttpCode(200)
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('ParcelSeen')
+  @ApiOperation({
+    summary:
+      "Mark what a courier reported on this order's parcel as seen, so it leaves Needs a look; its news stays (Slice 6.7)",
+  })
+  @ZodResponse({ type: OrderViewDto })
+  parcelSeen(@Param('id') id: string, @Req() request: DashboardRequest): Promise<OrderView> {
+    return this.checks.markSeen(
+      this.request.tenantIdOf(request),
+      this.request.idOf(id, 'OrderNotFound'),
+    );
+  }
+
   @Post(':id/parcel/cancel')
   @HttpCode(200)
   @RequirePermission(Permission.OrdersManage)

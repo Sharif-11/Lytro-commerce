@@ -62,7 +62,10 @@ export interface CourierBlockingOrder {
   orderId: string;
   orderNumber: string | null;
   reason: CourierBlockReason;
-  /** For a parcel waiting for its payout, when it stops waiting. */
+  /** Slice 6.7: its courier's own last status, for a parcel on its way. */
+  courierStatus: string | null;
+  /** Slice 6.7: for a parcel waiting for its payout, when its courier reported it finished, and when it stops waiting. */
+  finishedAt: Date | null;
   waitsUntil: Date | null;
 }
 
@@ -403,6 +406,8 @@ export class CourierRetiring {
           orderId: row.orderId,
           orderNumber: row.orderNumber,
           reason,
+          courierStatus: reason === CourierBlockReason.OnItsWay ? row.courierStatus : null,
+          finishedAt: reason === CourierBlockReason.AwaitingPayout ? row.lastChangeAt : null,
           waitsUntil:
             reason === CourierBlockReason.AwaitingPayout && row.lastChangeAt !== null
               ? new Date(row.lastChangeAt.getTime() + days * DAY_MS)

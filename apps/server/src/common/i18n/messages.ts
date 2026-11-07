@@ -2130,6 +2130,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'New address and token made. Paste both into the courier’s panel; the old ones have stopped working.',
     bn: 'নতুন ঠিকানা ও টোকেন তৈরি হয়েছে। দুটোই কুরিয়ারের প্যানেলে পেস্ট করুন; আগেরগুলো আর কাজ করবে না।',
   },
+  ParcelSeen: { en: 'Marked as seen.', bn: 'দেখা হয়েছে বলে রাখা হলো।' },
   ParcelSynced: { en: 'Status checked.', bn: 'স্ট্যাটাস চেক করা হয়েছে।' },
   ParcelNothingToSync: {
     en: 'This order has no booked parcel to check.',

@@ -1793,7 +1793,7 @@ in one PR after Slice 6.6. Every courier is shown by its name, never its logo.
   still work, and either that the shop's default is now the courier the operator suggested (`c36-retiring`) or to
   connect it (`c36-retiring-only`). A shop not connected isn't offered it (`c36-retiring-new`). Its connection carries
   the same line, and disconnecting it says it can't be connected again (`dlg-c36-disconnect-retiring`). Undone, it says
-  the courier is back (`c36-back`). The bell carries the notice (`c36-notice`), a stand-in until Phase 7 sends it.
+  the courier is back (`c36-back`), for [7] days (the owner's pick, 2026-11-07), to the shops that were told. The bell carries the notice (`c36-notice`), a stand-in until Phase 7 sends it.
 - **Booking** (agreed: Book courier is the confirmed order's one next step; `c36-order`). Ship by hand moves to the more
   menu, for an order sent another way (`c36-menu`); a shop with no courier keeps Mark shipped. The order's Shipping card
   becomes the Courier card: "Not booked yet". The sheet (`sh-c36-book`) asks only what its courier needs: the connected

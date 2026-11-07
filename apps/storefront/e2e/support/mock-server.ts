@@ -313,6 +313,8 @@ function trackedFrom(fixture: ShopFixture, body: OrderBody): TrackedOrder {
     due: grandTotal,
     payment: null,
     courier: null,
+    courierMessage: null,
+    courierReturning: false,
   };
 }
 

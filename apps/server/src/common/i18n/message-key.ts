@@ -743,6 +743,7 @@ export const MESSAGE_KEYS = [
   'CourierMessageNotVerified',
   'CourierAddressShown',
   'CourierAddressReplaced',
+  'ParcelSeen',
   'ParcelSynced',
   'ParcelNothingToSync',
   // SMS-02 to SMS-19 (Slice 7.2): a shop's SMS settings, report and log.

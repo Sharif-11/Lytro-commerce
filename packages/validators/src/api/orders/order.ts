@@ -537,6 +537,8 @@ export const orderListQuerySchema = z.object({
   customerId: z.string().uuid().optional(),
   // INV-15 (Slice 4.8c, agreed 2026-11-02): the orders holding stock of this variant, for Stock's See the orders.
   variantId: z.string().uuid().optional(),
+  // Slice 6.7 (read agreed 2026-11-06): only the orders whose parcel a courier reported something staff should look at.
+  attention: z.literal('any').optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(ORDER_PAGE_SIZE),
 });

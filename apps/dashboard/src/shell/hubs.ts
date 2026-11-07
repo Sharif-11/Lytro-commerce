@@ -32,7 +32,8 @@ export type ShopPath =
   // Below a section, where a screen's Back leads (a stock check returns to the list of checks, the own domain to
   // Storefront).
   | '/$shop/stock/checks'
-  | '/$shop/settings/storefront';
+  | '/$shop/settings/storefront'
+  | '/$shop/settings/couriers';
 
 export interface Section {
   id: SectionId;
@@ -124,6 +125,9 @@ export const HUBS: readonly Hub[] = [
         Permission.KeysManage,
         Permission.WalletsRead,
         Permission.ListenerRead,
+        // Phase 6 (Part 36's `c36-ro`): whoever may book sees the shop's couriers, with no actions unless they may manage them.
+        Permission.CouriersManage,
+        Permission.OrdersManage,
       ]),
       section('account', []),
     ],

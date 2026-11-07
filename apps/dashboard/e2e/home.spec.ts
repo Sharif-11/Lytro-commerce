@@ -34,7 +34,8 @@ test('shows a working shop: its jobs, its figures, the folded checklist and the 
 
   // The first group is done, so the checklist is one row; tapping it opens the list for this visit.
   const folded = main(page).getByRole('button', { name: /শপ প্রস্তুত করুন · 6\/6 হয়েছে/ });
-  await expect(folded).toContainText('পরে, দরকার হলে: কুরিয়ার কানেক্ট করুন');
+  // Part 36's `c36-home`: Connect a courier is a live step now, so the folded row names only what comes later.
+  await expect(folded).toContainText('পরে, দরকার হলে: SMS ইভেন্ট বাছুন');
   await folded.click();
   await expect(main(page).getByRole('heading', { name: 'শপ প্রস্তুত করুন' })).toBeVisible();
   await expect(main(page).getByText('ঢাকা সিটির ভেতরে ৳70 · বাইরে ৳130')).toBeVisible();
@@ -56,7 +57,7 @@ test('opens a new shop on its checklist, with nothing in the queue yet (SUP-01)'
     'href',
     '#shop-link',
   );
-  // The wallet number and the listener phone open their pages (Slice 5.8); the courier comes with 6, SMS events with 7.
+  // The wallet number, the listener phone (Slice 5.8) and the courier (Phase 6) open their pages; SMS events come with 7.
   await expect(
     main(page).getByRole('link', { name: 'পেমেন্টের জন্য ওয়ালেট নম্বর দিন' }),
   ).toHaveAttribute('href', `/${SLUG}/settings/payment-methods`);
@@ -65,7 +66,11 @@ test('opens a new shop on its checklist, with nothing in the queue yet (SUP-01)'
     'href',
     `/${SLUG}/settings/listener`,
   );
-  await expect(main(page).getByText('ফেজ 6-এ আসছে')).toBeVisible();
+  await expect(main(page).getByRole('link', { name: /কুরিয়ার কানেক্ট করুন/ })).toHaveAttribute(
+    'href',
+    `/${SLUG}/settings/couriers`,
+  );
+  await expect(main(page).getByText('ফেজ 6-এ আসছে')).toHaveCount(0);
   await expect(main(page).getByText('ফেজ 7-এ আসছে')).toBeVisible();
 
   await expect(main(page).getByText('সব কাজ শেষ। নতুন অর্ডার এলে এখানে দেখাবে।')).toBeVisible();

@@ -10,7 +10,7 @@ import type {
   ParcelCheckWindow,
   PayoutParcelRow,
   SelectCourierConnection,
-  SelectCourierCredentialUse,
+  CourierCredentialUseRow,
   SelectCourierEvent,
   SelectCourierMessageRoute,
   SelectCourierParcel,
@@ -25,6 +25,8 @@ export interface CourierStore {
   /** The shops the minute pass goes through. */
   listShopIds(): Promise<string[]>;
   listConnections(tx: Transaction, tenantId: string): Promise<SelectCourierConnection[]>;
+  /** Slice 6.7 (c36-back): when each connection was last told its courier's retiring was undone, since a time. */
+  retiringUndoneSince(tx: Transaction, tenantId: string, since: Date): Promise<Map<string, Date>>;
   findConnection(
     tx: Transaction,
     tenantId: string,
@@ -80,6 +82,7 @@ export interface CourierStore {
     patch: CourierParcelPatch,
     now: Date,
   ): Promise<SelectCourierParcel>;
+  clearAttention(tx: Transaction, tenantId: string, orderId: string, now: Date): Promise<number>;
   countCancelled(tx: Transaction, tenantId: string, orderId: string): Promise<number>;
   serialsInFlight(
     tx: Transaction,
@@ -190,6 +193,6 @@ export interface CourierStore {
   listUses(
     tenantId: string,
     page: { offset: number; limit: number },
-  ): Promise<{ rows: SelectCourierCredentialUse[]; total: number }>;
+  ): Promise<{ rows: CourierCredentialUseRow[]; total: number }>;
   deleteAllForTenant(tenantId: string): Promise<void>;
 }

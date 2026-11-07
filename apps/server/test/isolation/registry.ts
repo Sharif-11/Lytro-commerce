@@ -291,6 +291,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /couriers/connections/:key/address':
     "replaces only the session shop's own address and token",
   'POST /orders/:id/parcel/cancel': "another shop's order answers 404",
+  // Slice 6.7's build, checked in test/courier-screens.e2e.spec.ts.
+  'POST /orders/:id/parcel/seen': "another shop's order answers 404 and keeps its attention",
   'GET /couriers/adapters':
     'returns the same platform-wide couriers regardless of which shop calls it',
   'GET /couriers/connections': "lists only the session shop's own connections",

@@ -38,10 +38,21 @@ import type { PhoneReceipt, ShopPayment } from '@/types/payments';
 import { PhoneHealthBanner } from '@/views/listener/phone-health';
 import { useOrderWords } from '@/views/orders/order-words';
 import { ApproveSheet, RejectSheet } from './decide-sheets';
+import { PayoutsList } from './payouts';
 import { PaymentDetailSheet, ReceiptSheet } from './detail-sheets';
 import { receiptStatusOf, reviewLineOf, statusOf } from './words';
 
-const TABS = ['verify', 'receipts', 'all', 'verified', 'rejected', 'refunded', 'voided'] as const;
+// Courier payouts last (Part 36, agreed 2026-11-06: a tab on Payments, for whoever may read payments).
+const TABS = [
+  'verify',
+  'receipts',
+  'all',
+  'verified',
+  'rejected',
+  'refunded',
+  'voided',
+  'payouts',
+] as const;
 type PaymentsTab = (typeof TABS)[number];
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -72,6 +83,7 @@ const TAB_WORD: Record<PaymentsTab, string> = {
   rejected: 'spRejected',
   refunded: 'spRefunded',
   voided: 'spVoided',
+  payouts: 'crPayouts',
 };
 
 // How money can come, in the order the filter lists it.
@@ -604,7 +616,7 @@ export function PaymentsView({ search }: { search: PaymentsSearch }): React.JSX.
     }
   };
 
-  if (nothingYet) {
+  if (nothingYet && tab !== 'payouts') {
     return (
       <ShellPage>
         <Card>
@@ -632,7 +644,7 @@ export function PaymentsView({ search }: { search: PaymentsSearch }): React.JSX.
   return (
     <ShellPage
       actions={
-        tab === 'receipts' ? undefined : (
+        tab === 'receipts' || tab === 'payouts' ? undefined : (
           <Button
             tone="outline"
             size="sm"
@@ -648,8 +660,11 @@ export function PaymentsView({ search }: { search: PaymentsSearch }): React.JSX.
       }
     >
       {downloadError ? <Banner tone="bad">{errorText(downloadError)}</Banner> : null}
-      {phones.data && someWalletListens ? <PhoneHealthBanner view={phones.data} /> : null}
-      <div className="flex items-center gap-2">
+      {phones.data && someWalletListens && tab !== 'payouts' ? (
+        <PhoneHealthBanner view={phones.data} />
+      ) : null}
+      {/* Courier payouts are read as the couriers sent them: nothing to search or filter (Part 36's `c36-payouts`). */}
+      <div className={`flex items-center gap-2 ${tab === 'payouts' ? 'hidden' : ''}`}>
         <div className="min-w-0 flex-1">
           <SearchField
             value={typed}
@@ -699,6 +714,8 @@ export function PaymentsView({ search }: { search: PaymentsSearch }): React.JSX.
         />
       ) : tab === 'receipts' ? (
         <ReceiptList search={q} phonesPaired={phonesPaired} canPair={canPair} onOpen={setReceipt} />
+      ) : tab === 'payouts' ? (
+        <PayoutsList />
       ) : (
         <PaymentList filter={{ ...filter, ...(status ? { status } : {}) }} onOpen={setOpen} />
       )}

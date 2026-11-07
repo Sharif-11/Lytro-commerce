@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
-import { CallOutcome, CancelReason } from '@lytronix/validators';
+import { ApiClientError } from '@lytronix/api-client';
+import { CallOutcome, CancelReason, FulfillmentStatus, ParcelState } from '@lytronix/validators';
 import {
   useCancelOrder,
   useDeleteOrder,
@@ -15,6 +16,7 @@ import {
 import { Icon, type IconName } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
+import { CheckRow } from '@/components/ui/check-row';
 import { Chip } from '@/components/ui/chips';
 import { Dialog } from '@/components/ui/dialog';
 import { Field } from '@/components/ui/field';
@@ -22,10 +24,13 @@ import { RadioMark } from '@/components/ui/kv';
 import { RowList } from '@/components/ui/list-row';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
+import { courierName } from '@/lib/couriers';
 import { dayKey } from '@/lib/dates';
 import { bangladeshiPhone } from '@/lib/phone';
 import { useShell } from '@/shell/shell-context';
+import type { CourierAdapter, CourierConnection } from '@/types/couriers';
 import type { Order, OrderPayment } from '@/types/orders';
+import { BookSheet, CancelBookingSheet, SettleSheet } from './book-sheet';
 import { PrintSheet } from './labels';
 import { CANCEL_REASONS, useOrderWords } from './order-words';
 import { PaymentLinkSheet, RecordPaymentSheet, RefundSheet, VoidSheet } from './payment-sheets';
@@ -48,20 +53,31 @@ export type OrderSheet =
   | { kind: 'void'; payment: OrderPayment }
   | { kind: 'refund'; payment: OrderPayment }
   | { kind: 'link' }
-  | { kind: 'print' };
+  | { kind: 'print' }
+  | { kind: 'book' }
+  | { kind: 'settle' }
+  | { kind: 'cancelBooking' };
+
+/** What can be done, with whether Book courier is the next step (a courier connected and the order ready to go). */
+export type SheetChoices = OrderChoices & { book: boolean };
 
 /** The sheet the order page has open, made afresh each time it opens: a new call is not the last one. */
 export function OrderSheets({
   order,
   open,
   can,
+  couriers,
+  adapters,
   onOpen,
   onShipped,
   onClose,
 }: {
   order: Order;
   open: OrderSheet | null;
-  can: OrderChoices;
+  can: SheetChoices;
+  /** The shop's connected couriers and what each needs (Phase 6), for booking and cancelling a booking. */
+  couriers: CourierConnection[];
+  adapters: CourierAdapter[];
   onOpen: (sheet: OrderSheet) => void;
   /** Shipped: its reply, which may name the month's limit passed (QTA-03). */
   onShipped: (shipped: Order) => void;
@@ -73,7 +89,7 @@ export function OrderSheets({
     case 'later':
       return <LaterSheet order={order} open={open} onOpen={onOpen} onClose={onClose} />;
     case 'cancel':
-      return <CancelSheet order={order} open={open} onClose={onClose} />;
+      return <CancelSheet order={order} open={open} adapters={adapters} onClose={onClose} />;
     case 'menu':
       return <MenuSheet order={order} can={can} onOpen={onOpen} onClose={onClose} />;
     case 'delete':
@@ -96,6 +112,25 @@ export function OrderSheets({
       return <VoidSheet order={order} payment={open.payment} onClose={onClose} />;
     case 'print':
       return <PrintSheet orders={[order]} onClose={onClose} />;
+    case 'book':
+      return (
+        <BookSheet order={order} connections={couriers} adapters={adapters} onClose={onClose} />
+      );
+    case 'settle':
+      return order.parcel ? (
+        <SettleSheet order={order} courier={order.parcel.courierKey} onClose={onClose} />
+      ) : null;
+    case 'cancelBooking':
+      return order.parcel ? (
+        <CancelBookingSheet
+          order={order}
+          courier={order.parcel.courierKey}
+          canCancel={
+            adapters.find((each) => each.key === order.parcel?.courierKey)?.canCancel ?? false
+          }
+          onClose={onClose}
+        />
+      ) : null;
     default:
       return null;
   }
@@ -387,10 +422,12 @@ function LaterSheet({
 function CancelSheet({
   order,
   open,
+  adapters,
   onClose,
 }: {
   order: Order;
   open: { fromCall: boolean; note: string };
+  adapters: CourierAdapter[];
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
@@ -400,7 +437,20 @@ function CancelSheet({
   const cancel = useCancelOrder(order.id);
   const [reason, setReason] = useState<CancelReason | null>(null);
   const [note, setNote] = useState(open.note);
+  const [ticked, setTicked] = useState(false);
   const sending = open.fromCall ? log : cancel;
+  // CRR-28 (Part 36's `sh-c36-cancel-order`): a booked order's parcel is called off with it. A courier with no cancel call is
+  // confirmed from its panel; one that didn't answer clearly is too.
+  const parcel =
+    order.fulfillmentStatus === FulfillmentStatus.Processing &&
+    order.parcel?.state === ParcelState.Booked
+      ? order.parcel
+      : null;
+  const noAnswer =
+    cancel.error instanceof ApiClientError && cancel.error.details.courierNotAnswering === true;
+  const confirms =
+    parcel !== null &&
+    (noAnswer || !(adapters.find((each) => each.key === parcel.courierKey)?.canCancel ?? false));
   const needsNote = reason === CancelReason.Other && note.trim() === '';
   return (
     <Sheet
@@ -415,10 +465,13 @@ function CancelSheet({
           <Button
             tone="danger"
             busy={sending.isPending}
-            disabled={reason === null || needsNote}
+            disabled={reason === null || needsNote || (confirms && !ticked)}
             onClick={() => {
               if (reason === null) return;
-              const extra = note.trim() ? { note: note.trim() } : {};
+              const extra = {
+                ...(note.trim() ? { note: note.trim() } : {}),
+                ...(confirms && ticked ? { courierCancelled: true } : {}),
+              };
               if (open.fromCall) {
                 log.mutate(
                   { outcome: CallOutcome.Cancelled, reason, ...extra },
@@ -434,8 +487,23 @@ function CancelSheet({
         </>
       }
     >
-      <p className="-mt-1 text-[14px] text-fg-muted">{t('cancelHelp')}</p>
-      {sending.isError ? <Banner tone="bad">{errorText(sending.error)}</Banner> : null}
+      {parcel ? (
+        <>
+          <Banner tone="warn">{t('crCoBooked', { c: courierName(parcel.courierKey) })}</Banner>
+          {confirms ? (
+            <CheckRow
+              checked={ticked}
+              onChange={() => {
+                setTicked(!ticked);
+              }}
+              title={t('crCbConfirm', { c: courierName(parcel.courierKey) })}
+            />
+          ) : null}
+        </>
+      ) : (
+        <p className="-mt-1 text-[14px] text-fg-muted">{t('cancelHelp')}</p>
+      )}
+      {sending.isError && !noAnswer ? <Banner tone="bad">{errorText(sending.error)}</Banner> : null}
       <RowList role="radiogroup" aria-label={t('cancelTitle')}>
         {CANCEL_REASONS.map((why) => (
           <button
@@ -473,7 +541,7 @@ function MenuSheet({
   onClose,
 }: {
   order: Order;
-  can: OrderChoices;
+  can: SheetChoices;
   onOpen: (sheet: OrderSheet) => void;
   onClose: () => void;
 }): React.JSX.Element {
@@ -486,6 +554,27 @@ function MenuSheet({
     <Sheet open title={t('menuTitle', { number: order.orderNumber })} onClose={onClose}>
       {release.isError ? <Banner tone="bad">{errorText(release.error)}</Banner> : null}
       <RowList>
+        {can.book ? (
+          <MenuRow
+            icon="truck"
+            title={t('crShipHand')}
+            sub={t('crShipHandSub')}
+            onClick={() => {
+              onOpen({ kind: 'ship' });
+            }}
+          />
+        ) : null}
+        {can.cancelBooking ? (
+          <MenuRow
+            icon="x"
+            danger
+            title={t('crCancelBooking')}
+            sub={t('crCancelBookingSub')}
+            onClick={() => {
+              onOpen({ kind: 'cancelBooking' });
+            }}
+          />
+        ) : null}
         {can.hold ? (
           <MenuRow
             icon="clock"

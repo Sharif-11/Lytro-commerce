@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  ActivityLogRepository,
   CourierAdapterRepository,
   CourierRepository,
   TenantRepository,
@@ -15,15 +16,23 @@ import {
   type ParcelCheckWindow,
   type PayoutParcelRow,
   type SelectCourierConnection,
-  type SelectCourierCredentialUse,
+  type CourierCredentialUseRow,
   type SelectCourierEvent,
   type SelectCourierMessageRoute,
   type SelectCourierParcel,
   type SelectCourierPayout,
   type Transaction,
 } from '@lytronix/db';
-import type { CourierAdapterState, CourierConnectionState, CourierKey } from '@lytronix/validators';
+import {
+  AuditAction,
+  type CourierAdapterState,
+  type CourierConnectionState,
+  type CourierKey,
+} from '@lytronix/validators';
 import type { CourierStore } from '../../modules/couriers/ports/courier-store';
+
+// Slice 6.7: more undos than this in a week would be an operator's mistake; the latest per courier is among them.
+const RETIRING_UNDONE_READ_LIMIT = 50;
 import { DatabaseService } from '../database.service';
 
 @Injectable()
@@ -34,6 +43,7 @@ export class DrizzleCourierStore implements CourierStore {
     @Inject(CourierRepository) private readonly couriers: CourierRepository,
     @Inject(TenantRepository) private readonly tenants: TenantRepository,
     @Inject(CourierAdapterRepository) private readonly adapters: CourierAdapterRepository,
+    @Inject(ActivityLogRepository) private readonly log: ActivityLogRepository,
   ) {}
 
   run<T>(tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T> {
@@ -49,6 +59,26 @@ export class DrizzleCourierStore implements CourierStore {
 
   listConnections(tx: Transaction, tenantId: string): Promise<SelectCourierConnection[]> {
     return this.couriers.listConnections(tx, tenantId);
+  }
+
+  async retiringUndoneSince(
+    tx: Transaction,
+    tenantId: string,
+    since: Date,
+  ): Promise<Map<string, Date>> {
+    // Newest first, so the first entry for a connection is its latest; a shop has a handful of couriers.
+    const rows = await this.log.list(
+      tx,
+      tenantId,
+      { action: AuditAction.CourierRetiringUndone, dateFrom: since },
+      null,
+      RETIRING_UNDONE_READ_LIMIT,
+    );
+    const back = new Map<string, Date>();
+    for (const row of rows) {
+      if (row.targetId !== null && !back.has(row.targetId)) back.set(row.targetId, row.createdAt);
+    }
+    return back;
   }
 
   findConnection(
@@ -137,6 +167,10 @@ export class DrizzleCourierStore implements CourierStore {
     now: Date,
   ): Promise<SelectCourierParcel> {
     return this.couriers.updateParcel(tx, tenantId, parcelId, patch, now);
+  }
+
+  clearAttention(tx: Transaction, tenantId: string, orderId: string, now: Date): Promise<number> {
+    return this.couriers.clearAttention(tx, tenantId, orderId, now);
   }
 
   countCancelled(tx: Transaction, tenantId: string, orderId: string): Promise<number> {
@@ -326,7 +360,7 @@ export class DrizzleCourierStore implements CourierStore {
   listUses(
     tenantId: string,
     page: { offset: number; limit: number },
-  ): Promise<{ rows: SelectCourierCredentialUse[]; total: number }> {
+  ): Promise<{ rows: CourierCredentialUseRow[]; total: number }> {
     return this.run(tenantId, (tx) => this.couriers.listUses(tx, tenantId, page));
   }
 
