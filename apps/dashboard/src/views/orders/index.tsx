@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Permission } from '@lytronix/validators';
 import { useMarkLinkShared } from '@/api/home';
 import {
+  LOOK_TAB,
   useOrderCount,
   useOrders,
   useOrdersById,
@@ -184,6 +185,9 @@ export function OrdersScreen({
           show({ tab, reason });
         }}
       />
+      {filter.tab === LOOK_TAB ? (
+        <p className="text-[14px] text-fg-muted">{t('crLookLead')}</p>
+      ) : null}
       {list.isError ? <Banner tone="bad">{errorText(list.error)}</Banner> : null}
       <Card flush>
         {list.isPending ? (

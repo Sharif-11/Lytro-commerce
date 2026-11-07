@@ -29,6 +29,7 @@ const DESTINATIONS = [
   ['Settings', '/settings'],
   ['Platform wallets', '/wallets'],
   ["Lytro's phones", '/phones'],
+  ['Couriers', '/couriers'],
   ['Shop types', '/catalogue/shop-types'],
   ['Attribute library', '/catalogue/attributes'],
   ['Option sets', '/catalogue/option-sets'],

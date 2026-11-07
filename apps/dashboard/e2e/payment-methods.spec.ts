@@ -72,10 +72,11 @@ test('Settings holds the row, no longer under Coming later, and it opens the pag
   await page.goto(`/${SLUG}/settings`);
   const row = main(page).getByRole('link', { name: /^Payment methods/ });
   await expect(row).toContainText('Wallets and bank accounts');
-  // After Delivery, among what's set up once, and gone from what comes later.
+  // After Delivery and Couriers (Part 36's `c36-settings`), among what's set up once, and gone from what comes later.
   const names = await main(page).getByRole('link').allInnerTexts();
   const delivery = names.findIndex((name) => name.startsWith('Delivery'));
-  expect(names[delivery + 1]).toContain('Payment methods');
+  expect(names[delivery + 1]).toContain('Couriers');
+  expect(names[delivery + 2]).toContain('Payment methods');
   await expect(
     main(page).locator('[aria-disabled="true"]', { hasText: 'Payment methods' }),
   ).toHaveCount(0);

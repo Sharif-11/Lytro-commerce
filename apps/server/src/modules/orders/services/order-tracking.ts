@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   OrderStatus,
+  ParcelReading,
   SHIPPED_FULFILLMENT,
   StatusOverride,
   TRACKED_MESSAGE_MAX_LENGTH,
@@ -127,6 +128,7 @@ export function trackedViewOf(
   lines: OrderLineRecord[],
   components: readonly SelectOrderLineComponent[],
   latest: SelectCourierEvent | null = null,
+  reading: ParcelReading | null = null,
 ): TrackedOrderView {
   const shipped = SHIPPED_FULFILLMENT.includes(order.fulfillmentStatus);
   return {
@@ -154,6 +156,9 @@ export function trackedViewOf(
             at: latest.receivedAt,
           }
         : null,
+    // Slice 6.7 (STOREFRONT-DESIGN §7e): the courier says the parcel is going back, and the shop hasn't recorded it yet.
+    courierReturning:
+      shopperStatusOf(order) === OrderStatus.Shipped && reading === ParcelReading.Returning,
     payment: null,
   };
 }
@@ -175,7 +180,8 @@ export class OrderTracking {
         lines.map((line) => line.id),
       );
       const latest = await this.store.latestCourierMessage(tx, tenantId, order.id);
-      return trackedViewOf(order, lines, components, latest);
+      const reading = await this.store.liveParcelReading(tx, tenantId, order.id);
+      return trackedViewOf(order, lines, components, latest, reading);
     });
   }
 

@@ -16,6 +16,12 @@ export interface SalesFigure {
   tax: string;
   /** Null on one product's trend. */
   deliveryCharges: string | null;
+  /**
+   * CRR-17 (Slice 6.5): what couriers charged, where a courier said; never taken off profit. `unknownCourierCharges` counts the
+   * orders a courier carried without saying. Null on one product's trend.
+   */
+  courierCharges: string | null;
+  unknownCourierCharges: number | null;
   profit?: SalesProfit;
 }
 

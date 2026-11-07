@@ -71,6 +71,7 @@ import { OrdersController } from './controllers/orders.controller';
 import { CouriersController } from './controllers/couriers.controller';
 import { SmsController } from './controllers/sms.controller';
 import { OperatorCourierAreasController } from './controllers/operator-courier-areas.controller';
+import { OperatorLocationsController } from './controllers/operator-locations.controller';
 import { OperatorCourierRetiringController } from './controllers/operator-courier-retiring.controller';
 import { OperatorCouriersController } from './controllers/operator-couriers.controller';
 import { AddressReadsModule } from '../address-reads/address-reads.module';
@@ -211,6 +212,7 @@ import { OperatorShops } from './services/operator-shops';
     SmsController,
     OperatorCouriersController,
     OperatorCourierAreasController,
+    OperatorLocationsController,
     OperatorCourierRetiringController,
     CustomersController,
     TaxClassesController,

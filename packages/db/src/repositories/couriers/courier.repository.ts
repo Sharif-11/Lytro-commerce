@@ -101,6 +101,8 @@ export interface BlockingParcelRow {
   state: SelectCourierParcel['state'];
   settledAt: Date | null;
   reading: SelectCourierParcel['reading'];
+  /** Slice 6.7: its courier's own last status, for "On its way". */
+  courierStatus: string | null;
   paidAt: Date | null;
   lastChangeAt: Date | null;
   fulfillmentStatus: string;
@@ -147,6 +149,9 @@ export interface NewCourierCredentialUse {
 
 // CRR-02 to CRR-08, CRR-18, CRR-20, SEC-11 (Phase 6 Slice 6.1): each shop's courier connections, parcels and credential log. Every
 // method sets its tenant context.
+/** SEC-11: one use of a shop's courier credentials, with its order's number where it was for one (Slice 6.7). */
+export type CourierCredentialUseRow = SelectCourierCredentialUse & { orderNumber: string | null };
+
 export class CourierRepository {
   constructor(private readonly transactions: TransactionRunner) {}
 
@@ -382,6 +387,31 @@ export class CourierRepository {
       .returning();
     if (!row) throw new Error('updating a parcel found no row');
     return row;
+  }
+
+  /**
+   * Slice 6.7 (read agreed 2026-11-06): staff marked what a courier reported as seen. It clears on every parcel of the order, a
+   * cancelled one too; its news stays. Answers how many it cleared.
+   */
+  async clearAttention(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+    now: Date,
+  ): Promise<number> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .update(courierParcels)
+      .set({ attention: null, updatedAt: now })
+      .where(
+        and(
+          eq(courierParcels.tenantId, tenantId),
+          eq(courierParcels.orderId, orderId),
+          isNotNull(courierParcels.attention),
+        ),
+      )
+      .returning({ id: courierParcels.id });
+    return rows.length;
   }
 
   /** How many of the order's bookings were cancelled: each new attempt after one needs its own invoice. */
@@ -838,6 +868,7 @@ export class CourierRepository {
         state: courierParcels.state,
         settledAt: courierParcels.settledAt,
         reading: courierParcels.reading,
+        courierStatus: courierParcels.courierStatus,
         paidAt: courierParcels.paidAt,
         lastChangeAt: courierParcels.lastChangeAt,
         fulfillmentStatus: orders.fulfillmentStatus,
@@ -941,22 +972,33 @@ export class CourierRepository {
     await tx.insert(courierCredentialUses).values({ tenantId, ...values });
   }
 
+  /** SEC-11: the log, newest first, each use with its order's number where it was for one (Slice 6.7). */
   async listUses(
     tx: Transaction,
     tenantId: string,
     page: { offset: number; limit: number },
-  ): Promise<{ rows: SelectCourierCredentialUse[]; total: number }> {
+  ): Promise<{ rows: CourierCredentialUseRow[]; total: number }> {
     await this.transactions.setTenantContext(tx, tenantId);
     const where = eq(courierCredentialUses.tenantId, tenantId);
     const [totals] = await tx.select({ total: count() }).from(courierCredentialUses).where(where);
     const rows = await tx
-      .select()
+      .select({ use: courierCredentialUses, orderNumber: orders.orderNumber })
       .from(courierCredentialUses)
+      .leftJoin(
+        orders,
+        and(
+          eq(orders.tenantId, courierCredentialUses.tenantId),
+          eq(orders.id, courierCredentialUses.orderId),
+        ),
+      )
       .where(where)
       .orderBy(desc(courierCredentialUses.at), desc(courierCredentialUses.id))
       .limit(page.limit)
       .offset(page.offset);
-    return { rows, total: totals?.total ?? 0 };
+    return {
+      rows: rows.map((row) => ({ ...row.use, orderNumber: row.orderNumber })),
+      total: totals?.total ?? 0,
+    };
   }
 
   /** LIF-19: the day-60 deletion's couriers step. Parcels go with their orders too; this is safe to run either way. */

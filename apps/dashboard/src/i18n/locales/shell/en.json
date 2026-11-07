@@ -80,5 +80,6 @@
   "sTax": "Tax",
   "sMethods": "Payment methods",
   "secPayments": "Payments",
-  "sListener": "Listener phones"
+  "sListener": "Listener phones",
+  "sCourier": "Couriers"
 }

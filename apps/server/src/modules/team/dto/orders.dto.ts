@@ -416,6 +416,15 @@ const orderPageSchema = z.object({
         })
         .nullable(),
       unansweredCalls: z.number(),
+      // Slice 6.7: where its live parcel stands, and what a courier reported that staff haven't marked seen.
+      parcel: z
+        .object({
+          courierKey: z.nativeEnum(CourierKey),
+          state: z.nativeEnum(ParcelState),
+          reading: z.nativeEnum(ParcelReading).nullable(),
+        })
+        .nullable(),
+      attention: z.nativeEnum(ParcelAttention).nullable(),
     }),
   ),
   page: z.number(),

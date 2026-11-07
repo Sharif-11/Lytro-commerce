@@ -14,6 +14,7 @@ import { menuRowClass, MenuRowInner } from '@/views/menu/menu-parts';
 type SettingsPath =
   | '/$shop/settings/shop'
   | '/$shop/delivery'
+  | '/$shop/settings/couriers'
   | '/$shop/settings/payment-methods'
   | '/$shop/settings/listener'
   | '/$shop/settings/brand'
@@ -44,6 +45,14 @@ const ROWS: readonly {
     sub: 'sDeliveryD',
     to: '/$shop/delivery',
     anyOf: [Permission.SettingsManage],
+  },
+  // Phase 6 (Part 36's `c36-settings`): the shop's couriers, for whoever may connect them or book with them.
+  {
+    icon: 'box',
+    title: 'sCourier',
+    sub: 'sCourierD',
+    to: '/$shop/settings/couriers',
+    anyOf: [Permission.CouriersManage, Permission.OrdersManage],
   },
   {
     icon: 'banknote',
@@ -105,7 +114,6 @@ const ROWS: readonly {
 
 // What the shop will set up later, greyed with the phase it arrives in (the prototype's "Coming later").
 const LATER: readonly { icon: IconName; title: string; phase: number }[] = [
-  { icon: 'box', title: 'sCourier', phase: 6 },
   { icon: 'sms', title: 'sSms', phase: 7 },
   { icon: 'bell', title: 'sNotif', phase: 7 },
 ];

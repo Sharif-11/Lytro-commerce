@@ -1,4 +1,12 @@
-import { FulfillmentStatus, OrderStatus, PaymentMethod, Permission } from '@lytronix/validators';
+import {
+  FulfillmentStatus,
+  LIVE_PARCEL_STATES,
+  OrderStatus,
+  ParcelReading,
+  ParcelState,
+  PaymentMethod,
+  Permission,
+} from '@lytronix/validators';
 import type { Order, OrderPayment } from '@/types/orders';
 import { atCounter } from './order-words';
 
@@ -14,20 +22,50 @@ export function choicesOf(order: Order, may: (permission: Permission) => boolean
   const toReturn = order.items.some(
     (item) => Number(item.quantity) > Number(item.returnedQuantity),
   );
+  const parcel = order.parcel;
+  // CRR-08: a booking out with its courier, booked or lost, stands for the order: it can't be booked or shipped again.
+  const live = parcel !== null && LIVE_PARCEL_STATES.includes(parcel.state);
+  // Booked and taken by the order (moved, counted, its stock out), not yet with the courier.
+  const booked =
+    order.fulfillmentStatus === FulfillmentStatus.Processing &&
+    order.status !== OrderStatus.Cancelled &&
+    parcel?.state === ParcelState.Booked;
+  // Slice 6.7: the courier says it is coming back, or delivered part of it: what returns is counted with Return items.
+  const coming =
+    parcel?.reading === ParcelReading.Returning ||
+    parcel?.reading === ParcelReading.PartlyDelivered;
   return {
     manage,
     call: manage && open && !counter && order.customerPhone !== null,
     hold: manage && open && !counter && order.status !== OrderStatus.Hold,
     release: manage && order.status === OrderStatus.Hold,
-    cancel: manage && open,
+    // CRR-28, ORD-52: a booked order too, until it is on its way; its booking is called off first.
+    cancel: manage && (open || booked),
+    // Phase 6 (Part 36's `c36-booked-menu`): only the booking, the order kept to book again or ship by hand.
+    cancelBooking: manage && booked && parcel.settled,
+    // D6-11: a lost answer, settled from the courier's panel.
+    settle: manage && parcel?.state === ParcelState.Unknown,
+    // A parcel the courier took whose stock couldn't be taken then: Try again.
+    retry:
+      manage &&
+      parcel?.state === ParcelState.Booked &&
+      !parcel.settled &&
+      parcel.settleProblem !== null,
     // ORD-11: its customer, items, prices or notes, until it ships.
     edit: manage && open,
     delete: may(Permission.OrdersDelete) && open && !livePaid,
     handOver: manage && open && counter,
-    ship: manage && open && !counter && order.status === OrderStatus.Confirmed,
+    ship: manage && open && !counter && order.status === OrderStatus.Confirmed && !live,
     deliver: manage && order.status === OrderStatus.Shipped,
-    // ORD-10: once delivered, while any unit is still out (the sketch's next step after Delivered).
-    returnItems: manage && order.status === OrderStatus.Delivered && toReturn,
+    // ORD-10: once delivered, while any unit is still out (the sketch's next step after Delivered); and once its courier says
+    // it is coming back or delivered part of it (Part 36's `c36-returning`, `c36-partly`).
+    returnItems:
+      manage &&
+      toReturn &&
+      (order.status === OrderStatus.Delivered ||
+        order.status === OrderStatus.PartialDelivered ||
+        (order.status === OrderStatus.Shipped && coming)),
+    coming,
     // ORD-15: a payment by hand, while something is due (D4-6).
     recordPayment: pay && order.status !== OrderStatus.Cancelled && Number(order.due) > 0,
     // PAY-24 (Part 35): a link the customer pays through, while something is due. At the counter they're standing there.

@@ -707,5 +707,8 @@ export function trackedOrder(
             trackingLink: 'https://steadfast.example/track/SF-2610-4471',
           }
         : null,
+    // Slice 6.7: a courier's words come only once it has said something; these fixtures draw none.
+    courierMessage: null,
+    courierReturning: false,
   };
 }

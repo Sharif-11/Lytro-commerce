@@ -45,6 +45,8 @@ let port: number;
 let admin: pg.Client;
 let operator: Record<string, string> = {};
 let adminDbUrl = '';
+// Slice 6.7: how far the couriers' clock runs ahead, for what shows for a number of days.
+let clockShift = 0;
 const steadfast = new FakeSteadfast();
 const redx = new FakeRedx();
 const pathao = new FakePathao();
@@ -71,7 +73,7 @@ beforeAll(async () => {
       return url.includes('pathao') ? pathao.fetch(input, init) : redx.fetch(input, init);
     })
     .overrideProvider(COURIER_CLOCK)
-    .useValue(() => new Date())
+    .useValue(() => new Date(Date.now() + clockShift))
     .overrideProvider(COURIER_PAUSE)
     .useValue(() => Promise.resolve())
     .overrideProvider(COURIER_NOTIFIER)
@@ -106,6 +108,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+  clockShift = 0;
   steadfast.reset();
   retiring.length = 0;
   back.length = 0;
@@ -128,6 +131,8 @@ interface Connection {
   isDefault: boolean;
   retiring: boolean;
   suggestedKey: string | null;
+  backSince: string | null;
+  asksByOrderNumber: boolean;
 }
 
 async function operatorHeaders(): Promise<Record<string, string>> {
@@ -417,6 +422,41 @@ describeIfDatabase('retiring a courier (CRR-23, CRR-25)', () => {
     expect((await connections(both)).every((each) => !each.retiring)).toBe(true);
     expect(await activity(both.tenantId, 'courier_retiring_undone')).toHaveLength(1);
     expect((await connect(none, 'steadfast')).status).toBe(200);
+    // Slice 6.7 (c36-back): the shops told see it is back, for 7 days; a shop that connected since was never told.
+    const told = (await connections(both)).find((each) => each.courierKey === 'steadfast');
+    expect(Date.now() - new Date(told?.backSince ?? 0).getTime()).toBeLessThan(60_000);
+    expect(
+      (await connections(both)).find((each) => each.courierKey === 'redx')?.backSince,
+    ).toBeNull();
+    expect(
+      (await connections(none)).find((each) => each.courierKey === 'steadfast')?.backSince,
+    ).toBeNull();
+    // The activity log is insert-only, so the clock runs on past the 7 days instead.
+    clockShift = 8 * 86_400_000;
+    expect(
+      (await connections(both)).find((each) => each.courierKey === 'steadfast')?.backSince,
+    ).toBeNull();
+  });
+
+  it('says which couriers a lost answer can be asked again by the order number (D6-11)', async () => {
+    const shop = await shopWith('steadfast', 'redx');
+    const asks = Object.fromEntries(
+      (await connections(shop)).map((each) => [each.courierKey, each.asksByOrderNumber]),
+    );
+    expect(asks).toEqual({ steadfast: true, redx: false });
+  });
+
+  it('never says a courier retiring again is back (Slice 6.7)', async () => {
+    const shop = await shopWith('steadfast', 'redx');
+    expect((await retire('steadfast', 'redx')).status).toBe(200);
+    expect((await undo('steadfast')).status).toBe(200);
+    expect(
+      (await connections(shop)).find((each) => each.courierKey === 'steadfast')?.backSince,
+    ).not.toBeNull();
+    expect((await retire('steadfast', 'redx')).status).toBe(200);
+    const again = (await connections(shop)).find((each) => each.courierKey === 'steadfast');
+    expect(again).toMatchObject({ retiring: true, backSince: null });
+    expect((await undo('steadfast')).status).toBe(200);
   });
 });
 
@@ -430,7 +470,11 @@ describeIfDatabase('removing a courier (CRR-24)', () => {
     expect((await connect(kept, 'redx')).status).toBe(200);
     expect((await connections(kept)).find((each) => each.isDefault)?.courierKey).toBe('steadfast');
 
-    // On its way.
+    // On its way, with what its courier last said (Slice 6.7).
+    await admin.query(
+      "UPDATE tenant.courier_parcels SET courier_status = 'in_review' WHERE order_id = $1",
+      [order.id],
+    );
     const listed = await getJson(port, '/operator/couriers/steadfast/blocking', operator);
     expect(listed.status, JSON.stringify(listed.body)).toBe(200);
     const blocking = listed.body as {
@@ -440,6 +484,8 @@ describeIfDatabase('removing a courier (CRR-24)', () => {
         orderId: string;
         orderNumber: string;
         reason: string;
+        courierStatus: string | null;
+        finishedAt: string | null;
         waitsUntil: string | null;
       }[];
     };
@@ -449,6 +495,8 @@ describeIfDatabase('removing a courier (CRR-24)', () => {
         orderId: order.id,
         orderNumber: order.orderNumber,
         reason: 'on_its_way',
+        courierStatus: 'in_review',
+        finishedAt: null,
         waitsUntil: null,
       }),
     );
@@ -470,6 +518,12 @@ describeIfDatabase('removing a courier (CRR-24)', () => {
     const mine = waiting.orders.find((each) => each.orderId === order.id);
     expect(mine?.reason).toBe('awaiting_payout');
     expect(new Date(mine?.waitsUntil ?? 0).getTime()).toBeGreaterThan(Date.now() + 28 * 86_400_000);
+    // When its courier reported it finished, 30 days before it stops waiting; its status isn't "on its way" news.
+    expect(mine?.courierStatus).toBeNull();
+    expect(
+      new Date(mine?.waitsUntil ?? 0).getTime() - new Date(mine?.finishedAt ?? 0).getTime(),
+    ).toBe(30 * 86_400_000);
+    expect(new Date(mine?.finishedAt ?? 0).getTime()).toBeLessThan(Date.now() - 86_000_000);
     expect((await remove('steadfast')).status).toBe(409);
 
     // Past the 30 days, a payout that never came no longer holds it back; every other shop's parcels are cleared for this test.

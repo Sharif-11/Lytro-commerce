@@ -291,3 +291,151 @@ test.describe('an order that owed an advance (PAY-08, PAY-11, PAY-17)', () => {
     await expect(page.getByRole('link', { name: 'Pay now' })).toHaveCount(0);
   });
 });
+
+test.describe("the courier's own words (STOREFRONT-DESIGN §7e, Slice 6.7)", () => {
+  const said = (
+    language: Parameters<typeof trackedOrder>[0],
+    message: TrackedOrder['courierMessage'],
+    patch: Partial<TrackedOrder> = {},
+  ): TrackedOrder => ({ ...trackedOrder(language, 'shipped'), courierMessage: message, ...patch });
+
+  test('once shipped, the courier line is its latest words, when, and the way to its page', async ({
+    page,
+  }) => {
+    const shop = await openShop(page, (language) => ({
+      tracked: {
+        K7F2M9QX: said(language, {
+          en: 'Your parcel is out with the rider and arrives today.',
+          bn: null,
+          at: '2026-11-06T04:30:00.000Z',
+        }),
+      },
+    }));
+    await page.goto(shop.url('/track/K7F2M9QX'));
+    const line = page.locator('.line', { hasText: 'Steadfast says' });
+    await expect(line).toContainText('Steadfast says · 6 Nov, 10:30');
+    await expect(line).toContainText('Your parcel is out with the rider and arrives today.');
+    await expect(line.getByRole('link', { name: 'Track on Steadfast' })).toHaveAttribute(
+      'href',
+      'https://steadfast.example/track/SF-2610-4471',
+    );
+    await expect(line).toContainText('SF-2610-4471');
+    await expect(page.locator('.line', { hasText: 'Courier:' })).toHaveCount(0);
+  });
+
+  test("shows the shopper's language where the courier sent both, else the one it sent", async ({
+    page,
+  }) => {
+    const shop = await openShop(page, (language) => ({
+      tracked: {
+        K7F2M9QX: said(
+          language,
+          {
+            en: 'Your parcel has reached the Mirpur hub.',
+            bn: 'পার্সেলটি মিরপুর হাবে পৌঁছেছে।',
+            at: '2026-11-05T13:02:00.000Z',
+          },
+          {
+            courier: { name: 'RedX', trackingCode: '21A001REDX', trackingLink: null },
+          },
+        ),
+      },
+    }));
+    await page.goto(shop.url('/track/K7F2M9QX'));
+    await expect(page.getByText('Your parcel has reached the Mirpur hub.')).toBeVisible();
+    await expect(page.getByText('পার্সেলটি মিরপুর হাবে পৌঁছেছে।')).toHaveCount(0);
+    // No link: the code alone, with no dangling dot.
+    const line = page.locator('.line', { hasText: 'RedX says' });
+    await expect(line.getByRole('link')).toHaveCount(0);
+    await expect(line).toContainText('21A001REDX');
+    await expect(line).not.toContainText('· 21A001REDX');
+  });
+
+  test('in Bangla it reads the Bangla words, and an English-only message still shows', async ({
+    page,
+  }) => {
+    const shop = await openShop(
+      page,
+      (language) => ({
+        tracked: {
+          BOTHWAYS: said(language, {
+            en: 'Your parcel has reached the Mirpur hub.',
+            bn: 'পার্সেলটি মিরপুর হাবে পৌঁছেছে।',
+            at: '2026-11-05T13:02:00.000Z',
+          }),
+          ENGLISH1: said(language, {
+            en: 'Delivery in progress.',
+            bn: null,
+            at: '2026-11-05T13:02:00.000Z',
+          }),
+        },
+      }),
+      'bn',
+    );
+    await page.goto(shop.url('/track/BOTHWAYS'));
+    await expect(page.locator('.line', { hasText: 'Steadfast লিখেছে' })).toContainText(
+      'পার্সেলটি মিরপুর হাবে পৌঁছেছে।',
+    );
+    await expect(page.getByRole('link', { name: 'Steadfast-এর পেজে ট্র্যাক করুন' })).toBeVisible();
+    await page.goto(shop.url('/track/ENGLISH1'));
+    await expect(page.locator('.line', { hasText: 'Steadfast লিখেছে' })).toContainText(
+      'Delivery in progress.',
+    );
+  });
+
+  test('a part delivery says so plainly above the order', async ({ page }) => {
+    const shop = await openShop(page, (language) => ({
+      tracked: {
+        K7F2M9QX: said(
+          language,
+          { en: 'Partly delivered.', bn: null, at: '2026-11-06T11:10:00.000Z' },
+          { status: OrderStatus.PartialDelivered },
+        ),
+      },
+    }));
+    await page.goto(shop.url('/track/K7F2M9QX'));
+    await expect(
+      page.locator('.banner.warn', {
+        hasText: 'Part of the order was delivered; the rest is going back to the shop.',
+      }),
+    ).toBeVisible();
+  });
+
+  test('a parcel going back says so plainly above the order, and only then', async ({ page }) => {
+    const shop = await openShop(page, (language) => ({
+      tracked: {
+        BACKBACK: said(
+          language,
+          { en: 'The parcel is on its way back.', bn: null, at: '2026-11-06T12:00:00.000Z' },
+          { courierReturning: true },
+        ),
+        ONITSWAY: said(language, {
+          en: 'Your parcel is out with the rider and arrives today.',
+          bn: null,
+          at: '2026-11-06T04:30:00.000Z',
+        }),
+      },
+    }));
+    await page.goto(shop.url('/track/BACKBACK'));
+    await expect(
+      page.locator('.banner.warn', {
+        hasText: 'The parcel is going back to the shop. Call the shop with any questions.',
+      }),
+    ).toBeVisible();
+    await expect(page.locator('.sechead .st')).toHaveText('Shipped');
+    await page.goto(shop.url('/track/ONITSWAY'));
+    await expect(page.locator('.banner.warn')).toHaveCount(0);
+  });
+
+  test('a shipped order with no words yet keeps the plain courier line', async ({ page }) => {
+    const shop = await openShop(page, (language) => ({
+      tracked: { K7F2M9QX: said(language, null) },
+    }));
+    await page.goto(shop.url('/track/K7F2M9QX'));
+    await expect(page.locator('.line', { hasText: 'Courier' })).toContainText(
+      'Courier: Steadfast · SF-2610-4471',
+    );
+    await expect(page.getByText('Steadfast says')).toHaveCount(0);
+    await expect(page.locator('.banner.warn')).toHaveCount(0);
+  });
+});

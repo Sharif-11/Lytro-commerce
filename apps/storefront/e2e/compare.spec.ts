@@ -198,6 +198,29 @@ async function placeAndWait(page: Page) {
 }
 
 /** A tracked order as the sketch draws it: its three lines, ৳3,570 in all. */
+/** Slice 6.7: the sketch's shipped order with its courier's latest words, as tracking reads them. */
+function courierSaid(
+  language: Language,
+  said: { en: string; bn: string },
+  patch: Record<string, unknown> = {},
+): Partial<ShopFixture> {
+  const drawn = drawnTracked(language, 'shipped');
+  return {
+    tracked: {
+      K7F2M9QX: {
+        ...drawn.K7F2M9QX,
+        courier: {
+          name: 'Steadfast',
+          trackingCode: '15BAEB8A',
+          trackingLink: 'https://steadfast.example/t/15BAEB8A',
+        },
+        courierMessage: { ...said, at: '2026-11-06T04:30:00.000Z' },
+        ...patch,
+      },
+    },
+  };
+}
+
 function drawnTracked(language: Language, stage: Parameters<typeof trackedOrder>[1]) {
   const order = trackedOrder(language, stage);
   return {
@@ -1036,6 +1059,59 @@ const PAIRS: Pair[] = [
       });
       await expect(page.locator('.pwa')).toBeVisible();
     },
+  },
+  // Phase 6 Slice 6.7 (STOREFRONT-DESIGN §7e): the courier's own words on tracking.
+  {
+    name: 'tracking-courier',
+    screen: 't67-tracking',
+    path: '/track/K7F2M9QX',
+    shop: (language) =>
+      courierSaid(language, {
+        en: 'Your parcel is out with the rider and arrives today.',
+        bn: 'পার্সেলটি রাইডারের কাছে আছে, আজ ডেলিভারি হবে।',
+      }),
+  },
+  {
+    name: 'tracking-courier-redx',
+    screen: 't67-tracking-redx',
+    path: '/track/K7F2M9QX',
+    shop: (language) =>
+      courierSaid(
+        language,
+        {
+          en: 'Your parcel has reached the Mirpur hub.',
+          bn: 'পার্সেলটি মিরপুর হাবে পৌঁছেছে।',
+        },
+        {
+          courier: {
+            name: 'RedX',
+            trackingCode: '21A001REDX',
+            trackingLink: 'https://redx.example/track/21A001REDX',
+          },
+        },
+      ),
+  },
+  {
+    name: 'tracking-courier-partly',
+    screen: 't67-tracking-partly',
+    path: '/track/K7F2M9QX',
+    shop: (language) =>
+      courierSaid(
+        language,
+        { en: 'Partly delivered.', bn: 'আংশিক ডেলিভারি হয়েছে।' },
+        { status: OrderStatus.PartialDelivered },
+      ),
+  },
+  {
+    name: 'tracking-courier-back',
+    screen: 't67-tracking-back',
+    path: '/track/K7F2M9QX',
+    shop: (language) =>
+      courierSaid(
+        language,
+        { en: 'The parcel is on its way back.', bn: 'পার্সেলটি ফেরত যাচ্ছে।' },
+        { courierReturning: true },
+      ),
   },
 ];
 

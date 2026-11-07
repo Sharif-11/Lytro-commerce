@@ -58,6 +58,7 @@ import {
 import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support/onboarding-api';
 import type { AddonsFixture, UsageFixture } from './support/usage';
 import { meghOrders, type OrderFixture, type OrdersFixture } from './support/orders';
+import { drawnCouriers, type CouriersFixture, type ParcelFixture } from './support/couriers';
 
 // TENANT-DASHBOARD-DESIGN §11: each built screen beside the prototype's drawing of it, at the prototype's own frame
 // sizes, saved to test-results/compare for the pull request and CI's artifacts. No pixel baseline is committed: a
@@ -1989,8 +1990,276 @@ const PAYMENTS_AND_PHONES: Pair[] = [
   o35('sh-o35-refund', paid, firstButton('রিফান্ড')),
 ];
 
+// TENANT-DASHBOARD-DESIGN §7.39, Phase 6 Slice 6.7 (Part 36): the couriers in Settings, booking, the Courier card, cancelling, the
+// list's courier line, Courier payouts and Sales' courier charges, as the drawn Steadfast-and-Pathao shop.
+const c36Couriers = (change: (fixture: CouriersFixture) => void = () => undefined) => {
+  const fixture = drawnCouriers();
+  change(fixture);
+  return fixture;
+};
+const c36 = (
+  name: string,
+  path: string,
+  options: {
+    then?: (page: Page) => Promise<void>;
+    couriers?: CouriersFixture;
+    orders?: OrdersFixture;
+    device?: Device;
+    language?: Language;
+    state?: ShopState;
+    /** The Courier card, below the first screen: both pictures scrolled to it. */
+    card?: boolean;
+  } = {},
+): Pair => ({
+  name,
+  screen: name,
+  device: options.device ?? 'phone',
+  language: options.language ?? 'bn',
+  path,
+  ...(options.card ? { scroll: /^কুরিয়ার$|^Courier$/ } : {}),
+  state: {
+    couriers: options.couriers ?? c36Couriers(),
+    ...(options.orders ? { orders: options.orders } : {}),
+    ...options.state,
+  },
+  then: options.then,
+});
+/** Nusrat Jahan's order confirmed by a call, then changed as the screen draws it. */
+const c36Day = (change: (order: OrderFixture) => void = () => undefined): OrdersFixture => {
+  const day = meghOrders();
+  const order = day.orders.find((each) => each.id === 'o-47');
+  if (order) {
+    order.status = 'confirmed';
+    order.calls = [{ outcome: 'confirmed', at: '2026-10-31T06:10:00.000Z' }];
+    change(order);
+  }
+  return day;
+};
+const c36Parcel = (
+  parcel: Partial<ParcelFixture>,
+  status: OrderFixture['status'] = 'shipped',
+  change: (order: OrderFixture) => void = () => undefined,
+): OrdersFixture =>
+  c36Day((order) => {
+    change(order);
+    order.status = status;
+    order.parcel = {
+      courierKey: 'steadfast',
+      cod: 3470,
+      reading: 'with_courier',
+      courierStatus: 'pending',
+      deliveryCharge: 60,
+      news: [
+        {
+          source: 'message',
+          words: ['পার্সেলটি রাইডারের কাছে আছে।', 'Your parcel is out with the rider.'],
+          raw: 'pending',
+          ago: 60,
+        },
+        { source: 'check', raw: 'pending', ago: 1100 },
+        { source: 'message', raw: 'in_review', ago: 1400 },
+      ],
+      ...parcel,
+    };
+  });
+const c36Book = (courier?: string) => async (page: Page) => {
+  await page.getByRole('main').getByRole('button', { name: 'কুরিয়ার বুক করুন' }).click();
+  if (courier) await page.getByRole('dialog').getByRole('radio', { name: courier }).click();
+  await page.waitForTimeout(300);
+};
+const c36Menu = (row?: string | RegExp) => async (page: Page) => {
+  await page.getByRole('button', { name: /^অর্ডার #/ }).click();
+  if (row) await page.getByRole('dialog').getByRole('button', { name: row }).click();
+};
+const COURIERS: Pair[] = [
+  c36('c36-settings', '/settings'),
+  c36('c36', '/settings/couriers'),
+  c36('c36', '/settings/couriers', { device: 'desktop', language: 'en' }),
+  c36('c36-first', '/settings/couriers', { couriers: { connections: [] } }),
+  c36('c36-ro', '/settings/couriers', {
+    state: { isOwner: false, permissions: ['orders:read', 'orders:manage'] },
+  }),
+  c36('c36-token', '/settings/couriers', {
+    couriers: c36Couriers((fixture) => {
+      const [steadfast] = fixture.connections;
+      if (steadfast) steadfast.messages = 'token_missing';
+    }),
+  }),
+  c36('c36-broken', '/settings/couriers', {
+    couriers: c36Couriers((fixture) => {
+      const [steadfast] = fixture.connections;
+      if (steadfast) steadfast.missed = true;
+    }),
+  }),
+  c36('c36-login', '/settings/couriers', {
+    couriers: c36Couriers((fixture) => {
+      const pathao = fixture.connections[1];
+      if (pathao) pathao.state = 'login_refused';
+    }),
+  }),
+  c36('c36-retiring', '/settings/couriers', {
+    couriers: c36Couriers((fixture) => {
+      const [steadfast, pathao] = fixture.connections;
+      if (steadfast && pathao) {
+        steadfast.retiring = true;
+        steadfast.suggestedKey = 'pathao';
+        steadfast.isDefault = false;
+        pathao.isDefault = true;
+      }
+    }),
+  }),
+  c36('c36-retiring-only', '/settings/couriers', {
+    couriers: c36Couriers((fixture) => {
+      const [steadfast] = fixture.connections;
+      if (steadfast) {
+        steadfast.retiring = true;
+        steadfast.suggestedKey = 'pathao';
+      }
+    }),
+  }),
+  c36('c36-back', '/settings/couriers', {
+    couriers: c36Couriers((fixture) => {
+      const [steadfast, pathao] = fixture.connections;
+      if (steadfast && pathao) {
+        steadfast.backDaysAgo = 2;
+        steadfast.isDefault = false;
+        pathao.isDefault = true;
+      }
+    }),
+  }),
+  c36('sh-c36-connect-steadfast', '/settings/couriers', {
+    couriers: { connections: [] },
+    then: firstButton(/^Steadfast/),
+  }),
+  c36('sh-c36-connect-pathao', '/settings/couriers', {
+    couriers: { connections: [] },
+    then: firstButton(/^Pathao/),
+  }),
+  c36('sh-c36-connect-redx', '/settings/couriers', { then: firstButton(/^RedX/) }),
+  c36('sh-c36-paste-pathao', '/settings/couriers', {
+    couriers: { connections: [] },
+    then: async (page) => {
+      await firstButton(/^Pathao/)(page);
+      const sheet = page.getByRole('dialog');
+      for (const field of ['Client ID', 'Client secret', 'ইমেইল', 'পাসওয়ার্ড']) {
+        await sheet.getByLabel(field).fill('x');
+      }
+      await sheet.getByRole('button', { name: 'টেস্ট করে কানেক্ট করুন' }).click();
+    },
+  }),
+  c36('c36-steadfast', '/settings/couriers/steadfast'),
+  c36('c36-pathao', '/settings/couriers/pathao'),
+  c36('c36-pathao', '/settings/couriers/pathao', { device: 'desktop', language: 'en' }),
+  c36('sh-c36-again-steadfast', '/settings/couriers/steadfast', {
+    then: firstButton(/^ঠিকানা পেস্ট করার ধাপ/),
+  }),
+  c36('sh-c36-store', '/settings/couriers/pathao', { then: firstButton(/^পিকআপ স্টোর/) }),
+  c36('sh-c36-replace', '/settings/couriers/steadfast', { then: firstButton(/^কী/) }),
+  c36('dlg-c36-disconnect', '/settings/couriers/steadfast', {
+    then: firstButton('ডিসকানেক্ট করুন'),
+  }),
+  c36('c36-order', '/orders/o-47', { orders: c36Day() }),
+  c36('c36-menu', '/orders/o-47', { orders: c36Day(), then: c36Menu() }),
+  c36('sh-c36-book', '/orders/o-47', { orders: c36Day(), then: c36Book() }),
+  c36('sh-c36-book-pathao-weight', '/orders/o-47', { orders: c36Day(), then: c36Book('Pathao') }),
+  c36('sh-c36-book-redx', '/orders/o-47', {
+    orders: c36Day(),
+    couriers: c36Couriers((fixture) => {
+      fixture.connections.push({ courierKey: 'redx', isDefault: false, messages: 'arriving' });
+    }),
+    then: c36Book('RedX'),
+  }),
+  c36('c36-lost', '/orders/o-47', {
+    orders: c36Parcel({ state: 'unknown', settled: false, news: [] }, 'confirmed'),
+  }),
+  c36('sh-c36-settle', '/orders/o-47', {
+    orders: c36Parcel({ state: 'unknown', settled: false, news: [] }, 'confirmed'),
+    then: firstButton('ঠিক করুন'),
+  }),
+  c36('c36-booked', '/orders/o-47', {
+    card: true,
+    orders: c36Parcel(
+      {
+        reading: 'booked',
+        courierStatus: 'in_review',
+        deliveryCharge: null,
+        news: [{ source: 'message', raw: 'in_review', ago: 5 }],
+      },
+      'processing',
+    ),
+  }),
+  c36('c36-shipped', '/orders/o-47', { orders: c36Parcel({}), card: true }),
+  c36('c36-shipped', '/orders/o-47', {
+    orders: c36Parcel({}),
+    device: 'desktop',
+    language: 'en',
+    card: true,
+  }),
+  c36('c36-hold', '/orders/o-47', {
+    card: true,
+    orders: c36Parcel({ reading: 'hold', courierStatus: 'hold' }),
+  }),
+  c36('c36-paid', '/orders/o-47', {
+    card: true,
+    orders: c36Parcel(
+      {
+        reading: 'delivered',
+        courierStatus: 'delivered',
+        paidDaysAgo: 1,
+        payoutId: 'AAA-10000123',
+      },
+      'delivered',
+    ),
+  }),
+  c36('c36-look-cash', '/orders/o-47', {
+    card: true,
+    orders: c36Parcel(
+      {
+        reading: 'delivered',
+        courierStatus: 'delivered',
+        cashCollected: 3000,
+        attention: 'cash_differs',
+      },
+      'delivered',
+      (order) => {
+        order.payments = [
+          { method: 'cash_on_delivery', amount: 3000, at: '2026-10-31T11:10:00.000Z' },
+        ];
+      },
+    ),
+  }),
+  c36('c36-returning', '/orders/o-47', {
+    card: true,
+    orders: c36Parcel({ reading: 'returning', courierStatus: 'cancelled' }),
+  }),
+  c36('c36-nonews', '/orders/o-47', { orders: c36Parcel({ noNews: true }), card: true }),
+  c36('c36-booked-menu', '/orders/o-47', {
+    orders: c36Parcel({ reading: 'booked' }, 'processing'),
+    then: c36Menu(),
+  }),
+  c36('sh-c36-cancel-sf', '/orders/o-47', {
+    orders: c36Parcel({ reading: 'booked' }, 'processing'),
+    then: c36Menu(/বুকিং ক্যানসেল করুন/),
+  }),
+  c36('c36-list', '/orders?tab=shipped', {
+    orders: c36Parcel({}),
+    device: 'desktop',
+    language: 'bn',
+  }),
+  c36('c36-payouts', '/payments?tab=payouts'),
+  c36('sh-c36-payout', '/payments?tab=payouts', { then: firstButton(/৳18,400/) }),
+  c36('c36-payouts-none', '/payments?tab=payouts', { couriers: { connections: [] } }),
+  c36('c36-sales', '/sales', {
+    device: 'desktop',
+    language: 'bn',
+    state: { sales: { courierCharges: '12480.00', unknownCourierCharges: 3 } },
+  }),
+  { ...c36('c36-home', '', { couriers: { connections: [] } }), shop: NEW_SHOP },
+];
+
 const PAIRS: Pair[] = [
   ...PAYMENTS_AND_PHONES,
+  ...COURIERS,
   { name: 'home', screen: 'home', device: 'phone', language: 'bn', path: '' },
   { name: 'home', screen: 'home', device: 'tablet', language: 'bn', path: '' },
   { name: 'home', screen: 'home', device: 'desktop', language: 'en', path: '' },
