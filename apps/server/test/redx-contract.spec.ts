@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CourierAreaMatch } from '@lytronix/validators';
 import type { ZillaView } from '../src/modules/delivery/types/delivery';
-import {
-  CourierAreaMatcher,
-  likeness,
-  plainName,
-} from '../src/modules/couriers/services/courier-area-matching';
+import { PlaceMatcher, likeness, plainName } from '../src/modules/delivery/services/place-matching';
 import { RedxAdapter } from '../src/modules/couriers/services/redx-adapter';
 import { courierContract } from './support/courier-contract';
 import { FakeRedx, REDX_SHOP_TOKEN } from './support/fake-redx';
@@ -269,7 +265,7 @@ const ZILLAS: ZillaView[] = [
 ];
 
 describe('matching RedX areas to thanas, on names from its live list (read agreed 2026-11-06)', () => {
-  const matcher = new CourierAreaMatcher(ZILLAS);
+  const matcher = new PlaceMatcher(ZILLAS);
   const place = (name: string, districtName = 'Dhaka') => matcher.place({ name, districtName });
 
   it.each([

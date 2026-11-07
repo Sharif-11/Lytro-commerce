@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { SmsEventQueueModule } from '../sms-events/sms-event-queue.module';
 import { DrizzlePaymentSessionStore } from '../../database/adapters/payment-sessions.adapter';
 import type { Env } from '../../config/env';
 import { ENV } from '../../config/tokens';
@@ -28,6 +29,7 @@ import { PAYMENT_NOTIFIER, PAYMENT_PAGE_ORIGIN, PAYMENT_SESSION_STORE } from './
     CatalogueModule,
     AuditModule,
     PlatformSettingsModule,
+    SmsEventQueueModule,
   ],
   providers: [
     { provide: PAYMENT_SESSION_STORE, useClass: DrizzlePaymentSessionStore },

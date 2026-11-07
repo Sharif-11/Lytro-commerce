@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  AiProvider,
   AuditResult,
   PlatformActorType,
   PlatformAuditAction,
@@ -80,6 +81,12 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'The terms of service in force, which a new account accepts: change it when new terms are published (LEG-01).',
   [PlatformSettingKey.PrivacyVersion]:
     'The privacy policy in force, which a new account accepts: change it when a new policy is published (LEG-01).',
+  [PlatformSettingKey.AddressReadProvider]:
+    "The AI that reads a customer's delivery details from a pasted message: gemini (AI-10, D7-4).",
+  [PlatformSettingKey.AddressReadModel]:
+    "The AI's model for reading delivery details, as the AI names it, such as gemini-3.5-flash-lite (AI-10, D7-4).",
+  [PlatformSettingKey.AddressReadsPerShopPerMinute]:
+    'How many messages one shop may have read in a minute, a flood guard (ORD-33).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -102,6 +109,11 @@ const isSenderList = (value: unknown): boolean =>
   );
 const isOrderLimitMode = (value: unknown): boolean =>
   Object.values<unknown>(OrderLimitMode).includes(value);
+// AI-10 (Slice 7.6): an AI Lytro can read with, and a model's name as the AI writes it.
+const isAiProvider = (value: unknown): boolean =>
+  Object.values<unknown>(AiProvider).includes(value);
+const isModelName = (value: unknown): boolean =>
+  typeof value === 'string' && /^[a-z0-9][a-z0-9.-]{1,63}$/.test(value);
 
 const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.TrialDays]: isPositiveInt,
@@ -136,6 +148,9 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.OrderLimitMode]: isOrderLimitMode,
   [PlatformSettingKey.TermsVersion]: isLegalVersion,
   [PlatformSettingKey.PrivacyVersion]: isLegalVersion,
+  [PlatformSettingKey.AddressReadProvider]: isAiProvider,
+  [PlatformSettingKey.AddressReadModel]: isModelName,
+  [PlatformSettingKey.AddressReadsPerShopPerMinute]: isPositiveInt,
 };
 
 function validate(key: PlatformSettingKey, value: unknown): void {

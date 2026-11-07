@@ -264,6 +264,10 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /orders':
     "another shop's variant is not_found and nothing is saved; a key is the session shop's own",
   'POST /orders/quote': "another shop's variant is not_found",
+  // Phase 7 Slice 7.6, checked in test/address-reads.e2e.spec.ts: it names no shop's IDs. The read is charged to the
+  // session shop, from its own balance or its own allowance, and its row is under that shop's RLS.
+  'POST /orders/read-address':
+    "charges only the session shop's own balance or allowance; it takes no other shop's IDs",
   'GET /orders/:id': "another shop's order answers 404",
   // Slice 4.8a, checked in test/orders.e2e.spec.ts: only the session shop's own couriers.
   'GET /orders/couriers': "lists only the session shop's own couriers",
@@ -290,6 +294,12 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /couriers/adapters':
     'returns the same platform-wide couriers regardless of which shop calls it',
   'GET /couriers/connections': "lists only the session shop's own connections",
+  // Checked in test/sms-events.e2e.spec.ts (Slice 7.2): one shop's SMS settings, log and report never show another's.
+  'GET /sms/settings': "shows only the session shop's own SMS settings and spend",
+  'PATCH /sms/settings': "changes only the session shop's own SMS settings",
+  'POST /sms/settings/templates/:event/reset': "resets only the session shop's own template",
+  'GET /sms/report': "counts only the session shop's own SMS",
+  'GET /sms/log': "lists only the session shop's own SMS; another shop's order ID lists none",
   'POST /couriers/connections': "saves only into the session shop's own connections",
   'DELETE /couriers/connections/:key': "removes only the session shop's own connection",
   'PUT /couriers/connections/:key/default': "changes only the session shop's own default",

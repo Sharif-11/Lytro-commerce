@@ -67,7 +67,20 @@ export {
   EssentialSmsUsageRepository,
   type NewEssentialSmsUsage,
 } from './repositories/messaging/essential-sms-usage.repository';
-export { SmsLogRepository, type NewSmsLogEntry } from './repositories/messaging/sms-log.repository';
+export {
+  SmsLogRepository,
+  type NewSmsLogEntry,
+  type SmsLogPage,
+  type SmsReportRow,
+} from './repositories/messaging/sms-log.repository';
+export {
+  SmsSettingsRepository,
+  type SmsSettingsChange,
+} from './repositories/messaging/sms-settings.repository';
+export {
+  SmsEventCountsRepository,
+  type SmsEventCounts,
+} from './repositories/messaging/sms-event-counts.repository';
 export {
   OperatorAccountRepository,
   type OperatorAccountRow,
@@ -147,6 +160,7 @@ export {
   type AddonActivation,
   type AddonPurchaseRow,
   type AddonUnits,
+  type CountingAllowance,
   type CyclePackFields,
   type NewAddonPurchaseValues,
   type PackPurchaseRow,
@@ -270,6 +284,10 @@ export {
   type OrderSummaryRow,
 } from './repositories/orders/order.repository';
 export { CustomerRepository } from './repositories/orders/customer.repository';
+export {
+  OrderExtractionRepository,
+  type NewOrderExtraction,
+} from './repositories/orders/order-extraction.repository';
 export {
   SalesRepository,
   type BestSellerRow,

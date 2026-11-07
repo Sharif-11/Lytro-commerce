@@ -264,6 +264,13 @@ account keeps an allowed-address list, the server's public address must be on it
 1032). `CODE_SMS_PER_IP_PER_HOUR` (default 20 in production) caps the code SMS one client address may ask for in an
 hour (SMS-11).
 
+**Reading delivery details** (Phase 7 Slice 7.6, D7-22): set `GEMINI_API_KEY` on the server from a secrets manager,
+never from a committed file. It must belong to a Google project with billing on: on Gemini's free tier Google may use
+what it is sent, and shoppers' addresses go to it (D7-18). Production, staging included, reads with Gemini and refuses
+to start without the key; development uses a stand-in that finds only a phone number unless `AI_FORCE_REAL=true`. Gemini
+is called over HTTPS only (`GEMINI_BASE_URL`, default `https://generativelanguage.googleapis.com/v1beta`). The model is
+an operator setting (`address_read_model`, seeded `gemini-3.5-flash-lite`), changed without a release.
+
 ## 9. Fits the existing CI/CD pipeline (`ENGINEERING-STANDARDS.md` §7) without changing it
 
 That section already specifies build-once/promote-with-a-smoke-test/manual-production-approval. This section

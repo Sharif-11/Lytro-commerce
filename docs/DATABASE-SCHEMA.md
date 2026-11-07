@@ -2348,11 +2348,11 @@ CREATE TABLE control.plan_assignments (
 
 CREATE TABLE control.addons (                      -- PLN-13, migration 0073
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    key             text NOT NULL UNIQUE,           -- seeded: extra_products | extra_seat | extra_storage | brand_identity | bandwidth_pack | request_pack
+    key             text NOT NULL UNIQUE,           -- seeded: extra_products | extra_seat | extra_storage | brand_identity | bandwidth_pack | request_pack | address_reads_200 (0113)
     kind            text NOT NULL CHECK (kind IN ('limit', 'pack', 'feature', 'allowance')),  -- PLN-13, amended 2026-10-18; allowance: PLN-20
-    limit_key       text,                           -- the plan limit a limit add-on or a pack raises (products, staff, storage_mb, ...); null for a feature
-    unit_size       integer,                        -- how much one adds, in that limit's own unit; null for a feature
-    price           numeric(10,2) NOT NULL,         -- whole taka: a month of a limit or feature add-on, or one pack
+    limit_key       text,                           -- the plan limit a limit add-on or a pack raises (products, staff, storage_mb, ...); the service an allowance covers (address_reads, PLN-20); null for a feature
+    unit_size       integer,                        -- how much one adds, in that limit's own unit, or an allowance's uses; null for a feature
+    price           numeric(10,2) NOT NULL,         -- whole taka: a month of a limit, feature or allowance add-on, or one pack
     label_en        text NOT NULL,
     label_bn        text NOT NULL,
     retired_at      timestamptz,                    -- no longer for sale; what was bought runs to its end
@@ -2423,30 +2423,38 @@ CREATE TABLE control.scheduled_plan_changes (
 ## 5. SMS, push and notifications
 
 ```sql
+-- SMS-02, SMS-10, SMS-13, SMS-16, SMS-19 (built in Phase 7 Slice 7.2): a row once the owner changes anything. Only
+-- what the owner changed is kept: every other switch and template follows the platform's default (SMS-03), so "reset"
+-- takes a template out. A per-shop sender ID (SMS-16) is not built: BulkSMSBD's account has one.
 CREATE TABLE tenant.sms_settings (
     tenant_id       uuid PRIMARY KEY,
-    events          jsonb NOT NULL DEFAULT '{}',    -- {"order_placed": true, "order_delivered": false, ...} (SMS-01/02/03)
-    templates       jsonb NOT NULL DEFAULT '{}',    -- {"order_placed": "{{shop_name}}: your order..."} (SMS-10)
-    sender_id       text,
-    monthly_spend_cap numeric(10,2)
+    events          jsonb NOT NULL DEFAULT '{}',    -- the switches changed: {"order_delivered": true, ...} (SMS-02)
+    templates       jsonb NOT NULL DEFAULT '{}',    -- the templates edited: {"order_placed": "অর্ডার {order_number} ..."}
+    sms_name        varchar(60),                    -- SMS-16: what every SMS starts with; null for the shop's name
+    monthly_spend_cap numeric(10,2),                -- SMS-13: null for none
+    updated_at      timestamptz NOT NULL DEFAULT now()
 );
+-- Row-level security to the shop's own row; the server reads, inserts and updates it.
 
--- SMS-07, SMS-17 (built in Phase 7 Slice 7.1): one row for each SMS a shop's use sent, failed to send or was refused.
--- Slice 7.2 adds the order events' kinds and the order they're about.
+-- SMS-07, SMS-17 (built in Phase 7 Slices 7.1 and 7.2): one row for each SMS a shop's use sent, failed to send or was
+-- refused: its codes, and its order events with the order and the words sent (a code's words are never kept).
 CREATE TABLE tenant.sms_log (
     id              bigserial PRIMARY KEY,
     tenant_id       uuid NOT NULL,
-    kind            text NOT NULL,                  -- signin_code | staff_reset_code | shopper_code
+    kind            text NOT NULL,                  -- signin_code | staff_reset_code | shopper_code, or an SMS event (SMS-01)
+    order_id        uuid,                           -- an SMS event's order; no foreign key, the log outlives it
+    body            text,                           -- an SMS event's words
     to_phone        varchar(15) NOT NULL,
     units           integer NOT NULL CHECK (units > 0),          -- SMS-09: ceil(length / unit_size)
     cost            numeric(10,2) NOT NULL CHECK (cost >= 0),     -- what the balance paid; 0 within the allowance
     is_essential    boolean NOT NULL,
     status          text NOT NULL,                  -- sent | failed | blocked (D7-15: no delivery reports)
-    blocked_reason  text,                           -- set exactly when blocked: insufficient_balance (SMS-07)
+    blocked_reason  text,                           -- set exactly when blocked: insufficient_balance | balance_frozen | spend_cap
     provider_message_id text,
     created_at      timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX ON tenant.sms_log (tenant_id, created_at);
+CREATE INDEX ON tenant.sms_log (tenant_id, order_id);
 -- Row-level security to the shop's own rows; the server inserts and reads, never changes a row.
 -- SCL-05 partitioning candidate, same as order_status_history.
 
@@ -2528,18 +2536,23 @@ CREATE TABLE tenant.fraud_checks (
 );
 CREATE INDEX ON tenant.fraud_checks (tenant_id, phone, checked_at DESC);
 
--- ORD-30 to ORD-34, PLN-20: one row per successful order read from text. The pasted message itself is
--- not kept; the row exists to show what each read used.
+-- ORD-30 to ORD-34, PLN-20 (migration 0113, Phase 7 Slice 7.6): one row per charged read of a customer's delivery
+-- details. A read that found nothing is free and leaves none. The pasted message is never kept (D7-18). An address-read
+-- allowance's uses are its rows. RLS like every tenant table; the app may only read and insert.
 CREATE TABLE tenant.order_extractions (
-    id              bigserial PRIMARY KEY,
-    tenant_id       uuid NOT NULL,
-    user_id         uuid NOT NULL,
-    input_chars     integer NOT NULL CHECK (input_chars BETWEEN 1 AND 4000),  -- ORD-33
-    confidence      numeric(4,3),
-    paid_from       text NOT NULL CHECK (paid_from IN ('balance', 'allowance')),
-    created_at      timestamptz NOT NULL DEFAULT now()
+    id                bigserial PRIMARY KEY,
+    tenant_id         uuid NOT NULL,
+    user_id           uuid,                          -- the staff member; null for the owner's own session (AUD-02)
+    input_chars       integer NOT NULL CHECK (input_chars BETWEEN 1 AND 4000),  -- ORD-33
+    confidence        numeric(4,3) NOT NULL,
+    paid_from         text NOT NULL,                 -- 'balance' | 'allowance'
+    cost              numeric(10,2) NOT NULL CHECK (cost >= 0),  -- what the balance paid; 0 when an allowance did
+    addon_purchase_id uuid REFERENCES control.addon_purchases(id),
+    created_at        timestamptz NOT NULL DEFAULT now(),
+    CHECK (paid_from IN ('balance', 'allowance') AND (paid_from = 'allowance') = (addon_purchase_id IS NOT NULL))
 );
-CREATE INDEX ON tenant.order_extractions (tenant_id, created_at DESC);
+CREATE INDEX ON tenant.order_extractions (tenant_id, created_at);
+CREATE INDEX ON tenant.order_extractions (addon_purchase_id);
 
 CREATE TABLE tenant.fraud_rules (
     tenant_id       uuid PRIMARY KEY,

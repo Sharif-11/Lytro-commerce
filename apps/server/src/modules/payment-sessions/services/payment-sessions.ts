@@ -20,6 +20,7 @@ import {
   PlatformSettingKey,
   PaymentSessionSource,
   PaymentSessionState,
+  SmsEvent,
   ServerFieldProblemCode,
   StatusOverride,
   TenantState,
@@ -37,6 +38,7 @@ import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import { ReservationService } from '../../inventory/services/reservation.service';
 import { OrderService } from '../../orders/services/order.service';
+import { SmsEventQueue } from '../../sms-events/services/sms-event-queue';
 import type { OrderRecord } from '../../orders/types/orders';
 import { PaymentMethods } from '../../payment-methods/services/payment-methods';
 import type { ShopperPaymentMethod } from '../../payment-methods/types/payment-methods';
@@ -106,6 +108,7 @@ export class PaymentSessions {
     @Inject(PlatformSettingsService) private readonly settings: PlatformSettingsService,
     @Inject(PAYMENT_NOTIFIER) private readonly notifier: PaymentNotifier,
     @Inject(PAYMENT_PAGE_ORIGIN) private readonly origin: string,
+    @Inject(SmsEventQueue) private readonly smsEvents: SmsEventQueue,
   ) {}
 
   /**
@@ -661,6 +664,14 @@ export class PaymentSessions {
   ): Promise<PaymentToVerifyNotice | null> {
     if (session.method === null || session.transactionId === null) return null;
     await this.store.markTold(tx, tenantId, session.id, now);
+    // SMS-01 (Slice 7.2): the owner's "payment to verify", at the one moment staff are told of it, once.
+    await this.smsEvents.queue(tx, {
+      tenantId,
+      orderId: session.orderId,
+      events: [SmsEvent.PaymentToVerify],
+      amount: session.amount,
+      ref: session.id,
+    });
     return {
       tenantId,
       sessionId: session.id,

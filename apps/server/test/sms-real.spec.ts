@@ -199,6 +199,8 @@ describe("D7-21: the settings guard BulkSMSBD's login", () => {
     STOREFRONT_SECRET: SECRET,
     DATA_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
     PLATFORM_ADDRESSES: '203.0.113.10',
+    // Phase 7 Slice 7.6 (D7-22): production reads messages with Gemini too.
+    GEMINI_API_KEY: 'key',
   };
 
   it('refuses production, staging included, without the key and the sender ID', () => {

@@ -1840,6 +1840,15 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Gateway credentials removed.',
     bn: 'গেটওয়ের ক্রেডেনশিয়াল মুছে ফেলা হয়েছে।',
   },
+  // SMS-02 to SMS-19 (Slice 7.2): a shop's SMS settings, report and log.
+  SmsSettingsRead: { en: 'SMS settings.', bn: 'SMS সেটিংস।' },
+  SmsSettingsSaved: { en: 'SMS settings saved.', bn: 'SMS সেটিংস সেভ হয়েছে।' },
+  SmsTemplateReset: {
+    en: 'The message is back to its default wording.',
+    bn: 'মেসেজটি আগের ডিফল্ট লেখায় ফিরেছে।',
+  },
+  SmsReportRead: { en: 'SMS report.', bn: 'SMS রিপোর্ট।' },
+  SmsLogListed: { en: 'SMS sent and refused, listed.', bn: 'পাঠানো ও আটকানো SMS-এর তালিকা।' },
   CourierAdaptersListed: { en: 'Couriers listed.', bn: 'কুরিয়ারের তালিকা।' },
   CourierConnectionsListed: {
     en: 'Connected couriers listed.',
@@ -2377,6 +2386,26 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   ListenerInstallationBlockedDone: {
     en: 'Installation blocked.',
     bn: 'ইনস্টলেশন ব্লক করা হয়েছে।',
+  },
+  AddressRead: {
+    en: 'Delivery details read.',
+    bn: 'ডেলিভারির তথ্য পড়া হয়েছে।',
+  },
+  AddressReadTextOnly: {
+    en: "Only text can be read for now. Paste the message's text, not a picture.",
+    bn: 'এখন শুধু লেখা পড়া যায়। ছবি নয়, মেসেজের লেখাটা পেস্ট করুন।',
+  },
+  AddressReadUnavailable: {
+    en: "Couldn't read the message just now. Try again in a minute; nothing was charged.",
+    bn: 'এই মুহূর্তে মেসেজটা পড়া গেল না। এক মিনিট পর আবার ট্রাই করুন; কোনো টাকা কাটা হয়নি।',
+  },
+  AddressReadUnreadable: {
+    en: "The message's details couldn't be read this time. Nothing was charged; try again.",
+    bn: 'এবার মেসেজের তথ্য পড়া গেল না। কোনো টাকা কাটা হয়নি; আবার ট্রাই করুন।',
+  },
+  TooManyAddressReads: {
+    en: 'Too many messages read in the last minute. Try again shortly.',
+    bn: 'গত এক মিনিটে অনেক মেসেজ পড়া হয়েছে। একটু পরে আবার ট্রাই করুন।',
   },
 };
 

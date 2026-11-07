@@ -27,6 +27,8 @@ import {
   PaymentMethod,
   PaymentPolicy,
   quoteOrderSchema,
+  readAddressSchema,
+  addressReadSchema,
   returnOrderSchema,
   shipOrderSchema,
   StatusOverride,
@@ -41,6 +43,9 @@ import {
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
 export class CreateOrderDto extends createZodDto(createOrderSchema) {}
 export class QuoteOrderDto extends createZodDto(quoteOrderSchema) {}
+// ORD-30 to ORD-34 (Phase 7 Slice 7.6): a pasted message, and the delivery details read from it.
+export class ReadAddressDto extends createZodDto(readAddressSchema) {}
+export class AddressReadDto extends createZodDto(addressReadSchema) {}
 export class UpdateOrderDto extends createZodDto(updateOrderSchema) {}
 export class LogCallDto extends createZodDto(logCallSchema) {}
 export class CancelOrderDto extends createZodDto(cancelOrderSchema) {}

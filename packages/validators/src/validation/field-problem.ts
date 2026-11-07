@@ -30,6 +30,9 @@ export enum FieldProblemCode {
   NotAllowed = 'not_allowed',
   WrongType = 'wrong_type',
   NothingToChange = 'nothing_to_change',
+  // SMS-10 (Slice 7.2): an SMS template without `{order_number}`, or naming a variable its event doesn't have.
+  MissingVariable = 'missing_variable',
+  UnknownVariable = 'unknown_variable',
 }
 
 /**

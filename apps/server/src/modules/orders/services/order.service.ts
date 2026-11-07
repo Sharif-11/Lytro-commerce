@@ -25,6 +25,7 @@ import {
   ParcelState,
   ServerFieldProblemCode,
   SHIPPED_FULFILLMENT,
+  SmsEvent,
   StatusOverride,
   visibleOrderStatus,
   type CancelOrderInput,
@@ -51,6 +52,7 @@ import type { ResolvedZoneView } from '../../delivery/types/delivery';
 import { ReservationService } from '../../inventory/services/reservation.service';
 import { OrderCombos } from './order-combos';
 import { milli } from '../../inventory/services/stock-state';
+import { SmsEventQueue } from '../../sms-events/services/sms-event-queue';
 import { StaffService } from '../../staff/services/staff.service';
 import type { OrderStore } from '../ports/order-store';
 import { ORDER_STORE } from '../tokens';
@@ -272,6 +274,7 @@ export class OrderService {
     @Inject(IdempotencyService) private readonly idempotency: IdempotencyService,
     @Inject(PaymentRecorder) private readonly payments: PaymentRecorder,
     @Inject(OrderCombos) private readonly combos: OrderCombos,
+    @Inject(SmsEventQueue) private readonly smsEvents: SmsEventQueue,
   ) {}
 
   /**
@@ -440,6 +443,12 @@ export class OrderService {
       made.id,
       orderNumberOf(day, await this.store.nextNumber(tx, tenantId, day)),
     );
+    // SMS-01 (Slice 7.2): the shopper's "order placed", and the owner's alert for one from outside the shop.
+    await this.smsEvents.queue(tx, {
+      tenantId,
+      orderId: order.id,
+      events: [SmsEvent.OrderPlaced, SmsEvent.NewOrderAlert],
+    });
     await this.activity.record(
       tx,
       tenantId,
@@ -1267,6 +1276,12 @@ export class OrderService {
       cancelReason: reason,
       cancelNote: note,
       cancelledAt: now,
+    });
+    // SMS-01 (Slice 7.2): every way an order is cancelled comes through here, so the shopper is told once.
+    await this.smsEvents.queue(tx, {
+      tenantId,
+      orderId: order.id,
+      events: [SmsEvent.OrderCancelled],
     });
     await this.store.insertHistory(tx, tenantId, [
       {

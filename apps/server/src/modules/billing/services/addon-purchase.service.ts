@@ -18,6 +18,7 @@ import {
   limitOf,
   PlanPaymentKind,
   PlanPaymentStatus,
+  TenantState,
   type PlanLimits,
   type QuoteAddonInput,
 } from '@lytronix/validators';
@@ -75,11 +76,15 @@ interface Buying {
   period: AddonPeriod;
 }
 
-/** What decides whether an add-on can be taken: the shop's limits, its add-ons and its plan's features. */
+/**
+ * What decides whether an add-on can be taken: the shop's limits, its add-ons, its plan's features, and whether it is in
+ * a paid period (PLN-20).
+ */
 interface Holdings {
   limits: PlanLimits | null;
   active: ActiveAddon[];
   features: Record<string, boolean> | null;
+  paidPeriod: boolean;
 }
 
 /** A quoted add-on payment's purchase, its item, and the shop as it stands at payment. */
@@ -98,6 +103,13 @@ function takeRefusal(addon: AddonRecord, holdings: Holdings): ApiError | null {
     return featureOn(addon.key, holdings)
       ? new ApiError('conflict', 'AddonAlreadyActive', {})
       : null;
+  }
+  // PLN-20 (Phase 7 Slice 7.6): an allowance covers uses for a paid period, so a shop with none -- pay-as-you-go, a
+  // no-expiry plan -- isn't offered one; it pays per use from the balance.
+  if (addon.kind === AddonKind.Allowance) {
+    return holdings.paidPeriod
+      ? null
+      : new ApiError('plan_feature_unavailable', 'AddonNotAvailable', {});
   }
   if (
     addon.limitKey === null ||
@@ -520,7 +532,13 @@ export class AddonPurchaseService {
       this.shopLimits.of(tenantId, info.planSnapshot),
       this.store.run((tx) => this.store.listActive(tx, tenantId)),
     ]);
-    return { limits, active, features: info.featureSnapshot };
+    return {
+      limits,
+      active,
+      features: info.featureSnapshot,
+      paidPeriod:
+        info.state === TenantState.Active && info.periodStart !== null && info.periodEnd !== null,
+    };
   }
 
   /** The purchase a quoted add-on payment pays for, locked, with its item and the shop as it stands now. */

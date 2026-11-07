@@ -16,7 +16,12 @@ import {
 } from '@nestjs/common';
 import { ApiBody, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { orderListQuerySchema, Permission, type OrderListQuery } from '@lytronix/validators';
+import {
+  orderListQuerySchema,
+  Permission,
+  type AddressRead,
+  type OrderListQuery,
+} from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { OkDto } from '../../../common/dto/ok.dto';
 import { Dashboard } from '../../../common/decorators/dashboard';
@@ -26,6 +31,7 @@ import { headerValue, type HttpResponse } from '../../../common/http';
 import { IdempotencyInterceptor } from '../../../common/idempotency/idempotency.interceptor';
 import { dashboardCaller, requestHashOf } from '../../../common/idempotency/idempotency.service';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
+import { AddressReads } from '../../address-reads/services/address-reads';
 import { CourierBooking } from '../../couriers/services/courier-booking';
 import { CourierChecks } from '../../couriers/services/courier-checks';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
@@ -46,6 +52,7 @@ import type {
 } from '../../orders/types/orders';
 import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
 import {
+  AddressReadDto,
   CancelOrderDto,
   CreateOrderDto,
   HandOverOrderDto,
@@ -63,6 +70,7 @@ import {
   OverrideOrderDto,
   PaymentLinkDto,
   QuoteOrderDto,
+  ReadAddressDto,
   RefundPaymentDto,
   ReturnOrderDto,
   ShipOrderDto,
@@ -95,6 +103,7 @@ export class OrdersController {
     @Inject(OrderPicker) private readonly picking: OrderPicker,
     @Inject(CourierBooking) private readonly booking: CourierBooking,
     @Inject(CourierChecks) private readonly checks: CourierChecks,
+    @Inject(AddressReads) private readonly addressReads: AddressReads,
   ) {}
 
   @Get()
@@ -164,6 +173,35 @@ export class OrdersController {
     @Req() request: DashboardRequest,
   ): Promise<OrderQuote> {
     return this.orders.quote(this.request.tenantIdOf(request), body);
+  }
+
+  @Post('read-address')
+  @HttpCode(200)
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('AddressRead')
+  @ApiOperation({
+    summary:
+      "Read a customer's name, phone, zilla, thana, address and delivery note from a pasted message, for the order form; nothing is saved, and only a read that finds something is charged (ORD-30 to ORD-34, PLN-20)",
+  })
+  @ApiBody({ type: ReadAddressDto })
+  @ZodResponse({ type: AddressReadDto })
+  readAddress(@Body() raw: unknown, @Req() request: DashboardRequest): Promise<AddressRead> {
+    // ORD-32: only text is read. A picture, or a form carrying one, is refused by name before anything else.
+    const type = headerValue(request.headers['content-type']) ?? '';
+    if (
+      !type.startsWith('application/json') ||
+      (typeof raw === 'object' && raw !== null && 'image' in raw)
+    ) {
+      throw new ApiError('validation_error', 'AddressReadTextOnly', {});
+    }
+    const body = new ZodValidationPipe(ReadAddressDto.schema).transform(raw) as ReadAddressDto;
+    return this.addressReads.read(
+      {
+        tenantId: this.request.tenantIdOf(request),
+        userId: this.request.actorOf(request).userId,
+      },
+      body.text,
+    );
   }
 
   @Get('couriers')

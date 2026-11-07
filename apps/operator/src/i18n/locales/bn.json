@@ -319,6 +319,7 @@
     "sms_per_unit": "SMS, প্রতি পার্ট",
     "ai_reply": "চ্যাট AI উত্তর",
     "fraud_check": "ফেক অর্ডার চেক",
+    "ai_extraction": "মেসেজ থেকে ঠিকানা পড়া",
     "payg_order_fee_min": "পে-অ্যাজ-ইউ-গো অর্ডার ফি, ন্যূনতম",
     "payg_order_fee_pct": "পে-অ্যাজ-ইউ-গো অর্ডার ফি",
     "payg_product_fee": "পে-অ্যাজ-ইউ-গো প্রোডাক্ট ফি",

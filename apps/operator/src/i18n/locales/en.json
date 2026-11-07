@@ -319,6 +319,7 @@
     "sms_per_unit": "SMS, per part",
     "ai_reply": "Chat AI reply",
     "fraud_check": "Fake-order check",
+    "ai_extraction": "Address read from a message",
     "payg_order_fee_min": "Pay-as-you-go order fee, minimum",
     "payg_order_fee_pct": "Pay-as-you-go order fee",
     "payg_product_fee": "Pay-as-you-go product fee",

@@ -2,8 +2,13 @@ import { limitOf, UsageMetric, type PlanLimits, type UsageLimitKey } from '@lytr
 import { GB } from '../../media/services/media-bandwidth';
 import { MB } from '../../media/services/media-limits';
 
-/** LIM-02: the limit each metric is judged against, and how many of the metric's units one of the limit's is. */
-const METRIC_LIMITS: Readonly<Record<UsageMetric, { key: UsageLimitKey; unit: number }>> = {
+/**
+ * LIM-02: the limit each metric is judged against, and how many of the metric's units one of the limit's is. SMS-13's
+ * spend is the only one with none: its cap is the owner's own setting, never a plan's.
+ */
+const METRIC_LIMITS: Readonly<
+  Record<Exclude<UsageMetric, UsageMetric.SmsSpend>, { key: UsageLimitKey; unit: number }>
+> = {
   [UsageMetric.Products]: { key: 'products', unit: 1 },
   [UsageMetric.Seats]: { key: 'staff', unit: 1 },
   [UsageMetric.Storage]: { key: 'storage_mb', unit: MB },
@@ -17,14 +22,16 @@ const METRIC_LIMITS: Readonly<Record<UsageMetric, { key: UsageLimitKey; unit: nu
 };
 
 /** LIM-02: the limit a metric is judged against, and how many of the metric's units one of the limit's is. */
-export function metricLimitKey(metric: UsageMetric): { key: UsageLimitKey; unit: number } {
-  return METRIC_LIMITS[metric];
+export function metricLimitKey(metric: UsageMetric): { key: UsageLimitKey; unit: number } | null {
+  return metric === UsageMetric.SmsSpend ? null : METRIC_LIMITS[metric];
 }
 
 /** PLN-19: a metric's limit under these limits, in the metric's own unit (bytes for storage and bandwidth); null is
  * unlimited. */
 export function metricLimit(limits: PlanLimits | null, metric: UsageMetric): number | null {
-  const { key, unit } = metricLimitKey(metric);
+  const known = metricLimitKey(metric);
+  if (!known) return null;
+  const { key, unit } = known;
   const limit = limitOf(limits, key);
   return limit === null ? null : limit * unit;
 }
