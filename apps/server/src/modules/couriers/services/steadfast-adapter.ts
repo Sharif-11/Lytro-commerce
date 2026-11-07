@@ -135,6 +135,7 @@ export class SteadfastAdapter implements CourierAdapter {
   readonly key = CourierKey.Steadfast;
   readonly name = 'Steadfast';
   readonly credentialFields = FIELDS;
+  readonly accountField = 'apiKey';
   readonly limits = LIMITS;
   readonly needsArea = false;
   readonly needsThana = false;

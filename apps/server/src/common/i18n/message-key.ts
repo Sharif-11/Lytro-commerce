@@ -724,6 +724,7 @@ export const MESSAGE_KEYS = [
   'CourierRemoved',
   'CourierBlockingListed',
   'CourierRetiring',
+  'CourierAccountInUse',
   'CourierAlreadyRetiring',
   'CourierNotRetiring',
   'CourierSuggestionInvalid',

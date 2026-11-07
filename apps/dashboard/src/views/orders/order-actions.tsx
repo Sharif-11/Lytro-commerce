@@ -36,7 +36,7 @@ import { CANCEL_REASONS, useOrderWords } from './order-words';
 import { PaymentLinkSheet, RecordPaymentSheet, RefundSheet, VoidSheet } from './payment-sheets';
 import { ReturnSheet } from './return-sheet';
 import { HandOverSerialSheet, ShipSheet } from './ship-sheet';
-import type { OrderChoices } from './order-choices';
+import { editsBooked, type OrderChoices } from './order-choices';
 
 /** The sheet or dialog over the order. A call's note goes with it to Call later or Cancel, and back. */
 export type OrderSheet =
@@ -597,7 +597,7 @@ function MenuSheet({
           <MenuRow
             icon="pencil"
             title={t('mEdit')}
-            sub={t('mEditSub')}
+            sub={editsBooked(order) ? t('crEditSub') : t('mEditSub')}
             onClick={() => {
               void navigate({
                 to: '/$shop/orders/$orderId/edit',

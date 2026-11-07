@@ -35,6 +35,15 @@ const COURIER_REPORT: ResolvedActor = { id: null, ip: null, type: ActorType.Syst
 const PER_PASS = 100;
 
 // A report on an order already delivered that says something has gone wrong with it (read agreed 2026-11-05).
+/**
+ * Phase 6 close-out: what comes before a result. Once a parcel is delivered, or partly delivered, a report of one of these is
+ * an old word arriving late: it is noted in the news and moves nothing back.
+ */
+const BEFORE_A_RESULT: readonly ParcelReading[] = [
+  ParcelReading.Booked,
+  ParcelReading.WithCourier,
+  ParcelReading.Unconfirmed,
+];
 const REVERSING: readonly ParcelReading[] = [
   ParcelReading.Returning,
   ParcelReading.Hold,
@@ -167,6 +176,18 @@ export class CourierNewsPath {
         : {}),
       ...(news.deliveryCharge !== null ? { deliveryCharge: news.deliveryCharge } : {}),
     };
+    // Close-out (A3): a parcel that settled without its IDs gives them to the order's tracking when a message brings them.
+    if (news.consignmentId !== null && parcel.consignmentId === null && parcel.settledAt !== null) {
+      await this.fulfilment.fillTrackingWithin(
+        tx,
+        tenantId,
+        order,
+        this.booking.trackingOf(parcel.courierKey, {
+          consignmentId: news.consignmentId,
+          trackingCode: parcel.trackingCode,
+        }),
+      );
+    }
     // CRR-12, CRR-17 (Slice 6.5): being paid goes on the parcel and moves nothing else. The first word of it stands.
     if (news.paid === true && parcel.paidAt === null) {
       patch.paidAt = event.happenedAt ?? now;
@@ -185,10 +206,16 @@ export class CourierNewsPath {
       parcel.lastNewsAt !== null &&
       event.happenedAt.getTime() < parcel.lastNewsAt.getTime();
     let moved: ParcelReading | null = null;
-    if (news.statusEvent && !older) {
+    const finished =
+      parcel.reading === ParcelReading.Delivered ||
+      parcel.reading === ParcelReading.PartlyDelivered;
+    const late = finished && event.reading !== null && BEFORE_A_RESULT.includes(event.reading);
+    if (news.statusEvent && !older && !late) {
       if (event.rawStatus !== parcel.courierStatus) {
         patch.courierStatus = event.rawStatus;
         patch.lastChangeAt = now;
+        // Phase 6 close-out: news after 30 quiet days ends "no news", and the checks start again.
+        if (parcel.checksStoppedAt !== null) patch.checksStoppedAt = null;
       }
       if (event.happenedAt !== null) patch.lastNewsAt = event.happenedAt;
       if (event.reading === null) {
@@ -249,6 +276,12 @@ export class CourierNewsPath {
       return { attention: null, moved: reading };
     }
     if (!finished) return { attention: null, moved: null };
+    // Phase 6 close-out (agreed 2026-11-07): staff are counting a partly delivered parcel's rest back, so a later "delivered" is
+    // noted in its news and changes nothing: no move, no cash, and the parcel still reads partly delivered.
+    if (reading === ParcelReading.Delivered && status === FulfillmentStatus.PartiallyDelivered) {
+      patch.reading = ParcelReading.PartlyDelivered;
+      return { attention: null, moved: null };
+    }
     const reported = event.news.cashCollected;
     if (reported !== null) patch.cashCollected = reported;
     // D6-13: a person got there first, or the parcel is already further on, so this agrees and changes nothing but may differ in cash.

@@ -99,13 +99,15 @@ export function RetiringBanner({
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
   const suggested = retiring.suggestedKey ? courierName(retiring.suggestedKey) : '';
-  const moved =
-    !standalone &&
-    connections.some((each) => each.courierKey === retiring.suggestedKey && each.isDefault);
+  // CRR-25: the shop's default now, when it is no longer the retiring courier: the operator's suggestion, the oldest other
+  // courier Lytro moved it to, or one the shop chose since. The words say only which it is, never who moved it.
+  const current = standalone
+    ? undefined
+    : connections.find((each) => each.isDefault && each.courierKey !== retiring.courierKey);
   return (
     <Banner tone="warn">
-      {moved
-        ? t('crRetiringMoved', { c: retiring.name, s: suggested })
+      {current
+        ? t('crRetiringMoved', { c: retiring.name, s: current.name })
         : t('crRetiringB', { c: retiring.name, s: suggested })}
     </Banner>
   );

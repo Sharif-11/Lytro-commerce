@@ -813,6 +813,20 @@
       "when": 1794053916291,
       "tag": "0116_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 117,
+      "version": "7",
+      "when": 1794062566690,
+      "tag": "0117_courier_closeout",
+      "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1794067628579,
+      "tag": "0118_notice_board",
+      "breakpoints": true
     }
   ]
 }

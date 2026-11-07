@@ -31,12 +31,14 @@ import { Taka } from '@/components/ui/taka';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useErrorText } from '@/hooks/use-error-text';
 import { allows } from '@/shell/hubs';
+import { courierName } from '@/lib/couriers';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import type { Locations } from '@/types/delivery';
 import type { Order, OrderQuote, PickerAsked } from '@/types/orders';
 import { AreaPickSheet } from '../delivery/area-pick-sheet';
 import { Segments } from '../product/value-sheet';
+import { noteBookedEdit } from './booked-edit';
 import { AddItemSheets, DetailsSheet, PriceSheet } from './item-sheets';
 import {
   amountOf,
@@ -50,6 +52,7 @@ import {
   type LineWords,
   type OrderDraft,
 } from './order-draft';
+import { editsBooked } from './order-choices';
 import { useOrderWords } from './order-words';
 
 const PRICING_REST_MS = 300;
@@ -180,6 +183,9 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
   const update = useUpdateOrder(order?.id ?? '');
   const locations = useLocations();
   const counter = draft.type !== FulfilmentType.Delivery;
+  // ORD-11 (Part 36's `c36-edit`): booked with its courier, so only the customer's details and the note change.
+  const booked = order !== null && editsBooked(order);
+  const courier = booked && order.parcel ? courierName(order.parcel.courierKey) : '';
   const set = (patch: Partial<OrderDraft>) => {
     setDraft((now) => ({ ...now, ...patch }));
   };
@@ -235,7 +241,9 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
     try {
       if (order) {
         const body = editOf(order, draft);
-        if (body) await update.mutateAsync(body);
+        const saved = body ? await update.mutateAsync(body) : null;
+        // ORD-11: the courier keeps what it was sent, so the order's page says so once (`c36-edited`).
+        if (saved?.courierRecordUnchanged) noteBookedEdit(order.id);
         void navigate({
           to: '/$shop/orders/$orderId',
           params: { shop: slug, orderId: order.id },
@@ -261,6 +269,7 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
     <ShellPage title={order ? t('editTitle') : t('newOrder')}>
       {short !== null ? <Banner tone="bad">{shortText ?? errorText(problem)}</Banner> : null}
       {unplaced ? <Banner tone="bad">{errorText(problem)}</Banner> : null}
+      {booked ? <Banner tone="info">{t('crEditLocked', { c: courier })}</Banner> : null}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
         <div className="flex min-w-0 flex-col gap-4">
           <Card className="flex flex-col gap-3">
@@ -315,63 +324,14 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
 
           <Card className="flex flex-col gap-3">
             <CardTitle>{t('howReach')}</CardTitle>
-            <Segments
-              label={t('howReach')}
-              value={draft.type}
-              choices={[
-                { value: FulfilmentType.Delivery, label: t('delivery') },
-                { value: FulfilmentType.Takeaway, label: t('takeaway') },
-                { value: FulfilmentType.DineIn, label: t('tableTab') },
-              ]}
-              onChange={(type) => {
-                set({ type });
-              }}
-            />
-            {draft.type === FulfilmentType.DineIn ? (
-              <>
-                <Field
-                  label={t('tableNo')}
-                  value={draft.table}
-                  error={problems.tableRef}
-                  onChange={(event) => {
-                    set({ table: event.target.value });
-                  }}
-                />
-                <p className="text-[14px] text-fg-muted">{t('tableSub')}</p>
-              </>
-            ) : draft.type === FulfilmentType.Takeaway ? (
-              <p className="text-[14px] text-fg-muted">{t('counterSub')}</p>
-            ) : (
+            {booked ? (
               <>
                 <PickField
                   label={t('district')}
                   value={placed?.text ?? ''}
-                  error={problems.locationId}
-                  help={
-                    priced?.deliveryZone && !noDelivery
-                      ? t('zoneHelp', {
-                          zone: bn ? priced.deliveryZone.name.bn : priced.deliveryZone.name.en,
-                          charge: formatTaka(priced.deliveryZone.charge),
-                        })
-                      : undefined
-                  }
-                  onPick={() => {
-                    setPlacing(true);
-                  }}
+                  locked
+                  onPick={() => undefined}
                 />
-                {noDelivery ? (
-                  <Banner tone="warn">{t('zoneWarn', { area: placed?.zilla ?? '' })}</Banner>
-                ) : null}
-                {priced?.warnings
-                  .filter((each) => each.code === 'product_not_delivered_here')
-                  .map((each) => (
-                    <Banner key={each.productName ?? ''} tone="warn">
-                      {t('productNotHere', {
-                        product: each.productName ?? '',
-                        zone: bn ? each.zone.bn : each.zone.en,
-                      })}
-                    </Banner>
-                  ))}
                 <Field
                   label={t('address')}
                   value={draft.address}
@@ -381,28 +341,101 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
                   }}
                 />
               </>
+            ) : (
+              <>
+                <Segments
+                  label={t('howReach')}
+                  value={draft.type}
+                  choices={[
+                    { value: FulfilmentType.Delivery, label: t('delivery') },
+                    { value: FulfilmentType.Takeaway, label: t('takeaway') },
+                    { value: FulfilmentType.DineIn, label: t('tableTab') },
+                  ]}
+                  onChange={(type) => {
+                    set({ type });
+                  }}
+                />
+                {draft.type === FulfilmentType.DineIn ? (
+                  <>
+                    <Field
+                      label={t('tableNo')}
+                      value={draft.table}
+                      error={problems.tableRef}
+                      onChange={(event) => {
+                        set({ table: event.target.value });
+                      }}
+                    />
+                    <p className="text-[14px] text-fg-muted">{t('tableSub')}</p>
+                  </>
+                ) : draft.type === FulfilmentType.Takeaway ? (
+                  <p className="text-[14px] text-fg-muted">{t('counterSub')}</p>
+                ) : (
+                  <>
+                    <PickField
+                      label={t('district')}
+                      value={placed?.text ?? ''}
+                      error={problems.locationId}
+                      help={
+                        priced?.deliveryZone && !noDelivery
+                          ? t('zoneHelp', {
+                              zone: bn ? priced.deliveryZone.name.bn : priced.deliveryZone.name.en,
+                              charge: formatTaka(priced.deliveryZone.charge),
+                            })
+                          : undefined
+                      }
+                      onPick={() => {
+                        setPlacing(true);
+                      }}
+                    />
+                    {noDelivery ? (
+                      <Banner tone="warn">{t('zoneWarn', { area: placed?.zilla ?? '' })}</Banner>
+                    ) : null}
+                    {priced?.warnings
+                      .filter((each) => each.code === 'product_not_delivered_here')
+                      .map((each) => (
+                        <Banner key={each.productName ?? ''} tone="warn">
+                          {t('productNotHere', {
+                            product: each.productName ?? '',
+                            zone: bn ? each.zone.bn : each.zone.en,
+                          })}
+                        </Banner>
+                      ))}
+                    <Field
+                      label={t('address')}
+                      value={draft.address}
+                      error={problems.deliveryAddress}
+                      onChange={(event) => {
+                        set({ address: event.target.value });
+                      }}
+                    />
+                  </>
+                )}
+              </>
             )}
           </Card>
 
           <Card flush>
             <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-2">
               <h3 className="text-[17px] font-semibold">{t('itemsTitle')}</h3>
-              <Button
-                tone="outline"
-                size="sm"
-                onClick={() => {
-                  setAdding(true);
-                }}
-              >
-                <Icon name="plus" />
-                {t('addItem')}
-              </Button>
+              {booked ? null : (
+                <Button
+                  tone="outline"
+                  size="sm"
+                  onClick={() => {
+                    setAdding(true);
+                  }}
+                >
+                  <Icon name="plus" />
+                  {t('addItem')}
+                </Button>
+              )}
             </div>
             <RowList>
               {draft.lines.map((line) => (
                 <LineRow
                   key={line.key}
                   line={line}
+                  fixed={booked}
                   short={line.key === shortLine?.key}
                   onQuantity={(quantity) => {
                     if (quantity === 0) {
@@ -422,73 +455,87 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
             </RowList>
           </Card>
 
-          <Card className="flex flex-col gap-3">
-            <Field
-              label={t('orderDiscount')}
-              prefix="৳"
-              inputMode="decimal"
-              value={draft.discount}
-              error={problems.discount}
-              onChange={(event) => {
-                set({ discount: event.target.value });
-              }}
-            />
-            {counter ? null : (
-              <>
-                <SwitchRow
-                  label={t('deliveryByHand')}
-                  checked={draft.byHand}
-                  onChange={(byHand) => {
-                    set({ byHand });
-                  }}
-                />
-                {draft.byHand ? (
-                  <Field
-                    label={t('deliveryCharge')}
-                    prefix="৳"
-                    inputMode="decimal"
-                    value={draft.charge}
-                    error={problems.deliveryCharge}
-                    onChange={(event) => {
-                      set({ charge: event.target.value });
-                    }}
-                  />
-                ) : null}
-              </>
-            )}
-            {/* ORD-22: recording money is payments:manage's; an order already made takes it on its own page. */}
-            {mayPay && !order ? (
-              <>
-                <SwitchRow
-                  label={t('paidAlready')}
-                  checked={draft.paid}
-                  onChange={(paid) => {
-                    set({ paid });
-                  }}
-                />
-                {draft.paid ? <PaidFields draft={draft} problems={problems} onSet={set} /> : null}
-              </>
-            ) : null}
-            {counter || order ? null : (
-              <SwitchRow
-                label={t('confirmedAlready')}
-                sub={t('confirmedAlreadyH')}
-                checked={draft.confirmed}
-                onChange={(confirmed) => {
-                  set({ confirmed });
+          {booked ? (
+            <Card className="flex flex-col gap-3">
+              <Field
+                label={t('note')}
+                value={draft.note}
+                placeholder={t('notePh')}
+                error={problems.notes}
+                onChange={(event) => {
+                  set({ note: event.target.value });
                 }}
               />
-            )}
-            <Field
-              label={t('note')}
-              value={draft.note}
-              placeholder={t('notePh')}
-              error={problems.notes}
-              onChange={(event) => {
-                set({ note: event.target.value });
-              }}
-            />
-          </Card>
+            </Card>
+          ) : (
+            <Card className="flex flex-col gap-3">
+              <Field
+                label={t('orderDiscount')}
+                prefix="৳"
+                inputMode="decimal"
+                value={draft.discount}
+                error={problems.discount}
+                onChange={(event) => {
+                  set({ discount: event.target.value });
+                }}
+              />
+              {counter ? null : (
+                <>
+                  <SwitchRow
+                    label={t('deliveryByHand')}
+                    checked={draft.byHand}
+                    onChange={(byHand) => {
+                      set({ byHand });
+                    }}
+                  />
+                  {draft.byHand ? (
+                    <Field
+                      label={t('deliveryCharge')}
+                      prefix="৳"
+                      inputMode="decimal"
+                      value={draft.charge}
+                      error={problems.deliveryCharge}
+                      onChange={(event) => {
+                        set({ charge: event.target.value });
+                      }}
+                    />
+                  ) : null}
+                </>
+              )}
+              {/* ORD-22: recording money is payments:manage's; an order already made takes it on its own page. */}
+              {mayPay && !order ? (
+                <>
+                  <SwitchRow
+                    label={t('paidAlready')}
+                    checked={draft.paid}
+                    onChange={(paid) => {
+                      set({ paid });
+                    }}
+                  />
+                  {draft.paid ? <PaidFields draft={draft} problems={problems} onSet={set} /> : null}
+                </>
+              ) : null}
+              {counter || order ? null : (
+                <SwitchRow
+                  label={t('confirmedAlready')}
+                  sub={t('confirmedAlreadyH')}
+                  checked={draft.confirmed}
+                  onChange={(confirmed) => {
+                    set({ confirmed });
+                  }}
+                />
+              )}
+              <Field
+                label={t('note')}
+                value={draft.note}
+                placeholder={t('notePh')}
+                error={problems.notes}
+                onChange={(event) => {
+                  set({ note: event.target.value });
+                }}
+              />
+            </Card>
+          )}
 
           {counter || order ? null : (
             <Card>
@@ -577,12 +624,15 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
 /** One line (the prototype's line in `o29NewOrder`): its price for each, a combo's choices, add-ons, quantity, total. */
 function LineRow({
   line,
+  fixed = false,
   short,
   onQuantity,
   onPrice,
   onDetails,
 }: {
   line: DraftLine;
+  /** A booked order's (Part 36's `c36-edit`): its quantity shown, nothing to change. */
+  fixed?: boolean;
   short: boolean;
   onQuantity: (quantity: number) => void;
   onPrice: () => void;
@@ -633,29 +683,33 @@ function LineRow({
             {each.name}: {each.value}
           </span>
         ))}
-        <span className="mt-1.5 flex items-center gap-2.5">
-          <Quantity
-            value={line.quantity}
-            least={0}
-            most={Number.MAX_SAFE_INTEGER}
-            label={line.productName}
-            onChange={onQuantity}
-          />
-          <button type="button" className="text-[13px]" onClick={onPrice}>
-            {t('priceByHand')}
-          </button>
-          {asked.length > 0 ? (
-            <button
-              type="button"
-              className="text-[13px]"
-              onClick={() => {
-                onDetails(asked);
-              }}
-            >
-              {t('changeDetails')}
+        {fixed ? (
+          <span className="num text-[14px] text-fg-muted">× {line.quantity}</span>
+        ) : (
+          <span className="mt-1.5 flex items-center gap-2.5">
+            <Quantity
+              value={line.quantity}
+              least={0}
+              most={Number.MAX_SAFE_INTEGER}
+              label={line.productName}
+              onChange={onQuantity}
+            />
+            <button type="button" className="text-[13px]" onClick={onPrice}>
+              {t('priceByHand')}
             </button>
-          ) : null}
-        </span>
+            {asked.length > 0 ? (
+              <button
+                type="button"
+                className="text-[13px]"
+                onClick={() => {
+                  onDetails(asked);
+                }}
+              >
+                {t('changeDetails')}
+              </button>
+            ) : null}
+          </span>
+        )}
       </span>
       <span className="num flex-none text-[16px] font-semibold">
         {formatTaka(Number(each) * line.quantity)}

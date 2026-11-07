@@ -1,6 +1,6 @@
 # Tenant dashboard: the full design
 
-Status: v3.35, 2026-11-06 (Couriers, booking, the order's Courier card and courier money, drawn for Phase 6 Slice 6.7, §7.39, Part 36; v3.34 of 2026-11-05: Payments and Listener phones, drawn and built together for Slice 5.8's parts 3 and 4, §7.36 to §7.38; v3.33 of 2026-11-04: Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
+Status: v3.36, 2026-11-07 (the Phase 6 close-out: editing a booked order, §7.39, Part 36's `c36-edit` and `c36-edited`; v3.35 of 2026-11-06: Couriers, booking, the order's Courier card and courier money, drawn for Phase 6 Slice 6.7, §7.39, Part 36; v3.34 of 2026-11-05: Payments and Listener phones, drawn and built together for Slice 5.8's parts 3 and 4, §7.36 to §7.38; v3.33 of 2026-11-04: Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
 shipment the balance can't pay for, serials at shipping scanned, pasted or typed, the Orders list by where an order came
 from; v3.31 of 2026-11-04: Payment methods in Settings, how a wallet's money is taken, bKash's keys, the owner's phone at
 sign-up and Balance's on-hold line, drawn for Slice 5.8's part 1, §7.35; v3.30 of 2026-11-03: Sales as built: the split follows
@@ -1828,6 +1828,12 @@ in one PR after Slice 6.6. Every courier is shown by its name, never its logo.
   (`dlg-c36-cancel-redx`), and no clear answer means confirming from its panel (`sh-c36-cancel-redx-noanswer`). The fee
   and the month's count stay. Cancelling a booked order says the same, that the stock comes back, and that a delivered
   report arriving later is shown and reopens nothing (`sh-c36-cancel-order`).
+- **Editing a booked order** (ORD-11; the Phase 6 close-out, the owner's pick 2026-11-07): the booked order's more menu
+  keeps Edit, after Cancel the booking, for the customer's name, phone, address and note (`c36-booked-menu`). The
+  editor says why the rest is fixed: booked with its courier, the items, totals and where it goes stay, and changing them
+  means cancelling and entering a new order. The thana shows locked, the items read-only, and only the note stays below
+  them (`c36-edit`). Saved, the order says the courier still has the old details, naming it, so staff change them in
+  its panel too (`c36-edited`). An order whose booking isn't settled offers no Edit, as the server refuses it.
 - **The Orders list** (agreed): under the customer, one line for a booked order's parcel, "Steadfast · with the
   courier", or warning-toned "Needs a look" (`c36-list`). A Needs a look tab with its count gathers them, until each is
   marked seen (`c36-list-look`).

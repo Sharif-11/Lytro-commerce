@@ -78,6 +78,8 @@ export interface AcceptedBooking {
   note: string;
   serials: Departure['serials'];
   fee: OrderFeeQuote | null;
+  /** Close-out (A5): who booked it, who confirmed it when the minute pass settles it for them; else whoever settles it. */
+  bookedBy?: string | null;
 }
 
 /** How a whole order leaves the shop by hand (D4-7): with a courier, or handed to its customer at the counter. */
@@ -182,6 +184,17 @@ export class OrderFulfilment {
     return { passed, fee, tookPlace: true };
   }
 
+  /** Phase 6 close-out (A3): a parcel's IDs that came after it settled reach the order, where its tracking reads them. */
+  async fillTrackingWithin(
+    tx: Transaction,
+    tenantId: string,
+    order: OrderRecord,
+    tracking: { trackingCode: string; trackingLink: string | null },
+  ): Promise<void> {
+    if (order.trackingCode !== null) return;
+    await this.store.updateOrder(tx, tenantId, order.id, tracking);
+  }
+
   /** QTA-01: a booking that came to nothing gives back the place it took; the order was never handled. */
   async giveBackPlaceWithin(tx: Transaction, tenantId: string, orderId: string): Promise<void> {
     await this.store.updateOrder(tx, tenantId, orderId, { handledAt: null });
@@ -236,7 +249,7 @@ export class OrderFulfilment {
       }
       Object.assign(patch, { fulfillmentStatus: FulfillmentStatus.Processing });
       if (order.confirmedAt === null) {
-        Object.assign(patch, { confirmedAt: now, confirmedBy: who.id });
+        Object.assign(patch, { confirmedAt: now, confirmedBy: booking.bookedBy ?? who.id });
         history.push({
           orderId: order.id,
           field: OrderHistoryField.Confirmed,

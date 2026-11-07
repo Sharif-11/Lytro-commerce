@@ -3,8 +3,15 @@
 // tracking id, parcel info with `status` and `delivery_type`, and a cancel that answers "Request Accepted". Unlike the sandbox, which gives
 // one tracking id to every booking, each parcel here has its own. Injected as COURIER_FETCH, so nothing leaves the machine.
 
+import { randomUUID } from 'node:crypto';
+
 export const REDX_SHOP_TOKEN = 'redx-shop-token-1234';
 export const REDX_LYTRO_TOKEN = 'redx-lytro-area-token-5678';
+
+/** Phase 6 close-out: one account serves one shop, so each shop connects with its own token, which this fake takes too. */
+export function freshRedxToken(): string {
+  return `${REDX_SHOP_TOKEN}-${randomUUID().slice(0, 8)}`;
+}
 
 export interface RedxCall {
   method: string;
@@ -78,7 +85,10 @@ export class FakeRedx {
     this.calls.push({ method, path, token, body });
     await Promise.resolve();
     if (this.behaviour.down) throw new DOMException('timed out', 'TimeoutError');
-    const known = token === REDX_SHOP_TOKEN || token === REDX_LYTRO_TOKEN;
+    const known =
+      token === REDX_SHOP_TOKEN ||
+      (token?.startsWith(`${REDX_SHOP_TOKEN}-`) ?? false) ||
+      token === REDX_LYTRO_TOKEN;
     if (this.behaviour.tokensRevoked === true || !known) {
       return reply(401, { message: 'Unauthorized', status_code: 401 });
     }

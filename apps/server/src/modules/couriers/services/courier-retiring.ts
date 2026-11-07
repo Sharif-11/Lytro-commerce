@@ -354,6 +354,7 @@ export class CourierRetiring {
       });
       return saved;
     });
+    const states = await this.states();
     let disconnected = 0;
     for (const shopId of await this.store.listShopIds()) {
       try {
@@ -362,7 +363,12 @@ export class CourierRetiring {
           if (!mine) return false;
           await this.messages.forgetRoute(tx, mine.id);
           if (mine.isDefault) {
-            const [next] = await this.store.listConnections(tx, shopId);
+            // Close-out (C6): as retiring does, only a courier still active takes over, longest connected first.
+            const next = (await this.store.listConnections(tx, shopId)).find(
+              (each) =>
+                (states.get(each.courierKey)?.state ?? CourierAdapterState.Active) ===
+                CourierAdapterState.Active,
+            );
             if (next) await this.store.setDefaultConnection(tx, shopId, next.courierKey, now);
           }
           await this.activity.record(

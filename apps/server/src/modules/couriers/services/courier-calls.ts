@@ -29,7 +29,17 @@ export class CourierCalls {
     @Inject(COURIER_STORE) private readonly store: CourierStore,
     @Inject(COURIER_CLOCK) private readonly clock: () => Date,
   ) {
-    this.breaker = new CircuitBreaker(() => this.clock().getTime());
+    // PRF-05 (Phase 6 close-out): an opened circuit is said in the server's log; the operator's alert comes with Phase 7's notices.
+    this.breaker = new CircuitBreaker(
+      () => this.clock().getTime(),
+      undefined,
+      undefined,
+      (circuit, failures) => {
+        this.logger.error(
+          `the courier circuit ${circuit} opened after ${String(failures)} failures in a row`,
+        );
+      },
+    );
   }
 
   async run<T extends { outcome: string }>(

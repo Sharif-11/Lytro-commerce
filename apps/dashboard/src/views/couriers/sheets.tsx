@@ -124,8 +124,9 @@ export function ConnectSheet({
           <Field
             key={field}
             label={label ? ('brand' in label ? label.brand : t(label.word)) : field}
-            type={field === 'password' ? 'password' : field === 'username' ? 'email' : 'text'}
-            autoComplete="off"
+            // SEC-08: every key, secret and password is masked as it's typed; only the login's email and Pathao's client ID show.
+            type={secret ? 'password' : field === 'username' ? 'email' : 'text'}
+            autoComplete={secret ? 'new-password' : 'off'}
             spellCheck={false}
             placeholder={
               mode === 'connect'

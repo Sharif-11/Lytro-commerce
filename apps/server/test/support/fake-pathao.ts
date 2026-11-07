@@ -3,6 +3,8 @@
 // field errors. A repeated order number makes a second parcel. Injected as COURIER_FETCH, so nothing leaves. The old access token also ends
 // here at a refresh, the stricter of what the sandbox did: it refused one and went on taking another, so Lytro must never rely on it.
 
+import { randomUUID } from 'node:crypto';
+
 export const PATHAO_CLIENT_ID = 'pathao-client-id-1234';
 export const PATHAO_CLIENT_SECRET = 'pathao-client-secret-5678';
 export const PATHAO_USERNAME = 'merchant@example.com';
@@ -13,6 +15,17 @@ export const PATHAO_FIELDS = {
   username: PATHAO_USERNAME,
   password: PATHAO_PASSWORD,
 };
+
+/** Phase 6 close-out: one account serves one shop, so each shop connects with its own client ID, which this fake takes too. */
+export function freshPathaoFields(): typeof PATHAO_FIELDS {
+  return { ...PATHAO_FIELDS, clientId: `${PATHAO_CLIENT_ID}-${randomUUID().slice(0, 8)}` };
+}
+
+function knownClient(id: unknown): boolean {
+  return (
+    id === PATHAO_CLIENT_ID || (typeof id === 'string' && id.startsWith(`${PATHAO_CLIENT_ID}-`))
+  );
+}
 
 export interface PathaoCall {
   method: string;
@@ -161,7 +174,7 @@ export class FakePathao {
       type: 'error',
       code: 400,
     });
-    if (body['client_id'] !== PATHAO_CLIENT_ID || body['client_secret'] !== PATHAO_CLIENT_SECRET) {
+    if (!knownClient(body['client_id']) || body['client_secret'] !== PATHAO_CLIENT_SECRET) {
       return refused;
     }
     if (body['grant_type'] === 'password') {

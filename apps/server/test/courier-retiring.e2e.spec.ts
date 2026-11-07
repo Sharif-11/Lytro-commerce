@@ -23,9 +23,9 @@ import { CourierBookingTickWorker } from '../src/modules/shared/queue-workers/se
 import { CourierNightTickWorker } from '../src/modules/shared/queue-workers/services/courier-night-tick-worker';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { FakePathao, PATHAO_FIELDS } from './support/fake-pathao';
-import { FakeRedx, REDX_SHOP_TOKEN } from './support/fake-redx';
-import { FakeSteadfast, RIGHT_API_KEY, RIGHT_SECRET_KEY } from './support/fake-steadfast';
+import { FakePathao, freshPathaoFields } from './support/fake-pathao';
+import { FakeRedx, freshRedxToken } from './support/fake-redx';
+import { FakeSteadfast, freshSteadfastKeys } from './support/fake-steadfast';
 import { cookieFrom, getJson, postJson, type HttpResult } from './support/http';
 import { errorOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
@@ -178,14 +178,19 @@ function freshMobile(): string {
 }
 
 type Key = 'steadfast' | 'redx' | 'pathao';
-const CREDENTIALS: Record<Key, Record<string, string>> = {
-  steadfast: { apiKey: RIGHT_API_KEY, secretKey: RIGHT_SECRET_KEY },
-  redx: { apiToken: REDX_SHOP_TOKEN },
-  pathao: PATHAO_FIELDS,
-};
+/** Phase 6 close-out: one courier account serves one shop, so each connection brings its own. */
+function credentialsFor(courierKey: Key): Record<string, string> {
+  if (courierKey === 'steadfast') return freshSteadfastKeys();
+  if (courierKey === 'redx') return { apiToken: freshRedxToken() };
+  return freshPathaoFields();
+}
 
-async function connect(shop: ShopClient, courierKey: Key): Promise<HttpResult> {
-  return shop.post('/couriers/connections', { courierKey, credentials: CREDENTIALS[courierKey] });
+async function connect(
+  shop: ShopClient,
+  courierKey: Key,
+  credentials: Record<string, string> = credentialsFor(courierKey),
+): Promise<HttpResult> {
+  return shop.post('/couriers/connections', { courierKey, credentials });
 }
 
 async function shopWith(...keys: Key[]): Promise<ShopClient> {
@@ -460,7 +465,127 @@ describeIfDatabase('retiring a courier (CRR-23, CRR-25)', () => {
   });
 });
 
+describeIfDatabase(
+  'connecting while the courier changes, and one account per shop (close-out)',
+  () => {
+    it('refuses a new shop when the courier is retired while its keys are being tried (C1)', async () => {
+      const shop = await openShop(port, texts, 'crt');
+      steadfast.behaviour = {
+        whileTesting: async () => {
+          expect((await retire('steadfast', 'redx')).status).toBe(200);
+        },
+      };
+      const answered = await connect(shop, 'steadfast');
+      expect(answered.status, JSON.stringify(answered.body)).toBe(409);
+      expect(errorOf(answered).message).toMatch(/being retired|রিটায়ার হচ্ছে/);
+      expect(await connections(shop)).toEqual([]);
+    });
+
+    it('gives a shop connecting two couriers at once one default (A8)', async () => {
+      const shop = await openShop(port, texts, 'crt');
+      const answers = await Promise.all([connect(shop, 'steadfast'), connect(shop, 'redx')]);
+      expect(answers.map((answer) => answer.status)).toEqual([200, 200]);
+      const listed = await connections(shop);
+      expect(listed).toHaveLength(2);
+      expect(listed.filter((each) => each.isDefault)).toHaveLength(1);
+    });
+
+    it('refuses a courier account another shop uses, and frees it when that shop disconnects (agreed 2026-11-07)', async () => {
+      const first = await openShop(port, texts, 'crt');
+      const second = await openShop(port, texts, 'crt');
+      const keys = credentialsFor('steadfast');
+      expect((await connect(first, 'steadfast', keys)).status).toBe(200);
+      const refused = await connect(second, 'steadfast', keys);
+      expect(refused.status, JSON.stringify(refused.body)).toBe(409);
+      expect(errorOf(refused)).toMatchObject({
+        code: 'conflict',
+        details: { courierKey: 'steadfast' },
+      });
+      expect(errorOf(refused).message).toMatch(/another Lytro shop|আরেকটি শপে/);
+      expect(await connections(second)).toEqual([]);
+      // The shop that has it may still replace its keys with the same account.
+      expect((await connect(first, 'steadfast', keys)).status).toBe(200);
+      expect((await first.delete('/couriers/connections/steadfast')).status).toBe(200);
+      expect((await connect(second, 'steadfast', keys)).status).toBe(200);
+    });
+  },
+);
+
+describeIfDatabase('what a shop may connect, and a retiring courier still does (close-out)', () => {
+  it('lets a Starter shop connect all three couriers, one of them its default (CRR-04)', async () => {
+    const shop = await openShop(port, texts, 'crt');
+    await admin.query(
+      `UPDATE control.tenants SET state = 'active',
+         plan_id = (SELECT id FROM control.plans WHERE name = 'Starter'),
+         plan_snapshot = (SELECT limits FROM control.plans WHERE name = 'Starter'),
+         period_start = now() - interval '10 days', period_end = now() + interval '20 days'
+       WHERE id = $1`,
+      [shop.tenantId],
+    );
+    for (const key of ['steadfast', 'pathao', 'redx'] as const) {
+      const made = await connect(shop, key);
+      expect(made.status, JSON.stringify(made.body)).toBe(200);
+    }
+    const listed = await connections(shop);
+    expect(listed.map((each) => each.courierKey).sort()).toEqual(['pathao', 'redx', 'steadfast']);
+    expect(listed.filter((each) => each.isDefault)).toHaveLength(1);
+  });
+
+  it('keeps tracking a retiring courier’s parcels: Sync still asks it (CRR-23)', async () => {
+    const shop = await shopWith('steadfast', 'redx');
+    const order = await booked(shop);
+    expect((await retire('steadfast', 'redx')).status).toBe(200);
+    steadfast.calls.length = 0;
+    clockShift = 11 * 60_000;
+    const synced = await shop.post(`/orders/${order.id}/parcel/sync`, {});
+    expect(synced.status, JSON.stringify(synced.body)).toBe(200);
+    expect(steadfast.statusCalls()).toHaveLength(1);
+  });
+});
+
 describeIfDatabase('removing a courier (CRR-24)', () => {
+  it('moves a removed default only to a courier still active (C6, close-out)', async () => {
+    const shop = await shopWith('pathao', 'steadfast', 'redx');
+    expect((await retire('steadfast', 'redx')).status).toBe(200);
+    expect((await retire('pathao', 'redx')).status).toBe(200);
+    // The shop made the retiring courier its default again; listed first after it is the other retiring one.
+    await admin.query(
+      'UPDATE tenant.courier_connections SET is_default = false WHERE tenant_id = $1',
+      [shop.tenantId],
+    );
+    await admin.query(
+      "UPDATE tenant.courier_connections SET is_default = true WHERE tenant_id = $1 AND courier_key = 'pathao'",
+      [shop.tenantId],
+    );
+    await admin.query(
+      "UPDATE tenant.courier_parcels SET state = 'cancelled' WHERE courier_key = 'pathao'",
+    );
+    const removed = await remove('pathao');
+    expect(removed.status, JSON.stringify(removed.body)).toBe(200);
+    expect((await connections(shop)).find((each) => each.isDefault)?.courierKey).toBe('redx');
+  });
+
+  it('is held back by a shipped order’s parcel, not only one being prepared (CRR-24, close-out)', async () => {
+    const shop = await shopWith('steadfast', 'redx');
+    const order = await booked(shop);
+    await admin.query(
+      "UPDATE tenant.orders SET fulfillment_status = 'shipped', shipped_at = now() WHERE id = $1",
+      [order.id],
+    );
+    await admin.query(
+      "UPDATE tenant.courier_parcels SET reading = 'with_courier' WHERE order_id = $1",
+      [order.id],
+    );
+    expect((await retire('steadfast', 'redx')).status).toBe(200);
+    const listed = await getJson(port, '/operator/couriers/steadfast/blocking', operator);
+    expect(listed.status, JSON.stringify(listed.body)).toBe(200);
+    const { orders } = listed.body as { orders: { orderId: string; reason: string }[] };
+    expect(orders).toContainEqual(
+      expect.objectContaining({ orderId: order.id, reason: 'on_its_way' }),
+    );
+    expect((await remove('steadfast')).status).toBe(409);
+  });
+
   it('waits for parcels on their way and unpaid deliveries, then takes every shop’s keys and address, keeping its parcels', async () => {
     const shop = await shopWith('steadfast', 'redx');
     const order = await booked(shop);

@@ -10,6 +10,19 @@ import {
 import type { Order, OrderPayment } from '@/types/orders';
 import { atCounter } from './order-words';
 
+/**
+ * ORD-11 (the Phase 6 close-out, Part 36's `c36-edit`): booked with its courier and settled, so only the customer's details
+ * and the note can change; its items, totals and where it goes stay as booked, and the courier keeps what it was sent.
+ */
+export function editsBooked(order: Order): boolean {
+  return (
+    order.status !== OrderStatus.Cancelled &&
+    order.fulfillmentStatus === FulfillmentStatus.Processing &&
+    order.parcel?.state === ParcelState.Booked &&
+    order.parcel.settled
+  );
+}
+
 /** What can be done to an order now, by whoever is looking (agreed in the 4.8a read: one next step, the rest in ⋯). */
 export function choicesOf(order: Order, may: (permission: Permission) => boolean) {
   const manage = may(Permission.OrdersManage);
@@ -51,8 +64,9 @@ export function choicesOf(order: Order, may: (permission: Permission) => boolean
       parcel?.state === ParcelState.Booked &&
       !parcel.settled &&
       parcel.settleProblem !== null,
-    // ORD-11: its customer, items, prices or notes, until it ships.
-    edit: manage && open,
+    // ORD-11: its customer, items, prices or notes, until it ships. Booked (the Phase 6 close-out's `c36-edit`), only its customer's
+    // details and note, once the booking is settled: the server refuses an edit while it isn't.
+    edit: manage && ((open && !live) || editsBooked(order)),
     delete: may(Permission.OrdersDelete) && open && !livePaid,
     handOver: manage && open && counter,
     ship: manage && open && !counter && order.status === OrderStatus.Confirmed && !live,

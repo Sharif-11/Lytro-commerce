@@ -38,6 +38,9 @@ export interface CourierStore {
     tenantId: string,
     courierKey: CourierKey,
   ): Promise<SelectCourierConnection | null>;
+  /** Phase 6 close-out: one shop's connections change one at a time. */
+  lockConnections(tx: Transaction, tenantId: string): Promise<void>;
+  /** Throws UniqueViolation('account') when another shop has this courier account (agreed 2026-11-07). */
   saveConnection(
     tx: Transaction,
     tenantId: string,
@@ -46,6 +49,7 @@ export interface CourierStore {
       credentials: Buffer;
       isDefault: boolean;
       state: CourierConnectionState;
+      accountFingerprint: string | null;
     },
     now: Date,
   ): Promise<SelectCourierConnection>;

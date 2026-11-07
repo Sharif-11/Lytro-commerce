@@ -27,15 +27,16 @@ import { CourierBookingTickWorker } from '../src/modules/shared/queue-workers/se
 import { CourierNightTickWorker } from '../src/modules/shared/queue-workers/services/courier-night-tick-worker';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedBalance } from './support/database';
-import {
-  FakeSteadfast,
-  RIGHT_API_KEY,
-  RIGHT_SECRET_KEY,
-  signatureOf,
-} from './support/fake-steadfast';
+import { FakeSteadfast, freshSteadfastKeys, signatureOf } from './support/fake-steadfast';
 import { getJson, postJson, sendExact, type HttpResult } from './support/http';
 import { openShop, staffWith, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
+import {
+  GOLDEN_WAYS,
+  walkGoldenPath,
+  type GoldenOrder,
+  type GoldenWay,
+} from './support/courier-golden-path';
 import { expectLedgerAgrees } from './support/stock-ledger';
 
 // Phase 6 Slice 6.2, read agreed 2026-11-05: the courier's news. Steadfast's messages, the night check and Sync all end in one path that
@@ -56,7 +57,6 @@ const attention: ParcelAttentionNotice[] = [];
 const moved: ParcelMovedNotice[] = [];
 const trouble: ConnectionTroubleNotice[] = [];
 
-const KEYS = { apiKey: RIGHT_API_KEY, secretKey: RIGHT_SECRET_KEY };
 const AT = '2026-11-05 10:00:00';
 const SITE = 'https://myshop.com';
 
@@ -216,7 +216,7 @@ async function place(shop: ShopClient, variantId: string, quantity = 1): Promise
 async function connect(shop: ShopClient): Promise<Connected> {
   const made = await shop.post('/couriers/connections', {
     courierKey: 'steadfast',
-    credentials: KEYS,
+    credentials: freshSteadfastKeys(),
   });
   expect(made.status, JSON.stringify(made.body)).toBe(200);
   const { message } = made.body as { message: { address: string; token: string } };
@@ -297,22 +297,6 @@ async function stockOf(shop: ShopClient, productId: string): Promise<string[]> {
   return [found.variants[0]?.onHand ?? '', found.variants[0]?.reserved ?? ''];
 }
 
-async function fees(tenantId: string): Promise<string[]> {
-  const { rows } = await admin.query<{ amount: string }>(
-    "SELECT amount FROM tenant.balance_ledger WHERE tenant_id = $1 AND type = 'order_fee' ORDER BY id",
-    [tenantId],
-  );
-  return rows.map((row) => row.amount);
-}
-
-async function handled(tenantId: string): Promise<number> {
-  const { rows } = await admin.query<{ total: string }>(
-    'SELECT count(*)::text AS total FROM tenant.orders WHERE tenant_id = $1 AND handled_at IS NOT NULL',
-    [tenantId],
-  );
-  return Number(rows[0]?.total);
-}
-
 async function eventsOf(tenantId: string): Promise<number> {
   const { rows } = await admin.query<{ total: string }>(
     'SELECT count(*)::text AS total FROM tenant.courier_events WHERE tenant_id = $1',
@@ -345,71 +329,42 @@ async function nightAfter(hours: number): Promise<void> {
 }
 
 describeIfDatabase('the golden path, three ways (exit criterion 2)', () => {
-  const ways: [string, (to: Connected, order: Order, status: string) => Promise<void>][] = [
-    [
-      'by message',
-      async (to, order, status) => {
-        await send(to, messageOf(order, status));
-      },
-    ],
-    [
-      'by the night check alone',
-      async (_to, order, status) => {
-        standsAt(order, status);
+  function news(to: Connected) {
+    return async (order: GoldenOrder, stage: 'shipped' | 'delivered', way: GoldenWay) => {
+      const status = stage === 'shipped' ? 'pending' : 'delivered';
+      const asked = order as unknown as Order;
+      if (way === 'by message') {
+        await send(to, messageOf(asked, status));
+        return;
+      }
+      standsAt(asked, status);
+      if (way === 'by the night check alone') {
         clockShift += 30 * HOUR_MS;
         await app.get(CourierChecks).runNight();
-      },
-    ],
-    [
-      'by Sync',
-      async (to, order, status) => {
-        standsAt(order, status);
-        clockShift += 11 * MINUTE_MS;
-        const synced = await to.shop.post(`/orders/${order.id}/parcel/sync`, {});
-        expect(synced.status, JSON.stringify(synced.body)).toBe(200);
-      },
-    ],
-  ];
+        return;
+      }
+      clockShift += 11 * MINUTE_MS;
+      const synced = await to.shop.post(`/orders/${order.id}/parcel/sync`, {});
+      expect(synced.status, JSON.stringify(synced.body)).toBe(200);
+    };
+  }
 
-  it.each(ways)('takes a pay-as-you-go order from booked to delivered %s', async (_how, news) => {
-    const to = await payAsYouGo();
-    const { shop } = to;
-    const lamp = await product(shop);
-    const order = await booked(shop, await place(shop, lamp.variantId));
-    expect(order).toMatchObject({ status: 'processing', fulfillmentStatus: 'processing' });
-    const charged = await fees(shop.tenantId);
-    expect(charged).toHaveLength(1);
-    const stock = ['19.000', '0.000'];
-    expect(await stockOf(shop, lamp.id)).toEqual(stock);
-
-    await news(to, order, 'pending');
-    const shipped = await read(shop, order.id);
-    expect(shipped).toMatchObject({ status: 'shipped', fulfillmentStatus: 'shipped' });
-    expect(shipped.shippedAt).not.toBeNull();
-    expect(shipped.parcel).toMatchObject({ reading: 'with_courier', courierStatus: 'pending' });
-    expect(shipped.due).toBe(order.due);
-    expect(await stockOf(shop, lamp.id)).toEqual(stock);
-
-    await news(to, order, 'delivered');
-    const delivered = await read(shop, order.id);
-    expect(delivered).toMatchObject({
-      status: 'delivered',
-      fulfillmentStatus: 'delivered',
-      paymentStatus: 'paid',
-      due: '0.00',
-    });
-    expect(delivered.deliveredAt).not.toBeNull();
-    expect(delivered.parcel).toMatchObject({ reading: 'delivered', courierStatus: 'delivered' });
-    expect(delivered.payments).toEqual([
-      expect.objectContaining({ method: 'cash_on_delivery', amount: order.due }),
-    ]);
-    // The stock, the count and the fee happened once, at booking.
-    expect(await stockOf(shop, lamp.id)).toEqual(stock);
-    expect(await handled(shop.tenantId)).toBe(1);
-    expect(await fees(shop.tenantId)).toEqual(charged);
-    await expectLedgerAgrees(admin, shop.tenantId);
-    expect(moved.map((notice) => notice.reading)).toEqual(['with_courier', 'delivered']);
-  });
+  it.each(GOLDEN_WAYS)(
+    'takes a pay-as-you-go order from its confirming call to delivered %s',
+    async (way) => {
+      const to = await payAsYouGo();
+      const done = await walkGoldenPath(
+        to.shop,
+        { port, admin, locationId: await mirpur(to.shop), booking: {}, news: news(to) },
+        way,
+      );
+      const delivered = await read(to.shop, done.id);
+      expect(delivered.shippedAt).not.toBeNull();
+      expect(delivered.deliveredAt).not.toBeNull();
+      expect(delivered.parcel).toMatchObject({ courierStatus: 'delivered' });
+      expect(moved.map((notice) => notice.reading)).toEqual(['with_courier', 'delivered']);
+    },
+  );
 });
 
 describeIfDatabase(
@@ -450,6 +405,14 @@ describeIfDatabase(
       };
       expect(after.connections[0]?.messages).toBe('arriving');
       expect(after.connections[0]?.lastMessageAt).not.toBeNull();
+      // Phase 6 close-out: a good message in between doesn't start the day again, so a forger can't make it say so twice.
+      const again = await postJson(port, to.address, body, { host: 'localhost' });
+      expect(again.status).toBe(401);
+      expect(trouble).toHaveLength(1);
+      const missing = (await to.shop.get('/couriers/connections')).body as {
+        connections: { messages: string }[];
+      };
+      expect(missing.connections[0]?.messages).toBe('token_missing');
     });
 
     it('adds nothing for a repeat with the same key, even two at once (CRR-13)', async () => {
@@ -639,6 +602,14 @@ describeIfDatabase('nothing comes back without a person (exit criterion 5, D6-6)
     });
     expect(partly.deliveredAt).toBeNull();
     expect(partly.payments[0]?.amount).toBe('1000.00');
+    // ORD-08 (close-out): the move is in the order's history, with the courier's word as its note.
+    expect(partly.history).toContainEqual(
+      expect.objectContaining({
+        field: 'fulfillment_status',
+        to: 'partially_delivered',
+        note: expect.stringContaining('Steadfast') as string,
+      }),
+    );
     expect(await stockOf(to.shop, lamp.id)).toEqual(['18.000', '0.000']);
     // Staff say what came back, and only then does it move.
     const counted = await to.shop.post(`/orders/${order.id}/returns`, {
@@ -647,6 +618,28 @@ describeIfDatabase('nothing comes back without a person (exit criterion 5, D6-6)
     expect(counted.status, JSON.stringify(counted.body)).toBe(200);
     expect(await stockOf(to.shop, lamp.id)).toEqual(['19.000', '0.000']);
     await expectLedgerAgrees(admin, to.shop.tenantId);
+  });
+
+  it('notes a delivered report after a partly delivered one and changes nothing (close-out, agreed 2026-11-07)', async () => {
+    const to = await connectedShop();
+    const lamp = await product(to.shop, 1000);
+    const order = await booked(to.shop, await place(to.shop, lamp.variantId, 2));
+    await send(to, messageOf(order, 'partial_delivered', { cod_amount: 1000 }));
+    await send(to, messageOf(order, 'delivered', { cod_amount: 1000 }));
+    const after = await read(to.shop, order.id);
+    expect(after).toMatchObject({
+      fulfillmentStatus: 'partially_delivered',
+      paymentStatus: 'partially_paid',
+    });
+    expect(after.deliveredAt).toBeNull();
+    expect(after.payments.map((payment) => payment.amount)).toEqual(['1000.00']);
+    expect(after.parcel).toMatchObject({
+      reading: 'partly_delivered',
+      cashCollected: '1000.00',
+      attention: null,
+    });
+    expect(after.parcel?.news.map((row) => row.rawStatus)).toContain('delivered');
+    expect(await stockOf(to.shop, lamp.id)).toEqual(['18.000', '0.000']);
   });
 
   it('records no cash when a partly delivered report names none', async () => {
@@ -722,6 +715,24 @@ describeIfDatabase('calls stay down (exit criterion 7, D6-4)', () => {
     await read(to.shop, order.id);
     await to.shop.get('/orders');
     await to.shop.get('/couriers/connections');
+    expect(steadfast.calls).toEqual([]);
+  });
+
+  it('makes no call when a shopper reads the order’s tracking (CRR-15, close-out)', async () => {
+    const to = await connectedShop();
+    const lamp = await product(to.shop);
+    const order = await booked(to.shop, await place(to.shop, lamp.variantId));
+    await send(to, messageOf(order, 'pending'));
+    const key = await to.shop.post('/api-keys', { name: 'Tracking', websites: [SITE] });
+    expect(key.status, JSON.stringify(key.body)).toBe(201);
+    const { key: secret } = key.body as { key: string };
+    steadfast.calls.length = 0;
+    const tracked = await sendExact(port, 'GET', `/v1/track/${order.trackingId}`, undefined, {
+      host: 'api.localhost',
+      origin: SITE,
+      authorization: `Bearer ${secret}`,
+    });
+    expect(tracked.status, JSON.stringify(tracked.body)).toBe(200);
     expect(steadfast.calls).toEqual([]);
   });
 
@@ -802,6 +813,52 @@ describeIfDatabase('calls stay down (exit criterion 7, D6-4)', () => {
     expect(synced.status, JSON.stringify(synced.body)).toBe(200);
     expect(steadfast.statusCalls()).toHaveLength(1);
     expect((synced.body as Order).parcel?.noNews).toBe(false);
+    // Phase 6 close-out: the 30 days start again from the Sync, so the next night asks rather than stopping it once more.
+    steadfast.calls.length = 0;
+    clockShift = 33 * DAY_MS;
+    await app.get(CourierChecks).runNight();
+    expect(steadfast.statusCalls()).toHaveLength(1);
+    expect((await read(to.shop, order.id)).parcel?.noNews).toBe(false);
+  });
+
+  it('takes news after the stop: "no news" goes and the checks start again (close-out)', async () => {
+    const to = await connectedShop();
+    const lamp = await product(to.shop);
+    const order = await booked(to.shop, await place(to.shop, lamp.variantId));
+    clockShift = 31 * DAY_MS;
+    await app.get(CourierChecks).runNight();
+    expect((await read(to.shop, order.id)).parcel?.noNews).toBe(true);
+    await send(to, messageOf(order, 'pending'));
+    expect((await read(to.shop, order.id)).parcel?.noNews).toBe(false);
+    standsAt(order, 'pending');
+    steadfast.calls.length = 0;
+    clockShift = 33 * DAY_MS;
+    await app.get(CourierChecks).runNight();
+    expect(steadfast.statusCalls()).toHaveLength(1);
+  });
+
+  it('never lets a late message undo what a check found (close-out)', async () => {
+    const to = await connectedShop();
+    const lamp = await product(to.shop);
+    const order = await booked(to.shop, await place(to.shop, lamp.variantId));
+    await send(to, messageOf(order, 'pending', { updated_at: '2026-11-05 10:00:00' }));
+    standsAt(order, 'delivered');
+    clockShift = 30 * HOUR_MS;
+    await app.get(CourierChecks).runNight();
+    expect((await read(to.shop, order.id)).parcel?.reading).toBe('delivered');
+    // The rider's word, sent before the check learned it was delivered, arrives after: noted, and it moves nothing back.
+    await send(
+      to,
+      messageOf(order, 'delivered_approval_pending', { updated_at: '2026-11-05 11:00:00' }),
+    );
+    const after = await read(to.shop, order.id);
+    expect(after.fulfillmentStatus).toBe('delivered');
+    expect(after.parcel?.reading).toBe('delivered');
+    expect(after.parcel?.news.map((row) => row.rawStatus)).toContain('delivered_approval_pending');
+    steadfast.calls.length = 0;
+    clockShift = 60 * HOUR_MS;
+    await app.get(CourierChecks).runNight();
+    expect(steadfast.statusCalls()).toEqual([]);
   });
 
   it('asks nothing for a lapsed shop or a disconnected courier', async () => {

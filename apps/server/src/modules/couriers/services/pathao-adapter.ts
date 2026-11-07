@@ -130,6 +130,7 @@ export class PathaoAdapter implements CourierAdapter {
   readonly key = CourierKey.Pathao;
   readonly name = 'Pathao';
   readonly credentialFields = FIELDS;
+  readonly accountField = 'clientId';
   readonly limits = LIMITS;
   readonly needsArea = false;
   readonly needsThana = true;
