@@ -19,7 +19,13 @@ import {
   type DatabaseHandle,
 } from '@lytronix/db';
 import { DatabaseService } from '../src/database/database.service';
-import { RequestIdModule } from '../src/common/request-id/request-id.module';
+import { RequestContext } from '../src/common/request-id/request-context';
+import { RequestErrors } from '../src/common/request-id/request-errors';
+import { RequestIdHandler } from '../src/common/request-id/request-id-handler';
+import { RequestIds } from '../src/common/request-id/request-ids';
+import { RequestLogger } from '../src/common/request-id/request-logger';
+import { REQUEST_ERROR_STORE } from '../src/common/request-id/tokens';
+import { DrizzleRequestErrorStore } from '../src/database/adapters/request-errors.adapter';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
 import { HealthController } from '../src/modules/health/health.controller';
@@ -117,11 +123,18 @@ beforeAll(async () => {
   database = { handle };
   cache = new TenantCache();
   const moduleRef = await Test.createTestingModule({
-    imports: [RequestIdModule],
     controllers: [ProbeController, HealthController],
     providers: [
       { provide: DatabaseService, useValue: database },
+      // API-27 (Slice 8.1): HttpSetup's request IDs and the error filter's fault keeper, on this test's own database
+      // service (RequestIdModule would look for DatabaseModule's, which this module of tenancy alone doesn't have).
       { provide: RequestErrorRepository, useValue: new RequestErrorRepository() },
+      { provide: REQUEST_ERROR_STORE, useClass: DrizzleRequestErrorStore },
+      RequestIds,
+      RequestContext,
+      RequestIdHandler,
+      RequestLogger,
+      RequestErrors,
       { provide: TenantRepository, useValue: new TenantRepository() },
       { provide: AddonPurchaseRepository, useValue: new AddonPurchaseRepository() },
       { provide: SlugRepository, useValue: new SlugRepository() },
