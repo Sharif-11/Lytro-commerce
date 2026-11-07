@@ -10,6 +10,7 @@ import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { StaffShop, StaffStore } from '../../modules/staff/ports/staff-store';
 import type { StaffCredentials, StaffRecord } from '../../modules/staff/types/staff';
 import type { OwnerContact } from '../../modules/staff/types/owner-contact';
+import type { Language } from '@lytronix/validators';
 import { DatabaseService } from '../database.service';
 
 // The unique index on a shop's staff phones (STF-06 within one shop).
@@ -175,6 +176,27 @@ export class DrizzleStaffStore implements StaffStore {
 
   findOwnerContact(tx: Transaction, tenantId: string): Promise<OwnerContact | null> {
     return this.users.findOwnerContact(tx, tenantId);
+  }
+
+  setLanguage(
+    tx: Transaction,
+    tenantId: string,
+    userId: string | null,
+    language: Language,
+  ): Promise<boolean> {
+    return this.users.setLanguage(tx, tenantId, userId, language);
+  }
+
+  languageOf(tx: Transaction, tenantId: string, userId: string | null): Promise<Language | null> {
+    return this.users.languageOf(tx, tenantId, userId);
+  }
+
+  setOwnerEmailOfSubscriber(
+    tx: Transaction,
+    subscriberId: string,
+    email: string | null,
+  ): Promise<number> {
+    return this.users.setOwnerEmailOfSubscriber(tx, subscriberId, email);
   }
 
   findStaffShop(tx: Transaction, subscriberId: string): Promise<StaffShop | null> {

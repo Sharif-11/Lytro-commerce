@@ -10,8 +10,10 @@ import type { PaymentAddon } from '../types/addon';
 import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { StaffService } from '../../staff/services/staff.service';
+import { ownerReader } from '../../staff/types/owner-contact';
 import type { BillingTermRecord } from '../types/billing-term';
 import type { PlanRecord } from '../types/plan';
+import { planActiveWords } from './billing-notice-words';
 import { BillingTermsService } from './billing-terms.service';
 
 export interface PlanInvoiceInput {
@@ -120,13 +122,16 @@ export class PlanInvoicingService {
 
     // BIL-05: platform-sent, like every other notice about the owner's own account -- never billed to the shop,
     // never counted toward its free SMS (LIF-10's carve-out).
-    const body =
-      `Your ${plan.name} plan is active until ${dhakaDate(input.periodEnd)}. ` +
-      `Invoice #${String(invoice.number)}, ${invoice.amount} TK.`;
-    if (owner?.phone) await this.sms.queueLifecycleNotice(tx, owner.phone, body);
-    if (owner?.email) {
-      await this.mail.queueLifecycleNotice(tx, owner.email, 'Your plan is active', body);
-    }
+    const words = planActiveWords({
+      planName: plan.name,
+      until: dhakaDate(input.periodEnd),
+      invoiceNumber: invoice.number,
+      amount: invoice.amount,
+    });
+    // The SMS keeps its English words (KNOWN-GAPS §127); the email goes in the owner's language.
+    if (owner?.phone) await this.sms.queueLifecycleNotice(tx, owner.phone, words.en.body);
+    const reader = ownerReader(owner);
+    if (reader) await this.mail.queueNotice(tx, reader, words);
     return invoice;
   }
 }

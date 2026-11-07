@@ -74,10 +74,24 @@ export class MailRepository {
     }));
   }
 
-  async markSent(db: Executor, id: number, at: Date): Promise<void> {
+  /** D7-3 (Slice 7.3): sent, with the ID the provider gave it when it has one. */
+  async markSent(
+    db: Executor,
+    id: number,
+    at: Date,
+    providerMessageId: string | null = null,
+  ): Promise<void> {
     await db
       .update(mailOutbox)
-      .set({ status: MailStatus.Sent, sentAt: at, lastError: null })
+      .set({ status: MailStatus.Sent, sentAt: at, lastError: null, providerMessageId })
+      .where(eq(mailOutbox.id, id));
+  }
+
+  /** NTF-06 (Slice 7.3): never sent, the address being stopped. Final: no retry is due. */
+  async markSuppressed(db: Executor, id: number): Promise<void> {
+    await db
+      .update(mailOutbox)
+      .set({ status: MailStatus.Suppressed, lastError: null })
       .where(eq(mailOutbox.id, id));
   }
 

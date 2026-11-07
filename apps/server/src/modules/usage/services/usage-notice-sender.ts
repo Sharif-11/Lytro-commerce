@@ -16,6 +16,7 @@ import type { UsageNoticeStore } from '../ports/usage-notice-store';
 import { USAGE_NOTICE_CLOCK, USAGE_NOTICE_STORE } from '../tokens';
 import { noticeText, operatorAlertText, smsDue } from './usage-notice-text';
 import { UsageService } from './usage.service';
+import { DEFAULT_LANGUAGE } from '../../../common/i18n/bilingual';
 
 /**
  * LIM-01, BND-05, RTE-03, RTE-12: writes and sends a usage notice the warnings queued, with the shop's usage as it is
@@ -46,7 +47,15 @@ export class UsageNoticeSender {
       this.staff.ownerContact(tenant.id),
       this.settings.gracePercent(),
     ]);
-    const text = noticeText(notice, tenant.shopName, usage, now, grace);
+    // Slice 7.3's read: the owner's email in the language they chose, Bangla until they choose.
+    const text = noticeText(
+      notice,
+      tenant.shopName,
+      usage,
+      now,
+      grace,
+      owner?.language ?? DEFAULT_LANGUAGE,
+    );
     const fastSpend = notice.level === 'fast_spend';
     const operators = fastSpend ? await this.store.operatorEmails() : [];
     await this.store.run(async (tx) => {

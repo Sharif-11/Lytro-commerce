@@ -41,6 +41,8 @@ describe('loadEnv platform settings', () => {
       BULKSMSBD_API_KEY: 'key',
       BULKSMSBD_SENDER_ID: 'sender',
       GEMINI_API_KEY: 'key',
+      RESEND_API_KEY: 'key',
+      RESEND_WEBHOOK_SECRET: 'whsec_c2VjcmV0',
     });
     expect(env.TRUSTED_EDGE_SECRET).toBe(SECRET);
   });
@@ -55,6 +57,8 @@ describe('loadEnv platform settings', () => {
       BULKSMSBD_API_KEY: 'key',
       BULKSMSBD_SENDER_ID: 'sender',
       GEMINI_API_KEY: 'key',
+      RESEND_API_KEY: 'key',
+      RESEND_WEBHOOK_SECRET: 'whsec_c2VjcmV0',
     };
     expect(() => new EnvironmentParser().parse(production)).toThrow(/PLATFORM_ADDRESSES/);
     expect(() =>

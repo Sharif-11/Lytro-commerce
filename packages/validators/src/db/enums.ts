@@ -143,6 +143,16 @@ export enum MailStatus {
   Sending = 'sending',
   Sent = 'sent',
   Failed = 'failed',
+  // NTF-06 (Slice 7.3's read): not sent, the address having bounced or marked Lytro's email as spam.
+  Suppressed = 'suppressed',
+}
+
+// NTF-06 (Slice 7.3's read, agreed 2026-11-07): why Lytro stopped emailing an address -- it bounced for good, or its
+// owner marked an email as spam. Either stops every email but a code the person asked for, until the address is proven
+// by a code or changed.
+export enum MailSuppressionReason {
+  Bounced = 'bounced',
+  Complained = 'complained',
 }
 
 // The permission names a role can hold. Dashboard users and API key scopes use the same names (TEN-5, API-06).

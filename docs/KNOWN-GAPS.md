@@ -2169,3 +2169,17 @@ before "placed". Both are true and both are charged; only their order is off.
 ## 125. `ORD-30`, `D7-37`: reading delivery details has read only made-up messages — found 2026-11-06, open until real messages are read on a key with billing on
 
 Slice 7.6 chose Gemini 3.5 Flash-Lite on 21 made-up messages written for its read (104 of 105 fields right), and three of them went through the built adapter. The Gemini key given for the read is on Google's free tier, where Google may use what it is sent and people may read it, so no real customer's message has gone to Gemini (D7-18). Before launch the owner turns billing on for the key's project, and a set of real messages, names and numbers changed, is read: the slice's done-when, and the check that 0.10 TK a read (D7-36) still covers what a real message costs. The free tier also held reads to a few a minute, so how fast a read is on the paid tier is unmeasured too. A shop's reads a minute and Gemini's circuit are kept in memory, exact while there is one server, as §119 says of the others.
+
+## 127. `NTF-06`, `I18N-03`, `D7-41`: what Lytro's email can't yet do — found 2026-11-07, open
+
+Slice 7.3a writes every email to an owner in the language they chose. The same notices also go to the owner by SMS
+(plan active, an add-on payment moved to the balance, retention shortening, shop closed, deletion warnings, a usage
+limit that stops shoppers), and those keep their English words. Lytro pays for those SMS, and a Bangla SMS takes more
+parts. Closing it means choosing, per notice, whether its SMS is worth Bangla's price.
+
+Resend's free plan sends at most 100 emails a UTC day. Past that, Resend answers 429, which the outbox tries five times
+over about 81 minutes and then gives up, so on a busy day some notices would never arrive. Moving to Resend's Pro plan
+($20 a month, no daily cap) before the daily count nears 100 closes it.
+
+A bounce Resend calls temporary is never recorded, so an address that bounces temporarily every time is never stopped.
+

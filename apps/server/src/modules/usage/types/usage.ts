@@ -39,6 +39,8 @@ export interface SuggestedAddon {
   addonId: string;
   key: string;
   name: string;
+  /** Slice 7.3: its Bangla name, which a Bangla notice and screen show; the English one when absent. */
+  nameBn?: string;
   metric: UsageMetric;
   quantity: number;
   monthly: number;
@@ -65,7 +67,7 @@ export interface Suggestions {
  */
 export interface UsagePack {
   metric: UsageMetric.Bandwidth | UsageMetric.Requests;
-  offer: { addonId: string; name: string; price: number } | null;
+  offer: { addonId: string; name: string; nameBn?: string; price: number } | null;
   autoBuy: boolean;
   autoPacks: number;
   autoBuyFailed: boolean;

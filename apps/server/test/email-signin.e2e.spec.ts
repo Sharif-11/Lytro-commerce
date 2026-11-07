@@ -41,6 +41,9 @@ function verify(email: string, code: string): Promise<HttpResult> {
   return post('/auth/email/verify', { email, code });
 }
 
+// Slice 7.3a (D7-41): a code's email carries both languages, the person maybe not having chosen one yet.
+const RESET_SUBJECT = 'Lytro-এ পাসওয়ার্ড রিসেটের কোড / Your password reset code';
+
 beforeAll(async () => {
   if (!ADMIN_URL) return;
   const { adminDbUrl, appDbUrl } = await prepareTestDatabase(ADMIN_URL, DB_NAME);
@@ -195,9 +198,7 @@ describeIfDatabase('resetting a password by emailed code (AUTH-27)', () => {
     const unknown = await post('/auth/forgot-password/email', { email: freshEmail() });
     expect(known.status).toBe(200);
     expect(unknown.body).toEqual(known.body);
-    expect(mail.sent.some((m) => m.to === email && m.subject === 'Your password reset code')).toBe(
-      true,
-    );
+    expect(mail.sent.some((m) => m.to === email && m.subject === RESET_SUBJECT)).toBe(true);
   });
 
   it('allows one reset request per two minutes per account, with the same reply (AUTH-18)', async () => {
@@ -206,7 +207,7 @@ describeIfDatabase('resetting a password by emailed code (AUTH-27)', () => {
     await verify(email, mail.codeFor(email));
 
     const resetsTo = (): number =>
-      mail.sent.filter((m) => m.to === email && m.subject === 'Your password reset code').length;
+      mail.sent.filter((m) => m.to === email && m.subject === RESET_SUBJECT).length;
     const before = resetsTo();
     const first = await post('/auth/forgot-password/email', { email });
     const second = await post('/auth/forgot-password/email', { email });

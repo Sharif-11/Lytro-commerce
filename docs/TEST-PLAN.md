@@ -754,6 +754,16 @@ Steps: 1) Operator creates a notice targeted at a specific audience (e.g. only G
 Expected: only the targeted audience sees it; urgent severity renders distinctly (e.g. a banner, not just an inbox item); scheduled notices don't appear before publish time and disappear after the end time; pinned notices stay pinned; injected markup is sanitized inert, never executes; excluded tenants see nothing; acknowledgment state is per-tenant/per-user.
 Covers: `NTC-02` to `NTC-08`, `NTC-10`, `NTC-11`, `NTC-16` to `NTC-18`.
 
+**S08-16 A bounce or spam complaint stops email, and a code starts it again.**
+Steps: 1) Sign up an owner by phone, add an email to their account, and confirm the shop's notices now go to it. 2) Have Resend report a permanent bounce for it, then a forged report with a wrong signature, then a temporary bounce for another address. 3) Queue a notice to the owner. 4) Ask for a sign-in code to the bounced address and enter it. 5) Have Resend report a spam complaint, then add a second email and remove it again.
+Expected: the forged report is refused with 401 and changes nothing; the temporary bounce changes nothing; after the permanent bounce the dashboard says the owner's email bounced and the queued notice is marked suppressed, never sent; the code still arrives, and entering it clears the bounce; the complaint stops the address again; the second email takes the shop's notices and clears the banner, and removing it returns them to the first.
+Covers: `NTF-06`.
+
+**S08-17 Email in the language the person chose.**
+Steps: 1) With a new owner who hasn't chosen a language, trigger a low-balance notice. 2) Switch the dashboard to English and trigger it again. 3) Ask for a sign-in code by email.
+Expected: the first notice is in Bangla and the second in English; `GET /me` reads back the language chosen; the code's email carries both languages, the code first in each; a language other than Bangla or English is refused.
+Covers: `NTF-03`, `I18N-01`, `I18N-03`.
+
 ---
 
 ## S09 — Public API and webhooks (API)

@@ -757,6 +757,9 @@ export const MESSAGE_KEYS = [
   'AddressReadUnavailable',
   'AddressReadUnreadable',
   'TooManyAddressReads',
+  // Phase 7 Slice 7.3a: email's bounces (NTF-06) and the language a person chose (I18N-01).
+  'EmailWebhookNotVerified',
+  'LanguageSaved',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

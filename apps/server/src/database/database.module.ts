@@ -8,6 +8,7 @@ import {
   SignInFailureRepository,
   SmsRepository,
   MailRepository,
+  MailSuppressionRepository,
   TenantRepository,
   TenantDomainRepository,
   TransactionRunner,
@@ -113,6 +114,7 @@ import { DatabaseService } from './database.service';
     { provide: SlugRepository, useFactory: () => new SlugRepository() },
     { provide: SmsRepository, useFactory: () => new SmsRepository() },
     { provide: MailRepository, useFactory: () => new MailRepository() },
+    { provide: MailSuppressionRepository, useFactory: () => new MailSuppressionRepository() },
     { provide: TenantRepository, useFactory: () => new TenantRepository() },
     { provide: TenantDomainRepository, useFactory: () => new TenantDomainRepository() },
     {
@@ -397,6 +399,7 @@ import { DatabaseService } from './database.service';
     SlugRepository,
     SmsRepository,
     MailRepository,
+    MailSuppressionRepository,
     TenantRepository,
     TenantDomainRepository,
     UserRepository,

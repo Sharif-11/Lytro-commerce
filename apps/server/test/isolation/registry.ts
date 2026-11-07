@@ -21,6 +21,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /me/identities/oauth/:provider/start':
     'attaches the provider account to the session account only',
   'DELETE /me/identities/:id': 'another account identity answers 404; the last identity is refused',
+  // Slice 7.3a, checked in test/email.e2e.spec.ts: the language is kept on the person's own row in the shop the call
+  // names, the owner's row for an owner's session.
+  'PUT /me/language': "keeps the language on the session person's own row in the named shop only",
   // The staff routes: a shop lists, adds and changes only its own staff. Checked in test/staff.e2e.spec.ts.
   'GET /staff': 'lists only the session shop staff and seats',
   'POST /staff': 'creates staff in the session shop only; seats are counted in that shop',

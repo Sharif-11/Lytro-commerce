@@ -94,6 +94,8 @@ export interface RenewingAddonRow {
   key: string;
   kind: AddonKind;
   labelEn: string;
+  /** Slice 7.3: its Bangla name, for the owner's email in Bangla. */
+  labelBn: string;
   limitKey: string | null;
   unitSize: number | null;
   quantity: number;
@@ -197,6 +199,7 @@ const CARRIED_COLUMNS = {
   key: addons.key,
   kind: addonPurchases.kind,
   labelEn: addons.labelEn,
+  labelBn: addons.labelBn,
   limitKey: addonPurchases.limitKey,
   unitSize: addonPurchases.unitSize,
   quantity: addonPurchases.quantity,

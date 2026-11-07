@@ -1,5 +1,6 @@
-import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
-import { users, type SelectUser } from '../../schema';
+import { and, asc, count, eq, inArray, isNull, sql } from 'drizzle-orm';
+import type { Language } from '@lytronix/validators';
+import { tenants, users, type SelectUser } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 
 // AUTH-10: the owner user row. Row-level security applies to it, so it must run inside a transaction that has set
@@ -206,17 +207,109 @@ export class UserRepository {
     await tx.delete(users).where(eq(users.tenantId, tenantId));
   }
 
-  /** LIF-18/24, PYG-21: the owner's own contact, for a platform-sent notice (never a staff member's). */
+  /**
+   * LIF-18/24, PYG-21: the owner's own contact, for a platform-sent notice (never a staff member's). With the language
+   * they chose, which the notice is written in (Slice 7.3's read); null until they choose.
+   */
   async findOwnerContact(
     tx: Transaction,
     tenantId: string,
-  ): Promise<{ phone: string | null; email: string | null; name: string | null } | null> {
+  ): Promise<{
+    phone: string | null;
+    email: string | null;
+    name: string | null;
+    language: Language | null;
+  } | null> {
     await this.transactions.setTenantContext(tx, tenantId);
     const rows = await tx
-      .select({ phone: users.phone, email: users.email, name: users.name })
+      .select({
+        phone: users.phone,
+        email: users.email,
+        name: users.name,
+        language: users.language,
+      })
       .from(users)
       .where(and(eq(users.tenantId, tenantId), eq(users.isOwner, true)))
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  /**
+   * I18N-01 (Slice 7.3's read): the language a person chose, kept on their row in this shop -- the owner's row when
+   * `userId` is null, as an owner's session carries none. Whether a row took it.
+   */
+  async setLanguage(
+    tx: Transaction,
+    tenantId: string,
+    userId: string | null,
+    language: Language,
+  ): Promise<boolean> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .update(users)
+      .set({ language })
+      .where(
+        and(
+          eq(users.tenantId, tenantId),
+          userId === null ? eq(users.isOwner, true) : eq(users.id, userId),
+        ),
+      )
+      .returning({ id: users.id });
+    return rows.length > 0;
+  }
+
+  /** The language a person chose in this shop, the owner's when `userId` is null; null until they choose. */
+  async languageOf(
+    tx: Transaction,
+    tenantId: string,
+    userId: string | null,
+  ): Promise<Language | null> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select({ language: users.language })
+      .from(users)
+      .where(
+        and(
+          eq(users.tenantId, tenantId),
+          userId === null ? eq(users.isOwner, true) : eq(users.id, userId),
+        ),
+      )
+      .limit(1);
+    return rows[0]?.language ?? null;
+  }
+
+  /**
+   * NTF-06 (Slice 7.3): a person's own email changed, so every live shop they own writes its notices to the new one
+   * (null when they no longer have one). A shop whose staff already use that address keeps the old one, since an
+   * address is one person's in a shop (STF-04). How many shops changed.
+   */
+  async setOwnerEmailOfSubscriber(
+    tx: Transaction,
+    subscriberId: string,
+    email: string | null,
+  ): Promise<number> {
+    const shops = await tx
+      .select({ id: tenants.id })
+      .from(tenants)
+      .where(and(eq(tenants.subscriberId, subscriberId), isNull(tenants.deletedAt)));
+    let changed = 0;
+    for (const shop of shops) {
+      await this.transactions.setTenantContext(tx, shop.id);
+      const rows = await tx
+        .update(users)
+        .set({ email })
+        .where(
+          and(
+            eq(users.tenantId, shop.id),
+            eq(users.isOwner, true),
+            email === null
+              ? sql`true`
+              : sql`NOT EXISTS (SELECT 1 FROM tenant.users other WHERE other.tenant_id = ${shop.id} AND other.email = ${email} AND NOT other.is_owner)`,
+          ),
+        )
+        .returning({ id: users.id });
+      changed += rows.length;
+    }
+    return changed;
   }
 }

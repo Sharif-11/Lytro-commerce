@@ -64,6 +64,10 @@ export {
   type NewMailMessage,
 } from './repositories/messaging/mail.repository';
 export {
+  MailSuppressionRepository,
+  type NewMailSuppression,
+} from './repositories/messaging/mail-suppression.repository';
+export {
   EssentialSmsUsageRepository,
   type NewEssentialSmsUsage,
 } from './repositories/messaging/essential-sms-usage.repository';

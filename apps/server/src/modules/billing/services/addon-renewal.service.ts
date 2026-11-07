@@ -21,6 +21,8 @@ import { fromPaisa, toPaisa } from '../../balance/services/money';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import { MailService } from '../../shared/mail/services/mail.service';
 import { StaffService } from '../../staff/services/staff.service';
+import { ownerReader } from '../../staff/types/owner-contact';
+import { addonsNotRenewedWords, countedName } from './billing-notice-words';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { AddonsStore } from '../ports/addons-store';
 import { ADDONS_STORE } from '../tokens';
@@ -370,19 +372,19 @@ export class AddonRenewalService {
     dropped: readonly AddonCarry[],
     short: bigint,
   ): Promise<void> {
-    const contact = await this.staff.ownerContact(tenantId);
-    const names = dropped
-      .map(({ from }) =>
-        from.quantity === 1 ? from.labelEn : `${from.labelEn} x${String(from.quantity)}`,
-      )
-      .join(', ');
-    const body =
-      `These add-ons did not renew from your balance: ${names}. Your balance was ${fromPaisa(short)} TK short ` +
-      'of renewing them. They have ended; you can buy them again from the add-ons page.';
+    const owner = ownerReader(await this.staff.ownerContact(tenantId));
+    const names = dropped.map(({ from }) =>
+      countedName({ bn: from.labelBn, en: from.labelEn }, from.quantity),
+    );
+    const words = addonsNotRenewedWords(
+      {
+        bn: names.map((name) => name.bn).join(', '),
+        en: names.map((name) => name.en).join(', '),
+      },
+      fromPaisa(short),
+    );
     await this.tenants.runStandalone(async (tx) => {
-      if (contact?.email) {
-        await this.mail.queueLifecycleNotice(tx, contact.email, 'Some add-ons did not renew', body);
-      }
+      if (owner) await this.mail.queueNotice(tx, owner, words);
       await this.audit.record(tx, {
         tenantId,
         actorType: ActorType.System,

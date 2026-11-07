@@ -490,6 +490,8 @@ CREATE TABLE tenant.users (
     active             boolean NOT NULL DEFAULT true,
     subscriber_id      uuid,                    -- the platform account behind a staff member; null for the owner (D22)
     must_set_password  boolean NOT NULL DEFAULT false,  -- STF-13: owner reset forces a change at the next sign-in
+    language           varchar(2) CHECK (language IS NULL OR language IN ('bn', 'en')),  -- I18N-01 (0115): the
+                                                -- language chosen in the dashboard, which email and push use; null = Bangla
     created_at         timestamptz NOT NULL DEFAULT now(),
     UNIQUE (tenant_id, phone),
     UNIQUE (tenant_id, email),
@@ -2423,6 +2425,18 @@ CREATE TABLE control.scheduled_plan_changes (
 ## 5. SMS, push and notifications
 
 ```sql
+-- NTF-06, D7-38 (built in Phase 7 Slice 7.3a, migration 0115): the addresses Lytro no longer emails, lowercased.
+-- Resend's signed webhook says an email bounced for good or was marked as spam; the row goes when a code its owner
+-- asked for reaches the address. The outbox sends a code to it still, and marks anything else `suppressed`.
+CREATE TABLE control.mail_suppressions (
+    email       text PRIMARY KEY,
+    reason      text NOT NULL CHECK (reason IN ('bounced', 'complained')),
+    detail      text,                              -- what Resend said, for support; never shown to the shop
+    created_at  timestamptz NOT NULL DEFAULT now()
+);
+-- control.mail_outbox (0115) gains `provider_message_id`, the ID Resend gave an email it accepted, and the status
+-- `suppressed`. Each email is sent with the key `lytro-mail-<id>`, so a retry is never a second email (D7-3).
+
 -- SMS-02, SMS-10, SMS-13, SMS-16, SMS-19 (built in Phase 7 Slice 7.2): a row once the owner changes anything. Only
 -- what the owner changed is kept: every other switch and template follows the platform's default (SMS-03), so "reset"
 -- takes a template out. A per-shop sender ID (SMS-16) is not built: BulkSMSBD's account has one.

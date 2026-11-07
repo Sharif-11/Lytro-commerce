@@ -201,6 +201,9 @@ describe("D7-21: the settings guard BulkSMSBD's login", () => {
     PLATFORM_ADDRESSES: '203.0.113.10',
     // Phase 7 Slice 7.6 (D7-22): production reads messages with Gemini too.
     GEMINI_API_KEY: 'key',
+    // Phase 7 Slice 7.3 (D7-22): and emails through Resend.
+    RESEND_API_KEY: 'key',
+    RESEND_WEBHOOK_SECRET: 'whsec_c2VjcmV0',
   };
 
   it('refuses production, staging included, without the key and the sender ID', () => {

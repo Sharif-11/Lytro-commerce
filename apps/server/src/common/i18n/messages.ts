@@ -1849,6 +1849,11 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   SmsReportRead: { en: 'SMS report.', bn: 'SMS রিপোর্ট।' },
   SmsLogListed: { en: 'SMS sent and refused, listed.', bn: 'পাঠানো ও আটকানো SMS-এর তালিকা।' },
+  EmailWebhookNotVerified: {
+    en: 'This message could not be verified.',
+    bn: 'এই মেসেজটি ভেরিফাই করা যায়নি।',
+  },
+  LanguageSaved: { en: 'Language saved.', bn: 'ভাষা সেভ হয়েছে।' },
   CourierAdaptersListed: { en: 'Couriers listed.', bn: 'কুরিয়ারের তালিকা।' },
   CourierConnectionsListed: {
     en: 'Connected couriers listed.',

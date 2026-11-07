@@ -28,14 +28,17 @@ import { GB, MediaBandwidth } from '../../media/services/media-bandwidth';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import { RequestQuota } from '../../public-api/services/request-quota';
+import type { Bilingual, MailWords } from '../../../common/i18n/bilingual';
 import { MailService } from '../../shared/mail/services/mail.service';
 import { StaffService } from '../../staff/services/staff.service';
+import { ownerReader } from '../../staff/types/owner-contact';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { PackAutoBuy } from '../../usage-warnings/types/pack-auto-buy';
 import type { AddonsStore } from '../ports/addons-store';
 import { ADDONS_STORE, CLOCK } from '../tokens';
 import type { AddonPurchaseResult, AddonRecord, ShopPack } from '../types/addon';
 import { canTake } from './addon-eligibility';
+import { countedName, packBoughtWords, packFailedWords } from './billing-notice-words';
 import { assertAmountSeen } from './amount-seen';
 import { ShopLimitsService } from './shop-limits.service';
 
@@ -66,8 +69,8 @@ function taka(price: string): string {
 }
 
 /** How a pack is named in a notice: its label, and how many when more than one. */
-function nameOf(addon: AddonRecord, quantity: number): string {
-  return quantity === 1 ? addon.labelEn : `${addon.labelEn} x${String(quantity)}`;
+function nameOf(addon: AddonRecord, quantity: number): Bilingual<string> {
+  return countedName({ bn: addon.labelBn, en: addon.labelEn }, quantity);
 }
 
 /**
@@ -159,9 +162,12 @@ export class AddonPackService {
     if (bought) {
       await this.tell(
         job.tenantId,
-        'Auto-buy bought a pack',
-        `Auto-buy bought a ${bought.pack.labelEn} for ${taka(bought.pack.price)} TK from your balance ` +
-          `(${String(bought.autoPacks)} of ${String(PACK_AUTO_BUY_CAP)} this cycle).`,
+        packBoughtWords(
+          nameOf(bought.pack, 1),
+          taka(bought.pack.price),
+          bought.autoPacks,
+          PACK_AUTO_BUY_CAP,
+        ),
       );
     }
   }
@@ -362,22 +368,14 @@ export class AddonPackService {
       });
     });
     const short = fromPaisa(toPaisa(pack.price) - toPaisa(amount));
-    await this.tell(
-      job.tenantId,
-      'Auto-buy could not buy a pack',
-      `Auto-buy could not buy a ${nameOf(pack, 1)}: your balance is ${short} TK short of its ${taka(pack.price)} TK. ` +
-        'Top up and buy one from your dashboard to keep going past the grace.',
-    );
+    await this.tell(job.tenantId, packFailedWords(nameOf(pack, 1), short, taka(pack.price)));
   }
 
-  /** PLN-15: an email to the owner about a pack, never an SMS. */
-  private async tell(tenantId: string, subject: string, body: string): Promise<void> {
-    const contact = await this.staff.ownerContact(tenantId);
-    if (!contact?.email) return;
-    const email = contact.email;
-    await this.tenants.runStandalone((tx) =>
-      this.mail.queueLifecycleNotice(tx, email, subject, body),
-    );
+  /** PLN-15: an email to the owner about a pack, in their language, never an SMS. */
+  private async tell(tenantId: string, words: MailWords): Promise<void> {
+    const owner = ownerReader(await this.staff.ownerContact(tenantId));
+    if (!owner) return;
+    await this.tenants.runStandalone((tx) => this.mail.queueNotice(tx, owner, words));
   }
 
   private billingOf(tenantId: string): Promise<BillingInfoRow | null> {

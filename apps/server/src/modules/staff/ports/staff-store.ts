@@ -1,4 +1,5 @@
 import type { Transaction } from '@lytronix/db';
+import type { Language } from '@lytronix/validators';
 import type { StaffCredentials, StaffRecord } from '../types/staff';
 import type { OwnerContact } from '../types/owner-contact';
 
@@ -67,6 +68,20 @@ export interface StaffStore {
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
   /** LIF-18/24, PYG-21: the owner's own contact, for a platform-sent notice (never a staff member's). */
   findOwnerContact(tx: Transaction, tenantId: string): Promise<OwnerContact | null>;
+  /** I18N-01 (Slice 7.3): the language a person chose in this shop, the owner's when `userId` is null. */
+  setLanguage(
+    tx: Transaction,
+    tenantId: string,
+    userId: string | null,
+    language: Language,
+  ): Promise<boolean>;
+  languageOf(tx: Transaction, tenantId: string, userId: string | null): Promise<Language | null>;
+  /** NTF-06 (Slice 7.3): a person's own email changed, so the live shops they own write to the new one. */
+  setOwnerEmailOfSubscriber(
+    tx: Transaction,
+    subscriberId: string,
+    email: string | null,
+  ): Promise<number>;
   /** TEN-31, AUTH-31: the shop a person is active staff in, and their staff row there, found across shops. */
   findStaffShop(tx: Transaction, subscriberId: string): Promise<StaffShop | null>;
 }

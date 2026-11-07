@@ -158,6 +158,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   label: { en: 'Label', bn: 'লেবেল' },
   labelBn: { en: 'Label (Bangla)', bn: 'লেবেল (বাংলা)' },
   labelEn: { en: 'Label (English)', bn: 'লেবেল (ইংরেজি)' },
+  language: { en: 'Language', bn: 'ভাষা' },
   limit: { en: 'Page size', bn: 'পেজ সাইজ' },
   limitKey: { en: 'Limit', bn: 'লিমিট' },
   limits: { en: 'Limits', bn: 'লিমিট' },

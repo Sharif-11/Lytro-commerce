@@ -261,10 +261,10 @@ function payByWallet(shop: ShopClient, path: string, paymentId: string, amount: 
 
 async function giveOwnerEmail(shop: ShopClient): Promise<string> {
   const email = `owner.${randomUUID().slice(0, 8)}@example.com`;
-  await admin.query('UPDATE tenant.users SET email = $2 WHERE tenant_id = $1 AND is_owner', [
-    shop.tenantId,
-    email,
-  ]);
+  await admin.query(
+    `UPDATE tenant.users SET email = $2, language = 'en' WHERE tenant_id = $1 AND is_owner`,
+    [shop.tenantId, email],
+  );
   return email;
 }
 

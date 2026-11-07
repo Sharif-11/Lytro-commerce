@@ -384,6 +384,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'PUT /couriers/connections/:key/store',
       'PUT /delivery-zones/:id/areas',
       'PUT /delivery-zones/home-area',
+      'PUT /me/language',
       'PUT /payment-methods/:method',
       'PUT /payment-methods/:method/way',
       'PUT /payment-methods/accounts/:id/gateway',

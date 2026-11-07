@@ -61,5 +61,19 @@ export const meResponseSchema = z.object({
   hasDeletedShop: z.boolean(),
   // AUTH-28 (amended 2026-10-31): no shop to open and no verified phone, so a phone comes before create-shop.
   needsPhone: z.boolean(),
+  // I18N-01 (Slice 7.3's read): the language the person chose in the shop the call names, which their email and push
+  // are written in; null until they choose (then Bangla), and with no shop.
+  language: z.enum(['bn', 'en']).nullable(),
+  // NTF-06 (Slice 7.3's read): the owner's email bounced or marked Lytro's email as spam, so Lytro stopped emailing it --
+  // the dashboard's banner asks them to fix it. Always false for staff, who are never emailed notices.
+  emailBounced: z.boolean(),
 });
 export class MeResponseDto extends createZodDto(meResponseSchema) {}
+
+// I18N-01 (Slice 7.3): the language as kept. `kept` is false with no shop open, where there is no row to keep it on;
+// the dashboard sends it again once one is.
+export const meLanguageResponseSchema = z.object({
+  language: z.enum(['bn', 'en']),
+  kept: z.boolean(),
+});
+export class MeLanguageResponseDto extends createZodDto(meLanguageResponseSchema) {}

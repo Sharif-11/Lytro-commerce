@@ -4,10 +4,12 @@ import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { EDGE_HEADER } from '../src/common/guards/tenant.guard';
+import { MAIL_PROVIDER } from '../src/modules/shared/mail/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { getJson } from './support/http';
+import { MailCapture } from './support/mail-capture';
 import { SmsCapture } from './support/sms-capture';
 
 // An unhandled, non-ApiError exception must still answer the documented error shape, with nothing internal
@@ -42,10 +44,16 @@ beforeAll(async () => {
   // Phase 7 Slice 7.6 (D7-22): and with Gemini's key, since production reads messages for real. A placeholder: no
   // message is read here.
   process.env['GEMINI_API_KEY'] = 'test-placeholder-key';
+  // Phase 7 Slice 7.3 (D7-22): and with Resend's key and bounce secret, since production emails for real. Placeholders:
+  // the provider is replaced below, so nothing here ever reaches Resend.
+  process.env['RESEND_API_KEY'] = 'test-placeholder-key';
+  process.env['RESEND_WEBHOOK_SECRET'] = 'whsec_dGVzdC1wbGFjZWhvbGRlcg==';
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(SMS_PROVIDER)
     .useValue(new SmsCapture().provider)
+    .overrideProvider(MAIL_PROVIDER)
+    .useValue(new MailCapture().provider)
     .compile();
   ({ app, port } = await listenOn(moduleRef));
 });
