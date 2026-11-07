@@ -172,6 +172,29 @@ export type PayoutAnswer =
   | { outcome: 'not_found' }
   | { outcome: 'refused'; refusal: CourierRefusal };
 
+/**
+ * FRD-01, D7-48, D7-52 (Phase 7 Slice 7.5): a courier's own record of a phone, across its merchants, as figures. Steadfast
+ * gives whole percentages and the size of its record, never counts, and its own score is switched off (tried 2026-11-07).
+ * Null where it has no record of that phone.
+ */
+export interface CourierFraudFigures {
+  deliveredPercent: number | null;
+  cancelledPercent: number | null;
+  returnedPercent: number | null;
+  /** The courier's own size of the record, as it names it: none, low, medium, ... */
+  volumeBand: string | null;
+  /** The figure it gives with that size, as given; what it counts isn't documented. */
+  volumeRange: string | null;
+  /** Merchants' fraud reports of this phone. */
+  reports: number;
+  doubtful: boolean;
+  categories: string[];
+}
+
+export type FraudScoreAnswer =
+  | { outcome: 'answered'; figures: CourierFraudFigures }
+  | { outcome: 'refused'; refusal: CourierRefusal };
+
 /** Slice 6.3, read agreed 2026-11-05: the one store chosen for a connection, kept with its sealed credentials. */
 export const PICKUP_STORE_ID = 'storeId';
 export const PICKUP_STORE_NAME = 'storeName';
@@ -244,6 +267,11 @@ export interface CourierAdapter {
   payouts?(account: CourierAccount, page: number): Promise<PayoutsAnswer>;
   /** CRR-17 (Slice 6.5): the parcels one payout settled. */
   payout?(account: CourierAccount, payoutId: string): Promise<PayoutAnswer>;
+  /**
+   * FRD-01, D7-45 (Slice 7.5): the courier's record of a phone (01XXXXXXXXX), through the shop's own key. Only a courier
+   * that publishes a check has it: Steadfast today. A client error is a refusal; anything unreadable throws CourierNoAnswer.
+   */
+  fraudScore?(account: CourierAccount, phone: string): Promise<FraudScoreAnswer>;
   /** Slice 6.5: its payout pages hold at least this many, so a shorter one is the last; with no page count, that is how it ends. */
   readonly payoutPageAtLeast?: number;
 }

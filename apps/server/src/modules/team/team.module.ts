@@ -70,11 +70,13 @@ import { OrdersModule } from '../orders/orders.module';
 import { OrdersController } from './controllers/orders.controller';
 import { CouriersController } from './controllers/couriers.controller';
 import { SmsController } from './controllers/sms.controller';
+import { FraudChecksController } from './controllers/fraud-checks.controller';
 import { OperatorCourierAreasController } from './controllers/operator-courier-areas.controller';
 import { OperatorLocationsController } from './controllers/operator-locations.controller';
 import { OperatorCourierRetiringController } from './controllers/operator-courier-retiring.controller';
 import { OperatorCouriersController } from './controllers/operator-couriers.controller';
 import { AddressReadsModule } from '../address-reads/address-reads.module';
+import { FraudChecksModule } from '../fraud-checks/fraud-checks.module';
 import { CouriersModule } from '../couriers/couriers.module';
 import { CustomersController } from './controllers/customers.controller';
 import { SalesController } from './controllers/sales.controller';
@@ -153,6 +155,7 @@ import { OperatorShops } from './services/operator-shops';
     ListenerModule,
     ListenerReceiptsModule,
     AddressReadsModule,
+    FraudChecksModule,
     LytroReceiptsModule,
     DomainsModule,
   ],
@@ -210,6 +213,7 @@ import { OperatorShops } from './services/operator-shops';
     OrdersController,
     CouriersController,
     SmsController,
+    FraudChecksController,
     OperatorCouriersController,
     OperatorCourierAreasController,
     OperatorLocationsController,

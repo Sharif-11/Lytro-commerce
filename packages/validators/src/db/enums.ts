@@ -572,6 +572,9 @@ export enum QueueName {
   // SMS-01 (Slice 7.2): one of a shop's SMS events, queued in the transaction where it happened, then worded, charged and
   // sent apart from it, so the SMS never holds up or undoes the order.
   OrderSms = 'order_sms',
+  // FRD-05 (Slice 7.5, read agreed 2026-11-07): a new cash-on-delivery order's fraud check, queued in the transaction that
+  // made the order and run apart from it, so a check never holds up or undoes the order (FRD-06).
+  OrderFraudCheck = 'order_fraud_check',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -810,6 +813,8 @@ export enum PlatformSettingKey {
   AddressReadModel = 'address_read_model',
   // ORD-33 (Slice 7.6, editable): how many address reads one shop may make in a minute, a flood guard.
   AddressReadsPerShopPerMinute = 'address_reads_per_shop_per_minute',
+  // FRD-07 (Slice 7.5, editable): how many fraud checks one shop may run in a minute.
+  FraudChecksPerShopPerMinute = 'fraud_checks_per_shop_per_minute',
 }
 
 // AI-10, D7-4: the AIs Lytro can read a pasted message with. One today; the setting names which.
@@ -1328,6 +1333,43 @@ export enum CancelReason {
   Other = 'other',
 }
 
+// FRD-01, D7-49 (Slice 7.5's read, 2026-11-07): the cancellations a fraud check counts against the customer. The shop's
+// own reasons -- out of stock, a duplicate, anything else -- say nothing about the customer, so they don't count.
+export const CUSTOMER_FAULT_CANCEL_REASONS: readonly CancelReason[] = [
+  CancelReason.CustomerCancelled,
+  CancelReason.FakeOrder,
+  CancelReason.Unreachable,
+  CancelReason.AdvanceNotPaid,
+];
+
+// FRD-02, D7-45 (Slice 7.5): where a fraud check's figures come from. A courier's own record of the phone, through the
+// shop's own key, and the shop's own past orders. The paid aggregator and the shared counts are the next release (D7-5,
+// D7-8).
+export enum FraudSource {
+  Steadfast = 'steadfast',
+  OwnOrders = 'own_orders',
+}
+
+// FRD-11: what one source did for a check.
+export enum FraudSourceState {
+  Answered = 'answered',
+  // D7-46: the shop has no live connection to that courier, so only its own orders were counted.
+  NotConnected = 'not_connected',
+  // FRD-11: asked but gave no usable answer; the check goes on with the others.
+  Failed = 'failed',
+}
+
+// FRD-01, FRD-05: who asked for a check: staff, or the automatic check on a new order.
+export enum FraudCheckTrigger {
+  Staff = 'staff',
+  Order = 'order',
+}
+
+// FRD-04: how long a courier's answer for a phone is reused before it is asked again.
+export const FRAUD_CHECK_CACHE_DAYS = 3;
+// FRD-07 (Slice 7.5): one shop's fraud checks in any minute, when the operator has set no figure.
+export const DEFAULT_FRAUD_CHECKS_PER_SHOP_PER_MINUTE = 30;
+
 // ORD-08, ORD-14: what one entry of an order's history records: its making, a confirming call, a status set by hand or
 // by an event, and a price or delivery charge staff set by hand.
 export enum OrderHistoryField {
@@ -1485,6 +1527,8 @@ export enum CourierCallAction {
   Renew = 'renew',
   // Slice 6.5: reading a courier's payouts, the list or one of them.
   Payouts = 'payouts',
+  // Slice 7.5: asking a courier for a phone's delivery record, a fraud check (FRD-01).
+  FraudCheck = 'fraud_check',
 }
 
 // CRR-29 (Slice 6.2): what a courier's status means here. Each adapter maps its own onto these, and shared code reads only these.

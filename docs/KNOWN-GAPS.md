@@ -2179,3 +2179,21 @@ The screens for Phase 6 are built to the sketch, apart from these:
 - **Track on the courier's site** shows only where the adapter gives a link, which today is Steadfast alone, and §123 found Steadfast's own link differs from the one Lytro builds.
 - **Sync's "the saved answer"** is inferred on the dashboard from no newer news arriving; the answer doesn't say whether it came from the courier or from the last ask.
 - **The bell's notice** (`c36-notice`) isn't built. Slice 7.3 sends the courier notices; Slice 7.7 draws the bell.
+
+## 128. `FRD-01`, `D7-52`: Steadfast's fraud check is read from one try of three phones — found 2026-11-07, open until a month of real checks
+
+Slice 7.5 built the check to the answer Steadfast gave a live key on 2026-11-07, for three phones and a malformed number.
+
+- **Its own score is switched off.** It sends `scoring_disabled: true` and its counts are null; only whole percentages, a
+  size band and a figure come back. If Steadfast switches its score on or starts giving counts, Lytro ignores them until
+  the adapter reads them.
+- **The figure isn't documented.** It came as `8` with the band `medium` and `1` with `low`. It's shown as Steadfast gives
+  it, without saying what it counts.
+- **A malformed number got an answer.** `0171` came back with someone's figures, not a refusal. Lytro checks a number's
+  form before asking, so none reaches Steadfast; a well-formed number that belongs to no one may still get figures.
+- **The fraud categories were empty for all three phones,** so their shape is guessed: text, or an object with a name or
+  a label.
+- **Only Steadfast has a check.** A shop that uses only Pathao or RedX sees its own orders alone (D7-45, D7-46).
+
+Closing it: after launch, read a sample of real answers (a phone with reports, its categories, a larger band) and adjust
+the adapter to them.

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { FraudCheckQueueModule } from '../fraud-checks/fraud-check-queue.module';
 import { SmsEventQueueModule } from '../sms-events/sms-event-queue.module';
 import { IdempotencyModule } from '../../common/idempotency/idempotency.module';
 import { DrizzleOrderStore } from '../../database/adapters/orders.adapter';
@@ -39,6 +40,7 @@ import { ORDER_NOTIFIER, ORDER_STORE, SALES_STORE } from './tokens';
     InventoryModule,
     PlatformSettingsModule,
     SmsEventQueueModule,
+    FraudCheckQueueModule,
     StaffModule,
     UsageWarningsModule,
   ],

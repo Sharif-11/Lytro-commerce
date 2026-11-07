@@ -289,6 +289,11 @@ export {
   type NewOrderExtraction,
 } from './repositories/orders/order-extraction.repository';
 export {
+  FraudCheckRepository,
+  type NewFraudCheck,
+  type OwnOrderCounts,
+} from './repositories/fraud/fraud-check.repository';
+export {
   SalesRepository,
   type BestSellerRow,
   type SalesDayCost,

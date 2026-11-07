@@ -66,7 +66,36 @@ interface Behaviour {
   keysRevoked?: boolean;
   /** Its payout calls time out. */
   payoutsTimeOut?: boolean;
+  /** Slice 7.5: its fraud check answers a 200 without the figures, as a changed answer would. */
+  fraudCheckUnreadable?: boolean;
 }
+
+/**
+ * Slice 7.5: Steadfast's record of one phone, as its fraud check gives it (tried live 2026-11-07): whole percentages, the
+ * size of the record and merchants' reports; its own score and its counts are null.
+ */
+export interface FakeFraudRecord {
+  delivery_ratio: number | null;
+  cancellation_ratio: number | null;
+  return_ratio: number | null;
+  volume_band: string;
+  volume_range: string | null;
+  total_reports: number;
+  doubtful_reports: boolean;
+  fraud_categories: unknown[];
+}
+
+/** The live answer for a phone it has no record of. */
+export const NO_FRAUD_RECORD: FakeFraudRecord = {
+  delivery_ratio: null,
+  cancellation_ratio: null,
+  return_ratio: null,
+  volume_band: 'none',
+  volume_range: null,
+  total_reports: 0,
+  doubtful_reports: false,
+  fraud_categories: [],
+};
 
 /** A message as Steadfast's guide says it signs one: a hex HMAC-SHA256 of the raw body, keyed with the pasted token. */
 export function signatureOf(body: string, token: string): string {
@@ -89,6 +118,8 @@ export class FakeSteadfast {
   /** Slice 6.5: its payouts, oldest first, as its live list ran, and how many a page of that list holds. */
   readonly payouts: FakePayout[] = [];
   payoutPageSize = 8;
+  /** Slice 7.5: its record of each phone; one it has none of answers NO_FRAUD_RECORD. */
+  readonly fraudRecords = new Map<string, FakeFraudRecord>();
   private nextId = 1424107;
 
   /** The stand-in for `fetch`. */
@@ -116,6 +147,21 @@ export class FakeSteadfast {
     if (path === '/get_balance') return reply(200, { status: 200, current_balance: 0 });
     if (path === '/payments' || path.startsWith('/payments/')) return this.payoutsAnswer(url, path);
     if (path === '/create_order' && body !== null) return this.createOrder(body);
+    if (path.startsWith('/fraud_check/score/')) {
+      const phone = decodeURIComponent(path.slice('/fraud_check/score/'.length));
+      if (this.behaviour.fraudCheckUnreadable === true) return reply(200, { status: 200, phone });
+      return reply(200, {
+        status: 200,
+        phone,
+        score: null,
+        level: null,
+        reasons: [],
+        scoring_disabled: true,
+        delivered_count: null,
+        cancelled_count: null,
+        ...(this.fraudRecords.get(phone) ?? NO_FRAUD_RECORD),
+      });
+    }
     if (path.startsWith('/status_by_invoice/')) {
       return this.statusByInvoice(decodeURIComponent(path.slice('/status_by_invoice/'.length)));
     }
@@ -146,6 +192,7 @@ export class FakeSteadfast {
     this.statuses.clear();
     this.payouts.length = 0;
     this.payoutPageSize = 8;
+    this.fraudRecords.clear();
     this.behaviour = {};
   }
 

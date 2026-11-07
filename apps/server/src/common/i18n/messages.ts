@@ -2408,6 +2408,30 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Too many messages read in the last minute. Try again shortly.',
     bn: 'গত এক মিনিটে অনেক মেসেজ পড়া হয়েছে। একটু পরে আবার ট্রাই করুন।',
   },
+  FraudCheckRun: {
+    en: 'Phone checked.',
+    bn: 'ফোন নম্বর চেক করা হয়েছে।',
+  },
+  FraudCheckRead: {
+    en: "The phone's latest check.",
+    bn: 'এই ফোন নম্বরের সর্বশেষ চেক।',
+  },
+  FraudRuleRead: {
+    en: 'Automatic check settings.',
+    bn: 'অটোমেটিক চেকের সেটিংস।',
+  },
+  FraudRuleSaved: {
+    en: 'Automatic check settings saved.',
+    bn: 'অটোমেটিক চেকের সেটিংস সেভ হয়েছে।',
+  },
+  FraudCheckNeedsPlan: {
+    en: 'Checking a phone needs a plan while checks are charged. Buy a plan to use it.',
+    bn: 'চেকের জন্য টাকা লাগলে ফোন চেক করতে প্ল্যান লাগে। ব্যবহার করতে একটা প্ল্যান কিনুন।',
+  },
+  TooManyFraudChecks: {
+    en: 'Too many phones checked in the last minute. Try again shortly.',
+    bn: 'গত এক মিনিটে অনেক ফোন নম্বর চেক করা হয়েছে। একটু পরে আবার ট্রাই করুন।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

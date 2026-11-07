@@ -2522,19 +2522,35 @@ CREATE TABLE tenant.ai_settings (
 ## 7. Fraud checking
 
 ```sql
+-- FRD-01 to FRD-04, FRD-11 (migration 0115, Phase 7 Slice 7.5): one row per check of a phone, by staff or on a new
+-- cash-on-delivery order. Figures only, no level (D7-48): Steadfast's percentages, the size of its record and merchants'
+-- reports, and the shop's own counts; never Steadfast's raw answer. A Steadfast answer is reused for three days from when it
+-- was given, and a check that reused one names it. RLS like every tenant table; the app may only read and insert.
 CREATE TABLE tenant.fraud_checks (
-    id              bigserial PRIMARY KEY,
-    tenant_id       uuid NOT NULL,
-    phone           varchar(15) NOT NULL,
-    order_id        uuid,
-    level           text,                              -- low | medium | high | unknown
-    summary         jsonb,                              -- {delivered, cancelled, returned}
-    sources         text[] NOT NULL DEFAULT '{}',
-    cached          boolean NOT NULL DEFAULT false,
-    paid_from       text CHECK (paid_from IN ('balance', 'allowance')),  -- PLN-20; null when nothing was charged (FRD-03)
-    checked_at      timestamptz NOT NULL DEFAULT now()
+    id                            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id                     uuid NOT NULL,
+    phone                         varchar(11) NOT NULL CHECK (phone ~ '^01[3-9][0-9]{8}$'),  -- the local form
+    trigger                       text NOT NULL CHECK (trigger IN ('staff', 'order')),
+    order_id                      uuid REFERENCES tenant.orders(id) ON DELETE SET NULL,  -- FRD-05; null for staff's
+    user_id                       uuid,                -- the staff member; null for the owner's session and an order's
+    steadfast_state               text NOT NULL CHECK (steadfast_state IN ('answered', 'not_connected', 'failed')),
+    steadfast_from                uuid,                -- FRD-04: the check whose answer this one reused
+    steadfast_delivered_percent   smallint,            -- D7-52: whole percentages; null where it has no record
+    steadfast_cancelled_percent   smallint,
+    steadfast_returned_percent    smallint,
+    steadfast_volume_band         varchar(20),         -- none | low | medium | ..., as Steadfast names it
+    steadfast_volume_range        varchar(20),         -- the figure it gives with the band, as given
+    steadfast_reports             integer,             -- merchants' fraud reports; set exactly when it answered
+    steadfast_doubtful            boolean,
+    steadfast_categories          jsonb,               -- string[]
+    own_delivered                 integer NOT NULL,    -- D7-49: the shop's own finished orders with the phone
+    own_returned                  integer NOT NULL,
+    own_cancelled                 integer NOT NULL,    -- only for the customer's own reasons
+    cost                          numeric(10,2) NOT NULL,  -- FRD-03, D7-7: at the fraud-check rate, zero at launch
+    created_at                    timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX ON tenant.fraud_checks (tenant_id, phone, checked_at DESC);
+CREATE INDEX ON tenant.fraud_checks (tenant_id, phone, created_at);
+CREATE INDEX ON tenant.fraud_checks (order_id);
 
 -- ORD-30 to ORD-34, PLN-20 (migration 0113, Phase 7 Slice 7.6): one row per charged read of a customer's delivery
 -- details. A read that found nothing is free and leaves none. The pasted message is never kept (D7-18). An address-read
@@ -2554,10 +2570,14 @@ CREATE TABLE tenant.order_extractions (
 CREATE INDEX ON tenant.order_extractions (tenant_id, created_at);
 CREATE INDEX ON tenant.order_extractions (addon_purchase_id);
 
+-- FRD-05, D7-50 (migration 0115, Slice 7.5): a shop's automatic check, a row once the owner changes it. Without one,
+-- every new cash-on-delivery delivery is checked, whatever its amount. FRD-10's sharing switch comes with the shared
+-- counts in the next release (D7-8). The app may read, insert and update.
 CREATE TABLE tenant.fraud_rules (
     tenant_id       uuid PRIMARY KEY,
-    auto_check_cod_above numeric(10,2),                -- FRD-05
-    contribute_to_shared_data boolean NOT NULL DEFAULT true -- FRD-10
+    cod_orders      boolean NOT NULL,
+    min_amount      numeric(12,2) CHECK (min_amount IS NULL OR min_amount >= 0),  -- null for every amount
+    updated_at      timestamptz NOT NULL DEFAULT now()
 );
 
 -- Platform-wide, salted, never rotated (FRD-09). Confirmed 2026-10-02 to live in `control`

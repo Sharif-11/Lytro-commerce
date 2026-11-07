@@ -16,6 +16,7 @@ import {
   type CourierLimits,
   type CourierNews,
   type CourierRefusal,
+  type FraudScoreAnswer,
   type ListedPayout,
   type LookUpAnswer,
   type MessageHeaders,
@@ -86,6 +87,26 @@ function wordsOf(words: string | null): string | null {
 const TRACKING_PAGE = 'https://steadfast.com.bd/t/';
 // Its body says what happened; a 200 can hide a failure there (Appendix A).
 const SUCCESS = '200';
+// FRD-01 (Slice 7.5): the most of a courier's own words kept for a size of record or a fraud category, and how many
+// categories.
+const FRAUD_WORD_MAX_LENGTH = 20;
+const FRAUD_CATEGORY_MAX_LENGTH = 60;
+const FRAUD_CATEGORIES_MAX = 10;
+
+/** A whole percentage, as a number or its text, from 0 to 100; null for anything else, as for a phone it has no record of. */
+function percentOf(value: unknown): number | null {
+  const text = typeof value === 'string' ? value.trim().replace(/%$/, '') : value;
+  const number =
+    typeof text === 'number' ? text : typeof text === 'string' && text !== '' ? Number(text) : NaN;
+  return Number.isFinite(number) && number >= 0 && number <= 100 ? Math.round(number) : null;
+}
+
+/** A short word or figure of the courier's, as a number or text, within what's kept. */
+function shortOf(value: unknown, max: number): string | null {
+  const text = typeof value === 'number' && Number.isFinite(value) ? String(value) : value;
+  if (typeof text !== 'string') return null;
+  return refusalWords(text, max);
+}
 
 /** What a refused reply says: its message, or the first of its field errors. */
 function refusalOf(response: CourierResponse): CourierRefusal {
@@ -342,6 +363,49 @@ export class SteadfastAdapter implements CourierAdapter {
       return { outcome: 'not_found' };
     }
     throw new CourierNoAnswer(`status ${String(response.status)}`);
+  }
+
+  /**
+   * FRD-01, D7-52 (Slice 7.5, tried with a live key 2026-11-07): its record of a phone across its merchants. It answers
+   * whole percentages, the size of the record and merchants' reports; its counts and its own score are null. An answer
+   * without the percentages' field is no answer: its shape has changed.
+   */
+  async fraudScore(account: CourierAccount, phone: string): Promise<FraudScoreAnswer> {
+    const response = await this.request(
+      account,
+      'GET',
+      `/fraud_check/score/${encodeURIComponent(phone)}`,
+    );
+    const body = response.body;
+    if (!this.succeeded(response) || body === null) {
+      return { outcome: 'refused', refusal: this.refusalOrThrow(response) };
+    }
+    if (!('delivery_ratio' in body)) throw new CourierNoAnswer('a fraud score without its figures');
+    const said = body['fraud_categories'];
+    const categories = (Array.isArray(said) ? said : [])
+      .map((category) => {
+        const named = bodyOf(category);
+        return shortOf(
+          named ? (named['name'] ?? named['label']) : category,
+          FRAUD_CATEGORY_MAX_LENGTH,
+        );
+      })
+      .filter((category): category is string => category !== null)
+      .slice(0, FRAUD_CATEGORIES_MAX);
+    const reports = Number(codeOf(body, 'total_reports') ?? 0);
+    return {
+      outcome: 'answered',
+      figures: {
+        deliveredPercent: percentOf(body['delivery_ratio']),
+        cancelledPercent: percentOf(body['cancellation_ratio']),
+        returnedPercent: percentOf(body['return_ratio']),
+        volumeBand: shortOf(body['volume_band'], FRAUD_WORD_MAX_LENGTH),
+        volumeRange: shortOf(body['volume_range'], FRAUD_WORD_MAX_LENGTH),
+        reports: Number.isInteger(reports) && reports >= 0 ? reports : 0,
+        doubtful: body['doubtful_reports'] === true,
+        categories,
+      },
+    };
   }
 
   private request(
