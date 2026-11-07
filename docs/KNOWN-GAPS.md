@@ -2246,3 +2246,21 @@ The close-out (PHASE-6-PLAN §11) fixed what it found that could be fixed in the
   staff timeline's choice of language (`CRR-12`).
 - **The milestone (exit criterion 9):** a real booking through to a real message for each courier, recorded, waits for the owner's
   accounts (§117, §121, §123).
+
+## 131. `PLN-20`, `D7-17`, `D7-36`: the reads allowance doesn't renew, and a longer term charges more for the same reads — found 2026-11-07, open
+
+Slice 7.7's sketch found both while drawing the allowance in the add-on shop and the console's catalogue.
+
+- **An allowance never renews.** `renewalBar` (`addon-renewal.service.ts`) has no case for an allowance. It asks
+  whether the plan leaves a usage limit to raise, finds none, and answers "unlimited". Every renewal path then skips
+  the allowance: on its own, with the plan, and in the outlook the shop sees. PLN-20 says an allowance renews with the
+  plan.
+- **A longer term charges per month for one batch of reads.** An allowance's uses are its quantity times its unit size
+  (200 reads) for the whole purchase, while its price, at purchase and on renewal, is the monthly price times the
+  term's months. On a 6-month term a shop would pay ৳120 for 200 reads, against "200 reads, 20 tk a month" (D7-36).
+
+Nothing is live, so no shop has paid either way. The sketch makes no renewal promise and draws a one-month price until
+this is settled.
+
+Closing it: the owner chooses whether an allowance's uses scale with the term's months or its price stays one month's,
+and `renewalBar` gains an allowance case that renews it with the plan; both with tests.
