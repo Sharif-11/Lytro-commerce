@@ -216,6 +216,16 @@ there, summarised:
 
 **Delivers:** the operator can actually run the business, and external integrators have a real API surface.
 
+**Detailed plan: `PHASE-8-PLAN.md`** (2026-11-07): eight slices, built beside Phase 7, screens last. Scope changes made
+there, summarised:
+- **The operator's tooling only** (D8-1): finding and reading a shop, acting on it with a reason, the audit log, reports,
+  manual entries and claims, media costs, retiring a wallet type and the shop-ready SMS.
+- **Moved to the next release:** the shop API (secret keys, scopes, IP allow-lists, webhooks out, the published OpenAPI
+  description, bulk orders), and with it PAY-09 to PAY-12, ORD-02's secret key and NTC-20; support tickets, the help
+  centre and the status page (SUP-02 to SUP-07); view-as-tenant (ADM-05, D8-2).
+- **Shops reach Lytro by WhatsApp and phone** from the dashboard's help menu (D8-4), and every response carries a
+  request ID that the shop's console page also shows (D8-3).
+
 - `ADM-02` to `ADM-17` — full tenant management, the payment-review queue, manual entry tooling, platform settings UI (now has `control.platform_settings` from Phase 0 to manage). `ADM-03`'s tenant-detail business-summary/order-stats drill-down and `ADM-09`'s period-bucketed SaaS revenue/tenant-count reports (both amended 2026-10-16) read `STA-01`'s own aggregates (Phase 4) and `WAL-20`'s commission revenue (Phase 5) — sequence this after those two land, not before, or the figures would have nothing real to show. Note the tenant-list/search and suspend/restore slice of `ADM-02`/`ADM-04` already shipped early, in Phase 2's own UI pass (slice 8) — built ahead of this phase because `LIF-24` needed it and nothing else in `ADM-*` was ready to ride along yet; the rest of this range is still genuinely Phase 8 work.
 - `MED-12` (moved from Phase 3 on 2026-11-04, KNOWN-GAPS §101): each month's R2 operations, Worker requests and the top consuming shops, with an alert at 80% of the budget. The figures are already collected.
 - The operator screens are built in `apps/operator` (D3-12). View-as-tenant (`ADM-05`): an operator asks for read-only access, the seller approves, and the operator sees the real seller dashboard (everything the seller sees) for at most 30 minutes, with every page logged to the shop's activity log. Its session is a third kind beside the tenant and operator sessions; it plugs into `DashboardGuard` (TEN-31), bound to the one shop and refused every write, and the dashboard shell gains its banner then (moved here from Phase 3's Slice 0b, 2026-10-19).
