@@ -10,10 +10,10 @@ export class MailCapture {
   down = false;
 
   readonly provider = {
-    send: (message: SentMail): Promise<void> => {
+    send: (message: SentMail): Promise<{ providerMessageId: string | null }> => {
       if (this.down) return Promise.reject(new Error('mail provider down'));
       this.sent.push(message);
-      return Promise.resolve();
+      return Promise.resolve({ providerMessageId: null });
     },
   };
 

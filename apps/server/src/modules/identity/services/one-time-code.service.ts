@@ -283,6 +283,8 @@ export class OneTimeCodeService {
     );
     switch (outcome.kind) {
       case 'ok':
+        // NTF-06 (Slice 7.3's read): the code reached this address, so a bounce or complaint no longer stops it.
+        if (channel === ChallengeChannel.Email) await this.mail.unsuppress(destination);
         return outcome.challengeId;
       case 'missing':
         throw new FieldsError([

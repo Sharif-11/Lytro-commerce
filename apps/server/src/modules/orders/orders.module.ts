@@ -12,7 +12,6 @@ import { InventoryModule } from '../inventory/inventory.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { StaffModule } from '../staff/staff.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
-import { ConsoleOrderNotifier } from './services/console-order-notifier';
 import { HandlingQuota } from './services/handling-quota';
 import { OrderFulfilment } from './services/order-fulfilment';
 import { OrderPayments } from './services/order-payments';
@@ -25,6 +24,8 @@ import { OrdersEraser } from './services/orders-eraser';
 import { PaymentRecorder } from './services/payment-recorder';
 import { SalesFigures } from './services/sales-figures';
 import { ORDER_NOTIFIER, ORDER_STORE, SALES_STORE } from './tokens';
+import { BellOrderNotifier } from '../notifications/notifiers/bell-notifiers';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 // D4-12: the orders module -- orders, their items, numbering, pricing (D4-9), the call log, status and tracking
 // (ORD-17), the notice of a shopper's order (ORD-20, D4-10), moving an order by hand with its handling limits
@@ -32,6 +33,7 @@ import { ORDER_NOTIFIER, ORDER_STORE, SALES_STORE } from './tokens';
 // customers and the usage warnings; none of them depends back on it.
 @Module({
   imports: [
+    NotificationsModule,
     BalanceModule,
     CatalogueModule,
     CustomersModule,
@@ -46,7 +48,7 @@ import { ORDER_NOTIFIER, ORDER_STORE, SALES_STORE } from './tokens';
   ],
   providers: [
     { provide: ORDER_STORE, useClass: DrizzleOrderStore },
-    { provide: ORDER_NOTIFIER, useClass: ConsoleOrderNotifier },
+    { provide: ORDER_NOTIFIER, useExisting: BellOrderNotifier },
     { provide: SALES_STORE, useClass: DrizzleSalesStore },
     HandlingQuota,
     OrderFulfilment,

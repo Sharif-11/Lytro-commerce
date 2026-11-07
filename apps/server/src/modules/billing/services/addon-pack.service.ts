@@ -18,6 +18,7 @@ import {
   type BuyPacksInput,
   type SetPackAutoBuyInput,
 } from '@lytronix/validators';
+import { NotificationKind } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { usageCycleStart } from '../../../common/time';
 import { packTaken } from '../../../common/usage-warnings';
@@ -28,7 +29,7 @@ import { GB, MediaBandwidth } from '../../media/services/media-bandwidth';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import { RequestQuota } from '../../public-api/services/request-quota';
-import { MailService } from '../../shared/mail/services/mail.service';
+import type { Bilingual, MailWords } from '../../../common/i18n/bilingual';
 import { StaffService } from '../../staff/services/staff.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { PackAutoBuy } from '../../usage-warnings/types/pack-auto-buy';
@@ -36,8 +37,11 @@ import type { AddonsStore } from '../ports/addons-store';
 import { ADDONS_STORE, CLOCK } from '../tokens';
 import type { AddonPurchaseResult, AddonRecord, ShopPack } from '../types/addon';
 import { canTake } from './addon-eligibility';
+import { countedName, packBoughtWords, packFailedWords } from './billing-notice-words';
 import { assertAmountSeen } from './amount-seen';
 import { ShopLimitsService } from './shop-limits.service';
+import { AccountNotices } from '../../notifications/services/account-notices';
+import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 
 /** The metered limit a pack tops up, for each metric that has packs. */
 const PACK_METRICS = {
@@ -66,8 +70,8 @@ function taka(price: string): string {
 }
 
 /** How a pack is named in a notice: its label, and how many when more than one. */
-function nameOf(addon: AddonRecord, quantity: number): string {
-  return quantity === 1 ? addon.labelEn : `${addon.labelEn} x${String(quantity)}`;
+function nameOf(addon: AddonRecord, quantity: number): Bilingual<string> {
+  return countedName({ bn: addon.labelBn, en: addon.labelEn }, quantity);
 }
 
 /**
@@ -88,7 +92,7 @@ export class AddonPackService {
     @Inject(MediaBandwidth) private readonly bandwidth: MediaBandwidth,
     @Inject(RequestQuota) private readonly quota: RequestQuota,
     @Inject(StaffService) private readonly staff: StaffService,
-    @Inject(MailService) private readonly mail: MailService,
+    @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
@@ -159,9 +163,12 @@ export class AddonPackService {
     if (bought) {
       await this.tell(
         job.tenantId,
-        'Auto-buy bought a pack',
-        `Auto-buy bought a ${bought.pack.labelEn} for ${taka(bought.pack.price)} TK from your balance ` +
-          `(${String(bought.autoPacks)} of ${String(PACK_AUTO_BUY_CAP)} this cycle).`,
+        packBoughtWords(
+          nameOf(bought.pack, 1),
+          taka(bought.pack.price),
+          bought.autoPacks,
+          PACK_AUTO_BUY_CAP,
+        ),
       );
     }
   }
@@ -362,21 +369,19 @@ export class AddonPackService {
       });
     });
     const short = fromPaisa(toPaisa(pack.price) - toPaisa(amount));
-    await this.tell(
-      job.tenantId,
-      'Auto-buy could not buy a pack',
-      `Auto-buy could not buy a ${nameOf(pack, 1)}: your balance is ${short} TK short of its ${taka(pack.price)} TK. ` +
-        'Top up and buy one from your dashboard to keep going past the grace.',
-    );
+    await this.tell(job.tenantId, packFailedWords(nameOf(pack, 1), short, taka(pack.price)));
   }
 
-  /** PLN-15: an email to the owner about a pack, never an SMS. */
-  private async tell(tenantId: string, subject: string, body: string): Promise<void> {
-    const contact = await this.staff.ownerContact(tenantId);
-    if (!contact?.email) return;
-    const email = contact.email;
+  /** PLN-15: the owner is told of a pack by email, in the bell and by push, never by SMS. */
+  private async tell(tenantId: string, words: MailWords): Promise<void> {
     await this.tenants.runStandalone((tx) =>
-      this.mail.queueLifecycleNotice(tx, email, subject, body),
+      this.notices.send(
+        tx,
+        tenantId,
+        NotificationKind.AccountNotice,
+        words,
+        NOTIFICATION_LINKS.usage,
+      ),
     );
   }
 

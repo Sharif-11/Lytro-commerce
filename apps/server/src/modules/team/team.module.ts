@@ -71,6 +71,7 @@ import { OrdersController } from './controllers/orders.controller';
 import { CouriersController } from './controllers/couriers.controller';
 import { SmsController } from './controllers/sms.controller';
 import { FraudChecksController } from './controllers/fraud-checks.controller';
+import { NotificationsController, PushController } from './controllers/notifications.controller';
 import { OperatorCourierAreasController } from './controllers/operator-courier-areas.controller';
 import { OperatorLocationsController } from './controllers/operator-locations.controller';
 import { OperatorCourierRetiringController } from './controllers/operator-courier-retiring.controller';
@@ -116,6 +117,7 @@ import {
 import { CatalogueRequest } from './services/catalogue-request';
 import { OperatorRecentChangesController } from './controllers/operator-recent-changes.controller';
 import { OperatorShops } from './services/operator-shops';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 // The team's HTTP routes. They sit outside the staff module because they need the identity and tenancy gates,
 // and tenancy already imports the staff module. Slice 1's balance/rates routes, and slice 2's plan/term
@@ -123,6 +125,7 @@ import { OperatorShops } from './services/operator-shops';
 // is Phase 2's actual plan/term/invoice logic module (PHASE-2-PLAN.md's architecture table), not an HTTP layer.
 @Module({
   imports: [
+    NotificationsModule,
     CouriersModule,
     IdentityModule,
     TenancyModule,
@@ -214,6 +217,8 @@ import { OperatorShops } from './services/operator-shops';
     CouriersController,
     SmsController,
     FraudChecksController,
+    NotificationsController,
+    PushController,
     OperatorCouriersController,
     OperatorCourierAreasController,
     OperatorLocationsController,

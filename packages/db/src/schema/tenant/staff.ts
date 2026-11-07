@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   foreignKey,
   primaryKey,
   text,
@@ -9,6 +10,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import type { Language } from '@lytronix/validators';
 import { createdAt, tenant } from '../shared';
 
 // Tenant tables carry tenant_id and sit behind row-level security. Foreign keys stay inside the tenant
@@ -33,6 +35,9 @@ export const users = tenant.table(
     name: text('name'),
     isOwner: boolean('is_owner').notNull().default(false),
     active: boolean('active').notNull().default(true),
+    // I18N-01, NTF-03 (Slice 7.3's read): the language this person chose in the dashboard, which their email and push
+    // are written in. Null until they choose, and then Bangla, the platform's default.
+    language: varchar('language', { length: 2 }).$type<Language>(),
     createdAt: createdAt(),
   },
   (t) => [
@@ -42,6 +47,7 @@ export const users = tenant.table(
     // It must be a constraint, not an index: Postgres requires one to target it from a foreign key.
     unique('users_tenant_id_key').on(t.tenantId, t.id),
     unique('users_subscriber_key').on(t.subscriberId),
+    check('users_language_check', sql`${t.language} IS NULL OR ${t.language} IN ('bn', 'en')`),
   ],
 );
 

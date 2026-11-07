@@ -1,11 +1,13 @@
-import { Controller, Get, Inject, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Put, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { LAPSED_TENANT_STATES, TenantState } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { ResponseMessage } from '../../../common/decorators/response-message';
-import { MeResponseDto } from '../dto/me-response.dto';
+import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
+import { MeLanguageDto } from '../dto/identity.dto';
+import { MeLanguageResponseDto, MeResponseDto } from '../dto/me-response.dto';
 import { DashboardGuard, type DashboardRequest } from '../guards/dashboard.guard';
 import { SessionGuard } from '../guards/session.guard';
 import { BillingTermsService } from '../../billing/services/billing-terms.service';
@@ -16,6 +18,7 @@ import type { LiveBrand } from '../../brand/types/brand';
 import { DomainService } from '../../domains/services/domain.service';
 import type { ImageView } from '../../../common/media-links';
 import { MediaService } from '../../media/services/media.service';
+import { MailService } from '../../shared/mail/services/mail.service';
 import { StaffService } from '../../staff/services/staff.service';
 import { IdentitiesService } from '../services/identities.service';
 import { ShopMemberships, type ShopListing } from '../services/shop-memberships';
@@ -71,6 +74,10 @@ export interface MeResponse {
   /** AUTH-28 (amended 2026-10-31): no shop to open and no verified phone, so a phone comes before create-shop. False
       for staff, whose own sign-in opens no shop. */
   needsPhone: boolean;
+  /** I18N-01 (Slice 7.3's read): the language the person chose in this shop; null until chosen, and with no shop. */
+  language: 'bn' | 'en' | null;
+  /** NTF-06 (Slice 7.3's read): Lytro stopped emailing the owner's address, for the dashboard's banner. */
+  emailBounced: boolean;
 }
 
 /**
@@ -109,6 +116,7 @@ export class MeController {
     @Inject(BillingTermsService) private readonly terms: BillingTermsService,
     @Inject(LifecycleService) private readonly lifecycle: LifecycleService,
     @Inject(IdentitiesService) private readonly identities: IdentitiesService,
+    @Inject(MailService) private readonly mail: MailService,
   ) {}
 
   @Get()
@@ -166,7 +174,35 @@ export class MeController {
       shops,
       hasDeletedShop,
       needsPhone,
+      language: tenant === null ? null : await this.staff.languageOf(tenant, userId),
+      emailBounced: tenant !== null && isOwner ? await this.ownerEmailStopped(tenant.id) : false,
     };
+  }
+
+  // I18N-01 (Slice 7.3's read, agreed 2026-11-07): the dashboard tells the server the language the person chose, so the
+  // email and push sent while they aren't looking are in it.
+  @Put('language')
+  @ResponseMessage('LanguageSaved')
+  @ApiOperation({
+    summary:
+      'Keep the language the signed-in person chose, which their email and push are written in',
+  })
+  @ZodResponse({ type: MeLanguageResponseDto })
+  async setLanguage(
+    @Req() request: DashboardRequest,
+    @Body(new ZodValidationPipe(MeLanguageDto.schema)) body: MeLanguageDto,
+  ): Promise<{ language: 'bn' | 'en'; kept: boolean }> {
+    const tenant = request.tenant ?? null;
+    if (tenant === null) return { language: body.language, kept: false };
+    const userId = request.session?.userId ?? null;
+    const kept = await this.staff.setLanguage(tenant, userId, body.language);
+    return { language: body.language, kept };
+  }
+
+  /** NTF-06: whether Lytro has stopped emailing the owner's address. */
+  private async ownerEmailStopped(tenantId: string): Promise<boolean> {
+    const owner = await this.staff.ownerContact(tenantId);
+    return owner?.email ? this.mail.isSuppressed(owner.email) : false;
   }
 
   /**

@@ -92,8 +92,8 @@ async function seedOwner(
   email: string | null = null,
 ): Promise<void> {
   await admin.query(
-    `INSERT INTO tenant.users (tenant_id, phone, email, name, is_owner, active)
-     VALUES ($1, $2, $3, 'Owner', true, true)`,
+    `INSERT INTO tenant.users (tenant_id, phone, email, name, is_owner, active, language)
+     VALUES ($1, $2, $3, 'Owner', true, true, 'en')`,
     [tenantId, phone, email],
   );
 }

@@ -1,3 +1,0 @@
-ALTER TABLE "tenant"."courier_connections" ADD COLUMN "account_fingerprint" text;--> statement-breakpoint
-ALTER TABLE "tenant"."courier_parcels" ADD COLUMN "checks_restarted_at" timestamp with time zone;--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "courier_connections_account_key" ON "tenant"."courier_connections" USING btree ("courier_key","account_fingerprint") WHERE "tenant"."courier_connections"."account_fingerprint" IS NOT NULL;

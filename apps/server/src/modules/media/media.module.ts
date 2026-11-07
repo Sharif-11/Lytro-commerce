@@ -14,7 +14,6 @@ import { CloudflareMediaEdge } from './providers/cloudflare-media-edge';
 import { S3MediaStorage } from './providers/s3-media-storage';
 import { UnconfiguredMediaEdge } from './providers/unconfigured-media-edge';
 import { UnconfiguredMediaStorage } from './providers/unconfigured-media-storage';
-import { ConsoleMediaNotifier } from './services/console-media-notifier';
 import { ImageProcessor } from './services/image-processor';
 import { MediaBandwidth, type BandwidthSettings } from './services/media-bandwidth';
 import { MediaDeleter } from './services/media-deleter';
@@ -34,6 +33,8 @@ import {
   MEDIA_STORAGE,
   MEDIA_STORE,
 } from './tokens';
+import { BellMediaNotifier } from '../notifications/notifiers/bell-notifiers';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 // Slice 6 design point 3: x264's medium pace on two threads, leaving the server's other cores to the API and the
 // database (a 1-minute 1080p clip took about 70 s on a laptop core); a run past 15 minutes is stopped.
@@ -83,11 +84,17 @@ function mediaEdge(env: Env): MediaEdge {
 // deleting. It depends on catalogue (a deletion changes what the public pages show, CCH-02, and is logged like a
 // catalogue change), platform settings (the per-file limits) and the queue; nothing in those depends back on it.
 @Module({
-  imports: [CatalogueModule, PlatformSettingsModule, QueueModule, UsageWarningsModule],
+  imports: [
+    NotificationsModule,
+    CatalogueModule,
+    PlatformSettingsModule,
+    QueueModule,
+    UsageWarningsModule,
+  ],
   providers: [
     { provide: MEDIA_STORAGE, inject: [ENV], useFactory: mediaStorage },
     { provide: MEDIA_STORE, useClass: DrizzleMediaStore },
-    { provide: MEDIA_NOTIFIER, useClass: ConsoleMediaNotifier },
+    { provide: MEDIA_NOTIFIER, useExisting: BellMediaNotifier },
     { provide: FFMPEG, useValue: FFMPEG_SETTINGS },
     { provide: MEDIA_CLOCK, useValue: () => new Date() },
     { provide: MEDIA_EDGE, inject: [ENV], useFactory: mediaEdge },

@@ -194,12 +194,16 @@ function build(state: World) {
       if (row) row.status = input.nextAttemptAt ? 'pending' : 'failed';
       return Promise.resolve();
     },
+    markSuppressed: () => Promise.resolve(),
+    isSuppressed: () => Promise.resolve(false),
+    lift: () => Promise.resolve(false),
+    suppress: () => Promise.resolve(),
   };
   const mailProvider: MailProvider = {
     send: (message) => {
       if (state.mailFails) return Promise.reject(new Error('provider down'));
       state.mailSent.push(message);
-      return Promise.resolve();
+      return Promise.resolve({ providerMessageId: null });
     },
   };
   const mail = new MailService(mailStore, mailProvider, () => state.now);

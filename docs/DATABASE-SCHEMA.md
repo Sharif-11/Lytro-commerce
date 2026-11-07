@@ -490,6 +490,8 @@ CREATE TABLE tenant.users (
     active             boolean NOT NULL DEFAULT true,
     subscriber_id      uuid,                    -- the platform account behind a staff member; null for the owner (D22)
     must_set_password  boolean NOT NULL DEFAULT false,  -- STF-13: owner reset forces a change at the next sign-in
+    language           varchar(2) CHECK (language IS NULL OR language IN ('bn', 'en')),  -- I18N-01 (0116): the
+                                                -- language chosen in the dashboard, which email and push use; null = Bangla
     created_at         timestamptz NOT NULL DEFAULT now(),
     UNIQUE (tenant_id, phone),
     UNIQUE (tenant_id, email),
@@ -2428,6 +2430,63 @@ CREATE TABLE control.scheduled_plan_changes (
 ## 5. SMS, push and notifications
 
 ```sql
+-- NTF-06, D7-38 (built in Phase 7 Slice 7.3, migration 0116): the addresses Lytro no longer emails, lowercased.
+-- Resend's signed webhook says an email bounced for good or was marked as spam; the row goes when a code its owner
+-- asked for reaches the address. The outbox sends a code to it still, and marks anything else `suppressed`.
+CREATE TABLE control.mail_suppressions (
+    email       text PRIMARY KEY,
+    reason      text NOT NULL CHECK (reason IN ('bounced', 'complained')),
+    detail      text,                              -- what Resend said, for support; never shown to the shop
+    created_at  timestamptz NOT NULL DEFAULT now()
+);
+-- control.mail_outbox (0116) gains `provider_message_id`, the ID Resend gave an email it accepted, and the status
+-- `suppressed`. Each email is sent with the key `lytro-mail-<id>`, so a retry is never a second email (D7-3).
+
+-- NTF-01, NTF-03 (built in Phase 7 Slice 7.3, migration 0116): one row for each person a notice reached, its words in
+-- both languages, so the bell shows each reader theirs and push uses the language they chose. Kept 30 days (D7-39,
+-- the setting `notification_retention_days`), then the nightly clean-up deletes it. Goes with the person's row.
+CREATE TABLE tenant.notifications (
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id   uuid NOT NULL,
+    user_id     uuid NOT NULL,                     -- the person: tenant.users (the owner's row for the owner)
+    kind        text NOT NULL,                     -- NotificationKind
+    words       jsonb NOT NULL,                    -- {"bn": {"title", "body"}, "en": {"title", "body"}}
+    link        text,                              -- a dashboard path within the shop, such as /orders/<id>
+    read_at     timestamptz,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    FOREIGN KEY (tenant_id, user_id) REFERENCES tenant.users(tenant_id, id) ON DELETE CASCADE
+);
+-- Indexed by (tenant_id, user_id, created_at), the unread by (tenant_id, user_id) WHERE read_at IS NULL, and
+-- (tenant_id, created_at) for the clean-up.
+
+-- NTF-04, D7-40: the kinds a person switched off, one row each; only kinds that may be switched off are kept.
+CREATE TABLE tenant.notification_preferences (
+    tenant_id   uuid NOT NULL,
+    user_id     uuid NOT NULL,
+    kind        text NOT NULL,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (tenant_id, user_id, kind),
+    FOREIGN KEY (tenant_id, user_id) REFERENCES tenant.users(tenant_id, id) ON DELETE CASCADE
+);
+
+-- NTF-02: each browser a person subscribed to push, on one of the push services only (fcm.googleapis.com, Mozilla's,
+-- Apple's, Microsoft's). Deleted when its service says it is gone (404, 410) or after 10 failed pushes in a row.
+CREATE TABLE tenant.push_subscriptions (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL,
+    user_id         uuid NOT NULL,
+    endpoint        text NOT NULL,
+    p256dh          text NOT NULL,                 -- the browser's public key, base64url
+    auth            text NOT NULL,                 -- the browser's auth secret, base64url
+    user_agent      text,
+    failures        integer NOT NULL DEFAULT 0,
+    last_pushed_at  timestamptz,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, user_id, endpoint),
+    FOREIGN KEY (tenant_id, user_id) REFERENCES tenant.users(tenant_id, id) ON DELETE CASCADE
+);
+-- All three: row-level security to the shop's own rows, as every tenant table.
+
 -- SMS-02, SMS-10, SMS-13, SMS-16, SMS-19 (built in Phase 7 Slice 7.2): a row once the owner changes anything. Only
 -- what the owner changed is kept: every other switch and template follows the platform's default (SMS-03), so "reset"
 -- takes a template out. A per-shop sender ID (SMS-16) is not built: BulkSMSBD's account has one.

@@ -182,6 +182,12 @@ describe("D7-22: the settings guard Gemini's key", () => {
     PLATFORM_ADDRESSES: '203.0.113.10',
     BULKSMSBD_API_KEY: 'key',
     BULKSMSBD_SENDER_ID: 'sender',
+    // Phase 7 Slice 7.3 (D7-22): production emails through Resend too.
+    RESEND_API_KEY: 'key',
+    RESEND_WEBHOOK_SECRET: 'whsec_c2VjcmV0',
+    VAPID_PUBLIC_KEY:
+      'BBNykCoCcw3zvOh_47IKoxj6iE_nq2XIoPa-8QseO0wXT-0DXUxzLKt8gHBkgX1F6QGkLVde6Love1mB84r11Jw',
+    VAPID_PRIVATE_KEY: 'rieyYsQvtJt6S0zEMB1SPZjCnUegO-FIvwL4XR2gFNw',
   };
 
   it('refuses production, staging included, without the key', () => {

@@ -11,12 +11,13 @@ import {
   isUsageLimitKey,
   limitOf,
 } from '@lytronix/validators';
+import { NotificationKind } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import type { Bilingual } from '../../../common/i18n/bilingual';
 import { DAY_MS, daysUntil, dhakaDate } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
 import { fromPaisa, toPaisa } from '../../balance/services/money';
-import { MailService } from '../../shared/mail/services/mail.service';
 import { StaffService } from '../../staff/services/staff.service';
 import { TenantCache } from '../../tenancy/services/tenant-cache';
 import { TenantService } from '../../tenancy/services/tenant.service';
@@ -30,7 +31,16 @@ import {
   renewalBar,
   withPlanPeriod,
 } from './addon-renewal.service';
+import {
+  ADDON_NOT_RENEWING,
+  addonEndingWords,
+  addonRetiredLimit,
+  addonShortBy,
+  countedName,
+} from './billing-notice-words';
 import { ShopLimitsService } from './shop-limits.service';
+import { AccountNotices } from '../../notifications/services/account-notices';
+import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 
 /** What one add-on tick did. */
 export interface AddonTickResult {
@@ -48,8 +58,8 @@ function byShop(rows: readonly RenewingAddon[]): Map<string, RenewingAddon[]> {
 }
 
 /** How an add-on is named in a notice: its label, and how many when more than one. */
-function nameOf(addon: RenewingAddon): string {
-  return addon.quantity === 1 ? addon.labelEn : `${addon.labelEn} x${String(addon.quantity)}`;
+function nameOf(addon: RenewingAddon): Bilingual<string> {
+  return countedName({ bn: addon.labelBn, en: addon.labelEn }, addon.quantity);
 }
 
 /**
@@ -70,7 +80,7 @@ export class AddonLifecycleService {
     @Inject(TenantCache) private readonly tenantCache: TenantCache,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(StaffService) private readonly staff: StaffService,
-    @Inject(MailService) private readonly mail: MailService,
+    @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
@@ -202,14 +212,19 @@ export class AddonLifecycleService {
     day: number,
     info: BillingInfoRow | null,
   ): Promise<void> {
-    const body =
-      `${nameOf(row)} ends on ${dhakaDate(row.expiresAt)} and will not renew: ` +
-      (await this.whyNot(tenantId, row, renewal, info));
-    const contact = await this.staff.ownerContact(tenantId);
+    const words = addonEndingWords(
+      nameOf(row),
+      dhakaDate(row.expiresAt),
+      await this.whyNot(tenantId, row, renewal, info),
+    );
     await this.tenants.runStandalone(async (tx) => {
-      if (contact?.email) {
-        await this.mail.queueLifecycleNotice(tx, contact.email, 'An add-on ends soon', body);
-      }
+      await this.notices.send(
+        tx,
+        tenantId,
+        NotificationKind.AccountNotice,
+        words,
+        NOTIFICATION_LINKS.addons,
+      );
       await this.audit.record(tx, {
         tenantId,
         actorType: ActorType.System,
@@ -229,30 +244,23 @@ export class AddonLifecycleService {
     row: RenewingAddon,
     renewal: AddonRenewal,
     info: BillingInfoRow | null,
-  ): Promise<string> {
-    if (renewal === AddonRenewal.Off) {
-      return 'its renewal is switched off. Switch it on from the add-ons page to keep it.';
-    }
-    if (renewal === AddonRenewal.Unlimited) {
-      return 'your plan no longer limits what it adds, so it is not needed.';
-    }
+  ): Promise<Bilingual<string>> {
+    if (renewal === AddonRenewal.Off) return ADDON_NOT_RENEWING.switchedOff;
+    if (renewal === AddonRenewal.Unlimited) return ADDON_NOT_RENEWING.unlimited;
     if (renewal === AddonRenewal.BalanceShort) {
       const next = await this.renewals.nextOwnPeriod(info, row, row.expiresAt);
       const balance = toPaisa((await this.balance.current(tenantId)).amount);
       const price = next ? toPaisa(next.price) : 0n;
       return price > balance
-        ? `your balance is ${fromPaisa(price - balance)} TK short of renewing it. Top up to keep it.`
-        : 'your balance is too short to renew it with your plan. Top up to keep it.';
+        ? addonShortBy(fromPaisa(price - balance))
+        : ADDON_NOT_RENEWING.shortWithPlan;
     }
-    if (row.kind === AddonKind.Feature)
-      return 'it is no longer sold, and switches off when it ends.';
+    if (row.kind === AddonKind.Feature) return ADDON_NOT_RENEWING.featureRetired;
     const limits = await this.shopLimits.of(tenantId, info?.planSnapshot ?? null);
     const limit =
       row.limitKey !== null && isUsageLimitKey(row.limitKey) ? limitOf(limits, row.limitKey) : null;
     const after = limit === null ? null : limit - row.quantity * (row.unitSize ?? 0);
-    return after === null
-      ? 'it is no longer sold.'
-      : `it is no longer sold. Your limit goes back to ${String(after)} when it ends.`;
+    return after === null ? ADDON_NOT_RENEWING.retired : addonRetiredLimit(after);
   }
 
   private billingOf(tenantId: string): Promise<BillingInfoRow | null> {

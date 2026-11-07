@@ -22,7 +22,9 @@ import {
   type PlanLimits,
   type QuoteAddonInput,
 } from '@lytronix/validators';
+import { NotificationKind } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import type { Bilingual } from '../../../common/i18n/bilingual';
 import type { MessageKey } from '../../../common/i18n/message-key';
 import { DAY_MS, daysUntil, HOUR_MS } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
@@ -31,7 +33,6 @@ import { InvoicesService } from '../../payments/services/invoices.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
-import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { StaffService } from '../../staff/services/staff.service';
 import { TenantCache } from '../../tenancy/services/tenant-cache';
@@ -53,9 +54,12 @@ import { AddonPackService, packPrice } from './addon-pack.service';
 import { addonPrice, renewalPrice, type AddonPeriod } from './addon-price';
 import { AddonRenewalService, NOT_RENEWING, type OwnPeriod } from './addon-renewal.service';
 import { assertAmountSeen } from './amount-seen';
+import { ADDON_NOT_TAKEN, addonPaymentToBalanceWords } from './billing-notice-words';
 import { BillingTermsService } from './billing-terms.service';
 import { addonLine } from './plan-invoicing.service';
 import { ShopLimitsService } from './shop-limits.service';
+import { AccountNotices } from '../../notifications/services/account-notices';
+import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 
 // BIL-09: an add-on's quote is held for 30 minutes, as a plan's is.
 const QUOTE_HOLD_MS = HOUR_MS / 2;
@@ -64,10 +68,10 @@ const QUOTE_HOLD_MS = HOUR_MS / 2;
 const MIN_PRICE = 1;
 
 // PLN-14: what the owner is told when an approved wallet payment could not add its add-on, by why it could not.
-const NOT_TAKEN: Partial<Record<MessageKey, string>> = {
-  AddonNotAvailable: "your shop's plan was no longer active",
-  AddonAlreadyActive: 'your shop already had it',
-  AddonLimitUnlimited: 'your plan no longer limits what it adds',
+const NOT_TAKEN: Partial<Record<MessageKey, Bilingual<string>>> = {
+  AddonNotAvailable: ADDON_NOT_TAKEN.notAvailable,
+  AddonAlreadyActive: ADDON_NOT_TAKEN.alreadyActive,
+  AddonLimitUnlimited: ADDON_NOT_TAKEN.unlimited,
 };
 
 /** The running period an add-on would be bought into, and the shop it belongs to. */
@@ -161,7 +165,7 @@ export class AddonPurchaseService {
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(MessagingService) private readonly sms: MessagingService,
-    @Inject(MailService) private readonly mail: MailService,
+    @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(TenantCache) private readonly tenantCache: TenantCache,
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
@@ -591,21 +595,22 @@ export class AddonPurchaseService {
       result: AuditResult.Success,
       summary: { amount: payment.amount, addon: addon.key, notTaken: refusal?.messageKey ?? null },
     });
-    const why =
-      (refusal && NOT_TAKEN[refusal.messageKey]) ?? "your shop's plan was no longer active";
-    const body =
-      `Your payment of ${payment.amount} TK for ${addon.labelEn} could not add it, because ${why}. ` +
-      `The ${payment.amount} TK has been added to your balance instead.`;
+    const why = (refusal && NOT_TAKEN[refusal.messageKey]) ?? ADDON_NOT_TAKEN.notAvailable;
+    const words = addonPaymentToBalanceWords(
+      payment.amount,
+      { bn: addon.labelBn, en: addon.labelEn },
+      why,
+    );
     const owner = await this.staff.ownerContactIn(tx, tenantId);
-    if (owner?.phone) await this.sms.queueLifecycleNotice(tx, owner.phone, body);
-    if (owner?.email) {
-      await this.mail.queueLifecycleNotice(
-        tx,
-        owner.email,
-        'Your add-on payment went to your balance',
-        body,
-      );
-    }
+    // The SMS keeps its English words (KNOWN-GAPS §127); the email goes in the owner's language.
+    if (owner?.phone) await this.sms.queueLifecycleNotice(tx, owner.phone, words.en.body);
+    await this.notices.send(
+      tx,
+      tenantId,
+      NotificationKind.AccountNotice,
+      words,
+      NOTIFICATION_LINKS.balance,
+    );
   }
 
   private priceOf(addon: AddonRecord, quantity: number, period: AddonPeriod, now: Date): number {
