@@ -29,10 +29,13 @@ import {
   type CourierConnectionState,
   type CourierKey,
 } from '@lytronix/validators';
+import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { CourierStore } from '../../modules/couriers/ports/courier-store';
 
 // Slice 6.7: more undos than this in a week would be an operator's mistake; the latest per courier is among them.
 const RETIRING_UNDONE_READ_LIMIT = 50;
+// Phase 6 close-out: one courier account, one shop (migration courier_closeout).
+const ACCOUNT_KEY_INDEX = 'courier_connections_account_key';
 import { DatabaseService } from '../database.service';
 
 @Injectable()
@@ -104,7 +107,11 @@ export class DrizzleCourierStore implements CourierStore {
     return this.couriers.findDefaultConnection(tx, tenantId);
   }
 
-  saveConnection(
+  lockConnections(tx: Transaction, tenantId: string): Promise<void> {
+    return this.couriers.lockConnections(tx, tenantId);
+  }
+
+  async saveConnection(
     tx: Transaction,
     tenantId: string,
     values: {
@@ -112,10 +119,18 @@ export class DrizzleCourierStore implements CourierStore {
       credentials: Buffer;
       isDefault: boolean;
       state: CourierConnectionState;
+      accountFingerprint: string | null;
     },
     now: Date,
   ): Promise<SelectCourierConnection> {
-    return this.couriers.saveConnection(tx, tenantId, values, now);
+    try {
+      return await this.couriers.saveConnection(tx, tenantId, values, now);
+    } catch (error) {
+      if (this.transactions.isUniqueViolation(error, ACCOUNT_KEY_INDEX)) {
+        throw new UniqueViolation('account');
+      }
+      throw error;
+    }
   }
 
   deleteConnection(

@@ -2059,6 +2059,13 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: (p) => `${String(p['courier'])} is being retired from Lytro, so it can’t be connected now.`,
     bn: (p) => `${String(p['courier'])} Lytro থেকে রিটায়ার হচ্ছে, তাই এখন কানেক্ট করা যাবে না।`,
   },
+  // Phase 6 close-out (agreed 2026-11-07): one courier account serves one shop.
+  CourierAccountInUse: {
+    en: (p) =>
+      `This ${String(p['courier'])} account is already connected to another Lytro shop. Each shop needs its own account.`,
+    bn: (p) =>
+      `এই ${String(p['courier'])} অ্যাকাউন্টটি Lytro-র আরেকটি শপে কানেক্ট করা আছে। প্রতিটি শপের নিজের অ্যাকাউন্ট লাগবে।`,
+  },
   CourierAlreadyRetiring: {
     en: 'This courier is already being retired.',
     bn: 'এই কুরিয়ারটি আগেই রিটায়ার হচ্ছে।',

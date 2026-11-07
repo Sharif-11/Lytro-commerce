@@ -63,6 +63,9 @@ export const courierConnections = tenant.table(
     unsignedAt: timestamp('unsigned_at', { withTimezone: true }),
     // CRR-15: when the owner was last told a pasted address may be broken, at most once a day.
     pasteWarnedAt: timestamp('paste_warned_at', { withTimezone: true }),
+    // Phase 6 close-out (agreed 2026-11-07): which courier account this is, as a fingerprint of the credential that names it, never
+    // the credential. One account serves one shop, since a courier refuses an invoice it has seen and every shop numbers from 0001.
+    accountFingerprint: text('account_fingerprint'),
     // CRR-17 (Slice 6.5): Steadfast lists payouts oldest first with no page count, so the night run starts where new ones may be,
     // and learns how many a full page holds once it has seen one followed by another.
     payoutPage: smallint('payout_page').notNull().default(1),
@@ -75,6 +78,10 @@ export const courierConnections = tenant.table(
     uniqueIndex('courier_connections_default_key')
       .on(t.tenantId)
       .where(sql`${t.isDefault}`),
+    // Across every shop: a second shop connecting the same account is refused.
+    uniqueIndex('courier_connections_account_key')
+      .on(t.courierKey, t.accountFingerprint)
+      .where(sql`${t.accountFingerprint} IS NOT NULL`),
   ],
 );
 
@@ -143,6 +150,8 @@ export const courierParcels = tenant.table(
     lastCheckAt: timestamp('last_check_at', { withTimezone: true }),
     // D6-4: 30 days with no change stop the checks and show "no news"; Sync starts them again.
     checksStoppedAt: timestamp('checks_stopped_at', { withTimezone: true }),
+    // Phase 6 close-out: when a person last asked (Sync), which starts the 30 days again as a change would.
+    checksRestartedAt: timestamp('checks_restarted_at', { withTimezone: true }),
     // Read agreed 2026-11-05: the cash its courier reports, the COD if changed in its panel, and what staff should look at.
     cashCollected: money('cash_collected'),
     codAtCourier: money('cod_at_courier'),

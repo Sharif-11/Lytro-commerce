@@ -6,6 +6,8 @@ import pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { MINUTE_MS } from '../src/common/time';
+import type { SelectCourierParcel } from '@lytronix/db';
+import { CourierBooking } from '../src/modules/couriers/services/courier-booking';
 import { CourierBookingPass } from '../src/modules/couriers/services/courier-booking-pass';
 import { CourierConnections } from '../src/modules/couriers/services/courier-connections';
 import {
@@ -19,7 +21,12 @@ import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { CourierBookingTickWorker } from '../src/modules/shared/queue-workers/services/courier-booking-tick-worker';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedBalance } from './support/database';
-import { FakeSteadfast, RIGHT_API_KEY, RIGHT_SECRET_KEY } from './support/fake-steadfast';
+import {
+  FakeSteadfast,
+  RIGHT_API_KEY,
+  RIGHT_SECRET_KEY,
+  freshSteadfastKeys,
+} from './support/fake-steadfast';
 import { getJson, postJson, type HttpResult } from './support/http';
 import { errorOf, fieldsOf, openShop, staffWith, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
@@ -41,8 +48,6 @@ let admin: pg.Client;
 let clockShift = 0;
 const steadfast = new FakeSteadfast();
 const texts = new SmsCapture();
-
-const KEYS = { apiKey: RIGHT_API_KEY, secretKey: RIGHT_SECRET_KEY };
 
 beforeAll(async () => {
   if (!ADMIN_URL) return;
@@ -192,7 +197,7 @@ async function place(
 async function connected(shop: ShopClient): Promise<void> {
   const made = await shop.post('/couriers/connections', {
     courierKey: 'steadfast',
-    credentials: KEYS,
+    credentials: freshSteadfastKeys(),
   });
   expect(made.status, JSON.stringify(made.body)).toBe(200);
   steadfast.calls.length = 0;
@@ -325,7 +330,7 @@ describeIfDatabase('connecting a courier (CRR-01 to CRR-05, CRR-20, SEC-11)', ()
     const shop = await openShop(port, texts, 'crr');
     const made = await shop.post('/couriers/connections', {
       courierKey: 'steadfast',
-      credentials: KEYS,
+      credentials: freshSteadfastKeys(),
     });
     expect(made.status, JSON.stringify(made.body)).toBe(200);
     expect(made.body).toMatchObject({
@@ -355,12 +360,12 @@ describeIfDatabase('connecting a courier (CRR-01 to CRR-05, CRR-20, SEC-11)', ()
     });
     expect(replaced.status, JSON.stringify(replaced.body)).toBe(200);
     expect(steadfast.callsTo('/get_balance')[0]).toMatchObject({
-      apiKey: RIGHT_API_KEY,
+      apiKey: expect.stringMatching(new RegExp(`^${RIGHT_API_KEY}-`)) as string,
       secretKey: RIGHT_SECRET_KEY,
     });
     const stray = await shop.post('/couriers/connections', {
       courierKey: 'steadfast',
-      credentials: { ...KEYS, password: 'x' },
+      credentials: { ...freshSteadfastKeys(), password: 'x' },
     });
     expect(stray.status).toBe(400);
     expect(fieldsOf(stray)).toHaveProperty(['credentials.password']);
@@ -385,6 +390,67 @@ describeIfDatabase('connecting a courier (CRR-01 to CRR-05, CRR-20, SEC-11)', ()
     expect(steadfast.callsTo('/get_balance')).toHaveLength(5);
   });
 
+  it('never puts a courier key in a URL, takes none from a query, and never shows one back (SEC-08, close-out)', async () => {
+    const shop = await openShop(port, texts, 'crr');
+    const keys = freshSteadfastKeys();
+    // Credentials come only in the body: a query carrying them is no connection.
+    const queried = await shop.post(
+      `/couriers/connections?courierKey=steadfast&apiKey=${keys.apiKey}&secretKey=${keys.secretKey}`,
+      {},
+    );
+    expect(queried.status).toBe(400);
+    expect(steadfast.calls).toEqual([]);
+    const made = await shop.post('/couriers/connections', {
+      courierKey: 'steadfast',
+      credentials: keys,
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(200);
+    const lamp = await product(shop, 'Lamp', 300, 5);
+    await booked(shop, await place(shop, lamp.variantId));
+    expect(steadfast.calls.length).toBeGreaterThan(1);
+    for (const call of steadfast.calls) {
+      expect(call.url).not.toContain(keys.apiKey);
+      expect(call.url).not.toContain(keys.secretKey);
+    }
+    for (const read of [
+      await shop.get('/couriers/connections'),
+      await shop.get('/couriers/connections/steadfast/address'),
+    ]) {
+      expect(read.status, JSON.stringify(read.body)).toBe(200);
+      expect(JSON.stringify(read.body)).not.toContain(keys.apiKey);
+      expect(JSON.stringify(read.body)).not.toContain(keys.secretKey);
+    }
+  });
+
+  it('records one entry each time keys are replaced, and one for disconnecting (AUD-01, close-out)', async () => {
+    const shop = await openShop(port, texts, 'crr');
+    expect(
+      (
+        await shop.post('/couriers/connections', {
+          courierKey: 'steadfast',
+          credentials: freshSteadfastKeys(),
+        })
+      ).status,
+    ).toBe(200);
+    const replaced = await shop.post('/couriers/connections', {
+      courierKey: 'steadfast',
+      credentials: { apiKey: '', secretKey: '' },
+    });
+    expect(replaced.status, JSON.stringify(replaced.body)).toBe(200);
+    const entries = async (action: string): Promise<{ summary: Record<string, unknown> }[]> =>
+      (
+        await admin.query<{ summary: Record<string, unknown> }>(
+          'SELECT summary FROM tenant.activity_log WHERE tenant_id = $1 AND action = $2 ORDER BY id',
+          [shop.tenantId, action],
+        )
+      ).rows;
+    const connected = await entries('courier_connected');
+    expect(connected.map((row) => row.summary['replaced'])).toEqual([false, true]);
+    expect((await shop.delete('/couriers/connections/steadfast')).status).toBe(200);
+    expect(await entries('courier_disconnected')).toHaveLength(1);
+    expect(await entries('courier_connected')).toHaveLength(2);
+  });
+
   it('takes only couriers:manage to connect; orders:manage sees them to book (CRR-05)', async () => {
     // A shop on Starter has one seat beyond its owner, so each person gets a shop.
     const shop = await connectedShop();
@@ -396,14 +462,14 @@ describeIfDatabase('connecting a courier (CRR-01 to CRR-05, CRR-20, SEC-11)', ()
     const asBooker = await postJson(
       port,
       '/couriers/connections',
-      { courierKey: 'steadfast', credentials: KEYS },
+      { courierKey: 'steadfast', credentials: freshSteadfastKeys() },
       booker,
     );
     expect(asBooker.status).toBe(403);
     const asManager = await postJson(
       port,
       '/couriers/connections',
-      { courierKey: 'steadfast', credentials: KEYS },
+      { courierKey: 'steadfast', credentials: freshSteadfastKeys() },
       manager,
     );
     expect(asManager.status, JSON.stringify(asManager.body)).toBe(200);
@@ -464,6 +530,34 @@ describeIfDatabase('connecting a courier (CRR-01 to CRR-05, CRR-20, SEC-11)', ()
 });
 
 describeIfDatabase('booking an order (CRR-06 to CRR-10, D6-7, D6-10, exit criterion 2)', () => {
+  it('charges a plan shop nothing for a booking: its ledger is unchanged (CRR-22, close-out)', async () => {
+    const shop = await connectedShop();
+    await admin.query(
+      `UPDATE control.tenants SET state = 'active',
+         plan_id = (SELECT id FROM control.plans WHERE name = 'Starter'),
+         plan_snapshot = (SELECT limits FROM control.plans WHERE name = 'Starter'),
+         period_start = now() - interval '10 days', period_end = now() + interval '20 days'
+       WHERE id = $1`,
+      [shop.tenantId],
+    );
+    const lamp = await product(shop, 'Lamp', 300, 5);
+    const order = await place(shop, lamp.variantId);
+    const ledger = async (): Promise<number> =>
+      Number(
+        (
+          await admin.query<{ total: string }>(
+            'SELECT count(*)::text AS total FROM tenant.balance_ledger WHERE tenant_id = $1',
+            [shop.tenantId],
+          )
+        ).rows[0]?.total,
+      );
+    const before = await ledger();
+    const sent = await booked(shop, order);
+    expect(sent).toMatchObject({ status: 'processing' });
+    expect(await ledger()).toBe(before);
+    expect((await balanceOf(shop)).held).toBe('0.00');
+  });
+
   it('walks a pay-as-you-go order from placed to delivered, with stock, count and fee each moving once', async () => {
     const shop = await payAsYouGo('500.00');
     const phone = await serialProduct(shop, ['SN-A', 'SN-B']);
@@ -914,6 +1008,8 @@ describeIfDatabase('a lost answer (CRR-18, D6-11, exit criterion 3)', () => {
     expect(steadfast.callsTo(`/status_by_invoice/${order.orderNumber}`)).toHaveLength(1);
     const found = await read(shop, order.id);
     expect(found).toMatchObject({ status: 'processing', courierName: 'Steadfast' });
+    // Close-out (A5): whoever booked it confirmed it, though the minute pass settled it.
+    expect(found.confirmedBy?.id).toBeTruthy();
     expect(found.parcel).toMatchObject({
       state: 'booked',
       settled: true,
@@ -936,7 +1032,74 @@ describeIfDatabase('a lost answer (CRR-18, D6-11, exit criterion 3)', () => {
     });
     expect(filled.status, JSON.stringify(filled.body)).toBe(200);
     expect((filled.body as Order).parcel).toMatchObject({ consignmentId: '777', settled: true });
+    // Close-out (A3): and the order's tracking, which the shopper sees, has them too.
+    expect(filled.body).toMatchObject({
+      trackingCode: 'TRK777',
+      trackingLink: expect.stringContaining('TRK777') as string,
+    });
     expect((await fees(shop.tenantId)).length).toBe(1);
+  });
+
+  it('never brings back a booking staff said wasn’t made, nor refuses one they said was (A6, close-out)', async () => {
+    const shop = await payAsYouGo('500.00');
+    const lamp = await product(shop, 'Lamp', 300, 5);
+    const gone = await place(shop, lamp.variantId);
+    const made = await place(shop, lamp.variantId);
+    steadfast.behaviour = { bookingTimesOut: { madeIt: false } };
+    await book(shop, gone.id);
+    await book(shop, made.id);
+    steadfast.behaviour = {};
+    const parcelOf = async (orderId: string): Promise<SelectCourierParcel> => {
+      const { rows } = await admin.query<{ id: string }>(
+        'SELECT id FROM tenant.courier_parcels WHERE order_id = $1',
+        [orderId],
+      );
+      return { id: rows[0]?.id ?? '', orderId } as SelectCourierParcel;
+    };
+    const booking = app.get(CourierBooking);
+    // Staff say it wasn't made; a look-up already out then finds it.
+    expect(
+      (await shop.post(`/orders/${gone.id}/parcel/settle`, { outcome: 'not_booked' })).status,
+    ).toBe(200);
+    await booking.foundByLookUp(shop.tenantId, await parcelOf(gone.id), {
+      consignmentId: '901',
+      trackingCode: null,
+      courierStatus: 'in_review',
+    });
+    expect(await read(shop, gone.id)).toMatchObject({
+      handledAt: null,
+      parcel: { state: 'refused' },
+    });
+    // Staff say it was; a look-up already out then finds no such parcel.
+    const yes = await shop.post(`/orders/${made.id}/parcel/settle`, {
+      outcome: 'booked',
+      consignmentId: '902',
+      trackingCode: 'TRK902',
+    });
+    expect(yes.status, JSON.stringify(yes.body)).toBe(200);
+    await booking.notBooked(shop.tenantId, await parcelOf(made.id));
+    expect(await read(shop, made.id)).toMatchObject({
+      status: 'processing',
+      parcel: { state: 'booked', consignmentId: '902' },
+    });
+    expect((await fees(shop.tenantId)).length).toBe(1);
+    await expectLedgerAgrees(admin, shop.tenantId);
+  });
+
+  it('cancels a booking once when staff press it twice at once (A6, close-out)', async () => {
+    const shop = await connectedShop();
+    const lamp = await product(shop, 'Lamp', 300, 5);
+    const order = await booked(shop, await place(shop, lamp.variantId));
+    const answers = await Promise.all([
+      shop.post(`/orders/${order.id}/parcel/cancel`, { courierCancelled: true }),
+      shop.post(`/orders/${order.id}/parcel/cancel`, { courierCancelled: true }),
+    ]);
+    expect(answers.map((answer) => answer.status).sort()).toEqual([200, 409]);
+    const { rows } = await admin.query(
+      "SELECT 1 FROM tenant.activity_log WHERE tenant_id = $1 AND action = 'parcel_cancelled'",
+      [shop.tenantId],
+    );
+    expect(rows).toHaveLength(1);
   });
 
   it('closes after two looks find no parcel, giving everything back, and books again on the same invoice', async () => {

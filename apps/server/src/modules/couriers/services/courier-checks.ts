@@ -137,8 +137,11 @@ export class CourierChecks {
         { courier: opened.adapter.name, message: answer.refusal.message ?? '' },
       );
     }
-    // CRR-14: a person asking starts a parcel's checks again.
-    await this.saveAsked(tenantId, parcel.id, { checksStoppedAt: null });
+    // CRR-14: a person asking starts a parcel's checks again, and the 30 days with it.
+    await this.saveAsked(tenantId, parcel.id, {
+      checksStoppedAt: null,
+      checksRestartedAt: this.clock(),
+    });
     if (answer.outcome === 'found') {
       await this.takeNews(tenantId, parcel, answer, CourierNewsSource.Sync);
     }
@@ -195,8 +198,12 @@ export class CourierChecks {
     let checked = 0;
     let moved = 0;
     for (const parcel of due) {
-      // D6-4: no change for this long, so it stops being asked after, and shows "no news".
-      if ((parcel.lastChangeAt ?? parcel.createdAt).getTime() <= stopBefore) {
+      // D6-4: no change, and no one asking by Sync, for this long, so it stops being asked after and shows "no news".
+      const lastLife = Math.max(
+        (parcel.lastChangeAt ?? parcel.createdAt).getTime(),
+        parcel.checksRestartedAt?.getTime() ?? 0,
+      );
+      if (lastLife <= stopBefore) {
         await this.store.run(tenantId, (tx) =>
           this.store.updateParcel(tx, tenantId, parcel.id, { checksStoppedAt: now }, now),
         );
@@ -295,7 +302,7 @@ export class CourierChecks {
   private saveAsked(
     tenantId: string,
     parcelId: string,
-    extra: { checksStoppedAt?: null },
+    extra: { checksStoppedAt?: null; checksRestartedAt?: Date },
   ): Promise<SelectCourierParcel> {
     const now = this.clock();
     return this.store.run(tenantId, (tx) =>

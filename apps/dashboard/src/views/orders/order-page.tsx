@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
@@ -40,6 +40,7 @@ import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { CourierConnection } from '@/types/couriers';
 import type { Order, OrderCall, OrderHistory, OrderItem, OrderPayment } from '@/types/orders';
+import { takeBookedEdit } from './booked-edit';
 import { CourierCard, NotBookedCard } from './courier-card';
 import { OrderSheets, type OrderSheet } from './order-actions';
 import { choicesOf, refundable, voidable } from './order-choices';
@@ -89,6 +90,16 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
   const { viewer, slug } = useShell();
   const words = useOrderWords();
   const [open, setOpen] = useState<OrderSheet | null>(null);
+  // ORD-11 (Part 36's `c36-edited`): just saved while booked, so the courier still has the old details.
+  const [editedBooked, setEditedBooked] = useState(false);
+  useEffect(() => {
+    if (takeBookedEdit(order.id)) setEditedBooked(true);
+  }, [order.id]);
+  // The editor's Save sits at its foot and the shell keeps its scroll, so the page opens at its top, the warning in sight.
+  const editedRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (editedBooked) editedRef.current?.closest('main')?.scrollTo({ top: 0 });
+  }, [editedBooked]);
   const may = (permission: Permission) => allows(viewer, [permission]);
   const can = choicesOf(order, may);
   const counter = atCounter(order);
@@ -259,6 +270,11 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
         >
           {t('limitPrompt', { limit })}
         </Banner>
+      ) : null}
+      {editedBooked && order.parcel ? (
+        <div ref={editedRef}>
+          <Banner tone="warn">{t('crEdited', { c: courierName(order.parcel.courierKey) })}</Banner>
+        </div>
       ) : null}
       <CustomerCard
         order={order}

@@ -13,6 +13,7 @@ import {
   type BookOrderInput,
   type CancelOrderInput,
   type CancelParcelInput,
+  type CourierKey,
   type SettleParcelInput,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
@@ -165,8 +166,11 @@ export class CourierBooking {
       courierStatus: string | null;
     },
   ): Promise<void> {
-    await this.store.run(tenantId, (tx) =>
-      this.store.updateParcel(
+    const taken = await this.store.run(tenantId, async (tx) => {
+      // Close-out (A6): staff may have settled it while the look-up was out; what they said stands.
+      const held = await this.lockedOwn(tx, tenantId, parcel.id);
+      if (held.state !== ParcelState.Unknown) return false;
+      await this.store.updateParcel(
         tx,
         tenantId,
         parcel.id,
@@ -178,9 +182,10 @@ export class CourierBooking {
           nextLookUpAt: null,
         },
         this.clock(),
-      ),
-    );
-    await this.settleQuietly(tenantId, parcel);
+      );
+      return true;
+    });
+    if (taken) await this.settleQuietly(tenantId, parcel);
   }
 
   /** D6-11: there is no such parcel, so the booking comes to nothing and gives everything back. */
@@ -240,6 +245,10 @@ export class CourierBooking {
       const order = await this.fulfilment.lockWithin(tx, tenantId, orderId);
       this.refuseOffItsWay(order);
       const held = await this.lockedOwn(tx, tenantId, parcel.id);
+      // Close-out (A6): two at once cancel it once; the second finds nothing left to call off.
+      if (held.state !== ParcelState.Booked) {
+        throw new ApiError('conflict', 'ParcelNothingToCancel', {});
+      }
       await this.endCancelled(tx, tenantId, order, held);
       const name = this.registry.of(held.courierKey)?.name ?? held.courierKey;
       const note = [name, held.consignmentId, 'booking cancelled']
@@ -488,7 +497,8 @@ export class CourierBooking {
     return this.store.run(tenantId, async (tx) => {
       const order = await this.fulfilment.lockWithin(tx, tenantId, parcel.orderId);
       const held = await this.lockedOwn(tx, tenantId, parcel.id);
-      if (held.state === ParcelState.Refused) return;
+      // Close-out (A6): one settled meanwhile, by staff or a message, stays as it was settled.
+      if (held.state !== ParcelState.Booking && held.state !== ParcelState.Unknown) return;
       await this.store.updateParcel(
         tx,
         tenantId,
@@ -625,6 +635,7 @@ export class CourierBooking {
             .join(' · '),
           serials: parcel.serials,
           fee: parcel.feeRates !== null ? { amount: parcel.feeHeld, ...parcel.feeRates } : null,
+          bookedBy: parcel.bookedBy,
         },
         who,
         now,
@@ -641,13 +652,14 @@ export class CourierBooking {
     ids: { consignmentId: string; trackingCode: string | null },
     who: ResolvedActor,
   ): Promise<OrderView> {
-    const fillable =
-      parcel.state === ParcelState.Unknown ||
-      (parcel.state === ParcelState.Booked && parcel.consignmentId === null);
-    if (!fillable) throw new ApiError('conflict', 'ParcelNothingToSettle', {});
-    const settledBefore = parcel.settledAt !== null;
-    await this.store.run(tenantId, async (tx) => {
+    const settledBefore = await this.store.run(tenantId, async (tx) => {
       const order = await this.fulfilment.lockWithin(tx, tenantId, orderId);
+      // Close-out (A6): read again under its lock, as a look-up or a message may have settled it meanwhile.
+      const held = await this.lockedOwn(tx, tenantId, parcel.id);
+      const fillable =
+        held.state === ParcelState.Unknown ||
+        (held.state === ParcelState.Booked && held.consignmentId === null);
+      if (!fillable) throw new ApiError('conflict', 'ParcelNothingToSettle', {});
       await this.store.updateParcel(
         tx,
         tenantId,
@@ -668,6 +680,15 @@ export class CourierBooking {
         { type: 'order', id: order.id },
         { orderNumber: order.orderNumber, outcome: 'booked', consignmentId: ids.consignmentId },
       );
+      if (held.settledAt === null) return false;
+      // Close-out (A3): it settled without its IDs, so the order's tracking takes them now.
+      await this.fulfilment.fillTrackingWithin(
+        tx,
+        tenantId,
+        order,
+        this.trackingOf(held.courierKey, ids),
+      );
+      return true;
     });
     if (settledBefore) return this.viewOf(tenantId, orderId);
     return this.settleOrThrow(tenantId, parcel.id, orderId, who);
@@ -701,18 +722,18 @@ export class CourierBooking {
   ): Promise<void> {
     // Read agreed 2026-11-05: the courier has already said it is coming back, so there is nothing to call off.
     if (parcel.reading === ParcelReading.Returning) return;
+    // Agreed 2026-11-07: staff saying it is cancelled in the courier's panel is taken, and the courier isn't asked again. Without
+    // that, a courier that can cancel is asked, and its refusal, in its own words, keeps the booking.
+    if (courierCancelled === true) return;
     const opened = await this.store.run(tenantId, (tx) =>
       this.connections.openedWithin(tx, tenantId, parcel.courierKey),
     );
     const adapter = opened?.adapter;
     const cancel = adapter?.cancel?.bind(adapter);
     if (!opened || !adapter || !cancel || parcel.consignmentId === null) {
-      if (courierCancelled !== true) {
-        throw new ApiError('conflict', 'ParcelCancelConfirmNeeded', {
-          courierKey: parcel.courierKey,
-        });
-      }
-      return;
+      throw new ApiError('conflict', 'ParcelCancelConfirmNeeded', {
+        courierKey: parcel.courierKey,
+      });
     }
     const { account } = opened;
     const { consignmentId } = parcel;
@@ -731,7 +752,6 @@ export class CourierBooking {
     } catch (error) {
       // Read agreed 2026-11-06: anything but a clear yes is no answer, so staff confirm in its panel, as for a courier with no call.
       if (error instanceof CircuitOpen || error instanceof CourierNoAnswer) {
-        if (courierCancelled === true) return;
         throw new ApiError('conflict', 'ParcelCancelConfirmNeeded', {
           courierKey: parcel.courierKey,
           courierNotAnswering: true,
@@ -772,6 +792,20 @@ export class CourierBooking {
     ) {
       throw new ApiError('conflict', 'OrderShippedReturnInstead', {});
     }
+  }
+
+  /** As the order's tracking shows a parcel's IDs: its tracking code, else its consignment, with the courier's link. */
+  trackingOf(
+    courierKey: CourierKey,
+    ids: { consignmentId: string; trackingCode: string | null },
+  ): { trackingCode: string; trackingLink: string | null } {
+    return {
+      trackingCode: ids.trackingCode ?? ids.consignmentId,
+      trackingLink:
+        ids.trackingCode !== null
+          ? (this.registry.of(courierKey)?.trackingLink(ids.trackingCode) ?? null)
+          : null,
+    };
   }
 
   private async lockedOwn(

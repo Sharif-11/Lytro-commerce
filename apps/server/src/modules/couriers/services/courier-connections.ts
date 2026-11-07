@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { SelectCourierAdapter, SelectCourierConnection, Transaction } from '@lytronix/db';
 import {
@@ -12,6 +13,7 @@ import {
   type SetPickupStoreInput,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
+import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { CircuitOpen } from '../../../common/circuit-breaker';
 import { SlidingWindow } from '../../../common/sliding-window';
 import { DAY_MS, MINUTE_MS } from '../../../common/time';
@@ -170,14 +172,8 @@ export class CourierConnections {
     );
     // CRR-23 (Slice 6.6): a retiring courier takes no new shop, and a shop already connected may still replace its keys.
     const states = await this.states();
-    const state = this.stateOf(states, adapter.key);
-    if (state === CourierAdapterState.Removed)
-      throw new ApiError('not_found', 'CourierNotAvailable', {});
-    if (state === CourierAdapterState.Retiring && !saved) {
-      throw new ApiError('conflict', 'CourierRetiring', { courierKey: adapter.key }, undefined, {
-        courier: adapter.name,
-      });
-    }
+    // Checked first so a refusal costs no call to the courier, and again under the lock when saving.
+    this.refuseUnavailable(adapter, this.stateOf(states, adapter.key), saved !== null);
     const credentials = this.credentialsOf(adapter, input, saved, tenantId);
     const bucket = `${tenantId}:${adapter.key}`;
     const now = this.clock();
@@ -199,31 +195,83 @@ export class CourierConnections {
     );
     const kept = await this.withStore(adapter, tenantId, saved, logged);
 
-    return this.store.run(tenantId, async (tx) => {
-      const others = await this.store.listConnections(tx, tenantId);
-      const row = await this.store.saveConnection(
-        tx,
-        tenantId,
-        {
-          courierKey: adapter.key,
-          credentials: this.sealed(kept, tenantId),
-          isDefault: others.length === 0,
-          state: CourierConnectionState.Active,
-        },
-        now,
-      );
-      await this.activity.record(
-        tx,
-        tenantId,
-        who,
-        AuditAction.CourierConnected,
-        { type: 'courier', id: row.id },
-        { courierKey: adapter.key, replaced: saved !== null },
-      );
-      // CRR-02: what to paste into the courier's panel; connecting never waits on it.
-      const message = await this.messages.makeIfMissing(tx, tenantId, adapter.key, row);
-      return { ...this.viewOf(row, states, await this.backOf(tx, tenantId)), message };
-    });
+    try {
+      return await this.store.run(tenantId, async (tx) => {
+        // Phase 6 close-out: one shop's connections save one at a time, so two first ones can't both be its default; and the
+        // courier is read again, held as booking's claim holds it, so a retire or a removal while the keys were tried wins.
+        await this.store.lockConnections(tx, tenantId);
+        const current = await this.store.findConnection(tx, tenantId, adapter.key);
+        this.refuseUnavailable(
+          adapter,
+          await this.store.adapterStateWithin(tx, adapter.key),
+          current !== null,
+        );
+        const others = await this.store.listConnections(tx, tenantId);
+        const row = await this.store.saveConnection(
+          tx,
+          tenantId,
+          {
+            courierKey: adapter.key,
+            credentials: this.sealed(kept, tenantId),
+            isDefault: others.length === 0,
+            state: CourierConnectionState.Active,
+            accountFingerprint: this.fingerprintOf(adapter, kept),
+          },
+          now,
+        );
+        await this.activity.record(
+          tx,
+          tenantId,
+          who,
+          AuditAction.CourierConnected,
+          { type: 'courier', id: row.id },
+          { courierKey: adapter.key, replaced: saved !== null },
+        );
+        // CRR-02: what to paste into the courier's panel; connecting never waits on it.
+        const message = await this.messages.makeIfMissing(tx, tenantId, adapter.key, row);
+        return { ...this.viewOf(row, states, await this.backOf(tx, tenantId)), message };
+      });
+    } catch (error) {
+      // Agreed 2026-11-07: one courier account serves one shop.
+      if (error instanceof UniqueViolation && error.target === 'account') {
+        throw new ApiError(
+          'conflict',
+          'CourierAccountInUse',
+          { courierKey: adapter.key },
+          undefined,
+          {
+            courier: adapter.name,
+          },
+        );
+      }
+      throw error;
+    }
+  }
+
+  /** CRR-23: a removed courier takes no one, and a retiring one no new shop; a shop already connected may still replace its keys. */
+  private refuseUnavailable(
+    adapter: CourierAdapter,
+    state: CourierAdapterState,
+    connected: boolean,
+  ): void {
+    if (state === CourierAdapterState.Removed) {
+      throw new ApiError('not_found', 'CourierNotAvailable', {});
+    }
+    if (state === CourierAdapterState.Retiring && !connected) {
+      throw new ApiError('conflict', 'CourierRetiring', { courierKey: adapter.key }, undefined, {
+        courier: adapter.name,
+      });
+    }
+  }
+
+  /** Phase 6 close-out (agreed 2026-11-07): which account this is, as a fingerprint, never the credential itself. */
+  private fingerprintOf(
+    adapter: CourierAdapter,
+    credentials: Record<string, string>,
+  ): string | null {
+    const value = credentials[adapter.accountField]?.trim();
+    if (!value) return null;
+    return createHash('sha256').update(`courier-account:v1:${adapter.key}:${value}`).digest('hex');
   }
 
   /** CRR-20: its credentials go; its parcels stay. If it was the default, the oldest other connection takes over. */
@@ -677,7 +725,8 @@ export class CourierConnections {
       state: row.state,
       connectedAt: row.createdAt,
       messages:
-        row.unsignedAt !== null
+        row.unsignedAt !== null &&
+        (row.lastMessageAt === null || row.unsignedAt > row.lastMessageAt)
           ? CourierMessagesState.TokenMissing
           : row.lastMessageAt !== null
             ? CourierMessagesState.Arriving

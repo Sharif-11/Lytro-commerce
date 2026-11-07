@@ -19,12 +19,7 @@ import { CourierBookingTickWorker } from '../src/modules/shared/queue-workers/se
 import { CourierNightTickWorker } from '../src/modules/shared/queue-workers/services/courier-night-tick-worker';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import {
-  FakeSteadfast,
-  RIGHT_API_KEY,
-  RIGHT_SECRET_KEY,
-  signatureOf,
-} from './support/fake-steadfast';
+import { FakeSteadfast, freshSteadfastKeys, signatureOf } from './support/fake-steadfast';
 import { getJson, postJson } from './support/http';
 import { openShop, staffWith, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
@@ -44,7 +39,6 @@ let admin: pg.Client;
 let clockShift = 0;
 const steadfast = new FakeSteadfast();
 const texts = new SmsCapture();
-const KEYS = { apiKey: RIGHT_API_KEY, secretKey: RIGHT_SECRET_KEY };
 const NOTIFIER = {
   parcelNeedsAttention: () => Promise.resolve(),
   parcelMoved: () => Promise.resolve(),
@@ -191,7 +185,7 @@ async function connected(): Promise<Connected> {
   const shop = await openShop(port, texts, 'cmo');
   const made = await shop.post('/couriers/connections', {
     courierKey: 'steadfast',
-    credentials: KEYS,
+    credentials: freshSteadfastKeys(),
   });
   expect(made.status, JSON.stringify(made.body)).toBe(200);
   const { message } = made.body as { message: { address: string; token: string } };

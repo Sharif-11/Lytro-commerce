@@ -37,6 +37,27 @@ describe('the circuit breaker (PRF-05)', () => {
     }
   }
 
+  it('says once that a closed circuit opened, not again while a trial keeps it open (Phase 6 close-out)', async () => {
+    let now = 1_000_000;
+    const opened: [string, number][] = [];
+    const breaker = new CircuitBreaker(
+      () => now,
+      undefined,
+      undefined,
+      (circuit, failures) => {
+        opened.push([circuit, failures]);
+      },
+    );
+    const failing = () => Promise.reject(new Error('away'));
+    for (let index = 0; index < BREAKER_FAILURES; index += 1) {
+      await expect(breaker.call('courier:a', failing)).rejects.toThrow('away');
+    }
+    expect(opened).toEqual([['courier:a', BREAKER_FAILURES]]);
+    now += BREAKER_OPEN_MS;
+    await expect(breaker.call('courier:a', failing)).rejects.toThrow('away');
+    expect(opened).toHaveLength(1);
+  });
+
   it('opens after five failures in a row and fails fast with no attempt, for that circuit only', async () => {
     const test = setUp();
     await openIt(test);

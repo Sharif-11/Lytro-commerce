@@ -220,6 +220,11 @@ export interface CourierAdapter {
   /** As shown on the order, and in the ship sheet's chips. */
   readonly name: string;
   readonly credentialFields: readonly string[];
+  /**
+   * Phase 6 close-out (agreed 2026-11-07): the credential that names the courier account. Its fingerprint keeps one account to one
+   * shop, since a courier refuses an invoice it has seen and every shop's order numbers start again at 0001 each day.
+   */
+  readonly accountField: string;
   readonly limits: CourierLimits;
   /** D6-5, CRR-10: it can't book without one of its own areas. */
   readonly needsArea: boolean;

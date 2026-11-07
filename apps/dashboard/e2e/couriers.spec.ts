@@ -401,6 +401,72 @@ test.describe('Settings › Couriers', () => {
       "Steadfast is being retired, so once disconnected it can't be connected again.",
     );
   });
+  test('keys, secrets and passwords are masked as they are typed; the email and client ID show (SEC-08)', async ({
+    page,
+  }) => {
+    await open(page, '/settings/couriers', {
+      couriers: couriers((fixture) => {
+        fixture.connections = [];
+      }),
+    });
+    const kinds: [RegExp, string, Record<string, string>][] = [
+      [/^Steadfast/, 'Connect Steadfast', { 'API key': 'password', 'Secret key': 'password' }],
+      [
+        /^Pathao/,
+        'Connect Pathao',
+        { 'Client ID': 'text', 'Client secret': 'password', Email: 'email', Password: 'password' },
+      ],
+      [/^RedX/, 'Connect RedX', { 'API token': 'password' }],
+    ];
+    for (const [courier, title, fields] of kinds) {
+      await main(page).getByRole('button', { name: courier }).click();
+      const sheet = dialog(page, title);
+      for (const [label, type] of Object.entries(fields)) {
+        const input = sheet.getByLabel(label, { exact: true });
+        await expect(input).toHaveAttribute('type', type);
+        if (type === 'password')
+          await expect(input).toHaveAttribute('autocomplete', 'new-password');
+      }
+      await page.keyboard.press('Escape');
+      await expect(sheet).toHaveCount(0);
+    }
+  });
+
+  test('a default moved to a courier other than the suggestion is named, as the shop’s default now (CRR-25)', async ({
+    page,
+  }) => {
+    await open(page, '/settings/couriers', {
+      couriers: couriers((fixture) => {
+        const [steadfast, pathao] = fixture.connections;
+        if (steadfast && pathao) {
+          // RedX was suggested, but the shop has no RedX: the default went to its other courier.
+          steadfast.retiring = true;
+          steadfast.suggestedKey = 'redx';
+          steadfast.isDefault = false;
+          pathao.isDefault = true;
+        }
+      }),
+    });
+    await expect(main(page).getByRole('alert').first()).toContainText(
+      'Steadfast is being retired from Lytro. Bookings and news with it still work for now. Your default courier is now Pathao.',
+    );
+  });
+
+  test('still the default while it retires: it says which courier to connect', async ({ page }) => {
+    await open(page, '/settings/couriers', {
+      couriers: couriers((fixture) => {
+        const [steadfast] = fixture.connections;
+        if (steadfast) {
+          steadfast.retiring = true;
+          steadfast.suggestedKey = 'redx';
+        }
+        fixture.connections = fixture.connections.filter((each) => each.courierKey === 'steadfast');
+      }),
+    });
+    await expect(main(page).getByRole('alert').first()).toContainText(
+      'Steadfast is being retired from Lytro. Bookings and news with it still work for now. Connect RedX for new bookings.',
+    );
+  });
 });
 
 test.describe('Booking from the order', () => {
@@ -820,6 +886,80 @@ test.describe('Cancelling a booking', () => {
     await expect
       .poll(() => sent(log, 'POST', '/orders/o-47/cancel').at(-1))
       .toMatchObject({ courierCancelled: true });
+  });
+});
+
+test.describe('Editing a booked order (ORD-11)', () => {
+  test('only its customer and note change, and the order says the courier still has the old details', async ({
+    page,
+  }) => {
+    const log = await open(page, '/orders/o-47', {
+      couriers: couriers(),
+      orders: booked({}, 'processing'),
+    });
+    await main(page)
+      .getByRole('button', { name: /^Order #/ })
+      .click();
+    const menu = dialog(page, /^Order #/);
+    await expect(menu.getByRole('button', { name: /Edit the order/ })).toContainText(
+      'The customer’s name, phone, address and note',
+    );
+    await menu.getByRole('button', { name: /Edit the order/ }).click();
+    await expect(page).toHaveURL(/\/orders\/o-47\/edit$/);
+    await expect(
+      main(page).getByText(
+        'Booked with Steadfast, so its items, its totals and where it goes stay as they are. To change them, cancel the order and enter a new one.',
+      ),
+    ).toBeVisible();
+    // The thana is locked, the items read-only; nothing that moves its totals is offered.
+    await expect(main(page).getByRole('button', { name: /District and thana/ })).toBeDisabled();
+    await expect(main(page).getByRole('button', { name: 'Add an item' })).toHaveCount(0);
+    await expect(main(page).getByLabel('Order discount')).toHaveCount(0);
+    await expect(main(page).getByRole('spinbutton')).toHaveCount(0);
+    await expect(
+      main(page)
+        .getByText(/^× \d+$/)
+        .first(),
+    ).toBeVisible();
+    await expectAccessible(page);
+
+    await main(page).getByLabel('Address').fill('House 9, Road 2');
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect
+      .poll(() => sent(log, 'PATCH', '/orders/o-47'))
+      .toEqual([{ deliveryAddress: 'House 9, Road 2' }]);
+    await expect(page).toHaveURL(/\/orders\/o-47$/);
+    // In sight, though Save was at the editor's foot.
+    await expect(
+      main(page).getByText(
+        'Saved. Steadfast still has the old details, so change them in Steadfast’s panel too.',
+      ),
+    ).toBeInViewport();
+  });
+
+  test('saving with nothing changed sends nothing and says nothing', async ({ page }) => {
+    const log = await open(page, '/orders/o-47/edit', {
+      couriers: couriers(),
+      orders: booked({}, 'processing'),
+    });
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page).toHaveURL(/\/orders\/o-47$/);
+    await expect(main(page).getByRole('heading', { name: 'Courier' })).toBeVisible();
+    expect(sent(log, 'PATCH', '/orders/o-47')).toEqual([]);
+    await expect(main(page).getByText(/still has the old details/)).toHaveCount(0);
+  });
+
+  test('an order whose booking isn’t settled offers no Edit', async ({ page }) => {
+    await open(page, '/orders/o-47', {
+      couriers: couriers(),
+      orders: booked({ settled: false, settleProblem: 'SerialNotInStock' }, 'confirmed'),
+    });
+    await main(page)
+      .getByRole('button', { name: /^Order #/ })
+      .click();
+    const menu = dialog(page, /^Order #/);
+    await expect(menu.getByRole('button', { name: /Print/ })).toBeVisible();
+    await expect(menu.getByRole('button', { name: /Edit the order/ })).toHaveCount(0);
   });
 });
 
