@@ -2212,3 +2212,22 @@ Slice 7.5 built the check to the answer Steadfast gave a live key on 2026-11-07,
 
 Closing it: after launch, read a sample of real answers (a phone with reports, its categories, a larger band) and adjust
 the adapter to them.
+
+## 129. `NTC-14`, `NTC-19`, `NTC-20`, `D7-55`: what the notice board can't yet do — found 2026-11-07, open
+
+Slice 7.4 built the notice board's server side. What it leaves:
+
+- **The status page (NTC-14).** The dashboard's countdown to a maintenance window is built (D7-55); the public status
+  page that would also list the window waits for launch.
+- **The screens (NTC-19).** The console's editor and the dashboard's board, banner, prompt and countdown are Slice 7.7's,
+  so "renders without horizontal scrolling at 360 px" can only be checked then.
+- **Secret keys (NTC-20).** Reading notices with a shop's secret key comes with Phase 8's shop API.
+- **What was sent stays as sent.** An edit to a live notice changes the board, not the bell rows, pushes and emails
+  already sent. A withdrawn notice's bell row stays until its 30 days pass (D7-39); opening it finds the notice gone.
+- **Sent once, to the audience at publishing.** A shop that joins the audience later sees the notice on its board but
+  isn't sent it by bell, push or email.
+- **One shop at a time.** The minute pass tells each shop in its own transaction. A notice to every shop at 10,000 shops
+  would take minutes to send; it carries on across passes, so nothing is lost.
+- **The rates' names are written twice.** The rate-change template reads them from `RATE_NAMES` in the validators; the
+  operator console still has its own copy in its locale files until Slice 7.7 points it at them.
+- **`control.rate_history.notice_id` isn't a foreign key.** Values written before notices existed were never checked.

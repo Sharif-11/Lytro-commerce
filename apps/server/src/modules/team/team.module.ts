@@ -72,6 +72,8 @@ import { CouriersController } from './controllers/couriers.controller';
 import { SmsController } from './controllers/sms.controller';
 import { FraudChecksController } from './controllers/fraud-checks.controller';
 import { NotificationsController, PushController } from './controllers/notifications.controller';
+import { NoticesController } from './controllers/notices.controller';
+import { OperatorNoticesController } from './controllers/operator-notices.controller';
 import { OperatorCourierAreasController } from './controllers/operator-courier-areas.controller';
 import { OperatorLocationsController } from './controllers/operator-locations.controller';
 import { OperatorCourierRetiringController } from './controllers/operator-courier-retiring.controller';
@@ -118,6 +120,7 @@ import { CatalogueRequest } from './services/catalogue-request';
 import { OperatorRecentChangesController } from './controllers/operator-recent-changes.controller';
 import { OperatorShops } from './services/operator-shops';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { NoticesModule } from '../notices/notices.module';
 
 // The team's HTTP routes. They sit outside the staff module because they need the identity and tenancy gates,
 // and tenancy already imports the staff module. Slice 1's balance/rates routes, and slice 2's plan/term
@@ -126,6 +129,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 @Module({
   imports: [
     NotificationsModule,
+    NoticesModule,
     CouriersModule,
     IdentityModule,
     TenancyModule,
@@ -219,6 +223,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
     FraudChecksController,
     NotificationsController,
     PushController,
+    NoticesController,
+    OperatorNoticesController,
     OperatorCouriersController,
     OperatorCourierAreasController,
     OperatorLocationsController,

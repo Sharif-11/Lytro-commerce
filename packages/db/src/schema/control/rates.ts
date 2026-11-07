@@ -19,8 +19,9 @@ export const rateHistory = control.table('rate_history', {
   oldValue: numeric('old_value', { precision: 12, scale: 4 }),
   newValue: numeric('new_value', { precision: 12, scale: 4 }).notNull(),
   changedBy: uuid('changed_by'), // operator account id
-  // RAT-09: null = no notice was published for this change. Deliberately NOT a foreign key (decided
-  // 2026-10-13): control.notices is Phase 1-deferred NTC scope and doesn't exist in code yet.
+  // RAT-09, NTC-13: null = no notice was published for this change; publishing a notice that names the change sets it
+  // (Slice 7.4). Not a foreign key: it was written unchecked before control.notices existed (decided 2026-10-13), so a
+  // value from then may name no notice; control.notices.rate_change_id is the checked link the other way.
   noticeId: uuid('notice_id'),
   changedAt: timestamp('changed_at', { withTimezone: true }).notNull().defaultNow(),
 });

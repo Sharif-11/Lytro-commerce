@@ -35,6 +35,20 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /push/subscriptions': 'subscribes a browser for the session person only',
   'DELETE /push/subscriptions': "removes only the session person's own subscription",
   'POST /push/test': "pushes only to the session person's own browsers",
+  // Phase 7 Slice 7.4, checked in test/notices.e2e.spec.ts: the notices are Lytro's, platform-wide, but who a notice is
+  // for is read from the session shop, and each read, closed banner and "I understand" is the session person's or shop's
+  // own (NTC-18). Another shop's own notice answers 404 like one that never was.
+  'GET /notices':
+    "lists only the notices for the session shop, with the session person's own reads",
+  'GET /notices/summary':
+    "shows only the session shop's notices, the session person's banners and the shop's own acknowledgments",
+  'GET /notices/:id': 'a notice for another shop only answers 404',
+  'POST /notices/:id/read':
+    "marks only the session person's own read; a notice for another shop only answers 404",
+  'POST /notices/:id/dismiss':
+    "closes only the session person's own banner; a notice for another shop only answers 404",
+  'POST /notices/:id/acknowledge':
+    'acknowledges for the session shop only; a notice for another shop only answers 404',
   // The staff routes: a shop lists, adds and changes only its own staff. Checked in test/staff.e2e.spec.ts.
   'GET /staff': 'lists only the session shop staff and seats',
   'POST /staff': 'creates staff in the session shop only; seats are counted in that shop',

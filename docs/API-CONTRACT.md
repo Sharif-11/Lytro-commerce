@@ -583,14 +583,27 @@ lapsed one, chooses it with `billing/pay-as-you-go` (PYG-10, LIF-15).
 
 ## 17. Notice board
 
+Built in Phase 7 Slice 7.4 (D7-53 to D7-59). The shop's routes are for the owner and staff with `notices:read`; the owner
+still reaches them in a read-only, locked or archived shop (an archived one sees urgent notices only, NTC-07), and the
+writes among them still work in read-only. A notice for another shop, withdrawn, ended, scheduled or a draft answers 404
+`NoticeNotFound`. Titles and bodies come in the request's language (Accept-Language), or the other when the notice has
+none in it; `html` is the body as safe HTML (D7-53).
+
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
-| GET | `/api/v1/notices` | session | Audience-filtered, pinned first then newest (NTC-01..03). |
-| POST | `/api/v1/notices/:id/acknowledge` | session (owner) | Records user + time (NTC-05). |
-| GET | `/api/v1/operator/notices` | operator | |
-| POST | `/api/v1/operator/notices` | operator | `{ title, bodyBn, bodyEn, category, severity, audience, publishAt, endAt?, pinned, requiresAck }`. |
-| PATCH | `/api/v1/operator/notices/:id` | operator | Edited notices are marked "edited" with the earlier version kept (NTC-08). |
-| DELETE | `/api/v1/operator/notices/:id` | operator | Withdraw — hidden from tenants, kept in operator history. |
+| GET | `/api/v1/notices` | session, `notices:read` | `?category=&q=&limit=` (1 to 50, default 20) `&offset=`: the notices for the shop now, pinned first then newest, kept 24 months (NTC-03). `{ items: [{ id, category, severity, title, body, html, language, pinned, requiresAck, acknowledgedAt, publishedAt, endsAt, editedAt, windowStartsAt, windowEndsAt, read }], unread, next }`; `next` is the next page's offset, or `null`. |
+| GET | `/api/v1/notices/summary` | session, `notices:read` | What every page shows: `{ unread, banners, prompts, toAcknowledge, maintenance }`. `banners` are the urgent notices the person hasn't closed, `prompts` the important ones they haven't read or closed, `toAcknowledge` (the owner only) those asking for "I understand", each `{ id, title, category, severity, publishedAt }`; `maintenance` is the next window `{ id, title, startsAt, endsAt, underWay }` or `null` (NTC-04, NTC-05, NTC-14). |
+| GET | `/api/v1/notices/:id` | session, `notices:read` | One notice, as in the list. |
+| POST | `/api/v1/notices/:id/read` | session, `notices:read` | The person opened it (NTC-09). `{ unread }`. |
+| POST | `/api/v1/notices/:id/dismiss` | session, `notices:read` | The person closed its banner or prompt (NTC-04); it stays unread. `{ ok: true }`. |
+| POST | `/api/v1/notices/:id/acknowledge` | session (owner) | "I understand", once for the shop, with who and when, in its activity log and Lytro's (NTC-05, NTC-17). `{ acknowledgedAt }`; asked again, the first stands. Staff get 403 `OwnerOnlyAction`; a notice that doesn't ask for it, 409. |
+| GET | `/api/v1/operator/notices` | operator | `?category=&q=&limit=&offset=`, newest written first: `{ items, next }`, each with both languages, `htmlBn`, `htmlEn`, `audience`, the times, `status` (`draft`, `scheduled`, `live`, `ended`, `withdrawn`) and `counts: { shops, people, reads, acknowledged }` (NTC-09). |
+| POST | `/api/v1/operator/notices` | operator | `{ titleBn?, titleEn?, bodyBn?, bodyEn?, category, severity, audience, publishAt?, endsAt?, pinned?, requiresAck?, windowStartsAt?, windowEndsAt?, rateChangeId? }`: a draft without `publishAt`, otherwise sent within a minute of it (NTC-01, NTC-11). One language whole; links https only; a window on a maintenance notice only; unknown plans, shops or rate changes are `not_found`. 201 with the notice. |
+| GET | `/api/v1/operator/notices/:id` | operator | The notice with `versions: [{ editedBy, replacedAt, snapshot }]` (NTC-08). |
+| PATCH | `/api/v1/operator/notices/:id` | operator | Any of the fields above. On a live notice the version it replaces is kept, `editedAt` set, and nothing sent again; its `publishAt` can't change (`not_allowed`). A withdrawn notice is 409. |
+| POST | `/api/v1/operator/notices/:id/withdraw` | operator | Hidden from every shop at once, kept here with its versions (NTC-08). |
+| GET | `/api/v1/operator/notices/:id/acknowledgments` | operator | `{ acknowledged: [{ tenantId, slug, shopName, userId, acknowledgedAt }], pending: [{ tenantId, slug, shopName }], acknowledgedCount, pendingCount }`: the shops in its audience now, up to 500 each side (NTC-05). |
+| POST | `/api/v1/operator/notices/template` | operator | `{ template: rate_change | maintenance | outage | policy_update, variables: { rateChangeId?, rateKey?, oldRate?, newRate?, date?, windowStartsAt?, windowEndsAt? } }`: a draft to edit and save, in both languages (NTC-12). Given `rateChangeId`, the rate, its old and new values and the day come from the change, and the draft carries it so publishing links the two (NTC-13). |
 
 ## 18. Operator console depth and support
 

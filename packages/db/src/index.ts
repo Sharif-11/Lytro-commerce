@@ -73,6 +73,17 @@ export {
   type NotificationRecipient,
 } from './repositories/notifications/notification.repository';
 export {
+  NoticeRepository,
+  type NoticeAcknowledgmentRow,
+  type NoticeBoardFilter,
+  type NoticeBoardRow,
+  type NoticeCounts,
+  type NoticeShop,
+  type NoticeShopFacts,
+  type NoticeViewer,
+  type RateChangeRow,
+} from './repositories/notifications/notice.repository';
+export {
   PushSubscriptionRepository,
   type NewPushSubscription,
 } from './repositories/notifications/push-subscription.repository';

@@ -295,9 +295,10 @@ CREATE TABLE control.rate_history (
     old_value       numeric(12,4),
     new_value       numeric(12,4) NOT NULL,
     changed_by      uuid,                        -- operator account id
-    -- RAT-09: null = no notice was published for this change. Deliberately NOT a foreign key
-    -- (decided 2026-10-13): control.notices (section 10) is Phase 1-deferred NTC scope and
-    -- doesn't exist in code yet when this slice ships; a plain uuid, unconstrained until it does.
+    -- RAT-09, NTC-13: null = no notice was published for this change. Publishing a notice that
+    -- names the change sets it (Slice 7.4, the app may update this column only). Not a foreign key:
+    -- it was written unchecked before control.notices (section 10) existed (decided 2026-10-13);
+    -- control.notices.rate_change_id is the checked link the other way.
     notice_id       uuid,
     changed_at      timestamptz NOT NULL DEFAULT now()
 );
@@ -2834,38 +2835,80 @@ CREATE INDEX ON tenant.webhook_deliveries (tenant_id, endpoint_id, delivered_at 
 
 ## 10. Notice board (platform-wide, control schema)
 
+Built in Phase 7 Slice 7.4 (migration 0117, D7-53 to D7-59). The reads, acknowledgments and deliveries are each shop's own
+(NTC-18) but sit in `control` beside the notices, since the operator counts and lists them across every shop (NTC-05,
+NTC-09), as `control.api_keys` and `control.addon_purchases` are; every shop route names its shop and person.
+
 ```sql
 CREATE TABLE control.notices (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    title           varchar(120) NOT NULL,
-    body_bn         varchar(5000) NOT NULL,
-    body_en         varchar(5000) NOT NULL,
+    -- NTC-01, D7-57: a title and a body in each language; at least one language whole.
+    title_bn        varchar(120),
+    title_en        varchar(120),
+    body_bn         varchar(5000),                        -- D7-53's Markdown, kept as typed
+    body_en         varchar(5000),
     category        text NOT NULL,                        -- rate_change | maintenance | new_feature | policy | security | general
-    severity        text NOT NULL,                          -- info | important | urgent
-    audience        jsonb NOT NULL,                          -- {"all": true} | {"plans": [...]} | {"states": [...]} | {"tenantId": "..."}
-    publish_at      timestamptz NOT NULL,
-    end_at          timestamptz,
+    severity        text NOT NULL,                        -- info | important | urgent
+    audience        jsonb NOT NULL,                       -- {"kind":"all"} | {"kind":"plans","planIds":[...]} | {"kind":"states","states":[...]} | {"kind":"tenant","tenantId":"..."}
+    publish_at      timestamptz,                          -- null = a draft
+    ends_at         timestamptz,
     pinned          boolean NOT NULL DEFAULT false,
-    requires_ack    boolean NOT NULL DEFAULT false,
+    requires_ack    boolean NOT NULL DEFAULT false,       -- NTC-05
+    window_starts_at timestamptz,                         -- NTC-14: a maintenance window, both or neither
+    window_ends_at  timestamptz,
+    rate_change_id  bigint REFERENCES control.rate_history(id),   -- NTC-13
+    created_by      uuid NOT NULL,                        -- operator account id
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    edited_at       timestamptz,                          -- NTC-08: an edit once it was live; the board says "updated"
     withdrawn_at    timestamptz,
-    created_by      uuid NOT NULL,
+    withdrawn_by    uuid,
+    sent_at         timestamptz,                          -- NTC-06: every shop in its audience had been told
+    CHECK (category IN (...)), CHECK (severity IN (...)), CHECK (audience->>'kind' IN (...)),
+    CHECK ((title_bn IS NOT NULL AND body_bn IS NOT NULL) OR (title_en IS NOT NULL AND body_en IS NOT NULL)),
+    CHECK (ends_at IS NULL OR publish_at IS NULL OR ends_at > publish_at),
+    CHECK ((window_starts_at IS NULL) = (window_ends_at IS NULL) AND (window_ends_at IS NULL OR window_ends_at > window_starts_at))
+);
+CREATE INDEX ON control.notices (publish_at);
+CREATE INDEX ON control.notices (publish_at) WHERE sent_at IS NULL AND withdrawn_at IS NULL;   -- the minute pass
+
+-- NTC-08: each earlier version of a live notice, written by the edit that replaced it.
+CREATE TABLE control.notice_versions (
+    id              bigserial PRIMARY KEY,
+    notice_id       uuid NOT NULL REFERENCES control.notices(id),
+    snapshot        jsonb NOT NULL,
+    edited_by       uuid NOT NULL,                        -- the operator whose edit replaced it
     created_at      timestamptz NOT NULL DEFAULT now()
 );
 
+-- NTC-03, NTC-04, NTC-09: what each person did with a notice: opened it, or closed its banner or prompt.
 CREATE TABLE control.notice_reads (
     notice_id       uuid NOT NULL REFERENCES control.notices(id),
     tenant_id       uuid NOT NULL,
     user_id         uuid NOT NULL,
-    read_at         timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (notice_id, user_id)
+    read_at         timestamptz,
+    dismissed_at    timestamptz,
+    PRIMARY KEY (notice_id, tenant_id, user_id),
+    FOREIGN KEY (tenant_id, user_id) REFERENCES tenant.users(tenant_id, id) ON DELETE CASCADE,
+    CHECK (read_at IS NOT NULL OR dismissed_at IS NOT NULL)
 );
 
+-- NTC-05: one "I understand" per shop, by its owner.
 CREATE TABLE control.notice_acknowledgments (
     notice_id       uuid NOT NULL REFERENCES control.notices(id),
-    tenant_id       uuid NOT NULL,
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
     user_id         uuid NOT NULL,
     acknowledged_at timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (notice_id, tenant_id)                       -- one ack per tenant (the owner acks on its behalf, NTC-05)
+    PRIMARY KEY (notice_id, tenant_id)
+);
+
+-- NTC-06, NTC-09: each shop a notice was sent to, written with its bell rows, so a pass cut short carries on.
+CREATE TABLE control.notice_deliveries (
+    notice_id       uuid NOT NULL REFERENCES control.notices(id),
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    people          integer NOT NULL,                     -- how many people its bell row reached there
+    emailed         boolean NOT NULL,
+    delivered_at    timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (notice_id, tenant_id)
 );
 ```
 

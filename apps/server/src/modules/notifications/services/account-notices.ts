@@ -5,7 +5,7 @@ import type { MailWords } from '../../../common/i18n/bilingual';
 import { MailService } from '../../shared/mail/services/mail.service';
 import { StaffService } from '../../staff/services/staff.service';
 import { ownerReader } from '../../staff/types/owner-contact';
-import { fromMailWords } from '../notification-words';
+import { fromMailWords, type NotificationText } from '../notification-words';
 import { Notifications } from './notifications';
 
 /**
@@ -22,15 +22,21 @@ export class AccountNotices {
     @Inject(Notifications) private readonly notifications: Notifications,
   ) {}
 
+  /**
+   * How many people its bell row reached, and whether the owner was emailed. The bell says what the email does unless
+   * it is given shorter words of its own (a notice from Lytro gives the start of its body, NTC-06).
+   */
   async send(
     tx: Transaction,
     tenantId: string,
     kind: NotificationKind,
     words: MailWords,
     link: string | null,
-  ): Promise<void> {
+    bell: NotificationText = fromMailWords(words),
+  ): Promise<{ people: number; emailed: boolean }> {
     const owner = ownerReader(await this.staff.ownerContactIn(tx, tenantId));
     if (owner) await this.mail.queueNotice(tx, owner, words);
-    await this.notifications.notifyWithin(tx, { tenantId, kind, text: fromMailWords(words), link });
+    const people = await this.notifications.notifyWithin(tx, { tenantId, kind, text: bell, link });
+    return { people, emailed: owner !== null };
   }
 }

@@ -43,6 +43,7 @@ export * from './tenant/couriers';
 export * from './tenant/sms-log';
 export * from './tenant/sms-settings';
 export * from './tenant/notifications';
+export * from './control/notices';
 export * from './tenant/order-extractions';
 export * from './tenant/fraud-checks';
 export * from './control/courier-message-routes';
