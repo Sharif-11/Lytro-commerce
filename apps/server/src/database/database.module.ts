@@ -76,6 +76,7 @@ import {
   PushSubscriptionRepository,
   SmsSettingsRepository,
   OrderExtractionRepository,
+  FraudCheckRepository,
   TaxClassRepository,
   ModifierRepository,
   PaymentMethodRepository,
@@ -323,6 +324,11 @@ import { DatabaseService } from './database.service';
       useFactory: (transactions: TransactionRunner) => new OrderExtractionRepository(transactions),
     },
     {
+      provide: FraudCheckRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new FraudCheckRepository(transactions),
+    },
+    {
       provide: MediaRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new MediaRepository(transactions),
@@ -475,6 +481,7 @@ import { DatabaseService } from './database.service';
     PushSubscriptionRepository,
     SmsSettingsRepository,
     OrderExtractionRepository,
+    FraudCheckRepository,
     TaxClassRepository,
     ModifierRepository,
     PaymentMethodRepository,

@@ -2194,3 +2194,21 @@ over about 81 minutes and then gives up, so on a busy day some notices would nev
 A bounce Resend calls temporary is never recorded, so an address that bounces temporarily every time is never stopped.
 
 A push that fails is never tried again, since the bell already has the notice and a retry could push it twice to the browsers that took it. A browser whose push service is down for a while misses those pushes; after 10 failures in a row it is forgotten and must subscribe again. NTF-02's "the test arrives" can only be seen once Slice 7.7 adds the dashboard's service worker that shows a push, and on an iPhone only once the dashboard is on the Home Screen.
+
+## 128. `FRD-01`, `D7-52`: Steadfast's fraud check is read from one try of three phones — found 2026-11-07, open until a month of real checks
+
+Slice 7.5 built the check to the answer Steadfast gave a live key on 2026-11-07, for three phones and a malformed number.
+
+- **Its own score is switched off.** It sends `scoring_disabled: true` and its counts are null; only whole percentages, a
+  size band and a figure come back. If Steadfast switches its score on or starts giving counts, Lytro ignores them until
+  the adapter reads them.
+- **The figure isn't documented.** It came as `8` with the band `medium` and `1` with `low`. It's shown as Steadfast gives
+  it, without saying what it counts.
+- **A malformed number got an answer.** `0171` came back with someone's figures, not a refusal. Lytro checks a number's
+  form before asking, so none reaches Steadfast; a well-formed number that belongs to no one may still get figures.
+- **The fraud categories were empty for all three phones,** so their shape is guessed: text, or an object with a name or
+  a label.
+- **Only Steadfast has a check.** A shop that uses only Pathao or RedX sees its own orders alone (D7-45, D7-46).
+
+Closing it: after launch, read a sample of real answers (a phone with reports, its categories, a larger band) and adjust
+the adapter to them.

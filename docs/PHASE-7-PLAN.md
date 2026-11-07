@@ -70,7 +70,7 @@ check a phone number before shipping a cash-on-delivery order, and paste a custo
 | D7-7 | **Price of a check.** With courier feedback only, a check costs Lytro nothing. | The charge (FRD-03) is built, but the fraud-check rate is **zero at launch**, raisable from Rates without a release. Allowances for fraud checks (PLN-20) wait until the check has a price. | Slices 7.5, 7.6 |
 | D7-8 | **Shared counts across shops** (FRD-09, FRD-10, FRD-12, FRD-13). | **Next release.** They need many shops to say anything, and a line in the terms about sharing. | Slice 7.5 |
 | D7-9 | **How it's built.** | Server slices first, then one sketch-and-screens pass for the dashboard and the console, sketched before it's built. | Slice 7.7 |
-| D7-10 | **When.** Phase 6 goes one slice at a time in another session. | Phase 7 is built beside it, in its own session, also one slice at a time. The two touch different code. Amended 2026-11-06 (the owner's word): Slice 7.6 is built in a second session beside Slice 7.2, since it touches neither SMS nor couriers. | the whole phase |
+| D7-10 | **When.** Phase 6 goes one slice at a time in another session. | Phase 7 is built beside it, in its own session, also one slice at a time. The two touch different code. Amended 2026-11-06 (the owner's word): Slice 7.6 is built in a second session beside Slice 7.2, since it touches neither SMS nor couriers. Amended again 2026-11-07 (the owner's word): Slice 7.5 is built in a second session beside Slice 7.3, since it touches neither notifications nor the notice board. | the whole phase |
 | D7-11 | **Push.** | In-app notifications and **web push** to a subscribed phone or computer (NTF-01 to NTF-04). Email for warnings and notices (NTF-05, NTF-06, NTC-06). | Slices 7.3, 7.4 |
 | D7-12 | **Credentials.** | Each provider's key goes in a local file outside every repository, which the slice names and never opens or prints. The BulkSMSBD key pasted in the read must be replaced with a new one first. | every provider slice |
 | D7-21 | **When an SMS really goes out** (the owner's call, 2026-11-06). Every SMS costs money. | By the server's mode. **Test:** never sent, only recorded, whatever any setting says. **Development:** the stand-in writes it to the log, unless `SMS_FORCE_REAL=true` is set and BulkSMSBD's login is there, and then it really goes out. **Production, staging included:** always sent for real, and a server missing BulkSMSBD's login refuses to start rather than quietly logging. | Slice 7.1 |
@@ -111,6 +111,14 @@ overrule any of them when reviewing this plan.
 | D7-42 | **Who hears of the account** (Slice 7.3's read). There is no billing permission; billing is the owner's. | Renewal, plan, limit and lifecycle notices go to the owner only. Low balance also goes to staff with `balance:manage`, who can top up. | Slice 7.3 |
 | D7-43 | **Lytro's own notices, and the notice board's look** (Slice 7.3's read). | A notice about Lytro itself, not a shop (a listener phone revoked or sending too much, the day's unreadable wallet messages), is emailed in English to every enrolled operator, the addresses the fast-spend alert already uses. The owner's "marquee" answer is the notice board's: Lytro's announcements scroll as a marquee across the dashboard, settled in Slice 7.4's read and drawn in Slice 7.7. | Slices 7.3, 7.4, 7.7 |
 | D7-44 | **The update prompt, and the slice in two** (Slice 7.3's read). | When a new version is deployed the dashboard shows "A new version is ready" with an Update button, kept until tapped, so a half-filled form is never lost; today it updates silently. Drawn and built in Slice 7.7. The slice is one PR (the owner's call, 2026-11-07): email first (Resend, bounces, each person's language, every email in it, operators' alerts), then the bell, push and the switches. | Slices 7.3, 7.7 |
+| D7-45 | **Sources** (Slice 7.5's read, 2026-11-07). Only Steadfast publishes a check. The known plugins sign in to Pathao's and RedX's merchant panels with the shop's password, and RedX's sign-in now asks for an OTP. | Steadfast's own check through the shop's own key, and the shop's own orders. Pathao and RedX join only if they publish a check. | Slice 7.5 |
+| D7-46 | **A shop without Steadfast** (the read). | Its own orders only, with Steadfast shown as not connected. Lytro's own key is never used for a shop's check. | Slice 7.5 |
+| D7-47 | **Trial** (the read). FRD-08 refused checks in trial because they were to cost money. | Allowed while the fraud-check rate is zero; once it is raised, a trial is refused again. A lapsed shop is refused either way (LIF-09). Amends FRD-08. | Slice 7.5 |
+| D7-48 | **What a check shows** (the owner's pick, 2026-11-07). Steadfast's own score is switched off, and it gives no counts. | Figures only, with no low, medium or high: Steadfast's delivered, cancelled and returned percentages, the size of its record and merchants' reports, and the shop's own counts. Amends FRD-01. | Slice 7.5 |
+| D7-49 | **The shop's own orders** (the read). | Delivered, wholly or in part, count for the customer. Returned counts against them, and so does cancelled, but only for the customer's own reasons: customer cancelled, fake order, unreachable, advance not paid. Out of stock, a duplicate, other and an open order don't count. | Slice 7.5 |
+| D7-50 | **The automatic check** (the read). FRD-05 made it an optional rule. | On for every new cash-on-delivery delivery, from any source, run apart from the order. The owner may switch it off or set a smallest amount. Takeaway and dine-in aren't checked. Amends FRD-05. | Slice 7.5 |
+| D7-51 | **Permissions** (the read). | `fraud:read` runs a check and reads results; it is FRD-01's `fraud:check`. `fraud:manage` changes the automatic check. | Slice 7.5 |
+| D7-52 | **Steadfast's answer, tried with a live key** (2026-11-07: three phones and a malformed number). | Whole percentages, a size band (`none`, `low`, `medium`) with a figure (`8` with medium, `1` with low), merchants' reports, and null counts and score (`scoring_disabled: true`), in 0.3 to 0.7 seconds. A malformed number got someone's figures too, so a number's form is checked before asking. What the figure counts isn't documented (KNOWN-GAPS §128). | Slice 7.5 |
 
 ### 2.1 Points left to each slice's read
 
@@ -122,7 +130,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 7.2 | The ten events' Bangla defaults, worded to the owner's style guide. Which events need a tracking link, and which link. What "estimated monthly cost" (SMS-12) counts from for a new shop. |
 | 7.3 | Resend's sending domain and its DNS records, the bounce message (NTF-06), and how long a notification is kept. Which events a user can switch off (NTF-04): essential ones like "payment to verify" may stay on. **Settled in Slice 7.3's read (2026-11-07):** D7-38 to D7-44. |
 | 7.4 | How a notice's Bangla and English bodies are written in the console (bold, links and lists, NTC-01) and kept safe (NTC-16). Whether the status page (NTC-14) is in this release. |
-| 7.5 | **What each courier's check returns, tried with a real key:** Steadfast's score, Pathao's success-rate call (Appendix A), RedX's if it has one, once Slice 6.4 lands. How the level (low, medium, high, unknown) is worked out from the counts. Whether checks stay refused in trial (FRD-08) now that they're free. |
+| 7.5 | **What each courier's check returns, tried with a real key:** Steadfast's score, Pathao's success-rate call (Appendix A), RedX's if it has one, once Slice 6.4 lands. How the level (low, medium, high, unknown) is worked out from the counts. Whether checks stay refused in trial (FRD-08) now that they're free. **Settled in Slice 7.5's read (2026-11-07):** D7-45 to D7-52. Pathao and RedX publish no check, there is no level, and trials may check while checks are free. |
 | 7.6 | **Real pasted messages read by Gemini first**, in Bangla, English and the two mixed, to choose the model and set the rate. How thanas are matched (ORD-31), and the confidence shown. **Settled in Slice 7.6's read (2026-11-06):** D7-32 to D7-37. Made-up messages chose the model; the real ones wait for a key with billing on (D7-37). |
 | 7.7 | Settled by its sketch: see that slice. |
 
@@ -212,7 +220,7 @@ Migrations follow Phase 6's, numbered in the order slices merge (Slice 7.1 is 01
 | `tenant.push_subscriptions` | each subscribed device (NTF-02) | 7.3 |
 | `control.mail_suppressions` (the addresses Lytro stopped emailing), `tenant.users.language`, the outbox's `provider_message_id` | NTF-06, I18N-01, D7-3 | 7.3 |
 | `control.notices`, `control.notice_versions`, `control.notice_reads`, `control.notice_acknowledgments` | notices, their earlier versions (NTC-08), reads and acknowledgments | 7.4 |
-| `tenant.fraud_checks`, `tenant.fraud_rules` | each check and its result (FRD-01, FRD-04), and the automatic rule (FRD-05). No shared-counts column in this release | 7.5 |
+| `tenant.fraud_checks`, `tenant.fraud_rules` | each check's figures by source, what each source did, the check whose Steadfast answer it reused, and its cost (FRD-01 to FRD-04, FRD-11); the automatic rule, a row once the owner changes it (FRD-05). No shared-counts column in this release. Built in migration 0115 | 7.5 |
 | `tenant.order_extractions` | each charged read, without the message (D7-18): its length, confidence and cost, and the allowance that paid, if one did; an allowance's uses are its rows | 7.6 |
 | the `ai_extraction` rate, the first allowance item, the read's three operator settings | D7-16, D7-17, D7-35, D7-36 | 7.6 |
 
@@ -226,7 +234,7 @@ Migrations follow Phase 6's, numbered in the order slices merge (Slice 7.1 is 01
 | Team | `GET /api/v1/notifications`, `POST /api/v1/notifications/read`; `GET`, `PUT /api/v1/notifications/preferences`; `POST`, `DELETE /api/v1/push/subscriptions`; `POST /api/v1/push/test` | NTF-01, NTF-02, NTF-04 |
 | Team, `notices:read` | `GET /api/v1/notices`, `POST /api/v1/notices/:id/read`, `POST /api/v1/notices/:id/acknowledge` | NTC-03, NTC-05, NTC-09 |
 | Operator | `GET`, `POST`, `PATCH /api/v1/operator/notices`, `POST /api/v1/operator/notices/:id/withdraw`, `GET /api/v1/operator/notices/:id/acknowledgments` | NTC-01, NTC-05, NTC-08 |
-| Team, `fraud:check` | `POST /api/v1/fraud-checks`, `GET /api/v1/fraud-checks?phone=`; `GET`, `PUT /api/v1/fraud-checks/rule` | FRD-01, FRD-05, FRD-07 |
+| Team, `fraud:read` (FRD-01's `fraud:check`, D7-51); changing the rule `fraud:manage` | `POST /api/v1/fraud-checks`, `GET /api/v1/fraud-checks?phone=`; `GET`, `PUT /api/v1/fraud-checks/rule` | FRD-01, FRD-05, FRD-07 |
 | Team, `orders:manage` | `POST /api/v1/orders/read-address` | ORD-30 to ORD-34 (D7-32) |
 | Providers | `POST /api/v1/webhooks/email/resend` | bounces (NTF-06), signed |
 | Team, the person's own | `PUT /api/v1/me/language`; `GET /api/v1/me`'s `language` and `emailBounced` | I18N-01, NTF-06 (Slice 7.3) |
@@ -274,7 +282,7 @@ checks whether FRD-01's `fraud:check` is `fraud:read` or needs its own name.
   email to an owner is written in it from one definition per notice, Bangla until they choose. An owner who adds or
   removes an email in their account now has their shops' notices follow it; until now the shop kept the email it was
   created with, so an owner who signed up by phone was never emailed. Lytro's own listener notices email its operators.
-- **Built, the bell and push:** `tenant.notifications` keeps one row for each person a notice reaches (the owner, and the holders of its kind's permission, less those who switched it off), with its words in both languages and where it leads; the bell reads it in the reader's language and push sends it in the language they chose. Every one of the seven stand-in notifiers is now a notification, nothing that calls them changed, and every notice about the account goes by email, the bell and push at once. Push is Web Push signed with Lytro's VAPID keys, sent from its own job and never tried twice (the bell has it), and a subscription is taken only on a push service's address. Money and account kinds can't be switched off. The nightly clean-up keeps 30 days. One PR, migration `0115_notifications`. The banner, the bell, the switches, the language switch, the service worker that shows a push and the update prompt are Slice 7.7's.
+- **Built, the bell and push:** `tenant.notifications` keeps one row for each person a notice reaches (the owner, and the holders of its kind's permission, less those who switched it off), with its words in both languages and where it leads; the bell reads it in the reader's language and push sends it in the language they chose. Every one of the seven stand-in notifiers is now a notification, nothing that calls them changed, and every notice about the account goes by email, the bell and push at once. Push is Web Push signed with Lytro's VAPID keys, sent from its own job and never tried twice (the bell has it), and a subscription is taken only on a push service's address. Money and account kinds can't be switched off. The nightly clean-up keeps 30 days. One PR, migration `0116_notifications`. The banner, the bell, the switches, the language switch, the service worker that shows a push and the update prompt are Slice 7.7's.
 
 ### Slice 7.4: the notice board
 - **Depends on:** 7.3.
@@ -288,6 +296,9 @@ checks whether FRD-01's `fraud:check` is `fraud:read` or needs its own name.
   source; the level and counts (FRD-01); the sources named (FRD-02); a 3-day cache (FRD-04); the automatic rule
   (FRD-05); never blocking (FRD-06); the per-minute limit (FRD-07); refusals in trial and lapsed states (FRD-08); a
   failing source skipped (FRD-11); the charge at a zero rate (D7-7).
+- **Built (2026-11-07), to D7-45 to D7-52:** Steadfast's check through the shop's own key and the shop's own orders,
+  figures only; Steadfast's answer reused for three days; the automatic check on every new cash-on-delivery delivery;
+  free at launch; a trial checks while checks are free.
 
 ### Slice 7.6: reading an order from a message
 - **Depends on:** 7.0.
@@ -334,7 +345,7 @@ needed and never open or print.
 |---|---|
 | 7.1 | `C:\Users\Dell\lytro-worktrees\bulksmsbd.env`, filled in: a **new** BulkSMSBD key (the one pasted in the read replaced), the sender ID and a test phone; and the server addresses allowed in BulkSMSBD's panel |
 | 7.3 | A Resend account, and DNS records for the sending domain at Cloudflare |
-| 7.5 | A Steadfast and a Pathao production key that may be used for checks, since Pathao's sandbox has no real history |
+| 7.5 | A Steadfast production key that may be used for checks: given 2026-11-07 in `steadfast-live.env` and used read-only for the try (D7-52). Pathao and RedX have no check to try (D7-45) |
 | 7.6 | A Gemini API key on a paid tier (D7-18), and a set of real customer messages with the names and numbers changed |
 
 ---
@@ -428,9 +439,13 @@ of a taka. Newer Flash-Lite models are listed higher. The model and price are to
   (`gemini-live.spec.ts`).
 
 ### The couriers' checks
-- **Steadfast:** `/fraud_check/score/{phone}`, with the shop's own key (`PHASE-6-PLAN.md` Appendix A).
-- **Pathao:** third-party plugins describe `POST /aladdin/api/v1/user/success-rate`, with the phone in the body and the
-  merchant's token, on production only: the sandbox returns no real history
-  ([fraud-checker-bd-courier](https://packagist.org/packages/azmolla/fraud-checker-bd-courier)). Not in Pathao's own
-  document.
-- **RedX:** unknown until Slice 6.4 has its document open.
+- **Steadfast:** `GET /fraud_check/score/{phone}` on `portal.packzy.com/api/v1`, with the shop's own `Api-Key` and
+  `Secret-Key` (`PHASE-6-PLAN.md` Appendix A). Tried live 2026-11-07: see D7-52. A community document's shape (total and
+  delivered counts, a success ratio, a risk level) is not what it answered.
+- **Pathao:** no check in its own API document. Plugins sign in to its merchant panel (`merchant.pathao.com/api/v1/login`)
+  with the shop's username and password, then post the phone to `/api/v1/user/success`, which answers successful and
+  total deliveries ([Fraud-Checker-BD-Courier-Laravel](https://github.com/AbiruzzamanMolla/Fraud-Checker-BD-Courier-Laravel)).
+  Lytro keeps no Pathao password (Slice 6.3), so this isn't used (D7-45).
+- **RedX:** no check in its OpenAPI document. Plugins sign in to its panel (`api.redx.com.bd/v4/auth/login`) with the
+  shop's phone and password and read `customer-success-return-rate`. Its sign-in now asks for an OTP, so it can't be
+  automated (D7-45).

@@ -1,5 +1,5 @@
 {
-  "id": "f8af86a2-c971-4d82-84d7-24bfc1e51c89",
+  "id": "1b89c712-0b91-4c4f-9841-6a853793eac8",
   "prevId": "2068d2d8-9286-4850-ab77-1d2c08127950",
   "version": "7",
   "dialect": "postgresql",
@@ -2095,12 +2095,6 @@
           "notNull": true,
           "default": true
         },
-        "language": {
-          "name": "language",
-          "type": "varchar(2)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -2168,12 +2162,7 @@
         }
       },
       "policies": {},
-      "checkConstraints": {
-        "users_language_check": {
-          "name": "users_language_check",
-          "value": "\"tenant\".\"users\".\"language\" IS NULL OR \"tenant\".\"users\".\"language\" IN ('bn', 'en')"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "tenant.activity_log": {
@@ -2345,12 +2334,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "provider_message_id": {
-          "name": "provider_message_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -2404,50 +2387,7 @@
       "checkConstraints": {
         "mail_outbox_status_check": {
           "name": "mail_outbox_status_check",
-          "value": "\"control\".\"mail_outbox\".\"status\" in ('pending','sending','sent','failed','suppressed')"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "control.mail_suppressions": {
-      "name": "mail_suppressions",
-      "schema": "control",
-      "columns": {
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "reason": {
-          "name": "reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "detail": {
-          "name": "detail",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "mail_suppressions_reason_check": {
-          "name": "mail_suppressions_reason_check",
-          "value": "\"control\".\"mail_suppressions\".\"reason\" in ('bounced','complained')"
+          "value": "\"control\".\"mail_outbox\".\"status\" in ('pending','sending','sent','failed')"
         }
       },
       "isRLSEnabled": false
@@ -12529,298 +12469,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "tenant.notification_preferences": {
-      "name": "notification_preferences",
-      "schema": "tenant",
-      "columns": {
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "notification_preferences_user_fk": {
-          "name": "notification_preferences_user_fk",
-          "tableFrom": "notification_preferences",
-          "tableTo": "users",
-          "schemaTo": "tenant",
-          "columnsFrom": ["tenant_id", "user_id"],
-          "columnsTo": ["tenant_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "notification_preferences_tenant_id_user_id_kind_pk": {
-          "name": "notification_preferences_tenant_id_user_id_kind_pk",
-          "columns": ["tenant_id", "user_id", "kind"]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "tenant.notifications": {
-      "name": "notifications",
-      "schema": "tenant",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "words": {
-          "name": "words",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "link": {
-          "name": "link",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "read_at": {
-          "name": "read_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "notifications_user_idx": {
-          "name": "notifications_user_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "notifications_unread_idx": {
-          "name": "notifications_unread_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"tenant\".\"notifications\".\"read_at\" IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "notifications_created_idx": {
-          "name": "notifications_created_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "notifications_user_fk": {
-          "name": "notifications_user_fk",
-          "tableFrom": "notifications",
-          "tableTo": "users",
-          "schemaTo": "tenant",
-          "columnsFrom": ["tenant_id", "user_id"],
-          "columnsTo": ["tenant_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "tenant.push_subscriptions": {
-      "name": "push_subscriptions",
-      "schema": "tenant",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "endpoint": {
-          "name": "endpoint",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "p256dh": {
-          "name": "p256dh",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "auth": {
-          "name": "auth",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_agent": {
-          "name": "user_agent",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "failures": {
-          "name": "failures",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "last_pushed_at": {
-          "name": "last_pushed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "push_subscriptions_user_fk": {
-          "name": "push_subscriptions_user_fk",
-          "tableFrom": "push_subscriptions",
-          "tableTo": "users",
-          "schemaTo": "tenant",
-          "columnsFrom": ["tenant_id", "user_id"],
-          "columnsTo": ["tenant_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "push_subscriptions_user_endpoint_key": {
-          "name": "push_subscriptions_user_endpoint_key",
-          "nullsNotDistinct": false,
-          "columns": ["tenant_id", "user_id", "endpoint"]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "tenant.order_extractions": {
       "name": "order_extractions",
       "schema": "tenant",
@@ -12946,6 +12594,265 @@
         "order_extractions_paid_from_check": {
           "name": "order_extractions_paid_from_check",
           "value": "\"tenant\".\"order_extractions\".\"paid_from\" in ('balance','allowance') AND (\"tenant\".\"order_extractions\".\"paid_from\" = 'allowance') = (\"tenant\".\"order_extractions\".\"addon_purchase_id\" IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "tenant.fraud_checks": {
+      "name": "fraud_checks",
+      "schema": "tenant",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(11)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trigger": {
+          "name": "trigger",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "order_id": {
+          "name": "order_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "steadfast_state": {
+          "name": "steadfast_state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "steadfast_from": {
+          "name": "steadfast_from",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "steadfast_delivered_percent": {
+          "name": "steadfast_delivered_percent",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "steadfast_cancelled_percent": {
+          "name": "steadfast_cancelled_percent",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "steadfast_returned_percent": {
+          "name": "steadfast_returned_percent",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "steadfast_volume_band": {
+          "name": "steadfast_volume_band",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "steadfast_volume_range": {
+          "name": "steadfast_volume_range",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "steadfast_reports": {
+          "name": "steadfast_reports",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "steadfast_doubtful": {
+          "name": "steadfast_doubtful",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "steadfast_categories": {
+          "name": "steadfast_categories",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "own_delivered": {
+          "name": "own_delivered",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "own_returned": {
+          "name": "own_returned",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "own_cancelled": {
+          "name": "own_cancelled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cost": {
+          "name": "cost",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "fraud_checks_phone_idx": {
+          "name": "fraud_checks_phone_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "phone",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "fraud_checks_order_idx": {
+          "name": "fraud_checks_order_idx",
+          "columns": [
+            {
+              "expression": "order_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "fraud_checks_order_id_orders_id_fk": {
+          "name": "fraud_checks_order_id_orders_id_fk",
+          "tableFrom": "fraud_checks",
+          "tableTo": "orders",
+          "schemaTo": "tenant",
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "fraud_checks_phone_check": {
+          "name": "fraud_checks_phone_check",
+          "value": "\"tenant\".\"fraud_checks\".\"phone\" ~ '^01[3-9][0-9]{8}$'"
+        },
+        "fraud_checks_trigger_check": {
+          "name": "fraud_checks_trigger_check",
+          "value": "\"tenant\".\"fraud_checks\".\"trigger\" in ('staff','order')"
+        },
+        "fraud_checks_steadfast_state_check": {
+          "name": "fraud_checks_steadfast_state_check",
+          "value": "\"tenant\".\"fraud_checks\".\"steadfast_state\" in ('answered','not_connected','failed')"
+        },
+        "fraud_checks_counts_check": {
+          "name": "fraud_checks_counts_check",
+          "value": "\"tenant\".\"fraud_checks\".\"own_delivered\" >= 0 AND \"tenant\".\"fraud_checks\".\"own_returned\" >= 0 AND \"tenant\".\"fraud_checks\".\"own_cancelled\" >= 0 AND \"tenant\".\"fraud_checks\".\"cost\" >= 0"
+        },
+        "fraud_checks_answered_check": {
+          "name": "fraud_checks_answered_check",
+          "value": "(\"tenant\".\"fraud_checks\".\"steadfast_state\" = 'answered') = (\"tenant\".\"fraud_checks\".\"steadfast_reports\" IS NOT NULL)\n        AND (\"tenant\".\"fraud_checks\".\"steadfast_from\" IS NULL OR \"tenant\".\"fraud_checks\".\"steadfast_state\" = 'answered')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "tenant.fraud_rules": {
+      "name": "fraud_rules",
+      "schema": "tenant",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "cod_orders": {
+          "name": "cod_orders",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "min_amount": {
+          "name": "min_amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "fraud_rules_amount_check": {
+          "name": "fraud_rules_amount_check",
+          "value": "\"tenant\".\"fraud_rules\".\"min_amount\" IS NULL OR \"tenant\".\"fraud_rules\".\"min_amount\" >= 0"
         }
       },
       "isRLSEnabled": false

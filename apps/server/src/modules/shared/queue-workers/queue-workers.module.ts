@@ -36,6 +36,8 @@ import { PublicApiModule } from '../../public-api/public-api.module';
 import { MetaPurchaseWorker } from './services/meta-purchase-worker';
 import { SmsEventsModule } from '../../sms-events/sms-events.module';
 import { SmsEventWorker } from './services/sms-event-worker';
+import { FraudChecksModule } from '../../fraud-checks/fraud-checks.module';
+import { FraudCheckWorker } from './services/fraud-check-worker';
 import { PackAutoBuyWorker } from './services/pack-auto-buy-worker';
 import { UsageNoticeWorker } from './services/usage-notice-worker';
 import { NotificationsModule } from '../../notifications/notifications.module';
@@ -65,6 +67,7 @@ import { NotificationPushWorker } from './services/notification-push-worker';
     DomainsModule,
     IdempotencyModule,
     SmsEventsModule,
+    FraudChecksModule,
     NotificationsModule,
   ],
   providers: [
@@ -90,6 +93,7 @@ import { NotificationPushWorker } from './services/notification-push-worker';
     DomainCheckTickWorker,
     IdempotencyPurgeTickWorker,
     SmsEventWorker,
+    FraudCheckWorker,
     NotificationPushWorker,
     NotificationPurgeTickWorker,
   ],

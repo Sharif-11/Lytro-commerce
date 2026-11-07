@@ -758,6 +758,13 @@ export const MESSAGE_KEYS = [
   'AddressReadUnavailable',
   'AddressReadUnreadable',
   'TooManyAddressReads',
+  // Phase 7 Slice 7.5: fraud checks (FRD-01 to FRD-08)
+  'FraudCheckRun',
+  'FraudCheckRead',
+  'FraudRuleRead',
+  'FraudRuleSaved',
+  'FraudCheckNeedsPlan',
+  'TooManyFraudChecks',
   // Phase 7 Slice 7.3: email's bounces (NTF-06) and the language a person chose (I18N-01).
   'EmailWebhookNotVerified',
   'LanguageSaved',
