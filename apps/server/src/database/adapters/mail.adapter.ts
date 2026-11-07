@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { MailRepository, type Executor, type NewMailMessage } from '@lytronix/db';
+import {
+  MailRepository,
+  MailSuppressionRepository,
+  type Executor,
+  type NewMailMessage,
+  type NewMailSuppression,
+} from '@lytronix/db';
 import type { ClaimedMailMessage } from '../../modules/shared/mail/types/messages';
 import type { MailStore } from '../../modules/shared/mail/ports/mail-store';
 import { DatabaseService } from '../database.service';
@@ -9,6 +15,7 @@ import { DatabaseService } from '../database.service';
 export class DrizzleMailStore implements MailStore {
   constructor(
     @Inject(MailRepository) private readonly mail: MailRepository,
+    @Inject(MailSuppressionRepository) private readonly suppressions: MailSuppressionRepository,
     @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
   ) {}
 
@@ -25,8 +32,24 @@ export class DrizzleMailStore implements MailStore {
     return this.mail.claimDue(this.database.handle.db, input);
   }
 
-  markSent(id: number, at: Date): Promise<void> {
-    return this.mail.markSent(this.database.handle.db, id, at);
+  markSent(id: number, at: Date, providerMessageId: string | null = null): Promise<void> {
+    return this.mail.markSent(this.database.handle.db, id, at, providerMessageId);
+  }
+
+  markSuppressed(id: number): Promise<void> {
+    return this.mail.markSuppressed(this.database.handle.db, id);
+  }
+
+  isSuppressed(email: string): Promise<boolean> {
+    return this.suppressions.isSuppressed(this.database.handle.db, email);
+  }
+
+  lift(email: string): Promise<boolean> {
+    return this.suppressions.lift(this.database.handle.db, email);
+  }
+
+  suppress(row: NewMailSuppression): Promise<void> {
+    return this.suppressions.suppress(this.database.handle.db, row);
   }
 
   markFailed(

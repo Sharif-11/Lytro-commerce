@@ -89,6 +89,8 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'How many messages one shop may have read in a minute, a flood guard (ORD-33).',
   [PlatformSettingKey.FraudChecksPerShopPerMinute]:
     'How many fraud checks one shop may run in a minute, by staff or on new orders (FRD-07).',
+  [PlatformSettingKey.NotificationRetentionDays]:
+    'How many days a notification is kept in the bell before it is deleted (NTF-01, D7-39).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -154,6 +156,7 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.AddressReadModel]: isModelName,
   [PlatformSettingKey.AddressReadsPerShopPerMinute]: isPositiveInt,
   [PlatformSettingKey.FraudChecksPerShopPerMinute]: isPositiveInt,
+  [PlatformSettingKey.NotificationRetentionDays]: isPositiveInt,
 };
 
 function validate(key: PlatformSettingKey, value: unknown): void {

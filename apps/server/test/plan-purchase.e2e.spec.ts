@@ -198,8 +198,8 @@ async function seedOwnerContact(tenantId: string): Promise<{ phone: string; emai
   const phone = `0171${randomUUID().replace(/\D/g, '').slice(0, 7)}`;
   const email = `${freshSlug()}@example.com`;
   await admin.query(
-    `INSERT INTO tenant.users (tenant_id, phone, email, name, is_owner, active)
-     VALUES ($1, $2, $3, 'Rahima Akter', true, true)`,
+    `INSERT INTO tenant.users (tenant_id, phone, email, name, is_owner, active, language)
+     VALUES ($1, $2, $3, 'Rahima Akter', true, true, 'en')`,
     [tenantId, phone, email],
   );
   return { phone, email };

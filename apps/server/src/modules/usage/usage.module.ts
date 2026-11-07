@@ -16,6 +16,7 @@ import { UsageNoticeSender } from './services/usage-notice-sender';
 import { UsageService } from './services/usage.service';
 import { UsageSuggestions } from './services/usage-suggestions';
 import { USAGE_NOTICE_CLOCK, USAGE_NOTICE_STORE } from './tokens';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 // LIM-01, LIM-02, D3: the shop's usage against its limits, gathered from the modules that count each metric, what
 // would give it room (plans from billing), and the writing and sending of the notices the usage warnings queue.
@@ -23,6 +24,7 @@ import { USAGE_NOTICE_CLOCK, USAGE_NOTICE_STORE } from './tokens';
 @Module({
   imports: [
     CatalogueModule,
+    NotificationsModule,
     StaffModule,
     MediaModule,
     OrdersModule,

@@ -1849,6 +1849,28 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   SmsReportRead: { en: 'SMS report.', bn: 'SMS রিপোর্ট।' },
   SmsLogListed: { en: 'SMS sent and refused, listed.', bn: 'পাঠানো ও আটকানো SMS-এর তালিকা।' },
+  EmailWebhookNotVerified: {
+    en: 'This message could not be verified.',
+    bn: 'এই মেসেজটি ভেরিফাই করা যায়নি।',
+  },
+  LanguageSaved: { en: 'Language saved.', bn: 'ভাষা সেভ হয়েছে।' },
+  NotificationsListed: { en: 'Notifications listed.', bn: 'নোটিফিকেশনের তালিকা।' },
+  NotificationsMarkedRead: { en: 'Marked as read.', bn: 'পড়া হয়েছে হিসেবে মার্ক করা হয়েছে।' },
+  NotificationPreferencesRead: { en: 'Notification settings.', bn: 'নোটিফিকেশন সেটিংস।' },
+  NotificationPreferencesSaved: {
+    en: 'Notification settings saved.',
+    bn: 'নোটিফিকেশন সেটিংস সেভ হয়েছে।',
+  },
+  PushKeyRead: { en: 'Push key.', bn: 'পুশ কি।' },
+  PushSubscribed: {
+    en: 'Notifications will come to this device.',
+    bn: 'এই ডিভাইসে নোটিফিকেশন আসবে।',
+  },
+  PushUnsubscribed: {
+    en: 'Notifications will no longer come to this device.',
+    bn: 'এই ডিভাইসে আর নোটিফিকেশন আসবে না।',
+  },
+  PushTestSent: { en: 'Test sent.', bn: 'টেস্ট পাঠানো হয়েছে।' },
   CourierAdaptersListed: { en: 'Couriers listed.', bn: 'কুরিয়ারের তালিকা।' },
   CourierConnectionsListed: {
     en: 'Connected couriers listed.',

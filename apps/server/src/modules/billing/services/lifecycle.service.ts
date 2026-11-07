@@ -13,7 +13,9 @@ import {
   SLUG_MAX_LENGTH,
   TenantState,
 } from '@lytronix/validators';
+import { NotificationKind } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import type { MailWords } from '../../../common/i18n/bilingual';
 import { DAY_MS, daysBetween, dhakaDate, startOfDayDhaka } from '../../../common/time';
 import { toPaisa } from '../../balance/services/money';
 import { AuditService } from '../../audit/services/audit.service';
@@ -35,16 +37,23 @@ import { PaymentSessionsEraser } from '../../payment-sessions/services/payment-s
 import { ListenerDevices } from '../../listener/services/listener-devices';
 import { DomainEraser } from '../../domains/services/domain-eraser';
 import { DataExportService } from '../../data-export/services/data-export.service';
-import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
 import { StaffService } from '../../staff/services/staff.service';
+import {
+  deletionWarningWords,
+  paygArchiveWarningWords,
+  renewalReminderWords,
+  shopClosedWords,
+} from './billing-notice-words';
 import { TenantCache } from '../../tenancy/services/tenant-cache';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import { CLOCK } from '../tokens';
 import { DowngradeService } from './downgrade.service';
 import { AddonRenewalService, addonsTotal, withinBudget } from './addon-renewal.service';
 import { PurchaseService } from './purchase.service';
+import { AccountNotices } from '../../notifications/services/account-notices';
+import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 
 // LIF-26, 2.3: defaults, each a day-count *within* that stage, not cumulative from period end.
 const DEFAULT_STAGE_DAYS = { grace: 3, readOnly: 4, locked: 8, archived: 45 };
@@ -113,7 +122,7 @@ export class LifecycleService {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
     @Inject(MessagingService) private readonly sms: MessagingService,
-    @Inject(MailService) private readonly mail: MailService,
+    @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(PlatformSettingsService) private readonly settings: PlatformSettingsService,
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
@@ -413,13 +422,12 @@ export class LifecycleService {
     // 45 before 57 rather than getting stuck re-finding 45 forever once both are past.
     const due = DELETION_WARNING_DAYS.find((day) => daysLapsed >= day && !sentDays.has(day));
     if (due === undefined) return false;
-    const daysLeft = (60 - due).toString();
+    const daysLeft = 60 - due;
     await this.sendNotice(
       tenantId,
       AuditAction.DeletionWarningSent,
       { day: due },
-      `Your shop will be deleted in ${daysLeft} day(s) unless you buy a plan or choose pay-as-you-go. Export your data from the dashboard before then.`,
-      'Your shop is scheduled for deletion',
+      deletionWarningWords(daysLeft),
     );
     return true;
   }
@@ -524,15 +532,14 @@ export class LifecycleService {
     summary: Record<string, unknown>,
     daysLeft: number | null,
   ): Promise<void> {
-    const contact = await this.staff.ownerContact(tenantId);
-    const body =
-      daysLeft === null
-        ? 'Your shop is in its grace period. Renew now to avoid losing access to your dashboard.'
-        : `Your plan renews in ${daysLeft.toString()} day(s). Renew now to avoid any interruption.`;
     await this.tenants.runStandalone(async (tx) => {
-      if (contact?.email) {
-        await this.mail.queueLifecycleNotice(tx, contact.email, 'Your plan is renewing soon', body);
-      }
+      await this.notices.send(
+        tx,
+        tenantId,
+        NotificationKind.RenewalReminder,
+        renewalReminderWords(daysLeft),
+        NOTIFICATION_LINKS.billing,
+      );
       await this.audit.record(tx, {
         tenantId,
         actorType: ActorType.System,
@@ -609,8 +616,7 @@ export class LifecycleService {
             candidate.id,
             AuditAction.DeletionWarningSent,
             { reason: 'payg_inactivity', day: PAYG_WARNING_DAYS },
-            'Your pay-as-you-go shop will be archived in 7 days with no activity. Any order, product creation or top-up resets this.',
-            'Your shop will be archived soon',
+            paygArchiveWarningWords(7),
           );
           warningsSent += 1;
         }
@@ -663,13 +669,19 @@ export class LifecycleService {
     tenantId: string,
     action: AuditAction,
     summary: Record<string, unknown>,
-    body: string,
-    subject: string,
+    words: MailWords,
   ): Promise<void> {
     const contact = await this.staff.ownerContact(tenantId);
     await this.tenants.runStandalone(async (tx) => {
-      if (contact?.phone) await this.sms.queueLifecycleNotice(tx, contact.phone, body);
-      if (contact?.email) await this.mail.queueLifecycleNotice(tx, contact.email, subject, body);
+      // The SMS keeps its English words (KNOWN-GAPS §127); the email goes in the owner's language.
+      if (contact?.phone) await this.sms.queueLifecycleNotice(tx, contact.phone, words.en.body);
+      await this.notices.send(
+        tx,
+        tenantId,
+        NotificationKind.AccountNotice,
+        words,
+        NOTIFICATION_LINKS.billing,
+      );
       await this.audit.record(tx, {
         tenantId,
         actorType: ActorType.System,
@@ -778,13 +790,16 @@ export class LifecycleService {
       const deletionDate = dhakaDate(
         new Date(now.getTime() + PAYG_DELETION_DAYS_AFTER_ARCHIVAL * DAY_MS),
       );
-      const body =
-        `${info.shopName} is closed. Its data will be deleted on ${deletionDate}. Until then you can ` +
-        'reopen it by choosing pay-as-you-go or a plan, and export your data from the dashboard.';
-      if (contact?.phone) await this.sms.queueLifecycleNotice(tx, contact.phone, body);
-      if (contact?.email) {
-        await this.mail.queueLifecycleNotice(tx, contact.email, 'Your shop is closed', body);
-      }
+      const words = shopClosedWords(info.shopName, deletionDate);
+      // The SMS keeps its English words (KNOWN-GAPS §127); the email goes in the owner's language.
+      if (contact?.phone) await this.sms.queueLifecycleNotice(tx, contact.phone, words.en.body);
+      await this.notices.send(
+        tx,
+        tenantId,
+        NotificationKind.AccountNotice,
+        words,
+        NOTIFICATION_LINKS.billing,
+      );
     });
     this.tenantCache.invalidateTenant(tenantId); // TEN-27: the public side goes offline at once.
   }

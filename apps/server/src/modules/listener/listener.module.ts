@@ -10,13 +10,15 @@ import { TenancyModule } from '../tenancy/tenancy.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { ListenerAppController } from './controllers/listener-app.controller';
 import { ListenerDeviceGuard } from './guards/listener-device.guard';
-import { ConsoleListenerNotifier } from './services/console-listener-notifier';
+import { MailListenerNotifier } from './services/mail-listener-notifier';
 import { ListenerApp } from './services/listener-app';
 import { ListenerDevices } from './services/listener-devices';
 import { ListenerLimits } from './services/listener-limits';
 import { ListenerPairing } from './services/listener-pairing';
 import { ListenerRules } from './services/listener-rules';
 import { LISTENER_CLOCK, LISTENER_NOTIFIER, LISTENER_STORE } from './tokens';
+import { MailModule } from '../shared/mail/mail.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 // LSN-01 to LSN-23 (Phase 5 Slice 5.4a): the listener phones a shop pairs to forward its payment SMS -- their codes,
 // devices and tokens, the app's own routes, and Lytro's view and blocks. It reads the shop's limits (usage warnings),
@@ -28,6 +30,8 @@ import { LISTENER_CLOCK, LISTENER_NOTIFIER, LISTENER_STORE } from './tokens';
     AuditModule,
     BalanceModule,
     CatalogueModule,
+    MailModule,
+    NotificationsModule,
     PaymentMethodsModule,
     PlatformSettingsModule,
     TenancyModule,
@@ -36,7 +40,7 @@ import { LISTENER_CLOCK, LISTENER_NOTIFIER, LISTENER_STORE } from './tokens';
   controllers: [ListenerAppController],
   providers: [
     { provide: LISTENER_STORE, useClass: DrizzleListenerStore },
-    { provide: LISTENER_NOTIFIER, useClass: ConsoleListenerNotifier },
+    { provide: LISTENER_NOTIFIER, useClass: MailListenerNotifier },
     { provide: LISTENER_CLOCK, useValue: (): Date => new Date() },
     ClientIp,
     ListenerRules,

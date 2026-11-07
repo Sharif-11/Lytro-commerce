@@ -18,6 +18,7 @@ const suggestionSchema = z.discriminatedUnion('kind', [
         addonId: z.string(),
         key: z.string(),
         name: z.string(),
+        nameBn: z.string().optional(),
         metric: z.nativeEnum(UsageMetric),
         quantity: z.number(),
         monthly: z.number(),
@@ -61,7 +62,14 @@ export const shopUsageSchema = z.object({
   packs: z.array(
     z.object({
       metric: z.enum([UsageMetric.Bandwidth, UsageMetric.Requests]),
-      offer: z.object({ addonId: z.string(), name: z.string(), price: z.number() }).nullable(),
+      offer: z
+        .object({
+          addonId: z.string(),
+          name: z.string(),
+          nameBn: z.string().optional(),
+          price: z.number(),
+        })
+        .nullable(),
       autoBuy: z.boolean(),
       autoPacks: z.number(),
       autoBuyFailed: z.boolean(),

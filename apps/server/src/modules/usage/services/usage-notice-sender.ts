@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   AuditResult,
+  NotificationKind,
   PlatformActorType,
   PlatformAuditAction,
   TenantState,
@@ -16,6 +17,9 @@ import type { UsageNoticeStore } from '../ports/usage-notice-store';
 import { USAGE_NOTICE_CLOCK, USAGE_NOTICE_STORE } from '../tokens';
 import { noticeText, operatorAlertText, smsDue } from './usage-notice-text';
 import { UsageService } from './usage.service';
+import type { MailWords } from '../../../common/i18n/bilingual';
+import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
+import { AccountNotices } from '../../notifications/services/account-notices';
 
 /**
  * LIM-01, BND-05, RTE-03, RTE-12: writes and sends a usage notice the warnings queued, with the shop's usage as it is
@@ -31,6 +35,7 @@ export class UsageNoticeSender {
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(UsageSettings) private readonly settings: UsageSettings,
     @Inject(MailService) private readonly mail: MailService,
+    @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(MessagingService) private readonly sms: MessagingService,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
     @Inject(USAGE_NOTICE_STORE) private readonly store: UsageNoticeStore,
@@ -46,13 +51,24 @@ export class UsageNoticeSender {
       this.staff.ownerContact(tenant.id),
       this.settings.gracePercent(),
     ]);
-    const text = noticeText(notice, tenant.shopName, usage, now, grace);
+    // Slice 7.3: the notice in both languages -- the owner's email goes in the one they chose, the bell shows each
+    // reader theirs -- and the SMS keeps its English words (KNOWN-GAPS §127).
+    const text = noticeText(notice, tenant.shopName, usage, now, grace, 'en');
+    const bangla = noticeText(notice, tenant.shopName, usage, now, grace, 'bn');
+    const words: MailWords = {
+      bn: { subject: bangla.subject, body: bangla.body },
+      en: { subject: text.subject, body: text.body },
+    };
     const fastSpend = notice.level === 'fast_spend';
     const operators = fastSpend ? await this.store.operatorEmails() : [];
     await this.store.run(async (tx) => {
-      if (owner?.email) {
-        await this.mail.queueLifecycleNotice(tx, owner.email, text.subject, text.body);
-      }
+      await this.notices.send(
+        tx,
+        tenant.id,
+        NotificationKind.UsageWarning,
+        words,
+        NOTIFICATION_LINKS.usage,
+      );
       if (owner?.phone && smsDue(notice, Boolean(owner.email))) {
         await this.sms.queueLifecycleNotice(tx, owner.phone, text.sms);
       }

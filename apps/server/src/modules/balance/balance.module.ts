@@ -29,11 +29,12 @@ import {
   RATE_STORE,
   SHOP_SETTINGS_STORE,
 } from './tokens';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 // D2-8: the balance module. Ledger, rates and per-tenant settings only — no top-up endpoint (that depends on
 // control.plan_payments, slice 4) and no plan/billing logic (that's the `billing` module, slice 2 onward).
 @Module({
-  // StaffModule and MailModule are for BAL-13's notice to the owner; neither imports this module back.
+  // StaffModule, MailModule and NotificationsModule are for BAL-13's notice to the owner; none imports this module back.
   imports: [
     TenancyModule,
     AuditModule,
@@ -41,6 +42,7 @@ import {
     PlatformSettingsModule,
     StaffModule,
     MailModule,
+    NotificationsModule,
   ],
   providers: [
     { provide: BALANCE_LEDGER_STORE, useClass: DrizzleBalanceLedgerStore },

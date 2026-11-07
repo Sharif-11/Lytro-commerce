@@ -765,6 +765,18 @@ export const MESSAGE_KEYS = [
   'FraudRuleSaved',
   'FraudCheckNeedsPlan',
   'TooManyFraudChecks',
+  // Phase 7 Slice 7.3: email's bounces (NTF-06) and the language a person chose (I18N-01).
+  'EmailWebhookNotVerified',
+  'LanguageSaved',
+  // Phase 7 Slice 7.3: the bell, its switches and push (NTF-01, NTF-02, NTF-04).
+  'NotificationsListed',
+  'NotificationsMarkedRead',
+  'NotificationPreferencesRead',
+  'NotificationPreferencesSaved',
+  'PushKeyRead',
+  'PushSubscribed',
+  'PushUnsubscribed',
+  'PushTestSent',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

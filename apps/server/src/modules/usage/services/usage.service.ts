@@ -43,7 +43,12 @@ function packOffer(offers: readonly AddonOffer[], limitKey: string): UsagePack['
       addon.kind === AddonKind.Pack && addon.limitKey === limitKey && price !== null,
   );
   return offer?.price != null
-    ? { addonId: offer.addon.id, name: offer.addon.labelEn, price: offer.price }
+    ? {
+        addonId: offer.addon.id,
+        name: offer.addon.labelEn,
+        nameBn: offer.addon.labelBn,
+        price: offer.price,
+      }
     : null;
 }
 

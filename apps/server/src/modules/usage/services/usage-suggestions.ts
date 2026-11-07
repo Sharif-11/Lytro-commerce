@@ -24,6 +24,7 @@ function addonOptions(offers: readonly AddonOffer[]): AddonOption[] {
             addonId: addon.id,
             key: addon.key,
             name: addon.labelEn,
+            nameBn: addon.labelBn,
             limitKey: addon.limitKey,
             unitSize: addon.unitSize,
             monthly: Math.round(Number(addon.price)),

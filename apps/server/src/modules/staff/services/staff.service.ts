@@ -21,6 +21,7 @@ import type { StaffAccounts } from '../ports/staff-accounts';
 import { ROLE_STORE, STAFF_ACCOUNTS, STAFF_PASSWORD_HASHER, STAFF_STORE } from '../tokens';
 import type { StaffCredentials, StaffList, StaffMember, StaffRecord } from '../types/staff';
 import type { OwnerContact } from '../types/owner-contact';
+import type { Language } from '@lytronix/validators';
 
 // LOG-02, AUD-02: a phone number never appears whole in a log or an activity entry, even to someone with
 // audit:read on this shop — only enough to tell entries apart at a glance.
@@ -99,6 +100,31 @@ export class StaffService {
     return this.store.run(
       tenantId,
       async (tx) => (await this.store.findOwner(tx, tenantId))?.id ?? null,
+    );
+  }
+
+  /**
+   * I18N-01 (Slice 7.3's read): keeps the language a person chose in the dashboard, which their email and push are
+   * written in -- the owner's row when `userId` is null.
+   */
+  setLanguage(tenant: StaffTenant, userId: string | null, language: Language): Promise<boolean> {
+    return this.store.run(tenant.id, (tx) =>
+      this.store.setLanguage(tx, tenant.id, userId, language),
+    );
+  }
+
+  /** I18N-01: the language a person chose in this shop; null until they choose. */
+  languageOf(tenant: StaffTenant, userId: string | null): Promise<Language | null> {
+    return this.store.run(tenant.id, (tx) => this.store.languageOf(tx, tenant.id, userId));
+  }
+
+  /**
+   * NTF-06 (Slice 7.3): a person's own email changed, so every live shop they own writes its notices to the new one, or
+   * to none. Runs across their shops, as only the platform account knows which they own. How many shops changed.
+   */
+  followOwnerEmail(subscriberId: string, email: string | null): Promise<number> {
+    return this.store.runAcrossShops((tx) =>
+      this.store.setOwnerEmailOfSubscriber(tx, subscriberId, email),
     );
   }
 

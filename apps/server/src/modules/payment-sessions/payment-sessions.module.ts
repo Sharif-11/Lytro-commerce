@@ -10,12 +10,13 @@ import { InventoryModule } from '../inventory/inventory.module';
 import { OrdersModule } from '../orders/orders.module';
 import { PaymentMethodsModule } from '../payment-methods/payment-methods.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
-import { ConsolePaymentNotifier } from './services/console-payment-notifier';
 import { PaymentPageOversight } from './services/payment-page-oversight';
 import { PaymentSessionExpiry } from './services/payment-session-expiry';
 import { PaymentSessionsEraser } from './services/payment-sessions-eraser';
 import { PaymentSessions } from './services/payment-sessions';
 import { PAYMENT_NOTIFIER, PAYMENT_PAGE_ORIGIN, PAYMENT_SESSION_STORE } from './tokens';
+import { BellPaymentNotifier } from '../notifications/notifiers/bell-notifiers';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 // PAY-01 to PAY-08, PAY-24, TVR-02, TVR-03 (Phase 5 Slice 5.2): the payment page's sessions, staff's payment links, and
 // Lytro's watch over the pages. It depends on the shop's payment methods (what the page offers), the stock hold's
@@ -23,6 +24,7 @@ import { PAYMENT_NOTIFIER, PAYMENT_PAGE_ORIGIN, PAYMENT_SESSION_STORE } from './
 // order and the page's routes, the staff and operator routes, the minute pass and the day-60 deletion read it.
 @Module({
   imports: [
+    NotificationsModule,
     PaymentMethodsModule,
     InventoryModule,
     OrdersModule,
@@ -33,7 +35,7 @@ import { PAYMENT_NOTIFIER, PAYMENT_PAGE_ORIGIN, PAYMENT_SESSION_STORE } from './
   ],
   providers: [
     { provide: PAYMENT_SESSION_STORE, useClass: DrizzlePaymentSessionStore },
-    { provide: PAYMENT_NOTIFIER, useClass: ConsolePaymentNotifier },
+    { provide: PAYMENT_NOTIFIER, useExisting: BellPaymentNotifier },
     { provide: PAYMENT_PAGE_ORIGIN, inject: [ENV], useFactory: (env: Env) => payOrigin(env) },
     PaymentSessions,
     PaymentSessionExpiry,

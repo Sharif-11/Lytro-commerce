@@ -217,10 +217,10 @@ describeIfDatabase(
       const shop = await openShop(port, texts, 'downgrade-fix');
       await onLargePlan(shop);
       const email = `${shop.slug}@example.com`;
-      await admin.query('UPDATE tenant.users SET email = $2 WHERE tenant_id = $1 AND is_owner', [
-        shop.tenantId,
-        email,
-      ]);
+      await admin.query(
+        `UPDATE tenant.users SET email = $2, language = 'en' WHERE tenant_id = $1 AND is_owner`,
+        [shop.tenantId, email],
+      );
       expect((await uploadPhoto(shop)).status).toBe(201);
       for (let index = 1; index <= 3; index += 1) {
         expect(
@@ -273,10 +273,10 @@ describeIfDatabase(
       const shop = await openShop(port, texts, 'downgrade-after');
       await onLargePlan(shop);
       const email = `${shop.slug}@example.com`;
-      await admin.query('UPDATE tenant.users SET email = $2 WHERE tenant_id = $1 AND is_owner', [
-        shop.tenantId,
-        email,
-      ]);
+      await admin.query(
+        `UPDATE tenant.users SET email = $2, language = 'en' WHERE tenant_id = $1 AND is_owner`,
+        [shop.tenantId, email],
+      );
       const photo = await uploadPhoto(shop);
       expect(photo.status).toBe(201);
       for (let index = 1; index <= 3; index += 1) {
