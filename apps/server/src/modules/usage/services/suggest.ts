@@ -31,6 +31,8 @@ export interface AddonOption {
   addonId: string;
   key: string;
   name: string;
+  /** Slice 7.3: its Bangla name, for a notice in Bangla; the English one when absent. */
+  nameBn?: string;
   limitKey: UsageLimitKey;
   unitSize: number;
   monthly: number;
@@ -115,6 +117,7 @@ function addonSuggestion(
       addonId: addon.addonId,
       key: addon.key,
       name: addon.name,
+      ...(addon.nameBn === undefined ? {} : { nameBn: addon.nameBn }),
       metric: figure.metric,
       quantity,
       monthly: addon.monthly * quantity,

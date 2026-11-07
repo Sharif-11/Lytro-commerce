@@ -143,6 +143,16 @@ export enum MailStatus {
   Sending = 'sending',
   Sent = 'sent',
   Failed = 'failed',
+  // NTF-06 (Slice 7.3's read): not sent, the address having bounced or marked Lytro's email as spam.
+  Suppressed = 'suppressed',
+}
+
+// NTF-06 (Slice 7.3's read, agreed 2026-11-07): why Lytro stopped emailing an address -- it bounced for good, or its
+// owner marked an email as spam. Either stops every email but a code the person asked for, until the address is proven
+// by a code or changed.
+export enum MailSuppressionReason {
+  Bounced = 'bounced',
+  Complained = 'complained',
 }
 
 // The permission names a role can hold. Dashboard users and API key scopes use the same names (TEN-5, API-06).
@@ -575,6 +585,10 @@ export enum QueueName {
   // FRD-05 (Slice 7.5, read agreed 2026-11-07): a new cash-on-delivery order's fraud check, queued in the transaction that
   // made the order and run apart from it, so a check never holds up or undoes the order (FRD-06).
   OrderFraudCheck = 'order_fraud_check',
+  // NTF-02 (Phase 7 Slice 7.3): one notification's web push, sent from its row.
+  NotificationPush = 'notification_push',
+  // NTF-01, D7-39 (Slice 7.3): the nightly clean-up of notifications past the days they are kept.
+  NotificationPurgeTick = 'notification_purge_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -815,6 +829,8 @@ export enum PlatformSettingKey {
   AddressReadsPerShopPerMinute = 'address_reads_per_shop_per_minute',
   // FRD-07 (Slice 7.5, editable): how many fraud checks one shop may run in a minute.
   FraudChecksPerShopPerMinute = 'fraud_checks_per_shop_per_minute',
+  // NTF-01, D7-39 (Slice 7.3's read, the owner's pick): how many days a notification is kept before it is deleted.
+  NotificationRetentionDays = 'notification_retention_days',
 }
 
 // AI-10, D7-4: the AIs Lytro can read a pasted message with. One today; the setting names which.
@@ -1697,4 +1713,29 @@ export function enumTuple<T extends string>(values: readonly T[]): [T, ...T[]] {
   const [first, ...rest] = values;
   if (first === undefined) throw new Error('an enum must have at least one value');
   return [first, ...rest];
+}
+
+// NTF-03 (Phase 7 Slice 7.3, read agreed 2026-11-07): every kind of notification a shop's people are sent, in the bell and
+// by push. What each says is fixed platform copy (NOTIFICATION_KINDS has who hears it and whether it can be switched off).
+export enum NotificationKind {
+  OrderPlaced = 'order_placed',
+  PaymentToVerify = 'payment_to_verify',
+  PaymentVerified = 'payment_verified',
+  MoneyForClosedOrder = 'money_for_closed_order',
+  GatewayAttention = 'gateway_attention',
+  ParcelAttention = 'parcel_attention',
+  ParcelMoved = 'parcel_moved',
+  CourierConnection = 'courier_connection',
+  CourierRetiring = 'courier_retiring',
+  CourierBack = 'courier_back',
+  LowStock = 'low_stock',
+  BatchExpiring = 'batch_expiring',
+  HeldStockExpired = 'held_stock_expired',
+  MediaFailed = 'media_failed',
+  ListenerPhone = 'listener_phone',
+  LowBalance = 'low_balance',
+  UsageWarning = 'usage_warning',
+  RenewalReminder = 'renewal_reminder',
+  AccountNotice = 'account_notice',
+  EmailBounced = 'email_bounced',
 }

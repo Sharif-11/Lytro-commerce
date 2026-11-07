@@ -16,6 +16,7 @@ import type { OauthAttached } from '../types/oauth';
 import { PhoneNumberFormat } from './phone-number-format';
 import { SignInLockout } from './sign-in-lockout';
 import { SIGNUP_GATEWAY } from '../tokens';
+import { StaffService } from '../../staff/services/staff.service';
 import type { SignupGateway } from '../ports/signup-gateway';
 import type { CodeIssued } from '../types/code-issued';
 import type { IdentityDestination as Destination } from '../types/identity-destination';
@@ -30,6 +31,7 @@ export class IdentitiesService {
     @Inject(PhoneNumberFormat) private readonly phoneFormat: PhoneNumberFormat,
     @Inject(EmailFormat) private readonly emailFormat: EmailFormat,
     @Inject(OauthService) private readonly oauth: OauthService,
+    @Inject(StaffService) private readonly staff: StaffService,
   ) {}
 
   list(subscriberId: string): Promise<{ id: string; kind: IdentityKind; value: string }[]> {
@@ -105,6 +107,8 @@ export class IdentitiesService {
       if (error instanceof UniqueViolation) throw this.cannotAdd();
       throw error;
     }
+    // NTF-06 (Slice 7.3): the shops this person owns send their notices to the email just added.
+    if (kind === 'email') await this.staff.followOwnerEmail(subscriberId, target.destination);
     return { attached: target.identityKind };
   }
 
@@ -115,13 +119,27 @@ export class IdentitiesService {
   async remove(subscriberId: string, identityId: string): Promise<void> {
     if (!z.string().uuid().safeParse(identityId).success)
       throw new ApiError('not_found', 'PageNotFound', {});
+    let emailLeft: string | null | undefined;
     const outcome = await this.gateway.run(async (tx) => {
       const identities = await this.gateway.listIdentities(tx, subscriberId);
-      if (!identities.some((identity) => identity.id === identityId)) return 'not_found' as const;
+      const removing = identities.find((identity) => identity.id === identityId);
+      if (!removing) return 'not_found' as const;
       // AUTH-26: an account always keeps at least one way in.
       if (identities.length <= 1) return 'last' as const;
+      if (removing.kind === IdentityKind.Email) {
+        emailLeft =
+          identities
+            .filter(
+              (identity) => identity.kind === IdentityKind.Email && identity.id !== identityId,
+            )
+            .at(-1)?.value ?? null;
+      }
       return this.gateway.deleteIdentity(tx, subscriberId, identityId);
     });
+    // NTF-06 (Slice 7.3): an email gone, so the shops this person owns send to the one left, or to none.
+    if (outcome === 'deleted' && emailLeft !== undefined) {
+      await this.staff.followOwnerEmail(subscriberId, emailLeft);
+    }
     if (outcome === 'not_found') throw new ApiError('not_found', 'PageNotFound', {});
     if (outcome === 'last') {
       throw new ApiError('conflict', 'IdentityKeepOneSignIn', {});

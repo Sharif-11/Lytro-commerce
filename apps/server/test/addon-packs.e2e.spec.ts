@@ -166,10 +166,10 @@ async function onSmall(balance = '5000.00'): Promise<ShopClient> {
        period_end = date_trunc('second', now()) + interval '20 days' WHERE id = $1`,
     [shop.tenantId],
   );
-  await admin.query('UPDATE tenant.users SET email = $2 WHERE tenant_id = $1 AND is_owner', [
-    shop.tenantId,
-    `owner.${shop.tenantId.slice(0, 8)}@example.com`,
-  ]);
+  await admin.query(
+    `UPDATE tenant.users SET email = $2, language = 'en' WHERE tenant_id = $1 AND is_owner`,
+    [shop.tenantId, `owner.${shop.tenantId.slice(0, 8)}@example.com`],
+  );
   return shop;
 }
 

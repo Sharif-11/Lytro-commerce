@@ -10,8 +10,6 @@ import { CatalogueModule } from '../catalogue/catalogue.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { BatchExpiryService } from './services/batch-expiry.service';
 import { BatchService } from './services/batch.service';
-import { ConsoleBatchExpiryNotifier } from './services/console-batch-expiry-notifier';
-import { ConsoleLowStockNotifier } from './services/console-low-stock-notifier';
 import { InventoryEraser } from './services/inventory-eraser';
 import { InventoryFiguresService } from './services/inventory-figures.service';
 import { InventoryLedger } from './services/inventory-ledger';
@@ -31,20 +29,25 @@ import {
   STOCK_CHECK_STORE,
   STOCK_STORE,
 } from './tokens';
+import {
+  BellBatchExpiryNotifier,
+  BellLowStockNotifier,
+} from '../notifications/notifiers/bell-notifiers';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 // D3-7: the inventory module -- stock levels, the movement ledger, batches, serials, stock checks and reservations. It
 // depends only on catalogue (and the platform settings, for how long an unpaid order holds stock); catalogue reaches
 // it through the stock hooks its callers pass, never by importing it.
 @Module({
-  imports: [CatalogueModule, PlatformSettingsModule],
+  imports: [NotificationsModule, CatalogueModule, PlatformSettingsModule],
   providers: [
     { provide: STOCK_STORE, useClass: DrizzleStockStore },
     { provide: STOCK_CHECK_STORE, useClass: DrizzleStockCheckStore },
     { provide: STOCK_BATCH_STORE, useClass: DrizzleStockBatchStore },
     { provide: SERIAL_STORE, useClass: DrizzleSerialStore },
     { provide: RESERVATION_STORE, useClass: DrizzleReservationStore },
-    { provide: BATCH_EXPIRY_NOTIFIER, useClass: ConsoleBatchExpiryNotifier },
-    { provide: LOW_STOCK_NOTIFIER, useClass: ConsoleLowStockNotifier },
+    { provide: BATCH_EXPIRY_NOTIFIER, useExisting: BellBatchExpiryNotifier },
+    { provide: LOW_STOCK_NOTIFIER, useExisting: BellLowStockNotifier },
     InventoryLedger,
     StockService,
     StockCheckService,

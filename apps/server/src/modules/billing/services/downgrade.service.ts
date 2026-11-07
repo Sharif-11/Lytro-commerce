@@ -13,15 +13,15 @@ import {
   TenantState,
   withAddons,
 } from '@lytronix/validators';
+import { NotificationKind } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
-import { DAY_MS } from '../../../common/time';
+import { DAY_MS, dhakaDate } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import type { AuditEntry } from '../../audit/types/activity';
 import { BalanceService } from '../../balance/services/balance.service';
 import { ProductService } from '../../catalogue/services/product.service';
 import { MB } from '../../media/services/media-limits';
 import { MediaService } from '../../media/services/media.service';
-import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { StaffService } from '../../staff/services/staff.service';
 import { TenantCache } from '../../tenancy/services/tenant-cache';
@@ -30,8 +30,11 @@ import type { ScheduledPlanChangesStore } from '../ports/scheduled-plan-changes-
 import { CLOCK, SCHEDULED_PLAN_CHANGES_STORE } from '../tokens';
 import type { ScheduledPlanChangeRecord } from '../types/scheduled-plan-change';
 import { AddonRenewalService } from './addon-renewal.service';
+import { downgradeFinalWarningWords, retentionShrinkWords } from './billing-notice-words';
 import { PlansService } from './plans.service';
 import { ShopLimitsService } from './shop-limits.service';
+import { AccountNotices } from '../../notifications/services/account-notices';
+import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 
 /** DWN-03: one limit the shop holds more than, by its plan-limit key (`staff`, `products`, `storage_mb`). */
 export interface OverLimitItem {
@@ -67,27 +70,6 @@ export interface PayAsYouGoChoice {
 const CHECKLIST_DAYS = 30;
 
 // What each checklist limit is called in the final warning.
-const ITEM_NAMES: Readonly<Record<string, string>> = {
-  staff: 'seats',
-  products: 'products',
-  storage_mb: 'MB of storage',
-};
-
-/** DWN-14: the final warning's words: each limit still over, that nothing is lost, and the export (LIF-16). */
-function finalWarningText(open: readonly OverLimitItem[]): string {
-  const over = open
-    .map(
-      (item) => `${String(item.used)} of ${String(item.limit)} ${ITEM_NAMES[item.key] ?? item.key}`,
-    )
-    .join(', ');
-  return (
-    `Since your shop's plan changed 30 days ago, it is still over its limits: ${over}. Nothing has been deleted or ` +
-    'hidden, and everything already there keeps selling and showing. Adding more stays blocked until the shop is ' +
-    "within its limits, or on a plan that fits. You can download all of your shop's data from Settings, Export, at " +
-    'any time.'
-  );
-}
-
 // DWN-11: the shorter retention a downgrade brings never applies sooner than this many days after notice.
 const RETENTION_NOTICE_DAYS = 14;
 
@@ -129,7 +111,7 @@ export class DowngradeService {
     @Inject(ShopLimitsService) private readonly shopLimits: ShopLimitsService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(MessagingService) private readonly sms: MessagingService,
-    @Inject(MailService) private readonly mail: MailService,
+    @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
 
@@ -276,18 +258,16 @@ export class DowngradeService {
       const open = ((await this.checklist(tenantId, now))?.items ?? []).filter(
         (item) => !item.fixed,
       );
-      const contact = open.length > 0 ? await this.staff.ownerContact(tenantId) : null;
       await this.tenants.runStandalone(async (tx) => {
         await this.tenants.setDowngradeFinalWarning(tx, tenantId, now);
         if (open.length === 0) return;
-        if (contact?.email) {
-          await this.mail.queueLifecycleNotice(
-            tx,
-            contact.email,
-            "Your shop is still over its plan's limits",
-            finalWarningText(open),
-          );
-        }
+        await this.notices.send(
+          tx,
+          tenantId,
+          NotificationKind.AccountNotice,
+          downgradeFinalWarningWords(open),
+          NOTIFICATION_LINKS.usage,
+        );
         await this.audit.record(tx, {
           tenantId,
           actorType: ActorType.System,
@@ -554,23 +534,24 @@ export class DowngradeService {
       before: new Date(now.getTime() - shrink.newDays * DAY_MS),
       excludeActions: [...MONEY_RELATED_AUDIT_ACTIONS],
     });
-    const effectiveDate = shrink.floorUntil.toDateString();
-    const body =
-      `Your shop's activity log retention is shortening from ${String(shrink.oldDays)} to ` +
-      `${String(shrink.newDays)} days. ${String(trimmedCount)} older entr${trimmedCount === 1 ? 'y' : 'ies'} ` +
-      `will be permanently removed starting ${effectiveDate}.`;
+    const words = retentionShrinkWords({
+      oldDays: shrink.oldDays,
+      newDays: shrink.newDays,
+      trimmed: trimmedCount,
+      from: { bn: dhakaDate(shrink.floorUntil), en: shrink.floorUntil.toDateString() },
+    });
 
     const contact = await this.staff.ownerContact(tenantId);
     await this.tenants.runStandalone(async (tx) => {
-      if (contact?.phone) await this.sms.queueLifecycleNotice(tx, contact.phone, body);
-      if (contact?.email) {
-        await this.mail.queueLifecycleNotice(
-          tx,
-          contact.email,
-          'Your data retention is changing',
-          body,
-        );
-      }
+      // The SMS keeps its English words (KNOWN-GAPS §127); the email goes in the owner's language.
+      if (contact?.phone) await this.sms.queueLifecycleNotice(tx, contact.phone, words.en.body);
+      await this.notices.send(
+        tx,
+        tenantId,
+        NotificationKind.AccountNotice,
+        words,
+        NOTIFICATION_LINKS.activity,
+      );
       await this.audit.record(tx, {
         tenantId,
         actorType: ActorType.System,

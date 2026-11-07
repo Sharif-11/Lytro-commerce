@@ -26,6 +26,7 @@ import type { PaymentListItem } from '../../payment-review/types/payment-review'
 import { InvoicesService } from '../../payments/services/invoices.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 import { StaffService } from '../../staff/services/staff.service';
+import { ownerReader } from '../../staff/types/owner-contact';
 import { MailService } from '../../shared/mail/services/mail.service';
 import { JOB_QUEUE } from '../../shared/queue/tokens';
 import type { JobQueue } from '../../shared/queue/ports/job-queue';
@@ -155,10 +156,9 @@ export class DataExportService {
         }),
       );
 
-      const owner = await this.staff.ownerContact(tenantId);
-      const ownerEmail = owner?.email;
-      if (ownerEmail) {
-        await this.store.run(tenantId, (tx) => this.mail.queueDataExportReady(tx, ownerEmail));
+      const owner = ownerReader(await this.staff.ownerContact(tenantId));
+      if (owner) {
+        await this.store.run(tenantId, (tx) => this.mail.queueDataExportReady(tx, owner));
       }
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown error';
