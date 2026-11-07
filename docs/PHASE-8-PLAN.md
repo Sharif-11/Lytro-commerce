@@ -61,7 +61,7 @@ The platform audit log is written but never listed. The break-glass 2FA reset (A
 | D8-3 | **A shop's errors** (ADM-03). The server keeps no record of errors per shop. | Each server error a shop's request hits is kept for **7 days**: the route, the error code and a request ID. Every response carries `X-Request-Id` (API-27), and the shop page counts the last 24 hours' errors and lists the latest. | Slices 8.1, 8.2 |
 | D8-4 | **How a shop reaches Lytro at launch**, with tickets out. | The dashboard's help menu shows Lytro's **WhatsApp and phone**, which the operator sets in Settings. The WhatsApp message opens already holding the shop's address, so the operator knows who's writing. | Slices 8.7, 8.8 |
 | D8-5 | **Resetting an owner's sign-in** (ADM-04), for an owner who lost their phone or password. | Signs the owner out on every device and sends a reset code by SMS to the phone the owner gives the operator, after the operator has checked it's them. A changed phone is recorded with a reason. The operator never sees or sets a password. Audited in both logs. | Slice 8.3 |
-| D8-6 | **When.** Phase 7's 7.3, 7.4 and 7.7 are being built in other sessions. | Phase 8 is built now, beside them, in its own session, one slice at a time; this plan first, as a docs PR. Slices that tell someone (8.5's notice and digest, 8.6's alert) come after Slice 7.3 merges. The console's screens are sketched and built in one pass at the end (8.8). | the whole phase |
+| D8-6 | **When.** Phase 7's 7.3, 7.4 and 7.7 are being built in other sessions. | Phase 8 is built now, beside them, in its own session, one slice at a time; this plan first, as a docs PR. Slices that tell someone (8.5's notice and digest, 8.6's alert) need Slice 7.3, merged the same day (#323). The console's screens are sketched and built in one pass at the end (8.8). | the whole phase |
 
 **D8-7 to D8-20 follow from those or from existing requirements.** They weren't asked in the read, so the owner can
 overrule any of them when reviewing this plan.
@@ -167,7 +167,7 @@ Each is settled in its slice's read, before code, and recorded there.
 
 ## 4. Database work
 
-Migrations take the next free number when each slice's PR opens (7.3 holds 0116 at the time of writing). Each slice
+Migrations take the next free number when each slice's PR opens (`main` reached 0116 with Slice 7.3). Each slice
 brings `DATABASE-SCHEMA.md` in line with what it builds.
 
 | Table | Holds | Slice |
@@ -256,14 +256,14 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
 ```
 8.0 plan ──► 8.1 request IDs, errors ──► 8.2 finding and reading a shop
         ├──► 8.3 acting on a shop
-        ├──► 8.4 audit log, reports ──► 8.5 manual entries, claims (after 7.3)
-        ├──► 8.6 media costs (after 7.3)
+        ├──► 8.4 audit log, reports ──► 8.5 manual entries, claims (with 7.3)
+        ├──► 8.6 media costs (with 7.3)
         └──► 8.7 wallet types, help line, shop-ready SMS
                           all server slices, and 7.7 ──► 8.8 the screens
 ```
 
-**Order, one slice at a time (D8-6):** 8.1 → 8.2 → 8.3 → 8.4 → 8.7 → 8.5 → 8.6 → 8.8. Slices 8.5 and 8.6 wait for
-Slice 7.3 to merge; if it merges sooner, they move up.
+**Order, one slice at a time (D8-6):** 8.1 → 8.2 → 8.3 → 8.4 → 8.5 → 8.6 → 8.7 → 8.8. Slice 7.3 merged before this
+plan did, so 8.5 and 8.6 wait for nothing outside Phase 8.
 
 **What the owner provides, when its slice starts.** Each secret goes in a local file outside every repo, which I name
 when it's needed and never open or print.
