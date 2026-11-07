@@ -337,6 +337,7 @@ export {
   type ParcelCheckWindow,
   type PayoutParcelRow,
   type BlockingParcelRow,
+  type CourierCredentialUseRow,
   type CourierShopFacts,
 } from './repositories/couriers/courier.repository';
 export {
@@ -347,6 +348,7 @@ export {
   CourierAreaRepository,
   type CourierAreaFilter,
   type CourierAreaRefreshCounts,
+  type CourierAreaSummary,
   type ListedCourierArea,
   type MatchedCourierArea,
 } from './repositories/couriers/courier-area.repository';

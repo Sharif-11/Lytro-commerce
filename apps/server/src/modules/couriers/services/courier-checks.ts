@@ -77,6 +77,19 @@ export class CourierChecks {
     @Inject(COURIER_CLOCK) private readonly clock: () => Date,
   ) {}
 
+  /**
+   * Slice 6.7 (read agreed 2026-11-06): staff checked what a courier reported on this order's parcel, so it leaves Needs a look.
+   * Its news stays; marking an order with nothing to look at changes nothing.
+   */
+  async markSeen(tenantId: string, orderId: string): Promise<OrderView> {
+    const now = this.clock();
+    return this.store.run(tenantId, async (tx) => {
+      const order = await this.fulfilment.lockWithin(tx, tenantId, orderId);
+      await this.store.clearAttention(tx, tenantId, order.id, now);
+      return this.orders.viewWithin(tx, tenantId, order, []);
+    });
+  }
+
   /** CRR-14: one order's parcel, by a person. Within the limit, or finished, it shows what's saved with no call. */
   async sync(tenantId: string, orderId: string): Promise<OrderView> {
     this.takeCall(tenantId);

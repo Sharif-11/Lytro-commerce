@@ -474,5 +474,21 @@
   "spRGone": "The SMS text is removed after 90 days. The TrxID and amount stay.",
   "spRWaits": "No order has this TrxID. If the shopper gives it on the payment page, it matches by itself.",
   "spREmpty": "No receipts yet.",
-  "spRNoPhone": "Receipts show here once a phone is paired."
+  "spRNoPhone": "Receipts show here once a phone is paired.",
+  "crPayouts": "Courier payouts",
+  "crPayoutsLead": "The payouts couriers made you, in their own figures. Lytro reads them once a night and doesn't check them against the orders' cash.",
+  "crPayoutLine": "{{d}} · {{m}} · {{p}} parcels, {{o}} Lytro orders",
+  "crPayoutT": "Payout {{p}}",
+  "crPAmount": "Amount",
+  "crPCharges": "Charges",
+  "crPTotal": "Total",
+  "crPMethod": "Method",
+  "crPPaid": "Paid",
+  "crPMade": "Made",
+  "crPOrders": "Your orders in this payout",
+  "crPOthers": "{{n}} more parcels weren't booked through Lytro.",
+  "crPNote": "As {{c}} sent them. {{c}} gives no amount per parcel.",
+  "crPEmpty": "No payouts yet. When a courier pays you, the night check brings it here.",
+  "crPNoCourier": "Connect a courier and its payouts show here.",
+  "crConnectFirst": "Connect a courier"
 }

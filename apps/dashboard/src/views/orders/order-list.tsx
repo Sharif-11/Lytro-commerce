@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
 import { OrderSource, OrderStatus, type CancelReason } from '@lytronix/validators';
 import {
+  LOOK_TAB,
   MORE_TABS,
   ORDER_TABS,
   useOrderCount,
@@ -17,10 +18,13 @@ import { Field } from '@/components/ui/field';
 import { RowChevron, RowList } from '@/components/ui/list-row';
 import { Sheet } from '@/components/ui/sheet';
 import { StatusTag } from '@/components/ui/status-tag';
+import { Icon } from '@/components/icon';
+import { courierName } from '@/lib/couriers';
 import { dayLabel, groupByDay } from '@/lib/dates';
 import { useShell } from '@/shell/shell-context';
 import type { OrderSummary } from '@/types/orders';
 import { CANCEL_REASONS, atCounter, useOrderWords } from './order-words';
+import { listLineOf } from './parcel-words';
 
 const TAB_WORD: Record<OrderTab, string> = {
   pending: 'tabConfirm',
@@ -28,6 +32,7 @@ const TAB_WORD: Record<OrderTab, string> = {
   hold: 'tabHold',
   shipped: 'tabShipped',
   all: 'tabAll',
+  look: 'crTabLook',
   delivered: 'tabDelivered',
   returned: 'tabReturned',
   cancelled: 'tabCancelled',
@@ -73,6 +78,12 @@ export function OrderTabs({
             }}
           />
         ))}
+        <LookChip
+          on={filter.tab === LOOK_TAB}
+          onClick={() => {
+            onTab(LOOK_TAB);
+          }}
+        />
         <Chip
           on={inMore}
           aria-haspopup="dialog"
@@ -147,6 +158,21 @@ function TabChip({
   return (
     <Chip on={on} count={count.data ?? null} onClick={onClick}>
       {t(TAB_WORD[tab])}
+    </Chip>
+  );
+}
+
+/**
+ * Needs a look (agreed 2026-11-06), after the day's tabs: what couriers reported that staff should check, with its count. It
+ * shows while anything waits, or while it is the tab open.
+ */
+function LookChip({ on, onClick }: { on: boolean; onClick: () => void }): React.JSX.Element | null {
+  const { t } = useTranslation('orders');
+  const count = useOrderCount(LOOK_TAB);
+  if (!on && !count.data) return null;
+  return (
+    <Chip on={on} count={count.data ?? null} onClick={onClick}>
+      {t(TAB_WORD[LOOK_TAB])}
     </Chip>
   );
 }
@@ -232,6 +258,33 @@ export function OrderRows({
 }
 
 /**
+ * A booked order's courier line under its customer (Part 36's `o36Row`, agreed 2026-11-06): "Steadfast · with the courier", or
+ * warning-toned "Needs a look" while a courier reported something staff haven't marked seen.
+ */
+function CourierLine({ order }: { order: OrderSummary }): React.JSX.Element | null {
+  const { t } = useTranslation('orders');
+  if (order.attention !== null) {
+    return (
+      <span className="flex items-center gap-1 truncate text-[14px] font-semibold text-warning">
+        <Icon name="alert" size={14} />
+        {t('crLineLook')}
+      </span>
+    );
+  }
+  if (!order.parcel) return null;
+  const line = listLineOf(order.parcel, t, courierName(order.parcel.courierKey));
+  if (!line) return null;
+  return (
+    <span
+      className={`flex items-center gap-1 truncate text-[14px] ${line.warn ? 'text-warning' : 'text-fg-muted'}`}
+    >
+      <Icon name="truck" size={14} />
+      {line.text}
+    </span>
+  );
+}
+
+/**
  * One order (the prototype's `o29Row`): its full number and the customer; where it goes or the counter's chip, its
  * items, and what needs doing -- the unanswered calls, a hold's time, a cancelled order's reason; the total over its
  * status.
@@ -281,6 +334,7 @@ export function OrderRow({
           {t('items', { count: order.items })}
           {note ? <> · {note}</> : null}
         </span>
+        <CourierLine order={order} />
       </span>
       <span
         className={`flex flex-none flex-col items-end gap-1 text-right sm:flex-row sm:items-center sm:gap-4 ${wide ? '' : 'lg:flex-col lg:items-end lg:gap-1'}`}

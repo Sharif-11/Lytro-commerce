@@ -72,6 +72,9 @@ export class CourierBlockingDto extends createZodDto(
         orderId: z.string(),
         orderNumber: z.string().nullable(),
         reason: z.nativeEnum(CourierBlockReason),
+        // Slice 6.7: the courier's last status on its way; when it finished, for one awaiting its payout.
+        courierStatus: z.string().nullable(),
+        finishedAt: z.coerce.date().nullable(),
         waitsUntil: z.coerce.date().nullable(),
       }),
     ),
@@ -100,6 +103,16 @@ export class CourierAreaPageDto extends createZodDto(
     limit: z.number(),
     total: z.number(),
     pages: z.number(),
+    // Slice 6.7: the chips' counts, when the list was last read, and whether Lytro's token is set.
+    counts: z.object({
+      all: z.number(),
+      suggested: z.number(),
+      unassigned: z.number(),
+      assigned: z.number(),
+      retired: z.number(),
+    }),
+    lastReadAt: z.coerce.date().nullable(),
+    tokenSet: z.boolean(),
   }),
 ) {}
 export class CourierAreasConfirmedDto extends createZodDto(z.object({ confirmed: z.number() })) {}
@@ -154,10 +167,15 @@ const courierConnectionSchema = z.object({
   connectedAt: z.coerce.date(),
   messages: z.nativeEnum(CourierMessagesState),
   lastMessageAt: z.coerce.date().nullable(),
+  // CRR-15 (Slice 6.7): the night check found news no message brought.
+  messagesMissedAt: z.coerce.date().nullable(),
   pickupStore: z.object({ id: z.string(), name: z.string() }).nullable(),
   // CRR-23, CRR-25 (Slice 6.6): being retired, and the courier the operator suggests instead.
   retiring: z.boolean(),
   suggestedKey: z.nativeEnum(CourierKey).nullable(),
+  // Slice 6.7: when the shop was told its courier is back (c36-back, shown 7 days), and whether a lost answer can be asked again.
+  backSince: z.coerce.date().nullable(),
+  asksByOrderNumber: z.boolean(),
 });
 export class CourierConnectionDto extends createZodDto(courierConnectionSchema) {}
 // CRR-02, CRR-03: what a seller pastes into the courier's panel; Lytro's own, not the courier's credentials.
@@ -194,6 +212,7 @@ export class CourierCredentialUsePageDto extends createZodDto(
         action: z.nativeEnum(CourierCallAction),
         connectionId: z.string().nullable(),
         orderId: z.string().nullable(),
+        orderNumber: z.string().nullable(),
         succeeded: z.boolean(),
         at: z.coerce.date(),
       }),

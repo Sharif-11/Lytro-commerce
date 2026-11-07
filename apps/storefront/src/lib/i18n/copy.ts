@@ -119,7 +119,6 @@ export const COPY = {
   address: ["পুরো ঠিকানা", "Full address"],
   address_ph: ["বাসা/রোড/এলাকা, যেন কুরিয়ার খুঁজে পায়", "House, road, area, so the courier can find you"],
   comments: ["মন্তব্য (ঐচ্ছিক)", "Comments (optional)"],
-  courier_area: ["কুরিয়ার এরিয়া (ঐচ্ছিক)", "Courier area (optional)"],
   item_total: ["পণ্যের দাম", "Item total"],
   grand_total: ["সর্বমোট", "Grand total"],
   cod_rem: ["ডেলিভারিতে দেবেন", "Pay on delivery"],
@@ -317,6 +316,11 @@ export const COPY = {
   e48Saved: ["সেভ হয়েছে", "Saved"],
   e48PwChanged: ["পাসওয়ার্ড বদলেছে। অন্য ফোনের সাইন ইন বন্ধ হয়েছে।", "Password changed. Your other sign-ins have ended."],
   e48PwWrong: ["এখনকার পাসওয়ার্ড মিলছে না", "That isn't your current password"],
+  // Phase 6 Slice 6.7 (STOREFRONT-DESIGN §7e): the courier's own words on tracking.
+  t67Latest: ["{c} লিখেছে", "{c} says"],
+  t67Track: ["{c}-এর পেজে ট্র্যাক করুন", "Track on {c}"],
+  t67Partly: ["অর্ডারের কিছু অংশ ডেলিভারি হয়েছে, বাকিটা শপে ফেরত যাচ্ছে।", "Part of the order was delivered; the rest is going back to the shop."],
+  t67Back: ["পার্সেলটি শপে ফেরত যাচ্ছে। কোনো প্রশ্ন থাকলে শপকে কল করুন।", "The parcel is going back to the shop. Call the shop with any questions."],
 } as const satisfies Record<string, readonly [string, string]>;
 
 export type CopyKey = keyof typeof COPY;

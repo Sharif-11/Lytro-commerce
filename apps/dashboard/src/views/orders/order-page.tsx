@@ -8,10 +8,13 @@ import {
   OrderHistoryField,
   OrderSource,
   OrderStatus,
+  ParcelReading,
+  ParcelState,
   PaymentMethod,
   Permission,
   StatusOverride,
 } from '@lytronix/validators';
+import { useCourierAdapters, useCourierConnections, useSettleParcel } from '@/api/couriers';
 import { useLocations } from '@/api/delivery';
 import { useOrder } from '@/api/orders';
 import { Icon } from '@/components/icon';
@@ -28,13 +31,16 @@ import { Taka } from '@/components/ui/taka';
 import { TimelineRow, type TimelineDot } from '@/components/ui/timeline';
 import { Button } from '@/components/ui/button';
 import { useErrorText } from '@/hooks/use-error-text';
+import { courierName } from '@/lib/couriers';
 import { dayKey, formatDayMonth } from '@/lib/dates';
 import { initialOf } from '@/lib/initial';
 import { bangladeshiPhone } from '@/lib/phone';
 import { walletColour } from '@/lib/wallet-marks';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
+import type { CourierConnection } from '@/types/couriers';
 import type { Order, OrderCall, OrderHistory, OrderItem, OrderPayment } from '@/types/orders';
+import { CourierCard, NotBookedCard } from './courier-card';
 import { OrderSheets, type OrderSheet } from './order-actions';
 import { choicesOf, refundable, voidable } from './order-choices';
 import { atCounter, useOrderWords } from './order-words';
@@ -79,6 +85,7 @@ export function OrderDetail({ orderId }: { orderId: string }): React.JSX.Element
 
 function OrderBody({ order }: { order: Order }): React.JSX.Element {
   const { t } = useTranslation('orders');
+  const errorText = useErrorText();
   const { viewer, slug } = useShell();
   const words = useOrderWords();
   const [open, setOpen] = useState<OrderSheet | null>(null);
@@ -86,7 +93,32 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
   const can = choicesOf(order, may);
   const counter = atCounter(order);
   const shown = words.status(order.status);
-  const menu = can.hold || can.release || can.edit || can.cancel || can.delete || can.print;
+  // Phase 6 (Part 36): the shop's couriers, for whoever may book. With one connected, Book courier is a confirmed order's next step
+  // and Ship by hand moves to the more menu; with none, Mark shipped stays (agreed 2026-11-06).
+  const couriers = useCourierConnections({ enabled: can.manage && !counter });
+  const adapters = useCourierAdapters({ enabled: can.manage && !counter });
+  const connected = couriers.data ?? [];
+  const book = can.ship && connected.length > 0;
+  // D6-11: whether Lytro asks the lost parcel's courier by the order's number, as its connection says. Unknown (null) to staff
+  // who may not read the connections, and undefined while they load; a courier no longer connected can't be asked.
+  const asks = !(can.manage && !counter)
+    ? null
+    : couriers.isPending
+      ? undefined
+      : couriers.isError
+        ? null
+        : (connected.find((each) => each.courierKey === order.parcel?.courierKey)
+            ?.asksByOrderNumber ?? false);
+  const retry = useSettleParcel(order.id);
+  const menu =
+    can.hold ||
+    can.release ||
+    can.edit ||
+    can.cancel ||
+    can.cancelBooking ||
+    can.delete ||
+    can.print ||
+    book;
   // QTA-03: the month's limit a ship just passed, said until the page is left.
   const [limit, setLimit] = useState<number | null>(null);
 
@@ -118,6 +150,32 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
       <Icon name="phone" />
       {t('callAgain')}
     </CallLink>
+  ) : can.settle ? (
+    <Button
+      onClick={() => {
+        setOpen({ kind: 'settle' });
+      }}
+    >
+      {t('crSettle')}
+    </Button>
+  ) : can.retry ? (
+    <Button
+      busy={retry.isPending}
+      onClick={() => {
+        retry.mutate({ outcome: 'retry' });
+      }}
+    >
+      {t('crTryAgain')}
+    </Button>
+  ) : book ? (
+    <Button
+      onClick={() => {
+        setOpen({ kind: 'book' });
+      }}
+    >
+      <Icon name="truck" />
+      {t('crBookT')}
+    </Button>
   ) : can.ship ? (
     <Button
       onClick={() => {
@@ -126,6 +184,16 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
     >
       <Icon name="truck" />
       {t('markShipped')}
+    </Button>
+  ) : can.returnItems && can.coming ? (
+    <Button
+      tone="outline"
+      onClick={() => {
+        setOpen({ kind: 'return' });
+      }}
+    >
+      <Icon name="undo" />
+      {t('returnItems')}
     </Button>
   ) : can.deliver ? (
     <Button
@@ -178,6 +246,8 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
         </div>
       </div>
       <StateBanner order={order} />
+      <CourierBanner order={order} asks={asks} />
+      {retry.isError ? <Banner tone="bad">{errorText(retry.error)}</Banner> : null}
       {limit !== null ? (
         <Banner
           tone="warn"
@@ -217,13 +287,15 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
           setOpen({ kind: 'refund', payment });
         }}
       />
-      {counter ? null : <ShippingCard order={order} />}
+      {counter ? null : <DeliveryCard order={order} connected={connected} canManage={can.manage} />}
       <TimelineCard order={order} />
       {next ? <ActionBar>{next}</ActionBar> : null}
       <OrderSheets
         order={order}
         open={open}
-        can={can}
+        can={{ ...can, book }}
+        couriers={connected}
+        adapters={adapters.data ?? []}
         onOpen={setOpen}
         onShipped={(shipped) => {
           setLimit(shipped.limitPrompt?.limit ?? null);
@@ -721,6 +793,81 @@ function PaymentRow({
       ) : null}
     </div>
   );
+}
+
+/**
+ * A courier booking's line at the top (Part 36): a lost answer, settled from the panel or asked by the order's number every 15
+ * minutes; a parcel taken whose stock couldn't be; a part delivery and a parcel coming back, counted with Return items.
+ */
+function CourierBanner({
+  order,
+  asks,
+}: {
+  order: Order;
+  /** Whether its courier is asked by the order's number; null when that can't be known here, undefined while it loads. */
+  asks: boolean | null | undefined;
+}): React.JSX.Element | null {
+  const { t } = useTranslation('orders');
+  const parcel = order.parcel;
+  if (!parcel) return null;
+  const c = courierName(parcel.courierKey);
+  if (parcel.state === ParcelState.Unknown) {
+    if (asks === undefined) return null;
+    // The words must be true: who can't read the couriers is told only that no answer came.
+    return (
+      <Banner tone="warn">
+        {asks === true
+          ? t('crLostB', { c })
+          : asks === false
+            ? t('crLostStaff', { c })
+            : t('crLostUnknown', { c })}
+      </Banner>
+    );
+  }
+  if (parcel.state !== ParcelState.Booked) return null;
+  if (!parcel.settled && parcel.settleProblem !== null) {
+    // The sketch's sentence names a serial; only a serial's problem says so (the words must be true).
+    return (
+      <Banner tone="warn">
+        {parcel.settleProblem.startsWith('Serial') ? t('crStockProblem') : t('crStockProblemAny')}
+      </Banner>
+    );
+  }
+  if (parcel.reading === ParcelReading.PartlyDelivered && order.status !== OrderStatus.Cancelled) {
+    return (
+      <Banner tone="warn">
+        {t('crPartlyB', { c, a: formatTaka(parcel.cashCollected ?? '0') })}
+      </Banner>
+    );
+  }
+  if (parcel.reading === ParcelReading.Returning && order.status === OrderStatus.Shipped) {
+    return <Banner tone="neutral">{t('crReturningB')}</Banner>;
+  }
+  return null;
+}
+
+/**
+ * Where it goes (Part 36): the Courier card once booked, or while what its courier reported needs a look; Shipping once sent by
+ * hand; before either, the Courier card's "Not booked yet" where a courier is connected, else Shipping's own line.
+ */
+function DeliveryCard({
+  order,
+  connected,
+  canManage,
+}: {
+  order: Order;
+  connected: CourierConnection[];
+  canManage: boolean;
+}): React.JSX.Element {
+  const parcel = order.parcel;
+  if (parcel && (parcel.state === ParcelState.Booked || parcel.attention !== null)) {
+    return <CourierCard order={order} parcel={parcel} canManage={canManage} />;
+  }
+  if (!order.shippedAt && connected.length > 0 && order.status !== OrderStatus.Cancelled) {
+    const first = connected.find((each) => each.isDefault) ?? connected[0];
+    return <NotBookedCard defaultName={first?.name ?? ''} />;
+  }
+  return <ShippingCard order={order} />;
 }
 
 /** Shipping by hand (ORD-09): the courier and tracking once sent, else when they are added. */

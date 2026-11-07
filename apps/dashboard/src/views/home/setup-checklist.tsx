@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
+import { useCourierConnections } from '@/api/couriers';
 import { Icon } from '@/components/icon';
 import { Card } from '@/components/ui/card';
 import { PhasePill } from '@/components/ui/page';
@@ -36,7 +37,8 @@ interface ItemProps {
     | '/$shop/settings/shop'
     | '/$shop/settings/payment-methods'
     | '/$shop/settings/listener'
-    | '/$shop/settings/api-keys';
+    | '/$shop/settings/api-keys'
+    | '/$shop/settings/couriers';
   /** A place on this page instead (the link card). */
   href?: string;
 }
@@ -91,8 +93,8 @@ function Later({ label, phase }: { label: string; phase: number }): React.JSX.El
 
 /**
  * SUP-01's set-up checklist (TENANT-DASHBOARD-DESIGN §7.1), the owner's alone, each item ticked by the server: the
- * shop and its delivery done from the start, a first product, the link shared, the logo and a wallet number; then "later, when you need them": a courier, SMS events and a listener phone greyed with their
- * phases, and an API key. The logo opens Shop details, where it is uploaded, and the API key its page (Slice 11.6).
+ * shop and its delivery done from the start, a first product, the link shared, the logo and a wallet number; then "later, when you need them": a courier (Phase 6), SMS events greyed with their
+ * phase, a listener phone and an API key. The logo opens Shop details, where it is uploaded, and the API key its page (Slice 11.6).
  */
 export function SetupChecklist({
   checklist,
@@ -103,6 +105,8 @@ export function SetupChecklist({
   shareTarget: string;
 }): React.JSX.Element {
   const { t, i18n } = useTranslation('home');
+  // Phase 6 (Part 36's `c36-home`): Connect a courier is a live step, done once one is connected.
+  const couriers = useCourierConnections();
   const done = doneOf(checklist);
   const charges = checklist.deliveryCharges;
   const area = i18n.language === 'bn' ? charges.area.bn : charges.area.en;
@@ -141,7 +145,12 @@ export function SetupChecklist({
         <div className="bg-neutral-50 px-4 pt-3 pb-1 text-[13px] font-semibold text-fg-muted">
           {t('setupLater')}
         </div>
-        <Later label={t('ckCourier')} phase={6} />
+        <Item
+          done={(couriers.data?.length ?? 0) > 0}
+          label={t('ckCourier')}
+          detail={t('ckCourierD')}
+          to="/$shop/settings/couriers"
+        />
         <Later label={t('ckSms')} phase={7} />
         <Item
           done={checklist.listenerPhone}
@@ -174,7 +183,7 @@ export function SetupDone({ onOpen }: { onOpen: () => void }): React.JSX.Element
           {t('setupTitle')} · {t('setupDone', { done: FIRST_GROUP, total: FIRST_GROUP })}
         </span>
         <span className="overflow-hidden text-[14px] text-ellipsis whitespace-nowrap text-fg-muted">
-          {t('setupLater')}: {t('ckCourier')}, {t('ckSms')}, {t('ckListener')}
+          {t('setupLater')}: {t('ckSms')}, {t('ckListener')}
         </span>
       </span>
       <Icon name="right" />

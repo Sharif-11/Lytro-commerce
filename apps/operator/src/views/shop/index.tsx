@@ -16,6 +16,7 @@ import { daysFromNow, formatDay } from '@/lib/format';
 import { ShopStateChip } from '@/views/shops/shop-state-chip';
 import { AddonsCards } from './addons-card';
 import { OverridesCard } from './overrides-card';
+import { CouriersCard } from './couriers-card';
 import { PaymentsCard } from './payments-card';
 import { PhonesCard } from './phones-card';
 import { AdjustPanel, AssignPanel, RestorePanel, SuspendPanel } from './shop-panels';
@@ -219,6 +220,7 @@ export function Shop(): React.JSX.Element {
         <PaymentsCard shop={data} />
         <PhonesCard shopId={data.id} />
       </div>
+      <CouriersCard shopId={data.id} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <OverridesCard shop={data} adding={overridePanelOpen} onAdd={setOverridePanelOpen} />
         <div className="flex flex-col gap-3">

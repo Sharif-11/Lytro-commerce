@@ -213,6 +213,21 @@ const shapes = {
       <path d="M12 8v4l3 2" />
     </>
   ),
+  // Phase 6 Slice 6.7 (design v4): the couriers, and an area's place.
+  truck: (
+    <>
+      <path d="M3 6h11v10H3z" />
+      <path d="M14 9h4l3 3v4h-7" />
+      <circle cx="7" cy="17.5" r="1.5" />
+      <circle cx="17" cy="17.5" r="1.5" />
+    </>
+  ),
+  pin: (
+    <>
+      <path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" />
+      <circle cx="12" cy="9.5" r="2.5" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type ConsoleIconName = keyof typeof shapes;

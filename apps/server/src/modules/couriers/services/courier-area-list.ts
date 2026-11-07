@@ -186,16 +186,24 @@ export class CourierAreaList {
 
   async list(query: CourierAreasQuery) {
     this.withAreas(query.courierKey);
-    const found = await this.store.list(
-      { courierKey: query.courierKey, state: query.state, zillaId: query.zillaId, q: query.q },
-      { offset: (query.page - 1) * query.limit, limit: query.limit },
-    );
+    const [found, summary] = await Promise.all([
+      this.store.list(
+        { courierKey: query.courierKey, state: query.state, zillaId: query.zillaId, q: query.q },
+        { offset: (query.page - 1) * query.limit, limit: query.limit },
+      ),
+      this.store.summary(query.courierKey),
+    ]);
+    const { lastReadAt, ...counts } = summary;
     return {
       areas: found.rows.map(viewOf),
       page: query.page,
       limit: query.limit,
       total: found.total,
       pages: Math.ceil(found.total / query.limit),
+      // Slice 6.7: the chips' counts, when the list was last read, and whether Lytro's token is set.
+      counts,
+      lastReadAt,
+      tokenSet: Boolean(this.tokens[query.courierKey]),
     };
   }
 

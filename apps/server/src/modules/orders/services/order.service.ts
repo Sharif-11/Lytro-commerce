@@ -607,6 +607,7 @@ export class OrderService {
           search,
           customerId: query.customerId ?? null,
           holdingVariantId: query.variantId ?? null,
+          attention: query.attention === 'any',
         },
         { offset: (query.page - 1) * query.limit, limit: query.limit },
       );
@@ -638,6 +639,8 @@ export class OrderService {
           createdAt: row.createdAt,
           area: row.locationId !== null ? (areas.get(row.locationId) ?? null) : null,
           unansweredCalls: row.unansweredCalls,
+          parcel: row.parcel,
+          attention: row.attention,
         })),
         page: query.page,
         limit: query.limit,

@@ -383,6 +383,10 @@ export interface OrderListItem {
   area: OrderArea | null;
   /** ORD-51 (Slice 4.8a): how many calls went unanswered, as the order shows it. */
   unansweredCalls: number;
+  /** Slice 6.7 (read agreed 2026-11-06): where its live parcel stands, for the row's courier line. */
+  parcel: { courierKey: CourierKey; state: ParcelState; reading: ParcelReading | null } | null;
+  /** Slice 6.7: what a courier reported on one of its parcels that staff haven't marked seen. */
+  attention: ParcelAttention | null;
 }
 
 /** A thana and the zilla it is in, both named in each language. */
@@ -526,6 +530,8 @@ export interface TrackedOrderView extends ShopperTotals {
   courier: { name: string | null; trackingCode: string | null; trackingLink: string | null } | null;
   /** CRR-12, read agreed 2026-11-05: its courier's latest words once shipped, in whichever language it gave, plain and cut short. */
   courierMessage: { en: string | null; bn: string | null; at: Date } | null;
+  /** Slice 6.7: the courier says the parcel is going back to the shop, and the shop hasn't recorded its return yet. */
+  courierReturning: boolean;
   /** Slice 5.2: an unverified order's open payment, to go back to; null for none. */
   payment: (OrderPaymentLink & { state: PaymentSessionState }) | null;
 }

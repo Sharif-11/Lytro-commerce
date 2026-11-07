@@ -80,5 +80,6 @@
   "sTax": "ট্যাক্স",
   "sMethods": "পেমেন্ট মেথড",
   "secPayments": "পেমেন্ট",
-  "sListener": "লিসেনার ফোন"
+  "sListener": "লিসেনার ফোন",
+  "sCourier": "কুরিয়ার"
 }

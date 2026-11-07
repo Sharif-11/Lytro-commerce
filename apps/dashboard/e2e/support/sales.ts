@@ -15,6 +15,9 @@ export interface SalesFixture {
   deleted?: boolean;
   /** How many sales had no cost recorded; the sketch's 3 otherwise. */
   unknownCost?: number;
+  /** CRR-17 (Phase 6): what couriers charged, and how many orders a courier carried without saying; none when left out. */
+  courierCharges?: string;
+  unknownCourierCharges?: number;
 }
 
 type Row = [from: string, to: string, orders: number, revenue: number];
@@ -91,7 +94,15 @@ const BEST: [string, [string, string], number, number, boolean][] = [
   ['p-5', ['হুডি', 'Hoodie'], 3, 3750, false],
 ];
 
-const NOTHING = { orders: 0, units: [], revenue: '0.00', tax: '0.00', deliveryCharges: '0.00' };
+const NOTHING = {
+  orders: 0,
+  units: [],
+  revenue: '0.00',
+  tax: '0.00',
+  deliveryCharges: '0.00',
+  courierCharges: '0.00',
+  unknownCourierCharges: 0,
+};
 
 /** One stretch's figure, the way `GET /sales` reads it. */
 function figure(orders: number, revenue: number, tax: number, delivery: number | null) {
@@ -101,6 +112,8 @@ function figure(orders: number, revenue: number, tax: number, delivery: number |
     revenue: money(revenue),
     tax: money(tax),
     deliveryCharges: delivery === null ? null : money(delivery),
+    courierCharges: delivery === null ? null : '0.00',
+    unknownCourierCharges: delivery === null ? null : 0,
   };
 }
 
@@ -206,6 +219,8 @@ export function salesAnswer(
         week ? 12480 : 88400,
         week ? 14700 : 121100,
       ),
+      courierCharges: fixture.courierCharges ?? '0.00',
+      unknownCourierCharges: fixture.unknownCourierCharges ?? 0,
       ...profit,
     },
   };

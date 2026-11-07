@@ -4,6 +4,7 @@ import {
   TransactionRunner,
   type CourierAreaFilter,
   type CourierAreaRefreshCounts,
+  type CourierAreaSummary,
   type ListedCourierArea,
   type MatchedCourierArea,
   type SelectCourierArea,
@@ -30,6 +31,10 @@ export class DrizzleCourierAreaStore implements CourierAreaStore {
     window: { offset: number; limit: number },
   ): Promise<{ rows: SelectCourierArea[]; total: number }> {
     return this.areas.list(this.database.handle.db, filter, window);
+  }
+
+  summary(courierKey: CourierKey): Promise<CourierAreaSummary> {
+    return this.areas.summary(this.database.handle.db, courierKey);
   }
 
   findById(id: string): Promise<SelectCourierArea | null> {

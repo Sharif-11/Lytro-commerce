@@ -13,7 +13,9 @@ import type {
   SerialFormat,
   StatusOverride,
   StockUnit,
+  ParcelAttention,
 } from '@lytronix/validators';
+import type { OrderListParcel, OrderParcel } from './couriers';
 import type { Bilingual } from './onboarding';
 
 // Mirrors apps/server/src/modules/orders/types/orders.ts (GET /orders, GET /orders/:id; ORD-01 to ORD-52). Times are
@@ -55,6 +57,10 @@ export interface OrderSummary {
   area: OrderArea | null;
   /** ORD-51: the calls that went unanswered. */
   unansweredCalls: number;
+  /** Slice 6.7: where its live parcel stands, for the row's courier line. */
+  parcel: OrderListParcel | null;
+  /** Slice 6.7: what a courier reported that staff haven't marked seen (Needs a look). */
+  attention: ParcelAttention | null;
 }
 
 /** GET /orders: newest first, a page at a time. */
@@ -225,6 +231,10 @@ export interface Order {
   limitPrompt: { metric: 'orders_monthly'; limit: number } | null;
   /** DLV-06, DLV-07: what staff were warned of as it was made or changed. */
   warnings: OrderWarning[];
+  /** CRR-06 (Phase 6): its courier booking, live or the last one. */
+  parcel: OrderParcel | null;
+  /** ORD-11: details changed on an order already booked; the courier's record is not changed with them. */
+  courierRecordUnchanged: boolean;
 }
 
 /** New order's Add an item (GET /orders/picker): a product found, with the units it has on sale (null: made to order). */

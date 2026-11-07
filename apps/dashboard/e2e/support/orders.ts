@@ -1,3 +1,10 @@
+import {
+  ADAPTERS,
+  COURIER_NAMES,
+  parcelView,
+  type CourierKey,
+  type ParcelFixture,
+} from './couriers';
 import type { Language } from './mock-api';
 import { editedOrder, madeOrder, pickerAnswer, type PickerProduct } from './new-order';
 
@@ -41,7 +48,16 @@ export interface OrderItemFixture {
 export interface OrderFixture {
   id: string;
   number: string;
-  status: 'pending' | 'confirmed' | 'hold' | 'shipped' | 'delivered' | 'returned' | 'cancelled';
+  status:
+    | 'pending'
+    | 'confirmed'
+    | 'hold'
+    | 'processing'
+    | 'shipped'
+    | 'delivered'
+    | 'partial_delivered'
+    | 'returned'
+    | 'cancelled';
   source: 'storefront' | 'landing_page' | 'dashboard' | 'api';
   fulfilment: 'delivery' | 'takeaway' | 'dine_in';
   table?: string | null;
@@ -96,6 +112,12 @@ export interface OrderFixture {
   balanceShort?: boolean;
   /** Said once, in the reply of the ship that passed it. */
   limitShown?: boolean;
+  /** Phase 6: its courier booking, live or the last one. */
+  parcel?: ParcelFixture | null;
+  /** How POST /orders/:id/book answers, where a test wants a refusal; booked otherwise. */
+  bookAnswer?: 'refused' | 'refused-none' | 'down' | 'lost' | 'balance' | null;
+  /** RedX gives no clear answer to a cancel, so staff confirm it from its panel. */
+  cancelNoAnswer?: boolean;
 }
 
 export interface OrdersFixture {
@@ -164,7 +186,8 @@ export function meghOrders(): OrdersFixture {
         address: ['বাসা 5, রোড 10, মিরপুর 11', 'House 5, Road 10, Mirpur 11'],
         shopperNote: ['দুপুর 2টার পর কল দিবেন', 'Please call after 2 pm'],
         createdAt: dhaka(11, 42),
-        items: NUSRAT_ITEMS,
+        // A copy: a test that renames an item (New order's) must not reach the next test's day.
+        items: structuredClone(NUSRAT_ITEMS),
         deliveryCharge: 70,
         calls: [],
         customerOrders: 4,
@@ -405,13 +428,27 @@ export function orderSummary(order: OrderFixture, language: Language) {
         }
       : null,
     unansweredCalls: order.calls.filter((call) => call.outcome === 'no_answer').length,
+    parcel:
+      order.parcel && LIVE.includes(order.parcel.state ?? 'booked')
+        ? {
+            courierKey: order.parcel.courierKey,
+            state: order.parcel.state ?? 'booked',
+            reading: order.parcel.reading === undefined ? 'booked' : order.parcel.reading,
+          }
+        : null,
+    attention: order.parcel?.attention ?? null,
   };
 }
+
+const LIVE = ['booking', 'booked', 'unknown'];
 
 function fulfilmentOf(order: OrderFixture): string {
   if (order.status === 'returned') return 'returned';
   if (order.status === 'delivered') return 'delivered';
+  if (order.status === 'partial_delivered') return 'partially_delivered';
   if (order.status === 'shipped') return 'shipped';
+  if (order.status === 'processing') return 'processing';
+  if (order.status === 'cancelled' && order.parcel?.state === 'booked') return 'processing';
   return 'unfulfilled';
 }
 
@@ -617,6 +654,8 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
     history,
     payments,
     warnings: [],
+    parcel: order.parcel ? parcelView(order.parcel) : null,
+    courierRecordUnchanged: false,
     limitPrompt:
       order.limitShown && order.limitOnShip
         ? { metric: 'orders_monthly', limit: order.limitOnShip }
@@ -695,6 +734,7 @@ export function ordersAnswer(
     const from = url.searchParams.get('dateFrom');
     const to = url.searchParams.get('dateTo');
     const source = url.searchParams.get('source');
+    const attention = url.searchParams.get('attention');
     const limit = Number(url.searchParams.get('limit') ?? '20');
     const dayOf = (iso: string) =>
       new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka' }).format(new Date(iso));
@@ -705,6 +745,7 @@ export function ordersAnswer(
       .filter((order) => from === null || dayOf(order.createdAt) >= from)
       .filter((order) => to === null || dayOf(order.createdAt) <= to)
       .filter((order) => source === null || order.source === source)
+      .filter((order) => attention === null || Boolean(order.parcel?.attention))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return {
       data: {
@@ -758,6 +799,57 @@ export function ordersAnswer(
       return { refused: { status: 404, code: 'not_found', message: 'Not found' } };
     payment.voided = String(body?.reason);
     return { data: detail(order, language, customerOf(order.id)) };
+  }
+  // Phase 6: a booking's parcel settled, asked after, called off, or what it reported marked seen.
+  const parcelAction = /^\/orders\/([^/]+)\/parcel\/(settle|sync|cancel|seen)$/.exec(path);
+  if (method === 'POST' && parcelAction) {
+    const order = fixture.orders.find((each) => each.id === parcelAction[1]);
+    const parcel = order?.parcel;
+    if (!order || !parcel) {
+      return { refused: { status: 409, code: 'conflict', message: 'No booking.' } };
+    }
+    const view = () => ({ data: detail(order, language, customerOf(order.id)) });
+    switch (parcelAction[2]) {
+      case 'settle':
+        if (body?.outcome === 'not_booked') {
+          parcel.state = 'refused';
+          return view();
+        }
+        if (body?.outcome === 'booked') {
+          parcel.state = 'booked';
+          parcel.consignmentId = String(body.consignmentId);
+        }
+        parcel.settled = true;
+        parcel.settleProblem = null;
+        order.status = 'processing';
+        return view();
+      case 'sync':
+        return view();
+      case 'seen':
+        parcel.attention = null;
+        return view();
+      default: {
+        const confirmed = body?.courierCancelled === true;
+        const asked = ADAPTERS.find((each) => each.key === parcel.courierKey)?.canCancel ?? false;
+        if ((!asked || order.cancelNoAnswer) && !confirmed) {
+          return {
+            refused: {
+              status: 409,
+              code: 'conflict',
+              message:
+                'Cancel this parcel in the courier’s panel first, then confirm here that you did.',
+              details: {
+                courierKey: parcel.courierKey,
+                ...(asked ? { courierNotAnswering: true } : {}),
+              },
+            },
+          };
+        }
+        parcel.state = 'cancelled';
+        order.status = 'confirmed';
+        return view();
+      }
+    }
   }
   const one = /^\/orders\/([^/]+)(?:\/([a-z-]+))?$/.exec(path);
   if (!one || one[1] === 'couriers' || one[1] === 'quote') return undefined;
@@ -827,6 +919,23 @@ export function ordersAnswer(
     return { data: detail(order, language, customerOf(order.id)) };
   }
   if (action === 'cancel') {
+    // CRR-28: a booked order's parcel is called off with it; one the courier can't be asked about is confirmed from its panel.
+    const parcel = order.parcel;
+    if (order.status === 'processing' && parcel?.state === 'booked') {
+      const asked = ADAPTERS.find((each) => each.key === parcel.courierKey)?.canCancel ?? false;
+      if (!asked && body?.courierCancelled !== true) {
+        return {
+          refused: {
+            status: 409,
+            code: 'conflict',
+            message:
+              'Cancel this parcel in the courier’s panel first, then confirm here that you did.',
+            details: { courierKey: parcel.courierKey },
+          },
+        };
+      }
+      parcel.state = 'cancelled';
+    }
     order.status = 'cancelled';
     order.cancelReason = String(body?.reason);
     order.cancelNote = typeof body?.note === 'string' ? body.note : null;
@@ -866,6 +975,79 @@ export function ordersAnswer(
   const shortOfSerials = {
     refused: { status: 409, code: 'conflict', message: 'Each unit needs its serial.' },
   };
+  if (action === 'book') {
+    const key = (
+      typeof body?.courierKey === 'string' ? body.courierKey : 'steadfast'
+    ) as CourierKey;
+    const courier = COURIER_NAMES[key];
+    switch (order.bookAnswer) {
+      case 'refused':
+        return {
+          refused: {
+            status: 409,
+            code: 'conflict',
+            message: `${courier} refused this, and the order is unchanged.`,
+            details: {
+              courierKey: key,
+              courierMessage: 'The recipient phone must be a valid 11-digit number.',
+            },
+          },
+        };
+      case 'refused-none':
+        return {
+          refused: {
+            status: 409,
+            code: 'conflict',
+            message: `${courier} refused this, and the order is unchanged.`,
+            details: { courierKey: key, courierMessage: null },
+          },
+        };
+      case 'down':
+        return {
+          refused: {
+            status: 503,
+            code: 'service_unavailable',
+            message: `${courier} isn’t answering right now.`,
+            details: { courierKey: key },
+          },
+        };
+      case 'lost':
+        order.parcel = {
+          courierKey: key,
+          state: 'unknown',
+          cod: totalOf(order) - paidOf(order),
+          settled: false,
+        };
+        return {
+          refused: {
+            status: 503,
+            code: 'service_unavailable',
+            message: `${courier} didn’t answer in time.`,
+            details: { courierKey: key, parcelState: 'unknown' },
+          },
+        };
+      case 'balance':
+        return {
+          refused: { status: 429, code: 'quota_exceeded', message: 'Insufficient balance.' },
+        };
+      default:
+        break;
+    }
+    if (!sendSerials()) return shortOfSerials;
+    order.parcel = {
+      courierKey: key,
+      state: 'booked',
+      reading: 'booked',
+      courierStatus: 'in_review',
+      consignmentId: key === 'pathao' ? 'DS0511P1' : '1424107',
+      trackingCode: key === 'pathao' ? 'DS0511P1' : '15BAEB8A',
+      cod: totalOf(order) - paidOf(order),
+      deliveryCharge: null,
+      news: [],
+    };
+    order.status = 'processing';
+    return { data: detail(order, language, customerOf(order.id)) };
+  }
   if (action === 'hand-over') {
     if (!sendSerials()) return shortOfSerials;
     order.collected = totalOf(order) - paidOf(order);

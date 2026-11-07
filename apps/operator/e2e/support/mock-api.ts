@@ -30,6 +30,7 @@ import {
   type ReportFixture,
   type ShopFixture,
 } from './console-data';
+import { courierAnswer, courierDefaults, type CourierMockState } from './courier-mock';
 import { pricingAnswer, type PricingState } from './pricing-mock';
 
 // The console against a mocked API: each /api/v1 call answered in the server's own envelope ({ success, statusCode,
@@ -61,7 +62,7 @@ export const DRAWN_CODES = [
 export const CHROME_ON_WINDOWS =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 
-export interface ConsoleState extends Partial<PricingState> {
+export interface ConsoleState extends Partial<PricingState>, Partial<CourierMockState> {
   language?: Language;
   /** Whether the browser starts signed in. */
   signedIn?: boolean;
@@ -323,6 +324,8 @@ function consoleAnswer(
   }
   const assigned = /^\/operator\/plans\/([^/]+)\/assign$/.exec(path);
   if (assigned) return { data: { id: 'assign-1', planId: assigned[1] } };
+  const couriered = courierAnswer(method, path, url, body, state);
+  if (couriered) return couriered;
   const priced = pricingAnswer(method, path, body, state);
   if (priced) return priced;
   if (path === '/operator/tenants') {
@@ -358,6 +361,7 @@ function consoleAnswer(
   }
   if (rest === 'gateway-credential-uses')
     return { data: pageOf(state.credentialUses, url, 'uses') };
+  if (rest === 'courier-credential-uses') return { data: pageOf(state.courierUses, url, 'uses') };
   if (rest === 'suspend') {
     shop.suspension = { at: NOW, reason: String(body?.reason), by: EMAIL };
     return { data: { ok: true } };
@@ -468,6 +472,7 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
     presets: drawnPresets(),
     attributes: drawnAttributes(),
     optionSets: drawnOptionSets(),
+    ...courierDefaults(),
     failing: {},
     refuseWrite: null,
     ownClock: false,
@@ -479,6 +484,11 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
     holdMe: Promise.resolve(),
     ...given,
   };
+  // The courier routes change what they hold; a test's own copy keeps one test's changes out of the next.
+  state.couriers = structuredClone(state.couriers);
+  state.blocking = structuredClone(state.blocking);
+  state.areas = structuredClone(state.areas);
+  state.areaCounts = { ...state.areaCounts };
   const log: ApiLog = {
     calls: [],
     state,
