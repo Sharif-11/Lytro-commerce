@@ -51,8 +51,13 @@ import type {
 } from '../types/addon';
 import { canTake, periodEndFor } from './addon-eligibility';
 import { AddonPackService, packPrice } from './addon-pack.service';
-import { addonPrice, renewalPrice, type AddonPeriod } from './addon-price';
-import { AddonRenewalService, NOT_RENEWING, type OwnPeriod } from './addon-renewal.service';
+import { addonPrice, allowanceUnitUses, renewalPrice, type AddonPeriod } from './addon-price';
+import {
+  AddonRenewalService,
+  carriedUnitSize,
+  NOT_RENEWING,
+  type OwnPeriod,
+} from './addon-renewal.service';
 import { assertAmountSeen } from './amount-seen';
 import { ADDON_NOT_TAKEN, addonPaymentToBalanceWords } from './billing-notice-words';
 import { BillingTermsService } from './billing-terms.service';
@@ -267,7 +272,11 @@ export class AddonPurchaseService {
         addonId: addon.id,
         kind: addon.kind,
         limitKey: addon.limitKey,
-        unitSize: addon.unitSize,
+        // D7-64: an allowance's uses follow what this purchase paid for; a limit's size is the catalogue's.
+        unitSize:
+          addon.kind === AddonKind.Allowance && addon.unitSize !== null
+            ? allowanceUnitUses(addon.unitSize, addon.price, input.quantity, amount)
+            : addon.unitSize,
         quantity: input.quantity,
         price: amount,
         paidFrom: 'balance',
@@ -458,7 +467,7 @@ export class AddonPurchaseService {
         addonId: from.addonId,
         kind: from.kind,
         limitKey: from.limitKey,
-        unitSize: from.unitSize,
+        unitSize: carriedUnitSize(from, next.price),
         quantity: from.quantity,
         price: next.price,
         paidFrom: 'balance',
