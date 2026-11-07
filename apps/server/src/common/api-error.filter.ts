@@ -1,4 +1,11 @@
-import { ArgumentsHost, Catch, HttpException, Logger, type ExceptionFilter } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  Catch,
+  HttpException,
+  Inject,
+  Logger,
+  type ExceptionFilter,
+} from '@nestjs/common';
 import type { ApiErrorBody, ApiFieldError, ErrorCode } from '@lytronix/shared-types';
 import {
   FieldProblemCode,
@@ -7,6 +14,7 @@ import {
   type Language,
 } from '@lytronix/validators';
 import { ApiError, FieldsError, HTTP_STATUS, type InvalidField } from './api-error';
+import { RequestErrors, type FaultedRequest } from './request-id/request-errors';
 import { headerValue, type HttpRequest } from './http';
 import { resolveLanguage } from './i18n/accept-language';
 import type { MessageKey } from './i18n/message-key';
@@ -87,9 +95,11 @@ function clientErrorStatus(exception: unknown): number | null {
  */
 @Catch()
 export class ApiErrorFilter implements ExceptionFilter {
+  constructor(@Inject(RequestErrors) private readonly errors: RequestErrors) {}
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<HttpResponse>();
-    const request = host.switchToHttp().getRequest<HttpRequest>();
+    const request = host.switchToHttp().getRequest<HttpRequest & FaultedRequest>();
     const lang = resolveLanguage(headerValue(request.headers['accept-language']));
 
     if (exception instanceof FieldsError) {
@@ -109,6 +119,8 @@ export class ApiErrorFilter implements ExceptionFilter {
         response.setHeader('Retry-After', String(exception.retryAfterSeconds));
       }
       const statusCode = HTTP_STATUS[exception.code];
+      // D8-22: something Lytro depends on is down, a server fault the shop's page shows (D8-3).
+      if (statusCode >= 500) this.errors.unavailable(request, exception.messageKey);
       const message = translate(exception.messageKey, lang, exception.params);
       response
         .status(statusCode)
@@ -138,7 +150,9 @@ export class ApiErrorFilter implements ExceptionFilter {
       return;
     }
 
+    // API-27, D8-23: the message and stack go to the log only, under the request's ID; the shop's page keeps its kind.
     logger.error(exception instanceof Error ? (exception.stack ?? exception.message) : exception);
+    this.errors.fault(request, exception);
     response
       .status(HTTP_STATUS.internal_error)
       .json(

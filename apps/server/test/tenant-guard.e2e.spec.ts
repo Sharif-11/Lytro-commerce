@@ -1,5 +1,6 @@
 import { APP_FILTER } from '@nestjs/core';
 import { ApiErrorFilter } from '../src/common/api-error.filter';
+import { RequestErrors } from '../src/common/request-id/request-errors';
 import { EdgeSecret } from '../src/common/guards/edge-secret';
 import { HostClassifier } from '../src/modules/tenancy/services/host-classifier';
 import { SlugFormat } from '../src/modules/tenancy/services/slug-format';
@@ -96,6 +97,13 @@ beforeAll(async () => {
       TenantResolver,
       { provide: APP_GUARD, useClass: TenantGuard },
       { provide: APP_FILTER, useClass: ApiErrorFilter },
+      {
+        provide: RequestErrors,
+        useValue: new RequestErrors({
+          record: () => Promise.resolve(),
+          purgeBefore: () => Promise.resolve(0),
+        }),
+      },
     ],
   }).compile();
 

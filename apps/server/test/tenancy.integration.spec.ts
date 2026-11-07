@@ -13,11 +13,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   AddonPurchaseRepository,
   DatabaseConnector,
+  RequestErrorRepository,
   SlugRepository,
   TenantRepository,
   type DatabaseHandle,
 } from '@lytronix/db';
 import { DatabaseService } from '../src/database/database.service';
+import { RequestIdModule } from '../src/common/request-id/request-id.module';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
 import { HealthController } from '../src/modules/health/health.controller';
@@ -115,9 +117,11 @@ beforeAll(async () => {
   database = { handle };
   cache = new TenantCache();
   const moduleRef = await Test.createTestingModule({
+    imports: [RequestIdModule],
     controllers: [ProbeController, HealthController],
     providers: [
       { provide: DatabaseService, useValue: database },
+      { provide: RequestErrorRepository, useValue: new RequestErrorRepository() },
       { provide: TenantRepository, useValue: new TenantRepository() },
       { provide: AddonPurchaseRepository, useValue: new AddonPurchaseRepository() },
       { provide: SlugRepository, useValue: new SlugRepository() },
