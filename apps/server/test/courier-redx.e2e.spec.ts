@@ -30,8 +30,16 @@ import {
   FakeRedx,
   REDX_LYTRO_TOKEN,
   REDX_SHOP_TOKEN,
+  freshRedxToken,
   type FakeRedxArea,
 } from './support/fake-redx';
+import {
+  GOLDEN_WAYS,
+  payAsYouGo as payAsYouGoPlan,
+  walkGoldenPath,
+  type GoldenOrder,
+  type GoldenWay,
+} from './support/courier-golden-path';
 import { cookieFrom, getJson, postJson, putJson, type HttpResult } from './support/http';
 import { errorOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
@@ -270,7 +278,7 @@ async function connectedShop(): Promise<ShopClient> {
   await seedBalance(admin, shop.tenantId, '500.00');
   const made = await shop.post('/couriers/connections', {
     courierKey: 'redx',
-    credentials: { apiToken: REDX_SHOP_TOKEN },
+    credentials: { apiToken: freshRedxToken() },
   });
   expect(made.status, JSON.stringify(made.body)).toBe(200);
   redx.calls.length = 0;
@@ -533,7 +541,7 @@ describeIfDatabase('booking with RedX (CUS-12, CRR-10, read agreed 2026-11-06)',
       pickup_store_id: 1,
       merchant_invoice_id: order.orderNumber,
     });
-    expect(redx.bookings()[0]?.token).toBe(REDX_SHOP_TOKEN);
+    expect(redx.bookings()[0]?.token).toMatch(new RegExp(`^${REDX_SHOP_TOKEN}-`));
   });
 
   it('offers a thana’s suggested areas first, marked as suggestions', async () => {
@@ -578,6 +586,29 @@ describeIfDatabase('booking with RedX (CUS-12, CRR-10, read agreed 2026-11-06)',
       );
     }
     expect(redx.bookings()).toHaveLength(0);
+  });
+
+  it('changes no address data: the location list and the order’s address stay as they were (CUS-11, close-out)', async () => {
+    const shop = await connectedShop();
+    const at = await thanas(shop);
+    const before = (await shop.get('/locations')).body;
+    const placed = (await place(shop, at['mirpur'] ?? 0, await variant(shop))) as unknown as Record<
+      string,
+      unknown
+    >;
+    const refreshed = await postJson(
+      port,
+      '/operator/courier-areas/refresh',
+      { courierKey: 'redx' },
+      operator,
+    );
+    expect(refreshed.status, JSON.stringify(refreshed.body)).toBe(200);
+    const order = await booked(shop, { id: String(placed['id']) }, { areaCode: '110' });
+    expect((await shop.get('/locations')).body).toEqual(before);
+    const after = (await shop.get(`/orders/${order.id}`)).body as Record<string, unknown>;
+    for (const field of ['location', 'deliveryAddress', 'deliveryCharge', 'deliveryZone']) {
+      expect(after[field], field).toEqual(placed[field]);
+    }
   });
 
   it('never waits on a store: with several and none chosen, its own default is used', async () => {
@@ -639,12 +670,26 @@ describeIfDatabase('cancelling a RedX booking (D6-8, CRR-28, read agreed 2026-11
       areaCode: '110',
     });
     redx.behaviour = { cancel: 'refused' };
-    const refused = await shop.post(`/orders/${order.id}/parcel/cancel`, {
-      courierCancelled: true,
-    });
+    const refused = await shop.post(`/orders/${order.id}/parcel/cancel`, {});
     expect(refused.status).toBe(409);
     expect(errorOf(refused).message).toContain('Parcel can not be cancelled now');
     expect((await read(shop, order.id)).parcel?.state).toBe('booked');
+  });
+
+  it('takes staff’s word that it is cancelled in RedX’s panel, asking RedX nothing (agreed 2026-11-07)', async () => {
+    const shop = await connectedShop();
+    const at = await thanas(shop);
+    const order = await booked(shop, await place(shop, at['mirpur'] ?? 0, await variant(shop)), {
+      areaCode: '110',
+    });
+    redx.behaviour = { cancel: 'refused' };
+    redx.calls.length = 0;
+    const cancelled = await shop.post(`/orders/${order.id}/parcel/cancel`, {
+      courierCancelled: true,
+    });
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200);
+    expect((cancelled.body as Order).parcel?.state).toBe('cancelled');
+    expect(redx.cancels()).toEqual([]);
   });
 });
 
@@ -755,4 +800,48 @@ describeIfDatabase('RedX’s news (CRR-11 to CRR-13, CRR-29, read agreed 2026-11
     expect(written.length).toBeGreaterThan(0);
     expect(written.join('')).not.toContain(token);
   });
+});
+
+describeIfDatabase('the golden path with RedX, three ways (exit criterion 2)', () => {
+  function news(shop: ShopClient) {
+    return async (order: GoldenOrder, stage: 'shipped' | 'delivered', way: GoldenWay) => {
+      const status = stage === 'shipped' ? 'ready-for-delivery' : 'delivered';
+      if (way === 'by message') {
+        await send(shop, order as unknown as Order, status);
+        return;
+      }
+      const parcel = redx.parcels.find((each) => each.trackingId === order.parcel?.consignmentId);
+      if (!parcel) throw new Error('no parcel');
+      parcel.status = status;
+      if (way === 'by the night check alone') {
+        clockShift += 2 * DAY_MS;
+        await app.get(CourierChecks).runNight();
+        return;
+      }
+      clockShift += DAY_MS;
+      const synced = await shop.post(`/orders/${order.id}/parcel/sync`, {});
+      expect(synced.status, JSON.stringify(synced.body)).toBe(200);
+    };
+  }
+
+  it.each(GOLDEN_WAYS)(
+    'takes a pay-as-you-go order from its confirming call to delivered %s',
+    async (way) => {
+      const shop = await connectedShop();
+      await payAsYouGoPlan(admin, shop.tenantId);
+      const at = await thanas(shop);
+      await walkGoldenPath(
+        shop,
+        {
+          port,
+          admin,
+          locationId: at['mirpur'] ?? 0,
+          booking: { courierKey: 'redx', weightKg: 1.25, areaCode: '110' },
+          news: news(shop),
+        },
+        way,
+      );
+      expect(moved.map((notice) => notice.reading)).toEqual(['with_courier', 'delivered']);
+    },
+  );
 });

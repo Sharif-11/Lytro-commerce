@@ -100,6 +100,7 @@ describe('Steadfast, as its guide says (Appendix A)', () => {
     expect(steadfast.bookings()[0]).toEqual({
       method: 'POST',
       path: '/create_order',
+      url: expect.stringMatching(/\/create_order$/) as string,
       apiKey: RIGHT_API_KEY,
       secretKey: RIGHT_SECRET_KEY,
       body: {

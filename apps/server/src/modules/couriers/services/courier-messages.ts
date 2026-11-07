@@ -105,7 +105,8 @@ export class CourierMessages {
         tx,
         tenantId,
         connection.id,
-        { lastMessageAt: now, unsignedAt: null },
+        // Phase 6 close-out: `unsignedAt` stays as the last bad message, so the once-a-day notice holds across a good one.
+        { lastMessageAt: now },
         now,
       );
       if (news === null) return null;

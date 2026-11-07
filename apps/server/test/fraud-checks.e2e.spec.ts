@@ -24,7 +24,12 @@ import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { TenantCache } from '../src/modules/tenancy/services/tenant-cache';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { FakeSteadfast, RIGHT_API_KEY, RIGHT_SECRET_KEY } from './support/fake-steadfast';
+import {
+  FakeSteadfast,
+  RIGHT_API_KEY,
+  RIGHT_SECRET_KEY,
+  freshSteadfastKeys,
+} from './support/fake-steadfast';
 import { postJson, sendExact, type HttpResult } from './support/http';
 import { errorOf, openShop, staffWith, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
@@ -105,7 +110,7 @@ const SCORE = (phone: string): string => `/fraud_check/score/${phone}`;
 async function connected(shop: ShopClient): Promise<void> {
   const made = await shop.post('/couriers/connections', {
     courierKey: 'steadfast',
-    credentials: { apiKey: RIGHT_API_KEY, secretKey: RIGHT_SECRET_KEY },
+    credentials: freshSteadfastKeys(),
   });
   expect(made.status, JSON.stringify(made.body)).toBe(200);
   steadfast.calls.length = 0;
@@ -285,7 +290,10 @@ describeIfDatabase(
       });
       const calls = steadfast.callsTo(SCORE(phone));
       expect(calls).toHaveLength(1);
-      expect(calls[0]).toMatchObject({ apiKey: RIGHT_API_KEY, secretKey: RIGHT_SECRET_KEY });
+      expect(calls[0]).toMatchObject({
+        apiKey: expect.stringMatching(new RegExp(`^${RIGHT_API_KEY}-`)) as string,
+        secretKey: RIGHT_SECRET_KEY,
+      });
       expect(((await client.get('/balance')).body as { amount: string }).amount).toBe(before);
       expect(await ledgerChecks(client)).toEqual([]);
       // CRR-26, SEC-11: the call is in the shop's credential log, never the phone.

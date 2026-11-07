@@ -66,6 +66,7 @@ export type CourierParcelPatch = Partial<
     | 'lastMessageAt'
     | 'lastCheckAt'
     | 'checksStoppedAt'
+    | 'checksRestartedAt'
     | 'cashCollected'
     | 'codAtCourier'
     | 'attention'
@@ -197,6 +198,14 @@ export class CourierRepository {
   }
 
   /** CRR-03: new credentials replace the old, and whatever had made the login refused is cleared with them. */
+  /** Phase 6 close-out: one shop's connections change one at a time, so two first connections can't both be its default. */
+  async lockConnections(tx: Transaction, tenantId: string): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${`courier_connections:${tenantId}`}, 0))`,
+    );
+  }
+
   async saveConnection(
     tx: Transaction,
     tenantId: string,
@@ -205,6 +214,7 @@ export class CourierRepository {
       credentials: Buffer;
       isDefault: boolean;
       state: CourierConnectionState;
+      accountFingerprint: string | null;
     },
     now: Date,
   ): Promise<SelectCourierConnection> {
@@ -214,7 +224,12 @@ export class CourierRepository {
       .values({ tenantId, ...values })
       .onConflictDoUpdate({
         target: [courierConnections.tenantId, courierConnections.courierKey],
-        set: { credentials: values.credentials, state: values.state, updatedAt: now },
+        set: {
+          credentials: values.credentials,
+          state: values.state,
+          accountFingerprint: values.accountFingerprint,
+          updatedAt: now,
+        },
       })
       .returning();
     if (!row) throw new Error('saving a courier connection returned no row');

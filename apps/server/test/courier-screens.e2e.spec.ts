@@ -20,7 +20,7 @@ import { CourierBookingTickWorker } from '../src/modules/shared/queue-workers/se
 import { CourierNightTickWorker } from '../src/modules/shared/queue-workers/services/courier-night-tick-worker';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { FakeSteadfast, RIGHT_API_KEY, RIGHT_SECRET_KEY } from './support/fake-steadfast';
+import { FakeSteadfast, freshSteadfastKeys } from './support/fake-steadfast';
 import { cookieFrom, getJson, postJson, type HttpResult } from './support/http';
 import { errorOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
@@ -121,7 +121,7 @@ async function steadfastShop(): Promise<ShopClient> {
   const shop = await openShop(port, texts, 'scr');
   const made = await shop.post('/couriers/connections', {
     courierKey: 'steadfast',
-    credentials: { apiKey: RIGHT_API_KEY, secretKey: RIGHT_SECRET_KEY },
+    credentials: freshSteadfastKeys(),
   });
   expect(made.status, JSON.stringify(made.body)).toBe(200);
   return shop;
@@ -404,6 +404,35 @@ describeIfDatabase("the operator's area list and its thanas (CUS-10, Slice 6.7)"
 });
 
 describeIfDatabase("a shop's courier key log names the order (SEC-11, Slice 6.7)", () => {
+  it('shows the operator a refused booking among the shop’s courier key uses (MON-05, ADM-03, close-out)', async () => {
+    const shop = await steadfastShop();
+    const order = await placed(shop);
+    steadfast.behaviour = {
+      refuseBooking: { status: 400, body: { status: 400, message: 'Invalid recipient phone.' } },
+    };
+    const refused = await shop.post(`/orders/${order.id}/book`, { courierKey: 'steadfast' });
+    expect(refused.status, JSON.stringify(refused.body)).toBeGreaterThanOrEqual(400);
+    const listed: HttpResult = await getJson(
+      port,
+      `/operator/tenants/${shop.tenantId}/courier-credential-uses`,
+      operator,
+    );
+    expect(listed.status, JSON.stringify(listed.body)).toBe(200);
+    const { uses } = listed.body as {
+      uses: {
+        action: string;
+        orderId: string | null;
+        orderNumber: string | null;
+        succeeded: boolean;
+      }[];
+    };
+    expect(uses.find((use) => use.action === 'book')).toMatchObject({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      succeeded: false,
+    });
+  });
+
   it('gives each use for an order its number, and none for the rest', async () => {
     const shop = await steadfastShop();
     const order = await booked(shop);

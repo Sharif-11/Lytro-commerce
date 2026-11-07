@@ -2237,6 +2237,17 @@ const COURIERS: Pair[] = [
     orders: c36Parcel({ reading: 'booked' }, 'processing'),
     then: c36Menu(),
   }),
+  // ORD-11 (the Phase 6 close-out): a booked order's details and note, then the courier's old details said once. The note
+  // changes, which the order's page doesn't show, so the rest of its picture stays as drawn.
+  c36('c36-edit', '/orders/o-47/edit', { orders: c36Parcel({ reading: 'booked' }, 'processing') }),
+  c36('c36-edited', '/orders/o-47/edit', {
+    orders: c36Parcel({ reading: 'booked' }, 'processing'),
+    then: async (page) => {
+      await page.getByLabel('নোট', { exact: true }).fill('প্যাক করা হয়েছে');
+      await page.getByRole('button', { name: 'পরিবর্তন সেভ করুন' }).click();
+      await page.waitForURL(/\/orders\/o-47$/);
+    },
+  }),
   c36('sh-c36-cancel-sf', '/orders/o-47', {
     orders: c36Parcel({ reading: 'booked' }, 'processing'),
     then: c36Menu(/বুকিং ক্যানসেল করুন/),

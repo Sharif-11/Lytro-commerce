@@ -32,7 +32,15 @@ import {
   PATHAO_FIELDS,
   PATHAO_PASSWORD,
   PATHAO_USERNAME,
+  freshPathaoFields,
 } from './support/fake-pathao';
+import {
+  GOLDEN_WAYS,
+  payAsYouGo as payAsYouGoPlan,
+  walkGoldenPath,
+  type GoldenOrder,
+  type GoldenWay,
+} from './support/courier-golden-path';
 import { postJson, type HttpResult } from './support/http';
 import { errorOf, fieldsOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
@@ -210,7 +218,7 @@ function pathOf(address: string): string {
 async function connect(shop: ShopClient): Promise<Connected> {
   const made = await shop.post('/couriers/connections', {
     courierKey: 'pathao',
-    credentials: PATHAO_FIELDS,
+    credentials: freshPathaoFields(),
   });
   expect(made.status, JSON.stringify(made.body)).toBe(200);
   const { message } = made.body as { message: { address: string; token: string } };
@@ -358,7 +366,7 @@ describeIfDatabase('connecting Pathao (Slice 6.3, read agreed 2026-11-05)', () =
     const shop = await openShop(port, texts, 'cpa');
     const refused = await shop.post('/couriers/connections', {
       courierKey: 'pathao',
-      credentials: { ...PATHAO_FIELDS, password: 'wrong' },
+      credentials: { ...freshPathaoFields(), password: 'wrong' },
     });
     expect(refused.status).toBe(409);
     expect(errorOf(refused).message).toContain('The user credentials were incorrect');
@@ -1046,3 +1054,48 @@ describeIfDatabase(
     });
   },
 );
+
+describeIfDatabase('the golden path with Pathao, three ways (exit criterion 2)', () => {
+  function news(to: Connected) {
+    return async (order: GoldenOrder, stage: 'shipped' | 'delivered', way: GoldenWay) => {
+      const asked = order as unknown as Order;
+      if (way === 'by message') {
+        if (stage === 'shipped') await send(to, asked, 'order.picked');
+        else await send(to, asked, 'order.delivered', { collected_amount: Number(order.due) });
+        return;
+      }
+      pathao.statuses.set(
+        order.parcel?.consignmentId ?? '',
+        stage === 'shipped' ? 'Picked' : 'Delivered',
+      );
+      if (way === 'by the night check alone') {
+        clockShift += 2 * DAY_MS;
+        await app.get(CourierChecks).runNight();
+        return;
+      }
+      clockShift += DAY_MS;
+      const synced = await to.shop.post(`/orders/${order.id}/parcel/sync`, {});
+      expect(synced.status, JSON.stringify(synced.body)).toBe(200);
+    };
+  }
+
+  it.each(GOLDEN_WAYS)(
+    'takes a pay-as-you-go order from its confirming call to delivered %s',
+    async (way) => {
+      const to = await connectedShop();
+      await payAsYouGoPlan(admin, to.shop.tenantId);
+      await walkGoldenPath(
+        to.shop,
+        {
+          port,
+          admin,
+          locationId: await mirpur(to.shop),
+          booking: { weightKg: 1 },
+          news: news(to),
+        },
+        way,
+      );
+      expect(moved.map((notice) => notice.reading)).toEqual(['with_courier', 'delivered']);
+    },
+  );
+});

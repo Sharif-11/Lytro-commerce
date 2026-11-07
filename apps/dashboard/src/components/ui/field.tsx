@@ -78,6 +78,7 @@ export function PickField({
   help,
   error,
   disabled = false,
+  locked = false,
   chevron = 'down',
   trail,
   onPick,
@@ -87,6 +88,8 @@ export function PickField({
   help?: ReactNode;
   error?: ReactNode;
   disabled?: boolean;
+  /** Fixed for good, with a lock in place of the chevron (a booked order's thana, Part 36's `c36-edit`). */
+  locked?: boolean;
   /** Down for a choice; right for a sheet of its own fields (a product's opening batch). */
   chevron?: 'down' | 'right';
   /** Words at the end in place of the chevron, naming the sheet (a new product's opening stock: "batch"). */
@@ -103,7 +106,7 @@ export function PickField({
         type="button"
         aria-labelledby={`${own}-label ${own}-value`}
         aria-haspopup="dialog"
-        disabled={disabled}
+        disabled={disabled || locked}
         onClick={onPick}
         className={[
           'flex h-12 items-center gap-2 rounded-control border bg-surface px-3 text-left text-[16px] text-fg disabled:cursor-default',
@@ -113,7 +116,11 @@ export function PickField({
         <span id={`${own}-value`} className="min-w-0 flex-1 truncate">
           {value}
         </span>
-        {disabled ? null : trail ? (
+        {locked ? (
+          <span className="text-neutral-500">
+            <Icon name="lock" />
+          </span>
+        ) : disabled ? null : trail ? (
           <span className="text-[14px] font-medium whitespace-nowrap text-fg-muted">{trail}</span>
         ) : (
           <span className="text-neutral-500">

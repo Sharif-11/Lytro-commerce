@@ -113,7 +113,7 @@ complete.
 | CRR | CRR-01 to CRR-30 (amended; CRR-21 and CRR-24 by a manual check) |
 | CUS | CUS-10 to CUS-12 (amended), CUS-11 by a manual check |
 | From Phase 4's partials | ORD-08 (courier moves), ORD-10, ORD-11 (the warning after booking), ORD-42, ORD-43 (a courier's report), ATR-13 and CMB-07 (weight at booking), INV-14, INV-15, QTA-01 to QTA-03 and PYG-02 to PYG-04 (booking as the trigger), API-11 (booking) |
-| Others | LIF-13, LIF-19 (connections), AUD-01 (courier credentials changed), SEC-01, SEC-08 to SEC-10 and PRF-05 (for couriers), SUP-01 (connect a courier), INV-18 (delivery charges, as Slice 6.5's read settles) |
+| Others | LIF-13, LIF-19 (connections), AUD-01 (courier credentials changed), SEC-01, SEC-08, SEC-09 and PRF-05's circuits (for couriers), SUP-01 (connect a courier), INV-18 (delivery charges, as Slice 6.5's read settles) |
 
 ### 3.2 Partially completed by this phase
 
@@ -125,6 +125,8 @@ complete.
 | API-CONTRACT's `session/secret` on `/book` | the session route | secret keys | Phase 8 |
 | SEC-11 | every call with a courier credential logged per shop | the full security pass | Phase 9 |
 | ADM-03, MON-05 | failed bookings readable by the operator's API | the operator console's rebuild | unscheduled |
+| PRF-05 (moved here by the close-out, 2026-11-07) | each courier account's circuit, and its opening in the server's log | the operator's alert when a circuit opens | Phase 7 (notifications) |
+| SEC-10 (moved here by the close-out, 2026-11-07) | courier credentials sealed, keys rotated as the shared secret box does | a secrets manager, a deployment decision not yet made, and the job that seals every stored value again after a rotation, which §81 meant to come with Phases 5 and 6 (KNOWN-GAPS §81) | unscheduled |
 
 ### 3.3 Listed for Phase 6 but not built here
 
@@ -540,6 +542,67 @@ Same as Phase 5, plus the exactly-once rule in §8:
 - this plan's slice entry marked shipped with its PR number
 
 ---
+
+## 11. Close-out check (2026-11-07)
+
+Checked after Slice 6.7 merged (#321), against §1's ten criteria. Every slice is built. Three reviews read every requirement in §3.1 and
+§3.2 against the tests and the code behind them, looking for the assertion and not for a test that names the ID. What they found was fixed
+in this check's own pull request, which holds the fixes, the tests, this section and the SRS's amendments. The user settled four points
+(2026-11-07): a delivered report after a partly delivered one changes nothing; staff's word that a booking is cancelled in the courier's
+panel is taken; one courier account serves one shop; and Edit on a booked order is drawn, then built.
+
+1. **Every completed requirement has a test or a recorded manual check: holds, with the exceptions below.**
+   - **Fixed by this check:**
+     - CRR-29, ORD-43: a delivered report after a partly delivered one moved the order to delivered and recorded cash nobody had
+       collected; with RedX, which names no amount, the whole remaining due. It is noted and changes nothing (the user's pick). Once a
+       parcel has its result, a late report of an earlier stage no longer moves it back, where it would have been asked every night.
+     - CRR-14, CRR-15: a Sync started the checks again for one night only, and news after the 30-day stop left "no news" showing with no
+       checks; a Sync now starts the 30 days again, and news ends the stop. The owner was told of a missing token again whenever a good
+       message came between two bad ones.
+     - CRR-03 (the user's pick): two shops on one courier account would clash, since a courier refuses an invoice it has seen and every
+       shop numbers from 0001 each day; a second shop is now refused, by a fingerprint of the account's credential, never the credential.
+     - CRR-23, CRR-24: a shop connecting while the operator retired or removed the courier got in anyway; connecting reads the courier
+       again under the lock booking's claim holds. Two first connections at once ended in an error; removal could make another retiring
+       courier the default.
+     - CRR-28 (the user's pick): staff's word that a booking is cancelled in the courier's panel is taken, and the courier isn't asked
+       again; before, a RedX refusal, or a token since replaced, left the booking impossible to cancel from Lytro. Two cancels at once
+       now cancel once.
+     - D6-11: settling a lost answer didn't look again under the parcel's lock, so a look-up crossing staff's word could bring back a
+       booking they had refused, or refuse one they had settled; and a parcel found by look-up never gave the order its tracking code.
+       A parcel the minute pass settles now names who booked it as who confirmed the order.
+     - ORD-11: the dashboard offered no Edit on a booked order; it is drawn (`c36-edit`, `c36-edited`) and built, the courier named in
+       the warning that its record is unchanged. SEC-08: the courier keys were typed in plain text; they are masked. CRR-25: the retiring
+       banner never named the courier the default had moved to.
+   - **Moved to §3.2, since a later phase finishes them:** PRF-05's alert to the operator when a circuit opens (Phase 7; the opening is
+     logged now); SEC-10, whose secrets manager and re-sealing job (KNOWN-GAPS §81) are unscheduled.
+   - **Amended, the requirement and what was built having parted:** CRR-03, CRR-15, CRR-19 (booking and Sync each have their own
+     window), CRR-20 (the old address answers 404), CRR-24 (a partly delivered order is held back as a delivered one is, since nothing
+     marks it resolved), CRR-28, CRR-29, SEC-09 (Pathao's tokens are sealed in the database, as Slice 6.3 agreed).
+   - **Tested by this check, built but asserted nowhere:** CRR-04, CRR-22, CRR-23, CRR-24 with a shipped order, SEC-08, AUD-01's
+     replaced and disconnected entries, ORD-08's partly delivered history, CRR-15's tracking read making no call, CUS-11, CUS-12,
+     MON-05 and ADM-03 (a refused booking in the operator's key log).
+   - **Manual checks recorded:** CUS-11 and CRR-24 are now automated. CRR-21's contract suite runs for all three couriers on every pull
+     request; the area list, cancelling and Pathao's address test sit in each courier's own spec rather than the shared suite.
+   - **Not built, open in KNOWN-GAPS:** §130 (the 80% warning one order early, the circuit's alert, re-sealing after a rotation, the
+     retiring banner's last case, seven suspects needing a live courier, and nine parts built with no test of their own).
+   - **Live only:** criterion 9's real parcels (§117, §121, §123).
+2. **The golden path: holds.** `test/support/courier-golden-path.ts` walks §1's path the same way for every courier: a cash-on-delivery
+   order for a serial-numbered product, its confirming call, booked with the serial chosen, shipped, delivered with its cash and nothing
+   due. After each step it reads the parcel, the order's two axes, the stock and the serials, the fee, the handling count, the balance and
+   the stock ledger. Steadfast's, Pathao's and RedX's specs each run it by message, by the night check alone and by Sync: nine tests.
+   Five deliberate breaks of what it checks (no stock taken, the fee charged twice, no cash on delivery, a shipped report moving nothing, the chosen serial left in stock), run through Pathao's spec, were each caught; with the sixteen breaks of this check's fixes, 21 of 21.
+3. **A booking never doubles: holds.** Two bookings at once make one parcel; a refused one changes nothing but the 80% warning (§130); a
+   lost answer never makes a second parcel, and now neither a look-up nor staff can undo the other's settling (`courier-booking`).
+4. **News can't be forged or counted twice: holds** (`courier-news`, `courier-pathao`, `courier-redx`), and an earlier stage arriving
+   late no longer moves a parcel back.
+5. **Nothing comes back without a person: holds**, and a delivered report after a partly delivered one now moves nothing.
+6. **Cancelling: holds** (`courier-booking`, `courier-news`, `courier-redx`), with staff's word taken and one cancel of two at once.
+7. **Calls stay down: holds** (`courier-news`'s "calls stay down"), now with the shopper's tracking read and the 30 days a Sync starts.
+8. **The boundary: holds in substance.** No shared code asks which courier it is, and the contract suite passes for all three. Pathao and
+   RedX did change shared code beyond what an adapter declares, each recorded in its slice: booking fields worked out for every courier,
+   every message answered 202, a cancel with no answer asking staff to confirm, and the order read the area choice needs.
+9. **The milestone: waits for the owner's accounts.** No real parcel has been booked with any courier (§117, §121, §123).
+10. **CI and the pull-request flow: holds.** Every slice went through a pull request. `main`'s Deploy run is green from #321 on; the one red run in the phase (#320) was the dashboard's payments spec failing across Dhaka's midnight, a test's own date, not the code.
 
 ## Appendix A: what the couriers' documents say
 

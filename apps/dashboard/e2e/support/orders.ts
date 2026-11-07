@@ -888,8 +888,29 @@ export function ordersAnswer(
     };
   }
   if (method === 'PATCH' && action === null) {
+    // ORD-11, D6-7: booked, its stock has left, so only the customer's details and the note change, and the courier keeps
+    // what it was sent.
+    // A parcel's state left out of a fixture is booked, as its view says.
+    const booked =
+      order.status === 'processing' &&
+      order.parcel !== undefined &&
+      order.parcel !== null &&
+      (order.parcel.state ?? 'booked') === 'booked';
+    const moving = ['items', 'discount', 'deliveryCharge', 'locationId', 'fulfilmentType'];
+    if (booked && moving.some((key) => body !== null && key in body)) {
+      return {
+        refused: {
+          status: 409,
+          code: 'conflict',
+          message:
+            'This order’s stock left with its booking, so its items and totals can’t change. Cancel it and enter a new order instead.',
+        },
+      };
+    }
     editedOrder(order, body ?? {});
-    return { data: detail(order, language, customerOf(order.id)) };
+    return {
+      data: { ...detail(order, language, customerOf(order.id)), courierRecordUnchanged: booked },
+    };
   }
   if (method === 'DELETE' && action === null) {
     fixture.orders = fixture.orders.filter((each) => each.id !== order.id);

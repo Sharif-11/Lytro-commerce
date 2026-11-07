@@ -2212,3 +2212,37 @@ Slice 7.5 built the check to the answer Steadfast gave a live key on 2026-11-07,
 
 Closing it: after launch, read a sample of real answers (a phone with reports, its categories, a larger band) and adjust
 the adapter to them.
+
+## 130. Phase 6: what its close-out left open — found 2026-11-07, open
+
+The close-out (PHASE-6-PLAN §11) fixed what it found that could be fixed in the code. These stay:
+
+- **The 80% warning, one order early (`QTA-02`).** A booking takes the order's place under the limits before the courier is called, and the
+  usage warning is checked there. When the courier refuses, the place is given back but the warning isn't, so the owner hears of 80% one
+  order early and not again when the shop really reaches it. Checking the warning when the booking settles instead needs the shop's
+  limits on every path that settles one, the minute pass's too.
+- **An opened circuit tells no one but the log (`PRF-05`).** Each courier account's circuit opens after five failures and the server
+  logs it; the operator's alert waits for Phase 7's notifications (plan §3.2).
+- **Sealed values after a key rotation (`SEC-10`, §81).** §81 meant the job that seals every stored value again with the current key to
+  come with the courier and gateway credentials. It isn't built, so after a rotation they stay sealed with the previous key until each
+  shop connects again.
+- **The retiring banner's last case (`CRR-25`).** A retiring courier still a shop's default, after the shop has connected the suggested
+  one, still shows "Connect {courier}"; no words are drawn for it.
+- **Suspected, needing a live courier to confirm:**
+  - news is matched by consignment or invoice, so if RedX makes a second parcel on a repeated invoice (§121), the stray parcel's
+    messages would move the order;
+  - a RedX parcel that turns `paid` after its `delivered` message was lost stays shipped with its cash due;
+  - Steadfast's booking and look-up keep its status as written, so a difference in case could count as news on the first check;
+  - a stored message that fails for a reason other than the courier's (an ID longer than its column) is tried again every minute with
+    no end, and enough of them would crowd the minute pass;
+  - a RedX area refresh never matches again an area it placed by itself, so one renamed or moved stays where it was;
+  - retiring can't be resumed: a server stopping midway leaves shops untold, and the only re-run is undo, then retire;
+  - dropping numbers places "Mirpur 11", "Mirpur 12" or "Mirpur 14" in Mirpur thana, within the rule agreed in Slice 6.4.
+- **Built, with no test of its own:** an order waiting on its advance or under review sent to booking (`CRR-09`); one courier's open
+  circuit leaving the same shop's other courier working (`CRR-26`); the answer-time limits for messages (`CRR-27`); the limits'
+  `block` and `allow_with_prompt` modes reached through booking (`QTA-02`, `QTA-03`), which share their code with Mark shipped, where they
+  are tested; a booking on another courier after cancelling one (`QTA-01`, `CRR-30`); a variant's weight and a combo's parts in one booking
+  (`ATR-13`, `CMB-07`); the log line for a message to a closed shop (`LIF-13`); the day-60 job run on a shop with couriers (`LIF-19`); the
+  staff timeline's choice of language (`CRR-12`).
+- **The milestone (exit criterion 9):** a real booking through to a real message for each courier, recorded, waits for the owner's
+  accounts (§117, §121, §123).

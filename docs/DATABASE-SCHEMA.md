@@ -1834,14 +1834,18 @@ CREATE TABLE tenant.courier_connections (
     state           tenant.courier_connection_state NOT NULL DEFAULT 'active',  -- active, login_refused
     message_secrets bytea,                             -- sealed: its address's token and the signing token (CRR-03)
     last_message_at timestamptz,                       -- CRR-02: null shows "no messages yet"
-    unsigned_at     timestamptz,                       -- when a message last failed verification; a good one clears it
+    unsigned_at     timestamptz,                       -- when a message last failed verification; "token missing" while it's later than last_message_at (close-out)
     paste_warned_at timestamptz,                       -- CRR-15: the owner is told of a broken paste at most once a day
+    account_fingerprint text,                          -- Phase 6 close-out: SHA-256 of the credential naming the courier account, never the credential; one account, one shop
     payout_page     smallint NOT NULL DEFAULT 1,       -- CRR-17 (Slice 6.5): the payout page the night run starts on
     payout_page_size smallint,                         -- how many a full payout page holds, once seen; null until then
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
     UNIQUE (tenant_id, courier_key)
 );
+-- Phase 6 close-out (agreed 2026-11-07): across every shop, so a second shop connecting the same account is refused.
+CREATE UNIQUE INDEX courier_connections_account_key ON tenant.courier_connections (courier_key, account_fingerprint)
+    WHERE account_fingerprint IS NOT NULL;
 
 CREATE TABLE tenant.courier_parcels (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1876,7 +1880,8 @@ CREATE TABLE tenant.courier_parcels (
     last_change_at  timestamptz,                       -- D6-4: when its status last changed
     last_message_at timestamptz,                       -- D6-4: when a message last told of it
     last_check_at   timestamptz,                       -- CRR-14: when Lytro last asked
-    checks_stopped_at timestamptz,                     -- D6-4: 30 days with no change; shows "no news", and Sync restarts it
+    checks_stopped_at timestamptz,                     -- D6-4: 30 days with no change; shows "no news", and Sync or news restarts it
+    checks_restarted_at timestamptz,                   -- Phase 6 close-out: the last Sync, which starts the 30 days again as a change does
     cash_collected  numeric(12,2),                     -- ORD-43: what its courier reports
     cod_at_courier  numeric(12,2),                     -- a COD changed in the courier's panel
     attention       text,                              -- what staff should look at (ParcelAttention)

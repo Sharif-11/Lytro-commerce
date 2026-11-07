@@ -100,6 +100,7 @@ export class RedxAdapter implements CourierAdapter {
   readonly key = CourierKey.RedX;
   readonly name = 'RedX';
   readonly credentialFields = FIELDS;
+  readonly accountField = 'apiToken';
   readonly limits = LIMITS;
   readonly needsArea = true;
   readonly needsThana = false;

@@ -32,6 +32,8 @@ export class CircuitBreaker {
     private readonly clock: () => number = Date.now,
     private readonly failuresToOpen = BREAKER_FAILURES,
     private readonly openMs = BREAKER_OPEN_MS,
+    /** PRF-05: told once each time a closed circuit opens, so the caller can say so (Phase 6 close-out). */
+    private readonly onOpen: (circuit: string, failures: number) => void = () => undefined,
   ) {}
 
   async call<T>(circuit: string, work: () => Promise<T>): Promise<T> {
@@ -52,6 +54,7 @@ export class CircuitBreaker {
         openUntil: open ? this.clock() + this.openMs : null,
         trying: false,
       });
+      if (open && state.openUntil === null) this.onOpen(circuit, failures);
       throw error;
     }
   }

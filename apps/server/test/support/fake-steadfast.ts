@@ -2,14 +2,25 @@
 // refused, status by invoice, failures said in a 200's body, and no sandbox behind it. Injected as COURIER_FETCH, so nothing
 // leaves the machine. It counts the calls it gets: exit criterion 7 proves the rules on calls from these.
 
-import { createHmac } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 
 export const RIGHT_API_KEY = 'steadfast-api-key-1234';
 export const RIGHT_SECRET_KEY = 'steadfast-secret-key-5678';
 
+/** Phase 6 close-out: one account serves one shop, so each shop connects with its own key, which this fake takes too. */
+export function freshSteadfastKeys(): { apiKey: string; secretKey: string } {
+  return { apiKey: `${RIGHT_API_KEY}-${randomUUID().slice(0, 8)}`, secretKey: RIGHT_SECRET_KEY };
+}
+
+function knownKey(key: string | null): boolean {
+  return key === RIGHT_API_KEY || (key?.startsWith(`${RIGHT_API_KEY}-`) ?? false);
+}
+
 export interface SteadfastCall {
   method: string;
   path: string;
+  /** The whole address called, its query included (SEC-08). */
+  url: string;
   apiKey: string | null;
   secretKey: string | null;
   body: Record<string, unknown> | null;
@@ -60,6 +71,8 @@ interface Behaviour {
   lookUpTimesOut?: boolean;
   /** Called with each booking while it is out with the courier. */
   whileBooking?: () => Promise<void>;
+  /** Called while a connection's keys are being tried (its balance asked), before the answer. */
+  whileTesting?: () => Promise<void>;
   /** Asking after a parcel answers 401 though the keys are good, as its guide says a parcel on another profile does. */
   otherProfile?: boolean;
   /** Every key is refused from now on. */
@@ -132,6 +145,7 @@ export class FakeSteadfast {
     this.calls.push({
       method: init?.method ?? 'GET',
       path,
+      url: url.href,
       apiKey: headers.get('Api-Key'),
       secretKey: headers.get('Secret-Key'),
       body,
@@ -139,12 +153,15 @@ export class FakeSteadfast {
     if (this.behaviour.down) throw new DOMException('timed out', 'TimeoutError');
     if (
       this.behaviour.keysRevoked === true ||
-      headers.get('Api-Key') !== RIGHT_API_KEY ||
+      !knownKey(headers.get('Api-Key')) ||
       headers.get('Secret-Key') !== RIGHT_SECRET_KEY
     ) {
       return reply(401, { status: 401, message: 'Unauthorized.' });
     }
-    if (path === '/get_balance') return reply(200, { status: 200, current_balance: 0 });
+    if (path === '/get_balance') {
+      await this.behaviour.whileTesting?.();
+      return reply(200, { status: 200, current_balance: 0 });
+    }
     if (path === '/payments' || path.startsWith('/payments/')) return this.payoutsAnswer(url, path);
     if (path === '/create_order' && body !== null) return this.createOrder(body);
     if (path.startsWith('/fraud_check/score/')) {
