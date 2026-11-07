@@ -108,6 +108,8 @@ class TrackedOrderDto extends createZodDto(
     courierMessage: z
       .object({ en: z.string().nullable(), bn: z.string().nullable(), at: z.coerce.date() })
       .nullable(),
+    // Slice 6.7: the courier says the parcel is going back to the shop.
+    courierReturning: z.boolean(),
     payment: openedPaymentSchema.extend({ state: z.nativeEnum(PaymentSessionState) }).nullable(),
   }),
 ) {}

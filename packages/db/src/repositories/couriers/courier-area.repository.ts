@@ -1,4 +1,16 @@
-import { and, asc, count, eq, ilike, inArray, isNotNull, isNull, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  max,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import { CourierAreaMatch, CourierAreaState, type CourierKey } from '@lytronix/validators';
 import { courierAreas, type NewCourierArea, type SelectCourierArea } from '../../schema';
 import type { Executor, Transaction } from '../../transactions';
@@ -24,6 +36,16 @@ export interface CourierAreaFilter {
   state?: CourierAreaState;
   zillaId?: number;
   q?: string;
+}
+
+/** Slice 6.7: how a courier's list stands, by the filters the operator picks from, and when it was last read. */
+export interface CourierAreaSummary {
+  all: number;
+  suggested: number;
+  unassigned: number;
+  assigned: number;
+  retired: number;
+  lastReadAt: Date | null;
 }
 
 /** Counts a refresh reports. */
@@ -60,6 +82,30 @@ export class CourierAreaRepository {
       db.select({ total: count() }).from(courierAreas).where(where),
     ]);
     return { rows, total: totals[0]?.total ?? 0 };
+  }
+
+  /** Slice 6.7: each state's count, as `list` filters them, and the last time the list was read. */
+  async summary(db: Executor, courierKey: CourierKey): Promise<CourierAreaSummary> {
+    const live = isNull(courierAreas.retiredAt);
+    const [row] = await db
+      .select({
+        all: count(),
+        suggested: sql<number>`count(*) FILTER (WHERE ${and(live, eq(courierAreas.match, CourierAreaMatch.Suggested))})::int`,
+        unassigned: sql<number>`count(*) FILTER (WHERE ${and(live, eq(courierAreas.match, CourierAreaMatch.None))})::int`,
+        assigned: sql<number>`count(*) FILTER (WHERE ${and(live, isNotNull(courierAreas.thanaId))})::int`,
+        retired: sql<number>`count(*) FILTER (WHERE ${isNotNull(courierAreas.retiredAt)})::int`,
+        lastReadAt: max(courierAreas.refreshedAt),
+      })
+      .from(courierAreas)
+      .where(eq(courierAreas.courierKey, courierKey));
+    return {
+      all: row?.all ?? 0,
+      suggested: row?.suggested ?? 0,
+      unassigned: row?.unassigned ?? 0,
+      assigned: row?.assigned ?? 0,
+      retired: row?.retired ?? 0,
+      lastReadAt: row?.lastReadAt ?? null,
+    };
   }
 
   async findById(db: Executor, id: string): Promise<SelectCourierArea | null> {

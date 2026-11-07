@@ -15,6 +15,7 @@ import type {
   StockVariantRow,
   Transaction,
 } from '@lytronix/db';
+import type { ParcelReading } from '@lytronix/validators';
 import type {
   NewOrderLine,
   OrderCallRecord,
@@ -57,6 +58,12 @@ export interface OrderStore {
     tenantId: string,
     orderId: string,
   ): Promise<SelectCourierEvent | null>;
+  /** Slice 6.7: what an order's live parcel's courier status means here, for tracking's going-back line. */
+  liveParcelReading(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<ParcelReading | null>;
   /** The variants an item may name, with their products, as the stock ledger knows them. */
   findVariants(tx: Transaction, tenantId: string, variantIds: string[]): Promise<StockVariantRow[]>;
   /** ORD-04: the day's next number, gap-free; the day's counter stays locked until the transaction ends. */

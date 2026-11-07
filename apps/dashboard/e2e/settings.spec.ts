@@ -39,6 +39,7 @@ test('lists the shop’s settings, and what comes later with its phase', async (
   for (const [name, href] of [
     ['Shop details', '/settings/shop'],
     ['Delivery', '/delivery'],
+    ['Couriers', '/settings/couriers'],
     ['Brand identity', '/settings/brand'],
     ['Storefront', '/settings/storefront'],
     ['Data export', '/settings/export'],
@@ -49,7 +50,9 @@ test('lists the shop’s settings, and what comes later with its phase', async (
     );
   }
   await expect(main(page).getByText('Coming later')).toBeVisible();
-  await expect(main(page).getByText('Arrives in Phase 6')).toBeVisible();
+  // Couriers left Coming later with Phase 6 (Part 36's `c36-settings`); SMS and notifications come with 7.
+  await expect(main(page).getByText('Arrives in Phase 6')).toHaveCount(0);
+  await expect(main(page).getByText('Arrives in Phase 7').first()).toBeVisible();
   await expect(main(page).getByText('Arrives in Slices 12 to 13')).toHaveCount(0);
   await expectAccessible(page);
 });

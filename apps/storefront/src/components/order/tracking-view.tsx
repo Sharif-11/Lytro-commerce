@@ -94,6 +94,57 @@ function courierLine(courier: NonNullable<TrackedOrder['courier']>, words: Words
   return courier.trackingCode ? named : named.replace(/ · $/, '');
 }
 
+/** CRR-12 (STOREFRONT-DESIGN §7e): the courier's words in the shopper's language where it sent both, else the one it sent. */
+function courierWords(
+  message: NonNullable<TrackedOrder['courierMessage']>,
+  words: Words,
+): string | null {
+  return words.language === 'bn' ? (message.bn ?? message.en) : (message.en ?? message.bn);
+}
+
+/** Slice 6.7 (`t67-tracking`): once shipped, the courier's own latest words, when it said them, then the way to its page. */
+function CourierNews({
+  courier,
+  said,
+  at,
+  words,
+}: {
+  courier: NonNullable<TrackedOrder['courier']>;
+  said: string;
+  at: string;
+  words: Words;
+}) {
+  const name = courier.name ?? '';
+  return (
+    <div className="line" style={{ alignItems: 'flex-start' }}>
+      <Icon name="truck" />
+      <span>
+        <b>{words.t('t67Latest', { c: name })}</b> · <span className="sub">{dayMonthTime(at)}</span>
+        <br />
+        {said}
+        {(courier.trackingLink ?? courier.trackingCode) ? <br /> : null}
+        {courier.trackingLink ? (
+          <a
+            className="lnk"
+            style={{ color: 'var(--accent-text)', textDecoration: 'none' }}
+            href={courier.trackingLink}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {words.t('t67Track', { c: name })}
+          </a>
+        ) : null}
+        {courier.trackingLink && courier.trackingCode ? ' · ' : null}
+        {courier.trackingCode ? (
+          <span className="sub" style={{ fontFamily: 'ui-monospace,Menlo,monospace' }}>
+            {courier.trackingCode}
+          </span>
+        ) : null}
+      </span>
+    </div>
+  );
+}
+
 function itemDetail(item: TrackedItem, words: Words): string {
   const options = item.attributes.map((row) => row.value).join(' · ');
   const quantity = quantityText(item.quantity, item.stockUnit, words);
@@ -168,11 +219,24 @@ export function TrackingView({
   const index = STEPS.indexOf(stage);
   // Only a shipped order has one, and a shipped order is returned, never cancelled (ORD-52).
   const { courier } = order;
+  const said = order.courierMessage ? courierWords(order.courierMessage, words) : null;
   const stageWord = `tr_${stage}` as const;
 
   return (
     <>
       {cancelled ? null : <OpenPayment payment={order.payment} words={words} />}
+      {order.status === OrderStatus.PartialDelivered ? (
+        <div className="banner warn">
+          <Icon name="info" />
+          <span>{words.t('t67Partly')}</span>
+        </div>
+      ) : null}
+      {order.courierReturning ? (
+        <div className="banner warn">
+          <Icon name="info" />
+          <span>{words.t('t67Back')}</span>
+        </div>
+      ) : null}
       <div>
         <h1 className="pt">{words.t('tr_title')}</h1>
       </div>
@@ -232,7 +296,9 @@ export function TrackingView({
               })
             )}
           </div>
-          {courier ? (
+          {courier && order.courierMessage && said ? (
+            <CourierNews courier={courier} said={said} at={order.courierMessage.at} words={words} />
+          ) : courier ? (
             <div className="line">
               <Icon name="truck" />
               <span>

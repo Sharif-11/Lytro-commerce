@@ -37,6 +37,7 @@ import type {
   OrderSummaryRow,
   UnnumberedOrder,
 } from '../../modules/orders/types/orders';
+import type { ParcelReading } from '@lytronix/validators';
 import { DatabaseService } from '../database.service';
 
 // ORD-12: what the order guard refuses (migration 0083).
@@ -89,6 +90,14 @@ export class DrizzleOrderStore implements OrderStore {
     orderId: string,
   ): Promise<SelectCourierEvent | null> {
     return this.couriers.latestMessage(tx, tenantId, orderId);
+  }
+
+  async liveParcelReading(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<ParcelReading | null> {
+    return (await this.couriers.liveParcel(tx, tenantId, orderId))?.reading ?? null;
   }
 
   insertComponents(

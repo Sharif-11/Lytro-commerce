@@ -14,7 +14,7 @@ import {
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { CircuitOpen } from '../../../common/circuit-breaker';
 import { SlidingWindow } from '../../../common/sliding-window';
-import { MINUTE_MS } from '../../../common/time';
+import { DAY_MS, MINUTE_MS } from '../../../common/time';
 import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import { SecretBox, SecretPurpose } from '../../shared/secrets/secret-box';
@@ -70,12 +70,24 @@ export interface CourierConnectionView {
   /** CRR-02, D6-3: whether its messages are arriving, none yet, or arriving without the token. */
   messages: CourierMessagesState;
   lastMessageAt: Date | null;
+  /**
+   * CRR-15 (Slice 6.7): when the night check found news no message brought, on a connection whose messages had been arriving;
+   * null once a message has come since.
+   */
+  messagesMissedAt: Date | null;
   /** Read agreed 2026-11-05: where its parcels leave from; null for a courier with no stores, or none chosen yet. */
   pickupStore: { id: string; name: string } | null;
   /** CRR-23, CRR-25 (Slice 6.6): being retired, and the courier the operator suggests instead. */
   retiring: boolean;
   suggestedKey: CourierKey | null;
+  /** Slice 6.7 (c36-back): when the shop was told its courier is back, for [7] days after; null while it is retiring again. */
+  backSince: Date | null;
+  /** D6-11: whether a lost answer can be asked again by the order's number, or must be settled from the courier's panel. */
+  asksByOrderNumber: boolean;
 }
+
+/** Slice 6.7, the user's pick 2026-11-07: how long a shop sees that a courier whose retiring was undone is back. */
+export const COURIER_BACK_SHOWN_DAYS = 7;
 
 /** A connection opened for one call (SEC-09). */
 export interface OpenedConnection {
@@ -138,8 +150,11 @@ export class CourierConnections {
 
   async list(tenantId: string): Promise<CourierConnectionView[]> {
     const states = await this.states();
-    const rows = await this.store.run(tenantId, (tx) => this.store.listConnections(tx, tenantId));
-    return rows.map((row) => this.viewOf(row, states));
+    const { rows, back } = await this.store.run(tenantId, async (tx) => ({
+      rows: await this.store.listConnections(tx, tenantId),
+      back: await this.backOf(tx, tenantId),
+    }));
+    return rows.map((row) => this.viewOf(row, states, back));
   }
 
   /** CRR-02, CRR-03, CRR-04: connects a courier, or replaces its credentials. Refused credentials save nothing. */
@@ -207,7 +222,7 @@ export class CourierConnections {
       );
       // CRR-02: what to paste into the courier's panel; connecting never waits on it.
       const message = await this.messages.makeIfMissing(tx, tenantId, adapter.key, row);
-      return { ...this.viewOf(row, states), message };
+      return { ...this.viewOf(row, states, await this.backOf(tx, tenantId)), message };
     });
   }
 
@@ -253,7 +268,7 @@ export class CourierConnections {
         { type: 'courier', id: row.id },
         { courierKey },
       );
-      return this.viewOf(row, await this.states());
+      return this.viewOf(row, await this.states(), await this.backOf(tx, tenantId));
     });
   }
 
@@ -424,7 +439,11 @@ export class CourierConnections {
         { type: 'courier', id: row.id },
         { courierKey, storeId: store.id },
       );
-      return this.viewOf({ ...row, credentials: sealed }, await this.states());
+      return this.viewOf(
+        { ...row, credentials: sealed },
+        await this.states(),
+        await this.backOf(tx, tenantId),
+      );
     });
   }
 
@@ -442,6 +461,7 @@ export class CourierConnections {
         action: row.action,
         connectionId: row.connectionId,
         orderId: row.orderId,
+        orderNumber: row.orderNumber,
         succeeded: row.succeeded,
         at: row.at,
       })),
@@ -635,15 +655,23 @@ export class CourierConnections {
     return states.get(courierKey)?.state ?? CourierAdapterState.Active;
   }
 
+  /** Slice 6.7 (c36-back): the connections told their courier is back within the days it shows. */
+  private backOf(tx: Transaction, tenantId: string): Promise<Map<string, Date>> {
+    const since = new Date(this.clock().getTime() - COURIER_BACK_SHOWN_DAYS * DAY_MS);
+    return this.store.retiringUndoneSince(tx, tenantId, since);
+  }
+
   private viewOf(
     row: SelectCourierConnection,
     states: Map<CourierKey, SelectCourierAdapter>,
+    back: Map<string, Date>,
   ): CourierConnectionView {
     const platform = states.get(row.courierKey);
     const retiring = platform?.state === CourierAdapterState.Retiring;
+    const adapter = this.adapterOf(row.courierKey);
     return {
       courierKey: row.courierKey,
-      name: this.adapterOf(row.courierKey).name,
+      name: adapter.name,
       isDefault: row.isDefault,
       hasCredentials: true,
       state: row.state,
@@ -655,9 +683,16 @@ export class CourierConnections {
             ? CourierMessagesState.Arriving
             : CourierMessagesState.NoneYet,
       lastMessageAt: row.lastMessageAt,
+      messagesMissedAt:
+        row.pasteWarnedAt !== null &&
+        (row.lastMessageAt === null || row.lastMessageAt < row.pasteWarnedAt)
+          ? row.pasteWarnedAt
+          : null,
       pickupStore: this.storeOf(row),
       retiring,
       suggestedKey: retiring ? platform.suggestedKey : null,
+      backSince: retiring ? null : (back.get(row.id) ?? null),
+      asksByOrderNumber: adapter.lookUp !== undefined,
     };
   }
 

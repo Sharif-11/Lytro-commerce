@@ -1134,7 +1134,11 @@ describeIfDatabase('what a shopper’s tracking shows (CRR-12, read agreed 2026-
   async function tracked(
     shop: ShopClient,
     trackingId: string,
-  ): Promise<{ courierMessage: { en: string | null } | null; status: string }> {
+  ): Promise<{
+    courierMessage: { en: string | null } | null;
+    courierReturning: boolean;
+    status: string;
+  }> {
     const key = await shop.post('/api-keys', { name: 'Tracking', websites: [SITE] });
     expect(key.status, JSON.stringify(key.body)).toBe(201);
     const { key: secret } = key.body as { key: string };
@@ -1144,7 +1148,11 @@ describeIfDatabase('what a shopper’s tracking shows (CRR-12, read agreed 2026-
       authorization: `Bearer ${secret}`,
     });
     expect(answered.status, JSON.stringify(answered.body)).toBe(200);
-    return answered.body as { courierMessage: { en: string | null } | null; status: string };
+    return answered.body as {
+      courierMessage: { en: string | null } | null;
+      courierReturning: boolean;
+      status: string;
+    };
   }
 
   it('shows nothing before it ships, then the latest words, cut short, never a panel’s change', async () => {
@@ -1171,6 +1179,21 @@ describeIfDatabase('what a shopper’s tracking shows (CRR-12, read agreed 2026-
       updated_at: AT,
     });
     expect((await tracked(to.shop, order.trackingId)).courierMessage?.en).toBe('With the rider.');
+  });
+
+  it('says the parcel is going back once its courier says so (Slice 6.7)', async () => {
+    const to = await connectedShop();
+    const lamp = await product(to.shop);
+    const order = await booked(to.shop, await place(to.shop, lamp.variantId));
+    await send(to, messageOf(order, 'pending'));
+    const shipped = await tracked(to.shop, order.trackingId);
+    expect(shipped).toMatchObject({ status: 'shipped', courierReturning: false });
+    // Steadfast's `cancelled` is the parcel coming back; the order stays shipped until staff record the return.
+    await send(to, messageOf(order, 'cancelled'));
+    expect(await tracked(to.shop, order.trackingId)).toMatchObject({
+      status: 'shipped',
+      courierReturning: true,
+    });
   });
 
   it('shows staff the news with where it came from', async () => {

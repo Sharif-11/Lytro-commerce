@@ -1,6 +1,7 @@
 import type {
   CourierAreaFilter,
   CourierAreaRefreshCounts,
+  CourierAreaSummary,
   ListedCourierArea,
   MatchedCourierArea,
   SelectCourierArea,
@@ -15,6 +16,7 @@ export interface CourierAreaStore {
     filter: CourierAreaFilter,
     window: { offset: number; limit: number },
   ): Promise<{ rows: SelectCourierArea[]; total: number }>;
+  summary(courierKey: CourierKey): Promise<CourierAreaSummary>;
   findById(id: string): Promise<SelectCourierArea | null>;
   findByCode(courierKey: CourierKey, areaCode: string): Promise<SelectCourierArea | null>;
   inThana(courierKey: CourierKey, thanaId: number): Promise<SelectCourierArea[]>;

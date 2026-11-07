@@ -146,7 +146,8 @@ test('profit shows only to staff who may see costs; no tax means no tax line', a
   });
   await expect(main(page)).toContainText('৳137,720');
   await expect(main(page)).not.toContainText('had no cost recorded');
-  await expect(main(page)).toContainText("Delivery charges aren't in profit");
+  // Part 36's `sa32ProfitHelp`: delivery is out of profit both ways, each shown on its own.
+  await expect(main(page)).toContainText("Delivery isn't in profit either way");
 });
 
 test('one sale with no cost says so in the singular', async ({ page }) => {

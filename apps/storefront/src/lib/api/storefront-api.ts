@@ -349,6 +349,13 @@ export interface TrackedOrder extends ShopperTotals {
     state: PaymentSessionState;
   } | null;
   courier: { name: string | null; trackingCode: string | null; trackingLink: string | null } | null;
+  /**
+   * CRR-12 (Slice 6.2's read): the courier's latest words about the parcel's journey, in either language it sent, and when; never
+   * before it ships, and never a refusal or a change made in its panel.
+   */
+  courierMessage: { en: string | null; bn: string | null; at: string } | null;
+  /** Slice 6.7 (STOREFRONT-DESIGN §7e): the courier says the parcel is going back, and the shop hasn't recorded it yet. */
+  courierReturning: boolean;
 }
 export type TrackingRead =
   { kind: 'found'; order: TrackedOrder } | { kind: 'missing' } | { kind: 'busy' };

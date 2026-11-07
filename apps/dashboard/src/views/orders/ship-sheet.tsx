@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
 import { formatTaka } from '@lytronix/ui';
 import { Permission, SerialFormat } from '@lytronix/validators';
-import { useCouriers, useHandOver, useOrderSerials, useShip, type SentSerials } from '@/api/orders';
+import { useCouriers, useHandOver, useOrderSerials, useShip } from '@/api/orders';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -18,30 +18,7 @@ import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { Order, OrderSerialItem } from '@/types/orders';
 import { SerialScanner } from '../product/serial-scanner';
-
-/** A serial-numbered part's key: its line, and a combo's component by its variant. */
-const keyOf = (item: Pick<OrderSerialItem, 'lineId' | 'variantId'>) =>
-  `${item.lineId} ${item.variantId}`;
-
-/** The serials picked, as ship and hand-over send them: a combo's by its component's variant, any other by its line. */
-function sentOf(
-  order: Order,
-  items: OrderSerialItem[],
-  picked: Map<string, string[]>,
-): SentSerials[] {
-  return items.map((item) => {
-    const combo = order.items.some((line) => line.id === item.lineId && line.components.length > 0);
-    return {
-      lineId: item.lineId,
-      ...(combo ? { variantId: item.variantId } : {}),
-      serials: picked.get(keyOf(item)) ?? [],
-    };
-  });
-}
-
-/** Every serial-numbered unit has its serial (INV-14). */
-const allPicked = (items: OrderSerialItem[], picked: Map<string, string[]>) =>
-  items.every((item) => (picked.get(keyOf(item)) ?? []).length === Number(item.quantity));
+import { allPicked, keyOf, sentOf } from './serials-sent';
 
 /**
  * INV-23 (Part 34's `o29-ship-entry`): a serial by the camera, a pasted list, or typed, a USB or Bluetooth scanner typing
@@ -131,7 +108,7 @@ function SerialEntry({
 }
 
 /** PYG-03 (Part 34's `o29-ship-balance`): a shipment the balance can't pay the fee for offers Add balance. */
-function ShipRefusal({ error }: { error: unknown }): React.JSX.Element {
+export function ShipRefusal({ error }: { error: unknown }): React.JSX.Element {
   const { t } = useTranslation('orders');
   const errorText = useErrorText();
   const { slug, viewer } = useShell();
@@ -160,7 +137,7 @@ function ShipRefusal({ error }: { error: unknown }): React.JSX.Element {
  * The IMEI of each unit sent (Part 29's `o29-ship-serial`, INV-14): per serial-numbered item, its serials in stock as
  * chips, one picked for each unit, and how many are picked.
  */
-function SerialPicks({
+export function SerialPicks({
   items,
   picked,
   onPick,
@@ -228,7 +205,7 @@ function SerialPicks({
 /**
  * Mark shipped (Part 29's `o29-ship`, ORD-09): the courier typed or picked from the shop's recent ones, a tracking code
  * or link, and each serial-numbered unit's serial; shipping takes the stock out and counts as one of the month's
- * orders (QTA-01). Courier booking from Lytro is Phase 6's, so not shown.
+ * orders (QTA-01). With a courier connected it is Ship by hand, in the more menu (Part 36's `c36-menu`).
  */
 export function ShipSheet({
   order,

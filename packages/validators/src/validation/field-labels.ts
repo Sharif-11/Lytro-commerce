@@ -26,6 +26,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   amountPaid: { en: 'Amount paid', bn: 'পেইড অ্যামাউন্ট' },
   archived: { en: 'Archived', bn: 'আর্কাইভড' },
   areas: { en: 'Areas', bn: 'এলাকা' },
+  attention: { en: 'Needs a look', bn: 'দেখা দরকার' },
   attributeId: { en: 'Attribute', bn: 'অ্যাট্রিবিউট' },
   attributeIds: { en: 'Suggested attributes', bn: 'সাজেস্টেড অ্যাট্রিবিউট' },
   attributes: { en: 'Attributes', bn: 'অ্যাট্রিবিউট' },

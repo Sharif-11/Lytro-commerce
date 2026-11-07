@@ -41,7 +41,9 @@ export const CUSTOMERS_QUERY_KEY = ['customers'] as const;
 /** The list's tabs, the day's work first (agreed in the 4.8a read); the rest sit under More. */
 export const ORDER_TABS = ['pending', 'confirmed', 'hold', 'shipped', 'all'] as const;
 export const MORE_TABS = ['delivered', 'returned', 'cancelled'] as const;
-export const ALL_TABS = [...ORDER_TABS, ...MORE_TABS] as const;
+/** Slice 6.7 (read agreed 2026-11-06): what couriers reported that staff should look at, after the day's tabs. */
+export const LOOK_TAB = 'look' as const;
+export const ALL_TABS = [...ORDER_TABS, LOOK_TAB, ...MORE_TABS] as const;
 export type OrderTab = (typeof ALL_TABS)[number];
 
 /** The visible status (ORD-41) each tab asks for; All asks for none. */
@@ -51,6 +53,7 @@ const STATUS_OF: Record<OrderTab, OrderStatus | null> = {
   hold: OrderStatus.Hold,
   shipped: OrderStatus.Shipped,
   all: null,
+  look: null,
   delivered: OrderStatus.Delivered,
   returned: OrderStatus.Returned,
   cancelled: OrderStatus.Cancelled,
@@ -82,6 +85,7 @@ function query(filter: OrderFilter, extra: Record<string, string>): string {
     ...(filter.reason && filter.tab === 'cancelled' ? { cancelReason: filter.reason } : {}),
     ...(filter.holding ? { variantId: filter.holding } : {}),
     ...(filter.source ? { source: filter.source } : {}),
+    ...(filter.tab === LOOK_TAB ? { attention: 'any' } : {}),
     ...extra,
   }).toString();
 }
@@ -194,7 +198,7 @@ export function useLogCall(id: string) {
 export function useCancelOrder(id: string) {
   const changed = useOrderChanged(true);
   return useMutation({
-    mutationFn: (body: { reason: CancelReason; note?: string }) =>
+    mutationFn: (body: { reason: CancelReason; note?: string; courierCancelled?: boolean }) =>
       tenantSession.client.post<Order>(`/orders/${id}/cancel`, body),
     onSuccess: changed,
   });

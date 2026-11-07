@@ -173,6 +173,16 @@ export function SalesScreen({ search }: { search: SalesSearch }): React.JSX.Elem
               value={formatTaka(data.totals.deliveryCharges ?? '0')}
               note={t('saDeliveryD')}
             />
+            {/* CRR-17 (Part 36's `c36-sales`): what couriers charged, where a courier said, beside what shoppers paid. */}
+            <StatTile
+              label={t('crCourierCharges')}
+              value={formatTaka(data.totals.courierCharges ?? '0')}
+              note={
+                data.totals.unknownCourierCharges
+                  ? t('crCourierChargesD', { count: data.totals.unknownCourierCharges })
+                  : undefined
+              }
+            />
           </StatRow>
           <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns [&>*]:min-w-0">
             <SalesChart bucket={data.bucket} rows={data.buckets} title={titles[data.bucket]} />

@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { addonPayment, drawnPayments, drawnShops, GADGET, RAHIM } from './support/console-data';
+import { retiringCouriers } from './support/courier-mock';
 import {
   CODE,
   EMAIL,
@@ -66,6 +67,63 @@ function press(en: string, bn: string): (page: Page) => Promise<void> {
 }
 
 const RAHIM_PAGE = '/shops/ten-0001';
+const RETIRING: ConsoleState = { couriers: retiringCouriers() };
+const CLEAR: ConsoleState = { couriers: retiringCouriers(0), blocking: [] };
+
+/** A button on RedX's row of the couriers. */
+function onRedx(en: string, bn: string): (page: Page) => Promise<void> {
+  return (page) =>
+    page
+      .locator('main section > div', { hasText: 'RedX' })
+      .getByRole('button', { name: new RegExp(`^(${en}|${bn})$`) })
+      .click();
+}
+
+/** Retire RedX suggesting Pathao, as the sketch draws it; `send` also gives the reason and retires it. */
+function retireRedx(send: boolean): (page: Page) => Promise<void> {
+  return async (page) => {
+    await onRedx('Retire', 'রিটায়ার')(page);
+    await page.locator('dialog select').selectOption('pathao');
+    if (!send) return;
+    await page.locator('dialog textarea').fill('Its API stopped answering');
+    await page.locator('dialog button[type=submit]').click();
+  };
+}
+
+/** One of the area list's chips. */
+function chip(en: string, bn: string): (page: Page) => Promise<void> {
+  return (page) =>
+    page
+      .locator('main')
+      .getByRole('button', { name: new RegExp(`^(${en}|${bn})`) })
+      .first()
+      .click();
+}
+
+/** The two suggestions the sketch draws picked. */
+async function pickTwo(page: Page): Promise<void> {
+  await page.getByRole('checkbox', { name: 'Kakoli(Banani)' }).check();
+  await page.getByRole('checkbox', { name: 'Banasree(Rampura)' }).check();
+}
+
+/** Place Notun Bazar in Badda, as the sketch draws it; `save` saves it. */
+function placeNotunBazar(save: boolean): (page: Page) => Promise<void> {
+  return async (page) => {
+    await chip('No thana', 'থানা নেই')(page);
+    await page
+      .locator('main section > div', { hasText: 'Notun Bazar' })
+      .getByRole('button', { name: /^(Place|বসান)$/ })
+      .click();
+    await page.locator('dialog input[type=search]').fill('Badda');
+    await page.locator('dialog [role=option]').first().click();
+    if (save)
+      await page
+        .locator('dialog')
+        .getByRole('button', { name: /^(Save|সেভ করুন)$/ })
+        .click();
+  };
+}
+
 const PAGE_OFF: ConsoleState = {
   shops: drawnShops().map((each) =>
     each.id === RAHIM
@@ -387,6 +445,121 @@ const PAIRS: Pair[] = [
   { screen: 'later-audit', path: '/audit' },
   { screen: 'later-reports', path: '/reports' },
   { screen: 'later-manual', path: '/manual' },
+  // Phase 6 Slice 6.7 (v4): the couriers, RedX's areas and a shop's courier key log.
+  { screen: 'couriers', path: '/couriers' },
+  { screen: 'courier-retire', path: '/couriers', then: retireRedx(false) },
+  { screen: 'courier-retiring', path: '/couriers', then: retireRedx(true) },
+  {
+    screen: 'courier-undo',
+    path: '/couriers',
+    state: RETIRING,
+    then: onRedx('Undo retiring', 'রিটায়ার বাতিল'),
+  },
+  {
+    screen: 'courier-undone',
+    path: '/couriers',
+    state: RETIRING,
+    then: async (page) => {
+      await onRedx('Undo retiring', 'রিটায়ার বাতিল')(page);
+      await page.locator('dialog textarea').fill('RedX answers again');
+      await page.locator('dialog button[type=submit]').click();
+    },
+  },
+  {
+    screen: 'courier-remove-blocked',
+    path: '/couriers',
+    state: RETIRING,
+    then: onRedx('Remove', 'রিমুভ'),
+  },
+  { screen: 'courier-retiring-clear', path: '/couriers', state: CLEAR },
+  { screen: 'courier-remove', path: '/couriers', state: CLEAR, then: onRedx('Remove', 'রিমুভ') },
+  {
+    screen: 'courier-removed',
+    path: '/couriers',
+    state: CLEAR,
+    then: async (page) => {
+      await onRedx('Remove', 'রিমুভ')(page);
+      await page.locator('dialog textarea').fill('Nothing waits on it');
+      await page.locator('dialog button[type=submit]').click();
+    },
+  },
+  {
+    screen: 'couriers-error',
+    path: '/couriers',
+    state: { failing: { '/operator/couriers': 503 } },
+  },
+  { screen: 'courier-areas', path: '/couriers/redx-areas', then: pickTwo },
+  { screen: 'courier-areas-all', path: '/couriers/redx-areas', then: chip('All', 'সব') },
+  {
+    screen: 'courier-areas-unassigned',
+    path: '/couriers/redx-areas',
+    then: chip('No thana', 'থানা নেই'),
+  },
+  {
+    screen: 'courier-areas-assigned',
+    path: '/couriers/redx-areas',
+    then: chip('In a thana', 'থানায় আছে'),
+  },
+  {
+    screen: 'courier-areas-retired',
+    path: '/couriers/redx-areas',
+    then: chip('Retired by RedX', 'RedX বাদ দিয়েছে'),
+  },
+  {
+    screen: 'courier-areas-notoken',
+    path: '/couriers/redx-areas',
+    state: {
+      areaToken: false,
+      areas: [],
+      areasRead: null,
+      areaCounts: { all: 0, suggested: 0, unassigned: 0, assigned: 0, retired: 0 },
+    },
+  },
+  {
+    screen: 'courier-areas-confirm',
+    path: '/couriers/redx-areas',
+    then: async (page) => {
+      await pickTwo(page);
+      await press('Confirm 2', '2টা কনফার্ম করুন')(page);
+    },
+  },
+  {
+    screen: 'courier-areas-confirmed',
+    path: '/couriers/redx-areas',
+    then: async (page) => {
+      await pickTwo(page);
+      await press('Confirm 2', '2টা কনফার্ম করুন')(page);
+      await page.locator('dialog button[type=submit]').click();
+    },
+  },
+  {
+    screen: 'courier-areas-refreshed',
+    path: '/couriers/redx-areas',
+    then: press('Refresh now', 'এখনই রিফ্রেশ করুন'),
+  },
+  { screen: 'courier-area-place', path: '/couriers/redx-areas', then: placeNotunBazar(false) },
+  { screen: 'courier-area-placed', path: '/couriers/redx-areas', then: placeNotunBazar(true) },
+  {
+    screen: 'courier-area-change',
+    path: '/couriers/redx-areas',
+    then: async (page) => {
+      await chip('In a thana', 'থানায় আছে')(page);
+      await page
+        .locator('main section > div', { hasText: 'Bashundhara R/A' })
+        .getByRole('button', { name: /^(Change|বদলান)$/ })
+        .click();
+    },
+  },
+  {
+    screen: 'tenant-courier-card',
+    path: RAHIM_PAGE,
+    then: (page) =>
+      page
+        .getByRole('button', { name: /^(Open the log|লগ খুলুন)$/ })
+        .last()
+        .scrollIntoViewIfNeeded(),
+  },
+  { screen: 'tenant-courier-log', path: `${RAHIM_PAGE}/courier-keys` },
 ];
 
 const DEVICES: Device[] = ['phone', 'desktop', 'tablet'];

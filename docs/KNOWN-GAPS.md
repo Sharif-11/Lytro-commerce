@@ -2170,6 +2170,16 @@ before "placed". Both are true and both are charged; only their order is off.
 
 Slice 7.6 chose Gemini 3.5 Flash-Lite on 21 made-up messages written for its read (104 of 105 fields right), and three of them went through the built adapter. The Gemini key given for the read is on Google's free tier, where Google may use what it is sent and people may read it, so no real customer's message has gone to Gemini (D7-18). Before launch the owner turns billing on for the key's project, and a set of real messages, names and numbers changed, is read: the slice's done-when, and the check that 0.10 TK a read (D7-36) still covers what a real message costs. The free tier also held reads to a few a minute, so how fast a read is on the paid tier is unmeasured too. A shop's reads a minute and Gemini's circuit are kept in memory, exact while there is one server, as §119 says of the others.
 
+## 126. `CRR-23` to `CRR-25`, `D6-11`: what Slice 6.7's screens can't yet say — found 2026-11-07, open
+
+The screens for Phase 6 are built to the sketch, apart from these:
+
+- **Retiring's numbers.** The console's Retire panel can't preview how shops' defaults would split between the suggested courier and the oldest other one; the server only counts the shops it is the default for, so the panel says how many and the rule, not the split. Undo can't say how many defaults had moved, which stay moved. Both need the server to count before and after.
+- **The paste steps' menu words** are the sketch's, written from the couriers' documents. Nobody has walked them in a live Steadfast, Pathao or RedX panel; the first real connection of each should.
+- **Track on the courier's site** shows only where the adapter gives a link, which today is Steadfast alone, and §123 found Steadfast's own link differs from the one Lytro builds.
+- **Sync's "the saved answer"** is inferred on the dashboard from no newer news arriving; the answer doesn't say whether it came from the courier or from the last ask.
+- **The bell's notice** (`c36-notice`) isn't built. Slice 7.3 sends the courier notices; Slice 7.7 draws the bell.
+
 ## 127. `NTF-06`, `I18N-03`, `D7-41`: what Lytro's email can't yet do — found 2026-11-07, open
 
 Slice 7.3 writes every email to an owner in the language they chose. The same notices also go to the owner by SMS
@@ -2184,4 +2194,3 @@ over about 81 minutes and then gives up, so on a busy day some notices would nev
 A bounce Resend calls temporary is never recorded, so an address that bounces temporarily every time is never stopped.
 
 A push that fails is never tried again, since the bell already has the notice and a retry could push it twice to the browsers that took it. A browser whose push service is down for a while misses those pushes; after 10 failures in a row it is forgotten and must subscribe again. NTF-02's "the test arrives" can only be seen once Slice 7.7 adds the dashboard's service worker that shows a push, and on an iPhone only once the dashboard is on the Home Screen.
-

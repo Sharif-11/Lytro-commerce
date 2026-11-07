@@ -53,6 +53,7 @@ import { drawnShopPayments, shopPaymentsAnswer, type ShopPaymentsFixture } from 
 import { figuresAnswer, shopBatchesAnswer, stockPageAnswer, stockRead, stockWrite } from './stock';
 import { customerIdOf, customersAnswer, drawnCustomers, type CustomersFixture } from './customers';
 import { homeOrders, meghOrders, ordersAnswer, type OrdersFixture } from './orders';
+import { couriersAnswer, type CouriersFixture } from './couriers';
 import { purchasingAnswer } from './purchases';
 import { checksAnswer } from './stock-checks';
 import { variantRead } from './variants';
@@ -167,6 +168,8 @@ export interface ShopState {
   orders?: OrdersFixture | null;
   /** Slice 4.8b: the shop's customers; the six Part 30 draws unless a test gives its own. */
   customers?: CustomersFixture | null;
+  /** Phase 6: the shop's couriers; none connected unless a test gives its own (drawnCouriers is Part 36's). */
+  couriers?: CouriersFixture | null;
   /** GET /home's other parts where they differ from the working shop's. */
   home?: Record<string, unknown>;
   money?: MoneyState;
@@ -353,6 +356,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     delivery: null,
     orders: null,
     customers: null,
+    couriers: null,
     stock: { low: 1, out: 1 },
     home: {},
     ...given,
@@ -1111,6 +1115,23 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       });
     }
     if (incoming) return ok(incoming.data);
+    // Phase 6: the shop's couriers and their payouts.
+    const couriers = couriersAnswer(
+      method,
+      path,
+      url,
+      request.postDataJSON() as Record<string, unknown> | null,
+      (state.couriers ??= { connections: [] }),
+    );
+    if (couriers && 'refused' in couriers) {
+      const { status, code, message, details } = couriers.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details),
+      });
+    }
+    if (couriers) return ok(couriers.data);
     // Slice 4.8a: the orders, read and changed.
     const ordered = ordersAnswer(
       method,

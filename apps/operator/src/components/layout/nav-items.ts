@@ -12,6 +12,7 @@ export type ConsolePath =
   | '/settings'
   | '/wallets'
   | '/phones'
+  | '/couriers'
   | '/catalogue/shop-types'
   | '/catalogue/attributes'
   | '/catalogue/option-sets'
@@ -65,6 +66,7 @@ export const navGroups: NavGroup[] = [
       { to: '/settings', labelKey: 'nav.settings', icon: 'settings' },
       { to: '/wallets', labelKey: 'nav.wallets', icon: 'wallet' },
       { to: '/phones', labelKey: 'nav.phones', icon: 'phone' },
+      { to: '/couriers', labelKey: 'nav.couriers', icon: 'truck' },
     ],
   },
   {
