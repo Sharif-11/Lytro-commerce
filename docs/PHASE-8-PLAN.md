@@ -214,7 +214,7 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   shop's request hits recorded for 7 days (D8-3), with a job that clears older rows.
 - **Built** (read agreed 2026-11-07, D8-21 to D8-23): the ID is made before anything else runs, so a 404, a 413 and
   the public API's hosts carry one too, and the server's logger writes it after each line's context. A 500 or 503
-  for a known shop is kept in `control.request_errors` (migration 0117) after the answer is decided, so a failure to
+  for a known shop is kept in `control.request_errors` (migration 0118) after the answer is decided, so a failure to
   keep it never changes the answer; a nightly job clears what's past 7 days. The shop page's reads come with 8.2.
 
 ### Slice 8.2: finding and reading a shop

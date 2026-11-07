@@ -2977,7 +2977,7 @@ CREATE TABLE control.job_heartbeats (                        -- MON-04/OBS-02
     server_id       text
 );
 
--- API-27, D8-3, D8-21 to D8-23 (Phase 8 Slice 8.1, built in migration 0117): each server fault a shop's request
+-- API-27, D8-3, D8-21 to D8-23 (Phase 8 Slice 8.1, built in migration 0118): each server fault a shop's request
 -- hit, for the operator's shop page (ADM-03). Server faults only, kept 7 days and cleared nightly. Never a
 -- message, a body, a phone or a token: those stay in the server log under the same request ID.
 CREATE TABLE control.request_errors (
