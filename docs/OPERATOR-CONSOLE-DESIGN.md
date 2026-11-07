@@ -1,4 +1,4 @@
-# Operator console: design (v4)
+# Operator console: design (v5)
 
 The console at `admin.lytro.app` (`apps/operator`, D3-12), redesigned from scratch on 2026-10-21. Version 1
 (2026-10-19, inverted dark chrome) is retired; nothing from it or from the old `apps/admin` console was
@@ -15,6 +15,12 @@ order `PHASE-5-PLAN.md` Slice 5.8 records.
 Version 4 (2026-11-06, Phase 6 Slice 6.7's sketch) adds the couriers (§10b): the three couriers with retiring, undoing it
 and removing one once nothing waits on it, as Slice 6.6's read agreed; RedX's areas placed in thanas (Slice 6.4); and a
 shop's courier key log (§5). They are drawn before Slice 6.6's routes exist; §15 lists what the build needs.
+
+Version 5 (2026-11-07, Phase 7 Slice 7.7's sketch) adds the notices to shops (§10c, NTC-01 to NTC-19) from Slice 7.4's
+routes, makes the Rates page's rate-change notice offer real (§8, RAT-09, NTC-13), places Phase 7's five settings and
+Phase 6's four courier settings on Settings (§9), lets the add-on catalogue make and edit an allowance (§6a, D7-17,
+D7-36), and brings back the sentences D7-20 names wherever the code now sends the message (§4, §5). §15 lists what the
+build needs, and two things the allowance's drawing found.
 
 **Who and where.** One or two people, mostly at a laptop, several times a day: matching wallet payments
 against the bKash and Nagad statements, answering sellers, and occasionally changing a price or a limit.
@@ -62,8 +68,8 @@ in the top bar; Bangla copy uses the commerce vernacular the dashboard uses.
 **Desktop (1024 px and up).** A 248 px sidebar: the ink head with the eyebrow and wordmark, then the
 destinations in groups by how often they are opened: *Daily* (Today, Payment queue with its count, Page reports with
 its count, Shops), *Pricing* (Plans and prices, Billing terms, Rates, Add-ons), *Platform* (Settings, Platform
-wallets, Lytro's phones), *Catalogue* (Shop types, Attribute library, Option sets), *Later* (Reports, Audit log,
-Support inbox, Notices, Verification, Manual payments, each greyed with "soon"), and the foot with the operator's
+wallets, Lytro's phones, Couriers, Notices), *Catalogue* (Shop types, Attribute library, Option sets), *Later*
+(Reports, Audit log, Support inbox, Verification, Manual payments, each greyed with "soon"), and the foot with the operator's
 email, Account and Sign out. The top bar holds the shop search with the `/` hint, the environment chip and
 the language toggle. Content is at most 1120 px wide.
 
@@ -123,9 +129,11 @@ whichever step it locked; the button returns when the server would answer again,
   number with TrxID in monospace, and the wallet once a receipt has seen the money (a seller names no wallet when paying Lytro); waiting time; the status chip; Approve and Reject. The row opens
   the payment panel with the same facts and the sentence "Match this against the wallet statement before
   approving."
-- **Approve** (panel): the consequence in one sentence, "*Sadia Collection* goes on *Starter* for 1 month,
-  active until *19 Nov 2026*. The invoice is issued and the owner is told by SMS. Approving twice has no
-  second effect." (ADM-06); for a top-up, "*৳500* is credited to the balance, once." A needs-review payment
+- **Approve** (panel): the consequence in one sentence, "*Sadia Collection* goes on *Starter* for 1 month. The
+  invoice is issued and the owner is told in the dashboard, and by SMS and email where they have them. Approving twice
+  has no second effect." (ADM-06). The telling is true again from v5 (D7-20): issuing the invoice sends the owner an SMS
+  when they have a phone, and email, the bell and push (`plan-invoicing.service.ts`). The period's end stays out, since
+  the server doesn't give it before acting; for a top-up, "*৳500* is credited to the balance, once." A needs-review payment
   says it accepts what arrived against the quote and activates anyway, with the amount that arrived in a field,
   to change only if the statement says otherwise (ADM-06, BIL-06). The button is "Approve ৳448". The toast names
   the shop and the plan.
@@ -133,8 +141,9 @@ whichever step it locked; the button returns when the server would answer again,
   sender, an old receipt, a used TrxID, a closed request), then what was quoted, what the seller says
   they sent and what a receipt says arrived.
 - **Put it on the balance** (BIL-06): for a plan, upgrade or add-on, from the payment panel. Nothing is activated,
-  the money goes on the balance once, the add-ons on it are cancelled and the owner is told. The amount is needed
-  when no receipt says. A top-up has no such action.
+  the money goes on the balance once, and the add-ons on it are cancelled. Nothing tells the owner (checked for v5: no
+  notice is written), so the panel doesn't say so. The amount is needed when no receipt says. A top-up has no such
+  action.
 - **Reject** (panel): nothing is credited, the seller reads the note on the plan page and can submit again;
   the note field; "Reject with note".
 - Empty: "Nothing waiting. New wallet payments appear here when a seller submits a TrxID. Ones a Lytro phone
@@ -174,7 +183,9 @@ whichever step it locked; the button returns when the server would answer again,
   login, read payouts), paged.
 - **Listener phones** card (LSN-20): "1 of 1" against the plan's limit, then each phone's name, model, app version,
   last seen, today's count, state and flags, with Revoke (LSN-19) and Block (LSN-21). Block names the installation
-  and takes a reason: it pairs with no shop again and every phone on it is revoked.
+  and takes a reason: it pairs with no shop again and every phone on it is revoked. From v5 both panels say the shop is
+  told in its dashboard, the owner and the staff who manage its phones, in the bell and by push (D7-20: Lytro revoking a
+  shop's phone now writes that notification). Lytro's own phones have no shop to tell, so their panels don't.
 - **Add-ons** and **Effective limits** cards (PLN-13): what is running, how it was paid and whether it renews; what
   is left of the packs and whether auto-buy is on; each limit as its plan's value, or the override that replaces it
   (PLN-11), plus add-ons.
@@ -219,6 +230,16 @@ its end. How many a shop may buy at once is one rule for every item (`ADDON_QUAN
 Retire is its own dialog, with no way back: no shop can buy it from now, the running ones continue and do not renew, and
 their owners see that in their dashboards. A paid add-on waits in the queue like a plan payment.
 
+**Allowances** (v5; D7-17, D7-36, PLN-20): a fourth kind. The first, *Address reads from messages* (`address_reads_200`,
+200 reads at ৳20 a month), sits in the table with a grey Allowance chip, "Address reads" as what it covers and 200 as its
+unit. Its panel names the service it covers in place of the limit it raises (address reads, the only one; fraud checks
+join once they have a price, D7-7), the uses one unit gives and the price, after the consequence that a price change
+applies from now on, and that only a shop in a paid period can buy it, its uses taken before the balance until the period
+ends. Under the price: at the rate, 200 reads cost ৳20.00, the same price, no discount. Kind and service are fixed once
+made; a new allowance's key can be refused as taken. The kind select in the generic panel no longer says "soon", and the
+catalogue's rule sentence says what an allowance does in place of "Allowances arrive with Phase 7". It doesn't promise
+that an allowance renews with the plan: see §15.
+
 ## 7. Billing terms (`/billing-terms`)
 
 A table: the term with its Bangla label, months, the visible switch that saves at once, the pre-fill
@@ -232,19 +253,32 @@ that states how many invoices keep the term.
 
 One row per rate: its name, its unit in words, the effective-from date, the value large, Change and History.
 Change edits inline in the row with a reason (ADM-11), Save and Cancel (`PATCH /operator/rates/:key`, two decimals,
-RAT-08); saving shows the toast "Applies from the next charge" and opens the rate-change notice offer under the row,
-marked "soon" until NTC-13. History expands under the row: old → new, date, who, notice or none. The nine rates
-include the listener's and the gateway's verification fees (RAT-15, RAT-16).
+RAT-08); saving shows the toast "Applies from the next charge" and opens the rate-change notice offer under the row
+(v5; RAT-09, NTC-13): "Tell shops about this change?", the title the rate-change template writes from it, that the
+history says whether one was published, **Write the notice** (§10c's editor, filled from the change) and **No notice**.
+History expands under the row: old → new, date, who, then "notice published", opening it, or "no notice" with **Write
+one**, since a template can be filled from any change. Values show the two decimals they are stored with. The nine rates
+shown include the listener's and the gateway's verification fees (RAT-15, RAT-16) and, from v5, an address read from a
+message (`ai_extraction`, ৳0.10, D7-36); the chat reply's rate isn't shown while chat is out (D7-16). The sketch's figures
+follow Phase 7: the fake-order check ৳0.00 at launch (D7-7), the SMS part 67 characters (D7-25).
 
 ## 9. Settings (`/settings`)
 
-All 28 values from `/operator/settings`, in nine groups with a chip row to jump between them: *Trial and top-up*;
+All 37 values from `/operator/settings` (v5), in thirteen groups with a chip row to jump between them, wrapping from
+640 px: *Trial and top-up*;
 *Lifecycle after a paid period ends* (LIF-26); *Orders and stock*; *Requests and limits*; *Online payments* (the
 new-shop cap, TVR-04); *Listener phones* (offline window, oldest app, the sender list); *Media*; *Catalogue in the
-shopper's browser* (CCH-03); *Terms and privacy* (LEG-01). Each row shows the server's description, the last change
+shopper's browser* (CCH-03); *Terms and privacy* (LEG-01); and from v5 *Couriers* (Phase 6's four, which the page had
+left off: how old a parcel must be and how long quiet before the night check asks, when a parcel stops being checked, and
+how long Sync shows its saved answer; CRR-14, CRR-15), *Reading delivery details* (the AI, Gemini the only choice, with
+the sentence that another needs its adapter first; its model, whose change warns that a name Gemini doesn't know makes
+every read fail until it is put back, a failed read costing a shop nothing; how many reads a shop may make a minute;
+AI-10, ORD-33), *Fraud checks* (how many a shop may run a minute, FRD-07) and *Notifications* (how many days the bell
+keeps one, D7-39, whose change says the older ones go in every shop at the next nightly clean-up). Each row shows the server's description, the last change
 and who made it, the value large with its unit, and Change, which edits inline with a reason field (ADM-11). The
 sender list edits one per line, the order limit is a choice of two, and a terms or privacy version warns that it
-changes the same day new text is published. The side card "What these numbers do" draws the
+changes the same day new text is published. A value the server refuses (not a whole number of 1 or more) says so under
+the field, and nothing is saved. The side card "What these numbers do" draws the
 timeline the current values produce, from the period end through grace, read-only, locked and archived to
 the deletion day, so a change is checked against its effect before it is saved.
 
@@ -314,6 +348,85 @@ CUS-10). Two tabs under one navigation item in Platform, as Lytro's phones has.
   until it is set and the list has been read once; Refresh now disabled; the empty table says to set the token, then
   refresh.
 
+## 10c. Notices (`/notices`, `/notices/new`, `/notices/:id`, `/notices/:id/acknowledgments`)
+
+**Job:** tell shops what Lytro is changing or what is wrong, and see who heard (NTC-01 to NTC-19). Drawn in v5 from Slice
+7.4's routes and its read (D7-53 to D7-59); the dashboard's board, marquee, prompt and countdown are the dashboard
+sketch's. One navigation item in Platform, out of Later.
+
+- **List** (`GET /operator/notices`): newest written first; a search over the words and category chips (All, Rate change,
+  Maintenance, New feature, Policy, Security, General), both served by the route's query. One row per notice: the title in
+  the operator's language, or the other when it has only one, with a pin when pinned; under it the category, "updated 6
+  Nov" after a live edit, and "English only" or "Bangla only"; Shows as (Info, Important, Urgent, plain chips); the
+  audience in words ("All shops", "Plans: Starter, Growth, Pro", "States: …", "One shop: Dhaka Gadget House"); where it
+  stands, read from its times as the server reads it (Draft "not sent", Scheduled "goes live 8 Nov, 10:00", Live "since
+  …", Ended "ended …", Withdrawn "withdrawn …"); and sent and read ("212 shops · 147 read", with "41 of 212 said I
+  understand" when it asks). A withdrawn row is faded. Empty: write one from blank or a template. Under the table:
+  "Newest written first. A shop's board keeps the last 24 months."
+- **New notice** (panel, NTC-12): Blank, or a template, each with what it fills: Rate change (pick one of the recent
+  changes, each marked "no notice" or not, or type the rate and values), Maintenance (the window's start and end), Outage
+  (urgent, since when), Policy update (asks for "I understand"). Continue opens the editor filled by `POST
+  /operator/notices/template` with the template's own words in both languages, its gaps written "…" for the operator.
+- **Editor** (a page, not a panel: it is long, and a half-written notice mustn't close with a tap outside). Two columns
+  on desktop, one on a phone.
+  - *Words*: Bangla and English as tabs, each marked whole (a tick), empty, or "!" when refused; the title with a "45 /
+    120" counter and the body with "130 / 5,000"; the format line (bold, an https link, "- " for a list, a blank line for a
+    paragraph, nothing else; D7-53); that one language whole is enough, or, on an English-only draft, that Bangla readers
+    see the English (NTC-15, D7-57).
+  - *Preview*: the notice as a shop's board shows it in the tab's language, rendered by the server's own renderer
+    (`renderNoticeMarkdown` in validators: escaped, then bold, https links, lists), with its severity and category,
+    "updated" once edited live, "From Lytro" and the day. Above it, for important, "Also shown once at each person's next
+    sign-in"; for urgent, the scrolling strip "Also on every page, scrolling, until closed". The card's exact look follows
+    the dashboard sketch's notice card at build.
+  - *What it is*: category; Shows as, three choices, each saying what it does to shops (D7-54, D7-56): Info is on the
+    board, in the bell and by push to the owner and the staff who read notices; Important is also a prompt at each person's
+    next sign-in until read or closed, and an email to the owner; Urgent also scrolls across the top of every dashboard
+    page until each person closes it, and an email to the owner.
+  - *Who and when*: the audience (all shops; chosen plans as chips; chosen states; one shop, with a search) and the
+    sentence that it is read when a shop looks, only the shops in it at going live are sent it, and an archived shop sees
+    urgent ones only (NTC-02, NTC-07, D7-59); goes live: not yet (a draft), now, or at a time, sent within a minute of it,
+    Dhaka time (NTC-11); an optional end, when it leaves every board; on a maintenance notice only, the window's start and
+    end with the countdown sentence (D7-55); pinned; asks for "I understand", pressed by the owner once for the shop, staff
+    getting no button (NTC-05).
+  - Buttons: Save draft, then Schedule… or Publish… by the time chosen. No reason field: the API takes none, and the
+    audit log records every create, edit and withdrawal (NTC-17).
+- **Schedule** or **Publish** (panel): "Within a minute of 8 Nov, 10:00, it goes to the 212 shops in the audience: in the
+  bell and by push to each owner and the staff who read notices, and by email to the owners", then, by severity, the
+  prompt or the marquee sentence, and for maintenance when the countdown ends; a green block "No SMS is sent and no balance
+  moves" (NTC-06); and that until then anything can change, while once live an edit is marked updated and nothing is sent
+  again. The button names the time ("Schedule for 8 Nov, 10:00") or says "Publish now". Toasts: "Scheduled for … Nothing
+  is sent before then.", "Published. It reaches shops within a minute.", "Saved as a draft. Nothing was sent."
+- **A notice** (page): the title, where it stands, severity, category and "updated"; Who said I understand, Edit and
+  Withdraw while scheduled or live, nothing once ended or withdrawn. Once it went live, four figures (NTC-09): shops sent
+  (the audience at going live), people told (bell and push), read, and said I understand with "171 shops still to",
+  flagged in marigold and opening the list, or "Not asked". Both languages as written, or "Not written. Readers of this
+  language see the other one." Earlier versions (NTC-08): "Replaced 6 Nov, 09:12 by ops@lytro.app" with Show, which opens
+  that version's words in both languages. The facts: audience, went or goes live, ends, the window, pinned, "I
+  understand", email (to owners, or none for info), the rate change it tells of (opening the rate's history) and who wrote
+  it. A scheduled notice says nothing has been sent and it can change until its time; an ended one that it left every
+  board then; a withdrawn one that no shop sees it, it is kept with its versions and counts, and it can't be edited or
+  published again.
+- **Editing a live notice**: the same editor under a warning: saving marks it "updated" on the board and keeps the version
+  it replaces; nothing is sent again. Its go-live time shows fixed (the server refuses a change: `NoticePublishTimeFixed`).
+  The toast says it was saved and nothing was sent again.
+- **Withdraw** (panel): it disappears from every shop's board at once, with its banner and prompt; it stays here with its
+  versions and counts; it can't be edited or published again (`NoticeWithdrawnAlready`); the audit log records who and
+  when. A danger button and no reason, as the API takes none. Toast: "Withdrawn. No shop sees it now."
+- **Who said I understand** (`GET /operator/notices/:id/acknowledgments`, NTC-05): chips Still to (171) and Said I
+  understand (41), a search by shop name or address over the lists the route returns whole, then the shops with their
+  address and, on the second, "The owner, 5 Nov, 11:40". The sentence: only the owner can say it, once for the shop; "still
+  to" is read now, so a shop that joined the audience after it went live is listed though it wasn't sent it. Empty:
+  "Every shop has said it", or "No shop has said it yet", owners seeing the button on the notice in their dashboard.
+- **From a rate change** (RAT-09, NTC-13): the rate's offer (§8) opens the editor filled from that change, under the
+  banner "From the rate change of 7 Nov: SMS, per part, ৳0.55 → ৳0.65. Publishing links this notice to that change, and the
+  rate's history says so." Publishing returns to Rates, the history now saying "notice published", with the toast
+  "Published. The rate change now links to it."
+- **Refusals**, each under "Nothing was saved. Fix what's marked, then save again.": nothing in either language ("Write a
+  title and a body in Bangla, English or both", D7-57); a title over 120 or a body over 5,000 characters, the counter in
+  red; a link that isn't https; a language with a title but no body ("The English has a title but no body. Add the body,
+  or clear the title."). The server also refuses an end before the go-live time and a window that isn't on a maintenance
+  notice or has one end only; those messages sit under their fields.
+
 ## 11. Catalogue
 
 **Shop types** (`/catalogue/shop-types`, PST-02 to PST-05): one row per preset: labels in both languages
@@ -347,8 +460,8 @@ codes stay on screen through Escape or a tap outside, since nothing can show the
 
 Drawn under their own sidebar group, each as a page with the "Not built yet" banner, the requirement id
 and the sentence on what it will hold, over a dashed sketch of its table or form: Reports (ADM-09), Audit
-log (ADM-08), Support inbox (SUP-04, SUP-05), Notices (NTC-01 to NTC-20), Verification queue (KYC-07,
-KYC-09), Manual payments and claims (ADM-14 to ADM-17). Gateway credentials
+log (ADM-08), Support inbox (SUP-04, SUP-05), Verification queue (KYC-07, KYC-09), Manual payments and claims (ADM-14 to
+ADM-17). Notices left Later in v5 (§10c); only NTC-20's secret keys wait, with Phase 8's shop API. Gateway credentials
 (ADM-10), view-as (ADM-05), the shop detail facts (ADM-03) and the identity request (KYC-01) are dashed
 cards on the screens they belong to.
 
@@ -365,14 +478,15 @@ cards on the screens they belong to.
 | Phones | `tenants/:id/listener-devices`, `listener-devices/:id/revoke`, `listener-installations/block`; `lytro-listener/pairing-codes`, `devices`, `receipts`; `listener-unread` | §5, §10a | |
 | Credentials | `tenants/:id/gateway-credential-uses`, `tenants/:id/courier-credential-uses` | §5 | export for a dispute (SEC-11) |
 | Couriers | `GET /operator/courier-areas`, `PUT /:id`, `POST confirm`, `POST refresh` | §10b | retiring, undoing and removing, until Slice 6.6 builds them |
-| Add-ons | `GET/POST/PATCH /operator/addons`, `retire` | §6a | |
+| Add-ons | `GET/POST/PATCH /operator/addons`, `retire`; the allowance kind and its service (Slice 7.6) | §6a | |
+| Notices | Slice 7.4's `GET`, `POST`, `PATCH /operator/notices`, `POST template`, `GET :id` with its versions, `POST :id/withdraw`, `GET :id/acknowledgments` (on `feat/notice-board`, not yet on main when v5 was drawn) | §10c | NTC-20's secret keys (Phase 8) |
 | Plans | `GET/POST/PATCH/DELETE /operator/plans`, `versions`, prices per term | §6 | |
 | Billing terms | `GET/POST/PATCH /operator/billing-terms`, `retire`, `DELETE` | §7 | |
-| Rates | `GET /operator/rates`, `history`, `PATCH` | §8 | NTC-13 notice offer |
+| Rates | `GET /operator/rates`, `history` (with each change's `noticeId`), `PATCH` | §8, with the NTC-13 offer from v5 | |
 | Settings | `GET /operator/settings`, `PATCH /:key` | §9 | |
 | Wallets | `GET/POST/PATCH/DELETE /operator/platform-wallets` | §10 | ADM-10 gateways |
 | Catalogue | `GET/PATCH /operator/presets`, attributes and options, option sets | §11 | |
-| Reports, audit, inbox, notices, verification | nothing | | §13 |
+| Reports, audit, inbox, verification | nothing | | §13 |
 
 ## 15. Backend additions this design needs
 
@@ -406,7 +520,7 @@ Still to come, with the screens that need them:
 | Need | Where | Why |
 | --- | --- | --- |
 | Shops per attribute | catalogue | "Used by 412 shops"; not built: a shop's attributes sit behind row security (KNOWN-GAPS §116). |
-| ADM-03, ADM-08, ADM-09, ADM-14, NTC, KYC, SUP | later phases | Placeholders are drawn, nothing more. |
+| ADM-03, ADM-08, ADM-09, ADM-14, KYC, SUP | later phases | Placeholders are drawn, nothing more. |
 
 For the couriers (v4), with Slice 6.6 and Slice 6.7's build:
 
@@ -420,6 +534,27 @@ For the couriers (v4), with Slice 6.6 and Slice 6.7's build:
 | Counts by state, when the list was last read, and whether Lytro's token is set | `GET /operator/courier-areas` | The chips and the header; today it answers only the page and its total. |
 | The thanas with their districts, for the place panel | the locations the shops' address forms read | The operator has no route of its own for them yet. |
 | The order's number on each courier key log row | `GET /operator/tenants/:id/courier-credential-uses` | It answers the order's id only. |
+
+For Phase 7 (v5), with Slice 7.7's build:
+
+| Need | Route | Why |
+| --- | --- | --- |
+| How many shops an audience reaches now, before publishing | a count beside `POST /operator/notices`, or on a draft | The publish panel's "212 shops"; the routes count only what was sent. |
+| Who wrote a notice and who replaced each version, as an email | `createdByEmail`, `versions[].editedByEmail` on `GET /operator/notices/:id` | They answer an operator's id, as settings and rates once did. |
+| The new change's id when a rate is saved | `PATCH /operator/rates/:key` answering the history row's `id` | The offer fills its template from that change (`rateChangeId`); otherwise the console reads the history again. |
+| Each recent change's rate-history id | `GET /operator/recent-changes` | The template's change picker in one read across every rate; until then a history read per rate, as Rates does. Its `id` today is the audit entry's. |
+| Phase 6's four courier settings and Phase 7's five on the page | `apps/operator` `lib/setting-shapes.ts` | The server serves all 37; the console's list stops at 28. No server change. |
+| The rate change's link to its notice | Slice 7.4's publish writing `rate_history.notice_id` | Built on `feat/notice-board`, whose migration grants `UPDATE (notice_id)`. |
+
+Found while drawing the allowance, for the owner to decide (neither is screen data):
+
+- **An allowance doesn't renew with the plan.** `renewalBar` (`addon-renewal.service.ts`) asks whether an add-on's
+  `limitKey` is a usage limit the next plan still caps. `address_reads` isn't one, so an allowance always reads as
+  "unlimited" and is never carried into the next period, while PLN-20 says allowances renew with the plan. §6a promises
+  no renewal until this is settled.
+- **"200 reads 20 tk per month" isn't per month on a longer term.** An allowance's uses are its quantity times its unit
+  size for the whole purchase, while its price is the monthly price times the term's months (`addonPrice`), so a shop on a
+  6-month term would pay ৳120 for 200 reads. Either the uses multiply by the term's months or they start again each month.
 
 ## 16. Mapping onto `apps/operator`
 
@@ -441,7 +576,8 @@ For the couriers (v4), with Slice 6.6 and Slice 6.7's build:
 | Attribute library | `/catalogue/attributes` | `views/attributes` (+ `attribute-panels.tsx`) |
 | Option sets | `/catalogue/option-sets` | `views/option-sets` (+ `set-panel.tsx`) |
 | Account | `/account` | `views/account` (+ `codes-panel.tsx`) |
-| Later | `/reports`, `/audit`, `/inbox`, `/notices`, `/verification`, `/manual` | one `views/later` page fed by a list of requirement ids |
+| Notices | `/notices`, `/notices/new`, `/notices/$id`, `/notices/$id/edit`, `/notices/$id/acknowledgments` | `views/notices` (+ `notice-list.tsx`, `start-panel.tsx`, `notice-editor.tsx`, `notice-preview.tsx` on the shared `renderNoticeMarkdown`, `publish-panel.tsx`, `notice-page.tsx`, `withdraw-panel.tsx`, `acknowledgments.tsx`) |
+| Later | `/reports`, `/audit`, `/inbox`, `/verification`, `/manual` | one `views/later` page fed by a list of requirement ids |
 
 Three primitives every screen shares, in `components/ui`: `panel.tsx` (bottom sheet under 640 px, right
 drawer above, with the consequence block, fields and footer), `data-table.tsx` (table from 640 px, stacked
@@ -455,8 +591,9 @@ shop's do, rather than at addresses of their own: nothing needs to link to one. 
 
 **What the queue says and doesn't.** A row's amount, and the approve button's, is what a receipt says arrived, else the quote,
 never what the seller typed. Approving sends an amount only if the operator changed the one shown. Putting money on the
-balance needs an amount the operator typed, unless a receipt says. Nothing here promises that the owner is told, or a period's
-end date: owner notices come with Phase 7, and the server doesn't say the date before it acts.
+balance needs an amount the operator typed, unless a receipt says. From v5, approving a plan, renewal or upgrade says the
+owner is told, since issuing the invoice now tells them (D7-20); putting money on the balance and rejecting still send
+nothing, so they promise nothing, and no panel gives a period's end date, which the server doesn't say before it acts.
 
 ## 17. The prototype
 
@@ -464,5 +601,7 @@ end date: owner notices come with Phase 7, and the server doesn't say the date b
 above), the device (phone 390, tablet 820, desktop 1366), the language and the data state (busy, nothing
 waiting, server error). Every button that leads somewhere in the design leads there in the sketch, so a
 reviewer can walk the sign-in, approve a payment, suspend and restore a shop, edit a plan and set a rate
-without the toolbar. It renders 114 screens with no horizontal overflow on any device, in any data state, and no
-missing strings in either language; v4's courier screens are the toolbar group "Couriers · Phase 6 Slice 6.7".
+without the toolbar. It renders 157 screens with no horizontal overflow on any device, in any data state, and no
+missing strings in either language; v4's courier screens are the toolbar group "Couriers · Phase 6 Slice 6.7", and v5's
+are "Notices · Phase 7 Slice 7.7" and "Pricing and platform · Phase 7 Slice 7.7" (the rates offer, settings, the
+allowance and D7-20's three panels).
