@@ -764,6 +764,11 @@ Steps: 1) With a new owner who hasn't chosen a language, trigger a low-balance n
 Expected: the first notice is in Bangla and the second in English; `GET /me` reads back the language chosen; the code's email carries both languages, the code first in each; a language other than Bangla or English is refused.
 Covers: `NTF-03`, `I18N-01`, `I18N-03`.
 
+**S08-18 Switches, locked kinds, and the 30-day bell.**
+Steps: 1) As a staff member holding `orders:read`, switch new orders off; place a shopper's order. 2) Try to switch off "payment to verify". 3) Subscribe a browser, place another order, then have the push service answer "gone". 4) Leave a notification 31 days and one 29 days, and run the nightly clean-up.
+Expected: the order reaches the owner but not that staff member; "payment to verify" can't be switched off; the push carries the order's words in the owner's language and opens the shop's order page, and a gone browser is forgotten; the 31-day notification is deleted and the 29-day one kept.
+Covers: `NTF-01`, `NTF-02`, `NTF-04`.
+
 ---
 
 ## S09 — Public API and webhooks (API)

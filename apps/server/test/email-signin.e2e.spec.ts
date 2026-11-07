@@ -41,7 +41,7 @@ function verify(email: string, code: string): Promise<HttpResult> {
   return post('/auth/email/verify', { email, code });
 }
 
-// Slice 7.3a (D7-41): a code's email carries both languages, the person maybe not having chosen one yet.
+// Slice 7.3 (D7-41): a code's email carries both languages, the person maybe not having chosen one yet.
 const RESET_SUBJECT = 'Lytro-এ পাসওয়ার্ড রিসেটের কোড / Your password reset code';
 
 beforeAll(async () => {

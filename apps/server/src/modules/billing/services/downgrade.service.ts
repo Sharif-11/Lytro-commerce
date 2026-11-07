@@ -13,6 +13,7 @@ import {
   TenantState,
   withAddons,
 } from '@lytronix/validators';
+import { NotificationKind } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { DAY_MS, dhakaDate } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
@@ -21,10 +22,8 @@ import { BalanceService } from '../../balance/services/balance.service';
 import { ProductService } from '../../catalogue/services/product.service';
 import { MB } from '../../media/services/media-limits';
 import { MediaService } from '../../media/services/media.service';
-import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { StaffService } from '../../staff/services/staff.service';
-import { ownerReader } from '../../staff/types/owner-contact';
 import { TenantCache } from '../../tenancy/services/tenant-cache';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { ScheduledPlanChangesStore } from '../ports/scheduled-plan-changes-store';
@@ -34,6 +33,8 @@ import { AddonRenewalService } from './addon-renewal.service';
 import { downgradeFinalWarningWords, retentionShrinkWords } from './billing-notice-words';
 import { PlansService } from './plans.service';
 import { ShopLimitsService } from './shop-limits.service';
+import { AccountNotices } from '../../notifications/services/account-notices';
+import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 
 /** DWN-03: one limit the shop holds more than, by its plan-limit key (`staff`, `products`, `storage_mb`). */
 export interface OverLimitItem {
@@ -110,7 +111,7 @@ export class DowngradeService {
     @Inject(ShopLimitsService) private readonly shopLimits: ShopLimitsService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(MessagingService) private readonly sms: MessagingService,
-    @Inject(MailService) private readonly mail: MailService,
+    @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
 
@@ -257,11 +258,16 @@ export class DowngradeService {
       const open = ((await this.checklist(tenantId, now))?.items ?? []).filter(
         (item) => !item.fixed,
       );
-      const owner = open.length > 0 ? ownerReader(await this.staff.ownerContact(tenantId)) : null;
       await this.tenants.runStandalone(async (tx) => {
         await this.tenants.setDowngradeFinalWarning(tx, tenantId, now);
         if (open.length === 0) return;
-        if (owner) await this.mail.queueNotice(tx, owner, downgradeFinalWarningWords(open));
+        await this.notices.send(
+          tx,
+          tenantId,
+          NotificationKind.AccountNotice,
+          downgradeFinalWarningWords(open),
+          NOTIFICATION_LINKS.usage,
+        );
         await this.audit.record(tx, {
           tenantId,
           actorType: ActorType.System,
@@ -536,11 +542,16 @@ export class DowngradeService {
     });
 
     const contact = await this.staff.ownerContact(tenantId);
-    const owner = ownerReader(contact);
     await this.tenants.runStandalone(async (tx) => {
       // The SMS keeps its English words (KNOWN-GAPS §127); the email goes in the owner's language.
       if (contact?.phone) await this.sms.queueLifecycleNotice(tx, contact.phone, words.en.body);
-      if (owner) await this.mail.queueNotice(tx, owner, words);
+      await this.notices.send(
+        tx,
+        tenantId,
+        NotificationKind.AccountNotice,
+        words,
+        NOTIFICATION_LINKS.activity,
+      );
       await this.audit.record(tx, {
         tenantId,
         actorType: ActorType.System,

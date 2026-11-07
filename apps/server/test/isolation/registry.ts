@@ -21,9 +21,20 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /me/identities/oauth/:provider/start':
     'attaches the provider account to the session account only',
   'DELETE /me/identities/:id': 'another account identity answers 404; the last identity is refused',
-  // Slice 7.3a, checked in test/email.e2e.spec.ts: the language is kept on the person's own row in the shop the call
+  // Slice 7.3, checked in test/email.e2e.spec.ts: the language is kept on the person's own row in the shop the call
   // names, the owner's row for an owner's session.
   'PUT /me/language': "keeps the language on the session person's own row in the named shop only",
+  // Slice 7.3, checked in test/notifications.e2e.spec.ts: the bell and push are each person's own, in the named shop;
+  // another person's notification is never marked read, and a subscription is only ever the session person's.
+  'GET /notifications': "lists only the session person's own notifications in the named shop",
+  'POST /notifications/read':
+    "marks only the session person's own notifications; another's ID changes nothing",
+  'GET /notifications/preferences': "shows only the session person's own switches",
+  'PUT /notifications/preferences': "sets only the session person's own switches",
+  'GET /push/key': "Lytro's public VAPID key, the same for every shop: nothing of a shop's",
+  'POST /push/subscriptions': 'subscribes a browser for the session person only',
+  'DELETE /push/subscriptions': "removes only the session person's own subscription",
+  'POST /push/test': "pushes only to the session person's own browsers",
   // The staff routes: a shop lists, adds and changes only its own staff. Checked in test/staff.e2e.spec.ts.
   'GET /staff': 'lists only the session shop staff and seats',
   'POST /staff': 'creates staff in the session shop only; seats are counted in that shop',

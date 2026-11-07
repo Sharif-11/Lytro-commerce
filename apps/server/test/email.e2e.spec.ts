@@ -32,7 +32,7 @@ import { MailCapture } from './support/mail-capture';
 import { errorOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
-// D7-3, D7-22, NTF-06, I18N-01 (Phase 7 Slice 7.3a, read agreed 2026-11-07): Lytro's email through Resend, over real HTTP
+// D7-3, D7-22, NTF-06, I18N-01 (Phase 7 Slice 7.3, read agreed 2026-11-07): Lytro's email through Resend, over real HTTP
 // and the real database. Each email is sent with the outbox's own key; a refusal is final and a busy Resend is tried
 // again; a signed bounce or complaint stops the address until a code reaches it; notices go in the language the person
 // chose, Bangla until then; the owner's notices follow the email they sign in with; Lytro's own notices reach its
@@ -215,6 +215,9 @@ describe('when an email really goes (D7-22)', () => {
       BULKSMSBD_API_KEY: 'key',
       BULKSMSBD_SENDER_ID: 'sender',
       GEMINI_API_KEY: 'key',
+      VAPID_PUBLIC_KEY:
+        'BBNykCoCcw3zvOh_47IKoxj6iE_nq2XIoPa-8QseO0wXT-0DXUxzLKt8gHBkgX1F6QGkLVde6Love1mB84r11Jw',
+      VAPID_PRIVATE_KEY: 'rieyYsQvtJt6S0zEMB1SPZjCnUegO-FIvwL4XR2gFNw',
     };
     expect(() => new EnvironmentParser().parse(production)).toThrow(
       /RESEND_API_KEY: required in production.*RESEND_WEBHOOK_SECRET: required in production/s,

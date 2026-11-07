@@ -582,6 +582,10 @@ export enum QueueName {
   // SMS-01 (Slice 7.2): one of a shop's SMS events, queued in the transaction where it happened, then worded, charged and
   // sent apart from it, so the SMS never holds up or undoes the order.
   OrderSms = 'order_sms',
+  // NTF-02 (Phase 7 Slice 7.3): one notification's web push, sent from its row.
+  NotificationPush = 'notification_push',
+  // NTF-01, D7-39 (Slice 7.3): the nightly clean-up of notifications past the days they are kept.
+  NotificationPurgeTick = 'notification_purge_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -820,6 +824,8 @@ export enum PlatformSettingKey {
   AddressReadModel = 'address_read_model',
   // ORD-33 (Slice 7.6, editable): how many address reads one shop may make in a minute, a flood guard.
   AddressReadsPerShopPerMinute = 'address_reads_per_shop_per_minute',
+  // NTF-01, D7-39 (Slice 7.3's read, the owner's pick): how many days a notification is kept before it is deleted.
+  NotificationRetentionDays = 'notification_retention_days',
 }
 
 // AI-10, D7-4: the AIs Lytro can read a pasted message with. One today; the setting names which.
@@ -1663,4 +1669,29 @@ export function enumTuple<T extends string>(values: readonly T[]): [T, ...T[]] {
   const [first, ...rest] = values;
   if (first === undefined) throw new Error('an enum must have at least one value');
   return [first, ...rest];
+}
+
+// NTF-03 (Phase 7 Slice 7.3, read agreed 2026-11-07): every kind of notification a shop's people are sent, in the bell and
+// by push. What each says is fixed platform copy (NOTIFICATION_KINDS has who hears it and whether it can be switched off).
+export enum NotificationKind {
+  OrderPlaced = 'order_placed',
+  PaymentToVerify = 'payment_to_verify',
+  PaymentVerified = 'payment_verified',
+  MoneyForClosedOrder = 'money_for_closed_order',
+  GatewayAttention = 'gateway_attention',
+  ParcelAttention = 'parcel_attention',
+  ParcelMoved = 'parcel_moved',
+  CourierConnection = 'courier_connection',
+  CourierRetiring = 'courier_retiring',
+  CourierBack = 'courier_back',
+  LowStock = 'low_stock',
+  BatchExpiring = 'batch_expiring',
+  HeldStockExpired = 'held_stock_expired',
+  MediaFailed = 'media_failed',
+  ListenerPhone = 'listener_phone',
+  LowBalance = 'low_balance',
+  UsageWarning = 'usage_warning',
+  RenewalReminder = 'renewal_reminder',
+  AccountNotice = 'account_notice',
+  EmailBounced = 'email_bounced',
 }

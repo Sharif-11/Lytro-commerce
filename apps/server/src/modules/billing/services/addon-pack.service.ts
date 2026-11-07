@@ -18,6 +18,7 @@ import {
   type BuyPacksInput,
   type SetPackAutoBuyInput,
 } from '@lytronix/validators';
+import { NotificationKind } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { usageCycleStart } from '../../../common/time';
 import { packTaken } from '../../../common/usage-warnings';
@@ -29,9 +30,7 @@ import { InvoicesService } from '../../payments/services/invoices.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import { RequestQuota } from '../../public-api/services/request-quota';
 import type { Bilingual, MailWords } from '../../../common/i18n/bilingual';
-import { MailService } from '../../shared/mail/services/mail.service';
 import { StaffService } from '../../staff/services/staff.service';
-import { ownerReader } from '../../staff/types/owner-contact';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { PackAutoBuy } from '../../usage-warnings/types/pack-auto-buy';
 import type { AddonsStore } from '../ports/addons-store';
@@ -41,6 +40,8 @@ import { canTake } from './addon-eligibility';
 import { countedName, packBoughtWords, packFailedWords } from './billing-notice-words';
 import { assertAmountSeen } from './amount-seen';
 import { ShopLimitsService } from './shop-limits.service';
+import { AccountNotices } from '../../notifications/services/account-notices';
+import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 
 /** The metered limit a pack tops up, for each metric that has packs. */
 const PACK_METRICS = {
@@ -91,7 +92,7 @@ export class AddonPackService {
     @Inject(MediaBandwidth) private readonly bandwidth: MediaBandwidth,
     @Inject(RequestQuota) private readonly quota: RequestQuota,
     @Inject(StaffService) private readonly staff: StaffService,
-    @Inject(MailService) private readonly mail: MailService,
+    @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
@@ -371,11 +372,17 @@ export class AddonPackService {
     await this.tell(job.tenantId, packFailedWords(nameOf(pack, 1), short, taka(pack.price)));
   }
 
-  /** PLN-15: an email to the owner about a pack, in their language, never an SMS. */
+  /** PLN-15: the owner is told of a pack by email, in the bell and by push, never by SMS. */
   private async tell(tenantId: string, words: MailWords): Promise<void> {
-    const owner = ownerReader(await this.staff.ownerContact(tenantId));
-    if (!owner) return;
-    await this.tenants.runStandalone((tx) => this.mail.queueNotice(tx, owner, words));
+    await this.tenants.runStandalone((tx) =>
+      this.notices.send(
+        tx,
+        tenantId,
+        NotificationKind.AccountNotice,
+        words,
+        NOTIFICATION_LINKS.usage,
+      ),
+    );
   }
 
   private billingOf(tenantId: string): Promise<BillingInfoRow | null> {

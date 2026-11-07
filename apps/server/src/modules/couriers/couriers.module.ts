@@ -13,7 +13,6 @@ import { OrdersModule } from '../orders/orders.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { CourierMessagesController } from './controllers/courier-messages.controller';
-import { ConsoleCourierNotifier } from './services/console-courier-notifier';
 import { CourierAreaList } from './services/courier-area-list';
 import { CourierBooking } from './services/courier-booking';
 import { CourierBookingPass } from './services/courier-booking-pass';
@@ -43,11 +42,14 @@ import {
   REDX_URL,
   STEADFAST_URL,
 } from './tokens';
+import { BellCourierNotifier } from '../notifications/notifiers/bell-notifiers';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 // CRR-01 to CRR-30 (Phase 6, Slice 6.1 first): couriers as plugins, a shop's connections to them, and booking an order. It sits above
 // orders, which know a parcel only as data, so the team's routes and the minute pass read it and none of them depends back on it.
 @Module({
   imports: [
+    NotificationsModule,
     AuditModule,
     CatalogueModule,
     DeliveryModule,
@@ -57,7 +59,7 @@ import {
   ],
   controllers: [CourierMessagesController],
   providers: [
-    { provide: COURIER_NOTIFIER, useClass: ConsoleCourierNotifier },
+    { provide: COURIER_NOTIFIER, useExisting: BellCourierNotifier },
     { provide: COURIER_MESSAGE_ORIGIN, inject: [ENV], useFactory: (env: Env) => apiOrigin(env) },
     { provide: COURIER_PAUSE, useValue: (ms: number) => wait(ms).then(() => undefined) },
     { provide: COURIER_STORE, useClass: DrizzleCourierStore },

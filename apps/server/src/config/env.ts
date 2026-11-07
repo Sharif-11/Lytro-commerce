@@ -75,6 +75,25 @@ const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  // Phase 7 Slice 7.3 (NTF-02, D7-22): web push, signed with Lytro's VAPID keys (base64url, as web-push makes them). The
+  // keys are required in production, staging included; in development the stand-in logs each push unless PUSH_FORCE_REAL
+  // is set, and then the keys are required. VAPID_SUBJECT is how a push service reaches Lytro about its pushes.
+  VAPID_PUBLIC_KEY: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{80,100}$/, { message: 'must be a base64url VAPID public key' })
+    .optional(),
+  VAPID_PRIVATE_KEY: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{40,50}$/, { message: 'must be a base64url VAPID private key' })
+    .optional(),
+  VAPID_SUBJECT: z
+    .string()
+    .regex(/^(mailto:|https:\/\/)/)
+    .default('mailto:no-reply@mail.lytro.app'),
+  PUSH_FORCE_REAL: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   // Base domain the platform serves shops under: <slug>.<PLATFORM_DOMAIN> (decision R1, R2).
   PLATFORM_DOMAIN: z
     .string()
@@ -297,6 +316,24 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
       path: ['RESEND_WEBHOOK_SECRET'],
       message: "required in production: bounces are only believed with Resend's signature",
     });
+  }
+  // D7-22: a server that pushes for real never quietly falls back to logging, and signs every push.
+  if (
+    value.NODE_ENV === 'production' ||
+    (value.NODE_ENV === 'development' && value.PUSH_FORCE_REAL)
+  ) {
+    for (const key of ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY'] as const) {
+      if (!value[key]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message:
+            value.NODE_ENV === 'production'
+              ? 'required in production: push is sent for real'
+              : 'required when PUSH_FORCE_REAL is set',
+        });
+      }
+    }
   }
   // D7-22: a server that reads messages with Gemini for real never quietly falls back to the stand-in.
   if (

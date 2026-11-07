@@ -274,7 +274,7 @@ checks whether FRD-01's `fraud:check` is `fraud:read` or needs its own name.
   email to an owner is written in it from one definition per notice, Bangla until they choose. An owner who adds or
   removes an email in their account now has their shops' notices follow it; until now the shop kept the email it was
   created with, so an owner who signed up by phone was never emailed. Lytro's own listener notices email its operators.
-- **Built, the bell and push:** NOTIFICATIONS_LINE
+- **Built, the bell and push:** `tenant.notifications` keeps one row for each person a notice reaches (the owner, and the holders of its kind's permission, less those who switched it off), with its words in both languages and where it leads; the bell reads it in the reader's language and push sends it in the language they chose. Every one of the seven stand-in notifiers is now a notification, nothing that calls them changed, and every notice about the account goes by email, the bell and push at once. Push is Web Push signed with Lytro's VAPID keys, sent from its own job and never tried twice (the bell has it), and a subscription is taken only on a push service's address. Money and account kinds can't be switched off. The nightly clean-up keeps 30 days. One PR, migration `0115_notifications`. The banner, the bell, the switches, the language switch, the service worker that shows a push and the update prompt are Slice 7.7's.
 
 ### Slice 7.4: the notice board
 - **Depends on:** 7.3.

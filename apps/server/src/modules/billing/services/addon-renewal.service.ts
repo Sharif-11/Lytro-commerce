@@ -14,14 +14,13 @@ import {
   TenantState,
   type PlanLimits,
 } from '@lytronix/validators';
+import { NotificationKind } from '@lytronix/validators';
 import { DAY_MS } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
 import { fromPaisa, toPaisa } from '../../balance/services/money';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
-import { MailService } from '../../shared/mail/services/mail.service';
 import { StaffService } from '../../staff/services/staff.service';
-import { ownerReader } from '../../staff/types/owner-contact';
 import { addonsNotRenewedWords, countedName } from './billing-notice-words';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { AddonsStore } from '../ports/addons-store';
@@ -30,6 +29,8 @@ import type { AddonCarry, PaymentAddon, RenewingAddon } from '../types/addon';
 import { addonPrice, renewalPrice, type AddonPeriod } from './addon-price';
 import { BillingTermsService } from './billing-terms.service';
 import { ShopLimitsService } from './shop-limits.service';
+import { AccountNotices } from '../../notifications/services/account-notices';
+import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 
 /** The plan a renewal or an upgrade lands the shop on, as the add-ons it carries are judged against it. */
 export interface CarryPlan {
@@ -131,7 +132,7 @@ export class AddonRenewalService {
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(StaffService) private readonly staff: StaffService,
-    @Inject(MailService) private readonly mail: MailService,
+    @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
@@ -372,7 +373,6 @@ export class AddonRenewalService {
     dropped: readonly AddonCarry[],
     short: bigint,
   ): Promise<void> {
-    const owner = ownerReader(await this.staff.ownerContact(tenantId));
     const names = dropped.map(({ from }) =>
       countedName({ bn: from.labelBn, en: from.labelEn }, from.quantity),
     );
@@ -384,7 +384,13 @@ export class AddonRenewalService {
       fromPaisa(short),
     );
     await this.tenants.runStandalone(async (tx) => {
-      if (owner) await this.mail.queueNotice(tx, owner, words);
+      await this.notices.send(
+        tx,
+        tenantId,
+        NotificationKind.AccountNotice,
+        words,
+        NOTIFICATION_LINKS.addons,
+      );
       await this.audit.record(tx, {
         tenantId,
         actorType: ActorType.System,

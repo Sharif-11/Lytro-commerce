@@ -204,6 +204,9 @@ describe("D7-21: the settings guard BulkSMSBD's login", () => {
     // Phase 7 Slice 7.3 (D7-22): and emails through Resend.
     RESEND_API_KEY: 'key',
     RESEND_WEBHOOK_SECRET: 'whsec_c2VjcmV0',
+    VAPID_PUBLIC_KEY:
+      'BBNykCoCcw3zvOh_47IKoxj6iE_nq2XIoPa-8QseO0wXT-0DXUxzLKt8gHBkgX1F6QGkLVde6Love1mB84r11Jw',
+    VAPID_PRIVATE_KEY: 'rieyYsQvtJt6S0zEMB1SPZjCnUegO-FIvwL4XR2gFNw',
   };
 
   it('refuses production, staging included, without the key and the sender ID', () => {

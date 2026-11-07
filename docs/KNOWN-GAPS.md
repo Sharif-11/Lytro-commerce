@@ -2172,7 +2172,7 @@ Slice 7.6 chose Gemini 3.5 Flash-Lite on 21 made-up messages written for its rea
 
 ## 127. `NTF-06`, `I18N-03`, `D7-41`: what Lytro's email can't yet do — found 2026-11-07, open
 
-Slice 7.3a writes every email to an owner in the language they chose. The same notices also go to the owner by SMS
+Slice 7.3 writes every email to an owner in the language they chose. The same notices also go to the owner by SMS
 (plan active, an add-on payment moved to the balance, retention shortening, shop closed, deletion warnings, a usage
 limit that stops shoppers), and those keep their English words. Lytro pays for those SMS, and a Bangla SMS takes more
 parts. Closing it means choosing, per notice, whether its SMS is worth Bangla's price.
@@ -2182,4 +2182,6 @@ over about 81 minutes and then gives up, so on a busy day some notices would nev
 ($20 a month, no daily cap) before the daily count nears 100 closes it.
 
 A bounce Resend calls temporary is never recorded, so an address that bounces temporarily every time is never stopped.
+
+A push that fails is never tried again, since the bell already has the notice and a retry could push it twice to the browsers that took it. A browser whose push service is down for a while misses those pushes; after 10 failures in a row it is forgotten and must subscribe again. NTF-02's "the test arrives" can only be seen once Slice 7.7 adds the dashboard's service worker that shows a push, and on an iPhone only once the dashboard is on the Home Screen.
 

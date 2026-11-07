@@ -3,7 +3,6 @@ import type { Env } from '../../../config/env';
 import { ENV } from '../../../config/tokens';
 import { DrizzleMailStore } from '../../../database/adapters/mail.adapter';
 import { DrizzleOperatorInboxes } from '../../../database/adapters/operator-inboxes.adapter';
-import { ResendWebhookController } from './controllers/resend-webhook.controller';
 import { mailProviderFor } from './providers/mail-provider-choice';
 import type { MailFetch } from './providers/resend-mail.provider';
 import { MailService } from './services/mail.service';
@@ -15,7 +14,6 @@ import { MAIL_CLOCK, MAIL_FETCH, MAIL_PROVIDER, MAIL_STORE, OPERATOR_INBOXES } f
 // D7-22 (Slice 7.3): the provider follows the server's mode -- recorded in tests, printed in development unless forced,
 // sent through Resend in production.
 @Module({
-  controllers: [ResendWebhookController],
   providers: [
     {
       provide: MAIL_FETCH,
@@ -34,6 +32,6 @@ import { MAIL_CLOCK, MAIL_FETCH, MAIL_PROVIDER, MAIL_STORE, OPERATOR_INBOXES } f
     ResendWebhook,
     OperatorAlerts,
   ],
-  exports: [MailService, OperatorAlerts],
+  exports: [MailService, OperatorAlerts, ResendWebhook],
 })
 export class MailModule {}

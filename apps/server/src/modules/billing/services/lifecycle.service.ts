@@ -13,6 +13,7 @@ import {
   SLUG_MAX_LENGTH,
   TenantState,
 } from '@lytronix/validators';
+import { NotificationKind } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import type { MailWords } from '../../../common/i18n/bilingual';
 import { DAY_MS, daysBetween, dhakaDate, startOfDayDhaka } from '../../../common/time';
@@ -36,11 +37,9 @@ import { PaymentSessionsEraser } from '../../payment-sessions/services/payment-s
 import { ListenerDevices } from '../../listener/services/listener-devices';
 import { DomainEraser } from '../../domains/services/domain-eraser';
 import { DataExportService } from '../../data-export/services/data-export.service';
-import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
 import { StaffService } from '../../staff/services/staff.service';
-import { ownerReader } from '../../staff/types/owner-contact';
 import {
   deletionWarningWords,
   paygArchiveWarningWords,
@@ -53,6 +52,8 @@ import { CLOCK } from '../tokens';
 import { DowngradeService } from './downgrade.service';
 import { AddonRenewalService, addonsTotal, withinBudget } from './addon-renewal.service';
 import { PurchaseService } from './purchase.service';
+import { AccountNotices } from '../../notifications/services/account-notices';
+import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 
 // LIF-26, 2.3: defaults, each a day-count *within* that stage, not cumulative from period end.
 const DEFAULT_STAGE_DAYS = { grace: 3, readOnly: 4, locked: 8, archived: 45 };
@@ -121,7 +122,7 @@ export class LifecycleService {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
     @Inject(MessagingService) private readonly sms: MessagingService,
-    @Inject(MailService) private readonly mail: MailService,
+    @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(PlatformSettingsService) private readonly settings: PlatformSettingsService,
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
@@ -531,9 +532,14 @@ export class LifecycleService {
     summary: Record<string, unknown>,
     daysLeft: number | null,
   ): Promise<void> {
-    const owner = ownerReader(await this.staff.ownerContact(tenantId));
     await this.tenants.runStandalone(async (tx) => {
-      if (owner) await this.mail.queueNotice(tx, owner, renewalReminderWords(daysLeft));
+      await this.notices.send(
+        tx,
+        tenantId,
+        NotificationKind.RenewalReminder,
+        renewalReminderWords(daysLeft),
+        NOTIFICATION_LINKS.billing,
+      );
       await this.audit.record(tx, {
         tenantId,
         actorType: ActorType.System,
@@ -666,11 +672,16 @@ export class LifecycleService {
     words: MailWords,
   ): Promise<void> {
     const contact = await this.staff.ownerContact(tenantId);
-    const owner = ownerReader(contact);
     await this.tenants.runStandalone(async (tx) => {
       // The SMS keeps its English words (KNOWN-GAPS §127); the email goes in the owner's language.
       if (contact?.phone) await this.sms.queueLifecycleNotice(tx, contact.phone, words.en.body);
-      if (owner) await this.mail.queueNotice(tx, owner, words);
+      await this.notices.send(
+        tx,
+        tenantId,
+        NotificationKind.AccountNotice,
+        words,
+        NOTIFICATION_LINKS.billing,
+      );
       await this.audit.record(tx, {
         tenantId,
         actorType: ActorType.System,
@@ -782,8 +793,13 @@ export class LifecycleService {
       const words = shopClosedWords(info.shopName, deletionDate);
       // The SMS keeps its English words (KNOWN-GAPS §127); the email goes in the owner's language.
       if (contact?.phone) await this.sms.queueLifecycleNotice(tx, contact.phone, words.en.body);
-      const owner = ownerReader(contact);
-      if (owner) await this.mail.queueNotice(tx, owner, words);
+      await this.notices.send(
+        tx,
+        tenantId,
+        NotificationKind.AccountNotice,
+        words,
+        NOTIFICATION_LINKS.billing,
+      );
     });
     this.tenantCache.invalidateTenant(tenantId); // TEN-27: the public side goes offline at once.
   }

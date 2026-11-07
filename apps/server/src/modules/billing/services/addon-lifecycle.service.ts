@@ -11,15 +11,14 @@ import {
   isUsageLimitKey,
   limitOf,
 } from '@lytronix/validators';
+import { NotificationKind } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import type { Bilingual } from '../../../common/i18n/bilingual';
 import { DAY_MS, daysUntil, dhakaDate } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
 import { fromPaisa, toPaisa } from '../../balance/services/money';
-import { MailService } from '../../shared/mail/services/mail.service';
 import { StaffService } from '../../staff/services/staff.service';
-import { ownerReader } from '../../staff/types/owner-contact';
 import { TenantCache } from '../../tenancy/services/tenant-cache';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { AddonsStore } from '../ports/addons-store';
@@ -40,6 +39,8 @@ import {
   countedName,
 } from './billing-notice-words';
 import { ShopLimitsService } from './shop-limits.service';
+import { AccountNotices } from '../../notifications/services/account-notices';
+import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 
 /** What one add-on tick did. */
 export interface AddonTickResult {
@@ -79,7 +80,7 @@ export class AddonLifecycleService {
     @Inject(TenantCache) private readonly tenantCache: TenantCache,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(StaffService) private readonly staff: StaffService,
-    @Inject(MailService) private readonly mail: MailService,
+    @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
@@ -216,9 +217,14 @@ export class AddonLifecycleService {
       dhakaDate(row.expiresAt),
       await this.whyNot(tenantId, row, renewal, info),
     );
-    const owner = ownerReader(await this.staff.ownerContact(tenantId));
     await this.tenants.runStandalone(async (tx) => {
-      if (owner) await this.mail.queueNotice(tx, owner, words);
+      await this.notices.send(
+        tx,
+        tenantId,
+        NotificationKind.AccountNotice,
+        words,
+        NOTIFICATION_LINKS.addons,
+      );
       await this.audit.record(tx, {
         tenantId,
         actorType: ActorType.System,

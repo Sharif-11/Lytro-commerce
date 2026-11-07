@@ -18,6 +18,7 @@ import { ListenerPairing } from './services/listener-pairing';
 import { ListenerRules } from './services/listener-rules';
 import { LISTENER_CLOCK, LISTENER_NOTIFIER, LISTENER_STORE } from './tokens';
 import { MailModule } from '../shared/mail/mail.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 // LSN-01 to LSN-23 (Phase 5 Slice 5.4a): the listener phones a shop pairs to forward its payment SMS -- their codes,
 // devices and tokens, the app's own routes, and Lytro's view and blocks. It reads the shop's limits (usage warnings),
@@ -30,6 +31,7 @@ import { MailModule } from '../shared/mail/mail.module';
     BalanceModule,
     CatalogueModule,
     MailModule,
+    NotificationsModule,
     PaymentMethodsModule,
     PlatformSettingsModule,
     TenancyModule,

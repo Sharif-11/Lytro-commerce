@@ -7,8 +7,8 @@ import type { MailStore } from '../ports/mail-store';
 import { MAIL_CLOCK, MAIL_STORE } from '../tokens';
 import { verifySvixSignature, type SvixHeaders } from './svix-signature';
 
-/** What Lytro did with one of Resend's webhooks. */
-export type ResendWebhookOutcome = 'suppressed' | 'ignored';
+/** The addresses one of Resend's webhooks stopped, and why; none for a message that changes nothing. */
+export type StoppedAddresses = { email: string; reason: MailSuppressionReason }[];
 
 interface ResendEvent {
   type?: unknown;
@@ -37,7 +37,7 @@ export class ResendWebhook {
     @Inject(MAIL_CLOCK) private readonly clock: () => Date,
   ) {}
 
-  async receive(rawBody: Buffer, headers: SvixHeaders): Promise<ResendWebhookOutcome> {
+  async receive(rawBody: Buffer, headers: SvixHeaders): Promise<StoppedAddresses> {
     const secret = this.env.RESEND_WEBHOOK_SECRET;
     if (!secret || !verifySvixSignature(secret, headers, rawBody, this.clock())) {
       this.logger.warn('an email webhook failed verification');
@@ -45,13 +45,13 @@ export class ResendWebhook {
     }
     const event = this.parse(rawBody);
     const reason = this.reasonOf(event);
-    if (reason === null) return 'ignored';
+    if (reason === null) return [];
     const addresses = this.addressesOf(event);
     const detail = this.detailOf(event);
     for (const email of addresses) {
       await this.store.suppress({ email, reason, detail });
     }
-    return addresses.length > 0 ? 'suppressed' : 'ignored';
+    return addresses.map((email) => ({ email, reason }));
   }
 
   private parse(rawBody: Buffer): ResendEvent | null {

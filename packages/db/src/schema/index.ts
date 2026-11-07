@@ -42,6 +42,7 @@ export * from './tenant/gateway-credential-uses';
 export * from './tenant/couriers';
 export * from './tenant/sms-log';
 export * from './tenant/sms-settings';
+export * from './tenant/notifications';
 export * from './tenant/order-extractions';
 export * from './control/courier-message-routes';
 export * from './control/courier-areas';

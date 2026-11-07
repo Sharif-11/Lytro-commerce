@@ -22,6 +22,7 @@ import {
   type PlanLimits,
   type QuoteAddonInput,
 } from '@lytronix/validators';
+import { NotificationKind } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import type { Bilingual } from '../../../common/i18n/bilingual';
 import type { MessageKey } from '../../../common/i18n/message-key';
@@ -32,10 +33,8 @@ import { InvoicesService } from '../../payments/services/invoices.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
-import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { StaffService } from '../../staff/services/staff.service';
-import { ownerReader } from '../../staff/types/owner-contact';
 import { TenantCache } from '../../tenancy/services/tenant-cache';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { AddonsStore } from '../ports/addons-store';
@@ -59,6 +58,8 @@ import { ADDON_NOT_TAKEN, addonPaymentToBalanceWords } from './billing-notice-wo
 import { BillingTermsService } from './billing-terms.service';
 import { addonLine } from './plan-invoicing.service';
 import { ShopLimitsService } from './shop-limits.service';
+import { AccountNotices } from '../../notifications/services/account-notices';
+import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 
 // BIL-09: an add-on's quote is held for 30 minutes, as a plan's is.
 const QUOTE_HOLD_MS = HOUR_MS / 2;
@@ -164,7 +165,7 @@ export class AddonPurchaseService {
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(MessagingService) private readonly sms: MessagingService,
-    @Inject(MailService) private readonly mail: MailService,
+    @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(TenantCache) private readonly tenantCache: TenantCache,
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
@@ -603,8 +604,13 @@ export class AddonPurchaseService {
     const owner = await this.staff.ownerContactIn(tx, tenantId);
     // The SMS keeps its English words (KNOWN-GAPS §127); the email goes in the owner's language.
     if (owner?.phone) await this.sms.queueLifecycleNotice(tx, owner.phone, words.en.body);
-    const reader = ownerReader(owner);
-    if (reader) await this.mail.queueNotice(tx, reader, words);
+    await this.notices.send(
+      tx,
+      tenantId,
+      NotificationKind.AccountNotice,
+      words,
+      NOTIFICATION_LINKS.balance,
+    );
   }
 
   private priceOf(addon: AddonRecord, quantity: number, period: AddonPeriod, now: Date): number {

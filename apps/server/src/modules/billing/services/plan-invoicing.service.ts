@@ -1,20 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
 import { InvoiceLineKind, type InvoiceKind } from '@lytronix/validators';
+import { NotificationKind } from '@lytronix/validators';
 import { dhakaDate } from '../../../common/time';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import { fromPaisa, toPaisa } from '../../balance/services/money';
 import type { InvoiceLine, InvoiceRecord } from '../../payments/types/invoice';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import type { PaymentAddon } from '../types/addon';
-import { MailService } from '../../shared/mail/services/mail.service';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { StaffService } from '../../staff/services/staff.service';
-import { ownerReader } from '../../staff/types/owner-contact';
 import type { BillingTermRecord } from '../types/billing-term';
 import type { PlanRecord } from '../types/plan';
 import { planActiveWords } from './billing-notice-words';
 import { BillingTermsService } from './billing-terms.service';
+import { AccountNotices } from '../../notifications/services/account-notices';
+import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 
 export interface PlanInvoiceInput {
   kind: InvoiceKind;
@@ -84,7 +85,7 @@ export class PlanInvoicingService {
     @Inject(BillingTermsService) private readonly terms: BillingTermsService,
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(MessagingService) private readonly sms: MessagingService,
-    @Inject(MailService) private readonly mail: MailService,
+    @Inject(AccountNotices) private readonly notices: AccountNotices,
   ) {}
 
   async issue(tx: Transaction, input: PlanInvoiceInput): Promise<InvoiceRecord> {
@@ -130,8 +131,13 @@ export class PlanInvoicingService {
     });
     // The SMS keeps its English words (KNOWN-GAPS §127); the email goes in the owner's language.
     if (owner?.phone) await this.sms.queueLifecycleNotice(tx, owner.phone, words.en.body);
-    const reader = ownerReader(owner);
-    if (reader) await this.mail.queueNotice(tx, reader, words);
+    await this.notices.send(
+      tx,
+      payment.tenantId,
+      NotificationKind.AccountNotice,
+      words,
+      NOTIFICATION_LINKS.invoices,
+    );
     return invoice;
   }
 }

@@ -68,6 +68,15 @@ export {
   type NewMailSuppression,
 } from './repositories/messaging/mail-suppression.repository';
 export {
+  NotificationRepository,
+  type NewNotification,
+  type NotificationRecipient,
+} from './repositories/notifications/notification.repository';
+export {
+  PushSubscriptionRepository,
+  type NewPushSubscription,
+} from './repositories/notifications/push-subscription.repository';
+export {
   EssentialSmsUsageRepository,
   type NewEssentialSmsUsage,
 } from './repositories/messaging/essential-sms-usage.repository';

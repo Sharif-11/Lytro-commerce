@@ -43,6 +43,9 @@ describe('loadEnv platform settings', () => {
       GEMINI_API_KEY: 'key',
       RESEND_API_KEY: 'key',
       RESEND_WEBHOOK_SECRET: 'whsec_c2VjcmV0',
+      VAPID_PUBLIC_KEY:
+        'BBNykCoCcw3zvOh_47IKoxj6iE_nq2XIoPa-8QseO0wXT-0DXUxzLKt8gHBkgX1F6QGkLVde6Love1mB84r11Jw',
+      VAPID_PRIVATE_KEY: 'rieyYsQvtJt6S0zEMB1SPZjCnUegO-FIvwL4XR2gFNw',
     });
     expect(env.TRUSTED_EDGE_SECRET).toBe(SECRET);
   });
@@ -59,6 +62,9 @@ describe('loadEnv platform settings', () => {
       GEMINI_API_KEY: 'key',
       RESEND_API_KEY: 'key',
       RESEND_WEBHOOK_SECRET: 'whsec_c2VjcmV0',
+      VAPID_PUBLIC_KEY:
+        'BBNykCoCcw3zvOh_47IKoxj6iE_nq2XIoPa-8QseO0wXT-0DXUxzLKt8gHBkgX1F6QGkLVde6Love1mB84r11Jw',
+      VAPID_PRIVATE_KEY: 'rieyYsQvtJt6S0zEMB1SPZjCnUegO-FIvwL4XR2gFNw',
     };
     expect(() => new EnvironmentParser().parse(production)).toThrow(/PLATFORM_ADDRESSES/);
     expect(() =>

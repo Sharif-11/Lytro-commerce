@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
+import { NotificationKind } from '@lytronix/validators';
 import type { MailWords } from '../../../common/i18n/bilingual';
-import { MailService } from '../../shared/mail/services/mail.service';
-import { StaffService } from '../../staff/services/staff.service';
-import { ownerReader } from '../../staff/types/owner-contact';
+import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
+import { AccountNotices } from '../../notifications/services/account-notices';
 import type { LowBalanceNotifier } from '../ports/low-balance-notifier';
 import { fromPaisa } from './money';
 
@@ -61,15 +61,12 @@ export function feeShortWords(balance: string): MailWords {
 }
 
 /**
- * BAL-13: emails the owner when the balance falls below a threshold, in the language they chose. Never SMS (the
- * requirement's own rule). The in-app notice is the dashboard's balance banner, read from `GET /balance`.
+ * BAL-13, NTF-05: tells the owner when the balance falls below a threshold -- by email in the language they chose, in the
+ * bell and by push -- and the staff who can top up (D7-42). Never SMS (the requirement's own rule).
  */
 @Injectable()
 export class MailLowBalanceNotifier implements LowBalanceNotifier {
-  constructor(
-    @Inject(StaffService) private readonly staff: StaffService,
-    @Inject(MailService) private readonly mail: MailService,
-  ) {}
+  constructor(@Inject(AccountNotices) private readonly notices: AccountNotices) {}
 
   async notifyCrossed(
     tx: Transaction,
@@ -77,14 +74,22 @@ export class MailLowBalanceNotifier implements LowBalanceNotifier {
     thresholdPaisa: bigint,
     balanceAfter: string,
   ): Promise<void> {
-    const owner = ownerReader(await this.staff.ownerContactIn(tx, tenantId));
-    if (!owner) return;
-    await this.mail.queueNotice(tx, owner, lowBalanceWords(thresholdPaisa, balanceAfter));
+    await this.notices.send(
+      tx,
+      tenantId,
+      NotificationKind.LowBalance,
+      lowBalanceWords(thresholdPaisa, balanceAfter),
+      NOTIFICATION_LINKS.balance,
+    );
   }
 
   async notifyFeeShort(tx: Transaction, tenantId: string, balance: string): Promise<void> {
-    const owner = ownerReader(await this.staff.ownerContactIn(tx, tenantId));
-    if (!owner) return;
-    await this.mail.queueNotice(tx, owner, feeShortWords(balance));
+    await this.notices.send(
+      tx,
+      tenantId,
+      NotificationKind.LowBalance,
+      feeShortWords(balance),
+      NOTIFICATION_LINKS.balance,
+    );
   }
 }

@@ -59,6 +59,7 @@ import {
   PLANS_STORE,
   SCHEDULED_PLAN_CHANGES_STORE,
 } from './tokens';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 // D2-8: the billing module -- plan/term CRUD, versioning, not-for-sale assignment, per-tenant limit overrides
 // (PLN-01 to PLN-12, PLN-16 to PLN-18, TRM-01 to TRM-16). API-only this slice (D2-9's resolution): no screens,
@@ -72,6 +73,7 @@ import {
     PaymentsModule,
     MessagingModule,
     MailModule,
+    NotificationsModule,
     PlatformSettingsModule,
     // LIF-19: the day-60 deletion removes the shop's purchases, stock, orders and customers, catalogue, media, delivery
     // zones, API keys and usage warnings too, and its own domain.
