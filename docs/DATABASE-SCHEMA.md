@@ -3048,6 +3048,13 @@ CREATE TABLE control.request_errors (
 );
 CREATE INDEX request_errors_tenant_idx ON control.request_errors (tenant_id, created_at);
 CREATE INDEX request_errors_created_idx ON control.request_errors (created_at);
+
+-- ADM-03, D8-30 (Phase 8 Slice 8.2, migration 0121): Lytro's own SMS outbox records the shop a message is for -- shop
+-- ready, a lifecycle notice, a shopper's code -- so the shop page can count the ones that failed for good. An owner's or
+-- staff member's sign-in code names a person, not a shop, and stays NULL; the page finds those by its team's phones.
+ALTER TABLE control.sms_outbox
+    ADD COLUMN tenant_id uuid REFERENCES control.tenants(id) ON DELETE CASCADE;
+CREATE INDEX sms_outbox_tenant_idx ON control.sms_outbox (tenant_id, created_at);
 ```
 
 Metrics, error tracking, log shipping and uptime checks (MON/OBS sections) are external services (Sentry, Grafana Cloud, UptimeRobot per OD-43), not schema — nothing else to design here.

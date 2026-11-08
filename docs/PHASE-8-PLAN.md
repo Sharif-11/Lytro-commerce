@@ -91,7 +91,7 @@ overrule any of them when reviewing this plan.
 | D8-27 | **The last sign-in** (the read). | The owner and each active staff member, with when each last opened a session in the shop, or never. Read from the sessions, which are revoked and never deleted, and matched by account, since a staff member's sign-in by code names no staff user on its session. | Slice 8.2 |
 | D8-28 | **Payments awaiting review** (the read). | The seller's payments to Lytro waiting in the operator's queue, counted with their total and listed as the queue lists them; and a count of the shop's customers' payments waiting for the seller, never their amounts or senders. | Slice 8.2 |
 | D8-29 | **The business summary** (from D8-8 and ADM-03). | The seller's own sales figures (STA-01) for any period the seller could choose, read by the same code, with revenue and counts and never cost or profit; and the orders counted by the status the seller's list shows them in. | Slice 8.2 |
-| D8-30 | **Lytro's own SMS to a shop** (from D8-8). Lytro's outbox recorded no shop. | Each of Lytro's own messages to a known shop (its sign-in codes, shop ready, the lifecycle notices) now records the shop. Earlier ones aren't linked, so the page's count of Lytro's failed messages starts with this slice. | Slice 8.2 |
+| D8-30 | **SMS that didn't go** (from D8-8). Lytro's outbox recorded no shop, and the shop's own log holds its customers' phones and the words sent them. | The shop's own SMS that failed or were blocked, each with its kind, outcome, reason, order number and time, never the customer's phone or the words. Lytro's own messages that failed for good: those naming the shop (shop ready, a lifecycle notice, a shopper's code), which now record it (migration 0121), and the sign-in codes sent to its team's phones, since a code names a person and is sent before any shop is chosen. Messages from before this slice name no shop, so only their codes are found. | Slice 8.2 |
 | D8-31 | **Usage on the shop page** (from D8-8). | Each limit's use as the seller's usage page reads it, by the same code, without the shop's suggestions or pack offers. | Slice 8.2 |
 
 ### 2.1 Points left to each slice's read
@@ -229,6 +229,12 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
 - **Depends on:** 8.1.
 - **Delivers:** the shop list's search, filters and sorts (ADM-02, D8-7); the shop page's rows (ADM-03, D8-8), each read
   through its own module.
+- **Built** (read agreed 2026-11-08, D8-24 to D8-31): `GET /operator/tenants` takes `query`, `state`, `planId` and
+  `sort` (newest, name, period end), each sort paging on its own keyset, and each row carries the owner's phone. The
+  shop page opens with `GET /operator/tenants/:id/figures`; behind it, `errors`, `failed-sms`, `payments-waiting`,
+  `sales` and the courier key log's `failed=true`. Every figure is read by the module that owns it, with the shop's
+  own id: the shop's own tables inside its row-level security, as the seller's reads are, and Lytro's tables by that
+  id. Lytro's outbox gains the shop a message is for (migration 0121). What it leaves is in KNOWN-GAPS §133.
 
 ### Slice 8.3: acting on a shop
 - **Depends on:** 8.0.
