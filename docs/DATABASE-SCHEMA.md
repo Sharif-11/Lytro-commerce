@@ -2659,6 +2659,18 @@ CREATE TABLE control.fraud_hashes (
     contributing_tenants integer NOT NULL DEFAULT 0,    -- FRD-13: signal hidden below 5
     updated_at      timestamptz NOT NULL DEFAULT now()
 );
+
+-- FRD-05 (migration 0120): written when the order's check job ran, so the order's page says why as it was.
+CREATE TABLE tenant.fraud_check_skips (
+    tenant_id       uuid NOT NULL,
+    order_id        uuid NOT NULL REFERENCES tenant.orders(id) ON DELETE CASCADE,
+    reason          text NOT NULL,          -- rule_off | below_minimum | refused | minute_limit
+    min_amount      numeric(12,2),          -- the rule's smallest amount then, for below_minimum
+    message_key     text,                   -- a refusal's message key, worded when read
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (tenant_id, order_id)
+);
+-- Row-level security as on every tenant table.
 ```
 
 ## 8. SMS listener app
