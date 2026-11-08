@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
 import { formatTaka } from '@lytronix/ui';
-import { Permission, SerialFormat } from '@lytronix/validators';
+import { Permission, SerialFormat, SmsEvent } from '@lytronix/validators';
 import { useCouriers, useHandOver, useOrderSerials, useShip } from '@/api/orders';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
@@ -19,6 +19,7 @@ import { useShell } from '@/shell/shell-context';
 import type { Order, OrderSerialItem } from '@/types/orders';
 import { SerialScanner } from '../product/serial-scanner';
 import { allPicked, keyOf, sentOf } from './serials-sent';
+import { SmsLine } from '@/views/sms/sms-line';
 
 /**
  * INV-23 (Part 34's `o29-ship-entry`): a serial by the camera, a pasted list, or typed, a USB or Bluetooth scanner typing
@@ -315,6 +316,8 @@ export function ShipSheet({
       ) : (
         <SerialPicks items={items} picked={picked} onPick={setPicked} />
       )}
+      {/* Part 37's `p37-o-ship` (D7-20). */}
+      <SmsLine event={SmsEvent.OrderShipped} words="p37LineShip" />
     </Sheet>
   );
 }

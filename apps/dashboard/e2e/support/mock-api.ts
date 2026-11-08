@@ -54,6 +54,15 @@ import { figuresAnswer, shopBatchesAnswer, stockPageAnswer, stockRead, stockWrit
 import { customerIdOf, customersAnswer, drawnCustomers, type CustomersFixture } from './customers';
 import { homeOrders, meghOrders, ordersAnswer, type OrdersFixture } from './orders';
 import { couriersAnswer, type CouriersFixture } from './couriers';
+import {
+  ownedReads,
+  payPerUseOf,
+  phase7Answer,
+  phase7Writes,
+  readsOffer,
+  type Phase7Fixture,
+  type Phase7Writes,
+} from './phase7';
 import { purchasingAnswer } from './purchases';
 import { checksAnswer } from './stock-checks';
 import { variantRead } from './variants';
@@ -173,6 +182,8 @@ export interface ShopState {
   /** GET /home's other parts where they differ from the working shop's. */
   home?: Record<string, unknown>;
   money?: MoneyState;
+  /** Phase 7 (Part 37): notices, the bell, SMS, fake order checks, reading a message and the reads pack. */
+  phase7?: Phase7Fixture;
 }
 
 export function envelope(data: unknown, statusCode = 200): string {
@@ -246,6 +257,9 @@ export function me(state: Required<ShopState>): unknown {
     ],
     hasDeletedShop: false,
     needsPhone: false,
+    // I18N-01, NTF-06 (Slice 7.7): the person's language as kept, and whether the owner's email bounces.
+    language: state.phase7.language ?? null,
+    emailBounced: state.isOwner && (state.phase7.bounced ?? false),
   };
 }
 
@@ -300,9 +314,12 @@ export const DAY_ONE: ShopState = {
 };
 
 /** RAT-01's pay-as-you-go fees and the other rates, as the platform sets them by default. */
+// The rates as the server seeds them now (Part 37's `p37-balance`): a check free for now, a read ৳0.10, a part 67 characters.
 const RATES = [
   ['sms_per_unit', '0.5500'],
-  ['fraud_check', '3.0000'],
+  ['sms_unit_size_chars', '67'],
+  ['ai_extraction', '0.1000'],
+  ['fraud_check', '0.0000'],
   ['ai_reply', '0.4000'],
   ['payg_order_fee_min', '20.0000'],
   ['payg_order_fee_pct', '1.5000'],
@@ -362,6 +379,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     ...given,
     money: { ...given.money },
     sales: { ...given.sales },
+    phase7: { ...given.phase7 },
   };
 }
 
@@ -502,16 +520,28 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
     };
   }
   const trial = state.state === 'trial';
-  if (path === '/usage') return usageAnswer({ trial, ...money.usage });
+  if (path === '/usage') {
+    return {
+      ...(usageAnswer({ trial, ...money.usage }) as object),
+      payPerUse: payPerUseOf(state.phase7.reads),
+    };
+  }
   if (path === '/addons') {
-    return addonOffers({
+    const offers = addonOffers({
       trial,
       grace: state.state === 'grace',
       payg: state.state === 'pay_as_you_go',
       ...money.usage,
-    });
+    }) as unknown[];
+    // PLN-20 (Part 37's `p37-addons`): the reads pack, before Features.
+    return state.phase7.readsOffered
+      ? [...offers, readsOffer({ trial, payg: state.state === 'pay_as_you_go' })]
+      : offers;
   }
-  if (path === '/addons/mine') return shopAddonsAnswer(money.usage);
+  if (path === '/addons/mine') {
+    const mine = shopAddonsAnswer(money.usage) as { addons: unknown[] };
+    return { ...mine, addons: [...mine.addons, ...ownedReads(state.phase7.reads)] };
+  }
   const team = teamAnswer(path, state.team ?? drawnTeam(state.language));
   if (team !== undefined) return team;
   const own = settingsAnswer(path, state.settings ?? drawnSettings(state.language));
@@ -542,6 +572,8 @@ export interface ApiLog {
   /** Each call, with its query string (`?active=true`, or '' for none). */
   calls: { method: string; path: string; query: string; body: unknown }[];
   sent: (method: string, path: string) => unknown;
+  /** Part 37's writes: what was acknowledged, switched, saved, checked and read. */
+  phase7: Phase7Writes;
 }
 
 /** Sets the browser's language on the first load only, so a switch the test makes survives a reload (I18N-02). */
@@ -578,6 +610,7 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
     calls: [],
     sent: (method, path) =>
       [...log.calls].reverse().find((call) => call.method === method && call.path === path)?.body,
+    phase7: phase7Writes(),
   };
   await page.addInitScript(() => {
     sessionStorage.setItem('lytro.tenant.csrf', 'csrf-e2e');
@@ -1132,6 +1165,29 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       });
     }
     if (couriers) return ok(couriers.data);
+    // Phase 7 (Part 37): notices, the bell, push, SMS, the fake order check and reading a message.
+    const told = phase7Answer(
+      method,
+      path,
+      url,
+      request.postDataJSON() as Record<string, unknown> | null,
+      state.phase7,
+      {
+        language: state.language,
+        isOwner: state.isOwner,
+        trial: state.state === 'trial',
+        writes: log.phase7,
+      },
+    );
+    if (told && 'refused' in told) {
+      const { status, code, message, details } = told.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message, details),
+      });
+    }
+    if (told) return ok(told.data);
     // Slice 4.8a: the orders, read and changed.
     const ordered = ordersAnswer(
       method,

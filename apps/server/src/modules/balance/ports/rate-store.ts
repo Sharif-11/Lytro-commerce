@@ -11,7 +11,10 @@ export interface RateStore {
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
   get(key: RateKey): Promise<RateValue | null>;
   list(): Promise<RateValue[]>;
-  /** RAT-02: writes the new value and appends a history row together, inside the change's transaction. */
+  /**
+   * RAT-02: writes the new value and appends a history row together, inside the change's transaction. The history row's
+   * id, which a rate-change notice names (NTC-13).
+   */
   set(
     tx: Transaction,
     key: RateKey,
@@ -19,6 +22,6 @@ export interface RateStore {
     newValue: string,
     changedBy: string | null,
     noticeId: string | null,
-  ): Promise<void>;
+  ): Promise<number>;
   history(key: RateKey): Promise<RateHistoryEntry[]>;
 }

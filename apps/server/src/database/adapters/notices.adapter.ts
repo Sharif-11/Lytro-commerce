@@ -15,6 +15,7 @@ import {
   type SelectNoticeVersion,
   type Transaction,
 } from '@lytronix/db';
+import type { NoticeAudience, NoticeSeverity } from '@lytronix/validators';
 import type { NoticeStore } from '../../modules/notices/ports/notice-store';
 import { DatabaseService } from '../database.service';
 
@@ -138,7 +139,10 @@ export class DrizzleNoticeStore implements NoticeStore {
     return this.notices.audienceShops(this.db, notice, without, limit);
   }
 
-  audienceCount(notice: AudienceOf, without: 'acknowledged' | null): Promise<number> {
+  audienceCount(
+    notice: { id?: string; audience: NoticeAudience; severity: NoticeSeverity },
+    without: 'acknowledged' | null,
+  ): Promise<number> {
     return this.notices.audienceCount(this.db, notice, without);
   }
 

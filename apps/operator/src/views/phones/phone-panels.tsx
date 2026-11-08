@@ -28,10 +28,16 @@ export function PhoneChip({ device }: { device: ListenerDevice }): React.JSX.Ele
 interface PhonePanelProps {
   device: ListenerDevice;
   onClose: () => void;
+  /** D7-20: a shop's phone, whose shop is told in its dashboard; Lytro's own phones tell no one. */
+  shop?: boolean;
 }
 
 /** LSN-19: within seconds the phone stops sending receipts. Shared by a shop's page and Lytro's phones. */
-export function RevokePhonePanel({ device, onClose }: PhonePanelProps): React.JSX.Element {
+export function RevokePhonePanel({
+  device,
+  onClose,
+  shop = false,
+}: PhonePanelProps): React.JSX.Element {
   const { t } = useTranslation();
   const ago = useAgo();
   const toast = useToast();
@@ -57,13 +63,20 @@ export function RevokePhonePanel({ device, onClose }: PhonePanelProps): React.JS
         });
       }}
     >
-      <Consequence tone="danger">{t('phones.revokeConsequence')}</Consequence>
+      <Consequence tone="danger">
+        {t('phones.revokeConsequence')}
+        {shop ? ` ${t('phones.toldShop')}` : null}
+      </Consequence>
     </ActionPanel>
   );
 }
 
 /** LSN-21: an app installation blocked across the platform, with why. */
-export function BlockPhonePanel({ device, onClose }: PhonePanelProps): React.JSX.Element {
+export function BlockPhonePanel({
+  device,
+  onClose,
+  shop = false,
+}: PhonePanelProps): React.JSX.Element {
   const { t } = useTranslation();
   const toast = useToast();
   const block = useBlockInstallation();
@@ -90,7 +103,10 @@ export function BlockPhonePanel({ device, onClose }: PhonePanelProps): React.JSX
         );
       }}
     >
-      <Consequence tone="danger">{t('phones.blockConsequence')}</Consequence>
+      <Consequence tone="danger">
+        {t('phones.blockConsequence')}
+        {shop ? ` ${t('phones.toldShop')}` : null}
+      </Consequence>
       <KeyValues>
         <KeyValue label={t('phones.installation')} mono>
           {device.installationId}

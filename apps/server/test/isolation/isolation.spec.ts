@@ -192,6 +192,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /exports',
       'GET /exports/:id/download',
       'GET /fraud-checks',
+      'GET /fraud-checks/orders/:orderId',
       'GET /fraud-checks/rule',
       'GET /home',
       'GET /inventory/figures',

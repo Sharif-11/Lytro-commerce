@@ -14,13 +14,21 @@ export interface ShellState {
   signIn: SignInKind;
   /** The roles the person holds in the shop, for the Menu's card. */
   roles: string[];
+  /** NTF-06, D7-38: the owner's email bounces, so Lytro stopped emailing it (the banner on every page). */
+  emailBounced: boolean;
   /** The phone a staff sign-in was made with, for its Account; null for the person's own sign-in. */
   staffPhone: string | null;
   /** The screen the shell frames now, from its route. */
   screen: ScreenMeta | undefined;
   /** The counts the navigation carries (GET /home): the Shop tab's pill and its section's count, Billing's while a
       payment needs the person (BIL-19), and the Orders tab's orders to confirm (Slice 4.8a). */
-  counts: { stock: number | null; billing: number | null; orders: number | null };
+  counts: {
+    stock: number | null;
+    billing: number | null;
+    orders: number | null;
+    /** NTC-03: the notices this person hasn't opened (GET /notices/summary). */
+    notices: number | null;
+  };
   showToast: (message: string) => void;
   openPlus: () => void;
   /** The one record a screen below its section names (a purchase's number), shown in the desktop header (v3.10). */

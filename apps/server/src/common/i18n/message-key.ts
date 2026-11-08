@@ -790,6 +790,7 @@ export const MESSAGE_KEYS = [
   'NoticeWithdrawn',
   'NoticeAcknowledgmentsListed',
   'NoticeTemplateFilled',
+  'NoticeReachCounted',
   'NoticeNotFound',
   'NoticeNeedsNoAcknowledgment',
   'NoticeWithdrawnAlready',

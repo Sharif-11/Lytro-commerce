@@ -59,6 +59,7 @@ import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support
 import type { AddonsFixture, UsageFixture } from './support/usage';
 import { meghOrders, type OrderFixture, type OrdersFixture } from './support/orders';
 import { drawnCouriers, type CouriersFixture, type ParcelFixture } from './support/couriers';
+import { DRAWN_BELL } from './support/phase7';
 
 // TENANT-DASHBOARD-DESIGN §11: each built screen beside the prototype's drawing of it, at the prototype's own frame
 // sizes, saved to test-results/compare for the pull request and CI's artifacts. No pixel baseline is committed: a
@@ -2268,9 +2269,390 @@ const COURIERS: Pair[] = [
   { ...c36('c36-home', '', { couriers: { connections: [] } }), shop: NEW_SHOP },
 ];
 
+/** Part 37's side of a shop where a pair needs one: Lytro's six notices, the drawn bell, a done order check. */
+const P37_NOTICES: ShopState = { phase7: { notices: {} } };
+const P37_BELL: ShopState = { phase7: { bell: DRAWN_BELL } };
+const P37_CHECKED: ShopState = {
+  phase7: { fraud: { order: { state: 'done', check: { minutesAgo: 1 } } } },
+};
+const tapBell = async (page: Page): Promise<void> => {
+  await page
+    .getByRole('button', { name: /^Notifications|^নোটিফিকেশন/ })
+    .first()
+    .click();
+  await page.waitForTimeout(300);
+};
+const typePhone = (phone: string) => async (page: Page) => {
+  await page
+    .getByRole('main')
+    .getByRole('textbox', { name: /Phone number|ফোন নম্বর/ })
+    .fill(phone);
+  await page.waitForTimeout(400);
+};
+
+/**
+ * Phase 7 (§7.40, Slice 7.7, Part 37): SMS settings, its sheets, log and report; the bell, its page and the switches; the
+ * bounced email; Lytro's notices, a notice, maintenance, the marquee, the prompt, Home's job and a locked shop's way in;
+ * the fake order check on the order, New order, the customer and its rule; reading a message; the reads allowance; the
+ * SMS an action sends; Balance's rates. Each in the state the prototype draws, opened as a seller opens it.
+ */
+const P37: Pair[] = [
+  {
+    name: 'p37-settings',
+    screen: 'p37-settings',
+    device: 'phone',
+    language: 'bn',
+    path: '/settings',
+  },
+  { name: 'p37-sms', screen: 'p37-sms', device: 'phone', language: 'bn', path: '/settings/sms' },
+  { name: 'p37-sms', screen: 'p37-sms', device: 'desktop', language: 'en', path: '/settings/sms' },
+  {
+    name: 'p37-sh-sms-tpl-placed',
+    screen: 'p37-sh-sms-tpl-placed',
+    device: 'phone',
+    language: 'bn',
+    path: '/settings/sms',
+    then: async (page) => {
+      await page
+        .getByRole('main')
+        .getByRole('button', { name: /^অর্ডার পেয়েছি|^Order placed/ })
+        .click();
+      await page.waitForTimeout(300);
+    },
+  },
+  {
+    name: 'p37-sms-log',
+    screen: 'p37-sms-log',
+    device: 'phone',
+    language: 'bn',
+    path: '/settings/sms?tab=log',
+  },
+  {
+    name: 'p37-sms-report',
+    screen: 'p37-sms-report',
+    device: 'desktop',
+    language: 'en',
+    path: '/settings/sms?tab=report',
+  },
+  {
+    name: 'p37-bell',
+    screen: 'p37-bell',
+    device: 'phone',
+    language: 'bn',
+    path: '',
+    state: P37_BELL,
+    then: tapBell,
+  },
+  {
+    name: 'p37-bell',
+    screen: 'p37-bell',
+    device: 'desktop',
+    language: 'en',
+    path: '',
+    state: P37_BELL,
+    then: tapBell,
+  },
+  {
+    name: 'p37-bell-empty',
+    screen: 'p37-bell-empty',
+    device: 'phone',
+    language: 'bn',
+    path: '',
+    then: tapBell,
+  },
+  {
+    name: 'p37-bell-all',
+    screen: 'p37-bell-all',
+    device: 'phone',
+    language: 'bn',
+    path: '/notifications',
+    state: P37_BELL,
+  },
+  {
+    name: 'p37-prefs',
+    screen: 'p37-prefs',
+    device: 'phone',
+    language: 'bn',
+    path: '/settings/notifications',
+  },
+  {
+    name: 'p37-prefs',
+    screen: 'p37-prefs',
+    device: 'desktop',
+    language: 'en',
+    path: '/settings/notifications',
+  },
+  {
+    name: 'p37-bounced',
+    screen: 'p37-bounced',
+    device: 'phone',
+    language: 'bn',
+    path: '',
+    state: { phase7: { bounced: true } },
+  },
+  {
+    name: 'p37-bounced-account',
+    screen: 'p37-bounced-account',
+    device: 'phone',
+    language: 'bn',
+    path: '/account',
+    state: { phase7: { bounced: true }, money: { hasEmail: true } },
+  },
+  { name: 'p37-lang', screen: 'p37-lang', device: 'phone', language: 'bn', path: '/account' },
+  {
+    name: 'p37-menu',
+    screen: 'p37-menu',
+    device: 'phone',
+    language: 'bn',
+    path: '/menu',
+    state: P37_NOTICES,
+  },
+  {
+    name: 'p37-notices',
+    screen: 'p37-notices',
+    device: 'phone',
+    language: 'bn',
+    path: '/notices',
+    state: P37_NOTICES,
+  },
+  {
+    name: 'p37-notices',
+    screen: 'p37-notices',
+    device: 'desktop',
+    language: 'en',
+    path: '/notices',
+    state: P37_NOTICES,
+  },
+  {
+    name: 'p37-notices-empty',
+    screen: 'p37-notices-empty',
+    device: 'phone',
+    language: 'bn',
+    path: '/notices',
+    state: { phase7: { notices: { ids: [] } } },
+  },
+  {
+    name: 'p37-notice-ack',
+    screen: 'p37-notice-ack',
+    device: 'phone',
+    language: 'bn',
+    path: '/notices/n-policy',
+    state: P37_NOTICES,
+  },
+  {
+    name: 'p37-notice-ack',
+    screen: 'p37-notice-ack',
+    device: 'desktop',
+    language: 'en',
+    path: '/notices/n-policy',
+    state: P37_NOTICES,
+  },
+  {
+    name: 'p37-notice-maint',
+    screen: 'p37-notice-maint',
+    device: 'phone',
+    language: 'bn',
+    path: '/notices/n-maint',
+    state: P37_NOTICES,
+  },
+  {
+    name: 'p37-notice-fallback',
+    screen: 'p37-notice-fallback',
+    device: 'phone',
+    language: 'bn',
+    path: '/notices/n-rate',
+    state: { phase7: { notices: { onlyIn: 'en' } } },
+  },
+  {
+    name: 'p37-marquee',
+    screen: 'p37-marquee',
+    device: 'phone',
+    language: 'bn',
+    path: '',
+    state: { phase7: { notices: { ids: ['maint', 'rate'], marquee: true } } },
+  },
+  {
+    name: 'p37-marquee',
+    screen: 'p37-marquee',
+    device: 'desktop',
+    language: 'en',
+    path: '',
+    state: { phase7: { notices: { ids: ['maint', 'rate'], marquee: true } } },
+  },
+  {
+    name: 'p37-maint',
+    screen: 'p37-maint',
+    device: 'phone',
+    language: 'bn',
+    path: '',
+    state: { phase7: { notices: { ids: ['maint'] } } },
+  },
+  {
+    name: 'p37-prompt',
+    screen: 'p37-prompt',
+    device: 'phone',
+    language: 'bn',
+    path: '',
+    state: { phase7: { notices: { ids: ['rate', 'policy'], prompt: true, acked: true } } },
+  },
+  {
+    name: 'p37-home-ack',
+    screen: 'p37-home-ack',
+    device: 'phone',
+    language: 'bn',
+    path: '',
+    state: P37_NOTICES,
+  },
+  {
+    name: 'p37-locked',
+    screen: 'p37-locked',
+    device: 'phone',
+    language: 'bn',
+    path: '/renew',
+    state: { ...P37_NOTICES, state: 'locked', periodEndDays: -12 },
+  },
+  {
+    name: 'p37-order-fraud',
+    screen: 'p37-order-fraud',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    state: P37_CHECKED,
+  },
+  {
+    name: 'p37-order-fraud',
+    screen: 'p37-order-fraud',
+    device: 'desktop',
+    language: 'en',
+    path: '/orders/o-47',
+    state: P37_CHECKED,
+  },
+  {
+    name: 'p37-order-fraud-pending',
+    screen: 'p37-order-fraud-pending',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    state: { phase7: { fraud: { order: { state: 'pending' } } } },
+  },
+  {
+    name: 'p37-order-fraud-skipped',
+    screen: 'p37-order-fraud-skipped',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    state: { phase7: { fraud: { order: { state: 'skipped', reason: 'below_minimum' } } } },
+  },
+  {
+    name: 'p37-order-fraud-staff',
+    screen: 'p37-order-fraud-staff',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    state: { ...P37_CHECKED, isOwner: false, permissions: ['orders:read', 'orders:manage'] },
+  },
+  {
+    name: 'p37-new-fraud-ask',
+    screen: 'p37-new-fraud-ask',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/new',
+    then: typePhone('1711 234 567'),
+  },
+  {
+    name: 'p37-new-fraud',
+    screen: 'p37-new-fraud',
+    device: 'desktop',
+    language: 'en',
+    path: '/orders/new',
+    state: { phase7: { fraud: { latest: { '01711234567': { minutesAgo: 1 } } } } },
+    then: typePhone('1711 234 567'),
+  },
+  {
+    name: 'p37-cust-fraud-none',
+    screen: 'p37-cust-fraud-none',
+    device: 'desktop',
+    language: 'en',
+    path: '/customers/c-nusrat',
+  },
+  {
+    name: 'p37-fraud-rule',
+    screen: 'p37-fraud-rule',
+    device: 'phone',
+    language: 'bn',
+    path: '/settings/fraud-checks',
+  },
+  {
+    name: 'p37-fraud-rule',
+    screen: 'p37-fraud-rule',
+    device: 'desktop',
+    language: 'en',
+    path: '/settings/fraud-checks',
+  },
+  { name: 'p37-read', screen: 'p37-read', device: 'phone', language: 'bn', path: '/orders/new' },
+  { name: 'p37-read', screen: 'p37-read', device: 'desktop', language: 'en', path: '/orders/new' },
+  {
+    name: 'p37-read-done',
+    screen: 'p37-read-done',
+    device: 'phone',
+    language: 'en',
+    path: '/orders/new',
+    then: async (page) => {
+      const card = page.getByRole('main');
+      await card
+        .getByRole('textbox', { name: "From the customer's message" })
+        .fill(
+          'Hi, I want to order. Name Sadia Islam, phone 01812-445566. Address House 14, Road 2, next to Fatulla bazar, Narayanganj. Please deliver after evening.',
+        );
+      await card.getByRole('button', { name: 'Read the details' }).click();
+      await page.waitForTimeout(400);
+    },
+  },
+  {
+    name: 'p37-addons',
+    screen: 'p37-addons',
+    device: 'desktop',
+    language: 'en',
+    path: '/addons',
+    state: { phase7: { readsOffered: true } },
+  },
+  {
+    name: 'p37-usage',
+    screen: 'p37-usage',
+    device: 'phone',
+    language: 'bn',
+    path: '/usage',
+    state: { phase7: { reads: { used: 57 }, readsOffered: true } },
+  },
+  {
+    name: 'p37-o-cancel',
+    screen: 'p37-o-cancel',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    then: orderMenu('অর্ডার ক্যানসেল'),
+  },
+  {
+    name: 'p37-o-sms',
+    screen: 'p37-o-sms',
+    device: 'desktop',
+    language: 'en',
+    path: '/orders/o-47',
+    scroll: /SMS on this order/,
+  },
+  {
+    name: 'p37-balance',
+    screen: 'p37-balance',
+    device: 'desktop',
+    language: 'en',
+    path: '/balance',
+  },
+];
+
 const PAIRS: Pair[] = [
   ...PAYMENTS_AND_PHONES,
   ...COURIERS,
+  ...P37,
   { name: 'home', screen: 'home', device: 'phone', language: 'bn', path: '' },
   { name: 'home', screen: 'home', device: 'tablet', language: 'bn', path: '' },
   { name: 'home', screen: 'home', device: 'desktop', language: 'en', path: '' },

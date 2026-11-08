@@ -336,6 +336,10 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
     "checks with the session shop's own Steadfast key and own orders; reuses only its own answers",
   'GET /fraud-checks':
     "reads only the session shop's own checks; another shop's check of a phone shows none",
+  // Slice 7.7, checked in test/fraud-checks.e2e.spec.ts: another shop's order answers 404; the check and why it
+  // didn't run are read under the session shop's RLS.
+  'GET /fraud-checks/orders/:orderId':
+    "another shop's order answers 404; reads only the session shop's own order's automatic check",
   'GET /fraud-checks/rule': "reads only the session shop's own automatic check",
   'PUT /fraud-checks/rule': "changes only the session shop's own automatic check",
   'POST /couriers/connections': "saves only into the session shop's own connections",

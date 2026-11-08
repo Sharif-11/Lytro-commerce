@@ -7,17 +7,20 @@ import {
   smsUnitsOf,
   smsWithName,
   takaFigure,
+  type Language,
   type SmsRecipient,
   type SmsSettingsUpdateInput,
   type SmsVariable,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { fromPaisa, unitsTimesRate } from '../../balance/services/money';
-import { trackingPageUrl } from '../../../common/shop-address';
-import { usageCycleStart } from '../../../common/time';
+import { shopOrigin, trackingPageUrl } from '../../../common/shop-address';
+import { usageCycleEnd, usageCycleStart } from '../../../common/time';
 import type { Env } from '../../../config/env';
 import { ENV } from '../../../config/tokens';
+import { resetCodeText, shopReadyText, shopperCodeText } from '../../shared/messaging/sms-words';
 import { SmsUnits } from '../../sms-usage/services/sms-units';
+import { StaffService } from '../../staff/services/staff.service';
 import type { SmsEventStore } from '../ports/sms-event-store';
 import { SMS_EVENT_STORE, SMS_EVENTS_CLOCK } from '../tokens';
 
@@ -36,6 +39,29 @@ const SAMPLE_TRACKING_ID = 'AB3XK9QZ';
 
 /** SMS-01's essential SMS, always on, in the platform's words (Slice 7.2's read): listed, never edited. */
 export const ESSENTIAL_SMS = ['shopper_code', 'staff_reset_code', 'shop_ready'] as const;
+export type EssentialSms = (typeof ESSENTIAL_SMS)[number];
+
+/**
+ * Who pays for each essential SMS (Slice 7.7, SMS-09, AUTH-21, D7-23): a customer's sign-up code from the balance; a
+ * staff member's reset code from the shop's free SMS, then the balance; the new shop's address never.
+ */
+export const ESSENTIAL_SMS_PAYERS: Readonly<
+  Record<EssentialSms, 'balance' | 'free_then_balance' | 'free'>
+> = {
+  shopper_code: 'balance',
+  staff_reset_code: 'free_then_balance',
+  shop_ready: 'free',
+};
+
+/** The code an essential SMS shows in the settings, standing for the real one. */
+const SAMPLE_CODE = '123456';
+
+/** One essential SMS as the settings show it: as it reads, and who pays. */
+export interface EssentialSmsView {
+  kind: EssentialSms;
+  words: string;
+  payer: (typeof ESSENTIAL_SMS_PAYERS)[EssentialSms];
+}
 
 /** SMS-12: one event's estimated cost: per order before the shop has any, else a month from its last 30 days. */
 export type SmsEstimate =
@@ -58,7 +84,9 @@ export interface SmsEventView {
 
 export interface SmsSettingsView {
   events: SmsEventView[];
-  essentials: readonly string[];
+  essentials: EssentialSmsView[];
+  /** SMS-01 (Slice 7.7): the phone the owner's own SMS go to; null when the owner has none. */
+  ownerPhone: string | null;
   /** SMS-16: what every SMS starts with, and whether that is the shop's own name. */
   smsName: string;
   usesShopName: boolean;
@@ -66,6 +94,9 @@ export interface SmsSettingsView {
   /** SMS-13: null for none; what the shop's SMS events have cost this month. */
   monthlySpendCap: string | null;
   spentThisMonth: string;
+  /** SMS-13 (Slice 7.7): the cycle the spend and its cap count over, the same one Usage reads. */
+  cycleStart: Date;
+  cycleEnd: Date;
   unitSize: number;
   rate: string;
 }
@@ -82,17 +113,20 @@ export class SmsSettingsService {
     @Inject(SmsUnits) private readonly units: SmsUnits,
     @Inject(ENV) private readonly env: Env,
     @Inject(SMS_EVENTS_CLOCK) private readonly clock: () => Date,
+    @Inject(StaffService) private readonly staff: StaffService,
   ) {}
 
-  async view(tenantId: string): Promise<SmsSettingsView> {
+  /** The settings, the essential SMS in the reader's language where the SMS itself has two (a customer's code). */
+  async view(tenantId: string, language: Language = 'bn'): Promise<SmsSettingsView> {
     const shop = await this.store.shop(tenantId);
     if (!shop) throw new ApiError('not_found', 'ShopNotFound', {});
     const now = this.clock();
-    const [row, rates, counts, spent] = await Promise.all([
+    const [row, rates, counts, spent, owner] = await Promise.all([
       this.store.settings(tenantId),
       this.units.current(),
       this.store.counts(tenantId, new Date(now.getTime() - SMS_ESTIMATE_DAYS * DAY_MS)),
       this.store.spentSince(tenantId, Object.values(SmsEvent), usageCycleStart(shop.cycle, now)),
+      this.staff.ownerContact(tenantId),
     ]);
     const smsName = row?.smsName ?? shop.shopName;
     const link = trackingPageUrl(this.env, shop.slug, null, SAMPLE_TRACKING_ID);
@@ -117,14 +151,26 @@ export class SmsSettingsService {
         estimate: estimateOf(event, counts, units, rates.rate),
       };
     });
+    const words: Readonly<Record<EssentialSms, string>> = {
+      shopper_code: shopperCodeText(language, shop.shopName, SAMPLE_CODE),
+      staff_reset_code: resetCodeText(SAMPLE_CODE),
+      shop_ready: shopReadyText(shopOrigin(this.env, shop.slug)),
+    };
     return {
       events,
-      essentials: ESSENTIAL_SMS,
+      essentials: ESSENTIAL_SMS.map((kind) => ({
+        kind,
+        words: words[kind],
+        payer: ESSENTIAL_SMS_PAYERS[kind],
+      })),
+      ownerPhone: owner?.phone ?? null,
       smsName,
       usesShopName: row?.smsName == null,
       shopName: shop.shopName,
       monthlySpendCap: row?.monthlySpendCap ?? null,
       spentThisMonth: spent,
+      cycleStart: usageCycleStart(shop.cycle, now),
+      cycleEnd: usageCycleEnd(shop.cycle, now),
       unitSize: rates.unitSize,
       rate: rates.rate,
     };

@@ -12,8 +12,9 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { Permission } from '@lytronix/validators';
+import { AddonKind, Permission } from '@lytronix/validators';
 import { LytroReceipts } from '../../lytro-receipts/services/lytro-receipts';
+import { AddressReads } from '../../address-reads/services/address-reads';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
@@ -50,6 +51,11 @@ import {
 
 // PLN-13, PLN-14, BRN-05: a shop's add-ons -- what is for sale and at what price, buying one from the balance, and
 // what the shop has now. Paying by wallet follows in Slice 10a.2.
+/** The shop's add-ons as its routes answer them, each with an allowance's uses left (Slice 7.7). */
+type ShopAddonsWithUses = ShopAddons & {
+  addons: (ShopAddons['addons'][number] & { usesLeft: number | null })[];
+};
+
 @ApiTags('Add-ons')
 @Controller('addons')
 @Dashboard({})
@@ -60,6 +66,7 @@ export class AddonsController {
     @Inject(AddonPurchaseService) private readonly addons: AddonPurchaseService,
     @Inject(AddonPackService) private readonly packs: AddonPackService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
+    @Inject(AddressReads) private readonly reads: AddressReads,
   ) {}
 
   @Get()
@@ -76,8 +83,9 @@ export class AddonsController {
   @ResponseMessage('ShopAddonsRetrieved')
   @ApiOperation({ summary: "The shop's active add-ons and its brand identity entitlement" })
   @ZodResponse({ type: ShopAddonsDto })
-  mine(@Req() request: DashboardRequest): Promise<ShopAddons> {
-    return this.addons.mine(this.tenantIdOf(request));
+  async mine(@Req() request: DashboardRequest): Promise<ShopAddonsWithUses> {
+    const tenantId = this.tenantIdOf(request);
+    return this.withUsesLeft(tenantId, await this.addons.mine(tenantId));
   }
 
   @Post('quote')
@@ -155,17 +163,32 @@ export class AddonsController {
   @ResponseMessage('AddonRenewalUpdated')
   @ApiOperation({ summary: 'Switch an add-on’s renewal on or off' })
   @ZodResponse({ type: ShopAddonsDto })
-  setRenewal(
+  async setRenewal(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(SetAddonRenewalDto.schema)) body: SetAddonRenewalDto,
     @Req() request: DashboardRequest,
-  ): Promise<ShopAddons> {
-    return this.addons.setRenewal(
-      this.tenantIdOf(request),
+  ): Promise<ShopAddonsWithUses> {
+    const tenantId = this.tenantIdOf(request);
+    const mine = await this.addons.setRenewal(
+      tenantId,
       id,
       body.renews,
       this.clientIp.resolve(request),
     );
+    return this.withUsesLeft(tenantId, mine);
+  }
+
+  /** PLN-20 (Slice 7.7): an allowance shows the uses it still has; any other add-on, none. */
+  private async withUsesLeft(tenantId: string, mine: ShopAddons): Promise<ShopAddonsWithUses> {
+    const allowances = await this.reads.allowances(tenantId);
+    const left = new Map(allowances.map((allowance) => [allowance.purchaseId, allowance.left]));
+    return {
+      ...mine,
+      addons: mine.addons.map((addon) => ({
+        ...addon,
+        usesLeft: addon.kind === AddonKind.Allowance ? (left.get(addon.id) ?? 0) : null,
+      })),
+    };
   }
 
   private tenantIdOf(request: DashboardRequest): string {

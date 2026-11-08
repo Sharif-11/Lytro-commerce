@@ -133,6 +133,7 @@ function usage(overrides: Partial<ShopUsage> = {}): ShopUsage {
     suggestions: null,
     fastSpendAlertedAt: null,
     packs: [],
+    payPerUse: [],
     ...overrides,
   };
 }

@@ -39,6 +39,22 @@ export interface AddressReadActor {
   userId: string | null;
 }
 
+/** PLN-20, D7-36 (Slice 7.7): one allowance as the shop's pages show it. */
+export interface AllowanceFigure {
+  purchaseId: string;
+  total: number;
+  used: number;
+  left: number;
+  endsAt: Date;
+}
+
+/** PLN-20, D7-36 (Slice 7.7): this cycle's reads: the allowances, and the reads paid one by one at the rate. */
+export interface AddressReadFigures {
+  rate: string;
+  allowances: AllowanceFigure[];
+  outsideAllowance: { count: number; cost: string };
+}
+
 /**
  * ORD-30 to ORD-34, PLN-20 (Phase 7 Slice 7.6, read agreed 2026-11-06): reading a customer's delivery details from a
  * pasted message -- name, phone, zilla, thana, address and a delivery note -- for the order form, nothing saved. A read
@@ -63,6 +79,35 @@ export class AddressReads implements OnModuleInit, OnModuleDestroy {
     @Inject(LocationService) private readonly locations: LocationService,
     @Inject(ADDRESS_READ_CLOCK) private readonly clock: () => Date,
   ) {}
+
+  /**
+   * PLN-20, D7-36 (Slice 7.7): what the shop's reads allowances hold, have used and still have, the soonest to end
+   * first, and the reads paid one by one since the cycle began -- for Usage, the add-on shop and the paste card.
+   */
+  async figures(tenantId: string, cycleStart: Date): Promise<AddressReadFigures> {
+    const [allowances, outside, rate] = await Promise.all([
+      this.allowances(tenantId),
+      this.balance.runStandalone(tenantId, (tx) =>
+        this.store.paidFromBalanceSince(tx, tenantId, cycleStart),
+      ),
+      this.rates.current(RateKey.AiExtraction),
+    ]);
+    return { rate: rate?.value ?? '0', allowances, outsideAllowance: outside };
+  }
+
+  /** PLN-20 (Slice 7.7): the shop's reads allowances that count now, the soonest to end first. */
+  async allowances(tenantId: string): Promise<AllowanceFigure[]> {
+    const held = await this.balance.runStandalone(tenantId, (tx) =>
+      this.store.allowancesFor(tx, tenantId),
+    );
+    return held.map((allowance) => ({
+      purchaseId: allowance.id,
+      total: allowance.total,
+      used: allowance.used,
+      left: allowance.left,
+      endsAt: allowance.expiresAt,
+    }));
+  }
 
   onModuleInit(): void {
     this.sweeper = setInterval(() => {

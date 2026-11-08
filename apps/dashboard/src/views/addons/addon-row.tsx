@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AddonKind } from '@lytronix/validators';
-import { formatTaka } from '@lytronix/ui';
+import { formatTaka, formatTakaExact } from '@lytronix/ui';
 import { useSetAddonRenewal } from '@/api/addons';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
@@ -19,6 +19,7 @@ import {
   packMetric,
   renewalLine,
   switchable,
+  usesOf,
   type AddonLine,
 } from './addon-words';
 
@@ -123,6 +124,10 @@ export interface RowContext {
   figures: readonly UsageFigure[];
   /** The add-on whose wallet payment is being checked. */
   checkingKey: string | null;
+  /** PLN-20: on pay-as-you-go an allowance isn't sold, each use is paid at the rate instead. */
+  payg?: boolean;
+  /** An address read's rate as stored (`0.1000`), from Usage. */
+  readRate?: string | null;
 }
 
 /**
@@ -141,6 +146,8 @@ export function AddonRow({
   const { t, i18n } = useTranslation('money');
   const { addon, offer, owned } = line;
   const pack = addon.kind === AddonKind.Pack;
+  // PLN-20 (Part 37's `p37AllowRow`): address reads, used before the balance.
+  const allowance = addon.kind === AddonKind.Allowance;
   const metric = packMetric(addon);
   const rest = pack && metric ? context.packs.find((each) => each.metric === metric) : undefined;
   const packActive = rest !== undefined && rest.left > 0;
@@ -174,6 +181,21 @@ export function AddonRow({
     ]);
   }
   if (packActive) facts.push(['left', <span className="num">{packLeft(rest, t)}</span>]);
+  if (allowance && owned) {
+    facts.push([
+      'uses',
+      <span className="num">
+        {t('p37AoReadsLeft', {
+          left: owned.usesLeft ?? 0,
+          total: usesOf(addon) * owned.quantity,
+        })}
+      </span>,
+    ]);
+  }
+  if (allowance && !owned) facts.push(['uses', t('p37AoReadsD', { n: usesOf(addon) })]);
+  if (allowance && context.payg && context.readRate) {
+    facts.push(['payg', t('p37AoPaygNote', { r: formatTakaExact(context.readRate) })]);
+  }
   if (owned && !pack) {
     const renewal = renewalLine(owned, t, context.planName);
     facts.push([
@@ -194,6 +216,9 @@ export function AddonRow({
 
   const action = ((): ReactNode => {
     if (context.trial) return <StatusTag tone="neutral">{t('aoNeedsPlan')}</StatusTag>;
+    if (allowance && context.payg) {
+      return <StatusTag tone="neutral">{t('p37AoNeedsPeriod')}</StatusTag>;
+    }
     if (!context.canManage || checking || inPlan) return null;
     if (owned && !pack) {
       return switchable(owned) ? (
@@ -219,7 +244,9 @@ export function AddonRow({
   return (
     <div className="flex items-center gap-3 border-line px-4 py-3 [&+&]:border-t">
       <span className="min-w-0 flex-1">
-        <span className="block text-[15px] font-semibold">{nameOf(addon, i18n.language)}</span>
+        <span className="block text-[15px] font-semibold">
+          {allowance ? t('p37AoReads', { n: usesOf(addon) }) : nameOf(addon, i18n.language)}
+        </span>
         {facts.length > 0 ? (
           <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13px] text-fg-muted">
             {facts.map(([key, fact]) => (

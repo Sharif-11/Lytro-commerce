@@ -52,4 +52,15 @@ export interface ShopUsage {
   suggestions: { first: Suggestion; alternative: Suggestion | null } | null;
   fastSpendAlertedAt: string | null;
   packs: UsagePack[];
+  /** PLN-20, D7-36 (Slice 7.7): address reads this cycle, their allowance and those paid one by one. */
+  payPerUse: PayPerUse[];
+}
+
+/** Mirrors `PayPerUse` (PLN-20): one service paid use by use, its allowances pooled, and uses paid at the rate. */
+export interface PayPerUse {
+  key: 'address_reads';
+  /** As stored, `0.1000`. */
+  rate: string;
+  allowance: { used: number; total: number; left: number; endsAt: string } | null;
+  outsideAllowance: { count: number; cost: string };
 }

@@ -31,6 +31,7 @@ import {
   type ShopFixture,
 } from './console-data';
 import { courierAnswer, courierDefaults, type CourierMockState } from './courier-mock';
+import { noticeAnswer, noticeDefaults, type NoticeMockState } from './notice-mock';
 import { pricingAnswer, type PricingState } from './pricing-mock';
 
 // The console against a mocked API: each /api/v1 call answered in the server's own envelope ({ success, statusCode,
@@ -62,7 +63,8 @@ export const DRAWN_CODES = [
 export const CHROME_ON_WINDOWS =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 
-export interface ConsoleState extends Partial<PricingState>, Partial<CourierMockState> {
+export interface ConsoleState
+  extends Partial<PricingState>, Partial<CourierMockState>, Partial<NoticeMockState> {
   language?: Language;
   /** Whether the browser starts signed in. */
   signedIn?: boolean;
@@ -89,6 +91,8 @@ export interface ConsoleState extends Partial<PricingState>, Partial<CourierMock
   refuseWrite?: { path: string; status: number; code: string; message: string } | null;
   /** A test driving the clock itself; otherwise the page sits at the moment the sketch is drawn. */
   ownClock?: boolean;
+  /** The moment the page sits at, when it isn't NOW: Phase 7's screens are drawn on 7 Nov. */
+  now?: string;
   /** GET /auth/operator/me. */
   unusedBackupCodes?: number;
   userAgent?: string | null;
@@ -326,6 +330,8 @@ function consoleAnswer(
   if (assigned) return { data: { id: 'assign-1', planId: assigned[1] } };
   const couriered = courierAnswer(method, path, url, body, state);
   if (couriered) return couriered;
+  const noticed = noticeAnswer(method, path, url, body, state);
+  if (noticed) return noticed;
   const priced = pricingAnswer(method, path, body, state);
   if (priced) return priced;
   if (path === '/operator/tenants') {
@@ -473,6 +479,8 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
     attributes: drawnAttributes(),
     optionSets: drawnOptionSets(),
     ...courierDefaults(),
+    ...noticeDefaults(),
+    now: NOW,
     failing: {},
     refuseWrite: null,
     ownClock: false,
@@ -489,6 +497,8 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
   state.blocking = structuredClone(state.blocking);
   state.areas = structuredClone(state.areas);
   state.areaCounts = { ...state.areaCounts };
+  state.notices = structuredClone(state.notices);
+  state.rateHistory = structuredClone(state.rateHistory);
   const log: ApiLog = {
     calls: [],
     state,
@@ -501,7 +511,7 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
     });
   }
   await startIn(page, state.language);
-  if (!state.ownClock) await page.clock.setFixedTime(NOW);
+  if (!state.ownClock) await page.clock.setFixedTime(state.now);
   await page.route('**/api/v1/**', async (route: Route) => {
     const request = route.request();
     const url = new URL(request.url());

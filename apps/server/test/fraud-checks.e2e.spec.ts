@@ -19,6 +19,7 @@ import { RateService } from '../src/modules/balance/services/rate.service';
 import { COURIER_FETCH } from '../src/modules/couriers/tokens';
 import type { FraudCheckJob } from '../src/modules/fraud-checks/services/fraud-check-queue';
 import { FraudChecks } from '../src/modules/fraud-checks/services/fraud-checks';
+import { FRAUD_CHECK_CLOCK } from '../src/modules/fraud-checks/tokens';
 import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { TenantCache } from '../src/modules/tenancy/services/tenant-cache';
@@ -46,6 +47,7 @@ vi.setConfig({ testTimeout: 40_000 });
 let app: INestApplication;
 let port: number;
 let admin: pg.Client;
+let clockShift = 0;
 const steadfast = new FakeSteadfast();
 const texts = new SmsCapture();
 
@@ -62,6 +64,9 @@ beforeAll(async () => {
     .useValue(texts.provider)
     .overrideProvider(COURIER_FETCH)
     .useValue(steadfast.fetch)
+    // Slice 7.7: how far the checks' clock runs ahead, for a check that never came.
+    .overrideProvider(FRAUD_CHECK_CLOCK)
+    .useValue(() => new Date(Date.now() + clockShift))
     .compile();
   ({ app, port } = await listenOn(moduleRef));
 });
@@ -74,6 +79,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   steadfast.reset();
+  clockShift = 0;
 });
 
 afterEach(() => {
@@ -592,3 +598,135 @@ describeIfDatabase(
     });
   },
 );
+
+interface OrderCheck {
+  state: string;
+  reason: string | null;
+  minAmount: string | null;
+  message: string | null;
+  check: Check | null;
+}
+
+describeIfDatabase("an order's automatic check as its page shows it (FRD-05, Slice 7.7)", () => {
+  const read = async (
+    client: ShopClient,
+    orderId: string,
+    language = 'bn',
+  ): Promise<OrderCheck> => {
+    const got = await sendExact(port, 'GET', `/api/v1/fraud-checks/orders/${orderId}`, undefined, {
+      ...client.headers(),
+      'accept-language': language,
+    });
+    expect(got.status, JSON.stringify(got.body)).toBe(200);
+    return got.body as OrderCheck;
+  };
+
+  it("is being checked until the job runs, then shows the check; a takeaway is none of the rule's", async () => {
+    const client = await shop();
+    const variant = await variantOf(client);
+    const made = await order(client, variant, freshMobile());
+    expect(await read(client, made.id)).toMatchObject({
+      state: 'pending',
+      reason: null,
+      check: null,
+    });
+    const [job] = await queued(client);
+    await app.get(FraudChecks).onNewOrder(job as FraudCheckJob);
+    const done = await read(client, made.id);
+    expect(done.state).toBe('done');
+    expect(done.check?.orderId).toBe(made.id);
+    const takeaway = await order(client, variant, freshMobile(), { fulfilmentType: 'takeaway' });
+    expect((await read(client, takeaway.id)).state).toBe('not_applicable');
+  });
+
+  it("says why it was skipped, the smallest amount as the rule had it then, and a refusal in the reader's words", async () => {
+    const client = await shop();
+    const variant = await variantOf(client);
+    await client.put('/fraud-checks/rule', { codOrders: true, minAmount: 5000 });
+    const small = await order(client, variant, freshMobile());
+    const [smallJob] = await queued(client);
+    await app.get(FraudChecks).onNewOrder(smallJob as FraudCheckJob);
+    // The rule changes after: the order keeps the amount it was skipped under.
+    await client.put('/fraud-checks/rule', { codOrders: false, minAmount: null });
+    expect(await read(client, small.id)).toMatchObject({
+      state: 'skipped',
+      reason: 'below_minimum',
+      minAmount: '5000.00',
+    });
+    const off = await order(client, variant, freshMobile());
+    const offJob = (await queued(client)).find((job) => job.orderId === off.id);
+    await app.get(FraudChecks).onNewOrder(offJob as FraudCheckJob);
+    expect(await read(client, off.id)).toMatchObject({ state: 'skipped', reason: 'rule_off' });
+
+    await client.put('/fraud-checks/rule', { codOrders: true, minAmount: null });
+    const frozen = await order(client, variant, freshMobile());
+    const frozenJob = (await queued(client)).find((job) => job.orderId === frozen.id);
+    await admin.query('UPDATE control.tenants SET balance_frozen = true WHERE id = $1', [
+      client.tenantId,
+    ]);
+    app.get(TenantCache).invalidateTenant(client.tenantId);
+    await app.get(FraudChecks).onNewOrder(frozenJob as FraudCheckJob);
+    const refused = await read(client, frozen.id, 'en');
+    expect(refused).toMatchObject({ state: 'skipped', reason: 'refused' });
+    expect(refused.message).toMatch(/balance/i);
+    expect((await read(client, frozen.id, 'bn')).message).toMatch(/ব্যালেন্স/);
+  });
+
+  it("says when the minute's checks were used up, and that a check that never came failed", async () => {
+    const settings = app.get(PlatformSettingsService);
+    const real = settings.current.bind(settings);
+    vi.spyOn(settings, 'current').mockImplementation(async (key) =>
+      key === PlatformSettingKey.FraudChecksPerShopPerMinute
+        ? { key, value: 1, description: '', updatedAt: new Date(), updatedBy: null }
+        : real(key),
+    );
+    const client = await shop();
+    expect((await check(client, freshMobile())).status).toBe(201);
+    const variant = await variantOf(client);
+    const made = await order(client, variant, freshMobile());
+    const [job] = await queued(client);
+    await app.get(FraudChecks).onNewOrder(job as FraudCheckJob);
+    expect(await read(client, made.id)).toMatchObject({ state: 'skipped', reason: 'minute_limit' });
+
+    const lost = await order(client, variant, freshMobile());
+    expect((await read(client, lost.id)).state).toBe('pending');
+    // Sixteen minutes on, its job never having written a check or a skip.
+    clockShift = 16 * 60 * 1000;
+    expect(await read(client, lost.id)).toMatchObject({ state: 'skipped', reason: 'failed' });
+  });
+
+  it("shows staff who see the order its check, and never another shop's order (SEC-02)", async () => {
+    const client = await shop();
+    const variant = await variantOf(client);
+    const made = await order(client, variant, freshMobile());
+    const viewer = await staffWith(port, texts, admin, client, ['orders:read']);
+    const seen = await sendExact(
+      port,
+      'GET',
+      `/api/v1/fraud-checks/orders/${made.id}`,
+      undefined,
+      viewer,
+    );
+    expect(seen.status, JSON.stringify(seen.body)).toBe(200);
+    const other = await shop();
+    const hidden = await sendExact(
+      port,
+      'GET',
+      `/api/v1/fraud-checks/orders/${made.id}`,
+      undefined,
+      other.headers(),
+    );
+    expect(hidden.status).toBe(404);
+    expect(
+      (
+        await sendExact(
+          port,
+          'GET',
+          '/api/v1/fraud-checks/orders/not-an-id',
+          undefined,
+          other.headers(),
+        )
+      ).status,
+    ).toBe(404);
+  });
+});

@@ -12,6 +12,7 @@ import type {
   SelectNoticeVersion,
   Transaction,
 } from '@lytronix/db';
+import type { NoticeAudience, NoticeSeverity } from '@lytronix/validators';
 
 type ReadKey = { noticeId: string; tenantId: string; userId: string };
 type AudienceOf = Pick<SelectNotice, 'id' | 'audience' | 'severity'>;
@@ -66,7 +67,10 @@ export interface NoticeStore {
     without: 'delivered' | 'acknowledged' | null,
     limit: number,
   ): Promise<NoticeShop[]>;
-  audienceCount(notice: AudienceOf, without: 'acknowledged' | null): Promise<number>;
+  audienceCount(
+    notice: { id?: string; audience: NoticeAudience; severity: NoticeSeverity },
+    without: 'acknowledged' | null,
+  ): Promise<number>;
   rateChange(id: number): Promise<RateChangeRow | null>;
   /** Whether every plan named exists. */
   plansExist(planIds: readonly string[]): Promise<boolean>;

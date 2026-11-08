@@ -30,10 +30,24 @@ export class DrizzleAddressReadStore implements AddressReadStore {
       tenantId,
       held.map((allowance) => allowance.id),
     );
-    return held.map((allowance) => ({
-      id: allowance.id,
-      left: Math.max(0, allowance.uses - (used.get(allowance.id) ?? 0)),
-    }));
+    return held.map((allowance) => {
+      const taken = used.get(allowance.id) ?? 0;
+      return {
+        id: allowance.id,
+        total: allowance.uses,
+        used: taken,
+        left: Math.max(0, allowance.uses - taken),
+        expiresAt: allowance.expiresAt,
+      };
+    });
+  }
+
+  paidFromBalanceSince(
+    tx: Transaction,
+    tenantId: string,
+    since: Date,
+  ): Promise<{ count: number; cost: string }> {
+    return this.reads.paidFromBalanceSince(tx, tenantId, since);
   }
 
   record(tx: Transaction, read: NewOrderExtraction): Promise<void> {

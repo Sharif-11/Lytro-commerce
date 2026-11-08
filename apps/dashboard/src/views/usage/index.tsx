@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { IdentityKind, Permission, RateKey, UsageMetric } from '@lytronix/validators';
 import { formatTakaExact } from '@lytronix/ui';
@@ -8,13 +9,15 @@ import { useUsage } from '@/api/usage';
 import { Banner } from '@/components/ui/banner';
 import { Card } from '@/components/ui/card';
 import { useErrorText } from '@/hooks/use-error-text';
-import { formatDayMonth } from '@/lib/dates';
+import { formatDayMonth, formatShortDay } from '@/lib/dates';
 import { usageSize } from '@/lib/limits';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import type { ShopUsage } from '@/types/usage';
 import { AutoBuyCard } from './auto-buy-card';
+import { PerUseCard } from './per-use-card';
+import { readsOf, readsOffer, readsPercent } from './per-use';
 import { BannerLinkTo, DayChart, MetricRow } from './usage-parts';
 import {
   bannerOf,
@@ -33,7 +36,7 @@ import {
 export function UsageView(): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
   const errorText = useErrorText();
-  const { viewer } = useShell();
+  const { viewer, slug } = useShell();
   const canManage = allows(viewer, [Permission.PaymentsManage]);
   const usage = useUsage();
   const offers = useAddonOffers();
@@ -58,6 +61,11 @@ export function UsageView(): React.JSX.Element {
         smsRate: smsRate ? formatTakaExact(smsRate) : null,
       })
     : null;
+  // PLN-20 (Part 37's `p37-usage-low`): the reads pack at 90%, said in place of a warning that isn't a stop.
+  const reads = readsOf(data);
+  const readsAt = reads ? readsPercent(reads) : null;
+  const readsLow = reads?.allowance && readsAt !== null && readsAt >= 90 && banner?.tone !== 'bad';
+  const readsBuy = readsOffer(offered);
 
   return (
     <ShellPage>
@@ -70,7 +78,30 @@ export function UsageView(): React.JSX.Element {
               to: formatDayMonth(lastDayOf(data)),
             })}
           </p>
-          {banner ? (
+          {readsLow && reads.allowance ? (
+            <Banner
+              tone="warn"
+              action={
+                canManage && readsBuy ? (
+                  <Link
+                    to="/$shop/addons"
+                    params={{ shop: slug }}
+                    search={{ buy: readsBuy.addon.key }}
+                    className="text-primary"
+                  >
+                    {t('p37RdBuy', { n: readsBuy.addon.unitSize ?? 0 })}
+                  </Link>
+                ) : undefined
+              }
+            >
+              {t('p37UReadsLow', {
+                p: readsAt,
+                n: reads.allowance.left,
+                d: formatShortDay(reads.allowance.endsAt, i18n.language),
+                r: formatTakaExact(reads.rate),
+              })}
+            </Banner>
+          ) : banner ? (
             <Banner
               tone={banner.tone}
               action={banner.link ? <BannerLinkTo link={banner.link} /> : undefined}
@@ -87,6 +118,7 @@ export function UsageView(): React.JSX.Element {
               />
             ))}
           </Card>
+          {reads ? <PerUseCard reads={reads} offers={offered} /> : null}
           <AutoBuyCard usage={data} canManage={canManage} help="uAutoBuyHelp" />
           <DayCharts usage={data} />
         </>

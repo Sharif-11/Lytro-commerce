@@ -26,7 +26,9 @@ export function SectionChips(): React.JSX.Element | null {
               ? counts.billing
               : section.id === 'orders'
                 ? counts.orders
-                : null;
+                : section.id === 'notices'
+                  ? counts.notices
+                  : null;
         return (
           <Link
             key={section.id}

@@ -24,10 +24,13 @@ export const operatorShopSchema = z.object({
 });
 export class OperatorShopDto extends createZodDto(operatorShopSchema) {}
 
-const operatorShopAddonSchema = shopAddonsSchema.shape.addons.element.extend({
-  monthlyPrice: z.string(),
-  paidFrom: z.enum(['balance', 'wallet']),
-});
+// The console's view of a shop's add-ons doesn't count an allowance's uses (Slice 7.7's usesLeft is the shop's own).
+const operatorShopAddonSchema = shopAddonsSchema.shape.addons.element
+  .omit({ usesLeft: true })
+  .extend({
+    monthlyPrice: z.string(),
+    paidFrom: z.enum(['balance', 'wallet']),
+  });
 
 export const operatorShopAddonsSchema = z.object({
   addons: operatorShopAddonSchema.array(),
@@ -54,6 +57,7 @@ export const recentChangeSchema = z.object({
   oldValue: z.unknown(),
   newValue: z.unknown(),
   reason: z.string().nullable(),
+  rateChangeId: z.number().int().nullable(),
   shop: z.object({ id: z.string(), name: z.string(), slug: z.string() }).nullable(),
 });
 export class RecentChangeListDto extends createZodDto(recentChangeSchema.array()) {}

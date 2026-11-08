@@ -2283,3 +2283,26 @@ this is settled.
 
 Closing it: the owner chooses whether an allowance's uses scale with the term's months or its price stays one month's,
 and `renewalBar` gains an allowance case that renews it with the plan; both with tests.
+
+## 132. `D7-60` to `D7-63`, `NTF-02`, `NTC-12`: where Phase 7's screens differ from their sketch, and what only a real device shows — found 2026-11-08, open
+
+Slice 7.7 built the dashboard's and the console's Phase 7 screens to the sketch (#326). What differs, and what waits:
+
+- **Push needs the owner's keys and a phone.** NTF-02's "the test arrives" can only be seen with Lytro's VAPID keys set and a
+  real browser subscribed. On an iPhone, push works only once the dashboard is added to the Home Screen.
+- **The update prompt** ("A new version of Lytro is ready", D7-44) needs two deployments to see. No browser test covers it,
+  and the worker registers itself only in a built app.
+- **An SMS's words are edited as text.** The sketch draws each variable as a pill; the editor writes them as `[Order
+  number]` in a plain box. The same rules refuse a template without the order number before it saves.
+- **Paisa aren't drawn smaller.** The sketch writes ৳29.15 with the paisa small. Amounts inside sentences use one size, so
+  they translate.
+- **A rate change from before 2026-11-08 isn't offered** in the console's rate-change template. Only changes saved since
+  then carry their id; the operator types an older one's rate and values. The console also finds a change by searching
+  the rates' histories, since no route returns one change by its id.
+- **A refused field loses its help line.** The shared text field shows the error in its place, where the console's sketch
+  shows both.
+- **A check that never came reads as failed after 15 minutes.** An order's automatic check with no result and no reason
+  recorded is shown as being checked for 15 minutes, then as failed. A check still running past that would show failed
+  until it lands.
+- **Who sees what on the rule page.** The cost card shows only to people who can read the balance. Steadfast's
+  "Connected" tag shows only to people who can read the shop's couriers.

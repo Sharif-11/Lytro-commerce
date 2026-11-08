@@ -113,6 +113,7 @@ let app: INestApplication;
 let port: number;
 let admin: pg.Client;
 let operator: Record<string, string> = {};
+let operatorEmail = '';
 const texts = new SmsCapture();
 const mail = new MailCapture();
 
@@ -165,6 +166,7 @@ const BASE = {
 async function operatorHeaders(): Promise<Record<string, string>> {
   const password = 'notices-operator-9';
   const email = `operator.${randomUUID().slice(0, 8)}@lytronix.internal`;
+  operatorEmail = email;
   await admin.query(
     'INSERT INTO control.operator_accounts (email, password_hash) VALUES ($1, $2)',
     [email, await hash(password, 12)],
@@ -665,9 +667,13 @@ describeIfDatabase('the notice board over the real stack', () => {
     expect(item?.title).toBe('Second words');
     expect(item?.editedAt).not.toBeNull();
     const detail = (await getJson(port, `/operator/notices/${id}`, operator)).body as {
-      versions: { snapshot: { titleEn: string } }[];
+      createdByEmail: string | null;
+      versions: { snapshot: { titleEn: string }; editedByEmail: string | null }[];
     };
     expect(detail.versions.map((version) => version.snapshot.titleEn)).toEqual(['First words']);
+    // Slice 7.7: who wrote it and who replaced each version, as their emails.
+    expect(detail.createdByEmail).toBe(operatorEmail);
+    expect(detail.versions[0]?.editedByEmail).toBe(operatorEmail);
     await tick();
     expect(await bellRows(`/notices/${id}`)).toHaveLength(2);
 
@@ -757,6 +763,44 @@ describeIfDatabase('the notice board over the real stack', () => {
     expect((await shop.post(`/notices/${info}/read`, {})).status).toBe(200);
   });
 
+  it('counts how many shops an audience reaches before it is saved, an archived shop only for urgent (NTC-02, NTC-07, Slice 7.7)', async () => {
+    const reach = async (audience: unknown, severity = 'info'): Promise<number> => {
+      const counted = await postJson(
+        port,
+        '/operator/notices/reach',
+        { audience, severity },
+        operator,
+      );
+      expect(counted.status, JSON.stringify(counted.body)).toBe(200);
+      return (counted.body as { shops: number }).shops;
+    };
+    expect(await reach({ kind: 'tenant', tenantId: other.tenantId })).toBe(1);
+    expect(await reach({ kind: 'all' })).toBeGreaterThanOrEqual(2);
+    expect(await reach({ kind: 'states', states: ['trial'] })).toBeGreaterThanOrEqual(1);
+    await admin.query("UPDATE control.tenants SET state = 'archived' WHERE id = $1", [
+      other.tenantId,
+    ]);
+    expect(await reach({ kind: 'tenant', tenantId: other.tenantId })).toBe(0);
+    expect(await reach({ kind: 'tenant', tenantId: other.tenantId }, 'urgent')).toBe(1);
+    const unknown = await postJson(
+      port,
+      '/operator/notices/reach',
+      { audience: { kind: 'plans', planIds: [randomUUID()] }, severity: 'info' },
+      operator,
+    );
+    expect(unknown.status).toBe(400);
+    expect([401, 403]).toContain(
+      (
+        await postJson(
+          port,
+          '/operator/notices/reach',
+          { audience: { kind: 'all' }, severity: 'info' },
+          shop.headers(),
+        )
+      ).status,
+    );
+  });
+
   it('keeps writing notices to the operator: no shop credential reaches the desk (NTC-10)', async () => {
     const asOwner = await postJson(port, '/operator/notices', BASE, shop.headers());
     expect([401, 403]).toContain(asOwner.status);
@@ -777,6 +821,11 @@ describeIfDatabase('the notice board over the real stack', () => {
       [RateKey.SmsPerUnit],
     );
     const rateChangeId = Number(history.rows[0]?.id);
+    // Slice 7.7: saving the rate answers the change's id, and recent changes carry it.
+    expect((changed.body as { ok: boolean; id: number }).id).toBe(rateChangeId);
+    const recent = await getJson(port, '/operator/recent-changes', operator);
+    const rows = recent.body as { key: string | null; rateChangeId: number | null }[];
+    expect(rows.find((row) => row.key === RateKey.SmsPerUnit)?.rateChangeId).toBe(rateChangeId);
     const filled = await postJson(
       port,
       '/operator/notices/template',

@@ -51,6 +51,11 @@ export const rateValueSchema = z.object({
 });
 export class RateValueDto extends createZodDto(rateValueSchema) {}
 
+// RAT-05, NTC-13 (Slice 7.7): a saved rate change, with its history id for a notice of it.
+export class RateChangedDto extends createZodDto(
+  z.object({ ok: z.literal(true), id: z.number().int() }),
+) {}
+
 export const platformWalletSchema = z.object({
   id: z.string(),
   provider: z.string(),

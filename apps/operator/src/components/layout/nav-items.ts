@@ -67,6 +67,7 @@ export const navGroups: NavGroup[] = [
       { to: '/wallets', labelKey: 'nav.wallets', icon: 'wallet' },
       { to: '/phones', labelKey: 'nav.phones', icon: 'phone' },
       { to: '/couriers', labelKey: 'nav.couriers', icon: 'truck' },
+      { to: '/notices', labelKey: 'nav.notices', icon: 'bell' },
     ],
   },
   {
@@ -84,7 +85,6 @@ export const navGroups: NavGroup[] = [
       { to: '/reports', labelKey: 'nav.reports', icon: 'chart' },
       { to: '/audit', labelKey: 'nav.audit', icon: 'history' },
       { to: '/inbox', labelKey: 'nav.inbox', icon: 'inbox' },
-      { to: '/notices', labelKey: 'nav.notices', icon: 'bell' },
       { to: '/verification', labelKey: 'nav.verification', icon: 'id' },
       { to: '/manual', labelKey: 'nav.manual', icon: 'dollar' },
     ],

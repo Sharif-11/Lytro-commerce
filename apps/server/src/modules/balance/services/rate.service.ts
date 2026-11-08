@@ -51,14 +51,17 @@ export class RateService {
     return this.store.history(key);
   }
 
-  /** RAT-02, RAT-05, RAT-08: non-negative, two-decimal, audited, effective immediately. */
+  /**
+   * RAT-02, RAT-05, RAT-08: non-negative, two-decimal, audited, effective immediately. The change's history id, which the
+   * console's rate-change notice is filled from (NTC-13, Slice 7.7).
+   */
   async change(
     key: RateKey,
     newValue: string,
     operatorId: string,
     noticeId: string | null,
     reason: string | null = null,
-  ): Promise<void> {
+  ): Promise<{ id: number }> {
     const numeric = Number(newValue);
     if (!Number.isFinite(numeric) || numeric < 0) {
       throw new FieldsError([
@@ -72,8 +75,15 @@ export class RateService {
     }
     const current = await this.store.get(key);
     // RAT-02 and ADM-08: the new value, its history row and the platform audit entry commit together.
-    await this.store.run(async (tx) => {
-      await this.store.set(tx, key, current?.value ?? null, newValue, operatorId, noticeId);
+    const id = await this.store.run(async (tx) => {
+      const rateChangeId = await this.store.set(
+        tx,
+        key,
+        current?.value ?? null,
+        newValue,
+        operatorId,
+        noticeId,
+      );
       await this.platformAudit.recordWithin(tx, {
         actorType: PlatformActorType.Operator,
         actorId: operatorId,
@@ -82,11 +92,20 @@ export class RateService {
         targetId: null,
         result: AuditResult.Success,
         ip: null,
-        summary: { key, oldValue: current?.value ?? null, newValue, noticeId, reason },
+        summary: {
+          key,
+          oldValue: current?.value ?? null,
+          newValue,
+          noticeId,
+          reason,
+          rateChangeId,
+        },
       });
+      return rateChangeId;
     });
     // RAT-02: effective immediately, not after the cache's own TTL expires. After the commit, so nothing can read
     // the old value back into the cache in between.
     this.cache.invalidate(key);
+    return { id };
   }
 }

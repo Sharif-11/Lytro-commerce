@@ -40,6 +40,8 @@ import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { CourierConnection } from '@/types/couriers';
 import type { Order, OrderCall, OrderHistory, OrderItem, OrderPayment } from '@/types/orders';
+import { OrderFraud } from '@/views/fraud/fraud-card';
+import { OrderSmsCard } from '@/views/sms/order-sms';
 import { takeBookedEdit } from './booked-edit';
 import { CourierCard, NotBookedCard } from './courier-card';
 import { OrderSheets, type OrderSheet } from './order-actions';
@@ -304,6 +306,7 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
         }}
       />
       {counter ? null : <DeliveryCard order={order} connected={connected} canManage={can.manage} />}
+      <OrderSmsCard orderId={order.id} />
       <TimelineCard order={order} />
       {next ? <ActionBar>{next}</ActionBar> : null}
       <OrderSheets
@@ -495,6 +498,13 @@ function CustomerCard({
                 <span className="text-fg-muted">{t('shopperNote')}</span>
                 <span className="text-right">{order.shopperNote}</span>
               </div>
+            </div>
+          ) : null}
+          {order.customerPhone ? (
+            // Part 37's `p37-order-fraud-*` (FRD-05): the automatic check where Part 29 kept its place.
+            // 12 px under the address, or under the shopper's note, whose row keeps 8 px of its own below.
+            <div className={`${order.shopperNote ? 'mt-1' : 'mt-3'} empty:hidden`}>
+              <OrderFraud orderId={order.id} phone={order.customerPhone} />
             </div>
           ) : null}
         </>

@@ -10,6 +10,8 @@ export interface RecentChange {
   oldValue: unknown;
   newValue: unknown;
   reason: string | null;
+  /** NTC-13: a rate change's history id, for a notice of it; null for other changes and rate changes saved before it was kept. */
+  rateChangeId: number | null;
   /** The shop a suspension was of. */
   shop: { id: string; name: string; slug: string } | null;
 }

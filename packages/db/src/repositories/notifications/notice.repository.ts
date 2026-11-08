@@ -422,12 +422,16 @@ export class NoticeRepository {
       .limit(limit);
   }
 
-  /** How many shops a notice is for now, less those that already acknowledged it, when asked. */
+  /**
+   * How many shops a notice is for now, less those that already acknowledged it, when asked. A notice not yet saved has no
+   * id, and is counted whole.
+   */
   async audienceCount(
     db: Executor,
-    notice: Pick<SelectNotice, 'id' | 'audience' | 'severity'>,
+    notice: { id?: string; audience: NoticeAudience; severity: NoticeSeverity },
     without: 'acknowledged' | null,
   ): Promise<number> {
+    const noticeId = notice.id;
     const rows = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(tenants)
@@ -439,14 +443,14 @@ export class NoticeRepository {
             ? undefined
             : ne(tenants.state, TenantState.Archived),
           this.audienceOfShops(notice.audience),
-          without === 'acknowledged'
+          without === 'acknowledged' && noticeId !== undefined
             ? notExists(
                 db
                   .select({ one: sql`1` })
                   .from(noticeAcknowledgments)
                   .where(
                     and(
-                      eq(noticeAcknowledgments.noticeId, notice.id),
+                      eq(noticeAcknowledgments.noticeId, noticeId),
                       eq(noticeAcknowledgments.tenantId, tenants.id),
                     ),
                   ),

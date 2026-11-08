@@ -15,6 +15,7 @@ import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import type {
   NoticeCreateInput,
+  NoticeReachInput,
   NoticesQuery,
   NoticeTemplateInput,
   NoticeUpdateInput,
@@ -37,6 +38,8 @@ import {
   NoticeAcknowledgmentListDto,
   NoticeCreateDto,
   NoticeDraftDto,
+  NoticeReachDto,
+  NoticeReachedDto,
   NoticesQueryDto,
   NoticeTemplateDto,
   NoticeUpdateDto,
@@ -100,6 +103,21 @@ export class OperatorNoticesController {
     @Body(new ZodValidationPipe(NoticeTemplateDto.schema)) body: NoticeTemplateInput,
   ): Promise<NoticeDraft> {
     return this.desk.template(body);
+  }
+
+  @Post('reach')
+  @HttpCode(200)
+  @ResponseMessage('NoticeReachCounted')
+  @ApiOperation({
+    summary:
+      'How many shops an audience takes in now, for the publish panel before the notice is saved (NTC-02, NTC-07)',
+  })
+  @ApiBody({ type: NoticeReachDto })
+  @ZodResponse({ type: NoticeReachedDto })
+  reach(
+    @Body(new ZodValidationPipe(NoticeReachDto.schema)) body: NoticeReachInput,
+  ): Promise<{ shops: number }> {
+    return this.desk.reach(body);
   }
 
   @Get(':id')

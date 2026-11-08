@@ -61,6 +61,10 @@ test.describe('the phones', () => {
     const log = await mockApi(page);
     await page.goto('/phones');
     await main(page).getByRole('button', { name: 'Revoke' }).first().click();
+    // D7-20: Lytro's own phones tell no shop.
+    await expect(page.getByRole('dialog', { name: 'Revoke Lytro bKash phone?' })).not.toContainText(
+      'The shop is told',
+    );
     await page
       .getByRole('dialog', { name: 'Revoke Lytro bKash phone?' })
       .getByRole('button', { name: 'Revoke' })
