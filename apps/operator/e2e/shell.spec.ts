@@ -30,13 +30,14 @@ const DESTINATIONS = [
   ['Platform wallets', '/wallets'],
   ["Lytro's phones", '/phones'],
   ['Couriers', '/couriers'],
+  // Slice 7.7: Notices left Later for Platform, as the sketch's v5 draws it.
+  ['Notices', '/notices'],
   ['Shop types', '/catalogue/shop-types'],
   ['Attribute library', '/catalogue/attributes'],
   ['Option sets', '/catalogue/option-sets'],
   ['Reports', '/reports'],
   ['Audit log', '/audit'],
   ['Support inbox', '/inbox'],
-  ['Notices', '/notices'],
   ['Verification', '/verification'],
   ['Manual payments', '/manual'],
 ] as const;
