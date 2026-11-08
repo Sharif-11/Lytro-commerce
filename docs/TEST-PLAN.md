@@ -769,6 +769,11 @@ Steps: 1) As a staff member holding `orders:read`, switch new orders off; place 
 Expected: the order reaches the owner but not that staff member; "payment to verify" can't be switched off; the push carries the order's words in the owner's language and opens the shop's order page, and a gone browser is forgotten; the 31-day notification is deleted and the 29-day one kept.
 Covers: `NTF-01`, `NTF-02`, `NTF-04`.
 
+**S08-19 Sending a notice, what came of it, and its templates.**
+Steps: 1) Publish an info notice to all shops, then an important one, and run the minute pass twice. 2) Cut a pass short after one shop and run it again. 3) Change the SMS rate, fill the rate-change template from the change, and publish it. 4) Publish a maintenance notice with a window two hours away, then move the window to now, then past it. 5) Edit a live notice, then withdraw it.
+Expected: the owner and the staff with `notices:read` get the bell and push, no one else; only the important notice is emailed, to the owner; no SMS goes and no balance moves; the second pass sends nothing; the cut-short pass tells only the shops it hadn't; the operator sees shops, people, reads and acknowledgments per notice; the template carries the rate's name and its old and new values, and the published notice is written onto the rate change; the countdown shows before the window, says it is under way during it, and is gone after; the edit shows "updated", keeps the earlier version and sends nothing; the withdrawn notice leaves every board and stays in the operator's list.
+Covers: `NTC-06`, `NTC-08`, `NTC-09`, `NTC-11` to `NTC-14`, `RAT-09`.
+
 ---
 
 ## S09 — Public API and webhooks (API)

@@ -827,6 +827,13 @@
       "when": 1794067173691,
       "tag": "0118_request_errors",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1794122402361,
+      "tag": "0119_notice_board",
+      "breakpoints": true
     }
   ]
 }

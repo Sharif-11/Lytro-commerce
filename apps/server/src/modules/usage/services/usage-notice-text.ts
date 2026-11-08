@@ -1,5 +1,6 @@
 import { PACK_AUTO_BUY_CAP, takaFigure, UsageMetric, type Language } from '@lytronix/validators';
 import type { Bilingual } from '../../../common/i18n/bilingual';
+import { dhakaDay as day } from '../../../common/i18n/dates';
 import { DAY_MS } from '../../../common/time';
 import type { UsageNotice } from '../../usage-warnings/types/usage-notice';
 import { GB } from '../../media/services/media-bandwidth';
@@ -51,39 +52,10 @@ const SERVED: Partial<Record<UsageMetric, Bilingual<{ what: string; stopped: str
   },
 };
 
-const BANGLA_MONTHS = [
-  'জানুয়ারি',
-  'ফেব্রুয়ারি',
-  'মার্চ',
-  'এপ্রিল',
-  'মে',
-  'জুন',
-  'জুলাই',
-  'আগস্ট',
-  'সেপ্টেম্বর',
-  'অক্টোবর',
-  'নভেম্বর',
-  'ডিসেম্বর',
-];
-const DHAKA_OFFSET_MS = 6 * 60 * 60 * 1000;
-
 /** A figure as a notice writes it: bytes in GB or MB, by the size of the limit they are read against. */
 function amount(metric: UsageMetric, value: number, limit: number): string {
   if (metric !== UsageMetric.Storage && metric !== UsageMetric.Bandwidth) return String(value);
   return limit >= GB ? `${(value / GB).toFixed(1)} GB` : `${String(Math.round(value / MB))} MB`;
-}
-
-/** A day as each language writes it, in Dhaka: "5 Dec", "5 ডিসেম্বর". */
-function day(date: Date, language: Language): string {
-  if (language === 'bn') {
-    const dhaka = new Date(date.getTime() + DHAKA_OFFSET_MS);
-    return `${String(dhaka.getUTCDate())} ${BANGLA_MONTHS[dhaka.getUTCMonth()] ?? ''}`;
-  }
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'Asia/Dhaka',
-  });
 }
 
 function option(suggestion: Suggestion, language: Language): string {

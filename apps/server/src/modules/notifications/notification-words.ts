@@ -41,6 +41,8 @@ export const NOTIFICATION_LINKS = {
   usage: '/usage',
   balance: '/balance',
   account: '/account',
+  // NTC-06 (Slice 7.4): a notice from Lytro, on the shop's board.
+  notice: (noticeId: string): string => `/notices/${noticeId}`,
 } as const;
 
 const SOURCES: Readonly<Record<OrderSource, Bilingual<string>>> = {

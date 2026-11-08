@@ -1871,6 +1871,42 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     bn: 'এই ডিভাইসে আর নোটিফিকেশন আসবে না।',
   },
   PushTestSent: { en: 'Test sent.', bn: 'টেস্ট পাঠানো হয়েছে।' },
+  NoticesListed: { en: 'Notices listed.', bn: 'নোটিশের তালিকা।' },
+  NoticeSummaryRead: { en: 'Notice summary.', bn: 'নোটিশের সামারি।' },
+  NoticeShown: { en: 'Notice.', bn: 'নোটিশ।' },
+  NoticeMarkedRead: { en: 'Marked as read.', bn: 'পড়া হয়েছে হিসেবে মার্ক করা হয়েছে।' },
+  NoticeDismissed: { en: 'Closed.', bn: 'বন্ধ করা হয়েছে।' },
+  NoticeAcknowledged: {
+    en: 'Noted that you understand.',
+    bn: 'আপনি বুঝেছেন বলে রাখা হয়েছে।',
+  },
+  NoticeCreated: { en: 'Notice saved.', bn: 'নোটিশ সেভ হয়েছে।' },
+  NoticeSaved: { en: 'Changes saved.', bn: 'বদল সেভ হয়েছে।' },
+  NoticeWithdrawn: {
+    en: 'Notice withdrawn. Shops no longer see it.',
+    bn: 'নোটিশ তুলে নেওয়া হয়েছে। শপগুলো আর এটি দেখবে না।',
+  },
+  NoticeAcknowledgmentsListed: { en: 'Acknowledgments listed.', bn: 'কারা বুঝেছেন তার তালিকা।' },
+  NoticeTemplateFilled: {
+    en: 'Template filled in. Check it before saving.',
+    bn: 'টেমপ্লেট পূরণ হয়েছে। সেভ করার আগে দেখে নিন।',
+  },
+  NoticeNotFound: { en: 'This notice is not available.', bn: 'এই নোটিশটি পাওয়া যাচ্ছে না।' },
+  NoticeNeedsNoAcknowledgment: {
+    en: 'This notice does not ask for "I understand".',
+    bn: 'এই নোটিশে "বুঝেছি" চাপার দরকার নেই।',
+  },
+  NoticeWithdrawnAlready: {
+    en: 'This notice was withdrawn and can no longer change.',
+    bn: 'এই নোটিশটি তুলে নেওয়া হয়েছে, আর বদলানো যাবে না।',
+  },
+  NoticePublishTimeFixed: {
+    en: 'A notice already published keeps its publish time.',
+    bn: 'পাবলিশ হয়ে যাওয়া নোটিশের পাবলিশের সময় বদলানো যায় না।',
+  },
+  NoticePlanNotFound: { en: 'One of these plans does not exist.', bn: 'এই প্ল্যানগুলোর একটি নেই।' },
+  NoticeShopNotFound: { en: 'This shop does not exist.', bn: 'এই শপটি নেই।' },
+  RateChangeNotFound: { en: 'This rate change does not exist.', bn: 'এই রেট বদলটি নেই।' },
   CourierAdaptersListed: { en: 'Couriers listed.', bn: 'কুরিয়ারের তালিকা।' },
   CourierConnectionsListed: {
     en: 'Connected couriers listed.',

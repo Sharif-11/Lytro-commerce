@@ -103,6 +103,12 @@ export const NOTIFICATION_KINDS: Readonly<Record<NotificationKind, NotificationK
   [NotificationKind.RenewalReminder]: { audience: 'owner', switchable: false, group: 'account' },
   [NotificationKind.AccountNotice]: { audience: 'owner', switchable: false, group: 'account' },
   [NotificationKind.EmailBounced]: { audience: 'owner', switchable: false, group: 'account' },
+  // NTC-06, D7-56: Lytro's notices reach the owner and staff with notices:read, and can't be switched off.
+  [NotificationKind.LytroNotice]: {
+    audience: Permission.NoticesRead,
+    switchable: false,
+    group: 'account',
+  },
 };
 
 /** NTF-04: the kinds a person may switch off. */

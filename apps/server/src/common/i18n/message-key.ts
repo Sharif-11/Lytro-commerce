@@ -778,6 +778,25 @@ export const MESSAGE_KEYS = [
   'PushSubscribed',
   'PushUnsubscribed',
   'PushTestSent',
+  // Phase 7 Slice 7.4: Lytro's notices -- the board, the operator's desk and the templates (NTC-01 to NTC-17).
+  'NoticesListed',
+  'NoticeSummaryRead',
+  'NoticeShown',
+  'NoticeMarkedRead',
+  'NoticeDismissed',
+  'NoticeAcknowledged',
+  'NoticeCreated',
+  'NoticeSaved',
+  'NoticeWithdrawn',
+  'NoticeAcknowledgmentsListed',
+  'NoticeTemplateFilled',
+  'NoticeNotFound',
+  'NoticeNeedsNoAcknowledgment',
+  'NoticeWithdrawnAlready',
+  'NoticePublishTimeFixed',
+  'NoticePlanNotFound',
+  'NoticeShopNotFound',
+  'RateChangeNotFound',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

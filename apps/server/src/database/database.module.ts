@@ -9,6 +9,7 @@ import {
   SmsRepository,
   MailRepository,
   MailSuppressionRepository,
+  NoticeRepository,
   TenantRepository,
   TenantDomainRepository,
   TransactionRunner,
@@ -120,6 +121,7 @@ import { DatabaseService } from './database.service';
     { provide: SmsRepository, useFactory: () => new SmsRepository() },
     { provide: MailRepository, useFactory: () => new MailRepository() },
     { provide: MailSuppressionRepository, useFactory: () => new MailSuppressionRepository() },
+    { provide: NoticeRepository, useFactory: () => new NoticeRepository() },
     { provide: TenantRepository, useFactory: () => new TenantRepository() },
     { provide: TenantDomainRepository, useFactory: () => new TenantDomainRepository() },
     {
@@ -481,6 +483,7 @@ import { DatabaseService } from './database.service';
     SmsEventCountsRepository,
     SmsLogRepository,
     NotificationRepository,
+    NoticeRepository,
     PushSubscriptionRepository,
     SmsSettingsRepository,
     OrderExtractionRepository,
