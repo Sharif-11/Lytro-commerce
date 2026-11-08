@@ -22,7 +22,7 @@ import { useShell } from '@/shell/shell-context';
 import type { AddonOffer, AddonQuote } from '@/types/addons';
 import type { UsageFigure } from '@/types/usage';
 import { changedAmount } from '@/views/plan/words';
-import { boughtToast, limitChange, limitMove, nameOf, usesOf } from './addon-words';
+import { boughtToast, limitChange, limitMove, nameOf, usesBought } from './addon-words';
 
 interface BuySheetProps {
   /** The add-on, as GET /addons prices it now. */
@@ -69,7 +69,7 @@ export function BuySheet({
   const addon = offer.addon;
   const allowance = addon.kind === AddonKind.Allowance;
   const name = allowance ? t('p37UReads') : nameOf(addon, i18n.language);
-  const uses = usesOf(addon) * quantity;
+  const uses = usesBought(offer, quantity);
   const amount = changed ?? String(offer.amounts[quantity - 1] ?? offer.price ?? 0);
   const available = balance.data && !balance.data.frozen ? Number(balance.data.amount) : null;
   const enough = available !== null && available >= Number(amount);

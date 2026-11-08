@@ -26,6 +26,11 @@ export interface AddonOffer {
   blockedBy: string | null;
   /** Whole taka for 1, 2, ... as each request works it out; empty with no price. */
   amounts: number[];
+  /**
+   * PLN-20, D7-64: an allowance's uses for 1, 2, ... bought now, beside `amounts` -- prorated as each price, so 20
+   * days left of a month buy about 130 reads, not the catalogue's 200. Null for anything else.
+   */
+  uses: number[] | null;
   daysLeft: number | null;
   /** Whole taka one costs for a whole next period. */
   renewalPrice: number | null;
