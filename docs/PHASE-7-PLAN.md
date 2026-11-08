@@ -126,6 +126,10 @@ overrule any of them when reviewing this plan.
 | D7-57 | **Each language whole** (my call; the owner may overrule it at the PR). NTC-01 has one title and a body in each language. | A title and a body in each language, at least one language whole, and a language with one has the other. The board shows the reader's language (Accept-Language, as the bell does), or the other when the notice has none in theirs (NTC-15). Titles up to 120 characters and bodies up to 5,000, in each language. NTC-01 amended. | Slice 7.4 |
 | D7-58 | **Edits, withdrawals and templates** (my calls). | An edit to a live notice keeps the version it replaces, marks the notice "updated" and sends nothing again; a live notice keeps its publish time. Withdrawing hides it from every shop at once and keeps it, with its versions, for the operator. The templates are rate change, maintenance, outage and policy update (which asks for "I understand"). Given a rate change, the rate-change template fills the rate, its old and new values and the day from the change itself, and publishing the notice writes it onto the change (RAT-09). | Slices 7.4, 7.7 |
 | D7-59 | **Who sees what, and when** (my calls). | The audience is read when a shop looks (NTC-02), so a shop that joins it sees a live notice on its board, though only the shops in the audience at publishing were sent it. A minute pass sends each notice once its time comes (NTC-11); past its end time a notice is simply not read, so it expires at once. The board keeps 24 months (NTC-03). NTC-07: the owner reads the board in read-only and locked shops, staff are kept out once it is locked, and an archived shop sees urgent notices only. Reads, acknowledgments and deliveries sit in `control` beside the notices, since the operator counts them across shops; each shop route reads only its own. NTC-20's secret keys come with Phase 8's shop API. One PR, the server only; the console's editor and the dashboard's board, banner, prompt and countdown are Slice 7.7's. | Slices 7.4, 7.7 |
+| D7-60 | **The notice board's screens** (Slice 7.7's read, 2026-11-07, the owner's pick). Slice 7.4's server was being built in another session. | Drawn now, from NTC-01 to NTC-19 and Slice 7.4's agreed read (D7-53 to D7-59), and redrawn if 7.4's shapes change before it merges. | Slice 7.7 |
+| D7-61 | **What the sketch covers** (the read). | Both apps, everything §6 lists for 7.7, and what earlier slices left for it: the console's settings for fraud checks and reading orders, courier notices in the bell (6.7), each person's language and the bounced email (7.3), and the reads left on the usage page (7.6). | Slice 7.7 |
+| D7-62 | **Its PRs** (the read). | One sketch PR for both apps now, docs only, and one build PR for both after Slice 7.4 merges. Phase 8's server slices go on in between. | Slice 7.7 |
+| D7-63 | **Where staff see a phone's fake order check** (the read). | On the new-order form once the phone is valid, before the order is made (the latest check, and a button to check it; never on its own while typing); on the order, the automatic check's result with "Check again"; and on the customer. The automatic rule's switch is in Settings. | Slice 7.7 |
 
 ### 2.1 Points left to each slice's read
 
@@ -139,7 +143,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 7.4 | How a notice's Bangla and English bodies are written in the console (bold, links and lists, NTC-01) and kept safe (NTC-16). Whether the status page (NTC-14) is in this release. **Settled in Slice 7.4's read (2026-11-07):** D7-53 to D7-59. A small Markdown; the countdown now and the status page after launch; email for important and urgent notices only. |
 | 7.5 | **What each courier's check returns, tried with a real key:** Steadfast's score, Pathao's success-rate call (Appendix A), RedX's if it has one, once Slice 6.4 lands. How the level (low, medium, high, unknown) is worked out from the counts. Whether checks stay refused in trial (FRD-08) now that they're free. **Settled in Slice 7.5's read (2026-11-07):** D7-45 to D7-52. Pathao and RedX publish no check, there is no level, and trials may check while checks are free. |
 | 7.6 | **Real pasted messages read by Gemini first**, in Bangla, English and the two mixed, to choose the model and set the rate. How thanas are matched (ORD-31), and the confidence shown. **Settled in Slice 7.6's read (2026-11-06):** D7-32 to D7-37. Made-up messages chose the model; the real ones wait for a key with billing on (D7-37). |
-| 7.7 | Settled by its sketch: see that slice. |
+| 7.7 | Settled by its sketch: see that slice. **Read agreed 2026-11-07:** D7-60 to D7-63. |
 
 ---
 
@@ -338,6 +342,10 @@ checks whether FRD-01's `fraud:check` is `fraud:read` or needs its own name.
   allowances in the add-on catalogue.
 - **Builds** them, pixel perfect to the approved sketch, in Bangla and English to the owner's style guide, and brings
   back the sentences the screens dropped while nothing was sent (D7-20).
+- **Sketched (2026-11-07, D7-60 to D7-63):** the dashboard's Part 37 (128 screens, `TENANT-DASHBOARD-DESIGN.md`
+  §7.40) and the console's Notices and Pricing and platform screens (44, `OPERATOR-CONSOLE-DESIGN.md` §10c). The
+  build needs a few server additions, listed in each design doc (§10 and §15). Drawing it found two faults in
+  Slice 7.6's allowance (KNOWN-GAPS §131).
 
 ---
 

@@ -1910,6 +1910,755 @@ def('tenant-courier-log', { base: 'tenant', nav: 'tenants', label: 'Shop · cour
 /* navigation: couriers belong with the platform */
 NAV[2].items.push(['couriers', 'couriers', 'truck']);
 
+/* ---------- Phase 7 Slice 7.7 (design v5): notices to shops (NTC-01 to NTC-19, D7-19, Slice 7.4's routes and D7-53 to D7-59);
+   the rate-change notice offer made real (RAT-09, NTC-13); Phase 7's settings placed, with Phase 6's four courier ones the page
+   had left off; allowances in the add-on catalogue (D7-17, D7-36); and the sentences D7-20 brings back where the code now sends
+   the message. Every name here starts p37 / p37- so nothing earlier is overridden by accident; the second S block below is the
+   only deliberate override. ---------- */
+(() => {
+  const css = document.createElement('style');
+  css.id = 'p37-css';
+  css.textContent = `
+.p37-radio{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--surface);min-width:0}
+.p37-radio.on{border-color:var(--primary);background:var(--primary-soft)}
+.p37-dot{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line-strong);flex:none;margin-top:2px;background:var(--surface)}
+.p37-radio.on > .p37-dot{border:5px solid var(--primary)}
+.p37-rbody{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.p37-rl{font-weight:600;font-size:14px}
+.p37-rh{font-size:13px;color:var(--muted);line-height:1.5}
+.p37-radios{display:flex;flex-direction:column;gap:8px}
+.p37-lab{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.p37-cnt{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.p37-cnt.bad{color:var(--danger);font-weight:600}
+.p37-help{font-size:13px;color:var(--muted);line-height:1.5}
+.p37-stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.p37-board{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--surface);display:flex;flex-direction:column;gap:8px;min-width:0}
+.p37-bt{font-size:16px;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
+.p37-bmeta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.p37-bfoot{font-size:12px;color:var(--muted)}
+.p37-md{font-size:14px;line-height:1.55;overflow-wrap:anywhere}
+.p37-md p{margin:0 0 8px}
+.p37-md p:last-child,.p37-md ul:last-child{margin-bottom:0}
+.p37-md ul{margin:0 0 8px 20px}
+.p37-md li{margin:2px 0}
+.p37-md a{color:var(--primary)}
+.p37-marq{display:flex;align-items:center;gap:8px;background:var(--danger-soft);color:#7a1f25;border:1px solid #f3c3c6;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;min-width:0}
+.p37-marq span{overflow:hidden;text-overflow:ellipsis}
+.p37-cap{font-size:12px;font-weight:600;color:var(--muted)}
+.p37-offer{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;background:var(--n50);border-top:1px solid var(--line);font-size:13px}
+.p37-offer .p37-ob{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.p37-offer b{font-size:14px}
+.p37-hl{display:flex;gap:6px 12px;justify-content:space-between;flex-wrap:wrap;align-items:center}
+.p37-ta{min-height:180px}
+.p37-tabchk svg.i{width:14px;height:14px;stroke-width:2.5}
+.p37-pin svg.i{width:15px;height:15px;vertical-align:-2px;color:var(--accent-text)}
+@container (min-width: 640px){.p37-wrap{flex-wrap:wrap;overflow:visible}}
+`;
+  document.head.appendChild(css);
+})();
+I.p37tack = '<svg class="i" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 13v8"/></svg>';
+Object.assign(S, {
+  /* the notices list */
+  p37_sub: ['Lytro\'s announcements to shops: on their notice board, in the bell and by push, and by email to owners when important or urgent. Never an SMS, so no balance moves.', 'শপগুলোকে Lytro-র ঘোষণা: শপের নোটিশ বোর্ডে থাকে, নোটিফিকেশন আর পুশে যায়, আর গুরুত্বপূর্ণ বা জরুরি হলে মালিককে ইমেইলও। কখনো SMS নয়, তাই কারো ব্যালেন্স থেকে টাকা কাটে না।'],
+  p37_new: ['New notice', 'নতুন নোটিশ'],
+  p37_search: ['Words in a notice', 'নোটিশের কোনো শব্দ'],
+  p37_c_notice: ['Notice', 'নোটিশ'],
+  p37_c_sev: ['Shows as', 'যেভাবে দেখায়'],
+  p37_c_aud: ['Audience', 'কাদের জন্য'],
+  p37_c_state: ['Where it stands', 'অবস্থা'],
+  p37_c_reach: ['Sent and read', 'পাঠানো ও পড়া'],
+  p37_cat_rate_change: ['Rate change', 'রেট বদল'],
+  p37_cat_maintenance: ['Maintenance', 'মেইনটেন্যান্স'],
+  p37_cat_new_feature: ['New feature', 'নতুন ফিচার'],
+  p37_cat_policy: ['Policy', 'পলিসি'],
+  p37_cat_security: ['Security', 'সিকিউরিটি'],
+  p37_cat_general: ['General', 'সাধারণ'],
+  p37_sev_info: ['Info', 'ইনফো'],
+  p37_sev_important: ['Important', 'গুরুত্বপূর্ণ'],
+  p37_sev_urgent: ['Urgent', 'জরুরি'],
+  p37_sev_info_d: ['On the board, in the bell and by push to the owner and the staff who read notices.', 'নোটিশ বোর্ডে থাকে, আর মালিক ও নোটিশ পড়তে পারা স্টাফের নোটিফিকেশন আর পুশে যায়।'],
+  p37_sev_important_d: ['Also a prompt at each person\'s next sign-in until they read or close it, and an email to the owner.', 'সাথে প্রত্যেকে পরের বার লগইন করলে সামনে আসে, যতক্ষণ না পড়েন বা বন্ধ করেন; মালিককে ইমেইলও যায়।'],
+  p37_sev_urgent_d: ['Also scrolls across the top of every dashboard page until each person closes it, and an email to the owner.', 'সাথে ড্যাশবোর্ডের প্রতিটা পেজের ওপরে স্ক্রল করে চলে, যতক্ষণ না প্রত্যেকে বন্ধ করেন; মালিককে ইমেইলও যায়।'],
+  p37_st_draft: ['Draft', 'ড্রাফট'],
+  p37_st_scheduled: ['Scheduled', 'শিডিউলড'],
+  p37_st_live: ['Live', 'লাইভ'],
+  p37_st_ended: ['Ended', 'শেষ'],
+  p37_st_withdrawn: ['Withdrawn', 'উইথড্র করা'],
+  p37_st_draft_d: ['not sent', 'পাঠানো হয়নি'],
+  p37_st_scheduled_d: ['goes live {d}', '{d}-এ লাইভ হবে'],
+  p37_st_live_d: ['since {d}', '{d} থেকে'],
+  p37_st_ended_d: ['ended {d}', '{d} শেষ হয়েছে'],
+  p37_st_withdrawn_d: ['withdrawn {d}', '{d} উইথড্র করা হয়েছে'],
+  p37_aud_all: ['All shops', 'সব শপ'],
+  p37_aud_plans: ['Plans: {p}', 'প্ল্যান: {p}'],
+  p37_aud_states: ['States: {s}', 'স্টেট: {s}'],
+  p37_aud_tenant: ['One shop: {s}', 'একটা শপ: {s}'],
+  p37_reach: ['{s} shops · {r} read', '{s}টা শপ · {r} জন পড়েছেন'],
+  p37_reach_one: ['1 shop · {r} read', '1টা শপ · {r} জন পড়েছেন'],
+  p37_acked: ['{a} of {s} said I understand', '{s}টার মধ্যে {a}টা শপ বুঝেছি বলেছে'],
+  p37_updated: ['updated {d}', '{d} আপডেট হয়েছে'],
+  p37_only_en: ['English only', 'শুধু ইংরেজি'],
+  p37_only_bn: ['Bangla only', 'শুধু বাংলা'],
+  p37_pinned: ['Pinned', 'পিন করা'],
+  p37_empty: ['No notices yet', 'এখনো কোনো নোটিশ নেই'],
+  p37_empty_hint: ['Write one from blank, or from a template: rate change, maintenance, outage or policy update.', 'খালি থেকে লিখুন, অথবা টেমপ্লেট থেকে: রেট বদল, মেইনটেন্যান্স, আউটেজ বা পলিসি আপডেট।'],
+  p37_list_note: ['Newest written first. A shop\'s board keeps the last 24 months.', 'নতুন লেখা আগে। শপের বোর্ডে শেষ ২৪ মাসের নোটিশ থাকে।'],
+
+  /* new notice: blank or a template */
+  p37_start_sub: ['A template writes its words in both languages. You can change anything before saving.', 'টেমপ্লেট দুই ভাষাতেই লেখা বসিয়ে দেয়। সেভ করার আগে সবকিছু বদলাতে পারবেন।'],
+  p37_tp_blank: ['Blank', 'খালি'],
+  p37_tp_blank_d: ['Your own words.', 'নিজের মতো লিখুন।'],
+  p37_tp_rate_change: ['Rate change', 'রেট বদল'],
+  p37_tp_rate_change_d: ['Filled from a rate change: the rate, its old and new values and the day. Publishing links the notice to the change.', 'একটা রেট বদল থেকে ভরে যায়: কোন রেট, আগের আর নতুন মান, আর তারিখ। পাবলিশ করলে নোটিশটা ওই বদলের সাথে যুক্ত হয়।'],
+  p37_tp_maintenance: ['Maintenance', 'মেইনটেন্যান্স'],
+  p37_tp_maintenance_d: ['The window\'s start and end. Shops\' dashboards count down to it.', 'কখন শুরু আর কখন শেষ। শপের ড্যাশবোর্ডে এর কাউন্টডাউন দেখায়।'],
+  p37_tp_outage: ['Outage', 'আউটেজ'],
+  p37_tp_outage_d: ['Urgent: part of Lytro isn\'t working, and since when.', 'জরুরি: Lytro-র কোনো অংশ কাজ করছে না, আর কখন থেকে।'],
+  p37_tp_policy_update: ['Policy update', 'পলিসি আপডেট'],
+  p37_tp_policy_update_d: ['From a day, with a list of what changes. Asks owners for "I understand".', 'কোন তারিখ থেকে, আর কী কী বদলাচ্ছে তার তালিকা। মালিকদের "বুঝেছি" চাপতে বলে।'],
+  p37_win_start: ['Window starts', 'শুরু'],
+  p37_win_end: ['Window ends', 'শেষ'],
+  p37_which_change: ['Which rate change', 'কোন রেট বদল'],
+  p37_change_line: ['{o} → {n} · {d}', '{o} → {n} · {d}'],
+  p37_own_rate: ['Type the rate and its values yourself', 'রেট আর মান নিজে লিখুন'],
+
+  /* the editor */
+  p37_edit_title: ['Edit notice', 'নোটিশ এডিট'],
+  p37_words: ['Words', 'লেখা'],
+  p37_title: ['Title', 'শিরোনাম'],
+  p37_body: ['Body', 'বডি'],
+  p37_empty_lang: ['empty', 'খালি'],
+  p37_fmt: ['**bold** · [words](https://…) for a link · a line starting "- " for a list · a blank line for a new paragraph. Nothing else is kept as formatting.', '**বোল্ড** · লিংকের জন্য [শব্দ](https://…) · তালিকার জন্য লাইনের শুরুতে "- " · নতুন প্যারাগ্রাফের জন্য একটা খালি লাইন। এর বাইরে কোনো ফরম্যাটিং থাকে না।'],
+  p37_one_lang: ['A title and body in one language is enough: shops that read the other see this one.', 'এক ভাষায় শিরোনাম আর বডি থাকলেই চলবে: অন্য ভাষার পাঠকরা এটাই দেখবেন।'],
+  p37_one_lang_note: ['No Bangla yet: shops that read Bangla see the English.', 'এখনো বাংলা নেই: বাংলায় পড়া শপগুলো ইংরেজিটাই দেখবে।'],
+  p37_preview: ['Preview', 'প্রিভিউ'],
+  p37_preview_bn: ['As a shop sees it on its notice board, in Bangla.', 'শপ তাদের নোটিশ বোর্ডে বাংলায় যেভাবে দেখবে।'],
+  p37_preview_en: ['As a shop sees it on its notice board, in English.', 'শপ তাদের নোটিশ বোর্ডে ইংরেজিতে যেভাবে দেখবে।'],
+  p37_from_lytro: ['From Lytro', 'Lytro থেকে'],
+  p37_also_prompt: ['Also shown once at each person\'s next sign-in.', 'প্রত্যেকে পরের বার লগইন করলে একবার সামনেও আসবে।'],
+  p37_also_marq: ['Also on every page, scrolling, until closed:', 'বন্ধ না করা পর্যন্ত প্রতিটা পেজে স্ক্রল করে চলবে:'],
+  p37_kind_card: ['What it is', 'কী ধরনের'],
+  p37_category: ['Category', 'ক্যাটাগরি'],
+  p37_severity: ['Shows as', 'কীভাবে দেখাবে'],
+  p37_who_card: ['Who and when', 'কাদের জন্য, কখন'],
+  p37_audience: ['Audience', 'কাদের জন্য'],
+  p37_aud_o_all: ['All shops', 'সব শপ'],
+  p37_aud_o_plans: ['Shops on chosen plans', 'বাছাই করা প্ল্যানের শপ'],
+  p37_aud_o_states: ['Shops in chosen states', 'বাছাই করা স্টেটের শপ'],
+  p37_aud_o_tenant: ['One shop', 'একটা শপ'],
+  p37_aud_help: ['Read when a shop looks: a shop that joins later sees it on its board, but only the shops in the audience when it goes live are sent it. An archived shop sees urgent notices only.', 'শপ যখন দেখে তখন মেলানো হয়: পরে যে শপ এই দলে আসবে সে বোর্ডে দেখবে, কিন্তু লাইভ হওয়ার সময় যারা দলে ছিল শুধু তাদেরই পাঠানো হয়। আর্কাইভড শপ শুধু জরুরি নোটিশ দেখে।'],
+  p37_find_shop: ['Find a shop', 'শপ খুঁজুন'],
+  p37_live: ['Goes live', 'কখন লাইভ হবে'],
+  p37_live_draft: ['Not yet: keep it a draft', 'এখন না: ড্রাফট থাকুক'],
+  p37_live_now: ['Now', 'এখনই'],
+  p37_live_at: ['At a time', 'নির্দিষ্ট সময়ে'],
+  p37_live_help: ['Sent within a minute of its time, Dhaka time.', 'সময় হওয়ার এক মিনিটের মধ্যে পাঠানো হয়, ঢাকার সময়ে।'],
+  p37_live_fixed: ['Live since {d}. A live notice keeps its go-live time.', '{d} থেকে লাইভ। লাইভ নোটিশের লাইভ হওয়ার সময় বদলায় না।'],
+  p37_ends: ['Ends, optional', 'কখন শেষ, ঐচ্ছিক'],
+  p37_ends_help: ['It leaves every board at this time. Left empty, it stays on the board for 24 months.', 'এই সময়ে সব বোর্ড থেকে সরে যাবে। খালি রাখলে ২৪ মাস বোর্ডে থাকবে।'],
+  p37_window: ['Maintenance window', 'মেইনটেন্যান্সের সময়'],
+  p37_window_help: ['Shops\' dashboards count down to the window from when the notice goes live until it ends, and say when it\'s under way.', 'নোটিশ লাইভ হওয়া থেকে সময় শেষ হওয়া পর্যন্ত শপের ড্যাশবোর্ডে কাউন্টডাউন চলে, আর কাজ চলার সময় সেটা জানিয়ে দেয়।'],
+  p37_pin: ['Pinned to the top of the board', 'বোর্ডের ওপরে পিন করা'],
+  p37_ack: ['Asks for "I understand"', '"বুঝেছি" চাপতে বলে'],
+  p37_ack_help: ['The owner presses it once for the shop; staff get no button. You see who has and who hasn\'t.', 'মালিক শপের হয়ে একবার চাপবেন; স্টাফরা বাটন পাবেন না। কে চেপেছে আর কে চাপেনি, আপনি দেখতে পাবেন।'],
+  p37_save_draft: ['Save draft', 'ড্রাফট সেভ করুন'],
+  p37_publish: ['Publish…', 'পাবলিশ…'],
+  p37_schedule: ['Schedule…', 'শিডিউল…'],
+  p37_save_changes: ['Save changes', 'বদল সেভ করুন'],
+  p37_from_template: ['From the {t} template', '{t} টেমপ্লেট থেকে'],
+  p37_rate_banner: ['From the rate change of {d}: {r}, {o} → {n}. Publishing links this notice to that change, and the rate\'s history says so.', '{d}-এর রেট বদল থেকে: {r}, {o} → {n}। পাবলিশ করলে নোটিশটা ওই বদলের সাথে যুক্ত হবে, আর রেটের ইতিহাসে তা লেখা থাকবে।'],
+  p37_live_banner: ['This notice is live. Saving marks it "updated" on the board and keeps the version it replaces; nothing is sent again.', 'এই নোটিশ লাইভ আছে। সেভ করলে বোর্ডে "আপডেট হয়েছে" দেখাবে আর আগের ভার্সনটা রাখা থাকবে; নতুন করে কিছু পাঠানো হবে না।'],
+
+  /* refusals */
+  p37_err_banner: ['Nothing was saved. Fix what\'s marked, then save again.', 'কিছুই সেভ হয়নি। দাগ দেওয়া জায়গাগুলো ঠিক করে আবার সেভ করুন।'],
+  p37_err_none: ['Write a title and a body in Bangla, English or both.', 'বাংলা, ইংরেজি বা দুই ভাষাতেই শিরোনাম আর বডি লিখুন।'],
+  p37_err_need: ['Needed here, or in English.', 'এখানে লাগবে, নয়তো ইংরেজিতে।'],
+  p37_err_title_long: ['At most 120 characters.', 'সর্বোচ্চ ১২০ অক্ষর।'],
+  p37_err_body_long: ['At most 5,000 characters.', 'সর্বোচ্চ ৫,০০০ অক্ষর।'],
+  p37_err_half: ['The English has a title but no body. Add the body, or clear the title.', 'ইংরেজিতে শিরোনাম আছে কিন্তু বডি নেই। বডি লিখুন, নয়তো শিরোনাম মুছে দিন।'],
+  p37_err_link: ['A link must start with https://.', 'লিংক অবশ্যই https:// দিয়ে শুরু হতে হবে।'],
+
+  /* publishing */
+  p37_pub_title_at: ['Schedule this notice?', 'এই নোটিশ শিডিউল করবেন?'],
+  p37_pub_title_now: ['Publish this notice now?', 'এখনই পাবলিশ করবেন?'],
+  p37_pub_cons: ['Within a minute of {d}, it goes to the <b>{n} shops</b> in the audience: in the bell and by push to each owner and the staff who read notices{e}.', '{d}-এর এক মিনিটের মধ্যে তালিকার <b>{n}টা শপে</b> যাবে: প্রত্যেক মালিক আর নোটিশ পড়তে পারা স্টাফের নোটিফিকেশন আর পুশে{e}।'],
+  p37_pub_now_word: ['now', 'এখন'],
+  p37_pub_email: [', and by email to the owners', ', আর মালিকদের ইমেইলে'],
+  p37_pub_important: ['Each person sees it once as a prompt at their next sign-in.', 'প্রত্যেকে পরের বার লগইন করলে একবার সামনে দেখবেন।'],
+  p37_pub_urgent: ['It scrolls across the top of every dashboard page until each person closes it.', 'যতক্ষণ না প্রত্যেকে বন্ধ করেন, ড্যাশবোর্ডের প্রতিটা পেজের ওপরে স্ক্রল করে চলবে।'],
+  p37_pub_window: ['Their dashboards count down to the window until {d}.', '{d} পর্যন্ত তাদের ড্যাশবোর্ডে কাউন্টডাউন চলবে।'],
+  p37_pub_nosms: ['No SMS is sent and no balance moves.', 'কোনো SMS যাবে না, কারো ব্যালেন্সও কাটবে না।'],
+  p37_pub_after: ['Until then you can change anything. Once it\'s live, an edit is marked "updated" and nothing is sent again.', 'তার আগে পর্যন্ত সব বদলানো যাবে। লাইভ হওয়ার পর এডিট করলে "আপডেট হয়েছে" দেখাবে, নতুন করে কিছু পাঠানো হবে না।'],
+  p37_pub_after_now: ['Once it\'s live, an edit is marked "updated" and nothing is sent again.', 'লাইভ হওয়ার পর এডিট করলে "আপডেট হয়েছে" দেখাবে, নতুন করে কিছু পাঠানো হবে না।'],
+  p37_pub_btn_at: ['Schedule for {d}', '{d}-এর জন্য শিডিউল করুন'],
+  p37_pub_btn_now: ['Publish now', 'এখনই পাবলিশ করুন'],
+  p37_scheduled_toast: ['Scheduled for {d}. Nothing is sent before then.', '{d}-এর জন্য শিডিউল হয়েছে। তার আগে কিছু পাঠানো হবে না।'],
+  p37_published_toast: ['Published. It reaches shops within a minute.', 'পাবলিশ হয়েছে। এক মিনিটের মধ্যে শপগুলোতে পৌঁছাবে।'],
+  p37_draft_toast: ['Saved as a draft. Nothing was sent.', 'ড্রাফট সেভ হয়েছে। কিছু পাঠানো হয়নি।'],
+  p37_saved_live_toast: ['Saved. The board shows it as updated; nothing was sent again.', 'সেভ হয়েছে। বোর্ডে আপডেট হয়েছে দেখাচ্ছে; নতুন করে কিছু পাঠানো হয়নি।'],
+  p37_published_rate_toast: ['Published. The rate change now links to it.', 'পাবলিশ হয়েছে। রেট বদলের সাথে এখন এটা যুক্ত।'],
+
+  /* one notice */
+  p37_k_sent: ['Shops sent', 'যতগুলো শপে গেছে'],
+  p37_k_sent_d: ['in the audience when it went live', 'লাইভ হওয়ার সময় যারা তালিকায় ছিল'],
+  p37_k_people: ['People told', 'যতজনকে জানানো হয়েছে'],
+  p37_k_people_d: ['owners and staff, bell and push', 'মালিক আর স্টাফ, নোটিফিকেশন ও পুশে'],
+  p37_k_reads: ['Read', 'পড়েছেন'],
+  p37_k_reads_d: ['people who opened it', 'যারা খুলে দেখেছেন'],
+  p37_k_ack: ['Said I understand', 'বুঝেছি বলেছে'],
+  p37_k_ack_d: ['{p} shops still to', 'আরও {p}টা শপ বাকি'],
+  p37_k_noack: ['Not asked', 'চাওয়া হয়নি'],
+  p37_acks_btn: ['Who said I understand', 'কে বুঝেছি বলেছে'],
+  p37_withdraw: ['Withdraw', 'উইথড্র'],
+  p37_facts: ['How it\'s set', 'যেভাবে সেট করা'],
+  p37_f_live: ['Went live', 'লাইভ হয়েছে'],
+  p37_f_goes: ['Goes live', 'লাইভ হবে'],
+  p37_f_ends: ['Ends', 'শেষ'],
+  p37_f_never: ['Not set', 'সেট করা নেই'],
+  p37_f_pin: ['Pinned', 'পিন করা'],
+  p37_f_ack: ['"I understand"', '"বুঝেছি"'],
+  p37_f_email: ['Email', 'ইমেইল'],
+  p37_f_email_yes: ['To owners', 'মালিকদের যায়'],
+  p37_f_email_no: ['None, it\'s info', 'যায় না, এটা ইনফো'],
+  p37_f_window: ['Window', 'মেইনটেন্যান্সের সময়'],
+  p37_f_rate: ['Rate change', 'রেট বদল'],
+  p37_f_by: ['Written', 'লিখেছেন'],
+  p37_yes: ['Yes', 'হ্যাঁ'],
+  p37_no: ['No', 'না'],
+  p37_asked: ['Asked of owners', 'মালিকদের কাছে চাওয়া'],
+  p37_versions: ['Earlier versions', 'আগের ভার্সন'],
+  p37_versions_hint: ['Each edit after it went live keeps the one it replaced. Shops see only the latest, marked updated.', 'লাইভ হওয়ার পর প্রতিটা এডিটে আগেরটা রাখা থাকে। শপ শুধু সর্বশেষটা দেখে, "আপডেট হয়েছে" লেখাসহ।'],
+  p37_version_line: ['Replaced {d} by {who}', '{d}, {who} বদলেছেন'],
+  p37_version_open: ['Show', 'দেখুন'],
+  p37_version_title: ['The version replaced {d}', '{d}-এ বদলানো ভার্সন'],
+  p37_noversions: ['No edits since it went live.', 'লাইভ হওয়ার পর কোনো এডিট হয়নি।'],
+  p37_sched_banner: ['Scheduled: it goes to the audience within a minute of {d}. Nothing has been sent, and you can change anything until then.', 'শিডিউল করা: {d}-এর এক মিনিটের মধ্যে তালিকার শপগুলোতে যাবে। এখনো কিছু পাঠানো হয়নি, ততক্ষণ সবকিছু বদলাতে পারবেন।'],
+  p37_wd_banner: ['Withdrawn {d}. Hidden from every shop, and kept here with its versions and counts. It can\'t be edited or published again.', '{d} উইথড্র করা হয়েছে। কোনো শপ আর দেখছে না; এর ভার্সন আর সংখ্যা এখানে রাখা আছে। এটা আর এডিট বা পাবলিশ করা যাবে না।'],
+  p37_ended_banner: ['Ended {d}: it left every board then. Its counts and versions stay here.', '{d} শেষ হয়েছে: তখন সব বোর্ড থেকে সরে গেছে। সংখ্যা আর ভার্সন এখানে থেকে যায়।'],
+  p37_in_bn: ['In Bangla', 'বাংলায়'],
+  p37_in_en: ['In English', 'ইংরেজিতে'],
+  p37_missing_lang: ['Not written. Readers of this language see the other one.', 'লেখা হয়নি। এই ভাষার পাঠকরা অন্যটা দেখবেন।'],
+  p37_wd_title: ['Withdraw this notice?', 'এই নোটিশ উইথড্র করবেন?'],
+  p37_wd_cons: ['It disappears from every shop\'s board at once, with its banner and prompt. It stays here with its versions and counts. A withdrawn notice can\'t be edited or published again.', 'সাথে সাথে সব শপের বোর্ড থেকে সরে যাবে, এর ব্যানার আর প্রম্পটসহ। এর ভার্সন আর সংখ্যা এখানে থাকবে। উইথড্র করা নোটিশ আর এডিট বা পাবলিশ করা যায় না।'],
+  p37_wd_audit: ['The platform audit log records you and the time.', 'প্ল্যাটফর্ম অডিট লগে আপনার নাম আর সময় থাকবে।'],
+  p37_wd_done: ['Withdrawn. No shop sees it now.', 'উইথড্র হয়েছে। এখন কোনো শপ এটা দেখছে না।'],
+
+  /* acknowledgments */
+  p37_acks_sub: ['Only the owner can say it, once for the shop. "Still to" is read now: a shop that joined the audience after it went live is listed too, though it wasn\'t sent the notice.', 'শুধু মালিক বলতে পারেন, শপের হয়ে একবার। "বাকি" তালিকা এখনকার হিসাবে: লাইভ হওয়ার পর যে শপ তালিকায় এসেছে, তাকে নোটিশ পাঠানো না হলেও এখানে দেখাবে।'],
+  p37_t_pending: ['Still to', 'বাকি'],
+  p37_t_acked: ['Said I understand', 'বুঝেছি বলেছে'],
+  p37_c_acked_at: ['Said it', 'কখন বলেছে'],
+  p37_ack_line: ['The owner, {d}', 'মালিক, {d}'],
+  p37_acks_empty_p: ['Every shop has said it', 'সব শপ বুঝেছি বলেছে'],
+  p37_acks_empty_p_hint: ['No shop in the audience is still to.', 'তালিকার কোনো শপ আর বাকি নেই।'],
+  p37_acks_empty_a: ['No shop has said it yet', 'এখনো কোনো শপ বুঝেছি বলেনি'],
+  p37_acks_empty_a_hint: ['Owners see the button on the notice in their dashboard.', 'মালিকরা ড্যাশবোর্ডে নোটিশের সাথে বাটনটা দেখেন।'],
+  p37_acks_search: ['Shop name or address', 'শপের নাম বা অ্যাড্রেস'],
+
+  /* rates */
+  rn_ai_extraction: ['Address read from a message', 'মেসেজ থেকে ঠিকানা পড়া'],
+  p37_offer_title: ['Tell shops about this change?', 'শপগুলোকে এই বদলের কথা জানাবেন?'],
+  p37_offer_line: ['A rate-change notice, filled from it: "{t}"', 'এটা থেকে ভরা একটা রেট বদলের নোটিশ: "{t}"'],
+  p37_offer_write: ['Write the notice', 'নোটিশ লিখুন'],
+  p37_offer_skip: ['No notice', 'নোটিশ লাগবে না'],
+  p37_offer_note: ['The rate\'s history says whether one was published (RAT-09).', 'রেটের ইতিহাসে লেখা থাকে নোটিশ পাবলিশ হয়েছে কি না (RAT-09)।'],
+  p37_write_one: ['Write one', 'একটা লিখুন'],
+  p37_notice_link: ['notice published', 'নোটিশ পাবলিশ হয়েছে'],
+  p37_no_notice: ['no notice', 'নোটিশ নেই'],
+
+  /* settings */
+  se_g10: ['Couriers', 'কুরিয়ার'],
+  se_g11: ['Reading delivery details', 'ডেলিভারির তথ্য পড়া'],
+  se_g12: ['Fraud checks', 'ফ্রড চেক'],
+  se_g13: ['Notifications', 'নোটিফিকেশন'],
+  sn_courier_check_min_age_hours: ['Night check skips parcels younger than', 'রাতের চেক এর চেয়ে নতুন পার্সেল বাদ দেয়'],
+  sn_courier_check_quiet_hours: ['Night check asks after parcels quiet for', 'রাতের চেক খোঁজ নেয়, মেসেজ না এলে'],
+  sn_courier_check_stop_days: ['A parcel stops being checked after', 'পার্সেল চেক বন্ধ হয়'],
+  sn_courier_sync_minutes: ['Sync shows its saved answer for', 'Sync আগের উত্তর দেখায়'],
+  sn_address_read_provider: ['The AI that reads', 'যে AI পড়ে'],
+  sn_address_read_model: ['Its model', 'মডেল'],
+  sn_address_reads_per_shop_per_minute: ['Reads per shop', 'শপ প্রতি পড়া'],
+  sn_fraud_checks_per_shop_per_minute: ['Checks per shop', 'শপ প্রতি চেক'],
+  sn_notification_retention_days: ['A notification is kept for', 'নোটিফিকেশন থাকে'],
+  u_hours: ['hours', 'ঘণ্টা'],
+  p37_ai_gemini: ['Gemini', 'Gemini'],
+  p37_provider_help: ['Gemini is the only AI Lytro can read with today; another needs its adapter built first (AI-10).', 'আজ Lytro শুধু Gemini দিয়েই পড়তে পারে; অন্য AI লাগলে আগে তার অ্যাডাপ্টার বানাতে হবে (AI-10)।'],
+  p37_model_warn: ['The name goes to Gemini as typed. One it doesn\'t know makes every read fail until it\'s put back; a failed read costs a shop nothing. Copy the name from Google\'s list of models.', 'নামটা যেমন লিখবেন তেমনই Gemini-তে যায়। অচেনা নাম দিলে ঠিক না করা পর্যন্ত সব পড়া ব্যর্থ হবে; ব্যর্থ পড়ায় শপের কোনো টাকা কাটে না। Google-এর মডেলের তালিকা থেকে নামটা কপি করুন।'],
+  p37_retention_note: ['Lowering it deletes the older notifications in every shop at the next nightly clean-up.', 'কমালে পরের রাতের ক্লিনআপে সব শপের পুরোনো নোটিফিকেশন মুছে যাবে।'],
+  p37_err_whole: ['A whole number of 1 or more. Nothing was saved.', '১ বা তার বেশি পূর্ণ সংখ্যা দিন। কিছুই সেভ হয়নি।'],
+
+  /* add-ons: allowances */
+  lim_address_reads: ['Address reads', 'ঠিকানা পড়া'],
+  p37_ae_service: ['Covers which service', 'কোন সার্ভিসের জন্য'],
+  p37_svc_address_reads: ['Address reads from messages', 'মেসেজ থেকে ঠিকানা পড়া'],
+  p37_ae_uses: ['Uses one unit gives', 'একটা ইউনিটে কতবার'],
+  p37_ae_uses_help: ['How many uses one bought unit gives: 200 reads.', 'একটা কিনলে কতবার ব্যবহার করা যায়: ২০০ বার পড়া।'],
+  p37_ae_rate_eq: ['At the rate, 200 reads cost ৳20.00 (৳0.10 each): the same price, no discount (D7-36).', 'রেট অনুযায়ী ২০০ বার পড়ার দাম ৳20.00 (প্রতিবার ৳0.10): একই দাম, কোনো ছাড় নেই (D7-36)।'],
+  p37_ae_fixed: ['The kind and the service can\'t change once it\'s made.', 'একবার তৈরি হলে ধরন আর সার্ভিস বদলানো যায় না।'],
+  p37_ae_only_svc: ['Address reads is the only service an allowance covers today; fraud checks join once they have a price (D7-7).', 'আজ অ্যালাউন্স শুধু ঠিকানা পড়ার জন্য; ফ্রড চেকের দাম ঠিক হলে সেটাও যোগ হবে (D7-7)।'],
+  p37_ae_paid_only: ['Only a shop in a paid period can buy it. Its uses are taken before the shop\'s balance until the period ends.', 'শুধু পেইড মেয়াদে থাকা শপ কিনতে পারে। মেয়াদ শেষ হওয়া পর্যন্ত শপের ব্যালেন্সের আগে এটা থেকে কাটে।'],
+  p37_err_key_taken: ['address_reads_200 is already an add-on\'s key.', 'address_reads_200 কী আগেই একটা অ্যাড-অনে আছে।'],
+  p37_ae_create: ['Create add-on', 'অ্যাড-অন তৈরি করুন'],
+
+  /* D7-20: a shop's phones */
+  p37_told_shop: ['The shop is told in its dashboard: the owner and the staff who manage its phones, in the bell and by push.', 'শপকে ড্যাশবোর্ডে জানানো হবে: মালিক আর যে স্টাফরা ফোন ম্যানেজ করেন, নোটিফিকেশন আর পুশে।'],
+});
+
+/* Deliberate overrides: what Phase 7 changed in sentences already on screen. */
+Object.assign(S, {
+  /* D7-20: approving a plan, renewal or upgrade issues the invoice, which tells the owner (plan-invoicing.service.ts: SMS to the
+     owner's phone, and email, bell and push through AccountNotices). The period's end still isn't served before approving. */
+  ap_plan: ['<b>{shop}</b> goes on <b>{plan}</b> for {term}. The invoice is issued and the owner is told in the dashboard, and by SMS and email where they have them. Approving twice has no second effect.', '<b>{shop}</b> {term}-এর জন্য <b>{plan}</b>-এ যাবে। ইনভয়েস তৈরি হবে, আর মালিককে ড্যাশবোর্ডে জানানো হবে, ফোন আর ইমেইল থাকলে SMS আর ইমেইলেও। দুবার অ্যাপ্রুভ করলে দ্বিতীয়বার কিছু হয় না।'],
+  /* D7-17: allowances are a kind a shop buys now. */
+  ao_sub: ['What a shop can buy on top of its plan: limit add-ons, packs, features and allowances (PLN-13, PLN-20). Prices are per month; a retired item cannot be bought, and ones already bought run to their end.', 'প্ল্যানের উপরে শপ যা কিনতে পারে: লিমিট অ্যাড-অন, প্যাক, ফিচার আর অ্যালাউন্স (PLN-13, PLN-20)। দাম মাস হিসেবে; বন্ধ করা আইটেম আর কেনা যায় না, কেনা থাকলে মেয়াদ পর্যন্ত চলে।'],
+  ao_rule: ['A limit add-on and a feature renew with the plan unless the shop turns renewal off; a pack adds once and carries over until used. Pay-as-you-go shops renew in 30-day periods from the balance (PLN-14). An allowance gives a shop in a paid period that many uses of a paid service, taken before its balance, until the period ends (PLN-20).', 'লিমিট অ্যাড-অন আর ফিচার প্ল্যানের সাথে রিনিউ হয়, শপ বন্ধ না করলে; প্যাক একবার যোগ হয়, শেষ না হওয়া পর্যন্ত থাকে। পে-অ্যাজ-ইউ-গো শপে ৩০ দিনের মেয়াদে ব্যালেন্স থেকে রিনিউ (PLN-14)। অ্যালাউন্স পেইড মেয়াদের শপকে একটা পেইড সার্ভিস ততবার ব্যবহার করতে দেয়, মেয়াদ শেষ হওয়া পর্যন্ত; ব্যালেন্সের আগে এটা থেকে কাটে (PLN-20)।'],
+  ae_unit_help: ['What one bought unit adds: 500 products, 1 seat, 1 GB, 10 GB, 100,000 requests, 200 reads. A feature has none.', 'একটা কিনলে কতটা যোগ হয়: ৫০০ প্রোডাক্ট, ১ সিট, ১ GB, ১০ GB, ১,০০,০০০ রিকোয়েস্ট, ২০০ বার পড়া। ফিচারের কোনো মাপ নেই।'],
+});
+
+/* Sample notices, as Slice 7.4's operator list answers them (OperatorNoticeView): newest written first. The words of the
+   templated ones are what notice-words.ts writes, with the operator's own lines where a template leaves a gap. */
+const P37_POLICY_BN = '15 নভেম্বর থেকে Lytro-এর পলিসি বদলাচ্ছে। যা বদলাচ্ছে:\n\n- বন্ধ হওয়া শপের ডেটা বন্ধের ৬০ দিন পর মুছে ফেলা হয়\n- ক্রেতারা রিপোর্ট করলে দেখার সময় পেমেন্ট পেজ সাসপেন্ড থাকতে পারে\n\nপড়ে নিচে "বুঝেছি" চাপুন।';
+const P37_POLICY_EN = 'Lytro\'s policy changes from 15 Nov. What changes:\n\n- A closed shop\'s data is deleted 60 days after it closes\n- A payment page shoppers report may be suspended while we look\n\nPlease read it and press "I understand" below.';
+const P37_NOTICES = [
+  { id: 'n-15', status: 'draft', category: 'general', severity: 'info', aud: { kind: 'all' }, createdAt: '2026-11-07T18:05:00+06:00',
+    titleBn: null, bodyBn: null,
+    titleEn: 'Couriers close for Victory Day, 16 Dec',
+    bodyEn: 'Steadfast, Pathao and RedX don\'t pick up parcels on **16 Dec**.\n\n- Book by 15 Dec, 5 pm for a pickup that day\n- Parcels booked on 16 Dec are picked up on 17 Dec',
+    publishAt: null, endsAt: '2026-12-17T23:59:00+06:00', pinned: false, ack: false, counts: { shops: 0, people: 0, reads: 0, acknowledged: 0 } },
+  { id: 'n-14', status: 'scheduled', category: 'maintenance', severity: 'important', aud: { kind: 'all' }, createdAt: '2026-11-07T17:10:00+06:00', tpl: 'maintenance',
+    titleBn: '10 নভেম্বর রাত 2টা থেকে ভোর 4টা মেইনটেন্যান্স',
+    bodyBn: '10 নভেম্বর রাত 2টা থেকে ভোর 4টা পর্যন্ত Lytro-তে মেইনটেন্যান্স চলবে। এই সময়ে ড্যাশবোর্ড আর স্টোরফ্রন্ট মাঝে মাঝে বন্ধ থাকতে পারে।',
+    titleEn: 'Maintenance 10 Nov, 2 am to 4 am',
+    bodyEn: 'Lytro is under maintenance from 10 Nov, 2 am to 4 am. The dashboard and storefronts may be unavailable at times during it.',
+    publishAt: '2026-11-08T10:00:00+06:00', endsAt: '2026-11-10T04:00:00+06:00', windowStartsAt: '2026-11-10T02:00:00+06:00', windowEndsAt: '2026-11-10T04:00:00+06:00', pinned: true, ack: false, audienceNow: 212, counts: { shops: 0, people: 0, reads: 0, acknowledged: 0 } },
+  { id: 'n-13', status: 'live', category: 'rate_change', severity: 'important', aud: { kind: 'all' }, createdAt: '2026-11-07T14:52:00+06:00', tpl: 'rate_change', rateChangeId: 41,
+    titleBn: 'SMS, প্রতি পার্ট রেট 7 নভেম্বর থেকে ৳0.55 → ৳0.65',
+    bodyBn: '7 নভেম্বর থেকে **SMS, প্রতি পার্ট** রেট ৳0.55 থেকে বদলে **৳0.65** হচ্ছে। এরপরের প্রতিটি চার্জে নতুন রেট লাগবে; আগের চার্জ বদলাবে না।',
+    titleEn: 'SMS, per part rate ৳0.55 → ৳0.65 from 7 Nov',
+    bodyEn: 'From 7 Nov, the **SMS, per part** rate changes from ৳0.55 to **৳0.65**. Every charge after that uses the new rate; earlier charges don\'t change.',
+    publishAt: '2026-11-07T15:00:00+06:00', endsAt: null, pinned: false, ack: false, counts: { shops: 212, people: 318, reads: 147, acknowledged: 0 } },
+  { id: 'n-12', status: 'live', category: 'new_feature', severity: 'info', aud: { kind: 'plans', plans: ['Starter', 'Growth', 'Pro'] }, createdAt: '2026-11-07T10:30:00+06:00',
+    titleBn: 'কাস্টমারের মেসেজ থেকে ডেলিভারির তথ্য পড়ুন',
+    bodyBn: 'নতুন অর্ডার ফর্মে কাস্টমারের মেসেজ পেস্ট করুন, Lytro নিজেই **নাম, ফোন, জেলা, থানা আর ঠিকানা** বসিয়ে দেবে।\n\n- প্রতিবার পড়তে ৳0.10, অথবা অ্যালাউন্স থেকে কাটে\n- কিছু না পেলে টাকা কাটে না\n\n[কীভাবে কাজ করে](https://lytro.app/help/address-reads)',
+    titleEn: 'Read delivery details from a customer\'s message',
+    bodyEn: 'Paste a customer\'s message on the new-order form and Lytro fills in the **name, phone, zilla, thana and address**.\n\n- Each read costs ৳0.10, or comes from an allowance\n- A read that finds nothing costs nothing\n\n[How it works](https://lytro.app/help/address-reads)',
+    publishAt: '2026-11-07T11:00:00+06:00', endsAt: null, pinned: false, ack: false, counts: { shops: 187, people: 262, reads: 96, acknowledged: 0 } },
+  { id: 'n-11', status: 'live', category: 'policy', severity: 'important', aud: { kind: 'all' }, createdAt: '2026-11-05T09:40:00+06:00', tpl: 'policy_update', editedAt: '2026-11-06T09:12:00+06:00',
+    titleBn: '15 নভেম্বর থেকে Lytro-এর পলিসি আপডেট', bodyBn: P37_POLICY_BN,
+    titleEn: 'Lytro\'s policy updates from 15 Nov', bodyEn: P37_POLICY_EN,
+    publishAt: '2026-11-05T10:00:00+06:00', endsAt: null, pinned: true, ack: true, pending: 171, counts: { shops: 212, people: 318, reads: 240, acknowledged: 41 },
+    versions: [{ replacedAt: '2026-11-06T09:12:00+06:00', by: 'ops@lytro.app',
+      titleBn: '15 নভেম্বর থেকে Lytro-এর পলিসি আপডেট', titleEn: 'Lytro\'s policy updates from 15 Nov',
+      bodyBn: '15 নভেম্বর থেকে Lytro-এর পলিসি বদলাচ্ছে। যা বদলাচ্ছে:\n\n- বন্ধ হওয়া শপের ডেটা বন্ধের ৬০ দিন পর মুছে ফেলা হয়\n\nপড়ে নিচে "বুঝেছি" চাপুন।',
+      bodyEn: 'Lytro\'s policy changes from 15 Nov. What changes:\n\n- A closed shop\'s data is deleted 60 days after it closes\n\nPlease read it and press "I understand" below.' }] },
+  { id: 'n-10', status: 'ended', category: 'maintenance', severity: 'urgent', aud: { kind: 'all' }, createdAt: '2026-11-03T20:25:00+06:00', tpl: 'outage',
+    titleBn: 'Lytro-তে সমস্যা চলছে',
+    bodyBn: '3 নভেম্বর রাত 8:15 থেকে Lytro-এর কিছু অংশ ঠিকমতো কাজ করছে না। আমরা ঠিক করছি; ঠিক হলে এখানে জানাব।',
+    titleEn: 'Lytro is having problems',
+    bodyEn: 'Since 3 Nov, 8:15 pm, part of Lytro isn\'t working properly. We\'re fixing it and will post here when it\'s done.',
+    publishAt: '2026-11-03T20:30:00+06:00', endsAt: '2026-11-04T09:00:00+06:00', pinned: false, ack: false, counts: { shops: 205, people: 301, reads: 288, acknowledged: 0 } },
+  { id: 'n-9', status: 'withdrawn', category: 'security', severity: 'important', aud: { kind: 'tenant', shop: 'Dhaka Gadget House' }, createdAt: '2026-11-01T11:50:00+06:00', withdrawnAt: '2026-11-02T14:05:00+06:00',
+    titleBn: 'আপনার পেমেন্ট পেজ রিভিউ হচ্ছে',
+    bodyBn: 'দুজন ক্রেতা আপনার পেমেন্ট পেজ রিপোর্ট করেছেন। আমরা দেখার সময় এটা চালু থাকবে; শেষ হলে এখানে জানাব।',
+    titleEn: 'Your payment page is under review',
+    bodyEn: 'Two shoppers reported your payment page. It stays open while we look; we\'ll write here when we\'re done.',
+    publishAt: '2026-11-01T12:00:00+06:00', endsAt: null, pinned: false, ack: false, counts: { shops: 1, people: 3, reads: 2, acknowledged: 0 } },
+];
+const p37N = (id) => P37_NOTICES.find((n) => n.id === id);
+const P37_SCREEN = { 'n-15': 'p37-notice-draft', 'n-14': 'p37-notice-scheduled', 'n-13': 'p37-notice-rate', 'n-12': 'p37-notice-feature', 'n-11': 'p37-notice-live', 'n-10': 'p37-notice-ended', 'n-9': 'p37-notice-withdrawn' };
+/* The rate change the offer and the rate-change notice are drawn from (control.rate_history's id). */
+const P37_CHANGE = { id: 41, key: 'sms_per_unit', old: '0.55', new: '0.65', at: '2026-11-07T14:48:00+06:00', by: 'ops@lytro.app' };
+const P37_ACKED = [
+  { shop: 'Rahim Fashion', slug: 'rahim-fashion', at: '2026-11-05T11:40:00+06:00' },
+  { shop: 'Faiza Shoes', slug: 'faiza-shoes', at: '2026-11-05T13:02:00+06:00' },
+  { shop: 'Arif Electronics', slug: 'arif-electronics', at: '2026-11-05T19:26:00+06:00' },
+  { shop: 'Joy Pharmacy', slug: 'joy-pharmacy', at: '2026-11-06T08:15:00+06:00' },
+  { shop: 'Mehedi Books', slug: 'mehedi-books', at: '2026-11-06T21:47:00+06:00' },
+];
+const P37_PENDING = [
+  { shop: 'Dhaka Gadget House', slug: 'dhaka-gadget' },
+  { shop: 'Nusrat Cosmetics', slug: 'nusrat-cosmetics' },
+  { shop: 'Sadia Collection', slug: 'sadia-collection' },
+  { shop: 'Tanvir Mobiles', slug: 'tanvir-mobiles' },
+  { shop: 'Keya Boutique', slug: 'keya-boutique' },
+  { shop: 'Mim Bakery', slug: 'mim-bakery' },
+];
+
+/* helpers */
+const P37_CATS = ['rate_change', 'maintenance', 'new_feature', 'policy', 'security', 'general'];
+const P37_SEV_CLS = { info: 'info plain', important: 'warn plain', urgent: 'bad plain' };
+const P37_ST_CLS = { draft: 'mute', scheduled: 'info', live: 'ok', ended: 'mute', withdrawn: 'bad' };
+const p37Sev = (s) => st(P37_SEV_CLS[s], t('p37_sev_' + s));
+const p37State = (s) => st(P37_ST_CLS[s], t('p37_st_' + s));
+const p37Line = (text) => `<div style="font-size:13px;color:var(--muted);font-weight:400;white-space:normal">${text}</div>`;
+const p37Esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+/* D7-53's Markdown, rendered the way the server's one renderer does: escape first, then bold, https links, "- " lists, paragraphs. */
+function p37Md(text) {
+  const inline = (s) => p37Esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\[([^\]]+)\]\((https:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  return `<div class="p37-md">${String(text).split(/\n\s*\n/).map((block) => { const lines = block.split('\n'); return lines.every((l) => l.startsWith('- ')) ? `<ul>${lines.map((l) => `<li>${inline(l.slice(2))}</li>`).join('')}</ul>` : `<p>${lines.map(inline).join('<br>')}</p>`; }).join('')}</div>`;
+}
+const p37Title = (n) => (L.lang === 'bn' ? n.titleBn || n.titleEn : n.titleEn || n.titleBn);
+const p37Body = (n) => (L.lang === 'bn' ? n.bodyBn || n.bodyEn : n.bodyEn || n.bodyBn);
+const p37Aud = (a) => (a.kind === 'all' ? t('p37_aud_all') : a.kind === 'plans' ? t('p37_aud_plans', { p: a.plans.join(', ') }) : a.kind === 'states' ? t('p37_aud_states', { s: a.states.map((s) => t('s_' + s)).join(', ') }) : t('p37_aud_tenant', { s: a.shop }));
+const p37When = (n) => (n.status === 'draft' ? t('p37_st_draft_d') : n.status === 'scheduled' ? t('p37_st_scheduled_d', { d: dateT(n.publishAt) }) : n.status === 'live' ? t('p37_st_live_d', { d: dateT(n.publishAt) }) : n.status === 'ended' ? t('p37_st_ended_d', { d: dateT(n.endsAt) }) : t('p37_st_withdrawn_d', { d: dateT(n.withdrawnAt) }));
+const p37OnlyLang = (n) => (!n.titleBn ? t('p37_only_en') : !n.titleEn ? t('p37_only_bn') : '');
+const p37Fld = (label, count, control, help, err) => `<div class="field"><div class="p37-lab"><label>${label}</label>${count || ''}</div>${control}${help ? `<div class="p37-help">${help}</div>` : ''}${err ? `<div class="err">${err}</div>` : ''}</div>`;
+const p37Cnt = (n, max, bad) => `<span class="p37-cnt ${bad || n > max ? 'bad' : ''}">${Number(n).toLocaleString('en-US')} / ${Number(max).toLocaleString('en-US')}</span>`;
+const p37Radio = (on, label, help, extra) => `<label class="p37-radio ${on ? 'on' : ''}"><span class="p37-dot"></span><span class="p37-rbody"><span class="p37-rl">${label}</span>${help ? `<span class="p37-rh">${help}</span>` : ''}${extra || ''}</span></label>`;
+const p37Head = (crumb) => `<div class="crumbs"><a onclick="go('p37-notices')">${t('notices')}</a>${crumb ? `${I.chev}<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${crumb}</span>` : ''}</div>`;
+const p37Pin = (n) => (n.pinned ? `<span class="p37-pin" title="${t('p37_pinned')}">${I.p37tack}</span> ` : '');
+
+/* What a shop's board would show: the severity's mark, the category, the words, and the extra place an important or urgent one takes. */
+function p37BoardCard(n, lang, o) {
+  o = o || {};
+  const title = lang === 'bn' ? n.titleBn || n.titleEn : n.titleEn || n.titleBn;
+  const body = lang === 'bn' ? n.bodyBn || n.bodyEn : n.bodyEn || n.bodyBn;
+  const extra = n.severity === 'urgent' ? `<div class="p37-cap">${t('p37_also_marq')}</div><div class="p37-marq">${I.warn}<span>${p37Esc(t('p37_from_lytro'))}: ${p37Esc(title || '')}</span></div>` : n.severity === 'important' ? `<div class="p37-cap">${t('p37_also_prompt')}</div>` : '';
+  return `${o.noExtra ? '' : extra}<div class="p37-board"><div class="p37-bmeta">${p37Pin(n)}${p37Sev(n.severity)}${st('mute plain', t('p37_cat_' + n.category))}${n.editedAt ? st('mute plain', t('p37_updated', { d: dateS(n.editedAt) })) : ''}</div><div class="p37-bt">${p37Esc(title || '')}</div>${body ? p37Md(body) : ''}<div class="p37-bfoot">${t('p37_from_lytro')} · ${dateS(n.publishAt || '2026-11-08T10:00:00+06:00')}</div></div>`;
+}
+
+/* ---------- the notices list (GET /operator/notices: newest written first, by category or words) ---------- */
+function p37ListPage() {
+  const list = ST.data === 'busy' ? P37_NOTICES : [];
+  const cols = [
+    { k: 'notice', label: t('p37_c_notice'), w: 'minmax(240px,2.2fr)', cls: 'main' },
+    { k: 'sev', label: t('p37_c_sev'), w: '130px' },
+    { k: 'aud', label: t('p37_c_aud'), w: 'minmax(140px,1fr)' },
+    { k: 'state', label: t('p37_c_state'), w: '160px' },
+    { k: 'reach', label: t('p37_c_reach'), w: '170px' },
+  ];
+  const rows = list.map((n) => {
+    const meta = [t('p37_cat_' + n.category), n.editedAt ? t('p37_updated', { d: dateS(n.editedAt) }) : '', p37OnlyLang(n)].filter(Boolean).join(' · ');
+    const sent = n.status === 'draft' || n.status === 'scheduled';
+    return { on: `go('${P37_SCREEN[n.id]}')`, cls: n.status === 'withdrawn' ? 'faded' : '', cells: {
+      notice: `<div style="white-space:normal">${p37Pin(n)}${p37Esc(p37Title(n))}</div><div style="font-size:12px;color:var(--muted);font-weight:400">${meta}</div>`,
+      sev: p37Sev(n.severity),
+      aud: `<span style="white-space:normal">${p37Aud(n.aud)}</span>`,
+      state: `${p37State(n.status)}${p37Line(p37When(n))}`,
+      reach: sent ? `<span style="color:var(--muted)">—</span>` : `<span class="num">${t(n.counts.shops === 1 ? 'p37_reach_one' : 'p37_reach', { s: nfmt(n.counts.shops), r: nfmt(n.counts.reads) })}</span>${n.ack ? p37Line(t('p37_acked', { a: n.counts.acknowledged, s: nfmt(n.counts.shops) })) : ''}`,
+    } };
+  });
+  const chips = `<div class="chips"><button class="chip on">${t('all')}</button>${P37_CATS.map((c) => `<button class="chip">${t('p37_cat_' + c)}</button>`).join('')}</div>`;
+  return `<div class="ttl"><div><h1>${t('notices')}</h1><div class="sub">${t('p37_sub')}</div></div><div class="actions">${btn(I.plus + t('p37_new'), 'primary', "go('p37-notice-start')")}</div></div>
+  ${ST.data === 'error' ? errorBox() : `<div class="search">${I.search}<input placeholder="${t('p37_search')}"></div>${chips}${table(cols, rows, emptyBox(t('p37_empty'), t('p37_empty_hint'), 'bell'))}${list.length ? `<div class="note" style="text-align:center">${t('p37_list_note')}</div>` : ''}`}`;
+}
+
+/* ---------- a new notice: blank or a template (POST /operator/notices/template fills it) ---------- */
+function p37StartSheet(pick) {
+  const opt = (k, extra) => p37Radio(pick === k, t('p37_tp_' + k), t('p37_tp_' + k + '_d'), pick === k ? extra : '');
+  const win = `<div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">${p37Fld(t('p37_win_start'), '', input('2026-11-10T02:00', '', '', 'type=datetime-local'))}${p37Fld(t('p37_win_end'), '', input('2026-11-10T04:00', '', '', 'type=datetime-local'))}</div>`;
+  const changes = `<div class="p37-radios" style="margin-top:8px"><div class="p37-cap">${t('p37_which_change')}</div>${p37Radio(true, t('rn_sms_per_unit'), t('p37_change_line', { o: '৳0.55', n: '৳0.65', d: dateT(P37_CHANGE.at) }) + ` · ${t('p37_no_notice')}`)}${p37Radio(false, t('rn_payg_order_fee_pct'), t('p37_change_line', { o: '2%', n: '1.5%', d: dateS('2026-10-02') }) + ` · ${t('p37_no_notice')}`)}${p37Radio(false, t('p37_own_rate'), '')}</div>`;
+  const next = pick === 'rate_change' ? 'p37-notice-from-rate' : 'p37-notice-new';
+  return sheet(t('p37_new'), t('p37_start_sub'), `<div class="p37-radios">${opt('blank')}${opt('rate_change', changes)}${opt('maintenance', win)}${opt('outage')}${opt('policy_update')}</div>`, `${backTo('p37-notices')}${btn(t('continue_'), 'primary', `go('${next}')`)}`, { row: true, close: 'p37-notices' });
+}
+
+/* ---------- the editor: both languages, a preview, then what it is and who and when ---------- */
+function p37EditorPage(e) {
+  const n = e.n;
+  const lang = e.lang || 'bn';
+  const errs = e.errs || {};
+  const title = (lang === 'bn' ? n.titleBn : n.titleEn) || '';
+  const body = (lang === 'bn' ? n.bodyBn : n.bodyEn) || '';
+  const tcount = (e.counts && e.counts[lang + '_title']) || title.length;
+  const bcount = (e.counts && e.counts[lang + '_body']) || body.length;
+  const errOf = (k) => errs[lang + '_' + k];
+  const tab = (l) => {
+    const whole = (l === 'bn' ? n.titleBn && n.bodyBn : n.titleEn && n.bodyEn);
+    const bad = Object.keys(errs).some((k) => k.startsWith(l + '_'));
+    const mark = bad ? `<span style="color:var(--danger);font-weight:700">!</span>` : whole ? `<span class="p37-tabchk">${I.check}</span>` : `<span class="c">${t('p37_empty_lang')}</span>`;
+    return `<button class="chip ${lang === l ? 'on' : ''}" onclick="${e.tabTo && e.tabTo[l] ? `go('${e.tabTo[l]}')` : ''}">${l === 'bn' ? 'বাংলা' : 'English'} ${mark}</button>`;
+  };
+  const otherEmpty = lang === 'en' ? !n.titleBn : !n.titleEn;
+  const words = `<div class="card"><div class="sechead"><h3>${t('p37_words')}</h3></div><div class="chips" style="margin-top:8px;margin-bottom:12px">${tab('bn')}${tab('en')}</div><div class="form">
+    ${p37Fld(t('p37_title'), p37Cnt(tcount, 120, !!errOf('title')), `<input class="input" value="${p37Esc(title)}"${errOf('title') ? ' style="border-color:var(--danger)"' : ''}>`, '', errOf('title'))}
+    ${p37Fld(t('p37_body'), p37Cnt(bcount, 5000, !!errOf('body')), `<textarea class="textarea p37-ta"${errOf('body') ? ' style="border-color:var(--danger)"' : ''}>${p37Esc(body)}</textarea>`, t('p37_fmt'), errOf('body'))}
+    <div class="note">${n.id === 'n-15' && otherEmpty ? t('p37_one_lang_note') : t('p37_one_lang')}</div></div></div>`;
+  const shown = lang === 'bn' ? n.titleBn || n.titleEn : n.titleEn || n.titleBn;
+  const preview = `<div class="card"><div class="sechead"><h3>${t('p37_preview')}</h3></div><div class="p37-help" style="margin:4px 0 12px">${t(lang === 'bn' ? 'p37_preview_bn' : 'p37_preview_en')}</div><div class="p37-stack" style="gap:8px">${shown ? p37BoardCard(n, lang) : `<div class="note">${t('p37_missing_lang')}</div>`}</div></div>`;
+  const kind = `<div class="card"><div class="sechead"><h3>${t('p37_kind_card')}</h3></div><div class="form" style="margin-top:8px">
+    ${p37Fld(t('p37_category'), '', select(P37_CATS.map((c) => [c, t('p37_cat_' + c)]), n.category))}
+    ${p37Fld(t('p37_severity'), '', `<div class="p37-radios">${['info', 'important', 'urgent'].map((s) => p37Radio(n.severity === s, t('p37_sev_' + s), t('p37_sev_' + s + '_d'))).join('')}</div>`)}</div></div>`;
+  const planTags = `<div class="tagline" style="margin-top:6px">${PLANS.map((p) => `<span class="tag ${n.aud.plans && n.aud.plans.includes(p.name) ? 'on' : ''}">${p.name}</span>`).join('')}</div>`;
+  const aud = `<div class="p37-radios">${p37Radio(n.aud.kind === 'all', t('p37_aud_o_all'))}${p37Radio(n.aud.kind === 'plans', t('p37_aud_o_plans'), '', n.aud.kind === 'plans' ? planTags : '')}${p37Radio(n.aud.kind === 'states', t('p37_aud_o_states'))}${p37Radio(n.aud.kind === 'tenant', t('p37_aud_o_tenant'), '', n.aud.kind === 'tenant' ? `<div class="search" style="margin-top:6px;height:40px">${I.search}<input placeholder="${t('p37_find_shop')}" value="${n.aud.shop || ''}"></div>` : '')}</div>`;
+  const liveAt = e.liveAt || (n.publishAt ? 'at' : 'draft');
+  const goesLive = e.mode === 'live'
+    ? p37Fld(t('p37_live'), '', `<div class="input" style="display:flex;align-items:center;background:var(--n50);color:var(--muted);height:auto;min-height:44px;padding:10px 12px;white-space:normal;font-size:14px">${t('p37_live_fixed', { d: dateT(n.publishAt) })}</div>`)
+    : p37Fld(t('p37_live'), '', `<div class="p37-radios">${p37Radio(liveAt === 'draft', t('p37_live_draft'))}${p37Radio(liveAt === 'now', t('p37_live_now'))}${p37Radio(liveAt === 'at', t('p37_live_at'), '', liveAt === 'at' ? `<div style="margin-top:6px">${input((n.publishAt || '2026-11-08T10:00').slice(0, 16), '', '', 'type=datetime-local')}</div>` : '')}</div>`, t('p37_live_help'));
+  const windowF = n.category === 'maintenance' && n.windowStartsAt ? `${p37Fld(t('p37_window'), '', `<div style="display:flex;flex-direction:column;gap:8px"><span class="p37-cap">${t('p37_win_start')}</span>${input(n.windowStartsAt.slice(0, 16), '', '', 'type=datetime-local')}<span class="p37-cap">${t('p37_win_end')}</span>${input(n.windowEndsAt.slice(0, 16), '', '', 'type=datetime-local')}</div>`, t('p37_window_help'))}` : '';
+  const who = `<div class="card"><div class="sechead"><h3>${t('p37_who_card')}</h3></div><div class="form" style="margin-top:8px">
+    ${p37Fld(t('p37_audience'), '', aud, t('p37_aud_help'))}
+    ${goesLive}
+    ${p37Fld(t('p37_ends'), '', input(n.endsAt ? n.endsAt.slice(0, 16) : '', '', '', 'type=datetime-local'), t('p37_ends_help'))}
+    ${windowF}
+    ${sw(n.pinned, t('p37_pin'))}
+    <div style="display:flex;flex-direction:column;gap:4px">${sw(n.ack, t('p37_ack'))}<div class="p37-help">${t('p37_ack_help')}</div></div></div></div>`;
+  const primary = e.mode === 'live' ? btn(t('p37_save_changes'), 'primary', `go('${e.saveTo || 'p37-notice-saved'}')`) : liveAt === 'draft' ? btn(t('p37_save_draft'), 'primary', "go('p37-notice-drafted')") : btn(liveAt === 'now' ? t('p37_publish') : t('p37_schedule'), 'primary', `go('${e.pubTo || 'p37-notice-publish'}')`);
+  const secondary = e.mode === 'live' ? backTo(e.back || 'p37-notice-live') : liveAt === 'draft' ? '' : btn(t('p37_save_draft'), 'ghost', "go('p37-notice-drafted')");
+  const subChips = `${p37State(e.mode === 'live' ? 'live' : 'draft')}${n.tpl ? ` ${st('mute plain', t('p37_from_template', { t: t('p37_tp_' + n.tpl) }))}` : ''}`;
+  const banners = `${Object.keys(errs).length ? `<div class="banner bad">${I.warn}<div><b>${t('p37_err_banner')}</b>${errs.top ? `<div>${errs.top}</div>` : ''}</div></div>` : ''}${e.mode === 'rate' ? `<div class="banner info">${I.info}<div>${t('p37_rate_banner', { d: dateS(P37_CHANGE.at), r: t('rn_' + P37_CHANGE.key), o: '৳0.55', n: '৳0.65' })}</div></div>` : ''}${e.mode === 'live' ? `<div class="banner warn">${I.warn}<div>${t('p37_live_banner')}</div></div>` : ''}`;
+  return `${p37Head(e.mode === 'live' || e.mode === 'draft' ? p37Esc(p37Title(n)) : t('p37_new'))}
+  <div class="ttl"><div><h1>${e.mode === 'live' || e.mode === 'draft' ? t('p37_edit_title') : t('p37_new')}</h1><div class="sub">${subChips}</div></div><div class="actions">${secondary}${primary}</div></div>
+  ${banners}
+  <div class="grid-side"><div class="p37-stack">${words}${preview}</div><div class="p37-stack">${kind}${who}</div></div>`;
+}
+/* The drafts the editor screens open with. */
+const P37_NEW_MAINT = { ...p37N('n-14'), id: 'new', status: 'draft' };
+const P37_NEW_RATE = { ...p37N('n-13'), id: 'new', status: 'draft', publishAt: null };
+const P37_NEW_OUTAGE = { ...p37N('n-10'), id: 'new', status: 'draft', publishAt: null, endsAt: null, titleBn: 'Lytro-তে সমস্যা চলছে', bodyBn: '7 নভেম্বর রাত 9:40 থেকে Lytro-এর কিছু অংশ ঠিকমতো কাজ করছে না। আমরা ঠিক করছি; ঠিক হলে এখানে জানাব।', bodyEn: 'Since 7 Nov, 9:40 pm, part of Lytro isn\'t working properly. We\'re fixing it and will post here when it\'s done.' };
+const P37_EMPTY = { id: 'new', status: 'draft', category: 'general', severity: 'info', aud: { kind: 'all' }, titleBn: '', bodyBn: '', titleEn: '', bodyEn: '', publishAt: null, endsAt: null, pinned: false, ack: false };
+const P37_LONG = { id: 'new', status: 'draft', category: 'new_feature', severity: 'info', aud: { kind: 'all' },
+  titleBn: 'নতুন: কাস্টমারের মেসেজ থেকে নাম, ফোন, জেলা, থানা আর ঠিকানা এখন Lytro নিজেই পড়ে নতুন অর্ডার ফর্মে বসিয়ে দেয়, আর কিছু না পেলে কোনো টাকা কাটে না, প্রতিবার মাত্র ৳0.10',
+  bodyBn: 'নতুন অর্ডার ফর্মে কাস্টমারের মেসেজ পেস্ট করুন, Lytro নিজেই **নাম, ফোন, জেলা, থানা আর ঠিকানা** বসিয়ে দেবে। বিস্তারিত দেখুন [এখানে](http://lytro.app/help/address-reads)।\n\n- প্রতিবার পড়তে ৳0.10, অথবা অ্যালাউন্স থেকে কাটে\n- কিছু না পেলে টাকা কাটে না …',
+  titleEn: 'Read delivery details from a message', bodyEn: '', publishAt: null, endsAt: null, pinned: false, ack: false };
+
+/* ---------- one notice (GET /operator/notices/:id, with its earlier versions) ---------- */
+function p37DetailPage(n) {
+  if (ST.data === 'error') return `${p37Head('')}${errorBox()}`;
+  const sent = n.status !== 'draft' && n.status !== 'scheduled';
+  const acts = n.status === 'withdrawn' || n.status === 'ended' ? '' : `${n.ack && sent ? btn(t('p37_acks_btn'), 'ghost', "go('p37-notice-acks')") : ''}${btn(I.edit + t('edit'), 'ghost', `go('${({ 'n-11': 'p37-notice-edit-live', 'n-14': 'p37-notice-new' })[n.id] || ''}')`)}${btn(t('p37_withdraw'), 'quiet', `go('${n.id === 'n-12' ? 'p37-notice-withdraw' : ''}')`)}`;
+  const banner = n.status === 'scheduled' ? `<div class="banner info">${I.clock}<div>${t('p37_sched_banner', { d: dateT(n.publishAt) })}</div></div>` : n.status === 'withdrawn' ? `<div class="banner warn">${I.info}<div>${t('p37_wd_banner', { d: dateT(n.withdrawnAt) })}</div></div>` : n.status === 'ended' ? `<div class="banner info">${I.info}<div>${t('p37_ended_banner', { d: dateT(n.endsAt) })}</div></div>` : '';
+  const c = n.counts;
+  const stats = sent ? `<div class="stats">
+    <div class="stat"><span class="k">${t('p37_k_sent')}</span><span class="v">${nfmt(c.shops)}</span><span class="d">${t('p37_k_sent_d')}</span></div>
+    <div class="stat"><span class="k">${t('p37_k_people')}</span><span class="v">${nfmt(c.people)}</span><span class="d">${t('p37_k_people_d')}</span></div>
+    <div class="stat"><span class="k">${t('p37_k_reads')}</span><span class="v">${nfmt(c.reads)}</span><span class="d">${t('p37_k_reads_d')}</span></div>
+    ${n.ack ? `<button class="stat lk ${n.pending ? 'flag' : ''}" onclick="go('p37-notice-acks')"><span class="k">${t('p37_k_ack')}</span><span class="v ${n.pending ? 'warn' : ''}">${nfmt(c.acknowledged)}</span><span class="d">${t('p37_k_ack_d', { p: nfmt(n.pending || 0) })}</span></button>` : `<div class="stat"><span class="k">${t('p37_k_ack')}</span><span class="v">—</span><span class="d">${t('p37_k_noack')}</span></div>`}
+  </div>` : '';
+  const words = (l) => {
+    const title = l === 'bn' ? n.titleBn : n.titleEn;
+    const body = l === 'bn' ? n.bodyBn : n.bodyEn;
+    return `<div class="card"><div class="sechead"><h3>${t(l === 'bn' ? 'p37_in_bn' : 'p37_in_en')}</h3></div>${title ? `<div class="p37-bt" style="margin-top:8px">${p37Esc(title)}</div><div style="margin-top:6px">${p37Md(body)}</div>` : `<div class="note" style="margin-top:8px">${t('p37_missing_lang')}</div>`}</div>`;
+  };
+  const versions = sent ? `<div class="card"><div class="sechead"><h3>${t('p37_versions')}</h3></div><div class="p37-help" style="margin-top:4px">${t('p37_versions_hint')}</div>${n.versions && n.versions.length ? `<div class="list" style="margin:8px -16px -16px">${n.versions.map((v) => `<div class="row wrap"><span class="body"><span class="l1">${t('p37_version_line', { d: dateT(v.replacedAt), who: v.by })}</span></span>${btn(t('p37_version_open'), 'ghost sm', "go('p37-notice-version')")}</div>`).join('')}</div>` : `<div class="note" style="margin-top:8px">${t('p37_noversions')}</div>`}</div>` : '';
+  const kv = (k, v) => `<span class="k">${k}</span><span class="v">${v}</span>`;
+  const facts = `<div class="card"><h3>${t('p37_facts')}</h3><div class="kv" style="margin-top:10px">
+    ${kv(t('p37_c_aud'), p37Aud(n.aud))}
+    ${kv(sent ? t('p37_f_live') : t('p37_f_goes'), n.publishAt ? dateT(n.publishAt) : t('p37_f_never'))}
+    ${kv(t('p37_f_ends'), n.endsAt ? dateT(n.endsAt) : t('p37_f_never'))}
+    ${n.windowStartsAt ? kv(t('p37_f_window'), `${dateT(n.windowStartsAt)} – ${dateT(n.windowEndsAt)}`) : ''}
+    ${kv(t('p37_f_pin'), n.pinned ? t('p37_yes') : t('p37_no'))}
+    ${kv(t('p37_f_ack'), n.ack ? t('p37_asked') : t('p37_no'))}
+    ${kv(t('p37_f_email'), n.severity === 'info' ? t('p37_f_email_no') : t('p37_f_email_yes'))}
+    ${n.rateChangeId ? kv(t('p37_f_rate'), `<a href="#" onclick="go('p37-rate-linked');return false">${t('rn_' + P37_CHANGE.key)} ৳0.55 → ৳0.65 · ${dateS(P37_CHANGE.at)}</a>`) : ''}
+    ${kv(t('p37_f_by'), `ops@lytro.app · ${dateT(n.createdAt)}`)}
+  </div></div>`;
+  return `${p37Head(p37Esc(p37Title(n)))}
+  <div class="ttl"><div><h1>${p37Pin(n)}${p37Esc(p37Title(n))}</h1><div class="sub">${p37State(n.status)} ${p37Sev(n.severity)} ${st('mute plain', t('p37_cat_' + n.category))}${n.editedAt ? ` ${st('mute plain', t('p37_updated', { d: dateT(n.editedAt) }))}` : ''}</div></div>${acts ? `<div class="actions">${acts}</div>` : ''}</div>
+  ${banner}${stats}
+  <div class="grid-side"><div class="p37-stack">${words('bn')}${words('en')}${versions}</div><div class="p37-stack">${facts}</div></div>`;
+}
+
+/* ---------- who said "I understand" (GET /operator/notices/:id/acknowledgments) ---------- */
+function p37AcksPage(tab) {
+  const n = p37N('n-11');
+  if (ST.data === 'error') return `${p37Head(p37Esc(p37Title(n)))}${errorBox()}`;
+  const busy = ST.data === 'busy';
+  const acked = busy ? P37_ACKED : [];
+  const pending = busy ? P37_PENDING : [];
+  const counts = { pending: busy ? 171 : 0, acked: busy ? 41 : 0 };
+  const chip = (k, scr) => `<button class="chip ${tab === k ? 'on' : ''}" onclick="go('${scr}')">${t(k === 'pending' ? 'p37_t_pending' : 'p37_t_acked')} <span class="c">${counts[k]}</span></button>`;
+  const cols = tab === 'acked'
+    ? [{ k: 'shop', label: t('c_shop'), w: 'minmax(180px,1.4fr)', cls: 'main' }, { k: 'slug', label: t('c_slug'), w: 'minmax(160px,1fr)' }, { k: 'at', label: t('p37_c_acked_at'), w: '200px' }]
+    : [{ k: 'shop', label: t('c_shop'), w: 'minmax(180px,1.4fr)', cls: 'main' }, { k: 'slug', label: t('c_slug'), w: 'minmax(160px,1fr)' }, { k: 'acts', label: '', w: '90px', cls: 'acts' }];
+  const rows = (tab === 'acked' ? acked : pending).map((r) => ({ cells: { shop: r.shop, slug: `<span style="color:var(--muted)">${r.slug}.lytro.app</span>`, at: `<span class="num">${t('p37_ack_line', { d: dateT(r.at || '2026-11-05T10:00:00+06:00') })}</span>`, acts: btn(t('open'), 'ghost sm', "go('tenant')") } }));
+  const empty = tab === 'acked' ? emptyBox(t('p37_acks_empty_a'), t('p37_acks_empty_a_hint'), 'bell') : emptyBox(t('p37_acks_empty_p'), t('p37_acks_empty_p_hint'), 'check');
+  return `<div class="crumbs"><a onclick="go('p37-notices')">${t('notices')}</a>${I.chev}<a onclick="go('p37-notice-live')" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p37Esc(p37Title(n))}</a></div>
+  <div class="ttl"><div><h1>${t('p37_acks_btn')}</h1><div class="sub">${t('p37_acks_sub')}</div></div></div>
+  <div class="chips">${chip('pending', 'p37-notice-acks')}${chip('acked', 'p37-notice-acks-done')}</div>
+  <div class="search">${I.search}<input placeholder="${t('p37_acks_search')}"></div>
+  ${table(cols, rows, empty)}`;
+}
+
+const P37G = 'Notices · Phase 7 Slice 7.7';
+const P37G2 = 'Pricing and platform · Phase 7 Slice 7.7';
+const p37Screen = { base: 'p37-notices', nav: 'notices', group: P37G, url: 'admin.lytro.app/notices', bandTitle: 'notices' };
+const p37Detail = (id, extra) => ({ ...p37Screen, base: P37_SCREEN[id], url: `admin.lytro.app/notices/${id}`, back: 'p37-notices', render: () => p37DetailPage(p37N(id)), ...(extra || {}) });
+const p37Edit = (e, extra) => ({ ...p37Screen, base: 'p37-notices', url: 'admin.lytro.app/notices/new', back: 'p37-notices', render: () => p37EditorPage(e), ...(extra || {}) });
+def('p37-notices', { ...p37Screen, label: 'Notices · the list', render: p37ListPage });
+def('p37-notice-start', { ...p37Screen, label: '· new: blank or a template, maintenance picked (sheet)', render: p37ListPage, sheet: () => p37StartSheet('maintenance') });
+def('p37-notice-start-rate', { ...p37Screen, label: '· new: the rate-change template, a change picked (sheet)', render: p37ListPage, sheet: () => p37StartSheet('rate_change') });
+def('p37-notice-new', p37Edit({ n: P37_NEW_MAINT, lang: 'bn', mode: 'new', tabTo: { en: 'p37-notice-new-en' } }, { label: 'Notice editor · from the maintenance template, Bangla' }));
+def('p37-notice-new-en', p37Edit({ n: P37_NEW_MAINT, lang: 'en', mode: 'new', tabTo: { bn: 'p37-notice-new' } }, { label: '· the same, English' }));
+const p37PublishSheet = (n, now) => {
+  const when = now ? t('p37_pub_now_word') : dateT(n.publishAt);
+  const lines = [n.severity === 'important' ? t('p37_pub_important') : n.severity === 'urgent' ? t('p37_pub_urgent') : '', n.windowEndsAt ? t('p37_pub_window', { d: dateT(n.windowEndsAt) }) : ''].filter(Boolean).join(' ');
+  return sheet(now ? t('p37_pub_title_now') : t('p37_pub_title_at'), p37Esc(p37Title(n)), `${consequence(`${t('p37_pub_cons', { d: when, n: nfmt(n.audienceNow || 212), e: n.severity === 'info' ? '' : t('p37_pub_email') })}${lines ? ` ${lines}` : ''}`)}${consequence(t('p37_pub_nosms'), 'ok')}<div class="note">${now ? t('p37_pub_after_now') : t('p37_pub_after')}</div>`, `${backTo(now ? 'p37-notice-outage' : 'p37-notice-new')}${btn(now ? t('p37_pub_btn_now') : t('p37_pub_btn_at', { d: dateT(n.publishAt) }), 'primary', `go('${now ? 'p37-notice-published' : 'p37-notice-just-scheduled'}')`)}`, { row: true, close: now ? 'p37-notice-outage' : 'p37-notice-new' });
+};
+def('p37-notice-publish', p37Edit({ n: P37_NEW_MAINT, lang: 'bn', mode: 'new' }, { label: '· schedule it (sheet)', sheet: () => p37PublishSheet(P37_NEW_MAINT, false) }));
+def('p37-notice-outage', p37Edit({ n: P37_NEW_OUTAGE, lang: 'en', mode: 'new', liveAt: 'now', pubTo: 'p37-notice-publish-now' }, { label: '· from the outage template, urgent, now' }));
+def('p37-notice-publish-now', p37Edit({ n: P37_NEW_OUTAGE, lang: 'en', mode: 'new', liveAt: 'now' }, { label: '· publish an urgent one now (sheet)', sheet: () => p37PublishSheet(P37_NEW_OUTAGE, true) }));
+def('p37-notice-published', { ...p37Detail('n-10'), label: '· published (toast)', render: () => p37DetailPage({ ...P37_NEW_OUTAGE, id: 'n-16', status: 'live', publishAt: '2026-11-07T21:45:00+06:00', createdAt: '2026-11-07T21:44:00+06:00', counts: { shops: 0, people: 0, reads: 0, acknowledged: 0 } }), toast: () => t('p37_published_toast') });
+def('p37-notice-just-scheduled', { ...p37Detail('n-14'), label: '· scheduled (toast)', toast: () => t('p37_scheduled_toast', { d: dateT(p37N('n-14').publishAt) }) });
+def('p37-notice-drafted', { ...p37Screen, label: '· saved as a draft (toast)', render: p37ListPage, toast: () => t('p37_draft_toast') });
+def('p37-notice-scheduled', { ...p37Detail('n-14'), label: 'A notice · scheduled maintenance' });
+def('p37-notice-draft', p37Edit({ n: p37N('n-15'), lang: 'en', mode: 'draft', liveAt: 'draft', tabTo: {} }, { url: 'admin.lytro.app/notices/n-15', label: '· a draft, English only' }));
+def('p37-notice-live', { ...p37Detail('n-11'), label: 'A notice · live, asks for I understand, updated' });
+def('p37-notice-version', { ...p37Detail('n-11'), label: '· an earlier version (sheet)', sheet: () => { const n = p37N('n-11'); const v = n.versions[0]; return sheet(t('p37_version_title', { d: dateT(v.replacedAt) }), v.by, `<div class="p37-cap">${t('p37_in_bn')}</div>${p37BoardCard({ ...n, ...v, editedAt: null }, 'bn', { noExtra: true })}<div class="p37-cap">${t('p37_in_en')}</div>${p37BoardCard({ ...n, ...v, editedAt: null }, 'en', { noExtra: true })}`, btn(t('close'), 'ghost', "go('p37-notice-live')"), { close: 'p37-notice-live' }); } });
+def('p37-notice-edit-live', p37Edit({ n: p37N('n-11'), lang: 'bn', mode: 'live', tabTo: {} }, { url: 'admin.lytro.app/notices/n-11/edit', label: '· editing it while live' }));
+def('p37-notice-saved', { ...p37Detail('n-11'), label: '· saved while live (toast)', toast: () => t('p37_saved_live_toast') });
+def('p37-notice-acks', { ...p37Detail('n-11'), url: 'admin.lytro.app/notices/n-11/acknowledgments', back: 'p37-notice-live', label: '· who said I understand: still to', render: () => p37AcksPage('pending') });
+def('p37-notice-acks-done', { ...p37Detail('n-11'), url: 'admin.lytro.app/notices/n-11/acknowledgments', back: 'p37-notice-live', label: '· who said I understand: said it', render: () => p37AcksPage('acked') });
+def('p37-notice-rate', { ...p37Detail('n-13'), label: 'A notice · a rate change, linked to it' });
+def('p37-notice-feature', { ...p37Detail('n-12'), label: 'A notice · a new feature for three plans' });
+def('p37-notice-withdraw', { ...p37Detail('n-12'), label: '· withdraw it (sheet)', sheet: () => sheet(t('p37_wd_title'), p37Esc(p37Title(p37N('n-12'))), `${consequence(t('p37_wd_cons'), 'danger')}<div class="note">${t('p37_wd_audit')}</div>`, `${backTo('p37-notice-feature')}${btn(t('p37_withdraw'), 'danger', "go('p37-notice-withdrawn-now')")}`, { row: true, close: 'p37-notice-feature' }) });
+def('p37-notice-withdrawn-now', { ...p37Detail('n-12'), label: '· withdrawn (toast)', render: () => p37DetailPage({ ...p37N('n-12'), status: 'withdrawn', withdrawnAt: '2026-11-07T19:30:00+06:00' }), toast: () => t('p37_wd_done') });
+def('p37-notice-withdrawn', { ...p37Detail('n-9'), label: 'A notice · withdrawn, for one shop' });
+def('p37-notice-ended', { ...p37Detail('n-10'), label: 'A notice · an urgent outage, ended' });
+/* The refusals' words are read at render time, so they follow the language toggle. */
+def('p37-notice-refused-empty', { ...p37Edit({}), label: '· refused: nothing in either language', render: () => p37EditorPage({ n: P37_EMPTY, lang: 'bn', mode: 'new', liveAt: 'draft', errs: { top: t('p37_err_none'), bn_title: t('p37_err_need'), bn_body: t('p37_err_need') } }) });
+def('p37-notice-refused-long', { ...p37Edit({}), label: '· refused: too long, a plain link, half a language', render: () => p37EditorPage({ n: P37_LONG, lang: 'bn', mode: 'new', liveAt: 'now', counts: { bn_title: 131, bn_body: 5214 }, errs: { bn_title: t('p37_err_title_long'), bn_body: `${t('p37_err_body_long')} ${t('p37_err_link')}`, en_body: t('p37_err_half') } }) });
+def('p37-notice-from-rate', p37Edit({ n: P37_NEW_RATE, lang: 'bn', mode: 'rate', liveAt: 'now', pubTo: 'p37-rate-linked' }, { group: P37G2, label: 'Rates · the notice filled from the change', url: 'admin.lytro.app/notices/new?rateChange=41' }));
+
+/* ---------- Rates: Phase 7's values, the offer made real, and each change's notice in its history ---------- */
+(() => {
+  const at = RATES.findIndex((r) => r.key === 'ai_reply');
+  if (at >= 0) RATES.splice(at, 1); /* D7-16: chat is out, so no screen offers its price (SHOWN_RATE_KEYS) */
+  const sms = RATES.find((r) => r.key === 'sms_per_unit');
+  Object.assign(sms, { value: '0.65', since: '2026-11-07', history: [{ id: 41, old: '0.55', new: '0.65', at: '2026-11-07', by: 'ops@lytro.app', notice: null }, { id: 12, old: '0.40', new: '0.55', at: '2026-09-01', by: 'ops@lytro.app', notice: null }] });
+  Object.assign(RATES.find((r) => r.key === 'fraud_check'), { value: '0.00', since: '2026-11-07' }); /* D7-7: free at launch */
+  Object.assign(RATES.find((r) => r.key === 'sms_unit_size_chars'), { value: '67', since: '2026-11-06' }); /* D7-25 */
+  const fraud = RATES.findIndex((r) => r.key === 'fraud_check');
+  RATES.splice(fraud + 1, 0, { key: 'ai_extraction', value: '0.10', unit: 'ru_taka', since: '2026-11-06', history: [] }); /* D7-36 */
+})();
+const p37RateValue = (r) => (r.unit === 'ru_pct' || r.unit === 'ru_pct_pay' ? r.value + '%' : r.unit === 'ru_chars' ? r.value : '৳' + Number(r.value).toFixed(2));
+ratesPage = (o) => {
+  o = o || {};
+  return `<div class="ttl"><div><h1>${t('rates')}</h1><div class="sub">${t('rt_sub')}</div></div></div>
+  <div class="card flush"><div class="list">${RATES.map((r) => `
+    <div class="row" style="flex-wrap:wrap;gap:8px 12px"><span class="lead">${I.signal}</span><span class="body"><span class="l1">${t('rn_' + r.key)}</span><span class="l2">${t(r.unit)} · ${t('effective', { d: dateS(r.since) })}</span></span>
+      ${o.editing === r.key ? `<span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="input inline mono" value="${r.value}" style="width:110px" autofocus><input class="input" placeholder="${t('reason')}" style="height:36px;width:220px;max-width:100%">${btn(t('save'), 'primary sm', "go('rate-saved')")}${btn(t('cancel'), 'ghost sm', "go('rates')")}</span>` : `<span class="money" style="font-size:20px;min-width:80px;text-align:right">${p37RateValue(r)}</span><span style="display:flex;gap:4px">${btn(t('change'), 'ghost sm', "go('rate-change')")}${btn(t('history'), 'quiet sm', r.key === 'sms_per_unit' ? "go('p37-rate-history')" : "go('rate-history')")}</span>`}
+    </div>
+    ${o.history === r.key ? `<div class="hist">${r.history.length ? r.history.map((h) => { const linked = o.linked && h.id === P37_CHANGE.id; return `<div class="h"><span>${t('rt_hline', { old: h.old, new: h.new })}</span><span class="c">${dateS(h.at)} · ${h.by} · ${linked ? `<a href="#" onclick="go('p37-notice-rate');return false">${t('p37_notice_link')}</a>` : `${t('p37_no_notice')} · <a href="#" onclick="go('p37-notice-from-rate');return false">${t('p37_write_one')}</a>`}</span></div>`; }).join('') : `<span class="c">${t('rt_nohist')}</span>`}</div>` : ''}
+    ${o.offer === r.key ? `<div class="p37-offer">${I.bell}<div class="p37-ob"><b>${t('p37_offer_title')}</b><span>${t('p37_offer_line', { t: p37Esc(L.lang === 'bn' ? P37_NEW_RATE.titleBn : P37_NEW_RATE.titleEn) })}</span><span style="color:var(--muted)">${t('p37_offer_note')}</span><span style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">${btn(t('p37_offer_write'), 'primary sm', "go('p37-notice-from-rate')")}${btn(t('p37_offer_skip'), 'quiet sm', "go('p37-rate-history')")}</span></div></div>` : ''}`).join('')}</div></div>`;
+};
+SCREENS['rate-change'].render = () => ratesPage({ editing: 'sms_per_unit' });
+def('p37-rate-offer', { base: 'rates', nav: 'rates', label: 'Rates · saved, the notice offered', group: P37G2, url: 'admin.lytro.app/rates', bandTitle: 'rates', render: () => ratesPage({ offer: 'sms_per_unit' }), toast: () => t('rt_saved') });
+def('p37-rate-history', { base: 'rates', nav: 'rates', label: '· a change with no notice, and Write one', group: P37G2, url: 'admin.lytro.app/rates', bandTitle: 'rates', render: () => ratesPage({ history: 'sms_per_unit' }) });
+def('p37-rate-linked', { base: 'rates', nav: 'rates', label: '· published: the change links its notice (toast)', group: P37G2, url: 'admin.lytro.app/rates', bandTitle: 'rates', render: () => ratesPage({ history: 'sms_per_unit', linked: true }), toast: () => t('p37_published_rate_toast') });
+
+/* ---------- Settings: Phase 7's five keys and Phase 6's four courier keys, in four new groups ---------- */
+SETTINGS.push(
+  { key: 'courier_check_min_age_hours', value: 6, group: 10, unit: 'u_hours', desc: 'How many hours old a parcel must be before the night check asks after it (CRR-15).', updatedAt: '2026-11-04', by: null },
+  { key: 'courier_check_quiet_hours', value: 24, group: 10, unit: 'u_hours', desc: 'How many hours without a courier message before the night check asks after a parcel (CRR-15).', updatedAt: '2026-11-04', by: null },
+  { key: 'courier_check_stop_days', value: 30, group: 10, unit: 'u_days', desc: 'How many days with no change before a parcel stops being checked and shows no news (CRR-15).', updatedAt: '2026-11-04', by: null },
+  { key: 'courier_sync_minutes', value: 10, group: 10, unit: 'u_minutes', desc: 'How many minutes a Sync shows its saved answer before it may ask the courier again (CRR-14).', updatedAt: '2026-11-04', by: null },
+  { key: 'address_read_provider', value: 'gemini', group: 11, unit: 'p37ai', desc: 'The AI that reads a customer\'s delivery details from a pasted message: gemini (AI-10, D7-4).', updatedAt: '2026-11-06', by: null },
+  { key: 'address_read_model', value: 'gemini-3.5-flash-lite', group: 11, unit: 'p37model', desc: 'The AI\'s model for reading delivery details, as the AI names it, such as gemini-3.5-flash-lite (AI-10, D7-4).', updatedAt: '2026-11-06', by: null },
+  { key: 'address_reads_per_shop_per_minute', value: 30, group: 11, unit: 'u_per_min', desc: 'How many messages one shop may have read in a minute, a flood guard (ORD-33).', updatedAt: '2026-11-06', by: null },
+  { key: 'fraud_checks_per_shop_per_minute', value: 30, group: 12, unit: 'u_per_min', desc: 'How many fraud checks one shop may run in a minute, by staff or on new orders (FRD-07).', updatedAt: '2026-11-07', by: null },
+  { key: 'notification_retention_days', value: 30, group: 13, unit: 'u_days', desc: 'How many days a notification is kept in the bell before it is deleted (NTF-01, D7-39).', updatedAt: '2026-11-07', by: null },
+);
+const P37_GROUPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+let p37SettingErr = null;
+const p37SettingValueBase = settingValue;
+settingValue = (s) => (s.unit === 'p37ai' ? `<span style="font-weight:600">${t('p37_ai_' + s.value)}</span>` : s.unit === 'p37model' ? `<span class="mono" style="font-weight:600;overflow-wrap:anywhere">${s.value}</span>` : p37SettingValueBase(s));
+const p37SettingEditorBase = settingEditor;
+settingEditor = (s) => {
+  const save = `${btn(t('save'), 'primary sm', "go('settings')")}${btn(t('cancel'), 'ghost sm', "go('settings')")}`;
+  const reason = `<input class="input" placeholder="${t('reason')}" style="height:36px;width:220px;max-width:100%">`;
+  if (s.unit === 'p37ai') return `<div style="flex:1 1 100%;display:flex;flex-direction:column;gap:8px"><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="width:180px;max-width:100%">${select([['gemini', t('p37_ai_gemini')]], s.value)}</span>${reason}${save}</span><div class="p37-help">${t('p37_provider_help')}</div></div>`;
+  if (s.unit === 'p37model') return `<div style="flex:1 1 100%;display:flex;flex-direction:column;gap:8px"><div class="banner warn">${I.warn}<div>${t('p37_model_warn')}</div></div><span style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input class="input inline mono" value="${s.value}" style="width:240px;max-width:100%;text-align:left">${reason}${save}</span></div>`;
+  if (p37SettingErr === s.key) return `<div style="flex:1 1 100%;display:flex;flex-direction:column;gap:6px"><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="input inline mono" value="0" style="width:110px;border-color:var(--danger)">${reason}${save}</span><div class="err" style="font-size:13px;color:var(--danger)">${t('p37_err_whole')}</div></div>`;
+  const base = p37SettingEditorBase(s);
+  return s.key === 'notification_retention_days' ? `<div style="flex:1 1 100%;display:flex;flex-direction:column;gap:8px">${base}<div class="p37-help">${t('p37_retention_note')}</div></div>` : base;
+};
+CHANGE_SCREEN.p37ai = 'p37-setting-provider';
+CHANGE_SCREEN.p37model = 'p37-setting-model';
+/* The page as Slice 5.8 drew it, with thirteen groups, an id on each so a screen can open at one, and the jump chips wrapping. */
+settingsPage = (o) => {
+  o = o || {};
+  const row = (s) => `<div class="row" style="flex-wrap:wrap;gap:8px 12px"><span class="body"><span class="l1">${t('sn_' + s.key)}</span><span class="l2" style="white-space:normal">${s.desc}${s.by ? ` · ${t('se_updated', { d: dateS(s.updatedAt) })} · ${s.by}` : ''}</span></span>${o.editing === s.key ? settingEditor(s) : `<span style="min-width:90px;max-width:100%;text-align:right">${settingValue(s)}</span>${btn(t('change'), 'ghost sm', `go('${CHANGE_SCREEN[s.unit] || ({ fraud_checks_per_shop_per_minute: 'p37-setting-fraud', notification_retention_days: 'p37-setting-retention' })[s.key] || 'setting-change'}')`)}`}</div>`;
+  const group = (n) => `<div id="p37-g${n}"><div class="sechead"><h2>${t('se_g' + n)}</h2></div><div class="card flush" style="margin-top:8px"><div class="list">${SETTINGS.filter((s) => s.group === n).map(row).join('')}</div></div></div>`;
+  const v = (k) => SETTINGS.find((s) => s.key === k).value;
+  const g = v('grace_days'), r = g + v('read_only_days'), l = r + v('locked_days'), a = l + v('archived_days');
+  return `<div class="ttl"><div><h1>${t('settings')}</h1><div class="sub">${t('se_sub')}</div></div></div>
+  <div class="chips p37-wrap">${P37_GROUPS.map((n) => `<span class="chip">${t('se_g' + n)}</span>`).join('')}</div>
+  <div class="grid-side">
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0">${[1, 2].map(group).join('')}</div>
+    <div class="card"><h3>${t('se_timeline')}</h3><div class="hint" style="margin-bottom:12px">${t('se_tl_hint')}</div><div class="timeline">
+      <div class="tstep"><div class="t">0 · ${t('tl_end')}</div></div>
+      <div class="tstep"><div class="t">0–${g} · ${t('sn_grace_days')}</div><div class="d">${t('tl_grace')}</div></div>
+      <div class="tstep"><div class="t">${g}–${r} · ${t('sn_read_only_days')}</div><div class="d">${t('tl_ro')}</div></div>
+      <div class="tstep"><div class="t">${r}–${l} · ${t('sn_locked_days')}</div><div class="d">${t('tl_locked')}</div></div>
+      <div class="tstep"><div class="t">${l}–${a} · ${t('sn_archived_days')}</div><div class="d">${t('tl_arch')}</div></div>
+      <div class="tstep end"><div class="t">${t('tl_del', { n: a })}</div></div></div></div>
+  </div>
+  ${P37_GROUPS.slice(2).map(group).join('')}`;
+};
+const p37SetScreen = { base: 'settings', nav: 'settings', group: P37G2, url: 'admin.lytro.app/settings', bandTitle: 'settings' };
+def('p37-settings', { ...p37SetScreen, label: 'Settings · the four new groups', anchor: 'p37-g10', render: () => settingsPage() });
+def('p37-setting-provider', { ...p37SetScreen, label: '· change the AI', anchor: 'p37-g11', render: () => settingsPage({ editing: 'address_read_provider' }) });
+def('p37-setting-model', { ...p37SetScreen, label: '· change its model', anchor: 'p37-g11', render: () => settingsPage({ editing: 'address_read_model' }) });
+def('p37-setting-fraud', { ...p37SetScreen, label: '· change the checks a minute', anchor: 'p37-g12', render: () => settingsPage({ editing: 'fraud_checks_per_shop_per_minute' }) });
+def('p37-setting-retention', { ...p37SetScreen, label: '· change how long notifications stay', anchor: 'p37-g12', render: () => settingsPage({ editing: 'notification_retention_days' }) });
+def('p37-setting-refused', { ...p37SetScreen, label: '· refused: not a whole number above 0', anchor: 'p37-g12', render: () => { p37SettingErr = 'fraud_checks_per_shop_per_minute'; const html = settingsPage({ editing: 'fraud_checks_per_shop_per_minute' }); p37SettingErr = null; return html; } });
+
+/* ---------- the add-on catalogue: the first allowance, a kind the operator can make and edit ---------- */
+ADDON_ITEMS.splice(ADDON_ITEMS.findIndex((a) => a.key === 'brand_identity') + 1, 0, { key: 'address_reads_200', en: 'Address reads from messages', bn: 'মেসেজ থেকে ঠিকানা পড়া', kind: 'allowance', limit: 'address_reads', unit: 200, price: 20, max: 10, running: 37, forSale: true });
+/* Slice 10a's table, with each row opening its own panel and an allowance's chip in the console's own tone for it. */
+function p37AddonsPage() {
+  const cols = [
+    { k: 'item', label: t('c_item'), w: 'minmax(180px,1.4fr)', cls: 'main' },
+    { k: 'kind', label: t('c_kind'), w: '110px' },
+    { k: 'raises', label: t('c_raises'), w: 'minmax(140px,1fr)' },
+    { k: 'unit', label: t('c_unit'), w: '100px', cls: 'r' },
+    { k: 'price', label: t('c_price'), w: '120px', cls: 'r' },
+    { k: 'running', label: t('c_running'), w: '110px', cls: 'r' },
+    { k: 'acts', label: '', w: '150px', cls: 'acts' },
+  ];
+  const rows = ADDON_ITEMS.map((a) => { const to = a.kind === 'allowance' ? 'p37-addon-allowance' : 'addon-edit'; return { cls: a.forSale ? '' : 'faded', on: `go('${to}')`, cells: {
+    item: `<div class="pn">${aoName(a)}</div><div class="pm mono" style="font-size:12px">${a.key}${a.forSale ? '' : ` · ${st('mute plain', t('ao_retired'))}`}</div>`,
+    kind: a.kind === 'allowance' ? st('mute plain', t('k_allowance')) : kindChip(a.kind), raises: a.limit ? limitLabel(a.limit) : `<span style="color:var(--subtle)">${t('k_feature')}</span>`,
+    unit: `<span class="num">${fmtUnit(a)}</span>`, price: `<span class="money">${money(a.price)}</span>${a.kind === 'pack' ? '' : `<span style="color:var(--subtle);font-size:12px">/${L.lang === 'bn' ? 'মাস' : 'mo'}</span>`}`,
+    running: `<span class="num">${a.kind === 'pack' ? t('ao_bought', { n: a.running }) : t('ao_running', { n: a.running })}</span>`,
+    acts: `${btn(t('edit'), 'ghost sm', `event.stopPropagation();go('${to}')`)}${a.forSale ? btn(t('ae_retire'), 'quiet sm', "event.stopPropagation();go('addon-retire')") : ''}`,
+  } }; });
+  return `<div class="ttl"><div><h1>${t('addons')}</h1><div class="sub">${t('ao_sub')}</div></div><div class="actions">${btn(I.plus + t('ao_new'), 'primary', "go('addon-new')")}</div></div>${table(cols, rows, emptyBox(t('ao_none'), '', 'inbox'))}<div class="note">${t('ao_rule')}</div>`;
+}
+['addons', 'addon-edit', 'addon-new', 'addon-retire'].forEach((id) => { SCREENS[id].render = p37AddonsPage; });
+const p37AddonEditorBase = addonEditor;
+addonEditor = (a, isNew) => p37AddonEditorBase(a, isNew).split(`${t('k_allowance')} · ${t('soon')}`).join(t('k_allowance'));
+function p37AllowanceSheet(isNew, taken) {
+  const x = ADDON_ITEMS.find((a) => a.key === 'address_reads_200');
+  const fixed = isNew ? '' : 'disabled';
+  return sheet(isNew ? t('ae_new') : t('ae_title', { name: aoName(x) }), isNew ? null : `${x.key} · ${t('ao_running', { n: x.running })}`, `
+    ${isNew ? consequence(t('p37_ae_paid_only')) : consequence(`${t('ae_cons')} ${t('p37_ae_paid_only')}`)}
+    <div class="grid2">${p37Fld(t('ae_name_en'), '', input(isNew && !taken ? '' : x.en))}${p37Fld(t('ae_name_bn'), '', input(isNew && !taken ? '' : x.bn))}</div>
+    ${isNew ? p37Fld(t('ae_key'), '', input(taken ? x.key : '', 'mono', '', taken ? 'style="border-color:var(--danger)"' : ''), t('ae_key_help'), taken ? t('p37_err_key_taken') : '') : ''}
+    <div class="grid2">${p37Fld(t('ae_kind'), '', `<select class="select" ${fixed}>${[['limit', t('k_limit')], ['pack', t('k_pack')], ['feature', t('k_feature')], ['allowance', t('k_allowance')]].map(([k, v]) => `<option ${k === 'allowance' ? 'selected' : ''}>${v}</option>`).join('')}</select>`)}${p37Fld(t('p37_ae_service'), '', `<select class="select" ${fixed}><option selected>${t('p37_svc_address_reads')}</option></select>`, isNew ? t('p37_ae_only_svc') : '')}</div>
+    ${isNew ? '' : `<div class="p37-help">${t('p37_ae_fixed')}</div>`}
+    <div class="grid2">${p37Fld(t('p37_ae_uses'), '', input(isNew && !taken ? '' : x.unit, 'mono', '200', 'inputmode=numeric'), t('p37_ae_uses_help'))}${p37Fld(t('ae_price'), '', `<div class="inwrap"><span class="pre">৳</span>${input(isNew && !taken ? '' : x.price, 'mono', '', 'inputmode=numeric')}</div>`, t('ae_price_help'))}</div>
+    ${isNew && !taken ? '' : `<div class="note">${t('p37_ae_rate_eq')}</div>`}
+    `, `${btn(t('cancel'), 'ghost', "go('p37-addons')")}${btn(isNew ? t('p37_ae_create') : t('save'), 'primary', "go('p37-addons')")}`, { row: true, close: 'p37-addons' });
+}
+const p37AoScreen = { base: 'p37-addons', nav: 'addons', group: P37G2, url: 'admin.lytro.app/addons', bandTitle: 'addons', render: p37AddonsPage };
+def('p37-addons', { ...p37AoScreen, label: 'Add-ons · with the first allowance' });
+def('p37-addon-allowance', { ...p37AoScreen, url: 'admin.lytro.app/addons/address_reads_200', label: '· edit the allowance (sheet)', sheet: () => p37AllowanceSheet(false, false) });
+def('p37-addon-allowance-new', { ...p37AoScreen, url: 'admin.lytro.app/addons/new', label: '· a new allowance (sheet)', sheet: () => p37AllowanceSheet(true, false) });
+def('p37-addon-allowance-taken', { ...p37AoScreen, url: 'admin.lytro.app/addons/new', label: '· refused: the key is taken (sheet)', sheet: () => p37AllowanceSheet(true, true) });
+
+/* ---------- D7-20: the sentences that are true again. Approving a plan tells the owner; Lytro revoking or blocking a shop's
+   phone tells the shop. Putting money on the balance and rejecting still send nothing, so their sentences stay as they are. ---------- */
+const p37Told = (html, cons) => html.split(t(cons)).join(`${t(cons)} ${t('p37_told_shop')}`);
+SCREENS['tenant-phone-revoke'].sheet = () => p37Told(revokeSheet(SHOP_PHONES.devices[0], 'tenant'), 'ph_rv_cons');
+SCREENS['tenant-phone-block'].sheet = () => p37Told(blockSheet(SHOP_PHONES.devices[0], 'tenant'), 'ph_bl_cons');
+def('p37-told-approve', { ...SCREENS['queue-approve'], group: P37G2, label: 'D7-20 · approving a plan tells the owner (sheet)' });
+def('p37-told-revoke', { ...SCREENS['tenant-phone-revoke'], group: P37G2, label: 'D7-20 · revoking a shop\'s phone tells the shop (sheet)' });
+def('p37-told-block', { ...SCREENS['tenant-phone-block'], group: P37G2, label: 'D7-20 · blocking an installation tells the shop (sheet)' });
+
+/* navigation: Notices leaves Later for the platform group; the placeholder page goes. A screen with an anchor opens scrolled to it. */
+NAV[2].items.push(['notices', 'p37-notices', 'bell']);
+LATER_NAV.items = LATER_NAV.items.filter(([k]) => k !== 'notices');
+delete SCREENS['later-notices'];
+const p37RenderBase = render;
+render = () => {
+  p37RenderBase();
+  const at = (SCREENS[ST.screen] || {}).anchor;
+  const el = at && document.getElementById(at);
+  const sc = el && el.closest('.scroll');
+  if (sc) sc.scrollTop += el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 8;
+};
+
 /* ---------- render ---------- */
 function setLang(l) { ST.lang = l; L.lang = l; document.querySelectorAll('#segLang button').forEach((b) => b.classList.toggle('on', b.dataset.v === l)); render(); }
 function render() {
