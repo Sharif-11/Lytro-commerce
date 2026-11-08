@@ -6,6 +6,16 @@ const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 const ago = (ms: number): string => new Date(Date.now() - ms).toISOString();
 
+// The payments list groups by Dhaka's day (UTC+6, no summer time). "Today's" payments are a few hours before now, so in
+// the first hours after midnight they would fall on yesterday and the tests would fail by the clock alone. Until 4 am
+// they count back from 4 am instead, a moment later than now, so each stays on the day it was drawn on.
+const DHAKA_OFFSET = 6 * HOUR;
+function dayAgo(ms: number): string {
+  const now = Date.now();
+  const dayStart = Math.floor((now + DHAKA_OFFSET) / DAY) * DAY - DHAKA_OFFSET;
+  return new Date(Math.max(now, dayStart + 4 * HOUR) - ms).toISOString();
+}
+
 export interface ShopPaymentRow {
   id: string;
   kind: 'session' | 'payment';
@@ -37,7 +47,7 @@ export function waiting(given: Partial<ShopPaymentRow> & { id: string }): ShopPa
     amount: '500.00',
     senderNumber: '+8801712000111',
     transactionId: '8HC3P2M1',
-    at: ago(HOUR),
+    at: dayAgo(HOUR),
     source: 'checkout',
     verificationLevel: null,
     decidedBy: null,
@@ -57,7 +67,7 @@ export function settled(given: Partial<ShopPaymentRow> & { id: string }): ShopPa
     kind: 'payment',
     status: 'verified',
     verificationLevel: 'listener',
-    decidedAt: ago(HOUR),
+    decidedAt: dayAgo(HOUR),
     ...given,
   });
 }
@@ -152,7 +162,7 @@ export function drawnShopPayments(): ShopPaymentsFixture {
       waiting({
         id: 's-amount',
         reviewReason: 'amount',
-        receipt: { amount: '450.00', senderNumber: '+8801712000111', receivedAt: ago(HOUR) },
+        receipt: { amount: '450.00', senderNumber: '+8801712000111', receivedAt: dayAgo(HOUR) },
       }),
       waiting({
         id: 's-sender',
@@ -162,7 +172,7 @@ export function drawnShopPayments(): ShopPaymentsFixture {
         senderNumber: '+8801819000222',
         source: 'staff_link',
         reviewReason: 'sender',
-        receipt: { amount: '300.00', senderNumber: '+8801555123456', receivedAt: ago(HOUR) },
+        receipt: { amount: '300.00', senderNumber: '+8801555123456', receivedAt: dayAgo(HOUR) },
       }),
       waiting({
         id: 's-plain',
@@ -184,7 +194,7 @@ export function drawnShopPayments(): ShopPaymentsFixture {
         order: { id: 'order-39', orderNumber: '261105-0039' },
         transactionId: '9F2KQ7M1',
         senderNumber: '+8801819876543',
-        at: ago(2 * HOUR),
+        at: dayAgo(2 * HOUR),
       }),
       settled({
         id: 'p-test',
@@ -193,7 +203,7 @@ export function drawnShopPayments(): ShopPaymentsFixture {
         transactionId: 'TEST0042',
         verificationLevel: 'gateway',
         test: true,
-        at: ago(3 * HOUR),
+        at: dayAgo(3 * HOUR),
       }),
       settled({
         id: 'p-hand',
@@ -203,7 +213,7 @@ export function drawnShopPayments(): ShopPaymentsFixture {
         transactionId: '3M8KLP21',
         verificationLevel: 'manual',
         decidedBy: { id: 'u-1', name: 'Rumana' },
-        at: ago(DAY + HOUR),
+        at: dayAgo(DAY + HOUR),
       }),
       waiting({
         id: 's-rejected',
@@ -214,8 +224,8 @@ export function drawnShopPayments(): ShopPaymentsFixture {
         source: 'staff_link',
         rejectReason: 'no_payment_found',
         decidedBy: { id: 'u-1', name: 'Rumana' },
-        decidedAt: ago(DAY + HOUR),
-        at: ago(DAY + HOUR),
+        decidedAt: dayAgo(DAY + HOUR),
+        at: dayAgo(DAY + HOUR),
       }),
       settled({
         id: 'p-refunded',
@@ -224,7 +234,7 @@ export function drawnShopPayments(): ShopPaymentsFixture {
         method: 'rocket',
         amount: '650.00',
         transactionId: 'R5Y8BB13',
-        at: ago(DAY + 2 * HOUR),
+        at: dayAgo(DAY + 2 * HOUR),
       }),
       settled({
         id: 'p-voided',
@@ -233,7 +243,7 @@ export function drawnShopPayments(): ShopPaymentsFixture {
         method: 'bank',
         amount: '2000.00',
         transactionId: 'REF-77120',
-        at: ago(DAY + 3 * HOUR),
+        at: dayAgo(DAY + 3 * HOUR),
       }),
     ],
     receipts: [
@@ -247,7 +257,7 @@ export function drawnShopPayments(): ShopPaymentsFixture {
         reviewReason: 'amount',
         ignoredReason: null,
         orderNumber: '261105-0040',
-        receivedAt: ago(HOUR),
+        receivedAt: dayAgo(HOUR),
         senderNumber: '+8801712000111',
         deviceId: 'phone-1',
         text: 'You have received Tk 450.00 from 01712000111. TrxID 8HC3P2M1',
@@ -262,7 +272,7 @@ export function drawnShopPayments(): ShopPaymentsFixture {
         reviewReason: null,
         ignoredReason: null,
         orderNumber: null,
-        receivedAt: ago(2 * HOUR),
+        receivedAt: dayAgo(2 * HOUR),
         senderNumber: '+8801911555666',
         deviceId: 'phone-1',
         text: null,
@@ -277,7 +287,7 @@ export function drawnShopPayments(): ShopPaymentsFixture {
         reviewReason: null,
         ignoredReason: null,
         orderNumber: '261105-0039',
-        receivedAt: ago(3 * HOUR),
+        receivedAt: dayAgo(3 * HOUR),
         senderNumber: '+8801819876543',
         deviceId: 'phone-1',
         text: null,
