@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/icon';
 import { ShopMark } from '@/components/ui/shop-mark';
+import { BellButton } from '@/views/notifications/bell';
 import { useShell } from './shell-context';
 
 const iconButton =
@@ -15,7 +16,7 @@ interface BarActionsProps {
 /**
  * TENANT-DASHBOARD-DESIGN §4.1, the prototype's `.appbar`: 56 px, white with a hairline, under 1024 px. A hub's page
  * shows the shop's mark and name; a page below it shows back and its own title. Search and the + menu sit on the
- * right (the bell joins in Phase 7).
+ * right, then the bell (Phase 7, Part 37).
  */
 export function AppBar({ canSearch, canAdd }: BarActionsProps): React.JSX.Element {
   const { t } = useTranslation('shell');
@@ -55,6 +56,7 @@ export function AppBar({ canSearch, canAdd }: BarActionsProps): React.JSX.Elemen
           <Icon name="plus" />
         </button>
       ) : null}
+      <BellButton variant="bar" />
     </div>
   );
 }

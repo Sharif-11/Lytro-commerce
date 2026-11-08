@@ -55,7 +55,8 @@ test('shows the balance, its statement with each row named, and the chips that r
   await expect(main(page).getByText('পরে −৳85.85')).toBeVisible();
 
   await main(page).getByRole('button', { name: 'ফি', exact: true }).click();
-  await expect(main(page).getByText('মেসেজ থেকে অর্ডার পড়া')).toBeVisible();
+  // Part 37's `p37-balance`: a read is named for the address, in the rates and on its row.
+  await expect(main(page).getByText('মেসেজ থেকে ঠিকানা পড়া')).toHaveCount(2);
   await expect(main(page).getByText('ব্যালেন্স টপ-আপ · TrxID 9F2KQ7')).toHaveCount(0);
   const last = new URL(requests.at(-1) ?? '');
   expect(last.searchParams.get('type')).toBe(
@@ -100,7 +101,7 @@ test("says a top-up is being checked, or was rejected with support's note and De
 test('warns of a low balance, with Top up', async ({ page }) => {
   await open(page, { money: { payments: settled, balance: '48.00' } });
   const banner = main(page).getByRole('alert').filter({ hasText: 'ব্যালেন্স ৳48' });
-  await expect(banner).toContainText('৳50-এর নিচে নামলে');
+  await expect(banner).toContainText('যে SMS-এর টাকা ব্যালেন্সে নেই, সেটা যায় না।');
   await banner.getByRole('button', { name: 'টপ-আপ' }).click();
   await expect(sheet(page).getByRole('heading', { name: 'টপ-আপ' })).toBeVisible();
 });

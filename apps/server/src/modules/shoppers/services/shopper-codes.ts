@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { shopperCodeText } from '../../shared/messaging/sms-words';
 import {
   LedgerEntryType,
   SHOPPER_CODES_PER_SHOP_PER_HOUR,
@@ -25,12 +26,6 @@ import { SHOPPER_STORE, SHOPPERS_CLOCK } from '../tokens';
 import type { ShopperCodeSent } from '../types/shoppers';
 
 /** What the code's SMS says, in the shopper's language, under the shop's name -- the shape BulkSMSBD asks codes for. */
-function codeText(lang: Language, shopName: string, code: string): string {
-  return lang === 'en'
-    ? `Your ${shopName} OTP is ${code}. Do not share it with anyone.`
-    : `${shopName}-এ সাইন আপের জন্য OTP হচ্ছে ${code}। কারো সাথে শেয়ার করবেন না।`;
-}
-
 /**
  * CUS-04, SMS-09, SMS-11 (Phase 4 Slice 4.4b, read agreed 2026-10-30): the code a shopper makes an account with, sent
  * once to the phone. Each is charged to the shop's balance at the SMS rate -- its units are the text's length over the
@@ -58,7 +53,7 @@ export class ShopperCodes {
   ): Promise<ShopperCodeSent> {
     const now = this.clock();
     const code = this.hasher.generate();
-    const body = codeText(lang, shop.name, code);
+    const body = shopperCodeText(lang, shop.name, code);
     const price = await this.smsUnits.priceOf(body);
     const logged = (status: SmsLogStatus, cost: string, more: object = {}) =>
       this.smsLog.record({

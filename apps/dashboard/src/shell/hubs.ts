@@ -20,6 +20,7 @@ export type SectionId =
   | 'usage'
   | 'team'
   | 'activity'
+  | 'notices'
   | 'settings'
   | 'account';
 
@@ -33,7 +34,9 @@ export type ShopPath =
   // Storefront).
   | '/$shop/stock/checks'
   | '/$shop/settings/storefront'
-  | '/$shop/settings/couriers';
+  | '/$shop/settings/couriers'
+  // Phase 7 (Part 37): the bell's own page, and the board a notice returns to.
+  | '/$shop/notifications';
 
 export interface Section {
   id: SectionId;
@@ -120,6 +123,8 @@ export const HUBS: readonly Hub[] = [
     sections: [
       section('team', [Permission.StaffRead]),
       section('activity', [Permission.AuditRead]),
+      // Phase 7 (Part 37's `p37-menu`, NTC-03, NTC-10): Lytro's notices, for the owner and staff with notices:read.
+      section('notices', [Permission.NoticesRead]),
       section('settings', [
         Permission.SettingsManage,
         Permission.KeysManage,
@@ -128,6 +133,10 @@ export const HUBS: readonly Hub[] = [
         // Phase 6 (Part 36's `c36-ro`): whoever may book sees the shop's couriers, with no actions unless they may manage them.
         Permission.CouriersManage,
         Permission.OrdersManage,
+        // Phase 7 (Part 37's `p37-settings`): SMS (sms:read) and the fake order check's rule (fraud:read); Notifications
+        // is everyone's own.
+        Permission.SmsRead,
+        Permission.FraudRead,
       ]),
       section('account', []),
     ],

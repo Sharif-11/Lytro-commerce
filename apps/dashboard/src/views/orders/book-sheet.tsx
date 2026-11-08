@@ -9,6 +9,7 @@ import {
   CourierKey,
   PARCEL_NOTE_MAX_LENGTH,
   Permission,
+  SmsEvent,
 } from '@lytronix/validators';
 import { useBookOrder, useCancelBooking, useCourierAreas, useSettleParcel } from '@/api/couriers';
 import { useLocations } from '@/api/delivery';
@@ -36,6 +37,7 @@ import type { Order } from '@/types/orders';
 import { useOrderWords } from './order-words';
 import { allPicked, sentOf } from './serials-sent';
 import { SerialPicks, ShipRefusal } from './ship-sheet';
+import { SmsLine } from '@/views/sms/sms-line';
 
 /** What a booking's failure is, from the server's answer: each has its own banner (Part 36's `sh-c36-book-*`). */
 type BookFailure =
@@ -434,6 +436,8 @@ export function BookSheet({
         }}
       />
       <p className="text-[14px] text-fg-muted">{t('crBookInfo')}</p>
+      {/* Part 37's `p37-o-book` (D7-20): the shipped SMS goes when the courier picks it up. */}
+      <SmsLine event={SmsEvent.OrderShipped} words="p37LineBook" values={{ c: name }} />
     </Sheet>
   );
 }

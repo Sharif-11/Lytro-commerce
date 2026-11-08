@@ -40,12 +40,22 @@ const smsEventSchema = z.object({
 export class SmsSettingsDto extends createZodDto(
   z.object({
     events: z.array(smsEventSchema),
-    essentials: z.array(z.string()),
+    // Slice 7.7: each essential SMS as it reads, and who pays for it; and where the owner's own SMS go.
+    essentials: z.array(
+      z.object({
+        kind: z.enum(['shopper_code', 'staff_reset_code', 'shop_ready']),
+        words: z.string(),
+        payer: z.enum(['balance', 'free_then_balance', 'free']),
+      }),
+    ),
+    ownerPhone: z.string().nullable(),
     smsName: z.string(),
     usesShopName: z.boolean(),
     shopName: z.string(),
     monthlySpendCap: z.string().nullable(),
     spentThisMonth: z.string(),
+    cycleStart: z.date(),
+    cycleEnd: z.date(),
     unitSize: z.number().int(),
     rate: z.string(),
   }),
@@ -83,6 +93,7 @@ export class SmsLogDto extends createZodDto(
         status: z.nativeEnum(SmsLogStatus),
         blockedReason: z.nativeEnum(SmsBlockedReason).nullable(),
         orderId: z.string().nullable(),
+        orderNumber: z.string().nullable(),
         body: z.string().nullable(),
         createdAt: z.string(),
       }),

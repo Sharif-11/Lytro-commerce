@@ -53,6 +53,17 @@ const fraudCheckSchema = z.object({
 
 export class FraudCheckDto extends createZodDto(fraudCheckSchema) {}
 // FRD-01: the latest check of a phone, or null when it has never been checked.
+// FRD-05 (Slice 7.7): a new order's automatic check as its page shows it.
+export class OrderFraudCheckDto extends createZodDto(
+  z.object({
+    state: z.enum(['done', 'pending', 'skipped', 'not_applicable']),
+    reason: z.enum(['rule_off', 'below_minimum', 'refused', 'minute_limit', 'failed']).nullable(),
+    minAmount: z.string().nullable(),
+    message: z.string().nullable(),
+    check: fraudCheckSchema.nullable(),
+  }),
+) {}
+
 export class LatestFraudCheckDto extends createZodDto(
   z.object({ latest: fraudCheckSchema.nullable() }),
 ) {}

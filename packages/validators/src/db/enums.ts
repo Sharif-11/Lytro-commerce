@@ -238,6 +238,8 @@ export enum AuditAction {
   AddonLapsed = 'addon_lapsed',
   // PLN-14: the 7- or 1-day warning that an add-on will not renew (`summary.day`). Email only, never SMS.
   AddonEndingWarned = 'addon_ending_warned',
+  // NTC-05, NTC-17 (Phase 7 Slice 7.4): the owner acknowledged one of Lytro's notices (`summary.noticeId`).
+  NoticeAcknowledged = 'notice_acknowledged',
   // PLN-15, BND-04, RTE-11: the owner switching auto-buy of bandwidth or request packs on or off.
   PackAutoBuySet = 'pack_auto_buy_set',
   // BND-04: auto-buy reached the cycle's allowance but the balance was short of a pack. System-caused.
@@ -589,6 +591,10 @@ export enum QueueName {
   NotificationPush = 'notification_push',
   // NTF-01, D7-39 (Slice 7.3): the nightly clean-up of notifications past the days they are kept.
   NotificationPurgeTick = 'notification_purge_tick',
+  // NTC-06, NTC-11 (Phase 7 Slice 7.4): every minute, the notices whose time has come are sent to the shops they reach.
+  NoticePublishTick = 'notice_publish_tick',
+  // API-27, D8-3 (Phase 8 Slice 8.1): the nightly clean-up of shops' server faults past the days they are kept.
+  RequestErrorPurgeTick = 'request_error_purge_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -611,6 +617,8 @@ export enum AuditResult {
 export enum PlatformActorType {
   Operator = 'operator',
   System = 'system',
+  // NTC-17 (Phase 7 Slice 7.4): a shop's owner, in their own dashboard -- the "I understand" a notice asked for.
+  ShopOwner = 'shop_owner',
 }
 
 // The actions this codebase writes to control.platform_audit_log (ADM-08). Add a name here before any code
@@ -672,6 +680,11 @@ export enum PlatformAuditAction {
   PlatformOptionSetDeleted = 'platform_option_set_deleted',
   // RTE-12: a shop spent a fast share of its cycle's API requests in one hour; the operators were told.
   UsageFastSpendAlerted = 'usage_fast_spend_alerted',
+  // NTC-17 (Phase 7 Slice 7.4): the operator's notices -- written, changed, withdrawn -- and a shop acknowledging one.
+  NoticeCreated = 'notice_created',
+  NoticeEdited = 'notice_edited',
+  NoticeWithdrawn = 'notice_withdrawn',
+  NoticeAcknowledged = 'notice_acknowledged',
   // TVR-03, ADM-12 (Phase 5 Slice 5.2b): a shop's payment page suspended or restored; a page report dismissed.
   PaymentPageSuspended = 'payment_page_suspended',
   PaymentPageRestored = 'payment_page_restored',
@@ -1381,6 +1394,16 @@ export enum FraudCheckTrigger {
   Order = 'order',
 }
 
+// FRD-05 (Phase 7 Slice 7.7): why a new order's automatic check didn't run, kept for the order's page -- the rule was
+// off, the order under its smallest amount, the check refused (a frozen balance, a trial once checks are charged, a
+// balance short of the rate), or the shop's checks for the minute used up.
+export enum FraudSkipReason {
+  RuleOff = 'rule_off',
+  BelowMinimum = 'below_minimum',
+  Refused = 'refused',
+  MinuteLimit = 'minute_limit',
+}
+
 // FRD-04: how long a courier's answer for a phone is reused before it is asked again.
 export const FRAUD_CHECK_CACHE_DAYS = 3;
 // FRD-07 (Slice 7.5): one shop's fraud checks in any minute, when the operator has set no figure.
@@ -1738,4 +1761,50 @@ export enum NotificationKind {
   RenewalReminder = 'renewal_reminder',
   AccountNotice = 'account_notice',
   EmailBounced = 'email_bounced',
+  // NTC-06 (Slice 7.4): one of Lytro's notices, published to the shop.
+  LytroNotice = 'lytro_notice',
+}
+
+// NTC-01 (Phase 7 Slice 7.4, read agreed 2026-11-07): what one of Lytro's notices is about, for the board's filter.
+export enum NoticeCategory {
+  RateChange = 'rate_change',
+  Maintenance = 'maintenance',
+  NewFeature = 'new_feature',
+  Policy = 'policy',
+  Security = 'security',
+  General = 'general',
+}
+
+// NTC-04, D7-54: how a notice shows. Urgent scrolls in the dashboard's marquee on every page until dismissed; important
+// prompts once and badges; info sits on the board.
+export enum NoticeSeverity {
+  Info = 'info',
+  Important = 'important',
+  Urgent = 'urgent',
+}
+
+// NTC-02: who a notice is for, evaluated when a shop looks.
+export enum NoticeAudienceKind {
+  All = 'all',
+  Plans = 'plans',
+  States = 'states',
+  Tenant = 'tenant',
+}
+
+// NTC-12: the operator's ready-made notices, their variables filled in.
+export enum NoticeTemplate {
+  RateChange = 'rate_change',
+  Maintenance = 'maintenance',
+  Outage = 'outage',
+  PolicyUpdate = 'policy_update',
+}
+
+// NTC-08, NTC-11 (Phase 7 Slice 7.4): where a notice stands, as the operator's list shows it -- not stored, read from its
+// times: no publish time, a time still to come, live, past its end time, or withdrawn.
+export enum NoticeStatus {
+  Draft = 'draft',
+  Scheduled = 'scheduled',
+  Live = 'live',
+  Ended = 'ended',
+  Withdrawn = 'withdrawn',
 }

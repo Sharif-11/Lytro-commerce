@@ -34,7 +34,9 @@ async function expectAccessible(page: Page): Promise<void> {
   ).toEqual([]);
 }
 
-test('lists the shop’s settings, and what comes later with its phase', async ({ page }) => {
+test('lists the shop’s settings, SMS, Notifications and the fake order check live', async ({
+  page,
+}) => {
   await open(page, '/settings');
   for (const [name, href] of [
     ['Shop details', '/settings/shop'],
@@ -43,17 +45,18 @@ test('lists the shop’s settings, and what comes later with its phase', async (
     ['Brand identity', '/settings/brand'],
     ['Storefront', '/settings/storefront'],
     ['Data export', '/settings/export'],
+    ['SMS', '/settings/sms'],
+    ['Notifications', '/settings/notifications'],
+    ['Fake order check', '/settings/fraud-checks'],
   ] as const) {
     await expect(main(page).getByRole('link', { name: new RegExp(`^${name}`) })).toHaveAttribute(
       'href',
       `/${SLUG}${href}`,
     );
   }
-  await expect(main(page).getByText('Coming later')).toBeVisible();
-  // Couriers left Coming later with Phase 6 (Part 36's `c36-settings`); SMS and notifications come with 7.
-  await expect(main(page).getByText('Arrives in Phase 6')).toHaveCount(0);
-  await expect(main(page).getByText('Arrives in Phase 7').first()).toBeVisible();
-  await expect(main(page).getByText('Arrives in Slices 12 to 13')).toHaveCount(0);
+  // Part 37's `p37-settings`: SMS, Notifications and the fake order check are live, so Coming later is gone.
+  await expect(main(page).getByText('Coming later')).toHaveCount(0);
+  await expect(main(page).getByText('Arrives in Phase 7')).toHaveCount(0);
   await expectAccessible(page);
 });
 

@@ -94,9 +94,11 @@ export function PhonesCard({ shopId }: { shopId: string }): React.JSX.Element {
         </CardList>
       )}
       {panel?.action === 'revoke' ? (
-        <RevokePhonePanel device={panel.device} onClose={close} />
+        <RevokePhonePanel device={panel.device} onClose={close} shop />
       ) : null}
-      {panel?.action === 'block' ? <BlockPhonePanel device={panel.device} onClose={close} /> : null}
+      {panel?.action === 'block' ? (
+        <BlockPhonePanel device={panel.device} onClose={close} shop />
+      ) : null}
     </ConsoleCard>
   );
 }

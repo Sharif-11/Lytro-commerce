@@ -48,6 +48,8 @@ export interface ShopAddon {
   renews: boolean;
   renewal: AddonRenewal;
   endsSoon: boolean;
+  /** PLN-20 (Slice 7.7): an allowance's uses still left; null for every other kind. */
+  usesLeft?: number | null;
 }
 
 /** What is left of the shop's packs for a metric (bytes of bandwidth, or requests), and its auto-buy switch. */

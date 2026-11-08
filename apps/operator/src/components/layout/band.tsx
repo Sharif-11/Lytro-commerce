@@ -7,28 +7,46 @@ import { bandTitleKey } from './nav-items';
 const BUTTON =
   'inline-flex size-11 flex-none items-center justify-center rounded-lg text-neutral-200';
 
+type Back = { to: '/shops' | '/notices' } | { to: '/shops/$id' | '/notices/$id'; id: string };
+
+/**
+ * Where a page's back arrow goes, on the pages the sketch draws one: a shop's page and its credentials, and a notice's
+ * pages (Slice 7.7), where who said I understand goes back to its notice and the rest to the list.
+ */
+function backOf(pathname: string): Back | null {
+  const shop = /^\/shops\/([^/]+)(\/credentials)?$/.exec(pathname);
+  if (shop?.[1]) return shop[2] ? { to: '/shops/$id', id: shop[1] } : { to: '/shops' };
+  const notice = /^\/notices\/([^/]+)(\/edit|\/acknowledgments)?$/.exec(pathname);
+  if (notice?.[1]) {
+    return notice[2] === '/acknowledgments'
+      ? { to: '/notices/$id', id: notice[1] }
+      : { to: '/notices' };
+  }
+  return null;
+}
+
 /** The ink band under 1024 px: the one cue that this is the operator's console, with search and the menu. */
 export function Band({ onMenu }: { onMenu: () => void }): React.JSX.Element {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const titleKey = bandTitleKey(pathname);
-  // A page inside Shops shows the way back in place of the lockup.
-  const inShop = /^\/shops\/([^/]+)(\/credentials)?$/.exec(pathname);
+  // A page inside Shops or Notices shows the way back in place of the lockup.
+  const back = backOf(pathname);
   return (
     <header className="flex h-[52px] flex-none items-center gap-3 bg-chrome pr-3 pl-4 text-white lg:hidden">
-      {inShop ? (
+      {back ? (
         <>
-          {inShop[2] && inShop[1] ? (
+          {'id' in back ? (
             <Link
-              to="/shops/$id"
-              params={{ id: inShop[1] }}
+              to={back.to}
+              params={{ id: back.id }}
               aria-label={t('common.back')}
               className={BUTTON}
             >
               <ConsoleIcon name="back" />
             </Link>
           ) : (
-            <Link to="/shops" aria-label={t('common.back')} className={BUTTON}>
+            <Link to={back.to} aria-label={t('common.back')} className={BUTTON}>
               <ConsoleIcon name="back" />
             </Link>
           )}

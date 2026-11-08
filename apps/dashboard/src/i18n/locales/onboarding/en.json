@@ -40,7 +40,7 @@
   "fpSubmit": "Send the reset code",
   "fpTitle": "Reset your password",
   "fpVerify": "Enter the reset code",
-  "freeSmsNote": "Signing in to an existing shop by code uses one of its free SMS. Password sign-in is free.",
+  "freeSmsNote": "Signing in to an existing shop by code uses one of its free SMS, then ৳0.55 from its balance. Password sign-in is free.",
   "google": "Continue with Google",
   "haSearch": "Search a city or district",
   "inside": "Inside {{a}}",

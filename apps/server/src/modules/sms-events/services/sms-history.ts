@@ -30,6 +30,8 @@ export interface SmsLogView {
   status: SmsLogStatus;
   blockedReason: SmsBlockedReason | null;
   orderId: string | null;
+  /** Slice 7.7: the order's number, for the row's link; null for a code or a deleted order. */
+  orderNumber: string | null;
   /** An SMS event's words; a code's are never kept. */
   body: string | null;
   createdAt: string;
@@ -73,6 +75,7 @@ export class SmsHistory {
         status: row.status,
         blockedReason: row.blockedReason,
         orderId: row.orderId,
+        orderNumber: row.orderNumber,
         body: row.body,
         createdAt: row.createdAt.toISOString(),
       })),

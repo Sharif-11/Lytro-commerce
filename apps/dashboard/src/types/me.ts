@@ -102,6 +102,10 @@ export interface MeResponse {
   hasDeletedShop: boolean;
   /** AUTH-28 (amended 2026-10-31): no shop to open and no verified phone, so a phone comes before create-shop. */
   needsPhone: boolean;
+  /** I18N-01 (Slice 7.3): the language the person chose in this shop, which email and push come in; null until chosen. */
+  language?: 'bn' | 'en' | null;
+  /** NTF-06, D7-38: the owner's email bounced or was marked spam, so Lytro stopped emailing it (the banner's). */
+  emailBounced?: boolean;
 }
 
 /** How the person signed in (TEN-31, AUTH-31). */

@@ -1,13 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   FraudCheckRepository,
+  type FraudOrderFacts,
   TransactionRunner,
   type NewFraudCheck,
   type OwnOrderCounts,
   type SelectFraudCheck,
+  type SelectFraudCheckSkip,
   type SelectFraudRule,
   type Transaction,
 } from '@lytronix/db';
+import type { FraudSkipReason } from '@lytronix/validators';
 import type { FraudCheckStore } from '../../modules/fraud-checks/ports/fraud-check-store';
 import { DatabaseService } from '../database.service';
 
@@ -58,5 +61,30 @@ export class DrizzleFraudCheckStore implements FraudCheckStore {
     rule: { codOrders: boolean; minAmount: string | null },
   ): Promise<SelectFraudRule> {
     return this.checks.saveRule(tx, tenantId, rule);
+  }
+
+  recordSkip(
+    tx: Transaction,
+    skip: {
+      tenantId: string;
+      orderId: string;
+      reason: FraudSkipReason;
+      minAmount: string | null;
+      messageKey: string | null;
+    },
+  ): Promise<void> {
+    return this.checks.recordSkip(tx, skip);
+  }
+
+  orderCheck(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<{
+    order: FraudOrderFacts | null;
+    check: SelectFraudCheck | null;
+    skip: SelectFraudCheckSkip | null;
+  }> {
+    return this.checks.orderCheck(tx, tenantId, orderId);
   }
 }

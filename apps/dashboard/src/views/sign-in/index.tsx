@@ -1,6 +1,7 @@
 import { useEffect, useState, type SyntheticEvent } from 'react';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { Trans, useTranslation } from 'react-i18next';
+import { ApiClientError } from '@lytronix/api-client';
 import { OauthProvider } from '@lytronix/validators';
 import {
   useOauthProviders,
@@ -95,6 +96,9 @@ export function SignIn(): React.JSX.Element {
 
   const pending = mode === 'password' ? signInWithPassword.isPending : requestCode.isPending;
   const error = mode === 'password' ? signInWithPassword.error : requestCode.error;
+  // D7-24 (Part 37's `p37-signin-cantpay`): the shop's balance can't pay for the code, so a password is the way in.
+  const cantPay =
+    mode === 'code' && error instanceof ApiClientError && error.code === 'quota_exceeded';
   const offered = providers.data?.providers ?? [];
 
   return (
@@ -111,8 +115,10 @@ export function SignIn(): React.JSX.Element {
           placeholder="1XXXXXXXXX"
           value={localPhone}
           error={phoneError}
+          invalid={cantPay}
           onChange={(event) => {
             setLocalPhone(event.target.value.replace(/[^\d\s-]/g, ''));
+            requestCode.reset();
           }}
         />
         {mode === 'password' ? (
@@ -128,20 +134,44 @@ export function SignIn(): React.JSX.Element {
           />
         ) : null}
         {error ? <Banner tone="bad">{errorText(error)}</Banner> : null}
-        <Button type="submit" wide busy={pending}>
-          {mode === 'password' ? t('signInPw') : t('cont')}
-        </Button>
+        {cantPay ? (
+          <Button
+            wide
+            onClick={() => {
+              setMode('password');
+              requestCode.reset();
+            }}
+          >
+            {t('usePw')}
+          </Button>
+        ) : (
+          <Button type="submit" wide busy={pending}>
+            {mode === 'password' ? t('signInPw') : t('cont')}
+          </Button>
+        )}
       </form>
       <StepLinks>
-        <button
-          type="button"
-          onClick={() => {
-            setMode(mode === 'password' ? 'code' : 'password');
-            setPhoneError(null);
-          }}
-        >
-          {mode === 'password' ? t('useCode') : t('usePw')}
-        </button>
+        {cantPay ? (
+          <button
+            type="button"
+            onClick={() => {
+              setLocalPhone('');
+              requestCode.reset();
+            }}
+          >
+            {t('vChange')}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setMode(mode === 'password' ? 'code' : 'password');
+              setPhoneError(null);
+            }}
+          >
+            {mode === 'password' ? t('useCode') : t('usePw')}
+          </button>
+        )}
         {mode === 'password' ? <Link to="/forgot-password">{t('forgotPw')}</Link> : null}
       </StepLinks>
       {mode === 'code' ? <p className="text-[14px] text-fg-muted">{t('freeSmsNote')}</p> : null}

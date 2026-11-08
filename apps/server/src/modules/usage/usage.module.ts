@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AddressReadsModule } from '../address-reads/address-reads.module';
 import { DrizzleUsageNoticeStore } from '../../database/adapters/usage-notices.adapter';
 import { AuditModule } from '../audit/audit.module';
 import { BillingModule } from '../billing/billing.module';
@@ -23,6 +24,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 // Nothing imports this module back, so each of them stays free to be read here.
 @Module({
   imports: [
+    AddressReadsModule,
     CatalogueModule,
     NotificationsModule,
     StaffModule,

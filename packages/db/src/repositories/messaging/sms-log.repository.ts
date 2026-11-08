@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
 import { SmsLogStatus, type SmsBlockedReason, type SmsLogEntryKind } from '@lytronix/validators';
-import { smsLog, type SelectSmsLog } from '../../schema';
+import { orders, smsLog, type SelectSmsLog } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 
 export interface NewSmsLogEntry {
@@ -107,17 +107,26 @@ export class SmsLogRepository {
     }));
   }
 
-  /** SMS-17: the shop's SMS, newest first, a page at a time; one order's alone when asked. */
-  async list(db: Transaction, tenantId: string, page: SmsLogPage): Promise<SelectSmsLog[]> {
+  /**
+   * SMS-17: the shop's SMS, newest first, a page at a time; one order's alone when asked. Each with its order's number
+   * (Slice 7.7), null for a code or an order since deleted.
+   */
+  async list(
+    db: Transaction,
+    tenantId: string,
+    page: SmsLogPage,
+  ): Promise<(SelectSmsLog & { orderNumber: string | null })[]> {
     await this.transactions.setTenantContext(db, tenantId);
     const conditions = [eq(smsLog.tenantId, tenantId)];
     if (page.before !== undefined) conditions.push(lt(smsLog.id, page.before));
     if (page.orderId !== undefined) conditions.push(eq(smsLog.orderId, page.orderId));
-    return db
-      .select()
+    const rows = await db
+      .select({ row: smsLog, orderNumber: orders.orderNumber })
       .from(smsLog)
+      .leftJoin(orders, and(eq(orders.tenantId, smsLog.tenantId), eq(orders.id, smsLog.orderId)))
       .where(and(...conditions))
       .orderBy(desc(smsLog.id))
       .limit(page.limit);
+    return rows.map(({ row, orderNumber }) => ({ ...row, orderNumber }));
   }
 }

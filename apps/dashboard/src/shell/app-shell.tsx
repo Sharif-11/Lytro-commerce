@@ -1,10 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useLocation, useMatches, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { TenantState } from '@lytronix/validators';
+import { Permission, TenantState } from '@lytronix/validators';
 import { ApiClientError, errorMessage } from '@lytronix/api-client';
 import { ErrorBanner } from '@lytronix/ui';
 import { useHome } from '@/api/home';
+import { useNoticeSummary } from '@/api/notices';
 import { useMe, useSignOut } from '@/api/me';
 import { OnboardingFrame } from '@/components/onboarding/frame';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ import { TabBar } from './tab-bar';
 import { LeadTo } from './lead-to';
 import { useShopManifest } from './use-shop-manifest';
 import { Unavailable } from '@/views/unavailable';
+import { ImportantPrompt, NoticeBands, UpdatePrompt } from '@/views/notices/notice-bands';
 
 interface AppShellProps {
   slug: string;
@@ -100,9 +102,11 @@ export function AppShell({ slug, children }: AppShellProps): React.JSX.Element {
     );
   }
 
-  // LIF-11/12: a locked or archived shop has one page, Renew, without the shell; any other path leads there.
+  // LIF-11/12: a locked or archived shop has one page, Renew, without the shell; any other path leads there. NTC-07
+  // (Part 37's `p37-locked`): its owner still reads Lytro's notices, an archived shop's urgent ones only.
   if (tenant.state === TenantState.Locked || tenant.state === TenantState.Archived) {
-    if (!location.pathname.endsWith('/renew')) {
+    const onBoard = /\/notices(\/[^/]+)?\/?$/.test(location.pathname) && me.data.isOwner;
+    if (!location.pathname.endsWith('/renew') && !onBoard) {
       return <LeadTo slug={slug} page="renew" />;
     }
     return (
@@ -142,9 +146,10 @@ function BareShell({
     personName: me.name,
     signIn: me.signIn,
     staffPhone: me.phone,
+    emailBounced: me.emailBounced ?? false,
     roles: me.roles,
     screen: undefined,
-    counts: { stock: null, billing: null, orders: null },
+    counts: { stock: null, billing: null, orders: null, notices: null },
     showToast: toast.show,
     openPlus: () => undefined,
     recordTitle: null,
@@ -184,6 +189,8 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
   const screen = [...matches].reverse().find((match) => match.staticData.screen)?.staticData.screen;
   const viewer: Viewer = { isOwner: me.isOwner, permissions: me.permissions };
   const home = useHome();
+  // NTC-03, NTC-04, NTC-14: what every page shows of Lytro's notices, for whoever may read them.
+  const notices = useNoticeSummary({ enabled: allows(viewer, [Permission.NoticesRead]) });
   const toast = useToast();
   const [plusOpen, setPlusOpen] = useState(false);
   const [recordTitle, setRecordTitle] = useState<string | null>(null);
@@ -206,12 +213,14 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
     personName: me.name,
     signIn: me.signIn,
     staffPhone: me.phone,
+    emailBounced: me.emailBounced ?? false,
     roles: me.roles,
     screen,
     counts: {
       stock,
       billing: home.data?.paymentNeedingYou ? 1 : null,
       orders: home.data?.orders?.toConfirm || null,
+      notices: notices.data?.unread || null,
     },
     showToast,
     openPlus: () => {
@@ -232,6 +241,7 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <AppBar canSearch={canSearch} canAdd={canAdd} />
             <DeskHeader canSearch={canSearch} canAdd={canAdd} />
+            <NoticeBands summary={notices.data} />
             <main className="min-h-0 flex-1 overflow-auto [-webkit-overflow-scrolling:touch]">
               {screen?.legacy ? <LegacyPage>{children}</LegacyPage> : allowed ? children : null}
             </main>
@@ -244,6 +254,10 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
             setPlusOpen(false);
           }}
         />
+        {notices.data && notices.data.prompts.length > 0 ? (
+          <ImportantPrompt prompts={notices.data.prompts} />
+        ) : null}
+        <UpdatePrompt />
         <Toast message={toast.message} />
       </div>
     </ShellContext.Provider>

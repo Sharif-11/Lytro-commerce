@@ -104,6 +104,7 @@ function usage(metrics: UsageFigure[], given: Partial<ShopUsage> = {}): ShopUsag
         autoBuyFailed: false,
       },
     ],
+    payPerUse: [],
     ...given,
   };
 }

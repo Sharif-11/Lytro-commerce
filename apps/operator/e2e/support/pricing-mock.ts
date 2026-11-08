@@ -147,8 +147,10 @@ function ratesAnswer(
   const key = one[1] ?? '';
   const rate = state.rates.find((each) => each.key === key);
   const newValue = Number(body?.value).toFixed(2);
+  // NTC-13 (Slice 7.7): the save answers the history row's id, which a notice of the change names.
+  const id = Number(newId('').slice(1));
   (state.rateHistory[key] ??= []).push({
-    id: Number(newId('').slice(1)),
+    id,
     key,
     oldValue: rate?.value,
     newValue,
@@ -158,7 +160,7 @@ function ratesAnswer(
     changedAt: NOW,
   });
   update(state.rates, key, { value: newValue, effectiveFrom: NOW }, 'key');
-  return OK;
+  return { data: { ok: true, id } };
 }
 
 function settingsAnswer(

@@ -22,6 +22,7 @@ import { bangladeshiPhone } from '@/lib/phone';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { Customer } from '@/types/customers';
+import { CustomerFraud } from '@/views/fraud/fraud-card';
 import { OrderRow } from '../orders/order-list';
 import { useOrderWords } from '../orders/order-words';
 import { DeleteCustomerDialog, PasswordSheet } from './customer-sheets';
@@ -121,6 +122,12 @@ function CustomerBody({ customer }: { customer: Customer }): React.JSX.Element {
         />
         <StatTile label={t('firstOrder')} value={formatDayMonth(customer.firstOrderAt)} />
       </StatRow>
+      {customer.phone ? (
+        // Part 37's `p37-cust-fraud` (FRD-01): the number's latest check, above the last address.
+        <Card className="empty:hidden">
+          <CustomerFraud phone={customer.phone} />
+        </Card>
+      ) : null}
       {address ? (
         <Card>
           <h3 className="mb-1 text-[17px] font-semibold">{t('lastAddress')}</h3>

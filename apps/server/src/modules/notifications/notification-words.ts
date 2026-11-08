@@ -41,6 +41,8 @@ export const NOTIFICATION_LINKS = {
   usage: '/usage',
   balance: '/balance',
   account: '/account',
+  // NTC-06 (Slice 7.4): a notice from Lytro, on the shop's board.
+  notice: (noticeId: string): string => `/notices/${noticeId}`,
 } as const;
 
 const SOURCES: Readonly<Record<OrderSource, Bilingual<string>>> = {
@@ -211,7 +213,7 @@ export function courierConnectionText(
   const courier = COURIER_NAMES[courierKey];
   const bodies: Record<typeof trouble, Bilingual<string>> = {
     login_refused: {
-      bn: `${courier} আপনার লগইন নিচ্ছে না। কুরিয়ার সেটিংসে কি আবার দিন।`,
+      bn: `${courier} আপনার লগইন নিচ্ছে না। কুরিয়ার সেটিংসে কী আবার দিন।`,
       en: `${courier} refuses your login. Enter the keys again in courier settings.`,
     },
     paste_broken: {

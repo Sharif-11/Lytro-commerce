@@ -15,9 +15,11 @@ import { ShellPage } from '@/shell/shell-page';
 import { InstallCard, menuRowClass, MenuRowInner } from './menu-parts';
 
 // Each Menu section's icon (the prototype's `menuRow`).
-const ICONS: Record<'team' | 'activity' | 'settings' | 'account', IconName> = {
+const ICONS: Record<'team' | 'activity' | 'notices' | 'settings' | 'account', IconName> = {
   team: 'users',
   activity: 'activity',
+  // Phase 7 (Part 37's `p37-menu`): Lytro's notices, marigold, with the unread count and its dot.
+  notices: 'megaphone',
   settings: 'settings',
   account: 'shield',
 };
@@ -30,7 +32,7 @@ const ICONS: Record<'team' | 'activity' | 'settings' | 'account', IconName> = {
 export function MenuView(): React.JSX.Element {
   const { t, i18n } = useTranslation('menu');
   const { t: shell } = useTranslation('shell');
-  const { slug, tenant, viewer, personName, roles } = useShell();
+  const { slug, tenant, viewer, personName, roles, counts } = useShell();
   const sections = visibleSections(hubOf('menu'), viewer).map((section) => section.id);
   const staff = useStaffList({ enabled: allows(viewer, [Permission.StaffRead]) });
   const signOut = useSignOut();
@@ -48,19 +50,33 @@ export function MenuView(): React.JSX.Element {
         : t('mTeamS', { used: seats.used, total: seats.total })
       : undefined,
     activity: t('mActivityS'),
+    notices: t('mNoticesS', { n: counts.notices ?? 0 }),
     settings: t('mSettingsS'),
     account: t('mAccountS'),
   };
-  const sectionRow = (id: 'team' | 'activity' | 'settings' | 'account') => (
+  const sectionRow = (id: 'team' | 'activity' | 'notices' | 'settings' | 'account') => (
     <Link key={id} to={`/$shop/${id}`} params={{ shop: slug }} className={menuRowClass}>
       <MenuRowInner
         icon={ICONS[id]}
-        title={shell(`sec${id.charAt(0).toUpperCase()}${id.slice(1)}`)}
+        title={
+          id === 'notices' && counts.notices ? (
+            <>
+              {shell('secNotices')}{' '}
+              <span
+                className="inline-block size-2 rounded-full bg-accent align-middle"
+                aria-hidden="true"
+              />
+            </>
+          ) : (
+            shell(`sec${id.charAt(0).toUpperCase()}${id.slice(1)}`)
+          )
+        }
         sub={subs[id]}
+        tone={id === 'notices' ? 'mari' : undefined}
       />
     </Link>
   );
-  const shopSections = (['team', 'activity', 'settings'] as const).filter((id) =>
+  const shopSections = (['team', 'activity', 'notices', 'settings'] as const).filter((id) =>
     sections.includes(id),
   );
 

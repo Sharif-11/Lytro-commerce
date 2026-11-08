@@ -12,3 +12,4 @@ export * from './measure';
 export * from './payment-methods';
 export * from './transaction-id';
 export * from './sms-templates';
+export * from './request-id';

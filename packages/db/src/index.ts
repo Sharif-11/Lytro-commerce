@@ -73,6 +73,17 @@ export {
   type NotificationRecipient,
 } from './repositories/notifications/notification.repository';
 export {
+  NoticeRepository,
+  type NoticeAcknowledgmentRow,
+  type NoticeBoardFilter,
+  type NoticeBoardRow,
+  type NoticeCounts,
+  type NoticeShop,
+  type NoticeShopFacts,
+  type NoticeViewer,
+  type RateChangeRow,
+} from './repositories/notifications/notice.repository';
+export {
   PushSubscriptionRepository,
   type NewPushSubscription,
 } from './repositories/notifications/push-subscription.repository';
@@ -113,6 +124,10 @@ export {
   type NewPlatformAuditEntry,
 } from './repositories/platform/platform-audit-log.repository';
 export { PlatformSettingsRepository } from './repositories/platform/platform-settings.repository';
+export {
+  RequestErrorRepository,
+  type NewRequestError,
+} from './repositories/platform/request-error.repository';
 export {
   BalanceLedgerRepository,
   type LedgerFilters,
@@ -303,6 +318,7 @@ export {
 } from './repositories/orders/order-extraction.repository';
 export {
   FraudCheckRepository,
+  type FraudOrderFacts,
   type NewFraudCheck,
   type OwnOrderCounts,
 } from './repositories/fraud/fraud-check.repository';

@@ -22,7 +22,7 @@ import { useShell } from '@/shell/shell-context';
 import type { AddonOffer, AddonQuote } from '@/types/addons';
 import type { UsageFigure } from '@/types/usage';
 import { changedAmount } from '@/views/plan/words';
-import { boughtToast, limitChange, limitMove, nameOf } from './addon-words';
+import { boughtToast, limitChange, limitMove, nameOf, usesOf } from './addon-words';
 
 interface BuySheetProps {
   /** The add-on, as GET /addons prices it now. */
@@ -31,6 +31,8 @@ interface BuySheetProps {
   figures: readonly UsageFigure[];
   /** On pay-as-you-go an add-on runs its own 30 days and renews from the balance. */
   payg: boolean;
+  /** PLN-20: an allowance's uses still left, for the reads before and after (Part 37's `p37-sh-reads-buy`). */
+  usesLeft?: number;
   onClose: () => void;
   /** It went through or was sent for checking: the toast to end on. */
   onDone: (message: string) => void;
@@ -46,6 +48,7 @@ export function BuySheet({
   offer,
   figures,
   payg,
+  usesLeft = 0,
   onClose,
   onDone,
 }: BuySheetProps): React.JSX.Element {
@@ -64,7 +67,9 @@ export function BuySheet({
   const [opened, setOpened] = useState<AddonQuote | null>(null);
 
   const addon = offer.addon;
-  const name = nameOf(addon, i18n.language);
+  const allowance = addon.kind === AddonKind.Allowance;
+  const name = allowance ? t('p37UReads') : nameOf(addon, i18n.language);
+  const uses = usesOf(addon) * quantity;
   const amount = changed ?? String(offer.amounts[quantity - 1] ?? offer.price ?? 0);
   const available = balance.data && !balance.data.frozen ? Number(balance.data.amount) : null;
   const enough = available !== null && available >= Number(amount);
@@ -89,6 +94,10 @@ export function BuySheet({
             { paymentId: made.payment.id, method: 'balance' },
             {
               onSuccess: (result) => {
+                if (allowance) {
+                  onDone(t('p37ReadsBought', { n: uses }));
+                  return;
+                }
                 onDone(
                   boughtToast(
                     {
@@ -183,6 +192,12 @@ export function BuySheet({
         </div>
       )}
       {move ? <Kv label={t('abLimit')} value={limitChange(move, t)} /> : null}
+      {allowance ? (
+        <Kv
+          label={t('p37BuyReadsLimit')}
+          value={<span className="num">{`${String(usesLeft)} → ${String(usesLeft + uses)}`}</span>}
+        />
+      ) : null}
       <Kv label={t('abNow')} value={formatTaka(amount)} total />
       <p className="num text-[14px] text-fg-muted">
         {payg

@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mockApi, type ConsoleState } from './support/mock-api';
 
-// OPERATOR-CONSOLE-DESIGN §9: every platform value that is not a rate, in nine groups.
+// OPERATOR-CONSOLE-DESIGN §9: every platform value that is not a rate, in thirteen groups (v5 adds Phase 6's and 7's).
 
 async function open(page: Page, state: ConsoleState = {}) {
   const log = await mockApi(page, state);
@@ -25,10 +25,12 @@ async function typeReason(page: Page): Promise<void> {
 const timeline = (page: Page) =>
   main(page).locator('section').filter({ hasText: 'What these numbers do' });
 
-test('shows all 28 in their nine groups, each saying what its number counts', async ({ page }) => {
+test('shows all 37 in their thirteen groups, each saying what its number counts', async ({
+  page,
+}) => {
   await open(page);
-  await expect(main(page).getByRole('button', { name: /^Change:/ })).toHaveCount(28);
-  await expect(main(page).getByRole('heading', { level: 2 })).toHaveCount(9);
+  await expect(main(page).getByRole('button', { name: /^Change:/ })).toHaveCount(37);
+  await expect(main(page).getByRole('heading', { level: 2 })).toHaveCount(13);
   await expect(main(page).locator('#settings-group-1')).toContainText('30 days');
   await expect(main(page).locator('#settings-group-1')).toContainText('৳50,000');
   await expect(main(page).locator('#settings-group-3')).toContainText('30 minutes');
@@ -40,6 +42,62 @@ test('shows all 28 in their nine groups, each saying what its number counts', as
   await expect(main(page).locator('#settings-group-7')).toContainText('100 MB');
   await expect(main(page).locator('#settings-group-8')).toContainText('300 seconds');
   await expect(main(page).locator('#settings-group-9')).toContainText('2026-11-04');
+  await expect(main(page).locator('#settings-group-10')).toContainText('6 hours');
+  await expect(main(page).locator('#settings-group-10')).toContainText('10 minutes');
+  await expect(main(page).locator('#settings-group-11')).toContainText('Gemini');
+  await expect(main(page).locator('#settings-group-11')).toContainText('gemini-3.5-flash-lite');
+  await expect(main(page).locator('#settings-group-12')).toContainText('30 a minute');
+  await expect(main(page).locator('#settings-group-13')).toContainText('30 days');
+});
+
+test("Phase 7's settings: the AI, its model's warning, and how long notifications stay (v5)", async ({
+  page,
+}) => {
+  const log = await open(page);
+  await change(page, 'The AI that reads').click();
+  await expect(main(page).getByRole('combobox', { name: 'The AI that reads' })).toHaveValue(
+    'gemini',
+  );
+  await expect(
+    main(page).getByText('Gemini is the only AI Lytro can read with today', { exact: false }),
+  ).toBeVisible();
+  await main(page).getByRole('button', { name: 'Cancel' }).click();
+
+  await change(page, 'Its model').click();
+  await expect(
+    main(page).getByText('The name goes to Gemini as typed.', { exact: false }),
+  ).toBeVisible();
+  await main(page).getByRole('textbox', { name: 'Its model' }).fill('gemini-3.5-flash');
+  await typeReason(page);
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
+  expect(log.sent('PATCH', '/operator/settings/address_read_model')).toMatchObject({
+    value: 'gemini-3.5-flash',
+    reason: 'Because',
+  });
+
+  await change(page, 'A notification is kept for').click();
+  await expect(
+    main(page).getByText('Lowering it deletes the older notifications', { exact: false }),
+  ).toBeVisible();
+});
+
+test('refuses a count that is not a whole number of 1 or more, sending nothing (v5)', async ({
+  page,
+}) => {
+  const log = await open(page);
+  await change(page, 'Checks per shop').click();
+  await main(page).getByRole('textbox', { name: 'Checks per shop' }).fill('0');
+  await typeReason(page);
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(main(page).getByRole('alert')).toHaveText(
+    'A whole number of 1 or more. Nothing was saved.',
+  );
+  expect(log.sent('PATCH', '/operator/settings/fraud_checks_per_shop_per_minute')).toBeUndefined();
+  await main(page).getByRole('textbox', { name: 'Checks per shop' }).fill('40');
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
+  expect(log.sent('PATCH', '/operator/settings/fraud_checks_per_shop_per_minute')).toMatchObject({
+    value: 40,
+  });
 });
 
 test('each row says what it does and who last changed it', async ({ page }) => {
@@ -97,7 +155,7 @@ test('a number needs a reason, and goes as a number', async ({ page }) => {
   const value = main(page).getByRole('textbox', { name: 'Trial length' });
   await expect(value).toBeFocused();
   await value.fill('14');
-  const save = main(page).getByRole('button', { name: 'Save' });
+  const save = main(page).getByRole('button', { name: 'Save', exact: true });
   await expect(save).toBeDisabled();
   await typeReason(page);
   await save.click();
@@ -119,7 +177,7 @@ test('the senders edit one to a line, and go as a list', async ({ page }) => {
   ).toBeVisible();
   await value.fill('bKash\n\n  NAGAD \nRocket\n');
   await typeReason(page);
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Wallet senders is now bKash, NAGAD, Rocket.')).toBeVisible();
   expect(log.sent('PATCH', '/operator/settings/listener_senders')).toEqual({
     value: ['bKash', 'NAGAD', 'Rocket'],
@@ -135,7 +193,7 @@ test('the order limit is a choice of two', async ({ page }) => {
   await expect(value).toHaveValue('allow_with_prompt');
   await value.selectOption('block');
   await typeReason(page);
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Past the order limit is now Block.')).toBeVisible();
   expect(log.sent('PATCH', '/operator/settings/order_limit_mode')).toEqual({
     value: 'block',
@@ -151,7 +209,7 @@ test('a terms version warns before it changes, and goes as words', async ({ page
   ).toBeVisible();
   await main(page).getByRole('textbox', { name: 'Terms version' }).fill('2027-01-01');
   await typeReason(page);
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Terms version is now 2027-01-01.')).toBeVisible();
   expect(log.sent('PATCH', '/operator/settings/terms_version')).toEqual({
     value: '2027-01-01',
@@ -164,7 +222,7 @@ test('an app version goes as words', async ({ page }) => {
   await change(page, 'Oldest app allowed').click();
   await main(page).getByRole('textbox', { name: 'Oldest app allowed' }).fill('1.2.0');
   await typeReason(page);
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Oldest app allowed is now 1.2.0.')).toBeVisible();
   expect(log.sent('PATCH', '/operator/settings/listener_min_app_version')).toEqual({
     value: '1.2.0',
@@ -190,11 +248,12 @@ test('a refused value stays open and says why', async ({ page }) => {
     },
   });
   await change(page, 'Trial length').click();
-  await main(page).getByRole('textbox', { name: 'Trial length' }).fill('-1');
+  // A whole number the field takes, which the server still refuses.
+  await main(page).getByRole('textbox', { name: 'Trial length' }).fill('400');
   await typeReason(page);
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
   await expect(main(page).getByText('That value is not valid for this setting.')).toBeVisible();
-  await expect(main(page).getByRole('textbox', { name: 'Trial length' })).toHaveValue('-1');
+  await expect(main(page).getByRole('textbox', { name: 'Trial length' })).toHaveValue('400');
 });
 
 test('a failed read says so and can be tried again', async ({ page }) => {

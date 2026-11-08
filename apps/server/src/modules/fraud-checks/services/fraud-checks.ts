@@ -11,15 +11,20 @@ import {
   DEFAULT_FRAUD_CHECKS_PER_SHOP_PER_MINUTE,
   FRAUD_CHECK_CACHE_DAYS,
   FraudCheckTrigger,
+  FraudSkipReason,
   FraudSource,
   FraudSourceState,
+  FulfilmentType,
   LedgerEntryType,
   PlatformSettingKey,
   RateKey,
   TenantState,
   type UpdateFraudRuleInput,
+  type Language,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
+import { MESSAGE_KEYS, type MessageKey } from '../../../common/i18n/message-key';
+import { translate } from '../../../common/i18n/messages';
 import { SlidingWindow } from '../../../common/sliding-window';
 import { DAY_MS, MINUTE_MS, SECOND_MS } from '../../../common/time';
 import { BalanceService } from '../../balance/services/balance.service';
@@ -55,6 +60,23 @@ export interface FraudCheckView {
   ownOrders: { delivered: number; returned: number; cancelled: number };
   /** FRD-03: what the balance paid. */
   cost: string;
+}
+
+/** A stored message key, read back: one the server still words, or nothing. */
+function isMessageKey(key: string): key is MessageKey {
+  return (MESSAGE_KEYS as readonly string[]).includes(key);
+}
+
+/** FRD-05 (Slice 7.7): how long a new order's automatic check may take before the page calls it failed. */
+export const ORDER_CHECK_WAIT_MS = 15 * 60 * 1000;
+
+/** FRD-05 (Slice 7.7): a new order's automatic check as the order's page shows it. */
+export interface OrderFraudCheckView {
+  state: 'done' | 'pending' | 'skipped' | 'not_applicable';
+  reason: FraudSkipReason | 'failed' | null;
+  minAmount: string | null;
+  message: string | null;
+  check: FraudCheckView | null;
 }
 
 /** FRD-05, D7-50: the automatic check. */
@@ -173,8 +195,14 @@ export class FraudChecks implements OnModuleInit, OnModuleDestroy {
    */
   async onNewOrder(job: FraudCheckJob): Promise<FraudCheckView | null> {
     const rule = await this.rule(job.tenantId);
-    if (!rule.codOrders) return null;
-    if (rule.minAmount !== null && toPaisa(job.codAmount) < toPaisa(rule.minAmount)) return null;
+    if (!rule.codOrders) {
+      await this.skipped(job, FraudSkipReason.RuleOff, null, null);
+      return null;
+    }
+    if (rule.minAmount !== null && toPaisa(job.codAmount) < toPaisa(rule.minAmount)) {
+      await this.skipped(job, FraudSkipReason.BelowMinimum, rule.minAmount, null);
+      return null;
+    }
     try {
       const rate = await this.rate();
       await this.refuseIfBarred(job.tenantId, rate);
@@ -192,8 +220,72 @@ export class FraudChecks implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       if (!(error instanceof ApiError)) throw error;
       this.logger.log(`skipped the automatic check of order ${job.orderId}: ${error.code}`);
+      await this.skipped(
+        job,
+        error.messageKey === 'TooManyFraudChecks'
+          ? FraudSkipReason.MinuteLimit
+          : FraudSkipReason.Refused,
+        null,
+        error.messageKey,
+      );
       return null;
     }
+  }
+
+  /**
+   * FRD-05, FRD-06 (Slice 7.7): a new order's automatic check as its page shows it -- done with the check, still being
+   * checked, skipped and why, or not one the rule covers (takeaway, dine-in, no phone, nothing collected). A refusal comes
+   * in the server's own words. A job that never wrote either, past the time one takes, failed.
+   */
+  async orderCheck(
+    tenantId: string,
+    orderId: string,
+    language: Language,
+  ): Promise<OrderFraudCheckView> {
+    const { order, check, skip } = await this.store.run(tenantId, (tx) =>
+      this.store.orderCheck(tx, tenantId, orderId),
+    );
+    if (!order) throw new ApiError('not_found', 'OrderNotFound', {});
+    const none = { reason: null, minAmount: null, message: null, check: null };
+    if (check) return { ...none, state: 'done', check: fraudCheckViewOf(check) };
+    if (skip) {
+      return {
+        ...none,
+        state: 'skipped',
+        reason: skip.reason,
+        minAmount: skip.minAmount,
+        message:
+          skip.messageKey !== null && isMessageKey(skip.messageKey)
+            ? translate(skip.messageKey, language)
+            : null,
+      };
+    }
+    const covered =
+      order.fulfilmentType === FulfilmentType.Delivery &&
+      order.customerPhone !== null &&
+      toPaisa(order.codAmount) > 0n;
+    if (!covered) return { ...none, state: 'not_applicable' };
+    const waited = this.clock().getTime() - order.createdAt.getTime();
+    return waited < ORDER_CHECK_WAIT_MS
+      ? { ...none, state: 'pending' }
+      : { ...none, state: 'skipped', reason: 'failed' };
+  }
+
+  private async skipped(
+    job: FraudCheckJob,
+    reason: FraudSkipReason,
+    minAmount: string | null,
+    messageKey: string | null,
+  ): Promise<void> {
+    await this.store.run(job.tenantId, (tx) =>
+      this.store.recordSkip(tx, {
+        tenantId: job.tenantId,
+        orderId: job.orderId,
+        reason,
+        minAmount,
+        messageKey,
+      }),
+    );
   }
 
   /** FRD-01: the latest check of a phone, asking no one. */

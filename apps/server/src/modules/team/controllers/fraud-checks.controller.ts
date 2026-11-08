@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Inject,
+  Param,
   Post,
   Put,
   Query,
@@ -21,12 +22,15 @@ import {
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
+import { headerValue } from '../../../common/http';
+import { resolveLanguage } from '../../../common/i18n/accept-language';
 import { IdempotencyInterceptor } from '../../../common/idempotency/idempotency.interceptor';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import {
   FraudChecks,
   type FraudCheckView,
   type FraudRuleView,
+  type OrderFraudCheckView,
 } from '../../fraud-checks/services/fraud-checks';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
@@ -35,6 +39,7 @@ import {
   FraudCheckQueryDto,
   FraudRuleDto,
   LatestFraudCheckDto,
+  OrderFraudCheckDto,
   RunFraudCheckDto,
   UpdateFraudRuleDto,
 } from '../dto/fraud-checks.dto';
@@ -88,6 +93,25 @@ export class FraudChecksController {
     @Req() request: DashboardRequest,
   ): Promise<{ latest: FraudCheckView | null }> {
     return { latest: await this.checks.latest(this.request.tenantIdOf(request), query.phone) };
+  }
+
+  @Get('orders/:orderId')
+  @RequirePermission(Permission.OrdersRead)
+  @ResponseMessage('FraudCheckRead')
+  @ApiOperation({
+    summary:
+      "A new order's automatic check as its page shows it: done with its figures, being checked, skipped and why, or not one the rule covers; for anyone who sees the order (FRD-05, Slice 7.7)",
+  })
+  @ZodResponse({ type: OrderFraudCheckDto })
+  orderCheck(
+    @Param('orderId') orderId: string,
+    @Req() request: DashboardRequest,
+  ): Promise<OrderFraudCheckView> {
+    return this.checks.orderCheck(
+      this.request.tenantIdOf(request),
+      this.request.idOf(orderId, 'OrderNotFound'),
+      resolveLanguage(headerValue(request.headers['accept-language'])),
+    );
   }
 
   @Get('rule')

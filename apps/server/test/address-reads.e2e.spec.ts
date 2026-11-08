@@ -396,6 +396,24 @@ describeIfDatabase('reading delivery details from a pasted message (ORD-30 to OR
   });
 });
 
+/** PLN-20 (Slice 7.7): the reads figures Usage shows. */
+async function payPerUseOf(shop: ShopClient): Promise<Record<string, unknown> | undefined> {
+  const usage = await shop.get('/usage');
+  expect(usage.status, JSON.stringify(usage.body)).toBe(200);
+  return (usage.body as { payPerUse: Record<string, unknown>[] }).payPerUse[0];
+}
+
+/** PLN-20 (Slice 7.7): an allowance's uses left, as the shop's add-ons show it. */
+async function usesLeftOf(
+  shop: ShopClient,
+  purchaseId: string,
+): Promise<number | null | undefined> {
+  const mine = await shop.get('/addons/mine');
+  expect(mine.status, JSON.stringify(mine.body)).toBe(200);
+  const addons = (mine.body as { addons: { id: string; usesLeft: number | null }[] }).addons;
+  return addons.find((addon) => addon.id === purchaseId)?.usesLeft;
+}
+
 describeIfDatabase('an address-read allowance (PLN-13, PLN-20, D7-17)', () => {
   async function allowanceId(): Promise<string> {
     return (
@@ -460,6 +478,15 @@ describeIfDatabase('an address-read allowance (PLN-13, PLN-20, D7-17)', () => {
       allowanceLeft: 199,
     });
     expect(await balanceOf(shop)).toBe(before);
+    // Slice 7.7: Usage and the shop's add-ons show what the allowance holds and has left.
+    expect(await payPerUseOf(shop)).toMatchObject({
+      key: 'address_reads',
+      // As control.rates keeps it, as GET /balance/current-rates gives it.
+      rate: '0.1000',
+      allowance: { used: 1, total: 200, left: 199 },
+      outsideAllowance: { count: 0, cost: '0.00' },
+    });
+    expect(await usesLeftOf(shop, purchaseId)).toBe(199);
     // A read that found nothing takes no use either.
     gemini.next = { kind: 'read', details: NOTHING };
     expect(((await read(shop)).body as Read).charged).toBeNull();
@@ -485,6 +512,11 @@ describeIfDatabase('an address-read allowance (PLN-13, PLN-20, D7-17)', () => {
       ['allowance', purchaseId],
       ['balance', null],
     ]);
+    expect(await payPerUseOf(shop)).toMatchObject({
+      allowance: { used: 2, total: 2, left: 0 },
+      outsideAllowance: { count: 1, cost: '0.10' },
+    });
+    expect(await usesLeftOf(shop, purchaseId)).toBe(0);
   });
 
   it('lets a shop with no balance read on its allowance, and two reads at once take a last use once', async () => {

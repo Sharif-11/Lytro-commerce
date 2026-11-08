@@ -100,7 +100,10 @@ export class DrizzleSmsEventStore implements SmsEventStore {
     return this.run(tenantId, (tx) => this.logRows.report(tx, tenantId, from, to));
   }
 
-  list(tenantId: string, page: SmsLogPage): Promise<SelectSmsLog[]> {
+  list(
+    tenantId: string,
+    page: SmsLogPage,
+  ): Promise<(SelectSmsLog & { orderNumber: string | null })[]> {
     return this.run(tenantId, (tx) => this.logRows.list(tx, tenantId, page));
   }
 }

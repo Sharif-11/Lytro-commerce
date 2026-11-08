@@ -71,26 +71,6 @@ function ReportsSketch(): React.JSX.Element {
   );
 }
 
-function NoticesSketch(): React.JSX.Element {
-  const { t } = useTranslation();
-  const button =
-    'inline-flex h-10 items-center gap-2 rounded-control px-3.5 text-[14px] font-semibold opacity-45';
-  return (
-    <>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className={`${button} bg-primary text-on-primary`}>
-          <ConsoleIcon name="plus" size={18} />
-          {t('later.drawn.newNotice')}
-        </span>
-        <span className={`${button} border border-line-strong bg-surface`}>
-          {t('later.drawn.templates')}
-        </span>
-      </div>
-      <SketchTable rows={5} columns={['2fr', '120px', '120px', '140px', '100px']} />
-    </>
-  );
-}
-
 function ManualSketch(): React.JSX.Element {
   const { t } = useTranslation();
   return (
@@ -111,7 +91,7 @@ function ManualSketch(): React.JSX.Element {
   );
 }
 
-export type LaterKey = 'reports' | 'audit' | 'inbox' | 'notices' | 'verification' | 'manual';
+export type LaterKey = 'reports' | 'audit' | 'inbox' | 'verification' | 'manual';
 
 const LATER: Record<LaterKey, { requirement: string; drawing: ReactNode }> = {
   reports: { requirement: 'ADM-09', drawing: <ReportsSketch /> },
@@ -133,7 +113,6 @@ const LATER: Record<LaterKey, { requirement: string; drawing: ReactNode }> = {
       </>
     ),
   },
-  notices: { requirement: 'NTC-01 to NTC-20', drawing: <NoticesSketch /> },
   verification: {
     requirement: 'KYC-07, KYC-09',
     drawing: (

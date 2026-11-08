@@ -130,6 +130,15 @@ export function formatLongDate(iso: string, language: string): string {
   return `${part('day')} ${month} ${part('year')}`;
 }
 
+/** A day in a line, as Part 37 writes it: "7 Nov", "7 নভেম্বর" (Dhaka's calendar, Western digits). */
+export function formatShortDay(iso: string, language: string): string {
+  if (language !== 'bn') return formatDayMonth(iso);
+  const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', timeZone: DHAKA }).format(
+    new Date(iso),
+  );
+  return `${day} ${formatMonth(iso, language)}`;
+}
+
 /** A month's own name in the visitor's language: "October", "অক্টোবর" (Dhaka's calendar). */
 export function formatMonth(iso: string, language: string): string {
   return new Intl.DateTimeFormat(language === 'bn' ? 'bn-BD' : 'en-GB', {

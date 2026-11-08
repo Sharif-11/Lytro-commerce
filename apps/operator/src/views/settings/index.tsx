@@ -4,7 +4,6 @@ import { Button } from '@lytronix/ui';
 import { PlatformSettingKey } from '@lytronix/validators';
 import { useSettings } from '@/api/settings';
 import { chipClass } from '@/components/ui/chip-class';
-import { Chips } from '@/components/ui/chips';
 import { ConsolePage, PageTitle, SectionTitle } from '@/components/ui/console-page';
 import { RowLines } from '@/components/ui/list-row';
 import { LoadFailed } from '@/components/ui/load-failed';
@@ -83,7 +82,7 @@ function SettingRow({
   );
 }
 
-/** OPERATOR-CONSOLE-DESIGN §9: every platform value that is not a rate, in nine groups. */
+/** OPERATOR-CONSOLE-DESIGN §9: every platform value that is not a rate, in thirteen groups. */
 export function Settings(): React.JSX.Element {
   const { t } = useTranslation();
   const settings = useSettings();
@@ -149,13 +148,14 @@ export function Settings(): React.JSX.Element {
         </section>
       ) : (
         <>
-          <Chips>
+          {/* Thirteen groups: on a phone the chips run off the edge; from 640 px they wrap (v5). */}
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
             {SETTING_GROUPS.map((number) => (
               <a key={number} href={`#${groupId(number)}`} className={chipClass(false)}>
                 {t(`settings.groups.${String(number)}`)}
               </a>
             ))}
-          </Chips>
+          </div>
           <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div className="flex min-w-0 flex-col gap-4">{[1, 2].map(group)}</div>
             <TimelineCard
@@ -165,7 +165,7 @@ export function Settings(): React.JSX.Element {
               archived={days(PlatformSettingKey.ArchivedDays)}
             />
           </div>
-          {[3, 4, 5, 6, 7, 8, 9].map(group)}
+          {SETTING_GROUPS.slice(2).map(group)}
         </>
       )}
     </ConsolePage>

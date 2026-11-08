@@ -43,6 +43,9 @@ import { UsageNoticeWorker } from './services/usage-notice-worker';
 import { NotificationsModule } from '../../notifications/notifications.module';
 import { NotificationPurgeTickWorker } from './services/notification-purge-tick-worker';
 import { NotificationPushWorker } from './services/notification-push-worker';
+import { NoticesModule } from '../../notices/notices.module';
+import { NoticePublishTickWorker } from './services/notice-publish-tick-worker';
+import { RequestErrorPurgeTickWorker } from './services/request-error-purge-tick-worker';
 
 // D27/D2-6: registers pg-boss queues and their work handlers. Kept apart from QueueModule (the queue mechanism
 // itself, SCL-08, D25) and from MessagingModule/BillingModule (the delivery/lifecycle business rules), so
@@ -69,6 +72,7 @@ import { NotificationPushWorker } from './services/notification-push-worker';
     SmsEventsModule,
     FraudChecksModule,
     NotificationsModule,
+    NoticesModule,
   ],
   providers: [
     SmsRetryWorker,
@@ -95,7 +99,9 @@ import { NotificationPushWorker } from './services/notification-push-worker';
     SmsEventWorker,
     FraudCheckWorker,
     NotificationPushWorker,
+    RequestErrorPurgeTickWorker,
     NotificationPurgeTickWorker,
+    NoticePublishTickWorker,
   ],
 })
 export class QueueWorkersModule {}

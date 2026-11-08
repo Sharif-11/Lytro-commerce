@@ -36,6 +36,16 @@ export function SettingValue({
       </span>
     );
   }
+  if (unit === 'ai') {
+    return (
+      <span className="font-semibold">
+        {t(`settings.aiProviders.${plain}`, { defaultValue: plain })}
+      </span>
+    );
+  }
+  if (unit === 'model') {
+    return <span className="mono font-semibold [overflow-wrap:anywhere]">{plain}</span>;
+  }
   if (unit === 'version' || unit === 'text') {
     return <span className="mono font-semibold">{plain}</span>;
   }

@@ -3,7 +3,14 @@ import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
 import { formatTaka } from '@lytronix/ui';
-import { FulfilmentType, PaymentMethod, Permission } from '@lytronix/validators';
+import {
+  AddressFieldState,
+  FulfilmentType,
+  PaymentMethod,
+  Permission,
+  SmsEvent,
+  type AddressRead,
+} from '@lytronix/validators';
 import { useLocations } from '@/api/delivery';
 import { useCustomerByPhone } from '@/api/customers';
 import {
@@ -32,11 +39,13 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useErrorText } from '@/hooks/use-error-text';
 import { allows } from '@/shell/hubs';
 import { courierName } from '@/lib/couriers';
+import { bangladeshiPhone } from '@/lib/phone';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import type { Locations } from '@/types/delivery';
 import type { Order, OrderQuote, PickerAsked } from '@/types/orders';
 import { AreaPickSheet } from '../delivery/area-pick-sheet';
+import { NewOrderFraud } from '../fraud/fraud-card';
 import { Segments } from '../product/value-sheet';
 import { noteBookedEdit } from './booked-edit';
 import { AddItemSheets, DetailsSheet, PriceSheet } from './item-sheets';
@@ -54,6 +63,8 @@ import {
 } from './order-draft';
 import { editsBooked } from './order-choices';
 import { useOrderWords } from './order-words';
+import { ReadMark, ReadMessageCard } from './read-message';
+import { SmsLine } from '@/views/sms/sms-line';
 
 const PRICING_REST_MS = 300;
 
@@ -66,6 +77,34 @@ const PAID_BY = [
   PaymentMethod.Upay,
   PaymentMethod.Bank,
 ] as const;
+
+/** The form's fields a read filled or missed, each marked until it is changed (Part 37's `p37-read-done`, ORD-31). */
+type ReadMarks = Partial<
+  Record<'phone' | 'name' | 'place' | 'address' | 'note', AddressFieldState>
+>;
+
+/** What a read said of the place: the zilla it matched, and what was written for a thana it didn't, or nearly did. */
+interface ReadPlace {
+  zillaId: number | null;
+  thana: string | null;
+  near: boolean;
+}
+
+/** The place's mark: missing only when neither was found, to check when either was a near match or no thana matched. */
+function placeMark(read: AddressRead): AddressFieldState {
+  const { zilla, thana } = read.fields;
+  if (zilla === AddressFieldState.Missing && thana === AddressFieldState.Missing) {
+    return AddressFieldState.Missing;
+  }
+  if (
+    zilla === AddressFieldState.Check ||
+    thana === AddressFieldState.Check ||
+    read.draft.locationId === null
+  ) {
+    return AddressFieldState.Check;
+  }
+  return AddressFieldState.Found;
+}
 
 /** New order (TENANT-DASHBOARD-DESIGN §7.31, Part 29's `order-new`; ORD-01, ORD-06, ORD-07, ORD-22, MNU-04). */
 export function NewOrderView(): React.JSX.Element {
@@ -177,6 +216,8 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
   );
   const [placing, setPlacing] = useState(false);
   const [problem, setProblem] = useState<unknown>(null);
+  const [marks, setMarks] = useState<ReadMarks>({});
+  const [readPlace, setReadPlace] = useState<ReadPlace | null>(null);
   // D4-8: one key for this order however often Create is pressed; a new one once the server has refused it.
   const key = useRef(crypto.randomUUID());
   const create = useCreateOrder();
@@ -188,6 +229,34 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
   const courier = booked && order.parcel ? courierName(order.parcel.courierKey) : '';
   const set = (patch: Partial<OrderDraft>) => {
     setDraft((now) => ({ ...now, ...patch }));
+  };
+  /** A field changed by hand loses its read mark. */
+  const unmark = (field: keyof ReadMarks) => {
+    setMarks((now) => (now[field] === undefined ? now : { ...now, [field]: undefined }));
+  };
+
+  // ORD-30, ORD-31: what a read found fills its field; what it didn't leaves the field as it was, marked.
+  const fillFrom = (read: AddressRead) => {
+    const found = read.draft;
+    const patch: Partial<OrderDraft> = { type: FulfilmentType.Delivery };
+    if (found.phone) patch.phone = bangladeshiPhone.localPart(found.phone);
+    if (found.customerName) patch.name = found.customerName;
+    if (found.locationId !== null) patch.locationId = found.locationId;
+    if (found.deliveryAddress) patch.address = found.deliveryAddress;
+    if (found.notes) patch.note = found.notes;
+    set(patch);
+    setMarks({
+      phone: read.fields.phone,
+      name: read.fields.customerName,
+      place: placeMark(read),
+      address: read.fields.deliveryAddress,
+      note: read.fields.notes,
+    });
+    setReadPlace({
+      zillaId: found.zillaId,
+      thana: read.written.thana,
+      near: read.fields.thana === AddressFieldState.Check && found.locationId !== null,
+    });
   };
 
   // D4-9: priced once the typing rests, from what the server would make of it.
@@ -212,6 +281,24 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
     ? placeOf(locations.data, customer.lastAddress.locationId, bn)
     : null;
   const noDelivery = priced?.warnings.some((each) => each.code === 'zone_no_delivery') ?? false;
+  // ORD-31: a read's zilla without a thana shows until one is picked, with what the message wrote for it.
+  const readZilla =
+    readPlace?.zillaId != null && draft.locationId === null
+      ? (locations.data?.zillas.find((each) => each.id === readPlace.zillaId) ?? null)
+      : null;
+  const zoneHelp =
+    priced?.deliveryZone && !noDelivery
+      ? t('zoneHelp', {
+          zone: bn ? priced.deliveryZone.name.bn : priced.deliveryZone.name.en,
+          charge: formatTaka(priced.deliveryZone.charge),
+        })
+      : undefined;
+  const placeHelp =
+    readPlace?.thana && draft.locationId === null
+      ? t('p37RdWritten', { w: readPlace.thana })
+      : readPlace?.near && readPlace.thana
+        ? `${t('p37RdNear', { w: readPlace.thana })} ${zoneHelp ?? ''}`.trim()
+        : zoneHelp;
   const placedFields = [
     'customerName',
     'phone',
@@ -272,19 +359,30 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
       {booked ? <Banner tone="info">{t('crEditLocked', { c: courier })}</Banner> : null}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
         <div className="flex min-w-0 flex-col gap-4">
+          {order ? null : <ReadMessageCard onRead={fillFrom} />}
           <Card className="flex flex-col gap-3">
             <CardTitle>{t('customer')}</CardTitle>
             <Field
-              label={t('phone')}
+              label={
+                <>
+                  {t('phone')}
+                  <ReadMark state={marks.phone} />
+                </>
+              }
               prefix="+880"
               inputMode="tel"
               autoComplete="off"
               value={draft.phone}
               error={problems.phone}
+              flagged={marks.phone === AddressFieldState.Check}
               onChange={(event) => {
                 set({ phone: event.target.value });
+                unmark('phone');
               }}
             />
+            {order === null && phoneOf(draft.phone) !== null ? (
+              <NewOrderFraud phone={phoneOf(draft.phone) ?? ''} />
+            ) : null}
             {customer ? (
               <Banner
                 tone="info"
@@ -313,11 +411,18 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
               </Banner>
             ) : null}
             <Field
-              label={t('name')}
+              label={
+                <>
+                  {t('name')}
+                  <ReadMark state={marks.name} />
+                </>
+              }
               value={draft.name}
               error={problems.customerName}
+              flagged={marks.name === AddressFieldState.Check}
               onChange={(event) => {
                 set({ name: event.target.value });
+                unmark('name');
               }}
             />
           </Card>
@@ -372,17 +477,21 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
                 ) : (
                   <>
                     <PickField
-                      label={t('district')}
-                      value={placed?.text ?? ''}
-                      error={problems.locationId}
-                      help={
-                        priced?.deliveryZone && !noDelivery
-                          ? t('zoneHelp', {
-                              zone: bn ? priced.deliveryZone.name.bn : priced.deliveryZone.name.en,
-                              charge: formatTaka(priced.deliveryZone.charge),
-                            })
-                          : undefined
+                      label={
+                        <>
+                          {t('district')}
+                          <ReadMark state={marks.place} />
+                        </>
                       }
+                      value={
+                        placed?.text ??
+                        (readZilla
+                          ? `${bn ? readZilla.nameBn : readZilla.nameEn} · ${t('p37RdPickThana')}`
+                          : '')
+                      }
+                      error={problems.locationId}
+                      flagged={marks.place === AddressFieldState.Check}
+                      help={placeHelp}
                       onPick={() => {
                         setPlacing(true);
                       }}
@@ -401,11 +510,18 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
                         </Banner>
                       ))}
                     <Field
-                      label={t('address')}
+                      label={
+                        <>
+                          {t('address')}
+                          <ReadMark state={marks.address} />
+                        </>
+                      }
                       value={draft.address}
                       error={problems.deliveryAddress}
+                      flagged={marks.address === AddressFieldState.Check}
                       onChange={(event) => {
                         set({ address: event.target.value });
+                        unmark('address');
                       }}
                     />
                   </>
@@ -526,32 +642,37 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
                 />
               )}
               <Field
-                label={t('note')}
+                label={
+                  <>
+                    {t('note')}
+                    <ReadMark state={marks.note} />
+                  </>
+                }
                 value={draft.note}
                 placeholder={t('notePh')}
                 error={problems.notes}
+                flagged={marks.note === AddressFieldState.Check}
                 onChange={(event) => {
                   set({ note: event.target.value });
+                  unmark('note');
                 }}
               />
             </Card>
           )}
-
-          {counter || order ? null : (
-            <Card>
-              {/* The prototype's `.later`: greyed, a phase still to come (as Home's checklist). */}
-              <div
-                aria-disabled="true"
-                className="flex items-center gap-2 text-[13px] text-fg-muted opacity-55"
-              >
-                <StatusTag tone="neutral">{t('later')}</StatusTag>
-                <span>{t('pasteLater')}</span>
-              </div>
-            </Card>
-          )}
         </div>
         <div className="min-w-0">
-          <Totals draft={draft} quote={priced} counter={counter} noDelivery={noDelivery} />
+          <Totals
+            draft={draft}
+            quote={priced}
+            counter={counter}
+            noDelivery={noDelivery}
+            foot={
+              // Part 37's `p37-new-sms` (D7-20): the SMS this order sends once it is made.
+              order ? null : (
+                <SmsLine event={SmsEvent.OrderPlaced} words="p37LinePlaced" className="mt-2.5" />
+              )
+            }
+          />
         </div>
       </div>
       <ActionBar>
@@ -609,7 +730,11 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
           zoneId={null}
           chosen={[]}
           onAdd={([ref]) => {
-            if (ref?.kind === 'thana') set({ locationId: ref.id });
+            if (ref?.kind === 'thana') {
+              set({ locationId: ref.id });
+              unmark('place');
+              setReadPlace(null);
+            }
             setPlacing(false);
           }}
           onClose={() => {
@@ -791,11 +916,14 @@ function Totals({
   quote,
   counter,
   noDelivery,
+  foot,
 }: {
   draft: OrderDraft;
   quote: OrderQuote | undefined;
   counter: boolean;
   noDelivery: boolean;
+  /** What closes the card: the SMS the order sends (Part 37). */
+  foot?: ReactNode;
 }): React.JSX.Element {
   const { t, i18n } = useTranslation('orders');
   const bn = i18n.language === 'bn';
@@ -833,6 +961,7 @@ function Totals({
       {paid > 0 || !counter ? (
         <Kv label={t('cod')} value={formatTaka(Math.max(total - paid, 0))} />
       ) : null}
+      {foot}
     </Card>
   );
 }

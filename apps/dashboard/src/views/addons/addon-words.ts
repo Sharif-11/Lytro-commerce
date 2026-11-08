@@ -28,6 +28,8 @@ export interface AddonGroup {
 const GROUP_TITLES: [AddonKind, string][] = [
   [AddonKind.Limit, 'aoLimitGrp'],
   [AddonKind.Pack, 'aoPackGrp'],
+  // PLN-20 (Part 37's `p37-addons`): pay per use, before Features.
+  [AddonKind.Allowance, 'p37AoAllowGrp'],
   [AddonKind.Feature, 'aoFeatGrp'],
 ];
 
@@ -61,6 +63,11 @@ export function groupsOf(offers: readonly AddonOffer[], owned: readonly ShopAddo
     title,
     lines: lines.filter((line) => line.addon.kind === kind),
   })).filter((group) => group.lines.length > 0);
+}
+
+/** The uses an allowance gives, for each one bought: 200 reads. */
+export function usesOf(addon: Pick<Addon, 'unitSize'>): number {
+  return addon.unitSize ?? 0;
 }
 
 /** An item's name in the language shown. */

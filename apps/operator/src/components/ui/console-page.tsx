@@ -13,11 +13,14 @@ export function ConsolePage({ children }: { children: ReactNode }): React.JSX.El
 /** A screen's title, with the sentence on what it is for. */
 export function PageTitle({
   title,
+  before,
   lead,
   tag,
   actions,
 }: {
   title: string;
+  /** A mark before the title, such as a pinned notice's tack. */
+  before?: ReactNode;
   lead?: ReactNode;
   tag?: ReactNode;
   /** The screen's buttons: under the title on a phone, beside it from 640 px. */
@@ -27,6 +30,7 @@ export function PageTitle({
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0 flex-auto">
         <h1 className="text-[22px] leading-[1.3] font-bold tracking-[-0.01em] lg:text-[24px]">
+          {before}
           {title} {tag}
         </h1>
         {lead ? <div className="mt-0.5 max-w-[720px] text-[14px] text-fg-muted">{lead}</div> : null}

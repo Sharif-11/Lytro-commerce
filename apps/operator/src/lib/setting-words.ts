@@ -2,13 +2,15 @@ import type { TFunction } from 'i18next';
 import { settingUnitOf, type SettingUnit } from './setting-shapes';
 import { taka } from './format';
 
-const COUNTED: readonly SettingUnit[] = [
+/** The units that count something: the server takes a whole number of 1 or more for each. */
+export const COUNTED: readonly SettingUnit[] = [
   'days',
   'minutes',
   'percent',
   'perMinute',
   'mb',
   'seconds',
+  'hours',
 ];
 
 /** What changed, the unit said once: "7 → 30 days". */
@@ -30,12 +32,15 @@ export function settingWords(key: string, value: unknown, t: TFunction): string 
       return taka(Number(value));
     case 'choice':
       return t(`settings.orderLimit.${plain}`, { defaultValue: plain });
+    case 'ai':
+      return t(`settings.aiProviders.${plain}`, { defaultValue: plain });
     case 'days':
     case 'minutes':
     case 'percent':
     case 'perMinute':
     case 'mb':
     case 'seconds':
+    case 'hours':
       return `${plain} ${t(`settings.units.${unit}`)}`;
     default:
       return plain;
