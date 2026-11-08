@@ -15,19 +15,26 @@ export function MenuRowInner({
   sub,
   chevron = true,
   danger = false,
+  tone,
 }: {
   icon: IconName;
   title: ReactNode;
   sub?: ReactNode;
   chevron?: boolean;
   danger?: boolean;
+  /** Its square's colour where the sketch draws another (Notices' marigold, Part 37's `p37-menu`). */
+  tone?: 'mari';
 }): React.JSX.Element {
   return (
     <>
       <span
         className={[
           'flex size-9 flex-none items-center justify-center rounded-button',
-          danger ? 'bg-danger-soft text-danger' : 'bg-info-soft text-info',
+          danger
+            ? 'bg-danger-soft text-danger'
+            : tone === 'mari'
+              ? 'bg-warning-soft text-warning'
+              : 'bg-info-soft text-info',
         ].join(' ')}
       >
         <Icon name={icon} />

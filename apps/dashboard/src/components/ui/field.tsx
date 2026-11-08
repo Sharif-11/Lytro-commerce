@@ -16,6 +16,10 @@ interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'prefix
   help?: ReactNode;
   /** The server's or the form's own wording; the control turns red. */
   error?: ReactNode;
+  /** Filled from a pasted message but to be checked (Part 37's `.p37chk`): a marigold edge. */
+  flagged?: boolean;
+  /** Red with no words under it, when a banner below says why (Part 37's `p37-signin-cantpay`). */
+  invalid?: boolean;
 }
 
 /** A labelled text field (the prototype's `.field`): a 48 px control with a 6 px radius, its help or error under it. */
@@ -25,6 +29,8 @@ export function Field({
   suffix,
   help,
   error,
+  flagged = false,
+  invalid = false,
   id,
   className,
   ...rest
@@ -39,14 +45,18 @@ export function Field({
       </label>
       <div
         className={[
-          'flex h-12 items-center gap-2 rounded-control border bg-surface px-3 text-[16px] focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-focus',
-          error ? 'border-danger' : 'border-line-strong',
+          'flex h-12 items-center gap-2 rounded-control border px-3 text-[16px] focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-focus',
+          error || invalid
+            ? 'border-danger bg-surface'
+            : flagged
+              ? 'border-accent-500 bg-[#fffaf0]'
+              : 'border-line-strong bg-surface',
         ].join(' ')}
       >
         {prefix ? <span className="font-medium text-fg-muted">{prefix}</span> : null}
         <input
           id={inputId}
-          aria-invalid={error ? true : undefined}
+          aria-invalid={error || invalid ? true : undefined}
           aria-describedby={error || help ? noteId : undefined}
           className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-fg-subtle"
           {...rest}
@@ -81,12 +91,15 @@ export function PickField({
   locked = false,
   chevron = 'down',
   trail,
+  flagged = false,
   onPick,
 }: {
   label: ReactNode;
   value: ReactNode;
   help?: ReactNode;
   error?: ReactNode;
+  /** Filled from a pasted message but to be checked (Part 37's `.p37chk`). */
+  flagged?: boolean;
   disabled?: boolean;
   /** Fixed for good, with a lock in place of the chevron (a booked order's thana, Part 36's `c36-edit`). */
   locked?: boolean;
@@ -109,8 +122,12 @@ export function PickField({
         disabled={disabled || locked}
         onClick={onPick}
         className={[
-          'flex h-12 items-center gap-2 rounded-control border bg-surface px-3 text-left text-[16px] text-fg disabled:cursor-default',
-          error ? 'border-danger' : 'border-line-strong',
+          'flex h-12 items-center gap-2 rounded-control border px-3 text-left text-[16px] text-fg disabled:cursor-default',
+          error
+            ? 'border-danger bg-surface'
+            : flagged
+              ? 'border-accent-500 bg-[#fffaf0]'
+              : 'border-line-strong bg-surface',
         ].join(' ')}
       >
         <span id={`${own}-value`} className="min-w-0 flex-1 truncate">

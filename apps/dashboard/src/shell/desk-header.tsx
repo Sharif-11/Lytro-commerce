@@ -2,6 +2,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/icon';
+import { BellButton } from '@/views/notifications/bell';
 import { useShell } from './shell-context';
 
 /** The first letter of a name as a reader sees it -- a Bangla letter with its vowel sign (রু), a Latin capital. */
@@ -20,7 +21,7 @@ interface DeskHeaderProps {
 
 /**
  * TENANT-DASHBOARD-DESIGN §4.3, the prototype's `.header`: from 1024 px, 64 px -- the page's title on the left;
- * search (320 px), +, the language and the person's initial on the right (the bell joins in Phase 7).
+ * search (320 px), +, the language, the bell (Phase 7, Part 37) and the person's initial on the right.
  */
 export function DeskHeader({ canSearch, canAdd }: DeskHeaderProps): React.JSX.Element {
   const { t, i18n } = useTranslation('shell');
@@ -81,6 +82,7 @@ export function DeskHeader({ canSearch, canAdd }: DeskHeaderProps): React.JSX.El
       >
         {t('langToggle')}
       </button>
+      <BellButton variant="desk" />
       <span
         title={personName ?? undefined}
         aria-hidden="true"

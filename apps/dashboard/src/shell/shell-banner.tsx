@@ -13,12 +13,12 @@ const TRIAL_WARNING_DAYS = 3;
 
 /**
  * TENANT-DASHBOARD-DESIGN §4.6 and §7.20: the one banner at the top of the page, the first that applies -- the
- * shop's lifecycle (trial, grace, read-only), then being offline. The support view's bar (ADM-05) and urgent notices
- * (NTC-04) join with Phases 8 and 7. Its way out goes to the plan, for whoever may see the plan.
+ * owner's bounced email (NTF-06), the shop's lifecycle (trial, grace, read-only), then being offline. The support view's
+ * bar (ADM-05) joins with Phase 8; urgent notices scroll in their own band under the bars (NTC-04). Its way out goes to the plan, for whoever may see the plan.
  */
 export function ShellBanner(): React.JSX.Element | null {
   const { t } = useTranslation('shell');
-  const { slug, tenant, viewer } = useShell();
+  const { slug, tenant, viewer, emailBounced } = useShell();
   const online = useOnline();
 
   const toPlans = (label: string): React.JSX.Element | undefined =>
@@ -28,6 +28,21 @@ export function ShellBanner(): React.JSX.Element | null {
       </Link>
     ) : undefined;
 
+  // NTF-06, D7-38 (Part 37's `p37-bounced`): the owner's email bounces, so Lytro stopped emailing it, before anything else.
+  if (emailBounced && viewer.isOwner) {
+    return (
+      <Banner
+        tone="bad"
+        action={
+          <Link to="/$shop/account" params={{ shop: slug }} className="text-primary">
+            {t('p37BounceFix')}
+          </Link>
+        }
+      >
+        {t('p37BounceB')}
+      </Banner>
+    );
+  }
   if (tenant.state === TenantState.Trial) {
     const left = daysUntil(tenant.periodEnd);
     if (left !== null && left <= TRIAL_WARNING_DAYS) {

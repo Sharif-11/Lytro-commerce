@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
 import { IdentityKind, OauthProvider } from '@lytronix/validators';
 import { useOauthProviders } from '@/api/auth';
+import { useMe } from '@/api/me';
 import { useAttachOauth, useIdentities, useRemoveIdentity } from '@/api/identities';
 import { FacebookIcon, GoogleIcon } from '@/components/brand/oauth-icons';
 import { Icon } from '@/components/icon';
@@ -57,6 +58,9 @@ function OwnAccount({ connected }: { connected: IdentityKind | null }): React.JS
   const attach = useAttachOauth(slug);
   const remove = useRemoveIdentity();
   const toast = useToast();
+  const me = useMe();
+  // NTF-06, D7-38 (Part 37's `p37-bounced-account`): the owner's email bouncing, said on its row.
+  const bounced = me.data?.emailBounced === true;
   const [changing, setChanging] = useState(false);
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<Identity | null>(null);
@@ -156,30 +160,57 @@ function OwnAccount({ connected }: { connected: IdentityKind | null }): React.JS
           ))}
           {providerRow(IdentityKind.Google, OauthProvider.Google, <GoogleIcon />)}
           {providerRow(IdentityKind.Facebook, OauthProvider.Facebook, <FacebookIcon />)}
-          <IdentityRow
-            mark={
-              <MarkTile tone="neutral">
+          {email && bounced ? (
+            <div className="flex min-h-16 w-full items-start gap-3 px-4 py-3">
+              <span className="flex size-10 flex-none items-center justify-center rounded-button bg-danger-soft text-danger">
                 <Icon name="sms" />
-              </MarkTile>
-            }
-            title={t('idEmailL')}
-            value={email ? email.value : t('idNone')}
-            action={
-              email ? (
-                removeButton(email)
-              ) : (
-                <Button
-                  tone="outline"
-                  size="xs"
-                  onClick={() => {
-                    setAdding(true);
-                  }}
-                >
-                  {t('addEmail')}
-                </Button>
-              )
-            }
-          />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="text-[16px] font-medium">{t('idEmailL')}</span>
+                <span className="num overflow-hidden text-[14px] text-ellipsis whitespace-nowrap text-fg-muted">
+                  {email.value}
+                </span>
+                <span className="text-[14px] font-medium text-danger">{t('p37BounceRow')}</span>
+                <span className="text-[14px] text-fg-muted">{t('p37BounceAcc')}</span>
+                <span className="mt-2">
+                  <Button
+                    tone="outline"
+                    size="xs"
+                    onClick={() => {
+                      setAdding(true);
+                    }}
+                  >
+                    {t('p37ChangeEmail')}
+                  </Button>
+                </span>
+              </span>
+            </div>
+          ) : (
+            <IdentityRow
+              mark={
+                <MarkTile tone="neutral">
+                  <Icon name="sms" />
+                </MarkTile>
+              }
+              title={t('idEmailL')}
+              value={email ? email.value : t('idNone')}
+              action={
+                email ? (
+                  removeButton(email)
+                ) : (
+                  <Button
+                    tone="outline"
+                    size="xs"
+                    onClick={() => {
+                      setAdding(true);
+                    }}
+                  >
+                    {t('addEmail')}
+                  </Button>
+                )
+              }
+            />
+          )}
         </RowList>
         <p className="px-4 pt-2 pb-4 text-[14px] text-fg-muted">{t('recoveryNote')}</p>
       </Card>
@@ -203,7 +234,7 @@ function OwnAccount({ connected }: { connected: IdentityKind | null }): React.JS
         }}
         onAdded={(address) => {
           setAdding(false);
-          toast.show(t('idEmailAdded', { email: address }));
+          toast.show(bounced ? t('p37BounceFixed') : t('idEmailAdded', { email: address }));
         }}
       />
       <Dialog

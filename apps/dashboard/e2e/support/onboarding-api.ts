@@ -30,6 +30,8 @@ export interface Journey {
   wrongCode?: boolean;
   /** AUTH-30 refuses a new shop. */
   refuseShop?: boolean;
+  /** D7-24 (Slice 7.7): the shop's balance can't pay for the sign-in code. */
+  codeUnpaid?: boolean;
   /** The sign-in providers the server offers. */
   providers?: string[];
 }
@@ -182,6 +184,15 @@ export async function mockOnboarding(page: Page, journey: Journey = {}): Promise
       if (code === '409409') return no(409, 'conflict', 'This cannot be added.');
       hasPhone = true;
       return ok({ attached: 'phone' });
+    }
+    if (path === '/auth/phone/code' && journey.codeUnpaid) {
+      return no(
+        402,
+        'quota_exceeded',
+        language === 'bn'
+          ? 'শপের ব্যালেন্সে এই কোডের টাকা নেই। পাসওয়ার্ড দিয়ে লগইন করুন বা টপ-আপ করুন।'
+          : "Your shop's balance can't pay for this code. Sign in with your password or top up.",
+      );
     }
     if (path === '/auth/phone/code' || path === '/auth/forgot-password') return ok(issued);
     if (path === '/auth/phone/verify' || path === '/auth/forgot-password/verify') {

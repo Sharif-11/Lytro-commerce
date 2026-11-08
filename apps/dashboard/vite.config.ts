@@ -12,7 +12,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // NTF-07, D7-44: a new version waits until the person taps Update, so a half-filled form is never lost; the app
+      // registers the worker itself (src/lib/service-worker.ts) and shows the prompt.
+      registerType: 'prompt',
+      injectRegister: false,
       includeAssets: ['logo.svg'],
       // No dev-mode service worker: vite-plugin-pwa's dev worker can keep serving a stale build after a
       // code change. Test installability with a real build: `pnpm build && pnpm preview`.
@@ -23,6 +26,8 @@ export default defineConfig({
       workbox: {
         // API calls are never cached offline — a stale /me or /auth response is worse than a network error.
         navigateFallbackDenylist: [/^\/api\//],
+        // NTF-02: the worker shows a push and opens its page when tapped (public/push-sw.js).
+        importScripts: ['push-sw.js'],
       },
     }),
   ],

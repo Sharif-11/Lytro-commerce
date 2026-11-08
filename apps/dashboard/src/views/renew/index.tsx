@@ -18,6 +18,7 @@ import { PlanCard, PlanRow } from '@/views/plan/parts';
 import { taka, useLimitLines } from '@/views/plan/words';
 import { usePlanCatalogue } from '@/views/plan/use-catalogue';
 import { ExportButton } from './export-button';
+import { ArchivedNotices, LockedNotices } from './renew-notices';
 
 const LAPSED: readonly TenantState[] = [TenantState.Locked, TenantState.Archived];
 
@@ -119,6 +120,7 @@ export function Renew(): React.JSX.Element {
       {payg.isError ? <Banner tone="bad">{errorText(payg.error)}</Banner> : null}
       <ExportButton />
       <SignOutLink />
+      {archived ? <ArchivedNotices /> : <LockedNotices />}
       {chosen && term ? (
         <HowToPaySheet
           option={chosen}

@@ -34,6 +34,7 @@ import {
 } from './addon-words';
 import { BuySheet } from './buy-sheet';
 import { PackSheet } from './pack-sheet';
+import { readsOf } from '@/views/usage/per-use';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -83,6 +84,8 @@ export function AddonsView({
     figures: usage.data?.metrics ?? [],
     checkingKey:
       notices.addon?.state === 'checking' ? (notices.addon.payment.addons[0]?.key ?? null) : null,
+    payg,
+    readRate: readsOf(usage.data)?.rate ?? null,
   };
 
   // Usage's links name an add-on or a pack: its sheet opens once the prices are read, and the link's mark is dropped.
@@ -231,6 +234,7 @@ export function AddonsView({
           offer={buying}
           figures={usage.data?.metrics ?? []}
           payg={payg}
+          usesLeft={owned.find((each) => each.addonId === buying.addon.id)?.usesLeft ?? 0}
           onClose={() => {
             setSheet(null);
           }}

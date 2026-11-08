@@ -3,7 +3,13 @@ import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
 import { ApiClientError } from '@lytronix/api-client';
-import { CallOutcome, CancelReason, FulfillmentStatus, ParcelState } from '@lytronix/validators';
+import {
+  CallOutcome,
+  CancelReason,
+  FulfillmentStatus,
+  ParcelState,
+  SmsEvent,
+} from '@lytronix/validators';
 import {
   useCancelOrder,
   useDeleteOrder,
@@ -37,6 +43,7 @@ import { PaymentLinkSheet, RecordPaymentSheet, RefundSheet, VoidSheet } from './
 import { ReturnSheet } from './return-sheet';
 import { HandOverSerialSheet, ShipSheet } from './ship-sheet';
 import { editsBooked, type OrderChoices } from './order-choices';
+import { SmsLine } from '@/views/sms/sms-line';
 
 /** The sheet or dialog over the order. A call's note goes with it to Call later or Cancel, and back. */
 export type OrderSheet =
@@ -529,6 +536,8 @@ function CancelSheet({
           setNote(event.target.value);
         }}
       />
+      {/* Part 37's `p37-o-cancel` and `p37-o-cancel-off` (D7-20). */}
+      <SmsLine event={SmsEvent.OrderCancelled} words="p37LineCancel" saysOff />
     </Sheet>
   );
 }

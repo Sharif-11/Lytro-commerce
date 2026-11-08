@@ -5,7 +5,6 @@ import { useTaxClasses } from '@/api/tax-classes';
 import type { IconName } from '@/components/icon';
 import { Card } from '@/components/ui/card';
 import { RowList } from '@/components/ui/list-row';
-import { Eyebrow, PhasePill } from '@/components/ui/page';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
@@ -17,6 +16,9 @@ type SettingsPath =
   | '/$shop/settings/couriers'
   | '/$shop/settings/payment-methods'
   | '/$shop/settings/listener'
+  | '/$shop/settings/sms'
+  | '/$shop/settings/notifications'
+  | '/$shop/settings/fraud-checks'
   | '/$shop/settings/brand'
   | '/$shop/settings/storefront'
   | '/$shop/settings/tax'
@@ -75,6 +77,28 @@ const ROWS: readonly {
     to: '/$shop/settings/listener',
     anyOf: [Permission.ListenerRead],
   },
+  // Phase 7 (Part 37's `p37-settings`): SMS, each person's own notifications, and the fake order check's rule.
+  {
+    icon: 'sms',
+    title: 'sSms',
+    sub: 'p37sSmsD',
+    to: '/$shop/settings/sms',
+    anyOf: [Permission.SmsRead],
+  },
+  {
+    icon: 'bell',
+    title: 'sNotif',
+    sub: 'p37sNotifD',
+    to: '/$shop/settings/notifications',
+    anyOf: [],
+  },
+  {
+    icon: 'shield',
+    title: 'sFraud',
+    sub: 'p37sFraudD',
+    to: '/$shop/settings/fraud-checks',
+    anyOf: [Permission.FraudRead],
+  },
   {
     icon: 'globe',
     title: 'sStore',
@@ -112,20 +136,13 @@ const ROWS: readonly {
   },
 ];
 
-// What the shop will set up later, greyed with the phase it arrives in (the prototype's "Coming later").
-const LATER: readonly { icon: IconName; title: string; phase: number }[] = [
-  { icon: 'sms', title: 'sSms', phase: 7 },
-  { icon: 'bell', title: 'sNotif', phase: 7 },
-];
-
 /**
  * Settings (TENANT-DASHBOARD-DESIGN §7.16, the prototype's `settings`): the shop's own settings as rows into their
- * pages, each as its permission allows, then what comes later with its phase.
+ * pages, each as its permission allows. Since Phase 7 (Part 37) nothing is left "coming later".
  */
 export function SettingsView(): React.JSX.Element {
   const { t } = useTranslation('menu');
   const { t: shell } = useTranslation('shell');
-  const { t: home } = useTranslation('home');
   const { slug, viewer } = useShell();
   const rows = ROWS.filter((row) =>
     row.anyOf === 'owner' ? viewer.isOwner : allows(viewer, row.anyOf),
@@ -156,23 +173,6 @@ export function SettingsView(): React.JSX.Element {
           </RowList>
         </Card>
       ) : null}
-      <div className="flex flex-col gap-2">
-        <Eyebrow>{t('comingLater')}</Eyebrow>
-        <Card flush>
-          <RowList>
-            {LATER.map((row) => (
-              <div
-                key={row.title}
-                aria-disabled="true"
-                className={`${menuRowClass} min-h-[52px] opacity-55`}
-              >
-                <MenuRowInner icon={row.icon} title={t(row.title)} chevron={false} />
-                <PhasePill>{shell('laterPhase', { p: home('phase', { n: row.phase }) })}</PhasePill>
-              </div>
-            ))}
-          </RowList>
-        </Card>
-      </div>
     </ShellPage>
   );
 }

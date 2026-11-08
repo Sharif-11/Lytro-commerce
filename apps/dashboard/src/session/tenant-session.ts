@@ -24,6 +24,9 @@ export class TenantSession {
       getCsrfToken: () => this.csrfToken,
       // TEN-31: every call from a shop's page names that shop; the server checks the person belongs to it.
       getShop: () => shopOfPath(window.location.pathname),
+      // I18N-01, NTC-15: the server's words (the bell, Lytro's notices, every message) come in the language the page
+      // shows, which the language setup keeps on <html lang>, not the browser's own.
+      getLanguage: () => document.documentElement.lang || null,
     });
     this.ready = new Promise((resolve) => {
       this.resolveReady = resolve;

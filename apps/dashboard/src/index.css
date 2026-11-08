@@ -22,3 +22,49 @@
     break-after: page;
   }
 }
+
+/* NTC-04, D7-54 (Part 37's `.mq37`): the urgent marquee runs its notices twice over, half its width each loop. */
+@keyframes p37-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* NTC-16, D7-53 (Part 37's `.nb37body`): a notice's body as the server renders it -- paragraphs, bold, lists and https
+   links opening a new tab. */
+.notice-body {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--color-fg);
+}
+html[lang='bn'] .notice-body {
+  line-height: 1.75;
+}
+.notice-body p {
+  margin: 0 0 12px;
+}
+.notice-body p:last-child,
+.notice-body ul:last-child {
+  margin-bottom: 0;
+}
+.notice-body ul {
+  margin: 0 0 12px;
+  padding-inline-start: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: disc;
+}
+.notice-body a {
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+.notice-body a svg {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-left: 2px;
+  vertical-align: -2px;
+}

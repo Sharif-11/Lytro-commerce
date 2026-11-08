@@ -7,11 +7,12 @@ import { Kv } from '@/components/ui/kv';
 import { formatDayMonthYear } from '@/lib/dates';
 import type { RateValue } from '@/types/balance';
 
-// What the balance pays per use (RAT-06), in the sketch's order; the rest join with their phases.
-const SHOWN: readonly { key: RateKey; word: 'rateSms' | 'rateFraud' | 'rateAi' }[] = [
+// What the balance pays per use (RAT-06), in the sketch's order, as the server has them (Part 37's `p37-balance`: an
+// address read, a fake order check free while its rate is nothing, and no chat AI this release; D7-1, D7-16, D7-25).
+const SHOWN: readonly { key: RateKey; word: 'rateSms' | 'rateExtract' | 'rateFraud' }[] = [
   { key: RateKey.SmsPerUnit, word: 'rateSms' },
+  { key: RateKey.AiExtraction, word: 'rateExtract' },
   { key: RateKey.FraudCheck, word: 'rateFraud' },
-  { key: RateKey.AiReply, word: 'rateAi' },
 ];
 
 /** Current rates (TENANT-DASHBOARD-DESIGN §7.11, RAT-06): each per-use rate and when the newest took effect. */
@@ -39,7 +40,7 @@ export const RatesCard = forwardRef<HTMLDivElement, { rates: RateValue[] }>(func
               <Kv
                 key={key}
                 label={t(word, { chars: chars ? Number(chars) : 70 })}
-                value={formatTakaExact(value)}
+                value={Number(value) === 0 ? t('p37FreeNow') : formatTakaExact(value)}
               />,
             ];
           })}

@@ -60,5 +60,7 @@
   "jobShort_other": "{{count}} products short for orders",
   "jobVerify_one": "{{count}} payment to verify",
   "jobVerify_other": "{{count}} payments to verify",
-  "ckCourierD": "Steadfast, Pathao or RedX"
+  "ckCourierD": "Steadfast, Pathao or RedX",
+  "p37JobAck_one": "{{count}} notice needs your \"I understand\"",
+  "p37JobAck_other": "{{count}} notices need your \"I understand\""
 }

@@ -47,6 +47,7 @@ function usageWith(suggestions: ShopUsage['suggestions']): ShopUsage {
     suggestions,
     fastSpendAlertedAt: null,
     packs: [],
+    payPerUse: [],
   };
 }
 

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from '@tanstack/react-router';
 import { formatTaka } from '@lytronix/ui';
 import { ApiClientError } from '@lytronix/api-client';
-import { PaymentMethod, Permission } from '@lytronix/validators';
+import { PaymentMethod, Permission, SmsEvent } from '@lytronix/validators';
 import {
   useMakePaymentLink,
   useRecordPayment,
@@ -25,6 +25,7 @@ import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { Order, OrderPayment } from '@/types/orders';
 import { useOrderWords } from './order-words';
+import { SmsLine } from '@/views/sms/sms-line';
 
 /** How a payment by hand came (ORD-15), in the order Part 29's `o29-pay` lists them; cash on delivery is never typed. */
 const METHODS: readonly PaymentMethod[] = [
@@ -170,6 +171,8 @@ export function RecordPaymentSheet({
           }}
         />
       ) : null}
+      {/* Part 37's `p37-o-pay` (D7-20). */}
+      <SmsLine event={SmsEvent.PaymentVerified} words="p37LinePay" />
     </Sheet>
   );
 }

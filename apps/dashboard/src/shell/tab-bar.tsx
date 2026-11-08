@@ -41,6 +41,10 @@ export function TabBar(): React.JSX.Element {
                 {pill}
               </span>
             ) : null}
+            {/* NTC-03 (Part 37): unread notices put a marigold dot on Menu. */}
+            {hub.id === 'menu' && counts.notices ? (
+              <span className="absolute top-1.5 left-[calc(50%+8px)] size-2 rounded-full bg-accent" />
+            ) : null}
           </Link>
         );
       })}
