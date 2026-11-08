@@ -11,12 +11,14 @@ import {
   ServerFieldProblemCode,
   type NoticeAudience,
   type NoticeCreateInput,
+  type NoticeReachInput,
   type NoticesQuery,
   type NoticeTemplateInput,
   type NoticeUpdateInput,
 } from '@lytronix/validators';
 import { ApiError, FieldsError, type InvalidField } from '../../../common/api-error';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
+import { OperatorDirectory } from '../../operator/services/operator-directory';
 import { NOTICE_TEMPLATES, type NoticeDraft } from '../notice-words';
 import type { NoticeStore } from '../ports/notice-store';
 import { NOTICE_STORE, NOTICES_CLOCK } from '../tokens';
@@ -49,6 +51,7 @@ export class NoticeDesk {
     @Inject(NOTICE_STORE) private readonly store: NoticeStore,
     @Inject(NOTICES_CLOCK) private readonly clock: () => Date,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
+    @Inject(OperatorDirectory) private readonly operators: OperatorDirectory,
   ) {}
 
   async list(query: NoticesQuery): Promise<{ items: OperatorNoticeView[]; next: number | null }> {
@@ -72,10 +75,16 @@ export class NoticeDesk {
       this.store.countsOf(id),
       this.store.versions(id),
     ]);
+    const emails = await this.operators.emailsOf([
+      notice.createdBy,
+      ...versions.map((version) => version.editedBy),
+    ]);
     return {
       ...this.view(notice, counts, this.clock()),
+      createdByEmail: emails.get(notice.createdBy) ?? null,
       versions: versions.map((version) => ({
         editedBy: version.editedBy,
+        editedByEmail: emails.get(version.editedBy) ?? null,
         replacedAt: version.createdAt,
         snapshot: version.snapshot,
       })),
@@ -180,6 +189,12 @@ export class NoticeDesk {
       return notice;
     });
     return this.view(withdrawn, await this.store.countsOf(id), now);
+  }
+
+  /** NTC-02 (Slice 7.7): how many shops an audience takes in now, for the publish panel before the notice is saved. */
+  async reach(input: NoticeReachInput): Promise<{ shops: number }> {
+    await this.refuseMissing({ audience: input.audience });
+    return { shops: await this.store.audienceCount(input, null) };
   }
 
   /** NTC-05: the shops in its audience now that said "I understand", and those still to. */

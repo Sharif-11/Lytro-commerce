@@ -198,6 +198,15 @@ export const noticeTemplateSchema = z
   .strict();
 export type NoticeTemplateInput = z.infer<typeof noticeTemplateSchema>;
 
+/**
+ * NTC-02 (Slice 7.7): the console's publish panel -- how many shops an audience takes in now, before the notice is saved.
+ * The severity matters: an archived shop sees urgent notices only (NTC-07).
+ */
+export const noticeReachSchema = z
+  .object({ audience: noticeAudienceSchema, severity: z.nativeEnum(NoticeSeverity) })
+  .strict();
+export type NoticeReachInput = z.infer<typeof noticeReachSchema>;
+
 /** NTC-03: a page of the board, newest first after the pinned ones, by category or words. */
 export const noticesQuerySchema = z
   .object({

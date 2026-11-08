@@ -96,14 +96,17 @@ export interface OperatorNoticeView {
   counts: NoticeCounts;
 }
 
-/** NTC-08: an earlier version, kept by the edit that replaced it. */
+/** NTC-08: an earlier version, kept by the edit that replaced it, with that operator's email (Slice 7.7). */
 export interface NoticeVersionView {
   editedBy: string;
+  editedByEmail: string | null;
   replacedAt: Date;
   snapshot: NoticeSnapshot;
 }
 
 export interface OperatorNoticeDetail extends OperatorNoticeView {
+  // Slice 7.7: who wrote it, as their email; null for an operator no longer on the console.
+  createdByEmail: string | null;
   versions: NoticeVersionView[];
 }
 

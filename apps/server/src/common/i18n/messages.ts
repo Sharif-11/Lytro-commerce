@@ -1861,7 +1861,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Notification settings saved.',
     bn: 'নোটিফিকেশন সেটিংস সেভ হয়েছে।',
   },
-  PushKeyRead: { en: 'Push key.', bn: 'পুশ কি।' },
+  PushKeyRead: { en: 'Push key.', bn: 'পুশ কী।' },
   PushSubscribed: {
     en: 'Notifications will come to this device.',
     bn: 'এই ডিভাইসে নোটিফিকেশন আসবে।',
@@ -1891,6 +1891,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Template filled in. Check it before saving.',
     bn: 'টেমপ্লেট পূরণ হয়েছে। সেভ করার আগে দেখে নিন।',
   },
+  NoticeReachCounted: { en: 'Shops counted.', bn: 'শপ গোনা হয়েছে।' },
   NoticeNotFound: { en: 'This notice is not available.', bn: 'এই নোটিশটি পাওয়া যাচ্ছে না।' },
   NoticeNeedsNoAcknowledgment: {
     en: 'This notice does not ask for "I understand".',

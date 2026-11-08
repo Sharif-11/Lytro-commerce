@@ -27,7 +27,7 @@ export class RatesRepository {
     newValue: string,
     changedBy: string | null,
     noticeId: string | null,
-  ): Promise<void> {
+  ): Promise<number> {
     await db
       .insert(rates)
       .values({ key, value: newValue })
@@ -35,7 +35,13 @@ export class RatesRepository {
         target: rates.key,
         set: { value: newValue, effectiveFrom: new Date() },
       });
-    await db.insert(rateHistory).values({ key, oldValue, newValue, changedBy, noticeId });
+    const rows = await db
+      .insert(rateHistory)
+      .values({ key, oldValue, newValue, changedBy, noticeId })
+      .returning({ id: rateHistory.id });
+    const id = rows[0]?.id;
+    if (id === undefined) throw new Error('A rate change was not written.');
+    return id;
   }
 
   async history(db: Executor, key: RateKey): Promise<SelectRateHistory[]> {

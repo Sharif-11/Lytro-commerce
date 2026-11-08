@@ -213,7 +213,7 @@ export function courierConnectionText(
   const courier = COURIER_NAMES[courierKey];
   const bodies: Record<typeof trouble, Bilingual<string>> = {
     login_refused: {
-      bn: `${courier} আপনার লগইন নিচ্ছে না। কুরিয়ার সেটিংসে কি আবার দিন।`,
+      bn: `${courier} আপনার লগইন নিচ্ছে না। কুরিয়ার সেটিংসে কী আবার দিন।`,
       en: `${courier} refuses your login. Enter the keys again in courier settings.`,
     },
     paste_broken: {

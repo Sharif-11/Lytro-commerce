@@ -54,6 +54,7 @@ export const recentChangeSchema = z.object({
   oldValue: z.unknown(),
   newValue: z.unknown(),
   reason: z.string().nullable(),
+  rateChangeId: z.number().int().nullable(),
   shop: z.object({ id: z.string(), name: z.string(), slug: z.string() }).nullable(),
 });
 export class RecentChangeListDto extends createZodDto(recentChangeSchema.array()) {}

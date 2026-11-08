@@ -24,6 +24,8 @@ export interface AuditChangeSummary {
   oldValue?: unknown;
   newValue?: unknown;
   reason?: string;
+  // NTC-13 (Slice 7.7): a rate change's history id, kept on its entry from 2026-11-08.
+  rateChangeId?: number;
 }
 
 export interface RecentAuditEntryRow {

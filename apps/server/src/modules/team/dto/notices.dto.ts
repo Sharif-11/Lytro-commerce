@@ -4,6 +4,7 @@ import {
   NoticeCategory,
   noticeAudienceSchema,
   noticeCreateSchema,
+  noticeReachSchema,
   NoticeSeverity,
   NoticeStatus,
   noticesQuerySchema,
@@ -16,6 +17,7 @@ export class NoticesQueryDto extends createZodDto(noticesQuerySchema) {}
 export class NoticeCreateDto extends createZodDto(noticeCreateSchema) {}
 export class NoticeUpdateDto extends createZodDto(noticeUpdateSchema) {}
 export class NoticeTemplateDto extends createZodDto(noticeTemplateSchema) {}
+export class NoticeReachDto extends createZodDto(noticeReachSchema) {}
 
 const category = z.nativeEnum(NoticeCategory);
 const severity = z.nativeEnum(NoticeSeverity);
@@ -123,9 +125,11 @@ export class OperatorNoticePageDto extends createZodDto(
 
 export class OperatorNoticeDetailDto extends createZodDto(
   operatorNoticeSchema.extend({
+    createdByEmail: z.string().nullable(),
     versions: z.array(
       z.object({
         editedBy: z.string(),
+        editedByEmail: z.string().nullable(),
         replacedAt: z.date(),
         snapshot: z.record(z.string(), z.unknown()),
       }),
@@ -145,6 +149,8 @@ export class NoticeAcknowledgmentListDto extends createZodDto(
     pendingCount: z.number().int(),
   }),
 ) {}
+
+export class NoticeReachedDto extends createZodDto(z.object({ shops: z.number().int() })) {}
 
 export class NoticeDraftDto extends createZodDto(
   z.object({

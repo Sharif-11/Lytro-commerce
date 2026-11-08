@@ -5,7 +5,6 @@ import { ZodResponse } from 'nestjs-zod';
 import { ApiError } from '../../../common/api-error';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ResponseMessage } from '../../../common/decorators/response-message';
-import { OkDto } from '../../../common/dto/ok.dto';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import {
   OperatorSessionGuard,
@@ -15,7 +14,7 @@ import { OperatorDirectory } from '../../operator/services/operator-directory';
 import { RateService } from '../../balance/services/rate.service';
 import type { RateHistoryEntry, RateValue } from '../../balance/types/rate';
 import { UpdateRateDto } from '../dto/balance.dto';
-import { RateHistoryEntryDto, RateValueDto } from '../dto/balance-response.dto';
+import { RateChangedDto, RateHistoryEntryDto, RateValueDto } from '../dto/balance-response.dto';
 
 function isRateKey(key: string): key is RateKey {
   return (Object.values(RateKey) as string[]).includes(key);
@@ -64,21 +63,21 @@ export class OperatorRatesController {
   @ResponseMessage('RateUpdated')
   @ApiOperation({ summary: 'Update a platform rate' })
   @ApiBody({ type: UpdateRateDto })
-  @ZodResponse({ type: OkDto })
+  @ZodResponse({ type: RateChangedDto })
   async change(
     @Param('key') key: string,
     @Body(new ZodValidationPipe(UpdateRateDto.schema)) body: UpdateRateDto,
     @Req() request: OperatorSessionRequest,
-  ): Promise<{ ok: true }> {
+  ): Promise<{ ok: true; id: number }> {
     const session = request.operatorSession;
     if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
-    await this.rates.change(
+    const { id } = await this.rates.change(
       parseKey(key),
       body.value.toFixed(2),
       session.operatorId,
       body.noticeId ?? null,
       body.reason,
     );
-    return { ok: true };
+    return { ok: true, id };
   }
 }

@@ -33,6 +33,7 @@ export class RecentChanges {
       oldValue: entry.summary?.oldValue ?? null,
       newValue: entry.summary?.newValue ?? null,
       reason: entry.summary?.reason ?? null,
+      rateChangeId: entry.summary?.rateChangeId ?? null,
       shop: entry.shop,
     }));
   }

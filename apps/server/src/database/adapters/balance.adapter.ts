@@ -117,7 +117,7 @@ export class DrizzleRateStore implements RateStore {
     newValue: string,
     changedBy: string | null,
     noticeId: string | null,
-  ): Promise<void> {
+  ): Promise<number> {
     return this.rates.set(tx, key, oldValue, newValue, changedBy, noticeId);
   }
 
