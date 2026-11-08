@@ -595,6 +595,8 @@ export enum QueueName {
   NoticePublishTick = 'notice_publish_tick',
   // API-27, D8-3 (Phase 8 Slice 8.1): the nightly clean-up of shops' server faults past the days they are kept.
   RequestErrorPurgeTick = 'request_error_purge_tick',
+  // ADM-09, D8-9 (Phase 8 Slice 8.4): the nightly record of each shop's day, which the operator's reports read.
+  ShopDayTick = 'shop_day_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -1808,3 +1810,29 @@ export enum NoticeStatus {
   Ended = 'ended',
   Withdrawn = 'withdrawn',
 }
+
+// ADM-09, D8-10: what the top-consumers report ranks shops by.
+export enum ConsumerMetric {
+  Storage = 'storage',
+  Bandwidth = 'bandwidth',
+  Sms = 'sms',
+}
+
+// D8-40: the ledger's charges that count as what shops spent with Lytro -- never a top-up, an operator's adjustment, a
+// reversal (counted as given back) or a deleted shop's carried-over balance.
+export const SPENT_LEDGER_TYPES: readonly LedgerEntryType[] = [
+  LedgerEntryType.PlanPayment,
+  LedgerEntryType.Addon,
+  LedgerEntryType.Sms,
+  LedgerEntryType.VerificationFee,
+  LedgerEntryType.OrderFee,
+  LedgerEntryType.ProductFee,
+  LedgerEntryType.Extraction,
+  LedgerEntryType.FraudCheck,
+  LedgerEntryType.Ai,
+];
+
+// D8-9: how many days back the nightly record fills in when nights were missed (a restart, a deploy).
+export const SHOP_DAY_BACKFILL_DAYS = 7;
+// D8-10: how many shops a top-consumers report lists.
+export const TOP_CONSUMERS_LIMIT = 20;

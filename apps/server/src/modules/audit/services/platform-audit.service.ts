@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { NewPlatformAuditEntry, RecentAuditEntryRow, Transaction } from '@lytronix/db';
+import type {
+  AuditListFilters,
+  AuditListRow,
+  NewPlatformAuditEntry,
+  RecentAuditEntryRow,
+  Transaction,
+} from '@lytronix/db';
 import type { PlatformAuditAction } from '@lytronix/validators';
 import type { PlatformAuditStore } from '../ports/platform-audit-store';
 import { PLATFORM_AUDIT_STORE } from '../tokens';
@@ -35,5 +41,10 @@ export class PlatformAuditService {
   /** The newest entries of these actions. */
   recent(actions: readonly PlatformAuditAction[], limit: number): Promise<RecentAuditEntryRow[]> {
     return this.store.recent(actions, limit);
+  }
+
+  /** ADM-08, D8-11 (Phase 8 Slice 8.4): the operator's list, filtered, newest first, a page at a time. Read only. */
+  list(filters: AuditListFilters): Promise<AuditListRow[]> {
+    return this.store.list(filters);
   }
 }
