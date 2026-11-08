@@ -100,12 +100,41 @@ test('a new feature names no limit or unit', async ({ page }) => {
   expect(log.sent('POST', '/operator/addons')).toMatchObject({ limitKey: null, unitSize: null });
 });
 
-test('allowances are not on sale yet', async ({ page }) => {
-  await open(page);
+test('an allowance names its service and its uses, and says what the rate would charge (D7-17, D7-36)', async ({
+  page,
+}) => {
+  const log = await open(page);
+  await expect(main(page)).toContainText('Address reads from messages');
+  await expect(main(page)).toContainText('37 running');
   await main(page).getByRole('button', { name: 'New item' }).click();
-  await expect(
-    page.getByRole('dialog', { name: 'New add-on' }).getByRole('option', { name: /Allowance/ }),
-  ).toHaveAttribute('disabled');
+  const panel = page.getByRole('dialog', { name: 'New add-on' });
+  await panel.getByRole('combobox', { name: 'Kind' }).selectOption('allowance');
+  await expect(panel.getByRole('combobox', { name: 'Covers which service' })).toHaveValue(
+    'address_reads',
+  );
+  await expect(panel).toContainText('Only a shop in a paid period can buy it.');
+  await expect(panel).toContainText('Address reads is the only service an allowance covers today');
+  await panel.getByRole('textbox', { name: 'Name (English)' }).fill('Address reads, 500');
+  await panel.getByRole('textbox', { name: 'Name (Bangla)' }).fill('ঠিকানা পড়া, ৫০০');
+  await panel.getByRole('textbox', { name: 'Key' }).fill('address_reads_500');
+  await panel.getByRole('textbox', { name: 'Uses one unit gives' }).fill('500');
+  await panel.getByRole('textbox', { name: 'Price per month' }).fill('50');
+  await panel.getByRole('button', { name: 'Create add-on' }).click();
+  expect(log.sent('POST', '/operator/addons')).toMatchObject({
+    kind: 'allowance',
+    limitKey: 'address_reads',
+    unitSize: 500,
+    price: 50,
+  });
+});
+
+test('an allowance is edited with its kind and service fixed', async ({ page }) => {
+  await open(page);
+  await main(page).getByText('Address reads from messages').click();
+  const panel = page.getByRole('dialog', { name: 'Edit Address reads from messages' });
+  await expect(panel.getByRole('combobox', { name: 'Kind' })).toBeDisabled();
+  await expect(panel.getByRole('combobox', { name: 'Covers which service' })).toBeDisabled();
+  await expect(panel).toContainText("The kind and the service can't change once it's made.");
 });
 
 test('a key already taken is said under the field', async ({ page }) => {
@@ -137,7 +166,8 @@ test('a key already taken is said under the field', async ({ page }) => {
   await panel.getByLabel('Price per month').fill('49');
   await panel.getByLabel('Unit size').fill('1');
   await panel.getByRole('button', { name: 'Save' }).click();
-  await expect(panel.getByText('This key is taken.')).toBeVisible();
+  // The sketch names the key, where the server says it in general.
+  await expect(panel.getByText("seat is already an add-on's key.")).toBeVisible();
 });
 
 test('editing says a price runs from now, and only sends what can change', async ({ page }) => {

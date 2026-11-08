@@ -40,10 +40,11 @@ export function useSearchShops(query: string) {
 }
 
 /** One shop's page: its plan's version, who suspended it and why, its payment page, the new-shop cap. */
-export function useShop(id: string) {
+export function useShop(id: string, enabled = true) {
   return useQuery({
     queryKey: shopKey(id),
     queryFn: () => operatorSession.client.get<OperatorShop>(`/operator/tenants/${id}`),
+    enabled: enabled && id !== '',
   });
 }
 

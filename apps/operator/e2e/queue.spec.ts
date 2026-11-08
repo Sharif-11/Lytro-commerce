@@ -96,6 +96,8 @@ test("approving what a receipt says sends no amount: the server's figure stands"
   const panel = dialog(page, 'Approve this payment?');
   await expect(panel.getByText('goes on')).toBeVisible();
   await expect(panel).toContainText('Sadia Collection goes on Starter for 1 month');
+  // D7-20: the invoice tells the owner, as plan-invoicing does.
+  await expect(panel).toContainText('the owner is told in the dashboard, and by SMS and email');
   await expect(panel).toContainText('This accepts ৳448 against a quote of ৳449');
   await expect(panel.getByLabel('What arrived')).toHaveValue('448');
   await panel.getByRole('button', { name: 'Approve ৳448' }).click();
@@ -118,11 +120,11 @@ test('approving a different amount sends it, and the button follows it', async (
   });
 });
 
-test("doesn't promise what isn't built: no SMS, no end date", async ({ page }) => {
+test('says how the owner is told (D7-20), and promises no end date', async ({ page }) => {
   await open(page, `/queue/${UPGRADE}?step=approve`);
   const panel = dialog(page, 'Approve this payment?');
   await expect(panel).toContainText('Arif Electronics goes on Pro for 1 month');
-  await expect(panel).not.toContainText('SMS');
+  await expect(panel).toContainText('by SMS and email where they have them');
   await expect(panel).not.toContainText('until');
 });
 

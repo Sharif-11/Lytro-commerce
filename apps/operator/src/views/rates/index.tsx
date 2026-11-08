@@ -1,11 +1,13 @@
 import { useState } from 'react';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { errorMessage } from '@lytronix/api-client';
 import { Button } from '@lytronix/ui';
-import { RateKey } from '@lytronix/validators';
+import { NoticeTemplate, RateKey } from '@lytronix/validators';
+import { useNoticeTemplate } from '@/api/notices';
 import { useRateHistory, useRates, useUpdateRate } from '@/api/rates';
 import { ConsoleIcon } from '@/components/ui/console-icon';
-import { ConsolePage, PageTitle, SoonTag } from '@/components/ui/console-page';
+import { ConsolePage, PageTitle } from '@/components/ui/console-page';
 import { InlineForm } from '@/components/ui/inline-form';
 import { RowIcon, RowLines } from '@/components/ui/list-row';
 import { LoadFailed } from '@/components/ui/load-failed';
@@ -17,7 +19,19 @@ import { RATE_UNITS, rateWords } from './rate-words';
 
 const UNDER_THE_ROW =
   'flex flex-col gap-2 border-t border-line bg-neutral-50 px-4 py-3 text-[13px]';
-const KEYS = Object.values(RateKey);
+// Where each rate sits, as the sketch lists them: an address read beside the other per-use charges (D7-36).
+const PLACE: Record<RateKey, number> = {
+  [RateKey.SmsPerUnit]: 0,
+  [RateKey.AiReply]: 1,
+  [RateKey.FraudCheck]: 2,
+  [RateKey.AiExtraction]: 3,
+  [RateKey.PaygOrderFeeMin]: 4,
+  [RateKey.PaygOrderFeePct]: 5,
+  [RateKey.PaygProductFee]: 6,
+  [RateKey.SmsUnitSizeChars]: 7,
+  [RateKey.ListenerVerificationPct]: 8,
+  [RateKey.GatewayVerificationPct]: 9,
+};
 // A phone gives the name its own line, beside the icon: on one line with the value and buttons, it had no room.
 const ROW_WORDS = 'basis-[calc(100%-52px)] sm:basis-0';
 
@@ -28,7 +42,8 @@ function RateEditor({
 }: {
   rate: RateValue;
   onCancel: () => void;
-  onSaved: () => void;
+  /** With the change's history id, which a notice of it names (NTC-13). */
+  onSaved: (rateChangeId: number) => void;
 }): React.JSX.Element {
   const { t } = useTranslation();
   const update = useUpdateRate();
@@ -45,7 +60,11 @@ function RateEditor({
       onSubmit={() => {
         update.mutate(
           { key: rate.key, value: Number(value), reason: reason.trim() },
-          { onSuccess: onSaved },
+          {
+            onSuccess: (saved) => {
+              onSaved(saved.id);
+            },
+          },
         );
       }}
     >
@@ -87,17 +106,88 @@ function RateHistory({ rate }: { rate: RateValue }): React.JSX.Element {
               {rateWords(rate.key, line.newValue)}
             </span>
             <span className="text-fg-muted">
-              {[
-                formatDay(line.changedAt),
-                line.changedByEmail,
-                t(line.noticeId ? 'rates.withNotice' : 'rates.noNotice'),
-              ]
-                .filter(Boolean)
-                .join(' · ')}
+              {[formatDay(line.changedAt), line.changedByEmail].filter(Boolean).join(' · ')} ·{' '}
+              {line.noticeId ? (
+                <Link
+                  to="/notices/$id"
+                  params={{ id: line.noticeId }}
+                  className="text-primary underline"
+                >
+                  {t('rates.withNotice')}
+                </Link>
+              ) : (
+                <>
+                  {t('rates.noNotice')} ·{' '}
+                  <Link
+                    to="/notices/new"
+                    search={{ rateChange: line.id }}
+                    className="text-primary underline"
+                  >
+                    {t('rates.writeOne')}
+                  </Link>
+                </>
+              )}
             </span>
           </div>
         ))
       )}
+    </div>
+  );
+}
+
+/**
+ * RAT-09, NTC-13 (OPERATOR-CONSOLE-DESIGN §8): once a rate is saved, a notice of the change is offered, filled from it by
+ * the rate-change template. Writing it opens the editor; publishing it links the notice to the change.
+ */
+function NoticeOffer({
+  rateChangeId,
+  onSkip,
+}: {
+  rateChangeId: number;
+  onSkip: () => void;
+}): React.JSX.Element {
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const draft = useNoticeTemplate({
+    template: NoticeTemplate.RateChange,
+    variables: { rateChangeId },
+  });
+  const title = draft.data
+    ? i18n.language === 'bn'
+      ? draft.data.titleBn
+      : draft.data.titleEn
+    : '…';
+  return (
+    <div className="flex items-start gap-2.5 border-t border-line bg-neutral-50 px-4 py-3 text-[13px]">
+      <ConsoleIcon name="bell" size={20} />
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <b className="text-[14px] font-semibold">{t('rates.offerTitle')}</b>
+        <span>{t('rates.offerLine', { t: title })}</span>
+        <span className="text-fg-muted">{t('rates.offerNote')}</span>
+        <span className="mt-1 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            small
+            fit
+            className={SMALL_BUTTON}
+            onClick={() => {
+              void navigate({ to: '/notices/new', search: { rateChange: rateChangeId } });
+            }}
+          >
+            {t('rates.offerWrite')}
+          </Button>
+          <Button
+            type="button"
+            tone="ghost"
+            small
+            fit
+            className={`${SMALL_BUTTON} ${QUIET_BUTTON}`}
+            onClick={onSkip}
+          >
+            {t('rates.offerSkip')}
+          </Button>
+        </span>
+      </div>
     </div>
   );
 }
@@ -107,10 +197,11 @@ export function Rates(): React.JSX.Element {
   const { t } = useTranslation();
   const toast = useToast();
   const rates = useRates();
+  const opened = useSearch({ from: '/_console/rates' }).history ?? null;
   const [editing, setEditing] = useState<RateKey | null>(null);
-  const [showing, setShowing] = useState<RateKey | null>(null);
-  const [offering, setOffering] = useState<RateKey | null>(null);
-  const rows = [...(rates.data ?? [])].sort((a, b) => KEYS.indexOf(a.key) - KEYS.indexOf(b.key));
+  const [showing, setShowing] = useState<RateKey | null>(opened);
+  const [offering, setOffering] = useState<{ key: RateKey; rateChangeId: number } | null>(null);
+  const rows = [...(rates.data ?? [])].sort((a, b) => PLACE[a.key] - PLACE[b.key]);
   return (
     <ConsolePage>
       <PageTitle title={t('nav.rates')} lead={t('rates.lead')} />
@@ -148,9 +239,9 @@ export function Rates(): React.JSX.Element {
                     onCancel={() => {
                       setEditing(null);
                     }}
-                    onSaved={() => {
+                    onSaved={(rateChangeId) => {
                       setEditing(null);
-                      setOffering(rate.key);
+                      setOffering({ key: rate.key, rateChangeId });
                       toast(t('rates.saved'));
                     }}
                   />
@@ -193,16 +284,14 @@ export function Rates(): React.JSX.Element {
                 )}
               </div>
               {showing === rate.key ? <RateHistory rate={rate} /> : null}
-              {offering === rate.key ? (
-                <div className={UNDER_THE_ROW}>
-                  <div className="flex flex-wrap justify-between gap-3">
-                    <span className="inline-flex items-center gap-1.5">
-                      <ConsoleIcon name="bell" size={16} />
-                      {t('rates.notice')} <SoonTag />
-                    </span>
-                    <span className="text-fg-muted">{t('rates.noticeLater')}</span>
-                  </div>
-                </div>
+              {offering?.key === rate.key ? (
+                <NoticeOffer
+                  rateChangeId={offering.rateChangeId}
+                  onSkip={() => {
+                    setOffering(null);
+                    setShowing(rate.key);
+                  }}
+                />
               ) : null}
             </div>
           ))}

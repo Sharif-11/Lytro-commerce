@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { errorMessage } from '@lytronix/api-client';
 import { TextArea } from '@lytronix/ui';
-import { OrderLimitMode } from '@lytronix/validators';
+import { AiProvider, OrderLimitMode, PlatformSettingKey } from '@lytronix/validators';
 import { useUpdateSetting } from '@/api/settings';
 import { Banner } from '@/components/ui/banner';
 import { InlineForm } from '@/components/ui/inline-form';
 import { INLINE_FIELD, NOTE } from '@/components/ui/sizes';
 import type { SettingUnit } from '@/lib/setting-shapes';
+import { COUNTED } from '@/lib/setting-words';
 import type { PlatformSetting } from '@/types/operator';
 
 function startingWords(setting: PlatformSetting): string {
@@ -15,6 +16,16 @@ function startingWords(setting: PlatformSetting): string {
   if (Array.isArray(value)) return value.join('\n');
   return typeof value === 'string' ? value : JSON.stringify(value);
 }
+
+/** Whether a counted setting's words are a whole number of 1 or more, as the server takes them. */
+function wholeAndPositive(words: string): boolean {
+  const value = Number(words.trim());
+  return words.trim() !== '' && Number.isInteger(value) && value >= 1;
+}
+
+const HELP = 'text-[13px] leading-[1.5] text-fg-muted';
+// D7-39: lowering it deletes older notifications in every shop that night.
+const RETENTION: string = PlatformSettingKey.NotificationRetentionDays;
 
 /** What goes to the server: a number, the words typed, or the list a setting holds one to a line. */
 function valueToSend(words: string, unit: SettingUnit): number | string | string[] {
@@ -24,7 +35,15 @@ function valueToSend(words: string, unit: SettingUnit): number | string | string
       .map((line) => line.trim())
       .filter((line) => line !== '');
   }
-  if (unit === 'choice' || unit === 'text' || unit === 'version') return words.trim();
+  if (
+    unit === 'choice' ||
+    unit === 'text' ||
+    unit === 'version' ||
+    unit === 'ai' ||
+    unit === 'model'
+  ) {
+    return words.trim();
+  }
   return Number(words);
 }
 
@@ -49,10 +68,14 @@ export function SettingEditor({
   const update = useUpdateSetting();
   const [words, setWords] = useState(() => startingWords(setting));
   const [reason, setReason] = useState('');
+  // v5: a counted value that isn't a whole number of 1 or more is refused here, under the field.
+  const [refused, setRefused] = useState(false);
+  const counted = COUNTED.includes(unit);
   const label = t(`settingNames.${setting.key}`, { defaultValue: setting.key });
 
   function change(next: string): void {
     setWords(next);
+    setRefused(false);
     onDraft(next);
   }
 
@@ -64,6 +87,10 @@ export function SettingEditor({
     error: update.isError ? errorMessage(update.error, t) : null,
     onCancel,
     onSubmit: () => {
+      if (counted && !wholeAndPositive(words)) {
+        setRefused(true);
+        return;
+      }
       const value = valueToSend(words, unit);
       update.mutate(
         { key: setting.key, value, reason: reason.trim() },
@@ -112,6 +139,49 @@ export function SettingEditor({
       </InlineForm>
     );
   }
+  if (unit === 'ai') {
+    return (
+      <InlineForm {...shared} after={<div className={HELP}>{t('settings.providerHelp')}</div>}>
+        <select
+          name="value"
+          aria-label={label}
+          value={words}
+          onChange={(event) => {
+            change(event.target.value);
+          }}
+          className={`${INLINE_FIELD} h-11 w-[180px] max-w-full`}
+        >
+          {Object.values(AiProvider).map((provider) => (
+            <option key={provider} value={provider}>
+              {t(`settings.aiProviders.${provider}`)}
+            </option>
+          ))}
+        </select>
+      </InlineForm>
+    );
+  }
+  if (unit === 'model') {
+    return (
+      <InlineForm
+        {...shared}
+        before={
+          <Banner tone="warn" icon="warn">
+            {t('settings.modelWarn')}
+          </Banner>
+        }
+      >
+        <input
+          name="value"
+          aria-label={label}
+          value={words}
+          onChange={(event) => {
+            change(event.target.value);
+          }}
+          className={`${INLINE_FIELD} mono w-[240px] max-w-full text-left`}
+        />
+      </InlineForm>
+    );
+  }
   if (unit === 'version') {
     return (
       <InlineForm {...shared} block>
@@ -130,17 +200,25 @@ export function SettingEditor({
       </InlineForm>
     );
   }
+  const after = refused ? (
+    <div role="alert" className="text-[13px] text-danger">
+      {t('settings.errWhole')}
+    </div>
+  ) : setting.key === RETENTION ? (
+    <div className={HELP}>{t('settings.retentionNote')}</div>
+  ) : undefined;
   return (
-    <InlineForm {...shared}>
+    <InlineForm {...shared} after={after}>
       <input
         name="value"
         aria-label={label}
+        aria-invalid={refused}
         inputMode={unit === 'text' ? 'text' : 'numeric'}
         value={words}
         onChange={(event) => {
           change(event.target.value);
         }}
-        className={`${INLINE_FIELD} mono w-[110px] text-right`}
+        className={`${INLINE_FIELD} mono w-[110px] text-right ${refused ? 'border-danger!' : ''}`}
       />
     </InlineForm>
   );

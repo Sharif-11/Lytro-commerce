@@ -324,6 +324,8 @@ test.describe("a shop's page", () => {
     await expect(phones.getByRole('button', { name: 'Revoke' })).toHaveCount(1);
     await phones.getByRole('button', { name: 'Revoke' }).click();
     const panel = dialog(page, 'Revoke Counter phone?');
+    // D7-20: Lytro revoking a shop's phone tells the shop.
+    await expect(panel).toContainText('The shop is told in its dashboard');
     await panel.getByRole('button', { name: 'Revoke' }).click();
     await expect(page.getByRole('status').getByText('Counter phone is revoked.')).toBeVisible();
     await expect(phones.getByRole('button', { name: 'Revoke' })).toHaveCount(0);

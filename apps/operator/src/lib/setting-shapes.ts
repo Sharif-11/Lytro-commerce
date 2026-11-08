@@ -11,16 +11,20 @@ export type SettingUnit =
   | 'choice'
   | 'text'
   | 'list'
-  | 'version';
+  | 'version'
+  | 'hours'
+  // AI-10: which AI reads a pasted message, and its model's name as the AI writes it.
+  | 'ai'
+  | 'model';
 
 export interface SettingShape {
   key: string;
-  /** Which of the page's nine groups it sits in (OPERATOR-CONSOLE-DESIGN §9). */
+  /** Which of the page's thirteen groups it sits in (OPERATOR-CONSOLE-DESIGN §9, v5's four Phase 6 and 7 groups). */
   group: number;
   unit: SettingUnit;
 }
 
-export const SETTING_GROUPS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+export const SETTING_GROUPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as const;
 
 const { TrialDays, TopUpMinAmount, TopUpMaxAmount, GraceDays, ReadOnlyDays, LockedDays } =
   PlatformSettingKey;
@@ -55,6 +59,19 @@ export const SETTING_SHAPES: readonly SettingShape[] = [
   { key: PlatformSettingKey.CatalogueCategoriesMaxAgeSeconds, group: 8, unit: 'seconds' },
   { key: PlatformSettingKey.TermsVersion, group: 9, unit: 'version' },
   { key: PlatformSettingKey.PrivacyVersion, group: 9, unit: 'version' },
+  // CRR-14, CRR-15 (Phase 6): keeping calls to couriers down.
+  { key: PlatformSettingKey.CourierCheckMinAgeHours, group: 10, unit: 'hours' },
+  { key: PlatformSettingKey.CourierCheckQuietHours, group: 10, unit: 'hours' },
+  { key: PlatformSettingKey.CourierCheckStopDays, group: 10, unit: 'days' },
+  { key: PlatformSettingKey.CourierSyncMinutes, group: 10, unit: 'minutes' },
+  // AI-10, ORD-33 (Slice 7.6): reading delivery details from a message.
+  { key: PlatformSettingKey.AddressReadProvider, group: 11, unit: 'ai' },
+  { key: PlatformSettingKey.AddressReadModel, group: 11, unit: 'model' },
+  { key: PlatformSettingKey.AddressReadsPerShopPerMinute, group: 11, unit: 'perMinute' },
+  // FRD-07 (Slice 7.5).
+  { key: PlatformSettingKey.FraudChecksPerShopPerMinute, group: 12, unit: 'perMinute' },
+  // NTF-01, D7-39 (Slice 7.3).
+  { key: PlatformSettingKey.NotificationRetentionDays, group: 13, unit: 'days' },
 ];
 
 export function settingUnitOf(key: string): SettingUnit | undefined {

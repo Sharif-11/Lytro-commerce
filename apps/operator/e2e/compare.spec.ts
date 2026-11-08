@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { addonPayment, drawnPayments, drawnShops, GADGET, RAHIM } from './support/console-data';
 import { retiringCouriers } from './support/courier-mock';
+import { phase7Changes, phase7RateHistory, phase7Rates } from './support/notice-mock';
 import {
   CODE,
   EMAIL,
@@ -137,6 +138,164 @@ const PAGE_OFF: ConsoleState = {
       : each,
   ),
 };
+
+// Phase 7 (Slice 7.7): the sketch draws its notices at 7 Nov, 21:44, with the rates and changes Phase 7 left.
+const P7: ConsoleState = {
+  rates: phase7Rates(),
+  rateHistory: phase7RateHistory(),
+  changes: phase7Changes(),
+  now: '2026-11-07T21:44:00+06:00',
+};
+const P7_LINKED: ConsoleState = { ...P7, rateHistory: phase7RateHistory('n-13') };
+const MAINTENANCE =
+  '/notices/new?template=maintenance&from=2026-11-09T20%3A00%3A00.000Z&to=2026-11-09T22%3A00%3A00.000Z';
+
+/** The open panel's own button. */
+const confirm = (page: Page): Promise<void> => page.locator('dialog button[type=submit]').click();
+
+/** One of the editor's language tabs: in the page, not the top bar's switch to the other language. */
+function languageTab(name: 'English' | 'বাংলা'): (page: Page) => Promise<void> {
+  return (page) =>
+    page
+      .locator('main')
+      .getByRole('button', { name: new RegExp(`^${name}`) })
+      .click();
+}
+
+/** Back at the top with nothing focused, as the sketch opens a screen after a field was typed in. */
+async function settle(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    for (const each of document.querySelectorAll('*')) each.scrollTop = 0;
+  });
+}
+
+/** The maintenance notice as the sketch draws it: the 10 Nov window, live at 8 Nov, 10:00. */
+async function sketchMaintenance(page: Page): Promise<void> {
+  await page.locator('main input[type=datetime-local]').first().fill('2026-11-08T10:00');
+  await settle(page);
+}
+
+/** The new-notice panel with a template picked; maintenance with the sketch's window. */
+function startWith(en: string, bn: string): (page: Page) => Promise<void> {
+  return async (page) => {
+    await press('New notice', 'নতুন নোটিশ')(page);
+    await page
+      .locator('dialog')
+      .getByText(new RegExp(`^(${en}|${bn})$`))
+      .click();
+    if (en !== 'Maintenance') return;
+    const times = page.locator('dialog input[type=datetime-local]');
+    await times.nth(0).fill('2026-11-10T02:00');
+    await times.nth(1).fill('2026-11-10T04:00');
+    await settle(page);
+  };
+}
+
+/** A settings group's heading at the top of the page, as the sketch opens it. */
+function toGroup(en: string, bn: string): (page: Page) => Promise<void> {
+  return (page) =>
+    page.getByRole('heading', { name: new RegExp(`^(${en}|${bn})$`) }).evaluate((heading) => {
+      heading.scrollIntoView({ block: 'start' });
+    });
+}
+
+/** A Phase 7 setting opened to change, its group at the top. */
+function changeSetting(
+  group: [string, string],
+  name: [string, string],
+): (page: Page) => Promise<void> {
+  return async (page) => {
+    await toGroup(...group)(page);
+    await page
+      .getByRole('button', { name: new RegExp(`^(Change: ${name[0]}|বদলান: ${name[1]})`) })
+      .click();
+  };
+}
+
+const READING: [string, string] = ['Reading delivery details', 'ডেলিভারির তথ্য পড়া'];
+const FRAUD: [string, string] = ['Fraud checks', 'ফ্রড চেক'];
+const FRAUD_CHECKS: [string, string] = ['Checks per shop', 'শপ প্রতি চেক'];
+
+const LONG_TITLE =
+  'নতুন: কাস্টমারের মেসেজ থেকে নাম, ফোন, জেলা, থানা আর ঠিকানা এখন Lytro নিজেই পড়ে নতুন অর্ডার ফর্মে বসিয়ে দেয়, আর কিছু না পেলে কোনো টাকা কাটে না, প্রতিবার মাত্র ৳0.10';
+const LONG_BODY =
+  'নতুন অর্ডার ফর্মে কাস্টমারের মেসেজ পেস্ট করুন, Lytro নিজেই **নাম, ফোন, জেলা, থানা আর ঠিকানা** বসিয়ে দেবে। বিস্তারিত দেখুন [এখানে](http://lytro.app/help/address-reads)।\n\n- প্রতিবার পড়তে ৳0.10, অথবা অ্যালাউন্স থেকে কাটে\n- কিছু না পেলে টাকা কাটে না ';
+
+/** The sketch's notice refused for being too long, a plain link and half a language. */
+async function tooLong(page: Page): Promise<void> {
+  const field = (en: string, bn: string) =>
+    page.locator('main').getByLabel(new RegExp(`^(${en}|${bn})$`));
+  await page.locator('main select').first().selectOption('new_feature');
+  await field('Title', 'শিরোনাম').fill(LONG_TITLE);
+  await field('Body', 'বডি').fill(
+    LONG_BODY + 'আর '.repeat(Math.ceil((5214 - LONG_BODY.length) / 3)),
+  );
+  await languageTab('English')(page);
+  await field('Title', 'শিরোনাম').fill('Read delivery details from a message');
+  await page
+    .locator('main')
+    .getByText(/^(Now|এখনই)$/)
+    .click();
+  await press('Publish…', 'পাবলিশ…')(page);
+  await languageTab('বাংলা')(page);
+  await settle(page);
+}
+
+/** A new allowance whose key another add-on holds, as the server refuses it. */
+async function takenAllowance(page: Page): Promise<void> {
+  await page.route('**/api/v1/operator/addons', (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            statusCode: 400,
+            message: 'Some fields need attention.',
+            errors: {
+              code: 'validation_error',
+              details: {
+                fields: [{ field: 'key', problem: 'taken', message: 'This key is taken.' }],
+              },
+            },
+          }),
+        })
+      : route.fallback(),
+  );
+  await press('New item', 'নতুন আইটেম')(page);
+  await page.locator('dialog select[name=kind]').selectOption('allowance');
+  await page.locator('dialog input[name=labelEn]').fill('Address reads from messages');
+  await page.locator('dialog input[name=labelBn]').fill('মেসেজ থেকে ঠিকানা পড়া');
+  await page.locator('dialog input[name=key]').fill('address_reads_200');
+  await page.locator('dialog input[name=unitSize]').fill('200');
+  await page.locator('dialog input[name=price]').fill('20');
+  await confirm(page);
+}
+
+const SMS_AT_55: ConsoleState = {
+  ...P7,
+  rates: phase7Rates().map((rate) =>
+    rate.key === 'sms_per_unit' ? { ...rate, value: '0.55' } : rate,
+  ),
+};
+
+/** SMS's rate saved from ৳0.55 to ৳0.65, as the sketch's offer follows. */
+async function saveSmsRate(page: Page): Promise<void> {
+  await page
+    .getByRole('button', { name: /^(Change|বদলান): / })
+    .first()
+    .click();
+  await page.locator('main input[name=value]').fill('0.65');
+  await page.locator('main [name=reason]').fill('Provider price');
+  await page.locator('main form button[type=submit]').click();
+}
+
+/** The rate-change notice published from its change, back on the rate's history. */
+async function publishRateNotice(page: Page): Promise<void> {
+  await press('Publish…', 'পাবলিশ…')(page);
+  await confirm(page);
+}
 
 const PAIRS: Pair[] = [
   { screen: 'signin', bare: true, path: '/sign-in', state: SIGNED_OUT },
@@ -560,6 +719,191 @@ const PAIRS: Pair[] = [
         .scrollIntoViewIfNeeded(),
   },
   { screen: 'tenant-courier-log', path: `${RAHIM_PAGE}/courier-keys` },
+  { screen: 'p37-notices', path: '/notices', state: P7 },
+  {
+    screen: 'p37-notice-start',
+    path: '/notices',
+    state: P7,
+    then: startWith('Maintenance', 'মেইনটেন্যান্স'),
+  },
+  {
+    screen: 'p37-notice-start-rate',
+    path: '/notices',
+    state: P7,
+    then: startWith('Rate change', 'রেট বদল'),
+  },
+  { screen: 'p37-notice-new', path: MAINTENANCE, state: P7, then: sketchMaintenance },
+  {
+    screen: 'p37-notice-new-en',
+    path: MAINTENANCE,
+    state: P7,
+    then: async (page) => {
+      await sketchMaintenance(page);
+      await languageTab('English')(page);
+    },
+  },
+  {
+    screen: 'p37-notice-publish',
+    path: MAINTENANCE,
+    state: P7,
+    then: async (page) => {
+      await sketchMaintenance(page);
+      await press('Schedule…', 'শিডিউল…')(page);
+    },
+  },
+  {
+    screen: 'p37-notice-just-scheduled',
+    path: MAINTENANCE,
+    state: P7,
+    then: async (page) => {
+      await sketchMaintenance(page);
+      await press('Schedule…', 'শিডিউল…')(page);
+      await confirm(page);
+    },
+  },
+  {
+    screen: 'p37-notice-outage',
+    path: '/notices/new?template=outage',
+    state: P7,
+    then: languageTab('English'),
+  },
+  {
+    screen: 'p37-notice-publish-now',
+    path: '/notices/new?template=outage',
+    state: P7,
+    then: async (page) => {
+      await languageTab('English')(page);
+      await press('Publish…', 'পাবলিশ…')(page);
+    },
+  },
+  {
+    screen: 'p37-notice-published',
+    path: '/notices/new?template=outage',
+    state: P7,
+    then: async (page) => {
+      await press('Publish…', 'পাবলিশ…')(page);
+      await confirm(page);
+    },
+  },
+  {
+    screen: 'p37-notice-drafted',
+    path: '/notices/n-15',
+    state: P7,
+    then: press('Save draft', 'ড্রাফট সেভ করুন'),
+  },
+  { screen: 'p37-notice-scheduled', path: '/notices/n-14', state: P7 },
+  { screen: 'p37-notice-draft', path: '/notices/n-15', state: P7 },
+  { screen: 'p37-notice-live', path: '/notices/n-11', state: P7 },
+  { screen: 'p37-notice-version', path: '/notices/n-11', state: P7, then: press('Show', 'দেখুন') },
+  { screen: 'p37-notice-edit-live', path: '/notices/n-11/edit', state: P7 },
+  {
+    screen: 'p37-notice-saved',
+    path: '/notices/n-11/edit',
+    state: P7,
+    then: press('Save changes', 'বদল সেভ করুন'),
+  },
+  { screen: 'p37-notice-acks', path: '/notices/n-11/acknowledgments', state: P7 },
+  {
+    screen: 'p37-notice-acks-done',
+    path: '/notices/n-11/acknowledgments',
+    state: P7,
+    then: chip('Said I understand', 'বুঝেছি বলেছে'),
+  },
+  { screen: 'p37-notice-rate', path: '/notices/n-13', state: P7_LINKED },
+  { screen: 'p37-notice-feature', path: '/notices/n-12', state: P7 },
+  {
+    screen: 'p37-notice-withdraw',
+    path: '/notices/n-12',
+    state: P7,
+    then: press('Withdraw', 'উইথড্র'),
+  },
+  {
+    screen: 'p37-notice-withdrawn-now',
+    path: '/notices/n-12',
+    state: P7,
+    then: async (page) => {
+      await press('Withdraw', 'উইথড্র')(page);
+      await confirm(page);
+    },
+  },
+  { screen: 'p37-notice-withdrawn', path: '/notices/n-9', state: P7 },
+  { screen: 'p37-notice-ended', path: '/notices/n-10', state: P7 },
+  {
+    screen: 'p37-notice-refused-empty',
+    path: '/notices/new',
+    state: P7,
+    then: press('Save draft', 'ড্রাফট সেভ করুন'),
+  },
+  { screen: 'p37-notice-refused-long', path: '/notices/new', state: P7, then: tooLong },
+  { screen: 'p37-notice-from-rate', path: '/notices/new?rateChange=41', state: P7 },
+  { screen: 'p37-rate-offer', path: '/rates', state: SMS_AT_55, then: saveSmsRate },
+  { screen: 'p37-rate-history', path: '/rates?history=sms_per_unit', state: P7 },
+  {
+    screen: 'p37-rate-linked',
+    path: '/notices/new?rateChange=41',
+    state: P7,
+    then: publishRateNotice,
+  },
+  { screen: 'p37-settings', path: '/settings', state: P7, then: toGroup('Couriers', 'কুরিয়ার') },
+  {
+    screen: 'p37-setting-provider',
+    path: '/settings',
+    state: P7,
+    then: changeSetting(READING, ['The AI that reads', 'যে AI পড়ে']),
+  },
+  {
+    screen: 'p37-setting-model',
+    path: '/settings',
+    state: P7,
+    then: changeSetting(READING, ['Its model', 'মডেল']),
+  },
+  {
+    screen: 'p37-setting-fraud',
+    path: '/settings',
+    state: P7,
+    then: changeSetting(FRAUD, FRAUD_CHECKS),
+  },
+  {
+    screen: 'p37-setting-retention',
+    path: '/settings',
+    state: P7,
+    then: changeSetting(FRAUD, ['A notification is kept for', 'নোটিফিকেশন থাকে']),
+  },
+  {
+    screen: 'p37-setting-refused',
+    path: '/settings',
+    state: P7,
+    then: async (page) => {
+      await changeSetting(FRAUD, FRAUD_CHECKS)(page);
+      await page.locator('main input[name=value]').fill('0');
+      await page.locator('main [name=reason]').fill('Too many checks');
+      await page.locator('main form button[type=submit]').click();
+    },
+  },
+  { screen: 'p37-addons', path: '/addons', state: P7 },
+  {
+    screen: 'p37-addon-allowance',
+    path: '/addons',
+    state: P7,
+    then: (page) =>
+      page
+        .locator('main')
+        .getByText(/^(Address reads from messages|মেসেজ থেকে ঠিকানা পড়া)$/)
+        .click(),
+  },
+  {
+    screen: 'p37-addon-allowance-new',
+    path: '/addons',
+    state: P7,
+    then: async (page) => {
+      await press('New item', 'নতুন আইটেম')(page);
+      await page.locator('dialog select[name=kind]').selectOption('allowance');
+    },
+  },
+  { screen: 'p37-addon-allowance-taken', path: '/addons', state: P7, then: takenAllowance },
+  { screen: 'p37-told-approve', path: '/queue/pay-9101?step=approve' },
+  { screen: 'p37-told-revoke', path: RAHIM_PAGE, then: press('Revoke', 'ক্যানসেল') },
+  { screen: 'p37-told-block', path: RAHIM_PAGE, then: press('Block', 'ব্লক') },
 ];
 
 const DEVICES: Device[] = ['phone', 'desktop', 'tablet'];

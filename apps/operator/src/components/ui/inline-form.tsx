@@ -14,6 +14,8 @@ export function InlineForm({
   canSave = true,
   error,
   block = false,
+  before,
+  after,
   onSubmit,
   onCancel,
   children,
@@ -24,6 +26,10 @@ export function InlineForm({
   canSave?: boolean;
   error: string | null;
   block?: boolean;
+  /** A line over the whole row, such as a warning; the value and the buttons then share the row under it. */
+  before?: ReactNode;
+  /** A line under the whole row: a help sentence, or the field's own refusal. */
+  after?: ReactNode;
   onSubmit: () => void;
   onCancel: () => void;
   children: ReactNode;
@@ -77,18 +83,44 @@ export function InlineForm({
     </>
   );
 
+  const row = 'flex flex-wrap items-center gap-2';
+  let body: ReactNode;
+  if (block) {
+    body = (
+      <>
+        {children}
+        <span className={row}>{controls}</span>
+      </>
+    );
+  } else if (before) {
+    body = (
+      <span className={row}>
+        {children}
+        {controls}
+      </span>
+    );
+  } else {
+    body = (
+      <>
+        {children}
+        {controls}
+      </>
+    );
+  }
+
   return (
     <form
       ref={ref}
       onSubmit={handleSubmit}
       className={
-        block
+        block || before
           ? 'flex min-w-0 flex-[1_1_100%] flex-col gap-2'
           : 'flex max-w-full flex-wrap items-center gap-2'
       }
     >
-      {children}
-      {block ? <span className="flex flex-wrap items-center gap-2">{controls}</span> : controls}
+      {before}
+      {body}
+      {after ? <div className="min-w-0 flex-[1_1_100%]">{after}</div> : null}
       {error ? (
         <div className="min-w-0 flex-[1_1_100%]">
           <ErrorBanner message={error} />

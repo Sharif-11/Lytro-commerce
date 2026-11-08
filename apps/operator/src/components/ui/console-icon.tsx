@@ -228,6 +228,13 @@ const shapes = {
       <circle cx="12" cy="9.5" r="2.5" />
     </>
   ),
+  // NTC-01: a notice pinned to the top of the board.
+  tack: (
+    <>
+      <path d="M9 4h6l-1 6 3 3H7l3-3z" />
+      <path d="M12 13v8" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type ConsoleIconName = keyof typeof shapes;

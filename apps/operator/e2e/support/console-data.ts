@@ -313,6 +313,17 @@ export function drawnCatalogueAddons(): Record<string, unknown>[] {
     addon('brand_identity', 'Brand identity', 'ব্র্যান্ড আইডেন্টিটি', 'feature', null, null, 149, {
       running: 26,
     }),
+    // D7-17, D7-36 (Phase 7): the first allowance, 200 reads at the rate's price.
+    addon(
+      'address_reads_200',
+      'Address reads from messages',
+      'মেসেজ থেকে ঠিকানা পড়া',
+      'allowance',
+      'address_reads',
+      200,
+      20,
+      { running: 37 },
+    ),
     addon(
       'storage_500mb',
       '500 MB storage',
@@ -1627,6 +1638,61 @@ export function drawnSettings(): Record<string, unknown>[] {
       '2026-11-04',
       'The privacy policy in force, which a new account accepts: change it when a new policy is published (LEG-01).',
       { at: '2026-11-04T00:00:00.000Z', by: null },
+    ),
+    // Phase 6's four courier settings and Phase 7's five (OPERATOR-CONSOLE-DESIGN v5), as the sketch draws them.
+    setting(
+      'courier_check_min_age_hours',
+      6,
+      'How many hours old a parcel must be before the night check asks after it (CRR-15).',
+      { at: '2026-11-04T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'courier_check_quiet_hours',
+      24,
+      'How many hours without a courier message before the night check asks after a parcel (CRR-15).',
+      { at: '2026-11-04T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'courier_check_stop_days',
+      30,
+      'How many days with no change before a parcel stops being checked and shows no news (CRR-15).',
+      { at: '2026-11-04T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'courier_sync_minutes',
+      10,
+      'How many minutes a Sync shows its saved answer before it may ask the courier again (CRR-14).',
+      { at: '2026-11-04T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'address_read_provider',
+      'gemini',
+      "The AI that reads a customer's delivery details from a pasted message: gemini (AI-10, D7-4).",
+      { at: '2026-11-06T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'address_read_model',
+      'gemini-3.5-flash-lite',
+      "The AI's model for reading delivery details, as the AI names it, such as gemini-3.5-flash-lite (AI-10, D7-4).",
+      { at: '2026-11-06T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'address_reads_per_shop_per_minute',
+      30,
+      'How many messages one shop may have read in a minute, a flood guard (ORD-33).',
+      { at: '2026-11-06T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'fraud_checks_per_shop_per_minute',
+      30,
+      'How many fraud checks one shop may run in a minute, by staff or on new orders (FRD-07).',
+      { at: '2026-11-07T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'notification_retention_days',
+      30,
+      'How many days a notification is kept in the bell before it is deleted (NTF-01, D7-39).',
+      { at: '2026-11-07T00:00:00.000Z', by: null },
     ),
   ];
 }
