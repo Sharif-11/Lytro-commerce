@@ -15,7 +15,7 @@ import {
 import { ApiError } from '../../../common/api-error';
 import { fromPaisa, unitsTimesRate } from '../../balance/services/money';
 import { shopOrigin, trackingPageUrl } from '../../../common/shop-address';
-import { usageCycleStart } from '../../../common/time';
+import { usageCycleEnd, usageCycleStart } from '../../../common/time';
 import type { Env } from '../../../config/env';
 import { ENV } from '../../../config/tokens';
 import { resetCodeText, shopReadyText, shopperCodeText } from '../../shared/messaging/sms-words';
@@ -94,6 +94,9 @@ export interface SmsSettingsView {
   /** SMS-13: null for none; what the shop's SMS events have cost this month. */
   monthlySpendCap: string | null;
   spentThisMonth: string;
+  /** SMS-13 (Slice 7.7): the cycle the spend and its cap count over, the same one Usage reads. */
+  cycleStart: Date;
+  cycleEnd: Date;
   unitSize: number;
   rate: string;
 }
@@ -166,6 +169,8 @@ export class SmsSettingsService {
       shopName: shop.shopName,
       monthlySpendCap: row?.monthlySpendCap ?? null,
       spentThisMonth: spent,
+      cycleStart: usageCycleStart(shop.cycle, now),
+      cycleEnd: usageCycleEnd(shop.cycle, now),
       unitSize: rates.unitSize,
       rate: rates.rate,
     };

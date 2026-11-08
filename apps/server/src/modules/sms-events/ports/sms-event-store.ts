@@ -43,7 +43,10 @@ export interface SmsEventStore {
   spentSince(tenantId: string, kinds: readonly SmsLogEntryKind[], since: Date): Promise<string>;
   counts(tenantId: string, since: Date): Promise<SmsEventCounts>;
   report(tenantId: string, from: Date, to: Date): Promise<SmsReportRow[]>;
-  list(tenantId: string, page: SmsLogPage): Promise<SelectSmsLog[]>;
+  list(
+    tenantId: string,
+    page: SmsLogPage,
+  ): Promise<(SelectSmsLog & { orderNumber: string | null })[]>;
   /** A transaction in the shop's context, for an SMS's charge. */
   run<T>(tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T>;
 }

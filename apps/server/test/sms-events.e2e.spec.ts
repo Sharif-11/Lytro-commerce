@@ -243,6 +243,12 @@ describeIfDatabase(
       expect(view.essentials[2]?.words).toBe(`Your shop is ready: http://${shop.slug}.localhost`);
       // The owner signed up by phone: their own SMS go to it.
       expect(view.ownerPhone).toMatch(/^01\d{9}$/);
+      // Slice 7.7: the cycle the spend and its cap count over.
+      const cycle = read.body as { cycleStart: string; cycleEnd: string };
+      expect(new Date(cycle.cycleEnd).getTime()).toBeGreaterThan(
+        new Date(cycle.cycleStart).getTime(),
+      );
+      expect(new Date(cycle.cycleStart).getTime()).toBeLessThanOrEqual(Date.now());
       expect(view).toMatchObject({
         smsName: `Shop ${shop.slug}`,
         usesShopName: true,
@@ -651,8 +657,16 @@ describeIfDatabase('SMS-14, SMS-17: what a shop sees of its SMS', () => {
       sms: { status: string }[];
     };
     expect(rest.sms.map((row) => row.status)).toEqual(['failed']);
-    const own = (await setup.shop.get(`/sms/log?orderId=${first.id}`)).body as { sms: unknown[] };
+    const own = (await setup.shop.get(`/sms/log?orderId=${first.id}`)).body as {
+      sms: { orderId: string | null; orderNumber: string | null }[];
+    };
     expect(own.sms.length).toBeGreaterThan(0);
+    // Slice 7.7: each row carries its order's number for the link.
+    const numbered = await admin.query<{ order_number: string }>(
+      'SELECT order_number FROM tenant.orders WHERE id = $1',
+      [first.id],
+    );
+    expect(own.sms.every((row) => row.orderNumber === numbered.rows[0]?.order_number)).toBe(true);
     expect((await other.shop.get(`/sms/log?orderId=${first.id}`)).body).toEqual({ sms: [] });
     expect(((await other.shop.get('/sms/report')).body as { days: unknown[] }).days).toEqual([]);
   });
