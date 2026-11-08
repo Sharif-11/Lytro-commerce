@@ -230,7 +230,7 @@ Migrations follow Phase 6's, numbered in the order slices merge (Slice 7.1 is 01
 | `tenant.notifications`, `tenant.notification_preferences` | each notice for its users, read state, and what each user has switched off (NTF-01, NTF-04) | 7.3 |
 | `tenant.push_subscriptions` | each subscribed device (NTF-02) | 7.3 |
 | `control.mail_suppressions` (the addresses Lytro stopped emailing), `tenant.users.language`, the outbox's `provider_message_id` | NTF-06, I18N-01, D7-3 | 7.3 |
-| `control.notices`, `control.notice_versions`, `control.notice_reads`, `control.notice_acknowledgments`, `control.notice_deliveries` | notices, their earlier versions (NTC-08), each person's reads and closed banners, each shop's acknowledgment (NTC-05), and each shop a notice was sent to (NTC-06). Built in migration 0118 | 7.4 |
+| `control.notices`, `control.notice_versions`, `control.notice_reads`, `control.notice_acknowledgments`, `control.notice_deliveries` | notices, their earlier versions (NTC-08), each person's reads and closed banners, each shop's acknowledgment (NTC-05), and each shop a notice was sent to (NTC-06). Built in migration 0119 | 7.4 |
 | `tenant.fraud_checks`, `tenant.fraud_rules` | each check's figures by source, what each source did, the check whose Steadfast answer it reused, and its cost (FRD-01 to FRD-04, FRD-11); the automatic rule, a row once the owner changes it (FRD-05). No shared-counts column in this release. Built in migration 0115 | 7.5 |
 | `tenant.order_extractions` | each charged read, without the message (D7-18): its length, confidence and cost, and the allowance that paid, if one did; an allowance's uses are its rows | 7.6 |
 | the `ai_extraction` rate, the first allowance item, the read's three operator settings | D7-16, D7-17, D7-35, D7-36 | 7.6 |
@@ -309,7 +309,7 @@ checks whether FRD-01's `fraud:check` is `fraud:read` or needs its own name.
   each person's unread count. Its summary gives every page the urgent banners, the important prompts, what the owner must
   acknowledge and the next maintenance window. The owner's "I understand" is once per shop, in its activity log and
   Lytro's. Found on the way: the server could never have written a notice onto its rate change, since the app had no
-  right to update `control.rate_history`; the migration grants that one column. One PR, migration `0118_notice_board`.
+  right to update `control.rate_history`; the migration grants that one column. One PR, migration `0119_notice_board`.
 
 ### Slice 7.5: fraud checks
 - **Depends on:** 7.0, and Slice 6.4 for RedX's check.

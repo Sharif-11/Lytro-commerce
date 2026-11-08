@@ -593,6 +593,8 @@ export enum QueueName {
   NotificationPurgeTick = 'notification_purge_tick',
   // NTC-06, NTC-11 (Phase 7 Slice 7.4): every minute, the notices whose time has come are sent to the shops they reach.
   NoticePublishTick = 'notice_publish_tick',
+  // API-27, D8-3 (Phase 8 Slice 8.1): the nightly clean-up of shops' server faults past the days they are kept.
+  RequestErrorPurgeTick = 'request_error_purge_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an

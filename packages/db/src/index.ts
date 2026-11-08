@@ -125,6 +125,10 @@ export {
 } from './repositories/platform/platform-audit-log.repository';
 export { PlatformSettingsRepository } from './repositories/platform/platform-settings.repository';
 export {
+  RequestErrorRepository,
+  type NewRequestError,
+} from './repositories/platform/request-error.repository';
+export {
   BalanceLedgerRepository,
   type LedgerFilters,
   type LedgerCursor,

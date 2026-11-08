@@ -1,5 +1,5 @@
 {
-  "id": "612b1957-9203-4a4c-a6c0-c2315f576d60",
+  "id": "2254eae4-2671-40e0-99de-6cb728c967f3",
   "prevId": "aec3cdd1-3f60-44ea-b4c9-f3e9da3da1e6",
   "version": "7",
   "dialect": "postgresql",
@@ -12855,540 +12855,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "control.notice_acknowledgments": {
-      "name": "notice_acknowledgments",
-      "schema": "control",
-      "columns": {
-        "notice_id": {
-          "name": "notice_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "acknowledged_at": {
-          "name": "acknowledged_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "notice_acknowledgments_notice_id_notices_id_fk": {
-          "name": "notice_acknowledgments_notice_id_notices_id_fk",
-          "tableFrom": "notice_acknowledgments",
-          "tableTo": "notices",
-          "schemaTo": "control",
-          "columnsFrom": ["notice_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "notice_acknowledgments_tenant_id_tenants_id_fk": {
-          "name": "notice_acknowledgments_tenant_id_tenants_id_fk",
-          "tableFrom": "notice_acknowledgments",
-          "tableTo": "tenants",
-          "schemaTo": "control",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "notice_acknowledgments_notice_id_tenant_id_pk": {
-          "name": "notice_acknowledgments_notice_id_tenant_id_pk",
-          "columns": ["notice_id", "tenant_id"]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "control.notice_deliveries": {
-      "name": "notice_deliveries",
-      "schema": "control",
-      "columns": {
-        "notice_id": {
-          "name": "notice_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "people": {
-          "name": "people",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "emailed": {
-          "name": "emailed",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "delivered_at": {
-          "name": "delivered_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "notice_deliveries_tenant_idx": {
-          "name": "notice_deliveries_tenant_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "notice_deliveries_notice_id_notices_id_fk": {
-          "name": "notice_deliveries_notice_id_notices_id_fk",
-          "tableFrom": "notice_deliveries",
-          "tableTo": "notices",
-          "schemaTo": "control",
-          "columnsFrom": ["notice_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "notice_deliveries_tenant_id_tenants_id_fk": {
-          "name": "notice_deliveries_tenant_id_tenants_id_fk",
-          "tableFrom": "notice_deliveries",
-          "tableTo": "tenants",
-          "schemaTo": "control",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "notice_deliveries_notice_id_tenant_id_pk": {
-          "name": "notice_deliveries_notice_id_tenant_id_pk",
-          "columns": ["notice_id", "tenant_id"]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "control.notice_reads": {
-      "name": "notice_reads",
-      "schema": "control",
-      "columns": {
-        "notice_id": {
-          "name": "notice_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "read_at": {
-          "name": "read_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "dismissed_at": {
-          "name": "dismissed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "notice_reads_user_idx": {
-          "name": "notice_reads_user_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "notice_reads_notice_id_notices_id_fk": {
-          "name": "notice_reads_notice_id_notices_id_fk",
-          "tableFrom": "notice_reads",
-          "tableTo": "notices",
-          "schemaTo": "control",
-          "columnsFrom": ["notice_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "notice_reads_user_fk": {
-          "name": "notice_reads_user_fk",
-          "tableFrom": "notice_reads",
-          "tableTo": "users",
-          "schemaTo": "tenant",
-          "columnsFrom": ["tenant_id", "user_id"],
-          "columnsTo": ["tenant_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "notice_reads_notice_id_tenant_id_user_id_pk": {
-          "name": "notice_reads_notice_id_tenant_id_user_id_pk",
-          "columns": ["notice_id", "tenant_id", "user_id"]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "notice_reads_seen_check": {
-          "name": "notice_reads_seen_check",
-          "value": "\"control\".\"notice_reads\".\"read_at\" IS NOT NULL OR \"control\".\"notice_reads\".\"dismissed_at\" IS NOT NULL"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "control.notice_versions": {
-      "name": "notice_versions",
-      "schema": "control",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "bigserial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "notice_id": {
-          "name": "notice_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "snapshot": {
-          "name": "snapshot",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "edited_by": {
-          "name": "edited_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "notice_versions_notice_idx": {
-          "name": "notice_versions_notice_idx",
-          "columns": [
-            {
-              "expression": "notice_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "notice_versions_notice_id_notices_id_fk": {
-          "name": "notice_versions_notice_id_notices_id_fk",
-          "tableFrom": "notice_versions",
-          "tableTo": "notices",
-          "schemaTo": "control",
-          "columnsFrom": ["notice_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "control.notices": {
-      "name": "notices",
-      "schema": "control",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "title_bn": {
-          "name": "title_bn",
-          "type": "varchar(120)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "title_en": {
-          "name": "title_en",
-          "type": "varchar(120)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "body_bn": {
-          "name": "body_bn",
-          "type": "varchar(5000)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "body_en": {
-          "name": "body_en",
-          "type": "varchar(5000)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "category": {
-          "name": "category",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "severity": {
-          "name": "severity",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "audience": {
-          "name": "audience",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "publish_at": {
-          "name": "publish_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ends_at": {
-          "name": "ends_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pinned": {
-          "name": "pinned",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "requires_ack": {
-          "name": "requires_ack",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "window_starts_at": {
-          "name": "window_starts_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "window_ends_at": {
-          "name": "window_ends_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rate_change_id": {
-          "name": "rate_change_id",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "edited_at": {
-          "name": "edited_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "withdrawn_at": {
-          "name": "withdrawn_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "withdrawn_by": {
-          "name": "withdrawn_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sent_at": {
-          "name": "sent_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "notices_publish_idx": {
-          "name": "notices_publish_idx",
-          "columns": [
-            {
-              "expression": "publish_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "notices_due_idx": {
-          "name": "notices_due_idx",
-          "columns": [
-            {
-              "expression": "publish_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"control\".\"notices\".\"sent_at\" IS NULL AND \"control\".\"notices\".\"withdrawn_at\" IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "notices_rate_change_id_rate_history_id_fk": {
-          "name": "notices_rate_change_id_rate_history_id_fk",
-          "tableFrom": "notices",
-          "tableTo": "rate_history",
-          "schemaTo": "control",
-          "columnsFrom": ["rate_change_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "notices_category_check": {
-          "name": "notices_category_check",
-          "value": "\"control\".\"notices\".\"category\" in ('rate_change','maintenance','new_feature','policy','security','general')"
-        },
-        "notices_severity_check": {
-          "name": "notices_severity_check",
-          "value": "\"control\".\"notices\".\"severity\" in ('info','important','urgent')"
-        },
-        "notices_audience_check": {
-          "name": "notices_audience_check",
-          "value": "\"control\".\"notices\".\"audience\"->>'kind' in ('all','plans','states','tenant')"
-        },
-        "notices_language_check": {
-          "name": "notices_language_check",
-          "value": "(\"control\".\"notices\".\"title_bn\" IS NOT NULL AND \"control\".\"notices\".\"body_bn\" IS NOT NULL) OR (\"control\".\"notices\".\"title_en\" IS NOT NULL AND \"control\".\"notices\".\"body_en\" IS NOT NULL)"
-        },
-        "notices_ends_check": {
-          "name": "notices_ends_check",
-          "value": "\"control\".\"notices\".\"ends_at\" IS NULL OR \"control\".\"notices\".\"publish_at\" IS NULL OR \"control\".\"notices\".\"ends_at\" > \"control\".\"notices\".\"publish_at\""
-        },
-        "notices_window_check": {
-          "name": "notices_window_check",
-          "value": "(\"control\".\"notices\".\"window_starts_at\" IS NULL) = (\"control\".\"notices\".\"window_ends_at\" IS NULL) AND (\"control\".\"notices\".\"window_ends_at\" IS NULL OR \"control\".\"notices\".\"window_ends_at\" > \"control\".\"notices\".\"window_starts_at\")"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "tenant.order_extractions": {
       "name": "order_extractions",
       "schema": "tenant",
@@ -17140,6 +16606,125 @@
         "addons_kind_check": {
           "name": "addons_kind_check",
           "value": "\"control\".\"addons\".\"kind\" in ('limit','pack','feature','allowance')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "control.request_errors": {
+      "name": "request_errors",
+      "schema": "control",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "varchar(9)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "method": {
+          "name": "method",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "route": {
+          "name": "route",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "request_errors_tenant_idx": {
+          "name": "request_errors_tenant_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "request_errors_created_idx": {
+          "name": "request_errors_created_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "request_errors_tenant_id_tenants_id_fk": {
+          "name": "request_errors_tenant_id_tenants_id_fk",
+          "tableFrom": "request_errors",
+          "tableTo": "tenants",
+          "schemaTo": "control",
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "request_errors_status_check": {
+          "name": "request_errors_status_check",
+          "value": "\"control\".\"request_errors\".\"status\" in (500, 503)"
+        },
+        "request_errors_request_id_check": {
+          "name": "request_errors_request_id_check",
+          "value": "\"control\".\"request_errors\".\"request_id\" ~ '^[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$'"
         }
       },
       "isRLSEnabled": false
