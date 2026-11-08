@@ -3,10 +3,17 @@ import {
   CUSTOMER_FAULT_CANCEL_REASONS,
   FraudSourceState,
   FulfillmentStatus,
+  type FulfilmentType,
   StatusOverride,
 } from '@lytronix/validators';
-import { fraudChecks, fraudRules, orders, type InsertFraudCheck } from '../../schema';
-import type { SelectFraudCheck, SelectFraudRule } from '../../schema';
+import {
+  fraudCheckSkips,
+  fraudChecks,
+  fraudRules,
+  orders,
+  type InsertFraudCheck,
+} from '../../schema';
+import type { SelectFraudCheck, SelectFraudCheckSkip, SelectFraudRule } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 
 export type NewFraudCheck = Omit<InsertFraudCheck, 'id' | 'createdAt'>;
@@ -16,6 +23,14 @@ export interface OwnOrderCounts {
   delivered: number;
   returned: number;
   cancelled: number;
+}
+
+/** FRD-05 (Slice 7.7): what an order's automatic check reads of the order itself. */
+export interface FraudOrderFacts {
+  fulfilmentType: FulfilmentType;
+  customerPhone: string | null;
+  codAmount: string;
+  createdAt: Date;
 }
 
 // FRD-01 to FRD-05 (Phase 7 Slice 7.5): a shop's fraud checks, its own orders with a phone, and its automatic rule.
@@ -131,5 +146,50 @@ export class FraudCheckRepository {
       .returning();
     if (!row) throw new Error('the fraud rule was not saved');
     return row;
+  }
+
+  /** FRD-05 (Slice 7.7): why a new order's automatic check didn't run. Written once; a second write changes nothing. */
+  async recordSkip(
+    db: Transaction,
+    values: Omit<typeof fraudCheckSkips.$inferInsert, 'createdAt'>,
+  ): Promise<void> {
+    await this.transactions.setTenantContext(db, values.tenantId);
+    await db.insert(fraudCheckSkips).values(values).onConflictDoNothing();
+  }
+
+  /** FRD-05 (Slice 7.7): an order of the shop's as its automatic check reads it, its check, and why one didn't run. */
+  async orderCheck(
+    db: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<{
+    order: FraudOrderFacts | null;
+    check: SelectFraudCheck | null;
+    skip: SelectFraudCheckSkip | null;
+  }> {
+    await this.transactions.setTenantContext(db, tenantId);
+    const [order] = await db
+      .select({
+        fulfilmentType: orders.fulfilmentType,
+        customerPhone: orders.customerPhone,
+        codAmount: orders.codAmount,
+        createdAt: orders.createdAt,
+      })
+      .from(orders)
+      .where(and(eq(orders.tenantId, tenantId), eq(orders.id, orderId)))
+      .limit(1);
+    if (!order) return { order: null, check: null, skip: null };
+    const [check] = await db
+      .select()
+      .from(fraudChecks)
+      .where(and(eq(fraudChecks.tenantId, tenantId), eq(fraudChecks.orderId, orderId)))
+      .orderBy(desc(fraudChecks.createdAt))
+      .limit(1);
+    const [skip] = await db
+      .select()
+      .from(fraudCheckSkips)
+      .where(and(eq(fraudCheckSkips.tenantId, tenantId), eq(fraudCheckSkips.orderId, orderId)))
+      .limit(1);
+    return { order, check: check ?? null, skip: skip ?? null };
   }
 }

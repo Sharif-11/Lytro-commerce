@@ -834,6 +834,13 @@
       "when": 1794122402361,
       "tag": "0119_notice_board",
       "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1794128542457,
+      "tag": "0120_fraud_check_skips",
+      "breakpoints": true
     }
   ]
 }

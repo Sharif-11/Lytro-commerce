@@ -1,10 +1,13 @@
 import type {
+  FraudOrderFacts,
   NewFraudCheck,
   OwnOrderCounts,
   SelectFraudCheck,
+  SelectFraudCheckSkip,
   SelectFraudRule,
   Transaction,
 } from '@lytronix/db';
+import type { FraudSkipReason } from '@lytronix/validators';
 
 /** FRD-01 to FRD-05 (Phase 7 Slice 7.5): a shop's fraud checks, its own orders with a phone, and its automatic rule. */
 export interface FraudCheckStore {
@@ -26,4 +29,24 @@ export interface FraudCheckStore {
     tenantId: string,
     rule: { codOrders: boolean; minAmount: string | null },
   ): Promise<SelectFraudRule>;
+  /** FRD-05 (Slice 7.7): why a new order's automatic check didn't run. */
+  recordSkip(
+    tx: Transaction,
+    skip: {
+      tenantId: string;
+      orderId: string;
+      reason: FraudSkipReason;
+      minAmount: string | null;
+      messageKey: string | null;
+    },
+  ): Promise<void>;
+  orderCheck(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<{
+    order: FraudOrderFacts | null;
+    check: SelectFraudCheck | null;
+    skip: SelectFraudCheckSkip | null;
+  }>;
 }

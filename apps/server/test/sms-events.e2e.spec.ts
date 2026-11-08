@@ -213,7 +213,8 @@ describeIfDatabase(
           units: number;
           estimate: { basis: string; cost: string };
         }[];
-        essentials: string[];
+        essentials: { kind: string; words: string; payer: string }[];
+        ownerPhone: string | null;
         smsName: string;
         usesShopName: boolean;
         monthlySpendCap: string | null;
@@ -229,7 +230,19 @@ describeIfDatabase(
         ['new_order_alert', 'owner', false],
         ['payment_to_verify', 'owner', false],
       ]);
-      expect(view.essentials).toEqual(['shopper_code', 'staff_reset_code', 'shop_ready']);
+      // Slice 7.7: each essential SMS as it reads, with a sample code or the shop's address, and who pays for it.
+      expect(view.essentials.map((row) => [row.kind, row.payer])).toEqual([
+        ['shopper_code', 'balance'],
+        ['staff_reset_code', 'free_then_balance'],
+        ['shop_ready', 'free'],
+      ]);
+      expect(view.essentials[0]?.words).toBe(
+        `Shop ${shop.slug}-এ সাইন আপের জন্য OTP হচ্ছে 123456। কারো সাথে শেয়ার করবেন না।`,
+      );
+      expect(view.essentials[1]?.words).toContain('পাসওয়ার্ড রিসেটের জন্য OTP হচ্ছে 123456');
+      expect(view.essentials[2]?.words).toBe(`Your shop is ready: http://${shop.slug}.localhost`);
+      // The owner signed up by phone: their own SMS go to it.
+      expect(view.ownerPhone).toMatch(/^01\d{9}$/);
       expect(view).toMatchObject({
         smsName: `Shop ${shop.slug}`,
         usesShopName: true,

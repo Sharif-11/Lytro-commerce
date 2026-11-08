@@ -19,6 +19,8 @@ import { ApiError } from '../../../common/api-error';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
+import { headerValue } from '../../../common/http';
+import { resolveLanguage } from '../../../common/i18n/accept-language';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
@@ -66,7 +68,10 @@ export class SmsController {
   })
   @ZodResponse({ type: SmsSettingsDto })
   view(@Req() request: DashboardRequest): Promise<SmsSettingsView> {
-    return this.settings.view(this.request.tenantIdOf(request));
+    return this.settings.view(
+      this.request.tenantIdOf(request),
+      resolveLanguage(headerValue(request.headers['accept-language'])),
+    );
   }
 
   @Patch('settings')

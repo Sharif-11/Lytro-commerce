@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { loginCodeText, resetCodeText, shopReadyText } from '../sms-words';
 import type { Transaction } from '@lytronix/db';
 import { ChallengeKind, QueueName, SmsKind } from '@lytronix/validators';
 import { MINUTE_MS } from '../../../../common/time';
@@ -36,11 +37,7 @@ export class MessagingService {
     code: string,
     purpose: ChallengeKind,
   ): Promise<QueuedMessage> {
-    // The owner's own words (Slice 7.1's read, 2026-11-06), in the shape BulkSMSBD asks codes to take.
-    const body =
-      purpose === ChallengeKind.Reset
-        ? `Lytro-এ পাসওয়ার্ড রিসেটের জন্য OTP হচ্ছে ${code}। কারো সাথে শেয়ার করবেন না।`
-        : `Lytro-এ লগইনের জন্য OTP হচ্ছে ${code}। কারো সাথে শেয়ার করবেন না।`;
+    const body = purpose === ChallengeKind.Reset ? resetCodeText(code) : loginCodeText(code);
     const id = await this.store.insert(tx, { toPhone: phone, kind: SmsKind.Otp, body: null });
     return { id, toPhone: phone, body };
   }
@@ -52,7 +49,7 @@ export class MessagingService {
   }
 
   async queueShopReady(tx: Transaction, phone: string, liveUrl: string): Promise<QueuedMessage> {
-    const body = `Your shop is ready: ${liveUrl}`;
+    const body = shopReadyText(liveUrl);
     const id = await this.store.insert(tx, { toPhone: phone, kind: SmsKind.ShopReady, body });
     return { id, toPhone: phone, body };
   }

@@ -6,13 +6,14 @@ import {
   integer,
   jsonb,
   numeric,
+  primaryKey,
   smallint,
   text,
   timestamp,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { FraudCheckTrigger, FraudSourceState } from '@lytronix/validators';
+import { FraudCheckTrigger, FraudSkipReason, FraudSourceState } from '@lytronix/validators';
 import { createdAt, tenant } from '../shared';
 import { orders } from './orders';
 
@@ -103,3 +104,31 @@ export const fraudRules = tenant.table(
 );
 
 export type SelectFraudRule = typeof fraudRules.$inferSelect;
+
+// FRD-05 (Phase 7 Slice 7.7): a new order's automatic check that didn't run, and why, written when its job ran, so the
+// order's page says so as it was -- the smallest amount as the rule had it then, and a refusal's own words. One per
+// order; an order with neither a check nor a skip is still being checked.
+export const fraudCheckSkips = tenant.table(
+  'fraud_check_skips',
+  {
+    tenantId: uuid('tenant_id').notNull(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => orders.id, { onDelete: 'cascade' }),
+    reason: text('reason').$type<FraudSkipReason>().notNull(),
+    // The rule's smallest amount when the order was under it.
+    minAmount: numeric('min_amount', { precision: 12, scale: 2 }),
+    // A refusal's message key, worded in the reader's language when the page reads it.
+    messageKey: text('message_key'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.tenantId, t.orderId] }),
+    check(
+      'fraud_check_skips_reason_check',
+      sql`${t.reason} in (${sql.raw(listed(Object.values(FraudSkipReason)))})`,
+    ),
+  ],
+);
+
+export type SelectFraudCheckSkip = typeof fraudCheckSkips.$inferSelect;

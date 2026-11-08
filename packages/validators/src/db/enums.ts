@@ -1394,6 +1394,16 @@ export enum FraudCheckTrigger {
   Order = 'order',
 }
 
+// FRD-05 (Phase 7 Slice 7.7): why a new order's automatic check didn't run, kept for the order's page -- the rule was
+// off, the order under its smallest amount, the check refused (a frozen balance, a trial once checks are charged, a
+// balance short of the rate), or the shop's checks for the minute used up.
+export enum FraudSkipReason {
+  RuleOff = 'rule_off',
+  BelowMinimum = 'below_minimum',
+  Refused = 'refused',
+  MinuteLimit = 'minute_limit',
+}
+
 // FRD-04: how long a courier's answer for a phone is reused before it is asked again.
 export const FRAUD_CHECK_CACHE_DAYS = 3;
 // FRD-07 (Slice 7.5): one shop's fraud checks in any minute, when the operator has set no figure.

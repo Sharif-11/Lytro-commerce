@@ -318,6 +318,7 @@ export {
 } from './repositories/orders/order-extraction.repository';
 export {
   FraudCheckRepository,
+  type FraudOrderFacts,
   type NewFraudCheck,
   type OwnOrderCounts,
 } from './repositories/fraud/fraud-check.repository';
