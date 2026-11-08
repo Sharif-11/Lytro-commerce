@@ -90,4 +90,14 @@ export interface ShopUsage {
   fastSpendAlertedAt: Date | null;
   /** BND-04, RTE-11, PLN-15: the packs on sale and auto-buy, for bandwidth and API requests. */
   packs: UsagePack[];
+  /** PLN-20, D7-36 (Slice 7.7): what is paid for use by use -- address reads -- this cycle, and its allowance. */
+  payPerUse: PayPerUse[];
+}
+
+/** PLN-20 (Slice 7.7): one service paid use by use, its allowances pooled, and the uses paid one by one at the rate. */
+export interface PayPerUse {
+  key: 'address_reads';
+  rate: string;
+  allowance: { used: number; total: number; left: number; endsAt: Date } | null;
+  outsideAllowance: { count: number; cost: string };
 }

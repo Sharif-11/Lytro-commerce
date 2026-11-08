@@ -12,8 +12,9 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { Permission } from '@lytronix/validators';
+import { AddonKind, Permission } from '@lytronix/validators';
 import { LytroReceipts } from '../../lytro-receipts/services/lytro-receipts';
+import { AddressReads } from '../../address-reads/services/address-reads';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
@@ -60,6 +61,7 @@ export class AddonsController {
     @Inject(AddonPurchaseService) private readonly addons: AddonPurchaseService,
     @Inject(AddonPackService) private readonly packs: AddonPackService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
+    @Inject(AddressReads) private readonly reads: AddressReads,
   ) {}
 
   @Get()
@@ -76,8 +78,25 @@ export class AddonsController {
   @ResponseMessage('ShopAddonsRetrieved')
   @ApiOperation({ summary: "The shop's active add-ons and its brand identity entitlement" })
   @ZodResponse({ type: ShopAddonsDto })
-  mine(@Req() request: DashboardRequest): Promise<ShopAddons> {
-    return this.addons.mine(this.tenantIdOf(request));
+  async mine(
+    @Req() request: DashboardRequest,
+  ): Promise<
+    ShopAddons & { addons: (ShopAddons['addons'][number] & { usesLeft: number | null })[] }
+  > {
+    const tenantId = this.tenantIdOf(request);
+    const [mine, allowances] = await Promise.all([
+      this.addons.mine(tenantId),
+      this.reads.allowances(tenantId),
+    ]);
+    // PLN-20 (Slice 7.7): an allowance shows the uses it still has; any other add-on, none.
+    const left = new Map(allowances.map((allowance) => [allowance.purchaseId, allowance.left]));
+    return {
+      ...mine,
+      addons: mine.addons.map((addon) => ({
+        ...addon,
+        usesLeft: addon.kind === AddonKind.Allowance ? (left.get(addon.id) ?? 0) : null,
+      })),
+    };
   }
 
   @Post('quote')

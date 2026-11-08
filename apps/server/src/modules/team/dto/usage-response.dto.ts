@@ -75,5 +75,16 @@ export const shopUsageSchema = z.object({
       autoBuyFailed: z.boolean(),
     }),
   ),
+  // PLN-20, D7-36 (Slice 7.7): address reads this cycle, their allowance and those paid one by one.
+  payPerUse: z.array(
+    z.object({
+      key: z.literal('address_reads'),
+      rate: z.string(),
+      allowance: z
+        .object({ used: z.number(), total: z.number(), left: z.number(), endsAt: z.date() })
+        .nullable(),
+      outsideAllowance: z.object({ count: z.number(), cost: z.string() }),
+    }),
+  ),
 });
 export class ShopUsageDto extends createZodDto(shopUsageSchema) {}

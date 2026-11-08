@@ -82,6 +82,8 @@ export const shopAddonsSchema = z.object({
       renews: z.boolean(),
       renewal: z.nativeEnum(AddonRenewal),
       endsSoon: z.boolean(),
+      // PLN-20 (Slice 7.7): an allowance's uses still left; null for any other add-on.
+      usesLeft: z.number().int().nullable(),
     })
     .array(),
   brandIdentity: z.boolean(),

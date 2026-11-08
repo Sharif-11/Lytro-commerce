@@ -8,6 +8,7 @@ import {
   USAGE_WARNINGS,
   type CyclePacks,
 } from '../../../common/usage-warnings';
+import { AddressReads, type AddressReadFigures } from '../../address-reads/services/address-reads';
 import { AddonPurchaseService } from '../../billing/services/addon-purchase.service';
 import type { AddonOffer } from '../../billing/types/addon';
 import { ProductService } from '../../catalogue/services/product.service';
@@ -20,7 +21,7 @@ import { TenantService } from '../../tenancy/services/tenant.service';
 import { HandlingQuota } from '../../orders/services/handling-quota';
 import type { TenantSummary } from '../../tenancy/types/tenant-summary';
 import { UsageSettings } from '../../usage-warnings/services/usage-settings';
-import type { ShopUsage, UsageFigure, UsagePack } from '../types/usage';
+import type { PayPerUse, ShopUsage, UsageFigure, UsagePack } from '../types/usage';
 import { metricLimit, SERVING_METRICS } from './metric-limits';
 import { runOutDate } from './pace';
 import { UsageSuggestions } from './usage-suggestions';
@@ -71,6 +72,7 @@ export class UsageService {
     @Inject(AddonPurchaseService) private readonly addons: AddonPurchaseService,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(HandlingQuota) private readonly handling: HandlingQuota,
+    @Inject(AddressReads) private readonly reads: AddressReads,
   ) {}
 
   async usage(tenant: TenantSummary, now: Date): Promise<ShopUsage> {
@@ -101,9 +103,10 @@ export class UsageService {
       this.settings.gracePercent(),
       this.handling.counts(tenant, now),
     ]);
-    const [offers, billing] = await Promise.all([
+    const [offers, billing, reads] = await Promise.all([
       this.addons.offers(tenant.id),
       this.tenants.runStandalone((tx) => this.tenants.findBillingInfo(tx, tenant.id)),
+      this.reads.figures(tenant.id, cycleStart),
     ]);
     const cycleEnd = usageCycleEnd(tenant, now);
     const figure = (
@@ -182,6 +185,25 @@ export class UsageService {
       suggestions: await this.suggestions.for(tenant, metrics, offers, now),
       fastSpendAlertedAt: fastSpend,
       packs,
+      payPerUse: [payPerUseOf(reads)],
     };
   }
+}
+
+/** PLN-20 (Slice 7.7): the reads allowances pooled -- a shop rarely holds two -- ending with the soonest. */
+function payPerUseOf(reads: AddressReadFigures): PayPerUse {
+  const [soonest] = reads.allowances;
+  return {
+    key: 'address_reads',
+    rate: reads.rate,
+    allowance: soonest
+      ? {
+          used: reads.allowances.reduce((sum, each) => sum + each.used, 0),
+          total: reads.allowances.reduce((sum, each) => sum + each.total, 0),
+          left: reads.allowances.reduce((sum, each) => sum + each.left, 0),
+          endsAt: soonest.endsAt,
+        }
+      : null,
+    outsideAllowance: reads.outsideAllowance,
+  };
 }

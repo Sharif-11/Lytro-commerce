@@ -1,5 +1,5 @@
-import { and, count, eq, inArray } from 'drizzle-orm';
-import type { PerUsePaidFrom } from '@lytronix/validators';
+import { and, count, eq, gte, inArray, sql } from 'drizzle-orm';
+import { PerUsePaidFrom } from '@lytronix/validators';
 import { orderExtractions } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 
@@ -41,5 +41,28 @@ export class OrderExtractionRepository {
       )
       .groupBy(orderExtractions.addonPurchaseId);
     return new Map(rows.flatMap((row) => (row.purchaseId ? [[row.purchaseId, row.uses]] : [])));
+  }
+
+  /** PLN-20 (Slice 7.7): the reads paid from the balance since a moment -- outside any allowance -- and what they cost. */
+  async paidFromBalanceSince(
+    db: Transaction,
+    tenantId: string,
+    since: Date,
+  ): Promise<{ count: number; cost: string }> {
+    await this.transactions.setTenantContext(db, tenantId);
+    const [row] = await db
+      .select({
+        count: count(),
+        cost: sql<string>`coalesce(sum(${orderExtractions.cost}), 0)::numeric(12, 2)::text`,
+      })
+      .from(orderExtractions)
+      .where(
+        and(
+          eq(orderExtractions.tenantId, tenantId),
+          eq(orderExtractions.paidFrom, PerUsePaidFrom.Balance),
+          gte(orderExtractions.createdAt, since),
+        ),
+      );
+    return { count: row?.count ?? 0, cost: row?.cost ?? '0.00' };
   }
 }
