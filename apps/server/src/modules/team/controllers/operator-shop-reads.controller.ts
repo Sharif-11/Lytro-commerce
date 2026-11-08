@@ -2,7 +2,6 @@ import { Controller, Get, Inject, Param, Query, UseGuards } from '@nestjs/common
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import {
-  catalogueIdSchema,
   salesQuerySchema,
   shopErrorsQuerySchema,
   shopFailedSmsQuerySchema,
@@ -10,7 +9,6 @@ import {
   type ShopErrorsQuery,
   type ShopFailedSmsQuery,
 } from '@lytronix/validators';
-import { ApiError } from '../../../common/api-error';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
@@ -44,7 +42,7 @@ export class OperatorShopReadsController {
   })
   @ZodResponse({ type: OperatorShopFiguresDto })
   figures(@Param('id') id: string): Promise<OperatorShopFigures> {
-    return this.reads.figures(this.shopId(id), new Date());
+    return this.reads.figures(id, new Date());
   }
 
   @Get(':id/errors')
@@ -58,12 +56,7 @@ export class OperatorShopReadsController {
     @Param('id') id: string,
     @Query(new ZodValidationPipe(shopErrorsQuerySchema)) query: ShopErrorsQuery,
   ) {
-    const rows = await this.reads.errorList(
-      this.shopId(id),
-      query.before ?? null,
-      query.limit + 1,
-      new Date(),
-    );
+    const rows = await this.reads.errorList(id, query.before ?? null, query.limit + 1, new Date());
     const errors = rows.slice(0, query.limit);
     const last = errors[errors.length - 1];
     return { errors, nextBefore: rows.length > query.limit && last ? last.id : null };
@@ -80,7 +73,7 @@ export class OperatorShopReadsController {
     @Param('id') id: string,
     @Query(new ZodValidationPipe(shopFailedSmsQuerySchema)) query: ShopFailedSmsQuery,
   ) {
-    return this.reads.failedSms(this.shopId(id), {
+    return this.reads.failedSms(id, {
       shopBefore: query.shopBefore ?? null,
       lytroBefore: query.lytroBefore ?? null,
       limit: query.limit,
@@ -95,7 +88,7 @@ export class OperatorShopReadsController {
   })
   @ZodResponse({ type: QueuedPaymentListDto })
   paymentsWaiting(@Param('id') id: string): Promise<QueuedPayment[]> {
-    return this.reads.paymentsWaiting(this.shopId(id));
+    return this.reads.paymentsWaiting(id);
   }
 
   @Get(':id/sales')
@@ -109,13 +102,6 @@ export class OperatorShopReadsController {
     @Param('id') id: string,
     @Query(new ZodValidationPipe(salesQuerySchema)) query: SalesQuery,
   ): Promise<SalesView> {
-    return this.reads.salesOf(this.shopId(id), query, new Date());
-  }
-
-  /** A shop id that isn't one is a shop not found, never a database error. */
-  private shopId(id: string): string {
-    const parsed = catalogueIdSchema.safeParse(id);
-    if (!parsed.success) throw new ApiError('not_found', 'ShopNotFound', {});
-    return parsed.data;
+    return this.reads.salesOf(id, query, new Date());
   }
 }
