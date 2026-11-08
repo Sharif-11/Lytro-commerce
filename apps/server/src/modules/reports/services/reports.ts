@@ -4,11 +4,11 @@ import {
   LAPSED_TENANT_STATES,
   PlanPaymentKind,
   SPENT_LEDGER_TYPES,
+  TenantState,
   TOP_CONSUMERS_LIMIT,
   type ConsumersQuery,
   type LedgerEntryType,
   type ReportQuery,
-  type TenantState,
 } from '@lytronix/validators';
 import { dayPeriodOf, type DayPeriod } from '../../../common/day-period';
 import { fromPaisa, toPaisa } from '../../balance/services/money';
@@ -59,7 +59,12 @@ export interface ShopsReport {
   now: {
     total: number;
     byState: { state: TenantState; count: number }[];
-    byPlan: { planId: string | null; planName: string | null; count: number }[];
+    byPlan: {
+      planId: string | null;
+      planName: string | null;
+      payAsYouGo: boolean;
+      count: number;
+    }[];
   };
   buckets: (DayRange & ShopMovements)[];
   total: ShopMovements;
@@ -157,14 +162,18 @@ export class Reports {
       lapsed: countIn(lapsed, range),
     });
     const byState = new Map<TenantState, number>();
-    const byPlan = new Map<
-      string,
-      { planId: string | null; planName: string | null; count: number }
-    >();
+    const byPlan = new Map<string, ShopsReport['now']['byPlan'][number]>();
     for (const row of counts) {
       byState.set(row.state, (byState.get(row.state) ?? 0) + row.count);
-      const key = row.planId ?? '';
-      const plan = byPlan.get(key) ?? { planId: row.planId, planName: row.planName, count: 0 };
+      // ADM-09, PYG-13: pay-as-you-go is its own line, whatever plan row the shop still points at.
+      const payAsYouGo = row.state === TenantState.PayAsYouGo;
+      const key = payAsYouGo ? 'pay_as_you_go' : (row.planId ?? '');
+      const plan = byPlan.get(key) ?? {
+        planId: payAsYouGo ? null : row.planId,
+        planName: payAsYouGo ? null : row.planName,
+        payAsYouGo,
+        count: 0,
+      };
       plan.count += row.count;
       byPlan.set(key, plan);
     }

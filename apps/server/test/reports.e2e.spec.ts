@@ -300,6 +300,10 @@ describeIfDatabase('the shops report (D8-41)', () => {
     await wallet(first.tenantId, 'purchase', '300.00', '2024-04-10');
     // A later purchase isn't becoming paying again.
     await wallet(first.tenantId, 'purchase', '300.00', '2024-04-20');
+    const onPayg = await shop();
+    await admin.query("UPDATE control.tenants SET state = 'pay_as_you_go' WHERE id = $1", [
+      onPayg.tenantId,
+    ]);
     await shopDay(second.tenantId, '2024-04-17', { state: 'active' });
     await shopDay(second.tenantId, '2024-04-18', { state: 'grace' });
     // Still lapsed the next day: it lapsed once.
@@ -310,7 +314,11 @@ describeIfDatabase('the shops report (D8-41)', () => {
     );
     expect(answer.status, JSON.stringify(answer.body)).toBe(200);
     const body = answer.body as {
-      now: { total: number; byState: { count: number }[]; byPlan: { count: number }[] };
+      now: {
+        total: number;
+        byState: { count: number }[];
+        byPlan: { count: number; payAsYouGo: boolean }[];
+      };
       total: { opened: number; becamePaying: number; lapsed: number };
     };
     expect(body.total).toEqual({ opened: 2, becamePaying: 1, lapsed: 1 });
@@ -324,6 +332,16 @@ describeIfDatabase('the shops report (D8-41)', () => {
     expect(body.now.total).toBe(live);
     expect(body.now.byState.reduce((sum, row) => sum + row.count, 0)).toBe(live);
     expect(body.now.byPlan.reduce((sum, row) => sum + row.count, 0)).toBe(live);
+    // ADM-09, PYG-13: pay-as-you-go is its own line.
+    const payg = Number(
+      (
+        await admin.query<{ n: string }>(
+          "SELECT count(*) AS n FROM control.tenants WHERE state = 'pay_as_you_go'",
+        )
+      ).rows[0]?.n,
+    );
+    expect(payg).toBeGreaterThan(0);
+    expect(body.now.byPlan.filter((row) => row.payAsYouGo).map((row) => row.count)).toEqual([payg]);
   });
 });
 

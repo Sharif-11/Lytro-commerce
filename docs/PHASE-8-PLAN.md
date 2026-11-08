@@ -93,6 +93,13 @@ overrule any of them when reviewing this plan.
 | D8-29 | **The business summary** (from D8-8 and ADM-03). | The seller's own sales figures (STA-01) for any period the seller could choose, read by the same code, with revenue and counts and never cost or profit; and the orders counted by the status the seller's list shows them in. | Slice 8.2 |
 | D8-30 | **SMS that didn't go** (from D8-8). Lytro's outbox recorded no shop, and the shop's own log holds its customers' phones and the words sent them. | The shop's own SMS that failed or were blocked, each with its kind, outcome, reason, order number and time, never the customer's phone or the words. Lytro's own messages that failed for good: those naming the shop (shop ready, a lifecycle notice, a shopper's code), which now record it (migration 0121), and the sign-in codes sent to its team's phones, since a code names a person and is sent before any shop is chosen. Messages from before this slice name no shop, so only their codes are found. | Slice 8.2 |
 | D8-31 | **Usage on the shop page** (from D8-8). | Each limit's use as the seller's usage page reads it, by the same code, without the shop's suggestions or pack offers. | Slice 8.2 |
+| D8-40 | **What "revenue" means** (Slice 8.4's read, 2026-11-08, the owner's pick). Money reaches Lytro by its wallets or is spent later from a shop's balance, so counting top-ups and spending together would count a taka twice. | **What was earned:** plans and add-ons paid to Lytro's wallets (verified, with a transaction ID), plus what shops spent from their balances by kind (plans and add-ons paid from it, SMS, verification fees, order and product fees, reads, fraud checks), less reversals. A top-up isn't earned until it's spent. It won't match the wallets' statements; that's accepted. Amends D8-10 and ADM-09. | Slice 8.4 |
+| D8-41 | **Shop counts** (the read). | Today's by state and by plan, pay-as-you-go as its own line (ADM-09, PYG-13), and for each period the shops opened, those that first paid for a plan, and those that moved into a lapsed state. The movements into a lapsed state read the nightly record, so they start the day this ships. | Slice 8.4 |
+| D8-42 | **The top consumers' phones** (the owner's pick). | Each shop in the list and its CSV carries its owner's phone, so the operator can call a heavy user. | Slice 8.4 |
+| D8-43 | **The night's run** (settles §2.1). | At 02:30 Dhaka it records every shop's days up to yesterday that are missing, up to 7 back, never before the shop opened. A state, plan or storage filled in for a missed night is the one found then. One shop's failure never stops the others. | Slice 8.4 |
+| D8-44 | **What a shop's day holds** (narrows D8-9). | State, plan, storage, SMS units, spending by kind and what was given back. Orders and sales are left out, since no report reads them and the shop page reads them live. | Slice 8.4 |
+| D8-45 | **How far back the reports reach** (settles §2.1). | Payments and shops opened reach as far as they exist. Balance spending, SMS, storage and lapses reach to the first recorded day, which the revenue report names (`recordedSince`). An operator's adjustment and a deleted shop's carried-over balance aren't earnings. | Slice 8.4 |
+| D8-46 | **The CSVs** (settles §2.1). | A `.../export` route beside each report, the same figures, one row a period (or shop) and a total, marked UTF-8 for spreadsheets, named `lytro-revenue-2026-11-01-to-2026-11-30-month.csv`. The top consumers list 20 shops. | Slice 8.4 |
 
 ### 2.1 Points left to each slice's read
 
@@ -103,7 +110,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 8.1 | Where the error rows live (a Lytro table keyed by shop, since the error filter runs outside the shop's transaction), what an error row may hold (never a body, a phone or a token), and which errors count: server faults only, or refusals too. **Settled in Slice 8.1's read (2026-11-07):** D8-21 to D8-23. |
 | 8.2 | What the owner's phone search matches (any written form, the last digits), and what the shop page loads at once against what it loads when opened. **Settled in Slice 8.2's read (2026-11-08):** D8-24 to D8-31. |
 | 8.3 | Whether a trial can be extended (D8-12), the most days at once, how the owner's new phone is checked before the code goes, and whether deleting a shop's data needs it suspended first. |
-| 8.4 | The nightly job's time and what it records, how far back the reports reach, and how a CSV is named. |
+| 8.4 | The nightly job's time and what it records, how far back the reports reach, and how a CSV is named. **Settled in Slice 8.4's read (2026-11-08):** D8-40 to D8-46. |
 | 8.5 | Where evidence is kept and for how long, what a reversal of a plan purchase undoes, and the digest's time. |
 | 8.6 | R2's operation counts (D8-17), the budget's default and currency, and who the alert goes to. |
 | 8.7 | The shop-ready SMS's words (D8-19), and whether the help menu's number shows to staff as well as the owner. |
@@ -245,6 +252,10 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
 - **Depends on:** 8.0.
 - **Delivers:** the audit log's list (ADM-08, D8-11); the nightly figures (D8-9); the reports and their CSVs (ADM-09,
   D8-10).
+- **Built** (read agreed 2026-11-08, D8-40 to D8-46): `control.shop_days` holds each shop's day, written by a 02:30 job
+  that reads each shop inside its own row-level security. `GET /operator/reports/revenue`, `/shops` and `/consumers`,
+  each with `/export`, read it and Lytro's own tables, split by the same weeks, months, quarters and years as the
+  seller's sales figures. `GET /operator/audit` lists the platform audit log by shop, operator, action and day.
 
 ### Slice 8.5: manual entries and claims
 - **Depends on:** 7.3 (the shop's notice and the digest's email), and 8.4 (the revenue report shows entries apart).

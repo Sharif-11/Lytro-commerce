@@ -49,6 +49,7 @@ export const shopsReportSchema = z.object({
       z.object({
         planId: z.string().nullable(),
         planName: z.string().nullable(),
+        payAsYouGo: z.boolean(),
         count: z.number().int(),
       }),
     ),
