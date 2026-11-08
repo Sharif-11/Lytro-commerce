@@ -1,9 +1,11 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { REQUEST_ERROR_KEEP_DAYS } from '@lytronix/validators';
+import type { RequestErrorRow } from '@lytronix/db';
+import { REQUEST_ERROR_KEEP_DAYS, SHOP_ERRORS_COUNT_HOURS } from '@lytronix/validators';
 import type { RequestErrorStore } from './ports/request-error-store';
 import { REQUEST_ERROR_STORE } from './tokens';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 const ROUTE_LENGTH = 200;
 const KIND_LENGTH = 120;
 // The database's own five-character code (SQLSTATE), such as 23505 for a duplicate: it says what went wrong without
@@ -41,6 +43,23 @@ export class RequestErrors {
   /** A refusal because something Lytro depends on is down (503), by its message key. */
   unavailable(request: FaultedRequest, messageKey: string): void {
     this.keep(request, 503, messageKey);
+  }
+
+  /** ADM-03: how many faults the shop's requests hit in the last 24 hours, and since when that counts. */
+  async recentCount(tenantId: string, now: Date): Promise<{ since: Date; count: number }> {
+    const since = new Date(now.getTime() - SHOP_ERRORS_COUNT_HOURS * HOUR_MS);
+    return { since, count: await this.store.countSince(tenantId, since) };
+  }
+
+  /** ADM-03: the faults kept for the shop, newest first, after `beforeId` when given. */
+  latest(
+    tenantId: string,
+    beforeId: number | null,
+    limit: number,
+    now: Date,
+  ): Promise<RequestErrorRow[]> {
+    const since = new Date(now.getTime() - REQUEST_ERROR_KEEP_DAYS * DAY_MS);
+    return this.store.latest(tenantId, since, beforeId, limit);
   }
 
   /** D8-3: clears faults past the days they are kept. Safe to run twice. */

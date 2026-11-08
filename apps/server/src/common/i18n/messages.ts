@@ -327,6 +327,26 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: "The shop's add-ons retrieved.",
     bn: 'শপের অ্যাড-অন পাওয়া গেছে।',
   },
+  OperatorShopFiguresRetrieved: {
+    en: "The shop's figures retrieved.",
+    bn: 'শপের হিসাব পাওয়া গেছে।',
+  },
+  OperatorShopErrorsListed: {
+    en: "The shop's server errors listed.",
+    bn: 'শপের সার্ভার এরর পাওয়া গেছে।',
+  },
+  OperatorShopFailedSmsListed: {
+    en: "The shop's unsent SMS listed.",
+    bn: 'শপের যে SMS যায়নি, সেগুলো পাওয়া গেছে।',
+  },
+  OperatorShopPaymentsWaitingListed: {
+    en: "The shop's payments awaiting review listed.",
+    bn: 'শপের রিভিউর অপেক্ষায় থাকা পেমেন্ট পাওয়া গেছে।',
+  },
+  OperatorShopSalesRetrieved: {
+    en: "The shop's sales retrieved.",
+    bn: 'শপের সেলস পাওয়া গেছে।',
+  },
   RecentChangesListed: { en: 'Recent changes retrieved.', bn: 'সাম্প্রতিক বদল পাওয়া গেছে।' },
 
   RoleHeldByMembers: {

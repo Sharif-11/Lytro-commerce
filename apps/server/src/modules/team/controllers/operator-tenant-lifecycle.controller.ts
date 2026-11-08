@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { FieldProblemCode } from '@lytronix/validators';
+import { FieldProblemCode, phoneSearchOf, TenantSort } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
@@ -50,14 +50,31 @@ export class OperatorTenantLifecycleController {
 
   @Get()
   @ResponseMessage('TenantsListed')
-  @ApiOperation({ summary: 'Search tenants by shop name or slug' })
+  @ApiOperation({
+    summary:
+      "The shop list: by shop name, address or the owner's phone, by state and plan, in three orders",
+  })
   @ApiQuery({ name: 'query', required: false, type: String })
+  @ApiQuery({ name: 'state', required: false, type: String })
+  @ApiQuery({ name: 'planId', required: false, type: String })
+  @ApiQuery({ name: 'sort', required: false, enum: TenantSort })
   @ApiQuery({ name: 'cursor', required: false, type: String })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ZodResponse({ type: TenantSummaryPageDto })
   async list(@Query(new ZodValidationPipe(SearchTenantsDto.schema)) query: SearchTenantsDto) {
-    const cursor = query.cursor ? this.decodeCursor(query.cursor) : null;
-    const page = await this.tenants.search(query.query ?? null, cursor, query.limit);
+    const cursor = query.cursor ? this.decodeCursor(query.cursor, query.sort) : null;
+    const text = query.query ?? null;
+    const page = await this.tenants.search(
+      {
+        query: text,
+        phone: text === null ? null : phoneSearchOf(text),
+        state: query.state ?? null,
+        planId: query.planId ?? null,
+      },
+      query.sort,
+      cursor,
+      query.limit,
+    );
     return {
       entries: page.entries,
       nextCursor: page.nextCursor ? this.encodeCursor(page.nextCursor) : null,
@@ -86,24 +103,40 @@ export class OperatorTenantLifecycleController {
     return this.shops.addonsOf(id);
   }
 
+  /** A page link holds its sort, the last shop's key in that sort, and its id. */
   private encodeCursor(cursor: TenantSearchCursor): string {
-    return Buffer.from(
-      JSON.stringify({ c: cursor.createdAt.toISOString(), i: cursor.id }),
-    ).toString('base64url');
+    const key =
+      cursor.sort === TenantSort.Name
+        ? cursor.name
+        : cursor.sort === TenantSort.PeriodEnd
+          ? (cursor.periodEnd?.toISOString() ?? null)
+          : cursor.createdAt.toISOString();
+    return Buffer.from(JSON.stringify({ s: cursor.sort, k: key, i: cursor.id })).toString(
+      'base64url',
+    );
   }
 
-  private decodeCursor(raw: string): TenantSearchCursor {
+  /** A link made for another sort than the one asked is refused, as a malformed one is. */
+  private decodeCursor(raw: string, sort: TenantSort): TenantSearchCursor {
     try {
       const parsed: unknown = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
       if (
         typeof parsed === 'object' &&
         parsed !== null &&
-        'c' in parsed &&
+        's' in parsed &&
+        'k' in parsed &&
         'i' in parsed &&
-        typeof parsed.c === 'string' &&
+        parsed.s === sort &&
         typeof parsed.i === 'string'
       ) {
-        return { createdAt: new Date(parsed.c), id: parsed.i };
+        const { k: key, i: id } = parsed;
+        if (sort === TenantSort.Name && typeof key === 'string') return { sort, name: key, id };
+        if (sort === TenantSort.PeriodEnd && (key === null || this.isDate(key))) {
+          return { sort, periodEnd: key === null ? null : new Date(key), id };
+        }
+        if (sort === TenantSort.Newest && this.isDate(key)) {
+          return { sort, createdAt: new Date(key), id };
+        }
       }
     } catch {
       // Falls through to the same refusal as a structurally wrong cursor.
@@ -113,6 +146,10 @@ export class OperatorTenantLifecycleController {
     throw new FieldsError([
       { field: 'cursor', problem: FieldProblemCode.InvalidFormat, messageKey: 'PageLinkInvalid' },
     ]);
+  }
+
+  private isDate(value: unknown): value is string {
+    return typeof value === 'string' && !Number.isNaN(new Date(value).getTime());
   }
 
   @Post(':id/suspend')

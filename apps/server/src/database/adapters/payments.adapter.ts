@@ -107,8 +107,8 @@ export class DrizzlePlanPaymentsStore implements PlanPaymentsStore {
     return this.payments.findByIdForUpdate(tx, id);
   }
 
-  listPending(tx: Transaction, kind?: PlanPaymentKind) {
-    return this.payments.listPending(tx, kind);
+  listPending(tx: Transaction, kind?: PlanPaymentKind, tenantId?: string) {
+    return this.payments.listPending(tx, kind, tenantId);
   }
 
   findSubmittedOpen(tx: Transaction, tenantId: string, kind: PlanPaymentKind) {

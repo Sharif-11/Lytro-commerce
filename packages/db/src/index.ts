@@ -13,6 +13,7 @@ export {
   type TenantLookupRow,
   type TenantSummaryRow,
   type TenantSearchCursor,
+  type TenantSearchFilters,
   type TenantSearchRow,
   type BalanceRow,
   type BillingInfoRow,
@@ -127,6 +128,7 @@ export { PlatformSettingsRepository } from './repositories/platform/platform-set
 export {
   RequestErrorRepository,
   type NewRequestError,
+  type RequestErrorRow,
 } from './repositories/platform/request-error.repository';
 export {
   BalanceLedgerRepository,

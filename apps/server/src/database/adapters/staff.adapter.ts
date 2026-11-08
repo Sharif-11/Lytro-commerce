@@ -8,7 +8,7 @@ import {
 } from '@lytronix/db';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { StaffShop, StaffStore } from '../../modules/staff/ports/staff-store';
-import type { StaffCredentials, StaffRecord } from '../../modules/staff/types/staff';
+import type { StaffCredentials, StaffRecord, TeamAccount } from '../../modules/staff/types/staff';
 import type { OwnerContact } from '../../modules/staff/types/owner-contact';
 import type { Language } from '@lytronix/validators';
 import { DatabaseService } from '../database.service';
@@ -72,6 +72,17 @@ export class DrizzleStaffStore implements StaffStore {
 
   async listStaff(tx: Transaction, tenantId: string): Promise<StaffRecord[]> {
     return (await this.users.listUsers(tx, tenantId)).map(toRecord);
+  }
+
+  async listTeamAccounts(tx: Transaction, tenantId: string): Promise<TeamAccount[]> {
+    return (await this.users.listUsers(tx, tenantId)).map((row) => ({
+      userId: row.id,
+      name: row.name,
+      phone: row.phone,
+      isOwner: row.isOwner,
+      active: row.active,
+      subscriberId: row.subscriberId,
+    }));
   }
 
   countMustSetPassword(tx: Transaction, tenantId: string): Promise<number> {

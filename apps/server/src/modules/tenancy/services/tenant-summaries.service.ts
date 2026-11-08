@@ -1,15 +1,17 @@
 import type { TenantOperatorFactsRow } from '@lytronix/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { TENANT_SUMMARY_STORE } from '../tokens';
+import type { TenantSort } from '@lytronix/validators';
 import type {
   TenantSearchCursor,
+  TenantSearchFilters,
   TenantSearchPage,
   TenantSummaryStore,
 } from '../ports/tenant-summary-store';
 import type { TenantSummary } from '../types/tenant-summary';
 
 /** Reads a shop's summary by id, for the dashboard and the lifecycle gate (AUTH-22, AUTH-23) -- plus the
-    operator's own shop-name/slug search (LIF-24). */
+    operator's own shop list (ADM-02, D8-7). */
 @Injectable()
 export class TenantSummaries {
   constructor(@Inject(TENANT_SUMMARY_STORE) private readonly store: TenantSummaryStore) {}
@@ -29,10 +31,11 @@ export class TenantSummaries {
   }
 
   search(
-    query: string | null,
+    filters: TenantSearchFilters,
+    sort: TenantSort,
     cursor: TenantSearchCursor | null,
     limit: number,
   ): Promise<TenantSearchPage> {
-    return this.store.search(query, cursor, limit);
+    return this.store.search(filters, sort, cursor, limit);
   }
 }

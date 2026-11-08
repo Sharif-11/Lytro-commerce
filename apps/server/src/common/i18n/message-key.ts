@@ -103,6 +103,11 @@ export const MESSAGE_KEYS = [
   'OperatorAccountRetrieved',
   'OperatorShopRetrieved',
   'OperatorShopAddonsRetrieved',
+  'OperatorShopFiguresRetrieved',
+  'OperatorShopErrorsListed',
+  'OperatorShopFailedSmsListed',
+  'OperatorShopPaymentsWaitingListed',
+  'OperatorShopSalesRetrieved',
   'RecentChangesListed',
 
   // Staff / roles

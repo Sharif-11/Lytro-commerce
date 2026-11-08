@@ -987,14 +987,20 @@ export class CourierRepository {
     await tx.insert(courierCredentialUses).values({ tenantId, ...values });
   }
 
-  /** SEC-11: the log, newest first, each use with its order's number where it was for one (Slice 6.7). */
+  /**
+   * SEC-11: the log, newest first, each use with its order's number where it was for one (Slice 6.7); only the failed
+   * ones when asked (ADM-03, D8-26).
+   */
   async listUses(
     tx: Transaction,
     tenantId: string,
-    page: { offset: number; limit: number },
+    page: { offset: number; limit: number; failedOnly?: boolean },
   ): Promise<{ rows: CourierCredentialUseRow[]; total: number }> {
     await this.transactions.setTenantContext(tx, tenantId);
-    const where = eq(courierCredentialUses.tenantId, tenantId);
+    const where = and(
+      eq(courierCredentialUses.tenantId, tenantId),
+      page.failedOnly === true ? eq(courierCredentialUses.succeeded, false) : undefined,
+    );
     const [totals] = await tx.select({ total: count() }).from(courierCredentialUses).where(where);
     const rows = await tx
       .select({ use: courierCredentialUses, orderNumber: orders.orderNumber })
@@ -1014,6 +1020,22 @@ export class CourierRepository {
       rows: rows.map((row) => ({ ...row.use, orderNumber: row.orderNumber })),
       total: totals?.total ?? 0,
     };
+  }
+
+  /** ADM-03, MON-05: how many of the shop's courier calls failed or were refused since `since`. */
+  async countFailedUsesSince(tx: Transaction, tenantId: string, since: Date): Promise<number> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select({ value: count() })
+      .from(courierCredentialUses)
+      .where(
+        and(
+          eq(courierCredentialUses.tenantId, tenantId),
+          eq(courierCredentialUses.succeeded, false),
+          gte(courierCredentialUses.at, since),
+        ),
+      );
+    return row?.value ?? 0;
   }
 
   /** LIF-19: the day-60 deletion's couriers step. Parcels go with their orders too; this is safe to run either way. */

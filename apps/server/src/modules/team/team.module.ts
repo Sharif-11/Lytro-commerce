@@ -119,6 +119,8 @@ import {
 import { CatalogueRequest } from './services/catalogue-request';
 import { OperatorRecentChangesController } from './controllers/operator-recent-changes.controller';
 import { OperatorShops } from './services/operator-shops';
+import { OperatorShopReads } from './services/operator-shop-reads';
+import { OperatorShopReadsController } from './controllers/operator-shop-reads.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { NoticesModule } from '../notices/notices.module';
 
@@ -175,6 +177,7 @@ import { NoticesModule } from '../notices/notices.module';
     OperatorRatesController,
     OperatorBalanceController,
     OperatorTenantLifecycleController,
+    OperatorShopReadsController,
     OperatorRecentChangesController,
     OperatorPaymentPagesController,
     PaymentsController,
@@ -239,6 +242,7 @@ import { NoticesModule } from '../notices/notices.module';
   ],
   providers: [
     OperatorShops,
+    OperatorShopReads,
     StaffSigninService,
     ActivityListService,
     ClientIp,

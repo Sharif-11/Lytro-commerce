@@ -157,8 +157,8 @@ export class PlanPaymentsService {
   }
 
   /** The operator payment-queue: every submitted (transaction-ID attached), still-undecided payment. */
-  listPending(kind?: PlanPaymentKind): Promise<QueuedPlanPayment[]> {
-    return this.store.run((tx) => this.store.listPending(tx, kind));
+  listPending(kind?: PlanPaymentKind, tenantId?: string): Promise<QueuedPlanPayment[]> {
+    return this.store.run((tx) => this.store.listPending(tx, kind, tenantId));
   }
 
   /**
