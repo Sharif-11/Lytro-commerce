@@ -28,3 +28,11 @@ export const shopErrorsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(SHOP_PROBLEM_PAGE),
 });
 export type ShopErrorsQuery = z.infer<typeof shopErrorsQuerySchema>;
+
+// ADM-03, D8-30: the SMS that didn't go, each list paged on its own; `shopBefore` and `lytroBefore` are the last ids seen.
+export const shopFailedSmsQuerySchema = z.object({
+  shopBefore: z.coerce.number().int().positive().optional(),
+  lytroBefore: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(SHOP_PROBLEM_PAGE),
+});
+export type ShopFailedSmsQuery = z.infer<typeof shopFailedSmsQuerySchema>;

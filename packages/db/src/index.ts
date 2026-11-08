@@ -58,6 +58,8 @@ export {
   SmsRepository,
   type ClaimedSmsMessage,
   type NewSmsMessage,
+  type FailedSmsRow,
+  type ShopMessages,
 } from './repositories/messaging/sms.repository';
 export {
   MailRepository,

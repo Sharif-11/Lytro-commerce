@@ -70,7 +70,7 @@ export class UsageNoticeSender {
         NOTIFICATION_LINKS.usage,
       );
       if (owner?.phone && smsDue(notice, Boolean(owner.email))) {
-        await this.sms.queueLifecycleNotice(tx, owner.phone, text.sms);
+        await this.sms.queueLifecycleNotice(tx, owner.phone, text.sms, tenant.id);
       }
       if (!fastSpend) return;
       const alert = operatorAlertText(notice, tenant);

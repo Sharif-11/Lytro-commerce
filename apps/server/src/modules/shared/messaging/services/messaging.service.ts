@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { loginCodeText, resetCodeText, shopReadyText } from '../sms-words';
-import type { Transaction } from '@lytronix/db';
+import type { FailedSmsRow, ShopMessages, Transaction } from '@lytronix/db';
 import { ChallengeKind, QueueName, SmsKind } from '@lytronix/validators';
 import { MINUTE_MS } from '../../../../common/time';
 import { SmsDeliveryError } from '../../../../common/errors/sms-delivery';
@@ -43,25 +43,68 @@ export class MessagingService {
   }
 
   /** CUS-04 (Slice 4.4b): a shopper's sign-up code, its text the caller's; like every code, never stored. */
-  async queueShopperCode(tx: Transaction, phone: string, body: string): Promise<QueuedMessage> {
-    const id = await this.store.insert(tx, { toPhone: phone, kind: SmsKind.Otp, body: null });
+  async queueShopperCode(
+    tx: Transaction,
+    phone: string,
+    body: string,
+    tenantId: string,
+  ): Promise<QueuedMessage> {
+    const id = await this.store.insert(tx, {
+      toPhone: phone,
+      kind: SmsKind.Otp,
+      body: null,
+      tenantId,
+    });
     return { id, toPhone: phone, body };
   }
 
-  async queueShopReady(tx: Transaction, phone: string, liveUrl: string): Promise<QueuedMessage> {
+  async queueShopReady(
+    tx: Transaction,
+    phone: string,
+    liveUrl: string,
+    tenantId: string,
+  ): Promise<QueuedMessage> {
     const body = shopReadyText(liveUrl);
-    const id = await this.store.insert(tx, { toPhone: phone, kind: SmsKind.ShopReady, body });
+    const id = await this.store.insert(tx, {
+      toPhone: phone,
+      kind: SmsKind.ShopReady,
+      body,
+      tenantId,
+    });
     return { id, toPhone: phone, body };
   }
 
   /** LIF-18, PYG-21: a platform-sent notice, never billed to the tenant (LIF-10's carve-out). */
-  async queueLifecycleNotice(tx: Transaction, phone: string, body: string): Promise<QueuedMessage> {
+  async queueLifecycleNotice(
+    tx: Transaction,
+    phone: string,
+    body: string,
+    tenantId: string,
+  ): Promise<QueuedMessage> {
     const id = await this.store.insert(tx, {
       toPhone: phone,
       kind: SmsKind.LifecycleNotice,
       body,
+      tenantId,
     });
     return { id, toPhone: phone, body };
+  }
+
+  /**
+   * ADM-03, D8-30 (Slice 8.2): how many of Lytro's own messages to the shop failed for good since `since` -- those naming
+   * the shop, and the sign-in codes sent to its team's phones.
+   */
+  failedForShopSince(shop: ShopMessages, since: Date): Promise<number> {
+    return this.store.countFailedForShop(shop, since);
+  }
+
+  /** ADM-03, D8-30: those messages one by one, newest first, after `beforeId` when given. */
+  failedForShop(
+    shop: ShopMessages,
+    beforeId: number | null,
+    limit: number,
+  ): Promise<FailedSmsRow[]> {
+    return this.store.failedForShop(shop, beforeId, limit);
   }
 
   /**

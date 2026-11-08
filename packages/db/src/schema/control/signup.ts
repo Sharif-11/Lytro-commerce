@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { bigserial, check, index, inet, integer, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { ChallengeChannel, ChallengeKind, SmsKind, SmsStatus } from '@lytronix/validators';
 import { control, createdAt } from '../shared';
+import { tenants } from './tenancy';
 
 // AUTH-05, AUTH-06, AUTH-07: one-time codes. Only a keyed hash is stored, never the code (decision: HMAC).
 // Counters live in the database so the lock and resend limits survive a restart and hold across servers.
@@ -41,6 +42,9 @@ export const smsOutbox = control.table(
     id: bigserial('id', { mode: 'number' }).primaryKey(),
     toPhone: text('to_phone').notNull(),
     kind: text('kind').$type<SmsKind>().notNull(),
+    // D8-30 (Slice 8.2): the shop a message is for, when it names one -- shop ready, a lifecycle notice, a shopper's
+    // code. Null for an owner's or staff member's sign-in code, which names a person, and for messages from before.
+    tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }),
     body: text('body'), // null for otp: the code is held in memory only
     status: text('status').$type<SmsStatus>().notNull().default(SmsStatus.Pending),
     attempts: integer('attempts').notNull().default(0),
@@ -52,6 +56,7 @@ export const smsOutbox = control.table(
   (t) => [
     index('sms_outbox_created_idx').on(t.createdAt),
     index('sms_outbox_due_idx').on(t.status, t.nextAttemptAt),
+    index('sms_outbox_tenant_idx').on(t.tenantId, t.createdAt),
     check(
       'sms_outbox_status_check',
       sql`${t.status} in (${sql.raw(

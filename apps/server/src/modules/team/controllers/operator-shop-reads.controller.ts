@@ -5,8 +5,10 @@ import {
   catalogueIdSchema,
   salesQuerySchema,
   shopErrorsQuerySchema,
+  shopFailedSmsQuerySchema,
   type SalesQuery,
   type ShopErrorsQuery,
+  type ShopFailedSmsQuery,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -16,7 +18,11 @@ import type { QueuedPayment } from '../../billing/types/addon';
 import { OperatorSessionGuard } from '../../operator/guards/operator-session.guard';
 import type { SalesView } from '../../orders/types/sales';
 import { QueuedPaymentListDto } from '../dto/billing-response.dto';
-import { OperatorShopFiguresDto, ShopErrorPageDto } from '../dto/operator-shop-reads.dto';
+import {
+  OperatorShopFiguresDto,
+  ShopErrorPageDto,
+  ShopFailedSmsDto,
+} from '../dto/operator-shop-reads.dto';
 import { SalesViewDto } from '../dto/sales.dto';
 import { OperatorShopReads } from '../services/operator-shop-reads';
 import type { OperatorShopFigures } from '../types/operator-shop';
@@ -61,6 +67,24 @@ export class OperatorShopReadsController {
     const errors = rows.slice(0, query.limit);
     const last = errors[errors.length - 1];
     return { errors, nextBefore: rows.length > query.limit && last ? last.id : null };
+  }
+
+  @Get(':id/failed-sms')
+  @ResponseMessage('OperatorShopFailedSmsListed')
+  @ApiOperation({
+    summary:
+      "A shop's SMS that didn't go, newest first: its own, failed or blocked, without the customer's phone or the words; and Lytro's own to it or its team (ADM-03, D8-30)",
+  })
+  @ZodResponse({ type: ShopFailedSmsDto })
+  failedSms(
+    @Param('id') id: string,
+    @Query(new ZodValidationPipe(shopFailedSmsQuerySchema)) query: ShopFailedSmsQuery,
+  ) {
+    return this.reads.failedSms(this.shopId(id), {
+      shopBefore: query.shopBefore ?? null,
+      lytroBefore: query.lytroBefore ?? null,
+      limit: query.limit,
+    });
   }
 
   @Get(':id/payments-waiting')

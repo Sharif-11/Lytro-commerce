@@ -1,13 +1,21 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { OrderStatus } from '@lytronix/validators';
+import { SmsLogDto } from './sms.dto';
+import { shopUsageSchema } from './usage-response.dto';
 
 // ADM-03 (Phase 8 Slice 8.2): the operator's shop page, the figures it opens with and the lists behind them.
 const sinceCountSchema = z.object({ since: z.date(), count: z.number().int() });
 
 export const operatorShopFiguresSchema = z.object({
   balance: z.object({ amount: z.string(), frozen: z.boolean(), held: z.string() }),
+  usage: shopUsageSchema.pick({ cycleStart: true, cycleEnd: true, metrics: true, payPerUse: true }),
   errors: sinceCountSchema,
+  failedSms: z.object({
+    since: z.date(),
+    shop: z.object({ failed: z.number().int(), blocked: z.number().int() }),
+    lytro: z.number().int(),
+  }),
   failedCourierCalls: sinceCountSchema,
   signIns: z
     .object({
@@ -43,3 +51,29 @@ export const shopErrorPageSchema = z.object({
   nextBefore: z.number().int().nullable(),
 });
 export class ShopErrorPageDto extends createZodDto(shopErrorPageSchema) {}
+
+// ADM-03, D8-30: the SMS that didn't go -- the shop's own, without the customer's phone or the words, and Lytro's own.
+const shopSmsSchema = SmsLogDto.schema.shape.sms.element.pick({
+  id: true,
+  kind: true,
+  status: true,
+  blockedReason: true,
+  orderNumber: true,
+  units: true,
+  createdAt: true,
+});
+
+export const shopFailedSmsSchema = z.object({
+  shop: shopSmsSchema.array(),
+  lytro: z
+    .object({
+      id: z.number().int(),
+      kind: z.string(),
+      toPhone: z.string(),
+      attempts: z.number().int(),
+      lastError: z.string().nullable(),
+      createdAt: z.date(),
+    })
+    .array(),
+});
+export class ShopFailedSmsDto extends createZodDto(shopFailedSmsSchema) {}

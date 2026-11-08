@@ -359,7 +359,9 @@ describeIfDatabase('ADM-02: finding a shop', () => {
 
 interface Figures {
   balance: { amount: string; frozen: boolean; held: string };
+  usage: Record<string, unknown>;
   errors: { since: string; count: number };
+  failedSms: { since: string; shop: { failed: number; blocked: number }; lytro: number };
   failedCourierCalls: { since: string; count: number };
   signIns: {
     userId: string;
@@ -436,6 +438,112 @@ describeIfDatabase('ADM-03: the shop page', () => {
       ) as { errors: { requestId: string }[]; nextBefore: number | null };
       expect(second.errors.map((row) => row.requestId)).toEqual(['K7MQ-4XR2']);
       expect(second.nextBefore).toBeNull();
+    },
+    SLOW_MS,
+  );
+
+  it(
+    "shows each limit's use as the seller's usage page does, without its suggestions or packs (D8-31)",
+    async () => {
+      const shop = await shopOnPlan('usage');
+      const seen = ok(await shop.get('/usage')) as Record<string, unknown>;
+      const figures = await figuresOf(shop);
+      expect(figures.usage).toEqual({
+        cycleStart: seen['cycleStart'],
+        cycleEnd: seen['cycleEnd'],
+        metrics: seen['metrics'],
+        payPerUse: seen['payPerUse'],
+      });
+      expect((figures.usage['metrics'] as unknown[]).length).toBeGreaterThan(0);
+    },
+    SLOW_MS,
+  );
+
+  it(
+    "counts a week's SMS that didn't go, the shop's own and Lytro's, and lists them without a customer's phone or words",
+    async () => {
+      const shop = await openShop(port, texts, 'sms');
+      const other = await openShop(port, texts, 'sms-other');
+      const ownerPhone = await ownerPhoneOf(shop.tenantId);
+      // D8-30: the shop's own "shop ready" now names it.
+      const ready = await admin.query<{ tenant_id: string | null }>(
+        "SELECT tenant_id FROM control.sms_outbox WHERE kind = 'shop_ready' AND to_phone = $1",
+        [ownerPhone],
+      );
+      expect(ready.rows.map((row) => row.tenant_id)).toEqual([shop.tenantId]);
+
+      const logged = async (status: string, ago: number): Promise<void> => {
+        await admin.query(
+          `INSERT INTO tenant.sms_log (tenant_id, kind, to_phone, units, cost, is_essential, status, blocked_reason,
+             body, created_at)
+           VALUES ($1, 'order_placed', '01799999999', 1, 0.35, false, $2, $3, 'Rahim, your order is placed', $4)`,
+          [
+            shop.tenantId,
+            status,
+            status === 'blocked' ? 'insufficient_balance' : null,
+            new Date(Date.now() - ago),
+          ],
+        );
+      };
+      // In the order they happened, as the log keeps them.
+      await logged('failed', 8 * DAY_MS);
+      await logged('failed', 60 * 1000);
+      await logged('blocked', 60 * 1000);
+      await logged('sent', 60 * 1000);
+
+      const outbox = async (
+        tenantId: string | null,
+        kind: string,
+        phone: string,
+        status: string,
+        ago: number,
+      ): Promise<void> => {
+        await admin.query(
+          `INSERT INTO control.sms_outbox (tenant_id, kind, to_phone, status, attempts, last_error, created_at)
+           VALUES ($1, $2, $3, $4, 5, 'provider refused', $5)`,
+          [tenantId, kind, phone, status, new Date(Date.now() - ago)],
+        );
+      };
+      await outbox(shop.tenantId, 'lifecycle_notice', ownerPhone, 'failed', 8 * DAY_MS);
+      await outbox(shop.tenantId, 'lifecycle_notice', ownerPhone, 'failed', 60 * 1000);
+      // A sign-in code names a person, so it is the shop's by its team's phone.
+      await outbox(null, 'otp', ownerPhone, 'failed', 60 * 1000);
+      await outbox(null, 'otp', '01788888888', 'failed', 60 * 1000);
+      await outbox(shop.tenantId, 'lifecycle_notice', ownerPhone, 'sent', 60 * 1000);
+      await outbox(other.tenantId, 'lifecycle_notice', ownerPhone, 'failed', 60 * 1000);
+
+      const figures = await figuresOf(shop);
+      expect(figures.failedSms.shop).toEqual({ failed: 1, blocked: 1 });
+      expect(figures.failedSms.lytro).toBe(2);
+
+      const listed = ok(await asOperator(`/operator/tenants/${shop.tenantId}/failed-sms`)) as {
+        shop: Record<string, unknown>[];
+        lytro: { kind: string; toPhone: string; lastError: string | null }[];
+      };
+      expect(listed.shop.map((row) => row['status'])).toEqual(['blocked', 'failed', 'failed']);
+      expect(listed.shop[0]).toMatchObject({ blockedReason: 'insufficient_balance', units: 1 });
+      for (const row of listed.shop) {
+        expect(row).not.toHaveProperty('toPhone');
+        expect(row).not.toHaveProperty('body');
+      }
+      expect(listed.lytro.map((row) => row.kind).sort()).toEqual([
+        'lifecycle_notice',
+        'lifecycle_notice',
+        'otp',
+      ]);
+      expect(listed.lytro.every((row) => row.toPhone === ownerPhone)).toBe(true);
+      expect(listed.lytro[0]?.lastError).toBe('provider refused');
+
+      const paged = ok(
+        await asOperator(`/operator/tenants/${shop.tenantId}/failed-sms?limit=1`),
+      ) as { shop: { id: number }[]; lytro: { id: number }[] };
+      const next = ok(
+        await asOperator(
+          `/operator/tenants/${shop.tenantId}/failed-sms?limit=1&shopBefore=${String(paged.shop[0]?.id)}&lytroBefore=${String(paged.lytro[0]?.id)}`,
+        ),
+      ) as { shop: { id: number }[]; lytro: { id: number }[] };
+      expect(next.shop[0]?.id).toBeLessThan(paged.shop[0]?.id ?? 0);
+      expect(next.lytro[0]?.id).toBeLessThan(paged.lytro[0]?.id ?? 0);
     },
     SLOW_MS,
   );
@@ -586,7 +694,7 @@ describeIfDatabase('ADM-03: the shop page', () => {
     "is the operator's alone, and a shop that is not one answers 404",
     async () => {
       const shop = await openShop(port, texts, 'guard');
-      for (const path of ['figures', 'errors', 'payments-waiting', 'sales']) {
+      for (const path of ['figures', 'errors', 'failed-sms', 'payments-waiting', 'sales']) {
         expect((await getJson(port, `/operator/tenants/${shop.tenantId}/${path}`)).status).toBe(
           401,
         );

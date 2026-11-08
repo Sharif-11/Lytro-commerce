@@ -155,6 +155,8 @@ function build(state: World) {
     },
     claimDue: () => Promise.resolve([]),
     markSent: () => Promise.resolve(),
+    countFailedForShop: () => Promise.resolve(0),
+    failedForShop: () => Promise.resolve([]),
     markFailed: (id, input) => {
       const row = state.outbox.find((m) => m.id === id);
       if (row) row.status = input.nextAttemptAt ? 'pending' : 'failed';
