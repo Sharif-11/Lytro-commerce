@@ -147,6 +147,29 @@ describeIfDatabase('how many reads an allowance gives (PLN-20, D7-64)', () => {
     const [row] = await allowancesOf(shop);
     expect(row).toMatchObject({ price: '10.00', unit_size: 100 });
   });
+
+  it('tells the buy sheet the reads each quantity buys now, as the purchase will keep them', async () => {
+    const shop = await onPaidPlan('400.00', monthId);
+    await admin.query(
+      "UPDATE control.tenants SET period_start = period_start - interval '30 days' WHERE id = $1",
+      [shop.tenantId],
+    );
+    app.get(TenantCache).invalidateTenant(shop.tenantId);
+    const offers = (await shop.get('/addons')).body as {
+      addon: { key: string };
+      amounts: number[];
+      uses: number[] | null;
+    }[];
+    const reads = offers.find((offer) => offer.addon.key === 'address_reads_200');
+    expect(reads?.amounts.slice(0, 2)).toEqual([10, 20]);
+    expect(reads?.uses?.slice(0, 2)).toEqual([100, 200]);
+    expect(
+      offers.find((offer) => offer.addon.key !== 'address_reads_200' && offer.uses !== null),
+    ).toBeUndefined();
+    await buyAllowance(shop);
+    const [row] = await allowancesOf(shop);
+    expect((row?.unit_size ?? 0) * (row?.quantity ?? 0)).toBe(reads?.uses?.[0]);
+  });
 });
 
 describeIfDatabase('renewing an allowance (PLN-20, D7-64)', () => {

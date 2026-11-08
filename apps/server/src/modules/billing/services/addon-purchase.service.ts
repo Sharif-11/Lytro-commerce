@@ -205,6 +205,7 @@ export class AddonPurchaseService {
             expiresAt: null,
             blockedBy,
             amounts: [],
+            uses: null,
             daysLeft: null,
             renewalPrice: null,
           },
@@ -217,7 +218,16 @@ export class AddonPurchaseService {
         );
         const price = amounts[0] ?? null;
         return [
-          { addon, price, expiresAt: null, blockedBy, amounts, daysLeft: null, renewalPrice: null },
+          {
+            addon,
+            price,
+            expiresAt: null,
+            blockedBy,
+            amounts,
+            uses: null,
+            daysLeft: null,
+            renewalPrice: null,
+          },
         ];
       }
       const most = addon.kind === AddonKind.Feature ? 1 : ADDON_QUANTITY_MAX;
@@ -231,6 +241,20 @@ export class AddonPurchaseService {
           expiresAt: buying.period.end,
           blockedBy,
           amounts,
+          // D7-64: the uses each quantity buys, exactly as its purchase would keep them (quantity times one unit's).
+          uses:
+            addon.kind === AddonKind.Allowance && addon.unitSize !== null
+              ? amounts.map(
+                  (amount, index) =>
+                    (index + 1) *
+                    allowanceUnitUses(
+                      addon.unitSize ?? 0,
+                      addon.price,
+                      index + 1,
+                      amount.toFixed(2),
+                    ),
+                )
+              : null,
           daysLeft: daysUntil(now, buying.period.end),
           renewalPrice: Number(renewalPrice(addon.price, 1, buying.period.months ?? 1)),
         },
