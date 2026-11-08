@@ -134,6 +134,43 @@ async function ownerPhoneOf(tenantId: string): Promise<string> {
   return rows[0]?.value ?? '';
 }
 
+/** A dine-in order of one line straight into the shop's tables, on today's date; delivered when `fulfillment` says so. */
+async function seedOrder(
+  tenantId: string,
+  fulfillment: string,
+  payment: string,
+  total: number,
+): Promise<string> {
+  const id = randomUUID();
+  await admin.query(
+    `INSERT INTO tenant.orders (id, tenant_id, order_number, tracking_id, fulfilment_type, table_ref,
+       fulfillment_status, payment_status, confirmed_at, delivered_at, subtotal, delivery_charge, grand_total,
+       cod_amount, due)
+     VALUES ($1, $2, $3, $4, 'dine_in', 'T1', $5, $6, now(), $8, $7, 0, $7, $7, 0)`,
+    [
+      id,
+      tenantId,
+      `T-${id.slice(0, 8)}`,
+      id
+        .replace(/[^A-HJ-NP-Z2-9]/gi, '')
+        .slice(0, 8)
+        .toUpperCase()
+        .padEnd(8, 'X'),
+      fulfillment,
+      payment,
+      total,
+      fulfillment === 'delivered' ? new Date() : null,
+    ],
+  );
+  await admin.query(
+    `INSERT INTO tenant.order_lines (tenant_id, order_id, position, product_name, stock_unit, list_price,
+       unit_price, quantity, item_total, delivery_mode, delivery_charge, payment_policy)
+     VALUES ($1, $2, 0, 'Seeded item', 'kg', $3, $3, 1, $3, 'default', 0, 'none')`,
+    [tenantId, id, total],
+  );
+  return id;
+}
+
 function ok(answer: HttpResult, status = 200): unknown {
   expect(answer.status, JSON.stringify(answer.body)).toBe(status);
   return answer.body;
@@ -255,11 +292,12 @@ describeIfDatabase('ADM-02: finding a shop', () => {
     'sorts by name and by period end, every page in order with none twice; a link for another sort is refused',
     async () => {
       const word = token();
+      // Names that tie once case is set aside, so a page can end inside a tie and the id must break it.
       const names = ['b', 'A', 'c', 'B', 'a'];
       const shops: ShopClient[] = [];
-      for (const [index, letter] of names.entries()) {
+      for (const letter of names) {
         const shop = await openShop(port, texts, 'sort');
-        await rename(shop, `${word} ${letter}${String(index)}`);
+        await rename(shop, `${word} ${letter}`);
         shops.push(shop);
       }
       // Two with the same period end, two with none, one earlier: ties and the undated end break by id.
@@ -270,13 +308,19 @@ describeIfDatabase('ADM-02: finding a shop', () => {
           ends[index] ?? null,
         ]);
       }
-      const byName = await everyPage({ query: word, sort: 'name', limit: '2' });
-      expect(byName.map((row) => row.shopName)).toEqual(
-        [...byName.map((row) => row.shopName)].sort((a, b) =>
-          a.toLowerCase() < b.toLowerCase() ? -1 : a.toLowerCase() > b.toLowerCase() ? 1 : 0,
-        ),
-      );
+      const byName = await everyPage({ query: word, sort: 'name', limit: '1' });
       expect(new Set(byName.map((row) => row.id)).size).toBe(5);
+      expect(byName.map((row) => row.shopName.slice(-1).toLowerCase())).toEqual([
+        'a',
+        'a',
+        'b',
+        'b',
+        'c',
+      ]);
+      for (const pair of [byName.slice(0, 2), byName.slice(2, 4)]) {
+        const ids = pair.map((row) => row.id);
+        expect(ids).toEqual([...ids].sort());
+      }
 
       const byEnd = await everyPage({ query: word, sort: 'period_end', limit: '2' });
       expect(new Set(byEnd.map((row) => row.id)).size).toBe(5);
@@ -295,11 +339,19 @@ describeIfDatabase('ADM-02: finding a shop', () => {
       const newest = await everyPage({ query: word, limit: '2' });
       expect(newest.map((row) => row.id)).toEqual(shops.map((shop) => shop.tenantId).reverse());
 
+      // A link made for one order is refused by another, even where its key would read as a date there.
+      const newestCursor = (await list({ query: word, limit: '1' })).nextCursor ?? '';
       const nameCursor = (await list({ query: word, sort: 'name', limit: '1' })).nextCursor ?? '';
-      const refused = await asOperator(
-        `/operator/tenants?query=${word}&sort=period_end&cursor=${nameCursor}`,
-      );
-      expect(refused.status).toBe(400);
+      for (const [sort, cursor] of [
+        ['period_end', newestCursor],
+        ['period_end', nameCursor],
+        ['name', newestCursor],
+      ] as const) {
+        const refused = await asOperator(
+          `/operator/tenants?query=${word}&sort=${sort}&cursor=${cursor}`,
+        );
+        expect(refused.status, `${sort} with another sort's link`).toBe(400);
+      }
     },
     SLOW_MS,
   );
@@ -464,12 +516,22 @@ describeIfDatabase('ADM-03: the shop page', () => {
       await submit(shop.tenantId, '500.00');
       await submit(shop.tenantId, '250.00');
       await submit(other.tenantId, '900.00');
+      // A customer's typed transaction ID the seller hasn't checked yet.
+      const order = await seedOrder(shop.tenantId, 'unfulfilled', 'pending_verification', 300);
+      await admin.query(
+        `INSERT INTO tenant.payment_sessions (tenant_id, ref, order_id, source, amount, expires_at, state, method,
+           sender_number, transaction_id, submitted_at)
+         VALUES ($1, $2, $3, 'checkout', 300, now() + interval '1 hour', 'checking', 'bkash', '01711111111', $4,
+           now())`,
+        [shop.tenantId, randomUUID().slice(0, 12), order, `CX${randomUUID().slice(0, 8)}`],
+      );
       const figures = await figuresOf(shop);
       expect(figures.paymentsWaiting.lytro).toEqual({ count: 2, amount: '750.00' });
       const home = ok(await shop.get('/payments?status=to_verify&page=1&limit=1')) as {
         total: number;
       };
-      expect(figures.paymentsWaiting.customers).toBe(home.total);
+      expect(home.total).toBe(1);
+      expect(figures.paymentsWaiting.customers).toBe(1);
       const waiting = ok(
         await asOperator(`/operator/tenants/${shop.tenantId}/payments-waiting`),
       ) as { tenantId: string; amount: string }[];
@@ -483,38 +545,9 @@ describeIfDatabase('ADM-03: the shop page', () => {
     "counts the orders by the status the seller's list shows, and shows the seller's own sales without profit",
     async () => {
       const shop = await openShop(port, texts, 'orders');
-      const order = async (fulfillment: string, payment: string, total: number): Promise<void> => {
-        const id = randomUUID();
-        await admin.query(
-          `INSERT INTO tenant.orders (id, tenant_id, order_number, tracking_id, fulfilment_type, table_ref,
-             fulfillment_status, payment_status, confirmed_at, delivered_at, subtotal, delivery_charge, grand_total,
-             cod_amount, due)
-           VALUES ($1, $2, $3, $4, 'dine_in', 'T1', $5, $6, now(), $8, $7, 0, $7, $7, 0)`,
-          [
-            id,
-            shop.tenantId,
-            `T-${id.slice(0, 8)}`,
-            id
-              .replace(/[^A-HJ-NP-Z2-9]/gi, '')
-              .slice(0, 8)
-              .toUpperCase()
-              .padEnd(8, 'X'),
-            fulfillment,
-            payment,
-            total,
-            fulfillment === 'delivered' ? new Date() : null,
-          ],
-        );
-        await admin.query(
-          `INSERT INTO tenant.order_lines (tenant_id, order_id, position, product_name, stock_unit, list_price,
-             unit_price, quantity, item_total, delivery_mode, delivery_charge, payment_policy)
-           VALUES ($1, $2, 0, 'Seeded item', 'kg', $3, $3, 1, $3, 'default', 0, 'none')`,
-          [shop.tenantId, id, total],
-        );
-      };
-      await order('delivered', 'paid', 400);
-      await order('delivered', 'paid', 250);
-      await order('unfulfilled', 'unverified', 100);
+      await seedOrder(shop.tenantId, 'delivered', 'paid', 400);
+      await seedOrder(shop.tenantId, 'delivered', 'paid', 250);
+      await seedOrder(shop.tenantId, 'unfulfilled', 'unverified', 100);
       const figures = await figuresOf(shop);
       for (const status of Object.values(OrderStatus)) {
         const seen = ok(await shop.get(`/orders?status=${status}&limit=1`)) as { total: number };
