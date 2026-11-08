@@ -2976,6 +2976,23 @@ CREATE TABLE control.job_heartbeats (                        -- MON-04/OBS-02
     last_status     text,
     server_id       text
 );
+
+-- API-27, D8-3, D8-21 to D8-23 (Phase 8 Slice 8.1, built in migration 0118): each server fault a shop's request
+-- hit, for the operator's shop page (ADM-03). Server faults only, kept 7 days and cleared nightly. Never a
+-- message, a body, a phone or a token: those stay in the server log under the same request ID.
+CREATE TABLE control.request_errors (
+    id              bigserial PRIMARY KEY,
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id) ON DELETE CASCADE,
+    request_id      varchar(9) NOT NULL
+                    CHECK (request_id ~ '^[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$'),  -- like K7MQ-4XR2
+    method          varchar(10) NOT NULL,
+    route           varchar(200),               -- the route's pattern; NULL before a route matched
+    status          smallint NOT NULL CHECK (status IN (500, 503)),
+    kind            varchar(120) NOT NULL,      -- the fault's class (with its SQLSTATE), or a 503's message key
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX request_errors_tenant_idx ON control.request_errors (tenant_id, created_at);
+CREATE INDEX request_errors_created_idx ON control.request_errors (created_at);
 ```
 
 Metrics, error tracking, log shipping and uptime checks (MON/OBS sections) are external services (Sentry, Grafana Cloud, UptimeRobot per OD-43), not schema — nothing else to design here.

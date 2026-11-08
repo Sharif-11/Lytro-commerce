@@ -589,6 +589,8 @@ export enum QueueName {
   NotificationPush = 'notification_push',
   // NTF-01, D7-39 (Slice 7.3): the nightly clean-up of notifications past the days they are kept.
   NotificationPurgeTick = 'notification_purge_tick',
+  // API-27, D8-3 (Phase 8 Slice 8.1): the nightly clean-up of shops' server faults past the days they are kept.
+  RequestErrorPurgeTick = 'request_error_purge_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an

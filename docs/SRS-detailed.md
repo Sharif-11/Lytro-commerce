@@ -1231,7 +1231,7 @@ Added 2026-10-02. Consolidates what was previously stated only for the hosted pa
 | API-24 | Two keys shall be valid together so a key can be rotated without downtime. | Both work until the old one is revoked. | M | API |
 | API-25 | The key list shall show last-used time and request count per key. | Values update after calls. | S | E2E |
 | API-26 | JSON request bodies shall be limited to [1] MB; larger bodies return 413. | A 2 MB body returns 413. | M | API |
-| API-27 | Every response shall carry `X-Request-Id`, echoed in logs. | The ID appears in the response and the matching log line. | M | API |
+| API-27 | Every response shall carry `X-Request-Id`, echoed in logs. Amended 2026-11-07: the ID is made by Lytro for every request, eight characters in two halves from letters and digits that can't be mistaken for each other (for example `K7MQ-4XR2`), so a seller can read it out; one a client sends is never used. | The ID appears in the response and the matching log line. | M | API |
 | API-28 | All traffic shall be HTTPS; plain HTTP shall redirect. | `http://` returns a redirect to `https://`. | M | MAN |
 
 ## 22. Chat and AI (CHT, AI)

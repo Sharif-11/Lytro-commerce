@@ -1,0 +1,1 @@
+export const REQUEST_ERROR_STORE = Symbol('REQUEST_ERROR_STORE');

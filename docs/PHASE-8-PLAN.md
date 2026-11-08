@@ -82,6 +82,9 @@ overrule any of them when reviewing this plan.
 | D8-18 | **Retiring a wallet type** (WAL-18, moved here by Phase 5). The types are a list in the code. | The couriers' pattern (CRR-23, CRR-24): retiring hides a type from new setup while shops using it keep it, undoing is allowed, and removing needs no shop to use it. | Slice 8.7 |
 | D8-19 | **The shop-ready SMS** (SMS-18). It goes out today in English ("Your shop is ready: …"). | Worded in Bangla to the owner's style guide in the slice's read, still Lytro's cost (D7-23), and proven through the real SMS path. | Slice 8.7 |
 | D8-20 | **A gateway for Lytro's own payments** (ADM-10's other half). Phase 5 left it for later (D5-3). | Still later. Lytro's own payments come by its wallets and its listener phones. | none |
+| D8-21 | **The request ID's form** (Slice 8.1's read, 2026-11-07). A seller may read one out over WhatsApp. | Eight characters in two halves, like `K7MQ-4XR2`, from letters and digits that can't be mistaken for each other (no 0 or O, no 1, I or L), made by Lytro for every request; one a client sends is never used. The dashboard's error message shows it (Slice 8.8). | Slices 8.1, 8.8 |
+| D8-22 | **Which errors are kept** (the read). | Server faults only: an unexpected fault (500) and a 503 when something Lytro depends on is down. A refusal (a bad field, a limit, a missing permission) is an answer the seller already sees explained, and isn't kept. A fault before the shop is known (signing in) is logged, not kept. | Slice 8.1 |
+| D8-23 | **What a kept error holds** (the read). A database's own text can hold a customer's phone or address. | The route's pattern (`/api/v1/orders/:id`), the method, the status, the error's kind (its class, with the database's own code when it has one, or a 503's message key) and the request ID. The message and stack go only to the server log, under the same ID. | Slice 8.1 |
 
 ### 2.1 Points left to each slice's read
 
@@ -89,7 +92,7 @@ Each is settled in its slice's read, before code, and recorded there.
 
 | Slice | To settle |
 |---|---|
-| 8.1 | Where the error rows live (a Lytro table keyed by shop, since the error filter runs outside the shop's transaction), what an error row may hold (never a body, a phone or a token), and which errors count: server faults only, or refusals too. |
+| 8.1 | Where the error rows live (a Lytro table keyed by shop, since the error filter runs outside the shop's transaction), what an error row may hold (never a body, a phone or a token), and which errors count: server faults only, or refusals too. **Settled in Slice 8.1's read (2026-11-07):** D8-21 to D8-23. |
 | 8.2 | What the owner's phone search matches (any written form, the last digits), and what the shop page loads at once against what it loads when opened. |
 | 8.3 | Whether a trial can be extended (D8-12), the most days at once, how the owner's new phone is checked before the code goes, and whether deleting a shop's data needs it suspended first. |
 | 8.4 | The nightly job's time and what it records, how far back the reports reach, and how a CSV is named. |
@@ -209,6 +212,10 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
 - **Depends on:** 8.0.
 - **Delivers:** `X-Request-Id` on every response and in every log line of the request (API-27); each server error a
   shop's request hits recorded for 7 days (D8-3), with a job that clears older rows.
+- **Built** (read agreed 2026-11-07, D8-21 to D8-23): the ID is made before anything else runs, so a 404, a 413 and
+  the public API's hosts carry one too, and the server's logger writes it after each line's context. A 500 or 503
+  for a known shop is kept in `control.request_errors` (migration 0118) after the answer is decided, so a failure to
+  keep it never changes the answer; a nightly job clears what's past 7 days. The shop page's reads come with 8.2.
 
 ### Slice 8.2: finding and reading a shop
 - **Depends on:** 8.1.

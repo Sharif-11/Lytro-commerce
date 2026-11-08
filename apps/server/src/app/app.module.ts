@@ -3,6 +3,7 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { ZodSerializerInterceptor } from 'nestjs-zod';
 import { GracefulShutdownModule } from '@tygra/nestjs-graceful-shutdown';
 import { ApiErrorFilter } from '../common/api-error.filter';
+import { RequestIdModule } from '../common/request-id/request-id.module';
 import { ResponseEnvelopeInterceptor } from '../common/interceptors/response-envelope.interceptor';
 import { DatabaseModule } from '../database/database.module';
 import { HealthController } from '../modules/health/health.controller';
@@ -32,6 +33,7 @@ const shutdownImports: DynamicModule[] =
   imports: [
     ...shutdownImports,
     DatabaseModule,
+    RequestIdModule,
     SecretsModule,
     TenancyModule,
     IdentityModule,
