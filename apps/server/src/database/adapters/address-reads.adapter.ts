@@ -19,6 +19,10 @@ export class DrizzleAddressReadStore implements AddressReadStore {
     @Inject(AddonPurchaseRepository) private readonly purchases: AddonPurchaseRepository,
   ) {}
 
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    return this.reads.deleteAllForTenant(tx, tenantId);
+  }
+
   async allowancesFor(tx: Transaction, tenantId: string): Promise<AllowanceLeft[]> {
     const held = await this.purchases.countingAllowancesForUpdate(
       tx,

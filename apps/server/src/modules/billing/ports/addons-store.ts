@@ -16,6 +16,8 @@ import type {
 /** control.addons and control.addon_purchases (PLN-13, PLN-14). Writes take the caller's transaction. */
 export interface AddonsStore {
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
+  /** D8-34: the shop's active add-ons that end at `from` end at `to` instead. */
+  moveEndingWith(tx: Transaction, tenantId: string, from: Date, to: Date): Promise<void>;
   list(tx: Transaction, includeRetired: boolean): Promise<AddonRecord[]>;
   catalogueCounts(
     tx: Transaction,

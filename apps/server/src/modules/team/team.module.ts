@@ -124,6 +124,7 @@ import { OperatorRecentChangesController } from './controllers/operator-recent-c
 import { OperatorShops } from './services/operator-shops';
 import { OperatorShopReads } from './services/operator-shop-reads';
 import { OperatorShopReadsController } from './controllers/operator-shop-reads.controller';
+import { OperatorShopActionsController } from './controllers/operator-shop-actions.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { NoticesModule } from '../notices/notices.module';
 
@@ -183,6 +184,7 @@ import { NoticesModule } from '../notices/notices.module';
     OperatorBalanceController,
     OperatorTenantLifecycleController,
     OperatorShopReadsController,
+    OperatorShopActionsController,
     OperatorRecentChangesController,
     OperatorReportsController,
     OperatorPaymentPagesController,

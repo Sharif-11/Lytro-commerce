@@ -17,6 +17,13 @@ export interface NewOrderExtraction {
 export class OrderExtractionRepository {
   constructor(private readonly transactions: Pick<TransactionRunner, 'setTenantContext'>) {}
 
+  /** LIF-19: a deleted shop's reads; the trigger lets this through only for an archived or deleted shop. */
+  async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx.execute(sql`SELECT set_config('app.erasing_tenant', ${tenantId}, true)`);
+    await tx.delete(orderExtractions).where(eq(orderExtractions.tenantId, tenantId));
+  }
+
   async insert(db: Transaction, values: NewOrderExtraction): Promise<void> {
     await this.transactions.setTenantContext(db, values.tenantId);
     await db.insert(orderExtractions).values(values);

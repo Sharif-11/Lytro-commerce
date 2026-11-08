@@ -36,6 +36,10 @@ export class DrizzleAddonsStore implements AddonsStore {
     @Inject(AddonPurchaseRepository) private readonly purchases: AddonPurchaseRepository,
   ) {}
 
+  moveEndingWith(tx: Transaction, tenantId: string, from: Date, to: Date): Promise<void> {
+    return this.purchases.moveEndingWith(tx, tenantId, from, to);
+  }
+
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
     return this.transactions.run(this.database.handle.db, work);
   }

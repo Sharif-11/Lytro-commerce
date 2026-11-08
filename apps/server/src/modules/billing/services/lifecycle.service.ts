@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CourierConnections } from '../../couriers/services/courier-connections';
+import { AddressReads } from '../../address-reads/services/address-reads';
+import { FraudChecks } from '../../fraud-checks/services/fraud-checks';
+import { SmsHistory } from '../../sms-events/services/sms-history';
 import type { PaygCandidateRow } from '@lytronix/db';
 import {
   ActorType,
@@ -112,6 +115,9 @@ export class LifecycleService {
     @Inject(BrandEraser) private readonly brand: BrandEraser,
     @Inject(PaymentMethodsEraser) private readonly paymentMethods: PaymentMethodsEraser,
     @Inject(CourierConnections) private readonly couriers: CourierConnections,
+    @Inject(SmsHistory) private readonly smsHistory: SmsHistory,
+    @Inject(FraudChecks) private readonly fraudChecks: FraudChecks,
+    @Inject(AddressReads) private readonly addressReads: AddressReads,
     @Inject(PaymentSessionsEraser) private readonly paymentSessions: PaymentSessionsEraser,
     @Inject(ListenerDevices) private readonly listener: ListenerDevices,
     @Inject(DomainEraser) private readonly domain: DomainEraser,
@@ -352,6 +358,18 @@ export class LifecycleService {
 
   /** LIF-19: the day-60 business-data deletion. Guarded by `deletedAt IS NULL` (findLapsingCandidates already
    * excludes a deleted tenant), so a second tick after this one is a no-op for this tenant, not a retry. */
+  /**
+   * ADM-13, D8-13 (Slice 8.3): the on-request deletion's job. Only for a shop still archived: one the operator brought
+   * back meanwhile keeps its data, and one already deleted has nothing left. Safe to run twice.
+   */
+  async eraseRequested(tenantId: string): Promise<void> {
+    const info = await this.tenants.runStandalone((tx) =>
+      this.tenants.findBillingInfo(tx, tenantId),
+    );
+    if (info?.state !== TenantState.Archived) return;
+    await this.deleteIfDue(tenantId, this.clock());
+  }
+
   private async deleteIfDue(tenantId: string, now: Date): Promise<boolean> {
     await this.staff.deleteAllForTenant({ id: tenantId, planLimits: null });
     await this.dataExports.deleteAllForTenant(tenantId); // LIF-16/19: exports go with the rest of the data.
@@ -368,6 +386,11 @@ export class LifecycleService {
     await this.paymentSessions.deleteAllForTenant(tenantId);
     await this.listener.deleteAllForTenant(tenantId); // LSN-23: the shop's listener codes and phones.
     await this.couriers.deleteAllForTenant(tenantId); // LIF-19: connections, parcels and the credential log.
+    // Phase 7's tables, added by Slice 8.3: the shop's SMS log and settings, its fraud checks and rule, its reads of pasted
+    // delivery details. Before the orders, which the checks point to.
+    await this.smsHistory.deleteAllForTenant(tenantId);
+    await this.fraudChecks.deleteAllForTenant(tenantId);
+    await this.addressReads.deleteAllForTenant(tenantId);
     await this.orders.deleteAllForTenant(tenantId);
     await this.shoppers.deleteAllForTenant(tenantId);
     await this.idempotency.deleteAllForTenant(tenantId);

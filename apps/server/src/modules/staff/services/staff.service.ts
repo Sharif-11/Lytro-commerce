@@ -147,6 +147,11 @@ export class StaffService {
     return this.store.findOwnerContact(tx, tenantId);
   }
 
+  /** ADM-04, D8-36: the owner's row follows the account's phone, in the caller's transaction. */
+  setOwnerPhoneIn(tx: Transaction, tenantId: string, phone: string): Promise<void> {
+    return this.store.setOwnerPhone(tx, tenantId, phone);
+  }
+
   /** TEN-31, AUTH-31: the shop this person is staff in, if any (STF-06: at most one). */
   staffShopOf(subscriberId: string): Promise<StaffShop | null> {
     return this.store.runAcrossShops((tx) => this.staffShopOfIn(tx, subscriberId));

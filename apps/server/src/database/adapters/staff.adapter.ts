@@ -189,6 +189,10 @@ export class DrizzleStaffStore implements StaffStore {
     return this.users.findOwnerContact(tx, tenantId);
   }
 
+  setOwnerPhone(tx: Transaction, tenantId: string, phone: string): Promise<void> {
+    return this.users.setOwnerPhone(tx, tenantId, phone);
+  }
+
   setLanguage(
     tx: Transaction,
     tenantId: string,

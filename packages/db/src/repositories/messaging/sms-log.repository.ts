@@ -95,6 +95,13 @@ export class SmsLogRepository {
     return { failed: row?.failed ?? 0, blocked: row?.blocked ?? 0 };
   }
 
+  /** LIF-19: a deleted shop's SMS log; the trigger lets this through only for an archived or deleted shop. */
+  async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx.execute(sql`SELECT set_config('app.erasing_tenant', ${tenantId}, true)`);
+    await tx.delete(smsLog).where(eq(smsLog.tenantId, tenantId));
+  }
+
   /** SMS-14: each day's SMS by kind, between the two times, in Dhaka's days. */
   async report(db: Transaction, tenantId: string, from: Date, to: Date): Promise<SmsReportRow[]> {
     await this.transactions.setTenantContext(db, tenantId);

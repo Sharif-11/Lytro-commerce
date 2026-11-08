@@ -223,6 +223,10 @@ export class DrizzleSignupGateway implements SignupGateway {
     return identity === null ? null : { id: identity.id, email: identity.value };
   }
 
+  changePhoneIdentity(tx: Transaction, identityId: string, phone: string, at: Date): Promise<void> {
+    return this.accounts.changePhoneIdentity(tx, identityId, phone, at);
+  }
+
   async findPhoneIdentityOf(
     tx: Transaction,
     subscriberId: string,

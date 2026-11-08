@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { phoneField } from '../identity/phone-signup/phone-signup-common';
 import { REQUEST_ERROR_KEEP_DAYS } from '../../common/request-id';
 import { queryFlag } from '../catalogue/catalogue-common';
 import { listenerReceiptsQuerySchema } from '../listener/listener';
@@ -36,3 +37,26 @@ export const shopFailedSmsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(SHOP_PROBLEM_PAGE),
 });
 export type ShopFailedSmsQuery = z.infer<typeof shopFailedSmsQuerySchema>;
+
+/** D8-32: the most days one extension can add; more needs a second, with its own reason. */
+export const PLAN_EXTEND_MAX_DAYS = 30;
+
+const operatorReason = z.string().trim().min(1).max(500);
+
+// ADM-04, D8-12: POST /operator/tenants/:id/extend.
+export const extendPlanSchema = z.object({
+  days: z.number().int().min(1).max(PLAN_EXTEND_MAX_DAYS),
+  reason: operatorReason,
+});
+export type ExtendPlanInput = z.infer<typeof extendPlanSchema>;
+
+// ADM-04, D8-5: POST /operator/tenants/:id/owner-reset. `phone` is the number the owner gave the operator.
+export const ownerResetSchema = z.object({ phone: phoneField, reason: operatorReason });
+export type OwnerResetInput = z.infer<typeof ownerResetSchema>;
+
+// ADM-13, D8-13: POST /operator/tenants/:id/delete-data. `confirmAddress` is the shop's address, typed out.
+export const deleteShopDataSchema = z.object({
+  confirmAddress: z.string().trim().min(1).max(100),
+  reason: operatorReason,
+});
+export type DeleteShopDataInput = z.infer<typeof deleteShopDataSchema>;

@@ -235,6 +235,10 @@ export class DrizzleScheduledPlanChangesStore implements ScheduledPlanChangesSto
     return this.changes.delete(tx, tenantId);
   }
 
+  moveEffectiveAt(tx: Transaction, tenantId: string, from: Date, to: Date): Promise<void> {
+    return this.changes.moveEffectiveAt(tx, tenantId, from, to);
+  }
+
   findDue(tx: Transaction, now: Date) {
     return this.changes.findDue(tx, now);
   }
