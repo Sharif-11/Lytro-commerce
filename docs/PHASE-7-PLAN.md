@@ -342,6 +342,33 @@ checks whether FRD-01's `fraud:check` is `fraud:read` or needs its own name.
   allowances in the add-on catalogue.
 - **Builds** them, pixel perfect to the approved sketch, in Bangla and English to the owner's style guide, and brings
   back the sentences the screens dropped while nothing was sent (D7-20).
+- **Built (2026-11-08), to the sketch (#326, D7-60 to D7-63):**
+  - **The dashboard:**
+    - SMS settings, the log and the report;
+    - the bell, its switches, and push on a device, with the worker that shows a push;
+    - each person's language, the bounced-email banner and the update prompt;
+    - the notice board, a notice, the urgent marquee, the important prompt and the maintenance countdown, and how lapsed
+      shops see them;
+    - the fake order check on New order, the order and the customer, and its rule;
+    - reading an order from a message;
+    - allowances in the add-on shop and on Usage;
+    - the SMS each action sends (D7-20).
+  - **The console:**
+    - the notices, from blank or a template, the editor with its preview, the publish panel with the shops it reaches,
+      a notice's page with its figures and versions, a live edit, withdrawing, and who said "I understand";
+    - the rate-change offer on Rates;
+    - the nine settings its page lacked;
+    - the reads allowance in the add-on catalogue.
+  - **What the screens needed of the server:**
+    - an order's automatic check as it stands, with why one didn't run (`tenant.fraud_check_skips`, migration 0120);
+    - the always-sent SMS as they read and who pays, from one definition the senders now share;
+    - the owner's phone and the spend cap's cycle;
+    - the order number on each SMS log row;
+    - the reads allowance on Usage and the shop's add-ons;
+    - how many shops a notice reaches before publishing;
+    - who wrote a notice and each version;
+    - a rate change's id when saved and on recent changes.
+  - **Where it differs from the sketch:** KNOWN-GAPS §132.
 - **Sketched (2026-11-07, D7-60 to D7-63):** the dashboard's Part 37 (128 screens, `TENANT-DASHBOARD-DESIGN.md`
   §7.40) and the console's Notices and Pricing and platform screens (44, `OPERATOR-CONSOLE-DESIGN.md` §10c). The
   build needs a few server additions, listed in each design doc (§10 and §15). Drawing it found two faults in
