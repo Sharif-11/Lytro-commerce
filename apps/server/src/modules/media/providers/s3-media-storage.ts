@@ -172,7 +172,8 @@ export class S3MediaStorage implements MediaStorage {
         }),
       );
     } catch (error) {
-      throw this.unavailable(error);
+      // D8-47: every failure is the store being away, a private bucket not made yet included, so nothing answers 500.
+      throw new StorageUnavailable(error);
     }
   }
 
