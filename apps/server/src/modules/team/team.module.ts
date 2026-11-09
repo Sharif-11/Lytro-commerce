@@ -57,6 +57,7 @@ import { PublicApiModule } from '../public-api/public-api.module';
 import { DataExportController } from './controllers/data-export.controller';
 import { DataExportModule } from '../data-export/data-export.module';
 import { SmsEventsModule } from '../sms-events/sms-events.module';
+import { MessagingModule } from '../shared/messaging/messaging.module';
 import { SmsUsageModule } from '../sms-usage/sms-usage.module';
 import { ActivityListService } from './services/activity-list.service';
 import { StaffSigninService } from './services/staff-signin.service';
@@ -119,6 +120,8 @@ import {
 import { CatalogueRequest } from './services/catalogue-request';
 import { OperatorRecentChangesController } from './controllers/operator-recent-changes.controller';
 import { OperatorShops } from './services/operator-shops';
+import { OperatorShopReads } from './services/operator-shop-reads';
+import { OperatorShopReadsController } from './controllers/operator-shop-reads.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { NoticesModule } from '../notices/notices.module';
 
@@ -143,6 +146,7 @@ import { NoticesModule } from '../notices/notices.module';
     IdempotencyModule,
     DataExportModule,
     SmsEventsModule,
+    MessagingModule,
     SmsUsageModule,
     CatalogueModule,
     DeliveryModule,
@@ -175,6 +179,7 @@ import { NoticesModule } from '../notices/notices.module';
     OperatorRatesController,
     OperatorBalanceController,
     OperatorTenantLifecycleController,
+    OperatorShopReadsController,
     OperatorRecentChangesController,
     OperatorPaymentPagesController,
     PaymentsController,
@@ -239,6 +244,7 @@ import { NoticesModule } from '../notices/notices.module';
   ],
   providers: [
     OperatorShops,
+    OperatorShopReads,
     StaffSigninService,
     ActivityListService,
     ClientIp,

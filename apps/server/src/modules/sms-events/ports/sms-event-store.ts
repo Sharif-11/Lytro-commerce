@@ -43,6 +43,8 @@ export interface SmsEventStore {
   spentSince(tenantId: string, kinds: readonly SmsLogEntryKind[], since: Date): Promise<string>;
   counts(tenantId: string, since: Date): Promise<SmsEventCounts>;
   report(tenantId: string, from: Date, to: Date): Promise<SmsReportRow[]>;
+  /** ADM-03 (Slice 8.2): how many of the shop's SMS failed or were blocked since `since`. */
+  notSentSince(tenantId: string, since: Date): Promise<{ failed: number; blocked: number }>;
   list(
     tenantId: string,
     page: SmsLogPage,

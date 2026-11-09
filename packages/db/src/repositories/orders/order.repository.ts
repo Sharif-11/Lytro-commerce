@@ -516,6 +516,26 @@ export class OrderRepository {
     return row ?? { toConfirm: 0, callsDue: 0, toShip: 0, today: 0, yesterday: 0 };
   }
 
+  /**
+   * ADM-03 (Slice 8.2): how many of the shop's orders stand at each status, the visible one the seller's list filters by
+   * (ORD-41); a status with none is left out.
+   */
+  async countByStatus(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ status: string; count: number }[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const status = visibleStatusSql();
+    return (
+      tx
+        .select({ status: sql<string>`${status}`, count: sql<number>`count(*)::int` })
+        .from(orders)
+        .where(eq(orders.tenantId, tenantId))
+        // By position: the status is built with parameters, and Postgres reads a second copy as a different expression.
+        .groupBy(sql`1`)
+    );
+  }
+
   /** ORD-18 (Slice 4.4b): a page of the shop's orders carrying this phone, newest first, from any source. */
   async listForPhone(
     tx: Transaction,

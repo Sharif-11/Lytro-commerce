@@ -196,7 +196,9 @@ export interface CourierStore {
   recordUse(tenantId: string, use: NewCourierCredentialUse): Promise<void>;
   listUses(
     tenantId: string,
-    page: { offset: number; limit: number },
+    page: { offset: number; limit: number; failedOnly?: boolean },
   ): Promise<{ rows: CourierCredentialUseRow[]; total: number }>;
+  /** ADM-03, MON-05: how many of the shop's courier calls failed or were refused since `since`. */
+  countFailedUses(tenantId: string, since: Date): Promise<number>;
   deleteAllForTenant(tenantId: string): Promise<void>;
 }

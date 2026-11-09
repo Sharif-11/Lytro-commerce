@@ -1,6 +1,6 @@
 import type { Transaction } from '@lytronix/db';
 import type { Language } from '@lytronix/validators';
-import type { StaffCredentials, StaffRecord } from '../types/staff';
+import type { StaffCredentials, StaffRecord, TeamAccount } from '../types/staff';
 import type { OwnerContact } from '../types/owner-contact';
 
 /** Staff rows of one shop. Every method runs inside the caller's transaction, which carries the tenant context. */
@@ -15,6 +15,8 @@ export interface StaffStore {
   ): Promise<void>;
   lockSeats(tx: Transaction, tenantId: string): Promise<void>;
   listStaff(tx: Transaction, tenantId: string): Promise<StaffRecord[]>;
+  /** ADM-03, D8-27: every member with the account behind them. */
+  listTeamAccounts(tx: Transaction, tenantId: string): Promise<TeamAccount[]>;
   countActive(tx: Transaction, tenantId: string): Promise<number>;
   countMustSetPassword(tx: Transaction, tenantId: string): Promise<number>;
   findStaff(tx: Transaction, tenantId: string, userId: string): Promise<StaffRecord | null>;

@@ -96,7 +96,7 @@ export class ShopperCodes {
           expiresAt: new Date(now.getTime() + CODE_TTL_MS),
           createdAt: now,
         });
-        const message = await this.messaging.queueShopperCode(tx, phone, body);
+        const message = await this.messaging.queueShopperCode(tx, phone, body, shop.id);
         return { entry, codeId: row.id, message };
       })
       .catch(async (error: unknown) => {

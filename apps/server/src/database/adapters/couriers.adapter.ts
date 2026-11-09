@@ -374,9 +374,13 @@ export class DrizzleCourierStore implements CourierStore {
 
   listUses(
     tenantId: string,
-    page: { offset: number; limit: number },
+    page: { offset: number; limit: number; failedOnly?: boolean },
   ): Promise<{ rows: CourierCredentialUseRow[]; total: number }> {
     return this.run(tenantId, (tx) => this.couriers.listUses(tx, tenantId, page));
+  }
+
+  countFailedUses(tenantId: string, since: Date): Promise<number> {
+    return this.run(tenantId, (tx) => this.couriers.countFailedUsesSince(tx, tenantId, since));
   }
 
   deleteAllForTenant(tenantId: string): Promise<void> {

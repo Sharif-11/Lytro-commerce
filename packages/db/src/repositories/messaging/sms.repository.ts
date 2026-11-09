@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Database } from '../../client';
 import type { Executor } from '../../transactions';
 import { smsOutbox } from '../../schema';
@@ -12,6 +12,24 @@ export interface NewSmsMessage {
   kind: SmsKind;
   /** Null for otp: the code is never stored (AUTH-05). */
   body: string | null;
+  /** D8-30: the shop the message is for, when it names one. */
+  tenantId?: string | null;
+}
+
+/** ADM-03, D8-30: which of Lytro's messages are a shop's: those naming it, and the sign-in codes to its team's phones. */
+export interface ShopMessages {
+  tenantId: string;
+  phones: readonly string[];
+}
+
+/** ADM-03: one of Lytro's own messages that never went, as the operator's shop page lists it. */
+export interface FailedSmsRow {
+  id: number;
+  kind: string;
+  toPhone: string;
+  attempts: number;
+  lastError: string | null;
+  createdAt: Date;
 }
 
 export interface ClaimedSmsMessage {
@@ -67,6 +85,53 @@ export class SmsRepository {
       body: row.body,
       attempts: row.attempts,
     }));
+  }
+
+  /** ADM-03, D8-30: how many of the shop's messages failed for good since `since`. */
+  async countFailedForShop(db: Executor, shop: ShopMessages, since: Date): Promise<number> {
+    const [row] = await db
+      .select({ value: sql<number>`count(*)::int` })
+      .from(smsOutbox)
+      .where(and(this.failedFor(shop), gte(smsOutbox.createdAt, since)));
+    return row?.value ?? 0;
+  }
+
+  /** ADM-03, D8-30: the shop's messages that failed for good, newest first, after `beforeId` when given. */
+  async failedForShop(
+    db: Executor,
+    shop: ShopMessages,
+    beforeId: number | null,
+    limit: number,
+  ): Promise<FailedSmsRow[]> {
+    return db
+      .select({
+        id: smsOutbox.id,
+        kind: smsOutbox.kind,
+        toPhone: smsOutbox.toPhone,
+        attempts: smsOutbox.attempts,
+        lastError: smsOutbox.lastError,
+        createdAt: smsOutbox.createdAt,
+      })
+      .from(smsOutbox)
+      .where(and(this.failedFor(shop), beforeId === null ? undefined : lt(smsOutbox.id, beforeId)))
+      .orderBy(desc(smsOutbox.id))
+      .limit(limit);
+  }
+
+  private failedFor(shop: ShopMessages) {
+    return and(
+      eq(smsOutbox.status, SmsStatus.Failed),
+      or(
+        eq(smsOutbox.tenantId, shop.tenantId),
+        shop.phones.length === 0
+          ? undefined
+          : and(
+              isNull(smsOutbox.tenantId),
+              eq(smsOutbox.kind, SmsKind.Otp),
+              inArray(smsOutbox.toPhone, [...shop.phones]),
+            ),
+      ),
+    );
   }
 
   async markSent(db: Executor, id: number, at: Date): Promise<void> {

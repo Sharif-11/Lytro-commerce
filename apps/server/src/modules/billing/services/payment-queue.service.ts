@@ -45,9 +45,12 @@ export class PaymentQueueService {
     @Inject(CLOCK) private readonly clock: () => Date,
   ) {}
 
-  /** ADM-06: each payment waiting, with the add-ons it pays for, so the operator sees what the money is for. */
-  async listPending(kind?: PlanPaymentKind): Promise<QueuedPayment[]> {
-    const pending = await this.payments.listPending(kind);
+  /**
+   * ADM-06: each payment waiting, with the add-ons it pays for, so the operator sees what the money is for; one shop's
+   * alone for its page (ADM-03).
+   */
+  async listPending(kind?: PlanPaymentKind, tenantId?: string): Promise<QueuedPayment[]> {
+    const pending = await this.payments.listPending(kind, tenantId);
     const addons = await this.renewals.forPayments(pending.map((payment) => payment.id));
     return pending.map((payment) => ({ ...payment, addons: addons.get(payment.id) ?? [] }));
   }

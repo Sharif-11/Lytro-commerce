@@ -64,4 +64,5 @@ export * from './api/billing/billing-payments';
 export * from './api/billing/addons';
 export * from './api/platform/settings-update';
 export * from './api/platform/tenant-search';
+export * from './api/platform/operator-shop';
 export * from './api/platform/tenant-suspend';

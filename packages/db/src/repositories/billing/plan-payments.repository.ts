@@ -128,13 +128,19 @@ export class PlanPaymentsRepository {
     return rows[0] ?? null;
   }
 
-  // The operator queue: submitted (transaction ID attached) payments still awaiting a decision.
-  async listPending(tx: Executor, kind?: PlanPaymentKind): Promise<QueuedPlanPaymentRow[]> {
-    const base = and(
+  // The operator queue: submitted (transaction ID attached) payments still awaiting a decision; one shop's alone for its
+  // page (ADM-03).
+  async listPending(
+    tx: Executor,
+    kind?: PlanPaymentKind,
+    tenantId?: string,
+  ): Promise<QueuedPlanPaymentRow[]> {
+    const conditions = and(
       inArray(planPayments.status, [PlanPaymentStatus.Pending, PlanPaymentStatus.NeedsReview]),
       isNotNull(planPayments.transactionId),
+      kind ? eq(planPayments.kind, kind) : undefined,
+      tenantId ? eq(planPayments.tenantId, tenantId) : undefined,
     );
-    const conditions = kind ? and(base, eq(planPayments.kind, kind)) : base;
     return tx
       .select({
         ...getTableColumns(planPayments),

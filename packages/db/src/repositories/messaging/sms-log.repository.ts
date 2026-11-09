@@ -37,6 +37,8 @@ export interface SmsLogPage {
   /** The rows before this ID, newest first. */
   before?: number;
   orderId?: string;
+  /** ADM-03 (Slice 8.2): only these outcomes, the shop page's SMS that didn't go. */
+  statuses?: readonly SmsLogStatus[];
 }
 
 // SMS-07, SMS-14, SMS-17: a shop's own SMS log, written once each SMS's fate is known.
@@ -74,6 +76,23 @@ export class SmsLogRepository {
         ),
       );
     return row?.total ?? '0';
+  }
+
+  /** ADM-03 (Slice 8.2): how many of the shop's SMS failed or were blocked since `since`. */
+  async notSentSince(
+    db: Transaction,
+    tenantId: string,
+    since: Date,
+  ): Promise<{ failed: number; blocked: number }> {
+    await this.transactions.setTenantContext(db, tenantId);
+    const [row] = await db
+      .select({
+        failed: sql<number>`(count(*) filter (where ${smsLog.status} = 'failed'))::int`,
+        blocked: sql<number>`(count(*) filter (where ${smsLog.status} = 'blocked'))::int`,
+      })
+      .from(smsLog)
+      .where(and(eq(smsLog.tenantId, tenantId), gte(smsLog.createdAt, since)));
+    return { failed: row?.failed ?? 0, blocked: row?.blocked ?? 0 };
   }
 
   /** SMS-14: each day's SMS by kind, between the two times, in Dhaka's days. */
@@ -120,6 +139,7 @@ export class SmsLogRepository {
     const conditions = [eq(smsLog.tenantId, tenantId)];
     if (page.before !== undefined) conditions.push(lt(smsLog.id, page.before));
     if (page.orderId !== undefined) conditions.push(eq(smsLog.orderId, page.orderId));
+    if (page.statuses !== undefined) conditions.push(inArray(smsLog.status, [...page.statuses]));
     const rows = await db
       .select({ row: smsLog, orderNumber: orders.orderNumber })
       .from(smsLog)

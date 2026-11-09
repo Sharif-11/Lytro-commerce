@@ -8,6 +8,7 @@ import {
   AuditAction,
   LedgerEntryType,
   PlatformSettingKey,
+  TenantSort,
   TenantState,
 } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
@@ -1184,7 +1185,14 @@ describeIfDatabase("LIF-24: the operator's shop search", () => {
     await seedShop(admin, 'A_B Traders', freshSlug());
     await seedShop(admin, 'AXB Traders', freshSlug());
     const names = async (query: string): Promise<string[]> =>
-      (await summaries.search(query, null, 50)).entries.map((row) => row.shopName);
+      (
+        await summaries.search(
+          { query, phone: null, state: null, planId: null },
+          TenantSort.Newest,
+          null,
+          50,
+        )
+      ).entries.map((row) => row.shopName);
     expect(await names('0% C')).toEqual(['100% Cotton']);
     expect(await names('a_b')).toEqual(['A_B Traders']);
     expect((await names('cotton')).sort()).toEqual(['100 Cotton', '100% Cotton']);

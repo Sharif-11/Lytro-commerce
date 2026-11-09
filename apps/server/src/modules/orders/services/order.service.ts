@@ -578,6 +578,18 @@ export class OrderService {
     );
   }
 
+  /**
+   * ADM-03 (Slice 8.2): the shop's orders counted by the status the seller sees (ORD-41), every status named, for the
+   * operator's shop page: counts, never the orders themselves.
+   */
+  async countByStatus(tenantId: string): Promise<Record<OrderStatus, number>> {
+    const rows = await this.store.run(tenantId, (tx) => this.store.countByStatus(tx, tenantId));
+    const found = new Map(rows.map((row) => [row.status, row.count]));
+    return Object.fromEntries(
+      Object.values(OrderStatus).map((status) => [status, found.get(status) ?? 0]),
+    ) as Record<OrderStatus, number>;
+  }
+
   async list(tenantId: string, query: OrderListQuery): Promise<OrderPage> {
     const from = query.dateFrom !== undefined ? dhakaDayStart(query.dateFrom) : null;
     const before =

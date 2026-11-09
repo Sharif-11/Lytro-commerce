@@ -102,6 +102,8 @@ beforeAll(async () => {
         useValue: new RequestErrors({
           record: () => Promise.resolve(),
           purgeBefore: () => Promise.resolve(0),
+          countSince: () => Promise.resolve(0),
+          latest: () => Promise.resolve([]),
         }),
       },
     ],

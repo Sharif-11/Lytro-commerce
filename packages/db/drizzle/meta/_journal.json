@@ -841,6 +841,13 @@
       "when": 1794128542457,
       "tag": "0120_fraud_check_skips",
       "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1794153673850,
+      "tag": "0121_sms_outbox_shop",
+      "breakpoints": true
     }
   ]
 }
