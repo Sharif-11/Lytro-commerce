@@ -14,15 +14,19 @@ import {
   lte,
   sql,
 } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import type { Database } from '../../client';
 import type { Executor } from '../../transactions';
 import { escapeLike } from '../like';
-import { plans, tenantDomains, tenants } from '../../schema';
+import { plans, subscriberIdentities, tenantDomains, tenants } from '../../schema';
 import {
   DomainStatus,
   KycStatus,
+  IdentityKind,
+  TenantSort,
   TenantState,
   shopLimitsOf,
+  type PhoneSearch,
   type PlanLimits,
 } from '@lytronix/validators';
 import { addonUnitList, addonUnitsOf } from '../billing/addon-purchase.repository';
@@ -109,14 +113,28 @@ function summaryOf<
   };
 }
 
-// LIF-24: the operator's own keyset cursor for search() -- the latest-created tenant the caller has already
-// seen, the same (createdAt, id) tie-break shape as the audit log's own cursor.
-export interface TenantSearchCursor {
-  createdAt: Date;
-  id: string;
+// ADM-02, D8-7: the operator's own keyset cursor for search(), one shape per sort -- the last shop the caller has
+// already seen, with the id breaking ties as the audit log's own cursor does.
+export type TenantSearchCursor =
+  | { sort: TenantSort.Newest; createdAt: Date; id: string }
+  | { sort: TenantSort.Name; name: string; id: string }
+  | { sort: TenantSort.PeriodEnd; periodEnd: Date | null; id: string };
+
+/** ADM-02, D8-7: what the operator's shop list narrows by. */
+export interface TenantSearchFilters {
+  query: string | null;
+  /** D8-24: the query read as the owner's phone, when it is one. */
+  phone: PhoneSearch | null;
+  state: TenantState | null;
+  planId: string | null;
 }
 
-export type TenantSearchRow = TenantSummaryRow;
+export type TenantSearchRow = TenantSummaryRow & {
+  /** D8-24: the owner's phone, the one the shop was made with. */
+  ownerPhone: string | null;
+  /** The shop's name as the database orders it, for the name sort's cursor. */
+  sortName: string;
+};
 
 /** OPERATOR-CONSOLE-DESIGN §5: a shop's suspensions, its new-shop cap, and the parts of its limits. */
 export interface TenantOperatorFactsRow {
@@ -197,28 +215,44 @@ export class TenantRepository {
       .leftJoin(plans, eq(plans.id, tenants.planId));
   }
 
-  /** LIF-24: the operator's tenant search, by shop name or slug substring, a typed `%` or `_` matched as
-   * itself -- never OFFSET, the same keyset discipline the audit log's own list() uses. Pass `limit + 1`
-   * to learn whether another page exists (AuditService.list's own trick). */
+  /**
+   * ADM-02, D8-7: the operator's shop list, by shop name or address substring (a typed `%` or `_` matched as itself) or
+   * the owner's phone (D8-24), narrowed by state and plan, in one of three orders. Never OFFSET: each order pages on its
+   * own keyset. Pass `limit + 1` to learn whether another page exists (AuditService.list's own trick).
+   */
   async search(
     db: Database,
-    filters: { query: string | null },
+    filters: TenantSearchFilters,
+    sort: TenantSort,
     cursor: TenantSearchCursor | null,
     limit: number,
   ): Promise<TenantSearchRow[]> {
+    const sortName = sql<string>`lower(${tenants.shopName})`;
     const conditions = [];
     if (filters.query) {
       const pattern = `%${escapeLike(filters.query)}%`;
-      conditions.push(or(ilike(tenants.shopName, pattern), ilike(tenants.slug, pattern)));
-    }
-    if (cursor) {
+      const phone = filters.phone;
       conditions.push(
         or(
-          lt(tenants.createdAt, cursor.createdAt),
-          and(eq(tenants.createdAt, cursor.createdAt), lt(tenants.id, cursor.id)),
+          ilike(tenants.shopName, pattern),
+          ilike(tenants.slug, pattern),
+          phone === null
+            ? undefined
+            : 'exact' in phone
+              ? eq(subscriberIdentities.value, phone.exact)
+              : sql`${subscriberIdentities.value} LIKE ${`%${escapeLike(phone.ending)}`}`,
         ),
       );
     }
+    if (filters.state) conditions.push(eq(tenants.state, filters.state));
+    if (filters.planId) conditions.push(eq(tenants.planId, filters.planId));
+    if (cursor) conditions.push(this.afterCursor(cursor, sortName));
+    const order =
+      sort === TenantSort.Name
+        ? [asc(sortName), asc(tenants.id)]
+        : sort === TenantSort.PeriodEnd
+          ? [sql`${tenants.periodEnd} ASC NULLS LAST`, asc(tenants.id)]
+          : [desc(tenants.createdAt), desc(tenants.id)];
     const rows = await db
       .select({
         id: tenants.id,
@@ -238,13 +272,46 @@ export class TenantRepository {
         ownerSubscriberId: tenants.subscriberId,
         businessType: tenants.businessType,
         autoRenewEnabled: tenants.autoRenewEnabled,
+        ownerPhone: subscriberIdentities.value,
+        sortName,
       })
       .from(tenants)
       .leftJoin(plans, eq(plans.id, tenants.planId))
+      .leftJoin(
+        subscriberIdentities,
+        and(
+          eq(subscriberIdentities.id, tenants.ownerIdentityId),
+          eq(subscriberIdentities.kind, IdentityKind.Phone),
+        ),
+      )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(desc(tenants.createdAt), desc(tenants.id))
+      .orderBy(...order)
       .limit(limit);
     return rows.map(summaryOf);
+  }
+
+  /** The shops after the cursor's, in its own sort's order. */
+  private afterCursor(cursor: TenantSearchCursor, sortName: SQL<string>) {
+    if (cursor.sort === TenantSort.Name) {
+      return or(
+        sql`${sortName} > ${cursor.name}`,
+        and(sql`${sortName} = ${cursor.name}`, gt(tenants.id, cursor.id)),
+      );
+    }
+    if (cursor.sort === TenantSort.PeriodEnd) {
+      // NULLS LAST: after a dated shop come later dates, then every undated one; after an undated one, only undated.
+      return cursor.periodEnd === null
+        ? and(isNull(tenants.periodEnd), gt(tenants.id, cursor.id))
+        : or(
+            gt(tenants.periodEnd, cursor.periodEnd),
+            and(eq(tenants.periodEnd, cursor.periodEnd), gt(tenants.id, cursor.id)),
+            isNull(tenants.periodEnd),
+          );
+    }
+    return or(
+      lt(tenants.createdAt, cursor.createdAt),
+      and(eq(tenants.createdAt, cursor.createdAt), lt(tenants.id, cursor.id)),
+    );
   }
 
   /** Finds a shop by its address label, e.g. `fashion-house` for fashion-house.<platform domain>. */

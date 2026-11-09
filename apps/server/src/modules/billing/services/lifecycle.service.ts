@@ -674,7 +674,9 @@ export class LifecycleService {
     const contact = await this.staff.ownerContact(tenantId);
     await this.tenants.runStandalone(async (tx) => {
       // The SMS keeps its English words (KNOWN-GAPS §127); the email goes in the owner's language.
-      if (contact?.phone) await this.sms.queueLifecycleNotice(tx, contact.phone, words.en.body);
+      if (contact?.phone) {
+        await this.sms.queueLifecycleNotice(tx, contact.phone, words.en.body, tenantId);
+      }
       await this.notices.send(
         tx,
         tenantId,
@@ -792,7 +794,9 @@ export class LifecycleService {
       );
       const words = shopClosedWords(info.shopName, deletionDate);
       // The SMS keeps its English words (KNOWN-GAPS §127); the email goes in the owner's language.
-      if (contact?.phone) await this.sms.queueLifecycleNotice(tx, contact.phone, words.en.body);
+      if (contact?.phone) {
+        await this.sms.queueLifecycleNotice(tx, contact.phone, words.en.body, tenantId);
+      }
       await this.notices.send(
         tx,
         tenantId,

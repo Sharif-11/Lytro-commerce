@@ -85,6 +85,14 @@ overrule any of them when reviewing this plan.
 | D8-21 | **The request ID's form** (Slice 8.1's read, 2026-11-07). A seller may read one out over WhatsApp. | Eight characters in two halves, like `K7MQ-4XR2`, from letters and digits that can't be mistaken for each other (no 0 or O, no 1, I or L), made by Lytro for every request; one a client sends is never used. The dashboard's error message shows it (Slice 8.8). | Slices 8.1, 8.8 |
 | D8-22 | **Which errors are kept** (the read). | Server faults only: an unexpected fault (500) and a 503 when something Lytro depends on is down. A refusal (a bad field, a limit, a missing permission) is an answer the seller already sees explained, and isn't kept. A fault before the shop is known (signing in) is logged, not kept. | Slice 8.1 |
 | D8-23 | **What a kept error holds** (the read). A database's own text can hold a customer's phone or address. | The route's pattern (`/api/v1/orders/:id`), the method, the status, the error's kind (its class, with the database's own code when it has one, or a 503's message key) and the request ID. The message and stack go only to the server log, under the same ID. | Slice 8.1 |
+| D8-24 | **The owner's phone in the search** (Slice 8.2's read, 2026-11-08). An operator is often given part of a number, or one written with +880 and spaces. | A search typed as a Bangladeshi mobile number in any written form (+880, 880, spaces, dashes) matches that number; 6 to 10 digits match the end of one, so a few shops can match, and all of them are listed. It is the owner's sign-in phone, which each row shows. | Slice 8.2 |
+| D8-25 | **What the shop page loads** (the read). | It opens with each row's figure, and the lists behind them load when their card is opened. The errors count covers 24 hours (ADM-03); the failed SMS and failed courier calls cover 7 days, as long as errors are kept; each list reaches as far back as its own log does. | Slices 8.2, 8.8 |
+| D8-26 | **A failed courier call** (from D8-8 and MON-05). | A call in the shop's courier key log (SEC-11) that failed or that the courier refused, counted the moment it is logged. A call the courier's open circuit stops is never made, so it isn't counted (KNOWN-GAPS §133). | Slice 8.2 |
+| D8-27 | **The last sign-in** (the read). | The owner and each active staff member, with when each last opened a session in the shop, or never. Read from the sessions, which are revoked and never deleted, and matched by account, since a staff member's sign-in by code names no staff user on its session. | Slice 8.2 |
+| D8-28 | **Payments awaiting review** (the read). | The seller's payments to Lytro waiting in the operator's queue, counted with their total and listed as the queue lists them; and a count of the shop's customers' payments waiting for the seller, never their amounts or senders. | Slice 8.2 |
+| D8-29 | **The business summary** (from D8-8 and ADM-03). | The seller's own sales figures (STA-01) for any period the seller could choose, read by the same code, with revenue and counts and never cost or profit; and the orders counted by the status the seller's list shows them in. | Slice 8.2 |
+| D8-30 | **SMS that didn't go** (from D8-8). Lytro's outbox recorded no shop, and the shop's own log holds its customers' phones and the words sent them. | The shop's own SMS that failed or were blocked, each with its kind, outcome, reason, order number and time, never the customer's phone or the words. Lytro's own messages that failed for good: those naming the shop (shop ready, a lifecycle notice, a shopper's code), which now record it (migration 0121), and the sign-in codes sent to its team's phones, since a code names a person and is sent before any shop is chosen. Messages from before this slice name no shop, so only their codes are found. | Slice 8.2 |
+| D8-31 | **Usage on the shop page** (from D8-8). | Each limit's use as the seller's usage page reads it, by the same code, without the shop's suggestions or pack offers. | Slice 8.2 |
 
 ### 2.1 Points left to each slice's read
 
@@ -93,7 +101,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | Slice | To settle |
 |---|---|
 | 8.1 | Where the error rows live (a Lytro table keyed by shop, since the error filter runs outside the shop's transaction), what an error row may hold (never a body, a phone or a token), and which errors count: server faults only, or refusals too. **Settled in Slice 8.1's read (2026-11-07):** D8-21 to D8-23. |
-| 8.2 | What the owner's phone search matches (any written form, the last digits), and what the shop page loads at once against what it loads when opened. |
+| 8.2 | What the owner's phone search matches (any written form, the last digits), and what the shop page loads at once against what it loads when opened. **Settled in Slice 8.2's read (2026-11-08):** D8-24 to D8-31. |
 | 8.3 | Whether a trial can be extended (D8-12), the most days at once, how the owner's new phone is checked before the code goes, and whether deleting a shop's data needs it suspended first. |
 | 8.4 | The nightly job's time and what it records, how far back the reports reach, and how a CSV is named. |
 | 8.5 | Where evidence is kept and for how long, what a reversal of a plan purchase undoes, and the digest's time. |
@@ -221,6 +229,12 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
 - **Depends on:** 8.1.
 - **Delivers:** the shop list's search, filters and sorts (ADM-02, D8-7); the shop page's rows (ADM-03, D8-8), each read
   through its own module.
+- **Built** (read agreed 2026-11-08, D8-24 to D8-31): `GET /operator/tenants` takes `query`, `state`, `planId` and
+  `sort` (newest, name, period end), each sort paging on its own keyset, and each row carries the owner's phone. The
+  shop page opens with `GET /operator/tenants/:id/figures`; behind it, `errors`, `failed-sms`, `payments-waiting`,
+  `sales` and the courier key log's `failed=true`. Every figure is read by the module that owns it, with the shop's
+  own id: the shop's own tables inside its row-level security, as the seller's reads are, and Lytro's tables by that
+  id. Lytro's outbox gains the shop a message is for (migration 0121). What it leaves is in KNOWN-GAPS §133.
 
 ### Slice 8.3: acting on a shop
 - **Depends on:** 8.0.

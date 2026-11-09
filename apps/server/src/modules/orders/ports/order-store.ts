@@ -218,6 +218,8 @@ export interface OrderStore {
     tenantId: string,
     at: { now: Date; todayStart: Date; yesterdayStart: Date },
   ): Promise<OrderHomeCounts>;
+  /** ADM-03: the shop's orders counted by their visible status; a status with none is left out. */
+  countByStatus(tx: Transaction, tenantId: string): Promise<{ status: string; count: number }[]>;
   listForExport(
     tx: Transaction,
     tenantId: string,

@@ -350,6 +350,10 @@ export class DrizzleOrderStore implements OrderStore {
     return this.orders.homeCounts(tx, tenantId, at);
   }
 
+  countByStatus(tx: Transaction, tenantId: string): Promise<{ status: string; count: number }[]> {
+    return this.orders.countByStatus(tx, tenantId);
+  }
+
   listForExport(
     tx: Transaction,
     tenantId: string,

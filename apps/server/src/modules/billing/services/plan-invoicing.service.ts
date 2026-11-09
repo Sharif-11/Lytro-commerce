@@ -130,7 +130,9 @@ export class PlanInvoicingService {
       amount: invoice.amount,
     });
     // The SMS keeps its English words (KNOWN-GAPS §127); the email goes in the owner's language.
-    if (owner?.phone) await this.sms.queueLifecycleNotice(tx, owner.phone, words.en.body);
+    if (owner?.phone) {
+      await this.sms.queueLifecycleNotice(tx, owner.phone, words.en.body, payment.tenantId);
+    }
     await this.notices.send(
       tx,
       payment.tenantId,

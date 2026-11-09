@@ -2312,3 +2312,25 @@ Slice 7.7 built the dashboard's and the console's Phase 7 screens to the sketch 
   until it lands.
 - **Who sees what on the rule page.** The cost card shows only to people who can read the balance. Steadfast's
   "Connected" tag shows only to people who can read the shop's couriers.
+
+## 133. `ADM-02`, `ADM-03`, `D8-24` to `D8-31`: what the operator's shop list and shop page leave open — found 2026-11-08, open
+
+Phase 8 Slice 8.2 built the list's search, filters and sorts and the page's figures (PHASE-8-PLAN, Slice 8.2). These stay:
+
+- **A courier call its open circuit stopped isn't counted (`D8-26`).** After five failures a courier account's circuit
+  opens and Lytro stops calling for a while. Those calls are never made, so the key log has no line for them and the
+  page's failed calls stop rising while the seller is still being refused. The circuit's opening is only in the server
+  log until its alert comes (§130, `PRF-05`).
+- **Lytro's messages from before this slice name no shop (`D8-30`).** Shop ready, lifecycle notices and shoppers' codes
+  sent before migration 0121 aren't linked, so the page doesn't count them; only the sign-in codes among them are found,
+  by phone.
+- **Sign-in codes are found by today's team.** A code is matched to the shop by the phones of its owner and active
+  staff. A code sent to a phone since changed, or to a staff member since removed, isn't found; one sent to a person who
+  is staff in one shop and owns another counts in both.
+- **The failed SMS lists aren't bounded by the week.** The counts cover 7 days; each list goes back as far as its log,
+  newest first, a page at a time, so the two can disagree once older failures are listed.
+- **The searches read every shop.** A name or address search, the owner's-phone ending and the name and period-end
+  sorts have no index of their own, so each reads the whole shop list. That is fine for the shops Lytro has at launch;
+  a trigram index on names and one on the reversed phone would be needed past tens of thousands.
+- **Still the next release's (`D8-1`):** ADM-03's failed webhooks and open tickets, which need the shop API and support
+  tickets.

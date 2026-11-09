@@ -64,7 +64,12 @@ export class TenantService {
       email: request.ownerEmail,
       name: request.ownerName,
     });
-    const ready = await this.messaging.queueShopReady(tx, request.ownerPhone, request.liveUrl);
+    const ready = await this.messaging.queueShopReady(
+      tx,
+      request.ownerPhone,
+      request.liveUrl,
+      tenantId,
+    );
     return { tenantId, messages: [ready] };
   }
 
