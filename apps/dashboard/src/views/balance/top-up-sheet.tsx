@@ -1,34 +1,31 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { RateKey } from '@lytronix/validators';
+import { PlanPaymentPageFrom, RateKey } from '@lytronix/validators';
 import { formatTaka } from '@lytronix/ui';
-import { useConfirmTopUp, useQuoteTopUp } from '@/api/balance';
-import { usePlatformWallets } from '@/api/billing';
+import { useQuoteTopUp } from '@/api/balance';
+import { useOpenPaymentPage, usePlatformWallets } from '@/api/billing';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { chipClass } from '@/components/ui/classes';
 import { Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { WalletMarks } from '@/components/wallet-marks';
-import { WalletStep } from '@/components/wallet-step';
 import { useErrorText } from '@/hooks/use-error-text';
-import { walletNames } from '@/lib/wallet-marks';
 import type { RateValue } from '@/types/balance';
-import type { PlanPayment } from '@/types/billing';
 
 // The quick amounts the sketch offers, and the one it opens on.
 const QUICK = [200, 500, 1000, 2000];
 const OPENS_ON = 500;
 
-/** The sheet's two steps (the prototype's `.steps`): the amount, then the wallet. */
-function Steps({ at, wallets }: { at: 0 | 1; wallets: string }): React.JSX.Element {
+/** The sheet's two steps (the prototype's `.steps`): the amount here, then the payment page. */
+function Steps(): React.JSX.Element {
   const { t } = useTranslation('money');
   const dot = (on: boolean) => (
     <i className={`inline-block size-2 rounded-full ${on ? 'bg-primary' : 'bg-neutral-300'}`} />
   );
   return (
     <div className="flex items-center gap-2 text-[13px] text-fg-muted">
-      {dot(at === 0)} {t('amount')} {dot(at === 1)} {wallets}
+      {dot(true)} {t('amount')} {dot(false)} {t('psPage')}
     </div>
   );
 }
@@ -38,51 +35,24 @@ interface TopUpSheetProps {
   bounds: { min: number; max: number };
   rates: RateValue[] | undefined;
   onClose: () => void;
-  onDone: (message: string) => void;
 }
 
 /**
  * Top up (TENANT-DASHBOARD-DESIGN §7.11, BAL-03, BAL-04): the amount, with the quick amounts, what it buys in SMS at
- * today's rate and the platform's bounds; Continue makes the request with that amount (BIL-09) and the platform's
- * wallet step follows in the sheet, until Phase 5's page. The banner on Balance then says it is being checked.
+ * today's rate and the platform's bounds; Continue makes the request with that amount (BIL-09) and opens the payment page
+ * (§7.19). The banner on Balance then says it is being checked.
  */
-export function TopUpSheet({ bounds, rates, onClose, onDone }: TopUpSheetProps): React.JSX.Element {
-  const { t, i18n } = useTranslation('money');
+export function TopUpSheet({ bounds, rates, onClose }: TopUpSheetProps): React.JSX.Element {
+  const { t } = useTranslation('money');
   const errorText = useErrorText();
   const wallets = usePlatformWallets();
   const quote = useQuoteTopUp();
-  const confirm = useConfirmTopUp();
+  const openPage = useOpenPaymentPage();
   const [amount, setAmount] = useState(String(OPENS_ON));
-  const [opened, setOpened] = useState<PlanPayment | null>(null);
-  const names = walletNames(wallets.data ?? [], i18n.language);
   const value = Number(amount.replace(/[^\d]/g, ''));
   const fits = value >= bounds.min && value <= bounds.max;
   const smsRate = Number(rates?.find((rate) => rate.key === RateKey.SmsPerUnit)?.value ?? 0);
   const title = t('topupTitle');
-
-  if (opened) {
-    return (
-      <Sheet open title={title} onClose={onClose}>
-        <Steps at={1} wallets={names} />
-        <WalletStep
-          amount={opened.amount}
-          wallets={wallets.data}
-          pending={confirm.isPending}
-          error={confirm.isError ? errorText(confirm.error) : null}
-          onSubmit={(values) => {
-            confirm.mutate(
-              { paymentId: opened.id, ...values },
-              {
-                onSuccess: () => {
-                  onDone(t('sentForCheck'));
-                },
-              },
-            );
-          }}
-        />
-      </Sheet>
-    );
-  }
 
   return (
     <Sheet
@@ -93,16 +63,27 @@ export function TopUpSheet({ bounds, rates, onClose, onDone }: TopUpSheetProps):
         <Button
           tone="accent"
           disabled={!fits}
-          busy={quote.isPending}
+          busy={quote.isPending || openPage.isPending || openPage.isSuccess}
           onClick={() => {
-            quote.mutate({ amount: value }, { onSuccess: setOpened });
+            quote.mutate(
+              { amount: value },
+              {
+                onSuccess: (request) => {
+                  openPage.mutate({
+                    paymentId: request.id,
+                    topUp: true,
+                    from: PlanPaymentPageFrom.Balance,
+                  });
+                },
+              },
+            );
           }}
         >
-          {t('continueAmount', { amount: formatTaka(value) })}
+          {t('goToPage', { amount: formatTaka(value) })}
         </Button>
       }
     >
-      <Steps at={0} wallets={names} />
+      <Steps />
       <Field
         label={t('amount')}
         prefix="৳"
@@ -134,8 +115,9 @@ export function TopUpSheet({ bounds, rates, onClose, onDone }: TopUpSheetProps):
         </p>
       ) : null}
       <WalletMarks wallets={wallets.data ?? []} />
-      <p className="text-[14px] text-fg-muted">{t('tuNoteWallet', { wallets: names })}</p>
+      <p className="text-[14px] text-fg-muted">{t('tuNotePage')}</p>
       {quote.isError ? <Banner tone="bad">{errorText(quote.error)}</Banner> : null}
+      {openPage.isError ? <Banner tone="bad">{errorText(openPage.error)}</Banner> : null}
     </Sheet>
   );
 }

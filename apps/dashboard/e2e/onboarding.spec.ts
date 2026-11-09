@@ -199,24 +199,16 @@ test('walks a new owner from the website to Home: code, shop, checkout, password
   await expect(page.getByText('৳4,741').first()).toBeVisible();
   // The payment request is made on Continue, with the amount shown, never for each chip (BIL-09).
   expect(log.calls.some((call) => call.path === '/billing/quote')).toBe(false);
-  await page.getByRole('button', { name: 'কন্টিনিউ করুন · ৳4,741' }).click();
-  await expect(page.getByText('01700 000 000')).toBeVisible();
+  await page.getByRole('button', { name: 'পেমেন্ট পেজে যান · ৳4,741' }).click();
+  await expect(page).toHaveURL('https://pay.example.test/checkout-ref');
   expect(log.sent('POST', '/billing/quote')).toEqual({
     planId: STARTER,
     billingTermId: TWELVE_MONTHS,
     amount: 4741,
   });
-  await page.getByLabel('ট্রানজ্যাকশন আইডি (TrxID)').fill('9F2KQ7X1');
-  await page.getByLabel('যে নম্বর থেকে পাঠিয়েছেন').fill('1811223344');
-  await page.getByRole('button', { name: 'পেমেন্ট জমা দিন' }).click();
-  await expect(page.getByText('পেমেন্ট জমা হয়েছে।', { exact: false })).toBeVisible();
-  expect(log.sent('POST', '/billing/purchase')).toEqual({
-    paymentId: 'payment-1',
-    method: 'wallet',
-    transactionId: '9F2KQ7X1',
-    senderNumber: '+8801811223344',
-    amountPaid: 4741,
-  });
+  // Back from the payment page, paid, the plan is on and the next step follows.
+  await page.goto('/checkout?session_id=p&status=verified');
+  await expect(page.getByText('আপনার প্ল্যান চালু হয়েছে।')).toBeVisible();
   await page.getByRole('button', { name: 'এগিয়ে যান' }).click();
 
   await expect(page).toHaveURL('/set-password?required=false');

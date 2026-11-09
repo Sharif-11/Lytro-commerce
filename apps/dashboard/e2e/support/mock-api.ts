@@ -618,6 +618,10 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
   await startIn(page, state.language);
   // The add-on request a purchase pays for (Slice 11.5c).
   let quoted: { key: string; quantity: number; amount: string; renews: boolean } | null = null;
+  // The payment page is another site: the browser goes there, and the test stops at its door.
+  await page.route('https://pay.example.test/**', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: '<p>payment page</p>' }),
+  );
   await page.route('**/api/v1/**', async (route: Route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -677,6 +681,10 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       );
     }
     if (method === 'POST' && path === '/balance/top-up/confirm') return ok({ ok: true });
+    const toPage = /^\/(?:billing\/payments|balance\/top-up)\/([^/]+)\/page$/.exec(path);
+    if (method === 'POST' && toPage) {
+      return ok({ url: `https://pay.example.test/${toPage[1] ?? ''}` });
+    }
     const cancelled = /^\/(?:billing\/payments|balance\/top-up)\/([^/]+)\/cancel$/.exec(path);
     if (method === 'POST' && cancelled) {
       // BIL-19: the list read after it shows the request cancelled by the shop.

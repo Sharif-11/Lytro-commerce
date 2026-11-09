@@ -28,7 +28,7 @@ import { TopUpSheet } from './top-up-sheet';
 export function BalanceView({ openTopUp }: { openTopUp: boolean }): React.JSX.Element {
   const { t } = useTranslation('money');
   const errorText = useErrorText();
-  const { tenant, viewer, slug, showToast } = useShell();
+  const { tenant, viewer, slug } = useShell();
   const suspended = tenant.suspended;
   const canTopUp = allows(viewer, [Permission.BalanceManage]);
   const canSeePayments = allows(viewer, [Permission.PaymentsRead]);
@@ -52,10 +52,6 @@ export function BalanceView({ openTopUp }: { openTopUp: boolean }): React.JSX.El
         rates={rates.data}
         onClose={() => {
           setTopUp(false);
-        }}
-        onDone={(message) => {
-          setTopUp(false);
-          showToast(message);
         }}
       />
     ) : null;

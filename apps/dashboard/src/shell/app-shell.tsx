@@ -199,6 +199,14 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
   // §9: a deep link to a section this person may not open lands on Home, with a word on why.
   const allowed = screen ? mayOpen(screen, viewer) : true;
   const showToast = toast.show;
+  // PAYMENT-PAGE-DESIGN §8: back from the payment page. What it says proves nothing; the screens read the truth, and this only says thanks.
+  useEffect(() => {
+    const address = new URL(window.location.href);
+    if (!address.searchParams.has('session_id')) return;
+    if (address.searchParams.get('status') === 'verified') showToast(t('paidOnPage'));
+    for (const name of ['session_id', 'status', 'tracking_id']) address.searchParams.delete(name);
+    window.history.replaceState(window.history.state, '', address.toString());
+  }, [showToast, t]);
   useEffect(() => {
     if (allowed) return;
     showToast(t('noAccess'));

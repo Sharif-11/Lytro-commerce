@@ -124,7 +124,7 @@ test('pays by wallet when the balance is short, and then says the payment is bei
     'aria-disabled',
     'true',
   );
-  await expect(sheet(page).getByRole('radio', { name: /^By bKash or Nagad/ })).toHaveAttribute(
+  await expect(sheet(page).getByRole('radio', { name: /^On the payment page/ })).toHaveAttribute(
     'aria-checked',
     'true',
   );
@@ -132,24 +132,9 @@ test('pays by wallet when the balance is short, and then says the payment is bei
     'this needs ৳99. Top up, or pay by bKash or Nagad.',
   );
   await sheet(page).getByRole('switch', { name: 'Renew with the plan' }).click();
-  await sheet(page).getByRole('button', { name: 'Continue · ৳99' }).click();
+  await sheet(page).getByRole('button', { name: 'Go to the payment page · ৳99' }).click();
+  await expect(page).toHaveURL(/^https:\/\/pay\.example\.test\//);
   expect(log.sent('POST', '/addons/quote')).toMatchObject({ amount: 99, renews: false });
-  await sheet(page).getByLabel(/TrxID/).fill('5KD9QW11');
-  await sheet(page).getByLabel('Number you sent from').fill('1711000231');
-  await sheet(page).getByRole('button', { name: 'Submit the payment' }).click();
-  await expect(
-    page.getByRole('status').filter({ hasText: 'The add-on turns on once it is checked' }),
-  ).toBeVisible();
-  expect(log.sent('POST', '/addons/purchase')).toMatchObject({
-    method: 'wallet',
-    transactionId: '5KD9QW11',
-  });
-  await expect(
-    main(page)
-      .getByRole('status')
-      .filter({ hasText: 'Your ৳99 payment for "Extra 500 products" is being checked.' }),
-  ).toBeVisible();
-  await expect(row(page, 'Extra 500 products')).toContainText('Being checked');
 });
 
 test('turns renewal off after saying what happens, and on again from the ending banner', async ({
