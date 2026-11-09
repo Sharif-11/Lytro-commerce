@@ -2328,3 +2328,17 @@ Phase 8 Slice 8.2 built the list's search, filters and sorts and the page's figu
   a trigram index on names and one on the reversed phone would be needed past tens of thousands.
 - **Still the next release's (`D8-1`):** ADM-03's failed webhooks and open tickets, which need the shop API and support
   tickets.
+
+## 136. Phase 7: what its close-out left open — found 2026-11-09, open
+
+The close-out (PHASE-7-PLAN §11) fixed what its three reviews found, apart from these.
+
+- **A crash can still charge for an SMS twice or for one that never went (§124).** An order SMS is charged, sent and logged as three steps. A one-time code has the same window: the charge commits, then the send happens outside the transaction, so a server that stops during the send leaves the charge or the used allowance behind and nothing gives it back. Each is at most one SMS's price, and needs a server to stop at that moment. A provider that merely fails is safe: each event is now its own job, so a retry can't send again one that already went. Closing it means writing the job's progress with the charge.
+- **A code that fails, then goes out on its retry, is free and logged as failed (§122).** The shop isn't overcharged; Lytro bears it.
+- **The monthly spend cap with more than one server.** `SmsEventSender` reads what's been spent from the log, which is written after the send. One server sends one job at a time; with two, jobs running together can each pass the check and overrun the cap by what was in flight.
+- **SMS-11's two missing limits.** Owner and staff codes have a limit per phone and per address, but none per shop. Shopper codes have one per phone and per shop (30 an hour), but none per address.
+- **An archived shop doesn't show an urgent notice its owner closed before the shop was archived.** The renew page reads the same banners as the dashboard, which leave out a closed one.
+- **Stop on one shop ends push on this browser for every shop.** Each shop's card now says correctly whether it's on there, but turning it off unsubscribes the browser itself, so another shop's push stops at its next try.
+- **A session that ends without signing out** keeps its browser subscribed until someone turns it off or the browser refuses a push. Sign-out removes it.
+- **PLN-20's allowance renewal** is §131. The day-60 deletion leaving `sms_log`, `sms_settings`, `fraud_checks`, `fraud_rules` and `order_extractions` behind is fixed by Slice 8.3.
+- **What only the real world shows** is criterion 9, in PHASE-7-PLAN §11's checklists: a real SMS, email, push and Gemini read, and the update prompt across two deployments (NTF-07, whose asking is tested but whose prompt isn't driven in a browser).

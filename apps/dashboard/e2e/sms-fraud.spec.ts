@@ -63,7 +63,7 @@ test.describe('SMS settings', () => {
     await box.fill('Thanks! Order [Order number] is in, total ৳[Amount].');
     await expect(words).toContainText('Thanks! Order 261106-0017 is in, total ৳1,250.');
     await expect(words).toContainText('· 1 part ·');
-    await box.fill(`Order [Order number]. ${'A longer message than fits in one part. '.repeat(5)}`);
+    await box.fill(`Order [Order number]. ${'A longer message than fits in one part. '.repeat(2)}`);
     await expect(words).toContainText('· 2 parts ·');
     await box.fill('Thanks! Order [Order number] is in, total ৳[Amount].');
     await words.getByRole('button', { name: 'Save' }).click();

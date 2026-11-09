@@ -522,11 +522,8 @@ export class LifecycleService {
   }
 
   /**
-   * BIL-14: email (and the in-app banner, computed client-side from `/me`'s own `periodEnd` -- no backend
-   * state) only, never SMS -- the requirement's own explicit carve-out, unlike `sendNotice` below which
-   * every other lifecycle notice uses and which does send SMS. Push has no provider in this codebase at
-   * all yet (the same already-acknowledged gap PYG-21's own day-23 warning has); deferred, not silently
-   * dropped.
+   * BIL-14: email, the bell and push, and never SMS -- the requirement's own explicit carve-out, unlike
+   * `sendNotice` below which every other lifecycle notice uses and which does send SMS.
    */
   private async sendRenewalReminderNotice(
     tenantId: string,

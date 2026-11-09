@@ -261,6 +261,16 @@ describeIfDatabase(
 );
 
 describeIfDatabase('Home in one read (TENANT-DASHBOARD-DESIGN §7.1, SUP-01, STF-11)', () => {
+  it('SUP-01: the SMS events item ticks once the shop has chosen any', async () => {
+    const shop = await openShop(port, texts, 'smsitem');
+    const chosen = async (): Promise<unknown> =>
+      ((await shop.get('/home')).body as { checklist: { smsEvents: unknown } }).checklist.smsEvents;
+    expect(await chosen()).toBe(false);
+    const saved = await shop.patch('/sms/settings', { events: { order_delivered: true } });
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+    expect(await chosen()).toBe(true);
+  });
+
   it("counts the owner's jobs and ticks the checklist", async () => {
     const shop = await openShop(port, texts, 'home');
     // Two in stock, low, out (thresholds 5), one inactive low, one archived; a batch expiring in 10 days, and an

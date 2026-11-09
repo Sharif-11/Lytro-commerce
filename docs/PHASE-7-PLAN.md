@@ -443,6 +443,70 @@ Same as Phase 6:
 
 ---
 
+## 11. Close-out check (2026-11-09)
+
+Checked after Slice 7.7 merged (#329), against §1's ten criteria. Every slice is built. Three reviews read each of §3's 70 requirements against the tests and the code behind them, looking for the assertion and not for a test that names the ID. What they found was fixed in this check's own pull request, which holds the fixes, the tests, this section and the SRS's amendments.
+
+1. **Every completed requirement has a test or a recorded manual check: holds, with the exceptions below.**
+   - **Fixed by this check:**
+     - SMS-01, SMS-08: an order's two SMS were one job, so when the second failed for a moment the whole job ran again, and the first went out and was charged again, up to four times. Each event is now its own job.
+     - SMS-11, SMS-04: requests for a code arriving together all passed the cooldown and the caps, each sent and charged, and two people could both take a shop's last free SMS. They now wait their turn. Shopper codes likewise.
+     - A relay that stopped after handing a job to the queue and before marking it sent would hand it over again. The job's ID now comes from its outbox row, so there is one job. The key `SmsEventQueue` passed did nothing on a standard queue, and is gone.
+     - SMS-10: `{ amount }` written with spaces was texted as typed; anything in braces is now checked. The sample's link now uses the shop's own domain, as the SMS does.
+     - PRF-05: a call from before a circuit opened could close it again, and failures that overlapped counted as one. Fraud checks shared a courier's circuit with its bookings, so failing checks could stop bookings; they have their own.
+     - PRF-05, carried in from Phase 6: an opened courier circuit now emails the operators, once an hour for each courier.
+     - NTF-02: a push outage counted against every browser until it was removed; only the push service's own refusal does now. Sign-out now stops that browser's pushes, and the card asks the server whether the browser is subscribed for the person looking, in this shop. Each notification has its own tag, so a second new order no longer silently replaces the first on the phone.
+     - NTF-06: a bounced address told the owner again for each report. NTF-07: nothing asked for a new version without a page load; the dashboard now asks every 30 minutes and when the tab comes back.
+     - NTC-08: a withdrawn notice stayed in the bell with its words for up to 30 days, and one withdrawn while going out kept going. It now leaves the bell and its badge at once, a push still waiting doesn't go, and the shops not yet reached hear nothing. NTC-07: a locked or suspended shop's staff are no longer told of a notice they can't open.
+     - FRD-03, D7-46: a free own-orders check was refused on a short balance, and a shop that disconnected Steadfast went on seeing its last answer for three days. ORD-33: a read refused for money used up the minute's reads.
+     - LIF-18: the warning now states the deletion date, and a late run gives the days really left. SUP-01: the setup checklist's SMS item was still greyed as coming in Phase 7; it opens the settings and ticks once events are chosen. TRL-05's banner still told a trial shop the rule from before D7-23.
+   - **Amended, the requirement and what was built having parted:** TRL-05 (D7-23), FRD-06 and FRD-11 (their pass lines named levels and an aggregator that D7-48 and D7-5 removed), NTC-14 (the status page is later, D7-55), API-11 (no route sends an SMS on request), and criterion 2's −5 TK (D7-23).
+   - **Tested by this check, built but asserted nowhere:** FRD-03's charge for a reused answer, FRD-05 through the real worker, I18N-03 with an edited template, NTC-10's other routes and a person without the permission, NTC-19 at 360 px, NTF-02's card in a browser, NTF-03, NTF-05 and BIL-14's bell, push and unchanged ledger, ORD-30 saving nothing, SMS-04 and LIF-18's unchanged counter, SMS-09's unit size, SMS-10's longer name, SMS-12's 30-day estimate, SMS-15's charge on a trial, SMS-18's one copy, SMS-19's parts and reset, and Resend's and Web Push's circuits.
+   - **Not built, open in KNOWN-GAPS:** §136, and §131's allowance renewal, which has its own pull request.
+2. **An SMS is charged once, and never for nothing: holds, except if a server stops mid-send.** A provider failing can no longer charge twice, and requests together count each other (`sms-events`, `sms-charged-once`, `queue`). What remains needs a server to stop between the charge and the send's answer, at most one SMS's price each time: §124, and §136 for codes. A code that goes out on its retry is free (§122).
+3. **The golden path: holds.** `test/phase-7-golden-path.e2e.spec.ts` walks a shopper's order from placed to delivered, and after each step checks the SMS sent against the log, the log against the ledger, the balance against the ledger, and each bell row against its push. Five deliberate breaks were each caught.
+4. **Notifications reach the right people only: holds** (`notifications`, `notices`, `lifecycle`), now including sign-out and a shop its staff can't open.
+5. **Notices reach their audience: holds** (`notices`).
+6. **A fraud check never blocks an order: holds** (`fraud-checks`), now through the real worker, with a disconnected Steadfast saying so.
+7. **Reading an order saves nothing by itself: holds** (`address-reads`), now asserted.
+8. **Every outside call sits behind the breaker: holds** (`circuit-breaker`, `courier-calls`, `sms-real`, `email`, `notifications`, `address-reads`).
+9. **The milestone: waits for the owner's accounts.** The checklists are below.
+10. **CI and the pull-request flow: holds.** Every slice went through a pull request; this check's own run is recorded on its pull request.
+
+The fixes were each proven by a deliberate break of what they fixed: 39 in all, each caught and undone.
+
+### Criterion 9: what to do, and what to record
+
+Each needs a real account, so each is the owner's. Keep every key in a file outside every repository. The development server only sends for real with its `*_FORCE_REAL` setting on.
+
+**The development database first.** It is at migration 0103, and these need the tables since. Migrate it once, then the rest can follow in any order.
+
+**One real SMS (checkpoint 7A).**
+1. In `apps/server/.env` set `SMS_FORCE_REAL=true`, `BULKSMSBD_API_KEY` and `BULKSMSBD_SENDER_ID`.
+2. Start the server and ask for a sign-in code to your own phone. It arrives.
+3. On a shop with a balance, place an order with your phone as the customer. The "order placed" SMS arrives in Bangla, the shop's SMS name first.
+4. Record: the date, the SMS log's row (sent), and the one charge in the shop's balance history.
+
+**One real email.**
+1. In Resend, verify `mail.lytro.app` (the DNS records it lists).
+2. Set `EMAIL_FORCE_REAL=true`, `RESEND_API_KEY` and `RESEND_WEBHOOK_SECRET`, and point Resend's webhook at `/api/v1/webhooks/email/resend`.
+3. Add your email on the Account page, so a code goes out.
+4. Record: the date and that it arrived, not in spam.
+
+**One real push.**
+1. Run `npx web-push generate-vapid-keys` once, and keep the pair forever: changing it ends every browser's subscription.
+2. Set `PUSH_FORCE_REAL=true`, `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`. Push needs https, so this is on a deployment or a tunnel.
+3. On the phone, open Settings, Notifications, Turn on push, then Send a test. On an iPhone, add Lytro to the Home Screen first.
+4. Record: the date, the phone, and that a new order's push opened that order.
+
+**One real read of a pasted Bangla order.**
+1. Turn billing on for the Gemini key's Google project (§125; on the free tier Google may read what it's sent).
+2. Set `GEMINI_API_KEY`.
+3. On New order, paste a real customer's message with the name and number changed.
+4. Record: the date and which fields it got right. §125 asks for a set of real messages before launch.
+
+**The update prompt (NTF-07).** After two deployments, with the dashboard left open on the first, the prompt appears without a reload, within 30 minutes or on coming back to the tab. Record the date.
+
 ## Appendix A: what the providers' pages say
 
 Nothing here has been tried. Each slice's read tries it before building on it.

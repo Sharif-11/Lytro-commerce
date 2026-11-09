@@ -19,7 +19,9 @@ import { dhakaTime } from '../src/common/i18n/dates';
 import { NOTICE_TEMPLATES, noticeBellText, noticeIn } from '../src/modules/notices/notice-words';
 import type { NoticeStore } from '../src/modules/notices/ports/notice-store';
 import { NoticePublisher } from '../src/modules/notices/services/notice-publisher';
+import type { NotificationStore } from '../src/modules/notifications/ports/notification-store';
 import { PushSender } from '../src/modules/notifications/services/push-sender';
+import { NOTIFICATION_STORE } from '../src/modules/notifications/tokens';
 import { NOTICE_STORE } from '../src/modules/notices/tokens';
 import { MAIL_PROVIDER } from '../src/modules/shared/mail/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
@@ -675,10 +677,13 @@ describeIfDatabase('the notice board over the real stack', () => {
     };
     expect(after.unread).toBe(before.unread);
     expect(after.items.some((item) => item.link === `/notices/${id}`)).toBe(false);
+    const lookedUp = vi.spyOn(app.get<NotificationStore>(NOTIFICATION_STORE), 'subscriptionsOf');
     const pushed = await app
       .get(PushSender)
       .send({ tenantId: shop.tenantId, notificationId: rows[0]?.id as string });
     expect(pushed).toEqual({ sent: 0, gone: 0, failed: 0 });
+    expect(lookedUp).not.toHaveBeenCalled();
+    lookedUp.mockRestore();
   });
 
   it('NTC-08: withdrawn while it is going out, the shops not yet reached hear nothing', async () => {

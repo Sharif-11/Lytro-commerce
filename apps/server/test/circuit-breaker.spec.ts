@@ -107,7 +107,7 @@ describe('the circuit breaker (PRF-05)', () => {
   });
 
   it('a call from before the circuit opened neither closes nor extends it (Phase 7 close-out)', async () => {
-    const { breaker, failing, working, attempts } = setUp();
+    const { breaker, failing, working, attempts, later } = setUp();
     let failLate: (reason: Error) => void = () => undefined;
     const late = breaker
       .call(
@@ -129,6 +129,7 @@ describe('the circuit breaker (PRF-05)', () => {
     for (let index = 0; index < BREAKER_FAILURES; index += 1) {
       await expect(breaker.call('p', failing)).rejects.toThrow('away');
     }
+    later(BREAKER_OPEN_MS / 2);
     failLate(new Error('away, late'));
     await late;
     succeedLate('ok');
@@ -136,6 +137,9 @@ describe('the circuit breaker (PRF-05)', () => {
     const before = attempts();
     await expect(breaker.call('p', working)).rejects.toBeInstanceOf(CircuitOpen);
     expect(attempts()).toBe(before);
+    // Its minute still runs from when it opened.
+    later(BREAKER_OPEN_MS / 2);
+    await expect(breaker.call('p', working)).resolves.toBe('ok');
   });
 
   it('lets only one trial out at a time', async () => {
