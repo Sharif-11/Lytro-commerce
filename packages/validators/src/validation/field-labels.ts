@@ -202,6 +202,8 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   mediaId: { en: 'Photo', bn: 'ছবি' },
   mediaIds: { en: 'Photos', bn: 'ছবি' },
   metaPixelId: { en: 'Meta Pixel ID', bn: 'মেটা পিক্সেল আইডি' },
+  // ADM-09 (Phase 8 Slice 8.4): what the top-consumers report ranks shops by.
+  metric: { en: 'What to rank by', bn: 'কীসের হিসাবে সাজাবেন' },
   minAmount: { en: 'Smallest COD amount', bn: 'সর্বনিম্ন COD অ্যামাউন্ট' },
   minSelect: { en: 'Fewest to choose', bn: 'সর্বনিম্ন বাছাই' },
   missingSerials: { en: 'Missing serial numbers', bn: 'মিসিং সিরিয়াল নম্বর' },

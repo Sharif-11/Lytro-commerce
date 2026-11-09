@@ -848,6 +848,13 @@
       "when": 1794153673850,
       "tag": "0121_sms_outbox_shop",
       "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1794221915827,
+      "tag": "0122_shop_days",
+      "breakpoints": true
     }
   ]
 }

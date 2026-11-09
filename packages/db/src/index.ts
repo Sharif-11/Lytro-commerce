@@ -134,6 +134,16 @@ export {
   type RequestErrorRow,
 } from './repositories/platform/request-error.repository';
 export {
+  ShopDayRepository,
+  type ShopDayRow,
+  type ShopFigure,
+} from './repositories/platform/shop-day.repository';
+export {
+  ReportsRepository,
+  type ReportShopRow,
+  type ShopCountRow,
+} from './repositories/platform/reports.repository';
+export {
   BalanceLedgerRepository,
   type LedgerFilters,
   type LedgerCursor,
@@ -444,5 +454,9 @@ export {
   type PlatformOptionSetPatch,
 } from './repositories/catalogue/platform-library.repository';
 export type { TenantOperatorFactsRow } from './repositories/tenancy/tenant.repository';
-export type { RecentAuditEntryRow } from './repositories/platform/platform-audit-log.repository';
+export type {
+  AuditListFilters,
+  AuditListRow,
+  RecentAuditEntryRow,
+} from './repositories/platform/platform-audit-log.repository';
 export type { QueuedPlanPaymentRow } from './repositories/billing/plan-payments.repository';

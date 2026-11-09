@@ -154,6 +154,7 @@ function build(state: World) {
     },
     latest: () => Promise.resolve(null),
     recent: () => Promise.resolve([]),
+    list: () => Promise.resolve([]),
   };
   const service = new OperatorAuthService(
     gateway,

@@ -81,6 +81,8 @@ import { OperatorCourierRetiringController } from './controllers/operator-courie
 import { OperatorCouriersController } from './controllers/operator-couriers.controller';
 import { AddressReadsModule } from '../address-reads/address-reads.module';
 import { FraudChecksModule } from '../fraud-checks/fraud-checks.module';
+import { ReportsModule } from '../reports/reports.module';
+import { OperatorReportsController } from './controllers/operator-reports.controller';
 import { CouriersModule } from '../couriers/couriers.module';
 import { CustomersController } from './controllers/customers.controller';
 import { SalesController } from './controllers/sales.controller';
@@ -167,6 +169,7 @@ import { NoticesModule } from '../notices/notices.module';
     ListenerReceiptsModule,
     AddressReadsModule,
     FraudChecksModule,
+    ReportsModule,
     LytroReceiptsModule,
     DomainsModule,
   ],
@@ -181,6 +184,7 @@ import { NoticesModule } from '../notices/notices.module';
     OperatorTenantLifecycleController,
     OperatorShopReadsController,
     OperatorRecentChangesController,
+    OperatorReportsController,
     OperatorPaymentPagesController,
     PaymentsController,
     ListenerController,

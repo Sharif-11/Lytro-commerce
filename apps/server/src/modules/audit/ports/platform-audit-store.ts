@@ -1,4 +1,10 @@
-import type { NewPlatformAuditEntry, RecentAuditEntryRow, Transaction } from '@lytronix/db';
+import type {
+  AuditListFilters,
+  AuditListRow,
+  NewPlatformAuditEntry,
+  RecentAuditEntryRow,
+  Transaction,
+} from '@lytronix/db';
 import type { PlatformAuditAction } from '@lytronix/validators';
 
 /** control.platform_audit_log. Platform-wide, no tenant context — implemented in database/adapters. */
@@ -8,4 +14,6 @@ export interface PlatformAuditStore {
   insertWithin(tx: Transaction, entry: NewPlatformAuditEntry): Promise<void>;
   latest(action: PlatformAuditAction, targetId: string): Promise<{ actorId: string | null } | null>;
   recent(actions: readonly PlatformAuditAction[], limit: number): Promise<RecentAuditEntryRow[]>;
+  /** ADM-08, D8-11: the entries matching the filters, newest first, a page at a time. */
+  list(filters: AuditListFilters): Promise<AuditListRow[]>;
 }

@@ -348,6 +348,13 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     bn: 'শপের সেলস পাওয়া গেছে।',
   },
   RecentChangesListed: { en: 'Recent changes retrieved.', bn: 'সাম্প্রতিক বদল পাওয়া গেছে।' },
+  RevenueReportRead: { en: 'Revenue report retrieved.', bn: 'আয়ের রিপোর্ট পাওয়া গেছে।' },
+  ShopsReportRead: { en: 'Shops report retrieved.', bn: 'শপের রিপোর্ট পাওয়া গেছে।' },
+  ConsumersReportRead: {
+    en: 'Top consumers retrieved.',
+    bn: 'সবচেয়ে বেশি ব্যবহারকারী শপগুলো পাওয়া গেছে।',
+  },
+  AuditLogListed: { en: 'Audit log retrieved.', bn: 'অডিট লগ পাওয়া গেছে।' },
 
   RoleHeldByMembers: {
     en: (p) => {

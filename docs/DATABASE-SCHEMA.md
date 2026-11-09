@@ -2969,6 +2969,22 @@ CREATE TABLE control.operator_sessions (
     ip              inet
 );
 
+-- ADM-09, D8-9, D8-40 to D8-46 (Phase 8 Slice 8.4, built in migration 0122): each tenant's day, recorded each night, so
+-- reports read figures across tenants without crossing row-level security. One row a tenant a Dhaka day.
+CREATE TABLE control.shop_days (
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id) ON DELETE CASCADE,
+    day             date NOT NULL,                  -- Asia/Dhaka
+    state           text NOT NULL,                  -- where the tenant stood when recorded
+    plan_id         uuid,
+    storage_bytes   bigint NOT NULL DEFAULT 0,
+    sms_units       integer NOT NULL DEFAULT 0,     -- the tenant's own SMS sent that day
+    spend           jsonb NOT NULL DEFAULT '{}',    -- balance charges that day by ledger type, in taka
+    given_back      numeric(12,2) NOT NULL DEFAULT 0,  -- reversals that day
+    recorded_at     timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (tenant_id, day)
+);
+CREATE INDEX shop_days_day_idx ON control.shop_days (day);
+
 CREATE TABLE control.manual_payment_entries (             -- ADM-14/15
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL,
