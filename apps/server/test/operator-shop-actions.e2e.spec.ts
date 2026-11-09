@@ -26,6 +26,8 @@ const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_operator_shop_actions_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
 const SLOW_MS = 60_000;
+// Migrating a fresh database and starting the app, which is slow while other suites run beside it.
+const SETUP_MS = 180_000;
 const PASSWORD = 'correct-pw9';
 const DAY_MS = 24 * 60 * 60 * 1000;
 const REASON = 'Asked by the owner on WhatsApp';
@@ -95,7 +97,7 @@ beforeAll(async () => {
     cookie: cookieFrom(enrolled),
     'x-csrf-token': (enrolled.body as { csrfToken: string }).csrfToken,
   };
-});
+}, SETUP_MS);
 
 afterAll(async () => {
   if (!ADMIN_URL) return;
@@ -321,8 +323,25 @@ describeIfDatabase('ADM-04: extending a plan by days', () => {
         "UPDATE control.tenants SET state = 'pay_as_you_go', period_end = NULL WHERE id = $1",
         [payg.tenantId],
       );
-      const noPeriod = await act(payg, 'extend', { days: 5, reason: REASON });
-      expect(noPeriod.status).toBe(409);
+      expect((await act(payg, 'extend', { days: 5, reason: REASON })).status).toBe(409);
+      // Pay-as-you-go has no period to extend, even with a date left on its row.
+      await admin.query(
+        "UPDATE control.tenants SET period_end = now() + interval '3 days' WHERE id = $1",
+        [payg.tenantId],
+      );
+      expect((await act(payg, 'extend', { days: 5, reason: REASON })).status).toBe(409);
+
+      const noExpiry = await shopOnPlan('noexpiry');
+      await admin.query('UPDATE control.tenants SET period_end = NULL WHERE id = $1', [
+        noExpiry.tenantId,
+      ]);
+      expect((await act(noExpiry, 'extend', { days: 5, reason: REASON })).status).toBe(409);
+
+      const deleted = await shopOnPlan('deleted');
+      await admin.query("UPDATE control.tenants SET state = 'deleted' WHERE id = $1", [
+        deleted.tenantId,
+      ]);
+      expect((await act(deleted, 'extend', { days: 5, reason: REASON })).status).toBe(409);
 
       const longGone = await shopOnPlan('longgone');
       const end = await lapse(longGone.tenantId, 'archived', 45);
@@ -423,6 +442,35 @@ describeIfDatabase('ADM-04: resetting an owner sign-in', () => {
   );
 
   it(
+    'gives an owner who signed up by email a phone to sign in with',
+    async () => {
+      const shop = await openShop(port, texts, 'emailonly');
+      await admin.query(
+        `UPDATE control.subscriber_identities si SET kind = 'email', value = $2
+         FROM control.tenants t WHERE t.id = $1 AND si.id = t.owner_identity_id`,
+        [shop.tenantId, `owner.${randomUUID().slice(0, 8)}@example.com`],
+      );
+      await admin.query('UPDATE tenant.users SET phone = NULL WHERE tenant_id = $1 AND is_owner', [
+        shop.tenantId,
+      ]);
+      const phone = texts.freshPhone();
+      const body = ok(await act(shop, 'owner-reset', { phone, reason: REASON })) as {
+        phoneChanged: boolean;
+      };
+      expect(body.phoneChanged).toBe(true);
+      expect(await ownerRowPhone(shop.tenantId)).toBe(phone);
+      const verified = await postJson(
+        port,
+        '/auth/forgot-password/verify',
+        { phone, code: texts.codeFor(phone) },
+        { host: 'localhost' },
+      );
+      expect(verified.status, JSON.stringify(verified.body)).toBe(200);
+    },
+    SLOW_MS,
+  );
+
+  it(
     "refuses another account's phone and changes nothing, and a number that isn't one",
     async () => {
       const shop = await openShop(port, texts, 'taken');
@@ -439,6 +487,12 @@ describeIfDatabase('ADM-04: resetting an owner sign-in', () => {
 
       expect((await act(shop, 'owner-reset', { phone: '12345', reason: REASON })).status).toBe(400);
       expect((await act(shop, 'owner-reset', { phone: oldPhone })).status).toBe(400);
+
+      await admin.query("UPDATE control.tenants SET state = 'deleted' WHERE id = $1", [
+        other.tenantId,
+      ]);
+      const gone = await act(other, 'owner-reset', { phone: texts.freshPhone(), reason: REASON });
+      expect(gone.status).toBe(409);
     },
     SLOW_MS,
   );

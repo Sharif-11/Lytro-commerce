@@ -48,9 +48,6 @@ export class ShopDataDeletionService {
   }): Promise<void> {
     const shop = await this.summaries.findById(input.tenantId);
     if (!shop) throw new ApiError('not_found', 'ShopNotFound', {});
-    if (shop.state === TenantState.Deleted) {
-      throw new ApiError('conflict', 'ShopAlreadyDeleted', {});
-    }
     if (input.confirmAddress.trim().toLowerCase() !== shop.slug) {
       throw new FieldsError([
         {
