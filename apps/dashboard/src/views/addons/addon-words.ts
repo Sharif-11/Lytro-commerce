@@ -65,9 +65,17 @@ export function groupsOf(offers: readonly AddonOffer[], owned: readonly ShopAddo
   })).filter((group) => group.lines.length > 0);
 }
 
-/** The uses an allowance gives, for each one bought: 200 reads. */
+/** The uses an allowance gives in a whole month, for each one: the catalogue's 200 reads. */
 export function usesOf(addon: Pick<Addon, 'unitSize'>): number {
   return addon.unitSize ?? 0;
+}
+
+/**
+ * D7-64: the uses `quantity` of an allowance buy now, as the server says the purchase will keep them -- prorated to the
+ * days left, like its price -- or a whole month's for each where it doesn't say.
+ */
+export function usesBought(offer: Pick<AddonOffer, 'addon' | 'uses'>, quantity: number): number {
+  return offer.uses?.[quantity - 1] ?? usesOf(offer.addon) * quantity;
 }
 
 /** An item's name in the language shown. */

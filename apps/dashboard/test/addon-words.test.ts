@@ -12,6 +12,7 @@ import {
   limitWithout,
   renewalLine,
   switchable,
+  usesBought,
 } from '../src/views/addons/addon-words';
 
 // The key and its values, so the wording is checked without the dictionary.
@@ -53,6 +54,7 @@ function offer(item: Addon): AddonOffer {
     expiresAt: null,
     blockedBy: null,
     amounts: [99],
+    uses: null,
     daysLeft: 20,
     renewalPrice: 149,
   };
@@ -158,6 +160,16 @@ describe('the add-ons list (TENANT-DASHBOARD-DESIGN §7.25)', () => {
 });
 
 describe('the Buy sheet and what it leaves (PLN-14, LIM-03)', () => {
+  it("counts an allowance's reads as the server says the purchase keeps them (D7-64)", () => {
+    const reads = addon('address_reads_200', AddonKind.Allowance, 'address_reads', 200);
+    // 20 days left of a month: 130 reads for one, 270 for two, as each total's price is rounded.
+    const prorated = { addon: reads, uses: [130, 270, 399] };
+    expect(usesBought(prorated, 1)).toBe(130);
+    expect(usesBought(prorated, 2)).toBe(270);
+    // Where the server says nothing, a whole month's for each.
+    expect(usesBought({ addon: reads, uses: null }, 3)).toBe(600);
+  });
+
   it('moves the limit by what each one adds, storage in its own unit', () => {
     expect(limitMove(PRODUCTS, 2, FIGURES)).toEqual({ limitKey: 'products', from: 600, to: 1600 });
     const storage = limitMove(STORAGE, 1, FIGURES);

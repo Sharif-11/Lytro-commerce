@@ -51,8 +51,13 @@ import type {
 } from '../types/addon';
 import { canTake, periodEndFor } from './addon-eligibility';
 import { AddonPackService, packPrice } from './addon-pack.service';
-import { addonPrice, renewalPrice, type AddonPeriod } from './addon-price';
-import { AddonRenewalService, NOT_RENEWING, type OwnPeriod } from './addon-renewal.service';
+import { addonPrice, allowanceUnitUses, renewalPrice, type AddonPeriod } from './addon-price';
+import {
+  AddonRenewalService,
+  carriedUnitSize,
+  NOT_RENEWING,
+  type OwnPeriod,
+} from './addon-renewal.service';
 import { assertAmountSeen } from './amount-seen';
 import { ADDON_NOT_TAKEN, addonPaymentToBalanceWords } from './billing-notice-words';
 import { BillingTermsService } from './billing-terms.service';
@@ -200,6 +205,7 @@ export class AddonPurchaseService {
             expiresAt: null,
             blockedBy,
             amounts: [],
+            uses: null,
             daysLeft: null,
             renewalPrice: null,
           },
@@ -212,7 +218,16 @@ export class AddonPurchaseService {
         );
         const price = amounts[0] ?? null;
         return [
-          { addon, price, expiresAt: null, blockedBy, amounts, daysLeft: null, renewalPrice: null },
+          {
+            addon,
+            price,
+            expiresAt: null,
+            blockedBy,
+            amounts,
+            uses: null,
+            daysLeft: null,
+            renewalPrice: null,
+          },
         ];
       }
       const most = addon.kind === AddonKind.Feature ? 1 : ADDON_QUANTITY_MAX;
@@ -226,6 +241,20 @@ export class AddonPurchaseService {
           expiresAt: buying.period.end,
           blockedBy,
           amounts,
+          // D7-64: the uses each quantity buys, exactly as its purchase would keep them (quantity times one unit's).
+          uses:
+            addon.kind === AddonKind.Allowance && addon.unitSize !== null
+              ? amounts.map(
+                  (amount, index) =>
+                    (index + 1) *
+                    allowanceUnitUses(
+                      addon.unitSize ?? 0,
+                      addon.price,
+                      index + 1,
+                      amount.toFixed(2),
+                    ),
+                )
+              : null,
           daysLeft: daysUntil(now, buying.period.end),
           renewalPrice: Number(renewalPrice(addon.price, 1, buying.period.months ?? 1)),
         },
@@ -267,7 +296,11 @@ export class AddonPurchaseService {
         addonId: addon.id,
         kind: addon.kind,
         limitKey: addon.limitKey,
-        unitSize: addon.unitSize,
+        // D7-64: an allowance's uses follow what this purchase paid for; a limit's size is the catalogue's.
+        unitSize:
+          addon.kind === AddonKind.Allowance && addon.unitSize !== null
+            ? allowanceUnitUses(addon.unitSize, addon.price, input.quantity, amount)
+            : addon.unitSize,
         quantity: input.quantity,
         price: amount,
         paidFrom: 'balance',
@@ -458,7 +491,7 @@ export class AddonPurchaseService {
         addonId: from.addonId,
         kind: from.kind,
         limitKey: from.limitKey,
-        unitSize: from.unitSize,
+        unitSize: carriedUnitSize(from, next.price),
         quantity: from.quantity,
         price: next.price,
         paidFrom: 'balance',

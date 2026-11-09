@@ -34,6 +34,8 @@ export const addonOfferSchema = z.object({
   expiresAt: z.date().nullable(),
   blockedBy: z.string().nullable(),
   amounts: z.array(z.number()),
+  // PLN-20, D7-64: an allowance's uses for each quantity, beside `amounts`; null for anything else.
+  uses: z.array(z.number().int()).nullable(),
   daysLeft: z.number().nullable(),
   renewalPrice: z.number().nullable(),
 });

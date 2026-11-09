@@ -66,6 +66,7 @@ function offer(
     expiresAt: null,
     blockedBy: null,
     amounts: [amount],
+    uses: null,
     daysLeft: kind === AddonKind.Pack ? null : 20,
     renewalPrice: kind === AddonKind.Pack ? null : price,
   };
