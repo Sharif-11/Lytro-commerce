@@ -109,6 +109,11 @@ export const MESSAGE_KEYS = [
   'OperatorShopPaymentsWaitingListed',
   'OperatorShopSalesRetrieved',
   'RecentChangesListed',
+  // ADM-08, ADM-09 (Phase 8 Slice 8.4)
+  'RevenueReportRead',
+  'ShopsReportRead',
+  'ConsumersReportRead',
+  'AuditLogListed',
 
   // Staff / roles
   'RoleHeldByMembers',

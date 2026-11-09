@@ -50,6 +50,34 @@ export class BalanceLedgerRepository {
     return row?.total ?? '0.00';
   }
 
+  /**
+   * D8-9, D8-40 (Phase 8 Slice 8.4): the shop's entries between the two times by type: what it was charged (in taka,
+   * as a positive amount) and what entries gave back.
+   */
+  async totalsBetween(
+    tx: Transaction,
+    tenantId: string,
+    from: Date,
+    to: Date,
+  ): Promise<{ type: LedgerEntryType; charged: string; returned: string }[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select({
+        type: balanceLedger.type,
+        charged: sql<string>`coalesce(-sum(${balanceLedger.amount}) filter (where ${balanceLedger.amount} < 0), 0)::numeric(14, 2)::text`,
+        returned: sql<string>`coalesce(sum(${balanceLedger.amount}) filter (where ${balanceLedger.amount} > 0), 0)::numeric(14, 2)::text`,
+      })
+      .from(balanceLedger)
+      .where(
+        and(
+          eq(balanceLedger.tenantId, tenantId),
+          gte(balanceLedger.createdAt, from),
+          lt(balanceLedger.createdAt, to),
+        ),
+      )
+      .groupBy(balanceLedger.type);
+  }
+
   /** Newest first, keyset-paginated on id (BAL-14's statement). */
   async list(
     tx: Transaction,

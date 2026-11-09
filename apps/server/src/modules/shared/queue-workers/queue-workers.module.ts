@@ -37,6 +37,7 @@ import { MetaPurchaseWorker } from './services/meta-purchase-worker';
 import { SmsEventsModule } from '../../sms-events/sms-events.module';
 import { SmsEventWorker } from './services/sms-event-worker';
 import { FraudChecksModule } from '../../fraud-checks/fraud-checks.module';
+import { ReportsModule } from '../../reports/reports.module';
 import { FraudCheckWorker } from './services/fraud-check-worker';
 import { PackAutoBuyWorker } from './services/pack-auto-buy-worker';
 import { UsageNoticeWorker } from './services/usage-notice-worker';
@@ -46,6 +47,7 @@ import { NotificationPushWorker } from './services/notification-push-worker';
 import { NoticesModule } from '../../notices/notices.module';
 import { NoticePublishTickWorker } from './services/notice-publish-tick-worker';
 import { RequestErrorPurgeTickWorker } from './services/request-error-purge-tick-worker';
+import { ShopDayTickWorker } from './services/shop-day-tick-worker';
 
 // D27/D2-6: registers pg-boss queues and their work handlers. Kept apart from QueueModule (the queue mechanism
 // itself, SCL-08, D25) and from MessagingModule/BillingModule (the delivery/lifecycle business rules), so
@@ -71,6 +73,7 @@ import { RequestErrorPurgeTickWorker } from './services/request-error-purge-tick
     IdempotencyModule,
     SmsEventsModule,
     FraudChecksModule,
+    ReportsModule,
     NotificationsModule,
     NoticesModule,
   ],
@@ -100,6 +103,7 @@ import { RequestErrorPurgeTickWorker } from './services/request-error-purge-tick
     FraudCheckWorker,
     NotificationPushWorker,
     RequestErrorPurgeTickWorker,
+    ShopDayTickWorker,
     NotificationPurgeTickWorker,
     NoticePublishTickWorker,
   ],

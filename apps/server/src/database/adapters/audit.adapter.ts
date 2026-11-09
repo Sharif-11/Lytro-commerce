@@ -3,6 +3,8 @@ import {
   ActivityLogRepository,
   PlatformAuditLogRepository,
   TransactionRunner,
+  type AuditListFilters,
+  type AuditListRow,
   type NewPlatformAuditEntry,
   type RecentAuditEntryRow,
   type Transaction,
@@ -89,5 +91,9 @@ export class DrizzlePlatformAuditStore implements PlatformAuditStore {
 
   recent(actions: readonly PlatformAuditAction[], limit: number): Promise<RecentAuditEntryRow[]> {
     return this.log.recent(this.database.handle.db, actions, limit);
+  }
+
+  list(filters: AuditListFilters): Promise<AuditListRow[]> {
+    return this.log.list(this.database.handle.db, filters);
   }
 }

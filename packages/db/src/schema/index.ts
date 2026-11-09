@@ -64,3 +64,4 @@ export * from './control/catalog-feeds';
 export * from './control/usage-warnings';
 export * from './control/addons';
 export * from './control/request-errors';
+export * from './control/shop-days';

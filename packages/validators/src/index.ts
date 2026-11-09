@@ -66,3 +66,4 @@ export * from './api/platform/settings-update';
 export * from './api/platform/tenant-search';
 export * from './api/platform/operator-shop';
 export * from './api/platform/tenant-suspend';
+export * from './api/platform/reports';
