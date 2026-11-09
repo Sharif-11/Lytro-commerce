@@ -104,20 +104,6 @@ interface Pair {
 
 const NEW_SHOP = { drawn: 'new', state: DAY_ONE };
 
-/**
- * The prototype's checkout as drawn before Phase 5's hosted page (its first `ob-checkout`, which a later part of the
- * file replaces): the wallet step the dashboard keeps until then (TENANT-DASHBOARD-DESIGN §7.19).
- */
-async function drawWalletCheckout(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    const source = [...document.scripts].map((script) => script.textContent).join('\n');
-    const line = source
-      .split('\n')
-      .find((each) => each.startsWith("SCREENS['ob-checkout'] =") && each.includes('coTrx'));
-    if (line) (0, eval)(line);
-  });
-}
-
 /** Part 29's day with one order's items made serial-numbered smart watches (INV-14), held or sent. */
 function serialDay(id: string, status: 'pending' | 'confirmed' | 'delivered'): OrdersFixture {
   const day = meghOrders();
@@ -5332,21 +5318,6 @@ function addonPairs(): Pair[] {
       {},
       { shopState: { state: 'pay_as_you_go' }, then: buy('আরও 500 প্রোডাক্ট') },
     ),
-    one(
-      'sh-addon-wallet',
-      {},
-      {
-        shopState: { money: { balance: '48.00' } },
-        then: async (page) => {
-          await buy('আরও 500 প্রোডাক্ট')(page);
-          await page
-            .getByRole('dialog')
-            .getByRole('button', { name: /· ৳99$/ })
-            .click();
-          await page.waitForTimeout(300);
-        },
-      },
-    ),
     one('sh-addon-renew-off', has, { then: turnOff('আরও 500 প্রোডাক্ট') }),
     one('sh-addon-renew-off-seat', has, { then: turnOff('একটা সিট') }),
     one('sh-addon-renew-off-brand', has, { then: turnOff('ব্র্যান্ড আইডেন্টিটি') }),
@@ -5579,21 +5550,6 @@ const STEPS: Pair[] = [
     journey: { signedIn: true, takenAddresses: ['megh'] },
     intent: { shop: 'megh' },
     then: nameTheShop,
-  },
-  {
-    name: 'checkout',
-    screen: 'ob-checkout',
-    device: 'phone',
-    language: 'bn',
-    path: '/checkout',
-    journey: OWNER,
-    intent: { planId: STARTER, termId: TWELVE_MONTHS },
-    draw: drawWalletCheckout,
-    // The request is made on Continue (BIL-09), which opens the wallet step the sketch draws.
-    then: async (page) => {
-      await page.getByRole('button', { name: 'কন্টিনিউ করুন · ৳4,741' }).click();
-      await page.getByLabel(/TrxID/).waitFor();
-    },
   },
   {
     name: 'password',

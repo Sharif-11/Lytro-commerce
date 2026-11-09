@@ -239,6 +239,31 @@ export function drawnRateHistory(): Record<string, Record<string, unknown>[]> {
   };
 }
 
+/** OPERATOR-CONSOLE-DESIGN §10: bKash on the listener, Nagad by hand, as a platform starts. */
+export function drawnPaymentMethods(): Record<string, unknown> {
+  const wallet = (method: string, enabled: boolean, way: string, ways: string[]) => ({
+    method,
+    kind: method === 'bank' ? 'bank' : 'wallet',
+    enabled,
+    way,
+    ways,
+    gateway:
+      method === 'bkash'
+        ? { connected: false, unreadable: false, sandbox: false, number: null }
+        : null,
+  });
+  return {
+    methods: [
+      wallet('bkash', true, 'listener', ['automated', 'listener', 'manual']),
+      wallet('nagad', true, 'manual', ['manual']),
+      wallet('rocket', true, 'manual', ['manual']),
+      wallet('upay', false, 'manual', ['manual']),
+      wallet('bank', false, 'manual', ['manual']),
+    ],
+    bankAccounts: [],
+  };
+}
+
 export function drawnWallets(): Record<string, unknown>[] {
   const wallet = (
     id: string,

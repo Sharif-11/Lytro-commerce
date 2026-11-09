@@ -12,7 +12,11 @@ import {
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { DAY_MS, HOUR_MS } from '../../../common/time';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
-import type { NewPlanPaymentValues, PlanPaymentsStore } from '../ports/plan-payments-store';
+import type {
+  NewPlanPaymentValues,
+  PlanPaymentPageValues,
+  PlanPaymentsStore,
+} from '../ports/plan-payments-store';
 import { PLAN_PAYMENTS_STORE } from '../tokens';
 import type {
   PaymentNeedingAttention,
@@ -271,7 +275,7 @@ export class PlanPaymentsService {
     id: string,
     values: {
       transactionId: string;
-      senderNumber: string;
+      senderNumber: string | null;
       matchesQuoted: boolean;
       amountSent?: string;
       evidenceId?: string | null;
@@ -351,6 +355,59 @@ export class PlanPaymentsService {
       verifiedAt: now,
       amountArrived: arrived,
     };
+  }
+
+  /** PAYMENT-PAGE-DESIGN §8: the payment a page's address names; null when there is none. */
+  findByPageRef(ref: string): Promise<PlanPaymentRecord | null> {
+    return this.store.run((tx) => this.store.findByPageRef(tx, ref));
+  }
+
+  lockByPageRefWithin(tx: Transaction, ref: string): Promise<PlanPaymentRecord | null> {
+    return this.store.lockByPageRef(tx, ref);
+  }
+
+  pageLabelOf(id: string) {
+    return this.store.run((tx) => this.store.pageLabelOf(tx, id));
+  }
+
+  setPageWithin(tx: Transaction, id: string, values: PlanPaymentPageValues): Promise<void> {
+    return this.store.setPage(tx, id, values);
+  }
+
+  /** PAY-07: the ID corrected. It waits again from the start, and a receipt that had claimed it is unclaimed. */
+  async changeTypedWithin(
+    tx: Transaction,
+    id: string,
+    values: { transactionId: string; senderNumber: string | null; submittedAt: Date },
+  ): Promise<void> {
+    await this.store.releaseReceipt(tx, id);
+    await this.store.setStatus(tx, id, {
+      status: PlanPaymentStatus.Pending,
+      reviewReason: null,
+      amountArrived: null,
+    });
+    try {
+      await this.store.changeTyped(tx, id, values);
+    } catch (error) {
+      if (error instanceof UniqueViolation && error.target === 'transactionId') {
+        throw new FieldsError(
+          [
+            {
+              field: 'transactionId',
+              problem: ServerFieldProblemCode.AlreadyUsed,
+              messageKey: 'TransactionIdAlreadyUsed',
+            },
+          ],
+          'conflict',
+        );
+      }
+      throw error;
+    }
+  }
+
+  /** VER-09: bKash checkouts past their window that never came back. */
+  gatewayDue(now: Date): Promise<PlanPaymentRecord[]> {
+    return this.store.run((tx) => this.store.gatewayDue(tx, now));
   }
 
   /** VER-02 (Slice 5.6): the payment a receipt with this ID settles, held; null when no seller typed it. */

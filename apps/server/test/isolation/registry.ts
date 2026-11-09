@@ -85,6 +85,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /billing/payment-evidence': 'signs an upload under the session shop only',
   // Checked in test/payment-requests.e2e.spec.ts: a shop closes only its own request (BIL-19).
   'POST /balance/top-up/:id/cancel': "another shop's top-up payment id answers not_found",
+  // Checked in test/lytro-payment-page.e2e.spec.ts: a shop opens the payment page only for its own payment.
+  'POST /balance/top-up/:id/page': "another shop's top-up payment id answers not_found",
   'POST /billing/quote': 'creates a purchase quote scoped to the session shop only',
   'POST /billing/auto-renew': "toggles only the session shop's own auto-renew setting",
   'POST /billing/purchase': "another shop's payment id answers not_found",
@@ -95,6 +97,7 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
     "lists only the session shop's own payments (and its owner's earlier shops')",
   // Checked in test/payment-requests.e2e.spec.ts: a shop closes only its own request, and prices only its own plan.
   'POST /billing/payments/:id/cancel': "another shop's payment id answers not_found",
+  'POST /billing/payments/:id/page': "another shop's payment id answers not_found",
   'GET /billing/prices': "prices against the session shop's own plan and add-ons only",
   'POST /billing/upgrade/quote': 'creates an upgrade quote scoped to the session shop only',
   'POST /billing/upgrade/confirm': "another shop's payment id answers not_found",

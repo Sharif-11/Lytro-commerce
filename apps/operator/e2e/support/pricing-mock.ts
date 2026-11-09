@@ -11,6 +11,9 @@ export interface PricingState {
   rateHistory: Record<string, Row[]>;
   settings: Row[];
   wallets: Row[];
+  paymentMethods: unknown;
+  /** What testing Lytro's bKash keys answers. */
+  gatewayTest: { ok: boolean; code: string | null };
   catalogueAddons: Row[];
   presets: Row[];
   attributes: Row[];
@@ -187,6 +190,8 @@ function walletsAnswer(
   body: Row | null,
   state: PricingState,
 ): Answer | undefined {
+  const methods = paymentMethodsAnswer(method, path, body, state);
+  if (methods) return methods;
   if (path === '/operator/platform-wallets') {
     if (method === 'GET') return { data: state.wallets };
     const created = { ...body, id: newId('wallet'), createdAt: NOW };
@@ -200,6 +205,55 @@ function walletsAnswer(
     return OK;
   }
   return { data: update(state.wallets, one[1], body ?? {}) };
+}
+
+/** OPERATOR-CONSOLE-DESIGN §10: what shops may pay Lytro by. */
+function paymentMethodsAnswer(
+  method: string,
+  path: string,
+  body: Row | null,
+  state: PricingState,
+): Answer | undefined {
+  const view = state.paymentMethods as { methods: Row[]; bankAccounts: Row[] };
+  if (path === '/operator/payment-methods' && method === 'GET') return { data: view };
+  if (path === '/operator/payment-methods/bank-accounts' && method === 'POST') {
+    const created = { ...body, id: newId('bank'), enabled: true, displayOrder: 1, createdAt: NOW };
+    view.bankAccounts.push(created);
+    return { data: created };
+  }
+  const bank = /^\/operator\/payment-methods\/bank-accounts\/([^/]+)$/.exec(path);
+  if (bank) {
+    if (method === 'DELETE') {
+      view.bankAccounts = view.bankAccounts.filter((each) => each['id'] !== bank[1]);
+      return OK;
+    }
+    return { data: update(view.bankAccounts, bank[1], body ?? {}) };
+  }
+  const keys = /^\/operator\/payment-methods\/([^/]+)\/gateway(\/test)?$/.exec(path);
+  if (keys) {
+    const row = view.methods.find((each) => each['method'] === keys[1]);
+    if (keys[2]) return { data: state.gatewayTest };
+    if (row && method === 'PUT') {
+      row['gateway'] = {
+        connected: true,
+        unreadable: false,
+        sandbox: body?.['sandbox'],
+        number: body?.['number'],
+      };
+    }
+    if (row && method === 'DELETE') {
+      row['gateway'] = { connected: false, unreadable: false, sandbox: false, number: null };
+      if (row['way'] === 'automated') row['way'] = 'listener';
+    }
+    return OK;
+  }
+  const one = /^\/operator\/payment-methods\/([^/]+)$/.exec(path);
+  if (one && method === 'PATCH') {
+    const row = view.methods.find((each) => each['method'] === one[1]);
+    if (row) Object.assign(row, body);
+    return { data: view };
+  }
+  return undefined;
 }
 
 function addonsAnswer(

@@ -1,9 +1,11 @@
+import { PlanPaymentPageFrom } from '@lytronix/validators';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatTakaExact } from '@lytronix/ui';
 import { useBalance } from '@/api/balance';
 import {
   useConfirmPurchase,
+  useOpenPaymentPage,
   usePlatformWallets,
   useQuotePurchase,
   useRefreshPrices,
@@ -14,11 +16,10 @@ import { Card } from '@/components/ui/card';
 import { RadioMark } from '@/components/ui/kv';
 import { Sheet } from '@/components/ui/sheet';
 import { WalletMarks } from '@/components/wallet-marks';
-import { WalletStep } from '@/components/wallet-step';
 import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonthYear } from '@/lib/dates';
 import { walletNames, walletProviders } from '@/lib/wallet-marks';
-import type { PlanPayment, PlanPriceOption } from '@/types/billing';
+import type { PlanPriceOption } from '@/types/billing';
 import { useShopAfterPayment } from './after-pay';
 import { changedAmount, taka } from './words';
 
@@ -49,10 +50,10 @@ export function HowToPaySheet({
   const wallets = usePlatformWallets();
   const quote = useQuotePurchase();
   const confirm = useConfirmPurchase();
+  const openPage = useOpenPaymentPage();
   const refreshPrices = useRefreshPrices();
   const shopAfterPayment = useShopAfterPayment();
   const [changed, setChanged] = useState<string | null>(null);
-  const [opened, setOpened] = useState<PlanPayment | null>(null);
 
   const amount = changed ?? option.amount ?? option.price;
   const available = balance.data && !balance.data.frozen ? Number(balance.data.amount) : null;
@@ -61,7 +62,7 @@ export function HowToPaySheet({
   const [method, setMethod] = useState<'balance' | 'wallet' | null>(null);
   const chosen = enough ? (method ?? 'balance') : 'wallet';
   const names = walletNames(wallets.data ?? [], i18n.language);
-  const failure = quote.error ?? confirm.error;
+  const failure = quote.error ?? confirm.error ?? openPage.error;
   const refusal = failure && changedAmount(failure) === null ? errorText(failure) : null;
 
   function commit(): void {
@@ -71,7 +72,7 @@ export function HowToPaySheet({
       {
         onSuccess: (request) => {
           if (chosen === 'wallet') {
-            setOpened(request);
+            openPage.mutate({ paymentId: request.id, from: PlanPaymentPageFrom.Plan });
             return;
           }
           confirm.mutate(
@@ -100,39 +101,20 @@ export function HowToPaySheet({
     );
   }
 
-  if (opened) {
-    return (
-      <Sheet open title={t('psTitle', { amount: taka(opened.amount) })} onClose={onClose}>
-        <WalletStep
-          amount={opened.amount}
-          wallets={wallets.data}
-          pending={confirm.isPending}
-          error={confirm.isError ? errorText(confirm.error) : null}
-          onSubmit={(values) => {
-            confirm.mutate(
-              { paymentId: opened.id, method: 'wallet', ...values },
-              {
-                onSuccess: () => {
-                  onDone(t('sentForCheck'));
-                },
-              },
-            );
-          }}
-        />
-      </Sheet>
-    );
-  }
-
   return (
     <Sheet
       open
       title={t('psTitle', { amount: taka(amount) })}
       onClose={onClose}
       footer={
-        <Button tone="accent" busy={quote.isPending || confirm.isPending} onClick={commit}>
+        <Button
+          tone="accent"
+          busy={quote.isPending || confirm.isPending || openPage.isPending || openPage.isSuccess}
+          onClick={commit}
+        >
           {chosen === 'balance'
             ? t('payFromBalance', { amount: taka(amount) })
-            : t('continueAmount', { amount: taka(amount) })}
+            : t('goToPage', { amount: taka(amount) })}
         </Button>
       }
     >
@@ -177,7 +159,7 @@ export function HowToPaySheet({
           >
             <RadioMark on={chosen === 'wallet'} />
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="text-[15px] font-medium">{t('psWallet', { wallets: names })}</span>
+              <span className="text-[15px] font-medium">{t('psPage')}</span>
               <span className="truncate text-[14px] text-fg-muted">
                 {walletProviders(wallets.data ?? []).join(' · ')}
               </span>

@@ -2856,6 +2856,23 @@ CREATE TABLE tenant.webhook_deliveries (
 CREATE INDEX ON tenant.webhook_deliveries (tenant_id, endpoint_id, delivered_at DESC);
 ```
 
+## 9a. What shops pay Lytro by (platform-wide, control schema)
+
+`OPERATOR-CONSOLE-DESIGN.md` §10, `PAYMENT-PAGE-DESIGN.md` §8, ADM-10 (2026-11-09).
+
+```sql
+-- No row is the starting choice: on, by the way the method starts on.
+CREATE TABLE control.platform_payment_methods (method text PRIMARY KEY, enabled boolean NOT NULL, way text NOT NULL, updated_at timestamptz NOT NULL DEFAULT now());
+-- WAL-14's fields.
+CREATE TABLE control.platform_bank_accounts (id uuid PRIMARY KEY, bank_name text NOT NULL, account_name text NOT NULL, account_number text NOT NULL, branch text, routing_number text, swift_code text, instructions text, enabled boolean NOT NULL DEFAULT true, display_order integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now());
+-- Sealed keys, never returned.
+CREATE TABLE control.platform_gateway_accounts (method text PRIMARY KEY, number varchar(20) NOT NULL, credentials bytea NOT NULL, sandbox boolean NOT NULL, updated_at timestamptz NOT NULL DEFAULT now());
+-- SEC-11, and bKash's two token calls an hour, which a restart must not forget.
+CREATE TABLE control.platform_gateway_uses (id bigserial PRIMARY KEY, method text NOT NULL, action text NOT NULL, payment_id uuid, succeeded boolean NOT NULL, at timestamptz NOT NULL);
+```
+
+`control.plan_payments` gains `page_ref` (unique where set), `page_expires_at`, `page_from`, `pay_method`, `id_changes`, `gateway_payment_id`, `gateway_url`, `gateway_result` and `test`: paying on the page, and bKash's own checkout.
+
 ## 10. Notice board (platform-wide, control schema)
 
 Built in Phase 7 Slice 7.4 (migration 0119, D7-53 to D7-59). The reads, acknowledgments and deliveries are each shop's own

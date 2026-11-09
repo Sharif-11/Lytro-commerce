@@ -507,6 +507,38 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   RatesListed: { en: 'Rates retrieved.', bn: 'রেট পাওয়া গেছে।' },
   RateHistoryRetrieved: { en: 'Rate history retrieved.', bn: 'রেটের হিস্টরি পাওয়া গেছে।' },
   RateUpdated: { en: 'Rate updated.', bn: 'রেট আপডেট হয়েছে।' },
+  LytroPaymentMethodsListed: {
+    en: 'Payment methods.',
+    bn: 'পেমেন্ট মেথড।',
+  },
+  LytroPaymentMethodChanged: {
+    en: 'The payment method is saved.',
+    bn: 'পেমেন্ট মেথড সেভ হয়েছে।',
+  },
+  LytroBankAccountSaved: {
+    en: 'The bank account is saved.',
+    bn: 'ব্যাংক অ্যাকাউন্ট সেভ হয়েছে।',
+  },
+  LytroBankAccountRemoved: {
+    en: 'The bank account is removed.',
+    bn: 'ব্যাংক অ্যাকাউন্ট রিমুভ হয়েছে।',
+  },
+  LytroGatewayKeysSaved: {
+    en: 'The keys are saved.',
+    bn: 'কী সেভ হয়েছে।',
+  },
+  LytroGatewayKeysRemoved: {
+    en: 'The keys are removed.',
+    bn: 'কী রিমুভ হয়েছে।',
+  },
+  LytroGatewayTested: {
+    en: 'The connection was tested.',
+    bn: 'কানেকশন টেস্ট করা হয়েছে।',
+  },
+  PlanPaymentPageOpened: {
+    en: 'The payment page is ready.',
+    bn: 'পেমেন্ট পেজ রেডি।',
+  },
   PlatformWalletsListed: {
     en: 'Platform wallets retrieved.',
     bn: 'প্ল্যাটফর্ম ওয়ালেট পাওয়া গেছে।',

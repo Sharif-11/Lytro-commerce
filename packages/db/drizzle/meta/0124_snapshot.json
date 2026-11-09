@@ -1,5 +1,5 @@
 {
-  "id": "3d80d19b-d659-46c5-9fb1-d1e0e85b1e75",
+  "id": "1f6dd64e-671a-453d-ae2b-3d46de6ef715",
   "prevId": "c8ebbb54-40c9-47f2-99f2-dade6f9aeef6",
   "version": "7",
   "dialect": "postgresql",
@@ -3531,19 +3531,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "recorded_by_platform": {
-          "name": "recorded_by_platform",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "reverses_invoice_id": {
-          "name": "reverses_invoice_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "issued_at": {
           "name": "issued_at",
           "type": "timestamp with time zone",
@@ -3594,100 +3581,9 @@
       "checkConstraints": {
         "invoices_kind_check": {
           "name": "invoices_kind_check",
-          "value": "\"control\".\"invoices\".\"kind\" in ('purchase','renewal','upgrade','addon','credit_note')"
+          "value": "\"control\".\"invoices\".\"kind\" in ('purchase','renewal','upgrade','addon')"
         }
       },
-      "isRLSEnabled": false
-    },
-    "control.payment_evidence": {
-      "name": "payment_evidence",
-      "schema": "control",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "object_key": {
-          "name": "object_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "content_type": {
-          "name": "content_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "bytes": {
-          "name": "bytes",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "removed_at": {
-          "name": "removed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "payment_evidence_due_idx": {
-          "name": "payment_evidence_due_idx",
-          "columns": [
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"control\".\"payment_evidence\".\"removed_at\" IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "payment_evidence_tenant_id_tenants_id_fk": {
-          "name": "payment_evidence_tenant_id_tenants_id_fk",
-          "tableFrom": "payment_evidence",
-          "tableTo": "tenants",
-          "schemaTo": "control",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "payment_evidence_object_key_unique": {
-          "name": "payment_evidence_object_key_unique",
-          "nullsNotDistinct": false,
-          "columns": ["object_key"]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "control.plan_payments": {
@@ -3812,18 +3708,61 @@
           "primaryKey": false,
           "notNull": false
         },
-        "recorded_by_platform": {
-          "name": "recorded_by_platform",
+        "page_ref": {
+          "name": "page_ref",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "page_expires_at": {
+          "name": "page_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "page_from": {
+          "name": "page_from",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pay_method": {
+          "name": "pay_method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_changes": {
+          "name": "id_changes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "gateway_payment_id": {
+          "name": "gateway_payment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gateway_url": {
+          "name": "gateway_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gateway_result": {
+          "name": "gateway_result",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "test": {
+          "name": "test",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "evidence_id": {
-          "name": "evidence_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -3845,7 +3784,7 @@
             }
           ],
           "isUnique": true,
-          "where": "\"control\".\"plan_payments\".\"transaction_id\" IS NOT NULL AND \"control\".\"plan_payments\".\"status\" NOT IN ('rejected', 'reversed')",
+          "where": "\"control\".\"plan_payments\".\"transaction_id\" IS NOT NULL AND \"control\".\"plan_payments\".\"status\" <> 'rejected'",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -3862,6 +3801,38 @@
           ],
           "isUnique": true,
           "where": "\"control\".\"plan_payments\".\"kind\" = 'upgrade' AND \"control\".\"plan_payments\".\"status\" IN ('pending', 'needs_review')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "plan_payments_page_ref_idx": {
+          "name": "plan_payments_page_ref_idx",
+          "columns": [
+            {
+              "expression": "page_ref",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"control\".\"plan_payments\".\"page_ref\" IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "plan_payments_gateway_due_idx": {
+          "name": "plan_payments_gateway_due_idx",
+          "columns": [
+            {
+              "expression": "page_expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"control\".\"plan_payments\".\"gateway_payment_id\" IS NOT NULL AND \"control\".\"plan_payments\".\"status\" = 'pending' AND \"control\".\"plan_payments\".\"transaction_id\" IS NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -3915,16 +3886,6 @@
           "tableTo": "billing_terms",
           "schemaTo": "control",
           "columnsFrom": ["billing_term_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "plan_payments_evidence_id_payment_evidence_id_fk": {
-          "name": "plan_payments_evidence_id_payment_evidence_id_fk",
-          "tableFrom": "plan_payments",
-          "tableTo": "payment_evidence",
-          "schemaTo": "control",
-          "columnsFrom": ["evidence_id"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -4340,6 +4301,248 @@
         },
         "created_at": {
           "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "control.platform_bank_accounts": {
+      "name": "platform_bank_accounts",
+      "schema": "control",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "bank_name": {
+          "name": "bank_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_name": {
+          "name": "account_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_number": {
+          "name": "account_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "branch": {
+          "name": "branch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "routing_number": {
+          "name": "routing_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "swift_code": {
+          "name": "swift_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "instructions": {
+          "name": "instructions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "display_order": {
+          "name": "display_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "control.platform_gateway_accounts": {
+      "name": "platform_gateway_accounts",
+      "schema": "control",
+      "columns": {
+        "method": {
+          "name": "method",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "number": {
+          "name": "number",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "credentials": {
+          "name": "credentials",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sandbox": {
+          "name": "sandbox",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "control.platform_gateway_uses": {
+      "name": "platform_gateway_uses",
+      "schema": "control",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "method": {
+          "name": "method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payment_id": {
+          "name": "payment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "succeeded": {
+          "name": "succeeded",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "at": {
+          "name": "at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "platform_gateway_uses_action_at_idx": {
+          "name": "platform_gateway_uses_action_at_idx",
+          "columns": [
+            {
+              "expression": "method",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "action",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "control.platform_payment_methods": {
+      "name": "platform_payment_methods",
+      "schema": "control",
+      "columns": {
+        "method": {
+          "name": "method",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "way": {
+          "name": "way",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
@@ -17601,247 +17804,6 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "control.manual_payment_entries": {
-      "name": "manual_payment_entries",
-      "schema": "control",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "plan_payment_id": {
-          "name": "plan_payment_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "amount": {
-          "name": "amount",
-          "type": "numeric(10, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "wallet_id": {
-          "name": "wallet_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "transaction_id": {
-          "name": "transaction_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sender_number": {
-          "name": "sender_number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "paid_at": {
-          "name": "paid_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "evidence_id": {
-          "name": "evidence_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "evidence_line": {
-          "name": "evidence_line",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reason": {
-          "name": "reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "entered_by": {
-          "name": "entered_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "before": {
-          "name": "before",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "after": {
-          "name": "after",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reverses_entry_id": {
-          "name": "reverses_entry_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "manual_payment_entries_reverses_idx": {
-          "name": "manual_payment_entries_reverses_idx",
-          "columns": [
-            {
-              "expression": "reverses_entry_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"control\".\"manual_payment_entries\".\"reverses_entry_id\" IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "manual_payment_entries_transaction_idx": {
-          "name": "manual_payment_entries_transaction_idx",
-          "columns": [
-            {
-              "expression": "transaction_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "manual_payment_entries_created_idx": {
-          "name": "manual_payment_entries_created_idx",
-          "columns": [
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "manual_payment_entries_tenant_idx": {
-          "name": "manual_payment_entries_tenant_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "manual_payment_entries_tenant_id_tenants_id_fk": {
-          "name": "manual_payment_entries_tenant_id_tenants_id_fk",
-          "tableFrom": "manual_payment_entries",
-          "tableTo": "tenants",
-          "schemaTo": "control",
-          "columnsFrom": ["tenant_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "manual_payment_entries_plan_payment_id_plan_payments_id_fk": {
-          "name": "manual_payment_entries_plan_payment_id_plan_payments_id_fk",
-          "tableFrom": "manual_payment_entries",
-          "tableTo": "plan_payments",
-          "schemaTo": "control",
-          "columnsFrom": ["plan_payment_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "manual_payment_entries_wallet_id_platform_wallets_id_fk": {
-          "name": "manual_payment_entries_wallet_id_platform_wallets_id_fk",
-          "tableFrom": "manual_payment_entries",
-          "tableTo": "platform_wallets",
-          "schemaTo": "control",
-          "columnsFrom": ["wallet_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "manual_payment_entries_evidence_id_payment_evidence_id_fk": {
-          "name": "manual_payment_entries_evidence_id_payment_evidence_id_fk",
-          "tableFrom": "manual_payment_entries",
-          "tableTo": "payment_evidence",
-          "schemaTo": "control",
-          "columnsFrom": ["evidence_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "manual_payment_entries_reverses_entry_id_manual_payment_entries_id_fk": {
-          "name": "manual_payment_entries_reverses_entry_id_manual_payment_entries_id_fk",
-          "tableFrom": "manual_payment_entries",
-          "tableTo": "manual_payment_entries",
-          "schemaTo": "control",
-          "columnsFrom": ["reverses_entry_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "manual_payment_entries_evidence_check": {
-          "name": "manual_payment_entries_evidence_check",
-          "value": "\"control\".\"manual_payment_entries\".\"reverses_entry_id\" IS NOT NULL OR (\n        \"control\".\"manual_payment_entries\".\"wallet_id\" IS NOT NULL AND \"control\".\"manual_payment_entries\".\"transaction_id\" IS NOT NULL AND \"control\".\"manual_payment_entries\".\"sender_number\" IS NOT NULL\n        AND \"control\".\"manual_payment_entries\".\"paid_at\" IS NOT NULL AND (\"control\".\"manual_payment_entries\".\"evidence_id\" IS NOT NULL OR \"control\".\"manual_payment_entries\".\"evidence_line\" IS NOT NULL)\n      )"
-        }
-      },
       "isRLSEnabled": false
     }
   },

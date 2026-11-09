@@ -53,6 +53,14 @@ import {
     GatewayReconcile,
     CredentialUses,
   ],
-  exports: [GatewayAccounts, GatewayCheckouts, GatewayReconcile, CredentialUses],
+  exports: [
+    GatewayAccounts,
+    GatewayCheckouts,
+    GatewayReconcile,
+    GatewayRegistry,
+    CredentialUses,
+    GATEWAY_CALLBACK_ORIGIN,
+    GATEWAY_CLOCK,
+  ],
 })
 export class GatewayModule {}

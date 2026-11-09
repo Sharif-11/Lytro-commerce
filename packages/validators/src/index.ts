@@ -51,6 +51,7 @@ export * from './api/balance/balance-adjust';
 export * from './api/balance/rate-update';
 export * from './api/balance/top-up';
 export * from './api/balance/platform-wallet';
+export * from './api/balance/platform-payment-methods';
 export * from './api/billing/plan-create';
 export * from './api/billing/billing-term-create';
 export * from './api/billing/plan-price-set';

@@ -8,6 +8,14 @@ const COLOURS: Record<string, string> = {
   Upay: '#1F4E98',
 };
 
+/** A method's name as a number's provider is written; a bank has none. */
+export const METHOD_NAMES: Readonly<Record<string, string>> = {
+  bkash: 'bKash',
+  nagad: 'Nagad',
+  rocket: 'Rocket',
+  upay: 'Upay',
+};
+
 export function providerColour(provider: string): string {
   return COLOURS[provider] ?? '#888888';
 }

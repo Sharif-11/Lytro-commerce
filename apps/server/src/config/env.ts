@@ -104,6 +104,8 @@ const envSchema = z.object({
   // Origin is refused. Default in production: https://app.<PLATFORM_DOMAIN> and https://admin.<PLATFORM_DOMAIN>.
   DASHBOARD_ORIGIN: z.string().url().optional(),
   OPERATOR_ORIGIN: z.string().url().optional(),
+  // PAYMENT-PAGE-DESIGN §8: the number WhatsApp and call reach on a shop's payment to Lytro; left out, the buttons are too.
+  LYTRO_SUPPORT_PHONE: z.string().min(1).optional(),
   // The edge (any proxy in front of the server) adds this secret to every request it forwards (decision R3).
   TRUSTED_EDGE_SECRET: z.string().min(32).optional(),
   // A second accepted secret, set only while the edge's secret is being rotated (no downtime).

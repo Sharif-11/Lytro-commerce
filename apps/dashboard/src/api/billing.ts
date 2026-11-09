@@ -10,6 +10,7 @@ import {
   type ConfirmPurchaseInput,
   type ConfirmUpgradeInput,
   PlanPaymentKind,
+  type PlanPaymentPageFrom,
   type QuotePurchaseInput,
   type QuoteUpgradeInput,
   type SetAutoRenewInput,
@@ -97,6 +98,25 @@ export function usePlanPrices(planIds: string[]) {
       prices: results.flatMap((result) => result.data ?? []),
       isLoading: results.some((result) => result.isLoading),
     }),
+  });
+}
+
+/**
+ * PAYMENT-PAGE-DESIGN §8: the payment page for a payment nothing was sent for. The method and everything after it are the page's;
+ * the browser goes there, and the page returns to `from` with the outcome.
+ */
+export function useOpenPaymentPage() {
+  return useMutation({
+    mutationFn: (input: { paymentId: string; topUp?: boolean; from: PlanPaymentPageFrom }) =>
+      tenantSession.client.post<{ url: string }>(
+        input.topUp
+          ? `/balance/top-up/${input.paymentId}/page`
+          : `/billing/payments/${input.paymentId}/page`,
+        { from: input.from },
+      ),
+    onSuccess: ({ url }) => {
+      window.location.assign(url);
+    },
   });
 }
 

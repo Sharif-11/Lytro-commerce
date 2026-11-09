@@ -20,7 +20,9 @@ import {
   type BillingPaymentListQuery,
   type BillingPricesQuery,
 } from '@lytronix/validators';
+import { LytroPaymentPages } from '../../lytro-payments/services/lytro-payment-pages';
 import { LytroReceipts } from '../../lytro-receipts/services/lytro-receipts';
+import { OpenPlanPaymentPageDto, PlanPaymentPageDto } from '../dto/operator-payment-methods.dto';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { Dashboard } from '../../../common/decorators/dashboard';
@@ -102,6 +104,7 @@ export class BillingController {
   constructor(
     @Inject(PaymentEvidence) private readonly evidence: PaymentEvidence,
     @Inject(LytroReceipts) private readonly lytroReceipts: LytroReceipts,
+    @Inject(LytroPaymentPages) private readonly pages: LytroPaymentPages,
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
     @Inject(UpgradeService) private readonly upgrade: UpgradeService,
     @Inject(DowngradeService) private readonly downgrade: DowngradeService,
@@ -447,6 +450,32 @@ export class BillingController {
       total,
       pages: Math.ceil(total / query.limit),
     };
+  }
+
+  // PAYMENT-PAGE-DESIGN §8: a plan, upgrade or add-on is paid on the payment page. Top-ups have their own route, under the balance's permission.
+  @Post('payments/:id/page')
+  @Dashboard({ lapsed: true, suspendedOwner: true, readOnlyWrite: true })
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('PlanPaymentPageOpened')
+  @ApiOperation({ summary: 'Open the payment page for a payment nothing was sent for' })
+  @ZodResponse({ type: PlanPaymentPageDto })
+  openPage(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(OpenPlanPaymentPageDto.schema)) body: OpenPlanPaymentPageDto,
+    @Req() request: DashboardRequest,
+  ): Promise<{ url: string }> {
+    return this.pages.open(
+      this.tenantIdOf(request),
+      id,
+      body.from,
+      [
+        PlanPaymentKind.Purchase,
+        PlanPaymentKind.Renewal,
+        PlanPaymentKind.Upgrade,
+        PlanPaymentKind.Addon,
+      ],
+      new Date(),
+    );
   }
 
   // BIL-19 (decided 2026-10-23): the shop closes a plan, upgrade or add-on request it has sent nothing for. A top-up

@@ -535,7 +535,7 @@ const PAIRS: Pair[] = [
       page.getByRole('button', { name: /^(Change: Terms version|বদলান: টার্মস ভার্সন)/ }).click(),
   },
   { screen: 'wallets', path: '/wallets' },
-  { screen: 'wallet-new', path: '/wallets', then: press('Add wallet', 'ওয়ালেট যোগ') },
+  { screen: 'wallet-new', path: '/wallets', then: press('Add number', 'নম্বর যোগ করুন') },
   { screen: 'wallet-edit', path: '/wallets', then: press('Edit', 'এডিট') },
   {
     screen: 'wallet-remove',

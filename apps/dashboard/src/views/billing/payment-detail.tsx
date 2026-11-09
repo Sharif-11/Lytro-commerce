@@ -1,17 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { BillingPaymentState, Permission, PlanPaymentKind } from '@lytronix/validators';
-import { formatTaka } from '@lytronix/ui';
-import { useConfirmTopUp } from '@/api/balance';
 import {
-  useBillingPrices,
-  useCancelPayment,
-  useConfirmPurchase,
-  useConfirmUpgrade,
-  useInvoice,
-  usePlatformWallets,
-} from '@/api/billing';
+  BillingPaymentState,
+  Permission,
+  PlanPaymentKind,
+  PlanPaymentPageFrom,
+} from '@lytronix/validators';
+import { formatTaka } from '@lytronix/ui';
+import { useBillingPrices, useCancelPayment, useInvoice, useOpenPaymentPage } from '@/api/billing';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -20,7 +17,6 @@ import { buttonClass } from '@/components/ui/classes';
 import { Kv } from '@/components/ui/kv';
 import { Sheet } from '@/components/ui/sheet';
 import { TimelineRow } from '@/components/ui/timeline';
-import { WalletStep, type WalletPaymentValues } from '@/components/wallet-step';
 import { useErrorText } from '@/hooks/use-error-text';
 import { appConfig } from '@/lib/app-config';
 import { dayKey, formatDayMonth, formatDayMonthYear, formatTime } from '@/lib/dates';
@@ -137,45 +133,36 @@ function InvoiceCard({ invoice }: { invoice: Invoice }): React.JSX.Element {
 function FinishPayingSheet({
   payment,
   onClose,
-  onDone,
 }: {
   payment: BillingPayment;
   onClose: () => void;
-  onDone: () => void;
 }): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
   const errorText = useErrorText();
-  const wallets = usePlatformWallets();
-  const purchase = useConfirmPurchase();
-  const upgrade = useConfirmUpgrade();
-  const topUp = useConfirmTopUp();
-  const confirm =
-    payment.kind === PlanPaymentKind.TopUp
-      ? topUp
-      : payment.kind === PlanPaymentKind.Upgrade
-        ? upgrade
-        : purchase;
-
-  function submit(values: WalletPaymentValues): void {
-    const after = { onSuccess: onDone };
-    if (payment.kind === PlanPaymentKind.TopUp) {
-      topUp.mutate({ paymentId: payment.id, ...values }, after);
-    } else if (payment.kind === PlanPaymentKind.Upgrade) {
-      upgrade.mutate({ paymentId: payment.id, method: 'wallet', ...values }, after);
-    } else {
-      purchase.mutate({ paymentId: payment.id, method: 'wallet', ...values }, after);
-    }
-  }
-
+  const openPage = useOpenPaymentPage();
   return (
-    <Sheet open title={paymentName(payment, t, i18n.language)} onClose={onClose}>
-      <WalletStep
-        amount={payment.amount}
-        wallets={wallets.data}
-        pending={confirm.isPending}
-        error={confirm.isError ? errorText(confirm.error) : null}
-        onSubmit={submit}
-      />
+    <Sheet
+      open
+      title={paymentName(payment, t, i18n.language)}
+      onClose={onClose}
+      footer={
+        <Button
+          tone="accent"
+          busy={openPage.isPending || openPage.isSuccess}
+          onClick={() => {
+            openPage.mutate({
+              paymentId: payment.id,
+              topUp: payment.kind === PlanPaymentKind.TopUp,
+              from: PlanPaymentPageFrom.Billing,
+            });
+          }}
+        >
+          {t('goToPage', { amount: formatTaka(payment.amount) })}
+        </Button>
+      }
+    >
+      <p className="text-[14px] text-fg-muted">{t('psNote')}</p>
+      {openPage.isError ? <Banner tone="bad">{errorText(openPage.error)}</Banner> : null}
     </Sheet>
   );
 }
@@ -362,10 +349,6 @@ export function PaymentDetail({ payment }: { payment: BillingPayment }): React.J
           payment={payment}
           onClose={() => {
             setSheet(null);
-          }}
-          onDone={() => {
-            setSheet(null);
-            showToast(t('sentForCheck'));
           }}
         />
       ) : null}

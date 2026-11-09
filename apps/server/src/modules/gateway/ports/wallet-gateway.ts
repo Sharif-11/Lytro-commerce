@@ -1,5 +1,8 @@
 import type { CredentialUseAction, PaymentMethod } from '@lytronix/validators';
 
+/** ADM-10: stands where a shop's ID goes on a call with Lytro's own keys, which belong to no shop. */
+export const LYTRO_GATEWAY_OWNER = 'lytro';
+
 /** WAL-09, WAL-11: the account a call runs on, its credentials opened only for the call (SEC-09). */
 export interface GatewayAccount {
   tenantId: string;

@@ -1,9 +1,11 @@
+import { PlanPaymentPageFrom } from '@lytronix/validators';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { daysUntil, formatTakaExact } from '@lytronix/ui';
 import { useBalance } from '@/api/balance';
 import {
   useConfirmUpgrade,
+  useOpenPaymentPage,
   usePlatformWallets,
   useQuoteUpgrade,
   useRefreshPrices,
@@ -12,12 +14,11 @@ import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Kv, RadioMark } from '@/components/ui/kv';
 import { Sheet } from '@/components/ui/sheet';
-import { WalletStep } from '@/components/wallet-step';
 import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonthYear } from '@/lib/dates';
 import { sentenceCase } from '@/lib/limits';
 import { walletNames, walletProviders } from '@/lib/wallet-marks';
-import type { Plan, PlanPriceOption, UpgradeQuote } from '@/types/billing';
+import type { Plan, PlanPriceOption } from '@/types/billing';
 import { useShopAfterPayment } from './after-pay';
 import { limitMoves, UPGRADE_LIMITS } from './figures';
 import { changedAmount, taka } from './words';
@@ -58,10 +59,10 @@ export function UpgradeSheet({
   const wallets = usePlatformWallets();
   const quote = useQuoteUpgrade();
   const confirm = useConfirmUpgrade();
+  const openPage = useOpenPaymentPage();
   const refreshPrices = useRefreshPrices();
   const shopAfterPayment = useShopAfterPayment();
   const [changed, setChanged] = useState<string | null>(null);
-  const [opened, setOpened] = useState<UpgradeQuote | null>(null);
 
   const amount = changed ?? option.amount ?? '0';
   const credit = Number(option.credit ?? 0);
@@ -73,7 +74,7 @@ export function UpgradeSheet({
   const limits = sentenceCase(
     moves.map((move) => t('limitMove', { limit: t(`lim.${move.key}`), ...move })).join(' · '),
   );
-  const failure = quote.error ?? confirm.error;
+  const failure = quote.error ?? confirm.error ?? openPage.error;
   const refusal = failure && changedAmount(failure) === null ? errorText(failure) : null;
 
   function commit(method: 'balance' | 'wallet'): void {
@@ -83,7 +84,7 @@ export function UpgradeSheet({
       {
         onSuccess: (request) => {
           if (method === 'wallet') {
-            setOpened(request);
+            openPage.mutate({ paymentId: request.id, from: PlanPaymentPageFrom.Plan });
             return;
           }
           confirm.mutate(
@@ -108,30 +109,7 @@ export function UpgradeSheet({
     );
   }
 
-  if (opened) {
-    return (
-      <Sheet open title={t('upTitle', { plan: option.planName })} onClose={onClose}>
-        <WalletStep
-          amount={opened.amount}
-          wallets={wallets.data}
-          pending={confirm.isPending}
-          error={confirm.isError ? errorText(confirm.error) : null}
-          onSubmit={(values) => {
-            confirm.mutate(
-              { paymentId: opened.id, method: 'wallet', ...values },
-              {
-                onSuccess: () => {
-                  onDone(t('sentForCheck'));
-                },
-              },
-            );
-          }}
-        />
-      </Sheet>
-    );
-  }
-
-  const busy = quote.isPending || confirm.isPending;
+  const busy = quote.isPending || confirm.isPending || openPage.isPending || openPage.isSuccess;
   return (
     <Sheet
       open
@@ -156,7 +134,7 @@ export function UpgradeSheet({
               commit('wallet');
             }}
           >
-            {t('payByWallet', { wallets: names })}
+            {t('payOnPage')}
           </Button>
         </>
       }
@@ -200,7 +178,7 @@ export function UpgradeSheet({
         <div className="flex items-center gap-3 pt-2.5" aria-hidden="true">
           <RadioMark on={!enough} />
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="text-[15px] font-medium">{t('payByWallet', { wallets: names })}</span>
+            <span className="text-[15px] font-medium">{t('psPage')}</span>
             <span className="truncate text-[14px] text-fg-muted">
               {walletProviders(wallets.data ?? []).join(' · ')}
             </span>

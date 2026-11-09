@@ -7,7 +7,7 @@ import {
 } from '@lytronix/validators';
 import type { ShopperPaymentMethod } from '../../payment-methods/types/payment-methods';
 import type { PaymentPageSession } from '../../payment-sessions/types/payment-sessions';
-import type { PageLanguage } from './words';
+import type { PageLanguage, PagePayee } from './words';
 
 /** PAY-17: how long the page shows the ring before saying it will confirm shortly. */
 const VERIFICATION_WINDOW_MS = 30_000;
@@ -19,6 +19,8 @@ export interface PageData {
   shop: { name: string; logoUrl: string | null; contactPhone: string | null };
   /** The order's tracking page, on a shop whose storefront is on. */
   orderPageUrl: string | null;
+  /** PAYMENT-PAGE-DESIGN §8: a shop paying Lytro, whose words differ here and there. A shopper paying a shop when left out. */
+  payee?: PagePayee;
 }
 
 /** What the address asks of the page. */

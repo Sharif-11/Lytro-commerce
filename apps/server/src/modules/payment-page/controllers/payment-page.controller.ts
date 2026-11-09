@@ -40,6 +40,7 @@ import { OkDto } from '../../../common/dto/ok.dto';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { GatewayCheckouts, type StartedCheckout } from '../../gateway/services/gateway-checkout';
+import { LytroCheckouts } from '../../lytro-payments/services/lytro-checkouts';
 import { PAYMENT_PAGE_ORIGIN } from '../../payment-sessions/tokens';
 import { PaymentSubmissions } from '../../listener-receipts/services/payment-submissions';
 import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
@@ -140,6 +141,7 @@ export class PaymentPageController {
     @Inject(ClientIp) private readonly clientIp: ClientIp,
     @Inject(API_CLOCK) private readonly clock: () => Date,
     @Inject(GatewayCheckouts) private readonly checkouts: GatewayCheckouts,
+    @Inject(LytroCheckouts) private readonly lytroCheckouts: LytroCheckouts,
     @Inject(PAYMENT_PAGE_ORIGIN) private readonly pageOrigin: string,
   ) {}
 
@@ -237,7 +239,8 @@ export class PaymentPageController {
   ): Promise<void> {
     const shop = request.apiShop;
     if (!shop) throw new Error('the payment page guard names the shop');
-    await this.checkouts.returned(shop.row.id, ref, { paymentId, status });
+    if (request.lytroPage) await this.lytroCheckouts.returned(ref, { paymentId, status });
+    else await this.checkouts.returned(shop.row.id, ref, { paymentId, status });
     // Back from paying: the page returns to the shop if it went through, and offers another try if it didn't.
     response.redirect(302, `${this.pageOrigin}/${ref}?just=1`);
   }

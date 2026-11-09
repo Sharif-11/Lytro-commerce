@@ -1,10 +1,12 @@
 import type {
   BillingPaymentState,
   PaymentCancelReason,
+  GatewayResult,
   PaymentMethod,
   PaymentReviewReason,
   PlanPaymentKind,
   PlanPaymentMethod,
+  PlanPaymentPageFrom,
   PlanPaymentStatus,
 } from '@lytronix/validators';
 
@@ -36,6 +38,16 @@ export interface PlanPaymentRecord {
   recordedByPlatform: boolean;
   /** ADM-17, D8-15: the seller's screenshot of the payment, when they added one. */
   evidenceId: string | null;
+  /** PAYMENT-PAGE-DESIGN §8: paying on the payment page, and bKash's own checkout when the way is automatic. */
+  pageRef: string | null;
+  pageExpiresAt: Date | null;
+  pageFrom: PlanPaymentPageFrom | null;
+  payMethod: PaymentMethod | null;
+  idChanges: number;
+  gatewayPaymentId: string | null;
+  gatewayUrl: string | null;
+  gatewayResult: GatewayResult | null;
+  test: boolean;
   createdAt: Date;
 }
 

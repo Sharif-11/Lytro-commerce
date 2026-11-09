@@ -16,6 +16,7 @@ import type { InvoicesStore, NewInvoiceValues } from '../../modules/payments/por
 import type { InvoiceLine, InvoiceRecord } from '../../modules/payments/types/invoice';
 import type {
   NewPlanPaymentValues,
+  PlanPaymentPageValues,
   PlanPaymentsStore,
   PlanPaymentStatusValues,
 } from '../../modules/payments/ports/plan-payments-store';
@@ -153,6 +154,41 @@ export class DrizzlePlanPaymentsStore implements PlanPaymentsStore {
 
   lockTyped(tx: Transaction, transactionId: string) {
     return this.payments.lockTyped(tx, transactionId);
+  }
+
+  findByPageRef(tx: Transaction, ref: string) {
+    return this.payments.findByPageRef(tx, ref);
+  }
+
+  lockByPageRef(tx: Transaction, ref: string) {
+    return this.payments.lockByPageRef(tx, ref);
+  }
+
+  pageLabelOf(tx: Transaction, id: string) {
+    return this.payments.pageLabelOf(tx, id);
+  }
+
+  setPage(tx: Transaction, id: string, values: PlanPaymentPageValues) {
+    return this.payments.setPage(tx, id, values);
+  }
+
+  async changeTyped(
+    tx: Transaction,
+    id: string,
+    values: { transactionId: string; senderNumber: string | null; submittedAt: Date },
+  ) {
+    try {
+      await this.payments.changeTyped(tx, id, values);
+    } catch (error) {
+      if (this.transactions.isUniqueViolation(error, 'plan_payments_transaction_id_idx')) {
+        throw new UniqueViolation('transactionId');
+      }
+      throw error;
+    }
+  }
+
+  gatewayDue(tx: Transaction, now: Date) {
+    return this.payments.gatewayDue(tx, now);
   }
 
   creditInstead(

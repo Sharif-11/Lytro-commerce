@@ -12,7 +12,9 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { LytroPaymentPages } from '../../lytro-payments/services/lytro-payment-pages';
 import { LytroReceipts } from '../../lytro-receipts/services/lytro-receipts';
+import { OpenPlanPaymentPageDto, PlanPaymentPageDto } from '../dto/operator-payment-methods.dto';
 import { IdempotencyInterceptor } from '../../../common/idempotency/idempotency.interceptor';
 import { ZodResponse } from 'nestjs-zod';
 import { LedgerEntryType, limitOf, Permission, PlanPaymentKind } from '@lytronix/validators';
@@ -81,6 +83,7 @@ export class BalanceController {
   constructor(
     @Inject(LytroReceipts) private readonly lytroReceipts: LytroReceipts,
     @Inject(PaymentEvidence) private readonly evidence: PaymentEvidence,
+    @Inject(LytroPaymentPages) private readonly pages: LytroPaymentPages,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(RateService) private readonly rates: RateService,
     @Inject(TopUpService) private readonly topUp: TopUpService,
@@ -251,6 +254,27 @@ export class BalanceController {
             evidenceId,
           }),
         ),
+    );
+  }
+
+  // PAYMENT-PAGE-DESIGN §8: a top-up is paid on the payment page.
+  @Post('top-up/:id/page')
+  @Dashboard({ suspendedOwner: true })
+  @RequirePermission(Permission.BalanceManage)
+  @ResponseMessage('PlanPaymentPageOpened')
+  @ApiOperation({ summary: 'Open the payment page for a top-up nothing was sent for' })
+  @ZodResponse({ type: PlanPaymentPageDto })
+  openPage(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(OpenPlanPaymentPageDto.schema)) body: OpenPlanPaymentPageDto,
+    @Req() request: DashboardRequest,
+  ): Promise<{ url: string }> {
+    return this.pages.open(
+      this.tenantIdOf(request),
+      id,
+      body.from,
+      [PlanPaymentKind.TopUp],
+      new Date(),
     );
   }
 

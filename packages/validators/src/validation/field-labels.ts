@@ -80,6 +80,8 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   installationId: { en: 'Installation ID', bn: 'ইনস্টলেশন আইডি' },
   // Slice 5.7: a wallet's gateway credentials, and how a shop takes its money.
   appKey: { en: 'App key', bn: 'অ্যাপ কী' },
+  // Which part of the dashboard opened the payment page: never typed.
+  from: null,
   appSecret: { en: 'App secret', bn: 'অ্যাপ সিক্রেট' },
   keys: { en: 'Push keys', bn: 'পুশ কি' },
   newRate: { en: 'New rate', bn: 'নতুন রেট' },
