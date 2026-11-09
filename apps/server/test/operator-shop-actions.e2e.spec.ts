@@ -634,7 +634,7 @@ describeIfDatabase('ADM-13: deleting a shop data on request', () => {
   );
 
   it(
-    "keeps those tables' rows from being deleted any other way (0122's guard)",
+    "keeps those tables' rows from being deleted any other way (D8-39's guard)",
     async () => {
       const shop = await openShop(port, texts, 'guarded');
       await seedPhase7(shop.tenantId);
