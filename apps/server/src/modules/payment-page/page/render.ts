@@ -105,6 +105,19 @@ type IconName = keyof typeof ICONS;
 const icon = (name: IconName, size = 'i'): SafeHtml =>
   html`<svg class="i ${size}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
 
+/** PAYMENT-PAGE-DESIGN §8: Lytro's mark, where a shop's logo or monogram goes. */
+const LYTRO_MARK = html`<span class="mono lytro"
+  ><svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true">
+    <path
+      d="M15 15V49H31L49 29"
+      fill="none"
+      stroke="#fff"
+      stroke-width="10"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    /></svg
+></span>`;
+
 function page(chrome: Chrome, body: HtmlPart): string {
   return html`<!doctype html>
     <html lang="${chrome.language}">
@@ -142,12 +155,17 @@ class PageDrawing {
     private readonly typed: TypedForm | null,
     private readonly typedReport: TypedReport | null,
   ) {
-    this.words = new PageWords(ask.language);
+    this.words = new PageWords(ask.language, data.payee ?? 'shop');
     this.screen = screenOf(data, ask, now);
   }
 
   private get session(): PageData['session'] {
     return this.data.session;
+  }
+
+  /** PAYMENT-PAGE-DESIGN §8: a shop paying Lytro. */
+  private get paysLytro(): boolean {
+    return this.data.payee === 'lytro';
   }
 
   /** This page's own address, in this language, with what is asked of it. */
@@ -195,7 +213,7 @@ class PageDrawing {
   private legal(bare = false): SafeHtml {
     return html`<p class="legal">
       🔒 Secured by Lytro · ${this.words.of('secured')}
-      ${bare ? '' : html` · <a href="#report">${this.words.of('report')}</a>`} ·
+      ${bare || this.paysLytro ? '' : html` · <a href="#report">${this.words.of('report')}</a>`} ·
       <a href="${this.otherLanguageAddress()}">${this.words.of('otherLanguage')}</a>
     </p>`;
   }
@@ -263,7 +281,9 @@ class PageDrawing {
           ${
             shop.logoUrl
               ? html`<img src="${shop.logoUrl}" alt="" />`
-              : html`<span class="mono">${firstLetter(shop.name)}</span>`
+              : this.paysLytro
+                ? LYTRO_MARK
+                : html`<span class="mono">${firstLetter(shop.name)}</span>`
           }
         </span>
         <div>
@@ -381,6 +401,7 @@ class PageDrawing {
         ${idBad ? html`<div class="ierr">${problem}</div>` : ''}
         <input
           class="inp two ${this.typed?.problem === 'sender' ? 'bad' : ''}"
+          ${this.paysLytro ? html`required` : ''}
           name="senderNumber"
           value="${typedSender}"
           placeholder="${this.words.of('senderPh')}"
@@ -944,7 +965,7 @@ class PageDrawing {
           </div>
           ${fixed}
         </main>
-        ${this.detailsSheet()} ${this.reportSheet()}
+        ${this.detailsSheet()} ${this.paysLytro ? '' : this.reportSheet()}
         ${
           this.ask.reported
             ? html`<div class="toast" role="status">

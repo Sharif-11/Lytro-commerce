@@ -61,7 +61,7 @@ function walletAccountInput(lengths: readonly number[]) {
 }
 
 // WAL-14: a bank account's details; the bank's name and the account number are needed.
-const bankAccountInput = z.object({
+export const bankAccountInput = z.object({
   id: accountId,
   accountName: text(PAYMENT_ACCOUNT_NAME_MAX_LENGTH),
   bankName: text(BANK_FIELD_MAX_LENGTH),

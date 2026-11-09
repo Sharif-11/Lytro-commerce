@@ -17,6 +17,8 @@ import type { ApiShop, AuthenticatedKey } from '../types/public-api';
 export interface PublicApiRequest extends HttpRequest {
   tenant?: CachedTenant;
   apiShop?: ApiShop;
+  /** PAYMENT-PAGE-DESIGN §8: this page's address names a shop's payment to Lytro. */
+  lytroPage?: boolean;
   apiKey?: AuthenticatedKey;
 }
 

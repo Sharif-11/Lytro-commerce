@@ -7,6 +7,7 @@ import { BalanceModule } from '../balance/balance.module';
 import { DomainsModule } from '../domains/domains.module';
 import { GatewayModule } from '../gateway/gateway.module';
 import { ListenerReceiptsModule } from '../listener-receipts/listener-receipts.module';
+import { LytroPaymentsModule } from '../lytro-payments/lytro-payments.module';
 import { MediaModule } from '../media/media.module';
 import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
 import { PublicApiModule } from '../public-api/public-api.module';
@@ -31,6 +32,7 @@ import { PAY_PAGE_ASSETS_DIR, PAY_PAGE_MEDIA_ORIGIN } from './tokens';
     DomainsModule,
     GatewayModule,
     ListenerReceiptsModule,
+    LytroPaymentsModule,
     MediaModule,
     PaymentSessionsModule,
     PublicApiModule,

@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { ApiError } from '../../../common/api-error';
 import type { HttpResponse } from '../../../common/http';
+import { LytroPaymentPages } from '../../lytro-payments/services/lytro-payment-pages';
 import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
 import { CLOSED_STATES } from '../../tenancy/services/tenant-resolver.service';
 import type { PublicApiRequest } from '../../public-api/guards/public-key.guard';
@@ -26,6 +27,7 @@ interface PageRequest extends PublicApiRequest {
 export class PaymentPageGuard implements CanActivate {
   constructor(
     @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
+    @Inject(LytroPaymentPages) private readonly lytro: LytroPaymentPages,
     @Inject(ApiKeyAuthenticator) private readonly authenticator: ApiKeyAuthenticator,
     @Inject(VisitorLimit) private readonly visitors: VisitorLimit,
     @Inject(API_CLOCK) private readonly clock: () => Date,
@@ -36,6 +38,16 @@ export class PaymentPageGuard implements CanActivate {
     const response = context.switchToHttp().getResponse<HttpResponse>();
     const ref = request.params['ref'] ?? '';
     const tenantId = REF.test(ref) ? await this.sessions.tenantOfRef(ref) : null;
+    // PAYMENT-PAGE-DESIGN §8: a shop's payment to Lytro. A lapsed or suspended shop is exactly who needs to pay, so its state doesn't close the page.
+    const payer = tenantId === null && REF.test(ref) ? await this.lytro.tenantOfRef(ref) : null;
+    if (payer !== null) {
+      const paying = await this.authenticator.shopOf(payer);
+      if (!paying) throw new ApiError('not_found', 'PaymentNotFound', {});
+      await this.visitors.admit(paying, request, response, this.clock());
+      request.apiShop = paying;
+      request.lytroPage = true;
+      return true;
+    }
     const shop = tenantId === null ? null : await this.authenticator.shopOf(tenantId);
     if (!shop || CLOSED_STATES.has(shop.row.state) || shop.row.suspendedAt !== null) {
       throw new ApiError('not_found', 'PaymentNotFound', {});

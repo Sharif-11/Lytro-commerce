@@ -653,6 +653,13 @@ export enum PlatformAuditAction {
   PlatformWalletAdded = 'platform_wallet_added',
   PlatformWalletUpdated = 'platform_wallet_updated',
   PlatformWalletRemoved = 'platform_wallet_removed',
+  // OPERATOR-CONSOLE-DESIGN §10 (2026-11-09): what shops may pay Lytro by, and how it is confirmed.
+  PlatformPaymentMethodChanged = 'platform_payment_method_changed',
+  PlatformBankAccountAdded = 'platform_bank_account_added',
+  PlatformBankAccountUpdated = 'platform_bank_account_updated',
+  PlatformBankAccountRemoved = 'platform_bank_account_removed',
+  PlatformGatewayKeysSaved = 'platform_gateway_keys_saved',
+  PlatformGatewayKeysRemoved = 'platform_gateway_keys_removed',
   // TRM-16: every billing-term change, a deletion included; TRM-03: a plan's price for a term, set or removed.
   BillingTermCreated = 'billing_term_created',
   BillingTermUpdated = 'billing_term_updated',
@@ -1513,6 +1520,15 @@ export enum PaymentReviewReason {
 }
 
 // PAY-06 (amended 2026-11-03, Slice 5.7 read): how a shop takes a wallet's payments, its owner's choice for each wallet.
+// PAYMENT-PAGE-DESIGN §8: the part of the dashboard a shop opened the payment page from, and comes back to.
+export enum PlanPaymentPageFrom {
+  Checkout = 'checkout',
+  Plan = 'plan',
+  Balance = 'balance',
+  Addons = 'addons',
+  Billing = 'billing',
+}
+
 export enum PaymentWay {
   Automated = 'automated',
   Listener = 'listener',

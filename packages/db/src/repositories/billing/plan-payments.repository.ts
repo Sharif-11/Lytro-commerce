@@ -33,6 +33,8 @@ import {
   type PlanPaymentKind,
   ListenerMessageStatus,
   type PaymentMethod,
+  type GatewayResult,
+  type PlanPaymentPageFrom,
 } from '@lytronix/validators';
 import type { Executor } from '../../transactions';
 
@@ -261,6 +263,85 @@ export class PlanPaymentsRepository {
     },
   ): Promise<void> {
     await tx.update(planPayments).set(values).where(eq(planPayments.id, id));
+  }
+
+  /** PAYMENT-PAGE-DESIGN §8: the payment a page's address names, with what it pays for; null when there is none. */
+  async findByPageRef(tx: Executor, ref: string): Promise<SelectPlanPayment | null> {
+    const [row] = await tx.select().from(planPayments).where(eq(planPayments.pageRef, ref));
+    return row ?? null;
+  }
+
+  /** The same, held for the rest of the transaction. */
+  async lockByPageRef(tx: Executor, ref: string): Promise<SelectPlanPayment | null> {
+    const [row] = await tx
+      .select()
+      .from(planPayments)
+      .where(eq(planPayments.pageRef, ref))
+      .for('update');
+    return row ?? null;
+  }
+
+  /** What a payment's page names: its plan and term, when it has them. */
+  async pageLabelOf(
+    tx: Executor,
+    id: string,
+  ): Promise<{ planName: string | null; termEn: string | null; termBn: string | null } | null> {
+    const [row] = await tx
+      .select({
+        planName: plans.name,
+        termEn: billingTerms.labelEn,
+        termBn: billingTerms.labelBn,
+      })
+      .from(planPayments)
+      .leftJoin(plans, eq(plans.id, planPayments.planId))
+      .leftJoin(billingTerms, eq(billingTerms.id, planPayments.billingTermId))
+      .where(eq(planPayments.id, id));
+    return row ?? null;
+  }
+
+  /** PAYMENT-PAGE-DESIGN §8: what paying on the page changes on the row. */
+  async setPage(
+    tx: Executor,
+    id: string,
+    values: {
+      pageRef?: string;
+      pageExpiresAt?: Date;
+      pageFrom?: PlanPaymentPageFrom;
+      payMethod?: PaymentMethod | null;
+      gatewayPaymentId?: string | null;
+      gatewayUrl?: string | null;
+      gatewayResult?: GatewayResult | null;
+      test?: boolean;
+    },
+  ): Promise<void> {
+    await tx.update(planPayments).set(values).where(eq(planPayments.id, id));
+  }
+
+  /** PAY-07: a typed ID corrected, counted. Throws the unique violation an ID another payment holds raises. */
+  async changeTyped(
+    tx: Executor,
+    id: string,
+    values: { transactionId: string; senderNumber: string | null; submittedAt: Date },
+  ): Promise<void> {
+    await tx
+      .update(planPayments)
+      .set({ ...values, idChanges: sql`${planPayments.idChanges} + 1` })
+      .where(eq(planPayments.id, id));
+  }
+
+  /** VER-09: bKash checkouts past their window that never came back, to be asked after. */
+  gatewayDue(tx: Executor, now: Date): Promise<SelectPlanPayment[]> {
+    return tx
+      .select()
+      .from(planPayments)
+      .where(
+        and(
+          isNotNull(planPayments.gatewayPaymentId),
+          eq(planPayments.status, PlanPaymentStatus.Pending),
+          isNull(planPayments.transactionId),
+          lt(planPayments.pageExpiresAt, now),
+        ),
+      );
   }
 
   /**

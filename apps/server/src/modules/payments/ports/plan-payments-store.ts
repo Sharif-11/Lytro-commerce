@@ -5,9 +5,12 @@ import type {
   Transaction,
 } from '@lytronix/db';
 import type {
+  GatewayResult,
+  PaymentMethod,
   PaymentReviewReason,
   PaymentCancelReason,
   PlanPaymentKind,
+  PlanPaymentPageFrom,
   PlanPaymentStatus,
 } from '@lytronix/validators';
 import type { PlanPaymentRecord, QueuedPlanPayment } from '../types/plan-payment';
@@ -19,6 +22,18 @@ export interface NewPlanPaymentValues {
   billingTermId: string | null;
   amount: string;
   creditAmount: string;
+}
+
+/** PAYMENT-PAGE-DESIGN §8: what paying on the page changes on the row. */
+export interface PlanPaymentPageValues {
+  pageRef?: string;
+  pageExpiresAt?: Date;
+  pageFrom?: PlanPaymentPageFrom;
+  payMethod?: PaymentMethod | null;
+  gatewayPaymentId?: string | null;
+  gatewayUrl?: string | null;
+  gatewayResult?: GatewayResult | null;
+  test?: boolean;
 }
 
 export interface PlanPaymentStatusValues {
@@ -89,6 +104,21 @@ export interface PlanPaymentsStore {
   releaseReceipt(tx: Transaction, paymentId: string): Promise<void>;
   /** VER-02 (Slice 5.6): the payment a receipt with this ID settles, held; null when no seller typed it. */
   lockTyped(tx: Transaction, transactionId: string): Promise<PlanPaymentRecord | null>;
+  findByPageRef(tx: Transaction, ref: string): Promise<PlanPaymentRecord | null>;
+  lockByPageRef(tx: Transaction, ref: string): Promise<PlanPaymentRecord | null>;
+  pageLabelOf(
+    tx: Transaction,
+    id: string,
+  ): Promise<{ planName: string | null; termEn: string | null; termBn: string | null } | null>;
+  setPage(tx: Transaction, id: string, values: PlanPaymentPageValues): Promise<void>;
+  /** PAY-07: throws `UniqueViolation('transactionId')` when another open payment holds the ID. */
+  changeTyped(
+    tx: Transaction,
+    id: string,
+    values: { transactionId: string; senderNumber: string | null; submittedAt: Date },
+  ): Promise<void>;
+  /** VER-09: bKash checkouts past their window that never came back. */
+  gatewayDue(tx: Transaction, now: Date): Promise<PlanPaymentRecord[]>;
   /** BIL-06 (Slice 5.6): the row becomes the top-up its money now is. */
   creditInstead(
     tx: Transaction,

@@ -23,6 +23,8 @@ import { ApiError, FieldsError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { GatewayCheckouts } from '../../gateway/services/gateway-checkout';
+import { LytroCheckouts } from '../../lytro-payments/services/lytro-checkouts';
+import { LytroPaymentPages } from '../../lytro-payments/services/lytro-payment-pages';
 import { PaymentSubmissions } from '../../listener-receipts/services/payment-submissions';
 import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
 import type { PublicApiRequest } from '../../public-api/guards/public-key.guard';
@@ -38,7 +40,7 @@ import {
   type TypedForm,
   type TypedReport,
 } from '../page/render';
-import { screenOf, type PageAsk } from '../page/screens';
+import { screenOf, type PageAsk, type PageData } from '../page/screens';
 import { PaymentPageAssets } from '../services/payment-page-assets';
 import { PaymentPageReader } from '../services/payment-page-reader';
 import { PAY_PAGE_MEDIA_ORIGIN } from '../tokens';
@@ -86,6 +88,8 @@ export class PaymentPageHtmlController {
     @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
     @Inject(PaymentSubmissions) private readonly submissions: PaymentSubmissions,
     @Inject(GatewayCheckouts) private readonly checkouts: GatewayCheckouts,
+    @Inject(LytroPaymentPages) private readonly lytro: LytroPaymentPages,
+    @Inject(LytroCheckouts) private readonly lytroCheckouts: LytroCheckouts,
     @Inject(PaymentPageReader) private readonly reader: PaymentPageReader,
     @Inject(PaymentPageAssets) private readonly assets: PaymentPageAssets,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
@@ -111,10 +115,8 @@ export class PaymentPageHtmlController {
     @Req() request: PublicApiRequest,
     @Res() response: PageResponse,
   ): Promise<void> {
-    const shop = this.shopOf(request);
     const now = this.clock();
-    const session = await this.sessions.page(shop.id, ref, now);
-    const data = await this.reader.dataOf(shop, ref, session);
+    const data = await this.dataOf(ref, askOf(query), request, now);
     response
       .status(200)
       .set({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
@@ -156,8 +158,22 @@ export class PaymentPageHtmlController {
       );
       return;
     }
+    // PAYMENT-PAGE-DESIGN §8: Lytro's phone checks the number a wallet's money came from.
+    if (request.lytroPage && senderNumber === '' && (await this.lytro.needsSender(method))) {
+      await this.draw(
+        ref,
+        ask,
+        request,
+        response,
+        { typed: { transactionId, senderNumber, problem: 'sender' } },
+        422,
+      );
+      return;
+    }
     await this.typing(ref, ask, { transactionId, senderNumber }, request, response, () =>
-      this.submissions.submit(shop.id, ref, parsed.data, this.clock()),
+      request.lytroPage
+        ? this.lytro.submit(ref, parsed.data, this.clock())
+        : this.submissions.submit(shop.id, ref, parsed.data, this.clock()),
     );
   }
 
@@ -191,13 +207,15 @@ export class PaymentPageHtmlController {
       return;
     }
     await this.typing(ref, ask, { transactionId, senderNumber }, request, response, () =>
-      this.submissions.change(
-        shop.id,
-        ref,
-        parsed.data,
-        this.clientIp.resolve(request),
-        this.clock(),
-      ),
+      request.lytroPage
+        ? this.lytro.change(ref, parsed.data, this.clock())
+        : this.submissions.change(
+            shop.id,
+            ref,
+            parsed.data,
+            this.clientIp.resolve(request),
+            this.clock(),
+          ),
     );
   }
 
@@ -217,7 +235,9 @@ export class PaymentPageHtmlController {
       return;
     }
     try {
-      const { redirectUrl } = await this.checkouts.start(shop.id, ref, method);
+      const { redirectUrl } = request.lytroPage
+        ? await this.lytroCheckouts.start(ref, method)
+        : await this.checkouts.start(shop.id, ref, method);
       if (redirectUrl === null) {
         response.redirect(303, pageAddress(ref, language, { w: method, hand: '1' }));
         return;
@@ -242,6 +262,11 @@ export class PaymentPageHtmlController {
   ): Promise<void> {
     const shop = this.shopOf(request);
     const language = languageOf(body['lang']);
+    // PAYMENT-PAGE-DESIGN §8: reporting a page reports a shop to Lytro; a payment to Lytro has nobody to report.
+    if (request.lytroPage) {
+      response.redirect(303, pageAddress(ref, language));
+      return;
+    }
     const note = text(body['note']);
     const parsed = paymentPageReportSchema.safeParse({
       reason: body['reason'],
@@ -320,11 +345,21 @@ export class PaymentPageHtmlController {
     options: DrawOptions = {},
     status = 200,
   ): Promise<void> {
-    const shop = this.shopOf(request);
     const now = this.clock();
-    const session = await this.sessions.page(shop.id, ref, now);
-    const data = await this.reader.dataOf(shop, ref, session);
+    const data = await this.dataOf(ref, ask, request, now);
     this.send(response, status, drawPage(data, ask, now, this.assets.urls, options));
+  }
+
+  private async dataOf(
+    ref: string,
+    ask: PageAsk,
+    request: PublicApiRequest,
+    now: Date,
+  ): Promise<PageData> {
+    const shop = this.shopOf(request);
+    if (request.lytroPage) return this.lytro.dataOf(shop, ref, ask.language, now);
+    const session = await this.sessions.page(shop.id, ref, now);
+    return this.reader.dataOf(shop, ref, session);
   }
 
   private send(response: PageResponse, status: number, page: string): void {

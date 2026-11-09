@@ -19,6 +19,7 @@ import { CourierBookingTickWorker } from './services/courier-booking-tick-worker
 import { CourierAreasTickWorker } from './services/courier-areas-tick-worker';
 import { CourierNightTickWorker } from './services/courier-night-tick-worker';
 import { GatewayReconcileTickWorker } from './services/gateway-reconcile-tick-worker';
+import { LytroPaymentsModule } from '../../lytro-payments/lytro-payments.module';
 import { GatewayModule } from '../../gateway/gateway.module';
 import { ListenerModule } from '../../listener/listener.module';
 import { ListenerReceiptsModule } from '../../listener-receipts/listener-receipts.module';
@@ -59,6 +60,7 @@ import { ShopDayTickWorker } from './services/shop-day-tick-worker';
     ListenerModule,
     ListenerReceiptsModule,
     GatewayModule,
+    LytroPaymentsModule,
     CouriersModule,
     QueueModule,
     MessagingModule,

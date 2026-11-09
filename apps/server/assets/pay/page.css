@@ -1060,3 +1060,8 @@ svg.i40 {
     animation: none;
   }
 }
+
+/* PAYMENT-PAGE-DESIGN §8: Lytro's mark, on a payment to Lytro. */
+.brandrow .logo .mono.lytro {
+  background: #063b38;
+}
