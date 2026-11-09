@@ -603,7 +603,9 @@ export class AddonPurchaseService {
     );
     const owner = await this.staff.ownerContactIn(tx, tenantId);
     // The SMS keeps its English words (KNOWN-GAPS §127); the email goes in the owner's language.
-    if (owner?.phone) await this.sms.queueLifecycleNotice(tx, owner.phone, words.en.body);
+    if (owner?.phone) {
+      await this.sms.queueLifecycleNotice(tx, owner.phone, words.en.body, tenantId);
+    }
     await this.notices.send(
       tx,
       tenantId,

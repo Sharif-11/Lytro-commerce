@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull, ne } from 'drizzle-orm';
+import { and, eq, gt, isNull, max, ne } from 'drizzle-orm';
 import type { Executor } from '../../transactions';
 import { SignInMethod } from '@lytronix/validators';
 import { sessions } from '../../schema';
@@ -22,7 +22,28 @@ export interface NewSession {
   ip: string | null;
 }
 
+/** ADM-03, D8-27: when an account last opened a session in a shop. */
+export interface LastSignInRow {
+  subscriberId: string;
+  at: Date;
+}
+
 export class SessionRepository {
+  /**
+   * ADM-03, D8-27: each account's latest session in the shop. Sessions are revoked, never deleted, so this reaches back
+   * to the shop's first. By account, since a staff member's code sign-in opens a session with no staff user on it.
+   */
+  async lastSignInsOf(db: Executor, tenantId: string): Promise<LastSignInRow[]> {
+    const rows = await db
+      .select({ subscriberId: sessions.subscriberId, at: max(sessions.createdAt) })
+      .from(sessions)
+      .where(eq(sessions.tenantId, tenantId))
+      .groupBy(sessions.subscriberId);
+    return rows.flatMap((row) =>
+      row.at === null ? [] : [{ subscriberId: row.subscriberId, at: row.at }],
+    );
+  }
+
   async insert(db: Executor, values: NewSession): Promise<SessionRow> {
     const [row] = await db.insert(sessions).values(values).returning();
     if (!row) throw new Error('insert returned no session row');

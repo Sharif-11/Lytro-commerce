@@ -10,6 +10,17 @@ export interface StaffRecord {
   mustSetPassword: boolean;
 }
 
+/** ADM-03, D8-27: a member of the shop's team with the account they sign in with; the owner's is the shop's own. */
+export interface TeamAccount {
+  userId: string;
+  name: string | null;
+  phone: string | null;
+  isOwner: boolean;
+  active: boolean;
+  /** Null for the owner's row, whose account is the shop's owner (tenants.subscriber_id). */
+  subscriberId: string | null;
+}
+
 /** A staff account with the roles it holds. */
 export interface StaffMember extends StaffRecord {
   roleIds: string[];

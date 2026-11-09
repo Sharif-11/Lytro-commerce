@@ -500,9 +500,13 @@ export class CourierConnections {
     return this.store.deleteAllForTenant(tenantId);
   }
 
-  /** SEC-11: the shop's log of its courier credentials' uses, for the operator. */
-  async uses(tenantId: string, page: number, limit: number) {
-    const found = await this.store.listUses(tenantId, { offset: (page - 1) * limit, limit });
+  /** SEC-11: the shop's log of its courier credentials' uses, for the operator; the failed ones alone when asked. */
+  async uses(tenantId: string, page: number, limit: number, failedOnly = false) {
+    const found = await this.store.listUses(tenantId, {
+      offset: (page - 1) * limit,
+      limit,
+      failedOnly,
+    });
     return {
       uses: found.rows.map((row) => ({
         courierKey: row.courierKey,
@@ -518,6 +522,14 @@ export class CourierConnections {
       total: found.total,
       pages: Math.ceil(found.total / limit),
     };
+  }
+
+  /**
+   * ADM-03, MON-05: how many of the shop's courier calls failed or were refused since `since`. A call its open circuit
+   * stopped was never made, so it isn't one (KNOWN-GAPS §133).
+   */
+  failedCalls(tenantId: string, since: Date): Promise<number> {
+    return this.store.countFailedUses(tenantId, since);
   }
 
   private async tryCredentials(

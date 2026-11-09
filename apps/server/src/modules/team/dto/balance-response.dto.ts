@@ -92,6 +92,8 @@ export const tenantSummarySchema = z.object({
   planVersion: z.number().nullable(),
   overrideCount: z.number(),
   periodEnd: z.date().nullable(),
+  // D8-24: the owner's phone, so a search by it shows which shop matched.
+  ownerPhone: z.string().nullable(),
 });
 export class TenantSummaryDto extends createZodDto(tenantSummarySchema) {}
 

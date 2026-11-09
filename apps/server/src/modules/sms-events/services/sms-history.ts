@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { SmsReportRow } from '@lytronix/db';
-import type {
-  SmsBlockedReason,
-  SmsLogEntryKind,
-  SmsLogQuery,
+import type { SelectSmsLog, SmsReportRow } from '@lytronix/db';
+import {
   SmsLogStatus,
-  SmsReportQuery,
+  type SmsBlockedReason,
+  type SmsLogEntryKind,
+  type SmsLogQuery,
+  type SmsReportQuery,
 } from '@lytronix/validators';
 import { dhakaDate, dhakaDayStart } from '../../../common/time';
 import type { SmsEventStore } from '../ports/sms-event-store';
@@ -13,6 +13,8 @@ import { SMS_EVENT_STORE, SMS_EVENTS_CLOCK } from '../tokens';
 import { SMS_ESTIMATE_DAYS } from './sms-settings.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+// ADM-03 (Slice 8.2): an SMS that didn't go, failed at the provider or blocked before it.
+const NOT_SENT = [SmsLogStatus.Failed, SmsLogStatus.Blocked] as const;
 
 export interface SmsReport {
   dateFrom: string;
@@ -65,20 +67,40 @@ export class SmsHistory {
       before: query.before,
       orderId: query.orderId,
     });
+    return { sms: rows.map((row) => this.viewOf(row)) };
+  }
+
+  /** ADM-03 (Slice 8.2): how many of the shop's SMS failed or were blocked since `since`. */
+  notSentSince(tenantId: string, since: Date): Promise<{ failed: number; blocked: number }> {
+    return this.store.notSentSince(tenantId, since);
+  }
+
+  /** ADM-03 (Slice 8.2): the shop's SMS that failed or were blocked, newest first, a page at a time. */
+  async notSent(
+    tenantId: string,
+    page: { limit: number; before: number | null },
+  ): Promise<SmsLogView[]> {
+    const rows = await this.store.list(tenantId, {
+      limit: page.limit,
+      before: page.before ?? undefined,
+      statuses: NOT_SENT,
+    });
+    return rows.map((row) => this.viewOf(row));
+  }
+
+  private viewOf(row: SelectSmsLog & { orderNumber: string | null }): SmsLogView {
     return {
-      sms: rows.map((row) => ({
-        id: row.id,
-        kind: row.kind,
-        toPhone: row.toPhone,
-        units: row.units,
-        cost: row.cost,
-        status: row.status,
-        blockedReason: row.blockedReason,
-        orderId: row.orderId,
-        orderNumber: row.orderNumber,
-        body: row.body,
-        createdAt: row.createdAt.toISOString(),
-      })),
+      id: row.id,
+      kind: row.kind,
+      toPhone: row.toPhone,
+      units: row.units,
+      cost: row.cost,
+      status: row.status,
+      blockedReason: row.blockedReason,
+      orderId: row.orderId,
+      orderNumber: row.orderNumber,
+      body: row.body,
+      createdAt: row.createdAt.toISOString(),
     };
   }
 }

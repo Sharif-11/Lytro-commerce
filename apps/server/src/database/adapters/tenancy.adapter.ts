@@ -16,11 +16,13 @@ import {
   type PaygCandidateRow,
   type RevocationCandidateRow,
   type TenantOperatorFactsRow,
+  type TenantSearchRow,
   type Transaction,
 } from '@lytronix/db';
 import {
   CUSTOM_DOMAIN_FEATURE,
   featureOn,
+  TenantSort,
   type PlanLimits,
   type TenantState,
 } from '@lytronix/validators';
@@ -30,6 +32,7 @@ import type { TenantDirectory } from '../../modules/tenancy/ports/tenant-directo
 import type { SlugAvailability } from '../../modules/tenancy/ports/slug-availability';
 import type {
   TenantSearchCursor,
+  TenantSearchFilters,
   TenantSearchPage,
   TenantSummaryStore,
 } from '../../modules/tenancy/ports/tenant-summary-store';
@@ -300,17 +303,32 @@ export class DrizzleTenantSummaryStore implements TenantSummaryStore {
   }
 
   async search(
-    query: string | null,
+    filters: TenantSearchFilters,
+    sort: TenantSort,
     cursor: TenantSearchCursor | null,
     limit: number,
   ): Promise<TenantSearchPage> {
     // One extra row decides whether a next page exists, without a second round trip (never OFFSET) --
     // the same trick AuditService.list uses for the activity log.
-    const rows = await this.tenants.search(this.database.handle.db, { query }, cursor, limit + 1);
+    const rows = await this.tenants.search(
+      this.database.handle.db,
+      filters,
+      sort,
+      cursor,
+      limit + 1,
+    );
     const hasMore = rows.length > limit;
-    const entries = hasMore ? rows.slice(0, limit) : rows;
-    const last = entries[entries.length - 1];
-    const nextCursor = hasMore && last ? { createdAt: last.createdAt, id: last.id } : null;
-    return { entries, nextCursor };
+    const page = hasMore ? rows.slice(0, limit) : rows;
+    const last = page[page.length - 1];
+    const nextCursor = hasMore && last ? this.cursorAt(sort, last) : null;
+    // Each row's sort key rides along to the response, whose schema leaves it out.
+    return { entries: page, nextCursor };
+  }
+
+  /** Where the next page starts: the last row's key in the list's own order. */
+  private cursorAt(sort: TenantSort, row: TenantSearchRow): TenantSearchCursor {
+    if (sort === TenantSort.Name) return { sort, name: row.sortName, id: row.id };
+    if (sort === TenantSort.PeriodEnd) return { sort, periodEnd: row.periodEnd, id: row.id };
+    return { sort: TenantSort.Newest, createdAt: row.createdAt, id: row.id };
   }
 }

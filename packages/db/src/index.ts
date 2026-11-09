@@ -13,6 +13,7 @@ export {
   type TenantLookupRow,
   type TenantSummaryRow,
   type TenantSearchCursor,
+  type TenantSearchFilters,
   type TenantSearchRow,
   type BalanceRow,
   type BillingInfoRow,
@@ -57,6 +58,8 @@ export {
   SmsRepository,
   type ClaimedSmsMessage,
   type NewSmsMessage,
+  type FailedSmsRow,
+  type ShopMessages,
 } from './repositories/messaging/sms.repository';
 export {
   MailRepository,
@@ -128,6 +131,7 @@ export { PlatformSettingsRepository } from './repositories/platform/platform-set
 export {
   RequestErrorRepository,
   type NewRequestError,
+  type RequestErrorRow,
 } from './repositories/platform/request-error.repository';
 export {
   BalanceLedgerRepository,

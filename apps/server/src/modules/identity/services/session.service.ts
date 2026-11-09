@@ -23,6 +23,12 @@ export class SessionService {
     @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
   ) {}
 
+  /** ADM-03, D8-27: when each account last signed in to the shop, by its subscriber id. */
+  async lastSignInsOf(tenantId: string): Promise<Map<string, Date>> {
+    const rows = await this.store.lastSignInsOf(tenantId);
+    return new Map(rows.map((row) => [row.subscriberId, row.at]));
+  }
+
   /** TEN-29: the cookie's name, `__Host-` prefixed wherever cookies are Secure. */
   get cookieName(): string {
     return sessionCookieName(SESSION_COOKIE, this.settings.secureCookies);

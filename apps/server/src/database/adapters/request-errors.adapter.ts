@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { RequestErrorRepository, type NewRequestError } from '@lytronix/db';
+import { RequestErrorRepository, type NewRequestError, type RequestErrorRow } from '@lytronix/db';
 import type { RequestErrorStore } from '../../common/request-id/ports/request-error-store';
 import { DatabaseService } from '../database.service';
 
@@ -17,5 +17,18 @@ export class DrizzleRequestErrorStore implements RequestErrorStore {
 
   purgeBefore(before: Date): Promise<number> {
     return this.errors.purgeBefore(this.database.handle.db, before);
+  }
+
+  countSince(tenantId: string, since: Date): Promise<number> {
+    return this.errors.countSince(this.database.handle.db, tenantId, since);
+  }
+
+  latest(
+    tenantId: string,
+    since: Date,
+    beforeId: number | null,
+    limit: number,
+  ): Promise<RequestErrorRow[]> {
+    return this.errors.latest(this.database.handle.db, tenantId, since, beforeId, limit);
   }
 }

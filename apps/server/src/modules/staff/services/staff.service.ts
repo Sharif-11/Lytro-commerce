@@ -19,7 +19,13 @@ import type { StaffPasswordHasher } from '../ports/staff-password-hasher';
 import type { StaffShop, StaffStore } from '../ports/staff-store';
 import type { StaffAccounts } from '../ports/staff-accounts';
 import { ROLE_STORE, STAFF_ACCOUNTS, STAFF_PASSWORD_HASHER, STAFF_STORE } from '../tokens';
-import type { StaffCredentials, StaffList, StaffMember, StaffRecord } from '../types/staff';
+import type {
+  StaffCredentials,
+  StaffList,
+  StaffMember,
+  StaffRecord,
+  TeamAccount,
+} from '../types/staff';
 import type { OwnerContact } from '../types/owner-contact';
 import type { Language } from '@lytronix/validators';
 
@@ -199,6 +205,16 @@ export class StaffService {
   /** STF-13, AUTH-31: the active staff who have not yet chosen their own password -- a Home row. */
   countWithoutPassword(tenantId: string): Promise<number> {
     return this.store.run(tenantId, (tx) => this.store.countMustSetPassword(tx, tenantId));
+  }
+
+  /** ADM-03, D8-27: the shop's active members, the owner first, each with the account they sign in with. */
+  async activeAccounts(tenantId: string): Promise<TeamAccount[]> {
+    const members = await this.store.run(tenantId, (tx) =>
+      this.store.listTeamAccounts(tx, tenantId),
+    );
+    return members
+      .filter((member) => member.active)
+      .sort((a, b) => Number(b.isOwner) - Number(a.isOwner));
   }
 
   list(tenant: StaffTenant): Promise<StaffList> {

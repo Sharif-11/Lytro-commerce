@@ -43,7 +43,11 @@ export interface PlanPaymentsStore {
   findById(tx: Transaction, id: string): Promise<PlanPaymentRecord | null>;
   /** Locks the row for the rest of the transaction -- a confirm/reject reads-then-writes it atomically. */
   findByIdForUpdate(tx: Transaction, id: string): Promise<PlanPaymentRecord | null>;
-  listPending(tx: Transaction, kind?: PlanPaymentKind): Promise<QueuedPlanPayment[]>;
+  listPending(
+    tx: Transaction,
+    kind?: PlanPaymentKind,
+    tenantId?: string,
+  ): Promise<QueuedPlanPayment[]>;
   /** UPG-08: a submitted row of this kind for this tenant still waiting for the operator. */
   findSubmittedOpen(
     tx: Transaction,

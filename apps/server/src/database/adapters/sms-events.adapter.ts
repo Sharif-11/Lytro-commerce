@@ -100,6 +100,10 @@ export class DrizzleSmsEventStore implements SmsEventStore {
     return this.run(tenantId, (tx) => this.logRows.report(tx, tenantId, from, to));
   }
 
+  notSentSince(tenantId: string, since: Date): Promise<{ failed: number; blocked: number }> {
+    return this.run(tenantId, (tx) => this.logRows.notSentSince(tx, tenantId, since));
+  }
+
   list(
     tenantId: string,
     page: SmsLogPage,
