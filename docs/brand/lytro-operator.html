@@ -2670,6 +2670,136 @@ function render() {
   else root.innerHTML = shell(scr, scr.render(), (scr.sheet ? scr.sheet() : '') + (scr.toast ? toast(scr.toast()) : ''));
   document.getElementById('caption').innerHTML = `<b>${scr.group} · ${scr.label}</b> — ${scr.url || ''}`;
 }
+
+/* ---------- Payment methods (2026-11-09, design v6, §10): what shops can pay Lytro by, and how each method's payments are
+   confirmed. It replaces the flat list of wallet numbers. ---------- */
+Object.assign(S, {
+  wallets: ['Payment methods', 'পেমেন্ট মেথড'],
+  pm_sub: ['How shops can pay Lytro for plans, add-ons and top-ups, and how each payment is confirmed. Shops see only the methods turned on here.', 'শপগুলো প্ল্যান, অ্যাড-অন আর টপ-আপের টাকা যেভাবে Lytro-কে দিতে পারবে, আর প্রতিটা পেমেন্ট কীভাবে কনফার্ম হবে। এখানে চালু করা মেথডগুলোই শপ দেখবে।'],
+  pm_numbers: ['{n} numbers · {w}', '{n}টি নম্বর · {w}'],
+  pm_number_one: ['1 number · {w}', '1টি নম্বর · {w}'],
+  pm_account_one: ['1 account · {w}', '1টি অ্যাকাউন্ট · {w}'],
+  pm_off: ['Off · shops do not see it', 'বন্ধ · শপ দেখবে না'],
+  pm_way_title: ['How payments are confirmed', 'পেমেন্ট কীভাবে কনফার্ম হবে'],
+  pm_auto: ['Automatic checkout', 'অটোমেটিক চেকআউট'],
+  pm_auto_d: ["Shops pay on bKash's own page and it confirms at once.", 'শপ bKash-এর নিজের পেজে পে করবে, সাথে সাথে কনফার্ম হবে।'],
+  pm_listener: ['Listener', 'লিসেনার'],
+  pm_listener_d: ["Shops send the money and enter the TrxID. The SMS on Lytro's phone confirms it; what doesn't match waits in the queue.", 'শপ টাকা পাঠিয়ে TrxID দেবে। Lytro-র ফোনে আসা SMS মিলে গেলে কনফার্ম হবে; না মিললে কিউতে থাকবে।'],
+  pm_manual: ['Manual', 'ম্যানুয়াল'],
+  pm_manual_d: ['Shops send the money and enter the TrxID. You approve each one in the queue, even with a phone paired.', 'শপ টাকা পাঠিয়ে TrxID দেবে। ফোন কানেক্ট থাকলেও প্রতিটা পেমেন্ট আপনি কিউ থেকে অ্যাপ্রুভ করবেন।'],
+  pm_connect: ['Connect bKash', 'bKash কানেক্ট করুন'],
+  pm_manage: ['Manage keys', 'কী ম্যানেজ করুন'],
+  pm_connected: ['Connected', 'কানেক্টেড'],
+  pm_sandbox: ['Sandbox', 'স্যান্ডবক্স'],
+  pm_phones: ['{n} phone online', '{n}টি ফোন অনলাইন'],
+  pm_phones_link: ["Lytro's phones", 'Lytro-র ফোন'],
+  pm_no_phone: ['No phone is online, so these payments wait in the queue until one is.', 'কোনো ফোন অনলাইন নেই, তাই ফোন আসা পর্যন্ত এই পেমেন্টগুলো কিউতে থাকবে।'],
+  pm_only_manual: ["Manual only for now: Lytro's phones can read only bKash's SMS so far, and only bKash has a checkout.", "আপাতত শুধু ম্যানুয়াল: Lytro-র ফোন এখনো শুধু bKash-এর SMS পড়তে পারে, আর চেকআউট আছে শুধু bKash-এর।"],
+  pm_bank_manual: ['Bank transfers are always confirmed by hand, in the queue.', 'ব্যাংক ট্রান্সফার সবসময় কিউ থেকে হাতে কনফার্ম হয়।'],
+  pm_add_number: ['Add number', 'নম্বর যোগ করুন'],
+  pm_add_bank: ['Add bank account', 'ব্যাংক অ্যাকাউন্ট যোগ করুন'],
+  pm_bank: ['Bank transfer', 'ব্যাংক ট্রান্সফার'],
+  pm_none: ['Every method is off, so no shop can pay for a plan, an add-on or a top-up right now.', 'সব মেথড বন্ধ, তাই এখন কোনো শপ প্ল্যান, অ্যাড-অন বা টপ-আপের টাকা দিতে পারবে না।'],
+  pm_need_number: ['On, but it has no number shown to shops, so they will not see it.', 'চালু, কিন্তু শপকে দেখানোর মতো কোনো নম্বর নেই, তাই শপ এটা দেখবে না।'],
+  pm_gw_title: ["Connect Lytro's bKash checkout", 'Lytro-র bKash চেকআউট কানেক্ট করুন'],
+  pm_gw_lead: ["Enter these four from Lytro's own bKash merchant panel. Once saved, they're never shown again.", 'Lytro-র নিজের bKash মার্চেন্ট প্যানেল থেকে এই চারটি দিন। সেভ করার পর এগুলো আর দেখানো হবে না।'],
+  pm_gw_account: ['The number that receives the money', 'কোন নম্বরে টাকা আসবে'],
+  pm_gw_test: ['Test account', 'টেস্ট অ্যাকাউন্ট'],
+  pm_gw_test_d: ["Uses bKash's sandbox, so no real money comes in.", 'bKash-এর sandbox ব্যবহার হবে, আসল টাকা আসবে না।'],
+  pm_gw_save: ['Save and test', 'সেভ করে টেস্ট করুন'],
+  pm_gw_ok: ['bKash is connected. Turn automatic checkout on for shops now?', 'bKash কানেক্ট হয়েছে। শপগুলোর জন্য অটোমেটিক চেকআউট এখনই চালু করবেন?'],
+  pm_gw_on: ['Turn it on', 'চালু করুন'],
+  pm_gw_later: ['Not now', 'পরে করব'],
+  pm_gw_bad: ['bKash refused the connection (code {c}). Check the keys. Automatic checkout stays off.', 'bKash কানেক্ট করতে দেয়নি (কোড {c})। কীগুলো আবার দেখে নিন। অটোমেটিক চেকআউট বন্ধই আছে।'],
+  pm_gw_saved: ['Keys are saved. To change them, enter all four again.', 'কী সেভ করা আছে। বদলাতে হলে চারটিই আবার দিন।'],
+  pm_gw_test_btn: ['Test connection', 'কানেকশন টেস্ট করুন'],
+  pm_gw_remove: ['Remove keys', 'কী রিমুভ করুন'],
+  pm_gw_rm_cons: ["Automatic checkout stops, and bKash goes back to the listener. A checkout a shop already has open is still confirmed.", 'অটোমেটিক চেকআউট বন্ধ হবে, আর bKash লিসেনারে ফিরে যাবে। শপের আগে খোলা চেকআউট তবুও কনফার্ম হবে।'],
+  pm_bank_title: ['Bank account', 'ব্যাংক অ্যাকাউন্ট'],
+  pm_bank_name: ['Bank name', 'ব্যাংকের নাম'],
+  pm_acct_name: ['Account name', 'অ্যাকাউন্টের নাম'],
+  pm_acct_no: ['Account number', 'অ্যাকাউন্ট নম্বর'],
+  pm_branch: ['Branch', 'ব্রাঞ্চ'],
+  pm_routing: ['Routing number', 'রাউটিং নম্বর'],
+  pm_swift: ['SWIFT code', 'SWIFT কোড'],
+  pm_instr: ['Instructions for shops', 'শপের জন্য নির্দেশনা'],
+  pm_off_title: ['Turn off the last method?', 'শেষ মেথডটি বন্ধ করবেন?'],
+  pm_off_cons: ['No shop will be able to pay for a plan, an add-on or a top-up until a method is on again. Payments already sent stay in the queue.', 'আবার কোনো মেথড চালু না হওয়া পর্যন্ত কোনো শপ প্ল্যান, অ্যাড-অন বা টপ-আপের টাকা দিতে পারবে না। আগে পাঠানো পেমেন্ট কিউতেই থাকবে।'],
+  pm_turn_off: ['Turn off', 'বন্ধ করুন'],
+});
+
+document.head.insertAdjacentHTML('beforeend', `<style>
+.pm-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--n400);flex:none;margin-top:2px;position:relative}
+.pm-radio.on{border-color:var(--primary)}
+.pm-radio.on::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--primary)}
+.pm-cards{display:flex;flex-direction:column;gap:16px;max-width:720px}
+.pm-way{display:flex;gap:12px;align-items:flex-start;padding:10px 0}
+.pm-way .t{font-size:15px;font-weight:500}
+.pm-way .d{font-size:13px;color:var(--muted);line-height:1.5}
+.pm-sec{padding:12px 16px;border-top:1px solid var(--line)}
+.pm-sec .h{font-size:14px;font-weight:600;margin-bottom:2px}
+.pm-note{padding:10px 16px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.pm-chips{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.pm-link{color:var(--primary);font-weight:600;font-size:13px;background:none;border:0;padding:0;cursor:pointer}
+.pm-acts{padding:8px 16px 12px;display:flex;gap:8px;flex-wrap:wrap}
+</style>`);
+
+const pmDot = (name) => `<span class="lead" style="background:#fff;border:1px solid var(--line)"><span style="width:12px;height:12px;border-radius:50%;background:${PROV_COLOR[name] || 'var(--n700)'}"></span></span>`;
+const pmNumber = (no, label, shown) => `<div class="row" style="flex-wrap:wrap;gap:8px 12px;min-height:52px;border-top:1px solid var(--line)"><span class="body" style="min-width:150px"><span class="l1 mono">${no}</span><span class="l2">${label}</span></span>${sw(shown, t('shown'))}${btn(t('edit'), 'ghost sm', "go('wallet-edit')")}</div>`;
+const pmWay = (key, on, extra) => `<div class="pm-way"><span class="pm-radio ${on ? 'on' : ''}"></span><div style="min-width:0"><div class="t">${t(`pm_${key}`)}</div><div class="d">${t(`pm_${key}_d`)}</div>${extra || ''}</div></div>`;
+const pmHead = (name, sub, on, off) => `<div class="row" style="min-height:60px">${pmDot(name)}<span class="body"><span class="l1">${name === 'Bank' ? t('pm_bank') : name}</span><span class="l2" style="white-space:normal">${sub}</span></span><span onclick="go('${off || 'wallets'}')" style="cursor:pointer">${sw(on, '')}</span></div>`;
+const pmWarn = (text) => `<div style="padding:0 16px 12px"><div class="banner warn"><span class="b">${text}</span></div></div>`;
+
+function pmBkash(o) {
+  const way = o.way || 'listener';
+  const name = way === 'auto' ? t('pm_auto') : way === 'listener' ? t('pm_listener') : t('pm_manual');
+  const keys = o.keys
+    ? `<div class="pm-chips">${st('ok', t('pm_connected'))}${st('warn', t('pm_sandbox'))}<button class="pm-link" onclick="go('pm-gw-saved')">${t('pm_manage')}</button></div>`
+    : `<div class="pm-chips"><button class="pm-link" onclick="go('pm-gw')">${t('pm_connect')}</button></div>`;
+  const phones = o.noPhone
+    ? `<div style="margin-top:8px"><div class="banner warn"><span class="b">${t('pm_no_phone')}</span></div></div>`
+    : `<div class="pm-chips">${st('ok', t('pm_phones', { n: 1 }))}<button class="pm-link" onclick="go('phones')">${t('pm_phones_link')}</button></div>`;
+  return `<div class="card flush">${pmHead('bKash', t('pm_numbers', { n: 2, w: name }), true, 'pm-off-last')}
+    ${pmNumber('01711 000000', 'Lytronix · personal', true)}${pmNumber('01711 000001', 'Lytronix · agent', true)}
+    <div class="pm-sec"><div class="h">${t('pm_way_title')}</div>
+      ${pmWay('auto', way === 'auto', keys)}
+      ${pmWay('listener', way === 'listener', way === 'listener' ? phones : '')}
+      ${pmWay('manual', way === 'manual')}
+    </div>
+    <div class="pm-acts">${btn(I.plus + t('pm_add_number'), 'ghost sm', "go('wallet-new')")}</div></div>`;
+}
+const pmNagad = () => `<div class="card flush">${pmHead('Nagad', t('pm_number_one', { w: t('pm_manual') }), true)}${pmNumber('01811 000000', 'Lytronix · personal', true)}<div class="pm-note">${t('pm_only_manual')}</div><div class="pm-acts">${btn(I.plus + t('pm_add_number'), 'ghost sm', "go('wallet-new')")}</div></div>`;
+const pmOff = (name) => `<div class="card flush">${pmHead(name, t('pm_off'), false)}</div>`;
+const pmBank = () => `<div class="card flush">${pmHead('Bank', t('pm_account_one', { w: t('pm_manual') }), true)}<div class="row" style="flex-wrap:wrap;gap:8px 12px;min-height:52px;border-top:1px solid var(--line)"><span class="body" style="min-width:150px"><span class="l1">BRAC Bank · Gulshan</span><span class="l2 mono">Lytronix Ltd · 1501 2045 6789 001</span></span>${sw(true, t('shown'))}${btn(t('edit'), 'ghost sm', "go('pm-bank')")}</div><div class="pm-note">${t('pm_bank_manual')}</div><div class="pm-acts">${btn(I.plus + t('pm_add_bank'), 'ghost sm', "go('pm-bank')")}</div></div>`;
+function pmPage(o = {}) {
+  const top = `<div class="ttl"><div><h1>${t('wallets')}</h1><div class="sub">${t('pm_sub')}</div></div></div>`;
+  if (o.none) return `${top}<div class="banner bad" style="margin-bottom:16px"><span class="b">${t('pm_none')}</span></div><div class="pm-cards">${['bKash', 'Nagad', 'Rocket', 'Upay', 'Bank'].map(pmOff).join('')}</div>`;
+  const nagad = o.noNumber ? `<div class="card flush">${pmHead('Nagad', t('pm_numbers', { n: 0, w: t('pm_manual') }), true)}${pmWarn(t('pm_need_number'))}<div class="pm-acts">${btn(I.plus + t('pm_add_number'), 'ghost sm', "go('wallet-new')")}</div></div>` : pmNagad();
+  return `${top}<div class="pm-cards">${pmBkash(o)}${nagad}${pmOff('Rocket')}${pmOff('Upay')}${pmBank()}</div>`;
+}
+
+const PM_BASE = { nav: 'wallets', group: 'Platform', url: 'admin.lytro.app/wallets', bandTitle: 'wallets' };
+def('wallets', { ...PM_BASE, label: 'Payment methods · bKash on the listener', render: () => pmPage() });
+def('pm-auto', { ...PM_BASE, label: '· bKash on automatic checkout', render: () => pmPage({ way: 'auto', keys: true }) });
+def('pm-manual', { ...PM_BASE, label: '· bKash on manual', render: () => pmPage({ way: 'manual' }) });
+def('pm-no-phone', { ...PM_BASE, label: '· the listener with no phone online', render: () => pmPage({ noPhone: true }) });
+def('pm-no-number', { ...PM_BASE, label: '· a method on with no number', render: () => pmPage({ noNumber: true }) });
+def('pm-none', { ...PM_BASE, label: '· every method off', render: () => pmPage({ none: true }) });
+for (const id of ['wallet-new', 'wallet-edit', 'wallet-remove']) SCREENS[id].render = () => pmPage();
+
+const pmKeys = () => `<p class="hint" style="margin:0 0 4px">${t('pm_gw_lead')}</p>${field(t('pm_gw_account'), select([['1', '01711 000000'], ['2', '01711 000001']], '1'))}${field('App key', input('', 'mono'))}${field('App secret', input('', 'mono'))}${field('Username', input('', 'mono'))}${field('Password', input('', 'mono', '', 'type=password'))}<div class="field">${sw(true, t('pm_gw_test'))}<div class="help">${t('pm_gw_test_d')}</div></div>`;
+const pmSheet = (id, base, label, title, body, foot) => def(id, { ...PM_BASE, base, label, render: SCREENS[base].render, sheet: () => sheet(title, null, body(), foot(), { row: true, close: base }) });
+pmSheet('pm-gw', 'wallets', "· connect Lytro's bKash (sheet)", t('pm_gw_title'), pmKeys, () => `${btn(t('cancel'), 'ghost', "go('wallets')")}${btn(t('pm_gw_save'), 'primary', "go('pm-gw-ok')")}`);
+pmSheet('pm-gw-ok', 'wallets', '· connected: turn it on? (sheet)', t('pm_gw_title'), () => `<div class="banner info"><span class="b">${t('pm_gw_ok')}</span></div>`, () => `${btn(t('pm_gw_later'), 'ghost', "go('wallets')")}${btn(t('pm_gw_on'), 'primary', "go('pm-auto')")}`);
+pmSheet('pm-gw-bad', 'wallets', '· bKash refused (sheet)', t('pm_gw_title'), () => `<div class="banner bad" style="margin-bottom:12px"><span class="b">${t('pm_gw_bad', { c: '2001' })}</span></div>${pmKeys()}`, () => `${btn(t('cancel'), 'ghost', "go('wallets')")}${btn(t('pm_gw_save'), 'primary', "go('pm-gw-ok')")}`);
+pmSheet('pm-gw-saved', 'pm-auto', '· manage the keys (sheet)', t('pm_gw_title'), () => `<div class="banner info" style="margin-bottom:12px"><span class="b">${t('pm_gw_saved')}</span></div>${pmKeys()}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${btn(t('pm_gw_test_btn'), 'ghost sm', '')}${btn(t('pm_gw_remove'), 'quiet sm', "go('pm-gw-remove')")}</div>`, () => `${btn(t('cancel'), 'ghost', "go('pm-auto')")}${btn(t('save'), 'primary', "go('pm-auto')")}`);
+pmSheet('pm-gw-remove', 'pm-auto', '· remove the keys (dialog)', t('pm_gw_remove'), () => consequence(t('pm_gw_rm_cons'), 'danger'), () => `${btn(t('cancel'), 'ghost', "go('pm-auto')")}${btn(t('pm_gw_remove'), 'danger', "go('wallets')")}`);
+pmSheet('pm-bank', 'wallets', '· a bank account (sheet)', t('pm_bank_title'), () => `${field(t('pm_bank_name'), input('BRAC Bank'))}${field(t('pm_acct_name'), input('Lytronix Ltd'))}${field(t('pm_acct_no'), input('1501 2045 6789 001', 'mono'))}${field(t('pm_branch'), input('Gulshan'))}${field(t('pm_routing'), input('060261726', 'mono'))}${field(t('pm_swift'), input(''))}${field(t('pm_instr'), input(''))}`, () => `${btn(t('cancel'), 'ghost', "go('wallets')")}${btn(t('save'), 'primary', "go('wallets')")}`);
+pmSheet('pm-off-last', 'wallets', '· turn off the last method (dialog)', t('pm_off_title'), () => consequence(t('pm_off_cons'), 'danger'), () => `${btn(t('cancel'), 'ghost', "go('wallets')")}${btn(t('pm_turn_off'), 'danger', "go('pm-none')")}`);
+
+/* A bank transfer in the queue: its reference where a wallet's TrxID sits, with no sender number. */
+PAYMENTS.push({ id: 'pay-9110', tenantId: 'ten-0028', kind: 'top_up', planId: null, termId: null, amount: 2000, credit: 2000, status: 'pending', sender: '—', trx: 'TT-883201', quotedAt: '2026-10-21T09:58:00+06:00', createdAt: '2026-10-21T10:30:00+06:00', wallet: 'Bank' });
+
 (function init() {
   const sel = document.getElementById('selScreen'); const groups = {};
   for (const [id, s] of Object.entries(SCREENS)) (groups[s.group] = groups[s.group] || []).push([id, s.label]);
