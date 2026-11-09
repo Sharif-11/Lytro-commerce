@@ -23,6 +23,11 @@ export class InvoicesService {
     return this.store.insert(tx, number, values, lines);
   }
 
+  /** D8-49: the invoice a payment produced, in the caller's transaction. */
+  findForPaymentWithin(tx: Transaction, planPaymentId: string): Promise<InvoiceRecord | null> {
+    return this.store.findForPayment(tx, planPaymentId);
+  }
+
   /** BIL-13: available in every tenant state, even after business-data deletion -- control-schema, no RLS. */
   listForTenant(tenantId: string): Promise<InvoiceRecord[]> {
     return this.store.run((tx) => this.store.listForTenant(tx, tenantId));

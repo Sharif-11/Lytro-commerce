@@ -16,6 +16,7 @@ import {
 } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import type { Database } from '../../client';
+import type { PlanStanding } from '../../schema';
 import type { Executor } from '../../transactions';
 import { escapeLike } from '../like';
 import { plans, subscriberIdentities, tenantDomains, tenants } from '../../schema';
@@ -507,6 +508,63 @@ export class TenantRepository {
         ...(values.billingTermId !== undefined ? { billingTermId: values.billingTermId } : {}),
       })
       .where(eq(tenants.id, tenantId));
+  }
+
+  /**
+   * ADM-15, D8-48: everything a plan payment changes on a shop, held for the rest of the transaction: kept with a manual
+   * entry, so a reversal can put the shop back exactly as it stood.
+   */
+  async planStanding(tx: Executor, id: string): Promise<PlanStanding | null> {
+    const rows = await tx
+      .select({
+        state: tenants.state,
+        planId: tenants.planId,
+        planSnapshot: tenants.planSnapshot,
+        planVersionSnapshot: tenants.planVersionSnapshot,
+        featureSnapshot: tenants.featureSnapshot,
+        periodStart: tenants.periodStart,
+        periodEnd: tenants.periodEnd,
+        billingTermId: tenants.billingTermId,
+        cancelledAt: tenants.cancelledAt,
+        archivedAt: tenants.archivedAt,
+        downgradedAt: tenants.downgradedAt,
+        downgradeOverLimit: tenants.downgradeOverLimit,
+        downgradeFinalWarningAt: tenants.downgradeFinalWarningAt,
+        lapseScheduleSnapshot: tenants.lapseScheduleSnapshot,
+        balanceFrozen: tenants.balanceFrozen,
+      })
+      .from(tenants)
+      .where(eq(tenants.id, id))
+      .for('update');
+    const row = rows[0];
+    if (!row) return null;
+    const iso = (date: Date | null): string | null => date?.toISOString() ?? null;
+    return {
+      ...row,
+      periodStart: iso(row.periodStart),
+      periodEnd: iso(row.periodEnd),
+      cancelledAt: iso(row.cancelledAt),
+      archivedAt: iso(row.archivedAt),
+      downgradedAt: iso(row.downgradedAt),
+      downgradeFinalWarningAt: iso(row.downgradeFinalWarningAt),
+    };
+  }
+
+  /** ADM-15, D8-48: puts a shop back as `planStanding` read it. */
+  async restorePlanStanding(tx: Executor, id: string, standing: PlanStanding): Promise<void> {
+    const date = (iso: string | null): Date | null => (iso === null ? null : new Date(iso));
+    await tx
+      .update(tenants)
+      .set({
+        ...standing,
+        periodStart: date(standing.periodStart),
+        periodEnd: date(standing.periodEnd),
+        cancelledAt: date(standing.cancelledAt),
+        archivedAt: date(standing.archivedAt),
+        downgradedAt: date(standing.downgradedAt),
+        downgradeFinalWarningAt: date(standing.downgradeFinalWarningAt),
+      })
+      .where(eq(tenants.id, id));
   }
 
   /** TRL-07: trials whose period has ended with no purchase -- the trial-end job's own candidate list. */

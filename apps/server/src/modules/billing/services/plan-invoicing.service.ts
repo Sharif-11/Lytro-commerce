@@ -117,6 +117,7 @@ export class PlanInvoicingService {
         paymentMethod: payment.transactionId === null ? 'balance' : 'wallet',
         paymentReference: payment.transactionId,
         planPaymentId: payment.id,
+        recordedByPlatform: payment.recordedByPlatform,
       },
       planLines(input),
     );

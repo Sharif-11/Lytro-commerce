@@ -23,6 +23,10 @@ export interface NewInvoiceValues {
   paymentReference: string | null;
   /** BIL-19: the payment this invoice is the receipt of. */
   planPaymentId: string | null;
+  /** ADM-14: a manual entry produced it. */
+  recordedByPlatform?: boolean;
+  /** ADM-15, D8-49: on a credit note, the invoice it takes back. */
+  reversesInvoiceId?: string | null;
 }
 
 /** control.invoices / control.invoice_counters (BIL-12/13, DAT-07). */
@@ -38,6 +42,7 @@ export interface InvoicesStore {
     lines: readonly InvoiceLine[],
   ): Promise<InvoiceRecord>;
   findById(tx: Transaction, id: string): Promise<InvoiceRecord | null>;
+  findForPayment(tx: Transaction, planPaymentId: string): Promise<InvoiceRecord | null>;
   listForTenant(tx: Transaction, tenantId: string): Promise<InvoiceRecord[]>;
   listForTenants(tx: Transaction, tenantIds: string[]): Promise<InvoiceRecord[]>;
 }

@@ -549,6 +549,53 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   PaymentQueueListed: { en: 'Payment queue retrieved.', bn: 'পেমেন্ট কিউ পাওয়া গেছে।' },
   PaymentApproved: { en: 'Payment approved.', bn: 'পেমেন্ট অনুমোদিত হয়েছে।' },
   PaymentRejected: { en: 'Payment rejected.', bn: 'পেমেন্ট রিজেক্ট হয়েছে।' },
+  ManualEntriesListed: {
+    en: 'Manual entries retrieved.',
+    bn: 'ম্যানুয়াল এন্ট্রিগুলো পাওয়া গেছে।',
+  },
+  ManualEntryPreviewed: { en: 'Here is what this entry would be.', bn: 'এই এন্ট্রিটি এমন হবে।' },
+  ManualEntryRecorded: { en: 'Payment recorded.', bn: 'পেমেন্ট রেকর্ড হয়েছে।' },
+  ManualEntryReversed: { en: 'Entry reversed.', bn: 'এন্ট্রি রিভার্স হয়েছে।' },
+  ManualEntryNotFound: { en: 'That entry was not found.', bn: 'এন্ট্রিটি পাওয়া যায়নি।' },
+  ManualEntryAlreadyReversed: {
+    en: 'This entry has already been reversed.',
+    bn: 'এই এন্ট্রি আগেই রিভার্স করা হয়েছে।',
+  },
+  ManualEntryIsReversal: {
+    en: 'A reversal cannot itself be reversed.',
+    bn: 'রিভার্সাল আবার রিভার্স করা যায় না।',
+  },
+  ManualEntryPlanMovedOn: {
+    en: "The shop's plan has changed since this entry, so it can't be put back. Reverse the later payment first.",
+    bn: 'এই এন্ট্রির পরে শপের প্ল্যান বদলে গেছে, তাই আগের অবস্থায় ফেরানো যাবে না। আগে পরের পেমেন্টটি রিভার্স করুন।',
+  },
+  ManualEntryNeedsConfirmation: {
+    en: 'Type the amount again to confirm this entry.',
+    bn: 'এন্ট্রিটি কনফার্ম করতে অ্যামাউন্ট আবার লিখুন।',
+  },
+  ManualEntryShopGone: {
+    en: 'This shop has been deleted.',
+    bn: 'এই শপটি ডিলিট করা হয়েছে।',
+  },
+  ManualEntryPaidInFuture: {
+    en: 'The payment time cannot be in the future.',
+    bn: 'পেমেন্টের সময় ভবিষ্যতের হতে পারে না।',
+  },
+  EvidenceUploadReady: { en: 'Upload link ready.', bn: 'আপলোড লিংক রেডি।' },
+  EvidenceLinkReady: { en: 'Screenshot link ready.', bn: 'স্ক্রিনশটের লিংক রেডি।' },
+  EvidenceNotUploaded: {
+    en: 'That screenshot was not uploaded. Please send it again.',
+    bn: 'স্ক্রিনশটটি আপলোড হয়নি। আবার পাঠান।',
+  },
+  EvidenceNotAllowed: {
+    en: 'Send a JPG, PNG, WebP or PDF of up to 5 MB.',
+    bn: '৫ MB পর্যন্ত JPG, PNG, WebP বা PDF পাঠান।',
+  },
+  EvidenceNotFound: { en: 'There is no screenshot for this.', bn: 'এর কোনো স্ক্রিনশট নেই।' },
+  EvidenceRemoved: {
+    en: 'This screenshot was removed after two years.',
+    bn: 'দুই বছর পর এই স্ক্রিনশটটি মুছে ফেলা হয়েছে।',
+  },
   UpgradeQuoted: { en: 'Upgrade quote created.', bn: 'আপগ্রেড কোট তৈরি হয়েছে।' },
   UpgradeSubmitted: { en: 'Upgrade payment submitted.', bn: 'আপগ্রেড পেমেন্ট জমা দেওয়া হয়েছে।' },
   UpgradeConfirmed: { en: 'Upgrade confirmed.', bn: 'আপগ্রেড নিশ্চিত হয়েছে।' },

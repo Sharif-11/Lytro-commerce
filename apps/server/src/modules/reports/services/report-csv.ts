@@ -11,7 +11,13 @@ export function revenueCsv(report: RevenueReport): string {
   // Prefixed, since a wallet's add-on payment and the ledger's add-on charge are both `addon`.
   const wallet = WALLET_EARNED_KINDS.map((kind) => `wallet_${kind}`);
   const balance = SPENT_LEDGER_TYPES.map((type) => `balance_${type}`);
-  const columns = ['from', 'to', ...wallet, ...balance, 'given_back', 'earned'];
+  const manual = [
+    'manual_plans',
+    'manual_plans_reversed',
+    'manual_top_ups',
+    'manual_top_ups_reversed',
+  ];
+  const columns = ['from', 'to', ...wallet, ...balance, 'given_back', ...manual, 'earned'];
   const rows = [
     ...report.buckets,
     { from: report.dateFrom, to: report.dateTo, ...report.total },
@@ -20,6 +26,10 @@ export function revenueCsv(report: RevenueReport): string {
     for (const kind of WALLET_EARNED_KINDS) row[`wallet_${kind}`] = bucket.wallet[kind];
     for (const type of SPENT_LEDGER_TYPES) row[`balance_${type}`] = bucket.balance[type] ?? '0.00';
     row['given_back'] = bucket.givenBack;
+    row['manual_plans'] = bucket.manual.plans;
+    row['manual_plans_reversed'] = bucket.manual.plansReversed;
+    row['manual_top_ups'] = bucket.manual.topUps;
+    row['manual_top_ups_reversed'] = bucket.manual.topUpsReversed;
     row['earned'] = bucket.earned;
     return row;
   });

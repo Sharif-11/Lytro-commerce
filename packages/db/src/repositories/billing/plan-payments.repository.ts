@@ -43,6 +43,7 @@ export interface NewPlanPayment {
   billingTermId: string | null;
   amount: string;
   creditAmount: string;
+  recordedByPlatform?: boolean;
 }
 
 /** BIL-19: a payment as the shop's Billing section lists it: the row, the names it shows, and its invoice. */
@@ -93,6 +94,8 @@ function stateCondition(state: BillingPaymentState): SQL | undefined {
       return eq(planPayments.status, PlanPaymentStatus.Expired);
     case BillingPaymentState.Cancelled:
       return eq(planPayments.status, PlanPaymentStatus.Cancelled);
+    case BillingPaymentState.Reversed:
+      return eq(planPayments.status, PlanPaymentStatus.Reversed);
   }
 }
 
@@ -258,6 +261,7 @@ export class PlanPaymentsRepository {
       amountSent?: string | null;
       amountArrived?: string | null;
       reviewReason?: PaymentReviewReason | null;
+      evidenceId?: string | null;
     },
   ): Promise<void> {
     await tx.update(planPayments).set(values).where(eq(planPayments.id, id));

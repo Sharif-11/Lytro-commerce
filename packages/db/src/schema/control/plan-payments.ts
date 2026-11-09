@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { index, numeric, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, numeric, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import {
   PaymentCancelReason,
   PlanPaymentKind,
@@ -8,6 +8,7 @@ import {
 } from '@lytronix/validators';
 import { control, createdAt } from '../shared';
 import { billingTerms } from './billing-terms';
+import { paymentEvidence } from './payment-evidence';
 import { plans } from './plans';
 import { tenants } from './tenancy';
 
@@ -45,15 +46,19 @@ export const planPayments = control.table(
     amountSent: numeric('amount_sent', { precision: 10, scale: 2 }),
     amountArrived: numeric('amount_arrived', { precision: 10, scale: 2 }),
     reviewReason: text('review_reason').$type<PaymentReviewReason>(),
+    // ADM-14: marked "recorded by the platform": the operator's manual entry, not the shop's own payment.
+    recordedByPlatform: boolean('recorded_by_platform').notNull().default(false),
+    // ADM-17, D8-15: the seller's screenshot of the payment, when they added one.
+    evidenceId: uuid('evidence_id').references(() => paymentEvidence.id),
     createdAt: createdAt(),
   },
   (t) => [
     // BIL-07: a transaction ID belongs to one payment -- but a rejected payment lets go of it, so the shop can submit
     // the same ID again once support's note is dealt with (decided 2026-10-23). An approval locks it for good in
-    // used_transaction_ids.
+    // used_transaction_ids. A reversed manual entry lets go of it too, for another manual entry only (D8-56).
     uniqueIndex('plan_payments_transaction_id_idx')
       .on(t.transactionId)
-      .where(sql`${t.transactionId} IS NOT NULL AND ${t.status} <> 'rejected'`),
+      .where(sql`${t.transactionId} IS NOT NULL AND ${t.status} NOT IN ('rejected', 'reversed')`),
     // UPG-08: one open upgrade per shop, held by the database so two taps at once cannot both open one.
     uniqueIndex('plan_payments_one_open_upgrade_idx')
       .on(t.tenantId)

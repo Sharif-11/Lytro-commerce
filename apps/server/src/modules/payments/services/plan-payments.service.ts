@@ -17,6 +17,7 @@ import { PLAN_PAYMENTS_STORE } from '../tokens';
 import type {
   PaymentNeedingAttention,
   PlanPaymentRecord,
+  WalletSubmission,
   TenantPaymentRecord,
   QueuedPlanPayment,
 } from '../types/plan-payment';
@@ -220,7 +221,7 @@ export class PlanPaymentsService {
   async submitWalletPayment(
     paymentId: string,
     tenantId: string,
-    input: { transactionId: string; senderNumber: string; amountPaid: string },
+    input: WalletSubmission,
     expectedKinds: readonly PlanPaymentKind[],
     now = new Date(),
   ): Promise<PlanPaymentRecord> {
@@ -228,6 +229,19 @@ export class PlanPaymentsService {
       const payment = await this.store.findByIdForUpdate(tx, paymentId);
       if (!payment || payment.tenantId !== tenantId || !expectedKinds.includes(payment.kind)) {
         throw new ApiError('not_found', 'PlanPaymentNotFound', {});
+      }
+      // D8-56: an ID freed by a reversed manual entry is free for another manual entry only.
+      if (await this.store.transactionIdUsed(tx, input.transactionId)) {
+        throw new FieldsError(
+          [
+            {
+              field: 'transactionId',
+              problem: ServerFieldProblemCode.AlreadyUsed,
+              messageKey: 'TransactionIdAlreadyUsed',
+            },
+          ],
+          'conflict',
+        );
       }
       await this.recordSubmission(
         tx,
@@ -237,6 +251,7 @@ export class PlanPaymentsService {
           senderNumber: input.senderNumber,
           matchesQuoted: input.amountPaid === payment.amount,
           amountSent: input.amountPaid,
+          evidenceId: input.evidenceId ?? null,
         },
         now,
       );
@@ -259,6 +274,7 @@ export class PlanPaymentsService {
       senderNumber: string;
       matchesQuoted: boolean;
       amountSent?: string;
+      evidenceId?: string | null;
     },
     now = new Date(),
   ): Promise<void> {
@@ -275,6 +291,7 @@ export class PlanPaymentsService {
         senderNumber: values.senderNumber,
         submittedAt: now,
         amountSent: values.amountSent ?? null,
+        evidenceId: values.evidenceId ?? null,
       });
     } catch (error) {
       if (error instanceof UniqueViolation && error.target === 'transactionId') {
@@ -304,6 +321,7 @@ export class PlanPaymentsService {
     operatorId: string | null,
     now: Date,
     amountArrived?: string,
+    reusingTransactionId = false,
   ): Promise<PlanPaymentRecord> {
     const payment = await this.store.findByIdForUpdate(tx, id);
     if (!payment) throw new ApiError('not_found', 'PlanPaymentNotFound', {});
@@ -311,10 +329,13 @@ export class PlanPaymentsService {
       throw new ApiError('conflict', 'PlanPaymentNotPending', {});
     }
     if (!payment.transactionId) throw new ApiError('validation_error', 'TransactionIdRequired', {});
-    if (await this.store.transactionIdUsed(tx, payment.transactionId)) {
-      throw new ApiError('conflict', 'TransactionIdAlreadyUsed', {});
+    // D8-56: a manual entry reusing the ID of one that was reversed: it is on the register already, and stays there.
+    if (!reusingTransactionId) {
+      if (await this.store.transactionIdUsed(tx, payment.transactionId)) {
+        throw new ApiError('conflict', 'TransactionIdAlreadyUsed', {});
+      }
+      await this.store.registerTransactionId(tx, payment.transactionId, payment.tenantId);
     }
-    await this.store.registerTransactionId(tx, payment.transactionId, payment.tenantId);
     await this.store.markReceiptUsed(tx, payment.transactionId, id);
     const arrived = amountArrived ?? payment.amountArrived;
     await this.store.setStatus(tx, id, {
@@ -423,6 +444,22 @@ export class PlanPaymentsService {
       verifiedAt: now,
       note,
     };
+  }
+
+  /** ADM-15, D8-48: a manual entry undone. The caller puts back what it did, in the same transaction. */
+  async reverseWithin(
+    tx: Transaction,
+    id: string,
+    operatorId: string,
+    now: Date,
+    note: string,
+  ): Promise<void> {
+    await this.store.setStatus(tx, id, {
+      status: PlanPaymentStatus.Reversed,
+      verifiedBy: operatorId,
+      verifiedAt: now,
+      note,
+    });
   }
 
   /** BIL-08: paying from balance is atomic and instant -- no transaction ID, no operator in the loop. */

@@ -289,6 +289,20 @@ export class DowngradeService {
     return this.store.run((tx) => this.store.findByTenant(tx, tenantId));
   }
 
+  /** D8-48: the change scheduled now, read in the caller's transaction, to keep with a manual entry. */
+  scheduledWithin(tx: Transaction, tenantId: string): Promise<ScheduledPlanChangeRecord | null> {
+    return this.store.findByTenant(tx, tenantId);
+  }
+
+  /** D8-48: a reversed manual entry brings back the change its activation cancelled. */
+  restoreWithin(
+    tx: Transaction,
+    tenantId: string,
+    change: { kind: ScheduledPlanChangeKind; targetPlanId: string | null; effectiveAt: Date },
+  ): Promise<ScheduledPlanChangeRecord> {
+    return this.store.upsert(tx, { tenantId, ...change });
+  }
+
   /** DWN-04: cancels a scheduled downgrade or pay-as-you-go switch before it takes effect. */
   async cancel(tenantId: string, ip?: string | null): Promise<void> {
     const existing = await this.getScheduled(tenantId);

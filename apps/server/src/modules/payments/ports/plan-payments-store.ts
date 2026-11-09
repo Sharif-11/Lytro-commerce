@@ -19,6 +19,8 @@ export interface NewPlanPaymentValues {
   billingTermId: string | null;
   amount: string;
   creditAmount: string;
+  /** ADM-14: the operator's manual entry. */
+  recordedByPlatform?: boolean;
 }
 
 export interface PlanPaymentStatusValues {
@@ -33,6 +35,7 @@ export interface PlanPaymentStatusValues {
   amountSent?: string | null;
   amountArrived?: string | null;
   reviewReason?: PaymentReviewReason | null;
+  evidenceId?: string | null;
 }
 
 /** control.plan_payments / control.used_transaction_ids (D2-1, BIL-04 to BIL-07, BAL-03 to BAL-05). */

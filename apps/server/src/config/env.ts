@@ -179,6 +179,9 @@ const envSchema = z.object({
   // MED-03: the temporary bucket browsers upload into, and the bucket each shop's media lives in under its prefix.
   MEDIA_UPLOADS_BUCKET: z.string().min(3).default('lytro-uploads'),
   MEDIA_BUCKET: z.string().min(3).default('lytro-media'),
+  // ADM-14, ADM-17, D8-47: payment screenshots, in a private bucket the public Worker has no binding to. The processing and
+  // deletion keys need access to it.
+  MEDIA_EVIDENCE_BUCKET: z.string().min(3).default('lytro-evidence'),
   // MED-07: one key per job -- signing a browser's upload, processing it, deleting objects -- each with the least it
   // needs, kept out of the repository and rotated every 90 days.
   MEDIA_SIGNER_ACCESS_KEY: z.string().min(1).optional(),

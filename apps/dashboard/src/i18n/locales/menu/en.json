@@ -97,6 +97,8 @@
     "plan_limit_override_removed": "Lytro support removed a limit it had set",
     "plan_limit_override_set": "Lytro support set a limit for the shop",
     "plan_payment_cancelled": "{{actor}} cancelled a payment",
+    "manual_payment_recorded": "Lytro support recorded a payment of {{amount}}",
+    "manual_payment_reversed": "Lytro support reversed a payment of {{amount}}",
     "plan_payment_rejected": "A payment was rejected",
     "plan_purchased": "Plan bought for {{amount}}",
     "plan_renewed": "Plan renewed for {{amount}}",

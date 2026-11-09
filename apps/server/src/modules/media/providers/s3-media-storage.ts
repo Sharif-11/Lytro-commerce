@@ -27,6 +27,7 @@ export interface S3MediaStorageSettings {
   pathStyle: boolean;
   uploadsBucket: string;
   mediaBucket: string;
+  evidenceBucket: string;
   signer: StorageKey;
   processor: StorageKey;
   deleter: StorageKey;
@@ -151,6 +152,49 @@ export class S3MediaStorage implements MediaStorage {
         await this.deleter.send(
           new DeleteObjectsCommand({
             Bucket: this.settings.mediaBucket,
+            Delete: { Objects: batch.map((key) => ({ Key: key })), Quiet: true },
+          }),
+        );
+      } catch (error) {
+        throw this.unavailable(error);
+      }
+    }
+  }
+
+  async putEvidence(key: string, body: Buffer, contentType: string): Promise<void> {
+    try {
+      await this.processor.send(
+        new PutObjectCommand({
+          Bucket: this.settings.evidenceBucket,
+          Key: key,
+          Body: body,
+          ContentType: contentType,
+        }),
+      );
+    } catch (error) {
+      throw this.unavailable(error);
+    }
+  }
+
+  async evidenceLink(key: string, expiresInSeconds: number): Promise<string> {
+    try {
+      return await getSignedUrl(
+        this.processor,
+        new GetObjectCommand({ Bucket: this.settings.evidenceBucket, Key: key }),
+        { expiresIn: expiresInSeconds },
+      );
+    } catch (error) {
+      throw this.unavailable(error);
+    }
+  }
+
+  async deleteEvidence(keys: string[]): Promise<void> {
+    for (let from = 0; from < keys.length; from += DELETE_BATCH) {
+      const batch = keys.slice(from, from + DELETE_BATCH);
+      try {
+        await this.deleter.send(
+          new DeleteObjectsCommand({
+            Bucket: this.settings.evidenceBucket,
             Delete: { Objects: batch.map((key) => ({ Key: key })), Quiet: true },
           }),
         );

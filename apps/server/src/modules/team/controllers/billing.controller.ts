@@ -51,6 +51,11 @@ import type { PaymentAddon } from '../../billing/types/addon';
 import type { ScheduledPlanChangeRecord } from '../../billing/types/scheduled-plan-change';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
+import {
+  PaymentEvidence,
+  type EvidenceUpload,
+} from '../../payment-evidence/services/payment-evidence';
+import { EvidenceUploadDto, EvidenceUploadResponseDto } from '../dto/operator-manual-entries.dto';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 import type { PlanPaymentRecord, TenantPaymentRecord } from '../../payments/types/plan-payment';
@@ -95,6 +100,7 @@ type ListedPayment = TenantPaymentRecord & { addons: PaymentAddon[]; earlierShop
 @UseGuards(SessionGuard, DashboardGuard, PermissionGuard)
 export class BillingController {
   constructor(
+    @Inject(PaymentEvidence) private readonly evidence: PaymentEvidence,
     @Inject(LytroReceipts) private readonly lytroReceipts: LytroReceipts,
     @Inject(PurchaseService) private readonly purchase: PurchaseService,
     @Inject(UpgradeService) private readonly upgrade: UpgradeService,
@@ -124,6 +130,20 @@ export class BillingController {
     });
   }
 
+  // ADM-17, D8-15: a screenshot for the "I have paid" that follows; optional, and only ever seen by Lytro.
+  @Post('payment-evidence')
+  @Dashboard({ lapsed: true, suspendedOwner: true, readOnlyWrite: true })
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('EvidenceUploadReady')
+  @ApiOperation({ summary: 'Get a signed link to upload a screenshot of a payment' })
+  @ZodResponse({ type: EvidenceUploadResponseDto })
+  startEvidenceUpload(
+    @Body(new ZodValidationPipe(EvidenceUploadDto.schema)) body: EvidenceUploadDto,
+    @Req() request: DashboardRequest,
+  ): Promise<EvidenceUpload> {
+    return this.evidence.startShopUpload(this.tenantIdOf(request), body);
+  }
+
   @Post('purchase')
   @Dashboard({ lapsed: true, suspendedOwner: true, readOnlyWrite: true })
   @UseInterceptors(IdempotencyInterceptor)
@@ -146,12 +166,19 @@ export class BillingController {
     if (!body.transactionId || !body.senderNumber || body.amountPaid === undefined) {
       throw new ApiError('validation_error', 'TransactionIdRequired', {});
     }
-    return this.lytroReceipts.afterSubmit(
-      await this.purchase.submitWalletPayment(body.paymentId, tenantId, {
-        transactionId: body.transactionId,
-        senderNumber: body.senderNumber,
-        amountPaid: body.amountPaid.toFixed(2),
-      }),
+    const { transactionId, senderNumber, amountPaid } = body;
+    return this.evidence.withKept(
+      { tenantId, uploader: 'seller' },
+      body.evidenceKey,
+      async (evidenceId) =>
+        this.lytroReceipts.afterSubmit(
+          await this.purchase.submitWalletPayment(body.paymentId, tenantId, {
+            transactionId,
+            senderNumber,
+            amountPaid: amountPaid.toFixed(2),
+            evidenceId,
+          }),
+        ),
     );
   }
 
@@ -192,12 +219,19 @@ export class BillingController {
     if (!body.transactionId || !body.senderNumber || body.amountPaid === undefined) {
       throw new ApiError('validation_error', 'TransactionIdRequired', {});
     }
-    return this.lytroReceipts.afterSubmit(
-      await this.upgrade.submitWalletPayment(body.paymentId, tenantId, {
-        transactionId: body.transactionId,
-        senderNumber: body.senderNumber,
-        amountPaid: body.amountPaid.toFixed(2),
-      }),
+    const { transactionId, senderNumber, amountPaid } = body;
+    return this.evidence.withKept(
+      { tenantId, uploader: 'seller' },
+      body.evidenceKey,
+      async (evidenceId) =>
+        this.lytroReceipts.afterSubmit(
+          await this.upgrade.submitWalletPayment(body.paymentId, tenantId, {
+            transactionId,
+            senderNumber,
+            amountPaid: amountPaid.toFixed(2),
+            evidenceId,
+          }),
+        ),
     );
   }
 

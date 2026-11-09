@@ -16,6 +16,11 @@ export interface ReportsStore {
     from: Date,
     to: Date,
   ): Promise<{ day: string; kind: PlanPaymentKind; amount: string }[]>;
+  /** D8-10: what the operator recorded and reversed each day. */
+  manualByDay(
+    from: Date,
+    to: Date,
+  ): Promise<{ day: string; kind: PlanPaymentKind; reversal: boolean; amount: string }[]>;
   spendByDay(
     from: string,
     to: string,

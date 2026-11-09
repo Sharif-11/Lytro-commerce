@@ -231,6 +231,9 @@ export enum AuditAction {
   // BIL-05: a confirmed purchase/renewal/upgrade activates the plan -- tenant-caused (the owner paid), so it
   // writes here; the operator's confirmation action itself is PlatformAuditAction.PlanPaymentVerified below.
   PlanPurchased = 'plan_purchased',
+  // ADM-15 (Phase 8 Slice 8.5): a payment Lytro recorded for the shop, and its reversal.
+  ManualPaymentRecorded = 'manual_payment_recorded',
+  ManualPaymentReversed = 'manual_payment_reversed',
   PlanRenewed = 'plan_renewed',
   // UPG-15: a confirmed upgrade -- tenant-caused, records old plan, new plan and both amounts.
   PlanUpgraded = 'plan_upgraded',
@@ -503,6 +506,8 @@ export const MONEY_RELATED_AUDIT_ACTIONS: ReadonlySet<AuditAction> = new Set([
   AuditAction.PlanExtended,
   AuditAction.OwnerSignInReset,
   AuditAction.PlanPurchased,
+  AuditAction.ManualPaymentRecorded,
+  AuditAction.ManualPaymentReversed,
   AuditAction.PlanRenewed,
   AuditAction.PlanUpgraded,
   AuditAction.AddonPurchased,
@@ -608,6 +613,8 @@ export enum QueueName {
   ShopDayTick = 'shop_day_tick',
   // ADM-13, D8-13 (Phase 8 Slice 8.3): one shop's data deleted on request, queued with the request that took it offline.
   ShopDataDeletion = 'shop_data_deletion',
+  // D8-47 (Phase 8 Slice 8.5): each night, removes payment screenshots past their two years.
+  EvidenceSweep = 'evidence_sweep',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -683,6 +690,9 @@ export enum PlatformAuditAction {
   PlanPaymentRejected = 'plan_payment_rejected',
   // BIL-06 (Slice 5.6, agreed 2026-11-03): money for a plan or add-on at the wrong amount, put on the balance instead.
   PlanPaymentCredited = 'plan_payment_credited',
+  // ADM-14, ADM-15 (Phase 8 Slice 8.5): a payment the operator recorded outside the normal flow, and its reversal.
+  ManualEntryRecorded = 'manual_entry_recorded',
+  ManualEntryReversed = 'manual_entry_reversed',
   // LIF-24: mirrors AuditAction.TenantSuspended/TenantRestored above (D2-5).
   TenantSuspended = 'tenant_suspended',
   TenantRestored = 'tenant_restored',
@@ -909,6 +919,16 @@ export enum PlanPaymentStatus {
   Rejected = 'rejected',
   Expired = 'expired',
   Cancelled = 'cancelled',
+  // ADM-15, D8-48 (Phase 8 Slice 8.5): a manual entry undone by a reversing entry.
+  Reversed = 'reversed',
+}
+
+// ADM-14, D8-14 (Phase 8 Slice 8.5): what the operator says a manual entry is. A plan is priced as the seller's request
+// is, and the server says whether it is a purchase or a renewal.
+export enum ManualEntryKind {
+  Plan = 'plan',
+  Upgrade = 'upgrade',
+  TopUp = 'top_up',
 }
 
 // BIL-19: who closed a payment request before anything was sent: the shop's own Cancel, or a newer request of the same
@@ -931,6 +951,8 @@ export enum BillingPaymentState {
   Expired = 'expired',
   /** Closed before anything was sent: cancelled by the shop, or replaced by its newer request. */
   Cancelled = 'cancelled',
+  /** ADM-15: recorded by the platform, then reversed by it. */
+  Reversed = 'reversed',
 }
 
 export function billingPaymentStateOf(
@@ -946,6 +968,8 @@ export function billingPaymentStateOf(
       return BillingPaymentState.Expired;
     case PlanPaymentStatus.Cancelled:
       return BillingPaymentState.Cancelled;
+    case PlanPaymentStatus.Reversed:
+      return BillingPaymentState.Reversed;
     default:
       return transactionId === null ? BillingPaymentState.Awaiting : BillingPaymentState.Checking;
   }
@@ -963,6 +987,8 @@ export enum InvoiceKind {
   Upgrade = 'upgrade',
   // PLN-14: an add-on bought on its own.
   Addon = 'addon',
+  // ADM-15, D8-49: takes back a reversed manual entry's invoice, which stays as it was. Its amount is negative.
+  CreditNote = 'credit_note',
 }
 
 // BIL-12, PLN-14: one line of an invoice -- the plan, an add-on, or an upgrade's credit (negative).

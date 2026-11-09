@@ -302,6 +302,34 @@ export function shopClosedWords(shopName: string, deletesOn: string): MailWords 
 }
 
 /** BIL-05: the plan is active until this day, with its invoice. */
+/** ADM-15: the shop is told when Lytro records a payment for it. */
+export function manualEntryRecordedWords(amount: string): MailWords {
+  return {
+    bn: {
+      subject: 'আপনার পেমেন্ট রেকর্ড হয়েছে',
+      body: `${amount} টাকার পেমেন্টটি Lytro আপনার অ্যাকাউন্টে রেকর্ড করেছে।`,
+    },
+    en: {
+      subject: 'Your payment has been recorded',
+      body: `Lytro recorded your payment of ${amount} TK on your account.`,
+    },
+  };
+}
+
+/** ADM-15: and when Lytro reverses one, with why. */
+export function manualEntryReversedWords(amount: string, reason: string): MailWords {
+  return {
+    bn: {
+      subject: 'একটি পেমেন্ট রিভার্স হয়েছে',
+      body: `${amount} টাকার পেমেন্টের রেকর্ড Lytro রিভার্স করেছে। কারণ: ${reason}`,
+    },
+    en: {
+      subject: 'A payment was reversed',
+      body: `Lytro reversed its record of your payment of ${amount} TK. Reason: ${reason}`,
+    },
+  };
+}
+
 export function planActiveWords(input: {
   planName: string;
   until: string;

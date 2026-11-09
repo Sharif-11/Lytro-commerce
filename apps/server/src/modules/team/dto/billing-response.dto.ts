@@ -159,6 +159,8 @@ export const queuedPaymentSchema = planPaymentSchema.extend({
   amountSent: z.string().nullable(),
   amountArrived: z.string().nullable(),
   reviewReason: z.nativeEnum(PaymentReviewReason).nullable(),
+  // ADM-17, D8-15: the seller's screenshot, opened by `GET /operator/payment-queue/:id/evidence`.
+  evidenceId: z.string().nullable(),
 });
 export class QueuedPaymentListDto extends createZodDto(queuedPaymentSchema.array()) {}
 
@@ -166,6 +168,8 @@ export class QueuedPaymentListDto extends createZodDto(queuedPaymentSchema.array
 // pays for, its invoice once paid, and whether it is the owner's earlier, deleted shop's (LIF-21).
 export const billingPaymentSchema = planPaymentSchema.extend({
   state: z.nativeEnum(BillingPaymentState),
+  // ADM-14: marked "recorded by the platform".
+  recordedByPlatform: z.boolean(),
   method: z.enum(PLAN_PAYMENT_METHODS).nullable(),
   planName: z.string().nullable(),
   billingTerm: z
@@ -228,6 +232,9 @@ export const invoiceSchema = z.object({
   paymentReference: z.string().nullable(),
   // BIL-19: the payment it is the receipt of; null on invoices issued before it was recorded.
   planPaymentId: z.string().nullable(),
+  // ADM-14: marked "recorded by the platform"; ADM-15: on a credit note, the invoice it takes back.
+  recordedByPlatform: z.boolean(),
+  reversesInvoiceId: z.string().nullable(),
   issuedAt: z.date(),
   // LIF-21: true for an invoice of the owner's earlier, deleted shop, listed alongside this shop's own.
   earlierShop: z.boolean(),

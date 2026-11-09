@@ -55,6 +55,11 @@ export class DrizzleInvoicesStore implements InvoicesStore {
     return row ? ((await this.withLines(tx, [row]))[0] ?? null) : null;
   }
 
+  async findForPayment(tx: Transaction, planPaymentId: string): Promise<InvoiceRecord | null> {
+    const row = await this.invoices.findForPayment(tx, planPaymentId);
+    return row ? ((await this.withLines(tx, [row]))[0] ?? null) : null;
+  }
+
   async listForTenant(tx: Transaction, tenantId: string): Promise<InvoiceRecord[]> {
     return this.withLines(tx, await this.invoices.listForTenant(tx, tenantId));
   }

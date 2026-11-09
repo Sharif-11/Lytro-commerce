@@ -21,6 +21,12 @@ const revenueFiguresSchema = z.object({
   wallet: z.object({ purchase: money, renewal: money, upgrade: money, addon: money }),
   balance: z.record(z.nativeEnum(LedgerEntryType), money),
   givenBack: money,
+  manual: z.object({
+    plans: money,
+    plansReversed: money,
+    topUps: money,
+    topUpsReversed: money,
+  }),
   earned: money,
 });
 

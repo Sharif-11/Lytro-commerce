@@ -13,6 +13,8 @@ import type {
 export class MemoryStorage implements MediaStorage {
   readonly uploads = new Map<string, Buffer>();
   readonly media = new Map<string, Buffer>();
+  /** D8-47: the private bucket. */
+  readonly evidence = new Map<string, Buffer>();
   private readonly writtenAt = new Map<string, Date>();
   private readonly signed = new Map<string, { contentType: string; bytes: number }>();
   /** MED-11: while true, the store cannot be reached. */
@@ -93,6 +95,23 @@ export class MemoryStorage implements MediaStorage {
           lastModified: this.writtenAt.get(key) ?? new Date(),
         })),
     );
+  }
+
+  putEvidence(key: string, body: Buffer): Promise<void> {
+    if (this.down) return Promise.reject(new StorageUnavailable());
+    this.evidence.set(key, body);
+    return Promise.resolve();
+  }
+
+  evidenceLink(key: string): Promise<string> {
+    if (this.down) return Promise.reject(new StorageUnavailable());
+    return Promise.resolve(`memory://evidence/${key}`);
+  }
+
+  deleteEvidence(keys: string[]): Promise<void> {
+    if (this.down) return Promise.reject(new StorageUnavailable());
+    for (const key of keys) this.evidence.delete(key);
+    return Promise.resolve();
   }
 
   /** A file placed straight in the bucket, as if written that long ago -- one no job recorded. */

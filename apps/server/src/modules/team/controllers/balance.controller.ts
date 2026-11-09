@@ -30,6 +30,11 @@ import { BalanceService } from '../../balance/services/balance.service';
 import { RateService } from '../../balance/services/rate.service';
 import { TopUpService } from '../../balance/services/top-up.service';
 import { PaymentCancellationService } from '../../billing/services/payment-cancellation.service';
+import {
+  PaymentEvidence,
+  type EvidenceUpload,
+} from '../../payment-evidence/services/payment-evidence';
+import { EvidenceUploadDto, EvidenceUploadResponseDto } from '../dto/operator-manual-entries.dto';
 import { EssentialSmsUsageService } from '../../sms-usage/services/essential-sms-usage.service';
 import type { BalanceView, LedgerPage } from '../../balance/types/ledger-entry';
 import type { RateValue } from '../../balance/types/rate';
@@ -75,6 +80,7 @@ const LEDGER_TYPES_QUERY = {
 export class BalanceController {
   constructor(
     @Inject(LytroReceipts) private readonly lytroReceipts: LytroReceipts,
+    @Inject(PaymentEvidence) private readonly evidence: PaymentEvidence,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(RateService) private readonly rates: RateService,
     @Inject(TopUpService) private readonly topUp: TopUpService,
@@ -206,6 +212,20 @@ export class BalanceController {
     return this.topUp.quote(this.tenantIdOf(request), body.amount.toFixed(2));
   }
 
+  // ADM-17, D8-15: a screenshot for the "I have paid" that follows; optional, and only ever seen by Lytro.
+  @Post('top-up/evidence')
+  @Dashboard({ suspendedOwner: true })
+  @RequirePermission(Permission.BalanceManage)
+  @ResponseMessage('EvidenceUploadReady')
+  @ApiOperation({ summary: 'Get a signed link to upload a screenshot of a top-up payment' })
+  @ZodResponse({ type: EvidenceUploadResponseDto })
+  startEvidenceUpload(
+    @Body(new ZodValidationPipe(EvidenceUploadDto.schema)) body: EvidenceUploadDto,
+    @Req() request: DashboardRequest,
+  ): Promise<EvidenceUpload> {
+    return this.evidence.startShopUpload(this.tenantIdOf(request), body);
+  }
+
   @Post('top-up/confirm')
   @Dashboard({ suspendedOwner: true })
   @UseInterceptors(IdempotencyInterceptor)
@@ -218,12 +238,19 @@ export class BalanceController {
     @Body(new ZodValidationPipe(ConfirmTopUpDto.schema)) body: ConfirmTopUpDto,
     @Req() request: DashboardRequest,
   ): Promise<PlanPaymentRecord> {
-    return this.lytroReceipts.afterSubmit(
-      await this.topUp.submit(body.paymentId, this.tenantIdOf(request), {
-        transactionId: body.transactionId,
-        senderNumber: body.senderNumber,
-        amountPaid: body.amountPaid.toFixed(2),
-      }),
+    const tenantId = this.tenantIdOf(request);
+    return this.evidence.withKept(
+      { tenantId, uploader: 'seller' },
+      body.evidenceKey,
+      async (evidenceId) =>
+        this.lytroReceipts.afterSubmit(
+          await this.topUp.submit(body.paymentId, tenantId, {
+            transactionId: body.transactionId,
+            senderNumber: body.senderNumber,
+            amountPaid: body.amountPaid.toFixed(2),
+            evidenceId,
+          }),
+        ),
     );
   }
 

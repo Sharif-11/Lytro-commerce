@@ -32,7 +32,19 @@ export interface PlanPaymentRecord {
   amountSent: string | null;
   amountArrived: string | null;
   reviewReason: PaymentReviewReason | null;
+  /** ADM-14: marked "recorded by the platform". */
+  recordedByPlatform: boolean;
+  /** ADM-17, D8-15: the seller's screenshot of the payment, when they added one. */
+  evidenceId: string | null;
   createdAt: Date;
+}
+
+/** BIL-02, BAL-03, ADM-17: what a seller's "I have paid" says; a screenshot is optional (D8-15). */
+export interface WalletSubmission {
+  transactionId: string;
+  senderNumber: string;
+  amountPaid: string;
+  evidenceId?: string | null;
 }
 
 /** BIL-19: a payment as the shop reads it in Billing: its state, how it was paid, what it names, and its invoice. */

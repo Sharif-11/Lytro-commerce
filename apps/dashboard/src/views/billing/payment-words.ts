@@ -193,6 +193,17 @@ export function timelineOf(payment: BillingPayment, t: T, invoice: Invoice | nul
         },
         requested,
       ];
+    case BillingPaymentState.Reversed:
+      return [
+        {
+          key: 'reversed',
+          text: t('blTlReversed'),
+          sub: payment.note ?? null,
+          at: payment.verifiedAt,
+          dot: 'bad',
+        },
+        ...after,
+      ];
     case BillingPaymentState.Awaiting:
       return [{ ...requested, sub: t('blNoTrx') }];
   }

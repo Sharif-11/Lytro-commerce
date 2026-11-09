@@ -134,6 +134,23 @@ export class BalanceService {
     return this.runStandalone(input.tenantId, (tx) => this.credit(tx, input));
   }
 
+  /**
+   * ADM-15, D8-50: a reversed manual top-up comes back off the balance in full, though some is spent and the balance goes
+   * below zero, or the shop has lapsed since: the money never arrived. The caller records why.
+   */
+  takeBack(
+    tx: Transaction,
+    input: { tenantId: string; amount: string; reference: unknown },
+  ): Promise<LedgerEntry> {
+    return this.applyDelta(tx, input.tenantId, {
+      type: LedgerEntryType.Adjustment,
+      signedAmount: fromPaisa(-toPaisa(input.amount)),
+      reference: input.reference,
+      overdraftFloor: undefined,
+      evenIfFrozen: true,
+    });
+  }
+
   /** BAL-17: an operator's correction. `amount` is signed; an empty reason is refused before any write. */
   async adjustStandalone(input: {
     tenantId: string;
@@ -300,11 +317,12 @@ export class BalanceService {
       units?: string;
       rateUsed?: string;
       overdraftFloor?: string;
+      evenIfFrozen?: boolean;
     },
   ): Promise<LedgerEntry> {
     const balance = await this.tenants.lockBalanceForUpdate(tx, tenantId);
     if (!balance) throw new Error('tenant not found');
-    if (balance.frozen) {
+    if (balance.frozen && input.evenIfFrozen !== true) {
       throw new ApiError('tenant_offline', 'BalanceFrozen', {});
     }
     const beforePaisa = toPaisa(balance.amount);

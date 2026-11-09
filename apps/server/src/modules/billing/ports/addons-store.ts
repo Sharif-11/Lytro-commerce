@@ -47,6 +47,8 @@ export interface AddonsStore {
   listEndingBy(tx: Transaction, horizon: Date): Promise<RenewingAddon[]>;
   lapse(tx: Transaction, id: string): Promise<void>;
   cancelForPayment(tx: Transaction, planPaymentId: string): Promise<void>;
+  /** ADM-15, D8-48: the add-ons a reversed manual entry activated end with it. */
+  cancelActiveForPayment(tx: Transaction, planPaymentId: string): Promise<void>;
   cancelForStalePayments(tx: Transaction): Promise<number>;
   listPackPurchases(tx: Transaction, tenantId: string, since: Date): Promise<PackPurchaseRow[]>;
   activeUnits(tx: Transaction, tenantId: string): Promise<AddonUnits[]>;

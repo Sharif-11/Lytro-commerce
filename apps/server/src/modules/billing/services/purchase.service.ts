@@ -16,7 +16,7 @@ import { BalanceService } from '../../balance/services/balance.service';
 import { fromPaisa, toPaisa } from '../../balance/services/money';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
-import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
+import type { PlanPaymentRecord, WalletSubmission } from '../../payments/types/plan-payment';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import { CLOCK } from '../tokens';
 import type { AddonCarry } from '../types/addon';
@@ -180,7 +180,7 @@ export class PurchaseService {
   submitWalletPayment(
     paymentId: string,
     tenantId: string,
-    input: { transactionId: string; senderNumber: string; amountPaid: string },
+    input: WalletSubmission,
   ): Promise<PlanPaymentRecord> {
     return this.payments.submitWalletPayment(paymentId, tenantId, input, PURCHASE_KINDS);
   }

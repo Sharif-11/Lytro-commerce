@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   bigint,
+  boolean,
   check,
   integer,
   jsonb,
@@ -66,6 +67,10 @@ export const invoices = control.table(
     // (decided 2026-10-23), one invoice per payment. Null on invoices issued before it was recorded that no transaction
     // ID matched.
     planPaymentId: uuid('plan_payment_id'),
+    // ADM-14: marked "recorded by the platform" when a manual entry produced it.
+    recordedByPlatform: boolean('recorded_by_platform').notNull().default(false),
+    // ADM-15, D8-49: on a credit note, the invoice it takes back -- a plain id, like plan_payment_id.
+    reversesInvoiceId: uuid('reverses_invoice_id'),
     issuedAt: timestamp('issued_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

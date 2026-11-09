@@ -59,6 +59,7 @@ function mediaStorage(env: Env): MediaStorage {
     pathStyle: env.MEDIA_STORAGE_PATH_STYLE,
     uploadsBucket: env.MEDIA_UPLOADS_BUCKET,
     mediaBucket: env.MEDIA_BUCKET,
+    evidenceBucket: env.MEDIA_EVIDENCE_BUCKET,
     signer: key(env.MEDIA_SIGNER_ACCESS_KEY, env.MEDIA_SIGNER_SECRET_KEY),
     processor: key(env.MEDIA_PROCESSOR_ACCESS_KEY, env.MEDIA_PROCESSOR_SECRET_KEY),
     deleter: key(env.MEDIA_DELETER_ACCESS_KEY, env.MEDIA_DELETER_SECRET_KEY),
@@ -125,6 +126,8 @@ function mediaEdge(env: Env): MediaEdge {
     MediaBandwidth,
     // For the day-60 deletion (LIF-19).
     MediaEraser,
+    // For payment screenshots (D8-47), which live in the same store.
+    MEDIA_STORAGE,
   ],
 })
 export class MediaModule {}

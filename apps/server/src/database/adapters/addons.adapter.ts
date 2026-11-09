@@ -126,6 +126,10 @@ export class DrizzleAddonsStore implements AddonsStore {
     return this.purchases.lapse(tx, id);
   }
 
+  cancelActiveForPayment(tx: Transaction, planPaymentId: string): Promise<void> {
+    return this.purchases.cancelActiveForPayment(tx, planPaymentId);
+  }
+
   cancelForPayment(tx: Transaction, planPaymentId: string): Promise<void> {
     return this.purchases.cancelForPayment(tx, planPaymentId);
   }
