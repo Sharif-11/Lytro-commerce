@@ -1,10 +1,10 @@
 # Hosted payment page: manual payments by Send Money
 
-Status: v3.1, 2026-11-04 (built, §7). v3 of 2026-11-04 (Slice 5.8's part 2 read: where it lives, WhatsApp and call, no SMS promise, no screenshot). v2 of
+Status: v3.2, 2026-11-09 (a shop paying Lytro, §8). v3.1 of 2026-11-04 (built, §7). v3 of 2026-11-04 (Slice 5.8's part 2 read: where it lives, WhatsApp and call, no SMS promise, no screenshot). v2 of
 2026-10-20, amended 2026-11-02 (Slice 5.4b: correcting a typed ID, and what a review tells a shopper). The design of
 `pay.lytro.app/<session>`, the page a shopper lands on to pay a shop by bKash, Nagad, Rocket, Upay or bank transfer. A wallet
-on automated hands the shopper on to its own checkout from here (PAY-06). The platform's own payments stay in the dashboard's
-wallet step (amended 2026-11-03, D5-3). It is built in Slice 5.8's part 2, and this document is the spec for that work. The
+on automated hands the shopper on to its own checkout from here (PAY-06). A shop paying Lytro uses this page too, with Lytro as the payee (§8,
+agreed 2026-11-09, reversing D5-3's amendment of 2026-11-03). It is built in Slice 5.8's part 2, and this document is the spec for that work. The
 interactive prototype is `docs/brand/lytro-payment-page.html` (320 px, 390 px and the 1280 px desktop; Bangla with the English
 switch; every wallet and every session state).
 
@@ -165,8 +165,8 @@ Errors on the box stay inline, inside the coloured card: a wrong shape ("6 থ�
 ## 2a. The real page is a redirect
 
 Checkout and the landing page redirect to this page, and it redirects back (SFT-07, LND-10, PAY-08). It is never framed: its policy says `frame-ancestors 'none'`.
-`docs/brand/lytro-storefront.html` carries a copy of this file in a frame only so the hand-over can be walked (STOREFRONT-DESIGN §8a); `docs/brand/lytro-dashboard.html` still
-carries an older copy for the platform's own payments, which that prototype draws and the build doesn't use (D5-3). A test account's page says it is one (`test`).
+`docs/brand/lytro-storefront.html` carries a copy of this file in a frame only so the hand-over can be walked (STOREFRONT-DESIGN §8a); `docs/brand/lytro-dashboard.html` carries
+a copy with Lytro as the payee (§8). A test account's page says it is one (`test`).
 
 ## 3. Widths checked
 
@@ -234,3 +234,32 @@ Where the build differs from the reference or the first sketch, each with its re
 
 `apps/server/test/payment-page-html.e2e.spec.ts` takes it through real orders. `apps/server/test/pay-page-browser` draws every screen from fixtures in a real browser, under its real policy, with accessibility
 checks, at 320 px, and beside the prototype; CI keeps those pictures.
+
+---
+
+## 8. A shop paying Lytro
+
+Agreed 2026-11-09 (the owner's read, `TENANT-DASHBOARD-DESIGN.md` §7.19): a plan, an add-on or a top-up is paid on this same page, with every screen
+above. Nothing is redrawn. The prototype shows it by adding `?payee=lytro` to its address, and the dashboard's prototype carries the same file.
+
+| On the page | For a shopper | For a shop paying Lytro |
+| --- | --- | --- |
+| Name and mark | the shop's | Lytro's |
+| Under the name | the order number | what is being paid for: "Top-up", "Starter · 1 month · renewal" |
+| Details sheet | the order number and items | what is being paid for, and the amount |
+| Methods | what the shop's owner has on, each by the owner's way (PAY-06) | what the operator has on, each by the operator's way (§10 of the operator console) |
+| WhatsApp and call | the shop's contact phone | Lytro's support number |
+| The shop's note | when the account has one | never |
+| Report this page | offered | not offered: it reports a shop to Lytro |
+| Sender number | optional | required, as the wallet step asks today, since Lytro's phone checks it |
+| Who confirms | "The shop will check" | "Lytro will check" |
+| The button at the end | Back to shop | Back to dashboard |
+| Rejected | the order was cancelled | pay again from Billing |
+| Where the page leads | the order's page | the dashboard |
+
+The amount the shop sent isn't asked for here: what a receipt says arrived is what counts (BIL-06), and with no receipt the operator's approval
+credits what was asked, unless they say otherwise. No fee and no session limit (PAY-21). An ID used anywhere can't be used again (BIL-07).
+
+**The build needs:** a session that can stand for a plan payment as well as an order, since `tenant.payment_sessions` needs an order today, with
+`control.plan_payments` staying the record; the page's read, ID and correction routes, and bKash's checkout, taking one; and Lytro's name, mark,
+support number, methods and ways in place of the shop's.

@@ -206,7 +206,7 @@ body.embedded{background:var(--sky-50)}
   <span class="note">Spec: docs/PAYMENT-PAGE-DESIGN.md</span>
 </div>
 <div class="stage"><div id="frame" class="frame phone" data-lang="bn"></div></div>
-<p class="caption"><b>How to read this.</b> The layout follows the reference page element for element, with the same spacing values its markup uses. Redrawn for Slice 5.8's part 2 (<code>docs/PAYMENT-PAGE-DESIGN.md</code> v3): what PAY-05 asks that the reference lacks is drawn (the sender number, the countdown, the shop's note, bank transfer, the English switch); WhatsApp and call replace the three contact buttons; every wallet the shop takes shows, and one on automated hands on to its own checkout; nothing promises an SMS; the payments-to-Lytro version is gone. Bangla mode has Bangla labels throughout (PAY-22), and faded or light text is now readable. The real page is a redirect and is served by the server; this file only draws it. bKash and Nagad use the official marks from <code>docs/brand/third-party/</code>; Rocket and Upay are text stand-ins until their marks are fetched.</p>
+<p class="caption"><b>How to read this.</b> The layout follows the reference page element for element, with the same spacing values its markup uses. Redrawn for Slice 5.8's part 2 (<code>docs/PAYMENT-PAGE-DESIGN.md</code> v3): what PAY-05 asks that the reference lacks is drawn (the sender number, the countdown, the shop's note, bank transfer, the English switch); WhatsApp and call replace the three contact buttons; every wallet the shop takes shows, and one on automated hands on to its own checkout; nothing promises an SMS; a shop paying Lytro sees this same page with its own words: <a href="?payee=lytro">see it as a payment to Lytro</a>. Bangla mode has Bangla labels throughout (PAY-22), and faded or light text is now readable. The real page is a redirect and is served by the server; this file only draws it. bKash and Nagad use the official marks from <code>docs/brand/third-party/</code>; Rocket and Upay are text stand-ins until their marks are fetched.</p>
 <script>
 const I = {
   back:'<path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>',
@@ -266,7 +266,30 @@ const W = {
 const BANK_COL = '#0f766e';
 const VERB = { personal: 'Send Money', agent: 'Cash Out', merchant: 'Payment' };
 const PAY_INIT = window.PAY_INIT || null;
-const CTX = Object.assign({ amount: 250, ref: '261104-0042', no: '01712345678', screen: 'pick', lang: 'bn' }, PAY_INIT || {});
+const LYTRO_ASKED = new URLSearchParams(location.search).get('payee') === 'lytro';
+const CTX = Object.assign({ platform: LYTRO_ASKED, amount: LYTRO_ASKED ? 500 : 250, ref: LYTRO_ASKED ? 'Top-up' : '261104-0042', no: '01712345678', screen: 'pick', lang: 'bn' }, PAY_INIT || {});
+/* Lytro as the payee (TENANT-DASHBOARD-DESIGN §7.19, 2026-11-09): a shop paying for a plan, an add-on or a top-up. The same page; only these words differ. */
+if (CTX.platform) Object.assign(S, {
+  orderRef: ['{o}', '{o}'],
+  help: ['সমস্যা হলে Lytro সাপোর্টে যোগাযোগ করুন', 'Having trouble? Contact Lytro support'],
+  detailsT: ['পেমেন্টের বিস্তারিত', 'Payment details'],
+  orderNo: ['যেটার জন্য পেমেন্ট', 'Paying for'],
+  senderPh: ['যে নম্বর থেকে পাঠালেন', 'The number you sent from'],
+  lateP: ['এই পেজ বন্ধ করলেও হবে। কনফার্ম হলে ড্যাশবোর্ডে দেখতে পাবেন।', 'You can close this page. Your dashboard will show when it is confirmed.'],
+  manualT: ['Lytro চেক করে কনফার্ম করবে', 'Lytro will check and confirm'],
+  manualP: ['সাধারণত কিছুক্ষণের মধ্যে। এই পেজ বন্ধ করলেও হবে; কনফার্ম হলে ড্যাশবোর্ডে দেখতে পাবেন।', 'Usually within a short while. You can close this page; your dashboard will show when it is confirmed.'],
+  verifiedP: ['{s} সেকেন্ডে ড্যাশবোর্ডে ফিরছেন।', 'Returning to your dashboard in {s} seconds.'],
+  reviewP: ['যে টাকা এসেছে তা এই পেমেন্টের সাথে মিলছে না। Lytro দেখে জানাবে; আপনার এখন কিছু করতে হবে না।', 'The money that arrived does not match this payment. Lytro will check and let you know; nothing to do now.'],
+  reviewSenderP: ['আপনার লেখা নম্বর থেকে এই টাকা আসেনি। Lytro দেখে জানাবে; আপনার এখন কিছু করতে হবে না।', 'This money did not come from the number you entered. Lytro will check and let you know; nothing to do now.'],
+  reviewOtherT: ['Lytro চেক করে জানাবে', 'Lytro will check and let you know'],
+  rejectNoPay: ['এই TrxID-র টাকা Lytro-র নম্বরে আসেনি।', "No money for this TrxID reached Lytro's number."],
+  rejectedNote: ['Lytro বলেছে: "{r}"', 'Lytro said: "{r}"'],
+  rejectedCancelled: ['বিলিং থেকে আবার পে করতে পারবেন।', 'You can pay again from Billing.'],
+  expiredP: ['টাকা পাঠিয়ে থাকলে Lytro সাপোর্টকে ট্রান্সজেকশন আইডি জানান। না পাঠিয়ে থাকলে ড্যাশবোর্ডে ফিরে আবার শুরু করুন।', 'If you already sent the money, give Lytro support the transaction ID. If not, go back to your dashboard and start again.'],
+  cancelledP: ['নতুন করে পে করতে ড্যাশবোর্ডে ফিরুন।', 'Go back to your dashboard to pay again.'],
+  noMethodsT: ['Lytro এখন অনলাইনে পেমেন্ট নিচ্ছে না', 'Lytro is not taking online payments right now'],
+  backShop: ['ড্যাশবোর্ডে ফিরুন', 'BACK TO DASHBOARD'],
+});
 const SHOP = { name: ['মেঘ ফ্যাশন', 'Megh Fashion'], no: CTX.no, amount: CTX.amount };
 const ST = { device: 'phone', lang: CTX.lang, screen: CTX.screen, wallet: null };
 const LEFT = '29:40';
@@ -285,14 +308,14 @@ const NO_TOPBAR = ['handing', 'suspended', 'missing', 'verified-done'];
 /* ---------- pieces ---------- */
 const topbar = (back, close) => `<div class="topbar"><button class="${back ? '' : 'hide'}" aria-label="back" ${back ? `onclick="go('${back}')"` : ''}>${ic('back', 28, 2.5)}</button><button class="${close ? '' : 'hide'}" aria-label="close" ${close ? `onclick="${close}"` : ''}>${ic('x', 28, 2.5)}</button></div>`;
 const langLink = () => `<a href="#" onclick="setLang('${LANG === 'bn' ? 'en' : 'bn'}');return false">${t('otherLang')}</a>`;
-const legal = (bare) => `<p class="legal">🔒 Secured by Lytro · ${t('secured')}${bare ? '' : ` · <a href="#" onclick="go('report');return false">${t('report')}</a>`} · ${langLink()}</p>`;
+const legal = (bare) => `<p class="legal">🔒 Secured by Lytro · ${t('secured')}${bare || CTX.platform ? '' : ` · <a href="#" onclick="go('report');return false">${t('report')}</a>`} · ${langLink()}</p>`;
 /* WhatsApp and call, from the shop's contact phone; left out when it isn't set (agreed 2026-11-04) */
 const contacts = (tight) => `<div class="contacts ${tight ? 'tight' : ''}"><button aria-label="WhatsApp" style="color:#25D366">${ic('chat')}</button><button aria-label="${t('call')}" style="color:var(--blue)">${ic('phone')}</button></div>`;
 const help = () => `<p class="help">${t('help')}</p>${contacts(true)}`;
 const gwCard = (kind) => `<div class="gwcard"><h3>${t(kind === 'failed' ? 'gwFailT' : 'gwCancelT')}</h3><p>${t('gwP')}</p><div class="row"><button class="gwbtn" style="background:${W.bkash.col};color:#fff" onclick="go('handing')">${t('gwRetry')}</button><button class="gwbtn line" onclick="go('bkash')">${t('gwHand')}</button></div></div>`;
 const picker = (o = {}) => `
   ${o.test ? `<div class="testbar">${t('test')}</div>` : ''}
-  <div class="brandrow"><span class="logo"><span class="mono">${L('ম', 'M')}</span></span><div><div class="nm">${L(...SHOP.name)}</div><div class="ref">${t('orderRef', { o: CTX.ref })}</div><button class="pill" onclick="go('details')">${t('viewDetails')}</button></div></div>
+  <div class="brandrow"><span class="logo">${CTX.platform ? `<span class="mono" style="background:#063b38"><svg viewBox="0 0 64 64" width="28" height="28"><path d="M15 15V49H31L49 29" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>` : `<span class="mono">${L('ম', 'M')}</span>`}</span><div><div class="nm">${CTX.platform ? 'Lytro' : L(...SHOP.name)}</div><div class="ref">${t('orderRef', { o: CTX.ref })}</div><button class="pill" onclick="go('details')">${t('viewDetails')}</button></div></div>
   ${contacts()}
   ${o.gw ? gwCard(o.gw) : ''}
   <div class="sect">${t('mobileBanking')}</div>
@@ -326,7 +349,7 @@ function stepsFor(k, ty, no, amount) {
     numLine(L('প্রাপক নম্বর:', 'Recipient number:')), amtLine, verifyLine,
   ];
 }
-const shopNote = () => `<div class="shopnote">${t('shopNote', { n: t('shopNoteSample') })}</div>`;
+const shopNote = () => (CTX.platform ? '' : `<div class="shopnote">${t('shopNote', { n: t('shopNoteSample') })}</div>`);
 const countdown = () => `<span class="cd">${ic('clock', 14)}${LEFT}</span>`;
 function panel(k, ty, o = {}) {
   const w = W[k]; const no = o.no || SHOP.no; const amount = o.amount || SHOP.amount;
@@ -344,7 +367,7 @@ function bankPanel() {
   ${shopNote()}
   <div class="ccard" style="background:${BANK_COL}"><p class="ctitle">${t('enterRef')}</p><div class="inp">${t('enterRef')}</div>
     <div class="ihead"><span>${t('instructions')}</span>${countdown()}</div>
-    <ul class="ilist"><li><span>${t('bankStep1', { a: hl(Number(SHOP.amount).toLocaleString('en-US')) })}</span></li>${row('bankName', 'BRAC Bank')}${row('acctName', 'Megh Fashion')}${row('acctNo', '1501204567890001', true)}${row('branch', L('গুলশান', 'Gulshan'))}${row('routing', '060261726', true)}${row('swift', 'BRAKBDDH', true)}<li><span>${t('bankStep2')}</span></li></ul></div>
+    <ul class="ilist"><li><span>${t('bankStep1', { a: hl(Number(SHOP.amount).toLocaleString('en-US')) })}</span></li>${row('bankName', 'BRAC Bank')}${row('acctName', CTX.platform ? 'Lytronix Ltd' : 'Megh Fashion')}${row('acctNo', '1501204567890001', true)}${row('branch', L('গুলশান', 'Gulshan'))}${row('routing', '060261726', true)}${row('swift', 'BRAKBDDH', true)}<li><span>${t('bankStep2')}</span></li></ul></div>
   ${legal()}`;
 }
 const det = (rows) => `<div class="det">${rows.map(([k, v]) => `<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div>`;
@@ -353,7 +376,7 @@ const scard = (icon, title, p, extra, bare) => `<div class="scard">${icon}<h2>${
 const ring = (s) => `<div class="ring"><svg viewBox="0 0 72 72"><circle class="bg" cx="36" cy="36" r="32"/><circle class="fg" cx="36" cy="36" r="32"/></svg><span class="t">${s}s</span></div>`;
 const bigIcon = (n, bg, col) => `<span class="ic" style="background:${bg};color:${col}">${ic(n, 40, 2)}</span>`;
 const tick = () => `<span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>`;
-const trxRows = () => [[t('amount'), '250 ৳'], [t('method'), 'bKash · Send Money'], [t('trx'), '9F2KQ7X1']];
+const trxRows = () => [[t('amount'), `${Number(SHOP.amount).toLocaleString('en-US')} ৳`], [t('method'), 'bKash · Send Money'], [t('trx'), '9F2KQ7X1']];
 const paidTime = () => [t('time'), L('আজ সকাল 11:48', 'Today 11:48 am')];
 
 /* ---------- screens: [content, fixed button label, button colour] ---------- */
@@ -391,14 +414,14 @@ const SC = {
   rejected: () => [scard(bigIcon('x', '#fee2e2', '#b91c1c'), t('rejectedT'), `${t('rejectNoPay')} ${t('rejectedCancelled')}`, det(trxRows()) + help()), t('backShop'), 'var(--blue)'],
   'rejected-note': () => [scard(bigIcon('x', '#fee2e2', '#b91c1c'), t('rejectedT'), `${t('rejectedNote', { r: '200 taka short' })} ${t('rejectedCancelled')}`, det(trxRows()) + help()), t('backShop'), 'var(--blue)'],
   expired: () => [scard(bigIcon('clock', 'var(--g100)', 'var(--g600)'), t('expiredT'), t('expiredP'), help()), t('backShop'), 'var(--blue)'],
-  paid: () => [scard(bigIcon('check', '#dcfce7', '#15803d'), t('paidT'), '', det([[t('amount'), '250 ৳'], [t('method'), 'bKash'], paidTime()])), t('backShop'), 'var(--blue)'],
+  paid: () => [scard(bigIcon('check', '#dcfce7', '#15803d'), t('paidT'), '', det([[t('amount'), `${Number(SHOP.amount).toLocaleString('en-US')} ৳`], [t('method'), 'bKash'], paidTime()])), t('backShop'), 'var(--blue)'],
   cancelled: () => [scard(bigIcon('x', 'var(--g100)', 'var(--g600)'), t('cancelledT'), t('cancelledP'), help()), t('backShop'), 'var(--blue)'],
   suspended: () => [scard(bigIcon('lock', 'var(--g100)', 'var(--g600)'), t('suspendedT'), '', '', true), null],
   missing: () => [scard(bigIcon('search', 'var(--g100)', 'var(--g600)'), t('missingT'), t('missingP'), '', true), null],
 };
 const sheetOf = (title, closeTo, body, foot) => `<div class="scrim" onclick="go('${closeTo}')"><div class="sheet" onclick="event.stopPropagation()"><div class="sh"><h2>${title}</h2><button aria-label="close" onclick="go('${closeTo}')">${ic('x', 22)}</button></div><div class="sb">${body}</div>${foot ? `<div class="sf">${foot}</div>` : ''}</div></div>`;
 const reportSheet = (picked) => sheetOf(t('reportTitle'), 'bkash', `${['r1', 'r2', 'r3', 'r4'].map((k) => `<div class="opt"><span class="radio ${k === picked ? 'on' : ''}"></span>${t(k)}</div>`).join('')}${picked === 'r4' ? `<div class="inp">${t('rNote')}</div>` : ''}`, `<button class="btn" onclick="go('reported')">${t('sendReport')}</button>`);
-const detailsSheet = () => sheetOf(t('detailsT'), 'pick', det([[t('orderNo'), CTX.ref], [L('কটন পাঞ্জাবি · M', 'Cotton panjabi · M'), '× 1'], [L('শিফন হিজাব · কালো', 'Chiffon hijab · Black'), '× 2'], [t('toPay'), `${Number(SHOP.amount).toLocaleString('en-US')} ৳`]]));
+const detailsSheet = () => sheetOf(t('detailsT'), 'pick', det([[t('orderNo'), CTX.ref], ...(CTX.platform ? [] : [[L('কটন পাঞ্জাবি · M', 'Cotton panjabi · M'), '× 1'], [L('শিফন হিজাব · কালো', 'Chiffon hijab · Black'), '× 2']]), [t('toPay'), `${Number(SHOP.amount).toLocaleString('en-US')} ৳`]]));
 function render() {
   LANG = ST.lang;
   const f = document.getElementById('frame');
