@@ -1,4 +1,4 @@
-# Operator console: design (v5)
+# Operator console: design (v6)
 
 The console at `admin.lytro.app` (`apps/operator`, D3-12), redesigned from scratch on 2026-10-21. Version 1
 (2026-10-19, inverted dark chrome) is retired; nothing from it or from the old `apps/admin` console was
@@ -21,6 +21,9 @@ routes, makes the Rates page's rate-change notice offer real (§8, RAT-09, NTC-1
 Phase 6's four courier settings on Settings (§9), lets the add-on catalogue make and edit an allowance (§6a, D7-17,
 D7-36), and brings back the sentences D7-20 names wherever the code now sends the message (§4, §5). §15 lists what the
 build needs, and two things the allowance's drawing found.
+
+Version 6 (2026-11-09) turns Platform wallets into Payment methods (§10): what shops can pay Lytro by, how each method's
+payments are confirmed, a bank account, and Lytro's own bKash checkout (ADM-10).
 
 **Who and where.** One or two people, mostly at a laptop, several times a day: matching wallet payments
 against the bKash and Nagad statements, answering sellers, and occasionally changing a price or a limit.
@@ -282,12 +285,36 @@ the field, and nothing is saved. The side card "What these numbers do" draws the
 timeline the current values produce, from the period end through grace, read-only, locked and archived to
 the deletion day, so a change is checked against its effect before it is saved.
 
-## 10. Platform wallets (`/wallets`)
+## 10. Payment methods (`/wallets`)
 
-A table: provider with its colour dot, number in monospace, label, the Shown switch (BIL-02), order, Edit
-and Remove, with the sentence that sellers see these rows exactly as listed. The panel takes provider,
-number, label, order and Shown. Remove is a dialog: sellers stop seeing it at once; matched payments keep it
-on their invoices. A dashed card holds the place for gateway credentials (ADM-10).
+What shops can pay Lytro by, for plans, add-ons and top-ups, and how each method's payments are confirmed (2026-11-09; the
+shop's side is the payment page, `PAYMENT-PAGE-DESIGN.md` §8). One card per method -- bKash, Nagad, Rocket, Upay, bank transfer -- at most 720 px wide.
+
+- **A method's card:** its colour, its name, how many numbers and which way, and the on/off switch. Off, it folds to that
+  head, and shops don't see it. A method on with no number shown says shops won't see it (`pm-no-number`). Turning off the
+  last one asks first (`pm-off-last`), and with every method off the page says no shop can pay (`pm-none`). Payments already
+  sent stay in the queue.
+- **Numbers**, as before: number in monospace, label, the Shown switch (BIL-02), Edit, and Add number. The panel takes
+  provider, number, label, order and Shown. Remove is a dialog: sellers stop seeing it at once; matched payments keep it on
+  their invoices.
+- **How payments are confirmed** appears only where a method has more than one way, bKash today, from the one list the shops'
+  side uses (`PAYMENT_METHOD_TYPES`, WAL-18). Automatic checkout, Listener or Manual, each with what it means. The starting
+  choice is the listener, as for shops, so nothing changes until the operator acts.
+  - *Listener* shows how many of Lytro's phones are online, with the link to them. None online says these payments wait in
+    the queue until one is (`pm-no-phone`).
+  - *Manual* means the operator approves each one, even with a phone paired (`pm-manual`).
+  - *Automatic* needs Lytro's own keys first (`pm-gw`): the number that receives the money, the four fields from Lytro's bKash
+    merchant panel, and Test account for the sandbox, sealed and never shown again. Saving tests the connection, then
+    asks separately whether to turn it on (`pm-gw-ok`), so connecting never changes how money is taken. Refused, it
+    shows bKash's code and stays off (`pm-gw-bad`). Once saved, Manage keys offers Test connection and Remove keys
+    (`pm-gw-saved`); removing them returns bKash to the listener, and a checkout already open is still confirmed
+    (`pm-gw-remove`).
+- **A method with one way** says so and why: manual only for now, since Lytro's phones read only bKash's SMS so far and only
+  bKash has a checkout. A bank is always manual.
+- **A bank account** (`pm-bank`): bank name, account name, account number, branch, routing number, SWIFT and instructions
+  for shops (WAL-14's fields), with Shown and Edit like a number.
+- **The queue** shows the method a payment was made by beside its TrxID; a bank transfer shows its reference, with no sender
+  number.
 
 ## 10a. Lytro's phones (`/phones`, `/phones/receipts`, `/phones/unread`)
 
@@ -484,7 +511,7 @@ cards on the screens they belong to.
 | Billing terms | `GET/POST/PATCH /operator/billing-terms`, `retire`, `DELETE` | §7 | |
 | Rates | `GET /operator/rates`, `history` (with each change's `noticeId`), `PATCH` | §8, with the NTC-13 offer from v5 | |
 | Settings | `GET /operator/settings`, `PATCH /:key` | §9 | |
-| Wallets | `GET/POST/PATCH/DELETE /operator/platform-wallets` | §10 | ADM-10 gateways |
+| Payment methods | `GET/POST/PATCH/DELETE /operator/platform-wallets`; the methods' on/off and way, a bank account, and Lytro's bKash keys are new | §10 | ADM-10, built with §10 |
 | Catalogue | `GET/PATCH /operator/presets`, attributes and options, option sets | §11 | |
 | Reports, audit, inbox, verification | nothing | | §13 |
 
