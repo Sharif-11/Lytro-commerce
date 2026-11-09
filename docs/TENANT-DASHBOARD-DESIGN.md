@@ -1,6 +1,6 @@
 # Tenant dashboard: the full design
 
-Status: v3.37, 2026-11-07 (Phase 7 for the seller -- SMS settings, the log and the report, the bell, its switches and
+Status: v3.38, 2026-11-09 (paying Lytro on the developed payment page: §7.19 is current, Part 38, reversing D5-3's amendment of 2026-11-03; v3.37 of 2026-11-07: Phase 7 for the seller -- SMS settings, the log and the report, the bell, its switches and
 push, the bounced email, Lytro's notice board with its marquee and prompt, the fake order check, reading a pasted
 message and the reads allowance -- drawn for Slice 7.7, §7.40, Part 37; v3.36 of 2026-11-07: the Phase 6 close-out: editing a booked order, §7.39, Part 36's `c36-edit` and `c36-edited`; v3.35 of 2026-11-06: Couriers, booking, the order's Courier card and courier money, drawn for Phase 6 Slice 6.7, §7.39, Part 36; v3.34 of 2026-11-05: Payments and Listener phones, drawn and built together for Slice 5.8's parts 3 and 4, §7.36 to §7.38; v3.33 of 2026-11-04: Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
 shipment the balance can't pay for, serials at shipping scanned, pasted or typed, the Orders list by where an order came
@@ -989,13 +989,20 @@ the support WhatsApp number is configured.
 
 ### 7.19 Paying the platform through the hosted page
 
-Every payment to Lytro (a plan at checkout, a renewal, an upgrade, a top-up) goes through the hosted
+Every payment to Lytro (a plan at checkout, a renewal, an upgrade, an add-on, a top-up) goes through the hosted
 payment page of `PAYMENT-PAGE-DESIGN.md` with Lytro as the payee, the platform's wallet numbers, the exact
 amount and the reference (PAY-21, BIL-03, BAL-03); every attempt, whatever its end, is a row in Billing
 (§7.13). From then on the dashboard never shows a wallet number or
-asks for a transaction ID itself. Until the page exists (Phase 5), the dashboard keeps today's wallet step (the
-platform's wallet numbers, then the sender number and transaction ID, confirmed by an operator), drawn in this
-design (decided 2026-10-22). The wiring, once the page exists:
+asks for a transaction ID itself. Agreed 2026-11-09 (Part 38; the owner's read, reversing D5-3's amendment of 2026-11-03): the wallet step
+goes, and the page built in Slice 5.8 is used as it stands, with the few words `PAYMENT-PAGE-DESIGN.md` §8 lists.
+
+The dashboard keeps what comes before the money: the plan and term or the amount, the price, and the balance as a choice where it
+covers the amount (BIL-08). The method and everything after it are the page's: its picker shows the methods the operator has on
+(`OPERATOR-CONSOLE-DESIGN.md` §10), and the way the operator set for that method decides what follows: on to bKash's own checkout, or send the money and
+enter the TrxID, confirmed by Lytro's phone or by Lytro's team, or a bank transfer and its reference. A shop never chooses the way. A way changed by
+the operator applies to the next payment; one already started finishes as it began. Reopening a payment from Billing opens the page again.
+
+The wiring:
 
 | Where the seller taps | The page opens with | Coming back |
 | --- | --- | --- |
@@ -1003,11 +1010,12 @@ design (decided 2026-10-22). The wiring, once the page exists:
 | Balance, Top up, "পেমেন্ট পেজে যান · ৳500" | Lytro · Top-up · ৳500 | paid → the credited toast and ledger row; still checking → the "being checked" banner; closed → Balance |
 | Plan, Renew → How to pay, "পেমেন্ট পেজে যান · ৳449" | Lytro · Starter · 1 month · renewal · ৳449 | paid → "Renewed · runs until 9 Dec"; still checking → the banner; closed → Plan |
 | Plan, Upgrade, "Pay on the payment page" | Lytro · Upgrade to Growth · ৳400 | paid → "Growth is on"; still checking → the banner; closed → the upgrade sheet |
+| Add-ons, Buy, when the balance can't cover it | Lytro · Products add-on · ৳99 | paid → the add-on is on; still checking → "sent for checking"; closed → the buy sheet |
 
 In the prototype the page is embedded as its own document inside the frame: the picker, the wallet's
 coloured card, Verify, the checking ring and the verified card, then "back to shop" returns to the state
 above (auto-return after five seconds when paid, PAY-08). The page is in the toolbar's "Payment page"
-group with each of the four contexts.
+group with each of the five contexts. A rejected payment, in any of them, returns to Billing, where the shop can pay again.
 
 ### 7.20 Lifecycle, suspension and support view
 
