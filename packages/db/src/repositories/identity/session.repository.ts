@@ -85,6 +85,14 @@ export class SessionRepository {
       .where(and(eq(sessions.id, sessionId), isNull(sessions.revokedAt)));
   }
 
+  /** ADM-04, D8-5: ends every live session of an account, wherever it signed in. */
+  async revokeAllForSubscriber(db: Executor, subscriberId: string, at: Date): Promise<void> {
+    await db
+      .update(sessions)
+      .set({ revokedAt: at })
+      .where(and(eq(sessions.subscriberId, subscriberId), isNull(sessions.revokedAt)));
+  }
+
   /** Ends every live session of a staff user at once (STF-05). */
   async revokeAllForUser(db: Executor, userId: string, at: Date): Promise<void> {
     await db

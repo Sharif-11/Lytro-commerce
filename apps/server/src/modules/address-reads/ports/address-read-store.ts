@@ -11,6 +11,8 @@ export interface AllowanceLeft {
 
 /** tenant.order_extractions and the allowances that pay for reads (ORD-34, PLN-20), always in the caller's transaction. */
 export interface AddressReadStore {
+  /** LIF-19: the day-60 deletion's step for the shop's reads. */
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
   /** The shop's address-read allowances that count now, the soonest to end first, locked until the transaction ends. */
   allowancesFor(tx: Transaction, tenantId: string): Promise<AllowanceLeft[]>;
   record(tx: Transaction, read: NewOrderExtraction): Promise<void>;

@@ -39,6 +39,7 @@ import { OwnAccountGuard } from './guards/own-account.guard';
 import { SessionGuard } from './guards/session.guard';
 import { ForgotPasswordService } from './services/forgot-password.service';
 import { OneTimeCodeService } from './services/one-time-code.service';
+import { OwnerSignInResetService } from './services/owner-sign-in-reset.service';
 import { OneTimeCodeHasher } from './services/one-time-code-hasher';
 import { PasswordHasher } from './services/password-hasher';
 import { PasswordService } from './services/password.service';
@@ -193,6 +194,7 @@ import {
       }),
     },
     OneTimeCodeService,
+    OwnerSignInResetService,
     PasswordHasher,
     SessionService,
     SessionGuard,
@@ -214,6 +216,7 @@ import {
   ],
   // The session and dashboard gates, shared with the team routes (staff) so those routes apply the same rules.
   exports: [
+    OwnerSignInResetService,
     SessionService,
     SessionGuard,
     // DashboardGuard is built in each module that uses it, so what it injects is exported with it.

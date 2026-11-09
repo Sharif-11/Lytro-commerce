@@ -16,6 +16,8 @@ export interface SessionStore {
     at: Date,
   ): Promise<number>;
   revoke(sessionId: string, at: Date): Promise<void>;
+  /** ADM-04, D8-5: ends every live session of an account. */
+  revokeAllForSubscriber(tx: Transaction, subscriberId: string, at: Date): Promise<void>;
   /** ADM-03, D8-27: when each account last opened a session in the shop. */
   lastSignInsOf(tenantId: string): Promise<{ subscriberId: string; at: Date }[]>;
 }

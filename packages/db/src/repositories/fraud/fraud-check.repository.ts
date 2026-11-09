@@ -37,6 +37,14 @@ export interface FraudOrderFacts {
 export class FraudCheckRepository {
   constructor(private readonly transactions: Pick<TransactionRunner, 'setTenantContext'>) {}
 
+  /** LIF-19: a deleted shop's checks and rule; the trigger lets this through only for an archived or deleted shop. */
+  async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx.execute(sql`SELECT set_config('app.erasing_tenant', ${tenantId}, true)`);
+    await tx.delete(fraudChecks).where(eq(fraudChecks.tenantId, tenantId));
+    await tx.delete(fraudRules).where(eq(fraudRules.tenantId, tenantId));
+  }
+
   async insert(db: Transaction, values: NewFraudCheck): Promise<SelectFraudCheck> {
     await this.transactions.setTenantContext(db, values.tenantId);
     const [row] = await db.insert(fraudChecks).values(values).returning();

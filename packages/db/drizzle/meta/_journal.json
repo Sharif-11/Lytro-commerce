@@ -855,6 +855,13 @@
       "when": 1794221915827,
       "tag": "0122_shop_days",
       "breakpoints": true
+    },
+    {
+      "idx": 123,
+      "version": "7",
+      "when": 1794231984937,
+      "tag": "0123_lif19_phase7_tables",
+      "breakpoints": true
     }
   ]
 }

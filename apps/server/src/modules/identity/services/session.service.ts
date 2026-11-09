@@ -23,6 +23,11 @@ export class SessionService {
     @Inject(SignInAudit) private readonly signInAudit: SignInAudit,
   ) {}
 
+  /** ADM-04, D8-5: signs the account out everywhere, in the caller's transaction. */
+  revokeEverySession(tx: Transaction, subscriberId: string, at: Date): Promise<void> {
+    return this.store.revokeAllForSubscriber(tx, subscriberId, at);
+  }
+
   /** ADM-03, D8-27: when each account last signed in to the shop, by its subscriber id. */
   async lastSignInsOf(tenantId: string): Promise<Map<string, Date>> {
     const rows = await this.store.lastSignInsOf(tenantId);

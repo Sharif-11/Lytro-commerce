@@ -218,6 +218,12 @@ export enum AuditAction {
   // PLN-17: an operator's not-for-sale plan assignment is operator-caused but changes the tenant's own plan, so
   // it writes both this log (D2-5) and PlatformAuditAction.PlanAssigned below.
   PlanAssigned = 'plan_assigned',
+  // ADM-04, D8-12 (Phase 8 Slice 8.3): the operator added days to the shop's period, with a reason.
+  PlanExtended = 'plan_extended',
+  // ADM-04, D8-5 (Slice 8.3): the operator signed the owner out everywhere and sent a reset code.
+  OwnerSignInReset = 'owner_sign_in_reset',
+  // ADM-13, D8-13 (Slice 8.3): the operator took the shop offline to delete its data on request.
+  ShopDataDeletionRequested = 'shop_data_deletion_requested',
   // TRL-07: a system-caused lifecycle transition (the trial-end job, later the grace/read-only/locked
   // cascade too) -- D2-5 puts these on the tenant's own log only, so the owner sees why, with no platform
   // audit mirror (an operator can already see tenant state directly).
@@ -494,6 +500,8 @@ export const MONEY_RELATED_AUDIT_ACTIONS: ReadonlySet<AuditAction> = new Set([
   AuditAction.AdTrackingRemoved,
   AuditAction.PasswordReset,
   AuditAction.PlanAssigned,
+  AuditAction.PlanExtended,
+  AuditAction.OwnerSignInReset,
   AuditAction.PlanPurchased,
   AuditAction.PlanRenewed,
   AuditAction.PlanUpgraded,
@@ -523,6 +531,7 @@ export const DELETION_AUDIT_ACTIONS: ReadonlySet<AuditAction> = new Set([
   AuditAction.LifecycleStateChanged,
   AuditAction.DeletionWarningSent,
   AuditAction.TenantDeleted,
+  AuditAction.ShopDataDeletionRequested,
   AuditAction.ShopClosed,
   AuditAction.DataExportRequested,
   AuditAction.DataExportDownloaded,
@@ -597,6 +606,8 @@ export enum QueueName {
   RequestErrorPurgeTick = 'request_error_purge_tick',
   // ADM-09, D8-9 (Phase 8 Slice 8.4): the nightly record of each shop's day, which the operator's reports read.
   ShopDayTick = 'shop_day_tick',
+  // ADM-13, D8-13 (Phase 8 Slice 8.3): one shop's data deleted on request, queued with the request that took it offline.
+  ShopDataDeletion = 'shop_data_deletion',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -642,6 +653,10 @@ export enum PlatformAuditAction {
   PlanDeleted = 'plan_deleted',
   // PLN-17: mirrors AuditAction.PlanAssigned above, written to this log too (D2-5).
   PlanAssigned = 'plan_assigned',
+  // ADM-04, ADM-13 (Phase 8 Slice 8.3): mirror the same actions above, with the operator who took them.
+  PlanExtended = 'plan_extended',
+  OwnerSignInReset = 'owner_sign_in_reset',
+  ShopDataDeletionRequested = 'shop_data_deletion_requested',
   // PLN-11: a per-tenant limit override, set or removed.
   PlanLimitOverrideSet = 'plan_limit_override_set',
   PlanLimitOverrideRemoved = 'plan_limit_override_removed',

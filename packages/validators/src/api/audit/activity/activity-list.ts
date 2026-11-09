@@ -33,6 +33,7 @@ export const ACTIVITY_GROUPS = {
     AuditAction.SignOut,
     AuditAction.PasswordChanged,
     AuditAction.PasswordReset,
+    AuditAction.OwnerSignInReset,
   ],
   staff: [
     AuditAction.StaffCreated,
@@ -45,6 +46,7 @@ export const ACTIVITY_GROUPS = {
   ],
   money: [
     AuditAction.PlanAssigned,
+    AuditAction.PlanExtended,
     AuditAction.PlanPurchased,
     AuditAction.PlanRenewed,
     AuditAction.PlanUpgraded,

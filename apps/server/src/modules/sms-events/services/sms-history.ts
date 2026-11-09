@@ -70,6 +70,11 @@ export class SmsHistory {
     return { sms: rows.map((row) => this.viewOf(row)) };
   }
 
+  /** LIF-19: the day-60 deletion's SMS step: the log and the settings. */
+  deleteAllForTenant(tenantId: string): Promise<void> {
+    return this.store.deleteAllForTenant(tenantId);
+  }
+
   /** ADM-03 (Slice 8.2): how many of the shop's SMS failed or were blocked since `since`. */
   notSentSince(tenantId: string, since: Date): Promise<{ failed: number; blocked: number }> {
     return this.store.notSentSince(tenantId, since);

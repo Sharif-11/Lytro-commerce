@@ -182,6 +182,16 @@ export class TenantService {
     return this.store.findBillingInfo(tx, tenantId);
   }
 
+  /** ADM-04, D8-12: the shop's period ends later; `restore` brings a lapsed shop back to active. */
+  extendPeriod(
+    tx: Transaction,
+    tenantId: string,
+    periodEnd: Date,
+    restore: boolean,
+  ): Promise<void> {
+    return this.store.extendPeriod(tx, tenantId, periodEnd, restore);
+  }
+
   /** LIF-03/04/23, PYG-09: the state write; entering `archived` records `at`. Plan, period and balance are untouched. */
   setLifecycleState(
     tx: Transaction,

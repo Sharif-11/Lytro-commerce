@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { OrderStatus } from '@lytronix/validators';
+import { OrderStatus, TenantState } from '@lytronix/validators';
 import { SmsLogDto } from './sms.dto';
 import { shopUsageSchema } from './usage-response.dto';
 
@@ -77,3 +77,15 @@ export const shopFailedSmsSchema = z.object({
     .array(),
 });
 export class ShopFailedSmsDto extends createZodDto(shopFailedSmsSchema) {}
+
+// ADM-04, D8-12 (Slice 8.3): where the extended period now ends, and whether a lapsed shop came back.
+export class PlanExtensionDto extends createZodDto(
+  z.object({
+    periodEnd: z.date(),
+    state: z.nativeEnum(TenantState),
+    restored: z.boolean(),
+  }),
+) {}
+
+// ADM-04, D8-5 (Slice 8.3): whether the phone the owner gave replaced the account's.
+export class OwnerResetDoneDto extends createZodDto(z.object({ phoneChanged: z.boolean() })) {}

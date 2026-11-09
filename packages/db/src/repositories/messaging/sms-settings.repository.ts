@@ -17,6 +17,13 @@ export interface SmsSettingsChange {
 export class SmsSettingsRepository {
   constructor(private readonly transactions: Pick<TransactionRunner, 'setTenantContext'>) {}
 
+  /** LIF-19: a deleted shop's SMS settings; the trigger lets this through only for an archived or deleted shop. */
+  async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx.execute(sql`SELECT set_config('app.erasing_tenant', ${tenantId}, true)`);
+    await tx.delete(smsSettings).where(eq(smsSettings.tenantId, tenantId));
+  }
+
   async find(tx: Transaction, tenantId: string): Promise<SelectSmsSettings | null> {
     await this.transactions.setTenantContext(tx, tenantId);
     const [row] = await tx.select().from(smsSettings).where(eq(smsSettings.tenantId, tenantId));

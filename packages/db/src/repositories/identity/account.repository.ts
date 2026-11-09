@@ -107,6 +107,19 @@ export class AccountRepository {
       );
   }
 
+  /** ADM-04, D8-36: the account's phone becomes this one, proven by the operator's check. */
+  async changePhoneIdentity(
+    db: Executor,
+    identityId: string,
+    phone: string,
+    at: Date,
+  ): Promise<void> {
+    await db
+      .update(subscriberIdentities)
+      .set({ value: phone, verifiedAt: at })
+      .where(eq(subscriberIdentities.id, identityId));
+  }
+
   async findIdentityOf(
     db: Executor,
     subscriberId: string,

@@ -2335,6 +2335,22 @@ Phase 8 Slice 8.2 built the list's search, filters and sorts and the page's figu
 - **Still the next release's (`D8-1`):** ADM-03's failed webhooks and open tickets, which need the shop API and support
   tickets.
 
+## 135. `ADM-04`, `ADM-13`, `D8-32` to `D8-39`: what acting on a shop leaves open — found 2026-11-09, open
+
+Phase 8 Slice 8.3 built extending a plan, resetting an owner's sign-in and deleting a shop's data on request (PHASE-8-PLAN,
+Slice 8.3). These stay:
+
+- **A reset code that doesn't go.** The new phone and the sign-out are saved first, and the code goes after. If the SMS
+  fails or the phone was sent a code too recently, the operator sees the error while the owner is already signed out.
+  Doing it again sends the code and changes nothing else.
+- **Nobody is told but by the log.** Extending a plan and deleting data on request reach the shop's activity log and no
+  one's phone or bell. The reset's only message is the code, and the old phone gets no warning that it was replaced.
+- **A deletion job that keeps failing.** The shop stays offline and archived, and only the server log says why. The operator
+  can ask again, which queues another job. A shop asked for this way has no day-60 clock of its own behind it.
+- **Add-ons already lapsed stay lapsed.** Extending a lapsed shop moves only the add-ons still active. One the lapse
+  already ended stays ended, and the shop buys it again.
+- **Two actions at once are held apart by a row lock** that no test exercises, as with the other operator actions on a shop.
+
 ## 136. Phase 7: what its close-out left open — found 2026-11-09, open
 
 The close-out (PHASE-7-PLAN §11) fixed what its three reviews found, apart from these.

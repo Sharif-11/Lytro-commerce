@@ -57,6 +57,8 @@ export interface SignupGateway {
     subscriberId: string,
     identityId: string,
   ): Promise<'deleted' | 'not_found' | 'owns_shop'>;
+  /** ADM-04, D8-36: the account's phone becomes this one. */
+  changePhoneIdentity(tx: Transaction, identityId: string, phone: string, at: Date): Promise<void>;
   findPhoneIdentityOf(
     tx: Transaction,
     subscriberId: string,

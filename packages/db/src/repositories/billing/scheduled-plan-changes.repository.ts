@@ -1,4 +1,4 @@
-import { eq, lte } from 'drizzle-orm';
+import { and, eq, lte, sql } from 'drizzle-orm';
 import { scheduledPlanChanges, type SelectScheduledPlanChange } from '../../schema';
 import type { ScheduledPlanChangeKind } from '@lytronix/validators';
 import type { Executor } from '../../transactions';
@@ -28,6 +28,19 @@ export class ScheduledPlanChangesRepository {
       .returning();
     if (!row) throw new Error('insert returned no scheduled plan change');
     return row;
+  }
+
+  /** D8-35 (Slice 8.3): a change scheduled for the period's old end happens at its new one instead. */
+  async moveEffectiveAt(tx: Executor, tenantId: string, from: Date, to: Date): Promise<void> {
+    await tx
+      .update(scheduledPlanChanges)
+      .set({ effectiveAt: to })
+      .where(
+        and(
+          eq(scheduledPlanChanges.tenantId, tenantId),
+          sql`date_trunc('milliseconds', ${scheduledPlanChanges.effectiveAt}) = date_trunc('milliseconds', ${from.toISOString()}::timestamptz)`,
+        ),
+      );
   }
 
   async findByTenant(tx: Executor, tenantId: string): Promise<SelectScheduledPlanChange | null> {

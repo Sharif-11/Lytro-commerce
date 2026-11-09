@@ -238,6 +238,23 @@ export function addonUnitList(units: Record<string, number> | null): AddonUnits[
 
 // PLN-14: the add-ons each shop bought.
 export class AddonPurchaseRepository {
+  /**
+   * D8-34 (Slice 8.3): when the operator extends a plan, the shop's active add-ons that end with it end on the new date.
+   * Compared to the millisecond, as an add-on's ending with the plan always is (`carriedByGrace`).
+   */
+  async moveEndingWith(db: Executor, tenantId: string, from: Date, to: Date): Promise<void> {
+    await db
+      .update(addonPurchases)
+      .set({ expiresAt: to })
+      .where(
+        and(
+          eq(addonPurchases.tenantId, tenantId),
+          eq(addonPurchases.status, AddonPurchaseStatus.Active),
+          sql`date_trunc('milliseconds', ${addonPurchases.expiresAt}) = date_trunc('milliseconds', ${from.toISOString()}::timestamptz)`,
+        ),
+      );
+  }
+
   async insert(db: Executor, values: NewAddonPurchaseValues): Promise<AddonPurchaseRow> {
     const continued = values.continuesId
       ? {

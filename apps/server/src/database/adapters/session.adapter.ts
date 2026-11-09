@@ -40,6 +40,10 @@ export class DrizzleSessionStore implements SessionStore {
     return this.sessions.revoke(this.database.handle.db, sessionId, at);
   }
 
+  revokeAllForSubscriber(tx: Transaction, subscriberId: string, at: Date): Promise<void> {
+    return this.sessions.revokeAllForSubscriber(tx, subscriberId, at);
+  }
+
   lastSignInsOf(tenantId: string): Promise<{ subscriberId: string; at: Date }[]> {
     return this.sessions.lastSignInsOf(this.database.handle.db, tenantId);
   }

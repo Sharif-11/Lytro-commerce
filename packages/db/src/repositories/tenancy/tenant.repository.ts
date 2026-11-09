@@ -314,6 +314,22 @@ export class TenantRepository {
     );
   }
 
+  /**
+   * ADM-04, D8-12: the shop's period ends later. `restore` brings a lapsed shop back to active and clears what its
+   * lapse froze, as a plan assignment does (LIF-15, LIF-26).
+   */
+  async extendPeriod(tx: Executor, id: string, periodEnd: Date, restore: boolean): Promise<void> {
+    await tx
+      .update(tenants)
+      .set({
+        periodEnd,
+        ...(restore
+          ? { state: TenantState.Active, lapseScheduleSnapshot: null, archivedAt: null }
+          : {}),
+      })
+      .where(eq(tenants.id, id));
+  }
+
   /** Finds a shop by its address label, e.g. `fashion-house` for fashion-house.<platform domain>. */
   async findBySlug(db: Database, slug: string): Promise<TenantLookupRow | null> {
     const rows = await db

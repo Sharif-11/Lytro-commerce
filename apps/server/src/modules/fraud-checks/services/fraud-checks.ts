@@ -294,6 +294,11 @@ export class FraudChecks implements OnModuleInit, OnModuleDestroy {
     return row ? fraudCheckViewOf(row) : null;
   }
 
+  /** LIF-19: the day-60 deletion's fraud step: the checks and the rule. */
+  deleteAllForTenant(tenantId: string): Promise<void> {
+    return this.store.run(tenantId, (tx) => this.store.deleteAllForTenant(tx, tenantId));
+  }
+
   async rule(tenantId: string): Promise<FraudRuleView> {
     return ruleViewOf(await this.store.run(tenantId, (tx) => this.store.rule(tx, tenantId)));
   }

@@ -30,6 +30,8 @@ export interface TenantStore {
   findExpiredTrialIds(tx: Transaction, now: Date): Promise<string[]>;
   /** BIL-10/11: a transaction-scoped read for a purchase/renewal confirmation's extend-vs-restart decision. */
   findBillingInfo(tx: Transaction, tenantId: string): Promise<BillingInfoRow | null>;
+  /** ADM-04, D8-12: the shop's period ends later; `restore` brings a lapsed shop back to active. */
+  extendPeriod(tx: Transaction, tenantId: string, periodEnd: Date, restore: boolean): Promise<void>;
   insertTenant(
     tx: Transaction,
     values: {
