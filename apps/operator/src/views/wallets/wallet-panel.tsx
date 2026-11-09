@@ -15,10 +15,13 @@ const FIELDS = ['provider', 'number', 'label', 'displayOrder'];
 /** OPERATOR-CONSOLE-DESIGN §10: one wallet number, shown to sellers in this order. */
 export function WalletPanel({
   wallet,
+  provider: startingProvider = 'bKash',
   nextOrder,
   onClose,
 }: {
   wallet: PlatformWallet | null;
+  /** The method's card it was opened from. */
+  provider?: string;
   nextOrder: number;
   onClose: () => void;
 }): React.JSX.Element {
@@ -26,7 +29,7 @@ export function WalletPanel({
   const toast = useToast();
   const create = useCreatePlatformWallet();
   const update = useUpdatePlatformWallet();
-  const [provider, setProvider] = useState(wallet?.provider ?? 'bKash');
+  const [provider, setProvider] = useState(wallet?.provider ?? startingProvider);
   const [number, setNumber] = useState(wallet?.number ?? '');
   const [label, setLabel] = useState(wallet?.label ?? '');
   const [order, setOrder] = useState(String(wallet?.displayOrder ?? nextOrder));
