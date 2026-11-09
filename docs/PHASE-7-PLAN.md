@@ -480,7 +480,7 @@ The fixes were each proven by a deliberate break of what they fixed: 39 in all, 
 
 Each needs a real account, so each is the owner's. Keep every key in a file outside every repository. The development server only sends for real with its `*_FORCE_REAL` setting on.
 
-**The development database first.** It is at migration 0103, and these need the tables since. Migrate it once, then the rest can follow in any order.
+**The development database.** It was migrated to 0121 on 2026-11-09, which has every table these checks need, so they can follow in any order.
 
 **One real SMS (checkpoint 7A).**
 1. In `apps/server/.env` set `SMS_FORCE_REAL=true`, `BULKSMSBD_API_KEY` and `BULKSMSBD_SENDER_ID`.
