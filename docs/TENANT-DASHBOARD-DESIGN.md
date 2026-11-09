@@ -1,6 +1,6 @@
 # Tenant dashboard: the full design
 
-Status: v3.38, 2026-11-09 (paying Lytro: the method, then the way the operator set for it, §7.41, Part 38, which replaces §7.19's hosted page; v3.37 of 2026-11-07: Phase 7 for the seller -- SMS settings, the log and the report, the bell, its switches and
+Status: v3.38, 2026-11-09 (paying Lytro on the developed payment page: §7.19 is current, Part 38, reversing D5-3's amendment of 2026-11-03; v3.37 of 2026-11-07: Phase 7 for the seller -- SMS settings, the log and the report, the bell, its switches and
 push, the bounced email, Lytro's notice board with its marquee and prompt, the fake order check, reading a pasted
 message and the reads allowance -- drawn for Slice 7.7, §7.40, Part 37; v3.36 of 2026-11-07: the Phase 6 close-out: editing a booked order, §7.39, Part 36's `c36-edit` and `c36-edited`; v3.35 of 2026-11-06: Couriers, booking, the order's Courier card and courier money, drawn for Phase 6 Slice 6.7, §7.39, Part 36; v3.34 of 2026-11-05: Payments and Listener phones, drawn and built together for Slice 5.8's parts 3 and 4, §7.36 to §7.38; v3.33 of 2026-11-04: Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
 shipment the balance can't pay for, serials at shipping scanned, pasted or typed, the Orders list by where an order came
@@ -989,16 +989,20 @@ the support WhatsApp number is configured.
 
 ### 7.19 Paying the platform through the hosted page
 
-*Replaced on 2026-11-09 by §7.41: payments to Lytro stay in the dashboard's own sheets. Kept as a record; the prototype's
-`pay-*` screens are no longer reachable from the flows.*
-
-Every payment to Lytro (a plan at checkout, a renewal, an upgrade, a top-up) goes through the hosted
+Every payment to Lytro (a plan at checkout, a renewal, an upgrade, an add-on, a top-up) goes through the hosted
 payment page of `PAYMENT-PAGE-DESIGN.md` with Lytro as the payee, the platform's wallet numbers, the exact
 amount and the reference (PAY-21, BIL-03, BAL-03); every attempt, whatever its end, is a row in Billing
 (§7.13). From then on the dashboard never shows a wallet number or
-asks for a transaction ID itself. Until the page exists (Phase 5), the dashboard keeps today's wallet step (the
-platform's wallet numbers, then the sender number and transaction ID, confirmed by an operator), drawn in this
-design (decided 2026-10-22). The wiring, once the page exists:
+asks for a transaction ID itself. Agreed 2026-11-09 (Part 38; the owner's read, reversing D5-3's amendment of 2026-11-03): the wallet step
+goes, and the page built in Slice 5.8 is used as it stands, with the few words `PAYMENT-PAGE-DESIGN.md` §8 lists.
+
+The dashboard keeps what comes before the money: the plan and term or the amount, the price, and the balance as a choice where it
+covers the amount (BIL-08). The method and everything after it are the page's: its picker shows the methods the operator has on
+(`OPERATOR-CONSOLE-DESIGN.md` §10), and the way the operator set for that method decides what follows: on to bKash's own checkout, or send the money and
+enter the TrxID, confirmed by Lytro's phone or by Lytro's team, or a bank transfer and its reference. A shop never chooses the way. A way changed by
+the operator applies to the next payment; one already started finishes as it began. Reopening a payment from Billing opens the page again.
+
+The wiring:
 
 | Where the seller taps | The page opens with | Coming back |
 | --- | --- | --- |
@@ -1006,11 +1010,12 @@ design (decided 2026-10-22). The wiring, once the page exists:
 | Balance, Top up, "পেমেন্ট পেজে যান · ৳500" | Lytro · Top-up · ৳500 | paid → the credited toast and ledger row; still checking → the "being checked" banner; closed → Balance |
 | Plan, Renew → How to pay, "পেমেন্ট পেজে যান · ৳449" | Lytro · Starter · 1 month · renewal · ৳449 | paid → "Renewed · runs until 9 Dec"; still checking → the banner; closed → Plan |
 | Plan, Upgrade, "Pay on the payment page" | Lytro · Upgrade to Growth · ৳400 | paid → "Growth is on"; still checking → the banner; closed → the upgrade sheet |
+| Add-ons, Buy, when the balance can't cover it | Lytro · Products add-on · ৳99 | paid → the add-on is on; still checking → "sent for checking"; closed → the buy sheet |
 
 In the prototype the page is embedded as its own document inside the frame: the picker, the wallet's
 coloured card, Verify, the checking ring and the verified card, then "back to shop" returns to the state
 above (auto-return after five seconds when paid, PAY-08). The page is in the toolbar's "Payment page"
-group with each of the four contexts.
+group with each of the five contexts. A rejected payment, in any of them, returns to Billing, where the shop can pay again.
 
 ### 7.20 Lifecycle, suspension and support view
 
@@ -1986,43 +1991,6 @@ one sketch PR now and one build PR after 7.4). Drawn from what the server on mai
   are corrected: a part is 67 characters, a read is ৳0.10 and named for the address, the fake order check is free, and
   chat AI is gone from Balance's rates and statement (`p37-balance`); the low-balance warning no longer mentions chat
   AI; the bell no longer says every notification matches an email.
-
-### 7.41 Paying Lytro: the method, then the way the operator set for it
-
-*2026-11-09* (Part 38). The owner's read: a shop paying Lytro for a plan, an add-on or a top-up chooses from the methods the
-operator takes, and the verification way the operator set for that method decides what happens next. It stays inside the
-dashboard's own sheets (the owner's pick over the hosted page), and automatic checkout is built with the rest. This
-replaces §7.19's hosted page, and amends D5-3. The way is the operator's to set; a shop never chooses it. A shopper paying
-a shop already works this way, with the shop's owner setting it (§7.35, PAY-06).
-
-- **Where it appears:** all six places a shop pays: sign-up's checkout (`lpm-ob-pick`), renewing or taking a plan
-  (`lpm-renew`), upgrading (`lpm-upgrade`), an add-on (`lpm-addon`), a top-up (`lpm-topup`, `lpm-pick`), and reopening a
-  payment from Billing, which starts again at the choice. They share one step, as they share the wallet step today.
-- **The choice:** one radio row per method the operator has on and can be paid by: its mark, its name, and one line saying
-  what paying this way asks of the shop. The operator's order, the first chosen already. Paying for a plan keeps the
-  balance as the first row while it covers the amount, as today (`lpm-renew`). The button says what happens: Continue, or
-  Pay with bKash on automatic (`lpm-pick-auto`).
-- **One method on:** nothing to choose, so the step is left out (`lpm-one`). **None on:** the sheet says payments can't be
-  taken right now, and to try later or contact support (`lpm-none`); Lytro's copy never blames the shop.
-- **Automatic** (bKash only): the button goes to bKash's own page, and coming back the sheet confirms it (`lpm-auto-check`),
-  then the usual "credited" or "plan is on". Failed or cancelled at bKash, no money was taken: Try again, or send the money
-  and enter the TrxID (`lpm-auto-failed`). bKash won't start: the send-money step with a line saying why (`lpm-auto-down`),
-  never a dead end. No answer from bKash: it says not to pay again, and the server keeps asking (`lpm-auto-unknown`).
-- **Listener** (bKash): the numbers, the TrxID, the number sent from and the amount sent, as the wallet step asks now, and a
-  line saying the SMS on Lytro's phone confirms it, and Lytro's team if it doesn't match (`lpm-listener`). Balance's banner
-  says it is being matched (`lpm-pending-listener`).
-- **Manual** (every wallet): the same form, the line saying Lytro's team checks it (`lpm-manual`), and today's "being
-  checked" banner (`lpm-pending-manual`). A phone's SMS never confirms these, as with a shop on manual.
-- **Bank transfer** (always manual): the account's details with Copy on the two numbers, the transfer's reference and the
-  amount sent (`lpm-bank`). No sender number. The reference is held to the same one-use rule as a TrxID (BIL-07).
-- **Unchanged:** no fee and no session limit (PAY-21), what arrived is what counts (BIL-06), one open request per kind,
-  the amount the seller saw sent with the request (BIL-09), Billing's list (BIL-19).
-- **The operator changing a way** applies to the next payment. A payment already started finishes the way it began.
-
-**The build needs:** the methods with their ways on `GET /platform-wallets` (or a route beside it); the chosen method kept on
-`control.plan_payments`; a bank's fields; a start and a return for bKash on a plan payment, with the reconcile sweep that
-shops' checkouts have; and Lytro's own sealed bKash keys. A real payment needs Lytro's own merchant account; the sandbox and
-CI's fake bKash prove the rest.
 
 ## 8. Screens designed for later phases
 

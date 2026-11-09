@@ -288,7 +288,7 @@ the deletion day, so a change is checked against its effect before it is saved.
 ## 10. Payment methods (`/wallets`)
 
 What shops can pay Lytro by, for plans, add-ons and top-ups, and how each method's payments are confirmed (2026-11-09; the
-shop's side is the dashboard's §7.41). One card per method -- bKash, Nagad, Rocket, Upay, bank transfer -- at most 720 px wide.
+shop's side is the payment page, `PAYMENT-PAGE-DESIGN.md` §8). One card per method -- bKash, Nagad, Rocket, Upay, bank transfer -- at most 720 px wide.
 
 - **A method's card:** its colour, its name, how many numbers and which way, and the on/off switch. Off, it folds to that
   head, and shops don't see it. A method on with no number shown says shops won't see it (`pm-no-number`). Turning off the
