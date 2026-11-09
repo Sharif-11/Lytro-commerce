@@ -26,7 +26,7 @@ import { TenantService } from '../../tenancy/services/tenant.service';
 import type { AddonsStore } from '../ports/addons-store';
 import { ADDONS_STORE } from '../tokens';
 import type { AddonCarry, PaymentAddon, RenewingAddon } from '../types/addon';
-import { addonPrice, renewalPrice, type AddonPeriod } from './addon-price';
+import { addonPrice, allowanceUnitUses, renewalPrice, type AddonPeriod } from './addon-price';
 import { BillingTermsService } from './billing-terms.service';
 import { ShopLimitsService } from './shop-limits.service';
 import { AccountNotices } from '../../notifications/services/account-notices';
@@ -89,6 +89,8 @@ export function renewalBar(
   plan: CarryPlan,
 ): AddonRenewal.Retired | AddonRenewal.Unlimited | null {
   if (addon.retiredAt) return AddonRenewal.Retired;
+  // PLN-20, D7-64 (KNOWN-GAPS §131): an allowance raises no limit; it gives uses, and renews with the plan.
+  if (addon.kind === AddonKind.Allowance) return null;
   const raises =
     addon.kind === AddonKind.Feature
       ? plan.features[addon.key] !== true
@@ -96,6 +98,25 @@ export function renewalBar(
         isUsageLimitKey(addon.limitKey) &&
         limitOf(plan.limits, addon.limitKey) !== null;
   return raises ? null : AddonRenewal.Unlimited;
+}
+
+/**
+ * What one unit of an add-on carried into a new period gives: a limit's size as it was bought (PLN-13); an allowance's
+ * uses for the period now paid for, from the catalogue's monthly uses (D7-64).
+ */
+export function carriedUnitSize(
+  from: {
+    kind: AddonKind;
+    unitSize: number | null;
+    monthlyUnitSize: number | null;
+    price: string;
+    quantity: number;
+  },
+  paid: string,
+): number | null {
+  if (from.kind !== AddonKind.Allowance) return from.unitSize;
+  const monthly = from.monthlyUnitSize ?? from.unitSize;
+  return monthly === null ? null : allowanceUnitUses(monthly, from.price, from.quantity, paid);
 }
 
 /** The paisa these add-ons cost together. */
@@ -202,7 +223,7 @@ export class AddonRenewalService {
         addonId: from.addonId,
         kind: from.kind,
         limitKey: from.limitKey,
-        unitSize: from.unitSize,
+        unitSize: carriedUnitSize(from, price),
         quantity: from.quantity,
         price,
         paidFrom: 'balance',
@@ -236,7 +257,7 @@ export class AddonRenewalService {
    */
   async nextOwnPeriod(
     info: BillingInfoRow | null,
-    from: { expiresAt: Date; price: string; quantity: number },
+    from: { kind: AddonKind; expiresAt: Date; price: string; quantity: number },
     now: Date,
   ): Promise<OwnPeriod | null> {
     const start = from.expiresAt > now ? from.expiresAt : now;
@@ -253,6 +274,8 @@ export class AddonRenewalService {
       );
       return { start, end: periodEnd, price: Math.max(price, 1).toFixed(2) };
     }
+    // PLN-20: an allowance covers uses in a paid period only, so it never runs on into a period of its own.
+    if (from.kind === AddonKind.Allowance) return null;
     const ownPeriods =
       info?.state === TenantState.PayAsYouGo ||
       (info?.state === TenantState.Active && periodEnd === null);

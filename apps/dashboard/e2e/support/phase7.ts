@@ -951,6 +951,7 @@ export function readsOffer(standing: { trial?: boolean; payg?: boolean }): Recor
       expiresAt: null,
       blockedBy: 'AddonNotAvailable',
       amounts: [],
+      uses: null,
       daysLeft: null,
       renewalPrice: null,
     };
@@ -961,6 +962,8 @@ export function readsOffer(standing: { trial?: boolean; payg?: boolean }): Recor
     expiresAt: ahead(20 * DAY_MS),
     blockedBy: null,
     amounts: [13, 27, 40],
+    // D7-64: 20 days left buy 200 reads x 13/20, 2 x 200 x 27/40, 3 x 200 x 40/60 -- what the server keeps.
+    uses: [130, 270, 399],
     daysLeft: 20,
     renewalPrice: 20,
   };

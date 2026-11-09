@@ -19,6 +19,7 @@ import {
   packMetric,
   renewalLine,
   switchable,
+  usesBought,
   usesOf,
   type AddonLine,
 } from './addon-words';
@@ -187,12 +188,15 @@ export function AddonRow({
       <span className="num">
         {t('p37AoReadsLeft', {
           left: owned.usesLeft ?? 0,
-          total: usesOf(addon) * owned.quantity,
+          // D7-64: what this purchase bought, which a part period prorates.
+          total: (owned.unitSize ?? usesOf(addon)) * owned.quantity,
         })}
       </span>,
     ]);
   }
-  if (allowance && !owned) facts.push(['uses', t('p37AoReadsD', { n: usesOf(addon) })]);
+  if (allowance && !owned) {
+    facts.push(['uses', t('p37AoReadsD', { n: offer ? usesBought(offer, 1) : usesOf(addon) })]);
+  }
   if (allowance && context.payg && context.readRate) {
     facts.push(['payg', t('p37AoPaygNote', { r: formatTakaExact(context.readRate) })]);
   }

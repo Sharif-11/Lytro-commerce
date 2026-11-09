@@ -98,6 +98,8 @@ export interface RenewingAddonRow {
   labelBn: string;
   limitKey: string | null;
   unitSize: number | null;
+  /** What the catalogue says one unit gives a month now: an allowance's next period is counted from it (D7-64). */
+  monthlyUnitSize: number | null;
   quantity: number;
   renews: boolean;
   purchasedAt: Date;
@@ -202,6 +204,7 @@ const CARRIED_COLUMNS = {
   labelBn: addons.labelBn,
   limitKey: addonPurchases.limitKey,
   unitSize: addonPurchases.unitSize,
+  monthlyUnitSize: addons.unitSize,
   quantity: addonPurchases.quantity,
   renews: addonPurchases.renews,
   purchasedAt: addonPurchases.purchasedAt,

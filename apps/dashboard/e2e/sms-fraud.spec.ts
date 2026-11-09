@@ -305,9 +305,21 @@ test.describe('The reads allowance', () => {
     await open(page, '/addons', { readsOffered: true });
     await expect(main(page).getByText('Pay per use')).toBeVisible();
     await expect(main(page).getByText('Address reads from messages · 200')).toBeVisible();
+    // D7-64: 20 days left of the month buy 130 reads for ৳13, not the catalogue's 200.
     await expect(
-      main(page).getByText('200 reads this period, used before the balance'),
+      main(page).getByText('130 reads this period, used before the balance'),
     ).toBeVisible();
+    // The reads row's own Buy: the smallest block holding both its name and the button.
+    await main(page)
+      .locator('div')
+      .filter({ has: page.getByText('Address reads from messages · 200', { exact: true }) })
+      .filter({ has: page.getByRole('button', { name: 'Buy' }) })
+      .last()
+      .getByRole('button', { name: 'Buy' })
+      .click();
+    await expect(page.getByRole('dialog')).toContainText('0 → 130');
+    await page.getByRole('dialog').getByRole('button', { name: / \+$/ }).click();
+    await expect(page.getByRole('dialog')).toContainText('0 → 270');
   });
 
   test('active: the reads left', async ({ page }) => {

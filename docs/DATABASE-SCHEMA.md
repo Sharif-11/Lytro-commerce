@@ -2374,7 +2374,9 @@ CREATE TABLE control.addon_purchases (
     addon_id        uuid NOT NULL REFERENCES control.addons(id),
     kind            text NOT NULL,                  -- copied from the catalogue when bought, with limit_key and
     limit_key       text,                           -- unit_size, so a later catalogue edit never changes what
-    unit_size       integer,                        -- was bought (PLN-13)
+    unit_size       integer,                        -- was bought (PLN-13); an allowance's is one unit's uses
+                                                    -- for this purchase: the monthly uses for each month
+                                                    -- paid for, prorated as its price (D7-64)
     quantity        integer NOT NULL DEFAULT 1 CHECK (quantity > 0),  -- up to [10] a purchase; a feature is one
     price           numeric(10,2) NOT NULL,         -- what it cost, prorated to the period's end (PLN-14)
     status          text NOT NULL DEFAULT 'pending'

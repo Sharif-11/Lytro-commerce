@@ -44,3 +44,20 @@ export function addonPrice(
 export function renewalPrice(monthly: string, quantity: number, months: number): string {
   return fromPaisa(toPaisa(monthly) * BigInt(quantity * months));
 }
+
+/**
+ * PLN-20, D7-64 (KNOWN-GAPS §131, the owner's answers 2026-11-07): the uses one unit of an allowance gives for this
+ * purchase -- its monthly uses for each month paid for, prorated exactly as its price was, so never more than was
+ * paid for: a fresh 6-month term, 1,200 reads for ৳120; 20 days left of a month, 130 for ৳13. One pool, used any time
+ * until the purchase ends. Whole uses, half up.
+ */
+export function allowanceUnitUses(
+  monthlyUses: number,
+  monthly: string,
+  quantity: number,
+  paid: string,
+): number {
+  const perMonth = toPaisa(monthly) * BigInt(quantity);
+  if (perMonth <= 0n) return monthlyUses;
+  return Number(divideRounded(BigInt(monthlyUses) * toPaisa(paid), perMonth));
+}
