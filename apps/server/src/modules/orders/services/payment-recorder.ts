@@ -193,7 +193,6 @@ export class PaymentRecorder {
         orderId: order.id,
         events: [SmsEvent.PaymentVerified],
         amount: entry.amount,
-        ref: payment.id,
       });
     }
     const standing = await this.standingWithin(tx, tenantId, order, order);

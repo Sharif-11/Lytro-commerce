@@ -25,6 +25,7 @@ import { MediaService } from '../../media/services/media.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import { ApiKeyService } from '../../public-api/services/api-key.service';
 import { RequestQuota } from '../../public-api/services/request-quota';
+import { SmsSettingsService } from '../../sms-events/services/sms-settings.service';
 import { EssentialSmsUsageService } from '../../sms-usage/services/essential-sms-usage.service';
 import { StaffService } from '../../staff/services/staff.service';
 import type { TenantSummary } from '../../tenancy/types/tenant-summary';
@@ -55,6 +56,7 @@ export class HomeService {
     @Inject(BatchService) private readonly batches: BatchService,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(EssentialSmsUsageService) private readonly sms: EssentialSmsUsageService,
+    @Inject(SmsSettingsService) private readonly smsSettings: SmsSettingsService,
     @Inject(PlanPaymentsService) private readonly payments: PlanPaymentsService,
     @Inject(RequestQuota) private readonly requests: RequestQuota,
     @Inject(DeliveryZoneService) private readonly zones: DeliveryZoneService,
@@ -171,13 +173,14 @@ export class HomeService {
     firstProduct: boolean,
     now: Date,
   ): Promise<SetupChecklist> {
-    const [delivery, logo, linkShared, keys, wallet, phones] = await Promise.all([
+    const [delivery, logo, linkShared, keys, wallet, phones, smsEvents] = await Promise.all([
       this.zones.settings(tenantId),
       this.media.logoOf(tenantId),
       this.links.shared(tenantId),
       this.keys.list(tenantId),
       this.methods.hasLiveAccount(tenantId),
       this.phones.list(tenantId),
+      this.smsSettings.eventsChosen(tenantId),
     ]);
     const inside = delivery.zones.find((zone) => zone.isHome);
     const outside = delivery.zones.find((zone) => zone.isFallback);
@@ -191,6 +194,7 @@ export class HomeService {
       logo: logo !== null,
       linkShared,
       wallet,
+      smsEvents,
       listenerPhone: phones.active > 0,
       apiKey: keys.some(
         (key) =>

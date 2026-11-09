@@ -22,5 +22,6 @@ export interface MailStore {
   /** NTF-06: the address works again. Whether it had been stopped. */
   lift(email: string): Promise<boolean>;
   /** NTF-06: the address bounced for good or complained, so Lytro stops emailing it. */
-  suppress(row: NewMailSuppression): Promise<void>;
+  /** Whether this report is the one that stopped the address. */
+  suppress(row: NewMailSuppression): Promise<boolean>;
 }

@@ -31,6 +31,13 @@ export class NotificationSubscriptions {
     );
   }
 
+  /** NTF-02: whether that browser is subscribed for this person in this shop, whoever else's it has been. */
+  holds(tenantId: string, userId: string, endpoint: string): Promise<boolean> {
+    return this.store.run(tenantId, (tx) =>
+      this.store.holdsSubscription(tx, tenantId, userId, endpoint),
+    );
+  }
+
   /** Whether that browser was subscribed. */
   unsubscribe(tenantId: string, userId: string, endpoint: string): Promise<boolean> {
     return this.store.run(tenantId, (tx) =>

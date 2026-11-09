@@ -48,7 +48,7 @@ export class DrizzleMailStore implements MailStore {
     return this.suppressions.lift(this.database.handle.db, email);
   }
 
-  suppress(row: NewMailSuppression): Promise<void> {
+  suppress(row: NewMailSuppression): Promise<boolean> {
     return this.suppressions.suppress(this.database.handle.db, row);
   }
 

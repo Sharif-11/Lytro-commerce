@@ -33,17 +33,27 @@ export class CourierFraudScores {
     @Inject(CourierCalls) private readonly calls: CourierCalls,
   ) {}
 
+  /** D7-46: whether the shop has this courier connected for checks, as a live answer would need. */
+  async connected(tenantId: string, courierKey: CourierKey): Promise<boolean> {
+    const opened = await this.opened(tenantId, courierKey);
+    return opened?.adapter.fraudScore !== undefined;
+  }
+
+  private opened(tenantId: string, courierKey: CourierKey) {
+    return this.store.run(tenantId, async (tx) =>
+      (await this.store.adapterStateWithin(tx, courierKey)) === CourierAdapterState.Removed
+        ? null
+        : this.connections.openedWithin(tx, tenantId, courierKey),
+    );
+  }
+
   async scoreOf(
     tenantId: string,
     courierKey: CourierKey,
     phone: string,
     orderId: string | null,
   ): Promise<CourierFraudScore> {
-    const opened = await this.store.run(tenantId, async (tx) =>
-      (await this.store.adapterStateWithin(tx, courierKey)) === CourierAdapterState.Removed
-        ? null
-        : this.connections.openedWithin(tx, tenantId, courierKey),
-    );
+    const opened = await this.opened(tenantId, courierKey);
     const ask = opened?.adapter.fraudScore?.bind(opened.adapter);
     if (!opened || !ask) return { state: FraudSourceState.NotConnected };
     try {

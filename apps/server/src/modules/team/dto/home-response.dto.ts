@@ -55,6 +55,7 @@ export const homeViewSchema = z.object({
       logo: z.boolean(),
       linkShared: z.boolean(),
       wallet: z.boolean(),
+      smsEvents: z.boolean(),
       listenerPhone: z.boolean(),
       apiKey: z.boolean(),
     })

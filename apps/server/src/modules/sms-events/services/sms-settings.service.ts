@@ -20,6 +20,7 @@ import type { Env } from '../../../config/env';
 import { ENV } from '../../../config/tokens';
 import { resetCodeText, shopReadyText, shopperCodeText } from '../../shared/messaging/sms-words';
 import { SmsUnits } from '../../sms-usage/services/sms-units';
+import { DomainService } from '../../domains/services/domain.service';
 import { StaffService } from '../../staff/services/staff.service';
 import type { SmsEventStore } from '../ports/sms-event-store';
 import { SMS_EVENT_STORE, SMS_EVENTS_CLOCK } from '../tokens';
@@ -114,22 +115,31 @@ export class SmsSettingsService {
     @Inject(ENV) private readonly env: Env,
     @Inject(SMS_EVENTS_CLOCK) private readonly clock: () => Date,
     @Inject(StaffService) private readonly staff: StaffService,
+    @Inject(DomainService) private readonly domains: DomainService,
   ) {}
+
+  /** SUP-01: whether the shop has chosen any of its SMS events yet. */
+  async eventsChosen(tenantId: string): Promise<boolean> {
+    const settings = await this.store.settings(tenantId);
+    return Object.keys(settings?.events ?? {}).length > 0;
+  }
 
   /** The settings, the essential SMS in the reader's language where the SMS itself has two (a customer's code). */
   async view(tenantId: string, language: Language = 'bn'): Promise<SmsSettingsView> {
     const shop = await this.store.shop(tenantId);
     if (!shop) throw new ApiError('not_found', 'ShopNotFound', {});
     const now = this.clock();
-    const [row, rates, counts, spent, owner] = await Promise.all([
+    const [row, rates, counts, spent, owner, host] = await Promise.all([
       this.store.settings(tenantId),
       this.units.current(),
       this.store.counts(tenantId, new Date(now.getTime() - SMS_ESTIMATE_DAYS * DAY_MS)),
       this.store.spentSince(tenantId, Object.values(SmsEvent), usageCycleStart(shop.cycle, now)),
       this.staff.ownerContact(tenantId),
+      this.domains.servingHost(tenantId),
     ]);
     const smsName = row?.smsName ?? shop.shopName;
-    const link = trackingPageUrl(this.env, shop.slug, null, SAMPLE_TRACKING_ID);
+    // SMS-10: the shop's own domain where it has one, as the SMS itself will carry, so the parts shown are the parts paid.
+    const link = trackingPageUrl(this.env, shop.slug, host, SAMPLE_TRACKING_ID);
     const events = Object.values(SmsEvent).map((event): SmsEventView => {
       const definition = SMS_EVENTS[event];
       const template = templateOf(row, event);

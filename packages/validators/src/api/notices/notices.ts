@@ -81,6 +81,9 @@ export interface NoticeProblem {
   problem: FieldProblemCode;
 }
 
+/** NTC-06: the start of a notice's link in the bell; the notice's ID follows. */
+export const NOTICE_LINK_PREFIX = '/notices/';
+
 /**
  * NTC-01, NTC-14, NTC-15, NTC-16: what a whole notice must be. At least one language has both a title and a body (the
  * board falls back to it), and a language with one has the other; every link is https; it ends after it starts; and a

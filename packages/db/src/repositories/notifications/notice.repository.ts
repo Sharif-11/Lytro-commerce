@@ -82,6 +82,11 @@ export interface NoticeShop {
   shopName: string;
 }
 
+export interface NoticeAudienceShop extends NoticeShop {
+  state: TenantState;
+  suspendedAt: Date | null;
+}
+
 export interface NoticeAcknowledgmentRow extends NoticeShop {
   userId: string;
   acknowledgedAt: Date;
@@ -378,9 +383,15 @@ export class NoticeRepository {
     notice: Pick<SelectNotice, 'id' | 'audience' | 'severity'>,
     without: 'delivered' | 'acknowledged' | null,
     limit: number,
-  ): Promise<NoticeShop[]> {
+  ): Promise<NoticeAudienceShop[]> {
     return db
-      .select({ tenantId: tenants.id, slug: tenants.slug, shopName: tenants.shopName })
+      .select({
+        tenantId: tenants.id,
+        slug: tenants.slug,
+        shopName: tenants.shopName,
+        state: tenants.state,
+        suspendedAt: tenants.suspendedAt,
+      })
       .from(tenants)
       .where(
         and(

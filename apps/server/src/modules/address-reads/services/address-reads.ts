@@ -121,9 +121,9 @@ export class AddressReads implements OnModuleInit, OnModuleDestroy {
   }
 
   async read(actor: AddressReadActor, text: string): Promise<AddressRead> {
-    await this.admit(actor.tenantId);
     const rate = await this.rate();
     await this.refuseIfUnpaid(actor.tenantId, rate);
+    await this.admit(actor.tenantId);
     const answer = await this.ask(text);
     if (answer.kind === 'unreadable') {
       throw new ApiError('service_unavailable', 'AddressReadUnreadable', {});

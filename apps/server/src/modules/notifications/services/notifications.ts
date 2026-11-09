@@ -23,6 +23,8 @@ export interface NotificationNotice {
   kind: NotificationKind;
   text: NotificationText;
   link: string | null;
+  /** The owner alone, whatever the kind's audience: a shop its staff can't open (NTC-07). */
+  ownerOnly?: boolean;
 }
 
 /** NTF-02: one notification's push, queued with its row. */
@@ -93,7 +95,7 @@ export class Notifications {
   async notifyWithin(tx: Transaction, notice: NotificationNotice): Promise<number> {
     const definition = NOTIFICATION_KINDS[notice.kind];
     const recipients = await this.store.recipients(tx, notice.tenantId, {
-      permission: definition.audience === 'owner' ? null : definition.audience,
+      permission: notice.ownerOnly || definition.audience === 'owner' ? null : definition.audience,
       kind: notice.kind,
       switchable: definition.switchable,
     });

@@ -7,7 +7,7 @@ import {
   type NoticeBoardFilter,
   type NoticeBoardRow,
   type NoticeCounts,
-  type NoticeShop,
+  type NoticeAudienceShop,
   type NoticeSnapshot,
   type NoticeViewer,
   type RateChangeRow,
@@ -135,7 +135,7 @@ export class DrizzleNoticeStore implements NoticeStore {
     notice: AudienceOf,
     without: 'delivered' | 'acknowledged' | null,
     limit: number,
-  ): Promise<NoticeShop[]> {
+  ): Promise<NoticeAudienceShop[]> {
     return this.notices.audienceShops(this.db, notice, without, limit);
   }
 

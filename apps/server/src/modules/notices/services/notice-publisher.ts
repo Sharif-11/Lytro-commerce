@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { SelectNotice } from '@lytronix/db';
+import type { NoticeAudienceShop, SelectNotice } from '@lytronix/db';
 import { NoticeSeverity, NotificationKind } from '@lytronix/validators';
+import { LAPSED } from '../../identity/guards/dashboard.guard';
 import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 import { AccountNotices } from '../../notifications/services/account-notices';
 import { Notifications } from '../../notifications/services/notifications';
@@ -62,8 +63,11 @@ export class NoticePublisher {
       const shops = await this.store.audienceShops(notice, 'delivered', SHOPS_PER_BATCH);
       if (shops.length === 0) break;
       for (const shop of shops) {
+        // NTC-08: withdrawn while going out, no one else hears of it; edited, the rest read it as it now stands.
+        const current = await this.store.findById(notice.id);
+        if (!current || current.withdrawnAt) return told;
         try {
-          if (await this.deliver(notice, shop.tenantId)) told += 1;
+          if (await this.deliver(current, shop)) told += 1;
         } catch (error) {
           failed += 1;
           this.logger.error(
@@ -80,11 +84,14 @@ export class NoticePublisher {
   }
 
   /** Tells one shop, or nothing when another pass already has. */
-  private deliver(notice: SelectNotice, tenantId: string): Promise<boolean> {
+  private deliver(notice: SelectNotice, shop: NoticeAudienceShop): Promise<boolean> {
+    const { tenantId } = shop;
     return this.store.runInShop(tenantId, async (tx) => {
       if (!(await this.store.claimDelivery(tx, notice.id, tenantId))) return false;
       const bell = noticeBellText(notice);
       const link = NOTIFICATION_LINKS.notice(notice.id);
+      // NTC-07: in a lapsed or suspended shop only its owner can open a notice, so only the owner is told.
+      const ownerOnly = LAPSED.has(shop.state) || shop.suspendedAt !== null;
       const result =
         notice.severity === NoticeSeverity.Info
           ? {
@@ -93,6 +100,7 @@ export class NoticePublisher {
                 kind: NotificationKind.LytroNotice,
                 text: bell,
                 link,
+                ownerOnly,
               }),
               emailed: false,
             }
@@ -103,6 +111,7 @@ export class NoticePublisher {
               noticeMailWords(notice),
               link,
               bell,
+              ownerOnly,
             );
       await this.store.finishDelivery(tx, notice.id, tenantId, result);
       return true;

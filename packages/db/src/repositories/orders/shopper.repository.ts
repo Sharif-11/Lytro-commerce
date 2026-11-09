@@ -45,6 +45,13 @@ export class ShopperRepository {
     return row ?? null;
   }
 
+  /** SMS-11: holds the shop's code requests until the transaction ends, so requests at once count each other. */
+  async holdCodeRequests(tx: Transaction, tenantId: string): Promise<void> {
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${`shopper_codes:${tenantId}`}, 0))`,
+    );
+  }
+
   /** SMS-11: codes sent since `since` -- to one phone, or across the whole shop when `phone` is null. */
   async countCodesSince(
     tx: Transaction,
