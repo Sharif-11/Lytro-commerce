@@ -5,7 +5,6 @@ import { formatTaka } from '@lytronix/ui';
 import { useCourierConnections } from '@/api/couriers';
 import { Icon } from '@/components/icon';
 import { Card } from '@/components/ui/card';
-import { PhasePill } from '@/components/ui/page';
 import { useShell } from '@/shell/shell-context';
 import { doneOf, FIRST_GROUP, type Checklist } from './checklist';
 
@@ -37,6 +36,7 @@ interface ItemProps {
     | '/$shop/settings/shop'
     | '/$shop/settings/payment-methods'
     | '/$shop/settings/listener'
+    | '/$shop/settings/sms'
     | '/$shop/settings/api-keys'
     | '/$shop/settings/couriers';
   /** A place on this page instead (the link card). */
@@ -74,21 +74,6 @@ function Item({ done, label, detail, to, href }: ItemProps): React.JSX.Element {
     );
   }
   return <div className={ROW}>{content}</div>;
-}
-
-/** An item that comes with a later phase: greyed, with the phase it arrives in (the prototype's `.later`). */
-function Later({ label, phase }: { label: string; phase: number }): React.JSX.Element {
-  const { t } = useTranslation('home');
-  return (
-    <div
-      aria-disabled="true"
-      className="flex min-h-12 w-full items-center gap-3 px-4 py-3 opacity-55"
-    >
-      <Tick done={false} />
-      <span className={`${LINE} min-w-0 flex-1 text-[15px] font-medium`}>{label}</span>
-      <PhasePill>{t('laterPhase', { p: t('phase', { n: phase }) })}</PhasePill>
-    </div>
-  );
 }
 
 /**
@@ -151,7 +136,7 @@ export function SetupChecklist({
           detail={t('ckCourierD')}
           to="/$shop/settings/couriers"
         />
-        <Later label={t('ckSms')} phase={7} />
+        <Item done={checklist.smsEvents} label={t('ckSms')} to="/$shop/settings/sms" />
         <Item
           done={checklist.listenerPhone}
           label={t('ckListener')}

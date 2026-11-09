@@ -11,6 +11,13 @@ export interface NewEssentialSmsUsage {
 
 // AUTH-21: the tenant's free essential-SMS allowance usage, one row per SMS actually counted.
 export class EssentialSmsUsageRepository {
+  /** SMS-04: holds the shop's free SMS until the transaction ends, so the last one is taken once. */
+  async holdAllowance(db: Executor, tenantId: string): Promise<void> {
+    await db.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${`essential_sms:${tenantId}`}, 0))`,
+    );
+  }
+
   async insert(db: Executor, values: NewEssentialSmsUsage): Promise<string> {
     const [row] = await db
       .insert(essentialSmsUsage)

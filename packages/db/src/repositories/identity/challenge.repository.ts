@@ -26,6 +26,27 @@ export class ChallengeRepository {
     return row;
   }
 
+  /**
+   * SMS-11: holds, until the transaction ends, the right to ask for a code for this destination (and, when one is named,
+   * from this address), so requests at once count each other against the cooldown and the caps.
+   */
+  async holdRequests(
+    db: Executor,
+    destination: string,
+    channel: ChallengeChannel,
+    kind: ChallengeKind,
+    ip: string | null,
+  ): Promise<void> {
+    await db.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${`challenge:${channel}:${kind}:${destination}`}, 0))`,
+    );
+    if (ip !== null) {
+      await db.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${`challenge_ip:${channel}:${ip}`}, 0))`,
+      );
+    }
+  }
+
   /** The most recent challenge of a kind for a destination on a channel. */
   async latest(
     db: Executor,

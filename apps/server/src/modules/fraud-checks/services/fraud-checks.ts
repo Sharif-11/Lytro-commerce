@@ -315,9 +315,12 @@ export class FraudChecks implements OnModuleInit, OnModuleDestroy {
   private async check(request: CheckRequest, rate: string): Promise<FraudCheckView> {
     const { tenantId, phone } = request;
     const since = new Date(this.clock().getTime() - FRAUD_CHECK_CACHE_DAYS * DAY_MS);
-    const reused = await this.store.run(tenantId, (tx) =>
-      this.store.steadfastAnswerSince(tx, tenantId, phone, since),
-    );
+    // D7-46: a shop that has disconnected Steadfast is told so, not shown what it answered before.
+    const reused = (await this.scores.connected(tenantId, CourierKey.Steadfast))
+      ? await this.store.run(tenantId, (tx) =>
+          this.store.steadfastAnswerSince(tx, tenantId, phone, since),
+        )
+      : null;
     const steadfast = reused
       ? {
           state: FraudSourceState.Answered,
@@ -405,8 +408,9 @@ export class FraudChecks implements OnModuleInit, OnModuleDestroy {
 
   /**
    * FRD-08 as amended (D7-47): a frozen balance -- a lapsed shop -- is refused whatever the rate. While checks are free,
-   * nothing else is; once they are charged, a trial is refused, and so is a balance short of the rate. Nothing is held:
-   * the charge checks the balance again once the answer is back.
+   * nothing else is; once they are charged, a trial is refused, and so is a balance short of the rate, unless the shop has
+   * no Steadfast to pay for (its own orders are free, FRD-03). Nothing is held: the charge checks the balance again once
+   * the answer is back.
    */
   private async refuseIfBarred(tenantId: string, rate: string): Promise<void> {
     const held = await this.balance.runStandalone(tenantId, (tx) =>
@@ -418,7 +422,10 @@ export class FraudChecks implements OnModuleInit, OnModuleDestroy {
     if (shop?.state === TenantState.Trial) {
       throw new ApiError('plan_feature_unavailable', 'FraudCheckNeedsPlan', {});
     }
-    if (toPaisa(held.amount) < rateToPaisa(rate)) {
+    if (
+      toPaisa(held.amount) < rateToPaisa(rate) &&
+      (await this.scores.connected(tenantId, CourierKey.Steadfast))
+    ) {
       throw new ApiError('quota_exceeded', 'InsufficientBalance', { balance: held.amount });
     }
   }

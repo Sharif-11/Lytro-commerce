@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { subscribePush, unsubscribePush } from '@/api/notifications';
+import { checkPush, subscribePush, unsubscribePush } from '@/api/notifications';
 import { onIphoneBrowser } from './install-prompt';
 
 // NTF-02 (Part 37's `p37-push-*`): push on this device -- the browser's own question, the subscription Lytro's server keeps,
 // and turning it off here. An iPhone takes push only once Lytro is on its Home Screen.
+
+/** How long signing out waits to stop this browser's pushes before it goes ahead anyway. */
+const SIGN_OUT_WAITS_MS = 2000;
 
 export type PushState = 'loading' | 'unsupported' | 'ios' | 'unset' | 'blocked' | 'off' | 'on';
 
@@ -27,6 +30,28 @@ async function registration(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null;
   const found = await navigator.serviceWorker.getRegistration();
   return found ? navigator.serviceWorker.ready : null;
+}
+
+/** NTF-02: sign-out stops this browser's pushes, so the next person on it never sees the last one's. Never holds it up. */
+export async function leavePushOnThisDevice(): Promise<void> {
+  if (!('serviceWorker' in navigator)) return;
+  // The registration itself: `ready` never settles for a worker still installing, and signing out mustn't wait on that.
+  const leaving = navigator.serviceWorker
+    .getRegistration()
+    .then((found) => found?.pushManager.getSubscription())
+    .then(async (subscription) => {
+      if (!subscription) return;
+      await unsubscribePush(subscription.endpoint);
+      await subscription.unsubscribe();
+    })
+    // Signing out matters more; a push that still arrives is removed once the browser refuses it.
+    .catch(() => undefined);
+  await Promise.race([
+    leaving,
+    new Promise((resolve) => {
+      setTimeout(resolve, SIGN_OUT_WAITS_MS);
+    }),
+  ]);
 }
 
 /** "Chrome on Android": this browser and system, as the push card names the device. */
@@ -68,7 +93,9 @@ export function usePushDevice(publicKey: string | null | undefined): {
     if (Notification.permission === 'denied') return 'blocked';
     const found = await registration();
     const subscription = await found?.pushManager.getSubscription();
-    return subscription ? 'on' : 'off';
+    if (!subscription) return 'off';
+    // On for the person looking, in this shop: the browser's subscription may be someone else's or another shop's.
+    return (await checkPush(subscription.endpoint)).subscribed ? 'on' : 'off';
   }, [publicKey]);
 
   useEffect(() => {

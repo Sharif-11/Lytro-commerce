@@ -61,6 +61,7 @@ export class EssentialSmsUsageService {
     kind: SmsLogKind,
   ): Promise<CodeTaken> {
     const { units, rate } = await this.smsUnits.priceOf(body);
+    await this.store.holdAllowance(tx, tenantId);
     const left = await this.allowanceLeft(tenantId);
     const free = Math.min(units, left);
     const paid = units - free;

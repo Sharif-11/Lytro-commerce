@@ -51,6 +51,16 @@ export class DrizzleChallengeStore implements ChallengeStore {
     return { id: row.id, createdAt: row.createdAt };
   }
 
+  holdRequests(
+    tx: Transaction,
+    destination: string,
+    channel: ChallengeChannel,
+    kind: ChallengeKind,
+    ip: string | null,
+  ): Promise<void> {
+    return this.challenges.holdRequests(tx, destination, channel, kind, ip);
+  }
+
   countFromIpSince(
     tx: Transaction,
     ip: string,

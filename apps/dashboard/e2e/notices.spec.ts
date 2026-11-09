@@ -18,6 +18,54 @@ async function open(page: Page, path: string, state: ShopState = {}): Promise<Ap
 
 const drawn = (fixture: NoticesFixture = {}): ShopState => ({ phase7: { notices: fixture } });
 
+/** A browser that can take push, holding a subscription or not; a real one needs a real push service. */
+async function browserWithPush(page: Page, holding: boolean, stuck = false): Promise<void> {
+  await page.addInitScript(
+    ({ startsOn, hangs }) => {
+      const made = (): object => ({
+        endpoint: 'https://fcm.googleapis.com/fcm/send/this-browser',
+        toJSON: () => ({
+          endpoint: 'https://fcm.googleapis.com/fcm/send/this-browser',
+          keys: { p256dh: 'key', auth: 'secret' },
+        }),
+        unsubscribe: () => {
+          current = null;
+          return Promise.resolve(true);
+        },
+      });
+      let current: object | null = startsOn ? made() : null;
+      const registration = {
+        pushManager: {
+          getSubscription: () => (hangs ? new Promise(() => undefined) : Promise.resolve(current)),
+          subscribe: () => {
+            current = made();
+            return Promise.resolve(current);
+          },
+        },
+      };
+      Object.defineProperty(navigator, 'serviceWorker', {
+        configurable: true,
+        value: {
+          getRegistration: () => Promise.resolve(registration),
+          ready: Promise.resolve(registration),
+          register: () => Promise.resolve(registration),
+          addEventListener: () => undefined,
+          controller: null,
+        },
+      });
+      Object.defineProperty(window, 'Notification', {
+        configurable: true,
+        value: { permission: 'granted', requestPermission: () => Promise.resolve('granted') },
+      });
+    },
+    { startsOn: holding, hangs: stuck },
+  );
+}
+
+const withKey = (pushHeld = true): ShopState => ({
+  phase7: { pushKey: 'BPushKeyForTheTest', pushHeld },
+});
+
 test.describe('Notices', () => {
   test('Menu names Notices with its unread count', async ({ page }) => {
     await open(page, '/menu', drawn());
@@ -173,6 +221,20 @@ test.describe('The bell', () => {
   });
 });
 
+test.describe('A narrow phone (NTC-19)', () => {
+  for (const path of ['/notices', '/notices/n-rate']) {
+    test(`${path} has no sideways scroll at 360 px`, async ({ page }) => {
+      await page.setViewportSize({ width: 360, height: 740 });
+      await open(page, path, drawn());
+      await expect(main(page).getByRole('heading').first()).toBeVisible();
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow).toBeLessThanOrEqual(0);
+    });
+  }
+});
+
 test.describe('Notifications settings', () => {
   test('a switch covers the bell and push; money and account are always on', async ({ page }) => {
     const log = await open(page, '/settings/notifications');
@@ -181,6 +243,53 @@ test.describe('Notifications settings', () => {
     await expect(page.getByText('Saved', { exact: true })).toBeVisible();
     expect(log.phase7.prefs).toEqual(['low_stock']);
     await expect(main(page).getByText("Push isn't set up on this server yet.")).toBeVisible();
+  });
+
+  test('push on this device: turned on, told to the server, and turned off again (NTF-02)', async ({
+    page,
+  }) => {
+    await browserWithPush(page, false);
+    const log = await open(page, '/settings/notifications', withKey());
+    await main(page).getByRole('button', { name: 'Turn on push' }).click();
+    await expect(main(page).getByRole('button', { name: 'Turn off here' })).toBeVisible();
+    expect(log.calls.some((c) => c.method === 'POST' && c.path === '/push/subscriptions')).toBe(
+      true,
+    );
+    await main(page).getByRole('button', { name: 'Turn off here' }).click();
+    await expect(main(page).getByRole('button', { name: 'Turn on push' })).toBeVisible();
+    expect(log.calls.some((c) => c.method === 'DELETE' && c.path === '/push/subscriptions')).toBe(
+      true,
+    );
+  });
+
+  test('a browser subscribed for someone else, or another shop, shows push as off (NTF-02)', async ({
+    page,
+  }) => {
+    await browserWithPush(page, true);
+    await open(page, '/settings/notifications', withKey(false));
+    await expect(main(page).getByRole('button', { name: 'Turn on push' })).toBeVisible();
+    await expect(main(page).getByRole('button', { name: 'Send a test' })).toHaveCount(0);
+  });
+
+  test("signing out stops this browser getting the last person's pushes (NTF-02)", async ({
+    page,
+  }) => {
+    await browserWithPush(page, true);
+    const log = await open(page, '/menu', withKey());
+    await main(page).getByRole('button', { name: 'Sign out' }).click();
+    await expect(page).toHaveURL(/\/sign-in/);
+    const paths = log.calls.filter((c) => c.method !== 'GET').map((c) => `${c.method} ${c.path}`);
+    expect(paths.indexOf('DELETE /push/subscriptions')).toBeGreaterThanOrEqual(0);
+    expect(paths.indexOf('DELETE /push/subscriptions')).toBeLessThan(
+      paths.indexOf('POST /auth/signout'),
+    );
+  });
+
+  test('a browser that never answers does not hold up signing out', async ({ page }) => {
+    await browserWithPush(page, true, true);
+    await open(page, '/menu', withKey());
+    await main(page).getByRole('button', { name: 'Sign out' }).click();
+    await expect(page).toHaveURL(/\/sign-in/);
   });
 
   test('staff: only the kinds their role hears, and no email card', async ({ page }) => {

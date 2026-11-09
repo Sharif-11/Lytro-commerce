@@ -29,6 +29,14 @@ export interface ChallengeStore {
       requestedIp: string | null;
     },
   ): Promise<{ id: string; createdAt: Date }>;
+  /** SMS-11: holds the right to ask for a code here until the transaction ends. */
+  holdRequests(
+    tx: Transaction,
+    destination: string,
+    channel: ChallengeChannel,
+    kind: ChallengeKind,
+    ip: string | null,
+  ): Promise<void>;
   /** SMS-11: the codes one client address asked for on a channel since a moment, whatever their phone. */
   countFromIpSince(
     tx: Transaction,

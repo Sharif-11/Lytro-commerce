@@ -8,6 +8,8 @@ import type { ShopperAddressRecord, ShopperCodeRecord, ShopperRecord } from '../
  */
 export interface ShopperStore {
   run<T>(tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T>;
+  /** SMS-11: holds the shop's code requests until the transaction ends. */
+  holdCodeRequests(tx: Transaction, tenantId: string): Promise<void>;
   /** The phone's latest code, held until the transaction ends. */
   latestCode(tx: Transaction, tenantId: string, phone: string): Promise<ShopperCodeRecord | null>;
   /** SMS-11: codes sent since `since`, to one phone or (null) across the shop. */

@@ -87,6 +87,13 @@ export function subscribePush(
   return tenantSession.client.post<{ subscribed: boolean }>('/push/subscriptions', subscription);
 }
 
+/** POST /push/subscriptions/check: whether this browser is subscribed for the person signed in, in this shop. */
+export function checkPush(endpoint: string): Promise<{ subscribed: boolean }> {
+  return tenantSession.client.post<{ subscribed: boolean }>('/push/subscriptions/check', {
+    endpoint,
+  });
+}
+
 /** DELETE /push/subscriptions: stops pushing to this browser. */
 export function unsubscribePush(endpoint: string): Promise<{ subscribed: boolean }> {
   return tenantSession.client.request<{ subscribed: boolean }>('/push/subscriptions', {
