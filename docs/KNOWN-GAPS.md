@@ -2334,3 +2334,12 @@ Phase 8 Slice 8.2 built the list's search, filters and sorts and the page's figu
   a trigram index on names and one on the reversed phone would be needed past tens of thousands.
 - **Still the next release's (`D8-1`):** ADM-03's failed webhooks and open tickets, which need the shop API and support
   tickets.
+
+## 137. `D5-3`, `ADM-10`: what paying Lytro on the payment page leaves open — found 2026-11-09
+
+- **The old way in still answers.** `/balance/top-up/confirm`, and the wallet branch of `/billing/purchase`, `/billing/upgrade/confirm` and `/addons/purchase`, still take a typed ID. Nothing in the dashboard calls them now. They stay for a tab left open across the deploy, and the phone or the operator still has to confirm what they take; remove them once no such tab can be left.
+- **One account per method.** The page shows one account for a method, so with several numbers shown a shop sees the first in the operator's order.
+- **A real automatic payment is unseen.** It needs Lytro's own bKash merchant account. The sandbox and CI's fake bKash prove the rest (§107 for shops).
+- **Nagad, Rocket and Upay are manual only** until real SMS samples arrive; only bKash has a checkout.
+- **The thanks on return is plain.** Back from the page, paid, the dashboard says the payment went through; the sketch's toast also names the amount or the new end date. The screens below it read the truth.
+- **WhatsApp and call need `LYTRO_SUPPORT_PHONE`.** With it unset, the page shows neither button.

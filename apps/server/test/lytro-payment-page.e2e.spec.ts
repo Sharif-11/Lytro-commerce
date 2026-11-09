@@ -612,6 +612,23 @@ describeIfDatabase('a shop paying Lytro on the payment page', () => {
       expect((await row(id)).transaction_id).toBe(right);
     });
 
+    it('stops taking corrections after the third', async () => {
+      const shop = await openShop(port, texts, 'lpm-third');
+      const { id, ref } = await topUp(shop);
+      await typeId(ref, { method: 'bkash', transactionId: trx(), senderNumber: SENDER });
+      const correct = (transactionId: string): Promise<PayPageAnswer> =>
+        payPage(port, 'POST', `/${ref}/change`, {
+          lang: 'en',
+          transactionId,
+          senderNumber: SENDER,
+        });
+      for (let time = 0; time < 3; time += 1) await correct(trx());
+      const third = (await row(id)).transaction_id;
+      expect((await row(id)).id_changes).toBe(3);
+      await correct(trx());
+      expect((await row(id)).transaction_id).toBe(third);
+    });
+
     it("tells the shop to pay again from Billing when it's rejected, with the operator's note", async () => {
       const shop = await openShop(port, texts, 'lpm-reject');
       const { id, ref } = await topUp(shop);
