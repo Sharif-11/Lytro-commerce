@@ -60,7 +60,8 @@ test('every screen, beside the drawing', async ({ page, browser }, info) => {
   const drawing = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
   await drawing.goto(PROTOTYPE);
   await drawing.waitForTimeout(800);
-  for (const name of SCREENS) {
+  // The prototype's own screens: a payment to Lytro is the same drawings with its words.
+  for (const name of SCREENS.filter((each) => !FIXTURES[each]?.lytro)) {
     for (const language of ['bn', 'en']) {
       await open(page, name, language === 'en' ? '?lang=en' : '');
       const label = `${name}-${language}-${info.project.name}`;

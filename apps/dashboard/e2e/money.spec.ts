@@ -106,26 +106,38 @@ test('warns of a low balance, with Top up', async ({ page }) => {
   await expect(sheet(page).getByRole('heading', { name: 'টপ-আপ' })).toBeVisible();
 });
 
-test('tops up: the amount, then the request on Continue and the wallet step', async ({ page }) => {
+test('tops up: the amount, then the request on Continue and the payment page', async ({ page }) => {
   const log = await open(page, { money: { payments: settled } }, '/balance?topup=1');
   await expect(sheet(page).getByText('৳100 থেকে ৳50,000')).toBeVisible();
   await sheet(page).getByRole('button', { name: '৳1,000' }).click();
   await expect(sheet(page).getByText('আজকের রেটে প্রায় 1,818টি SMS')).toBeVisible();
   expect(log.calls.some((call) => call.path === '/balance/top-up/quote')).toBe(false);
-  await sheet(page).getByRole('button', { name: 'কন্টিনিউ করুন · ৳1,000' }).click();
-  await expect(sheet(page).getByLabel(/TrxID/)).toBeVisible();
+  await sheet(page).getByRole('button', { name: 'পেমেন্ট পেজে যান · ৳1,000' }).click();
+  await expect(page).toHaveURL('https://pay.example.test/payment-1');
   expect(log.sent('POST', '/balance/top-up/quote')).toEqual({ amount: 1000 });
-  await sheet(page).getByLabel(/TrxID/).fill('7KQ2MZ11');
-  await sheet(page).getByLabel('যে নম্বর থেকে পাঠিয়েছেন').fill('1711000231');
-  await sheet(page).getByRole('button', { name: 'পেমেন্ট জমা দিন' }).click();
-  await expect(
-    page.getByRole('status').filter({ hasText: 'আপনার পেমেন্ট ভেরিফাই করা হচ্ছে' }),
-  ).toBeVisible();
-  expect(log.sent('POST', '/balance/top-up/confirm')).toMatchObject({
-    paymentId: 'payment-1',
-    transactionId: '7KQ2MZ11',
-    amountPaid: 1000,
-  });
+  expect(log.sent('POST', '/balance/top-up/payment-1/page')).toEqual({ from: 'balance' });
+});
+
+test('back from the payment page, paid: it says so once, and the address is clean', async ({
+  page,
+}) => {
+  await open(
+    page,
+    { money: { payments: settled } },
+    '/balance?session_id=payment-1&status=verified&tracking_id=',
+  );
+  await expect(page.getByRole('status').filter({ hasText: 'পেমেন্ট হয়েছে।' })).toBeVisible();
+  await expect(page).toHaveURL(/\/balance$/);
+});
+
+test('back from the payment page, not paid: nothing is claimed', async ({ page }) => {
+  await open(
+    page,
+    { money: { payments: settled } },
+    '/balance?session_id=payment-1&status=cancelled',
+  );
+  await expect(page).toHaveURL(/\/balance$/);
+  await expect(page.getByRole('status').filter({ hasText: 'পেমেন্ট হয়েছে।' })).toHaveCount(0);
 });
 
 test("a suspended owner's Balance: the balance and Top up only, and the way back", async ({
@@ -187,7 +199,7 @@ test("a rejected payment quotes support, and Pay again opens How to pay at today
   expect(log.calls.some((call) => call.path === '/billing/quote')).toBe(false);
 });
 
-test('a request nothing was sent for: Finish paying by wallet, or Cancel it, charging nothing', async ({
+test('a request nothing was sent for: Finish paying on the page, or Cancel it, charging nothing', async ({
   page,
 }) => {
   const log = await open(
@@ -199,15 +211,14 @@ test('a request nothing was sent for: Finish paying by wallet, or Cancel it, cha
     main(page).getByText(/ঘণ্টার মধ্যে পেমেন্ট করুন, না হলে রিকোয়েস্টটি এক্সপায়ার হবে/),
   ).toBeVisible();
   await main(page).getByRole('button', { name: 'পেমেন্ট শেষ করুন' }).click();
-  await sheet(page).getByLabel(/TrxID/).fill('9HA3RC11');
-  await sheet(page).getByLabel('যে নম্বর থেকে পাঠিয়েছেন').fill('1711000231');
-  await sheet(page).getByRole('button', { name: 'পেমেন্ট জমা দিন' }).click();
-  await expect(sheet(page)).toBeHidden();
-  expect(log.sent('POST', '/billing/purchase')).toMatchObject({
-    paymentId: AWAITING_RENEWAL.id,
-    method: 'wallet',
-    transactionId: '9HA3RC11',
+  await sheet(page)
+    .getByRole('button', { name: /^পেমেন্ট পেজে যান/ })
+    .click();
+  await expect(page).toHaveURL(`https://pay.example.test/${AWAITING_RENEWAL.id}`);
+  expect(log.sent('POST', `/billing/payments/${AWAITING_RENEWAL.id}/page`)).toEqual({
+    from: 'billing',
   });
+  await page.goBack();
 
   await main(page).getByRole('button', { name: 'এই পেমেন্ট ক্যানসেল করুন' }).click();
   await expect(

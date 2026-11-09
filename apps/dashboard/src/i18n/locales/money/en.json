@@ -507,5 +507,10 @@
   "p37UReadsLow": "Address reads at {{p}}%: {{n}} left until {{d}}. Then each is {{r}} from the balance.",
   "p37UPerUse": "Pay per use",
   "p37RdBuy": "{{n}} reads",
-  "p37FreeNow": "Free for now"
+  "p37FreeNow": "Free for now",
+  "psPage": "On the payment page",
+  "goToPage": "Go to the payment page · {{amount}}",
+  "payOnPage": "Pay on the payment page",
+  "abPage": "On the payment page · active when confirmed",
+  "tuNotePage": "Next you pay on the payment page; it is added when it matches."
 }

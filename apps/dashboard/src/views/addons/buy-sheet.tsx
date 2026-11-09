@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { AddonKind } from '@lytronix/validators';
+import { AddonKind, PlanPaymentPageFrom } from '@lytronix/validators';
 import { formatTaka, formatTakaExact } from '@lytronix/ui';
 import { ADDONS_QUERY_KEY, usePurchaseAddon, useQuoteAddon } from '@/api/addons';
 import { useBalance } from '@/api/balance';
-import { usePlatformWallets } from '@/api/billing';
+import { useOpenPaymentPage, usePlatformWallets } from '@/api/billing';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Kv, RadioMark } from '@/components/ui/kv';
@@ -14,12 +14,11 @@ import { Quantity } from '@/components/ui/quantity';
 import { Sheet } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { WalletMarks } from '@/components/wallet-marks';
-import { WalletStep } from '@/components/wallet-step';
 import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonth } from '@/lib/dates';
 import { walletNames, walletProviders } from '@/lib/wallet-marks';
 import { useShell } from '@/shell/shell-context';
-import type { AddonOffer, AddonQuote } from '@/types/addons';
+import type { AddonOffer } from '@/types/addons';
 import type { UsageFigure } from '@/types/usage';
 import { changedAmount } from '@/views/plan/words';
 import { boughtToast, limitChange, limitMove, nameOf, usesBought } from './addon-words';
@@ -59,12 +58,12 @@ export function BuySheet({
   const balance = useBalance();
   const wallets = usePlatformWallets();
   const quote = useQuoteAddon();
+  const openPage = useOpenPaymentPage();
   const purchase = usePurchaseAddon();
   const [quantity, setQuantity] = useState(1);
   const [renews, setRenews] = useState(true);
   const [changed, setChanged] = useState<string | null>(null);
   const [method, setMethod] = useState<'balance' | 'wallet' | null>(null);
-  const [opened, setOpened] = useState<AddonQuote | null>(null);
 
   const addon = offer.addon;
   const allowance = addon.kind === AddonKind.Allowance;
@@ -77,7 +76,7 @@ export function BuySheet({
   const names = walletNames(wallets.data ?? [], i18n.language);
   const move = limitMove(addon, quantity, figures);
   const then = formatTaka((offer.renewalPrice ?? Number(addon.price)) * quantity);
-  const failure = quote.error ?? purchase.error;
+  const failure = quote.error ?? purchase.error ?? openPage.error;
   const refusal = failure && changedAmount(failure) === null ? errorText(failure) : null;
 
   function commit(): void {
@@ -87,7 +86,7 @@ export function BuySheet({
       {
         onSuccess: (made) => {
           if (chosen === 'wallet') {
-            setOpened(made);
+            openPage.mutate({ paymentId: made.payment.id, from: PlanPaymentPageFrom.Addons });
             return;
           }
           purchase.mutate(
@@ -125,44 +124,19 @@ export function BuySheet({
     );
   }
 
-  if (opened) {
-    return (
-      <Sheet
-        open
-        title={t('psTitle', { amount: formatTaka(opened.payment.amount) })}
-        onClose={onClose}
-      >
-        <WalletStep
-          amount={opened.payment.amount}
-          wallets={wallets.data}
-          pending={purchase.isPending}
-          error={purchase.isError ? errorText(purchase.error) : null}
-          amountNote={t('abAmountNote')}
-          onSubmit={(values) => {
-            purchase.mutate(
-              { paymentId: opened.payment.id, method: 'wallet', ...values },
-              {
-                onSuccess: () => {
-                  onDone(t('abSent'));
-                },
-              },
-            );
-          }}
-        />
-      </Sheet>
-    );
-  }
-
   return (
     <Sheet
       open
       title={t('abTitle', { name })}
       onClose={onClose}
       footer={
-        <Button busy={quote.isPending || purchase.isPending} onClick={commit}>
+        <Button
+          busy={quote.isPending || purchase.isPending || openPage.isPending || openPage.isSuccess}
+          onClick={commit}
+        >
           {chosen === 'balance'
             ? t('abBtn', { amount: formatTaka(amount) })
-            : t('continueAmount', { amount: formatTaka(amount) })}
+            : t('goToPage', { amount: formatTaka(amount) })}
         </Button>
       }
     >
@@ -246,7 +220,7 @@ export function BuySheet({
         >
           <RadioMark on={chosen === 'wallet'} />
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="text-[15px] font-medium">{t('abWallet', { wallets: names })}</span>
+            <span className="text-[15px] font-medium">{t('abPage')}</span>
             <span className="truncate text-[14px] text-fg-muted">
               {walletProviders(wallets.data ?? []).join(' · ')}
             </span>

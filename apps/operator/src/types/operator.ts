@@ -7,9 +7,11 @@ import type {
   ListenerIgnoredReason,
   ListenerMessageStatus,
   PaymentMethod,
+  PaymentMethodKind,
   PaymentPageReportReason,
   PaymentPageReportStatus,
   PaymentReviewReason,
+  PaymentWay,
   PlanLimits,
   PlanPaymentKind,
   PlanPaymentStatus,
@@ -433,6 +435,47 @@ export interface CredentialUsePage {
 }
 
 /** apps/server/src/modules/balance/types/platform-wallet.ts. */
+/** apps/server/src/modules/lytro-payments/types/lytro-payments.ts: Lytro's own checkout for a method, never its keys. */
+export interface LytroGateway {
+  connected: boolean;
+  unreadable: boolean;
+  sandbox: boolean;
+  number: string | null;
+}
+
+export interface LytroPaymentMethod {
+  method: string;
+  kind: PaymentMethodKind;
+  enabled: boolean;
+  way: PaymentWay;
+  ways: PaymentWay[];
+  gateway: LytroGateway | null;
+}
+
+export interface LytroBankAccount {
+  id: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  branch: string | null;
+  routingNumber: string | null;
+  swiftCode: string | null;
+  instructions: string | null;
+  enabled: boolean;
+  displayOrder: number;
+  createdAt: string;
+}
+
+export interface LytroPaymentMethods {
+  methods: LytroPaymentMethod[];
+  bankAccounts: LytroBankAccount[];
+}
+
+export interface LytroGatewayTest {
+  ok: boolean;
+  code: string | null;
+}
+
 export interface PlatformWallet {
   id: string;
   provider: string;

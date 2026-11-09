@@ -231,6 +231,8 @@ export const GATEWAY_FIELD_MAX_LENGTH = 255;
 export const GATEWAY_PAYMENT_ID_MAX_LENGTH = 100;
 // PAY-07 (amended 2026-11-02): how many times a shopper may correct a typed transaction ID.
 export const PAYMENT_ID_CHANGES_MAX = 3;
+// PAYMENT-PAGE-DESIGN §8, PAY-03, BIL-09: how long a shop's page for a payment to Lytro stays open, the time a quoted price is held.
+export const LYTRO_PAYMENT_PAGE_MINUTES = 30;
 // VER-07: minutes a payment waits on a phone before staff are told.
 export const PAYMENT_STAFF_TOLD_MINUTES = 5;
 // LSN-03, VER-07, LSN-18: a phone counts online when seen within [30] minutes, and the oldest app version that may

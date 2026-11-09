@@ -27,7 +27,7 @@ const DESTINATIONS = [
   ['Rates', '/rates'],
   ['Add-ons', '/addons'],
   ['Settings', '/settings'],
-  ['Platform wallets', '/wallets'],
+  ['Payment methods', '/wallets'],
   ["Lytro's phones", '/phones'],
   ['Couriers', '/couriers'],
   // Slice 7.7: Notices left Later for Platform, as the sketch's v5 draws it.

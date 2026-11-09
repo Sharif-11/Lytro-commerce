@@ -148,13 +148,58 @@ const WORDS = {
 
 export type WordKey = keyof typeof WORDS;
 export type PageLanguage = 'bn' | 'en';
+export type PagePayee = 'shop' | 'lytro';
+
+// PAYMENT-PAGE-DESIGN §8: the words that differ when a shop is paying Lytro. Everything else on the page reads the same.
+const LYTRO_WORDS: Partial<Record<WordKey, readonly [string, string]>> = {
+  orderRef: ['{o}', '{o}'],
+  senderPh: ['যে নম্বর থেকে পাঠালেন', 'The number you sent from'],
+  help: ['সমস্যা হলে Lytro সাপোর্টে যোগাযোগ করুন', 'Having trouble? Contact Lytro support'],
+  detailsT: ['পেমেন্টের বিস্তারিত', 'Payment details'],
+  orderNo: ['যেটার জন্য পেমেন্ট', 'Paying for'],
+  lateP: [
+    'এই পেজ বন্ধ করলেও হবে। কনফার্ম হলে ড্যাশবোর্ডে দেখতে পাবেন।',
+    'You can close this page. Your dashboard will show when it is confirmed.',
+  ],
+  manualT: ['Lytro চেক করে কনফার্ম করবে', 'Lytro will check and confirm'],
+  manualP: [
+    'সাধারণত কিছুক্ষণের মধ্যে। এই পেজ বন্ধ করলেও হবে; কনফার্ম হলে ড্যাশবোর্ডে দেখতে পাবেন।',
+    'Usually within a short while. You can close this page; your dashboard will show when it is confirmed.',
+  ],
+  verifiedP: ['{s} সেকেন্ডে ড্যাশবোর্ডে ফিরছেন।', 'Returning to your dashboard in {s} seconds.'],
+  reviewP: [
+    'যে টাকা এসেছে তা এই পেমেন্টের সাথে মিলছে না। Lytro দেখে জানাবে; আপনার এখন কিছু করতে হবে না।',
+    'The money that arrived does not match this payment. Lytro will check and let you know; nothing to do now.',
+  ],
+  reviewSenderP: [
+    'আপনার লেখা নম্বর থেকে এই টাকা আসেনি। Lytro দেখে জানাবে; আপনার এখন কিছু করতে হবে না।',
+    'This money did not come from the number you entered. Lytro will check and let you know; nothing to do now.',
+  ],
+  reviewOtherT: ['Lytro চেক করে জানাবে', 'Lytro will check and let you know'],
+  rejectedNote: ['Lytro বলেছে: "{r}"', 'Lytro said: "{r}"'],
+  rejectedCancelled: ['বিলিং থেকে আবার পে করতে পারবেন।', 'You can pay again from Billing.'],
+  expiredP: [
+    'টাকা পাঠিয়ে থাকলে Lytro সাপোর্টকে ট্রান্সজেকশন আইডি জানান। না পাঠিয়ে থাকলে ড্যাশবোর্ডে ফিরে আবার শুরু করুন।',
+    'If you already sent the money, give Lytro support the transaction ID. If not, go back to your dashboard and start again.',
+  ],
+  cancelledP: ['নতুন করে পে করতে ড্যাশবোর্ডে ফিরুন।', 'Go back to your dashboard to pay again.'],
+  noMethodsT: [
+    'Lytro এখন অনলাইনে পেমেন্ট নিচ্ছে না',
+    'Lytro is not taking online payments right now',
+  ],
+  backShop: ['ড্যাশবোর্ডে ফিরুন', 'BACK TO DASHBOARD'],
+};
 
 /** The words in one language; a page has one for as long as it is being drawn. */
 export class PageWords {
-  constructor(readonly language: PageLanguage) {}
+  constructor(
+    readonly language: PageLanguage,
+    private readonly payee: PagePayee = 'shop',
+  ) {}
 
   of(key: WordKey, values: Readonly<Record<string, string | number>> = {}): string {
-    const text: string = WORDS[key][this.language === 'bn' ? 0 : 1];
+    const worded = (this.payee === 'lytro' ? LYTRO_WORDS[key] : undefined) ?? WORDS[key];
+    const text: string = worded[this.language === 'bn' ? 0 : 1];
     return Object.entries(values).reduce(
       (filled, [name, value]) => filled.split(`{${name}}`).join(String(value)),
       text,

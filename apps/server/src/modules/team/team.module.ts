@@ -13,7 +13,9 @@ import { PaymentReviewModule } from '../payment-review/payment-review.module';
 import { GatewayModule } from '../gateway/gateway.module';
 import { ListenerModule } from '../listener/listener.module';
 import { ListenerReceiptsModule } from '../listener-receipts/listener-receipts.module';
+import { LytroPaymentsModule } from '../lytro-payments/lytro-payments.module';
 import { LytroReceiptsModule } from '../lytro-receipts/lytro-receipts.module';
+import { OperatorPaymentMethodsController } from './controllers/operator-payment-methods.controller';
 import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
 import { DomainsModule } from '../domains/domains.module';
 import { PaymentsModule } from '../payments/payments.module';
@@ -171,6 +173,7 @@ import { NoticesModule } from '../notices/notices.module';
     AddressReadsModule,
     FraudChecksModule,
     ReportsModule,
+    LytroPaymentsModule,
     LytroReceiptsModule,
     DomainsModule,
   ],
@@ -198,6 +201,7 @@ import { NoticesModule } from '../notices/notices.module';
     OperatorPlanPricesController,
     OperatorPlanLimitOverridesController,
     OperatorPlatformWalletsController,
+    OperatorPaymentMethodsController,
     PlatformWalletsController,
     OperatorSettingsController,
     BillingController,

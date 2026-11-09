@@ -100,6 +100,8 @@ function session(now: Date, language: 'bn' | 'en'): PaymentPageSession {
 }
 
 export interface Fixture {
+  /** PAYMENT-PAGE-DESIGN §8: a shop paying Lytro. */
+  lytro?: boolean;
   session?: (now: Date) => Partial<PaymentPageSession>;
   ask?: Partial<PageAsk>;
   options?: DrawOptions;
@@ -135,6 +137,28 @@ const ONE_WALLET_AUTOMATED = (language: 'bn' | 'en'): ShopperPaymentMethod[] =>
 
 /** Every screen, by the name the prototype gives it. */
 export const FIXTURES: Readonly<Record<string, Fixture>> = {
+  'lytro-pick': { lytro: true, session: () => ({ orderNumber: 'Top-up', items: [] }) },
+  'lytro-wallet': {
+    lytro: true,
+    session: () => ({ orderNumber: 'Top-up', items: [] }),
+    ask: { wallet: PaymentMethod.Bkash },
+  },
+  'lytro-manual': {
+    ...waiting(PaymentSessionState.Checking, { listenerOnline: false, items: [] }),
+    lytro: true,
+  },
+  'lytro-rejected': {
+    ...waiting(PaymentSessionState.Failed, {
+      rejected: { reason: PaymentRejectReason.Other, note: 'nothing arrived' },
+      items: [],
+    }),
+    lytro: true,
+  },
+  'lytro-verified': {
+    ...waiting(PaymentSessionState.Verified, { items: [] }),
+    lytro: true,
+    ask: { just: true },
+  },
   pick: {},
   details: {},
   reported: { ask: { reported: true } },
@@ -226,8 +250,9 @@ export function dataOf(name: string, now: Date, language: 'bn' | 'en'): PageData
   return {
     ref: REF,
     session: { ...session(now, language), ...fixture.session?.(now) },
+    ...(fixture.lytro ? { payee: 'lytro' as const } : {}),
     shop: {
-      name: language === 'bn' ? 'মেঘ ফ্যাশন' : 'Megh Fashion',
+      name: fixture.lytro ? 'Lytro' : language === 'bn' ? 'মেঘ ফ্যাশন' : 'Megh Fashion',
       logoUrl: null,
       contactPhone: '01711223344',
     },

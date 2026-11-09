@@ -2364,3 +2364,12 @@ The close-out (PHASE-7-PLAN §11) fixed what its three reviews found, apart from
 - **A session that ends without signing out** keeps its browser subscribed until someone turns it off or the browser refuses a push. Sign-out removes it.
 - **The day-60 deletion** leaving `sms_log`, `sms_settings`, `fraud_checks`, `fraud_rules` and `order_extractions` behind is fixed by Slice 8.3.
 - **What only the real world shows** is criterion 9, in PHASE-7-PLAN §11's checklists: a real SMS, email, push and Gemini read, and the update prompt across two deployments (NTF-07, whose asking is tested but whose prompt isn't driven in a browser).
+
+## 137. `D5-3`, `ADM-10`: what paying Lytro on the payment page leaves open — found 2026-11-09
+
+- **The old way in still answers.** `/balance/top-up/confirm`, and the wallet branch of `/billing/purchase`, `/billing/upgrade/confirm` and `/addons/purchase`, still take a typed ID. Nothing in the dashboard calls them now. They stay for a tab left open across the deploy, and the phone or the operator still has to confirm what they take; remove them once no such tab can be left.
+- **One account per method.** The page shows one account for a method, so with several numbers shown a shop sees the first in the operator's order.
+- **A real automatic payment is unseen.** It needs Lytro's own bKash merchant account. The sandbox and CI's fake bKash prove the rest (§107 for shops).
+- **Nagad, Rocket and Upay are manual only** until real SMS samples arrive; only bKash has a checkout.
+- **The thanks on return is plain.** Back from the page, paid, the dashboard says the payment went through; the sketch's toast also names the amount or the new end date. The screens below it read the truth.
+- **WhatsApp and call need `LYTRO_SUPPORT_PHONE`.** With it unset, the page shows neither button.

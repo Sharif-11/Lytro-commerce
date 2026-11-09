@@ -142,6 +142,10 @@ export async function mockOnboarding(page: Page, journey: Journey = {}): Promise
   };
   const issued = { expiresInSeconds: 300, resendAfterSeconds: 60 };
 
+  // The payment page is another site: the browser goes there, and the test stops at its door.
+  await page.route('https://pay.example.test/**', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: '<p>payment page</p>' }),
+  );
   await page.route('**/api/v1/**', async (route: Route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -254,6 +258,9 @@ export async function mockOnboarding(page: Page, journey: Journey = {}): Promise
           label: language === 'bn' ? 'মার্চেন্ট' : 'Merchant',
         },
       ]);
+    }
+    if (/^\/billing\/payments\/[^/]+\/page$/.test(path)) {
+      return ok({ url: 'https://pay.example.test/checkout-ref' });
     }
     if (path === '/billing/quote')
       return ok(quote(body as { planId: string; billingTermId: string }));

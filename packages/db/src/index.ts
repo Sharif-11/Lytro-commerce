@@ -180,6 +180,10 @@ export {
 } from './repositories/api/api-usage.repository';
 export { UsageWarningRepository } from './repositories/usage/usage-warning.repository';
 export {
+  LytroPaymentMethodsRepository,
+  type NewPlatformBankAccount,
+} from './repositories/billing/lytro-payment-methods.repository';
+export {
   PlatformWalletsRepository,
   type NewPlatformWallet,
   type UpdatePlatformWallet,

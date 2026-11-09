@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
+import { PlanPaymentPageFrom } from '@lytronix/validators';
 import {
   useBillingTerms,
-  useConfirmPurchase,
+  useOpenPaymentPage,
   usePlanPrices,
   usePlans,
   usePlatformWallets,
@@ -17,11 +18,9 @@ import { Button } from '@/components/ui/button';
 import { Chip, ChipRow } from '@/components/ui/chips';
 import { StatusTag } from '@/components/ui/status-tag';
 import { WalletMarks } from '@/components/wallet-marks';
-import { WalletStep } from '@/components/wallet-step';
 import { useErrorText } from '@/hooks/use-error-text';
 import { PricingTable, type PricedOption } from '@/lib/pricing-table';
 import { signUpIntent } from '@/session/sign-up-intent';
-import type { PlanPayment } from '@/types/billing';
 import { changedAmount } from '@/views/plan/words';
 
 /**
@@ -40,9 +39,10 @@ export function Checkout(): React.JSX.Element {
   const [planId, setPlanId] = useState<string | null>(intent.planId);
   const [termId, setTermId] = useState<string | null>(intent.termId);
   const { t: tMoney } = useTranslation('money');
-  const [quote, setQuote] = useState<PlanPayment | null>(null);
   const [changed, setChanged] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  // PAYMENT-PAGE-DESIGN §8: back from the payment page, closed or lapsed, it is the checkout again.
+  const [returned] = useState(() => new URLSearchParams(window.location.search).get('status'));
+  const submitted = returned !== null && returned !== 'cancelled' && returned !== 'expired';
 
   const plans = usePlans();
   const terms = useBillingTerms();
@@ -51,7 +51,7 @@ export function Checkout(): React.JSX.Element {
   );
   const wallets = usePlatformWallets();
   const quotePurchase = useQuotePurchase();
-  const confirmPurchase = useConfirmPurchase();
+  const openPage = useOpenPaymentPage();
 
   const table = useMemo(
     () => new PricingTable(plans.data ?? [], terms.data ?? [], prices.prices),
@@ -62,7 +62,6 @@ export function Checkout(): React.JSX.Element {
   function choose(nextPlanId: string, nextTermId: string): void {
     setPlanId(nextPlanId);
     setTermId(nextTermId);
-    setQuote(null);
     setChanged(null);
     quotePurchase.reset();
   }
@@ -75,7 +74,9 @@ export function Checkout(): React.JSX.Element {
     quotePurchase.mutate(
       { planId, billingTermId: termId, amount: Number(amount) },
       {
-        onSuccess: setQuote,
+        onSuccess: (request) => {
+          openPage.mutate({ paymentId: request.id, from: PlanPaymentPageFrom.Checkout });
+        },
         onError: (error) => {
           setChanged(changedAmount(error));
         },
@@ -96,7 +97,7 @@ export function Checkout(): React.JSX.Element {
   if (submitted) {
     return (
       <OnboardingFrame step={1} title={t('coTitle')}>
-        <Notice tone="ok">{t('coDone')}</Notice>
+        <Notice tone="ok">{returned === 'verified' ? t('coPaid') : t('coDone')}</Notice>
         <p className="text-[14px] text-fg-muted">{t('coDoneNext')}</p>
         <Button wide onClick={continueToPassword}>
           {t('cont')}
@@ -181,36 +182,19 @@ export function Checkout(): React.JSX.Element {
           ) : quotePurchase.isError ? (
             <Banner tone="bad">{errorText(quotePurchase.error)}</Banner>
           ) : null}
-          {quote ? (
-            <WalletStep
-              spacious
-              amount={quote.amount}
-              wallets={wallets.data}
-              pending={confirmPurchase.isPending}
-              error={confirmPurchase.isError ? errorText(confirmPurchase.error) : null}
-              onSubmit={(values) => {
-                confirmPurchase.mutate(
-                  { paymentId: quote.id, method: 'wallet', ...values },
-                  {
-                    onSuccess: () => {
-                      setSubmitted(true);
-                    },
-                  },
-                );
-              }}
-            />
-          ) : option ? (
+          {openPage.isError ? <Banner tone="bad">{errorText(openPage.error)}</Banner> : null}
+          {option ? (
             <>
               <WalletMarks wallets={wallets.data ?? []} />
               <Button
                 tone="accent"
                 wide
-                busy={quotePurchase.isPending}
+                busy={quotePurchase.isPending || openPage.isPending || openPage.isSuccess}
                 onClick={() => {
                   commit(changed ?? String(option.price));
                 }}
               >
-                {tMoney('continueAmount', { amount: formatTaka(changed ?? option.price) })}
+                {tMoney('goToPage', { amount: formatTaka(changed ?? option.price) })}
               </Button>
             </>
           ) : null}

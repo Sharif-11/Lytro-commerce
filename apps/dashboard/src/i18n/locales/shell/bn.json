@@ -131,5 +131,6 @@
   "p37DurMins_other": "{{count}} মিনিট",
   "p37DaysAgo_one": "{{count}} দিন আগে",
   "p37DaysAgo_other": "{{count}} দিন আগে",
-  "p37Window": "{{d}}, {{a}}–{{b}}"
+  "p37Window": "{{d}}, {{a}}–{{b}}",
+  "paidOnPage": "পেমেন্ট হয়েছে।"
 }

@@ -88,7 +88,7 @@ test("shows a paid plan's card, its term, and each plan's one move, without aski
   expect(log.calls.some((call) => call.path === '/billing/prices')).toBe(true);
 });
 
-test('renews by wallet: the request is made on Continue, with the amount shown', async ({
+test('renews on the payment page: the request is made on Continue, with the amount shown', async ({
   page,
 }) => {
   const log = await open(page);
@@ -99,31 +99,20 @@ test('renews by wallet: the request is made on Continue, with the amount shown',
   await expect(fromBalance).toContainText(
     'আপনার ব্যালেন্স পর্যাপ্ত নেই। ব্যালেন্স টপ-আপ করুন অথবা bKash বা Nagad দিয়ে পেমেন্ট করুন।',
   );
-  await expect(sheet(page).getByRole('radio', { name: /^bKash বা Nagad দিয়ে/ })).toHaveAttribute(
+  await expect(sheet(page).getByRole('radio', { name: /^পেমেন্ট পেজে/ })).toHaveAttribute(
     'aria-checked',
     'true',
   );
   expect(quoted(log)).toBe(false);
 
-  await sheet(page).getByRole('button', { name: 'কন্টিনিউ করুন · ৳449' }).click();
-  await expect(sheet(page).getByLabel(/TrxID/)).toBeVisible();
+  await sheet(page).getByRole('button', { name: 'পেমেন্ট পেজে যান · ৳449' }).click();
+  await expect(page).toHaveURL('https://pay.example.test/payment-1');
   expect(log.sent('POST', '/billing/quote')).toEqual({
     planId: STARTER,
     billingTermId: ONE_MONTH,
     amount: 449,
   });
-  await sheet(page).getByLabel(/TrxID/).fill('9F2KQ7X1');
-  await sheet(page).getByLabel('যে নম্বর থেকে পাঠিয়েছেন').fill('1711234567');
-  await sheet(page).getByRole('button', { name: 'পেমেন্ট জমা দিন' }).click();
-  await expect(
-    page.getByRole('status').filter({ hasText: 'আপনার পেমেন্ট ভেরিফাই করা হচ্ছে' }),
-  ).toBeVisible();
-  expect(log.sent('POST', '/billing/purchase')).toMatchObject({
-    paymentId: 'payment-1',
-    method: 'wallet',
-    transactionId: '9F2KQ7X1',
-    amountPaid: 449,
-  });
+  expect(log.sent('POST', '/billing/payments/payment-1/page')).toEqual({ from: 'plan' });
 });
 
 test('renews from the balance on one tap when it covers the amount', async ({ page }) => {

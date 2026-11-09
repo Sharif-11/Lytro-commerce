@@ -1,9 +1,22 @@
 import { sql } from 'drizzle-orm';
-import { index, numeric, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import {
+  boolean,
+  index,
+  integer,
+  numeric,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
+import {
+  GatewayResult,
   PaymentCancelReason,
   PlanPaymentKind,
+  PlanPaymentPageFrom,
   PlanPaymentStatus,
+  type PaymentMethod,
   type PaymentReviewReason,
 } from '@lytronix/validators';
 import { control, createdAt } from '../shared';
@@ -45,6 +58,17 @@ export const planPayments = control.table(
     amountSent: numeric('amount_sent', { precision: 10, scale: 2 }),
     amountArrived: numeric('amount_arrived', { precision: 10, scale: 2 }),
     reviewReason: text('review_reason').$type<PaymentReviewReason>(),
+    // PAYMENT-PAGE-DESIGN §8 (2026-11-09): paying on the payment page -- its address, when it runs out and where in the dashboard it
+    // returns to; the wallet picked; how many times the ID was corrected (PAY-07); and bKash's own checkout, if the way is automatic.
+    pageRef: varchar('page_ref', { length: 32 }),
+    pageExpiresAt: timestamp('page_expires_at', { withTimezone: true }),
+    pageFrom: text('page_from').$type<PlanPaymentPageFrom>(),
+    payMethod: text('pay_method').$type<PaymentMethod>(),
+    idChanges: integer('id_changes').notNull().default(0),
+    gatewayPaymentId: text('gateway_payment_id'),
+    gatewayUrl: text('gateway_url'),
+    gatewayResult: text('gateway_result').$type<GatewayResult>(),
+    test: boolean('test').notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => [
@@ -58,6 +82,15 @@ export const planPayments = control.table(
     uniqueIndex('plan_payments_one_open_upgrade_idx')
       .on(t.tenantId)
       .where(sql`${t.kind} = 'upgrade' AND ${t.status} IN ('pending', 'needs_review')`),
+    uniqueIndex('plan_payments_page_ref_idx')
+      .on(t.pageRef)
+      .where(sql`${t.pageRef} IS NOT NULL`),
+    // VER-09: the minute pass -- bKash checkouts that ran out with no return.
+    index('plan_payments_gateway_due_idx')
+      .on(t.pageExpiresAt)
+      .where(
+        sql`${t.gatewayPaymentId} IS NOT NULL AND ${t.status} = 'pending' AND ${t.transactionId} IS NULL`,
+      ),
     // BIL-19: a shop's payments, newest first.
     index('plan_payments_tenant_quoted_idx').on(t.tenantId, t.quotedAt),
   ],

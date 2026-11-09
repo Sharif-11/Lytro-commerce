@@ -17,8 +17,6 @@ import shellBn from '../src/i18n/locales/shell/bn.json';
 import shellEn from '../src/i18n/locales/shell/en.json';
 import shopBn from '../src/i18n/locales/shop/bn.json';
 import shopEn from '../src/i18n/locales/shop/en.json';
-import walletBn from '../src/i18n/locales/wallet/bn.json';
-import walletEn from '../src/i18n/locales/wallet/en.json';
 
 function keysOf(value: unknown, prefix = ''): string[] {
   if (typeof value !== 'object' || value === null) return [prefix];
@@ -45,7 +43,6 @@ describe('dictionaries', () => {
       [moneyBn, moneyEn],
       [onboardingBn, onboardingEn],
       [ordersBn, ordersEn],
-      [walletBn, walletEn],
     ]) {
       expect(keysOf(english).sort()).toEqual(keysOf(bangla).sort());
     }

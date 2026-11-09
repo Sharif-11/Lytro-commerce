@@ -110,5 +110,6 @@
   "obPhoneByEmail": "email",
   "obPhoneTaken": "This number already has a Lytro account.",
   "obPhoneOther": "Use another number",
-  "obPhoneSignIn": "Sign in with this number"
+  "obPhoneSignIn": "Sign in with this number",
+  "coPaid": "Your plan is on."
 }

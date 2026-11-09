@@ -66,7 +66,7 @@ const DECIDABLE: readonly PaymentSessionState[] = [
 ];
 
 /** PAY-14 (Slice 5.4b): a review as a shopper may hear of it -- nothing of the shop's own, such as its balance. */
-function pageReviewOf(reason: PaymentReviewReason | null): PaymentPageReviewReason {
+export function pageReviewOf(reason: PaymentReviewReason | null): PaymentPageReviewReason {
   if (reason === PaymentReviewReason.Amount) return PaymentPageReviewReason.Amount;
   if (reason === PaymentReviewReason.Sender) return PaymentPageReviewReason.Sender;
   return PaymentPageReviewReason.Other;

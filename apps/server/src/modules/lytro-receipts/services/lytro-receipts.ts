@@ -5,8 +5,10 @@ import {
   LISTENER_AMOUNT_SLACK_PAISA,
   LISTENER_OLD_RECEIPT_MINUTES,
   LISTENER_TEXT_KEPT_DAYS,
+  isAccountMethod,
   ListenerMessageStatus,
   PaymentReviewReason,
+  PaymentWay,
   PlanPaymentStatus,
   type ListenerIgnoredReason,
   type ListenerReceiptsQuery,
@@ -16,6 +18,7 @@ import {
 import { DAY_MS, MINUTE_MS, startOfDayDhaka } from '../../../common/time';
 import { toPaisa } from '../../balance/services/money';
 import { PaymentQueueService } from '../../billing/services/payment-queue.service';
+import { LytroPaymentMethods } from '../../lytro-payments/services/lytro-payment-methods';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import type { LytroReceiptStore } from '../ports/lytro-receipt-store';
@@ -61,6 +64,7 @@ export class LytroReceipts {
     @Inject(LYTRO_RECEIPT_STORE) private readonly messages: LytroReceiptStore,
     @Inject(PlanPaymentsService) private readonly payments: PlanPaymentsService,
     @Inject(PaymentQueueService) private readonly queue: PaymentQueueService,
+    @Inject(LytroPaymentMethods) private readonly methods: LytroPaymentMethods,
   ) {}
 
   /** VER-02, VER-03: one receipt in. A phone sending its own again adds nothing; another phone's copy is a duplicate. */
@@ -180,6 +184,20 @@ export class LytroReceipts {
       return this.messages.settle(tx, receipt.id, {
         status: ListenerMessageStatus.Matched,
         reviewReason: null,
+        planPaymentId: payment.id,
+      });
+    }
+    // OPERATOR-CONSOLE-DESIGN §10: the operator checks this method by hand: the receipt waits beside the payment, as a shop's does.
+    if (
+      !CLOSED.includes(payment.status) &&
+      payment.payMethod !== null &&
+      payment.payMethod === receipt.method &&
+      isAccountMethod(payment.payMethod) &&
+      (await this.methods.wayOf(payment.payMethod)) === PaymentWay.Manual
+    ) {
+      return this.messages.settle(tx, receipt.id, {
+        status: ListenerMessageStatus.NeedsReview,
+        reviewReason: PaymentReviewReason.ByHand,
         planPaymentId: payment.id,
       });
     }
