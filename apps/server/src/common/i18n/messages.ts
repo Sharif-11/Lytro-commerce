@@ -347,6 +347,35 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: "The shop's sales retrieved.",
     bn: 'শপের সেলস পাওয়া গেছে।',
   },
+  PlanExtended: { en: 'Plan extended.', bn: 'প্ল্যানের মেয়াদ বাড়ানো হয়েছে।' },
+  NoPeriodToExtend: {
+    en: 'This shop has no period to extend. Assign it a plan instead.',
+    bn: 'এই শপের বাড়ানোর মতো কোনো মেয়াদ নেই। এর বদলে একটা প্ল্যান অ্যাসাইন করুন।',
+  },
+  ExtensionStillEnded: {
+    en: 'Those days still end in the past. Assign the shop a plan instead.',
+    bn: 'এই কয়দিন যোগ করলেও মেয়াদ পেছনেই থেকে যায়। এর বদলে শপে একটা প্ল্যান অ্যাসাইন করুন।',
+  },
+  OwnerSignInReset: {
+    en: 'The owner is signed out and a reset code is on its way.',
+    bn: 'ওনারকে সব জায়গা থেকে সাইন আউট করা হয়েছে, রিসেট কোড পাঠানো হচ্ছে।',
+  },
+  OwnerResetPhoneTaken: {
+    en: 'This phone number is on another Lytro account.',
+    bn: 'এই ফোন নম্বরটি Lytro-র আরেকটি অ্যাকাউন্টে আছে।',
+  },
+  ShopDataDeletionStarted: {
+    en: 'The shop is offline and its data is being deleted.',
+    bn: 'শপ অফলাইন করা হয়েছে, এর ডেটা ডিলিট হচ্ছে।',
+  },
+  ConfirmAddressWrong: {
+    en: "That isn't this shop's address.",
+    bn: 'এটা এই শপের অ্যাড্রেস নয়।',
+  },
+  ShopAlreadyDeleted: {
+    en: "This shop's data has already been deleted.",
+    bn: 'এই শপের ডেটা আগেই ডিলিট হয়ে গেছে।',
+  },
   RecentChangesListed: { en: 'Recent changes retrieved.', bn: 'সাম্প্রতিক বদল পাওয়া গেছে।' },
   RevenueReportRead: { en: 'Revenue report retrieved.', bn: 'আয়ের রিপোর্ট পাওয়া গেছে।' },
   ShopsReportRead: { en: 'Shops report retrieved.', bn: 'শপের রিপোর্ট পাওয়া গেছে।' },

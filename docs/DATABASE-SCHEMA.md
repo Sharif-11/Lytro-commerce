@@ -3090,6 +3090,11 @@ CREATE INDEX request_errors_created_idx ON control.request_errors (created_at);
 ALTER TABLE control.sms_outbox
     ADD COLUMN tenant_id uuid REFERENCES control.tenants(id) ON DELETE CASCADE;
 CREATE INDEX sms_outbox_tenant_idx ON control.sms_outbox (tenant_id, created_at);
+
+-- LIF-19, ADM-13, D8-39 (Phase 8 Slice 8.3): tenant.sms_log, sms_settings, fraud_checks, fraud_rules and order_extractions
+-- go with the rest of a deleted shop's data. The app role gains DELETE on them, and tenant.guard_erasing_only(), a
+-- BEFORE DELETE trigger on each, lets a row go only while the transaction names its shop in app.erasing_tenant and that
+-- shop is archived or deleted, the stock ledger's rule since 0054.
 ```
 
 Metrics, error tracking, log shipping and uptime checks (MON/OBS sections) are external services (Sentry, Grafana Cloud, UptimeRobot per OD-43), not schema — nothing else to design here.

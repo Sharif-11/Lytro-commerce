@@ -49,6 +49,8 @@ export interface SmsEventStore {
     tenantId: string,
     page: SmsLogPage,
   ): Promise<(SelectSmsLog & { orderNumber: string | null })[]>;
+  /** LIF-19: the day-60 deletion's SMS step: the log and the settings. */
+  deleteAllForTenant(tenantId: string): Promise<void>;
   /** A transaction in the shop's context, for an SMS's charge. */
   run<T>(tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T>;
 }

@@ -42,6 +42,12 @@ import { BillingTermsService } from './services/billing-terms.service';
 import { DowngradeService } from './services/downgrade.service';
 import { LifecycleService } from './services/lifecycle.service';
 import { PlanAssignmentService } from './services/plan-assignment.service';
+import { PlanExtensionService } from './services/plan-extension.service';
+import { ShopDataDeletionService } from './services/shop-data-deletion.service';
+import { AddressReadsModule } from '../address-reads/address-reads.module';
+import { FraudChecksModule } from '../fraud-checks/fraud-checks.module';
+import { QueueModule } from '../shared/queue/queue.module';
+import { SmsEventsModule } from '../sms-events/sms-events.module';
 import { PlanLimitOverridesService } from './services/plan-limit-overrides.service';
 import { PaymentCancellationService } from './services/payment-cancellation.service';
 import { PaymentQueueService } from './services/payment-queue.service';
@@ -66,6 +72,10 @@ import { NotificationsModule } from '../notifications/notifications.module';
 // no shell -- every UI piece is slice 8.
 @Module({
   imports: [
+    AddressReadsModule,
+    FraudChecksModule,
+    QueueModule,
+    SmsEventsModule,
     TenancyModule,
     AuditModule,
     BalanceModule,
@@ -105,6 +115,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
     PlansService,
     BillingTermsService,
     PlanAssignmentService,
+    PlanExtensionService,
+    ShopDataDeletionService,
     PlanLimitOverridesService,
     ShopLimitsService,
     AddonCatalogueService,
@@ -126,6 +138,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
     PlansService,
     BillingTermsService,
     PlanAssignmentService,
+    PlanExtensionService,
+    ShopDataDeletionService,
     PlanLimitOverridesService,
     ShopLimitsService,
     AddonCatalogueService,

@@ -116,6 +116,15 @@ export class UserRepository {
   }
 
   /** The owner row of the shop, if any (every shop has exactly one once created). */
+  /** ADM-04, D8-36: the owner's row follows the account's phone; lifecycle notices go to this copy. */
+  async setOwnerPhone(tx: Transaction, tenantId: string, phone: string): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .update(users)
+      .set({ phone })
+      .where(and(eq(users.tenantId, tenantId), eq(users.isOwner, true)));
+  }
+
   async findOwner(tx: Transaction, tenantId: string): Promise<SelectUser | null> {
     await this.transactions.setTenantContext(tx, tenantId);
     const rows = await tx

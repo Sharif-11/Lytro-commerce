@@ -163,6 +163,8 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
     en: 'Extra delivery charge per kg',
     bn: 'প্রতি কেজিতে এক্সট্রা ডেলিভারি চার্জ',
   },
+  // ADM-13 (Slice 8.3): the shop's address, typed to confirm deleting its data.
+  confirmAddress: { en: 'Shop address', bn: 'শপের অ্যাড্রেস' },
   // ADM-03 (Slice 8.2): the courier key log's failed calls alone.
   failed: { en: 'Failed only', bn: 'শুধু ফেইল হওয়াগুলো' },
   features: { en: 'Features', bn: 'ফিচার' },

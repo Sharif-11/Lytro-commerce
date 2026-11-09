@@ -10,6 +10,7 @@ import { QueueModule } from '../queue/queue.module';
 import { LifecycleTickWorker } from './services/lifecycle-tick-worker';
 import { SmsRetryWorker } from './services/sms-retry-worker';
 import { DataExportWorker } from './services/data-export-worker';
+import { ShopDataDeletionWorker } from './services/shop-data-deletion-worker';
 import { InventoryExpiryTickWorker } from './services/inventory-expiry-tick-worker';
 import { ReservationExpiryTickWorker } from './services/reservation-expiry-tick-worker';
 import { PaymentSessionExpiryTickWorker } from './services/payment-session-expiry-tick-worker';
@@ -83,6 +84,7 @@ import { ShopDayTickWorker } from './services/shop-day-tick-worker';
     SmsRetryWorker,
     LifecycleTickWorker,
     DataExportWorker,
+    ShopDataDeletionWorker,
     InventoryExpiryTickWorker,
     ReservationExpiryTickWorker,
     PaymentSessionExpiryTickWorker,

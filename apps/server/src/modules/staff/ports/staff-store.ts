@@ -70,6 +70,8 @@ export interface StaffStore {
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
   /** LIF-18/24, PYG-21: the owner's own contact, for a platform-sent notice (never a staff member's). */
   findOwnerContact(tx: Transaction, tenantId: string): Promise<OwnerContact | null>;
+  /** ADM-04, D8-36: the owner's row follows the account's phone. */
+  setOwnerPhone(tx: Transaction, tenantId: string, phone: string): Promise<void>;
   /** I18N-01 (Slice 7.3): the language a person chose in this shop, the owner's when `userId` is null. */
   setLanguage(
     tx: Transaction,

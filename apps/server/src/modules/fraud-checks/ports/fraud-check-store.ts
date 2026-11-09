@@ -13,6 +13,8 @@ import type { FraudSkipReason } from '@lytronix/validators';
 export interface FraudCheckStore {
   /** One of the shop's transactions. */
   run<T>(tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T>;
+  /** LIF-19: the day-60 deletion's fraud step: the checks and the rule. */
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
   /** FRD-04: Steadfast's own answer for the phone given since `since`, to reuse. */
   steadfastAnswerSince(
     tx: Transaction,

@@ -80,6 +80,13 @@ export class AddressReads implements OnModuleInit, OnModuleDestroy {
     @Inject(ADDRESS_READ_CLOCK) private readonly clock: () => Date,
   ) {}
 
+  /** LIF-19: the day-60 deletion's step for the shop's reads. */
+  deleteAllForTenant(tenantId: string): Promise<void> {
+    return this.balance.runStandalone(tenantId, (tx) =>
+      this.store.deleteAllForTenant(tx, tenantId),
+    );
+  }
+
   /**
    * PLN-20, D7-36 (Slice 7.7): what the shop's reads allowances hold, have used and still have, the soonest to end
    * first, and the reads paid one by one since the cycle began -- for Usage, the add-on shop and the paste card.

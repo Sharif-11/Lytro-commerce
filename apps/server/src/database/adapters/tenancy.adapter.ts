@@ -113,6 +113,15 @@ export class DrizzleTenantStore implements TenantStore {
     return this.tenants.findBillingInfo(tx, tenantId);
   }
 
+  extendPeriod(
+    tx: Transaction,
+    tenantId: string,
+    periodEnd: Date,
+    restore: boolean,
+  ): Promise<void> {
+    return this.tenants.extendPeriod(tx, tenantId, periodEnd, restore);
+  }
+
   async insertTenant(
     tx: Transaction,
     values: Parameters<TenantStore['insertTenant']>[1],

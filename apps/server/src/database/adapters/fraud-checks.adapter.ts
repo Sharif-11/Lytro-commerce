@@ -23,6 +23,10 @@ export class DrizzleFraudCheckStore implements FraudCheckStore {
     @Inject(FraudCheckRepository) private readonly checks: FraudCheckRepository,
   ) {}
 
+  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
+    return this.checks.deleteAllForTenant(tx, tenantId);
+  }
+
   run<T>(tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T> {
     return this.transactions.run(this.database.handle.db, async (tx) => {
       await this.transactions.setTenantContext(tx, tenantId);
