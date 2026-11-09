@@ -367,7 +367,7 @@ function bankPanel() {
   ${shopNote()}
   <div class="ccard" style="background:${BANK_COL}"><p class="ctitle">${t('enterRef')}</p><div class="inp">${t('enterRef')}</div>
     <div class="ihead"><span>${t('instructions')}</span>${countdown()}</div>
-    <ul class="ilist"><li><span>${t('bankStep1', { a: hl(Number(SHOP.amount).toLocaleString('en-US')) })}</span></li>${row('bankName', 'BRAC Bank')}${row('acctName', 'Megh Fashion')}${row('acctNo', '1501204567890001', true)}${row('branch', L('গুলশান', 'Gulshan'))}${row('routing', '060261726', true)}${row('swift', 'BRAKBDDH', true)}<li><span>${t('bankStep2')}</span></li></ul></div>
+    <ul class="ilist"><li><span>${t('bankStep1', { a: hl(Number(SHOP.amount).toLocaleString('en-US')) })}</span></li>${row('bankName', 'BRAC Bank')}${row('acctName', CTX.platform ? 'Lytronix Ltd' : 'Megh Fashion')}${row('acctNo', '1501204567890001', true)}${row('branch', L('গুলশান', 'Gulshan'))}${row('routing', '060261726', true)}${row('swift', 'BRAKBDDH', true)}<li><span>${t('bankStep2')}</span></li></ul></div>
   ${legal()}`;
 }
 const det = (rows) => `<div class="det">${rows.map(([k, v]) => `<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div>`;
