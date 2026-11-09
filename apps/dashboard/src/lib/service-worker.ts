@@ -5,6 +5,25 @@
 
 type Listener = () => void;
 
+/** NTF-07: how often a page left open asks whether a new version has been deployed. */
+export const UPDATE_CHECK_MS = 30 * 60 * 1000;
+
+/** NTF-07: browsers look for a new worker only on a full page load, and the dashboard moves without one; so it asks. */
+export function watchForUpdates(
+  registration: Pick<ServiceWorkerRegistration, 'update'>,
+  page: Pick<Document, 'addEventListener' | 'visibilityState'>,
+  every: (run: () => void, ms: number) => unknown = setInterval,
+): void {
+  const check = (): void => {
+    // Offline, or between deployments: the next check will do.
+    registration.update().catch(() => undefined);
+  };
+  every(check, UPDATE_CHECK_MS);
+  page.addEventListener('visibilitychange', () => {
+    if (page.visibilityState === 'visible') check();
+  });
+}
+
 /** Whether a new version has installed and waits for Update; and the push registration, once there is one. */
 class ServiceWorkerState {
   private waiting: ServiceWorker | null = null;
@@ -34,6 +53,7 @@ class ServiceWorkerState {
         .register(url, { scope: '/' })
         .then((registration) => {
           this.registration = registration;
+          watchForUpdates(registration, document);
           if (registration.waiting && navigator.serviceWorker.controller) {
             this.setWaiting(registration.waiting);
           }

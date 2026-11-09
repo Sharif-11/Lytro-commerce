@@ -14,6 +14,7 @@ import {
   RateKey,
 } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
+import { JobRelay } from '../src/modules/shared/queue/services/job-relay';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
 import { RateService } from '../src/modules/balance/services/rate.service';
 import { COURIER_FETCH } from '../src/modules/couriers/tokens';
@@ -358,6 +359,30 @@ describeIfDatabase(
       expect(steadfast.calls).toEqual([]);
     });
 
+    it('D7-46: a shop that disconnects Steadfast is told so, and an earlier answer is no longer shown or charged', async () => {
+      const client = await shop();
+      const phone = freshMobile();
+      expect((await checked(client, phone)).sources[0]?.state).toBe(FraudSourceState.Answered);
+      const gone = await client.delete('/couriers/connections/steadfast');
+      expect(gone.status, JSON.stringify(gone.body)).toBe(200);
+      const after = await checked(client, phone);
+      expect(after.sources[0]?.state).toBe(FraudSourceState.NotConnected);
+      expect(after.steadfast).toBeNull();
+    });
+
+    it('FRD-03: a shop with no Steadfast and no balance still gets its own orders, free', async () => {
+      const client = await shop({ steadfast: false });
+      priced('1.00');
+      await admin.query("UPDATE control.tenants SET state = 'active' WHERE id = $1", [
+        client.tenantId,
+      ]);
+      app.get(TenantCache).invalidateTenant(client.tenantId);
+      const result = await checked(client, freshMobile());
+      expect(result.sources[0]?.state).toBe(FraudSourceState.NotConnected);
+      expect(result.cost).toBe('0.00');
+      expect(await ledgerChecks(client)).toEqual([]);
+    });
+
     it('goes on without a Steadfast that fails, notes it, reuses nothing and charges nothing for it (FRD-11)', async () => {
       const client = await shop();
       const phone = freshMobile();
@@ -391,6 +416,13 @@ describeIfDatabase(
       });
       expect(answered.cost).toBe('1.00');
       expect(await ledgerChecks(client)).toEqual(['-1.00']);
+      // FRD-03: a reused answer is charged too, with no call made.
+      const calls = steadfast.callsTo(SCORE(phone)).length;
+      const reused = await checked(client, phone);
+      expect(reused.sources[0]).toMatchObject({ cached: true });
+      expect(reused.cost).toBe('1.00');
+      expect(steadfast.callsTo(SCORE(phone))).toHaveLength(calls);
+      expect(await ledgerChecks(client)).toEqual(['-1.00', '-1.00']);
     });
 
     it('refuses a number that is not a Bangladeshi mobile before asking anyone', async () => {
@@ -532,6 +564,33 @@ describeIfDatabase('who may check, and when (FRD-07, FRD-08, D7-47, D7-51)', () 
 describeIfDatabase(
   'the automatic check of a new cash-on-delivery order (FRD-05, FRD-06, D7-50)',
   () => {
+    it('FRD-05: the real job, once the relay hands it over, runs the check and charges for it', async () => {
+      const client = await shop();
+      priced('1.00');
+      await app.get(BalanceService).creditStandalone({
+        tenantId: client.tenantId,
+        amount: '5.00',
+        type: LedgerEntryType.TopUp,
+      });
+      await admin.query("UPDATE control.tenants SET state = 'active' WHERE id = $1", [
+        client.tenantId,
+      ]);
+      app.get(TenantCache).invalidateTenant(client.tenantId);
+      steadfast.behaviour = {};
+      const variant = await variantOf(client);
+      // Only this order's job: the other tests' jobs ran by hand and would queue ahead of it.
+      await admin.query("UPDATE control.job_outbox SET status = 'sent' WHERE status <> 'sent'");
+      const made = await order(client, variant, freshMobile());
+      const relay = app.get(JobRelay);
+      while ((await relay.runDue()) > 0);
+      await expect
+        .poll(() => rowsOf(client), { timeout: 20_000 })
+        .toEqual([
+          { trigger: 'order', order_id: made.id, steadfast_state: 'answered', cost: '1.00' },
+        ]);
+      expect(await ledgerChecks(client)).toEqual(['-1.00']);
+    });
+
     it('checks every new delivery that collects cash, on by default, apart from the order', async () => {
       const client = await shop();
       const rule = await client.get('/fraud-checks/rule');

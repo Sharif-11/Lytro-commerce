@@ -21,6 +21,7 @@ export interface SetupChecklist {
   /** A payment method is on with an active account. */
   wallet: boolean;
   /** A listener phone is paired and not cancelled (Slice 5.8, part 4). */
+  smsEvents: boolean;
   listenerPhone: boolean;
   apiKey: boolean;
 }

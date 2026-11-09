@@ -73,11 +73,11 @@ export const SMS_EVENTS: Readonly<Record<SmsEvent, SmsEventDefinition>> = {
   },
 };
 
-const VARIABLE = /\{([^{}\s]*)\}/g;
+const VARIABLE = /\{([^{}]*)\}/g;
 
 /** SMS-10: every `{name}` a template names, known or not, in order. */
 export function smsVariablesIn(template: string): string[] {
-  return Array.from(template.matchAll(VARIABLE), (match) => match[1] ?? '');
+  return Array.from(template.matchAll(VARIABLE), (match) => (match[1] ?? '').trim());
 }
 
 /**
@@ -89,11 +89,12 @@ export function renderSmsTemplate(
   values: Readonly<Partial<Record<SmsVariable, string>>>,
 ): string {
   return template
-    .replace(VARIABLE, (whole, name: string) =>
-      (SMS_VARIABLES as readonly string[]).includes(name)
+    .replace(VARIABLE, (whole, written: string) => {
+      const name = written.trim();
+      return (SMS_VARIABLES as readonly string[]).includes(name)
         ? (values[name as SmsVariable] ?? '')
-        : whole,
-    )
+        : whole;
+    })
     .replace(/\s+/g, ' ')
     .replace(/\s*:\s*$/, '')
     .trim();

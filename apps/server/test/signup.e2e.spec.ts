@@ -148,6 +148,7 @@ describeIfDatabase('sign-up by phone, end to end', () => {
       "SELECT body FROM control.sms_outbox WHERE to_phone = $1 AND kind = 'shop_ready'",
       [phone],
     );
+    expect(sms.rows).toHaveLength(1);
     expect(sms.rows[0]?.body).toContain('http://fashion-house.localhost');
 
     // Skipping the set-password offer (P1-E01) leaves the account exactly as code sign-up made it: no password.

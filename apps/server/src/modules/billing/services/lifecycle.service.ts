@@ -422,12 +422,13 @@ export class LifecycleService {
     // 45 before 57 rather than getting stuck re-finding 45 forever once both are past.
     const due = DELETION_WARNING_DAYS.find((day) => daysLapsed >= day && !sentDays.has(day));
     if (due === undefined) return false;
-    const daysLeft = 60 - due;
+    // Today's count, not the threshold's: a warning that goes out late (LIF-23) still says how long there really is.
+    const daysLeft = Math.max(1, 60 - daysLapsed);
     await this.sendNotice(
       tenantId,
       AuditAction.DeletionWarningSent,
       { day: due },
-      deletionWarningWords(daysLeft),
+      deletionWarningWords(daysLeft, dhakaDate(new Date(Date.now() + daysLeft * DAY_MS))),
     );
     return true;
   }

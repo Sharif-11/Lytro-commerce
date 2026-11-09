@@ -62,12 +62,30 @@ test.describe('SMS settings', () => {
     expect(log.phase7.sms).toEqual([]);
     await box.fill('Thanks! Order [Order number] is in, total ৳[Amount].');
     await expect(words).toContainText('Thanks! Order 261106-0017 is in, total ৳1,250.');
+    await expect(words).toContainText('· 1 part ·');
+    await box.fill(`Order [Order number]. ${'A longer message than fits in one part. '.repeat(5)}`);
+    await expect(words).toContainText('· 2 parts ·');
+    await box.fill('Thanks! Order [Order number] is in, total ৳[Amount].');
     await words.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('SMS settings saved')).toBeVisible();
     expect(log.phase7.sms.at(-1)).toEqual({
       events: { order_placed: true },
       templates: { order_placed: 'Thanks! Order {order_number} is in, total ৳{amount}.' },
     });
+    await main(page)
+      .getByRole('button', { name: /^Order placed/ })
+      .click();
+    await sheet(page, 'SMS: Order placed')
+      .getByRole('button', { name: "Back to Lytro's words" })
+      .click();
+    await expect
+      .poll(() =>
+        log.calls.some(
+          (call) =>
+            call.method === 'POST' && call.path === '/sms/settings/templates/order_placed/reset',
+        ),
+      )
+      .toBe(true);
   });
 
   test('the monthly cap is at least ৳1, counted over the cycle the server names', async ({

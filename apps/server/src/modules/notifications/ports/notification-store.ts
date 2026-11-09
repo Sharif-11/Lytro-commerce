@@ -67,6 +67,13 @@ export interface NotificationStore {
     userId: string,
     endpoint: string,
   ): Promise<boolean>;
+  /** NTF-02: whether this browser is subscribed for this person in this shop. */
+  holdsSubscription(
+    tx: Transaction,
+    tenantId: string,
+    userId: string,
+    endpoint: string,
+  ): Promise<boolean>;
   subscriptionsOf(
     tx: Transaction,
     tenantId: string,

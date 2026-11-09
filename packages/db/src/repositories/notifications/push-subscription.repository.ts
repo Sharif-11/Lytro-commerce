@@ -55,6 +55,27 @@ export class PushSubscriptionRepository {
     return rows.length > 0;
   }
 
+  async holds(
+    tx: Transaction,
+    tenantId: string,
+    userId: string,
+    endpoint: string,
+  ): Promise<boolean> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select({ id: pushSubscriptions.id })
+      .from(pushSubscriptions)
+      .where(
+        and(
+          eq(pushSubscriptions.tenantId, tenantId),
+          eq(pushSubscriptions.userId, userId),
+          eq(pushSubscriptions.endpoint, endpoint),
+        ),
+      )
+      .limit(1);
+    return rows.length > 0;
+  }
+
   async listForUser(
     tx: Transaction,
     tenantId: string,

@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { SmsEvent, takaFigure } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { ShopStorefrontService } from '../src/modules/balance/services/shop-storefront.service';
@@ -12,6 +12,7 @@ import {
   SmsEventSender,
   SmsEventSendFailed,
 } from '../src/modules/sms-events/services/sms-event-sender';
+import { DomainService } from '../src/modules/domains/services/domain.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { GatewayReconcileTickWorker } from '../src/modules/shared/queue-workers/services/gateway-reconcile-tick-worker';
 import { PaymentSessionExpiryTickWorker } from '../src/modules/shared/queue-workers/services/payment-session-expiry-tick-worker';
@@ -270,6 +271,25 @@ describeIfDatabase(
       const shipped = view.events.find((row) => row.event === 'order_shipped');
       expect(shipped?.sample).toContain(`http://${shop.slug}.localhost/track/AB3XK9QZ`);
       expect(shipped?.units).toBe(2);
+
+      // SMS-10: a longer name is counted, and the sample carries the shop's own domain as the SMS will.
+      const shorter = await shop.patch('/sms/settings', { smsName: 'Nodi' });
+      expect(shorter.status, JSON.stringify(shorter.body)).toBe(200);
+      const short = (await shop.get('/sms/settings')).body as typeof view;
+      const longer = await shop.patch('/sms/settings', { smsName: 'N'.repeat(40) });
+      expect(longer.status, JSON.stringify(longer.body)).toBe(200);
+      const domains = vi
+        .spyOn(app.get(DomainService), 'servingHost')
+        .mockResolvedValue('shop.example-long-domain.com.bd');
+      try {
+        const named = (await shop.get('/sms/settings')).body as typeof view;
+        expect(named.events[0]?.units).toBeGreaterThan(short.events[0]?.units ?? 0);
+        expect(named.events.find((row) => row.event === 'order_shipped')?.sample).toContain(
+          'shop.example-long-domain.com.bd/',
+        );
+      } finally {
+        domains.mockRestore();
+      }
     });
 
     it('a template keeps {order_number} and names only its own variables; a cap is at least 1 TK', async () => {
@@ -352,9 +372,7 @@ describeIfDatabase(
       const before = await balanceOf(tenantId);
       const first = await path.landingOrder(setup);
       const jobs = await sendQueued(tenantId);
-      expect(jobs.map((job) => job.events)).toEqual([
-        [SmsEvent.OrderPlaced, SmsEvent.NewOrderAlert],
-      ]);
+      expect(jobs.map((job) => job.event)).toEqual([SmsEvent.OrderPlaced, SmsEvent.NewOrderAlert]);
       const log = await smsLog(tenantId);
       expect(log).toHaveLength(1);
       expect(log[0]).toMatchObject({
@@ -564,6 +582,38 @@ describeIfDatabase('SMS-06, SMS-07, SMS-08, SMS-13, SMS-15: refused, failed and 
     expect(Number(await balanceOf(tenantId))).toBeCloseTo(Number(before) - Number(log[1]?.cost), 2);
   });
 
+  it('criterion 2: an order with two SMS retries only the one that failed, so neither goes or is charged twice', async () => {
+    const setup = await path.shop('smsretry');
+    const tenantId = setup.shop.tenantId;
+    const owner = await ownerPhone(tenantId);
+    const on = await setup.shop.patch('/sms/settings', {
+      smsName: 'Nodi',
+      events: { [SmsEvent.NewOrderAlert]: true },
+    });
+    expect(on.status, JSON.stringify(on.body)).toBe(200);
+    const ownerHad = texts.countFor(owner);
+    const before = Number(await balanceOf(tenantId));
+    await path.landingOrder(setup);
+    const jobs = await queued(tenantId);
+    expect(jobs.map((job) => job.event)).toEqual([SmsEvent.OrderPlaced, SmsEvent.NewOrderAlert]);
+    const sender = app.get(SmsEventSender);
+    await sender.send(jobs[0] as SmsEventJob);
+    texts.down = true;
+    try {
+      await expect(sender.send(jobs[1] as SmsEventJob)).rejects.toBeInstanceOf(SmsEventSendFailed);
+    } finally {
+      texts.down = false;
+    }
+    await sender.send(jobs[1] as SmsEventJob);
+    const sent = (await smsLog(tenantId)).filter((row) => row.status === 'sent');
+    const shopper = sent.find((row) => row.kind === 'order_placed')?.to_phone as string;
+    expect(texts.countFor(shopper)).toBe(1);
+    expect(texts.countFor(owner)).toBe(ownerHad + 1);
+    expect(sent.map((row) => row.kind).sort()).toEqual(['new_order_alert', 'order_placed']);
+    const spent = sent.reduce((sum, row) => sum + Number(row.cost), 0);
+    expect(Number(await balanceOf(tenantId))).toBeCloseTo(before - spent, 2);
+  });
+
   it('SMS-13: at the cap the order SMS stop, with one warning at 80%', async () => {
     const setup = await path.shop('smscap');
     const tenantId = setup.shop.tenantId;
@@ -611,10 +661,35 @@ describeIfDatabase('SMS-06, SMS-07, SMS-08, SMS-13, SMS-15: refused, failed and 
     );
     await sendQueued(shop.tenantId);
     expect(texts.countFor(order.phone)).toBe(1);
-    expect((await smsLog(shop.tenantId))[0]).toMatchObject({
-      status: 'sent',
-      kind: 'order_placed',
+    const log = await smsLog(shop.tenantId);
+    expect(log[0]).toMatchObject({ status: 'sent', kind: 'order_placed' });
+    expect(Number(await balanceOf(shop.tenantId))).toBeCloseTo(20 - Number(log[0]?.cost), 2);
+
+    // SMS-12: once there are orders, the estimate is the last 30 days' count at today's rate.
+    const view = (await shop.get('/sms/settings')).body as {
+      events: { event: string; units: number; estimate: Record<string, unknown> }[];
+    };
+    const placed = view.events[0];
+    expect(placed?.estimate).toEqual({
+      basis: 'last_30_days',
+      count: 1,
+      cost: (0.55 * (placed?.units ?? 0)).toFixed(2),
     });
+  });
+
+  it('I18N-03: a template the shop rewrote in English goes out as written, untranslated', async () => {
+    const setup = await path.shop('smsowntext');
+    const tenantId = setup.shop.tenantId;
+    const saved = await setup.shop.patch('/sms/settings', {
+      smsName: 'Nodi',
+      templates: { [SmsEvent.OrderPlaced]: 'Got order {order_number}, thanks!' },
+    });
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+    const variant = await plainVariant(setup.shop);
+    await staffOrder(setup, variant);
+    await sendQueued(tenantId);
+    const [row] = await smsLog(tenantId);
+    expect(row?.body).toMatch(/^Nodi: Got order \S+, thanks!$/);
   });
 });
 

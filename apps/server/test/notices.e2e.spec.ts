@@ -19,6 +19,7 @@ import { dhakaTime } from '../src/common/i18n/dates';
 import { NOTICE_TEMPLATES, noticeBellText, noticeIn } from '../src/modules/notices/notice-words';
 import type { NoticeStore } from '../src/modules/notices/ports/notice-store';
 import { NoticePublisher } from '../src/modules/notices/services/notice-publisher';
+import { PushSender } from '../src/modules/notifications/services/push-sender';
 import { NOTICE_STORE } from '../src/modules/notices/tokens';
 import { MAIL_PROVIDER } from '../src/modules/shared/mail/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
@@ -653,6 +654,62 @@ describeIfDatabase('the notice board over the real stack', () => {
     expect(refused.status).toBe(409);
   });
 
+  it('NTC-08: withdrawn, it leaves the bell and its badge at once, and a push still waiting never goes', async () => {
+    const before = (await shop.get('/notifications')).body as { unread: number };
+    const id = await published({ titleEn: 'Pulled back' });
+    const told = (await shop.get('/notifications')).body as {
+      unread: number;
+      items: { link: string }[];
+    };
+    expect(told.unread).toBe(before.unread + 1);
+    expect(told.items.some((item) => item.link === `/notices/${id}`)).toBe(true);
+    const { rows } = await admin.query<{ id: string }>(
+      'SELECT id FROM tenant.notifications WHERE tenant_id = $1 AND link = $2 LIMIT 1',
+      [shop.tenantId, `/notices/${id}`],
+    );
+    const withdrawn = await postJson(port, `/operator/notices/${id}/withdraw`, {}, operator);
+    expect(withdrawn.status, JSON.stringify(withdrawn.body)).toBeLessThan(300);
+    const after = (await shop.get('/notifications')).body as {
+      unread: number;
+      items: { link: string }[];
+    };
+    expect(after.unread).toBe(before.unread);
+    expect(after.items.some((item) => item.link === `/notices/${id}`)).toBe(false);
+    const pushed = await app
+      .get(PushSender)
+      .send({ tenantId: shop.tenantId, notificationId: rows[0]?.id as string });
+    expect(pushed).toEqual({ sent: 0, gone: 0, failed: 0 });
+  });
+
+  it('NTC-08: withdrawn while it is going out, the shops not yet reached hear nothing', async () => {
+    const made = await create({ ...BASE, publishAt: new Date(Date.now() - 1000) });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    const { id } = made.body as { id: string };
+    const store = app.get<NoticeStore>(NOTICE_STORE);
+    const first = await admin.query<{ n: number }>(
+      'SELECT count(*)::int AS n FROM control.tenants WHERE deleted_at IS NULL',
+    );
+    const real = store.findById.bind(store);
+    let looked = 0;
+    // The operator withdraws it the moment the first shop has been told.
+    const spy = vi.spyOn(store, 'findById').mockImplementation(async (noticeId) => {
+      looked += 1;
+      if (looked === 2) await postJson(port, `/operator/notices/${id}/withdraw`, {}, operator);
+      return real(noticeId);
+    });
+    try {
+      await tick();
+    } finally {
+      spy.mockRestore();
+    }
+    const delivered = await admin.query<{ n: number }>(
+      'SELECT count(*)::int AS n FROM control.notice_deliveries WHERE notice_id = $1',
+      [id],
+    );
+    expect(first.rows[0]?.n).toBeGreaterThan(1);
+    expect(delivered.rows[0]?.n).toBe(1);
+  });
+
   it('keeps the earlier version of an edited live notice and sends nothing again; a withdrawn one leaves every board (NTC-08)', async () => {
     const id = await published({ titleEn: 'First words' });
     const edited = await patchJson(
@@ -745,6 +802,23 @@ describeIfDatabase('the notice board over the real stack', () => {
     expect(await board(shop)).toEqual([]);
   });
 
+  it('NTC-07: in a locked shop only the owner is told, since staff could not open it', async () => {
+    const before = await admin.query<{ state: string }>(
+      'SELECT state FROM control.tenants WHERE id = $1',
+      [shop.tenantId],
+    );
+    await admin.query("UPDATE control.tenants SET state = 'locked' WHERE id = $1", [shop.tenantId]);
+    try {
+      const id = await published({ titleEn: 'Owner only' });
+      expect(await bellRows(`/notices/${id}`)).toHaveLength(1);
+    } finally {
+      await admin.query('UPDATE control.tenants SET state = $1 WHERE id = $2', [
+        before.rows[0]?.state,
+        shop.tenantId,
+      ]);
+    }
+  });
+
   it('lets the owner read the board in a locked shop but not staff, and an archived one urgent notices only (NTC-07)', async () => {
     const info = await published();
     const urgent = await published({ severity: 'urgent', titleEn: 'Urgent' });
@@ -806,6 +880,16 @@ describeIfDatabase('the notice board over the real stack', () => {
     expect([401, 403]).toContain(asOwner.status);
     const listAsOwner = await getJson(port, '/operator/notices', shop.headers());
     expect([401, 403]).toContain(listAsOwner.status);
+    const id = await published({ titleEn: 'Not for shops to change' });
+    const asShop = [
+      await patchJson(port, `/operator/notices/${id}`, { titleEn: 'x' }, shop.headers()),
+      await postJson(port, `/operator/notices/${id}/withdraw`, {}, shop.headers()),
+      await getJson(port, `/operator/notices/${id}`, shop.headers()),
+    ];
+    expect(asShop.every((answer) => [401, 403].includes(answer.status))).toBe(true);
+    // NTC-10: and a person without the notices permission can't read the board.
+    const without = await staffWith(port, texts, admin, other, [Permission.OrdersRead]);
+    expect((await getJson(port, '/notices', without)).status).toBe(403);
   });
 
   it('fills a rate change from the change itself, and publishing it links the two (NTC-12, NTC-13, RAT-09)', async () => {

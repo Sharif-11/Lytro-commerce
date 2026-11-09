@@ -89,6 +89,7 @@ function world(): World {
 
 function build(state: World) {
   const challenges: ChallengeStore = {
+    holdRequests: () => Promise.resolve(),
     latest: (_tx, destination, channel, kind) => {
       const rows = state.challenges.filter(
         (c) => c.destination === destination && c.channel === channel && c.kind === kind,
@@ -197,7 +198,7 @@ function build(state: World) {
     markSuppressed: () => Promise.resolve(),
     isSuppressed: () => Promise.resolve(false),
     lift: () => Promise.resolve(false),
-    suppress: () => Promise.resolve(),
+    suppress: () => Promise.resolve(true),
   };
   const mailProvider: MailProvider = {
     send: (message) => {
@@ -214,6 +215,7 @@ function build(state: World) {
   };
 
   const essentialSmsUsageStore: EssentialSmsUsageStore = {
+    holdAllowance: () => Promise.resolve(),
     record: (_tx, values) => {
       state.counter += 1;
       const id = `usage-${String(state.counter)}`;

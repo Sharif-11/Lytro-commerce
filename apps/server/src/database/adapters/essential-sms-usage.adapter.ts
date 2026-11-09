@@ -16,6 +16,10 @@ export class DrizzleEssentialSmsUsageStore implements EssentialSmsUsageStore {
     @Inject(TenantRepository) private readonly tenants: TenantRepository,
   ) {}
 
+  holdAllowance(tx: Transaction, tenantId: string): Promise<void> {
+    return this.usage.holdAllowance(tx, tenantId);
+  }
+
   record(
     tx: Transaction,
     values: { tenantId: string; kind: SmsKind; units: number },

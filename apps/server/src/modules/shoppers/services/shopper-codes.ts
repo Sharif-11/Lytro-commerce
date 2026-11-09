@@ -68,6 +68,7 @@ export class ShopperCodes {
       });
     const sent = await this.store
       .run(shop.id, async (tx) => {
+        await this.store.holdCodeRequests(tx, shop.id);
         if (await this.store.findByPhone(tx, shop.id, phone)) {
           throw new ApiError('conflict', 'ShopperAlreadyRegistered', {});
         }

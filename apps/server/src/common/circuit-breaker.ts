@@ -42,20 +42,29 @@ export class CircuitBreaker {
       if (state.trying || this.clock() < state.openUntil) throw new CircuitOpen(circuit);
       this.circuits.set(circuit, { ...state, trying: true });
     }
+    const trial = state.openUntil !== null;
     try {
       const result = await work();
-      this.circuits.delete(circuit);
+      // A call that started before the circuit opened says nothing about it now; only the trial closes it.
+      if (trial || this.circuits.get(circuit)?.openUntil == null) this.circuits.delete(circuit);
       return result;
     } catch (error) {
-      const failures = state.failures + 1;
-      const open = state.openUntil !== null || failures >= this.failuresToOpen;
-      this.circuits.set(circuit, {
-        failures,
-        openUntil: open ? this.clock() + this.openMs : null,
-        trying: false,
-      });
-      if (open && state.openUntil === null) this.onOpen(circuit, failures);
+      this.failed(circuit, trial);
       throw error;
     }
+  }
+
+  /** Counts a failure against the circuit as it stands now, as calls overlap. An open circuit waits for its trial. */
+  private failed(circuit: string, trial: boolean): void {
+    const now = this.circuits.get(circuit) ?? { failures: 0, openUntil: null, trying: false };
+    if (now.openUntil !== null && !trial) return;
+    const failures = now.failures + 1;
+    const open = trial || failures >= this.failuresToOpen;
+    this.circuits.set(circuit, {
+      failures,
+      openUntil: open ? this.clock() + this.openMs : null,
+      trying: false,
+    });
+    if (open && !trial) this.onOpen(circuit, failures);
   }
 }

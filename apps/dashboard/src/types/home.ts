@@ -45,6 +45,7 @@ export interface HomeView {
     /** A payment method is on with an active account. */
     wallet: boolean;
     /** A listener phone is paired and not cancelled. */
+    smsEvents: boolean;
     listenerPhone: boolean;
     apiKey: boolean;
   } | null;

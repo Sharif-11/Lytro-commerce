@@ -44,6 +44,7 @@ import {
   STEADFAST_URL,
 } from './tokens';
 import { BellCourierNotifier } from '../notifications/notifiers/bell-notifiers';
+import { MailModule } from '../shared/mail/mail.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 // CRR-01 to CRR-30 (Phase 6, Slice 6.1 first): couriers as plugins, a shop's connections to them, and booking an order. It sits above
@@ -51,6 +52,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 @Module({
   imports: [
     NotificationsModule,
+    MailModule,
     AuditModule,
     CatalogueModule,
     DeliveryModule,

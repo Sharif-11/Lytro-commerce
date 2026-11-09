@@ -87,6 +87,57 @@ describe('the circuit breaker (PRF-05)', () => {
     await expect(test.breaker.call('meta:a', test.working)).resolves.toBe('ok');
   });
 
+  it('counts failures that overlap, as a busy server has them (Phase 7 close-out)', async () => {
+    const { breaker, working } = setUp();
+    const hanging: ((reason: Error) => void)[] = [];
+    const calls = Array.from({ length: BREAKER_FAILURES }, () =>
+      breaker
+        .call(
+          'p',
+          () =>
+            new Promise((_resolve, reject) => {
+              hanging.push(reject);
+            }),
+        )
+        .catch(() => undefined),
+    );
+    for (const fail of hanging) fail(new Error('away'));
+    await Promise.all(calls);
+    await expect(breaker.call('p', working)).rejects.toBeInstanceOf(CircuitOpen);
+  });
+
+  it('a call from before the circuit opened neither closes nor extends it (Phase 7 close-out)', async () => {
+    const { breaker, failing, working, attempts } = setUp();
+    let failLate: (reason: Error) => void = () => undefined;
+    const late = breaker
+      .call(
+        'p',
+        () =>
+          new Promise((_resolve, reject) => {
+            failLate = reject;
+          }),
+      )
+      .catch(() => undefined);
+    let succeedLate: (value: string) => void = () => undefined;
+    const slow = breaker.call(
+      'p',
+      () =>
+        new Promise<string>((resolve) => {
+          succeedLate = resolve;
+        }),
+    );
+    for (let index = 0; index < BREAKER_FAILURES; index += 1) {
+      await expect(breaker.call('p', failing)).rejects.toThrow('away');
+    }
+    failLate(new Error('away, late'));
+    await late;
+    succeedLate('ok');
+    await slow;
+    const before = attempts();
+    await expect(breaker.call('p', working)).rejects.toBeInstanceOf(CircuitOpen);
+    expect(attempts()).toBe(before);
+  });
+
   it('lets only one trial out at a time', async () => {
     const test = setUp();
     await openIt(test);

@@ -11,6 +11,7 @@ import {
   TenantState,
 } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
+import { dhakaDate } from '../src/common/time';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { MAIL_PROVIDER } from '../src/modules/shared/mail/tokens';
 import { LifecycleService } from '../src/modules/billing/services/lifecycle.service';
@@ -316,6 +317,38 @@ describeIfDatabase('LIF-18: deletion warnings', () => {
   });
 });
 
+describeIfDatabase('LIF-18, LIF-23: a warning that goes out late', () => {
+  it('says how many days are really left, not the days its threshold would have', async () => {
+    const planId = await seedPlan((nextRank += 1));
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
+    const email = `${freshSlug()}@example.com`;
+    await seedOwner(tenantId, `017${(nextRank += 1).toString().slice(0, 8)}`, email);
+    await activateTenant(
+      tenantId,
+      planId,
+      TenantState.Archived,
+      new Date(Date.now() - 57 * DAY_MS),
+      true,
+    );
+    await lifecycle.runTick(new Date());
+    const { rows } = await admin.query<{ body: string }>(
+      `SELECT body FROM control.mail_outbox WHERE to_email = $1 AND kind = 'lifecycle_notice'`,
+      [email],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.body).toContain(
+      `deleted on ${dhakaDate(new Date(Date.now() + 3 * DAY_MS))}, in 3 day(s)`,
+    );
+    // LIF-18, SMS-04: never charged, and the free SMS are untouched.
+    const counted = await admin.query<{ used: number; ledger: number }>(
+      `SELECT (SELECT count(*)::int FROM control.essential_sms_usage WHERE tenant_id = $1) AS used,
+              (SELECT count(*)::int FROM tenant.balance_ledger WHERE tenant_id = $1) AS ledger`,
+      [tenantId],
+    );
+    expect(counted.rows[0]).toEqual({ used: 0, ledger: 0 });
+  });
+});
+
 describeIfDatabase('BIL-14: renewal reminders', () => {
   it('sends exactly one email reminder at each of the 7/3/1-day thresholds, never by SMS', async () => {
     const planId = await seedPlan((nextRank += 1));
@@ -348,6 +381,15 @@ describeIfDatabase('BIL-14: renewal reminders', () => {
     await lifecycle.runTick(new Date());
     actions = await auditActions(tenantId);
     expect(actions.filter((a) => a === AuditAction.RenewalReminderSent).length).toBe(3);
+
+    // NTF-03, NTF-05, BIL-14: each is in the owner's bell with a push queued, and costs nothing.
+    const told = await admin.query<{ bell: number; pushes: number; ledger: number }>(
+      `SELECT (SELECT count(*)::int FROM tenant.notifications WHERE tenant_id = $1 AND kind = 'renewal_reminder') AS bell,
+              (SELECT count(*)::int FROM control.job_outbox WHERE queue_name = 'notification_push' AND payload->>'tenantId' = $1::text) AS pushes,
+              (SELECT count(*)::int FROM tenant.balance_ledger WHERE tenant_id = $1) AS ledger`,
+      [tenantId],
+    );
+    expect(told.rows[0]).toEqual({ bell: 3, pushes: 3, ledger: 0 });
 
     const mailRows = await admin.query(
       `SELECT 1 FROM control.mail_outbox WHERE to_email = $1 AND kind = 'lifecycle_notice'`,

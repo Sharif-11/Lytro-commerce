@@ -34,7 +34,7 @@ check a phone number before shipping a cash-on-delivery order, and paste a custo
 1. Every requirement in §3.1 has a passing automated test, or, for `MAN` requirements, a recorded manual check.
 2. **An SMS is charged once, and never for nothing:** a sent SMS charges the balance at the SMS rate exactly once, or
    takes it from the allowance (SMS-04, SMS-05); a failed one charges nothing and uses no allowance (SMS-08); a blocked
-   one is logged with its reason (SMS-07); essential SMS stop at −5 TK and optional SMS stop at zero (SMS-06). Charging
+   one is logged with its reason (SMS-07); essential and optional SMS both stop at zero (SMS-06, as D7-23 set it). Charging
    and the allowance count the same units (SMS-09, D7-13).
 3. **The golden path** passes as one test against the fakes: a shopper's order → "order placed" SMS in the shop's Bangla
    template with the shop's name first → the owner's bell and push show the new order → payment verified → the SMS → the

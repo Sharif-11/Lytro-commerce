@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+import { leavePushOnThisDevice } from '@/lib/push';
 import { tenantSession } from '@/session/tenant-session';
 import { signUpIntent } from '@/session/sign-up-intent';
 
@@ -18,7 +19,10 @@ export function useMe() {
 export function useSignOut() {
   const navigate = useNavigate();
   return useMutation({
-    mutationFn: () => tenantSession.client.post<{ ok: true }>('/auth/signout'),
+    mutationFn: async () => {
+      await leavePushOnThisDevice();
+      return tenantSession.client.post<{ ok: true }>('/auth/signout');
+    },
     onSettled: () => {
       tenantSession.clear();
       signUpIntent.clear();
