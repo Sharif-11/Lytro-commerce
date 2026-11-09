@@ -3,7 +3,13 @@ import { NotificationKind, type Language } from '@lytronix/validators';
 import { inLanguage } from '../../../common/i18n/bilingual';
 import { PUSH_TEST_TEXT } from '../notification-words';
 import type { NotificationStore } from '../ports/notification-store';
-import type { PushMessage, PushOptions, PushProvider, PushTarget } from '../ports/push-provider';
+import type {
+  PushMessage,
+  PushOptions,
+  PushOutcome,
+  PushProvider,
+  PushTarget,
+} from '../ports/push-provider';
 import { NOTIFICATION_STORE, NOTIFICATIONS_CLOCK, PUSH_PROVIDER } from '../tokens';
 import type { NotificationPushJob } from './notifications';
 
@@ -59,7 +65,8 @@ export class PushSender {
         title: words.title,
         body: words.body,
         url: this.urlOf(slug, notification.link),
-        tag: notification.kind,
+        // NTF-02: its own, so a second new order doesn't silently replace the first on the phone.
+        tag: notification.id,
         id: notification.id,
       },
       options: {
@@ -100,27 +107,30 @@ export class PushSender {
         p256dh: subscription.p256dh,
         auth: subscription.auth,
       };
-      let outcome: 'sent' | 'gone' | 'failed';
+      let answer: PushOutcome | null;
       try {
-        const answer = await this.provider.send(target, push.message, push.options);
-        outcome = answer === 'refused' ? 'failed' : answer;
+        answer = await this.provider.send(target, push.message, push.options);
       } catch (error) {
         this.logger.warn(`a push could not be sent: ${(error as Error).message}`);
-        outcome = 'failed';
+        answer = null;
       }
-      await this.store.run(tenantId, async (tx) => {
-        if (outcome === 'sent') {
-          await this.store.markPushed(tx, tenantId, subscription.id, this.clock());
-        } else if (
-          outcome === 'gone' ||
-          subscription.failures + 1 >= PUSH_FAILURES_BEFORE_REMOVAL
-        ) {
-          await this.store.removeSubscriptionById(tx, tenantId, subscription.id);
-        } else {
-          await this.store.markPushFailure(tx, tenantId, subscription.id);
-        }
-      });
-      result[outcome] += 1;
+      // The push service having a bad moment says nothing about this browser, so it counts for nothing against it.
+      if (answer !== null) {
+        const heard = answer;
+        await this.store.run(tenantId, async (tx) => {
+          if (heard === 'sent') {
+            await this.store.markPushed(tx, tenantId, subscription.id, this.clock());
+          } else if (
+            heard === 'gone' ||
+            subscription.failures + 1 >= PUSH_FAILURES_BEFORE_REMOVAL
+          ) {
+            await this.store.removeSubscriptionById(tx, tenantId, subscription.id);
+          } else {
+            await this.store.markPushFailure(tx, tenantId, subscription.id);
+          }
+        });
+      }
+      result[answer === 'sent' || answer === 'gone' ? answer : 'failed'] += 1;
     }
     return result;
   }

@@ -48,10 +48,12 @@ export class ResendWebhook {
     if (reason === null) return [];
     const addresses = this.addressesOf(event);
     const detail = this.detailOf(event);
+    const stopped: StoppedAddresses = [];
     for (const email of addresses) {
-      await this.store.suppress({ email, reason, detail });
+      // A second report of an address already stopped, or Resend trying again, tells no one anything new.
+      if (await this.store.suppress({ email, reason, detail })) stopped.push({ email, reason });
     }
-    return addresses.map((email) => ({ email, reason }));
+    return stopped;
   }
 
   private parse(rawBody: Buffer): ResendEvent | null {

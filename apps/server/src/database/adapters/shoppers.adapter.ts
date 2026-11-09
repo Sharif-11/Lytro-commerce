@@ -29,6 +29,10 @@ export class DrizzleShopperStore implements ShopperStore {
     return this.transactions.run(this.database.handle.db, work);
   }
 
+  holdCodeRequests(tx: Transaction, tenantId: string): Promise<void> {
+    return this.shoppers.holdCodeRequests(tx, tenantId);
+  }
+
   latestCode(tx: Transaction, tenantId: string, phone: string): Promise<ShopperCodeRecord | null> {
     return this.shoppers.latestCode(tx, tenantId, phone);
   }

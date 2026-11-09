@@ -159,6 +159,13 @@ export class OneTimeCodeService {
     ip: string | null,
   ) {
     return this.gateway.run(async (tx) => {
+      await this.challenges.holdRequests(
+        tx,
+        destination,
+        channel,
+        kind,
+        channel === ChallengeChannel.Sms ? ip : null,
+      );
       const now = this.settings.now();
       const latest = await this.challenges.latest(tx, destination, channel, kind);
 

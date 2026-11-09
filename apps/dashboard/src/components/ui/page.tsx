@@ -64,12 +64,3 @@ export function Eyebrow({ children }: { children: ReactNode }): React.JSX.Elemen
     </div>
   );
 }
-
-/** Which phase or slice brings something not built yet (the prototype's `.phase`). */
-export function PhasePill({ children }: { children: ReactNode }): React.JSX.Element {
-  return (
-    <span className="inline-flex h-[18px] items-center rounded-full bg-neutral-100 px-1.5 text-[11px] font-semibold whitespace-nowrap text-fg-muted">
-      {children}
-    </span>
-  );
-}

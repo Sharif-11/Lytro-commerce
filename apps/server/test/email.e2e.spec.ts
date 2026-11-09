@@ -6,6 +6,7 @@ import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TransactionRunner } from '@lytronix/db';
 import { AppModule } from '../src/app/app.module';
+import { BREAKER_FAILURES, CircuitOpen } from '../src/common/circuit-breaker';
 import { EnvironmentParser } from '../src/config/env';
 import { DatabaseService } from '../src/database/database.service';
 import type { LowBalanceNotifier } from '../src/modules/balance/ports/low-balance-notifier';
@@ -159,7 +160,7 @@ describe("the outbox's answer to Resend (D7-3)", () => {
       markSuppressed: () => Promise.resolve(),
       isSuppressed: () => Promise.resolve(false),
       lift: () => Promise.resolve(false),
-      suppress: () => Promise.resolve(),
+      suppress: () => Promise.resolve(true),
     };
     return {
       service: new MailService(store, provider, () => new Date('2026-11-07T06:00:00Z')),
@@ -246,6 +247,20 @@ describe('when an email really goes (D7-22)', () => {
   });
 });
 
+describe("Resend's circuit (PRF-05)", () => {
+  it('five failures in a row open it, and the next email makes no call', async () => {
+    const resend = answering(500, { name: 'application_error' });
+    const provider = new ResendMailProvider(SETTINGS, resend.fetch);
+    const email = { to: 'a@b.c', subject: 's', body: 'b' };
+    for (let tries = 0; tries < BREAKER_FAILURES; tries += 1) {
+      await expect(provider.send(email)).rejects.toThrow(/could not take the email now/);
+    }
+    const made = resend.calls.length;
+    await expect(provider.send(email)).rejects.toBeInstanceOf(CircuitOpen);
+    expect(resend.calls).toHaveLength(made);
+  });
+});
+
 describe("a bounce's signature (NTF-06)", () => {
   // Svix's own example (docs.svix.com, manual verification): its HMAC, checked at its own timestamp.
   const SVIX_SECRET = 'whsec_plJ3nmyCDGBKInavdOK15jsl';
@@ -317,7 +332,7 @@ describe("the owner's notices in both languages (Slice 7.3's read)", () => {
       }),
       billingWords.renewalReminderWords(3),
       billingWords.renewalReminderWords(null),
-      billingWords.deletionWarningWords(3),
+      billingWords.deletionWarningWords(3, '2026-12-31'),
       billingWords.paygArchiveWarningWords(7),
       billingWords.shopClosedWords('Megh', '2026-12-31'),
       billingWords.planActiveWords({

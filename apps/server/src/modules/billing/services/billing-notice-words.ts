@@ -247,19 +247,19 @@ export function renewalReminderWords(daysLeft: number | null): MailWords {
   };
 }
 
-/** LIF-18: the shop will be deleted in this many days. */
-export function deletionWarningWords(daysLeft: number): MailWords {
+/** LIF-18: the shop will be deleted on this date, this many days from now. */
+export function deletionWarningWords(daysLeft: number, deletesOn: string): MailWords {
   return {
     bn: {
       subject: 'আপনার শপ ডিলিট হওয়ার তারিখ ঠিক হয়েছে',
       body:
-        `প্ল্যান না কিনলে বা পে-অ্যাজ-ইউ-গো বেছে না নিলে ${String(daysLeft)} দিন পর আপনার শপ ডিলিট হয়ে যাবে। তার আগে ` +
+        `প্ল্যান না কিনলে বা পে-অ্যাজ-ইউ-গো বেছে না নিলে ${deletesOn} তারিখে, ${String(daysLeft)} দিন পর, আপনার শপ ডিলিট হয়ে যাবে। তার আগে ` +
         'ড্যাশবোর্ড থেকে আপনার ডেটা এক্সপোর্ট করে নিন।',
     },
     en: {
       subject: 'Your shop is scheduled for deletion',
       body:
-        `Your shop will be deleted in ${String(daysLeft)} day(s) unless you buy a plan or choose pay-as-you-go. ` +
+        `Your shop will be deleted on ${deletesOn}, in ${String(daysLeft)} day(s), unless you buy a plan or choose pay-as-you-go. ` +
         'Export your data from the dashboard before then.',
     },
   };

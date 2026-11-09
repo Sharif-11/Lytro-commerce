@@ -209,6 +209,24 @@ export class PushController {
     return { subscribed: true };
   }
 
+  @Post('subscriptions/check')
+  @HttpCode(200)
+  @ResponseMessage('Success')
+  @ApiOperation({
+    summary: 'Whether this browser is subscribed for the signed-in person in this shop (NTF-02)',
+  })
+  @ApiBody({ type: PushUnsubscribeDto })
+  @ZodResponse({ type: PushSubscribedDto })
+  async check(
+    @Body(new ZodValidationPipe(PushUnsubscribeDto.schema)) body: PushUnsubscribeDto,
+    @Req() request: DashboardRequest,
+  ): Promise<{ subscribed: boolean }> {
+    const { tenantId, viewer } = await this.reader.viewer(request);
+    return {
+      subscribed: await this.subscriptions.holds(tenantId, viewer.userId, body.endpoint),
+    };
+  }
+
   @Delete('subscriptions')
   @ResponseMessage('PushUnsubscribed')
   @ApiOperation({ summary: 'Stop pushing to this browser (NTF-02)' })

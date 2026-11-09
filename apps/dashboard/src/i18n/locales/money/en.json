@@ -335,7 +335,7 @@
   "uFullSeats": "Seats are full: {{used}} of {{limit}}. No one can be added or brought back until there is room.",
   "uFullSms": "Free SMS used: {{used}} of {{limit}} this month. Further essential SMS cost {{amount}} each from the balance.",
   "uFullSmsNoRate": "Free SMS used: {{used}} of {{limit}} this month. Further essential SMS are paid from the balance.",
-  "uFullSmsTrial": "Free SMS used: {{used}} of {{limit}}. Further essential SMS wait until you pick a plan; sign-in codes still go.",
+  "uFullSmsTrial": "Free SMS used: {{used}} of {{limit}}. Further essential SMS, sign-in codes too, are paid from the balance; with none, they don't go.",
   "uFullStorage": "Storage is full: {{used}} of {{limit}}. New photos and videos can’t be uploaded; the ones you have still show.",
   "uMailed": "An email went too.",
   "uMailedSms": "An email and a free SMS went too.",
