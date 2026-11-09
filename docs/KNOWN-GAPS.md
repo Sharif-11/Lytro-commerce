@@ -2266,7 +2266,7 @@ The close-out (PHASE-6-PLAN §11) fixed what it found that could be fixed in the
 - **The milestone (exit criterion 9):** a real booking through to a real message for each courier, recorded, waits for the owner's
   accounts (§117, §121, §123).
 
-## 131. `PLN-20`, `D7-17`, `D7-36`: the reads allowance doesn't renew, and a longer term charges more for the same reads — found 2026-11-07, open
+## 131. `PLN-20`, `D7-17`, `D7-36`: the reads allowance doesn't renew, and a longer term charges more for the same reads — found 2026-11-07, closed 2026-11-08
 
 Slice 7.7's sketch found both while drawing the allowance in the add-on shop and the console's catalogue.
 
@@ -2283,6 +2283,12 @@ this is settled.
 
 Closing it: the owner chooses whether an allowance's uses scale with the term's months or its price stays one month's,
 and `renewalBar` gains an allowance case that renews it with the plan; both with tests.
+
+**Closed 2026-11-08 (D7-64, the owner's answers):** the reads grow with the months paid for, prorated exactly as the
+price, in one pool. A purchase keeps its reads as its unit size (`allowanceUnitUses`); a renewal counts the new
+period's from the catalogue's monthly reads. `renewalBar` renews an allowance with the plan, and it never runs on into
+a period of its own. Proven by `allowance-term.spec.ts` and `allowance-term.e2e.spec.ts`. GET /addons' offer gives the reads each
+quantity buys (`uses`), and the dashboard's buy sheet shows them, not the catalogue's 200.
 
 ## 132. `D7-60` to `D7-63`, `NTF-02`, `NTC-12`: where Phase 7's screens differ from their sketch, and what only a real device shows — found 2026-11-08, open
 

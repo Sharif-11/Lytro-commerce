@@ -130,6 +130,7 @@ overrule any of them when reviewing this plan.
 | D7-61 | **What the sketch covers** (the read). | Both apps, everything §6 lists for 7.7, and what earlier slices left for it: the console's settings for fraud checks and reading orders, courier notices in the bell (6.7), each person's language and the bounced email (7.3), and the reads left on the usage page (7.6). | Slice 7.7 |
 | D7-62 | **Its PRs** (the read). | One sketch PR for both apps now, docs only, and one build PR for both after Slice 7.4 merges. Phase 8's server slices go on in between. | Slice 7.7 |
 | D7-63 | **Where staff see a phone's fake order check** (the read). | On the new-order form once the phone is valid, before the order is made (the latest check, and a button to check it; never on its own while typing); on the order, the automatic check's result with "Check again"; and on the customer. The automatic rule's switch is in Settings. | Slice 7.7 |
+| D7-64 | **An allowance over a longer term** (the owner's answers, 2026-11-07; KNOWN-GAPS §131). Its price was monthly times the term's months, but it gave 200 reads for the whole purchase, and it never renewed. | It gives its 200 reads for each month paid for, prorated exactly as its price, in one pool used any time until the purchase ends: a fresh 6-month term, 1,200 reads for ৳120; 20 days left of a month, about 130 for ৳13. It renews with the plan for the new term's reads, and never runs on into a period of its own (pay-as-you-go pays per use). Amends D7-36 and PLN-20. | Slices 7.6, 7.7 |
 
 ### 2.1 Points left to each slice's read
 

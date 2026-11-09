@@ -53,6 +53,12 @@ export interface AddonOffer {
    * as its request would be -- the price is rounded once, so two are not always twice one. Empty with no price.
    */
   amounts: number[];
+  /**
+   * PLN-20, D7-64: for an allowance, the uses 1, 2, ... units buy now, beside `amounts` -- its monthly uses for each
+   * month paid for, prorated as each total's own price -- so the buy sheet shows what a purchase really gives. Null for
+   * anything else, or with no price.
+   */
+  uses: number[] | null;
   /** The days left to its end that the price is for; null for a pack, which never ends, or with no price. */
   daysLeft: number | null;
   /**
