@@ -10,6 +10,8 @@ export interface UsageCycleTenant {
 
 /** control.essential_sms_usage (AUTH-21). */
 export interface EssentialSmsUsageStore {
+  /** SMS-04: holds the shop's free SMS until the transaction ends. */
+  holdAllowance(tx: Transaction, tenantId: string): Promise<void>;
   /** Joins the caller's own transaction -- written alongside the SMS send it's counting. Returns the row's ID. */
   record(
     tx: Transaction,

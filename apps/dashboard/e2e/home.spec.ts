@@ -71,7 +71,11 @@ test('opens a new shop on its checklist, with nothing in the queue yet (SUP-01)'
     `/${SLUG}/settings/couriers`,
   );
   await expect(main(page).getByText('ফেজ 6-এ আসছে')).toHaveCount(0);
-  await expect(main(page).getByText('ফেজ 7-এ আসছে')).toBeVisible();
+  await expect(main(page).getByText('ফেজ 7-এ আসছে')).toHaveCount(0);
+  await expect(main(page).getByRole('link', { name: /SMS ইভেন্ট বাছুন/ })).toHaveAttribute(
+    'href',
+    `/${SLUG}/settings/sms`,
+  );
 
   await expect(main(page).getByText('সব কাজ শেষ। নতুন অর্ডার এলে এখানে দেখাবে।')).toBeVisible();
   await expect(main(page).getByText('ট্রায়ালের দিন বাকি')).toBeVisible();

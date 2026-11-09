@@ -670,7 +670,6 @@ export class PaymentSessions {
       orderId: session.orderId,
       events: [SmsEvent.PaymentToVerify],
       amount: session.amount,
-      ref: session.id,
     });
     return {
       tenantId,

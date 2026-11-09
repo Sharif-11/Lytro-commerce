@@ -980,6 +980,8 @@ export interface Phase7Fixture {
   off?: string[];
   /** A VAPID key, so push can be turned on (NTF-02); none by default. */
   pushKey?: string | null;
+  /** Whether the server holds this browser's subscription for the person looking; yes by default. */
+  pushHeld?: boolean;
   sms?: SmsFixture;
   smsLogEmpty?: boolean;
   smsReportEmpty?: boolean;
@@ -1099,6 +1101,9 @@ export function phase7Answer(
   }
   if (method === 'GET' && path === '/push/key')
     return { data: { publicKey: fixture.pushKey ?? null } };
+  if (path === '/push/subscriptions/check') {
+    return { data: { subscribed: fixture.pushHeld ?? true } };
+  }
   if (path === '/push/subscriptions') return { data: { subscribed: method === 'POST' } };
   if (method === 'POST' && path === '/push/test') return { data: { sent: 2, gone: 1, failed: 0 } };
   if (method === 'PUT' && path === '/me/language') {

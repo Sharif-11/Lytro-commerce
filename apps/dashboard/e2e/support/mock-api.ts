@@ -272,6 +272,7 @@ const READY = {
   logo: true,
   linkShared: true,
   wallet: true,
+  smsEvents: false,
   listenerPhone: false,
   apiKey: false,
 };

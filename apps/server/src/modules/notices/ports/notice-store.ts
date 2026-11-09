@@ -4,7 +4,7 @@ import type {
   NoticeBoardFilter,
   NoticeBoardRow,
   NoticeCounts,
-  NoticeShop,
+  NoticeAudienceShop,
   NoticeSnapshot,
   NoticeViewer,
   RateChangeRow,
@@ -66,7 +66,7 @@ export interface NoticeStore {
     notice: AudienceOf,
     without: 'delivered' | 'acknowledged' | null,
     limit: number,
-  ): Promise<NoticeShop[]>;
+  ): Promise<NoticeAudienceShop[]>;
   audienceCount(
     notice: { id?: string; audience: NoticeAudience; severity: NoticeSeverity },
     without: 'acknowledged' | null,

@@ -11,7 +11,6 @@ import {
   smsWithName,
   takaFigure,
 } from '@lytronix/validators';
-import { smsEventKey } from '../src/modules/sms-events/services/sms-event-queue';
 
 // SMS-03, SMS-09, SMS-10, SMS-16, SMS-19 (Slice 7.2): the templates' pure parts, shared by the server and the screens.
 describe('SMS templates', () => {
@@ -20,6 +19,16 @@ describe('SMS templates', () => {
     amount: '1,250',
     tracking_link: 'https://rahimfashion.lytro.app/track/AB3XK9QZ',
   };
+
+  it('SMS-09: units follow the unit size the rate carries', () => {
+    expect(smsUnitsOf('x'.repeat(150), 67)).toBe(3);
+    expect(smsUnitsOf('x'.repeat(150), 100)).toBe(2);
+  });
+
+  it('SMS-10: a variable written with spaces is still that variable, and anything in braces is checked', () => {
+    expect(smsVariablesIn('{ amount } and { nope here }')).toEqual(['amount', 'nope here']);
+    expect(renderSmsTemplate('মোট ৳{ amount }', { amount: '500' })).toBe('মোট ৳500');
+  });
 
   it('SMS-03, the read: six defaults are one unit with a typical shop name; shipped is two, for its link', () => {
     for (const shop of ['রহিম ফ্যাশন', 'Rahim Fashion']) {
@@ -89,14 +98,5 @@ describe('SMS templates', () => {
       expect(nonNegativeMoneyField.safeParse(value).success, String(value)).toBe(true);
     }
     expect(nonNegativeMoneyField.safeParse(1.005).success).toBe(false);
-  });
-
-  it("each job's key is a UUID, the same for the same event and its own for another payment", () => {
-    const job = { tenantId: 't', orderId: 'o', events: [SmsEvent.PaymentVerified], ref: 'p1' };
-    expect(smsEventKey(job)).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-    );
-    expect(smsEventKey(job)).toBe(smsEventKey({ ...job }));
-    expect(smsEventKey(job)).not.toBe(smsEventKey({ ...job, ref: 'p2' }));
   });
 });

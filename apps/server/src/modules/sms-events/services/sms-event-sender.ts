@@ -90,20 +90,9 @@ export class SmsEventSender {
       this.store.shop(job.tenantId),
       this.store.order(job.tenantId, job.orderId),
     ]);
-    if (!shop || !order) return;
-    let failed: SmsEventSendFailed | null = null;
-    for (const event of job.events) {
-      if (!isOn(settings, event)) continue;
-      const prepared = await this.prepare(event, job, settings, shop, order);
-      if (!prepared) continue;
-      try {
-        await this.chargeAndSend(job, shop, settings, prepared);
-      } catch (error) {
-        if (!(error instanceof SmsEventSendFailed)) throw error;
-        failed = error;
-      }
-    }
-    if (failed) throw failed;
+    if (!shop || !order || !isOn(settings, job.event)) return;
+    const prepared = await this.prepare(job.event, job, settings, shop, order);
+    if (prepared) await this.chargeAndSend(job, shop, settings, prepared);
   }
 
   /** Who it goes to and what it says, or nothing when this order has no one to send it to. */

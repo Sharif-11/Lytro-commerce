@@ -54,6 +54,7 @@ Status: draft v1, for review before implementation. Companion to `DATABASE-SCHEM
 | PUT | `/api/v1/notifications/preferences` | session | Built in Slice 7.3 (NTF-04). `{ off: [kind, ...] }`, the whole list the person switches off; a locked kind is a 400 (`not_allowed` on `off.<n>`). Answers as GET. |
 | GET | `/api/v1/push/key` | session | Built in Slice 7.3 (NTF-02). `{ publicKey }`, Lytro's VAPID public key that a browser subscribes with, or `null` where push isn't set up. |
 | POST | `/api/v1/push/subscriptions` | session | Built in Slice 7.3 (NTF-02). `PushSubscription.toJSON()`'s `{ endpoint, keys: { p256dh, auth }, expirationTime? }`, an https address on one of the push services only (any other is a 400 on `endpoint`); subscribing again takes the new keys. Answers `{ subscribed: true }`. |
+| POST | `/api/v1/push/subscriptions/check` | session | Added by the Phase 7 close-out (NTF-02). `{ endpoint }`: whether this browser is subscribed for the signed-in person in this shop, `{ subscribed }`. |
 | DELETE | `/api/v1/push/subscriptions` | session | Built in Slice 7.3 (NTF-02). `{ endpoint }`: stops pushing to that browser. Answers `{ subscribed: false }`. |
 | POST | `/api/v1/push/test` | session | Built in Slice 7.3 (NTF-02). Pushes a test to each of the person's browsers, in the language they are reading in; not kept in the bell. Answers `{ sent, gone, failed }`. |
 | POST | `/api/v1/auth/email/code` | none | `{ email }`. Sends a sign-in code by email. Same reply for every valid address (AUTH-08). |

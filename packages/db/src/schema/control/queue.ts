@@ -12,7 +12,7 @@ export const jobOutbox = control.table('job_outbox', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   queueName: text('queue_name').notNull(),
   payload: jsonb('payload').notNull(),
-  // De-dupes a relay retry against pg-boss's own singletonKey; null when the job allows duplicates.
+  // pg-boss's singletonKey, for a queue whose policy enforces one; null when the job has none.
   singletonKey: uuid('singleton_key'),
   // Per-job pg-boss send() options the relay forwards as-is; null keeps pg-boss's own queue-level defaults
   // (D27: an OTP retry bounds expireInSeconds to what's left of the code's TTL, which varies per job).

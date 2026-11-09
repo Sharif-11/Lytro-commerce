@@ -33,10 +33,17 @@ export class AccountNotices {
     words: MailWords,
     link: string | null,
     bell: NotificationText = fromMailWords(words),
+    ownerOnly = false,
   ): Promise<{ people: number; emailed: boolean }> {
     const owner = ownerReader(await this.staff.ownerContactIn(tx, tenantId));
     if (owner) await this.mail.queueNotice(tx, owner, words);
-    const people = await this.notifications.notifyWithin(tx, { tenantId, kind, text: bell, link });
+    const people = await this.notifications.notifyWithin(tx, {
+      tenantId,
+      kind,
+      text: bell,
+      link,
+      ownerOnly,
+    });
     return { people, emailed: owner !== null };
   }
 }

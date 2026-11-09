@@ -230,6 +230,13 @@ describeIfDatabase('reading delivery details from a pasted message (ORD-30 to OR
       amount: '0.10',
       allowanceLeft: null,
     });
+    // ORD-30, criterion 7: reading saves nothing by itself.
+    const saved = await admin.query<{ orders: number; customers: number }>(
+      `SELECT (SELECT count(*)::int FROM tenant.orders WHERE tenant_id = $1) AS orders,
+              (SELECT count(*)::int FROM tenant.customers WHERE tenant_id = $1) AS customers`,
+      [shop.tenantId],
+    );
+    expect(saved.rows[0]).toEqual({ orders: 0, customers: 0 });
     // AI-10: the operator's model, the owner's pick after the tries.
     expect(gemini.asked).toEqual([{ text: MESSAGE, model: 'gemini-3.5-flash-lite' }]);
     expect(await balanceOf(shop)).toBe('4.90');
@@ -393,6 +400,13 @@ describeIfDatabase('reading delivery details from a pasted message (ORD-30 to OR
     expect(gemini.asked).toHaveLength(30);
     const other = await shopWith('1.00');
     expect((await read(other)).status).toBe(200);
+  });
+
+  it("a read refused for money doesn't use up the minute's reads (ORD-33)", async () => {
+    const empty = await shopWith(null);
+    for (let reads = 0; reads < 35; reads += 1) {
+      expect(errorOf(await read(empty)).code).toBe('quota_exceeded');
+    }
   });
 });
 

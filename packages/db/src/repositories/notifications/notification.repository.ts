@@ -1,5 +1,5 @@
 import { and, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
-import type { Language, NotificationKind } from '@lytronix/validators';
+import { NOTICE_LINK_PREFIX, NotificationKind, type Language } from '@lytronix/validators';
 import {
   notificationPreferences,
   notifications,
@@ -95,6 +95,14 @@ export class NotificationRepository {
       .returning({ id: notifications.id, userId: notifications.userId });
   }
 
+  /** NTC-08: a withdrawn notice is gone from the bell at once; its row waits for the nightly clean-up. */
+  private readonly notWithdrawn = sql`NOT EXISTS (
+    SELECT 1 FROM control.notices gone
+    WHERE gone.withdrawn_at IS NOT NULL
+      AND ${notifications.kind} = ${NotificationKind.LytroNotice}
+      AND ${notifications.link} = ${NOTICE_LINK_PREFIX} || gone.id::text
+  )`;
+
   /** NTF-01: a page of a person's notifications, newest first, older than the one named. */
   async list(
     tx: Transaction,
@@ -103,7 +111,11 @@ export class NotificationRepository {
     page: { limit: number; before?: string | undefined },
   ): Promise<SelectNotification[]> {
     await this.transactions.setTenantContext(tx, tenantId);
-    const mine = and(eq(notifications.tenantId, tenantId), eq(notifications.userId, userId));
+    const mine = and(
+      eq(notifications.tenantId, tenantId),
+      eq(notifications.userId, userId),
+      this.notWithdrawn,
+    );
     const after = page.before
       ? await tx
           .select({ createdAt: notifications.createdAt, id: notifications.id })
@@ -141,6 +153,7 @@ export class NotificationRepository {
           eq(notifications.tenantId, tenantId),
           eq(notifications.userId, userId),
           isNull(notifications.readAt),
+          this.notWithdrawn,
         ),
       );
     return rows[0]?.n ?? 0;
@@ -184,7 +197,7 @@ export class NotificationRepository {
         users,
         and(eq(users.tenantId, notifications.tenantId), eq(users.id, notifications.userId)),
       )
-      .where(and(eq(notifications.tenantId, tenantId), eq(notifications.id, id)))
+      .where(and(eq(notifications.tenantId, tenantId), eq(notifications.id, id), this.notWithdrawn))
       .limit(1);
     return rows[0] ?? null;
   }

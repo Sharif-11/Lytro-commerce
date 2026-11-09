@@ -588,6 +588,20 @@ describeIfDatabase('a shop paying Lytro on the payment page', () => {
       expect(refused.text).toContain('This transaction ID has already been used');
     });
 
+    it('refuses an ID used for good anywhere, shop or platform, on the same screen', async () => {
+      const shop = await openShop(port, texts, 'lpm-usedid');
+      const { id, ref } = await topUp(shop);
+      const transactionId = trx();
+      await admin.query(
+        'INSERT INTO control.used_transaction_ids (transaction_id, tenant_id) VALUES ($1, $2)',
+        [transactionId, shop.tenantId],
+      );
+      const refused = await typeId(ref, { method: 'bkash', transactionId, senderNumber: SENDER });
+      expect(refused.status).toBe(409);
+      expect(refused.text).toContain('This transaction ID has already been used');
+      expect((await row(id)).transaction_id).toBeNull();
+    });
+
     it('lets a mistyped ID be corrected, until the third, and the receipt then meets it', async () => {
       const shop = await openShop(port, texts, 'lpm-fix');
       const phone = await lytroPhone();
@@ -685,6 +699,9 @@ describeIfDatabase('a shop paying Lytro on the payment page', () => {
       const creates = bkash.createsOf(APP_KEY).length;
       await Promise.all([startCheckout(ref), startCheckout(ref)]);
       expect(bkash.createsOf(APP_KEY).length).toBe(creates + 1);
+      // And a tap later, once the first has finished, lands on the same payment.
+      await startCheckout(ref);
+      expect(bkash.createsOf(APP_KEY).length).toBe(creates + 1);
     });
 
     it('trusts nothing in the address: a made-up return changes nothing', async () => {
@@ -692,8 +709,12 @@ describeIfDatabase('a shop paying Lytro on the payment page', () => {
       await automatic();
       const { id, ref } = await topUp(shop);
       await startCheckout(ref);
+      // Ready at bKash, so only the check on the address stands between a forged return and the money.
+      bkash.authorise(paymentIdOf(await row(id)));
+      const executes = bkash.executesOf(APP_KEY).length;
       await returned(ref, { paymentID: 'made-up', status: 'success' });
       expect((await row(id)).status).toBe('pending');
+      expect(bkash.executesOf(APP_KEY).length).toBe(executes);
     });
 
     it('confirms once when bKash returns twice', async () => {

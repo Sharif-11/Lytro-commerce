@@ -81,6 +81,7 @@ export {
   type NoticeBoardFilter,
   type NoticeBoardRow,
   type NoticeCounts,
+  type NoticeAudienceShop,
   type NoticeShop,
   type NoticeShopFacts,
   type NoticeViewer,

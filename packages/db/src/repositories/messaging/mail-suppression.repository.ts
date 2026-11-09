@@ -14,15 +14,20 @@ export interface NewMailSuppression {
  * lowercased, as identities and staff rows keep theirs, so a check never misses one written differently.
  */
 export class MailSuppressionRepository {
-  /** Stops an address. A second report of the same address keeps the first one's time, and takes its reason. */
-  async suppress(db: Executor, row: NewMailSuppression): Promise<void> {
-    await db
+  /**
+   * Stops an address. A second report of the same address keeps the first one's time, and takes its reason. Whether this
+   * report is the one that stopped it.
+   */
+  async suppress(db: Executor, row: NewMailSuppression): Promise<boolean> {
+    const [saved] = await db
       .insert(mailSuppressions)
       .values({ ...row, email: row.email.trim().toLowerCase() })
       .onConflictDoUpdate({
         target: mailSuppressions.email,
         set: { reason: sql`excluded.reason`, detail: sql`excluded.detail` },
-      });
+      })
+      .returning({ isNew: sql<boolean>`xmax = 0` });
+    return saved?.isNew ?? false;
   }
 
   async isSuppressed(db: Executor, email: string): Promise<boolean> {

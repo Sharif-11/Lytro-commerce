@@ -126,6 +126,15 @@ export class DrizzleNotificationStore implements NotificationStore {
     return this.subscriptions.remove(tx, tenantId, userId, endpoint);
   }
 
+  holdsSubscription(
+    tx: Transaction,
+    tenantId: string,
+    userId: string,
+    endpoint: string,
+  ): Promise<boolean> {
+    return this.subscriptions.holds(tx, tenantId, userId, endpoint);
+  }
+
   subscriptionsOf(
     tx: Transaction,
     tenantId: string,

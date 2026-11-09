@@ -232,6 +232,18 @@ describeIfDatabase(
       expect(fieldsOf(again)).toEqual({ code: 'expired' });
     });
 
+    it('SMS-11: five requests at once send and charge for one code', async () => {
+      const shop = await shopWithKey('20');
+      const phone = texts.freshPhone();
+      const before = (await ledger(shop.owner.tenantId, 'sms')).length;
+      const answers = await Promise.all(
+        [1, 2, 3, 4, 5].map(() => call(shop, 'POST', '/code', { phone })),
+      );
+      expect(answers.map((answer) => answer.status).sort()).toEqual([200, 429, 429, 429, 429]);
+      expect(texts.countFor(phone)).toBe(1);
+      expect((await ledger(shop.owner.tenantId, 'sms')).length).toBe(before + 1);
+    });
+
     it("sends nothing and charges nothing when the balance can't cover the code", async () => {
       const shop = await shopWithKey('0');
       const phone = texts.freshPhone();

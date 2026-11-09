@@ -4,7 +4,7 @@ import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
 import webpush from 'web-push';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { TransactionRunner } from '@lytronix/db';
 import {
   CourierKey,
@@ -15,6 +15,7 @@ import {
   Permission,
 } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
+import { BREAKER_FAILURES, CircuitOpen } from '../src/common/circuit-breaker';
 import { EnvironmentParser } from '../src/config/env';
 import { DatabaseService } from '../src/database/database.service';
 import type { LowBalanceNotifier } from '../src/modules/balance/ports/low-balance-notifier';
@@ -101,6 +102,17 @@ describe('Web Push (NTF-02)', () => {
     );
     return { push, calls };
   }
+
+  it('PRF-05: five failures in a row open its circuit, and the next push makes no call', async () => {
+    const { push, calls } = provider(500);
+    const options = { urgency: 'normal', ttlSeconds: 60 } as const;
+    for (let tries = 0; tries < BREAKER_FAILURES; tries += 1) {
+      await expect(push.send(target, message, options)).rejects.toThrow(/could not take the push/);
+    }
+    const made = calls.length;
+    await expect(push.send(target, message, options)).rejects.toBeInstanceOf(CircuitOpen);
+    expect(calls).toHaveLength(made);
+  });
 
   it('signs each push with the VAPID key and encrypts it for the browser, with its urgency and lifetime', async () => {
     const { push, calls } = provider(201);
@@ -446,8 +458,9 @@ describeIfDatabase('the bell and push over the real stack', () => {
     expect(mine[0]?.message).toMatchObject({
       title: 'নতুন অর্ডার 261107-0005',
       url: `/${shop.slug}/orders/${notice.orderId}`,
-      tag: 'order_placed',
     });
+    // Its own tag, so a second new order doesn't silently replace the first on the phone.
+    expect(mine[0]?.message.tag).toBe(mine[0]?.message.id);
     expect(mine[0]?.options.urgency).toBe('high');
 
     // The language the owner chose, once they choose.
@@ -514,9 +527,47 @@ describeIfDatabase('the bell and push over the real stack', () => {
     );
     expect(removed.status).toBe(200);
     expect(removed.body).toEqual({ subscribed: false });
+    expect((await shop.post('/push/subscriptions/check', { endpoint })).body).toEqual({
+      subscribed: false,
+    });
     const before = pushes.sent.length;
     await shop.post('/push/test', {});
     expect(pushes.sent.slice(before).some((each) => each.target.endpoint === endpoint)).toBe(false);
+  });
+
+  it('says whether this browser is subscribed for this person, not whoever else used it (NTF-02)', async () => {
+    const endpoint = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+    expect((await shop.post('/push/subscriptions/check', { endpoint })).body).toEqual({
+      subscribed: false,
+    });
+    await shop.post('/push/subscriptions', { endpoint, keys: browserKeys() });
+    expect((await shop.post('/push/subscriptions/check', { endpoint })).body).toEqual({
+      subscribed: true,
+    });
+  });
+
+  it('the push service being away counts for nothing against a browser; only its own refusals do (NTF-02)', async () => {
+    const endpoint = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+    await shop.post('/push/subscriptions', { endpoint, keys: browserKeys() });
+    const failuresOf = async (): Promise<number | undefined> =>
+      (
+        await admin.query<{ failures: number }>(
+          'SELECT failures FROM tenant.push_subscriptions WHERE tenant_id = $1 AND endpoint = $2',
+          [shop.tenantId, endpoint],
+        )
+      ).rows[0]?.failures;
+    const threw = vi
+      .spyOn(pushes, 'send')
+      .mockImplementation(() => Promise.reject(new Error('circuit open')));
+    try {
+      for (let tries = 0; tries < 12; tries += 1) await shop.post('/push/test', {});
+      expect(await failuresOf()).toBe(0);
+      threw.mockImplementation(() => Promise.resolve('refused'));
+      await shop.post('/push/test', {});
+      expect(await failuresOf()).toBe(1);
+    } finally {
+      threw.mockRestore();
+    }
   });
 
   it('tells low balance to the owner and the staff who can top up, by bell (NTF-05, D7-42)', async () => {
@@ -580,6 +631,15 @@ describeIfDatabase('the bell and push over the real stack', () => {
       'svix-signature': `v1,${signature}`,
     });
     expect(answered.status).toBe(200);
+    expect(await recipientsOf(NotificationKind.EmailBounced)).toEqual([ownerId]);
+    // Resend trying again, or another email bouncing, tells the owner nothing new.
+    const repeat = await postJson(port, '/webhooks/email/resend', JSON.parse(body) as unknown, {
+      host: 'localhost',
+      'svix-id': id,
+      'svix-timestamp': timestamp,
+      'svix-signature': `v1,${signature}`,
+    });
+    expect(repeat.status).toBe(200);
     expect(await recipientsOf(NotificationKind.EmailBounced)).toEqual([ownerId]);
     const page = (await shop.get('/notifications')).body as {
       items: { title: string; link: string }[];

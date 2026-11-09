@@ -2,6 +2,7 @@ import {
   COURIER_NAMES,
   MailSuppressionReason,
   MediaKind,
+  NOTICE_LINK_PREFIX,
   OrderSource,
   ParcelAttention,
   ParcelReading,
@@ -42,7 +43,7 @@ export const NOTIFICATION_LINKS = {
   balance: '/balance',
   account: '/account',
   // NTC-06 (Slice 7.4): a notice from Lytro, on the shop's board.
-  notice: (noticeId: string): string => `/notices/${noticeId}`,
+  notice: (noticeId: string): string => `${NOTICE_LINK_PREFIX}${noticeId}`,
 } as const;
 
 const SOURCES: Readonly<Record<OrderSource, Bilingual<string>>> = {

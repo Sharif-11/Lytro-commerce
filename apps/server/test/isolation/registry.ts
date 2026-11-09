@@ -33,6 +33,7 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'PUT /notifications/preferences': "sets only the session person's own switches",
   'GET /push/key': "Lytro's public VAPID key, the same for every shop: nothing of a shop's",
   'POST /push/subscriptions': 'subscribes a browser for the session person only',
+  'POST /push/subscriptions/check': "reads only the session person's own subscription",
   'DELETE /push/subscriptions': "removes only the session person's own subscription",
   'POST /push/test': "pushes only to the session person's own browsers",
   // Phase 7 Slice 7.4, checked in test/notices.e2e.spec.ts: the notices are Lytro's, platform-wide, but who a notice is
