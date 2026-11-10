@@ -31,6 +31,7 @@ import { PAYMENT_PAGE_ORIGIN } from '../../payment-sessions/tokens';
 import type { PaymentPageSession } from '../../payment-sessions/types/payment-sessions';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
+import { HelpLine } from '../../help-line/services/help-line';
 import { LytroPaymentMethods } from './lytro-payment-methods';
 
 const REF_BYTES = 16;
@@ -94,6 +95,7 @@ export class LytroPaymentPages {
     @Inject(ListenerDevices) private readonly phones: ListenerDevices,
     @Inject(PAYMENT_PAGE_ORIGIN) private readonly pageOrigin: string,
     @Inject(ENV) private readonly env: Env,
+    @Inject(HelpLine) private readonly helpLine: HelpLine,
   ) {}
 
   /**
@@ -189,10 +191,17 @@ export class LytroPaymentPages {
             }
           : null,
     };
+    const help = await this.helpLine.current();
     return {
       ref,
       session,
-      shop: { name: 'Lytro', logoUrl: null, contactPhone: this.env.LYTRO_SUPPORT_PHONE ?? null },
+      // D8-69: the help line every page shows; with only one of its numbers set, both buttons reach it.
+      shop: {
+        name: 'Lytro',
+        logoUrl: null,
+        contactPhone: help.phone ?? help.whatsapp,
+        whatsapp: help.whatsapp ?? help.phone,
+      },
       orderPageUrl: null,
       payee: 'lytro',
     };

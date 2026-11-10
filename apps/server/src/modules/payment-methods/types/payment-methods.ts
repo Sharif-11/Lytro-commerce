@@ -32,6 +32,8 @@ export interface PaymentMethodView {
   method: AccountMethod;
   kind: PaymentMethodKind;
   enabled: boolean;
+  /** WAL-18, D8-65 (Slice 8.7): Lytro is retiring this type; it keeps working for this shop until it is removed. */
+  retiring: boolean;
   levels: VerificationLevel[];
   /** PAY-06 (amended 2026-11-03): how the owner takes this method's money, and the ways it supports. */
   way: PaymentWay;
@@ -43,6 +45,13 @@ export interface PaymentMethodView {
 export interface PaymentMethodsView {
   methods: PaymentMethodView[];
   ownerPhoneVerified: boolean;
+}
+
+/** WAL-18, D8-67 (Slice 8.7): how a shop uses one type, for the operator retiring it. */
+export interface PaymentMethodUse {
+  on: boolean;
+  accounts: number;
+  openPayments: number;
 }
 
 /** WAL-06: what a shopper sees of a method that is on -- its active account only. */

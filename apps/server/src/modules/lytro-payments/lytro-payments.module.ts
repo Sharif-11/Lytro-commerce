@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BillingModule } from '../billing/billing.module';
 import { GatewayModule } from '../gateway/gateway.module';
+import { HelpLineModule } from '../help-line/help-line.module';
 import { ListenerModule } from '../listener/listener.module';
 import { LytroReceiptsModule } from '../lytro-receipts/lytro-receipts.module';
 import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
@@ -15,6 +16,7 @@ import { LytroPaymentPages } from './services/lytro-payment-pages';
   imports: [
     BillingModule,
     GatewayModule,
+    HelpLineModule,
     ListenerModule,
     LytroPaymentMethodsModule,
     LytroReceiptsModule,

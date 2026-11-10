@@ -84,11 +84,15 @@ import { OperatorCouriersController } from './controllers/operator-couriers.cont
 import { AddressReadsModule } from '../address-reads/address-reads.module';
 import { FraudChecksModule } from '../fraud-checks/fraud-checks.module';
 import { MediaCostsModule } from '../media-costs/media-costs.module';
+import { HelpLineModule } from '../help-line/help-line.module';
+import { PaymentMethodRetiringModule } from '../payment-method-types/payment-method-retiring.module';
 import { ReportsModule } from '../reports/reports.module';
 import { ManualEntriesModule } from '../manual-entries/manual-entries.module';
 import { PaymentEvidenceModule } from '../payment-evidence/payment-evidence.module';
 import { OperatorManualEntriesController } from './controllers/operator-manual-entries.controller';
 import { OperatorMediaCostsController } from './controllers/operator-media-costs.controller';
+import { OperatorPaymentMethodTypesController } from './controllers/operator-payment-method-types.controller';
+import { HelpLineController } from './controllers/help-line.controller';
 import { OperatorReportsController } from './controllers/operator-reports.controller';
 import { CouriersModule } from '../couriers/couriers.module';
 import { CustomersController } from './controllers/customers.controller';
@@ -178,6 +182,8 @@ import { NoticesModule } from '../notices/notices.module';
     AddressReadsModule,
     FraudChecksModule,
     MediaCostsModule,
+    PaymentMethodRetiringModule,
+    HelpLineModule,
     ReportsModule,
     ManualEntriesModule,
     PaymentEvidenceModule,
@@ -198,6 +204,8 @@ import { NoticesModule } from '../notices/notices.module';
     OperatorShopActionsController,
     OperatorRecentChangesController,
     OperatorMediaCostsController,
+    OperatorPaymentMethodTypesController,
+    HelpLineController,
     OperatorReportsController,
     OperatorManualEntriesController,
     OperatorPaymentPagesController,

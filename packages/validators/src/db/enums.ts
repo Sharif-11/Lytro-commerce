@@ -421,6 +421,11 @@ export enum AuditAction {
   // CRR-23, CRR-25 (Slice 6.6): Lytro retiring a courier the shop is connected to, and undoing it.
   CourierRetiring = 'courier_retiring',
   CourierRetiringUndone = 'courier_retiring_undone',
+  // WAL-18 (Slice 8.7, D8-66): Lytro retiring a payment method type the shop uses, undoing it, and removing it with the shop's
+  // accounts for it.
+  PaymentMethodRetiring = 'payment_method_retiring',
+  PaymentMethodRetiringUndone = 'payment_method_retiring_undone',
+  PaymentMethodRemoved = 'payment_method_removed',
   // Slice 6.1, read agreed 2026-11-04: a booking cancelled with the order kept, and a lost answer settled by staff (D6-11).
   ParcelCancelled = 'parcel_cancelled',
   ParcelSettled = 'parcel_settled',
@@ -743,6 +748,10 @@ export enum PlatformAuditAction {
   CourierRetired = 'courier_retired',
   CourierRetireUndone = 'courier_retire_undone',
   CourierRemoved = 'courier_removed',
+  // WAL-18 (Slice 8.7): the operator retiring a payment method type, undoing it, and removing it for good.
+  PaymentMethodTypeRetired = 'payment_method_type_retired',
+  PaymentMethodTypeRetireUndone = 'payment_method_type_retire_undone',
+  PaymentMethodTypeRemoved = 'payment_method_type_removed',
 }
 
 // BAL-02: what a balance-ledger entry is for. One list, shared by every module that ever charges or credits a
@@ -888,6 +897,12 @@ export enum PlatformSettingKey {
   MediaCostAlertEmail = 'media_cost_alert_email',
   CloudflareBillingDay = 'cloudflare_billing_day',
   CloudflarePrices = 'cloudflare_prices',
+  // D8-4, D8-68 (Slice 8.7's read, 2026-11-10): Lytro's help line -- its WhatsApp and phone numbers, which the dashboard,
+  // Lytro's payment page and the website all show, and the hour it opens and closes, every day.
+  HelpWhatsapp = 'help_whatsapp',
+  HelpPhone = 'help_phone',
+  HelpOpensHour = 'help_opens_hour',
+  HelpClosesHour = 'help_closes_hour',
 }
 
 // AI-10, D7-4: the AIs Lytro can read a pasted message with. One today; the setting names which.
@@ -1693,9 +1708,10 @@ export enum CourierAreaState {
   Retired = 'retired',
 }
 
-// CRR-23, CRR-24 (Slice 6.6): a courier as the platform holds it. Retiring keeps every shop already connected working and lets no
-// new one connect; removed is for good, once nothing waits on it, and its code then goes.
-export enum CourierAdapterState {
+// CRR-23, CRR-24 (Slice 6.6): a courier as the platform holds it, and WAL-18 (Slice 8.7, D8-65) a payment method type, which
+// follows the couriers' lifecycle. Retiring keeps every shop already using it working and lets no new one start; removed is
+// for good, once nothing waits on it, and its code then goes.
+export enum RetireState {
   Active = 'active',
   Retiring = 'retiring',
   Removed = 'removed',
@@ -1820,6 +1836,9 @@ export enum NotificationKind {
   CourierConnection = 'courier_connection',
   CourierRetiring = 'courier_retiring',
   CourierBack = 'courier_back',
+  // WAL-18 (Slice 8.7): Lytro retiring a payment method type the shop uses, and bringing it back.
+  PaymentMethodRetiring = 'payment_method_retiring',
+  PaymentMethodBack = 'payment_method_back',
   LowStock = 'low_stock',
   BatchExpiring = 'batch_expiring',
   HeldStockExpired = 'held_stock_expired',

@@ -241,7 +241,10 @@ describeIfDatabase(
         `Shop ${shop.slug}-এ সাইন আপের জন্য OTP হচ্ছে 123456। কারো সাথে শেয়ার করবেন না।`,
       );
       expect(view.essentials[1]?.words).toContain('পাসওয়ার্ড রিসেটের জন্য OTP হচ্ছে 123456');
-      expect(view.essentials[2]?.words).toBe(`Your shop is ready: http://${shop.slug}.localhost`);
+      // D8-70: the owner's words, with the shop's name.
+      expect(view.essentials[2]?.words).toBe(
+        `আপনার শপ Shop ${shop.slug} এখন লাইভ: http://${shop.slug}.localhost`,
+      );
       // The owner signed up by phone: their own SMS go to it.
       expect(view.ownerPhone).toMatch(/^01\d{9}$/);
       // Slice 7.7: the cycle the spend and its cap count over.

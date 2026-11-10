@@ -2,10 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { NewPaymentAccount, SelectWalletAccount, Transaction } from '@lytronix/db';
 import {
   ACCOUNT_METHODS,
+  ActorType,
   AuditAction,
   isAccountMethod,
   PAYMENT_METHOD_TYPES,
   PaymentWay,
+  RetireState,
   ServerFieldProblemCode,
   startingWayOf,
   waysOf,
@@ -16,15 +18,23 @@ import {
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { SecretBox, SecretPurpose, SecretUnreadable } from '../../shared/secrets/secret-box';
-import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
+import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
+import {
+  PaymentMethodTypes,
+  stateOf,
+} from '../../payment-method-types/services/payment-method-types';
 import type { PaymentMethodStore } from '../ports/payment-method-store';
 import { PAYMENT_METHOD_STORE } from '../tokens';
 import type {
   PaymentAccountView,
   PaymentMethodsView,
+  PaymentMethodUse,
   ShopperPaymentMethod,
 } from '../types/payment-methods';
+
+// WAL-18 (Slice 8.7): Lytro retiring or removing a type acts in each shop as the server, not as a person there.
+const LYTRO: ResolvedActor = { id: null, ip: null, type: ActorType.System };
 
 /** WAL-09: an account's opened gateway credentials, for one outbound call (SEC-09). */
 export interface OpenedGatewayAccount {
@@ -119,6 +129,7 @@ export class PaymentMethods {
     @Inject(PAYMENT_METHOD_STORE) private readonly store: PaymentMethodStore,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(SecretBox) private readonly box: SecretBox,
+    @Inject(PaymentMethodTypes) private readonly types: PaymentMethodTypes,
   ) {}
 
   list(tenantId: string): Promise<PaymentMethodsView> {
@@ -134,6 +145,7 @@ export class PaymentMethods {
     const who = await this.activity.resolve(tenantId, actor);
     return this.store.run(tenantId, async (tx) => {
       const current = await this.store.lockMethod(tx, tenantId, method);
+      await this.checkType(tx, tenantId, method, current.length > 0);
       const known = new Set(current.map((row) => row.id));
       const strangers = input.accounts.flatMap((row, index) =>
         row.id !== undefined && !known.has(row.id)
@@ -234,7 +246,8 @@ export class PaymentMethods {
       if (!waysOf(method).includes(way)) {
         throw new ApiError('conflict', 'PaymentWayNotAvailable', {});
       }
-      await this.store.lockMethod(tx, tenantId, method);
+      const held = await this.store.lockMethod(tx, tenantId, method);
+      await this.checkType(tx, tenantId, method, held.length > 0);
       if (
         way === PaymentWay.Automated &&
         !(await this.automatedAccountWithin(tx, tenantId, method))
@@ -362,6 +375,104 @@ export class PaymentMethods {
     });
   }
 
+  /** WAL-18 (Slice 8.7): every shop whose data is still here, for the operator retiring a type. */
+  shopIds(): Promise<string[]> {
+    return this.store.listShopIds();
+  }
+
+  /** WAL-18, D8-67: how the shop uses each type -- switched on, accounts saved, and payments still open on it. */
+  typeUse(tenantId: string): Promise<Map<AccountMethod, PaymentMethodUse>> {
+    return this.store.run(tenantId, async (tx) => {
+      const on = new Set<string>(await this.store.listOn(tx, tenantId));
+      const rows = await this.store.list(tx, tenantId);
+      const open = await this.store.openByMethod(tx, tenantId);
+      return new Map(
+        ACCOUNT_METHODS.map((method) => [
+          method,
+          {
+            on: on.has(method),
+            accounts: rows.filter((row) => row.method === method).length,
+            openPayments: open.find((row) => row.method === method)?.open ?? 0,
+          },
+        ]),
+      );
+    });
+  }
+
+  /**
+   * WAL-18, D8-66: Lytro retiring a type, or undoing it, goes in the activity log of a shop that set it up -- switched it on, or
+   * saved an account for it. False for a shop that hadn't, which isn't told.
+   */
+  noteTypeChange(
+    tenantId: string,
+    method: AccountMethod,
+    action: AuditAction.PaymentMethodRetiring | AuditAction.PaymentMethodRetiringUndone,
+  ): Promise<boolean> {
+    return this.store.run(tenantId, async (tx) => {
+      if (!(await this.setUpWithin(tx, tenantId, method))) return false;
+      await this.activity.record(
+        tx,
+        tenantId,
+        LYTRO,
+        action,
+        { type: 'payment_method', id: null },
+        { method },
+      );
+      return true;
+    });
+  }
+
+  /**
+   * WAL-18, D8-67: a removed type goes from the shop -- its accounts for it, its switch and its way -- held as a save holds the
+   * method. Payments already made keep what they were paid into. False for a shop that had nothing of it.
+   */
+  forgetType(tenantId: string, method: AccountMethod): Promise<boolean> {
+    return this.store.run(tenantId, async (tx) => {
+      await this.store.lockMethod(tx, tenantId, method);
+      if (!(await this.setUpWithin(tx, tenantId, method))) return false;
+      const accounts = await this.store.deleteMethod(tx, tenantId, method);
+      await this.activity.record(
+        tx,
+        tenantId,
+        LYTRO,
+        AuditAction.PaymentMethodRemoved,
+        { type: 'payment_method', id: null },
+        { method, accounts },
+      );
+      return true;
+    });
+  }
+
+  /**
+   * WAL-18, D8-65: a removed type is gone for every shop; a retiring one only for a shop that never set it up, while one that
+   * did keeps changing its accounts and switching it on and off. Read shared, so a removal waits for this save (D8-67).
+   */
+  private async checkType(
+    tx: Transaction,
+    tenantId: string,
+    method: AccountMethod,
+    hasAccounts: boolean,
+  ): Promise<void> {
+    const state = await this.types.sharedStateWithin(tx, method);
+    if (state === RetireState.Removed) throw new ApiError('not_found', 'PaymentMethodNotFound', {});
+    if (
+      state === RetireState.Retiring &&
+      !hasAccounts &&
+      !(await this.store.listOn(tx, tenantId)).includes(method)
+    ) {
+      throw new ApiError('conflict', 'PaymentMethodRetiring', {});
+    }
+  }
+
+  private async setUpWithin(
+    tx: Transaction,
+    tenantId: string,
+    method: AccountMethod,
+  ): Promise<boolean> {
+    if ((await this.store.listOn(tx, tenantId)).includes(method)) return true;
+    return (await this.store.list(tx, tenantId)).some((row) => row.method === method);
+  }
+
   /** WAL-12: credentials that don't open (the key changed) count as none, for the owner to enter again. */
   private openedOf(row: SelectWalletAccount): OpenedGatewayAccount | null {
     if (row.gatewayCredentials === null) return null;
@@ -380,24 +491,33 @@ export class PaymentMethods {
     }
   }
 
+  /** WAL-18, D8-65: a removed type isn't shown, and a retiring one only to a shop that set it up, marked as retiring. */
   private async viewWithin(tx: Transaction, tenantId: string): Promise<PaymentMethodsView> {
     const on = new Set<string>(await this.store.listOn(tx, tenantId));
     const rows = await this.store.list(tx, tenantId);
     const chosen = await this.store.listWays(tx, tenantId);
+    const states = await this.types.states();
     return {
-      methods: ACCOUNT_METHODS.map((method) => ({
-        method,
-        kind: PAYMENT_METHOD_TYPES[method].kind,
-        enabled: on.has(method),
-        levels: [...PAYMENT_METHOD_TYPES[method].levels],
-        way: chosen.find((row) => row.method === method)?.way ?? startingWayOf(method),
-        ways: waysOf(method),
-        accounts: rows
-          .filter((row) => row.method === method)
-          .map((row) =>
-            accountView(row, row.gatewayCredentials !== null && this.openedOf(row) === null),
-          ),
-      })),
+      methods: ACCOUNT_METHODS.flatMap((method) => {
+        const state = stateOf(states, method);
+        const accounts = rows.filter((row) => row.method === method);
+        if (state === RetireState.Removed) return [];
+        if (state === RetireState.Retiring && !on.has(method) && accounts.length === 0) return [];
+        return [
+          {
+            method,
+            kind: PAYMENT_METHOD_TYPES[method].kind,
+            enabled: on.has(method),
+            retiring: state === RetireState.Retiring,
+            levels: [...PAYMENT_METHOD_TYPES[method].levels],
+            way: chosen.find((row) => row.method === method)?.way ?? startingWayOf(method),
+            ways: waysOf(method),
+            accounts: accounts.map((row) =>
+              accountView(row, row.gatewayCredentials !== null && this.openedOf(row) === null),
+            ),
+          },
+        ];
+      }),
       ownerPhoneVerified: await this.store.ownerPhoneVerified(tx, tenantId),
     };
   }

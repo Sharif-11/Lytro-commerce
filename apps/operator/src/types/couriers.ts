@@ -1,5 +1,5 @@
 import type {
-  CourierAdapterState,
+  RetireState,
   CourierAreaMatch,
   CourierBlockReason,
   CourierCallAction,
@@ -12,7 +12,7 @@ import type {
 export interface OperatorCourier {
   key: CourierKey;
   name: string;
-  state: CourierAdapterState;
+  state: RetireState;
   suggestedKey: CourierKey | null;
   retiringSince: string | null;
   removedAt: string | null;

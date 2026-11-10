@@ -23,7 +23,11 @@ export function shopperCodeText(language: Language, shopName: string, code: stri
     : `${shopName}-এ সাইন আপের জন্য OTP হচ্ছে ${code}। কারো সাথে শেয়ার করবেন না।`;
 }
 
-/** TEN-05: a new shop's address, to its owner. */
-export function shopReadyText(liveUrl: string): string {
-  return `Your shop is ready: ${liveUrl}`;
+/**
+ * TEN-05, SMS-18, D8-19, D8-70 (Slice 8.7's read, the owner's words): a new shop's name and address, to its owner. On a
+ * lytro.app address the words take 38 of a unit's 67 characters, so a name and its address of up to 29 together (a 14-letter
+ * name) go as one SMS, longer as two; Lytro's cost either way (AUTH-21).
+ */
+export function shopReadyText(shopName: string, liveUrl: string): string {
+  return `আপনার শপ ${shopName} এখন লাইভ: ${liveUrl}`;
 }

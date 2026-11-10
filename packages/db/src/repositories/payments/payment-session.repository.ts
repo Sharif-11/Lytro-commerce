@@ -291,6 +291,32 @@ export class PaymentSessionRepository {
   }
 
   /**
+   * WAL-18, D8-67 (Slice 8.7): the shop's payments still open, method by method -- a shopper who chose it and hasn't paid
+   * yet, a transaction ID waiting to be checked, or one waiting for a person to decide -- which hold the method's type back
+   * from being removed. A session whose shopper is still to choose names no method.
+   */
+  async openByMethod(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ method: PaymentMethod; open: number }[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .select({ method: paymentSessions.method, open: sql<number>`count(*)::int` })
+      .from(paymentSessions)
+      .where(
+        and(
+          eq(paymentSessions.tenantId, tenantId),
+          isNotNull(paymentSessions.method),
+          inArray(paymentSessions.state, OPEN),
+        ),
+      )
+      .groupBy(paymentSessions.method);
+    return rows.flatMap((row) =>
+      row.method === null ? [] : [{ method: row.method, open: row.open }],
+    );
+  }
+
+  /**
    * The order's open sessions, held, so a caller about to hold the order takes them first: verifying, the minute pass and a
    * wallet's settling hold a session and then its order, and holding them the other way round could deadlock with them
    * (found at the Phase 5 close-out).

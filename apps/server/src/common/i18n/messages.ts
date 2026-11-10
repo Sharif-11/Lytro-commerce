@@ -589,6 +589,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   ManualEntryRecorded: { en: 'Payment recorded.', bn: 'পেমেন্ট রেকর্ড হয়েছে।' },
   ManualEntryReversed: { en: 'Entry reversed.', bn: 'এন্ট্রি রিভার্স হয়েছে।' },
   MediaCostsRead: { en: 'Media costs retrieved.', bn: 'মিডিয়া খরচ পাওয়া গেছে।' },
+  HelpLineRead: { en: 'Help line retrieved.', bn: 'হেল্প লাইন পাওয়া গেছে।' },
   ManualEntryNotFound: { en: 'That entry was not found.', bn: 'এন্ট্রিটি পাওয়া যায়নি।' },
   ManualEntryAlreadyReversed: {
     en: 'This entry has already been reversed.',
@@ -2361,6 +2362,38 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   PaymentMethodNotFound: {
     en: "There's no such payment method.",
     bn: 'এমন কোনো পেমেন্ট মেথড নেই।',
+  },
+  PaymentMethodRetiring: {
+    en: 'Lytro is retiring this payment method, so it can’t be set up now.',
+    bn: 'Lytro এই পেমেন্ট মেথডটি বন্ধ করছে, তাই এখন এটি সেট আপ করা যাবে না।',
+  },
+  PaymentMethodTypesListed: {
+    en: 'Payment method types listed.',
+    bn: 'পেমেন্ট মেথডের ধরনের তালিকা।',
+  },
+  PaymentMethodTypeRetired: {
+    en: 'The payment method is being retired. Shops that set it up have been told.',
+    bn: 'পেমেন্ট মেথডটি রিটায়ার হচ্ছে। যেসব শপ এটি সেট আপ করেছে, তাদের জানানো হয়েছে।',
+  },
+  PaymentMethodTypeRetireUndone: {
+    en: 'The payment method is back. Shops that set it up have been told.',
+    bn: 'পেমেন্ট মেথডটি আবার চালু হয়েছে। যেসব শপ এটি সেট আপ করেছে, তাদের জানানো হয়েছে।',
+  },
+  PaymentMethodTypeRemoved: {
+    en: 'The payment method is removed. Past payments keep their records.',
+    bn: 'পেমেন্ট মেথডটি রিমুভ করা হয়েছে। আগের পেমেন্টের রেকর্ড থেকে যাবে।',
+  },
+  PaymentMethodAlreadyRetiring: {
+    en: 'This payment method is already being retired.',
+    bn: 'এই পেমেন্ট মেথডটি আগেই রিটায়ার হচ্ছে।',
+  },
+  PaymentMethodNotRetiring: {
+    en: 'This payment method isn’t being retired.',
+    bn: 'এই পেমেন্ট মেথডটি রিটায়ার হচ্ছে না।',
+  },
+  PaymentMethodRemovalBlocked: {
+    en: 'Shops still have this payment method on, payments are still open on it, or Lytro’s own payment page still takes it, so it can’t be removed yet.',
+    bn: 'কিছু শপে এই পেমেন্ট মেথড এখনো চালু, এতে পেমেন্ট এখনো খোলা, বা Lytro-র নিজের পেমেন্ট পেজ এখনো এটি নেয়, তাই এখনই রিমুভ করা যাবে না।',
   },
   PaymentAccountNotFound: {
     en: "That account isn't one of this method's.",

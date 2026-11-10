@@ -642,6 +642,17 @@ export const MESSAGE_KEYS = [
   'PaymentMethodsRetrieved',
   'PaymentMethodSaved',
   'PaymentMethodNotFound',
+  // Phase 8 Slice 8.7: a type Lytro is retiring, and the operator retiring, undoing and removing one (WAL-18).
+  'PaymentMethodRetiring',
+  'PaymentMethodTypesListed',
+  'PaymentMethodTypeRetired',
+  'PaymentMethodTypeRetireUndone',
+  'PaymentMethodTypeRemoved',
+  'PaymentMethodAlreadyRetiring',
+  'PaymentMethodNotRetiring',
+  'PaymentMethodRemovalBlocked',
+  // Phase 8 Slice 8.7: Lytro's help line (D8-4).
+  'HelpLineRead',
   'PaymentAccountNotFound',
   'PaymentAccountCheckoutOpen',
   // Phase 5 Slice 5.7: how a shop takes a wallet's money, and a wallet's own checkout (PAY-06, WAL-09 to WAL-13, VER-08 to VER-11).

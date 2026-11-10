@@ -1,4 +1,4 @@
-import { CourierAdapterState } from '@lytronix/validators';
+import { RetireState } from '@lytronix/validators';
 import type { LocationThana, LocationZilla, OperatorCourier } from '@/types/couriers';
 
 export interface PlacedThana {
@@ -25,7 +25,5 @@ export function suggestionsFor(
   courier: OperatorCourier,
   couriers: OperatorCourier[],
 ): OperatorCourier[] {
-  return couriers.filter(
-    (each) => each.key !== courier.key && each.state === CourierAdapterState.Active,
-  );
+  return couriers.filter((each) => each.key !== courier.key && each.state === RetireState.Active);
 }

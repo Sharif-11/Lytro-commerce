@@ -883,6 +883,13 @@
       "when": 1794288053525,
       "tag": "0126_media_costs",
       "breakpoints": true
+    },
+    {
+      "idx": 127,
+      "version": "7",
+      "when": 1794297279082,
+      "tag": "0127_payment_method_types",
+      "breakpoints": true
     }
   ]
 }

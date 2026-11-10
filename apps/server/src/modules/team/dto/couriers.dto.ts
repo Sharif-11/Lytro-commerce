@@ -15,7 +15,7 @@ import {
   courierAreasForOrderSchema,
   courierAreasQuerySchema,
   CourierAreaMatch,
-  CourierAdapterState,
+  RetireState,
   CourierBlockReason,
   courierPayoutsQuerySchema,
   courierReasonSchema,
@@ -39,7 +39,7 @@ export class CourierReasonDto extends createZodDto(courierReasonSchema) {}
 const operatorCourierSchema = z.object({
   key: z.nativeEnum(CourierKey),
   name: z.string(),
-  state: z.nativeEnum(CourierAdapterState),
+  state: z.nativeEnum(RetireState),
   suggestedKey: z.nativeEnum(CourierKey).nullable(),
   retiringSince: z.coerce.date().nullable(),
   removedAt: z.coerce.date().nullable(),

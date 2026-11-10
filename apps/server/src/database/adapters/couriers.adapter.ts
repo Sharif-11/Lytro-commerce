@@ -25,7 +25,7 @@ import {
 } from '@lytronix/db';
 import {
   AuditAction,
-  type CourierAdapterState,
+  type RetireState,
   type CourierConnectionState,
   type CourierKey,
 } from '@lytronix/validators';
@@ -336,7 +336,7 @@ export class DrizzleCourierStore implements CourierStore {
     return this.couriers.payoutParcels(tx, tenantId, payout);
   }
 
-  adapterStateWithin(tx: Transaction, courierKey: CourierKey): Promise<CourierAdapterState> {
+  adapterStateWithin(tx: Transaction, courierKey: CourierKey): Promise<RetireState> {
     return this.adapters.sharedState(tx, courierKey);
   }
 

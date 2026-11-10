@@ -272,6 +272,43 @@ export function courierBackText(courierKey: CourierKey): NotificationText {
   };
 }
 
+/**
+ * WAL-18, D8-66 (Slice 8.7): Lytro is retiring a payment method type the shop set up. It keeps working until it is removed, and
+ * removing it takes the shop's accounts for it, so the owner is asked to have another way to be paid ready.
+ */
+export function paymentMethodRetiringText(method: PaymentMethod): NotificationText {
+  const name = PAYMENT_METHOD_NAMES[method];
+  return {
+    bn: {
+      title: `${name.bn} বন্ধ হয়ে যাচ্ছে`,
+      body:
+        `Lytro ${name.bn} বন্ধ করছে। আপাতত আগের মতোই চলবে, চেকআউটেও। পরে এটি রিমুভ হলে এর অ্যাকাউন্টগুলোও চলে যাবে, ` +
+        `তাই কাস্টমারদের জন্য অন্য একটি পেমেন্ট মেথড চালু রাখুন।`,
+    },
+    en: {
+      title: `${name.en} is being retired`,
+      body:
+        `Lytro is retiring ${name.en}. It keeps working for now, checkout included. When it is removed, its accounts go ` +
+        `with it, so keep another payment method on for your customers.`,
+    },
+  };
+}
+
+/** WAL-18 (Slice 8.7): a payment method type Lytro was retiring is back. */
+export function paymentMethodBackText(method: PaymentMethod): NotificationText {
+  const name = PAYMENT_METHOD_NAMES[method];
+  return {
+    bn: {
+      title: `${name.bn} আবার চালু`,
+      body: `Lytro ${name.bn} আবার চালু করেছে। আগের মতোই ব্যবহার করতে পারবেন।`,
+    },
+    en: {
+      title: `${name.en} is back`,
+      body: `Lytro has brought ${name.en} back. You can use it as before.`,
+    },
+  };
+}
+
 /** INV-08: a variant's stock fell to its threshold. */
 export function lowStockText(input: {
   productName: string;

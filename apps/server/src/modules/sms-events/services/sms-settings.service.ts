@@ -164,7 +164,7 @@ export class SmsSettingsService {
     const words: Readonly<Record<EssentialSms, string>> = {
       shopper_code: shopperCodeText(language, shop.shopName, SAMPLE_CODE),
       staff_reset_code: resetCodeText(SAMPLE_CODE),
-      shop_ready: shopReadyText(shopOrigin(this.env, shop.slug)),
+      shop_ready: shopReadyText(shop.shopName, shopOrigin(this.env, shop.slug)),
     };
     return {
       events,

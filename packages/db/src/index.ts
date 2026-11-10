@@ -400,6 +400,10 @@ export {
   type CourierAdapterPatch,
 } from './repositories/couriers/courier-adapter.repository';
 export {
+  PaymentMethodTypeRepository,
+  type PaymentMethodTypePatch,
+} from './repositories/payments/payment-method-type.repository';
+export {
   CourierAreaRepository,
   type CourierAreaFilter,
   type CourierAreaRefreshCounts,

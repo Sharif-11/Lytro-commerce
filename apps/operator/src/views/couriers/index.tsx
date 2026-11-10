@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Button } from '@lytronix/ui';
-import { CourierAdapterState, type CourierKey } from '@lytronix/validators';
+import { RetireState, type CourierKey } from '@lytronix/validators';
 import { useOperatorCouriers } from '@/api/couriers';
 import { Banner } from '@/components/ui/banner';
 import { ConsolePage } from '@/components/ui/console-page';
@@ -17,10 +17,10 @@ import { suggestionsFor } from './places';
 
 type Open = { step: 'retire' | 'undo' | 'remove'; courier: OperatorCourier } | null;
 
-const STATE_TONES: Record<CourierAdapterState, ChipTone> = {
-  [CourierAdapterState.Active]: 'ok',
-  [CourierAdapterState.Retiring]: 'warn',
-  [CourierAdapterState.Removed]: 'mute',
+const STATE_TONES: Record<RetireState, ChipTone> = {
+  [RetireState.Active]: 'ok',
+  [RetireState.Retiring]: 'warn',
+  [RetireState.Removed]: 'mute',
 };
 
 const BOLD = { b: <b className="font-semibold" /> };
@@ -57,7 +57,7 @@ export function Couriers(): React.JSX.Element {
           <div>
             {courier.name} <span className={`mono ${CELL_NOTE}`}>{courier.key}</span>
           </div>
-          {courier.state === CourierAdapterState.Retiring && courier.retiringSince ? (
+          {courier.state === RetireState.Retiring && courier.retiringSince ? (
             <div className="text-[13px] font-normal whitespace-normal text-fg-muted">
               {t('couriers.retiringLine', {
                 d: formatDay(courier.retiringSince),
@@ -65,7 +65,7 @@ export function Couriers(): React.JSX.Element {
               })}
             </div>
           ) : null}
-          {courier.state === CourierAdapterState.Removed && courier.removedAt ? (
+          {courier.state === RetireState.Removed && courier.removedAt ? (
             <div className="text-[13px] font-normal whitespace-normal text-fg-muted">
               {t('couriers.removedLine', { d: formatDay(courier.removedAt) })}
             </div>
@@ -105,8 +105,8 @@ export function Couriers(): React.JSX.Element {
       width: '220px',
       actions: true,
       cell: (courier) => {
-        if (courier.state === CourierAdapterState.Removed) return null;
-        if (courier.state === CourierAdapterState.Active) {
+        if (courier.state === RetireState.Removed) return null;
+        if (courier.state === RetireState.Active) {
           return (
             <Button
               type="button"
@@ -154,7 +154,7 @@ export function Couriers(): React.JSX.Element {
     },
   ];
 
-  const retiring = all.filter((each) => each.state === CourierAdapterState.Retiring);
+  const retiring = all.filter((each) => each.state === RetireState.Retiring);
 
   return (
     <ConsolePage>
@@ -181,7 +181,7 @@ export function Couriers(): React.JSX.Element {
             rows={all}
             rowKey={(courier) => courier.key}
             loading={couriers.isPending}
-            faded={(courier) => courier.state === CourierAdapterState.Removed}
+            faded={(courier) => courier.state === RetireState.Removed}
             empty={<EmptyBox icon="truck" title={t('nav.couriers')} hint={t('couriers.lead')} />}
           />
         </>

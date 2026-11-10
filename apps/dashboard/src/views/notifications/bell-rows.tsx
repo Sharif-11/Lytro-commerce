@@ -12,6 +12,8 @@ const LOOK: Readonly<Record<NotificationKind, { icon: IconName; tone: Tone }>> =
   [NotificationKind.PaymentVerified]: { icon: 'banknote', tone: 'success' },
   [NotificationKind.MoneyForClosedOrder]: { icon: 'banknote', tone: 'warn' },
   [NotificationKind.GatewayAttention]: { icon: 'alert', tone: 'danger' },
+  [NotificationKind.PaymentMethodRetiring]: { icon: 'banknote', tone: 'warn' },
+  [NotificationKind.PaymentMethodBack]: { icon: 'banknote', tone: 'success' },
   [NotificationKind.ParcelAttention]: { icon: 'alert', tone: 'warn' },
   [NotificationKind.ParcelMoved]: { icon: 'truck', tone: 'info' },
   [NotificationKind.CourierConnection]: { icon: 'truck', tone: 'danger' },
