@@ -28,7 +28,7 @@ import { MAIL_PROVIDER } from '../src/modules/shared/mail/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { postJson, type HttpResult } from './support/http';
+import { postJson, postToApiHost, type HttpResult } from './support/http';
 import { MailCapture } from './support/mail-capture';
 import { errorOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
@@ -438,10 +438,7 @@ describeIfDatabase('email over the real stack', () => {
 
   function webhook(payload: unknown, secret?: string): Promise<HttpResult> {
     const { body, headers } = signed(payload, secret);
-    return postJson(port, '/webhooks/email/resend', JSON.parse(body) as unknown, {
-      host: 'localhost',
-      ...headers,
-    });
+    return postToApiHost(port, '/v1/webhooks/email/resend', JSON.parse(body) as unknown, headers);
   }
 
   function bounce(to: string, type: 'Permanent' | 'Temporary'): Record<string, unknown> {
@@ -502,13 +499,10 @@ describeIfDatabase('email over the real stack', () => {
   });
 
   it('refuses a webhook without a good signature, and changes nothing', async () => {
-    const unsigned = await postJson(
+    const unsigned = await postToApiHost(
       port,
-      '/webhooks/email/resend',
+      '/v1/webhooks/email/resend',
       bounce(ownerEmail, 'Permanent'),
-      {
-        host: 'localhost',
-      },
     );
     expect(unsigned.status).toBe(401);
     const forged = await webhook(

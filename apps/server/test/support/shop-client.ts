@@ -20,6 +20,8 @@ export class ShopClient {
     readonly tenantId: string,
     private readonly cookie: string,
     private readonly csrfToken: string,
+    /** Sent on every call too: the edge's secret, when the server under test requires it (caddy-edge.e2e.spec.ts). */
+    private readonly always: Record<string, string> = {},
   ) {}
 
   headers(extra: Record<string, string> = {}): Record<string, string> {
@@ -28,6 +30,7 @@ export class ShopClient {
       'x-csrf-token': this.csrfToken,
       host: 'localhost',
       'x-lytro-shop': this.slug,
+      ...this.always,
       ...extra,
     };
   }
@@ -53,21 +56,22 @@ export class ShopClient {
   }
 }
 
-/** Signs a new owner up by phone code and opens a trial shop, as AUTH-28's first steps do. */
+/** Signs a new owner up by phone code and opens a trial shop, as AUTH-28's first steps do. `always` goes on every call. */
 export async function openShop(
   port: number,
   texts: SmsCapture,
   prefix = 'shop',
+  always: Record<string, string> = {},
 ): Promise<ShopClient> {
   const phone = texts.freshPhone();
   // The random part starts with a letter: all digits (about 1 in 110) would read as a "-2"-style suffix.
   const slug = `${prefix}-s${randomUUID().replace(/-/g, '').slice(0, 9)}`;
-  await postJson(port, '/auth/phone/code', { phone }, { host: 'localhost' });
+  await postJson(port, '/auth/phone/code', { phone }, { host: 'localhost', ...always });
   const entered = await postJson(
     port,
     '/auth/phone/verify',
     { phone, code: texts.codeFor(phone) },
-    { host: 'localhost' },
+    { host: 'localhost', ...always },
   );
   const cookie = cookieFrom(entered);
   const csrfToken = (entered.body as { csrfToken: string }).csrfToken;
@@ -75,12 +79,17 @@ export async function openShop(
     port,
     '/shops',
     { ownerName: 'Owner', shopName: `Shop ${slug}`, address: slug },
-    { cookie, 'x-csrf-token': csrfToken, host: 'localhost' },
+    { cookie, 'x-csrf-token': csrfToken, host: 'localhost', ...always },
   );
   expect(shop.status).toBe(201);
-  const me = await getJson(port, '/me', { cookie, host: 'localhost', 'x-lytro-shop': slug });
+  const me = await getJson(port, '/me', {
+    cookie,
+    host: 'localhost',
+    'x-lytro-shop': slug,
+    ...always,
+  });
   const tenantId = (me.body as { tenant: { id: string } }).tenant.id;
-  return new ShopClient(port, slug, tenantId, cookie, csrfToken);
+  return new ShopClient(port, slug, tenantId, cookie, csrfToken, always);
 }
 
 /** The error part of a refusal, as the test helpers unwrap it. */

@@ -14,7 +14,8 @@ import { COURIER_CLOCK, COURIER_MESSAGE_ORIGIN, COURIER_NOTIFIER, COURIER_STORE 
 import { CourierRegistry } from './courier-registry';
 
 const TOKEN_BYTES = 32;
-const MESSAGE_PATH = '/api/v1/webhooks/couriers/';
+// On the API host, where the server serves its public routes at /v1/... (API-14, public-api-host.ts).
+const MESSAGE_PATH = '/v1/webhooks/couriers/';
 // The owner hears at most this often that messages are arriving unsigned.
 const UNSIGNED_NOTICE_EVERY_MS = 24 * 60 * 60 * 1000;
 

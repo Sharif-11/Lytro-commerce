@@ -40,7 +40,14 @@ import {
   type GoldenOrder,
   type GoldenWay,
 } from './support/courier-golden-path';
-import { cookieFrom, getJson, postJson, putJson, type HttpResult } from './support/http';
+import {
+  cookieFrom,
+  getJson,
+  postJson,
+  postToApiHost,
+  putJson,
+  type HttpResult,
+} from './support/http';
 import { errorOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
@@ -336,8 +343,10 @@ async function read(shop: ShopClient, orderId: string): Promise<Order> {
 
 async function addressOf(shop: ShopClient): Promise<string> {
   const shown = await shop.get('/couriers/connections/redx/address');
-  const { pathname } = new URL((shown.body as { address: string }).address);
-  return pathname.replace('/api/v1', '');
+  const { hostname, pathname } = new URL((shown.body as { address: string }).address);
+  expect(hostname).toBe('api.localhost');
+  expect(pathname.startsWith('/v1/webhooks/couriers/')).toBe(true);
+  return pathname;
 }
 
 async function applied(tenantId: string): Promise<void> {
@@ -361,21 +370,16 @@ async function send(
   extra: Record<string, unknown> = {},
 ): Promise<void> {
   tick += 1;
-  const answered = await postJson(
-    port,
-    await addressOf(shop),
-    {
-      tracking_number: order.parcel?.consignmentId,
-      timestamp: new Date(Date.UTC(2026, 10, 7, 0, 0, tick)).toISOString(),
-      status,
-      message_en: `Parcel is ${status}.`,
-      message_bn: `পার্সেল ${status}।`,
-      invoice_number: order.orderNumber,
-      delivery_type: 'regular',
-      ...extra,
-    },
-    { host: 'localhost' },
-  );
+  const answered = await postToApiHost(port, await addressOf(shop), {
+    tracking_number: order.parcel?.consignmentId,
+    timestamp: new Date(Date.UTC(2026, 10, 7, 0, 0, tick)).toISOString(),
+    status,
+    message_en: `Parcel is ${status}.`,
+    message_bn: `পার্সেল ${status}।`,
+    invoice_number: order.orderNumber,
+    delivery_type: 'regular',
+    ...extra,
+  });
   expect(answered.status, JSON.stringify(answered.body)).toBe(202);
   await applied(shop.tenantId);
 }
@@ -793,7 +797,7 @@ describeIfDatabase('RedX’s news (CRR-11 to CRR-13, CRR-29, read agreed 2026-11
     );
     try {
       await send(shop, order, 'not-a-status-it-knows');
-      await postJson(port, address, 'not json', { host: 'localhost' });
+      await postToApiHost(port, address, 'not json');
     } finally {
       for (const spy of [...watched, ...streams]) spy.mockRestore();
     }

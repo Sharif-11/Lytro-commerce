@@ -20,7 +20,7 @@ import { CourierNightTickWorker } from '../src/modules/shared/queue-workers/serv
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { FakeSteadfast, freshSteadfastKeys, signatureOf } from './support/fake-steadfast';
-import { getJson, postJson } from './support/http';
+import { getJson, postJson, postToApiHost } from './support/http';
 import { openShop, staffWith, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
@@ -191,7 +191,7 @@ async function connected(): Promise<Connected> {
   const { message } = made.body as { message: { address: string; token: string } };
   return {
     shop,
-    address: new URL(message.address).pathname.replace('/api/v1', ''),
+    address: new URL(message.address).pathname,
     token: message.token,
   };
 }
@@ -209,8 +209,7 @@ async function booked(to: Connected, variantId: string): Promise<Order> {
 
 /** A Steadfast message, signed as its guide says, and applied before this returns. */
 async function send(to: Connected, body: Record<string, unknown>): Promise<void> {
-  const answered = await postJson(port, to.address, body, {
-    host: 'localhost',
+  const answered = await postToApiHost(port, to.address, body, {
     'x-signature': signatureOf(JSON.stringify(body), to.token),
     'idempotency-key': randomUUID(),
   });
