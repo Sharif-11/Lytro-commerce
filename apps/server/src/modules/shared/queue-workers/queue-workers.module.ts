@@ -39,6 +39,7 @@ import { MetaPurchaseWorker } from './services/meta-purchase-worker';
 import { SmsEventsModule } from '../../sms-events/sms-events.module';
 import { SmsEventWorker } from './services/sms-event-worker';
 import { FraudChecksModule } from '../../fraud-checks/fraud-checks.module';
+import { MediaCostsModule } from '../../media-costs/media-costs.module';
 import { ReportsModule } from '../../reports/reports.module';
 import { PaymentEvidenceModule } from '../../payment-evidence/payment-evidence.module';
 import { FraudCheckWorker } from './services/fraud-check-worker';
@@ -50,6 +51,7 @@ import { NotificationPushWorker } from './services/notification-push-worker';
 import { NoticesModule } from '../../notices/notices.module';
 import { NoticePublishTickWorker } from './services/notice-publish-tick-worker';
 import { RequestErrorPurgeTickWorker } from './services/request-error-purge-tick-worker';
+import { MediaCostTickWorker } from './services/media-cost-tick-worker';
 import { ShopDayTickWorker } from './services/shop-day-tick-worker';
 import { EvidenceSweepWorker } from './services/evidence-sweep-worker';
 
@@ -78,6 +80,7 @@ import { EvidenceSweepWorker } from './services/evidence-sweep-worker';
     IdempotencyModule,
     SmsEventsModule,
     FraudChecksModule,
+    MediaCostsModule,
     ReportsModule,
     PaymentEvidenceModule,
     NotificationsModule,
@@ -110,6 +113,7 @@ import { EvidenceSweepWorker } from './services/evidence-sweep-worker';
     FraudCheckWorker,
     NotificationPushWorker,
     RequestErrorPurgeTickWorker,
+    MediaCostTickWorker,
     ShopDayTickWorker,
     EvidenceSweepWorker,
     NotificationPurgeTickWorker,

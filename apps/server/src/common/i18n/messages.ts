@@ -588,6 +588,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   ManualEntryPreviewed: { en: 'Here is what this entry would be.', bn: 'এই এন্ট্রিটি এমন হবে।' },
   ManualEntryRecorded: { en: 'Payment recorded.', bn: 'পেমেন্ট রেকর্ড হয়েছে।' },
   ManualEntryReversed: { en: 'Entry reversed.', bn: 'এন্ট্রি রিভার্স হয়েছে।' },
+  MediaCostsRead: { en: 'Media costs retrieved.', bn: 'মিডিয়া খরচ পাওয়া গেছে।' },
   ManualEntryNotFound: { en: 'That entry was not found.', bn: 'এন্ট্রিটি পাওয়া যায়নি।' },
   ManualEntryAlreadyReversed: {
     en: 'This entry has already been reversed.',

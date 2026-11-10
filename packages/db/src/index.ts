@@ -134,6 +134,13 @@ export {
   type RequestErrorRow,
 } from './repositories/platform/request-error.repository';
 export {
+  MediaCostRepository,
+  type MediaCostAlertRow,
+  type MediaCostDayRow,
+  type MediaShopUse,
+  type WorkerUse,
+} from './repositories/media/media-costs.repository';
+export {
   ShopDayRepository,
   type ShopDayRow,
   type ShopFigure,

@@ -5,10 +5,17 @@ import { FieldProblemCode } from '../validation/field-problem';
 export const calendarDayField = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Use YYYY-MM-DD.' })
-  .refine((value) => new Date(`${value}T00:00:00Z`).toISOString().startsWith(value), {
-    message: 'Not a real date.',
-    params: { problem: FieldProblemCode.InvalidDate },
-  });
+  .refine(
+    (value) => {
+      // A month or day past any calendar's (2031-13-01) parses to nothing, and toISOString would throw on it.
+      const at = Date.parse(`${value}T00:00:00Z`);
+      return !Number.isNaN(at) && new Date(at).toISOString().startsWith(value);
+    },
+    {
+      message: 'Not a real date.',
+      params: { problem: FieldProblemCode.InvalidDate },
+    },
+  );
 
 /** INV-18, STA-01: a period's ends, the last on or after the first; either may be left out for its default. */
 export function checkPeriod(

@@ -70,3 +70,4 @@ export * from './api/platform/operator-shop';
 export * from './api/platform/tenant-suspend';
 export * from './api/platform/reports';
 export * from './api/platform/manual-entries';
+export * from './api/platform/media-costs';

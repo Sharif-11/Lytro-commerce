@@ -611,6 +611,8 @@ export enum QueueName {
   RequestErrorPurgeTick = 'request_error_purge_tick',
   // ADM-09, D8-9 (Phase 8 Slice 8.4): the nightly record of each shop's day, which the operator's reports read.
   ShopDayTick = 'shop_day_tick',
+  // MED-12, D8-57 (Phase 8 Slice 8.6): each hour, Cloudflare's R2 figures for the recent days, then the budget's alert.
+  MediaCostTick = 'media_cost_tick',
   // ADM-13, D8-13 (Phase 8 Slice 8.3): one shop's data deleted on request, queued with the request that took it offline.
   ShopDataDeletion = 'shop_data_deletion',
   // D8-47 (Phase 8 Slice 8.5): each night, removes payment screenshots past their two years.
@@ -878,6 +880,14 @@ export enum PlatformSettingKey {
   FraudChecksPerShopPerMinute = 'fraud_checks_per_shop_per_minute',
   // NTF-01, D7-39 (Slice 7.3's read, the owner's pick): how many days a notification is kept before it is deleted.
   NotificationRetentionDays = 'notification_retention_days',
+  // MED-12, D8-58 to D8-61 (Slice 8.6's read, 2026-11-10): the media costs' budget in whole US dollars, the percent of
+  // it that sends the alert, the one address the alert goes to (the owner's pick: no operator account is marked as
+  // the owner), the day Cloudflare's invoice period starts, and Cloudflare's prices.
+  MediaBudgetUsd = 'media_budget_usd',
+  MediaBudgetAlertPercent = 'media_budget_alert_percent',
+  MediaCostAlertEmail = 'media_cost_alert_email',
+  CloudflareBillingDay = 'cloudflare_billing_day',
+  CloudflarePrices = 'cloudflare_prices',
 }
 
 // AI-10, D7-4: the AIs Lytro can read a pasted message with. One today; the setting names which.
