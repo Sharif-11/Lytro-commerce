@@ -234,6 +234,7 @@ export const MESSAGE_KEYS = [
   'ManualEntryRecorded',
   'ManualEntryReversed',
   'ManualEntryNotFound',
+  'MediaCostsRead',
   'ManualEntryAlreadyReversed',
   'ManualEntryIsReversal',
   'ManualEntryPlanMovedOn',

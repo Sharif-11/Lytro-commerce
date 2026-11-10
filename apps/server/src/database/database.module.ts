@@ -99,6 +99,7 @@ import {
   LytroMessageRepository,
   MediaRepository,
   MediaBandwidthRepository,
+  MediaCostRepository,
   BrandIdentityRepository,
   AdTrackingRepository,
   CatalogFeedRepository,
@@ -347,6 +348,7 @@ import { DatabaseService } from './database.service';
       useFactory: (transactions: TransactionRunner) => new MediaRepository(transactions),
     },
     { provide: MediaBandwidthRepository, useFactory: () => new MediaBandwidthRepository() },
+    { provide: MediaCostRepository, useFactory: () => new MediaCostRepository() },
     {
       provide: BrandIdentityRepository,
       inject: [TransactionRunner],
@@ -521,6 +523,7 @@ import { DatabaseService } from './database.service';
     LytroMessageRepository,
     MediaRepository,
     MediaBandwidthRepository,
+    MediaCostRepository,
     BrandIdentityRepository,
   ],
 })

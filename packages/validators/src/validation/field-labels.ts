@@ -258,6 +258,8 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   paymentId: { en: 'Payment', bn: 'পেমেন্ট' },
   paymentPolicy: { en: 'Payment policy', bn: 'পেমেন্ট পলিসি' },
   paymentStatus: { en: 'Payment status', bn: 'পেমেন্ট স্ট্যাটাস' },
+  // GET /operator/media-costs (Phase 8 Slice 8.6): a day inside the billing period to show.
+  period: { en: 'Billing period', bn: 'বিলিং পিরিয়ড' },
   permissions: { en: 'Permissions', bn: 'পারমিশন' },
   phone: { en: 'Phone number', bn: 'ফোন নম্বর' },
   planId: { en: 'Plan', bn: 'প্ল্যান' },
@@ -273,6 +275,13 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   q: { en: 'Search', bn: 'সার্চ' },
   quantity: { en: 'Quantity', bn: 'কোয়ান্টিটি' },
   query: { en: 'Search', bn: 'সার্চ' },
+  // D8-60 (Slice 8.6): Cloudflare's price sheet, one setting's value; a refusal names the setting's `value`, never these.
+  r2ClassAPerMillion: null,
+  r2ClassBPerMillion: null,
+  r2FreeClassAMillions: null,
+  r2FreeClassBMillions: null,
+  r2FreeStorageGbMonths: null,
+  r2StoragePerGbMonth: null,
   rank: { en: 'Rank', bn: 'র‍্যাংক' },
   rate: { en: 'Rate', bn: 'রেট' },
   reason: { en: 'Reason', bn: 'কারণ' },
@@ -354,6 +363,10 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   visible: { en: 'Visible', bn: 'ভিজিবল' },
   websites: { en: 'Website addresses', bn: 'ওয়েবসাইট অ্যাড্রেস' },
   weightKg: { en: 'Weight (kg)', bn: 'ওজন (কেজি)' },
+  // D8-60 (Slice 8.6): the rest of Cloudflare's price sheet, as above.
+  workersIncludedMillions: null,
+  workersMonthly: null,
+  workersPerMillion: null,
   zillaIds: { en: 'Districts', bn: 'জেলা' },
   zoneIds: { en: 'Delivery zones', bn: 'ডেলিভারি জোন' },
   // ORD-30 to ORD-34 (Phase 7 Slice 7.6): the parts of a read of delivery details.

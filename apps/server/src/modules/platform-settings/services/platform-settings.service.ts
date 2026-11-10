@@ -8,6 +8,9 @@ import {
   FieldProblemCode,
   OrderLimitMode,
   appVersionField,
+  cloudflarePricesSchema,
+  CLOUDFLARE_BILLING_DAY_MAX,
+  emailField,
   LISTENER_SENDER_MAX_LENGTH,
 } from '@lytronix/validators';
 import { FieldsError } from '../../../common/api-error';
@@ -91,6 +94,16 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'How many fraud checks one shop may run in a minute, by staff or on new orders (FRD-07).',
   [PlatformSettingKey.NotificationRetentionDays]:
     'How many days a notification is kept in the bell before it is deleted (NTF-01, D7-39).',
+  [PlatformSettingKey.MediaBudgetUsd]:
+    "The month's budget for Lytro's Cloudflare costs, in whole US dollars (MED-12, D8-58).",
+  [PlatformSettingKey.MediaBudgetAlertPercent]:
+    'The percent of the media budget that emails the alert address, once a billing period (MED-12).',
+  [PlatformSettingKey.MediaCostAlertEmail]:
+    'The one address the media budget alert goes to (MED-12, D8-61).',
+  [PlatformSettingKey.CloudflareBillingDay]:
+    "The day of the month Cloudflare's invoice period starts on, 1 to 28 (MED-12, D8-61).",
+  [PlatformSettingKey.CloudflarePrices]:
+    "Cloudflare's R2 and Workers prices and monthly allowances, in US dollars, that the media costs estimate uses (D8-60).",
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -118,6 +131,14 @@ const isAiProvider = (value: unknown): boolean =>
   Object.values<unknown>(AiProvider).includes(value);
 const isModelName = (value: unknown): boolean =>
   typeof value === 'string' && /^[a-z0-9][a-z0-9.-]{1,63}$/.test(value);
+// MED-12 (Slice 8.6): a percent of the budget, an address, a day every month has, and Cloudflare's price sheet.
+const isPercent = (value: unknown): boolean => isPositiveInt(value) && (value as number) <= 100;
+const isEmail = (value: unknown): boolean =>
+  typeof value === 'string' && emailField.safeParse(value).data === value;
+const isBillingDay = (value: unknown): boolean =>
+  isPositiveInt(value) && (value as number) <= CLOUDFLARE_BILLING_DAY_MAX;
+const isCloudflarePrices = (value: unknown): boolean =>
+  cloudflarePricesSchema.safeParse(value).success;
 
 const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.TrialDays]: isPositiveInt,
@@ -157,6 +178,11 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.AddressReadsPerShopPerMinute]: isPositiveInt,
   [PlatformSettingKey.FraudChecksPerShopPerMinute]: isPositiveInt,
   [PlatformSettingKey.NotificationRetentionDays]: isPositiveInt,
+  [PlatformSettingKey.MediaBudgetUsd]: isPositiveInt,
+  [PlatformSettingKey.MediaBudgetAlertPercent]: isPercent,
+  [PlatformSettingKey.MediaCostAlertEmail]: isEmail,
+  [PlatformSettingKey.CloudflareBillingDay]: isBillingDay,
+  [PlatformSettingKey.CloudflarePrices]: isCloudflarePrices,
 };
 
 function validate(key: PlatformSettingKey, value: unknown): void {

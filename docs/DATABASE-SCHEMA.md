@@ -3006,6 +3006,28 @@ CREATE TABLE control.shop_days (
 );
 CREATE INDEX shop_days_day_idx ON control.shop_days (day);
 
+-- MED-12, D8-57 to D8-63 (Phase 8 Slice 8.6, built in migration 0126): R2's own figures from Cloudflare's analytics, a
+-- UTC day a bucket, every bucket on the account; a day read again replaces its rows. And the budget's alert, once a period.
+CREATE TABLE control.media_cost_days (
+    day             date NOT NULL,                  -- UTC, as Cloudflare's analytics count it
+    bucket          text NOT NULL,                  -- empty for operations on the account (ListBuckets)
+    class_a         bigint NOT NULL DEFAULT 0,      -- writes and lists, and any operation Cloudflare doesn't list
+    class_b         bigint NOT NULL DEFAULT 0,      -- reads
+    free_ops        bigint NOT NULL DEFAULT 0,      -- deletes
+    peak_bytes      bigint NOT NULL DEFAULT 0,      -- the day's peak storage, objects and metadata
+    objects         bigint NOT NULL DEFAULT 0,
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (day, bucket)
+);
+
+CREATE TABLE control.media_cost_alerts (
+    period_start    date PRIMARY KEY,               -- the billing period's first UTC day
+    sent_to         text NOT NULL,                  -- the address setting then (D8-61)
+    estimate        numeric(12,2) NOT NULL,         -- US dollars, when sent
+    budget          numeric(12,2) NOT NULL,
+    sent_at         timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE control.payment_evidence (                  -- ADM-14, ADM-17, D8-47: a payment screenshot's record
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL REFERENCES control.tenants(id),

@@ -1950,13 +1950,18 @@ The local dev DB's one real billing term has `labelBn` showing as `"? ???"` (moj
 from an earlier session, not a code encoding bug. Shows up in the live-verified pricing page's output too
 (`/ ? ???`); re-seed or fix that one row directly rather than chasing a non-existent bug.
 
-## 101. `MED-12`: the operator cannot see media costs per shop — found 2026-10-30, moved to Phase 8 on 2026-11-04
+## 101. `MED-12`: the operator cannot see media costs per shop — found 2026-10-30, moved to Phase 8 on 2026-11-04, built 2026-11-10
 
 Found by Phase 3's close-out check (PHASE-3-PLAN §11). §3.1 counts MED-10 to 13 as completed, but nothing shows the
 operator a month's R2 operations, Worker requests or the top consuming shops, and there is no alert at 80% of the budget;
 RUNBOOKS.md only says to set Cloudflare's own billing alert. The figures exist (Analytics Engine per shop, the
 `media_bandwidth` rows), so it is an operator read and a page. Decided 2026-11-04: it moves to Phase 8 with the operator console. With no live shops
 there is nothing to watch yet; until then, Cloudflare's own billing alert protects against a surprise bill.
+
+Built in Phase 8 Slice 8.6 (D8-57 to D8-64): the server reads R2's own figures from Cloudflare each hour, works out
+the billing period's estimate with the media Worker's requests, ranks the shops by those requests and emails the
+alert address once a period at 80% of the budget (`GET /operator/media-costs`). The page itself comes with Slice
+8.8's screens. What stays open is §138.
 
 ## 102. `LEG-01`: the accepted terms and privacy versions are not recorded — found 2026-10-30, fixed 2026-11-04
 
@@ -2373,3 +2378,23 @@ The close-out (PHASE-7-PLAN §11) fixed what its three reviews found, apart from
 - **Nagad, Rocket and Upay are manual only** until real SMS samples arrive; only bKash has a checkout.
 - **The thanks on return is plain.** Back from the page, paid, the dashboard says the payment went through; the sketch's toast also names the amount or the new end date. The screens below it read the truth.
 - **WhatsApp and call need `LYTRO_SUPPORT_PHONE`.** With it unset, the page shows neither button.
+
+## 138. `MED-12`, `D8-57` to `D8-64`: what the media costs estimate leaves open — found 2026-11-10, open
+
+Found while building Phase 8 Slice 8.6. Each is a choice made to ship the estimate now, or something only the real account
+can settle.
+
+- **Not yet run against the real account.** The GraphQL calls follow Cloudflare's documented R2 datasets and are proven
+  against a stand-in. That the token's Account Analytics: Read is enough, and that the daily filters and fields answer as
+  documented, is first seen on the first hour after deploy (the server logs a failed read; nothing is recorded from it).
+- **MED-12's 5% match against an invoice is unchecked.** It needs a real month and its invoice. Until then the figure is
+  an estimate, and Cloudflare's own billing notification stays on (RUNBOOKS).
+- **Left out of the estimate:** Workers' CPU time, KV and Analytics Engine, and any other Worker on the account. Only the
+  media Worker's requests are counted, from the server's own per-shop counts.
+- **Erring high on purpose:** an operation not on Cloudflare's price lists counts as Class A (`DeleteObjects`, the bulk
+  delete the media deleter uses, is one), failed operations are counted, and a GB is taken as 10^9 bytes.
+- **Two clocks.** R2's days are UTC, as Cloudflare counts them; the Worker's requests come from the shops' Dhaka days, so
+  each end of a period is up to six hours out for the Workers line and the top shops.
+- **A long outage loses days.** Each hour reads the period so far and the last three days again. If the server is down
+  past a period's end and beyond the three days, the end of that period is never read, and Cloudflare forgets it after
+  about 31 days.
