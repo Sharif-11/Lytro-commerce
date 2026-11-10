@@ -2,8 +2,9 @@ import { Link, Navigate, useNavigate, useParams, useSearch } from '@tanstack/rea
 import { useTranslation } from 'react-i18next';
 import { Button } from '@lytronix/ui';
 import { PlanPaymentKind, PlanPaymentStatus } from '@lytronix/validators';
-import { usePaymentQueue } from '@/api/payment-queue';
+import { usePaymentEvidence, usePaymentQueue } from '@/api/payment-queue';
 import { Banner } from '@/components/ui/banner';
+import { ConsoleIcon } from '@/components/ui/console-icon';
 import { CopyButton } from '@/components/ui/copy-button';
 import { KeyValue, KeyValues } from '@/components/ui/key-values';
 import { Panel } from '@/components/ui/panel';
@@ -11,12 +12,13 @@ import { daysFromNow, formatDay, taka, useAgo } from '@/lib/format';
 import { amountOf } from '@/lib/payment-amounts';
 import { formatSessionTime } from '@/lib/session-time';
 import type { QueuedPayment } from '@/types/operator';
+import { ShotPanel } from '@/views/manual/screenshot-panel';
 import { ApprovePanel } from './approve-panel';
 import { CreditPanel } from './credit-panel';
 import { RejectPanel } from './reject-panel';
 import { usePlanWords } from './use-plan-words';
 
-export type PaymentStep = 'approve' | 'reject' | 'credit';
+export type PaymentStep = 'approve' | 'reject' | 'credit' | 'screenshot';
 
 function PaymentFacts({
   payment,
@@ -130,6 +132,29 @@ function PaymentFacts({
           {ago(payment.submittedAt ?? payment.createdAt)}
         </KeyValue>
       </KeyValues>
+      {payment.evidenceId ? (
+        <div className="flex items-center gap-3 rounded-lg border border-line px-3 py-2.5">
+          <span className="inline-flex size-9 flex-none items-center justify-center rounded-lg bg-neutral-100 text-neutral-700">
+            <ConsoleIcon name="image" />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="text-[15px] font-medium">{t('queue.shot')}</span>
+            <span className="text-[13px] text-fg-muted">{t('queue.linkNote')}</span>
+          </span>
+          <Button
+            type="button"
+            tone="outline"
+            small
+            fit
+            className="min-h-8! px-2.5! text-[13px]!"
+            onClick={() => {
+              onStep('screenshot');
+            }}
+          >
+            {t('queue.shotOpen')}
+          </Button>
+        </div>
+      ) : null}
       <div className="text-[13px] leading-[1.55] text-fg-muted">{t('queue.statement')}</div>
       {isTopUp ? null : (
         <Button
@@ -144,6 +169,32 @@ function PaymentFacts({
         </Button>
       )}
     </Panel>
+  );
+}
+
+/** ADM-17, D8-15: the seller's screenshot of a payment waiting here, which is their word, not the money. */
+function QueueShotPanel({
+  payment,
+  onBack,
+}: {
+  payment: QueuedPayment;
+  onBack: () => void;
+}): React.JSX.Element {
+  const { t } = useTranslation();
+  const evidence = usePaymentEvidence(payment.id);
+  return (
+    <ShotPanel
+      title={t('queue.shotTitle', { trx: payment.transactionId ?? '' })}
+      sub={`${payment.shopName} · ${t('queue.linkNote')}`}
+      link={evidence.data}
+      failed={evidence.isError}
+      note={
+        <Banner tone="warn" icon="warn">
+          {t('queue.shotNote')}
+        </Banner>
+      }
+      onBack={onBack}
+    />
   );
 }
 
@@ -173,6 +224,9 @@ export function PaymentPanel(): React.JSX.Element | null {
 
   if (step === 'approve') return <ApprovePanel payment={payment} onClose={close} onBack={back} />;
   if (step === 'reject') return <RejectPanel payment={payment} onClose={close} onBack={back} />;
+  if (step === 'screenshot' && payment.evidenceId) {
+    return <QueueShotPanel payment={payment} onBack={back} />;
+  }
   if (step === 'credit' && payment.kind !== PlanPaymentKind.TopUp) {
     return <CreditPanel payment={payment} onClose={close} onBack={back} />;
   }
