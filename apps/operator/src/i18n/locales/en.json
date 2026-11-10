@@ -56,6 +56,7 @@
     "platform": "Platform",
     "catalogue": "Catalogue",
     "later": "Later",
+    "records": "Records",
     "today": "Today",
     "paymentQueue": "Payment queue",
     "pageReports": "Page reports",
@@ -75,9 +76,11 @@
     "inbox": "Support inbox",
     "notices": "Notices",
     "verification": "Verification",
-    "manual": "Manual payments",
+    "manual": "Manual entries",
     "account": "Account",
-    "couriers": "Couriers"
+    "couriers": "Couriers",
+    "walletTypes": "Wallet types",
+    "mediaCosts": "Media costs"
   },
   "signIn": {
     "title": "Operator sign-in",
