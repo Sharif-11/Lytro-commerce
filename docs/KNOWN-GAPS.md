@@ -2377,7 +2377,8 @@ The close-out (PHASE-7-PLAN §11) fixed what its three reviews found, apart from
 - **A real automatic payment is unseen.** It needs Lytro's own bKash merchant account. The sandbox and CI's fake bKash prove the rest (§107 for shops).
 - **Nagad, Rocket and Upay are manual only** until real SMS samples arrive; only bKash has a checkout.
 - **The thanks on return is plain.** Back from the page, paid, the dashboard says the payment went through; the sketch's toast also names the amount or the new end date. The screens below it read the truth.
-- **WhatsApp and call need `LYTRO_SUPPORT_PHONE`.** With it unset, the page shows neither button.
+- **WhatsApp and call need the help line's numbers** (`help_whatsapp`, `help_phone`, D8-69; they replaced
+  `LYTRO_SUPPORT_PHONE` in Slice 8.7). With neither set, the page shows neither button.
 
 ## 138. `MED-12`, `D8-57` to `D8-64`: what the media costs estimate leaves open — found 2026-11-10, open
 
@@ -2398,3 +2399,20 @@ can settle.
 - **A long outage loses days.** Each hour reads the period so far and the last three days again. If the server is down
   past a period's end and beyond the three days, the end of that period is never read, and Cloudflare forgets it after
   about 31 days.
+
+## 139. `WAL-18`, `D8-4`, `SMS-18`, `D8-65` to `D8-70`: what wallet types, the help line and the shop-ready SMS leave open — found 2026-11-10, open
+
+Found while building Phase 8 Slice 8.7. Each is a choice made to ship it now, or something only the real world shows.
+
+- **The pages wait for Slice 8.8.** No console page lists or retires a type yet, and the console's settings page doesn't
+  list the help line's four settings; until then they're the operator routes and `PATCH /operator/settings/:key`. The
+  dashboard's help row still opens `VITE_SUPPORT_WHATSAPP` and says "9 am to 10 pm", and the website's contact page still
+  reads `SUPPORT_WHATSAPP` and `SUPPORT_PHONE` and says "Saturday to Thursday": they move onto `GET /help-line` in 8.8.
+- **Removal takes each shop's accounts after it commits,** one shop at a time. A failure for one shop is logged and the
+  others go on; asking to remove again finishes it. A type's code stays in `PAYMENT_METHOD_TYPES` until a later change
+  deletes it.
+- **A retiring type's notice is the owner's only,** and can't be switched off. Removal itself sends none.
+- **No type is retired yet,** so the notice's words are proven in tests, not on a real shop's phone.
+- **The shop-ready SMS is two units for a long name.** Past about 14 letters on a lytro.app address it costs ৳1.10, Lytro's
+  cost. It is proven through the real path to a stand-in provider; a real phone receiving it is criterion 9's.
+- **The help line's hours are every day.** A closed day, such as Friday, would need a setting of its own.

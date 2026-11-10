@@ -29,6 +29,8 @@ const KIND_WORDS: Readonly<Record<NotificationKind, readonly [string, string?]>>
   [NotificationKind.PaymentVerified]: ['p37NkVerified', 'p37NkVerifiedD'],
   [NotificationKind.MoneyForClosedOrder]: ['p37NkClosed'],
   [NotificationKind.GatewayAttention]: ['p37NkGateway'],
+  [NotificationKind.PaymentMethodRetiring]: ['p37NkMethodRetire'],
+  [NotificationKind.PaymentMethodBack]: ['p37NkMethodBack'],
   [NotificationKind.ListenerPhone]: ['p37NkListener'],
   [NotificationKind.ParcelAttention]: ['p37NkParcelLook'],
   [NotificationKind.ParcelMoved]: ['p37NkParcelMoved', 'p37NkParcelMovedD'],

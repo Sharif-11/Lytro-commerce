@@ -71,3 +71,5 @@ export * from './api/platform/tenant-suspend';
 export * from './api/platform/reports';
 export * from './api/platform/manual-entries';
 export * from './api/platform/media-costs';
+export * from './api/platform/payment-method-types';
+export * from './api/platform/help-line';

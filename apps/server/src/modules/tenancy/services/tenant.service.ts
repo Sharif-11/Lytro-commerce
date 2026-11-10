@@ -68,7 +68,7 @@ export class TenantService {
     const ready = await this.messaging.queueShopReady(
       tx,
       request.ownerPhone,
-      request.liveUrl,
+      { name: request.shopName, liveUrl: request.liveUrl },
       tenantId,
     );
     return { tenantId, messages: [ready] };

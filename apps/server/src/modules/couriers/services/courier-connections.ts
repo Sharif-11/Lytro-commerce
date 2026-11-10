@@ -3,7 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { SelectCourierAdapter, SelectCourierConnection, Transaction } from '@lytronix/db';
 import {
   AuditAction,
-  CourierAdapterState,
+  RetireState,
   CourierCallAction,
   CourierConnectionState,
   CourierMessagesState,
@@ -133,8 +133,8 @@ export class CourierConnections {
       .filter((adapter) => {
         const state = this.stateOf(states, adapter.key);
         return (
-          state === CourierAdapterState.Active ||
-          (state === CourierAdapterState.Retiring && connected.has(adapter.key))
+          state === RetireState.Active ||
+          (state === RetireState.Retiring && connected.has(adapter.key))
         );
       })
       .map((adapter) => ({
@@ -146,7 +146,7 @@ export class CourierConnections {
         hasStores: adapter.pickupStores !== undefined,
         takesWeight: adapter.limits.weightKg !== null,
         canCancel: adapter.cancel !== undefined,
-        retiring: this.stateOf(states, adapter.key) === CourierAdapterState.Retiring,
+        retiring: this.stateOf(states, adapter.key) === RetireState.Retiring,
       }));
   }
 
@@ -249,15 +249,11 @@ export class CourierConnections {
   }
 
   /** CRR-23: a removed courier takes no one, and a retiring one no new shop; a shop already connected may still replace its keys. */
-  private refuseUnavailable(
-    adapter: CourierAdapter,
-    state: CourierAdapterState,
-    connected: boolean,
-  ): void {
-    if (state === CourierAdapterState.Removed) {
+  private refuseUnavailable(adapter: CourierAdapter, state: RetireState, connected: boolean): void {
+    if (state === RetireState.Removed) {
       throw new ApiError('not_found', 'CourierNotAvailable', {});
     }
-    if (state === CourierAdapterState.Retiring && !connected) {
+    if (state === RetireState.Retiring && !connected) {
       throw new ApiError('conflict', 'CourierRetiring', { courierKey: adapter.key }, undefined, {
         courier: adapter.name,
       });
@@ -338,7 +334,7 @@ export class CourierConnections {
       );
     }
     // CRR-24 (Slice 6.6): read shared, so removing this courier waits for this claim, and no claim starts once it is removed.
-    if ((await this.store.adapterStateWithin(tx, row.courierKey)) === CourierAdapterState.Removed) {
+    if ((await this.store.adapterStateWithin(tx, row.courierKey)) === RetireState.Removed) {
       throw new ApiError('conflict', 'CourierNotAvailable', {});
     }
     return this.opened(row, tenantId);
@@ -711,8 +707,8 @@ export class CourierConnections {
   private stateOf(
     states: Map<CourierKey, SelectCourierAdapter>,
     courierKey: CourierKey,
-  ): CourierAdapterState {
-    return states.get(courierKey)?.state ?? CourierAdapterState.Active;
+  ): RetireState {
+    return states.get(courierKey)?.state ?? RetireState.Active;
   }
 
   /** Slice 6.7 (c36-back): the connections told their courier is back within the days it shows. */
@@ -727,7 +723,7 @@ export class CourierConnections {
     back: Map<string, Date>,
   ): CourierConnectionView {
     const platform = states.get(row.courierKey);
-    const retiring = platform?.state === CourierAdapterState.Retiring;
+    const retiring = platform?.state === RetireState.Retiring;
     const adapter = this.adapterOf(row.courierKey);
     return {
       courierKey: row.courierKey,

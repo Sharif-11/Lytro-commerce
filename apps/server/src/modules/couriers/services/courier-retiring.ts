@@ -5,7 +5,7 @@ import {
   AuditAction,
   AuditResult,
   COURIER_BLOCKING_SHOWN,
-  CourierAdapterState,
+  RetireState,
   CourierBlockReason,
   DEFAULT_COURIER_CHECK_STOP_DAYS,
   FulfillmentStatus,
@@ -44,7 +44,7 @@ const LYTRO: ResolvedActor = { id: null, ip: null, type: ActorType.System };
 export interface OperatorCourierView {
   key: CourierKey;
   name: string;
-  state: CourierAdapterState;
+  state: RetireState;
   suggestedKey: CourierKey | null;
   retiringSince: Date | null;
   removedAt: Date | null;
@@ -151,11 +151,11 @@ export class CourierRetiring {
         [second, await this.adapters.lock(tx, second as CourierKey)],
       ]);
       const own = held.get(courierKey);
-      if (own?.state === CourierAdapterState.Removed)
+      if (own?.state === RetireState.Removed)
         throw new ApiError('not_found', 'CourierNotAvailable', {});
-      if (own?.state === CourierAdapterState.Retiring)
+      if (own?.state === RetireState.Retiring)
         throw new ApiError('conflict', 'CourierAlreadyRetiring', {});
-      if (held.get(input.suggestedKey)?.state !== CourierAdapterState.Active) {
+      if (held.get(input.suggestedKey)?.state !== RetireState.Active) {
         throw new ApiError('conflict', 'CourierSuggestionInvalid', {
           suggestedKey: input.suggestedKey,
         });
@@ -164,7 +164,7 @@ export class CourierRetiring {
         tx,
         courierKey,
         {
-          state: CourierAdapterState.Retiring,
+          state: RetireState.Retiring,
           suggestedKey: input.suggestedKey,
           retiringSince: now,
           removedAt: null,
@@ -193,8 +193,7 @@ export class CourierRetiring {
             const others = rows.filter(
               (each) =>
                 each.courierKey !== courierKey &&
-                (states.get(each.courierKey)?.state ?? CourierAdapterState.Active) ===
-                  CourierAdapterState.Active,
+                (states.get(each.courierKey)?.state ?? RetireState.Active) === RetireState.Active,
             );
             const next = others.find((each) => each.courierKey === input.suggestedKey) ?? others[0];
             if (next) {
@@ -251,13 +250,13 @@ export class CourierRetiring {
     const now = this.clock();
     const row = await this.adapters.run(async (tx) => {
       const held = await this.adapters.lock(tx, courierKey);
-      if (held.state !== CourierAdapterState.Retiring)
+      if (held.state !== RetireState.Retiring)
         throw new ApiError('conflict', 'CourierNotRetiring', {});
       const saved = await this.adapters.save(
         tx,
         courierKey,
         {
-          state: CourierAdapterState.Active,
+          state: RetireState.Active,
           suggestedKey: null,
           retiringSince: null,
           removedAt: null,
@@ -322,8 +321,8 @@ export class CourierRetiring {
     const now = this.clock();
     const row = await this.adapters.run(async (tx) => {
       const held = await this.adapters.lock(tx, courierKey);
-      if (held.state === CourierAdapterState.Removed) return held;
-      if (held.state !== CourierAdapterState.Retiring)
+      if (held.state === RetireState.Removed) return held;
+      if (held.state !== RetireState.Retiring)
         throw new ApiError('conflict', 'CourierNotRetiring', {});
       const blocking = await this.blockingOrders(courierKey);
       if (blocking.length > 0) {
@@ -341,7 +340,7 @@ export class CourierRetiring {
         tx,
         courierKey,
         {
-          state: CourierAdapterState.Removed,
+          state: RetireState.Removed,
           suggestedKey: held.suggestedKey,
           retiringSince: held.retiringSince,
           removedAt: now,
@@ -366,8 +365,7 @@ export class CourierRetiring {
             // Close-out (C6): as retiring does, only a courier still active takes over, longest connected first.
             const next = (await this.store.listConnections(tx, shopId)).find(
               (each) =>
-                (states.get(each.courierKey)?.state ?? CourierAdapterState.Active) ===
-                CourierAdapterState.Active,
+                (states.get(each.courierKey)?.state ?? RetireState.Active) === RetireState.Active,
             );
             if (next) await this.store.setDefaultConnection(tx, shopId, next.courierKey, now);
           }
@@ -457,7 +455,7 @@ export class CourierRetiring {
     return {
       key: adapter.key,
       name: adapter.name,
-      state: row?.state ?? CourierAdapterState.Active,
+      state: row?.state ?? RetireState.Active,
       suggestedKey: row?.suggestedKey ?? null,
       retiringSince: row?.retiringSince ?? null,
       removedAt: row?.removedAt ?? null,

@@ -45,4 +45,11 @@ export interface PaymentMethodStore {
     accountIds: readonly string[],
   ): Promise<boolean>;
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
+  /** WAL-18 (Slice 8.7): every shop whose data is still here, the shop's payments open on a method, and a removed type going. */
+  listShopIds(): Promise<string[]>;
+  openByMethod(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ method: PaymentMethod; open: number }[]>;
+  deleteMethod(tx: Transaction, tenantId: string, method: PaymentMethod): Promise<number>;
 }

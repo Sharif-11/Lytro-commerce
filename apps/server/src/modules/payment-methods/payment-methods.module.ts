@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DrizzlePaymentMethodStore } from '../../database/adapters/payment-methods.adapter';
 import { CatalogueModule } from '../catalogue/catalogue.module';
+import { PaymentMethodTypesModule } from '../payment-method-types/payment-method-types.module';
 import { PaymentMethodsEraser } from './services/payment-methods-eraser';
 import { PaymentMethods } from './services/payment-methods';
 import { PAYMENT_METHOD_STORE } from './tokens';
@@ -9,7 +10,7 @@ import { PAYMENT_METHOD_STORE } from './tokens';
 // activity log, as the brand does; the dashboard's and the public routes, and the day-60 deletion, read it. Payment
 // sessions (Slice 5.2) will read the active accounts from here.
 @Module({
-  imports: [CatalogueModule],
+  imports: [CatalogueModule, PaymentMethodTypesModule],
   providers: [
     { provide: PAYMENT_METHOD_STORE, useClass: DrizzlePaymentMethodStore },
     PaymentMethods,

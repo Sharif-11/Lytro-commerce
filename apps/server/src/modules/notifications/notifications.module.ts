@@ -13,6 +13,7 @@ import {
   BellLowStockNotifier,
   BellMediaNotifier,
   BellOrderNotifier,
+  BellPaymentMethodNotifier,
   BellPaymentNotifier,
 } from './notifiers/bell-notifiers';
 import { pushProviderFor } from './providers/push-provider-choice';
@@ -32,6 +33,7 @@ const NOTIFIERS = [
   BellLowStockNotifier,
   BellBatchExpiryNotifier,
   BellMediaNotifier,
+  BellPaymentMethodNotifier,
 ];
 
 // NTF-01 to NTF-06 (Phase 7 Slice 7.3): the bell, push and the account's notices. A leaf: it imports only the queue, mail,

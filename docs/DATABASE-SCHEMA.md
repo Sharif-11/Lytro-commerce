@@ -3028,6 +3028,17 @@ CREATE TABLE control.media_cost_alerts (
     sent_at         timestamptz NOT NULL DEFAULT now()
 );
 
+-- WAL-18, D8-18, D8-65 to D8-67 (Phase 8 Slice 8.7, migration 0127): each payment method type ever retired, in the couriers'
+-- states (control.courier_adapters); a type with no row is active. Held exclusively while removal checks, and read shared by
+-- every switch-on, a shop's or Lytro's own. The types themselves stay in the code (PAYMENT_METHOD_TYPES). No RLS; never deleted.
+CREATE TABLE control.payment_method_types (
+    method          text PRIMARY KEY,                -- bkash, nagad, rocket, upay, bank
+    state           text NOT NULL DEFAULT 'active',  -- active, retiring, removed
+    retiring_since  timestamptz,
+    removed_at      timestamptz,
+    updated_at      timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE control.payment_evidence (                  -- ADM-14, ADM-17, D8-47: a payment screenshot's record
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL REFERENCES control.tenants(id),

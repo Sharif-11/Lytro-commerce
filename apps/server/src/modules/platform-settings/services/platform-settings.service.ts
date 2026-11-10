@@ -10,7 +10,9 @@ import {
   appVersionField,
   cloudflarePricesSchema,
   CLOUDFLARE_BILLING_DAY_MAX,
+  bdMobileNumber,
   emailField,
+  HELP_HOUR_MAX,
   LISTENER_SENDER_MAX_LENGTH,
 } from '@lytronix/validators';
 import { FieldsError } from '../../../common/api-error';
@@ -104,6 +106,14 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     "The day of the month Cloudflare's invoice period starts on, 1 to 28 (MED-12, D8-61).",
   [PlatformSettingKey.CloudflarePrices]:
     "Cloudflare's R2 and Workers prices and monthly allowances, in US dollars, that the media costs estimate uses (D8-60).",
+  [PlatformSettingKey.HelpWhatsapp]:
+    "Lytro's WhatsApp number, 01XXXXXXXXX, that the dashboard, Lytro's payment page and the website show (D8-4, D8-68).",
+  [PlatformSettingKey.HelpPhone]:
+    "Lytro's phone number for calls, 01XXXXXXXXX, that the dashboard, Lytro's payment page and the website show (D8-4, D8-68).",
+  [PlatformSettingKey.HelpOpensHour]:
+    'The hour Lytro starts answering the help line, every day, 0 to 23 in Dhaka (D8-68).',
+  [PlatformSettingKey.HelpClosesHour]:
+    'The hour Lytro stops answering the help line, every day, 0 to 23 in Dhaka (D8-68).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -139,6 +149,11 @@ const isBillingDay = (value: unknown): boolean =>
   isPositiveInt(value) && (value as number) <= CLOUDFLARE_BILLING_DAY_MAX;
 const isCloudflarePrices = (value: unknown): boolean =>
   cloudflarePricesSchema.safeParse(value).success;
+// D8-68 (Slice 8.7): a Bangladeshi mobile number in the local form every page shows, and an hour of a 24-hour clock.
+const isLocalMobile = (value: unknown): boolean =>
+  typeof value === 'string' && bdMobileNumber(value) === value;
+const isHour = (value: unknown): boolean =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= HELP_HOUR_MAX;
 
 const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.TrialDays]: isPositiveInt,
@@ -183,6 +198,10 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.MediaCostAlertEmail]: isEmail,
   [PlatformSettingKey.CloudflareBillingDay]: isBillingDay,
   [PlatformSettingKey.CloudflarePrices]: isCloudflarePrices,
+  [PlatformSettingKey.HelpWhatsapp]: isLocalMobile,
+  [PlatformSettingKey.HelpPhone]: isLocalMobile,
+  [PlatformSettingKey.HelpOpensHour]: isHour,
+  [PlatformSettingKey.HelpClosesHour]: isHour,
 };
 
 function validate(key: PlatformSettingKey, value: unknown): void {

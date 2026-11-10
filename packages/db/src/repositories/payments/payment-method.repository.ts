@@ -238,6 +238,23 @@ export class PaymentMethodRepository {
     return rows.length > 0;
   }
 
+  /**
+   * WAL-18, D8-67 (Slice 8.7): a removed type goes from the shop -- its accounts for it, its switch and its way. Payments
+   * already made keep what they were paid into (PAY-05's snapshot). How many accounts went.
+   */
+  async deleteMethod(tx: Transaction, tenantId: string, method: PaymentMethod): Promise<number> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const gone = await tx
+      .delete(walletAccounts)
+      .where(and(eq(walletAccounts.tenantId, tenantId), eq(walletAccounts.method, method)))
+      .returning({ id: walletAccounts.id });
+    await this.setOn(tx, tenantId, method, false);
+    await tx
+      .delete(paymentMethodWays)
+      .where(and(eq(paymentMethodWays.tenantId, tenantId), eq(paymentMethodWays.method, method)));
+    return gone.length;
+  }
+
   /** LIF-19: the day-60 deletion's payment-methods step. */
   async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);

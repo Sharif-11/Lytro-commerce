@@ -9,6 +9,7 @@ import {
   PaymentWay,
   PlatformActorType,
   PlatformAuditAction,
+  RetireState,
   startingWayOf,
   WalletAccountType,
   waysOf,
@@ -29,6 +30,10 @@ import {
   type WalletGateway,
 } from '../../gateway/ports/wallet-gateway';
 import { GatewayRegistry } from '../../gateway/services/gateway-registry';
+import {
+  PaymentMethodTypes,
+  stateOf,
+} from '../../payment-method-types/services/payment-method-types';
 import type { ShopperPaymentMethod } from '../../payment-methods/types/payment-methods';
 import { SecretBox, SecretPurpose, SecretUnreadable } from '../../shared/secrets/secret-box';
 import type { LytroPaymentMethodStore } from '../ports/lytro-payment-method-store';
@@ -109,15 +114,26 @@ export class LytroPaymentMethods {
     @Inject(PlatformAuditService) private readonly audit: PlatformAuditService,
     @Inject(GatewayRegistry) private readonly gateways: GatewayRegistry,
     @Inject(SecretBox) private readonly box: SecretBox,
+    @Inject(PaymentMethodTypes) private readonly types: PaymentMethodTypes,
   ) {}
 
+  /** WAL-18 (Slice 8.7): whether Lytro's own page takes this method now, which holds its type back from removal (D8-67). */
+  async takes(method: AccountMethod): Promise<boolean> {
+    return choiceOf(await this.store.choices(), method).enabled;
+  }
+
+  /** WAL-18, D8-67 (Slice 8.7): a removed type is gone from Lytro's page too; retiring one leaves Lytro's own as it is. */
   async view(): Promise<LytroPaymentMethodsView> {
-    const [choices, bankAccounts] = await Promise.all([
+    const [choices, bankAccounts, states] = await Promise.all([
       this.store.choices(),
       this.store.bankAccounts(false),
+      this.types.states(),
     ]);
+    const kept = ACCOUNT_METHODS.filter(
+      (method) => stateOf(states, method) !== RetireState.Removed,
+    );
     const methods = await Promise.all(
-      ACCOUNT_METHODS.map(async (method) => {
+      kept.map(async (method) => {
         const ways = waysOf(method);
         return {
           method,
@@ -133,14 +149,15 @@ export class LytroPaymentMethods {
 
   /** WAL-06: what a shop paying Lytro may pick now, in the methods' own order. */
   async offered(): Promise<ShopperPaymentMethod[]> {
-    const [choices, wallets, banks] = await Promise.all([
+    const [choices, wallets, banks, states] = await Promise.all([
       this.store.choices(),
       this.wallets.list(true),
       this.store.bankAccounts(true),
+      this.types.states(),
     ]);
     return ACCOUNT_METHODS.flatMap((method) => {
       const { enabled, way } = choiceOf(choices, method);
-      if (!enabled) return [];
+      if (!enabled || stateOf(states, method) === RetireState.Removed) return [];
       if (PAYMENT_METHOD_TYPES[method].kind === PaymentMethodKind.Bank) {
         const bank = banks[0];
         return bank ? [bankView(method, bank)] : [];
@@ -176,6 +193,10 @@ export class LytroPaymentMethods {
       throw new ApiError('conflict', 'GatewayCredentialsNeeded', {});
     }
     await this.store.run(async (tx) => {
+      // D8-67: read shared, so a removal in flight finishes first and this change then sees it.
+      if ((await this.types.sharedStateWithin(tx, method)) === RetireState.Removed) {
+        throw new ApiError('not_found', 'PaymentMethodNotFound', {});
+      }
       await this.store.saveChoice(tx, method, next);
       await this.record(tx, operatorId, PlatformAuditAction.PlatformPaymentMethodChanged, null, {
         method,

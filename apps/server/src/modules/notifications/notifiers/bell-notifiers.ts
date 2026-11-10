@@ -16,6 +16,10 @@ import type {
   LowStockNotice,
 } from '../../inventory/types/inventory';
 import type { MediaFailureNotice, MediaNotifier } from '../../media/ports/media-notifier';
+import type {
+  PaymentMethodNotifier,
+  PaymentMethodTypeNotice,
+} from '../../payment-method-types/ports/payment-method-notifier';
 import type { OrderNotifier, PlacedOrderNotice } from '../../orders/ports/order-notifier';
 import type {
   GatewayAttentionNotice,
@@ -38,6 +42,8 @@ import {
   orderPlacedText,
   parcelAttentionText,
   parcelMovedText,
+  paymentMethodBackText,
+  paymentMethodRetiringText,
   paymentToVerifyText,
   paymentVerifiedText,
 } from '../notification-words';
@@ -191,6 +197,30 @@ export class BellBatchExpiryNotifier implements BatchExpiryNotifier {
       kind: NotificationKind.HeldStockExpired,
       text: heldStockExpiredText(notice),
       link: NOTIFICATION_LINKS.product(notice.productId),
+    });
+  }
+}
+
+/** WAL-18, D8-66 (Slice 8.7): a payment method type Lytro is retiring, or has brought back, told to the shops that set it up. */
+@Injectable()
+export class BellPaymentMethodNotifier implements PaymentMethodNotifier {
+  constructor(@Inject(Notifications) private readonly notifications: Notifications) {}
+
+  async methodRetiring(notice: PaymentMethodTypeNotice): Promise<void> {
+    await this.notifications.notify({
+      tenantId: notice.tenantId,
+      kind: NotificationKind.PaymentMethodRetiring,
+      text: paymentMethodRetiringText(notice.method),
+      link: NOTIFICATION_LINKS.paymentMethods,
+    });
+  }
+
+  async methodBack(notice: PaymentMethodTypeNotice): Promise<void> {
+    await this.notifications.notify({
+      tenantId: notice.tenantId,
+      kind: NotificationKind.PaymentMethodBack,
+      text: paymentMethodBackText(notice.method),
+      link: NOTIFICATION_LINKS.paymentMethods,
     });
   }
 }

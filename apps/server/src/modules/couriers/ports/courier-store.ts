@@ -17,7 +17,7 @@ import type {
   SelectCourierPayout,
   Transaction,
 } from '@lytronix/db';
-import type { CourierAdapterState, CourierConnectionState, CourierKey } from '@lytronix/validators';
+import type { RetireState, CourierConnectionState, CourierKey } from '@lytronix/validators';
 
 /** Phase 6 Slice 6.1: each shop's courier connections, its parcels and the log of its credentials' uses. */
 export interface CourierStore {
@@ -177,7 +177,7 @@ export interface CourierStore {
     payout: Pick<SelectCourierPayout, 'courierKey' | 'payoutId'>,
   ): Promise<PayoutParcelRow[]>;
   /** CRR-24 (Slice 6.6): the courier's state, read shared in a booking's claim so removal waits for it. */
-  adapterStateWithin(tx: Transaction, courierKey: CourierKey): Promise<CourierAdapterState>;
+  adapterStateWithin(tx: Transaction, courierKey: CourierKey): Promise<RetireState>;
   blockingParcels(
     tx: Transaction,
     tenantId: string,

@@ -16,7 +16,13 @@ const VERIFICATION_WINDOW_MS = 30_000;
 export interface PageData {
   ref: string;
   session: PaymentPageSession;
-  shop: { name: string; logoUrl: string | null; contactPhone: string | null };
+  shop: {
+    name: string;
+    logoUrl: string | null;
+    contactPhone: string | null;
+    /** D8-69: Lytro's own page, whose help line has a WhatsApp number of its own; a shop's page uses its contact phone. */
+    whatsapp?: string | null;
+  };
   /** The order's tracking page, on a shop whose storefront is on. */
   orderPageUrl: string | null;
   /** PAYMENT-PAGE-DESIGN §8: a shop paying Lytro, whose words differ here and there. A shopper paying a shop when left out. */

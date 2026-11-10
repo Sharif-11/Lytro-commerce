@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
-  CourierAdapterState,
+  RetireState,
   CourierCallAction,
   FraudSourceState,
   type CourierKey,
@@ -41,7 +41,7 @@ export class CourierFraudScores {
 
   private opened(tenantId: string, courierKey: CourierKey) {
     return this.store.run(tenantId, async (tx) =>
-      (await this.store.adapterStateWithin(tx, courierKey)) === CourierAdapterState.Removed
+      (await this.store.adapterStateWithin(tx, courierKey)) === RetireState.Removed
         ? null
         : this.connections.openedWithin(tx, tenantId, courierKey),
     );

@@ -43,6 +43,13 @@ export const NOTIFICATION_KINDS: Readonly<Record<NotificationKind, NotificationK
   },
   // WAL-18: payment accounts are the owner's own.
   [NotificationKind.GatewayAttention]: { audience: 'owner', switchable: false, group: 'payments' },
+  // WAL-18, D8-66 (Slice 8.7): a payment method type Lytro is retiring, which takes the shop's accounts for it when it goes.
+  [NotificationKind.PaymentMethodRetiring]: {
+    audience: 'owner',
+    switchable: false,
+    group: 'payments',
+  },
+  [NotificationKind.PaymentMethodBack]: { audience: 'owner', switchable: false, group: 'payments' },
   [NotificationKind.ListenerPhone]: {
     audience: Permission.ListenerManage,
     switchable: false,

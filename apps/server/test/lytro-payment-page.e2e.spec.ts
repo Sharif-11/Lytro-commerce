@@ -3,7 +3,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { request as httpRequest } from 'node:http';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { PaymentMethod, PaymentWay } from '@lytronix/validators';
+import { PaymentMethod, PaymentWay, PlatformSettingKey } from '@lytronix/validators';
 import pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
@@ -15,6 +15,7 @@ import { GATEWAY_FETCH } from '../src/modules/gateway/tokens';
 import { ListenerPairing } from '../src/modules/listener/services/listener-pairing';
 import { LytroCheckouts } from '../src/modules/lytro-payments/services/lytro-checkouts';
 import { LytroPaymentMethods } from '../src/modules/lytro-payments/services/lytro-payment-methods';
+import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { GatewayReconcileTickWorker } from '../src/modules/shared/queue-workers/services/gateway-reconcile-tick-worker';
 import { PaymentSessionExpiryTickWorker } from '../src/modules/shared/queue-workers/services/payment-session-expiry-tick-worker';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
@@ -210,7 +211,6 @@ beforeAll(async () => {
   process.env['OTP_SECRET'] = 'lytro-payment-page-otp-secret-0123456789ab';
   process.env['PLATFORM_DOMAIN'] = 'localhost';
   process.env['DASHBOARD_ORIGIN'] = DASHBOARD;
-  process.env['LYTRO_SUPPORT_PHONE'] = '01700000099';
   admin = new pg.Client({ connectionString: urls.adminDbUrl });
   await admin.connect();
   termId =
@@ -245,6 +245,10 @@ beforeAll(async () => {
     .compile();
   ({ app, port } = await listenOn(moduleRef));
   methods = app.get(LytroPaymentMethods);
+  // D8-69: the page's WhatsApp and call reach the help line set in the console.
+  const settings = app.get(PlatformSettingsService);
+  await settings.set(PlatformSettingKey.HelpPhone, '01700000099', OPERATOR_ID);
+  await settings.set(PlatformSettingKey.HelpWhatsapp, '01700000098', OPERATOR_ID);
   const wallets = app.get(PlatformWalletsService);
   await wallets.create(
     { provider: 'bKash', number: '01700000000', label: 'One', enabled: true, displayOrder: 0 },
@@ -265,7 +269,6 @@ afterAll(async () => {
   await app.close();
   await admin.end();
   delete process.env['DASHBOARD_ORIGIN'];
-  delete process.env['LYTRO_SUPPORT_PHONE'];
 });
 
 beforeEach(async () => {
@@ -293,6 +296,7 @@ describeIfDatabase('a shop paying Lytro on the payment page', () => {
       expect(opened.text).not.toContain('#report');
       expect(opened.text).not.toContain('Order ');
       expect(opened.text).toContain('tel:01700000099');
+      expect(opened.text).toContain('https://wa.me/8801700000098');
     });
 
     it("names a plan and its term, in the page's language", async () => {

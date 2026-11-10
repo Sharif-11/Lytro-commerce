@@ -49,6 +49,8 @@ export class PaymentMethodsViewDto extends createZodDto(
         method: z.nativeEnum(PaymentMethod),
         kind: z.nativeEnum(PaymentMethodKind),
         enabled: z.boolean(),
+        // WAL-18, D8-65 (Slice 8.7): Lytro is retiring the type; it keeps working until it is removed.
+        retiring: z.boolean(),
         levels: z.array(z.nativeEnum(VerificationLevel)),
         way: z.nativeEnum(PaymentWay),
         ways: z.array(z.nativeEnum(PaymentWay)),

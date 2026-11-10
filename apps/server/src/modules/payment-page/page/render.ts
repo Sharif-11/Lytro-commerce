@@ -218,11 +218,14 @@ class PageDrawing {
     </p>`;
   }
 
-  /** WhatsApp and call, from the shop's contact phone; left out when it isn't set (agreed 2026-11-04). */
+  /**
+   * WhatsApp and call, from the shop's contact phone; left out when it isn't set (agreed 2026-11-04). Lytro's own page may have
+   * a WhatsApp number apart from its phone (D8-69).
+   */
   private contacts(tight = false): SafeHtml | null {
     const phone = this.data.shop.contactPhone;
     if (phone === null) return null;
-    const mobile = bdMobileNumber(phone);
+    const mobile = bdMobileNumber(this.data.shop.whatsapp ?? phone);
     return html`<div class="contacts ${tight ? 'tight' : ''}">
       ${
         mobile === null
