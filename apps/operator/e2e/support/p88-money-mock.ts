@@ -12,7 +12,10 @@ import {
 // entry, payment screenshot and payment method type routes answered over it the way the server answers them (Phase 8 Slices
 // 8.5, 8.7 and 8.8).
 
-export const OPERATOR_ID = 'op-1';
+// The signed-in operator, one id for every mock (console-data.ts).
+import { OPERATOR_ID } from './console-data';
+
+export { OPERATOR_ID };
 const NADIA = 'op-2';
 const DAY_MS = 24 * 60 * 60 * 1000;
 // D8-51, ADM-15: the second confirmation, over this many taka.

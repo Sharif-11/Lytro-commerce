@@ -53,6 +53,7 @@ export function DataTable<Row>({
   rowKey,
   onOpen,
   faded,
+  rowClass,
   loading = false,
   empty,
 }: {
@@ -62,6 +63,8 @@ export function DataTable<Row>({
   onOpen?: (row: Row) => void;
   /** A row kept for the record, greyed by its colour: opacity would take its words under the contrast rule. */
   faded?: (row: Row) => boolean;
+  /** A row of its own kind, such as a report's bold total. */
+  rowClass?: (row: Row) => string;
   loading?: boolean;
   empty: ReactNode;
 }): React.JSX.Element {
@@ -109,7 +112,7 @@ export function DataTable<Row>({
           }
           className={`grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 border-t border-line px-4 py-3 first:border-t-0 sm:min-h-[52px] sm:grid-cols-[var(--cols)] sm:gap-3 sm:py-2.5 [.hidden+&]:border-t-0 ${
             onOpen ? 'cursor-pointer' : ''
-          } ${faded?.(row) ? 'text-fg-muted' : ''}`}
+          } ${faded?.(row) ? 'text-fg-muted' : ''} ${rowClass?.(row) ?? ''}`}
         >
           {columns.map((column) => (
             <div key={column.key} className={cellClass(column)}>

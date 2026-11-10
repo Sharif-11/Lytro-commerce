@@ -319,55 +319,6 @@ function sales(shop: ShopFixture, url: URL): Record<string, unknown> {
   };
 }
 
-/** ADM-08: the platform audit log's last entries on a shop, as GET /operator/audit lists them. */
-export function shopAudit(shopId: string): Record<string, unknown> {
-  const entry = (
-    id: number,
-    createdAt: string,
-    actorType: string,
-    actorEmail: string | null,
-    action: string,
-    summary: Record<string, unknown>,
-  ) => ({
-    id,
-    actorType,
-    actorId: actorEmail === null ? null : 'op-1',
-    actorEmail,
-    action,
-    targetType: 'tenant',
-    targetId: shopId,
-    result: 'success',
-    summary,
-    createdAt,
-    shop: null,
-  });
-  if (shopId !== 'ten-0001') return { items: [], next: null };
-  return {
-    items: [
-      entry(9377, '2026-10-20T19:44:00+06:00', 'shop_owner', null, 'notice_acknowledged', {
-        tenantId: shopId,
-      }),
-      entry(9361, '2026-10-20T15:10:00+06:00', 'operator', 'ops@lytro.app', 'balance_adjusted', {
-        amount: -150,
-        reason: 'SMS charged twice on 18 Oct',
-      }),
-      entry(
-        9322,
-        '2026-10-19T11:00:00+06:00',
-        'operator',
-        'ops@lytro.app',
-        'plan_payment_verified',
-        {
-          kind: 'renewal',
-          amount: '449.00',
-          tenantId: shopId,
-        },
-      ),
-    ],
-    next: null,
-  };
-}
-
 /** The shop page's reads and the three actions, changing the shop as the server would; undefined for anything else. */
 export function shopAnswer(
   rest: string,

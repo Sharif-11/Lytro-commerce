@@ -23,13 +23,13 @@ import type {
 } from '@/types/operator';
 import type {
   PlanExtension,
-  PlatformAuditPage,
   ShopErrorPage,
   ShopFailedSmsLists,
   ShopFigures,
   ShopSales,
 } from '@/types/shop-figures';
 import type { CourierKeyUsePage } from '@/types/couriers';
+import type { AuditPage } from '@/types/records';
 
 // api/plans.ts's assignment refreshes these too.
 export const SHOPS_QUERY_KEY = ['operator', 'tenants'] as const;
@@ -245,7 +245,7 @@ export function useShopAudit(id: string, limit: number) {
   return useQuery({
     queryKey: [...shopKey(id), 'audit', limit],
     queryFn: () =>
-      operatorSession.client.get<PlatformAuditPage>(
+      operatorSession.client.get<AuditPage>(
         `/operator/audit?tenantId=${id}&limit=${String(limit)}`,
       ),
   });

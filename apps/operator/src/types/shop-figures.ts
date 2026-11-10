@@ -115,23 +115,3 @@ export interface PlanExtension {
   state: TenantState;
   restored: boolean;
 }
-
-/** ADM-08: one platform audit entry, as GET /operator/audit lists it. */
-export interface PlatformAuditEntry {
-  id: number;
-  actorType: string;
-  actorId: string | null;
-  actorEmail: string | null;
-  action: string;
-  targetType: string | null;
-  targetId: string | null;
-  result: string;
-  summary: unknown;
-  createdAt: string;
-  shop: { id: string; name: string; slug: string } | null;
-}
-
-export interface PlatformAuditPage {
-  items: PlatformAuditEntry[];
-  next: number | null;
-}

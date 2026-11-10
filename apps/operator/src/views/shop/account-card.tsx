@@ -8,7 +8,8 @@ import { ConsoleCard } from '@/components/ui/console-page';
 import { NOTE, SMALL_BUTTON } from '@/components/ui/sizes';
 import { formatDay, taka } from '@/lib/format';
 import { spacedPhone } from '@/lib/phone-words';
-import type { PlatformAuditEntry } from '@/types/shop-figures';
+import type { AuditEntry } from '@/types/records';
+import { actionWords } from '@/views/audit/summary';
 
 /** How many of the shop's latest audit entries its page shows; the audit log holds the rest. */
 const RECENT_ACTIONS = 3;
@@ -17,7 +18,7 @@ const ROW =
   'flex min-h-[60px] w-full items-center gap-3 border-t border-line px-4 py-3 text-left first:border-t-0';
 
 /** ADM-08: what an entry's summary says, as one line: the days, the money, the TrxID and the reason it carries. */
-function summaryLine(entry: PlatformAuditEntry, t: TFunction): string {
+function summaryLine(entry: AuditEntry, t: TFunction): string {
   const summary =
     typeof entry.summary === 'object' && entry.summary !== null
       ? (entry.summary as Record<string, unknown>)
@@ -36,7 +37,7 @@ function summaryLine(entry: PlatformAuditEntry, t: TFunction): string {
   return parts.join(' · ');
 }
 
-function whoOf(entry: PlatformAuditEntry, t: TFunction): string {
+function whoOf(entry: AuditEntry, t: TFunction): string {
   if (entry.actorType === 'system') return t('p88shops.whoSystem');
   if (entry.actorType === 'shop_owner') return t('p88shops.whoOwner');
   return entry.actorEmail ?? '—';
@@ -70,9 +71,7 @@ function ActionsCard({ shopId }: { shopId: string }): React.JSX.Element {
             return (
               <button key={entry.id} type="button" onClick={open} className={ROW}>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="text-[15px] font-medium">
-                    {t(`p88shops.actions.${entry.action}`, { defaultValue: entry.action })}
-                  </span>
+                  <span className="text-[15px] font-medium">{actionWords(entry.action, t)}</span>
                   <span className="text-[13px] text-fg-muted">
                     {[line, formatDay(entry.createdAt), whoOf(entry, t)]
                       .filter((part) => part !== '')

@@ -1504,6 +1504,9 @@ export function drawnAddons(): Record<string, unknown> {
   };
 }
 
+/** The signed-in operator's id, as GET /auth/operator/me answers it and every row they changed names them. */
+export const OPERATOR_ID = 'op-1';
+
 export function drawnSettings(): Record<string, unknown>[] {
   const setting = (
     key: string,

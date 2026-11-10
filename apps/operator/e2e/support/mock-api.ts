@@ -32,7 +32,7 @@ import {
 } from './console-data';
 import { courierAnswer, courierDefaults, type CourierMockState } from './courier-mock';
 import { noticeAnswer, noticeDefaults, type NoticeMockState } from './notice-mock';
-import { shopAnswer, shopAudit, shopListAnswer } from './p88-shops-mock';
+import { shopAnswer, shopListAnswer } from './p88-shops-mock';
 import {
   answerUploads,
   moneyAnswer,
@@ -41,6 +41,7 @@ import {
   withShots,
   type MoneyMockState,
 } from './p88-money-mock';
+import { recordsAnswer, recordsDefaults, type RecordsMockState } from './p88-records-mock';
 import { pricingAnswer, type PricingState } from './pricing-mock';
 
 // The console against a mocked API: each /api/v1 call answered in the server's own envelope ({ success, statusCode,
@@ -77,7 +78,8 @@ export interface ConsoleState
     Partial<PricingState>,
     Partial<CourierMockState>,
     Partial<NoticeMockState>,
-    Partial<MoneyMockState> {
+    Partial<MoneyMockState>,
+    Partial<RecordsMockState> {
   language?: Language;
   /** Whether the browser starts signed in. */
   signedIn?: boolean;
@@ -341,6 +343,8 @@ function consoleAnswer(
   }
   const assigned = /^\/operator\/plans\/([^/]+)\/assign$/.exec(path);
   if (assigned) return { data: { id: 'assign-1', planId: assigned[1] } };
+  const recorded = recordsAnswer(path, url, state);
+  if (recorded) return recorded;
   const couriered = courierAnswer(method, path, url, body, state);
   if (couriered) return couriered;
   const noticed = noticeAnswer(method, path, url, body, state);
@@ -350,8 +354,6 @@ function consoleAnswer(
   const priced = pricingAnswer(method, path, body, state);
   if (priced) return priced;
   if (path === '/operator/tenants') return shopListAnswer(url, state.shops);
-  if (path === '/operator/audit')
-    return { data: shopAudit(url.searchParams.get('tenantId') ?? '') };
   const shopped = /^\/operator\/tenants\/([^/]+)(?:\/(.+))?$/.exec(path);
   if (!shopped) return undefined;
   const shop = state.shops.find((each) => each.id === shopped[1]);
@@ -488,6 +490,7 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
     ...courierDefaults(),
     ...noticeDefaults(),
     ...moneyDefaults(),
+    ...recordsDefaults(),
     now: NOW,
     failing: {},
     refuseWrite: null,
