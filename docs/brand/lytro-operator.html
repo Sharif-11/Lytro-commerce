@@ -2800,6 +2800,1050 @@ pmSheet('pm-off-last', 'wallets', '· turn off the last method (dialog)', t('pm_
 /* A bank transfer in the queue: its reference where a wallet's TrxID sits, with no sender number. */
 PAYMENTS.push({ id: 'pay-9110', tenantId: 'ten-0028', kind: 'top_up', planId: null, termId: null, amount: 2000, credit: 2000, status: 'pending', sender: '—', trx: 'TT-883201', quotedAt: '2026-10-21T09:58:00+06:00', createdAt: '2026-10-21T10:30:00+06:00', wallet: 'Bank' });
 
+/* ---------- Phase 8 Slice 8.8 (design v7): the console's Phase 8 screens, drawn from what Slices 8.1 to 8.7 serve. Finding a
+   shop by the owner's phone, with filters and sorts (ADM-02, D8-7, D8-24); the shop page's figures and the lists behind them
+   (ADM-03, D8-8, D8-25 to D8-31); extending a plan, resetting an owner's sign-in and deleting a shop's data on request (ADM-04,
+   ADM-13, D8-32 to D8-39); the audit log (ADM-08, D8-11); the reports and their CSVs (ADM-09, D8-40 to D8-46); manual entries,
+   their reversals and the seller's screenshot in the queue (ADM-14 to ADM-17, D8-47 to D8-56); media costs (MED-12, D8-57 to
+   D8-64); wallet types with retiring (WAL-18, D8-65 to D8-67); the help line's and media costs' settings (D8-68). Every name
+   here starts p88 / p88-, and the S block's few overrides (the shop search, the Later pages that are now real) are marked.
+   ---------- */
+const P88G = 'Phase 8 · Slice 8.8';
+I.receipt = '<svg class="i" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>';
+I.cloud = '<svg class="i" viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/></svg>';
+I.image = '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>';
+I.upload = '<svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>';
+I.undo = '<svg class="i" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>';
+I.user = '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
+
+Object.assign(S, {
+  /* overrides: the search now finds owners' phones (D8-24); Manual payments is a working page */
+  search_ph: ["Find a shop by name, address or owner's phone", 'নাম, অ্যাড্রেস বা ওনারের ফোন দিয়ে শপ খুঁজুন'],
+  tn_sub: ["Every shop on the platform. Search by name, address or the owner's phone; act from the shop page.", 'প্ল্যাটফর্মের সব শপ। নাম, অ্যাড্রেস বা ওনারের ফোন দিয়ে খুঁজুন; শপ পেজ থেকে কাজ করুন।'],
+  tn_empty_hint: ['Try part of the name, the address, or the last digits of the owner\'s phone.', 'নামের অংশ, অ্যাড্রেস, বা ওনারের ফোনের শেষের ডিজিটগুলো দিয়ে দেখুন।'],
+  manual: ['Manual entries', 'ম্যানুয়াল এন্ট্রি'],
+
+  /* navigation */
+  p88_nav_records: ['Records', 'রেকর্ড'],
+  media: ['Media costs', 'মিডিয়া খরচ'],
+  wtypes: ['Wallet types', 'ওয়ালেট টাইপ'],
+
+  /* shops list (ADM-02, D8-7, D8-24) */
+  p88_c_owner: ["Owner's phone", 'ওনারের ফোন'],
+  p88_f_state: ['State', 'স্টেট'], p88_f_plan: ['Plan', 'প্ল্যান'], p88_f_sort: ['Sort', 'সর্ট'],
+  p88_all_states: ['Every state', 'সব স্টেট'], p88_all_plans: ['Every plan', 'সব প্ল্যান'],
+  p88_sort_newest: ['Newest first', 'নতুন আগে'], p88_sort_name: ['Name, A to Z', 'নাম, A থেকে Z'], p88_sort_period: ['Period ends soonest', 'যার মেয়াদ আগে শেষ'],
+  p88_phone_hint: ["Searching owners' phones too. A whole number matches however it's written; 6 to 10 digits match the end of one, so a few shops can match.", 'ওনারদের ফোনেও খোঁজা হচ্ছে। পুরো নম্বর যেভাবেই লেখা হোক মিলবে; ৬ থেকে ১০টা ডিজিট দিলে নম্বরের শেষটা মেলে, তাই কয়েকটা শপ মিলতে পারে।'],
+  p88_no_period: ['No period', 'মেয়াদ নেই'],
+
+  /* the shop page's figures (ADM-03, D8-8, D8-25) */
+  p88_figs: ['This shop now', 'শপটি এখন'],
+  p88_figs_d: ['Read inside the shop, by the same code as its own dashboard. Each list loads when you open it.', 'শপের ভেতর থেকে, ওর নিজের ড্যাশবোর্ডের একই কোডে পড়া। প্রতিটা লিস্ট খুললে তবেই লোড হয়।'],
+  p88_balance: ['Balance', 'ব্যালেন্স'], p88_frozen: ['Frozen', 'ফ্রোজেন'], p88_not_frozen: ['Not frozen', 'ফ্রোজেন নয়'], p88_held: ['{a} held', '{a} হোল্ডে'],
+  p88_errors: ['Server errors, 24 h', 'সার্ভার এরর, ২৪ ঘণ্টা'], p88_errors_d: ["Faults this shop's requests hit", 'এই শপের রিকোয়েস্টে যেসব ফল্ট হয়েছে'], p88_errors_none: ['None in 24 hours', '২৪ ঘণ্টায় একটাও না'],
+  p88_sms: ["SMS that didn't go, 7 days", 'যে SMS যায়নি, ৭ দিন'], p88_sms_d: ["{f} failed · {b} blocked · {l} of Lytro's", '{f}টা ফেইলড · {b}টা ব্লকড · Lytro-র {l}টা'],
+  p88_courier: ['Failed courier calls, 7 days', 'ফেইলড কুরিয়ার কল, ৭ দিন'], p88_courier_d: ['Failed, or refused by the courier', 'ফেইল হয়েছে, বা কুরিয়ার নেয়নি'],
+  p88_waiting: ['Waiting for you', 'আপনার অপেক্ষায়'], p88_waiting_d: ['{a} to Lytro · {n} shopper payments wait for the seller', 'Lytro-কে {a} · {n}টা কাস্টমার পেমেন্ট সেলারের অপেক্ষায়'],
+  p88_usage: ['Usage this cycle', 'এই সাইকেলের ইউজেজ'], p88_usage_d: ["{a} to {b}, as the seller's Usage page reads it", '{a} থেকে {b}, সেলারের ইউজেজ পেজ যেভাবে দেখায়'],
+  p88_of: ['{a} of {b}', '{b}-এর মধ্যে {a}'],
+  p88_m_products: ['Products', 'প্রোডাক্ট'], p88_m_seats: ['Staff seats', 'স্টাফ সিট'], p88_m_storage: ['Storage', 'স্টোরেজ'], p88_m_bandwidth: ['Bandwidth', 'ব্যান্ডউইথ'],
+  p88_m_requests: ['API requests', 'API রিকোয়েস্ট'], p88_m_essential_sms_monthly: ['Essential SMS', 'জরুরি SMS'], p88_m_orders_monthly: ['Orders this month', 'এই মাসের অর্ডার'],
+  p88_reads: ['Address reads: {n} outside the allowance, {a}', 'ঠিকানা পড়া: অ্যালাওয়েন্সের বাইরে {n}টা, {a}'],
+  p88_signins: ['Last sign-in', 'শেষ লগইন'], p88_owner: ['Owner', 'ওনার'], p88_staff: ['Staff', 'স্টাফ'], p88_never: ['Never', 'কখনো না'],
+  p88_orders: ['Orders by status', 'স্টেটাস অনুযায়ী অর্ডার'], p88_orders_d: ["Counted as the seller's order list shows them.", 'সেলারের অর্ডার লিস্ট যেভাবে দেখায়, সেভাবে গোনা।'],
+  p88_o_unverified: ['Unverified', 'আনভেরিফায়েড'], p88_o_pending: ['Pending', 'পেন্ডিং'], p88_o_confirmed: ['Confirmed', 'কনফার্মড'], p88_o_processing: ['Processing', 'প্রসেসিং'],
+  p88_o_shipped: ['Shipped', 'শিপড'], p88_o_delivered: ['Delivered', 'ডেলিভারড'], p88_o_partial_delivered: ['Partly delivered', 'আংশিক ডেলিভারড'], p88_o_completed: ['Completed', 'কমপ্লিটেড'],
+  p88_o_cancelled: ['Cancelled', 'ক্যানসেলড'], p88_o_hold: ['On hold', 'হোল্ডে'], p88_o_in_review: ['In review', 'রিভিউতে'], p88_o_refunded: ['Refunded', 'রিফান্ডেড'],
+  p88_o_returned: ['Returned', 'রিটার্নড'], p88_o_rejected: ['Rejected', 'রিজেক্টেড'],
+  p88_sales: ['Sales', 'সেলস'], p88_sales_d: ["Delivered orders only, as the seller's Sales page shows them, for any period. Never cost or profit.", 'শুধু ডেলিভারড অর্ডার, সেলারের সেলস পেজ যেভাবে দেখায়, যেকোনো সময়ের জন্য। খরচ বা লাভ কখনো না।'],
+  p88_sales_open: ['Open sales', 'সেলস দেখুন'],
+
+  /* the owner's sign-in and the shop's data (ADM-04, ADM-13) */
+  p88_account: ["Owner's sign-in and the shop's data", 'ওনারের লগইন আর শপের ডেটা'],
+  p88_reset_row: ["Reset the owner's sign-in", 'ওনারের লগইন রিসেট'],
+  p88_reset_row_d: ["For an owner who lost their phone or password, once you've checked it's them.", 'যে ওনার ফোন বা পাসওয়ার্ড হারিয়েছেন, উনিই কি না যাচাই করার পর।'],
+  p88_reset_btn: ['Reset sign-in', 'লগইন রিসেট'],
+  p88_delete_row: ["Delete the shop's data", 'শপের ডেটা ডিলিট'],
+  p88_delete_row_d: ['When the owner asks. The account and billing records stay.', 'ওনার চাইলে। অ্যাকাউন্ট আর বিলিংয়ের রেকর্ড থেকে যায়।'],
+  p88_delete_btn: ['Delete data', 'ডেটা ডিলিট'],
+  p88_actions_open: ['Open in the audit log', 'অডিট লগে দেখুন'],
+
+  /* extend (ADM-04, D8-12, D8-32 to D8-35) */
+  p88_extend: ['Extend', 'মেয়াদ বাড়ান'],
+  p88_ext_title: ["Extend {shop}'s period", '{shop}-এর মেয়াদ বাড়ান'],
+  p88_ext_days: ['Days to add', 'কত দিন যোগ হবে'],
+  p88_ext_days_help: ['1 to 30 whole days. For more, extend again, with its own reason.', '১ থেকে ৩০ দিন। আরও লাগলে আবার বাড়ান, নিজের কারণসহ।'],
+  p88_ext_new: ['Ends {a} instead of {b}', '{b}-এর বদলে শেষ হবে {a}'],
+  p88_ext_cons: ["The days go on the period's end, free. Add-ons that end with the plan move with it, and a change waiting for the end moves too. The shop stays on {plan}.", 'দিনগুলো মেয়াদের শেষে যোগ হবে, ফ্রি। যেসব অ্যাড-অন প্ল্যানের সাথে শেষ হয় সেগুলোও সরে যাবে, মেয়াদ শেষে যে বদল হওয়ার কথা সেটাও। শপ {plan}-এই থাকবে।'],
+  p88_ext_lapsed: ['<b>{shop} is in {state}:</b> it comes back to active at once, and its balance is unfrozen.', '<b>{shop} এখন {state}-এ:</b> সাথে সাথে অ্যাক্টিভ হবে, ব্যালেন্সও আনফ্রিজ হবে।'],
+  p88_reason_shop: ["Required. Goes on the platform audit log and the shop's activity log, where its team can read it.", 'লাগবেই। প্ল্যাটফর্ম অডিট লগে আর শপের অ্যাক্টিভিটি লগে থাকবে, যেখানে শপের টিম পড়তে পারে।'],
+  p88_ext_btn: ['Extend by {n} days', '{n} দিন বাড়ান'],
+  p88_ext_done: ['Plan extended. {shop} now ends {d}.', 'মেয়াদ বাড়ানো হয়েছে। {shop}-এর মেয়াদ এখন {d} পর্যন্ত।'],
+  p88_ext_ended: ['Those days still end in the past. Assign the shop a plan instead.', 'এই কয়দিন যোগ করলেও মেয়াদ পেছনেই থেকে যায়। এর বদলে শপে একটা প্ল্যান অ্যাসাইন করুন।'],
+  p88_ext_assign: ['Assign a plan instead', 'বদলে প্ল্যান অ্যাসাইন করুন'],
+
+  /* owner reset (ADM-04, D8-5, D8-36, D8-38) */
+  p88_rs_title: ["Reset the owner's sign-in", 'ওনারের লগইন রিসেট'],
+  p88_rs_check: ["Check it's the owner first: their name, the shop's address and its last payment to Lytro.", 'আগে নিশ্চিত হোন উনিই ওনার: ওনার নাম, শপের অ্যাড্রেস আর Lytro-কে শেষ পেমেন্ট।'],
+  p88_rs_phone: ['The phone the owner gave you', 'ওনার যে ফোন নম্বর দিলেন'],
+  p88_rs_phone_help: ["The account's is {p}. Any written form.", 'অ্যাকাউন্টের নম্বর {p}। যেভাবে খুশি লিখুন।'],
+  p88_rs_cons: ["The owner is signed out everywhere, at once. A reset code goes by SMS to this phone, and they set a new password with it on the sign-in page. You never see or set the password. The SMS is Lytro's cost.", 'ওনার সব জায়গা থেকে সাথে সাথে সাইন আউট হবেন। এই ফোনে SMS-এ একটা রিসেট কোড যাবে, সেটা দিয়ে লগইন পেজে নতুন পাসওয়ার্ড সেট করবেন। পাসওয়ার্ড আপনি কখনো দেখবেন না, সেটও করবেন না। SMS-এর খরচ Lytro-র।'],
+  p88_rs_changed: ["<b>This isn't the account's number:</b> it replaces {p} at once, so the lost phone can't sign in again. The shop's activity log shows only its last digits.", '<b>এটা অ্যাকাউন্টের নম্বর নয়:</b> সাথে সাথে {p}-এর জায়গা নেবে, তাই হারানো ফোন দিয়ে আর লগইন হবে না। শপের অ্যাক্টিভিটি লগে শুধু শেষের কয়েকটা ডিজিট দেখাবে।'],
+  p88_rs_btn: ['Sign out and send the code', 'সাইন আউট করে কোড পাঠান'],
+  p88_rs_done: ['The owner is signed out and a reset code is on its way.', 'ওনারকে সব জায়গা থেকে সাইন আউট করা হয়েছে, রিসেট কোড পাঠানো হচ্ছে।'],
+  p88_rs_taken: ['This phone number is on another Lytro account.', 'এই ফোন নম্বরটি Lytro-র আরেকটি অ্যাকাউন্টে আছে।'],
+
+  /* delete data on request (ADM-13, D8-13, D8-37) */
+  p88_dl_title: ["Delete {shop}'s data?", '{shop}-এর ডেটা ডিলিট করবেন?'],
+  p88_dl_cons: ['<b>{shop} goes offline at once</b>, as archived: its storefront, landing pages and payment page stop. A job then deletes its products, orders, customers, media and messages, by the same steps as the day-60 deletion. The owner\'s account, the balance and the billing records stay. <b>This can\'t be undone.</b>', '<b>{shop} সাথে সাথে অফলাইন হবে</b>, আর্কাইভড হিসেবে: স্টোরফ্রন্ট, ল্যান্ডিং পেজ আর পেমেন্ট পেজ বন্ধ হবে। তারপর একটা জব এর প্রোডাক্ট, অর্ডার, কাস্টমার, মিডিয়া আর মেসেজ ডিলিট করবে, ৬০ দিনের ডিলিটের একই ধাপে। ওনারের অ্যাকাউন্ট, ব্যালেন্স আর বিলিংয়ের রেকর্ড থেকে যাবে। <b>এটা আর ফেরানো যাবে না।</b>'],
+  p88_dl_type: ["Type the shop's address to confirm", 'কনফার্ম করতে শপের অ্যাড্রেস লিখুন'],
+  p88_dl_type_help: ['Type {a}', 'লিখুন: {a}'],
+  p88_dl_btn: ['Delete the data', 'ডেটা ডিলিট করুন'],
+  p88_dl_done: ['{shop} is offline. Its data is being deleted.', '{shop} অফলাইন। এর ডেটা ডিলিট হচ্ছে।'],
+  p88_dl_wrong: ["That isn't this shop's address.", 'এটা এই শপের অ্যাড্রেস নয়।'],
+
+  /* the lists behind the figures (D8-25) */
+  p88_err_title: ['Server errors · {shop}', 'সার্ভার এরর · {shop}'], p88_last7: ['Last 7 days, newest first', 'গত ৭ দিন, নতুন আগে'],
+  p88_err_note: ['Never the message: find it in the server log under the request ID.', 'মেসেজ এখানে থাকে না: রিকোয়েস্ট আইডি দিয়ে সার্ভার লগে খুঁজুন।'],
+  p88_err_empty: ['No server errors in 7 days.', '৭ দিনে কোনো সার্ভার এরর নেই।'],
+  p88_sms_title: ["SMS that didn't go · {shop}", 'যে SMS যায়নি · {shop}'],
+  p88_sms_shop: ["The shop's own", 'শপের নিজের'], p88_sms_lytro: ["Lytro's, to the shop or its team", 'Lytro-র, শপ বা এর টিমকে'],
+  p88_sms_note: ["Never the customer's phone or the words.", 'কাস্টমারের ফোন বা মেসেজের কথা কখনো দেখায় না।'], p88_none: ['None.', 'নেই।'],
+  p88_k_order_placed: ['Order placed', 'অর্ডার প্লেসড'], p88_k_order_shipped: ['Order shipped', 'অর্ডার শিপড'], p88_k_order_delivered: ['Order delivered', 'অর্ডার ডেলিভারড'],
+  p88_k_new_order_alert: ['New order alert', 'নতুন অর্ডারের অ্যালার্ট'], p88_k_signin_code: ['Sign-in code', 'লগইন কোড'], p88_k_shop_ready: ['Shop ready', 'শপ রেডি'],
+  p88_failed: ['Failed', 'ফেইলড'], p88_blocked: ['Blocked', 'ব্লকড'],
+  p88_b_insufficient_balance: ['balance too low', 'ব্যালেন্স কম'], p88_b_balance_frozen: ['balance frozen', 'ব্যালেন্স ফ্রোজেন'], p88_b_spend_cap: ['spend cap reached', 'খরচের সীমা পার'],
+  p88_units: ['{n} units', '{n} ইউনিট'], p88_attempts: ['{n} tries', '{n} বার চেষ্টা'],
+  p88_cc_title: ['Failed courier calls · {shop}', 'ফেইলড কুরিয়ার কল · {shop}'], p88_cc_all: ['The whole courier key log', 'পুরো কুরিয়ার কী লগ'],
+  p88_wt_title: ['Waiting for you · {shop}', 'আপনার অপেক্ষায় · {shop}'],
+  p88_wt_customers: ["{n} shopper payments wait for the seller to check. Their amounts and senders stay the seller's.", '{n}টা কাস্টমার পেমেন্ট সেলারের যাচাইয়ের অপেক্ষায়। টাকা আর কে পাঠিয়েছে, তা সেলারেরই থাকে।'],
+  p88_sl_title: ['Sales · {shop}', 'সেলস · {shop}'],
+  p88_p_week: ['This week', 'এই সপ্তাহ'], p88_p_month: ['This month', 'এই মাস'], p88_p_last: ['Last month', 'গত মাস'], p88_p_year: ['This year', 'এই বছর'],
+  p88_sl_orders: ['Delivered orders', 'ডেলিভারড অর্ডার'], p88_sl_revenue: ['Sales, tax included', 'সেলস, ট্যাক্সসহ'], p88_sl_delivery: ['Delivery charged', 'ডেলিভারি চার্জ'], p88_sl_courier: ['Couriers charged', 'কুরিয়ার চার্জ'],
+  p88_c_week: ['Week', 'সপ্তাহ'],
+
+  /* the audit log (ADM-08, D8-11) */
+  p88_au_sub: ['Every action on the platform: who, what, which shop, and why. Nothing here can be changed or deleted.', 'প্ল্যাটফর্মের প্রতিটা কাজ: কে, কী, কোন শপে, কেন। এখানের কিছুই বদলানো বা ডিলিট করা যায় না।'],
+  p88_f_shop: ['Shop', 'শপ'], p88_f_who: ['Who', 'কে'], p88_f_action: ['Action', 'অ্যাকশন'], p88_f_from: ['From', 'থেকে'], p88_f_to: ['To', 'পর্যন্ত'],
+  p88_anyone: ['Anyone', 'যে কেউ'], p88_any_shop: ['Any shop', 'যেকোনো শপ'], p88_any_action: ['Any action', 'যেকোনো অ্যাকশন'], p88_only_mine: ['Only mine', 'শুধু আমার'],
+  p88_clear: ['Clear filters', 'ফিল্টার মুছুন'],
+  p88_who_system: ['Lytro, by itself', 'Lytro, নিজে থেকে'], p88_who_owner: ['The shop owner', 'শপ ওনার'],
+  p88_au_entry: ['Audit entry', 'অডিট এন্ট্রি'], p88_au_recorded: ['What it recorded', 'কী রেকর্ড হয়েছে'], p88_au_target: ['Target', 'টার্গেট'],
+  p88_au_only_this: ["Only this person's", 'শুধু এনার'], p88_au_only_shop: ["Only this shop's", 'শুধু এই শপের'],
+  p88_au_empty: ['Nothing matches these filters', 'এই ফিল্টারে কিছু মেলেনি'], p88_au_empty_hint: ['Clear a filter or widen the days.', 'একটা ফিল্টার মুছুন বা দিনের সীমা বাড়ান।'],
+  p88_a_plan_extended: ['Plan extended', 'মেয়াদ বাড়ানো'], p88_a_manual_entry_recorded: ['Payment recorded by hand', 'হাতে পেমেন্ট রেকর্ড'], p88_a_manual_entry_reversed: ['Manual entry reversed', 'ম্যানুয়াল এন্ট্রি রিভার্স'],
+  p88_a_usage_fast_spend_alerted: ['Fast spending alerted', 'দ্রুত খরচের অ্যালার্ট'], p88_a_settings_changed: ['Setting changed', 'সেটিং বদল'], p88_a_plan_payment_verified: ['Payment approved', 'পেমেন্ট অ্যাপ্রুভ'],
+  p88_a_notice_acknowledged: ['Notice understood', 'নোটিশ বুঝেছেন'], p88_a_tenant_suspended: ['Shop suspended', 'শপ সাসপেন্ড'], p88_a_payment_method_type_retired: ['Wallet type retired', 'ওয়ালেট টাইপ রিটায়ার'],
+  p88_a_owner_sign_in_reset: ["Owner's sign-in reset", 'ওনারের লগইন রিসেট'], p88_a_shop_data_deletion_requested: ['Shop data deleted on request', 'অনুরোধে শপের ডেটা ডিলিট'], p88_a_balance_adjusted: ['Balance adjusted', 'ব্যালেন্স অ্যাডজাস্ট'],
+  p88_a_rate_changed: ['Rate changed', 'রেট বদল'], p88_a_plan_assigned: ['Plan assigned', 'প্ল্যান অ্যাসাইন'], p88_a_plan_payment_rejected: ['Payment rejected', 'পেমেন্ট রিজেক্ট'],
+  p88_s_days: ['Days', 'দিন'], p88_s_from: ['From', 'থেকে'], p88_s_to: ['To', 'পর্যন্ত'], p88_s_reason: ['Reason', 'কারণ'], p88_s_restored: ['Brought back', 'ফিরিয়ে আনা'],
+  p88_s_key: ['Setting', 'সেটিং'], p88_s_old: ['Was', 'আগে'], p88_s_new: ['Now', 'এখন'], p88_s_amount: ['Amount', 'টাকা'], p88_s_kind: ['Kind', 'ধরন'], p88_s_method: ['Type', 'টাইপ'],
+  p88_yes: ['Yes', 'হ্যাঁ'], p88_no: ['No', 'না'],
+
+  /* reports (ADM-09, D8-40 to D8-46) */
+  p88_rp_sub: ['What Lytro earned, how shops come and go, and who uses most. Each as a CSV too.', 'Lytro কত আয় করল, শপ কীভাবে আসছে-যাচ্ছে, আর কে সবচেয়ে বেশি ব্যবহার করছে। প্রতিটা CSV হিসেবেও।'],
+  p88_rp_revenue: ['Revenue', 'আয়'], p88_rp_shops: ['Shops', 'শপ'], p88_rp_consumers: ['Top consumers', 'টপ কনজিউমার'],
+  p88_split: ['Split by', 'ভাগ'], p88_s_week: ['Week', 'সপ্তাহ'], p88_s_month: ['Month', 'মাস'], p88_s_quarter: ['Quarter', 'কোয়ার্টার'], p88_s_year: ['Year', 'বছর'],
+  p88_p_this_month: ['This month', 'এই মাস'], p88_p_last_month: ['Last month', 'গত মাস'], p88_p_quarter: ['This quarter', 'এই কোয়ার্টার'], p88_p_this_year: ['This year', 'এই বছর'],
+  p88_export: ['Export CSV', 'CSV এক্সপোর্ট'],
+  p88_earned: ['Earned', 'আয়'], p88_earned_d: ['Wallets, balances and plans recorded by hand, less what was given back', 'ওয়ালেট, ব্যালেন্স আর হাতে রেকর্ড করা প্ল্যান, ফেরত দেওয়াটা বাদে'],
+  p88_wallets: ['Paid to wallets', 'ওয়ালেটে পেইড'], p88_wallets_d: ['Plans and add-ons, each with a TrxID', 'প্ল্যান আর অ্যাড-অন, প্রতিটা TrxID সহ'],
+  p88_balances: ['Spent from balances', 'ব্যালেন্স থেকে খরচ'], p88_balances_d: ['A top-up counts only when spent', 'টপ-আপ খরচ হলে তবেই গোনা'],
+  p88_byhand: ['Recorded by hand', 'হাতে রেকর্ড'], p88_byhand_d: ['Plans, less reversals · {a} in top-ups too', 'প্ল্যান, রিভার্সাল বাদে · এছাড়া {a} টপ-আপ'],
+  p88_givenback: ['Given back', 'ফেরত'], p88_c_period: ['Period', 'সময়'],
+  p88_recorded_since: ['Spending from balances is counted from {d}, the first night recorded.', 'ব্যালেন্স থেকে খরচ গোনা হচ্ছে {d} থেকে, প্রথম যে রাত রেকর্ড হয়েছে।'],
+  p88_rv_note: ["It won't match the wallet statements: a top-up is earned only when it's spent.", 'ওয়ালেট স্টেটমেন্টের সাথে মিলবে না: টপ-আপ খরচ হলে তবেই আয়।'],
+  p88_breakdown: ['How the total is made', 'মোটটা কীভাবে হলো'],
+  p88_b_purchase: ['Plans bought', 'প্ল্যান কেনা'], p88_b_renewal: ['Renewals', 'রিনিউ'], p88_b_upgrade: ['Upgrades', 'আপগ্রেড'], p88_b_addon: ['Add-ons', 'অ্যাড-অন'],
+  p88_l_plan_payment: ['Plans paid from balance', 'ব্যালেন্স থেকে প্ল্যান'], p88_l_addon: ['Add-ons from balance', 'ব্যালেন্স থেকে অ্যাড-অন'], p88_l_sms: ['SMS', 'SMS'],
+  p88_l_verification_fee: ['Verification fees', 'ভেরিফিকেশন ফি'], p88_l_order_fee: ['Order fees', 'অর্ডার ফি'], p88_l_product_fee: ['Product fees', 'প্রোডাক্ট ফি'],
+  p88_l_ai: ['Address reads', 'ঠিকানা পড়া'], p88_l_fraud_check: ['Fraud checks', 'ফ্রড চেক'],
+  p88_mh_plans: ['Plans recorded', 'রেকর্ড করা প্ল্যান'], p88_mh_plans_rev: ['Plans reversed', 'রিভার্স করা প্ল্যান'], p88_mh_topups: ['Top-ups recorded, not earned', 'রেকর্ড করা টপ-আপ, আয় নয়'], p88_mh_topups_rev: ['Top-ups reversed', 'রিভার্স করা টপ-আপ'],
+  p88_sh_total: ['Shops now', 'এখন শপ'], p88_sh_bystate: ['By state, now', 'স্টেট অনুযায়ী, এখন'], p88_sh_byplan: ['By plan, now', 'প্ল্যান অনুযায়ী, এখন'],
+  p88_sh_opened: ['Opened', 'খোলা হয়েছে'], p88_sh_paying: ['First paid', 'প্রথম পেমেন্ট'], p88_sh_lapsed: ['Lapsed', 'মেয়াদ পেরিয়েছে'],
+  p88_sh_note: ['Lapses are counted from the first night recorded.', 'মেয়াদ পেরোনো গোনা হচ্ছে প্রথম রেকর্ড করা রাত থেকে।'], p88_sh_moves: ['Coming and going', 'আসা-যাওয়া'],
+  p88_cn_storage: ['Storage', 'স্টোরেজ'], p88_cn_bandwidth: ['Bandwidth', 'ব্যান্ডউইথ'], p88_cn_sms: ['SMS', 'SMS'],
+  p88_cn_sub: ["The 20 shops that used most in the period, each with its owner's phone, so you can call a heavy user.", 'সময়টাতে সবচেয়ে বেশি ব্যবহার করা ২০টা শপ, প্রতিটার ওনারের ফোনসহ, যাতে বেশি ব্যবহারকারীকে কল করা যায়।'],
+  p88_c_used: ['Used', 'ব্যবহার'], p88_sms_units: ['{n} SMS units', '{n} SMS ইউনিট'],
+
+  /* manual entries (ADM-14 to ADM-16, D8-47 to D8-56) */
+  p88_mn_sub: ['Payments that reached Lytro outside the normal flow, recorded by hand. An entry is never changed: a reversal corrects it.', 'স্বাভাবিক পথের বাইরে Lytro-তে আসা পেমেন্ট, হাতে রেকর্ড করা। এন্ট্রি কখনো বদলায় না: ভুল হলে রিভার্স করে ঠিক করা হয়।'],
+  p88_mn_new: ['Record a payment', 'পেমেন্ট রেকর্ড করুন'],
+  p88_mn_today: ['{n} entries today. Past 10 a day, or over ৳10,000, the amount is typed twice.', 'আজ {n}টা এন্ট্রি। দিনে ১০টার বেশি, বা ৳১০,০০০-এর বেশি হলে টাকার অঙ্ক দুবার লিখতে হয়।'],
+  p88_c_what: ['What', 'কী'], p88_c_paid: ['Paid by', 'কীভাবে'], p88_c_evidence: ['Evidence', 'প্রমাণ'], p88_c_by: ['By', 'কে'],
+  p88_shot: ['Screenshot', 'স্ক্রিনশট'], p88_line: ['Statement line', 'স্টেটমেন্টের লাইন'],
+  p88_reversal_of: ['Reverses the entry of {d}', '{d}-এর এন্ট্রি রিভার্স'], p88_reversed: ['Reversed', 'রিভার্সড'],
+  p88_mn_empty: ['No entries', 'কোনো এন্ট্রি নেই'], p88_mn_empty_hint: ['A payment recorded by hand appears here, and so does its reversal.', 'হাতে রেকর্ড করা পেমেন্ট এখানে দেখাবে, রিভার্সালও।'],
+  p88_mf_kind: ['What was paid for', 'কীসের পেমেন্ট'],
+  p88_mf_plan_k: ['A plan', 'প্ল্যান'], p88_mf_plan_kd: ['Buys or renews it; the server says which.', 'কেনা বা রিনিউ; কোনটা, সার্ভার বলবে।'],
+  p88_mf_upgrade_k: ['An upgrade', 'আপগ্রেড'], p88_mf_upgrade_kd: ['To a higher plan, with credit for the time left.', 'বড় প্ল্যানে, বাকি সময়ের ক্রেডিটসহ।'],
+  p88_mf_topup_k: ['A top-up', 'টপ-আপ'], p88_mf_topup_kd: ['What arrived goes on the balance.', 'যা এসেছে তা ব্যালেন্সে যাবে।'],
+  p88_mf_term: ['Billing term', 'বিলিং টার্ম'],
+  p88_pv_title: ['What it records', 'কী রেকর্ড হবে'], p88_pv_until: ['Until {d}', '{d} পর্যন্ত'], p88_pv_addons: ['Carries {a}', 'সাথে থাকছে {a}'],
+  p88_pv_note: ["Priced today by the same code as the seller's own renewal. If a different amount arrived, record it as a top-up and buy the plan from the balance.", 'আজকের দামে, সেলারের নিজের রিনিউয়ের একই কোডে। অন্য অঙ্ক এলে সেটা টপ-আপ হিসেবে রেকর্ড করে ব্যালেন্স থেকে প্ল্যান কিনুন।'],
+  p88_mf_amount: ['Amount that arrived', 'যত টাকা এসেছে'], p88_mf_wallet: ["Lytro's number it reached", 'Lytro-র যে নম্বরে এসেছে'],
+  p88_mf_sender: ["Sender's number", 'যে নম্বর থেকে পাঠানো'], p88_mf_paidat: ['When it was paid', 'কখন পেমেন্ট হয়েছে'],
+  p88_mf_evidence: ['Evidence', 'প্রমাণ'], p88_mf_upload: ['Attach a screenshot', 'স্ক্রিনশট দিন'],
+  p88_mf_upload_d: ['JPG, PNG, WebP or PDF, up to 5 MB. Kept privately, for operators only, for two years.', 'JPG, PNG, WebP বা PDF, ৫ MB পর্যন্ত। গোপনে রাখা হয়, শুধু অপারেটরদের জন্য, দুই বছর।'],
+  p88_mf_or_line: ['Or type the statement line', 'অথবা স্টেটমেন্টের লাইনটা লিখুন'],
+  p88_mf_cons: ['It activates exactly as approving it in the queue would: the plan, its invoice and the ledger. The owner is told by email, in the bell and by push.', 'কিউ থেকে অ্যাপ্রুভ করলে যেভাবে হয় ঠিক সেভাবেই চালু হবে: প্ল্যান, ইনভয়েস আর লেজার। ওনারকে ইমেইলে, বেলে আর পুশে জানানো হবে।'],
+  p88_mf_cons_topup: ['It goes on the balance once, as a top-up would. The owner is told by email, in the bell and by push.', 'টপ-আপের মতোই একবার ব্যালেন্সে যাবে। ওনারকে ইমেইলে, বেলে আর পুশে জানানো হবে।'],
+  p88_mf_btn: ['Record {a}', '{a} রেকর্ড করুন'],
+  p88_mf_done: ['Payment recorded. {shop} is on {plan} until {d}.', 'পেমেন্ট রেকর্ড হয়েছে। {shop} {d} পর্যন্ত {plan}-এ।'],
+  p88_mf_confirm_banner: ['Over ৳10,000: type the amount again to confirm.', '৳১০,০০০-এর বেশি: কনফার্ম করতে অঙ্কটা আবার লিখুন।'],
+  p88_mf_confirm: ['The amount again', 'অঙ্কটা আবার'],
+  p88_mf_trx_used: ['This transaction ID has already been used.', 'এই ট্রানজ্যাকশন আইডি ইতিমধ্যে ব্যবহৃত হয়েছে।'],
+  p88_mf_changed: ['The price is now {a}, not what you were shown. Check it, then record again.', 'দাম এখন {a}, আপনাকে যা দেখানো হয়েছিল তা নয়। দেখে নিয়ে আবার রেকর্ড করুন।'],
+  p88_mf_shop_search: ['Search by name, address or phone', 'নাম, অ্যাড্রেস বা ফোন দিয়ে খুঁজুন'],
+  p88_me_open_shot: ['Open the screenshot', 'স্ক্রিনশট খুলুন'], p88_me_link_note: ['The link lasts five minutes.', 'লিংকটা পাঁচ মিনিট থাকে।'],
+  p88_me_gone: ['This screenshot was removed after two years.', 'দুই বছর পর এই স্ক্রিনশটটি মুছে ফেলা হয়েছে।'],
+  p88_me_reverse: ['Reverse', 'রিভার্স'], p88_me_reversed_by: ['Reversed {d} by {who}: {r}', '{d}-এ {who} রিভার্স করেছেন: {r}'],
+  p88_rv_title: ['Reverse this entry?', 'এই এন্ট্রি রিভার্স করবেন?'],
+  p88_rv_cons_plan: ['<b>{shop} goes back as it stood</b> before this entry: its plan, period and state, and a frozen balance. A credit note takes the invoice back, and the add-ons it carried end. The entry stays, with this reversal beside it, and its TrxID may be recorded again against the right shop.', 'এই এন্ট্রির আগে <b>{shop} যেমন ছিল তেমন হয়ে যাবে</b>: প্ল্যান, মেয়াদ, স্টেট, আর ফ্রোজেন ব্যালেন্স। একটা ক্রেডিট নোট ইনভয়েসটা ফিরিয়ে নেবে, সাথে আসা অ্যাড-অনগুলো শেষ হবে। এন্ট্রিটা থেকে যাবে, পাশে এই রিভার্সাল, আর এর TrxID সঠিক শপে আবার রেকর্ড করা যাবে।'],
+  p88_rv_cons_topup: ["<b>{a} comes off {shop}'s balance</b>, even if it was spent or is frozen, and even below zero: the money never arrived.", '<b>{shop}-এর ব্যালেন্স থেকে {a} কেটে নেওয়া হবে</b>, খরচ হয়ে গেলেও বা ফ্রোজেন থাকলেও, দরকারে শূন্যের নিচে: টাকাটা আসলে আসেনি।'],
+  p88_rv_reason_help: ['Required. The owner reads it: it goes in their email and bell notice.', 'লাগবেই। ওনার এটা পড়বেন: ইমেইল আর বেলের নোটিশে যাবে।'],
+  p88_rv_btn: ['Reverse {a}', '{a} রিভার্স করুন'], p88_rv_done: ['Entry reversed. {shop} was told.', 'এন্ট্রি রিভার্স হয়েছে। {shop}-কে জানানো হয়েছে।'],
+  p88_rv_moved: ["The shop's plan has changed since this entry, so it can't be put back. Reverse the later payment first.", 'এই এন্ট্রির পরে শপের প্ল্যান বদলে গেছে, তাই আগের অবস্থায় ফেরানো যাবে না। আগে পরের পেমেন্টটি রিভার্স করুন।'],
+
+  /* the seller's screenshot in the queue (ADM-17, D8-15, D8-54) */
+  p88_q_shot: ["The seller's screenshot", 'সেলারের স্ক্রিনশট'],
+  p88_q_shot_none: ["No screenshot. It's optional, so most payments have none.", 'কোনো স্ক্রিনশট নেই। এটা ঐচ্ছিক, তাই বেশিরভাগ পেমেন্টে থাকে না।'],
+  p88_q_shot_note: ["A screenshot is the seller's word, not the money. Match the TrxID against the statement.", 'স্ক্রিনশট সেলারের দাবি, টাকা নয়। TrxID স্টেটমেন্টের সাথে মিলিয়ে নিন।'],
+  p88_q_shot_title: ['Screenshot · {trx}', 'স্ক্রিনশট · {trx}'],
+
+  /* media costs (MED-12, D8-57 to D8-64) */
+  p88_md_sub: ['What Cloudflare will bill Lytro for media this period, held against your budget. In US dollars, as Cloudflare bills.', 'এই পিরিয়ডে মিডিয়ার জন্য Cloudflare Lytro-কে কত বিল করবে, আপনার বাজেটের সাথে মিলিয়ে। US ডলারে, যেভাবে Cloudflare বিল করে।'],
+  p88_md_period: ['Billing period', 'বিলিং পিরিয়ড'], p88_md_running: ['running', 'চলছে'],
+  p88_md_estimate: ['Estimate so far', 'এখন পর্যন্ত আনুমানিক'], p88_md_est_d: ['{n} of {m} days read', '{m} দিনের {n} দিন পড়া হয়েছে'],
+  p88_md_budget: ['Budget', 'বাজেট'], p88_md_budget_d: ['The alert goes at {p}%', '{p}%-এ অ্যালার্ট যায়'], p88_md_used: ['{p}% of the budget', 'বাজেটের {p}%'],
+  p88_md_read: ['Read from Cloudflare {ago} ago', '{ago} আগে Cloudflare থেকে পড়া'],
+  p88_md_r2: ['R2 storage', 'R2 স্টোরেজ'], p88_md_classA: ['Class A operations', 'Class A অপারেশন'], p88_md_classA_d: ['Writes and lists', 'লেখা আর লিস্ট'],
+  p88_md_classB: ['Class B operations', 'Class B অপারেশন'], p88_md_classB_d: ['Reads', 'পড়া'], p88_md_storage: ['Storage', 'স্টোরেজ'],
+  p88_md_line: ['{u} · {f} free · {b} billable', '{u} · {f} ফ্রি · {b} বিলযোগ্য'],
+  p88_md_mops: ['{n} million', '{n} মিলিয়ন'], p88_md_gbm: ['{n} GB-months', '{n} GB-মাস'],
+  p88_c_bucket: ['Bucket', 'বাকেট'], p88_c_ops_a: ['Class A', 'Class A'], p88_c_ops_b: ['Class B', 'Class B'], p88_c_freeops: ['Free ops', 'ফ্রি অপস'],
+  p88_c_gbm: ['GB-months', 'GB-মাস'], p88_c_size: ['Size now', 'এখন সাইজ'], p88_c_objects: ['Objects', 'অবজেক্ট'],
+  p88_md_account: ['Account, not a bucket', 'অ্যাকাউন্ট, বাকেট নয়'], p88_md_bk_media: ['Shop media', 'শপের মিডিয়া'], p88_md_bk_evidence: ['Payment screenshots', 'পেমেন্টের স্ক্রিনশট'],
+  p88_md_workers: ['The media Worker', 'মিডিয়া Worker'], p88_md_requests: ['Requests', 'রিকোয়েস্ট'], p88_md_bytes: ['Bytes served', 'সার্ভ করা ডেটা'],
+  p88_md_monthly: ['Workers plan, a month', 'Workers প্ল্যান, মাসে'], p88_md_wline: ['{n} million included · {b} billable', '{n} মিলিয়ন ইনক্লুডেড · {b} বিলযোগ্য'],
+  p88_md_top: ['Shops with the most requests', 'সবচেয়ে বেশি রিকোয়েস্টের শপ'], p88_md_buckets: ['Buckets', 'বাকেট'], p88_md_lastread: ['Last read from Cloudflare', 'Cloudflare থেকে শেষ পড়া'], p88_md_total: ['Total', 'মোট'],
+  p88_md_alerted: ['The alert went to {e} on {d}, at {p}% of the budget. It goes once a period.', 'অ্যালার্ট {d}-এ {e}-তে গেছে, বাজেটের {p}%-এ। প্রতি পিরিয়ডে একবারই যায়।'],
+  p88_md_noemail: ['No alert address is set, so at {p}% the alert is only logged.', 'কোনো অ্যালার্ট ঠিকানা সেট করা নেই, তাই {p}%-এ অ্যালার্ট শুধু লগে থাকবে।'],
+  p88_md_set: ['Set it in Settings', 'সেটিংসে সেট করুন'],
+  p88_md_off: ["Cloudflare isn't connected: the server has no Cloudflare token, so R2 hasn't been read. The Worker's requests are still counted.", 'Cloudflare কানেক্টেড নয়: সার্ভারে Cloudflare টোকেন নেই, তাই R2 পড়া হয়নি। Worker-এর রিকোয়েস্ট তবুও গোনা হচ্ছে।'],
+  p88_md_prices: ['Prices from Settings: R2 {a} and {b} a million, {c} a GB-month; Workers {d} a month and {e} a million past {f} million.', 'সেটিংসের দাম: R2 মিলিয়নে {a} আর {b}, GB-মাসে {c}; Workers মাসে {d}, আর {f} মিলিয়নের পরে মিলিয়নে {e}।'],
+  p88_md_not_counted: ["Workers' CPU time, KV and Analytics Engine aren't counted.", 'Workers-এর CPU টাইম, KV আর Analytics Engine গোনা হয় না।'],
+
+  /* wallet types (WAL-18, D8-65 to D8-67) */
+  p88_wt_sub: ['The payment methods shops can take from their customers. Retiring one hides it from shops that never set it up; shops that did keep it. Removing it comes once nothing uses it.', 'শপগুলো কাস্টমারের কাছ থেকে যেসব পেমেন্ট মেথডে টাকা নিতে পারে। রিটায়ার করলে যারা কখনো সেট আপ করেনি তারা আর দেখবে না; যারা করেছে তারা রাখবে। কিছুই ব্যবহার না করলে তবে রিমুভ।'],
+  p88_wt_lytro_note: ['How shops pay Lytro is on Payment methods.', 'শপগুলো Lytro-কে কীভাবে পেমেন্ট করে, তা পেমেন্ট মেথড পেজে।'],
+  p88_c_type: ['Type', 'টাইপ'], p88_c_on: ['Shops with it on', 'চালু করা শপ'], p88_c_accounts: ['With an account', 'অ্যাকাউন্ট আছে'],
+  p88_c_open: ['Open payments', 'খোলা পেমেন্ট'], p88_wt_accounts: ['{n} shops have an account for it', '{n}টা শপে এর অ্যাকাউন্ট আছে'], p88_c_lytro: ["Lytro's own page", 'Lytro-র নিজের পেজ'], p88_takes: ['Takes it', 'নেয়'], p88_takes_not: ["Doesn't", 'নেয় না'],
+  p88_kind_wallet: ['Wallet', 'ওয়ালেট'], p88_kind_bank: ['Bank', 'ব্যাংক'],
+  p88_wt_retiring_line: ['Retiring since {d}', '{d} থেকে রিটায়ারিং'],
+  p88_wt_removed_line: ['Removed {d}. Past payments keep what they were paid into.', '{d} রিমুভ করা হয়েছে। আগের পেমেন্ট যেখানে এসেছিল সেখানেই থাকবে।'],
+  p88_wt_banner: ['<b>{c}</b> is retiring. Shops that set it up keep taking it; no other shop can start it.', '<b>{c}</b> রিটায়ার হচ্ছে। যেসব শপ সেট আপ করেছে তারা নিতে থাকবে; অন্য কোনো শপ নতুন করে চালু করতে পারবে না।'],
+  p88_wr_title: ['Retire {c}?', '{c} রিটায়ার করবেন?'],
+  p88_wr_sub: ['{n} shops have it on · {m} have an account for it', '{n}টা শপে চালু · {m}টা শপে অ্যাকাউন্ট আছে'],
+  p88_wr_cons: ["Shops that never set {c} up stop seeing it and can't start it. <b>Every shop that set it up keeps it whole</b>: checkout, its accounts, and switching it on and off, and its dashboard marks it retiring. Each is told in its activity log, and its owner gets a notice in the bell and by push, in Lytro's own words.", 'যেসব শপ কখনো {c} সেট আপ করেনি তারা আর দেখবে না, চালুও করতে পারবে না। <b>যারা সেট আপ করেছে তারা পুরোটাই রাখবে</b>: চেকআউট, তাদের অ্যাকাউন্ট, আর চালু-বন্ধ করা; ড্যাশবোর্ডে রিটায়ারিং দেখাবে। প্রত্যেকের অ্যাক্টিভিটি লগে লেখা থাকবে, আর ওনার বেলে ও পুশে Lytro-র নিজের ভাষায় নোটিশ পাবেন।'],
+  p88_wr_lytro: ["Lytro's own payment page isn't touched. Before removing {c}, turn it off there yourself.", 'Lytro-র নিজের পেমেন্ট পেজে হাত দেওয়া হয় না। {c} রিমুভের আগে সেখানে নিজে বন্ধ করুন।'],
+  p88_wu_cons: ['Any shop can set {c} up again. The {n} shops told it was retiring hear it\'s back.', 'যেকোনো শপ আবার {c} সেট আপ করতে পারবে। রিটায়ারের খবর পাওয়া {n}টা শপকে জানানো হবে যে এটা ফিরে এসেছে।'],
+  p88_wb_title: ["{c} can't be removed yet", '{c} এখনো রিমুভ করা যাবে না'],
+  p88_wb_cons: ["Removal waits until no shop has it on, no shopper's payment is open on it, and Lytro's own page doesn't take it.", 'কোনো শপে চালু না থাকা, কোনো কাস্টমার পেমেন্ট খোলা না থাকা, আর Lytro-র নিজের পেজ না নেওয়া পর্যন্ত রিমুভ অপেক্ষা করে।'],
+  p88_wb_on_d: ['Each shop switches it off itself.', 'প্রতিটা শপ নিজে বন্ধ করবে।'],
+  p88_wb_open_d: ['Awaiting payment with it chosen, being checked, or waiting for a person.', 'এটা বেছে পেমেন্টের অপেক্ষায়, যাচাই হচ্ছে, বা কারো দেখার অপেক্ষায়।'],
+  p88_wb_lytro_d: ['Turn it off on Payment methods.', 'পেমেন্ট মেথড পেজে বন্ধ করুন।'], p88_wb_clear: ['Nothing holds it here.', 'এখানে কিছু আটকে নেই।'], p88_wb_go: ['Open Payment methods', 'পেমেন্ট মেথড খুলুন'],
+  p88_wm_title: ['Remove {c} for good?', '{c} একেবারে রিমুভ করবেন?'],
+  p88_wm_cons: ["<b>Every shop's {c} accounts, switch and way go</b>, with a line in each shop's activity log; past payments keep what they were paid into. {c} is gone from Lytro's own page too. No notice goes: the retiring one said removal takes the accounts. <b>This can't be undone.</b>", '<b>সব শপের {c} অ্যাকাউন্ট, সুইচ আর পদ্ধতি চলে যাবে</b>, প্রতিটা শপের অ্যাক্টিভিটি লগে এক লাইন থাকবে; আগের পেমেন্ট যেখানে এসেছিল সেখানেই থাকবে। Lytro-র নিজের পেজ থেকেও {c} চলে যাবে। নতুন নোটিশ যাবে না: রিটায়ারের নোটিশেই বলা ছিল রিমুভ করলে অ্যাকাউন্ট চলে যাবে। <b>এটা আর ফেরানো যাবে না।</b>'],
+  p88_wm_btn: ['Remove {c}', '{c} রিমুভ করুন'],
+  p88_wm_done: ['{c} is removed. Past payments keep their records.', '{c} রিমুভ হয়েছে। আগের পেমেন্টের রেকর্ড থেকে যাবে।'],
+
+  /* settings: the help line and media costs (D8-68, D8-58 to D8-61) */
+  se_g14: ['Help line', 'হেল্প লাইন'], se_g15: ['Media costs', 'মিডিয়া খরচ'],
+  sn_help_whatsapp: ["Lytro's WhatsApp", 'Lytro-র WhatsApp'], sn_help_phone: ["Lytro's phone for calls", 'কলের জন্য Lytro-র ফোন'],
+  sn_help_opens_hour: ['Opens', 'খোলে'], sn_help_closes_hour: ['Closes', 'বন্ধ হয়'],
+  sn_media_budget_usd: ['Budget a month', 'মাসে বাজেট'], sn_media_budget_alert_percent: ['Alert at', 'অ্যালার্ট'],
+  sn_media_cost_alert_email: ['Alert goes to', 'অ্যালার্ট যাবে'], sn_cloudflare_billing_day: ['Billing period starts', 'বিলিং পিরিয়ড শুরু'], sn_cloudflare_prices: ["Cloudflare's prices", 'Cloudflare-এর দাম'],
+  p88_not_set: ['Not set', 'সেট করা নেই'], p88_every_day: ['every day', 'প্রতিদিন'], p88_day_of_month: ['day {n} of each month', 'প্রতি মাসের {n} তারিখ'],
+  p88_help_note: ["Shown on the dashboard's Help row, Lytro's payment page, the website's contact page and the listener app. If only one number is set, it stands in for the other. Hours are Dhaka time, every day.", 'ড্যাশবোর্ডের হেল্প রো, Lytro-র পেমেন্ট পেজ, ওয়েবসাইটের যোগাযোগ পেজ আর লিসেনার অ্যাপে দেখায়। একটা নম্বর সেট থাকলে সেটাই দুটোর কাজ করে। সময় ঢাকার, প্রতিদিন।'],
+  p88_help_phone_help: ["Any written form; it's saved as 01XXXXXXXXX.", 'যেভাবে খুশি লিখুন; 01XXXXXXXXX হিসেবে সেভ হবে।'],
+  p88_err_phone: ['Not a Bangladeshi mobile number.', 'বাংলাদেশি মোবাইল নম্বর নয়।'], p88_err_hour: ['A whole hour from 0 to 23.', '০ থেকে ২৩-এর মধ্যে একটা পুরো ঘণ্টা।'],
+  p88_hour_help: ['0 to 23, Dhaka time. 22 is 10 pm.', '০ থেকে ২৩, ঢাকার সময়। ২২ মানে রাত ১০টা।'],
+  p88_alert_email_note: ['Until it is set, the alert is only logged.', 'সেট না হওয়া পর্যন্ত অ্যালার্ট শুধু লগে থাকে।'],
+  p88_pr_lead: ["What the estimate uses, from Cloudflare's R2 and Workers pricing pages. Change them when Cloudflare does.", 'আনুমানিক হিসাব এগুলো দিয়েই হয়, Cloudflare-এর R2 আর Workers প্রাইসিং পেজ থেকে। Cloudflare বদলালে আপনিও বদলান।'],
+  p88_pr_a: ['R2 Class A, a million', 'R2 Class A, মিলিয়নে'], p88_pr_b: ['R2 Class B, a million', 'R2 Class B, মিলিয়নে'], p88_pr_s: ['R2 storage, a GB-month', 'R2 স্টোরেজ, GB-মাসে'],
+  p88_pr_fa: ['Free Class A, millions a month', 'ফ্রি Class A, মাসে মিলিয়ন'], p88_pr_fb: ['Free Class B, millions a month', 'ফ্রি Class B, মাসে মিলিয়ন'], p88_pr_fs: ['Free storage, GB-months', 'ফ্রি স্টোরেজ, GB-মাস'],
+  p88_pr_wm: ['Workers plan, a month', 'Workers প্ল্যান, মাসে'], p88_pr_wi: ['Workers requests included, millions', 'Workers-এ ইনক্লুডেড রিকোয়েস্ট, মিলিয়ন'], p88_pr_wp: ['Workers past that, a million', 'এর পরে Workers, মিলিয়নে'],
+  p88_pr_summary: ['R2 {a} / {b} a million, {c} a GB-month · Workers {d} a month', 'R2 মিলিয়নে {a} / {b}, GB-মাসে {c} · Workers মাসে {d}'],
+  p88_pr_err: ['Each price is a number from 0 to 1,000, and each allowance a whole number.', 'প্রতিটা দাম ০ থেকে ১,০০০-এর মধ্যে একটা সংখ্যা, আর প্রতিটা অ্যালাওয়েন্স একটা পূর্ণ সংখ্যা।'],
+
+  /* Today: the platform figures are real now */
+  p88_td_figs_d: ['This month so far, from the reports', 'এই মাসে এখন পর্যন্ত, রিপোর্ট থেকে'], p88_td_open: ['Open reports', 'রিপোর্ট খুলুন'],
+  p88_td_shops: ['Shops', 'শপ'], p88_td_new: ['Opened', 'নতুন খোলা'], p88_td_earned: ['Earned', 'আয়'],
+});
+
+I.cards = '<svg class="i" viewBox="0 0 24 24"><rect x="2.5" y="7" width="15" height="11" rx="2"/><path d="M6.5 7V5.5a1.5 1.5 0 0 1 1.5-1.5h12a1.5 1.5 0 0 1 1.5 1.5V14a1.5 1.5 0 0 1-1.5 1.5h-2.5"/><path d="M2.5 11h15"/></svg>';
+
+document.head.insertAdjacentHTML('beforeend', `<style id="p88-css">
+.p88-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.p88-pick{display:flex;flex-direction:column;gap:4px;min-width:0}
+.p88-pick > span{font-size:12px;font-weight:600;color:var(--n700)}
+.p88-pick .select,.p88-pick .input{height:40px;font-size:14px}
+.p88-pick.wide{grid-column:1/-1}
+.p88-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.p88-stats .stat{text-align:left;font:inherit;color:inherit}
+.p88-stats .stat .d{color:var(--muted)}
+.p88-stats .stat.p88-span{grid-column:1/-1}
+.p88-meter{height:8px;border-radius:999px;background:var(--n100);position:relative}
+.p88-meter > i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:var(--primary);max-width:100%}
+.p88-meter > i.warn{background:var(--mar-500)}
+.p88-meter > i.bad{background:var(--danger)}
+.p88-meter > b{position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:1px;background:var(--ink)}
+.p88-use{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+.p88-use:first-child{border-top:0}
+.p88-use .h{display:flex;justify-content:space-between;gap:12px;font-size:14px;flex-wrap:wrap}
+.p88-use .h .num{color:var(--muted);font-size:13px}
+.p88-orders{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 16px;margin-top:8px}
+.p88-orders > div{display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:4px 0;border-bottom:1px dashed var(--line)}
+.p88-orders > div.zero{color:var(--muted)}
+.p88-orders b{font-variant-numeric:tabular-nums}
+.p88-preview{background:var(--teal-50);border:1px solid var(--teal-200);border-radius:8px;padding:12px 14px;font-size:14px;display:flex;flex-direction:column;gap:4px}
+.p88-preview .h{font-size:12px;font-weight:700;color:var(--teal-800);letter-spacing:.04em;text-transform:uppercase}
+.frame[data-lang=bn] .p88-preview .h{text-transform:none;letter-spacing:0;font-size:13px}
+.p88-drop{border:1.5px dashed var(--line-strong);border-radius:8px;padding:12px 14px;display:flex;gap:12px;align-items:center;color:var(--muted);font-size:13px;line-height:1.45}
+.p88-drop b{color:var(--ink);font-weight:600;display:block;font-size:14px}
+.p88-drop.done{border-style:solid;border-color:var(--teal-300);background:var(--teal-50)}
+.p88-or{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:600;color:var(--n700)}
+.p88-or::before,.p88-or::after{content:"";flex:1;height:1px;background:var(--line)}
+.p88-shot{margin:0 auto;width:220px;max-width:100%;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;box-shadow:var(--shadow)}
+.p88-shot .top{background:#CF2772;color:#fff;font-weight:700;padding:10px 12px;font-size:14px}
+.p88-shot .mid{padding:16px 12px;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;font-size:13px;color:#333}
+.p88-shot .ok{width:40px;height:40px;border-radius:50%;background:#e3f3e9;color:#1b7a43;display:flex;align-items:center;justify-content:center}
+.p88-shot .amt{font-size:22px;font-weight:800;color:#111}
+.p88-shot .kvs{width:100%;display:grid;grid-template-columns:auto 1fr;gap:4px 8px;text-align:left;font-size:12px;margin-top:4px}
+.p88-shot .kvs span:nth-child(odd){color:#777}
+.p88-shot .kvs span:nth-child(even){font-family:var(--font-mono);overflow-wrap:anywhere}
+.p88-big{font-family:var(--font-display);font-size:28px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.p88-kvs{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;font-size:14px}
+.p88-kvs .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+.p88-kvs .k{color:var(--n700);min-width:0}
+.p88-kvs .h{grid-column:1/-1;font-size:12px;font-weight:700;color:var(--n700);letter-spacing:.04em;text-transform:uppercase;margin-top:8px}
+.frame[data-lang=bn] .p88-kvs .h{text-transform:none;letter-spacing:0;font-size:13px}
+.p88-kvs .t{border-top:1px solid var(--line);padding-top:6px;font-weight:700}
+.p88-blk{display:flex;flex-direction:column;gap:10px}
+.p88-blk .row{min-height:0;padding:12px 14px;border:1px solid var(--line);border-radius:8px}
+.p88-blk .row.hold{border-color:#f3c3c6;background:var(--danger-soft)}
+.p88-blk .row.clear{background:var(--n50)}
+.p88-tr-total{font-weight:700;background:var(--n50)}
+.p88-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--n700)}
+.p88-mono-l{font-family:var(--font-mono);font-size:12px;color:var(--n700);overflow-wrap:anywhere}
+@container (min-width: 640px){
+  .p88-filters{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .p88-pick.wide{grid-column:auto}
+  .p88-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .p88-stats .stat.p88-span{grid-column:auto}
+  .p88-orders{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@container (min-width: 1024px){
+  .p88-stats.five{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .p88-stats.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+</style>`);
+
+/* ---------- sample data ---------- */
+const P88_OWNER = { 'ten-0001': '01712 345678', 'ten-0007': '01819 220011', 'ten-0012': '01611 908070', 'ten-0015': '01911 445566', 'ten-0019': '01815 345678', 'ten-0023': '01713 552200', 'ten-0028': '01911 223344', 'ten-0031': '01552 100200', 'ten-0034': '01611 223300', 'ten-0040': '01716 880011', 'ten-0044': '01822 450045', 'ten-0051': '01755 123321' };
+const P88_SCREEN_OF = { 'ten-0001': 'tenant', 'ten-0007': 'tenant-suspended', 'ten-0019': 'p88-tenant-grace', 'ten-0028': 'p88-tenant-locked' };
+const p88Open = (id) => P88_SCREEN_OF[id] || 'tenant';
+const T19 = tenantOf('ten-0019'), T28 = tenantOf('ten-0028'), T15 = tenantOf('ten-0015'), T40 = tenantOf('ten-0040');
+const p88Phone = (id) => P88_OWNER[id] || '—';
+const p88Bytes = (n) => (n >= 1e9 ? `${(n / 1e9).toFixed(n >= 1e10 ? 0 : 1)} GB` : `${Math.round(n / 1e6)} MB`);
+const usd = (n) => '$' + Number(n).toFixed(2);
+/* taka in reports: two places when there are paisa, a true minus sign, and never ৳-0 */
+const p88M = (n) => { const v = Math.round(Number(n) * 100) / 100; const s = '৳' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }); return v < 0 ? '−' + s : s; };
+const P88_OWNER_NAME = { 'ten-0001': 'Rahim Uddin', 'ten-0007': 'Mahbub Alam', 'ten-0019': 'Sadia Rahman', 'ten-0028': 'Keya Das' };
+const p88N = (n) => Number(n).toLocaleString('en-US');
+const p88Ago = (iso) => t('p88_ago', { t: ago(iso) });
+S.p88_ago = ['{t} ago', '{t} আগে'];
+
+/* ADM-03's figures for the drawn shops (GET /operator/tenants/:id/figures); a quiet shop is drawn for the rest. */
+const P88_FIG = {
+  'ten-0001': {
+    balance: { amount: 1350, frozen: false, held: 0 }, errors: 3, sms: { f: 2, b: 1, l: 1 }, courier: 2, waiting: { n: 1, a: 99, customers: 2 },
+    cycle: ['2026-10-15', '2026-11-14'], reads: { n: 4, a: 8 },
+    usage: [['products', 512, 600, 'count'], ['seats', 2, 3, 'count'], ['storage', 1.31e9, 2e9, 'bytes'], ['bandwidth', 18.4e9, 50e9, 'bytes'], ['requests', 141200, 240000, 'count'], ['orders_monthly', 212, 300, 'count'], ['essential_sms_monthly', 7, 10, 'count']],
+    signIns: [{ name: 'Rahim Uddin', phone: '01712 345678', owner: true, last: '2026-10-21T12:20:00+06:00' }, { name: 'Shila Akter', phone: '01911 220033', owner: false, last: '2026-10-18T09:10:00+06:00' }, { name: 'Karim Hossain', phone: '01715 000111', owner: false, last: null }],
+    orders: { unverified: 1, pending: 4, confirmed: 6, processing: 3, shipped: 11, delivered: 182, partial_delivered: 0, completed: 0, cancelled: 9, hold: 1, in_review: 0, refunded: 0, returned: 2, rejected: 0 },
+  },
+};
+function p88FigOf(x) {
+  if (ST.data === 'empty' || !P88_FIG[x.id]) {
+    const quiet = P88_FIG['ten-0001'];
+    const signIns = x.id === 'ten-0001' ? quiet.signIns : [{ name: P88_OWNER_NAME[x.id] || x.name, phone: p88Phone(x.id), owner: true, last: '2026-10-20T20:05:00+06:00' }];
+    return { ...quiet, signIns, balance: { amount: x.id === 'ten-0001' ? 1350 : 420, frozen: Boolean(x.suspendedAt) || ['grace', 'read_only', 'locked', 'archived'].includes(x.state), held: 0 }, errors: 0, sms: { f: 0, b: 0, l: 0 }, courier: 0, waiting: { n: 0, a: 0, customers: 0 }, reads: { n: 0, a: 0 } };
+  }
+  return P88_FIG[x.id];
+}
+
+/* The platform audit log as a busy morning leaves it (GET /operator/audit, newest first). */
+const P88_AUDIT = [
+  { id: 9412, at: '2026-10-21T14:12:00+06:00', who: 'ops@lytro.app', type: 'operator', action: 'plan_extended', shop: 'ten-0019', target: 'tenant', summary: { days: 7, from: '2026-10-19', to: '2026-10-26', reason: ["bKash was down for two days; the owner couldn't renew", 'দুই দিন bKash বন্ধ ছিল; ওনার রিনিউ করতে পারেননি'], restored: true } },
+  { id: 9409, at: '2026-10-21T13:40:00+06:00', who: 'ops@lytro.app', type: 'operator', action: 'manual_entry_recorded', shop: 'ten-0028', target: 'tenant', summary: { kind: 'renewal', amount: 4741, transactionId: 'NGD8K2P0XQ', reason: ['Paid to the Nagad number by mistake; statement checked', 'ভুল করে Nagad নম্বরে পাঠিয়েছেন; স্টেটমেন্ট মিলিয়ে দেখা'] } },
+  { id: 9401, at: '2026-10-21T12:05:00+06:00', who: null, type: 'system', action: 'usage_fast_spend_alerted', shop: 'ten-0034', target: 'tenant', summary: { percent: 60 } },
+  { id: 9398, at: '2026-10-21T11:30:00+06:00', who: 'ops@lytro.app', type: 'operator', action: 'settings_changed', shop: null, target: 'setting', summary: { key: 'media_budget_usd', oldValue: 10, newValue: 15, reason: ['Two new shops with video', 'ভিডিওসহ দুটো নতুন শপ'] } },
+  { id: 9390, at: '2026-10-21T10:02:00+06:00', who: 'nadia@lytro.app', type: 'operator', action: 'plan_payment_verified', shop: 'ten-0051', target: 'plan_payment', summary: { amount: 449, transactionId: 'BKH5T7Y1U3' } },
+  { id: 9377, at: '2026-10-20T19:44:00+06:00', who: null, type: 'shop_owner', action: 'notice_acknowledged', shop: 'ten-0001', target: 'notice', summary: { notice: ['Rate change: SMS from 1 November', 'রেট বদল: ১ নভেম্বর থেকে SMS'] } },
+  { id: 9361, at: '2026-10-20T15:10:00+06:00', who: 'ops@lytro.app', type: 'operator', action: 'balance_adjusted', shop: 'ten-0001', target: 'tenant', summary: { amount: -150, reason: ['SMS charged twice on 18 Oct', '১৮ অক্টোবর SMS দুবার চার্জ হয়েছে'] } },
+  { id: 9350, at: '2026-10-19T17:25:00+06:00', who: 'ops@lytro.app', type: 'operator', action: 'payment_method_type_retired', shop: null, target: 'payment_method_type', summary: { method: 'upay', reason: ['Upay settlements to shops have stalled for a month', 'এক মাস ধরে শপগুলোতে Upay-এর সেটলমেন্ট আটকে আছে'] } },
+  { id: 9322, at: '2026-10-19T11:00:00+06:00', who: 'ops@lytro.app', type: 'operator', action: 'plan_payment_verified', shop: 'ten-0001', target: 'plan_payment', summary: { amount: 449, transactionId: 'BKH2R8W4E6' } },
+  { id: 9301, at: '2026-10-12T10:05:00+06:00', who: 'nadia@lytro.app', type: 'operator', action: 'tenant_suspended', shop: 'ten-0007', target: 'tenant', summary: { reason: ['Counterfeit chargers reported by two shoppers; listings under review', 'দুজন ক্রেতা নকল চার্জারের অভিযোগ করেছেন; লিস্টিং রিভিউ চলছে'] } },
+];
+const p88Val = (v) => (Array.isArray(v) ? L2(v) : v);
+const p88Who = (e) => (e.type === 'system' ? t('p88_who_system') : e.type === 'shop_owner' ? t('p88_who_owner') : e.who);
+function p88AuditLine(e) {
+  const s = e.summary;
+  const r = s.reason ? p88Val(s.reason) : '';
+  if (e.action === 'plan_extended') return `${s.days} ${t('days')} · ${dateS(s.from)} → ${dateS(s.to)} · ${r}`;
+  if (e.action === 'settings_changed') return `<span class="mono">${s.key}</span>: ${s.oldValue} → ${s.newValue} · ${r}`;
+  if (e.action === 'manual_entry_recorded' || e.action === 'plan_payment_verified') return `${money(s.amount)} · <span class="mono">${s.transactionId}</span>${r ? ' · ' + r : ''}`;
+  if (e.action === 'balance_adjusted') return `${s.amount < 0 ? '−' + money(-s.amount) : money(s.amount)} · ${r}`;
+  if (e.action === 'usage_fast_spend_alerted') return `${s.percent}%`;
+  if (e.action === 'notice_acknowledged') return p88Val(s.notice);
+  if (e.action === 'payment_method_type_retired') return `Upay · ${r}`;
+  return r;
+}
+
+/* ---------- small pieces ---------- */
+const p88Pick = (label, control, wide) => `<label class="p88-pick ${wide ? 'wide' : ''}"><span>${label}</span>${control}</label>`;
+const p88Tabs = (items, active) => `<div class="chips">${items.map(([scr, k, c]) => `<button class="chip ${active === scr ? 'on' : ''}" onclick="go('${scr}')">${t(k)}${c !== undefined ? ` <span class="c">${c}</span>` : ''}</button>`).join('')}</div>`;
+const p88Meter = (used, limit, mark) => {
+  const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const cls = pct >= 95 ? 'bad' : pct >= 80 ? 'warn' : '';
+  return `<div class="p88-meter"><i class="${cls}" style="width:${pct}%"></i>${mark ? `<b style="left:${mark}%"></b>` : ''}</div>`;
+};
+const p88Stat = (k, v, d, o) => `<button class="stat lk ${o && o.flag ? 'flag' : ''} ${o && o.cls ? o.cls : ''}" ${o && o.to ? `onclick="go('${o.to}')"` : ''}><span class="k">${k}</span><span class="v ${o && o.flag ? 'warn' : ''}">${v}</span><span class="d">${d}</span></button>`;
+const p88Title = (h, sub, actions) => `<div class="ttl"><div><h1>${h}</h1>${sub ? `<div class="sub">${sub}</div>` : ''}</div>${actions ? `<div class="actions">${actions}</div>` : ''}</div>`;
+const p88ReasonShop = () => field(t('reason'), textarea('', ''), t('p88_reason_shop'));
+
+/* ---------- Shops: search by the owner's phone, filters and sorts (ADM-02, D8-7, D8-24) ---------- */
+function p88ShopRows(list) {
+  const cols = [
+    { k: 'shop', label: t('c_shop'), w: 'minmax(150px,1.4fr)', cls: 'main' },
+    { k: 'owner', label: t('p88_c_owner'), w: '118px' },
+    { k: 'state', label: t('c_state'), w: '116px' },
+    { k: 'plan', label: t('c_plan'), w: '100px' },
+    { k: 'period', label: t('c_period'), w: '120px' },
+    { k: 'acts', label: '', w: '60px', cls: 'acts' },
+  ];
+  const rows = list.map((x) => ({ on: `go('${p88Open(x.id)}')`, cells: {
+    shop: `<div>${x.name}</div><div style="font-size:12px;color:var(--muted);font-weight:400">${x.slug}.lytro.app</div>${x.suspendedAt ? `<div style="margin-top:4px">${st('bad', t('suspended'))}</div>` : x.overrides.length ? `<div style="margin-top:4px">${st('mute plain', `${x.overrides.length} ${t('t_overrides').toLowerCase()}`)}</div>` : ''}`,
+    owner: `<span class="mono">${p88Phone(x.id)}</span>`,
+    state: stateChip(x.state),
+    plan: `${x.plan} <span style="color:var(--muted)">v${x.planV}</span>`,
+    period: x.periodEnd ? `<span class="num">${dateS(x.periodEnd)}</span><div style="color:${daysTo(x.periodEnd) < 0 ? 'var(--danger)' : 'var(--muted)'};font-size:12px">${daysTo(x.periodEnd) >= 0 ? '+' : ''}${daysTo(x.periodEnd)}d</div>` : `<span style="color:var(--muted)">${t('p88_no_period')}</span>`,
+    acts: btn(t('open'), 'ghost sm', `event.stopPropagation();go('${p88Open(x.id)}')`),
+  } }));
+  return table(cols, rows, emptyBox(t('tn_empty'), t('tn_empty_hint'), 'store'));
+}
+function p88ShopsPage(o) {
+  o = o || {};
+  const list = ST.data === 'empty' ? [] : (o.list || TENANTS);
+  const states = [['', t('p88_all_states')], ...['trial', 'pay_as_you_go', 'active', 'grace', 'read_only', 'locked', 'archived', 'deleted'].map((s) => [s, t('s_' + s)])];
+  const plans = [['', t('p88_all_plans')], ...PLANS.map((p) => [p.id, p.name])];
+  const sorts = [['newest', t('p88_sort_newest')], ['name', t('p88_sort_name')], ['period_end', t('p88_sort_period')]];
+  const q = ST.data === 'empty' ? 'zxq' : (o.q || '');
+  return `${p88Title(t('tenants'), t('tn_sub'))}
+  <div class="search">${I.search}<input placeholder="${t('search_ph')}" value="${q}"><span class="kbd">/</span></div>
+  <div class="p88-filters">${p88Pick(t('p88_f_state'), select(states, o.state || ''))}${p88Pick(t('p88_f_plan'), select(plans, o.plan || ''))}${p88Pick(t('p88_f_sort'), select(sorts, o.sort || 'newest'), true)}</div>
+  ${o.phone && ST.data !== 'empty' ? `<div class="banner info">${I.phone}<div>${t('p88_phone_hint')}</div></div>` : ''}
+  ${ST.data === 'error' ? errorBox() : p88ShopRows(list)}
+  ${list.length && !o.phone ? `<div style="text-align:center">${btn(t('loadmore'), 'ghost')}</div>` : ''}`;
+}
+SCREENS.tenants.render = () => p88ShopsPage();
+SCREENS.tenants.label = 'Shops · list (search, filters and sort, v7)';
+const P88_SHOPS = { nav: 'tenants', group: P88G, url: 'admin.lytro.app/shops', bandTitle: 'tenants' };
+def('p88-shops-phone', { ...P88_SHOPS, label: 'Shops · found by the owner\'s phone', url: 'admin.lytro.app/shops?query=345678', render: () => p88ShopsPage({ q: '345678', phone: true, list: TENANTS.filter((x) => p88Phone(x.id).replace(/\D/g, '').endsWith('345678')) }) });
+def('p88-shops-filtered', { ...P88_SHOPS, label: 'Shops · Starter, period ending soonest', url: 'admin.lytro.app/shops?planId=p-starter&sort=period_end', render: () => p88ShopsPage({ plan: 'p-starter', sort: 'period_end', list: TENANTS.filter((x) => x.planId === 'p-starter').sort((a, b) => a.periodEnd.localeCompare(b.periodEnd)) }) });
+
+/* ---------- the shop page: its figures, the account card, the operator's actions on it (ADM-03, ADM-04, ADM-08, ADM-13) ---------- */
+function p88Figures(x) {
+  const f = p88FigOf(x);
+  if (ST.data === 'error') return `<div class="sechead"><h2>${t('p88_figs')}</h2></div>${errorBox()}`;
+  const smsN = f.sms.f + f.sms.b + f.sms.l;
+  const usage = f.usage.map(([m, used, limit, unit]) => `<div class="p88-use"><div class="h"><span>${t('p88_m_' + m)}</span><span class="num">${t('p88_of', { a: unit === 'bytes' ? p88Bytes(used) : p88N(used), b: limit === null ? t('unlimited') : unit === 'bytes' ? p88Bytes(limit) : p88N(limit) })}</span></div>${p88Meter(used, limit)}</div>`).join('');
+  const signIns = f.signIns.map((s) => `<div class="row wrap" style="min-height:52px"><span class="lead" style="width:32px;height:32px;border-radius:50%">${I.user}</span><span class="body"><span class="l1">${s.name} ${s.owner ? st('info plain', t('p88_owner')) : ''}</span><span class="l2 mono">${s.phone}</span></span><span class="trail"><span class="time">${s.last ? `${dateT(s.last)}` : t('p88_never')}</span>${s.last ? `<span class="time">${p88Ago(s.last)}</span>` : ''}</span></div>`).join('');
+  const orders = Object.entries(f.orders).map(([k, n]) => `<div class="${n ? '' : 'zero'}"><span>${t('p88_o_' + k)}</span><b>${p88N(n)}</b></div>`).join('');
+  return `<div class="sechead"><h2>${t('p88_figs')}</h2></div><div class="note" style="margin-top:-12px">${t('p88_figs_d')}</div>
+  <div class="p88-stats five">
+    ${p88Stat(t('p88_balance'), money(f.balance.amount), `${f.balance.frozen ? st('bad', t('p88_frozen')) : t('p88_not_frozen')} · ${t('p88_held', { a: money(f.balance.held) })}`, {})}
+    ${p88Stat(t('p88_errors'), f.errors, f.errors ? t('p88_errors_d') : t('p88_errors_none'), { flag: f.errors > 0, to: 'p88-shop-errors' })}
+    ${p88Stat(t('p88_sms'), smsN, t('p88_sms_d', { f: f.sms.f, b: f.sms.b, l: f.sms.l }), { to: 'p88-shop-sms' })}
+    ${p88Stat(t('p88_courier'), f.courier, t('p88_courier_d'), { to: 'p88-shop-courier' })}
+    ${p88Stat(t('p88_waiting'), f.waiting.n, t('p88_waiting_d', { a: money(f.waiting.a), n: f.waiting.customers }), { to: 'p88-shop-waiting', cls: 'p88-span' })}
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>${t('p88_usage')}</h3><div class="hint">${t('p88_usage_d', { a: dateS(f.cycle[0]), b: dateS(f.cycle[1]) })}</div><div style="margin-top:8px">${usage}</div>${f.reads.n ? `<div class="note" style="margin-top:8px">${t('p88_reads', { n: f.reads.n, a: money(f.reads.a) })}</div>` : ''}</div>
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="card flush"><div style="padding:16px 16px 4px"><h3>${t('p88_signins')}</h3></div><div class="list">${signIns}</div></div>
+      <div class="card"><div class="sechead"><h3>${t('p88_sales')}</h3><span class="lnk" onclick="go('p88-shop-sales')">${t('p88_sales_open')}</span></div><div class="hint">${t('p88_sales_d')}</div></div>
+    </div>
+  </div>
+  <div class="card"><h3>${t('p88_orders')}</h3><div class="hint">${t('p88_orders_d')}</div><div class="p88-orders">${orders}</div></div>`;
+}
+function p88AccountCard(x) {
+  return `<div class="card flush"><div style="padding:16px 16px 4px"><h3>${t('p88_account')}</h3></div><div class="list">
+    <div class="row wrap"><span class="body"><span class="l1">${t('p88_reset_row')}</span><span class="l2">${t('p88_reset_row_d')} <span class="mono">${p88Phone(x.id)}</span></span></span>${btn(t('p88_reset_btn'), 'ghost sm', `go('${x.id === 'ten-0001' ? 'p88-owner-reset' : 'p88-owner-reset'}')`)}</div>
+    <div class="row wrap"><span class="body"><span class="l1">${t('p88_delete_row')}</span><span class="l2">${t('p88_delete_row_d')}</span></span>${btn(t('p88_delete_btn'), 'quiet sm', "go('p88-delete')", 'style="color:var(--danger)"')}</div>
+  </div></div>`;
+}
+function p88ActionsCard(x) {
+  const mine = ST.data === 'empty' ? [] : P88_AUDIT.filter((e) => e.shop === x.id).slice(0, 3);
+  return `<div class="card flush"><div class="sechead" style="padding:16px 16px 4px"><h3>${t('later_actions')}</h3><span class="lnk" onclick="go('p88-audit-shop')">${t('p88_actions_open')}</span></div>
+    ${mine.length ? `<div class="list">${mine.map((e) => `<button class="row wrap" onclick="go('p88-audit-entry')"><span class="body"><span class="l1">${t('p88_a_' + e.action)}</span><span class="l2" style="white-space:normal">${p88AuditLine(e)} · ${dateS(e.at)} · ${p88Who(e)}</span></span>${I.chev}</button>`).join('')}</div>` : `<div class="note" style="padding:0 16px 16px">${t('p88_none')}</div>`}</div>`;
+}
+const p88TenantBase = tenantPage;
+tenantPage = (x) => {
+  let page = p88TenantBase(x);
+  const assign = btn(t('t_assign'), 'ghost', "go('tenant-assign')");
+  if (x.periodEnd && x.state !== 'pay_as_you_go') page = page.replace(assign, assign + btn(I.calendar + t('p88_extend'), 'ghost', `go('${x.id === 'ten-0019' ? 'p88-extend-lapsed' : x.id === 'ten-0028' ? 'p88-extend-ended' : 'p88-extend'}')`));
+  const cards = paymentsCards(x);
+  const at = page.indexOf(cards);
+  if (at >= 0) page = page.slice(0, at) + p88Figures(x) + page.slice(at);
+  const later = `<div style="display:flex;flex-direction:column;gap:12px">${laterCard(t('later_detail'), t('later_detail_hint'))}${laterCard(t('later_actions'), t('later_actions_hint'))}</div>`;
+  return page.replace(later, `<div style="display:flex;flex-direction:column;gap:12px;min-width:0">${p88AccountCard(x)}${p88ActionsCard(x)}</div>`);
+};
+const P88_SHOP = { base: 'tenant', nav: 'tenants', group: P88G, url: 'admin.lytro.app/shops/rahim-fashion', bandTitle: 'tenants', back: 'tenants', render: () => tenantPage(T1) };
+def('p88-tenant', { ...P88_SHOP, label: 'Shop · page with its figures (v7)' });
+def('p88-tenant-grace', { ...P88_SHOP, base: 'p88-tenant-grace', label: 'Shop · in grace', url: 'admin.lytro.app/shops/sadia-collection', render: () => tenantPage(T19) });
+def('p88-tenant-locked', { ...P88_SHOP, base: 'p88-tenant-locked', label: 'Shop · locked', url: 'admin.lytro.app/shops/keya-boutique', render: () => tenantPage(T28) });
+
+/* the lists behind the figures, each loaded when its card is opened (D8-25) */
+const P88_ERRORS = [
+  { id: 'K7MQ-4XR2', method: 'POST', route: '/api/v1/orders/:id/courier-booking', status: 503, kind: 'CourierUnavailable', at: '2026-10-21T13:58:00+06:00' },
+  { id: 'P3HV-9TND', method: 'GET', route: '/api/v1/orders', status: 500, kind: 'DatabaseError 57014', at: '2026-10-21T11:16:00+06:00' },
+  { id: 'WX2C-7RFA', method: 'PATCH', route: '/api/v1/products/:id', status: 500, kind: 'TypeError', at: '2026-10-21T09:41:00+06:00' },
+  { id: 'D8JB-3KSY', method: 'POST', route: '/api/v1/media/uploads', status: 503, kind: 'StorageUnavailable', at: '2026-10-17T22:03:00+06:00' },
+];
+const p88ErrorsSheet = () => {
+  const list = ST.data === 'busy' ? P88_ERRORS : [];
+  return sheet(t('p88_err_title', { shop: T1.name }), t('p88_last7'), `${ST.data === 'error' ? errorBox() : list.length ? `<div class="card flush"><div class="list">${list.map((e) => `<div class="row wrap"><span class="body"><span class="l1"><span class="mono" style="font-size:14px;font-weight:600">${e.id}</span> ${st(e.status === 503 ? 'warn' : 'bad', String(e.status))}</span><span class="l2 p88-mono-l">${e.method} ${e.route}</span><span class="l2">${e.kind}</span></span><span class="trail"><span class="time">${dateT(e.at)}</span><button class="iconbtn" style="width:28px;height:28px" title="${t('copy')}">${I.copy}</button></span></div>`).join('')}</div></div>${btn(t('loadmore'), 'ghost block')}` : emptyBox(t('p88_err_empty'), '', 'check')}<div class="note">${t('p88_err_note')}</div>`, null, { close: 'tenant' });
+};
+def('p88-shop-errors', { ...P88_SHOP, label: '· its server errors (sheet)', sheet: p88ErrorsSheet });
+const P88_SMS_SHOP = [
+  { kind: 'order_shipped', status: 'failed', order: '261021-0031', units: 2, at: '2026-10-21T11:05:00+06:00' },
+  { kind: 'order_placed', status: 'failed', order: '261020-0019', units: 1, at: '2026-10-20T15:20:00+06:00' },
+  { kind: 'order_delivered', status: 'blocked', reason: 'insufficient_balance', order: '261018-0044', units: 1, at: '2026-10-18T19:02:00+06:00' },
+];
+const P88_SMS_LYTRO = [{ kind: 'signin_code', to: '01715 000111', attempts: 3, error: 'Operator rejected: DND number', at: '2026-10-19T08:47:00+06:00' }];
+const p88SmsSheet = () => {
+  const busy = ST.data === 'busy';
+  const shop = busy ? P88_SMS_SHOP : [], lytro = busy ? P88_SMS_LYTRO : [];
+  const sec = (title, rows) => `<div class="sechead" style="margin-top:4px"><h3 style="font-size:14px">${title}</h3></div>${rows.length ? `<div class="card flush"><div class="list">${rows.join('')}</div></div>` : `<div class="note">${t('p88_none')}</div>`}`;
+  const shopRows = shop.map((m) => `<div class="row wrap"><span class="body"><span class="l1">${t('p88_k_' + m.kind)} ${m.status === 'blocked' ? st('warn', t('p88_blocked')) : st('bad', t('p88_failed'))}</span><span class="l2"><span class="num">#${m.order}</span> · ${t('p88_units', { n: m.units })}${m.reason ? ` · ${t('p88_b_' + m.reason)}` : ''}</span></span><span class="trail"><span class="time">${dateT(m.at)}</span></span></div>`);
+  const lytroRows = lytro.map((m) => `<div class="row wrap"><span class="body"><span class="l1">${t('p88_k_' + m.kind)} ${st('bad', t('p88_failed'))}</span><span class="l2"><span class="mono">${m.to}</span> · ${t('p88_attempts', { n: m.attempts })}</span><span class="l2 p88-mono-l">${m.error}</span></span><span class="trail"><span class="time">${dateT(m.at)}</span></span></div>`);
+  return sheet(t('p88_sms_title', { shop: T1.name }), t('p88_last7'), ST.data === 'error' ? errorBox() : `${sec(t('p88_sms_shop'), shopRows)}${sec(t('p88_sms_lytro'), lytroRows)}<div class="note">${t('p88_sms_note')}</div>`, null, { close: 'tenant' });
+};
+def('p88-shop-sms', { ...P88_SHOP, label: '· its SMS that didn\'t go (sheet)', sheet: p88SmsSheet });
+const p88CourierSheet = () => {
+  const list = ST.data === 'busy' ? CCR_USES.filter((u) => !u.ok) : [];
+  return sheet(t('p88_cc_title', { shop: T1.name }), t('p88_last7'), ST.data === 'error' ? errorBox() : `${list.length ? `<div class="card flush"><div class="list">${list.map((u) => `<div class="row wrap"><span class="body"><span class="l1">${u.courier} · ${t('cka_' + u.action)} ${st('bad', t('p88_failed'))}</span><span class="l2">${u.order ? `<span class="num">#${u.order}</span>` : '—'}</span></span><span class="trail"><span class="time">${dateT(u.at)}</span></span></div>`).join('')}</div></div>` : emptyBox(t('p88_none'), '', 'check')}${btn(t('p88_cc_all'), 'ghost block', "go('tenant-courier-log')")}`, null, { close: 'tenant' });
+};
+def('p88-shop-courier', { ...P88_SHOP, label: '· its failed courier calls (sheet)', sheet: p88CourierSheet });
+const p88WaitingSheet = () => {
+  const list = ST.data === 'busy' ? [PA] : [];
+  return sheet(t('p88_wt_title', { shop: T1.name }), null, ST.data === 'error' ? errorBox() : `${list.length ? `<div class="card flush"><div class="list">${list.map((p) => `<button class="row wrap" onclick="go('queue-addon')"><span class="body"><span class="l1">${t(p.kind)} · ${money(p.amount)}</span><span class="l2"><span class="mono">${p.trx}</span> · ${p.sender} · ${ago(p.createdAt)}</span></span>${payStatus(p)}${I.chev}</button>`).join('')}</div></div>` : emptyBox(t('p88_none'), '', 'check')}<div class="note">${t('p88_wt_customers', { n: ST.data === 'busy' ? 2 : 0 })}</div>`, null, { close: 'tenant' });
+};
+def('p88-shop-waiting', { ...P88_SHOP, label: '· its payments waiting (sheet)', sheet: p88WaitingSheet });
+const P88_SALES = [
+  { from: '2026-10-01', to: '2026-10-02', orders: 14, revenue: 18240, delivery: 1080, courier: 940 },
+  { from: '2026-10-03', to: '2026-10-09', orders: 51, revenue: 66310, delivery: 3960, courier: 3410 },
+  { from: '2026-10-10', to: '2026-10-16', orders: 63, revenue: 81990, delivery: 4920, courier: 4180 },
+  { from: '2026-10-17', to: '2026-10-21', orders: 38, revenue: 49460, delivery: 2940, courier: 2520 },
+];
+const p88SalesSheet = () => {
+  const list = ST.data === 'busy' ? P88_SALES : [];
+  const sum = (k) => list.reduce((a, b) => a + b[k], 0);
+  const cols = [{ k: 'p', label: t('p88_c_week'), w: 'minmax(110px,1fr)', cls: 'main' }, { k: 'o', label: t('p88_sl_orders'), w: '90px', cls: 'r' }, { k: 'r', label: t('p88_sl_revenue'), w: '110px', cls: 'r' }];
+  return sheet(t('p88_sl_title', { shop: T1.name }), t('p88_sales_d'), ST.data === 'error' ? errorBox() : `<div class="chips">${['p88_p_week', 'p88_p_month', 'p88_p_last', 'p88_p_year'].map((k) => `<span class="chip ${k === 'p88_p_month' ? 'on' : ''}">${t(k)}</span>`).join('')}</div>
+    <div class="p88-kvs"><span class="k">${t('p88_sl_orders')}</span><span class="v">${p88N(sum('orders'))}</span><span class="k">${t('p88_sl_revenue')}</span><span class="v">${money(sum('revenue'))}</span><span class="k">${t('p88_sl_delivery')}</span><span class="v">${money(sum('delivery'))}</span><span class="k">${t('p88_sl_courier')}</span><span class="v">${money(sum('courier'))}</span></div>
+    ${table(cols, list.map((b) => ({ cells: { p: `${dateS(b.from)} – ${dateS(b.to)}`, o: `<span class="num">${b.orders}</span>`, r: `<span class="num">${money(b.revenue)}</span>` } })), emptyBox(t('p88_none'), '', 'chart'))}`, null, { close: 'tenant' });
+};
+def('p88-shop-sales', { ...P88_SHOP, label: '· its sales (sheet)', sheet: p88SalesSheet });
+
+/* ---------- extend, reset the owner's sign-in, delete the shop's data (ADM-04, ADM-13) ---------- */
+const p88AddDays = (iso, n) => { const d = new Date(iso + 'T12:00:00+06:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const p88ExtendSheet = (x, days, o) => {
+  o = o || {};
+  const plan = x.plan;
+  const lapsed = ['grace', 'read_only', 'locked', 'archived'].includes(x.state);
+  const back = p88Open(x.id);
+  const body = `${o.refused ? `<div class="banner bad">${I.warn}<div>${t('p88_ext_ended')}<div style="margin-top:8px">${btn(t('p88_ext_assign'), 'ghost sm', "go('tenant-assign')")}</div></div></div>` : ''}
+    ${field(t('p88_ext_days'), `<input class="input mono" value="${days}" inputmode="numeric" style="max-width:140px">`, `${t('p88_ext_new', { a: dateS(p88AddDays(x.periodEnd, days)), b: dateS(x.periodEnd) })} · ${t('p88_ext_days_help')}`)}
+    ${consequence(t('p88_ext_cons', { plan }))}
+    ${lapsed && !o.refused ? consequence(t('p88_ext_lapsed', { shop: x.name, state: t('s_' + x.state) }), 'ok') : ''}
+    ${p88ReasonShop()}`;
+  return sheet(t('p88_ext_title', { shop: x.name }), `${x.plan} v${x.planV} · ${t('t_period')} ${dateS(x.periodEnd)}`, body, `${backTo(back)}${btn(t('p88_ext_btn', { n: days }), 'primary', `go('${o.done || 'p88-extended'}')`)}`, { row: true, close: back });
+};
+def('p88-extend', { ...P88_SHOP, label: '· extend the period (sheet)', sheet: () => p88ExtendSheet(T1, 14) });
+def('p88-extended', { ...P88_SHOP, label: '· extended (toast)', toast: () => t('p88_ext_done', { shop: T1.name, d: dateS(p88AddDays(T1.periodEnd, 14)) }) });
+def('p88-extend-lapsed', { ...P88_SHOP, base: 'p88-tenant-grace', label: '· extend a shop in grace (sheet)', url: 'admin.lytro.app/shops/sadia-collection', render: () => tenantPage(T19), sheet: () => p88ExtendSheet(T19, 7, { done: 'p88-extended-lapsed' }) });
+def('p88-extended-lapsed', { ...P88_SHOP, base: 'p88-tenant-grace', label: '· extended, back to active (toast)', url: 'admin.lytro.app/shops/sadia-collection', render: () => tenantPage({ ...T19, state: 'active', periodEnd: '2026-10-26' }), toast: () => t('p88_ext_done', { shop: T19.name, d: dateS('2026-10-26') }) });
+def('p88-extend-ended', { ...P88_SHOP, base: 'p88-tenant-locked', label: '· refused: still ends in the past (sheet)', url: 'admin.lytro.app/shops/keya-boutique', render: () => tenantPage(T28), sheet: () => p88ExtendSheet(T28, 7, { refused: true }) });
+
+const p88ResetSheet = (o) => {
+  o = o || {};
+  const phone = o.phone || '01712 345678';
+  const changed = phone.replace(/\D/g, '') !== '01712345678';
+  return sheet(t('p88_rs_title'), `${T1.name} · ${P88_OWNER_NAME[T1.id]}`, `<div class="banner info">${I.shield}<div>${t('p88_rs_check')}</div></div>
+    ${field(t('p88_rs_phone'), `<input class="input mono" value="${phone}" inputmode="tel" ${o.taken ? 'style="border-color:var(--danger)"' : ''}>`, t('p88_rs_phone_help', { p: '01712 345678' }), o.taken ? t('p88_rs_taken') : '')}
+    ${consequence(t('p88_rs_cons'), 'danger')}
+    ${changed && !o.taken ? consequence(t('p88_rs_changed', { p: '01712 345678' })) : ''}
+    ${p88ReasonShop()}`, `${backTo('tenant')}${btn(t('p88_rs_btn'), 'danger', "go('p88-owner-reset-done')")}`, { row: true, close: 'tenant' });
+};
+def('p88-owner-reset', { ...P88_SHOP, label: '· reset the owner\'s sign-in, same phone (sheet)', sheet: () => p88ResetSheet() });
+def('p88-owner-reset-new', { ...P88_SHOP, label: '· reset to a new phone (sheet)', sheet: () => p88ResetSheet({ phone: '+880 1819-445566' }) });
+def('p88-owner-reset-taken', { ...P88_SHOP, label: '· refused: the phone is on another account (sheet)', sheet: () => p88ResetSheet({ phone: '01611 223300', taken: true }) });
+def('p88-owner-reset-done', { ...P88_SHOP, label: '· signed out, code sent (toast)', toast: () => t('p88_rs_done') });
+
+const p88DeleteSheet = (o) => {
+  o = o || {};
+  const typed = o.typed === undefined ? 'rahim-fashion' : o.typed;
+  const ok = typed === T1.slug;
+  return sheet(t('p88_dl_title', { shop: T1.name }), `${T1.slug}.lytro.app`, `${consequence(t('p88_dl_cons', { shop: T1.name }), 'danger')}
+    ${field(t('p88_dl_type'), `<input class="input mono" value="${typed}" autocomplete="off" ${o.wrong ? 'style="border-color:var(--danger)"' : ''}>`, t('p88_dl_type_help', { a: `<b class="mono">${T1.slug}</b>` }), o.wrong ? t('p88_dl_wrong') : '')}
+    ${p88ReasonShop()}`, `${backTo('tenant')}${btn(t('p88_dl_btn'), 'danger', ok ? "go('p88-deleted')" : '', ok ? '' : 'disabled')}`, { row: true, close: 'tenant' });
+};
+def('p88-delete', { ...P88_SHOP, label: '· delete the data on request (sheet)', sheet: () => p88DeleteSheet() });
+def('p88-delete-empty', { ...P88_SHOP, label: '· delete: address not typed yet (sheet)', sheet: () => p88DeleteSheet({ typed: '' }) });
+def('p88-delete-wrong', { ...P88_SHOP, label: '· refused: another address (sheet)', sheet: () => p88DeleteSheet({ typed: 'rahim-fashions', wrong: true }) });
+def('p88-deleted', { ...P88_SHOP, label: '· offline, data being deleted (toast)', render: () => tenantPage({ ...T1, state: 'archived' }), toast: () => t('p88_dl_done', { shop: T1.name }) });
+
+/* ---------- the audit log (ADM-08, D8-11): GET /operator/audit, newest first, filtered, in keyset pages ---------- */
+const P88_ACTIONS = ['plan_extended', 'owner_sign_in_reset', 'shop_data_deletion_requested', 'manual_entry_recorded', 'manual_entry_reversed', 'plan_payment_verified', 'plan_payment_rejected', 'balance_adjusted', 'plan_assigned', 'tenant_suspended', 'settings_changed', 'rate_changed', 'payment_method_type_retired', 'usage_fast_spend_alerted', 'notice_acknowledged'];
+function p88AuditPage(o) {
+  o = o || {};
+  let list = ST.data === 'busy' ? P88_AUDIT : [];
+  if (o.shop) list = list.filter((e) => e.shop === o.shop);
+  if (o.who) list = list.filter((e) => e.who === o.who);
+  const shopOpts = [['', t('p88_any_shop')], ...TENANTS.slice(0, 6).map((x) => [x.id, x.name])];
+  const whoOpts = [['', t('p88_anyone')], ['me', t('p88_only_mine')]];
+  const actOpts = [['', t('p88_any_action')], ...P88_ACTIONS.map((a) => [a, t('p88_a_' + a)])];
+  const cols = [
+    { k: 'when', label: t('c_when'), w: '120px' },
+    { k: 'what', label: t('c_action'), w: 'minmax(180px,1.6fr)', cls: 'main' },
+    { k: 'shop', label: t('c_shop'), w: 'minmax(110px,.8fr)' },
+    { k: 'who', label: t('p88_f_who'), w: '128px' },
+  ];
+  const rows = list.map((e) => ({ on: "go('p88-audit-entry')", cells: {
+    when: `<span class="num">${dateT(e.at)}</span>`,
+    what: `<div>${t('p88_a_' + e.action)}</div><div style="font-size:13px;color:var(--muted);font-weight:400;white-space:normal">${p88AuditLine(e)}</div>`,
+    shop: e.shop ? tenantOf(e.shop).name : '<span style="color:var(--muted)">—</span>',
+    who: `<span style="overflow-wrap:anywhere">${p88Who(e)}</span>`,
+  } }));
+  const chips = [o.shop ? `<span class="chip on">${tenantOf(o.shop).name} ${I.x}</span>` : '', o.who ? `<span class="chip on">${o.who} ${I.x}</span>` : ''].join('');
+  return `${p88Title(t('audit'), t('p88_au_sub'))}
+  <div class="p88-filters">${p88Pick(t('p88_f_shop'), select(shopOpts, o.shop || ''))}${p88Pick(t('p88_f_who'), select(whoOpts, ''))}${p88Pick(t('p88_f_action'), select(actOpts, ''), true)}${p88Pick(t('p88_f_from'), input('', '', '', 'type=date'))}${p88Pick(t('p88_f_to'), input('', '', '', 'type=date'))}</div>
+  ${chips ? `<div class="chips">${chips}<button class="chip" onclick="go('p88-audit')">${t('p88_clear')}</button></div>` : ''}
+  ${ST.data === 'error' ? errorBox() : table(cols, rows, emptyBox(t('p88_au_empty'), t('p88_au_empty_hint'), 'history'))}
+  ${rows.length ? `<div style="text-align:center">${btn(t('loadmore'), 'ghost')}</div>` : ''}`;
+}
+const P88_AU = { nav: 'audit', group: P88G, url: 'admin.lytro.app/audit', bandTitle: 'audit', base: 'p88-audit' };
+def('p88-audit', { ...P88_AU, label: 'Audit log · every action, newest first', render: () => p88AuditPage() });
+def('p88-audit-shop', { ...P88_AU, base: 'p88-audit-shop', label: 'Audit log · one shop\'s (from its page)', url: 'admin.lytro.app/audit?tenantId=ten-0001', render: () => p88AuditPage({ shop: 'ten-0001' }) });
+def('p88-audit-who', { ...P88_AU, base: 'p88-audit-who', label: 'Audit log · one operator\'s', url: 'admin.lytro.app/audit?actorId=…', render: () => p88AuditPage({ who: 'nadia@lytro.app' }) });
+def('p88-audit-entry', { ...P88_AU, label: '· one entry (sheet)', render: () => p88AuditPage(), sheet: () => {
+  const e = P88_AUDIT[0]; const s = e.summary;
+  return sheet(t('p88_a_' + e.action), `${dateT(e.at)} · ${p88Who(e)}`, `<div class="kv"><span class="k">${t('c_shop')}</span><span class="v">${tenantOf(e.shop).name} · <a href="#" onclick="go('p88-tenant-grace');return false">${tenantOf(e.shop).slug}.lytro.app</a></span><span class="k">${t('p88_au_target')}</span><span class="v mono">tenant · ${e.shop}</span><span class="k">${t('c_result')}</span><span class="v">${st('ok', t('done'))}</span></div>
+    <div class="sechead"><h3 style="font-size:14px">${t('p88_au_recorded')}</h3></div>
+    <div class="kv"><span class="k">${t('p88_s_days')}</span><span class="v">${s.days}</span><span class="k">${t('p88_s_from')}</span><span class="v">${dateS(s.from)}</span><span class="k">${t('p88_s_to')}</span><span class="v">${dateS(s.to)}</span><span class="k">${t('p88_s_restored')}</span><span class="v">${s.restored ? t('p88_yes') : t('p88_no')}</span><span class="k">${t('p88_s_reason')}</span><span class="v">${p88Val(s.reason)}</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${btn(t('p88_au_only_this'), 'ghost sm', "go('p88-audit-who')")}${btn(t('p88_au_only_shop'), 'ghost sm', "go('p88-audit-shop')")}</div>`, null, { close: 'p88-audit' });
+} });
+
+/* ---------- reports (ADM-09, D8-40 to D8-46): revenue, shops, top consumers, each with its CSV ---------- */
+const P88_REV = [
+  { from: '2026-10-01', to: '2026-10-02', wallet: { purchase: 1347, renewal: 898, upgrade: 0, addon: 99 }, balance: { plan_payment: 449, addon: 0, sms: 212.3, verification_fee: 40, order_fee: 96, product_fee: 0, ai: 16, fraud_check: 12 }, givenBack: 0, manual: { plans: 0, plansReversed: 0, topUps: 0, topUpsReversed: 0 } },
+  { from: '2026-10-03', to: '2026-10-09', wallet: { purchase: 4490, renewal: 6286, upgrade: 1500, addon: 495 }, balance: { plan_payment: 1796, addon: 198, sms: 905.6, verification_fee: 160, order_fee: 412, product_fee: 30, ai: 74, fraud_check: 46 }, givenBack: 38.5, manual: { plans: 449, plansReversed: 0, topUps: 1000, topUpsReversed: 0 } },
+  { from: '2026-10-10', to: '2026-10-16', wallet: { purchase: 5388, renewal: 7633, upgrade: 0, addon: 297 }, balance: { plan_payment: 2245, addon: 99, sms: 1012.2, verification_fee: 200, order_fee: 468, product_fee: 25, ai: 88, fraud_check: 58 }, givenBack: 0, manual: { plans: 0, plansReversed: 0, topUps: 500, topUpsReversed: 0 } },
+  { from: '2026-10-17', to: '2026-10-21', wallet: { purchase: 3592, renewal: 4939, upgrade: 700, addon: 198 }, balance: { plan_payment: 1347, addon: 99, sms: 688.4, verification_fee: 120, order_fee: 301, product_fee: 10, ai: 52, fraud_check: 30 }, givenBack: 12.2, manual: { plans: 5190, plansReversed: 0, topUps: 2000, topUpsReversed: 500 } },
+];
+const p88Sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+const p88Rev = (b) => { const w = p88Sum(b.wallet), bl = p88Sum(b.balance), h = b.manual.plans - b.manual.plansReversed; return { w, bl, h, g: b.givenBack, e: w + bl + h - b.givenBack }; };
+const p88RevTotal = (list) => {
+  const add = (k) => list.reduce((acc, b) => { for (const [x, v] of Object.entries(b[k])) acc[x] = (acc[x] || 0) + v; return acc; }, {});
+  return { from: list[0].from, to: list[list.length - 1].to, wallet: add('wallet'), balance: add('balance'), givenBack: list.reduce((a, b) => a + b.givenBack, 0), manual: add('manual') };
+};
+const P88_REV_YEAR = Array.from({ length: 10 }, (_, i) => ({ from: `2026-${String(i + 1).padStart(2, '0')}-01`, to: i === 9 ? '2026-10-21' : `2026-${String(i + 1).padStart(2, '0')}-28`, wallet: { purchase: 6000 + i * 1300, renewal: 4000 + i * 1900, upgrade: i % 3 ? 700 : 0, addon: 300 + i * 90 }, balance: { plan_payment: 1200 + i * 520, sms: 900 + i * 260, verification_fee: 80 + i * 40, order_fee: 300 + i * 150, ai: i > 7 ? 120 : 0, fraud_check: i > 7 ? 90 : 0 }, givenBack: i * 9, manual: { plans: i === 9 ? 5639 : i % 4 ? 449 : 0, plansReversed: 0, topUps: i % 2 ? 1000 : 0, topUpsReversed: i === 9 ? 500 : 0 } }));
+const p88Period = (o) => {
+  const presets = [['p88_p_this_month', o.preset === 'month'], ['p88_p_last_month', false], ['p88_p_quarter', false], ['p88_p_this_year', o.preset === 'year']];
+  const splits = [['week', t('p88_s_week')], ['month', t('p88_s_month')], ['quarter', t('p88_s_quarter')], ['year', t('p88_s_year')]];
+  return `<div class="chips">${presets.map(([k, on]) => `<span class="chip ${on ? 'on' : ''}">${t(k)}</span>`).join('')}</div>
+  <div class="p88-filters">${p88Pick(t('p88_f_from'), input(o.from, 'mono', '', 'type=date'))}${p88Pick(t('p88_f_to'), input(o.to, 'mono', '', 'type=date'))}${o.split ? p88Pick(t('p88_split'), select(splits, o.split), true) : ''}</div>`;
+};
+const P88_RP_TABS = [['p88-reports', 'p88_rp_revenue'], ['p88-reports-shops', 'p88_rp_shops'], ['p88-reports-consumers', 'p88_rp_consumers']];
+const p88RpHead = (active) => `${p88Title(t('reports'), t('p88_rp_sub'), btn(I.down + t('p88_export'), 'ghost', ''))}${p88Tabs(P88_RP_TABS, active)}`;
+function p88RevenuePage(o) {
+  o = o || {};
+  const list = o.year ? P88_REV_YEAR : P88_REV;
+  const head = `${p88RpHead('p88-reports')}${p88Period(o.year ? { preset: 'year', from: '2026-01-01', to: '2026-10-21', split: 'month' } : { preset: 'month', from: '2026-10-01', to: '2026-10-21', split: 'week' })}`;
+  if (ST.data === 'error') return head + errorBox();
+  if (ST.data === 'empty') return head + emptyBox(t('p88_none'), t('p88_rv_note'), 'chart');
+  const tot = p88RevTotal(list); const T = p88Rev(tot);
+  const cols = [
+    { k: 'p', label: t('p88_c_period'), w: 'minmax(120px,1.2fr)', cls: 'main' },
+    { k: 'w', label: t('p88_wallets'), w: 'minmax(84px,1fr)', cls: 'r' },
+    { k: 'b', label: t('p88_balances'), w: 'minmax(84px,1fr)', cls: 'r' },
+    { k: 'h', label: t('p88_byhand'), w: 'minmax(80px,.9fr)', cls: 'r' },
+    { k: 'g', label: t('p88_givenback'), w: 'minmax(70px,.8fr)', cls: 'r' },
+    { k: 'e', label: t('p88_earned'), w: 'minmax(84px,1fr)', cls: 'r' },
+  ];
+  const line = (b, total) => { const r = p88Rev(b); return { cls: total ? 'p88-tr-total' : '', cells: { p: total ? t('p88_md_total') : o.year ? new Date(b.from + 'T12:00:00+06:00').toLocaleDateString(DT[L.lang], { month: 'long' }) : `${dateS(b.from)} – ${dateS(b.to)}`, w: `<span class="num">${p88M(r.w)}</span>`, b: `<span class="num">${p88M(r.bl)}</span>`, h: `<span class="num">${p88M(r.h)}</span>`, g: `<span class="num">${p88M(-r.g)}</span>`, e: `<b class="num">${p88M(r.e)}</b>` } }; };
+  const kv = (k, v) => `<span class="k">${k}</span><span class="v">${p88M(v)}</span>`;
+  return `${head}
+  <div class="p88-stats four">
+    ${p88Stat(t('p88_earned'), p88M(T.e), t('p88_earned_d'), {})}
+    ${p88Stat(t('p88_wallets'), p88M(T.w), t('p88_wallets_d'), {})}
+    ${p88Stat(t('p88_balances'), p88M(T.bl), t('p88_balances_d'), {})}
+    ${p88Stat(t('p88_byhand'), p88M(T.h), t('p88_byhand_d', { a: p88M(tot.manual.topUps - tot.manual.topUpsReversed) }), { to: 'p88-manual' })}
+  </div>
+  ${table(cols, [...list.map((b) => line(b)), line(tot, true)], '')}
+  <div class="grid2">
+    <div class="card"><h3>${t('p88_breakdown')}</h3><div class="p88-kvs" style="margin-top:8px">
+      <span class="h">${t('p88_wallets')}</span>${['purchase', 'renewal', 'upgrade', 'addon'].map((k) => kv(t('p88_b_' + k), tot.wallet[k] || 0)).join('')}
+      <span class="h">${t('p88_balances')}</span>${Object.entries(tot.balance).filter(([, v]) => v).map(([k, v]) => kv(t('p88_l_' + k), v)).join('')}
+    </div></div>
+    <div class="card"><h3>${t('p88_byhand')}</h3><div class="p88-kvs" style="margin-top:8px">${kv(t('p88_mh_plans'), tot.manual.plans)}${kv(t('p88_mh_plans_rev'), -tot.manual.plansReversed)}${kv(t('p88_mh_topups'), tot.manual.topUps)}${kv(t('p88_mh_topups_rev'), -tot.manual.topUpsReversed)}
+      <span class="k t">${t('p88_givenback')}</span><span class="v t">${p88M(-tot.givenBack)}</span></div>
+      <div class="note" style="margin-top:12px">${t('p88_rv_note')} ${t('p88_recorded_since', { d: dateS('2026-10-03') })}</div></div>
+  </div>`;
+}
+const P88_RP = { nav: 'reports', group: P88G, url: 'admin.lytro.app/reports', bandTitle: 'reports' };
+def('p88-reports', { ...P88_RP, label: 'Reports · revenue this month, by week', render: () => p88RevenuePage() });
+def('p88-reports-year', { ...P88_RP, label: 'Reports · revenue this year, by month', url: 'admin.lytro.app/reports?dateFrom=2026-01-01&bucket=month', render: () => p88RevenuePage({ year: true }) });
+const P88_SHOPS_RP = { total: 412, byState: { trial: 118, pay_as_you_go: 44, active: 201, grace: 14, read_only: 9, locked: 7, archived: 19 }, byPlan: [['Trial', 118], ['Pay-as-you-go', 44], ['Starter', 168], ['Growth', 61], ['Pro', 21]], buckets: [['2026-10-01', '2026-10-02', 9, 2, 1], ['2026-10-03', '2026-10-09', 21, 5, 3], ['2026-10-10', '2026-10-16', 17, 4, 2], ['2026-10-17', '2026-10-21', 12, 3, 2]] };
+def('p88-reports-shops', { ...P88_RP, label: 'Reports · shops', url: 'admin.lytro.app/reports/shops', render: () => {
+  const head = `${p88RpHead('p88-reports-shops')}${p88Period({ preset: 'month', from: '2026-10-01', to: '2026-10-21', split: 'week' })}`;
+  if (ST.data !== 'busy') return head + (ST.data === 'error' ? errorBox() : emptyBox(t('p88_none'), '', 'store'));
+  const R = P88_SHOPS_RP; const sum = (i) => R.buckets.reduce((a, b) => a + b[i], 0);
+  const cols = [{ k: 'p', label: t('p88_c_period'), w: 'minmax(130px,1.4fr)', cls: 'main' }, { k: 'o', label: t('p88_sh_opened'), w: 'minmax(80px,1fr)', cls: 'r' }, { k: 'f', label: t('p88_sh_paying'), w: 'minmax(80px,1fr)', cls: 'r' }, { k: 'l', label: t('p88_sh_lapsed'), w: 'minmax(80px,1fr)', cls: 'r' }];
+  const rows = [...R.buckets.map(([a, b, o, f, l]) => ({ cells: { p: `${dateS(a)} – ${dateS(b)}`, o: `<span class="num">${o}</span>`, f: `<span class="num">${f}</span>`, l: `<span class="num">${l}</span>` } })), { cls: 'p88-tr-total', cells: { p: t('p88_md_total'), o: `<b class="num">${sum(2)}</b>`, f: `<b class="num">${sum(3)}</b>`, l: `<b class="num">${sum(4)}</b>` } }];
+  return `${head}<div class="grid2">
+    <div class="card"><div class="sechead"><h3>${t('p88_sh_bystate')}</h3><span class="p88-big">${R.total}</span></div><div class="p88-kvs" style="margin-top:8px">${Object.entries(R.byState).map(([k, n]) => `<span class="k">${stateChip(k)}</span><span class="v">${n}</span>`).join('')}</div></div>
+    <div class="card"><h3>${t('p88_sh_byplan')}</h3><div style="margin-top:8px">${R.byPlan.map(([p, n]) => `<div class="p88-use"><div class="h"><span>${p}</span><span class="num">${n}</span></div>${p88Meter(n, R.total)}</div>`).join('')}</div></div>
+  </div>
+  <div class="sechead"><h2>${t('p88_sh_moves')}</h2></div>${table(cols, rows, '')}<div class="note">${t('p88_sh_note')}</div>`;
+} });
+const P88_CONSUMERS = ['Faiza Shoes', 'Dhaka Gadget House', 'Arif Electronics', 'Rahim Fashion', 'Tanvir Mobiles', 'Joy Pharmacy', 'Nusrat Cosmetics', 'Sadia Collection', 'Mim Bakery', 'Keya Boutique', 'Shapla Crafts', 'Rupa Sarees', 'Hasan Tea House', 'Bornali Jewellers', 'Green Leaf Organics', 'Moon Kids Wear', 'Sylhet Spices', 'Padma Fish Mart', 'Chattala Furniture', 'Kona Handloom'];
+const P88_PHONES20 = ['01611 223300', '01819 220011', '01716 880011', '01712 345678', '01713 552200', '01755 123321', '01611 908070', '01815 345678', '01822 450045', '01911 223344', '01733 118899', '01914 560012', '01552 700300', '01675 220099', '01788 441122', '01815 990011', '01711 554433', '01921 667788', '01818 303030', '01631 909012'];
+def('p88-reports-consumers', { ...P88_RP, label: 'Reports · top consumers of storage', url: 'admin.lytro.app/reports/consumers?metric=storage', render: () => {
+  const head = `${p88RpHead('p88-reports-consumers')}<div class="note">${t('p88_cn_sub')}</div><div class="chips">${['p88_cn_storage', 'p88_cn_bandwidth', 'p88_cn_sms'].map((k, i) => `<span class="chip ${i ? '' : 'on'}">${t(k)}</span>`).join('')}</div>${p88Period({ preset: 'month', from: '2026-10-01', to: '2026-10-21' })}`;
+  if (ST.data !== 'busy') return head + (ST.data === 'error' ? errorBox() : emptyBox(t('p88_none'), '', 'chart'));
+  const cols = [{ k: 'n', label: '#', w: '36px' }, { k: 's', label: t('c_shop'), w: 'minmax(150px,1.6fr)', cls: 'main' }, { k: 'p', label: t('p88_c_owner'), w: '120px' }, { k: 'v', label: t('p88_c_used'), w: '90px', cls: 'r' }];
+  const rows = P88_CONSUMERS.map((name, i) => ({ cells: { n: `<span class="num" style="color:var(--muted)">${i + 1}</span>`, s: `<div>${name}</div><div style="font-size:12px;color:var(--muted);font-weight:400">${name.toLowerCase().replace(/[^a-z]+/g, '-')}.lytro.app</div>`, p: `<span class="mono">${P88_PHONES20[i]}</span>`, v: `<span class="num">${p88Bytes(Math.round(7.9e9 / (1 + i * 0.55)))}</span>` } }));
+  return head + table(cols, rows, '');
+} });
+
+/* ---------- manual entries (ADM-14 to ADM-16, D8-47 to D8-56) and the seller's screenshot in the queue (ADM-17) ---------- */
+const P88_ENTRIES = [
+  { id: 'me-31', at: '2026-10-21T13:40:00+06:00', shop: 'ten-0028', kind: 'renewal', plan: 'Starter · 12 months', amount: 4741, wallet: 'Nagad · 01811 000000', trx: 'NGD8K2P0XQ', sender: '01911 223344', paidAt: '2026-10-20T21:15:00+06:00', evidence: 'shot', by: 'ops@lytro.app' },
+  { id: 'me-30', at: '2026-10-21T10:05:00+06:00', shop: 'ten-0015', kind: 'top_up', plan: null, amount: 2000, wallet: 'bKash · 01711 000000', trx: 'BKH9Q4L7M2', sender: '01911 445566', paidAt: '2026-10-20T18:42:00+06:00', evidence: 'line', line: '20/10/2026 18:42 Cash In 2,000.00 01911445566 BKH9Q4L7M2', by: 'ops@lytro.app' },
+  { id: 'me-29', at: '2026-10-20T16:30:00+06:00', shop: 'ten-0040', kind: 'top_up', plan: null, amount: -500, wallet: 'bKash · 01711 000000', trx: 'BKH3Z6X8C1', sender: '01716 880011', reverses: '2026-10-18T09:40:00+06:00', evidence: null, by: 'nadia@lytro.app' },
+  { id: 'me-28', at: '2026-10-19T12:12:00+06:00', shop: 'ten-0019', kind: 'purchase', plan: 'Starter · 1 month', amount: 449, wallet: 'bKash · 01711 000001', trx: 'BKH4P2L9K7', sender: '01815 345678', paidAt: '2026-10-19T10:01:00+06:00', evidence: 'shot', by: 'ops@lytro.app' },
+  { id: 'me-27', at: '2026-10-18T09:40:00+06:00', shop: 'ten-0040', kind: 'top_up', plan: null, amount: 500, wallet: 'bKash · 01711 000000', trx: 'BKH3Z6X8C1', sender: '01716 880011', paidAt: '2026-10-17T20:30:00+06:00', evidence: 'shot', by: 'ops@lytro.app', reversedBy: { at: '2026-10-20T16:30:00+06:00', by: 'nadia@lytro.app', reason: ['Recorded against the wrong shop; it was Arif Mobiles', 'ভুল শপে রেকর্ড হয়েছিল; আসলে Arif Mobiles'] } },
+];
+function p88ManualPage(o) {
+  o = o || {};
+  const list = ST.data === 'busy' ? P88_ENTRIES : [];
+  const cols = [
+    { k: 'when', label: t('c_when'), w: '112px' },
+    { k: 'what', label: t('p88_c_what'), w: 'minmax(170px,1.5fr)', cls: 'main' },
+    { k: 'amt', label: t('amount'), w: '92px', cls: 'r' },
+    { k: 'paid', label: t('p88_c_paid'), w: 'minmax(130px,1fr)' },
+    { k: 'ev', label: t('p88_c_evidence'), w: '44px' },
+  ];
+  const rows = list.map((e) => ({ cls: e.reversedBy ? 'faded' : '', on: `go('${e.id === 'me-28' ? 'p88-manual-entry' : e.id === 'me-27' ? 'p88-manual-entry-reversed' : 'p88-manual-entry'}')`, cells: {
+    when: `<span class="num">${dateT(e.at)}</span><div style="font-size:12px;color:var(--muted)">${e.by}</div>`,
+    what: `<div>${tenantOf(e.shop).name}</div><div style="font-size:13px;color:var(--muted);font-weight:400;white-space:normal">${e.reverses ? t('p88_reversal_of', { d: dateS(e.reverses) }) : `${t(e.kind)}${e.plan ? ' · ' + e.plan : ''}`}${e.reversedBy ? ` · ${st('mute', t('p88_reversed'))}` : ''}</div>`,
+    amt: `<span class="num" style="font-weight:600;${e.amount < 0 ? 'color:var(--danger)' : ''}">${e.amount < 0 ? '−' + money(-e.amount) : money(e.amount)}</span>`,
+    paid: `<div class="mono">${e.trx}</div><div style="font-size:12px;color:var(--muted)">${e.wallet}</div>`,
+    ev: e.evidence === 'shot' ? `<span title="${t('p88_shot')}" style="color:var(--n700)">${I.image}</span>` : e.evidence === 'line' ? `<span title="${t('p88_line')}" style="color:var(--n700)">${I.receipt}</span>` : '',
+  } }));
+  return `${p88Title(t('manual'), t('p88_mn_sub'), btn(I.plus + t('p88_mn_new'), 'primary', "go('p88-manual-new')"))}
+  <div class="p88-filters">${p88Pick(t('p88_f_shop'), select([['', t('p88_any_shop')], ...TENANTS.slice(0, 6).map((x) => [x.id, x.name])], ''))}${p88Pick(t('p88_f_who'), select([['', t('p88_anyone')], ['me', t('p88_only_mine')]], ''))}${p88Pick(t('p88_f_from'), input('', '', '', 'type=date'))}${p88Pick(t('p88_f_to'), input('', '', '', 'type=date'))}</div>
+  ${ST.data === 'busy' ? `<div class="note">${t('p88_mn_today', { n: 2 })}</div>` : ''}
+  ${ST.data === 'error' ? errorBox() : table(cols, rows, emptyBox(t('p88_mn_empty'), t('p88_mn_empty_hint'), 'receipt'))}`;
+}
+const P88_MN = { nav: 'manual', group: P88G, url: 'admin.lytro.app/manual', bandTitle: 'manual', base: 'p88-manual' };
+def('p88-manual', { ...P88_MN, label: 'Manual entries · the list', render: () => p88ManualPage() });
+
+/* a new entry: the shop, what for, the preview, the money and the evidence (POST /operator/manual-entries/preview, then POST) */
+const p88KindPick = (k) => `<div style="display:flex;flex-direction:column;gap:8px">${['plan', 'upgrade', 'topup'].map((x) => `<div class="p37-radio ${k === x ? 'on' : ''}"><span class="p37-dot"></span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-weight:600">${t(`p88_mf_${x}_k`)}</span><span style="font-size:13px;color:var(--muted)">${t(`p88_mf_${x}_kd`)}</span></span></div>`).join('')}</div>`;
+function p88EntryForm(o) {
+  o = o || {};
+  const top = o.kind === 'topup';
+  const shop = top ? T15 : T19;
+  const amount = top ? (o.amount || 2000) : 449;
+  const shopField = field(t('p88_f_shop'), `<div class="search" style="height:44px">${I.search}<input value="${shop.name}" placeholder="${t('p88_mf_shop_search')}"></div>`, `${shop.slug}.lytro.app · ${t('s_' + shop.state)} · ${shop.plan}`);
+  const plan = top ? '' : `<div class="grid2">${field(t('plan'), select(PLANS.filter((p) => p.forSale).map((p) => [p.id, `${p.name} v${p.version}`]), 'p-starter'))}${field(t('p88_mf_term'), select(TERMS.filter((x) => x.visible).map((x) => [x.id, termLabel(x)]), 't1'))}</div>
+    <div class="p88-preview"><span class="h">${t('p88_pv_title')}</span><span><b>${t('renewal')}</b> · Starter v3 · ${termLabel(TERMS[0])} · <b class="num">${money(449)}</b></span><span>${t('p88_pv_until', { d: dateS('2026-11-19') })}</span><span style="font-size:13px;color:var(--n700)">${t('p88_pv_note')}</span></div>`;
+  const amountField = top
+    ? field(t('p88_mf_amount'), `<div class="inwrap"><span class="pre">৳</span>${input(p88N(amount), 'mono', '', 'inputmode=decimal')}</div>`)
+    : field(t('p88_mf_amount'), `<div class="inwrap"><span class="pre">৳</span>${input('449', 'mono', '', 'inputmode=decimal disabled')}</div>`);
+  const confirm = o.confirm ? `<div class="banner warn">${I.warn}<div>${t('p88_mf_confirm_banner')}</div></div>${field(t('p88_mf_confirm'), `<div class="inwrap"><span class="pre">৳</span>${input('', 'mono', '', 'inputmode=decimal')}</div>`)}` : '';
+  const evidence = `<div class="field"><label>${t('p88_mf_evidence')}</label>${o.uploaded ? `<div class="p88-drop done">${I.image}<span><b>bkash-sadia-1019.jpg</b>412 KB · ${t('p88_mf_upload_d')}</span><button class="iconbtn" style="width:28px;height:28px">${I.x}</button></div>` : `<div class="p88-drop">${I.upload}<span><b>${t('p88_mf_upload')}</b>${t('p88_mf_upload_d')}</span></div>`}<div class="p88-or">${t('p88_mf_or_line')}</div>${textarea(top ? '20/10/2026 18:42 Cash In 2,000.00 01911445566 BKH9Q4L7M2' : '', '')}</div>`;
+  const body = `${o.changed ? `<div class="banner bad">${I.warn}<div>${t('p88_mf_changed', { a: money(479) })}</div></div>` : ''}${shopField}
+    ${field(t('p88_mf_kind'), p88KindPick(top ? 'topup' : 'plan'))}
+    ${plan}${amountField}${confirm}
+    ${field(t('p88_mf_wallet'), select(WALLETS.filter((w) => w.enabled).map((w) => [w.id, `${w.provider} · ${w.number}`]), top ? 'w1' : 'w1'))}
+    <div class="grid2">${field(t('c_trx'), input(top ? 'BKH9Q4L7M2' : 'BKH4P2L9K7', 'mono', '', o.trxUsed ? 'style="border-color:var(--danger)"' : ''), '', o.trxUsed ? t('p88_mf_trx_used') : '')}${field(t('p88_mf_sender'), input(top ? '01911 445566' : '01815 345678', 'mono', '', 'inputmode=tel'))}</div>
+    ${field(t('p88_mf_paidat'), input(top ? '2026-10-20T18:42' : '2026-10-19T10:01', 'mono', '', 'type=datetime-local'))}
+    ${evidence}
+    ${consequence(top ? t('p88_mf_cons_topup') : t('p88_mf_cons'))}
+    ${p88ReasonShop()}`;
+  return sheet(t('p88_mn_new'), null, body, `${backTo('p88-manual')}${btn(t('p88_mf_btn', { a: money(amount) }), 'primary', `go('${top ? 'p88-manual' : 'p88-manual-recorded'}')`)}`, { row: true, close: 'p88-manual' });
+}
+def('p88-manual-new', { ...P88_MN, label: '· record a plan payment (sheet)', render: () => p88ManualPage(), sheet: () => p88EntryForm({ uploaded: true }) });
+def('p88-manual-topup', { ...P88_MN, label: '· record a top-up with a statement line (sheet)', render: () => p88ManualPage(), sheet: () => p88EntryForm({ kind: 'topup' }) });
+def('p88-manual-confirm', { ...P88_MN, label: '· over ৳10,000: the amount typed again (sheet)', render: () => p88ManualPage(), sheet: () => p88EntryForm({ kind: 'topup', amount: 12000, confirm: true }) });
+def('p88-manual-trx-used', { ...P88_MN, label: '· refused: the TrxID was used (sheet)', render: () => p88ManualPage(), sheet: () => p88EntryForm({ uploaded: true, trxUsed: true }) });
+def('p88-manual-changed', { ...P88_MN, label: '· refused: the price changed (sheet)', render: () => p88ManualPage(), sheet: () => p88EntryForm({ uploaded: true, changed: true }) });
+def('p88-manual-recorded', { ...P88_MN, label: '· recorded (toast)', render: () => p88ManualPage(), toast: () => t('p88_mf_done', { shop: T19.name, plan: 'Starter', d: dateS('2026-11-19') }) });
+
+/* one entry, its evidence and its reversal */
+const p88EntrySheet = (e, o) => {
+  o = o || {};
+  const ten = tenantOf(e.shop);
+  const ev = e.evidence === 'shot'
+    ? (o.gone ? `<div class="banner info">${I.info}<div>${t('p88_me_gone')}</div></div>` : `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${btn(I.image + t('p88_me_open_shot'), 'ghost sm', "go('p88-manual-shot')")}<span class="note">${t('p88_me_link_note')}</span></div>`)
+    : `<div class="p88-mono-l" style="background:var(--n50);border:1px solid var(--line);border-radius:8px;padding:10px 12px">${e.line}</div>`;
+  const rev = e.reversedBy ? `<div class="banner warn">${I.undo}<div>${t('p88_me_reversed_by', { d: dateS(e.reversedBy.at), who: e.reversedBy.by, r: p88Val(e.reversedBy.reason) })}</div></div>` : '';
+  return sheet(`${t(e.kind)} · ${money(e.amount)}`, `${ten.name} · ${dateT(e.at)}`, `${rev}<div class="kv"><span class="k">${t('c_shop')}</span><span class="v">${ten.name} · <a href="#" onclick="go('${p88Open(ten.id)}');return false">${ten.slug}.lytro.app</a></span>
+    ${e.plan ? `<span class="k">${t('plan')}</span><span class="v">${e.plan}</span>` : ''}
+    <span class="k">${t('c_trx')}</span><span class="v mono">${e.trx}</span><span class="k">${t('p88_mf_wallet')}</span><span class="v mono">${e.wallet}</span>
+    <span class="k">${t('c_sender')}</span><span class="v mono">${e.sender}</span><span class="k">${t('p88_mf_paidat')}</span><span class="v">${dateT(e.paidAt)}</span>
+    <span class="k">${t('p88_c_by')}</span><span class="v">${e.by}</span><span class="k">${t('reason')}</span><span class="v">${L.lang === 'bn' ? 'রাত ৯টায় পাঠিয়েছেন, তখন কোনো ফোন অনলাইন ছিল না; স্টেটমেন্ট মিলিয়ে দেখা' : 'Sent at 9 pm with no phone online; checked against the statement'}</span></div>
+    <div class="sechead"><h3 style="font-size:14px">${t('p88_mf_evidence')}</h3></div>${ev}`, e.reversedBy ? btn(t('close'), 'ghost', "go('p88-manual')") : `${btn(t('close'), 'ghost', "go('p88-manual')")}${btn(I.undo + t('p88_me_reverse'), 'ghost', `go('${o.reverseTo || 'p88-manual-reverse'}')`, 'style="color:var(--danger)"')}`, { row: true, close: 'p88-manual' });
+};
+def('p88-manual-entry', { ...P88_MN, label: '· one entry with its screenshot (sheet)', render: () => p88ManualPage(), sheet: () => p88EntrySheet(P88_ENTRIES[3]) });
+def('p88-manual-entry-line', { ...P88_MN, label: '· one entry with a statement line (sheet)', render: () => p88ManualPage(), sheet: () => p88EntrySheet(P88_ENTRIES[1], { reverseTo: 'p88-manual-reverse-topup' }) });
+def('p88-manual-entry-gone', { ...P88_MN, label: '· its screenshot removed after two years (sheet)', render: () => p88ManualPage(), sheet: () => p88EntrySheet(P88_ENTRIES[3], { gone: true }) });
+def('p88-manual-entry-reversed', { ...P88_MN, label: '· an entry already reversed (sheet)', render: () => p88ManualPage(), sheet: () => p88EntrySheet(P88_ENTRIES[4]) });
+const p88Shot = (amount, trx, at) => `<div class="p88-shot"><div class="top">bKash</div><div class="mid"><span class="ok">${I.check}</span><b>Send Money successful</b><span class="amt">৳${p88N(amount)}</span><div class="kvs"><span>To</span><span>01711000001</span><span>TrxID</span><span>${trx}</span><span>Time</span><span>${at}</span></div></div></div>`;
+def('p88-manual-shot', { ...P88_MN, label: '· its screenshot (sheet)', render: () => p88ManualPage(), sheet: () => sheet(t('p88_q_shot_title', { trx: 'BKH4P2L9K7' }), t('p88_me_link_note'), `${p88Shot(449, 'BKH4P2L9K7', '19/10/2026 10:01')}${btn(t('back'), 'ghost block', "go('p88-manual-entry')")}`, null, { close: 'p88-manual-entry' }) });
+const p88ReverseSheet = (e, o) => {
+  o = o || {};
+  const ten = tenantOf(e.shop);
+  return sheet(t('p88_rv_title'), `${ten.name} · ${t(e.kind)} · ${money(e.amount)}`, `${o.moved ? `<div class="banner bad">${I.warn}<div>${t('p88_rv_moved')}</div></div>` : ''}${consequence(e.kind === 'top_up' ? t('p88_rv_cons_topup', { a: money(e.amount), shop: ten.name }) : t('p88_rv_cons_plan', { shop: ten.name }), 'danger')}${field(t('reason'), textarea('', ''), t('p88_rv_reason_help'))}`, `${backTo(o.back || 'p88-manual-entry')}${btn(t('p88_rv_btn', { a: money(e.amount) }), 'danger', "go('p88-manual-reversed')")}`, { row: true, close: o.back || 'p88-manual-entry' });
+};
+def('p88-manual-reverse', { ...P88_MN, label: '· reverse a plan entry (sheet)', render: () => p88ManualPage(), sheet: () => p88ReverseSheet(P88_ENTRIES[3]) });
+def('p88-manual-reverse-topup', { ...P88_MN, label: '· reverse a top-up (sheet)', render: () => p88ManualPage(), sheet: () => p88ReverseSheet(P88_ENTRIES[1], { back: 'p88-manual-entry-line' }) });
+def('p88-manual-reverse-moved', { ...P88_MN, label: '· refused: the plan moved on (sheet)', render: () => p88ManualPage(), sheet: () => p88ReverseSheet(P88_ENTRIES[3], { moved: true }) });
+def('p88-manual-reversed', { ...P88_MN, label: '· reversed (toast)', render: () => p88ManualPage(), toast: () => t('p88_rv_done', { shop: T19.name }) });
+
+/* the queue: a seller's screenshot on its "I have paid" (GET /operator/payment-queue/:id/evidence; 404 when none) */
+PAYMENTS[0].evidence = true;
+const p88QueuePaymentBase = SCREENS['queue-payment'].sheet;
+SCREENS['queue-payment'].sheet = () => {
+  const html = p88QueuePaymentBase();
+  const note = `<div class="note">${t('pay_statement')}</div>`;
+  const block = `<div class="row wrap" style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;min-height:0"><span class="lead" style="width:36px;height:36px">${I.image}</span><span class="body"><span class="l1">${t('p88_q_shot')}</span><span class="l2">${t('p88_me_link_note')}</span></span>${btn(t('open'), 'ghost sm', "go('p88-queue-shot')")}</div>`;
+  return html.replace(note, block + note);
+};
+def('p88-queue-shot', { base: 'queue', nav: 'queue', group: P88G, label: 'Payment queue · the seller\'s screenshot (sheet)', url: 'admin.lytro.app/queue/pay-9101', bandTitle: 'queue', render: queuePage, sheet: () => sheet(t('p88_q_shot_title', { trx: P0.trx }), `${tenantOf(P0.tenantId).name} · ${t('p88_me_link_note')}`, `${p88Shot(449, P0.trx, '21/10/2026 11:38')}<div class="banner warn">${I.warn}<div>${t('p88_q_shot_note')}</div></div>${btn(t('back'), 'ghost block', "go('queue-payment')")}`, null, { close: 'queue-payment' }) });
+def('p88-queue-payment', { ...SCREENS['queue-payment'], group: P88G, label: 'Payment queue · a payment with a screenshot (sheet)' });
+
+/* ---------- media costs (MED-12, D8-57 to D8-64): GET /operator/media-costs ---------- */
+const P88_MEDIA = {
+  period: { from: '2026-10-01', to: '2026-10-31', days: 31, read: 21 }, readAt: '2026-10-21T14:05:00+06:00',
+  budget: 10, alertPercent: 80, alertEmail: 'ops@lytro.app',
+  r2: { a: { ops: 0.62, free: 1, bill: 0, cost: 0 }, b: { ops: 4.1, free: 10, bill: 0, cost: 0 }, s: { gbm: 23.4, free: 10, bill: 14, cost: 0.21 } },
+  buckets: [['lytro-media', 'p88_md_bk_media', 588100, 3912000, 40210, 21.9, 34.1e9, 81240], ['lytro-evidence', 'p88_md_bk_evidence', 2410, 1880, 0, 0.04, 0.06e9, 312], ['', 'p88_md_account', 1210, 0, 18, 0, 0, 0]],
+  workers: { req: 11.3, bytes: 612e9, incl: 10, bill: 2, monthly: 5, cost: 5.6 },
+  top: [['Faiza Shoes', 1.84e6, 98e9], ['Dhaka Gadget House', 1.21e6, 71e9], ['Arif Electronics', 0.96e6, 52e9], ['Rahim Fashion', 0.88e6, 47e9], ['Tanvir Mobiles', 0.61e6, 33e9], ['Joy Pharmacy', 0.52e6, 21e9], ['Nusrat Cosmetics', 0.47e6, 26e9], ['Sadia Collection', 0.41e6, 19e9], ['Mim Bakery', 0.33e6, 12e9], ['Keya Boutique', 0.29e6, 14e9]],
+};
+function p88MediaPage(o) {
+  o = o || {};
+  const M = P88_MEDIA;
+  const total = o.over ? 8.4 : M.r2.s.cost + M.workers.cost;
+  const pct = Math.round((total / M.budget) * 100);
+  const periods = [['2026-10-01', `${dateS('2026-10-01')} – ${dateS('2026-10-31')} · ${t('p88_md_running')}`], ['2026-09-01', `${dateS('2026-09-01')} – ${dateS('2026-09-30')}`], ['2026-08-01', `${dateS('2026-08-01')} – ${dateS('2026-08-31')}`]];
+  const head = `${p88Title(t('media'), t('p88_md_sub'))}<div class="p88-filters">${p88Pick(t('p88_md_period'), select(periods, '2026-10-01'), true)}</div>`;
+  if (ST.data === 'error') return head + errorBox();
+  const banners = [
+    o.off ? `<div class="banner warn">${I.cloud}<div>${t('p88_md_off')}</div></div>` : '',
+    o.over ? `<div class="banner warn">${I.mail}<div>${t('p88_md_alerted', { e: M.alertEmail, d: dateS('2026-10-19'), p: 81 })}</div></div>` : '',
+    o.noEmail ? `<div class="banner info">${I.info}<div>${t('p88_md_noemail', { p: M.alertPercent })} <a href="#" onclick="go('p88-settings-media');return false">${t('p88_md_set')}</a></div></div>` : '',
+  ].join('');
+  const opsLine = (x) => t('p88_md_line', { u: t('p88_md_mops', { n: x.ops }), f: t('p88_md_mops', { n: x.free }), b: x.bill });
+  const r2 = o.off ? '' : `<div class="card"><div class="sechead"><h3>${t('p88_md_r2')}</h3><span class="money">${usd(M.r2.s.cost)}</span></div><div class="p88-kvs" style="margin-top:8px">
+      <span class="k">${t('p88_md_classA')} <span class="note">· ${t('p88_md_classA_d')}</span><div class="note">${opsLine(M.r2.a)}</div></span><span class="v">${usd(M.r2.a.cost)}</span>
+      <span class="k">${t('p88_md_classB')} <span class="note">· ${t('p88_md_classB_d')}</span><div class="note">${opsLine(M.r2.b)}</div></span><span class="v">${usd(M.r2.b.cost)}</span>
+      <span class="k">${t('p88_md_storage')}<div class="note">${t('p88_md_line', { u: t('p88_md_gbm', { n: M.r2.s.gbm }), f: t('p88_md_gbm', { n: M.r2.s.free }), b: M.r2.s.bill })}</div></span><span class="v">${usd(M.r2.s.cost)}</span>
+    </div></div>`;
+  const workers = `<div class="card"><div class="sechead"><h3>${t('p88_md_workers')}</h3><span class="money">${usd(M.workers.cost)}</span></div><div class="p88-kvs" style="margin-top:8px">
+      <span class="k">${t('p88_md_requests')}<div class="note">${t('p88_md_wline', { n: M.workers.incl, b: M.workers.bill })}</div></span><span class="v">${t('p88_md_mops', { n: M.workers.req })}</span>
+      <span class="k">${t('p88_md_bytes')}</span><span class="v">${p88Bytes(M.workers.bytes)}</span>
+      <span class="k">${t('p88_md_monthly')}</span><span class="v">${usd(M.workers.monthly)}</span>
+    </div><div class="note" style="margin-top:8px">${t('p88_md_not_counted')}</div></div>`;
+  const bcols = [{ k: 'b', label: t('p88_c_bucket'), w: 'minmax(140px,1.4fr)', cls: 'main' }, { k: 'a', label: t('p88_c_ops_a'), w: '84px', cls: 'r' }, { k: 'r', label: t('p88_c_ops_b'), w: '84px', cls: 'r' }, { k: 'g', label: t('p88_c_gbm'), w: '80px', cls: 'r' }, { k: 's', label: t('p88_c_size'), w: '80px', cls: 'r' }, { k: 'o', label: t('p88_c_objects'), w: '80px', cls: 'r' }];
+  const brows = M.buckets.map(([name, k, a, b, f, g, size, objects]) => ({ cells: { b: `<div>${t(k)}</div>${name ? `<div class="p88-mono-l">${name}</div>` : ''}`, a: `<span class="num">${p88N(a)}</span>`, r: `<span class="num">${p88N(b)}</span>`, g: `<span class="num">${name ? g : '—'}</span>`, s: `<span class="num">${size ? p88Bytes(size) : '—'}</span>`, o: `<span class="num">${objects ? p88N(objects) : '—'}</span>`, f } }));
+  const tcols = [{ k: 'n', label: '#', w: '36px' }, { k: 's', label: t('c_shop'), w: 'minmax(150px,1.6fr)', cls: 'main' }, { k: 'r', label: t('p88_md_requests'), w: '110px', cls: 'r' }, { k: 'b', label: t('p88_md_bytes'), w: '100px', cls: 'r' }];
+  const trows = M.top.map(([name, r, b], i) => ({ cells: { n: `<span class="num" style="color:var(--muted)">${i + 1}</span>`, s: name, r: `<span class="num">${p88N(r)}</span>`, b: `<span class="num">${p88Bytes(b)}</span>` } }));
+  const P = DEFAULT_PRICES_88;
+  return `${head}${banners}
+  <div class="p88-stats four">
+    ${p88Stat(t('p88_md_estimate'), usd(total), t('p88_md_est_d', { n: M.period.read, m: M.period.days }), { flag: pct >= M.alertPercent })}
+    <div class="stat p88-span" style="grid-column:span 2"><span class="k">${t('p88_md_budget')} · ${usd(M.budget)}</span><span class="v ${pct >= M.alertPercent ? 'warn' : ''}">${t('p88_md_used', { p: pct })}</span>${p88Meter(total, M.budget, M.alertPercent)}<span class="d">${t('p88_md_budget_d', { p: M.alertPercent })} · ${o.noEmail ? t('p88_not_set') : M.alertEmail}</span></div>
+    ${p88Stat(t('p88_md_lastread'), o.off ? '—' : dateT(M.readAt), o.off ? '' : p88Ago(M.readAt), {})}
+  </div>
+  <div class="grid2">${r2 || workers}${r2 ? workers : ''}</div>
+  ${o.off ? '' : `<div class="sechead"><h2>${t('p88_md_buckets')}</h2></div>${table(bcols, brows, '')}`}
+  <div class="sechead"><h2>${t('p88_md_top')}</h2></div>${table(tcols, trows, '')}
+  <div class="note">${t('p88_md_prices', { a: usd(P.r2ClassAPerMillion), b: usd(P.r2ClassBPerMillion), c: '$' + P.r2StoragePerGbMonth, d: usd(P.workersMonthly), e: usd(P.workersPerMillion), f: P.workersIncludedMillions })} <a href="#" onclick="go('p88-settings-media');return false">${t('settings')}</a></div>`;
+}
+const DEFAULT_PRICES_88 = { r2ClassAPerMillion: 4.5, r2ClassBPerMillion: 0.36, r2StoragePerGbMonth: 0.015, r2FreeClassAMillions: 1, r2FreeClassBMillions: 10, r2FreeStorageGbMonths: 10, workersMonthly: 5, workersIncludedMillions: 10, workersPerMillion: 0.3 };
+const P88_MD = { nav: 'media', group: P88G, url: 'admin.lytro.app/media-costs', bandTitle: 'media' };
+def('p88-media', { ...P88_MD, label: 'Media costs · this period', render: () => p88MediaPage() });
+def('p88-media-alert', { ...P88_MD, label: 'Media costs · past the alert, email sent', render: () => p88MediaPage({ over: true }) });
+def('p88-media-noemail', { ...P88_MD, label: 'Media costs · no alert address set', render: () => p88MediaPage({ noEmail: true }) });
+def('p88-media-off', { ...P88_MD, label: 'Media costs · Cloudflare not connected', render: () => p88MediaPage({ off: true }) });
+
+/* ---------- wallet types (WAL-18, D8-65 to D8-67): GET /operator/payment-method-types ---------- */
+const P88_TYPES = [
+  { method: 'bkash', name: 'bKash', kind: 'wallet', on: 284, accounts: 301, open: 37, lytro: true },
+  { method: 'nagad', name: 'Nagad', kind: 'wallet', on: 156, accounts: 170, open: 12, lytro: true },
+  { method: 'rocket', name: 'Rocket', kind: 'wallet', on: 9, accounts: 14, open: 0, lytro: false },
+  { method: 'upay', name: 'Upay', kind: 'wallet', on: 3, accounts: 5, open: 1, lytro: false },
+  { method: 'bank', name: 'Bank transfer', kind: 'bank', on: 22, accounts: 25, open: 2, lytro: true },
+];
+function p88TypesPage(o) {
+  o = o || {};
+  const upay = o.upay || 'active';
+  const cols = [
+    { k: 'type', label: t('p88_c_type'), w: 'minmax(130px,1.5fr)', cls: 'main' },
+    { k: 'state', label: t('c_status'), w: '100px' },
+    { k: 'on', label: t('p88_c_on'), w: '84px', cls: 'r' },
+    { k: 'open', label: t('p88_c_open'), w: '84px', cls: 'r' },
+    { k: 'lytro', label: t('p88_c_lytro'), w: '90px' },
+    { k: 'acts', label: '', w: '180px', cls: 'acts' },
+  ];
+  const rows = P88_TYPES.map((x) => {
+    const s = x.method === 'upay' ? upay : 'active';
+    const removed = s === 'removed';
+    const c = o.clear && x.method === 'upay' ? { ...x, on: 0, open: 0 } : x;
+    const sub = (s === 'retiring' ? line6(t('p88_wt_retiring_line', { d: dateS('2026-10-19') })) : removed ? line6(t('p88_wt_removed_line', { d: dateS('2026-11-18') })) : '') + (removed ? '' : line6(t('p88_wt_accounts', { n: p88N(c.accounts) })));
+    const acts = removed ? '' : s === 'retiring'
+      ? `${btn(t('cou_undo'), 'ghost sm', "go('p88-type-undo')")}${btn(t('cou_remove'), 'quiet sm', `go('${o.clear ? 'p88-type-remove' : 'p88-type-remove-blocked'}')`)}`
+      : btn(t('cou_retire'), 'ghost sm', x.method === 'upay' ? "go('p88-type-retire')" : '');
+    return { cls: removed ? 'faded' : '', cells: {
+      type: `<div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;flex:none;background:${PROV_COLOR[x.name] || 'var(--n700)'}"></span>${x.name === 'Bank transfer' ? t('pm_bank') : x.name} <span class="mono" style="font-size:12px;color:var(--muted);font-weight:400">${x.method}</span></div>${sub}`,
+      state: couState(s),
+      on: `<span class="num">${removed ? 0 : p88N(c.on)}</span>`,
+      open: `<span class="num">${removed ? 0 : p88N(c.open)}</span>`,
+      lytro: removed ? '—' : c.lytro ? st('ok plain', t('p88_takes')) : `<span style="color:var(--muted)">${t('p88_takes_not')}</span>`,
+      acts,
+    } };
+  });
+  const banner = upay === 'retiring' ? `<div class="banner warn">${I.warn}<div>${t('p88_wt_banner', { c: 'Upay' })}</div></div>` : '';
+  return `${p88Title(t('wtypes'), t('p88_wt_sub'))}<div class="note">${t('p88_wt_lytro_note')} <a href="#" onclick="go('wallets');return false">${t('wallets')}</a></div>${ST.data === 'error' ? errorBox() : `${banner}${table(cols, rows, '')}`}`;
+}
+const P88_WT = { base: 'p88-types', nav: 'wtypes', group: P88G, url: 'admin.lytro.app/wallet-types', bandTitle: 'wtypes', render: () => p88TypesPage() };
+const p88Retiring = () => p88TypesPage({ upay: 'retiring' });
+const p88Clear = () => p88TypesPage({ upay: 'retiring', clear: true });
+const UP = P88_TYPES[3];
+def('p88-types', { ...P88_WT, label: 'Wallet types · all five active' });
+def('p88-type-retire', { ...P88_WT, label: '· retire Upay (sheet)', sheet: () => sheet(t('p88_wr_title', { c: 'Upay' }), t('p88_wr_sub', { n: UP.on, m: UP.accounts }), `${consequence(t('p88_wr_cons', { c: 'Upay' }))}${consequence(t('p88_wr_lytro', { c: 'Upay' }))}${field(t('reason'), textarea('', ''), t('ret_reason_help'))}`, `${backTo('p88-types')}${btn(t('ret_btn', { c: 'Upay' }), 'danger', "go('p88-types-retiring')")}`, { row: true, close: 'p88-types' }) });
+def('p88-types-retiring', { ...P88_WT, base: 'p88-types-retiring', label: 'Wallet types · Upay retiring', render: p88Retiring, toast: () => t('ret_done', { c: 'Upay', n: 6 }) });
+def('p88-type-undo', { ...P88_WT, base: 'p88-types-retiring', label: '· undo retiring (sheet)', render: p88Retiring, sheet: () => sheet(t('rst_title', { c: 'Upay' }), t('p88_wr_sub', { n: UP.on, m: UP.accounts }), `${consequence(t('p88_wu_cons', { c: 'Upay', n: 6 }), 'ok')}${field(t('reason'), textarea('', ''), t('ret_reason_help'))}`, `${backTo('p88-types-retiring')}${btn(t('rst_btn'), 'primary', "go('p88-types-undone')")}`, { row: true, close: 'p88-types-retiring' }) });
+def('p88-types-undone', { ...P88_WT, label: '· undone (toast)', toast: () => t('rst_done', { c: 'Upay', n: 6 }) });
+const p88Blocker = (label, n, d, hold, extra) => `<div class="row wrap ${hold ? 'hold' : 'clear'}"><span class="body"><span class="l1">${label}</span><span class="l2" style="white-space:normal">${hold ? d : t('p88_wb_clear')}</span>${extra || ''}</span>${typeof n === 'number' ? `<span class="p88-big" style="font-size:22px;${hold ? 'color:var(--danger)' : 'color:var(--success)'}">${n}</span>` : st(hold ? 'bad' : 'ok', n)}</div>`;
+def('p88-type-remove-blocked', { ...P88_WT, base: 'p88-types-retiring', label: '· remove: refused, with the three counts (sheet)', render: p88Retiring, sheet: () => sheet(t('p88_wb_title', { c: 'Upay' }), null, `${consequence(t('p88_wb_cons'))}<div class="p88-blk">
+    ${p88Blocker(t('p88_c_on'), UP.on, t('p88_wb_on_d'), UP.on > 0)}
+    ${p88Blocker(t('p88_c_open'), UP.open, t('p88_wb_open_d'), UP.open > 0)}
+    ${p88Blocker(t('p88_c_lytro'), UP.lytro ? t('p88_takes') : t('p88_takes_not'), t('p88_wb_lytro_d'), UP.lytro, UP.lytro ? `<span style="margin-top:6px">${btn(t('p88_wb_go'), 'ghost sm', "go('wallets')")}</span>` : '')}
+  </div>`, btn(t('close'), 'ghost', "go('p88-types-retiring')"), { close: 'p88-types-retiring' }) });
+def('p88-types-clear', { ...P88_WT, base: 'p88-types-clear', label: 'Wallet types · Upay retiring, nothing holding it', render: p88Clear });
+def('p88-type-remove', { ...P88_WT, base: 'p88-types-clear', label: '· remove for good (sheet)', render: p88Clear, sheet: () => sheet(t('p88_wm_title', { c: 'Upay' }), t('p88_wr_sub', { n: 0, m: UP.accounts }), `${consequence(t('p88_wm_cons', { c: 'Upay' }), 'danger')}${field(t('reason'), textarea('', ''), t('ret_reason_help'))}`, `${backTo('p88-types-clear')}${btn(t('p88_wm_btn', { c: 'Upay' }), 'danger', "go('p88-types-removed')")}`, { row: true, close: 'p88-types-clear' }) });
+def('p88-types-removed', { ...P88_WT, base: 'p88-types-removed', label: 'Wallet types · Upay removed', render: () => p88TypesPage({ upay: 'removed' }), toast: () => t('p88_wm_done', { c: 'Upay' }) });
+
+/* ---------- settings: the help line's four and media costs' five, in two new groups (D8-68, D8-58 to D8-61) ---------- */
+SETTINGS.push(
+  { key: 'help_whatsapp', value: null, group: 14, unit: 'p88phone', desc: "Lytro's WhatsApp number, 01XXXXXXXXX, that the dashboard, Lytro's payment page and the website show (D8-4, D8-68).", updatedAt: '2026-11-10', by: null },
+  { key: 'help_phone', value: null, group: 14, unit: 'p88phone', desc: "Lytro's phone number for calls, 01XXXXXXXXX, that the dashboard, Lytro's payment page and the website show (D8-4, D8-68).", updatedAt: '2026-11-10', by: null },
+  { key: 'help_opens_hour', value: 9, group: 14, unit: 'p88hour', desc: 'The hour Lytro starts answering the help line, every day, 0 to 23 in Dhaka (D8-68).', updatedAt: '2026-11-10', by: null },
+  { key: 'help_closes_hour', value: 22, group: 14, unit: 'p88hour', desc: 'The hour Lytro stops answering the help line, every day, 0 to 23 in Dhaka (D8-68).', updatedAt: '2026-11-10', by: null },
+  { key: 'media_budget_usd', value: 10, group: 15, unit: 'p88usd', desc: "The month's budget for Lytro's Cloudflare costs, in whole US dollars (MED-12, D8-58).", updatedAt: '2026-11-10', by: null },
+  { key: 'media_budget_alert_percent', value: 80, group: 15, unit: 'u_pct', desc: 'The percent of the media budget that emails the alert address, once a billing period (MED-12).', updatedAt: '2026-11-10', by: null },
+  { key: 'media_cost_alert_email', value: null, group: 15, unit: 'p88email', desc: 'The one address the media budget alert goes to (MED-12, D8-61).', updatedAt: '2026-11-10', by: null },
+  { key: 'cloudflare_billing_day', value: 1, group: 15, unit: 'p88day', desc: "The day of the month Cloudflare's invoice period starts on, 1 to 28 (MED-12, D8-61).", updatedAt: '2026-11-10', by: null },
+  { key: 'cloudflare_prices', value: DEFAULT_PRICES_88, group: 15, unit: 'p88prices', desc: "Cloudflare's R2 and Workers prices and monthly allowances, in US dollars, that the media costs estimate uses (D8-60).", updatedAt: '2026-11-10', by: null },
+);
+P37_GROUPS.push(14, 15);
+let p88SettingErr = null;
+const p88SettingValueBase = settingValue;
+settingValue = (s) => {
+  if (s.unit === 'p88phone' || s.unit === 'p88email') return s.value === null ? st('warn', t('p88_not_set')) : `<span class="mono" style="font-weight:600;overflow-wrap:anywhere">${s.value}</span>`;
+  if (s.unit === 'p88hour') return `<span class="money" style="font-size:20px">${String(s.value).padStart(2, '0')}:00 <span style="font-size:13px;font-weight:500;color:var(--muted)">${t('p88_every_day')}</span></span>`;
+  if (s.unit === 'p88usd') return `<span class="money" style="font-size:20px">$${s.value} <span style="font-size:13px;font-weight:500;color:var(--muted)">${t('u_per_month_88')}</span></span>`;
+  if (s.unit === 'p88day') return `<span style="font-weight:600">${t('p88_day_of_month', { n: s.value })}</span>`;
+  if (s.unit === 'p88prices') return `<span style="font-size:13px;font-weight:500;color:var(--n700);white-space:normal">${t('p88_pr_summary', { a: usd(s.value.r2ClassAPerMillion), b: usd(s.value.r2ClassBPerMillion), c: '$' + s.value.r2StoragePerGbMonth, d: usd(s.value.workersMonthly) })}</span>`;
+  return p88SettingValueBase(s);
+};
+S.u_per_month_88 = ['a month', 'মাসে'];
+const p88SettingEditorBase = settingEditor;
+settingEditor = (s) => {
+  const back = s.group === 15 ? 'p88-settings-media' : 'p88-settings-help';
+  const save = `${btn(t('save'), 'primary sm', `go('${back}')`)}${btn(t('cancel'), 'ghost sm', `go('${back}')`)}`;
+  const reason = `<input class="input" placeholder="${t('reason')}" style="height:36px;width:220px;max-width:100%">`;
+  const err = p88SettingErr === s.key;
+  const wrap = (control, help, e) => `<div style="flex:1 1 100%;display:flex;flex-direction:column;gap:6px"><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${control}${reason}${save}</span>${e ? `<div class="err" style="font-size:13px;color:var(--danger)">${e}</div>` : ''}${help ? `<div class="p37-help">${help}</div>` : ''}</div>`;
+  if (s.unit === 'p88phone') return wrap(`<input class="input inline mono" value="${err ? '01511 23' : '+880 1711-000000'}" style="width:180px;text-align:left;${err ? 'border-color:var(--danger)' : ''}">`, t('p88_help_phone_help'), err ? t('p88_err_phone') : '');
+  if (s.unit === 'p88hour') return wrap(`<input class="input inline mono" value="${err ? 24 : s.value}" style="width:90px;${err ? 'border-color:var(--danger)' : ''}">`, t('p88_hour_help'), err ? t('p88_err_hour') : '');
+  if (s.unit === 'p88email') return wrap(`<input class="input inline" value="alerts@lytro.app" style="width:220px;text-align:left">`, t('p88_alert_email_note'), '');
+  if (s.unit === 'p88usd') return wrap(`<input class="input inline mono" value="15" style="width:90px">`, '', '');
+  return p88SettingEditorBase(s);
+};
+CHANGE_SCREEN.p88phone = 'p88-setting-whatsapp';
+CHANGE_SCREEN.p88hour = 'p88-setting-hours';
+CHANGE_SCREEN.p88email = 'p88-setting-email';
+CHANGE_SCREEN.p88usd = 'p88-setting-budget';
+CHANGE_SCREEN.p88day = 'p88-setting-budget';
+CHANGE_SCREEN.p88prices = 'p88-setting-prices';
+/* the help line's group carries one sentence on where its numbers show */
+const p88SettingsPageBase = settingsPage;
+settingsPage = (o) => p88SettingsPageBase(o).replace('<div id="p37-g14"><div class="sechead"><h2>' + t('se_g14') + '</h2></div>', `<div id="p37-g14"><div class="sechead"><h2>${t('se_g14')}</h2></div><div class="note" style="margin-top:2px">${t('p88_help_note')}</div>`);
+const P88_SET = { base: 'settings', nav: 'settings', group: P88G, url: 'admin.lytro.app/settings', bandTitle: 'settings' };
+def('p88-settings-help', { ...P88_SET, label: 'Settings · the help line', anchor: 'p37-g14', render: () => settingsPage() });
+def('p88-setting-whatsapp', { ...P88_SET, label: '· set the WhatsApp number', anchor: 'p37-g14', render: () => settingsPage({ editing: 'help_whatsapp' }) });
+def('p88-setting-phone-bad', { ...P88_SET, label: '· refused: not a mobile number', anchor: 'p37-g14', render: () => { p88SettingErr = 'help_whatsapp'; const html = settingsPage({ editing: 'help_whatsapp' }); p88SettingErr = null; return html; } });
+def('p88-setting-hours', { ...P88_SET, label: '· change the closing hour', anchor: 'p37-g14', render: () => settingsPage({ editing: 'help_closes_hour' }) });
+def('p88-setting-hours-bad', { ...P88_SET, label: '· refused: not an hour from 0 to 23', anchor: 'p37-g14', render: () => { p88SettingErr = 'help_closes_hour'; const html = settingsPage({ editing: 'help_closes_hour' }); p88SettingErr = null; return html; } });
+def('p88-settings-media', { ...P88_SET, label: 'Settings · media costs', anchor: 'p37-g15', render: () => settingsPage() });
+def('p88-setting-email', { ...P88_SET, label: '· set the alert address', anchor: 'p37-g15', render: () => settingsPage({ editing: 'media_cost_alert_email' }) });
+def('p88-setting-budget', { ...P88_SET, label: '· change the budget', anchor: 'p37-g15', render: () => settingsPage({ editing: 'media_budget_usd' }) });
+const p88PricesSheet = (err) => sheet(t('sn_cloudflare_prices'), t('p88_pr_lead'), `${err ? `<div class="banner bad">${I.warn}<div>${t('p88_pr_err')}</div></div>` : ''}<div class="grid2">${[['p88_pr_a', 'r2ClassAPerMillion', '$'], ['p88_pr_b', 'r2ClassBPerMillion', '$'], ['p88_pr_s', 'r2StoragePerGbMonth', '$'], ['p88_pr_fa', 'r2FreeClassAMillions'], ['p88_pr_fb', 'r2FreeClassBMillions'], ['p88_pr_fs', 'r2FreeStorageGbMonths'], ['p88_pr_wm', 'workersMonthly', '$'], ['p88_pr_wi', 'workersIncludedMillions'], ['p88_pr_wp', 'workersPerMillion', '$']].map(([k, f, cur]) => field(t(k), cur ? `<div class="inwrap"><span class="pre">$</span>${input(err && f === 'r2ClassBPerMillion' ? '-0.36' : DEFAULT_PRICES_88[f], 'mono', '', 'inputmode=decimal')}</div>` : input(DEFAULT_PRICES_88[f], 'mono', '', 'inputmode=numeric'))).join('')}</div>${field(t('reason'), textarea('', ''), t('reason_help'))}`, `${backTo('p88-settings-media')}${btn(t('save'), 'primary', "go('p88-settings-media')")}`, { row: true, close: 'p88-settings-media' });
+def('p88-setting-prices', { ...P88_SET, label: '· change Cloudflare\'s prices (sheet)', anchor: 'p37-g15', render: () => settingsPage(), sheet: () => p88PricesSheet(false) });
+def('p88-setting-prices-bad', { ...P88_SET, label: '· refused: a price below 0 (sheet)', anchor: 'p37-g15', render: () => settingsPage(), sheet: () => p88PricesSheet(true) });
+
+/* ---------- Today: the platform figures are real now (ADM-09) ---------- */
+const p88TodayBase = SCREENS.today.render;
+SCREENS.today.render = () => {
+  const page = p88TodayBase();
+  const later = laterCard(t('td_figures'), t('td_figures_hint'));
+  const T = p88Rev(p88RevTotal(P88_REV));
+  const card = `<div class="card"><div class="sechead"><h3>${t('td_figures')}</h3><span class="lnk" onclick="go('p88-reports')">${t('p88_td_open')}</span></div><div class="hint">${t('p88_td_figs_d')}</div>
+    <div class="p88-kvs" style="margin-top:10px"><span class="k">${t('p88_td_shops')}</span><span class="v">${P88_SHOPS_RP.total}</span><span class="k">${t('p88_td_new')}</span><span class="v">59</span><span class="k">${t('p88_td_earned')}</span><span class="v">${money(T.e)}</span></div></div>`;
+  return page.replace(later, ST.data === 'error' ? later : card);
+};
+def('p88-today', { ...SCREENS.today, group: P88G, label: 'Today · the platform figures from the reports' });
+
+/* ---------- navigation: Manual entries joins the daily work; Reports, Audit log and Media costs get their own group; Wallet
+   types sits beside Couriers, whose retiring it mirrors. Only the support inbox and verification stay Later. ---------- */
+NAV[0].items.splice(NAV[0].items.findIndex(([k]) => k === 'queue') + 1, 0, ['manual', 'p88-manual', 'receipt']);
+NAV[2].items.splice(NAV[2].items.findIndex(([k]) => k === 'couriers') + 1, 0, ['wtypes', 'p88-types', 'cards']);
+NAV.splice(NAV.findIndex((g) => g.grp === 'nav_catalogue'), 0, { grp: 'p88_nav_records', items: [['reports', 'p88-reports', 'chart'], ['audit', 'p88-audit', 'history'], ['media', 'p88-media', 'cloud']] });
+LATER_NAV.items = LATER_NAV.items.filter(([k]) => !['reports', 'audit', 'manual'].includes(k));
+for (const id of ['later-reports', 'later-audit', 'later-manual']) delete SCREENS[id];
+/* ---------- end of Phase 8 Slice 8.8 ---------- */
+
 (function init() {
   const sel = document.getElementById('selScreen'); const groups = {};
   for (const [id, s] of Object.entries(SCREENS)) (groups[s.group] = groups[s.group] || []).push([id, s.label]);

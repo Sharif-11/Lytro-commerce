@@ -1,6 +1,6 @@
 # Tenant dashboard: the full design
 
-Status: v3.38, 2026-11-09 (paying Lytro on the developed payment page: §7.19 is current, Part 38, reversing D5-3's amendment of 2026-11-03; v3.37 of 2026-11-07: Phase 7 for the seller -- SMS settings, the log and the report, the bell, its switches and
+Status: v3.39, 2026-11-10 (Phase 8 for the seller -- the help line, the error ID on a server fault, a payment method being retired, a payment's screenshot in Billing, categories by dragging -- and the owner's six fixes, drawn for Slice 8.8, §7.41, Part 39; v3.38 of 2026-11-09: paying Lytro on the developed payment page: §7.19 is current, Part 38, reversing D5-3's amendment of 2026-11-03; v3.37 of 2026-11-07: Phase 7 for the seller -- SMS settings, the log and the report, the bell, its switches and
 push, the bounced email, Lytro's notice board with its marquee and prompt, the fake order check, reading a pasted
 message and the reads allowance -- drawn for Slice 7.7, §7.40, Part 37; v3.36 of 2026-11-07: the Phase 6 close-out: editing a booked order, §7.39, Part 36's `c36-edit` and `c36-edited`; v3.35 of 2026-11-06: Couriers, booking, the order's Courier card and courier money, drawn for Phase 6 Slice 6.7, §7.39, Part 36; v3.34 of 2026-11-05: Payments and Listener phones, drawn and built together for Slice 5.8's parts 3 and 4, §7.36 to §7.38; v3.33 of 2026-11-04: Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
 shipment the balance can't pay for, serials at shipping scanned, pasted or typed, the Orders list by where an order came
@@ -986,6 +986,9 @@ your logo on the home screen with a small gear in its corner, so you tell it fro
 role sees Activity, not Team or Settings), and so do the Menu hub's section chips. On an iPhone, which offers no install
 button, the card says to tap Share, then Add to Home Screen, and that the icon stays as installed. Help shows only when
 the support WhatsApp number is configured.
+
+*Slice 8.8* (Part 39, §7.41): Help opens Lytro support from the help line (`GET /help-line`): WhatsApp holding the shop's
+link, Call, and the hours every day with open or closed now; shown to everyone on the team, and only when a number is set.
 
 ### 7.19 Paying the platform through the hosted page
 
@@ -1992,6 +1995,74 @@ one sketch PR now and one build PR after 7.4). Drawn from what the server on mai
   chat AI is gone from Balance's rates and statement (`p37-balance`); the low-balance warning no longer mentions chat
   AI; the bell no longer says every notification matches an email.
 
+### 7.41 Phase 8 for the seller: the help line, the error ID, a payment method being retired, a payment's screenshot, categories by dragging, and the owner's six fixes
+
+*Phase 8 Slice 8.8* (Part 39), read agreed 2026-11-10: the six fixes first in their own PR, this sketch, then the console's
+build and the dashboard's and website's; categories by dragging drawn here; the contact page's "any time" promise dropped; the
+listener app reading the help line. Drawn from what the server on main serves (Slices 8.1, 8.5 and 8.7); where a screen needs
+more, §10 lists it for the build.
+
+- **The help line** (D8-4, D8-67 to D8-69; `p88-menu`, `p88-help`). The Menu's Help row opens **Lytro support** from
+  `GET /help-line` (public, cached five minutes): the hours as one line, "Every day, 9 am to 10 pm", with **Open now** or
+  **Closed now** by Dhaka's clock; **Message on WhatsApp**, which opens WhatsApp holding "Hello Lytro, this is megh.lytro.app."
+  so Lytro knows which shop is writing, the words shown in the sheet; and **Call** with the number. Closed, both stay, with
+  "Opens at 9 am. Leave a WhatsApp message and we reply when we open." (`p88-help-closed`). The row's second line follows:
+  "WhatsApp or call · open now", or "· opens at 9 am". A number not set is not shown (`p88-help-wa`, `p88-help-phone`); with
+  neither, there is no Help row (`p88-menu-nohelp`). Everyone on the team sees it (`p88-menu-staff`). `VITE_SUPPORT_WHATSAPP`
+  goes.
+- **The error ID** (API-27, D8-21; `p88-err-*`). Every response carries `X-Request-Id`; a **server fault (500 or 503)** shows
+  the server's sentence and, under it, **Error ID K7MQ-4XR2** with **Copy**, and "If it happens again, send Lytro support this
+  error ID, so we can find exactly what went wrong." with **Send on WhatsApp**, which opens the help line's WhatsApp holding
+  the shop's link and the ID (`p88-help-id`); no WhatsApp set, Copy alone. Where it shows: a page that didn't load, in its
+  card with Try again (`p88-err-load`); a Save that failed, above the form (`p88-err-save`, and storage unreachable,
+  `p88-err-busy`); a sheet's action, inside the sheet above its button (`p88-err-sheet`). A **refusal (4xx)** keeps §9's
+  sentence alone (`p88-err-refused`). A fault with no ID (the server didn't answer at all) shows its sentence alone too.
+- **A payment method being retired** (WAL-18, D8-65 to D8-67; `p88-pm-*`). A method Lytro is retiring carries **Being
+  retired** on its card, with the notice's words under the card's head: it keeps working for now, checkout included; when it
+  is removed its accounts go with it, so keep another method on. A shop that set it up (switched it on, or saved an account)
+  keeps it whole: its switch and accounts work as before, and switched off it says it can come back on until the removal
+  (`p88-pm-retiring-off`). A shop that never set it up doesn't see it at all (`p88-pm-unset`). When it is removed its card
+  goes, and Activity says so (`payment_method_removed`); no notice is sent. The bell carries **Nagad is being retired** and
+  **Nagad is back** in notification-words.ts's words (`p88-bell-retiring`, `p88-bell-back`), to the owner only and locked on
+  in Notifications under Payments (`p88-prefs`).
+- **A payment's screenshot** (ADM-17, D8-15; `p88-bl-shot*`). A payment sent on the payment page waits in **Billing** while
+  Lytro checks it; there a **Screenshot of the payment** card offers **Add a screenshot**: optional, a picture or a PDF up to
+  5 MB, seen only by Lytro. It uploads with a progress bar, then shows the file as **Sent** with the time, and History gains
+  "You sent a screenshot". One a payment, and once sent it stays (the evidence is kept two years, D8-47). A file over 5 MB
+  or of another kind is refused before it uploads, saying which (`-big`, `-type`); an upload that doesn't finish offers Try
+  again or Choose another (`-failed`). Plan's and Balance's "being checked" banners lead there (`p88-plan-pending`,
+  `p88-balance-pending`). This needs the server (§10): since #337 the payment page takes the transaction ID, and Slice 8.5's
+  screenshot rides only on the dashboard's own submit routes, which no screen calls any more.
+- **Categories by dragging** (the owner's ask, 2026-11-10; `p88-cat*`). On a computer each row has a grip. Dropped on a row's
+  middle, a category goes inside it, last among its sub-categories; near a row's top or bottom edge, before or after it, with
+  a line where it will land; its sub-categories move with it. A drop that can't be made says why where it would land: **more
+  than four levels deep** (CATEGORY_MAX_DEPTH), or **inside itself or one of its own sub-categories** (`p88-cat-deep`,
+  `p88-cat-self`). Uncategorized neither moves nor takes one. Moved, the toast says where with **Undo** (`p88-cat-moved`);
+  moved by someone else meanwhile, nothing changes and the list reloads (`p88-cat-failed`). The keyboard does the same through
+  the grip, its words read out (`p88-cat-keys`). A phone keeps Move up and Move down and gains **Move to…**: the parent, with
+  the impossible ones greyed, and the place, First, Last or after one (`p88-cat-menu`, `p88-cat-moveto`). One request moves
+  it and renumbers both lists, so a failure never leaves half an order (§10).
+- **The owner's six fixes** (2026-11-10; `p88-fix-*`, `p88-zones-*`), made in the prototype so it stays the build target:
+  every **address, note and reason** is a box of several lines (`.ctl.ta`, AreaField), the storefront's checkout and saved
+  addresses with them; a **long form's Save also sits at its end** on a computer, the top one kept: Product, New and Edit
+  order, Shop details, Delivery and a new stock check (a phone already keeps its bar at the foot); the Money hub is
+  **ওয়ালেট / Wallet**; the low-stock field is **লো-স্টক অ্যালার্ট**, with no help line; a new attribute **splits the product
+  by default** when it can, that role listed first, else it describes; and a product's Delivers to reads **সারা বাংলাদেশ /
+  All of Bangladesh** only when the shop's zones cover the country (a rest-of-the-country zone and no zone it doesn't deliver
+  to), its other choice **নির্দিষ্ট কিছু জোনে / Only some zones** (`p88-zones-country`, `p88-product-country`).
+
+**Please check** (my calls in this sketch):
+1. The screenshot sits in Billing after the payment is sent, not on the payment page before VERIFY, so the page keeps its
+   reference layout and the picture is offered only while a person may look at it. The other way is one optional line on the
+   page's TrxID card, for Lytro as the payee only.
+2. One screenshot a payment, kept once sent.
+3. Help hours that close before they open (22 to 2) are drawn as open across midnight. The console's sketch asks whether the
+   setting should allow that at all.
+4. Send on WhatsApp after a fault opens the help line's WhatsApp with the shop's link and the ID, not a form.
+5. Dropped on a row, a category goes in last; Undo is one more move back.
+6. The retiring chip says "রিটায়ার হচ্ছে / Being retired", as Activity and Notifications already do, while the notice the
+   server sends says "বন্ধ হয়ে যাচ্ছে". One word for both would be better; the notice's is the server's.
+
 ## 8. Screens designed for later phases
 
 Kept in the prototype under "Later phases (design only)", exactly as designed on 2026-10-20, so the
@@ -2017,7 +2088,7 @@ architecture is whole when each phase arrives. Their endpoints do not exist yet.
 | --- | --- |
 | Loading | Skeleton rows in the list's own shape; the title and chips drawn at once. |
 | Empty | One sentence on what will appear and the one button that starts it. |
-| Error | The server's `message` in one sentence with Retry; never a code. `plan_limit_reached` becomes the banner of §7.3 naming the limit and the way to room; `tenant_offline` becomes the lifecycle banner. |
+| Error | The server's `message` in one sentence with Retry; never a code. A server fault (500, 503) adds its error ID from `X-Request-Id` with Copy and Send on WhatsApp (Slice 8.8, §7.41); a refusal never does. `plan_limit_reached` becomes the banner of §7.3 naming the limit and the way to room; `tenant_offline` becomes the lifecycle banner. |
 | Offline | The offline banner; lists show what was loaded; forms keep what was typed. |
 | No permission | The section is not in the navigation; a deep link lands on Home with a toast. |
 | Read-only | Controls that write are absent, not disabled; the banner explains once. |
@@ -2077,6 +2148,11 @@ brand identity.
 | On `GET /sms/settings`, the phone the owner's SMS go to, and each essential SMS's words and who pays, so the dashboard keeps no copy of the platform's codes' words | SMS events | SMS's "To you" and "Always sent" groups (§7.40) | Slice 7.7's build |
 | `lytro_notice` as a locked notification kind, the notice board's shop routes and the summary | notices | §7.40's board, marquee, prompt, countdown and switches | Slice 7.4 |
 | courier_connection's Bangla body says "কি" where it means "কী" (notification-words.ts) | notifications | the bell's courier row (§7.40) | Slice 7.7's build |
+| `GET /help-line`: Lytro's WhatsApp and phone and the hours, public, cached five minutes | help line | the Menu's Help (§7.18, §7.41) | built (8.7) |
+| `retiring` on each `GET /payment-methods` row, a retiring type the shop never set up left out, and the retiring and back notices to the bell, owner only and locked | payment methods, notifications | §7.41's Being retired | built (8.7) |
+| The error ID from the `X-Request-Id` header on `ApiClientError` (`requestId`), for a status of 500 or more | api-client | §7.41's error ID | Slice 8.8's build |
+| A screenshot for a payment already sent: a signed upload link for one of the shop's payments Lytro hasn't decided, and attaching it once, refusing a second and a decided payment; whether one was sent on each `GET /billing/payments` row. Today the screenshot rides only on the dashboard's own submit routes, which no screen calls since the payment page took the transaction ID (#337) | billing, payment evidence | §7.41's Screenshot of the payment | Slice 8.8's build |
+| Moving a category in one request: a parent and a place, both sibling lists renumbered in one transaction, a fifth level and its own sub-categories refused as `PATCH /categories/:id` refuses them. Today the dashboard sends one PATCH a sibling, one after another | catalogue | §7.41's categories by dragging | Slice 8.8's build |
 | `POST /products/combo-quote`: what a combo's parts come to, saved or not (bought apart, saving, can make, limited by, issues, weight, each part's price and photo) | catalogue | the combo editor (§7.33) | built (4.8c) |
 | New order's picker for whoever may edit products too, with `optionNames` on its rows, `stockUnit`, and `onSale` on its variants | catalogue | the combo editor's Add an item (§7.33) | built (4.8c) |
 

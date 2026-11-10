@@ -1,4 +1,4 @@
-# Operator console: design (v6)
+# Operator console: design (v7)
 
 The console at `admin.lytro.app` (`apps/operator`, D3-12), redesigned from scratch on 2026-10-21. Version 1
 (2026-10-19, inverted dark chrome) is retired; nothing from it or from the old `apps/admin` console was
@@ -24,6 +24,14 @@ build needs, and two things the allowance's drawing found.
 
 Version 6 (2026-11-09) turns Platform wallets into Payment methods (§10): what shops can pay Lytro by, how each method's
 payments are confirmed, a bank account, and Lytro's own bKash checkout (ADM-10).
+
+Version 7 (2026-11-10, Phase 8 Slice 8.8's sketch) draws the console's Phase 8 screens from what Slices 8.1 to 8.7 serve:
+the shop list's search by the owner's phone, filters and sorts (§5, ADM-02); the shop page's figures and the lists behind
+them, extending a plan, resetting an owner's sign-in and deleting a shop's data on request (§5, ADM-03, ADM-04, ADM-13);
+manual entries, their reversals and the seller's screenshot in the queue (§4, §4b, ADM-14 to ADM-17); wallet types with
+retiring (§10d, WAL-18); the reports, the audit log and media costs, in a new *Records* group (§10e to §10g, ADM-08, ADM-09,
+MED-12); and the help line's and media costs' settings (§9). Today's platform figures are real (§3). Only the support
+inbox and verification stay Later. §15 lists what the build needs and the calls left to the owner.
 
 **Who and where.** One or two people, mostly at a laptop, several times a day: matching wallet payments
 against the bKash and Nagad statements, answering sellers, and occasionally changing a price or a limit.
@@ -69,10 +77,11 @@ in the top bar; Bangla copy uses the commerce vernacular the dashboard uses.
 ## 1. Shell
 
 **Desktop (1024 px and up).** A 248 px sidebar: the ink head with the eyebrow and wordmark, then the
-destinations in groups by how often they are opened: *Daily* (Today, Payment queue with its count, Page reports with
-its count, Shops), *Pricing* (Plans and prices, Billing terms, Rates, Add-ons), *Platform* (Settings, Platform
-wallets, Lytro's phones, Couriers, Notices), *Catalogue* (Shop types, Attribute library, Option sets), *Later*
-(Reports, Audit log, Support inbox, Verification, Manual payments, each greyed with "soon"), and the foot with the operator's
+destinations in groups by how often they are opened: *Daily* (Today, Payment queue with its count, Manual entries, Page
+reports with its count, Shops), *Pricing* (Plans and prices, Billing terms, Rates, Add-ons), *Platform* (Settings, Payment
+methods, Lytro's phones, Couriers, Wallet types, Notices), *Records* (Reports, Audit log, Media costs, from v7),
+*Catalogue* (Shop types, Attribute library, Option sets), *Later* (Support inbox and Verification, each greyed with
+"soon"), and the foot with the operator's
 email, Account and Sign out. The top bar holds the shop search with the `/` hint, the environment chip and
 the language toggle. Content is at most 1120 px wide.
 
@@ -119,7 +128,8 @@ whichever step it locked; the button returns when the server would answer again,
   wrong. Each opens its screen.
 - *Recent changes*: the last rate and setting changes from the rate histories and the settings' updated
   stamps, and the last suspension, each a row that opens its screen.
-- *Platform figures*: a dashed card for ADM-09's counts and revenue, not built.
+- *Platform figures* (v7): this month so far from the reports, the shops now, those opened and what Lytro earned, with
+  Open reports (ADM-09). Two reads, `reports/shops` and `reports/revenue`, the same the Reports page makes.
 - Two buttons: Find a shop, Open the queue.
 
 ## 4. Payment queue (`/queue`)
@@ -149,6 +159,10 @@ whichever step it locked; the button returns when the server would answer again,
   action.
 - **Reject** (panel): nothing is credited, the seller reads the note on the plan page and can submit again;
   the note field; "Reject with note".
+- **The seller's screenshot** (v7, ADM-17, D8-15, D8-54): a payment whose seller added one shows a Screenshot row in its
+  panel, which opens it by a five-minute link (`GET /operator/payment-queue/:id/evidence`). The panel says a screenshot is
+  the seller's word, not the money: the TrxID is still matched against the statement. It is optional, so most payments
+  have none, and the row is simply absent.
 - Empty: "Nothing waiting. New wallet payments appear here when a seller submits a TrxID. Ones a Lytro phone
   matches clear by themselves."
 
@@ -165,12 +179,44 @@ whichever step it locked; the button returns when the server would answer again,
 - **Dismiss** (dialog): nothing is done to the shop, and it goes on the audit log.
 - Empty: "No open reports. A report appears here the moment a shopper sends one."
 
+## 4b. Manual entries (`/manual`)
+
+**Job:** record a payment that reached Lytro outside the normal flow, and correct a mistake by reversing it (ADM-14 to
+ADM-16, D8-47 to D8-56). In *Daily*, under the queue, since it is the queue's other door.
+
+- **List** (`GET /operator/manual-entries`): every entry and reversal, newest first: when and who, the shop and what for
+  (kind with plan and term, or "Reverses the entry of 18 Oct"), the amount (a reversal's in red, with a minus), the TrxID
+  with the number it reached, and an icon for its evidence (screenshot or statement line). A reversed entry is faded and
+  marked Reversed. Filters: shop, who (anyone or only mine), from and to. A line says how many entries today and that past
+  10 a day, or over ৳10,000, the amount is typed twice. Record a payment is the page's one button.
+- **Record a payment** (panel): the shop, found by name, address or phone, with its state and plan under it; what was paid
+  for (a plan, which buys or renews as the server says; an upgrade; a top-up); for a plan or upgrade the plan and term, and
+  the preview (`POST .../preview`): renewal or purchase, the plan, the term, the amount, the period's new end and the
+  add-ons it carries, priced today by the seller's own code. A plan's amount is the preview's and can't be typed: if a
+  different amount arrived, the panel says to record a top-up and buy the plan from the balance (D8-51). Then Lytro's
+  number it reached, the TrxID, the sender, when it was paid, the evidence (a screenshot, JPG, PNG, WebP or PDF up to 5 MB,
+  or the statement line typed out; one is required) and the reason. The consequence: it activates exactly as approving it
+  in the queue would, and the owner is told by email, in the bell and by push. The button names the amount.
+- **The second confirmation** (ADM-15): when the preview says so, over ৳10,000 or past 10 entries today, a warning and
+  a field for the amount typed again; the server checks the two match.
+- **Refusals**, each under its field or as a banner: the TrxID already used (D8-56: one from a reversed entry may be
+  used again), the price changed since the preview (with the new amount), a payment time in the future, an upgrade still
+  open, a frozen balance refusing a top-up.
+- **One entry** (panel): its facts, its reason, and its evidence: Open the screenshot (a five-minute link), or the
+  statement line as typed; after two years the screenshot is removed and the panel says so. Reverse, unless it was.
+- **Reverse** (panel): for a plan, the shop goes back as it stood (plan, period, state, a frozen balance), a credit note
+  takes the invoice back and the add-ons it carried end; for a top-up, the amount comes off the balance even below zero.
+  The entry stays beside its reversal, and its TrxID may be recorded again. The reason's help says the owner reads it, since
+  it goes in their email and bell notice. Refused once the shop's plan or period has moved on, with the server's sentence.
+
 ## 5. Shops (`/shops`, `/shops/:slug`)
 
-- **List**: the search, a table of shop and address, state chip, plan with its version, period end with the
-  signed day count, a Suspended chip or the override count, Open. Cards on phones. "Load 20 more" on the
-  cursor (ADM-02's filters by state and plan are drawn disabled with the note that they arrive with the
-  full search).
+- **List** (v7, ADM-02, D8-7, D8-24): the search finds a shop by name, address or the owner's phone; a number in any
+  written form matches it, and 6 to 10 digits match the end of one, which a line under the search says when the words
+  look like a phone. Three selects: state (every lifecycle state, pay-as-you-go among them), plan, and sort (newest,
+  name, period ending soonest). The table: shop and address with a Suspended chip or the override count under it, the
+  owner's phone in monospace, state chip, plan with its version, period end with the signed day count ("No period" for
+  pay-as-you-go), Open. Cards on phones. "Load 20 more" on the cursor, each sort paging on its own.
 - **Shop page**: the crumb, the name, the state chip, the Suspended chip, the address as a link, the tenant
   id with Copy; four actions as buttons: Suspend for cause or Restore, Adjust balance, Assign a plan, Add
   override. A suspended shop shows the red banner with the date, the operator, the reason and what it
@@ -194,10 +240,35 @@ whichever step it locked; the button returns when the server would answer again,
   (PLN-11), plus add-ons.
 - **Limit overrides** card: each override with its value, the plan's own value beside it, the reason, who
   and when, and Remove; the empty sentence otherwise (PLN-11).
-- **Later** on the same page, as dashed cards: *Shop detail* (ADM-03: balance and frozen flag, usage
-  against every limit, errors in 24 h, failed SMS and bookings, last sign-in, open tickets, business
-  summary), *Operator actions on this shop* (ADM-08), *View as this shop* (ADM-05), *Request identity
-  verification* (KYC-01).
+- **This shop now** (v7, ADM-03, D8-8, D8-25 to D8-31), right under the facts and above Payments, from
+  `GET /operator/tenants/:id/figures`, read inside the shop by its own dashboard's code: five figures, the balance with
+  its frozen flag and what is held; server errors in 24 hours (marigold above zero); SMS that didn't go in 7 days, the
+  shop's failed and blocked and Lytro's own; failed courier calls in 7 days; and what waits for the operator, the count and
+  taka to Lytro with how many shoppers' payments wait for the seller. Each figure but the balance opens its list in a panel,
+  loaded only then: the server errors (request ID in monospace with Copy, method and route, status, kind, time; never the
+  message, which is in the server log under the ID), the SMS (the shop's own with kind, outcome or block reason, order
+  number and units; Lytro's own with kind, phone, tries and last error; never a customer's phone or the words), the failed
+  courier calls (courier, action, order, with the whole key log a button away), and the payments waiting (the queue's rows).
+  Then usage this cycle, each limit as the seller's Usage page reads it, with a bar marigold from 80% and red from 95%; the
+  last sign-in of the owner and each active staff member, or Never; Sales, which opens the seller's own delivered-only
+  figures for any period in a panel (never cost or profit); and orders by every status the seller's list shows, zeros muted.
+- **Extend** (v7, ADM-04, D8-12, D8-32 to D8-35): a header button, beside Assign a plan, shown only to a shop with a
+  period end. The panel takes 1 to 30 days and shows the new end against the old; the consequence says the days are free,
+  add-ons ending with the plan and a change waiting for the end move too, and the plan stays. For a lapsed shop a second
+  block says it comes back to active at once with its balance unfrozen. Refused when the days still end in the past, with
+  Assign a plan instead. The reason goes on both logs, and the shop's team can read it.
+- **Owner's sign-in and the shop's data** (v7), a card in the place of the dashed Shop detail one: *Reset the owner's
+  sign-in* (ADM-04, D8-5, D8-36) and *Delete the shop's data* (ADM-13, D8-13, D8-37), Delete as a quiet red button.
+  - *Reset*: a line to check it's the owner first; the phone the owner gave, any written form, with the account's own
+    beside it; the consequence: signed out everywhere at once, a reset code by SMS to that phone, the password never seen
+    or set by the operator, the SMS Lytro's cost. A different number adds that it replaces the account's at once and the
+    shop's log keeps only its last digits. A phone on another account is refused under the field.
+  - *Delete*: the consequence in red: offline at once as archived, then a job deletes its data by the day-60 steps; the
+    account, balance and billing records stay; it can't be undone. The address typed to confirm (the button stays off until
+    it matches, and the server checks it again), and the reason.
+- **Operator actions on this shop** (v7, ADM-08): its last three audit entries, each opening the entry, with Open in the
+  audit log for the rest (`GET /operator/audit?tenantId=`).
+- **Later** on the same page, as dashed cards: *View as this shop* (ADM-05) and *Request identity verification* (KYC-01).
 - **Panels**: *Suspend* (LIF-24: the storefront and landing pages go offline at once; the owner keeps the
   dashboard, can read orders and top up, and sees the reason; the lifecycle state is untouched; the reason
   the seller will see; "Suspend"), *Restore* (back within a minute; the suspension stays on the audit log),
@@ -267,7 +338,7 @@ follow Phase 7: the fake-order check ৳0.00 at launch (D7-7), the SMS part 67 c
 
 ## 9. Settings (`/settings`)
 
-All 37 values from `/operator/settings` (v5), in thirteen groups with a chip row to jump between them, wrapping from
+All 46 values from `/operator/settings` (v7), in fifteen groups with a chip row to jump between them, wrapping from
 640 px: *Trial and top-up*;
 *Lifecycle after a paid period ends* (LIF-26); *Orders and stock*; *Requests and limits*; *Online payments* (the
 new-shop cap, TVR-04); *Listener phones* (offline window, oldest app, the sender list); *Media*; *Catalogue in the
@@ -277,7 +348,13 @@ how long Sync shows its saved answer; CRR-14, CRR-15), *Reading delivery details
 the sentence that another needs its adapter first; its model, whose change warns that a name Gemini doesn't know makes
 every read fail until it is put back, a failed read costing a shop nothing; how many reads a shop may make a minute;
 AI-10, ORD-33), *Fraud checks* (how many a shop may run a minute, FRD-07) and *Notifications* (how many days the bell
-keeps one, D7-39, whose change says the older ones go in every shop at the next nightly clean-up). Each row shows the server's description, the last change
+keeps one, D7-39, whose change says the older ones go in every shop at the next nightly clean-up); and from v7 *Help line*
+(D8-68: Lytro's WhatsApp and phone, "Not set" until set, typed in any form and saved as 01XXXXXXXXX, a non-mobile refused;
+the opening and closing hour as 09:00 and 22:00 every day, 0 to 23, with a line on where the numbers show and that one
+stands in for the other) and *Media costs* (D8-58 to D8-61: the budget in whole dollars a month, the alert's percent, the
+alert's address, "Not set" until set with the note that the alert is only logged till then, the billing day 1 to 28, and
+Cloudflare's prices as one line that opens a panel of its nine figures, refused unless each price is 0 to 1,000 and each
+allowance a whole number). Each row shows the server's description, the last change
 and who made it, the value large with its unit, and Change, which edits inline with a reason field (ADM-11). The
 sender list edits one per line, the order limit is a choice of two, and a terms or privacy version warns that it
 changes the same day new text is published. A value the server refuses (not a whole number of 1 or more) says so under
@@ -454,6 +531,77 @@ sketch's. One navigation item in Platform, out of Later.
   or clear the title."). The server also refuses an end before the go-live time and a window that isn't on a maintenance
   notice or has one end only; those messages sit under their fields.
 
+## 10d. Wallet types (`/wallet-types`)
+
+**Job:** retire a payment method shops take from their customers, bring it back, and remove it once nothing uses it
+(WAL-18, D8-65 to D8-67). In *Platform* beside Couriers, whose retire-then-remove lifecycle it follows, and kept apart from
+Payment methods (§10), which is how shops pay Lytro; a line under the title links there.
+
+- **Table** (`GET /operator/payment-method-types`): bKash, Nagad, Rocket, Upay and bank transfer in the methods' own order,
+  each with its colour, its key, how many shops have an account for it, its state (active, retiring since a date, removed),
+  shops with it on, open payments on it, and whether Lytro's own page takes it. Retire on an active one; Undo retiring and
+  Remove on a retiring one; nothing on a removed one, faded, with the date and that past payments keep what they were paid
+  into. A retiring type puts a banner over the table.
+- **Retire** (panel): shops that never set it up stop seeing it and can't start it; every shop that set it up (switched it
+  on, or saved an account) keeps it whole, its dashboard marking it retiring, and is told in its activity log and by a
+  notice to the owner in the bell and by push. A second block says Lytro's own page isn't touched, so turn it off there
+  before removing. The reason is the platform log's only. The toast counts the shops told.
+- **Undo** (panel): any shop can set it up again; the shops told it was retiring hear it is back.
+- **Remove**, refused (`409 PaymentMethodRemovalBlocked`): a panel with the three holds as rows, each red with its count
+  while it holds and green when clear: shops with it on (each switches it off itself), open payments (awaiting payment
+  with it chosen, being checked, or waiting for a person), and Lytro's own page (with Open Payment methods while it takes
+  it).
+- **Remove** (panel): every shop's accounts, switch and way for it go, with a line in each shop's log; past payments keep
+  what they were paid into; it leaves Lytro's own page too; no notice goes, since the retiring one said so; it can't be
+  undone.
+
+## 10e. Reports (`/reports`)
+
+**Job:** what Lytro earned, how shops come and go, and who uses most (ADM-09, D8-40 to D8-46). In *Records*. Three
+tabs; each has the period's presets (this month, last month, this quarter, this year), From and To, and Export CSV, which
+downloads the tab's `/export` for the period shown.
+
+- **Revenue** (`GET /operator/reports/revenue`), split by week (Saturday weeks), month, quarter or year: four figures,
+  earned, paid to wallets (plans and add-ons with a TrxID), spent from balances (a top-up counts only when spent) and
+  recorded by hand (plans less reversals, with the hand-recorded top-ups beside it, earned only when spent); a table of
+  each period with those four columns and what was given back, and a total row; *How the total is made*, wallets by kind
+  and balances by type; and *Recorded by hand* apart (D8-10), with the note that it won't match the wallet statements and
+  from which day balance spending is counted (`recordedSince`).
+- **Shops** (`GET /operator/reports/shops`): the shops now by state and by plan, pay-as-you-go its own line; then each
+  period's opened, first paid and lapsed, with a total, and the note that lapses count from the first night recorded.
+- **Top consumers** (`GET /operator/reports/consumers`): storage, bandwidth or SMS, the 20 shops that used most with each
+  owner's phone (D8-42), so a heavy user can be called.
+
+## 10f. Audit log (`/audit`)
+
+**Job:** who did what to which shop, and why (ADM-08, D8-11). In *Records*. Nothing on it can be changed or deleted, and
+the subtitle says so.
+
+- Filters: shop, who (anyone or only mine), action (every platform audit action by name), from and to.
+- One row per entry, newest first: when, the action by name with its summary under it (the reason, or the values it
+  changed: days and dates for an extension, old and new for a setting, amount and TrxID for a payment), the shop, and
+  who: the operator's email, "Lytro, by itself" for the system, "The shop owner" for an owner's "I understand". "Load 20
+  more" on the cursor.
+- An entry (panel): the shop as a link, the target, the result, and what it recorded as label and value, with Only this
+  person's and Only this shop's, which filter the list. A reason shows as it was typed.
+
+## 10g. Media costs (`/media-costs`)
+
+**Job:** what Cloudflare will bill Lytro for media this period, against the budget (MED-12, D8-57 to D8-64). In *Records*.
+US dollars, as Cloudflare bills.
+
+- The billing period, the running one first (`periods`), then three figures: the estimate so far with the days read; the
+  budget with the share used as a bar marked at the alert's percent, and where the alert goes; and when R2 was last read.
+- *R2 storage*: Class A and Class B operations and storage, each with what was used, the month's free allowance and what
+  is billable, and its cost; *The media Worker*: requests with the included millions and billable ones, bytes served and
+  the plan's monthly charge, and the note that CPU time, KV and Analytics Engine aren't counted.
+- Buckets: each with its operations, GB-months, size now and objects, the payment screenshots' bucket on its own line
+  (D8-59), and the account's own operations; then the ten shops with the most requests and their bytes.
+- A line with the prices the estimate used, linking to Settings.
+- States: past the alert, a banner says when it went and to whom, once a period; no alert address, a line says the alert is
+  only logged, with Set it in Settings; Cloudflare not connected (no token), R2 isn't read and the Worker's figures still
+  show.
+
 ## 11. Catalogue
 
 **Shop types** (`/catalogue/shop-types`, PST-02 to PST-05): one row per preset: labels in both languages
@@ -486,11 +634,10 @@ codes stay on screen through Escape or a tap outside, since nothing can show the
 ## 13. Later (design only)
 
 Drawn under their own sidebar group, each as a page with the "Not built yet" banner, the requirement id
-and the sentence on what it will hold, over a dashed sketch of its table or form: Reports (ADM-09), Audit
-log (ADM-08), Support inbox (SUP-04, SUP-05), Verification queue (KYC-07, KYC-09), Manual payments and claims (ADM-14 to
-ADM-17). Notices left Later in v5 (§10c); only NTC-20's secret keys wait, with Phase 8's shop API. Gateway credentials
-(ADM-10), view-as (ADM-05), the shop detail facts (ADM-03) and the identity request (KYC-01) are dashed
-cards on the screens they belong to.
+and the sentence on what it will hold, over a dashed sketch of its table or form: Support inbox (SUP-04, SUP-05) and
+Verification queue (KYC-07, KYC-09), both next release (D8-1). Notices left Later in v5 (§10c); Reports, Audit log and
+Manual payments in v7 (§10e, §10f, §4b). NTC-20's secret keys wait with the shop API, next release. View-as (ADM-05) and
+the identity request (KYC-01) are dashed cards on the shop page.
 
 ---
 
@@ -499,8 +646,9 @@ cards on the screens they belong to.
 | Area | Served today | Shown as current | Drawn as later |
 | --- | --- | --- | --- |
 | Sign-in | `POST /auth/operator/signin`, `enroll`, `verify`, `backup-codes/regenerate`, `signout` | §2, §12 | break-glass recovery stays a database action (ADM-18) |
-| Shops | `GET /operator/tenants` (search, cursor), `suspend`, `restore`, `balance-adjust`, limit overrides, `plans/:id/assign` | §5 | ADM-02 filters, ADM-03 detail, ADM-05 view-as, ADM-08 actions, KYC-01 request |
-| Payments | `GET /operator/payment-queue`, `approve`, `credit`, `reject` | §3, §4 | ADM-14 to ADM-17 |
+| Shops | `GET /operator/tenants` (search by the owner's phone, `state`, `planId`, `sort`), `GET :id/figures`, `errors`, `failed-sms`, `payments-waiting`, `sales`, `courier-credential-uses?failed=true`, `suspend`, `restore`, `extend`, `owner-reset`, `delete-data`, `balance-adjust`, limit overrides, `plans/:id/assign` | §5 | ADM-05 view-as, KYC-01 request |
+| Payments | `GET /operator/payment-queue`, `:id/evidence`, `approve`, `credit`, `reject` | §3, §4 | |
+| Manual entries | `GET`, `POST /operator/manual-entries`, `evidence`, `preview`, `:id/reverse`, `:id/evidence` | §4b | |
 | Page reports | `GET /operator/payment-page-reports`, `dismiss`; `tenants/:id/payment-page/suspend`, `restore`; `tenants/:id/new-shop-cap` | §4a, §5 | |
 | Phones | `tenants/:id/listener-devices`, `listener-devices/:id/revoke`, `listener-installations/block`; `lytro-listener/pairing-codes`, `devices`, `receipts`; `listener-unread` | §5, §10a | |
 | Credentials | `tenants/:id/gateway-credential-uses`, `tenants/:id/courier-credential-uses` | §5 | export for a dispute (SEC-11) |
@@ -511,9 +659,12 @@ cards on the screens they belong to.
 | Billing terms | `GET/POST/PATCH /operator/billing-terms`, `retire`, `DELETE` | §7 | |
 | Rates | `GET /operator/rates`, `history` (with each change's `noticeId`), `PATCH` | §8, with the NTC-13 offer from v5 | |
 | Settings | `GET /operator/settings`, `PATCH /:key` | §9 | |
+| Wallet types | `GET /operator/payment-method-types`, `POST :method/retire`, `undo-retire`, `remove` | §10d | |
+| Reports, audit log | `GET /operator/reports/revenue`, `shops`, `consumers`, each with `/export`; `GET /operator/audit` | §3, §10e, §10f | |
+| Media costs | `GET /operator/media-costs` | §10g | |
 | Payment methods | `GET/POST/PATCH/DELETE /operator/platform-wallets`; the methods' on/off and way, a bank account, and Lytro's bKash keys are new | §10 | ADM-10, built with §10 |
 | Catalogue | `GET/PATCH /operator/presets`, attributes and options, option sets | §11 | |
-| Reports, audit, inbox, verification | nothing | | §13 |
+| Inbox, verification | nothing | | §13 |
 
 ## 15. Backend additions this design needs
 
@@ -547,7 +698,7 @@ Still to come, with the screens that need them:
 | Need | Where | Why |
 | --- | --- | --- |
 | Shops per attribute | catalogue | "Used by 412 shops"; not built: a shop's attributes sit behind row security (KNOWN-GAPS §116). |
-| ADM-03, ADM-08, ADM-09, ADM-14, KYC, SUP | later phases | Placeholders are drawn, nothing more. |
+| KYC, SUP | next release | Placeholders are drawn, nothing more. ADM-03, ADM-08, ADM-09 and ADM-14 came with Phase 8 (v7). |
 
 For the couriers (v4), with Slice 6.6 and Slice 6.7's build:
 
@@ -583,6 +734,44 @@ Found while drawing the allowance, for the owner to decide (neither is screen da
   size for the whole purchase, while its price is the monthly price times the term's months (`addonPrice`), so a shop on a
   6-month term would pay ৳120 for 200 reads. Either the uses multiply by the term's months or they start again each month.
 
+For Phase 8 (v7), with Slice 8.8's console build. Every screen reads a route Slices 8.1 to 8.7 built; these are the
+gaps the drawing found:
+
+| Need | Where | Why |
+| --- | --- | --- |
+| Rows for the nine new settings | a migration seeding `help_whatsapp`, `help_phone` and `media_cost_alert_email` (unset) and `help_opens_hour`, `help_closes_hour`, `media_budget_usd`, `media_budget_alert_percent`, `cloudflare_billing_day`, `cloudflare_prices` (their defaults) in `control.platform_settings`, as 0115 and 0116 did | `GET /operator/settings` lists only stored rows and Slices 8.6 and 8.7 seeded none, so §9's two groups would be empty and nothing on them could be changed. Unset values are shown as "Not set". |
+| The two groups and their units | `apps/operator` `lib/setting-shapes.ts` (groups 14 and 15; units for a phone, an hour, dollars, an email, a day and the price sheet) | §9; the console's list stops at 37. |
+| The signed-in operator's id | `id` on `GET /auth/operator/me` | "Only mine" on the audit log (`actorId`) and manual entries (`operatorId`); `me` answers the email only. |
+| Every platform audit action named, and its summary as label and value | the console's dictionaries | §10f; the route gives the action's code and a summary whose keys differ by action. |
+| A phone in any written form, saved as 01XXXXXXXXX | the console, with the validators' `bdMobileNumber` before `PATCH` | The setting's check accepts only the local form (D8-68); the operator types what they have. |
+
+Found while drawing, for the owner to decide:
+
+- **A payment to Lytro's bank account can't be recorded by hand.** A manual entry names a platform wallet, a number
+  (`walletId`, checked against the wallets), while v6's bank accounts are their own rows. §4b offers Lytro's numbers only
+  until an entry can name a bank account.
+- **A help number can't be cleared once set.** The setting's check refuses an empty value, so taking a number down means
+  replacing it. §9 draws no Clear.
+- **The help hours can close before they open.** Nothing refuses opening 22 and closing 9; the dashboard and website
+  would need to read that as overnight, or the console should refuse it.
+
+**Please check** (my calls in this drawing):
+
+1. *Manual entries* sits in *Daily* under the queue, as its other door, rather than in *Records*.
+2. A new *Records* group holds Reports, Audit log and Media costs; *Later* keeps only the inbox and verification.
+3. *Wallet types* is its own page beside Couriers, not a part of Payment methods, so retiring a shop's method can't be
+   confused with turning off one of Lytro's; bank transfer is listed with the wallets, as the server lists it.
+4. The shop page's figures come right under its facts, above Payments, since they are why an operator opens a shop; each
+   list opens in a panel.
+5. Extend is a header button shown only when there is a period end; owner reset and delete take the dashed Shop detail
+   card's place, delete as a quiet red button.
+6. The delete panel shows the address to type, and its button stays off until it matches.
+7. A manual plan entry's amount is locked to the preview's price; the second amount field appears only when the preview
+   asks for it.
+8. Reports open on this month split by week; Export downloads the open tab's CSV for the period shown.
+9. The audit log's who filter is Anyone or Only mine, and an entry's panel filters to its person or shop.
+10. Help hours show as 24-hour times ("22:00 every day") on the console; the dashboard and website write them in words.
+
 ## 16. Mapping onto `apps/operator`
 
 | Screen | Route | View |
@@ -604,7 +793,13 @@ Found while drawing the allowance, for the owner to decide (neither is screen da
 | Option sets | `/catalogue/option-sets` | `views/option-sets` (+ `set-panel.tsx`) |
 | Account | `/account` | `views/account` (+ `codes-panel.tsx`) |
 | Notices | `/notices`, `/notices/new`, `/notices/$id`, `/notices/$id/edit`, `/notices/$id/acknowledgments` | `views/notices` (+ `notice-list.tsx`, `start-panel.tsx`, `notice-editor.tsx`, `notice-preview.tsx` on the shared `renderNoticeMarkdown`, `publish-panel.tsx`, `notice-page.tsx`, `withdraw-panel.tsx`, `acknowledgments.tsx`) |
-| Later | `/reports`, `/audit`, `/inbox`, `/verification`, `/manual` | one `views/later` page fed by a list of requirement ids |
+| Manual entries (v7) | `/manual` | `views/manual` (+ `entry-panel.tsx`, `entry-view.tsx`, `reverse-panel.tsx`; the shop picker shared with the audit filter) |
+| The shop page's v7 parts | `/shops/$id` | `views/shop` (+ `figures.tsx`, `figure-lists.tsx`, `extend-panel.tsx`, `account-card.tsx`, `owner-reset-panel.tsx`, `delete-data-panel.tsx`, `actions-card.tsx`) |
+| Wallet types (v7) | `/wallet-types` | `views/wallet-types` (+ `type-panels.tsx`, the retire, undo and remove panels) |
+| Reports (v7) | `/reports`, `/reports/shops`, `/reports/consumers` | `views/reports` (+ `period-picker.tsx`, `revenue.tsx`, `shops-report.tsx`, `consumers.tsx`) |
+| Audit log (v7) | `/audit` | `views/audit` (+ `entry-panel.tsx`, `action-names.ts`) |
+| Media costs (v7) | `/media-costs` | `views/media-costs` |
+| Later | `/inbox`, `/verification` | one `views/later` page fed by a list of requirement ids |
 
 Three primitives every screen shares, in `components/ui`: `panel.tsx` (bottom sheet under 640 px, right
 drawer above, with the consequence block, fields and footer), `data-table.tsx` (table from 640 px, stacked
@@ -628,7 +823,8 @@ nothing, so they promise nothing, and no panel gives a period's end date, which 
 above), the device (phone 390, tablet 820, desktop 1366), the language and the data state (busy, nothing
 waiting, server error). Every button that leads somewhere in the design leads there in the sketch, so a
 reviewer can walk the sign-in, approve a payment, suspend and restore a shop, edit a plan and set a rate
-without the toolbar. It renders 157 screens with no horizontal overflow on any device, in any data state, and no
-missing strings in either language; v4's courier screens are the toolbar group "Couriers · Phase 6 Slice 6.7", and v5's
-are "Notices · Phase 7 Slice 7.7" and "Pricing and platform · Phase 7 Slice 7.7" (the rates offer, settings, the
-allowance and D7-20's three panels).
+without the toolbar. It renders 239 screens with no missing strings in either language and no script errors; v4's courier
+screens are the toolbar group "Couriers · Phase 6 Slice 6.7", v5's are "Notices · Phase 7 Slice 7.7" and "Pricing and
+platform · Phase 7 Slice 7.7" (the rates offer, settings, the allowance and D7-20's three panels), and v7's 73 are "Phase
+8 · Slice 8.8", none of which overflows on any device or in any data state. Some earlier tables (the queue, plans, terms,
+add-ons, couriers, RedX areas, page reports) scroll sideways inside their card at tablet width, as they did before v7.

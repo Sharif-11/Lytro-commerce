@@ -2416,3 +2416,16 @@ Found while building Phase 8 Slice 8.7. Each is a choice made to ship it now, or
 - **The shop-ready SMS is two units for a long name.** Past about 14 letters on a lytro.app address it costs ৳1.10, Lytro's
   cost. It is proven through the real path to a stand-in provider; a real phone receiving it is criterion 9's.
 - **The help line's hours are every day.** A closed day, such as Friday, would need a setting of its own.
+
+## 140. `ADM-11`, `ADM-17`, `MED-12`, `D8-4`: what Slice 8.8's sketch found the merged server slices leave out — found 2026-11-10, open
+
+Found while drawing Phase 8 Slice 8.8's screens. Each is built with 8.8's console or dashboard PR.
+
+- **Slices 8.6 and 8.7 seeded no rows for their nine settings.** `GET /operator/settings` lists only stored rows, so the
+  console's settings page can't show the help line's four or media costs' five until each is changed once. Setting one
+  works: `PATCH /operator/settings/:key` writes the row if it's missing. Earlier slices seeded theirs in their migrations;
+  a migration seeds these.
+- **No screen can send a payment's screenshot (`ADM-17`).** Slice 8.5 took it on the dashboard's own "I have paid" routes
+  (top-up, plan, add-on), which no screen has called since shops pay Lytro on the payment page (#337), and that page's
+  submit takes none. The operator's queue can show one, but none arrives.
+- **`GET /auth/operator/me` gives no operator id,** which the audit log's "only mine" and the manual entries' own filter need.
