@@ -62,11 +62,12 @@
 
 # The operator console's own strict Content Security Policy (DEPLOYMENT.md §5, D3-12): every script, style,
 # fetch, worker and manifest from the console's own origin only. The two exceptions are fonts (Google Fonts'
-# stylesheet and its font files) and data: images (the two-factor QR code, drawn client-side, ADM-01). No
-# inline script, no plugin, no framing and no <base>: an injected script has nowhere to load from and
-# nothing to send to.
+# stylesheet and its font files), data: images (the two-factor QR code, drawn client-side, ADM-01), and
+# MEDIA_STORAGE_ENDPOINT for payment screenshots (ADM-14, ADM-17, Slice 8.8): a manual entry's upload goes
+# straight to its signed link, and a screenshot shows from its five-minute link. No inline script, no plugin,
+# no framing and no <base>: an injected script has nowhere to load from and nothing to send to.
 (operator_csp) {
-	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: {$MEDIA_STORAGE_ENDPOINT}; connect-src 'self' {$MEDIA_STORAGE_ENDPOINT}; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 }
 
 # The tenant dashboard's own Content Security Policy (KNOWN-GAPS §65, Slice 11.13a), on the console's model:
