@@ -89,7 +89,9 @@ test('the enrol step draws its QR code under the policy', async ({ page }) => {
 
 // ADM-14, ADM-17 (Slice 8.8): a payment screenshot goes up to the storage's signed link and shows from its five-minute
 // link, both on the storage's own address.
-test('a payment screenshot uploads to the storage and shows from it under the policy', async ({ page }) => {
+test('a payment screenshot uploads to the storage and shows from it under the policy', async ({
+  page,
+}) => {
   const refused = await underPolicy(page);
   await mockApi(page, { paymentMethods: withBankAccount() });
   // A real picture from the storage, so the screenshot's link draws.
