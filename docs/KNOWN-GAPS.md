@@ -2417,15 +2417,30 @@ Found while building Phase 8 Slice 8.7. Each is a choice made to ship it now, or
   cost. It is proven through the real path to a stand-in provider; a real phone receiving it is criterion 9's.
 - **The help line's hours are every day.** A closed day, such as Friday, would need a setting of its own.
 
-## 140. `ADM-11`, `ADM-17`, `MED-12`, `D8-4`: what Slice 8.8's sketch found the merged server slices leave out — found 2026-11-10, open
+## 140. `ADM-11`, `ADM-17`, `MED-12`, `D8-4`: what Slice 8.8's sketch found the merged server slices leave out — found 2026-11-10, two fixed by the console build, one open
 
 Found while drawing Phase 8 Slice 8.8's screens. Each is built with 8.8's console or dashboard PR.
 
 - **Slices 8.6 and 8.7 seeded no rows for their nine settings.** `GET /operator/settings` lists only stored rows, so the
   console's settings page can't show the help line's four or media costs' five until each is changed once. Setting one
   works: `PATCH /operator/settings/:key` writes the row if it's missing. Earlier slices seeded theirs in their migrations;
-  a migration seeds these.
+  a migration seeds these. **Fixed by Slice 8.8's console build:** migration 0128 seeds the nine, a number or address not set
+  yet stored empty.
 - **No screen can send a payment's screenshot (`ADM-17`).** Slice 8.5 took it on the dashboard's own "I have paid" routes
   (top-up, plan, add-on), which no screen has called since shops pay Lytro on the payment page (#337), and that page's
   submit takes none. The operator's queue can show one, but none arrives.
 - **`GET /auth/operator/me` gives no operator id,** which the audit log's "only mine" and the manual entries' own filter need.
+  **Fixed by Slice 8.8's console build.** The screenshot stays open for the dashboard's build.
+
+## 142. `ADM-14`, `D8-75`, `D8-78`: what Slice 8.8's console build found — found 2026-11-10, one fixed, two open
+
+- **Removing one of Lytro's numbers that a manual entry names answered 500.** Since Slice 8.5 an entry points at the wallet the
+  money reached, so deleting that wallet broke the foreign key. **Fixed:** it is refused (`PlatformWalletInUse`, 409) with the
+  sentence D8-75's bank accounts use, turn it off instead.
+- **A bank entry's invoice says it was paid by wallet.** An invoice's `paymentMethod` is `wallet` whenever its payment has a
+  transaction ID, so a transfer recorded to Lytro's bank account (D8-75) reads as a wallet payment, and the dashboard shows its
+  reference as "TrxID BRAC-FT-…". The money and the reference are right; only the method's word is. For the owner: add
+  `bank` to the invoice's methods, or leave it.
+- **The retiring courier's notice still says "বন্ধ হয়ে যাচ্ছে".** D8-78 made "রিটায়ার হচ্ছে" the word for a retiring payment
+  method, and the dashboard's courier chip already says it, but Slice 6.6's courier notice (`courierRetiringText`) keeps the
+  old words. For the owner: the same word for couriers, or leave it.
