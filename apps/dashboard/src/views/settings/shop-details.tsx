@@ -230,7 +230,7 @@ export function ShopDetailsView(): React.JSX.Element {
           />
         </Card>
       </div>
-      <ActionBar>
+      <ActionBar atEnd>
         <Button
           busy={saving}
           onClick={() => {

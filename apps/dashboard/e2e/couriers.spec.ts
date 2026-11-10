@@ -924,7 +924,7 @@ test.describe('Editing a booked order (ORD-11)', () => {
     await expectAccessible(page);
 
     await main(page).getByLabel('Address').fill('House 9, Road 2');
-    await page.getByRole('button', { name: 'Save changes' }).click();
+    await page.getByRole('button', { name: 'Save changes' }).first().click();
     await expect
       .poll(() => sent(log, 'PATCH', '/orders/o-47'))
       .toEqual([{ deliveryAddress: 'House 9, Road 2' }]);
@@ -942,7 +942,7 @@ test.describe('Editing a booked order (ORD-11)', () => {
       couriers: couriers(),
       orders: booked({}, 'processing'),
     });
-    await page.getByRole('button', { name: 'Save changes' }).click();
+    await page.getByRole('button', { name: 'Save changes' }).first().click();
     await expect(page).toHaveURL(/\/orders\/o-47$/);
     await expect(main(page).getByRole('heading', { name: 'Courier' })).toBeVisible();
     expect(sent(log, 'PATCH', '/orders/o-47')).toEqual([]);

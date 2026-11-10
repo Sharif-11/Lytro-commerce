@@ -135,14 +135,14 @@ test('a new product starts with the default, sent only if changed; an edit sends
   const field = main(page).getByLabel('Tax class');
   await expect(field).toHaveValue('tx-5');
   await expect(field.locator('option:checked')).toHaveText('VAT 5% · default');
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect.poll(() => sent(log, 'POST', '/products').length).toBe(1);
   expect(sent(log, 'POST', '/products')[0]).not.toHaveProperty('taxClassId');
 
   const edit = await open(page, '/products/p-1');
   await openMore(page);
   await main(page).getByLabel('Tax class').selectOption('tx-15');
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect.poll(() => sent(edit, 'PATCH', '/products/p-1').length).toBe(1);
   expect(sent(edit, 'PATCH', '/products/p-1')[0]).toEqual({ taxClassId: 'tx-15' });
 });
@@ -167,7 +167,7 @@ test('add-ons: a group with a rule and options is saved with the product, read b
   await expect(main(page)).toContainText('Optional, any number');
   await expect(main(page)).toContainText('Shorter sleeves +৳80 · Discount sleeve −৳20');
 
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect.poll(() => sent(log, 'PATCH', '/products/p-1').length).toBe(1);
   expect(sent(log, 'PATCH', '/products/p-1')[0]).toEqual({
     modifierGroups: [
@@ -238,9 +238,9 @@ test('a saved tax class and add-on group are saved: a second Save sends nothing,
   await adding.getByLabel('Group name').fill('Gift wrap');
   await adding.getByLabel('Name', { exact: true }).fill('Gift wrap');
   await adding.getByRole('button', { name: 'Save' }).click();
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect.poll(() => sent(log, 'PATCH', '/products/p-1').length).toBe(1);
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(sent(log, 'PATCH', '/products/p-1')).toHaveLength(1);
   await page.getByRole('link', { name: 'Home' }).first().click();

@@ -153,9 +153,9 @@ function AddressSheet({
       />
       <div className="field">
         <label htmlFor="addr-address">{words.t('address')}</label>
-        <input
+        <textarea
           id="addr-address"
-          className={tried && addressWrong ? 'input bad' : 'input'}
+          className={tried && addressWrong ? 'textarea bad' : 'textarea'}
           maxLength={ADDRESS_MAX}
           value={address}
           onChange={(event) => {

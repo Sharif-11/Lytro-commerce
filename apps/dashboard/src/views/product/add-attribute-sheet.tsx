@@ -17,8 +17,8 @@ import { NewAttributeFields } from './new-attribute-fields';
 import { useVariantWords } from './variant-words';
 
 const ROLES = [
-  AttributeRole.Informational,
   AttributeRole.VariantDefining,
+  AttributeRole.Informational,
   AttributeRole.CapturedAtOrder,
 ] as const;
 
@@ -26,7 +26,8 @@ const ROLES = [
  * Add attribute (§7.4's sheet, the prototype's `sh-attribute` and Part 14's states; ATR-01, ATR-02, ATR-11, ATL-02): a
  * search over the library and the shop's own, the category's suggestions as chips, and "Create …" for a new name, a
  * step of its own with a way back (name, type, what a number measures). The role it takes on the product follows: a
- * role its type cannot take, or a 4th splitting attribute, is greyed with why.
+ * role its type cannot take, or a 4th splitting attribute, is greyed with why. An attribute splits the product unless
+ * it can't (the owner, 2026-11-10: "Attribute must be variant by default"); then it only describes it.
  */
 export function AddAttributeSheet({
   open,
@@ -58,7 +59,7 @@ export function AddAttributeSheet({
   const create = useCreateAttribute();
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<Attribute | null>(null);
-  const [role, setRole] = useState<AttributeRole>(AttributeRole.Informational);
+  const [role, setRole] = useState<AttributeRole>(AttributeRole.VariantDefining);
   const [draft, setDraft] = useState<AttributeDraft | null>(null);
   const [made, setMade] = useState<string | null>(null);
 
@@ -67,7 +68,7 @@ export function AddAttributeSheet({
     const chosen = attributes.find((each) => each.id === preselect) ?? null;
     setQuery('');
     setPicked(chosen);
-    setRole(AttributeRole.Informational);
+    setRole(chosen ? roleFor(chosen) : AttributeRole.VariantDefining);
     setDraft(null);
     setMade(null);
     create.reset();
@@ -84,9 +85,15 @@ export function AddAttributeSheet({
   const splitting = splitNames.length;
   const refusals = picked ? roleRefusals(picked.dataType, splitting) : {};
 
+  function roleFor(attribute: Attribute): AttributeRole {
+    return roleRefusals(attribute.dataType, splitting)[AttributeRole.VariantDefining]
+      ? AttributeRole.Informational
+      : AttributeRole.VariantDefining;
+  }
+
   function pick(attribute: Attribute): void {
     setPicked(attribute);
-    setRole(AttributeRole.Informational);
+    setRole(roleFor(attribute));
   }
 
   function make(): void {
@@ -97,11 +104,7 @@ export function AddAttributeSheet({
         setMade(attribute.id);
         setQuery(attribute.name);
         setPicked(attribute);
-        setRole(
-          roleRefusals(attribute.dataType, splitting)[AttributeRole.VariantDefining]
-            ? AttributeRole.Informational
-            : AttributeRole.VariantDefining,
-        );
+        setRole(roleFor(attribute));
       },
       onError: (error) => {
         // ATR-01: a name the shop already sees is that attribute, picked instead.

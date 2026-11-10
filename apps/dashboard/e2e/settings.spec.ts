@@ -83,7 +83,7 @@ test('Shop details shows what is saved and saves the name, contact and shop type
   await main(page).getByLabel('Email').fill('hello@megh.example');
   await main(page).getByLabel('Shop address').fill('');
   await main(page).getByLabel('What you mainly sell').selectOption('cosmetics');
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect(page.getByRole('status')).toHaveText('Saved');
   expect(log.sent('PATCH', '/shop-settings')).toEqual({
     shopName: 'Megh Fashion House',
@@ -101,14 +101,14 @@ test('Shop details shows what is saved and saves the name, contact and shop type
 test('a support phone that is not a mobile number is not sent', async ({ page }) => {
   const log = await open(page, '/settings/shop');
   await main(page).getByLabel('Support phone').fill('1234');
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect(main(page).getByText('Enter a mobile number, like 1711 234 567.')).toBeVisible();
   expect(log.calls.some((call) => call.method === 'PATCH')).toBe(false);
 });
 
 test('an unchanged shop type is not sent again', async ({ page }) => {
   const log = await open(page, '/settings/shop');
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect(page.getByRole('status')).toHaveText('Saved');
   expect(log.calls.some((call) => call.path === '/business-type')).toBe(false);
 });

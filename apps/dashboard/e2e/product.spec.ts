@@ -30,7 +30,9 @@ function toast(page: Page) {
 
 /** The page's own Save, on a phone at its foot and from 1024 px above the cards. */
 function save(page: Page) {
-  return main(page).getByRole('button', { name: /^(Save|Fix \d+ things? to save)$/ });
+  return main(page)
+    .getByRole('button', { name: /^(Save|Fix \d+ things? to save)$/ })
+    .first();
 }
 
 function writes(log: ApiLog, method: string) {
@@ -75,6 +77,31 @@ test('opens a product with its Basics and link, and one Save sends only what cha
   // Saved: nothing is left to ask about on the way out.
   await page.getByRole('link', { name: 'Home' }).first().click();
   await expect(page).toHaveURL(`/${SLUG}`);
+});
+
+test('on a desktop the long form has Save at its end as well as at its top; a phone keeps its bar at the foot', async ({
+  page,
+}) => {
+  const log = await open(page, 'p-1');
+  const end = main(page).getByTestId('action-bar-end');
+  if (test.info().project.name !== 'desktop') {
+    // The owner, 2026-11-10: a phone's bar already sits at the foot, so there is one Save.
+    await expect(end).toBeHidden();
+    await expect(save(page)).toBeVisible();
+    await expect(main(page).getByRole('button', { name: 'Save' })).toHaveCount(1);
+    return;
+  }
+  await expect(main(page).getByRole('button', { name: 'Save' })).toHaveCount(2);
+  // The one on top stays where it was; the other comes after the last card.
+  const top = await save(page).boundingBox();
+  const bottom = await end.getByRole('button', { name: 'Save' }).boundingBox();
+  expect(top).not.toBeNull();
+  expect(bottom).not.toBeNull();
+  expect(bottom?.y ?? 0).toBeGreaterThan((top?.y ?? 0) + 1000);
+  await main(page).getByLabel('Price', { exact: true }).fill('470');
+  await end.getByRole('button', { name: 'Save' }).click();
+  await expect(toast(page)).toHaveText('Saved. Cotton T-shirt is on the storefront.');
+  expect(writes(log, 'PATCH').map((call) => call.body)).toEqual([{ basePrice: 470 }]);
 });
 
 test('a new product says what is missing, then saves in one request and returns to the list', async ({

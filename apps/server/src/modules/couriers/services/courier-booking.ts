@@ -381,7 +381,13 @@ export class CourierBooking {
     if (adapter.needsThana && area === null) {
       throw this.limitError('CourierThanaNeeded', adapter);
     }
-    const address = [order.deliveryAddress, area?.thana.nameEn, area?.zilla.nameEn]
+    // An address is written on several lines (the dashboard's and the storefront's boxes, the owner's word of 2026-11-10,
+    // and the landing page's always were); a courier's label takes one, so each line break is a comma.
+    const street = order.deliveryAddress
+      .split(/\s*\n\s*/)
+      .filter((line) => line !== '')
+      .join(', ');
+    const address = [street, area?.thana.nameEn, area?.zilla.nameEn]
       .filter((part) => part !== undefined && part !== '')
       .join(', ');
     if (address.length > limits.addressMax) {

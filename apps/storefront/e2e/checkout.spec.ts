@@ -192,6 +192,10 @@ test.describe('the form', () => {
     await expect(page.getByText('Enter a valid mobile number (01XXXXXXXXX)')).toBeVisible();
     await expect(page.getByText('Pick a thana')).toBeVisible();
     await expect(page.getByText('Address is needed')).toBeVisible();
+    // The owner, 2026-11-10: the address and the note are boxes of several lines; a missing address turns red.
+    await expect(page.locator('#co-address')).toHaveJSProperty('tagName', 'TEXTAREA');
+    await expect(page.locator('#co-address')).toHaveClass('textarea bad');
+    await expect(page.locator('#co-note')).toHaveJSProperty('tagName', 'TEXTAREA');
     expect((await shop.sent()).requests).toBe(0);
     await page.getByLabel('Name', { exact: true }).fill('Rumana');
     await expect(alertOn(page)).toHaveText('Fix 3 things');

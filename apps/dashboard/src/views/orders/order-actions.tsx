@@ -25,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { CheckRow } from '@/components/ui/check-row';
 import { Chip } from '@/components/ui/chips';
 import { Dialog } from '@/components/ui/dialog';
-import { Field } from '@/components/ui/field';
+import { AreaField, Field } from '@/components/ui/field';
 import { RadioMark } from '@/components/ui/kv';
 import { RowList } from '@/components/ui/list-row';
 import { Sheet } from '@/components/ui/sheet';
@@ -282,7 +282,7 @@ function CallSheet({
           }}
         />
       </RowList>
-      <Field
+      <AreaField
         label={t('noteOpt')}
         placeholder={t('callNotePh')}
         value={note}
@@ -414,7 +414,7 @@ function LaterSheet({
       ) : null}
       <p className="text-[14px] text-fg-muted">{t('outLaterH')}</p>
       {log.isError ? <Banner tone="bad">{errorText(log.error)}</Banner> : null}
-      <Field
+      <AreaField
         label={t('noteOpt')}
         value={note}
         onChange={(event) => {
@@ -528,7 +528,7 @@ function CancelSheet({
           </button>
         ))}
       </RowList>
-      <Field
+      <AreaField
         label={t('noteOpt')}
         value={note}
         help={t('otherNeedsNote')}

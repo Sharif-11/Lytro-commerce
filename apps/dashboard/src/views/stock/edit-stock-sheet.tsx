@@ -12,7 +12,7 @@ import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { CheckRow } from '@/components/ui/check-row';
 import { Chip } from '@/components/ui/chips';
-import { Field } from '@/components/ui/field';
+import { AreaField, Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonthYear, todayInputValue } from '@/lib/dates';
@@ -327,7 +327,7 @@ function EditStock({
           </p>
         </div>
       ) : null}
-      <Field
+      <AreaField
         label={t('note')}
         placeholder={t('notePh')}
         value={note}

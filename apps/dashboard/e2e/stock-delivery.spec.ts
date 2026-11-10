@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { drawnDelivery } from './support/delivery';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
 import { drawnProducts, type ProductsFixture } from './support/products';
 
@@ -29,7 +30,9 @@ function sheet(page: Page, name: string | RegExp) {
 }
 
 function save(page: Page) {
-  return main(page).getByRole('button', { name: /^(Save|Fix \d+ things? to save)$/ });
+  return main(page)
+    .getByRole('button', { name: /^(Save|Fix \d+ things? to save)$/ })
+    .first();
 }
 
 function sent(log: ApiLog, method: string, path: string): Record<string, unknown>[] {
@@ -122,7 +125,7 @@ test('Delivers to: only the chosen zones, never one the shop skips, saved by its
     'aria-checked',
     'true',
   );
-  await zones.getByRole('radio', { name: 'Only chosen zones' }).click();
+  await zones.getByRole('radio', { name: 'Only some zones' }).click();
   await expect(zones.getByText('Hill districts')).toHaveCount(0);
   await zones.getByRole('checkbox', { name: /Inside Dhaka city/ }).click();
   await expectAccessible(page);
@@ -365,4 +368,38 @@ test('without products to manage, stock and delivery is only shown', async ({ pa
   await expect(stock(page).getByRole('button', { name: /^Delivers to/ })).toBeDisabled();
   await expect(stock(page).getByRole('button', { name: /^Payment policy/ })).toBeDisabled();
   await expect(save(page)).toHaveCount(0);
+});
+
+test('in Bangla, "everywhere" reads সারা বাংলাদেশ only when the shop delivers to the whole country', async ({
+  page,
+}) => {
+  // The drawn shop skips the Hill districts, so its "everywhere" stays the shop's own words.
+  await open(page, 'p-1', { language: 'bn' });
+  const card = main(page).getByRole('region', { name: 'স্টক ও ডেলিভারি' });
+  await expect(card.getByLabel('লো-স্টক অ্যালার্ট')).toHaveValue('5');
+  const button = card.getByRole('button', { name: /^যেখানে ডেলিভারি হবে/ });
+  await expect(button).toContainText('শপ যেখানে ডেলিভারি দেয়');
+  await button.click();
+  let zones = sheet(page, 'যেখানে ডেলিভারি হবে');
+  await expect(
+    zones.getByRole('radio', { name: 'শপ যেখানে ডেলিভারি দেয় সব জায়গায়' }),
+  ).toHaveAttribute('aria-checked', 'true');
+  await expect(zones.getByRole('radio', { name: 'নির্দিষ্ট কিছু জোনে' })).toBeVisible();
+  await expect(zones.getByRole('radio', { name: 'সারা বাংলাদেশ' })).toHaveCount(0);
+
+  // The owner, 2026-11-10: with no zone it doesn't deliver to, its rest-of-the-country zone covers every thana.
+  const drawn = drawnDelivery('bn');
+  await open(page, 'p-1', {
+    language: 'bn',
+    delivery: { ...drawn, zones: drawn.zones.filter((zone) => zone.noDelivery !== true) },
+  });
+  await expect(button).toContainText('সারা বাংলাদেশ');
+  await button.click();
+  zones = sheet(page, 'যেখানে ডেলিভারি হবে');
+  await expect(zones.getByRole('radio', { name: 'সারা বাংলাদেশ' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await expect(zones.getByRole('radio', { name: 'নির্দিষ্ট কিছু জোনে' })).toBeVisible();
+  await expectAccessible(page);
 });

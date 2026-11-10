@@ -158,13 +158,19 @@ interface AreaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: ReactNode;
   help?: ReactNode;
   error?: ReactNode;
+  /** Filled from a pasted message but to be checked (Part 37's `.p37chk`): a marigold edge, as on `Field`. */
+  flagged?: boolean;
 }
 
-/** A labelled box for several lines (the prototype's `.ctl.ta`): 96 px at least, padded 12 px all round. */
+/**
+ * A labelled box for several lines (the prototype's `.ctl.ta`): 96 px at least, padded 12 px all round. Every address,
+ * note and reason is one (the owner, 2026-11-10: "every address field must be textarea", and comments with them).
+ */
 export function AreaField({
   label,
   help,
   error,
+  flagged = false,
   id,
   className,
   ...rest
@@ -182,8 +188,12 @@ export function AreaField({
         aria-invalid={error ? true : undefined}
         aria-describedby={error || help ? noteId : undefined}
         className={[
-          'min-h-24 resize-none rounded-control border bg-surface p-3 text-[16px] outline-none placeholder:text-fg-subtle focus:outline-2 focus:outline-offset-1 focus:outline-focus',
-          error ? 'border-danger' : 'border-line-strong',
+          'min-h-24 resize-none rounded-control border p-3 text-[16px] outline-none placeholder:text-fg-subtle focus:outline-2 focus:outline-offset-1 focus:outline-focus',
+          error
+            ? 'border-danger bg-surface'
+            : flagged
+              ? 'border-accent-500 bg-[#fffaf0]'
+              : 'border-line-strong bg-surface',
         ].join(' ')}
         {...rest}
       />

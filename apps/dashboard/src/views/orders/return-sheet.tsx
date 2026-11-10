@@ -5,7 +5,7 @@ import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { CheckRow } from '@/components/ui/check-row';
 import { Chip } from '@/components/ui/chips';
-import { Field } from '@/components/ui/field';
+import { AreaField } from '@/components/ui/field';
 import { Quantity } from '@/components/ui/quantity';
 import { Sheet } from '@/components/ui/sheet';
 import { SkeletonRows } from '@/components/ui/skeleton';
@@ -281,7 +281,7 @@ export function ReturnSheet({
           })}
         </div>
       )}
-      <Field
+      <AreaField
         label={t('noteOpt')}
         placeholder={t('returnNotePh')}
         value={note}

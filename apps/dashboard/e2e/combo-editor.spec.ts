@@ -83,9 +83,11 @@ test('New product asks Product or Combo pack; a combo has parts in place of vari
 test('Save with nothing inside asks for an item and sends nothing', async ({ page }) => {
   const log = await open(page, '/products/new');
   await newCombo(page);
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect(main(page)).toContainText('A combo needs at least one item.');
-  await expect(main(page).getByRole('button', { name: 'Fix 1 thing to save' })).toBeVisible();
+  await expect(
+    main(page).getByRole('button', { name: 'Fix 1 thing to save' }).first(),
+  ).toBeVisible();
   expect(sent(log, 'POST', '/products')).toEqual([]);
   expect(sent(log, 'POST', '/products/combo-quote')).toEqual([]);
 });
@@ -151,7 +153,7 @@ test('a new combo saves its fields and parts, nothing of a product’s stock, an
   const log = await open(page, '/products/new');
   await newCombo(page);
   await addPart(page, /^Check lungi/, []);
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect(page.getByText('Eid combo saved')).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/${SLUG}/products/p-new-`));
   const [body] = sent(log, 'POST', '/products');
@@ -197,7 +199,7 @@ test('a saved combo opens as one; a part changes or goes; only the parts are sen
     .click();
   await expect(main(page).getByRole('button', { name: 'Change Check lungi' })).toHaveCount(0);
 
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect(page.getByText('Eid combo saved')).toBeVisible();
   expect(sent(log, 'PATCH', '/products/p-eid')).toEqual([
     { parts: [{ quantity: 2, variantIds: ['v-pan-s', 'v-pan-m'] }] },
@@ -306,7 +308,7 @@ test('a part whose variant has gone is named when the parts are saved again', as
   const sheet = page.getByRole('dialog', { name: 'Check lungi · which can go in?' });
   await sheet.getByRole('button', { name: 'How many in each combo +' }).click();
   await sheet.getByRole('button', { name: 'Save' }).click();
-  await main(page).getByRole('button', { name: 'Save' }).click();
+  await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect(main(page)).toContainText('One of its variants is gone. Open it and tick again.');
   await expect(page.getByRole('alert').filter({ hasText: 'Fix 1 thing to save' })).toBeVisible();
 });
