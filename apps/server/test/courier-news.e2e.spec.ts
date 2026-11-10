@@ -28,7 +28,7 @@ import { CourierNightTickWorker } from '../src/modules/shared/queue-workers/serv
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedBalance } from './support/database';
 import { FakeSteadfast, freshSteadfastKeys, signatureOf } from './support/fake-steadfast';
-import { getJson, postJson, sendExact, type HttpResult } from './support/http';
+import { getJson, postJson, postToApiHost, sendExact, type HttpResult } from './support/http';
 import { openShop, staffWith, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 import {
@@ -156,11 +156,12 @@ interface Connected {
   token: string;
 }
 
-/** Where a message goes, as the test's helpers want it: they add the /api/v1 the real address has. */
+/** Where a message goes: the address's own path on the API host, which postToApiHost sends to as it is. */
 function pathOf(address: string): string {
-  const { pathname } = new URL(address);
-  expect(pathname.startsWith('/api/v1/webhooks/couriers/')).toBe(true);
-  return pathname.replace('/api/v1', '');
+  const { hostname, pathname } = new URL(address);
+  expect(hostname).toBe('api.localhost');
+  expect(pathname.startsWith('/v1/webhooks/couriers/')).toBe(true);
+  return pathname;
 }
 
 function freshMobile(): string {
@@ -258,8 +259,7 @@ function postMessage(
   body: Record<string, unknown>,
   headers: Record<string, string> = {},
 ): Promise<HttpResult> {
-  return postJson(port, to.address, body, {
-    host: 'localhost',
+  return postToApiHost(port, to.address, body, {
     'x-signature': signatureOf(JSON.stringify(body), to.token),
     'idempotency-key': randomUUID(),
     ...headers,
@@ -371,12 +371,9 @@ describeIfDatabase(
   'news can’t be forged or counted twice (exit criterion 4, CRR-11, CRR-13)',
   () => {
     it('refuses an address it doesn’t know before anything else', async () => {
-      const answered = await postJson(
-        port,
-        '/webhooks/couriers/not-a-real-address',
-        { status: 'delivered' },
-        { host: 'localhost' },
-      );
+      const answered = await postToApiHost(port, '/v1/webhooks/couriers/not-a-real-address', {
+        status: 'delivered',
+      });
       expect(answered.status).toBe(404);
     });
 
@@ -387,7 +384,7 @@ describeIfDatabase(
       const body = messageOf(order, 'delivered');
       const forged = await postMessage(to, body, { 'x-signature': signatureOf('x', 'wrong') });
       expect(forged.status).toBe(401);
-      const unsigned = await postJson(port, to.address, body, { host: 'localhost' });
+      const unsigned = await postToApiHost(port, to.address, body);
       expect(unsigned.status).toBe(401);
       expect(await eventsOf(to.shop.tenantId)).toBe(0);
       expect(await read(to.shop, order.id)).toMatchObject({ status: 'processing', due: order.due });
@@ -406,7 +403,7 @@ describeIfDatabase(
       expect(after.connections[0]?.messages).toBe('arriving');
       expect(after.connections[0]?.lastMessageAt).not.toBeNull();
       // Phase 6 close-out: a good message in between doesn't start the day again, so a forger can't make it say so twice.
-      const again = await postJson(port, to.address, body, { host: 'localhost' });
+      const again = await postToApiHost(port, to.address, body);
       expect(again.status).toBe(401);
       expect(trouble).toHaveLength(1);
       const missing = (await to.shop.get('/couriers/connections')).body as {

@@ -232,7 +232,7 @@ the planned `area_courier_key` and `courier_area_code` order columns are dropped
 | Team, `orders:manage` | `POST /api/v1/orders/:id/parcel/cancel` | only the booking is cancelled and the order stays (QTA-01, Slice 6.1's read) |
 | Team, `orders:manage` | `POST /api/v1/orders/:id/cancel`, extended | a booked order's cancel (CRR-28) |
 | Team, `orders:manage` | `GET /api/v1/locations/:locationId/courier-areas` | a courier's areas in a thana (CUS-12), now staff only |
-| A courier | `POST /api/v1/webhooks/couriers/:token` | its messages (CRR-11 to CRR-13, CRR-27) |
+| A courier | `POST /v1/webhooks/couriers/:token` on the API host (moved from `/api/v1/`, KNOWN-GAPS §141) | its messages (CRR-11 to CRR-13, CRR-27) |
 | Operator | `GET /api/v1/operator/tenants/:id/courier-credential-uses` | a shop's credential log (SEC-11) |
 | Operator | area list read, edit and refresh; `retiring`; what blocks removal | CUS-10, CRR-23, CRR-24 |
 

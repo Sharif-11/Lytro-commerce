@@ -5,14 +5,16 @@ import type { AddressInfo } from 'node:net';
 import { HttpSetup } from '../../src/app/http-setup';
 
 /** Starts the compiled testing module the same way main.ts starts the real one (HttpSetup: the /api/v1 prefix
- * and the body limit), listening on an ephemeral port, and returns the app and the port the e2e specs call. */
+ * and the body limit), listening on an ephemeral port, and returns the app and the port the e2e specs call.
+ * `host` is 127.0.0.1 unless an edge in a container must reach it (caddy-edge.e2e.spec.ts). */
 export async function listenOn(
   moduleRef: TestingModule,
-  options: { publicApiHost?: boolean } = {},
+  options: { publicApiHost?: boolean; host?: string } = {},
 ): Promise<{ app: INestApplication; port: number }> {
+  const { host = '127.0.0.1', ...setup } = options;
   const app = moduleRef.createNestApplication<NestExpressApplication>({ rawBody: true });
-  new HttpSetup().apply(app, options);
-  await app.listen(0, '127.0.0.1');
+  new HttpSetup().apply(app, setup);
+  await app.listen(0, host);
   const port = (app.getHttpServer().address() as AddressInfo).port;
   return { app, port };
 }

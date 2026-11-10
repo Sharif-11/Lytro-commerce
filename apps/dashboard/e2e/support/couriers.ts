@@ -183,7 +183,7 @@ export function drawnCouriers(): CouriersFixture {
 }
 
 const ADDRESS = {
-  address: 'https://api.lytro.app/api/v1/webhooks/couriers/whk_7Qm2cX9rLp4Tn8Vb',
+  address: 'https://api.lytro.app/v1/webhooks/couriers/whk_7Qm2cX9rLp4Tn8Vb',
   token: 'tok_Hs82nKq0LbX4mW7e',
 };
 

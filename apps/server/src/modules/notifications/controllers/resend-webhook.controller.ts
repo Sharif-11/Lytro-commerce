@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
+import { PublicApiRoute } from '../../../common/decorators/public-api';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { OkDto } from '../../../common/dto/ok.dto';
@@ -19,9 +20,11 @@ import { BounceNotices } from '../services/bounce-notices';
 
 // NTF-06 (Phase 7 Slice 7.3): where Resend says an email bounced or was marked as spam. There is no session and no shop:
 // the signature over the raw body is the only proof, and an unsigned message is refused. Each owner whose address it
-// stopped is told in the bell and by push (D7-38).
+// stopped is told in the bell and by push (D7-38). Served on the API host at /v1/webhooks/email/resend, as every call from
+// another service is (fixed 2026-11-10).
 @ApiTags('Email')
-@Controller('webhooks/email')
+@Controller('public/webhooks/email')
+@PublicApiRoute()
 @SkipTenant()
 export class ResendWebhookController {
   constructor(

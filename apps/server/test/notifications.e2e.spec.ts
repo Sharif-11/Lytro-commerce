@@ -47,7 +47,7 @@ import { MAIL_PROVIDER } from '../src/modules/shared/mail/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { postJson, sendExact } from './support/http';
+import { postToApiHost, sendExact } from './support/http';
 import { MailCapture } from './support/mail-capture';
 import { errorOf, fieldsOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
@@ -624,21 +624,29 @@ describeIfDatabase('the bell and push over the real stack', () => {
     const signature = createHmac('sha256', Buffer.from(WEBHOOK_SECRET.slice(6), 'base64'))
       .update(`${id}.${timestamp}.${body}`)
       .digest('base64');
-    const answered = await postJson(port, '/webhooks/email/resend', JSON.parse(body) as unknown, {
-      host: 'localhost',
-      'svix-id': id,
-      'svix-timestamp': timestamp,
-      'svix-signature': `v1,${signature}`,
-    });
+    const answered = await postToApiHost(
+      port,
+      '/v1/webhooks/email/resend',
+      JSON.parse(body) as unknown,
+      {
+        'svix-id': id,
+        'svix-timestamp': timestamp,
+        'svix-signature': `v1,${signature}`,
+      },
+    );
     expect(answered.status).toBe(200);
     expect(await recipientsOf(NotificationKind.EmailBounced)).toEqual([ownerId]);
     // Resend trying again, or another email bouncing, tells the owner nothing new.
-    const repeat = await postJson(port, '/webhooks/email/resend', JSON.parse(body) as unknown, {
-      host: 'localhost',
-      'svix-id': id,
-      'svix-timestamp': timestamp,
-      'svix-signature': `v1,${signature}`,
-    });
+    const repeat = await postToApiHost(
+      port,
+      '/v1/webhooks/email/resend',
+      JSON.parse(body) as unknown,
+      {
+        'svix-id': id,
+        'svix-timestamp': timestamp,
+        'svix-signature': `v1,${signature}`,
+      },
+    );
     expect(repeat.status).toBe(200);
     expect(await recipientsOf(NotificationKind.EmailBounced)).toEqual([ownerId]);
     const page = (await shop.get('/notifications')).body as {

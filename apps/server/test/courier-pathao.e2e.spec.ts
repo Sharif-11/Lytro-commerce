@@ -41,7 +41,7 @@ import {
   type GoldenOrder,
   type GoldenWay,
 } from './support/courier-golden-path';
-import { postJson, type HttpResult } from './support/http';
+import { postJson, postToApiHost, type HttpResult } from './support/http';
 import { errorOf, fieldsOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
@@ -210,9 +210,10 @@ async function place(shop: ShopClient, variantId: string, quantity = 1): Promise
 }
 
 function pathOf(address: string): string {
-  const { pathname } = new URL(address);
-  expect(pathname.startsWith('/api/v1/webhooks/couriers/')).toBe(true);
-  return pathname.replace('/api/v1', '');
+  const { hostname, pathname } = new URL(address);
+  expect(hostname).toBe('api.localhost');
+  expect(pathname.startsWith('/v1/webhooks/couriers/')).toBe(true);
+  return pathname;
 }
 
 async function connect(shop: ShopClient): Promise<Connected> {
@@ -278,7 +279,7 @@ function postMessage(
   body: Record<string, unknown>,
   headers: Record<string, string> = { 'x-pathao-signature': to.token },
 ): Promise<HttpResult> {
-  return postJson(port, to.address, body, { host: 'localhost', ...headers });
+  return postToApiHost(port, to.address, body, headers);
 }
 
 let tick = 0;
@@ -846,12 +847,7 @@ describeIfDatabase(
   () => {
     it('answers its test of an address with what it asks for, with or without the secret', async () => {
       const to = await connectedShop();
-      const answered = await postJson(
-        port,
-        to.address,
-        { event: 'webhook_integration' },
-        { host: 'localhost' },
-      );
+      const answered = await postToApiHost(port, to.address, { event: 'webhook_integration' });
       expect(answered.status).toBe(202);
       expect(answered.headers['x-pathao-merchant-webhook-integration-secret']).toBe(ANSWER_VALUE);
     });
@@ -859,22 +855,19 @@ describeIfDatabase(
     it('doesn’t count that test as a message arriving, or let it clear a missing token', async () => {
       const to = await connectedShop();
       const test = { event: 'webhook_integration' };
-      await postJson(port, to.address, test, { host: 'localhost' });
+      await postToApiHost(port, to.address, test);
       expect((await connection(to.shop)).messages).toBe('none_yet');
 
       expect((await postMessage(to, { event: 'order.picked' }, {})).status).toBe(401);
       expect((await connection(to.shop)).messages).toBe('token_missing');
-      await postJson(port, to.address, test, { host: 'localhost' });
+      await postToApiHost(port, to.address, test);
       expect((await connection(to.shop)).messages).toBe('token_missing');
     });
 
     it('answers nothing at an address it doesn’t know, test or not', async () => {
-      const answered = await postJson(
-        port,
-        '/webhooks/couriers/not-a-real-address',
-        { event: 'webhook_integration' },
-        { host: 'localhost' },
-      );
+      const answered = await postToApiHost(port, '/v1/webhooks/couriers/not-a-real-address', {
+        event: 'webhook_integration',
+      });
       expect(answered.status).toBe(404);
       expect(answered.headers['x-pathao-merchant-webhook-integration-secret']).toBeUndefined();
     });

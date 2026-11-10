@@ -144,6 +144,20 @@ export function sendExact(
   });
 }
 
+/**
+ * A message from another service -- a courier's or Resend's -- as it really arrives: at its address's own /v1/... path
+ * on the API host (Host api.localhost, under PLATFORM_DOMAIN=localhost), exactly as the edge forwards it (KNOWN-GAPS
+ * §141). Never at /api/v1/..., which nothing outside reaches on that host.
+ */
+export function postToApiHost(
+  port: number,
+  path: string,
+  payload: unknown,
+  headers: Record<string, string> = {},
+): Promise<HttpResult> {
+  return sendExact(port, 'POST', path, payload, { host: 'api.localhost', ...headers });
+}
+
 /** A response's body exactly as sent -- a file (a PNG, a download) rather than the JSON envelope. */
 export interface BinaryResult {
   status: number;

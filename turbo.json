@@ -23,6 +23,7 @@
     "test": {
       "dependsOn": ["^build"],
       "env": ["DATABASE_TEST_ADMIN_URL"],
+      "passThroughEnv": ["CI"],
       "cache": false
     },
     "test:e2e": {

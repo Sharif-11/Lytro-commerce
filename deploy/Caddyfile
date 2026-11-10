@@ -8,6 +8,10 @@
 # Service names below (server, website, storefront) match DEPLOYMENT.md §2's topology diagram — a production
 # docker-compose (or equivalent) is expected to name its containers the same way; override via the {$...}
 # environment placeholders if it doesn't.
+#
+# Every host is named from PLATFORM_DOMAIN, the server's own setting (R1, R2), so one deployment file names the domain
+# for both; lytro.app when it isn't set. apps/server/test/caddy-edge.e2e.spec.ts runs this file in Caddy in front of the
+# server under PLATFORM_DOMAIN=localhost, and sends each kind of outside call through it.
 {
 	# DEPLOYMENT.md §3: Caddy's built-in ACME client needs the DNS-01 challenge for *.lytro.app's wildcard
 	# cert, which needs a DNS-provider plugin (built in via xcaddy) and that provider's own directive here —
@@ -86,17 +90,17 @@
 }
 
 # lytro.app: the marketing site only (apps/website). www redirects to the apex.
-www.lytro.app {
-	redir https://lytro.app{uri} permanent
+www.{$PLATFORM_DOMAIN:lytro.app} {
+	redir https://{$PLATFORM_DOMAIN:lytro.app}{uri} permanent
 }
 
-lytro.app {
+{$PLATFORM_DOMAIN:lytro.app} {
 	reverse_proxy {$WEBSITE_UPSTREAM:website:3003}
 }
 
 # app.lytro.app: sign-up, sign-in, create-shop, the OAuth callback and every shop's dashboard at /<slug>
 # (apps/dashboard, TEN-31), under its own Content Security Policy. The session cookie is host-only here (TEN-29).
-app.lytro.app {
+app.{$PLATFORM_DOMAIN:lytro.app} {
 	import dashboard_csp
 	import api_proxy
 	import dashboard_spa
@@ -104,7 +108,7 @@ app.lytro.app {
 
 # admin.lytro.app: the operator console (apps/operator, its own build, D3-12), under its own strict Content
 # Security Policy. The operator session cookie is host-only here (TEN-29).
-admin.lytro.app {
+admin.{$PLATFORM_DOMAIN:lytro.app} {
 	import operator_csp
 	import api_proxy
 	import operator_spa
@@ -113,27 +117,27 @@ admin.lytro.app {
 # pay.lytro.app: the payment page, drawn by the backend, which sets the page's Content Security Policy itself (PAY-23,
 # Slice 5.8's part 2). The backend's PaymentPageHost turns every address on this host into one of the page's own routes,
 # so nothing else on the server can be reached from here. No wildcard below takes it: an exact host wins.
-pay.lytro.app {
+pay.{$PLATFORM_DOMAIN:lytro.app} {
 	reverse_proxy {$SERVER_UPSTREAM:server:3000} {
 		header_up x-lytronix-edge-secret {$TRUSTED_EDGE_SECRET}
 	}
 }
 
-# api.lytro.app: the public API, keys only (API-14). /v1/* is proxied as /api/v1/* with the edge secret.
-api.lytro.app {
-	handle_path /v1/* {
-		rewrite * /api/v1{uri}
-		reverse_proxy {$SERVER_UPSTREAM:server:3000} {
-			header_up x-lytronix-edge-secret {$TRUSTED_EDGE_SECRET}
-		}
+# api.lytro.app: what other services call, at /v1/... (API-14): the public API with a key, a wallet's return, the listener
+# app, and couriers' and Resend's messages. Forwarded as it came, with the edge secret. The server maps /v1/... to its
+# public routes itself (PublicApiHost) and refuses every other route on this host (TenantGuard), so what answers here is
+# decided in one place. No rewrite and no path rules here: the server doesn't serve /api/v1/... on this host (KNOWN-GAPS
+# §141).
+api.{$PLATFORM_DOMAIN:lytro.app} {
+	reverse_proxy {$SERVER_UPSTREAM:server:3000} {
+		header_up x-lytronix-edge-secret {$TRUSTED_EDGE_SECRET}
 	}
-	respond 404
 }
 
 # *.lytro.app (any other single-label host — a shop's own subdomain): the storefront and landing pages only
 # (apps/storefront). No dashboard and no /api on a shop host (§5). Covers every tenant automatically; `app`,
 # `admin`, `api`, `pay` and `www` are reserved labels (TEN-26), so no shop can take them.
-*.lytro.app {
+*.{$PLATFORM_DOMAIN:lytro.app} {
 	# storefront reads Host itself to resolve which tenant to render (SFT-01) — Caddy passes Host through
 	# unmodified by default, no explicit header handling needed here.
 	reverse_proxy {$STOREFRONT_UPSTREAM:storefront:3001}

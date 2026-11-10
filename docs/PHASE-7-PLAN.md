@@ -248,7 +248,7 @@ Migrations follow Phase 6's, numbered in the order slices merge (Slice 7.1 is 01
 | Operator | `GET`, `POST /api/v1/operator/notices`; `GET`, `PATCH /api/v1/operator/notices/:id`; `POST /api/v1/operator/notices/:id/withdraw`; `GET /api/v1/operator/notices/:id/acknowledgments`; `POST /api/v1/operator/notices/template` | NTC-01, NTC-05, NTC-08, NTC-09, NTC-12 |
 | Team, `fraud:read` (FRD-01's `fraud:check`, D7-51); changing the rule `fraud:manage` | `POST /api/v1/fraud-checks`, `GET /api/v1/fraud-checks?phone=`; `GET`, `PUT /api/v1/fraud-checks/rule` | FRD-01, FRD-05, FRD-07 |
 | Team, `orders:manage` | `POST /api/v1/orders/read-address` | ORD-30 to ORD-34 (D7-32) |
-| Providers | `POST /api/v1/webhooks/email/resend` | bounces (NTF-06), signed |
+| Providers | `POST /v1/webhooks/email/resend` on the API host (moved from `/api/v1/`, KNOWN-GAPS §141) | bounces (NTF-06), signed |
 | Team, the person's own | `PUT /api/v1/me/language`; `GET /api/v1/me`'s `language` and `emailBounced` | I18N-01, NTF-06 (Slice 7.3) |
 
 The permission names already exist (`SmsRead`, `SmsManage`, `NoticesRead`, `FraudRead`, `FraudManage`). Slice 7.5's read
@@ -490,7 +490,7 @@ Each needs a real account, so each is the owner's. Keep every key in a file outs
 
 **One real email.**
 1. In Resend, verify `mail.lytro.app` (the DNS records it lists).
-2. Set `EMAIL_FORCE_REAL=true`, `RESEND_API_KEY` and `RESEND_WEBHOOK_SECRET`, and point Resend's webhook at `/api/v1/webhooks/email/resend`.
+2. Set `EMAIL_FORCE_REAL=true`, `RESEND_API_KEY` and `RESEND_WEBHOOK_SECRET`, and point Resend's webhook at `https://api.lytro.app/v1/webhooks/email/resend` (KNOWN-GAPS §141).
 3. Add your email on the Account page, so a code goes out.
 4. Record: the date and that it arrived, not in spam.
 
