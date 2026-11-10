@@ -37,6 +37,8 @@ export type OperatorSigninResult =
 
 /** GET /auth/operator/me. */
 export interface OperatorMe {
+  /** Slice 8.8: the "only mine" filters. */
+  id: string;
   email: string;
   unusedBackupCodes: number;
   signedInAt: string;
@@ -279,6 +281,8 @@ export interface QueuedPayment extends PlanPayment {
   amountSent: string | null;
   amountArrived: string | null;
   reviewReason: PaymentReviewReason | null;
+  /** ADM-17, D8-15: the seller's screenshot, opened by `GET /operator/payment-queue/:id/evidence`. */
+  evidenceId: string | null;
 }
 
 /** `operatorShopSchema` in apps/server/src/modules/team/dto/operator-console.dto.ts. */
