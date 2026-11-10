@@ -364,7 +364,9 @@
       "10": "Couriers",
       "11": "Reading delivery details",
       "12": "Fraud checks",
-      "13": "Notifications"
+      "13": "Notifications",
+      "14": "Help line",
+      "15": "Media costs"
     },
     "units": {
       "days": "days",
@@ -385,7 +387,36 @@
     "providerHelp": "Gemini is the only AI Lytro can read with today; another needs its adapter built first (AI-10).",
     "modelWarn": "The name goes to Gemini as typed. One it doesn't know makes every read fail until it's put back; a failed read costs a shop nothing. Copy the name from Google's list of models.",
     "retentionNote": "Lowering it deletes the older notifications in every shop at the next nightly clean-up.",
-    "errWhole": "A whole number of 1 or more. Nothing was saved."
+    "errWhole": "A whole number of 1 or more. Nothing was saved.",
+    "notSet": "Not set",
+    "everyDay": "every day",
+    "aMonth": "a month",
+    "dayOfMonth": "day {{n}} of each month",
+    "pricesSummary": "R2 {{a}} / {{b}} a million, {{c}} a GB-month · Workers {{d}} a month",
+    "helpNote": "Shown on the dashboard's Help row, Lytro's payment page, the website's contact page and the listener app. If only one number is set, it stands in for the other. Hours are Dhaka time, every day.",
+    "clear": "Clear",
+    "clearNumber": "Clear the number",
+    "clearConsequence": "Clearing it takes this number off the dashboard, the website and Lytro's payment page. If the other number is set, it stands in; if neither is, no help button shows.",
+    "phoneHelp": "Any written form; it's saved as 01XXXXXXXXX.",
+    "errPhone": "Not a Bangladeshi mobile number.",
+    "hourHelp": "0 to 23, Dhaka time, closing after opening. 22 is 10 pm.",
+    "errHour": "A whole hour from 0 to 23.",
+    "errCloses": "The closing hour must be after the opening hour ({{h}}).",
+    "errOpens": "The opening hour must be before the closing hour ({{h}}).",
+    "emailNote": "Until it is set, the alert is only logged.",
+    "pricesLead": "What the estimate uses, from Cloudflare's R2 and Workers pricing pages. Change them when Cloudflare does.",
+    "pricesError": "Each price is a number from 0 to 1,000, and each allowance a whole number.",
+    "prices": {
+      "r2ClassAPerMillion": "R2 Class A, a million",
+      "r2ClassBPerMillion": "R2 Class B, a million",
+      "r2StoragePerGbMonth": "R2 storage, a GB-month",
+      "r2FreeClassAMillions": "Free Class A, millions a month",
+      "r2FreeClassBMillions": "Free Class B, millions a month",
+      "r2FreeStorageGbMonths": "Free storage, GB-months",
+      "workersMonthly": "Workers plan, a month",
+      "workersIncludedMillions": "Workers requests included, millions",
+      "workersPerMillion": "Workers past that, a million"
+    }
   },
   "settingNames": {
     "trial_days": "Trial length",
@@ -424,7 +455,16 @@
     "address_read_model": "Its model",
     "address_reads_per_shop_per_minute": "Reads per shop",
     "fraud_checks_per_shop_per_minute": "Checks per shop",
-    "notification_retention_days": "A notification is kept for"
+    "notification_retention_days": "A notification is kept for",
+    "help_whatsapp": "Lytro's WhatsApp",
+    "help_phone": "Lytro's phone for calls",
+    "help_opens_hour": "Opens",
+    "help_closes_hour": "Closes",
+    "media_budget_usd": "Budget a month",
+    "media_budget_alert_percent": "Alert at",
+    "media_cost_alert_email": "Alert goes to",
+    "cloudflare_billing_day": "Billing period starts",
+    "cloudflare_prices": "Cloudflare's prices"
   },
   "wallets": {
     "lead": "How shops can pay Lytro for plans, add-ons and top-ups, and how each payment is confirmed. Shops see only the methods turned on here.",

@@ -15,16 +15,28 @@ export type SettingUnit =
   | 'hours'
   // AI-10: which AI reads a pasted message, and its model's name as the AI writes it.
   | 'ai'
-  | 'model';
+  | 'model'
+  // D8-68, D8-76, D8-77 (Slice 8.8): a help number, cleared when empty, and an hour of the help line, every day.
+  | 'phone'
+  | 'hour'
+  // MED-12, D8-58 to D8-61 (Slice 8.8): the alert's address, the budget in dollars, a day of the month, Cloudflare's prices.
+  | 'email'
+  | 'usd'
+  | 'dayOfMonth'
+  | 'prices';
 
 export interface SettingShape {
   key: string;
-  /** Which of the page's thirteen groups it sits in (OPERATOR-CONSOLE-DESIGN §9, v5's four Phase 6 and 7 groups). */
+  /** Which of the page's fifteen groups it sits in (OPERATOR-CONSOLE-DESIGN §9; v5's four Phase 6 and 7 groups, v7's two). */
   group: number;
   unit: SettingUnit;
 }
 
-export const SETTING_GROUPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as const;
+export const SETTING_GROUPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as const;
+
+/** D8-76: a setting stored empty is one not set, such as a help number never given or cleared. */
+export const isUnset = (value: unknown): boolean =>
+  value === null || value === undefined || value === '';
 
 const { TrialDays, TopUpMinAmount, TopUpMaxAmount, GraceDays, ReadOnlyDays, LockedDays } =
   PlatformSettingKey;
@@ -72,6 +84,17 @@ export const SETTING_SHAPES: readonly SettingShape[] = [
   { key: PlatformSettingKey.FraudChecksPerShopPerMinute, group: 12, unit: 'perMinute' },
   // NTF-01, D7-39 (Slice 7.3).
   { key: PlatformSettingKey.NotificationRetentionDays, group: 13, unit: 'days' },
+  // D8-4, D8-68 (Slice 8.7): the help line every page shows.
+  { key: PlatformSettingKey.HelpWhatsapp, group: 14, unit: 'phone' },
+  { key: PlatformSettingKey.HelpPhone, group: 14, unit: 'phone' },
+  { key: PlatformSettingKey.HelpOpensHour, group: 14, unit: 'hour' },
+  { key: PlatformSettingKey.HelpClosesHour, group: 14, unit: 'hour' },
+  // MED-12, D8-58 to D8-61 (Slice 8.6): what Cloudflare charges for media, and the alert.
+  { key: PlatformSettingKey.MediaBudgetUsd, group: 15, unit: 'usd' },
+  { key: PlatformSettingKey.MediaBudgetAlertPercent, group: 15, unit: 'percent' },
+  { key: PlatformSettingKey.MediaCostAlertEmail, group: 15, unit: 'email' },
+  { key: PlatformSettingKey.CloudflareBillingDay, group: 15, unit: 'dayOfMonth' },
+  { key: PlatformSettingKey.CloudflarePrices, group: 15, unit: 'prices' },
 ];
 
 export function settingUnitOf(key: string): SettingUnit | undefined {

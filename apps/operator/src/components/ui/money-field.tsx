@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-/** A taka amount, the sign inside the field as drawn. */
+/** A taka amount, the sign inside the field as drawn; `sign` gives a dollar price its own (Slice 8.8). */
 export function MoneyField({
   label,
   name,
@@ -10,6 +10,7 @@ export function MoneyField({
   error,
   required = true,
   startHere = true,
+  sign = '৳',
 }: {
   label: string;
   name: string;
@@ -20,6 +21,7 @@ export function MoneyField({
   required?: boolean;
   /** Whether the panel opens with the cursor here, when it is the panel's one field. */
   startHere?: boolean;
+  sign?: string;
 }): React.JSX.Element {
   return (
     <label className="block" htmlFor={name}>
@@ -31,7 +33,7 @@ export function MoneyField({
             : 'border-control-line focus-within:border-line-active focus-within:ring-field-ring'
         }`}
       >
-        <span className="absolute left-3 text-fg-muted">৳</span>
+        <span className="absolute left-3 text-fg-muted">{sign}</span>
         <input
           id={name}
           name={name}

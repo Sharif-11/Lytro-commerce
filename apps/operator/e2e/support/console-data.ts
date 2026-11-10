@@ -1523,7 +1523,7 @@ export function drawnAddons(): Record<string, unknown> {
 export function drawnSettings(): Record<string, unknown>[] {
   const setting = (
     key: string,
-    value: number | string | string[],
+    value: number | string | string[] | Record<string, number>,
     description: string,
     changed?: { at: string; by: string | null },
   ) => ({
@@ -1718,6 +1718,71 @@ export function drawnSettings(): Record<string, unknown>[] {
       30,
       'How many days a notification is kept in the bell before it is deleted (NTF-01, D7-39).',
       { at: '2026-11-07T00:00:00.000Z', by: null },
+    ),
+    // Slice 8.8: the rows migration 0128 gives Slices 8.6's and 8.7's settings; a number not set is stored empty.
+    setting(
+      'help_whatsapp',
+      '',
+      "Lytro's WhatsApp number, 01XXXXXXXXX, that the dashboard, Lytro's payment page and the website show (D8-4, D8-68).",
+      { at: '2026-11-10T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'help_phone',
+      '',
+      "Lytro's phone number for calls, 01XXXXXXXXX, that the dashboard, Lytro's payment page and the website show (D8-4, D8-68).",
+      { at: '2026-11-10T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'help_opens_hour',
+      9,
+      'The hour Lytro starts answering the help line, every day, 0 to 23 in Dhaka (D8-68).',
+      { at: '2026-11-10T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'help_closes_hour',
+      22,
+      'The hour Lytro stops answering the help line, every day, 0 to 23 in Dhaka (D8-68).',
+      { at: '2026-11-10T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'media_budget_usd',
+      10,
+      "The month's budget for Lytro's Cloudflare costs, in whole US dollars (MED-12, D8-58).",
+      { at: '2026-11-10T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'media_budget_alert_percent',
+      80,
+      'The percent of the media budget that emails the alert address, once a billing period (MED-12).',
+      { at: '2026-11-10T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'media_cost_alert_email',
+      '',
+      'The one address the media budget alert goes to (MED-12, D8-61).',
+      { at: '2026-11-10T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'cloudflare_billing_day',
+      1,
+      "The day of the month Cloudflare's invoice period starts on, 1 to 28 (MED-12, D8-61).",
+      { at: '2026-11-10T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'cloudflare_prices',
+      {
+        r2ClassAPerMillion: 4.5,
+        r2ClassBPerMillion: 0.36,
+        r2StoragePerGbMonth: 0.015,
+        r2FreeClassAMillions: 1,
+        r2FreeClassBMillions: 10,
+        r2FreeStorageGbMonths: 10,
+        workersMonthly: 5,
+        workersIncludedMillions: 10,
+        workersPerMillion: 0.3,
+      },
+      "Cloudflare's R2 and Workers prices and monthly allowances, in US dollars, that the media costs estimate uses (D8-60).",
+      { at: '2026-11-10T00:00:00.000Z', by: null },
     ),
   ];
 }
