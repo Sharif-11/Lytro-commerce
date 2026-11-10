@@ -27,7 +27,7 @@ import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chips';
-import { Field, PickField } from '@/components/ui/field';
+import { AreaField, Field, PickField } from '@/components/ui/field';
 import { Kv } from '@/components/ui/kv';
 import { RowList } from '@/components/ui/list-row';
 import { Quantity } from '@/components/ui/quantity';
@@ -437,7 +437,7 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
                   locked
                   onPick={() => undefined}
                 />
-                <Field
+                <AreaField
                   label={t('address')}
                   value={draft.address}
                   error={problems.deliveryAddress}
@@ -509,7 +509,7 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
                           })}
                         </Banner>
                       ))}
-                    <Field
+                    <AreaField
                       label={
                         <>
                           {t('address')}
@@ -573,7 +573,7 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
 
           {booked ? (
             <Card className="flex flex-col gap-3">
-              <Field
+              <AreaField
                 label={t('note')}
                 value={draft.note}
                 placeholder={t('notePh')}
@@ -641,7 +641,7 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
                   }}
                 />
               )}
-              <Field
+              <AreaField
                 label={
                   <>
                     {t('note')}
@@ -675,7 +675,7 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
           />
         </div>
       </div>
-      <ActionBar>
+      <ActionBar atEnd>
         <Button
           busy={create.isPending || update.isPending}
           disabled={draft.lines.length === 0}

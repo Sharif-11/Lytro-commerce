@@ -412,7 +412,7 @@ function DeliveryBody({
         </Card>
       </div>
       {mayManage ? (
-        <ActionBar>
+        <ActionBar atEnd>
           <Button busy={busy} disabled={!dirty || !valid} onClick={save}>
             {t('save')}
           </Button>

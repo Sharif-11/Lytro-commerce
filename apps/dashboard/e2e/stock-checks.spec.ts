@@ -93,7 +93,7 @@ test('Check stock opens the checks; a new one counts the picked products, and sa
   await expect(main(page)).toContainText(
     'Pick what to count: some products, or everything in a category.',
   );
-  await expect(main(page).getByRole('button', { name: 'Save the count' })).toBeDisabled();
+  await expect(main(page).getByRole('button', { name: 'Save the count' }).first()).toBeDisabled();
   await main(page).getByRole('button', { name: 'Pick products or a category' }).click();
   const pick = sheet(page, 'What to count');
   await pick.getByRole('checkbox', { name: /^Denim jacket/ }).check();
@@ -107,7 +107,7 @@ test('Check stock opens the checks; a new one counts the picked products, and sa
   );
   await main(page).getByLabel('Note').fill('Month-end count');
   await expectAccessible(page);
-  await main(page).getByRole('button', { name: 'Save the count' }).click();
+  await main(page).getByRole('button', { name: 'Save the count' }).first().click();
   await expect(page).toHaveURL(`/${SLUG}/stock/checks/sc-13`);
   await expect(main(page)).toContainText('#13');
   await expect(main(page)).toContainText('Month-end count');
@@ -147,7 +147,7 @@ test('a batch-kept product counts batch by batch, and a serial line short names 
   await counted(page, /^Counted for FC-0921/).fill('11');
   await counted(page, 'Galaxy A15 · 128 GB · Black').fill('4');
   // Every unit short had an IMEI, so it must be named before the count is saved.
-  const save = main(page).getByRole('button', { name: 'Save the count' });
+  const save = main(page).getByRole('button', { name: 'Save the count' }).first();
   await expect(save).toBeDisabled();
   await main(page).getByRole('button', { name: 'Pick the IMEI not found' }).click();
   const missing = sheet(page, 'The IMEI not found');
@@ -179,7 +179,7 @@ test('a count the unit cannot take holds the save', async ({ page }) => {
   await sheet(page, 'What to count').getByRole('button', { name: 'Count 4 lines' }).click();
   await counted(page, 'Denim jacket · S').fill('2.5');
   await expect(counted(page, 'Denim jacket · S')).toHaveAttribute('aria-invalid', 'true');
-  await expect(main(page).getByRole('button', { name: 'Save the count' })).toBeDisabled();
+  await expect(main(page).getByRole('button', { name: 'Save the count' }).first()).toBeDisabled();
 });
 
 test('no check yet says so, with New check', async ({ page }) => {

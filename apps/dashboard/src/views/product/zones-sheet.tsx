@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
-import { useDeliverySettings } from '@/api/delivery';
+import { coversCountry, useDeliverySettings } from '@/api/delivery';
 import { Button } from '@/components/ui/button';
 import { CheckRow } from '@/components/ui/check-row';
 import { Sheet } from '@/components/ui/sheet';
 import { ChoiceList, ChoiceRow } from './choice-list';
 
 /**
- * Delivers to (§7.4's sheet, the prototype's `sh-deliversto`; DLV-07): wherever the shop delivers, or only the chosen
- * zones, each with its charge. A zone the shop does not deliver to is not offered. Done keeps the choice.
+ * Delivers to (§7.4's sheet, the prototype's `sh-deliversto`; DLV-07): wherever the shop delivers ("All of Bangladesh"
+ * when that is the whole country, the owner's words of 2026-11-10), or only some zones, each with its charge. A zone
+ * the shop does not deliver to is not offered. Done keeps the choice.
  */
 export function ZonesSheet({
   open,
@@ -59,7 +60,7 @@ export function ZonesSheet({
           <ChoiceList label={t('deliversTo')}>
             <ChoiceRow
               on={!only}
-              title={t('zonesAll')}
+              title={coversCountry(settings.data) ? t('zonesCountry') : t('zonesAll')}
               onChoose={() => {
                 setOnly(false);
               }}

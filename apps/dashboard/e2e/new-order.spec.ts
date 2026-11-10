@@ -102,7 +102,7 @@ test('a known phone fills the name and its last address; items are added; the to
   expect(sent(log, 'POST', '/orders/quote').at(-1)).not.toHaveProperty('customerName');
   await expectAccessible(page);
 
-  await main(page).getByRole('button', { name: 'Create order' }).click();
+  await main(page).getByRole('button', { name: 'Create order' }).first().click();
   await expect(page.getByText('Order #261031-0048 created')).toBeVisible();
   await expect(page).toHaveURL(`/${SLUG}/orders/o-new-48`);
   expect(sent(log, 'POST', '/orders')).toEqual([
@@ -179,7 +179,7 @@ test('Change price sets a line’s price by hand; one less than one takes the li
   ).toMatchObject({ unitPrice: 420 });
   await main(page).getByRole('button', { name: 'Cotton T-shirt −' }).click();
   await expect(main(page).getByRole('button', { name: 'Cotton T-shirt +' })).toHaveCount(0);
-  await expect(main(page).getByRole('button', { name: 'Create order' })).toBeDisabled();
+  await expect(main(page).getByRole('button', { name: 'Create order' }).first()).toBeDisabled();
 });
 
 test('takeaway needs no address or charge, a table its number; the charge by hand and a discount are priced', async ({
@@ -196,7 +196,7 @@ test('takeaway needs no address or charge, a table its number; the charge by han
   await main(page).getByRole('radio', { name: 'Table' }).click();
   await expect(main(page)).toContainText('Served at the table; no address or delivery charge');
   await main(page).getByLabel('Table number').fill('4');
-  await main(page).getByRole('button', { name: 'Create order' }).click();
+  await main(page).getByRole('button', { name: 'Create order' }).first().click();
   await expect(page).toHaveURL(`/${SLUG}/orders/o-new-48`);
   expect(sent(log, 'POST', '/orders')[0]).toMatchObject({
     fulfilmentType: 'dine_in',
@@ -234,13 +234,13 @@ test('a shortfall saves nothing and marks its line; a zone the shop doesn’t re
   );
   await expect(figure(page, 'Delivery · Set by hand')).toHaveText('—');
 
-  await main(page).getByRole('button', { name: 'Create order' }).click();
+  await main(page).getByRole('button', { name: 'Create order' }).first().click();
   await expect(main(page)).toContainText(
     'Only 1 Denim jacket is left, so the order was not saved. Lower the number or take the item off.',
   );
   await expect(page).toHaveURL(`/${SLUG}/orders/new`);
   await main(page).getByRole('button', { name: 'Denim jacket −' }).click();
-  await main(page).getByRole('button', { name: 'Create order' }).click();
+  await main(page).getByRole('button', { name: 'Create order' }).first().click();
   await expect(page).toHaveURL(`/${SLUG}/orders/o-new-48`);
   // D4-8: a new key once the server refused the first.
   const keys = log.calls.filter((call) => call.method === 'POST' && call.path === '/orders');
@@ -262,7 +262,7 @@ test('the customer already paid: bKash with its number and TrxID; Already confir
   await main(page).getByRole('switch', { name: 'Already confirmed on the phone' }).click();
   await expect(figure(page, 'Advance (received)')).toHaveText('৳200');
   await expect(figure(page, 'Cash on delivery')).toHaveText('৳320');
-  await main(page).getByRole('button', { name: 'Create order' }).click();
+  await main(page).getByRole('button', { name: 'Create order' }).first().click();
   await expect(page).toHaveURL(`/${SLUG}/orders/o-new-48`);
   expect(sent(log, 'POST', '/orders')[0]).toMatchObject({
     status: 'confirmed',
@@ -291,7 +291,7 @@ test('Edit order from the menu: as the order is, a quantity changed, and only wh
   await expect(main(page)).toContainText('L · Black · ৳450');
   await expect(main(page).getByText('The customer already paid something')).toHaveCount(0);
   await main(page).getByRole('button', { name: 'Cotton T-shirt +' }).click();
-  await main(page).getByRole('button', { name: 'Save changes' }).click();
+  await main(page).getByRole('button', { name: 'Save changes' }).first().click();
   await expect(page).toHaveURL(`/${SLUG}/orders/o-47`);
   expect(sent(log, 'PATCH', '/orders/o-47')).toEqual([
     {
@@ -336,7 +336,7 @@ test('what the seller marked asked when ordering comes last, optional; the answe
   await details.getByRole('button', { name: 'Save' }).click();
   await expect(main(page)).toContainText('Message on the cake: Happy birthday Mina');
 
-  await main(page).getByRole('button', { name: 'Create order' }).click();
+  await main(page).getByRole('button', { name: 'Create order' }).first().click();
   await expect(page).toHaveURL(`/${SLUG}/orders/o-new-48`);
   expect(sent(log, 'POST', '/orders')[0]).toMatchObject({
     items: [
@@ -385,7 +385,7 @@ test('Edit order changes an answer, or gives one left blank, and sends only that
   await main(page).getByRole('button', { name: 'Change details' }).click();
   await sheet(page, 'Change details').getByLabel('Message on the cake').fill('Happy birthday Rafi');
   await sheet(page, 'Change details').getByRole('button', { name: 'Save' }).click();
-  await main(page).getByRole('button', { name: 'Save changes' }).click();
+  await main(page).getByRole('button', { name: 'Save changes' }).first().click();
   await expect(page).toHaveURL(`/${SLUG}/orders/o-47`);
   expect(sent(log, 'PATCH', '/orders/o-47')).toEqual([
     {

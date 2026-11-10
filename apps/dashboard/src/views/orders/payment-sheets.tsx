@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chips';
 import { buttonClass } from '@/components/ui/classes';
 import { CopyButton } from '@/components/ui/copy-button';
-import { Field } from '@/components/ui/field';
+import { AreaField, Field } from '@/components/ui/field';
 import { Kv, RadioMark } from '@/components/ui/kv';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
@@ -222,7 +222,7 @@ export function VoidSheet({
     >
       <p className="-mt-1 text-[14px] text-fg-muted">{t('voidHelp')}</p>
       {remove.isError ? <Banner tone="bad">{errorText(remove.error)}</Banner> : null}
-      <Field
+      <AreaField
         label={t('voidReason')}
         value={reason}
         maxLength={500}
@@ -280,7 +280,7 @@ export function RefundSheet({
         {t('refundText', { amount: formatTaka(payment.amount) })}
       </p>
       {refund.isError ? <Banner tone="bad">{errorText(refund.error)}</Banner> : null}
-      <Field
+      <AreaField
         label={t('refundNote')}
         placeholder={t('refundPlaceholder')}
         value={note}

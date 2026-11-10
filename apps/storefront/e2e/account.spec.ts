@@ -366,6 +366,9 @@ test.describe('saved addresses (CUS-06)', () => {
     await expect(sheet.getByText('Enter a label')).toBeVisible();
     await expect(sheet.getByText('Pick a thana')).toBeVisible();
     await expect(sheet.getByText('Address is needed')).toBeVisible();
+    // The owner, 2026-11-10: every address is a box of several lines.
+    await expect(sheet.locator('#addr-address')).toHaveJSProperty('tagName', 'TEXTAREA');
+    await expect(sheet.locator('#addr-address')).toHaveClass('textarea bad');
 
     await sheet.getByLabel('Label').fill('Parents');
     await sheet.getByLabel('District').selectOption({ label: 'Gazipur' });

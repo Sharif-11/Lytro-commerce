@@ -6,7 +6,7 @@ import { PaymentRejectReason, PaymentSessionSource } from '@lytronix/validators'
 import { useRejectPayment, useVerifyPayment } from '@/api/payments';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
+import { AreaField, Field } from '@/components/ui/field';
 import { RadioMark } from '@/components/ui/kv';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
@@ -188,7 +188,7 @@ export function RejectSheet({
         </div>
       </fieldset>
       {needsNote ? (
-        <Field
+        <AreaField
           label={t('spNote')}
           value={note}
           maxLength={500}

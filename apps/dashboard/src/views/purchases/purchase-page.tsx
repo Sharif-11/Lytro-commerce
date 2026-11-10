@@ -14,7 +14,7 @@ import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Field } from '@/components/ui/field';
+import { AreaField, Field } from '@/components/ui/field';
 import { RowList } from '@/components/ui/list-row';
 import { SectionHead } from '@/components/ui/page';
 import { SkeletonRows } from '@/components/ui/skeleton';
@@ -240,7 +240,7 @@ function PurchaseBody({ saved }: { saved: Purchase }): React.JSX.Element {
                   setExpectedOn(event.target.value);
                 }}
               />
-              <Field
+              <AreaField
                 label={t('poNotes')}
                 readOnly={!detailsOpen}
                 placeholder="—"

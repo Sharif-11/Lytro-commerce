@@ -736,7 +736,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         </div>
       </div>
       {mayManage ? (
-        <ActionBar>
+        <ActionBar atEnd>
           <Button busy={busy} onClick={submit}>
             {count > 0 ? (count === 1 ? t('fixOne') : t('fixMany', { n: count })) : t('save')}
           </Button>

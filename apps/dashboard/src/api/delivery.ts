@@ -25,6 +25,19 @@ export function useLocations() {
 }
 
 /** GET /delivery-zones (DLV-05): the home area, the zones with their charges and areas, and the charge per kg. */
+/**
+ * Whether the shop delivers to every thana in Bangladesh (the owner, 2026-11-10): its fallback zone takes every thana
+ * no other zone names (DLV-05), so it does when that zone is there and no zone is one it doesn't deliver to (DLV-06).
+ * Only then does a product's "everywhere" read "All of Bangladesh".
+ */
+export function coversCountry(settings: DeliverySettings | undefined): boolean {
+  return (
+    settings !== undefined &&
+    settings.zones.some((zone) => zone.isFallback) &&
+    settings.zones.every((zone) => !zone.noDelivery)
+  );
+}
+
 export function useDeliverySettings(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: DELIVERY_QUERY_KEY,

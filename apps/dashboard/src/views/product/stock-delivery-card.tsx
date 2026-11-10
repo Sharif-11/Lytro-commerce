@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StockTracking, StockUnit } from '@lytronix/validators';
-import { useDeliverySettings } from '@/api/delivery';
+import { coversCountry, useDeliverySettings } from '@/api/delivery';
 import { Card } from '@/components/ui/card';
 import { Field, PickField, SelectField } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
@@ -89,7 +89,9 @@ export function StockDeliveryCard({
     .map((zone) => (i18n.language === 'bn' ? zone.label.bn : zone.label.en));
   const deliversTo =
     form.deliveryZoneIds.length === 0
-      ? t('everywhere')
+      ? coversCountry(delivery.data)
+        ? t('zonesCountry')
+        : t('everywhere')
       : zoneNames.length > 0
         ? zoneNames.join(', ')
         : t('zonesN', { count: form.deliveryZoneIds.length });

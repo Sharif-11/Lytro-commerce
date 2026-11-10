@@ -8,7 +8,7 @@ import {
 import { useReceive, type ReceivedItem } from '@/api/purchases';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
+import { AreaField, Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
 import { todayInputValue } from '@/lib/dates';
@@ -203,7 +203,7 @@ export function ReceiveSheet({
                     />
                   </div>
                   {rejected > 0 ? (
-                    <Field
+                    <AreaField
                       label={t('rcvReason')}
                       placeholder={t('rcvReasonPh')}
                       maxLength={PURCHASE_REASON_MAX_LENGTH}
@@ -267,7 +267,7 @@ export function ReceiveSheet({
                 </div>
               );
             })}
-            <Field
+            <AreaField
               label={t('rcvNote')}
               placeholder="—"
               maxLength={STOCK_NOTE_MAX_LENGTH}
