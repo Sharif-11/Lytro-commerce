@@ -126,6 +126,12 @@ overrule any of them when reviewing this plan.
 | D8-62 | **Price classes.** | Cloudflare's own lists of Class A, Class B and free operations; one it doesn't list counts as Class A, the dearer, so the estimate never runs low for it. | Slice 8.6 |
 | D8-63 | **The alert, once a period.** | After each hour's read, when the period's estimate reaches the alert's percent of the budget: one email in English through the mail outbox, recorded in `control.media_cost_alerts` so it never goes twice. | Slice 8.6 |
 | D8-64 | **The Workers line and the top shops.** | The media Worker's requests the server already counts per shop (`control.media_bandwidth_daily`, Dhaka days) plus Workers' monthly charge; the ten shops with the most requests, with their bytes. Workers' CPU time, KV and Analytics Engine aren't counted. | Slice 8.6 |
+| D8-65 | **What retiring a wallet type hides** (WAL-18, D8-18; Slice 8.7's read, 2026-11-10). | `control.payment_method_types` holds each type ever retired, in the couriers' states (one `RetireState` for both). Retiring hides the type from every shop that never set it up, which can't start it. A shop that set it up (switched it on, or saved an account for it) keeps it whole: checkout, its accounts, switching it on and off, and its way; the dashboard marks it retiring. Lytro's own payment page is left as the operator set it. | Slice 8.7 |
+| D8-66 | **Who is told, and how.** | Each shop that set it up gets a line in its activity log and a notice to the owner, in the bell and by push, in Lytro's own Bangla and English. It can't be switched off, since payment accounts are the owner's (WAL-07). Undoing tells the same shops it is back. The operator's reason goes to the platform audit log only. Removal sends no notice: the retiring one says removal takes the accounts. | Slice 8.7 |
+| D8-67 | **Removing a wallet type.** | Only a retiring type, and only once no shop has it on, no shopper's payment is open on it (awaiting payment with it chosen, checking, or waiting for a person) and Lytro's own page doesn't take it. A refusal gives the three. The type's row is held while the check runs, and every switch-on, a shop's or Lytro's own, reads it shared, so none slips past. Then every shop's accounts, switch and way for it go, with a line in its activity log; past payments keep what they were paid into (PAY-05). Removed is for good: no undo, gone from Lytro's own page too, and its code goes in a later change. Asked again, it finishes any shop left. | Slice 8.7 |
+| D8-68 | **The help line's settings** (D8-4; the owner's answers, 2026-11-10). | Four platform settings: `help_whatsapp` and `help_phone`, each a mobile number in its local form and shown nowhere until set, and `help_opens_hour` and `help_closes_hour`, 0 to 23 in Dhaka, defaults 9 and 22, every day with no days of the week. `GET /help-line` gives them to anyone, with no session, cached five minutes. The help row shows to everyone on the shop's team. | Slice 8.7 |
+| D8-69 | **One number everywhere** (the owner's answer). | Lytro's payment page reads the settings, WhatsApp from `help_whatsapp` and call from `help_phone`, either standing in for the other, and the server's `LYTRO_SUPPORT_PHONE` goes. The dashboard's `VITE_SUPPORT_WHATSAPP` and the website's `SUPPORT_WHATSAPP` and `SUPPORT_PHONE` go when Slice 8.8 moves their pages onto the route, each writing the hours in its own words, and the dashboard's WhatsApp message holding the shop's address (D8-4). | Slices 8.7, 8.8 |
+| D8-70 | **The shop-ready SMS's words** (D8-19; the owner's pick). | "আপনার শপ {name} এখন লাইভ: {url}", with the name as typed and the full address. On a lytro.app address the words take 38 of a unit's 67 characters, so a name and its address of up to 29 together (a 14-letter name) go as one SMS (৳0.55), longer as two (৳1.10). Lytro's cost either way, outside the trial's allowance (AUTH-21). | Slice 8.7 |
 
 ### 2.1 Points left to each slice's read
 
@@ -139,7 +145,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 8.4 | The nightly job's time and what it records, how far back the reports reach, and how a CSV is named. **Settled in Slice 8.4's read (2026-11-08):** D8-40 to D8-46. |
 | 8.5 | Where evidence is kept and for how long, what a reversal of a plan purchase undoes, and the digest's time. **Settled in Slice 8.5's read (2026-11-09):** D8-47 to D8-56; D8-53 drops the digest. |
 | 8.6 | R2's operation counts (D8-17), the budget's default and currency, and who the alert goes to. **Settled in Slice 8.6's read (2026-11-10):** D8-57 to D8-64. |
-| 8.7 | The shop-ready SMS's words (D8-19), and whether the help menu's number shows to staff as well as the owner. |
+| 8.7 | The shop-ready SMS's words (D8-19), and whether the help menu's number shows to staff as well as the owner. **Settled in Slice 8.7's read (2026-11-10):** D8-65 to D8-70; the help row shows to everyone on the team. |
 | 8.8 | Settled by its sketch: see that slice. |
 
 ---
@@ -222,7 +228,7 @@ brings `DATABASE-SCHEMA.md` in line with what it builds.
 | evidence on a seller's claim | the screenshot of an "I have paid" (D8-15) | 8.5 |
 | a month's media costs and the budget setting | R2 operations, Worker requests, the top shops (D8-17) | 8.6 |
 | `control.payment_method_types` | each wallet type and when it was retired (D8-18) | 8.7 |
-| the help line's settings | Lytro's WhatsApp and phone (D8-4) | 8.7 |
+| the help line's settings | Lytro's WhatsApp and phone, and its hours (D8-4, D8-68) | 8.7 |
 
 ---
 
@@ -238,7 +244,7 @@ brings `DATABASE-SCHEMA.md` in line with what it builds.
 | Operator | `GET /api/v1/operator/media-costs` | MED-12 |
 | Operator | `GET /api/v1/operator/payment-method-types`; `POST …/:key/retire`, `/undo-retire`, `/remove` | WAL-18 |
 | Team, the seller's own payments | the "I have paid" submission gains its screenshot | ADM-17 |
-| Team | the help line, with the dashboard's shell | D8-4 |
+| Anyone | `GET /api/v1/help-line`, no session, read by the dashboard and the website | D8-4, D8-68 |
 
 Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records them as built.
 
@@ -309,6 +315,11 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
 - **Depends on:** 8.0.
 - **Delivers:** retiring, undoing and removing a wallet type (WAL-18, D8-18); the help line's settings and route
   (D8-4); the shop-ready SMS in Bangla through the real path (SMS-18, D8-19).
+- **Built** (read agreed 2026-11-10, D8-65 to D8-70): `PaymentMethodRetiring` behind
+  `GET /operator/payment-method-types` and `POST …/:method/retire`, `/undo-retire` and `/remove`, with each type's state in
+  `control.payment_method_types`; the shop's payment methods and Lytro's own read it. `HelpLine` reads four settings for
+  `GET /help-line` and Lytro's payment page. The shop-ready SMS is in the owner's words with the shop's name. The pages wait
+  for Slice 8.8.
 
 ### Slice 8.8: the screens
 - **Depends on:** 8.1 to 8.7, and Slice 7.7, which also changes the console.
@@ -317,6 +328,9 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   the audit log; the reports with their periods and CSVs; manual entries with evidence, the second confirmation and
   reversal; the media costs page; wallet types with retiring. The dashboard's help menu with the help line, and the
   claim's screenshot on the seller's payment screen.
+- **Moves onto the help line** (D8-69): the dashboard's help row and the website's contact page read `GET /help-line`,
+  and `VITE_SUPPORT_WHATSAPP`, `SUPPORT_WHATSAPP` and `SUPPORT_PHONE` go. The console's settings page lists the help line's
+  four settings and Slice 8.6's five.
 - **Builds** them, pixel perfect to the approved sketch, in Bangla and English to the owner's style guide.
 
 ---
@@ -341,7 +355,7 @@ when it's needed and never open or print.
 | Slice | Needs |
 |---|---|
 | 8.6 | Nothing new: the media edge's `CLOUDFLARE_API_TOKEN` already has Account Analytics: Read (RUNBOOKS), which Cloudflare's docs name for its GraphQL analytics; set the alert's address in the console |
-| 8.7 | Lytro's WhatsApp and phone number for the help line, entered by the owner in the console |
+| 8.7 | Lytro's WhatsApp and phone number for the help line, entered by the owner in the console (`PATCH /operator/settings/:key` until 8.8's page) |
 
 ---
 

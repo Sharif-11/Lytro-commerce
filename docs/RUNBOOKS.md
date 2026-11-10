@@ -185,3 +185,28 @@ cycle's limit. Nothing was refused; the shop's owner was told too. It goes out a
   the shop room again with an override of `requests_monthly` (PLN-11), with the reason. The share is the setting
   `fast_spend_percent`, and the grace past every limit `usage_grace_percent`, both changed with
   `PATCH /operator/settings/<key>`.
+
+## 6. Lytro's help line (D8-4, D8-68)
+
+**What this is:** the WhatsApp and phone numbers shops reach Lytro on, and the hours Lytro answers, every day. Lytro's
+payment page shows them now (WhatsApp and call); the dashboard's help row and the website's contact page move onto them
+in Phase 8 Slice 8.8.
+
+- **Set before launch:** `help_whatsapp` and `help_phone`, each `01XXXXXXXXX`, with `PATCH /operator/settings/<key>` and a
+  reason. Until one is set, nothing shows it; with only one set, both buttons reach it.
+- **Hours:** `help_opens_hour` and `help_closes_hour`, 0 to 23 in Dhaka, 9 and 22 until set.
+- **After a change:** pages read it within five minutes (`GET /help-line` is cached that long).
+
+## 7. Retiring a wallet type (WAL-18, D8-65 to D8-67)
+
+**What this is:** stopping shops from starting a payment method type (a wallet closing its merchant service, say), then
+removing it once nothing uses it.
+
+- **Retire:** `POST /operator/payment-method-types/<method>/retire` with a reason. Shops that never set it up stop seeing
+  it; each that did keeps it, checkout included, and its owner is told. `POST …/undo-retire` brings it back.
+- **Watch:** `GET /operator/payment-method-types` gives each type's shops with it on, shops with an account for it,
+  payments open on it, and whether Lytro's own page takes it.
+- **Remove:** once `shopsOn` and `openPayments` are 0, turn it off on Lytro's own page
+  (`PATCH /operator/payment-methods/<method>` with `enabled: false`), then `POST …/remove` with a reason. Every shop's
+  accounts for it are deleted; past payments stay. It can't be undone. If some shop failed (the server logs it), remove
+  again to finish.
