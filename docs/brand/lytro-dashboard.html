@@ -7795,7 +7795,7 @@ Object.assign(S, {
   p88Retry: ['আবার ট্রাই করুন', 'Try again'],
   /* a payment method Lytro is retiring (WAL-18, D8-65 to D8-67); the notice's words are notification-words.ts's */
   p88Retiring: ['রিটায়ার হচ্ছে', 'Being retired'],
-  p88PmRetiringOn: ['Lytro Nagad রিটায়ার করছে। আপাতত আগের মতোই চলবে, চেকআউটেও। পরে রিমুভ হলে এর অ্যাকাউন্টগুলোও চলে যাবে, তাই কাস্টমারদের জন্য অন্য একটি পেমেন্ট মেথড চালু রাখুন।', 'Lytro is retiring Nagad. It keeps working for now, checkout included. When it is removed, its accounts go with it, so keep another payment method on for your customers.'],
+  p88PmRetiringOn: ['Lytro Nagad রিটায়ার করছে। আপাতত আগের মতোই চলবে, চেকআউটেও। পরে এটি রিমুভ হলে এর অ্যাকাউন্টগুলোও চলে যাবে, তাই কাস্টমারদের জন্য অন্য একটি পেমেন্ট মেথড চালু রাখুন।', 'Lytro is retiring Nagad. It keeps working for now, checkout included. When it is removed, its accounts go with it, so keep another payment method on for your customers.'],
   p88PmRetiringOff: ['Lytro Nagad রিটায়ার করছে। আপনি এটা সেট আপ করেছিলেন, তাই রিমুভ হওয়ার আগ পর্যন্ত আবার চালু করতে পারবেন; সেভ করা নম্বরও ততদিন থাকবে।', 'Lytro is retiring Nagad. You set it up, so you can switch it back on until it is removed, and your saved number stays until then.'],
   p37NkMethodRetire: ['পেমেন্ট মেথড রিটায়ার হচ্ছে', 'A payment method being retired'],
   p37NkMethodBack: ['পেমেন্ট মেথড আবার চালু', 'A payment method back'],
@@ -7983,7 +7983,8 @@ SCREENS['p88-pm-unset'] = { ...PM33, render: () => p88PmPage({ unset: true }) };
 SCREENS['p88-pm-back'] = { ...PM33, render: () => p88PmPage({}) };
 const P88_NT = () => ({
   ...P37_NT(),
-  pmRetire: { i: 'banknote', c: 'warn', t: L('Nagad বন্ধ হয়ে যাচ্ছে', 'Nagad is being retired'), s: L('Lytro Nagad বন্ধ করছে। আপাতত আগের মতোই চলবে, চেকআউটেও। পরে এটি রিমুভ হলে এর অ্যাকাউন্টগুলোও চলে যাবে, তাই কাস্টমারদের জন্য অন্য একটি পেমেন্ট মেথড চালু রাখুন।', 'Lytro is retiring Nagad. It keeps working for now, checkout included. When it is removed, its accounts go with it, so keep another payment method on for your customers.'), tm: 't0905', go: 'p88-pm-retiring' },
+  /* The owner, 2026-11-10: retiring is রিটায়ার everywhere, the notice included (its words change in the build, §10). */
+  pmRetire: { i: 'banknote', c: 'warn', t: L('Nagad রিটায়ার হচ্ছে', 'Nagad is being retired'), s: L('Lytro Nagad রিটায়ার করছে। আপাতত আগের মতোই চলবে, চেকআউটেও। পরে এটি রিমুভ হলে এর অ্যাকাউন্টগুলোও চলে যাবে, তাই কাস্টমারদের জন্য অন্য একটি পেমেন্ট মেথড চালু রাখুন।', 'Lytro is retiring Nagad. It keeps working for now, checkout included. When it is removed, its accounts go with it, so keep another payment method on for your customers.'), tm: 't0905', go: 'p88-pm-retiring' },
   pmBack: { i: 'banknote', c: 'success', t: L('Nagad আবার চালু', 'Nagad is back'), s: L('Lytro Nagad আবার চালু করেছে। আগের মতোই ব্যবহার করতে পারবেন।', 'Lytro has brought Nagad back. You can use it as before.'), tm: 't1142', go: 'p88-pm-back' },
 });
 function p88Panel(lists) {

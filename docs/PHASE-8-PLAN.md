@@ -136,6 +136,10 @@ overrule any of them when reviewing this plan.
 | D8-72 | **Categories by dragging** (the owner's proposal; agreed to sketch). | On a desktop, a category dropped on a row goes under it and one dropped between rows goes there, with a line showing where; a drop the rules refuse (past 4 levels, into itself or its own child) says why; the keyboard does the same. A phone keeps Move up and down and gains "Move to…". One server call moves a category and renumbers both its old and new siblings in one transaction. | Slice 8.8 |
 | D8-73 | **The contact page's hours** (the owner's answer). | One line, every day, from the help line's two hours, with open now or closed now. The Friday line and the promise of WhatsApp at any hour for an urgent fault go. | Slice 8.8 |
 | D8-74 | **The listener app's help number** (the owner's answer). | The app reads `GET /help-line` when it opens and keeps the number it was built with for when that fails. Phones get it with the next APK. | Slice 8.8 |
+| D8-75 | **A bank transfer recorded by hand** (ADM-14; the owner's answer to the sketch, 2026-11-10). | A manual entry names one of Lytro's bank accounts instead of a wallet number, with the transfer's reference in place of a TrxID and no sender. A reference is used once, as a TrxID is. | Slice 8.8 |
+| D8-76 | **Clearing a help number** (the owner's answer). | `help_whatsapp` and `help_phone` take an empty value, meaning not set, with a reason like any change; that button then goes from the dashboard, the website and Lytro's payment page. | Slice 8.8 |
+| D8-77 | **The help line's hours** (the owner's answer). | The closing hour must be after the opening hour, every day: each hour is checked against the other's stored value, so hours never run past midnight. | Slice 8.8 |
+| D8-78 | **The word for a retiring payment method** (the owner's answer). | "রিটায়ার হচ্ছে" everywhere: the chip, the activity log, the switches and the owner's notice, whose title becomes "{name} রিটায়ার হচ্ছে". | Slice 8.8 |
 
 ### 2.1 Points left to each slice's read
 
@@ -150,7 +154,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 8.5 | Where evidence is kept and for how long, what a reversal of a plan purchase undoes, and the digest's time. **Settled in Slice 8.5's read (2026-11-09):** D8-47 to D8-56; D8-53 drops the digest. |
 | 8.6 | R2's operation counts (D8-17), the budget's default and currency, and who the alert goes to. **Settled in Slice 8.6's read (2026-11-10):** D8-57 to D8-64. |
 | 8.7 | The shop-ready SMS's words (D8-19), and whether the help menu's number shows to staff as well as the owner. **Settled in Slice 8.7's read (2026-11-10):** D8-65 to D8-70; the help row shows to everyone on the team. |
-| 8.8 | Settled by its sketch: see that slice. **Read (2026-11-10):** D8-71 to D8-74; the sketch's open points wait for the owner. |
+| 8.8 | Settled by its sketch: see that slice. **Read (2026-11-10):** D8-71 to D8-74; the sketch's four open points settled as D8-75 to D8-78. |
 
 ---
 

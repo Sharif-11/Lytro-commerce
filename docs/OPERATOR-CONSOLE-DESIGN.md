@@ -193,16 +193,19 @@ ADM-16, D8-47 to D8-56). In *Daily*, under the queue, since it is the queue's ot
   for (a plan, which buys or renews as the server says; an upgrade; a top-up); for a plan or upgrade the plan and term, and
   the preview (`POST .../preview`): renewal or purchase, the plan, the term, the amount, the period's new end and the
   add-ons it carries, priced today by the seller's own code. A plan's amount is the preview's and can't be typed: if a
-  different amount arrived, the panel says to record a top-up and buy the plan from the balance (D8-51). Then Lytro's
-  number it reached, the TrxID, the sender, when it was paid, the evidence (a screenshot, JPG, PNG, WebP or PDF up to 5 MB,
-  or the statement line typed out; one is required) and the reason. The consequence: it activates exactly as approving it
+  different amount arrived, the panel says to record a top-up and buy the plan from the balance (D8-51). Then where it
+  arrived, one of Lytro's numbers or Lytro's bank account (the owner, 2026-11-10): for a number, which one, the TrxID and
+  the sender; for the bank account, which one (v6's bank accounts, §10) and the transfer's reference as the statement shows
+  it, with no sender, since a bank transfer has none. Then when it was paid, the evidence (a screenshot, JPG, PNG, WebP or
+  PDF up to 5 MB, or the statement line typed out; one is required) and the reason. The consequence: it activates exactly as approving it
   in the queue would, and the owner is told by email, in the bell and by push. The button names the amount.
 - **The second confirmation** (ADM-15): when the preview says so, over ৳10,000 or past 10 entries today, a warning and
   a field for the amount typed again; the server checks the two match.
-- **Refusals**, each under its field or as a banner: the TrxID already used (D8-56: one from a reversed entry may be
-  used again), the price changed since the preview (with the new amount), a payment time in the future, an upgrade still
+- **Refusals**, each under its field or as a banner: the TrxID or bank reference already used, by the same rule (D8-56:
+  one from a reversed entry may be used again), the price changed since the preview (with the new amount), a payment time in the future, an upgrade still
   open, a frozen balance refusing a top-up.
-- **One entry** (panel): its facts, its reason, and its evidence: Open the screenshot (a five-minute link), or the
+- **One entry** (panel): its facts (a bank entry shows the account and its reference, and no sender; in the list its
+  reference sits where a TrxID would, labelled so), its reason, and its evidence: Open the screenshot (a five-minute link), or the
   statement line as typed; after two years the screenshot is removed and the panel says so. Reverse, unless it was.
 - **Reverse** (panel): for a plan, the shop goes back as it stood (plan, period, state, a frozen balance), a credit note
   takes the invoice back and the add-ons it carried end; for a top-up, the amount comes off the balance even below zero.
@@ -350,8 +353,11 @@ every read fail until it is put back, a failed read costing a shop nothing; how 
 AI-10, ORD-33), *Fraud checks* (how many a shop may run a minute, FRD-07) and *Notifications* (how many days the bell
 keeps one, D7-39, whose change says the older ones go in every shop at the next nightly clean-up); and from v7 *Help line*
 (D8-68: Lytro's WhatsApp and phone, "Not set" until set, typed in any form and saved as 01XXXXXXXXX, a non-mobile refused;
-the opening and closing hour as 09:00 and 22:00 every day, 0 to 23, with a line on where the numbers show and that one
-stands in for the other) and *Media costs* (D8-58 to D8-61: the budget in whole dollars a month, the alert's percent, the
+a number that is set has Clear beside Save, which asks for a reason like every change and says the number goes from the
+dashboard, the website and Lytro's payment page, the other standing in if it is set and no help button showing if neither
+is; the opening and closing hour as 09:00 and 22:00 every day, 0 to 23, the closing hour after the opening one, refused
+under the field otherwise, "The closing hour must be after the opening hour (9)" or "The opening hour must be before the
+closing hour (22)", whichever is changed; with a line on where the numbers show and that one stands in for the other) and *Media costs* (D8-58 to D8-61: the budget in whole dollars a month, the alert's percent, the
 alert's address, "Not set" until set with the note that the alert is only logged till then, the billing day 1 to 28, and
 Cloudflare's prices as one line that opens a panel of its nine figures, refused unless each price is 0 to 1,000 and each
 allowance a whole number). Each row shows the server's description, the last change
@@ -744,16 +750,18 @@ gaps the drawing found:
 | The signed-in operator's id | `id` on `GET /auth/operator/me` | "Only mine" on the audit log (`actorId`) and manual entries (`operatorId`); `me` answers the email only. |
 | Every platform audit action named, and its summary as label and value | the console's dictionaries | §10f; the route gives the action's code and a summary whose keys differ by action. |
 | A phone in any written form, saved as 01XXXXXXXXX | the console, with the validators' `bdMobileNumber` before `PATCH` | The setting's check accepts only the local form (D8-68); the operator types what they have. |
+| A manual entry paid to Lytro's bank account | `POST /operator/manual-entries` takes `bankAccountId` as the alternative to `walletId` (exactly one of the two), with the transfer's reference in the transaction ID's place and no `senderNumber`; the list and an entry name the account | §4b. Today an entry names a platform wallet only (`walletId`, checked against the wallets), while v6's bank accounts are their own rows. A reference keeps the TrxID's rule: used once platform-wide, a reversed entry's free to use again (D8-56). |
+| A help number cleared | the setting's check (`help_whatsapp`, `help_phone`) accepts an empty value, meaning not set | §9's Clear; today the check refuses it. `GET /help-line` and Lytro's payment page then read it as null. |
+| The help hours in order | `PATCH /operator/settings/help_opens_hour` and `help_closes_hour` check each hour against the other's stored value (or its default, 9 or 22), closing after opening | §9's refusal, whichever is changed; today each hour is checked alone, 0 to 23. |
 
-Found while drawing, for the owner to decide:
+Decided by the owner (2026-11-10), from what the drawing found:
 
-- **A payment to Lytro's bank account can't be recorded by hand.** A manual entry names a platform wallet, a number
-  (`walletId`, checked against the wallets), while v6's bank accounts are their own rows. §4b offers Lytro's numbers only
-  until an entry can name a bank account.
-- **A help number can't be cleared once set.** The setting's check refuses an empty value, so taking a number down means
-  replacing it. §9 draws no Clear.
-- **The help hours can close before they open.** Nothing refuses opening 22 and closing 9; the dashboard and website
-  would need to read that as overnight, or the console should refuse it.
+- **A payment to Lytro's bank account can be recorded by hand**, in Slice 8.8: the entry names one of Lytro's bank accounts
+  instead of a number, with the transfer's reference in place of a TrxID and no sender (§4b).
+- **A help number can be cleared**, with a reason, like every change; its button goes from the dashboard, the website and
+  Lytro's payment page (§9).
+- **The help hours close after they open**: closing at or before opening is refused, whichever of the two is changed.
+  Every day, simple hours, no overnight line (§9).
 
 **Please check** (my calls in this drawing):
 
@@ -823,8 +831,8 @@ nothing, so they promise nothing, and no panel gives a period's end date, which 
 above), the device (phone 390, tablet 820, desktop 1366), the language and the data state (busy, nothing
 waiting, server error). Every button that leads somewhere in the design leads there in the sketch, so a
 reviewer can walk the sign-in, approve a payment, suspend and restore a shop, edit a plan and set a rate
-without the toolbar. It renders 239 screens with no missing strings in either language and no script errors; v4's courier
+without the toolbar. It renders 247 screens with no missing strings in either language and no script errors; v4's courier
 screens are the toolbar group "Couriers · Phase 6 Slice 6.7", v5's are "Notices · Phase 7 Slice 7.7" and "Pricing and
-platform · Phase 7 Slice 7.7" (the rates offer, settings, the allowance and D7-20's three panels), and v7's 73 are "Phase
+platform · Phase 7 Slice 7.7" (the rates offer, settings, the allowance and D7-20's three panels), and v7's 81 are "Phase
 8 · Slice 8.8", none of which overflows on any device or in any data state. Some earlier tables (the queue, plans, terms,
 add-ons, couriers, RedX areas, page reports) scroll sideways inside their card at tablet width, as they did before v7.

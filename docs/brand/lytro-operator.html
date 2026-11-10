@@ -2995,6 +2995,10 @@ Object.assign(S, {
   p88_mf_trx_used: ['This transaction ID has already been used.', 'এই ট্রানজ্যাকশন আইডি ইতিমধ্যে ব্যবহৃত হয়েছে।'],
   p88_mf_changed: ['The price is now {a}, not what you were shown. Check it, then record again.', 'দাম এখন {a}, আপনাকে যা দেখানো হয়েছিল তা নয়। দেখে নিয়ে আবার রেকর্ড করুন।'],
   p88_mf_shop_search: ['Search by name, address or phone', 'নাম, অ্যাড্রেস বা ফোন দিয়ে খুঁজুন'],
+  p88_mf_where: ['Where it arrived', 'কোথায় এসেছে'], p88_mf_where_wallet: ["One of Lytro's numbers", 'Lytro-র একটা নম্বরে'], p88_mf_where_bank: ["Lytro's bank account", 'Lytro-র ব্যাংক অ্যাকাউন্টে'],
+  p88_mf_bank: ['Bank account', 'ব্যাংক অ্যাকাউন্ট'], p88_mf_ref: ["The transfer's reference", 'ট্রান্সফারের রেফারেন্স'],
+  p88_mf_ref_help: ['As the bank statement shows it. A bank transfer has no sender number.', 'ব্যাংক স্টেটমেন্টে যেভাবে আছে। ব্যাংক ট্রান্সফারে কোনো সেন্ডার নম্বর থাকে না।'],
+  p88_mf_ref_used: ['This reference has already been used.', 'এই রেফারেন্স ইতিমধ্যে ব্যবহৃত হয়েছে।'], p88_c_ref: ['Reference', 'রেফারেন্স'],
   p88_me_open_shot: ['Open the screenshot', 'স্ক্রিনশট খুলুন'], p88_me_link_note: ['The link lasts five minutes.', 'লিংকটা পাঁচ মিনিট থাকে।'],
   p88_me_gone: ['This screenshot was removed after two years.', 'দুই বছর পর এই স্ক্রিনশটটি মুছে ফেলা হয়েছে।'],
   p88_me_reverse: ['Reverse', 'রিভার্স'], p88_me_reversed_by: ['Reversed {d} by {who}: {r}', '{d}-এ {who} রিভার্স করেছেন: {r}'],
@@ -3068,7 +3072,11 @@ Object.assign(S, {
   p88_help_note: ["Shown on the dashboard's Help row, Lytro's payment page, the website's contact page and the listener app. If only one number is set, it stands in for the other. Hours are Dhaka time, every day.", 'ড্যাশবোর্ডের হেল্প রো, Lytro-র পেমেন্ট পেজ, ওয়েবসাইটের যোগাযোগ পেজ আর লিসেনার অ্যাপে দেখায়। একটা নম্বর সেট থাকলে সেটাই দুটোর কাজ করে। সময় ঢাকার, প্রতিদিন।'],
   p88_help_phone_help: ["Any written form; it's saved as 01XXXXXXXXX.", 'যেভাবে খুশি লিখুন; 01XXXXXXXXX হিসেবে সেভ হবে।'],
   p88_err_phone: ['Not a Bangladeshi mobile number.', 'বাংলাদেশি মোবাইল নম্বর নয়।'], p88_err_hour: ['A whole hour from 0 to 23.', '০ থেকে ২৩-এর মধ্যে একটা পুরো ঘণ্টা।'],
-  p88_hour_help: ['0 to 23, Dhaka time. 22 is 10 pm.', '০ থেকে ২৩, ঢাকার সময়। ২২ মানে রাত ১০টা।'],
+  p88_hour_help: ['0 to 23, Dhaka time, closing after opening. 22 is 10 pm.', '০ থেকে ২৩, ঢাকার সময়, খোলার পরে বন্ধ। ২২ মানে রাত ১০টা।'],
+  p88_err_closes: ['The closing hour must be after the opening hour ({h}).', 'বন্ধের সময় খোলার সময়ের ({h}) পরে হতে হবে।'],
+  p88_err_opens: ['The opening hour must be before the closing hour ({h}).', 'খোলার সময় বন্ধের সময়ের ({h}) আগে হতে হবে।'],
+  p88_clear_num: ['Clear', 'মুছুন'], p88_clear_btn: ['Clear the number', 'নম্বর মুছুন'],
+  p88_clear_cons: ["Clearing it takes this number off the dashboard, the website and Lytro's payment page. If the other number is set, it stands in; if neither is, no help button shows.", 'মুছে দিলে ড্যাশবোর্ড, ওয়েবসাইট আর Lytro-র পেমেন্ট পেজ থেকে এই নম্বর চলে যাবে। অন্য নম্বরটা সেট থাকলে সেটাই কাজ করবে; কোনোটাই না থাকলে কোনো হেল্প বাটন দেখাবে না।'],
   p88_alert_email_note: ['Until it is set, the alert is only logged.', 'সেট না হওয়া পর্যন্ত অ্যালার্ট শুধু লগে থাকে।'],
   p88_pr_lead: ["What the estimate uses, from Cloudflare's R2 and Workers pricing pages. Change them when Cloudflare does.", 'আনুমানিক হিসাব এগুলো দিয়েই হয়, Cloudflare-এর R2 আর Workers প্রাইসিং পেজ থেকে। Cloudflare বদলালে আপনিও বদলান।'],
   p88_pr_a: ['R2 Class A, a million', 'R2 Class A, মিলিয়নে'], p88_pr_b: ['R2 Class B, a million', 'R2 Class B, মিলিয়নে'], p88_pr_s: ['R2 storage, a GB-month', 'R2 স্টোরেজ, GB-মাসে'],
@@ -3543,12 +3551,15 @@ def('p88-reports-consumers', { ...P88_RP, label: 'Reports · top consumers of st
 
 /* ---------- manual entries (ADM-14 to ADM-16, D8-47 to D8-56) and the seller's screenshot in the queue (ADM-17) ---------- */
 const P88_ENTRIES = [
+  { id: 'me-32', at: '2026-10-21T14:20:00+06:00', shop: 'ten-0023', kind: 'renewal', plan: 'Growth · 6 months', amount: 3984, bank: true, wallet: 'BRAC Bank · 1501 2045 6789 001', trx: 'BRAC-FT-55190327', sender: null, paidAt: '2026-10-21T11:30:00+06:00', evidence: 'line', line: '21-10-2026 BEFTN CR 3,984.00 TANVIR MOBILES REF BRAC-FT-55190327', by: 'ops@lytro.app' },
   { id: 'me-31', at: '2026-10-21T13:40:00+06:00', shop: 'ten-0028', kind: 'renewal', plan: 'Starter · 12 months', amount: 4741, wallet: 'Nagad · 01811 000000', trx: 'NGD8K2P0XQ', sender: '01911 223344', paidAt: '2026-10-20T21:15:00+06:00', evidence: 'shot', by: 'ops@lytro.app' },
   { id: 'me-30', at: '2026-10-21T10:05:00+06:00', shop: 'ten-0015', kind: 'top_up', plan: null, amount: 2000, wallet: 'bKash · 01711 000000', trx: 'BKH9Q4L7M2', sender: '01911 445566', paidAt: '2026-10-20T18:42:00+06:00', evidence: 'line', line: '20/10/2026 18:42 Cash In 2,000.00 01911445566 BKH9Q4L7M2', by: 'ops@lytro.app' },
   { id: 'me-29', at: '2026-10-20T16:30:00+06:00', shop: 'ten-0040', kind: 'top_up', plan: null, amount: -500, wallet: 'bKash · 01711 000000', trx: 'BKH3Z6X8C1', sender: '01716 880011', reverses: '2026-10-18T09:40:00+06:00', evidence: null, by: 'nadia@lytro.app' },
   { id: 'me-28', at: '2026-10-19T12:12:00+06:00', shop: 'ten-0019', kind: 'purchase', plan: 'Starter · 1 month', amount: 449, wallet: 'bKash · 01711 000001', trx: 'BKH4P2L9K7', sender: '01815 345678', paidAt: '2026-10-19T10:01:00+06:00', evidence: 'shot', by: 'ops@lytro.app' },
   { id: 'me-27', at: '2026-10-18T09:40:00+06:00', shop: 'ten-0040', kind: 'top_up', plan: null, amount: 500, wallet: 'bKash · 01711 000000', trx: 'BKH3Z6X8C1', sender: '01716 880011', paidAt: '2026-10-17T20:30:00+06:00', evidence: 'shot', by: 'ops@lytro.app', reversedBy: { at: '2026-10-20T16:30:00+06:00', by: 'nadia@lytro.app', reason: ['Recorded against the wrong shop; it was Arif Mobiles', 'ভুল শপে রেকর্ড হয়েছিল; আসলে Arif Mobiles'] } },
 ];
+const p88E = (id) => P88_ENTRIES.find((e) => e.id === id);
+const T23 = tenantOf('ten-0023');
 function p88ManualPage(o) {
   o = o || {};
   const list = ST.data === 'busy' ? P88_ENTRIES : [];
@@ -3559,16 +3570,16 @@ function p88ManualPage(o) {
     { k: 'paid', label: t('p88_c_paid'), w: 'minmax(130px,1fr)' },
     { k: 'ev', label: t('p88_c_evidence'), w: '44px' },
   ];
-  const rows = list.map((e) => ({ cls: e.reversedBy ? 'faded' : '', on: `go('${e.id === 'me-28' ? 'p88-manual-entry' : e.id === 'me-27' ? 'p88-manual-entry-reversed' : 'p88-manual-entry'}')`, cells: {
+  const rows = list.map((e) => ({ cls: e.reversedBy ? 'faded' : '', on: `go('${({ 'me-32': 'p88-manual-entry-bank', 'me-30': 'p88-manual-entry-line', 'me-27': 'p88-manual-entry-reversed' })[e.id] || 'p88-manual-entry'}')`, cells: {
     when: `<span class="num">${dateT(e.at)}</span><div style="font-size:12px;color:var(--muted)">${e.by}</div>`,
     what: `<div>${tenantOf(e.shop).name}</div><div style="font-size:13px;color:var(--muted);font-weight:400;white-space:normal">${e.reverses ? t('p88_reversal_of', { d: dateS(e.reverses) }) : `${t(e.kind)}${e.plan ? ' · ' + e.plan : ''}`}${e.reversedBy ? ` · ${st('mute', t('p88_reversed'))}` : ''}</div>`,
     amt: `<span class="num" style="font-weight:600;${e.amount < 0 ? 'color:var(--danger)' : ''}">${e.amount < 0 ? '−' + money(-e.amount) : money(e.amount)}</span>`,
-    paid: `<div class="mono">${e.trx}</div><div style="font-size:12px;color:var(--muted)">${e.wallet}</div>`,
+    paid: `<div class="mono">${e.trx}</div><div style="font-size:12px;color:var(--muted)">${e.bank ? `${t('p88_c_ref')} · ` : ''}${e.wallet}</div>`,
     ev: e.evidence === 'shot' ? `<span title="${t('p88_shot')}" style="color:var(--n700)">${I.image}</span>` : e.evidence === 'line' ? `<span title="${t('p88_line')}" style="color:var(--n700)">${I.receipt}</span>` : '',
   } }));
   return `${p88Title(t('manual'), t('p88_mn_sub'), btn(I.plus + t('p88_mn_new'), 'primary', "go('p88-manual-new')"))}
   <div class="p88-filters">${p88Pick(t('p88_f_shop'), select([['', t('p88_any_shop')], ...TENANTS.slice(0, 6).map((x) => [x.id, x.name])], ''))}${p88Pick(t('p88_f_who'), select([['', t('p88_anyone')], ['me', t('p88_only_mine')]], ''))}${p88Pick(t('p88_f_from'), input('', '', '', 'type=date'))}${p88Pick(t('p88_f_to'), input('', '', '', 'type=date'))}</div>
-  ${ST.data === 'busy' ? `<div class="note">${t('p88_mn_today', { n: 2 })}</div>` : ''}
+  ${ST.data === 'busy' ? `<div class="note">${t('p88_mn_today', { n: 3 })}</div>` : ''}
   ${ST.data === 'error' ? errorBox() : table(cols, rows, emptyBox(t('p88_mn_empty'), t('p88_mn_empty_hint'), 'receipt'))}`;
 }
 const P88_MN = { nav: 'manual', group: P88G, url: 'admin.lytro.app/manual', bandTitle: 'manual', base: 'p88-manual' };
@@ -3579,31 +3590,42 @@ const p88KindPick = (k) => `<div style="display:flex;flex-direction:column;gap:8
 function p88EntryForm(o) {
   o = o || {};
   const top = o.kind === 'topup';
-  const shop = top ? T15 : T19;
-  const amount = top ? (o.amount || 2000) : 449;
+  const bank = Boolean(o.bank);
+  const shop = bank ? T23 : top ? T15 : T19;
+  const amount = top ? (o.amount || 2000) : bank ? 3984 : 449;
   const shopField = field(t('p88_f_shop'), `<div class="search" style="height:44px">${I.search}<input value="${shop.name}" placeholder="${t('p88_mf_shop_search')}"></div>`, `${shop.slug}.lytro.app · ${t('s_' + shop.state)} · ${shop.plan}`);
-  const plan = top ? '' : `<div class="grid2">${field(t('plan'), select(PLANS.filter((p) => p.forSale).map((p) => [p.id, `${p.name} v${p.version}`]), 'p-starter'))}${field(t('p88_mf_term'), select(TERMS.filter((x) => x.visible).map((x) => [x.id, termLabel(x)]), 't1'))}</div>
-    <div class="p88-preview"><span class="h">${t('p88_pv_title')}</span><span><b>${t('renewal')}</b> · Starter v3 · ${termLabel(TERMS[0])} · <b class="num">${money(449)}</b></span><span>${t('p88_pv_until', { d: dateS('2026-11-19') })}</span><span style="font-size:13px;color:var(--n700)">${t('p88_pv_note')}</span></div>`;
+  const pv = bank ? { plan: 'p-growth', term: 't6', line: `Growth v2 · ${termLabel(TERMS[1])}`, until: '2027-04-21' } : { plan: 'p-starter', term: 't1', line: `Starter v3 · ${termLabel(TERMS[0])}`, until: '2026-11-19' };
+  const plan = top ? '' : `<div class="grid2">${field(t('plan'), select(PLANS.filter((p) => p.forSale).map((p) => [p.id, `${p.name} v${p.version}`]), pv.plan))}${field(t('p88_mf_term'), select(TERMS.filter((x) => x.visible).map((x) => [x.id, termLabel(x)]), pv.term))}</div>
+    <div class="p88-preview"><span class="h">${t('p88_pv_title')}</span><span><b>${t('renewal')}</b> · ${pv.line} · <b class="num">${money(amount)}</b></span><span>${t('p88_pv_until', { d: dateS(pv.until) })}</span><span style="font-size:13px;color:var(--n700)">${t('p88_pv_note')}</span></div>`;
   const amountField = top
     ? field(t('p88_mf_amount'), `<div class="inwrap"><span class="pre">৳</span>${input(p88N(amount), 'mono', '', 'inputmode=decimal')}</div>`)
-    : field(t('p88_mf_amount'), `<div class="inwrap"><span class="pre">৳</span>${input('449', 'mono', '', 'inputmode=decimal disabled')}</div>`);
+    : field(t('p88_mf_amount'), `<div class="inwrap"><span class="pre">৳</span>${input(p88N(amount), 'mono', '', 'inputmode=decimal disabled')}</div>`);
   const confirm = o.confirm ? `<div class="banner warn">${I.warn}<div>${t('p88_mf_confirm_banner')}</div></div>${field(t('p88_mf_confirm'), `<div class="inwrap"><span class="pre">৳</span>${input('', 'mono', '', 'inputmode=decimal')}</div>`)}` : '';
-  const evidence = `<div class="field"><label>${t('p88_mf_evidence')}</label>${o.uploaded ? `<div class="p88-drop done">${I.image}<span><b>bkash-sadia-1019.jpg</b>412 KB · ${t('p88_mf_upload_d')}</span><button class="iconbtn" style="width:28px;height:28px">${I.x}</button></div>` : `<div class="p88-drop">${I.upload}<span><b>${t('p88_mf_upload')}</b>${t('p88_mf_upload_d')}</span></div>`}<div class="p88-or">${t('p88_mf_or_line')}</div>${textarea(top ? '20/10/2026 18:42 Cash In 2,000.00 01911445566 BKH9Q4L7M2' : '', '')}</div>`;
+  const evidence = `<div class="field"><label>${t('p88_mf_evidence')}</label>${o.uploaded ? `<div class="p88-drop done">${I.image}<span><b>bkash-sadia-1019.jpg</b>412 KB · ${t('p88_mf_upload_d')}</span><button class="iconbtn" style="width:28px;height:28px">${I.x}</button></div>` : `<div class="p88-drop">${I.upload}<span><b>${t('p88_mf_upload')}</b>${t('p88_mf_upload_d')}</span></div>`}<div class="p88-or">${t('p88_mf_or_line')}</div>${textarea(top ? '20/10/2026 18:42 Cash In 2,000.00 01911445566 BKH9Q4L7M2' : bank ? '21-10-2026 BEFTN CR 3,984.00 TANVIR MOBILES REF BRAC-FT-55190327' : '', '')}</div>`;
+  /* where it arrived: one of Lytro's numbers (TrxID and sender), or Lytro's bank account (the transfer's reference, no sender) */
+  const where = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">${[['wallet', !bank], ['bank', bank]].map(([k, on]) => `<div class="p37-radio ${on ? 'on' : ''}"><span class="p37-dot"></span><span style="font-weight:600">${t('p88_mf_where_' + k)}</span></div>`).join('')}</div>`;
+  const paidTo = bank
+    ? `${field(t('p88_mf_bank'), select([['b1', 'BRAC Bank · Gulshan · 1501 2045 6789 001']], 'b1'))}
+    ${field(t('p88_mf_ref'), input('BRAC-FT-55190327', 'mono', '', o.refUsed ? 'style="border-color:var(--danger)"' : ''), t('p88_mf_ref_help'), o.refUsed ? t('p88_mf_ref_used') : '')}`
+    : `${field(t('p88_mf_wallet'), select(WALLETS.filter((w) => w.enabled).map((w) => [w.id, `${w.provider} · ${w.number}`]), 'w1'))}
+    <div class="grid2">${field(t('c_trx'), input(top ? 'BKH9Q4L7M2' : 'BKH4P2L9K7', 'mono', '', o.trxUsed ? 'style="border-color:var(--danger)"' : ''), '', o.trxUsed ? t('p88_mf_trx_used') : '')}${field(t('p88_mf_sender'), input(top ? '01911 445566' : '01815 345678', 'mono', '', 'inputmode=tel'))}</div>`;
   const body = `${o.changed ? `<div class="banner bad">${I.warn}<div>${t('p88_mf_changed', { a: money(479) })}</div></div>` : ''}${shopField}
     ${field(t('p88_mf_kind'), p88KindPick(top ? 'topup' : 'plan'))}
     ${plan}${amountField}${confirm}
-    ${field(t('p88_mf_wallet'), select(WALLETS.filter((w) => w.enabled).map((w) => [w.id, `${w.provider} · ${w.number}`]), top ? 'w1' : 'w1'))}
-    <div class="grid2">${field(t('c_trx'), input(top ? 'BKH9Q4L7M2' : 'BKH4P2L9K7', 'mono', '', o.trxUsed ? 'style="border-color:var(--danger)"' : ''), '', o.trxUsed ? t('p88_mf_trx_used') : '')}${field(t('p88_mf_sender'), input(top ? '01911 445566' : '01815 345678', 'mono', '', 'inputmode=tel'))}</div>
-    ${field(t('p88_mf_paidat'), input(top ? '2026-10-20T18:42' : '2026-10-19T10:01', 'mono', '', 'type=datetime-local'))}
+    ${field(t('p88_mf_where'), where)}
+    ${paidTo}
+    ${field(t('p88_mf_paidat'), input(top ? '2026-10-20T18:42' : bank ? '2026-10-21T11:30' : '2026-10-19T10:01', 'mono', '', 'type=datetime-local'))}
     ${evidence}
     ${consequence(top ? t('p88_mf_cons_topup') : t('p88_mf_cons'))}
     ${p88ReasonShop()}`;
-  return sheet(t('p88_mn_new'), null, body, `${backTo('p88-manual')}${btn(t('p88_mf_btn', { a: money(amount) }), 'primary', `go('${top ? 'p88-manual' : 'p88-manual-recorded'}')`)}`, { row: true, close: 'p88-manual' });
+  return sheet(t('p88_mn_new'), null, body, `${backTo('p88-manual')}${btn(t('p88_mf_btn', { a: money(amount) }), 'primary', `go('${top || bank ? 'p88-manual' : 'p88-manual-recorded'}')`)}`, { row: true, close: 'p88-manual' });
 }
 def('p88-manual-new', { ...P88_MN, label: '· record a plan payment (sheet)', render: () => p88ManualPage(), sheet: () => p88EntryForm({ uploaded: true }) });
 def('p88-manual-topup', { ...P88_MN, label: '· record a top-up with a statement line (sheet)', render: () => p88ManualPage(), sheet: () => p88EntryForm({ kind: 'topup' }) });
 def('p88-manual-confirm', { ...P88_MN, label: '· over ৳10,000: the amount typed again (sheet)', render: () => p88ManualPage(), sheet: () => p88EntryForm({ kind: 'topup', amount: 12000, confirm: true }) });
 def('p88-manual-trx-used', { ...P88_MN, label: '· refused: the TrxID was used (sheet)', render: () => p88ManualPage(), sheet: () => p88EntryForm({ uploaded: true, trxUsed: true }) });
+def('p88-manual-bank', { ...P88_MN, label: '· record a transfer to Lytro\'s bank account (sheet)', render: () => p88ManualPage(), sheet: () => p88EntryForm({ bank: true }) });
+def('p88-manual-ref-used', { ...P88_MN, label: '· refused: the bank reference was used (sheet)', render: () => p88ManualPage(), sheet: () => p88EntryForm({ bank: true, refUsed: true }) });
 def('p88-manual-changed', { ...P88_MN, label: '· refused: the price changed (sheet)', render: () => p88ManualPage(), sheet: () => p88EntryForm({ uploaded: true, changed: true }) });
 def('p88-manual-recorded', { ...P88_MN, label: '· recorded (toast)', render: () => p88ManualPage(), toast: () => t('p88_mf_done', { shop: T19.name, plan: 'Starter', d: dateS('2026-11-19') }) });
 
@@ -3617,15 +3639,16 @@ const p88EntrySheet = (e, o) => {
   const rev = e.reversedBy ? `<div class="banner warn">${I.undo}<div>${t('p88_me_reversed_by', { d: dateS(e.reversedBy.at), who: e.reversedBy.by, r: p88Val(e.reversedBy.reason) })}</div></div>` : '';
   return sheet(`${t(e.kind)} · ${money(e.amount)}`, `${ten.name} · ${dateT(e.at)}`, `${rev}<div class="kv"><span class="k">${t('c_shop')}</span><span class="v">${ten.name} · <a href="#" onclick="go('${p88Open(ten.id)}');return false">${ten.slug}.lytro.app</a></span>
     ${e.plan ? `<span class="k">${t('plan')}</span><span class="v">${e.plan}</span>` : ''}
-    <span class="k">${t('c_trx')}</span><span class="v mono">${e.trx}</span><span class="k">${t('p88_mf_wallet')}</span><span class="v mono">${e.wallet}</span>
-    <span class="k">${t('c_sender')}</span><span class="v mono">${e.sender}</span><span class="k">${t('p88_mf_paidat')}</span><span class="v">${dateT(e.paidAt)}</span>
+    <span class="k">${e.bank ? t('p88_c_ref') : t('c_trx')}</span><span class="v mono">${e.trx}</span><span class="k">${e.bank ? t('p88_mf_bank') : t('p88_mf_wallet')}</span><span class="v mono">${e.wallet}</span>
+    ${e.bank ? '' : `<span class="k">${t('c_sender')}</span><span class="v mono">${e.sender}</span>`}<span class="k">${t('p88_mf_paidat')}</span><span class="v">${dateT(e.paidAt)}</span>
     <span class="k">${t('p88_c_by')}</span><span class="v">${e.by}</span><span class="k">${t('reason')}</span><span class="v">${L.lang === 'bn' ? 'রাত ৯টায় পাঠিয়েছেন, তখন কোনো ফোন অনলাইন ছিল না; স্টেটমেন্ট মিলিয়ে দেখা' : 'Sent at 9 pm with no phone online; checked against the statement'}</span></div>
     <div class="sechead"><h3 style="font-size:14px">${t('p88_mf_evidence')}</h3></div>${ev}`, e.reversedBy ? btn(t('close'), 'ghost', "go('p88-manual')") : `${btn(t('close'), 'ghost', "go('p88-manual')")}${btn(I.undo + t('p88_me_reverse'), 'ghost', `go('${o.reverseTo || 'p88-manual-reverse'}')`, 'style="color:var(--danger)"')}`, { row: true, close: 'p88-manual' });
 };
-def('p88-manual-entry', { ...P88_MN, label: '· one entry with its screenshot (sheet)', render: () => p88ManualPage(), sheet: () => p88EntrySheet(P88_ENTRIES[3]) });
-def('p88-manual-entry-line', { ...P88_MN, label: '· one entry with a statement line (sheet)', render: () => p88ManualPage(), sheet: () => p88EntrySheet(P88_ENTRIES[1], { reverseTo: 'p88-manual-reverse-topup' }) });
-def('p88-manual-entry-gone', { ...P88_MN, label: '· its screenshot removed after two years (sheet)', render: () => p88ManualPage(), sheet: () => p88EntrySheet(P88_ENTRIES[3], { gone: true }) });
-def('p88-manual-entry-reversed', { ...P88_MN, label: '· an entry already reversed (sheet)', render: () => p88ManualPage(), sheet: () => p88EntrySheet(P88_ENTRIES[4]) });
+def('p88-manual-entry', { ...P88_MN, label: '· one entry with its screenshot (sheet)', render: () => p88ManualPage(), sheet: () => p88EntrySheet(p88E('me-28')) });
+def('p88-manual-entry-line', { ...P88_MN, label: '· one entry with a statement line (sheet)', render: () => p88ManualPage(), sheet: () => p88EntrySheet(p88E('me-30'), { reverseTo: 'p88-manual-reverse-topup' }) });
+def('p88-manual-entry-bank', { ...P88_MN, label: '· one entry paid to the bank account (sheet)', render: () => p88ManualPage(), sheet: () => p88EntrySheet(p88E('me-32')) });
+def('p88-manual-entry-gone', { ...P88_MN, label: '· its screenshot removed after two years (sheet)', render: () => p88ManualPage(), sheet: () => p88EntrySheet(p88E('me-28'), { gone: true }) });
+def('p88-manual-entry-reversed', { ...P88_MN, label: '· an entry already reversed (sheet)', render: () => p88ManualPage(), sheet: () => p88EntrySheet(p88E('me-27')) });
 const p88Shot = (amount, trx, at) => `<div class="p88-shot"><div class="top">bKash</div><div class="mid"><span class="ok">${I.check}</span><b>Send Money successful</b><span class="amt">৳${p88N(amount)}</span><div class="kvs"><span>To</span><span>01711000001</span><span>TrxID</span><span>${trx}</span><span>Time</span><span>${at}</span></div></div></div>`;
 def('p88-manual-shot', { ...P88_MN, label: '· its screenshot (sheet)', render: () => p88ManualPage(), sheet: () => sheet(t('p88_q_shot_title', { trx: 'BKH4P2L9K7' }), t('p88_me_link_note'), `${p88Shot(449, 'BKH4P2L9K7', '19/10/2026 10:01')}${btn(t('back'), 'ghost block', "go('p88-manual-entry')")}`, null, { close: 'p88-manual-entry' }) });
 const p88ReverseSheet = (e, o) => {
@@ -3633,9 +3656,9 @@ const p88ReverseSheet = (e, o) => {
   const ten = tenantOf(e.shop);
   return sheet(t('p88_rv_title'), `${ten.name} · ${t(e.kind)} · ${money(e.amount)}`, `${o.moved ? `<div class="banner bad">${I.warn}<div>${t('p88_rv_moved')}</div></div>` : ''}${consequence(e.kind === 'top_up' ? t('p88_rv_cons_topup', { a: money(e.amount), shop: ten.name }) : t('p88_rv_cons_plan', { shop: ten.name }), 'danger')}${field(t('reason'), textarea('', ''), t('p88_rv_reason_help'))}`, `${backTo(o.back || 'p88-manual-entry')}${btn(t('p88_rv_btn', { a: money(e.amount) }), 'danger', "go('p88-manual-reversed')")}`, { row: true, close: o.back || 'p88-manual-entry' });
 };
-def('p88-manual-reverse', { ...P88_MN, label: '· reverse a plan entry (sheet)', render: () => p88ManualPage(), sheet: () => p88ReverseSheet(P88_ENTRIES[3]) });
-def('p88-manual-reverse-topup', { ...P88_MN, label: '· reverse a top-up (sheet)', render: () => p88ManualPage(), sheet: () => p88ReverseSheet(P88_ENTRIES[1], { back: 'p88-manual-entry-line' }) });
-def('p88-manual-reverse-moved', { ...P88_MN, label: '· refused: the plan moved on (sheet)', render: () => p88ManualPage(), sheet: () => p88ReverseSheet(P88_ENTRIES[3], { moved: true }) });
+def('p88-manual-reverse', { ...P88_MN, label: '· reverse a plan entry (sheet)', render: () => p88ManualPage(), sheet: () => p88ReverseSheet(p88E('me-28')) });
+def('p88-manual-reverse-topup', { ...P88_MN, label: '· reverse a top-up (sheet)', render: () => p88ManualPage(), sheet: () => p88ReverseSheet(p88E('me-30'), { back: 'p88-manual-entry-line' }) });
+def('p88-manual-reverse-moved', { ...P88_MN, label: '· refused: the plan moved on (sheet)', render: () => p88ManualPage(), sheet: () => p88ReverseSheet(p88E('me-28'), { moved: true }) });
 def('p88-manual-reversed', { ...P88_MN, label: '· reversed (toast)', render: () => p88ManualPage(), toast: () => t('p88_rv_done', { shop: T19.name }) });
 
 /* the queue: a seller's screenshot on its "I have paid" (GET /operator/payment-queue/:id/evidence; 404 when none) */
@@ -3778,6 +3801,15 @@ SETTINGS.push(
 );
 P37_GROUPS.push(14, 15);
 let p88SettingErr = null;
+/* the owner, 2026-11-10: a help number can be cleared, with a reason; closing must come after opening */
+let p88Clearing = null;
+let p88HourOrder = null;
+const p88WithHelp = (fn) => {
+  const w = SETTINGS.find((x) => x.key === 'help_whatsapp'), ph = SETTINGS.find((x) => x.key === 'help_phone');
+  const was = [w.value, ph.value, w.by, ph.by];
+  w.value = '01711000001'; ph.value = '01711000002'; w.by = 'ops@lytro.app'; ph.by = 'ops@lytro.app';
+  try { return fn(); } finally { [w.value, ph.value, w.by, ph.by] = was; }
+};
 const p88SettingValueBase = settingValue;
 settingValue = (s) => {
   if (s.unit === 'p88phone' || s.unit === 'p88email') return s.value === null ? st('warn', t('p88_not_set')) : `<span class="mono" style="font-weight:600;overflow-wrap:anywhere">${s.value}</span>`;
@@ -3795,8 +3827,22 @@ settingEditor = (s) => {
   const reason = `<input class="input" placeholder="${t('reason')}" style="height:36px;width:220px;max-width:100%">`;
   const err = p88SettingErr === s.key;
   const wrap = (control, help, e) => `<div style="flex:1 1 100%;display:flex;flex-direction:column;gap:6px"><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${control}${reason}${save}</span>${e ? `<div class="err" style="font-size:13px;color:var(--danger)">${e}</div>` : ''}${help ? `<div class="p37-help">${help}</div>` : ''}</div>`;
-  if (s.unit === 'p88phone') return wrap(`<input class="input inline mono" value="${err ? '01511 23' : '+880 1711-000000'}" style="width:180px;text-align:left;${err ? 'border-color:var(--danger)' : ''}">`, t('p88_help_phone_help'), err ? t('p88_err_phone') : '');
-  if (s.unit === 'p88hour') return wrap(`<input class="input inline mono" value="${err ? 24 : s.value}" style="width:90px;${err ? 'border-color:var(--danger)' : ''}">`, t('p88_hour_help'), err ? t('p88_err_hour') : '');
+  if (s.unit === 'p88phone' && p88Clearing === s.key) {
+    return `<div style="flex:1 1 100%;display:flex;flex-direction:column;gap:8px">${consequence(t('p88_clear_cons'), 'danger')}<span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${reason}${btn(t('p88_clear_btn'), 'danger sm', `go('${back}')`)}${btn(t('cancel'), 'ghost sm', `go('${back}')`)}</span></div>`;
+  }
+  if (s.unit === 'p88phone') {
+    const clear = s.value === null ? '' : btn(t('p88_clear_num'), 'quiet sm', "go('p88-setting-whatsapp-clear')", 'style="color:var(--danger)"');
+    const html = wrap(`<input class="input inline mono" value="${err ? '01511 23' : s.value === null ? '+880 1711-000000' : s.value}" style="width:180px;text-align:left;${err ? 'border-color:var(--danger)' : ''}">`, t('p88_help_phone_help'), err ? t('p88_err_phone') : '');
+    return clear ? html.replace(save, save + clear) : html;
+  }
+  if (s.unit === 'p88hour') {
+    const order = p88HourOrder === s.key;
+    const other = (k) => SETTINGS.find((x) => x.key === k).value;
+    const bad = err || order;
+    const value = err ? 24 : order ? (s.key === 'help_closes_hour' ? 8 : 23) : s.value;
+    const e = err ? t('p88_err_hour') : order ? (s.key === 'help_closes_hour' ? t('p88_err_closes', { h: other('help_opens_hour') }) : t('p88_err_opens', { h: other('help_closes_hour') })) : '';
+    return wrap(`<input class="input inline mono" value="${value}" style="width:90px;${bad ? 'border-color:var(--danger)' : ''}">`, t('p88_hour_help'), e);
+  }
   if (s.unit === 'p88email') return wrap(`<input class="input inline" value="alerts@lytro.app" style="width:220px;text-align:left">`, t('p88_alert_email_note'), '');
   if (s.unit === 'p88usd') return wrap(`<input class="input inline mono" value="15" style="width:90px">`, '', '');
   return p88SettingEditorBase(s);
@@ -3814,8 +3860,13 @@ const P88_SET = { base: 'settings', nav: 'settings', group: P88G, url: 'admin.ly
 def('p88-settings-help', { ...P88_SET, label: 'Settings · the help line', anchor: 'p37-g14', render: () => settingsPage() });
 def('p88-setting-whatsapp', { ...P88_SET, label: '· set the WhatsApp number', anchor: 'p37-g14', render: () => settingsPage({ editing: 'help_whatsapp' }) });
 def('p88-setting-phone-bad', { ...P88_SET, label: '· refused: not a mobile number', anchor: 'p37-g14', render: () => { p88SettingErr = 'help_whatsapp'; const html = settingsPage({ editing: 'help_whatsapp' }); p88SettingErr = null; return html; } });
+def('p88-settings-help-set', { ...P88_SET, label: 'Settings · the help line with both numbers set', anchor: 'p37-g14', render: () => p88WithHelp(() => settingsPage()) });
+def('p88-setting-whatsapp-change', { ...P88_SET, label: '· change a number that is set, or clear it', anchor: 'p37-g14', render: () => p88WithHelp(() => settingsPage({ editing: 'help_whatsapp' })) });
+def('p88-setting-whatsapp-clear', { ...P88_SET, label: '· clear the WhatsApp number, with a reason', anchor: 'p37-g14', render: () => p88WithHelp(() => { p88Clearing = 'help_whatsapp'; try { return settingsPage({ editing: 'help_whatsapp' }); } finally { p88Clearing = null; } }) });
 def('p88-setting-hours', { ...P88_SET, label: '· change the closing hour', anchor: 'p37-g14', render: () => settingsPage({ editing: 'help_closes_hour' }) });
 def('p88-setting-hours-bad', { ...P88_SET, label: '· refused: not an hour from 0 to 23', anchor: 'p37-g14', render: () => { p88SettingErr = 'help_closes_hour'; const html = settingsPage({ editing: 'help_closes_hour' }); p88SettingErr = null; return html; } });
+def('p88-setting-closes-order', { ...P88_SET, label: '· refused: closing at or before opening', anchor: 'p37-g14', render: () => { p88HourOrder = 'help_closes_hour'; try { return settingsPage({ editing: 'help_closes_hour' }); } finally { p88HourOrder = null; } } });
+def('p88-setting-opens-order', { ...P88_SET, label: '· refused: opening at or after closing', anchor: 'p37-g14', render: () => { p88HourOrder = 'help_opens_hour'; try { return settingsPage({ editing: 'help_opens_hour' }); } finally { p88HourOrder = null; } } });
 def('p88-settings-media', { ...P88_SET, label: 'Settings · media costs', anchor: 'p37-g15', render: () => settingsPage() });
 def('p88-setting-email', { ...P88_SET, label: '· set the alert address', anchor: 'p37-g15', render: () => settingsPage({ editing: 'media_cost_alert_email' }) });
 def('p88-setting-budget', { ...P88_SET, label: '· change the budget', anchor: 'p37-g15', render: () => settingsPage({ editing: 'media_budget_usd' }) });

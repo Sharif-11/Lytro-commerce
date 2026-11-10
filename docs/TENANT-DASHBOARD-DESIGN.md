@@ -2007,9 +2007,10 @@ more, §10 lists it for the build.
   **Closed now** by Dhaka's clock; **Message on WhatsApp**, which opens WhatsApp holding "Hello Lytro, this is megh.lytro.app."
   so Lytro knows which shop is writing, the words shown in the sheet; and **Call** with the number. Closed, both stay, with
   "Opens at 9 am. Leave a WhatsApp message and we reply when we open." (`p88-help-closed`). The row's second line follows:
-  "WhatsApp or call · open now", or "· opens at 9 am". A number not set is not shown (`p88-help-wa`, `p88-help-phone`); with
-  neither, there is no Help row (`p88-menu-nohelp`). Everyone on the team sees it (`p88-menu-staff`). `VITE_SUPPORT_WHATSAPP`
-  goes.
+  "WhatsApp or call · open now", or "· opens at 9 am". The hours never cross midnight: the console refuses a closing hour
+  at or before the opening hour (the owner, 2026-11-10). A number not set, or cleared in the console (the owner, 2026-11-10),
+  is not shown, its button with it (`p88-help-wa`, `p88-help-phone`); with neither, there is no Help row (`p88-menu-nohelp`).
+  Everyone on the team sees it (`p88-menu-staff`). `VITE_SUPPORT_WHATSAPP` goes.
 - **The error ID** (API-27, D8-21; `p88-err-*`). Every response carries `X-Request-Id`; a **server fault (500 or 503)** shows
   the server's sentence and, under it, **Error ID K7MQ-4XR2** with **Copy**, and "If it happens again, send Lytro support this
   error ID, so we can find exactly what went wrong." with **Send on WhatsApp**, which opens the help line's WhatsApp holding
@@ -2022,9 +2023,11 @@ more, §10 lists it for the build.
   is removed its accounts go with it, so keep another method on. A shop that set it up (switched it on, or saved an account)
   keeps it whole: its switch and accounts work as before, and switched off it says it can come back on until the removal
   (`p88-pm-retiring-off`). A shop that never set it up doesn't see it at all (`p88-pm-unset`). When it is removed its card
-  goes, and Activity says so (`payment_method_removed`); no notice is sent. The bell carries **Nagad is being retired** and
-  **Nagad is back** in notification-words.ts's words (`p88-bell-retiring`, `p88-bell-back`), to the owner only and locked on
-  in Notifications under Payments (`p88-prefs`).
+  goes, and Activity says so (`payment_method_removed`); no notice is sent. The bell carries **Nagad রিটায়ার হচ্ছে / Nagad is
+  being retired** and **Nagad আবার চালু / Nagad is back** (`p88-bell-retiring`, `p88-bell-back`), to the owner only and
+  locked on in Notifications under Payments (`p88-prefs`). Retiring is রিটায়ার everywhere, the chip, Activity, the switches
+  and the notice alike (the owner, 2026-11-10): the notice's Bangla title and body change in the build (§10), and the
+  card's sentence is the notice's body.
 - **A payment's screenshot** (ADM-17, D8-15; `p88-bl-shot*`). A payment sent on the payment page waits in **Billing** while
   Lytro checks it; there a **Screenshot of the payment** card offers **Add a screenshot**: optional, a picture or a PDF up to
   5 MB, seen only by Lytro. It uploads with a progress bar, then shows the file as **Sent** with the time, and History gains
@@ -2056,12 +2059,12 @@ more, §10 lists it for the build.
    reference layout and the picture is offered only while a person may look at it. The other way is one optional line on the
    page's TrxID card, for Lytro as the payee only.
 2. One screenshot a payment, kept once sent.
-3. Help hours that close before they open (22 to 2) are drawn as open across midnight. The console's sketch asks whether the
-   setting should allow that at all.
-4. Send on WhatsApp after a fault opens the help line's WhatsApp with the shop's link and the ID, not a form.
-5. Dropped on a row, a category goes in last; Undo is one more move back.
-6. The retiring chip says "রিটায়ার হচ্ছে / Being retired", as Activity and Notifications already do, while the notice the
-   server sends says "বন্ধ হয়ে যাচ্ছে". One word for both would be better; the notice's is the server's.
+3. Send on WhatsApp after a fault opens the help line's WhatsApp with the shop's link and the ID, not a form.
+4. Dropped on a row, a category goes in last; Undo is one more move back.
+
+**Decided by the owner** (2026-11-10): help hours never close at or before they open, so nothing is drawn across
+midnight; retiring is "রিটায়ার হচ্ছে" everywhere, the bell's notice included; a help number may be cleared, and its button
+then isn't shown.
 
 ## 8. Screens designed for later phases
 
@@ -2150,6 +2153,7 @@ brand identity.
 | courier_connection's Bangla body says "কি" where it means "কী" (notification-words.ts) | notifications | the bell's courier row (§7.40) | Slice 7.7's build |
 | `GET /help-line`: Lytro's WhatsApp and phone and the hours, public, cached five minutes | help line | the Menu's Help (§7.18, §7.41) | built (8.7) |
 | `retiring` on each `GET /payment-methods` row, a retiring type the shop never set up left out, and the retiring and back notices to the bell, owner only and locked | payment methods, notifications | §7.41's Being retired | built (8.7) |
+| The retiring notice in রিটায়ার's words: `paymentMethodRetiringText` in notification-words.ts, its Bangla title "{name} রিটায়ার হচ্ছে" (was "বন্ধ হয়ে যাচ্ছে") and its body "Lytro {name} রিটায়ার করছে। …" (was "বন্ধ করছে"); English unchanged | notifications | the bell row and the card's sentence (§7.41) | Slice 8.8's build |
 | The error ID from the `X-Request-Id` header on `ApiClientError` (`requestId`), for a status of 500 or more | api-client | §7.41's error ID | Slice 8.8's build |
 | A screenshot for a payment already sent: a signed upload link for one of the shop's payments Lytro hasn't decided, and attaching it once, refusing a second and a decided payment; whether one was sent on each `GET /billing/payments` row. Today the screenshot rides only on the dashboard's own submit routes, which no screen calls since the payment page took the transaction ID (#337) | billing, payment evidence | §7.41's Screenshot of the payment | Slice 8.8's build |
 | Moving a category in one request: a parent and a place, both sibling lists renumbered in one transaction, a fifth level and its own sub-categories refused as `PATCH /categories/:id` refuses them. Today the dashboard sends one PATCH a sibling, one after another | catalogue | §7.41's categories by dragging | Slice 8.8's build |
