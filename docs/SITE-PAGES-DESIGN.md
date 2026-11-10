@@ -32,13 +32,13 @@ Two of these pages belong to the marketing site (`apps/website`). The sign-up fl
 
 | Element | Design |
 | --- | --- |
-| Hero | "Talk to a person, not a bot." Hours stated in the lead. |
-| Channels | WhatsApp (primary, with a Message button), phone (demo on a call), email (paper trail, Copy button). Each card shows the value as selectable text, since links to messaging apps are unreliable inside prototypes and some browsers. |
-| Hours | Saturday to Thursday 10:00 to 20:00; Friday closed with WhatsApp answered next morning; urgent outages (payment page or storefront down) any time on WhatsApp. An "Open now" indicator. |
+| Hero | "Talk to a person, not a bot." Hours stated in the lead: every day, from the help line's opening to its closing hour. |
+| Channels | WhatsApp (primary, with a Message button), phone (demo on a call), email (paper trail, Copy button). Each card shows the value as selectable text, since links to messaging apps are unreliable inside prototypes and some browsers. WhatsApp and phone are Lytro's help line, the numbers the operator sets in the console (`GET /help-line`, D8-69); one not set, or cleared there, isn't shown. |
+| Hours | One line, every day, the help line's hours ("Every day, 09:00 to 22:00" to start, D8-68), and "Outside these hours: leave a WhatsApp; we reply when we open". An "Open now" or "Closed now · opens at 9 am" indicator by Dhaka's clock (`#contact-closed`). The hours never cross midnight: the console refuses a closing hour at or before the opening hour (the owner, 2026-11-10). With neither number set, the hours card goes too (`#contact-unset`). Slice 8.8's read (2026-11-10) dropped the Friday line and the "urgent: any time on WhatsApp" promise. |
 | Address | A map placeholder with a pin, "Lytronix, Dhaka", visits by appointment. Real address and an embedded map go in at build time. |
 | Form | Topic chips (setup help, book a demo, plans and pricing, something is broken, partnership), name, phone, optional Facebook page or shop link, message. Validates name, a Bangladeshi mobile number and a non-empty message, inline, in Bangla. Success state replaces the form with a confirmation and "send another". A privacy line: the number is used only to reply, no marketing SMS. |
 
-**Build notes.** The form posts to a server route in `apps/website` that creates a support ticket or sends an email; the prototype only validates. Topic becomes the ticket category. The page link field lets support look at the seller's page before calling.
+**Build notes.** The form posts to a server route in `apps/website` that creates a support ticket or sends an email; the prototype only validates. Topic becomes the ticket category. The page link field lets support look at the seller's page before calling. The page reads `GET /help-line` on the server, kept as long as the route's own five minutes, and `SUPPORT_WHATSAPP` and `SUPPORT_PHONE` go (Slice 8.8). Nothing set at all keeps the "once the support line is live" sentence.
 
 ---
 
@@ -97,7 +97,7 @@ installing it may not be signed in anywhere. Bangla first, with the app's own wo
   a browser. The three steps out are the app's own (LISTENER-APP-DESIGN §2).
 - **Setup guide** (`#setup`, where the app's Help opens): pair, allow SMS, notifications, battery, a test; then keep the phone on.
 - **Updates:** the app says when one is needed, and it's the same download over the old one. The SHA-256 is folded under the updates.
-- **Help:** WhatsApp, when the site has a number.
+- **Help:** WhatsApp, the help line's number (`GET /help-line`, Slice 8.8), when one is set.
 
 **Where the file lives** (agreed): its own public R2 bucket on `download.lytro.app` (DEPLOYMENT.md). The release command writes
 `latest.json` beside the APK, and the owner uploads the APK and then that file in Cloudflare's panel. The page reads `latest.json` every

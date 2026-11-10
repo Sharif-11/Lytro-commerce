@@ -138,6 +138,11 @@
   .hours .row:last-child { border: 0; }
   .hours .now { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; color: var(--success); font-weight: 600; }
   .hours .now::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+  .hours .now .when-closed, .closed .hours .now .when-open { display: none; }
+  .closed .hours .now .when-closed { display: inline; }
+  .closed .hours .now { color: var(--n700); }
+  .closed .hours .now::before { background: var(--n500); }
+  .unset .ch.line, .unset .hours, .unset .wa-faster { display: none; }
   form.cf { padding: 22px 20px; display: grid; gap: 14px; }
   .field { display: grid; gap: 6px; }
   .field label { font-size: 0.875rem; font-weight: 500; color: var(--n700); }
@@ -310,7 +315,7 @@
   <div class="wrap">
     <span class="lbl" data-en="Prototype">প্রোটোটাইপ</span>
     <a href="#about" data-page="about" data-en="About">আমাদের সম্পর্কে</a>
-    <a href="#contact" data-page="contact" data-en="Contact">যোগাযোগ</a>
+    <a href="#contact" data-page="contact" data-en="Contact">যোগাযোগ</a><a href="#contact-closed" data-page="contact-closed" data-en="· closed now">· এখন বন্ধ</a><a href="#contact-unset" data-page="contact-unset" data-en="· no number set">· নম্বর সেট নেই</a>
     <a href="#signup" data-page="signup" data-en="Sign-up flow">সাইন-আপ ফ্লো</a><a href="#listener" data-page="listener" data-en="Listener app">লিসেনার অ্যাপ</a><a href="#listener-soon" data-page="listener-soon" data-en="· not ready yet">· এখনও তৈরি নয়</a>
     <div class="lang" role="group" aria-label="Language"><button type="button" id="lang-bn" aria-pressed="true">বাং</button><button type="button" id="lang-en" aria-pressed="false">EN</button></div>
   </div>
@@ -488,20 +493,19 @@
     <div class="wrap">
       <div class="crumbs"><span>lytro.app</span><span>/</span><b data-en="Contact">যোগাযোগ</b></div>
       <h1 data-en-html="Talk to a person,<br><em>not a bot.</em>">একজন মানুষের সাথে কথা বলুন,<br><em>বটের সাথে নয়।</em></h1>
-      <p class="lead" data-en="Stuck on setup, unsure which plan fits, or want a demo on a call? Message us. We answer in Bangla or English, Saturday to Thursday, 10 am to 8 pm.">সেটআপে আটকে গেছেন, কোন প্ল্যান মানায় বুঝছেন না, বা কলে ডেমো চান? মেসেজ দিন। বাংলা বা ইংরেজিতে উত্তর দিই, শনি থেকে বৃহস্পতি, সকাল ১০টা থেকে রাত ৮টা।</p>
+      <p class="lead" data-en="Stuck on setup, unsure which plan fits, or want a demo on a call? Message us. We answer in Bangla or English, every day, 9 am to 10 pm.">সেটআপে আটকে গেছেন, কোন প্ল্যান মানায় বুঝছেন না, বা কলে ডেমো চান? মেসেজ দিন। বাংলা বা ইংরেজিতে উত্তর দিই, প্রতিদিন সকাল ৯টা থেকে রাত ১০টা।</p>
     </div>
   </section>
   <section>
     <div class="wrap cgrid">
       <div class="chan">
-        <div class="ch card"><div class="ic"><svg><use href="#chat"/></svg></div><b>WhatsApp</b><span class="v">+880 1X-XXXX-XXXX</span><small data-en="Fastest. Send a screenshot of where you are stuck.">সবচেয়ে দ্রুত। যেখানে আটকে আছেন তার স্ক্রিনশট পাঠান।</small><a href="#" class="btn btn-primary" data-en="Message">মেসেজ</a></div>
-        <div class="ch card"><div class="ic"><svg><use href="#phone"/></svg></div><b data-en="Phone">ফোন</b><span class="v">+880 1X-XXXX-XXXX</span><small data-en="For a live demo on a call or screen share.">কলে বা স্ক্রিন শেয়ারে লাইভ ডেমোর জন্য।</small><a href="#" class="btn btn-outline" data-en="Call">কল</a></div>
+        <div class="ch card line"><div class="ic"><svg><use href="#chat"/></svg></div><b>WhatsApp</b><span class="v">+880 1X-XXXX-XXXX</span><small data-en="Fastest. Send a screenshot of where you are stuck.">সবচেয়ে দ্রুত। যেখানে আটকে আছেন তার স্ক্রিনশট পাঠান।</small><a href="#" class="btn btn-primary" data-en="Message">মেসেজ</a></div>
+        <div class="ch card line"><div class="ic"><svg><use href="#phone"/></svg></div><b data-en="Phone">ফোন</b><span class="v">+880 1X-XXXX-XXXX</span><small data-en="For a live demo on a call or screen share.">কলে বা স্ক্রিন শেয়ারে লাইভ ডেমোর জন্য।</small><a href="#" class="btn btn-outline" data-en="Call">কল</a></div>
         <div class="ch card"><div class="ic"><svg><use href="#mail"/></svg></div><b data-en="Email">ইমেইল</b><span class="v">hello@lytro.app</span><small data-en="Partnerships, agencies, anything that needs a paper trail.">পার্টনারশিপ, এজেন্সি, যেখানে লিখিত রেকর্ড দরকার।</small><a href="#" class="btn btn-outline" data-en="Copy">কপি</a></div>
         <div class="hours card">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b data-en="Support hours">সাপোর্টের সময়</b><span class="now" data-en="Open now">এখন খোলা</span></div>
-          <div class="row"><span data-en="Saturday to Thursday">শনি থেকে বৃহস্পতি</span><span class="num">10:00 – 20:00</span></div>
-          <div class="row"><span data-en="Friday">শুক্রবার</span><span data-en="Closed; WhatsApp answered next morning">বন্ধ; WhatsApp-এর উত্তর পরদিন সকালে</span></div>
-          <div class="row"><span data-en="Urgent: payment page or storefront down">জরুরি: পেমেন্ট পেজ বা স্টোরফ্রন্ট বন্ধ</span><span data-en="Any time, WhatsApp">যেকোনো সময়, WhatsApp</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b data-en="Support hours">সাপোর্টের সময়</b><span class="now"><span class="when-open" data-en="Open now">এখন খোলা</span><span class="when-closed" data-en="Closed now · opens at 9 am">এখন বন্ধ · সকাল ৯টায় খুলবে</span></span></div>
+          <div class="row"><span data-en="Every day">প্রতিদিন</span><span class="num">09:00 – 22:00</span></div>
+          <div class="row"><span data-en="Outside these hours">এর বাইরে</span><span data-en="Leave a WhatsApp; we reply when we open">WhatsApp-এ লিখে রাখুন, খোলার পর উত্তর দিই</span></div>
         </div>
         <div class="map"><div><div class="pin" aria-hidden="true"></div><b data-en="Lytronix, Dhaka">Lytronix, ঢাকা</b><span data-en="Street address goes here. Visits by appointment.">রাস্তার ঠিকানা এখানে বসবে। দেখা করতে আগে সময় নিন।</span></div></div>
       </div>
@@ -529,7 +533,7 @@
         <div class="sent card" id="csent" hidden>
           <div class="ok"><svg><use href="#check"/></svg></div>
           <h2 style="font-size:1.25rem" data-en="Got it. We will reply within one business day.">পেয়েছি। এক কর্মদিবসের মধ্যে উত্তর দেবো।</h2>
-          <p class="muted" data-en="If it is urgent, WhatsApp is faster.">জরুরি হলে WhatsApp-এ দ্রুত হয়।</p>
+          <p class="muted wa-faster" data-en="If it is urgent, WhatsApp is faster.">জরুরি হলে WhatsApp-এ দ্রুত হয়।</p>
           <button type="button" class="btn btn-outline" id="cagain" data-en="Send another">আরেকটা পাঠান</button>
         </div>
       </div>
@@ -676,8 +680,11 @@
     function route() {
       var name = (location.hash || '#about').slice(1);
       var soon = name === 'listener-soon';
-      showPage(soon ? 'listener' : name);
+      var contactState = name === 'contact-closed' ? 'closed' : name === 'contact-unset' ? 'unset' : null;
+      showPage(soon ? 'listener' : contactState ? 'contact' : name);
       document.getElementById('page-listener').classList.toggle('soon', soon);
+      document.getElementById('page-contact').classList.toggle('closed', contactState === 'closed');
+      document.getElementById('page-contact').classList.toggle('unset', contactState === 'unset');
       document.querySelectorAll('.proto a[data-page]').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-page') === name); });
     }
     /* A drawing of a QR, not a working one: the built page draws the real one. */

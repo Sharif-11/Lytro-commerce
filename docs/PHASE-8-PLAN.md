@@ -132,6 +132,14 @@ overrule any of them when reviewing this plan.
 | D8-68 | **The help line's settings** (D8-4; the owner's answers, 2026-11-10). | Four platform settings: `help_whatsapp` and `help_phone`, each a mobile number in its local form and shown nowhere until set, and `help_opens_hour` and `help_closes_hour`, 0 to 23 in Dhaka, defaults 9 and 22, every day with no days of the week. `GET /help-line` gives them to anyone, with no session, cached five minutes. The help row shows to everyone on the shop's team. | Slice 8.7 |
 | D8-69 | **One number everywhere** (the owner's answer). | Lytro's payment page reads the settings, WhatsApp from `help_whatsapp` and call from `help_phone`, either standing in for the other, and the server's `LYTRO_SUPPORT_PHONE` goes. The dashboard's `VITE_SUPPORT_WHATSAPP` and the website's `SUPPORT_WHATSAPP` and `SUPPORT_PHONE` go when Slice 8.8 moves their pages onto the route, each writing the hours in its own words, and the dashboard's WhatsApp message holding the shop's address (D8-4). | Slices 8.7, 8.8 |
 | D8-70 | **The shop-ready SMS's words** (D8-19; the owner's pick). | "আপনার শপ {name} এখন লাইভ: {url}", with the name as typed and the full address. On a lytro.app address the words take 38 of a unit's 67 characters, so a name and its address of up to 29 together (a 14-letter name) go as one SMS (৳0.55), longer as two (৳1.10). Lytro's cost either way, outside the trial's allowance (AUTH-21). | Slice 8.7 |
+| D8-71 | **The owner's six fixes to the running dashboard** (2026-11-10; Slice 8.8's read). | Built first, on their own, before this slice's sketch: every address, note and reason a box of several lines in the dashboard and the storefront; a long form's Save at its end too on a desktop; the money hub "ওয়ালেট"; a new attribute splitting the product unless it can't; "লো-স্টক অ্যালার্ট"; "সারা বাংলাদেশ" only when the shop's zones cover the country. A multi-line address reaches the courier with its lines joined by commas. The sketch draws the prototype to match. | PR #341 |
+| D8-72 | **Categories by dragging** (the owner's proposal; agreed to sketch). | On a desktop, a category dropped on a row goes under it and one dropped between rows goes there, with a line showing where; a drop the rules refuse (past 4 levels, into itself or its own child) says why; the keyboard does the same. A phone keeps Move up and down and gains "Move to…". One server call moves a category and renumbers both its old and new siblings in one transaction. | Slice 8.8 |
+| D8-73 | **The contact page's hours** (the owner's answer). | One line, every day, from the help line's two hours, with open now or closed now. The Friday line and the promise of WhatsApp at any hour for an urgent fault go. | Slice 8.8 |
+| D8-74 | **The listener app's help number** (the owner's answer). | The app reads `GET /help-line` when it opens and keeps the number it was built with for when that fails. Phones get it with the next APK. | Slice 8.8 |
+| D8-75 | **A bank transfer recorded by hand** (ADM-14; the owner's answer to the sketch, 2026-11-10). | A manual entry names one of Lytro's bank accounts instead of a wallet number, with the transfer's reference in place of a TrxID and no sender. A reference is used once, as a TrxID is. | Slice 8.8 |
+| D8-76 | **Clearing a help number** (the owner's answer). | `help_whatsapp` and `help_phone` take an empty value, meaning not set, with a reason like any change; that button then goes from the dashboard, the website and Lytro's payment page. | Slice 8.8 |
+| D8-77 | **The help line's hours** (the owner's answer). | The closing hour must be after the opening hour, every day: each hour is checked against the other's stored value, so hours never run past midnight. | Slice 8.8 |
+| D8-78 | **The word for a retiring payment method** (the owner's answer). | "রিটায়ার হচ্ছে" everywhere: the chip, the activity log, the switches and the owner's notice, whose title becomes "{name} রিটায়ার হচ্ছে". | Slice 8.8 |
 
 ### 2.1 Points left to each slice's read
 
@@ -146,7 +154,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 8.5 | Where evidence is kept and for how long, what a reversal of a plan purchase undoes, and the digest's time. **Settled in Slice 8.5's read (2026-11-09):** D8-47 to D8-56; D8-53 drops the digest. |
 | 8.6 | R2's operation counts (D8-17), the budget's default and currency, and who the alert goes to. **Settled in Slice 8.6's read (2026-11-10):** D8-57 to D8-64. |
 | 8.7 | The shop-ready SMS's words (D8-19), and whether the help menu's number shows to staff as well as the owner. **Settled in Slice 8.7's read (2026-11-10):** D8-65 to D8-70; the help row shows to everyone on the team. |
-| 8.8 | Settled by its sketch: see that slice. |
+| 8.8 | Settled by its sketch: see that slice. **Read (2026-11-10):** D8-71 to D8-74; the sketch's four open points settled as D8-75 to D8-78. |
 
 ---
 
@@ -332,6 +340,14 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   and `VITE_SUPPORT_WHATSAPP`, `SUPPORT_WHATSAPP` and `SUPPORT_PHONE` go. The console's settings page lists the help line's
   four settings and Slice 8.6's five.
 - **Builds** them, pixel perfect to the approved sketch, in Bangla and English to the owner's style guide.
+- **Read agreed 2026-11-10** (D8-71 to D8-74): the owner's six fixes went first, on their own (PR #341); categories by
+  dragging are drawn here; the contact page keeps one line of hours; the listener app reads the help line. Two PRs build
+  it once the sketch is approved: the console, then the dashboard, the website and the listener app.
+- **Sketched** (`OPERATOR-CONSOLE-DESIGN.md` v7, `TENANT-DASHBOARD-DESIGN.md` v3.39 §7.41, `SITE-PAGES-DESIGN.md` §2,
+  `LISTENER-APP-DESIGN.md`; the prototypes' "Phase 8 · Slice 8.8" groups). The drawing found what the build adds to the
+  server: rows for Slice 8.6's and 8.7's nine settings, which the settings list shows only once stored; the operator's
+  id on `GET /auth/operator/me`; a screenshot route the payment screens can reach (8.5 put it only on routes no screen
+  calls since #337); one call that moves a category; the request ID read from `X-Request-Id` in the client.
 
 ---
 

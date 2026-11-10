@@ -601,9 +601,8 @@ const PAIRS: Pair[] = [
         .nth(3)
         .click(),
   },
-  { screen: 'later-audit', path: '/audit' },
-  { screen: 'later-reports', path: '/reports' },
-  { screen: 'later-manual', path: '/manual' },
+  // The sketch of Slice 8.8 (v7) draws reports, the audit log and manual entries as
+  // pages of their own, so their "Later" pairs went; the build pairs the new pages.
   // Phase 6 Slice 6.7 (v4): the couriers, RedX's areas and a shop's courier key log.
   { screen: 'couriers', path: '/couriers' },
   { screen: 'courier-retire', path: '/couriers', then: retireRedx(false) },
