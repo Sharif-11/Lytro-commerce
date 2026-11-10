@@ -7,7 +7,7 @@ import {
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
-import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
+import type { PlanPaymentRecord, WalletSubmission } from '../../payments/types/plan-payment';
 import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
 
@@ -52,7 +52,8 @@ export class TopUpService {
     };
   }
 
-  async quote(tenantId: string, amount: string): Promise<PlanPaymentRecord> {
+  /** BAL-06: a top-up reaches only a shop whose balance is open. Any lapsed state is refused, as its balance is frozen. */
+  async assertAvailable(tenantId: string): Promise<void> {
     const info = await this.tenants.runStandalone((tx) =>
       this.tenants.findBillingInfo(tx, tenantId),
     );
@@ -60,6 +61,10 @@ export class TopUpService {
     if (!TOP_UP_ALLOWED_STATES.has(info.state)) {
       throw new ApiError('tenant_offline', 'TopUpNotAvailable', {});
     }
+  }
+
+  async quote(tenantId: string, amount: string): Promise<PlanPaymentRecord> {
+    await this.assertAvailable(tenantId);
 
     const { min: minAmount, max: maxAmount } = await this.bounds();
     const requested = Number(amount);
@@ -91,11 +96,7 @@ export class TopUpService {
   }
 
   /** BAL-03/16: the tenant's "I have paid" wallet submission -- enters the queue, credits nothing yet. */
-  submit(
-    paymentId: string,
-    tenantId: string,
-    input: { transactionId: string; senderNumber: string; amountPaid: string },
-  ): Promise<PlanPaymentRecord> {
+  submit(paymentId: string, tenantId: string, input: WalletSubmission): Promise<PlanPaymentRecord> {
     return this.payments.submitWalletPayment(paymentId, tenantId, input, [PlanPaymentKind.TopUp]);
   }
 }

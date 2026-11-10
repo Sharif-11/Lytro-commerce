@@ -464,3 +464,9 @@ export type {
   RecentAuditEntryRow,
 } from './repositories/platform/platform-audit-log.repository';
 export type { QueuedPlanPaymentRow } from './repositories/billing/plan-payments.repository';
+export {
+  ManualEntryRepository,
+  type ManualEntryFilters,
+  type ManualEntryRow,
+} from './repositories/billing/manual-entry.repository';
+export { PaymentEvidenceRepository } from './repositories/billing/payment-evidence.repository';

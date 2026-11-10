@@ -32,7 +32,7 @@ import { BalanceService } from '../../balance/services/balance.service';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
-import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
+import type { PlanPaymentRecord, WalletSubmission } from '../../payments/types/plan-payment';
 import { MessagingService } from '../../shared/messaging/services/messaging.service';
 import { StaffService } from '../../staff/services/staff.service';
 import { TenantCache } from '../../tenancy/services/tenant-cache';
@@ -358,7 +358,7 @@ export class AddonPurchaseService {
   submitWalletPayment(
     paymentId: string,
     tenantId: string,
-    input: { transactionId: string; senderNumber: string; amountPaid: string },
+    input: WalletSubmission,
   ): Promise<PlanPaymentRecord> {
     return this.payments.submitWalletPayment(paymentId, tenantId, input, [PlanPaymentKind.Addon]);
   }

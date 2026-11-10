@@ -37,6 +37,11 @@ const STATES: Record<BillingPaymentState, { tone: StatusTone; lead: string; word
     lead: 'bg-neutral-100 text-neutral-700',
     word: 'blCancelled',
   },
+  [BillingPaymentState.Reversed]: {
+    tone: 'bad',
+    lead: 'bg-danger-soft text-danger',
+    word: 'blReversed',
+  },
 };
 
 /** A payment's state chip. */

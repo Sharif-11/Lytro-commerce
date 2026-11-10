@@ -17,7 +17,13 @@ import {
 } from '../../operator/guards/operator-session.guard';
 import { PaymentQueueService } from '../../billing/services/payment-queue.service';
 import type { QueuedPayment } from '../../billing/types/addon';
+import {
+  PaymentEvidence,
+  type EvidenceLink,
+} from '../../payment-evidence/services/payment-evidence';
+import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
+import { EvidenceLinkDto } from '../dto/operator-manual-entries.dto';
 import { ListPaymentQueueDto, RejectPaymentDto } from '../dto/billing.dto';
 import { PlanPaymentDto, QueuedPaymentListDto } from '../dto/billing-response.dto';
 
@@ -30,6 +36,8 @@ import { PlanPaymentDto, QueuedPaymentListDto } from '../dto/billing-response.dt
 export class OperatorPaymentQueueController {
   constructor(
     @Inject(PaymentQueueService) private readonly queue: PaymentQueueService,
+    @Inject(PlanPaymentsService) private readonly payments: PlanPaymentsService,
+    @Inject(PaymentEvidence) private readonly evidence: PaymentEvidence,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
 
@@ -42,6 +50,17 @@ export class OperatorPaymentQueueController {
     @Query(new ZodValidationPipe(ListPaymentQueueDto.schema)) query: ListPaymentQueueDto,
   ): Promise<QueuedPayment[]> {
     return this.queue.listPending(query.kind);
+  }
+
+  // ADM-17, D8-15: the seller's screenshot of a payment waiting here.
+  @Get(':id/evidence')
+  @ResponseMessage('EvidenceLinkReady')
+  @ApiOperation({ summary: "A link to a payment's screenshot, lasting five minutes" })
+  @ZodResponse({ type: EvidenceLinkDto })
+  async evidenceLink(@Param('id') id: string): Promise<EvidenceLink> {
+    const payment = await this.payments.find(id);
+    if (payment.evidenceId === null) throw new ApiError('not_found', 'EvidenceNotFound', {});
+    return this.evidence.link(payment.evidenceId);
   }
 
   @Post(':id/approve')

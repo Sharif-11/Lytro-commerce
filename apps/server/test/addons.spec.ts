@@ -65,6 +65,8 @@ function invoice(
     number: nextNumber++,
     kind,
     planPaymentId: null,
+    recordedByPlatform: false,
+    reversesInvoiceId: null,
     planSnapshot: kind === InvoiceKind.Addon ? null : {},
     amount,
     creditAmount,

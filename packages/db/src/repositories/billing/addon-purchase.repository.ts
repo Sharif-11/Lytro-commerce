@@ -390,6 +390,19 @@ export class AddonPurchaseRepository {
   }
 
   /** PLN-14: the add-ons a payment would have activated, once it is turned down. */
+  /** ADM-15, D8-48: the add-ons a reversed manual entry activated end with it. */
+  async cancelActiveForPayment(db: Executor, planPaymentId: string): Promise<void> {
+    await db
+      .update(addonPurchases)
+      .set({ status: AddonPurchaseStatus.Cancelled })
+      .where(
+        and(
+          eq(addonPurchases.planPaymentId, planPaymentId),
+          eq(addonPurchases.status, AddonPurchaseStatus.Active),
+        ),
+      );
+  }
+
   async cancelForPayment(db: Executor, planPaymentId: string): Promise<void> {
     await db
       .update(addonPurchases)

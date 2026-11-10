@@ -231,6 +231,10 @@ for `active`) with zero infrastructure work on this platform's side per tenant.
    shop's bandwidth and writes the blocked list and each shop's website addresses. Without the token, nothing is
    counted or blocked.
 
+**Payment screenshots (Slice 8.5, D8-47).** Their own private bucket: make one named `lytro-evidence` (or set
+`MEDIA_EVIDENCE_BUCKET`), with no public address and no custom domain, and add it to the processing and deletion keys
+(RUNBOOKS' key inventory). Never give the media Worker's token access to it.
+
 **The listener app's downloads (Slice 5.8, part 4).** Its own public R2 bucket, so nothing else is ever public by mistake:
 
 1. Make a bucket named `lytro-downloads`, and connect the custom domain `download.lytro.app` to it. Keep its r2.dev address off.

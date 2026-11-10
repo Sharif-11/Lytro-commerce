@@ -46,6 +46,7 @@ export function pageStateOf(payment: PlanPaymentRecord, now: Date): PaymentSessi
     case PlanPaymentStatus.Verified:
       return PaymentSessionState.Verified;
     case PlanPaymentStatus.Rejected:
+    case PlanPaymentStatus.Reversed:
       return PaymentSessionState.Failed;
     case PlanPaymentStatus.Expired:
       return PaymentSessionState.Expired;

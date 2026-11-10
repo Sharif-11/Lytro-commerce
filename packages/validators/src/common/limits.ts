@@ -248,3 +248,16 @@ export const CAPTURED_VALUE_MAX_LENGTH = 200;
 // ORD-51, ORD-52: a call's note, and a cancellation's.
 export const CALL_NOTE_MAX_LENGTH = 500;
 export const CANCEL_NOTE_MAX_LENGTH = 500;
+// ADM-15 (Phase 8 Slice 8.5): a manual entry over this much, or past this many in a Dhaka day, has its amount typed again.
+export const MANUAL_ENTRY_CONFIRM_ABOVE_TAKA = 10_000;
+export const MANUAL_ENTRY_DAILY_ENTRIES = 10;
+// ADM-14, ADM-17, D8-47: a payment screenshot's limits, and how long the private bucket keeps it.
+export const EVIDENCE_MAX_BYTES = 5 * 1024 * 1024;
+export const EVIDENCE_CONTENT_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/pdf',
+] as const;
+export type EvidenceContentType = (typeof EVIDENCE_CONTENT_TYPES)[number];
+export const EVIDENCE_KEPT_MONTHS = 24;

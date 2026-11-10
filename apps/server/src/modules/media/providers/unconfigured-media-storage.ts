@@ -38,4 +38,16 @@ export class UnconfiguredMediaStorage implements MediaStorage {
   listMedia(): Promise<StoredObject[]> {
     return Promise.resolve([]);
   }
+
+  putEvidence(): Promise<void> {
+    return Promise.reject(new StorageUnavailable());
+  }
+
+  evidenceLink(): Promise<string> {
+    return Promise.reject(new StorageUnavailable());
+  }
+
+  deleteEvidence(): Promise<void> {
+    return Promise.resolve();
+  }
 }

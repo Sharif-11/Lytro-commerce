@@ -32,6 +32,7 @@ import type {
   ShopPack,
 } from '../../billing/types/addon';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
+import { PaymentEvidence } from '../../payment-evidence/services/payment-evidence';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { PermissionGuard } from '../guards/permission.guard';
 import {
@@ -62,6 +63,7 @@ type ShopAddonsWithUses = ShopAddons & {
 @UseGuards(SessionGuard, DashboardGuard, PermissionGuard)
 export class AddonsController {
   constructor(
+    @Inject(PaymentEvidence) private readonly evidence: PaymentEvidence,
     @Inject(LytroReceipts) private readonly lytroReceipts: LytroReceipts,
     @Inject(AddonPurchaseService) private readonly addons: AddonPurchaseService,
     @Inject(AddonPackService) private readonly packs: AddonPackService,
@@ -123,12 +125,19 @@ export class AddonsController {
     if (!body.transactionId || !body.senderNumber || body.amountPaid === undefined) {
       throw new ApiError('validation_error', 'TransactionIdRequired', {});
     }
-    const payment = await this.lytroReceipts.afterSubmit(
-      await this.addons.submitWalletPayment(body.paymentId, tenantId, {
-        transactionId: body.transactionId,
-        senderNumber: body.senderNumber,
-        amountPaid: body.amountPaid.toFixed(2),
-      }),
+    const { transactionId, senderNumber, amountPaid } = body;
+    const payment = await this.evidence.withKept(
+      { tenantId, uploader: 'seller' },
+      body.evidenceKey,
+      async (evidenceId) =>
+        this.lytroReceipts.afterSubmit(
+          await this.addons.submitWalletPayment(body.paymentId, tenantId, {
+            transactionId,
+            senderNumber,
+            amountPaid: amountPaid.toFixed(2),
+            evidenceId,
+          }),
+        ),
     );
     return { payment, invoice: null };
   }

@@ -32,6 +32,7 @@ beforeAll(() => {
     pathStyle: (env['MEDIA_STORAGE_PATH_STYLE'] ?? 'true') === 'true',
     uploadsBucket: env['MEDIA_UPLOADS_BUCKET'] ?? 'lytro-uploads',
     mediaBucket: env['MEDIA_BUCKET'] ?? 'lytro-media',
+    evidenceBucket: env['MEDIA_EVIDENCE_BUCKET'] ?? 'lytro-evidence',
     signer: keyOf('SIGNER'),
     processor: keyOf('PROCESSOR'),
     deleter: keyOf('DELETER'),

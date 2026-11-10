@@ -1,3 +1,4 @@
+import type { PlanStanding } from '@lytronix/db';
 import type {
   BalanceRow,
   BillingInfoRow,
@@ -51,6 +52,9 @@ export interface TenantStore {
   findBalance(tx: Transaction, tenantId: string): Promise<BalanceRow | null>;
   /** BAL-07/08/09: freezes or unfreezes the balance without touching its amount. */
   setBalanceFrozen(tx: Transaction, tenantId: string, frozen: boolean): Promise<void>;
+  /** ADM-15, D8-48: everything a plan payment changes on a shop, held for the rest of the transaction. */
+  planStanding(tx: Transaction, tenantId: string): Promise<PlanStanding | null>;
+  restorePlanStanding(tx: Transaction, tenantId: string, standing: PlanStanding): Promise<void>;
   /** PLN-17/TRL-07: activates a plan assignment with a normal snapshot; `state` is the caller's to decide. */
   applyPlanAssignment(
     tx: Transaction,

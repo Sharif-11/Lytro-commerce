@@ -249,6 +249,7 @@ describeIfDatabase('the revenue report: what was earned (D8-40)', () => {
       wallet: { purchase: '300.00', renewal: '0.00', upgrade: '0.00', addon: '20.00' },
       balance: { sms: '5.50', plan_payment: '300.00' },
       givenBack: '1.10',
+      manual: { plans: '0.00', plansReversed: '0.00', topUps: '0.00', topUpsReversed: '0.00' },
       earned: '624.40',
     });
     expect(body.recordedSince).toBe(day);
@@ -279,7 +280,9 @@ describeIfDatabase('the revenue report: what was earned (D8-40)', () => {
     ).toBe(true);
     const lines = text.slice(1).split('\n');
     expect(
-      lines.find((line) => line.startsWith('2024-03-09,2024-03-15,'))?.endsWith(',1.10,624.40'),
+      lines
+        .find((line) => line.startsWith('2024-03-09,2024-03-15,'))
+        ?.endsWith(',1.10,0.00,0.00,0.00,0.00,624.40'),
     ).toBe(true);
     expect(lines.at(-1)?.startsWith('2024-03-01,2024-03-31,300.00,0.00,0.00,20.00,')).toBe(true);
   });

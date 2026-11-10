@@ -1,3 +1,4 @@
+import type { PlanStanding } from '@lytronix/db';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   AddonPurchaseRepository,
@@ -107,6 +108,14 @@ export class DrizzleTenantStore implements TenantStore {
 
   findExpiredTrialIds(tx: Transaction, now: Date): Promise<string[]> {
     return this.tenants.findExpiredTrialIds(tx, now);
+  }
+
+  planStanding(tx: Transaction, tenantId: string) {
+    return this.tenants.planStanding(tx, tenantId);
+  }
+
+  restorePlanStanding(tx: Transaction, tenantId: string, standing: PlanStanding): Promise<void> {
+    return this.tenants.restorePlanStanding(tx, tenantId, standing);
   }
 
   findBillingInfo(tx: Transaction, tenantId: string): Promise<BillingInfoRow | null> {

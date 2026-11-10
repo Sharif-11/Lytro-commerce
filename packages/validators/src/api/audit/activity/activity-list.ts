@@ -48,6 +48,8 @@ export const ACTIVITY_GROUPS = {
     AuditAction.PlanAssigned,
     AuditAction.PlanExtended,
     AuditAction.PlanPurchased,
+    AuditAction.ManualPaymentRecorded,
+    AuditAction.ManualPaymentReversed,
     AuditAction.PlanRenewed,
     AuditAction.PlanUpgraded,
     AuditAction.PlanPaymentCancelled,

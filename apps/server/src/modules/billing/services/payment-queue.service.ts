@@ -83,8 +83,16 @@ export class PaymentQueueService {
     now: Date,
     ip: string | null,
     amountArrived?: string,
+    reusingTransactionId = false,
   ): Promise<PlanPaymentRecord> {
-    const payment = await this.payments.approve(tx, paymentId, operatorId, now, amountArrived);
+    const payment = await this.payments.approve(
+      tx,
+      paymentId,
+      operatorId,
+      now,
+      amountArrived,
+      reusingTransactionId,
+    );
 
     if (payment.kind === PlanPaymentKind.TopUp) {
       const credited = payment.amountArrived ?? payment.amount;

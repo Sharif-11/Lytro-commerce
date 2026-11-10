@@ -14,6 +14,16 @@ export type UpdatePlatformWallet = Partial<NewPlatformWallet>;
 
 // BIL-02/BAL-03: the platform's own wallet numbers. Not RLS-protected -- platform-wide, control-schema data.
 export class PlatformWalletsRepository {
+  /** ADM-14: whether this is one of Lytro's wallets, enabled or not; money may have reached one since switched off. */
+  async exists(db: Executor, id: string): Promise<boolean> {
+    const rows = await db
+      .select({ id: platformWallets.id })
+      .from(platformWallets)
+      .where(eq(platformWallets.id, id))
+      .limit(1);
+    return rows.length > 0;
+  }
+
   async insert(db: Executor, values: NewPlatformWallet): Promise<SelectPlatformWallet> {
     const [row] = await db.insert(platformWallets).values(values).returning();
     if (!row) throw new Error('insert returned no platform wallet');

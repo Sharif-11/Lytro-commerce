@@ -66,6 +66,13 @@ export class DrizzleReportsStore implements ReportsStore {
     return this.database.handle.db;
   }
 
+  manualByDay(
+    from: Date,
+    to: Date,
+  ): Promise<{ day: string; kind: PlanPaymentKind; reversal: boolean; amount: string }[]> {
+    return this.reports.manualByDay(this.db, from, to);
+  }
+
   walletEarnedByDay(
     from: Date,
     to: Date,

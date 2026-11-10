@@ -75,8 +75,8 @@ again 90 days later.
 | Key (env names) | R2 permission and buckets | Used by | Made / last rotated | Next due |
 | --- | --- | --- | --- | --- |
 | `MEDIA_SIGNER_*` | Object Read & Write, the uploads bucket only | signing browser uploads (`S3MediaStorage.signUpload`) | — | — |
-| `MEDIA_PROCESSOR_*` | Object Read & Write, the uploads and media buckets | the processing job: reading and clearing uploads, writing media, listing for the nightly run | — | — |
-| `MEDIA_DELETER_*` | Object Read & Write, the media bucket only | the deletion job only (`MediaDeleter`) | — | — |
+| `MEDIA_PROCESSOR_*` | Object Read & Write, the uploads, media and evidence buckets | the processing job: reading and clearing uploads, writing media, listing for the nightly run; payment screenshots (D8-47) | — | — |
+| `MEDIA_DELETER_*` | Object Read & Write, the media and evidence buckets | the deletion jobs only (`MediaDeleter`, and the two-year removal of screenshots, D8-47) | — | — |
 | Media Worker's `R2_*` secrets | **Object Read only**, the media bucket only | serving media (`apps/media-worker`, `S3Origin`); a write fails at R2 itself | — | — |
 | `MEDIA_LINK_SECRET` (the Worker's secret and the server's setting) | signs and checks private links (BND-07) | the server signs, the Worker checks | — | — |
 | `CLOUDFLARE_API_TOKEN` (with `CLOUDFLARE_ACCOUNT_ID` and `MEDIA_EDGE_KV_NAMESPACE_ID`) | an account API token, not an R2 one: **Account Analytics: Read** and **Workers KV Storage: Edit**, this account only | the minute's bandwidth pass (`CloudflareMediaEdge`): reading the Worker's usage, writing the blocked list and each shop's website addresses to its KV store | — | — |

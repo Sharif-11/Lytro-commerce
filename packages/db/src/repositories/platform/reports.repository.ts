@@ -7,6 +7,7 @@ import {
 } from '@lytronix/validators';
 import type { Executor } from '../../transactions';
 import {
+  manualPaymentEntries,
   mediaBandwidthDaily,
   planPayments,
   plans,
@@ -62,12 +63,35 @@ export class ReportsRepository {
           eq(planPayments.status, PlanPaymentStatus.Verified),
           isNotNull(planPayments.transactionId),
           ne(planPayments.kind, PlanPaymentKind.TopUp),
+          // D8-10: a manual entry is shown apart (`manualByDay`).
+          eq(planPayments.recordedByPlatform, false),
           gte(planPayments.verifiedAt, from),
           lt(planPayments.verifiedAt, to),
         ),
       )
       .groupBy(day, planPayments.kind)
       .orderBy(day, planPayments.kind);
+  }
+
+  /** D8-10: what the operator recorded each day, and what was reversed, each on the day it was done. */
+  manualByDay(
+    db: Executor,
+    from: Date,
+    to: Date,
+  ): Promise<{ day: string; kind: PlanPaymentKind; reversal: boolean; amount: string }[]> {
+    const day = dhakaDay(manualPaymentEntries.createdAt);
+    const reversal = sql<boolean>`${manualPaymentEntries.reversesEntryId} IS NOT NULL`;
+    return db
+      .select({
+        day,
+        kind: manualPaymentEntries.kind,
+        reversal,
+        amount: sql<string>`sum(${manualPaymentEntries.amount})::numeric(14, 2)::text`,
+      })
+      .from(manualPaymentEntries)
+      .where(and(gte(manualPaymentEntries.createdAt, from), lt(manualPaymentEntries.createdAt, to)))
+      .groupBy(day, manualPaymentEntries.kind, reversal)
+      .orderBy(day);
   }
 
   /** D8-41: the shops opened each day. */

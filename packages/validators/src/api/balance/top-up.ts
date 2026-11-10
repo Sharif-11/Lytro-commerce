@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { transactionIdField } from '../../common/transaction-id';
+import { evidenceKeyField } from '../billing/payment-evidence';
 
 // POST /balance/top-up/quote (BAL-03/04): the amount the tenant wants to top up.
 export const quoteTopUpSchema = z.object({
@@ -14,5 +15,7 @@ export const confirmTopUpSchema = z.object({
   transactionId: transactionIdField,
   senderNumber: z.string().trim().min(1),
   amountPaid: z.coerce.number().positive(),
+  // ADM-17, D8-15: a screenshot of the payment, if the seller adds one.
+  evidenceKey: evidenceKeyField.optional(),
 });
 export type ConfirmTopUpInput = z.infer<typeof confirmTopUpSchema>;

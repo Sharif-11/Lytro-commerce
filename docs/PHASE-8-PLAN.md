@@ -39,7 +39,7 @@ The platform audit log is written but never listed. The break-glass 2FA reset (A
    is used once platform-wide; a mistake is corrected only by a reversing entry (ADM-15).
 3. **The golden path** passes as one test: a seller pays Lytro outside the flow → the operator records it with evidence
    and a reason → the plan is active, the invoice issued, the shop's activity log shows it and its owner is told → it
-   appears in that day's digest and in that month's revenue report.
+   appears in the operator's list of entries and in that month's revenue report.
 4. **Nothing crosses shops:** the shop page reads one shop inside its own row-level security; reports read Lytro's own
    tables and figures recorded per shop; no database role that skips row-level security is added (D8-9).
 5. **Every operator action carries a reason and an audit entry**, and the audit log can only be read, never changed
@@ -77,7 +77,7 @@ overrule any of them when reviewing this plan.
 | D8-13 | **Deleting a shop's data on request** (ADM-13). LIF-19's deletion runs only on day 60 of an archive. | The operator types the shop's address to confirm and gives a reason; LIF-19's same steps then run for that shop as a job, and the account and billing records stay. It can't be undone, and the confirmation says so. | Slice 8.3 |
 | D8-14 | **Manual entries** (ADM-14, ADM-15). | One path: an entry activates through the same code as the queue's approval, never a second copy. The evidence (a screenshot or a statement line) is kept privately, for the operator only. The transaction ID is checked against every one Lytro has used. Over 10,000 TK, or past 10 entries in a day, the amount is typed again. Entries are never changed; a reversing entry with a reason corrects one. The shop sees each in its activity log and is told (after Slice 7.3). | Slice 8.5 |
 | D8-15 | **A shop's "I have paid" claim** (ADM-17). The seller's submission (transaction ID, sender, amount) already enters the queue. | It gains the screenshot, kept as D8-14's evidence is, and still credits nothing by itself. | Slice 8.5 |
-| D8-16 | **The daily digest** (ADM-16). | Emailed each morning to every operator account, by Slice 7.3's email, listing the day's entries and reversals. A day with none sends nothing. | Slice 8.5 |
+| D8-16 | **The daily digest** (ADM-16). | Overruled by D8-53: no digest and no email. | Slice 8.5 |
 | D8-17 | **Media costs** (MED-12, KNOWN-GAPS §101). Worker requests and bytes are counted; R2's own operations aren't. | Each month's R2 operations, Worker requests and the shops that use most, against a monthly budget the operator sets, with an email to the operators at 80%. Where R2's operation counts come from (Lytro's own calls or Cloudflare's analytics) is settled in the slice's read. | Slice 8.6 |
 | D8-18 | **Retiring a wallet type** (WAL-18, moved here by Phase 5). The types are a list in the code. | The couriers' pattern (CRR-23, CRR-24): retiring hides a type from new setup while shops using it keep it, undoing is allowed, and removing needs no shop to use it. | Slice 8.7 |
 | D8-19 | **The shop-ready SMS** (SMS-18). It goes out today in English ("Your shop is ready: …"). | Worded in Bangla to the owner's style guide in the slice's read, still Lytro's cost (D7-23), and proven through the real SMS path. | Slice 8.7 |
@@ -108,6 +108,16 @@ overrule any of them when reviewing this plan.
 | D8-44 | **What a shop's day holds** (narrows D8-9). | State, plan, storage, SMS units, spending by kind and what was given back. Orders and sales are left out, since no report reads them and the shop page reads them live. | Slice 8.4 |
 | D8-45 | **How far back the reports reach** (settles §2.1). | Payments and shops opened reach as far as they exist. Balance spending, SMS, storage and lapses reach to the first recorded day, which the revenue report names (`recordedSince`). An operator's adjustment and a deleted shop's carried-over balance aren't earnings. | Slice 8.4 |
 | D8-46 | **The CSVs** (settles §2.1). | A `.../export` route beside each report, the same figures, one row a period (or shop) and a total, marked UTF-8 for spreadsheets, named `lytro-revenue-2026-11-01-to-2026-11-30-month.csv`. The top consumers list 20 shops. | Slice 8.4 |
+| D8-47 | **Where evidence is kept** (settles §2.1; the owner's pick over keeping it for good). | A private R2 bucket (`MEDIA_EVIDENCE_BUCKET`) the public Worker has no access to. Only JPG, PNG, WebP or PDF up to 5 MB, judged by the file's own bytes. The operator opens one by a link lasting five minutes. A nightly job at 04:10 Dhaka removes files after 2 years; the row stays, and says so. | Slice 8.5 |
+| D8-48 | **What reversing a plan entry undoes** (settles §2.1). | The shop goes back as it stood: plan, period, state, lapse schedule, a frozen balance, and a scheduled downgrade the entry cancelled. My call: refused once the shop's plan or period has changed since, which covers a later payment, a plan extension and a downgrade alike. | Slice 8.5 |
+| D8-49 | **The invoice of a reversed entry.** | A numbered credit note with a negative amount names the original, which is not touched. An upgrade's credit no longer counts the time that invoice paid for. | Slice 8.5 |
+| D8-50 | **Reversing a top-up already spent.** | It comes back in full, the balance going below zero if need be, and from a frozen balance too: the money never arrived. | Slice 8.5 |
+| D8-51 | **The amount.** | A plan or upgrade is at the price the server works out that day, refused if the operator was shown another. If the money differs, it is recorded as a top-up and the plan paid from the balance. A top-up is what arrived: the seller's minimum and maximum don't apply (my call), but a lapsed shop's frozen balance still refuses it. | Slice 8.5 |
+| D8-52 | **Add-ons on a recorded renewal.** | Carried as a seller's renewal carries them, in the amount shown first (`POST .../preview`); reversing the entry ends them. | Slice 8.5 |
+| D8-53 | **No daily digest** (ADM-16; the owner: no email). | No job and no email. The list of entries by day, operator and shop (D8-55) and the audit log stand in its place, and the month's revenue report shows entries apart. Overrules D8-16. | Slice 8.5 |
+| D8-54 | **A seller's screenshot is optional** (ADM-17). | Most wallet payments now match a receipt by themselves, so no one is stopped on a phone for one. The operator sees it in the queue when there is one. | Slice 8.5 |
+| D8-55 | **The list of entries.** | `GET /operator/manual-entries`: every entry and reversal, newest first, by shop, operator and day, with what reversed it. | Slice 8.5 |
+| D8-56 | **A transaction ID after a reversal.** | Another manual entry may use it, so a payment recorded against the wrong shop can be recorded properly. A seller's "I have paid" or an incoming receipt still finds it used. | Slice 8.5 |
 
 ### 2.1 Points left to each slice's read
 
@@ -119,7 +129,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 8.2 | What the owner's phone search matches (any written form, the last digits), and what the shop page loads at once against what it loads when opened. **Settled in Slice 8.2's read (2026-11-08):** D8-24 to D8-31. |
 | 8.3 | Whether a trial can be extended (D8-12), the most days at once, how the owner's new phone is checked before the code goes, and whether deleting a shop's data needs it suspended first. **Settled in Slice 8.3's read (2026-11-08):** D8-32 to D8-39. |
 | 8.4 | The nightly job's time and what it records, how far back the reports reach, and how a CSV is named. **Settled in Slice 8.4's read (2026-11-08):** D8-40 to D8-46. |
-| 8.5 | Where evidence is kept and for how long, what a reversal of a plan purchase undoes, and the digest's time. |
+| 8.5 | Where evidence is kept and for how long, what a reversal of a plan purchase undoes, and the digest's time. **Settled in Slice 8.5's read (2026-11-09):** D8-47 to D8-56; D8-53 drops the digest. |
 | 8.6 | R2's operation counts (D8-17), the budget's default and currency, and who the alert goes to. |
 | 8.7 | The shop-ready SMS's words (D8-19), and whether the help menu's number shows to staff as well as the owner. |
 | 8.8 | Settled by its sketch: see that slice. |
@@ -163,7 +173,7 @@ Each is settled in its slice's read, before code, and recorded there.
   own module, never with a second query of its own.
 - ADM-14 and ADM-17 end in ADM-06's approval: a manual entry activates as an approved payment does, and a claim is a
   queue item.
-- ADM-16's digest and ADM-15's notice to the shop need Slice 7.3's email and notifications.
+- ADM-15's notice to the shop needs Slice 7.3's notifications.
 - ADM-13 runs LIF-19's steps, so a step added to LIF-19 later is deleted on request too.
 - ADM-09's top consumers read D8-9's nightly figures, which Slice 8.4 starts recording; its earlier months are empty.
 
@@ -270,9 +280,13 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   seller's sales figures. `GET /operator/audit` lists the platform audit log by shop, operator, action and day.
 
 ### Slice 8.5: manual entries and claims
-- **Depends on:** 7.3 (the shop's notice and the digest's email), and 8.4 (the revenue report shows entries apart).
+- **Depends on:** 7.3 (the shop's notice), and 8.4 (the revenue report shows entries apart).
 - **Delivers:** manual entries through the queue's activation, with evidence and their guards (ADM-14, ADM-15, D8-14);
-  reversals; the claim's screenshot (ADM-17, D8-15); the daily digest (ADM-16, D8-16).
+  reversals; the claim's screenshot (ADM-17, D8-15); the list of entries (ADM-16, D8-53, D8-55).
+- **Built** (read agreed 2026-11-09, D8-47 to D8-56): `POST /operator/manual-entries` records a plan, renewal, upgrade or
+  top-up through `PaymentQueueService.verifyWithin`, and `POST .../:id/reverse` undoes one with its own row, a credit note
+  and the shop put back. Screenshots go through `PaymentEvidence` into a private bucket and are removed after two years.
+  A seller's "I have paid" may carry one. The revenue report shows entries apart.
 
 ### Slice 8.6: media costs
 - **Depends on:** 7.3 (the operators' email).
@@ -336,7 +350,7 @@ when it's needed and never open or print.
 
 | Risk | Response |
 |---|---|
-| A manual entry used to give a plan away | ADM-15's guards: unique transaction IDs, evidence, a second confirmation over 10,000 TK or past 10 a day, and the daily digest to every operator (D8-14, D8-16) |
+| A manual entry used to give a plan away | ADM-15's guards: unique transaction IDs, evidence, a second confirmation over 10,000 TK or past 10 a day, and the list of entries with the audit log (D8-14, D8-53) |
 | Reports need figures from every shop | the nightly figures (D8-9), never a role that skips row-level security |
 | Deleting the wrong shop's data | the shop's address typed to confirm, a reason, and a job that runs LIF-19's tested steps (D8-13) |
 | Error rows grow without end | 7 days, cleared by a job (D8-3) |

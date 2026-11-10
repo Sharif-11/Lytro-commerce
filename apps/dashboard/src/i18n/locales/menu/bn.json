@@ -97,6 +97,8 @@
     "plan_limit_override_removed": "Lytro সাপোর্ট একটা লিমিট আগের মতো করেছে",
     "plan_limit_override_set": "Lytro সাপোর্ট একটা লিমিট বদলেছে",
     "plan_payment_cancelled": "{{actor}} একটা পেমেন্ট ক্যানসেল করেছেন",
+    "manual_payment_recorded": "Lytro সাপোর্ট {{amount}}-এর একটা পেমেন্ট রেকর্ড করেছে",
+    "manual_payment_reversed": "Lytro সাপোর্ট {{amount}}-এর একটা পেমেন্ট রিভার্স করেছে",
     "plan_payment_rejected": "একটা পেমেন্ট রিজেক্ট হয়েছে",
     "plan_purchased": "{{amount}}-এ প্ল্যান কেনা হয়েছে",
     "plan_renewed": "{{amount}}-এ প্ল্যান রিনিউ হয়েছে",

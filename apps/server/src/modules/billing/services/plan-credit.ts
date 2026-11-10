@@ -15,8 +15,10 @@ const PLAN_INVOICES: ReadonlySet<InvoiceKind> = new Set([
  * an upgrade already took the time before it as its credit -- through every renewal after it (BIL-10).
  */
 function currentPeriods(invoices: readonly InvoiceRecord[]): InvoiceRecord[] {
+  // D8-49: a credit note took its invoice back, so the time that invoice paid for was never paid for.
+  const reversed = new Set(invoices.map((invoice) => invoice.reversesInvoiceId));
   const newestFirst = invoices
-    .filter((invoice) => PLAN_INVOICES.has(invoice.kind))
+    .filter((invoice) => PLAN_INVOICES.has(invoice.kind) && !reversed.has(invoice.id))
     .sort((a, b) => b.number - a.number);
   const start = newestFirst.findIndex((invoice) => invoice.kind !== InvoiceKind.Renewal);
   return start === -1 ? newestFirst : newestFirst.slice(0, start + 1);

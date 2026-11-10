@@ -33,7 +33,9 @@ export interface RevenueFigures {
   balance: Partial<Record<LedgerEntryType, string>>;
   /** Reversed charges, taken off. */
   givenBack: string;
-  /** Wallet and balance together, less what was given back. */
+  /** D8-10: what the operator recorded by hand, each on the day it was done. Top-ups are shown, and earned when spent. */
+  manual: { plans: string; plansReversed: string; topUps: string; topUpsReversed: string };
+  /** Wallet, balance and recorded plans together, less what was given back or reversed. */
   earned: string;
 }
 
@@ -110,15 +112,23 @@ export class Reports {
 
   async revenue(query: ReportQuery): Promise<RevenueReport> {
     const period = this.periodOf(query);
-    const [wallet, spend, givenBack] = await Promise.all([
+    const [wallet, spend, givenBack, manual] = await Promise.all([
       this.store.walletEarnedByDay(period.from, period.to),
       this.store.spendByDay(period.dateFrom, period.dateTo),
       this.store.givenBackByDay(period.dateFrom, period.dateTo),
+      this.store.manualByDay(period.from, period.to),
     ]);
     const figures = (range: DayRange): RevenueFigures => {
       const walletIn = wallet.filter((row) => within(row.day, range));
       const spendIn = spend.filter((row) => within(row.day, range));
       const back = sumPaisa(givenBack.filter((row) => within(row.day, range)));
+      const manualIn = manual.filter((row) => within(row.day, range));
+      const recorded = (topUp: boolean, reversal: boolean): bigint =>
+        sumPaisa(
+          manualIn.filter(
+            (row) => (row.kind === PlanPaymentKind.TopUp) === topUp && row.reversal === reversal,
+          ),
+        );
       const byKind = Object.fromEntries(
         WALLET_EARNED_KINDS.map((kind) => [
           kind,
@@ -134,7 +144,19 @@ export class Reports {
         wallet: byKind,
         balance,
         givenBack: fromPaisa(back),
-        earned: fromPaisa(sumPaisa(walletIn) + sumPaisa(spendIn) - back),
+        manual: {
+          plans: fromPaisa(recorded(false, false)),
+          plansReversed: fromPaisa(recorded(false, true)),
+          topUps: fromPaisa(recorded(true, false)),
+          topUpsReversed: fromPaisa(recorded(true, true)),
+        },
+        earned: fromPaisa(
+          sumPaisa(walletIn) +
+            sumPaisa(spendIn) -
+            back +
+            recorded(false, false) -
+            recorded(false, true),
+        ),
       };
     };
     const whole = { from: period.dateFrom, to: period.dateTo };

@@ -80,6 +80,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // Checked in test/plan-purchase.e2e.spec.ts: a shop's quotes, invoices and top-ups are its own.
   'POST /balance/top-up/quote': 'creates a top-up quote scoped to the session shop only',
   'POST /balance/top-up/confirm': "another shop's top-up payment id answers not_found",
+  // Checked in test/manual-entries.e2e.spec.ts: an upload is signed under the session shop, and another shop's is refused.
+  'POST /balance/top-up/evidence': 'signs an upload under the session shop only',
+  'POST /billing/payment-evidence': 'signs an upload under the session shop only',
   // Checked in test/payment-requests.e2e.spec.ts: a shop closes only its own request (BIL-19).
   'POST /balance/top-up/:id/cancel': "another shop's top-up payment id answers not_found",
   // Checked in test/lytro-payment-page.e2e.spec.ts: a shop opens the payment page only for its own payment.

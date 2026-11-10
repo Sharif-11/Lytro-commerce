@@ -39,4 +39,9 @@ export interface MediaStorage {
   deleteMedia(keys: string[]): Promise<void>;
   /** Every object under a prefix, for the daily reconciliation and the day-60 wipe. */
   listMedia(prefix: string): Promise<StoredObject[]>;
+  /** ADM-14, ADM-17, D8-47: a payment screenshot, into the private bucket no public route reads. */
+  putEvidence(key: string, body: Buffer, contentType: string): Promise<void>;
+  /** D8-47: a link the operator's browser may read one screenshot by, until it expires. */
+  evidenceLink(key: string, expiresInSeconds: number): Promise<string>;
+  deleteEvidence(keys: string[]): Promise<void>;
 }

@@ -251,6 +251,14 @@ export class AddonRenewalService {
   }
 
   /**
+   * ADM-15, D8-48: a reversed manual entry's add-ons end with it. One it extended runs to its old end again: the
+   * extension was a purchase of its own, and the add-on it continued was never changed.
+   */
+  undoFor(tx: Transaction, paymentId: string): Promise<void> {
+    return this.store.cancelActiveForPayment(tx, paymentId);
+  }
+
+  /**
    * PLN-14: the next period of an add-on that does not renew with the plan, from its end (or now, if later): up to the
    * plan period's end while one runs past it, prorated (UPG-03's rule), so it joins the plan's renewals; otherwise --
    * pay-as-you-go or a no-expiry plan -- its own 30 days at the full monthly price. Null for a shop that can take none.

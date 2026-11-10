@@ -346,6 +346,8 @@ CREATE TABLE control.invoices (
     discount_amount numeric(10,2) NOT NULL DEFAULT 0, -- saving against the shortest visible term (TRM-12)
     payment_method  text,                        -- balance | wallet
     payment_reference text,                      -- the wallet transaction ID; null for a balance payment
+    recorded_by_platform boolean NOT NULL DEFAULT false,  -- ADM-14
+    reverses_invoice_id uuid,                    -- D8-49: on a credit note, the invoice it takes back
     plan_payment_id uuid,                        -- BIL-19: the payment this is the receipt of, copied at issue (an id, no
                                                  -- foreign key, decided 2026-10-23); older invoices filled by their
                                                  -- transaction ID in migration 0080, the rest null
@@ -2328,6 +2330,8 @@ CREATE TABLE control.plan_payments (
     verified_at     timestamptz,                    -- when it was decided: approved, paid from the balance, or rejected
     submitted_at    timestamptz,                    -- BIL-19: when the shop submitted its transaction ID
     note            text,                           -- ADM-06, BIL-19: the operator's note on a rejection
+    recorded_by_platform boolean NOT NULL DEFAULT false,  -- ADM-14: the operator's manual entry
+    evidence_id     uuid REFERENCES control.payment_evidence(id),  -- D8-15: a seller's screenshot, if any
     cancel_reason   text,                           -- BIL-19, on a cancelled row: seller | replaced (a newer request of its kind)
     created_at      timestamptz NOT NULL DEFAULT now()
 );
@@ -3002,21 +3006,36 @@ CREATE TABLE control.shop_days (
 );
 CREATE INDEX shop_days_day_idx ON control.shop_days (day);
 
-CREATE TABLE control.manual_payment_entries (             -- ADM-14/15
+CREATE TABLE control.payment_evidence (                  -- ADM-14, ADM-17, D8-47: a payment screenshot's record
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id       uuid NOT NULL,
-    kind            text NOT NULL,                          -- plan_purchase | renewal | upgrade | top_up
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    object_key      text NOT NULL UNIQUE,                   -- in the private bucket (MEDIA_EVIDENCE_BUCKET)
+    content_type    text NOT NULL,
+    bytes           integer NOT NULL,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    removed_at      timestamptz                             -- D8-47: when the file went, after two years
+);
+
+CREATE TABLE control.manual_payment_entries (             -- ADM-14/15: append-only (the app role has SELECT, INSERT)
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
+    plan_payment_id uuid NOT NULL REFERENCES control.plan_payments(id),
+    kind            text NOT NULL,                          -- purchase | renewal | upgrade | top_up
     amount          numeric(10,2) NOT NULL,
-    wallet          text NOT NULL,
-    transaction_id  text NOT NULL UNIQUE,
+    wallet_id       uuid REFERENCES control.platform_wallets(id),  -- this and the four below are null on a reversal
+    transaction_id  text,                                   -- once only, held by plan_payments and used_transaction_ids
     sender_number   text,
-    payment_time    timestamptz NOT NULL,
-    evidence_url    text NOT NULL,
+    paid_at         timestamptz,
+    evidence_id     uuid REFERENCES control.payment_evidence(id),
+    evidence_line   text,                                   -- a screenshot, a statement line, or both
     reason          text NOT NULL,
     entered_by      uuid NOT NULL,
-    reversed_by_entry_id uuid REFERENCES control.manual_payment_entries(id),
+    before          jsonb,                                  -- D8-48: the shop's plan as it stood; null on a top-up
+    after           jsonb,                                  -- D8-48: the plan and period the entry left it on
+    reverses_entry_id uuid REFERENCES control.manual_payment_entries(id),  -- a reversal points at what it reverses
     created_at      timestamptz NOT NULL DEFAULT now()
 );
+CREATE UNIQUE INDEX ON control.manual_payment_entries (reverses_entry_id) WHERE reverses_entry_id IS NOT NULL;
 
 CREATE TABLE control.payment_report_queue (                -- ADM-06/ADM-17: "I have paid" claims + review queue
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -1,3 +1,4 @@
+import { evidenceKeyField } from './payment-evidence';
 import { z } from 'zod';
 import { transactionIdField } from '../../common/transaction-id';
 import {
@@ -99,6 +100,8 @@ export const confirmAddonSchema = z
     transactionId: transactionIdField.optional(),
     senderNumber: z.string().trim().min(1).optional(),
     amountPaid: z.coerce.number().positive().optional(),
+    // ADM-17, D8-15: a screenshot of the payment, if the seller adds one.
+    evidenceKey: evidenceKeyField.optional(),
   })
   .superRefine(requireWalletFields);
 export type ConfirmAddonInput = z.infer<typeof confirmAddonSchema>;

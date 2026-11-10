@@ -25,6 +25,10 @@ export interface InvoiceRecord {
   paymentReference: string | null;
   /** BIL-19: the payment it is the receipt of; null on invoices issued before it was recorded. */
   planPaymentId: string | null;
+  /** ADM-14: marked "recorded by the platform". */
+  recordedByPlatform: boolean;
+  /** ADM-15, D8-49: on a credit note, the invoice it takes back. */
+  reversesInvoiceId: string | null;
   issuedAt: Date;
   /** BIL-12, PLN-14: what it is for, line by line; none on invoices issued before lines existed. */
   lines: InvoiceLine[];

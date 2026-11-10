@@ -1,3 +1,4 @@
+import type { PlanStanding } from '@lytronix/db';
 import { Inject, Injectable } from '@nestjs/common';
 import type {
   BalanceRow,
@@ -178,6 +179,15 @@ export class TenantService {
   }
 
   /** BIL-10/11: what a purchase/renewal confirmation needs to decide extend-vs-restart, read in its own tx. */
+  /** ADM-15, D8-48: everything a plan payment changes on a shop, held for the rest of the transaction. */
+  planStanding(tx: Transaction, tenantId: string): Promise<PlanStanding | null> {
+    return this.store.planStanding(tx, tenantId);
+  }
+
+  restorePlanStanding(tx: Transaction, tenantId: string, standing: PlanStanding): Promise<void> {
+    return this.store.restorePlanStanding(tx, tenantId, standing);
+  }
+
   findBillingInfo(tx: Transaction, tenantId: string): Promise<BillingInfoRow | null> {
     return this.store.findBillingInfo(tx, tenantId);
   }

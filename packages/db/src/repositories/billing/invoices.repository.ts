@@ -40,6 +40,8 @@ export interface NewInvoice {
   paymentMethod: SelectInvoice['paymentMethod'];
   paymentReference: string | null;
   planPaymentId: string | null;
+  recordedByPlatform?: boolean;
+  reversesInvoiceId?: string | null;
 }
 
 /** BIL-12, PLN-14: one line of an invoice, in its order. */
@@ -89,6 +91,16 @@ export class InvoicesRepository {
 
   async findById(tx: Executor, id: string): Promise<SelectInvoice | null> {
     const rows = await tx.select().from(invoices).where(eq(invoices.id, id)).limit(1);
+    return rows[0] ?? null;
+  }
+
+  /** BIL-19, D8-49: the invoice a payment produced, if any. */
+  async findForPayment(tx: Executor, planPaymentId: string): Promise<SelectInvoice | null> {
+    const rows = await tx
+      .select()
+      .from(invoices)
+      .where(eq(invoices.planPaymentId, planPaymentId))
+      .limit(1);
     return rows[0] ?? null;
   }
 
