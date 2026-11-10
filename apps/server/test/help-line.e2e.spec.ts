@@ -27,6 +27,18 @@ let port: number;
 let admin: pg.Client;
 let operator: Record<string, string> = {};
 const texts = new SmsCapture();
+// Slice 8.8: Slices 8.6's and 8.7's nine settings, which migration 0128 gives rows.
+const NINE_SETTINGS = [
+  'help_whatsapp',
+  'help_phone',
+  'help_opens_hour',
+  'help_closes_hour',
+  'media_budget_usd',
+  'media_budget_alert_percent',
+  'media_cost_alert_email',
+  'cloudflare_billing_day',
+  'cloudflare_prices',
+];
 // Slice 8.8: the rows the migration gave Slices 8.6's and 8.7's settings, read before any test deletes them.
 let seeded: Record<string, unknown> = {};
 
@@ -39,7 +51,8 @@ beforeAll(async () => {
   admin = new pg.Client({ connectionString: urls.adminDbUrl });
   await admin.connect();
   const rows = await admin.query<{ key: string; value: unknown }>(
-    "SELECT key, value FROM control.platform_settings WHERE key LIKE 'help_%' OR key LIKE 'media_%' OR key LIKE 'cloudflare_%'",
+    'SELECT key, value FROM control.platform_settings WHERE key = ANY($1)',
+    [NINE_SETTINGS],
   );
   seeded = Object.fromEntries(rows.rows.map((row) => [row.key, row.value]));
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
