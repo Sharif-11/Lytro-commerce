@@ -2432,7 +2432,12 @@ Found while drawing Phase 8 Slice 8.8's screens. Each is built with 8.8's consol
 - **`GET /auth/operator/me` gives no operator id,** which the audit log's "only mine" and the manual entries' own filter need.
   **Fixed by Slice 8.8's console build.** The screenshot stays open for the dashboard's build.
 
-## 142. `ADM-14`, `D8-75`, `D8-78`: what Slice 8.8's console build found — found 2026-11-10, one fixed, two open
+## 142. `ADM-08`, `ADM-14`, `ADM-17`, `D8-75`, `D8-78`: what Slice 8.8's console build found — found 2026-11-10, two fixed, the rest open
+
+- **The console's policy refused payment screenshots.** `(operator_csp)` allowed fetches and images from the console's own
+  origin only, so a manual entry's screenshot could not go up to its signed link and a seller's could not show from its
+  five-minute link. **Fixed:** both directives allow `MEDIA_STORAGE_ENDPOINT`, as the dashboard's policy does; the
+  console's policy test proves an upload and a picture under it.
 
 - **Removing one of Lytro's numbers that a manual entry names answered 500.** Since Slice 8.5 an entry points at the wallet the
   money reached, so deleting that wallet broke the foreign key. **Fixed:** it is refused (`PlatformWalletInUse`, 409) with the
@@ -2444,3 +2449,14 @@ Found while drawing Phase 8 Slice 8.8's screens. Each is built with 8.8's consol
 - **The retiring courier's notice still says "বন্ধ হয়ে যাচ্ছে".** D8-78 made "রিটায়ার হচ্ছে" the word for a retiring payment
   method, and the dashboard's courier chip already says it, but Slice 6.6's courier notice (`courierRetiringText`) keeps the
   old words. For the owner: the same word for couriers, or leave it.
+- **Some audit lines show less than the sketch draws.** An approved payment's summary (`plan_payment_verified`) holds no
+  TrxID, an acknowledged notice's (`notice_acknowledged`) only the shop, so the audit log and a shop's latest actions show
+  the amount without the TrxID and the acknowledgement without the notice's title.
+- **The media alert keeps no percentage.** The "alert sent" banner says the setting's percent (80) where the sketch says
+  the one the spend had reached when the alert went (81).
+- **A manual entry's row names its plan but not the billing term,** so the list reads "Renewal · Growth" where the sketch
+  reads "Growth · 6 months".
+- **Undoing a wallet type's retiring can't say how many shops were told;** the console shows the larger of the shops on
+  the type and the shops with accounts for it.
+- **An entry's row doesn't say whether its screenshot is still kept;** the console says it was removed after two years from
+  the entry's date, or when the link answers 404.
