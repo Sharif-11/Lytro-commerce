@@ -280,9 +280,10 @@ export function paymentMethodRetiringText(method: PaymentMethod): NotificationTe
   const name = PAYMENT_METHOD_NAMES[method];
   return {
     bn: {
-      title: `${name.bn} বন্ধ হয়ে যাচ্ছে`,
+      // D8-78 (the owner's word, 2026-11-10): রিটায়ার হচ্ছে, as the chip, the activity log and the switches say it.
+      title: `${name.bn} রিটায়ার হচ্ছে`,
       body:
-        `Lytro ${name.bn} বন্ধ করছে। আপাতত আগের মতোই চলবে, চেকআউটেও। পরে এটি রিমুভ হলে এর অ্যাকাউন্টগুলোও চলে যাবে, ` +
+        `Lytro ${name.bn} রিটায়ার করছে। আপাতত আগের মতোই চলবে, চেকআউটেও। পরে এটি রিমুভ হলে এর অ্যাকাউন্টগুলোও চলে যাবে, ` +
         `তাই কাস্টমারদের জন্য অন্য একটি পেমেন্ট মেথড চালু রাখুন।`,
     },
     en: {

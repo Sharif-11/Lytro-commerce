@@ -56,6 +56,10 @@ export class DrizzleLytroPaymentMethodStore implements LytroPaymentMethodStore {
     return this.methods.updateBankAccount(tx, id, values);
   }
 
+  bankAccountUsed(tx: Transaction, id: string): Promise<boolean> {
+    return this.methods.bankAccountUsed(tx, id);
+  }
+
   removeBankAccount(tx: Transaction, id: string): Promise<boolean> {
     return this.methods.removeBankAccount(tx, id);
   }

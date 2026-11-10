@@ -19,6 +19,7 @@ import type {
 import { control, createdAt } from '../shared';
 import { paymentEvidence } from './payment-evidence';
 import { planPayments } from './plan-payments';
+import { platformBankAccounts } from './platform-payment-methods';
 import { platformWallets } from './platform-wallets';
 import { tenants } from './tenancy';
 
@@ -77,8 +78,10 @@ export const manualPaymentEntries = control.table(
       .references(() => planPayments.id),
     kind: text('kind').$type<PlanPaymentKind>().notNull(),
     amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),
-    // Null on a reversal, as is everything about how the money arrived.
+    // Null on a reversal, as is everything about how the money arrived. An entry names one of Lytro's numbers or, for a
+    // bank transfer (D8-75), one of its bank accounts, with the transfer's reference as its transaction ID and no sender.
     walletId: uuid('wallet_id').references(() => platformWallets.id),
+    bankAccountId: uuid('bank_account_id').references(() => platformBankAccounts.id),
     transactionId: text('transaction_id'),
     senderNumber: text('sender_number'),
     paidAt: timestamp('paid_at', { withTimezone: true }),
@@ -101,12 +104,17 @@ export const manualPaymentEntries = control.table(
     index('manual_payment_entries_transaction_idx').on(t.transactionId),
     index('manual_payment_entries_created_idx').on(t.createdAt),
     index('manual_payment_entries_tenant_idx').on(t.tenantId, t.createdAt),
-    // ADM-15: an entry states its wallet, transaction, sender, time and evidence; only a reversal may go without.
+    // ADM-15, D8-75: an entry states where the money arrived, its transaction, time and evidence, and a sender for a
+    // number but none for a bank account; only a reversal may go without.
     check(
       'manual_payment_entries_evidence_check',
       sql`${t.reversesEntryId} IS NOT NULL OR (
-        ${t.walletId} IS NOT NULL AND ${t.transactionId} IS NOT NULL AND ${t.senderNumber} IS NOT NULL
-        AND ${t.paidAt} IS NOT NULL AND (${t.evidenceId} IS NOT NULL OR ${t.evidenceLine} IS NOT NULL)
+        ${t.transactionId} IS NOT NULL AND ${t.paidAt} IS NOT NULL
+        AND (${t.evidenceId} IS NOT NULL OR ${t.evidenceLine} IS NOT NULL)
+        AND (
+          (${t.walletId} IS NOT NULL AND ${t.bankAccountId} IS NULL AND ${t.senderNumber} IS NOT NULL)
+          OR (${t.bankAccountId} IS NOT NULL AND ${t.walletId} IS NULL AND ${t.senderNumber} IS NULL)
+        )
       )`,
     ),
   ],

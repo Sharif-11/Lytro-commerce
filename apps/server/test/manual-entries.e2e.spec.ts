@@ -12,9 +12,9 @@ import { MEDIA_STORAGE } from '../src/modules/media/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { cookieFrom, getJson, postJson, type HttpResult } from './support/http';
+import { cookieFrom, deleteJson, getJson, postJson, type HttpResult } from './support/http';
 import { MemoryStorage } from './support/memory-storage';
-import { openShop, type ShopClient } from './support/shop-client';
+import { errorOf, fieldsOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
 // ADM-14 to ADM-17, D8-14, D8-15, D8-47 to D8-56 (Phase 8 Slice 8.5, read agreed 2026-11-09): a payment the operator records
@@ -968,5 +968,155 @@ describeIfDatabase('the revenue report (D8-10)', () => {
     const undone = await read();
     expect(undone.total.manual['plansReversed']).toBe('300.00');
     expect(undone.total.earned).toBe('0.00');
+  });
+});
+
+// Phase 8 Slice 8.8 (D8-75, the owner's answer to the sketch, 2026-11-10): a transfer to one of Lytro's bank accounts, recorded by
+// hand with the transfer's reference where a TrxID would be and no sender.
+describeIfDatabase("A manual entry paid to Lytro's bank account (D8-75)", () => {
+  async function bankAccount(): Promise<string> {
+    const { rows } = await admin.query<{ id: string }>(
+      `INSERT INTO control.platform_bank_accounts (bank_name, account_name, account_number, branch)
+       VALUES ('BRAC Bank', 'Lytronix Ltd', $1, 'Gulshan') RETURNING id`,
+      [`1501${fresh().replace(/[A-Z]/g, '7')}`],
+    );
+    return rows[0]?.id ?? '';
+  }
+
+  const reference = (): string => `brac-ft-${fresh().replace(/[A-Z]/g, '5')}`;
+
+  function bankBody(tenantId: string, bankAccountId: string, over: Record<string, unknown> = {}) {
+    // No number and no sender: a bank transfer has neither.
+    const body: Record<string, unknown> = {
+      ...entryBody(tenantId),
+      bankAccountId,
+      transactionId: reference(),
+    };
+    delete body['walletId'];
+    delete body['senderNumber'];
+    return { ...body, ...over };
+  }
+
+  it('records it as the queue would, the reference kept in capitals, with no sender, and the list names the account', async () => {
+    const client = await shop();
+    const account = await bankAccount();
+    const plan = await seedPlan(6, '3984.00');
+    const ref = reference();
+    const made = await operatorPost(
+      '/operator/manual-entries',
+      bankBody(client.tenantId, account, {
+        kind: 'plan',
+        ...plan,
+        amount: 3984,
+        amountConfirmation: 3984,
+        transactionId: ref,
+      }),
+    );
+    expect(made.status, JSON.stringify(made.envelope)).toBe(201);
+    expect(made.body).toMatchObject({
+      bankAccountId: account,
+      walletId: null,
+      senderNumber: null,
+      transactionId: ref.toUpperCase(),
+    });
+    const entry = made.body as Entry;
+    expect(await payment(entry.planPaymentId)).toMatchObject({
+      status: 'verified',
+      recorded_by_platform: true,
+      transaction_id: ref.toUpperCase(),
+    });
+    expect((await tenant(client.tenantId)).plan_id).toBe(plan.planId);
+    const listed = await getJson(
+      port,
+      `/operator/manual-entries?tenantId=${client.tenantId}`,
+      operator,
+    );
+    expect((listed.body as { entries: Entry[] }).entries).toEqual([
+      expect.objectContaining({ id: entry.id, bankAccountId: account, walletId: null }),
+    ]);
+  });
+
+  it('uses a reference once platform-wide, as a TrxID, and frees it when its entry is reversed (D8-56)', async () => {
+    const client = await shop();
+    const account = await bankAccount();
+    const ref = reference();
+    const first = await operatorPost(
+      '/operator/manual-entries',
+      bankBody(client.tenantId, account, { transactionId: ref }),
+    );
+    expect(first.status, JSON.stringify(first.envelope)).toBe(201);
+    const again = await operatorPost(
+      '/operator/manual-entries',
+      bankBody(client.tenantId, account, { transactionId: ref.toUpperCase() }),
+    );
+    expect(again.status).toBe(409);
+    expect(fieldsOf(again)).toEqual({ transactionId: 'already_used' });
+
+    expect((await reverse((first.body as Entry).id)).status).toBe(201);
+    const afterReversal = await operatorPost(
+      '/operator/manual-entries',
+      bankBody(client.tenantId, account, { transactionId: ref }),
+    );
+    expect(afterReversal.status, JSON.stringify(afterReversal.envelope)).toBe(201);
+  });
+
+  it("refuses an account that isn't Lytro's, a sender, both a number and an account, and a TrxID-only reference rule", async () => {
+    const client = await shop();
+    const account = await bankAccount();
+    const unknown = await operatorPost(
+      '/operator/manual-entries',
+      bankBody(client.tenantId, randomUUID()),
+    );
+    expect(unknown.status).toBe(404);
+    expect(errorOf(unknown).message).toMatch(/isn't one of Lytro's|Lytro-র নয়/);
+
+    const withSender = await operatorPost(
+      '/operator/manual-entries',
+      bankBody(client.tenantId, account, { senderNumber: '01712345678' }),
+    );
+    expect(withSender.status).toBe(400);
+    expect(fieldsOf(withSender)).toEqual({ senderNumber: 'not_allowed' });
+
+    const both = await operatorPost(
+      '/operator/manual-entries',
+      entryBody(client.tenantId, { bankAccountId: account }),
+    );
+    expect(both.status).toBe(400);
+    expect(fieldsOf(both)).toEqual({ bankAccountId: 'not_allowed' });
+
+    // A wallet's TrxID stays letters and digits only.
+    const dashed = await operatorPost(
+      '/operator/manual-entries',
+      entryBody(client.tenantId, { transactionId: 'BRAC-FT-55190327' }),
+    );
+    expect(dashed.status).toBe(400);
+    expect(fieldsOf(dashed)).toEqual({ transactionId: 'invalid_format' });
+  });
+
+  it('keeps an account a payment was recorded to from being removed; an unused one goes', async () => {
+    const client = await shop();
+    const used = await bankAccount();
+    expect(
+      (await operatorPost('/operator/manual-entries', bankBody(client.tenantId, used))).status,
+    ).toBe(201);
+    const refused = await deleteJson(
+      port,
+      `/operator/payment-methods/bank-accounts/${used}`,
+      operator,
+    );
+    expect(refused.status).toBe(409);
+    expect(errorOf(refused).message).toMatch(/Turn it off instead|বন্ধ করে দিন/);
+    const kept = await admin.query('SELECT id FROM control.platform_bank_accounts WHERE id = $1', [
+      used,
+    ]);
+    expect(kept.rowCount).toBe(1);
+
+    const unused = await bankAccount();
+    const removed = await deleteJson(
+      port,
+      `/operator/payment-methods/bank-accounts/${unused}`,
+      operator,
+    );
+    expect(removed.status, JSON.stringify(removed.envelope)).toBeLessThan(300);
   });
 });

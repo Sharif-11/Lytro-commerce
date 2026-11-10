@@ -132,7 +132,7 @@ async function operatorHeaders(): Promise<Record<string, string>> {
 // What each refusal says, in either language.
 const SAYS = {
   PaymentMethodNotFound: /no such payment method|এমন কোনো পেমেন্ট মেথড নেই/,
-  PaymentMethodRetiring: /retiring this payment method|মেথডটি বন্ধ করছে/,
+  PaymentMethodRetiring: /retiring this payment method|মেথডটি রিটায়ার করছে/,
   PaymentMethodAlreadyRetiring: /already being retired|আগেই রিটায়ার/,
   PaymentMethodNotRetiring: /isn’t being retired|রিটায়ার হচ্ছে না/,
   PaymentMethodRemovalBlocked: /can’t be removed yet|রিমুভ করা যাবে না/,

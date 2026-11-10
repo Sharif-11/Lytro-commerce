@@ -173,8 +173,10 @@ export const SHOPPER_ADDRESSES_MAX = 10;
 export const ADDRESS_LABEL_MAX_LENGTH = 30;
 export const SHOPPER_CODES_PER_SHOP_PER_HOUR = 30;
 export const SHOPPER_ORDER_PAGE_SIZE = 20;
-// ORD-15: a bank transfer's reference, as staff type it.
+// ORD-15: a bank transfer's reference, as staff type it; D8-75 (Slice 8.8): and as the operator records one paid to Lytro,
+// at least this long, since it is used once platform-wide.
 export const BANK_REFERENCE_MAX_LENGTH = 64;
+export const BANK_REFERENCE_MIN_LENGTH = 4;
 // PAY-14, PAY-20 (Slice 5.3): a note on a rejected or refunded payment.
 export const PAYMENT_NOTE_MAX_LENGTH = 500;
 // PAY-19: a page of the shop's payments.

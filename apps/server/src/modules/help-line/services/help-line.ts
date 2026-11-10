@@ -6,9 +6,14 @@ import {
 } from '@lytronix/validators';
 import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
 
+/** D8-76: a number not set yet, or cleared (stored empty), is none. */
+function numberOf(value: unknown): string | null {
+  return typeof value === 'string' && value !== '' ? value : null;
+}
+
 /** D8-4, D8-68: Lytro's help line, as every page that shows it reads it. */
 export interface HelpLineView {
-  /** Bangladeshi mobile numbers in their local form (01XXXXXXXXX); null until the operator sets one. */
+  /** Bangladeshi mobile numbers in their local form (01XXXXXXXXX); null until the operator sets one or after it is cleared. */
   whatsapp: string | null;
   phone: string | null;
   /** Hours of a 24-hour clock in Dhaka, every day; each page writes them in its own words. */
@@ -35,8 +40,8 @@ export class HelpLine {
       this.settings.current(PlatformSettingKey.HelpClosesHour),
     ]);
     return {
-      whatsapp: typeof whatsapp?.value === 'string' ? whatsapp.value : null,
-      phone: typeof phone?.value === 'string' ? phone.value : null,
+      whatsapp: numberOf(whatsapp?.value),
+      phone: numberOf(phone?.value),
       opensHour: typeof opens?.value === 'number' ? opens.value : DEFAULT_HELP_OPENS_HOUR,
       closesHour: typeof closes?.value === 'number' ? closes.value : DEFAULT_HELP_CLOSES_HOUR,
     };

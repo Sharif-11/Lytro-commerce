@@ -15,6 +15,8 @@ export interface ManualEntriesStore {
   /** D8-56: whether an entry that used this ID has been reversed. */
   hasReversedUse(tx: Transaction, transactionId: string): Promise<boolean>;
   walletExists(id: string): Promise<boolean>;
+  /** D8-75: one of Lytro's bank accounts. */
+  bankAccountExists(id: string): Promise<boolean>;
   list(filters: ManualEntryFilters): Promise<{ entries: ManualEntryRow[]; total: number }>;
   /** One entry as the list reads it, in the caller's transaction. */
   view(tx: Transaction, id: string): Promise<ManualEntryRow | null>;

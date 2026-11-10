@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  LytroPaymentMethodsRepository,
   ManualEntryRepository,
   PaymentEvidenceRepository,
   PlatformWalletsRepository,
@@ -24,6 +25,7 @@ export class DrizzleManualEntriesStore implements ManualEntriesStore {
     @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
     @Inject(ManualEntryRepository) private readonly entries: ManualEntryRepository,
     @Inject(PlatformWalletsRepository) private readonly wallets: PlatformWalletsRepository,
+    @Inject(LytroPaymentMethodsRepository) private readonly methods: LytroPaymentMethodsRepository,
   ) {}
 
   insert(tx: Transaction, values: InsertManualPaymentEntry): Promise<SelectManualPaymentEntry> {
@@ -44,6 +46,10 @@ export class DrizzleManualEntriesStore implements ManualEntriesStore {
 
   walletExists(id: string): Promise<boolean> {
     return this.wallets.exists(this.database.handle.db, id);
+  }
+
+  bankAccountExists(id: string): Promise<boolean> {
+    return this.methods.bankAccountExists(this.database.handle.db, id);
   }
 
   list(filters: ManualEntryFilters): Promise<{ entries: ManualEntryRow[]; total: number }> {

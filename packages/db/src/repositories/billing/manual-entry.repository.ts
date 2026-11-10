@@ -33,6 +33,8 @@ export interface ManualEntryRow {
   planName: string | null;
   amount: string;
   walletId: string | null;
+  /** D8-75: Lytro's bank account a transfer reached; its reference is the transaction ID. */
+  bankAccountId: string | null;
   transactionId: string | null;
   senderNumber: string | null;
   paidAt: Date | null;
@@ -114,6 +116,7 @@ export class ManualEntryRepository {
           planName: plans.name,
           amount: manualPaymentEntries.amount,
           walletId: manualPaymentEntries.walletId,
+          bankAccountId: manualPaymentEntries.bankAccountId,
           transactionId: manualPaymentEntries.transactionId,
           senderNumber: manualPaymentEntries.senderNumber,
           paidAt: manualPaymentEntries.paidAt,
