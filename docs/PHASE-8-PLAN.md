@@ -118,6 +118,14 @@ overrule any of them when reviewing this plan.
 | D8-54 | **A seller's screenshot is optional** (ADM-17). | Most wallet payments now match a receipt by themselves, so no one is stopped on a phone for one. The operator sees it in the queue when there is one. | Slice 8.5 |
 | D8-55 | **The list of entries.** | `GET /operator/manual-entries`: every entry and reversal, newest first, by shop, operator and day, with what reversed it. | Slice 8.5 |
 | D8-56 | **A transaction ID after a reversal.** | Another manual entry may use it, so a payment recorded against the wrong shop can be recorded properly. A seller's "I have paid" or an incoming receipt still finds it used. | Slice 8.5 |
+| D8-57 | **Where R2's figures come from** (MED-12; the owner's pick, 2026-11-10). | Cloudflare's own analytics, read each hour through its GraphQL API with the token the media edge already uses (Account Analytics: Read): the period's days not yet recorded and the last three again, each bucket a UTC day, kept in `control.media_cost_days` because Cloudflare keeps about 31 days. Never counted from Lytro's own calls. | Slice 8.6 |
+| D8-58 | **The budget** (the owner's pick). | $10 a month by default, in whole US dollars because Cloudflare bills in them, the alert at 80%: both platform settings the operator changes. | Slice 8.6 |
+| D8-59 | **What the budget covers** (the owner's pick). | The whole R2 bill: every bucket on the account, shown bucket by bucket, so payment screenshots (D8-47) have their own line and the total can be held against the invoice. | Slice 8.6 |
+| D8-60 | **Cloudflare's prices.** | One platform setting with R2's and Workers' prices and monthly allowances, defaults checked against Cloudflare's pricing pages on 2026-11-10. Usage rounds up to the next whole unit before the allowance comes off (1,000,001 writes bill as one million past the free one); a GB-month is each day's peak storage over 30; a GB is 10^9 bytes. | Slice 8.6 |
+| D8-61 | **Where the alert goes, and the billing period** (the address is the owner's pick). | One platform setting holds the alert's address, which may be an inbox that isn't an operator login; until it's set the alert is only logged. Operator accounts get no owner flag. The period starts on a billing day setting, 1 to 28, default 1, since Cloudflare's invoice follows the account's billing date. | Slice 8.6 |
+| D8-62 | **Price classes.** | Cloudflare's own lists of Class A, Class B and free operations; one it doesn't list counts as Class A, the dearer, so the estimate never runs low for it. | Slice 8.6 |
+| D8-63 | **The alert, once a period.** | After each hour's read, when the period's estimate reaches the alert's percent of the budget: one email in English through the mail outbox, recorded in `control.media_cost_alerts` so it never goes twice. | Slice 8.6 |
+| D8-64 | **The Workers line and the top shops.** | The media Worker's requests the server already counts per shop (`control.media_bandwidth_daily`, Dhaka days) plus Workers' monthly charge; the ten shops with the most requests, with their bytes. Workers' CPU time, KV and Analytics Engine aren't counted. | Slice 8.6 |
 
 ### 2.1 Points left to each slice's read
 
@@ -130,7 +138,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 8.3 | Whether a trial can be extended (D8-12), the most days at once, how the owner's new phone is checked before the code goes, and whether deleting a shop's data needs it suspended first. **Settled in Slice 8.3's read (2026-11-08):** D8-32 to D8-39. |
 | 8.4 | The nightly job's time and what it records, how far back the reports reach, and how a CSV is named. **Settled in Slice 8.4's read (2026-11-08):** D8-40 to D8-46. |
 | 8.5 | Where evidence is kept and for how long, what a reversal of a plan purchase undoes, and the digest's time. **Settled in Slice 8.5's read (2026-11-09):** D8-47 to D8-56; D8-53 drops the digest. |
-| 8.6 | R2's operation counts (D8-17), the budget's default and currency, and who the alert goes to. |
+| 8.6 | R2's operation counts (D8-17), the budget's default and currency, and who the alert goes to. **Settled in Slice 8.6's read (2026-11-10):** D8-57 to D8-64. |
 | 8.7 | The shop-ready SMS's words (D8-19), and whether the help menu's number shows to staff as well as the owner. |
 | 8.8 | Settled by its sketch: see that slice. |
 
@@ -292,6 +300,10 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
 - **Depends on:** 7.3 (the operators' email).
 - **Delivers:** each month's R2 operations and Worker requests, the top shops, the budget and its 80% email (MED-12,
   D8-17).
+- **Built** (read agreed 2026-11-10, D8-57 to D8-64): `MediaCosts` reads R2's days each hour from Cloudflare's GraphQL
+  analytics into `control.media_cost_days` and works out the period's bill from the price sheet;
+  `GET /operator/media-costs` shows it by bucket with the media Worker's requests and the top shops, and the alert goes
+  once a period to the address setting. The page waits for Slice 8.8.
 
 ### Slice 8.7: wallet types, the help line and the shop-ready SMS
 - **Depends on:** 8.0.
@@ -328,7 +340,7 @@ when it's needed and never open or print.
 
 | Slice | Needs |
 |---|---|
-| 8.6 | If R2's operations come from Cloudflare's analytics (D8-17), a read-only analytics token for the account |
+| 8.6 | Nothing new: the media edge's `CLOUDFLARE_API_TOKEN` already has Account Analytics: Read (RUNBOOKS), which Cloudflare's docs name for its GraphQL analytics; set the alert's address in the console |
 | 8.7 | Lytro's WhatsApp and phone number for the help line, entered by the owner in the console |
 
 ---
