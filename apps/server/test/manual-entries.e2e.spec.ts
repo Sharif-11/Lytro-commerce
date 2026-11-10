@@ -1119,4 +1119,19 @@ describeIfDatabase("A manual entry paid to Lytro's bank account (D8-75)", () => 
     );
     expect(removed.status, JSON.stringify(removed.envelope)).toBeLessThan(300);
   });
+  it('keeps a number a payment was recorded to from being removed, as a bank account (ADM-14)', async () => {
+    const client = await shop();
+    const { rows } = await admin.query<{ id: string }>(
+      `INSERT INTO control.platform_wallets (provider, number) VALUES ('nagad', '01800000009') RETURNING id`,
+    );
+    const number = rows[0]?.id ?? '';
+    await recorded(client.tenantId, { walletId: number });
+    const refused = await deleteJson(port, `/operator/platform-wallets/${number}`, operator);
+    expect(refused.status).toBe(409);
+    expect(errorOf(refused).message).toMatch(/Turn it off instead|বন্ধ করে দিন/);
+    const kept = await admin.query('SELECT id FROM control.platform_wallets WHERE id = $1', [
+      number,
+    ]);
+    expect(kept.rowCount).toBe(1);
+  });
 });

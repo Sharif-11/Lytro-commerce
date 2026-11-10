@@ -34,6 +34,7 @@ export const MESSAGE_KEYS = [
   'PlatformWalletNotFound',
   'PlatformBankAccountNotFound',
   'PlatformBankAccountInUse',
+  'PlatformWalletInUse',
   'HelpHoursOutOfOrder',
 
   // Billing / plans

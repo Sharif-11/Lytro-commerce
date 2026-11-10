@@ -85,6 +85,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: "That bank account isn't one of Lytro's.",
     bn: 'এই ব্যাংক অ্যাকাউন্টটি Lytro-র নয়।',
   },
+  PlatformWalletInUse: {
+    en: "A payment was recorded to this number, so it can't be removed. Turn it off instead.",
+    bn: 'এই নম্বরে পেমেন্ট রেকর্ড করা আছে, তাই রিমুভ করা যাবে না। এর বদলে বন্ধ করে দিন।',
+  },
   PlatformBankAccountInUse: {
     en: "A payment was recorded to this account, so it can't be removed. Turn it off instead.",
     bn: 'এই অ্যাকাউন্টে পেমেন্ট রেকর্ড করা আছে, তাই রিমুভ করা যাবে না। এর বদলে বন্ধ করে দিন।',

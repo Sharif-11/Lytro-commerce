@@ -69,6 +69,10 @@ export class PlatformWalletsService {
 
   remove(id: string, operatorId: string): Promise<void> {
     return this.store.run(async (tx) => {
+      // ADM-14 (found in Slice 8.8): a payment recorded to it keeps naming it; the operator turns it off instead.
+      if (await this.store.used(tx, id)) {
+        throw new ApiError('conflict', 'PlatformWalletInUse', {});
+      }
       await this.store.remove(tx, id);
       await this.platformAudit.recordWithin(tx, {
         actorType: PlatformActorType.Operator,

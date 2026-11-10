@@ -1,5 +1,5 @@
 import { asc, eq } from 'drizzle-orm';
-import { platformWallets, type SelectPlatformWallet } from '../../schema';
+import { manualPaymentEntries, platformWallets, type SelectPlatformWallet } from '../../schema';
 import type { Executor } from '../../transactions';
 
 export interface NewPlatformWallet {
@@ -41,6 +41,16 @@ export class PlatformWalletsRepository {
       .where(eq(platformWallets.id, id))
       .returning();
     return row ?? null;
+  }
+
+  /** ADM-14: whether a manual entry names this number, which keeps it from being removed. */
+  async used(db: Executor, id: string): Promise<boolean> {
+    const rows = await db
+      .select({ id: manualPaymentEntries.id })
+      .from(manualPaymentEntries)
+      .where(eq(manualPaymentEntries.walletId, id))
+      .limit(1);
+    return rows.length > 0;
   }
 
   async remove(db: Executor, id: string): Promise<void> {
