@@ -796,22 +796,6 @@ export function drawnShops(): ShopFixture[] {
   ];
 }
 
-/** A shop as the search lists it. */
-export function shopSummary(each: ShopFixture): Record<string, unknown> {
-  return {
-    id: each.id,
-    slug: each.slug,
-    shopName: each.shopName,
-    state: each.state,
-    suspendedAt: each.suspension?.at ?? null,
-    planId: each.planId,
-    planName: each.planName,
-    planVersion: each.planVersion,
-    overrideCount: each.overrides.length,
-    periodEnd: each.periodEnd,
-  };
-}
-
 /** A shop as its own page reads it. */
 export function shopDetail(each: ShopFixture): Record<string, unknown> {
   return {

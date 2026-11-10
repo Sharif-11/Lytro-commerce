@@ -231,6 +231,8 @@ export interface TenantSummary {
   planVersion: number | null;
   overrideCount: number;
   periodEnd: string | null;
+  /** D8-24: the owner's phone, so a search by it shows which shop matched. */
+  ownerPhone: string | null;
 }
 
 export interface TenantSummaryPage {

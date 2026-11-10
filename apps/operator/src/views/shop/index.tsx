@@ -3,7 +3,8 @@ import { Link, useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
 import { Button } from '@lytronix/ui';
-import { useShop } from '@/api/shops';
+import { TenantState } from '@lytronix/validators';
+import { useShop, useShopFigures } from '@/api/shops';
 import { Banner } from '@/components/ui/banner';
 import { ConsoleIcon } from '@/components/ui/console-icon';
 import { ConsoleCard, ConsolePage, PageTitle } from '@/components/ui/console-page';
@@ -14,14 +15,18 @@ import { LoadFailed } from '@/components/ui/load-failed';
 import { StatusChip } from '@/components/ui/status-chip';
 import { daysFromNow, formatDay } from '@/lib/format';
 import { ShopStateChip } from '@/views/shops/shop-state-chip';
+import { AccountCards } from './account-card';
+import { DeleteDataPanel, ExtendPanel, OwnerResetPanel } from './account-panels';
 import { AddonsCards } from './addons-card';
 import { OverridesCard } from './overrides-card';
 import { CouriersCard } from './couriers-card';
+import { CourierPanel, ErrorsPanel, SalesPanel, SmsPanel, WaitingPanel } from './figure-panels';
+import { ShopFiguresSection, type FigureList } from './figures';
 import { PaymentsCard } from './payments-card';
 import { PhonesCard } from './phones-card';
 import { AdjustPanel, AssignPanel, RestorePanel, SuspendPanel } from './shop-panels';
 
-type HeaderPanel = 'suspend' | 'restore' | 'adjust' | 'assign';
+type HeaderPanel = 'suspend' | 'restore' | 'adjust' | 'assign' | 'extend' | 'reset' | 'delete';
 
 const ACTION = 'flex-[1_1_auto] sm:flex-none';
 
@@ -41,7 +46,9 @@ export function Shop(): React.JSX.Element {
   const { t } = useTranslation();
   const { id } = useParams({ from: '/_console/shops/$id/' });
   const shop = useShop(id);
+  const figures = useShopFigures(id);
   const [panel, setPanel] = useState<HeaderPanel | null>(null);
+  const [list, setList] = useState<FigureList | null>(null);
   const [overridePanelOpen, setOverridePanelOpen] = useState(false);
 
   function close(): void {
@@ -90,6 +97,13 @@ export function Shop(): React.JSX.Element {
   }
 
   const days = data.periodEnd ? daysFromNow(data.periodEnd) : null;
+  // ADM-04, D8-32: only a period that ends can be extended; a pay-as-you-go shop has none.
+  const extendable = data.periodEnd !== null && data.state !== TenantState.PayAsYouGo;
+  const owner = figures.data?.signIns.find((member) => member.isOwner) ?? null;
+
+  function closeList(): void {
+    setList(null);
+  }
 
   return (
     <ConsolePage>
@@ -166,6 +180,21 @@ export function Shop(): React.JSX.Element {
             >
               {t('shop.assign')}
             </Button>
+            {extendable ? (
+              <Button
+                type="button"
+                tone="outline"
+                small
+                fit
+                className={ACTION}
+                onClick={() => {
+                  setPanel('extend');
+                }}
+              >
+                <ConsoleIcon name="calendar" size={18} />
+                {t('p88shops.extend')}
+              </Button>
+            ) : null}
             <Button
               type="button"
               small
@@ -216,6 +245,7 @@ export function Shop(): React.JSX.Element {
           <Fact label={t('shop.overrides')}>{data.overrideCount}</Fact>
         </div>
       </ConsoleCard>
+      <ShopFiguresSection shopId={data.id} onOpen={setList} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <PaymentsCard shop={data} />
         <PhonesCard shopId={data.id} />
@@ -223,10 +253,16 @@ export function Shop(): React.JSX.Element {
       <CouriersCard shopId={data.id} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <OverridesCard shop={data} adding={overridePanelOpen} onAdd={setOverridePanelOpen} />
-        <div className="flex flex-col gap-3">
-          <LaterCard title={t('shop.laterDetail')} hint={t('shop.laterDetailHint')} />
-          <LaterCard title={t('shop.laterActions')} hint={t('shop.laterActionsHint')} />
-        </div>
+        <AccountCards
+          shopId={data.id}
+          ownerPhone={owner?.phone ?? null}
+          onReset={() => {
+            setPanel('reset');
+          }}
+          onDelete={() => {
+            setPanel('delete');
+          }}
+        />
       </div>
       <AddonsCards shopId={data.id} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -237,6 +273,34 @@ export function Shop(): React.JSX.Element {
       {panel === 'restore' ? <RestorePanel shop={data} onClose={close} /> : null}
       {panel === 'adjust' ? <AdjustPanel shop={data} onClose={close} /> : null}
       {panel === 'assign' ? <AssignPanel shop={data} onClose={close} /> : null}
+      {panel === 'extend' ? (
+        <ExtendPanel
+          shop={data}
+          onClose={close}
+          onAssign={() => {
+            setPanel('assign');
+          }}
+        />
+      ) : null}
+      {panel === 'reset' ? (
+        <OwnerResetPanel
+          shop={data}
+          owner={{ name: owner?.name ?? null, phone: owner?.phone ?? null }}
+          onClose={close}
+        />
+      ) : null}
+      {panel === 'delete' ? <DeleteDataPanel shop={data} onClose={close} /> : null}
+      {list === 'errors' ? <ErrorsPanel shop={data} onClose={closeList} /> : null}
+      {list === 'sms' ? <SmsPanel shop={data} onClose={closeList} /> : null}
+      {list === 'courier' ? <CourierPanel shop={data} onClose={closeList} /> : null}
+      {list === 'waiting' ? (
+        <WaitingPanel
+          shop={data}
+          customers={figures.data?.paymentsWaiting.customers ?? 0}
+          onClose={closeList}
+        />
+      ) : null}
+      {list === 'sales' ? <SalesPanel shop={data} onClose={closeList} /> : null}
     </ConsolePage>
   );
 }
