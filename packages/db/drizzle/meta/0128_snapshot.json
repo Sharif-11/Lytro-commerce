@@ -196,12 +196,8 @@
           "tableFrom": "plan_versions",
           "tableTo": "plans",
           "schemaTo": "control",
-          "columnsFrom": [
-            "plan_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["plan_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -211,10 +207,7 @@
         "plan_versions_plan_version_key": {
           "name": "plan_versions_plan_version_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "plan_id",
-            "version"
-          ]
+          "columns": ["plan_id", "version"]
         }
       },
       "policies": {},
@@ -372,12 +365,8 @@
           "tableFrom": "oauth_states",
           "tableTo": "subscribers",
           "schemaTo": "control",
-          "columnsFrom": [
-            "attach_to_subscriber_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["attach_to_subscriber_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -387,9 +376,7 @@
         "oauth_states_state_unique": {
           "name": "oauth_states_state_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "state"
-          ]
+          "columns": ["state"]
         }
       },
       "policies": {},
@@ -504,12 +491,8 @@
           "tableFrom": "sign_in_failures",
           "tableTo": "subscribers",
           "schemaTo": "control",
-          "columnsFrom": [
-            "subscriber_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscriber_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -518,12 +501,8 @@
           "tableFrom": "sign_in_failures",
           "tableTo": "operator_accounts",
           "schemaTo": "control",
-          "columnsFrom": [
-            "operator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["operator_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -677,12 +656,8 @@
           "tableFrom": "subscriber_identities",
           "tableTo": "subscribers",
           "schemaTo": "control",
-          "columnsFrom": [
-            "subscriber_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscriber_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -831,12 +806,8 @@
           "tableFrom": "trial_creations",
           "tableTo": "subscriber_identities",
           "schemaTo": "control",
-          "columnsFrom": [
-            "identity_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["identity_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1023,12 +994,8 @@
           "tableFrom": "tenant_domains",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1369,12 +1336,8 @@
           "tableFrom": "tenants",
           "tableTo": "subscriber_identities",
           "schemaTo": "control",
-          "columnsFrom": [
-            "owner_identity_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_identity_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1383,12 +1346,8 @@
           "tableFrom": "tenants",
           "tableTo": "subscribers",
           "schemaTo": "control",
-          "columnsFrom": [
-            "subscriber_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscriber_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1397,12 +1356,8 @@
           "tableFrom": "tenants",
           "tableTo": "plans",
           "schemaTo": "control",
-          "columnsFrom": [
-            "plan_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["plan_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1411,12 +1366,8 @@
           "tableFrom": "tenants",
           "tableTo": "business_type_presets",
           "schemaTo": "control",
-          "columnsFrom": [
-            "business_type"
-          ],
-          "columnsTo": [
-            "key"
-          ],
+          "columnsFrom": ["business_type"],
+          "columnsTo": ["key"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1426,9 +1377,7 @@
         "tenants_slug_unique": {
           "name": "tenants_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -1587,12 +1536,8 @@
           "tableFrom": "sessions",
           "tableTo": "subscribers",
           "schemaTo": "control",
-          "columnsFrom": [
-            "subscriber_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subscriber_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1601,12 +1546,8 @@
           "tableFrom": "sessions",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1616,9 +1557,7 @@
         "sessions_token_hash_unique": {
           "name": "sessions_token_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
+          "columns": ["token_hash"]
         }
       },
       "policies": {},
@@ -1765,12 +1704,8 @@
           "tableFrom": "sms_outbox",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2066,10 +2001,7 @@
         "roles_tenant_id_key": {
           "name": "roles_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -2106,14 +2038,8 @@
           "tableFrom": "user_roles",
           "tableTo": "users",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "user_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2122,14 +2048,8 @@
           "tableFrom": "user_roles",
           "tableTo": "roles",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "role_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "role_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2137,11 +2057,7 @@
       "compositePrimaryKeys": {
         "user_roles_tenant_id_user_id_role_id_pk": {
           "name": "user_roles_tenant_id_user_id_role_id_pk",
-          "columns": [
-            "tenant_id",
-            "user_id",
-            "role_id"
-          ]
+          "columns": ["tenant_id", "user_id", "role_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2281,17 +2197,12 @@
         "users_tenant_id_key": {
           "name": "users_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         },
         "users_subscriber_key": {
           "name": "users_subscriber_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "subscriber_id"
-          ]
+          "columns": ["subscriber_id"]
         }
       },
       "policies": {},
@@ -2629,9 +2540,7 @@
         "operator_accounts_email_unique": {
           "name": "operator_accounts_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -2698,12 +2607,8 @@
           "tableFrom": "operator_backup_codes",
           "tableTo": "operator_accounts",
           "schemaTo": "control",
-          "columnsFrom": [
-            "operator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["operator_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2820,12 +2725,8 @@
           "tableFrom": "operator_sessions",
           "tableTo": "operator_accounts",
           "schemaTo": "control",
-          "columnsFrom": [
-            "operator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["operator_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2835,9 +2736,7 @@
         "operator_sessions_token_hash_unique": {
           "name": "operator_sessions_token_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
+          "columns": ["token_hash"]
         }
       },
       "policies": {},
@@ -2996,14 +2895,8 @@
           "tableFrom": "shop_settings",
           "tableTo": "tax_classes",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "default_tax_class_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "default_tax_class_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3192,12 +3085,8 @@
           "tableFrom": "billing_terms",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3243,12 +3132,8 @@
           "tableFrom": "plan_prices",
           "tableTo": "plans",
           "schemaTo": "control",
-          "columnsFrom": [
-            "plan_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["plan_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3257,12 +3142,8 @@
           "tableFrom": "plan_prices",
           "tableTo": "billing_terms",
           "schemaTo": "control",
-          "columnsFrom": [
-            "billing_term_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["billing_term_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3270,10 +3151,7 @@
       "compositePrimaryKeys": {
         "plan_prices_plan_id_billing_term_id_pk": {
           "name": "plan_prices_plan_id_billing_term_id_pk",
-          "columns": [
-            "plan_id",
-            "billing_term_id"
-          ]
+          "columns": ["plan_id", "billing_term_id"]
         }
       },
       "uniqueConstraints": {},
@@ -3337,12 +3215,8 @@
           "tableFrom": "plan_assignments",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3351,12 +3225,8 @@
           "tableFrom": "plan_assignments",
           "tableTo": "plans",
           "schemaTo": "control",
-          "columnsFrom": [
-            "plan_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["plan_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3423,12 +3293,8 @@
           "tableFrom": "plan_limit_overrides",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3438,10 +3304,7 @@
         "plan_limit_overrides_tenant_key_key": {
           "name": "plan_limit_overrides_tenant_key_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "limit_key"
-          ]
+          "columns": ["tenant_id", "limit_key"]
         }
       },
       "policies": {},
@@ -3530,12 +3393,8 @@
           "tableFrom": "invoice_lines",
           "tableTo": "invoices",
           "schemaTo": "control",
-          "columnsFrom": [
-            "invoice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invoice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3545,10 +3404,7 @@
         "invoice_lines_position_key": {
           "name": "invoice_lines_position_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "invoice_id",
-            "position"
-          ]
+          "columns": ["invoice_id", "position"]
         }
       },
       "policies": {},
@@ -3720,12 +3576,8 @@
           "tableFrom": "invoices",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3735,9 +3587,7 @@
         "invoices_number_unique": {
           "name": "invoices_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "number"
-          ]
+          "columns": ["number"]
         }
       },
       "policies": {},
@@ -3822,12 +3672,8 @@
           "tableFrom": "payment_evidence",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3837,9 +3683,7 @@
         "payment_evidence_object_key_unique": {
           "name": "payment_evidence_object_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "object_key"
-          ]
+          "columns": ["object_key"]
         }
       },
       "policies": {},
@@ -4138,12 +3982,8 @@
           "tableFrom": "plan_payments",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4152,12 +3992,8 @@
           "tableFrom": "plan_payments",
           "tableTo": "plans",
           "schemaTo": "control",
-          "columnsFrom": [
-            "plan_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["plan_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4166,12 +4002,8 @@
           "tableFrom": "plan_payments",
           "tableTo": "billing_terms",
           "schemaTo": "control",
-          "columnsFrom": [
-            "billing_term_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["billing_term_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4180,12 +4012,8 @@
           "tableFrom": "plan_payments",
           "tableTo": "payment_evidence",
           "schemaTo": "control",
-          "columnsFrom": [
-            "evidence_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["evidence_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4293,11 +4121,7 @@
       "compositePrimaryKeys": {
         "idempotency_keys_pkey": {
           "name": "idempotency_keys_pkey",
-          "columns": [
-            "tenant_id",
-            "caller",
-            "key"
-          ]
+          "columns": ["tenant_id", "caller", "key"]
         }
       },
       "uniqueConstraints": {},
@@ -4355,12 +4179,8 @@
           "tableFrom": "scheduled_plan_changes",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4369,12 +4189,8 @@
           "tableFrom": "scheduled_plan_changes",
           "tableTo": "plans",
           "schemaTo": "control",
-          "columnsFrom": [
-            "target_plan_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["target_plan_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4384,9 +4200,7 @@
         "scheduled_plan_changes_tenant_id_unique": {
           "name": "scheduled_plan_changes_tenant_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id"
-          ]
+          "columns": ["tenant_id"]
         }
       },
       "policies": {},
@@ -4557,12 +4371,8 @@
           "tableFrom": "essential_sms_usage",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5010,14 +4820,8 @@
           "tableFrom": "categories",
           "tableTo": "categories",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "parent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "parent_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5027,18 +4831,12 @@
         "categories_tenant_slug_key": {
           "name": "categories_tenant_slug_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "slug"
-          ]
+          "columns": ["tenant_id", "slug"]
         },
         "categories_tenant_id_key": {
           "name": "categories_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -5108,14 +4906,8 @@
           "tableFrom": "combo_part_variants",
           "tableTo": "combo_parts",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "part_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "part_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5124,14 +4916,8 @@
           "tableFrom": "combo_part_variants",
           "tableTo": "product_variants",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "variant_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "variant_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5139,20 +4925,14 @@
       "compositePrimaryKeys": {
         "combo_part_variants_part_id_variant_id_pk": {
           "name": "combo_part_variants_part_id_variant_id_pk",
-          "columns": [
-            "part_id",
-            "variant_id"
-          ]
+          "columns": ["part_id", "variant_id"]
         }
       },
       "uniqueConstraints": {
         "combo_part_variants_position_key": {
           "name": "combo_part_variants_position_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "part_id",
-            "position"
-          ]
+          "columns": ["part_id", "position"]
         }
       },
       "policies": {},
@@ -5207,14 +4987,8 @@
           "tableFrom": "combo_parts",
           "tableTo": "products",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "combo_product_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "combo_product_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5224,18 +4998,12 @@
         "combo_parts_tenant_id_key": {
           "name": "combo_parts_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         },
         "combo_parts_position_key": {
           "name": "combo_parts_position_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "combo_product_id",
-            "position"
-          ]
+          "columns": ["combo_product_id", "position"]
         }
       },
       "policies": {},
@@ -5334,14 +5102,8 @@
           "tableFrom": "modifier_groups",
           "tableTo": "products",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "product_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5351,10 +5113,7 @@
         "modifier_groups_tenant_id_key": {
           "name": "modifier_groups_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -5451,14 +5210,8 @@
           "tableFrom": "modifier_options",
           "tableTo": "modifier_groups",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "group_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "group_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5521,14 +5274,8 @@
           "tableFrom": "product_categories",
           "tableTo": "products",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "product_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5537,14 +5284,8 @@
           "tableFrom": "product_categories",
           "tableTo": "categories",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "category_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "category_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5552,11 +5293,7 @@
       "compositePrimaryKeys": {
         "product_categories_tenant_id_product_id_category_id_pk": {
           "name": "product_categories_tenant_id_product_id_category_id_pk",
-          "columns": [
-            "tenant_id",
-            "product_id",
-            "category_id"
-          ]
+          "columns": ["tenant_id", "product_id", "category_id"]
         }
       },
       "uniqueConstraints": {},
@@ -5601,14 +5338,8 @@
           "tableFrom": "product_slug_redirects",
           "tableTo": "products",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "product_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5616,10 +5347,7 @@
       "compositePrimaryKeys": {
         "product_slug_redirects_pkey": {
           "name": "product_slug_redirects_pkey",
-          "columns": [
-            "tenant_id",
-            "old_slug"
-          ]
+          "columns": ["tenant_id", "old_slug"]
         }
       },
       "uniqueConstraints": {},
@@ -5772,14 +5500,8 @@
           "tableFrom": "product_variants",
           "tableTo": "products",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "product_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5789,27 +5511,17 @@
         "product_variants_tenant_id_key": {
           "name": "product_variants_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         },
         "product_variants_tenant_product_id_key": {
           "name": "product_variants_tenant_product_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "product_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "product_id", "id"]
         },
         "product_variants_product_combination_key": {
           "name": "product_variants_product_combination_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "product_id",
-            "combination_key"
-          ]
+          "columns": ["product_id", "combination_key"]
         }
       },
       "policies": {},
@@ -6247,14 +5959,8 @@
           "tableFrom": "products",
           "tableTo": "categories",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "primary_category_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "primary_category_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6263,14 +5969,8 @@
           "tableFrom": "products",
           "tableTo": "tax_classes",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "tax_class_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "tax_class_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6280,18 +5980,12 @@
         "products_tenant_slug_key": {
           "name": "products_tenant_slug_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "slug"
-          ]
+          "columns": ["tenant_id", "slug"]
         },
         "products_tenant_id_key": {
           "name": "products_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -6440,14 +6134,8 @@
           "tableFrom": "size_charts",
           "tableTo": "products",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "product_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6456,14 +6144,8 @@
           "tableFrom": "size_charts",
           "tableTo": "categories",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "category_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "category_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6556,10 +6238,7 @@
         "tax_classes_tenant_id_key": {
           "name": "tax_classes_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -6729,12 +6408,8 @@
           "tableFrom": "attribute_options",
           "tableTo": "attributes",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "attribute_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["attribute_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6744,10 +6419,7 @@
         "attribute_options_attribute_id_key": {
           "name": "attribute_options_attribute_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "attribute_id",
-            "id"
-          ]
+          "columns": ["attribute_id", "id"]
         }
       },
       "policies": {},
@@ -6907,12 +6579,8 @@
           "tableFrom": "category_attributes",
           "tableTo": "attributes",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "attribute_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["attribute_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6921,14 +6589,8 @@
           "tableFrom": "category_attributes",
           "tableTo": "categories",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "category_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "category_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6936,11 +6598,7 @@
       "compositePrimaryKeys": {
         "category_attributes_tenant_id_category_id_attribute_id_pk": {
           "name": "category_attributes_tenant_id_category_id_attribute_id_pk",
-          "columns": [
-            "tenant_id",
-            "category_id",
-            "attribute_id"
-          ]
+          "columns": ["tenant_id", "category_id", "attribute_id"]
         }
       },
       "uniqueConstraints": {},
@@ -7137,16 +6795,8 @@
           "tableFrom": "product_attribute_values",
           "tableTo": "product_attributes",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "product_id",
-            "attribute_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "product_id",
-            "attribute_id"
-          ],
+          "columnsFrom": ["tenant_id", "product_id", "attribute_id"],
+          "columnsTo": ["tenant_id", "product_id", "attribute_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -7155,14 +6805,8 @@
           "tableFrom": "product_attribute_values",
           "tableTo": "attribute_options",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "attribute_id",
-            "option_id"
-          ],
-          "columnsTo": [
-            "attribute_id",
-            "id"
-          ],
+          "columnsFrom": ["attribute_id", "option_id"],
+          "columnsTo": ["attribute_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7222,12 +6866,8 @@
           "tableFrom": "product_attributes",
           "tableTo": "attributes",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "attribute_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["attribute_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7236,14 +6876,8 @@
           "tableFrom": "product_attributes",
           "tableTo": "products",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "product_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -7251,11 +6885,7 @@
       "compositePrimaryKeys": {
         "product_attributes_tenant_id_product_id_attribute_id_pk": {
           "name": "product_attributes_tenant_id_product_id_attribute_id_pk",
-          "columns": [
-            "tenant_id",
-            "product_id",
-            "attribute_id"
-          ]
+          "columns": ["tenant_id", "product_id", "attribute_id"]
         }
       },
       "uniqueConstraints": {},
@@ -7305,16 +6935,8 @@
           "tableFrom": "variant_attribute_values",
           "tableTo": "product_variants",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "product_id",
-            "variant_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "product_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "product_id", "variant_id"],
+          "columnsTo": ["tenant_id", "product_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -7323,16 +6945,8 @@
           "tableFrom": "variant_attribute_values",
           "tableTo": "product_attributes",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "product_id",
-            "attribute_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "product_id",
-            "attribute_id"
-          ],
+          "columnsFrom": ["tenant_id", "product_id", "attribute_id"],
+          "columnsTo": ["tenant_id", "product_id", "attribute_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7341,14 +6955,8 @@
           "tableFrom": "variant_attribute_values",
           "tableTo": "attribute_options",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "attribute_id",
-            "option_id"
-          ],
-          "columnsTo": [
-            "attribute_id",
-            "id"
-          ],
+          "columnsFrom": ["attribute_id", "option_id"],
+          "columnsTo": ["attribute_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7356,11 +6964,7 @@
       "compositePrimaryKeys": {
         "variant_attribute_values_tenant_id_variant_id_attribute_id_pk": {
           "name": "variant_attribute_values_tenant_id_variant_id_attribute_id_pk",
-          "columns": [
-            "tenant_id",
-            "variant_id",
-            "attribute_id"
-          ]
+          "columns": ["tenant_id", "variant_id", "attribute_id"]
         }
       },
       "uniqueConstraints": {},
@@ -7573,12 +7177,8 @@
           "tableFrom": "locations",
           "tableTo": "zillas",
           "schemaTo": "control",
-          "columnsFrom": [
-            "zilla_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["zilla_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7587,12 +7187,8 @@
           "tableFrom": "locations",
           "tableTo": "cities",
           "schemaTo": "control",
-          "columnsFrom": [
-            "city_code"
-          ],
-          "columnsTo": [
-            "code"
-          ],
+          "columnsFrom": ["city_code"],
+          "columnsTo": ["code"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7780,14 +7376,8 @@
           "tableFrom": "delivery_zone_areas",
           "tableTo": "delivery_zones",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "zone_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "zone_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -7908,10 +7498,7 @@
         "delivery_zones_tenant_id_key": {
           "name": "delivery_zones_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -7983,14 +7570,8 @@
           "tableFrom": "product_delivery_zones",
           "tableTo": "products",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "product_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -7999,14 +7580,8 @@
           "tableFrom": "product_delivery_zones",
           "tableTo": "delivery_zones",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "zone_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "zone_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8014,11 +7589,7 @@
       "compositePrimaryKeys": {
         "product_delivery_zones_tenant_id_product_id_zone_id_pk": {
           "name": "product_delivery_zones_tenant_id_product_id_zone_id_pk",
-          "columns": [
-            "tenant_id",
-            "product_id",
-            "zone_id"
-          ]
+          "columns": ["tenant_id", "product_id", "zone_id"]
         }
       },
       "uniqueConstraints": {},
@@ -8153,14 +7724,8 @@
           "tableFrom": "serial_numbers",
           "tableTo": "product_variants",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "variant_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "variant_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -8169,14 +7734,8 @@
           "tableFrom": "serial_numbers",
           "tableTo": "orders",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "sold_order_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "sold_order_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8186,10 +7745,7 @@
         "serial_numbers_tenant_id_key": {
           "name": "serial_numbers_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -8386,14 +7942,8 @@
           "tableFrom": "stock_batches",
           "tableTo": "product_variants",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "variant_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "variant_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -8403,10 +7953,7 @@
         "stock_batches_tenant_id_key": {
           "name": "stock_batches_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -8524,14 +8071,8 @@
           "tableFrom": "stock_check_lines",
           "tableTo": "stock_checks",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "check_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "check_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -8650,10 +8191,7 @@
         "stock_checks_tenant_id_key": {
           "name": "stock_checks_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -8736,14 +8274,8 @@
           "tableFrom": "stock_levels",
           "tableTo": "product_variants",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "variant_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "variant_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -8751,10 +8283,7 @@
       "compositePrimaryKeys": {
         "stock_levels_pkey": {
           "name": "stock_levels_pkey",
-          "columns": [
-            "tenant_id",
-            "variant_id"
-          ]
+          "columns": ["tenant_id", "variant_id"]
         }
       },
       "uniqueConstraints": {},
@@ -9163,14 +8692,8 @@
           "tableFrom": "stock_reservations",
           "tableTo": "orders",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "order_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "order_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -9179,14 +8702,8 @@
           "tableFrom": "stock_reservations",
           "tableTo": "order_lines",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "order_line_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "order_line_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -9196,10 +8713,7 @@
         "stock_reservations_tenant_id_key": {
           "name": "stock_reservations_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -9339,14 +8853,8 @@
           "tableFrom": "purchase_order_lines",
           "tableTo": "purchase_orders",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "purchase_order_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "purchase_order_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -9356,18 +8864,12 @@
         "purchase_order_lines_tenant_id_key": {
           "name": "purchase_order_lines_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         },
         "purchase_order_lines_variant_key": {
           "name": "purchase_order_lines_variant_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "purchase_order_id",
-            "variant_id"
-          ]
+          "columns": ["purchase_order_id", "variant_id"]
         }
       },
       "policies": {},
@@ -9523,14 +9025,8 @@
           "tableFrom": "purchase_orders",
           "tableTo": "suppliers",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "supplier_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "supplier_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9540,18 +9036,12 @@
         "purchase_orders_tenant_id_key": {
           "name": "purchase_orders_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         },
         "purchase_orders_tenant_number_key": {
           "name": "purchase_orders_tenant_number_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "number"
-          ]
+          "columns": ["tenant_id", "number"]
         }
       },
       "policies": {},
@@ -9656,14 +9146,8 @@
           "tableFrom": "purchase_receipt_lines",
           "tableTo": "purchase_receipts",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "receipt_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "receipt_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9672,14 +9156,8 @@
           "tableFrom": "purchase_receipt_lines",
           "tableTo": "purchase_order_lines",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "purchase_line_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "purchase_line_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9687,11 +9165,7 @@
       "compositePrimaryKeys": {
         "purchase_receipt_lines_tenant_id_receipt_id_purchase_line_id_pk": {
           "name": "purchase_receipt_lines_tenant_id_receipt_id_purchase_line_id_pk",
-          "columns": [
-            "tenant_id",
-            "receipt_id",
-            "purchase_line_id"
-          ]
+          "columns": ["tenant_id", "receipt_id", "purchase_line_id"]
         }
       },
       "uniqueConstraints": {},
@@ -9796,14 +9270,8 @@
           "tableFrom": "purchase_receipts",
           "tableTo": "purchase_orders",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "purchase_order_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "purchase_order_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9813,10 +9281,7 @@
         "purchase_receipts_tenant_id_key": {
           "name": "purchase_receipts_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -9921,10 +9386,7 @@
         "suppliers_tenant_id_key": {
           "name": "suppliers_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -10090,10 +9552,7 @@
         "customers_tenant_id_key": {
           "name": "customers_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -10225,14 +9684,8 @@
           "tableFrom": "shopper_addresses",
           "tableTo": "shoppers",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "shopper_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "shopper_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -10443,14 +9896,8 @@
           "tableFrom": "shopper_sessions",
           "tableTo": "shoppers",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "shopper_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "shopper_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -10553,10 +10000,7 @@
         "shoppers_tenant_id_key": {
           "name": "shoppers_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -10654,14 +10098,8 @@
           "tableFrom": "order_calls",
           "tableTo": "orders",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "order_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "order_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -10706,10 +10144,7 @@
       "compositePrimaryKeys": {
         "order_counters_tenant_id_day_pk": {
           "name": "order_counters_tenant_id_day_pk",
-          "columns": [
-            "tenant_id",
-            "day"
-          ]
+          "columns": ["tenant_id", "day"]
         }
       },
       "uniqueConstraints": {},
@@ -10834,14 +10269,8 @@
           "tableFrom": "order_line_components",
           "tableTo": "order_lines",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "order_line_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "order_line_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -10851,10 +10280,7 @@
         "order_line_components_position_key": {
           "name": "order_line_components_position_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "order_line_id",
-            "position"
-          ]
+          "columns": ["order_line_id", "position"]
         }
       },
       "policies": {},
@@ -11150,14 +10576,8 @@
           "tableFrom": "order_lines",
           "tableTo": "orders",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "order_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "order_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -11167,10 +10587,7 @@
         "order_lines_tenant_id_key": {
           "name": "order_lines_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -11400,14 +10817,8 @@
           "tableFrom": "payments",
           "tableTo": "orders",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "order_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "order_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -11537,14 +10948,8 @@
           "tableFrom": "order_status_history",
           "tableTo": "orders",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "order_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "order_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -11973,14 +11378,8 @@
           "tableFrom": "orders",
           "tableTo": "customers",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "customer_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "customer_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -11990,25 +11389,17 @@
         "orders_tenant_id_key": {
           "name": "orders_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         },
         "orders_tenant_number_key": {
           "name": "orders_tenant_number_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "order_number"
-          ]
+          "columns": ["tenant_id", "order_number"]
         },
         "orders_tracking_id_key": {
           "name": "orders_tracking_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tracking_id"
-          ]
+          "columns": ["tracking_id"]
         }
       },
       "policies": {},
@@ -12069,10 +11460,7 @@
       "compositePrimaryKeys": {
         "payment_method_ways_pkey": {
           "name": "payment_method_ways_pkey",
-          "columns": [
-            "tenant_id",
-            "method"
-          ]
+          "columns": ["tenant_id", "method"]
         }
       },
       "uniqueConstraints": {},
@@ -12115,10 +11503,7 @@
       "compositePrimaryKeys": {
         "payment_methods_on_tenant_id_method_pk": {
           "name": "payment_methods_on_tenant_id_method_pk",
-          "columns": [
-            "tenant_id",
-            "method"
-          ]
+          "columns": ["tenant_id", "method"]
         }
       },
       "uniqueConstraints": {},
@@ -12367,10 +11752,7 @@
         "wallet_accounts_tenant_id_key": {
           "name": "wallet_accounts_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -12623,10 +12005,7 @@
         "courier_connections_courier_key": {
           "name": "courier_connections_courier_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "courier_key"
-          ]
+          "columns": ["tenant_id", "courier_key"]
         }
       },
       "policies": {},
@@ -12866,12 +12245,8 @@
           "tableFrom": "courier_events",
           "tableTo": "courier_parcels",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "parcel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parcel_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -12881,11 +12256,7 @@
         "courier_events_dedupe_key": {
           "name": "courier_events_dedupe_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "courier_key",
-            "dedupe_key"
-          ]
+          "columns": ["tenant_id", "courier_key", "dedupe_key"]
         }
       },
       "policies": {},
@@ -13352,14 +12723,8 @@
           "tableFrom": "courier_parcels",
           "tableTo": "orders",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "order_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "order_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -13486,11 +12851,7 @@
         "courier_payouts_payout_key": {
           "name": "courier_payouts_payout_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "courier_key",
-            "payout_id"
-          ]
+          "columns": ["tenant_id", "courier_key", "payout_id"]
         }
       },
       "policies": {},
@@ -13734,14 +13095,8 @@
           "tableFrom": "notification_preferences",
           "tableTo": "users",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "user_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -13749,11 +13104,7 @@
       "compositePrimaryKeys": {
         "notification_preferences_tenant_id_user_id_kind_pk": {
           "name": "notification_preferences_tenant_id_user_id_kind_pk",
-          "columns": [
-            "tenant_id",
-            "user_id",
-            "kind"
-          ]
+          "columns": ["tenant_id", "user_id", "kind"]
         }
       },
       "uniqueConstraints": {},
@@ -13894,14 +13245,8 @@
           "tableFrom": "notifications",
           "tableTo": "users",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "user_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -13987,14 +13332,8 @@
           "tableFrom": "push_subscriptions",
           "tableTo": "users",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "user_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -14004,11 +13343,7 @@
         "push_subscriptions_user_endpoint_key": {
           "name": "push_subscriptions_user_endpoint_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "user_id",
-            "endpoint"
-          ]
+          "columns": ["tenant_id", "user_id", "endpoint"]
         }
       },
       "policies": {},
@@ -14052,12 +13387,8 @@
           "tableFrom": "notice_acknowledgments",
           "tableTo": "notices",
           "schemaTo": "control",
-          "columnsFrom": [
-            "notice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["notice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -14066,12 +13397,8 @@
           "tableFrom": "notice_acknowledgments",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -14079,10 +13406,7 @@
       "compositePrimaryKeys": {
         "notice_acknowledgments_notice_id_tenant_id_pk": {
           "name": "notice_acknowledgments_notice_id_tenant_id_pk",
-          "columns": [
-            "notice_id",
-            "tenant_id"
-          ]
+          "columns": ["notice_id", "tenant_id"]
         }
       },
       "uniqueConstraints": {},
@@ -14149,12 +13473,8 @@
           "tableFrom": "notice_deliveries",
           "tableTo": "notices",
           "schemaTo": "control",
-          "columnsFrom": [
-            "notice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["notice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -14163,12 +13483,8 @@
           "tableFrom": "notice_deliveries",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -14176,10 +13492,7 @@
       "compositePrimaryKeys": {
         "notice_deliveries_notice_id_tenant_id_pk": {
           "name": "notice_deliveries_notice_id_tenant_id_pk",
-          "columns": [
-            "notice_id",
-            "tenant_id"
-          ]
+          "columns": ["notice_id", "tenant_id"]
         }
       },
       "uniqueConstraints": {},
@@ -14251,12 +13564,8 @@
           "tableFrom": "notice_reads",
           "tableTo": "notices",
           "schemaTo": "control",
-          "columnsFrom": [
-            "notice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["notice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -14265,14 +13574,8 @@
           "tableFrom": "notice_reads",
           "tableTo": "users",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "user_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -14280,11 +13583,7 @@
       "compositePrimaryKeys": {
         "notice_reads_notice_id_tenant_id_user_id_pk": {
           "name": "notice_reads_notice_id_tenant_id_user_id_pk",
-          "columns": [
-            "notice_id",
-            "tenant_id",
-            "user_id"
-          ]
+          "columns": ["notice_id", "tenant_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -14362,12 +13661,8 @@
           "tableFrom": "notice_versions",
           "tableTo": "notices",
           "schemaTo": "control",
-          "columnsFrom": [
-            "notice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["notice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -14552,12 +13847,8 @@
           "tableFrom": "notices",
           "tableTo": "rate_history",
           "schemaTo": "control",
-          "columnsFrom": [
-            "rate_change_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["rate_change_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -14697,12 +13988,8 @@
           "tableFrom": "order_extractions",
           "tableTo": "addon_purchases",
           "schemaTo": "control",
-          "columnsFrom": [
-            "addon_purchase_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["addon_purchase_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -14775,12 +14062,8 @@
           "tableFrom": "fraud_check_skips",
           "tableTo": "orders",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -14788,10 +14071,7 @@
       "compositePrimaryKeys": {
         "fraud_check_skips_tenant_id_order_id_pk": {
           "name": "fraud_check_skips_tenant_id_order_id_pk",
-          "columns": [
-            "tenant_id",
-            "order_id"
-          ]
+          "columns": ["tenant_id", "order_id"]
         }
       },
       "uniqueConstraints": {},
@@ -14987,12 +14267,8 @@
           "tableFrom": "fraud_checks",
           "tableTo": "orders",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -15110,9 +14386,7 @@
         "courier_message_routes_connection_id_unique": {
           "name": "courier_message_routes_connection_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "connection_id"
-          ]
+          "columns": ["connection_id"]
         }
       },
       "policies": {},
@@ -15261,10 +14535,7 @@
         "courier_areas_code": {
           "name": "courier_areas_code",
           "nullsNotDistinct": false,
-          "columns": [
-            "courier_key",
-            "area_code"
-          ]
+          "columns": ["courier_key", "area_code"]
         }
       },
       "policies": {},
@@ -15962,14 +15233,8 @@
           "tableFrom": "payment_sessions",
           "tableTo": "orders",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "order_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "order_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -15979,10 +15244,7 @@
         "payment_sessions_tenant_id_key": {
           "name": "payment_sessions_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -16029,12 +15291,8 @@
           "tableFrom": "payment_session_refs",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -16186,12 +15444,8 @@
           "tableFrom": "payment_page_reports",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -16418,12 +15672,8 @@
           "tableFrom": "listener_devices",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -16433,9 +15683,7 @@
         "listener_devices_token_hash_unique": {
           "name": "listener_devices_token_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
+          "columns": ["token_hash"]
         }
       },
       "policies": {},
@@ -16533,12 +15781,8 @@
           "tableFrom": "listener_pairing_codes",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -16548,9 +15792,7 @@
         "listener_pairing_codes_code_hash_unique": {
           "name": "listener_pairing_codes_code_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code_hash"
-          ]
+          "columns": ["code_hash"]
         }
       },
       "policies": {},
@@ -16592,10 +15834,7 @@
       "compositePrimaryKeys": {
         "listener_unread_shapes_pkey": {
           "name": "listener_unread_shapes_pkey",
-          "columns": [
-            "day",
-            "shape_hash"
-          ]
+          "columns": ["day", "shape_hash"]
         }
       },
       "uniqueConstraints": {},
@@ -16975,10 +16214,7 @@
         "media_tenant_id_key": {
           "name": "media_tenant_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "policies": {},
@@ -17085,14 +16321,8 @@
           "tableFrom": "media_objects",
           "tableTo": "media",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "media_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "media_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -17102,9 +16332,7 @@
         "media_objects_key_key": {
           "name": "media_objects_key_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
+          "columns": ["key"]
         }
       },
       "policies": {},
@@ -17205,14 +16433,8 @@
           "tableFrom": "product_images",
           "tableTo": "products",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "product_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -17221,14 +16443,8 @@
           "tableFrom": "product_images",
           "tableTo": "media",
           "schemaTo": "tenant",
-          "columnsFrom": [
-            "tenant_id",
-            "media_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "media_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -17236,11 +16452,7 @@
       "compositePrimaryKeys": {
         "product_images_pkey": {
           "name": "product_images_pkey",
-          "columns": [
-            "tenant_id",
-            "product_id",
-            "media_id"
-          ]
+          "columns": ["tenant_id", "product_id", "media_id"]
         }
       },
       "uniqueConstraints": {},
@@ -17513,12 +16725,8 @@
           "tableFrom": "api_keys",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -17528,9 +16736,7 @@
         "api_keys_key_hash_unique": {
           "name": "api_keys_key_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "key_hash"
-          ]
+          "columns": ["key_hash"]
         }
       },
       "policies": {},
@@ -17648,12 +16854,8 @@
           "tableFrom": "api_usage",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -17661,10 +16863,7 @@
       "compositePrimaryKeys": {
         "api_usage_pkey": {
           "name": "api_usage_pkey",
-          "columns": [
-            "tenant_id",
-            "cycle_start"
-          ]
+          "columns": ["tenant_id", "cycle_start"]
         }
       },
       "uniqueConstraints": {},
@@ -17714,12 +16913,8 @@
           "tableFrom": "api_usage_daily",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -17727,11 +16922,7 @@
       "compositePrimaryKeys": {
         "api_usage_daily_pkey": {
           "name": "api_usage_daily_pkey",
-          "columns": [
-            "tenant_id",
-            "cycle_start",
-            "day"
-          ]
+          "columns": ["tenant_id", "cycle_start", "day"]
         }
       },
       "uniqueConstraints": {},
@@ -17834,12 +17025,8 @@
           "tableFrom": "media_reconciliations",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -17934,12 +17121,8 @@
           "tableFrom": "media_bandwidth",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -17947,10 +17130,7 @@
       "compositePrimaryKeys": {
         "media_bandwidth_pkey": {
           "name": "media_bandwidth_pkey",
-          "columns": [
-            "tenant_id",
-            "cycle_start"
-          ]
+          "columns": ["tenant_id", "cycle_start"]
         }
       },
       "uniqueConstraints": {},
@@ -18011,12 +17191,8 @@
           "tableFrom": "media_bandwidth_daily",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -18024,11 +17200,7 @@
       "compositePrimaryKeys": {
         "media_bandwidth_daily_pkey": {
           "name": "media_bandwidth_daily_pkey",
-          "columns": [
-            "tenant_id",
-            "cycle_start",
-            "day"
-          ]
+          "columns": ["tenant_id", "cycle_start", "day"]
         }
       },
       "uniqueConstraints": {},
@@ -18141,12 +17313,8 @@
           "tableFrom": "catalog_feeds",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -18156,9 +17324,7 @@
         "catalog_feeds_token_hash_key": {
           "name": "catalog_feeds_token_hash_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
+          "columns": ["token_hash"]
         }
       },
       "policies": {},
@@ -18209,12 +17375,8 @@
           "tableFrom": "usage_warnings",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -18222,11 +17384,7 @@
       "compositePrimaryKeys": {
         "usage_warnings_pkey": {
           "name": "usage_warnings_pkey",
-          "columns": [
-            "tenant_id",
-            "metric",
-            "cycle_start"
-          ]
+          "columns": ["tenant_id", "metric", "cycle_start"]
         }
       },
       "uniqueConstraints": {},
@@ -18411,12 +17569,8 @@
           "tableFrom": "addon_purchases",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -18425,12 +17579,8 @@
           "tableFrom": "addon_purchases",
           "tableTo": "addons",
           "schemaTo": "control",
-          "columnsFrom": [
-            "addon_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["addon_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -18439,12 +17589,8 @@
           "tableFrom": "addon_purchases",
           "tableTo": "plan_payments",
           "schemaTo": "control",
-          "columnsFrom": [
-            "plan_payment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["plan_payment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -18453,12 +17599,8 @@
           "tableFrom": "addon_purchases",
           "tableTo": "addon_purchases",
           "schemaTo": "control",
-          "columnsFrom": [
-            "continues_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["continues_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -18556,9 +17698,7 @@
         "addons_key_unique": {
           "name": "addons_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
+          "columns": ["key"]
         }
       },
       "policies": {},
@@ -18668,12 +17808,8 @@
           "tableFrom": "request_errors",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -18780,12 +17916,8 @@
           "tableFrom": "shop_days",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -18793,10 +17925,7 @@
       "compositePrimaryKeys": {
         "shop_days_tenant_id_day_pk": {
           "name": "shop_days_tenant_id_day_pk",
-          "columns": [
-            "tenant_id",
-            "day"
-          ]
+          "columns": ["tenant_id", "day"]
         }
       },
       "uniqueConstraints": {},
@@ -18912,10 +18041,7 @@
       "compositePrimaryKeys": {
         "media_cost_days_pkey": {
           "name": "media_cost_days_pkey",
-          "columns": [
-            "day",
-            "bucket"
-          ]
+          "columns": ["day", "bucket"]
         }
       },
       "uniqueConstraints": {},
@@ -19158,12 +18284,8 @@
           "tableFrom": "manual_payment_entries",
           "tableTo": "tenants",
           "schemaTo": "control",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -19172,12 +18294,8 @@
           "tableFrom": "manual_payment_entries",
           "tableTo": "plan_payments",
           "schemaTo": "control",
-          "columnsFrom": [
-            "plan_payment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["plan_payment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -19186,12 +18304,8 @@
           "tableFrom": "manual_payment_entries",
           "tableTo": "platform_wallets",
           "schemaTo": "control",
-          "columnsFrom": [
-            "wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -19200,12 +18314,8 @@
           "tableFrom": "manual_payment_entries",
           "tableTo": "platform_bank_accounts",
           "schemaTo": "control",
-          "columnsFrom": [
-            "bank_account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["bank_account_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -19214,12 +18324,8 @@
           "tableFrom": "manual_payment_entries",
           "tableTo": "payment_evidence",
           "schemaTo": "control",
-          "columnsFrom": [
-            "evidence_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["evidence_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -19228,12 +18334,8 @@
           "tableFrom": "manual_payment_entries",
           "tableTo": "manual_payment_entries",
           "schemaTo": "control",
-          "columnsFrom": [
-            "reverses_entry_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["reverses_entry_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -19254,12 +18356,7 @@
     "control.identity_kind": {
       "name": "identity_kind",
       "schema": "control",
-      "values": [
-        "phone",
-        "email",
-        "google",
-        "facebook"
-      ]
+      "values": ["phone", "email", "google", "facebook"]
     },
     "control.tenant_state": {
       "name": "tenant_state",
@@ -19297,125 +18394,67 @@
     "tenant.delivery_mode": {
       "name": "delivery_mode",
       "schema": "tenant",
-      "values": [
-        "default",
-        "adjustable"
-      ]
+      "values": ["default", "adjustable"]
     },
     "tenant.item_condition": {
       "name": "item_condition",
       "schema": "tenant",
-      "values": [
-        "new",
-        "refurbished",
-        "used"
-      ]
+      "values": ["new", "refurbished", "used"]
     },
     "tenant.payment_policy": {
       "name": "payment_policy",
       "schema": "tenant",
-      "values": [
-        "none",
-        "delivery_charge_only",
-        "partial_advance",
-        "full_prepayment"
-      ]
+      "values": ["none", "delivery_charge_only", "partial_advance", "full_prepayment"]
     },
     "tenant.product_kind": {
       "name": "product_kind",
       "schema": "tenant",
-      "values": [
-        "standard",
-        "combo"
-      ]
+      "values": ["standard", "combo"]
     },
     "tenant.serial_format": {
       "name": "serial_format",
       "schema": "tenant",
-      "values": [
-        "imei",
-        "any"
-      ]
+      "values": ["imei", "any"]
     },
     "tenant.stock_state": {
       "name": "stock_state",
       "schema": "tenant",
-      "values": [
-        "in",
-        "low",
-        "out"
-      ]
+      "values": ["in", "low", "out"]
     },
     "tenant.stock_tracking": {
       "name": "stock_tracking",
       "schema": "tenant",
-      "values": [
-        "tracked",
-        "not_tracked"
-      ]
+      "values": ["tracked", "not_tracked"]
     },
     "tenant.stock_unit": {
       "name": "stock_unit",
       "schema": "tenant",
-      "values": [
-        "piece",
-        "kg",
-        "g",
-        "liter",
-        "ml",
-        "dozen",
-        "pack",
-        "box"
-      ]
+      "values": ["piece", "kg", "g", "liter", "ml", "dozen", "pack", "box"]
     },
     "tenant.attribute_data_type": {
       "name": "attribute_data_type",
       "schema": "tenant",
-      "values": [
-        "enum_single",
-        "enum_multi",
-        "number_with_unit",
-        "text",
-        "boolean"
-      ]
+      "values": ["enum_single", "enum_multi", "number_with_unit", "text", "boolean"]
     },
     "tenant.attribute_role": {
       "name": "attribute_role",
       "schema": "tenant",
-      "values": [
-        "variant_defining",
-        "informational",
-        "captured_at_order"
-      ]
+      "values": ["variant_defining", "informational", "captured_at_order"]
     },
     "tenant.unit_kind": {
       "name": "unit_kind",
       "schema": "tenant",
-      "values": [
-        "weight",
-        "volume",
-        "count"
-      ]
+      "values": ["weight", "volume", "count"]
     },
     "tenant.reservation_status": {
       "name": "reservation_status",
       "schema": "tenant",
-      "values": [
-        "active",
-        "consumed",
-        "released"
-      ]
+      "values": ["active", "consumed", "released"]
     },
     "tenant.serial_status": {
       "name": "serial_status",
       "schema": "tenant",
-      "values": [
-        "in_stock",
-        "reserved",
-        "sold",
-        "returned",
-        "written_off"
-      ]
+      "values": ["in_stock", "reserved", "sold", "returned", "written_off"]
     },
     "tenant.stock_reason": {
       "name": "stock_reason",
@@ -19435,24 +18474,12 @@
     "tenant.purchase_status": {
       "name": "purchase_status",
       "schema": "tenant",
-      "values": [
-        "draft",
-        "ordered",
-        "partially_received",
-        "received",
-        "closed_short",
-        "cancelled"
-      ]
+      "values": ["draft", "ordered", "partially_received", "received", "closed_short", "cancelled"]
     },
     "tenant.call_outcome": {
       "name": "call_outcome",
       "schema": "tenant",
-      "values": [
-        "confirmed",
-        "no_answer",
-        "call_back_later",
-        "cancelled"
-      ]
+      "values": ["confirmed", "no_answer", "call_back_later", "cancelled"]
     },
     "tenant.cancel_reason": {
       "name": "cancel_reason",
@@ -19483,11 +18510,7 @@
     "tenant.fulfilment_type": {
       "name": "fulfilment_type",
       "schema": "tenant",
-      "values": [
-        "delivery",
-        "takeaway",
-        "dine_in"
-      ]
+      "values": ["delivery", "takeaway", "dine_in"]
     },
     "tenant.order_history_field": {
       "name": "order_history_field",
@@ -19518,71 +18541,37 @@
     "tenant.order_source": {
       "name": "order_source",
       "schema": "tenant",
-      "values": [
-        "dashboard",
-        "api",
-        "storefront",
-        "landing_page"
-      ]
+      "values": ["dashboard", "api", "storefront", "landing_page"]
     },
     "tenant.payment_method": {
       "name": "payment_method",
       "schema": "tenant",
-      "values": [
-        "cash_on_delivery",
-        "cash",
-        "bkash",
-        "nagad",
-        "rocket",
-        "upay",
-        "bank"
-      ]
+      "values": ["cash_on_delivery", "cash", "bkash", "nagad", "rocket", "upay", "bank"]
     },
     "tenant.status_override": {
       "name": "status_override",
       "schema": "tenant",
-      "values": [
-        "hold",
-        "cancelled",
-        "in_review"
-      ]
+      "values": ["hold", "cancelled", "in_review"]
     },
     "tenant.verification_level": {
       "name": "verification_level",
       "schema": "tenant",
-      "values": [
-        "manual",
-        "listener",
-        "gateway"
-      ]
+      "values": ["manual", "listener", "gateway"]
     },
     "tenant.wallet_account_type": {
       "name": "wallet_account_type",
       "schema": "tenant",
-      "values": [
-        "personal",
-        "agent",
-        "merchant"
-      ]
+      "values": ["personal", "agent", "merchant"]
     },
     "tenant.courier_connection_state": {
       "name": "courier_connection_state",
       "schema": "tenant",
-      "values": [
-        "active",
-        "login_refused"
-      ]
+      "values": ["active", "login_refused"]
     },
     "tenant.parcel_state": {
       "name": "parcel_state",
       "schema": "tenant",
-      "values": [
-        "booking",
-        "booked",
-        "unknown",
-        "refused",
-        "cancelled"
-      ]
+      "values": ["booking", "booked", "unknown", "refused", "cancelled"]
     },
     "tenant.listener_ignored_reason": {
       "name": "listener_ignored_reason",
@@ -19600,13 +18589,7 @@
     "tenant.listener_message_status": {
       "name": "listener_message_status",
       "schema": "tenant",
-      "values": [
-        "matched",
-        "unmatched",
-        "needs_review",
-        "duplicate",
-        "ignored"
-      ]
+      "values": ["matched", "unmatched", "needs_review", "duplicate", "ignored"]
     },
     "tenant.payment_review_reason": {
       "name": "payment_review_reason",
@@ -19626,27 +18609,17 @@
     "tenant.gateway_result": {
       "name": "gateway_result",
       "schema": "tenant",
-      "values": [
-        "cancelled",
-        "failed"
-      ]
+      "values": ["cancelled", "failed"]
     },
     "tenant.payment_reject_reason": {
       "name": "payment_reject_reason",
       "schema": "tenant",
-      "values": [
-        "no_payment_found",
-        "transaction_id_used",
-        "other"
-      ]
+      "values": ["no_payment_found", "transaction_id_used", "other"]
     },
     "tenant.payment_session_source": {
       "name": "payment_session_source",
       "schema": "tenant",
-      "values": [
-        "checkout",
-        "staff_link"
-      ]
+      "values": ["checkout", "staff_link"]
     },
     "tenant.payment_session_state": {
       "name": "payment_session_state",
@@ -19664,49 +18637,27 @@
     "control.payment_page_report_reason": {
       "name": "payment_page_report_reason",
       "schema": "control",
-      "values": [
-        "asked_for_pin",
-        "wrong_shop",
-        "wrong_amount",
-        "other"
-      ]
+      "values": ["asked_for_pin", "wrong_shop", "wrong_amount", "other"]
     },
     "control.payment_page_report_status": {
       "name": "payment_page_report_status",
       "schema": "control",
-      "values": [
-        "open",
-        "dismissed",
-        "actioned"
-      ]
+      "values": ["open", "dismissed", "actioned"]
     },
     "control.listener_revoke_reason": {
       "name": "listener_revoke_reason",
       "schema": "control",
-      "values": [
-        "owner",
-        "operator",
-        "flags",
-        "installation_blocked",
-        "device"
-      ]
+      "values": ["owner", "operator", "flags", "installation_blocked", "device"]
     },
     "tenant.media_kind": {
       "name": "media_kind",
       "schema": "tenant",
-      "values": [
-        "image",
-        "video"
-      ]
+      "values": ["image", "video"]
     },
     "tenant.media_object_role": {
       "name": "media_object_role",
       "schema": "tenant",
-      "values": [
-        "main",
-        "thumbnail",
-        "poster"
-      ]
+      "values": ["main", "thumbnail", "poster"]
     },
     "tenant.media_purpose": {
       "name": "media_purpose",
@@ -19723,21 +18674,12 @@
     "tenant.media_status": {
       "name": "media_status",
       "schema": "tenant",
-      "values": [
-        "uploading",
-        "processing",
-        "ready",
-        "failed"
-      ]
+      "values": ["uploading", "processing", "ready", "failed"]
     },
     "tenant.brand_corners": {
       "name": "brand_corners",
       "schema": "tenant",
-      "values": [
-        "square",
-        "soft",
-        "round"
-      ]
+      "values": ["square", "soft", "round"]
     },
     "tenant.brand_font": {
       "name": "brand_font",
@@ -19755,18 +18697,12 @@
     "tenant.brand_spacing": {
       "name": "brand_spacing",
       "schema": "tenant",
-      "values": [
-        "compact",
-        "comfortable",
-        "airy"
-      ]
+      "values": ["compact", "comfortable", "airy"]
     },
     "control.api_key_type": {
       "name": "api_key_type",
       "schema": "control",
-      "values": [
-        "public"
-      ]
+      "values": ["public"]
     }
   },
   "schemas": {
