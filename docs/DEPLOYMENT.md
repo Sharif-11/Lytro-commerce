@@ -139,8 +139,14 @@ Then, per host, one rule each and no path lists:
   files, and `data:` images for the two-factor QR code. No inline script, no plugin, no framing. No
   operator code ships to sellers, and no seller code to operators (D3-12). The old `apps/admin` build that
   carried both was removed on 2026-10-19; `apps/operator` replaced it the same day.
-- **`api.lytro.app`** → reverse-proxy `/v1/*` to `server` as `/api/v1/*`, with the edge secret added. Keys only:
-  the backend refuses a session cookie here (API-14). This is the one address in the public API's documentation.
+- **`api.lytro.app`** → reverse-proxy every path to `server` as it came, with the edge secret added. The server serves
+  `/v1/...` here from its public routes and refuses every other route on this host (`PublicApiHost`, `TenantGuard`):
+  the public API with a key, a wallet gateway's return, the listener app, and couriers' and Resend's messages at
+  `/v1/webhooks/...`. Keys only: the backend refuses a session cookie here (API-14). This is the one address in the
+  public API's documentation. **Corrected 2026-11-10 (KNOWN-GAPS §141):** this rule rewrote `/v1/*` to `/api/v1/*`,
+  which the server doesn't serve on this host, and answered every other path 404 itself, so nothing got through.
+  Every host in `deploy/Caddyfile` is named from `PLATFORM_DOMAIN`, the server's own setting, `lytro.app` when unset,
+  and `apps/server/test/caddy-edge.e2e.spec.ts` runs the file in Caddy in front of the server to prove these rules.
 - **`pay.lytro.app`** → `server`, with the edge secret added: the hosted payment page, drawn by the backend, which sets a
   Content Security Policy allowing only the page's own files and the media Worker's address for a shop's logo (PAY-23). Every
   address on this host is one of the page's own routes (`PaymentPageHost`). A wallet gateway returns to the public API,

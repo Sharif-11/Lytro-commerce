@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
+import { PublicApiRoute } from '../../../common/decorators/public-api';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { OkDto } from '../../../common/dto/ok.dto';
@@ -22,8 +23,11 @@ import { CourierNewsPath } from '../services/courier-news-path';
 
 // CRR-11, CRR-27 (Phase 6 Slice 6.2): where couriers send their messages. Only the address's own token finds a shop, so there is no
 // session, and the raw body is what the courier's signature is over. The courier has its answer before the news is applied.
+// Served on the API host at /v1/webhooks/couriers/<token>, as every call from another service is (fixed 2026-11-10: the edge
+// only ever forwarded /v1/ there, so the old /api/v1 address never reached the server). No key: the token is the proof.
 @ApiTags('Couriers')
-@Controller('webhooks/couriers')
+@Controller('public/webhooks/couriers')
+@PublicApiRoute()
 @SkipTenant()
 export class CourierMessagesController {
   private readonly logger = new Logger('CourierMessages');

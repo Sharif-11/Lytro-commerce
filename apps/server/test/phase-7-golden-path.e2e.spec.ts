@@ -35,7 +35,7 @@ import { PaymentSessionExpiryTickWorker } from '../src/modules/shared/queue-work
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { FakeSteadfast, freshSteadfastKeys, signatureOf } from './support/fake-steadfast';
-import { postJson } from './support/http';
+import { postToApiHost } from './support/http';
 import { PrepaidPath, receiptOf, trx } from './support/prepaid-path';
 import type { ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
@@ -236,8 +236,7 @@ async function steadfastSays(
     tracking_message: `Your parcel is ${status}.`,
     updated_at: AT,
   };
-  const answered = await postJson(port, address, body, {
-    host: 'localhost',
+  const answered = await postToApiHost(port, address, body, {
     'x-signature': signatureOf(JSON.stringify(body), token),
     'idempotency-key': randomUUID(),
   });
@@ -285,7 +284,7 @@ describeIfDatabase("Phase 7's golden path (PHASE-7-PLAN §1, exit criterion 3)",
     });
     expect(connected.status, JSON.stringify(connected.body)).toBe(200);
     const message = (connected.body as { message: { address: string; token: string } }).message;
-    const address = new URL(message.address).pathname.replace('/api/v1', '');
+    const address = new URL(message.address).pathname;
     await expectAgreement(shop, ownerEndpoint);
 
     // 1. A shopper's order from the landing page: the order-placed SMS in the shop's Bangla words, its SMS name first,

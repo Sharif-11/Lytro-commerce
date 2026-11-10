@@ -132,9 +132,11 @@ test('the Caddyfile holds the dashboard’s policy, every address filled in', ()
     'camera=(self), microphone=(), geolocation=(), payment=()',
   );
   expect(Object.values(headers).join(' ')).not.toContain('{$');
-  // The app's host imports it.
+  // The app's host imports it. Every host is named from PLATFORM_DOMAIN, lytro.app when unset (KNOWN-GAPS §141).
   const caddyfile = readFileSync(root('../../deploy/Caddyfile'), 'utf8').replaceAll('\r\n', '\n');
-  expect(/app\.lytro\.app \{\n\timport dashboard_csp\n/.test(caddyfile)).toBe(true);
+  expect(caddyfile.includes('\napp.{$PLATFORM_DOMAIN:lytro.app} {\n\timport dashboard_csp\n')).toBe(
+    true,
+  );
 });
 
 test.describe('every screen under the policy', () => {

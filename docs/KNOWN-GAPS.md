@@ -2146,7 +2146,7 @@ in bKash's panel. Asking after every closed session with an unsettled bKash paym
 
 RedX's sandbox answers every booking with the same tracking ID and can't give parcel details, so its adapter runs against a fake made from its OpenAPI document and the live area list. A real account has to confirm: what `/parcel/info` answers, read here as `status`, `delivery_type` and `charge` under `parcel` or at the top; that `ready-for-delivery` comes once it has the parcel, since an order then shows shipped and can no longer be cancelled; that a part delivery arrives as `delivered` with `delivery_type` `partial-delivery`; how its messages write their fields and times; that a repeated `merchant_invoice_id` makes a second parcel, as no refusal is documented; and that a real cancel answers 2xx with `success` true. Its document gives no lengths or weight range, so Lytro's own are used. Of these, `ready-for-delivery` and the part delivery's reading can move an order wrongly.
 
-Its messages carry no signature, so the address's token is their only proof. Lytro never logs it, but a proxy or host in front of the server must not log the full path of `/api/v1/webhooks/couriers/` either. Until `REDX_AREAS_TOKEN` is set, the area list can't be read and RedX can't book. Of its 2,866 live areas, 1,078 suggestions and 929 unmatched ones wait for the operator; until then staff still find them by searching the district.
+Its messages carry no signature, so the address's token is their only proof. Lytro never logs it, but a proxy or host in front of the server must not log the full path of `/v1/webhooks/couriers/` on the API host either. Until `REDX_AREAS_TOKEN` is set, the area list can't be read and RedX can't book. Of its 2,866 live areas, 1,078 suggestions and 929 unmatched ones wait for the operator; until then staff still find them by searching the district.
 
 ## 122. `SMS-08`: a code that fails, then goes out on its retry, costs the shop nothing — found 2026-11-06, open
 
@@ -2429,3 +2429,34 @@ Found while drawing Phase 8 Slice 8.8's screens. Each is built with 8.8's consol
   (top-up, plan, add-on), which no screen has called since shops pay Lytro on the payment page (#337), and that page's
   submit takes none. The operator's queue can show one, but none arrives.
 - **`GET /auth/operator/me` gives no operator id,** which the audit log's "only mine" and the manual entries' own filter need.
+
+## 141. `API-14`, `CRR-11`, `NTF-06`, `LSN-01`: every outside call through the API host's edge — found 2026-11-10, fixed
+
+Found while checking the setup for going live. `deploy/Caddyfile` rewrote `api.lytro.app/v1/...` to `/api/v1/...`, but the
+server serves its public routes on that host at `/v1/...` itself (`PublicApiHost`) and refuses `/api/v1/...` there, so the
+public API, a wallet's return, the listener app and a catalog feed's link would each have answered 404 once the domain was
+live. Couriers' message addresses were `api.lytro.app/api/v1/webhooks/couriers/<token>`, which Caddy answered 404 itself,
+and which the server refused on that host as well. Every spec called the server directly with a `localhost` host, so none
+saw it.
+
+Fixed the same day, with the user's two answers:
+
+- **Every call from another service is on the API host under `/v1/`.** Couriers' messages moved to
+  `/v1/webhooks/couriers/<token>` and Resend's to `/v1/webhooks/email/resend`: public routes with no key, each with its own
+  proof as before. Caddy forwards the API host as it came, with the edge secret, so what answers there is decided in the
+  server alone.
+- **A test through real Caddy.** `apps/server/test/caddy-edge.e2e.spec.ts` runs `deploy/Caddyfile` in Caddy in a container
+  in front of the server, which requires the edge's secret, and sends each kind of outside call through it over HTTPS;
+  each answer is checked to be the server's own, from the route meant. CI runs it; a run without Docker there fails. The
+  courier and email specs now post as a courier or Resend does, to the address's own path with the API host's name.
+- **Every host in the Caddyfile is named from `PLATFORM_DOMAIN`,** `lytro.app` when unset, so the test can run it under
+  `localhost`.
+
+Still open:
+
+- **Resend's dashboard.** If its webhook was already pointed at `.../api/v1/webhooks/email/resend`, it must be changed to
+  `https://api.lytro.app/v1/webhooks/email/resend`. No shop has pasted a courier address yet, so none needs changing.
+- **The image.** The test runs the stock `caddy:2`; production runs a Caddy built with a DNS plugin (DEPLOYMENT.md §3),
+  not chosen yet. The routing is the same file, but the wildcard certificate and the on-demand ones aren't exercised here.
+- **What the test doesn't serve.** The marketing site, the storefront, a shop's own domain and the two apps' files sit
+  behind the same file but aren't started in the test; only the server's own hosts are called.
