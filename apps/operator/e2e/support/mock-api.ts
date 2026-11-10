@@ -25,7 +25,6 @@ import {
   drawnWallets,
   NOW,
   shopDetail,
-  shopSummary,
   type DeviceFixture,
   type PaymentFixture,
   type ReportFixture,
@@ -33,6 +32,7 @@ import {
 } from './console-data';
 import { courierAnswer, courierDefaults, type CourierMockState } from './courier-mock';
 import { noticeAnswer, noticeDefaults, type NoticeMockState } from './notice-mock';
+import { shopAnswer, shopAudit, shopListAnswer } from './p88-shops-mock';
 import { pricingAnswer, type PricingState } from './pricing-mock';
 
 // The console against a mocked API: each /api/v1 call answered in the server's own envelope ({ success, statusCode,
@@ -335,27 +335,17 @@ function consoleAnswer(
   if (noticed) return noticed;
   const priced = pricingAnswer(method, path, body, state);
   if (priced) return priced;
-  if (path === '/operator/tenants') {
-    const word = (url.searchParams.get('query') ?? '').toLowerCase();
-    const limit = Number(url.searchParams.get('limit') ?? 20);
-    const start = Number(url.searchParams.get('cursor') ?? 0);
-    const matching = state.shops.filter(
-      (each) => each.shopName.toLowerCase().includes(word) || each.slug.includes(word),
-    );
-    const end = start + limit;
-    return {
-      data: {
-        entries: matching.slice(start, end).map(shopSummary),
-        nextCursor: end < matching.length ? String(end) : null,
-      },
-    };
-  }
+  if (path === '/operator/tenants') return shopListAnswer(url, state.shops);
+  if (path === '/operator/audit')
+    return { data: shopAudit(url.searchParams.get('tenantId') ?? '') };
   const shopped = /^\/operator\/tenants\/([^/]+)(?:\/(.+))?$/.exec(path);
   if (!shopped) return undefined;
   const shop = state.shops.find((each) => each.id === shopped[1]);
   if (!shop) return { refused: [404, 'not_found', 'This shop was not found.'] };
   const rest = shopped[2];
   if (rest === undefined) return { data: shopDetail(shop) };
+  const p88 = shopAnswer(rest, url, body, shop, state.courierUses, state.now);
+  if (p88) return p88;
   if (rest === 'addons') return { data: state.addons };
   if (rest === 'listener-devices') {
     return {

@@ -1,9 +1,15 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AdjustBalanceInput,
+  DeleteShopDataInput,
+  ExtendPlanInput,
   NewShopCapInput,
+  OwnerResetInput,
+  SalesBucket,
   SetPlanLimitOverrideInput,
   SuspendTenantInput,
+  TenantSort,
+  TenantState,
 } from '@lytronix/validators';
 import { operatorSession } from '@/session/operator-session';
 import type {
@@ -11,9 +17,19 @@ import type {
   LedgerEntry,
   OperatorShop,
   PlanLimitOverride,
+  QueuedPayment,
   ShopAddons,
   TenantSummaryPage,
 } from '@/types/operator';
+import type {
+  PlanExtension,
+  PlatformAuditPage,
+  ShopErrorPage,
+  ShopFailedSmsLists,
+  ShopFigures,
+  ShopSales,
+} from '@/types/shop-figures';
+import type { CourierKeyUsePage } from '@/types/couriers';
 
 // api/plans.ts's assignment refreshes these too.
 export const SHOPS_QUERY_KEY = ['operator', 'tenants'] as const;
@@ -21,13 +37,23 @@ const PAGE_SIZE = 20;
 
 const shopKey = (id: string) => [...SHOPS_QUERY_KEY, 'one', id] as const;
 
-/** GET /operator/tenants is cursor-paginated (never OFFSET); each query change starts a fresh list. */
-export function useSearchShops(query: string) {
+/** ADM-02, D8-7: what the list is narrowed to and in which order; each page keeps its own keyset. */
+export interface ShopFilters {
+  state?: TenantState;
+  planId?: string;
+  sort?: TenantSort;
+}
+
+/** GET /operator/tenants is cursor-paginated (never OFFSET); each query or filter change starts a fresh list. */
+export function useSearchShops(query: string, filters: ShopFilters = {}) {
   return useInfiniteQuery({
-    queryKey: [...SHOPS_QUERY_KEY, 'search', query],
+    queryKey: [...SHOPS_QUERY_KEY, 'search', query, filters],
     queryFn: ({ pageParam }) => {
       const params = new URLSearchParams();
       if (query) params.set('query', query);
+      if (filters.state) params.set('state', filters.state);
+      if (filters.planId) params.set('planId', filters.planId);
+      if (filters.sort) params.set('sort', filters.sort);
       params.set('limit', String(PAGE_SIZE));
       if (pageParam) params.set('cursor', pageParam);
       return operatorSession.client.get<TenantSummaryPage>(
@@ -145,5 +171,106 @@ export function useRemoveLimitOverride() {
     operatorSession.client.delete<{ ok: true }>(
       `/operator/tenants/${shopId}/limit-overrides/${limitKey}`,
     ),
+  );
+}
+
+/** ADM-03 (Slice 8.2): the figures the shop page opens with, read inside the shop. */
+export function useShopFigures(id: string) {
+  return useQuery({
+    queryKey: [...shopKey(id), 'figures'],
+    queryFn: () => operatorSession.client.get<ShopFigures>(`/operator/tenants/${id}/figures`),
+  });
+}
+
+/** D8-23, D8-25: the shop's kept server faults, newest first, a page at a time; loaded when its card is opened. */
+export function useShopErrors(id: string) {
+  return useInfiniteQuery({
+    queryKey: [...shopKey(id), 'errors'],
+    queryFn: ({ pageParam }) =>
+      operatorSession.client.get<ShopErrorPage>(
+        `/operator/tenants/${id}/errors${pageParam === undefined ? '' : `?before=${String(pageParam)}`}`,
+      ),
+    initialPageParam: undefined as number | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextBefore ?? undefined,
+  });
+}
+
+/** D8-30: the SMS that didn't go, the shop's own and Lytro's own to it. */
+export function useShopFailedSms(id: string) {
+  return useQuery({
+    queryKey: [...shopKey(id), 'failed-sms'],
+    queryFn: () =>
+      operatorSession.client.get<ShopFailedSmsLists>(`/operator/tenants/${id}/failed-sms`),
+  });
+}
+
+/** D8-26: the courier calls that failed or the courier refused, from the courier key log. */
+export function useShopFailedCourierCalls(id: string) {
+  return useQuery({
+    queryKey: [...shopKey(id), 'failed-courier-calls'],
+    queryFn: () =>
+      operatorSession.client.get<CourierKeyUsePage>(
+        `/operator/tenants/${id}/courier-credential-uses?failed=true&page=1&limit=20`,
+      ),
+  });
+}
+
+/** D8-28: the shop's payments to Lytro waiting in the queue. */
+export function useShopPaymentsWaiting(id: string) {
+  return useQuery({
+    queryKey: [...shopKey(id), 'payments-waiting'],
+    queryFn: () =>
+      operatorSession.client.get<QueuedPayment[]>(`/operator/tenants/${id}/payments-waiting`),
+  });
+}
+
+/** STA-01: the shop's own sales in a period, as its Sales page reads them, split by week or month. */
+export function useShopSales(
+  id: string,
+  period: { dateFrom: string; dateTo: string; bucket: SalesBucket },
+) {
+  return useQuery({
+    queryKey: [...shopKey(id), 'sales', period],
+    queryFn: () => {
+      const params = new URLSearchParams(period);
+      return operatorSession.client.get<ShopSales>(
+        `/operator/tenants/${id}/sales?${params.toString()}`,
+      );
+    },
+  });
+}
+
+/** ADM-08: the last few platform audit entries on this shop. */
+export function useShopAudit(id: string, limit: number) {
+  return useQuery({
+    queryKey: [...shopKey(id), 'audit', limit],
+    queryFn: () =>
+      operatorSession.client.get<PlatformAuditPage>(
+        `/operator/audit?tenantId=${id}&limit=${String(limit)}`,
+      ),
+  });
+}
+
+/** ADM-04, D8-12: whole days added to the period, free, with a reason. */
+export function useExtendPlan() {
+  return useShopWrite(({ shopId, ...input }: ExtendPlanInput & { shopId: string }) =>
+    operatorSession.client.post<PlanExtension>(`/operator/tenants/${shopId}/extend`, input),
+  );
+}
+
+/** ADM-04, D8-5: the owner signed out everywhere and a reset code sent to the phone they gave. */
+export function useOwnerReset() {
+  return useShopWrite(({ shopId, ...input }: OwnerResetInput & { shopId: string }) =>
+    operatorSession.client.post<{ phoneChanged: boolean }>(
+      `/operator/tenants/${shopId}/owner-reset`,
+      input,
+    ),
+  );
+}
+
+/** ADM-13, D8-13: the shop offline at once and its data deleted, its address typed to confirm. */
+export function useDeleteShopData() {
+  return useShopWrite(({ shopId, ...input }: DeleteShopDataInput & { shopId: string }) =>
+    operatorSession.client.post<{ ok: true }>(`/operator/tenants/${shopId}/delete-data`, input),
   );
 }
