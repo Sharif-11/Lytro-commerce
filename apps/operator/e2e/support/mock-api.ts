@@ -33,6 +33,12 @@ import {
 } from './console-data';
 import { courierAnswer, courierDefaults, type CourierMockState } from './courier-mock';
 import { noticeAnswer, noticeDefaults, type NoticeMockState } from './notice-mock';
+import {
+  OPERATOR_ID,
+  recordsAnswer,
+  recordsDefaults,
+  type RecordsMockState,
+} from './p88-records-mock';
 import { pricingAnswer, type PricingState } from './pricing-mock';
 
 // The console against a mocked API: each /api/v1 call answered in the server's own envelope ({ success, statusCode,
@@ -65,7 +71,11 @@ export const CHROME_ON_WINDOWS =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 
 export interface ConsoleState
-  extends Partial<PricingState>, Partial<CourierMockState>, Partial<NoticeMockState> {
+  extends
+    Partial<PricingState>,
+    Partial<CourierMockState>,
+    Partial<NoticeMockState>,
+    Partial<RecordsMockState> {
   language?: Language;
   /** Whether the browser starts signed in. */
   signedIn?: boolean;
@@ -329,6 +339,8 @@ function consoleAnswer(
   }
   const assigned = /^\/operator\/plans\/([^/]+)\/assign$/.exec(path);
   if (assigned) return { data: { id: 'assign-1', planId: assigned[1] } };
+  const recorded = recordsAnswer(path, url, state);
+  if (recorded) return recorded;
   const couriered = courierAnswer(method, path, url, body, state);
   if (couriered) return couriered;
   const noticed = noticeAnswer(method, path, url, body, state);
@@ -483,6 +495,7 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
     optionSets: drawnOptionSets(),
     ...courierDefaults(),
     ...noticeDefaults(),
+    ...recordsDefaults(),
     now: NOW,
     failing: {},
     refuseWrite: null,
@@ -551,6 +564,7 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
       await state.holdMe;
       if (state.meFails !== null) return refused(state.meFails, 'service_unavailable', '');
       return ok({
+        id: OPERATOR_ID,
         email: EMAIL,
         unusedBackupCodes: state.unusedBackupCodes,
         signedInAt: '2026-10-21T03:12:00.000Z',

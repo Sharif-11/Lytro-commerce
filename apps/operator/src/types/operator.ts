@@ -37,6 +37,8 @@ export type OperatorSigninResult =
 
 /** GET /auth/operator/me. */
 export interface OperatorMe {
+  /** Slice 8.8: the console's "only mine" filters. */
+  id: string;
   email: string;
   unusedBackupCodes: number;
   signedInAt: string;
