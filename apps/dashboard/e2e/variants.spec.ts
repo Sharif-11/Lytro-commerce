@@ -30,7 +30,9 @@ function sheet(page: Page, name: string | RegExp) {
 }
 
 function save(page: Page) {
-  return main(page).getByRole('button', { name: /^(Save|Fix \d+ things? to save)$/ });
+  return main(page)
+    .getByRole('button', { name: /^(Save|Fix \d+ things? to save)$/ })
+    .first();
 }
 
 function sent(log: ApiLog, method: string, path: string): Record<string, unknown>[] {
@@ -246,6 +248,12 @@ test('Add attribute: a role the type cannot take says why; a new one is made in 
   const add = sheet(page, 'Add attribute');
   await add.getByRole('searchbox').fill('Fi');
   await add.getByRole('button', { name: /^Fit/ }).click();
+  // The owner, 2026-11-10: an attribute that can split the product does so unless told otherwise, and it comes first.
+  await expect(add.getByRole('radio', { name: /Splits into variants/ })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await expect(add.getByRole('radio').first()).toContainText('Splits into variants');
   await expect(add.getByRole('radio', { name: /Asked when ordering/ })).toBeDisabled();
   await expect(add.getByRole('radio', { name: /Asked when ordering/ })).toContainText(
     'Only for text or a number',
@@ -301,7 +309,16 @@ test('describing values are entered by their type and saved together', async ({ 
   await material.getByRole('button', { name: 'Done' }).click();
   await expect(card(page).getByText('Combed cotton')).toBeVisible();
 
-  await addAttribute(page, 'Waterproof', /^Describes/);
+  // One that can't split the product (a yes or no) starts on Describes.
+  await main(page).getByRole('button', { name: 'Add attribute' }).click();
+  const add = sheet(page, 'Add attribute');
+  await add.getByRole('searchbox').fill('Waterproof');
+  await add.getByRole('button', { name: /^Waterproof/ }).click();
+  await expect(add.getByRole('radio', { name: /^Describes/ })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await add.getByRole('button', { name: 'Done' }).click();
   await sheet(page, 'Waterproof').getByRole('radio', { name: 'Yes' }).click();
   await sheet(page, 'Waterproof').getByRole('button', { name: 'Done' }).click();
 

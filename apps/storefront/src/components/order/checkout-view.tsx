@@ -376,9 +376,9 @@ export function CheckoutView(props: CheckoutViewProps) {
             ) : null}
             <div className="field">
               <label htmlFor="co-address">{words.t('address')}</label>
-              <input
+              <textarea
                 id="co-address"
-                className={problems.includes('deliveryAddress') ? 'input bad' : 'input'}
+                className={problems.includes('deliveryAddress') ? 'textarea bad' : 'textarea'}
                 autoComplete="street-address"
                 maxLength={ADDRESS_MAX}
                 value={fields.deliveryAddress}
@@ -392,9 +392,9 @@ export function CheckoutView(props: CheckoutViewProps) {
             </div>
             <div className="field">
               <label htmlFor="co-note">{words.t('e48Note')}</label>
-              <input
+              <textarea
                 id="co-note"
-                className="input"
+                className="textarea"
                 maxLength={NOTE_MAX}
                 placeholder={words.t('e48NotePh')}
                 value={fields.shopperNote}

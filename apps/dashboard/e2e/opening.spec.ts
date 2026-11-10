@@ -29,7 +29,9 @@ function sheet(page: Page, name: string | RegExp) {
 }
 
 function save(page: Page) {
-  return main(page).getByRole('button', { name: /^(Save|Fix \d+ things? to save)$/ });
+  return main(page)
+    .getByRole('button', { name: /^(Save|Fix \d+ things? to save)$/ })
+    .first();
 }
 
 function sent(log: ApiLog, method: string, path: string): Record<string, unknown>[] {

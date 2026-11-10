@@ -54,7 +54,7 @@ async function expectAccessible(page: Page): Promise<void> {
 test('Money opens on Payments, first among its sections', async ({ page }) => {
   await mockApi(page, { language: 'en', shopPayments: drawnShopPayments() });
   await page.goto(`/${SLUG}`);
-  await page.getByRole('link', { name: 'Money', exact: true }).first().click();
+  await page.getByRole('link', { name: 'Wallet', exact: true }).first().click();
   await expect(page).toHaveURL(`/${SLUG}/payments`);
   await expect(tab(page, /^To verify/)).toBeVisible();
 });

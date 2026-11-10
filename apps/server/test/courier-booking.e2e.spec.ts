@@ -561,7 +561,10 @@ describeIfDatabase('booking an order (CRR-06 to CRR-10, D6-7, D6-10, exit criter
   it('walks a pay-as-you-go order from placed to delivered, with stock, count and fee each moving once', async () => {
     const shop = await payAsYouGo('500.00');
     const phone = await serialProduct(shop, ['SN-A', 'SN-B']);
-    const order = await place(shop, phone.variantId);
+    // Written on two lines, as the address boxes let it be; the courier gets it on one.
+    const order = await place(shop, phone.variantId, 1, {
+      deliveryAddress: 'House 12\r\n Road 3',
+    });
     // PYG-16: making the product had its own fee.
     const start = Number((await balanceOf(shop)).amount);
     expect(await fees(shop.tenantId)).toEqual([]);

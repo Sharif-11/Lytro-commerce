@@ -749,7 +749,7 @@ const NEW_ORDER: Pair[] = [
         await sheet('Denim jacket').getByRole('button', { name: /^M/ }).click();
         await main.getByRole('button', { name: 'Denim jacket +' }).click();
         await page.waitForTimeout(500);
-        await main.getByRole('button', { name: 'Create order' }).click();
+        await main.getByRole('button', { name: 'Create order' }).first().click();
       },
     }),
   },
@@ -2231,7 +2231,7 @@ const COURIERS: Pair[] = [
     orders: c36Parcel({ reading: 'booked' }, 'processing'),
     then: async (page) => {
       await page.getByLabel('নোট', { exact: true }).fill('প্যাক করা হয়েছে');
-      await page.getByRole('button', { name: 'পরিবর্তন সেভ করুন' }).click();
+      await page.getByRole('button', { name: 'পরিবর্তন সেভ করুন' }).first().click();
       await page.waitForURL(/\/orders\/o-47$/);
     },
   }),
@@ -4262,7 +4262,7 @@ function stockPairs(): Pair[] {
         await tap('S · Black-এর সেটিংস')(page);
         await sheet(page).getByLabel('SKU').fill('TS-M-BL');
         await sheet(page).getByRole('button', { name: 'ঠিক আছে' }).click();
-        await main(page).getByRole('button', { name: 'সেভ করুন' }).click();
+        await main(page).getByRole('button', { name: 'সেভ করুন' }).first().click();
         await tap(/^S · Black-এর সেটিংস · /)(page);
       },
     }),
@@ -4274,7 +4274,7 @@ function stockPairs(): Pair[] {
     one('sh-deliversto', '/products/p-1', {
       then: async (page) => {
         await tap(/^যেখানে ডেলিভারি হবে/)(page);
-        await sheet(page).getByRole('radio', { name: 'শুধু বাছা জোনে' }).click();
+        await sheet(page).getByRole('radio', { name: 'নির্দিষ্ট কিছু জোনে' }).click();
         await sheet(page)
           .getByRole('checkbox', { name: /ঢাকা সিটির ভেতরে/ })
           .click();

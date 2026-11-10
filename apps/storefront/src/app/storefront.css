@@ -186,7 +186,7 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .field .help{font-size:13px;color:var(--subtle)}
 .field .err{font-size:13px;color:var(--danger);font-weight:500}
 .input,.select,.textarea{height:48px;border:1.5px solid var(--line-strong);border-radius:var(--r-control);padding:0 14px;background:var(--surface);font-size:16px;width:100%;color:var(--text)}
-.input.bad,.select.bad{border-color:var(--danger)}
+.input.bad,.select.bad,.textarea.bad{border-color:var(--danger)}
 .textarea{height:auto;min-height:84px;padding:12px 14px;resize:vertical;line-height:1.5}
 .select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%232c3f3e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
 .inwrap{position:relative}

@@ -5,7 +5,7 @@ import { PURCHASE_NOTES_MAX_LENGTH } from '@lytronix/validators';
 import { useCreatePurchase, usePlacePurchase } from '@/api/purchases';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
+import { AreaField, Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
 import { useShell } from '@/shell/shell-context';
@@ -125,7 +125,7 @@ export function PurchaseSheet({
                   setExpectedOn(event.target.value);
                 }}
               />
-              <Field
+              <AreaField
                 label={t('poNotes')}
                 placeholder="—"
                 maxLength={PURCHASE_NOTES_MAX_LENGTH}

@@ -4,7 +4,7 @@ import { PURCHASE_REASON_MAX_LENGTH } from '@lytronix/validators';
 import { useCancelPurchase, useClosePurchase } from '@/api/purchases';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
+import { AreaField } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
 import type { Purchase } from '@/types/purchasing';
@@ -59,7 +59,7 @@ export function CloseShortSheet({
       <p className="text-[15px]">
         {t('closeCons', { amount: words.units(outstandingOf(purchase.items)) })}
       </p>
-      <Field
+      <AreaField
         label={t('closeReason')}
         placeholder={t('closeReasonPh')}
         maxLength={PURCHASE_REASON_MAX_LENGTH}

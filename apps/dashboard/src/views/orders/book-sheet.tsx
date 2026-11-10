@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { CheckRow } from '@/components/ui/check-row';
 import { Chip } from '@/components/ui/chips';
 import { Dialog } from '@/components/ui/dialog';
-import { Field } from '@/components/ui/field';
+import { AreaField, Field } from '@/components/ui/field';
 import { Kv, RadioMark } from '@/components/ui/kv';
 import { RowList } from '@/components/ui/list-row';
 import { SearchField } from '@/components/ui/search-field';
@@ -426,7 +426,7 @@ export function BookSheet({
       ) : (
         <SerialPicks items={items} picked={picked} onPick={setPicked} />
       )}
-      <Field
+      <AreaField
         label={t('crNote')}
         placeholder={t('crNotePh')}
         maxLength={PARCEL_NOTE_MAX_LENGTH}

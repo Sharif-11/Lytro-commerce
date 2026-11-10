@@ -60,7 +60,7 @@ test('the home area and its two charges, the zones with their areas, the charge 
   await expect(hill).toContainText('Bandarban · Rangamati · Khagrachhari');
   await expect(hill).not.toContainText('৳');
   await expect(main(page).getByLabel('Extra per kg after the first')).toHaveValue('20');
-  await expect(main(page).getByRole('button', { name: 'Save' })).toBeDisabled();
+  await expect(main(page).getByRole('button', { name: 'Save' }).first()).toBeDisabled();
   await expectAccessible(page);
 
   await main(page)
@@ -96,8 +96,8 @@ test('one Save sends only what changed: a charge, a rename, no delivery outside,
   await expect(charge(page, 'Outside Dhaka city')).toHaveCount(0);
   await main(page).getByLabel('Extra per kg after the first').fill('25');
   await expectAccessible(page);
-  await main(page).getByRole('button', { name: 'Save' }).click();
-  await expect(main(page).getByRole('button', { name: 'Save' })).toBeDisabled();
+  await main(page).getByRole('button', { name: 'Save' }).first().click();
+  await expect(main(page).getByRole('button', { name: 'Save' }).first()).toBeDisabled();
   expect(sent(log, 'PATCH', '/delivery-zones/z-in')).toEqual([{ charge: 80, name: 'Dhaka metro' }]);
   expect(sent(log, 'PATCH', '/delivery-zones/z-out')).toEqual([{ noDelivery: true }]);
   expect(sent(log, 'PATCH', '/shop-settings')).toEqual([{ extraDeliveryChargePerKg: 25 }]);
@@ -116,8 +116,8 @@ test('a renamed zone goes back to its automatic name', async ({ page }) => {
     .getByRole('button', { name: 'Use the automatic name: Inside Dhaka city' })
     .click();
   await expect(charge(page, 'Inside Dhaka city')).toHaveValue('70');
-  await main(page).getByRole('button', { name: 'Save' }).click();
-  await expect(main(page).getByRole('button', { name: 'Save' })).toBeDisabled();
+  await main(page).getByRole('button', { name: 'Save' }).first().click();
+  await expect(main(page).getByRole('button', { name: 'Save' }).first()).toBeDisabled();
   expect(sent(log, 'PATCH', '/delivery-zones/z-in')).toEqual([{ name: null }]);
 });
 
@@ -304,7 +304,7 @@ test('someone who may only look sees the values, no Save, Add zone or Rename; Ch
 }) => {
   await open(page, { isOwner: false, permissions: ['products:read'] });
   await expect(charge(page, 'Inside Dhaka city')).not.toBeEditable();
-  await expect(main(page).getByRole('button', { name: 'Save' })).toHaveCount(0);
+  await expect(main(page).getByRole('button', { name: 'Save' }).first()).toHaveCount(0);
   await expect(main(page).getByRole('button', { name: 'Add zone' })).toHaveCount(0);
   await expect(main(page).getByRole('button', { name: /^Rename/ })).toHaveCount(0);
   await expect(main(page).getByRole('switch')).toHaveCount(0);

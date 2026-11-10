@@ -27,7 +27,7 @@ test('frames a screen with the shop, the five hubs, the orders to confirm and th
 }) => {
   await open(page, '/orders');
   const nav = hubs(page);
-  await expect(nav.getByRole('link')).toHaveText(['হোম', 'অর্ডার3', 'শপ2', 'টাকা', 'মেনু']);
+  await expect(nav.getByRole('link')).toHaveText(['হোম', 'অর্ডার3', 'শপ2', 'ওয়ালেট', 'মেনু']);
   await expect(nav.getByRole('link', { name: /^অর্ডার/ })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('link', { name: /^#261031-0047/ })).toBeVisible();
   if (isPhone()) {
@@ -92,7 +92,7 @@ test('shows a staff member only what their role reaches, and turns a deep link a
   // Orders needs orders:read, so the deep link lands on Home with the reason.
   await expect(page).toHaveURL(`/${SLUG}`);
   await expect(page.getByRole('status').getByText('ওই পাতাটা আপনার রোলে নেই।')).toBeVisible();
-  await expect(hubs(page).getByRole('link')).toHaveText(['হোম', 'টাকা', 'মেনু']);
+  await expect(hubs(page).getByRole('link')).toHaveText(['হোম', 'ওয়ালেট', 'মেনু']);
   // No search without products to find, and no + without anything to start.
   await expect(page.getByRole('link', { name: 'সার্চ' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'নতুন' })).toHaveCount(0);
@@ -202,7 +202,7 @@ test('switches to English from the header, and keeps the choice (I18N-01, I18N-0
     'Home',
     'Orders3',
     'Shop2',
-    'Money',
+    'Wallet',
     'Menu',
   ]);
   await page.reload();

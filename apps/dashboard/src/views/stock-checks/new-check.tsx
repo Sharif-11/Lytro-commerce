@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { buttonClass } from '@/components/ui/classes';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Field } from '@/components/ui/field';
+import { AreaField } from '@/components/ui/field';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { useErrorText } from '@/hooks/use-error-text';
 import { useShell } from '@/shell/shell-context';
@@ -183,7 +183,7 @@ export function NewCheckView(): React.JSX.Element {
         />
       )}
       {picked.length > 0 ? (
-        <Field
+        <AreaField
           label={t('note')}
           placeholder={t('checkNotePh')}
           value={note}
@@ -200,7 +200,7 @@ export function NewCheckView(): React.JSX.Element {
         </Banner>
       ) : null}
       {record.isError ? <Banner tone="bad">{errorText(record.error)}</Banner> : null}
-      <ActionBar>
+      <ActionBar atEnd>
         <Link to="/$shop/stock/checks" params={{ shop: slug }} className={buttonClass('outline')}>
           {t('cancel')}
         </Link>

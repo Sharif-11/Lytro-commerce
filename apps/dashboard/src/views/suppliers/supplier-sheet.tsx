@@ -107,7 +107,7 @@ export function SupplierSheet({
             maxLength={SUPPLIER_ADDRESS_MAX_LENGTH}
             {...field('postalAddress')}
           />
-          <Field
+          <AreaField
             label={t('supNotes')}
             placeholder="—"
             maxLength={SUPPLIER_NOTES_MAX_LENGTH}
