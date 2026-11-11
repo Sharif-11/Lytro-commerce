@@ -166,7 +166,7 @@ describeIfDatabase('sign-up by phone, end to end', () => {
     expect(account.rows[0]?.password_hash).toBeNull();
   });
 
-  it('routes a returning number with a shop to the dashboard, and refuses a second shop (AUTH-08, TEN-15)', async () => {
+  it('routes a returning number with a shop to the dashboard, refuses a second shop, and texts no second shop-ready SMS (AUTH-08, TEN-15, SMS-18)', async () => {
     const phone = texts.freshPhone();
     const first = await enter(phone);
     await createShop(first, { ownerName: 'Karim', shopName: 'First Shop' });
@@ -186,6 +186,13 @@ describeIfDatabase('sign-up by phone, end to end', () => {
     expect(response.body).toEqual({
       error: { code: 'conflict', message: 'এই অ্যাকাউন্টের শপ আগে থেকেই আছে।', details: {} },
     });
+
+    // SMS-18: signing in again, and a second shop refused, send no further shop-ready SMS -- one, from the shop's creation.
+    const ready = await admin.query<{ n: string }>(
+      "SELECT count(*) AS n FROM control.sms_outbox WHERE to_phone = $1 AND kind = 'shop_ready'",
+      [phone],
+    );
+    expect(Number(ready.rows[0]?.n)).toBe(1);
   });
 
   it('suggests the next free address when the name is taken (AUTH-11)', async () => {

@@ -22,6 +22,7 @@ import {
 } from './support/http';
 import { seedOrderFor } from './support/orders';
 import { errorOf, openShop, type ShopClient } from './support/shop-client';
+import { slowWrites, untilSome } from './support/slow-write';
 import { SmsCapture } from './support/sms-capture';
 
 // Phase 8 Slice 8.7, read agreed 2026-11-10 (WAL-18, D8-18, D8-65 to D8-67): the operator retiring a payment method type, the couriers'
@@ -99,6 +100,7 @@ interface TypeRow {
   shopsOn: number;
   shopsWithAccounts: number;
   openPayments: number;
+  shopsSetUp: number;
   lytroTakes: boolean;
 }
 
@@ -263,7 +265,27 @@ describeIfDatabase('wallet types: the list (WAL-18)', () => {
       shopsOn: 0,
       shopsWithAccounts: 0,
       openPayments: 1,
+      shopsSetUp: 0,
     });
+  });
+
+  it('counts the shops that set a type up once each, one on with no account too: the shops told (D8-66, §142)', async () => {
+    await shopWithNagad(true);
+    await shopWithNagad(false);
+    // WAL-05: switched on with no account saved.
+    const onAlone = await openShop(port, texts, 'pmt');
+    const switched = await onAlone.put('/payment-methods/nagad', { enabled: true, accounts: [] });
+    expect(switched.status, JSON.stringify(switched.body)).toBe(200);
+    expect(await typeOf('nagad')).toMatchObject({
+      shopsOn: 2,
+      shopsWithAccounts: 2,
+      shopsSetUp: 3,
+    });
+    // More than either count alone, and exactly the shops a retire tells.
+    const retired = await retire('nagad');
+    expect(retired.status, JSON.stringify(retired.body)).toBe(200);
+    expect(retired.body).toMatchObject({ told: 3, type: { shopsSetUp: 3 } });
+    expect(retiring.map((notice) => notice.tenantId)).toContain(onAlone.tenantId);
   });
 
   it('is the operator’s only, and names a type it knows', async () => {
@@ -368,6 +390,57 @@ describeIfDatabase('wallet types: retiring and undoing (WAL-18, D8-65, D8-66)', 
     const again = await undo('nagad');
     expect(again.status).toBe(409);
     expect(errorOf(again).message).toMatch(SAYS.PaymentMethodNotRetiring);
+  });
+
+  it('makes a shop switching a type on wait for its first retire in flight, then refuses it (review C, S2)', async () => {
+    const fresh = await openShop(port, texts, 'pmt');
+    // Never retired, so the type has no row yet; the retire is slow to commit.
+    const release = await slowWrites(admin, {
+      name: 'p8cr_slow_retire',
+      table: 'control.payment_method_types',
+      on: 'UPDATE',
+      when: "NEW.state = 'retiring'",
+    });
+    try {
+      const retiringNow = retire('nagad');
+      await untilSome(admin, 'asleep');
+      const start = await fresh.put('/payment-methods/nagad', nagadBody(true));
+      expect(start.status, JSON.stringify(start.body)).toBe(409);
+      expect(errorOf(start).message).toMatch(SAYS.PaymentMethodRetiring);
+      const retired = await retiringNow;
+      expect(retired.status, JSON.stringify(retired.body)).toBe(200);
+      expect(retired.body).toMatchObject({ told: 0 });
+    } finally {
+      await release();
+    }
+    expect((await methodsOf(fresh)).map((row) => row.method)).not.toContain('nagad');
+  });
+
+  it('makes the first retire of a type wait for a shop switching it on, then tells that shop (review C, S2)', async () => {
+    const fresh = await openShop(port, texts, 'pmt');
+    // The shop's switch-on is slow to commit; meanwhile the type, never retired before, is retired.
+    const release = await slowWrites(admin, {
+      name: 'p8cr_slow_switch_on',
+      table: 'tenant.payment_methods_on',
+      on: 'INSERT',
+      when: "NEW.method = 'nagad'",
+    });
+    try {
+      const starting = fresh.put('/payment-methods/nagad', nagadBody(true));
+      await untilSome(admin, 'asleep');
+      const retired = await retire('nagad');
+      expect(retired.status, JSON.stringify(retired.body)).toBe(200);
+      expect(retired.body).toMatchObject({ told: 1 });
+      const started = await starting;
+      expect(started.status, JSON.stringify(started.body)).toBe(200);
+    } finally {
+      await release();
+    }
+    expect(retiring).toEqual([{ tenantId: fresh.tenantId, method: 'nagad' }]);
+    expect((await activityOf(fresh)).map((row) => row.action)).toEqual([
+      'payment_method_saved',
+      'payment_method_retiring',
+    ]);
   });
 });
 

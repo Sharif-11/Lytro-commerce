@@ -43,7 +43,8 @@ export class ReportsRepository {
   /**
    * D8-40: what reached Lytro's wallets for a plan or an add-on each day, by kind -- a purchase, renewal, upgrade or
    * add-on paid with a transaction ID and verified. A top-up isn't earned until it is spent, and a payment from the
-   * balance is counted as balance spending, so neither is here.
+   * balance is counted as balance spending, so neither is here; nor is a test payment through a sandbox gateway account,
+   * which no money reached.
    */
   async walletEarnedByDay(
     db: Executor,
@@ -65,6 +66,7 @@ export class ReportsRepository {
           ne(planPayments.kind, PlanPaymentKind.TopUp),
           // D8-10: a manual entry is shown apart (`manualByDay`).
           eq(planPayments.recordedByPlatform, false),
+          eq(planPayments.test, false),
           gte(planPayments.verifiedAt, from),
           lt(planPayments.verifiedAt, to),
         ),
@@ -106,7 +108,10 @@ export class ReportsRepository {
     return rows;
   }
 
-  /** D8-41: the shops that first paid for a plan each day -- a trial, or a shop that never paid, becoming paying. */
+  /**
+   * D8-41: the shops that first paid for a plan each day -- a trial, or a shop that never paid, becoming paying. A test
+   * payment through a sandbox gateway account paid nothing, so it never makes a shop paying.
+   */
   async firstPaidByDay(
     db: Executor,
     from: Date,
@@ -117,7 +122,7 @@ export class ReportsRepository {
       FROM (
         SELECT tenant_id, min(verified_at) AS first_paid
         FROM ${planPayments}
-        WHERE kind = ${PlanPaymentKind.Purchase} AND status = ${PlanPaymentStatus.Verified}
+        WHERE kind = ${PlanPaymentKind.Purchase} AND status = ${PlanPaymentStatus.Verified} AND NOT test
         GROUP BY tenant_id
       ) firsts
       WHERE first_paid >= ${from} AND first_paid < ${to}

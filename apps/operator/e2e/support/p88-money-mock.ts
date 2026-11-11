@@ -54,6 +54,7 @@ export interface WalletTypeFixture {
   shopsOn: number;
   shopsWithAccounts: number;
   openPayments: number;
+  shopsSetUp: number;
   lytroTakes: boolean;
 }
 
@@ -221,7 +222,10 @@ export function drawnManualEntries(): ManualEntryFixture[] {
   ];
 }
 
-/** The sketch's five types, all active. */
+/**
+ * The sketch's five types, all active. The shops that set one up are those with an account and those with it on and
+ * none (WAL-05), so more than either count alone: Upay's 7 are its 5 with an account and 2 on with none.
+ */
 export function drawnWalletTypes(): WalletTypeFixture[] {
   const type = (
     method: string,
@@ -229,6 +233,7 @@ export function drawnWalletTypes(): WalletTypeFixture[] {
     shopsWithAccounts: number,
     openPayments: number,
     lytroTakes: boolean,
+    shopsSetUp: number,
   ): WalletTypeFixture => ({
     method,
     kind: method === 'bank' ? 'bank' : 'wallet',
@@ -238,14 +243,15 @@ export function drawnWalletTypes(): WalletTypeFixture[] {
     shopsOn,
     shopsWithAccounts,
     openPayments,
+    shopsSetUp,
     lytroTakes,
   });
   return [
-    type('bkash', 284, 301, 37, true),
-    type('nagad', 156, 170, 12, true),
-    type('rocket', 9, 14, 0, false),
-    type('upay', 3, 5, 1, false),
-    type('bank', 22, 25, 2, true),
+    type('bkash', 284, 301, 37, true, 305),
+    type('nagad', 156, 170, 12, true, 172),
+    type('rocket', 9, 14, 0, false, 14),
+    type('upay', 3, 5, 1, false, 7),
+    type('bank', 22, 25, 2, true, 25),
   ];
 }
 
@@ -257,7 +263,7 @@ export function upayRetiring(clear = false): WalletTypeFixture[] {
           ...each,
           state: 'retiring',
           retiringSince: '2026-10-19T10:00:00+06:00',
-          ...(clear ? { shopsOn: 0, openPayments: 0 } : {}),
+          ...(clear ? { shopsOn: 0, openPayments: 0, shopsSetUp: each.shopsWithAccounts } : {}),
         }
       : each,
   );
@@ -273,6 +279,7 @@ export function upayRemoved(): WalletTypeFixture[] {
           retiringSince: '2026-10-19T10:00:00+06:00',
           removedAt: '2026-11-18T10:00:00+06:00',
           shopsOn: 0,
+          shopsSetUp: each.shopsWithAccounts,
           openPayments: 0,
         }
       : each,
@@ -523,7 +530,8 @@ export function moneyAnswer(
   if (changed) {
     const type = state.walletTypes.find((each) => each.method === changed[1]);
     if (!type) return { refused: [404, 'not_found', 'There is no such payment method.'] };
-    const told = Math.max(type.shopsOn, type.shopsWithAccounts);
+    // D8-66: every shop that set it up is told, as the server counts them.
+    const told = type.shopsSetUp;
     if (changed[2] === 'retire') {
       type.state = 'retiring';
       type.retiringSince = NOW;

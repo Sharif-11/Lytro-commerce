@@ -114,6 +114,11 @@ function shopperView(
   };
 }
 
+/** WAL-18, D8-65: a shop set a type up when it switched it on or saved an account for it, and keeps it while retiring. */
+function setUpOf(on: boolean, accounts: number): boolean {
+  return on || accounts > 0;
+}
+
 /**
  * WAL-01 to WAL-07, WAL-14 to WAL-18 (Phase 5 Slice 5.1, read agreed 2026-10-31): the accounts a shop takes money into,
  * method by method -- bKash, Nagad, Rocket, Upay and bank transfer (D5-6) -- and which methods the owner turned on, each
@@ -387,14 +392,18 @@ export class PaymentMethods {
       const rows = await this.store.list(tx, tenantId);
       const open = await this.store.openByMethod(tx, tenantId);
       return new Map(
-        ACCOUNT_METHODS.map((method) => [
-          method,
-          {
-            on: on.has(method),
-            accounts: rows.filter((row) => row.method === method).length,
-            openPayments: open.find((row) => row.method === method)?.open ?? 0,
-          },
-        ]),
+        ACCOUNT_METHODS.map((method) => {
+          const accounts = rows.filter((row) => row.method === method).length;
+          return [
+            method,
+            {
+              on: on.has(method),
+              accounts,
+              openPayments: open.find((row) => row.method === method)?.open ?? 0,
+              setUp: setUpOf(on.has(method), accounts),
+            },
+          ];
+        }),
       );
     });
   }
@@ -469,8 +478,9 @@ export class PaymentMethods {
     tenantId: string,
     method: AccountMethod,
   ): Promise<boolean> {
-    if ((await this.store.listOn(tx, tenantId)).includes(method)) return true;
-    return (await this.store.list(tx, tenantId)).some((row) => row.method === method);
+    const on = (await this.store.listOn(tx, tenantId)).includes(method);
+    const rows = await this.store.list(tx, tenantId);
+    return setUpOf(on, rows.filter((row) => row.method === method).length);
   }
 
   /** WAL-12: credentials that don't open (the key changed) count as none, for the owner to enter again. */
