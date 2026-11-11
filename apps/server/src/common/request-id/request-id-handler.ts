@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { REQUEST_ID_HEADER } from '@lytronix/validators';
+import { REQUEST_ID_HEADER } from '@lytronix/shared-types';
 import { RequestContext } from './request-context';
 import { RequestIds } from './request-ids';
 

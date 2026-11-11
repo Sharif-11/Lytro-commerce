@@ -10,7 +10,14 @@ import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { cookieFrom, getJson, patchJson, postJson, type HttpResult } from './support/http';
+import {
+  cookieFrom,
+  getJson,
+  patchJson,
+  postJson,
+  sendExact,
+  type HttpResult,
+} from './support/http';
 import { errorOf, fieldsOf, openShop } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
@@ -134,6 +141,27 @@ describeIfDatabase("Lytro's help line (D8-4, D8-68)", () => {
       newValue: '01811000002',
       reason: 'The help line changed',
     });
+  });
+
+  it('answers the listener app on the API host at /v1/listener/help-line, the same line, with no token (D8-74)', async () => {
+    expect((await set('help_whatsapp', '01711000001')).status).toBe(200);
+    expect((await set('help_closes_hour', 21)).status).toBe(200);
+    const asTheApp = await sendExact(port, 'GET', '/v1/listener/help-line', undefined, {
+      host: 'api.localhost',
+      'x-app-version': '1.0.0',
+    });
+    expect(asTheApp.status, JSON.stringify(asTheApp.body)).toBe(200);
+    // The settings' cache may still hold the last test's other values for a few seconds; these two were just set.
+    expect(asTheApp.body).toMatchObject({ whatsapp: '01711000001', closesHour: 21 });
+    expect(asTheApp.headers['cache-control']).toBe('public, max-age=300');
+    expect(asTheApp.body).toEqual((await read()).body);
+    // A public route answers only on the API host (API-14), and the dashboard's own is not served there.
+    const offTheApiHost = await getJson(port, '/public/listener/help-line', { host: 'localhost' });
+    expect(offTheApiHost.status).toBe(404);
+    const dashboardsOnApiHost = await sendExact(port, 'GET', '/v1/help-line', undefined, {
+      host: 'api.localhost',
+    });
+    expect(dashboardsOnApiHost.status).toBe(404);
   });
 
   it('takes a number only in the local form every page shows, and an hour of a 24-hour clock', async () => {
