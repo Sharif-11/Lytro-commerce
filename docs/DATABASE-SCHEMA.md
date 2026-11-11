@@ -198,7 +198,9 @@ CREATE TABLE control.tenants (
     -- it. A pay-as-you-go shop's deletion clock (LIF-18, LIF-19) runs from here, since it has no period
     -- end. Added by migration 0047_tenant_archived_at.sql.
     archived_at            timestamptz,
-    -- LIF-20/21/22: set once by the day-60 deletion job (LIF-19), never before. The row and its
+    -- LIF-20/21/22: set once, when the deletion (LIF-19, at day 60 or on request, ADM-13) begins, under the
+    -- row's lock (Phase 8 close-out, D8-88); the state turns 'deleted' when it ends, so set with any other
+    -- state means a deletion that stopped part way, which the next lifecycle tick finishes. The row and its
     -- state ('deleted') persist after this is set -- deletion removes only the business data
     -- listed in LIF-19, not the tenant row itself (LIF-20 keeps the subscriber link, plan/payment
     -- history, balance and invoices reachable). Anchors the 30-day subdomain-reservation window

@@ -81,7 +81,7 @@ overrule any of them when reviewing this plan.
 | D8-17 | **Media costs** (MED-12, KNOWN-GAPS §101). Worker requests and bytes are counted; R2's own operations aren't. | Each month's R2 operations, Worker requests and the shops that use most, against a monthly budget the operator sets, with an email to the operators at 80%. Where R2's operation counts come from (Lytro's own calls or Cloudflare's analytics) is settled in the slice's read. | Slice 8.6 |
 | D8-18 | **Retiring a wallet type** (WAL-18, moved here by Phase 5). The types are a list in the code. | The couriers' pattern (CRR-23, CRR-24): retiring hides a type from new setup while shops using it keep it, undoing is allowed, and removing needs no shop to use it. | Slice 8.7 |
 | D8-19 | **The shop-ready SMS** (SMS-18). It goes out today in English ("Your shop is ready: …"). | Worded in Bangla to the owner's style guide in the slice's read, still Lytro's cost (D7-23), and proven through the real SMS path. | Slice 8.7 |
-| D8-20 | **A gateway for Lytro's own payments** (ADM-10's other half). Phase 5 left it for later (D5-3). | Still later. Lytro's own payments come by its wallets and its listener phones. | none |
+| D8-20 | **A gateway for Lytro's own payments** (ADM-10's other half). Phase 5 left it for later (D5-3). | Still later. Lytro's own payments come by its wallets and its listener phones. **Overtaken 2026-11-09** by the owner's decision on Lytro's own payment methods (#336, #337): Lytro's payment page takes bKash's gateway, with keys the operator manages (ADM-10, amended). | none |
 | D8-21 | **The request ID's form** (Slice 8.1's read, 2026-11-07). A seller may read one out over WhatsApp. | Eight characters in two halves, like `K7MQ-4XR2`, from letters and digits that can't be mistaken for each other (no 0 or O, no 1, I or L), made by Lytro for every request; one a client sends is never used. The dashboard's error message shows it (Slice 8.8). | Slices 8.1, 8.8 |
 | D8-22 | **Which errors are kept** (the read). | Server faults only: an unexpected fault (500) and a 503 when something Lytro depends on is down. A refusal (a bad field, a limit, a missing permission) is an answer the seller already sees explained, and isn't kept. A fault before the shop is known (signing in) is logged, not kept. | Slice 8.1 |
 | D8-23 | **What a kept error holds** (the read). A database's own text can hold a customer's phone or address. | The route's pattern (`/api/v1/orders/:id`), the method, the status, the error's kind (its class, with the database's own code when it has one, or a 503's message key) and the request ID. The message and stack go only to the server log, under the same ID. | Slice 8.1 |
@@ -144,6 +144,14 @@ overrule any of them when reviewing this plan.
 | D8-80 | **The listener app's help number once cleared** (the owner's answer). | A number cleared in the console hides the app's support row too, as on the dashboard and the website; the number the app was built with stands in only until the server answers and while it can't be reached. | Slice 8.8 |
 | D8-81 | **Where an error ID shows** (the owner's answer). | As drawn: Record a payment's error above its button, and Products' "didn't load" card with Try again. Every other sheet keeps its error at its top and every other list its banner, each with the error ID, Copy and Send on WhatsApp, until a sketch draws more. | Slice 8.8 |
 | D8-82 | **A product save the server refuses** (the owner's answer). | It keeps naming the refused part under the title (Slice 11.7a's per-part message), not the drawing's bare sentence above it (`p88-err-refused`). | Slice 8.8 |
+| D8-83 | **A bank reference's one form** (the close-out, review A F1). The operator typed a statement's dashes and spaces; Lytro's payment page takes letters and digits only; "used once" matched letter for letter, so one transfer could pay twice. | A reference is kept and matched as its letters and digits, in capitals, however it was typed (`BRAC-FT-55190327` is `BRACFT55190327`). The close-out's call. | Close-out |
+| D8-84 | **Approving a seller's claim** (ADM-17; the owner's answer, 2026-11-11). Its pass line said approval follows a manual entry's guards. | It activates as the queue always has, with its transaction ID used once platform-wide. It asks for no reason and no amount typed again: those are a manual entry's guards. ADM-17's pass line is amended. | Close-out |
+| D8-85 | **A cleared help number on Lytro's payment page** (the owner's answer). D8-69 let either number stand in for the other there; D8-76 said a cleared one's button goes. | D8-76 wins: a number not set, or cleared, takes its button away on every page, and neither stands in for the other. | Close-out |
+| D8-86 | **A reason on every operator action** (criterion 5; the owner's answer). Restoring a shop or its payment page, the new-shop cap and removing a limit override took none. | Each takes one, required by the validator and kept in the platform audit log and the shop's activity log. The console's four dialogs draw it (OPERATOR-CONSOLE-DESIGN v7.1). | Close-out |
+| D8-87 | **A lost phone that was also the shop's listener** (the owner's answer). A paired listener phone doesn't record its number, so a reset can't tell which one was lost. | The reset leaves the shop's listener phones paired. Once signed in again, the owner unpairs the lost one on the listener page, where each shows its name and model; the operator reminds them (RUNBOOKS §6). | Close-out |
+| D8-88 | **When a deletion can no longer be undone** (refines D8-37; review B F1). | From its job's first step. The job begins under the shop's row lock and marks the shop as being deleted; from then an extension is refused, a manual entry is refused, and a plan payment approved for it is kept as its balance, never bringing it back. A deletion that stopped part way is finished by the next lifecycle tick. The close-out's call. | Close-out |
+| D8-89 | **The lifecycle tick moves a shop one way** (review B F5). | Forward along active, grace, read-only, locked and archived, never back: only a payment or the operator brings a shop back. A shop archived by a request to delete its data stays archived until its job runs. The tick changes a shop only as it read it, under its row lock, so an extension or a payment made meanwhile stands. The close-out's call. | Close-out |
+| D8-90 | **Reversing an entry while an upgrade or renewal is open** (refines D8-48; review A F3). An upgrade's credit and a renewal's start were worked out from the entry's plan. | Refused until that payment is decided or runs out (one never submitted runs out after 24 hours, BIL-15). The close-out's call. | Close-out |
 
 ### 2.1 Points left to each slice's read
 
@@ -169,7 +177,6 @@ Each is settled in its slice's read, before code, and recorded there.
 | Area | Requirements |
 |---|---|
 | Console | ADM-02, ADM-04, ADM-08, ADM-09, ADM-13 to ADM-17 |
-| Media | MED-12 |
 | Payment methods | WAL-18 (retiring a type) |
 | SMS | SMS-18 |
 | API | API-27 |
@@ -180,7 +187,8 @@ Each is settled in its slice's read, before code, and recorded there.
 | Requirement | Built here | Left | Where |
 |---|---|---|---|
 | ADM-03 | every row but two | failed webhooks, open tickets | next release, with webhooks and tickets (D8-1) |
-| ADM-10 | Lytro's wallets (Phase 5) | a gateway for Lytro's own payments | later (D8-20) |
+| ADM-10 | Lytro's wallets (Phase 5), and its bKash gateway with keys the operator manages (#337) | a real payment through Lytro's own bKash merchant account | before launch (KNOWN-GAPS §137) |
+| MED-12 | each month's R2 operations, Worker requests and top shops, the budget and its alert (Slice 8.6) | its pass is a recorded manual check against a real Cloudflare invoice (`MAN`), not yet made | the first invoice after launch (KNOWN-GAPS §138) |
 | API-28 | Caddy redirects plain HTTP to HTTPS on every host | the recorded manual check | Phase 9 |
 
 ### 3.3 Listed for Phase 8 but not built here (next release)

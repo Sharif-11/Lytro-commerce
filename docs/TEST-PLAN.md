@@ -841,7 +841,7 @@ Covers: `API-16`, §2.6.
 **S09-12 Bulk endpoint limits.**
 Steps: submit a bulk import at and beyond its stricter per-request size cap.
 Expected: within-cap bulk request processes; beyond-cap is rejected with a clear size-limit error, distinct from the normal single-item rate limit.
-Covers: `API-23`, `API-24`, `API-26` to `API-28`.
+Covers: `API-23`, `API-24`, `API-26`. (`API-27`'s request IDs and `API-28`'s redirect to HTTPS aren't this scenario's: request IDs have their own tests, and the redirect is a manual check in Phase 9.)
 
 ---
 
