@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lytro product page v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Lytro's storefront tokens, as lytro-storefront.html and the built storefront use them. */
+:root{
+  --teal-50:#effaf8;--teal-100:#ddf5f2;--teal-700:#0e6b66;--teal-800:#0a4f4b;--teal-900:#063b38;
+  --mar-100:#fdf0d1;--mar-500:#f2a516;--mar-700:#9a6004;
+  --ink:#10201f;--n700:#2c3f3e;--n500:#5b6e6d;--n400:#7e8f8e;--n300:#a9b9b8;--n200:#d5dfde;--n100:#eaf0ef;--n50:#f6f9f8;--white:#fff;
+  --success:#1b7a43;--success-soft:#e3f3e9;--warning:#9a6004;--warning-soft:#fdf0d1;--danger:#c8323b;--danger-soft:#fbe7e8;
+  --bg:#fff;--surface:#fff;--sunken:var(--n50);--line:var(--n200);--line-strong:var(--n300);--text:var(--ink);--muted:var(--n700);--subtle:var(--n500);
+  --accent:var(--teal-700);--accent-hover:var(--teal-800);--on-accent:#fff;--accent-soft:var(--teal-50);--accent-text:var(--teal-700);
+  --font-ui:'Inter','Noto Sans Bengali',ui-sans-serif,system-ui,sans-serif;--font-display:'Plus Jakarta Sans','Inter','Noto Sans Bengali',sans-serif;
+  --r-control:8px;--r-card:12px;--r-sheet:18px;--r-pill:999px;
+  --shadow:0 1px 2px rgba(16,32,31,.06),0 4px 12px rgba(16,32,31,.06);--shadow-pop:0 12px 40px rgba(16,32,31,.22);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--font-ui);color:var(--text);background:#e9eeed;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+img{display:block}
+
+/* ---------- The sketch's own toolbar (not part of the design) ---------- */
+.bar{position:sticky;top:0;z-index:100;background:#0f1d1c;color:#e9f2f1;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:10px 16px;font-size:13px}
+.bar b{font-family:var(--font-display);font-weight:700;letter-spacing:.2px;margin-right:6px}
+.bar .grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.bar .grp span{opacity:.6;margin-right:4px}
+.bar button{background:#22332f;border:1px solid #33463f;color:#d9e6e4;border-radius:6px;padding:5px 9px;font-size:12.5px}
+.bar button.on{background:#e9f2f1;color:#0f1d1c;border-color:#e9f2f1;font-weight:600}
+.note{max-width:1280px;margin:14px auto 0;padding:0 16px;font-size:13px;color:#2c3f3e;line-height:1.5}
+.note b{color:#10201f}
+.stage{display:flex;justify-content:center;padding:18px 16px 60px}
+.frame{width:var(--fw);height:var(--fh);overflow:hidden;background:var(--bg);border-radius:18px;box-shadow:0 18px 50px rgba(16,32,31,.18);position:relative;container:page/inline-size}
+/* The page's own scroll; var(--vh) stands for the browser window's height (100svh in the app). */
+.sc{height:100%;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+
+/* ---------- Page shell ---------- */
+.hdr{position:sticky;top:0;z-index:30;height:56px;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:4px;padding:0 6px}
+.ib{width:44px;height:44px;border:0;background:none;border-radius:50%;display:grid;place-items:center;position:relative;flex:none}
+.ib:hover{background:var(--n50)}
+.ib svg{width:22px;height:22px}
+.ib .cnt{position:absolute;top:6px;right:5px;min-width:17px;height:17px;border-radius:9px;background:var(--accent);color:#fff;font-size:10.5px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+.shop{display:flex;align-items:center;gap:8px;min-width:0;flex:1;text-decoration:none;color:inherit}
+.logo{width:30px;height:30px;border-radius:8px;background:var(--teal-700);color:#fff;font-family:var(--font-display);font-weight:800;font-size:14px;display:grid;place-items:center;flex:none}
+.shop b{font-family:var(--font-display);font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumb{display:none}
+@container page (min-width:700px){
+  .hdr{height:64px;padding:0 20px;gap:8px}
+  .hdr .back{display:none}
+  .crumb{display:block;max-width:1200px;margin:0 auto;padding:16px 24px 0;font-size:13px;color:var(--subtle)}
+  .crumb a{color:var(--muted);text-decoration:none}
+}
+@container page (min-width:1100px){.crumb{padding:18px 40px 0}}
+
+/* ---------- Product: layout ---------- */
+.pdp{padding:0 0 28px}
+@container page (min-width:700px){
+  .pdp{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:28px;max-width:1200px;margin:0 auto;padding:16px 24px 40px;align-items:start}
+  .pdp .gal{position:sticky;top:80px}
+}
+/* Desktop: the photo is sized to the window's height, so the photo, the name, the price and the design row are all in
+   the first screen without scrolling; the info column takes the rest of the width. */
+@container page (min-width:1100px){
+  .pdp{grid-template-columns:auto minmax(0,1fr);gap:48px;padding:20px 40px 56px}
+}
+
+/* ---------- Gallery: every photo, one after another ---------- */
+.gal{position:relative}
+.view{position:relative}
+.track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;scroll-behavior:smooth}
+.track::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100%;aspect-ratio:4/5;scroll-snap-align:start;position:relative;margin:0;background:var(--n100)}
+.slide img{width:100%;height:100%;object-fit:cover}
+.counter{position:absolute;top:12px;right:12px;background:rgba(16,32,31,.62);color:#fff;font-size:12px;font-weight:600;border-radius:var(--r-pill);padding:4px 9px;letter-spacing:.3px}
+.dbadge{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.94);color:var(--ink);font-size:12.5px;font-weight:600;border-radius:var(--r-pill);padding:5px 10px;box-shadow:var(--shadow)}
+.dbadge i{font-style:normal;color:var(--subtle);font-weight:500}
+.pick{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:inline-flex;align-items:center;gap:7px;height:44px;padding:0 18px;border-radius:var(--r-pill);border:0;background:rgba(255,255,255,.96);color:var(--ink);font-weight:600;font-size:14.5px;box-shadow:0 6px 20px rgba(16,32,31,.25);white-space:nowrap}
+.pick svg{width:18px;height:18px}
+.pick.on{background:var(--accent);color:#fff}
+.pick.out{background:rgba(255,255,255,.9);color:var(--subtle);cursor:not-allowed}
+.dots{display:flex;justify-content:center;gap:6px;padding:10px 0 2px}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--n200);transition:all .2s}
+.dots i.on{width:18px;border-radius:3px;background:var(--ink)}
+.thumbs{display:none}
+.navb{display:none}
+@container page (min-width:700px){
+  .track,.slide{border-radius:var(--r-card)}
+  .dots{display:none}
+  .thumbs{display:flex;gap:8px;margin-top:10px;overflow-x:auto;scrollbar-width:thin;padding-bottom:4px}
+  .th{flex:0 0 64px;aspect-ratio:4/5;border-radius:8px;overflow:hidden;border:0;padding:0;position:relative;outline:1px solid var(--line);outline-offset:-1px;background:var(--n100)}
+  .th img{width:100%;height:100%;object-fit:cover}
+  .th.on{outline:2px solid var(--ink);outline-offset:1px}
+  .th .tn{position:absolute;left:4px;bottom:4px;min-width:18px;height:18px;border-radius:9px;background:rgba(255,255,255,.94);font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+  .navb{display:grid;place-items:center;position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.92);box-shadow:var(--shadow)}
+  .navb.prev{left:12px}.navb.next{right:12px}
+  .navb svg{width:20px;height:20px}
+}
+@container page (min-width:1100px){
+  .gal{display:grid;grid-template-columns:72px auto;gap:12px;--ph:min(calc(var(--vh) - 140px), 800px)}
+  .gal .view{grid-column:2;grid-row:1;height:var(--ph);width:calc(var(--ph) * .8)}
+  .gal .track{height:100%}
+  .gal .slide{height:100%;aspect-ratio:auto}
+  .thumbs{grid-column:1;grid-row:1;flex-direction:column;margin-top:0;max-height:var(--ph);overflow-y:auto;overflow-x:hidden}
+  .th{flex:0 0 auto;width:72px}
+}
+
+/* ---------- Info column ---------- */
+.info{padding:16px 16px 0}
+@container page (min-width:700px){.info{padding:0}}
+.eyebrow{font-size:12.5px;font-weight:600;color:var(--accent-text);letter-spacing:.2px;display:flex;gap:8px;align-items:center}
+.eyebrow .dc{color:var(--subtle);font-weight:500}
+h1.pn{font-family:var(--font-display);font-weight:700;font-size:22px;line-height:1.3;margin:6px 0 10px;letter-spacing:-.2px}
+@container page (min-width:1100px){h1.pn{font-size:28px}}
+.price{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px}
+.price .now{font-family:var(--font-display);font-weight:800;font-size:26px;letter-spacing:-.3px}
+.price .per{font-size:14px;color:var(--subtle);font-weight:500}
+.price .was{font-size:15px;color:var(--subtle);text-decoration:line-through}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;border-radius:var(--r-pill);padding:4px 9px;line-height:1.2}
+.chip.off{background:var(--danger-soft);color:var(--danger)}
+.chip.ok{background:var(--success-soft);color:var(--success)}
+.chip.few{background:var(--warning-soft);color:var(--warning)}
+.chip.out{background:var(--n100);color:var(--n700)}
+.chip.ok::before,.chip.few::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.stockrow{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+.sep{height:1px;background:var(--line);margin:16px 0}
+
+.opt{margin-top:18px;scroll-margin-top:80px}
+.opt .lb{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px;font-size:14.5px}
+.opt .lb .k{color:var(--muted)}
+.opt .lb .v{font-weight:600}
+.opt .lb .v.ph{color:var(--subtle);font-weight:500}
+.opt .lb a{font-size:13.5px;color:var(--accent-text);font-weight:600;text-decoration:none;white-space:nowrap}
+.msg{display:flex;gap:7px;align-items:flex-start;font-size:13.5px;color:var(--muted);margin-top:10px;line-height:1.45}
+.msg svg{width:16px;height:16px;flex:none;margin-top:2px}
+.msg.err{color:var(--danger);font-weight:600}
+.opt.nudge .dgrid,.opt.nudge .sizes{animation:nudge .5s ease 2}
+@keyframes nudge{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+
+/* Design cards: one per design, its group's first photo */
+/* Five cards fill the row exactly; with more designs the sixth peeks in and the row scrolls sideways. */
+.dgrid{display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 32px) / 5);gap:8px;overflow-x:auto;scrollbar-width:none;padding:4px;margin:-4px}
+.dgrid.many{grid-auto-columns:calc((100% - 40px) / 5.5)}
+.dgrid::-webkit-scrollbar{display:none}
+.dcard{width:100%;aspect-ratio:4/5;border-radius:10px;border:0;padding:0;position:relative;overflow:hidden;background:var(--n100);outline:1px solid var(--line);outline-offset:-1px}
+.dcard img{width:100%;height:100%;object-fit:cover}
+.dcard .num{position:absolute;left:4px;top:4px;min-width:20px;height:20px;border-radius:10px;background:rgba(255,255,255,.95);font-size:11.5px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+.dcard .tick{display:none;position:absolute;right:4px;top:4px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;place-items:center}
+.dcard .tick svg{width:13px;height:13px}
+.dcard.on{outline:2.5px solid var(--accent);outline-offset:2px}
+.dcard.on .tick{display:grid}
+.dcard.out img{filter:grayscale(1);opacity:.5}
+.dcard .outl{position:absolute;inset:auto 0 0 0;background:rgba(16,32,31,.72);color:#fff;font-size:11px;font-weight:600;text-align:center;padding:3px 0}
+.dcard .pc{position:absolute;right:4px;bottom:4px;background:rgba(16,32,31,.66);color:#fff;font-size:10.5px;font-weight:600;border-radius:6px;padding:1px 5px;display:flex;align-items:center;gap:3px}
+.dcard .pc svg{width:10px;height:10px}
+
+/* Sizes */
+.sizes{display:flex;flex-wrap:wrap;gap:8px}
+.sz{min-width:56px;height:44px;padding:0 14px;border-radius:var(--r-control);border:1px solid var(--line-strong);background:#fff;font-weight:600;font-size:15px}
+.sz.on{border:2px solid var(--accent);background:var(--accent-soft);color:var(--accent-text)}
+.sz.off{background:var(--n50);color:var(--n400);text-decoration:line-through;border-color:var(--line)}
+
+/* Quantity with its unit */
+.qrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.step{display:inline-flex;align-items:center;height:44px;border:1px solid var(--line-strong);border-radius:var(--r-control);background:#fff}
+.step button{width:44px;height:42px;border:0;background:none;display:grid;place-items:center;border-radius:var(--r-control)}
+.step button:disabled{color:var(--n300);cursor:not-allowed}
+.step button svg{width:18px;height:18px}
+.step .val{min-width:92px;text-align:center;font-weight:600;font-size:15px;border-left:1px solid var(--line);border-right:1px solid var(--line);height:100%;display:grid;place-items:center;padding:0 8px}
+.step .val input{width:58px;border:0;text-align:right;font-weight:600;font-size:15px;outline:none;background:none;padding:0}
+.step .val.typed{display:flex;align-items:center;justify-content:center;gap:5px}
+.qhint{font-size:13.5px;color:var(--subtle)}
+.qhint b{color:var(--warning)}
+.quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.quick button{height:34px;padding:0 12px;border-radius:var(--r-pill);border:1px solid var(--line-strong);background:#fff;font-size:13.5px;font-weight:600}
+.quick button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* Inline buttons (tablet and desktop), and the phone's bar */
+.ctas{display:none}
+@container page (min-width:700px){
+  .ctas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
+}
+.btn{height:50px;border-radius:var(--r-control);border:1px solid transparent;font-weight:700;font-size:15.5px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;white-space:nowrap}
+.btn svg{width:19px;height:19px}
+.btn.pri{background:var(--accent);color:#fff}
+.btn.pri:hover{background:var(--accent-hover)}
+.btn.sec{background:#fff;border-color:var(--ink);color:var(--ink)}
+.btn.wide{width:100%}
+.btn.wait{background:var(--ink)}
+.buybar{position:sticky;bottom:0;z-index:25;background:rgba(255,255,255,.97);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px}
+@container page (min-width:700px){.buybar{display:none}}
+.bsum{flex:1;min-width:0;display:flex;align-items:center;gap:9px}
+.bsum img{width:38px;height:47px;border-radius:6px;object-fit:cover;flex:none}
+.bsum .t{min-width:0}
+.bsum .l1{font-size:12px;color:var(--subtle);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bsum .l2{font-family:var(--font-display);font-weight:800;font-size:18px;white-space:nowrap}
+.buybar .btn{height:48px;font-size:15px}
+.buybar .btn.sec{width:48px;padding:0;flex:none}
+
+/* Facts: delivery, payment, returns */
+.facts{list-style:none;margin:22px 0 0;padding:0;border:1px solid var(--line);border-radius:var(--r-card)}
+.facts li{display:flex;gap:12px;padding:13px 14px;align-items:flex-start}
+.facts li+li{border-top:1px solid var(--line)}
+.facts .fi{width:34px;height:34px;border-radius:10px;background:var(--accent-soft);color:var(--accent-text);display:grid;place-items:center;flex:none}
+.facts .fi svg{width:18px;height:18px}
+.facts .ft{flex:1;min-width:0;font-size:14px;line-height:1.45}
+.facts .ft b{display:block;font-weight:600}
+.facts .ft span{color:var(--subtle);font-size:13.5px}
+.facts a{font-size:13.5px;font-weight:600;color:var(--accent-text);text-decoration:none;white-space:nowrap;align-self:center}
+
+/* Description, details, share */
+.acc{margin-top:18px;border-top:1px solid var(--line)}
+.acc details{border-bottom:1px solid var(--line)}
+.acc summary{list-style:none;display:flex;justify-content:space-between;align-items:center;padding:15px 0;font-weight:600;font-size:15px;cursor:pointer}
+.acc summary::-webkit-details-marker{display:none}
+.acc summary svg{width:18px;height:18px;transition:transform .2s}
+.acc details[open] summary svg{transform:rotate(180deg)}
+.acc .body{padding:0 0 16px;font-size:14.5px;line-height:1.65;color:var(--muted)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;font-size:14px}
+.kv dt{color:var(--subtle)}.kv dd{margin:0;font-weight:500;color:var(--text)}
+.share{display:flex;align-items:center;gap:8px;margin-top:16px;font-size:13.5px;color:var(--subtle)}
+.share button{height:36px;border-radius:var(--r-pill);border:1px solid var(--line-strong);background:#fff;padding:0 12px;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--text)}
+.share button svg{width:15px;height:15px}
+
+/* You may also like */
+.more{padding:8px 16px 28px;max-width:1200px;margin:0 auto}
+@container page (min-width:700px){.more{padding:8px 24px 48px}}
+@container page (min-width:1100px){.more{padding:8px 40px 56px}}
+.more h2{font-family:var(--font-display);font-size:18px;margin:6px 0 12px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@container page (min-width:700px){.cards{grid-template-columns:repeat(4,1fr);gap:16px}}
+.pc2 .ph{aspect-ratio:4/5;border-radius:var(--r-card);overflow:hidden;background:var(--n100)}
+.pc2 .ph img{width:100%;height:100%;object-fit:cover}
+.pc2 .nm{font-size:14px;margin:8px 0 2px;line-height:1.35}
+.pc2 .pr{font-family:var(--font-display);font-weight:700;font-size:15px}
+.pc2 .sw{display:flex;gap:4px;margin-top:6px}
+.pc2 .sw i{width:16px;height:20px;border-radius:4px;background-size:cover;background-position:center;outline:1px solid var(--line)}
+
+/* ---------- Landing page ---------- */
+.lhdr .shop{justify-content:center}
+.lhdr .lang{height:34px;border-radius:var(--r-pill);border:1px solid var(--line-strong);background:#fff;padding:0 12px;font-size:13px;font-weight:600}
+.trust{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}
+.trust div{border:1px solid var(--line);border-radius:var(--r-card);padding:10px 8px;text-align:center;font-size:12.5px;line-height:1.35;font-weight:600;color:var(--muted)}
+.trust svg{width:20px;height:20px;color:var(--accent-text);display:block;margin:0 auto 5px}
+/* The landing page: the photo on the left as on the product page; on the right the product's details and then the order
+   form, so the form sits beside the photo on desktop and right after the details on a phone. */
+.order{margin:20px 16px 8px;border:1px solid var(--line);border-radius:var(--r-sheet);padding:18px 16px;background:#fff;box-shadow:var(--shadow);scroll-margin-top:72px}
+@container page (min-width:700px){.order{margin:24px 0 0;padding:22px}}
+.order h2{font-family:var(--font-display);font-size:20px;margin:0}
+.order .sub{font-size:13.5px;color:var(--subtle);margin:4px 0 16px}
+.yours{display:flex;gap:12px;align-items:center;padding:10px;border-radius:var(--r-card);background:var(--sunken);border:1px solid var(--line)}
+.yours img{width:56px;height:70px;border-radius:8px;object-fit:cover;flex:none}
+.yours .t{flex:1;min-width:0;font-size:13.5px;line-height:1.45}
+.yours .t b{display:block;font-size:14px}
+.yours .t .pin{display:flex;align-items:center;gap:4px;color:var(--accent-text);font-weight:600;font-size:12px;margin-top:3px}
+.yours .t .pin svg{width:12px;height:12px}
+.yours a{font-size:13.5px;font-weight:600;color:var(--accent-text);text-decoration:none}
+.yours.empty{border-style:dashed;background:#fff;justify-content:space-between}
+.yours.empty .t{color:var(--muted)}
+.fld{margin-top:14px}
+.fld label{display:block;font-size:13.5px;font-weight:600;margin-bottom:6px}
+.fld label i{font-style:normal;color:var(--subtle);font-weight:500}
+.fld input,.fld select,.fld textarea{width:100%;height:46px;border:1px solid var(--line-strong);border-radius:var(--r-control);padding:0 12px;background:#fff;font-size:15px}
+.fld textarea{height:auto;min-height:76px;padding:10px 12px;resize:vertical;line-height:1.5}
+.fld .pre{display:flex}
+.fld .pre span{height:46px;display:grid;place-items:center;padding:0 10px;border:1px solid var(--line-strong);border-right:0;border-radius:var(--r-control) 0 0 var(--r-control);background:var(--sunken);font-size:14px;color:var(--muted)}
+.fld .pre input{border-radius:0 var(--r-control) var(--r-control) 0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sum{margin-top:18px;border-top:1px dashed var(--line-strong);padding-top:14px;font-size:14.5px}
+.sum div{display:flex;justify-content:space-between;gap:12px;padding:4px 0}
+.sum div span:first-child{color:var(--muted)}
+.sum .gt{font-weight:700;font-size:16.5px;border-top:1px solid var(--line);margin-top:6px;padding-top:10px}
+.sum .gt span:first-child{color:var(--text)}
+.sum .dim{color:var(--subtle);font-size:13px}
+.paynote{display:flex;gap:8px;align-items:center;font-size:13.5px;margin:14px 0;padding:10px 12px;border-radius:var(--r-control);background:var(--accent-soft);color:var(--teal-900)}
+.paynote svg{width:18px;height:18px;color:var(--accent-text);flex:none}
+.once{text-align:center;font-size:12.5px;color:var(--subtle);margin-top:8px}
+.lfoot{border-top:1px solid var(--line);padding:20px 16px 90px;text-align:center;font-size:13px;color:var(--subtle);line-height:1.9}
+@container page (min-width:700px){.lfoot{padding-bottom:28px}}
+.lfoot a{color:var(--muted);font-weight:600;text-decoration:none}
+.lbar{position:sticky;bottom:0;z-index:25;background:rgba(255,255,255,.97);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:10px 12px;display:flex;gap:10px;align-items:center}
+@container page (min-width:1100px){.lbar{display:none}}
+
+/* ---------- Toast ---------- */
+.toast{position:sticky;bottom:84px;margin:0 12px;z-index:40;display:flex;gap:10px;align-items:center;background:var(--ink);color:#fff;border-radius:12px;padding:10px 12px;font-size:13.5px;box-shadow:var(--shadow-pop);animation:rise .25s ease}
+.toast img{width:34px;height:42px;border-radius:5px;object-fit:cover}
+.toast b{display:block}
+@container page (min-width:700px){.toast{position:absolute;bottom:auto;top:76px;right:20px;margin:0;width:340px}}
+@keyframes rise{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+
+/* ---------- Sheets: units, and after the tap ---------- */
+.sheet{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
+@container page (min-width:700px){.sheet{padding:28px 24px 48px}}
+.sheet h2{font-family:var(--font-display);font-size:20px;margin:0 0 4px}
+.sheet .lead{color:var(--muted);font-size:14px;line-height:1.55;margin:0 0 18px}
+.ugrid{display:grid;gap:12px}
+@container page (min-width:700px){.ugrid{grid-template-columns:1fr 1fr}}
+.ucard{border:1px solid var(--line);border-radius:var(--r-card);padding:14px;background:#fff}
+.ucard .top{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.ucard .ph{width:48px;height:48px;border-radius:10px;display:grid;place-items:center;font-size:22px;flex:none}
+.ucard .nm{font-weight:600;font-size:14.5px}
+.ucard .pp{font-size:13.5px;color:var(--subtle)}
+.ucard .pp b{font-family:var(--font-display);color:var(--text);font-size:15px}
+.ucard .tot{margin-top:10px;font-size:13.5px;color:var(--muted)}
+.ucard .tot b{color:var(--text)}
+.ucard .rule{margin-top:10px;font-size:12.5px;color:var(--subtle);border-top:1px dashed var(--line);padding-top:8px}
+.flow{display:grid;gap:14px}
+@container page (min-width:700px){.flow{grid-template-columns:1fr 1fr}}
+@container page (min-width:1100px){.flow{grid-template-columns:1fr 1fr 1fr}}
+.fcard{border:1px solid var(--line);border-radius:var(--r-card);background:#fff;overflow:hidden}
+.fcard .cap{font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--subtle);padding:10px 14px;border-bottom:1px solid var(--line);background:var(--sunken);display:flex;gap:8px;align-items:center}
+.fcard .cap .n{width:20px;height:20px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:11px;letter-spacing:0}
+.fcard .in{padding:14px}
+.line{display:flex;gap:12px;align-items:flex-start}
+.line img{width:64px;height:80px;border-radius:8px;object-fit:cover;flex:none}
+.line .t{flex:1;min-width:0;font-size:13.5px;line-height:1.5;color:var(--muted)}
+.line .t b{display:block;color:var(--text);font-size:14.5px;font-weight:600}
+.line .t .tags{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;border-radius:6px;padding:2px 7px;background:var(--n100);color:var(--n700)}
+.tag.d{background:var(--accent-soft);color:var(--accent-text)}
+.crow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.trash{width:40px;height:40px;border-radius:var(--r-control);border:1px solid var(--line);background:#fff;color:var(--n700);display:grid;place-items:center;flex:none}
+.trash:hover{color:var(--danger);border-color:var(--danger);background:var(--danger-soft)}
+.trash svg{width:19px;height:19px}
+.undo{margin-top:12px;display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:#fff;border-radius:10px;padding:9px 12px;font-size:13.5px}
+.undo a{color:#7fe0d6;font-weight:700;cursor:pointer}
+.line .amt{font-family:var(--font-display);font-weight:700;font-size:15px;white-space:nowrap}
+.okhead{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.okhead .c{width:36px;height:36px;border-radius:50%;background:var(--success-soft);color:var(--success);display:grid;place-items:center}
+.okhead .c svg{width:20px;height:20px}
+.okhead b{font-family:var(--font-display);font-size:16px}
+.okhead span{display:block;font-size:13px;color:var(--subtle)}
+.dash{font-family:'Inter','Noto Sans Bengali',sans-serif}
+.label{border:2px solid #111;border-radius:6px;padding:10px 12px;font-size:13px;line-height:1.5;color:#111;max-width:300px}
+.label .lt{font-weight:700;border-bottom:1px dashed #111;padding-bottom:5px;margin-bottom:6px}
+.label .li{font-weight:600;margin:6px 0}
+.label .li span{display:block;font-family:ui-monospace,'Cascadia Mono',monospace;font-weight:700;letter-spacing:.5px}
+.label .lc{border-top:1px dashed #111;padding-top:5px;font-weight:700}
+.slip .line img{filter:grayscale(1) contrast(1.1);width:56px;height:70px}
+.slip .box{width:18px;height:18px;border:2px solid #222;border-radius:3px;flex:none;margin-top:2px}
+.pinbox{margin-top:16px;display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--r-card);background:var(--teal-50);border:1px solid var(--teal-100);font-size:13.5px;line-height:1.55;color:var(--teal-900)}
+.pinbox svg{width:18px;height:18px;flex:none;margin-top:2px;color:var(--accent-text)}
+
+/* ---------- The size chart: a sheet from the bottom on phones, a dialog on wider screens (as built today) ---------- */
+.ovl{position:absolute;inset:0;z-index:60;background:rgba(16,32,31,.45);display:flex;align-items:flex-end;justify-content:center;animation:fade .2s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheetbox{width:100%;max-height:80%;overflow:auto;background:#fff;border-radius:var(--r-sheet) var(--r-sheet) 0 0;padding:8px 16px 20px;animation:rise .25s ease}
+.sheetbox .grab{width:40px;height:4px;border-radius:2px;background:var(--n200);margin:4px auto 10px}
+.sheetbox .sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.sheetbox h3{font-family:var(--font-display);font-size:18px;margin:0}
+@container page (min-width:700px){.ovl{align-items:center}.sheetbox{width:560px;border-radius:var(--r-sheet);padding:20px 24px 24px}.sheetbox .grab{display:none}}
+.chart{width:100%;border-collapse:collapse;font-size:14px}
+.chart th,.chart td{padding:10px 8px;text-align:center;border-bottom:1px solid var(--line)}
+.chart th{font-weight:600;color:var(--muted);background:var(--sunken)}
+.chart td:first-child,.chart th:first-child{text-align:left;font-weight:700}
+.chart tr.hl td{background:var(--accent-soft)}
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div class="note" id="note"></div>
+<div class="stage"><div class="frame" id="frame"></div></div>
+
+<script>
+/* ---------- Icons ---------- */
+const I = {
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  next:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
+  bag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l1 13H5L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>',
+  user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+  heart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  tap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M12 10.5a1.5 1.5 0 0 1 3 0V12"/><path d="M15 11.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-.5a6 6 0 0 1-4.6-2.2L4.3 15.6a1.5 1.5 0 0 1 2.2-2L9 16"/></svg>',
+  minus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  truck:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3z"/><path d="M14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>',
+  cash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6.5 9.5v.01M17.5 14.5v.01"/></svg>',
+  ret:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h11a5 5 0 0 1 0 10H8"/><path d="M8 4L4 8l4 4"/></svg>',
+  map:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg>',
+  chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12z"/></svg>',
+  down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
+  link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
+  wa:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 5-1.3A10 10 0 1 0 12 2zm5.6 14.2c-.2.6-1.3 1.2-1.8 1.2s-1 .3-3.3-.7a11.5 11.5 0 0 1-4.6-4.1 5.2 5.2 0 0 1-1.1-2.8 3 3 0 0 1 1-2.2.9.9 0 0 1 .7-.3h.5c.2 0 .4 0 .6.5l.9 2.1a.5.5 0 0 1 0 .5 2 2 0 0 1-.3.5l-.5.5c-.1.1-.3.3-.1.6a7.6 7.6 0 0 0 1.4 1.7 6.8 6.8 0 0 0 2 1.3c.3.1.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l2 1c.3.1.5.2.5.3a2 2 0 0 1-.1 1.2z"/></svg>',
+  fb:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 8V6.5c0-.7.2-1 1.1-1H17V2h-2.8C11 2 10 3.5 10 6v2H8v3.5h2V22h4V11.5h2.7L17 8z"/></svg>',
+  photos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><rect x="7" y="3" width="14" height="14" rx="2"/><path d="M3 7v12a2 2 0 0 0 2 2h12"/></svg>',
+  pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg>',
+  ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+};
+
+/* ---------- The product: designs are its photos ---------- */
+const SIZES = [50, 52, 54, 56];
+const DESIGNS = [
+  { n:1, name:null, photos:['burka-d1'], price:3500, stock:{50:5,52:8,54:6,56:3} },
+  { n:2, name:{bn:'স্ট্রাইপ', en:'Striped'}, photos:['burka-d2a','burka-d2b'], price:3500, stock:{50:4,52:6,54:5,56:0} },
+  { n:3, name:null, photos:['burka-d3'], price:3500, stock:{50:3,52:3,54:4,56:2} },
+  { n:4, name:{bn:'চকলেট ব্রাউন', en:'Chocolate brown'}, photos:['burka-d4'], price:3500, stock:{50:0,52:0,54:0,56:0} },
+  { n:5, name:{bn:'সাদা লেস', en:'White lace'}, photos:['burka-d5'], price:3800, stock:{50:1,52:2,54:2,56:1} },
+];
+const PLAIN = ['burka-pair'];           // a photo the seller switched off: shown, never a design
+const WAS = 4200;                       // the compare-at price
+const SLIDES = [];
+DESIGNS.forEach(d => d.photos.forEach((p, i) => SLIDES.push({ src:p, d:d.n, i:i + 1, of:d.photos.length })));
+PLAIN.forEach(p => SLIDES.push({ src:p, d:null }));
+const img = (p) => `sample-photos/${p}.jpg`;
+const design = (n) => DESIGNS.find(d => d.n === n);
+const designOut = (d) => SIZES.every(s => d.stock[s] === 0);
+const sizeOutEverywhere = (s) => DESIGNS.every(d => d.stock[s] === 0);
+
+/* ---------- Words ---------- */
+const W = {
+  bn:{
+    shop:'নূর ফ্যাশন', cat:'বোরকা ও আবায়া', pname:'ইরানি বোরকা, হাতের কাজ', home:'হোম',
+    designs:n=>`${n}টি ডিজাইন`, design:'ডিজাইন', dn:n=>`ডিজাইন ${n}`, choose:'বাছুন',
+    pickThis:'এই ডিজাইন নিন', picked:'বাছাই করা', designSold:'এই ডিজাইন শেষ', outShort:'শেষ',
+    photoOf:(i,n)=>`ছবি ${i}/${n}`,
+    size:'সাইজ', sizeChart:'সাইজ চার্ট', sizeNote:(s,d)=>`${d}-এ ${s} সাইজ শেষ, অন্য ডিজাইনে আছে।`,
+    sizeHelp:'সাইজ মানে বোরকার লম্বা, ইঞ্চিতে।',
+    qty:'পরিমাণ', piece:'পিস', pieces:'পিস', per:'/ পিস',
+    inStock:'স্টকে আছে', few:n=>`মাত্র ${n}টি বাকি`, soldOut:'স্টক শেষ', off:p=>`${p}% ছাড়`, upTo:p=>`${p}% পর্যন্ত ছাড়`, from:'থেকে',
+    fewHint:n=>`এই ডিজাইন ও সাইজে <b>মাত্র ${n}টি</b> বাকি`,
+    delivery:'ডেলিভারি', deliveryLine:'ঢাকায় ৳60 · ঢাকার বাইরে ৳120', setArea:'এলাকা দিন',
+    cod:'ক্যাশ অন ডেলিভারি', codSub:'পণ্য হাতে পেয়ে টাকা দিন', returns:'রিটার্ন ও এক্সচেঞ্জ', returnsSub:'ডেলিভারির ৩ দিনের মধ্যে এক্সচেঞ্জ',
+    see:'দেখুন',
+    addCart:'কার্টে রাখুন', buyNow:'এখনই কিনুন', chooseDesign:'ডিজাইন বাছুন', chooseSize:'সাইজ বাছুন',
+    nudgeDesign:'কোন ডিজাইনটি চান, ওপরের ছবি থেকে বেছে নিন', nudgeSize:'আপনার সাইজটি বাছুন',
+    total:'মোট', added:'কার্টে রাখা হলো', toCheckout:'চেকআউটে যাচ্ছে (স্কেচ)',
+    desc:'বিবরণ', descText:'নরম চেরি জর্জেট কাপড়ে হাতের সূক্ষ্ম কাজ, সাথে ম্যাচিং হিজাব। গরমেও আরামদায়ক, সহজে ভাঁজ পড়ে না। প্রতিটি ডিজাইনের ছবি আসল পণ্যের, যেটি বাছবেন সেটিই পাবেন।',
+    details:'বিস্তারিত', kv:[['কাপড়','চেরি জর্জেট'],['হিজাব','সাথে আছে'],['হাতের কাজ','হাতা ও সামনে'],['ধোয়ার নিয়ম','হাতে ধোবেন']],
+    shareL:'শেয়ার', copy:'লিংক কপি', more:'আরও দেখুন',
+    moreItems:[['মভ আবায়া, প্লেইন','৳2,900','burka-d3'],['চকলেট ব্রাউন আবায়া','৳3,200','burka-d4'],['সাদা লেস বোরকা','৳3,800','burka-d5'],['কালো দুবাই আবায়া','৳3,500','burka-d1']],
+    orderTitle:'অর্ডার করুন', orderSub:'ক্যাশ অন ডেলিভারি · কোনো অগ্রিম লাগবে না', yours:'আপনার বাছাই', change:'বদলান', pinned:'এই ছবিটিই অর্ডারে থাকবে',
+    pickFirst:'ওপরে ডিজাইন ও সাইজ বেছে নিন', pickBtn:'বাছুন',
+    name:'আপনার নাম', phone:'মোবাইল নম্বর', district:'জেলা', thana:'থানা', pickOne:'বাছুন', address:'পুরো ঠিকানা', addressPh:'বাসা ও রোড নম্বর, এলাকা', note:'কিছু বলার থাকলে', optional:'(ঐচ্ছিক)',
+    items:'পণ্যের দাম', deliveryCharge:'ডেলিভারি চার্জ', deliveryRange:'৳60–120', byThana:'থানা দিলে ঠিক হবে', grand:'সর্বমোট',
+    payNote:'পণ্য হাতে পেয়ে টাকা দেবেন, অগ্রিম লাগবে না', confirm:'অর্ডার কনফার্ম করুন', once:'দুবার চাপলেও একটাই অর্ডার হবে', orderNow:'অর্ডার করুন',
+    trust:['ক্যাশ অন ডেলিভারি','সারা বাংলাদেশে ডেলিভারি','হোয়াটসঅ্যাপে কথা বলুন'],
+    whole:'পুরো শপ দেখুন', track:'অর্ডার ট্র্যাক করুন', lang:'English', placed:'অর্ডার নেওয়া হলো (স্কেচ)',
+    unitsTitle:'পরিমাণের সাথে সবসময় একক', unitsLead:'প্রতিটি পণ্যের একটি একক আছে (UOM-01)। পরিমাণের ঘরে, দামের পাশে, কার্টে আর অর্ডারে একই একক লেখা থাকে, যাতে শপার জানে সে কী আর কতটুকু কিনছে।',
+    uRule:{count:'গোটা সংখ্যা, 1 থেকে', measured:'দশমিকে, 3 ঘর পর্যন্ত; টাইপও করা যায়', pack:'শেয়ার্ড স্টক: শুধু পুরো প্যাক (INV-24)'},
+    units:[
+      {e:'🧕', bg:'#f3eef7', nm:'ইরানি বোরকা', pr:'৳3,500', u:'পিস', q:2, step:1, kind:'count'},
+      {e:'🥚', bg:'#fdf6e9', nm:'দেশি মুরগির ডিম', pr:'৳165', u:'ডজন', q:1, step:1, kind:'count'},
+      {e:'🌿', bg:'#eef6ee', nm:'জিরা, খোলা', pr:'৳900', u:'কেজি', q:0.5, step:0.25, kind:'measured', quick:[['250 গ্রাম',0.25],['500 গ্রাম',0.5],['1 কেজি',1],['2 কেজি',2]]},
+      {e:'🫒', bg:'#f6f3e6', nm:'সরিষার তেল', pr:'৳280', u:'লিটার', q:1, step:0.5, kind:'measured'},
+      {e:'🧴', bg:'#eef3f7', nm:'আতর, ৬ মিলির শিশি', pr:'৳450', u:'প্যাক', q:1, step:1, kind:'pack'},
+      {e:'📦', bg:'#f2f2f2', nm:'টিস্যু বক্স', pr:'৳120', u:'বক্স', q:3, step:1, kind:'count'},
+    ],
+    afterTitle:'শপারের ট্যাপ থেকে পার্সেল পর্যন্ত, একই ডিজাইন', afterLead:'শপার যে ডিজাইনের যেকোনো ছবিতে ট্যাপ করুক, অর্ডারে সেই ডিজাইনের প্রথম ছবিটি স্থির হয়ে যায়। কার্ট থেকে সেলারের অর্ডার পেজ পর্যন্ত সবাই একই ছবি দেখে, আর পার্সেল লেবেলে ডিজাইন ও সাইজ লেখা থাকে, তাই ভুল ডিজাইন পাঠানোর সুযোগ থাকে না।',
+    steps:['কার্টে','চেকআউটে','অর্ডার কনফার্মেশন (শপার)','সেলারের অর্ডার পেজে','কনফার্মেশন কলে','পার্সেল লেবেলে'],
+    orderPlaced:'অর্ডার হয়েছে!', orderNoLine:'অর্ডার নম্বর 251112-0042 · ট্র্যাক করতে রেখে দিন',
+    callScript:'"আপনি স্ট্রাইপ ডিজাইনটা নিয়েছেন, সাইজ 54, এক পিস, তাই তো?"', labelNote:'3×3 থার্মাল লেবেল: আইটেমের লাইনে ডিজাইন ও সাইজ',
+    pinNote:'এই ছবিটি অর্ডারের সাথে স্থির। পরে সেলার পণ্যের ছবি মুছলে, ক্রম বদলালে বা গ্রুপ বদলালেও এই অর্ডারে এটিই থাকবে।',
+    shopperChose:'শপারের বাছাই করা ছবি', qtyL:'পরিমাণ', lineTotal:'মোট',
+    remove:'সরান', removed:'কার্ট থেকে সরানো হলো', undo:'ফিরিয়ে আনুন',
+    close:'বন্ধ করুন', chartCols:['সাইজ','লম্বা','বুক','হাতা'],
+  },
+  en:{
+    shop:'Noor Fashion', cat:'Burkas and abayas', pname:'Irani burka, hand embroidered', home:'Home',
+    designs:n=>`${n} designs`, design:'Design', dn:n=>`Design ${n}`, choose:'Choose one',
+    pickThis:'Choose this design', picked:'Chosen', designSold:'This design is sold out', outShort:'Sold out',
+    photoOf:(i,n)=>`photo ${i}/${n}`,
+    size:'Size', sizeChart:'Size chart', sizeNote:(s,d)=>`Size ${s} is sold out in ${d}; other designs have it.`,
+    sizeHelp:'Sizes are the burka\'s length, in inches.',
+    qty:'Quantity', piece:'piece', pieces:'pieces', per:'/ piece',
+    inStock:'In stock', few:n=>`Only ${n} left`, soldOut:'Sold out', off:p=>`${p}% off`, upTo:p=>`Up to ${p}% off`, from:'from',
+    fewHint:n=>`<b>Only ${n} left</b> in this design and size`,
+    delivery:'Delivery', deliveryLine:'৳60 in Dhaka · ৳120 outside', setArea:'Set your area',
+    cod:'Cash on delivery', codSub:'Pay when it arrives', returns:'Returns and exchanges', returnsSub:'Exchange within 3 days of delivery',
+    see:'See',
+    addCart:'Add to cart', buyNow:'Buy now', chooseDesign:'Choose a design', chooseSize:'Choose a size',
+    nudgeDesign:'Choose the design you want from the photos above', nudgeSize:'Choose your size',
+    total:'Total', added:'Added to cart', toCheckout:'Going to checkout (sketch)',
+    desc:'Description', descText:'Soft cherry georgette with fine hand embroidery and a matching hijab. Cool in the heat and slow to crease. Every design photo is of the real piece: the one you choose is the one you get.',
+    details:'Details', kv:[['Fabric','Cherry georgette'],['Hijab','Included'],['Embroidery','Sleeves and front'],['Care','Hand wash']],
+    shareL:'Share', copy:'Copy link', more:'You may also like',
+    moreItems:[['Mauve abaya, plain','৳2,900','burka-d3'],['Chocolate brown abaya','৳3,200','burka-d4'],['White lace burka','৳3,800','burka-d5'],['Black Dubai abaya','৳3,500','burka-d1']],
+    orderTitle:'Place your order', orderSub:'Cash on delivery · no advance needed', yours:'Your choice', change:'Change', pinned:'This photo goes on your order',
+    pickFirst:'Choose a design and size above', pickBtn:'Choose',
+    name:'Your name', phone:'Mobile number', district:'District', thana:'Thana', pickOne:'Choose', address:'Full address', addressPh:'House and road number, area', note:'Anything to add', optional:'(optional)',
+    items:'Items', deliveryCharge:'Delivery', deliveryRange:'৳60–120', byThana:'set by your thana', grand:'Total to pay',
+    payNote:'Pay when it arrives, no advance needed', confirm:'Confirm order', once:'Tapping twice never creates two orders', orderNow:'Order now',
+    trust:['Cash on delivery','Delivery all over Bangladesh','Talk to us on WhatsApp'],
+    whole:'Browse the whole shop', track:'Track an order', lang:'বাংলা', placed:'Order placed (sketch)',
+    unitsTitle:'Every quantity carries its unit', unitsLead:'Every product has a unit (UOM-01). The quantity box, the price, the cart and the order all say it, so a shopper always knows what they are buying and how much.',
+    uRule:{count:'Whole numbers, from 1', measured:'Decimals, up to 3 places; can be typed', pack:'Shared stock: whole packs only (INV-24)'},
+    units:[
+      {e:'🧕', bg:'#f3eef7', nm:'Irani burka', pr:'৳3,500', u:'pieces', q:2, step:1, kind:'count'},
+      {e:'🥚', bg:'#fdf6e9', nm:'Free-range eggs', pr:'৳165', u:'dozen', q:1, step:1, kind:'count'},
+      {e:'🌿', bg:'#eef6ee', nm:'Cumin, loose', pr:'৳900', u:'kg', q:0.5, step:0.25, kind:'measured', quick:[['250 g',0.25],['500 g',0.5],['1 kg',1],['2 kg',2]]},
+      {e:'🫒', bg:'#f6f3e6', nm:'Mustard oil', pr:'৳280', u:'litre', q:1, step:0.5, kind:'measured'},
+      {e:'🧴', bg:'#eef3f7', nm:'Attar, 6 ml bottle', pr:'৳450', u:'pack', q:1, step:1, kind:'pack'},
+      {e:'📦', bg:'#f2f2f2', nm:'Tissue box', pr:'৳120', u:'boxes', q:3, step:1, kind:'count'},
+    ],
+    afterTitle:'From the shopper\'s tap to the parcel, one design', afterLead:'Whichever photo of a design the shopper taps, the order pins that design\'s first photo. Everyone from the cart to the seller\'s order page sees the same picture, and the parcel label names the design and size, so the wrong design can\'t be sent.',
+    steps:['In the cart','At checkout','Order confirmation (shopper)','The seller\'s order page','On the confirmation call','On the parcel label'],
+    orderPlaced:'Order placed!', orderNoLine:'Order number 251112-0042 · keep it to track',
+    callScript:'"You chose the striped design, size 54, one piece, right?"', labelNote:'The 3×3 thermal label: design and size on the item line',
+    pinNote:'This photo is pinned to the order. If the seller later deletes, reorders or regroups the product\'s photos, this order still shows it.',
+    shopperChose:'The photo the shopper chose', qtyL:'Qty', lineTotal:'Total',
+    remove:'Remove', removed:'Removed from your cart', undo:'Undo',
+    close:'Close', chartCols:['Size','Length','Chest','Sleeve'],
+  }
+};
+
+/* ---------- State ---------- */
+const DEV = { phone:[390,844], tablet:[820,1060], desktop:[1280,840] };
+const SCREENS = [
+  ['pdp','Product page'], ['pdp-chosen','Product · chosen'], ['landing','Landing page'], ['landing-form','Landing · the form'],
+  ['units','Quantities and units'], ['after','After the tap'],
+];
+const S = { screen:'pdp', dev:'phone', lang:'bn', design:null, size:null, qty:1, slide:0, nudge:null, toast:null, sheet:null };
+const t = (k) => W[S.lang][k];
+const money = (n) => '৳' + n.toLocaleString('en-US');
+const dname = (d) => d.name ? `${t('dn')(d.n)} · ${d.name[S.lang]}` : t('dn')(d.n);
+
+function preset(screen){
+  S.screen = screen; S.nudge = null; S.toast = null; S.qty = 1; S.slide = 0; S.sheet = null;
+  if (screen === 'pdp-chosen' || screen === 'landing-form') { S.design = 2; S.size = 54; S.slide = 1; }
+  else { S.design = null; S.size = null; }
+}
+
+/* ---------- Pieces ---------- */
+function header(landing){
+  if (landing) return `<header class="hdr lhdr"><span class="ib" aria-hidden="true"></span>
+    <a class="shop"><span class="logo">ন</span><b>${t('shop')}</b></a>
+    <button class="lang" data-act="lang">${t('lang')}</button></header>`;
+  return `<header class="hdr"><button class="ib back" aria-label="back">${I.back}</button>
+    <a class="shop"><span class="logo">ন</span><b>${t('shop')}</b></a>
+    <button class="ib" aria-label="search">${I.search}</button><button class="ib" aria-label="account">${I.user}</button>
+    <button class="ib" aria-label="cart">${I.bag}<span class="cnt">2</span></button></header>
+    <div class="crumb"><a>${t('home')}</a> / <a>${t('cat')}</a> / ${t('pname')}</div>`;
+}
+
+function gallery(){
+  const n = SLIDES.length;
+  const slides = SLIDES.map((s, i) => {
+    let badge = '', pick = '';
+    if (s.d) {
+      const d = design(s.d);
+      badge = `<span class="dbadge">${t('dn')(s.d)}${s.of > 1 ? ` <i>· ${t('photoOf')(s.i, s.of)}</i>` : ''}</span>`;
+      if (designOut(d)) pick = `<button class="pick out" disabled>${t('designSold')}</button>`;
+      else if (S.design === s.d) pick = `<button class="pick on" data-act="design" data-n="${s.d}">${I.check}${t('picked')}</button>`;
+      else pick = `<button class="pick" data-act="design" data-n="${s.d}">${I.tap}${t('pickThis')}</button>`;
+    }
+    return `<figure class="slide"><img src="${img(s.src)}" alt="">${badge}${pick}</figure>`;
+  }).join('');
+  const thumbs = SLIDES.map((s, i) => `<button class="th${i === S.slide ? ' on' : ''}" data-act="thumb" data-i="${i}"><img src="${img(s.src)}" alt="">${s.d ? `<span class="tn">${s.d}</span>` : ''}</button>`).join('');
+  return `<div class="gal"><div class="view"><div class="track" id="track">${slides}</div>
+      <span class="counter" id="counter">${S.slide + 1} / ${n}</span>
+      <button class="navb prev" data-act="nav" data-d="-1" aria-label="previous">${I.back}</button><button class="navb next" data-act="nav" data-d="1" aria-label="next">${I.next}</button></div>
+    <div class="thumbs" id="thumbs">${thumbs}</div>
+    <div class="dots" id="dots">${SLIDES.map((_, i) => `<i class="${i === S.slide ? 'on' : ''}"></i>`).join('')}</div></div>`;
+}
+
+function priceBlock(){
+  const d = S.design ? design(S.design) : null;
+  let now;
+  if (d) now = `<span class="now">${money(d.price)}</span><span class="per">${t('per')}</span>`;
+  else {
+    const ps = DESIGNS.filter(x => !designOut(x)).map(x => x.price);
+    const lo = Math.min(...ps), hi = Math.max(...ps);
+    now = `<span class="now">${money(lo)}${hi > lo ? ` – ${money(hi)}` : ''}</span><span class="per">${t('per')}</span>`;
+  }
+  // A range shows no struck price (it would compare one figure with two); the chip says "up to".
+  const base = d ? d.price : 3500;
+  const pct = Math.round((1 - base / WAS) * 100);
+  const ranged = !d && now.includes('–');
+  let stock = `<span class="chip ok">${t('inStock')}</span>`;
+  if (d && S.size) {
+    const q = d.stock[S.size];
+    stock = q === 0 ? `<span class="chip out">${t('soldOut')}</span>` : q <= 3 ? `<span class="chip few">${t('few')(q)}</span>` : stock;
+  }
+  return `<div class="price">${now}${ranged ? '' : `<span class="was">${money(WAS)}</span>`}</div>
+    <div class="stockrow"><span class="chip off">${ranged ? t('upTo')(pct) : t('off')(pct)}</span>${stock}</div>`;
+}
+
+function designRow(){
+  const d = S.design ? design(S.design) : null;
+  const cards = DESIGNS.map(x => {
+    const out = designOut(x);
+    return `<button class="dcard${S.design === x.n ? ' on' : ''}${out ? ' out' : ''}" data-act="design" data-n="${x.n}" ${out ? 'aria-disabled="true"' : ''} aria-label="${dname(x)}">
+      <img src="${img(x.photos[0])}" alt=""><span class="num">${x.n}</span><span class="tick">${I.check}</span>
+      ${x.photos.length > 1 ? `<span class="pc">${I.photos}${x.photos.length}</span>` : ''}${out ? `<span class="outl">${t('outShort')}</span>` : ''}</button>`;
+  }).join('');
+  const nudge = S.nudge === 'design' ? `<div class="msg err">${I.info}${t('nudgeDesign')}</div>` : '';
+  return `<div class="opt${S.nudge === 'design' ? ' nudge' : ''}" id="opt-design">
+    <div class="lb"><span><span class="k">${t('design')}:</span> <span class="v${d ? '' : ' ph'}">${d ? dname(d) : t('choose')}</span></span><span class="k" style="font-size:13px">${t('designs')(DESIGNS.length)}</span></div>
+    <div class="dgrid${DESIGNS.length > 5 ? ' many' : ''}">${cards}</div>${nudge}</div>`;
+}
+
+function sizeRow(){
+  const d = S.design ? design(S.design) : null;
+  const btns = SIZES.map(s => {
+    const off = d ? d.stock[s] === 0 : sizeOutEverywhere(s);
+    return `<button class="sz${S.size === s ? ' on' : ''}${off ? ' off' : ''}" data-act="size" data-s="${s}">${s}</button>`;
+  }).join('');
+  let note = `<div class="msg">${I.info}${t('sizeHelp')}</div>`;
+  const outHere = d ? SIZES.filter(s => d.stock[s] === 0 && !sizeOutEverywhere(s)) : [];
+  if (d && !designOut(d) && outHere.length) note = `<div class="msg">${I.info}${t('sizeNote')(outHere.join(', '), dname(d))}</div>`;
+  if (S.nudge === 'size') note = `<div class="msg err">${I.info}${t('nudgeSize')}</div>`;
+  return `<div class="opt${S.nudge === 'size' ? ' nudge' : ''}" id="opt-size">
+    <div class="lb"><span><span class="k">${t('size')}:</span> <span class="v${S.size ? '' : ' ph'}">${S.size || t('choose')}</span></span><a href="#" data-act="chart">${t('sizeChart')}</a></div>
+    <div class="sizes">${btns}</div>${note}</div>`;
+}
+
+function qtyRow(){
+  const d = S.design ? design(S.design) : null;
+  const max = d && S.size ? d.stock[S.size] : 9;
+  const unit = S.qty === 1 ? t('piece') : t('pieces');
+  const hint = d && S.size && max > 0 && max <= 3 ? `<span class="qhint">${t('fewHint')(max)}</span>` : '';
+  return `<div class="opt"><div class="lb"><span class="k">${t('qty')}</span></div>
+    <div class="qrow"><span class="step"><button data-act="qty" data-d="-1" ${S.qty <= 1 ? 'disabled' : ''} aria-label="−">${I.minus}</button>
+    <span class="val">${S.qty} ${unit}</span>
+    <button data-act="qty" data-d="1" ${S.qty >= max ? 'disabled' : ''} aria-label="+">${I.plus}</button></span>${hint}</div></div>`;
+}
+
+function primaryLabel(){
+  if (!S.design) return t('chooseDesign');
+  if (!S.size) return t('chooseSize');
+  return null;
+}
+
+function facts(){
+  return `<ul class="facts">
+    <li><span class="fi">${I.truck}</span><span class="ft"><b>${t('delivery')}</b><span>${t('deliveryLine')}</span></span><a>${t('setArea')}</a></li>
+    <li><span class="fi">${I.cash}</span><span class="ft"><b>${t('cod')}</b><span>${t('codSub')}</span></span></li>
+    <li><span class="fi">${I.ret}</span><span class="ft"><b>${t('returns')}</b><span>${t('returnsSub')}</span></span><a>${t('see')}</a></li></ul>`;
+}
+
+function about(landing){
+  return `<div class="acc"><details${landing ? '' : ' open'}><summary>${t('desc')}${I.down}</summary><div class="body">${t('descText')}</div></details>
+    <details><summary>${t('details')}${I.down}</summary><div class="body"><dl class="kv">${t('kv').map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></div></details></div>
+    <div class="share">${t('shareL')}: <button>${I.link}${t('copy')}</button><button>${I.wa}WhatsApp</button><button>${I.fb}Facebook</button></div>`;
+}
+
+function chosenSummary(){
+  const d = design(S.design);
+  return `${dname(d)} · ${t('size')} ${S.size} · ${S.qty} ${S.qty === 1 ? t('piece') : t('pieces')}`;
+}
+
+function buybar(){
+  const d = S.design ? design(S.design) : null;
+  const ready = d && S.size;
+  const sum = ready
+    ? `<div class="bsum"><img src="${img(d.photos[0])}" alt=""><div class="t"><div class="l1">${chosenSummary()}</div><div class="l2">${money(d.price * S.qty)}</div></div></div>`
+    : `<div class="bsum"><div class="t"><div class="l1">${t('total')}</div><div class="l2">${money(3500)} <span style="font-size:12px;font-weight:600;color:var(--subtle);font-family:var(--font-ui)">${t('from')}</span></div></div></div>`;
+  const label = primaryLabel();
+  return `<div class="buybar">${sum}<button class="btn sec" data-act="cart" aria-label="${t('addCart')}">${I.bag}</button>
+    <button class="btn pri${label ? ' wait' : ''}" data-act="buy">${label || t('buyNow')}</button></div>`;
+}
+
+function ctas(){
+  const label = primaryLabel();
+  return `<div class="ctas"><button class="btn sec" data-act="cart">${I.bag}${t('addCart')}</button>
+    <button class="btn pri${label ? ' wait' : ''}" data-act="buy">${label || t('buyNow')}</button></div>`;
+}
+
+function toast(){
+  if (!S.toast) return '';
+  const d = S.design ? design(S.design) : null;
+  return `<div class="toast">${d ? `<img src="${img(d.photos[0])}" alt="">` : ''}<div><b>${S.toast}</b>${d && S.size ? chosenSummary() : ''}</div></div>`;
+}
+
+function productInfo(landing){
+  return `<div class="info">
+    <div class="eyebrow">${t('cat')}</div>
+    <h1 class="pn">${t('pname')}</h1>
+    ${priceBlock()}
+    ${designRow()}
+    ${sizeRow()}
+    ${qtyRow()}
+    ${landing ? '' : ctas()}
+    ${landing ? trust() : facts()}
+    ${landing ? '' : about(false)}
+  </div>`;
+}
+
+function trust(){
+  const icons = [I.cash, I.truck, I.chat];
+  return `<div class="trust">${t('trust').map((x, i) => `<div>${icons[i]}${x}</div>`).join('')}</div>`;
+}
+
+function pageProduct(){
+  return `${header(false)}<main><section class="pdp">${gallery()}${productInfo(false)}</section>
+    <section class="more"><h2>${t('more')}</h2><div class="cards">${t('moreItems').map(([n, p, ph]) => `<div class="pc2"><div class="ph"><img src="${img(ph)}" alt=""></div><div class="nm">${n}</div><div class="pr">${p}</div></div>`).join('')}</div></section>
+    </main>${toast()}${buybar()}`;
+}
+
+function orderForm(){
+  const d = S.design ? design(S.design) : null;
+  const ready = d && S.size;
+  const yours = ready
+    ? `<div class="yours"><img src="${img(d.photos[0])}" alt=""><div class="t"><b>${t('pname')}</b>${chosenSummary()}<span class="pin">${I.pin}${t('pinned')}</span></div><a data-act="toDesign">${t('change')}</a></div>`
+    : `<div class="yours empty"><div class="t">${t('pickFirst')}</div><button class="btn sec" style="height:38px;font-size:14px" data-act="toDesign">${t('pickBtn')}</button></div>`;
+  const price = d ? d.price * S.qty : 3500;
+  return `<section class="order" id="order"><h2>${t('orderTitle')}</h2><div class="sub">${t('orderSub')}</div>
+    <div class="fld" style="margin-top:0"><label>${t('yours')}</label>${yours}</div>
+    <div class="fld"><label>${t('name')}</label><input></div>
+    <div class="fld"><label>${t('phone')}</label><div class="pre"><span>+88</span><input inputmode="tel" placeholder="01XXXXXXXXX"></div></div>
+    <div class="two"><div class="fld"><label>${t('district')}</label><select><option>${t('pickOne')}</option></select></div>
+    <div class="fld"><label>${t('thana')}</label><select><option>${t('pickOne')}</option></select></div></div>
+    <div class="fld"><label>${t('address')}</label><textarea rows="2" placeholder="${t('addressPh')}"></textarea></div>
+    <div class="fld"><label>${t('note')} <i>${t('optional')}</i></label><textarea rows="2"></textarea></div>
+    <div class="sum"><div><span>${t('items')}${ready ? ` · ${S.qty} ${S.qty === 1 ? t('piece') : t('pieces')}` : ''}</span><span>${money(price)}</span></div>
+      <div><span>${t('deliveryCharge')}</span><span>${t('deliveryRange')} <span class="dim">· ${t('byThana')}</span></span></div>
+      <div class="gt"><span>${t('grand')}</span><span>${money(price + 60)} – ${money(price + 120)}</span></div></div>
+    <div class="paynote">${I.cash}${t('payNote')}</div>
+    <button class="btn pri wide" data-act="confirm">${t('confirm')}</button><div class="once">${t('once')}</div></section>`;
+}
+
+function pageLanding(){
+  const d = S.design ? design(S.design) : null;
+  return `${header(true)}<main><section class="pdp">${gallery()}<div class="col">${productInfo(true)}${orderForm()}<div class="info" style="padding-top:0">${about(true)}</div></div></section></main>
+    <footer class="lfoot"><a>${t('whole')}</a> · <a>${t('track')}</a><br>${t('shop')} · 01711-000000<br>Powered by Lytro</footer>
+    ${toast()}<div class="lbar"><div class="bsum">${d && S.size ? `<img src="${img(d.photos[0])}" alt="">` : ''}<div class="t"><div class="l1">${d && S.size ? chosenSummary() : t('total')}</div><div class="l2">${money(d ? d.price * S.qty : 3500)}</div></div></div>
+    <button class="btn pri" data-act="toForm">${t('orderNow')}</button></div>`;
+}
+
+function pageUnits(){
+  const cards = t('units').map((u, i) => {
+    const val = u.kind === 'measured'
+      ? `<span class="val typed"><input value="${u.q}" inputmode="decimal" aria-label="${t('qty')}"> ${u.u}</span>`
+      : `<span class="val">${u.q} ${u.u}${u.kind === 'pack' ? (S.lang === 'bn' ? ' (6 মিলি)' : ' (6 ml)') : ''}</span>`;
+    const quick = u.quick ? `<div class="quick">${u.quick.map(([l, v]) => `<button class="${v === u.q ? 'on' : ''}">${l}</button>`).join('')}</div>` : '';
+    const priceNum = Number(u.pr.replace(/[^0-9]/g, ''));
+    return `<div class="ucard"><div class="top"><span class="ph" style="background:${u.bg}">${u.e}</span><div><div class="nm">${u.nm}</div><div class="pp"><b>${u.pr}</b> / ${u.u.replace(/s$/, '')}</div></div></div>
+      <span class="step"><button aria-label="−">${I.minus}</button>${val}<button aria-label="+">${I.plus}</button></span>${quick}
+      <div class="tot">${t('total')}: <b>${money(Math.round(priceNum * u.q))}</b></div>
+      <div class="rule">${t('uRule')[u.kind]}</div></div>`;
+  }).join('');
+  return `${header(false)}<main class="sheet"><h2>${t('unitsTitle')}</h2><p class="lead">${t('unitsLead')}</p><div class="ugrid">${cards}</div></main>`;
+}
+
+function pageAfter(){
+  const d = design(2), s = 54, q = 1, ph = img(d.photos[0]);
+  const sum = `${dname(d)}`;
+  const steps = t('steps');
+  const tags = `<span class="tags"><span class="tag d">${sum}</span><span class="tag">${t('size')} ${s}</span><span class="tag">${q} ${t('piece')}</span></span>`;
+  const card = (i, inner, cls = '') => `<div class="fcard ${cls}"><div class="cap"><span class="n">${i + 1}</span>${steps[i]}</div><div class="in">${inner}</div></div>`;
+  const cart = `<div class="line"><img src="${ph}" alt=""><div class="t"><b>${t('pname')}</b>${tags}
+     <div class="crow"><span class="step" style="height:36px"><button style="width:36px;height:34px" aria-label="−">${I.minus}</button><span class="val" style="min-width:72px">${q} ${t('piece')}</span><button style="width:36px;height:34px" aria-label="+">${I.plus}</button></span>
+     <button class="trash" aria-label="${t('remove')}" title="${t('remove')}">${I.trash}</button></div></div><span class="amt">${money(d.price)}</span></div>
+     <div class="undo">${t('removed')} <a>${t('undo')}</a></div>`;
+  const checkout = `<div class="line"><img src="${ph}" alt=""><div class="t"><b>${t('pname')}</b>${tags}</div><span class="amt">${money(d.price)}</span></div>
+     <div class="sum" style="margin-top:12px"><div><span>${t('deliveryCharge')}</span><span>৳60</span></div><div class="gt"><span>${t('grand')}</span><span>${money(d.price + 60)}</span></div></div>`;
+  const confirmed = `<div class="okhead"><span class="c">${I.ok}</span><div><b>${t('orderPlaced')}</b><span>${t('orderNoLine')}</span></div></div>
+     <div class="line"><img src="${ph}" alt=""><div class="t"><b>${t('pname')}</b>${tags}</div><span class="amt">${money(d.price)}</span></div>`;
+  const seller = `<div class="line dash"><img src="${ph}" alt="" style="width:72px;height:90px"><div class="t"><b>${t('pname')}</b>${tags}
+     SKU <b style="display:inline;font-family:ui-monospace,monospace">IB-D2-54</b><br><span style="display:inline-flex;gap:4px;align-items:center;color:var(--accent-text);font-weight:600;font-size:12px">${I.pin.replace('<svg','<svg width="12" height="12"')}${t('shopperChose')}</span></div><span class="amt">${money(d.price)}</span></div>`;
+  const call = `<div class="line"><img src="${ph}" alt=""><div class="t"><b>${t('pname')}</b>${tags}<i style="color:var(--text)">${t('callScript')}</i></div></div>`;
+  const slip = `<div class="label"><div class="lt">${t('shop')} · 01711-000000</div><div class="lto">${S.lang === 'bn' ? 'প্রাপক: রুমানা আক্তার · মিরপুর, ঢাকা' : 'To: Rumana Akter · Mirpur, Dhaka'}</div><div class="li">${t('pname')} · ${sum} · ${s} × ${q} ${t('piece')} <span>IB-D2-54</span></div><div class="lc">COD ৳3,560 · #251112-0042</div></div><div class="msg">${I.info}${t('labelNote')}</div>`;
+  return `${header(false)}<main class="sheet"><h2>${t('afterTitle')}</h2><p class="lead">${t('afterLead')}</p>
+    <div class="flow">${card(0, cart)}${card(1, checkout)}${card(2, confirmed)}${card(3, seller)}${card(4, call)}${card(5, slip)}</div>
+    <div class="pinbox">${I.pin}<span>${t('pinNote')}</span></div></main>`;
+}
+
+function sizeChart(){
+  if (S.sheet !== 'chart') return '';
+  const rows = [[50,'50"','42"','21"'],[52,'52"','44"','22"'],[54,'54"','46"','22.5"'],[56,'56"','48"','23"']];
+  return `<div class="ovl" data-act="close"><div class="sheetbox" role="dialog" aria-label="${t('sizeChart')}"><div class="grab"></div>
+    <div class="sh"><h3>${t('sizeChart')}</h3><button class="ib" data-act="close" aria-label="${t('close')}">✕</button></div>
+    <table class="chart"><tr>${t('chartCols').map(c => `<th>${c}</th>`).join('')}</tr>
+    ${rows.map(r => `<tr class="${S.size === r[0] ? 'hl' : ''}">${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</table>
+    <div class="msg">${I.info}${t('sizeHelp')}</div></div></div>`;
+}
+
+/* ---------- Render ---------- */
+function render(keep){
+  const fr = document.getElementById('frame');
+  const old = document.getElementById('sc');
+  const top = keep && old ? old.scrollTop : 0;
+  const [w, h] = DEV[S.dev];
+  fr.style.setProperty('--fw', w + 'px'); fr.style.setProperty('--fh', h + 'px'); fr.style.setProperty('--vh', h + 'px');
+  document.documentElement.lang = S.lang;
+  const page = { pdp:pageProduct, 'pdp-chosen':pageProduct, landing:pageLanding, 'landing-form':pageLanding, units:pageUnits, after:pageAfter }[S.screen];
+  fr.innerHTML = `<div class="sc" id="sc">${page()}</div>${sizeChart()}`;
+  const sc = document.getElementById('sc');
+  sc.style.scrollBehavior = 'auto'; sc.scrollTop = top; sc.style.scrollBehavior = '';
+  const tr = document.getElementById('track');
+  if (tr) {
+    tr.style.scrollBehavior = 'auto'; tr.scrollLeft = S.slide * tr.clientWidth; tr.style.scrollBehavior = '';
+    tr.addEventListener('scroll', () => {
+      const i = Math.round(tr.scrollLeft / tr.clientWidth);
+      if (i !== S.slide) { S.slide = i; syncSlide(); }
+    }, { passive:true });
+  }
+  renderBar();
+}
+function syncSlide(){
+  const c = document.getElementById('counter'); if (c) c.textContent = `${S.slide + 1} / ${SLIDES.length}`;
+  document.querySelectorAll('#dots i').forEach((el, i) => el.classList.toggle('on', i === S.slide));
+  document.querySelectorAll('#thumbs .th').forEach((el, i) => el.classList.toggle('on', i === S.slide));
+}
+function goSlide(i){
+  const tr = document.getElementById('track'); if (!tr) return;
+  S.slide = Math.max(0, Math.min(SLIDES.length - 1, i)); tr.scrollTo({ left:S.slide * tr.clientWidth, behavior:'smooth' }); syncSlide();
+}
+function scrollToEl(id){
+  const sc = document.getElementById('sc'), el = document.getElementById(id); if (!sc || !el) return;
+  const y = el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 76;
+  sc.scrollTo({ top:y, behavior:'smooth' });
+}
+function flash(msg){
+  S.toast = msg; render(true);
+  clearTimeout(flash.t); flash.t = setTimeout(() => { S.toast = null; render(true); }, 2200);
+}
+function missing(){
+  if (!S.design) { S.nudge = 'design'; render(true); scrollToEl('opt-design'); return true; }
+  if (!S.size) { S.nudge = 'size'; render(true); scrollToEl('opt-size'); return true; }
+  return false;
+}
+
+document.getElementById('frame').addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const a = el.dataset.act;
+  if (a === 'design') {
+    const n = Number(el.dataset.n), d = design(n);
+    if (designOut(d)) return;
+    S.design = n; S.nudge = null;
+    if (S.size && d.stock[S.size] === 0) S.size = null;
+    S.qty = 1;
+    const i = SLIDES.findIndex(s => s.d === n);
+    S.slide = SLIDES[S.slide] && SLIDES[S.slide].d === n ? S.slide : i;
+    render(true);
+  } else if (a === 'size') {
+    const s = Number(el.dataset.s), d = S.design ? design(S.design) : null;
+    if (d ? d.stock[s] === 0 : sizeOutEverywhere(s)) return;
+    S.size = s; S.qty = 1; if (S.nudge === 'size') S.nudge = null; render(true);
+  } else if (a === 'qty') {
+    S.qty = Math.max(1, S.qty + Number(el.dataset.d)); render(true);
+  } else if (a === 'thumb') { goSlide(Number(el.dataset.i)); }
+  else if (a === 'nav') { goSlide(S.slide + Number(el.dataset.d)); }
+  else if (a === 'cart') { if (!missing()) flash(t('added')); }
+  else if (a === 'buy') { if (!missing()) flash(t('toCheckout')); }
+  else if (a === 'toForm') { scrollToEl('order'); }
+  else if (a === 'toDesign') { scrollToEl('opt-design'); }
+  else if (a === 'confirm') { if (!missing()) flash(t('placed')); }
+  else if (a === 'lang') { S.lang = S.lang === 'bn' ? 'en' : 'bn'; render(true); }
+  else if (a === 'chart') { e.preventDefault(); S.sheet = 'chart'; render(true); }
+  else if (a === 'close') { if (e.target === el || el.tagName === 'BUTTON') { S.sheet = null; render(true); } }
+});
+
+/* ---------- Toolbar ---------- */
+function renderBar(){
+  const b = document.getElementById('bar');
+  const btn = (k, v, l) => `<button class="${S[k] === v ? 'on' : ''}" data-k="${k}" data-v="${v}">${l}</button>`;
+  b.innerHTML = `<b>Product page v2</b>
+    <div class="grp"><span>Screen</span>${SCREENS.map(([v, l]) => btn('screen', v, l)).join('')}</div>
+    <div class="grp"><span>Device</span>${btn('dev', 'phone', 'Phone 390')}${btn('dev', 'tablet', 'Tablet 820')}${btn('dev', 'desktop', 'Desktop 1280')}</div>
+    <div class="grp"><span>Language</span>${btn('lang', 'bn', 'বাংলা')}${btn('lang', 'en', 'English')}</div>`;
+  document.getElementById('note').innerHTML = NOTES[S.screen];
+}
+document.getElementById('bar').addEventListener('click', (e) => {
+  const el = e.target.closest('button[data-k]'); if (!el) return;
+  const { k, v } = el.dataset;
+  if (k === 'screen') { preset(v); render(false); if (v === 'landing-form') setTimeout(() => scrollToEl('order'), 50); }
+  else { S[k] = v; render(true); }
+});
+
+const NOTES = {
+  pdp:'<b>Nothing is chosen yet.</b> Every photo shows, one after another; each photo of a design carries its number and a <b>Choose this design</b> button, and the design row below the price lists each design once, by its first photo. Swiping only looks: it never chooses. The bar\'s button reads <b>Choose a design</b>, then <b>Choose a size</b>; tapping it before choosing scrolls to what is missing. The last photo is a plain photo the seller switched off, so it has no button.',
+  'pdp-chosen':'<b>Design 2 (two photos) and size 54 chosen.</b> The price, the stock and the bar follow the chosen design and size; size 56 is struck through because it is sold out in this design, with the sentence saying other designs have it. Design 4 is sold out in every size, so its card is greyed and its photos say so.',
+  landing:'<b>The landing page</b>, as an ad opens it: the same gallery, design row, size and quantity, then the order form in the same scroll (on desktop, beside the product). The pinned bar\'s <b>Order now</b> scrolls to the form; <b>Confirm order</b> with nothing chosen scrolls back up to the design row.',
+  'landing-form':'<b>The form with a design chosen.</b> "Your choice" shows the exact photo, design, size and quantity that will go on the order, with <b>Change</b> taking the shopper back to the photos.',
+  units:'<b>Quantities and units.</b> Every quantity shows its unit, for counted units as well as measured ones; a measured quantity can be typed and has quick picks. The price says what it is per.',
+  after:'<b>After the tap.</b> A cart line is removed with its trash button (a 40 px target, named \"Remove\" for screen readers), and an undo message follows. The order pins the design\'s first photo, and the same photo, design, size and quantity follow the order through every screen: the cart, checkout, the confirmation, the seller\'s order page, and the confirmation call; the 3×3 parcel label names the design, the size and the SKU in its item line.',
+};
+
+preset('pdp'); render(false);
+</script>
+</body>
+</html>
