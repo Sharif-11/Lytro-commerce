@@ -131,7 +131,17 @@ export function timelineOf(payment: BillingPayment, t: T, invoice: Invoice | nul
             dot: 'on',
           }
         : null;
-  const after = [sent, requested].filter((step): step is TimelineStep => step !== null);
+  // ADM-17, D8-15 (Slice 8.8): a screenshot sent after the payment, while Lytro was checking it.
+  const shot: TimelineStep | null = payment.evidenceSentAt
+    ? {
+        key: 'shot',
+        text: t('p88money.tlShot'),
+        sub: null,
+        at: payment.evidenceSentAt,
+        dot: 'on',
+      }
+    : null;
+  const after = [shot, sent, requested].filter((step): step is TimelineStep => step !== null);
   switch (payment.state) {
     case BillingPaymentState.Checking:
       return [

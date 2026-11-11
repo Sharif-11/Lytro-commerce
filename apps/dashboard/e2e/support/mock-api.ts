@@ -68,6 +68,7 @@ import { checksAnswer } from './stock-checks';
 import { variantRead } from './variants';
 import { PRESETS } from './presets';
 import { drawnTeam, teamAnswer, teamWrite, type TeamFixture } from './team';
+import { screenshotAnswer } from './p88-money-mock';
 import {
   drawnLedger,
   drawnPayments,
@@ -702,6 +703,17 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       );
       return ok({ ok: true });
     }
+    // ADM-17, D8-15 (Slice 8.8): a screenshot for a payment Lytro is checking.
+    const shot = screenshotAnswer(method, path, (money.payments ??= drawnPayments()));
+    if (shot && 'refused' in shot) {
+      const { status, code, message } = shot.refused;
+      return route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: refusal(code, message),
+      });
+    }
+    if (shot) return ok(shot.data);
     if (method === 'POST' && path === '/exports') {
       const requested = {
         id: 'export-1',

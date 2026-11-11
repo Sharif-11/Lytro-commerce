@@ -1,7 +1,9 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import { Permission } from '@lytronix/validators';
 import { formatTaka } from '@lytronix/ui';
 import { Banner } from '@/components/ui/banner';
+import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { PaymentNotice } from './notices';
 
@@ -15,7 +17,8 @@ function addonName(notice: PaymentNotice, language: string): string {
 /**
  * A payment's state on Plan, Balance or Add-ons (the prototype's `plan-pending`, `plan-rejected`, `balance-pending`,
  * `balance-rejected`, `addons-checking`, `addons-rejected`): being checked, nothing changes until it is; or rejected,
- * quoting support's note, with Details, which opens the payment in Billing.
+ * quoting support's note, with Details, which opens the payment in Billing. A plan's or a top-up's being checked leads to
+ * Billing to add a screenshot while none was sent (Slice 8.8, `p88-plan-pending`, `p88-balance-pending`).
  */
 export function PaymentBanner({
   notice,
@@ -25,7 +28,7 @@ export function PaymentBanner({
   about: 'plan' | 'topUp' | 'addon';
 }): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
-  const { slug } = useShell();
+  const { slug, viewer } = useShell();
   const amount = formatTaka(notice.payment.amount);
   const name = addonName(notice, i18n.language);
   if (notice.state === 'checking') {
@@ -34,7 +37,28 @@ export function PaymentBanner({
       topUp: () => t('tuPending', { amount }),
       addon: () => t('aoChecking', { amount, name }),
     };
-    return <Banner tone="info">{words[about]()}</Banner>;
+    const shot =
+      about !== 'addon' &&
+      !notice.payment.evidenceSentAt &&
+      allows(viewer, [about === 'topUp' ? Permission.BalanceManage : Permission.PaymentsManage]);
+    return (
+      <Banner
+        tone="info"
+        action={
+          shot ? (
+            <Link
+              to="/$shop/billing/$paymentId"
+              params={{ shop: slug, paymentId: notice.payment.id }}
+              className="text-primary"
+            >
+              {t('p88money.pendingShot')}
+            </Link>
+          ) : undefined
+        }
+      >
+        {words[about]()}
+      </Banner>
+    );
   }
   const note = notice.payment.note ?? '';
   const words = {

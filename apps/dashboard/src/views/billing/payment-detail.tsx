@@ -27,6 +27,7 @@ import { useShell } from '@/shell/shell-context';
 import type { BillingPayment, Invoice } from '@/types/billing';
 import { HowToPaySheet } from '@/views/plan/how-to-pay-sheet';
 import { PaymentState } from './payment-row';
+import { ScreenshotCard } from './screenshot-card';
 import {
   forLine,
   invoiceNumber,
@@ -335,6 +336,9 @@ export function PaymentDetail({ payment }: { payment: BillingPayment }): React.J
           </div>
         ) : null}
       </Card>
+      {payment.state === BillingPaymentState.Checking ? (
+        <ScreenshotCard payment={payment} mayAct={mayAct} />
+      ) : null}
       <Card>
         <h3 className="mb-1 text-[17px] font-semibold">{t('blHistory')}</h3>
         <div className="mt-2 flex flex-col">

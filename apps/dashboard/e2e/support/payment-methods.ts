@@ -30,6 +30,8 @@ export interface MethodFixture {
   way: 'automated' | 'listener' | 'manual';
   ways: string[];
   accounts: AccountFixture[];
+  /** WAL-18 (Slice 8.7): Lytro is retiring the type. */
+  retiring?: boolean;
 }
 
 export interface PaymentMethodsFixture {

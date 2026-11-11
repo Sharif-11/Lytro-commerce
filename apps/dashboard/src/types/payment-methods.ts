@@ -36,6 +36,8 @@ export interface PaymentMethodRow {
   way: PaymentWay;
   ways: PaymentWay[];
   accounts: PaymentAccount[];
+  /** WAL-18, D8-65 (Slice 8.7): Lytro is retiring this type; it keeps working for this shop until it is removed. */
+  retiring?: boolean;
 }
 
 export interface PaymentMethodsView {
