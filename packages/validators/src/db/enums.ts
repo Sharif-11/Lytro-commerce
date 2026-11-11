@@ -1007,10 +1007,26 @@ export function billingPaymentStateOf(
   }
 }
 
-// BIL-02, BIL-12: how a plan payment was paid -- from the shop's balance, or a wallet transfer the operator
-// verified. One list for the purchase and upgrade requests and the invoice that records it.
+// BIL-02, BIL-12: how a shop asks to pay for a plan -- from its balance, or a wallet transfer the operator verifies.
+// One list for the purchase and upgrade requests; how a paid one went (PAID_BY_METHODS) names one more.
 export const PLAN_PAYMENT_METHODS = ['balance', 'wallet'] as const;
 export type PlanPaymentMethod = (typeof PLAN_PAYMENT_METHODS)[number];
+
+// BIL-12, ADM-14 (the owner, 2026-11-11): how a paid request went, as its invoice and Billing name it -- from the
+// balance, by a wallet's TrxID, or by a transfer to one of Lytro's bank accounts, its reference where a TrxID goes.
+// A purchase or upgrade request asks only for the first two; a transfer comes by the payment page's bank method or
+// the operator's manual entry (D8-75).
+export const PAID_BY_METHODS = [...PLAN_PAYMENT_METHODS, 'bank'] as const;
+export type PaidByMethod = (typeof PAID_BY_METHODS)[number];
+
+/** How a payment went: the balance when no TrxID or reference came, the bank when the bank method was used. */
+export function paidByOf(
+  transactionId: string | null,
+  payMethod: PaymentMethod | null,
+): PaidByMethod {
+  if (transactionId === null) return 'balance';
+  return payMethod === PaymentMethod.Bank ? 'bank' : 'wallet';
+}
 
 // BIL-12: what produced an invoice.
 export enum InvoiceKind {

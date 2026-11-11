@@ -206,6 +206,33 @@ export function invoiceOf(id: string): unknown {
   };
 }
 
+/**
+ * The owner, 2026-11-11 (KNOWN-GAPS §142): a renewal Lytro recorded from a transfer to its bank account (D8-75), its
+ * reference where a TrxID would be, and its invoice.
+ */
+export const PAID_BY_BANK = payment({
+  id: 'pay_bank',
+  kind: 'renewal',
+  state: 'paid',
+  amount: '449.00',
+  status: 'verified',
+  method: 'bank',
+  transactionId: 'BRAC-FT-2211',
+  quotedAt: ago(2 * DAY),
+  submittedAt: ago(2 * DAY),
+  verifiedAt: ago(2 * DAY),
+  invoice: { id: 'inv-215', number: 215 },
+});
+
+export function bankInvoice(): unknown {
+  return {
+    ...(invoiceOf('inv-215') as Record<string, unknown>),
+    paymentMethod: 'bank',
+    paymentReference: 'BRAC-FT-2211',
+    planPaymentId: 'pay_bank',
+  };
+}
+
 /** The statement the prototype draws: today's two SMS, yesterday's top-up and an extraction charge. */
 export function drawnLedger(): unknown[] {
   return [

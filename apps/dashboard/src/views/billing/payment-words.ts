@@ -64,12 +64,14 @@ export function forLine(
 }
 
 /**
- * How a payment went (§7.13): from the balance, or by its TrxID -- which wallet is not recorded until Phase 5's page --
+ * How a payment went (§7.13): from the balance, by its TrxID, by a bank transfer's reference (the owner, 2026-11-11),
  * or nothing sent.
  */
 export function methodWords(payment: BillingPayment, t: T): string {
   if (payment.method === 'balance') return t('psBalance');
-  if (payment.transactionId) return t('trx', { trx: payment.transactionId });
+  if (payment.transactionId) {
+    return t(payment.method === 'bank' ? 'trxBank' : 'trx', { trx: payment.transactionId });
+  }
   return t('blNoTrx');
 }
 
@@ -125,7 +127,9 @@ export function timelineOf(payment: BillingPayment, t: T, invoice: Invoice | nul
       : payment.transactionId
         ? {
             key: 'sent',
-            text: t('blTlSubmittedTrx', { trx: payment.transactionId }),
+            text: t(payment.method === 'bank' ? 'blTlSubmittedRef' : 'blTlSubmittedTrx', {
+              trx: payment.transactionId,
+            }),
             sub: null,
             at: payment.submittedAt ?? null,
             dot: 'on',

@@ -36,9 +36,10 @@ export function entryIcon(entry: LedgerEntry): IconName {
 }
 
 /**
- * What a row says it was (decided for 11.5b): "Top-up · TrxID 9F2KQ7", "Plan · Starter · 1 month", "Add-on · 500
- * products", "Support adjustment · {reason}", "Carried over from your earlier shop", and each charge's own word. The
- * payment a top-up, plan or add-on row came from is read from Billing's list when it is there.
+ * What a row says it was (decided for 11.5b): "Top-up · TrxID 9F2KQ7" (a bank transfer's "Reference …", the owner,
+ * 2026-11-11), "Plan · Starter · 1 month", "Add-on · 500 products", "Support adjustment · {reason}", "Carried over
+ * from your earlier shop", and each charge's own word. The payment a top-up, plan or add-on row came from is read from
+ * Billing's list when it is there.
  */
 export function entryTitle(
   entry: LedgerEntry,
@@ -51,7 +52,7 @@ export function entryTitle(
   switch (entry.type) {
     case LedgerEntryType.TopUp:
       return payment?.transactionId
-        ? `${word} · ${t('trx', { trx: payment.transactionId })}`
+        ? `${word} · ${t(payment.method === 'bank' ? 'trxRef' : 'trx', { trx: payment.transactionId })}`
         : word;
     case LedgerEntryType.PlanPayment: {
       if (!payment?.planName) return word;

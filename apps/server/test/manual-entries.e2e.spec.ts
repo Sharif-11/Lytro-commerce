@@ -224,6 +224,8 @@ interface Invoice {
   amount: string;
   recordedByPlatform: boolean;
   reversesInvoiceId: string | null;
+  paymentMethod: string | null;
+  paymentReference: string | null;
 }
 
 async function invoicesOf(client: ShopClient): Promise<Invoice[]> {
@@ -293,14 +295,16 @@ describeIfDatabase('recording a payment (ADM-14)', () => {
       kind: 'purchase',
       amount: '800.00',
       recordedByPlatform: true,
+      paymentMethod: 'wallet',
     });
 
     const billing = (await client.get('/billing/payments')).body as {
-      payments: { id: string; recordedByPlatform: boolean; state: string }[];
+      payments: { id: string; recordedByPlatform: boolean; state: string; method: string | null }[];
     };
     expect(billing.payments.find((p) => p.id === entry.planPaymentId)).toMatchObject({
       recordedByPlatform: true,
       state: 'paid',
+      method: 'wallet',
     });
 
     const logged = await activity(client.tenantId, 'manual_payment_recorded');
@@ -1033,6 +1037,21 @@ describeIfDatabase("A manual entry paid to Lytro's bank account (D8-75)", () => 
     );
     expect((listed.body as { entries: Entry[] }).entries).toEqual([
       expect.objectContaining({ id: entry.id, bankAccountId: account, walletId: null }),
+    ]);
+
+    // The owner, 2026-11-11 (KNOWN-GAPS §142): the invoice and Billing name the bank and its reference, not a wallet;
+    // the credit note that takes the invoice back names it too.
+    expect(await invoicesOf(client)).toEqual([
+      expect.objectContaining({ paymentMethod: 'bank', paymentReference: ref.toUpperCase() }),
+    ]);
+    const billing = (await client.get('/billing/payments')).body as {
+      payments: { id: string; method: string | null }[];
+    };
+    expect(billing.payments.find((p) => p.id === entry.planPaymentId)?.method).toBe('bank');
+    expect((await reverse(entry.id)).status).toBe(201);
+    expect((await invoicesOf(client)).map((invoice) => invoice.paymentMethod)).toEqual([
+      'bank',
+      'bank',
     ]);
   });
 

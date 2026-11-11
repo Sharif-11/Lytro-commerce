@@ -105,7 +105,9 @@ function InvoiceCard({ invoice }: { invoice: Invoice }): React.JSX.Element {
           value={
             invoice.paymentMethod === 'balance'
               ? t('psBalance')
-              : t('trx', { trx: invoice.paymentReference ?? '' })
+              : t(invoice.paymentMethod === 'bank' ? 'trxBank' : 'trx', {
+                  trx: invoice.paymentReference ?? '',
+                })
           }
         />
       ) : null}
