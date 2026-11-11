@@ -509,7 +509,7 @@ const W = {
     pinNote:'এই ছবিটি অর্ডারের সাথে স্থির। পরে সেলার পণ্যের ছবি মুছলে, ক্রম বদলালে বা গ্রুপ বদলালেও এই অর্ডারে এটিই থাকবে।',
     shopperChose:'শপারের বাছাই করা ছবি', qtyL:'পরিমাণ', lineTotal:'মোট',
     remove:'সরান', removed:'কার্ট থেকে সরানো হলো', undo:'ফিরিয়ে আনুন',
-    maxNote:'সর্বোচ্চ চার্জ, এলাকা দিলে কমতে পারে', maxNoteThana:'সর্বোচ্চ চার্জ, থানা দিলে কমতে পারে', cartTitle:'কার্ট', cartN:n=>`${n}টি আইটেম`, subtotal:'পণ্যের দাম', areaLink:'আপনার এলাকা দিন', chargeNote:'ডেলিভারি চার্জ অর্ডারের সময় যেটা হবে, এখানেও সেটাই — একই হিসাব।', keepShopping:'আরও কেনাকাটা', checkout:'অর্ডার করুন', cartEmpty:'কার্ট খালি', cartEmptyHint:'পছন্দের জিনিস কার্টে রাখুন, স্টক ধরা হয় না — অর্ডার করলে তবেই।',
+    maxNote:'সঠিক ডেলিভারি চার্জ জানতে আপনার এলাকা দিন', maxNoteThana:'সঠিক ডেলিভারি চার্জ জানতে থানা বাছুন', cartTitle:'কার্ট', cartN:n=>`${n}টি আইটেম`, subtotal:'পণ্যের দাম', areaLink:'আপনার এলাকা দিন', chargeNote:'ডেলিভারি চার্জ অর্ডারের সময় যেটা হবে, এখানেও সেটাই — একই হিসাব।', keepShopping:'আরও কেনাকাটা', checkout:'অর্ডার করুন', cartEmpty:'কার্ট খালি', cartEmptyHint:'পছন্দের জিনিস কার্টে রাখুন, স্টক ধরা হয় না — অর্ডার করলে তবেই।',
     close:'বন্ধ করুন', chartCols:['সাইজ','লম্বা','বুক','হাতা'],
   },
   en:{
@@ -556,7 +556,7 @@ const W = {
     pinNote:'This photo is pinned to the order. If the seller later deletes, reorders or regroups the product\'s photos, this order still shows it.',
     shopperChose:'The photo the shopper chose', qtyL:'Qty', lineTotal:'Total',
     remove:'Remove', removed:'Removed from your cart', undo:'Undo',
-    maxNote:'The highest; less once we know your area', maxNoteThana:'The highest; less once you choose your thana', cartTitle:'Your cart', cartN:n=>`${n} items`, subtotal:'Items', areaLink:'Set your area', chargeNote:'The delivery charge here is the one the order will carry, from the same calculation.', keepShopping:'Keep shopping', checkout:'Checkout', cartEmpty:'Your cart is empty', cartEmptyHint:'Add what you like; nothing is held until you order.',
+    maxNote:'Set your area to see the exact delivery charge', maxNoteThana:'Choose your thana to see the exact delivery charge', cartTitle:'Your cart', cartN:n=>`${n} items`, subtotal:'Items', areaLink:'Set your area', chargeNote:'The delivery charge here is the one the order will carry, from the same calculation.', keepShopping:'Keep shopping', checkout:'Checkout', cartEmpty:'Your cart is empty', cartEmptyHint:'Add what you like; nothing is held until you order.',
     close:'Close', chartCols:['Size','Length','Chest','Sleeve'],
   }
 };
@@ -847,7 +847,7 @@ function cartDrawer(){
     : `${undo}<div>${rows}</div>
       <div class="sum2"><div class="r"><span class="k">${t('subtotal')} · ${t('cartN')(count)}</span><span class="price">${money(items)}</span></div>
       <div class="r"><span class="k">${t('delivery')}</span><span class="price">${money(MAXD)}</span></div>
-      <div class="r maxn"><span>${t('maxNote')}</span><a>${t('areaLink')}</a></div>
+      <div class="r maxn"><a>${t('maxNote')}</a></div>
       <div class="r total"><span>${t('total')}</span><span class="price">${money(items + MAXD)}</span></div></div>
       <div class="estn">${t('chargeNote')}</div>`;
   return `<div class="bc"><div class="sheet2" role="dialog" aria-label="${t('cartTitle')}"><div class="grab"></div>
@@ -957,7 +957,7 @@ const NOTES = {
   'pdp-chosen':'<b>Design 2 (two photos) and size 54 chosen.</b> The price, the stock and the bar follow the chosen design and size; size 56 is struck through because it is sold out in this design, with the sentence saying other designs have it. Design 4 is sold out in every size, so its card is greyed and its photos say so.',
   landing:'<b>The landing page</b>, as an ad opens it: the same gallery, design row, size and quantity, then the order form in the same scroll (on desktop, beside the product). The pinned bar\'s <b>Order now</b> scrolls to the form; <b>Confirm order</b> with nothing chosen scrolls back up to the design row.',
   'landing-form':'<b>The form with a design chosen.</b> "Your choice" shows the exact photo, design, size and quantity that will go on the order, with <b>Change</b> taking the shopper back to the photos.',
-  cart:'<b>The cart, as built today</b> (a sheet on phones, a drawer from the right on wider screens), with only three changes: <b>the chosen design\'s photo</b> on the line, <b>the unit</b> in the quantity ("1 পিস"), and <b>a trash button</b> in place of the "সরান" text, beside the quantity. Until the shopper\'s area is known, delivery shows <b>the highest charge</b> and the total one figure, with a line saying it may be less; removing a line shows Undo for 5 seconds in the built toast\'s style.',
+  cart:'<b>The cart, as built today</b> (a sheet on phones, a drawer from the right on wider screens), with only three changes: <b>the chosen design\'s photo</b> on the line, <b>the unit</b> in the quantity ("1 পিস"), and <b>a trash button</b> in place of the "সরান" text, beside the quantity. Until the shopper\'s area is known, delivery shows <b>the highest charge</b> and the total one figure, with a link to set the area for the exact charge; removing a line shows Undo for 5 seconds in the built toast\'s style.',
   units:'<b>Quantities and units.</b> Every quantity shows its unit, for counted units as well as measured ones; a measured quantity can be typed and has quick picks. The price says what it is per.',
   after:'<b>After the tap.</b> A cart line is removed with its trash button (a 40 px target, named \"Remove\" for screen readers), and an undo message follows. The order pins the design\'s first photo, and the same photo, design, size and quantity follow the order through every screen: the cart, checkout, the confirmation, the seller\'s order page, and the confirmation call; the 3×3 parcel label names the design, the size and the SKU in its item line.',
 };
