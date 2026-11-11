@@ -241,6 +241,20 @@ there, summarised:
 
 **Delivers:** the system survives real failure, not just the happy path.
 
+**Detailed plan: `PHASE-9-PLAN.md`** (2026-11-11): ten slices, staging first, the load test last on the production
+server. Scope changes made there, summarised:
+- **One server at launch, code ready for more** (DAT-54, DAT-56): backups, restores, alerts and the load test for one
+  server; the read and write connections, read-only mode and the one-command failover (D9-2, written for any number of
+  replicas) for the standby that DAT-55's trigger adds. The second server, the load balancer and active-active serving
+  wait for that trigger (D9-23).
+- **Redis on the main server first** (D9-1), moving to its own server when a second app server arrives.
+- **Free monitoring tools at launch** (D9-3), with the rest of OBS at 50 paying shops; **our own security pass** with free
+  scanners (D9-4); **the load test on the production server** before launch (D9-5).
+- **The terms and privacy policy drafted without a lawyer's review before launch** (D9-6, amends LEG-03 and OD-08); VAT
+  fields on Lytro's invoices, hidden until a BIN is set (D9-7); the sealing key in a root-only file (D9-8, amends SEC-10).
+- **Moved out:** SEC-15 with the shop API; RED-08 until something pushes live; the checks that need production keys to
+  Phase 10's launch list.
+
 - `DAT-19` to `DAT-57` — the standby, replication, backup/restore drills, the shared Redis VPS (`RED-01` to `RED-05`).
 - `AVL-*` — active-active app servers, Cloudflare Load Balancing (per the earlier decision), zero-downtime deploys.
 - `BKP-*` — backup policy verified with an actual restore drill, not just configured.
