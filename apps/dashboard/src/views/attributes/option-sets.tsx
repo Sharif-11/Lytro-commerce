@@ -12,8 +12,8 @@ import {
   useOptionSets,
   useSaveOptionSet,
 } from '@/api/attributes';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chips';
@@ -143,7 +143,6 @@ function NewSetSheet({ open, onClose }: { open: boolean; onClose: () => void }):
  */
 export function OptionSetsView(): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const { slug, viewer } = useShell();
   const mayManage = allows(viewer, [Permission.ProductsManage]);
   const sets = useOptionSets();
@@ -173,8 +172,8 @@ export function OptionSetsView(): React.JSX.Element {
         attributes={attributes.data?.length}
         sets={sets.data?.length}
       />
-      {sets.isError ? <Banner tone="bad">{errorText(sets.error)}</Banner> : null}
-      {remove.isError ? <Banner tone="bad">{errorText(remove.error)}</Banner> : null}
+      {sets.isError ? <ErrorBanner error={sets.error} /> : null}
+      {remove.isError ? <ErrorBanner error={remove.error} /> : null}
       {sets.isPending ? (
         <Card flush>
           <SkeletonRows count={4} />

@@ -7,14 +7,13 @@ import {
   StockEditReason,
 } from '@lytronix/validators';
 import { useProductBatches, useSerials, useSetStock, type StockEdit } from '@/api/stock';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { CheckRow } from '@/components/ui/check-row';
 import { Chip } from '@/components/ui/chips';
 import { AreaField, Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonthYear, todayInputValue } from '@/lib/dates';
 import type { StockPageProduct } from '@/types/stock';
 import { ChoiceList, ChoiceRow } from '../product/choice-list';
@@ -78,7 +77,6 @@ function EditStock({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const counted = useCountedText();
   const ids = useId();
   const save = useSetStock(product.productId);
@@ -341,7 +339,7 @@ function EditStock({
           {t('movementNoteN', { delta: signed(String(change)) })}
         </p>
       ) : null}
-      {save.isError ? <Banner tone="bad">{errorText(save.error)}</Banner> : null}
+      {save.isError ? <ErrorBanner error={save.error} /> : null}
     </Sheet>
   );
 }

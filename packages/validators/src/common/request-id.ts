@@ -4,7 +4,6 @@
 export const REQUEST_ID_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 export const REQUEST_ID_HALF_LENGTH = 4;
 export const REQUEST_ID_PATTERN = /^[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/;
-export const REQUEST_ID_HEADER = 'X-Request-Id';
 
 // D8-3: how long a shop's server fault is kept for the operator's shop page.
 export const REQUEST_ERROR_KEEP_DAYS = 7;

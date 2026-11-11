@@ -7,8 +7,8 @@ import { useOauthProviders } from '@/api/auth';
 import { useMe } from '@/api/me';
 import { useAttachOauth, useIdentities, useRemoveIdentity } from '@/api/identities';
 import { FacebookIcon, GoogleIcon } from '@/components/brand/oauth-icons';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog } from '@/components/ui/dialog';
@@ -127,8 +127,8 @@ function OwnAccount({ connected }: { connected: IdentityKind | null }): React.JS
   const email = of(IdentityKind.Email)[0];
   return (
     <ShellPage>
-      {identities.isError ? <Banner tone="bad">{errorText(identities.error)}</Banner> : null}
-      {attach.isError ? <Banner tone="bad">{errorText(attach.error)}</Banner> : null}
+      {identities.isError ? <ErrorBanner error={identities.error} /> : null}
+      {attach.isError ? <ErrorBanner error={attach.error} /> : null}
       <Card flush>
         <div className="px-4 pt-4 pb-1">
           <h3 className="mb-1 text-[17px] font-semibold">{t('identities')}</h3>

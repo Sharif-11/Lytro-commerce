@@ -72,13 +72,9 @@ jobs:
         # Through Turborepo directly: `pnpm test` is pnpm's own command, and refuses --affected.
         run: pnpm exec turbo run test ${{ steps.scope.outputs.affected }}
 
-      # The dashboard's Help row opens the support WhatsApp the deployment names, and shows only with one; the browser
-      # tests below check it with this number, which is not a real one and never deployed.
       - name: Build all apps
         if: steps.scope.outputs.code == 'true'
         run: pnpm build
-        env:
-          VITE_SUPPORT_WHATSAPP: '8801000000000'
 
       - name: Install the test browser
         if: steps.scope.outputs.browser == 'true'

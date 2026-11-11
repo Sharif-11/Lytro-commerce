@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
 import { Permission } from '@lytronix/validators';
 import { useCourierConnections, useCourierPayout, useCourierPayouts } from '@/api/couriers';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { buttonClass } from '@/components/ui/classes';
@@ -15,7 +15,6 @@ import { rowClass, RowLead, RowList } from '@/components/ui/list-row';
 import { Sheet } from '@/components/ui/sheet';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { courierName, dayInSentence } from '@/lib/couriers';
 import { formatTime } from '@/lib/dates';
 import { allows } from '@/shell/hubs';
@@ -31,14 +30,13 @@ import { READING_LOOK, readingOf } from '@/views/orders/parcel-words';
  */
 export function PayoutsList(): React.JSX.Element | null {
   const { t, i18n } = useTranslation('money');
-  const errorText = useErrorText();
   const { slug, viewer } = useShell();
   const mayConnect = allows(viewer, [Permission.CouriersManage]);
   const readsCouriers = allows(viewer, [Permission.CouriersManage, Permission.OrdersManage]);
   const list = useCourierPayouts();
   const couriers = useCourierConnections({ enabled: readsCouriers });
   const [open, setOpen] = useState<CourierPayout | null>(null);
-  if (list.isError) return <Banner tone="bad">{errorText(list.error)}</Banner>;
+  if (list.isError) return <ErrorBanner error={list.error} />;
   if (!list.data) {
     return (
       <Card flush>
@@ -156,7 +154,6 @@ function PayoutSheet({
 }): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
   const { t: orders } = useTranslation('orders');
-  const errorText = useErrorText();
   const one = useCourierPayout(payout.id);
   const name = courierName(payout.courierKey);
   const others = payout.parcels - payout.ours;
@@ -183,7 +180,7 @@ function PayoutSheet({
       <p className="text-[14px] text-fg-muted">{t('crPNote', { c: name })}</p>
       <div>
         <h3 className="mb-1 text-[16px] font-semibold">{t('crPOrders')}</h3>
-        {one.isError ? <Banner tone="bad">{errorText(one.error)}</Banner> : null}
+        {one.isError ? <ErrorBanner error={one.error} /> : null}
         {one.isPending ? (
           <SkeletonRows count={2} />
         ) : (

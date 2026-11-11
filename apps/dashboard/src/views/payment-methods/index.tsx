@@ -9,10 +9,10 @@ import {
   useSaveMethod,
   useSelectAutomated,
 } from '@/api/payment-methods';
+import { ErrorBanner } from '@/components/error-banner';
 import { Banner } from '@/components/ui/banner';
 import { Card } from '@/components/ui/card';
 import { SkeletonRows } from '@/components/ui/skeleton';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import type { PaymentAccount, PaymentMethodRow } from '@/types/payment-methods';
@@ -43,7 +43,6 @@ function feeOf(value: string | undefined): string {
  */
 export function PaymentMethodsView(): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const { viewer } = useShell();
   const owner = viewer.isOwner;
   const view = usePaymentMethods();
@@ -110,7 +109,7 @@ export function PaymentMethodsView(): React.JSX.Element {
       {/* With no controls, staff have nothing else to land on, so the keyboard could not scroll the page to read it. */}
       <div className="flex max-w-[640px] flex-col gap-3.5" tabIndex={owner ? undefined : 0}>
         <p className="text-[14px] text-fg-muted">{t('pmLead')}</p>
-        {failure ? <Banner tone="bad">{errorText(failure)}</Banner> : null}
+        {failure ? <ErrorBanner error={failure} /> : null}
         {!owner && view.isSuccess ? <Banner tone="neutral">{t('pmStaff')}</Banner> : null}
         {noPhone ? (
           <Banner

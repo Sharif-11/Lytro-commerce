@@ -11,9 +11,9 @@ import {
   type OrderFilter,
   type OrderTab,
 } from '@/api/orders';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { ActionBar } from '@/components/ui/action-bar';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chips';
@@ -21,7 +21,6 @@ import { buttonClass } from '@/components/ui/classes';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SearchField } from '@/components/ui/search-field';
 import { SkeletonRows } from '@/components/ui/skeleton';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useShopAddress } from '@/hooks/use-shop-address';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -47,7 +46,6 @@ export function OrdersScreen({
   orderId: string | null;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { slug, viewer } = useShell();
   const [typed, setTyped] = useState(filter.q ?? '');
@@ -188,7 +186,7 @@ export function OrdersScreen({
       {filter.tab === LOOK_TAB ? (
         <p className="text-[14px] text-fg-muted">{t('crLookLead')}</p>
       ) : null}
-      {list.isError ? <Banner tone="bad">{errorText(list.error)}</Banner> : null}
+      {list.isError ? <ErrorBanner error={list.error} /> : null}
       <Card flush>
         {list.isPending ? (
           <SkeletonRows count={4} />

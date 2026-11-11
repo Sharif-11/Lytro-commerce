@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
 import { Permission } from '@lytronix/validators';
 import { useStockChecks } from '@/api/stock-checks';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { buttonClass } from '@/components/ui/classes';
@@ -12,7 +12,6 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { RowList, rowClass } from '@/components/ui/list-row';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
@@ -33,7 +32,6 @@ function netOf(check: StockCheckSummary): number | null {
  */
 export function StockChecksView(): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const { slug, viewer } = useShell();
   const mayManage = allows(viewer, [Permission.InventoryManage]);
   const list = useStockChecks();
@@ -54,7 +52,7 @@ export function StockChecksView(): React.JSX.Element {
 
   return (
     <ShellPage actions={newCheck(true)}>
-      {list.isError ? <Banner tone="bad">{errorText(list.error)}</Banner> : null}
+      {list.isError ? <ErrorBanner error={list.error} /> : null}
       {list.isPending ? (
         <Card flush>
           <SkeletonRows count={3} />

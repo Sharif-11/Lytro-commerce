@@ -1,4 +1,5 @@
 import {
+  REQUEST_ID_HEADER,
   SHOP_HEADER,
   type ApiErrorBody,
   type ApiSuccessBody,
@@ -16,6 +17,11 @@ export class ApiClientError extends Error {
     readonly details: Record<string, unknown>,
     readonly status: number,
     readonly retryAfterSeconds?: number,
+    /**
+     * API-27, D8-21 (Slice 8.8): a server fault's ID (500 or more), from the response's X-Request-Id, for the seller to
+     * copy or send Lytro; null on a refusal, which is the person's to fix, and when the server didn't answer at all.
+     */
+    readonly requestId: string | null = null,
   ) {
     super(message);
     this.name = 'ApiClientError';
@@ -141,6 +147,7 @@ export class ApiClient {
   private toError(response: Response, body: unknown): ApiClientError {
     const envelope = body as Partial<ApiErrorBody> | null;
     const retryAfter = response.headers.get('Retry-After');
+    const requestId = response.status >= 500 ? response.headers.get(REQUEST_ID_HEADER) : null;
     return new ApiClientError(
       envelope?.errors?.code ?? 'service_unavailable',
       // '' when the body didn't parse: errorMessage() then falls back to its own localized copy.
@@ -148,6 +155,7 @@ export class ApiClient {
       envelope?.errors?.details ?? {},
       response.status,
       retryAfter === null ? undefined : Number(retryAfter),
+      requestId === null || requestId === '' ? null : requestId,
     );
   }
 }

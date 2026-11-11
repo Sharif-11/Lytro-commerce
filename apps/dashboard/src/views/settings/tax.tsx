@@ -8,8 +8,8 @@ import {
   useTaxClasses,
   useUpdateTaxClass,
 } from '@/api/tax-classes';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog } from '@/components/ui/dialog';
@@ -20,7 +20,6 @@ import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
 import { Sheet } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import type { TaxClass } from '@/types/tax';
@@ -39,7 +38,6 @@ const rateText = (rate: string): string => String(Number(rate));
  */
 export function TaxView(): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const taxes = useTaxClasses();
   const setDefault = useSetDefaultTaxClass();
   const [sheet, setSheet] = useState<'new' | TaxClass | null>(null);
@@ -58,7 +56,7 @@ export function TaxView(): React.JSX.Element {
   return (
     <ShellPage actions={classes.length > 0 ? add : undefined}>
       <div className="flex max-w-[640px] flex-col gap-3.5">
-        {taxes.isError ? <Banner tone="bad">{errorText(taxes.error)}</Banner> : null}
+        {taxes.isError ? <ErrorBanner error={taxes.error} /> : null}
         {taxes.isPending ? (
           <Card flush>
             <SkeletonRows count={3} />
@@ -117,9 +115,7 @@ export function TaxView(): React.JSX.Element {
                   setDefault.mutate(event.target.value || null);
                 }}
               />
-              {setDefault.isError ? (
-                <Banner tone="bad">{errorText(setDefault.error)}</Banner>
-              ) : null}
+              {setDefault.isError ? <ErrorBanner error={setDefault.error} /> : null}
             </Card>
           </>
         )}
@@ -146,7 +142,6 @@ export function TaxView(): React.JSX.Element {
 /** A new class (`sh-tax31-new`): its name, its rate, and whether new products start with it. */
 function NewClassSheet({ onClose }: { onClose: () => void }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const { showToast } = useShell();
   const create = useCreateTaxClass();
   const setDefault = useSetDefaultTaxClass();
@@ -192,7 +187,7 @@ function NewClassSheet({ onClose }: { onClose: () => void }): React.JSX.Element 
       }
     >
       {problem !== null && !problems.name && !problems.rate ? (
-        <Banner tone="bad">{errorText(problem)}</Banner>
+        <ErrorBanner error={problem} />
       ) : null}
       <Field
         label={t('taxName')}
@@ -231,7 +226,6 @@ function EditClassSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const { showToast } = useShell();
   const update = useUpdateTaxClass(each.id);
   const remove = useDeleteTaxClass(each.id);
@@ -291,9 +285,7 @@ function EditClassSheet({
         </Button>
       }
     >
-      {failure && !problems.name && !problems.rate ? (
-        <Banner tone="bad">{errorText(failure)}</Banner>
-      ) : null}
+      {failure && !problems.name && !problems.rate ? <ErrorBanner error={failure} /> : null}
       <Field
         label={t('taxName')}
         value={name}

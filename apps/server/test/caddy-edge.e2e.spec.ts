@@ -191,6 +191,18 @@ describeIfEdge('every outside call through the edge (deploy/Caddyfile, KNOWN-GAP
     expect(said(answered)).toBe(words('ListenerCodeInvalid'));
   });
 
+  it('brings the listener app Lytro’s help line at api.<domain>/v1/listener/help-line (D8-74)', async () => {
+    const answered = await edge.send('api.localhost', 'GET', '/v1/listener/help-line', undefined, {
+      'x-app-version': '1.0.0',
+    });
+    expect(answered.status, answered.text).toBe(200);
+    expect(answered.json).toMatchObject({
+      success: true,
+      data: { opensHour: expect.any(Number) as number, closesHour: expect.any(Number) as number },
+    });
+    expect(answered.headers['cache-control']).toBe('public, max-age=300');
+  });
+
   it('answers nothing but the public API on the API host, and the dashboard’s /api/ on its own host', async () => {
     const onApiHost = await edge.send('api.localhost', 'GET', '/api/v1/me');
     expect(onApiHost.status).toBe(404);

@@ -17,6 +17,7 @@ import {
 import { useCourierAdapters, useCourierConnections, useSettleParcel } from '@/api/couriers';
 import { useLocations } from '@/api/delivery';
 import { useOrder } from '@/api/orders';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Banner } from '@/components/ui/banner';
@@ -30,7 +31,6 @@ import { StatusTag, type StatusTone } from '@/components/ui/status-tag';
 import { Taka } from '@/components/ui/taka';
 import { TimelineRow, type TimelineDot } from '@/components/ui/timeline';
 import { Button } from '@/components/ui/button';
-import { useErrorText } from '@/hooks/use-error-text';
 import { courierName } from '@/lib/couriers';
 import { dayKey, formatDayMonth } from '@/lib/dates';
 import { initialOf } from '@/lib/initial';
@@ -74,11 +74,10 @@ const CALL_LOOK: Record<CallOutcome, { tone: StatusTone; dot: TimelineDot; word:
 
 /** The order beside the list, or on its own page on a phone (the prototype's `o29Detail`). */
 export function OrderDetail({ orderId }: { orderId: string }): React.JSX.Element {
-  const errorText = useErrorText();
   const order = useOrder(orderId);
   if (order.data) return <OrderBody order={order.data} />;
   return order.isError ? (
-    <Banner tone="bad">{errorText(order.error)}</Banner>
+    <ErrorBanner error={order.error} />
   ) : (
     <Card flush>
       <SkeletonRows count={4} />
@@ -88,7 +87,6 @@ export function OrderDetail({ orderId }: { orderId: string }): React.JSX.Element
 
 function OrderBody({ order }: { order: Order }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const { viewer, slug } = useShell();
   const words = useOrderWords();
   const [open, setOpen] = useState<OrderSheet | null>(null);
@@ -260,7 +258,7 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
       </div>
       <StateBanner order={order} />
       <CourierBanner order={order} asks={asks} />
-      {retry.isError ? <Banner tone="bad">{errorText(retry.error)}</Banner> : null}
+      {retry.isError ? <ErrorBanner error={retry.error} /> : null}
       {limit !== null ? (
         <Banner
           tone="warn"

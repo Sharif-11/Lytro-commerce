@@ -60,6 +60,7 @@ import type { AddonsFixture, UsageFixture } from './support/usage';
 import { meghOrders, type OrderFixture, type OrdersFixture } from './support/orders';
 import { drawnCouriers, type CouriersFixture, type ParcelFixture } from './support/couriers';
 import { P88_CAT_PAIRS } from './compare-p88-cat';
+import { p88HelpPairs } from './compare-p88-help';
 import { P88_MONEY } from './compare-p88-money';
 import { DRAWN_BELL } from './support/phase7';
 
@@ -5656,7 +5657,7 @@ function themedPairs(paired: Pair[]): Pair[] {
 const THEMED = themedPairs([...PAIRS, ...MONEY]);
 
 // Slice 8.8 (Part 39, §7.41): each part's pairs, kept in its own file.
-const P88: Pair[] = [...P88_MONEY, ...P88_CAT_PAIRS];
+const P88: Pair[] = [...p88HelpPairs(), ...P88_MONEY, ...P88_CAT_PAIRS];
 
 /** Scrolls the card holding this text to the top of its scrolling page. */
 async function scrollToCard(within: Locator, text: RegExp): Promise<void> {

@@ -10,6 +10,7 @@ import {
   useRefundPayment,
   useVoidPayment,
 } from '@/api/orders';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -62,7 +63,6 @@ export function RecordPaymentSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const words = useOrderWords();
   const { showToast } = useShell();
   const record = useRecordPayment(order.id);
@@ -116,7 +116,6 @@ export function RecordPaymentSheet({
         </Button>
       }
     >
-      {record.isError ? <Banner tone="bad">{errorText(record.error)}</Banner> : null}
       <div>
         <h3 className="mb-2 text-[16px] font-semibold">{t('payMethod')}</h3>
         <div role="group" aria-label={t('payMethod')} className="flex flex-wrap gap-2">
@@ -173,6 +172,8 @@ export function RecordPaymentSheet({
       ) : null}
       {/* Part 37's `p37-o-pay` (D7-20). */}
       <SmsLine event={SmsEvent.PaymentVerified} words="p37LinePay" />
+      {/* Slice 8.8's `p88-err-sheet`: what went wrong sits above the sheet's button. */}
+      {record.isError ? <ErrorBanner error={record.error} /> : null}
     </Sheet>
   );
 }
@@ -191,7 +192,6 @@ export function VoidSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const remove = useVoidPayment(order.id);
   const [reason, setReason] = useState('');
   return (
@@ -221,7 +221,7 @@ export function VoidSheet({
       }
     >
       <p className="-mt-1 text-[14px] text-fg-muted">{t('voidHelp')}</p>
-      {remove.isError ? <Banner tone="bad">{errorText(remove.error)}</Banner> : null}
+      {remove.isError ? <ErrorBanner error={remove.error} /> : null}
       <AreaField
         label={t('voidReason')}
         value={reason}
@@ -250,7 +250,6 @@ export function RefundSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const refund = useRefundPayment(order.id);
   const [note, setNote] = useState('');
   return (
@@ -279,7 +278,7 @@ export function RefundSheet({
       <p className="-mt-1 text-[14px] text-fg-muted">
         {t('refundText', { amount: formatTaka(payment.amount) })}
       </p>
-      {refund.isError ? <Banner tone="bad">{errorText(refund.error)}</Banner> : null}
+      {refund.isError ? <ErrorBanner error={refund.error} /> : null}
       <AreaField
         label={t('refundNote')}
         placeholder={t('refundPlaceholder')}

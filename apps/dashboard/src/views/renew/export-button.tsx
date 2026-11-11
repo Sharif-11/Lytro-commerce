@@ -2,11 +2,10 @@ import { useTranslation } from 'react-i18next';
 import { IdentityKind } from '@lytronix/validators';
 import { downloadExport, useExports, useRequestExport } from '@/api/exports';
 import { useIdentities } from '@/api/identities';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { useDownload } from '@/hooks/use-download';
-import { useErrorText } from '@/hooks/use-error-text';
 import { fileSize } from '@/lib/limits';
 import type { DataExport } from '@/types/data-export';
 
@@ -27,7 +26,6 @@ function latestOf(exports: readonly DataExport[], now = Date.now()): DataExport 
  */
 export function ExportButton(): React.JSX.Element {
   const { t } = useTranslation('money');
-  const errorText = useErrorText();
   const exports = useExports();
   const request = useRequestExport();
   const saving = useDownload();
@@ -80,7 +78,7 @@ export function ExportButton(): React.JSX.Element {
     <>
       {control}
       {request.isError || saving.error ? (
-        <Banner tone="bad">{errorText(request.error ?? saving.error)}</Banner>
+        <ErrorBanner error={request.error ?? saving.error} />
       ) : null}
     </>
   );

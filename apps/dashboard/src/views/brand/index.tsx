@@ -13,6 +13,7 @@ import {
 import { useAddonOffers, useShopAddons } from '@/api/addons';
 import { useBrandEditor, useSaveBrand, useSwitchBrand } from '@/api/brand';
 import { unusedMedia } from '@/api/media';
+import { ErrorBanner } from '@/components/error-banner';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -68,14 +69,13 @@ type OpenSheet =
  * one Save; off, Apply and Save without switching on. Turning the switch on is Apply; turning it off is at once.
  */
 export function BrandView(): React.JSX.Element {
-  const errorText = useErrorText();
   const editor = useBrandEditor();
   useBrandFonts();
   if (!editor.data) {
     return (
       <ShellPage>
         {editor.isError ? (
-          <Banner tone="bad">{errorText(editor.error)}</Banner>
+          <ErrorBanner error={editor.error} />
         ) : (
           <Card flush>
             <SkeletonRows count={4} />
@@ -314,7 +314,7 @@ function BrandPage({ editor }: { editor: BrandEditor }): React.JSX.Element {
   return (
     <ShellPage>
       {banner}
-      {failure ? <Banner tone="bad">{errorText(failure)}</Banner> : null}
+      {failure ? <ErrorBanner error={failure} /> : null}
       <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
         <div className="flex flex-col gap-section">
           <SwitchCard

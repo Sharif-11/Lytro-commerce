@@ -4,14 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
 import { ProductKind, SalesRanking } from '@lytronix/validators';
 import { useBestSellers } from '@/api/sales';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Card } from '@/components/ui/card';
 import { RowLead, RowList, rowClass } from '@/components/ui/list-row';
 import { SectionHead } from '@/components/ui/page';
 import { Sheet } from '@/components/ui/sheet';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useShell } from '@/shell/shell-context';
 import type { BestSeller } from '@/types/sales';
 import { useCountedText } from '@/views/product/stock-holders';
@@ -77,7 +76,6 @@ export function BestSellersCard({
   onBy: (by: SalesRanking) => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const [all, setAll] = useState(false);
   const top = useBestSellers({ from, to, by, limit: ON_THE_PAGE });
   const everything = useBestSellers({ from, to, by, limit: ALL }, { enabled: all });
@@ -111,7 +109,7 @@ export function BestSellersCard({
           onChange={onBy}
         />
       </div>
-      {top.isError ? <Banner tone="bad">{errorText(top.error)}</Banner> : null}
+      {top.isError ? <ErrorBanner error={top.error} /> : null}
       {top.isPending ? <SkeletonRows count={3} /> : null}
       <RowList>
         {sellers.map((seller, index) => (
@@ -129,7 +127,7 @@ export function BestSellersCard({
           setAll(false);
         }}
       >
-        {everything.isError ? <Banner tone="bad">{errorText(everything.error)}</Banner> : null}
+        {everything.isError ? <ErrorBanner error={everything.error} /> : null}
         {everything.isPending ? <SkeletonRows count={5} /> : null}
         <RowList>
           {(everything.data?.products ?? []).map((seller, index) => (

@@ -87,13 +87,15 @@ const initial: ContactFormState = { status: 'idle' };
 const inputClass =
   'num min-h-12 w-full rounded-control border border-neutral-200 bg-white px-3.5 text-[16px] text-ink placeholder:text-neutral-500 focus:border-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30';
 
-/** Remounting the inner form is how "send another" clears the action state. */
-export function ContactForm({ language }: { language: Language }) {
+/** Remounting the inner form is how "send another" clears the action state. `whatsapp`: the help line has a WhatsApp to be
+    faster on (D8-69); without one the sent card doesn't point at it. */
+export function ContactForm({ language, whatsapp }: { language: Language; whatsapp: boolean }) {
   const [round, setRound] = useState(0);
   return (
     <ContactFormRound
       key={round}
       language={language}
+      whatsapp={whatsapp}
       onReset={() => {
         setRound((value) => value + 1);
       }}
@@ -101,7 +103,15 @@ export function ContactForm({ language }: { language: Language }) {
   );
 }
 
-function ContactFormRound({ language, onReset }: { language: Language; onReset: () => void }) {
+function ContactFormRound({
+  language,
+  whatsapp,
+  onReset,
+}: {
+  language: Language;
+  whatsapp: boolean;
+  onReset: () => void;
+}) {
   const [state, action, pending] = useActionState(sendContactMessage, initial);
   const [topic, setTopic] = useState<ContactTopic>('setup');
   const problems = state.status === 'invalid' ? state.problems : {};
@@ -120,7 +130,9 @@ function ContactFormRound({ language, onReset }: { language: Language; onReset: 
           <Icon name="check" size={24} strokeWidth={2.5} />
         </span>
         <p className="mt-4 text-[18px] font-bold text-ink">{text.sentTitle[language]}</p>
-        <p className="mt-1 text-[15px] text-neutral-700">{text.sentSub[language]}</p>
+        {whatsapp ? (
+          <p className="mt-1 text-[15px] text-neutral-700">{text.sentSub[language]}</p>
+        ) : null}
         <button type="button" onClick={onReset} className={`mt-6 ${buttonClass('outline')}`}>
           {text.another[language]}
         </button>

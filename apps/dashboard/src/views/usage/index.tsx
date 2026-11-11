@@ -6,9 +6,9 @@ import { useAddonOffers } from '@/api/addons';
 import { useCurrentRates } from '@/api/balance';
 import { useIdentities } from '@/api/identities';
 import { useUsage } from '@/api/usage';
+import { ErrorBanner } from '@/components/error-banner';
 import { Banner } from '@/components/ui/banner';
 import { Card } from '@/components/ui/card';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonth, formatShortDay } from '@/lib/dates';
 import { usageSize } from '@/lib/limits';
 import { allows } from '@/shell/hubs';
@@ -35,7 +35,6 @@ import {
  */
 export function UsageView(): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
-  const errorText = useErrorText();
   const { viewer, slug } = useShell();
   const canManage = allows(viewer, [Permission.PaymentsManage]);
   const usage = useUsage();
@@ -69,7 +68,7 @@ export function UsageView(): React.JSX.Element {
 
   return (
     <ShellPage>
-      {usage.isError ? <Banner tone="bad">{errorText(usage.error)}</Banner> : null}
+      {usage.isError ? <ErrorBanner error={usage.error} /> : null}
       {data ? (
         <>
           <p className="num text-[14px] text-fg-muted">

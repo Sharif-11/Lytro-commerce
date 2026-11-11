@@ -1,13 +1,18 @@
+import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Permission } from '@lytronix/validators';
+import { useHelpLine } from '@/api/help-line';
 import { useSignOut } from '@/api/me';
 import { useStaffList } from '@/api/staff';
+import { HelpSheet } from '@/components/help-sheet';
 import { Icon, type IconName } from '@/components/icon';
 import { Card } from '@/components/ui/card';
 import { RowList } from '@/components/ui/list-row';
 import { ShopMark } from '@/components/ui/shop-mark';
+import { useHelpSubLine } from '@/hooks/use-help-sub-line';
 import { appConfig } from '@/lib/app-config';
+import { helpLineReachable } from '@/lib/help-line';
 import { installOffers, onIphoneBrowser, useInstallOffer } from '@/lib/install-prompt';
 import { allows, hubOf, visibleSections, type SectionId } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -27,7 +32,8 @@ const ICONS: Record<'team' | 'activity' | 'notices' | 'settings' | 'account', Ic
 /**
  * The Menu hub's own page (TENANT-DASHBOARD-DESIGN §7.18, the prototype's `menu`, Part 11's `menu-staff` and the two
  * install cards): the shop with the person's role and name; Team, Activity and Settings as their permissions open them
- * (STF-11, hidden never disabled); Account, Language, Help and Sign out; "Powered by Lytro".
+ * (STF-11, hidden never disabled); Account, Language, Help and Sign out; "Powered by Lytro". Help opens Lytro support from
+ * the help line the console sets (D8-4, Slice 8.8's `p88-menu`), for everyone on the team, and isn't there with no number.
  */
 export function MenuView(): React.JSX.Element {
   const { t, i18n } = useTranslation('menu');
@@ -39,7 +45,8 @@ export function MenuView(): React.JSX.Element {
   const offered = useInstallOffer();
   const standalone = window.matchMedia('(display-mode: standalone)').matches;
   const onIphone = onIphoneBrowser(navigator, standalone);
-  const help = appConfig.supportChatUrl();
+  const helpLine = useHelpLine().data;
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const role = viewer.isOwner ? t('roleOwner') : roles.length > 0 ? roles.join(', ') : t('staffOf');
   const seats = staff.data?.seats;
@@ -124,10 +131,16 @@ export function MenuView(): React.JSX.Element {
           >
             <MenuRowInner icon="globe" title={t('language')} sub={t('langV')} chevron={false} />
           </button>
-          {help ? (
-            <a href={help} target="_blank" rel="noopener noreferrer" className={menuRowClass}>
-              <MenuRowInner icon="help" title={t('secHelp')} sub={t('mHelpS')} />
-            </a>
+          {helpLineReachable(helpLine) ? (
+            <button
+              type="button"
+              className={menuRowClass}
+              onClick={() => {
+                setHelpOpen(true);
+              }}
+            >
+              <HelpRow line={helpLine} title={t('secHelp')} />
+            </button>
           ) : null}
           <button
             type="button"
@@ -145,6 +158,25 @@ export function MenuView(): React.JSX.Element {
         <Icon name="mark" size={16} />
         {shell('poweredBy')}
       </p>
+      {helpOpen ? (
+        <HelpSheet
+          open
+          onClose={() => {
+            setHelpOpen(false);
+          }}
+        />
+      ) : null}
     </ShellPage>
   );
+}
+
+/** The Help row's inside: the ways to reach Lytro, and open now or when it opens. */
+function HelpRow({
+  line,
+  title,
+}: {
+  line: Parameters<typeof useHelpSubLine>[0];
+  title: string;
+}): React.JSX.Element {
+  return <MenuRowInner icon="help" title={title} sub={useHelpSubLine(line, new Date())} />;
 }

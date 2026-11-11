@@ -5,6 +5,7 @@ import { ApiClientError } from '@lytronix/api-client';
 import { Permission } from '@lytronix/validators';
 import { useProductRoom } from '@/api/catalogue';
 import { useRemoveProduct, useRestoreProduct } from '@/api/products';
+import { ErrorBanner } from '@/components/error-banner';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { StatusTag } from '@/components/ui/status-tag';
@@ -52,7 +53,7 @@ export function ArchivedProduct({ product }: { product: ProductDetail }): React.
     >
       {full && room.data ? <ProductLimitBanner room={room.data} lead="now" /> : null}
       <Banner tone="warn">{t('peArchived')}</Banner>
-      {restore.isError && !full ? <Banner tone="bad">{errorText(restore.error)}</Banner> : null}
+      {restore.isError && !full ? <ErrorBanner error={restore.error} /> : null}
       {mayManage ? (
         <div className="flex flex-wrap gap-2">
           <Button

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOrderSerials, useReturnItems, type ReturnedItem } from '@/api/orders';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { CheckRow } from '@/components/ui/check-row';
 import { Chip } from '@/components/ui/chips';
@@ -10,7 +10,6 @@ import { Quantity } from '@/components/ui/quantity';
 import { Sheet } from '@/components/ui/sheet';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useShell } from '@/shell/shell-context';
 import type { Order, OrderItem, OrderSerialItem } from '@/types/orders';
 import { useOrderWords } from './order-words';
@@ -46,7 +45,6 @@ export function ReturnSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const words = useOrderWords();
   const { showToast } = useShell();
   const serials = useOrderSerials(order.id);
@@ -158,7 +156,7 @@ export function ReturnSheet({
       }
     >
       <p className="-mt-1 text-[14px] text-fg-muted">{t('returnHelp')}</p>
-      {returns.isError ? <Banner tone="bad">{errorText(returns.error)}</Banner> : null}
+      {returns.isError ? <ErrorBanner error={returns.error} /> : null}
       {serials.isPending ? (
         <SkeletonRows count={2} />
       ) : (

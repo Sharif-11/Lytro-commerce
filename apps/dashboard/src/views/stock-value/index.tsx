@@ -5,13 +5,12 @@ import { formatTaka } from '@lytronix/ui';
 import { Permission, SalesBucket } from '@lytronix/validators';
 import { useSales } from '@/api/sales';
 import { useInventoryFigures } from '@/api/stock';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Card } from '@/components/ui/card';
 import { buttonClass } from '@/components/ui/classes';
 import { Kv } from '@/components/ui/kv';
 import { Eyebrow } from '@/components/ui/page';
 import { SkeletonRows } from '@/components/ui/skeleton';
-import { useErrorText } from '@/hooks/use-error-text';
 import { todayInputValue } from '@/lib/dates';
 import { periodOf } from '@/lib/sales-period';
 import { allows } from '@/shell/hubs';
@@ -75,7 +74,6 @@ function ProfitNow(): React.JSX.Element | null {
  */
 export function StockValueView(): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const figures = useInventoryFigures({ enabled: true });
   const counted = useCountedText();
   const unitsText = (units: readonly { unit: string; quantity: string }[]): string =>
@@ -85,7 +83,7 @@ export function StockValueView(): React.JSX.Element {
   return (
     <ShellPage>
       <p className="text-[14px] text-fg-muted">{t('svLead')}</p>
-      {figures.isError ? <Banner tone="bad">{errorText(figures.error)}</Banner> : null}
+      {figures.isError ? <ErrorBanner error={figures.error} /> : null}
       {!data ? (
         figures.isPending ? (
           <Card flush>

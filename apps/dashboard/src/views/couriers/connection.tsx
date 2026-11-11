@@ -9,6 +9,7 @@ import {
   useCourierConnections,
   useSetDefaultCourier,
 } from '@/api/couriers';
+import { ErrorBanner } from '@/components/error-banner';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -16,7 +17,6 @@ import { buttonClass } from '@/components/ui/classes';
 import { rowClass, RowChevron, RowList } from '@/components/ui/list-row';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import { ConnectionName, ConnectionState, CourierLead, RetiringBanner } from './index';
@@ -66,7 +66,6 @@ function SettingRow({
  */
 export function CourierView({ courierKey }: { courierKey: string }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { slug } = useShell();
   const connections = useCourierConnections();
@@ -96,7 +95,7 @@ export function CourierView({ courierKey }: { courierKey: string }): React.JSX.E
     return (
       <ShellPage>
         {failure ? (
-          <Banner tone="bad">{errorText(failure)}</Banner>
+          <ErrorBanner error={failure} />
         ) : (
           <Card flush>
             <SkeletonRows count={3} />
@@ -114,7 +113,7 @@ export function CourierView({ courierKey }: { courierKey: string }): React.JSX.E
         {connection.retiring ? (
           <RetiringBanner retiring={connection} connections={connections.data ?? []} standalone />
         ) : null}
-        {setDefault.isError ? <Banner tone="bad">{errorText(setDefault.error)}</Banner> : null}
+        {setDefault.isError ? <ErrorBanner error={setDefault.error} /> : null}
         <Card flush>
           <div className={`${rowClass} min-h-16`}>
             <CourierLead />

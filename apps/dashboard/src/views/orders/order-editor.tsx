@@ -21,6 +21,7 @@ import {
   useUpdateOrder,
   type OrderBody,
 } from '@/api/orders';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Banner } from '@/components/ui/banner';
@@ -113,13 +114,12 @@ export function NewOrderView(): React.JSX.Element {
 
 /** Edit order (Part 29's `o29-edit`, ORD-11): the same form, as the order now is, until it ships. */
 export function EditOrderView({ orderId }: { orderId: string }): React.JSX.Element {
-  const errorText = useErrorText();
   const order = useOrder(orderId);
   if (order.data) return <OrderEditor order={order.data} />;
   return (
     <ShellPage>
       {order.isError ? (
-        <Banner tone="bad">{errorText(order.error)}</Banner>
+        <ErrorBanner error={order.error} />
       ) : (
         <Card flush>
           <SkeletonRows count={4} />
@@ -355,7 +355,7 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
   return (
     <ShellPage title={order ? t('editTitle') : t('newOrder')}>
       {short !== null ? <Banner tone="bad">{shortText ?? errorText(problem)}</Banner> : null}
-      {unplaced ? <Banner tone="bad">{errorText(problem)}</Banner> : null}
+      {unplaced ? <ErrorBanner error={problem} /> : null}
       {booked ? <Banner tone="info">{t('crEditLocked', { c: courier })}</Banner> : null}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
         <div className="flex min-w-0 flex-col gap-4">

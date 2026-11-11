@@ -10,8 +10,8 @@ import {
   useStockShort,
   type StockSegment,
 } from '@/api/stock';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { buttonClass } from '@/components/ui/classes';
@@ -19,7 +19,6 @@ import { Chip, ChipRow } from '@/components/ui/chips';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SearchField } from '@/components/ui/search-field';
 import { SkeletonRows } from '@/components/ui/skeleton';
-import { useErrorText } from '@/hooks/use-error-text';
 import { SEGMENT_LABEL } from '@/lib/product-segments';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -62,7 +61,6 @@ export function StockView({
   addAsked: boolean;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { slug, viewer } = useShell();
   const mayManage = allows(viewer, [Permission.InventoryManage]);
@@ -195,7 +193,7 @@ export function StockView({
       ) : null}
       {plain ? <CombosCard products={combos.data ?? []} /> : null}
       {mayManage && !newShop ? <StockFigures keepsBatches={keepsBatches} /> : null}
-      {list.isError ? <Banner tone="bad">{errorText(list.error)}</Banner> : null}
+      {list.isError ? <ErrorBanner error={list.error} /> : null}
       {newShop ? (
         <Card>
           <EmptyState

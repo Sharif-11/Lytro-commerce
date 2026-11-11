@@ -4,12 +4,12 @@ import { ApiClientError } from '@lytronix/api-client';
 import { formatTaka } from '@lytronix/ui';
 import { PaymentRejectReason, PaymentSessionSource } from '@lytronix/validators';
 import { useRejectPayment, useVerifyPayment } from '@/api/payments';
+import { ErrorBanner } from '@/components/error-banner';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { AreaField, Field } from '@/components/ui/field';
 import { RadioMark } from '@/components/ui/kv';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useOrderWords } from '@/views/orders/order-words';
 import type { ShopPayment } from '@/types/payments';
 import { amountInField, REJECT_REASONS, rejectWord } from './words';
@@ -43,7 +43,6 @@ export function ApproveSheet({
   onDone: (message: string) => void;
 }): React.JSX.Element {
   const { t } = useTranslation('money');
-  const errorText = useErrorText();
   const verify = useVerifyPayment();
   const smsSays = payment.receipt?.amount ?? null;
   const [amount, setAmount] = useState(amountInField(smsSays ?? payment.amount));
@@ -107,7 +106,7 @@ export function ApproveSheet({
       {value > 0 && short > 0 ? (
         <Banner tone="neutral">{t('spLeftDue', { amount: formatTaka(short) })}</Banner>
       ) : null}
-      {verify.isError && !tooMuch ? <Banner tone="bad">{errorText(verify.error)}</Banner> : null}
+      {verify.isError && !tooMuch ? <ErrorBanner error={verify.error} /> : null}
     </Sheet>
   );
 }
@@ -126,7 +125,6 @@ export function RejectSheet({
   onDone: (message: string) => void;
 }): React.JSX.Element {
   const { t } = useTranslation('money');
-  const errorText = useErrorText();
   const reject = useRejectPayment();
   const [reason, setReason] = useState<PaymentRejectReason>(PaymentRejectReason.NoPaymentFound);
   const [note, setNote] = useState('');
@@ -203,7 +201,7 @@ export function RejectSheet({
           ? t('spRejectCheckout', { order: `#${payment.order.orderNumber}` })
           : t('spRejectLink')}
       </Banner>
-      {reject.isError ? <Banner tone="bad">{errorText(reject.error)}</Banner> : null}
+      {reject.isError ? <ErrorBanner error={reject.error} /> : null}
     </Sheet>
   );
 }

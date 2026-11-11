@@ -32,6 +32,12 @@ export type ErrorCode = (typeof ERROR_CODES)[number];
 export const SHOP_HEADER = 'x-lytro-shop';
 
 /**
+ * API-27, D8-21 (Phase 8 Slice 8.1): the header every response carries its request's ID in, the ID its log lines carry
+ * too (REQUEST_ID_PATTERN in @lytronix/validators). The dashboard shows it under a server fault (Slice 8.8).
+ */
+export const REQUEST_ID_HEADER = 'X-Request-Id';
+
+/**
  * TEN-17, BRAND-IDENTITY §11: the colours an installed dashboard shows before its page draws -- the address bar and
  * the splash. One definition for every manifest that names them.
  */

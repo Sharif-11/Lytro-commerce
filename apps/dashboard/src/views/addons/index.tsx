@@ -13,9 +13,9 @@ import { useAddonOffers, useSetAddonRenewal, useShopAddons } from '@/api/addons'
 import { useBalance } from '@/api/balance';
 import { useBillingPrices } from '@/api/billing';
 import { useUsage } from '@/api/usage';
+import { ErrorBanner } from '@/components/error-banner';
 import { Banner } from '@/components/ui/banner';
 import { Card } from '@/components/ui/card';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonth } from '@/lib/dates';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -55,7 +55,6 @@ export function AddonsView({
   pack: 'bandwidth' | 'requests' | null;
 }): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { tenant, viewer, slug, showToast } = useShell();
   const canManage = allows(viewer, [Permission.PaymentsManage]);
@@ -138,9 +137,7 @@ export function AddonsView({
 
   return (
     <ShellPage>
-      {offers.isError || mine.isError ? (
-        <Banner tone="bad">{errorText(offers.error ?? mine.error)}</Banner>
-      ) : null}
+      {offers.isError || mine.isError ? <ErrorBanner error={offers.error ?? mine.error} /> : null}
       {trial ? <Banner tone="neutral">{t('aoTrialBanner')}</Banner> : null}
       {grace && tenant.periodEnd && graceEnd ? (
         <Banner

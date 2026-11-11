@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Permission } from '@lytronix/validators';
 import { useRoles, useStaffList } from '@/api/staff';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { RowList } from '@/components/ui/list-row';
 import { Toast } from '@/components/ui/toast';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useToast } from '@/hooks/use-toast';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -25,7 +24,6 @@ import { seatsFull, sortPeople } from './team-words';
  */
 export function TeamView(): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const { slug, viewer } = useShell();
   const canManage = allows(viewer, [Permission.StaffManage]);
   const staff = useStaffList();
@@ -60,7 +58,7 @@ export function TeamView(): React.JSX.Element {
         people={staff.data?.staff.length}
         roles={roles.data?.length}
       />
-      {staff.isError ? <Banner tone="bad">{errorText(staff.error)}</Banner> : null}
+      {staff.isError ? <ErrorBanner error={staff.error} /> : null}
       {seats ? <SeatsCard seats={seats} /> : null}
       {staff.data ? (
         <Card flush>

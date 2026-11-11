@@ -19,6 +19,7 @@ import {
   useOrderSerials,
   useSetOverride,
 } from '@/api/orders';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon, type IconName } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,6 @@ import { AreaField, Field } from '@/components/ui/field';
 import { RadioMark } from '@/components/ui/kv';
 import { RowList } from '@/components/ui/list-row';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import { courierName } from '@/lib/couriers';
 import { dayKey } from '@/lib/dates';
 import { bangladeshiPhone } from '@/lib/phone';
@@ -196,7 +196,6 @@ function CallSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const { showToast } = useShell();
   const log = useLogCall(order.id);
   const [outcome, setOutcome] = useState<CallOutcome.Confirmed | CallOutcome.NoAnswer>(
@@ -239,7 +238,7 @@ function CallSheet({
           phone: order.customerPhone ? bangladeshiPhone.grouped(order.customerPhone) : '',
         })}
       </p>
-      {log.isError ? <Banner tone="bad">{errorText(log.error)}</Banner> : null}
+      {log.isError ? <ErrorBanner error={log.error} /> : null}
       <RowList role="radiogroup" aria-label={t('howWent')}>
         <ChoiceRow
           icon="check"
@@ -332,7 +331,6 @@ function LaterSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const log = useLogCall(order.id);
   const times = useCallBackTimes();
   const [picked, setPicked] = useState<string | null>(null);
@@ -413,7 +411,7 @@ function LaterSheet({
         />
       ) : null}
       <p className="text-[14px] text-fg-muted">{t('outLaterH')}</p>
-      {log.isError ? <Banner tone="bad">{errorText(log.error)}</Banner> : null}
+      {log.isError ? <ErrorBanner error={log.error} /> : null}
       <AreaField
         label={t('noteOpt')}
         value={note}
@@ -438,7 +436,6 @@ function CancelSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const words = useOrderWords();
   const log = useLogCall(order.id);
   const cancel = useCancelOrder(order.id);
@@ -510,7 +507,7 @@ function CancelSheet({
       ) : (
         <p className="-mt-1 text-[14px] text-fg-muted">{t('cancelHelp')}</p>
       )}
-      {sending.isError && !noAnswer ? <Banner tone="bad">{errorText(sending.error)}</Banner> : null}
+      {sending.isError && !noAnswer ? <ErrorBanner error={sending.error} /> : null}
       <RowList role="radiogroup" aria-label={t('cancelTitle')}>
         {CANCEL_REASONS.map((why) => (
           <button
@@ -555,13 +552,12 @@ function MenuSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { slug } = useShell();
   const release = useSetOverride(order.id);
   return (
     <Sheet open title={t('menuTitle', { number: order.orderNumber })} onClose={onClose}>
-      {release.isError ? <Banner tone="bad">{errorText(release.error)}</Banner> : null}
+      {release.isError ? <ErrorBanner error={release.error} /> : null}
       <RowList>
         {can.book ? (
           <MenuRow
@@ -693,7 +689,6 @@ function DeleteDialog({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { slug, showToast } = useShell();
   const remove = useDeleteOrder(order.id);
@@ -728,7 +723,7 @@ function DeleteDialog({
       {t('deleteP')}
       {remove.isError ? (
         <div className="mt-3">
-          <Banner tone="bad">{errorText(remove.error)}</Banner>
+          <ErrorBanner error={remove.error} />
         </div>
       ) : null}
     </Dialog>
@@ -744,7 +739,6 @@ function DeliverDialog({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const { showToast } = useShell();
   const deliver = useDeliver(order.id);
   const due = Number(order.due);
@@ -781,7 +775,7 @@ function DeliverDialog({
       {due > 0 ? t('deliverP', { amount: formatTaka(due) }) : t('deliverPaid')}
       {deliver.isError ? (
         <div className="mt-3">
-          <Banner tone="bad">{errorText(deliver.error)}</Banner>
+          <ErrorBanner error={deliver.error} />
         </div>
       ) : null}
     </Dialog>
@@ -815,7 +809,6 @@ function HandOverDialog({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const { showToast } = useShell();
   const handOver = useHandOver(order.id);
   const due = Number(order.due);
@@ -852,7 +845,7 @@ function HandOverDialog({
       {due > 0 ? t('handOverP', { amount: formatTaka(due) }) : t('handOverPaid')}
       {handOver.isError ? (
         <div className="mt-3">
-          <Banner tone="bad">{errorText(handOver.error)}</Banner>
+          <ErrorBanner error={handOver.error} />
         </div>
       ) : null}
     </Dialog>

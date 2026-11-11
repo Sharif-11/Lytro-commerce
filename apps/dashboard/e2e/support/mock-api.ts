@@ -1,4 +1,5 @@
 import type { Page, Route } from '@playwright/test';
+import type { HelpLineView } from '@lytronix/validators';
 import {
   billingPrices,
   ONE_MONTH,
@@ -32,6 +33,7 @@ import {
   type SettingsFixture,
 } from './settings';
 import { categoryList, categoryWrite } from './categories';
+import { DRAWN_HELP_LINE, faultFor, type Fault } from './p88-help-mock';
 import { brandAnswer, brandWrite, drawnBrand, liveBrand, type BrandFixture } from './brand';
 import { domainAnswer, domainWrite, noDomain, ownDomainOf, type DomainFixture } from './domain';
 import {
@@ -185,6 +187,10 @@ export interface ShopState {
   money?: MoneyState;
   /** Phase 7 (Part 37): notices, the bell, SMS, fake order checks, reading a message and the reads pack. */
   phase7?: Phase7Fixture;
+  /** Slice 8.8: Lytro's help line (GET /help-line); the drawn one, both numbers, 9 am to 10 pm, unless a test says. */
+  helpLine?: HelpLineView;
+  /** Slice 8.8: requests the server answers with a fault and its error ID, or a refusal (`p88-err-*`). */
+  faults?: Fault[];
 }
 
 export function envelope(data: unknown, statusCode = 200): string {
@@ -378,6 +384,8 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     couriers: null,
     stock: { low: 1, out: 1 },
     home: {},
+    helpLine: DRAWN_HELP_LINE,
+    faults: [],
     ...given,
     money: { ...given.money },
     sales: { ...given.sales },
@@ -566,6 +574,7 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
     return { identities: state.identities ?? ownIdentities(money.hasEmail ?? false) };
   }
   if (path === '/auth/providers') return { providers: ['google', 'facebook'] };
+  if (path === '/help-line') return state.helpLine;
   return FIRST_BUILD_READS[path] ?? {};
 }
 
@@ -633,6 +642,16 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
     log.calls.push({ method, path, query: url.search, body });
     const ok = (data: unknown): Promise<void> =>
       route.fulfill({ status: 200, contentType: 'application/json', body: envelope(data) });
+    // Slice 8.8: a fault this test sets, with the ID the server sends on every answer.
+    const fault = faultFor(state.faults, method, path);
+    if (fault) {
+      return route.fulfill({
+        status: fault.status,
+        contentType: 'application/json',
+        headers: fault.requestId ? { 'X-Request-Id': fault.requestId } : {},
+        body: refusal(fault.code, fault.message),
+      });
+    }
 
     if (method === 'POST' && (path === '/billing/quote' || path === '/billing/upgrade/quote')) {
       const planId = String(body?.planId ?? '');

@@ -5,7 +5,7 @@ import { ApiClientError } from '@lytronix/api-client';
 import { IdentityKind } from '@lytronix/validators';
 import { useRequestIdentityCode, useVerifyIdentity } from '@/api/identities';
 import { PAYMENT_METHODS_QUERY_KEY } from '@/api/payment-methods';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { CodeBoxes } from '@/components/ui/code-boxes';
 import { Field } from '@/components/ui/field';
@@ -151,7 +151,7 @@ export function PhoneSheet({ onClose }: { onClose: () => void }): React.JSX.Elem
         {wrong ? null : (
           <p className="text-[14px] text-fg-muted">{words('vValid', { minutes: sent.minutes })}</p>
         )}
-        {request.isError ? <Banner tone="bad">{errorText(request.error)}</Banner> : null}
+        {request.isError ? <ErrorBanner error={request.error} /> : null}
       </Sheet>
     );
   }
@@ -182,7 +182,7 @@ export function PhoneSheet({ onClose }: { onClose: () => void }): React.JSX.Elem
           setLocalPhone(event.target.value.replace(/[^\d\s-]/g, ''));
         }}
       />
-      {request.isError ? <Banner tone="bad">{errorText(request.error)}</Banner> : null}
+      {request.isError ? <ErrorBanner error={request.error} /> : null}
     </Sheet>
   );
 }

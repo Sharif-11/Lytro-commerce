@@ -11,8 +11,6 @@
         "SITE_URL",
         "LIVE_FEATURES",
         "CONTACT_WEBHOOK_URL",
-        "SUPPORT_WHATSAPP",
-        "SUPPORT_PHONE",
         "SUPPORT_EMAIL"
       ]
     },
@@ -51,8 +49,6 @@
         "SITE_URL",
         "LIVE_FEATURES",
         "CONTACT_WEBHOOK_URL",
-        "SUPPORT_WHATSAPP",
-        "SUPPORT_PHONE",
         "SUPPORT_EMAIL"
       ]
     }

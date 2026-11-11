@@ -6,8 +6,8 @@ import { Permission } from '@lytronix/validators';
 import { useCustomer } from '@/api/customers';
 import { useLocations } from '@/api/delivery';
 import { useCustomerOrders } from '@/api/orders';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { buttonClass } from '@/components/ui/classes';
@@ -16,7 +16,6 @@ import { RowList } from '@/components/ui/list-row';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatRow, StatTile } from '@/components/ui/stat-tile';
 import { StatusTag } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonth } from '@/lib/dates';
 import { bangladeshiPhone } from '@/lib/phone';
 import { allows } from '@/shell/hubs';
@@ -31,7 +30,6 @@ import { customerName } from './customer-words';
 /** The customer beside the list, or on their own page on a phone (the prototype's `c30Detail`). */
 export function CustomerDetail({ customerId }: { customerId: string }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const customer = useCustomer(customerId);
   if (customer.data) return <CustomerBody customer={customer.data} />;
   if (customer.isError) {
@@ -40,7 +38,7 @@ export function CustomerDetail({ customerId }: { customerId: string }): React.JS
         <EmptyState icon="users">{t('custGone')}</EmptyState>
       </Card>
     ) : (
-      <Banner tone="bad">{errorText(customer.error)}</Banner>
+      <ErrorBanner error={customer.error} />
     );
   }
   return (
@@ -209,7 +207,6 @@ function CustomerBody({ customer }: { customer: Customer }): React.JSX.Element {
 /** Their orders, newest first (CUS-02), each opening the order. */
 function CustomerOrders({ customer }: { customer: Customer }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const list = useCustomerOrders(customer.id);
   const orders = (list.data?.pages ?? []).flatMap((page) => page.orders);
   return (
@@ -217,7 +214,7 @@ function CustomerOrders({ customer }: { customer: Customer }): React.JSX.Element
       <div className="px-4 pt-4 pb-1">
         <h3 className="mb-1 text-[17px] font-semibold">{t('customerOrders')}</h3>
       </div>
-      {list.isError ? <Banner tone="bad">{errorText(list.error)}</Banner> : null}
+      {list.isError ? <ErrorBanner error={list.error} /> : null}
       {list.isPending ? (
         <SkeletonRows count={2} />
       ) : (

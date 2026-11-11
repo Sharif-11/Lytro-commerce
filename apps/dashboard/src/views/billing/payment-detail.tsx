@@ -9,6 +9,7 @@ import {
 } from '@lytronix/validators';
 import { formatTaka } from '@lytronix/ui';
 import { useBillingPrices, useCancelPayment, useInvoice, useOpenPaymentPage } from '@/api/billing';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,6 @@ import { buttonClass } from '@/components/ui/classes';
 import { Kv } from '@/components/ui/kv';
 import { Sheet } from '@/components/ui/sheet';
 import { TimelineRow } from '@/components/ui/timeline';
-import { useErrorText } from '@/hooks/use-error-text';
 import { appConfig } from '@/lib/app-config';
 import { dayKey, formatDayMonth, formatDayMonthYear, formatTime } from '@/lib/dates';
 import { limitFigure } from '@/lib/limits';
@@ -139,7 +139,6 @@ function FinishPayingSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
-  const errorText = useErrorText();
   const openPage = useOpenPaymentPage();
   return (
     <Sheet
@@ -163,7 +162,7 @@ function FinishPayingSheet({
       }
     >
       <p className="text-[14px] text-fg-muted">{t('psNote')}</p>
-      {openPage.isError ? <Banner tone="bad">{errorText(openPage.error)}</Banner> : null}
+      {openPage.isError ? <ErrorBanner error={openPage.error} /> : null}
     </Sheet>
   );
 }
@@ -198,7 +197,6 @@ function PayAgainSheet({
  */
 export function PaymentDetail({ payment }: { payment: BillingPayment }): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { slug, viewer, showToast } = useShell();
   const cancel = useCancelPayment();
@@ -332,7 +330,7 @@ export function PaymentDetail({ payment }: { payment: BillingPayment }): React.J
         {actions ? <div className="mt-3.5 flex flex-wrap gap-2">{actions}</div> : null}
         {cancel.isError ? (
           <div className="mt-3">
-            <Banner tone="bad">{errorText(cancel.error)}</Banner>
+            <ErrorBanner error={cancel.error} />
           </div>
         ) : null}
       </Card>

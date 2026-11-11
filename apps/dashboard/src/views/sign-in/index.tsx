@@ -10,12 +10,11 @@ import {
   useStartOauth,
 } from '@/api/auth';
 import { FacebookIcon, GoogleIcon } from '@/components/brand/oauth-icons';
+import { ErrorBanner } from '@/components/error-banner';
 import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
 import { IntentChips } from '@/components/onboarding/intent-chips';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
-import { useErrorText } from '@/hooks/use-error-text';
 import { appConfig } from '@/lib/app-config';
 import { bangladeshiPhone } from '@/lib/phone';
 import { signUpIntent, type SignUpIntent } from '@/session/sign-up-intent';
@@ -43,7 +42,6 @@ function localPartOf(phone: string | undefined): string {
  */
 export function SignIn(): React.JSX.Element {
   const { t } = useTranslation('onboarding');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const search = useSearch({ from: '/sign-in' });
   const [mode, setMode] = useState<'code' | 'password'>(search.mode ?? 'code');
@@ -133,7 +131,7 @@ export function SignIn(): React.JSX.Element {
             }}
           />
         ) : null}
-        {error ? <Banner tone="bad">{errorText(error)}</Banner> : null}
+        {error ? <ErrorBanner error={error} /> : null}
         {cantPay ? (
           <Button
             wide

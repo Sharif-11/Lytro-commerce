@@ -1,9 +1,8 @@
 // The one place this app reads process.env (CODING-CONVENTIONS §6, "Configuration", applied to the site).
 // Everything else receives settings through a constructor or a prop.
 
+/** Lytro's support email. Its WhatsApp and phone are the help line's, which the operator sets (GET /help-line, D8-69). */
 export interface SupportContact {
-  whatsapp: string | null;
-  phone: string | null;
   email: string | null;
 }
 
@@ -36,8 +35,6 @@ export class SiteEnvironment {
       env.LISTENER_DOWNLOAD_URL ?? 'https://download.lytro.app',
     );
     this.support = {
-      whatsapp: SiteEnvironment.blankToUndefined(env.SUPPORT_WHATSAPP) ?? null,
-      phone: SiteEnvironment.blankToUndefined(env.SUPPORT_PHONE) ?? null,
       email: SiteEnvironment.blankToUndefined(env.SUPPORT_EMAIL) ?? null,
     };
   }

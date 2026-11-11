@@ -12,6 +12,7 @@ import {
   useUpdateCategory,
 } from '@/api/categories';
 import { usePresets } from '@/api/shop-setup';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -178,8 +179,8 @@ export function CategoriesView(): React.JSX.Element {
       actions={add(true)}
       banner={movedMeanwhile ? <Banner tone="bad">{t('p88cat.failed')}</Banner> : null}
     >
-      {categories.isError ? <Banner tone="bad">{errorText(categories.error)}</Banner> : null}
-      {problem !== null ? <Banner tone="bad">{errorText(problem)}</Banner> : null}
+      {categories.isError ? <ErrorBanner error={categories.error} /> : null}
+      {problem !== null ? <ErrorBanner error={problem} /> : null}
       {categories.isPending ? (
         <Card flush>
           <SkeletonRows count={4} />
