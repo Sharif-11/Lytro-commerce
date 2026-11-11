@@ -103,16 +103,24 @@ async function wallet(
   kind: string,
   amount: string,
   day: string,
-  given: { transactionId?: string | null; status?: string } = {},
+  given: { transactionId?: string | null; status?: string; test?: boolean } = {},
 ): Promise<void> {
   const transactionId =
     given.transactionId === undefined
       ? `TX${randomUUID().slice(0, 10).toUpperCase()}`
       : given.transactionId;
   await admin.query(
-    `INSERT INTO control.plan_payments (tenant_id, kind, amount, status, transaction_id, verified_at, quoted_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $6)`,
-    [tenantId, kind, amount, given.status ?? 'verified', transactionId, noon(day)],
+    `INSERT INTO control.plan_payments (tenant_id, kind, amount, status, transaction_id, verified_at, quoted_at, test)
+     VALUES ($1, $2, $3, $4, $5, $6, $6, $7)`,
+    [
+      tenantId,
+      kind,
+      amount,
+      given.status ?? 'verified',
+      transactionId,
+      noon(day),
+      given.test ?? false,
+    ],
   );
 }
 
@@ -157,6 +165,12 @@ interface RevenueFigures {
   balance: Record<string, string>;
   givenBack: string;
   earned: string;
+}
+
+interface RevenueBody {
+  buckets: (RevenueFigures & { from: string; to: string })[];
+  total: RevenueFigures;
+  recordedSince: string | null;
 }
 
 describeIfDatabase("each shop's day, recorded at night (D8-9)", () => {
@@ -293,6 +307,31 @@ describeIfDatabase('the revenue report: what was earned (D8-40)', () => {
         ?.endsWith(',1.10,0.00,0.00,0.00,0.00,624.40'),
     ).toBe(true);
     expect(lines.at(-1)?.startsWith('2024-03-01,2024-03-31,300.00,0.00,0.00,20.00,')).toBe(true);
+  });
+
+  it('never counts a test payment through a sandbox account, which no money reached (review C, S1)', async () => {
+    const tested = await shop();
+    const paying = await shop();
+    // August 2024. The first shop paid for real only for an add-on; its plan was a sandbox test.
+    await wallet(tested.tenantId, 'purchase', '300.00', '2024-08-05', { test: true });
+    await wallet(tested.tenantId, 'addon', '20.00', '2024-08-05');
+    await wallet(tested.tenantId, 'renewal', '300.00', '2024-08-06', { test: true });
+    await wallet(paying.tenantId, 'purchase', '450.00', '2024-08-07');
+
+    const revenue = await report(
+      '/operator/reports/revenue?dateFrom=2024-08-01&dateTo=2024-08-31&bucket=month',
+    );
+    expect(revenue.status, JSON.stringify(revenue.body)).toBe(200);
+    expect((revenue.body as RevenueBody).total).toMatchObject({
+      wallet: { purchase: '450.00', renewal: '0.00', upgrade: '0.00', addon: '20.00' },
+      earned: '470.00',
+    });
+    // Nor does a test payment make a shop paying: only the shop that paid for real became paying.
+    const shops = await report(
+      '/operator/reports/shops?dateFrom=2024-08-01&dateTo=2024-08-31&bucket=month',
+    );
+    expect(shops.status, JSON.stringify(shops.body)).toBe(200);
+    expect((shops.body as { total: { becamePaying: number } }).total.becamePaying).toBe(1);
   });
 });
 
