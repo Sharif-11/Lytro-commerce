@@ -189,13 +189,15 @@ cycle's limit. Nothing was refused; the shop's owner was told too. It goes out a
 ## 6. Lytro's help line (D8-4, D8-68)
 
 **What this is:** the WhatsApp and phone numbers shops reach Lytro on, and the hours Lytro answers, every day. Lytro's
-payment page shows them now (WhatsApp and call); the dashboard's help row and the website's contact page move onto them
-in Phase 8 Slice 8.8.
+payment page, the dashboard's Help, the website's contact page, footer and listener page, and the listener app show them
+(since Phase 8 Slice 8.8).
 
 - **Set before launch:** `help_whatsapp` and `help_phone`, each `01XXXXXXXXX`, with `PATCH /operator/settings/<key>` and a
   reason. Until one is set, nothing shows it; with only one set, both buttons reach it.
 - **Hours:** `help_opens_hour` and `help_closes_hour`, 0 to 23 in Dhaka, 9 and 22 until set.
-- **After a change:** pages read it within five minutes (`GET /help-line` is cached that long).
+- **Clearing a number:** an empty value, with a reason, means not set: its button goes everywhere, the listener app's
+  support row included (D8-76, D8-80).
+- **After a change:** pages and the app read it within five minutes (`GET /help-line` is cached that long).
 
 ## 7. Retiring a wallet type (WAL-18, D8-65 to D8-67)
 

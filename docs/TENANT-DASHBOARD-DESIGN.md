@@ -2054,6 +2054,18 @@ more, §10 lists it for the build.
   All of Bangladesh** only when the shop's zones cover the country (a rest-of-the-country zone and no zone it doesn't deliver
   to), its other choice **নির্দিষ্ট কিছু জোনে / Only some zones** (`p88-zones-country`, `p88-product-country`).
 
+**Built** (Slice 8.8's dashboard PR, 2026-11-11), with the owner's answers to the build (D8-79 to D8-82):
+- A screenshot sent before the page opened reads "Screenshot · JPG" with its size; the file's name shows only in the
+  session that sent it (D8-79).
+- The error ID shows wherever a screen's error banner does. Record a payment's error sits above its button and Products
+  has its "didn't load" card, as drawn; other sheets and lists keep their place until a sketch draws more (D8-81). A
+  refused product save still names its part under the title (D8-82), where `p88-err-refused` draws the bare sentence.
+- Categories, where the build goes past the drawing: in Move to…, a parent that would make the moved branch five levels
+  deep is greyed too (Formal, for Kids with Baby under it), as the server refuses it; a line drop the rules refuse shows a
+  red dashed line with the reason; dropped near a row's bottom edge, a row with sub-categories takes it first inside it.
+  A computer has no ⋯ menu, as drawn: Add a sub-category is New category's parent, and Delete is in the row's sheet.
+- The listener app hides its support row once a number is cleared (D8-80).
+
 **Please check** (my calls in this sketch):
 1. The screenshot sits in Billing after the payment is sent, not on the payment page before VERIFY, so the page keeps its
    reference layout and the picture is offered only while a person may look at it. The other way is one optional line on the
@@ -2154,7 +2166,7 @@ brand identity.
 | `GET /help-line`: Lytro's WhatsApp and phone and the hours, public, cached five minutes | help line | the Menu's Help (§7.18, §7.41) | built (8.7) |
 | `retiring` on each `GET /payment-methods` row, a retiring type the shop never set up left out, and the retiring and back notices to the bell, owner only and locked | payment methods, notifications | §7.41's Being retired | built (8.7) |
 | The retiring notice in রিটায়ার's words: `paymentMethodRetiringText` in notification-words.ts, its Bangla title "{name} রিটায়ার হচ্ছে" (was "বন্ধ হয়ে যাচ্ছে") and its body "Lytro {name} রিটায়ার করছে। …" (was "বন্ধ করছে"); English unchanged | notifications | the bell row and the card's sentence (§7.41) | Built in Slice 8.8's console PR (#344) |
-| The error ID from the `X-Request-Id` header on `ApiClientError` (`requestId`), for a status of 500 or more | api-client | §7.41's error ID | Slice 8.8's build |
+| The error ID from the `X-Request-Id` header on `ApiClientError` (`requestId`), for a status of 500 or more | api-client | §7.41's error ID | Built in Slice 8.8's dashboard PR |
 | A screenshot for a payment already sent: a signed upload link for one of the shop's payments Lytro hasn't decided, and attaching it once, refusing a second and a decided payment; whether one was sent on each `GET /billing/payments` row. Today the screenshot rides only on the dashboard's own submit routes, which no screen calls since the payment page took the transaction ID (#337) | billing, payment evidence | §7.41's Screenshot of the payment | Built in Slice 8.8's dashboard PR: `POST /billing/payments/:id/evidence`, `POST /balance/top-up/:id/evidence`, `evidenceSentAt` on each row |
 | Moving a category in one request: a parent and a place, both sibling lists renumbered in one transaction, a fifth level and its own sub-categories refused as `PATCH /categories/:id` refuses them. Today the dashboard sends one PATCH a sibling, one after another | catalogue | §7.41's categories by dragging | Built in Slice 8.8's dashboard PR: `POST /categories/:id/move` |
 | `POST /products/combo-quote`: what a combo's parts come to, saved or not (bought apart, saving, can make, limited by, issues, weight, each part's price and photo) | catalogue | the combo editor (§7.33) | built (4.8c) |

@@ -38,7 +38,7 @@ Two of these pages belong to the marketing site (`apps/website`). The sign-up fl
 | Address | A map placeholder with a pin, "Lytronix, Dhaka", visits by appointment. Real address and an embedded map go in at build time. |
 | Form | Topic chips (setup help, book a demo, plans and pricing, something is broken, partnership), name, phone, optional Facebook page or shop link, message. Validates name, a Bangladeshi mobile number and a non-empty message, inline, in Bangla. Success state replaces the form with a confirmation and "send another". A privacy line: the number is used only to reply, no marketing SMS. |
 
-**Build notes.** The form posts to a server route in `apps/website` that creates a support ticket or sends an email; the prototype only validates. Topic becomes the ticket category. The page link field lets support look at the seller's page before calling. The page reads `GET /help-line` on the server, kept as long as the route's own five minutes, and `SUPPORT_WHATSAPP` and `SUPPORT_PHONE` go (Slice 8.8). Nothing set at all keeps the "once the support line is live" sentence.
+**Build notes.** The form posts to a server route in `apps/website` that creates a support ticket or sends an email; the prototype only validates. Topic becomes the ticket category. The page link field lets support look at the seller's page before calling. The page reads `GET /help-line` on the server, kept as long as the route's own five minutes, and `SUPPORT_WHATSAPP` and `SUPPORT_PHONE` go (Slice 8.8). Nothing set at all keeps the "once the support line is live" sentence. Built in Slice 8.8 (2026-11-11), with the footer and the listener page reading the same help line.
 
 ---
 
@@ -67,7 +67,7 @@ Follows AUTH-28 exactly: identity, create shop, optional password. The prototype
 | Page | App | Route | Notes |
 | --- | --- | --- | --- |
 | About | `apps/website` | `/about` | Built 2026-10-19: `app/about/page.tsx`. Team cards read from a static list whose names are empty until people agree to appear. |
-| Contact | `apps/website` | `/contact` | Built 2026-10-19: `app/contact/page.tsx`, `contact-form.tsx` and the server action in `actions.ts`, with the rules in `lib/contact/contact-submission.ts`. Channel values come from `SUPPORT_WHATSAPP`, `SUPPORT_PHONE` and `SUPPORT_EMAIL`, so placeholders cannot ship. The form posts to `CONTACT_WEBHOOK_URL`; without one it tells the visitor to use WhatsApp instead of pretending to send. "Open now" is computed in Dhaka time in the browser. |
+| Contact | `apps/website` | `/contact` | Built 2026-10-19: `app/contact/page.tsx`, `contact-form.tsx` and the server action in `actions.ts`, with the rules in `lib/contact/contact-submission.ts`. Channel values come from the help line (`GET /help-line`, since Slice 8.8) and `SUPPORT_EMAIL`, so placeholders cannot ship. The form posts to `CONTACT_WEBHOOK_URL`; without one it tells the visitor to use WhatsApp instead of pretending to send. "Open now" is computed in Dhaka time in the browser. |
 | Sign-up | `apps/dashboard` | `/sign-in`, `/verify-code`, `/create-shop`, `/checkout`, `/set-password`, `/set-up` | Built 2026-10-19 as a fresh app to this shell (`components/ui/step-frame.tsx`); the map of screens to files is in `ONBOARDING-FLOW-DESIGN.md` §5. |
 | Footer and nav | `apps/website` | | Add About and Contact to the nav and footer when the pages exist, per the landing-page spec. |
 | Listener app | `apps/website` | `/listener` | Slice 5.8, part 4: §6. In the footer under Help, not the nav: it's for shops already on Lytro. |

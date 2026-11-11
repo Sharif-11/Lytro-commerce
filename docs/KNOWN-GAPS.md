@@ -2493,3 +2493,17 @@ Still open:
   the type and the shops with accounts for it.
 - **An entry's row doesn't say whether its screenshot is still kept;** the console says it was removed after two years from
   the entry's date, or when the link answers 404.
+
+## 143. `ADM-17`, `D8-72`, `API-27`: what Slice 8.8's dashboard build found — found 2026-11-11, open
+
+- **Sending a screenshot is not audited.** Cancelling a payment writes an activity entry; attaching a screenshot to one
+  (`POST /billing/payments/:id/evidence`, `POST /balance/top-up/:id/evidence`) writes none, so neither log says who sent it.
+- **The prototype's older categories screens still draw ⋯ on a computer.** `categories` and `sh-category-edit` predate
+  Part 39, which draws grips and no ⋯; their picture pairs now differ from the build, without failing. The prototype's
+  older screens should draw what Part 39 does.
+- **A list that didn't load waits about seven seconds.** The dashboard retries a failed read three times before Products'
+  "didn't load" card shows (D8-81).
+- **Two sets of Bangla words for the part of the day.** The dashboard and the website share `banglaPartOfDay` from the
+  validators; the server's own (`common/i18n/dates.ts`, which has ভোর and সন্ধ্যা) is a second definition.
+- **A category held mid-drag fails the automated contrast check.** It is drawn at 45% opacity, as the sketch draws it, so
+  the accessibility check runs before a category is picked up.
