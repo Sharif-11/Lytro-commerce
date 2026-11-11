@@ -18,6 +18,20 @@ export class CategoryRepository {
       .orderBy(asc(categories.depth), asc(categories.sortOrder), sql`lower(${categories.name})`);
   }
 
+  /**
+   * D8-72: holds every one of the shop's categories until the transaction ends, so two moves renumbering the same lists
+   * run one after the other. Taken in id order, which never changes, so two takers never wait on each other in a circle.
+   */
+  async lockCategories(tx: Transaction, tenantId: string): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .select({ id: categories.id })
+      .from(categories)
+      .where(eq(categories.tenantId, tenantId))
+      .orderBy(asc(categories.id))
+      .for('update');
+  }
+
   async findCategories(
     tx: Transaction,
     tenantId: string,

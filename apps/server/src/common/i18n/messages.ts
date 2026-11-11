@@ -755,6 +755,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'A category cannot go under itself or one of its own sub-categories.',
     bn: 'কোনো ক্যাটাগরিকে তার নিজের বা নিজের সাব-ক্যাটাগরির ভেতরে রাখা যায় না।',
   },
+  CategoryMovedMeanwhile: {
+    en: 'Not moved: someone changed the categories meanwhile. The list is fresh now; try again.',
+    bn: 'সরানো যায়নি: এর মধ্যে অন্য কেউ ক্যাটাগরিগুলো বদলেছে। তালিকা নতুন করে আনা হয়েছে, আবার ট্রাই করুন।',
+  },
   AttributeNameTaken: {
     en: 'An attribute with this name already exists. Use that one.',
     bn: 'এই নামে একটি অ্যাট্রিবিউট আগে থেকেই আছে। সেটাই ব্যবহার করুন।',
@@ -1239,6 +1243,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   CategoryUpdated: {
     en: 'Category updated.',
     bn: 'ক্যাটাগরি আপডেট হয়েছে।',
+  },
+  CategoryMoved: {
+    en: 'Category moved.',
+    bn: 'ক্যাটাগরি সরানো হয়েছে।',
   },
   CategoryDeleted: {
     en: 'Category deleted.',

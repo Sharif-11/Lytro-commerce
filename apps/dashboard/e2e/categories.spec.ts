@@ -203,16 +203,20 @@ test('edits a category: its name, where it sits, what it suggests and its own ch
   ).toBe(true);
 });
 
-test('the ⋯ menu moves a category among its siblings and adds one under it', async ({ page }) => {
+test('the ⋯ menu moves a category among its siblings and adds one under it', async ({
+  page,
+}, testInfo) => {
+  // A computer moves by dragging (D8-72): its rows have grips, not the ⋯ menu (categories-move.spec.ts).
+  test.skip(testInfo.project.name === 'desktop', 'the ⋯ menu is a phone’s');
   const log = await open(page);
   await more(page, 'Jackets').click();
   await expect(sheet(page).getByRole('heading', { name: 'Jackets' })).toBeVisible();
   await expectAccessible(page);
   await sheet(page).getByRole('button', { name: 'Move up' }).click();
   await expect(sheet(page)).toHaveCount(0);
-  // The top level renumbered in its new order: Jackets first.
-  expect(log.sent('PATCH', '/categories/c-jackets')).toEqual({ sortOrder: 0 });
-  expect(log.sent('PATCH', '/categories/c-tshirts')).toEqual({ sortOrder: 1 });
+  // One request moves it before T-shirts, the server renumbering the level (D8-72).
+  expect(log.sent('POST', '/categories/c-jackets/move')).toEqual({ parentId: null, afterId: null });
+  expect(log.calls.some((call) => call.method === 'PATCH')).toBe(false);
   const names = main(page).getByRole('button', { name: /^(T-shirts|Jackets)/ });
   await expect(names.first()).toContainText('Jackets');
 
@@ -230,8 +234,8 @@ test('the ⋯ menu moves a category among its siblings and adds one under it', a
 
 test('a delete goes three ways: not yet, with its products moved, or simply', async ({ page }) => {
   const log = await open(page);
-  // T-shirts has sub-categories.
-  await more(page, 'T-shirts').click();
+  // T-shirts has sub-categories. Its sheet's Delete, as on a computer, where rows have no ⋯ menu.
+  await row(page, 'T-shirts').click();
   await sheet(page).getByRole('button', { name: 'Delete category' }).click();
   await expect(
     page.getByRole('heading', { name: '"T-shirts" cannot be deleted yet' }),
@@ -265,7 +269,7 @@ test('a delete goes three ways: not yet, with its products moved, or simply', as
   );
 
   // Men holds nothing.
-  await more(page, 'Men').click();
+  await row(page, 'Men').click();
   await sheet(page).getByRole('button', { name: 'Delete category' }).click();
   await expect(page.getByText('It holds nothing.')).toBeVisible();
   await page.getByRole('button', { name: 'Delete', exact: true }).click();

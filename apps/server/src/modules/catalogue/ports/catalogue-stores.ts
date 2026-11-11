@@ -159,6 +159,8 @@ export interface ShopOptionPatch extends OptionPatch {
 /** PRD-03: a shop's category tree. */
 export interface CategoryStore {
   listCategories(tx: Transaction, tenantId: string): Promise<CategoryRecord[]>;
+  /** D8-72: every one of the shop's categories held until the transaction ends (one move at a time). */
+  lockCategories(tx: Transaction, tenantId: string): Promise<void>;
   findCategories(tx: Transaction, tenantId: string, ids: string[]): Promise<CategoryRecord[]>;
   slugsLike(tx: Transaction, tenantId: string, base: string): Promise<string[]>;
   /** A banner that is not a ready image of the shop's comes back as MediaNotAttachable, here and in updates. */

@@ -298,6 +298,8 @@ export const MESSAGE_KEYS = [
   'CategoryHasChildren',
   'CategoryTooDeep',
   'CategoryCannotMoveUnderItself',
+  // D8-72 (Slice 8.8): a move whose place no longer exists, someone having changed the categories meanwhile.
+  'CategoryMovedMeanwhile',
   'AttributeNameTaken',
   'OptionValueTaken',
   'AttributeHasNoOptions',
@@ -435,6 +437,7 @@ export const MESSAGE_KEYS = [
   'CategoriesListed',
   'CategoryCreated',
   'CategoryUpdated',
+  'CategoryMoved',
   'CategoryDeleted',
   'CategorySuggestionsSaved',
   'ProductsListed',

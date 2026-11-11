@@ -17,6 +17,8 @@ interface ShellPageProps {
    * hidden, the header carries it in place of the section's (design v3.10).
    */
   titleInHeader?: boolean;
+  /** The screen's own banner where its drawing puts it above the title (Part 39's `p88-cat-failed`). */
+  banner?: ReactNode;
   children: ReactNode;
 }
 
@@ -29,6 +31,7 @@ export function ShellPage({
   actions,
   sectionChips,
   titleInHeader = false,
+  banner,
   children,
 }: ShellPageProps): React.JSX.Element {
   const { t } = useTranslation('shell');
@@ -45,6 +48,7 @@ export function ShellPage({
   return (
     <PageFrame>
       <ShellBanner />
+      {banner}
       {title === null ? null : (
         <PageTitle actions={actions}>
           {title ?? (screen?.title ? t(screen.title) : tenant.shopName)}

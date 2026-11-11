@@ -314,6 +314,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'POST /billing/upgrade/quote',
       'POST /catalog-feed/regenerate',
       'POST /categories',
+      'POST /categories/:id/move',
       'POST /couriers/connections',
       'POST /couriers/connections/:key/address',
       'POST /customers/:id/password',
