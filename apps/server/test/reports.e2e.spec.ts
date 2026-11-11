@@ -319,8 +319,8 @@ describeIfDatabase('the shops report (D8-41)', () => {
     const body = answer.body as {
       now: {
         total: number;
-        byState: { count: number }[];
-        byPlan: { count: number; payAsYouGo: boolean }[];
+        byState: { state: string; count: number }[];
+        byPlan: { planName: string | null; count: number; payAsYouGo: boolean }[];
       };
       total: { opened: number; becamePaying: number; lapsed: number };
     };
@@ -345,6 +345,36 @@ describeIfDatabase('the shops report (D8-41)', () => {
     );
     expect(payg).toBeGreaterThan(0);
     expect(body.now.byPlan.filter((row) => row.payAsYouGo).map((row) => row.count)).toEqual([payg]);
+
+    // D8-46, review C's F2: the CSV keeps its period rows, then carries today's counts by state and by plan as the JSON
+    // does, pay-as-you-go its own line.
+    const csv = await getBinary(
+      port,
+      '/operator/reports/shops/export?dateFrom=2024-04-01&dateTo=2024-04-30&bucket=month',
+      operator,
+    );
+    expect(csv.status).toBe(200);
+    const [movements, states, plansNow, ...rest] = csv.body
+      .toString('utf8')
+      .slice(1)
+      .split('\n\n')
+      .map((table) => table.split('\n'));
+    expect(rest).toEqual([]);
+    expect(movements).toEqual([
+      'from,to,opened,became_paying,lapsed',
+      '2024-04-01,2024-04-30,2,1,1',
+      '2024-04-01,2024-04-30,2,1,1',
+    ]);
+    expect(states).toEqual([
+      'state,shops',
+      ...body.now.byState.map((row) => `${row.state},${String(row.count)}`),
+    ]);
+    expect(plansNow?.[0]).toBe('plan,shops');
+    expect(plansNow).toContain(`pay_as_you_go,${String(payg)}`);
+    expect(plansNow?.slice(1)).toHaveLength(body.now.byPlan.length);
+    expect(plansNow?.slice(1).reduce((sum, row) => sum + Number(row.split(',').at(-1)), 0)).toBe(
+      live,
+    );
   });
 });
 
@@ -403,6 +433,8 @@ describeIfDatabase('the top consumers (D8-10, D8-42)', () => {
     const rows = csv.body.toString('utf8').slice(1).split('\n');
     expect(rows[0]).toBe('shop,address,owner_phone,sms_units');
     expect(rows.slice(1).some((row) => row.includes(`,${phone ?? 'none'},30`))).toBe(true);
+    // D8-46: and a total.
+    expect(rows.at(-1)).toBe('total,,,40');
     expect(csv.headers['content-disposition']).toContain(
       'lytro-consumers-2024-05-01-to-2024-05-31-sms.csv',
     );
