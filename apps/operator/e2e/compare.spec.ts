@@ -3,6 +3,10 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { addonPayment, drawnPayments, drawnShops, GADGET, RAHIM } from './support/console-data';
+import { P88_SETTINGS_PAIRS } from './compare-p88-settings';
+import { P88_MONEY_PAIRS } from './compare-p88-money';
+import { P88_RECORDS_PAIRS } from './compare-p88-records';
+import { P88_SHOPS_PAIRS } from './compare-p88-shops';
 import { retiringCouriers } from './support/courier-mock';
 import { phase7Changes, phase7RateHistory, phase7Rates } from './support/notice-mock';
 import {
@@ -903,6 +907,14 @@ const PAIRS: Pair[] = [
   { screen: 'p37-told-approve', path: '/queue/pay-9101?step=approve' },
   { screen: 'p37-told-revoke', path: RAHIM_PAGE, then: press('Revoke', 'ক্যানসেল') },
   { screen: 'p37-told-block', path: RAHIM_PAGE, then: press('Block', 'ব্লক') },
+  // Phase 8 Slice 8.8 (v7): the settings' help line and media costs.
+  ...P88_SETTINGS_PAIRS,
+  // Phase 8 Slice 8.8 (v7): the shops list's filters and a shop's figures, extend, owner reset and delete.
+  ...P88_SHOPS_PAIRS,
+  // Phase 8 Slice 8.8 (v7): manual entries, the queue's screenshot and wallet types.
+  ...P88_MONEY_PAIRS,
+  // Phase 8 Slice 8.8 (v7): reports, the audit log, media costs and Today's figures.
+  ...P88_RECORDS_PAIRS,
 ];
 
 const DEVICES: Device[] = ['phone', 'desktop', 'tablet'];

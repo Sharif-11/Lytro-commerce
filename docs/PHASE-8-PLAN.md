@@ -348,6 +348,14 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   server: rows for Slice 8.6's and 8.7's nine settings, which the settings list shows only once stored; the operator's
   id on `GET /auth/operator/me`; a screenshot route the payment screens can reach (8.5 put it only on routes no screen
   calls since #337); one call that moves a category; the request ID read from `X-Request-Id` in the client.
+- **Built, the console (2026-11-11, PR 1 of 2):** every console screen the sketch draws: the shop list's filters and
+  phone, a shop's figures and their lists, extend, owner reset and delete; manual entries with bank transfers (D8-75),
+  the second confirmation, screenshots and reversal, and the queue's screenshot; wallet types; reports, the audit log and
+  media costs in a Records group; Today's platform figures; the settings' help line (D8-76, D8-77) and media costs. The
+  server half: migration 0128 (the nine settings' rows, `download` and `staging` reserved, a manual entry's
+  `bank_account_id`), the operator's id on `me`, the retiring notice's words (D8-78), and Lytro's numbers and bank
+  accounts kept while an entry names them. The console's policy lets screenshots reach the storage (`(operator_csp)`).
+  KNOWN-GAPS §140 (two of three fixed) and §142. The dashboard, the website and the listener app follow in PR 2.
 
 ---
 

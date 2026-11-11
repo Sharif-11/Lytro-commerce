@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@lytronix/ui';
 import { usePaymentQueue } from '@/api/payment-queue';
 import { ConsolePage, PageTitle, SectionTitle } from '@/components/ui/console-page';
-import { LaterCard } from '@/components/ui/later-card';
 import { LoadFailed } from '@/components/ui/load-failed';
 import { QueueFigures } from '@/views/queue/queue-figures';
 import { AlsoWaiting } from './also-waiting';
+import { PlatformFigures } from './platform-figures';
 import { RecentChanges } from './recent-changes';
 
 /** The console's first screen (OPERATOR-CONSOLE-DESIGN §3): what needs a person, then what changed. */
@@ -63,7 +63,7 @@ export function Today(): React.JSX.Element {
       )}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <RecentChanges />
-        <LaterCard title={t('today.figures')} hint={t('today.figuresHint')} />
+        <PlatformFigures />
       </div>
     </ConsolePage>
   );

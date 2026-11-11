@@ -154,4 +154,25 @@ describeIfDatabase("TEN-26, TEN-31: the dashboard's own pages are never a shop",
     expect(shop.status).toBe(409);
     expect(shop.body).toMatchObject({ error: { details: { suggestion: 'checkout-2' } } });
   });
+
+  // TEN-26 (the owner, 2026-11-10): download.lytro.app is the listener downloads bucket's address and staging.lytro.app the
+  // staging platform's, so a shop there would never be reached.
+  it("refuses the platform's download and staging addresses as a new shop's", async () => {
+    for (const address of ['download', 'staging']) {
+      const phone = texts.freshPhone();
+      await post('/auth/phone/code', { phone });
+      const entered = await post('/auth/phone/verify', { phone, code: texts.codeFor(phone) });
+      const shop = await post(
+        '/shops',
+        { ownerName: 'Owner', shopName: 'A Shop', address },
+        {
+          cookie: cookieFrom(entered),
+          'x-csrf-token': (entered.body as { csrfToken: string }).csrfToken,
+          host: 'localhost',
+        },
+      );
+      expect(shop.status, address).toBe(409);
+      expect(shop.body).toMatchObject({ error: { details: { suggestion: `${address}-2` } } });
+    }
+  });
 });

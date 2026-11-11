@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { RAHIM, REVIEW_RENEWAL } from './support/console-data';
 import { mockApi } from './support/mock-api';
+import { UPLOAD_ORIGIN, withBankAccount } from './support/p88-money-mock';
 
 // The console under its own Content Security Policy, read from deploy/Caddyfile's `(operator_csp)` block -- the one
 // definition Caddy serves -- and sent with every page as Caddy sends it. Every screen of the route tree loads with nothing
@@ -16,7 +17,8 @@ function policy(): string {
     caddyfile,
   );
   if (!found?.[1]) throw new Error('No (operator_csp) block in deploy/Caddyfile');
-  return found[1];
+  // The storage's address is the server's own setting, which Caddy fills in; the mocked storage stands in.
+  return found[1].replaceAll('{$MEDIA_STORAGE_ENDPOINT}', UPLOAD_ORIGIN);
 }
 
 function everyPath(): string[] {
@@ -82,5 +84,57 @@ test('the enrol step draws its QR code under the policy', async ({ page }) => {
   await page.getByLabel('Password').fill('the-right-password');
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByRole('img', { name: 'Authenticator QR code' })).toBeVisible();
+  expect(await refused()).toEqual([]);
+});
+
+// ADM-14, ADM-17 (Slice 8.8): a payment screenshot goes up to the storage's signed link and shows from its five-minute
+// link, both on the storage's own address.
+test('a payment screenshot uploads to the storage and shows from it under the policy', async ({
+  page,
+}) => {
+  const refused = await underPolicy(page);
+  await mockApi(page, { paymentMethods: withBankAccount() });
+  // A real picture from the storage, so the screenshot's link draws.
+  await page.route(`${UPLOAD_ORIGIN}/shot.png`, (route) =>
+    route.fulfill({
+      contentType: 'image/png',
+      body: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        'base64',
+      ),
+    }),
+  );
+  await page.route('**/api/v1/operator/payment-queue/*/evidence', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        statusCode: 200,
+        message: 'OK',
+        data: { url: `${UPLOAD_ORIGIN}/shot.png`, expiresAt: '2026-10-21T08:35:00.000Z' },
+      }),
+    }),
+  );
+
+  await page.goto('/manual');
+  await page.getByRole('main').getByRole('button', { name: 'Record a payment' }).click();
+  const panel = page.getByRole('dialog');
+  await panel.getByRole('searchbox').fill('Sadia');
+  await panel.getByRole('button', { name: /^Sadia Collection/ }).click();
+  const sent = page.waitForRequest(
+    (request) => request.url().startsWith(UPLOAD_ORIGIN) && request.method() === 'PUT',
+  );
+  await panel.locator('input[type=file]').setInputFiles({
+    name: 'bkash.jpg',
+    mimeType: 'image/jpeg',
+    buffer: Buffer.alloc(2048, 1),
+  });
+  await sent;
+  await expect(panel.getByText('bkash.jpg')).toBeVisible();
+
+  await page.goto(`/queue/${REVIEW_RENEWAL}?step=screenshot`);
+  const shot = page.getByRole('dialog').locator(`img[src^="${UPLOAD_ORIGIN}"]`);
+  await expect(shot).toBeVisible();
+  await expect.poll(() => shot.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(1);
   expect(await refused()).toEqual([]);
 });

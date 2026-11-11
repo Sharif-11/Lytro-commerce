@@ -11,7 +11,7 @@ import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { cookieFrom, getJson, patchJson, postJson, type HttpResult } from './support/http';
-import { openShop } from './support/shop-client';
+import { errorOf, fieldsOf, openShop } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
 // Phase 8 Slice 8.7, read agreed 2026-11-10 (D8-4, D8-68): Lytro's one help line -- WhatsApp, phone and hours -- set in the console and
@@ -27,6 +27,20 @@ let port: number;
 let admin: pg.Client;
 let operator: Record<string, string> = {};
 const texts = new SmsCapture();
+// Slice 8.8: Slices 8.6's and 8.7's nine settings, which migration 0128 gives rows.
+const NINE_SETTINGS = [
+  'help_whatsapp',
+  'help_phone',
+  'help_opens_hour',
+  'help_closes_hour',
+  'media_budget_usd',
+  'media_budget_alert_percent',
+  'media_cost_alert_email',
+  'cloudflare_billing_day',
+  'cloudflare_prices',
+];
+// Slice 8.8: the rows the migration gave Slices 8.6's and 8.7's settings, read before any test deletes them.
+let seeded: Record<string, unknown> = {};
 
 beforeAll(async () => {
   if (!ADMIN_URL) return;
@@ -36,6 +50,11 @@ beforeAll(async () => {
   process.env['PLATFORM_DOMAIN'] = 'localhost';
   admin = new pg.Client({ connectionString: urls.adminDbUrl });
   await admin.connect();
+  const rows = await admin.query<{ key: string; value: unknown }>(
+    'SELECT key, value FROM control.platform_settings WHERE key = ANY($1)',
+    [NINE_SETTINGS],
+  );
+  seeded = Object.fromEntries(rows.rows.map((row) => [row.key, row.value]));
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(SMS_PROVIDER)
     .useValue(texts.provider)
@@ -138,5 +157,71 @@ describeIfDatabase("Lytro's help line (D8-4, D8-68)", () => {
       "SELECT key FROM control.platform_settings WHERE key LIKE 'help_%'",
     );
     expect(stored.rows).toEqual([]);
+  });
+});
+
+// Phase 8 Slice 8.8 (OPERATOR-CONSOLE-DESIGN §15, D8-76, D8-77): the console's settings page can show and change the help line.
+describeIfDatabase('The help line on the console (Slice 8.8)', () => {
+  it("has a row for each of Slices 8.6's and 8.7's nine settings, the numbers and the alert's address empty", () => {
+    expect(seeded).toEqual({
+      help_whatsapp: '',
+      help_phone: '',
+      help_opens_hour: 9,
+      help_closes_hour: 22,
+      media_budget_usd: 10,
+      media_budget_alert_percent: 80,
+      media_cost_alert_email: '',
+      cloudflare_billing_day: 1,
+      cloudflare_prices: {
+        r2ClassAPerMillion: 4.5,
+        r2ClassBPerMillion: 0.36,
+        r2StoragePerGbMonth: 0.015,
+        r2FreeClassAMillions: 1,
+        r2FreeClassBMillions: 10,
+        r2FreeStorageGbMonths: 10,
+        workersMonthly: 5,
+        workersIncludedMillions: 10,
+        workersPerMillion: 0.3,
+      },
+    });
+  });
+
+  it('clears a number with a reason, which then reads as none, and the other number stays (D8-76)', async () => {
+    expect((await set('help_whatsapp', '01711000001')).status).toBe(200);
+    expect((await set('help_phone', '01811000002')).status).toBe(200);
+    const cleared = await set('help_whatsapp', '');
+    expect(cleared.status, JSON.stringify(cleared.body)).toBe(200);
+    expect((await read()).body).toMatchObject({ whatsapp: null, phone: '01811000002' });
+    const audit = await admin.query<{ summary: Record<string, unknown> }>(
+      "SELECT summary FROM control.platform_audit_log WHERE action = 'settings_changed' AND summary->>'key' = 'help_whatsapp' ORDER BY created_at DESC LIMIT 1",
+    );
+    expect(audit.rows[0]?.summary).toMatchObject({
+      oldValue: '01711000001',
+      newValue: '',
+      reason: 'The help line changed',
+    });
+    // The alert's address is not a help number: emptying it is still refused.
+    expect((await set('media_cost_alert_email', '')).status).toBe(400);
+  });
+
+  it('refuses a closing hour at or before the opening hour, whichever is changed (D8-77)', async () => {
+    // Against the defaults, 9 and 22.
+    for (const [key, value] of [
+      ['help_closes_hour', 9],
+      ['help_closes_hour', 8],
+      ['help_opens_hour', 22],
+      ['help_opens_hour', 23],
+    ] as const) {
+      const refused = await set(key, value);
+      expect(refused.status, `${key} ${String(value)}`).toBe(400);
+      expect(fieldsOf(refused)).toEqual({ value: 'invalid_format' });
+      expect(errorOf(refused).message).toMatch(/closing hour must be after|খোলার সময়ের পরে/);
+    }
+    // Against stored values.
+    expect((await set('help_opens_hour', 10)).status).toBe(200);
+    expect((await set('help_closes_hour', 11)).status).toBe(200);
+    expect((await set('help_opens_hour', 11)).status).toBe(400);
+    expect((await set('help_closes_hour', 10)).status).toBe(400);
+    expect((await read()).body).toMatchObject({ opensHour: 10, closesHour: 11 });
   });
 });

@@ -4,7 +4,7 @@ import { chipClass } from './chip-class';
 /** A row of filters that runs off the edge on a phone rather than wrapping. */
 export function Chips({ children }: { children: ReactNode }): React.JSX.Element {
   return (
-    <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:px-0">
+    <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:px-0 sm:pb-0">
       {children}
     </div>
   );

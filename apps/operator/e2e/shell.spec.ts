@@ -20,6 +20,8 @@ function tabs(page: Page): Locator {
 const DESTINATIONS = [
   ['Today', '/'],
   ['Payment queue', '/queue'],
+  // Slice 8.8 (v7): Manual entries joined the daily work, Wallet types sits beside Couriers, and Records holds what left Later.
+  ['Manual entries', '/manual'],
   ['Page reports', '/page-reports'],
   ['Shops', '/shops'],
   ['Plans and prices', '/plans'],
@@ -30,16 +32,17 @@ const DESTINATIONS = [
   ['Payment methods', '/wallets'],
   ["Lytro's phones", '/phones'],
   ['Couriers', '/couriers'],
+  ['Wallet types', '/wallet-types'],
   // Slice 7.7: Notices left Later for Platform, as the sketch's v5 draws it.
   ['Notices', '/notices'],
+  ['Reports', '/reports'],
+  ['Audit log', '/audit'],
+  ['Media costs', '/media-costs'],
   ['Shop types', '/catalogue/shop-types'],
   ['Attribute library', '/catalogue/attributes'],
   ['Option sets', '/catalogue/option-sets'],
-  ['Reports', '/reports'],
-  ['Audit log', '/audit'],
   ['Support inbox', '/inbox'],
   ['Verification', '/verification'],
-  ['Manual payments', '/manual'],
 ] as const;
 
 test.describe('on a desktop', () => {
@@ -51,7 +54,7 @@ test.describe('on a desktop', () => {
     await mockApi(page);
     await page.goto('/');
     await expect(sidebar(page).getByRole('link')).toHaveCount(DESTINATIONS.length);
-    for (const group of ['DAILY', 'PRICING', 'PLATFORM', 'CATALOGUE', 'LATER']) {
+    for (const group of ['DAILY', 'PRICING', 'PLATFORM', 'RECORDS', 'CATALOGUE', 'LATER']) {
       await expect(
         sidebar(page).getByText(group.charAt(0) + group.slice(1).toLowerCase(), { exact: true }),
       ).toBeVisible();
@@ -153,12 +156,16 @@ test.describe('on a desktop', () => {
   test('marks later work "soon"', async ({ page }) => {
     await mockApi(page);
     await page.goto('/');
-    for (const label of ['Reports', 'Audit log', 'Manual payments']) {
+    for (const label of ['Support inbox', 'Verification']) {
       await expect(
         sidebar(page).getByRole('link', { name: new RegExp(`^${label}`) }),
       ).toContainText('soon');
     }
-    await expect(sidebar(page).getByRole('link', { name: 'Rates' })).not.toContainText('soon');
+    for (const label of ['Rates', 'Reports', 'Audit log', 'Manual entries']) {
+      await expect(
+        sidebar(page).getByRole('link', { name: new RegExp(`^${label}`) }),
+      ).not.toContainText('soon');
+    }
   });
 
   test('"/" goes to the search from anywhere, and a search opens Shops with the word', async ({
@@ -324,11 +331,10 @@ test.describe('on a phone', () => {
 
 test('a screen for later names its requirement', async ({ page }) => {
   await mockApi(page);
-  await page.goto('/audit');
-  await expect(page.getByRole('heading', { name: 'Audit log' })).toBeVisible();
+  await page.goto('/verification');
+  await expect(page.getByRole('heading', { name: 'Verification' })).toBeVisible();
   await expect(page.getByText('Not built yet')).toBeVisible();
-  await expect(page.getByText('ADM-08')).toBeVisible();
-  await expect(page.getByText('Every operator action across all shops')).toBeVisible();
+  await expect(page.getByText('KYC-07')).toBeVisible();
 });
 
 test('without a session, every screen goes to sign-in', async ({ page }) => {

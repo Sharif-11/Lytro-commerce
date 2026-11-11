@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Banner } from '@/components/ui/banner';
-import { ConsoleIcon } from '@/components/ui/console-icon';
-import { ConsoleCard, ConsolePage, PageTitle, SoonTag } from '@/components/ui/console-page';
+import { ConsolePage, PageTitle, SoonTag } from '@/components/ui/console-page';
 
 /** A dashed table of shapes: what the page will list. */
 function SketchTable({ rows, columns }: { rows: number; columns: string[] }): React.JSX.Element {
@@ -45,65 +44,9 @@ function SketchChips({ labels, firstOn = false }: { labels: string[]; firstOn?: 
   );
 }
 
-function ReportsSketch(): React.JSX.Element {
-  const { t } = useTranslation();
-  return (
-    <>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {['shops', 'paying', 'revenue', 'topUps'].map((key) => (
-          <div
-            key={key}
-            className="flex min-w-0 flex-col gap-1 rounded-card border border-dashed border-line bg-surface px-4 py-3.5"
-          >
-            <span className="text-[13px] font-medium text-fg-muted">{t(`later.drawn.${key}`)}</span>
-            <span className="flex h-[26px] items-center">
-              <span className="skel h-6! w-[60px]" />
-            </span>
-          </div>
-        ))}
-      </div>
-      <div className="flex h-[220px] items-center justify-center gap-1 rounded-card border border-dashed border-line text-fg-muted">
-        <ConsoleIcon name="chart" />
-        {t('later.drawn.revenueChart')}
-      </div>
-      <SketchTable rows={5} columns={['1.5fr', '1fr', '1fr', '1fr']} />
-    </>
-  );
-}
-
-function ManualSketch(): React.JSX.Element {
-  const { t } = useTranslation();
-  return (
-    <ConsoleCard className="border-dashed bg-transparent">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {['shop', 'kind', 'amount', 'wallet', 'trxId', 'sender', 'paidAt', 'evidence'].map(
-          (key) => (
-            <div key={key} className="flex min-w-0 flex-col gap-1.5">
-              <span className="text-[13px] font-semibold text-neutral-700">
-                {t(`later.drawn.${key}`)}
-              </span>
-              <div className="h-11 rounded-control border border-dashed border-line-strong" />
-            </div>
-          ),
-        )}
-      </div>
-    </ConsoleCard>
-  );
-}
-
-export type LaterKey = 'reports' | 'audit' | 'inbox' | 'verification' | 'manual';
+export type LaterKey = 'inbox' | 'verification';
 
 const LATER: Record<LaterKey, { requirement: string; drawing: ReactNode }> = {
-  reports: { requirement: 'ADM-09', drawing: <ReportsSketch /> },
-  audit: {
-    requirement: 'ADM-08',
-    drawing: (
-      <>
-        <SketchChips labels={['shop', 'actor', 'action', 'date']} />
-        <SketchTable rows={8} columns={['140px', '1fr', '1.4fr', '2fr', '120px']} />
-      </>
-    ),
-  },
   inbox: {
     requirement: 'SUP-04, SUP-05',
     drawing: (
@@ -122,7 +65,6 @@ const LATER: Record<LaterKey, { requirement: string; drawing: ReactNode }> = {
       </>
     ),
   },
-  manual: { requirement: 'ADM-14 to ADM-17', drawing: <ManualSketch /> },
 };
 
 /** Later work drawn as what it will be, labelled with its requirement (rule 8), never as a working screen. */

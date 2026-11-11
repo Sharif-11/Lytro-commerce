@@ -25,5 +25,7 @@ export interface PlatformWalletsStore {
     id: string,
     values: UpdatePlatformWalletValues,
   ): Promise<PlatformWallet | null>;
+  /** ADM-14: whether a manual entry names this number. */
+  used(tx: Transaction, id: string): Promise<boolean>;
   remove(tx: Transaction, id: string): Promise<void>;
 }

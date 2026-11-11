@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PlanPaymentKind, RejectPaymentInput } from '@lytronix/validators';
 import { operatorSession } from '@/session/operator-session';
+import type { EvidenceLink } from '@/types/manual-entries';
 import type { PlanPayment, QueuedPayment } from '@/types/operator';
 
 export const PAYMENT_QUEUE_QUERY_KEY = ['operator', 'payment-queue'] as const;
@@ -9,6 +10,19 @@ export function fetchPaymentQueue(kind: PlanPaymentKind | null): Promise<QueuedP
   return operatorSession.client.get<QueuedPayment[]>(
     `/operator/payment-queue${kind ? `?kind=${kind}` : ''}`,
   );
+}
+
+/** ADM-17, D8-15: a five-minute link to the seller's screenshot of a queued payment, read when the operator opens it. */
+export function usePaymentEvidence(id: string | null) {
+  return useQuery({
+    queryKey: [...PAYMENT_QUEUE_QUERY_KEY, 'evidence', id],
+    queryFn: () =>
+      operatorSession.client.get<EvidenceLink>(`/operator/payment-queue/${id ?? ''}/evidence`),
+    enabled: id !== null,
+    retry: false,
+    gcTime: 0,
+    staleTime: 0,
+  });
 }
 
 /** ADM-06: every payment awaiting review. */

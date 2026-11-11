@@ -3055,9 +3055,10 @@ CREATE TABLE control.manual_payment_entries (             -- ADM-14/15: append-o
     plan_payment_id uuid NOT NULL REFERENCES control.plan_payments(id),
     kind            text NOT NULL,                          -- purchase | renewal | upgrade | top_up
     amount          numeric(10,2) NOT NULL,
-    wallet_id       uuid REFERENCES control.platform_wallets(id),  -- this and the four below are null on a reversal
-    transaction_id  text,                                   -- once only, held by plan_payments and used_transaction_ids
-    sender_number   text,
+    wallet_id       uuid REFERENCES control.platform_wallets(id),  -- this and the five below are null on a reversal
+    bank_account_id uuid REFERENCES control.platform_bank_accounts(id),  -- D8-75 (0128): or one of Lytro's bank accounts
+    transaction_id  text,                                   -- once only, held by plan_payments and used_transaction_ids; a bank's reference
+    sender_number   text,                                   -- a number's sender; none for a bank account
     paid_at         timestamptz,
     evidence_id     uuid REFERENCES control.payment_evidence(id),
     evidence_line   text,                                   -- a screenshot, a statement line, or both

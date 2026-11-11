@@ -14,6 +14,8 @@ export const operatorBackupCodesSchema = z.object({ backupCodes: z.array(z.strin
 export class OperatorBackupCodesDto extends createZodDto(operatorBackupCodesSchema) {}
 
 export const operatorMeSchema = z.object({
+  // Slice 8.8: the console's "only mine" on the audit log (`actorId`) and manual entries (`operatorId`).
+  id: z.string(),
   email: z.string(),
   unusedBackupCodes: z.number(),
   signedInAt: z.date(),

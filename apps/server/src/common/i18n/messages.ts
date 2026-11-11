@@ -56,6 +56,11 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This value is not valid for this setting.',
     bn: 'এই সেটিংয়ের জন্য মানটি সঠিক নয়।',
   },
+  // D8-77 (Slice 8.8): the help line closes after it opens.
+  HelpHoursOutOfOrder: {
+    en: 'The closing hour must be after the opening hour.',
+    bn: 'বন্ধের সময় খোলার সময়ের পরে হতে হবে।',
+  },
   PleaseTryAgain: { en: 'Please try again.', bn: 'অনুগ্রহ করে আবার ট্রাই করুন।' },
   IdempotencyKeyConflict: {
     en: 'This request key was already used with different data.',
@@ -74,6 +79,19 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   PlatformWalletNotFound: {
     en: 'Platform wallet not found.',
     bn: 'প্ল্যাটফর্ম ওয়ালেট পাওয়া যায়নি।',
+  },
+  // D8-75 (Slice 8.8): a manual entry names one of Lytro's bank accounts, which then stays.
+  PlatformBankAccountNotFound: {
+    en: "That bank account isn't one of Lytro's.",
+    bn: 'এই ব্যাংক অ্যাকাউন্টটি Lytro-র নয়।',
+  },
+  PlatformWalletInUse: {
+    en: "A payment was recorded to this number, so it can't be removed. Turn it off instead.",
+    bn: 'এই নম্বরে পেমেন্ট রেকর্ড করা আছে, তাই রিমুভ করা যাবে না। এর বদলে বন্ধ করে দিন।',
+  },
+  PlatformBankAccountInUse: {
+    en: "A payment was recorded to this account, so it can't be removed. Turn it off instead.",
+    bn: 'এই অ্যাকাউন্টে পেমেন্ট রেকর্ড করা আছে, তাই রিমুভ করা যাবে না। এর বদলে বন্ধ করে দিন।',
   },
 
   BillingTermNotFound: { en: 'Billing term not found.', bn: 'বিলিং টার্মটি খুঁজে পাওয়া যায়নি।' },
@@ -2365,7 +2383,7 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   PaymentMethodRetiring: {
     en: 'Lytro is retiring this payment method, so it can’t be set up now.',
-    bn: 'Lytro এই পেমেন্ট মেথডটি বন্ধ করছে, তাই এখন এটি সেট আপ করা যাবে না।',
+    bn: 'Lytro এই পেমেন্ট মেথডটি রিটায়ার করছে, তাই এখন এটি সেট আপ করা যাবে না।',
   },
   PaymentMethodTypesListed: {
     en: 'Payment method types listed.',

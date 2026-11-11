@@ -60,6 +60,7 @@ export const manualEntryViewSchema = z.object({
   planName: z.string().nullable(),
   amount: z.string(),
   walletId: z.string().nullable(),
+  bankAccountId: z.string().nullable(),
   transactionId: z.string().nullable(),
   senderNumber: z.string().nullable(),
   paidAt: z.coerce.date().nullable(),

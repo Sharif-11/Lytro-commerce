@@ -147,9 +147,7 @@ export class ManualEntries {
       throw new ApiError('validation_error', 'ManualEntryPaidInFuture', {});
     }
     await this.assertShopOpen(input.tenantId);
-    if (!(await this.store.walletExists(input.walletId))) {
-      throw new ApiError('not_found', 'PlatformWalletNotFound', {});
-    }
+    await this.assertPaidTo(input);
     const amount = input.amount.toFixed(2);
     const priced = await this.priced(input, amount);
     // D8-51: a plan is sold at today's price only; if the money differs, it is recorded as a top-up.
@@ -283,7 +281,7 @@ export class ManualEntries {
       payment.id,
       {
         transactionId: input.transactionId,
-        senderNumber: input.senderNumber,
+        senderNumber: input.senderNumber ?? null,
         matchesQuoted: true,
         amountSent: priced.amount,
       },
@@ -295,9 +293,10 @@ export class ManualEntries {
       planPaymentId: payment.id,
       kind: priced.kind,
       amount: priced.amount,
-      walletId: input.walletId,
+      walletId: input.walletId ?? null,
+      bankAccountId: input.bankAccountId ?? null,
       transactionId: input.transactionId,
-      senderNumber: input.senderNumber,
+      senderNumber: input.senderNumber ?? null,
       paidAt: input.paidAt,
       evidenceId,
       evidenceLine: input.evidenceLine ?? null,
@@ -483,6 +482,21 @@ export class ManualEntries {
       carries: offer.carries,
       ends: { expiresAt: offer.endsAt, extending: false },
     };
+  }
+
+  /** ADM-14, D8-75: the number or the bank account the money reached is one of Lytro's. */
+  private async assertPaidTo(input: ManualEntryInput): Promise<void> {
+    if (input.bankAccountId !== undefined) {
+      if (!(await this.store.bankAccountExists(input.bankAccountId))) {
+        throw new ApiError('not_found', 'PlatformBankAccountNotFound', {});
+      }
+      return;
+    }
+    if (input.walletId === undefined)
+      throw new Error('an entry was validated without where it arrived');
+    if (!(await this.store.walletExists(input.walletId))) {
+      throw new ApiError('not_found', 'PlatformWalletNotFound', {});
+    }
   }
 
   private async assertShopOpen(tenantId: string): Promise<void> {

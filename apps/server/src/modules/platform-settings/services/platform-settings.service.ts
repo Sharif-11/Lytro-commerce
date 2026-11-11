@@ -10,6 +10,8 @@ import {
   appVersionField,
   cloudflarePricesSchema,
   CLOUDFLARE_BILLING_DAY_MAX,
+  DEFAULT_HELP_CLOSES_HOUR,
+  DEFAULT_HELP_OPENS_HOUR,
   bdMobileNumber,
   emailField,
   HELP_HOUR_MAX,
@@ -152,6 +154,8 @@ const isCloudflarePrices = (value: unknown): boolean =>
 // D8-68 (Slice 8.7): a Bangladeshi mobile number in the local form every page shows, and an hour of a 24-hour clock.
 const isLocalMobile = (value: unknown): boolean =>
   typeof value === 'string' && bdMobileNumber(value) === value;
+// D8-76 (Slice 8.8): a help number may be cleared, empty meaning not set, as the media alert's address reads it.
+const isLocalMobileOrCleared = (value: unknown): boolean => value === '' || isLocalMobile(value);
 const isHour = (value: unknown): boolean =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= HELP_HOUR_MAX;
 
@@ -198,8 +202,8 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.MediaCostAlertEmail]: isEmail,
   [PlatformSettingKey.CloudflareBillingDay]: isBillingDay,
   [PlatformSettingKey.CloudflarePrices]: isCloudflarePrices,
-  [PlatformSettingKey.HelpWhatsapp]: isLocalMobile,
-  [PlatformSettingKey.HelpPhone]: isLocalMobile,
+  [PlatformSettingKey.HelpWhatsapp]: isLocalMobileOrCleared,
+  [PlatformSettingKey.HelpPhone]: isLocalMobileOrCleared,
   [PlatformSettingKey.HelpOpensHour]: isHour,
   [PlatformSettingKey.HelpClosesHour]: isHour,
 };
@@ -249,6 +253,7 @@ export class PlatformSettingsService {
     reason: string | null = null,
   ): Promise<void> {
     validate(key, value);
+    await this.assertHelpHoursInOrder(key, value);
     const current = await this.store.get(key);
     // ADM-08: the change and its platform audit entry commit together or not at all.
     await this.store.run(async (tx) => {
@@ -266,5 +271,35 @@ export class PlatformSettingsService {
     });
     // After the commit, so nothing can read the old value back into the cache in between.
     this.cache.invalidate(key);
+  }
+
+  /**
+   * D8-77 (Slice 8.8, the owner's answer): the help line closes after it opens, every day, so its hours never run past
+   * midnight. Whichever hour is changed is checked against the other's stored value, or its default.
+   */
+  private async assertHelpHoursInOrder(key: PlatformSettingKey, value: unknown): Promise<void> {
+    if (key !== PlatformSettingKey.HelpOpensHour && key !== PlatformSettingKey.HelpClosesHour) {
+      return;
+    }
+    const opening = key === PlatformSettingKey.HelpOpensHour;
+    // The table, not the cache, so another instance's change since is seen.
+    const other = await this.store.get(
+      opening ? PlatformSettingKey.HelpClosesHour : PlatformSettingKey.HelpOpensHour,
+    );
+    const otherHour =
+      typeof other?.value === 'number'
+        ? other.value
+        : opening
+          ? DEFAULT_HELP_CLOSES_HOUR
+          : DEFAULT_HELP_OPENS_HOUR;
+    const [opens, closes] = opening ? [value as number, otherHour] : [otherHour, value as number];
+    if (closes > opens) return;
+    throw new FieldsError([
+      {
+        field: 'value',
+        problem: FieldProblemCode.InvalidFormat,
+        messageKey: 'HelpHoursOutOfOrder',
+      },
+    ]);
   }
 }

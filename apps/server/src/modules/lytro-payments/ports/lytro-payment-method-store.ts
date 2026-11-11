@@ -26,6 +26,8 @@ export interface LytroPaymentMethodStore {
     id: string,
     values: Partial<NewPlatformBankAccount>,
   ): Promise<SelectPlatformBankAccount | null>;
+  /** D8-75: whether a manual entry names this account. */
+  bankAccountUsed(tx: Transaction, id: string): Promise<boolean>;
   removeBankAccount(tx: Transaction, id: string): Promise<boolean>;
   gatewayAccount(method: PaymentMethod): Promise<SelectPlatformGatewayAccount | null>;
   saveGatewayAccount(

@@ -32,6 +32,10 @@ export const MESSAGE_KEYS = [
   'UnknownRate',
   'UnknownSetting',
   'PlatformWalletNotFound',
+  'PlatformBankAccountNotFound',
+  'PlatformBankAccountInUse',
+  'PlatformWalletInUse',
+  'HelpHoursOutOfOrder',
 
   // Billing / plans
   'BillingTermNotFound',

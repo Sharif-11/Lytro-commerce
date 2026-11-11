@@ -238,6 +238,10 @@ export class LytroPaymentMethods {
 
   removeBankAccount(id: string, operatorId: string): Promise<void> {
     return this.store.run(async (tx) => {
+      // D8-75: a payment recorded to it keeps naming it; the operator turns it off instead.
+      if (await this.store.bankAccountUsed(tx, id)) {
+        throw new ApiError('conflict', 'PlatformBankAccountInUse', {});
+      }
       if (!(await this.store.removeBankAccount(tx, id))) {
         throw new ApiError('not_found', 'PaymentAccountNotFound', {});
       }

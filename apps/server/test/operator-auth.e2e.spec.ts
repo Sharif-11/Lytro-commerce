@@ -518,6 +518,12 @@ describeIfDatabase('who is signed in (GET /auth/operator/me)', () => {
       const me = await getJson(port, '/auth/operator/me', headers);
       expect(me.status).toBe(200);
       expect(me.body).toMatchObject({ email, unusedBackupCodes: 10 });
+      // Slice 8.8: the operator's id, for the console's "only mine" on the audit log and manual entries.
+      const { rows } = await admin.query<{ id: string }>(
+        'SELECT id FROM control.operator_accounts WHERE email = $1',
+        [email],
+      );
+      expect((me.body as { id: string }).id).toBe(rows[0]?.id);
       expect(new Date((me.body as { signedInAt: string }).signedInAt).getTime()).toBeGreaterThan(
         Date.now() - 60_000,
       );

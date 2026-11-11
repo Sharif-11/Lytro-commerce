@@ -2,7 +2,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { errorMessage } from '@lytronix/api-client';
 import { TextArea } from '@lytronix/ui';
-import { AiProvider, OrderLimitMode, PlatformSettingKey } from '@lytronix/validators';
+import {
+  AiProvider,
+  DEFAULT_HELP_CLOSES_HOUR,
+  DEFAULT_HELP_OPENS_HOUR,
+  OrderLimitMode,
+  PlatformSettingKey,
+} from '@lytronix/validators';
 import { useUpdateSetting } from '@/api/settings';
 import { Banner } from '@/components/ui/banner';
 import { InlineForm } from '@/components/ui/inline-form';
@@ -10,6 +16,7 @@ import { INLINE_FIELD, NOTE } from '@/components/ui/sizes';
 import type { SettingUnit } from '@/lib/setting-shapes';
 import { COUNTED } from '@/lib/setting-words';
 import type { PlatformSetting } from '@/types/operator';
+import { HourEditor, PhoneEditor } from './help-editors';
 
 function startingWords(setting: PlatformSetting): string {
   const { value } = setting;
@@ -26,6 +33,8 @@ function wholeAndPositive(words: string): boolean {
 const HELP = 'text-[13px] leading-[1.5] text-fg-muted';
 // D7-39: lowering it deletes older notifications in every shop that night.
 const RETENTION: string = PlatformSettingKey.NotificationRetentionDays;
+const OPENS: string = PlatformSettingKey.HelpOpensHour;
+const CLOSES: string = PlatformSettingKey.HelpClosesHour;
 
 /** What goes to the server: a number, the words typed, or the list a setting holds one to a line. */
 function valueToSend(words: string, unit: SettingUnit): number | string | string[] {
@@ -38,6 +47,7 @@ function valueToSend(words: string, unit: SettingUnit): number | string | string
   if (
     unit === 'choice' ||
     unit === 'text' ||
+    unit === 'email' ||
     unit === 'version' ||
     unit === 'ai' ||
     unit === 'model'
@@ -54,12 +64,15 @@ function valueToSend(words: string, unit: SettingUnit): number | string | string
 export function SettingEditor({
   setting,
   unit,
+  rows = [],
   onDraft,
   onCancel,
   onSaved,
 }: {
   setting: PlatformSetting;
   unit: SettingUnit;
+  /** Every setting as saved: the help line's other hour, which the one being changed is checked against (D8-77). */
+  rows?: readonly PlatformSetting[];
   onDraft: (words: string) => void;
   onCancel: () => void;
   onSaved: (sent: number | string | string[]) => void;
@@ -103,6 +116,38 @@ export function SettingEditor({
     },
   };
 
+  if (unit === 'phone') {
+    return <PhoneEditor setting={setting} onCancel={onCancel} onSaved={onSaved} />;
+  }
+  if (unit === 'hour') {
+    const opening = setting.key === OPENS;
+    const other = rows.find((each) => each.key === (opening ? CLOSES : OPENS));
+    const otherHour =
+      typeof other?.value === 'number'
+        ? other.value
+        : opening
+          ? DEFAULT_HELP_CLOSES_HOUR
+          : DEFAULT_HELP_OPENS_HOUR;
+    return (
+      <HourEditor setting={setting} otherHour={otherHour} onCancel={onCancel} onSaved={onSaved} />
+    );
+  }
+  if (unit === 'email') {
+    return (
+      <InlineForm {...shared} after={<div className={HELP}>{t('settings.emailNote')}</div>}>
+        <input
+          name="value"
+          type="email"
+          aria-label={label}
+          value={words}
+          onChange={(event) => {
+            change(event.target.value);
+          }}
+          className={`${INLINE_FIELD} w-[220px] max-w-full text-left`}
+        />
+      </InlineForm>
+    );
+  }
   if (unit === 'list') {
     return (
       <InlineForm {...shared} block>
@@ -218,7 +263,7 @@ export function SettingEditor({
         onChange={(event) => {
           change(event.target.value);
         }}
-        className={`${INLINE_FIELD} mono w-[110px] text-right ${refused ? 'border-danger!' : ''}`}
+        className={`${INLINE_FIELD} mono ${unit === 'usd' ? 'w-[90px]' : 'w-[110px]'} text-right ${refused ? 'border-danger!' : ''}`}
       />
     </InlineForm>
   );

@@ -7,21 +7,24 @@ import { chipClass } from '@/components/ui/chip-class';
 import { ConsolePage, PageTitle, SectionTitle } from '@/components/ui/console-page';
 import { RowLines } from '@/components/ui/list-row';
 import { LoadFailed } from '@/components/ui/load-failed';
-import { SMALL_BUTTON } from '@/components/ui/sizes';
+import { NOTE, SMALL_BUTTON } from '@/components/ui/sizes';
 import { useToast } from '@/components/ui/use-toast';
 import { formatDay } from '@/lib/format';
 import { SETTING_GROUPS, SETTING_SHAPES, type SettingShape } from '@/lib/setting-shapes';
 import { settingWords } from '@/lib/setting-words';
 import type { PlatformSetting } from '@/types/operator';
+import { PricesPanel } from './prices-panel';
 import { SettingEditor } from './setting-editor';
 import { SettingValue } from './setting-value';
 import { TimelineCard } from './timeline-card';
 
 const groupId = (group: number): string => `settings-group-${String(group)}`;
+const HELP_GROUP = 14;
 
 function SettingRow({
   setting,
   shape,
+  rows,
   editing,
   onEdit,
   onDraft,
@@ -29,6 +32,7 @@ function SettingRow({
 }: {
   setting: PlatformSetting;
   shape: SettingShape;
+  rows: readonly PlatformSetting[];
   editing: boolean;
   onEdit: () => void;
   onDraft: (words: string) => void;
@@ -37,6 +41,12 @@ function SettingRow({
   const { t } = useTranslation();
   const toast = useToast();
   const name = t(`settingNames.${setting.key}`, { defaultValue: setting.key });
+  const saved = (sent: unknown): void => {
+    toast(t('settings.saved', { name, value: settingWords(setting.key, sent, t) }));
+    onDone();
+  };
+  // D8-60: Cloudflare's nine prices take a panel of their own; every other setting changes in its row.
+  const inPanel = shape.unit === 'prices';
   return (
     <div className="flex min-h-[60px] flex-wrap items-center gap-x-3 gap-y-2 border-t border-line px-4 py-3 first:border-t-0">
       <RowLines
@@ -49,16 +59,14 @@ function SettingRow({
             : ''
         }`}
       />
-      {editing ? (
+      {editing && !inPanel ? (
         <SettingEditor
           setting={setting}
           unit={shape.unit}
+          rows={rows}
           onDraft={onDraft}
           onCancel={onDone}
-          onSaved={(sent) => {
-            toast(t('settings.saved', { name, value: settingWords(setting.key, sent, t) }));
-            onDone();
-          }}
+          onSaved={saved}
         />
       ) : (
         <>
@@ -78,11 +86,14 @@ function SettingRow({
           </Button>
         </>
       )}
+      {editing && inPanel ? (
+        <PricesPanel setting={setting} onClose={onDone} onSaved={saved} />
+      ) : null}
     </div>
   );
 }
 
-/** OPERATOR-CONSOLE-DESIGN §9: every platform value that is not a rate, in thirteen groups. */
+/** OPERATOR-CONSOLE-DESIGN §9: every platform value that is not a rate, in fifteen groups (v7's help line and media costs). */
 export function Settings(): React.JSX.Element {
   const { t } = useTranslation();
   const settings = useSettings();
@@ -106,6 +117,10 @@ export function Settings(): React.JSX.Element {
   const group = (number: number): React.JSX.Element => (
     <section key={number} id={groupId(number)} className="flex min-w-0 scroll-mt-4 flex-col gap-2">
       <SectionTitle>{t(`settings.groups.${String(number)}`)}</SectionTitle>
+      {/* D8-68: where the help line's numbers show. */}
+      {number === HELP_GROUP ? (
+        <div className={`${NOTE} -mt-1.5`}>{t('settings.helpNote')}</div>
+      ) : null}
       <div className="overflow-hidden rounded-card border border-line bg-surface">
         {SETTING_SHAPES.filter((shape) => shape.group === number).map((shape) => {
           const setting = rows.find((each) => each.key === shape.key);
@@ -115,6 +130,7 @@ export function Settings(): React.JSX.Element {
               key={shape.key}
               setting={setting}
               shape={shape}
+              rows={rows}
               editing={editing === shape.key}
               onEdit={() => {
                 setEditing(shape.key);
@@ -148,7 +164,7 @@ export function Settings(): React.JSX.Element {
         </section>
       ) : (
         <>
-          {/* Thirteen groups: on a phone the chips run off the edge; from 640 px they wrap (v5). */}
+          {/* Fifteen groups: on a phone the chips run off the edge; from 640 px they wrap (v5). */}
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
             {SETTING_GROUPS.map((number) => (
               <a key={number} href={`#${groupId(number)}`} className={chipClass(false)}>

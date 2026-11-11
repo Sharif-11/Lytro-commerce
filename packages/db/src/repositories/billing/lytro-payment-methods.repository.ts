@@ -1,6 +1,7 @@
 import { and, asc, count, eq, gte, sql } from 'drizzle-orm';
 import { CredentialUseAction, type PaymentMethod, type PaymentWay } from '@lytronix/validators';
 import {
+  manualPaymentEntries,
   platformBankAccounts,
   platformGatewayAccounts,
   platformGatewayUses,
@@ -62,6 +63,26 @@ export class LytroPaymentMethodsRepository {
       .where(eq(platformBankAccounts.id, id))
       .returning();
     return row ?? null;
+  }
+
+  /** ADM-14, D8-75: whether this is one of Lytro's bank accounts, on or off; money may have reached one since turned off. */
+  async bankAccountExists(db: Executor, id: string): Promise<boolean> {
+    const rows = await db
+      .select({ id: platformBankAccounts.id })
+      .from(platformBankAccounts)
+      .where(eq(platformBankAccounts.id, id))
+      .limit(1);
+    return rows.length > 0;
+  }
+
+  /** D8-75: whether a manual entry names this account, which keeps it from being removed. */
+  async bankAccountUsed(db: Executor, id: string): Promise<boolean> {
+    const rows = await db
+      .select({ id: manualPaymentEntries.id })
+      .from(manualPaymentEntries)
+      .where(eq(manualPaymentEntries.bankAccountId, id))
+      .limit(1);
+    return rows.length > 0;
   }
 
   async removeBankAccount(db: Executor, id: string): Promise<boolean> {

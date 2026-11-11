@@ -216,6 +216,7 @@ export class OperatorAuthService {
     );
     if (!account) throw new ApiError('unauthenticated', 'SignInToContinue', {});
     return {
+      id: account.id,
       email: account.email,
       unusedBackupCodes: codes.length,
       signedInAt: session.createdAt,

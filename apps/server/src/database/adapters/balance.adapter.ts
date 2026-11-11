@@ -164,6 +164,10 @@ export class DrizzlePlatformWalletsStore implements PlatformWalletsStore {
     return this.wallets.update(tx, id, values);
   }
 
+  used(tx: Transaction, id: string): Promise<boolean> {
+    return this.wallets.used(tx, id);
+  }
+
   remove(tx: Transaction, id: string): Promise<void> {
     return this.wallets.remove(tx, id);
   }

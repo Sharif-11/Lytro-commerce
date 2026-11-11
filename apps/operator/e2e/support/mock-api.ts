@@ -25,7 +25,6 @@ import {
   drawnWallets,
   NOW,
   shopDetail,
-  shopSummary,
   type DeviceFixture,
   type PaymentFixture,
   type ReportFixture,
@@ -33,6 +32,16 @@ import {
 } from './console-data';
 import { courierAnswer, courierDefaults, type CourierMockState } from './courier-mock';
 import { noticeAnswer, noticeDefaults, type NoticeMockState } from './notice-mock';
+import { shopAnswer, shopListAnswer } from './p88-shops-mock';
+import {
+  answerUploads,
+  moneyAnswer,
+  moneyDefaults,
+  OPERATOR_ID,
+  withShots,
+  type MoneyMockState,
+} from './p88-money-mock';
+import { recordsAnswer, recordsDefaults, type RecordsMockState } from './p88-records-mock';
 import { pricingAnswer, type PricingState } from './pricing-mock';
 
 // The console against a mocked API: each /api/v1 call answered in the server's own envelope ({ success, statusCode,
@@ -65,7 +74,12 @@ export const CHROME_ON_WINDOWS =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 
 export interface ConsoleState
-  extends Partial<PricingState>, Partial<CourierMockState>, Partial<NoticeMockState> {
+  extends
+    Partial<PricingState>,
+    Partial<CourierMockState>,
+    Partial<NoticeMockState>,
+    Partial<MoneyMockState>,
+    Partial<RecordsMockState> {
   language?: Language;
   /** Whether the browser starts signed in. */
   signedIn?: boolean;
@@ -249,7 +263,7 @@ function pageOf(items: unknown[], url: URL, name: string): Record<string, unknow
   };
 }
 
-type Answer = { data: unknown } | { refused: [number, string, string] };
+type Answer = { data: unknown } | { refused: [number, string, string, Record<string, unknown>?] };
 
 /** What the rebuilt screens read and write, the writes changing what later reads say, as the server's do. */
 function consoleAnswer(
@@ -329,33 +343,25 @@ function consoleAnswer(
   }
   const assigned = /^\/operator\/plans\/([^/]+)\/assign$/.exec(path);
   if (assigned) return { data: { id: 'assign-1', planId: assigned[1] } };
+  const recorded = recordsAnswer(path, url, state);
+  if (recorded) return recorded;
   const couriered = courierAnswer(method, path, url, body, state);
   if (couriered) return couriered;
   const noticed = noticeAnswer(method, path, url, body, state);
   if (noticed) return noticed;
+  const money = moneyAnswer(method, path, url, body, state);
+  if (money) return money;
   const priced = pricingAnswer(method, path, body, state);
   if (priced) return priced;
-  if (path === '/operator/tenants') {
-    const word = (url.searchParams.get('query') ?? '').toLowerCase();
-    const limit = Number(url.searchParams.get('limit') ?? 20);
-    const start = Number(url.searchParams.get('cursor') ?? 0);
-    const matching = state.shops.filter(
-      (each) => each.shopName.toLowerCase().includes(word) || each.slug.includes(word),
-    );
-    const end = start + limit;
-    return {
-      data: {
-        entries: matching.slice(start, end).map(shopSummary),
-        nextCursor: end < matching.length ? String(end) : null,
-      },
-    };
-  }
+  if (path === '/operator/tenants') return shopListAnswer(url, state.shops);
   const shopped = /^\/operator\/tenants\/([^/]+)(?:\/(.+))?$/.exec(path);
   if (!shopped) return undefined;
   const shop = state.shops.find((each) => each.id === shopped[1]);
   if (!shop) return { refused: [404, 'not_found', 'This shop was not found.'] };
   const rest = shopped[2];
   if (rest === undefined) return { data: shopDetail(shop) };
+  const p88 = shopAnswer(rest, url, body, shop, state.courierUses, state.now);
+  if (p88) return p88;
   if (rest === 'addons') return { data: state.addons };
   if (rest === 'listener-devices') {
     return {
@@ -483,6 +489,8 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
     optionSets: drawnOptionSets(),
     ...courierDefaults(),
     ...noticeDefaults(),
+    ...moneyDefaults(),
+    ...recordsDefaults(),
     now: NOW,
     failing: {},
     refuseWrite: null,
@@ -502,6 +510,9 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
   state.areaCounts = { ...state.areaCounts };
   state.notices = structuredClone(state.notices);
   state.rateHistory = structuredClone(state.rateHistory);
+  state.manualEntries = structuredClone(state.manualEntries);
+  state.walletTypes = structuredClone(state.walletTypes);
+  state.payments = withShots(state.payments);
   const log: ApiLog = {
     calls: [],
     state,
@@ -514,6 +525,7 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
     });
   }
   await startIn(page, state.language);
+  await answerUploads(page);
   if (!state.ownClock) await page.clock.setFixedTime(state.now);
   await page.route('**/api/v1/**', async (route: Route) => {
     const request = route.request();
@@ -526,11 +538,16 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
     log.calls.push({ method, path, query: url.search, body, language });
     const ok = (data: unknown): Promise<void> =>
       route.fulfill({ status: 200, contentType: 'application/json', body: envelope(data) });
-    const refused = (status: number, code: string, message: string): Promise<void> =>
+    const refused = (
+      status: number,
+      code: string,
+      message: string,
+      details: Record<string, unknown> = {},
+    ): Promise<void> =>
       route.fulfill({
         status,
         contentType: 'application/json',
-        body: refusal(code, message),
+        body: refusal(code, message, details),
       });
 
     const auth = authAnswer(path, body, state, language);
@@ -551,6 +568,7 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
       await state.holdMe;
       if (state.meFails !== null) return refused(state.meFails, 'service_unavailable', '');
       return ok({
+        id: OPERATOR_ID,
         email: EMAIL,
         unusedBackupCodes: state.unusedBackupCodes,
         signedInAt: '2026-10-21T03:12:00.000Z',
@@ -559,8 +577,8 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
     }
     const answer = consoleAnswer(method, path, url, body, state);
     if (answer && 'refused' in answer) {
-      const [status, code, message] = answer.refused;
-      return refused(status, code, message);
+      const [status, code, message, details] = answer.refused;
+      return refused(status, code, message, details);
     }
     if (answer) return ok(answer.data);
     return ok([]);

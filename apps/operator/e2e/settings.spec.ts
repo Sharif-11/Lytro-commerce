@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mockApi, type ConsoleState } from './support/mock-api';
 
-// OPERATOR-CONSOLE-DESIGN §9: every platform value that is not a rate, in thirteen groups (v5 adds Phase 6's and 7's).
+// OPERATOR-CONSOLE-DESIGN §9: every platform value that is not a rate, in fifteen groups (v5 adds Phase 6's and 7's, v7 Phase 8's).
 
 async function open(page: Page, state: ConsoleState = {}) {
   const log = await mockApi(page, state);
@@ -25,12 +25,12 @@ async function typeReason(page: Page): Promise<void> {
 const timeline = (page: Page) =>
   main(page).locator('section').filter({ hasText: 'What these numbers do' });
 
-test('shows all 37 in their thirteen groups, each saying what its number counts', async ({
+test('shows all 46 in their fifteen groups, each saying what its number counts', async ({
   page,
 }) => {
   await open(page);
-  await expect(main(page).getByRole('button', { name: /^Change:/ })).toHaveCount(37);
-  await expect(main(page).getByRole('heading', { level: 2 })).toHaveCount(13);
+  await expect(main(page).getByRole('button', { name: /^Change:/ })).toHaveCount(46);
+  await expect(main(page).getByRole('heading', { level: 2 })).toHaveCount(15);
   await expect(main(page).locator('#settings-group-1')).toContainText('30 days');
   await expect(main(page).locator('#settings-group-1')).toContainText('৳50,000');
   await expect(main(page).locator('#settings-group-3')).toContainText('30 minutes');
@@ -276,4 +276,151 @@ test('reads in Bangla and passes the accessibility check', async ({ page }) => {
   await main(page).getByRole('button', { name: 'বদলান: ওয়ালেট সেন্ডার' }).click();
   const editing = await new AxeBuilder({ page }).analyze();
   expect(editing.violations).toEqual([]);
+});
+
+// Slice 8.8 (v7, D8-68, D8-76, D8-77, D8-60): the help line's four settings and media costs' five.
+test('shows the help line and media costs, with numbers not set yet and hours as 24-hour times', async ({
+  page,
+}) => {
+  await open(page);
+  const help = main(page).locator('#settings-group-14');
+  await expect(help.getByRole('heading', { name: 'Help line' })).toBeVisible();
+  await expect(help).toContainText("Shown on the dashboard's Help row");
+  await expect(help.getByText('Not set')).toHaveCount(2);
+  await expect(help).toContainText('09:00 every day');
+  await expect(help).toContainText('22:00 every day');
+  const media = main(page).locator('#settings-group-15');
+  await expect(media).toContainText('$10 a month');
+  await expect(media).toContainText('80 %');
+  await expect(media).toContainText('day 1 of each month');
+  await expect(media).toContainText(
+    'R2 $4.50 / $0.36 a million, $0.015 a GB-month · Workers $5.00 a month',
+  );
+});
+
+test('a help number is typed in any form and saved in the local one, a wrong one refused here', async ({
+  page,
+}) => {
+  const log = await open(page);
+  await change(page, "Lytro's WhatsApp").click();
+  await expect(main(page).getByText("Any written form; it's saved as 01XXXXXXXXX.")).toBeVisible();
+  // A number not set has nothing to clear.
+  await expect(main(page).getByRole('button', { name: 'Clear', exact: true })).toHaveCount(0);
+  const field = main(page).getByRole('textbox', { name: "Lytro's WhatsApp" });
+  await field.fill('01511 23');
+  await typeReason(page);
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(main(page).getByText('Not a Bangladeshi mobile number.')).toBeVisible();
+  expect(log.sent('PATCH', '/operator/settings/help_whatsapp')).toBeUndefined();
+
+  await field.fill('+880 1711-000001');
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
+  expect(log.sent('PATCH', '/operator/settings/help_whatsapp')).toMatchObject({
+    value: '01711000001',
+    reason: 'Because',
+  });
+  await expect(main(page).locator('#settings-group-14')).toContainText('01711000001');
+});
+
+test('a help number that is set can be cleared, with a reason, saying what it takes off (D8-76)', async ({
+  page,
+}) => {
+  const log = await open(page);
+  await change(page, "Lytro's WhatsApp").click();
+  await main(page).getByRole('textbox', { name: "Lytro's WhatsApp" }).fill('01711000001');
+  await typeReason(page);
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(main(page).locator('#settings-group-14')).toContainText('01711000001');
+
+  await change(page, "Lytro's WhatsApp").click();
+  await main(page).getByRole('button', { name: 'Clear', exact: true }).click();
+  await expect(
+    main(page).getByText('Clearing it takes this number off the dashboard', { exact: false }),
+  ).toBeVisible();
+  const clear = main(page).getByRole('button', { name: 'Clear the number' });
+  await expect(clear).toBeDisabled();
+  await main(page).getByRole('textbox', { name: 'Reason' }).fill('The number was shut');
+  await clear.click();
+  expect(log.sent('PATCH', '/operator/settings/help_whatsapp')).toMatchObject({
+    value: '',
+    reason: 'The number was shut',
+  });
+  await expect(main(page).locator('#settings-group-14').getByText('Not set')).toHaveCount(2);
+});
+
+test('the help line closes after it opens, whichever hour is changed (D8-77)', async ({ page }) => {
+  const log = await open(page);
+  await change(page, 'Closes').click();
+  await expect(
+    main(page).getByText('0 to 23, Dhaka time, closing after opening. 22 is 10 pm.'),
+  ).toBeVisible();
+  const closes = main(page).getByRole('textbox', { name: 'Closes' });
+  await closes.fill('24');
+  await typeReason(page);
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(main(page).getByText('A whole hour from 0 to 23.')).toBeVisible();
+  await closes.fill('8');
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(
+    main(page).getByText('The closing hour must be after the opening hour (9).'),
+  ).toBeVisible();
+  expect(log.sent('PATCH', '/operator/settings/help_closes_hour')).toBeUndefined();
+  await main(page).getByRole('button', { name: 'Cancel' }).click();
+
+  await change(page, 'Opens').click();
+  await main(page).getByRole('textbox', { name: 'Opens' }).fill('23');
+  await typeReason(page);
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(
+    main(page).getByText('The opening hour must be before the closing hour (22).'),
+  ).toBeVisible();
+  await main(page).getByRole('textbox', { name: 'Opens' }).fill('10');
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
+  expect(log.sent('PATCH', '/operator/settings/help_opens_hour')).toMatchObject({ value: 10 });
+  await expect(main(page).locator('#settings-group-14')).toContainText('10:00 every day');
+});
+
+test("Cloudflare's prices change together in a panel, with a reason; a price below 0 is refused there", async ({
+  page,
+}) => {
+  const log = await open(page);
+  await change(page, "Cloudflare's prices").click();
+  const panel = page.getByRole('dialog', { name: "Cloudflare's prices" });
+  await expect(
+    panel.getByText("What the estimate uses, from Cloudflare's R2", { exact: false }),
+  ).toBeVisible();
+  await expect(panel.getByRole('textbox', { name: 'R2 Class A, a million' })).toHaveValue('4.5');
+  await panel.getByRole('textbox', { name: 'R2 Class B, a million' }).fill('-0.36');
+  await panel.getByRole('textbox', { name: 'Reason' }).fill('Cloudflare changed its prices');
+  await panel.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(
+    panel.getByText('Each price is a number from 0 to 1,000, and each allowance a whole number.'),
+  ).toBeVisible();
+  expect(log.sent('PATCH', '/operator/settings/cloudflare_prices')).toBeUndefined();
+
+  await panel.getByRole('textbox', { name: 'R2 Class B, a million' }).fill('0.4');
+  await panel.getByRole('button', { name: 'Save', exact: true }).click();
+  expect(log.sent('PATCH', '/operator/settings/cloudflare_prices')).toMatchObject({
+    value: { r2ClassAPerMillion: 4.5, r2ClassBPerMillion: 0.4, workersPerMillion: 0.3 },
+    reason: 'Cloudflare changed its prices',
+  });
+  await expect(panel).toBeHidden();
+});
+
+test('the alert address and the budget change in their rows', async ({ page }) => {
+  const log = await open(page);
+  await change(page, 'Alert goes to').click();
+  await expect(main(page).getByText('Until it is set, the alert is only logged.')).toBeVisible();
+  await main(page).getByRole('textbox', { name: 'Alert goes to' }).fill('alerts@lytro.app');
+  await typeReason(page);
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
+  expect(log.sent('PATCH', '/operator/settings/media_cost_alert_email')).toMatchObject({
+    value: 'alerts@lytro.app',
+  });
+  await change(page, 'Budget a month').click();
+  await main(page).getByRole('textbox', { name: 'Budget a month' }).fill('15');
+  await typeReason(page);
+  await main(page).getByRole('button', { name: 'Save', exact: true }).click();
+  expect(log.sent('PATCH', '/operator/settings/media_budget_usd')).toMatchObject({ value: 15 });
+  await expect(main(page).locator('#settings-group-15')).toContainText('$15 a month');
 });

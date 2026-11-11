@@ -16,6 +16,7 @@ export function InlineForm({
   block = false,
   before,
   after,
+  extra,
   onSubmit,
   onCancel,
   children,
@@ -30,6 +31,8 @@ export function InlineForm({
   before?: ReactNode;
   /** A line under the whole row: a help sentence, or the field's own refusal. */
   after?: ReactNode;
+  /** One more button after Cancel, such as clearing a help number (D8-76). */
+  extra?: ReactNode;
   onSubmit: () => void;
   onCancel: () => void;
   children: ReactNode;
@@ -80,6 +83,7 @@ export function InlineForm({
       >
         {t('common.cancel')}
       </Button>
+      {extra}
     </>
   );
 

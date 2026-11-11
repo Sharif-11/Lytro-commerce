@@ -13,6 +13,8 @@ export type ConsolePath =
   | '/wallets'
   | '/phones'
   | '/couriers'
+  | '/wallet-types'
+  | '/media-costs'
   | '/catalogue/shop-types'
   | '/catalogue/attributes'
   | '/catalogue/option-sets'
@@ -47,6 +49,8 @@ export const navGroups: NavGroup[] = [
     items: [
       { to: '/', labelKey: 'nav.today', icon: 'home' },
       { to: '/queue', labelKey: 'nav.paymentQueue', icon: 'queue', count: 'queue' },
+      // Slice 8.8 (v7): the queue's other door.
+      { to: '/manual', labelKey: 'nav.manual', icon: 'receipt' },
       { to: '/page-reports', labelKey: 'nav.pageReports', icon: 'flag', count: 'reports' },
       { to: '/shops', labelKey: 'nav.shops', icon: 'store' },
     ],
@@ -67,7 +71,18 @@ export const navGroups: NavGroup[] = [
       { to: '/wallets', labelKey: 'nav.wallets', icon: 'wallet' },
       { to: '/phones', labelKey: 'nav.phones', icon: 'phone' },
       { to: '/couriers', labelKey: 'nav.couriers', icon: 'truck' },
+      // Slice 8.8 (v7): beside Couriers, whose retiring it mirrors.
+      { to: '/wallet-types', labelKey: 'nav.walletTypes', icon: 'cards' },
       { to: '/notices', labelKey: 'nav.notices', icon: 'bell' },
+    ],
+  },
+  // Slice 8.8 (v7): what happened, and what it cost.
+  {
+    labelKey: 'nav.records',
+    items: [
+      { to: '/reports', labelKey: 'nav.reports', icon: 'chart' },
+      { to: '/audit', labelKey: 'nav.audit', icon: 'history' },
+      { to: '/media-costs', labelKey: 'nav.mediaCosts', icon: 'cloud' },
     ],
   },
   {
@@ -82,11 +97,8 @@ export const navGroups: NavGroup[] = [
     labelKey: 'nav.later',
     later: true,
     items: [
-      { to: '/reports', labelKey: 'nav.reports', icon: 'chart' },
-      { to: '/audit', labelKey: 'nav.audit', icon: 'history' },
       { to: '/inbox', labelKey: 'nav.inbox', icon: 'inbox' },
       { to: '/verification', labelKey: 'nav.verification', icon: 'id' },
-      { to: '/manual', labelKey: 'nav.manual', icon: 'dollar' },
     ],
   },
 ];

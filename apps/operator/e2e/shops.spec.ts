@@ -3,7 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { GADGET, MEHEDI, RAHIM } from './support/console-data';
 import { mockApi, type ConsoleState } from './support/mock-api';
 
-// OPERATOR-CONSOLE-DESIGN §5: every shop, found by name or address, and everything done to one from its page.
+// OPERATOR-CONSOLE-DESIGN §5: every shop, found by name, address or the owner's phone, and everything done to one from its
+// page. The v7 filters, figures and actions (Slice 8.8) are in p88-shops.spec.ts.
 
 async function openShop(page: Page, id = RAHIM, state: ConsoleState = {}) {
   const log = await mockApi(page, state);
@@ -39,7 +40,7 @@ test.describe('the list', () => {
     await expect(main.getByText('-13d')).toBeVisible();
     await expect(main.getByText('Suspended')).toBeVisible();
     await expect(main.getByText('1 overrides').first()).toBeVisible();
-    await expect(main.getByText('Filters by state and plan arrive')).toBeVisible();
+    await expect(main.getByText('01712 345678')).toBeVisible();
   });
 
   test('searches as you type, and the address keeps the word', async ({ page }) => {
@@ -119,7 +120,7 @@ test.describe("a shop's page", () => {
     await expect(main.getByText('14 Nov 2026').first()).toBeVisible();
     await expect(main.getByText('24 days')).toBeVisible();
     await expect(main.getByText('Not suspended')).toBeVisible();
-    await expect(main.getByText('Shop detail')).toBeVisible();
+    await expect(main.getByText("Owner's sign-in and the shop's data")).toBeVisible();
     await expect(main.getByText('View as this shop')).toBeVisible();
   });
 

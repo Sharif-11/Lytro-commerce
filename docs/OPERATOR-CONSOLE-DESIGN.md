@@ -754,6 +754,9 @@ gaps the drawing found:
 | A help number cleared | the setting's check (`help_whatsapp`, `help_phone`) accepts an empty value, meaning not set | §9's Clear; today the check refuses it. `GET /help-line` and Lytro's payment page then read it as null. |
 | The help hours in order | `PATCH /operator/settings/help_opens_hour` and `help_closes_hour` check each hour against the other's stored value (or its default, 9 or 22), closing after opening | §9's refusal, whichever is changed; today each hour is checked alone, 0 to 23. |
 
+**Built** with Slice 8.8's console PR (2026-11-11): all eight above. The audit actions are named in the console's
+words (`audit.actions`), and a phone is saved in its local form before it is sent. What the build found is KNOWN-GAPS §142.
+
 Decided by the owner (2026-11-10), from what the drawing found:
 
 - **A payment to Lytro's bank account can be recorded by hand**, in Slice 8.8: the entry names one of Lytro's bank accounts

@@ -62,6 +62,8 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   operatorId: { en: 'Operator', bn: 'অপারেটর' },
   paidAt: { en: 'Payment time', bn: 'পেমেন্টের সময়' },
   walletId: { en: 'Wallet', bn: 'ওয়ালেট' },
+  // D8-75 (Slice 8.8): a manual entry paid to one of Lytro's bank accounts.
+  bankAccountId: { en: 'Bank account', bn: 'ব্যাংক অ্যাকাউন্ট' },
   callBackAt: { en: 'Call back at', bn: 'আবার কল করার সময়' },
   cancelReason: { en: 'Cancel reason', bn: 'ক্যানসেলের কারণ' },
   cancelUrl: { en: 'Cancel address', bn: 'ক্যানসেল করলে যে পেজে যাবে' },

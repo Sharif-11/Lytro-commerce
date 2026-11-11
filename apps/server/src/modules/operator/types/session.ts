@@ -23,6 +23,8 @@ export type OperatorSigninResult =
 
 /** What the console shows of who is signed in: the sidebar's foot and the account page. */
 export interface OperatorMe {
+  /** Slice 8.8: the console's "only mine" filters. */
+  id: string;
   email: string;
   unusedBackupCodes: number;
   signedInAt: Date;
