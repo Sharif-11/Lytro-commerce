@@ -284,7 +284,7 @@ describeIfDatabase('PYG-09, LIF-24: an operator suspension of a pay-as-you-go sh
       ),
     ).toBeDefined();
 
-    await lifecycle.restore(who.tenantId, randomUUID());
+    await lifecycle.restore(who.tenantId, 'the chargeback was withdrawn', randomUUID());
     const restored = await tenantRow(who.tenantId);
     expect(restored?.state).toBe('pay_as_you_go');
     expect(restored?.archived_at).toBeNull();
@@ -301,7 +301,7 @@ describeIfDatabase('PYG-09, LIF-24: an operator suspension of a pay-as-you-go sh
     const closedAt = (await tenantRow(who.tenantId))?.archived_at;
 
     await lifecycle.suspend(who.tenantId, 'chargeback fraud', randomUUID());
-    await lifecycle.restore(who.tenantId, randomUUID());
+    await lifecycle.restore(who.tenantId, 'the chargeback was withdrawn', randomUUID());
 
     const tenant = await tenantRow(who.tenantId);
     expect(tenant?.state).toBe('archived');
@@ -320,7 +320,7 @@ describeIfDatabase('PYG-09, LIF-24: an operator suspension of a pay-as-you-go sh
 
     await lifecycle.suspend(who.tenantId, 'chargeback fraud', randomUUID());
     expect((await tenantRow(who.tenantId))?.state).toBe('active');
-    await lifecycle.restore(who.tenantId, randomUUID());
+    await lifecycle.restore(who.tenantId, 'the chargeback was withdrawn', randomUUID());
     const tenant = await tenantRow(who.tenantId);
     expect(tenant?.state).toBe('active');
     expect(tenant?.balance_frozen).toBe(false);

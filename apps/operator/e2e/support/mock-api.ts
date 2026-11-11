@@ -265,6 +265,24 @@ function pageOf(items: unknown[], url: URL, name: string): Record<string, unknow
 
 type Answer = { data: unknown } | { refused: [number, string, string, Record<string, unknown>?] };
 
+/**
+ * Phase 8 exit criterion 5: the four actions that took no reason refuse one missing or blank, as the server does, so a
+ * dialog that sent none would show the refusal instead of closing.
+ */
+function reasonRefused(body: Record<string, unknown> | null): Answer | undefined {
+  const reason = body?.reason;
+  if (typeof reason === 'string' && reason.trim() !== '') return undefined;
+  const message = 'Reason is required.';
+  return {
+    refused: [
+      400,
+      'validation_error',
+      message,
+      { fields: [{ field: 'reason', problem: 'required', message }] },
+    ],
+  };
+}
+
 /** What the rebuilt screens read and write, the writes changing what later reads say, as the server's do. */
 function consoleAnswer(
   method: string,
@@ -380,6 +398,8 @@ function consoleAnswer(
     return { data: { ok: true } };
   }
   if (rest === 'restore') {
+    const refused = reasonRefused(body);
+    if (refused) return refused;
     shop.suspension = null;
     return { data: { ok: true } };
   }
@@ -409,10 +429,14 @@ function consoleAnswer(
     return { data: { ok: true } };
   }
   if (rest === 'payment-page/restore') {
+    const refused = reasonRefused(body);
+    if (refused) return refused;
     shop.paymentPageSuspension = null;
     return { data: { ok: true } };
   }
   if (rest === 'new-shop-cap') {
+    const refused = reasonRefused(body);
+    if (refused) return refused;
     const capped = body?.capped as boolean | null;
     shop.newShopCap = { set: capped, holds: capped ?? shop.state === 'pay_as_you_go' };
     return { data: { ok: true } };
@@ -434,6 +458,8 @@ function consoleAnswer(
   }
   const override = /^limit-overrides\/(.+)$/.exec(rest);
   if (override) {
+    const refused = reasonRefused(body);
+    if (refused) return refused;
     shop.overrides = shop.overrides.filter((each) => each.limitKey !== override[1]);
     return { data: { ok: true } };
   }

@@ -1263,7 +1263,7 @@ describeIfDatabase('LIF-24: operator suspend and restore', () => {
     );
     expect(suspendEntry.rows[0]?.ip).toBe('203.0.113.9');
 
-    await lifecycle.restore(tenantId, operatorId);
+    await lifecycle.restore(tenantId, 'the owner explained', operatorId);
     tenant = await tenantRow(tenantId);
     expect(tenant?.balance_frozen).toBe(false);
     const restored = await admin.query<{ suspended_at: Date | null }>(
@@ -1290,7 +1290,7 @@ describeIfDatabase(
       // Without TEN-27's fix this would still read the cached, pre-suspension entry for up to 60s.
       expect(afterSuspend.outcome).toBe('closed');
 
-      await lifecycle.restore(tenantId, randomUUID());
+      await lifecycle.restore(tenantId, 'policy cleared', randomUUID());
       const afterRestore = await resolver.resolve(host);
       expect(afterRestore.outcome).toBe('tenant');
     });

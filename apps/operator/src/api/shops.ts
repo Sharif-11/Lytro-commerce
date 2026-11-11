@@ -10,6 +10,7 @@ import type {
   SuspendTenantInput,
   TenantSort,
   TenantState,
+  UndoReasonInput,
 } from '@lytronix/validators';
 import { operatorSession } from '@/session/operator-session';
 import type {
@@ -112,9 +113,10 @@ export function useSuspendShop() {
   );
 }
 
+/** LIF-24: the suspension lifted, with the reason that goes on both logs. */
 export function useRestoreShop() {
-  return useShopWrite(({ shopId }: { shopId: string }) =>
-    operatorSession.client.post<{ ok: true }>(`/operator/tenants/${shopId}/restore`),
+  return useShopWrite(({ shopId, ...input }: UndoReasonInput & { shopId: string }) =>
+    operatorSession.client.post<{ ok: true }>(`/operator/tenants/${shopId}/restore`, input),
   );
 }
 
@@ -136,12 +138,15 @@ export function useSuspendPage() {
 }
 
 export function useRestorePage() {
-  return useShopWrite(({ shopId }: { shopId: string }) =>
-    operatorSession.client.post<{ ok: true }>(`/operator/tenants/${shopId}/payment-page/restore`),
+  return useShopWrite(({ shopId, ...input }: UndoReasonInput & { shopId: string }) =>
+    operatorSession.client.post<{ ok: true }>(
+      `/operator/tenants/${shopId}/payment-page/restore`,
+      input,
+    ),
   );
 }
 
-/** TVR-04: on, off, or null for what the shop's kind says. */
+/** TVR-04: on, off, or null for what the shop's kind says; with the reason. */
 export function useSetNewShopCap() {
   return useShopWrite(({ shopId, ...input }: NewShopCapInput & { shopId: string }) =>
     operatorSession.client.post<{ ok: true }>(`/operator/tenants/${shopId}/new-shop-cap`, input),
@@ -166,11 +171,14 @@ export function useSetLimitOverride() {
   );
 }
 
+/** The DELETE carries its reason in the body, as the dashboard's push unsubscribe carries its endpoint. */
 export function useRemoveLimitOverride() {
-  return useShopWrite(({ shopId, limitKey }: { shopId: string; limitKey: string }) =>
-    operatorSession.client.delete<{ ok: true }>(
-      `/operator/tenants/${shopId}/limit-overrides/${limitKey}`,
-    ),
+  return useShopWrite(
+    ({ shopId, limitKey, ...input }: UndoReasonInput & { shopId: string; limitKey: string }) =>
+      operatorSession.client.request<{ ok: true }>(
+        `/operator/tenants/${shopId}/limit-overrides/${limitKey}`,
+        { method: 'DELETE', body: JSON.stringify(input) },
+      ),
   );
 }
 

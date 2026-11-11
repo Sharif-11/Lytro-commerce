@@ -118,6 +118,7 @@ function RemovePanel({
   const { t } = useTranslation();
   const toast = useToast();
   const remove = useRemoveLimitOverride();
+  const [reason, setReason] = useState('');
   return (
     <ActionPanel
       title={t('shop.removeTitle')}
@@ -126,10 +127,11 @@ function RemovePanel({
       actionLabel={t('shop.remove')}
       danger
       pending={remove.isPending}
+      canSubmit={reason.trim() !== ''}
       error={remove.isError ? errorMessage(remove.error, t) : null}
       onSubmit={() => {
         remove.mutate(
-          { shopId: shop.id, limitKey: override.limitKey },
+          { shopId: shop.id, limitKey: override.limitKey, reason: reason.trim() },
           {
             onSuccess: () => {
               toast(t('shop.removed'));
@@ -145,6 +147,7 @@ function RemovePanel({
           shop: shop.shopName,
         })}
       </Consequence>
+      <ReasonField value={reason} onChange={setReason} />
     </ActionPanel>
   );
 }

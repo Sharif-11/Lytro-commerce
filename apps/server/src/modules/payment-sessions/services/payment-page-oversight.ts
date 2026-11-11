@@ -87,24 +87,25 @@ export class PaymentPageOversight {
     });
   }
 
-  /** TVR-03: the shop's payment page taking payments again. */
-  restore(tenantId: string, operatorId: string, ip: string | null): Promise<void> {
+  /** TVR-03: the shop's payment page taking payments again, with Lytro's reason. */
+  restore(tenantId: string, reason: string, operatorId: string, ip: string | null): Promise<void> {
     return this.store.run(async (tx) => {
       const page = await this.store.paymentPageOf(tx, tenantId);
       if (!page) throw new ApiError('not_found', 'ShopNotFound', {});
       if (page.suspendedAt === null) throw new ApiError('conflict', 'PaymentPageNotSuspended', {});
       await this.store.setPaymentPageSuspension(tx, tenantId, null);
-      await this.recordBoth(tx, tenantId, operatorId, ip, 'restored', {});
+      await this.recordBoth(tx, tenantId, operatorId, ip, 'restored', { reason });
     });
   }
 
   /**
    * TVR-04 (Slice 5.3, agreed 2026-10-31): the shop's new-shop cap switched on or off, or (null) back to its kind's
-   * default; in both logs.
+   * default; in both logs with the reason.
    */
   setNewShopCap(
     tenantId: string,
     capped: boolean | null,
+    reason: string,
     operatorId: string,
     ip: string | null,
   ): Promise<void> {
@@ -122,7 +123,7 @@ export class PaymentPageOversight {
         targetType: 'tenant',
         targetId: tenantId,
         result: AuditResult.Success,
-        summary: { capped },
+        summary: { capped, reason },
       });
       await this.platformAudit.recordWithin(tx, {
         actorType: PlatformActorType.Operator,
@@ -132,7 +133,7 @@ export class PaymentPageOversight {
         targetId: tenantId,
         result: AuditResult.Success,
         ip,
-        summary: { capped },
+        summary: { capped, reason },
       });
     });
   }

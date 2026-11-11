@@ -962,8 +962,14 @@ export class LifecycleService {
    * for non-payment stays frozen for that reason after the suspension itself is lifted. PYG-09: a
    * pay-as-you-go shop the suspension archived (archived at the suspension's own moment) goes back to
    * pay-as-you-go; one already archived before it, for inactivity or by its owner, stays archived.
+   * The operator's reason goes on both logs, as the suspension's does (Phase 8 exit criterion 5).
    */
-  async restore(tenantId: string, operatorId: string, ip?: string | null): Promise<void> {
+  async restore(
+    tenantId: string,
+    reason: string,
+    operatorId: string,
+    ip?: string | null,
+  ): Promise<void> {
     const now = this.clock();
     await this.tenants.runStandalone(async (tx) => {
       const before = await this.tenants.findBillingInfo(tx, tenantId);
@@ -1002,7 +1008,7 @@ export class LifecycleService {
         targetType: 'tenant',
         targetId: tenantId,
         result: AuditResult.Success,
-        summary: {},
+        summary: { reason },
       });
       await this.platformAudit.recordWithin(tx, {
         actorType: PlatformActorType.Operator,
@@ -1012,7 +1018,7 @@ export class LifecycleService {
         targetId: tenantId,
         result: AuditResult.Success,
         ip: ip ?? null,
-        summary: {},
+        summary: { reason },
       });
     });
     this.tenantCache.invalidateTenant(tenantId); // TEN-27: within 5s, not the cache's own 60s TTL.

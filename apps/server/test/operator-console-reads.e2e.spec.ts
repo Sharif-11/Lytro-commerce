@@ -21,6 +21,7 @@ import {
   patchJson,
   postJson,
   putJson,
+  sendExact,
   type HttpResult,
 } from './support/http';
 import { MemoryStorage } from './support/memory-storage';
@@ -175,7 +176,14 @@ describeIfDatabase('a shop for the operator (OPERATOR-CONSOLE-DESIGN §5)', () =
           operator.headers,
         ),
       );
-      ok(await postJson(port, `${route}/new-shop-cap`, { capped: true }, operator.headers));
+      ok(
+        await postJson(
+          port,
+          `${route}/new-shop-cap`,
+          { capped: true, reason: 'Chargebacks reported' },
+          operator.headers,
+        ),
+      );
       ok(
         await postJson(
           port,
@@ -195,7 +203,14 @@ describeIfDatabase('a shop for the operator (OPERATOR-CONSOLE-DESIGN §5)', () =
       expect(read.overrideCount).toBe(1);
 
       // Set off, the cap stops holding; back to null, it follows the shop's kind again.
-      ok(await postJson(port, `${route}/new-shop-cap`, { capped: false }, operator.headers));
+      ok(
+        await postJson(
+          port,
+          `${route}/new-shop-cap`,
+          { capped: false, reason: 'A known seller' },
+          operator.headers,
+        ),
+      );
       expect((ok(await getJson(port, route, operator.headers)) as OperatorShop).newShopCap).toEqual(
         { set: false, holds: false },
       );
@@ -371,6 +386,98 @@ describeIfDatabase('who changed something, and why (ADM-11)', () => {
   );
 
   it(
+    'refuses undoing a suspension, the cap or an override with no reason, and keeps the reason on both logs',
+    async () => {
+      const operator = await signedInOperator();
+      const shop = await shopOnPlan('console-undo');
+      const route = `/operator/tenants/${shop.tenantId}`;
+      ok(await postJson(port, `${route}/suspend`, { reason: 'Fraud report' }, operator.headers));
+      ok(
+        await postJson(
+          port,
+          `${route}/payment-page/suspend`,
+          { reason: 'PIN asked' },
+          operator.headers,
+        ),
+      );
+      ok(
+        await postJson(
+          port,
+          `${route}/limit-overrides`,
+          { limitKey: 'products', value: 300, reason: 'Agreed' },
+          operator.headers,
+        ),
+      );
+      // The removal is a DELETE: its reason is in the body, as DELETE /push/subscriptions takes its own.
+      const removeOverride = (body: unknown) =>
+        sendExact(
+          port,
+          'DELETE',
+          `/api/v1${route}/limit-overrides/products`,
+          body,
+          operator.headers,
+        );
+      const undo = {
+        restore: (body: unknown) => postJson(port, `${route}/restore`, body, operator.headers),
+        pageRestore: (body: unknown) =>
+          postJson(port, `${route}/payment-page/restore`, body, operator.headers),
+        cap: (body: Record<string, unknown> | undefined) =>
+          postJson(port, `${route}/new-shop-cap`, { capped: true, ...body }, operator.headers),
+        removeOverride,
+      };
+
+      for (const body of [undefined, {}, { reason: '' }, { reason: '   ' }]) {
+        for (const [name, call] of Object.entries(undo)) {
+          expect((await call(body)).status, `${name} ${JSON.stringify(body)}`).toBe(400);
+        }
+      }
+      // Refused, nothing was undone.
+      const still = ok(await getJson(port, route, operator.headers)) as OperatorShop;
+      expect(still.suspension).not.toBeNull();
+      expect(still.paymentPageSuspension).not.toBeNull();
+      expect(still.overrideCount).toBe(1);
+      expect(still.newShopCap.set).toBeNull();
+
+      ok(await undo.restore({ reason: 'The owner sent the invoices' }));
+      ok(await undo.pageRestore({ reason: 'The page was fixed' }));
+      ok(await undo.removeOverride({ reason: 'Migration finished' }));
+      ok(await undo.cap({ reason: 'Chargebacks reported' }));
+
+      const done = ok(await getJson(port, route, operator.headers)) as OperatorShop;
+      expect(done).toMatchObject({
+        suspension: null,
+        paymentPageSuspension: null,
+        overrideCount: 0,
+        newShopCap: { set: true, holds: true },
+      });
+      const reasons = [
+        ['tenant_restored', { reason: 'The owner sent the invoices' }],
+        ['payment_page_restored', { reason: 'The page was fixed' }],
+        ['plan_limit_override_removed', { limitKey: 'products', reason: 'Migration finished' }],
+        ['new_shop_cap_set', { capped: true, reason: 'Chargebacks reported' }],
+      ];
+      const actions = reasons.map(([action]) => action);
+      const platform = await admin.query<{ action: string; actor_id: string; summary: unknown }>(
+        `SELECT action, actor_id, summary FROM control.platform_audit_log
+         WHERE target_id = $1 AND action = ANY($2) ORDER BY id`,
+        [shop.tenantId, actions],
+      );
+      expect(platform.rows.map((row) => [row.action, row.summary])).toEqual(reasons);
+      const operatorId = platform.rows[0]?.actor_id;
+      expect(platform.rows.every((row) => row.actor_id === operatorId)).toBe(true);
+      // The shop's own log has each as Lytro support's, with the same reason.
+      const activity = await admin.query<{ action: string; actor_type: string; summary: unknown }>(
+        `SELECT action, actor_type, summary FROM tenant.activity_log
+         WHERE tenant_id = $1 AND action = ANY($2) ORDER BY id`,
+        [shop.tenantId, actions],
+      );
+      expect(activity.rows.map((row) => [row.action, row.summary])).toEqual(reasons);
+      expect(activity.rows.every((row) => row.actor_type === 'platform_support')).toBe(true);
+    },
+    SLOW_MS,
+  );
+
+  it(
     'names who set an override',
     async () => {
       const operator = await signedInOperator();
@@ -434,7 +541,7 @@ describeIfDatabase('who changed something, and why (ADM-11)', () => {
         await postJson(
           port,
           `/operator/tenants/${shop.tenantId}/new-shop-cap`,
-          { capped: true },
+          { capped: true, reason: 'Chargebacks reported' },
           operator.headers,
         ),
       );

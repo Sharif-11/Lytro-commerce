@@ -17,6 +17,7 @@ import {
   PaymentRejectReason,
 } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
+import { suspendTenantSchema } from '../platform/tenant-suspend';
 
 // PAY-04: an address the page sends the shopper back to; its website must be one of the key's (checked on the server).
 const returnAddress = z.string().trim().url().max(PAYMENT_RETURN_URL_MAX_LENGTH);
@@ -155,6 +156,11 @@ export const paymentListQuerySchema = z.object({
 });
 export type PaymentListQuery = z.infer<typeof paymentListQuerySchema>;
 
-/** TVR-04 (agreed 2026-10-31): the operator's switch for one shop's new-shop cap -- on, off, or (null) as its kind says. */
-export const newShopCapSchema = z.object({ capped: z.boolean().nullable() }).strict();
+/**
+ * TVR-04 (agreed 2026-10-31): the operator's switch for one shop's new-shop cap -- on, off, or (null) as its kind says;
+ * with the reason every operator action carries (Phase 8 exit criterion 5), the suspension's own field.
+ */
+export const newShopCapSchema = z
+  .object({ capped: z.boolean().nullable(), reason: suspendTenantSchema.shape.reason })
+  .strict();
 export type NewShopCapInput = z.infer<typeof newShopCapSchema>;

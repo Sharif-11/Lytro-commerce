@@ -1,4 +1,4 @@
-# Operator console: design (v7)
+# Operator console: design (v7.1)
 
 The console at `admin.lytro.app` (`apps/operator`, D3-12), redesigned from scratch on 2026-10-21. Version 1
 (2026-10-19, inverted dark chrome) is retired; nothing from it or from the old `apps/admin` console was
@@ -32,6 +32,12 @@ manual entries, their reversals and the seller's screenshot in the queue (§4, �
 retiring (§10d, WAL-18); the reports, the audit log and media costs, in a new *Records* group (§10e to §10g, ADM-08, ADM-09,
 MED-12); and the help line's and media costs' settings (§9). Today's platform figures are real (§3). Only the support
 inbox and verification stay Later. §15 lists what the build needs and the calls left to the owner.
+
+Version 7.1 (2026-11-11, Phase 8's close-out) gives a reason to the four operator actions that took none, as the owner
+decided, so every operator action carries one on the audit log (Phase 8's exit criterion 5): *Restore* a suspended shop,
+*Restore the page* (its payment page), the *New-shop cap* and *Remove* on a limit override, whose panel is drawn for the
+first time (§5). Each takes the reason field the others do, under its consequence and required; the two restore panels
+now label the suspension's own reason *Suspended for*, so it isn't mistaken for the new field.
 
 **Who and where.** One or two people, mostly at a laptop, several times a day: matching wallet payments
 against the bKash and Nagad statements, answering sellers, and occasionally changing a price or a limit.
@@ -227,7 +233,7 @@ ADM-16, D8-47 to D8-56). In *Daily*, under the queue, since it is the queue's ot
   override count.
 - **Payments** card, first after the facts: the payment page's state with Suspend or Restore and, when
   suspended, its date and reason (TVR-03); the new-shop cap, on or off and whether that is the shop's kind or set
-  for this shop, with Change (TVR-04: as its kind says, on, or off); and the credential log with its last use,
+  for this shop, with Change (TVR-04: as its kind says, on, or off, and from v7.1 a reason); and the credential log with its last use,
   opening `/shops/:slug/credentials` (SEC-11: when, wallet, action, payment, result, never a key).
 - **Couriers** card, after the payments cards (v4): the courier key log with its last use, opening
   `/shops/:slug/courier-keys` (SEC-11: when, courier, action, the order, result, never a key; the actions are checked
@@ -242,7 +248,8 @@ ADM-16, D8-47 to D8-56). In *Daily*, under the queue, since it is the queue's ot
   is left of the packs and whether auto-buy is on; each limit as its plan's value, or the override that replaces it
   (PLN-11), plus add-ons.
 - **Limit overrides** card: each override with its value, the plan's own value beside it, the reason, who
-  and when, and Remove; the empty sentence otherwise (PLN-11).
+  and when, and Remove; the empty sentence otherwise (PLN-11). Remove opens a panel (v7.1): in red, the limit goes back
+  to the plan's value for the shop; the reason; "Remove".
 - **This shop now** (v7, ADM-03, D8-8, D8-25 to D8-31), right under the facts and above Payments, from
   `GET /operator/tenants/:id/figures`, read inside the shop by its own dashboard's code: five figures, the balance with
   its frozen flag and what is held; server errors in 24 hours (marigold above zero); SMS that didn't go in 7 days, the
@@ -274,7 +281,8 @@ ADM-16, D8-47 to D8-56). In *Daily*, under the queue, since it is the queue's ot
 - **Later** on the same page, as dashed cards: *View as this shop* (ADM-05) and *Request identity verification* (KYC-01).
 - **Panels**: *Suspend* (LIF-24: the storefront and landing pages go offline at once; the owner keeps the
   dashboard, can read orders and top up, and sees the reason; the lifecycle state is untouched; the reason
-  the seller will see; "Suspend"), *Restore* (back within a minute; the suspension stays on the audit log),
+  the seller will see; "Suspend"), *Restore* (back within a minute; the suspension stays on the audit log; the
+  suspension's reason as *Suspended for*, then from v7.1 the reason), *Restore the page* (the same for the payment page),
   *Adjust balance* (BAL-17: a correction, not a refund; negative takes money off; amount with the ৳ prefix,
   reason; the toast states the new balance), *Assign a plan* (PLN-17: plan select with version and
   "not for sale" marked, optional expiry with the sentence on what no expiry means, reason), *Add a limit
@@ -783,6 +791,16 @@ Decided by the owner (2026-11-10), from what the drawing found:
 9. The audit log's who filter is Anyone or Only mine, and an entry's panel filters to its person or shop.
 10. Help hours show as 24-hour times ("22:00 every day") on the console; the dashboard and website write them in words.
 
+For v7.1 (Phase 8's close-out), the routes behind the four panels take the reason the way their siblings do, and write it
+into the platform audit entry and the shop's activity log with the action:
+
+| Need | Route | Why |
+| --- | --- | --- |
+| A reason on restoring a shop | `POST /operator/tenants/:id/restore` takes `{ reason }`, as `suspend` does | §5's Restore. |
+| A reason on restoring the payment page | `POST /operator/tenants/:id/payment-page/restore` takes `{ reason }`, as `payment-page/suspend` does | §5's Restore the page. |
+| A reason on the new-shop cap | `POST /operator/tenants/:id/new-shop-cap` takes `{ capped, reason }` | §5's New-shop cap. |
+| A reason on removing an override | `DELETE /operator/tenants/:tenantId/limit-overrides/:limitKey` takes `{ reason }` in its body, as `DELETE /push/subscriptions` takes its `{ endpoint }` | §5's Remove. |
+
 ## 16. Mapping onto `apps/operator`
 
 | Screen | Route | View |
@@ -834,8 +852,9 @@ nothing, so they promise nothing, and no panel gives a period's end date, which 
 above), the device (phone 390, tablet 820, desktop 1366), the language and the data state (busy, nothing
 waiting, server error). Every button that leads somewhere in the design leads there in the sketch, so a
 reviewer can walk the sign-in, approve a payment, suspend and restore a shop, edit a plan and set a rate
-without the toolbar. It renders 247 screens with no missing strings in either language and no script errors; v4's courier
+without the toolbar. It renders 248 screens with no missing strings in either language and no script errors; v4's courier
 screens are the toolbar group "Couriers · Phase 6 Slice 6.7", v5's are "Notices · Phase 7 Slice 7.7" and "Pricing and
 platform · Phase 7 Slice 7.7" (the rates offer, settings, the allowance and D7-20's three panels), and v7's 81 are "Phase
-8 · Slice 8.8", none of which overflows on any device or in any data state. Some earlier tables (the queue, plans, terms,
+8 · Slice 8.8", none of which overflows on any device or in any data state. v7.1's override removal is in *Daily*, after
+the other shop panels. Some earlier tables (the queue, plans, terms,
 add-ons, couriers, RedX areas, page reports) scroll sideways inside their card at tablet width, as they did before v7.

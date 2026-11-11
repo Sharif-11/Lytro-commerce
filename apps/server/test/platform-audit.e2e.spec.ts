@@ -17,6 +17,7 @@ import { PlanLimitOverridesService } from '../src/modules/billing/services/plan-
 import { PlansService } from '../src/modules/billing/services/plans.service';
 import { PlatformLibraryService } from '../src/modules/catalogue/services/platform-library.service';
 import { OperatorAuthService } from '../src/modules/operator/services/operator-auth.service';
+import { PaymentPageOversight } from '../src/modules/payment-sessions/services/payment-page-oversight';
 import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
@@ -297,9 +298,15 @@ describeIfDatabase('every operator action commits with its platform audit entry 
     expect(await count('control.plan_limit_overrides WHERE tenant_id = $1', [tenantId])).toBe(0);
     await overrides.set(tenantId, 'products', 500, 'launch week', operator.operatorId);
     await refused('plan_limit_override_removed', () =>
-      overrides.remove(tenantId, 'products', operator.operatorId),
+      overrides.remove(tenantId, 'products', 'launch week over', operator.operatorId),
     );
     expect(await count('control.plan_limit_overrides WHERE tenant_id = $1', [tenantId])).toBe(1);
+    // Phase 8 exit criterion 5: the removal's reason is on its entry.
+    await overrides.remove(tenantId, 'products', 'launch week over', operator.operatorId);
+    expect((await entries('plan_limit_override_removed')).at(-1)).toMatchObject({
+      actor_id: operator.operatorId,
+      summary: { limitKey: 'products', reason: 'launch week over' },
+    });
 
     const lifecycle = app.get(LifecycleService);
     await refused('tenant_suspended', () =>
@@ -310,11 +317,45 @@ describeIfDatabase('every operator action commits with its platform audit entry 
     );
     await lifecycle.suspend(tenantId, 'policy', operator.operatorId, operator.ip);
     await refused('tenant_restored', () =>
-      lifecycle.restore(tenantId, operator.operatorId, operator.ip),
+      lifecycle.restore(tenantId, 'policy cleared', operator.operatorId, operator.ip),
     );
     expect(
       await count('control.tenants WHERE id = $1 AND suspended_at IS NOT NULL', [tenantId]),
     ).toBe(1);
+    await lifecycle.restore(tenantId, 'policy cleared', operator.operatorId, operator.ip);
+    expect((await entries('tenant_restored')).at(-1)).toMatchObject({
+      actor_id: operator.operatorId,
+      summary: { reason: 'policy cleared' },
+    });
+  });
+
+  it("a shop's payment page restored and its new-shop cap switched, each with its reason", async () => {
+    const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'active');
+    const oversight = app.get(PaymentPageOversight);
+    await oversight.suspend(tenantId, 'asked for a PIN', operator.operatorId, operator.ip);
+    await refused('payment_page_restored', () =>
+      oversight.restore(tenantId, 'the page was fixed', operator.operatorId, operator.ip),
+    );
+    const pageOff = 'control.tenants WHERE id = $1 AND payment_page_suspended_at IS NOT NULL';
+    expect(await count(pageOff, [tenantId])).toBe(1);
+    await oversight.restore(tenantId, 'the page was fixed', operator.operatorId, operator.ip);
+    expect(await count(pageOff, [tenantId])).toBe(0);
+    expect((await entries('payment_page_restored')).at(-1)).toMatchObject({
+      actor_id: operator.operatorId,
+      summary: { reason: 'the page was fixed' },
+    });
+
+    const capped = 'control.tenants WHERE id = $1 AND new_shop_cap IS TRUE';
+    await refused('new_shop_cap_set', () =>
+      oversight.setNewShopCap(tenantId, true, 'chargebacks', operator.operatorId, operator.ip),
+    );
+    expect(await count(capped, [tenantId])).toBe(0);
+    await oversight.setNewShopCap(tenantId, true, 'chargebacks', operator.operatorId, operator.ip);
+    expect(await count(capped, [tenantId])).toBe(1);
+    expect((await entries('new_shop_cap_set')).at(-1)).toMatchObject({
+      actor_id: operator.operatorId,
+      summary: { capped: true, reason: 'chargebacks' },
+    });
   });
 
   it('the platform library: a preset, an attribute, an option and an option set', async () => {

@@ -755,14 +755,20 @@ describeIfDatabase('the new-shop payment cap (TVR-04)', () => {
       // A cash-on-delivery order never meets it.
       const bag = await plainProduct(payg.shop, 'Bag', 2000);
       expect((await order({ ...payg, variantId: bag }, { payment: PAYMENT })).status).toBe(201);
-      await oversight.setNewShopCap(payg.shop.tenantId, false, OPERATOR_ID, null);
+      await oversight.setNewShopCap(payg.shop.tenantId, false, 'known seller', OPERATOR_ID, null);
       expect((await order(payg, { payment: PAYMENT })).status).toBe(201);
 
       // A shop on a plan is not capped until the operator says so.
       const planned = await payingShop();
       expect((await order(planned, { payment: PAYMENT })).status).toBe(201);
       expect((await order(planned, { payment: PAYMENT })).status).toBe(201);
-      await oversight.setNewShopCap(planned.shop.tenantId, true, OPERATOR_ID, '203.0.113.9');
+      await oversight.setNewShopCap(
+        planned.shop.tenantId,
+        true,
+        'chargebacks reported',
+        OPERATOR_ID,
+        '203.0.113.9',
+      );
       expect((await order(planned, { payment: PAYMENT })).status).toBe(409);
       // Past its first days a shop is no longer new.
       await admin.query(
@@ -770,11 +776,11 @@ describeIfDatabase('the new-shop payment cap (TVR-04)', () => {
         [planned.shop.tenantId],
       );
       expect((await order(planned, { payment: PAYMENT })).status).toBe(201);
-      await oversight.setNewShopCap(planned.shop.tenantId, null, OPERATOR_ID, null);
+      await oversight.setNewShopCap(planned.shop.tenantId, null, 'cleared', OPERATOR_ID, null);
 
       expect(await logged(planned.shop.tenantId, 'new_shop_cap_set')).toEqual([
-        { capped: true },
-        { capped: null },
+        { capped: true, reason: 'chargebacks reported' },
+        { capped: null, reason: 'cleared' },
       ]);
       const platform = await admin.query(
         'SELECT actor_id, host(ip) AS ip, summary FROM control.platform_audit_log WHERE action = $1 AND target_id = $2 ORDER BY created_at',
@@ -783,10 +789,10 @@ describeIfDatabase('the new-shop payment cap (TVR-04)', () => {
       expect(platform.rows[0]).toEqual({
         actor_id: OPERATOR_ID,
         ip: '203.0.113.9',
-        summary: { capped: true },
+        summary: { capped: true, reason: 'chargebacks reported' },
       });
       await expect(
-        oversight.setNewShopCap(randomUUID(), true, OPERATOR_ID, null),
+        oversight.setNewShopCap(randomUUID(), true, 'unknown', OPERATOR_ID, null),
       ).rejects.toMatchObject({ code: 'not_found' });
     } finally {
       await settings.set(PlatformSettingKey.NewShopPaymentCapAmount, 20_000, randomUUID());

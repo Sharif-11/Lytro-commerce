@@ -30,7 +30,7 @@ import {
 } from '../../operator/guards/operator-session.guard';
 import { PaymentPageOversight } from '../../payment-sessions/services/payment-page-oversight';
 import type { PaymentPageReportView } from '../../payment-sessions/types/payment-sessions';
-import { SuspendTenantDto } from '../dto/balance.dto';
+import { SuspendTenantDto, UndoReasonDto } from '../dto/balance.dto';
 import {
   NewShopCapDto,
   PaymentPageReportListDto,
@@ -117,7 +117,7 @@ export class OperatorPaymentPagesController {
   @ResponseMessage('NewShopCapSet')
   @ApiOperation({
     summary:
-      "Switch a shop's new-shop payment cap on or off, or (null) back to its kind's default -- on for pay-as-you-go, off on a plan (TVR-04)",
+      "Switch a shop's new-shop payment cap on or off, or (null) back to its kind's default -- on for pay-as-you-go, off on a plan -- with the reason, required, on both audit logs (TVR-04)",
   })
   @ApiBody({ type: NewShopCapDto })
   @ZodResponse({ type: OkDto })
@@ -129,6 +129,7 @@ export class OperatorPaymentPagesController {
     await this.oversight.setNewShopCap(
       this.idOf(id, 'ShopNotFound'),
       body.capped,
+      body.reason,
       this.operatorOf(request),
       this.clientIp.resolve(request),
     );
@@ -138,14 +139,20 @@ export class OperatorPaymentPagesController {
   @Post('tenants/:id/payment-page/restore')
   @HttpCode(200)
   @ResponseMessage('PaymentPageRestored')
-  @ApiOperation({ summary: "Let a shop's payment page take payments again (TVR-03)" })
+  @ApiOperation({
+    summary:
+      "Let a shop's payment page take payments again, with the reason, required, on both audit logs (TVR-03)",
+  })
+  @ApiBody({ type: UndoReasonDto })
   @ZodResponse({ type: OkDto })
   async restore(
     @Param('id') id: string,
+    @Body(new ZodValidationPipe(UndoReasonDto.schema)) body: UndoReasonDto,
     @Req() request: OperatorSessionRequest,
   ): Promise<{ ok: true }> {
     await this.oversight.restore(
       this.idOf(id, 'ShopNotFound'),
+      body.reason,
       this.operatorOf(request),
       this.clientIp.resolve(request),
     );
