@@ -11,6 +11,7 @@ import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { errorOf, fieldsOf, openShop, type ShopClient } from './support/shop-client';
+import { slowWrites, untilSome } from './support/slow-write';
 import { SmsCapture } from './support/sms-capture';
 
 // D8-72 (Phase 8 Slice 8.8): moving a category in one request, as the dashboard's drag, keyboard, Move up and down and
@@ -324,5 +325,65 @@ describeIfDatabase('moving a category in one request (D8-72)', () => {
       expect(numbers).toEqual(numbers.map((_, index) => index));
     }
     expect(list.find((each) => each.id === b?.id)).toMatchObject({ parentId: a?.id, depth: 2 });
+  });
+
+  it('checks a PATCH moving a category against the tree a move in flight leaves, never making a loop (review C, F5)', async () => {
+    const shop = await openShop(port, texts, 'cmv-patch-race');
+    const [a, b] = await level(shop, ['A', 'B']);
+    // The move puts B under A, and is slow to commit; meanwhile a PATCH puts A under B.
+    const release = await slowWrites(admin, {
+      name: 'p8cr_slow_move',
+      table: 'tenant.categories',
+      on: 'UPDATE',
+      when: `OLD.id = '${b?.id ?? ''}' AND NEW.parent_id IS DISTINCT FROM OLD.parent_id`,
+    });
+    try {
+      const moving = move(shop, b?.id ?? '', a?.id ?? '', null);
+      await untilSome(admin, 'asleep');
+      const patching = shop.patch(`/categories/${a?.id ?? ''}`, { parentId: b?.id });
+      // The PATCH waits for the move, then reads the tree it left.
+      await untilSome(admin, 'waiting on a lock');
+      const [moved, patched] = await Promise.all([moving, patching]);
+      expect(moved.status, JSON.stringify(moved.body)).toBe(200);
+      expect(patched.status, JSON.stringify(patched.body)).toBe(400);
+      expect(fieldsOf(patched)).toEqual({ parentId: 'out_of_range' });
+      expect(says('CategoryCannotMoveUnderItself')).toContain(errorOf(patched).message);
+    } finally {
+      await release();
+    }
+    const list = await tree(shop);
+    expect(list.find((each) => each.id === a?.id)).toMatchObject({ parentId: null, depth: 1 });
+    expect(list.find((each) => each.id === b?.id)).toMatchObject({ parentId: a?.id, depth: 2 });
+  });
+
+  it('numbers a category created while a move renumbers its level with the rest (review C, S3)', async () => {
+    const shop = await openShop(port, texts, 'cmv-create-race');
+    const [a, , c] = await level(shop, ['A', 'B', 'C']);
+    const [x] = await level(shop, ['X'], a?.id);
+    // The dashboard numbers a new category after the three it shows: 3. Its write is slow to commit; meanwhile a move
+    // brings X up after C, which would number X 3 as well.
+    const release = await slowWrites(admin, {
+      name: 'p8cr_slow_create',
+      table: 'tenant.categories',
+      on: 'INSERT',
+      when: "NEW.name = 'Made meanwhile'",
+    });
+    try {
+      const creating = shop.post('/categories', { name: 'Made meanwhile', sortOrder: 3 });
+      await untilSome(admin, 'asleep');
+      const moving = move(shop, x?.id ?? '', null, c?.id ?? '');
+      const [created, moved] = await Promise.all([creating, moving]);
+      expect(created.status, JSON.stringify(created.body)).toBe(201);
+      expect(moved.status, JSON.stringify(moved.body)).toBe(200);
+    } finally {
+      await release();
+    }
+    expect(under(await tree(shop), null)).toEqual([
+      ['A', 0],
+      ['B', 1],
+      ['C', 2],
+      ['X', 3],
+      ['Made meanwhile', 4],
+    ]);
   });
 });

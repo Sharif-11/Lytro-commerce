@@ -95,6 +95,9 @@ export class CategoryService {
     const behavesLike = input.behavesLike ?? null;
     await this.refuseUnknownType(behavesLike);
     return this.transactions.run(async (tx) => {
+      // D8-72: after a move renumbering its level, or before one, never during it, so the move numbers it with the rest
+      // (the Phase 8 close-out's review C, S3).
+      await this.categories.lockCategories(tx, tenantId);
       const parentId = input.parentId ?? null;
       const depth = parentId === null ? 1 : (await this.parentOf(tx, tenantId, parentId)).depth + 1;
       if (depth > CATEGORY_MAX_DEPTH) this.refuseTooDeep();
@@ -146,6 +149,9 @@ export class CategoryService {
     const who = await this.activity.resolve(tenantId, actor);
     if (input.behavesLike !== undefined) await this.refuseUnknownType(input.behavesLike);
     return this.transactions.run(async (tx) => {
+      // D8-72: a new parent is checked against the tree as a move leaves it, under the move's lock, so a PATCH and a move
+      // racing can never put two categories under each other (the Phase 8 close-out's review C, F5).
+      if (input.parentId !== undefined) await this.categories.lockCategories(tx, tenantId);
       const current = await this.find(tx, tenantId, categoryId);
       const patch: Parameters<CategoryStore['updateCategory']>[3] = {};
       if (input.name !== undefined) patch.name = input.name;
