@@ -14,6 +14,8 @@ import { PurchaseService } from '../src/modules/billing/services/purchase.servic
 import { FraudChecks } from '../src/modules/fraud-checks/services/fraud-checks';
 import { LytroPaymentPages } from '../src/modules/lytro-payments/services/lytro-payment-pages';
 import { S3MediaStorage } from '../src/modules/media/providers/s3-media-storage';
+import { SIGNUP_GATEWAY } from '../src/modules/identity/tokens';
+import type { SignupGateway } from '../src/modules/identity/ports/signup-gateway';
 import { MEDIA_STORAGE } from '../src/modules/media/tokens';
 import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { allowOrigin } from '../src/modules/public-api/services/cors';
@@ -425,19 +427,17 @@ describeIfDatabase('the shop list loses no shop at a page break (review B F8, D8
 });
 
 describeIfDatabase('two resets to one new phone at once (review B S4)', () => {
-  it('answers one and refuses the other as taken, never with a fault', async () => {
-    const shop = await shopOnPlan('twice');
+  it('refuses the second as taken when both passed the check before either was saved, never with a fault', async () => {
+    const first = await shopOnPlan('twicea');
+    const second = await shopOnPlan('twiceb');
     const phone = `0171${String(Math.floor(1_000_000 + Math.random() * 8_999_999))}`;
-    const answers = await Promise.all([
-      act(shop, 'owner-reset', { phone, reason: REASON }),
-      act(shop, 'owner-reset', { phone, reason: REASON }),
-    ]);
-    const statuses = answers.map((answer) => answer.status).sort();
-    expect(
-      statuses.every((status) => status < 500),
-      JSON.stringify(statuses),
-    ).toBe(true);
-    expect(statuses).toContain(200);
+    expect((await act(first, 'owner-reset', { phone, reason: REASON })).status).toBe(200);
+    // The second reset read before the first was saved: its check found no holder, and its write meets the index.
+    const gateway = app.get<SignupGateway>(SIGNUP_GATEWAY);
+    vi.spyOn(gateway, 'findSubscriberByIdentity').mockResolvedValueOnce(null);
+    const raced = await act(second, 'owner-reset', { phone, reason: REASON });
+    expect(raced.status, JSON.stringify(raced.envelope)).toBe(409);
+    expect(JSON.stringify(raced.envelope)).toContain('conflict');
   });
 });
 
