@@ -77,6 +77,8 @@ export interface BillingPayment extends PlanPayment {
   addons: PaymentAddon[];
   /** LIF-21: the owner's earlier, deleted shop's. */
   earlierShop: boolean;
+  /** ADM-17, D8-15 (Slice 8.8): when the seller's screenshot of it was sent; null when none was. */
+  evidenceSentAt?: string | null;
 }
 
 export interface BillingPaymentPage {

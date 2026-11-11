@@ -100,6 +100,8 @@ interface Pair {
   state?: ShopState;
   /** A heading both pictures are scrolled to, for a card below the first screen (the options and variants). */
   scroll?: RegExp;
+  /** Text whose card both pictures are scrolled to, where the card has no heading (a payment method's). */
+  scrollText?: RegExp;
 }
 
 const NEW_SHOP = { drawn: 'new', state: DAY_ONE };
@@ -5651,6 +5653,16 @@ function themedPairs(paired: Pair[]): Pair[] {
 
 const THEMED = themedPairs([...PAIRS, ...MONEY]);
 
+/** Scrolls the card holding this text to the top of its scrolling page. */
+async function scrollToCard(within: Locator, text: RegExp): Promise<void> {
+  await within
+    .getByText(text)
+    .first()
+    .evaluate((element) => {
+      (element.closest('.card, .rounded-card') ?? element).scrollIntoView({ block: 'start' });
+    });
+}
+
 /** Scrolls a heading to the top of its scrolling page, behind any open sheet. */
 async function scrollTo(within: Locator, heading: RegExp): Promise<void> {
   await within
@@ -5677,6 +5689,7 @@ test.describe('the built shell beside the prototype', () => {
       await drawing.selectOption('#selScreen', pair.screen);
       await drawing.waitForTimeout(400);
       if (pair.scroll) await scrollTo(drawing.locator('#frame .shell'), pair.scroll);
+      if (pair.scrollText) await scrollToCard(drawing.locator('#frame .shell'), pair.scrollText);
       await drawing.locator('#frame .shell').screenshot({ path: `${out}-prototype.png` });
       await drawing.close();
 
@@ -5701,6 +5714,7 @@ test.describe('the built shell beside the prototype', () => {
       await app.evaluate(() => document.fonts.ready);
       if (pair.then) await pair.then(app);
       if (pair.scroll) await scrollTo(app.getByRole('main'), pair.scroll);
+      if (pair.scrollText) await scrollToCard(app.getByRole('main'), pair.scrollText);
       await app.waitForTimeout(300);
       await app.screenshot({ path: `${out}-app.png` });
       await app.close();

@@ -210,6 +210,10 @@ export class DrizzlePlanPaymentsStore implements PlanPaymentsStore {
     }
   }
 
+  setEvidence(tx: Transaction, id: string, evidenceId: string) {
+    return this.payments.setEvidence(tx, id, evidenceId);
+  }
+
   transactionIdUsed(tx: Transaction, transactionId: string) {
     return this.usedIds.exists(tx, transactionId);
   }

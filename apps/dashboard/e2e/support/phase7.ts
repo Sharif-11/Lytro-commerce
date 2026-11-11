@@ -267,7 +267,9 @@ type BellRow =
   | 'balance'
   | 'renew'
   | 'bounced'
-  | 'back';
+  | 'back'
+  | 'pmRetire'
+  | 'pmBack';
 
 interface BellDraft {
   kind: string;
@@ -382,6 +384,25 @@ const BELL: Record<BellRow, BellDraft> = {
       en: 'Lytro has brought Steadfast back. You can connect it again.',
     },
     link: '/settings/couriers',
+  },
+  // Slice 8.8 (Part 39's P88_NT): a payment method Lytro is retiring, and one it brought back, in the server's words.
+  pmRetire: {
+    kind: 'payment_method_retiring',
+    title: { bn: 'Nagad রিটায়ার হচ্ছে', en: 'Nagad is being retired' },
+    body: {
+      bn: 'Lytro Nagad রিটায়ার করছে। আপাতত আগের মতোই চলবে, চেকআউটেও। পরে এটি রিমুভ হলে এর অ্যাকাউন্টগুলোও চলে যাবে, তাই কাস্টমারদের জন্য অন্য একটি পেমেন্ট মেথড চালু রাখুন।',
+      en: 'Lytro is retiring Nagad. It keeps working for now, checkout included. When it is removed, its accounts go with it, so keep another payment method on for your customers.',
+    },
+    link: '/settings/payment-methods',
+  },
+  pmBack: {
+    kind: 'payment_method_back',
+    title: { bn: 'Nagad আবার চালু', en: 'Nagad is back' },
+    body: {
+      bn: 'Lytro Nagad আবার চালু করেছে। আগের মতোই ব্যবহার করতে পারবেন।',
+      en: 'Lytro has brought Nagad back. You can use it as before.',
+    },
+    link: '/settings/payment-methods',
   },
 };
 

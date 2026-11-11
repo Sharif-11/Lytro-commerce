@@ -648,6 +648,15 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This screenshot was removed after two years.',
     bn: 'দুই বছর পর এই স্ক্রিনশটটি মুছে ফেলা হয়েছে।',
   },
+  EvidenceSent: { en: 'Screenshot sent to Lytro.', bn: 'স্ক্রিনশট Lytro-কে পাঠানো হয়েছে।' },
+  EvidenceAlreadySent: {
+    en: 'A screenshot was already sent for this payment. Once sent, it stays.',
+    bn: 'এই পেমেন্টের স্ক্রিনশট আগেই পাঠানো হয়েছে। পাঠানোর পর বদলানো যায় না।',
+  },
+  PaymentNotBeingChecked: {
+    en: 'A screenshot can only be added while Lytro is checking the payment.',
+    bn: 'Lytro পেমেন্টটা চেক করার সময়ই শুধু স্ক্রিনশট দেওয়া যায়।',
+  },
   UpgradeQuoted: { en: 'Upgrade quote created.', bn: 'আপগ্রেড কোট তৈরি হয়েছে।' },
   UpgradeSubmitted: { en: 'Upgrade payment submitted.', bn: 'আপগ্রেড পেমেন্ট জমা দেওয়া হয়েছে।' },
   UpgradeConfirmed: { en: 'Upgrade confirmed.', bn: 'আপগ্রেড নিশ্চিত হয়েছে।' },

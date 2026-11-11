@@ -67,6 +67,8 @@ export interface TenantPaymentRecord extends PlanPaymentRecord {
   planName: string | null;
   billingTerm: { labelEn: string; labelBn: string; months: number } | null;
   invoice: { id: string; number: number } | null;
+  /** ADM-17, D8-15: when the seller's screenshot of it was sent; null when none was. */
+  evidenceSentAt: Date | null;
 }
 
 /** BIL-19: the rejected or lapsed payment the shop should act on, as Home shows it. */

@@ -50,6 +50,8 @@ import { QueueModule } from '../shared/queue/queue.module';
 import { SmsEventsModule } from '../sms-events/sms-events.module';
 import { PlanLimitOverridesService } from './services/plan-limit-overrides.service';
 import { PaymentCancellationService } from './services/payment-cancellation.service';
+import { PaymentScreenshotsService } from './services/payment-screenshots.service';
+import { PaymentEvidenceModule } from '../payment-evidence/payment-evidence.module';
 import { PaymentQueueService } from './services/payment-queue.service';
 import { PlanInvoicingService } from './services/plan-invoicing.service';
 import { PurchaseService } from './services/purchase.service';
@@ -103,6 +105,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     PaymentSessionsModule,
     ListenerModule,
     DomainsModule,
+    PaymentEvidenceModule,
   ],
   providers: [
     { provide: PLANS_STORE, useClass: DrizzlePlansStore },
@@ -132,6 +135,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     LifecycleService,
     PaymentQueueService,
     PaymentCancellationService,
+    PaymentScreenshotsService,
     BillingPricesService,
   ],
   exports: [
@@ -154,6 +158,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     PaymentQueueService,
     AddonRenewalService,
     PaymentCancellationService,
+    PaymentScreenshotsService,
     BillingPricesService,
   ],
 })

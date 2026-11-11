@@ -36,7 +36,13 @@ import {
   PaymentEvidence,
   type EvidenceUpload,
 } from '../../payment-evidence/services/payment-evidence';
-import { EvidenceUploadDto, EvidenceUploadResponseDto } from '../dto/operator-manual-entries.dto';
+import {
+  EvidenceUploadDto,
+  EvidenceUploadResponseDto,
+  PaymentEvidenceAttachDto,
+  PaymentEvidenceSentDto,
+} from '../dto/operator-manual-entries.dto';
+import { PaymentScreenshotsService } from '../../billing/services/payment-screenshots.service';
 import { EssentialSmsUsageService } from '../../sms-usage/services/essential-sms-usage.service';
 import type { BalanceView, LedgerPage } from '../../balance/types/ledger-entry';
 import type { RateValue } from '../../balance/types/rate';
@@ -89,6 +95,7 @@ export class BalanceController {
     @Inject(TopUpService) private readonly topUp: TopUpService,
     @Inject(EssentialSmsUsageService) private readonly smsUsage: EssentialSmsUsageService,
     @Inject(PaymentCancellationService) private readonly cancellation: PaymentCancellationService,
+    @Inject(PaymentScreenshotsService) private readonly screenshots: PaymentScreenshotsService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
   ) {}
 
@@ -275,6 +282,27 @@ export class BalanceController {
       body.from,
       [PlanPaymentKind.TopUp],
       new Date(),
+    );
+  }
+
+  // ADM-17, D8-15 (Slice 8.8): a screenshot for a top-up already sent, while Lytro checks it. The upload's link comes from
+  // `POST /balance/top-up/evidence`.
+  @Post('top-up/:id/evidence')
+  @Dashboard({ suspendedOwner: true })
+  @RequirePermission(Permission.BalanceManage)
+  @ResponseMessage('EvidenceSent')
+  @ApiOperation({ summary: 'Send a screenshot for a top-up Lytro is still checking (ADM-17)' })
+  @ZodResponse({ type: PaymentEvidenceSentDto })
+  attachEvidence(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(PaymentEvidenceAttachDto.schema)) body: PaymentEvidenceAttachDto,
+    @Req() request: DashboardRequest,
+  ): Promise<{ evidenceSentAt: Date }> {
+    return this.screenshots.attach(
+      this.tenantIdOf(request),
+      id,
+      [PlanPaymentKind.TopUp],
+      body.evidenceKey,
     );
   }
 
