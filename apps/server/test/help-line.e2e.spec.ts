@@ -19,6 +19,7 @@ import {
   type HttpResult,
 } from './support/http';
 import { errorOf, fieldsOf, openShop } from './support/shop-client';
+import { slowWrites, untilSome } from './support/slow-write';
 import { SmsCapture } from './support/sms-capture';
 
 // Phase 8 Slice 8.7, read agreed 2026-11-10 (D8-4, D8-68): Lytro's one help line -- WhatsApp, phone and hours -- set in the console and
@@ -251,5 +252,30 @@ describeIfDatabase('The help line on the console (Slice 8.8)', () => {
     expect((await set('help_opens_hour', 11)).status).toBe(400);
     expect((await set('help_closes_hour', 10)).status).toBe(400);
     expect((await read()).body).toMatchObject({ opensHour: 10, closesHour: 11 });
+  });
+
+  it('takes two hour changes at once one after the other, so the closing hour stays after the opening one (D8-77)', async () => {
+    expect((await set('help_opens_hour', 9)).status).toBe(200);
+    expect((await set('help_closes_hour', 22)).status).toBe(200);
+    // Review C's F4: one operator opens later while another closes earlier. Each passes against the other's old hour, so
+    // the second must wait for the first and check against its new one.
+    const release = await slowWrites(admin, {
+      name: 'p8cr_slow_opens',
+      table: 'control.platform_settings',
+      on: 'INSERT',
+      when: "NEW.key = 'help_opens_hour'",
+    });
+    try {
+      const opening = set('help_opens_hour', 20);
+      await untilSome(admin, 'asleep');
+      const closing = set('help_closes_hour', 10);
+      const [opened, closed] = await Promise.all([opening, closing]);
+      expect(opened.status, JSON.stringify(opened.body)).toBe(200);
+      expect(closed.status, JSON.stringify(closed.body)).toBe(400);
+      expect(errorOf(closed).message).toMatch(/closing hour must be after|খোলার সময়ের পরে/);
+    } finally {
+      await release();
+    }
+    expect((await read()).body).toMatchObject({ opensHour: 20, closesHour: 22 });
   });
 });

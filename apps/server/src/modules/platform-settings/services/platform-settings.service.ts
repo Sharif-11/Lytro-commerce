@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { Transaction } from '@lytronix/db';
 import {
   AiProvider,
   AuditResult,
@@ -208,6 +209,12 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.HelpClosesHour]: isHour,
 };
 
+// D8-77: the help line's two hours, each checked against the other.
+const HELP_HOURS: readonly PlatformSettingKey[] = [
+  PlatformSettingKey.HelpOpensHour,
+  PlatformSettingKey.HelpClosesHour,
+];
+
 function validate(key: PlatformSettingKey, value: unknown): void {
   if (!VALIDATORS[key](value)) {
     throw new FieldsError([
@@ -253,10 +260,10 @@ export class PlatformSettingsService {
     reason: string | null = null,
   ): Promise<void> {
     validate(key, value);
-    await this.assertHelpHoursInOrder(key, value);
     const current = await this.store.get(key);
     // ADM-08: the change and its platform audit entry commit together or not at all.
     await this.store.run(async (tx) => {
+      await this.assertHelpHoursInOrder(tx, key, value);
       await this.store.set(tx, key, value, DESCRIPTIONS[key], operatorId);
       await this.platformAudit.recordWithin(tx, {
         actorType: PlatformActorType.Operator,
@@ -275,15 +282,21 @@ export class PlatformSettingsService {
 
   /**
    * D8-77 (Slice 8.8, the owner's answer): the help line closes after it opens, every day, so its hours never run past
-   * midnight. Whichever hour is changed is checked against the other's stored value, or its default.
+   * midnight. Whichever hour is changed is checked against the other's stored value, or its default -- read in the write's
+   * transaction under a lock both hours' changes take, so two changes at once can't each pass against the other's old value
+   * (the Phase 8 close-out's review C, F4).
    */
-  private async assertHelpHoursInOrder(key: PlatformSettingKey, value: unknown): Promise<void> {
-    if (key !== PlatformSettingKey.HelpOpensHour && key !== PlatformSettingKey.HelpClosesHour) {
-      return;
-    }
+  private async assertHelpHoursInOrder(
+    tx: Transaction,
+    key: PlatformSettingKey,
+    value: unknown,
+  ): Promise<void> {
+    if (!HELP_HOURS.includes(key)) return;
+    await this.store.lockTogether(tx, HELP_HOURS);
     const opening = key === PlatformSettingKey.HelpOpensHour;
     // The table, not the cache, so another instance's change since is seen.
-    const other = await this.store.get(
+    const other = await this.store.getWithin(
+      tx,
       opening ? PlatformSettingKey.HelpClosesHour : PlatformSettingKey.HelpOpensHour,
     );
     const otherHour =

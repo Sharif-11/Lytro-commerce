@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { Executor } from '../../transactions';
 import { platformSettings, type SelectPlatformSetting } from '../../schema';
 
@@ -16,6 +16,15 @@ export class PlatformSettingsRepository {
 
   async list(db: Executor): Promise<SelectPlatformSetting[]> {
     return db.select().from(platformSettings);
+  }
+
+  /**
+   * D8-77: holds settings checked against each other until the transaction ends, so two changes to them run one after the
+   * other and each checks the other's committed value -- even while one was never set, and so has no row to lock.
+   */
+  async lockTogether(db: Executor, keys: readonly string[]): Promise<void> {
+    const name = `platform_settings:${[...keys].sort().join(',')}`;
+    await db.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${name}, 0))`);
   }
 
   /** Inserts the key if it has never been set, used only by a seed migration. */

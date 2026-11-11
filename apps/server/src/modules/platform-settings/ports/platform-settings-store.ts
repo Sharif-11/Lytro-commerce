@@ -10,6 +10,10 @@ export interface PlatformSettingsStore {
    */
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
   get(key: PlatformSettingKey): Promise<PlatformSettingValue | null>;
+  /** The same, read in the caller's transaction. */
+  getWithin(tx: Transaction, key: PlatformSettingKey): Promise<PlatformSettingValue | null>;
+  /** D8-77: holds settings checked against each other until the transaction ends, even one never set. */
+  lockTogether(tx: Transaction, keys: readonly PlatformSettingKey[]): Promise<void>;
   list(): Promise<PlatformSettingValue[]>;
   set(
     tx: Transaction,
