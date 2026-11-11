@@ -3,6 +3,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
 import { useAddDomain, useCheckDomain, useDomain, useRemoveDomain } from '@/api/domain';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,6 @@ import { Field } from '@/components/ui/field';
 import { Kv } from '@/components/ui/kv';
 import { StatusTag, type StatusTone } from '@/components/ui/status-tag';
 import { Toast } from '@/components/ui/toast';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useToast } from '@/hooks/use-toast';
 import { appConfig } from '@/lib/app-config';
 import { useShell } from '@/shell/shell-context';
@@ -39,7 +39,6 @@ const HEAD: Record<ShopDomain['state'], { word: string; tone: StatusTone; hint: 
  */
 export function DomainView(): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const { slug, showToast } = useShell();
   const navigate = useNavigate();
   const domain = useDomain();
@@ -93,9 +92,9 @@ export function DomainView(): React.JSX.Element {
 
   return (
     <ShellPage>
-      {domain.isError ? <Banner tone="bad">{errorText(domain.error)}</Banner> : null}
-      {check.isError ? <Banner tone="bad">{errorText(check.error)}</Banner> : null}
-      {remove.isError ? <Banner tone="bad">{errorText(remove.error)}</Banner> : null}
+      {domain.isError ? <ErrorBanner error={domain.error} /> : null}
+      {check.isError ? <ErrorBanner error={check.error} /> : null}
+      {remove.isError ? <ErrorBanner error={remove.error} /> : null}
       {view ? (
         <div className="flex max-w-[640px] flex-col gap-[14px]">
           {current === null ? (
@@ -197,7 +196,6 @@ export function DomainView(): React.JSX.Element {
 /** The field for the domain the seller bought, refused under it when it is not one or another shop has it. */
 function AddDomain({ address }: { address: string }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const add = useAddDomain();
   const [typed, setTyped] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
@@ -215,7 +213,7 @@ function AddDomain({ address }: { address: string }): React.JSX.Element {
 
   return (
     <>
-      {add.isError && problem === null ? <Banner tone="bad">{errorText(add.error)}</Banner> : null}
+      {add.isError && problem === null ? <ErrorBanner error={add.error} /> : null}
       <p className="text-[14px]">{t('dmIntro', { address })}</p>
       <Card>
         <form className="flex flex-col gap-3" onSubmit={submit} noValidate>

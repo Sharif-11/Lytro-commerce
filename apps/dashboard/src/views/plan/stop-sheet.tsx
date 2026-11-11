@@ -1,9 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { useCancelSubscription } from '@/api/billing';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonth } from '@/lib/dates';
 import type { LapseStages } from '@/types/me';
 import { lapseDays } from './figures';
@@ -46,7 +45,6 @@ export function StopSheet({
   onDone,
 }: StopSheetProps): React.JSX.Element {
   const { t } = useTranslation('money');
-  const errorText = useErrorText();
   const cancel = useCancelSubscription();
   const date = formatDayMonth(periodEnd);
   const days = lapseDays(stages);
@@ -81,7 +79,7 @@ export function StopSheet({
         <Step tone="bad">{t('cnStep4', { day: days.deleted })}</Step>
       </div>
       <p className="mt-2.5 text-[14px] text-fg-muted">{t('cnUndo', { date })}</p>
-      {cancel.isError ? <Banner tone="bad">{errorText(cancel.error)}</Banner> : null}
+      {cancel.isError ? <ErrorBanner error={cancel.error} /> : null}
     </Sheet>
   );
 }

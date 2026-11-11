@@ -6,9 +6,9 @@ import { formatTaka, formatTakaExact } from '@lytronix/ui';
 import { useBalance, useCurrentRates, useEssentialSms } from '@/api/balance';
 import { useBillingPayments } from '@/api/billing';
 import { useHome } from '@/api/home';
+import { ErrorBanner } from '@/components/error-banner';
 import { BareFrame } from '@/components/onboarding/frame';
 import { Banner } from '@/components/ui/banner';
-import { useErrorText } from '@/hooks/use-error-text';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
@@ -27,7 +27,6 @@ import { TopUpSheet } from './top-up-sheet';
  */
 export function BalanceView({ openTopUp }: { openTopUp: boolean }): React.JSX.Element {
   const { t } = useTranslation('money');
-  const errorText = useErrorText();
   const { tenant, viewer, slug } = useShell();
   const suspended = tenant.suspended;
   const canTopUp = allows(viewer, [Permission.BalanceManage]);
@@ -75,7 +74,7 @@ export function BalanceView({ openTopUp }: { openTopUp: boolean }): React.JSX.El
       }
     />
   ) : null;
-  const failure = balance.isError ? <Banner tone="bad">{errorText(balance.error)}</Banner> : null;
+  const failure = balance.isError ? <ErrorBanner error={balance.error} /> : null;
 
   if (suspended) {
     return (

@@ -23,6 +23,7 @@ import {
   useRemoveProduct,
   useSaveProduct,
 } from '@/api/products';
+import { ErrorBanner } from '@/components/error-banner';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,7 @@ import {
   type ProductSettings,
   type TypeSetting,
 } from '@/lib/product-settings';
+import { requestIdOf } from '@/lib/help-line';
 import { overLimit } from '@/lib/variant-matrix';
 import type { ProductDefaults } from '@/types/attribute';
 import { allows } from '@/shell/hubs';
@@ -88,7 +90,6 @@ import { VariantsCard, type StockKind } from './variants-card';
  */
 export function ProductEditor({ productId }: { productId: string | null }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const product = useProduct(productId);
   if (productId !== null && product.isPending) {
     return (
@@ -108,7 +109,7 @@ export function ProductEditor({ productId }: { productId: string | null }): Reac
             <EmptyState icon="tag">{t('notFound')}</EmptyState>
           </Card>
         ) : (
-          <Banner tone="bad">{errorText(product.error)}</Banner>
+          <ErrorBanner error={product.error} />
         )}
       </ShellPage>
     );
@@ -123,7 +124,7 @@ const PRICE_REST_MS = 300;
 /** The ways an edit can stop short: the shop at its limit, or a part the server refused (Part 13). */
 type Stop =
   | { kind: 'limit'; refused: boolean }
-  | { kind: 'parts'; parts: { part: string; message: string }[] };
+  | { kind: 'parts'; parts: { part: string; message: string; error: unknown }[] };
 
 function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.Element {
   const { t, i18n } = useTranslation('shop');
@@ -486,7 +487,11 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         if (named.length > 0) {
           setStop({
             kind: 'parts',
-            parts: named.map((each) => ({ part: each.part, message: errorText(each.error) })),
+            parts: named.map((each) => ({
+              part: each.part,
+              message: errorText(each.error),
+              error: each.error,
+            })),
           });
         } else if (outcome.refused.length === 0 && outcome.product) {
           showToast(savedWords(outcome.product));
@@ -528,10 +533,20 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     t('newProduct')
   );
   const inCombos = combosIn(remove.error);
+  // Slice 8.8's `p88-err-save`: a part the server failed on is its sentence and error ID, above the page; a part refused
+  // names itself under the title, as before.
+  const failedParts = stop?.kind === 'parts' ? stop.parts : [];
+  const faults = failedParts.filter((each) => requestIdOf(each.error) !== null);
+  const refusals = failedParts.filter((each) => requestIdOf(each.error) === null);
   return (
     <ShellPage
       title={title}
       actions={product ? <StockTag state={product.stockState} /> : undefined}
+      failure={
+        faults.length > 0
+          ? faults.map((each) => <ErrorBanner key={each.part} error={each.error} />)
+          : undefined
+      }
     >
       {product === null ? (
         <KindCard
@@ -567,19 +582,17 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
       {stop?.kind === 'limit' && room.data ? (
         <ProductLimitBanner room={room.data} lead={stop.refused ? 'refused' : 'now'} />
       ) : null}
-      {stop?.kind === 'parts'
-        ? stop.parts.map((each) => (
-            <Banner key={each.part} tone="bad">
-              <b>{t(PART_WORDS[each.part] ?? 'partFields')}</b> {each.message} {t('partRest')}
-            </Banner>
-          ))
-        : null}
+      {refusals.map((each) => (
+        <Banner key={each.part} tone="bad">
+          <b>{t(PART_WORDS[each.part] ?? 'partFields')}</b> {each.message} {t('partRest')}
+        </Banner>
+      ))}
       {count > 0 ? (
         <Banner tone="bad">{count === 1 ? t('fixOne') : t('fixMany', { n: count })}</Banner>
       ) : null}
       {media.storageFull && media.storage ? <StorageFullBanner storage={media.storage} /> : null}
       {create.isError && !(create.error instanceof ApiClientError) ? (
-        <Banner tone="bad">{errorText(create.error)}</Banner>
+        <ErrorBanner error={create.error} />
       ) : null}
       <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
         <div className="flex flex-col gap-section">

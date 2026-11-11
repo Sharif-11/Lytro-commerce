@@ -2,11 +2,10 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PURCHASE_REASON_MAX_LENGTH } from '@lytronix/validators';
 import { useCancelPurchase, useClosePurchase } from '@/api/purchases';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { AreaField } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import type { Purchase } from '@/types/purchasing';
 import { outstandingOf } from './purchase-lines';
 import { usePurchaseWords } from './purchase-words';
@@ -25,7 +24,6 @@ export function CloseShortSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const words = usePurchaseWords();
   const close = useClosePurchase(purchase.id);
   const [reason, setReason] = useState('');
@@ -68,7 +66,7 @@ export function CloseShortSheet({
           setReason(event.target.value);
         }}
       />
-      {close.isError ? <Banner tone="bad">{errorText(close.error)}</Banner> : null}
+      {close.isError ? <ErrorBanner error={close.error} /> : null}
     </Sheet>
   );
 }
@@ -84,7 +82,6 @@ export function CancelSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const cancel = useCancelPurchase(purchaseId);
 
   useEffect(() => {
@@ -111,7 +108,7 @@ export function CancelSheet({
       }
     >
       <p className="text-[15px]">{t('cancelCons')}</p>
-      {cancel.isError ? <Banner tone="bad">{errorText(cancel.error)}</Banner> : null}
+      {cancel.isError ? <ErrorBanner error={cancel.error} /> : null}
     </Sheet>
   );
 }

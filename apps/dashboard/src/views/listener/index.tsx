@@ -3,13 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { Link } from '@tanstack/react-router';
 import { ListenerDeviceStatus, ListenerRevokeReason, Permission } from '@lytronix/validators';
 import { useListenerPhones } from '@/api/listener';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { rowClass, RowChevron, RowLead, RowList } from '@/components/ui/list-row';
 import { StatusTag } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { appConfig } from '@/lib/app-config';
 import { formatDayMonth } from '@/lib/dates';
 import { allows } from '@/shell/hubs';
@@ -75,7 +75,6 @@ function PhoneRow({
  */
 export function ListenerPhonesView(): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const { slug, viewer, showToast } = useShell();
   const canManage = allows(viewer, [Permission.ListenerManage]);
   const phones = useListenerPhones();
@@ -107,7 +106,7 @@ export function ListenerPhonesView(): React.JSX.Element {
     >
       <div className="flex max-w-[640px] flex-col gap-3.5">
         <p className="m-0 text-[14px] text-fg-muted">{t('lpLead')}</p>
-        {phones.isError ? <Banner tone="bad">{errorText(phones.error)}</Banner> : null}
+        {phones.isError ? <ErrorBanner error={phones.error} /> : null}
         {data && !canManage ? <Banner tone="neutral">{t('lpRo')}</Banner> : null}
         {canManage && full ? (
           <Banner

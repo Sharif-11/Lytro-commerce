@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
 import { useAdTracking, useCatalogFeed, useRegenerateFeed, useSaveAdTracking } from '@/api/meta';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { ActionBar } from '@/components/ui/action-bar';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { CopyButton } from '@/components/ui/copy-button';
@@ -13,7 +13,6 @@ import { Eyebrow } from '@/components/ui/page';
 import { Sheet } from '@/components/ui/sheet';
 import { StatusTag } from '@/components/ui/status-tag';
 import { Toast } from '@/components/ui/toast';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useToast } from '@/hooks/use-toast';
 import { formatDayMonthYear } from '@/lib/dates';
 import { ShellPage } from '@/shell/shell-page';
@@ -28,7 +27,6 @@ const FEED_STEPS = ['fdS1', 'fdS2', 'fdS3', 'fdS4'] as const;
  */
 export function MetaView(): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const tracking = useAdTracking();
   const save = useSaveAdTracking();
   const feed = useCatalogFeed();
@@ -69,9 +67,9 @@ export function MetaView(): React.JSX.Element {
   return (
     <ShellPage>
       {save.isError && Object.keys(problems).length === 0 ? (
-        <Banner tone="bad">{errorText(save.error)}</Banner>
+        <ErrorBanner error={save.error} />
       ) : null}
-      {tracking.isError ? <Banner tone="bad">{errorText(tracking.error)}</Banner> : null}
+      {tracking.isError ? <ErrorBanner error={tracking.error} /> : null}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col gap-3">
@@ -192,7 +190,7 @@ export function MetaView(): React.JSX.Element {
               suffix={<CopyButton text={feed.data.url} />}
             />
           ) : null}
-          {feed.isError ? <Banner tone="bad">{errorText(feed.error)}</Banner> : null}
+          {feed.isError ? <ErrorBanner error={feed.error} /> : null}
           <Eyebrow>{t('fdSteps')}</Eyebrow>
           <ol className="flex flex-col gap-2">
             {FEED_STEPS.map((step, index) => (
@@ -236,7 +234,7 @@ export function MetaView(): React.JSX.Element {
         }
       >
         <p className="text-[15px]">{t('fdRegenCons')}</p>
-        {regenerate.isError ? <Banner tone="bad">{errorText(regenerate.error)}</Banner> : null}
+        {regenerate.isError ? <ErrorBanner error={regenerate.error} /> : null}
       </Sheet>
       <Toast message={toast.message} />
     </ShellPage>

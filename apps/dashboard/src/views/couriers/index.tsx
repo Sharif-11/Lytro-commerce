@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { CourierConnectionState, Permission } from '@lytronix/validators';
 import { useCourierAdapters, useCourierConnections } from '@/api/couriers';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Card } from '@/components/ui/card';
@@ -10,7 +11,6 @@ import { buttonClass } from '@/components/ui/classes';
 import { rowClass, RowChevron, RowLead, RowList } from '@/components/ui/list-row';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { courierName } from '@/lib/couriers';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -124,7 +124,6 @@ type Open =
  */
 export function CouriersView(): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const { slug, viewer } = useShell();
   const manage = allows(viewer, [Permission.CouriersManage]);
   const connections = useCourierConnections();
@@ -144,7 +143,7 @@ export function CouriersView(): React.JSX.Element {
     <ShellPage>
       <div className="flex max-w-[640px] flex-col gap-3.5" tabIndex={manage ? undefined : 0}>
         <p className="text-[14px] text-fg-muted">{t('crLead')}</p>
-        {failure ? <Banner tone="bad">{errorText(failure)}</Banner> : null}
+        {failure ? <ErrorBanner error={failure} /> : null}
         {manage ? null : <Banner tone="neutral">{t('crStaffNote')}</Banner>}
         {retiring.map((each) => (
           <RetiringBanner key={each.courierKey} retiring={each} connections={connected} />

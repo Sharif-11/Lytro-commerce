@@ -4,13 +4,12 @@ import { PlanPaymentPageFrom, RateKey } from '@lytronix/validators';
 import { formatTaka } from '@lytronix/ui';
 import { useQuoteTopUp } from '@/api/balance';
 import { useOpenPaymentPage, usePlatformWallets } from '@/api/billing';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { chipClass } from '@/components/ui/classes';
 import { Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { WalletMarks } from '@/components/wallet-marks';
-import { useErrorText } from '@/hooks/use-error-text';
 import type { RateValue } from '@/types/balance';
 
 // The quick amounts the sketch offers, and the one it opens on.
@@ -44,7 +43,6 @@ interface TopUpSheetProps {
  */
 export function TopUpSheet({ bounds, rates, onClose }: TopUpSheetProps): React.JSX.Element {
   const { t } = useTranslation('money');
-  const errorText = useErrorText();
   const wallets = usePlatformWallets();
   const quote = useQuoteTopUp();
   const openPage = useOpenPaymentPage();
@@ -116,8 +114,8 @@ export function TopUpSheet({ bounds, rates, onClose }: TopUpSheetProps): React.J
       ) : null}
       <WalletMarks wallets={wallets.data ?? []} />
       <p className="text-[14px] text-fg-muted">{t('tuNotePage')}</p>
-      {quote.isError ? <Banner tone="bad">{errorText(quote.error)}</Banner> : null}
-      {openPage.isError ? <Banner tone="bad">{errorText(openPage.error)}</Banner> : null}
+      {quote.isError ? <ErrorBanner error={quote.error} /> : null}
+      {openPage.isError ? <ErrorBanner error={openPage.error} /> : null}
     </Sheet>
   );
 }

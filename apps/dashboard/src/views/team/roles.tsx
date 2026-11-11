@@ -3,15 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
 import { Permission } from '@lytronix/validators';
 import { useCreateRole, useDeleteRole, useRoles, useStaffList, useUpdateRole } from '@/api/staff';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { rowClass, RowList } from '@/components/ui/list-row';
 import { Toast } from '@/components/ui/toast';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useToast } from '@/hooks/use-toast';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -37,7 +36,6 @@ type Picked = { kind: 'role'; id: string } | { kind: 'new' };
  */
 export function RolesView(): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const { slug, viewer } = useShell();
   const canManage = allows(viewer, [Permission.StaffManage]);
   const roles = useRoles();
@@ -147,7 +145,7 @@ export function RolesView(): React.JSX.Element {
         people={staff.data?.staff.length}
         roles={roles.data?.length}
       />
-      {roles.isError ? <Banner tone="bad">{errorText(roles.error)}</Banner> : null}
+      {roles.isError ? <ErrorBanner error={roles.error} /> : null}
       {roles.isSuccess ? (
         <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
           {list.length > 0 ? (
@@ -193,7 +191,7 @@ export function RolesView(): React.JSX.Element {
                 }}
               />
               {error && !(error instanceof ApiClientError && error.code === 'conflict') ? (
-                <Banner tone="bad">{errorText(error)}</Banner>
+                <ErrorBanner error={error} />
               ) : null}
               {canManage ? (
                 <div className="mt-1.5 flex flex-wrap gap-2">

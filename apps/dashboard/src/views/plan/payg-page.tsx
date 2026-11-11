@@ -5,14 +5,13 @@ import { Permission } from '@lytronix/validators';
 import { formatTakaExact } from '@lytronix/ui';
 import { useBalance } from '@/api/balance';
 import { useCloseShop, usePayAsYouGoPlan } from '@/api/billing';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { buttonClass } from '@/components/ui/classes';
 import { Dialog } from '@/components/ui/dialog';
 import { SectionHead } from '@/components/ui/page';
 import { StatusTag } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatMonth } from '@/lib/dates';
 import { limitFigure, megabytes } from '@/lib/limits';
 import { allows } from '@/shell/hubs';
@@ -44,7 +43,6 @@ function FeeLine({ label, value }: { label: string; value: React.ReactNode }): R
  */
 export function PaygPage({ openPlanId }: { openPlanId: string | null }): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { tenant, viewer, slug, showToast } = useShell();
   const canManage = allows(viewer, [Permission.PaymentsManage]);
@@ -143,7 +141,7 @@ export function PaygPage({ openPlanId }: { openPlanId: string | null }): React.J
             <SectionHead>{t('changePlan')}</SectionHead>
             {catalogue.error ? (
               <div className="mt-3">
-                <Banner tone="bad">{errorText(catalogue.error)}</Banner>
+                <ErrorBanner error={catalogue.error} />
               </div>
             ) : null}
             <div className="mt-3">
@@ -232,7 +230,6 @@ function CloseShopDialog({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('money');
-  const errorText = useErrorText();
   const { slug } = useShell();
   const close = useCloseShop();
   return (
@@ -266,7 +263,7 @@ function CloseShopDialog({
       <p className="mt-4">{t('csCons3')}</p>
       {close.isError ? (
         <div className="mt-3">
-          <Banner tone="bad">{errorText(close.error)}</Banner>
+          <ErrorBanner error={close.error} />
         </div>
       ) : null}
     </Dialog>

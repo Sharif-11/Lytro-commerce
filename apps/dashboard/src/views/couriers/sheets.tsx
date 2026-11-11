@@ -9,6 +9,7 @@ import {
   usePickupStores,
   useSetPickupStore,
 } from '@/api/couriers';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -48,7 +49,7 @@ function ConnectRefusal({
       return <Banner tone="bad">{t('crRefused', { c: adapter.name, m: said })}</Banner>;
     }
   }
-  return <Banner tone="bad">{errorText(error)}</Banner>;
+  return <ErrorBanner error={error} />;
 }
 
 /**
@@ -251,7 +252,6 @@ export function NewAddressDialog({
   onMade: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const replace = useNewCourierAddress(courier);
   return (
     <Dialog
@@ -277,7 +277,7 @@ export function NewAddressDialog({
       {t('crNewPairD')}
       {replace.isError ? (
         <div className="mt-3">
-          <Banner tone="bad">{errorText(replace.error)}</Banner>
+          <ErrorBanner error={replace.error} />
         </div>
       ) : null}
     </Dialog>
@@ -302,7 +302,6 @@ export function DisconnectDialog({
   onDone: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const disconnect = useDisconnectCourier();
   return (
     <Dialog
@@ -330,7 +329,7 @@ export function DisconnectDialog({
       {retiring ? ` ${t('crDiscRetiring', { c: name })}` : null}
       {disconnect.isError ? (
         <div className="mt-3">
-          <Banner tone="bad">{errorText(disconnect.error)}</Banner>
+          <ErrorBanner error={disconnect.error} />
         </div>
       ) : null}
     </Dialog>
@@ -351,7 +350,6 @@ export function StoreSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const stores = usePickupStores(courier);
   const save = useSetPickupStore(courier);
   const [chosen, setChosen] = useState<string | null>(null);
@@ -375,8 +373,8 @@ export function StoreSheet({
       }
     >
       <p className="text-[14px] text-fg-muted">{t('crStoreD', { c: name })}</p>
-      {stores.isError ? <Banner tone="bad">{errorText(stores.error)}</Banner> : null}
-      {save.isError ? <Banner tone="bad">{errorText(save.error)}</Banner> : null}
+      {stores.isError ? <ErrorBanner error={stores.error} /> : null}
+      {save.isError ? <ErrorBanner error={save.error} /> : null}
       {stores.isPending ? (
         <SkeletonRows count={2} />
       ) : (

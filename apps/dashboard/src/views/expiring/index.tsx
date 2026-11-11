@@ -3,8 +3,8 @@ import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { BatchState, Permission } from '@lytronix/validators';
 import { useBatchCount, useShopBatches, useWriteOff } from '@/api/stock';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip, ChipRow } from '@/components/ui/chips';
@@ -13,7 +13,6 @@ import { RowList, RowText } from '@/components/ui/list-row';
 import { Sheet } from '@/components/ui/sheet';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { daysUntil, formatDayMonth } from '@/lib/dates';
 import { splitsOf } from '@/lib/variant-matrix';
 import { allows } from '@/shell/hubs';
@@ -35,7 +34,6 @@ export type ExpiringSegment = 'expiring' | 'expired';
  */
 export function ExpiringView({ segment }: { segment: ExpiringSegment }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { slug, viewer } = useShell();
   const mayManage = allows(viewer, [Permission.InventoryManage]);
@@ -83,7 +81,7 @@ export function ExpiringView({ segment }: { segment: ExpiringSegment }): React.J
           </Chip>
         ))}
       </ChipRow>
-      {list.isError ? <Banner tone="bad">{errorText(list.error)}</Banner> : null}
+      {list.isError ? <ErrorBanner error={list.error} /> : null}
       {list.isPending ? (
         <Card flush>
           <SkeletonRows count={3} />
@@ -180,7 +178,6 @@ function WriteOff({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const writeOff = useWriteOff(batch.productId);
   return (
     <Sheet
@@ -202,7 +199,7 @@ function WriteOff({
     >
       <div className="flex flex-col gap-1">
         <WriteOffDetails batch={batch} unit={batch.stockUnit} avgCost={batch.avgCost ?? null} />
-        {writeOff.isError ? <Banner tone="bad">{errorText(writeOff.error)}</Banner> : null}
+        {writeOff.isError ? <ErrorBanner error={writeOff.error} /> : null}
       </div>
     </Sheet>
   );

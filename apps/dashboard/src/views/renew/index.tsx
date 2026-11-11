@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TenantState } from '@lytronix/validators';
 import { useChoosePayAsYouGo } from '@/api/billing';
+import { ErrorBanner } from '@/components/error-banner';
 import { BareFrame } from '@/components/onboarding/frame';
 import { SignOutLink } from '@/components/sign-out-link';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { ShopMark } from '@/components/ui/shop-mark';
-import { useErrorText } from '@/hooks/use-error-text';
 import { daysSince, formatLongDate } from '@/lib/dates';
 import { LeadTo } from '@/shell/lead-to';
 import { useShell } from '@/shell/shell-context';
@@ -30,7 +29,6 @@ const LAPSED: readonly TenantState[] = [TenantState.Locked, TenantState.Archived
  */
 export function Renew(): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
-  const errorText = useErrorText();
   const { tenant, slug, showToast } = useShell();
   const catalogue = usePlanCatalogue(tenant.billingTerm?.id ?? null);
   const payg = useChoosePayAsYouGo();
@@ -75,7 +73,7 @@ export function Renew(): React.JSX.Element {
         termId={term?.id ?? null}
         onPick={catalogue.pickTerm}
       />
-      {catalogue.error ? <Banner tone="bad">{errorText(catalogue.error)}</Banner> : null}
+      {catalogue.error ? <ErrorBanner error={catalogue.error} /> : null}
       <PlanRow>
         {catalogue.options.map((option) => {
           const own = option.move === 'renewal';
@@ -117,7 +115,7 @@ export function Renew(): React.JSX.Element {
       >
         {t('choosePayg')}
       </Button>
-      {payg.isError ? <Banner tone="bad">{errorText(payg.error)}</Banner> : null}
+      {payg.isError ? <ErrorBanner error={payg.error} /> : null}
       <ExportButton />
       <SignOutLink />
       {archived ? <ArchivedNotices /> : <LockedNotices />}

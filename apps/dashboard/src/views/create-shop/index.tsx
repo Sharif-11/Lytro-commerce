@@ -7,15 +7,14 @@ import { ApiClientError } from '@lytronix/api-client';
 import { useCreateShop } from '@/api/auth';
 import { ME_QUERY_KEY, useMe } from '@/api/me';
 import { useAddressCheck } from '@/api/shop-setup';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { OnboardingFrame } from '@/components/onboarding/frame';
 import { Notice } from '@/components/onboarding/notice';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chips';
 import { Field } from '@/components/ui/field';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { useErrorText } from '@/hooks/use-error-text';
 import { appConfig } from '@/lib/app-config';
 import { shopSlug } from '@/lib/slug';
 import { signUpIntent } from '@/session/sign-up-intent';
@@ -32,7 +31,6 @@ const TYPING_REST_MS = 400;
  */
 export function CreateShop(): React.JSX.Element {
   const { t } = useTranslation('onboarding');
-  const errorText = useErrorText();
   const me = useMe();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -191,7 +189,7 @@ export function CreateShop(): React.JSX.Element {
           }}
         />
         {refused ? <Notice tone="warn">{t('csRefused')}</Notice> : null}
-        {otherFailure ? <Banner tone="bad">{errorText(create.error)}</Banner> : null}
+        {otherFailure ? <ErrorBanner error={create.error} /> : null}
         {free ? (
           <p className="num text-[14px] text-fg-muted">
             <Trans

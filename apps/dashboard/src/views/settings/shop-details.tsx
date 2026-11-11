@@ -4,8 +4,8 @@ import { ApiClientError } from '@lytronix/api-client';
 import { BUSINESS_ADDRESS_MAX_LENGTH, NAME_MAX_LENGTH } from '@lytronix/validators';
 import { useSetLogo, useShopSettings, useUpdateShopSettings } from '@/api/shop-settings';
 import { useBusinessType, usePresets, useSetBusinessType } from '@/api/shop-setup';
+import { ErrorBanner } from '@/components/error-banner';
 import { ActionBar } from '@/components/ui/action-bar';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { CopyButton } from '@/components/ui/copy-button';
@@ -109,9 +109,7 @@ export function ShopDetailsView(): React.JSX.Element {
   const bn = i18n.language === 'bn';
   return (
     <ShellPage>
-      {failed && Object.keys(problems).length === 0 ? (
-        <Banner tone="bad">{errorText(failed)}</Banner>
-      ) : null}
+      {failed && Object.keys(problems).length === 0 ? <ErrorBanner error={failed} /> : null}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col gap-3">

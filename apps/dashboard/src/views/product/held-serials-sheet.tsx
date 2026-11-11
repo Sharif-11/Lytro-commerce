@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
 import { SerialStatus } from '@lytronix/validators';
 import { useFixSerial, useRemoveSerial, useSerials } from '@/api/stock';
+import { ErrorBanner } from '@/components/error-banner';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip, ChipRow } from '@/components/ui/chips';
@@ -148,7 +149,7 @@ export function HeldSerialsSheet({
           >
             {t('snRemove')}
           </button>
-          {remove.isError ? <Banner tone="bad">{errorText(remove.error)}</Banner> : null}
+          {remove.isError ? <ErrorBanner error={remove.error} /> : null}
         </div>
       ) : open ? (
         <div className="flex flex-col gap-3">

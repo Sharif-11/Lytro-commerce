@@ -2,14 +2,13 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
 import { useSetHomeArea } from '@/api/delivery';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chips';
 import { RadioMark } from '@/components/ui/kv';
 import { RowList } from '@/components/ui/list-row';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import type { DeliverySettings, Locations } from '@/types/delivery';
 import { AreaSearchSheet } from '../set-up/area-search-sheet';
 import {
@@ -51,7 +50,6 @@ export function HomeAreaSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const words = useDeliveryWords();
   const save = useSetHomeArea();
   const home = settings.zones.find((zone) => zone.isHome);
@@ -208,7 +206,7 @@ export function HomeAreaSheet({
               </div>
             ) : null}
             <p className="text-[14px] text-fg-muted">{t('homeAreaNote')}</p>
-            {save.isError ? <Banner tone="bad">{errorText(save.error)}</Banner> : null}
+            {save.isError ? <ErrorBanner error={save.error} /> : null}
           </>
         ) : null}
       </Sheet>

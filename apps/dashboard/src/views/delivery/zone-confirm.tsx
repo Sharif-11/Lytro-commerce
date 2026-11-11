@@ -3,14 +3,13 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { DELIVERY_ZONE_NAME_MAX_LENGTH } from '@lytronix/validators';
 import { useRestoreProduct } from '@/api/products';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { RowList } from '@/components/ui/list-row';
 import { Sheet } from '@/components/ui/sheet';
 import { StatusTag } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useShell } from '@/shell/shell-context';
 import type { ZoneHolder } from '@/types/delivery';
 
@@ -95,7 +94,6 @@ export function DeleteZoneSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   return (
     <Sheet
       open={zoneName !== null}
@@ -113,7 +111,7 @@ export function DeleteZoneSheet({
       }
     >
       <p className="text-[15px]">{t('zoneDelCons')}</p>
-      {error ? <Banner tone="bad">{errorText(error)}</Banner> : null}
+      {error ? <ErrorBanner error={error} /> : null}
     </Sheet>
   );
 }

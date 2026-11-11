@@ -6,11 +6,10 @@ import {
   STOCK_NOTE_MAX_LENGTH,
 } from '@lytronix/validators';
 import { useReceive, type ReceivedItem } from '@/api/purchases';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { AreaField, Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import { todayInputValue } from '@/lib/dates';
 import { batchBody, keptOf, unitsOf, type SerialLine } from '@/lib/opening';
 import type { Purchase, PurchaseItem } from '@/types/purchasing';
@@ -63,7 +62,6 @@ export function ReceiveSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const amount = useAmountText();
   const words = usePurchaseWords();
   const receive = useReceive(purchase.id);
@@ -277,7 +275,7 @@ export function ReceiveSheet({
               }}
             />
             <p className="text-[14px] text-fg-muted">{t('rcvHelp')}</p>
-            {receive.isError ? <Banner tone="bad">{errorText(receive.error)}</Banner> : null}
+            {receive.isError ? <ErrorBanner error={receive.error} /> : null}
           </>
         ) : null}
       </Sheet>

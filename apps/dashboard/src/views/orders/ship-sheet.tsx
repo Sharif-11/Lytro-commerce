@@ -5,6 +5,7 @@ import { ApiClientError } from '@lytronix/api-client';
 import { formatTaka } from '@lytronix/ui';
 import { Permission, SerialFormat, SmsEvent } from '@lytronix/validators';
 import { useCouriers, useHandOver, useOrderSerials, useShip } from '@/api/orders';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,6 @@ import { Chip } from '@/components/ui/chips';
 import { Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { SkeletonRows } from '@/components/ui/skeleton';
-import { useErrorText } from '@/hooks/use-error-text';
 import { addSerials, splitList, type SerialLine } from '@/lib/opening';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -111,10 +111,9 @@ function SerialEntry({
 /** PYG-03 (Part 34's `o29-ship-balance`): a shipment the balance can't pay the fee for offers Add balance. */
 export function ShipRefusal({ error }: { error: unknown }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const { slug, viewer } = useShell();
   if (!(error instanceof ApiClientError && error.code === 'quota_exceeded')) {
-    return <Banner tone="bad">{errorText(error)}</Banner>;
+    return <ErrorBanner error={error} />;
   }
   return (
     <Banner

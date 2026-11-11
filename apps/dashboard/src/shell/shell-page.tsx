@@ -17,6 +17,8 @@ interface ShellPageProps {
    * hidden, the header carries it in place of the section's (design v3.10).
    */
   titleInHeader?: boolean;
+  /** What stopped the page's own Save, above the title as drawn (Slice 8.8's `p88-err-save`, a fault and its error ID). */
+  failure?: ReactNode;
   children: ReactNode;
 }
 
@@ -29,6 +31,7 @@ export function ShellPage({
   actions,
   sectionChips,
   titleInHeader = false,
+  failure,
   children,
 }: ShellPageProps): React.JSX.Element {
   const { t } = useTranslation('shell');
@@ -45,6 +48,7 @@ export function ShellPage({
   return (
     <PageFrame>
       <ShellBanner />
+      {failure}
       {title === null ? null : (
         <PageTitle actions={actions}>
           {title ?? (screen?.title ? t(screen.title) : tenant.shopName)}

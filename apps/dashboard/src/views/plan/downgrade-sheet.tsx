@@ -1,11 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { useDowngradePreview, useScheduleDowngrade } from '@/api/billing';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { Kv } from '@/components/ui/kv';
 import { Eyebrow } from '@/components/ui/page';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonth } from '@/lib/dates';
 import { sentenceCase } from '@/lib/limits';
 import type { PlanPriceOption } from '@/types/billing';
@@ -31,7 +30,6 @@ export function DowngradeSheet({
   onDone,
 }: DowngradeSheetProps): React.JSX.Element {
   const { t } = useTranslation('money');
-  const errorText = useErrorText();
   const preview = useDowngradePreview(option.planId);
   const schedule = useScheduleDowngrade();
   const date = periodEnd ? formatDayMonth(periodEnd) : '';
@@ -56,7 +54,7 @@ export function DowngradeSheet({
       }
     >
       <p className="text-[15px]">{t('dgWhen', { date })}</p>
-      {preview.isError ? <Banner tone="bad">{errorText(preview.error)}</Banner> : null}
+      {preview.isError ? <ErrorBanner error={preview.error} /> : null}
       {over.length > 0 ? (
         <>
           <Eyebrow>{t('dgOver')}</Eyebrow>
@@ -78,7 +76,7 @@ export function DowngradeSheet({
         </>
       ) : null}
       <Kv label={t('dgPrice')} value={taka(option.price)} total />
-      {schedule.isError ? <Banner tone="bad">{errorText(schedule.error)}</Banner> : null}
+      {schedule.isError ? <ErrorBanner error={schedule.error} /> : null}
     </Sheet>
   );
 }

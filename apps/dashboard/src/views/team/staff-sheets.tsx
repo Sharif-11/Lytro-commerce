@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NAME_MAX_LENGTH } from '@lytronix/validators';
 import { useCreateRole, useCreateStaff, useResetStaffPassword, useUpdateStaff } from '@/api/staff';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { CheckRow } from '@/components/ui/check-row';
@@ -12,7 +12,6 @@ import { Field } from '@/components/ui/field';
 import { RowList } from '@/components/ui/list-row';
 import { Sheet } from '@/components/ui/sheet';
 import { Icon } from '@/components/icon';
-import { useErrorText } from '@/hooks/use-error-text';
 import { firstPassword } from '@/lib/first-password';
 import { bangladeshiPhone } from '@/lib/phone';
 import type { RoleSummary, SeatUsage, StaffMember } from '@/types/staff';
@@ -93,7 +92,6 @@ export function AddStaffSheet({
   onSeatFull: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const create = useCreateStaff();
   const createRole = useCreateRole();
   const [step, setStep] = useState<'person' | 'role'>('person');
@@ -179,7 +177,7 @@ export function AddStaffSheet({
             setRoleNameError(null);
           }}
         />
-        {createRole.isError ? <Banner tone="bad">{errorText(createRole.error)}</Banner> : null}
+        {createRole.isError ? <ErrorBanner error={createRole.error} /> : null}
       </Sheet>
     );
   }
@@ -250,7 +248,7 @@ export function AddStaffSheet({
         </Button>
       </div>
       {create.isError && !refusedForSeat(create.error) ? (
-        <Banner tone="bad">{errorText(create.error)}</Banner>
+        <ErrorBanner error={create.error} />
       ) : null}
     </Sheet>
   );
@@ -279,7 +277,6 @@ export function EditStaffSheet({
   onPasswordReset: (name: string, password: string) => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const update = useUpdateStaff();
   const reset = useResetStaffPassword();
   const [name, setName] = useState('');
@@ -424,7 +421,7 @@ export function EditStaffSheet({
             )}
           </RowList>
         </Card>
-        {error && !refusedForSeat(error) ? <Banner tone="bad">{errorText(error)}</Banner> : null}
+        {error && !refusedForSeat(error) ? <ErrorBanner error={error} /> : null}
       </Sheet>
       <Dialog
         open={confirming && member !== null}

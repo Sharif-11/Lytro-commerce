@@ -7,6 +7,7 @@ import { CourierKey, Permission, RateKey } from '@lytronix/validators';
 import { useCurrentRates } from '@/api/balance';
 import { useCourierConnections } from '@/api/couriers';
 import { useFraudRule, useSaveFraudRule } from '@/api/fraud';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Banner } from '@/components/ui/banner';
@@ -82,7 +83,7 @@ export function FraudRuleView(): React.JSX.Element {
     <ShellPage>
       <p className="text-[14px] text-fg-muted">{t('p37FrRuleLead')}</p>
       {ro ? <Banner tone="neutral">{t('p37FrRuleRo')}</Banner> : null}
-      {rule.isError ? <Banner tone="bad">{errorText(rule.error)}</Banner> : null}
+      {rule.isError ? <ErrorBanner error={rule.error} /> : null}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start [&>*]:min-w-0">
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col gap-3">

@@ -2,8 +2,8 @@ import { useState, type SyntheticEvent } from 'react';
 import { Link, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useRequestSigninCode, useVerifyCode } from '@/api/auth';
+import { ErrorBanner } from '@/components/error-banner';
 import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { CodeBoxes } from '@/components/ui/code-boxes';
 import { useCountdown } from '@/hooks/use-countdown';
@@ -96,7 +96,7 @@ export function VerifyCode(): React.JSX.Element {
           {t('usePw')}
         </Link>
       </StepLinks>
-      {resend.isError ? <Banner tone="bad">{errorText(resend.error)}</Banner> : null}
+      {resend.isError ? <ErrorBanner error={resend.error} /> : null}
       {wrong ? <p className="text-[14px] text-fg-muted">{t('vLocked')}</p> : null}
     </OnboardingFrame>
   );

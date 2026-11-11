@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
 import { CourierNewsSource, ParcelAttention, ParcelReading } from '@lytronix/validators';
 import { useParcelSeen, useSyncParcel } from '@/api/couriers';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,6 @@ import { Kv } from '@/components/ui/kv';
 import { RowLead } from '@/components/ui/list-row';
 import { StatusTag } from '@/components/ui/status-tag';
 import { TimelineRow } from '@/components/ui/timeline';
-import { useErrorText } from '@/hooks/use-error-text';
 import { courierName, dayInSentence } from '@/lib/couriers';
 import { dayKey, formatDayMonth } from '@/lib/dates';
 import { useShell } from '@/shell/shell-context';
@@ -103,7 +103,6 @@ export function CourierCard({
 }): React.JSX.Element {
   const { t, i18n } = useTranslation('orders');
   const { t: menuWords } = useTranslation('menu');
-  const errorText = useErrorText();
   const { showToast } = useShell();
   const when = useNewsWhen();
   const sync = useSyncParcel(order.id);
@@ -152,7 +151,7 @@ export function CourierCard({
       </div>
       {failure ? (
         <div className="mt-2">
-          <Banner tone="bad">{errorText(failure)}</Banner>
+          <ErrorBanner error={failure} />
         </div>
       ) : null}
       {parcel.attention ? (

@@ -2,11 +2,10 @@ import { useState, type SyntheticEvent } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useStaffSignIn } from '@/api/auth';
+import { ErrorBanner } from '@/components/error-banner';
 import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
-import { useErrorText } from '@/hooks/use-error-text';
 import { bangladeshiPhone } from '@/lib/phone';
 
 /**
@@ -15,7 +14,6 @@ import { bangladeshiPhone } from '@/lib/phone';
  */
 export function StaffSignIn(): React.JSX.Element {
   const { t } = useTranslation('onboarding');
-  const errorText = useErrorText();
   const [localPhone, setLocalPhone] = useState('');
   const [password, setPassword] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -60,7 +58,7 @@ export function StaffSignIn(): React.JSX.Element {
             setPassword(event.target.value);
           }}
         />
-        {signIn.isError ? <Banner tone="bad">{errorText(signIn.error)}</Banner> : null}
+        {signIn.isError ? <ErrorBanner error={signIn.error} /> : null}
         <Button type="submit" wide busy={signIn.isPending}>
           {t('signInPw')}
         </Button>

@@ -1,9 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { useChoosePayAsYouGo } from '@/api/billing';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonth } from '@/lib/dates';
 import { sentenceCase } from '@/lib/limits';
 import type { Plan } from '@/types/billing';
@@ -32,7 +31,6 @@ export function PaygSwitchSheet({
   onDone,
 }: PaygSwitchSheetProps): React.JSX.Element {
   const { t } = useTranslation('money');
-  const errorText = useErrorText();
   const choose = useChoosePayAsYouGo();
   const date = formatDayMonth(periodEnd);
   const moves = from && payg ? limitMoves(PAYG_LIMITS, from.limits, payg.limits) : [];
@@ -67,7 +65,7 @@ export function PaygSwitchSheet({
       </div>
       {list ? <p className="text-[14px] text-fg-muted">{t('pgLimits', { list })}</p> : null}
       <p className="mt-2 text-[14px] text-fg-muted">{t('pgOverNote')}</p>
-      {choose.isError ? <Banner tone="bad">{errorText(choose.error)}</Banner> : null}
+      {choose.isError ? <ErrorBanner error={choose.error} /> : null}
     </Sheet>
   );
 }

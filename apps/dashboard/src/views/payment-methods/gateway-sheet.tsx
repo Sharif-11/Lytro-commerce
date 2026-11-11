@@ -8,13 +8,13 @@ import {
   useSelectAutomated,
   useTestGateway,
 } from '@/api/payment-methods';
+import { ErrorBanner } from '@/components/error-banner';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Field, SelectField } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
-import { useErrorText } from '@/hooks/use-error-text';
 import type { GatewayTest, PaymentMethodRow } from '@/types/payment-methods';
 import { accountNumberOf, typeWord } from './words';
 
@@ -50,7 +50,6 @@ export function GatewaySheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const save = useSaveGatewayKeys();
   const test = useTestGateway();
   const select = useSelectAutomated();
@@ -154,7 +153,7 @@ export function GatewaySheet({
           <p className="text-[14px] text-fg-muted">{t('pmWayAutoD', { fee })}</p>
           <p className="mt-2 text-[14px] text-fg-muted">{t('pmAutoNote')}</p>
         </div>
-        {failure ? <Banner tone="bad">{errorText(failure)}</Banner> : null}
+        {failure ? <ErrorBanner error={failure} /> : null}
       </Sheet>
     );
   }
@@ -178,7 +177,7 @@ export function GatewaySheet({
       }
     >
       {answer ? <TestAnswer answer={answer} /> : null}
-      {failure ? <Banner tone="bad">{errorText(failure)}</Banner> : null}
+      {failure ? <ErrorBanner error={failure} /> : null}
       {row.accounts.length === 0 ? <Banner tone="warn">{t('pmGwNoAccount')}</Banner> : null}
       {saved ? (
         <Banner tone="neutral">{t('pmGwSaved')}</Banner>
@@ -287,7 +286,6 @@ function RemoveKeysDialog({
   onRemoved: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const way = useChooseWay();
   const remove = useRemoveGatewayKeys();
   const failure = way.error ?? remove.error;
@@ -325,7 +323,7 @@ function RemoveKeysDialog({
       {t('pmGwRmText')}
       {failure ? (
         <div className="mt-3">
-          <Banner tone="bad">{errorText(failure)}</Banner>
+          <ErrorBanner error={failure} />
         </div>
       ) : null}
     </Dialog>

@@ -1,14 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { downloadExport, useExports, useRequestExport } from '@/api/exports';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon, type IconName } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { rowClass, RowList } from '@/components/ui/list-row';
 import { StatusTag } from '@/components/ui/status-tag';
 import { useDownload } from '@/hooks/use-download';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatClock, formatDayMonthYear } from '@/lib/dates';
 import { fileSize } from '@/lib/limits';
 import { useShell } from '@/shell/shell-context';
@@ -29,7 +28,6 @@ const TILES: Record<DataExport['status'], { icon: IconName; tone: string }> = {
  */
 export function ExportsView(): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const { viewer } = useShell();
   const exports = useExports({ enabled: viewer.isOwner });
   const request = useRequestExport();
@@ -50,7 +48,7 @@ export function ExportsView(): React.JSX.Element {
     >
       <p className="text-[14px] text-fg-muted">{t('exLead')}</p>
       {exports.isError || request.isError || saving.error ? (
-        <Banner tone="bad">{errorText(exports.error ?? request.error ?? saving.error)}</Banner>
+        <ErrorBanner error={exports.error ?? request.error ?? saving.error} />
       ) : null}
       {exports.data ? (
         <Card flush>

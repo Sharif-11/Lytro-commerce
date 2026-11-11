@@ -7,11 +7,10 @@ import {
   type StockUnit,
 } from '@lytronix/validators';
 import { useAddStock, type StockAddition } from '@/api/stock';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { Field, PickField } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import { todayInputValue } from '@/lib/dates';
 import { batchBody, keptOf, unitsOf, type SerialLine } from '@/lib/opening';
 import { OpeningSerialsSheet } from './opening-serials-sheet';
@@ -52,7 +51,6 @@ export function AddStockSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const add = useAddStock(product.id);
   const [variantId, setVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState('');
@@ -196,7 +194,7 @@ export function AddStockSheet({
                 })}
               </p>
             ) : null}
-            {add.isError ? <Banner tone="bad">{errorText(add.error)}</Banner> : null}
+            {add.isError ? <ErrorBanner error={add.error} /> : null}
           </div>
         ) : null}
       </Sheet>

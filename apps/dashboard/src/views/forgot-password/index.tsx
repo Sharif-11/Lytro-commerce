@@ -2,17 +2,15 @@ import { useState, type SyntheticEvent } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useRequestPasswordReset } from '@/api/auth';
+import { ErrorBanner } from '@/components/error-banner';
 import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
-import { useErrorText } from '@/hooks/use-error-text';
 import { bangladeshiPhone } from '@/lib/phone';
 
 /** AUTH-17 (the prototype's `ob-forgot`): the reply is the same whether or not the number has an account. */
 export function ForgotPassword(): React.JSX.Element {
   const { t } = useTranslation('onboarding');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const [localPhone, setLocalPhone] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -57,7 +55,7 @@ export function ForgotPassword(): React.JSX.Element {
             setLocalPhone(event.target.value.replace(/[^\d\s-]/g, ''));
           }}
         />
-        {request.isError ? <Banner tone="bad">{errorText(request.error)}</Banner> : null}
+        {request.isError ? <ErrorBanner error={request.error} /> : null}
         <Button type="submit" wide busy={request.isPending}>
           {t('fpSubmit')}
         </Button>

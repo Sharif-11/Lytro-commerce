@@ -2,15 +2,14 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Permission } from '@lytronix/validators';
 import { useAttributes, useOptionSets, useUpdateAttribute } from '@/api/attributes';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { RowChevron, RowLead, RowList, RowText, rowClass } from '@/components/ui/list-row';
 import { Eyebrow } from '@/components/ui/page';
 import { SearchField } from '@/components/ui/search-field';
 import { SkeletonRows } from '@/components/ui/skeleton';
-import { useErrorText } from '@/hooks/use-error-text';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
@@ -28,7 +27,6 @@ import { ScopeTag } from './scope-tag';
  */
 export function AttributesView(): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const words = useAttributeWords();
   const { slug, viewer } = useShell();
   const mayManage = allows(viewer, [Permission.ProductsManage]);
@@ -68,8 +66,8 @@ export function AttributesView(): React.JSX.Element {
         attributes={attributes.data ? all.filter((each) => !each.retired).length : undefined}
         sets={sets.data?.length}
       />
-      {attributes.isError ? <Banner tone="bad">{errorText(attributes.error)}</Banner> : null}
-      {bringBack.isError ? <Banner tone="bad">{errorText(bringBack.error)}</Banner> : null}
+      {attributes.isError ? <ErrorBanner error={attributes.error} /> : null}
+      {bringBack.isError ? <ErrorBanner error={bringBack.error} /> : null}
       <SearchField
         label={t('searchAttributes')}
         placeholder={t('searchAttributes')}

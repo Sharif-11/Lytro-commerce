@@ -11,8 +11,8 @@ import {
   useUpdateCategory,
 } from '@/api/categories';
 import { usePresets } from '@/api/shop-setup';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { chipClass } from '@/components/ui/classes';
@@ -132,8 +132,8 @@ export function CategoriesView(): React.JSX.Element {
 
   return (
     <ShellPage actions={add(true)}>
-      {categories.isError ? <Banner tone="bad">{errorText(categories.error)}</Banner> : null}
-      {problem !== null ? <Banner tone="bad">{errorText(problem)}</Banner> : null}
+      {categories.isError ? <ErrorBanner error={categories.error} /> : null}
+      {problem !== null ? <ErrorBanner error={problem} /> : null}
       {categories.isPending ? (
         <Card flush>
           <SkeletonRows count={4} />

@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useActivityList } from '@/api/activity';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip, ChipRow } from '@/components/ui/chips';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StatusTag } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { dayLabel, formatDayMonthYear, formatTime, groupByDay } from '@/lib/dates';
 import { initialOf } from '@/lib/initial';
 import { useShell } from '@/shell/shell-context';
@@ -30,7 +29,6 @@ import {
  */
 export function ActivityView(): React.JSX.Element {
   const { t, i18n } = useTranslation('menu');
-  const errorText = useErrorText();
   const { tenant } = useShell();
   const [chip, setChip] = useState<ActivityChip>('all');
   const list = useActivityList(filterOf(chip));
@@ -60,7 +58,7 @@ export function ActivityView(): React.JSX.Element {
           </Chip>
         ))}
       </ChipRow>
-      {list.isError ? <Banner tone="bad">{errorText(list.error)}</Banner> : null}
+      {list.isError ? <ErrorBanner error={list.error} /> : null}
       {list.isSuccess ? (
         <Card flush>
           {entries.length === 0 ? (

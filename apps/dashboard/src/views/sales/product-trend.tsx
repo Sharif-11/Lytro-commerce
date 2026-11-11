@@ -2,12 +2,11 @@ import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
 import { SalesBucket, StockUnit } from '@lytronix/validators';
 import { useSales } from '@/api/sales';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatRow, StatTile } from '@/components/ui/stat-tile';
-import { useErrorText } from '@/hooks/use-error-text';
 import { todayInputValue } from '@/lib/dates';
 import { trendPeriod } from '@/lib/sales-period';
 import { ShellPage } from '@/shell/shell-page';
@@ -32,7 +31,6 @@ export function ProductTrend({
   name: string | undefined;
 }): React.JSX.Element {
   const { t, i18n } = useTranslation('orders');
-  const errorText = useErrorText();
   const counted = useCountedText();
   const trend = useSales({
     ...trendPeriod(todayInputValue()),
@@ -51,7 +49,7 @@ export function ProductTrend({
 
   return (
     <ShellPage sectionChips>
-      {trend.isError ? <Banner tone="bad">{errorText(trend.error)}</Banner> : null}
+      {trend.isError ? <ErrorBanner error={trend.error} /> : null}
       {trend.isPending ? (
         <Card flush>
           <SkeletonRows count={4} />

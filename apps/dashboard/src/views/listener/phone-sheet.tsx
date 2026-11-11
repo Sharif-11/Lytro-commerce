@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCancelPhone, useRenamePhone } from '@/api/listener';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Field } from '@/components/ui/field';
 import { Kv } from '@/components/ui/kv';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonth } from '@/lib/dates';
 import type { ListenerPhone } from '@/types/payments';
 import { spanWords } from './phone-health';
@@ -30,7 +29,6 @@ export function PhoneSheet({
   onCancelled: (name: string) => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const rename = useRenamePhone();
   const cancel = useCancelPhone();
   const [name, setName] = useState(phone.name);
@@ -72,7 +70,7 @@ export function PhoneSheet({
         }
       >
         <p className="m-0">{t('lpCancelText', { name: phone.name })}</p>
-        {cancel.isError ? <Banner tone="bad">{errorText(cancel.error)}</Banner> : null}
+        {cancel.isError ? <ErrorBanner error={cancel.error} /> : null}
       </Dialog>
     );
   }
@@ -133,7 +131,7 @@ export function PhoneSheet({
         />
         <Kv label={t('lpReceiptsToday')} value={String(phone.uploadsToday)} />
       </div>
-      {rename.isError ? <Banner tone="bad">{errorText(rename.error)}</Banner> : null}
+      {rename.isError ? <ErrorBanner error={rename.error} /> : null}
     </Sheet>
   );
 }

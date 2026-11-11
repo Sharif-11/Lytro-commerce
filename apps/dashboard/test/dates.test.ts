@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayLabel, formatClock, formatTime, groupByDay } from '../src/lib/dates';
+import { dayLabel, formatClock, formatTime, groupByDay, wholeHour } from '../src/lib/dates';
 
 describe('formatTime', () => {
   it('writes Bangla times with Western digits and the period word', () => {
@@ -11,6 +11,20 @@ describe('formatTime', () => {
 
   it('writes English times in 12-hour form', () => {
     expect(formatTime('2026-10-19T05:42:00Z', 'en')).toMatch(/11:42/);
+  });
+});
+
+describe('wholeHour', () => {
+  it("writes the help line's hours as a sentence says them (Slice 8.8)", () => {
+    expect(wholeHour(9, 'bn')).toBe('সকাল 9টা');
+    expect(wholeHour(22, 'bn')).toBe('রাত 10টা');
+    expect(wholeHour(9, 'bn', true)).toBe('সকাল 9টায়');
+    expect(wholeHour(13, 'bn')).toBe('দুপুর 1টা');
+    expect(wholeHour(0, 'bn')).toBe('রাত 12টা');
+    expect(wholeHour(9, 'en')).toBe('9 am');
+    expect(wholeHour(22, 'en', true)).toBe('10 pm');
+    expect(wholeHour(12, 'en')).toBe('12 pm');
+    expect(wholeHour(0, 'en')).toBe('12 am');
   });
 });
 

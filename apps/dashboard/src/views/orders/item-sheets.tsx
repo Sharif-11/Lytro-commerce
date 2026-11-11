@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
 import { AttributeDataType, CAPTURED_VALUE_MAX_LENGTH, ProductKind } from '@lytronix/validators';
 import { useOrderPicker, useOrderPickerProduct } from '@/api/orders';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { CheckBox } from '@/components/ui/check-row';
 import { Chip } from '@/components/ui/chips';
@@ -15,7 +15,6 @@ import { Sheet } from '@/components/ui/sheet';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { useErrorText } from '@/hooks/use-error-text';
 import type {
   OrderPickerItem,
   OrderPickerProduct,
@@ -170,7 +169,6 @@ function SearchSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const search = useDebouncedValue(typed.trim(), TYPING_REST_MS);
   const found = useOrderPicker(search, { enabled: open });
   const items = (found.data?.pages ?? []).flatMap((page) => page.products);
@@ -184,7 +182,7 @@ function SearchSheet({
           label={t('searchProduct')}
         />
       </div>
-      {found.isError ? <Banner tone="bad">{errorText(found.error)}</Banner> : null}
+      {found.isError ? <ErrorBanner error={found.error} /> : null}
       {found.isPending ? (
         <SkeletonRows count={4} />
       ) : items.length === 0 ? (
@@ -329,7 +327,6 @@ function ProductSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const found = useOrderPickerProduct(item.id);
   const product = found.data;
   const asks =
@@ -371,7 +368,7 @@ function ProductSheet({
   }
   return (
     <Sheet open title={item.name} onBack={onBack} onClose={onClose}>
-      {found.isError ? <Banner tone="bad">{errorText(found.error)}</Banner> : null}
+      {found.isError ? <ErrorBanner error={found.error} /> : null}
       {!product || only ? (
         <SkeletonRows count={3} />
       ) : (

@@ -4,15 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
 import { SalesBucket, SalesRanking } from '@lytronix/validators';
 import { useSales } from '@/api/sales';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Kv } from '@/components/ui/kv';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatRow, StatTile } from '@/components/ui/stat-tile';
-import { useErrorText } from '@/hooks/use-error-text';
 import { todayInputValue } from '@/lib/dates';
 import {
   bucketFor,
@@ -73,7 +72,6 @@ function ProfitCard({ profit }: { profit: SalesProfit }): React.JSX.Element {
  */
 export function SalesScreen({ search }: { search: SalesSearch }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { slug } = useShell();
   const periodWords = usePeriodWords();
@@ -136,7 +134,7 @@ export function SalesScreen({ search }: { search: SalesSearch }): React.JSX.Elem
           />
         </div>
       </div>
-      {sales.isError ? <Banner tone="bad">{errorText(sales.error)}</Banner> : null}
+      {sales.isError ? <ErrorBanner error={sales.error} /> : null}
       {sales.isPending ? (
         <Card flush>
           <SkeletonRows count={4} />
