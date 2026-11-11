@@ -38,7 +38,7 @@ Requirements covered: `SRS-detailed.md` LSN-01 to LSN-24, VER-06, VER-07, TEN-16
 | The signing key | Made at the first real release, not before. `scripts/new-release-key.sh` makes it, outside the repo, and `:app:listenerRelease` refuses to build without it. |
 | The battery warning | Clears once Android's exemption is on and the owner has opened the maker's setting from our button. No app can read a maker's Autostart switch, so this can't prove it was flipped, but nobody skips the step by accident. |
 | Oppo, Vivo and Samsung | Their drawn steps show, with a line saying menu names can differ by phone. **Unverified on real phones,** since the one real phone to hand is a Xiaomi. |
-| Support and Help | Support opens the same WhatsApp as the dashboard: the help line's, read from `GET /help-line` when the app opens (Slice 8.8's read, 2026-11-10), with the number set when a release is built as the fallback; with neither, its rows hide. Help always shows and opens the setup guide on `lytro.app/listener` (Slice 5.8), which carries that WhatsApp too. Phones get it with the next APK. |
+| Support and Help | Support opens the same WhatsApp as the dashboard: the help line's, read from `GET /v1/listener/help-line` on the API host when the app opens (Slice 8.8's read, 2026-11-10; the API host answers only its own public routes, KNOWN-GAPS §141), with the number set when a release is built as the fallback, also while the server can't be reached or has none; with neither, its rows hide. Help always shows and opens the setup guide on `lytro.app/listener` (Slice 5.8), which carries that WhatsApp too. Phones get it with the next APK. |
 | Merging | On green CI, the owner's pick over testing on the Xiaomi first, so what that test finds becomes a follow-up. |
 
 ---

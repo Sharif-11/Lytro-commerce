@@ -73,8 +73,10 @@ class MainActivity : ComponentActivity() {
                         Screen.TestGot -> TestGotScreen(model)
                         Screen.Home -> HomeScreen(model)
                         Screen.Menu -> MenuScreen(model, language)
-                        Screen.Stopped -> StoppedScreen(facts.status, 0, model::backToPairing, model::pairAgain)
-                        Screen.PairStopped -> model.pairStopped?.let { StoppedScreen(it, 0, model::backToPairing, model::pairAgain) }
+                        Screen.Stopped -> StoppedScreen(facts.status, 0, model.supportWhatsapp, model::backToPairing, model::pairAgain)
+                        Screen.PairStopped -> model.pairStopped?.let {
+                            StoppedScreen(it, 0, model.supportWhatsapp, model::backToPairing, model::pairAgain)
+                        }
                     }
                 }
             }

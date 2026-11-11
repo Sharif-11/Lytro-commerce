@@ -80,6 +80,10 @@ data class TodayCounts(val verified: Int = 0, val waiting: Int = 0, val toCheck:
 @Serializable
 data class Recent(val receipts: List<RecentReceipt>, val today: TodayCounts)
 
+/** D8-74 (Slice 8.8): Lytro's help line as the server keeps it; the app uses its WhatsApp. A number not set is null. */
+@Serializable
+data class HelpLine(val whatsapp: String? = null)
+
 @Serializable
 internal data class Envelope<T>(val data: T)
 

@@ -8,10 +8,21 @@ import android.os.PowerManager
 import android.provider.Settings
 import app.lytro.listener.BuildConfig
 
-/** Agreed 2026-11-03: the same WhatsApp as the dashboard's Help, set when a release is built; without one the rows hide. */
-val hasSupport: Boolean get() = BuildConfig.SUPPORT_WHATSAPP.isNotEmpty()
+/**
+ * D8-74 (Slice 8.8): the same WhatsApp as the dashboard's Help, Lytro's help line, read from the server when the app opens.
+ * The number set when the release was built stands in until then, and whenever the server can't be reached or has none.
+ * Empty when there is neither, and the support rows hide.
+ */
+fun supportNumber(fromServer: String?, builtIn: String = BuildConfig.SUPPORT_WHATSAPP): String =
+    whatsappDigits(fromServer).ifEmpty { builtIn }
 
-fun openSupport(context: Context) = openPage(context, "https://wa.me/${BuildConfig.SUPPORT_WHATSAPP}")
+/** The help line keeps a Bangladeshi number in its local form (01XXXXXXXXX); WhatsApp's link wants the country's 88 too. */
+fun whatsappDigits(number: String?): String {
+    val digits = number.orEmpty().filter { it.isDigit() }
+    return if (digits.length == 11 && digits.startsWith("01")) "88$digits" else digits
+}
+
+fun openSupport(context: Context, number: String) = openPage(context, "https://wa.me/$number")
 
 /** LSN-18: an update is the same download as the first install (LISTENER-APP-DESIGN 6). */
 fun openDownload(context: Context) = openPage(context, BuildConfig.DOWNLOAD_URL)

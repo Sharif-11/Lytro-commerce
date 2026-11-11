@@ -56,6 +56,9 @@ class FakeLytro {
     }
     var everyDeviceCall: (() -> MockResponse)? = null
 
+    /** D8-74: the help line's WhatsApp, as the operator set it; null when none is set. */
+    var helpWhatsapp: String? = null
+
     /** Until let go, a good answer to the report and to Home's list stays on its way back. */
     var holdGoodAnswers: CountDownLatch? = null
 
@@ -65,6 +68,7 @@ class FakeLytro {
                 val path = request.url.encodedPath.substringAfter("/v1/listener/")
                 paths += "${request.method} $path"
                 if (path == "pair") return pairAnswer()
+                if (path == "help-line") return envelope("""{"whatsapp":${helpWhatsapp?.let { "\"$it\"" } ?: "null"}}""")
                 everyDeviceCall?.let { return it() }
                 val call = "${request.method} $path"
                 if (call == "POST heartbeat" || call == "GET messages") holdGoodAnswers?.await(45, TimeUnit.SECONDS)
