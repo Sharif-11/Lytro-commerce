@@ -110,11 +110,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 if (graph.secrets.token == null && mustLeave(it.status)) goToStart(it.status)
             }
         }
-        // D8-74: Lytro's help line, once each time the app opens; a failure keeps the built-in number.
-        viewModelScope.launch {
-            val answer = graph.api.helpLine()
-            if (answer is ApiResult.Ok) supportWhatsapp = supportNumber(answer.value.whatsapp)
-        }
+        // D8-74: Lytro's help line, once each time the app opens; a server out of reach keeps the built-in number.
+        viewModelScope.launch { supportWhatsapp = supportNumber(graph.api.helpLine()) }
     }
 
     fun chooseLanguage(language: String) = graph.settings.chooseLanguage(language)

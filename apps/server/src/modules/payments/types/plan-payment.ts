@@ -69,6 +69,9 @@ export interface TenantPaymentRecord extends PlanPaymentRecord {
   invoice: { id: string; number: number } | null;
   /** ADM-17, D8-15: when the seller's screenshot of it was sent; null when none was. */
   evidenceSentAt: Date | null;
+  /** Slice 8.8 (the owner, 2026-11-11): the screenshot's type and size, which Billing shows; no file name is kept. */
+  evidenceType: string | null;
+  evidenceBytes: number | null;
 }
 
 /** BIL-19: the rejected or lapsed payment the shop should act on, as Home shows it. */

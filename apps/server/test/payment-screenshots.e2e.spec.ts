@@ -142,8 +142,16 @@ async function evidenceOf(paymentId: string): Promise<string | null> {
 async function listed(client: ShopClient, paymentId: string) {
   const page = await client.get('/billing/payments?limit=50');
   expect(page.status, JSON.stringify(page.envelope)).toBe(200);
-  const rows = (page.body as { payments: { id: string; evidenceSentAt: string | null }[] })
-    .payments;
+  const rows = (
+    page.body as {
+      payments: {
+        id: string;
+        evidenceSentAt: string | null;
+        evidenceType: string | null;
+        evidenceBytes: number | null;
+      }[];
+    }
+  ).payments;
   const row = rows.find((payment) => payment.id === paymentId);
   if (!row) throw new Error(`payment ${paymentId} not listed`);
   return row;
@@ -153,7 +161,11 @@ describeIfDatabase("a payment's screenshot after it was sent (ADM-17, D8-15)", (
   it('goes on a top-up Lytro is checking, and Billing says when it was sent', async () => {
     const client = await shop();
     const paymentId = await topUpSent(client);
-    expect((await listed(client, paymentId)).evidenceSentAt).toBeNull();
+    expect(await listed(client, paymentId)).toMatchObject({
+      evidenceSentAt: null,
+      evidenceType: null,
+      evidenceBytes: null,
+    });
     const key = await uploaded(client, TOP_UP_LINK);
     const sent = await client.post(`/balance/top-up/${paymentId}/evidence`, { evidenceKey: key });
     expect(sent.status, JSON.stringify(sent.envelope)).toBe(201);
@@ -161,7 +173,12 @@ describeIfDatabase("a payment's screenshot after it was sent (ADM-17, D8-15)", (
     expect(Number.isNaN(Date.parse(evidenceSentAt))).toBe(false);
     expect(await evidenceOf(paymentId)).not.toBeNull();
     expect(storage.uploads.has(key)).toBe(false);
-    expect((await listed(client, paymentId)).evidenceSentAt).toBe(evidenceSentAt);
+    // The owner, 2026-11-11: Billing shows the file's type and size after a reload; its name isn't kept.
+    expect(await listed(client, paymentId)).toMatchObject({
+      evidenceSentAt,
+      evidenceType: 'image/jpeg',
+      evidenceBytes: JPEG.length,
+    });
   });
 
   it("goes on a plan's payment Lytro is checking", async () => {

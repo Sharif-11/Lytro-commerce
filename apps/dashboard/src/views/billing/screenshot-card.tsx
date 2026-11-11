@@ -19,6 +19,20 @@ function sizeOf(bytes: number): string {
   return `${(bytes / MB).toFixed(1)} MB`;
 }
 
+/** The kind of file a screenshot was, as people call it; the server keeps its type, not its name. */
+const KIND_OF: Record<string, string> = {
+  'image/jpeg': 'JPG',
+  'image/png': 'PNG',
+  'image/webp': 'WebP',
+  'application/pdf': 'PDF',
+};
+
+/** A screenshot sent before this page opened: "Screenshot · JPG", its kind from the type the server kept. */
+function keptName(word: string, type: string | null | undefined): string {
+  const kind = type ? KIND_OF[type] : undefined;
+  return kind ? `${word} · ${kind}` : word;
+}
+
 /** Where the card has got to with a file the seller chose. */
 type Step =
   | { kind: 'none' }
@@ -70,10 +84,12 @@ export function ScreenshotCard({
   const send = useSendPaymentScreenshot();
   const input = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>({ kind: 'none' });
-  // The file just sent, for its name and size; the server keeps neither, only when it came.
+  // The file just sent, for its name; the server keeps its type and size, not its name.
   const [sent, setSent] = useState<{ file: File; at: string } | null>(null);
 
   const sentAt = payment.evidenceSentAt ?? sent?.at ?? null;
+  // The owner, 2026-11-11: the file's own size in the session that sent it, the size the server kept after that.
+  const sentBytes = sent?.file.size ?? payment.evidenceBytes ?? null;
   if (sentAt === null && !mayAct) return null;
 
   function upload(file: File): void {
@@ -139,8 +155,8 @@ export function ScreenshotCard({
     body = (
       <>
         <FileRow
-          name={sent?.file.name ?? t('p88money.shotFile')}
-          size={sent ? sizeOf(sent.file.size) : null}
+          name={sent?.file.name ?? keptName(t('p88money.shotFile'), payment.evidenceType)}
+          size={sentBytes === null ? null : sizeOf(sentBytes)}
         >
           <StatusTag tone="ok">{t('p88money.shotSentChip')}</StatusTag>
         </FileRow>

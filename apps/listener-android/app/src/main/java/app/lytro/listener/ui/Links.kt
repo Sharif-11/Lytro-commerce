@@ -7,14 +7,17 @@ import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
 import app.lytro.listener.BuildConfig
+import app.lytro.listener.net.ApiResult
+import app.lytro.listener.net.HelpLine
 
 /**
- * D8-74 (Slice 8.8): the same WhatsApp as the dashboard's Help, Lytro's help line, read from the server when the app opens.
- * The number set when the release was built stands in until then, and whenever the server can't be reached or has none.
- * Empty when there is neither, and the support rows hide.
+ * D8-74 (Slice 8.8): the same WhatsApp as the dashboard's Help, Lytro's help line, read from the server when the app opens
+ * (`answer`, null until it comes). Once the server answers, its number, and none when it has none: a number cleared in
+ * the console hides the rows here too (D8-76; the owner, 2026-11-11). The number set when the release was built stands in
+ * only until then, and when the server can't be reached. Empty: the support rows hide.
  */
-fun supportNumber(fromServer: String?, builtIn: String = BuildConfig.SUPPORT_WHATSAPP): String =
-    whatsappDigits(fromServer).ifEmpty { builtIn }
+fun supportNumber(answer: ApiResult<HelpLine>?, builtIn: String = BuildConfig.SUPPORT_WHATSAPP): String =
+    if (answer is ApiResult.Ok) whatsappDigits(answer.value.whatsapp) else builtIn
 
 /** The help line keeps a Bangladeshi number in its local form (01XXXXXXXXX); WhatsApp's link wants the country's 88 too. */
 fun whatsappDigits(number: String?): String {

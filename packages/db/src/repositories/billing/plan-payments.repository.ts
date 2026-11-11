@@ -59,6 +59,9 @@ export type TenantPaymentRow = SelectPlanPayment & {
   invoiceNumber: number | null;
   /** ADM-17, D8-15: when the seller's screenshot of it was sent; null when none was. */
   evidenceSentAt: Date | null;
+  /** Slice 8.8 (the owner, 2026-11-11): the screenshot's type and size, which Billing shows; no file name is kept. */
+  evidenceType: string | null;
+  evidenceBytes: number | null;
 };
 
 /** BIL-19: what the shop's payments may be listed by, and what the list returns. */
@@ -508,6 +511,8 @@ export class PlanPaymentsRepository {
         invoiceId: invoices.id,
         invoiceNumber: invoices.number,
         evidenceSentAt: paymentEvidence.createdAt,
+        evidenceType: paymentEvidence.contentType,
+        evidenceBytes: paymentEvidence.bytes,
       })
       .from(planPayments)
       .leftJoin(plans, eq(plans.id, planPayments.planId))

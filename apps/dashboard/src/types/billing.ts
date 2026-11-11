@@ -79,6 +79,9 @@ export interface BillingPayment extends PlanPayment {
   earlierShop: boolean;
   /** ADM-17, D8-15 (Slice 8.8): when the seller's screenshot of it was sent; null when none was. */
   evidenceSentAt?: string | null;
+  /** The screenshot's type and size, shown after a reload; its name isn't kept (the owner, 2026-11-11). */
+  evidenceType?: string | null;
+  evidenceBytes?: number | null;
 }
 
 export interface BillingPaymentPage {

@@ -217,10 +217,22 @@ test('a screenshot already sent shows as Sent on opening, with no way to send an
 }) => {
   const sentAt = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
   await open(page, `/billing/${CHECKING_TOP_UP.id}`, {
-    money: { payments: [{ ...CHECKING_TOP_UP, evidenceSentAt: sentAt }, ...settled] },
+    money: {
+      payments: [
+        {
+          ...CHECKING_TOP_UP,
+          evidenceSentAt: sentAt,
+          evidenceType: 'image/jpeg',
+          evidenceBytes: 1_258_291,
+        },
+        ...settled,
+      ],
+    },
   });
   const shot = shotCard(page);
-  await expect(shot.getByText('Screenshot', { exact: true })).toBeVisible();
+  // The owner, 2026-11-11: its type and size, which the server keeps; its name isn't kept.
+  await expect(shot.getByText('Screenshot · JPG', { exact: true })).toBeVisible();
+  await expect(shot.getByText('1.2 MB', { exact: true })).toBeVisible();
   await expect(shot.getByText(/^Sent to Lytro on \d+ \w+ at /)).toBeVisible();
   await expect(picker(page)).toHaveCount(0);
 });
