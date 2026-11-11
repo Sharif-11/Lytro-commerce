@@ -5,6 +5,7 @@ import {
   manualEntryListSchema,
   manualEntryPreviewSchema,
   manualEntrySchema,
+  paymentEvidenceAttachSchema,
   PlanPaymentKind,
   reverseManualEntrySchema,
 } from '@lytronix/validators';
@@ -28,6 +29,11 @@ export const evidenceUploadResponseSchema = z.object({
   }),
 });
 export class EvidenceUploadResponseDto extends createZodDto(evidenceUploadResponseSchema) {}
+
+// ADM-17, D8-15 (Slice 8.8): a screenshot for a payment already sent, and when it was sent.
+export class PaymentEvidenceAttachDto extends createZodDto(paymentEvidenceAttachSchema) {}
+export const paymentEvidenceSentSchema = z.object({ evidenceSentAt: z.coerce.date() });
+export class PaymentEvidenceSentDto extends createZodDto(paymentEvidenceSentSchema) {}
 
 export const evidenceLinkSchema = z.object({ url: z.string(), expiresAt: z.coerce.date() });
 export class EvidenceLinkDto extends createZodDto(evidenceLinkSchema) {}

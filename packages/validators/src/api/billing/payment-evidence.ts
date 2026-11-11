@@ -16,3 +16,7 @@ export const evidenceKeyField = z
   .string()
   .trim()
   .regex(/^evidence\/(?:operator|[0-9a-f-]{36})\/[0-9a-f-]{36}$/);
+
+// ADM-17, D8-15 (Phase 8 Slice 8.8): a screenshot for a payment already sent on the payment page, while Lytro checks it.
+export const paymentEvidenceAttachSchema = z.object({ evidenceKey: evidenceKeyField }).strict();
+export type PaymentEvidenceAttachInput = z.infer<typeof paymentEvidenceAttachSchema>;

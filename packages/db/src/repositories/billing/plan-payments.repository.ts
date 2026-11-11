@@ -17,6 +17,7 @@ import { alias } from 'drizzle-orm/pg-core';
 import {
   billingTerms,
   invoices,
+  paymentEvidence,
   planPayments,
   plans,
   usedTransactionIds,
@@ -56,6 +57,8 @@ export type TenantPaymentRow = SelectPlanPayment & {
   termMonths: number | null;
   invoiceId: string | null;
   invoiceNumber: number | null;
+  /** ADM-17, D8-15: when the seller's screenshot of it was sent; null when none was. */
+  evidenceSentAt: Date | null;
 };
 
 /** BIL-19: what the shop's payments may be listed by, and what the list returns. */
@@ -267,6 +270,17 @@ export class PlanPaymentsRepository {
     },
   ): Promise<void> {
     await tx.update(planPayments).set(values).where(eq(planPayments.id, id));
+  }
+
+  /** ADM-17, D8-15 (Slice 8.8): the seller's screenshot for a payment already sent; when it was sent. */
+  async setEvidence(tx: Executor, id: string, evidenceId: string): Promise<Date> {
+    await tx.update(planPayments).set({ evidenceId }).where(eq(planPayments.id, id));
+    const [row] = await tx
+      .select({ createdAt: paymentEvidence.createdAt })
+      .from(paymentEvidence)
+      .where(eq(paymentEvidence.id, evidenceId));
+    if (!row) throw new Error('setEvidence found no payment_evidence row');
+    return row.createdAt;
   }
 
   /** PAYMENT-PAGE-DESIGN §8: the payment a page's address names, with what it pays for; null when there is none. */
@@ -493,11 +507,13 @@ export class PlanPaymentsRepository {
         termMonths: billingTerms.months,
         invoiceId: invoices.id,
         invoiceNumber: invoices.number,
+        evidenceSentAt: paymentEvidence.createdAt,
       })
       .from(planPayments)
       .leftJoin(plans, eq(plans.id, planPayments.planId))
       .leftJoin(billingTerms, eq(billingTerms.id, planPayments.billingTermId))
-      .leftJoin(invoices, eq(invoices.planPaymentId, planPayments.id));
+      .leftJoin(invoices, eq(invoices.planPaymentId, planPayments.id))
+      .leftJoin(paymentEvidence, eq(paymentEvidence.id, planPayments.evidenceId));
   }
 }
 

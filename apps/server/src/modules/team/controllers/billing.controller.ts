@@ -57,7 +57,13 @@ import {
   PaymentEvidence,
   type EvidenceUpload,
 } from '../../payment-evidence/services/payment-evidence';
-import { EvidenceUploadDto, EvidenceUploadResponseDto } from '../dto/operator-manual-entries.dto';
+import {
+  EvidenceUploadDto,
+  EvidenceUploadResponseDto,
+  PaymentEvidenceAttachDto,
+  PaymentEvidenceSentDto,
+} from '../dto/operator-manual-entries.dto';
+import { PaymentScreenshotsService } from '../../billing/services/payment-screenshots.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 import type { PlanPaymentRecord, TenantPaymentRecord } from '../../payments/types/plan-payment';
@@ -113,6 +119,7 @@ export class BillingController {
     @Inject(PlanPaymentsService) private readonly payments: PlanPaymentsService,
     @Inject(AddonRenewalService) private readonly renewals: AddonRenewalService,
     @Inject(PaymentCancellationService) private readonly cancellation: PaymentCancellationService,
+    @Inject(PaymentScreenshotsService) private readonly screenshots: PaymentScreenshotsService,
     @Inject(BillingPricesService) private readonly billingPrices: BillingPricesService,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
@@ -500,6 +507,32 @@ export class BillingController {
         PlanPaymentKind.Addon,
       ],
       this.clientIp.resolve(request),
+    );
+  }
+
+  // ADM-17, D8-15 (Slice 8.8): a screenshot for a plan, upgrade or add-on payment already sent, while Lytro checks it. The
+  // upload's link comes from `POST /billing/payment-evidence`. A top-up's is `POST /balance/top-up/:id/evidence`.
+  @Post('payments/:id/evidence')
+  @Dashboard({ lapsed: true, suspendedOwner: true, readOnlyWrite: true })
+  @RequirePermission(Permission.PaymentsManage)
+  @ResponseMessage('EvidenceSent')
+  @ApiOperation({ summary: 'Send a screenshot for a payment Lytro is still checking (ADM-17)' })
+  @ZodResponse({ type: PaymentEvidenceSentDto })
+  attachEvidence(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(PaymentEvidenceAttachDto.schema)) body: PaymentEvidenceAttachDto,
+    @Req() request: DashboardRequest,
+  ): Promise<{ evidenceSentAt: Date }> {
+    return this.screenshots.attach(
+      this.tenantIdOf(request),
+      id,
+      [
+        PlanPaymentKind.Purchase,
+        PlanPaymentKind.Renewal,
+        PlanPaymentKind.Upgrade,
+        PlanPaymentKind.Addon,
+      ],
+      body.evidenceKey,
     );
   }
 

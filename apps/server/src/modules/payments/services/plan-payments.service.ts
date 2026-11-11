@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { TenantPaymentFilter, TenantPaymentRow, Transaction } from '@lytronix/db';
 import {
+  BillingPaymentState,
   billingPaymentStateOf,
   PAYMENT_ATTENTION_DAYS,
   PaymentCancelReason,
@@ -145,6 +146,30 @@ export class PlanPaymentsService {
       cancelReason: PaymentCancelReason.Seller,
       verifiedAt: now,
     };
+  }
+
+  /**
+   * ADM-17, D8-15 (Slice 8.8): the seller's screenshot of a payment already sent, which Lytro hasn't decided yet. One a
+   * payment, kept once sent. `kinds` are the payments the caller's route may name; when the screenshot was sent.
+   */
+  async attachEvidence(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    kinds: readonly PlanPaymentKind[],
+    evidenceId: string,
+  ): Promise<Date> {
+    const payment = await this.store.findByIdForUpdate(tx, id);
+    if (!payment || payment.tenantId !== tenantId || !kinds.includes(payment.kind)) {
+      throw new ApiError('not_found', 'PlanPaymentNotFound', {});
+    }
+    if (payment.evidenceId !== null) throw new ApiError('conflict', 'EvidenceAlreadySent', {});
+    if (
+      billingPaymentStateOf(payment.status, payment.transactionId) !== BillingPaymentState.Checking
+    ) {
+      throw new ApiError('conflict', 'PaymentNotBeingChecked', {});
+    }
+    return this.store.setEvidence(tx, id, evidenceId);
   }
 
   async find(id: string): Promise<PlanPaymentRecord> {
