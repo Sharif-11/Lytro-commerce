@@ -1,24 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { helpLineOpenAt } from '@lytronix/validators/common';
 
-/** "Open now" against Dhaka time: Saturday to Thursday, 10:00 to 20:00. Rendered only in the browser so the
-    server never prints a state that is stale by the time the page is read. */
-export function OpenNow({ open, closed }: { open: string; closed: string }) {
+/** "Open now" or "Closed now · opens at 9 am" against the help line's hours by Dhaka's clock, every day (D8-73). Rendered
+    only in the browser so the server never prints a state that is stale by the time the page is read. */
+export function OpenNow({
+  opensHour,
+  closesHour,
+  open,
+  closed,
+}: {
+  opensHour: number;
+  closesHour: number;
+  open: string;
+  closed: string;
+}) {
   const [state, setState] = useState<'open' | 'closed' | null>(null);
 
   useEffect(() => {
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Asia/Dhaka',
-      weekday: 'short',
-      hour: 'numeric',
-      hour12: false,
-    }).formatToParts(new Date());
-    const weekday = parts.find((part) => part.type === 'weekday')?.value;
-    const hour = Number(parts.find((part) => part.type === 'hour')?.value ?? '0') % 24;
-    const isOpen = weekday !== 'Fri' && hour >= 10 && hour < 20;
-    setState(isOpen ? 'open' : 'closed');
-  }, []);
+    setState(helpLineOpenAt({ opensHour, closesHour }, new Date()) ? 'open' : 'closed');
+  }, [opensHour, closesHour]);
 
   if (!state) return null;
   const tone =
