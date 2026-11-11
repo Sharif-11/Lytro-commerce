@@ -3,8 +3,10 @@ import { expect, test, type Page } from '@playwright/test';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
 import {
   AWAITING_RENEWAL,
+  bankInvoice,
   CHECKING_TOP_UP,
   drawnPayments,
+  PAID_BY_BANK,
   payment,
   rejectedRenewal,
 } from './support/payments';
@@ -182,6 +184,33 @@ test("lists the shop's payments by month, filters them, and opens one", async ({
   await expect(main(page).getByText(/^Starter · 1 মাস · \d+ [A-Z][a-z]+ – /)).toBeVisible();
   await expect(main(page).getByRole('heading', { name: 'INV-000214' })).toBeVisible();
   await expect(main(page).getByText('কনফার্ম · ইনভয়েস INV-000214')).toBeVisible();
+});
+
+// The owner, 2026-11-11 (KNOWN-GAPS §142): a transfer to one of Lytro's bank accounts reads as one, its reference
+// where a TrxID would be, in the list, the payment's steps and its invoice.
+test('a payment by bank transfer names the bank and its reference, never a TrxID', async ({
+  page,
+}) => {
+  await open(
+    page,
+    { money: { payments: [PAID_BY_BANK, ...settled], invoices: { 'inv-215': bankInvoice() } } },
+    '/billing',
+  );
+  await main(page)
+    .getByRole('link', { name: /রিনিউ.*ব্যাংক ট্রান্সফার · রেফারেন্স BRACFT2211/ })
+    .click();
+  await expect(page).toHaveURL(`/${SLUG}/billing/pay_bank`);
+  await expect(main(page).getByRole('heading', { name: 'INV-000215' })).toBeVisible();
+  await expect(
+    main(page).getByText('পেমেন্ট সাবমিট করা হয়েছে · রেফারেন্স BRACFT2211'),
+  ).toBeVisible();
+  // The payment's Paid by and its invoice's (the list's row says more around it), and nothing calls it a TrxID.
+  await expect(
+    main(page)
+      .getByText('ব্যাংক ট্রান্সফার · রেফারেন্স BRACFT2211', { exact: true })
+      .filter({ visible: true }),
+  ).toHaveCount(2);
+  await expect(page.getByText(/TrxID BRAC/)).toHaveCount(0);
 });
 
 test("a rejected payment quotes support, and Pay again opens How to pay at today's price", async ({

@@ -243,9 +243,10 @@ export function courierRetiringText(input: {
   const moved = input.defaultMovedTo === null ? null : COURIER_NAMES[input.defaultMovedTo];
   return {
     bn: {
-      title: `${courier} বন্ধ হয়ে যাচ্ছে`,
+      // D8-78 (the owner, 2026-11-11, for couriers too): রিটায়ার হচ্ছে, as a retiring payment method and the courier chip say it.
+      title: `${courier} রিটায়ার হচ্ছে`,
       body:
-        `Lytro ${courier} বন্ধ করছে। বুক করা পার্সেল আগের মতোই চলবে। নতুন বুকিংয়ের জন্য ${suggested} কানেক্ট করুন।` +
+        `Lytro ${courier} রিটায়ার করছে। বুক করা পার্সেল আগের মতোই চলবে। নতুন বুকিংয়ের জন্য ${suggested} কানেক্ট করুন।` +
         (moved === null ? '' : ` আপনার ডিফল্ট কুরিয়ার এখন ${moved}।`),
     },
     en: {

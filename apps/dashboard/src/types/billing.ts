@@ -1,9 +1,9 @@
 import type {
   BillingPaymentState,
   PaymentCancelReason,
+  PaidByMethod,
   PlanLimits,
   PlanPaymentKind,
-  PlanPaymentMethod,
   PlanPaymentStatus,
   ScheduledPlanChangeKind,
 } from '@lytronix/validators';
@@ -70,7 +70,7 @@ export interface PaymentAddon {
 /** GET /billing/payments (BIL-19): a payment as Billing lists it, with everything its screen shows. */
 export interface BillingPayment extends PlanPayment {
   state: BillingPaymentState;
-  method: PlanPaymentMethod | null;
+  method: PaidByMethod | null;
   planName: string | null;
   billingTerm: { labelEn: string; labelBn: string; months: number } | null;
   invoice: { id: string; number: number } | null;
@@ -181,7 +181,7 @@ export interface Invoice {
   periodStart?: string | null;
   periodEnd?: string | null;
   discountAmount?: string | null;
-  paymentMethod?: 'balance' | 'wallet' | null;
+  paymentMethod?: PaidByMethod | null;
   paymentReference?: string | null;
 }
 

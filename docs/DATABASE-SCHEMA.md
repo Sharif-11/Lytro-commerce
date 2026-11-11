@@ -346,8 +346,8 @@ CREATE TABLE control.invoices (
     period_start    timestamptz,
     period_end      timestamptz,
     discount_amount numeric(10,2) NOT NULL DEFAULT 0, -- saving against the shortest visible term (TRM-12)
-    payment_method  text,                        -- balance | wallet
-    payment_reference text,                      -- the wallet transaction ID; null for a balance payment
+    payment_method  text,                        -- balance | wallet | bank (bank since 2026-11-11)
+    payment_reference text,                      -- the wallet transaction ID or the bank transfer's reference; null for a balance payment
     recorded_by_platform boolean NOT NULL DEFAULT false,  -- ADM-14
     reverses_invoice_id uuid,                    -- D8-49: on a credit note, the invoice it takes back
     plan_payment_id uuid,                        -- BIL-19: the payment this is the receipt of, copied at issue (an id, no

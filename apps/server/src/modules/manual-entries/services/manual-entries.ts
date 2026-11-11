@@ -16,6 +16,7 @@ import {
   MANUAL_ENTRY_DAILY_ENTRIES,
   ManualEntryKind,
   NotificationKind,
+  PaymentMethod,
   PlanPaymentKind,
   PlanPaymentStatus,
   PlatformActorType,
@@ -287,6 +288,11 @@ export class ManualEntries {
       now,
     );
     if (priced.ends) await this.renewals.attach(tx, payment, priced.carries, priced.ends);
+    // D8-75 (the owner, 2026-11-11): money that reached one of Lytro's bank accounts is paid by bank, so its invoice and
+    // the shop's Billing name the bank and the transfer's reference, not a wallet's TrxID.
+    if (input.bankAccountId !== undefined) {
+      await this.payments.setPageWithin(tx, payment.id, { payMethod: PaymentMethod.Bank });
+    }
     await this.payments.recordSubmission(
       tx,
       payment.id,

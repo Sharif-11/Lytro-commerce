@@ -1,5 +1,5 @@
 import type { Transaction } from '@lytronix/db';
-import type { InvoiceKind, PlanLimits, PlanPaymentMethod } from '@lytronix/validators';
+import type { InvoiceKind, PaidByMethod, PlanLimits } from '@lytronix/validators';
 import type { InvoiceLine, InvoiceRecord } from '../types/invoice';
 
 export interface NewInvoiceValues {
@@ -19,7 +19,7 @@ export interface NewInvoiceValues {
   periodStart: Date | null;
   periodEnd: Date | null;
   discountAmount: string;
-  paymentMethod: PlanPaymentMethod;
+  paymentMethod: PaidByMethod;
   paymentReference: string | null;
   /** BIL-19: the payment this invoice is the receipt of. */
   planPaymentId: string | null;

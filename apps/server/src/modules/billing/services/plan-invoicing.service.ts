@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { InvoiceLineKind, type InvoiceKind } from '@lytronix/validators';
+import { InvoiceLineKind, paidByOf, type InvoiceKind } from '@lytronix/validators';
 import { NotificationKind } from '@lytronix/validators';
 import { dhakaDate } from '../../../common/time';
 import { InvoicesService } from '../../payments/services/invoices.service';
@@ -113,8 +113,9 @@ export class PlanInvoicingService {
         periodStart: input.periodStart,
         periodEnd: input.periodEnd,
         discountAmount,
-        // A wallet payment carries the transaction ID the operator verified; a balance payment has none.
-        paymentMethod: payment.transactionId === null ? 'balance' : 'wallet',
+        // A wallet payment carries the transaction ID the operator verified, a bank transfer its reference; a balance
+        // payment has none.
+        paymentMethod: paidByOf(payment.transactionId, payment.payMethod),
         paymentReference: payment.transactionId,
         planPaymentId: payment.id,
         recordedByPlatform: payment.recordedByPlatform,
