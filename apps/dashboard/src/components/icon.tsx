@@ -107,6 +107,17 @@ const ICONS = {
       <path d="M2 12h20" />
     </>
   ),
+  // D8-72: a category row's handle, to drag it (Part 39's `grip`).
+  grip: (
+    <>
+      <circle cx="9" cy="6" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="6" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="18" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="18" r="1.4" fill="currentColor" stroke="none" />
+    </>
+  ),
   help: (
     <>
       <circle cx="12" cy="12" r="10" />
@@ -200,6 +211,17 @@ const ICONS = {
       <circle cx="12" cy="12" r="1" />
       <circle cx="19" cy="12" r="1" />
       <circle cx="5" cy="12" r="1" />
+    </>
+  ),
+  // D8-72: Move to… in a category's menu (Part 39's `move`).
+  move: (
+    <>
+      <path d="M5 9l-3 3 3 3" />
+      <path d="M9 5l3-3 3 3" />
+      <path d="M15 19l-3 3-3-3" />
+      <path d="M19 9l3 3-3 3" />
+      <path d="M2 12h20" />
+      <path d="M12 2v20" />
     </>
   ),
   orders: (

@@ -253,6 +253,10 @@ export class DrizzleCategoryStore implements CategoryStore {
     return this.categories.listCategories(tx, tenantId);
   }
 
+  lockCategories(tx: Transaction, tenantId: string): Promise<void> {
+    return this.categories.lockCategories(tx, tenantId);
+  }
+
   findCategories(tx: Transaction, tenantId: string, ids: string[]): Promise<CategoryRecord[]> {
     return this.categories.findCategories(tx, tenantId, ids);
   }

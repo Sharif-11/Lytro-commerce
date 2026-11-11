@@ -1,4 +1,5 @@
 import type { Language } from './mock-api';
+import { moveCategory } from './p88-cat-mock';
 import type { ProductRefusal, ProductsFixture } from './products';
 
 // Categories against a mocked API (Slice 11.8): the prototype's tree (`CATS`, `CAT_ROWS`), what each holds -- shown or
@@ -116,6 +117,12 @@ export function categoryWrite(
     const entry = tree[index];
     return entry ? { data: categoryView(fixture, entry, index, language) } : undefined;
   };
+  // D8-72 (Slice 8.8): a move, both lists renumbered; the answer is the whole list.
+  const move = /^\/categories\/([^/]+)\/move$/.exec(path);
+  if (move && method === 'POST') {
+    const refusal = moveCategory(tree, (id) => stateOf(fixture, id), move[1] ?? '', body);
+    return refusal ? { refused: refusal } : { data: categoryList(fixture, language) };
+  }
   if (method === 'POST' && path === '/categories') {
     const id = `c-new-${String((made += 1))}`;
     const name = typeof body?.name === 'string' ? body.name : '';

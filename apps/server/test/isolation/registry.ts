@@ -144,6 +144,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /categories':
     'creates a category in the session shop only; another shop as parent answers not_found',
   'PATCH /categories/:id': "another shop's category answers 404",
+  'POST /categories/:id/move':
+    "another shop's category answers 404; another shop's as the parent or the place is a place this shop doesn't have (409)",
   'DELETE /categories/:id': "another shop's category answers 404",
   'PUT /categories/:id/attributes':
     "another shop's category answers 404; another shop's attribute is not_found",

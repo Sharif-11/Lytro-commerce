@@ -7,6 +7,7 @@ import {
   type CategoryAttributesInput,
   type CreateCategoryInput,
   type DeleteCategoryQuery,
+  type MoveCategoryInput,
   type UpdateCategoryInput,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
@@ -156,23 +157,8 @@ export class CategoryService {
       if (input.imageId !== undefined) patch.imageId = input.imageId;
 
       if (input.parentId !== undefined && input.parentId !== current.parentId) {
-        const subtree = await this.categories.subtree(tx, tenantId, categoryId);
-        const newParent = input.parentId;
-        if (newParent !== null && subtree.some((node) => node.id === newParent)) {
-          throw new FieldsError([
-            {
-              field: 'parentId',
-              problem: ServerFieldProblemCode.OutOfRange,
-              messageKey: 'CategoryCannotMoveUnderItself',
-            },
-          ]);
-        }
-        const depth =
-          newParent === null ? 1 : (await this.parentOf(tx, tenantId, newParent)).depth + 1;
-        const height = Math.max(...subtree.map((node) => node.level));
-        if (depth + height > CATEGORY_MAX_DEPTH) this.refuseTooDeep();
-        patch.parentId = newParent;
-        await this.categories.setSubtreeDepths(tx, tenantId, subtree, depth);
+        await this.reparent(tx, tenantId, categoryId, input.parentId);
+        patch.parentId = input.parentId;
       }
 
       let row: CategoryRecord | null;
@@ -197,6 +183,72 @@ export class CategoryService {
       const [shown] = await this.views(tx, tenantId, [row]);
       if (!shown) throw new ApiError('not_found', 'CategoryNotFound', {});
       return shown;
+    });
+  }
+
+  /**
+   * D8-72 (Slice 8.8): moves a category, with everything under it, to a parent (null for the top level) and a place among
+   * that parent's sub-categories -- after `afterId`, or first -- and renumbers both its old and its new siblings, in one
+   * transaction, so a failure never leaves half an order. A place that no longer exists, the parent gone or `afterId` no
+   * longer under it, is a list someone changed meanwhile. Answers the whole list, as `list()` does.
+   */
+  async move(
+    tenantId: string,
+    categoryId: string,
+    input: MoveCategoryInput,
+    actor: CatalogueActor,
+  ): Promise<CategoryView[]> {
+    const who = await this.activity.resolve(tenantId, actor);
+    return this.transactions.run(async (tx) => {
+      await this.categories.lockCategories(tx, tenantId);
+      const rows = await this.categories.listCategories(tx, tenantId);
+      const current = rows.find((row) => row.id === categoryId);
+      if (!current) throw new ApiError('not_found', 'CategoryNotFound', {});
+      const { parentId, afterId } = input;
+      const placeGone =
+        (parentId !== null && !rows.some((row) => row.id === parentId)) ||
+        (afterId !== null &&
+          (afterId === categoryId ||
+            rows.find((row) => row.id === afterId)?.parentId !== parentId));
+      if (placeGone) throw new ApiError('conflict', 'CategoryMovedMeanwhile', {});
+
+      const reparented = parentId !== current.parentId;
+      if (reparented) await this.reparent(tx, tenantId, categoryId, parentId);
+      // The list is in the shop's order within a level, so each parent's sub-categories keep theirs.
+      const siblings = (parent: string | null) =>
+        rows.filter((row) => row.parentId === parent && row.id !== categoryId);
+      const target = siblings(parentId);
+      const at = afterId === null ? 0 : target.findIndex((row) => row.id === afterId) + 1;
+      const order = [...target.slice(0, at), current, ...target.slice(at)];
+      let changed = reparented;
+      for (const [index, row] of order.entries()) {
+        if (row.id !== categoryId && row.sortOrder === index) continue;
+        if (row.id === categoryId && !reparented && row.sortOrder === index) continue;
+        await this.categories.updateCategory(tx, tenantId, row.id, {
+          ...(row.id === categoryId && reparented ? { parentId } : {}),
+          sortOrder: index,
+        });
+        changed = true;
+      }
+      if (reparented) {
+        for (const [index, row] of siblings(current.parentId).entries()) {
+          if (row.sortOrder !== index) {
+            await this.categories.updateCategory(tx, tenantId, row.id, { sortOrder: index });
+          }
+        }
+      }
+      if (changed) {
+        await this.activity.record(
+          tx,
+          tenantId,
+          who,
+          AuditAction.CategoryUpdated,
+          { type: 'category', id: categoryId },
+          { parentId, afterId },
+        );
+        await this.products.bumpVersion(tx, tenantId);
+      }
+      return this.views(tx, tenantId, await this.categories.listCategories(tx, tenantId));
     });
   }
 
@@ -296,6 +348,33 @@ export class CategoryService {
     const [row] = await this.categories.findCategories(tx, tenantId, [categoryId]);
     if (!row) throw new ApiError('not_found', 'CategoryNotFound', {});
     return row;
+  }
+
+  /**
+   * PRD-03, D8-72: puts a category, with everything under it, under `parentId` (null for the top level), re-levelling the
+   * whole subtree; refused under itself or one of its own sub-categories, and past four levels. The one definition of a
+   * move's rules, for a PATCH and a move alike.
+   */
+  private async reparent(
+    tx: Transaction,
+    tenantId: string,
+    categoryId: string,
+    parentId: string | null,
+  ): Promise<void> {
+    const subtree = await this.categories.subtree(tx, tenantId, categoryId);
+    if (parentId !== null && subtree.some((node) => node.id === parentId)) {
+      throw new FieldsError([
+        {
+          field: 'parentId',
+          problem: ServerFieldProblemCode.OutOfRange,
+          messageKey: 'CategoryCannotMoveUnderItself',
+        },
+      ]);
+    }
+    const depth = parentId === null ? 1 : (await this.parentOf(tx, tenantId, parentId)).depth + 1;
+    const height = Math.max(...subtree.map((node) => node.level));
+    if (depth + height > CATEGORY_MAX_DEPTH) this.refuseTooDeep();
+    await this.categories.setSubtreeDepths(tx, tenantId, subtree, depth);
   }
 
   private async parentOf(

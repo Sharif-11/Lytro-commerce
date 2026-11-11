@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Inject,
   Param,
   Patch,
@@ -32,6 +33,7 @@ import { SessionGuard } from '../../identity/guards/session.guard';
 import {
   CategoryAttributesDto,
   CreateCategoryDto,
+  MoveCategoryDto,
   SizeChartDto,
   UpdateCategoryDto,
 } from '../dto/catalogue.dto';
@@ -89,6 +91,31 @@ export class CategoriesController {
     @Req() request: DashboardRequest,
   ): Promise<CategoryView> {
     return this.categories.update(
+      this.catalogue.tenantIdOf(request),
+      this.catalogue.idOf(id, 'CategoryNotFound'),
+      body,
+      this.catalogue.actorOf(request),
+    );
+  }
+
+  // D8-72 (Slice 8.8): a drag, a keyboard move, Move up or down, or Move to…: one request moves the category and
+  // renumbers both its old and new siblings, answering the whole list.
+  @Post(':id/move')
+  @HttpCode(200)
+  @RequirePermission(Permission.ProductsManage)
+  @ResponseMessage('CategoryMoved')
+  @ApiOperation({
+    summary:
+      'Move a category, with everything under it, to a parent and a place among its sub-categories (D8-72)',
+  })
+  @ApiBody({ type: MoveCategoryDto })
+  @ZodResponse({ type: [CategoryViewDto] })
+  move(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(MoveCategoryDto.schema)) body: MoveCategoryDto,
+    @Req() request: DashboardRequest,
+  ): Promise<CategoryView[]> {
+    return this.categories.move(
       this.catalogue.tenantIdOf(request),
       this.catalogue.idOf(id, 'CategoryNotFound'),
       body,
