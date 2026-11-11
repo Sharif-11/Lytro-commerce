@@ -174,6 +174,20 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .swb i{display:block;width:100%;height:100%;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
 .swb.on{border-color:var(--text)}
 .swb.off{opacity:.4}
+/* Photo designs: a product's own photos as the choice, one card per design (its cover), 4:5 like the photos. Five fill
+   the row; more scroll sideways. A tap ticks one; a sold-out design is greyed with its word. */
+.pcards{display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 32px) / 5);gap:8px;overflow-x:auto;scrollbar-width:none;padding:4px;margin:-4px}
+.pcard{position:relative;aspect-ratio:4/5;border-radius:10px;overflow:hidden;outline:1px solid var(--line);outline-offset:-1px;cursor:pointer;background:var(--sunken)}
+.pcard i{display:block;width:100%;height:100%}
+.pcard .tk{display:none;position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--on-accent);align-items:center;justify-content:center}
+.pcard .tk svg.i{width:13px;height:13px}
+.pcard.on{outline:2.5px solid var(--accent);outline-offset:2px}
+.pcard.on .tk{display:flex}
+.pcard.off i{filter:grayscale(1);opacity:.5}
+.pcard.off b{position:absolute;left:0;right:0;bottom:0;background:rgba(16,32,31,.72);color:#fff;font-size:11px;font-weight:600;text-align:center;padding:3px 0}
+.pcards.nudge{animation:pshake .45s ease 2}
+@keyframes pshake{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.pcards.nudge .pcard{outline-color:var(--danger)}
 .swb.off::after{content:"";position:absolute;left:6px;right:6px;top:50%;height:2px;background:var(--text);transform:rotate(-45deg)}
 .qty{display:inline-flex;align-items:center;border:1.5px solid var(--line-strong);border-radius:var(--r-control);height:40px}
 .qty button{width:40px;height:100%;display:inline-flex;align-items:center;justify-content:center;font-size:18px}
@@ -695,11 +709,11 @@ function gallery(p, o) {
 }
 // Stand-ins for a burka's five design photos (the sketch has no photos; a shop's real ones fill the swatches).
 const PHOTO_SW = ['linear-gradient(160deg,#2b2b2b,#0d0d0d 60%,#3a3a3a)', 'linear-gradient(160deg,#1f2a44 0 30%,#c9a9a6 30% 45%,#1f2a44 45% 70%,#c9a9a6 70%)', 'linear-gradient(160deg,#a07b86,#7d5b66)', 'linear-gradient(160deg,#5a3b2a,#3b2418)', 'linear-gradient(160deg,#f4f1ec,#d9d2c7)'];
+// o.pick: the index chosen, or none; o.nudge: Buy was tapped before choosing (the cards shake once).
+const photoCards = (o) => `<div class="opt"><div class="pcards ${o.nudge ? 'nudge' : ''}">${PHOTO_SW.map((g, i) => `<span class="pcard ${i === o.pick ? 'on' : ''} ${i === 3 ? 'off' : ''}"><i style="background:${g}"></i><span class="tk">${I.check}</span>${i === 3 ? `<b>${t('out')}</b>` : ''}</span>`).join('')}</div></div>`;
 function buyBox(p, o) {
   o = o || {}; const sel = o.sel || { size: 'M', colour: 0 };
   const sizes = `<div class="opt"><div class="lb"><span>${t('size')}: <b>${sel.size}</b></span><span class="lnk" onclick="go('product-size-chart')">${I.ruler} ${t('size_chart')}</span></div><div class="vals">${PRODUCT.sizes.map((s) => `<span class="vb ${s === sel.size ? 'on' : ''} ${o.offSizes && o.offSizes.includes(s) ? 'off' : ''}">${s}</span>`).join('')}</div></div>`;
-  // Photo designs: the product's own photos as the choice, in today's swatch style; tapping one shows that photo.
-  const photos = `<div class="opt"><div class="vals">${PHOTO_SW.map((g, i) => `<span class="swb ${i === 1 ? 'on' : ''} ${i === 3 ? 'off' : ''}"><i style="background:${g}"></i></span>`).join('')}</div></div>`;
   const colours = `<div class="opt"><div class="lb"><span>${t('colour')}: <b>${L(PRODUCT.colours[sel.colour][1], PRODUCT.colours[sel.colour][2])}</b></span></div><div class="vals">${PRODUCT.colours.map((c, i) => `<span class="swb ${i === sel.colour ? 'on' : ''}"><i style="background:${c[0]}"></i></span>`).join('')}</div></div>`;
   const deliv = o.area ? `<div class="line">${I.truck}<span><b>${t('deliv_est')}</b>: ${t('deliv_to', { a: L(ZONE.inside.bn, ZONE.inside.en), n: 70 })} · ${t('deliv_days')} <span class="lnk" onclick="go('product-delivery')">${t('change')}</span></span></div>`
     : `<div class="line">${I.truck}<span><b>${t('deliv_est')}</b>: ${t('deliv_range')} · <span class="lnk" onclick="go('product-delivery')">${t('deliv_area')}</span></span></div>`;
@@ -707,7 +721,7 @@ function buyBox(p, o) {
   const limited = p.limited ? `<div class="line">${I.pin}<span><b>${t('delivers_only', { z: L(ZONE.inside.bn, ZONE.inside.en) })}</b></span></div>` : '';
   return `<div class="buy">
     <div class="top"><div class="eyebrow">${catName(p.cat)}</div><h1 class="pt">${pName(p)}</h1><div class="pricerow"><span class="price">${money(o.price || p.price)}</span>${p.max ? `<span class="unit">– ${money(p.max)}</span>` : ''}${stChip(o.stock || p.stock)}${p.cond ? `<span class="st info plain">${t('cond_' + p.cond)}</span>` : ''}</div></div>
-    ${o.photos ? photos : ''}${o.single ? '' : sizes}${o.single || o.photos ? '' : colours}
+    ${o.photos ? photoCards(o) : ''}${o.single ? '' : sizes}${o.single || o.photos ? '' : colours}
     ${o.unavailable ? `<div class="banner warn">${I.warn}<span><b>${t('unavailable')}</b><br>${t('unavailable_hint')}</span></div>` : ''}
     <div class="opt"><div class="lb"><span>${t('qty')}</span></div>${qty(1)}</div>
     <div style="display:flex;flex-direction:column;gap:10px">${deliv}${pay}${limited}</div>
@@ -724,7 +738,9 @@ function productPage(p, o) {
 const buybar = (p, o) => { o = o || {}; return `<div class="buybar"><span class="tot"><span class="k">${o.out ? t('out') : t('total')}</span><span class="price">${money(o.price || p.price)}</span></span>${o.out ? `<button class="btn ghost" disabled>${t('out')}</button>` : o.unavailable ? `<button class="btn primary" disabled>${t('add')}</button>` : `<button class="btn ghost" onclick="go('product-added')">${I.bag}</button><button class="btn primary" onclick="go('product-added')">${t('add')}</button>`}</div>`; };
 const pHdr = (p) => ({ hdr: { back: 'category', title: pName(p) } });
 def('product', { group: 'Product', label: 'Product · Cotton Panjabi', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0]), buybar(P[0])) });
-def('product-photos', { group: 'Product', label: '· its own photos as the choice (photo designs)', url: 'megh.lytro.app/p/irani-burka', render: () => shell(pHdr(P[0]), productPage(P[0], { photos: true, sel: { size: 'L', colour: 0 } }), buybar(P[0])) });
+def('product-photos', { group: 'Product', label: '· its own photos as the choice (photo designs), none chosen yet', url: 'megh.lytro.app/p/irani-burka', render: () => shell(pHdr(P[0]), productPage(P[0], { photos: true, pick: null, sel: { size: 'L', colour: 0 } }), buybar(P[0])) });
+def('product-photos-chosen', { group: 'Product', label: '· a photo chosen', url: 'megh.lytro.app/p/irani-burka', render: () => shell(pHdr(P[0]), productPage(P[0], { photos: true, pick: 1, sel: { size: 'L', colour: 0 } }), buybar(P[0])) });
+def('product-photos-nudge', { group: 'Product', label: '· Buy tapped before choosing: scrolled to the photos, which shake once', url: 'megh.lytro.app/p/irani-burka', render: () => shell(pHdr(P[0]), productPage(P[0], { photos: true, pick: null, nudge: true, sel: { size: 'L', colour: 0 } }), buybar(P[0])) });
 def('product-area', { group: 'Product', label: '· with the area set (exact delivery)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0], { area: true }), buybar(P[0])) });
 def('product-unavailable', { group: 'Product', label: '· L in Navy sold out (ATR-07)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0], { sel: { size: 'L', colour: 1 }, offSizes: ['L', 'XXL'], unavailable: true }), buybar(P[0], { unavailable: true })) });
 def('product-added', { base: 'product', group: 'Product', label: '· added to cart (toast)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0]), buybar(P[0]) + toast(t('added'), `<button class="btn" onclick="go('cart')">${t('view_cart')}</button>`)) });
@@ -770,8 +786,8 @@ function landingPage(o) {
   o = o || {}; const p = o.p || P[0]; const q = o.qty || 1; const total = p.price * q;
   return `<div class="pdp">${gallery(p)}<div class="buy">
     <div class="top"><div class="eyebrow">${shopName()}</div><h1 class="pt">${pName(p)}</h1><div class="pricerow"><span class="price">${money(p.price)}</span>${stChip(p.stock)}</div></div>
-    ${o.single ? '' : `<div class="opt"><div class="lb"><span>${t('size')}: <b>${o.size || 'M'}</b></span><span class="lnk" onclick="go('product-size-chart')">${I.ruler} ${t('size_chart')}</span></div><div class="vals">${PRODUCT.sizes.map((s) => `<span class="vb ${s === (o.size || 'M') ? 'on' : ''}">${s}</span>`).join('')}</div></div>
-    <div class="opt"><div class="lb"><span>${t('colour')}: <b>${L(PRODUCT.colours[o.colour || 0][1], PRODUCT.colours[o.colour || 0][2])}</b></span></div><div class="vals">${PRODUCT.colours.map((c, i) => `<span class="swb ${i === (o.colour || 0) ? 'on' : ''}"><i style="background:${c[0]}"></i></span>`).join('')}</div></div>`}
+    ${o.photos ? photoCards(o) : ''}${o.single ? '' : `<div class="opt"><div class="lb"><span>${t('size')}: <b>${o.size || 'M'}</b></span><span class="lnk" onclick="go('product-size-chart')">${I.ruler} ${t('size_chart')}</span></div><div class="vals">${PRODUCT.sizes.map((s) => `<span class="vb ${s === (o.size || 'M') ? 'on' : ''}">${s}</span>`).join('')}</div></div>
+    ${o.photos ? '' : '<!--colours-->'}<div class="opt" ${o.photos ? 'hidden' : ''}><div class="lb"><span>${t('colour')}: <b>${L(PRODUCT.colours[o.colour || 0][1], PRODUCT.colours[o.colour || 0][2])}</b></span></div><div class="vals">${PRODUCT.colours.map((c, i) => `<span class="swb ${i === (o.colour || 0) ? 'on' : ''}"><i style="background:${c[0]}"></i></span>`).join('')}</div></div>`}
     <div class="opt"><div class="lb"><span>${t('qty')}</span></div>${o.qtyHtml || qty(q)}</div>
     <div class="desc" style="font-size:14px;color:var(--muted)">${L(...PRODUCT.desc)}</div>
     <div class="acc"><details><summary>${t('details')}${I.down}</summary><div class="body"><div class="kv">${PRODUCT.attrs.map((a) => `<span class="k">${L(a[0], a[1])}</span><span class="v">${L(a[2], a[3])}</span>`).join('')}</div></div></details></div>
@@ -782,6 +798,7 @@ function landingPage(o) {
 /* the phone's pinned bar: the price and "Order now", which scrolls to the form; hidden on desktop where the form is beside the product */
 const landingBar = (p) => `<div class="buybar"><span class="tot"><span class="k">${pName(p)}</span><span class="price">${money(p.price)}</span></span><button class="btn primary" onclick="var s=document.querySelector('#frame .scroll'),f=document.querySelector('#frame .ofrm');if(s&&f)s.scrollTo({top:f.offsetTop-72,behavior:'smooth'})">${t('order_now')} ${I.down}</button></div>`;
 def('landing', { group: 'Landing page', label: 'Landing page /l/cotton-panjabi (form laid out, Slice 12)', url: 'megh.lytro.app/l/cotton-panjabi', render: () => shell({ hdr: { minimal: true }, landing: true }, landingPage({ soon: true }), landingBar(P[0])) });
+def('landing-photos', { group: 'Landing page', label: '· its own photos as the choice (photo designs), a photo chosen', url: 'megh.lytro.app/l/irani-burka', render: () => shell({ hdr: { minimal: true }, landing: true }, landingPage({ photos: true, pick: 1 }), landingBar(P[0])) });
 def('landing-variant', { group: 'Landing page', label: '· opened with ?v= (XL Navy preselected, LND-06)', url: 'megh.lytro.app/l/cotton-panjabi?v=var_xl_navy', render: () => shell({ hdr: { minimal: true }, landing: true }, landingPage({ soon: true, size: 'XL', colour: 1 }), landingBar(P[0])) });
 def('landing-gone', { group: 'Landing page', label: '· no longer available (404, LND-03)', url: 'megh.lytro.app/l/old-panjabi', render: () => `<div class="bare"><div class="box">${logo()}<h1>${t('gone_h')}</h1><p>${t('gone_p')}</p><button class="btn primary" onclick="go('home')">${t('go_shop')}</button><div style="color:var(--subtle)">${I.pb}</div></div></div>` });
 

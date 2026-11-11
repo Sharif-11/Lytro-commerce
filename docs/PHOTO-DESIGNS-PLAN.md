@@ -7,7 +7,7 @@ any of them.
 
 **The storefront keeps its built design** (the owner, 2026-11-12: "the current design is ok, for landing page and product
 detail page"). Only the changes named in §2 are made, and they are drawn in the storefront's own prototype,
-`docs/brand/lytro-storefront.html`: the screens "Product · its own photos as the choice" and "Cart".
+`docs/brand/lytro-storefront.html`: the screens `product-photos`, `product-photos-chosen`, `product-photos-nudge`, `landing-photos` and `cart`.
 
 Reopening a decision in §2 needs an explicit change to its row, not a silent deviation during a slice.
 
@@ -36,7 +36,7 @@ shopper gets exactly the design they chose, and the seller sends exactly that de
 1. **Every rule in §2 has a passing test,** including one per no-mismatch rule (PD-4 to PD-9).
 2. **The golden path passes as one test:**
    - A seller uploads 5 photos and gets 5 designs, groups two of them into one, and adds sizes 50 to 56.
-   - A shopper taps the second design's swatch and picks 54. The cart, checkout, the confirmation, the seller's order
+   - A shopper taps the second design's photo card and picks 54. The cart, checkout, the confirmation, the seller's order
      page, the order editor and the parcel label all show that design's photo (the seller's also its name), 54 and
      1 piece.
    - The seller then deletes, reorders and regroups the product's photos, and the order still shows the same photo.
@@ -56,7 +56,7 @@ shopper gets exactly the design they chose, and the seller sends exactly that de
 | PD-1 | **What a design is.** | **A product's own photo is a choice:** the seller uploads photos and each one becomes a design. Under the hood a design is an ordinary variant-defining option, so a design × a size is one variant, with its own stock, price and SKU, and orders, stock, combos and the feed work as they do for any variant. |
 | PD-2 | **Several photos of one design** (front, back, a close-up). | One design holds one or more photos; its **first photo is its cover.** The seller groups photos with "এই ডিজাইনের আরেকটি ছবি" ("Same design, another angle"). |
 | PD-3 | **A new photo's default.** | **Every newly added photo is a design, on every product,** until the seller switches it off ("এটি ডিজাইন নয়", a plain photo). The owner chose this over a per-product switch for fashion shops and over a warning on save. |
-| PD-4 | **How the shopper chooses** (no mismatch). | **As shoppers already do:** the option row offers the designs as today's round swatches, each the design's cover. A tap chooses it, and the gallery shows that cover. The page opens with the first available design chosen, as it opens with the first available variant today. **No label, number, word "ডিজাইন" or guiding button is added** (the owner, 2026-11-12: "you need not guide the shopper they are used to it"). Swiping the photos never changes the choice. |
+| PD-4 | **How the shopper chooses** (no mismatch; the owner, 2026-11-12: "the customer should choose from the square shape photos ... the selecting logic is same as the design i rejected earlier"). | **Photo cards** in the option row, one per design (its cover), 4:5 like the product's photos, five filling the row and more scrolling sideways. **No label, number or word "ডিজাইন"** (the owner: "you need not guide the shopper"). **A tap chooses** a card (a ring and a tick) and the gallery shows that cover. **Nothing is chosen when the page opens** (the owner chose this over the first card chosen); tapping Add to cart, Buy now or Order before choosing scrolls to the cards, which shake once, and the buttons keep their words. Swiping the photos never chooses. |
 | PD-5 | **The storefront's photos.** | **Every photo, one after another, as today, with nothing added on them.** |
 | PD-6 | **What the shopper sees after choosing.** | Wherever an item is listed (the cart, checkout, the landing page's summary, the confirmation and tracking), **the chosen design's cover, with the size and quantity.** The shopper's screens never name the design: the photo says which it is. |
 | PD-7 | **What the order keeps.** | The order line keeps the variant and the **cover of the chosen design**. Deleting, reordering or regrouping the product's photos later, or renaming the design, never changes a past order's photo. |
@@ -64,7 +64,7 @@ shopper gets exactly the design they chose, and the seller sends exactly that de
 | PD-9 | **What the seller acts on.** | The order page, the order editor and the confirmation call show the cover with the design's name and the size. **The parcel label (ORD-19) names the design, the size and the SKU** on each item line. There is no separate packing list. |
 | PD-10 | **SKUs.** | A variant of a product with designs that has no SKU gets one when saved: the product's initials, the design and the other values, e.g. `IB-D2-54`, made unique in the shop. The seller can change it. |
 | PD-11 | **Products that exist today.** | They keep their photos as plain photos, and their variants and stock unchanged. PD-3's default applies to photos added later, **except** that a product which already has variants with stock or orders and no designs keeps new photos plain until the seller turns designs on (re-keying its variants is refused after orders, ATR-15). |
-| PD-12 | **One design.** | A product with only one design shows no design swatches; that design is chosen. |
+| PD-12 | **One design.** | A product with only one design shows no photo cards; that design is chosen. |
 
 **PD-13 to PD-27 follow from those, from existing requirements, or from the owner's review of the screens.**
 
@@ -74,7 +74,7 @@ shopper gets exactly the design they chose, and the seller sends exactly that de
 | PD-14 | **Design names, for the seller only.** | A design is "ডিজাইন 1, 2, 3…" by its order among the product's designs, unless the seller names it ("স্ট্রাইপ"); the number never changes once an order names it. The name shows on the seller's screens, the parcel label and the SKU, never to the shopper (PD-4, PD-6). |
 | PD-15 | **Limits.** | The design attribute counts as one of ATR-14's 3 variant-defining attributes and toward its 100 variants; a product has at most 50 photos (PRD-11), so at most 50 designs. |
 | PD-16 | **Saving.** | One request sets a product's photos and designs together (which photos, their order, their designs and names), and returns each design's option id, before its variants are saved. Option ids never change while a design keeps a photo, so its variants and stock stay. |
-| PD-17 | **A sold-out design.** | Its swatch shows sold out as today's sold-out values do (ATR-07): struck through, still visible. |
+| PD-17 | **A sold-out design.** | Its card is greyed with "শেষ" and can't be chosen (ATR-07). |
 | PD-18 | **Desktop.** | On the product page and the landing page, the photo is sized to the window's height (4:5, at most 800 px tall), so the whole photo is seen beside the name, the price and the choices without scrolling. The rest of each page is as built. |
 | PD-19 | **Units.** | The quantity shows its unit for counted units as well ("1 পিস", "2 ডজন"), as it already does for measured ones. |
 | PD-20 | **The size chart.** | Unchanged: the "সাইজ চার্ট" link opens it, as built; it is never one of the photos. |
@@ -84,7 +84,7 @@ shopper gets exactly the design they chose, and the seller sends exactly that de
 | PD-24 | **A shared link** (LND-06). | `?v=<variant>` opens with that variant's design and size chosen, and the gallery on its cover. |
 | PD-25 | **The delivery charge before the address is known** (the owner, 2026-11-12: "when there is no choosen address you should render the maximum one"). | The cart and the landing page's form show **the shop's highest delivery charge** and **one total**, not a range, with the link "সঠিক ডেলিভারি চার্জ জানতে আপনার অ্যাড্রেস দিন" (the landing form: "সঠিক ডেলিভারি চার্জ জানতে থানা বাছুন"); once the address or thana is known, the exact charge (SFT-20). Amends SFT-20 and LND-07's "a range until the thana is chosen". |
 | PD-26 | **Asking for the shopper's address** (the owner, 2026-11-12: "elaka => address", then "sothik delivery charge janthe apnar address din"). | The prompts that ask for the address to work out the delivery charge say **"অ্যাড্রেস"**. In the built storefront's words (`apps/storefront/src/lib/i18n/copy.ts`): `deliv_area` becomes "আপনার অ্যাড্রেস দিন" / "Set your address", `area_title` "আপনার অ্যাড্রেস" / "Your address", and `area_save` "অ্যাড্রেস ঠিক করুন" / "Set address". The address form's own fields ("পুরো ঠিকানা", "ডেলিভারি ঠিকানা", saved addresses) keep their built words. |
-| PD-27 | **No redesign** (the owner, 2026-11-12). | The product page, the landing page and the cart keep their built look. A redesign drawn on 2026-11-12 (a design row with numbered cards, "এই ডিজাইন নিন" on each photo, a guiding buy button) was turned down and is not built. |
+| PD-27 | **No redesign** (the owner, 2026-11-12). | The product page, the landing page and the cart keep their built look. From a redesign drawn on 2026-11-12, only the photo cards and their choosing (PD-4) are kept; its numbers, "ডিজাইন" labels, "এই ডিজাইন নিন" buttons on the photos, guiding button words and new layout were turned down and are not built. |
 
 ---
 
@@ -99,7 +99,7 @@ Amended in the docs commit of this work, with the date 2026-11-12:
 | ATR-19 (new) | Photo designs: PD-1 to PD-5, PD-12 to PD-14, PD-16, PD-17. |
 | ATR-20 (new) | The no-mismatch rule: PD-4, PD-6, PD-7, PD-9, PD-22, PD-24. |
 | PRD-11 | A photo is a design by default (PD-3, PD-11). |
-| SFT-04, LND-01 | The design swatches, the gallery showing a tapped design's cover, and the photo sized to the window on desktop (PD-4, PD-17, PD-18). |
+| SFT-04, LND-01 | The photo cards, nothing chosen until tapped, the gallery showing a tapped design's cover, and the photo sized to the window on desktop (PD-4, PD-17, PD-18). |
 | SFT-05 | The cart line's design cover, its unit and its trash button (PD-6, PD-19, PD-21). |
 | SFT-20, LND-07 | The highest charge and one total before the address is known; "অ্যাড্রেস" (PD-25, PD-26). |
 | ORD-17, ORD-19 | The confirmation page and tracking list items with photos; the label names design, size and SKU (PD-6, PD-9). |
