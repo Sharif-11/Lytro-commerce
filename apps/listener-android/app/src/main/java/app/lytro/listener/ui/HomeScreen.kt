@@ -87,6 +87,7 @@ fun ColumnScope.HomeScreen(model: AppViewModel) {
         StoppedScreen(
             status = facts.status,
             held = model.queueSize,
+            support = model.supportWhatsapp,
             onCheckAgain = model::checkAgain,
             onPairAgain = model::pairAgain,
             onMenu = if (band == HomeBand.Inactive) model::openMenu else null,

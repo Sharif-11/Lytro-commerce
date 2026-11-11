@@ -648,6 +648,15 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This screenshot was removed after two years.',
     bn: 'দুই বছর পর এই স্ক্রিনশটটি মুছে ফেলা হয়েছে।',
   },
+  EvidenceSent: { en: 'Screenshot sent to Lytro.', bn: 'স্ক্রিনশট Lytro-কে পাঠানো হয়েছে।' },
+  EvidenceAlreadySent: {
+    en: 'A screenshot was already sent for this payment. Once sent, it stays.',
+    bn: 'এই পেমেন্টের স্ক্রিনশট আগেই পাঠানো হয়েছে। পাঠানোর পর বদলানো যায় না।',
+  },
+  PaymentNotBeingChecked: {
+    en: 'A screenshot can only be added while Lytro is checking the payment.',
+    bn: 'Lytro পেমেন্টটা চেক করার সময়ই শুধু স্ক্রিনশট দেওয়া যায়।',
+  },
   UpgradeQuoted: { en: 'Upgrade quote created.', bn: 'আপগ্রেড কোট তৈরি হয়েছে।' },
   UpgradeSubmitted: { en: 'Upgrade payment submitted.', bn: 'আপগ্রেড পেমেন্ট জমা দেওয়া হয়েছে।' },
   UpgradeConfirmed: { en: 'Upgrade confirmed.', bn: 'আপগ্রেড নিশ্চিত হয়েছে।' },
@@ -754,6 +763,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   CategoryCannotMoveUnderItself: {
     en: 'A category cannot go under itself or one of its own sub-categories.',
     bn: 'কোনো ক্যাটাগরিকে তার নিজের বা নিজের সাব-ক্যাটাগরির ভেতরে রাখা যায় না।',
+  },
+  CategoryMovedMeanwhile: {
+    en: 'Not moved: someone changed the categories meanwhile. The list is fresh now; try again.',
+    bn: 'সরানো যায়নি: এর মধ্যে অন্য কেউ ক্যাটাগরিগুলো বদলেছে। তালিকা নতুন করে আনা হয়েছে, আবার ট্রাই করুন।',
   },
   AttributeNameTaken: {
     en: 'An attribute with this name already exists. Use that one.',
@@ -1239,6 +1252,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   CategoryUpdated: {
     en: 'Category updated.',
     bn: 'ক্যাটাগরি আপডেট হয়েছে।',
+  },
+  CategoryMoved: {
+    en: 'Category moved.',
+    bn: 'ক্যাটাগরি সরানো হয়েছে।',
   },
   CategoryDeleted: {
     en: 'Category deleted.',

@@ -140,6 +140,10 @@ overrule any of them when reviewing this plan.
 | D8-76 | **Clearing a help number** (the owner's answer). | `help_whatsapp` and `help_phone` take an empty value, meaning not set, with a reason like any change; that button then goes from the dashboard, the website and Lytro's payment page. | Slice 8.8 |
 | D8-77 | **The help line's hours** (the owner's answer). | The closing hour must be after the opening hour, every day: each hour is checked against the other's stored value, so hours never run past midnight. | Slice 8.8 |
 | D8-78 | **The word for a retiring payment method** (the owner's answer). | "রিটায়ার হচ্ছে" everywhere: the chip, the activity log, the switches and the owner's notice, whose title becomes "{name} রিটায়ার হচ্ছে". | Slice 8.8 |
+| D8-79 | **A sent screenshot after a reload** (the owner's answer to the build, 2026-11-11). | Billing shows its type and size, "Screenshot · JPG, 1.2 MB"; the file's own name shows only in the session that sent it and isn't kept, so no migration. | Slice 8.8 |
+| D8-80 | **The listener app's help number once cleared** (the owner's answer). | A number cleared in the console hides the app's support row too, as on the dashboard and the website; the number the app was built with stands in only until the server answers and while it can't be reached. | Slice 8.8 |
+| D8-81 | **Where an error ID shows** (the owner's answer). | As drawn: Record a payment's error above its button, and Products' "didn't load" card with Try again. Every other sheet keeps its error at its top and every other list its banner, each with the error ID, Copy and Send on WhatsApp, until a sketch draws more. | Slice 8.8 |
+| D8-82 | **A product save the server refuses** (the owner's answer). | It keeps naming the refused part under the title (Slice 11.7a's per-part message), not the drawing's bare sentence above it (`p88-err-refused`). | Slice 8.8 |
 
 ### 2.1 Points left to each slice's read
 
@@ -154,7 +158,7 @@ Each is settled in its slice's read, before code, and recorded there.
 | 8.5 | Where evidence is kept and for how long, what a reversal of a plan purchase undoes, and the digest's time. **Settled in Slice 8.5's read (2026-11-09):** D8-47 to D8-56; D8-53 drops the digest. |
 | 8.6 | R2's operation counts (D8-17), the budget's default and currency, and who the alert goes to. **Settled in Slice 8.6's read (2026-11-10):** D8-57 to D8-64. |
 | 8.7 | The shop-ready SMS's words (D8-19), and whether the help menu's number shows to staff as well as the owner. **Settled in Slice 8.7's read (2026-11-10):** D8-65 to D8-70; the help row shows to everyone on the team. |
-| 8.8 | Settled by its sketch: see that slice. **Read (2026-11-10):** D8-71 to D8-74; the sketch's four open points settled as D8-75 to D8-78. |
+| 8.8 | Settled by its sketch: see that slice. **Read (2026-11-10):** D8-71 to D8-74; the sketch's four open points settled as D8-75 to D8-78, and the build's four as D8-79 to D8-82. |
 
 ---
 
@@ -356,6 +360,15 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   `bank_account_id`), the operator's id on `me`, the retiring notice's words (D8-78), and Lytro's numbers and bank
   accounts kept while an entry names them. The console's policy lets screenshots reach the storage (`(operator_csp)`).
   KNOWN-GAPS §140 (two of three fixed) and §142. The dashboard, the website and the listener app follow in PR 2.
+- **Built, the dashboard, the website and the listener app (2026-11-11, PR 2 of 2):** the Menu's Help and Lytro support
+  sheet from the help line; a server fault's error ID with Copy and Send on WhatsApp, in every screen's error banner and
+  where §7.41 draws it (D8-81, D8-82); a retiring payment method's mark, its bell rows and switches in রিটায়ার's words;
+  a payment's screenshot sent from Billing while Lytro checks it (D8-79), with Plan's and Balance's banners leading there;
+  categories by dragging, the keyboard and Move to…, each move one request. The website's contact page, footer and
+  listener page read the help line (D8-73), and the listener app reads it on the API host (D8-74, D8-80).
+  `VITE_SUPPORT_WHATSAPP`, `SUPPORT_WHATSAPP` and `SUPPORT_PHONE` are gone. The server half: `GET /v1/listener/help-line`,
+  `POST /billing/payments/:id/evidence` and `POST /balance/top-up/:id/evidence` with each row's screenshot fields, and
+  `POST /categories/:id/move`; no migration. KNOWN-GAPS §140 fixed; §143.
 
 ---
 

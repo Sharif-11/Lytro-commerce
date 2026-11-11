@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AppConfig } from '../src/lib/app-config';
 import { installOffers, onIphoneBrowser } from '../src/lib/install-prompt';
 
 const IPHONE =
@@ -44,16 +43,5 @@ describe('installing the app (TEN-17)', () => {
     expect(installOffers.current()).not.toBeNull();
     window.dispatchEvent(new Event('appinstalled'));
     expect(installOffers.current()).toBeNull();
-  });
-});
-
-describe('Help (TENANT-DASHBOARD-DESIGN §7.18)', () => {
-  it('opens the deployment’s support WhatsApp, and is not offered without one', () => {
-    const env = (number?: string) => ({ VITE_SUPPORT_WHATSAPP: number }) as ImportMetaEnv;
-    expect(new AppConfig(env('+880 1000-000000')).supportChatUrl()).toBe(
-      'https://wa.me/8801000000000',
-    );
-    expect(new AppConfig(env('')).supportChatUrl()).toBeNull();
-    expect(new AppConfig(env()).supportChatUrl()).toBeNull();
   });
 });

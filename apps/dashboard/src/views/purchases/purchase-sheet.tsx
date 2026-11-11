@@ -3,11 +3,10 @@ import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { PURCHASE_NOTES_MAX_LENGTH } from '@lytronix/validators';
 import { useCreatePurchase, usePlacePurchase } from '@/api/purchases';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { AreaField, Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useShell } from '@/shell/shell-context';
 import { AddItemSheet } from './add-item-sheet';
 import { AddItemLink, LineRows } from './line-rows';
@@ -36,7 +35,6 @@ export function PurchaseSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { slug } = useShell();
   const create = useCreatePurchase();
@@ -145,7 +143,7 @@ export function PurchaseSheet({
             </div>
             {lines.length > 0 ? <LineRows lines={lines} onChange={setLines} /> : null}
             <p className="text-[14px] text-fg-muted">{t('poPlaceHelp')}</p>
-            {create.isError ? <Banner tone="bad">{errorText(create.error)}</Banner> : null}
+            {create.isError ? <ErrorBanner error={create.error} /> : null}
           </>
         ) : null}
       </Sheet>

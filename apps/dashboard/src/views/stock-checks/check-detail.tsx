@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
 import { useStockCheck } from '@/api/stock-checks';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Card } from '@/components/ui/card';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatRow, StatTile } from '@/components/ui/stat-tile';
-import { useErrorText } from '@/hooks/use-error-text';
 import { ShellPage } from '@/shell/shell-page';
 import type { StockCheck, StockCheckLine } from '@/types/stock';
 import { formatDayMonth } from '@/lib/dates';
@@ -31,7 +30,6 @@ interface SavedLine extends TableLine {
  */
 export function CheckDetailView({ checkId }: { checkId: string }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const check = useStockCheck(checkId);
   const words = useCheckWords();
   const [all, setAll] = useState(false);
@@ -40,7 +38,7 @@ export function CheckDetailView({ checkId }: { checkId: string }): React.JSX.Ele
     return (
       <ShellPage>
         {check.isError ? (
-          <Banner tone="bad">{errorText(check.error)}</Banner>
+          <ErrorBanner error={check.error} />
         ) : (
           <Card flush>
             <SkeletonRows count={4} />

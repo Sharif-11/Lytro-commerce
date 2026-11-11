@@ -5,6 +5,7 @@ import { formatTaka } from '@lytronix/ui';
 import { STOCK_NOTE_MAX_LENGTH } from '@lytronix/validators';
 import { useBatchesOf } from '@/api/stock';
 import { useRecordStockCheck, type CountedLine } from '@/api/stock-checks';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Banner } from '@/components/ui/banner';
@@ -14,7 +15,6 @@ import { buttonClass } from '@/components/ui/classes';
 import { EmptyState } from '@/components/ui/empty-state';
 import { AreaField } from '@/components/ui/field';
 import { SkeletonRows } from '@/components/ui/skeleton';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import type { StockPageProduct } from '@/types/stock';
@@ -36,7 +36,6 @@ const AMOUNT = /^\d+(\.\d+)?$/;
  */
 export function NewCheckView(): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { slug } = useShell();
   const record = useRecordStockCheck();
@@ -199,7 +198,7 @@ export function NewCheckView(): React.JSX.Element {
           {t('checkNote')}
         </Banner>
       ) : null}
-      {record.isError ? <Banner tone="bad">{errorText(record.error)}</Banner> : null}
+      {record.isError ? <ErrorBanner error={record.error} /> : null}
       <ActionBar atEnd>
         <Link to="/$shop/stock/checks" params={{ shop: slug }} className={buttonClass('outline')}>
           {t('cancel')}

@@ -129,7 +129,52 @@ describe('a refusal', () => {
     const error = await new ApiClient({ baseUrl: '', getCsrfToken: () => null })
       .get('/x')
       .catch((caught: unknown) => caught);
-    expect(error).toMatchObject({ code: 'service_unavailable', message: '', status: 502 });
+    expect(error).toMatchObject({
+      code: 'service_unavailable',
+      message: '',
+      status: 502,
+      // The edge answered, not the server: there is no ID to show (Slice 8.8).
+      requestId: null,
+    });
+  });
+
+  it("keeps a server fault's ID from X-Request-Id, for the seller to send Lytro (API-27, D8-21)", async () => {
+    const fault = (status: number) =>
+      reply(
+        status,
+        {
+          success: false,
+          statusCode: status,
+          message: 'Something went wrong.',
+          errors: { code: 'internal_error', details: {} },
+        },
+        { 'X-Request-Id': 'K7MQ-4XR2' },
+      );
+    const client = new ApiClient({ baseUrl: '', getCsrfToken: () => null });
+    for (const status of [500, 503]) {
+      stubFetch(fault(status));
+      const error = await client.get('/x').catch((caught: unknown) => caught);
+      expect(error).toMatchObject({ status, requestId: 'K7MQ-4XR2' });
+    }
+  });
+
+  it('keeps no ID on a refusal: a 4xx is the person’s to fix', async () => {
+    stubFetch(
+      reply(
+        409,
+        {
+          success: false,
+          statusCode: 409,
+          message: 'Another product already uses this link.',
+          errors: { code: 'conflict', details: {} },
+        },
+        { 'X-Request-Id': 'K7MQ-4XR2' },
+      ),
+    );
+    const error = await new ApiClient({ baseUrl: '', getCsrfToken: () => null })
+      .get('/x')
+      .catch((caught: unknown) => caught);
+    expect(error).toMatchObject({ status: 409, requestId: null });
   });
 
   it("reads each field's message from the list the server sends (API-16)", () => {

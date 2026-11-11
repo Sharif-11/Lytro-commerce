@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSetCost } from '@/api/stock';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import type { StockPageProduct } from '@/types/stock';
 import { lineTitle, type StockLine } from './stock-lines';
 
@@ -46,7 +45,6 @@ function Cost({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const save = useSetCost(product.productId);
   // As drawn, with its thousands marked ("1,240"); the commas go again before it is sent.
   const [typed, setTyped] = useState(
@@ -90,7 +88,7 @@ function Cost({
         }}
       />
       <p className="text-[14px] text-fg-muted">{t('costNote')}</p>
-      {save.isError ? <Banner tone="bad">{errorText(save.error)}</Banner> : null}
+      {save.isError ? <ErrorBanner error={save.error} /> : null}
     </Sheet>
   );
 }

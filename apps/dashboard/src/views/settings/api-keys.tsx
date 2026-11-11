@@ -3,15 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { ApiKeyPurpose, Permission, UsageMetric } from '@lytronix/validators';
 import { useApiKeys } from '@/api/api-keys';
 import { useUsage } from '@/api/usage';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { rowClass, RowList } from '@/components/ui/list-row';
 import { StatusTag } from '@/components/ui/status-tag';
 import { Toast } from '@/components/ui/toast';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useToast } from '@/hooks/use-toast';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -28,7 +27,6 @@ import { keyLine } from './api-key-words';
  */
 export function ApiKeysView(): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const { viewer } = useShell();
   const keys = useApiKeys();
   const usage = useUsage({ enabled: allows(viewer, [Permission.PaymentsRead]) });
@@ -58,7 +56,7 @@ export function ApiKeysView(): React.JSX.Element {
       }
     >
       <p className="text-[14px] text-fg-muted">{t('akLead')}</p>
-      {keys.isError ? <Banner tone="bad">{errorText(keys.error)}</Banner> : null}
+      {keys.isError ? <ErrorBanner error={keys.error} /> : null}
       {listed ? (
         <Card flush>
           {listed.length === 0 ? (

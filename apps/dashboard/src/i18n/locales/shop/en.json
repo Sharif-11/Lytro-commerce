@@ -951,5 +951,30 @@
   "taxClass": "Tax class",
   "taxClassDefault": "{{name}} · default",
   "taxClassNone": "No tax",
-  "taxClassHelp": "The tax is inside the price; totals never change."
+  "taxClassHelp": "The tax is inside the price; totals never change.",
+  "p88cat": {
+    "lead": "Drag to arrange: drop on a category to put it inside, between two to place it there.",
+    "grip": "Drag to move {{name}}",
+    "into": "Put inside {{p}}",
+    "here": "Place here",
+    "deep": "Can't go here: it would be more than four levels deep",
+    "self": "Can't go inside itself or one of its own sub-categories",
+    "moved": "{{c}} is now inside {{p}}",
+    "movedHere": "{{c}} moved",
+    "undo": "Undo",
+    "keys": "Picked up {{c}}. ↑ ↓ choose a place, → puts it inside the one above, ← takes it out; Space drops it, Esc cancels.",
+    "keysTopFirst": "At the top level, first",
+    "keysTopAfter": "At the top level, after {{a}}",
+    "keysInFirst": "Inside {{p}}, first",
+    "keysInAfter": "Inside {{p}}, after {{a}}",
+    "keysCancelled": "Cancelled: {{c}} stays where it was",
+    "moveTo": "Move to…",
+    "moveToT": "Where {{c}} goes",
+    "where": "Where in the list",
+    "first": "First",
+    "last": "Last",
+    "after": "After {{name}}",
+    "note": "Its sub-categories move with it. The grey ones can't take it: inside itself, or deeper than four levels.",
+    "failed": "Not moved: someone changed the categories meanwhile. The list is fresh now; try again."
+  }
 }

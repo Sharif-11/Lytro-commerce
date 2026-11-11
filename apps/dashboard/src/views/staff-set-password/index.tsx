@@ -1,12 +1,11 @@
 import { useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStaffSetPassword } from '@/api/auth';
+import { ErrorBanner } from '@/components/error-banner';
 import { OnboardingFrame } from '@/components/onboarding/frame';
 import { PasswordRules } from '@/components/onboarding/password-rules';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
-import { useErrorText } from '@/hooks/use-error-text';
 import { checkPassword, passesEveryRule } from '@/lib/password-rules';
 
 /**
@@ -15,7 +14,6 @@ import { checkPassword, passesEveryRule } from '@/lib/password-rules';
  */
 export function StaffSetPassword(): React.JSX.Element {
   const { t } = useTranslation('onboarding');
-  const errorText = useErrorText();
   const [password, setPassword] = useState('');
   const [rulesError, setRulesError] = useState<string | null>(null);
   const save = useStaffSetPassword();
@@ -48,7 +46,7 @@ export function StaffSetPassword(): React.JSX.Element {
           }}
         />
         <PasswordRules check={check} />
-        {save.isError ? <Banner tone="bad">{errorText(save.error)}</Banner> : null}
+        {save.isError ? <ErrorBanner error={save.error} /> : null}
         <Button type="submit" wide busy={save.isPending}>
           {t('pwSave')}
         </Button>

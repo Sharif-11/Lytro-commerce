@@ -12,9 +12,9 @@ import {
   useUpdateZone,
   type ZoneChange,
 } from '@/api/delivery';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { ActionBar } from '@/components/ui/action-bar';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -45,7 +45,6 @@ const CHARGE = /^\d+(\.\d{1,2})?$/;
  * only look sees the values, and Check still works.
  */
 export function DeliveryView(): React.JSX.Element {
-  const errorText = useErrorText();
   const settings = useDeliverySettings();
   const locations = useLocations();
   if (settings.data && locations.data) {
@@ -55,7 +54,7 @@ export function DeliveryView(): React.JSX.Element {
   return (
     <ShellPage>
       {failed ? (
-        <Banner tone="bad">{errorText(failed)}</Banner>
+        <ErrorBanner error={failed} />
       ) : (
         <Card flush>
           <SkeletonRows count={4} />

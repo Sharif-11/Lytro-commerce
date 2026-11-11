@@ -3,8 +3,8 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useDomain } from '@/api/domain';
 import { useShopSettings, useUpdateShopSettings } from '@/api/shop-settings';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { buttonClass } from '@/components/ui/classes';
@@ -13,7 +13,6 @@ import { RowChevron, RowLead, RowList, rowClass, RowText } from '@/components/ui
 import { StatusTag } from '@/components/ui/status-tag';
 import { Switch } from '@/components/ui/switch';
 import { Toast } from '@/components/ui/toast';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useShopAddress } from '@/hooks/use-shop-address';
 import { useToast } from '@/hooks/use-toast';
 import { useShell } from '@/shell/shell-context';
@@ -29,7 +28,6 @@ import type { DomainView } from '@/types/domain';
 export function StorefrontView(): React.JSX.Element {
   const { t } = useTranslation('menu');
   const { t: shell } = useTranslation('shell');
-  const errorText = useErrorText();
   const { slug } = useShell();
   const settings = useShopSettings();
   const update = useUpdateShopSettings();
@@ -55,8 +53,8 @@ export function StorefrontView(): React.JSX.Element {
 
   return (
     <ShellPage>
-      {settings.isError ? <Banner tone="bad">{errorText(settings.error)}</Banner> : null}
-      {update.isError ? <Banner tone="bad">{errorText(update.error)}</Banner> : null}
+      {settings.isError ? <ErrorBanner error={settings.error} /> : null}
+      {update.isError ? <ErrorBanner error={update.error} /> : null}
       <div className="flex max-w-[640px] flex-col gap-4">
         <Card className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between gap-3">

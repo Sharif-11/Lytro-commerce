@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { IdentityKind } from '@lytronix/validators';
 import { useChangePassword, useChangeStaffPassword } from '@/api/auth';
 import { useRequestIdentityCode, useVerifyIdentity } from '@/api/identities';
+import { ErrorBanner } from '@/components/error-banner';
 import { PasswordRules } from '@/components/onboarding/password-rules';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { CodeBoxes } from '@/components/ui/code-boxes';
 import { Field } from '@/components/ui/field';
@@ -30,7 +30,6 @@ export function ChangePasswordSheet({
   onChanged: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const own = useChangePassword();
   const asStaff = useChangeStaffPassword();
   const change = staff ? asStaff : own;
@@ -119,7 +118,7 @@ export function ChangePasswordSheet({
       />
       <PasswordRules check={check} />
       <p className="text-[14px] text-fg-muted">{t('pwOthersOut')}</p>
-      {change.isError ? <Banner tone="bad">{errorText(change.error)}</Banner> : null}
+      {change.isError ? <ErrorBanner error={change.error} /> : null}
     </Sheet>
   );
 }
@@ -264,7 +263,7 @@ export function AddEmailSheet({
           setEmail(event.target.value);
         }}
       />
-      {request.isError ? <Banner tone="bad">{errorText(request.error)}</Banner> : null}
+      {request.isError ? <ErrorBanner error={request.error} /> : null}
     </Sheet>
   );
 }

@@ -10,13 +10,12 @@ import {
   type PaymentAccountInput,
 } from '@lytronix/validators';
 import { useChooseWay, useSaveMethod } from '@/api/payment-methods';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chips';
 import { Dialog } from '@/components/ui/dialog';
 import { AreaField, Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useShell } from '@/shell/shell-context';
 import type { PaymentAccount, PaymentMethodRow } from '@/types/payment-methods';
 import { accountNumberOf, bodyOf, methodName, typeWord } from './words';
@@ -85,7 +84,6 @@ function problemsOf(error: unknown, index: number): Record<string, string> {
  */
 function WalletSheet({ row, account, onClose, onDelete }: AccountSheetProps): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const name = methodName(row.method, t);
   const { save, write } = useSaveAccount(row, account);
   const [number, setNumber] = useState(account ? accountNumberOf(account) : '');
@@ -156,7 +154,7 @@ function WalletSheet({ row, account, onClose, onDelete }: AccountSheetProps): Re
       }
     >
       {save.isError && Object.keys(problems).length === 0 ? (
-        <Banner tone="bad">{errorText(save.error)}</Banner>
+        <ErrorBanner error={save.error} />
       ) : null}
       <Field
         label={t('pmNumber', { wallet: name })}
@@ -211,7 +209,6 @@ function WalletSheet({ row, account, onClose, onDelete }: AccountSheetProps): Re
 /** A bank account (WAL-14, the prototype's `sh-pm33-bank`): its bank, name and number, and what's optional. */
 function BankSheet({ row, account, onClose, onDelete }: AccountSheetProps): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const { save, write } = useSaveAccount(row, account);
   const [bankName, setBankName] = useState(account?.bankName ?? '');
   const [accountName, setAccountName] = useState(account?.accountName ?? '');
@@ -273,7 +270,7 @@ function BankSheet({ row, account, onClose, onDelete }: AccountSheetProps): Reac
       }
     >
       {save.isError && Object.keys(problems).length === 0 ? (
-        <Banner tone="bad">{errorText(save.error)}</Banner>
+        <ErrorBanner error={save.error} />
       ) : null}
       <Field
         label={t('pmBankName')}
@@ -350,7 +347,6 @@ export function DeleteAccountDialog({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const save = useSaveMethod();
   const way = useChooseWay();
   const name = methodName(row.method, t);
@@ -395,7 +391,7 @@ export function DeleteAccountDialog({
       {account.active ? t('pmDelActive', { wallet: name }) : t('pmDelPlain')}
       {failure ? (
         <div className="mt-3">
-          <Banner tone="bad">{errorText(failure)}</Banner>
+          <ErrorBanner error={failure} />
         </div>
       ) : null}
     </Dialog>

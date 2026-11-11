@@ -49,11 +49,8 @@ test('the owner sees the shop, every section, and the rows for themselves', asyn
     'href',
     `/${SLUG}/account`,
   );
-  // Help opens the support chat the deployment names (CI builds with a test number).
-  await expect(main(page).getByRole('link', { name: /^হেল্প/ })).toHaveAttribute(
-    'href',
-    'https://wa.me/8801000000000',
-  );
+  // Help opens Lytro support from the help line the console sets (Slice 8.8, help-line.spec.ts).
+  await expect(main(page).getByRole('button', { name: /^হেল্প/ })).toBeVisible();
   await expect(main(page).getByText('Powered by Lytro')).toBeVisible();
   await expectAccessible(page);
 });

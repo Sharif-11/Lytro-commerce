@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DELIVERY_ZONE_NAME_MAX_LENGTH } from '@lytronix/validators';
 import { useCreateZone, useSetZoneAreas, useUpdateZone, type ZoneChange } from '@/api/delivery';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
-import { useErrorText } from '@/hooks/use-error-text';
 import type { DeliverySettings, DeliveryZone, Locations } from '@/types/delivery';
 import { AreaChips } from './area-chips';
 import { AreaPickSheet } from './area-pick-sheet';
@@ -39,7 +38,6 @@ export function ZoneSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const words = useDeliveryWords();
   const create = useCreateZone();
   const update = useUpdateZone();
@@ -183,7 +181,7 @@ export function ZoneSheet({
               <span className="text-[15px] font-medium">{t('zoneNoDel')}</span>
             </div>
             <p className="text-[14px] text-fg-muted">{t('zonesLimit')}</p>
-            {failed ? <Banner tone="bad">{errorText(failed)}</Banner> : null}
+            {failed ? <ErrorBanner error={failed} /> : null}
           </>
         ) : null}
       </Sheet>

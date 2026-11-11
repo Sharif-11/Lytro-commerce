@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { Wordmark } from '@/components/ui/wordmark';
+import { HelpLineApi } from '@/lib/api/help-line-api';
+import { whatsappHref } from '@/lib/contact/help-line-words';
 import { SiteEnvironment } from '@/lib/env';
 import { LiveFeatures } from '@/lib/features';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
@@ -38,10 +40,12 @@ interface FooterLink {
 }
 
 /** Three link columns, the wordmark with the Bangla lockup, and the company line. Only pages that exist are
-    linked (LANDING-PAGE-DESIGN.md §3 row 14): Terms, Privacy and Notices join when those routes ship. */
-export function SiteFooter({ language }: { language: Language }) {
+    linked (LANDING-PAGE-DESIGN.md §3 row 14): Terms, Privacy and Notices join when those routes ship. WhatsApp support is
+    the help line's, when one is set (D8-69). */
+export async function SiteFooter({ language }: { language: Language }) {
   const copy = new Copy(language);
   const env = SiteEnvironment.current();
+  const whatsapp = (await new HelpLineApi(env).current())?.whatsapp ?? null;
   const urls = new AppUrls(env.appUrl);
   const live = new LiveFeatures(env.liveFeatures);
 
@@ -55,10 +59,10 @@ export function SiteFooter({ language }: { language: Language }) {
     { href: '/#faq', label: copy.of(text.faq) },
     { href: '/contact', label: copy.of(text.setupHelp) },
     { href: '/listener', label: copy.of(text.listener) },
-    ...(env.support.whatsapp
+    ...(whatsapp !== null
       ? [
           {
-            href: `https://wa.me/${env.support.whatsapp}`,
+            href: whatsappHref(whatsapp),
             label: copy.of(text.whatsapp),
             external: true,
           },

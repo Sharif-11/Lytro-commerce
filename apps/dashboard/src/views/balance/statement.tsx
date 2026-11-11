@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { downloadLedger, useLedger } from '@/api/balance';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip, ChipRow } from '@/components/ui/chips';
@@ -12,7 +12,6 @@ import { Sheet } from '@/components/ui/sheet';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { Taka } from '@/components/ui/taka';
 import { useDownload } from '@/hooks/use-download';
-import { useErrorText } from '@/hooks/use-error-text';
 import { dayLabel, formatDayMonthYear, formatTime, groupByDay } from '@/lib/dates';
 import { signedTaka } from '@/lib/money';
 import type { LedgerEntry } from '@/types/balance';
@@ -78,7 +77,6 @@ export function Statement({
 }): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
   const { t: tDefault } = useTranslation();
-  const errorText = useErrorText();
   const saving = useDownload();
   const [chip, setChip] = useState('all');
   const [dates, setDates] = useState({ from: '', to: '' });
@@ -146,13 +144,13 @@ export function Statement({
       </div>
       {saving.error ? (
         <div className="px-4 pb-4">
-          <Banner tone="bad">{errorText(saving.error)}</Banner>
+          <ErrorBanner error={saving.error} />
         </div>
       ) : null}
       {ledger.isLoading ? <SkeletonRows count={3} /> : null}
       {ledger.isError ? (
         <div className="px-4 pb-4">
-          <Banner tone="bad">{errorText(ledger.error)}</Banner>
+          <ErrorBanner error={ledger.error} />
         </div>
       ) : null}
       {ledger.isSuccess && entries.length === 0 ? (

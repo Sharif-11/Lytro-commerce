@@ -10,6 +10,7 @@ import {
   comboQuoteSchema,
   createProductSchema,
   createShopOptionSchema,
+  moveCategorySchema,
   productDeliveryZonesSchema,
   productImagesSchema,
   productVideoSchema,
@@ -37,6 +38,7 @@ export class CreateShopOptionDto extends createZodDto(createShopOptionSchema) {}
 export class UpdateShopOptionDto extends createZodDto(updateShopOptionSchema) {}
 export class CreateCategoryDto extends createZodDto(createCategorySchema) {}
 export class UpdateCategoryDto extends createZodDto(updateCategorySchema) {}
+export class MoveCategoryDto extends createZodDto(moveCategorySchema) {}
 export class CategoryAttributesDto extends createZodDto(categoryAttributesSchema) {}
 export class ComboQuoteDto extends createZodDto(comboQuoteSchema) {}
 export class CreateProductDto extends createZodDto(createProductSchema) {}

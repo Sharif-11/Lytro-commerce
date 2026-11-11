@@ -2,13 +2,12 @@ import { useState, type SyntheticEvent } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { RECOVERY_NOTE_KEY, useSetPassword } from '@/api/auth';
+import { ErrorBanner } from '@/components/error-banner';
 import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
 import { Notice } from '@/components/onboarding/notice';
 import { PasswordRules } from '@/components/onboarding/password-rules';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
-import { useErrorText } from '@/hooks/use-error-text';
 import { checkPassword, passesEveryRule } from '@/lib/password-rules';
 
 function readRecoveryNote(): boolean {
@@ -26,7 +25,6 @@ function readRecoveryNote(): boolean {
  */
 export function SetPassword(): React.JSX.Element {
   const { t } = useTranslation('onboarding');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const search = useSearch({ from: '/set-password' });
   const [password, setPassword] = useState('');
@@ -70,7 +68,7 @@ export function SetPassword(): React.JSX.Element {
           }}
         />
         <PasswordRules check={check} />
-        {save.isError ? <Banner tone="bad">{errorText(save.error)}</Banner> : null}
+        {save.isError ? <ErrorBanner error={save.error} /> : null}
         <Button type="submit" wide busy={save.isPending}>
           {t('pwSave')}
         </Button>

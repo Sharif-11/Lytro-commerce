@@ -8,12 +8,13 @@ import { Sheet } from '@/components/ui/sheet';
 import type { CategorySummary } from '@/types/catalogue';
 
 /** What the ⋯ menu can do to a category. */
-export type MenuAction = 'edit' | 'sub' | 'up' | 'down' | 'visibility' | 'delete';
+export type MenuAction = 'edit' | 'sub' | 'moveTo' | 'up' | 'down' | 'visibility' | 'delete';
 
 /**
- * A category's ⋯ menu (§7.5, the prototype's `sh-category-menu`): Edit, Add a sub-category, Move up and Move down among
- * its siblings, Hide or Show on the storefront, and Delete category. What cannot be done here is left out: a fourth
- * level has no sub-category, the first sibling no Move up, the last no Move down.
+ * A category's ⋯ menu (§7.5, the prototype's `sh-category-menu`; a phone's since Part 39's `p88-cat-menu`): Edit, Add a
+ * sub-category, Move to… anywhere (D8-72), Move up and Move down among its siblings, Hide or Show on the storefront, and
+ * Delete category. What cannot be done here is left out: a fourth level has no sub-category, the first sibling no Move
+ * up, the last no Move down.
  */
 export function CategoryMenu({
   category,
@@ -34,6 +35,7 @@ export function CategoryMenu({
   const actions: { action: MenuAction; icon: IconName; label: string; shown: boolean }[] = [
     { action: 'edit', icon: 'pencil', label: t('edit'), shown: true },
     { action: 'sub', icon: 'plus', label: t('catSub'), shown: canAddSub },
+    { action: 'moveTo', icon: 'move', label: t('p88cat.moveTo'), shown: true },
     { action: 'up', icon: 'trend', label: t('catMoveUp'), shown: !first },
     { action: 'down', icon: 'down', label: t('catMoveDown'), shown: !last },
     {

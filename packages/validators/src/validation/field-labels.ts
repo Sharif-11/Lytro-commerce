@@ -21,6 +21,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   addonId: { en: 'Add-on', bn: 'অ্যাড-অন' },
   address: { en: 'Shop URL', bn: 'শপের লিংক' },
   advanceAmount: { en: 'Advance amount', bn: 'অ্যাডভান্স অ্যামাউন্ট' },
+  afterId: { en: 'Place in the list', bn: 'তালিকায় জায়গা' },
   all: { en: 'All', bn: 'সব' },
   amount: { en: 'Amount', bn: 'অ্যামাউন্ট' },
   amountConfirmation: { en: 'Amount, typed again', bn: 'আবার লেখা অ্যামাউন্ট' },

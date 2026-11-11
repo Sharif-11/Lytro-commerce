@@ -13,7 +13,7 @@ import {
   useSetAutoRenew,
   useUndoCancellation,
 } from '@/api/billing';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { buttonClass } from '@/components/ui/classes';
 import { SectionHead } from '@/components/ui/page';
@@ -64,7 +64,6 @@ const PLAN_CARDS = 'plan-cards';
  */
 export function PlanPage({ openPlanId }: { openPlanId: string | null }): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { tenant, viewer, slug, showToast } = useShell();
   const canManage = allows(viewer, [Permission.PaymentsManage]);
@@ -214,7 +213,7 @@ export function PlanPage({ openPlanId }: { openPlanId: string | null }): React.J
         />
       ) : null}
       {keepPlan.isError || undo.isError || choosePayg.isError ? (
-        <Banner tone="bad">{errorText(keepPlan.error ?? undo.error ?? choosePayg.error)}</Banner>
+        <ErrorBanner error={keepPlan.error ?? undo.error ?? choosePayg.error} />
       ) : null}
       {checklist.data && tenant.planName ? (
         <DowngradeChecklistCard checklist={checklist.data} planName={tenant.planName} />
@@ -314,7 +313,7 @@ export function PlanPage({ openPlanId }: { openPlanId: string | null }): React.J
             </div>
             {catalogue.error ? (
               <div className="mt-3">
-                <Banner tone="bad">{errorText(catalogue.error)}</Banner>
+                <ErrorBanner error={catalogue.error} />
               </div>
             ) : null}
             <div className="mt-3">

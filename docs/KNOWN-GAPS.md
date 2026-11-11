@@ -2417,7 +2417,7 @@ Found while building Phase 8 Slice 8.7. Each is a choice made to ship it now, or
   cost. It is proven through the real path to a stand-in provider; a real phone receiving it is criterion 9's.
 - **The help line's hours are every day.** A closed day, such as Friday, would need a setting of its own.
 
-## 140. `ADM-11`, `ADM-17`, `MED-12`, `D8-4`: what Slice 8.8's sketch found the merged server slices leave out — found 2026-11-10, two fixed by the console build, one open
+## 140. `ADM-11`, `ADM-17`, `MED-12`, `D8-4`: what Slice 8.8's sketch found the merged server slices leave out — found 2026-11-10, fixed
 
 Found while drawing Phase 8 Slice 8.8's screens. Each is built with 8.8's console or dashboard PR.
 
@@ -2428,9 +2428,11 @@ Found while drawing Phase 8 Slice 8.8's screens. Each is built with 8.8's consol
   yet stored empty.
 - **No screen can send a payment's screenshot (`ADM-17`).** Slice 8.5 took it on the dashboard's own "I have paid" routes
   (top-up, plan, add-on), which no screen has called since shops pay Lytro on the payment page (#337), and that page's
-  submit takes none. The operator's queue can show one, but none arrives.
+  submit takes none. The operator's queue can show one, but none arrives. **Fixed by Slice 8.8's dashboard build:** Billing
+  sends a screenshot for a payment Lytro is still checking (`POST /billing/payments/:id/evidence`, and for a top-up
+  `POST /balance/top-up/:id/evidence`), one a payment, and each row says when it was sent (`evidenceSentAt`).
 - **`GET /auth/operator/me` gives no operator id,** which the audit log's "only mine" and the manual entries' own filter need.
-  **Fixed by Slice 8.8's console build.** The screenshot stays open for the dashboard's build.
+  **Fixed by Slice 8.8's console build.**
 
 ## 141. `API-14`, `CRR-11`, `NTF-06`, `LSN-01`: every outside call through the API host's edge — found 2026-11-10, fixed
 
@@ -2491,3 +2493,17 @@ Still open:
   the type and the shops with accounts for it.
 - **An entry's row doesn't say whether its screenshot is still kept;** the console says it was removed after two years from
   the entry's date, or when the link answers 404.
+
+## 143. `ADM-17`, `D8-72`, `API-27`: what Slice 8.8's dashboard build found — found 2026-11-11, open
+
+- **Sending a screenshot is not audited.** Cancelling a payment writes an activity entry; attaching a screenshot to one
+  (`POST /billing/payments/:id/evidence`, `POST /balance/top-up/:id/evidence`) writes none, so neither log says who sent it.
+- **The prototype's older categories screens still draw ⋯ on a computer.** `categories` and `sh-category-edit` predate
+  Part 39, which draws grips and no ⋯; their picture pairs now differ from the build, without failing. The prototype's
+  older screens should draw what Part 39 does.
+- **A list that didn't load waits about seven seconds.** The dashboard retries a failed read three times before Products'
+  "didn't load" card shows (D8-81).
+- **Two sets of Bangla words for the part of the day.** The dashboard and the website share `banglaPartOfDay` from the
+  validators; the server's own (`common/i18n/dates.ts`, which has ভোর and সন্ধ্যা) is a second definition.
+- **A category held mid-drag fails the automated contrast check.** It is drawn at 45% opacity, as the sketch draws it, so
+  the accessibility check runs before a category is picked up.

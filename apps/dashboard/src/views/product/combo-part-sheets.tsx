@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
 import { COMBO_PART_QUANTITY_MAX, ProductKind, type StockUnit } from '@lytronix/validators';
 import { useOrderPicker, useOrderPickerProduct } from '@/api/orders';
+import { ErrorBanner } from '@/components/error-banner';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { CheckRow } from '@/components/ui/check-row';
@@ -14,7 +15,6 @@ import { Sheet } from '@/components/ui/sheet';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { useErrorText } from '@/hooks/use-error-text';
 import type { ComboPart } from '@/lib/product-form';
 import { Thumb } from '@/views/orders/item-sheets';
 import { optionsText } from '@/views/orders/order-words';
@@ -85,7 +85,6 @@ function PickSheet({
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
   const { t: words } = useTranslation('orders');
-  const errorText = useErrorText();
   const search = useDebouncedValue(typed.trim(), TYPING_REST_MS);
   const found = useOrderPicker(search);
   const items = (found.data?.pages ?? []).flatMap((page) => page.products);
@@ -100,7 +99,7 @@ function PickSheet({
           label={words('searchProduct')}
         />
       </div>
-      {found.isError ? <Banner tone="bad">{errorText(found.error)}</Banner> : null}
+      {found.isError ? <ErrorBanner error={found.error} /> : null}
       {found.isPending ? (
         <SkeletonRows count={4} />
       ) : items.length === 0 ? (
@@ -183,7 +182,6 @@ function TickSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const found = useOrderPickerProduct(item.id);
   const variants = found.data?.variants ?? [];
   const [ticked, setTicked] = useState<ReadonlySet<string>>(
@@ -244,7 +242,7 @@ function TickSheet({
       }
     >
       <p className="-mt-1 mb-3 text-[14px]">{t('comboTickHelp')}</p>
-      {found.isError ? <Banner tone="bad">{errorText(found.error)}</Banner> : null}
+      {found.isError ? <ErrorBanner error={found.error} /> : null}
       {found.isPending ? <SkeletonRows count={3} /> : null}
       {variants.map((variant) => (
         <CheckRow

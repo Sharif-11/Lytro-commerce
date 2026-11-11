@@ -17,6 +17,11 @@ interface ShellPageProps {
    * hidden, the header carries it in place of the section's (design v3.10).
    */
   titleInHeader?: boolean;
+  /**
+   * The screen's own banner, above the title where Part 39 draws it: a list changed meanwhile (`p88-cat-failed`), or what
+   * stopped the page's own Save, a fault with its error ID (`p88-err-save`).
+   */
+  banner?: ReactNode;
   children: ReactNode;
 }
 
@@ -29,6 +34,7 @@ export function ShellPage({
   actions,
   sectionChips,
   titleInHeader = false,
+  banner,
   children,
 }: ShellPageProps): React.JSX.Element {
   const { t } = useTranslation('shell');
@@ -45,6 +51,7 @@ export function ShellPage({
   return (
     <PageFrame>
       <ShellBanner />
+      {banner}
       {title === null ? null : (
         <PageTitle actions={actions}>
           {title ?? (screen?.title ? t(screen.title) : tenant.shopName)}

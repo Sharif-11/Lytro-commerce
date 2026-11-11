@@ -3,8 +3,8 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Permission } from '@lytronix/validators';
 import { useSuppliers, useUpdateSupplier } from '@/api/purchases';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { chipClass } from '@/components/ui/classes';
@@ -13,7 +13,6 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { RowChevron, RowLead, RowList, RowText, rowClass } from '@/components/ui/list-row';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonth } from '@/lib/dates';
 import { bangladeshiPhone } from '@/lib/phone';
 import { allows } from '@/shell/hubs';
@@ -29,7 +28,6 @@ import { SupplierSheet } from './supplier-sheet';
  */
 export function SuppliersView({ archived }: { archived: boolean }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { slug, viewer } = useShell();
   const mayManage = allows(viewer, [Permission.InventoryManage]);
@@ -99,8 +97,8 @@ export function SuppliersView({ archived }: { archived: boolean }): React.JSX.El
           </Chip>
         ) : null}
       </ChipRow>
-      {list.isError ? <Banner tone="bad">{errorText(list.error)}</Banner> : null}
-      {bringBack.isError ? <Banner tone="bad">{errorText(bringBack.error)}</Banner> : null}
+      {list.isError ? <ErrorBanner error={list.error} /> : null}
+      {bringBack.isError ? <ErrorBanner error={bringBack.error} /> : null}
       {list.isPending ? (
         <Card flush>
           <SkeletonRows count={3} />

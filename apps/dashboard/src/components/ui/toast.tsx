@@ -3,14 +3,17 @@ import { Icon, type IconName } from '@/components/icon';
 /**
  * A message after a save or a change (the prototype's `.toast`): ink, over the tab bar on a phone, 360 px in the
  * bottom right corner from 1024 px, the check at its start and the words across from it, as every drawn toast has
- * them -- or the info mark where nothing was done yet (Part 28's `dom28-checked`). It clears itself (useToast).
+ * them -- or the info mark where nothing was done yet (Part 28's `dom28-checked`). It clears itself (useToast). An
+ * action follows the words where one is drawn (Part 39's Undo after a category moved).
  */
 export function Toast({
   message,
   icon = 'check',
+  action,
 }: {
   message: string | null;
   icon?: IconName;
+  action?: { label: string; onClick: () => void } | null;
 }): React.JSX.Element | null {
   if (message === null) return null;
   return (
@@ -22,6 +25,15 @@ export function Toast({
         <Icon name={icon} />
       </span>
       <span>{message}</span>
+      {action ? (
+        <button
+          type="button"
+          onClick={action.onClick}
+          className="flex-none font-semibold text-brand-300"
+        >
+          {action.label}
+        </button>
+      ) : null}
     </div>
   );
 }

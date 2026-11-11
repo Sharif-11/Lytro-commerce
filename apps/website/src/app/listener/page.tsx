@@ -5,6 +5,8 @@ import { SiteNav } from '@/components/layout/site-nav';
 import { buttonClass } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { Icon } from '@/components/ui/icon';
+import { HelpLineApi } from '@/lib/api/help-line-api';
+import { whatsappHref } from '@/lib/contact/help-line-words';
 import { SiteEnvironment } from '@/lib/env';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import { requestLanguage } from '@/lib/i18n/read-language';
@@ -136,6 +138,8 @@ export default async function ListenerPage() {
   const copy = new Copy(language);
   const env = SiteEnvironment.current();
   const release = await new ListenerReleases(env.listenerDownloadUrl).latest();
+  // SITE-PAGES-DESIGN §6, Slice 8.8: Help is the help line's WhatsApp, when one is set.
+  const whatsapp = (await new HelpLineApi(env).current())?.whatsapp ?? null;
   // The QR opens this page on the phone, not the file, so the guide comes with it.
   const qr = release
     ? await QRCode.toString(`${env.siteUrl}/listener`, {
@@ -253,11 +257,11 @@ export default async function ListenerPage() {
                 </div>
               ) : null}
 
-              {env.support.whatsapp ? (
+              {whatsapp !== null ? (
                 <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-neutral-200 pt-5">
                   <p className="m-0 text-neutral-700">{copy.of(text.help)}</p>
                   <a
-                    href={`https://wa.me/${env.support.whatsapp}`}
+                    href={whatsappHref(whatsapp)}
                     target="_blank"
                     rel="noreferrer"
                     className={buttonClass('outline', 'md')}

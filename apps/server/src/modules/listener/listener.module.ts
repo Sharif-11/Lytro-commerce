@@ -4,11 +4,13 @@ import { DrizzleListenerStore } from '../../database/adapters/listener.adapter';
 import { AuditModule } from '../audit/audit.module';
 import { BalanceModule } from '../balance/balance.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
+import { HelpLineModule } from '../help-line/help-line.module';
 import { PaymentMethodsModule } from '../payment-methods/payment-methods.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { ListenerAppController } from './controllers/listener-app.controller';
+import { ListenerHelpLineController } from './controllers/listener-help-line.controller';
 import { ListenerDeviceGuard } from './guards/listener-device.guard';
 import { MailListenerNotifier } from './services/mail-listener-notifier';
 import { ListenerApp } from './services/listener-app';
@@ -24,12 +26,13 @@ import { NotificationsModule } from '../notifications/notifications.module';
 // devices and tokens, the app's own routes, and Lytro's view and blocks. It reads the shop's limits (usage warnings),
 // the platform's settings, and writes the activity and platform logs; the team's routes, the purge and the day-60
 // deletion read it. The receipts sit above it, in ListenerReceiptsModule (Slice 5.4b). TenancyModule is imported only
-// for ClientIp's EdgeSecret, as the operator module does.
+// for ClientIp's EdgeSecret, as the operator module does. The app reads Lytro's help line here too (D8-74).
 @Module({
   imports: [
     AuditModule,
     BalanceModule,
     CatalogueModule,
+    HelpLineModule,
     MailModule,
     NotificationsModule,
     PaymentMethodsModule,
@@ -37,7 +40,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     TenancyModule,
     UsageWarningsModule,
   ],
-  controllers: [ListenerAppController],
+  controllers: [ListenerAppController, ListenerHelpLineController],
   providers: [
     { provide: LISTENER_STORE, useClass: DrizzleListenerStore },
     { provide: LISTENER_NOTIFIER, useClass: MailListenerNotifier },

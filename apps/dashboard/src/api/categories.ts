@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { tenantSession } from '@/session/tenant-session';
+import type { CategoryPlace } from '@/lib/category-tree';
 import type { CategorySummary, ProductPage } from '@/types/catalogue';
 import { CATEGORIES_QUERY_KEY, PRODUCTS_QUERY_KEY } from './catalogue';
 
@@ -67,21 +68,20 @@ export function useUpdateCategory() {
 }
 
 /**
- * Move up or Move down (§7.5's ⋯ menu): the siblings numbered in their new order, each whose place changed saved. The
- * server sorts a level by its numbers, then by name, so a level never numbered before is numbered whole.
+ * POST /categories/:id/move (D8-72, Slice 8.8): a drag, a keyboard move, Move up or down, or Move to…, one request that
+ * moves the category with everything under it and renumbers both its old and its new siblings. The answer is the whole
+ * list, which takes the cached one's place; a refusal reads the list again, since someone may have changed it meanwhile.
  */
-export function useReorderCategories() {
+export function useMoveCategory() {
+  const queryClient = useQueryClient();
   const changed = useCategoriesChanged();
   return useMutation({
-    mutationFn: async (order: readonly CategorySummary[]) => {
-      for (const [index, category] of order.entries()) {
-        if (category.sortOrder === index) continue;
-        await tenantSession.client.patch<CategorySummary>(`/categories/${category.id}`, {
-          sortOrder: index,
-        });
-      }
+    mutationFn: ({ id, place }: { id: string; place: CategoryPlace }) =>
+      tenantSession.client.post<CategorySummary[]>(`/categories/${id}/move`, place),
+    onSuccess: (list) => {
+      queryClient.setQueryData(CATEGORIES_QUERY_KEY, list);
     },
-    onSettled: () => {
+    onError: () => {
       changed();
     },
   });

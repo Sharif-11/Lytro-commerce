@@ -3,14 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
 import { API_KEY_NAME_MAX_LENGTH } from '@lytronix/validators';
 import { useCreateApiKey, useRevokeApiKey, useUpdateApiKey } from '@/api/api-keys';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { buttonClass } from '@/components/ui/classes';
 import { CopyButton } from '@/components/ui/copy-button';
 import { AreaField, Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonthYear } from '@/lib/dates';
 import type { ApiKey, CreatedApiKey } from '@/types/api-key';
 import { expiryOf, websitesOf, websitesProblem } from './api-key-words';
@@ -32,7 +31,6 @@ export function NewKeySheet({
   onCreated: (key: CreatedApiKey) => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const create = useCreateApiKey();
   const [name, setName] = useState('');
   const [websites, setWebsites] = useState('');
@@ -103,7 +101,7 @@ export function NewKeySheet({
         }}
       />
       {create.isError && Object.keys(problems).length === 0 ? (
-        <Banner tone="bad">{errorText(create.error)}</Banner>
+        <ErrorBanner error={create.error} />
       ) : null}
     </Sheet>
   );
@@ -160,7 +158,6 @@ export function RevokeKeySheet({
   onRevoked: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const revoke = useRevokeApiKey();
   useEffect(() => {
     revoke.reset();
@@ -185,7 +182,7 @@ export function RevokeKeySheet({
       }
     >
       <p className="text-[15px]">{t('akRevokeCons')}</p>
-      {revoke.isError ? <Banner tone="bad">{errorText(revoke.error)}</Banner> : null}
+      {revoke.isError ? <ErrorBanner error={revoke.error} /> : null}
     </Sheet>
   );
 }
@@ -204,7 +201,6 @@ export function EditKeySheet({
   onSaved: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const update = useUpdateApiKey();
   const [name, setName] = useState('');
   const [websites, setWebsites] = useState('');
@@ -268,7 +264,7 @@ export function EditKeySheet({
       />
       <p className="text-[14px] text-fg-muted">{t('akValueNever')}</p>
       {update.isError && Object.keys(problems).length === 0 ? (
-        <Banner tone="bad">{errorText(update.error)}</Banner>
+        <ErrorBanner error={update.error} />
       ) : null}
     </Sheet>
   );

@@ -6,9 +6,9 @@ import { IdentityKind } from '@lytronix/validators';
 import { RECOVERY_NOTE_KEY, useVerifyCode } from '@/api/auth';
 import { useIdentities, useRequestIdentityCode, useVerifyIdentity } from '@/api/identities';
 import { useMe } from '@/api/me';
+import { ErrorBanner } from '@/components/error-banner';
 import { OnboardingFrame, Spinner, StepLinks } from '@/components/onboarding/frame';
 import { IntentChips } from '@/components/onboarding/intent-chips';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { CodeBoxes } from '@/components/ui/code-boxes';
 import { Field } from '@/components/ui/field';
@@ -119,7 +119,7 @@ export function VerifyPhone(): React.JSX.Element {
           readOnly
           error={t('obPhoneTaken')}
         />
-        {signIn.isError ? <Banner tone="bad">{errorText(signIn.error)}</Banner> : null}
+        {signIn.isError ? <ErrorBanner error={signIn.error} /> : null}
         <Button wide onClick={startAgain}>
           {t('obPhoneOther')}
         </Button>
@@ -202,7 +202,7 @@ export function VerifyPhone(): React.JSX.Element {
             {t('obPhoneOther')}
           </button>
         </StepLinks>
-        {request.isError ? <Banner tone="bad">{errorText(request.error)}</Banner> : null}
+        {request.isError ? <ErrorBanner error={request.error} /> : null}
       </OnboardingFrame>
     );
   }
@@ -225,7 +225,7 @@ export function VerifyPhone(): React.JSX.Element {
             setLocalPhone(event.target.value.replace(/[^\d\s-]/g, ''));
           }}
         />
-        {request.isError ? <Banner tone="bad">{errorText(request.error)}</Banner> : null}
+        {request.isError ? <ErrorBanner error={request.error} /> : null}
         <Button type="submit" wide busy={request.isPending}>
           {t('cont')}
         </Button>

@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ListenerDeviceStatus } from '@lytronix/validators';
 import { useListenerPhones, useMakePairingCode, usePhonePaired } from '@/api/listener';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { buttonClass } from '@/components/ui/classes';
 import { QrCode } from '@/components/ui/qr-code';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import { appConfig } from '@/lib/app-config';
 import type { PairingCode } from '@/types/payments';
 
@@ -42,7 +42,6 @@ export function PairSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const make = useMakePairingCode();
   const paired = usePhonePaired();
   const [code, setCode] = useState<PairingCode | null>(null);
@@ -124,7 +123,7 @@ export function PairSheet({
         ) : undefined
       }
     >
-      {make.isError ? <Banner tone="bad">{errorText(make.error)}</Banner> : null}
+      {make.isError ? <ErrorBanner error={make.error} /> : null}
       {code ? (
         <div className="flex flex-col items-center gap-2.5 text-center">
           <div

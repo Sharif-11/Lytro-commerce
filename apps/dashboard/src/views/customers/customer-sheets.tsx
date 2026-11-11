@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@lytronix/validators';
 import { useEraseCustomer, useSetShopperPassword } from '@/api/customers';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,6 @@ export function PasswordSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const { showToast } = useShell();
   const save = useSetShopperPassword(customer.id);
   const [password, setPassword] = useState(generatedPassword);
@@ -72,7 +72,7 @@ export function PasswordSheet({
     >
       <p className="-mt-1 mb-3 text-[14px]">{t('passwordHelp')}</p>
       {uncopied ? <Banner tone="warn">{t('passwordNotCopied', { name })}</Banner> : null}
-      {save.isError && !problem ? <Banner tone="bad">{errorText(save.error)}</Banner> : null}
+      {save.isError && !problem ? <ErrorBanner error={save.error} /> : null}
       <Field
         label={t('passwordLabel')}
         value={password}

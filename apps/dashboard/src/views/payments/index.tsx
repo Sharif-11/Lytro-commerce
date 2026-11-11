@@ -14,6 +14,7 @@ import { useHome } from '@/api/home';
 import { useListenerPhones, usePhoneReceipts } from '@/api/listener';
 import { usePaymentMethods } from '@/api/payment-methods';
 import { downloadPayments, usePayments, useToVerifyCount } from '@/api/payments';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { MethodMark } from '@/components/method-mark';
 import { Banner } from '@/components/ui/banner';
@@ -28,7 +29,6 @@ import { SearchField } from '@/components/ui/search-field';
 import { Sheet } from '@/components/ui/sheet';
 import { StatusTag } from '@/components/ui/status-tag';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { useErrorText } from '@/hooks/use-error-text';
 import { dayLabel, formatDayMonthYear, formatTime, groupByDay } from '@/lib/dates';
 import { bangladeshiPhone } from '@/lib/phone';
 import { allows } from '@/shell/hubs';
@@ -209,9 +209,8 @@ function ToVerifyList({
   onDecide: (decision: Decision) => void;
 }): React.JSX.Element | null {
   const { t } = useTranslation('money');
-  const errorText = useErrorText();
   const list = usePayments({ ...search, status: PaymentListStatus.ToVerify });
-  if (list.isError) return <Banner tone="bad">{errorText(list.error)}</Banner>;
+  if (list.isError) return <ErrorBanner error={list.error} />;
   if (!list.data) return null;
   const payments = list.data.pages.flatMap((page) => page.payments);
   if (payments.length === 0) {
@@ -268,11 +267,10 @@ function PaymentList({
   onOpen: (payment: ShopPayment) => void;
 }): React.JSX.Element | null {
   const { t, i18n } = useTranslation('money');
-  const errorText = useErrorText();
   const words = useOrderWords();
   const heading = useDayHeading();
   const list = usePayments(filter);
-  if (list.isError) return <Banner tone="bad">{errorText(list.error)}</Banner>;
+  if (list.isError) return <ErrorBanner error={list.error} />;
   if (!list.data) return null;
   const payments = list.data.pages.flatMap((page) => page.payments);
   const first = list.data.pages[0];
@@ -357,12 +355,11 @@ function ReceiptList({
   onOpen: (receipt: PhoneReceipt) => void;
 }): React.JSX.Element | null {
   const { t, i18n } = useTranslation('money');
-  const errorText = useErrorText();
   const words = useOrderWords();
   const heading = useDayHeading();
   const { slug } = useShell();
   const list = usePhoneReceipts(search);
-  if (list.isError) return <Banner tone="bad">{errorText(list.error)}</Banner>;
+  if (list.isError) return <ErrorBanner error={list.error} />;
   if (!list.data) return null;
   const receipts = list.data.pages.flatMap((page) => page.receipts);
   if (receipts.length === 0) {
@@ -545,7 +542,6 @@ type Decision = { kind: 'approve' | 'reject'; payment: ShopPayment };
  */
 export function PaymentsView({ search }: { search: PaymentsSearch }): React.JSX.Element {
   const { t } = useTranslation('money');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { slug, viewer, showToast } = useShell();
   const canDecide = allows(viewer, [Permission.PaymentsVerify]);
@@ -659,7 +655,7 @@ export function PaymentsView({ search }: { search: PaymentsSearch }): React.JSX.
         )
       }
     >
-      {downloadError ? <Banner tone="bad">{errorText(downloadError)}</Banner> : null}
+      {downloadError ? <ErrorBanner error={downloadError} /> : null}
       {phones.data && someWalletListens && tab !== 'payouts' ? (
         <PhoneHealthBanner view={phones.data} />
       ) : null}

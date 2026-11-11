@@ -14,6 +14,7 @@ import app.lytro.listener.data.PhoneStatus
 fun ColumnScope.StoppedScreen(
     status: PhoneStatus,
     held: Int,
+    support: String,
     onCheckAgain: () -> Unit,
     onPairAgain: () -> Unit,
     onMenu: (() -> Unit)? = null,
@@ -42,8 +43,8 @@ fun ColumnScope.StoppedScreen(
         PhoneStatus.Blocked -> {
             StatusBand(BandKind.Dan, stringResource(R.string.st_block))
             Body(
-                foot = if (hasSupport) {
-                    { Btn(stringResource(R.string.support), { openSupport(context) }, kind = BtnKind.Secondary) }
+                foot = if (support.isNotEmpty()) {
+                    { Btn(stringResource(R.string.support), { openSupport(context, support) }, kind = BtnKind.Secondary) }
                 } else {
                     null
                 },

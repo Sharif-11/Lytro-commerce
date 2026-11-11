@@ -94,6 +94,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var now by mutableStateOf(graph.clock())
         private set
 
+    /** D8-74: the WhatsApp the support rows open; the built-in number until the help line answers. Empty: no rows. */
+    var supportWhatsapp by mutableStateOf(supportNumber(null))
+        private set
+
     val facts get() = graph.phone.facts
     val queueSize: Int get() = saved.size
     val network get() = graph.network.online
@@ -106,6 +110,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 if (graph.secrets.token == null && mustLeave(it.status)) goToStart(it.status)
             }
         }
+        // D8-74: Lytro's help line, once each time the app opens; a server out of reach keeps the built-in number.
+        viewModelScope.launch { supportWhatsapp = supportNumber(graph.api.helpLine()) }
     }
 
     fun chooseLanguage(language: String) = graph.settings.chooseLanguage(language)

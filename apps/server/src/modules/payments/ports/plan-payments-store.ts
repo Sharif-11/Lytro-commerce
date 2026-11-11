@@ -101,6 +101,8 @@ export interface PlanPaymentsStore {
     since: Date,
   ): Promise<PaymentNeedingAttentionRow | null>;
   setStatus(tx: Transaction, id: string, values: PlanPaymentStatusValues): Promise<void>;
+  /** ADM-17, D8-15 (Slice 8.8): the seller's screenshot for a payment already sent; when it was sent. */
+  setEvidence(tx: Transaction, id: string, evidenceId: string): Promise<Date>;
   /** ADM-06 (Slice 5.6): a receipt from Lytro's own phone holding this ID is used by this payment. */
   markReceiptUsed(tx: Transaction, transactionId: string, paymentId: string): Promise<void>;
   /** ADM-06 (Slice 5.6): a receipt that claimed this payment is unclaimed again. */

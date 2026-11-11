@@ -2,8 +2,8 @@ import { useState, type SyntheticEvent } from 'react';
 import { Link, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useResendPasswordReset, useVerifyForgotPassword } from '@/api/auth';
+import { ErrorBanner } from '@/components/error-banner';
 import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { CodeBoxes } from '@/components/ui/code-boxes';
 import { useCountdown } from '@/hooks/use-countdown';
@@ -90,7 +90,7 @@ export function ForgotPasswordVerify(): React.JSX.Element {
           {t('backSignIn')}
         </Link>
       </StepLinks>
-      {resend.isError ? <Banner tone="bad">{errorText(resend.error)}</Banner> : null}
+      {resend.isError ? <ErrorBanner error={resend.error} /> : null}
     </OnboardingFrame>
   );
 }

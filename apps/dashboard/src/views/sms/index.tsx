@@ -5,6 +5,7 @@ import { formatTaka, formatTakaExact } from '@lytronix/ui';
 import { Permission, SmsLogStatus } from '@lytronix/validators';
 import { useBalance } from '@/api/balance';
 import { useSaveSmsSettings, useSmsLog, useSmsReport, useSmsSettings } from '@/api/sms';
+import { ErrorBanner } from '@/components/error-banner';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -503,7 +504,6 @@ interface KindTotal {
 /** The Report tab (Part 37's `p37-sms-report`, SMS-14): by kind over the days, and each day's cost as bars. */
 function ReportTab(): React.JSX.Element {
   const { t, i18n } = useTranslation('menu');
-  const errorText = useErrorText();
   const [picking, setPicking] = useState(false);
   const [range, setRange] = useState<{ from: string; to: string } | null>(null);
   const [from, setFrom] = useState('');
@@ -604,7 +604,7 @@ function ReportTab(): React.JSX.Element {
           <SkeletonRows count={4} />
         </Card>
       ) : report.isError ? (
-        <Banner tone="bad">{errorText(report.error)}</Banner>
+        <ErrorBanner error={report.error} />
       ) : totals.length === 0 ? (
         <Card>
           <EmptyState icon="sms">{t('p37RepEmpty')}</EmptyState>
@@ -681,7 +681,6 @@ function ReportTab(): React.JSX.Element {
  */
 export function SmsView({ tab }: { tab: Tab }): React.JSX.Element {
   const { t } = useTranslation('menu');
-  const errorText = useErrorText();
   const settings = useSmsSettings({ enabled: tab === 'settings' });
   return (
     <ShellPage>
@@ -694,7 +693,7 @@ export function SmsView({ tab }: { tab: Tab }): React.JSX.Element {
       ) : settings.data ? (
         <SettingsTab settings={settings.data} />
       ) : settings.isError ? (
-        <Banner tone="bad">{errorText(settings.error)}</Banner>
+        <ErrorBanner error={settings.error} />
       ) : (
         <Card flush>
           <SkeletonRows count={5} />

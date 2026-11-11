@@ -10,6 +10,7 @@ import {
   useUpdatePurchase,
   type PurchaseDraft,
 } from '@/api/purchases';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,6 @@ import { RowList } from '@/components/ui/list-row';
 import { SectionHead } from '@/components/ui/page';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonth } from '@/lib/dates';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -57,7 +57,6 @@ type Open =
  * outstanding and, for someone who may see costs, the unit cost and the total; its deliveries; and what can be done.
  */
 export function PurchaseView({ purchaseId }: { purchaseId: string }): React.JSX.Element {
-  const errorText = useErrorText();
   const purchase = usePurchase(purchaseId);
   if (purchase.data) {
     // A save answers with the purchase as it now is, and the page starts again from it.
@@ -66,7 +65,7 @@ export function PurchaseView({ purchaseId }: { purchaseId: string }): React.JSX.
   return (
     <ShellPage>
       {purchase.isError ? (
-        <Banner tone="bad">{errorText(purchase.error)}</Banner>
+        <ErrorBanner error={purchase.error} />
       ) : (
         <Card flush>
           <SkeletonRows count={4} />
@@ -78,7 +77,6 @@ export function PurchaseView({ purchaseId }: { purchaseId: string }): React.JSX.
 
 function PurchaseBody({ saved }: { saved: Purchase }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const amount = useAmountText();
   const words = usePurchaseWords();
@@ -374,7 +372,7 @@ function PurchaseBody({ saved }: { saved: Purchase }): React.JSX.Element {
         </div>
         {actions || failed ? (
           <div className="flex flex-col gap-3">
-            {failed ? <Banner tone="bad">{errorText(failed)}</Banner> : null}
+            {failed ? <ErrorBanner error={failed} /> : null}
             {actions}
           </div>
         ) : null}

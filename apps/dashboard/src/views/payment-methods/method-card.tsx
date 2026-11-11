@@ -167,9 +167,17 @@ export function MethodCard({
       <div className="flex min-h-[60px] items-center gap-3 px-4 py-3">
         <MethodMark method={row.method} name={name} />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="overflow-hidden text-[16px] font-medium text-ellipsis whitespace-nowrap">
-            {name}
-          </span>
+          {row.retiring ? (
+            // WAL-18, D8-78 (Slice 8.8): Lytro is retiring it; the word is রিটায়ার everywhere.
+            <span className="flex min-w-0 items-center gap-1.5 text-[16px] font-medium">
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap">{name}</span>
+              <StatusTag tone="warn">{t('p88money.retiring')}</StatusTag>
+            </span>
+          ) : (
+            <span className="overflow-hidden text-[16px] font-medium text-ellipsis whitespace-nowrap">
+              {name}
+            </span>
+          )}
           <span className="num overflow-hidden text-[14px] text-ellipsis whitespace-nowrap text-fg-muted">
             {sub}
           </span>
@@ -187,6 +195,15 @@ export function MethodCard({
           </StatusTag>
         )}
       </div>
+
+      {row.retiring ? (
+        // WAL-18, D8-65 (Slice 8.8): the notice's words; switched off, it can come back on until it is removed.
+        <div className="px-4 pb-3.5">
+          <Banner tone="warn">
+            {t(row.enabled ? 'p88money.retiringOn' : 'p88money.retiringOff', { name })}
+          </Banner>
+        </div>
+      ) : null}
 
       {row.enabled && count > 0 ? (
         <RowList

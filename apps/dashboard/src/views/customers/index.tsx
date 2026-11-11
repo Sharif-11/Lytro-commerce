@@ -2,14 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useCustomers } from '@/api/customers';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { RowList } from '@/components/ui/list-row';
 import { SearchField } from '@/components/ui/search-field';
 import { SkeletonRows } from '@/components/ui/skeleton';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import { CustomerDetail } from './customer-page';
@@ -30,7 +29,6 @@ export function CustomersScreen({
   customerId: string | null;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { slug } = useShell();
   const [typed, setTyped] = useState(q);
@@ -71,7 +69,7 @@ export function CustomersScreen({
               label={t('custSearch')}
             />
           </div>
-          {list.isError ? <Banner tone="bad">{errorText(list.error)}</Banner> : null}
+          {list.isError ? <ErrorBanner error={list.error} /> : null}
           {none ? (
             <Card>
               <EmptyState icon="users">{t('custEmpty')}</EmptyState>

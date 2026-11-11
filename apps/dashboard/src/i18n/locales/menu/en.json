@@ -383,7 +383,6 @@
   "logoUpload": "Upload",
   "mAccountS": "Sign-in and security",
   "mActivityS": "Who did what",
-  "mHelpS": "WhatsApp, 9 am to 10 pm",
   "mSettingsS": "Shop, delivery, brand, API",
   "mTeamS": "{{used}} of {{total}} seats",
   "mTeamSUnlimited": "{{used}} seats",
@@ -1053,5 +1052,10 @@
   "p37FrRuleSaved": "Automatic check settings saved.",
   "p37EveryOrder": "Every order",
   "p37PushDeviceName": "{{b}} on {{s}}",
-  "p37FrRuleMinBad": "Type an amount above ৳0, or leave it empty."
+  "p37FrRuleMinBad": "Type an amount above ৳0, or leave it empty.",
+  "p88money": {
+    "retiring": "Being retired",
+    "retiringOn": "Lytro is retiring {{name}}. It keeps working for now, checkout included. When it is removed, its accounts go with it, so keep another payment method on for your customers.",
+    "retiringOff": "Lytro is retiring {{name}}. You set it up, so you can switch it back on until it is removed, and your saved number stays until then."
+  }
 }

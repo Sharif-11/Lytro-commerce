@@ -3,8 +3,8 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Permission, TenantState } from '@lytronix/validators';
 import { useCategories, useProductList, useProductRoom } from '@/api/catalogue';
+import { ErrorBanner, LoadFailed } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { buttonClass } from '@/components/ui/classes';
 import { Card } from '@/components/ui/card';
@@ -13,7 +13,6 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { RowList } from '@/components/ui/list-row';
 import { SearchField } from '@/components/ui/search-field';
 import { SkeletonRows } from '@/components/ui/skeleton';
-import { useErrorText } from '@/hooks/use-error-text';
 import {
   PRODUCT_SEGMENTS,
   SEGMENT_LABEL,
@@ -52,7 +51,7 @@ export function ProductsView({
   limitAsked,
 }: ProductsViewProps): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
+  const { t: shell } = useTranslation('shell');
   const navigate = useNavigate();
   const { slug, viewer, tenant } = useShell();
   const mayManage = allows(viewer, [Permission.ProductsManage]);
@@ -125,10 +124,26 @@ export function ProductsView({
       </Link>
     ) : null;
 
+  // Slice 8.8's `p88-err-load`: a list that never loaded is its card with Try again, and a fault's error ID; nothing
+  // to add a product beside, as drawn.
+  if (list.isError && first === undefined) {
+    return (
+      <ShellPage>
+        <LoadFailed
+          title={shell('p88help.productsDidntLoad')}
+          error={list.error}
+          onRetry={() => {
+            void list.refetch();
+          }}
+        />
+      </ShellPage>
+    );
+  }
+
   return (
     <ShellPage actions={addProduct(true)}>
       {limitAsked && room.data?.full ? <ProductLimitBanner room={room.data} /> : null}
-      {list.isError ? <Banner tone="bad">{errorText(list.error)}</Banner> : null}
+      {list.isError ? <ErrorBanner error={list.error} /> : null}
       {newShop ? (
         <Card>
           <EmptyState icon="tag" action={addProduct(false)}>

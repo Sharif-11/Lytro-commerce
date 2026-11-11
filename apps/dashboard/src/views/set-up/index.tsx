@@ -6,12 +6,11 @@ import { formatTaka } from '@lytronix/ui';
 import { useMe } from '@/api/me';
 import { useLocations, useSetHomeArea } from '@/api/delivery';
 import { usePresets, useSetBusinessType } from '@/api/shop-setup';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chips';
-import { useErrorText } from '@/hooks/use-error-text';
 import { AreaSearchSheet } from './area-search-sheet';
 import {
   DEFAULT_HOME_AREA,
@@ -29,7 +28,6 @@ import {
  */
 export function SetUp(): React.JSX.Element {
   const { t, i18n } = useTranslation('onboarding');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const me = useMe();
   const presets = usePresets();
@@ -141,7 +139,7 @@ export function SetUp(): React.JSX.Element {
         </div>
         <p className="mt-0.5 mb-2.5 text-[14px] text-fg-muted">{t('suNote')}</p>
       </section>
-      {error ? <Banner tone="bad">{errorText(error)}</Banner> : null}
+      {error ? <ErrorBanner error={error} /> : null}
       <Button
         wide
         busy={saving}

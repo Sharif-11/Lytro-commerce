@@ -24,6 +24,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -425,6 +426,25 @@ class ScreensTest {
         shows(word(R.string.st_block))
         shows(word(R.string.block_p))
         compose.onNodeWithText(word(R.string.re_pair)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aBlockedPhoneOffersTheHelpLinesWhatsApp() {
+        // D8-74: the number the operator set in the console, read when the app opens.
+        lytro.helpWhatsapp = "01711000009"
+        revokedBecause("installation_blocked")
+
+        shows(word(R.string.st_block))
+        shows(word(R.string.support))
+    }
+
+    @Test
+    fun withNoHelpLineNumberAndNoneBuiltInThereIsNoSupport() {
+        assumeTrue("this build has a number of its own", BuildConfig.SUPPORT_WHATSAPP.isEmpty())
+        revokedBecause("installation_blocked")
+
+        shows(word(R.string.st_block))
+        compose.onNodeWithText(word(R.string.support)).assertDoesNotExist()
     }
 
     @Test

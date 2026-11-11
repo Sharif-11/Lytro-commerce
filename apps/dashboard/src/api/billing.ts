@@ -17,6 +17,8 @@ import {
   type TargetDowngradePlanInput,
 } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
+import { sendWithProgress, type FileSender } from '@/lib/media-upload';
+import type { UploadStarted } from '@/types/media';
 import { ME_QUERY_KEY } from '@/api/me';
 import { BALANCE_QUERY_KEY, LEDGER_QUERY_KEY } from '@/api/balance';
 import { HOME_QUERY_KEY } from '@/api/home';
@@ -126,6 +128,8 @@ export function usePlatformWallets() {
     queryFn: () => tenantSession.client.get<PlatformWallet[]>('/platform-wallets'),
   });
 }
+
+type UploadLink = UploadStarted['upload'];
 
 function useInvalidateBilling() {
   const queryClient = useQueryClient();
@@ -352,6 +356,50 @@ export function useCancelPayment() {
           : `/billing/payments/${encodeURIComponent(payment.id)}/cancel`,
       ),
     onSuccess: invalidate,
+  });
+}
+
+/** ADM-17, D8-15 (Slice 8.8): a screenshot whose file never reached the store; the card offers Try again. */
+export class ScreenshotNotSent extends Error {
+  constructor() {
+    super('the screenshot did not reach the store');
+  }
+}
+
+/**
+ * ADM-17, D8-15 (Slice 8.8): a screenshot for a payment already sent, while Lytro checks it -- a link to upload it asked for
+ * under the payment's own permission (a top-up's under the balance's), the file sent to it with its progress, then put on
+ * the payment. One a payment; the server refuses a second.
+ */
+export function useSendPaymentScreenshot() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      payment,
+      file,
+      onSent,
+      send = sendWithProgress,
+    }: {
+      payment: Pick<BillingPayment, 'id' | 'kind'>;
+      file: File;
+      onSent: (fraction: number) => void;
+      send?: FileSender;
+    }) => {
+      const topUp = payment.kind === PlanPaymentKind.TopUp;
+      const id = encodeURIComponent(payment.id);
+      const started = await tenantSession.client.post<{ key: string; upload: UploadLink }>(
+        topUp ? '/balance/top-up/evidence' : '/billing/payment-evidence',
+        { contentType: file.type, bytes: file.size },
+      );
+      if (!(await send(started.upload, file, onSent))) throw new ScreenshotNotSent();
+      return tenantSession.client.post<{ evidenceSentAt: string }>(
+        topUp ? `/balance/top-up/${id}/evidence` : `/billing/payments/${id}/evidence`,
+        { evidenceKey: started.key },
+      );
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: PAYMENTS_QUERY_KEY });
+    },
   });
 }
 

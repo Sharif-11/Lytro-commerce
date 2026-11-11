@@ -2,12 +2,11 @@ import { useEffect } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useMe } from '@/api/me';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { BareFrame, OnboardingFrame, Spinner } from '@/components/onboarding/frame';
-import { Banner } from '@/components/ui/banner';
 import { RowList, RowText, rowClass } from '@/components/ui/list-row';
 import { ShopMark } from '@/components/ui/shop-mark';
-import { useErrorText } from '@/hooks/use-error-text';
 import { appConfig } from '@/lib/app-config';
 
 /**
@@ -17,7 +16,6 @@ import { appConfig } from '@/lib/app-config';
  */
 export function Shops(): React.JSX.Element {
   const { t } = useTranslation('onboarding');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const me = useMe();
   const shops = me.data?.shops ?? null;
@@ -51,7 +49,7 @@ export function Shops(): React.JSX.Element {
 
   return (
     <OnboardingFrame title={t('shopsOpening')}>
-      {me.isError ? <Banner tone="bad">{errorText(me.error)}</Banner> : <Spinner />}
+      {me.isError ? <ErrorBanner error={me.error} /> : <Spinner />}
     </OnboardingFrame>
   );
 }

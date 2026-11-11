@@ -178,6 +178,10 @@ export const billingPaymentSchema = planPaymentSchema.extend({
   invoice: z.object({ id: z.string(), number: z.number() }).nullable(),
   addons: z.array(paymentAddonSchema),
   earlierShop: z.boolean(),
+  // ADM-17, D8-15 (Slice 8.8): when the seller's screenshot of it was sent, its type and its size; null when none was.
+  evidenceSentAt: z.date().nullable(),
+  evidenceType: z.string().nullable(),
+  evidenceBytes: z.number().nullable(),
 });
 export const billingPaymentPageSchema = z.object({
   payments: z.array(billingPaymentSchema),

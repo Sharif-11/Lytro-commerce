@@ -2,11 +2,10 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BatchState, type StockUnit } from '@lytronix/validators';
 import { useProductBatches, useWriteOff } from '@/api/stock';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { StatusTag, type StatusTone } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { daysUntil, formatDayMonthYear } from '@/lib/dates';
 import { splitsOf } from '@/lib/variant-matrix';
 import type { StockBatch } from '@/types/stock';
@@ -36,7 +35,6 @@ export function BatchesSheet({
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
   const words = useVariantWords();
-  const errorText = useErrorText();
   const batches = useProductBatches(product.id, { enabled: open });
   const writeOff = useWriteOff(product.id);
   const [going, setGoing] = useState<StockBatch | null>(null);
@@ -95,7 +93,7 @@ export function BatchesSheet({
       {open && going ? (
         <div className="flex flex-col gap-1">
           <WriteOffDetails batch={going} unit={unit} avgCost={cost ?? null} />
-          {writeOff.isError ? <Banner tone="bad">{errorText(writeOff.error)}</Banner> : null}
+          {writeOff.isError ? <ErrorBanner error={writeOff.error} /> : null}
         </div>
       ) : open ? (
         <div className="flex flex-col gap-3">

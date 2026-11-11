@@ -47,6 +47,23 @@ class ListenerApiTest {
     }
 
     @Test
+    fun `the help line is read with no token, and a number not set is null`() = runTest {
+        server.enqueue(okEnvelope("""{"whatsapp":"01711000009","phone":null,"opensHour":9,"closesHour":22}"""))
+        server.enqueue(okEnvelope("""{"whatsapp":null,"phone":"01711000010","opensHour":9,"closesHour":22}"""))
+
+        val set = apiFor(server).helpLine() as ApiResult.Ok
+        val unset = apiFor(server).helpLine() as ApiResult.Ok
+
+        assertEquals("01711000009", set.value.whatsapp)
+        assertNull(unset.value.whatsapp)
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/v1/listener/help-line", request.url.encodedPath)
+        assertNull(request.headers["Authorization"])
+        assertNull(request.headers["x-installation-id"])
+    }
+
+    @Test
     fun `a call after pairing names the token and the installation`() = runTest {
         server.enqueue(
             okEnvelope("""{"status":"connected","heartbeatMinutes":15,"serverTime":"2026-11-03T08:00:00.000Z"}"""),

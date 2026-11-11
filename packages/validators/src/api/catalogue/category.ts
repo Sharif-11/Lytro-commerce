@@ -20,6 +20,15 @@ export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export const updateCategorySchema = createCategorySchema.partial();
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 
+// POST categories/:id/move (D8-72, Slice 8.8): a category, with everything under it, to a parent (null for the top level)
+// and a place among that parent's sub-categories: after `afterId`, or first when it is null. Both its old and its new
+// siblings are renumbered in the same request; `afterId` no longer under `parentId` means the list changed meanwhile.
+export const moveCategorySchema = z.object({
+  parentId: catalogueIdSchema.nullable(),
+  afterId: catalogueIdSchema.nullable(),
+});
+export type MoveCategoryInput = z.infer<typeof moveCategorySchema>;
+
 // DELETE categories/:id. A category holding products is refused unless `products=uncategorize`, which moves its
 // products to Uncategorized (PRD-03).
 export const deleteCategoryQuerySchema = z.object({

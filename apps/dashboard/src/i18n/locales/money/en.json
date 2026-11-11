@@ -514,5 +514,25 @@
   "goToPage": "Go to the payment page · {{amount}}",
   "payOnPage": "Pay on the payment page",
   "abPage": "On the payment page · active when confirmed",
-  "tuNotePage": "Next you pay on the payment page; it is added when it matches."
+  "tuNotePage": "Next you pay on the payment page; it is added when it matches.",
+  "p88money": {
+    "shotTitle": "Screenshot of the payment",
+    "shotLead": "Optional. It helps Lytro check faster, and only Lytro sees it. JPG, PNG, WebP or PDF, up to 5 MB.",
+    "shotAdd": "Add a screenshot",
+    "shotPickLabel": "Choose a screenshot of the payment",
+    "shotUploading": "Uploading… {{percent}}%",
+    "shotSentChip": "Sent",
+    "shotSent": "Sent to Lytro {{when}}. One screenshot a payment; once sent it stays.",
+    "shotSentToast": "Screenshot sent to Lytro",
+    "shotBig": "This file is over 5 MB ({{size}}). Choose a smaller screenshot.",
+    "shotType": "Only a picture (JPG, PNG, WebP) or a PDF.",
+    "shotFailed": "The upload didn't finish. Check the connection and try again.",
+    "shotPick": "Choose another",
+    "shotRetry": "Try again",
+    "shotFile": "Screenshot",
+    "shotWhenToday": "today at {{time}}",
+    "shotWhenDay": "on {{day}} at {{time}}",
+    "tlShot": "You sent a screenshot",
+    "pendingShot": "Add a screenshot"
+  }
 }

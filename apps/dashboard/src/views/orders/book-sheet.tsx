@@ -14,6 +14,7 @@ import {
 import { useBookOrder, useCancelBooking, useCourierAreas, useSettleParcel } from '@/api/couriers';
 import { useLocations } from '@/api/delivery';
 import { ORDERS_QUERY_KEY, useOrderSerials } from '@/api/orders';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,6 @@ import { Sheet } from '@/components/ui/sheet';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { useErrorText } from '@/hooks/use-error-text';
 import { courierName } from '@/lib/couriers';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -236,7 +236,6 @@ export function BookSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const queryClient = useQueryClient();
   const { slug, viewer, showToast } = useShell();
   const serials = useOrderSerials(order.id);
@@ -347,7 +346,7 @@ export function BookSheet({
         failure.error instanceof ApiClientError && failure.error.code === 'quota_exceeded' ? (
           <ShipRefusal error={failure.error} />
         ) : (
-          <Banner tone="bad">{errorText(failure.error)}</Banner>
+          <ErrorBanner error={failure.error} />
         )
       ) : null}
       <div className="flex flex-col gap-1.5">
@@ -456,7 +455,6 @@ export function SettleSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const settle = useSettleParcel(order.id);
   const [made, setMade] = useState(true);
   const [consignment, setConsignment] = useState('');
@@ -488,7 +486,7 @@ export function SettleSheet({
         </Button>
       }
     >
-      {settle.isError ? <Banner tone="bad">{errorText(settle.error)}</Banner> : null}
+      {settle.isError ? <ErrorBanner error={settle.error} /> : null}
       <RowList role="radiogroup" aria-label={t('crSettleT', { c: courierName(courier) })}>
         <RadioRow
           on={made}
@@ -556,7 +554,6 @@ export function CancelBookingSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const errorText = useErrorText();
   const { showToast } = useShell();
   const cancel = useCancelBooking(order.id);
   const [ticked, setTicked] = useState(false);
@@ -596,7 +593,7 @@ export function CancelBookingSheet({
         {t('crCbRedxD', { c })}
         {cancel.isError ? (
           <div className="mt-3">
-            <Banner tone="bad">{errorText(cancel.error)}</Banner>
+            <ErrorBanner error={cancel.error} />
           </div>
         ) : null}
       </Dialog>
@@ -628,7 +625,7 @@ export function CancelBookingSheet({
       ) : (
         <p className="text-[16px]">{t('crCbSfD', { c })}</p>
       )}
-      {cancel.isError && !noAnswer ? <Banner tone="bad">{errorText(cancel.error)}</Banner> : null}
+      {cancel.isError && !noAnswer ? <ErrorBanner error={cancel.error} /> : null}
       <CheckRow
         checked={ticked}
         onChange={() => {

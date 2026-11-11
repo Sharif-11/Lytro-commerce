@@ -11,6 +11,7 @@ import {
   usePlatformWallets,
   useQuotePurchase,
 } from '@/api/billing';
+import { ErrorBanner } from '@/components/error-banner';
 import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
 import { Notice } from '@/components/onboarding/notice';
 import { Banner } from '@/components/ui/banner';
@@ -18,7 +19,6 @@ import { Button } from '@/components/ui/button';
 import { Chip, ChipRow } from '@/components/ui/chips';
 import { StatusTag } from '@/components/ui/status-tag';
 import { WalletMarks } from '@/components/wallet-marks';
-import { useErrorText } from '@/hooks/use-error-text';
 import { PricingTable, type PricedOption } from '@/lib/pricing-table';
 import { signUpIntent } from '@/session/sign-up-intent';
 import { changedAmount } from '@/views/plan/words';
@@ -33,7 +33,6 @@ import { changedAmount } from '@/views/plan/words';
  */
 export function Checkout(): React.JSX.Element {
   const { t, i18n } = useTranslation('onboarding');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const intent = signUpIntent.read();
   const [planId, setPlanId] = useState<string | null>(intent.planId);
@@ -180,9 +179,9 @@ export function Checkout(): React.JSX.Element {
           {changed ? (
             <Banner tone="warn">{tMoney('amountChanged', { amount: formatTaka(changed) })}</Banner>
           ) : quotePurchase.isError ? (
-            <Banner tone="bad">{errorText(quotePurchase.error)}</Banner>
+            <ErrorBanner error={quotePurchase.error} />
           ) : null}
-          {openPage.isError ? <Banner tone="bad">{errorText(openPage.error)}</Banner> : null}
+          {openPage.isError ? <ErrorBanner error={openPage.error} /> : null}
           {option ? (
             <>
               <WalletMarks wallets={wallets.data ?? []} />

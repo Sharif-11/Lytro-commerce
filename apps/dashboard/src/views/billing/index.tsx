@@ -3,14 +3,13 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { BillingPaymentState } from '@lytronix/validators';
 import { useBillingPaymentById, useBillingPayments } from '@/api/billing';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip, ChipRow } from '@/components/ui/chips';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageFrame } from '@/components/ui/page';
 import { SkeletonRows } from '@/components/ui/skeleton';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatMonthYear, monthKey } from '@/lib/dates';
 import { SectionChips } from '@/shell/section-chips';
 import { ShellBanner } from '@/shell/shell-banner';
@@ -50,7 +49,6 @@ function byMonth(
 export function BillingView({ paymentId }: { paymentId: string | null }): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
   const { t: tShell } = useTranslation('shell');
-  const errorText = useErrorText();
   const { slug } = useShell();
   const [filter, setFilter] = useState<BillingPaymentState | null>(null);
   const list = useBillingPayments(filter);
@@ -91,7 +89,7 @@ export function BillingView({ paymentId }: { paymentId: string | null }): React.
             {list.isLoading ? <SkeletonRows count={3} /> : null}
             {list.isError ? (
               <div className="p-4">
-                <Banner tone="bad">{errorText(list.error)}</Banner>
+                <ErrorBanner error={list.error} />
               </div>
             ) : null}
             {list.isSuccess && loaded.length === 0 ? (

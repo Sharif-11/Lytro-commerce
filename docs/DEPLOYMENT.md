@@ -263,6 +263,11 @@ on Caddy: it is what lets the storefront's server read a shop's storefront key f
 without it. The storefront calls the public API at the server's address with `Host: api.<PLATFORM_DOMAIN>`, so it
 needs no route through Caddy. `apps/storefront/.env.example` lists them.
 
+**The website** (Phase 8 Slice 8.8): the contact page, the footer and the listener page read Lytro's help line from the
+server (`/api/v1/help-line`, kept five minutes), so its container needs `SERVER_URL`, the server inside the deployment.
+`SUPPORT_WHATSAPP` and `SUPPORT_PHONE` are gone, as is the dashboard's `VITE_SUPPORT_WHATSAPP`: the numbers are set in the
+console (RUNBOOKS §6). `SUPPORT_EMAIL` stays.
+
 **The credential sealing key** (Phase 3 Slice 9b): set `DATA_ENCRYPTION_KEY` (32 random bytes, base64) on the server
 from a secrets manager, never from a committed file; the server refuses to start in production without it. Its
 rotation is RUNBOOKS §3.

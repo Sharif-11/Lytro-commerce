@@ -59,6 +59,9 @@ import { mockOnboarding, TWELVE_MONTHS, typeCode, type Journey } from './support
 import type { AddonsFixture, UsageFixture } from './support/usage';
 import { meghOrders, type OrderFixture, type OrdersFixture } from './support/orders';
 import { drawnCouriers, type CouriersFixture, type ParcelFixture } from './support/couriers';
+import { P88_CAT_PAIRS } from './compare-p88-cat';
+import { p88HelpPairs } from './compare-p88-help';
+import { P88_MONEY } from './compare-p88-money';
 import { DRAWN_BELL } from './support/phase7';
 
 // TENANT-DASHBOARD-DESIGN §11: each built screen beside the prototype's drawing of it, at the prototype's own frame
@@ -100,6 +103,8 @@ interface Pair {
   state?: ShopState;
   /** A heading both pictures are scrolled to, for a card below the first screen (the options and variants). */
   scroll?: RegExp;
+  /** Text whose card both pictures are scrolled to, where the card has no heading (a payment method's). */
+  scrollText?: RegExp;
 }
 
 const NEW_SHOP = { drawn: 'new', state: DAY_ONE };
@@ -5651,6 +5656,19 @@ function themedPairs(paired: Pair[]): Pair[] {
 
 const THEMED = themedPairs([...PAIRS, ...MONEY]);
 
+// Slice 8.8 (Part 39, §7.41): each part's pairs, kept in its own file.
+const P88: Pair[] = [...p88HelpPairs(), ...P88_MONEY, ...P88_CAT_PAIRS];
+
+/** Scrolls the card holding this text to the top of its scrolling page. */
+async function scrollToCard(within: Locator, text: RegExp): Promise<void> {
+  await within
+    .getByText(text)
+    .first()
+    .evaluate((element) => {
+      (element.closest('.card, .rounded-card') ?? element).scrollIntoView({ block: 'start' });
+    });
+}
+
 /** Scrolls a heading to the top of its scrolling page, behind any open sheet. */
 async function scrollTo(within: Locator, heading: RegExp): Promise<void> {
   await within
@@ -5662,7 +5680,7 @@ async function scrollTo(within: Locator, heading: RegExp): Promise<void> {
 }
 
 test.describe('the built shell beside the prototype', () => {
-  for (const pair of [...PAIRS, ...MONEY, ...STEPS, ...THEMED]) {
+  for (const pair of [...PAIRS, ...MONEY, ...STEPS, ...THEMED, ...P88]) {
     test(`${pair.name} on a ${pair.device} in ${pair.language}`, async ({ browser }) => {
       // The pictures set their own sizes, so they are taken once, not in every project.
       test.skip(test.info().project.name !== 'desktop', 'taken once, in the desktop project');
@@ -5677,6 +5695,7 @@ test.describe('the built shell beside the prototype', () => {
       await drawing.selectOption('#selScreen', pair.screen);
       await drawing.waitForTimeout(400);
       if (pair.scroll) await scrollTo(drawing.locator('#frame .shell'), pair.scroll);
+      if (pair.scrollText) await scrollToCard(drawing.locator('#frame .shell'), pair.scrollText);
       await drawing.locator('#frame .shell').screenshot({ path: `${out}-prototype.png` });
       await drawing.close();
 
@@ -5701,6 +5720,7 @@ test.describe('the built shell beside the prototype', () => {
       await app.evaluate(() => document.fonts.ready);
       if (pair.then) await pair.then(app);
       if (pair.scroll) await scrollTo(app.getByRole('main'), pair.scroll);
+      if (pair.scrollText) await scrollToCard(app.getByRole('main'), pair.scrollText);
       await app.waitForTimeout(300);
       await app.screenshot({ path: `${out}-app.png` });
       await app.close();

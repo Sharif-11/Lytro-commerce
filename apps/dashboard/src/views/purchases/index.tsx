@@ -9,8 +9,8 @@ import {
   useSuppliers,
   type PurchaseSegment,
 } from '@/api/purchases';
+import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
-import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { chipClass } from '@/components/ui/classes';
@@ -20,7 +20,6 @@ import { RowChevron, RowList, rowClass } from '@/components/ui/list-row';
 import { Eyebrow } from '@/components/ui/page';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonth } from '@/lib/dates';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -42,7 +41,6 @@ const SEGMENT_WORD: Record<PurchaseSegment, string> = {
  */
 export function PurchasesView({ segment }: { segment: PurchaseSegment }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const navigate = useNavigate();
   const { slug, viewer } = useShell();
   const mayManage = allows(viewer, [Permission.InventoryManage]);
@@ -111,7 +109,7 @@ export function PurchasesView({ segment }: { segment: PurchaseSegment }): React.
           </div>
         </Card>
       ) : null}
-      {list.isError ? <Banner tone="bad">{errorText(list.error)}</Banner> : null}
+      {list.isError ? <ErrorBanner error={list.error} /> : null}
       {list.isPending ? (
         <Card flush>
           <SkeletonRows count={3} />

@@ -1,9 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { PACK_AUTO_BUY_CAP, UsageMetric } from '@lytronix/validators';
 import { useAddonOffers, useSetAutoBuy } from '@/api/addons';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Card } from '@/components/ui/card';
-import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonth } from '@/lib/dates';
 import type { ShopUsage } from '@/types/usage';
 import { SwitchNote, SwitchRow } from './usage-parts';
@@ -31,7 +30,6 @@ export function AutoBuyCard({
   inSheet?: boolean;
 }): React.JSX.Element | null {
   const { t } = useTranslation('money');
-  const errorText = useErrorText();
   const offers = useAddonOffers();
   const setAutoBuy = useSetAutoBuy();
   const rows = usage.packs.filter((pack) => pack.offer !== null);
@@ -66,7 +64,7 @@ export function AutoBuyCard({
           </div>
         );
       })}
-      {setAutoBuy.isError ? <Banner tone="bad">{errorText(setAutoBuy.error)}</Banner> : null}
+      {setAutoBuy.isError ? <ErrorBanner error={setAutoBuy.error} /> : null}
       <p className="text-[14px] text-fg-muted">{t(help)}</p>
     </Card>
   );

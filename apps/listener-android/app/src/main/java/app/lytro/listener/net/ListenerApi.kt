@@ -51,6 +51,10 @@ class ListenerApi(
 
     suspend fun unpair(): ApiResult<JsonObject> = post("unpair", "{}", JsonObject.serializer())
 
+    /** D8-74: Lytro's help line, read when the app opens. No token: a phone that can't pair needs it most. */
+    suspend fun helpLine(): ApiResult<HelpLine> =
+        send(request("help-line", signed = false).get().build(), HelpLine.serializer())
+
     private suspend fun <T> post(
         path: String,
         body: String,

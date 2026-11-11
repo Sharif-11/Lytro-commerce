@@ -4,6 +4,13 @@ import { SiteNav } from '@/components/layout/site-nav';
 import { Container } from '@/components/ui/container';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { SectionHeading } from '@/components/ui/section-heading';
+import { HelpLineApi } from '@/lib/api/help-line-api';
+import {
+  displayNumber,
+  HelpLineWords,
+  phoneHref,
+  whatsappHref,
+} from '@/lib/contact/help-line-words';
 import { SiteEnvironment } from '@/lib/env';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import { requestLanguage } from '@/lib/i18n/read-language';
@@ -17,14 +24,19 @@ export const metadata: Metadata = {
   alternates: { canonical: '/contact' },
 };
 
-// docs/SITE-PAGES-DESIGN.md §2. Channel values come from the environment so placeholders cannot ship: a
-// channel that is not configured is simply not shown.
+// docs/SITE-PAGES-DESIGN.md §2. WhatsApp, the phone and the hours are Lytro's help line, the numbers the operator sets in
+// the console (GET /help-line, D8-69, D8-73), so placeholders cannot ship: a number not set, or cleared, is not shown,
+// and with neither the hours go too. Email comes from the environment.
 const text = {
   eyebrow: { bn: 'যোগাযোগ', en: 'Contact' },
   title: { bn: 'একজন মানুষের সাথে কথা বলুন, বটের সাথে নয়', en: 'Talk to a person, not a bot' },
   lead: {
-    bn: 'সেটআপে আটকে গেছেন, কোন প্ল্যান মানায় বুঝছেন না, বা কলে ডেমো চান? মেসেজ দিন। বাংলা বা ইংরেজিতে উত্তর দিই, শনি থেকে বৃহস্পতি, সকাল ১০টা থেকে রাত ৮টা।',
-    en: 'Stuck on setup, unsure which plan fits, or want a demo on a call? Message us. We answer in Bangla or English, Saturday to Thursday, 10 am to 8 pm.',
+    bn: 'সেটআপে আটকে গেছেন, কোন প্ল্যান মানায় বুঝছেন না, বা কলে ডেমো চান? মেসেজ দিন। বাংলা বা ইংরেজিতে উত্তর দিই, প্রতিদিন {opens} থেকে {closes}।',
+    en: 'Stuck on setup, unsure which plan fits, or want a demo on a call? Message us. We answer in Bangla or English, every day, {opens} to {closes}.',
+  },
+  leadUnset: {
+    bn: 'সেটআপে আটকে গেছেন, কোন প্ল্যান মানায় বুঝছেন না, বা কলে ডেমো চান? মেসেজ দিন। বাংলা বা ইংরেজিতে উত্তর দিই।',
+    en: 'Stuck on setup, unsure which plan fits, or want a demo on a call? Message us. We answer in Bangla or English.',
   },
   whatsapp: { bn: 'WhatsApp', en: 'WhatsApp' },
   whatsappSub: {
@@ -50,19 +62,13 @@ const text = {
   },
   hoursTitle: { bn: 'সাপোর্টের সময়', en: 'Support hours' },
   openNow: { bn: 'এখন খোলা', en: 'Open now' },
-  closedNow: { bn: 'এখন বন্ধ', en: 'Closed now' },
-  weekdays: { bn: 'শনি থেকে বৃহস্পতি', en: 'Saturday to Thursday' },
-  weekdayHours: { bn: 'সকাল ১০টা থেকে রাত ৮টা', en: '10:00 to 20:00' },
-  friday: { bn: 'শুক্রবার', en: 'Friday' },
-  fridayHours: {
-    bn: 'বন্ধ; WhatsApp-এর উত্তর পরদিন সকালে',
-    en: 'Closed; WhatsApp answered next morning',
+  closedNow: { bn: 'এখন বন্ধ · {at} খুলবে', en: 'Closed now · opens at {at}' },
+  everyDay: { bn: 'প্রতিদিন', en: 'Every day' },
+  outside: { bn: 'এর বাইরে', en: 'Outside these hours' },
+  outsideWhatsapp: {
+    bn: 'WhatsApp-এ লিখে রাখুন, খোলার পর উত্তর দিই',
+    en: 'Leave a WhatsApp; we reply when we open',
   },
-  urgent: {
-    bn: 'জরুরি: পেমেন্ট পেজ বা স্টোরফ্রন্ট বন্ধ',
-    en: 'Urgent: payment page or storefront down',
-  },
-  urgentHours: { bn: 'যেকোনো সময়, WhatsApp', en: 'Any time, WhatsApp' },
   addressTitle: { bn: 'Lytronix, ঢাকা', en: 'Lytronix, Dhaka' },
   addressSub: { bn: 'দেখা করতে আগে সময় নিন।', en: 'Visits by appointment.' },
 } satisfies Record<string, Bilingual>;
@@ -80,26 +86,32 @@ export default async function ContactPage() {
   const language = await requestLanguage.read();
   const copy = new Copy(language);
   const env = SiteEnvironment.current();
+  const line = await new HelpLineApi(env).current();
+  const words = new HelpLineWords(copy);
+  const whatsapp = line?.whatsapp ?? null;
+  const phone = line?.phone ?? null;
+  // D8-69, D8-73: the hours are the help line's, shown only while it has a number to reach.
+  const hours = line && (whatsapp !== null || phone !== null) ? line : null;
 
   const channels: Channel[] = [];
-  if (env.support.whatsapp) {
+  if (whatsapp !== null) {
     channels.push({
       icon: 'message',
       title: copy.of(text.whatsapp),
-      value: `+${env.support.whatsapp}`,
+      value: displayNumber(whatsapp),
       sub: copy.of(text.whatsappSub),
       action: copy.of(text.whatsappAction),
-      href: `https://wa.me/${env.support.whatsapp}`,
+      href: whatsappHref(whatsapp),
     });
   }
-  if (env.support.phone) {
+  if (phone !== null) {
     channels.push({
       icon: 'phone',
       title: copy.of(text.phone),
-      value: env.support.phone,
+      value: displayNumber(phone),
       sub: copy.of(text.phoneSub),
       action: copy.of(text.phoneAction),
-      href: `tel:${env.support.phone.replace(/[\s-]/g, '')}`,
+      href: phoneHref(phone),
     });
   }
   if (env.support.email) {
@@ -113,11 +125,18 @@ export default async function ContactPage() {
     });
   }
 
-  const hours = [
-    [copy.of(text.weekdays), copy.of(text.weekdayHours)],
-    [copy.of(text.friday), copy.of(text.fridayHours)],
-    [copy.of(text.urgent), copy.of(text.urgentHours)],
-  ];
+  const rows = hours
+    ? [
+        [copy.of(text.everyDay), words.span(hours)],
+        ...(whatsapp !== null ? [[copy.of(text.outside), copy.of(text.outsideWhatsapp)]] : []),
+      ]
+    : [];
+  const lead = hours
+    ? copy
+        .of(text.lead)
+        .replace('{opens}', words.hour(hours.opensHour))
+        .replace('{closes}', words.hour(hours.closesHour))
+    : copy.of(text.leadUnset);
 
   return (
     <>
@@ -132,7 +151,7 @@ export default async function ContactPage() {
               tone="light"
               eyebrow={copy.of(text.eyebrow)}
               title={copy.of(text.title)}
-              lead={copy.of(text.lead)}
+              lead={lead}
             />
           </Container>
         </section>
@@ -170,23 +189,32 @@ export default async function ContactPage() {
             )}
 
             <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr]">
-              <div className="rounded-card border border-line bg-white p-5 shadow-card">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="heading text-[18px] text-ink">{copy.of(text.hoursTitle)}</h2>
-                  <OpenNow open={copy.of(text.openNow)} closed={copy.of(text.closedNow)} />
+              {hours ? (
+                <div className="rounded-card border border-line bg-white p-5 shadow-card">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="heading text-[18px] text-ink">{copy.of(text.hoursTitle)}</h2>
+                    <OpenNow
+                      opensHour={hours.opensHour}
+                      closesHour={hours.closesHour}
+                      open={copy.of(text.openNow)}
+                      closed={copy
+                        .of(text.closedNow)
+                        .replace('{at}', words.hour(hours.opensHour, true))}
+                    />
+                  </div>
+                  <dl className="mt-4 divide-y divide-line">
+                    {rows.map(([when, what]) => (
+                      <div
+                        key={when}
+                        className="flex flex-col gap-0.5 py-2.5 sm:flex-row sm:justify-between sm:gap-4"
+                      >
+                        <dt className="text-[15px] font-semibold text-ink">{when}</dt>
+                        <dd className="num text-[15px] text-neutral-700 sm:text-right">{what}</dd>
+                      </div>
+                    ))}
+                  </dl>
                 </div>
-                <dl className="mt-4 divide-y divide-line">
-                  {hours.map(([when, what]) => (
-                    <div
-                      key={when}
-                      className="flex flex-col gap-0.5 py-2.5 sm:flex-row sm:justify-between sm:gap-4"
-                    >
-                      <dt className="text-[15px] font-semibold text-ink">{when}</dt>
-                      <dd className="text-[15px] text-neutral-700 sm:text-right">{what}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
+              ) : null}
               <div className="flex items-center gap-4 rounded-card border border-line bg-white p-5 shadow-card">
                 <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
                   <Icon name="map" size={28} />
@@ -203,7 +231,7 @@ export default async function ContactPage() {
         <section className="bg-white">
           <Container className="py-12 sm:py-16">
             <div className="mx-auto max-w-[720px]">
-              <ContactForm language={language} />
+              <ContactForm language={language} whatsapp={whatsapp !== null} />
             </div>
           </Container>
         </section>

@@ -1,3 +1,5 @@
+import { banglaPartOfDay } from '@lytronix/validators';
+
 // The dashboard's own date helpers: times within a day and grouping by day. Whole dates and date-times are
 // formatDate and formatDateTime in @lytronix/ui, shared with the console.
 const DHAKA = 'Asia/Dhaka';
@@ -31,18 +33,21 @@ export function formatTime(iso: string, language: string): string {
   }).formatToParts(new Date(iso));
   const hour24 = Number(parts.find((part) => part.type === 'hour')?.value ?? '0') % 24;
   const minute = parts.find((part) => part.type === 'minute')?.value ?? '00';
-  const period =
-    hour24 < 5
-      ? 'রাত'
-      : hour24 < 12
-        ? 'সকাল'
-        : hour24 < 16
-          ? 'দুপুর'
-          : hour24 < 19
-            ? 'বিকাল'
-            : 'রাত';
-  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-  return `${period} ${String(hour12)}:${minute}`;
+  return `${banglaPartOfDay(hour24)} ${String(twelveHour(hour24))}:${minute}`;
+}
+
+function twelveHour(hour24: number): number {
+  return hour24 % 12 === 0 ? 12 : hour24 % 12;
+}
+
+/**
+ * A whole hour of a 24-hour clock as a sentence says it (the help line's hours, Slice 8.8): `9 am`, `10 pm`; in Bangla the
+ * period word and the hour, `সকাল 9টা`, or `সকাল 9টায়` for "at" ("সকাল 9টায় খুলবে").
+ */
+export function wholeHour(hour24: number, language: string, at = false): string {
+  const hour = String(twelveHour(hour24));
+  if (language !== 'bn') return `${hour} ${hour24 < 12 ? 'am' : 'pm'}`;
+  return `${banglaPartOfDay(hour24)} ${hour}${at ? 'টায়' : 'টা'}`;
 }
 
 /** `2026-10-19` in Dhaka: the key rows are grouped under. */

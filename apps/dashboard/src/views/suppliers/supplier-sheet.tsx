@@ -6,11 +6,10 @@ import {
   SUPPLIER_NOTES_MAX_LENGTH,
 } from '@lytronix/validators';
 import { useCreateSupplier, useUpdateSupplier, type SupplierDraft } from '@/api/purchases';
-import { Banner } from '@/components/ui/banner';
+import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { AreaField, Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import type { Supplier } from '@/types/purchasing';
 
 /** A supplier's details as typed. */
@@ -45,7 +44,6 @@ export function SupplierSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
   const create = useCreateSupplier();
   const update = useUpdateSupplier();
   const [typed, setTyped] = useState<Typed>(typedOf(supplier));
@@ -133,7 +131,7 @@ export function SupplierSheet({
               </div>
             </>
           ) : null}
-          {failed ? <Banner tone="bad">{errorText(failed)}</Banner> : null}
+          {failed ? <ErrorBanner error={failed} /> : null}
         </>
       ) : null}
     </Sheet>
