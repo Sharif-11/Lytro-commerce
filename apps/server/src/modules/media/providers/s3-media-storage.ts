@@ -192,15 +192,22 @@ export class S3MediaStorage implements MediaStorage {
   async deleteEvidence(keys: string[]): Promise<void> {
     for (let from = 0; from < keys.length; from += DELETE_BATCH) {
       const batch = keys.slice(from, from + DELETE_BATCH);
+      let failed: number;
       try {
-        await this.deleter.send(
+        const answer = await this.deleter.send(
           new DeleteObjectsCommand({
             Bucket: this.settings.evidenceBucket,
             Delete: { Objects: batch.map((key) => ({ Key: key })), Quiet: true },
           }),
         );
+        failed = answer.Errors?.length ?? 0;
       } catch (error) {
         throw this.unavailable(error);
+      }
+      // D8-47: a quiet delete still names each file it couldn't remove. None of the batch is called removed then: the
+      // night's sweep stops, and the next one tries again (removing a file already gone does no harm).
+      if (failed > 0) {
+        throw this.unavailable(new Error(`${String(failed)} screenshots could not be removed`));
       }
     }
   }

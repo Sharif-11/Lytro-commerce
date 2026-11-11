@@ -26,13 +26,22 @@ export const transactionIdField = z
 export const BANK_REFERENCE_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9 ./-]*[A-Za-z0-9])?$/;
 
 /**
+ * D8-75, D8-56: the one form a bank reference is kept and matched in -- its letters and digits, in capitals -- so the same
+ * transfer typed as the statement prints it (BRAC-FT-55190327) or without its dashes and spaces (BRACFT55190327, the
+ * form Lytro's payment page takes) is one reference, used once.
+ */
+export function canonicalBankReference(value: string): string {
+  return value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+}
+
+/**
  * D8-75 (Slice 8.8): a bank transfer's reference, recorded by the operator where a TrxID would be and used once
- * platform-wide by the same rule (D8-56). Kept in capitals, as a TrxID is.
+ * platform-wide by the same rule (D8-56). Typed as the statement prints it; kept in its one form.
  */
 export const bankReferenceField = z
   .string()
   .trim()
   .regex(BANK_REFERENCE_PATTERN)
-  .min(BANK_REFERENCE_MIN_LENGTH)
   .max(BANK_REFERENCE_MAX_LENGTH)
-  .transform((value) => value.toUpperCase());
+  .refine((value) => canonicalBankReference(value).length >= BANK_REFERENCE_MIN_LENGTH)
+  .transform(canonicalBankReference);

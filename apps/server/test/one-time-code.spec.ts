@@ -144,6 +144,7 @@ function build(state: World) {
   };
 
   const messageStore: MessageStore = {
+    forgetShoppers: () => Promise.resolve(),
     insert: (_executor, message) => {
       state.counter += 1;
       state.outbox.push({

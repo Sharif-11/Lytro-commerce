@@ -394,6 +394,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: "This shop's data has already been deleted.",
     bn: 'এই শপের ডেটা আগেই ডিলিট হয়ে গেছে।',
   },
+  ShopDeletionStarted: {
+    en: "This shop's data is already being deleted, and that can't be undone.",
+    bn: 'এই শপের ডেটা ডিলিট হওয়া শুরু হয়ে গেছে, এটা আর ফেরানো যাবে না।',
+  },
   RecentChangesListed: { en: 'Recent changes retrieved.', bn: 'সাম্প্রতিক বদল পাওয়া গেছে।' },
   RevenueReportRead: { en: 'Revenue report retrieved.', bn: 'আয়ের রিপোর্ট পাওয়া গেছে।' },
   ShopsReportRead: { en: 'Shops report retrieved.', bn: 'শপের রিপোর্ট পাওয়া গেছে।' },
@@ -620,6 +624,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   ManualEntryPlanMovedOn: {
     en: "The shop's plan has changed since this entry, so it can't be put back. Reverse the later payment first.",
     bn: 'এই এন্ট্রির পরে শপের প্ল্যান বদলে গেছে, তাই আগের অবস্থায় ফেরানো যাবে না। আগে পরের পেমেন্টটি রিভার্স করুন।',
+  },
+  ManualEntryPaymentOpen: {
+    en: 'The shop has an upgrade or renewal waiting, priced on this plan. Decide it in the queue, or wait for it to run out, then reverse this entry.',
+    bn: 'এই প্ল্যানের ওপর হিসাব করা একটি আপগ্রেড বা রিনিউ পেমেন্ট এখনও অপেক্ষায় আছে। আগে কিউতে সেটার সিদ্ধান্ত নিন, বা মেয়াদ শেষ হওয়া পর্যন্ত অপেক্ষা করুন, তারপর এই এন্ট্রি রিভার্স করুন।',
   },
   ManualEntryNeedsConfirmation: {
     en: 'Type the amount again to confirm this entry.',

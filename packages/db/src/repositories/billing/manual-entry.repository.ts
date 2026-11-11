@@ -67,8 +67,12 @@ export class ManualEntryRepository {
     return rows[0] ?? null;
   }
 
-  /** ADM-15: how many entries were made since then, by anyone; a reversal is not an entry. */
+  /**
+   * ADM-15: how many entries were made since then, by anyone; a reversal is not an entry. Counted under a lock held to
+   * the end of the caller's transaction, so two entries saved at once are counted one after the other.
+   */
   async countEntriesSince(db: Executor, since: Date): Promise<number> {
+    await db.execute(sql`SELECT pg_advisory_xact_lock(hashtext('control.manual_payment_entries'))`);
     const [row] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(manualPaymentEntries)

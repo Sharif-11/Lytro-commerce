@@ -36,8 +36,8 @@ export class DrizzleManualEntriesStore implements ManualEntriesStore {
     return this.entries.findById(tx, id);
   }
 
-  countEntriesSince(since: Date): Promise<number> {
-    return this.entries.countEntriesSince(this.database.handle.db, since);
+  countEntriesSince(tx: Transaction, since: Date): Promise<number> {
+    return this.entries.countEntriesSince(tx, since);
   }
 
   hasReversedUse(tx: Transaction, transactionId: string): Promise<boolean> {

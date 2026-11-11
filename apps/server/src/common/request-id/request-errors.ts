@@ -68,7 +68,12 @@ export class RequestErrors {
   }
 
   private keep(request: FaultedRequest, status: 500 | 503, kind: string): void {
-    const tenantId = request.tenant?.id ?? request.session?.tenantId ?? null;
+    // A route a guard set to no shop (null, an account-level one) keeps nothing; only one no guard reached yet falls back
+    // to the shop its session is on.
+    const tenantId =
+      request.tenant === undefined
+        ? (request.session?.tenantId ?? null)
+        : (request.tenant?.id ?? null);
     const requestId = request.requestId;
     if (tenantId === null || requestId === undefined) return;
     const path = request.route?.path;

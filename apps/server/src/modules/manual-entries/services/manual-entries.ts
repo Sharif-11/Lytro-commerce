@@ -133,7 +133,9 @@ export class ManualEntries {
         price,
       })),
       periodEnd: priced.ends?.expiresAt ?? null,
-      needsConfirmation: await this.needsConfirmation(priced.amount),
+      needsConfirmation: await this.tenants.runStandalone((tx) =>
+        this.needsConfirmation(tx, priced.amount),
+      ),
     };
   }
 
@@ -156,15 +158,14 @@ export class ManualEntries {
         amount: priced.amount,
       });
     }
-    await this.assertConfirmed(input, amount);
-
     const entryId = await this.evidence.withKept(
       { tenantId: input.tenantId, uploader: 'operator' },
       input.evidenceKey,
       (evidenceId) =>
-        this.tenants.runStandalone((tx) =>
-          this.recordWithin(tx, input, priced, evidenceId, operatorId, ip, now),
-        ),
+        this.tenants.runStandalone(async (tx) => {
+          await this.assertConfirmed(tx, input, amount);
+          return this.recordWithin(tx, input, priced, evidenceId, operatorId, ip, now);
+        }),
     );
     return this.viewOf(entryId);
   }
@@ -204,6 +205,16 @@ export class ManualEntries {
         const after = entry.after;
         if (!after || standing.planId !== after.planId || standing.periodEnd !== after.periodEnd) {
           throw new ApiError('conflict', 'ManualEntryPlanMovedOn', {});
+        }
+        // An upgrade or a renewal still open was priced on the plan this entry gave: an upgrade's credit counts its time,
+        // and a renewal starts from its end. It is decided, or runs out, before the entry is taken back.
+        if (
+          await this.payments.hasOpen(tx, entry.tenantId, [
+            PlanPaymentKind.Upgrade,
+            PlanPaymentKind.Renewal,
+          ])
+        ) {
+          throw new ApiError('conflict', 'ManualEntryPaymentOpen', {});
         }
         await this.undoPlan(tx, entry, payment);
       }
@@ -504,20 +515,28 @@ export class ManualEntries {
       this.tenants.findBillingInfo(tx, tenantId),
     );
     if (!info) throw new ApiError('not_found', 'ShopNotFound', {});
-    if (info.state === TenantState.Deleted) {
+    // A shop whose deletion has begun takes no entry: its plan can't come back (D8-37).
+    if (info.state === TenantState.Deleted || info.deletedAt !== null) {
       throw new ApiError('conflict', 'ManualEntryShopGone', {});
     }
   }
 
-  /** ADM-15: over 10,000 TK, or past 10 entries in a Dhaka day. */
-  private async needsConfirmation(amount: string): Promise<boolean> {
+  /**
+   * ADM-15: over 10,000 TK, or past 10 entries in a Dhaka day -- counted in the entry's own transaction, under a lock,
+   * so two operators saving at once can't both be the tenth.
+   */
+  private async needsConfirmation(tx: Transaction, amount: string): Promise<boolean> {
     if (toPaisa(amount) > toPaisa(MANUAL_ENTRY_CONFIRM_ABOVE_TAKA.toFixed(2))) return true;
-    const today = await this.store.countEntriesSince(startOfDayDhaka(this.clock()));
+    const today = await this.store.countEntriesSince(tx, startOfDayDhaka(this.clock()));
     return today >= MANUAL_ENTRY_DAILY_ENTRIES;
   }
 
-  private async assertConfirmed(input: ManualEntryInput, amount: string): Promise<void> {
-    if (!(await this.needsConfirmation(amount))) return;
+  private async assertConfirmed(
+    tx: Transaction,
+    input: ManualEntryInput,
+    amount: string,
+  ): Promise<void> {
+    if (!(await this.needsConfirmation(tx, amount))) return;
     if (
       input.amountConfirmation === undefined ||
       toPaisa(input.amountConfirmation.toFixed(2)) !== toPaisa(amount)

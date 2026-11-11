@@ -121,6 +121,10 @@ export class DrizzlePlanPaymentsStore implements PlanPaymentsStore {
     return this.payments.findSubmittedOpen(tx, tenantId, kind);
   }
 
+  hasOpen(tx: Transaction, tenantId: string, kinds: PlanPaymentKind[]): Promise<boolean> {
+    return this.payments.hasOpen(tx, tenantId, kinds);
+  }
+
   closeOpen(
     tx: Transaction,
     tenantId: string,
@@ -194,7 +198,7 @@ export class DrizzlePlanPaymentsStore implements PlanPaymentsStore {
   creditInstead(
     tx: Transaction,
     id: string,
-    values: { kind: PlanPaymentKind; amount: string; verifiedBy: string; verifiedAt: Date },
+    values: { kind: PlanPaymentKind; amount: string; verifiedBy: string | null; verifiedAt: Date },
   ) {
     return this.payments.creditInstead(tx, id, values);
   }

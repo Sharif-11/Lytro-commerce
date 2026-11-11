@@ -312,6 +312,13 @@ describeIfDatabase('paying an add-on by wallet (PLN-14, BIL-02, D2-1)', () => {
     expect((await purchasesOf(shop))[0]?.status).toBe('cancelled');
     expect(await mine(shop)).toEqual([]);
     expect((await ledgerOf(shop, 1))[0]).toEqual({ type: 'top_up', amount: '99.00' });
+    // Close-out review C F1: the payment is the top-up its money now is, so the revenue report counts it once, when the
+    // balance is spent, not also as an add-on paid for (D8-40).
+    const row = await admin.query<{ kind: string; status: string }>(
+      'SELECT kind, status FROM control.plan_payments WHERE id = $1',
+      [paymentId],
+    );
+    expect(row.rows[0]).toEqual({ kind: 'top_up', status: 'verified' });
     const invoices = await admin.query(
       "SELECT 1 FROM control.invoices WHERE tenant_id = $1 AND kind = 'addon'",
       [shop.tenantId],

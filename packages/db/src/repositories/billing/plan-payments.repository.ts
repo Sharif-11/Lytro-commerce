@@ -10,6 +10,7 @@ import {
   lt,
   ne,
   notExists,
+  or,
   sql,
   type SQL,
 } from 'drizzle-orm';
@@ -226,6 +227,25 @@ export class PlanPaymentsRepository {
   }
 
   /**
+   * ADM-15, D8-48: whether the shop has a request of these kinds still open -- quoted, submitted or waiting for the
+   * operator.
+   */
+  async hasOpen(tx: Executor, tenantId: string, kinds: PlanPaymentKind[]): Promise<boolean> {
+    const rows = await tx
+      .select({ id: planPayments.id })
+      .from(planPayments)
+      .where(
+        and(
+          eq(planPayments.tenantId, tenantId),
+          inArray(planPayments.kind, kinds),
+          inArray(planPayments.status, [PlanPaymentStatus.Pending, PlanPaymentStatus.NeedsReview]),
+        ),
+      )
+      .limit(1);
+    return rows.length > 0;
+  }
+
+  /**
    * BIL-19: closes the shop's open requests of these kinds that nothing was submitted for -- the shop's own Cancel for
    * one, or every one a newer request of the same kind replaces. A submitted row is never touched: money may have
    * moved. The ids it closed.
@@ -247,6 +267,8 @@ export class PlanPaymentsRepository {
           inArray(planPayments.kind, kinds),
           eq(planPayments.status, PlanPaymentStatus.Pending),
           isNull(planPayments.transactionId),
+          // A checkout at bKash may be taking the money right now: it ends by its own return or the minute pass.
+          or(isNull(planPayments.gatewayPaymentId), isNotNull(planPayments.gatewayResult)),
           id === undefined ? undefined : eq(planPayments.id, id),
         ),
       )
@@ -387,7 +409,7 @@ export class PlanPaymentsRepository {
   async creditInstead(
     tx: Executor,
     id: string,
-    values: { kind: PlanPaymentKind; amount: string; verifiedBy: string; verifiedAt: Date },
+    values: { kind: PlanPaymentKind; amount: string; verifiedBy: string | null; verifiedAt: Date },
   ): Promise<void> {
     await tx
       .update(planPayments)

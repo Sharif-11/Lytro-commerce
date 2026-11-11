@@ -6,6 +6,7 @@ import { hash } from 'bcryptjs';
 import { generate } from 'otplib';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { canonicalBankReference } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { PaymentEvidence } from '../src/modules/payment-evidence/services/payment-evidence';
 import { MEDIA_STORAGE } from '../src/modules/media/tokens';
@@ -494,6 +495,25 @@ describeIfDatabase('the guards on an entry (ADM-15)', () => {
     expect(typed.status).toBe(201);
   });
 
+  it('counts two entries saved at once one after the other, so only one is the tenth unasked (review A F4)', async () => {
+    await clearToday();
+    const client = await shop();
+    for (let made = 0; made < 9; made += 1) {
+      await recorded(client.tenantId, { amount: 100, amountConfirmation: undefined });
+    }
+    const both = await Promise.all([
+      operatorPost(
+        '/operator/manual-entries',
+        entryBody(client.tenantId, { amount: 100, amountConfirmation: undefined }),
+      ),
+      operatorPost(
+        '/operator/manual-entries',
+        entryBody(client.tenantId, { amount: 100, amountConfirmation: undefined }),
+      ),
+    ]);
+    expect(both.map((answer) => answer.status).sort()).toEqual([201, 400]);
+  });
+
   it('refuses an ID a shopper payment used, though no plan payment holds it', async () => {
     const client = await shop();
     const transactionId = fresh();
@@ -652,6 +672,26 @@ describeIfDatabase('reversing an entry (ADM-15)', () => {
     expect((await reverse(second.id)).status).toBe(201);
     expect((await reverse(first.id)).status).toBe(201);
     expect((await tenant(client.tenantId)).state).toBe('trial');
+  });
+
+  it('waits while an upgrade priced on the entry is open, then reverses once it ran out (review A F3)', async () => {
+    const client = await shop();
+    const plan = await seedPlan(1, '500.00', 20_000 + Math.floor(Math.random() * 1000));
+    const entry = await planEntry(client.tenantId, plan, 500);
+    const higher = await seedPlan(1, '1500.00', 30_000 + Math.floor(Math.random() * 1000));
+    const quoted = await client.post('/billing/upgrade/quote', higher);
+    expect(quoted.status, JSON.stringify(quoted.envelope)).toBe(201);
+    const upgradeId = (quoted.body as { id: string }).id;
+
+    const held = await reverse(entry.id);
+    expect(held.status).toBe(409);
+    expect(errorOf(held).code).toBe('conflict');
+    expect((await payment(entry.planPaymentId)).status).toBe('verified');
+
+    await admin.query("UPDATE control.plan_payments SET status = 'expired' WHERE id = $1", [
+      upgradeId,
+    ]);
+    expect((await reverse(entry.id)).status).toBe(201);
   });
 
   it('takes a top-up back in full, below zero and from a frozen balance', async () => {
@@ -997,7 +1037,7 @@ describeIfDatabase("A manual entry paid to Lytro's bank account (D8-75)", () => 
     return { ...body, ...over };
   }
 
-  it('records it as the queue would, the reference kept in capitals, with no sender, and the list names the account', async () => {
+  it('records it as the queue would, the reference kept as letters and digits in capitals, with no sender, and the list names the account', async () => {
     const client = await shop();
     const account = await bankAccount();
     const plan = await seedPlan(6, '3984.00');
@@ -1017,13 +1057,13 @@ describeIfDatabase("A manual entry paid to Lytro's bank account (D8-75)", () => 
       bankAccountId: account,
       walletId: null,
       senderNumber: null,
-      transactionId: ref.toUpperCase(),
+      transactionId: canonicalBankReference(ref),
     });
     const entry = made.body as Entry;
     expect(await payment(entry.planPaymentId)).toMatchObject({
       status: 'verified',
       recorded_by_platform: true,
-      transaction_id: ref.toUpperCase(),
+      transaction_id: canonicalBankReference(ref),
     });
     expect((await tenant(client.tenantId)).plan_id).toBe(plan.planId);
     const listed = await getJson(
@@ -1051,6 +1091,15 @@ describeIfDatabase("A manual entry paid to Lytro's bank account (D8-75)", () => 
     );
     expect(again.status).toBe(409);
     expect(fieldsOf(again)).toEqual({ transactionId: 'already_used' });
+    // Close-out review A F1: the same transfer typed without the statement's dashes, as Lytro's payment page takes it, or
+    // with spaces, is the same reference.
+    for (const spelling of [canonicalBankReference(ref), ref.replace(/-/g, ' ')]) {
+      const respelled = await operatorPost(
+        '/operator/manual-entries',
+        bankBody(client.tenantId, account, { transactionId: spelling }),
+      );
+      expect(respelled.status, spelling).toBe(409);
+    }
 
     expect((await reverse((first.body as Entry).id)).status).toBe(201);
     const afterReversal = await operatorPost(

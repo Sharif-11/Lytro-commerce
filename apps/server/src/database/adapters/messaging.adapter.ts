@@ -35,6 +35,10 @@ export class DrizzleMessageStore implements MessageStore {
     return this.sms.markSent(this.database.handle.db, id, at);
   }
 
+  forgetShoppers(tenantId: string): Promise<void> {
+    return this.sms.forgetShoppers(this.database.handle.db, tenantId);
+  }
+
   countFailedForShop(shop: ShopMessages, since: Date): Promise<number> {
     return this.sms.countFailedForShop(this.database.handle.db, shop, since);
   }

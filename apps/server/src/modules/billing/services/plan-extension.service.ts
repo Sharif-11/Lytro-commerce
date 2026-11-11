@@ -62,6 +62,8 @@ export class PlanExtensionService {
       if (info.state === TenantState.Deleted) {
         throw new ApiError('conflict', 'ShopAlreadyDeleted', {});
       }
+      // D8-37: an extension brings a shop back only until its deletion begins; from then it can't be undone.
+      if (info.deletedAt !== null) throw new ApiError('conflict', 'ShopDeletionStarted', {});
       const from = info.periodEnd;
       if (from === null || info.state === TenantState.PayAsYouGo) {
         throw new ApiError('conflict', 'NoPeriodToExtend', {});

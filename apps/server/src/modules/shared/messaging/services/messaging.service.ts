@@ -42,6 +42,11 @@ export class MessagingService {
     return { id, toPhone: phone, body };
   }
 
+  /** LIF-19, ADM-13: a deleted shop's shoppers' phones leave Lytro's outbox; a code not sent yet never goes. */
+  forgetShoppers(tenantId: string): Promise<void> {
+    return this.store.forgetShoppers(tenantId);
+  }
+
   /** CUS-04 (Slice 4.4b): a shopper's sign-up code, its text the caller's; like every code, never stored. */
   async queueShopperCode(
     tx: Transaction,

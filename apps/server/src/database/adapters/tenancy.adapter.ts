@@ -243,8 +243,16 @@ export class DrizzleTenantStore implements TenantStore {
     return this.tenants.setCancellation(tx, tenantId, cancelledAt);
   }
 
+  beginErasure(tx: Transaction, tenantId: string, at: Date): Promise<void> {
+    return this.tenants.beginErasure(tx, tenantId, at);
+  }
+
   markDeleted(tx: Transaction, tenantId: string, at: Date): Promise<void> {
     return this.tenants.markDeleted(tx, tenantId, at);
+  }
+
+  findUnfinishedErasures(tx: Transaction): Promise<string[]> {
+    return this.tenants.findUnfinishedErasures(tx);
   }
 
   findRevocationCandidates(tx: Transaction, now: Date): Promise<RevocationCandidateRow[]> {

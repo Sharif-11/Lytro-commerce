@@ -1,9 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CourierConnections } from '../../couriers/services/courier-connections';
 import { AddressReads } from '../../address-reads/services/address-reads';
 import { FraudChecks } from '../../fraud-checks/services/fraud-checks';
 import { SmsHistory } from '../../sms-events/services/sms-history';
-import type { PaygCandidateRow } from '@lytronix/db';
+import type { BillingInfoRow, LapsingCandidateRow, PaygCandidateRow } from '@lytronix/db';
 import {
   ActorType,
   AuditAction,
@@ -74,6 +74,21 @@ const DELETION_WARNING_DAYS = [45, 57] as const;
 // below returns the first match, so a missed tick still catches up on 7 before 3 before 1.
 const RENEWAL_REMINDER_DAYS = [7, 3, 1] as const;
 
+// LIF-03: the lapse ladder, in order. The tick moves a shop forward along it, never back: only a payment or the operator
+// brings a shop back, so a shop archived by a request to delete its data (ADM-13) stays archived until its job runs.
+const LAPSE_LADDER: readonly TenantState[] = [
+  TenantState.Active,
+  TenantState.Grace,
+  TenantState.ReadOnly,
+  TenantState.Locked,
+  TenantState.Archived,
+];
+
+/** The same moment, or both absent. */
+function sameInstant(a: Date | null, b: Date | null): boolean {
+  return (a?.getTime() ?? null) === (b?.getTime() ?? null);
+}
+
 export interface StageLengths {
   grace: number;
   readOnly: number;
@@ -97,6 +112,8 @@ export interface LifecycleTickResult {
  */
 @Injectable()
 export class LifecycleService {
+  private readonly logger = new Logger('Lifecycle');
+
   constructor(
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(TenantCache) private readonly tenantCache: TenantCache,
@@ -210,6 +227,19 @@ export class LifecycleService {
     let renewed = 0;
     let remindersSent = 0;
 
+    // LIF-19: a deletion that began and stopped part way is finished first. One that keeps failing is logged and tried
+    // again next tick; it never holds up the others.
+    const unfinished = await this.tenants.runStandalone((tx) =>
+      this.tenants.findUnfinishedErasures(tx),
+    );
+    for (const tenantId of unfinished) {
+      try {
+        if (await this.deleteIfDue(tenantId, now, () => false)) deleted += 1;
+      } catch (error) {
+        this.logger.error(`the deletion of shop ${tenantId} stopped again: ${String(error)}`);
+      }
+    }
+
     for (const candidate of candidates) {
       const daysLapsed = daysBetween(candidate.periodEnd, now);
 
@@ -220,7 +250,10 @@ export class LifecycleService {
       const tenantDeletionDay = this.deletionDayOf(tenantStages);
 
       if (daysLapsed >= tenantDeletionDay) {
-        if (await this.deleteIfDue(candidate.id, now)) deleted += 1;
+        // Only while the shop stands as the tick read it: one an extension or a payment moved meanwhile keeps its data.
+        const unchanged = (info: BillingInfoRow): boolean =>
+          info.state === candidate.state && sameInstant(info.periodEnd, candidate.periodEnd);
+        if (await this.deleteIfDue(candidate.id, now, unchanged)) deleted += 1;
         continue; // a deleted tenant needs no further transition or warning this tick
       }
 
@@ -232,14 +265,14 @@ export class LifecycleService {
         continue;
       }
 
-      const target = this.deriveState(daysLapsed, tenantStages);
+      const derived = this.deriveState(daysLapsed, tenantStages);
+      const target =
+        LAPSE_LADDER.indexOf(derived) > LAPSE_LADDER.indexOf(candidate.state)
+          ? derived
+          : candidate.state;
       if (target !== candidate.state) {
-        if (candidate.lapseScheduleSnapshot === null) {
-          await this.tenants.runStandalone((tx) =>
-            this.tenants.setLapseScheduleSnapshot(tx, candidate.id, tenantStages),
-          );
-        }
-        await this.transition(candidate.id, candidate.state, target, now);
+        // An extension or a payment moved the shop since it was read: it stands as they left it.
+        if (!(await this.transition(candidate, target, tenantStages, now))) continue;
         transitioned += 1;
       }
       if (await this.sendDeletionWarningIfDue(candidate.id, daysLapsed)) {
@@ -331,14 +364,34 @@ export class LifecycleService {
     }
   }
 
-  /** LIF-25: one audit entry per transition; LIF-09 freezes the balance the moment a tenant is no longer Grace. */
+  /**
+   * LIF-25: one audit entry per transition; LIF-09 freezes the balance the moment a tenant is no longer Grace. The shop is
+   * read again under its row lock, which an extension and a payment's activation also take, so one either of them moved
+   * since the tick read it is left as it now stands (false).
+   */
   private async transition(
-    tenantId: string,
-    from: TenantState,
+    candidate: LapsingCandidateRow,
     to: TenantState,
+    stages: StageLengths,
     now: Date,
-  ): Promise<void> {
-    await this.tenants.runStandalone(async (tx) => {
+  ): Promise<boolean> {
+    const tenantId = candidate.id;
+    const from = candidate.state;
+    const moved = await this.tenants.runStandalone(async (tx) => {
+      await this.tenants.lockBalanceForUpdate(tx, tenantId);
+      const info = await this.tenants.findBillingInfo(tx, tenantId);
+      if (
+        !info ||
+        info.deletedAt !== null ||
+        info.state !== from ||
+        !sameInstant(info.periodEnd, candidate.periodEnd)
+      ) {
+        return false;
+      }
+      // LIF-26: the schedule this lapse started with, kept from its first move.
+      if (candidate.lapseScheduleSnapshot === null) {
+        await this.tenants.setLapseScheduleSnapshot(tx, tenantId, stages);
+      }
       await this.tenants.setLifecycleState(tx, tenantId, to, now);
       if (to !== TenantState.Grace) await this.balance.freeze(tx, tenantId);
       await this.audit.record(tx, {
@@ -351,26 +404,43 @@ export class LifecycleService {
         result: AuditResult.Success,
         summary: { from, to },
       });
+      return true;
     });
     // TEN-27: invalidated within 5 seconds of a tenant being archived, not left to the cache's own 60s TTL.
-    if (to === TenantState.Archived) this.tenantCache.invalidateTenant(tenantId);
+    if (moved && to === TenantState.Archived) this.tenantCache.invalidateTenant(tenantId);
+    return moved;
   }
 
-  /** LIF-19: the day-60 business-data deletion. Guarded by `deletedAt IS NULL` (findLapsingCandidates already
-   * excludes a deleted tenant), so a second tick after this one is a no-op for this tenant, not a retry. */
   /**
-   * ADM-13, D8-13 (Slice 8.3): the on-request deletion's job. Only for a shop still archived: one the operator brought
-   * back meanwhile keeps its data, and one already deleted has nothing left. Safe to run twice.
+   * ADM-13, D8-13 (Slice 8.3): the on-request deletion's job. Only for a shop still archived when it begins: one the
+   * operator brought back meanwhile keeps its data, and one already deleted has nothing left. Safe to run twice.
    */
   async eraseRequested(tenantId: string): Promise<void> {
-    const info = await this.tenants.runStandalone((tx) =>
-      this.tenants.findBillingInfo(tx, tenantId),
-    );
-    if (info?.state !== TenantState.Archived) return;
-    await this.deleteIfDue(tenantId, this.clock());
+    await this.deleteIfDue(tenantId, this.clock(), (info) => info.state === TenantState.Archived);
   }
 
-  private async deleteIfDue(tenantId: string, now: Date): Promise<boolean> {
+  /**
+   * LIF-19: the business-data deletion, at day 60 or on request. It begins under the shop's row lock, which an extension
+   * and a payment's activation also take, and only while `due` still holds of the shop as it stands then. From that
+   * point it can't be undone (D8-37): an extension is refused and a payment is kept as balance. One that stopped part
+   * way is finished by the next tick (`findUnfinishedErasures`). Each step is safe to repeat.
+   */
+  private async deleteIfDue(
+    tenantId: string,
+    now: Date,
+    due: (info: BillingInfoRow) => boolean,
+  ): Promise<boolean> {
+    const begun = await this.tenants.runStandalone(async (tx) => {
+      await this.tenants.lockBalanceForUpdate(tx, tenantId);
+      const info = await this.tenants.findBillingInfo(tx, tenantId);
+      if (!info || info.state === TenantState.Deleted) return false;
+      if (info.deletedAt !== null) return true; // begun before and stopped part way: finish it
+      if (!due(info)) return false;
+      await this.tenants.beginErasure(tx, tenantId, now);
+      return true;
+    });
+    if (!begun) return false;
+    this.tenantCache.invalidateTenant(tenantId);
     await this.staff.deleteAllForTenant({ id: tenantId, planLimits: null });
     await this.dataExports.deleteAllForTenant(tenantId); // LIF-16/19: exports go with the rest of the data.
     // Phase 3: purchases and suppliers, the stock ledger and levels, then (Phase 4) the orders those held stock for and
@@ -389,6 +459,7 @@ export class LifecycleService {
     // Phase 7's tables, added by Slice 8.3: the shop's SMS log and settings, its fraud checks and rule, its reads of pasted
     // delivery details. Before the orders, which the checks point to.
     await this.smsHistory.deleteAllForTenant(tenantId);
+    await this.sms.forgetShoppers(tenantId); // the shoppers' codes in Lytro's own outbox (D8-30's tenant_id)
     await this.fraudChecks.deleteAllForTenant(tenantId);
     await this.addressReads.deleteAllForTenant(tenantId);
     await this.orders.deleteAllForTenant(tenantId);
@@ -657,7 +728,7 @@ export class LifecycleService {
       const daysArchived = daysBetween(archivedAt, now);
       if (
         daysArchived >= PAYG_DELETION_DAYS_AFTER_ARCHIVAL &&
-        (await this.deleteIfDue(candidate.id, now))
+        (await this.deleteIfDue(candidate.id, now, (info) => info.state === TenantState.Archived))
       ) {
         deleted += 1;
         continue;

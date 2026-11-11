@@ -9,6 +9,7 @@ import {
   isNotNull,
   isNull,
   lt,
+  ne,
   notIlike,
   or,
   lte,
@@ -149,6 +150,10 @@ export interface TenantOperatorFactsRow {
   newShopCap: boolean | null;
 }
 
+// D8-7: a shop's creation time as a page link holds it, to the millisecond (the column keeps microseconds), so the
+// newest-first order and its keyset agree and no shop made in the same millisecond as a page's last falls between pages.
+const CREATED_MS = sql<Date>`date_trunc('milliseconds', ${tenants.createdAt})`;
+
 export class TenantRepository {
   /** INV-13, INV-16, MED-04: every shop not yet deleted, for the daily passes that visit each one. */
   async listLiveIds(db: Executor): Promise<string[]> {
@@ -253,7 +258,7 @@ export class TenantRepository {
         ? [asc(sortName), asc(tenants.id)]
         : sort === TenantSort.PeriodEnd
           ? [sql`${tenants.periodEnd} ASC NULLS LAST`, asc(tenants.id)]
-          : [desc(tenants.createdAt), desc(tenants.id)];
+          : [desc(CREATED_MS), desc(tenants.id)];
     const rows = await db
       .select({
         id: tenants.id,
@@ -310,8 +315,8 @@ export class TenantRepository {
           );
     }
     return or(
-      lt(tenants.createdAt, cursor.createdAt),
-      and(eq(tenants.createdAt, cursor.createdAt), lt(tenants.id, cursor.id)),
+      lt(CREATED_MS, cursor.createdAt),
+      and(eq(CREATED_MS, cursor.createdAt), lt(tenants.id, cursor.id)),
     );
   }
 
@@ -687,12 +692,36 @@ export class TenantRepository {
       .where(eq(tenants.id, tenantId));
   }
 
-  /** LIF-19: the day-60 deletion job's own state/marker write. */
+  /**
+   * LIF-19, ADM-13: a deletion's point of no return, written under the shop's row lock before its first step deletes
+   * anything. From here an extension is refused, a payment is kept as balance instead of bringing the shop back, and
+   * the tick finishes a deletion that stopped part way (`findUnfinishedErasures`).
+   */
+  async beginErasure(tx: Executor, tenantId: string, at: Date): Promise<void> {
+    await tx
+      .update(tenants)
+      .set({ deletedAt: at })
+      .where(and(eq(tenants.id, tenantId), isNull(tenants.deletedAt)));
+  }
+
+  /** LIF-19: the deletion's last write, once every step has run. The time it began stays its deletion time. */
   async markDeleted(tx: Executor, tenantId: string, at: Date): Promise<void> {
     await tx
       .update(tenants)
-      .set({ deletedAt: at, state: TenantState.Deleted })
+      .set({
+        deletedAt: sql`coalesce(${tenants.deletedAt}, ${at.toISOString()}::timestamptz)`,
+        state: TenantState.Deleted,
+      })
       .where(eq(tenants.id, tenantId));
+  }
+
+  /** LIF-19: the shops whose deletion began and stopped before its last step. */
+  async findUnfinishedErasures(tx: Executor): Promise<string[]> {
+    const rows = await tx
+      .select({ id: tenants.id })
+      .from(tenants)
+      .where(and(isNotNull(tenants.deletedAt), ne(tenants.state, TenantState.Deleted)));
+    return rows.map((row) => row.id);
   }
 
   /** LIF-20/21: an account's deleted shops -- their invoices stay the owner's, their balance moves on. */
@@ -915,6 +944,7 @@ export class TenantRepository {
         createdAt: tenants.createdAt,
         suspendedAt: tenants.suspendedAt,
         archivedAt: tenants.archivedAt,
+        deletedAt: tenants.deletedAt,
         downgradedAt: tenants.downgradedAt,
         downgradeOverLimit: tenants.downgradeOverLimit,
         downgradeFinalWarningAt: tenants.downgradeFinalWarningAt,
@@ -1007,6 +1037,8 @@ export interface BillingInfoRow {
   createdAt: Date;
   suspendedAt: Date | null;
   archivedAt: Date | null;
+  /** LIF-19: set when the shop's deletion began; the state turns deleted when it ends (`markDeleted`). */
+  deletedAt: Date | null;
   /** DWN-12, DWN-14: the last downgrade, the limits it left the shop over, and its final warning. */
   downgradedAt: Date | null;
   downgradeOverLimit: string[] | null;

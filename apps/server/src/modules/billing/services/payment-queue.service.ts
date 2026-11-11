@@ -85,7 +85,7 @@ export class PaymentQueueService {
     amountArrived?: string,
     reusingTransactionId = false,
   ): Promise<PlanPaymentRecord> {
-    const payment = await this.payments.approve(
+    let payment = await this.payments.approve(
       tx,
       paymentId,
       operatorId,
@@ -93,6 +93,26 @@ export class PaymentQueueService {
       amountArrived,
       reusingTransactionId,
     );
+    // The shop's row, held as an extension, the lifecycle tick and a deletion hold it: the activation below works from the
+    // shop as it stands, and none of them works from a period this payment moves.
+    await this.tenants.lockBalanceForUpdate(tx, payment.tenantId);
+    const shop = await this.tenants.findBillingInfo(tx, payment.tenantId);
+    if (
+      shop?.deletedAt != null &&
+      (payment.kind === PlanPaymentKind.Purchase ||
+        payment.kind === PlanPaymentKind.Renewal ||
+        payment.kind === PlanPaymentKind.Upgrade)
+    ) {
+      // LIF-19: a shop whose deletion has begun is never brought back by a payment. Its money is kept as the shop's
+      // balance, which moves on with the owner's account (LIF-20), and the add-ons it carried are cancelled.
+      await this.renewals.cancelFor(tx, payment.id);
+      payment = await this.payments.asTopUpWithin(
+        tx,
+        payment,
+        payment.amountArrived ?? payment.amount,
+        now,
+      );
+    }
 
     if (payment.kind === PlanPaymentKind.TopUp) {
       const credited = payment.amountArrived ?? payment.amount;

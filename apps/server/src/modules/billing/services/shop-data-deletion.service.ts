@@ -64,6 +64,7 @@ export class ShopDataDeletionService {
       if (!info || info.state === TenantState.Deleted) {
         throw new ApiError('conflict', 'ShopAlreadyDeleted', {});
       }
+      if (info.deletedAt !== null) throw new ApiError('conflict', 'ShopDeletionStarted', {});
       if (info.state !== TenantState.Archived) {
         await this.tenants.setLifecycleState(tx, shop.id, TenantState.Archived, now);
         await this.balance.freeze(tx, shop.id);

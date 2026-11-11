@@ -1,12 +1,12 @@
+import { REQUEST_ID_HEADER } from '@lytronix/shared-types';
 import type { HttpResponse } from '../../../common/http';
 
 // API-23: what a browser on a registered website may send, and read back, on a public key request.
 const ALLOWED_METHODS = 'GET, POST, PATCH, DELETE';
 const ALLOWED_HEADERS =
   'Authorization, Content-Type, Idempotency-Key, Accept-Language, X-Shopper-Token';
-// API-11: a replayed order says so, for a shop's own site to read.
-const EXPOSED_HEADERS =
-  'X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, Retry-After, Idempotent-Replay';
+// API-11: a replayed order says so, for a shop's own site to read; API-27: so does a fault's request ID.
+const EXPOSED_HEADERS = `X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, Retry-After, Idempotent-Replay, ${REQUEST_ID_HEADER}`;
 const PREFLIGHT_MAX_AGE_SECONDS = 600;
 
 /** API-23: lets a registered website read the answer, error or not. */

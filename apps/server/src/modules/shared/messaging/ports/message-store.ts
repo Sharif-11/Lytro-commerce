@@ -11,6 +11,8 @@ export interface MessageStore {
     onlyId?: number;
   }): Promise<ClaimedMessage[]>;
   markSent(id: number, at: Date): Promise<void>;
+  /** LIF-19, ADM-13: a deleted shop's shoppers' phones leave the outbox. */
+  forgetShoppers(tenantId: string): Promise<void>;
   /** ADM-03, D8-30: how many of the shop's messages failed for good since `since`. */
   countFailedForShop(shop: ShopMessages, since: Date): Promise<number>;
   /** ADM-03, D8-30: the shop's messages that failed for good, newest first. */
