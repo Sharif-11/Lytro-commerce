@@ -301,7 +301,6 @@ export function shopClosedWords(shopName: string, deletesOn: string): MailWords 
   };
 }
 
-/** BIL-05: the plan is active until this day, with its invoice. */
 /** ADM-15: the shop is told when Lytro records a payment for it. */
 export function manualEntryRecordedWords(amount: string): MailWords {
   return {
@@ -330,6 +329,7 @@ export function manualEntryReversedWords(amount: string, reason: string): MailWo
   };
 }
 
+/** BIL-05: the plan is active until this day, with its invoice. */
 export function planActiveWords(input: {
   planName: string;
   until: string;
