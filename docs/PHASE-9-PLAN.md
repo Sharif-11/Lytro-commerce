@@ -315,6 +315,9 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   - The credential-use export (SEC-11).
   - The key file, the re-seal job and the break-glass record (D9-8).
   - Phase 8's close-out findings: a test that walks every operator route as a seller, and formula-safe feed cells.
+  - A sealed value that can't be opened never breaks a list: a courier connection whose login is unreadable shows as
+    needing reconnection instead of failing `GET /couriers/connections` with a 500 (found in development,
+    2026-11-12), as storefront keys and catalogue feeds already do.
   - The ZAP baseline and a dependency audit in CI.
 
 ### Slice 9.8: terms, privacy and tax
