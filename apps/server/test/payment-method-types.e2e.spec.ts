@@ -100,6 +100,7 @@ interface TypeRow {
   shopsOn: number;
   shopsWithAccounts: number;
   openPayments: number;
+  shopsSetUp: number;
   lytroTakes: boolean;
 }
 
@@ -264,7 +265,27 @@ describeIfDatabase('wallet types: the list (WAL-18)', () => {
       shopsOn: 0,
       shopsWithAccounts: 0,
       openPayments: 1,
+      shopsSetUp: 0,
     });
+  });
+
+  it('counts the shops that set a type up once each, one on with no account too: the shops told (D8-66, §142)', async () => {
+    await shopWithNagad(true);
+    await shopWithNagad(false);
+    // WAL-05: switched on with no account saved.
+    const onAlone = await openShop(port, texts, 'pmt');
+    const switched = await onAlone.put('/payment-methods/nagad', { enabled: true, accounts: [] });
+    expect(switched.status, JSON.stringify(switched.body)).toBe(200);
+    expect(await typeOf('nagad')).toMatchObject({
+      shopsOn: 2,
+      shopsWithAccounts: 2,
+      shopsSetUp: 3,
+    });
+    // More than either count alone, and exactly the shops a retire tells.
+    const retired = await retire('nagad');
+    expect(retired.status, JSON.stringify(retired.body)).toBe(200);
+    expect(retired.body).toMatchObject({ told: 3, type: { shopsSetUp: 3 } });
+    expect(retiring.map((notice) => notice.tenantId)).toContain(onAlone.tenantId);
   });
 
   it('is the operator’s only, and names a type it knows', async () => {

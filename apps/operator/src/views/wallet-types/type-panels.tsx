@@ -16,11 +16,6 @@ import { useTypeName } from './type-words';
 
 const BOLD = { b: <b className="font-semibold" /> };
 
-/** The shops that set it up, as many as the counts can say: switched on, or with an account saved. */
-function setUp(type: WalletType): number {
-  return Math.max(type.shopsOn, type.shopsWithAccounts);
-}
-
 function useSub(): (type: WalletType, on?: number) => string {
   const { t } = useTranslation();
   return (type, on = type.shopsOn) => t('walletTypes.sub', { n: on, m: type.shopsWithAccounts });
@@ -103,7 +98,7 @@ export function UndoRetireTypePanel({
       }}
     >
       <Consequence tone="ok">
-        {t('walletTypes.undoConsequence', { c: name, count: setUp(type) })}
+        {t('walletTypes.undoConsequence', { c: name, count: type.shopsSetUp })}
       </Consequence>
       <ReasonField value={reason} onChange={setReason} help={t('walletTypes.reasonHelp')} />
     </ActionPanel>

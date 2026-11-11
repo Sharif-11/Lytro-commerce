@@ -52,6 +52,8 @@ export interface PaymentMethodUse {
   on: boolean;
   accounts: number;
   openPayments: number;
+  /** D8-65, D8-66: switched on, or an account saved for it: a shop a retire or its undo tells. */
+  setUp: boolean;
 }
 
 /** WAL-06: what a shopper sees of a method that is on -- its active account only. */

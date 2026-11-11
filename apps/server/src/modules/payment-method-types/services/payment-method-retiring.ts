@@ -35,6 +35,11 @@ export interface OperatorPaymentMethodTypeView {
   shopsOn: number;
   shopsWithAccounts: number;
   openPayments: number;
+  /**
+   * D8-65, D8-66: the shops that set it up -- switched it on, or saved an account for it, each counted once -- which are the
+   * shops a retire or its undo tells. A shop may have it on with no account (WAL-05), so neither count above says this.
+   */
+  shopsSetUp: number;
   /** Whether Lytro's own payment page takes it, which the operator turns off there (D8-67). */
   lytroTakes: boolean;
 }
@@ -43,9 +48,10 @@ interface Tally {
   shopsOn: number;
   shopsWithAccounts: number;
   openPayments: number;
+  shopsSetUp: number;
 }
 
-const NONE: Tally = { shopsOn: 0, shopsWithAccounts: 0, openPayments: 0 };
+const NONE: Tally = { shopsOn: 0, shopsWithAccounts: 0, openPayments: 0, shopsSetUp: 0 };
 
 /**
  * WAL-18 (Phase 8 Slice 8.7, read agreed 2026-11-10, D8-18, D8-65 to D8-67): the operator retiring a payment method type,
@@ -225,6 +231,7 @@ export class PaymentMethodRetiring {
         tally.shopsOn += use.on ? 1 : 0;
         tally.shopsWithAccounts += use.accounts > 0 ? 1 : 0;
         tally.openPayments += use.openPayments;
+        tally.shopsSetUp += use.setUp ? 1 : 0;
         tallies.set(method, tally);
       }
     }

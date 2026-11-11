@@ -19,6 +19,8 @@ const operatorPaymentMethodTypeSchema = z.object({
   shopsOn: z.number(),
   shopsWithAccounts: z.number(),
   openPayments: z.number(),
+  // D8-65, D8-66: switched on or holding an account, each shop once: the shops a retire or its undo tells.
+  shopsSetUp: z.number(),
   lytroTakes: z.boolean(),
 });
 export class OperatorPaymentMethodTypeListDto extends createZodDto(
