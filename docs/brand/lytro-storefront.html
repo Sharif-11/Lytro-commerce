@@ -183,6 +183,8 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .pcard .tk svg.i{width:13px;height:13px}
 .pcard.on{outline:2.5px solid var(--accent);outline-offset:2px}
 .pcard.on .tk{display:flex}
+.pcard.same{outline:2px solid var(--accent);outline-offset:-2px;opacity:.9}
+.pcards.many{grid-auto-columns:calc((100% - 40px) / 5.5)}
 .pcard.off i{filter:grayscale(1);opacity:.5}
 .pcard.off b{position:absolute;left:0;right:0;bottom:0;background:rgba(16,32,31,.72);color:#fff;font-size:11px;font-weight:600;text-align:center;padding:3px 0}
 .pcards.nudge{animation:pshake .45s ease 2}
@@ -705,12 +707,18 @@ def('search-empty', { group: 'Browse', label: '· nothing found', url: 'megh.lyt
 const PRODUCT = { p: P[0], sizes: ['S', 'M', 'L', 'XL', 'XXL'], colours: [['#fff', 'সাদা', 'White'], ['#1f2f5c', 'নেভি', 'Navy']], attrs: [['কাপড়', 'Fabric', 'কটন', 'Cotton'], ['ফিট', 'Fit', 'রেগুলার', 'Regular'], ['কলার', 'Collar', 'ব্যান্ড', 'Band']], desc: ['১০০% কটন, প্রি-শ্রাঙ্ক। ধোয়ার পর সাইজ বদলায় না।\nঈদের জন্য হালকা এমব্রয়ডারি, রেগুলার ফিট।', '100% cotton, pre-shrunk. Keeps its size after washing.\nLight embroidery for Eid, regular fit.'] };
 function gallery(p, o) {
   o = o || {};
+  if (o.photos) {
+    const at = o.pick == null ? 0 : o.pick;
+    return `<div class="gal"><div class="thumbs">${PHOTO_SW.map((g, i) => `<i class="${i === at ? 'on' : ''}" style="background:${g}"></i>`).join('')}</div><div class="gallery"><div class="main" style="background:${PHOTO_SW[at]}"><button class="fav">${I.heart}</button><div class="dots">${PHOTO_SW.map((g, i) => `<i class="${i === at ? 'on' : ''}"></i>`).join('')}</div></div></div></div>`;
+  }
   return `<div class="gal"><div class="thumbs"><i class="on"></i><i></i><i></i>${p.video ? '<i></i>' : ''}</div><div class="gallery"><div class="main"><span class="ph">${pName(p).slice(0, 1)}</span>${p.video ? `<span class="vid">${I.play}${t('video')}</span>` : ''}<button class="fav">${I.heart}</button><div class="dots"><i class="on"></i><i></i><i></i>${p.video ? '<i></i>' : ''}</div></div></div></div>`;
 }
 // Stand-ins for a burka's five design photos (the sketch has no photos; a shop's real ones fill the swatches).
-const PHOTO_SW = ['linear-gradient(160deg,#2b2b2b,#0d0d0d 60%,#3a3a3a)', 'linear-gradient(160deg,#1f2a44 0 30%,#c9a9a6 30% 45%,#1f2a44 45% 70%,#c9a9a6 70%)', 'linear-gradient(160deg,#a07b86,#7d5b66)', 'linear-gradient(160deg,#5a3b2a,#3b2418)', 'linear-gradient(160deg,#f4f1ec,#d9d2c7)'];
+const PHOTO_SW = ['linear-gradient(160deg,#2b2b2b,#0d0d0d 60%,#3a3a3a)', 'linear-gradient(160deg,#1f2a44 0 30%,#c9a9a6 30% 45%,#1f2a44 45% 70%,#c9a9a6 70%)', 'linear-gradient(200deg,#1f2a44 0 22%,#c9a9a6 22% 34%,#1f2a44 34% 58%,#c9a9a6 58% 70%,#1f2a44 70%)', 'linear-gradient(160deg,#a07b86,#7d5b66)', 'linear-gradient(160deg,#5a3b2a,#3b2418)', 'linear-gradient(160deg,#f4f1ec,#d9d2c7)'];
+// Which design each photo shows (photos 2 and 3 are one design's two angles), and the design that is sold out.
+const PHOTO_DESIGN = [0, 1, 1, 2, 3, 4]; const SOLD_DESIGN = 3;
 // o.pick: the index chosen, or none; o.nudge: Buy was tapped before choosing (the cards shake once).
-const photoCards = (o) => `<div class="opt"><div class="pcards ${o.nudge ? 'nudge' : ''}">${PHOTO_SW.map((g, i) => `<span class="pcard ${i === o.pick ? 'on' : ''} ${i === 3 ? 'off' : ''}"><i style="background:${g}"></i><span class="tk">${I.check}</span>${i === 3 ? `<b>${t('out')}</b>` : ''}</span>`).join('')}</div></div>`;
+const photoCards = (o) => `<div class="opt"><div class="pcards ${PHOTO_SW.length > 5 ? 'many' : ''} ${o.nudge ? 'nudge' : ''}">${PHOTO_SW.map((g, i) => { const off = PHOTO_DESIGN[i] === SOLD_DESIGN; const on = i === o.pick; const same = !on && o.pick != null && PHOTO_DESIGN[i] === PHOTO_DESIGN[o.pick]; return `<span class="pcard ${on ? 'on' : ''} ${same ? 'same' : ''} ${off ? 'off' : ''}"><i style="background:${g}"></i><span class="tk">${I.check}</span>${off ? `<b>${t('out')}</b>` : ''}</span>`; }).join('')}</div></div>`;
 function buyBox(p, o) {
   o = o || {}; const sel = o.sel || { size: 'M', colour: 0 };
   const sizes = `<div class="opt"><div class="lb"><span>${t('size')}: <b>${sel.size}</b></span><span class="lnk" onclick="go('product-size-chart')">${I.ruler} ${t('size_chart')}</span></div><div class="vals">${PRODUCT.sizes.map((s) => `<span class="vb ${s === sel.size ? 'on' : ''} ${o.offSizes && o.offSizes.includes(s) ? 'off' : ''}">${s}</span>`).join('')}</div></div>`;
@@ -739,7 +747,7 @@ const buybar = (p, o) => { o = o || {}; return `<div class="buybar"><span class=
 const pHdr = (p) => ({ hdr: { back: 'category', title: pName(p) } });
 def('product', { group: 'Product', label: 'Product · Cotton Panjabi', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0]), buybar(P[0])) });
 def('product-photos', { group: 'Product', label: '· its own photos as the choice (photo designs), none chosen yet', url: 'megh.lytro.app/p/irani-burka', render: () => shell(pHdr(P[0]), productPage(P[0], { photos: true, pick: null, sel: { size: 'L', colour: 0 } }), buybar(P[0])) });
-def('product-photos-chosen', { group: 'Product', label: '· a photo chosen', url: 'megh.lytro.app/p/irani-burka', render: () => shell(pHdr(P[0]), productPage(P[0], { photos: true, pick: 1, sel: { size: 'L', colour: 0 } }), buybar(P[0])) });
+def('product-photos-chosen', { group: 'Product', label: '· a photo chosen (the second angle of a design; the order keeps its first photo)', url: 'megh.lytro.app/p/irani-burka', render: () => shell(pHdr(P[0]), productPage(P[0], { photos: true, pick: 2, sel: { size: 'L', colour: 0 } }), buybar(P[0])) });
 def('product-photos-nudge', { group: 'Product', label: '· Buy tapped before choosing: scrolled to the photos, which shake once', url: 'megh.lytro.app/p/irani-burka', render: () => shell(pHdr(P[0]), productPage(P[0], { photos: true, pick: null, nudge: true, sel: { size: 'L', colour: 0 } }), buybar(P[0])) });
 def('product-area', { group: 'Product', label: '· with the area set (exact delivery)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0], { area: true }), buybar(P[0])) });
 def('product-unavailable', { group: 'Product', label: '· L in Navy sold out (ATR-07)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0], { sel: { size: 'L', colour: 1 }, offSizes: ['L', 'XXL'], unavailable: true }), buybar(P[0], { unavailable: true })) });
@@ -784,7 +792,7 @@ function orderForm(o) {
 }
 function landingPage(o) {
   o = o || {}; const p = o.p || P[0]; const q = o.qty || 1; const total = p.price * q;
-  return `<div class="pdp">${gallery(p)}<div class="buy">
+  return `<div class="pdp">${gallery(p, o)}<div class="buy">
     <div class="top"><div class="eyebrow">${shopName()}</div><h1 class="pt">${pName(p)}</h1><div class="pricerow"><span class="price">${money(p.price)}</span>${stChip(p.stock)}</div></div>
     ${o.photos ? photoCards(o) : ''}${o.single ? '' : `<div class="opt"><div class="lb"><span>${t('size')}: <b>${o.size || 'M'}</b></span><span class="lnk" onclick="go('product-size-chart')">${I.ruler} ${t('size_chart')}</span></div><div class="vals">${PRODUCT.sizes.map((s) => `<span class="vb ${s === (o.size || 'M') ? 'on' : ''}">${s}</span>`).join('')}</div></div>
     ${o.photos ? '' : '<!--colours-->'}<div class="opt" ${o.photos ? 'hidden' : ''}><div class="lb"><span>${t('colour')}: <b>${L(PRODUCT.colours[o.colour || 0][1], PRODUCT.colours[o.colour || 0][2])}</b></span></div><div class="vals">${PRODUCT.colours.map((c, i) => `<span class="swb ${i === (o.colour || 0) ? 'on' : ''}"><i style="background:${c[0]}"></i></span>`).join('')}</div></div>`}
@@ -798,7 +806,7 @@ function landingPage(o) {
 /* the phone's pinned bar: the price and "Order now", which scrolls to the form; hidden on desktop where the form is beside the product */
 const landingBar = (p) => `<div class="buybar"><span class="tot"><span class="k">${pName(p)}</span><span class="price">${money(p.price)}</span></span><button class="btn primary" onclick="var s=document.querySelector('#frame .scroll'),f=document.querySelector('#frame .ofrm');if(s&&f)s.scrollTo({top:f.offsetTop-72,behavior:'smooth'})">${t('order_now')} ${I.down}</button></div>`;
 def('landing', { group: 'Landing page', label: 'Landing page /l/cotton-panjabi (form laid out, Slice 12)', url: 'megh.lytro.app/l/cotton-panjabi', render: () => shell({ hdr: { minimal: true }, landing: true }, landingPage({ soon: true }), landingBar(P[0])) });
-def('landing-photos', { group: 'Landing page', label: '· its own photos as the choice (photo designs), a photo chosen', url: 'megh.lytro.app/l/irani-burka', render: () => shell({ hdr: { minimal: true }, landing: true }, landingPage({ photos: true, pick: 1 }), landingBar(P[0])) });
+def('landing-photos', { group: 'Landing page', label: '· its own photos as the choice (photo designs), a photo chosen', url: 'megh.lytro.app/l/irani-burka', render: () => shell({ hdr: { minimal: true }, landing: true }, landingPage({ photos: true, pick: 2 }), landingBar(P[0])) });
 def('landing-variant', { group: 'Landing page', label: '· opened with ?v= (XL Navy preselected, LND-06)', url: 'megh.lytro.app/l/cotton-panjabi?v=var_xl_navy', render: () => shell({ hdr: { minimal: true }, landing: true }, landingPage({ soon: true, size: 'XL', colour: 1 }), landingBar(P[0])) });
 def('landing-gone', { group: 'Landing page', label: '· no longer available (404, LND-03)', url: 'megh.lytro.app/l/old-panjabi', render: () => `<div class="bare"><div class="box">${logo()}<h1>${t('gone_h')}</h1><p>${t('gone_p')}</p><button class="btn primary" onclick="go('home')">${t('go_shop')}</button><div style="color:var(--subtle)">${I.pb}</div></div></div>` });
 
