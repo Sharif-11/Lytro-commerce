@@ -453,10 +453,10 @@ const sizeOutEverywhere = (s) => DESIGNS.every(d => d.stock[s] === 0);
 const W = {
   bn:{
     shop:'নূর ফ্যাশন', cat:'বোরকা ও আবায়া', pname:'ইরানি বোরকা, হাতের কাজ', home:'হোম',
-    designs:n=>`${n}টি ডিজাইন`, design:'ডিজাইন', dn:n=>`ডিজাইন ${n}`, choose:'বাছুন',
+    designs:n=>`${n}টি ডিজাইন`, chosenMark:'বাছাই করা হয়েছে', design:'ডিজাইন', dn:n=>`ডিজাইন ${n}`, choose:'বাছুন',
     pickThis:'এই ডিজাইন নিন', picked:'বাছাই করা', designSold:'এই ডিজাইন শেষ', outShort:'শেষ',
     photoOf:(i,n)=>`ছবি ${i}/${n}`,
-    size:'সাইজ', sizeChart:'সাইজ চার্ট', sizeNote:(s,d)=>`${d}-এ ${s} সাইজ শেষ, অন্য ডিজাইনে আছে।`,
+    size:'সাইজ', sizeChart:'সাইজ চার্ট', sizeNote:(s)=>`এই ডিজাইনে ${s} সাইজ শেষ, অন্য ডিজাইনে আছে।`,
     sizeHelp:'সাইজ মানে বোরকার লম্বা, ইঞ্চিতে।',
     qty:'পরিমাণ', piece:'পিস', pieces:'পিস', per:'/ পিস',
     inStock:'স্টকে আছে', few:n=>`মাত্র ${n}টি বাকি`, soldOut:'স্টক শেষ', off:p=>`${p}% ছাড়`, upTo:p=>`${p}% পর্যন্ত ছাড়`, from:'থেকে',
@@ -488,7 +488,7 @@ const W = {
       {e:'🧴', bg:'#eef3f7', nm:'আতর, ৬ মিলির শিশি', pr:'৳450', u:'প্যাক', q:1, step:1, kind:'pack'},
       {e:'📦', bg:'#f2f2f2', nm:'টিস্যু বক্স', pr:'৳120', u:'বক্স', q:3, step:1, kind:'count'},
     ],
-    afterTitle:'শপারের ট্যাপ থেকে পার্সেল পর্যন্ত, একই ডিজাইন', afterLead:'শপার যে ডিজাইনের যেকোনো ছবিতে ট্যাপ করুক, অর্ডারে সেই ডিজাইনের প্রথম ছবিটি স্থির হয়ে যায়। কার্ট থেকে সেলারের অর্ডার পেজ পর্যন্ত সবাই একই ছবি দেখে, আর পার্সেল লেবেলে ডিজাইন ও সাইজ লেখা থাকে, তাই ভুল ডিজাইন পাঠানোর সুযোগ থাকে না।',
+    afterTitle:'শপারের ট্যাপ থেকে পার্সেল পর্যন্ত, একই ডিজাইন', afterLead:'শপার যে ডিজাইনের যেকোনো ছবিতে ট্যাপ করুক, অর্ডারে সেই ডিজাইনের প্রথম ছবিটি স্থির হয়ে যায়। শপার ডিজাইনকে চেনে ছবি দিয়ে, তাই তার দিকে ডিজাইনের নাম লেখা থাকে না; সেলারের দিকে নাম ও SKU থাকে, কারণ লেবেলে ছবি ছাপা হয় না। কার্ট থেকে সেলারের অর্ডার পেজ পর্যন্ত সবাই একই ছবি দেখে, আর পার্সেল লেবেলে ডিজাইন ও সাইজ লেখা থাকে, তাই ভুল ডিজাইন পাঠানোর সুযোগ থাকে না।',
     steps:['কার্টে','চেকআউটে','অর্ডার কনফার্মেশন (শপার)','সেলারের অর্ডার পেজে','কনফার্মেশন কলে','পার্সেল লেবেলে'],
     orderPlaced:'অর্ডার হয়েছে!', orderNoLine:'অর্ডার নম্বর 251112-0042 · ট্র্যাক করতে রেখে দিন',
     callScript:'"আপনি স্ট্রাইপ ডিজাইনটা নিয়েছেন, সাইজ 54, এক পিস, তাই তো?"', labelNote:'3×3 থার্মাল লেবেল: আইটেমের লাইনে ডিজাইন ও সাইজ',
@@ -500,10 +500,10 @@ const W = {
   },
   en:{
     shop:'Noor Fashion', cat:'Burkas and abayas', pname:'Irani burka, hand embroidered', home:'Home',
-    designs:n=>`${n} designs`, design:'Design', dn:n=>`Design ${n}`, choose:'Choose one',
+    designs:n=>`${n} designs`, chosenMark:'Chosen', design:'Design', dn:n=>`Design ${n}`, choose:'Choose one',
     pickThis:'Choose this design', picked:'Chosen', designSold:'This design is sold out', outShort:'Sold out',
     photoOf:(i,n)=>`photo ${i}/${n}`,
-    size:'Size', sizeChart:'Size chart', sizeNote:(s,d)=>`Size ${s} is sold out in ${d}; other designs have it.`,
+    size:'Size', sizeChart:'Size chart', sizeNote:(s)=>`Size ${s} is sold out in this design; other designs have it.`,
     sizeHelp:'Sizes are the burka\'s length, in inches.',
     qty:'Quantity', piece:'piece', pieces:'pieces', per:'/ piece',
     inStock:'In stock', few:n=>`Only ${n} left`, soldOut:'Sold out', off:p=>`${p}% off`, upTo:p=>`Up to ${p}% off`, from:'from',
@@ -535,7 +535,7 @@ const W = {
       {e:'🧴', bg:'#eef3f7', nm:'Attar, 6 ml bottle', pr:'৳450', u:'pack', q:1, step:1, kind:'pack'},
       {e:'📦', bg:'#f2f2f2', nm:'Tissue box', pr:'৳120', u:'boxes', q:3, step:1, kind:'count'},
     ],
-    afterTitle:'From the shopper\'s tap to the parcel, one design', afterLead:'Whichever photo of a design the shopper taps, the order pins that design\'s first photo. Everyone from the cart to the seller\'s order page sees the same picture, and the parcel label names the design and size, so the wrong design can\'t be sent.',
+    afterTitle:'From the shopper\'s tap to the parcel, one design', afterLead:'Whichever photo of a design the shopper taps, the order pins that design\'s first photo. The shopper knows a design by its photo, so their screens never name it; the seller\'s screens add the name and the SKU, since a label prints no photo. Everyone from the cart to the seller\'s order page sees the same picture, and the parcel label names the design and size, so the wrong design can\'t be sent.',
     steps:['In the cart','At checkout','Order confirmation (shopper)','The seller\'s order page','On the confirmation call','On the parcel label'],
     orderPlaced:'Order placed!', orderNoLine:'Order number 251112-0042 · keep it to track',
     callScript:'"You chose the striped design, size 54, one piece, right?"', labelNote:'The 3×3 thermal label: design and size on the item line',
@@ -560,9 +560,9 @@ const dname = (d) => d.name ? `${t('dn')(d.n)} · ${d.name[S.lang]}` : t('dn')(d
 
 function preset(screen){
   S.screen = screen; S.nudge = null; S.toast = null; S.qty = 1; S.slide = 0; S.sheet = null;
-  if (screen === 'pdp-chosen' || screen === 'landing-form') { S.design = 2; S.size = 54; S.slide = 1; }
-  if (screen === 'cart') { S.design = 2; S.size = 54; S.slide = 1; S.cart = [{ d:2, s:54, q:1 }, { d:5, s:52, q:2 }]; S.removed = null; }
+  if (screen === 'pdp-chosen' || screen === 'landing-form' || screen === 'cart') { S.design = 2; S.size = 54; S.slide = 1; }
   else { S.design = null; S.size = null; }
+  if (screen === 'cart') { S.cart = [{ d:2, s:54, q:1 }, { d:5, s:52, q:2 }]; S.removed = null; }
 }
 
 /* ---------- Pieces ---------- */
@@ -630,7 +630,7 @@ function designRow(){
   }).join('');
   const nudge = S.nudge === 'design' ? `<div class="msg err">${I.info}${t('nudgeDesign')}</div>` : '';
   return `<div class="opt${S.nudge === 'design' ? ' nudge' : ''}" id="opt-design">
-    <div class="lb"><span><span class="k">${t('design')}:</span> <span class="v${d ? '' : ' ph'}">${d ? dname(d) : t('choose')}</span></span><span class="k" style="font-size:13px">${t('designs')(DESIGNS.length)}</span></div>
+    <div class="lb"><span><span class="k">${t('design')}:</span> <span class="v${d ? '' : ' ph'}">${d ? t('chosenMark') : t('choose')}</span></span><span class="k" style="font-size:13px">${t('designs')(DESIGNS.length)}</span></div>
     <div class="dgrid${DESIGNS.length > 5 ? ' many' : ''}">${cards}</div>${nudge}</div>`;
 }
 
@@ -642,7 +642,7 @@ function sizeRow(){
   }).join('');
   let note = `<div class="msg">${I.info}${t('sizeHelp')}</div>`;
   const outHere = d ? SIZES.filter(s => d.stock[s] === 0 && !sizeOutEverywhere(s)) : [];
-  if (d && !designOut(d) && outHere.length) note = `<div class="msg">${I.info}${t('sizeNote')(outHere.join(', '), dname(d))}</div>`;
+  if (d && !designOut(d) && outHere.length) note = `<div class="msg">${I.info}${t('sizeNote')(outHere.join(', '))}</div>`;
   if (S.nudge === 'size') note = `<div class="msg err">${I.info}${t('nudgeSize')}</div>`;
   return `<div class="opt${S.nudge === 'size' ? ' nudge' : ''}" id="opt-size">
     <div class="lb"><span><span class="k">${t('size')}:</span> <span class="v${S.size ? '' : ' ph'}">${S.size || t('choose')}</span></span><a href="#" data-act="chart">${t('sizeChart')}</a></div>
@@ -681,7 +681,7 @@ function about(landing){
 
 function chosenSummary(){
   const d = design(S.design);
-  return `${dname(d)} · ${t('size')} ${S.size} · ${S.qty} ${S.qty === 1 ? t('piece') : t('pieces')}`;
+  return `${t('size')} ${S.size} · ${S.qty} ${S.qty === 1 ? t('piece') : t('pieces')}`;
 }
 
 function buybar(){
@@ -782,15 +782,16 @@ function pageAfter(){
   const sum = `${dname(d)}`;
   const steps = t('steps');
   const tags = `<span class="tags"><span class="tag d">${sum}</span><span class="tag">${t('size')} ${s}</span><span class="tag">${q} ${t('piece')}</span></span>`;
+  const shopperTags = `<span class="tags"><span class="tag">${t('size')} ${s}</span><span class="tag">${q} ${t('piece')}</span></span>`;
   const card = (i, inner, cls = '') => `<div class="fcard ${cls}"><div class="cap"><span class="n">${i + 1}</span>${steps[i]}</div><div class="in">${inner}</div></div>`;
-  const cart = `<div class="line"><img src="${ph}" alt=""><div class="t"><b>${t('pname')}</b>${tags}
+  const cart = `<div class="line"><img src="${ph}" alt=""><div class="t"><b>${t('pname')}</b>${shopperTags}
      <div class="crow"><span class="step" style="height:36px"><button style="width:36px;height:34px" aria-label="−">${I.minus}</button><span class="val" style="min-width:72px">${q} ${t('piece')}</span><button style="width:36px;height:34px" aria-label="+">${I.plus}</button></span>
      <button class="trash" aria-label="${t('remove')}" title="${t('remove')}">${I.trash}</button></div></div><span class="amt">${money(d.price)}</span></div>
      <div class="undo">${t('removed')} <a>${t('undo')}</a></div>`;
-  const checkout = `<div class="line"><img src="${ph}" alt=""><div class="t"><b>${t('pname')}</b>${tags}</div><span class="amt">${money(d.price)}</span></div>
+  const checkout = `<div class="line"><img src="${ph}" alt=""><div class="t"><b>${t('pname')}</b>${shopperTags}</div><span class="amt">${money(d.price)}</span></div>
      <div class="sum" style="margin-top:12px"><div><span>${t('deliveryCharge')}</span><span>৳60</span></div><div class="gt"><span>${t('grand')}</span><span>${money(d.price + 60)}</span></div></div>`;
   const confirmed = `<div class="okhead"><span class="c">${I.ok}</span><div><b>${t('orderPlaced')}</b><span>${t('orderNoLine')}</span></div></div>
-     <div class="line"><img src="${ph}" alt=""><div class="t"><b>${t('pname')}</b>${tags}</div><span class="amt">${money(d.price)}</span></div>`;
+     <div class="line"><img src="${ph}" alt=""><div class="t"><b>${t('pname')}</b>${shopperTags}</div><span class="amt">${money(d.price)}</span></div>`;
   const seller = `<div class="line dash"><img src="${ph}" alt="" style="width:72px;height:90px"><div class="t"><b>${t('pname')}</b>${tags}
      SKU <b style="display:inline;font-family:ui-monospace,monospace">IB-D2-54</b><br><span style="display:inline-flex;gap:4px;align-items:center;color:var(--accent-text);font-weight:600;font-size:12px">${I.pin.replace('<svg','<svg width="12" height="12"')}${t('shopperChose')}</span></div><span class="amt">${money(d.price)}</span></div>`;
   const call = `<div class="line"><img src="${ph}" alt=""><div class="t"><b>${t('pname')}</b>${tags}<i style="color:var(--text)">${t('callScript')}</i></div></div>`;
@@ -822,7 +823,7 @@ function cartDrawer(){
         const unit = l.q === 1 ? t('piece') : t('pieces');
         return `<div class="cl2"><img src="${img(d.photos[0])}" alt=""><div class="b">
           <div class="top"><span class="nm">${t('pname')}</span><span class="amt">${money(d.price * l.q)}</span></div>
-          <div class="tags"><span class="tag d">${dname(d)}</span><span class="tag">${t('size')} ${l.s}</span></div>
+          <div class="tags"><span class="tag">${t('size')} ${l.s}</span></div>
           ${l.q > 1 ? `<span class="each">${money(d.price)} ${t('per')}</span>` : ''}
           <div class="crow"><span class="step" style="height:40px"><button style="width:40px;height:38px" data-act="cq" data-i="${i}" data-d="-1" ${l.q <= 1 ? 'disabled' : ''} aria-label="−">${I.minus}</button><span class="val" style="min-width:76px">${l.q} ${unit}</span><button style="width:40px;height:38px" data-act="cq" data-i="${i}" data-d="1" aria-label="+">${I.plus}</button></span>
           <button class="trash" data-act="rm" data-i="${i}" aria-label="${t('remove')}" title="${t('remove')}">${I.trash}</button></div></div></div>`;
@@ -940,7 +941,7 @@ const NOTES = {
   'pdp-chosen':'<b>Design 2 (two photos) and size 54 chosen.</b> The price, the stock and the bar follow the chosen design and size; size 56 is struck through because it is sold out in this design, with the sentence saying other designs have it. Design 4 is sold out in every size, so its card is greyed and its photos say so.',
   landing:'<b>The landing page</b>, as an ad opens it: the same gallery, design row, size and quantity, then the order form in the same scroll (on desktop, beside the product). The pinned bar\'s <b>Order now</b> scrolls to the form; <b>Confirm order</b> with nothing chosen scrolls back up to the design row.',
   'landing-form':'<b>The form with a design chosen.</b> "Your choice" shows the exact photo, design, size and quantity that will go on the order, with <b>Change</b> taking the shopper back to the photos.',
-  cart:'<b>The cart</b>, as built (a sheet from the bottom on phones, a drawer from the right on wider screens), with the new design: each line shows <b>the chosen design\'s photo</b>, its design and size, the quantity <b>with its unit</b>, the price each when more than one, and a <b>trash button</b>; removing a line shows <b>Undo</b> for 5 seconds. The delivery line, the total range and the two buttons are unchanged.',
+  cart:'<b>The cart</b>, as built (a sheet from the bottom on phones, a drawer from the right on wider screens), with the new design: each line shows <b>the chosen design\'s photo</b> (the photo says which design, so no design name is written), its size, the quantity <b>with its unit</b>, the price each when more than one, and a <b>trash button</b>; removing a line shows <b>Undo</b> for 5 seconds. The delivery line, the total range and the two buttons are unchanged.',
   units:'<b>Quantities and units.</b> Every quantity shows its unit, for counted units as well as measured ones; a measured quantity can be typed and has quick picks. The price says what it is per.',
   after:'<b>After the tap.</b> A cart line is removed with its trash button (a 40 px target, named \"Remove\" for screen readers), and an undo message follows. The order pins the design\'s first photo, and the same photo, design, size and quantity follow the order through every screen: the cart, checkout, the confirmation, the seller\'s order page, and the confirmation call; the 3×3 parcel label names the design, the size and the SKU in its item line.',
 };
