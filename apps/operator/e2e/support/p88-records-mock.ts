@@ -204,7 +204,15 @@ function entryOf(fixture: AuditFixture, language: string) {
     actorEmail: fixture.who,
     action: fixture.action,
     targetType: fixture.target,
-    targetId: fixture.shop ?? (fixture.target === 'setting' ? null : 'pm-upay'),
+    // As the server writes them: the shop's own id for an entry aimed at it; a payment's or a notice's own id, the shop then
+    // named only in the summary, which the server's shop column and filter also read (review B, F2); none for a setting or
+    // a payment method type.
+    targetId:
+      fixture.target === 'tenant'
+        ? fixture.shop
+        : fixture.target === 'setting' || fixture.target === 'payment_method_type'
+          ? null
+          : `${fixture.target}-${String(fixture.id)}`,
     result: 'success',
     summary,
     createdAt: new Date(fixture.at).toISOString(),

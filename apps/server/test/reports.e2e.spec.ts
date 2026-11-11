@@ -558,6 +558,60 @@ describeIfDatabase('the platform audit log (ADM-08, D8-11)', () => {
     expect(page2.items.map((item) => item.action)).toEqual(['tenant_suspended']);
     expect(page2.next).toBeNull();
   });
+
+  it('lists a payment approved or rejected under its shop, which only its summary names (ADM-08, review B F2)', async () => {
+    const client = await shop();
+    const other = await shop();
+    const submit = async (tenantId: string, amount: string): Promise<string> => {
+      const made = await admin.query<{ id: string }>(
+        `INSERT INTO control.plan_payments (tenant_id, kind, amount, status, transaction_id, submitted_at)
+         VALUES ($1, 'top_up', $2, 'pending', $3, now()) RETURNING id`,
+        [tenantId, amount, `TX${randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase()}`],
+      );
+      return made.rows[0]?.id ?? '';
+    };
+    const approved = await submit(client.tenantId, '500.00');
+    const rejected = await submit(client.tenantId, '250.00');
+    const elsewhere = await submit(other.tenantId, '700.00');
+    const approve = (id: string) =>
+      postJson(port, `/operator/payment-queue/${id}/approve`, {}, operator);
+    for (const answer of [
+      await approve(approved),
+      await postJson(
+        port,
+        `/operator/payment-queue/${rejected}/reject`,
+        { note: 'No such transaction at bKash' },
+        operator,
+      ),
+      await approve(elsewhere),
+    ]) {
+      expect(answer.status, JSON.stringify(answer.body)).toBe(201);
+    }
+
+    const answer = await report(`/operator/audit?tenantId=${client.tenantId}`);
+    expect(answer.status, JSON.stringify(answer.body)).toBe(200);
+    const items = (
+      answer.body as {
+        items: {
+          action: string;
+          targetType: string | null;
+          targetId: string | null;
+          shop: { id: string } | null;
+        }[];
+      }
+    ).items;
+    expect(items.map((item) => [item.action, item.targetType, item.targetId])).toEqual([
+      ['plan_payment_rejected', 'plan_payment', rejected],
+      ['plan_payment_verified', 'plan_payment', approved],
+    ]);
+    expect(items.every((item) => item.shop?.id === client.tenantId)).toBe(true);
+    // The unfiltered log names the shop too.
+    const all = await report(`/operator/audit?action=plan_payment_verified&limit=5`);
+    const verified = (
+      all.body as { items: { targetId: string | null; shop: { id: string } | null }[] }
+    ).items;
+    expect(verified.find((item) => item.targetId === elsewhere)?.shop?.id).toBe(other.tenantId);
+  });
 });
 
 describeIfDatabase('who may read them', () => {

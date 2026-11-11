@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lt, type SQL } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lt, sql, type SQL } from 'drizzle-orm';
 import type { Executor } from '../../transactions';
 import { operatorAccounts, platformAuditLog, tenants } from '../../schema';
 import type { PlatformActorType, PlatformAuditAction, AuditResult } from '@lytronix/validators';
@@ -64,16 +64,22 @@ export interface AuditListRow {
   shop: { id: string; name: string; slug: string } | null;
 }
 
+/**
+ * ADM-08: the shop an entry is about -- the tenant it is aimed at, or else the one its summary names, as a payment approved,
+ * credited or rejected, a notice acknowledged, a payment page's report dismissed or a listener phone revoked carry it (the
+ * Phase 8 close-out's review B, F2). As text, so a summary holding something other than an id never breaks the read. Not
+ * indexed: the log is read a page at a time, newest first.
+ */
+const shopOfEntry = sql<string | null>`(CASE WHEN ${platformAuditLog.targetType} = 'tenant'
+  THEN ${platformAuditLog.targetId}::text ELSE ${platformAuditLog.summary} ->> 'tenantId' END)`;
+const shopJoin = eq(sql`${tenants.id}::text`, shopOfEntry);
+
 export class PlatformAuditLogRepository {
   /** ADM-08, D8-11: the entries matching every filter given, newest first, a page at a time. Read only. */
   async list(db: Executor, filters: AuditListFilters): Promise<AuditListRow[]> {
     const where: SQL[] = [];
-    if (filters.tenantId) {
-      where.push(
-        eq(platformAuditLog.targetType, 'tenant'),
-        eq(platformAuditLog.targetId, filters.tenantId),
-      );
-    }
+    // A uuid as text is lower case.
+    if (filters.tenantId) where.push(eq(shopOfEntry, filters.tenantId.toLowerCase()));
     if (filters.actorId) where.push(eq(platformAuditLog.actorId, filters.actorId));
     if (filters.action) where.push(eq(platformAuditLog.action, filters.action));
     if (filters.from) where.push(gte(platformAuditLog.createdAt, filters.from));
@@ -97,10 +103,7 @@ export class PlatformAuditLogRepository {
       })
       .from(platformAuditLog)
       .leftJoin(operatorAccounts, eq(operatorAccounts.id, platformAuditLog.actorId))
-      .leftJoin(
-        tenants,
-        and(eq(platformAuditLog.targetType, 'tenant'), eq(tenants.id, platformAuditLog.targetId)),
-      )
+      .leftJoin(tenants, shopJoin)
       .where(and(...where))
       .orderBy(desc(platformAuditLog.id))
       .limit(filters.limit);
@@ -150,10 +153,7 @@ export class PlatformAuditLogRepository {
         shopSlug: tenants.slug,
       })
       .from(platformAuditLog)
-      .leftJoin(
-        tenants,
-        and(eq(platformAuditLog.targetType, 'tenant'), eq(tenants.id, platformAuditLog.targetId)),
-      )
+      .leftJoin(tenants, shopJoin)
       .where(inArray(platformAuditLog.action, [...actions]))
       .orderBy(desc(platformAuditLog.id))
       .limit(limit);
