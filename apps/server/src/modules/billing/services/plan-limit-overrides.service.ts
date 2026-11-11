@@ -72,8 +72,19 @@ export class PlanLimitOverridesService {
     return this.store.run((tx) => this.store.listForTenant(tx, tenantId));
   }
 
-  /** Removing the override restores the plan snapshot's own value (PLN-11). */
-  async remove(tenantId: string, limitKey: string, operatorId: string): Promise<void> {
+  /**
+   * Removing the override restores the plan snapshot's own value (PLN-11); like setting one, it takes a required
+   * reason, on both logs (Phase 8 exit criterion 5).
+   */
+  async remove(
+    tenantId: string,
+    limitKey: string,
+    reason: string,
+    operatorId: string,
+  ): Promise<void> {
+    if (reason.trim().length === 0) {
+      throw new FieldsError([{ field: 'reason', problem: FieldProblemCode.Required }]);
+    }
     await this.store.run(async (tx) => {
       await this.store.remove(tx, tenantId, limitKey);
       await this.audit.record(tx, {
@@ -84,7 +95,7 @@ export class PlanLimitOverridesService {
         targetType: 'tenant',
         targetId: tenantId,
         result: AuditResult.Success,
-        summary: { limitKey },
+        summary: { limitKey, reason },
       });
       await this.platformAudit.recordWithin(tx, {
         actorType: PlatformActorType.Operator,
@@ -94,7 +105,7 @@ export class PlanLimitOverridesService {
         targetId: tenantId,
         result: AuditResult.Success,
         ip: null,
-        summary: { limitKey },
+        summary: { limitKey, reason },
       });
     });
   }

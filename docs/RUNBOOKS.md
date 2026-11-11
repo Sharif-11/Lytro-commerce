@@ -193,7 +193,7 @@ payment page, the dashboard's Help, the website's contact page, footer and liste
 (since Phase 8 Slice 8.8).
 
 - **Set before launch:** `help_whatsapp` and `help_phone`, each `01XXXXXXXXX`, with `PATCH /operator/settings/<key>` and a
-  reason. Until one is set, nothing shows it; with only one set, both buttons reach it.
+  reason. Until one is set, its button shows nowhere, and neither number stands in for the other (D8-85).
 - **Hours:** `help_opens_hour` and `help_closes_hour`, 0 to 23 in Dhaka, 9 and 22 until set.
 - **Clearing a number:** an empty value, with a reason, means not set: its button goes everywhere, the listener app's
   support row included (D8-76, D8-80).
@@ -212,3 +212,25 @@ removing it once nothing uses it.
   (`PATCH /operator/payment-methods/<method>` with `enabled: false`), then `POST …/remove` with a reason. Every shop's
   accounts for it are deleted; past payments stay. It can't be undone. If some shop failed (the server logs it), remove
   again to finish.
+
+## 8. Resetting an owner's sign-in (ADM-04, D8-36, D8-87)
+
+**What this is:** an owner who lost their phone or password gets back in, without the operator ever seeing or setting a
+password.
+
+- **First, check it's them** (D8-5). The phone you're given becomes the account's at once.
+- **Reset:** the shop page's Owner reset, with the phone they give you and a reason. Every session of the account ends,
+  that phone becomes the account's, and a reset code goes to it.
+- **Then tell them:** if the lost phone was also the shop's listener, it stays paired, since a listener phone doesn't
+  record its number. Once signed in again, they unpair it on the dashboard's listener page, where each phone shows its
+  name and model.
+
+## 9. The uploads bucket's expiry (MED-03, D8-47)
+
+**What this is:** a file a browser uploads lands in the uploads bucket first, and moves on once its request is accepted.
+One whose request is refused or never sent (a product photo, or a payment screenshot) has no row, so no job of Lytro's
+removes it.
+
+- **Set once, in Cloudflare:** an object lifecycle rule on the uploads bucket that deletes objects 7 days after upload.
+  Nothing reads the uploads bucket after a request's own minutes.
+- **Check:** R2, the uploads bucket, Settings, Object lifecycle rules. KNOWN-GAPS §144 records it until it is set.

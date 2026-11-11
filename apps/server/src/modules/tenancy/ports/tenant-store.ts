@@ -113,8 +113,12 @@ export interface TenantStore {
   clearSuspension(tx: Transaction, tenantId: string): Promise<void>;
   /** LIF-01: sets or clears the owner's own non-renewal intent; the state machine never reads this. */
   setCancellation(tx: Transaction, tenantId: string, cancelledAt: Date | null): Promise<void>;
-  /** LIF-19: the day-60 deletion job's own state/marker write, after the business-data deletion step. */
+  /** LIF-19, ADM-13: a deletion's point of no return, under the shop's row lock, before anything is deleted. */
+  beginErasure(tx: Transaction, tenantId: string, at: Date): Promise<void>;
+  /** LIF-19: the deletion job's own state/marker write, after the business-data deletion step. */
   markDeleted(tx: Transaction, tenantId: string, at: Date): Promise<void>;
+  /** LIF-19: the shops whose deletion began and stopped before its last step. */
+  findUnfinishedErasures(tx: Transaction): Promise<string[]>;
   /** LIF-21: deleted tenants whose 30-day subdomain reservation has lapsed and whose slug isn't already revoked. */
   findRevocationCandidates(tx: Transaction, now: Date): Promise<RevocationCandidateRow[]>;
   /** LIF-21: frees the literal slug string for reuse and clears the rest of the shop's identity/contact

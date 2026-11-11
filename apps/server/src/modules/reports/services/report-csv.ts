@@ -36,6 +36,15 @@ export function revenueCsv(report: RevenueReport): string {
   return BOM + toCsv(rows, columns);
 }
 
+/** A plan line of today's counts in the CSV: pay-as-you-go is its own line (ADM-09, PYG-13), as in the JSON. */
+const PAY_AS_YOU_GO_LINE = 'pay_as_you_go';
+/** A shop on no plan at all. */
+const NO_PLAN_LINE = 'none';
+
+/**
+ * D8-41, D8-46: each period's movements and their total, then today's counts by state and by plan, each its own table
+ * after a blank line, so the file carries every figure the JSON's `now` does.
+ */
 export function shopsCsv(report: ShopsReport): string {
   const rows = [
     ...report.buckets,
@@ -47,18 +56,31 @@ export function shopsCsv(report: ShopsReport): string {
     became_paying: bucket.becamePaying,
     lapsed: bucket.lapsed,
   }));
-  return BOM + toCsv(rows, ['from', 'to', 'opened', 'became_paying', 'lapsed']);
+  const byState = report.now.byState.map((row) => ({ state: row.state, shops: row.count }));
+  const byPlan = report.now.byPlan.map((row) => ({
+    plan: row.payAsYouGo ? PAY_AS_YOU_GO_LINE : (row.planName ?? NO_PLAN_LINE),
+    shops: row.count,
+  }));
+  return (
+    BOM +
+    [
+      toCsv(rows, ['from', 'to', 'opened', 'became_paying', 'lapsed']),
+      toCsv(byState, ['state', 'shops']),
+      toCsv(byPlan, ['plan', 'shops']),
+    ].join('\n\n')
+  );
 }
 
-/** D8-42: each shop with its owner's phone (the owner's pick), so the operator can call a heavy user. */
+/** D8-42: each shop with its owner's phone (the owner's pick), so the operator can call a heavy user; D8-46: and a total. */
 export function consumersCsv(report: ConsumersReport): string {
   const unit = report.metric === ConsumerMetric.Sms ? 'sms_units' : 'bytes';
-  const rows = report.shops.map((shop) => ({
+  const rows: Record<string, CsvValue>[] = report.shops.map((shop) => ({
     shop: shop.name,
     address: shop.slug,
     owner_phone: shop.ownerPhone,
     [unit]: shop.value,
   }));
+  rows.push({ shop: 'total', [unit]: report.shops.reduce((sum, shop) => sum + shop.value, 0) });
   return BOM + toCsv(rows, ['shop', 'address', 'owner_phone', unit]);
 }
 

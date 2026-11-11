@@ -100,6 +100,8 @@ export class CatalogFeedCsv {
           };
         }),
         COLUMNS,
+        // Meta reads it, not a spreadsheet: a description starting "- 100% cotton" stays as written.
+        'machine',
       );
     });
   }

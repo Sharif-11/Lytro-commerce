@@ -87,6 +87,21 @@ export class SmsRepository {
     }));
   }
 
+  /**
+   * LIF-19, ADM-13: a deleted shop's shoppers' phones leave the outbox. Each code sent to one keeps its row, for the
+   * counts, without the phone, and one not sent yet never goes. The owner's and the team's messages name an account,
+   * which stays, so they stay too.
+   */
+  async forgetShoppers(db: Executor, tenantId: string): Promise<void> {
+    await db
+      .update(smsOutbox)
+      .set({
+        toPhone: '',
+        status: sql`CASE WHEN ${smsOutbox.status} IN (${SmsStatus.Pending}, ${SmsStatus.Sending}) THEN ${SmsStatus.Failed} ELSE ${smsOutbox.status} END`,
+      })
+      .where(and(eq(smsOutbox.tenantId, tenantId), eq(smsOutbox.kind, SmsKind.Otp)));
+  }
+
   /** ADM-03, D8-30: how many of the shop's messages failed for good since `since`. */
   async countFailedForShop(db: Executor, shop: ShopMessages, since: Date): Promise<number> {
     const [row] = await db

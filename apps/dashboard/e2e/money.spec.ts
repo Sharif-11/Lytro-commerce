@@ -197,17 +197,17 @@ test('a payment by bank transfer names the bank and its reference, never a TrxID
     '/billing',
   );
   await main(page)
-    .getByRole('link', { name: /রিনিউ.*ব্যাংক ট্রান্সফার · রেফারেন্স BRAC-FT-2211/ })
+    .getByRole('link', { name: /রিনিউ.*ব্যাংক ট্রান্সফার · রেফারেন্স BRACFT2211/ })
     .click();
   await expect(page).toHaveURL(`/${SLUG}/billing/pay_bank`);
   await expect(main(page).getByRole('heading', { name: 'INV-000215' })).toBeVisible();
   await expect(
-    main(page).getByText('পেমেন্ট সাবমিট করা হয়েছে · রেফারেন্স BRAC-FT-2211'),
+    main(page).getByText('পেমেন্ট সাবমিট করা হয়েছে · রেফারেন্স BRACFT2211'),
   ).toBeVisible();
   // The payment's Paid by and its invoice's (the list's row says more around it), and nothing calls it a TrxID.
   await expect(
     main(page)
-      .getByText('ব্যাংক ট্রান্সফার · রেফারেন্স BRAC-FT-2211', { exact: true })
+      .getByText('ব্যাংক ট্রান্সফার · রেফারেন্স BRACFT2211', { exact: true })
       .filter({ visible: true }),
   ).toHaveCount(2);
   await expect(page.getByText(/TrxID BRAC/)).toHaveCount(0);

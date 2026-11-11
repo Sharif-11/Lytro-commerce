@@ -1090,6 +1090,7 @@
     "suspendButton": "Suspend",
     "restoreTitle": "Restore {{shop}}?",
     "restoreConsequence": "The storefront comes back online within a minute. The suspension stays on the audit log.",
+    "suspendedFor": "Suspended for",
     "restoreButton": "Restore",
     "restored": "Restored. The storefront is back.",
     "adjustTitle": "Adjust balance",

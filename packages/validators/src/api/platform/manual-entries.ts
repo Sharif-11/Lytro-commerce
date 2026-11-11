@@ -1,7 +1,11 @@
 import { z } from 'zod';
 import { calendarDayField, checkPeriod } from '../../common/dates';
 import { BANK_REFERENCE_MAX_LENGTH } from '../../common/limits';
-import { bankReferenceField, transactionIdField } from '../../common/transaction-id';
+import {
+  bankReferenceField,
+  canonicalBankReference,
+  transactionIdField,
+} from '../../common/transaction-id';
 import { ManualEntryKind } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { evidenceKeyField } from '../billing/payment-evidence';
@@ -130,7 +134,14 @@ export const manualEntrySchema = z
       required(ctx, 'evidenceLine', 'Attach a screenshot or type the statement line.');
     }
   })
-  .transform((value) => ({ ...value, transactionId: value.transactionId.toUpperCase() }));
+  .transform((value) => ({
+    ...value,
+    // D8-75: a bank reference in its one form, so it is matched however it was typed; a TrxID in capitals.
+    transactionId:
+      value.bankAccountId !== undefined
+        ? canonicalBankReference(value.transactionId)
+        : value.transactionId.toUpperCase(),
+  }));
 export type ManualEntryInput = z.infer<typeof manualEntrySchema>;
 
 // POST /operator/manual-entries/:id/reverse (ADM-15): a mistake is corrected by a reversing entry, with a reason.

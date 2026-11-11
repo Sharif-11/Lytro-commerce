@@ -77,7 +77,12 @@ function isInvalidInputSyntax(exception: unknown): boolean {
  * body parser's own error (malformed JSON, a body over API-26's limit), which marks itself `expose` with a 4xx.
  */
 function clientErrorStatus(exception: unknown): number | null {
-  if (exception instanceof HttpException) return exception.getStatus();
+  // D8-22: a framework exception of 500 or more (a response failing its schema, say) is a server fault, logged and kept
+  // under its request ID like any other, never answered as a refusal.
+  if (exception instanceof HttpException) {
+    const status = exception.getStatus();
+    return status < 500 ? status : null;
+  }
   if (typeof exception !== 'object' || exception === null) return null;
   const expose = 'expose' in exception ? exception.expose : undefined;
   const status = 'status' in exception ? exception.status : undefined;

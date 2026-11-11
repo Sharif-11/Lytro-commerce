@@ -195,12 +195,13 @@ export class LytroPaymentPages {
     return {
       ref,
       session,
-      // D8-69: the help line every page shows; with only one of its numbers set, both buttons reach it.
+      // D8-69, D8-76: the help line every page shows. A number not set, or cleared, takes its button away, as on the
+      // dashboard and the website (the owner's answer, 2026-11-11): neither stands in for the other.
       shop: {
         name: 'Lytro',
         logoUrl: null,
-        contactPhone: help.phone ?? help.whatsapp,
-        whatsapp: help.whatsapp ?? help.phone,
+        contactPhone: help.phone,
+        whatsapp: help.whatsapp,
       },
       orderPageUrl: null,
       payee: 'lytro',

@@ -59,13 +59,13 @@ describe('a manual entry paid to one of Lytro numbers', () => {
 });
 
 describe('a manual entry paid to one of Lytro bank accounts', () => {
-  it("takes the transfer's reference as the statement shows it, and no sender", () => {
+  it("takes the transfer's reference as the statement shows it, keeps its letters and digits, and no sender", () => {
     const parsed = manualEntrySchema.parse({
       ...TOP_UP,
       bankAccountId: BANK,
       transactionId: ' brac-ft-55190327 ',
     });
-    expect(parsed.transactionId).toBe('BRAC-FT-55190327');
+    expect(parsed.transactionId).toBe('BRACFT55190327');
     expect(parsed.walletId).toBeUndefined();
     expect(parsed.senderNumber).toBeUndefined();
   });

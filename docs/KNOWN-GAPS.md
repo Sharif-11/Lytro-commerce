@@ -2350,11 +2350,15 @@ Slice 8.3). These stay:
   Doing it again sends the code and changes nothing else.
 - **Nobody is told but by the log.** Extending a plan and deleting data on request reach the shop's activity log and no
   one's phone or bell. The reset's only message is the code, and the old phone gets no warning that it was replaced.
-- **A deletion job that keeps failing.** The shop stays offline and archived, and only the server log says why. The operator
-  can ask again, which queues another job. A shop asked for this way has no day-60 clock of its own behind it.
+- **A deletion job that keeps failing.** Corrected by the Phase 8 close-out, which found this read wrong: the lifecycle
+  tick could move such a shop back to grace and online, and the job then left it alone. Now, before its job begins, the
+  shop stays archived and offline (the tick never moves a shop back, D8-89), with the day-60 clock from its period end
+  behind it. Once the job has begun, the next tick finishes it (D8-88). Only the server log says why one failed.
 - **Add-ons already lapsed stay lapsed.** Extending a lapsed shop moves only the add-ons still active. One the lapse
   already ended stays ended, and the shop buys it again.
-- **Two actions at once are held apart by a row lock** that no test exercises, as with the other operator actions on a shop.
+- **Two actions at once.** Corrected by the close-out: the deletion job, a payment's activation and the lifecycle tick
+  took no row lock, so an extension could be lost or undone. Each now takes the shop's row lock, as an extension does,
+  and `test/phase-8-closeout.e2e.spec.ts` runs an extension against each.
 
 ## 136. Phase 7: what its close-out left open — found 2026-11-09, open
 
@@ -2494,8 +2498,9 @@ Still open:
   the one the spend had reached when the alert went (81).
 - **A manual entry's row names its plan but not the billing term,** so the list reads "Renewal · Growth" where the sketch
   reads "Growth · 6 months".
-- **Undoing a wallet type's retiring can't say how many shops were told;** the console shows the larger of the shops on
-  the type and the shops with accounts for it.
+- **Undoing a wallet type's retiring can't say how many shops were told;** the console showed the larger of the shops on
+  the type and the shops with accounts for it, which counts a shop with the method on and no account once too few. Fixed
+  by the Phase 8 close-out: the server counts every shop that set the type up (`shopsSetUp`), and the console shows it.
 - **An entry's row doesn't say whether its screenshot is still kept;** the console says it was removed after two years from
   the entry's date, or when the link answers 404.
 
@@ -2512,3 +2517,40 @@ Still open:
   validators; the server's own (`common/i18n/dates.ts`, which has ভোর and সন্ধ্যা) is a second definition.
 - **A category held mid-drag fails the automated contrast check.** It is drawn at 45% opacity, as the sketch draws it, so
   the accessibility check runs before a category is picked up.
+
+## 144. Phase 8: what its close-out left open — found 2026-11-11, open
+
+The close-out (PHASE-8-PLAN §11) fixed what its three reviews found, apart from these.
+
+- **A trial brought back from a request to delete its data comes back on the paid ladder.** The request archives the shop
+  whatever it was, and an extension before the job begins brings it back as active: a trial comes back active on the
+  Trial plan and lapses as a paid shop does, though D8-33 says a trial stays a trial. A pay-as-you-go shop can't be brought
+  back by extending at all (`NoPeriodToExtend`), though D8-37 says an extension can.
+- **Money bKash takes for a payment already closed is only logged.** A manual entry no longer closes a checkout in flight,
+  but one that completes after its payment ran out or was closed another way writes "bKash took money for a closed
+  payment" to the server log, and reaches neither the queue nor the balance.
+- **A plan payment approved for a shop whose deletion has begun is kept as its balance** (D8-88), which moves on with the
+  owner's account (LIF-20). Nobody is told; the operator sees the payment's kind turn to a top-up.
+- **Uploads never sent, or refused, wait on Cloudflare's lifecycle rule** (RUNBOOKS §9). No job of Lytro's removes them,
+  so a payment screenshot can outlive D8-47's two years in the uploads bucket until the rule is set.
+- **An add-on bought on its own during a reversed plan's period runs on to that period's end.** D8-48 restores the plan
+  and period; an add-on paid for separately (PLN-14) is the shop's own purchase and is left alone.
+- **A manual entry shows twice in the shop's Activity.** Its own row says Lytro support, and the activation's usual
+  `plan_purchased`, `plan_renewed` or `balance_topped_up` row reads as done by the shop's own user. The queue's approvals
+  have done the same since Phase 5.
+- **The listener app's faults aren't kept for the shop page.** No guard on its routes names the shop, so a 500 there is
+  only in the server log, under its ID.
+- **The media budget's alert waits for Cloudflare's read** (D8-63). An hour whose read fails checks nothing, even if the
+  Workers line alone passes the budget.
+- **A sandbox top-up spent later counts as earned.** The revenue report skips test payments to Lytro's wallets, but
+  spending comes from the shop's ledger, which doesn't record that its money came from a sandbox.
+- **Meta's catalogue feed isn't guarded against spreadsheet formulas,** though every other CSV is. Meta reads it, and an
+  apostrophe would show on Facebook.
+- **The audit log's shop filter reads each entry's summary** for the shop a payment, notice or listener entry names, with
+  no index, so it slows as the log grows. An index needs a migration.
+- **A lost phone that was the shop's listener stays paired** until the owner unpairs it (D8-87).
+- **No test walks every operator route as a seller.** Each module's own spec refuses a seller on its routes, and every
+  operator controller carries the operator guard.
+- **Next release:** the shop page's failed webhooks and open tickets (ADM-03, D8-1).
+- **What only the real world shows:** MED-12's match with a real Cloudflare invoice (§138), a real payment through Lytro's
+  own bKash merchant account (§137), and API-28's redirect, a manual check in Phase 9.

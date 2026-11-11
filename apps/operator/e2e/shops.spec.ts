@@ -141,16 +141,26 @@ test.describe("a shop's page", () => {
     });
   });
 
-  test('restoring shows the reason it lifts, then the storefront is back', async ({ page }) => {
-    await openShop(page, GADGET);
+  test('restoring shows the reason it lifts and needs its own, then the storefront is back', async ({
+    page,
+  }) => {
+    const log = await openShop(page, GADGET);
     await page.getByRole('button', { name: 'Restore', exact: true }).click();
     const panel = dialog(page, 'Restore Dhaka Gadget House?');
+    await expect(panel.getByText('Suspended for')).toBeVisible();
     await expect(panel.getByText('Counterfeit chargers reported')).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Restore' })).toBeDisabled();
+    await panel.getByRole('textbox', { name: 'Reason' }).fill('   ');
+    await expect(panel.getByRole('button', { name: 'Restore' })).toBeDisabled();
+    await panel.getByRole('textbox', { name: 'Reason' }).fill(' The owner sent the invoices ');
     await panel.getByRole('button', { name: 'Restore' }).click();
     await expect(
       page.getByRole('status').getByText('Restored. The storefront is back.'),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Suspend for cause' })).toBeVisible();
+    expect(log.sent('POST', `/operator/tenants/${GADGET}/restore`)).toEqual({
+      reason: 'The owner sent the invoices',
+    });
   });
 
   test('adjusts the balance, up or down, and says what it is now', async ({ page }) => {
@@ -241,7 +251,9 @@ test.describe("a shop's page", () => {
     await expect(panel.getByRole('checkbox', { name: 'Unlimited' })).toHaveCount(0);
   });
 
-  test('removing an override asks first, and names what comes back', async ({ page }) => {
+  test('removing an override asks first, names what comes back, and needs a reason', async ({
+    page,
+  }) => {
     const log = await openShop(page, GADGET);
     const overrides = card(page, 'Limit overrides');
     await expect(overrides).toContainText('Agreed with the owner');
@@ -251,10 +263,15 @@ test.describe("a shop's page", () => {
     await expect(panel).toContainText(
       "Products goes back to the plan's value for Dhaka Gadget House.",
     );
+    await expect(panel.getByRole('button', { name: 'Remove' })).toBeDisabled();
+    await panel.getByRole('textbox', { name: 'Reason' }).fill('Migration finished');
     await panel.getByRole('button', { name: 'Remove' }).click();
     await expect(page.getByRole('status').getByText('Override removed.')).toBeVisible();
     await expect(overrides).not.toContainText('Agreed with the owner');
-    expect(log.calls.some((call) => call.method === 'DELETE')).toBe(true);
+    // A DELETE, its reason in the body.
+    expect(log.sent('DELETE', `/operator/tenants/${GADGET}/limit-overrides/products`)).toEqual({
+      reason: 'Migration finished',
+    });
   });
 
   test('its payment page suspends and restores apart from the shop', async ({ page }) => {
@@ -279,12 +296,18 @@ test.describe("a shop's page", () => {
 
     await payments.getByRole('button', { name: 'Restore the page' }).click();
     const restore = dialog(page, "Restore Rahim Fashion's payment page?");
+    await expect(restore.getByText('Suspended for')).toBeVisible();
     await expect(restore.getByText('Asked for a PIN')).toBeVisible();
+    await expect(restore.getByRole('button', { name: 'Restore' })).toBeDisabled();
+    await restore.getByRole('textbox', { name: 'Reason' }).fill('The owner removed the PIN form');
     await restore.getByRole('button', { name: 'Restore' }).click();
     await expect(payments.getByText('Taking payments')).toBeVisible();
+    expect(log.sent('POST', `/operator/tenants/${RAHIM}/payment-page/restore`)).toEqual({
+      reason: 'The owner removed the PIN form',
+    });
   });
 
-  test('the new-shop cap says its kind and takes three choices', async ({ page }) => {
+  test('the new-shop cap says its kind, takes three choices and a reason', async ({ page }) => {
     const log = await openShop(page);
     const payments = card(page, 'Payments');
     await expect(payments).toContainText('As its kind says · ৳20,000 a day for its first 30 days');
@@ -292,18 +315,26 @@ test.describe("a shop's page", () => {
     const panel = dialog(page, 'New-shop cap for Rahim Fashion');
     await expect(panel.getByLabel('As its kind says (off, it is on a plan)')).toBeChecked();
     await panel.getByText('On for this shop').click();
+    await expect(panel.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await panel.getByRole('textbox', { name: 'Reason' }).fill('Chargebacks reported');
     await panel.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByRole('status').getByText('New-shop cap saved.')).toBeVisible();
     await expect(payments).toContainText('Set for this shop');
-    expect(log.sent('POST', `/operator/tenants/${RAHIM}/new-shop-cap`)).toEqual({ capped: true });
+    expect(log.sent('POST', `/operator/tenants/${RAHIM}/new-shop-cap`)).toEqual({
+      capped: true,
+      reason: 'Chargebacks reported',
+    });
 
     await payments.getByRole('button', { name: 'Change' }).click();
-    await dialog(page, 'New-shop cap for Rahim Fashion').getByText('As its kind says').click();
-    await dialog(page, 'New-shop cap for Rahim Fashion')
-      .getByRole('button', { name: 'Save' })
-      .click();
+    const again = dialog(page, 'New-shop cap for Rahim Fashion');
+    await again.getByText('As its kind says').click();
+    await again.getByRole('textbox', { name: 'Reason' }).fill('Back to its kind');
+    await again.getByRole('button', { name: 'Save' }).click();
     await expect(payments).toContainText('As its kind says ·');
-    expect(log.sent('POST', `/operator/tenants/${RAHIM}/new-shop-cap`)).toEqual({ capped: null });
+    expect(log.sent('POST', `/operator/tenants/${RAHIM}/new-shop-cap`)).toEqual({
+      capped: null,
+      reason: 'Back to its kind',
+    });
   });
 
   test('a pay-as-you-go shop is capped by its kind', async ({ page }) => {
@@ -419,6 +450,18 @@ test.describe("a shop's page", () => {
     await expect(page.getByRole('main').getByText('লিমিট ওভাররাইড')).toBeVisible();
     await expect(page.getByRole('main').getByText('লিসেনার ফোন')).toBeVisible();
     await expect(page.getByRole('button', { name: 'সাসপেন্ড করুন', exact: true })).toBeVisible();
+  });
+
+  test('in Bangla, restoring asks for the reason in the same words as suspending', async ({
+    page,
+  }) => {
+    await openShop(page, GADGET, { language: 'bn' });
+    await page.getByRole('button', { name: 'রিস্টোর', exact: true }).click();
+    const panel = dialog(page, 'Dhaka Gadget House রিস্টোর?');
+    await expect(panel.getByText('সাসপেন্ডের কারণ')).toBeVisible();
+    await expect(panel.getByRole('textbox', { name: 'কারণ' })).toBeVisible();
+    await expect(panel.getByText('লাগবেই। প্ল্যাটফর্ম অডিট লগে থাকবে।')).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'রিস্টোর' })).toBeDisabled();
   });
 
   test('has no accessibility problems', async ({ page }) => {

@@ -44,7 +44,8 @@ test('retiring needs a reason, and says how many shops were told', async ({ page
   await expect(button).toBeDisabled();
   await panel.getByLabel('Reason').fill('No shop asked for it in a year');
   await button.click();
-  await expect(page.getByText('Upay is retiring. 5 shops were told.')).toBeVisible();
+  // D8-66, KNOWN-GAPS §142: every shop that set it up, on with no account too -- 7, more than either count alone.
+  await expect(page.getByText('Upay is retiring. 7 shops were told.')).toBeVisible();
   expect(log.sent('POST', '/operator/payment-method-types/upay/retire')).toEqual({
     reason: 'No shop asked for it in a year',
   });
@@ -58,9 +59,13 @@ test('a retiring type can be brought back', async ({ page }) => {
   await types(page, { walletTypes: upayRetiring() });
   await row(page, 'Upay').getByRole('button', { name: 'Undo retiring' }).click();
   const panel = page.getByRole('dialog', { name: 'Undo retiring Upay?' });
+  // The shops told it was retiring: those that set it up, as the server counts them (D8-66).
+  await expect(
+    panel.getByText("The 7 shops told it was retiring hear it's back.", { exact: false }),
+  ).toBeVisible();
   await panel.getByLabel('Reason').fill('A partner asked for it');
   await panel.getByRole('button', { name: 'Undo retiring' }).click();
-  await expect(page.getByText('Upay is active again. 5 shops were told.')).toBeVisible();
+  await expect(page.getByText('Upay is active again. 7 shops were told.')).toBeVisible();
   await expect(row(page, 'Upay').getByRole('button', { name: 'Retire' })).toBeVisible();
 });
 

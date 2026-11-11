@@ -217,7 +217,7 @@ export const PAID_BY_BANK = payment({
   amount: '449.00',
   status: 'verified',
   method: 'bank',
-  transactionId: 'BRAC-FT-2211',
+  transactionId: 'BRACFT2211',
   quotedAt: ago(2 * DAY),
   submittedAt: ago(2 * DAY),
   verifiedAt: ago(2 * DAY),
@@ -228,7 +228,7 @@ export function bankInvoice(): unknown {
   return {
     ...(invoiceOf('inv-215') as Record<string, unknown>),
     paymentMethod: 'bank',
-    paymentReference: 'BRAC-FT-2211',
+    paymentReference: 'BRACFT2211',
     planPaymentId: 'pay_bank',
   };
 }

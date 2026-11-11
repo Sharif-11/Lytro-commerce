@@ -12,6 +12,7 @@ import { Consequence } from '@/components/ui/consequence';
 import { ConsoleCard } from '@/components/ui/console-page';
 import { KeyValue, KeyValues } from '@/components/ui/key-values';
 import { CardList, LIST_ROW, RowLines } from '@/components/ui/list-row';
+import { ReasonField } from '@/components/ui/reason-field';
 import { SMALL_BUTTON } from '@/components/ui/sizes';
 import { StatusChip } from '@/components/ui/status-chip';
 import { useToast } from '@/components/ui/use-toast';
@@ -45,6 +46,7 @@ function CapPanel({
   const toast = useToast();
   const setCap = useSetNewShopCap();
   const [choice, setChoice] = useState<CapChoice>(choiceOf(shop.newShopCap.set));
+  const [reason, setReason] = useState('');
   const options: [CapChoice, string][] = [
     ['kind', t(shop.state === TenantState.PayAsYouGo ? 'shop.capDefaultOn' : 'shop.capDefaultOff')],
     ['on', t('shop.capForceOn')],
@@ -56,10 +58,11 @@ function CapPanel({
       onClose={onClose}
       actionLabel={t('common.save')}
       pending={setCap.isPending}
+      canSubmit={reason.trim() !== ''}
       error={setCap.isError ? errorMessage(setCap.error, t) : null}
       onSubmit={() => {
         setCap.mutate(
-          { shopId: shop.id, capped: CAP_VALUES[choice] },
+          { shopId: shop.id, capped: CAP_VALUES[choice], reason: reason.trim() },
           {
             onSuccess: () => {
               toast(t('shop.capSaved'));
@@ -90,6 +93,7 @@ function CapPanel({
           </label>
         ))}
       </fieldset>
+      <ReasonField value={reason} onChange={setReason} />
     </ActionPanel>
   );
 }
@@ -104,16 +108,18 @@ function RestorePagePanel({
   const { t } = useTranslation();
   const toast = useToast();
   const restore = useRestorePage();
+  const [reason, setReason] = useState('');
   return (
     <ActionPanel
       title={t('shop.pageRestoreTitle', { shop: shop.shopName })}
       onClose={onClose}
       actionLabel={t('shop.pageRestoreButton')}
       pending={restore.isPending}
+      canSubmit={reason.trim() !== ''}
       error={restore.isError ? errorMessage(restore.error, t) : null}
       onSubmit={() => {
         restore.mutate(
-          { shopId: shop.id },
+          { shopId: shop.id, reason: reason.trim() },
           {
             onSuccess: () => {
               toast(t('shop.pageRestored', { shop: shop.shopName }));
@@ -125,8 +131,11 @@ function RestorePagePanel({
     >
       <Consequence tone="ok">{t('shop.pageRestoreConsequence')}</Consequence>
       <KeyValues>
-        <KeyValue label={t('shop.reason')}>{shop.paymentPageSuspension?.reason ?? '—'}</KeyValue>
+        <KeyValue label={t('shop.suspendedFor')}>
+          {shop.paymentPageSuspension?.reason ?? '—'}
+        </KeyValue>
       </KeyValues>
+      <ReasonField value={reason} onChange={setReason} />
     </ActionPanel>
   );
 }

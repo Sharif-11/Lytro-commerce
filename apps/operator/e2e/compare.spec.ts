@@ -401,6 +401,16 @@ const PAIRS: Pair[] = [
   },
   { screen: 'tenant-assign', path: RAHIM_PAGE, then: press('Assign a plan', 'প্ল্যান দিন') },
   { screen: 'tenant-override', path: RAHIM_PAGE, then: press('Add override', 'ওভাররাইড যোগ') },
+  // v7.1 (Phase 8's close-out): removing an override takes a reason; its panel is drawn for the first time. Restore,
+  // Restore the page and the new-shop cap keep their pairs above and below, now with the reason box.
+  {
+    screen: 'tenant-override-remove',
+    path: `/shops/${GADGET}`,
+    then: async (page) => {
+      await press('Remove', 'সরান')(page);
+      await settle(page);
+    },
+  },
   { screen: 'tenant-page-off', path: RAHIM_PAGE, state: PAGE_OFF },
   {
     screen: 'tenant-page-suspend',

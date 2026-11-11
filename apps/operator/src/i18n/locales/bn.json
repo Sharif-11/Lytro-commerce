@@ -1090,6 +1090,7 @@
     "suspendButton": "সাসপেন্ড",
     "restoreTitle": "{{shop}} রিস্টোর?",
     "restoreConsequence": "এক মিনিটের মধ্যে স্টোরফ্রন্ট ফিরবে। সাসপেনশন অডিট লগে থেকে যাবে।",
+    "suspendedFor": "সাসপেন্ডের কারণ",
     "restoreButton": "রিস্টোর",
     "restored": "রিস্টোর হয়েছে। স্টোরফ্রন্ট ফিরেছে।",
     "adjustTitle": "ব্যালেন্স ঠিক করুন",

@@ -72,6 +72,8 @@ export interface PlanPaymentsStore {
     tenantId: string,
     kind: PlanPaymentKind,
   ): Promise<PlanPaymentRecord | null>;
+  /** ADM-15, D8-48: whether the shop has a request of these kinds still open. */
+  hasOpen(tx: Transaction, tenantId: string, kinds: PlanPaymentKind[]): Promise<boolean>;
   /** BIL-19: closes the open, unsubmitted requests of these kinds (just `id`, when given); the ids it closed. */
   closeOpen(
     tx: Transaction,
@@ -128,7 +130,7 @@ export interface PlanPaymentsStore {
   creditInstead(
     tx: Transaction,
     id: string,
-    values: { kind: PlanPaymentKind; amount: string; verifiedBy: string; verifiedAt: Date },
+    values: { kind: PlanPaymentKind; amount: string; verifiedBy: string | null; verifiedAt: Date },
   ): Promise<void>;
   /** BIL-07/BAL-05: true if this transaction ID has ever been used, by any tenant, including deleted ones. */
   transactionIdUsed(tx: Transaction, transactionId: string): Promise<boolean>;

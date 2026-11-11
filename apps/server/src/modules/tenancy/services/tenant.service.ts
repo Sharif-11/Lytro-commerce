@@ -241,9 +241,19 @@ export class TenantService {
     return this.store.setCancellation(tx, tenantId, cancelledAt);
   }
 
-  /** LIF-19: the day-60 deletion job's own state/marker write. */
+  /** LIF-19, ADM-13: a deletion's point of no return, under the shop's row lock, before anything is deleted. */
+  beginErasure(tx: Transaction, tenantId: string, at: Date): Promise<void> {
+    return this.store.beginErasure(tx, tenantId, at);
+  }
+
+  /** LIF-19: the deletion job's own state/marker write. */
   markDeleted(tx: Transaction, tenantId: string, at: Date): Promise<void> {
     return this.store.markDeleted(tx, tenantId, at);
+  }
+
+  /** LIF-19: the shops whose deletion began and stopped before its last step. */
+  findUnfinishedErasures(tx: Transaction): Promise<string[]> {
+    return this.store.findUnfinishedErasures(tx);
   }
 
   /** LIF-21: deleted tenants whose 30-day subdomain reservation has lapsed and whose slug isn't already revoked. */

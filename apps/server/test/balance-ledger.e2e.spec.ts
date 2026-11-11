@@ -595,7 +595,7 @@ describeIfDatabase('balance and rates over HTTP (controller wiring)', () => {
       operatorId,
     });
     await overrides.set(tenantId, 'products', 500, 'launch week allowance', operatorId);
-    await overrides.remove(tenantId, 'products', operatorId);
+    await overrides.remove(tenantId, 'products', 'launch week over', operatorId);
 
     const response = await get('/activity', shopCall(who));
     expect(response.status).toBe(200);

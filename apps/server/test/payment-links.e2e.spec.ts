@@ -515,7 +515,7 @@ describeIfDatabase("Lytro's watch over the payment pages (TVR-03, ADM-12)", () =
       code: 'conflict',
     });
 
-    await oversight.restore(tenantId, OPERATOR_ID, null);
+    await oversight.restore(tenantId, 'the owner took the page down', OPERATOR_ID, null);
     clockOffsetMs += PAST_SHOP_LOOKUP_MS;
     expect((await page(ref)).status).toBe(200);
     expect((await link(setup.shop, phoned.id)).status).toBe(201);
@@ -525,7 +525,7 @@ describeIfDatabase("Lytro's watch over the payment pages (TVR-03, ADM-12)", () =
       [tenantId, 'payment_page_restored'],
     );
     expect(restored.rows).toEqual([{ n: 1 }]);
-    await expect(oversight.restore(tenantId, OPERATOR_ID, null)).rejects.toMatchObject({
+    await expect(oversight.restore(tenantId, 'again', OPERATOR_ID, null)).rejects.toMatchObject({
       code: 'conflict',
     });
     await expect(oversight.suspend(randomUUID(), reason, OPERATOR_ID, null)).rejects.toMatchObject({

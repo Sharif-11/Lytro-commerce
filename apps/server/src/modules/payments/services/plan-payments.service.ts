@@ -210,6 +210,11 @@ export class PlanPaymentsService {
     return this.store.findSubmittedOpen(tx, tenantId, kind);
   }
 
+  /** ADM-15, D8-48: whether the shop has a request of these kinds still open. */
+  hasOpen(tx: Transaction, tenantId: string, kinds: PlanPaymentKind[]): Promise<boolean> {
+    return this.store.hasOpen(tx, tenantId, kinds);
+  }
+
   /** BIL-19: these shops' payments to the platform, as Billing lists them, newest first. */
   async listForTenants(
     tenantIds: string[],
@@ -455,6 +460,37 @@ export class PlanPaymentsService {
       reviewReason: review.reason,
       amountArrived: review.amountArrived,
     });
+  }
+
+  /**
+   * D8-40, LIF-19: a verified payment whose money goes to the balance after all -- an add-on the shop can no longer take, or
+   * a plan for a shop whose deletion has begun -- becomes the top-up it now is, so the revenue report counts its money
+   * once, when it is spent. Its ID stays used. The caller credits the balance in the same transaction.
+   */
+  async asTopUpWithin(
+    tx: Transaction,
+    payment: PlanPaymentRecord,
+    amount: string,
+    now: Date,
+  ): Promise<PlanPaymentRecord> {
+    const verifiedAt = payment.verifiedAt ?? now;
+    await this.store.creditInstead(tx, payment.id, {
+      kind: PlanPaymentKind.TopUp,
+      amount,
+      verifiedBy: payment.verifiedBy,
+      verifiedAt,
+    });
+    return {
+      ...payment,
+      kind: PlanPaymentKind.TopUp,
+      amount,
+      planId: null,
+      billingTermId: null,
+      creditAmount: '0',
+      status: PlanPaymentStatus.Verified,
+      verifiedAt,
+      amountArrived: amount,
+    };
   }
 
   /**

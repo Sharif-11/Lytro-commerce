@@ -18,6 +18,7 @@ import {
   postJson,
   putJson,
   deleteJson,
+  sendExact,
   type HttpResult,
 } from './support/http';
 
@@ -551,11 +552,33 @@ describeIfDatabase('per-tenant limit overrides (PLN-11)', () => {
       const list = await get(`/operator/tenants/${tenantId}/limit-overrides`, headers);
       expect(list.body).toMatchObject([{ limitKey: 'essential_sms_total', value: 20 }]);
 
-      const removed = await del(
+      // Phase 8 exit criterion 5: removing one takes a reason too, in the DELETE's body.
+      const removal = `/api/v1/operator/tenants/${tenantId}/limit-overrides/essential_sms_total`;
+      const bodiless = await del(
         `/operator/tenants/${tenantId}/limit-overrides/essential_sms_total`,
         headers,
       );
+      expect(bodiless.status).toBe(400);
+      expect((await sendExact(port, 'DELETE', removal, { reason: ' ' }, headers)).status).toBe(400);
+      const kept = await get(`/operator/tenants/${tenantId}/limit-overrides`, headers);
+      expect(kept.body).toMatchObject([{ limitKey: 'essential_sms_total' }]);
+
+      const removed = await sendExact(
+        port,
+        'DELETE',
+        removal,
+        { reason: 'goodwill credit used' },
+        headers,
+      );
       expect(removed.status).toBe(200);
+      const audited = await admin.query<{ summary: unknown }>(
+        `SELECT summary FROM control.platform_audit_log
+         WHERE action = 'plan_limit_override_removed' AND target_id = $1`,
+        [tenantId],
+      );
+      expect(audited.rows).toEqual([
+        { summary: { limitKey: 'essential_sms_total', reason: 'goodwill credit used' } },
+      ]);
 
       const afterRemoval = await get(`/operator/tenants/${tenantId}/limit-overrides`, headers);
       expect(afterRemoval.body).toEqual([]);

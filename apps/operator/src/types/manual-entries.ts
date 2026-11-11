@@ -75,5 +75,7 @@ export interface WalletType {
   shopsOn: number;
   shopsWithAccounts: number;
   openPayments: number;
+  /** D8-65, D8-66: the shops that set it up, switched on or with an account, each once: the shops told. */
+  shopsSetUp: number;
   lytroTakes: boolean;
 }

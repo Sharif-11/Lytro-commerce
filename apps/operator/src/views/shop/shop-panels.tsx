@@ -43,20 +43,23 @@ export function SuspendPanel({ shop, onClose }: ShopPanelProps): React.JSX.Eleme
   );
 }
 
+/** LIF-24: back within a minute; the suspension's own reason shown, and the reason for lifting it taken. */
 export function RestorePanel({ shop, onClose }: ShopPanelProps): React.JSX.Element {
   const { t } = useTranslation();
   const toast = useToast();
   const restore = useRestoreShop();
+  const [reason, setReason] = useState('');
   return (
     <ActionPanel
       title={t('shop.restoreTitle', { shop: shop.shopName })}
       onClose={onClose}
       actionLabel={t('shop.restoreButton')}
       pending={restore.isPending}
+      canSubmit={reason.trim() !== ''}
       error={restore.isError ? errorMessage(restore.error, t) : null}
       onSubmit={() => {
         restore.mutate(
-          { shopId: shop.id },
+          { shopId: shop.id, reason: reason.trim() },
           {
             onSuccess: () => {
               toast(t('shop.restored'));
@@ -68,8 +71,9 @@ export function RestorePanel({ shop, onClose }: ShopPanelProps): React.JSX.Eleme
     >
       <Consequence tone="ok">{t('shop.restoreConsequence')}</Consequence>
       <KeyValues>
-        <KeyValue label={t('shop.reason')}>{shop.suspension?.reason ?? '—'}</KeyValue>
+        <KeyValue label={t('shop.suspendedFor')}>{shop.suspension?.reason ?? '—'}</KeyValue>
       </KeyValues>
+      <ReasonField value={reason} onChange={setReason} />
     </ActionPanel>
   );
 }

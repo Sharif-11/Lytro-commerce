@@ -120,6 +120,7 @@ export const MESSAGE_KEYS = [
   'ShopDataDeletionStarted',
   'ConfirmAddressWrong',
   'ShopAlreadyDeleted',
+  'ShopDeletionStarted',
   'RecentChangesListed',
   // ADM-08, ADM-09 (Phase 8 Slice 8.4)
   'RevenueReportRead',
@@ -242,6 +243,7 @@ export const MESSAGE_KEYS = [
   'ManualEntryAlreadyReversed',
   'ManualEntryIsReversal',
   'ManualEntryPlanMovedOn',
+  'ManualEntryPaymentOpen',
   'ManualEntryNeedsConfirmation',
   'ManualEntryShopGone',
   'ManualEntryPaidInFuture',

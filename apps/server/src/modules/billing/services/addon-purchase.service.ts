@@ -612,6 +612,11 @@ export class AddonPurchaseService {
   ): Promise<void> {
     const tenantId = payment.tenantId;
     await this.store.cancelPurchase(tx, purchase.id);
+    // D8-40: money that came by a wallet is a top-up now, as BIL-06's is, so the revenue report counts it once, when the
+    // balance is spent, and not also as an add-on paid for.
+    if (payment.transactionId !== null) {
+      await this.payments.asTopUpWithin(tx, payment, payment.amount, this.clock());
+    }
     await this.balance.credit(tx, {
       tenantId,
       type: LedgerEntryType.TopUp,

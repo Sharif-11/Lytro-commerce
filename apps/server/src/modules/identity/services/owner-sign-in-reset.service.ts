@@ -12,6 +12,7 @@ import {
   TenantState,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
+import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { StaffService } from '../../staff/services/staff.service';
@@ -64,54 +65,63 @@ export class OwnerSignInResetService {
     const subscriberId = shop.ownerSubscriberId;
     const now = this.clock.now();
 
-    const phoneChanged = await this.gateway.run(async (tx) => {
-      const holder = await this.gateway.findSubscriberByIdentity(tx, IdentityKind.Phone, phone);
-      if (holder !== null && holder.subscriberId !== subscriberId) {
-        throw new ApiError('conflict', 'OwnerResetPhoneTaken', {});
-      }
-      const current = await this.gateway.findPhoneIdentityOf(tx, subscriberId);
-      const changed = current?.phone !== phone;
-      if (changed) {
-        if (current === null) {
-          await this.gateway.insertPhoneIdentity(tx, { subscriberId, phone, verifiedAt: now });
-        } else {
-          await this.gateway.changePhoneIdentity(tx, current.id, phone, now);
+    const phoneChanged = await this.gateway
+      .run(async (tx) => {
+        // Two resets to one new phone at once both pass this check; the second meets the identity's unique index, and is
+        // answered as the phone being taken, as it now is.
+        const holder = await this.gateway.findSubscriberByIdentity(tx, IdentityKind.Phone, phone);
+        if (holder !== null && holder.subscriberId !== subscriberId) {
+          throw new ApiError('conflict', 'OwnerResetPhoneTaken', {});
         }
-        await this.staff.setOwnerPhoneIn(tx, shop.id, phone);
-      }
-      await this.sessions.revokeEverySession(tx, subscriberId, now);
-      await this.audit.record(tx, {
-        tenantId: shop.id,
-        actorType: ActorType.PlatformSupport,
-        actorId: null, // AUD-08: never the operator's own id; the platform audit log keeps who it was.
-        action: AuditAction.OwnerSignInReset,
-        ip: input.ip,
-        targetType: 'tenant',
-        targetId: shop.id,
-        result: AuditResult.Success,
-        summary: {
-          reason: input.reason,
-          phoneChanged: changed,
-          phoneEnding: phone.slice(-PHONE_ENDING_DIGITS),
-        },
+        const current = await this.gateway.findPhoneIdentityOf(tx, subscriberId);
+        const changed = current?.phone !== phone;
+        if (changed) {
+          if (current === null) {
+            await this.gateway.insertPhoneIdentity(tx, { subscriberId, phone, verifiedAt: now });
+          } else {
+            await this.gateway.changePhoneIdentity(tx, current.id, phone, now);
+          }
+          await this.staff.setOwnerPhoneIn(tx, shop.id, phone);
+        }
+        await this.sessions.revokeEverySession(tx, subscriberId, now);
+        await this.audit.record(tx, {
+          tenantId: shop.id,
+          actorType: ActorType.PlatformSupport,
+          actorId: null, // AUD-08: never the operator's own id; the platform audit log keeps who it was.
+          action: AuditAction.OwnerSignInReset,
+          ip: input.ip,
+          targetType: 'tenant',
+          targetId: shop.id,
+          result: AuditResult.Success,
+          summary: {
+            reason: input.reason,
+            phoneChanged: changed,
+            phoneEnding: phone.slice(-PHONE_ENDING_DIGITS),
+          },
+        });
+        await this.platformAudit.recordWithin(tx, {
+          actorType: PlatformActorType.Operator,
+          actorId: input.operatorId,
+          action: PlatformAuditAction.OwnerSignInReset,
+          targetType: 'tenant',
+          targetId: shop.id,
+          result: AuditResult.Success,
+          ip: input.ip,
+          summary: {
+            reason: input.reason,
+            phoneChanged: changed,
+            from: current?.phone ?? null,
+            to: phone,
+          },
+        });
+        return changed;
+      })
+      .catch((error: unknown) => {
+        if (error instanceof UniqueViolation && error.target === 'phone') {
+          throw new ApiError('conflict', 'OwnerResetPhoneTaken', {});
+        }
+        throw error;
       });
-      await this.platformAudit.recordWithin(tx, {
-        actorType: PlatformActorType.Operator,
-        actorId: input.operatorId,
-        action: PlatformAuditAction.OwnerSignInReset,
-        targetType: 'tenant',
-        targetId: shop.id,
-        result: AuditResult.Success,
-        ip: input.ip,
-        summary: {
-          reason: input.reason,
-          phoneChanged: changed,
-          from: current?.phone ?? null,
-          to: phone,
-        },
-      });
-      return changed;
-    });
 
     // After the commit, as every code is: it reaches the phone that is now the account's. Lytro's own cost, and not
     // counted against the operator's address (D8-38).

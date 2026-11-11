@@ -26,7 +26,7 @@ import {
 import { LifecycleService } from '../../billing/services/lifecycle.service';
 import { TenantSummaries } from '../../tenancy/services/tenant-summaries.service';
 import type { TenantSearchCursor } from '../../tenancy/ports/tenant-summary-store';
-import { SearchTenantsDto, SuspendTenantDto } from '../dto/balance.dto';
+import { SearchTenantsDto, SuspendTenantDto, UndoReasonDto } from '../dto/balance.dto';
 import { TenantSummaryPageDto } from '../dto/balance-response.dto';
 import { OperatorShopAddonsDto, OperatorShopDto } from '../dto/operator-console.dto';
 import { OperatorShops } from '../services/operator-shops';
@@ -177,15 +177,25 @@ export class OperatorTenantLifecycleController {
   @Post(':id/restore')
   @HttpCode(200)
   @ResponseMessage('TenantRestored')
-  @ApiOperation({ summary: "Restore a tenant's shop after a suspension" })
+  @ApiOperation({
+    summary:
+      "Restore a tenant's shop after a suspension, with the reason, required: it goes on the platform audit log and the shop's activity log",
+  })
+  @ApiBody({ type: UndoReasonDto })
   @ZodResponse({ type: OkDto })
   async restore(
     @Param('id') tenantId: string,
+    @Body(new ZodValidationPipe(UndoReasonDto.schema)) body: UndoReasonDto,
     @Req() request: OperatorSessionRequest,
   ): Promise<{ ok: true }> {
     const session = request.operatorSession;
     if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
-    await this.lifecycle.restore(tenantId, session.operatorId, this.clientIp.resolve(request));
+    await this.lifecycle.restore(
+      tenantId,
+      body.reason,
+      session.operatorId,
+      this.clientIp.resolve(request),
+    );
     return { ok: true };
   }
 }

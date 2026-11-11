@@ -24,10 +24,11 @@ import {
 import { PlanLimitOverridesService } from '../../billing/services/plan-limit-overrides.service';
 import { OperatorDirectory } from '../../operator/services/operator-directory';
 import type { PlanLimitOverrideRecord } from '../../billing/types/plan-assignment';
+import { UndoReasonDto } from '../dto/balance.dto';
 import { SetPlanLimitOverrideDto } from '../dto/billing.dto';
 import { PlanLimitOverrideDto, PlanLimitOverrideListDto } from '../dto/billing-response.dto';
 
-// PLN-11: per-tenant limit overrides, each with a required reason.
+// PLN-11: per-tenant limit overrides, each set and removed with a required reason.
 @ApiTags('Operator Plan Limit Overrides')
 @Controller('operator/tenants/:tenantId/limit-overrides')
 @SkipTenant()
@@ -72,16 +73,21 @@ export class OperatorPlanLimitOverridesController {
   @Delete(':limitKey')
   @HttpCode(200)
   @ResponseMessage('LimitOverrideRemoved')
-  @ApiOperation({ summary: "Remove a tenant's plan-limit override" })
+  @ApiOperation({
+    summary:
+      "Remove a tenant's plan-limit override, with the reason, required, in the body: it goes on both audit logs",
+  })
+  @ApiBody({ type: UndoReasonDto })
   @ZodResponse({ type: OkDto })
   async remove(
     @Param('tenantId') tenantId: string,
     @Param('limitKey') limitKey: string,
+    @Body(new ZodValidationPipe(UndoReasonDto.schema)) body: UndoReasonDto,
     @Req() request: OperatorSessionRequest,
   ): Promise<{ ok: true }> {
     const session = request.operatorSession;
     if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
-    await this.overrides.remove(tenantId, limitKey, session.operatorId);
+    await this.overrides.remove(tenantId, limitKey, body.reason, session.operatorId);
     return { ok: true };
   }
 }
