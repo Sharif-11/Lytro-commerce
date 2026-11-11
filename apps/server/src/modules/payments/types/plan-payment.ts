@@ -2,10 +2,10 @@ import type {
   BillingPaymentState,
   PaymentCancelReason,
   GatewayResult,
+  PaidByMethod,
   PaymentMethod,
   PaymentReviewReason,
   PlanPaymentKind,
-  PlanPaymentMethod,
   PlanPaymentPageFrom,
   PlanPaymentStatus,
 } from '@lytronix/validators';
@@ -62,8 +62,11 @@ export interface WalletSubmission {
 /** BIL-19: a payment as the shop reads it in Billing: its state, how it was paid, what it names, and its invoice. */
 export interface TenantPaymentRecord extends PlanPaymentRecord {
   state: BillingPaymentState;
-  /** 'wallet' once a transaction ID was submitted, 'balance' when paid from the balance, null before either. */
-  method: PlanPaymentMethod | null;
+  /**
+   * 'wallet' once a transaction ID was submitted, 'bank' when it was a bank transfer's reference, 'balance' when paid
+   * from the balance, null before any.
+   */
+  method: PaidByMethod | null;
   planName: string | null;
   billingTerm: { labelEn: string; labelBn: string; months: number } | null;
   invoice: { id: string; number: number } | null;

@@ -109,6 +109,8 @@ export interface MoneyState {
   credit?: number;
   /** BIL-09: the server works out this amount instead of the one shown, and says so once. */
   amountChangedTo?: string | null;
+  /** GET /billing/invoices/:id by id; the paid renewal's invoice for any other. */
+  invoices?: Record<string, unknown>;
   /** BIL-19: the shop's payments to Lytro, newest first; the prototype's list when left out. */
   payments?: PaymentFixture[];
   /** GET /home's rejected or lapsed payment, for Home's row and the Billing chip's count. */
@@ -520,7 +522,7 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
     return { payments, page: 1, limit: 20, total: payments.length, pages: 1 };
   }
   const invoice = /^\/billing\/invoices\/([^/]+)$/.exec(path);
-  if (invoice) return invoiceOf(invoice[1] ?? '');
+  if (invoice) return money.invoices?.[invoice[1] ?? ''] ?? invoiceOf(invoice[1] ?? '');
   if (path === '/balance/ledger') {
     const types = url.searchParams.get('type')?.split(',') ?? [];
     const entries = (money.ledger ?? drawnLedger()) as { type: string }[];

@@ -5,7 +5,7 @@ import {
   InvoiceLineKind,
   PaymentCancelReason,
   PaymentReviewReason,
-  PLAN_PAYMENT_METHODS,
+  PAID_BY_METHODS,
   planLimitsSchema,
   PaymentMethod,
 } from '@lytronix/validators';
@@ -170,7 +170,7 @@ export const billingPaymentSchema = planPaymentSchema.extend({
   state: z.nativeEnum(BillingPaymentState),
   // ADM-14: marked "recorded by the platform".
   recordedByPlatform: z.boolean(),
-  method: z.enum(PLAN_PAYMENT_METHODS).nullable(),
+  method: z.enum(PAID_BY_METHODS).nullable(),
   planName: z.string().nullable(),
   billingTerm: z
     .object({ labelEn: z.string(), labelBn: z.string(), months: z.number() })
@@ -232,7 +232,7 @@ export const invoiceSchema = z.object({
   periodStart: z.date().nullable(),
   periodEnd: z.date().nullable(),
   discountAmount: z.string(),
-  paymentMethod: z.enum(PLAN_PAYMENT_METHODS).nullable(),
+  paymentMethod: z.enum(PAID_BY_METHODS).nullable(),
   paymentReference: z.string().nullable(),
   // BIL-19: the payment it is the receipt of; null on invoices issued before it was recorded.
   planPaymentId: z.string().nullable(),

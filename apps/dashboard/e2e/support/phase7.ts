@@ -330,9 +330,9 @@ const BELL: Record<BellRow, BellDraft> = {
   },
   retire: {
     kind: 'courier_retiring',
-    title: { bn: 'Steadfast বন্ধ হয়ে যাচ্ছে', en: 'Steadfast is being retired' },
+    title: { bn: 'Steadfast রিটায়ার হচ্ছে', en: 'Steadfast is being retired' },
     body: {
-      bn: 'Lytro Steadfast বন্ধ করছে। বুক করা পার্সেল আগের মতোই চলবে। নতুন বুকিংয়ের জন্য Pathao কানেক্ট করুন। আপনার ডিফল্ট কুরিয়ার এখন Pathao।',
+      bn: 'Lytro Steadfast রিটায়ার করছে। বুক করা পার্সেল আগের মতোই চলবে। নতুন বুকিংয়ের জন্য Pathao কানেক্ট করুন। আপনার ডিফল্ট কুরিয়ার এখন Pathao।',
       en: 'Lytro is retiring Steadfast. Parcels already booked carry on as before. Connect Pathao for new bookings. Your default courier is now Pathao.',
     },
     link: '/settings/couriers',

@@ -2465,7 +2465,7 @@ Still open:
 - **What the test doesn't serve.** The marketing site, the storefront, a shop's own domain and the two apps' files sit
   behind the same file but aren't started in the test; only the server's own hosts are called.
 
-## 142. `ADM-08`, `ADM-14`, `ADM-17`, `D8-75`, `D8-78`: what Slice 8.8's console build found — found 2026-11-10, two fixed, the rest open
+## 142. `ADM-08`, `ADM-14`, `ADM-17`, `D8-75`, `D8-78`: what Slice 8.8's console build found — found 2026-11-10, four fixed, the rest open
 
 - **The console's policy refused payment screenshots.** `(operator_csp)` allowed fetches and images from the console's own
   origin only, so a manual entry's screenshot could not go up to its signed link and a seller's could not show from its
@@ -2478,10 +2478,15 @@ Still open:
 - **A bank entry's invoice says it was paid by wallet.** An invoice's `paymentMethod` is `wallet` whenever its payment has a
   transaction ID, so a transfer recorded to Lytro's bank account (D8-75) reads as a wallet payment, and the dashboard shows its
   reference as "TrxID BRAC-FT-…". The money and the reference are right; only the method's word is. For the owner: add
-  `bank` to the invoice's methods, or leave it.
+  `bank` to the invoice's methods, or leave it. **Fixed (the owner, 2026-11-11: name the bank):** an invoice and Billing's
+  `method` say `bank` when the payment went by the bank method, a manual entry to a bank account or the payment page's bank
+  transfer (`paidByOf`), and the dashboard reads "Bank transfer · Reference …", and "Reference …" in a payment's steps and
+  the balance statement. A shop's request still asks only `balance` or `wallet`.
 - **The retiring courier's notice still says "বন্ধ হয়ে যাচ্ছে".** D8-78 made "রিটায়ার হচ্ছে" the word for a retiring payment
   method, and the dashboard's courier chip already says it, but Slice 6.6's courier notice (`courierRetiringText`) keeps the
-  old words. For the owner: the same word for couriers, or leave it.
+  old words. For the owner: the same word for couriers, or leave it. **Fixed (the owner, 2026-11-11: the same word):**
+  "{courier} রিটায়ার হচ্ছে", and "Lytro {courier} রিটায়ার করছে।" in its body, in the server, the dashboard's test notice
+  and the prototype.
 - **Some audit lines show less than the sketch draws.** An approved payment's summary (`plan_payment_verified`) holds no
   TrxID, an acknowledged notice's (`notice_acknowledged`) only the shop, so the audit log and a shop's latest actions show
   the amount without the TrxID and the acknowledgement without the notice's title.

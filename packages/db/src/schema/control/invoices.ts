@@ -16,8 +16,8 @@ import {
 import {
   InvoiceKind,
   InvoiceLineKind,
+  type PaidByMethod,
   type PlanLimits,
-  type PlanPaymentMethod,
 } from '@lytronix/validators';
 import { control } from '../shared';
 import { tenants } from './tenancy';
@@ -60,8 +60,8 @@ export const invoices = control.table(
     periodEnd: timestamp('period_end', { withTimezone: true }),
     // TRM-12: the saving against the plan's shortest visible term, before any upgrade credit.
     discountAmount: numeric('discount_amount', { precision: 10, scale: 2 }).notNull().default('0'),
-    paymentMethod: text('payment_method').$type<PlanPaymentMethod>(),
-    // The wallet transaction ID; null for a payment from the balance.
+    paymentMethod: text('payment_method').$type<PaidByMethod>(),
+    // The wallet's transaction ID or the bank transfer's reference; null for a payment from the balance.
     paymentReference: text('payment_reference'),
     // BIL-19: the payment this invoice is the receipt of, copied at issue like the rest -- a plain id, not a foreign key
     // (decided 2026-10-23), one invoice per payment. Null on invoices issued before it was recorded that no transaction

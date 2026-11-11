@@ -3,6 +3,7 @@ import type { TenantPaymentFilter, TenantPaymentRow, Transaction } from '@lytron
 import {
   BillingPaymentState,
   billingPaymentStateOf,
+  paidByOf,
   PAYMENT_ATTENTION_DAYS,
   PaymentCancelReason,
   type PaymentReviewReason,
@@ -63,11 +64,9 @@ function asTenantPayment(row: TenantPaymentRow): TenantPaymentRecord {
     ...payment,
     state: billingPaymentStateOf(payment.status, payment.transactionId),
     method:
-      payment.transactionId !== null
-        ? 'wallet'
-        : payment.status === PlanPaymentStatus.Verified
-          ? 'balance'
-          : null,
+      payment.transactionId !== null || payment.status === PlanPaymentStatus.Verified
+        ? paidByOf(payment.transactionId, payment.payMethod)
+        : null,
     planName,
     billingTerm:
       termLabelEn !== null && termLabelBn !== null && termMonths !== null
