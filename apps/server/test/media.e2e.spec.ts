@@ -540,7 +540,7 @@ describeIfDatabase('attaching images (PRD-11, PRD-17, ATR-18, TEN-16)', () => {
 });
 
 describeIfDatabase('deleting media (MED-09, STO-07, LIF-19)', () => {
-  it('counts the past orders whose items show a photo, and leaves them their details when it goes (ORD-47)', async () => {
+  it('counts the past orders whose items show a photo, and keeps the photo for them (ORD-47, ATR-20 PD-8)', async () => {
     const shop = await openShop(port, texts, 'media');
     const image = await upload(shop, await photo());
     const made = await shop.post('/products', {
@@ -572,7 +572,17 @@ describeIfDatabase('deleting media (MED-09, STO-07, LIF-19)', () => {
     }
     const detail = (await shop.get(`/media/${image.id}`)).body as { uses: { pastOrders: number } };
     expect(detail.uses.pastOrders).toBe(2);
-    expect((await shop.delete(`/media/${image.id}`)).status).toBe(200);
+    // PD-8: deleting it is refused while orders show it, saying how many; taking it off the product is not.
+    const refused = await shop.delete(`/media/${image.id}`);
+    expect(refused.status).toBe(409);
+    expect(errorOf(refused)).toMatchObject({
+      code: 'conflict',
+      message: said('MediaKeptForOrders', { count: 2 }),
+    });
+    const productId = (made.body as { id: string }).id;
+    expect((await shop.put(`/products/${productId}/images`, { mediaIds: [] })).status).toBe(200);
+    expect((await shop.delete(`/media/${image.id}`)).status).toBe(409);
+    expect((await shop.get(`/media/${image.id}`)).status).toBe(200);
     const orders = (await shop.get('/orders')).body as { orders: { id: string }[] };
     const kept = (await shop.get(`/orders/${orders.orders[0]?.id ?? ''}`)).body as {
       items: { productName: string; thumbnail: { mediaId: string } | null }[];

@@ -1,4 +1,4 @@
-DROP INDEX IF EXISTS "attribute_options_tenant_value_idx";--> statement-breakpoint
+DROP INDEX IF EXISTS "tenant"."attribute_options_tenant_value_idx";--> statement-breakpoint
 ALTER TABLE "tenant"."attribute_options" ADD COLUMN "product_id" uuid;--> statement-breakpoint
 ALTER TABLE "tenant"."attributes" ADD COLUMN "photo_designs" boolean DEFAULT false NOT NULL;--> statement-breakpoint
 ALTER TABLE "tenant"."product_images" ADD COLUMN "design_option_id" uuid;--> statement-breakpoint
