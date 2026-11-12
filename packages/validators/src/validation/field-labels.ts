@@ -191,6 +191,12 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   imageId: { en: 'Image', bn: 'ছবি' },
   hostname: { en: 'Your domain', bn: 'আপনার ডোমেইন' },
   imageIds: { en: 'Photos', bn: 'ছবি' },
+  // PUT products/:id/images (photo designs, ATR-19): the photos with their designs, and the designs they name.
+  photos: { en: 'Photos', bn: 'ছবি' },
+  design: { en: 'Design', bn: 'ডিজাইন' },
+  designs: { en: 'Designs', bn: 'ডিজাইন' },
+  // A listed item's own id, whose meaning varies by its list (a design's, so far); its message names it.
+  id: null,
   includeRetired: { en: 'Show retired', bn: 'রিটায়ার্ডগুলোও দেখান' },
   inStock: { en: 'In stock only', bn: 'শুধু স্টকে আছে' },
   instructions: { en: 'Instructions', bn: 'নির্দেশনা' },
