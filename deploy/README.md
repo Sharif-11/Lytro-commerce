@@ -143,6 +143,7 @@ sudo docker volume rm lytro_pgdata
 Then deploy the release that names the new version (re-run its Deploy workflow). PostgreSQL starts empty, the roles
 are made, and the migrations run. To keep the data, restore the dump before that deploy's migrations, as Slice 9.3's
 restore runbook will say; staging's test data can simply be made again.
+
 ## Media (photos)
 
 Optional, and best switched on once the first deploy works. In Cloudflare (`docs/DEPLOYMENT.md` §8, "Staging's media"):
