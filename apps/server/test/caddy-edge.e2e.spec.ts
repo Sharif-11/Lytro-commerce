@@ -29,6 +29,10 @@ import { SmsCapture } from './support/sms-capture';
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_caddy_edge_test';
 const DOCKER = ADMIN_URL ? dockerAnswers() : false;
+// CI runs the deployment's own edge image (D9-10), which it builds first and names in CADDY_IMAGE.
+if (ADMIN_URL && process.env['CI'] && !process.env['CADDY_IMAGE']) {
+  throw new Error('the Caddy edge spec runs the edge image in CI: build it and set CADDY_IMAGE');
+}
 if (ADMIN_URL && !DOCKER && process.env['CI']) {
   throw new Error('the Caddy edge spec needs a Docker engine in CI, to run deploy/Caddyfile');
 }
@@ -95,6 +99,14 @@ function words(key: MessageKey): string {
 }
 
 describeIfEdge('every outside call through the edge (deploy/Caddyfile, KNOWN-GAPS §141)', () => {
+  // D9-10: the wildcard certificate's DNS challenge needs the plugin, so the image the deployment runs must carry it.
+  it.runIf(process.env['CADDY_IMAGE'])(
+    'runs in the deployment’s edge image, which carries the Cloudflare DNS plugin',
+    async () => {
+      expect(await edge.modules()).toContain('dns.providers.cloudflare');
+    },
+  );
+
   it('lets nothing reach the server without the edge’s secret, so each answer below came through the edge', async () => {
     const direct = await sendExact(port, 'GET', '/v1/shop', undefined, { host: 'api.localhost' });
     expect(direct.status).toBe(403);

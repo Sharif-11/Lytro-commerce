@@ -1,0 +1,183 @@
+# One server's deployment (Phase 9 Slice 9.1, D9-9 to D9-12): staging today, production later, the same file. Run by
+# deploy/scripts/deploy.sh from a release's own copy of deploy/, never edited on the server. What differs between
+# servers is in /opt/lytro (LYTRO_HOME): the root-only env files and release.env (which images to run), never here.
+#
+#   edge        Caddy: TLS, every host's routing (deploy/Caddyfile), the dashboard and console files
+#   api-1/2     the API, two processes replaced one at a time (D9-11, D9-12)
+#   worker      every job (D9-11), never routed to
+#   website     the marketing site        storefront  every shop's storefront
+#   postgres    the database              redis       for Slice 9.4's limits; nothing uses it yet (D9-1)
+#   migrate     one-off: migrations, then pg-boss's schema, as the owner (deploy.sh, after a dump)
+#   static      one-off: publishes a release's dashboard and console files into the edge's volume
+#
+# Memory: every process has a ceiling (D9-11), set for staging's 2 vCPU / 3 GB by default and raised for production in
+# release.env. PostgreSQL has none, and the kernel is told to kill it last.
+name: lytro
+
+x-server: &server
+  image: ${REGISTRY:?}/lytro-server:${RELEASE:?}
+  init: true
+  restart: unless-stopped
+  env_file: ${LYTRO_HOME:-/opt/lytro}/env/server.env
+  depends_on:
+    postgres:
+      condition: service_healthy
+  networks: [internal]
+  # The API's own shutdown waits 10 s for requests in flight; a job worker's pg-boss waits up to 30 s for running jobs.
+  stop_grace_period: 45s
+  logging: &logging
+    driver: json-file
+    options: { max-size: 10m, max-file: '5' }
+
+x-api: &api
+  <<: *server
+  mem_limit: ${API_MEMORY:-384m}
+  environment: &api-environment
+    SERVER_ROLE: api
+    RELEASE: ${RELEASE:?}
+    NODE_OPTIONS: --max-old-space-size=${API_HEAP_MB:-256}
+
+services:
+  edge:
+    image: ${REGISTRY:?}/lytro-edge:${EDGE_TAG:?}
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    env_file: ${LYTRO_HOME:-/opt/lytro}/env/edge.env
+    environment:
+      SERVER_UPSTREAM: api-1:3000 api-2:3000
+      WEBSITE_UPSTREAM: website:3003
+      STOREFRONT_UPSTREAM: storefront:3001
+      DASHBOARD_DIST_PATH: /srv/static/current/dashboard
+      OPERATOR_DIST_PATH: /srv/static/current/operator
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+      - static:/srv/static:ro
+    networks: [internal]
+    mem_limit: ${EDGE_MEMORY:-128m}
+    logging: *logging
+
+  api-1:
+    <<: *api
+  api-2:
+    <<: *api
+
+  worker:
+    <<: *server
+    mem_limit: ${WORKER_MEMORY:-768m}
+    environment:
+      SERVER_ROLE: worker
+      RELEASE: ${RELEASE:?}
+      NODE_OPTIONS: --max-old-space-size=${WORKER_HEAP_MB:-320}
+      # Video conversion writes its files here (media-processor); a folder in the container, kept off the image.
+      TMPDIR: /tmp
+
+  website:
+    image: ${REGISTRY:?}/lytro-website:${RELEASE:?}
+    init: true
+    restart: unless-stopped
+    env_file: ${LYTRO_HOME:-/opt/lytro}/env/website.env
+    environment:
+      # The API, balanced and health-checked by the edge's internal listener (deploy/Caddyfile).
+      SERVER_URL: http://edge:8080
+      NODE_OPTIONS: --max-old-space-size=${WEBSITE_HEAP_MB:-160}
+    networks: [internal]
+    mem_limit: ${WEBSITE_MEMORY:-256m}
+    logging: *logging
+
+  storefront:
+    image: ${REGISTRY:?}/lytro-storefront:${RELEASE:?}
+    init: true
+    restart: unless-stopped
+    env_file: ${LYTRO_HOME:-/opt/lytro}/env/storefront.env
+    environment:
+      SERVER_URL: http://edge:8080
+      NODE_OPTIONS: --max-old-space-size=${STOREFRONT_HEAP_MB:-200}
+    networks: [internal]
+    mem_limit: ${STOREFRONT_MEMORY:-320m}
+    logging: *logging
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    env_file: ${LYTRO_HOME:-/opt/lytro}/env/postgres.env
+    command:
+      - postgres
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-192MB}
+      - -c
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-768MB}
+      - -c
+      - work_mem=${PG_WORK_MEM:-4MB}
+      - -c
+      - maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-64MB}
+      - -c
+      - max_connections=${PG_MAX_CONNECTIONS:-60}
+      - -c
+      - log_min_duration_statement=1000
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres:/docker-entrypoint-initdb.d:ro
+    shm_size: 256m
+    # Killed last when memory runs out (D9-11).
+    oom_score_adj: -900
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [internal]
+    logging: *logging
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    # Limits and counters only (Slice 9.4): nothing in it has to survive a restart.
+    command:
+      [
+        'redis-server',
+        '--save',
+        '',
+        '--appendonly',
+        'no',
+        '--maxmemory',
+        '64mb',
+        '--maxmemory-policy',
+        'allkeys-lru',
+      ]
+    networks: [internal]
+    mem_limit: ${REDIS_MEMORY:-96m}
+    logging: *logging
+
+  migrate:
+    <<: *server
+    profiles: [tools]
+    restart: 'no'
+    # The owner's DATABASE_URL: migrations change the schema, which the app role can't (deploy/README.md).
+    env_file: ${LYTRO_HOME:-/opt/lytro}/env/migrate.env
+    environment:
+      RELEASE: ${RELEASE:?}
+    command:
+      - sh
+      - -c
+      - node node_modules/@lytronix/db/dist/migrate.js && node node_modules/@lytronix/db/dist/bootstrap-queue.js
+
+  static:
+    image: ${REGISTRY:?}/lytro-static:${RELEASE:?}
+    profiles: [tools]
+    restart: 'no'
+    volumes:
+      - static:/srv/static
+    networks: [internal]
+
+networks:
+  internal:
+
+volumes:
+  pgdata:
+  caddy-data:
+  caddy-config:
+  static:

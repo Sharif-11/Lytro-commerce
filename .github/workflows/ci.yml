@@ -67,10 +67,29 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
+      # Slice 9.1 (D9-10): the edge image the deployment runs (Caddy with the Cloudflare DNS plugin), which the server's
+      # Caddy spec runs in front of the server. Its build checks deploy/Caddyfile as production reads it.
+      - name: Set up Docker builds
+        if: steps.scope.outputs.code == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the edge image
+        if: steps.scope.outputs.code == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/caddy/Dockerfile
+          tags: lytro-edge:ci
+          load: true
+          cache-from: type=gha,scope=edge
+          cache-to: type=gha,scope=edge,mode=max
+
       - name: Unit tests
         if: steps.scope.outputs.code == 'true'
         # Through Turborepo directly: `pnpm test` is pnpm's own command, and refuses --affected.
         run: pnpm exec turbo run test ${{ steps.scope.outputs.affected }}
+        env:
+          CADDY_IMAGE: lytro-edge:ci
 
       - name: Build all apps
         if: steps.scope.outputs.code == 'true'
