@@ -52,7 +52,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
 .frame{container-type:inline-size;background:var(--bg);color:var(--text);font-family:var(--font-ui);overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(16,32,31,.25)}
 .frame.phone{width:390px;height:844px;border-radius:40px;border:8px solid #0b1514}
 .frame.tablet{width:820px;height:1000px;border-radius:24px;border:8px solid #0b1514}
-.frame.desktop{width:1280px;height:860px;border-radius:12px;border:1px solid #c9d3d2}
+.frame.desktop{width:1280px;height:860px;border-radius:12px;border:1px solid #c9d3d2;--vh:820px}
 .frame .statusbar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:14px;font-weight:600;background:var(--surface)}
 .frame.desktop .statusbar{display:none}
 .frame .urlbar{display:none;height:40px;align-items:center;gap:10px;padding:0 14px;background:#f1f4f3;border-bottom:1px solid #d5dfde;font-size:13px;color:#2c3f3e;font-family:Inter,sans-serif}
@@ -174,10 +174,26 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .swb i{display:block;width:100%;height:100%;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
 .swb.on{border-color:var(--text)}
 .swb.off{opacity:.4}
+/* Photo designs: a product's own photos as the choice, one card per design (its cover), 4:5 like the photos. Five fill
+   the row; more scroll sideways. A tap ticks one; a sold-out design is greyed with its word. */
+.pcards{display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 32px) / 5);gap:8px;overflow-x:auto;scrollbar-width:none;padding:4px;margin:-4px}
+.pcard{position:relative;aspect-ratio:4/5;border-radius:10px;overflow:hidden;outline:1px solid var(--line);outline-offset:-1px;cursor:pointer;background:var(--sunken)}
+.pcard i{display:block;width:100%;height:100%}
+.pcard .tk{display:none;position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--on-accent);align-items:center;justify-content:center}
+.pcard .tk svg.i{width:13px;height:13px}
+.pcard.on{outline:2.5px solid var(--accent);outline-offset:2px}
+.pcard.on .tk{display:flex}
+.pcard.same{outline:2px solid var(--accent);outline-offset:-2px;opacity:.9}
+.pcards.many{grid-auto-columns:calc((100% - 40px) / 5.5)}
+.pcard.off i{filter:grayscale(1);opacity:.5}
+.pcard.off b{position:absolute;left:0;right:0;bottom:0;background:rgba(16,32,31,.72);color:#fff;font-size:11px;font-weight:600;text-align:center;padding:3px 0}
+.pcards.nudge{animation:pshake .45s ease 2}
+@keyframes pshake{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.pcards.nudge .pcard{outline-color:var(--danger)}
 .swb.off::after{content:"";position:absolute;left:6px;right:6px;top:50%;height:2px;background:var(--text);transform:rotate(-45deg)}
 .qty{display:inline-flex;align-items:center;border:1.5px solid var(--line-strong);border-radius:var(--r-control);height:40px}
 .qty button{width:40px;height:100%;display:inline-flex;align-items:center;justify-content:center;font-size:18px}
-.qty span{min-width:36px;text-align:center;font-weight:600}
+.qty span{min-width:36px;text-align:center;font-weight:600;padding:0 6px;white-space:nowrap}
 .qty.measured input{width:48px;border:0;background:none;font:inherit;font-weight:600;text-align:right;padding:0;outline-offset:2px}
 .qty.measured .u{min-width:0;padding:0 8px 0 4px;font-weight:600}
 .line{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted);line-height:1.5}
@@ -274,6 +290,9 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .cl .vr{font-size:13px;color:var(--muted)}
 .cl .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto}
 .cl .rm{font-size:13px;color:var(--subtle);cursor:pointer}
+.cl .rmi{width:34px;height:34px;flex:none;border:1.5px solid var(--line-strong);border-radius:var(--r-control);display:inline-flex;align-items:center;justify-content:center;color:var(--n700);cursor:pointer}
+.cl .rmi svg.i{width:17px;height:17px}
+.cl .qrm{display:flex;align-items:center;gap:8px}
 .cl .note{font-size:12px;font-weight:600;color:var(--warning)}
 .cl.off .th,.cl.off .nm,.cl.off .vr{opacity:.55}
 .cl.off .note{color:var(--n700)}
@@ -402,8 +421,10 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
   .grid{grid-template-columns:repeat(4,1fr);gap:28px 20px}
   .hero{padding:40px 36px;min-height:220px;justify-content:center}
   .hero h1{font-size:36px}
-  .pdp{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:40px;align-items:start}
-  .pdp .gal{position:sticky;top:0;display:grid;grid-template-columns:72px 1fr;gap:12px}
+  .pdp{display:grid;grid-template-columns:auto minmax(0,1fr);gap:40px;align-items:start}
+  .pdp .gal{position:sticky;top:0;display:grid;grid-template-columns:72px auto;gap:12px;--ph:min(calc(var(--vh, 100svh) - 150px), 800px)}
+  .pdp .gal .gallery .main{height:var(--ph);width:calc(var(--ph) * var(--ar, .8));aspect-ratio:auto}
+  .pdp .gal .thumbs{max-height:var(--ph);overflow-y:auto}
   .thumbs{display:flex;flex-direction:column;gap:8px}
   .thumbs i{display:block;width:72px;height:90px;border-radius:8px;background:var(--sunken);border:2px solid transparent}
   .thumbs i.on{border-color:var(--text)}
@@ -453,6 +474,7 @@ const I = {
   check: '<svg class="i" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>',
   plus: '<svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
   minus: '<svg class="i" viewBox="0 0 24 24"><path d="M5 12h14"/></svg>',
+  trash: '<svg class="i" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg>',
   heart: '<svg class="i" viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg>',
   truck: '<svg class="i" viewBox="0 0 24 24"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
   cash: '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M7 12h.01M17 12h.01"/></svg>',
@@ -498,15 +520,15 @@ const S = {
   products_n: ['{n}টি প্রোডাক্ট', '{n} products'], sort: ['সাজান', 'Sort'], sort_rel: ['মিল অনুযায়ী', 'Relevance'], sort_new: ['নতুন আগে', 'Newest'], sort_lo: ['কম দাম আগে', 'Price: low to high'], sort_hi: ['বেশি দাম আগে', 'Price: high to low'], instock_only: ['শুধু স্টকে আছে', 'In stock only'], load_more: ['আরও দেখুন', 'Show more'],
   recent: ['সম্প্রতি খুঁজেছেন', 'Recent'], suggestions: ['এখান থেকে শুরু করুন', 'Start here'], results_for: ['"{q}" এর ফলাফল', 'Results for "{q}"'], no_results: ['কিছু পাওয়া যায়নি', 'Nothing found'], no_results_hint: ['অন্য বানানে বা ছোট শব্দে খুঁজুন, বা ক্যাটাগরি থেকে দেখুন।', 'Try another spelling or a shorter word, or browse a category.'], browse_cats: ['ক্যাটাগরি দেখুন', 'Browse categories'],
   // product
-  colour: ['রং', 'Colour'], size: ['সাইজ', 'Size'], qty: ['পরিমাণ', 'Quantity'], size_chart: ['সাইজ চার্ট', 'Size chart'], add: ['কার্টে রাখুন', 'Add to cart'], buy_now: ['এখনই কিনুন', 'Buy now'], added: ['কার্টে রাখা হয়েছে', 'Added to cart'], view_cart: ['কার্ট দেখুন', 'View cart'],
+  colour: ['রং', 'Colour'], size: ['সাইজ', 'Size'], qty: ['পরিমাণ', 'Quantity'], u_piece: ['পিস', 'piece'], u_pieces: ['পিস', 'pieces'], size_chart: ['সাইজ চার্ট', 'Size chart'], add: ['কার্টে রাখুন', 'Add to cart'], buy_now: ['এখনই কিনুন', 'Buy now'], added: ['কার্টে রাখা হয়েছে', 'Added to cart'], view_cart: ['কার্ট দেখুন', 'View cart'],
   unavailable: ['এই কম্বিনেশন নেই', 'This combination is unavailable'], unavailable_hint: ['নেভি রঙে L সাইজ শেষ। অন্য সাইজ বা রং বেছে নিন।', 'L in Navy is sold out. Pick another size or colour.'],
-  deliv_est: ['ডেলিভারি চার্জ', 'Delivery'], deliv_range: ['৳70 ঢাকা শহরে · ৳130 বাইরে', '৳70 in Dhaka city · ৳130 outside'], deliv_area: ['আপনার এলাকা দিন', 'Set your area'], deliv_to: ['{a}: ৳{n}', '{a}: ৳{n}'], change: ['বদলান', 'change'], deliv_days: ['ঢাকায় ১–২ দিন, বাইরে ২–৪ দিন', '1 to 2 days in Dhaka, 2 to 4 outside'],
+  deliv_est: ['ডেলিভারি চার্জ', 'Delivery'], deliv_range: ['৳70 ঢাকা শহরে · ৳130 বাইরে', '৳70 in Dhaka city · ৳130 outside'], deliv_area: ['আপনার অ্যাড্রেস দিন', 'Set your address'], deliv_exact: ['সঠিক ডেলিভারি চার্জ জানতে আপনার অ্যাড্রেস দিন', 'Set your address to see the exact delivery charge'], deliv_exact_thana: ['সঠিক ডেলিভারি চার্জ জানতে থানা বাছুন', 'Choose your thana to see the exact delivery charge'], deliv_to: ['{a}: ৳{n}', '{a}: ৳{n}'], change: ['বদলান', 'change'], deliv_days: ['ঢাকায় ১–২ দিন, বাইরে ২–৪ দিন', '1 to 2 days in Dhaka, 2 to 4 outside'],
   delivers_only: ['শুধু {z}-এ ডেলিভারি হয়', 'Delivers to {z} only'], pay_cod: ['ক্যাশ অন ডেলিভারি', 'Cash on delivery'], pay_cod_hint: ['পণ্য হাতে পেয়ে টাকা দিন', 'Pay when it arrives'], pay_adv: ['৳{n} অগ্রিম, বাকিটা ডেলিভারিতে', '৳{n} advance, the rest on delivery'], pay_adv_hint: ['অর্ডার কনফার্ম করতে bKash বা Nagad-এ ৳{n} পাঠাতে হবে', 'Send ৳{n} by bKash or Nagad to confirm the order'], pay_full: ['পুরো টাকা অগ্রিম', 'Full payment in advance'], pay_dc: ['ডেলিভারি চার্জ অগ্রিম', 'Delivery charge in advance'],
   cond_used: ['ব্যবহৃত', 'Used'], cond_refurb: ['রিফার্বিশড', 'Refurbished'], video: ['ভিডিও', 'Video'], details: ['বিস্তারিত', 'Details'], description: ['বর্ণনা', 'Description'], care: ['যত্ন ও ফেরত', 'Care and returns'], care_text: ['রিটার্ন বা বদল: ডেলিভারির ২৪ ঘণ্টার মধ্যে জানালে। যোগাযোগ: ০১৭১১-২২৩৩৪৪।', 'Returns or exchange: tell us within 24 hours of delivery. Contact: 01711-223344.'],
   share: ['শেয়ার', 'Share'], copy_link: ['লিংক কপি', 'Copy link'], copied: ['কপি হয়েছে', 'Copied'], whatsapp: ['WhatsApp', 'WhatsApp'], facebook: ['Facebook', 'Facebook'],
   sc_title: ['সাইজ চার্ট', 'Size chart'], sc_hint: ['মাপ ইঞ্চিতে। সন্দেহ হলে এক সাইজ বড় নিন।', 'Measurements in inches. When in doubt, take one size up.'], chest: ['বুক', 'Chest'], length: ['লম্বা', 'Length'], sleeve: ['হাতা', 'Sleeve'],
   // area and cart
-  area_title: ['আপনার এলাকা', 'Your area'], area_hint: ['জেলা ও থানা বাছলে ঠিক ডেলিভারি চার্জ দেখাবে।', 'Pick the district and thana to see the exact delivery charge.'], district: ['জেলা', 'District'], thana: ['থানা / উপজেলা', 'Thana / upazila'], area_save: ['এলাকা ঠিক করুন', 'Set area'],
+  area_title: ['আপনার অ্যাড্রেস', 'Your address'], area_hint: ['জেলা ও থানা বাছলে ঠিক ডেলিভারি চার্জ দেখাবে।', 'Pick the district and thana to see the exact delivery charge.'], district: ['জেলা', 'District'], thana: ['থানা / উপজেলা', 'Thana / upazila'], area_save: ['অ্যাড্রেস ঠিক করুন', 'Set address'],
   cart_title: ['কার্ট', 'Your cart'], cart_n: ['{n}টি আইটেম', '{n} items'], subtotal: ['পণ্যের দাম', 'Items'], delivery: ['ডেলিভারি', 'Delivery'], total: ['মোট', 'Total'], checkout: ['অর্ডার করুন', 'Checkout'], continue_: ['আরও কেনাকাটা', 'Keep shopping'], remove: ['সরান', 'Remove'],
   cart_empty: ['কার্ট খালি', 'Your cart is empty'], cart_empty_hint: ['পছন্দের জিনিস কার্টে রাখুন, স্টক ধরা হয় না — অর্ডার করলে তবেই।', 'Add what you like; nothing is held until you order.'], cart_est_note: ['ডেলিভারি চার্জ অর্ডারের সময় যেটা হবে, এখানেও সেটাই — একই হিসাব।', 'The delivery charge here is the one the order will carry, from the same calculation.'],
   nosave_h: ['আপনি অফলাইনে', "You're offline"], nosave_p: ['এই পেজটা এখনো এই ফোনে রাখা নেই। ইন্টারনেট চালু করে আবার ট্রাই করুন।', "This page isn't saved on this phone yet. Connect to the internet and try again."], nosave_btn: ['আবার ট্রাই করুন', 'Try again'],
@@ -633,7 +655,7 @@ const field = (label, control, help, err) => `<div class="field"><label>${label}
 const input = (v, ph, extra, bad) => `<input class="input ${bad ? 'bad' : ''}" value="${v ?? ''}" placeholder="${ph || ''}" ${extra || ''}>`;
 const select = (opts, v, bad) => `<select class="select ${bad ? 'bad' : ''}">${opts.map(([a, b]) => `<option value="${a}" ${a === v ? 'selected' : ''}>${b}</option>`).join('')}</select>`;
 const textarea = (v, ph) => `<textarea class="textarea" placeholder="${ph || ''}">${v || ''}</textarea>`;
-const qty = (n) => `<span class="qty"><button>${I.minus}</button><span>${n}</span><button>${I.plus}</button></span>`;
+const qty = (n, u) => `<span class="qty"><button>${I.minus}</button><span>${n} ${u || t(n === 1 ? 'u_piece' : 'u_pieces')}</span><button>${I.plus}</button></span>`;
 const pwaPrompt = () => `<div class="pwa"><span class="ic">${L(SHOP.mono[0], SHOP.mono[1])}</span><span class="b"><b>${t('pwa_t', { s: shopName() })}</b>${t('pwa_p')}</span><button class="btn">${t('pwa_btn')}</button></div>`;
 
 /* ---------- home ---------- */
@@ -685,8 +707,21 @@ def('search-empty', { group: 'Browse', label: '· nothing found', url: 'megh.lyt
 const PRODUCT = { p: P[0], sizes: ['S', 'M', 'L', 'XL', 'XXL'], colours: [['#fff', 'সাদা', 'White'], ['#1f2f5c', 'নেভি', 'Navy']], attrs: [['কাপড়', 'Fabric', 'কটন', 'Cotton'], ['ফিট', 'Fit', 'রেগুলার', 'Regular'], ['কলার', 'Collar', 'ব্যান্ড', 'Band']], desc: ['১০০% কটন, প্রি-শ্রাঙ্ক। ধোয়ার পর সাইজ বদলায় না।\nঈদের জন্য হালকা এমব্রয়ডারি, রেগুলার ফিট।', '100% cotton, pre-shrunk. Keeps its size after washing.\nLight embroidery for Eid, regular fit.'] };
 function gallery(p, o) {
   o = o || {};
+  if (o.photos) {
+    const at = o.pick == null ? 0 : o.pick;
+    return `<div class="gal"><div class="thumbs">${PHOTO_SW.map((g, i) => `<i class="${i === at ? 'on' : ''}" style="background:${g}"></i>`).join('')}</div><div class="gallery"><div class="main" style="background:${PHOTO_SW[at]};aspect-ratio:${PHOTO_SHAPE};--ar:${PHOTO_SHAPE}"><button class="fav">${I.heart}</button><div class="dots">${PHOTO_SW.map((g, i) => `<i class="${i === at ? 'on' : ''}"></i>`).join('')}</div></div></div></div>`;
+  }
   return `<div class="gal"><div class="thumbs"><i class="on"></i><i></i><i></i>${p.video ? '<i></i>' : ''}</div><div class="gallery"><div class="main"><span class="ph">${pName(p).slice(0, 1)}</span>${p.video ? `<span class="vid">${I.play}${t('video')}</span>` : ''}<button class="fav">${I.heart}</button><div class="dots"><i class="on"></i><i></i><i></i>${p.video ? '<i></i>' : ''}</div></div></div></div>`;
 }
+// Stand-ins for a burka's five design photos (the sketch has no photos; a shop's real ones fill the swatches).
+const PHOTO_SW = ['linear-gradient(160deg,#2b2b2b,#0d0d0d 60%,#3a3a3a)', 'linear-gradient(160deg,#1f2a44 0 30%,#c9a9a6 30% 45%,#1f2a44 45% 70%,#c9a9a6 70%)', 'linear-gradient(200deg,#1f2a44 0 22%,#c9a9a6 22% 34%,#1f2a44 34% 58%,#c9a9a6 58% 70%,#1f2a44 70%)', 'linear-gradient(160deg,#a07b86,#7d5b66)', 'linear-gradient(160deg,#5a3b2a,#3b2418)', 'linear-gradient(160deg,#f4f1ec,#d9d2c7)'];
+// Which design each photo shows (photos 2 and 3 are one design's two angles), and the design that is sold out.
+const PHOTO_DESIGN = [0, 1, 1, 2, 3, 4]; const SOLD_DESIGN = 3;
+// PD-28: the gallery takes the first photo's shape (width over height, held between 9:16 and 1:1); this sample's
+// photos are tall, 2:3.
+const PHOTO_SHAPE = 2 / 3;
+// o.pick: the index chosen, or none; o.nudge: Buy was tapped before choosing (the cards shake once).
+const photoCards = (o) => `<div class="opt"><div class="pcards ${PHOTO_SW.length > 5 ? 'many' : ''} ${o.nudge ? 'nudge' : ''}">${PHOTO_SW.map((g, i) => { const off = PHOTO_DESIGN[i] === SOLD_DESIGN; const on = i === o.pick; const same = !on && o.pick != null && PHOTO_DESIGN[i] === PHOTO_DESIGN[o.pick]; return `<span class="pcard ${on ? 'on' : ''} ${same ? 'same' : ''} ${off ? 'off' : ''}"><i style="background:${g}"></i><span class="tk">${I.check}</span>${off ? `<b>${t('out')}</b>` : ''}</span>`; }).join('')}</div></div>`;
 function buyBox(p, o) {
   o = o || {}; const sel = o.sel || { size: 'M', colour: 0 };
   const sizes = `<div class="opt"><div class="lb"><span>${t('size')}: <b>${sel.size}</b></span><span class="lnk" onclick="go('product-size-chart')">${I.ruler} ${t('size_chart')}</span></div><div class="vals">${PRODUCT.sizes.map((s) => `<span class="vb ${s === sel.size ? 'on' : ''} ${o.offSizes && o.offSizes.includes(s) ? 'off' : ''}">${s}</span>`).join('')}</div></div>`;
@@ -697,7 +732,7 @@ function buyBox(p, o) {
   const limited = p.limited ? `<div class="line">${I.pin}<span><b>${t('delivers_only', { z: L(ZONE.inside.bn, ZONE.inside.en) })}</b></span></div>` : '';
   return `<div class="buy">
     <div class="top"><div class="eyebrow">${catName(p.cat)}</div><h1 class="pt">${pName(p)}</h1><div class="pricerow"><span class="price">${money(o.price || p.price)}</span>${p.max ? `<span class="unit">– ${money(p.max)}</span>` : ''}${stChip(o.stock || p.stock)}${p.cond ? `<span class="st info plain">${t('cond_' + p.cond)}</span>` : ''}</div></div>
-    ${o.single ? '' : sizes}${o.single ? '' : colours}
+    ${o.photos ? photoCards(o) : ''}${o.single ? '' : sizes}${o.single || o.photos ? '' : colours}
     ${o.unavailable ? `<div class="banner warn">${I.warn}<span><b>${t('unavailable')}</b><br>${t('unavailable_hint')}</span></div>` : ''}
     <div class="opt"><div class="lb"><span>${t('qty')}</span></div>${qty(1)}</div>
     <div style="display:flex;flex-direction:column;gap:10px">${deliv}${pay}${limited}</div>
@@ -714,6 +749,9 @@ function productPage(p, o) {
 const buybar = (p, o) => { o = o || {}; return `<div class="buybar"><span class="tot"><span class="k">${o.out ? t('out') : t('total')}</span><span class="price">${money(o.price || p.price)}</span></span>${o.out ? `<button class="btn ghost" disabled>${t('out')}</button>` : o.unavailable ? `<button class="btn primary" disabled>${t('add')}</button>` : `<button class="btn ghost" onclick="go('product-added')">${I.bag}</button><button class="btn primary" onclick="go('product-added')">${t('add')}</button>`}</div>`; };
 const pHdr = (p) => ({ hdr: { back: 'category', title: pName(p) } });
 def('product', { group: 'Product', label: 'Product · Cotton Panjabi', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0]), buybar(P[0])) });
+def('product-photos', { group: 'Product', label: '· its own photos as the choice (photo designs), none chosen yet', url: 'megh.lytro.app/p/irani-burka', render: () => shell(pHdr(P[0]), productPage(P[0], { photos: true, pick: null, sel: { size: 'L', colour: 0 } }), buybar(P[0])) });
+def('product-photos-chosen', { group: 'Product', label: '· a photo chosen (the second angle of a design; the order keeps its first photo)', url: 'megh.lytro.app/p/irani-burka', render: () => shell(pHdr(P[0]), productPage(P[0], { photos: true, pick: 2, sel: { size: 'L', colour: 0 } }), buybar(P[0])) });
+def('product-photos-nudge', { group: 'Product', label: '· Buy tapped before choosing: scrolled to the photos, which shake once', url: 'megh.lytro.app/p/irani-burka', render: () => shell(pHdr(P[0]), productPage(P[0], { photos: true, pick: null, nudge: true, sel: { size: 'L', colour: 0 } }), buybar(P[0])) });
 def('product-area', { group: 'Product', label: '· with the area set (exact delivery)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0], { area: true }), buybar(P[0])) });
 def('product-unavailable', { group: 'Product', label: '· L in Navy sold out (ATR-07)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0], { sel: { size: 'L', colour: 1 }, offSizes: ['L', 'XXL'], unavailable: true }), buybar(P[0], { unavailable: true })) });
 def('product-added', { base: 'product', group: 'Product', label: '· added to cart (toast)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => shell(pHdr(P[0]), productPage(P[0]), buybar(P[0]) + toast(t('added'), `<button class="btn" onclick="go('cart')">${t('view_cart')}</button>`)) });
@@ -730,11 +768,11 @@ const CHANGED = [{ ...CART[0], was: 1150 }, { ...CART[1], out: true }, CART[2], 
 const cartNow = (o) => (o && o.changed ? CHANGED : CART);
 const counted = (o) => cartNow(o).filter((l) => !l.out && !l.gone);
 function cartLines(o) { return `<div>${cartNow(o).map((l) => l.out || l.gone
-  ? `<div class="cl off"><span class="th">${pName(l.p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(l.p)}</div><div class="vr">${L(l.vbn, l.v)}</div><div class="note">${t(l.out ? 'line_out' : 'line_gone')}</div><span class="rm">${t('remove')}</span></div></div>`
-  : `<div class="cl"><span class="th">${pName(l.p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(l.p)}</div><div class="vr">${L(l.vbn, l.v)}${l.p.adv ? ` · ${t('pay_adv', { n: l.p.adv })}` : ''}</div>${l.was ? `<div class="note">${t('line_was', { p: money(l.was) })}</div>` : ''}<div class="row">${qty(l.qty)}<span class="price">${money(l.p.price * l.qty)}</span></div><span class="rm">${t('remove')}</span></div></div>`).join('')}</div>`; }
+  ? `<div class="cl off"><span class="th">${pName(l.p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(l.p)}</div><div class="vr">${L(l.vbn, l.v)}</div><div class="note">${t(l.out ? 'line_out' : 'line_gone')}</div><button class="rmi" aria-label="${t('remove')}" title="${t('remove')}">${I.trash}</button></div></div>`
+  : `<div class="cl"><span class="th">${pName(l.p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(l.p)}</div><div class="vr">${L(l.vbn, l.v)}${l.p.adv ? ` · ${t('pay_adv', { n: l.p.adv })}` : ''}</div>${l.was ? `<div class="note">${t('line_was', { p: money(l.was) })}</div>` : ''}<div class="row"><span class="qrm">${qty(l.qty)}<button class="rmi" aria-label="${t('remove')}" title="${t('remove')}">${I.trash}</button></span><span class="price">${money(l.p.price * l.qty)}</span></div></div></div>`).join('')}</div>`; }
 function cartSummary(o) {
   o = o || {}; const d = o.area ? 70 : null; const sub = counted(o).reduce((a, l) => a + l.p.price * l.qty, 0); const items = counted(o).reduce((a, l) => a + l.qty, 0);
-  return `<div class="sum"><div class="r"><span class="k">${t('subtotal')} · ${t('cart_n', { n: items })}</span><span class="price">${money(sub)}</span></div><div class="r"><span class="k">${t('delivery')}${o.area ? ` · ${L(ZONE.inside.bn, ZONE.inside.en)} <span class="lnk" style="color:var(--accent-text);cursor:pointer" onclick="go('cart-area')">${t('change')}</span>` : ''}</span><span>${d !== null ? money(d) : `<span class="lnk" style="color:var(--accent-text);cursor:pointer;font-weight:600" onclick="go('cart-area')">${t('deliv_area')}</span>`}</span></div>${o.area ? '' : `<div class="r" style="font-size:12px;color:var(--subtle)"><span>${t('deliv_range')}</span></div>`}<div class="r total"><span>${t('total')}</span><span class="price">${d !== null ? money(sub + d) : `${money(sub + 70)} – ${money(sub + 130)}`}</span></div></div><div class="sub" style="font-size:12px">${t('cart_est_note')}</div>`;
+  return `<div class="sum"><div class="r"><span class="k">${t('subtotal')} · ${t('cart_n', { n: items })}</span><span class="price">${money(sub)}</span></div><div class="r"><span class="k">${t('delivery')}${o.area ? ` · ${L(ZONE.inside.bn, ZONE.inside.en)} <span class="lnk" style="color:var(--accent-text);cursor:pointer" onclick="go('cart-area')">${t('change')}</span>` : ''}</span><span>${money(d !== null ? d : 130)}</span></div>${o.area ? '' : `<div class="r" style="font-size:13px"><span class="lnk" style="color:var(--accent-text);cursor:pointer;font-weight:600" onclick="go('cart-area')">${t('deliv_exact')}</span></div>`}<div class="r total"><span>${t('total')}</span><span class="price">${money(sub + (d !== null ? d : 130))}</span></div></div><div class="sub" style="font-size:12px">${t('cart_est_note')}</div>`;
 }
 function cartSheet(o) {
   o = o || {};
@@ -757,20 +795,21 @@ function orderForm(o) {
 }
 function landingPage(o) {
   o = o || {}; const p = o.p || P[0]; const q = o.qty || 1; const total = p.price * q;
-  return `<div class="pdp">${gallery(p)}<div class="buy">
+  return `<div class="pdp">${gallery(p, o)}<div class="buy">
     <div class="top"><div class="eyebrow">${shopName()}</div><h1 class="pt">${pName(p)}</h1><div class="pricerow"><span class="price">${money(p.price)}</span>${stChip(p.stock)}</div></div>
-    ${o.single ? '' : `<div class="opt"><div class="lb"><span>${t('size')}: <b>${o.size || 'M'}</b></span><span class="lnk" onclick="go('product-size-chart')">${I.ruler} ${t('size_chart')}</span></div><div class="vals">${PRODUCT.sizes.map((s) => `<span class="vb ${s === (o.size || 'M') ? 'on' : ''}">${s}</span>`).join('')}</div></div>
-    <div class="opt"><div class="lb"><span>${t('colour')}: <b>${L(PRODUCT.colours[o.colour || 0][1], PRODUCT.colours[o.colour || 0][2])}</b></span></div><div class="vals">${PRODUCT.colours.map((c, i) => `<span class="swb ${i === (o.colour || 0) ? 'on' : ''}"><i style="background:${c[0]}"></i></span>`).join('')}</div></div>`}
+    ${o.photos ? photoCards(o) : ''}${o.single ? '' : `<div class="opt"><div class="lb"><span>${t('size')}: <b>${o.size || 'M'}</b></span><span class="lnk" onclick="go('product-size-chart')">${I.ruler} ${t('size_chart')}</span></div><div class="vals">${PRODUCT.sizes.map((s) => `<span class="vb ${s === (o.size || 'M') ? 'on' : ''}">${s}</span>`).join('')}</div></div>
+    ${o.photos ? '' : '<!--colours-->'}<div class="opt" ${o.photos ? 'hidden' : ''}><div class="lb"><span>${t('colour')}: <b>${L(PRODUCT.colours[o.colour || 0][1], PRODUCT.colours[o.colour || 0][2])}</b></span></div><div class="vals">${PRODUCT.colours.map((c, i) => `<span class="swb ${i === (o.colour || 0) ? 'on' : ''}"><i style="background:${c[0]}"></i></span>`).join('')}</div></div>`}
     <div class="opt"><div class="lb"><span>${t('qty')}</span></div>${o.qtyHtml || qty(q)}</div>
     <div class="desc" style="font-size:14px;color:var(--muted)">${L(...PRODUCT.desc)}</div>
     <div class="acc"><details><summary>${t('details')}${I.down}</summary><div class="body"><div class="kv">${PRODUCT.attrs.map((a) => `<span class="k">${L(a[0], a[1])}</span><span class="v">${L(a[2], a[3])}</span>`).join('')}</div></div></details></div>
   </div></div>
   <div class="two"><div class="ofrm" style="display:flex;flex-direction:column;gap:16px">${o.soon ? `<div class="banner info">${I.info}<span>${t('landing_soon')}</span></div>` : ''}${orderForm(o)}</div>
-  <div class="side"><div class="card2"><h3>${t('co_summary')}</h3><div class="cl"><span class="th">${pName(p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(p)}</div><div class="vr">${o.single ? '' : `${o.size || 'M'} · ${L(PRODUCT.colours[o.colour || 0][1], PRODUCT.colours[o.colour || 0][2])} `}× ${o.qtyLabel || q}</div></div></div><div class="sum"><div class="r"><span class="k">${t('item_total')}</span><span>${money(total)}</span></div><div class="r"><span class="k">${t('delivery')}${o.thana ? ` · ${L(ZONE.inside.bn, ZONE.inside.en)}` : ''}</span><span>${o.thana ? money(70) : `৳70 – ৳130`}</span></div><div class="r total"><span>${t('grand_total')}</span><span class="price">${o.thana ? money(total + 70) : `${money(total + 70)} – ${money(total + 130)}`}</span></div></div><div class="line">${I.cash}<span><b>${t('pay_cod')}</b> · ${t('pay_cod_hint')}</span></div><button class="btn primary lg block" onclick="go('${o.soon ? 'landing' : 'confirm-cod'}')" ${o.soon ? 'disabled' : ''}>${t('confirm_order')}</button><div class="sub" style="font-size:12px;text-align:center">${t('idem_note')}</div></div></div></div>`;
+  <div class="side"><div class="card2"><h3>${t('co_summary')}</h3><div class="cl"><span class="th">${pName(p).slice(0, 1)}</span><div class="b"><div class="nm">${pName(p)}</div><div class="vr">${o.single ? '' : o.photos ? `${o.size || 'M'} ` : `${o.size || 'M'} · ${L(PRODUCT.colours[o.colour || 0][1], PRODUCT.colours[o.colour || 0][2])} `}× ${o.qtyLabel || q}</div></div></div><div class="sum"><div class="r"><span class="k">${t('item_total')}</span><span>${money(total)}</span></div><div class="r"><span class="k">${t('delivery')}${o.thana ? ` · ${L(ZONE.inside.bn, ZONE.inside.en)}` : ''}</span><span>${money(o.thana ? 70 : 130)}</span></div>${o.thana ? '' : `<div class="r" style="font-size:13px;color:var(--muted)"><span>${t('deliv_exact_thana')}</span></div>`}<div class="r total"><span>${t('grand_total')}</span><span class="price">${money(total + (o.thana ? 70 : 130))}</span></div></div><div class="line">${I.cash}<span><b>${t('pay_cod')}</b> · ${t('pay_cod_hint')}</span></div><button class="btn primary lg block" onclick="go('${o.soon ? 'landing' : 'confirm-cod'}')" ${o.soon ? 'disabled' : ''}>${t('confirm_order')}</button><div class="sub" style="font-size:12px;text-align:center">${t('idem_note')}</div></div></div></div>`;
 }
 /* the phone's pinned bar: the price and "Order now", which scrolls to the form; hidden on desktop where the form is beside the product */
 const landingBar = (p) => `<div class="buybar"><span class="tot"><span class="k">${pName(p)}</span><span class="price">${money(p.price)}</span></span><button class="btn primary" onclick="var s=document.querySelector('#frame .scroll'),f=document.querySelector('#frame .ofrm');if(s&&f)s.scrollTo({top:f.offsetTop-72,behavior:'smooth'})">${t('order_now')} ${I.down}</button></div>`;
 def('landing', { group: 'Landing page', label: 'Landing page /l/cotton-panjabi (form laid out, Slice 12)', url: 'megh.lytro.app/l/cotton-panjabi', render: () => shell({ hdr: { minimal: true }, landing: true }, landingPage({ soon: true }), landingBar(P[0])) });
+def('landing-photos', { group: 'Landing page', label: '· its own photos as the choice (photo designs), a photo chosen', url: 'megh.lytro.app/l/irani-burka', render: () => shell({ hdr: { minimal: true }, landing: true }, landingPage({ photos: true, pick: 2 }), landingBar(P[0])) });
 def('landing-variant', { group: 'Landing page', label: '· opened with ?v= (XL Navy preselected, LND-06)', url: 'megh.lytro.app/l/cotton-panjabi?v=var_xl_navy', render: () => shell({ hdr: { minimal: true }, landing: true }, landingPage({ soon: true, size: 'XL', colour: 1 }), landingBar(P[0])) });
 def('landing-gone', { group: 'Landing page', label: '· no longer available (404, LND-03)', url: 'megh.lytro.app/l/old-panjabi', render: () => `<div class="bare"><div class="box">${logo()}<h1>${t('gone_h')}</h1><p>${t('gone_p')}</p><button class="btn primary" onclick="go('home')">${t('go_shop')}</button><div style="color:var(--subtle)">${I.pb}</div></div></div>` });
 
@@ -1506,7 +1545,7 @@ function e48Checkout(o) {
       : o.failed ? `<div class="banner bad">${I.warn}<span><b>${t('e48FailT')}</b><br>${t('e48FailP')}</span></div>`
         : o.busy ? `<div class="banner warn">${I.warn}<span><b>${t('e48BusyT')}</b><br>${t('e48BusyP')}</span></div>`
           : o.errors ? `<div class="banner bad">${I.warn}<span>${t('err_fix', { n: 2 })}</span></div>` : '';
-  const side = `<div class="side"><div class="card2"><h3>${t('co_summary')}</h3>${E48_LINES().map((l, i) => e48Line(o.asked && i === 0 ? { ...l, asked: [t('e48Embroider'), 'Rafi'] } : l)).join('')}${o.short ? `<div class="cl off"><span class="th">D</span><div class="b"><div class="nm">${L('ডেনিম জ্যাকেট', 'Denim jacket')}</div><div class="vr">M × 1</div><div class="note">${t('line_out')}</div><span class="rm">${t('remove')}</span></div></div>` : ''}${o.adv ? `<div class="cl off"><span class="th">L</span><div class="b"><div class="nm">${L('লন থ্রি-পিস', 'Lawn three-piece')}</div><div class="vr">L × 1</div><div class="note">${t('pay_adv', { n: 200 })}</div><span class="rm">${t('remove')}</span></div></div>` : ''}${o.advLine || ''}${o.sum || e48Sum()}<button class="btn primary lg block" ${o.adv || o.nodelivery || o.short ? 'disabled' : ''} onclick="${o.placeGo || "go('confirm-cod')"}">${o.place || t('e48Place')}</button>${o.afterPlace || ''}</div></div>`;
+  const side = `<div class="side"><div class="card2"><h3>${t('co_summary')}</h3>${E48_LINES().map((l, i) => e48Line(o.asked && i === 0 ? { ...l, asked: [t('e48Embroider'), 'Rafi'] } : l)).join('')}${o.short ? `<div class="cl off"><span class="th">D</span><div class="b"><div class="nm">${L('ডেনিম জ্যাকেট', 'Denim jacket')}</div><div class="vr">M × 1</div><div class="note">${t('line_out')}</div><button class="rmi" aria-label="${t('remove')}" title="${t('remove')}">${I.trash}</button></div></div>` : ''}${o.adv ? `<div class="cl off"><span class="th">L</span><div class="b"><div class="nm">${L('লন থ্রি-পিস', 'Lawn three-piece')}</div><div class="vr">L × 1</div><div class="note">${t('pay_adv', { n: 200 })}</div><button class="rmi" aria-label="${t('remove')}" title="${t('remove')}">${I.trash}</button></div></div>` : ''}${o.advLine || ''}${o.sum || e48Sum()}<button class="btn primary lg block" ${o.adv || o.nodelivery || o.short ? 'disabled' : ''} onclick="${o.placeGo || "go('confirm-cod')"}">${o.place || t('e48Place')}</button>${o.afterPlace || ''}</div></div>`;
   return `<div><h1 class="pt">${t('co_title')}</h1></div>${banners}<div class="two"><div style="display:flex;flex-direction:column;gap:16px">${contact}${address}${pay}</div>${side}</div>`;
 }
 const coHdr48 = () => ({ hdr: { back: 'cart', title: t('co_title') }, tight: true });
@@ -1623,12 +1662,12 @@ def('e48-addons-required', { group: G48, label: '· a required add-on left empty
 
 /* The cart keeps its stepper and Remove, with the choices, add-ons and answers on the line (replaces the summary lines
    the first drawing reused). */
-const e48CartLine = (l) => `<div class="cl"><span class="th">${l.n.slice(0, 1)}</span><div class="b"><div class="nm">${l.n}</div>${l.v ? `<div class="vr">${l.v}</div>` : ''}${l.choices ? `<div class="vr">${t('e48Choices', { x: l.choices })}</div>` : ''}${l.addon ? `<div class="vr">${t('e48AddOn', { a: l.addon[0] })} ${money(l.addon[1])}</div>` : ''}${l.asked ? `<div class="vr">${l.asked[0]}: ${l.asked[1]}</div>` : ''}<div class="row">${qty(l.q)}<span class="price">${money((l.p + (l.addon ? l.addon[1] : 0)) * l.q)}</span></div><span class="rm">${t('remove')}</span></div></div>`;
+const e48CartLine = (l) => `<div class="cl"><span class="th">${l.n.slice(0, 1)}</span><div class="b"><div class="nm">${l.n}</div>${l.v ? `<div class="vr">${l.v}</div>` : ''}${l.choices ? `<div class="vr">${t('e48Choices', { x: l.choices })}</div>` : ''}${l.addon ? `<div class="vr">${t('e48AddOn', { a: l.addon[0] })} ${money(l.addon[1])}</div>` : ''}${l.asked ? `<div class="vr">${l.asked[0]}: ${l.asked[1]}</div>` : ''}<div class="row">${qty(l.q)}<span class="price">${money((l.p + (l.addon ? l.addon[1] : 0)) * l.q)}</span></div><button class="rmi" aria-label="${t('remove')}" title="${t('remove')}">${I.trash}</button></div></div>`;
 const e48CartLines = (asked) => E48_LINES().map((l, i) => (asked && i === 0 ? { ...l, asked: [t('e48Embroider'), 'Rafi'] } : l));
 const e48CartSum = () => { const sub = e48Sub(); const items = E48_LINES().reduce((a, l) => a + l.q, 0); return `<div class="sum"><div class="r"><span class="k">${t('subtotal')} · ${t('cart_n', { n: items })}</span><span class="price">${money(sub)}</span></div><div class="r"><span class="k">${t('delivery')} · ${L(ZONE.inside.bn, ZONE.inside.en)} <span class="lnk" style="color:var(--accent-text);cursor:pointer" onclick="go('cart-area')">${t('change')}</span></span><span>${money(70)}</span></div><div class="r total"><span>${t('total')}</span><span class="price">${money(sub + 70)}</span></div><div class="r"><span class="k">${t('e48TaxIn')}</span><span>${money(166.67)}</span></div></div><div class="sub" style="font-size:12px">${t('cart_est_note')}</div>`; };
 const e48CartFoot = () => `<button class="btn ghost" onclick="go('home')">${t('continue_')}</button><button class="btn primary" onclick="go('checkout')">${t('checkout')}</button>`;
 def('e48-cart', { base: 'product', group: G48, label: 'Cart · a combo, an add-on, an answer, the tax line', url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), sheet(`${t('cart_title')} · ${t('cart_n', { n: 4 })}`, `<div>${e48CartLines(true).map(e48CartLine).join('')}</div>${e48CartSum()}`, e48CartFoot(), { drawer: true, close: 'product' })) });
-def('e48-cart-refit', { base: 'product', group: G48, label: "· a line whose add-ons no longer fit", url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), sheet(`${t('cart_title')} · ${t('cart_n', { n: 3 })}`, `<div>${E48_LINES().slice(1).map(e48CartLine).join('')}<div class="cl off"><span class="th">${pName(P[0]).slice(0, 1)}</span><div class="b"><div class="nm">${pName(P[0])}</div><div class="vr">${L('M · সাদা', 'M · White')}</div><div class="note">${t('e48LineRefit')}</div><span class="rm">${t('remove')}</span></div></div></div>${e48CartSum()}`, e48CartFoot(), { drawer: true, close: 'product' })) });
+def('e48-cart-refit', { base: 'product', group: G48, label: "· a line whose add-ons no longer fit", url: 'megh.lytro.app/cart', render: () => shell(pHdr(P[0]), productPage(P[0]), sheet(`${t('cart_title')} · ${t('cart_n', { n: 3 })}`, `<div>${E48_LINES().slice(1).map(e48CartLine).join('')}<div class="cl off"><span class="th">${pName(P[0]).slice(0, 1)}</span><div class="b"><div class="nm">${pName(P[0])}</div><div class="vr">${L('M · সাদা', 'M · White')}</div><div class="note">${t('e48LineRefit')}</div><button class="rmi" aria-label="${t('remove')}" title="${t('remove')}">${I.trash}</button></div></div></div>${e48CartSum()}`, e48CartFoot(), { drawer: true, close: 'product' })) });
 
 /* Checkout: an answer on its line, nothing to check out, an item already sold out when the page checks it, an order that did not go through. */
 const coEmpty = () => `<div><h1 class="pt">${t('co_title')}</h1></div><div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:32px 0">${I.bag.replace('class="i"', 'class="i" style="width:40px;height:40px;color:var(--n300)"')}<b style="font-size:17px">${t('cart_empty')}</b><p class="sub">${t('cart_empty_hint')}</p><button class="btn ghost" onclick="go('home')">${t('continue_')}</button></div>`;
