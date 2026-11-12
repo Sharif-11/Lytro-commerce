@@ -14,6 +14,7 @@ import type {
   TaxLine,
   TrackedOrder,
 } from '../../src/lib/api/storefront-api';
+import { lineImageOf } from '../../src/lib/product/designs';
 import { CODE, type ProductFixture, type SentOrder, type ShopFixture } from './fixtures';
 
 // The server as the storefront's own server meets it, over HTTP, because the pages are rendered there: which shop a host
@@ -262,10 +263,15 @@ function trackedFrom(fixture: ShopFixture, body: OrderBody): TrackedOrder {
       {
         variantId: item.variantId,
         productName: row.product.name,
+        // ATR-20 (PD-6): a design is known by its photo, never its name.
         attributes: row.product.options.flatMap((option) => {
           const value = option.values.find((each) => variant.optionIds.includes(each.id));
-          return value ? [{ name: option.name, value: value.value, variantDefining: true }] : [];
+          return value && !option.designs
+            ? [{ name: option.name, value: value.value, variantDefining: true }]
+            : [];
         }),
+        // PD-7: the line keeps its design's cover, else the product's first photo.
+        thumbnail: lineImageOf(row.product, variant),
         quantity: item.quantity.toFixed(3),
         stockUnit: row.product.stockUnit,
         unitPrice: money(unit),

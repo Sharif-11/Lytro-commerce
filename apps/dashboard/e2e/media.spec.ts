@@ -51,6 +51,11 @@ function sentBodies(log: ApiLog, method: string, path: string): unknown[] {
     .map((call) => call.body);
 }
 
+/** PD-16: the photos as a save sends them, each plain (a product with no designs). */
+function plain(mediaIds: string[]) {
+  return { photos: mediaIds.map((mediaId) => ({ mediaId, design: null })), designs: [] };
+}
+
 function deleted(log: ApiLog): string[] {
   return log.calls
     .filter((call) => call.method === 'DELETE' && call.path.startsWith('/media/'))
@@ -77,12 +82,14 @@ test('adds photos, which join the photos in order, and one Save sends them', asy
   await expect(main(page).getByRole('button', { name: 'Photo 5' })).toBeVisible();
   await save(page).click();
   await expect(toast(page)).toBeVisible();
-  const [sent] = sentBodies(log, 'PUT', '/products/p-1/images') as { mediaIds: string[] }[];
-  expect(sent?.mediaIds.slice(0, 3)).toEqual(['m-1', 'm-2', 'm-3']);
-  expect(sent?.mediaIds.slice(3)).toEqual([
-    expect.stringMatching(/^m-up-/),
-    expect.stringMatching(/^m-up-/),
+  // PD-11: the T-shirt's variants hold stock and it has no designs, so its new photos stay plain.
+  const [sent] = sentBodies(log, 'PUT', '/products/p-1/images') as ReturnType<typeof plain>[];
+  expect(sent?.photos.slice(0, 3)).toEqual(plain(['m-1', 'm-2', 'm-3']).photos);
+  expect(sent?.photos.slice(3)).toEqual([
+    { mediaId: expect.stringMatching(/^m-up-/), design: null },
+    { mediaId: expect.stringMatching(/^m-up-/), design: null },
   ]);
+  expect(sent?.designs).toEqual([]);
 });
 
 test('the media sheet: the cover, storage with this product’s share, reordering by keyboard', async ({
@@ -113,9 +120,7 @@ test('the media sheet: the cover, storage with this product’s share, reorderin
   await sheet(page).getByRole('button', { name: 'Done' }).click();
   await save(page).click();
   await expect(toast(page)).toBeVisible();
-  expect(sentBodies(log, 'PUT', '/products/p-1/images')).toEqual([
-    { mediaIds: ['m-2', 'm-1', 'm-3'] },
-  ]);
+  expect(sentBodies(log, 'PUT', '/products/p-1/images')).toEqual([plain(['m-2', 'm-1', 'm-3'])]);
 });
 
 test('removing a photo deletes it once nothing else shows it, and keeps one a copy shares', async ({
@@ -132,7 +137,7 @@ test('removing a photo deletes it once nothing else shows it, and keeps one a co
   await sheet(page).getByRole('button', { name: 'Done' }).click();
   await save(page).click();
   await expect(toast(page)).toBeVisible();
-  expect(sentBodies(log, 'PUT', '/products/p-1/images')).toEqual([{ mediaIds: ['m-1'] }]);
+  expect(sentBodies(log, 'PUT', '/products/p-1/images')).toEqual([plain(['m-1'])]);
   await expect.poll(() => deleted(log)).toEqual(['m-3']);
 });
 
@@ -147,7 +152,7 @@ test('removing a photo keeps one the brand identity shows (KNOWN-GAPS §97)', as
   await sheet(page).getByRole('button', { name: 'Done' }).click();
   await save(page).click();
   await expect(toast(page)).toBeVisible();
-  expect(sentBodies(log, 'PUT', '/products/p-1/images')).toEqual([{ mediaIds: ['m-1'] }]);
+  expect(sentBodies(log, 'PUT', '/products/p-1/images')).toEqual([plain(['m-1'])]);
   await expect.poll(() => deleted(log)).toEqual(['m-3']);
 });
 
@@ -196,7 +201,9 @@ test('storage full says so, with what to do', async ({ page }) => {
   await expectAccessible(page);
 });
 
-test('a new product with its photo is saved in one request', async ({ page }) => {
+test('a new product with its photo is saved in one request, the photo its design (PD-3, PD-16)', async ({
+  page,
+}) => {
   const log = await open(page, 'new');
   await stripInput(page, 'image').setInputFiles(file('a.png', 'image/png'));
   await expect(main(page).getByRole('button', { name: 'Photo 1' })).toBeVisible();
@@ -204,8 +211,19 @@ test('a new product with its photo is saved in one request', async ({ page }) =>
   await main(page).getByLabel('Price', { exact: true }).fill('900');
   await save(page).click();
   await expect(page).toHaveURL(`/${SLUG}/products`);
-  const [sent] = sentBodies(log, 'POST', '/products') as { imageIds: string[] }[];
-  expect(sent?.imageIds).toEqual([expect.stringMatching(/^m-up-/)]);
+  const [sent] = sentBodies(log, 'POST', '/products') as {
+    imageIds?: string[];
+    photos: { mediaId: string; design: string | null }[];
+    designs: { key: string; name: string }[];
+    variantAttributes: { attributeId: string; optionIds: string[] }[];
+  }[];
+  // Its one photo is its one design, named by the number it takes; its variants split by it, naming it by its key.
+  expect(sent?.imageIds).toBeUndefined();
+  const key = sent?.designs[0]?.key ?? '';
+  expect(key).toMatch(/^[0-9a-f-]{36}$/);
+  expect(sent?.photos).toEqual([{ mediaId: expect.stringMatching(/^m-up-/), design: key }]);
+  expect(sent?.designs).toEqual([{ key, name: 'Design 1' }]);
+  expect(sent?.variantAttributes).toEqual([{ attributeId: 'a-design', optionIds: [key] }]);
   expect(deleted(log)).toEqual([]);
 });
 
@@ -251,24 +269,35 @@ test('deleting a product for good deletes the photos nothing else shows', async 
   await expect.poll(() => deleted(log).sort()).toEqual(['m-1', 'm-2', 'm-3']);
 });
 
-test('removing a photo says how many past orders lose it, and still lets it go (MED-09)', async ({
+test('removing a photo orders show says the orders keep it, and its file stays (PD-8)', async ({
   page,
 }) => {
   const products = drawnProducts();
   products.pastOrders = { 'm-3': 12 };
   const log = await open(page, 'p-1', { products });
   await main(page).getByRole('button', { name: 'Photo 1' }).click();
-  await expect(sheet(page).getByText(/past orders? will lose/)).toHaveCount(0);
+  await expect(sheet(page).getByText(/orders? shows? this photo/)).toHaveCount(0);
+  await expect(
+    sheet(page).getByText('Deleting frees storage. A photo an order shows is kept for that order.'),
+  ).toBeVisible();
   await sheet(page).getByRole('button', { name: 'Remove photo 3', exact: true }).click();
-  await expect(sheet(page).getByRole('alert')).toContainText('12 past orders will lose this photo');
-  await expect(sheet(page).getByRole('alert')).toContainText('Saving deletes it.');
+  const kept = sheet(page).getByRole('status').filter({ hasText: '12 orders show this photo' });
+  await expect(kept).toContainText('Saving takes it off the product; the orders keep it.');
+  await expect(kept).toContainText("The file is kept, so storage doesn't go down.");
   await sheet(page).getByRole('button', { name: 'Done' }).click();
   await save(page).click();
   await expect(toast(page)).toBeVisible();
-  await expect.poll(() => deleted(log)).toEqual(['m-3']);
+  expect(sentBodies(log, 'PUT', '/products/p-1/images')).toEqual([plain(['m-1', 'm-2'])]);
+  // Read once more after the save, and kept: never asked to be deleted.
+  await expect
+    .poll(
+      () => log.calls.filter((call) => call.method === 'GET' && call.path === '/media/m-3').length,
+    )
+    .toBeGreaterThan(1);
+  expect(deleted(log)).toEqual([]);
 });
 
-test('a photo another product still shows warns of nothing, since it stays (MED-09)', async ({
+test('a photo orders show says so whatever else shows it, since it stays (PD-8)', async ({
   page,
 }) => {
   const products = drawnProducts();
@@ -277,8 +306,6 @@ test('a photo another product still shows warns of nothing, since it stays (MED-
   if (shirt) products.products.push({ ...shirt, id: 'p-9', imageIds: ['m-2'] });
   await open(page, 'p-1', { products });
   await main(page).getByRole('button', { name: 'Photo 1' }).click();
-  const asked = page.waitForResponse((response) => response.url().includes('/media/m-2'));
   await sheet(page).getByRole('button', { name: 'Remove photo 2', exact: true }).click();
-  await asked;
-  await expect(sheet(page).getByText(/past orders? will lose/)).toHaveCount(0);
+  await expect(sheet(page).getByText('12 orders show this photo')).toBeVisible();
 });

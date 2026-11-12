@@ -68,6 +68,9 @@ export interface DescriptionFixture {
 const shopOptions = (attribute: number, values: string[]): OptionFixture[] =>
   values.map((value) => ({ id: `o-${String(attribute)}-${value}`, value, scope: 'shop' }));
 
+/** ATR-19 (PD-13): the platform's design attribute, never in the library (GET /attributes hides it). */
+export const DESIGN_ATTRIBUTE_ID = 'a-design';
+
 /** The library a clothing shop sees: the platform's attributes, with the shop's own values and colours' swatches. */
 export function drawnLibrary(): AttributeFixture[] {
   return [
@@ -283,7 +286,9 @@ export function variantPart(
   const matrix = matrixOf(product);
   const library = libraryOf(fixture);
   const nameOf = (id: string, index: number) =>
-    library.find((each) => each.id === id)?.name ?? (index === 0 ? 'Size' : 'Colour');
+    id === DESIGN_ATTRIBUTE_ID
+      ? 'Design'
+      : (library.find((each) => each.id === id)?.name ?? (index === 0 ? 'Size' : 'Colour'));
   return {
     stockUnit: product.stockUnit ?? 'piece',
     stockTracking: product.stockTracking ?? 'tracked',
@@ -298,7 +303,11 @@ export function variantPart(
         dataType: attribute?.dataType ?? 'enum_single',
         unitKind: attribute?.unitKind ?? null,
         options: split.optionIds.map((id) => {
-          const option = optionOf(fixture, split.attributeId, id);
+          // A design's value is its name (ATR-19).
+          const design = product.designs?.find((each) => each.id === id);
+          const option = design
+            ? { id, value: design.name, scope: 'shop' as const }
+            : optionOf(fixture, split.attributeId, id);
           const view = optionView(option) as Record<string, unknown>;
           return {
             id,
@@ -418,6 +427,7 @@ export function defaultsAnswer(fixture: ProductsFixture, categoryId: string | nu
     suggestedCategories: [],
     upFrontFields: ['sizeChart'],
     shopPaymentPolicy: { defaultPaymentPolicy: 'none', defaultAdvanceAmount: null },
+    designAttributeId: DESIGN_ATTRIBUTE_ID,
     ...fixture.defaults,
     ...(brought ? { ...brought, fromCategoryId: categoryId } : {}),
   };

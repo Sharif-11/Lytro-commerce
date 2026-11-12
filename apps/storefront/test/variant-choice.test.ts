@@ -8,6 +8,7 @@ const option = (attributeId: string, ...ids: string[]): ProductOption => ({
   name: attributeId,
   dataType: AttributeDataType.EnumSingle,
   unitKind: null,
+  designs: false,
   values: ids.map((id) => ({ id, value: id, swatchColor: null, swatchImage: null })),
 });
 const variant = (id: string, optionIds: string[], available = true): ProductVariant => ({

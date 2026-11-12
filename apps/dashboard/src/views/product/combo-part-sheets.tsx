@@ -15,8 +15,9 @@ import { Sheet } from '@/components/ui/sheet';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { byDesign } from '@/lib/photo-designs';
 import type { ComboPart } from '@/lib/product-form';
-import { Thumb } from '@/views/orders/item-sheets';
+import { DesignHead, Thumb } from '@/views/orders/item-sheets';
 import { optionsText } from '@/views/orders/order-words';
 import { isMeasured } from './stock-words';
 
@@ -244,25 +245,40 @@ function TickSheet({
       <p className="-mt-1 mb-3 text-[14px]">{t('comboTickHelp')}</p>
       {found.isError ? <ErrorBanner error={found.error} /> : null}
       {found.isPending ? <SkeletonRows count={3} /> : null}
-      {variants.map((variant) => (
-        <CheckRow
-          key={variant.variantId}
-          checked={ticked.has(variant.variantId)}
-          title={variant.label || t('comboOneVariant')}
-          sub={
-            [left(variant.available), variant.onSale ? null : t('comboOffSale')]
-              .filter(Boolean)
-              .join(' · ') || undefined
-          }
-          onChange={() => {
-            setTicked((now) => {
-              const next = new Set(now);
-              if (next.has(variant.variantId)) next.delete(variant.variantId);
-              else next.add(variant.variantId);
-              return next;
-            });
-          }}
-        />
+      {/* PD-22: a design product's variants under each design's photo and name, then its sizes. */}
+      {byDesign(variants).map((group) => (
+        <div key={group.design?.id ?? 'plain'} className="flex flex-col">
+          {group.design ? (
+            <div className="-mx-4">
+              <DesignHead design={group.design} />
+            </div>
+          ) : null}
+          {group.variants.map((variant) => (
+            <div key={variant.variantId} className={group.design ? 'pl-[52px]' : ''}>
+              <CheckRow
+                checked={ticked.has(variant.variantId)}
+                title={
+                  (group.design ? variant.restLabel : variant.label) ||
+                  variant.label ||
+                  t('comboOneVariant')
+                }
+                sub={
+                  [left(variant.available), variant.onSale ? null : t('comboOffSale')]
+                    .filter(Boolean)
+                    .join(' · ') || undefined
+                }
+                onChange={() => {
+                  setTicked((now) => {
+                    const next = new Set(now);
+                    if (next.has(variant.variantId)) next.delete(variant.variantId);
+                    else next.add(variant.variantId);
+                    return next;
+                  });
+                }}
+              />
+            </div>
+          ))}
+        </div>
       ))}
       {chosen.length > 0 ? (
         <div className="my-2.5">

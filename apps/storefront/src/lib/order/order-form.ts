@@ -139,8 +139,8 @@ export const placedPhoneKey = (trackingId: string): string => `lytro-placed-${tr
 /** SFT-14: this phone has ordered from this shop, so the install card may offer itself. */
 export const ORDERED_KEY = 'lytro-ordered';
 
-/** The units a quantity is said in: a measure names its unit (`× 1.5 কেজি`), a count stands alone. */
-/** A cart line's quantity, with its unit when it has one (LND-07). */
+/** UOM-05 (PD-19): the units a quantity is said in, a measure's (`× 1.5 কেজি`) and a count's (`× 1 পিস`) alike. */
+/** A cart line's quantity, with its unit; a line from before units were kept is in pieces (LND-07). */
 export const lineQuantityText = (
   line: { quantity: number; stockUnit?: StockUnit },
   words: Words,
@@ -161,6 +161,25 @@ export function quantityText(quantity: string | number, unit: StockUnit, words: 
     case StockUnit.Dozen:
     case StockUnit.Pack:
     case StockUnit.Box:
-      return amount;
+      return `${amount} ${countWord(unit, Number(quantity), words)}`;
+  }
+}
+
+/** UOM-05 (PD-19): a counted unit's word for a number of them: "1 piece", "2 pieces", in Bangla one word ("পিস"). */
+export function countWord(
+  unit: StockUnit.Piece | StockUnit.Dozen | StockUnit.Pack | StockUnit.Box,
+  count: number,
+  words: Words,
+): string {
+  const one = count === 1;
+  switch (unit) {
+    case StockUnit.Piece:
+      return words.t(one ? 'u_piece' : 'u_pieces');
+    case StockUnit.Dozen:
+      return words.t(one ? 'u_dozen' : 'u_dozens');
+    case StockUnit.Pack:
+      return words.t(one ? 'u_pack' : 'u_packs');
+    case StockUnit.Box:
+      return words.t(one ? 'u_box' : 'u_boxes');
   }
 }

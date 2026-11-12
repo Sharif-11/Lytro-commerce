@@ -95,9 +95,9 @@ const combo: PublicCombo = {
       image: null,
       choice: true,
       variants: [
-        { variantId: 'xs', productName: 'Panjabi', label: 'XS', available: false },
-        { variantId: 'm', productName: 'Panjabi', label: 'M', available: true },
-        { variantId: 'l', productName: 'Panjabi', label: 'L', available: true },
+        { variantId: 'xs', productName: 'Panjabi', label: 'XS', image: null, available: false },
+        { variantId: 'm', productName: 'Panjabi', label: 'M', image: null, available: true },
+        { variantId: 'l', productName: 'Panjabi', label: 'L', image: null, available: true },
       ],
     },
     {
@@ -106,7 +106,9 @@ const combo: PublicCombo = {
       productName: 'Lungi',
       image: null,
       choice: false,
-      variants: [{ variantId: 'lungi', productName: 'Lungi', label: '', available: true }],
+      variants: [
+        { variantId: 'lungi', productName: 'Lungi', label: '', image: null, available: true },
+      ],
     },
     {
       position: 3,
@@ -114,7 +116,9 @@ const combo: PublicCombo = {
       productName: 'Socks',
       image: null,
       choice: false,
-      variants: [{ variantId: 'socks', productName: 'Socks', label: 'Black', available: true }],
+      variants: [
+        { variantId: 'socks', productName: 'Socks', label: 'Black', image: null, available: true },
+      ],
     },
   ],
 };

@@ -15,6 +15,7 @@ import { Sheet } from '@/components/ui/sheet';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { StatusTag } from '@/components/ui/status-tag';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { byDesign } from '@/lib/photo-designs';
 import type {
   OrderPickerItem,
   OrderPickerProduct,
@@ -58,6 +59,7 @@ function PickRow({
   sub,
   price,
   available,
+  inset = false,
   onPick,
 }: {
   image?: string | null;
@@ -65,6 +67,8 @@ function PickRow({
   sub?: string;
   price: string;
   available: string | null;
+  /** Under a design's photo and name (Part 40's `pd-add-variant`): set in past the photo. */
+  inset?: boolean;
   onPick: () => void;
 }): React.JSX.Element {
   const gone = available !== null && Number(available) <= 0;
@@ -73,7 +77,7 @@ function PickRow({
       type="button"
       disabled={gone}
       onClick={onPick}
-      className={`flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left ${gone ? 'opacity-55' : ''}`}
+      className={`flex min-h-16 w-full items-center gap-3 py-3 pr-4 text-left ${inset ? 'pl-[68px]' : 'pl-4'} ${gone ? 'opacity-55' : ''}`}
     >
       {image === undefined ? null : <Thumb image={image} />}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -85,6 +89,22 @@ function PickRow({
         <Units available={available} />
       </span>
     </button>
+  );
+}
+
+/** ATR-20 (Part 40's `.pdgrp`): a design's photo and name over its sizes. */
+export function DesignHead({
+  design,
+}: {
+  design: { name: string; image: string | null };
+}): React.JSX.Element {
+  return (
+    <div className="flex items-center gap-3 px-4 pt-3 pb-1.5 text-[15px] font-semibold">
+      <span className="h-[50px] w-10 flex-none overflow-hidden rounded-button bg-neutral-100">
+        {design.image ? <img src={design.image} alt="" className="size-full object-cover" /> : null}
+      </span>
+      {design.name}
+    </div>
   );
 }
 
@@ -297,6 +317,7 @@ function lineOf(
     variantId: variant.variantId,
     productName: product.name,
     label: variant.label,
+    image: variant.image,
     combo: product.kind === ProductKind.Combo,
     base: variant.price,
     price: (Number(variant.price) + extra.plus).toFixed(2),
@@ -375,27 +396,34 @@ function ProductSheet({
         <>
           <p className="-mt-1 mb-2 text-[14px]">{t('pickVariant')}</p>
           <RowList>
-            {product.variants.map((variant) => (
-              <PickRow
-                key={variant.variantId}
-                title={variant.label}
-                price={formatTaka(variant.price)}
-                available={variant.available}
-                onPick={() => {
-                  if (asks) onVariant(variant.variantId);
-                  else
-                    onAdd(
-                      lineOf(product, variant, {
-                        choices: null,
-                        choiceText: null,
-                        modifiers: null,
-                        modifierText: null,
-                        plus: 0,
-                      }),
-                    );
-                }}
-              />
-            ))}
+            {/* PD-22: a design product's variants under each design's photo and name, then its sizes. */}
+            {byDesign(product.variants).flatMap((group) => [
+              ...(group.design
+                ? [<DesignHead key={`design-${group.design.id}`} design={group.design} />]
+                : []),
+              ...group.variants.map((variant) => (
+                <PickRow
+                  key={variant.variantId}
+                  title={group.design ? variant.restLabel || variant.label : variant.label}
+                  price={formatTaka(variant.price)}
+                  available={variant.available}
+                  inset={group.design !== null}
+                  onPick={() => {
+                    if (asks) onVariant(variant.variantId);
+                    else
+                      onAdd(
+                        lineOf(product, variant, {
+                          choices: null,
+                          choiceText: null,
+                          modifiers: null,
+                          modifierText: null,
+                          plus: 0,
+                        }),
+                      );
+                  }}
+                />
+              )),
+            ])}
           </RowList>
         </>
       )}

@@ -4,6 +4,7 @@ import type { SerialFormat } from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
 import type { ComboQuote, ProductDetail } from '@/types/product';
 import type { comboQuoteBody, EditPart } from '@/lib/product-form';
+import { withIdsFor } from '@/lib/photo-designs';
 import { PRODUCTS_QUERY_KEY } from './catalogue';
 
 const productKey = (id: string) => [...PRODUCTS_QUERY_KEY, 'detail', id] as const;
@@ -49,11 +50,50 @@ export function useCreateProduct() {
   });
 }
 
-/** What an edit's save came to: the product as the last saved part left it, and each part refused with why. */
+/**
+ * What an edit's save came to: the product as the last saved part left it, each part refused with why, and the id each
+ * new design took, by its key (PD-16).
+ */
 export interface EditOutcome {
   product: ProductDetail | null;
   refused: { part: EditPart['part']; error: unknown }[];
+  designIds: Map<string, string>;
 }
+
+type ImagesPart = Extract<EditPart, { part: 'images' }>;
+type VariantsPart = Extract<EditPart, { part: 'variants' }>;
+
+/** The keys of the designs a photos save makes. */
+const newKeys = (each: ImagesPart): Set<string> =>
+  new Set(each.body.designs.filter((design) => !('id' in design)).map((design) => design.key));
+
+/** PD-16: each new design's id, found by one of its photos in the product the photos save answered. */
+function designIdsOf(each: ImagesPart, product: ProductDetail): Map<string, string> {
+  const ids = new Map<string, string>();
+  for (const key of newKeys(each)) {
+    const photo = each.body.photos.find((one) => one.design === key)?.mediaId;
+    const found = product.images.find((image) => image.id === photo)?.designId;
+    if (found) ids.set(key, found);
+  }
+  return ids;
+}
+
+/** The variants as the server can take them: a new design named by its id, now the photos save made it. */
+const withDesigns = (each: VariantsPart, ids: ReadonlyMap<string, string>): VariantsPart => ({
+  part: 'variants',
+  // The one-variant and the matrix shapes alike: only the options change.
+  body: {
+    ...each.body,
+    variantAttributes: each.body.variantAttributes.map((entry) => ({
+      ...entry,
+      optionIds: withIdsFor(entry.optionIds, ids),
+    })),
+    variants: each.body.variants.map((row) => ({
+      ...row,
+      optionIds: withIdsFor(row.optionIds, ids),
+    })),
+  } as VariantsPart['body'],
+});
 
 const PART_PATH: Record<EditPart['part'], string> = {
   fields: '',
@@ -79,19 +119,34 @@ async function send(path: string, each: EditPart): Promise<ProductDetail | null>
 
 /**
  * Agreed for Slice 11.7a (point 7): one Save sends each changed part by its own request, in turn; a part refused
- * leaves the parts before and after it saved, and comes back named.
+ * leaves the parts before and after it saved, and comes back named. PD-16: the photos go before the variants, which
+ * then name each new design by the id it took; refused photos leave variants naming a new design unsent, for the
+ * same reason.
  */
 export function useSaveProduct(id: string) {
   const changed = useProductsChanged();
   return useMutation({
     mutationFn: async (parts: EditPart[]): Promise<EditOutcome> => {
-      const outcome: EditOutcome = { product: null, refused: [] };
-      for (const each of parts) {
+      const outcome: EditOutcome = { product: null, refused: [], designIds: new Map() };
+      let unsaved: { keys: Set<string>; error: unknown } | null = null;
+      for (const part of parts) {
+        let each = part;
+        if (each.part === 'variants') {
+          const named = each.body.variantAttributes.flatMap((entry) => entry.optionIds);
+          if (unsaved && named.some((option) => unsaved?.keys.has(option))) {
+            outcome.refused.push({ part: 'variants', error: unsaved.error });
+            continue;
+          }
+          each = withDesigns(each, outcome.designIds);
+        }
         const path = `/products/${id}${PART_PATH[each.part]}`;
         try {
-          outcome.product = (await send(path, each)) ?? outcome.product;
+          const answered = await send(path, each);
+          outcome.product = answered ?? outcome.product;
+          if (each.part === 'images' && answered) outcome.designIds = designIdsOf(each, answered);
         } catch (error) {
           outcome.refused.push({ part: each.part, error });
+          if (each.part === 'images') unsaved = { keys: newKeys(each), error };
         }
       }
       return outcome;

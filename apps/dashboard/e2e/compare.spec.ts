@@ -60,6 +60,7 @@ import type { AddonsFixture, UsageFixture } from './support/usage';
 import { meghOrders, type OrderFixture, type OrdersFixture } from './support/orders';
 import { drawnCouriers, type CouriersFixture, type ParcelFixture } from './support/couriers';
 import { P88_CAT_PAIRS } from './compare-p88-cat';
+import { p40Pairs } from './compare-p40-designs';
 import { p88HelpPairs } from './compare-p88-help';
 import { P88_MONEY } from './compare-p88-money';
 import { DRAWN_BELL } from './support/phase7';
@@ -5658,6 +5659,8 @@ const THEMED = themedPairs([...PAIRS, ...MONEY]);
 
 // Slice 8.8 (Part 39, §7.41): each part's pairs, kept in its own file.
 const P88: Pair[] = [...p88HelpPairs(), ...P88_MONEY, ...P88_CAT_PAIRS];
+// TENANT-DASHBOARD-DESIGN §7.42 (Part 40): photo designs.
+const P40: Pair[] = p40Pairs();
 
 /** Scrolls the card holding this text to the top of its scrolling page. */
 async function scrollToCard(within: Locator, text: RegExp): Promise<void> {
@@ -5680,7 +5683,7 @@ async function scrollTo(within: Locator, heading: RegExp): Promise<void> {
 }
 
 test.describe('the built shell beside the prototype', () => {
-  for (const pair of [...PAIRS, ...MONEY, ...STEPS, ...THEMED, ...P88]) {
+  for (const pair of [...PAIRS, ...MONEY, ...STEPS, ...THEMED, ...P88, ...P40]) {
     test(`${pair.name} on a ${pair.device} in ${pair.language}`, async ({ browser }) => {
       // The pictures set their own sizes, so they are taken once, not in every project.
       test.skip(test.info().project.name !== 'desktop', 'taken once, in the desktop project');

@@ -5,6 +5,7 @@ import type { DeliveryEstimate, DeliveryZoneView, PublicProduct } from '@/lib/ap
 import { areaCookieValue } from '@/lib/area';
 import { browserCart, CART_OPEN } from '@/lib/cart/cart-store';
 import { type Language, money, Words } from '@/lib/i18n/words';
+import { lineImageOf } from '@/lib/product/designs';
 import { quantityRule } from '@/lib/product/quantity';
 import { VariantChoice } from '@/lib/product/variant-choice';
 import { Icon } from '../icon';
@@ -15,12 +16,14 @@ import {
   OptionRows,
   optionText,
   PayLine,
+  PhotoCards,
   PriceRow,
   Quantity,
 } from './buy-parts';
 import { Gallery } from './gallery';
 import { AddOnGroups, AskedFields, ComboInside, usePicks } from './pickers';
 import { AreaSheet, DeliveryBanner, ShareLinks, ShareSheet, SizeChartSheet } from './sheets';
+import { useDesignChoice } from './use-design-choice';
 import { useDeliveryEstimate } from './use-delivery';
 
 export interface ProductViewProps {
@@ -48,7 +51,8 @@ export function ProductView(props: ProductViewProps) {
     () => new VariantChoice(product.options, product.variants),
     [product.options, product.variants],
   );
-  const [selection, setSelection] = useState(() => choice.initial(props.linkedVariantId));
+  const [selection, setSelection] = useState(() => choice.opening(props.linkedVariantId));
+  const designs = useDesignChoice(product, selection);
   const [quantity, setQuantity] = useState(
     () => quantityRule(product.stockUnit, product.sharedStock).first,
   );
@@ -62,7 +66,8 @@ export function ProductView(props: ProductViewProps) {
 
   const variant = choice.variantFor(selection);
   const soldOut = product.variants.every((each) => !each.available) || !picks.canBeMade;
-  const unavailable = !soldOut && (variant === null || !variant.available);
+  // PD-4: before a photo is tapped there is no variant yet, and buying shows the photos instead.
+  const unavailable = !soldOut && !designs.needed && (variant === null || !variant.available);
   // Only what can be bought is priced: a sold-out choice keeps the last answer instead of reading as undeliverable.
   const items = variant?.available ? [{ variantId: variant.id, quantity }] : null;
   const estimate = useDeliveryEstimate(props.initialEstimate, items, areaId);
@@ -77,10 +82,17 @@ export function ProductView(props: ProductViewProps) {
     };
   }, [toast]);
 
-  /** Adds what is picked, unless something asked of the shopper is missing, which then shows. */
+  /** Adds what is picked, unless something asked of the shopper is missing, which then shows; before a design is chosen,
+      the photos to choose from (PD-4). */
   const add = (): boolean => {
+    if (designs.needed) {
+      designs.nudge();
+      return false;
+    }
     if (!variant || unavailable || soldOut || !picks.ready()) return false;
+    // PD-6: the shopper's words never name the design; its photo does.
     const choiceText = product.options
+      .filter((option) => !option.designs)
       .map((option) => {
         const value = option.values.find((each) => each.id === selection[option.attributeId]);
         return value ? optionText(option, value.value, words) : '';
@@ -93,7 +105,7 @@ export function ProductView(props: ProductViewProps) {
       name: product.name,
       choice: choiceText,
       price: variant.price,
-      image: product.images[0]?.urls.thumbnail ?? null,
+      image: lineImageOf(product, variant),
       quantity,
       stockUnit: product.stockUnit,
       sharedStock: product.sharedStock,
@@ -125,13 +137,30 @@ export function ProductView(props: ProductViewProps) {
   return (
     <>
       <div className="pdp">
-        <Gallery product={product} words={words} />
+        <Gallery
+          product={product}
+          words={words}
+          index={designs.photoAt}
+          onIndex={designs.setPhotoAt}
+        />
         <div className="buy">
           <div className="top">
             {props.category ? <div className="eyebrow">{props.category}</div> : null}
             <h1 className="pt">{product.name}</h1>
             <PriceRow product={product} variant={variant} soldOut={soldOut} words={words} />
           </div>
+          <PhotoCards
+            product={product}
+            cards={designs.cards}
+            designId={designs.designId}
+            tapped={designs.tapped}
+            nudge={designs.nudging}
+            words={words}
+            cardsRef={designs.cardsRef}
+            onTap={(card) => {
+              setSelection(designs.tap(card, selection));
+            }}
+          />
           <OptionRows
             product={product}
             choice={choice}

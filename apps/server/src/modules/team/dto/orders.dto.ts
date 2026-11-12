@@ -329,6 +329,9 @@ export class OrderPickerProductDto extends createZodDto(
         variantId: z.string(),
         label: z.string(),
         image: z.string().nullable(),
+        // ATR-20 (PD-22): its design, and its other values without it, so staff pick a design by its photo.
+        design: z.object({ id: z.string(), name: z.string() }).nullable(),
+        restLabel: z.string(),
         price: z.string(),
         onSale: z.boolean(),
         available: z.string().nullable(),

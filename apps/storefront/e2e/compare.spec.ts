@@ -5,6 +5,7 @@ import { expect, type Page, test } from '@playwright/test';
 import type { CartLine } from '../src/lib/cart/cart-store';
 import {
   CODE,
+  designed,
   eidCombo,
   EMBROIDER,
   GIFT_WRAP,
@@ -33,11 +34,12 @@ const PROTOTYPE = pathToFileURL(
   resolve(__dirname, '../../../docs/brand/lytro-storefront.html'),
 ).href;
 
-type Device = 'phone' | 'desktop';
+type Device = 'phone' | 'tablet' | 'desktop';
 
 // The area the prototype's frame gives its shell, long enough to hold a whole page: a person reads the whole of it.
 const AREA: Record<Device, { width: number; height: number }> = {
   phone: { width: 374, height: 1900 },
+  tablet: { width: 804, height: 1900 },
   desktop: { width: 1280, height: 1300 },
 };
 
@@ -51,6 +53,8 @@ interface Pair {
   /** Signed in as the shop's first shopper before the page opens. */
   signedIn?: boolean;
   then?: (page: Page, language: Language) => Promise<void>;
+  /** The frames it is drawn in; the phone and the computer unless it says. */
+  devices?: Device[];
 }
 
 const pick = (language: Language, bn: string, en: string) => (language === 'bn' ? bn : en);
@@ -234,6 +238,7 @@ function drawnTracked(language: Language, stage: Parameters<typeof trackedOrder>
           attributes: [
             { name: 'Colour', value: pick(language, 'কালো', 'Black'), variantDefining: true },
           ],
+          thumbnail: null,
           quantity: '2.000',
           stockUnit: order.items[0]?.stockUnit ?? ('piece' as never),
           unitPrice: '350.00',
@@ -1113,6 +1118,115 @@ const PAIRS: Pair[] = [
         { courierReturning: true },
       ),
   },
+  // Photo designs (STOREFRONT-DESIGN §7f): the photo cards, choosing one, buying before choosing, the landing page, and
+  // the cart's trash button, units and highest charge; at the phone's, the tablet's and the computer's width.
+  {
+    name: 'photos',
+    screen: 'product-photos',
+    path: '/p/irani-burka',
+    shop: (language) => ({ products: [designed(language)] }),
+    devices: ['phone', 'tablet', 'desktop'],
+    then: async (page) => {
+      await page
+        .locator('.buy .vals')
+        .last()
+        .getByRole('button', { name: 'L', exact: true })
+        .click();
+    },
+  },
+  {
+    name: 'photos-chosen',
+    screen: 'product-photos-chosen',
+    path: '/p/irani-burka',
+    shop: (language) => ({ products: [designed(language)] }),
+    devices: ['phone', 'tablet', 'desktop'],
+    then: async (page) => {
+      await page.locator('.pcards .pcard').nth(2).click();
+      await page
+        .locator('.buy .vals')
+        .last()
+        .getByRole('button', { name: 'L', exact: true })
+        .click();
+    },
+  },
+  {
+    name: 'photos-nudge',
+    screen: 'product-photos-nudge',
+    path: '/p/irani-burka',
+    shop: (language) => ({ products: [designed(language)] }),
+    devices: ['phone', 'tablet', 'desktop'],
+    then: async (page) => {
+      await page
+        .locator('.buy .vals')
+        .last()
+        .getByRole('button', { name: 'L', exact: true })
+        .click();
+      await page
+        .locator('.dbtns .btn.ghost, .buybar .btn.primary')
+        .filter({ visible: true })
+        .last()
+        .click();
+      await page.locator('.scroll').evaluate((scroller) => {
+        scroller.scrollTo({ top: 0 });
+      });
+    },
+  },
+  {
+    name: 'landing-photos',
+    screen: 'landing-photos',
+    path: '/l/irani-burka',
+    shop: (language) => ({ products: [designed(language)] }),
+    devices: ['phone', 'tablet', 'desktop'],
+    then: async (page) => {
+      await page.locator('.pcards .pcard').nth(2).click();
+      await page
+        .locator('.buy .vals')
+        .last()
+        .getByRole('button', { name: 'M', exact: true })
+        .click();
+    },
+  },
+  {
+    name: 'cart-photos',
+    screen: 'cart',
+    path: '/p/cotton-panjabi',
+    devices: ['phone', 'tablet', 'desktop'],
+    cart: (language) => [
+      {
+        variantId: idOf(`panjabi-M ${pick(language, 'সাদা', 'White')}`),
+        productSlug: 'cotton-panjabi',
+        name: pick(language, 'কটন পাঞ্জাবি', 'Cotton Panjabi'),
+        choice: pick(language, 'M · সাদা', 'M · White'),
+        price: '1250.00',
+        image: null,
+        quantity: 1,
+        stockUnit: StockUnit.Piece,
+      },
+      {
+        variantId: idOf('lawn-L'),
+        productSlug: 'lawn-three-piece',
+        name: pick(language, 'লন থ্রি-পিস', 'Lawn three-piece'),
+        choice: pick(language, 'L · সবুজ', 'L · Green'),
+        price: '1850.00',
+        image: null,
+        quantity: 1,
+        stockUnit: StockUnit.Piece,
+      },
+      {
+        variantId: idOf(`hijab-${pick(language, 'কালো', 'Black')}`),
+        productSlug: 'chiffon-hijab',
+        name: pick(language, 'শিফন হিজাব', 'Chiffon Hijab'),
+        choice: pick(language, 'কালো', 'Black'),
+        price: '350.00',
+        image: null,
+        quantity: 2,
+        stockUnit: StockUnit.Piece,
+      },
+    ],
+    then: async (page) => {
+      await page.locator('.hdr button.ib').last().click();
+    },
+  },
 ];
 
 const LANGUAGES: Language[] = ['bn', 'en'];
@@ -1120,7 +1234,7 @@ const DEVICES: Device[] = ['phone', 'desktop'];
 
 test.describe('the built storefront beside the prototype', () => {
   for (const pair of PAIRS) {
-    for (const device of DEVICES) {
+    for (const device of pair.devices ?? DEVICES) {
       for (const language of LANGUAGES) {
         test(`${pair.name} on a ${device} in ${language}`, async ({ browser }) => {
           // The pictures set their own sizes, so they are taken once, not in every project.
@@ -1134,7 +1248,7 @@ test.describe('the built storefront beside the prototype', () => {
           await drawing.click(`#segDevice button[data-v="${device}"]`);
           // As long as the app's window, so the whole page is on both pictures.
           await drawing.addStyleTag({
-            content: `.frame.phone{height:${String(area.height + 60)}px!important}.frame.desktop{height:${String(area.height + 42)}px!important}`,
+            content: `.frame.phone,.frame.tablet{height:${String(area.height + 60)}px!important}.frame.desktop{height:${String(area.height + 42)}px!important}`,
           });
           await drawing.selectOption('#selScreen', pair.screen);
           await drawing.waitForTimeout(400);

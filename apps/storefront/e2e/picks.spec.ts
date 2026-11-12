@@ -81,8 +81,8 @@ test.describe('add-ons', () => {
     await addButton(page).click();
     const cart = await openCart(page);
     await expect(cart.locator('.cl')).toHaveCount(2);
-    await expect(cart.locator('.cl').nth(0).locator('.qty span')).toHaveText('1');
-    await expect(cart.locator('.cl').nth(1).locator('.qty span')).toHaveText('2');
+    await expect(cart.locator('.cl').nth(0).locator('.qty span')).toHaveText('1 piece');
+    await expect(cart.locator('.cl').nth(1).locator('.qty span')).toHaveText('2 pieces');
     await expect(cart.locator('.cl').nth(1).locator('.price')).toHaveText('৳2,600');
   });
 });
@@ -171,7 +171,13 @@ test.describe('a combo (CMB-09)', () => {
                     image: null,
                     choice: false,
                     variants: [
-                      { variantId: 'x', productName: 'Lungi', label: '', available: false },
+                      {
+                        variantId: 'x',
+                        productName: 'Lungi',
+                        label: '',
+                        image: null,
+                        available: false,
+                      },
                     ],
                   },
                 ],
@@ -212,12 +218,14 @@ test.describe('the cart (SFT-05, SFT-20)', () => {
     await expect(cart.locator('.r', { hasText: 'Includes VAT' })).toContainText('৳92.85');
   });
 
-  test('before an area shows the range, and Checkout leads on', async ({ page }) => {
+  test("before an address shows the shop's highest charge and one total, and Checkout leads on (PD-25)", async ({
+    page,
+  }) => {
     const shop = await openShop(page);
     await seedCart(page, [panjabiLine()]);
     await page.goto(shop.url('/cart'));
     const cart = page.getByRole('dialog');
-    await expect(cart.locator('.r.total .price')).toHaveText('৳1,320 – ৳1,380');
+    await expect(cart.locator('.r.total .price')).toHaveText('৳1,380');
     await expect(cart.getByRole('link', { name: 'Checkout' })).toHaveAttribute('href', '/checkout');
     await expect(cart.getByText('Online ordering opens soon')).toHaveCount(0);
   });
@@ -289,7 +297,7 @@ test.describe('the cart (SFT-05, SFT-20)', () => {
     const wrapped = cart.locator('.cl', { hasText: 'Gift wrap' });
     await wrapped.getByRole('button', { name: '+' }).click();
     await expect(wrapped.locator('.price')).toHaveText('৳2,600');
-    await expect(cart.locator('.cl').first().locator('.qty span')).toHaveText('1');
+    await expect(cart.locator('.cl').first().locator('.qty span')).toHaveText('1 piece');
     await cart.locator('.cl').first().getByRole('button', { name: 'Remove' }).click();
     await expect(cart.locator('.cl')).toHaveCount(1);
     await expect(cart.locator('.cl')).toContainText('Gift wrap');

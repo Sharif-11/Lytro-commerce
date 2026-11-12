@@ -58,6 +58,8 @@ export interface ProductDefaults {
   upFrontFields: ProductFormField[];
   /** PRD-08: the shop's default, which a product with no policy of its own follows. */
   shopPaymentPolicy: { defaultPaymentPolicy: PaymentPolicy; defaultAdvanceAmount: string | null };
+  /** ATR-19 (PD-13): the attribute a product's designs belong to, so its variants can split by them. */
+  designAttributeId: string;
 }
 
 /** Mirrors the variant rows of `GET /products/:id/stock` (INV-01, INV-24), the figures the variant table shows. */

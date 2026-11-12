@@ -43,6 +43,9 @@ export interface OrderItemFixture {
   serials?: { inStock: string[]; sent: string[] };
   /** ORD-46, ORD-47: the photo it kept, which a test can make fail to load. */
   thumbnail?: string;
+  /** ATR-20 (PD-9): a design product's line: its SKU, and its first value the design. */
+  sku?: string;
+  design?: boolean;
 }
 
 export interface OrderFixture {
@@ -380,15 +383,16 @@ const paidOf = (order: OrderFixture) =>
 const money = (amount: number) => amount.toFixed(2);
 const counter = (order: OrderFixture) => order.fulfilment !== 'delivery';
 
-function attributes(words: Words | null | undefined, language: Language) {
+function attributes(words: Words | null | undefined, language: Language, design = false) {
   const said = say(words, language);
   return said
-    ? said.split(' · ').map((value) => ({
+    ? said.split(' · ').map((value, at) => ({
         name: '',
         value,
         dataType: 'text',
         unitKind: null,
         variantDefining: true,
+        ...(design && at === 0 ? { design: true } : {}),
       }))
     : [];
 }
@@ -597,8 +601,8 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
       productId: item.productId ?? `p-${String(index)}`,
       variantId: `v-${String(index)}`,
       productName: say(item.name, language) ?? '',
-      sku: null,
-      attributes: attributes(item.variant, language),
+      sku: item.sku ?? null,
+      attributes: attributes(item.variant, language, item.design),
       captured: (item.captured ?? []).map((each) => ({
         attributeId: each.attributeId,
         name: say(each.name, language) ?? '',

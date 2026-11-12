@@ -21,6 +21,13 @@ import {
   type ProductSettings,
 } from './product-settings';
 import {
+  designStateOf,
+  imagesBody,
+  withIdsFor,
+  type DesignState,
+  type FormDesign,
+} from './photo-designs';
+import {
   descriptionOf,
   descriptionsBody,
   keyOf,
@@ -67,6 +74,10 @@ export interface ProductForm {
   primaryCategoryId: string | null;
   active: boolean;
   imageIds: string[];
+  /** ATR-19 (PD-2): the design each photo shows, by its key; null for a plain photo. */
+  photoDesigns: Record<string, string | null>;
+  /** ATR-19 (PD-14): its designs in number order, new ones last. */
+  designs: FormDesign[];
   videoId: string | null;
   splits: SplitAttribute[];
   variants: VariantRow[];
@@ -105,6 +116,8 @@ export const NEW_PRODUCT: ProductForm = {
   primaryCategoryId: null,
   active: true,
   imageIds: [],
+  photoDesigns: {},
+  designs: [],
   videoId: null,
   splits: [],
   variants: [],
@@ -149,7 +162,7 @@ export function formOf(product: ProductDetail): ProductForm {
     categoryIds: product.categoryIds,
     primaryCategoryId: product.primaryCategoryId,
     active: product.active,
-    imageIds: product.images.map((image) => image.id),
+    ...designStateOf(product),
     videoId: product.video?.id ?? null,
     splits: splitsOf(product),
     variants: rowsOf(product),
@@ -276,7 +289,7 @@ function comboBody(form: ProductForm) {
  * POST /products: a new product with its photos and video, its options and variants, its descriptions, its settings,
  * where it delivers and its size chart, in one request (agreed for Slice 11.7a, point 7; kept by 11.7b and 11.7c).
  */
-export function createBody(form: ProductForm) {
+export function createBody(form: ProductForm, labels: ReadonlyMap<string, string> = new Map()) {
   if (form.kind === ProductKind.Combo) return comboBody(form);
   const opening = form.settings.stockTracking === StockTracking.Tracked;
   const shelf = form.sharedOpeningStock.trim();
@@ -289,7 +302,12 @@ export function createBody(form: ProductForm) {
   return {
     ...fieldsOf(form),
     ...settingsBody(form.settings),
-    ...(form.imageIds.length > 0 ? { imageIds: form.imageIds } : {}),
+    // ATR-19 (PD-16): with designs, the photos come with them, and the variants name a new design by its key.
+    ...(form.designs.length > 0
+      ? imagesBody(form, labels)
+      : form.imageIds.length > 0
+        ? { imageIds: form.imageIds }
+        : {}),
     ...(form.videoId ? { videoId: form.videoId } : {}),
     ...(form.splits.length > 0 || singleSaysSomething(form, opening)
       ? variantPartOf(form, opening)
@@ -329,11 +347,18 @@ export type EditPart =
   | { part: 'attributes'; body: { attributes: ReturnType<typeof descriptionsBody> } }
   | { part: 'zones'; body: { zoneIds: string[] } }
   | { part: 'chart'; body: ReturnType<typeof chartBody> }
-  | { part: 'images'; body: { mediaIds: string[] } }
+  | { part: 'images'; body: ReturnType<typeof imagesBody> }
   | { part: 'video'; body: { mediaId: string | null } };
 
 const same = (a: readonly string[], b: readonly string[]): boolean =>
   a.length === b.length && a.every((each, index) => each === b[index]);
+
+/** Whether the photos changed: their list or order, a photo's design, or a design's name (PD-2, PD-14). */
+const photosText = (state: DesignState): string =>
+  JSON.stringify([
+    state.imageIds.map((id) => [id, state.photoDesigns[id] ?? null]),
+    state.designs.map((design) => [design.key, design.name.trim()]),
+  ]);
 
 /** What the variant table and sheet save of a row, to tell whether it changed. */
 const rowText = (row: VariantRow): string =>
@@ -378,7 +403,11 @@ const descriptionsText = (form: ProductForm): string =>
  * changed, the descriptions when one changed (Slice 11.7b), where it delivers and its size chart (Slice 11.7c), the
  * photos when their list or order changed, the video when it changed.
  */
-export function changedParts(saved: ProductForm, form: ProductForm): EditPart[] {
+export function changedParts(
+  saved: ProductForm,
+  form: ProductForm,
+  labels: ReadonlyMap<string, string> = new Map(),
+): EditPart[] {
   const before = fieldsOf(saved);
   const after = fieldsOf(form);
   const fields: Partial<typeof after> & ReturnType<typeof changedSettings> & TaxAndAddOns =
@@ -405,6 +434,9 @@ export function changedParts(saved: ProductForm, form: ProductForm): EditPart[] 
   }
   const parts: EditPart[] = [];
   if (Object.keys(fields).length > 0) parts.push({ part: 'fields', body: fields });
+  // PD-16: the photos before the variants, which name the designs the photos save makes.
+  if (photosText(saved) !== photosText(form))
+    parts.push({ part: 'images', body: imagesBody(form, labels) });
   // Variants before descriptions: an attribute moving from one to the other leaves the first before joining the second.
   if (variantsChanged(saved, form)) {
     parts.push({
@@ -425,8 +457,6 @@ export function changedParts(saved: ProductForm, form: ProductForm): EditPart[] 
   if (JSON.stringify(chartBody(saved.chart)) !== JSON.stringify(chart)) {
     parts.push({ part: 'chart', body: chart });
   }
-  if (!same(form.imageIds, saved.imageIds))
-    parts.push({ part: 'images', body: { mediaIds: form.imageIds } });
   if (form.videoId !== saved.videoId)
     parts.push({ part: 'video', body: { mediaId: form.videoId } });
   return parts;
@@ -456,6 +486,45 @@ export function toggleCategory(
     categoryIds,
     primaryCategoryId:
       form.primaryCategoryId === id ? (categoryIds[0] ?? null) : form.primaryCategoryId,
+  };
+}
+
+/**
+ * PD-16: the form once a photos save gave its new designs their ids: each new design's key becomes its id, in the
+ * photos, the design split and the variants alike.
+ */
+export function withDesignIds(
+  form: ProductForm,
+  ids: ReadonlyMap<string, string>,
+  product: ProductDetail | null = null,
+): ProductForm {
+  if (ids.size === 0) return form;
+  // Its saved name and number, as the server gave them: an unnamed one keeps the number it was named by.
+  const saved = new Map((product?.designs ?? []).map((design) => [design.id, design]));
+  return {
+    ...form,
+    photoDesigns: Object.fromEntries(
+      Object.entries(form.photoDesigns).map(([photo, key]) => [
+        photo,
+        key === null ? null : (ids.get(key) ?? key),
+      ]),
+    ),
+    designs: form.designs.map((design) => {
+      const id = ids.get(design.key);
+      if (!id) return design;
+      const stored = saved.get(id);
+      return {
+        key: id,
+        id,
+        number: stored?.number ?? design.number,
+        name: stored?.name ?? design.name,
+      };
+    }),
+    splits: form.splits.map((split) => ({
+      ...split,
+      options: split.options.map((option) => ({ ...option, id: ids.get(option.id) ?? option.id })),
+    })),
+    variants: form.variants.map((row) => ({ ...row, optionIds: withIdsFor(row.optionIds, ids) })),
   };
 }
 
@@ -498,7 +567,11 @@ export function withSaved(
   if (parts.includes('attributes')) next.descriptions = form.descriptions;
   if (parts.includes('zones')) next.deliveryZoneIds = form.deliveryZoneIds;
   if (parts.includes('chart')) next.chart = form.chart;
-  if (parts.includes('images')) next.imageIds = form.imageIds;
+  if (parts.includes('images')) {
+    next.imageIds = form.imageIds;
+    next.photoDesigns = form.photoDesigns;
+    next.designs = form.designs;
+  }
   if (parts.includes('video')) next.videoId = form.videoId;
   return next;
 }

@@ -357,20 +357,6 @@ export class ProductService {
       const defaults =
         (await this.presets.defaultsWithin(tx, shop, primaryCategoryId)) ??
         (await this.presets.defaultsFor(shop.businessType));
-      const matrix = await this.resolveMatrix(
-        tx,
-        shop.id,
-        input.variantAttributes ?? [],
-        input.variants,
-        null,
-      );
-      const described = await this.resolveDescriptions(
-        tx,
-        shop.id,
-        input.attributes ?? [],
-        new Set(matrix.attributes.map((entry) => entry.attribute.id)),
-      );
-
       const fields = this.newProductFields(input, defaults);
       // CMB-01: a combo's parts, checked before anything is written; it counts no stock of its own.
       const combo = input.kind === ProductKind.Combo;
@@ -404,7 +390,30 @@ export class ProductService {
           modifierGroupsOf(input.modifierGroups),
         );
       }
-      await this.attachMedia(tx, shop.id, product.id, input);
+      // ATR-19 (PD-16): its designs come with its photos, so its variants are read once the designs exist; a variant
+      // names a new design by the request's key, which becomes the design's id here.
+      const designIds = await this.attachMedia(tx, shop.id, product.id, input);
+      const designOf = (optionId: string): string => designIds.get(optionId) ?? optionId;
+      const variants = input.variants?.map((variant) => ({
+        ...variant,
+        optionIds: variant.optionIds.map(designOf),
+      }));
+      const matrix = await this.resolveMatrix(
+        tx,
+        shop.id,
+        (input.variantAttributes ?? []).map((entry) => ({
+          ...entry,
+          optionIds: entry.optionIds.map(designOf),
+        })),
+        variants,
+        product.id,
+      );
+      const described = await this.resolveDescriptions(
+        tx,
+        shop.id,
+        input.attributes ?? [],
+        new Set(matrix.attributes.map((entry) => entry.attribute.id)),
+      );
       if (input.deliveryZoneIds && input.deliveryZoneIds.length > 0) {
         await this.limitDeliveryZones(
           tx,
@@ -425,7 +434,9 @@ export class ProductService {
       }
       await this.writeMatrixAttributes(tx, shop.id, product.id, matrix, new Set());
       await this.writeDescriptions(tx, shop.id, product.id, described, matrix.attributes.length);
-      await this.writeVariants(tx, shop.id, product.id, matrix.planned, [], input.variants, shared);
+      await this.writeVariants(tx, shop.id, product.id, matrix.planned, [], variants, shared);
+      // PD-10: a new design product's variants without a SKU get one too.
+      if (designIds.size > 0) await this.fillDesignSkus(tx, shop.id, product.id);
       await this.products.refreshPriceRange(tx, shop.id, product.id);
       if (combo) {
         await this.combos.write(tx, shop.id, product.id, parts);
@@ -1169,15 +1180,29 @@ export class ProductService {
 
   /**
    * PRD-11: a new product's photos and video, in its own transaction, so it is saved with them or not at all (agreed for
-   * Slice 11.7a); an id that is not a ready image, or video, of the shop's is refused by its field.
+   * Slice 11.7a); an id that is not a ready image, or video, of the shop's is refused by its field. ATR-19 (PD-16): photos
+   * with their designs make the designs first; returns each design's id by the request's key.
    */
   private async attachMedia(
     tx: Transaction,
     tenantId: string,
     productId: string,
-    input: Pick<CreateProductInput, 'imageIds' | 'videoId'>,
-  ): Promise<void> {
-    if (input.imageIds && input.imageIds.length > 0) {
+    input: Pick<CreateProductInput, 'imageIds' | 'videoId' | 'photos' | 'designs'>,
+  ): Promise<Map<string, string>> {
+    let designIds = new Map<string, string>();
+    if (input.photos !== undefined) {
+      const saved = await this.designs.save(tx, tenantId, productId, {
+        photos: input.photos,
+        designs: input.designs ?? [],
+      });
+      try {
+        await this.photos.setProductImages(tx, tenantId, productId, saved.photos);
+      } catch (error) {
+        refuseDesign(error, 'photos');
+        refuseUnattachable(error, 'photos');
+      }
+      designIds = saved.ids;
+    } else if (input.imageIds && input.imageIds.length > 0) {
       try {
         await this.photos.setProductImages(
           tx,
@@ -1196,6 +1221,7 @@ export class ProductService {
         refuseUnattachable(error, 'videoId');
       }
     }
+    return designIds;
   }
 
   /** Slice 4.8c: each product's option names, one list per attribute, as a picker's row says them. */
@@ -2545,6 +2571,8 @@ export class ProductService {
       sizeChart: await this.sizeChartOf(tx, tenantId, product),
       ...(await this.images.ofProduct(tx, tenantId, productId, product.videoId)),
       designs: (await this.designs.of(tx, tenantId, [productId])).get(productId) ?? [],
+      nextDesignNumber: await this.designs.nextNumber(tx, tenantId, productId),
+      hasOrders: await this.products.hasOrders(tx, tenantId, productId),
       deliveryZoneIds: await this.products.listDeliveryZoneIds(tx, tenantId, productId),
       kind: product.kind,
       parts:
