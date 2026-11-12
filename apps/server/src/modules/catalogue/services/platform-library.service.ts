@@ -134,7 +134,7 @@ export class PlatformLibraryService {
 
   listAttributes(): Promise<AttributeView[]> {
     return this.transactions.run(async (tx) => {
-      const rows = await this.library.listAttributes(tx);
+      const rows = (await this.library.listAttributes(tx)).filter((row) => !row.photoDesigns);
       const options = await this.library.listOptions(
         tx,
         rows.map((row) => row.id),
@@ -414,6 +414,8 @@ export class PlatformLibraryService {
   private async attribute(tx: Transaction, attributeId: string): Promise<AttributeRecord> {
     const row = await this.library.findAttribute(tx, attributeId);
     if (!row) throw new ApiError('not_found', 'AttributeNotFound', {});
+    // ATR-19 (PD-13): the photo-designs attribute is the platform's own plumbing, never curated by hand.
+    if (row.photoDesigns) throw new ApiError('conflict', 'DesignsAddedByPhotos', {});
     return row;
   }
 

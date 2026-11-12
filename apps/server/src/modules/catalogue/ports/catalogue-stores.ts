@@ -1,8 +1,10 @@
 import type {
+  DesignRow,
   MediaSize,
   PlatformOptionSetPatch,
   PresetPatch,
   ProductImageRow,
+  ProductPhotoPlacement,
   ProductListFilter,
   ProductExportRow,
   ProductStateCounts,
@@ -359,6 +361,8 @@ export interface ProductStore {
     patch: VariantChange,
   ): Promise<VariantRecord | null>;
   retireVariants(tx: Transaction, tenantId: string, ids: string[]): Promise<void>;
+  /** PD-10: which of these SKUs a live variant of the shop already has. */
+  takenSkus(tx: Transaction, tenantId: string, skus: string[]): Promise<string[]>;
   insertVariantValues(tx: Transaction, rows: VariantValueRecord[]): Promise<void>;
   /** INV-24: the product's stock-holder variant, retired or not; never one of listVariants'. */
   findStockHolder(
@@ -459,13 +463,41 @@ export interface CatalogueImageStore {
     tenantId: string,
     productIds: string[],
   ): Promise<ProductImageRow[]>;
-  /** A photo that is not a ready image of the shop's comes back as MediaNotAttachable. */
+  /**
+   * A photo that is not a ready image of the shop's comes back as MediaNotAttachable; a design that is not one of the
+   * product's live designs, as DesignNotOfProduct (ATR-19).
+   */
   setProductImages(
     tx: Transaction,
     tenantId: string,
     productId: string,
-    mediaIds: string[],
+    photos: ProductPhotoPlacement[],
   ): Promise<void>;
+}
+
+/** ATR-19 (PD-13, PD-14, PD-16): a product's own designs, the values of the one photo-designs attribute. */
+export interface DesignStore {
+  designAttributeId(tx: Transaction, tenantId: string): Promise<string>;
+  listDesigns(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+    withRetired: boolean,
+  ): Promise<DesignRow[]>;
+  /** A name the product's other designs have comes back as DesignNameTaken. */
+  insertDesign(
+    tx: Transaction,
+    values: {
+      tenantId: string;
+      productId: string;
+      attributeId: string;
+      name: string;
+      number: number;
+    },
+  ): Promise<string>;
+  /** A name the product's other designs have comes back as DesignNameTaken. */
+  renameDesign(tx: Transaction, tenantId: string, id: string, name: string): Promise<void>;
+  retireDesigns(tx: Transaction, tenantId: string, ids: string[]): Promise<void>;
 }
 
 /** ATR-16: the option sets a shop sees, and the ones it saves. */

@@ -21,6 +21,7 @@ import {
   normalizeSerial,
   SerialFormat,
   ServerFieldProblemCode,
+  SKU_MAX_LENGTH,
   ItemCondition,
   StockState,
   StockTracking,
@@ -89,6 +90,7 @@ import type {
   ModifierGroupView,
 } from '../types/catalogue';
 import { TaxClasses } from './tax-classes';
+import { ProductDesigns, refuseDesign } from './product-designs';
 import { CatalogueActivity, type ResolvedActor } from './catalogue-activity';
 import { CatalogueImages, refuseUnattachable } from './catalogue-images';
 import { ComboParts, comboZones, type ComboPartValues } from './combo-parts';
@@ -226,6 +228,7 @@ export class ProductService {
     @Inject(SizeChartService) private readonly sizeCharts: SizeChartService,
     @Inject(ComboParts) private readonly combos: ComboParts,
     @Inject(TaxClasses) private readonly taxes: TaxClasses,
+    @Inject(ProductDesigns) private readonly designs: ProductDesigns,
   ) {}
 
   /** LIM-02, PRD-04: the products the shop's limit counts. */
@@ -359,6 +362,7 @@ export class ProductService {
         shop.id,
         input.variantAttributes ?? [],
         input.variants,
+        null,
       );
       const described = await this.resolveDescriptions(
         tx,
@@ -568,6 +572,10 @@ export class ProductService {
         })),
       );
 
+      // ATR-19 (PD-13): the copy's own designs, which its variants and photos then show.
+      const designCopies = await this.designs.copy(tx, shop.id, productId, copy.id);
+      const ownDesign = (optionId: string | null): string | null =>
+        optionId === null ? null : (designCopies.get(optionId) ?? optionId);
       const variants = await this.products.listVariants(tx, shop.id, productId, false);
       const variantValues = await this.products.listVariantValues(
         tx,
@@ -579,7 +587,15 @@ export class ProductService {
         const row = await this.products.insertVariant(tx, {
           tenantId: shop.id,
           productId: copy.id,
-          combinationKey: variant.combinationKey,
+          combinationKey: variant.combinationKey
+            .split('&')
+            .map((pair) => {
+              const [attributeId, optionId] = pair.split('=');
+              return optionId === undefined
+                ? pair
+                : `${String(attributeId)}=${String(ownDesign(optionId))}`;
+            })
+            .join('&'),
           price: variant.price,
           weightKg: variant.weightKg,
           deliveryCharge: variant.deliveryCharge,
@@ -589,7 +605,12 @@ export class ProductService {
         });
         for (const value of variantValues) {
           if (value.variantId === variant.id) {
-            copiedValues.push({ ...value, productId: copy.id, variantId: row.id });
+            copiedValues.push({
+              ...value,
+              productId: copy.id,
+              variantId: row.id,
+              optionId: ownDesign(value.optionId) ?? value.optionId,
+            });
           }
         }
       }
@@ -607,7 +628,10 @@ export class ProductService {
           tx,
           shop.id,
           copy.id,
-          photos.map((photo) => photo.mediaId),
+          photos.map((photo) => ({
+            mediaId: photo.mediaId,
+            designOptionId: ownDesign(photo.designOptionId),
+          })),
         );
       }
       // DLV-07: the copy goes where the original goes.
@@ -647,17 +671,49 @@ export class ProductService {
     productId: string,
     input: ProductImagesInput,
     actor: CatalogueActor,
+    stock?: ProductStockHooks,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
     return this.transactions.run(async (tx) => {
       await this.findLive(tx, shop.id, productId);
+      // ATR-19 (PD-16): the designs as this save names them, then the photos showing them.
+      const saved = await this.designs.save(tx, shop.id, productId, input);
+      const field = input.photos === undefined ? 'mediaIds' : 'photos';
       try {
-        await this.photos.setProductImages(tx, shop.id, productId, input.mediaIds);
+        await this.photos.setProductImages(tx, shop.id, productId, saved.photos);
       } catch (error) {
-        refuseUnattachable(error, 'mediaIds');
+        refuseDesign(error, field);
+        refuseUnattachable(error, field);
+      }
+      if (saved.retired.length > 0) {
+        // A design no photo shows stops being offered, and its variants with it, unless units are held for orders.
+        await this.designs.retire(tx, shop.id, saved.retired);
+        const variants = await this.products.listVariants(tx, shop.id, productId, true);
+        const going = variants.filter(
+          (row) =>
+            row.deletedAt === null &&
+            saved.retired.some((id) =>
+              row.combinationKey.split('&').some((pair) => pair.endsWith(`=${id}`)),
+            ),
+        );
+        await this.products
+          .retireVariants(
+            tx,
+            shop.id,
+            going.map((row) => row.id),
+          )
+          .catch(refuseHeld);
+        await this.products.refreshPriceRange(tx, shop.id, productId);
+        await stock?.refreshStockState(tx, shop.id, productId);
       }
       await this.record(tx, shop.id, who, AuditAction.ProductImagesSaved, productId, {
-        mediaIds: input.mediaIds,
+        mediaIds: saved.photos.map((photo) => photo.mediaId),
+        ...(input.photos === undefined
+          ? {}
+          : {
+              designs: saved.photos.filter((photo) => photo.designOptionId !== null).length,
+              retiredDesigns: saved.retired.length,
+            }),
       });
       await this.products.bumpVersion(tx, shop.id);
       return this.detail(tx, shop.id, productId);
@@ -910,7 +966,13 @@ export class ProductService {
           .filter((row) => row.role === AttributeRole.VariantDefining)
           .map((row) => row.attributeId),
       );
-      const matrix = await this.resolveMatrix(tx, shop.id, input.variantAttributes, input.variants);
+      const matrix = await this.resolveMatrix(
+        tx,
+        shop.id,
+        input.variantAttributes,
+        input.variants,
+        productId,
+      );
       const wanted = new Set(matrix.attributes.map((entry) => entry.attribute.id));
       // ATR-15: once ordered, an attribute neither starts nor stops splitting the product.
       const moving = current.some(
@@ -954,6 +1016,7 @@ export class ProductService {
         input.variants,
         shared,
       );
+      await this.fillDesignSkus(tx, shop.id, productId);
       if (switching) {
         if (shared) await this.ensureStockHolder(tx, shop.id, productId);
         else await this.retireStockHolder(tx, shop.id, productId);
@@ -1116,7 +1179,12 @@ export class ProductService {
   ): Promise<void> {
     if (input.imageIds && input.imageIds.length > 0) {
       try {
-        await this.photos.setProductImages(tx, tenantId, productId, input.imageIds);
+        await this.photos.setProductImages(
+          tx,
+          tenantId,
+          productId,
+          input.imageIds.map((mediaId) => ({ mediaId, designOptionId: null })),
+        );
       } catch (error) {
         refuseUnattachable(error, 'imageIds');
       }
@@ -1672,6 +1740,7 @@ export class ProductService {
     tenantId: string,
     input: MatrixInput,
     variants: VariantSpec[] | undefined,
+    productId: string | null,
   ): Promise<ResolvedMatrix> {
     const problems: InvalidField[] = [];
     const attributes = new Map(
@@ -1714,11 +1783,22 @@ export class ProductService {
         return;
       }
       entry.optionIds.forEach((optionId, position) => {
-        if (options.get(optionId)?.attributeId !== attribute.id) {
+        const option = options.get(optionId);
+        if (option?.attributeId !== attribute.id) {
           problems.push({
             field: `variantAttributes.${String(index)}.optionIds.${String(position)}`,
             problem: ServerFieldProblemCode.NotFound,
             messageKey: 'OptionNotOfAttribute',
+          });
+        } else if (
+          attribute.photoDesigns &&
+          (productId === null || option.productId !== productId || option.retiredAt !== null)
+        ) {
+          // ATR-19 (PD-13): a variant's design is one of its own product's live designs.
+          problems.push({
+            field: `variantAttributes.${String(index)}.optionIds.${String(position)}`,
+            problem: ServerFieldProblemCode.NotFound,
+            messageKey: 'DesignNotOfProduct',
           });
         }
       });
@@ -1812,6 +1892,14 @@ export class ProductService {
           field: `${at}.attributeId`,
           problem: ServerFieldProblemCode.NotFound,
           messageKey: 'AttributeNotFound',
+        });
+        return;
+      }
+      if (attribute.photoDesigns) {
+        problems.push({
+          field: `${at}.attributeId`,
+          problem: FieldProblemCode.NotAllowed,
+          messageKey: 'DesignsAddedByPhotos',
         });
         return;
       }
@@ -2031,6 +2119,85 @@ export class ProductService {
     await this.products.insertVariantValues(tx, values);
   }
 
+  /**
+   * PD-10: a design product's live variants without a SKU get one: the product's initials (from its link name), its
+   * design's number, then its other values, e.g. IB-D2-54, at most 64 characters and unique among the shop's live
+   * variants (a -2, -3... when taken). A product without designs is left as it is.
+   */
+  private async fillDesignSkus(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+  ): Promise<void> {
+    const designs = (await this.designs.of(tx, tenantId, [productId])).get(productId) ?? [];
+    if (designs.length === 0) return;
+    const product = await this.findLive(tx, tenantId, productId);
+    const variants = (await this.products.listVariants(tx, tenantId, productId, false)).filter(
+      (row) => row.sku === null && !row.isStockHolder,
+    );
+    if (variants.length === 0) return;
+    const numbers = new Map(designs.map((design) => [design.id, design.number]));
+    const order = new Map(
+      (await this.products.listProductAttributes(tx, tenantId, productId)).map((row) => [
+        row.attributeId,
+        row.sortOrder,
+      ]),
+    );
+    const pairsOf = (key: string) =>
+      key === ''
+        ? []
+        : key.split('&').map((pair) => {
+            const [attributeId = '', optionId = ''] = pair.split('=');
+            return { attributeId, optionId };
+          });
+    const optionIds = [
+      ...new Set(
+        variants.flatMap((row) => pairsOf(row.combinationKey).map((pair) => pair.optionId)),
+      ),
+    ];
+    const values = new Map(
+      (await this.attributes.findOptions(tx, tenantId, optionIds)).map((option) => [
+        option.id,
+        option.value,
+      ]),
+    );
+    const initials =
+      product.slug
+        .split('-')
+        .filter((word) => /^[a-z0-9]/i.test(word))
+        .slice(0, 3)
+        .map((word) => word.charAt(0).toUpperCase())
+        .join('') || 'P';
+    const wanted = variants.map((row) => {
+      const pairs = pairsOf(row.combinationKey);
+      const design = pairs.find((pair) => numbers.has(pair.optionId));
+      const others = pairs
+        .filter((pair) => pair !== design)
+        .sort((a, b) => (order.get(a.attributeId) ?? 0) - (order.get(b.attributeId) ?? 0))
+        .map((pair) => (values.get(pair.optionId) ?? '').toUpperCase().replace(/[^A-Z0-9.]/g, ''))
+        .filter((part) => part !== '');
+      const parts = [
+        initials,
+        ...(design ? [`D${String(numbers.get(design.optionId))}`] : []),
+        ...others,
+      ];
+      return { row, sku: parts.join('-').slice(0, SKU_MAX_LENGTH - 3) };
+    });
+    const candidates = wanted.flatMap(({ sku }) => [
+      sku,
+      ...[2, 3, 4, 5, 6, 7, 8, 9].map((n) => `${sku}-${String(n)}`),
+    ]);
+    const taken = new Set(await this.products.takenSkus(tx, tenantId, candidates));
+    for (const { row, sku } of wanted) {
+      const free = [sku, ...[2, 3, 4, 5, 6, 7, 8, 9].map((n) => `${sku}-${String(n)}`)].find(
+        (c) => !taken.has(c),
+      );
+      if (free === undefined) continue;
+      taken.add(free);
+      await this.products.updateVariant(tx, tenantId, row.id, { sku: free });
+    }
+  }
+
   private refuseTakenSlug(): never {
     throw new FieldsError(
       [{ field: 'slug', problem: ServerFieldProblemCode.Taken, messageKey: 'ProductSlugTaken' }],
@@ -2149,9 +2316,20 @@ export class ProductService {
       const detail = await this.detail(tx, tenantId, productId);
       const described = detail.attributes.filter((row) => row.role === AttributeRole.Informational);
       const photo = detail.images[0];
+      // ATR-20 (PD-7): a design's variant shows its design's cover, the design's first photo, whichever the shopper
+      // tapped; every other variant, the product's first photo.
+      const photoById = new Map(detail.images.map((image) => [image.id, image]));
+      const coverOf = new Map(
+        detail.designs.map((design) => [
+          design.id,
+          design.photoIds[0] === undefined ? undefined : photoById.get(design.photoIds[0]),
+        ]),
+      );
       const zones = await this.zonesWithin(tx, tenantId, detail);
       for (const variant of detail.variants) {
         const effective = effectiveVariant(detail, variant);
+        const designId = variant.optionIds.find((id) => coverOf.has(id));
+        const cover = (designId === undefined ? undefined : coverOf.get(designId)) ?? photo;
         found.push({
           productId,
           productName: detail.name,
@@ -2185,6 +2363,7 @@ export class ProductService {
                       dataType: attribute.dataType,
                       unitKind: attribute.unitKind,
                       variantDefining: true,
+                      ...(coverOf.has(option.id) ? { design: true as const } : {}),
                     },
                   ]
                 : [];
@@ -2217,7 +2396,7 @@ export class ProductService {
               dataType: row.dataType,
             })),
           deliveryZoneIds: zones,
-          thumbnail: photo ? { mediaId: photo.id, url: photo.urls.thumbnail } : null,
+          thumbnail: cover ? { mediaId: cover.id, url: cover.urls.thumbnail } : null,
         });
       }
     }
@@ -2365,6 +2544,7 @@ export class ProductService {
       variants: variantViews,
       sizeChart: await this.sizeChartOf(tx, tenantId, product),
       ...(await this.images.ofProduct(tx, tenantId, productId, product.videoId)),
+      designs: (await this.designs.of(tx, tenantId, [productId])).get(productId) ?? [],
       deliveryZoneIds: await this.products.listDeliveryZoneIds(tx, tenantId, productId),
       kind: product.kind,
       parts:

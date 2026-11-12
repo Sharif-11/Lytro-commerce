@@ -1225,8 +1225,23 @@ describeIfDatabase("New order's Add an item (Slice 4.8a, agreed 2026-10-31)", ()
     const byLabel = <T extends { label: string }>(rows: T[]) =>
       [...rows].sort((a, b) => a.label.localeCompare(b.label));
     expect(byLabel(shirt.variants)).toEqual([
-      { variantId: polo.l, label: 'L', price: '650.00', onSale: true, available: '5.000' },
-      { variantId: polo.m, label: 'M', price: '650.00', onSale: true, available: '3.000' },
+      // ATR-20 (PD-22): no design, so no design photo.
+      {
+        variantId: polo.l,
+        label: 'L',
+        image: null,
+        price: '650.00',
+        onSale: true,
+        available: '5.000',
+      },
+      {
+        variantId: polo.m,
+        label: 'M',
+        image: null,
+        price: '650.00',
+        onSale: true,
+        available: '3.000',
+      },
     ]);
     const box = (await shop.get(`/orders/picker/${pack.id}`)).body as PickerProduct;
     expect(box.kind).toBe('combo');

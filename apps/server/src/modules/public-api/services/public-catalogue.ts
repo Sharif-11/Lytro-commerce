@@ -37,8 +37,9 @@ import { DomainService } from '../../domains/services/domain.service';
 import { comboFigures, comboSaving, unitsOf } from '../../inventory/services/combo-figures';
 
 // Bumped whenever an answer's shape changes, so no shopper's browser keeps an old one under an unchanged tag. 2: a list
-// row's swatches and creation time, a category's product count (Slice 12b). 3: what a product asks (Slice 4.8e).
-const ANSWER_FORMAT = 4;
+// row's swatches and creation time, a category's product count (Slice 12b). 3: what a product asks (Slice 4.8e). 5: a
+// product's designs: each photo's design and pixels, the designs option marked (photo designs, ATR-19, PD-28).
+const ANSWER_FORMAT = 5;
 // CCH-04: the version endpoint itself is kept at most this long.
 const VERSION_MAX_AGE_SECONDS = 5;
 // FED-04: a feed is fetched on Meta's schedule; its answer is kept no longer than a product page.
@@ -146,7 +147,12 @@ export class PublicCatalogue {
       const photos = await this.images.viewsOf(
         tx,
         tenantId,
-        rows.map((row) => row.coverMediaId),
+        rows.flatMap((row) => [row.coverMediaId, row.designCoverMediaId]),
+      );
+      const labels = await this.store.shopperVariantLabels(
+        tx,
+        tenantId,
+        rows.map((row) => row.variantId),
       );
       const parts = detail.parts.map((part): PublicComboPart => {
         const offered = part.variants.flatMap((variant) => {
@@ -157,7 +163,8 @@ export class PublicCatalogue {
             {
               variantId: variant.variantId,
               productName: variant.productName,
-              label: variant.label,
+              label: labels.get(variant.variantId) ?? '',
+              image: photos.get(row.designCoverMediaId ?? '') ?? null,
               available: units === null || units > 0,
             },
           ];
@@ -167,7 +174,13 @@ export class PublicCatalogue {
           position: part.position,
           quantity: part.quantity,
           productName: part.variants[0]?.productName ?? '',
-          image: photos.get(first?.coverMediaId ?? '') ?? null,
+          // PD-6: a fixed part of one design shows that design, never another design's photo.
+          image:
+            photos.get(
+              (part.variants.length === 1 ? first?.designCoverMediaId : null) ??
+                first?.coverMediaId ??
+                '',
+            ) ?? null,
           choice: part.variants.length > 1,
           variants: offered,
         };
@@ -353,6 +366,7 @@ function visibleCategories(rows: readonly CategoryRecord[]): CategoryRecord[] {
 function publicDetail(detail: ProductDetail): Omit<PublicProductDetail, 'combo'> {
   const onSale = detail.variants.filter((variant) => variant.active);
   const used = new Set(onSale.flatMap((variant) => variant.optionIds));
+  const designIds = new Set(detail.designs.map((design) => design.id));
   return {
     id: detail.id,
     slug: detail.slug,
@@ -366,7 +380,13 @@ function publicDetail(detail: ProductDetail): Omit<PublicProductDetail, 'combo'>
     condition: detail.condition,
     primaryCategoryId: detail.primaryCategoryId,
     categoryIds: detail.categoryIds,
-    images: detail.images,
+    images: detail.images.map((image) => ({
+      id: image.id,
+      urls: image.urls,
+      width: image.width,
+      height: image.height,
+      designId: image.designId,
+    })),
     video: detail.video,
     options: detail.variantAttributes.map((attribute) => ({
       attributeId: attribute.attributeId,
@@ -374,6 +394,7 @@ function publicDetail(detail: ProductDetail): Omit<PublicProductDetail, 'combo'>
       dataType: attribute.dataType,
       unitKind: attribute.unitKind,
       values: attribute.options.filter((option) => used.has(option.id)),
+      designs: attribute.options.some((option) => designIds.has(option.id)),
     })),
     attributes: detail.attributes
       .filter((attribute) => attribute.role === AttributeRole.Informational)

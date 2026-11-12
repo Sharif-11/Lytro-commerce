@@ -3,6 +3,7 @@ import { alias } from 'drizzle-orm/pg-core';
 import type { ProductKind, StockTracking, StockUnit } from '@lytronix/validators';
 import {
   attributeOptions,
+  attributes,
   comboPartVariants,
   comboParts,
   orderLineComponents,
@@ -53,6 +54,8 @@ export interface ComboPartStockRow {
   weightKg: string | null;
   /** CMB-09: the product's first photo, for "What's inside". */
   coverMediaId: string | null;
+  /** ATR-20 (PD-6): the cover of the variant's photo design, its first photo; null for a variant without one. */
+  designCoverMediaId: string | null;
 }
 
 /** One variant as a part would use it, before it is in any part (a draft combo's, Slice 4.8c). */
@@ -226,6 +229,12 @@ export class ComboRepository {
         coverMediaId: sql<string | null>`(SELECT pi.media_id FROM tenant.product_images pi
           WHERE pi.tenant_id = ${products.tenantId} AND pi.product_id = ${products.id}
           ORDER BY pi.sort_order LIMIT 1)`,
+        designCoverMediaId: sql<string | null>`(SELECT pi.media_id FROM tenant.product_images pi
+          JOIN tenant.variant_attribute_values vav
+            ON vav.tenant_id = pi.tenant_id AND vav.option_id = pi.design_option_id
+          WHERE pi.tenant_id = ${productVariants.tenantId} AND pi.product_id = ${productVariants.productId}
+            AND vav.variant_id = ${productVariants.id}
+          ORDER BY pi.sort_order LIMIT 1)`,
       })
       .from(productVariants)
       .innerJoin(
@@ -269,6 +278,7 @@ export class ComboRepository {
       price: row.price,
       weightKg: row.weightKg,
       coverMediaId: row.coverMediaId,
+      designCoverMediaId: row.designCoverMediaId,
     }));
   }
 
@@ -317,6 +327,7 @@ export class ComboRepository {
     tx: Transaction,
     tenantId: string,
     variantIds: string[],
+    withDesigns = true,
   ): Promise<Map<string, string>> {
     await this.transactions.setTenantContext(tx, tenantId);
     if (variantIds.length === 0) return new Map();
@@ -324,6 +335,7 @@ export class ComboRepository {
       .select({ variantId: variantAttributeValues.variantId, value: attributeOptions.value })
       .from(variantAttributeValues)
       .innerJoin(attributeOptions, eq(attributeOptions.id, variantAttributeValues.optionId))
+      .innerJoin(attributes, eq(attributes.id, variantAttributeValues.attributeId))
       .innerJoin(
         productAttributes,
         and(
@@ -336,6 +348,8 @@ export class ComboRepository {
         and(
           eq(variantAttributeValues.tenantId, tenantId),
           inArray(variantAttributeValues.variantId, variantIds),
+          // ATR-20 (PD-4): a shopper's label leaves out a design's name, which its photo shows.
+          withDesigns ? undefined : eq(attributes.photoDesigns, false),
         ),
       )
       .orderBy(asc(variantAttributeValues.variantId), asc(productAttributes.sortOrder));

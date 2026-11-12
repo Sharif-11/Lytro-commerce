@@ -70,7 +70,7 @@ shopper gets exactly the design they chose, and the seller sends exactly that de
 
 | # | Decision | Decided |
 |---|---|---|
-| PD-13 | **The data.** | One platform attribute, "ডিজাইন" / "Design", of a new data type `design`: variant-defining only, never informational or captured, never in the shop's attribute list. Its options belong to one product (`attribute_options.product_id`). A product photo names its design (`product_images.design_option_id`, null for a plain photo), so a design's photos are that product's photos with its option, in photo order. |
+| PD-13 | **The data.** | One platform attribute, "ডিজাইন" / "Design": an `enum_single` attribute marked by the `attributes.photo_designs` flag (the server build chose a flag over a new data type, 2026-11-12, so nothing that reads a data type changes), variant-defining only, never informational or captured, never in the shop's attribute list. Its options belong to one product (`attribute_options.product_id`). A product photo names its design (`product_images.design_option_id`, null for a plain photo), so a design's photos are that product's photos with its option, in photo order. |
 | PD-14 | **Design names, for the seller only.** | A design is "ডিজাইন 1, 2, 3…" by its order among the product's designs, unless the seller names it ("স্ট্রাইপ"); the number never changes once an order names it. The name shows on the seller's screens, the parcel label and the SKU, never to the shopper (PD-4, PD-6). |
 | PD-15 | **Limits.** | The design attribute counts as one of ATR-14's 3 variant-defining attributes and toward its 100 variants; a product has at most 50 photos (PRD-11), so at most 50 designs. |
 | PD-16 | **Saving.** | One request sets a product's photos and designs together (which photos, their order, their designs and names), and returns each design's option id, before its variants are saved. Option ids never change while a design keeps a photo, so its variants and stock stay. |
@@ -116,10 +116,11 @@ changes against the prototype's screens.
 
 Three pull requests, each from `main`, server first and screens last (as every phase does):
 
-1. **The server.** Migration (PD-13: the `design` data type and the platform attribute, `attribute_options.product_id`,
-   `product_images.design_option_id`, an index on order lines' photos), the photo-and-design save (PD-16), variants and
-   limits (PD-15), the order line's cover (PD-7), keeping ordered photos (PD-8), SKUs (PD-10), the public product's
-   designs, the label's item line (PD-9), tracking's and the confirmation's items (PD-6), the feed (PD-23).
+1. **The server.** Migration 0129 (PD-13: the `attributes.photo_designs` flag and the platform attribute,
+   `attribute_options.product_id`, `product_images.design_option_id`; order lines' photos already had their index), the
+   photo-and-design save (PD-16), variants and limits (PD-15), the order line's cover (PD-7), keeping ordered photos
+   (PD-8), SKUs (PD-10), the public product's designs, the label's item line's data (PD-9: each line's design name and
+   SKU; the dashboard draws the label), tracking's and the confirmation's items (PD-6), the feed (PD-23).
 2. **The dashboard.** The photo sheet's designs (PD-2, PD-3, PD-11, PD-14), the variants card showing designs as photos,
    the order editor's and combo editor's picker by photo (PD-22), the order page's cover and SKU, the label. Sketched
    first in `lytro-dashboard.html`.
