@@ -70,6 +70,7 @@ export class BatchExpiryService {
               batchCode: batch.batchCode,
               expiresOn: batch.expiresOn ?? window.until,
               quantity: batch.quantity,
+              unit: batch.stockUnit,
             });
           }
           await this.batches.markNotified(
@@ -99,6 +100,7 @@ export class BatchExpiryService {
         variantId: row.variantId,
         reserved: row.reserved,
         short: row.short,
+        unit: row.stockUnit,
       });
     }
     await this.stock.setShortNotified(

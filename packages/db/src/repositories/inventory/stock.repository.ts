@@ -117,6 +117,8 @@ export interface ShortfallRow {
   productName: string;
   reserved: string;
   short: string;
+  /** UOM-01: its product's stock unit, which the notice names. */
+  stockUnit: StockUnit;
   shortNotified: boolean;
   /** Its product is archived, so Stock doesn't list it; the daily notice still clears it. */
   archived: boolean;
@@ -378,6 +380,7 @@ export class StockRepository {
         productName: products.name,
         reserved: stockLevels.reserved,
         short: short.mapWith(String),
+        stockUnit: products.stockUnit,
         shortNotified: stockLevels.shortNotified,
         archived: sql<boolean>`${products.deletedAt} IS NOT NULL`,
       })
