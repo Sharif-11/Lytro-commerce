@@ -23,7 +23,18 @@ describe('releaseOf', () => {
     });
   });
 
+  it("reads staging's copy, whose version carries its tag", () => {
+    const staging = { ...GOOD, version: '1.0.0-staging', file: 'lytro-listener-1.0.0-staging.apk' };
+    expect(releaseOf(staging, BASE)).toMatchObject({
+      version: '1.0.0-staging',
+      url: `${BASE}/lytro-listener-1.0.0-staging.apk`,
+    });
+  });
+
   it.each([
+    ['a tag with nothing after the dash', { ...GOOD, version: '1.0.0-' }],
+    ['a tag with a space', { ...GOOD, version: '1.0.0-two words' }],
+    ['two tags', { ...GOOD, version: '1.0.0-staging-x' }],
     ['another site', { ...GOOD, file: 'https://evil.example/app.apk' }],
     ['a path out of the bucket', { ...GOOD, file: '../other/app.apk' }],
     ['not an APK', { ...GOOD, file: 'lytro-listener.exe' }],
