@@ -328,6 +328,7 @@ export class OrderPickerProductDto extends createZodDto(
       z.object({
         variantId: z.string(),
         label: z.string(),
+        image: z.string().nullable(),
         price: z.string(),
         onSale: z.boolean(),
         available: z.string().nullable(),

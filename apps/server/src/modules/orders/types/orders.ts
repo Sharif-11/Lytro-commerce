@@ -184,6 +184,8 @@ export interface OrderPickerProduct {
   variants: {
     variantId: string;
     label: string;
+    /** ATR-20 (PD-22): a design's variant shows its design's cover, so staff pick by photo; null for others. */
+    image: string | null;
     price: string;
     /** Slice 4.8c: it and its product are on sale; staff may still order one that isn't (PRD-06). */
     onSale: boolean;
