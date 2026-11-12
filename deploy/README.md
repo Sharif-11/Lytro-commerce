@@ -126,6 +126,27 @@ sudo -E docker compose --profile tools run --rm migrate \
 unset PASSWORD
 ```
 
+## Media (photos)
+
+Optional, and best switched on once the first deploy works. In Cloudflare (`docs/DEPLOYMENT.md` §8, "Staging's media"):
+
+1. **R2:** the three buckets, none public; the uploads bucket's CORS policy; and four Account API tokens: the signer
+   (Object Read & Write, uploads), the processor (the same, all three buckets, the server's address only), the deleter
+   (media and evidence, the server's address only), and the Worker's (Object Read only, media).
+2. **Workers KV:** the namespace; its id is in `apps/media-worker/wrangler.jsonc`.
+3. **A token for the server's counts:** Account Analytics Read and Workers KV Storage Edit, the server's address only.
+4. **The Worker**, from `apps/media-worker` on your computer:
+   ```
+   npx wrangler login
+   npx wrangler deploy --env staging
+   npx wrangler secret put R2_ENDPOINT --env staging            # https://<account id>.r2.cloudflarestorage.com
+   npx wrangler secret put R2_ACCESS_KEY_ID --env staging       # the Worker's token
+   npx wrangler secret put R2_SECRET_ACCESS_KEY --env staging
+   npx wrangler secret put MEDIA_LINK_SECRET --env staging      # a long random value, kept in your password manager
+   ```
+5. **The server:** fill the `MEDIA_` and `CLOUDFLARE_` lines in `server.env` (with `MEDIA_USAGE_DATASET`) and the two
+   `MEDIA_` lines in `edge.env`, remove their `#`, and deploy again.
+
 ## Day to day
 
 - **What runs:** `ssh lytro@<address>`, then `sudo docker ps`; or `cat /opt/lytro/state/release.env`.
