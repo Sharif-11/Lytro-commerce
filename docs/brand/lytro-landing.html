@@ -323,6 +323,9 @@
   .plan li svg { width: 18px; height: 18px; flex: none; color: var(--teal-700); background: var(--teal-50); border-radius: 50%; padding: 3px; margin-top: 2px; }
   .plan li.no { color: var(--n500); }
   .plan li.no svg { color: var(--n400); background: var(--n50); }
+  /* Small fixes 14(d), 2026-11-13: what else a plan gives, in a quieter group under the main lines. */
+  .plan ul.more { gap: 6px; font-size: 0.875rem; color: var(--n700); padding-top: 12px; border-top: 1px dashed var(--line); }
+  .plan ul.more li svg { width: 16px; height: 16px; }
   .plan .btn { width: 100%; margin-top: 2px; }
   .pdots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
   .pdots i { width: 6px; height: 6px; border-radius: 50%; background: var(--n200); transition: width 0.2s; }
@@ -817,10 +820,19 @@
             <div class="who" data-en="For a shop that wants to try before paying">যে দোকান আগে দেখে তারপর দিতে চায়</div>
             <div class="price"><b>৳0</b><span data-en="per month">/ মাস</span></div>
             <ul>
-              <li><svg><use href="#check"/></svg><span data-en="A small fee only when an order is delivered">অর্ডার ডেলিভার হলে তবেই ছোট একটা ফি</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Per order, once it is booked with a courier or shipped: 1.5% of it, at least ৳20">অর্ডার কুরিয়ারে বুক বা শিপ হলে অর্ডারের 1.5%, কমপক্ষে ৳20</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Adding products is free">প্রোডাক্ট যোগ করা ফ্রি</span></li>
               <li><svg><use href="#check"/></svg><span data-en="Storefront, orders, courier booking, fake-order check">স্টোরফ্রন্ট, অর্ডার, কুরিয়ার বুকিং, ফেক অর্ডার চেক</span></li>
               <li><svg><use href="#check"/></svg><span data-en="bKash and Nagad payment matching">বিকাশ-নগদ পেমেন্ট ম্যাচিং</span></li>
               <li><svg><use href="#check"/></svg><span data-en="Top up a balance for SMS and paid features">SMS আর পেইড ফিচারের জন্য ব্যালেন্স টপ-আপ</span></li>
+            </ul>
+            <ul class="more">
+              <li><svg><use href="#check"/></svg><span data-en="Up to 25 products">২৫টি প্রোডাক্ট পর্যন্ত</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="1 seat: just you">১টি সিট: শুধু আপনি</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="250 MB storage">২৫০ MB স্টোরেজ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="10 GB bandwidth a month">মাসে ১০ GB ব্যান্ডউইথ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="100,000 API requests a month">মাসে ১,০০,০০০ API রিকোয়েস্ট</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Listener on 1 phone">১টি ফোনে লিসেনার</span></li>
             </ul>
             <a href="#" class="btn btn-accent" data-en="Open a free shop">ফ্রি দোকান খুলুন</a>
           </div>
@@ -832,9 +844,15 @@
               <li><svg><use href="#check"/></svg><span data-en="Your own storefront included">নিজের স্টোরফ্রন্ট সহ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="100 products">১০০ প্রোডাক্ট</span></li>
               <li><svg><use href="#check"/></svg><span data-en="300 orders handled a month">মাসে ৩০০ অর্ডার হ্যান্ডলিং</span></li>
-              <li><svg><use href="#check"/></svg><span data-en="2 staff seats">২ স্টাফ সিট</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="2 seats: you + 1 staff">২টি সিট: আপনি + ১ জন স্টাফ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="10 free SMS a month">মাসে ১০টি ফ্রি SMS</span></li>
               <li class="no"><svg><use href="#x"/></svg><span data-en="Custom domain">নিজের ডোমেইন</span></li>
+            </ul>
+            <ul class="more">
+              <li><svg><use href="#check"/></svg><span data-en="2 GB storage">২ GB স্টোরেজ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="30 GB bandwidth a month">মাসে ৩০ GB ব্যান্ডউইথ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="200,000 API requests a month">মাসে ২,০০,০০০ API রিকোয়েস্ট</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Listener on 1 phone">১টি ফোনে লিসেনার</span></li>
             </ul>
             <a href="#" class="btn btn-outline" data-en="Choose Starter">Starter নিন</a>
           </div>
@@ -846,9 +864,15 @@
               <li><svg><use href="#check"/></svg><span data-en="Your own storefront included">নিজের স্টোরফ্রন্ট সহ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="1,000 products">১,০০০ প্রোডাক্ট</span></li>
               <li><svg><use href="#check"/></svg><span data-en="1,500 orders handled a month">মাসে ১,৫০০ অর্ডার হ্যান্ডলিং</span></li>
-              <li><svg><use href="#check"/></svg><span data-en="5 staff seats">৫ স্টাফ সিট</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="5 seats: you + 4 staff">৫টি সিট: আপনি + ৪ জন স্টাফ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="15 free SMS a month">মাসে ১৫টি ফ্রি SMS</span></li>
               <li><svg><use href="#check"/></svg><span data-en="Custom domain">নিজের ডোমেইন</span></li>
+            </ul>
+            <ul class="more">
+              <li><svg><use href="#check"/></svg><span data-en="10 GB storage">১০ GB স্টোরেজ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="100 GB bandwidth a month">মাসে ১০০ GB ব্যান্ডউইথ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="600,000 API requests a month">মাসে ৬,০০,০০০ API রিকোয়েস্ট</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Listener on 3 phones">৩টি ফোনে লিসেনার</span></li>
             </ul>
             <a href="#" class="btn btn-primary" data-en="Choose Growth">Growth নিন</a>
           </div>
@@ -860,9 +884,16 @@
               <li><svg><use href="#check"/></svg><span data-en="Your own storefront included">নিজের স্টোরফ্রন্ট সহ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="5,000 products">৫,০০০ প্রোডাক্ট</span></li>
               <li><svg><use href="#check"/></svg><span data-en="6,000 orders handled a month">মাসে ৬,০০০ অর্ডার হ্যান্ডলিং</span></li>
-              <li><svg><use href="#check"/></svg><span data-en="15 staff seats">১৫ স্টাফ সিট</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="15 seats: you + 14 staff">১৫টি সিট: আপনি + ১৪ জন স্টাফ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="20 free SMS a month">মাসে ২০টি ফ্রি SMS</span></li>
               <li><svg><use href="#check"/></svg><span data-en="Custom domain, same-day support">নিজের ডোমেইন, সেম-ডে সাপোর্ট</span></li>
+            </ul>
+            <ul class="more">
+              <li><svg><use href="#check"/></svg><span data-en="50 GB storage">৫০ GB স্টোরেজ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="300 GB bandwidth a month">মাসে ৩০০ GB ব্যান্ডউইথ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="2,000,000 API requests a month">মাসে ২০,০০,০০০ API রিকোয়েস্ট</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Listener on 10 phones">১০টি ফোনে লিসেনার</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Brand identity: your colours, fonts and logo">ব্র্যান্ড আইডেন্টিটি: আপনার রং, ফন্ট আর লোগো</span></li>
             </ul>
             <a href="#" class="btn btn-outline" data-en="Choose Pro">Pro নিন</a>
           </div>
