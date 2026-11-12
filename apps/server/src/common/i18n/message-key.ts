@@ -315,6 +315,7 @@ export const MESSAGE_KEYS = [
   'DesignNotOfProduct',
   'DesignNameTaken',
   'DesignsAddedByPhotos',
+  'MediaKeptForOrders',
   'OneOptionPerAttribute',
   'VariantCombinationRepeated',
   'TooManyVariants',
