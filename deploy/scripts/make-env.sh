@@ -2,8 +2,8 @@
 # Writes a server's settings into /opt/lytro/env/*.env, once (Slice 9.1). Run as root on the server after
 # setup-server.sh:
 #
-#   PLATFORM_DOMAIN=staging.lytro.app PLATFORM_ADDRESSES=<the server's IPv4> ACME_EMAIL=<an address Let's Encrypt
-#   writes to> ROBOTS=robots_noindex bash make-env.sh
+#   PLATFORM_DOMAIN=staging.lytro.app PLATFORM_ADDRESSES=<the server's IPv4> ACME_EMAIL=<the certificate
+#   account's address> ROBOTS=robots_noindex bash make-env.sh
 #
 # It makes every secret Lytro makes itself (the edge secret, the storefront's, the sign-in codes', the sealing key, both
 # database passwords, the push keys) and writes each where it belongs, the same value everywhere it must match. What
@@ -78,6 +78,9 @@ EOF
 
 vapid
 write server.env <<EOF
+# The server's settings (deploy/README.md, step 4). Three groups: made here, required, and optional.
+
+# Made by make-env.sh on this server: leave them as they are. Copy DATA_ENCRYPTION_KEY into a password manager.
 NODE_ENV=production
 PLATFORM_DOMAIN=$PLATFORM_DOMAIN
 PLATFORM_ADDRESSES=$PLATFORM_ADDRESSES
@@ -92,17 +95,36 @@ CLIENT_IP_FORMAT=list
 TRUSTED_PROXY_HOPS=1
 VAPID_PUBLIC_KEY=$VAPID_PUBLIC_KEY
 VAPID_PRIVATE_KEY=$VAPID_PRIVATE_KEY
-VAPID_SUBJECT=mailto:$ACME_EMAIL
+# How a push service reaches Lytro about its pushes: the site, so the certificate account's address goes nowhere else.
+VAPID_SUBJECT=https://$PLATFORM_DOMAIN
 
-# From outside services: fill these in, then remove the leading '#'. The server refuses to start in production without
-# the first five (deploy/README.md says where each comes from).
-# BULKSMSBD_API_KEY=
-# BULKSMSBD_SENDER_ID=
-# RESEND_API_KEY=
-# RESEND_WEBHOOK_SECRET=
-# GEMINI_API_KEY=
-# MAIL_FROM=Lytro Staging <no-reply@mail.lytro.app>
-# Media (R2), all together or none:
+# Required: the server refuses to start in production until each is filled in.
+BULKSMSBD_API_KEY=
+BULKSMSBD_SENDER_ID=
+RESEND_API_KEY=
+# Resend's webhook for https://api.$PLATFORM_DOMAIN/v1/webhooks/email/resend (email.bounced, email.complained): whsec_...
+RESEND_WEBHOOK_SECRET=
+GEMINI_API_KEY=
+
+# Optional: remove the '#' to turn one on.
+# MAIL_FROM=Lytro <no-reply@mail.lytro.app>
+
+# Google sign-in. Its redirect address in Google Cloud: https://app.$PLATFORM_DOMAIN/auth/oauth/google/callback
+# GOOGLE_SIGN_IN_ENABLED=true
+# GOOGLE_CLIENT_ID=
+# GOOGLE_CLIENT_SECRET=
+
+# Facebook sign-in. Its redirect address in Meta: https://app.$PLATFORM_DOMAIN/auth/oauth/facebook/callback
+# FACEBOOK_SIGN_IN_ENABLED=true
+# FACEBOOK_APP_ID=
+# FACEBOOK_APP_SECRET=
+
+# Couriers. Lytro's own RedX token reads RedX's area list; without it RedX can't book. Pathao's webhook answer only if
+# its webhook page insists.
+# REDX_AREAS_TOKEN=
+# PATHAO_WEBHOOK_INTEGRATION_SECRET=
+
+# Media (R2): all of these or none. Its uploads bucket must accept https://app.$PLATFORM_DOMAIN (CORS).
 # MEDIA_STORAGE_ENDPOINT=
 # MEDIA_STORAGE_REGION=auto
 # MEDIA_UPLOADS_BUCKET=
@@ -115,17 +137,46 @@ VAPID_SUBJECT=mailto:$ACME_EMAIL
 # MEDIA_DELETER_ACCESS_KEY=
 # MEDIA_DELETER_SECRET_KEY=
 # MEDIA_PUBLIC_BASE_URL=
+
+# Media's Cloudflare side (its costs and blocked list): all three or none. The media token, never the DNS one.
+# CLOUDFLARE_ACCOUNT_ID=
+# CLOUDFLARE_API_TOKEN=
+# MEDIA_EDGE_KV_NAMESPACE_ID=
+
+# Tuning: the built-in values are right; listed so nothing is hidden. Unset means the built-in value.
+# DATABASE_POOL_MAX=5
+# DATABASE_CONNECT_TIMEOUT_MS=5000
+# DATABASE_STATEMENT_TIMEOUT_MS=10000
+# SIGNUP_RATE_LIMIT_PER_IP=
+# CODE_SMS_PER_IP_PER_HOUR=
+# TRIAL_LIMIT_PER_IDENTITY=
+# TRIAL_LIMIT_PER_IP=
+# TRIAL_LIMIT_WINDOW_DAYS=
+
+# Only while changing a key (RUNBOOKS): the old sealing key, and the edge secret coming in.
+# DATA_ENCRYPTION_PREVIOUS_KEY=
+# TRUSTED_EDGE_SECRET_NEXT=
 EOF
 
 write website.env <<EOF
+# Made by make-env.sh: leave them as they are.
 TRUSTED_EDGE_SECRET=$EDGE_SECRET
 SITE_URL=https://$PLATFORM_DOMAIN
 APP_URL=https://app.$PLATFORM_DOMAIN
+
+# Optional: remove the '#' to turn one on.
+# The address the contact page shows.
 # SUPPORT_EMAIL=
+# Where the payment listener app downloads from (built-in: https://download.lytro.app).
 # LISTENER_DOWNLOAD_URL=
+# Where the contact form sends each message.
+# CONTACT_WEBHOOK_URL=
+# Features the site shows as live, comma-separated.
+# LIVE_FEATURES=
 EOF
 
 write storefront.env <<EOF
+# Made by make-env.sh: leave them as they are. Nothing here to fill in.
 PLATFORM_DOMAIN=$PLATFORM_DOMAIN
 TRUSTED_EDGE_SECRET=$EDGE_SECRET
 STOREFRONT_SECRET=$STOREFRONT_SECRET
@@ -133,13 +184,17 @@ CLIENT_IP_HEADER=x-forwarded-for
 EOF
 
 write edge.env <<EOF
+# Made by make-env.sh: leave them as they are.
 PLATFORM_DOMAIN=$PLATFORM_DOMAIN
 ACME_EMAIL=$ACME_EMAIL
 TRUSTED_EDGE_SECRET=$EDGE_SECRET
 ROBOTS=$ROBOTS
-# A Cloudflare API token that can only edit the lytro.app zone's DNS (deploy/README.md), never the server's media token.
-# CLOUDFLARE_DNS_API_TOKEN=
-# The same two addresses as the server's, for the dashboard's and console's Content Security Policy:
+
+# Required: Caddy won't start without it. A Cloudflare API token that can only edit the zone's DNS (deploy/README.md),
+# never the server's media token.
+CLOUDFLARE_DNS_API_TOKEN=
+
+# With media only: the same two addresses as server.env's, for the dashboard's and console's Content Security Policy.
 # MEDIA_PUBLIC_BASE_URL=
 # MEDIA_STORAGE_ENDPOINT=
 EOF
