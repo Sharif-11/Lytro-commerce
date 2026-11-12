@@ -115,6 +115,10 @@ them without a token. They hold only the public repository's code, never a secre
 Re-run the latest Deploy workflow on `main` (Actions → Deploy → Re-run all jobs), or merge anything. Its staging job
 deploys, then checks every host from outside. The first certificates can take a minute.
 
+A run reads `DEPLOY_ENABLED` when it is queued, so one queued before the variable was `true` skips its staging job.
+Re-running only that job reads the variable again: `gh run rerun <run id> --job <the deploy-staging job's id>` (the ids
+are in `gh run view <run id> --json jobs`).
+
 Then make the first operator (the console's sign-in), on the server. In a root shell: `settings.env` is readable by
 root and the deploy group only.
 
