@@ -385,6 +385,11 @@ export interface ProductListItem {
  */
 export interface ProductImageView extends ImageView {
   bytes: number;
+  /** PD-28: its pixels, so a gallery can take the first photo's shape; null when not recorded. */
+  width: number | null;
+  height: number | null;
+  /** ATR-19 (PD-2): the design it shows, or null for a plain photo. */
+  designId: string | null;
 }
 
 /** ATR-19 (PD-2, PD-14): one live design of a product: its name and number, and its photos, the first its cover. */

@@ -50,6 +50,8 @@ export interface PublicProductOption {
   dataType: AttributeDataType;
   unitKind: string | null;
   values: PublicOptionValue[];
+  /** ATR-19 (PD-4): its values are the product's designs, chosen by tapping a photo; its name is never shown. */
+  designs: boolean;
 }
 
 /** ATR-02: a fact about the product, such as its material, written out. */
@@ -92,7 +94,8 @@ export interface PublicProductDetail {
   condition: ItemCondition;
   primaryCategoryId: string | null;
   categoryIds: string[];
-  images: ImageView[];
+  /** PRD-11, ATR-19, PD-28: its photos in order, each with its pixels and the design it shows (null: plain). */
+  images: (ImageView & { width: number | null; height: number | null; designId: string | null })[];
   video: VideoView | null;
   options: PublicProductOption[];
   attributes: PublicProductAttribute[];

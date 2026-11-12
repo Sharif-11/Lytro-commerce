@@ -59,13 +59,25 @@ export class CatalogueImages {
     videoId: string | null,
   ): Promise<{ images: ProductImageView[]; video: ProductVideoView | null }> {
     const images = (await this.ofProducts(tx, tenantId, [productId])).get(productId) ?? [];
+    const designOf = new Map(
+      (await this.store.listProductImages(tx, tenantId, [productId])).map((row) => [
+        row.mediaId,
+        row.designOptionId,
+      ]),
+    );
     const video = await this.videoOf(tx, tenantId, videoId);
     const ids = [...images.map((image) => image.id), ...(video ? [video.id] : [])];
     const sizes = new Map(
       (await this.store.sizesOf(tx, tenantId, ids)).map((size) => [size.id, size]),
     );
     return {
-      images: images.map((image) => ({ ...image, bytes: sizes.get(image.id)?.bytes ?? 0 })),
+      images: images.map((image) => ({
+        ...image,
+        bytes: sizes.get(image.id)?.bytes ?? 0,
+        width: sizes.get(image.id)?.width ?? null,
+        height: sizes.get(image.id)?.height ?? null,
+        designId: designOf.get(image.id) ?? null,
+      })),
       video: video && {
         ...video,
         bytes: sizes.get(video.id)?.bytes ?? 0,

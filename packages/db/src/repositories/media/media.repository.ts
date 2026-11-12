@@ -80,6 +80,9 @@ export interface MediaSize {
   id: string;
   bytes: number;
   durationMs: number | null;
+  /** PD-28: an image's or a video's pixels, when the processing job recorded them. */
+  width: number | null;
+  height: number | null;
 }
 
 /** PRD-11: one photo of a product, in its place, with its stored files. */
@@ -204,6 +207,8 @@ export class MediaRepository {
       .select({
         id: media.id,
         durationMs: media.durationMs,
+        width: media.width,
+        height: media.height,
         bytes: sql<string>`coalesce(sum(${mediaObjects.bytes}), 0)::text`,
       })
       .from(media)
@@ -217,6 +222,8 @@ export class MediaRepository {
       id: row.id,
       bytes: Number(row.bytes),
       durationMs: row.durationMs,
+      width: row.width,
+      height: row.height,
     }));
   }
 

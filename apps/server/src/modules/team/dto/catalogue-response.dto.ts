@@ -237,7 +237,13 @@ export const productDetailSchema = z.object({
       image: imageViewSchema.nullable(),
     })
     .nullable(),
-  images: z.array(productImageViewSchema),
+  images: z.array(
+    productImageViewSchema.extend({
+      width: z.number().int().nullable(),
+      height: z.number().int().nullable(),
+      designId: z.string().nullable(),
+    }),
+  ),
   // ATR-19 (PD-2, PD-14): the live designs, each with its photos in order, the first its cover.
   designs: z.array(
     z.object({

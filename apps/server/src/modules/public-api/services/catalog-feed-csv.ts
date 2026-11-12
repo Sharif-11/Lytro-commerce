@@ -67,10 +67,13 @@ export class CatalogFeedCsv {
   build(tenantId: string, shopSlug: string, ownDomain: string | null): Promise<string> {
     return this.store.run(async (tx) => {
       const variants = await this.store.listFeedVariants(tx, tenantId);
-      const images = new Map<string, string[]>();
+      const images = new Map<string, { url: string; designId: string | null }[]>();
       for (const row of await this.store.listFeedImages(tx, tenantId)) {
         const url = this.links.image(tenantId, row.mediaId, row.hash).urls.main;
-        images.set(row.productId, [...(images.get(row.productId) ?? []), url]);
+        images.set(row.productId, [
+          ...(images.get(row.productId) ?? []),
+          { url, designId: row.designId },
+        ]);
       }
       const values = attributeValues(await this.store.listFeedAttributes(tx, tenantId, WANTED));
       const origin = this.settings.shopOrigin(shopSlug, ownDomain);
@@ -78,7 +81,16 @@ export class CatalogFeedCsv {
         (values.get(variantId)?.get(column) ?? values.get(productId)?.get(column) ?? []).join('/');
       return toCsv(
         variants.map((row) => {
-          const photos = images.get(row.productId) ?? [];
+          // ATR-19 (PD-23): a design's variant leads with its design's photos, its cover first, then the plain ones.
+          const all = images.get(row.productId) ?? [];
+          const photos = (
+            row.designId === null
+              ? all
+              : [
+                  ...all.filter((photo) => photo.designId === row.designId),
+                  ...all.filter((photo) => photo.designId === null),
+                ]
+          ).map((photo) => photo.url);
           return {
             id: row.variantId,
             item_group_id: row.productId,

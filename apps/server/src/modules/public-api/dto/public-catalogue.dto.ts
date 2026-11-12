@@ -54,7 +54,13 @@ export class PublicProductDetailDto extends createZodDto(
     condition: z.nativeEnum(ItemCondition),
     primaryCategoryId: z.string().nullable(),
     categoryIds: z.array(z.string()),
-    images: z.array(imageViewSchema),
+    images: z.array(
+      imageViewSchema.extend({
+        width: z.number().int().nullable(),
+        height: z.number().int().nullable(),
+        designId: z.string().nullable(),
+      }),
+    ),
     video: videoViewSchema.nullable(),
     options: z.array(
       z.object({
@@ -63,6 +69,7 @@ export class PublicProductDetailDto extends createZodDto(
         dataType: z.nativeEnum(AttributeDataType),
         unitKind: z.string().nullable(),
         values: z.array(optionValueSchema),
+        designs: z.boolean(),
       }),
     ),
     attributes: z.array(

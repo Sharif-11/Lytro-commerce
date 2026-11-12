@@ -52,6 +52,8 @@ export interface FeedVariantRow {
   /** Its own price, or the product's. */
   price: string;
   stockState: StockState;
+  /** ATR-19 (PD-23): its design, for a design product's variant; null otherwise. */
+  designId: string | null;
 }
 
 /** FED-02: one of an active product's ready photos, in the order shown. */
@@ -59,6 +61,8 @@ export interface FeedImageRow {
   productId: string;
   mediaId: string;
   hash: string;
+  /** ATR-19 (PD-23): the design it shows, or null for a plain photo. */
+  designId: string | null;
 }
 
 /** FED-02: a value of one of the named attributes, the product's own (no variant) or one variant's. */
@@ -320,9 +324,13 @@ export class PublicCatalogueRepository {
       variant_id: string;
       price: string;
       stock_state: StockState;
+      design_id: string | null;
     }>(sql`
       SELECT p.id AS product_id, p.slug, p.name, p.description, p.item_condition, v.id AS variant_id,
-        coalesce(v.price, p.base_price)::text AS price, v.stock_state
+        coalesce(v.price, p.base_price)::text AS price, v.stock_state,
+        (SELECT o.id FROM tenant.variant_attribute_values va
+          JOIN tenant.attribute_options o ON o.id = va.option_id AND o.product_id = p.id
+          WHERE va.tenant_id = v.tenant_id AND va.variant_id = v.id LIMIT 1) AS design_id
       FROM tenant.products p
       JOIN tenant.product_variants v ON v.tenant_id = p.tenant_id AND v.product_id = p.id
       WHERE p.tenant_id = ${tenantId} AND p.active AND p.deleted_at IS NULL
@@ -337,14 +345,20 @@ export class PublicCatalogueRepository {
       variantId: row.variant_id,
       price: row.price,
       stockState: row.stock_state,
+      designId: row.design_id,
     }));
   }
 
   /** FED-02: the ready photos of every active product, each product's in the order shown. */
   async listFeedImages(tx: Transaction, tenantId: string): Promise<FeedImageRow[]> {
     await this.transactions.setTenantContext(tx, tenantId);
-    const result = await tx.execute<{ product_id: string; media_id: string; hash: string }>(sql`
-      SELECT pi.product_id, m.id AS media_id, m.hash
+    const result = await tx.execute<{
+      product_id: string;
+      media_id: string;
+      hash: string;
+      design_option_id: string | null;
+    }>(sql`
+      SELECT pi.product_id, m.id AS media_id, m.hash, pi.design_option_id
       FROM tenant.product_images pi
       JOIN tenant.media m ON m.tenant_id = pi.tenant_id AND m.id = pi.media_id AND m.status = 'ready'
       JOIN tenant.products p ON p.tenant_id = pi.tenant_id AND p.id = pi.product_id
@@ -355,6 +369,7 @@ export class PublicCatalogueRepository {
       productId: row.product_id,
       mediaId: row.media_id,
       hash: row.hash,
+      designId: row.design_option_id,
     }));
   }
 
