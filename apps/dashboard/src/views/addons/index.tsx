@@ -28,8 +28,8 @@ import {
   endingBanner,
   groupsOf,
   headLine,
-  nameOf,
   packMetric,
+  sizedName,
   type AddonLine,
 } from './addon-words';
 import { BuySheet } from './buy-sheet';
@@ -202,7 +202,7 @@ export function AddonsView({
           }
         >
           {t('aoShortBanner', {
-            name: nameOf(short, i18n.language),
+            name: sizedName(short, t, i18n.language),
             date: formatDayMonth(short.expiresAt),
             amount: formatTaka(shortOffer.renewalPrice * short.quantity),
             balance: formatTakaExact(balance.data.amount),

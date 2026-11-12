@@ -14,7 +14,7 @@ import type { UsageFigure } from '@/types/usage';
 import {
   limitValue,
   limitWithout,
-  nameOf,
+  sizedName,
   packLeft,
   packMetric,
   renewalLine,
@@ -48,7 +48,7 @@ export function RenewalSwitch({
   const errorText = useErrorText();
   const setRenewal = useSetAddonRenewal();
   const [asking, setAsking] = useState(false);
-  const name = nameOf(owned, i18n.language);
+  const name = sizedName(owned, t, i18n.language);
   const date = formatDayMonth(owned.expiresAt);
   const move = limitWithout(owned, figures);
   const consequence =
@@ -249,7 +249,7 @@ export function AddonRow({
     <div className="flex items-center gap-3 border-line px-4 py-3 [&+&]:border-t">
       <span className="min-w-0 flex-1">
         <span className="block text-[15px] font-semibold">
-          {allowance ? t('p37AoReads', { n: usesOf(addon) }) : nameOf(addon, i18n.language)}
+          {allowance ? t('p37AoReads', { n: usesOf(addon) }) : sizedName(addon, t, i18n.language)}
         </span>
         {facts.length > 0 ? (
           <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13px] text-fg-muted">
