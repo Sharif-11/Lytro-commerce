@@ -19,34 +19,27 @@ export function useStorageUsage(options: { enabled?: boolean } = {}) {
 
 /**
  * MED-09: whether anything shows the item still -- a product, a video, a category, a swatch, a size chart, the logo,
- * the brand identity's images (KNOWN-GAPS §97).
+ * the brand identity's images (KNOWN-GAPS §97) -- or an order: a photo an order shows is kept for it (PD-8).
  */
 export function inUse(uses: MediaUses): boolean {
   return (
     uses.logo ||
     uses.brand ||
-    uses.products + uses.videos + uses.categories + uses.swatches + uses.sizeCharts > 0
+    uses.products +
+      uses.videos +
+      uses.categories +
+      uses.swatches +
+      uses.sizeCharts +
+      uses.pastOrders >
+      0
   );
 }
 
-/**
- * MED-09: the past orders that lose a photo taken off this product: none when something else still shows it, since only
- * then is it deleted. The product it comes off counts as one of `products` until it is saved.
- */
-export function pastOrdersLost(uses: MediaUses): number {
-  const elsewhere =
-    uses.logo ||
-    uses.brand ||
-    uses.products > 1 ||
-    uses.videos + uses.categories + uses.swatches + uses.sizeCharts > 0;
-  return elsewhere ? 0 : uses.pastOrders;
-}
-
-/** GET /media/:id (MED-09): how many past orders would lose this photo. A failed read warns of none. */
-export async function readPastOrdersLost(id: string): Promise<number> {
+/** GET /media/:id (PD-8): how many orders show this photo, which keep it. A failed read says none. */
+export async function readPastOrders(id: string): Promise<number> {
   try {
     const detail = await tenantSession.client.get<MediaDetail>(`/media/${id}`);
-    return pastOrdersLost(detail.uses);
+    return detail.uses.pastOrders;
   } catch {
     return 0;
   }
@@ -54,8 +47,8 @@ export async function readPastOrdersLost(id: string): Promise<number> {
 
 /**
  * PRD-11, agreed 2026-10-27: items a product let go of, deleted when nothing else shows them, so storage frees; a copy
- * that shares a photo keeps it (PRD-18). Past orders do not hold one back: they show a placeholder (MED-09). A failure
- * leaves the item in the shop's media, where it does no harm.
+ * that shares a photo keeps it (PRD-18), and so does an order that shows it (PD-8: the server refuses its delete). A
+ * failure leaves the item in the shop's media, where it does no harm.
  */
 export class UnusedMedia {
   constructor(private readonly client: ApiClient) {}

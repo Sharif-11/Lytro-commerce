@@ -85,6 +85,7 @@ export function VariantsCard({
   problems,
   onChange,
   onHeldSerials,
+  designs = null,
 }: {
   form: ProductForm;
   saved: ProductForm;
@@ -99,6 +100,15 @@ export function VariantsCard({
   onChange: (patch: Partial<ProductForm>) => void;
   /** A saved serial-numbered variant's serials (`pf-edit-mobile`), for someone who may see stock; null otherwise. */
   onHeldSerials: ((variantId: string) => void) | null;
+  /**
+   * ATR-19 (Part 40's `pd-product`): the design split, shown by its photos: its attribute, each design's cover by its key,
+   * and the photos sheet, where designs are added, removed and renamed. Null for a product that can't have designs.
+   */
+  designs?: {
+    attributeId: string;
+    coverOf: (key: string) => string | undefined;
+    onPhotos: () => void;
+  } | null;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
   const words = useVariantWords();
@@ -316,6 +326,7 @@ export function VariantsCard({
         Number(stock.shared?.onHand ?? 0) > 0
       : product.stockState !== StockState.Out);
   const sets = (split: SplitAttribute) => setsFor(split.options, optionSets.data ?? []);
+  const designSplit = form.splits.find((each) => each.attributeId === designs?.attributeId);
   const rowProblems = Object.entries(problems)
     .filter(([field]) => field.startsWith('variants.') || field.startsWith('attributes'))
     .map(([, message]) => message);
@@ -358,120 +369,133 @@ export function VariantsCard({
           ))}
         </p>
       ) : null}
-      {form.splits.map((split) => (
-        <div key={split.attributeId} className="rounded-card border border-line bg-neutral-50 p-3">
-          <h3 className="flex items-center gap-2 text-[17px] font-semibold">
-            <button
-              type="button"
-              disabled={readOnly}
-              onClick={() => {
-                setOptionsOf(split.attributeId);
-              }}
-            >
-              {split.name}
-            </button>
-            <StatusTag tone="info" small>
-              {t('roleSplits')}
-            </StatusTag>
-          </h3>
-          <ChipRow className="mt-2">
-            {split.options.map((option) => (
-              <span key={option.id} className={chipClass(false, 'sm')}>
-                {option.swatchColor || option.swatchImage ? (
-                  <span
-                    className="size-3 flex-none overflow-hidden rounded-full border border-black/12"
-                    style={option.swatchColor ? { background: option.swatchColor } : undefined}
-                  >
-                    {option.swatchImage ? (
-                      <img
-                        src={option.swatchImage.urls.thumbnail}
-                        alt=""
-                        className="size-full object-cover"
-                      />
-                    ) : null}
-                  </span>
-                ) : null}
-                {words.option(option, split)}
-                {readOnly ? null : (
-                  <button
-                    type="button"
-                    aria-label={t('removeOption', { name: words.option(option, split) })}
-                    onClick={() => {
-                      removeOption(split, option);
-                    }}
-                  >
-                    <Icon name="x" size={14} />
-                  </button>
-                )}
-              </span>
-            ))}
-            {readOnly ? null : (
+      {form.splits.map((split) =>
+        split.attributeId === designs?.attributeId ? (
+          <DesignSplit
+            key={split.attributeId}
+            split={split}
+            coverOf={designs.coverOf}
+            readOnly={readOnly}
+            onPhotos={designs.onPhotos}
+          />
+        ) : (
+          <div
+            key={split.attributeId}
+            className="rounded-card border border-line bg-neutral-50 p-3"
+          >
+            <h3 className="flex items-center gap-2 text-[17px] font-semibold">
               <button
                 type="button"
-                className={`${chipClass(false, 'sm')} border-dashed text-primary`}
+                disabled={readOnly}
                 onClick={() => {
                   setOptionsOf(split.attributeId);
                 }}
               >
-                <Icon name="plus" size={14} />
-                {t('addOption')}
+                {split.name}
               </button>
-            )}
-          </ChipRow>
-          {split.options.length === 0 ? (
-            <p className="mt-2 text-[13px] font-medium text-danger-text">
-              {t('needOption', { name: split.name })}
-            </p>
-          ) : null}
-          {!readOnly && sets(split).length > 0 ? (
-            <p className="mt-2 text-[14px] text-fg-muted">
-              {t('optionSets')}:{' '}
-              {sets(split).map((set, index) => (
-                <span key={set.id}>
-                  {index > 0 ? ' · ' : null}
-                  <button
-                    type="button"
-                    className="underline"
-                    disabled={insertSet.isPending}
-                    onClick={() => {
-                      insertSet.mutate(
-                        { attributeId: split.attributeId, values: set.options },
-                        {
-                          onSuccess: (made) => {
-                            const have = new Set(split.options.map((option) => option.id));
-                            setSplits(
-                              form.splits.map((each) =>
-                                each.attributeId === split.attributeId
-                                  ? {
-                                      ...each,
-                                      options: [
-                                        ...each.options,
-                                        ...made
-                                          .filter((option) => !have.has(option.id))
-                                          .map((option) => ({
-                                            id: option.id,
-                                            value: option.value,
-                                            swatchColor: option.swatchColor,
-                                            swatchImage: option.swatchImage,
-                                          })),
-                                      ],
-                                    }
-                                  : each,
-                              ),
-                            );
-                          },
-                        },
-                      );
-                    }}
-                  >
-                    {set.name}
-                  </button>
+              <StatusTag tone="info" small>
+                {t('roleSplits')}
+              </StatusTag>
+            </h3>
+            <ChipRow className="mt-2">
+              {split.options.map((option) => (
+                <span key={option.id} className={chipClass(false, 'sm')}>
+                  {option.swatchColor || option.swatchImage ? (
+                    <span
+                      className="size-3 flex-none overflow-hidden rounded-full border border-black/12"
+                      style={option.swatchColor ? { background: option.swatchColor } : undefined}
+                    >
+                      {option.swatchImage ? (
+                        <img
+                          src={option.swatchImage.urls.thumbnail}
+                          alt=""
+                          className="size-full object-cover"
+                        />
+                      ) : null}
+                    </span>
+                  ) : null}
+                  {words.option(option, split)}
+                  {readOnly ? null : (
+                    <button
+                      type="button"
+                      aria-label={t('removeOption', { name: words.option(option, split) })}
+                      onClick={() => {
+                        removeOption(split, option);
+                      }}
+                    >
+                      <Icon name="x" size={14} />
+                    </button>
+                  )}
                 </span>
               ))}
-            </p>
-          ) : null}
-        </div>
-      ))}
+              {readOnly ? null : (
+                <button
+                  type="button"
+                  className={`${chipClass(false, 'sm')} border-dashed text-primary`}
+                  onClick={() => {
+                    setOptionsOf(split.attributeId);
+                  }}
+                >
+                  <Icon name="plus" size={14} />
+                  {t('addOption')}
+                </button>
+              )}
+            </ChipRow>
+            {split.options.length === 0 ? (
+              <p className="mt-2 text-[13px] font-medium text-danger-text">
+                {t('needOption', { name: split.name })}
+              </p>
+            ) : null}
+            {!readOnly && sets(split).length > 0 ? (
+              <p className="mt-2 text-[14px] text-fg-muted">
+                {t('optionSets')}:{' '}
+                {sets(split).map((set, index) => (
+                  <span key={set.id}>
+                    {index > 0 ? ' · ' : null}
+                    <button
+                      type="button"
+                      className="underline"
+                      disabled={insertSet.isPending}
+                      onClick={() => {
+                        insertSet.mutate(
+                          { attributeId: split.attributeId, values: set.options },
+                          {
+                            onSuccess: (made) => {
+                              const have = new Set(split.options.map((option) => option.id));
+                              setSplits(
+                                form.splits.map((each) =>
+                                  each.attributeId === split.attributeId
+                                    ? {
+                                        ...each,
+                                        options: [
+                                          ...each.options,
+                                          ...made
+                                            .filter((option) => !have.has(option.id))
+                                            .map((option) => ({
+                                              id: option.id,
+                                              value: option.value,
+                                              swatchColor: option.swatchColor,
+                                              swatchImage: option.swatchImage,
+                                            })),
+                                        ],
+                                      }
+                                    : each,
+                                ),
+                              );
+                            },
+                          },
+                        );
+                      }}
+                    >
+                      {set.name}
+                    </button>
+                  </span>
+                ))}
+              </p>
+            ) : null}
+          </div>
+        ),
+      )}
       {form.descriptions.map((each) => {
         const asked = each.role === AttributeRole.CapturedAtOrder;
         const value = describedValue(each, {
@@ -569,7 +593,20 @@ export function VariantsCard({
             const id = form.variants[index]?.id;
             if (id && onHeldSerials) onHeldSerials(id);
           }}
+          pictureOf={
+            designSplit
+              ? (optionIds) => {
+                  const key = optionIds.find((id) =>
+                    designSplit.options.some((option) => option.id === id),
+                  );
+                  return key === undefined ? undefined : designs?.coverOf(key);
+                }
+              : undefined
+          }
         />
+      ) : null}
+      {designSplit && form.variants.length > 0 && !over ? (
+        <p className="text-[14px] text-fg-muted">{t('pdSkuHint')}</p>
       ) : null}
       {isNew && shared && form.variants.length > 0 ? (
         <div className={kind.batch ? 'grid gap-3 sm:grid-cols-2' : 'contents'}>
@@ -672,6 +709,7 @@ export function VariantsCard({
         }}
       />
       <VariantSheet
+        designed={designSplit !== undefined}
         row={variantAt === null ? null : (form.variants[variantAt] ?? null)}
         name={
           variantAt === null
@@ -786,5 +824,59 @@ export function VariantsCard({
         {question?.text}
       </Dialog>
     </Card>
+  );
+}
+
+/**
+ * ATR-19 (TENANT-DASHBOARD-DESIGN §7.42, Part 40's `pd-product`): the design split, like any split but by its photos:
+ * each design's cover and name, no remove (a design goes with its last photo), and Change in photos in place of Add
+ * option, since designs come from the photos.
+ */
+function DesignSplit({
+  split,
+  coverOf,
+  readOnly,
+  onPhotos,
+}: {
+  split: SplitAttribute;
+  coverOf: (key: string) => string | undefined;
+  readOnly: boolean;
+  onPhotos: () => void;
+}): React.JSX.Element {
+  const { t } = useTranslation('shop');
+  return (
+    <div className="rounded-card border border-line bg-neutral-50 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="flex items-center gap-2 text-[17px] font-semibold">
+          {/* The platform's attribute is named in English; the shop reads its own word. */}
+          {t('pdDesign')}
+          <StatusTag tone="info" small>
+            {t('roleSplits')}
+          </StatusTag>
+        </h3>
+        {readOnly ? null : (
+          <button
+            type="button"
+            className="text-[14px] font-semibold whitespace-nowrap text-primary"
+            onClick={onPhotos}
+          >
+            {t('pdChange')}
+          </button>
+        )}
+      </div>
+      <ChipRow className="mt-2 flex-wrap">
+        {split.options.map((option) => (
+          <span key={option.id} className={`${chipClass(false, 'sm')} h-10 gap-2 pl-[5px]`}>
+            <span className="h-[30px] w-6 flex-none overflow-hidden rounded-[5px] bg-neutral-100">
+              {coverOf(option.id) ? (
+                <img src={coverOf(option.id)} alt="" className="size-full object-cover" />
+              ) : null}
+            </span>
+            {option.value}
+          </span>
+        ))}
+      </ChipRow>
+      <p className="mt-2 text-[14px] text-fg-muted">{t('pdSplitHint')}</p>
+    </div>
   );
 }

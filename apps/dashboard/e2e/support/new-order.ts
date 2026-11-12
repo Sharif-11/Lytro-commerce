@@ -19,6 +19,9 @@ export interface PickerVariant {
   price: number;
   /** Units on sale; null when made to order. */
   available: number | null;
+  /** ATR-20 (PD-22): its design, by name and cover, and its other values ("54"). */
+  design?: { id: string; name: Words; image: string };
+  rest?: Words;
 }
 
 interface PickerGroup {
@@ -337,6 +340,11 @@ function pickerProduct(product: PickerProduct, language: Language) {
       .map((variant) => ({
         variantId: variant.id,
         label: say(variant.label, language),
+        image: variant.design?.image ?? null,
+        design: variant.design
+          ? { id: variant.design.id, name: say(variant.design.name, language) }
+          : null,
+        restLabel: say(variant.rest ?? variant.label, language),
         price: money(variant.price),
         onSale: !variant.offSale && !variant.gone,
         available: units(variant.available),

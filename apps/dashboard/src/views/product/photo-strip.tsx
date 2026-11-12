@@ -28,6 +28,7 @@ export function PhotoStrip({
   onAddPhotos,
   onAddVideo,
   onDismiss,
+  designs = 0,
 }: {
   photos: MediaItem[];
   video: MediaItem | null;
@@ -39,6 +40,8 @@ export function PhotoStrip({
   onAddPhotos: (files: File[]) => void;
   onAddVideo: (file: File) => void;
   onDismiss: (key: string) => void;
+  /** ATR-19 (Part 40's `pd-product`): how many designs the photos make, said beside the label. */
+  designs?: number;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
   const photoInput = useRef<HTMLInputElement>(null);
@@ -46,7 +49,11 @@ export function PhotoStrip({
   const empty = photos.length === 0 && !video && uploads.length === 0;
   return (
     <div>
-      <span className="text-[14px] font-medium text-fg-muted">{t('photosVideo')}</span>
+      <span className="text-[14px] font-medium text-fg-muted">
+        {designs > 0
+          ? `${t('photosVideo')} · ${t('pdDesigns', { count: designs })}`
+          : t('photosVideo')}
+      </span>
       <div className="-mx-4 mt-1.5 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
         {photos.map((photo, index) =>
           onOpen ? (

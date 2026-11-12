@@ -17,6 +17,19 @@ import type { ImageView } from './me';
 /** PRD-11, STO-01: a product's photo in its editor, with the bytes it stores (every file of it). */
 export interface ProductImage extends ImageView {
   bytes: number;
+  /** PD-28: its pixels; null when not recorded. */
+  width: number | null;
+  height: number | null;
+  /** ATR-19 (PD-2): the design it shows, or null for a plain photo. */
+  designId: string | null;
+}
+
+/** ATR-19 (PD-2, PD-14): one live design: its name and number, its photos in order, the first its cover. */
+export interface ProductDesign {
+  id: string;
+  name: string;
+  number: number;
+  photoIds: string[];
 }
 
 /** PRD-11, STO-01, STO-09: its one video, with its bytes and its length. */
@@ -171,6 +184,12 @@ export interface ProductDetail {
   attributes: ProductAttribute[];
   variants: ProductVariant[];
   images: ProductImage[];
+  /** ATR-19: its live designs in number order; empty for a product without. */
+  designs: ProductDesign[];
+  /** PD-14: the number its next new design takes. */
+  nextDesignNumber: number;
+  /** ATR-15 (PD-11): whether any order names it, so what splits its variants is fixed. */
+  hasOrders: boolean;
   video: ProductVideo | null;
   createdAt: string;
   updatedAt: string;

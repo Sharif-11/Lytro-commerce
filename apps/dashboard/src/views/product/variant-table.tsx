@@ -154,6 +154,7 @@ export function VariantTable({
   onBatch,
   onSerials,
   onHeld,
+  pictureOf,
 }: {
   rows: readonly VariantRow[];
   splits: readonly SplitAttribute[];
@@ -173,6 +174,8 @@ export function VariantTable({
   /** Opens a variant's opening batch, or its opening serials (Part 15's sheets). */
   onBatch: (index: number) => void;
   onSerials: (index: number) => void;
+  /** ATR-19 (Part 40's `pd-product`): a design variant's cover, by its options; none for a product without designs. */
+  pictureOf?: (optionIds: readonly string[]) => string | undefined;
   /** Opens a saved variant's serials (the Stock card's IMEI / serials sheet). */
   onHeld: (index: number) => void;
 }): React.JSX.Element {
@@ -252,6 +255,17 @@ export function VariantTable({
                       onOpen(index);
                     }}
                   >
+                    {pictureOf ? (
+                      <span className="mr-1 h-[25px] w-5 flex-none overflow-hidden rounded-[4px] bg-neutral-100">
+                        {pictureOf(row.optionIds) ? (
+                          <img
+                            src={pictureOf(row.optionIds)}
+                            alt=""
+                            className="size-full object-cover"
+                          />
+                        ) : null}
+                      </span>
+                    ) : null}
                     {name}
                     {refused.length > 0 ? <Icon name="alert" size={14} /> : null}
                   </button>

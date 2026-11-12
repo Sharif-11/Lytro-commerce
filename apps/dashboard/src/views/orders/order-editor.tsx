@@ -49,7 +49,7 @@ import { AreaPickSheet } from '../delivery/area-pick-sheet';
 import { NewOrderFraud } from '../fraud/fraud-card';
 import { Segments } from '../product/value-sheet';
 import { noteBookedEdit } from './booked-edit';
-import { AddItemSheets, DetailsSheet, PriceSheet } from './item-sheets';
+import { AddItemSheets, DetailsSheet, PriceSheet, Thumb } from './item-sheets';
 import {
   amountOf,
   createOf,
@@ -772,9 +772,7 @@ function LineRow({
     <div
       className={`flex min-h-[72px] items-start gap-3 px-4 py-3 ${short ? 'bg-danger-soft' : ''}`}
     >
-      <span className="flex size-12 flex-none items-center justify-center rounded-button bg-gradient-to-br from-neutral-100 to-neutral-200 text-neutral-400">
-        <Icon name="image" />
-      </span>
+      <Thumb image={line.image} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-[16px] font-medium">
           {line.productName}
