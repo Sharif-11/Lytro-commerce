@@ -10,6 +10,8 @@ export interface CategoryFields {
   parentId: string | null;
   visible: boolean;
   behavesLike: string | null;
+  /** PRD-03: its picture, uploaded for it (`category_image`); null for none. */
+  imageId: string | null;
 }
 
 /** A new category's fields before anything is typed: at the top, shown on the storefront, following the shop's type. */
@@ -18,6 +20,7 @@ export const NO_CATEGORY: CategoryFields = {
   parentId: null,
   visible: true,
   behavesLike: null,
+  imageId: null,
 };
 
 /** A category's chart as saved (PRD-17): a table, or a picture of the shop's. */

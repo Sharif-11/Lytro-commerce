@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
-import { drawnProducts, type ProductsFixture } from './support/products';
+import { drawnProducts, MEDIA_UPLOAD_PREFIX, type ProductsFixture } from './support/products';
 import { drawnLibrary, type MatrixFixture } from './support/variants';
 
 // TENANT-DASHBOARD-DESIGN §7.4, Slice 11.7b (Part 14): options and variants -- the attribute cards, the variant table
@@ -225,6 +225,44 @@ test('a library colour stays as it is; the shop’s own option takes a swatch, s
   await expect
     .poll(() => log.calls.filter((call) => call.method === 'PATCH').map((call) => call.body))
     .toEqual([{ swatchColor: '#1D4ED8' }, { swatchColor: null }]);
+});
+
+test('a swatch from a photo says how far its upload is, and the other choices wait (§7.43)', async ({
+  page,
+}) => {
+  const log = await open(page, 'p-1');
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(`**${MEDIA_UPLOAD_PREFIX}**`, async (route) => {
+    await held;
+    await route.fulfill({ status: 200 });
+  });
+  await card(page).getByRole('button', { name: 'Add option' }).nth(1).click();
+  const options = sheet(page, 'Colour · options');
+  await options.getByLabel('Add option', { exact: true }).fill('Sky');
+  await options.getByRole('button', { name: 'Insert' }).click();
+  await options.getByRole('button', { name: 'Swatch of Sky' }).click();
+  await options
+    .locator('input[type=file]')
+    .first()
+    .setInputFiles({ name: 'batik.jpg', mimeType: 'image/jpeg', buffer: Buffer.alloc(2048, 1) });
+  await expect(options.getByRole('button', { name: /^Uploading \d+%/ })).toBeVisible();
+  await expect(options.getByRole('button', { name: 'None' })).toBeDisabled();
+  await expect(options.getByRole('button', { name: '#1D4ED8' })).toBeDisabled();
+  release();
+  await expect
+    .poll(() =>
+      log.calls.some(
+        (call) =>
+          call.method === 'PATCH' &&
+          call.path.startsWith('/attributes/a-2/options/') &&
+          typeof call.body?.swatchImageId === 'string',
+      ),
+    )
+    .toBe(true);
+  await expect(options.getByRole('button', { name: 'None' })).toBeEnabled();
 });
 
 test('an option set is inserted in one tap, its values reused, never doubled', async ({ page }) => {
