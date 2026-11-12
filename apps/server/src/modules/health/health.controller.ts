@@ -1,8 +1,8 @@
-import { Controller, Get, Inject } from '@nestjs/common';
+import { Controller, Get, Inject, Optional } from '@nestjs/common';
 import { SkipEdge } from '../../common/decorators/skip-edge';
 import { SkipTenant } from '../../common/decorators/skip-tenant';
 import type { Env } from '../../config/env';
-import type { ServerRole } from '../../config/server-role';
+import { type ServerRole, serverRoleOf } from '../../config/server-role';
 import { ENV } from '../../config/tokens';
 
 export interface HealthReport {
@@ -15,18 +15,29 @@ export interface HealthReport {
   database: 'not_configured';
 }
 
+type HealthSettings = Partial<Pick<Env, 'RELEASE'>> & Pick<Env, 'SERVER_ROLE'>;
+
 @Controller('health')
 @SkipTenant()
 @SkipEdge()
 export class HealthController {
-  constructor(@Inject(ENV) private readonly env: Pick<Env, 'RELEASE' | 'SERVER_ROLE'>) {}
+  private readonly settings: HealthSettings;
+
+  // The parsed settings, or, where a module mounts this controller without them (the guards' own specs), the same
+  // values read from the process's environment.
+  constructor(@Optional() @Inject(ENV) env?: HealthSettings) {
+    this.settings = env ?? {
+      RELEASE: process.env['RELEASE'],
+      SERVER_ROLE: serverRoleOf(process.env),
+    };
+  }
 
   @Get()
   check(): HealthReport {
     return {
       status: 'ok',
-      version: this.env.RELEASE ?? process.env['npm_package_version'] ?? '0.0.0',
-      role: this.env.SERVER_ROLE,
+      version: this.settings.RELEASE ?? process.env['npm_package_version'] ?? '0.0.0',
+      role: this.settings.SERVER_ROLE,
       database: 'not_configured',
     };
   }

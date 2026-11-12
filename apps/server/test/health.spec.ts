@@ -12,4 +12,13 @@ describe('HealthController', () => {
     const report = new HealthController({ RELEASE: '854f8a0b', SERVER_ROLE: 'api' }).check();
     expect(report).toMatchObject({ version: '854f8a0b', role: 'api' });
   });
+
+  it('mounted without the parsed settings, reads them from the environment', () => {
+    process.env['SERVER_ROLE'] = 'worker';
+    try {
+      expect(new HealthController().check().role).toBe('worker');
+    } finally {
+      delete process.env['SERVER_ROLE'];
+    }
+  });
 });

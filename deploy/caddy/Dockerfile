@@ -7,12 +7,13 @@
 #
 # apps/server/test/caddy-edge.e2e.spec.ts runs this image (CADDY_IMAGE) in front of the real server.
 
-# The plugin's v0.2.1 is built on libdns 1.0 and certmagic 0.23, which Caddy 2.10 brought in: on Caddy 2.9 the build
-# pulls them in over 2.9's own. Moving either one means checking the pair again.
-ARG CADDY_VERSION=2.10.0
+# Caddy 2.11 with the plugin's newest release (it needs Caddy 2.7.5 or later). Caddy 2.10.0 never issued its own
+# certificates for this file's localhost names (the Caddy spec and the deploy rehearsal both saw every handshake fail,
+# 2026-11-12); 2.11 does. Moving either one means the Caddy spec and the rehearsal checking the pair again.
+ARG CADDY_VERSION=2.11.9
 
 FROM caddy:${CADDY_VERSION}-builder AS builder
-ARG CLOUDFLARE_DNS_VERSION=v0.2.1
+ARG CLOUDFLARE_DNS_VERSION=v0.2.4
 RUN xcaddy build --with github.com/caddy-dns/cloudflare@${CLOUDFLARE_DNS_VERSION}
 
 FROM caddy:${CADDY_VERSION}

@@ -19,8 +19,11 @@ if [ -n "${CHECK_INSECURE:-}" ]; then curl_args+=(--insecure); fi
 status() {
   local host="$1" path="$2" extra=()
   if [ -n "${CHECK_ADDRESS:-}" ]; then extra=(--resolve "$host:443:$CHECK_ADDRESS"); fi
-  curl "${curl_args[@]}" "${extra[@]}" "https://$host$path" 2> /dev/null || echo 000
+  # curl writes 000 itself when it gets no answer; its reason goes to last_error.
+  curl "${curl_args[@]}" "${extra[@]}" "https://$host$path" 2> "$last_error" || true
 }
+last_error="$(mktemp)"
+trap 'rm -f "$last_error"' EXIT
 
 # expect <what> <host> <path> <allowed statuses, space-separated>
 expect() {
@@ -33,6 +36,7 @@ expect() {
     fi
     if [ "$waited" -ge "$WAIT_SECONDS" ]; then
       printf 'FAIL  %-44s %s %s (expected %s)\n' "$what" "$got" "https://$host$path" "$4"
+      if [ -s "$last_error" ]; then sed 's/^/      /' "$last_error"; fi
       failures=$((failures + 1))
       return
     fi
