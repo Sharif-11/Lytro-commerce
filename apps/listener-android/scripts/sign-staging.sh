@@ -18,7 +18,9 @@ fi
 
 prop() { grep -m1 "^$1=" "$properties" | cut -d= -f2-; }
 tools="$(ls -d "$sdk"/build-tools/* | sort -V | tail -1)"
-version="$(sed -n 's/^ *versionName = "\(.*\)"$/\1/p' "$(dirname "$0")/../app/build.gradle.kts" | head -1)-staging"
+# The SDK's own Java when JAVA_HOME names one (a Windows PATH may hold a stub that runs nothing).
+java_bin="${JAVA_HOME:+$JAVA_HOME/bin/}java"
+version="$(sed -n 's/^ *versionName = "\([^"]*\)".*/\1/p' "$(dirname "$0")/../app/build.gradle.kts" | head -1)-staging"
 name="lytro-listener-$version.apk"
 apk="$out/$name"
 mkdir -p "$out"
@@ -28,14 +30,14 @@ mkdir -p "$out"
 
 # The passwords go through the environment, never the command line or the screen.
 STORE_PASS="$(prop storePassword)" KEY_PASS="$(prop keyPassword)" \
-  java -Xmx256m -jar "$tools/lib/apksigner.jar" sign \
+  "$java_bin" -Xmx256m --enable-native-access=ALL-UNNAMED -jar "$tools/lib/apksigner.jar" sign \
   --ks "$(prop storeFile)" --ks-key-alias "$(prop keyAlias)" \
   --ks-pass env:STORE_PASS --key-pass env:KEY_PASS \
   --out "$apk" "$unsigned"
 rm -f "$apk.idsig"
 
 echo "Signed by:"
-java -Xmx256m -jar "$tools/lib/apksigner.jar" verify --print-certs "$apk" | grep -i "SHA-256 digest"
+"$java_bin" -Xmx256m --enable-native-access=ALL-UNNAMED -jar "$tools/lib/apksigner.jar" verify --print-certs "$apk" | grep -i "SHA-256 digest"
 
 sha256="$(sha256sum "$apk" | cut -d' ' -f1)"
 bytes="$(wc -c < "$apk" | tr -d ' ')"
