@@ -1,70 +1,76 @@
 import { Container } from '@/components/ui/container';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { Paragraphs } from '@/components/ui/paragraphs';
 import { SectionHeading } from '@/components/ui/section-heading';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import type { Language } from '@/lib/i18n/language';
 
 const text = {
-  eyebrow: { bn: 'কেন Lytro', en: 'Why Lytro' },
+  eyebrow: { bn: 'কেন Lytro?', en: 'Why Lytro?' },
   title: {
-    bn: 'একজন সেলার নিজে বানালে যেভাবে বানাতো, সেভাবেই',
-    en: 'Built the way a seller would build it',
-  },
-  lead: {
-    bn: 'Lytro-কে আলাদা করে যে নিয়মগুলো, সেগুলো সহজ, আর প্রতিটা প্রোডাক্টের ভেতরে লেখা, শুধু ব্রোশিওরে নয়।',
-    en: 'The rules that make Lytro different are simple, and each one is written into the product, not just the brochure.',
+    bn: 'একজন অনলাইন ব্যবসায়ীর যেসব সুবিধা সত্যিই দরকার, সেগুলোই আমরা তৈরি করেছি।',
+    en: 'We built what an online seller really needs.',
   },
 } satisfies Record<string, Bilingual>;
 
 // LANDING-PAGE-DESIGN.md §3 row 5b. The second rule follows WAL-20: manual verification is free; only
-// automatic verification (listener or wallet checkout) carries a small percentage fee.
+// automatic verification (listener or wallet checkout) carries a fee.
 const rules: { icon: IconName; title: Bilingual; body: Bilingual }[] = [
   {
     icon: 'wallet',
-    title: { bn: 'টাকা সরাসরি আপনার কাছে', en: 'Money goes straight to you' },
+    title: { bn: 'আপনার টাকা থাকবে আপনার কাছেই', en: 'Your money stays with you' },
     body: {
-      bn: 'কাস্টমার পেমেন্ট করে আপনার নিজের বিকাশ, নগদ বা ব্যাংকে। Lytro কখনো আপনার টাকা ধরে রাখে না, দেরিও করায় না।',
-      en: 'Customers pay your own bKash, Nagad or bank. Lytro never holds, settles or delays your money.',
+      bn: 'কাস্টমারের পেমেন্ট সরাসরি আপনার নিজের বিকাশ, নগদ বা ব্যাংক অ্যাকাউন্টে যাবে। Lytro আপনার বিক্রির টাকা আটকে রাখবে না। পেমেন্ট পাওয়ার জন্য আমাদের কাছ থেকে টাকা তোলার অপেক্ষাও করতে হবে না।',
+      en: 'Customers pay straight into your own bKash, Nagad or bank account. Lytro never holds your sales money, and you never wait to withdraw it from us.',
     },
   },
   {
     icon: 'check',
-    title: { bn: 'হাতে পেমেন্ট যাচাই ফ্রি', en: 'Checking a payment by hand is free' },
+    title: {
+      bn: 'নিজে পেমেন্ট মিলিয়ে নিলে কোনো চার্জ নেই',
+      en: 'No charge when you check payments yourself',
+    },
     body: {
-      bn: 'নিজে পেমেন্ট মিলিয়ে নিলে কোনো ফি নেই। লিসেনার বা ওয়ালেট চেকআউটে নিজে থেকে মিললে তবেই পেমেন্টের ওপর ছোট একটা পার্সেন্টেজ।',
-      en: 'Verify a payment yourself and there is no charge. A small percentage applies only when the listener or a wallet checkout verifies it for you.',
+      bn: 'আপনি নিজে পেমেন্ট যাচাই করলে কোনো অতিরিক্ত ফি নেই। শুধু Lytro-এর মাধ্যমে অটোমেটিক পেমেন্ট যাচাই বা পেমেন্ট সুবিধা ব্যবহার করলেই প্রযোজ্য সার্ভিস চার্জ দিতে হবে।',
+      en: 'Verify a payment yourself and there is no extra fee. A service charge applies only when Lytro verifies payments automatically or takes them for you.',
     },
   },
   {
     icon: 'truck',
-    title: { bn: 'নিজের কুরিয়ার অ্যাকাউন্ট', en: 'Your own courier account' },
+    title: {
+      bn: 'কুরিয়ার অ্যাকাউন্ট আপনার, নিয়ন্ত্রণও আপনার',
+      en: 'Your courier account, your control',
+    },
     body: {
-      bn: 'Steadfast আর Pathao বুক হয় আপনার নিজের অ্যাকাউন্টে। রেট আপনার, পেআউট আপনার, সম্পর্কটাও আপনার।',
-      en: 'Steadfast and Pathao are booked on your credentials. Your rates, your payouts, your relationship.',
+      bn: 'Steadfast বা Pathao-এর নিজের অ্যাকাউন্ট দিয়েই পার্সেল বুক করুন। কুরিয়ারের রেট, পেমেন্ট ও অন্যান্য হিসাব আপনার নিজের অ্যাকাউন্টেই থাকবে।',
+      en: "Book parcels with your own Steadfast or Pathao account. The courier's rates, payments and other records all stay in your own account.",
     },
   },
   {
     icon: 'globe',
-    title: { bn: 'সব বাংলায়, ফোন থেকেই', en: 'Bangla everywhere, phone first' },
+    title: { bn: 'পুরো দোকান চালান বাংলা ভাষায়', en: 'Run your whole shop in Bangla' },
     body: {
-      bn: 'ড্যাশবোর্ড, SMS, ইনভয়েস আর ট্র্যাকিং পেজ, সব বাংলায়, ইংরেজি এক ট্যাপ দূরে। ফোনের জন্য বানানো, ডেস্কটপ ছোট করে নয়।',
-      en: 'Dashboard, SMS, invoices and tracking page all read in Bangla, with English a tap away. Built for a phone, not shrunk from a desktop.',
+      bn: 'অর্ডার, পণ্য, হিসাব, ইনভয়েস ও ডেলিভারির তথ্য—সবকিছু বাংলায় দেখুন। প্রয়োজনে এক ট্যাপেই ইংরেজিতে পরিবর্তন করুন।\n\nমোবাইল থেকেই সহজে ব্যবহার করার জন্য তৈরি Lytro। কম্পিউটার থাকা বাধ্যতামূলক নয়।',
+      en: "Orders, products, accounts, invoices and delivery details all read in Bangla. Switch to English with one tap when you need to.\n\nLytro is made to be easy on a phone. You don't need a computer.",
     },
   },
   {
     icon: 'database',
-    title: { bn: 'আপনার ডেটা, প্রতি রাতে ব্যাকআপ', en: 'Your data, backed up every night' },
+    title: { bn: 'আপনার ব্যবসার তথ্য নিরাপদে রাখুন', en: 'Keep your business data safe' },
     body: {
-      bn: 'প্রতিটা দোকানের ডেটা অন্য দোকান থেকে আলাদা, প্রতি রাতে এনক্রিপ্টেড ব্যাকআপ, আর কে কী বদলালো তার লগ থাকে।',
-      en: "Each shop's data is kept apart from every other shop, encrypted backups run nightly, and every change is logged with who made it.",
+      bn: 'আপনার দোকানের তথ্য অন্য দোকান থেকে আলাদা থাকবে। প্রতিদিন আপনার ডেটার এনক্রিপ্টেড ব্যাকআপ রাখা হবে। পাশাপাশি কে কখন কী পরিবর্তন করেছেন, তার রেকর্ডও থাকবে।',
+      en: "Your shop's data is kept apart from every other shop's. An encrypted backup of your data is made every day, and there is a record of who changed what, and when.",
     },
   },
   {
     icon: 'code',
-    title: { bn: 'যে ওয়েবসাইট আছে, তার সাথেও চলে', en: 'Works with the website you already have' },
+    title: {
+      bn: 'আগে থেকেই ওয়েবসাইট আছে? সমস্যা নেই!',
+      en: 'Already have a website? No problem!',
+    },
     body: {
-      bn: 'নিজের সাইট বা ডেভেলপার আছে? স্টোরফ্রন্ট যে API ব্যবহার করে সেটাই নিন, আর অর্ডার, কুরিয়ার আর পেমেন্টের জন্য Lytro রাখুন।',
-      en: 'Have your own site or a developer? Use the same API the storefront uses and keep Lytro for orders, couriers and payments.',
+      bn: 'আপনার নিজের ওয়েবসাইট বা ডেভেলপার থাকলেও Lytro ব্যবহার করতে পারবেন। API-এর মাধ্যমে আপনার ওয়েবসাইটকে Lytro-এর সঙ্গে যুক্ত করুন।\n\nআপনার ওয়েবসাইট আগের মতোই চলবে, আর অর্ডার, পেমেন্ট ও কুরিয়ারের কাজ সামলাবে Lytro।',
+      en: 'Even with your own website or developer, you can use Lytro. Connect your website to Lytro through the API.\n\nYour website keeps running as before, and Lytro handles orders, payments and couriers.',
     },
   },
 ];
@@ -75,12 +81,7 @@ export function WhyLytro({ language }: { language: Language }) {
     <section id="why" className="scroll-mt-16 bg-brand-900 text-white">
       <div className="dot-grid pointer-events-none absolute inset-0" aria-hidden="true" />
       <Container className="relative py-16 sm:py-20">
-        <SectionHeading
-          tone="light"
-          eyebrow={copy.of(text.eyebrow)}
-          title={copy.of(text.title)}
-          lead={copy.of(text.lead)}
-        />
+        <SectionHeading tone="light" eyebrow={copy.of(text.eyebrow)} title={copy.of(text.title)} />
         <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rules.map((rule) => (
             <li
@@ -91,7 +92,7 @@ export function WhyLytro({ language }: { language: Language }) {
                 <Icon name={rule.icon} size={20} strokeWidth={2.4} />
               </span>
               <h3 className="heading mt-4 text-[18px] text-white">{copy.of(rule.title)}</h3>
-              <p className="mt-2 text-[15px] text-white/85">{copy.of(rule.body)}</p>
+              <Paragraphs text={copy.of(rule.body)} className="mt-2 text-[15px] text-white/85" />
             </li>
           ))}
         </ul>

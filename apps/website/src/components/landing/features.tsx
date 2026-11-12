@@ -3,6 +3,7 @@ import { StatsCard } from '@/components/mockups/stats-card';
 import { CheckList } from '@/components/ui/check-list';
 import { Container } from '@/components/ui/container';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { Paragraphs } from '@/components/ui/paragraphs';
 import { SectionHeading } from '@/components/ui/section-heading';
 import type { LiveFeatures } from '@/lib/features';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
@@ -12,12 +13,12 @@ import type { ReactNode } from 'react';
 const text = {
   eyebrow: { bn: 'ফিচার', en: 'Features' },
   title: {
-    bn: 'একটা আসল দোকানের যা যা লাগে, সেটআপ ছাড়াই',
-    en: 'Everything a real shop needs, nothing you have to set up',
+    bn: 'আপনার অনলাইন দোকানের সব কাজ, এক জায়গায়',
+    en: "All of your online shop's work, in one place",
   },
   lead: {
-    bn: 'যিনি এক ফোন থেকে পুরো ব্যবসা চালান, তার জন্যই বানানো।',
-    en: 'Built for a seller who runs the whole business from one phone.',
+    bn: 'আপনি যদি একাই মোবাইল দিয়ে পুরো ব্যবসা সামলান, তাহলে Lytro আপনার জন্য। অর্ডার নেওয়া থেকে শুরু করে পেমেন্ট, কুরিয়ার, স্টক ও কর্মচারী পরিচালনা—সবকিছু করুন একটি জায়গা থেকেই।',
+    en: 'If you run the whole business on your own from your phone, Lytro is for you. From taking orders to payments, couriers, stock and staff, do it all from one place.',
   },
 } satisfies Record<string, Bilingual>;
 
@@ -80,116 +81,141 @@ interface Card {
 }
 
 const pill = (tone: string, label: string) => (
-  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${tone}`}>{label}</span>
+  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap ${tone}`}>
+    {label}
+  </span>
 );
 
+// One vignette line: its text and its pill side by side, the pill dropping under the text on a narrow card.
+const ROW =
+  'flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-lg bg-neutral-50 px-2.5 py-1.5';
 const cards: Card[] = [
   {
     icon: 'shield',
-    title: { bn: 'ফেক অর্ডার চেক', en: 'Fake-order check' },
+    title: {
+      bn: 'অর্ডারটি ভুয়া কি না, আগে থেকেই জানুন',
+      en: 'Know if an order is fake, before you ship',
+    },
     body: {
-      bn: 'কুরিয়ারে এক টাকা খরচের আগেই প্রতিটা নতুন অর্ডারের নম্বর রিটার্ন আর ক্যানসেলের রেকর্ডে মিলিয়ে দেখা হয়।',
-      en: "Every new order's phone number is checked against return and cancel history before you spend a taka on courier.",
+      bn: 'কুরিয়ারে পাঠানোর আগে ক্রেতার ফোন নম্বরের আগের অর্ডারের রেকর্ড যাচাই করুন। আগে কতবার পার্সেল রিটার্ন বা ক্যানসেল হয়েছে, তা দেখে সিদ্ধান্ত নিন।',
+      en: "Before a parcel goes to the courier, check the buyer's phone number against its past orders. See how often parcels came back or were cancelled, then decide.",
     },
     vignette: (copy) => (
       <div className="space-y-1.5 text-[12px]">
-        <div className="flex items-center justify-between rounded-lg bg-neutral-50 px-2.5 py-1.5">
+        <div className={ROW}>
           <span className="num text-ink">017XXXXX842</span>
-          {pill('bg-danger-soft text-danger', copy.of({ bn: '৩ রিটার্ন', en: '3 returns' }))}
+          {pill('bg-danger-soft text-danger', copy.of({ bn: '৩টি রিটার্ন', en: '3 returns' }))}
         </div>
-        <div className="flex items-center justify-between rounded-lg bg-neutral-50 px-2.5 py-1.5">
+        <div className={ROW}>
           <span className="num text-ink">019XXXXX310</span>
-          {pill('bg-success-soft text-success', copy.of({ bn: '১২ ডেলিভারড', en: '12 delivered' }))}
+          {pill(
+            'bg-success-soft text-success',
+            copy.of({ bn: '১২টি ডেলিভারি', en: '12 delivered' }),
+          )}
         </div>
       </div>
     ),
   },
   {
     icon: 'truck',
-    title: { bn: 'এক ট্যাপে কুরিয়ার', en: 'One-tap courier' },
+    title: { bn: 'এক ক্লিকেই কুরিয়ার বুকিং', en: 'Book the courier in one click' },
     body: {
-      bn: 'নিজের কুরিয়ার অ্যাকাউন্ট দিয়ে অর্ডার থেকেই Steadfast বা Pathao বুক করুন। ট্র্যাকিং আর স্ট্যাটাস নিজে থেকেই আসে।',
-      en: 'Book Steadfast or Pathao from the order itself with your own courier account. Tracking and status come back automatically.',
+      bn: 'অর্ডার থেকেই আপনার Steadfast বা Pathao অ্যাকাউন্ট ব্যবহার করে কুরিয়ার বুক করুন। বারবার কুরিয়ার ওয়েবসাইটে গিয়ে তথ্য দেওয়ার দরকার নেই। পার্সেলের ট্র্যাকিং ও ডেলিভারি আপডেট চলে আসবে আপনার দোকানেই।',
+      en: "Book the courier from the order itself, with your own Steadfast or Pathao account. No more typing the details into the courier's website. Tracking and delivery updates come back to your shop.",
     },
     vignette: (copy) => (
-      <div className="flex items-center justify-between rounded-lg bg-neutral-50 px-2.5 py-1.5 text-[12px]">
+      <div className={`${ROW} text-[12px]`}>
         <span className="num text-ink">#1040 · Steadfast</span>
-        {pill('bg-brand-100 text-brand-800', copy.of({ bn: 'পথে আছে', en: 'In transit' }))}
+        {pill(
+          'bg-brand-100 text-brand-800',
+          copy.of({ bn: 'পার্সেল পথে আছে', en: 'Parcel on the way' }),
+        )}
       </div>
     ),
   },
   {
     icon: 'wallet',
-    title: { bn: 'পেমেন্ট নিজেই মিলে যায়', en: 'Payments match themselves' },
+    title: { bn: 'পেমেন্ট মিলবে অটোমেটিক', en: 'Payments match automatically' },
     body: {
-      bn: 'ফোনে ছোট একটা লিসেনার অ্যাপ বিকাশ-নগদের রিসিট SMS পড়ে ঠিক অর্ডারটাকে পেইড করে দেয়।',
-      en: 'A small listener app on your phone reads the bKash and Nagad receipt SMS and marks the right order paid.',
+      bn: 'কাস্টমার বিকাশ বা নগদে টাকা পাঠালে পেমেন্টের SMS থেকে Lytro নিজেই বুঝে নেবে কোন অর্ডারের টাকা এসেছে। এরপর সেই অর্ডার Paid হিসেবে চিহ্নিত হবে।',
+      en: 'When a customer sends money by bKash or Nagad, Lytro reads the payment SMS and works out which order it is for. That order is then marked Paid.',
     },
     vignette: (copy) => (
       <div className="rounded-lg bg-neutral-50 px-2.5 py-1.5 text-[12px]">
         <div className="flex items-center justify-between">
-          <span className="num text-ink">bKash · TrxID 9KL2M</span>
+          <span className="num text-ink">bKash</span>
           <span className="num font-bold text-ink">৳3,490</span>
         </div>
-        <div className="mt-1 flex items-center justify-between text-neutral-700">
-          <span>{copy.of({ bn: '#1042-এর সাথে মিলেছে', en: 'Matched to #1042' })}</span>
-          {pill('bg-success-soft text-success', copy.of({ bn: 'পেইড', en: 'Paid' }))}
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-neutral-700">
+          <span>
+            {copy.of({
+              bn: 'অর্ডার #1042-এর পেমেন্ট মিলেছে',
+              en: 'Payment matched to order #1042',
+            })}
+          </span>
+          {pill('bg-success-soft text-success', copy.of({ bn: 'পেমেন্ট সম্পন্ন', en: 'Paid' }))}
         </div>
       </div>
     ),
   },
   {
     icon: 'store',
-    title: { bn: 'নিজের স্টোরফ্রন্ট', en: 'Your own storefront' },
+    title: { bn: 'আপনার নিজের অনলাইন দোকান', en: 'Your own online shop' },
     body: {
-      bn: 'আপনার নাম, লোগো আর রঙে আসল দোকানের পেজ, কার্ট, জেলা অনুযায়ী ডেলিভারি চার্জ, অনলাইন বা ক্যাশ অন ডেলিভারি চেকআউট।',
-      en: 'A real shop page with your name, logo and colours, cart, delivery charge by district, and online or cash-on-delivery checkout.',
+      bn: 'আপনার দোকানের নাম, লোগো ও পছন্দের রঙ দিয়ে তৈরি করুন নিজের অনলাইন শপ। কাস্টমার পণ্য দেখবে, কার্টে যোগ করবে এবং সরাসরি অর্ডার করতে পারবে।\n\nডেলিভারি চার্জ, অনলাইন পেমেন্ট ও ক্যাশ অন ডেলিভারি—সবকিছু নিজের মতো সাজিয়ে নিন।',
+      en: "Make your own online shop with your shop's name, logo and colours. Customers browse your products, add them to a cart and order directly.\n\nDelivery charges, online payment and cash on delivery: set everything up your way.",
     },
     vignette: (copy) => (
-      <div className="flex items-center justify-between rounded-lg bg-neutral-50 px-2.5 py-1.5 text-[12px]">
+      <div className={`${ROW} text-[12px]`}>
         <span className="num text-ink">rahim-gadgets.lytro.app</span>
-        {pill('bg-success-soft text-success', copy.of({ bn: 'লাইভ', en: 'Live' }))}
+        {pill(
+          'bg-success-soft text-success',
+          copy.of({ bn: 'আপনার দোকান এখন অনলাইনে', en: 'Your shop is online' }),
+        )}
       </div>
     ),
   },
   {
     icon: 'users',
-    title: { bn: 'স্টাফ, যার যার রোলে', en: 'Staff with their own roles' },
+    title: { bn: 'কর্মচারীদের কাজ ভাগ করে দিন', en: 'Share the work with your staff' },
     body: {
-      bn: 'প্যাকার, পেজ ম্যানেজার বা হিসাবরক্ষক, যার যতটুকু দরকার ততটুকুই দিন। কে কী বদলালো, সবই লগে থাকে।',
-      en: 'Give a packer, a page manager or an accountant exactly the pages they need. Every change is logged with who did it.',
+      bn: 'আপনার দোকানে যিনি অর্ডার দেখবেন, তিনি শুধু অর্ডারের কাজই করতে পারবেন। যিনি হিসাব রাখবেন, তিনি হিসাবের কাজ করবেন। সবাইকে নিজের কাজ অনুযায়ী অনুমতি দিন।\n\nকে কখন কোন তথ্য পরিবর্তন করেছেন, সেটাও দেখতে পারবেন আপনি।',
+      en: 'Whoever handles orders in your shop can only work on orders. Whoever keeps the accounts works on the accounts. Give each person access for their own job.\n\nYou can also see who changed what, and when.',
     },
     vignette: (copy) => (
       <div className="space-y-1.5 text-[12px]">
-        <div className="flex items-center justify-between rounded-lg bg-neutral-50 px-2.5 py-1.5">
+        <div className={ROW}>
           <span className="text-ink">
-            Sumi · {copy.of({ bn: 'শুধু অর্ডার', en: 'Orders only' })}
+            Sumi · {copy.of({ bn: 'শুধু অর্ডার দেখার অনুমতি', en: 'May see orders only' })}
           </span>
           {pill('bg-neutral-100 text-neutral-700', copy.of({ bn: 'স্টাফ', en: 'Staff' }))}
         </div>
-        <div className="flex items-center justify-between rounded-lg bg-neutral-50 px-2.5 py-1.5">
+        <div className={ROW}>
           <span className="text-ink">Rahim · {copy.of({ bn: 'মালিক', en: 'Owner' })}</span>
-          {pill('bg-brand-100 text-brand-800', copy.of({ bn: 'সব', en: 'All' }))}
+          {pill(
+            'bg-brand-100 text-brand-800',
+            copy.of({ bn: 'সবকিছুর নিয়ন্ত্রণ', en: 'In charge of everything' }),
+          )}
         </div>
       </div>
     ),
   },
   {
     icon: 'layers',
-    title: { bn: 'ভ্যারিয়েন্ট আর স্টক', en: 'Variants and stock' },
+    title: { bn: 'পণ্য, সাইজ ও স্টকের হিসাব', en: 'Products, sizes and stock' },
     body: {
-      bn: 'সাইজ, রঙ, মডেল: অ্যাট্রিবিউট লিখলেই ভ্যারিয়েন্ট তৈরি। প্রতিটা অর্ডার, রিটার্ন আর কেনার সাথে স্টক নিজে বদলায়।',
-      en: 'Size, colour, model: type an attribute and the variants appear. Stock moves with every order, return and purchase.',
+      bn: 'একই পণ্যের বিভিন্ন সাইজ, রঙ বা মডেল আলাদাভাবে যোগ করুন। প্রতিটি ভ্যারিয়েন্টের স্টক কত আছে, তা দেখুন। অর্ডার, বিক্রি ও রিটার্ন অনুযায়ী স্টকের হিসাব নিজে থেকেই আপডেট হবে।',
+      en: 'Add the sizes, colours or models of one product separately, and see how much of each variant is in stock. Stock updates on its own with every order, sale and return.',
     },
     vignette: (copy) => (
       <div className="space-y-1.5 text-[12px]">
-        <div className="flex items-center justify-between rounded-lg bg-neutral-50 px-2.5 py-1.5">
+        <div className={ROW}>
           <span className="text-ink">Kurti · M · {copy.of({ bn: 'মেরুন', en: 'Maroon' })}</span>
-          <span className="num font-bold text-ink">14</span>
+          <span className="num font-bold text-ink">{copy.of({ bn: '১৪টি', en: '14' })}</span>
         </div>
-        <div className="flex items-center justify-between rounded-lg bg-neutral-50 px-2.5 py-1.5">
+        <div className={ROW}>
           <span className="text-ink">Kurti · L · {copy.of({ bn: 'মেরুন', en: 'Maroon' })}</span>
-          {pill('bg-accent-100 text-accent-700', copy.of({ bn: '২টা বাকি', en: '2 left' }))}
+          {pill('bg-accent-100 text-accent-700', copy.of({ bn: '২টি বাকি', en: '2 left' }))}
         </div>
       </div>
     ),
@@ -260,7 +286,10 @@ export function Features({ language, live }: { language: Language; live: LiveFea
                 <Icon name={card.icon} size={20} />
               </span>
               <h3 className="heading mt-4 text-[18px] text-ink">{copy.of(card.title)}</h3>
-              <p className="mt-2 flex-1 text-[15px] text-neutral-700">{copy.of(card.body)}</p>
+              <Paragraphs
+                text={copy.of(card.body)}
+                className="mt-2 flex-1 text-[15px] text-neutral-700"
+              />
               <div className="mt-4" aria-hidden="true">
                 {card.vignette(copy)}
               </div>
