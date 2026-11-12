@@ -113,3 +113,82 @@ describe("pay-as-you-go's fees and the verification note (PYG-01, PYG-02, RAT-15
     );
   });
 });
+
+// Starter as seeded (0003, 0064), pay-as-you-go as seeded (0028, 0064).
+const STARTER_LIMITS = {
+  products: 1000,
+  staff: 2,
+  storage_mb: 2048,
+  bandwidth_gb: 30,
+  requests_monthly: 200_000,
+  paired_devices: 1,
+};
+
+describe('what else a plan gives, in its quieter list (small fixes 14(d))', () => {
+  const withLimits = (limits: Record<string, number | null>, features?: Record<string, boolean>) =>
+    ({
+      ...catalogue,
+      plans: [{ ...plan('Starter', 1, limits), features }],
+      prices: [{ planId: 'Starter', billingTermId: 'month', price: '449.00' }],
+    }) as unknown as PlanCatalogue;
+
+  it('lists storage, bandwidth, API requests and phones, as each language reads figures', () => {
+    const en = new PricingViewBuilder(new Copy('en'), urls).build(withLimits(STARTER_LIMITS));
+    expect(en?.plans[0]?.more).toEqual([
+      '2 GB storage',
+      '30 GB bandwidth a month',
+      '200,000 API requests a month',
+      'Listener on 1 phone',
+    ]);
+    const bn = new PricingViewBuilder(new Copy('bn'), urls).build(withLimits(STARTER_LIMITS));
+    expect(bn?.plans[0]?.more).toEqual([
+      '২ GB স্টোরেজ',
+      'মাসে ৩০ GB ব্যান্ডউইথ',
+      'মাসে ২,০০,০০০ API রিকোয়েস্ট',
+      '১টি ফোনে লিসেনার',
+    ]);
+    // Bangla figures are grouped too, in lakhs.
+    expect(bn?.plans[0]?.lines).toContain('১,০০০ প্রোডাক্ট');
+  });
+
+  it('says unlimited in the word sellers use, and brand identity when the plan includes it', () => {
+    const view = new PricingViewBuilder(new Copy('bn'), urls).build(
+      withLimits({ storage_mb: null, paired_devices: 3, products: null }, { brand_identity: true }),
+    );
+    expect(view?.plans[0]?.more).toEqual([
+      'আনলিমিটেড স্টোরেজ',
+      '৩টি ফোনে লিসেনার',
+      'ব্র্যান্ড আইডেন্টিটি: আপনার রং, ফন্ট আর লোগো',
+    ]);
+    expect(view?.plans[0]?.lines).toContain('আনলিমিটেড প্রোডাক্ট');
+    expect(JSON.stringify(view)).not.toMatch(/সীমাহীন/);
+  });
+
+  it("gives pay-as-you-go's own limits, and nothing when they can't be read", () => {
+    const payg = {
+      id: 'payg',
+      name: 'Pay-as-you-go',
+      description: null,
+      rank: 0,
+      forSale: false,
+      limits: {
+        products: 25,
+        staff: 1,
+        storage_mb: 250,
+        bandwidth_gb: 10,
+        requests_monthly: 100_000,
+        paired_devices: 1,
+      },
+    };
+    const en = new PricingViewBuilder(new Copy('en'), urls);
+    expect(en.paygMore(payg)).toEqual([
+      'Up to 25 products',
+      '1 seat: just you',
+      '250 MB storage',
+      '10 GB bandwidth a month',
+      '100,000 API requests a month',
+      'Listener on 1 phone',
+    ]);
+    expect(en.paygMore(null)).toEqual([]);
+  });
+});

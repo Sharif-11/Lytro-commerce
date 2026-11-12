@@ -67,4 +67,9 @@ export class PlansApi {
   rates(): Promise<PlatformRate[] | null> {
     return this.api.get<PlatformRate[]>('/rates');
   }
+
+  /** PYG-01: pay-as-you-go's own limits, for its card, or null when the backend cannot be reached. */
+  payAsYouGo(): Promise<Plan | null> {
+    return this.api.get<Plan>('/plans/pay-as-you-go');
+  }
 }

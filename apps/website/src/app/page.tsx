@@ -46,7 +46,11 @@ export default async function LandingPage() {
     revalidateSeconds: 60,
   });
   const plansApi = new PlansApi(api);
-  const [catalogue, rates] = await Promise.all([plansApi.catalogue(), plansApi.rates()]);
+  const [catalogue, rates, paygPlan] = await Promise.all([
+    plansApi.catalogue(),
+    plansApi.rates(),
+    plansApi.payAsYouGo(),
+  ]);
 
   return (
     <>
@@ -64,7 +68,13 @@ export default async function LandingPage() {
         <WhyLytro language={language} />
         {live.has('showcase') ? <Showcase language={language} /> : null}
         <HowItWorks language={language} />
-        <Pricing language={language} catalogue={catalogue} rates={rates} urls={urls} />
+        <Pricing
+          language={language}
+          catalogue={catalogue}
+          paygPlan={paygPlan}
+          rates={rates}
+          urls={urls}
+        />
         <Proof language={language} />
         <ZeroRisk language={language} />
         <Faq language={language} />

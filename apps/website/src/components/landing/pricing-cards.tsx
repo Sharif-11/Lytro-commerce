@@ -19,6 +19,8 @@ export interface PricingPlanView {
   name: string;
   description: string | null;
   lines: string[];
+  /** What else it gives, for the card's quieter list (storage, bandwidth, API, phones, brand identity). */
+  more: string[];
   /** Per term id: the full price and its monthly equivalent, both already formatted. */
   prices: Record<string, { total: string; monthly: string } | undefined>;
   signInUrls: Record<string, string | undefined>;
@@ -36,8 +38,27 @@ export interface PaygView {
   description: string;
   price: string;
   lines: string[];
+  /** Its own limits, for the card's quieter list; empty when they couldn't be read. */
+  more: string[];
   cta: string;
   signInUrl: string;
+}
+
+/** A card's lines, then what else it gives in a quieter list below a dashed line (the sketch's `ul.more`). */
+function PlanLines({ lines, more }: { lines: string[]; more: string[] }) {
+  return (
+    <div className="mt-4 flex-1">
+      <CheckList circled items={lines} />
+      {more.length > 0 ? (
+        <CheckList
+          circled
+          quiet
+          items={more}
+          className="mt-4 border-t border-dashed border-line pt-3"
+        />
+      ) : null}
+    </div>
+  );
 }
 
 const text = {
@@ -207,7 +228,7 @@ export function PricingCards({
             </span>
             <span className="text-[14px] text-neutral-700">{text.perMonth[language]}</span>
           </p>
-          <CheckList className="mt-4 flex-1" circled items={payg.lines} />
+          <PlanLines lines={payg.lines} more={payg.more} />
           <a href={payg.signInUrl} className={`mt-5 ${buttonClass('accent', 'lg')}`}>
             {payg.cta}
           </a>
@@ -240,7 +261,7 @@ export function PricingCards({
               ) : (
                 <p className="mt-4 border-t border-line pt-3 text-[14px] text-neutral-700">—</p>
               )}
-              <CheckList className="mt-4 flex-1" circled items={plan.lines} />
+              <PlanLines lines={plan.lines} more={plan.more} />
               <a href={href} className={`mt-5 ${buttonClass('primary', 'lg')}`}>
                 {language === 'bn'
                   ? `${plan.name} ${text.choose.bn}`

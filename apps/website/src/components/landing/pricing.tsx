@@ -1,6 +1,6 @@
 import { Container } from '@/components/ui/container';
 import { SectionHeading } from '@/components/ui/section-heading';
-import type { PlanCatalogue, PlatformRate } from '@/lib/api/plans-api';
+import type { Plan, PlanCatalogue, PlatformRate } from '@/lib/api/plans-api';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import type { Language } from '@/lib/i18n/language';
 import { formatTaka, PricingModel } from '@/lib/pricing/pricing-model';
@@ -48,7 +48,7 @@ const text = {
     },
   ],
   paygCta: { bn: 'ফ্রি দোকান খুলুন', en: 'Open a free shop' },
-  unlimited: { bn: 'সীমাহীন', en: 'Unlimited' },
+  unlimited: { bn: 'আনলিমিটেড', en: 'Unlimited' },
   products: { bn: 'প্রোডাক্ট', en: 'products' },
   ordersMonthly: { bn: 'মাসে {n} অর্ডার হ্যান্ডলিং', en: '{n} orders handled a month' },
   // STF-02: seats count the owner, so one seat is the owner alone.
@@ -57,7 +57,23 @@ const text = {
     bn: '{n}টি সিট: আপনি + {staff} জন স্টাফ',
     en: '{n} seats: you + {staff} staff',
   },
-  seatsUnlimited: { bn: 'সীমাহীন স্টাফ', en: 'Unlimited staff' },
+  seatsUnlimited: { bn: 'আনলিমিটেড স্টাফ', en: 'Unlimited staff' },
+  // Small fixes 14(d), 2026-11-13: what else a plan gives, in the card's quieter list.
+  productsUpTo: { bn: '{n}টি প্রোডাক্ট পর্যন্ত', en: 'Up to {n} products' },
+  productsUnlimited: { bn: 'আনলিমিটেড প্রোডাক্ট', en: 'Unlimited products' },
+  storage: { bn: '{n} স্টোরেজ', en: '{n} storage' },
+  storageUnlimited: { bn: 'আনলিমিটেড স্টোরেজ', en: 'Unlimited storage' },
+  bandwidth: { bn: 'মাসে {n} GB ব্যান্ডউইথ', en: '{n} GB bandwidth a month' },
+  bandwidthUnlimited: { bn: 'আনলিমিটেড ব্যান্ডউইথ', en: 'Unlimited bandwidth' },
+  requests: { bn: 'মাসে {n} API রিকোয়েস্ট', en: '{n} API requests a month' },
+  requestsUnlimited: { bn: 'আনলিমিটেড API রিকোয়েস্ট', en: 'Unlimited API requests' },
+  phonesOne: { bn: '১টি ফোনে লিসেনার', en: 'Listener on 1 phone' },
+  phones: { bn: '{n}টি ফোনে লিসেনার', en: 'Listener on {n} phones' },
+  phonesUnlimited: { bn: 'আনলিমিটেড ফোনে লিসেনার', en: 'Listener on unlimited phones' },
+  brandIdentity: {
+    bn: 'ব্র্যান্ড আইডেন্টিটি: আপনার রং, ফন্ট আর লোগো',
+    en: 'Brand identity: your colours, fonts and logo',
+  },
   smsMonthly: { bn: 'মাসে {n}টি ফ্রি SMS', en: '{n} free SMS a month' },
   unavailable: {
     bn: 'প্ল্যানের দাম এই মুহূর্তে দেখানো যাচ্ছে না। সাইন-আপের পর ড্যাশবোর্ডে সব প্ল্যান আর দাম দেখবেন।',
@@ -124,6 +140,7 @@ export class PricingViewBuilder {
         name: priced.plan.name,
         description: priced.plan.description,
         lines: this.lines(priced.plan.limits, priced.plan.features ?? {}),
+        more: this.more(priced.plan.limits, priced.plan.features ?? {}),
         prices,
         signInUrls,
       };
@@ -139,9 +156,7 @@ export class PricingViewBuilder {
     // SFT-17: on every plan at no extra cost, so every card says so.
     const lines: string[] = [this.copy.of(text.storefrontIncluded)];
     const count = (value: number | null) =>
-      value === null
-        ? this.copy.of(text.unlimited)
-        : this.copy.count(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      value === null ? this.copy.of(text.unlimited) : this.copy.number(value);
     if (limits.products !== undefined)
       lines.push(`${count(limits.products)} ${this.copy.of(text.products)}`);
     if (limits.orders_handled_monthly !== undefined)
@@ -158,14 +173,75 @@ export class PricingViewBuilder {
     return lines;
   }
 
+  /**
+   * Small fixes 14(d): what else a plan gives, for the card's quieter list -- storage, bandwidth and API requests a
+   * month, the listener's phones, and brand identity when included. A limit the plan doesn't set isn't listed.
+   */
+  private more(
+    limits: PlanCatalogue['plans'][number]['limits'],
+    features: Record<string, boolean>,
+  ): string[] {
+    const lines: string[] = [];
+    const add = (
+      value: number | null | undefined,
+      unlimited: Bilingual,
+      line: (n: number) => string,
+    ) => {
+      if (value === undefined) return;
+      lines.push(value === null ? this.copy.of(unlimited) : line(value));
+    };
+    add(limits.storage_mb, text.storageUnlimited, (mb) =>
+      this.copy.of(text.storage).replace('{n}', this.size(mb)),
+    );
+    add(limits.bandwidth_gb, text.bandwidthUnlimited, (gb) =>
+      this.copy.of(text.bandwidth).replace('{n}', this.copy.number(gb)),
+    );
+    add(limits.requests_monthly, text.requestsUnlimited, (n) =>
+      this.copy.of(text.requests).replace('{n}', this.copy.number(n)),
+    );
+    add(limits.paired_devices, text.phonesUnlimited, (n) =>
+      n === 1
+        ? this.copy.of(text.phonesOne)
+        : this.copy.of(text.phones).replace('{n}', this.copy.number(n)),
+    );
+    if (features.brand_identity === true) lines.push(this.copy.of(text.brandIdentity));
+    return lines;
+  }
+
+  /**
+   * PYG-01: pay-as-you-go's own limits (`GET /plans/pay-as-you-go`) for its card's quieter list: its product ceiling and
+   * seats, then the same as a plan's. Nothing when the plan couldn't be read.
+   */
+  paygMore(plan: Plan | null): string[] {
+    if (!plan) return [];
+    const limits = plan.limits;
+    const lines: string[] = [];
+    if (limits.products !== undefined) {
+      lines.push(
+        limits.products === null
+          ? this.copy.of(text.productsUnlimited)
+          : this.copy.of(text.productsUpTo).replace('{n}', this.copy.number(limits.products)),
+      );
+    }
+    if (limits.staff !== undefined) lines.push(this.seats(limits.staff));
+    return [...lines, ...this.more(limits, plan.features ?? {})];
+  }
+
+  /** Storage as the site writes it: MB under 1 GB, GB from there ("250 MB", "2 GB", "1.5 GB"). */
+  private size(mb: number): string {
+    return mb < 1024
+      ? `${this.copy.number(mb)} MB`
+      : `${this.copy.number(Math.round((mb / 1024) * 10) / 10)} GB`;
+  }
+
   /** STF-02: a plan's seats, which count the owner, as the owner and how many staff they leave room for. */
   private seats(staff: number | null): string {
     if (staff === null) return this.copy.of(text.seatsUnlimited);
     if (staff <= 1) return this.copy.of(text.seatsJustYou);
     return this.copy
       .of(text.seatsWithStaff)
-      .replace('{n}', this.copy.count(staff))
-      .replace('{staff}', this.copy.count(staff - 1));
+      .replace('{n}', this.copy.number(staff))
+      .replace('{staff}', this.copy.number(staff - 1));
   }
 
   /** PYG-01, PYG-02: pay-as-you-go's lines, its fees as the rates stand (`GET /rates`) or in words without them. */
@@ -224,11 +300,14 @@ function takaExact(value: number): string {
 export function Pricing({
   language,
   catalogue,
+  paygPlan,
   rates,
   urls,
 }: {
   language: Language;
   catalogue: PlanCatalogue | null;
+  /** PYG-01: pay-as-you-go's own limits, for its card; null when they couldn't be read. */
+  paygPlan: Plan | null;
   rates: readonly PlatformRate[] | null;
   urls: AppUrls;
 }) {
@@ -241,6 +320,7 @@ export function Pricing({
     description: copy.of(text.paygDescription),
     price: formatTaka(0),
     lines: builder.paygLines(rates),
+    more: builder.paygMore(paygPlan),
     cta: copy.of(text.paygCta),
     signInUrl: urls.signIn(),
   };

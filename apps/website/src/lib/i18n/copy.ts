@@ -17,9 +17,21 @@ export class Copy {
 
   /** Bangla digits for counts in running Bangla prose (BRAND-IDENTITY §5); Western digits elsewhere. */
   count(value: number): string {
-    const digits = String(value);
-    if (this.language === 'en') return digits;
+    return this.digits(String(value));
+  }
+
+  /** A figure grouped as each language reads it -- lakhs in Bangla ("২,০০,০০০"), thousands in English ("200,000") --
+      with at most one decimal ("১.৫"), in Bangla digits for Bangla. */
+  number(value: number): string {
+    const grouped = value.toLocaleString(this.language === 'bn' ? 'en-IN' : 'en-US', {
+      maximumFractionDigits: 1,
+    });
+    return this.digits(grouped);
+  }
+
+  private digits(text: string): string {
+    if (this.language === 'en') return text;
     const bangla = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-    return digits.replace(/\d/g, (d) => bangla[Number(d)] ?? d);
+    return text.replace(/\d/g, (d) => bangla[Number(d)] ?? d);
   }
 }
