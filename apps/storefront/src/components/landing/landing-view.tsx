@@ -13,6 +13,7 @@ import { totalWith } from '@/lib/cart/cart-check';
 import { type CartLine, estimateItemOf, orderItemOf } from '@/lib/cart/cart-store';
 import { type Language, money, plainNumber, Words } from '@/lib/i18n/words';
 import { ADDRESS_MAX, lineQuantityText, NAME_MAX, NOTE_MAX } from '@/lib/order/order-form';
+import { lineImageOf } from '@/lib/product/designs';
 import { quantityRule } from '@/lib/product/quantity';
 import { VariantChoice } from '@/lib/product/variant-choice';
 import { Icon } from '../icon';
@@ -25,14 +26,15 @@ import {
   OptionRows,
   optionText,
   PayLine,
+  PhotoCards,
   PriceRow,
   Quantity,
-  rangeText,
   LimitedLine,
 } from '../product/buy-parts';
 import { Gallery } from '../product/gallery';
 import { AddOnGroups, AskedFields, ComboInside, usePicks } from '../product/pickers';
 import { AreaFields, DeliveryBanner, SizeChartSheet, zillaOf } from '../product/sheets';
+import { useDesignChoice } from '../product/use-design-choice';
 import { useLocations, useSettledEstimate } from '../product/use-delivery';
 import { pixelEvent } from './pixel-events';
 
@@ -62,7 +64,8 @@ export function LandingView(props: LandingViewProps) {
     () => new VariantChoice(product.options, product.variants),
     [product.options, product.variants],
   );
-  const [selection, setSelection] = useState(() => choice.initial(props.linkedVariantId));
+  const [selection, setSelection] = useState(() => choice.opening(props.linkedVariantId));
+  const designs = useDesignChoice(product, selection);
   const [quantity, setQuantity] = useState(
     () => quantityRule(product.stockUnit, product.sharedStock).first,
   );
@@ -82,14 +85,16 @@ export function LandingView(props: LandingViewProps) {
 
   const variant = choice.variantFor(selection);
   const soldOut = product.variants.every((each) => !each.available) || !picks.canBeMade;
+  // PD-6: the shopper's words never name the design; its photo does.
   const choiceText = product.options
+    .filter((option) => !option.designs)
     .map((option) => {
       const value = option.values.find((each) => each.id === selection[option.attributeId]);
       return value ? optionText(option, value.value, words) : '';
     })
     .filter((text) => text !== '')
     .join(' · ');
-  const thumbnail = product.images[0]?.urls.thumbnail ?? null;
+  const thumbnail = lineImageOf(product, variant);
   const line: CartLine | null = variant?.available
     ? {
         variantId: variant.id,
@@ -122,6 +127,9 @@ export function LandingView(props: LandingViewProps) {
   const range = thana === null ? (estimate?.range ?? null) : null;
   const undeliverable = thana !== null && estimate !== null && !estimate.deliverable;
   const total = totalWith(itemTotal, exact, range);
+  // PD-25: before the thana is known, the shop's highest charge and one total, never a range.
+  const highest = range === null ? null : Number(range.to);
+  const shownTotal = itemTotal + (exact ?? highest ?? 0);
   const paysFirst = product.paymentPolicy !== PaymentPolicy.None;
   const paying = paysFirst && props.methods.length > 0;
   const [method, setMethod] = useState<PaymentMethod | null>(props.methods[0]?.method ?? null);
@@ -152,6 +160,7 @@ export function LandingView(props: LandingViewProps) {
         orderNumber={placed.orderNumber}
         trackingId={placed.trackingId}
         codAmount={placed.codAmount}
+        items={placed.items}
         landing
       />
     );
@@ -170,6 +179,11 @@ export function LandingView(props: LandingViewProps) {
   };
 
   const confirm = async () => {
+    // PD-4: ordering before a photo is tapped shows the photos to choose from.
+    if (designs.needed) {
+      designs.nudge();
+      return;
+    }
     if (!line || !picks.ready()) return;
     const order = await placing.place(
       [orderItemOf(line)],
@@ -182,7 +196,7 @@ export function LandingView(props: LandingViewProps) {
   };
 
   const canConfirm =
-    line !== null &&
+    (line !== null || designs.needed) &&
     !soldOut &&
     (!paysFirst || (paying && method !== null)) &&
     !undeliverable &&
@@ -249,13 +263,30 @@ export function LandingView(props: LandingViewProps) {
   return (
     <>
       <div className="pdp">
-        <Gallery product={product} words={words} />
+        <Gallery
+          product={product}
+          words={words}
+          index={designs.photoAt}
+          onIndex={designs.setPhotoAt}
+        />
         <div className="buy">
           <div className="top">
             <div className="eyebrow">{props.shopName}</div>
             <h1 className="pt">{product.name}</h1>
             <PriceRow product={product} variant={variant} soldOut={soldOut} words={words} />
           </div>
+          <PhotoCards
+            product={product}
+            cards={designs.cards}
+            designId={designs.designId}
+            tapped={designs.tapped}
+            nudge={designs.nudging}
+            words={words}
+            cardsRef={designs.cardsRef}
+            onTap={(card) => {
+              setSelection(designs.tap(card, selection));
+            }}
+          />
           <OptionRows
             product={product}
             choice={choice}
@@ -440,15 +471,18 @@ export function LandingView(props: LandingViewProps) {
                   {words.t('delivery')}
                   {exact !== null && estimate?.zone ? ` · ${words.pick(estimate.zone.name)}` : ''}
                 </span>
-                <span>{exact !== null ? money(exact) : range ? rangeText(range, words) : '—'}</span>
+                <span>
+                  {exact !== null ? money(exact) : highest !== null ? money(highest) : '—'}
+                </span>
               </div>
+              {highest !== null ? (
+                <div className="r" style={{ fontSize: 13, color: 'var(--muted)' }}>
+                  <span>{words.t('deliv_exact_thana')}</span>
+                </div>
+              ) : null}
               <div className="r total">
                 <span>{words.t('grand_total')}</span>
-                <span className="price">
-                  {total.from === total.to
-                    ? money(total.from)
-                    : `${money(total.from)} – ${money(total.to)}`}
-                </span>
+                <span className="price">{money(shownTotal)}</span>
               </div>
               <TaxRows taxes={estimate?.taxes ?? []} words={words} />
               {paying ? (
@@ -511,6 +545,11 @@ export function LandingView(props: LandingViewProps) {
           type="button"
           className="btn primary"
           onClick={() => {
+            // PD-4: before a photo is tapped, Order shows the photos to choose from.
+            if (designs.needed) {
+              designs.nudge();
+              return;
+            }
             const target = form.current;
             const scroller = target?.closest('.scroll');
             if (target && scroller)

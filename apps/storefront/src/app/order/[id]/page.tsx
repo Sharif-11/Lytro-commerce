@@ -68,6 +68,7 @@ export default async function OrderPlacedPage({ params, searchParams }: Props) {
           orderNumber={read.order.orderNumber}
           trackingId={read.order.trackingId}
           codAmount={read.order.codAmount}
+          items={read.order.items}
           offerAccount={page.shop.storefrontEnabled && !signedIn}
         />
       )}

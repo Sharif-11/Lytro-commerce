@@ -50,6 +50,30 @@ describe('CartStore (SFT-05)', () => {
     expect(cart.add(line('v0'))).toBe(true);
   });
 
+  it('puts a removed line back where it was, onto its twin if one came meanwhile (PD-21)', () => {
+    const cart = new CartStore(memory());
+    cart.add(line('a'));
+    cart.add(line('b', 2));
+    cart.add(line('c'));
+    const [, removed] = cart.lines();
+    if (!removed) throw new Error('the cart holds three lines');
+    cart.remove(lineKey(removed));
+    cart.restore(removed, 1);
+    expect(cart.lines().map((held) => [held.variantId, held.quantity])).toEqual([
+      ['a', 1],
+      ['b', 2],
+      ['c', 1],
+    ]);
+    cart.remove(lineKey(removed));
+    cart.add(line('b'));
+    cart.restore(removed, 1);
+    expect(cart.lines().map((held) => [held.variantId, held.quantity])).toEqual([
+      ['a', 1],
+      ['c', 1],
+      ['b', 3],
+    ]);
+  });
+
   it('reads a damaged or foreign store as an empty cart, and works with no store at all', () => {
     expect(new CartStore(memory('{not json')).lines()).toEqual([]);
     expect(new CartStore(memory('[{"variantId":1}]')).lines()).toEqual([]);
