@@ -1,6 +1,6 @@
 # Tenant dashboard: the full design
 
-Status: v3.39, 2026-11-10 (Phase 8 for the seller -- the help line, the error ID on a server fault, a payment method being retired, a payment's screenshot in Billing, categories by dragging -- and the owner's six fixes, drawn for Slice 8.8, §7.41, Part 39; v3.38 of 2026-11-09: paying Lytro on the developed payment page: §7.19 is current, Part 38, reversing D5-3's amendment of 2026-11-03; v3.37 of 2026-11-07: Phase 7 for the seller -- SMS settings, the log and the report, the bell, its switches and
+Status: v3.40, 2026-11-12 (photo designs for the seller -- each photo's design on the photos sheet, the design split by its photos, the pickers by photo, the order's and the label's design, size and SKU -- §7.42, Part 40); v3.39 of 2026-11-10 (Phase 8 for the seller -- the help line, the error ID on a server fault, a payment method being retired, a payment's screenshot in Billing, categories by dragging -- and the owner's six fixes, drawn for Slice 8.8, §7.41, Part 39; v3.38 of 2026-11-09: paying Lytro on the developed payment page: §7.19 is current, Part 38, reversing D5-3's amendment of 2026-11-03; v3.37 of 2026-11-07: Phase 7 for the seller -- SMS settings, the log and the report, the bell, its switches and
 push, the bounced email, Lytro's notice board with its marquee and prompt, the fake order check, reading a pasted
 message and the reads allowance -- drawn for Slice 7.7, §7.40, Part 37; v3.36 of 2026-11-07: the Phase 6 close-out: editing a booked order, §7.39, Part 36's `c36-edit` and `c36-edited`; v3.35 of 2026-11-06: Couriers, booking, the order's Courier card and courier money, drawn for Phase 6 Slice 6.7, §7.39, Part 36; v3.34 of 2026-11-05: Payments and Listener phones, drawn and built together for Slice 5.8's parts 3 and 4, §7.36 to §7.38; v3.33 of 2026-11-04: Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
 shipment the balance can't pay for, serials at shipping scanned, pasted or typed, the Orders list by where an order came
@@ -1106,8 +1106,8 @@ Slice 11 additions (§10).
 
 **Layout.** From the editor's Photos card, a sheet: the tiles in order, the first marked Cover, drag to reorder,
 up to [50] photos and one video with its length, size and poster, Replace; the storage line (used of the limit,
-and this product's share); the line that deleting frees storage and that past orders show a placeholder where it
-was (MED-09). **Upload states** (also in §7.4a): uploading with its progress, preparing with how long it takes (a
+and this product's share); the line that deleting frees storage and that a photo an order shows is kept for that
+order (PD-8, §7.42; it was a placeholder, MED-09). **Upload states** (also in §7.4a): uploading with its progress, preparing with how long it takes (a
 photo about 30 s, a video about 5 min), refused with the reason ("6 MB · limit 5 MB"). **Storage full**: the
 banner with what was refused and the ways out, Buy 1 GB (the add-on, §7.25) or the next plan (`sh-media-full`).
 **Removing** (Part 13, agreed 2026-10-27): a photo's × and the video's Remove, beside Replace, take it off the product
@@ -2077,6 +2077,57 @@ more, §10 lists it for the build.
 **Decided by the owner** (2026-11-10): help hours never close at or before they open, so nothing is drawn across
 midnight; retiring is "রিটায়ার হচ্ছে" everywhere, the bell's notice included; a help number may be cleared, and its button
 then isn't shown.
+
+### 7.42 Photo designs for the seller: the photos sheet, the variants card, the pickers, the order and the label
+
+*Photo designs* (`docs/PHOTO-DESIGNS-PLAN.md`; Part 40), the dashboard's half of the screens PR, drawn 2026-11-12 from what the
+server on main serves (#350): `PUT /products/:id/images` with `photos` and `designs`, the detail's `designs` and each image's
+`designId`, the picker's variant `image`, the order line's `thumbnail` and `sku`, and `DELETE /media/:id`'s
+`MediaKeptForOrders`. The sample is the storefront prototype's burka: six photos, five designs, photos 2 and 3 one design's
+two angles, the second design named "স্ট্রাইপ". Each screen is the built one with only these changes.
+
+- **The photos sheet** (PD-2, PD-3, PD-14; `pd-photos`). Under each photo, a button with its design's name ("ডিজাইন 1",
+  "স্ট্রাইপ") or "সাধারণ ছবি" for a plain photo; a design's photos share its name. A line under the reorder hint says each new
+  photo is a design, and to tap the name for another angle or a photo that isn't one. Under the grid, **Designs**: each
+  design's cover, its name in a box to rename it, how many photos it has, and "অর্ডারে আছে" once an order names it. The
+  names are the seller's only (orders, labels, SKUs); the line above the list says so.
+- **One photo** (`pd-photo`, `pd-photo-own`): a sheet over the photos sheet, with the photo and **This photo is**: *Its own
+  design* (shoppers can choose it on its own), *Same design, another angle* with the product's designs as chips by their
+  covers, or *Not a design* (shoppers see it but can't choose it). Done returns to the photos sheet; nothing is saved until
+  the product is.
+- **New photos** (PD-3; `pd-photos-new`, `pd-photo-plain`, `pd-photos-plain`). Each added photo arrives as a new design,
+  numbered after the highest the product ever used, outlined until saved, with "2 new photos became 2 new designs, each in
+  4 sizes, starting at 0 in stock." Switching one to *Not a design* takes its design and its variants out before the save.
+- **A product with orders and no designs** (PD-11, ATR-15; `pd-photos-ordered`, `pd-photo-locked`). New photos arrive
+  plain, with "This product has orders, so new photos are added as plain photos. A product with orders keeps its variants."
+  The photo's sheet greys the two design choices: "It has orders, so this product can't gain designs. To sell it with
+  designs, duplicate it." A product with stock and no orders also gets new photos plain; turning one into a design there asks
+  first, as removing an option holding stock does (`sh-remove-option`), since its old variants stop selling.
+- **Removing** (PD-8, PD-16; `pd-photos-kept`, `dlg-pd-retire`, `pd-photos-held`). A photo orders show: "12 orders show this
+  photo. Saving takes it off the product; the orders keep it. The file is kept, so storage doesn't go down." This replaces
+  the built "past orders will lose this photo" warning (`sh-media-past`), and the sheet's last line becomes "Deleting frees
+  storage. A photo an order shows is kept for that order." Removing a design's last photo, while its variants hold stock,
+  asks first: "Remove ডিজাইন 4's last photo? A design needs a photo. ডিজাইন 4's 4 variants hold 7 in stock. Once you save,
+  they stop selling; their stock history stays." Units held for orders refuse it (409 `UnitsHeldForOrders`), in a banner on
+  the sheet.
+- **The variants card** (PD-1, PD-10; `pd-product`). The design split is a split like Size, its chips the designs by cover
+  and name, with **Change in photos** in place of Add option and "Designs come from the photos" under them; it has no ×,
+  since a design goes with its last photo. Each variant row leads with its design's cover ("ডিজাইন 1 · 50"). Under the
+  table: "An empty SKU is filled when you save, such as IB-D2-54. You can change it." The variant's sheet (`pd-variant`)
+  shows the filled SKU with "Filled when saved; you can change it."
+- **The order editor's picker** (PD-22; `pd-add-variant`, `pd-order-new`). A design product's variants are grouped under
+  each design's cover and name, then the sizes with price and stock; the line added shows the cover and "স্ট্রাইপ · 54".
+- **The combo editor's part** (PD-22; `pd-combo-part`): the same groups, with a tick per size.
+- **The order page** (PD-9; `pd-order`). The line's picture is its `thumbnail` (the design's cover, kept on the line), then
+  "স্ট্রাইপ · 54" and "SKU IB-D2-54". Other lines are as built.
+- **The 3×3 label** (PD-9; `pd-print`). A design line reads "ইরানি বোরকা (স্ট্রাইপ · 54 · IB-D2-54) ×1"; a SKU never
+  breaks across lines. Other lines stay "name ×qty", and the 2×3 shows no items, as built.
+
+**Content.** `PUT /products/:id/images` with `{ photos: [{ mediaId, design }], designs: [{ key, id?, name }] }` (a new design
+is sent named "ডিজাইন n" in the seller's language), then the variants naming the returned design ids, so the photos save
+comes before the variants; a new product is created first, then its photos and variants. The detail's `designs`
+(`{ id, name, number, photoIds }`) and images' `designId`; `GET /orders/picker/:id` variants' `image`; the order's
+`items[].thumbnail`, `sku` and `attributes[].design`.
 
 ## 8. Screens designed for later phases
 
