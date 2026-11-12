@@ -103,10 +103,11 @@ export const attributeOptions = tenant.table(
     uniqueIndex('attribute_options_tenant_value_idx')
       .on(t.tenantId, t.attributeId, sql`lower(${t.value})`)
       .where(sql`${t.tenantId} IS NOT NULL AND ${t.productId} IS NULL`),
-    // A design's name is unique within its product, so every product can have its own "ডিজাইন 1".
+    // A live design's name is unique within its product, so every product can have its own "ডিজাইন 1"; a retired
+    // design frees its name.
     uniqueIndex('attribute_options_product_value_idx')
       .on(t.tenantId, t.productId, t.attributeId, sql`lower(${t.value})`)
-      .where(sql`${t.productId} IS NOT NULL`),
+      .where(sql`${t.productId} IS NOT NULL AND ${t.retiredAt} IS NULL`),
     foreignKey({
       name: 'attribute_options_product_fk',
       columns: [t.tenantId, t.productId],

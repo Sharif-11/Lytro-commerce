@@ -280,13 +280,16 @@ describeIfDatabase("a product's photos as its designs (ATR-19, PD-2, PD-13, PD-1
       [
         [String(ids[0]), 'a'],
         [String(ids[1]), 'b'],
+        [String(ids[2]), 'c'],
       ],
       [
         { key: 'a', name: 'ডিজাইন 1' },
         { key: 'b', name: 'ডিজাইন 1' },
+        // A design after the refused one is checked too, never written into a failed transaction.
+        { key: 'c', name: 'ডিজাইন 3' },
       ],
     );
-    expect(twice.status).toBe(400);
+    expect(twice.status, JSON.stringify(twice.body)).toBe(400);
     expect(fieldsOf(twice)).toMatchObject({ 'designs.1.name': 'taken' });
     const one = await saveDesigns(
       shop,
@@ -314,6 +317,31 @@ describeIfDatabase("a product's photos as its designs (ATR-19, PD-2, PD-13, PD-1
     );
     expect(borrowed.status).toBe(400);
     expect(fieldsOf(borrowed)).toMatchObject({ 'designs.0.id': 'not_found' });
+
+    // A retired design frees its name: the seller cannot see it, so it never holds a name back.
+    const none = await saveDesigns(
+      shop,
+      first.id,
+      [
+        [String(ids[0]), null],
+        [String(ids[1]), null],
+      ],
+      [],
+    );
+    expect(none.status, JSON.stringify(none.body)).toBe(200);
+    const reused = await saveDesigns(
+      shop,
+      first.id,
+      [
+        [String(ids[0]), null],
+        [String(ids[1]), 'n'],
+      ],
+      [{ key: 'n', name: 'ডিজাইন 1' }],
+    );
+    expect(reused.status, JSON.stringify(reused.body)).toBe(200);
+    expect((reused.body as Detail).designs.map(({ name, number }) => ({ name, number }))).toEqual([
+      { name: 'ডিজাইন 1', number: 2 },
+    ]);
   });
 
   it('keeps the Design attribute off the attribute screens and their option routes', async () => {

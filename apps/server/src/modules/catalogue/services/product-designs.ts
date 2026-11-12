@@ -56,49 +56,85 @@ export class ProductDesigns {
       return { photos, retired: live.map((design) => design.id) };
     }
 
+    // Every design is checked before anything is written: a name the database refuses would end the transaction, so
+    // the names are followed here in the order they are written, the product's live designs first.
     const problems: InvalidField[] = [];
-    const byKey = new Map<string, string>();
+    const taken = (index: number): InvalidField => ({
+      field: `designs.${String(index)}.name`,
+      problem: ServerFieldProblemCode.Taken,
+      messageKey: 'DesignNameTaken',
+    });
     const liveIds = new Map(live.map((design) => [design.id, design]));
+    const holderOf = new Map(live.map((design) => [design.name.toLowerCase(), design.id]));
     let next = all.reduce((most, design) => Math.max(most, design.number), 0) + 1;
-    let attributeId: string | null = null;
+    const writes: {
+      index: number;
+      key: string;
+      id: string | null;
+      name: string | null;
+      number: number;
+    }[] = [];
     for (const [index, design] of (input.designs ?? []).entries()) {
-      try {
-        if (design.id !== undefined) {
-          const current = liveIds.get(design.id);
-          if (!current) {
-            problems.push({
-              field: `designs.${String(index)}.id`,
-              problem: ServerFieldProblemCode.NotFound,
-              messageKey: 'DesignNotOfProduct',
-            });
+      if (design.id !== undefined) {
+        const current = liveIds.get(design.id);
+        if (!current) {
+          problems.push({
+            field: `designs.${String(index)}.id`,
+            problem: ServerFieldProblemCode.NotFound,
+            messageKey: 'DesignNotOfProduct',
+          });
+          continue;
+        }
+        const name = design.name !== undefined && design.name !== current.name ? design.name : null;
+        if (name !== null) {
+          const holder = holderOf.get(name.toLowerCase());
+          if (holder !== undefined && holder !== design.id) {
+            problems.push(taken(index));
             continue;
           }
-          if (design.name !== undefined && design.name !== current.name)
-            await this.designs.renameDesign(tx, tenantId, design.id, design.name);
-          byKey.set(design.key, design.id);
+          holderOf.delete(current.name.toLowerCase());
+          holderOf.set(name.toLowerCase(), design.id);
+        }
+        writes.push({ index, key: design.key, id: design.id, name, number: current.number });
+      } else {
+        const number = next;
+        next += 1;
+        const name = design.name ?? `D${String(number)}`;
+        if (holderOf.has(name.toLowerCase())) {
+          problems.push(taken(index));
+          continue;
+        }
+        holderOf.set(name.toLowerCase(), design.key);
+        writes.push({ index, key: design.key, id: null, name, number });
+      }
+    }
+    if (problems.length > 0) throw new FieldsError(problems);
+
+    const byKey = new Map<string, string>();
+    let attributeId: string | null = null;
+    for (const write of writes) {
+      try {
+        if (write.id !== null) {
+          if (write.name !== null)
+            await this.designs.renameDesign(tx, tenantId, write.id, write.name);
+          byKey.set(write.key, write.id);
         } else {
           attributeId ??= await this.designs.designAttributeId(tx, tenantId);
-          const number = next;
-          next += 1;
           const id = await this.designs.insertDesign(tx, {
             tenantId,
             productId,
             attributeId,
-            name: design.name ?? `D${String(number)}`,
-            number,
+            name: write.name ?? `D${String(write.number)}`,
+            number: write.number,
           });
-          byKey.set(design.key, id);
+          byKey.set(write.key, id);
         }
       } catch (error) {
-        if (!(error instanceof UniqueViolation)) throw error;
-        problems.push({
-          field: `designs.${String(index)}.name`,
-          problem: ServerFieldProblemCode.Taken,
-          messageKey: 'DesignNameTaken',
-        });
+        // A name the check above missed (the database's lower() differs from ours): the transaction is over.
+        if (error instanceof UniqueViolation) throw new FieldsError([taken(write.index)]);
+        throw error;
       }
     }
-    if (problems.length > 0) throw new FieldsError(problems);
 
     const photos = input.photos.map((photo) => ({
       mediaId: photo.mediaId,

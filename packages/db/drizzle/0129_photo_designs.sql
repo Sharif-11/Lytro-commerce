@@ -8,7 +8,7 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "attribute_options_product_value_idx" ON "tenant"."attribute_options" USING btree ("tenant_id","product_id","attribute_id",lower("value")) WHERE "tenant"."attribute_options"."product_id" IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "attribute_options_product_value_idx" ON "tenant"."attribute_options" USING btree ("tenant_id","product_id","attribute_id",lower("value")) WHERE "tenant"."attribute_options"."product_id" IS NOT NULL AND "tenant"."attribute_options"."retired_at" IS NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "attributes_photo_designs_idx" ON "tenant"."attributes" USING btree ("photo_designs") WHERE "tenant"."attributes"."photo_designs";--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "product_images_design_idx" ON "tenant"."product_images" USING btree ("tenant_id","design_option_id") WHERE "tenant"."product_images"."design_option_id" IS NOT NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "attribute_options_tenant_value_idx" ON "tenant"."attribute_options" USING btree ("tenant_id","attribute_id",lower("value")) WHERE "tenant"."attribute_options"."tenant_id" IS NOT NULL AND "tenant"."attribute_options"."product_id" IS NULL;--> statement-breakpoint
