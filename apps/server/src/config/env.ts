@@ -157,6 +157,15 @@ const envSchema = z.object({
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(5),
   DATABASE_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
   DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
+  // Slice 9.2 (D9-13, DAT-23): the API reaches the database through PgBouncer, which sets the statement and transaction
+  // limits on every connection it opens (deploy/pgbouncer). A client's own would be refused there, so none is sent.
+  DATABASE_THROUGH_POOLER: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  // DAT-23: how long a transaction may stay open on a direct connection (the worker's), PostgreSQL 17's
+  // transaction_timeout. Unset sends none: PostgreSQL 16, which a developer's database may be, doesn't know it.
+  DATABASE_TRANSACTION_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
   // Google and Facebook sign-in (AUTH-24). Off until the provider is registered; the flow stays tested either way.
   GOOGLE_SIGN_IN_ENABLED: z
     .enum(['true', 'false'])

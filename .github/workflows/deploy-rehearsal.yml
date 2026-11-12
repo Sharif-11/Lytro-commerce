@@ -36,9 +36,11 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Name the edge image
+      - name: Name the edge and pooler images
         id: names
-        run: echo "edge_tag=$(sh deploy/caddy/image-tag.sh)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "edge_tag=$(sh deploy/caddy/image-tag.sh)" >> "$GITHUB_OUTPUT"
+          echo "pgbouncer_tag=$(sh deploy/pgbouncer/image-tag.sh)" >> "$GITHUB_OUTPUT"
 
       - name: Server image
         uses: docker/build-push-action@v6
@@ -91,6 +93,14 @@ jobs:
           cache-from: type=gha,scope=edge
           cache-to: type=gha,scope=edge,mode=max
 
+      - name: Pooler image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/pgbouncer/Dockerfile
+          tags: ${{ env.REGISTRY }}/lytro-pgbouncer:${{ steps.names.outputs.pgbouncer_tag }}
+          load: true
+
       # The settings a server's setup makes (make-env.sh), for PLATFORM_DOMAIN=localhost so Caddy signs every host's
       # certificate itself. In production the server refuses to start without its outside services' keys, so stand-ins
       # are given; nothing here sends a message.
@@ -110,6 +120,28 @@ jobs:
 
       - name: Every host answers
         run: CHECK_ADDRESS=127.0.0.1 CHECK_INSECURE=1 bash deploy/scripts/outside-check.sh localhost
+
+      # Slice 9.2 (D9-13, DAT-23, DAT-45): through PgBouncer, the API's role runs under the 5-second transaction limit and
+      # the 10-second statement limit, and the read role can read but never write.
+      - name: The pooler holds its limits and the read role only reads
+        run: |
+          app="$(sudo sed -n 's/^PGBOUNCER_APP_PASSWORD=//p' "$LYTRO_HOME/env/pgbouncer.env")"
+          reader="$(sudo sed -n 's/^PGBOUNCER_READ_PASSWORD=//p' "$LYTRO_HOME/env/pgbouncer.env")"
+          psql_via_pooler() {
+            sudo docker exec -i lytro-postgres-1 psql -X -A -t -v ON_ERROR_STOP=1 "postgres://$1@pgbouncer:6432/lytronix" -c "$2"
+          }
+          test "$(psql_via_pooler "lytronix_app:$app" 'SHOW transaction_timeout')" = '5s'
+          test "$(psql_via_pooler "lytronix_app:$app" 'SHOW statement_timeout')" = '10s'
+          test "$(psql_via_pooler "lytronix_read:$reader" 'SHOW default_transaction_read_only')" = 'on'
+          test "$(psql_via_pooler "lytronix_read:$reader" 'SELECT count(*) >= 0 FROM control.plans')" = 't'
+          if psql_via_pooler "lytronix_read:$reader" 'DELETE FROM control.plans WHERE false' 2> read-write.err; then
+            echo 'the read role wrote'; exit 1
+          fi
+          grep -E 'read-only transaction|permission denied' read-write.err
+          if psql_via_pooler "lytronix_app:$app" 'SELECT pg_sleep(6)' 2> sleep.err; then
+            echo 'a 6-second statement ran past the 5-second transaction limit'; exit 1
+          fi
+          cat sleep.err
 
       - name: Staging's hosts aren't indexed
         run: |

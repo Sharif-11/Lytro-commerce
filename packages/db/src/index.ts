@@ -2,6 +2,7 @@
 export * from './schema';
 export { DatabaseConnector, type Database, type DatabaseHandle, type PoolSettings } from './client';
 export { MigrationRunner } from './migrate';
+export { ReadRoleGrants, READ_ROLE } from './read-role';
 export { ActivityLogPurger } from './purge-activity-log';
 export { QueueBootstrapper } from './bootstrap-queue';
 export { TestDatabasePreparer, type PreparedDatabase } from './prepare-database';

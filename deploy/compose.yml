@@ -6,7 +6,8 @@
 #   api-1/2     the API, two processes replaced one at a time (D9-11, D9-12)
 #   worker      every job (D9-11), never routed to
 #   website     the marketing site        storefront  every shop's storefront
-#   postgres    the database              redis       for Slice 9.4's limits; nothing uses it yet (D9-1)
+#   postgres    the database (17)         redis       for Slice 9.4's limits; nothing uses it yet (D9-1)
+#   pgbouncer   the API's pooler (Slice 9.2, D9-13): the worker and the migrations connect to postgres directly
 #   migrate     one-off: migrations, then pg-boss's schema, as the owner (deploy.sh, after a dump)
 #   static      one-off: publishes a release's dashboard and console files into the edge's volume
 #
@@ -31,6 +32,15 @@ x-server: &server
 
 x-api: &api
   <<: *server
+  # server-api.env over server.env: the API reaches the database through PgBouncer, which sets its limits (DAT-23).
+  env_file:
+    - ${LYTRO_HOME:-/opt/lytro}/env/server.env
+    - ${LYTRO_HOME:-/opt/lytro}/env/server-api.env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    pgbouncer:
+      condition: service_healthy
   mem_limit: ${API_MEMORY:-384m}
   environment: &api-environment
     SERVER_ROLE: api
@@ -74,6 +84,9 @@ services:
       NODE_OPTIONS: --max-old-space-size=${WORKER_HEAP_MB:-320}
       # Video conversion writes its files here (media-processor); a folder in the container, kept off the image.
       TMPDIR: /tmp
+      # Straight to postgres, so it sets its own limits: a background job (a shop's deletion, a night's purge) may hold a
+      # transaction longer than the API's 5 s, never without end (DAT-23; the API's are PgBouncer's).
+      DATABASE_TRANSACTION_TIMEOUT_MS: ${WORKER_TRANSACTION_TIMEOUT_MS:-60000}
 
   website:
     image: ${REGISTRY:?}/lytro-website:${RELEASE:?}
@@ -101,7 +114,8 @@ services:
     logging: *logging
 
   postgres:
-    image: postgres:16
+    # 17 for transaction_timeout, DAT-23's whole-transaction limit (Slice 9.2's read).
+    image: postgres:17
     restart: unless-stopped
     env_file: ${LYTRO_HOME:-/opt/lytro}/env/postgres.env
     command:
@@ -130,6 +144,17 @@ services:
       timeout: 3s
       retries: 20
     networks: [internal]
+    logging: *logging
+
+  pgbouncer:
+    image: ${REGISTRY:?}/lytro-pgbouncer:${PGBOUNCER_TAG:?}
+    restart: unless-stopped
+    env_file: ${LYTRO_HOME:-/opt/lytro}/env/pgbouncer.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+    mem_limit: ${PGBOUNCER_MEMORY:-48m}
     logging: *logging
 
   redis:

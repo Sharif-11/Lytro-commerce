@@ -20,6 +20,11 @@ export interface PoolSettings {
   connectionTimeoutMillis?: number;
   /** Milliseconds one statement may run before the database cancels it. 0 disables the limit. */
   statementTimeoutMillis?: number;
+  /**
+   * Milliseconds a transaction may stay open before the database ends the session (PostgreSQL 17's
+   * transaction_timeout, DAT-23). Only on a direct connection: behind PgBouncer the pooler sets it (deploy/pgbouncer).
+   */
+  transactionTimeoutMillis?: number;
   /** Name shown for these connections in the database's activity view. */
   applicationName?: string;
 }
@@ -35,6 +40,9 @@ export class DatabaseConnector {
       connectionTimeoutMillis: settings.connectionTimeoutMillis,
       statement_timeout: settings.statementTimeoutMillis,
       application_name: settings.applicationName,
+      ...(settings.transactionTimeoutMillis === undefined
+        ? {}
+        : { options: `-c transaction_timeout=${String(settings.transactionTimeoutMillis)}` }),
     });
     // A connection lost while idle: the pool replaces it, but an 'error' event nobody listens for ends the process.
     pool.on('error', (error) => {

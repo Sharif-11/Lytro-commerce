@@ -6,9 +6,9 @@
 #
 # In order, stopping at the first failure (the API keeps answering from whichever process is still on the old release):
 #   1. pull the release's images                 5. the worker, then api-1, then api-2, each healthy on <release> before
-#   2. the database and Redis up                    the next is touched, so one API process always answers
+#   2. the database, Redis and the pooler up        the next is touched, so one API process always answers
 #   3. a dump of the database                    6. the dashboard's and console's files, then the edge
-#   4. migrations, then pg-boss's schema         7. the website and the storefront
+#   4. the roles, migrations, pg-boss's schema   7. the website and the storefront
 # LYTRO_SKIP_PULL=1 uses images already on this machine (CI's rehearsal builds them there).
 # Migrations only add, so the old release keeps working beside the new one while it rolls (ENGINEERING-STANDARDS §7).
 # Rolling back is deploying the previous release again.
@@ -22,7 +22,10 @@ DEPLOY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 KEEP_DUMPS=5
 KEEP_RELEASES=5
 
-export LYTRO_HOME RELEASE EDGE_TAG
+# The pooler's image is tagged by what goes into it, as the edge's is; this release's copy of deploy/ says which.
+PGBOUNCER_TAG="$(sh "$DEPLOY_DIR/pgbouncer/image-tag.sh")"
+
+export LYTRO_HOME RELEASE EDGE_TAG PGBOUNCER_TAG
 
 say() { printf '[deploy %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 
@@ -78,18 +81,18 @@ roll_server() {
   say "$service on $RELEASE"
 }
 
-say "release $RELEASE, edge $EDGE_TAG"
+say "release $RELEASE, edge $EDGE_TAG, pooler $PGBOUNCER_TAG"
 
 if [ -n "${LYTRO_SKIP_PULL:-}" ]; then
   say '1. using the images on this machine'
 else
   say '1. pulling images'
-  dc pull --quiet edge api-1 worker website storefront
+  dc pull --quiet edge pgbouncer api-1 worker website storefront
   dc --profile tools pull --quiet migrate static
 fi
 
-say '2. database and Redis'
-dc up -d --wait postgres redis
+say '2. database, Redis and the pooler'
+dc up -d --wait postgres redis pgbouncer
 
 say '3. dumping the database'
 mkdir -p "$LYTRO_HOME/backups/pre-deploy"
@@ -99,7 +102,10 @@ mv "$dump.partial" "$dump"
 say "dump: $dump ($(du -h "$dump" | cut -f1))"
 ls -1t "$LYTRO_HOME"/backups/pre-deploy/*.dump | tail -n +$((KEEP_DUMPS + 1)) | xargs -r rm -f
 
-say '4. migrations'
+say '4. roles and migrations'
+# The roles the server connects as, made if missing (deploy/postgres/10-app-role.sh): a database made before a release
+# that added one (the read role, Slice 9.2) gets it here, as an empty one gets it when it first starts.
+dc exec -T postgres sh /docker-entrypoint-initdb.d/10-app-role.sh
 dc --profile tools run --rm migrate
 
 say '5. the worker and the API'
@@ -119,7 +125,8 @@ wait_healthy website
 wait_healthy storefront
 
 # What this server runs now, for anyone running `docker compose` here by hand (deploy/README.md).
-printf 'RELEASE=%s\nEDGE_TAG=%s\n' "$RELEASE" "$EDGE_TAG" > "$LYTRO_HOME/state/release.env.next"
+printf 'RELEASE=%s\nEDGE_TAG=%s\nPGBOUNCER_TAG=%s\n' "$RELEASE" "$EDGE_TAG" "$PGBOUNCER_TAG" \
+  > "$LYTRO_HOME/state/release.env.next"
 mv "$LYTRO_HOME/state/release.env.next" "$LYTRO_HOME/state/release.env"
 ln -sfn "$DEPLOY_DIR" "$LYTRO_HOME/state/current.next"
 mv -fT "$LYTRO_HOME/state/current.next" "$LYTRO_HOME/state/current"

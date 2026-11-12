@@ -8,7 +8,8 @@ design; this is the procedure.
 | -------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `compose.yml`              | Every container on one server: edge, two API processes, the worker, website, storefront, PostgreSQL, Redis |
 | `Caddyfile`, `caddy/`      | The edge: every host's routing, certificates, and its image (Caddy with the Cloudflare DNS plugin)         |
-| `postgres/10-app-role.sh`  | Makes the role the app connects as, the first time the database starts                                     |
+| `postgres/10-app-role.sh`  | Makes the roles the app connects as (writes, and reads only): on first start, and before each migration    |
+| `pgbouncer/`               | The API's pooler: its image, and the start script that writes its settings and limits                      |
 | `static/publish.sh`        | Publishes a release's dashboard and console files into the edge's volume                                   |
 | `scripts/setup-server.sh`  | A fresh Ubuntu 24.04 server made ready, once, as root                                                      |
 | `scripts/make-env.sh`      | The server's settings and secrets, written once                                                            |
@@ -125,6 +126,23 @@ sudo -E docker compose --profile tools run --rm migrate \
   node node_modules/@lytronix/db/dist/create-operator.js <your email> "$PASSWORD"
 unset PASSWORD
 ```
+
+## Moving PostgreSQL to a new major version
+
+A data folder made by one major version doesn't open in the next (16 to 17 in Slice 9.2). Each deploy leaves a dump in
+`/opt/lytro/backups/pre-deploy/`; with the newest one at hand, on the server:
+
+```
+cd /opt/lytro/state/current
+set -a; . /opt/lytro/settings.env; . /opt/lytro/state/release.env; set +a
+sudo -E docker compose stop
+sudo -E docker compose rm -f postgres
+sudo docker volume rm lytro_pgdata
+```
+
+Then deploy the release that names the new version (re-run its Deploy workflow). PostgreSQL starts empty, the roles
+are made, and the migrations run. To keep the data, restore the dump before that deploy's migrations, as Slice 9.3's
+restore runbook will say; staging's test data can simply be made again.
 
 ## Day to day
 
