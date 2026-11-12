@@ -2089,7 +2089,7 @@ two angles, the second design named "স্ট্রাইপ". Each screen is t
 - **The photos sheet** (PD-2, PD-3, PD-14; `pd-photos`). Under each photo, a button with its design's name ("ডিজাইন 1",
   "স্ট্রাইপ") or "সাধারণ ছবি" for a plain photo; a design's photos share its name. A line under the reorder hint says each new
   photo is a design, and to tap the name for another angle or a photo that isn't one. Under the grid, **Designs**: each
-  design's cover, its name in a box to rename it, how many photos it has, and "অর্ডারে আছে" once an order names it. The
+  design's cover, its name in a box to rename it, and how many photos it has. The
   names are the seller's only (orders, labels, SKUs); the line above the list says so.
 - **One photo** (`pd-photo`, `pd-photo-own`): a sheet over the photos sheet, with the photo and **This photo is**: *Its own
   design* (shoppers can choose it on its own), *Same design, another angle* with the product's designs as chips by their
@@ -2101,8 +2101,8 @@ two angles, the second design named "স্ট্রাইপ". Each screen is t
 - **A product with orders and no designs** (PD-11, ATR-15; `pd-photos-ordered`, `pd-photo-locked`). New photos arrive
   plain, with "This product has orders, so new photos are added as plain photos. A product with orders keeps its variants."
   The photo's sheet greys the two design choices: "It has orders, so this product can't gain designs. To sell it with
-  designs, duplicate it." A product with stock and no orders also gets new photos plain; turning one into a design there asks
-  first, as removing an option holding stock does (`sh-remove-option`), since its old variants stop selling.
+  designs, duplicate it." A product with stock and no orders also gets new photos plain; turning one into a design there is
+  warned of in the photo's step, since its variants are remade by design and the old ones stop selling.
 - **Removing** (PD-8, PD-16; `pd-photos-kept`, `dlg-pd-retire`, `pd-photos-held`). A photo orders show: "12 orders show this
   photo. Saving takes it off the product; the orders keep it. The file is kept, so storage doesn't go down." This replaces
   the built "past orders will lose this photo" warning (`sh-media-past`), and the sheet's last line becomes "Deleting frees

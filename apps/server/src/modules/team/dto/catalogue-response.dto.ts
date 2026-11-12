@@ -50,6 +50,8 @@ export const productFormDefaultsSchema = productDefaultsSchema.extend({
     defaultPaymentPolicy: z.nativeEnum(PaymentPolicy),
     defaultAdvanceAmount: z.string().nullable(),
   }),
+  // ATR-19 (PD-13): the attribute a product's designs belong to, for the variants' save.
+  designAttributeId: z.string(),
 });
 export class ProductFormDefaultsDto extends createZodDto(productFormDefaultsSchema) {}
 
@@ -253,6 +255,9 @@ export const productDetailSchema = z.object({
       photoIds: z.array(z.string()),
     }),
   ),
+  // PD-14: the number the next new design takes; ATR-15 (PD-11): whether any order names the product.
+  nextDesignNumber: z.number().int(),
+  hasOrders: z.boolean(),
   video: productVideoViewSchema.nullable(),
   deliveryZoneIds: z.array(z.string()),
   // CMB-01: an ordinary product or a combo, and a combo's parts in order (empty for an ordinary product).

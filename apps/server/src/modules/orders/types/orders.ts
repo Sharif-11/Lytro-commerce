@@ -186,6 +186,10 @@ export interface OrderPickerProduct {
     label: string;
     /** ATR-20 (PD-22): a design's variant shows its design's cover, so staff pick by photo; null for others. */
     image: string | null;
+    /** ATR-20 (PD-22): its design, so staff see a product's variants grouped by design; null for others. */
+    design: { id: string; name: string } | null;
+    /** Its other values, without its design ("54"), as a design's group lists them; `label` for others. */
+    restLabel: string;
     price: string;
     /** Slice 4.8c: it and its product are on sale; staff may still order one that isn't (PRD-06). */
     onSale: boolean;
