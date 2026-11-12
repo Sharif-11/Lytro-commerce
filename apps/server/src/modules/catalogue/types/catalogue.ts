@@ -269,6 +269,8 @@ export interface ProductDetail {
   sizeChart: SizeChartView | null;
   /** PRD-11: its photos, in the order shown (up to 50). */
   images: ProductImageView[];
+  /** ATR-19 (PD-2, PD-14): its live designs in number order, each with its photos; empty for a product without. */
+  designs: DesignView[];
   /** PRD-11: its one video, or null. */
   video: ProductVideoView | null;
   /** DLV-07: the zones it may be delivered to; empty means wherever the shop delivers. */
@@ -383,6 +385,14 @@ export interface ProductListItem {
  */
 export interface ProductImageView extends ImageView {
   bytes: number;
+}
+
+/** ATR-19 (PD-2, PD-14): one live design of a product: its name and number, and its photos, the first its cover. */
+export interface DesignView {
+  id: string;
+  name: string;
+  number: number;
+  photoIds: string[];
 }
 
 /** PRD-11, STO-01, STO-09: a product's video as its editor shows it, with its bytes and its length. */

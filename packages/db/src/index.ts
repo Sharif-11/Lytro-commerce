@@ -240,6 +240,7 @@ export {
 } from './repositories/billing/scheduled-plan-changes.repository';
 export { DataExportsRepository } from './repositories/tenancy/data-exports.repository';
 export { AttributeRepository } from './repositories/catalogue/attribute.repository';
+export { DesignRepository, type DesignRow } from './repositories/catalogue/design.repository';
 export { CategoryRepository } from './repositories/catalogue/category.repository';
 export {
   ProductRepository,
@@ -302,6 +303,7 @@ export {
   type NewMedia,
   type NewMediaObject,
   type ProductImageRow,
+  type ProductPhotoPlacement,
 } from './repositories/media/media.repository';
 export {
   MediaBandwidthRepository,

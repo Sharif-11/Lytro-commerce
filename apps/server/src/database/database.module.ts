@@ -60,6 +60,7 @@ import {
   PresetRepository,
   SizeChartRepository,
   OptionSetRepository,
+  DesignRepository,
   PlatformLibraryRepository,
   LocationRepository,
   DeliveryZoneRepository,
@@ -185,6 +186,11 @@ import { DatabaseService } from './database.service';
       provide: SizeChartRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new SizeChartRepository(transactions),
+    },
+    {
+      provide: DesignRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new DesignRepository(transactions),
     },
     {
       provide: OptionSetRepository,
@@ -484,6 +490,7 @@ import { DatabaseService } from './database.service';
     CatalogFeedRepository,
     PresetRepository,
     SizeChartRepository,
+    DesignRepository,
     OptionSetRepository,
     PlatformLibraryRepository,
     LocationRepository,

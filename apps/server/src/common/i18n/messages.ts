@@ -804,6 +804,19 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: "Choose one of this attribute's listed options.",
     bn: 'এই অ্যাট্রিবিউটের লিস্টের অপশনগুলো থেকে বেছে নিন।',
   },
+  // ATR-19 (photo designs).
+  DesignNotOfProduct: {
+    en: "Choose one of this product's own designs.",
+    bn: 'এই প্রোডাক্টের নিজের ডিজাইনগুলো থেকে বেছে নিন।',
+  },
+  DesignNameTaken: {
+    en: 'Another design of this product has this name.',
+    bn: 'এই প্রোডাক্টের আরেকটি ডিজাইনের এই নাম আছে।',
+  },
+  DesignsAddedByPhotos: {
+    en: "A product's designs come from its photos.",
+    bn: 'প্রোডাক্টের ডিজাইন আসে তার ছবি থেকে।',
+  },
   OneOptionPerAttribute: {
     en: 'Choose one option of each attribute.',
     bn: 'প্রতিটি অ্যাট্রিবিউট থেকে একটি করে অপশন বেছে নিন।',

@@ -121,7 +121,10 @@ export class AttributeService {
 
   list(tenantId: string, includeRetired: boolean): Promise<AttributeView[]> {
     return this.transactions.run(async (tx) => {
-      const rows = await this.attributes.listAttributes(tx, tenantId, includeRetired);
+      // ATR-19 (PD-13): the photo-designs attribute is never one to pick; a product's designs come from its photos.
+      const rows = (await this.attributes.listAttributes(tx, tenantId, includeRetired)).filter(
+        (row) => !row.photoDesigns,
+      );
       const options = await this.attributes.listOptions(
         tx,
         tenantId,
@@ -365,6 +368,8 @@ export class AttributeService {
   ): Promise<AttributeRecord> {
     const [attribute] = await this.attributes.findAttributes(tx, tenantId, [attributeId]);
     if (!attribute) throw new ApiError('not_found', 'AttributeNotFound', {});
+    // ATR-19 (PD-13): a design is added, renamed or retired only through its product's photos.
+    if (attribute.photoDesigns) throw new ApiError('conflict', 'DesignsAddedByPhotos', {});
     if (!OPTION_DATA_TYPES.includes(attribute.dataType)) {
       throw new ApiError('conflict', 'AttributeHasNoOptions', {});
     }

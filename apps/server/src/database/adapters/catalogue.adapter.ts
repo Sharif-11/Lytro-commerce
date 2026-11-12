@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   AttributeRepository,
   CatalogueDataRepository,
+  DesignRepository,
   CategoryRepository,
   MediaRepository,
   OptionSetRepository,
@@ -14,7 +15,9 @@ import {
   VariantRepository,
   type PlatformOptionSetPatch,
   type PresetPatch,
+  type DesignRow,
   type ProductImageRow,
+  type ProductPhotoPlacement,
   type MediaSize,
   type ProductListFilter,
   type ProductExportRow,
@@ -28,6 +31,7 @@ import {
   type NewModifierGroup,
 } from '@lytronix/db';
 import type { MediaKind, StockState } from '@lytronix/validators';
+import { DesignNotOfProduct } from '../../common/errors/design-refused';
 import { MediaNotAttachable } from '../../common/errors/media-refused';
 import { MissingReference } from '../../common/errors/missing-reference';
 import { StockRefused } from '../../common/errors/stock-refused';
@@ -36,6 +40,7 @@ import type {
   AttributeStore,
   CatalogueDataStore,
   CatalogueImageStore,
+  DesignStore,
   CatalogueTransactions,
   CategoryStore,
   OptionPatch,
@@ -89,6 +94,10 @@ const BATCHES_OFF_CHECK = 'batches_off_after_write_off';
 const SERIALS_OFF_CHECK = 'serials_off_needs_none';
 // INV-15: a variant retired or deleted, or a product turned made to order, while units are held for orders (0062).
 const HELD_FOR_ORDERS_CHECK = 'stock_held_for_orders';
+// ATR-19 (0129): a design's name is unique within its product; a photo or variant shows its own product's design.
+const DESIGN_NAME_INDEX = 'attribute_options_product_value_idx';
+const DESIGN_PHOTO_CHECK = 'catalogue_design_photo';
+const DESIGN_VARIANT_CHECK = 'catalogue_design_variant';
 
 /** One transaction per unit of catalogue work. Each repository call sets the shop's tenant context itself. */
 @Injectable()
@@ -696,6 +705,8 @@ export class DrizzleProductStore implements ProductStore {
     if (this.transactions.isUniqueViolation(error, VARIANT_COMBINATION_KEY)) {
       throw new UniqueViolation('combination');
     }
+    if (this.transactions.isCheckViolation(error, DESIGN_VARIANT_CHECK))
+      throw new DesignNotOfProduct();
     if (this.transactions.isCheckViolation(error, WHOLE_UNITS_CHECK)) {
       throw new StockRefused('whole_units');
     }
@@ -985,14 +996,71 @@ export class DrizzleCatalogueImageStore implements CatalogueImageStore {
     tx: Transaction,
     tenantId: string,
     productId: string,
-    mediaIds: string[],
+    photos: ProductPhotoPlacement[],
   ): Promise<void> {
     try {
-      await this.media.setProductImages(tx, tenantId, productId, mediaIds);
+      await this.media.setProductImages(tx, tenantId, productId, photos);
     } catch (error) {
       if (this.transactions.isCheckViolation(error, MEDIA_READY_IMAGE))
         throw new MediaNotAttachable();
+      if (this.transactions.isCheckViolation(error, DESIGN_PHOTO_CHECK))
+        throw new DesignNotOfProduct();
       throw error;
     }
+  }
+}
+
+/** ATR-19 (PD-13): tenant.attribute_options that belong to a product, its designs. */
+@Injectable()
+export class DrizzleDesignStore implements DesignStore {
+  constructor(
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
+    @Inject(DesignRepository) private readonly designs: DesignRepository,
+  ) {}
+
+  designAttributeId(tx: Transaction, tenantId: string): Promise<string> {
+    return this.designs.designAttributeId(tx, tenantId);
+  }
+
+  listDesigns(
+    tx: Transaction,
+    tenantId: string,
+    productIds: string[],
+    withRetired: boolean,
+  ): Promise<DesignRow[]> {
+    return this.designs.listDesigns(tx, tenantId, productIds, withRetired);
+  }
+
+  async insertDesign(
+    tx: Transaction,
+    values: {
+      tenantId: string;
+      productId: string;
+      attributeId: string;
+      name: string;
+      number: number;
+    },
+  ): Promise<string> {
+    try {
+      return await this.designs.insertDesign(tx, values);
+    } catch (error) {
+      if (this.transactions.isUniqueViolation(error, DESIGN_NAME_INDEX))
+        throw new UniqueViolation('design');
+      throw error;
+    }
+  }
+
+  async renameDesign(tx: Transaction, tenantId: string, id: string, name: string): Promise<void> {
+    try {
+      await this.designs.renameDesign(tx, tenantId, id, name);
+    } catch (error) {
+      if (this.transactions.isUniqueViolation(error, DESIGN_NAME_INDEX))
+        throw new UniqueViolation('design');
+      throw error;
+    }
+  }
+
+  retireDesigns(tx: Transaction, tenantId: string, ids: string[]): Promise<void> {
+    return this.designs.retireDesigns(tx, tenantId, ids);
   }
 }

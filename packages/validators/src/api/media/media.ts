@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { LIST_PAGE_SIZE_MAX, MEDIA_PAGE_SIZE, PRODUCT_IMAGES_MAX } from '../../common/limits';
+import {
+  LIST_PAGE_SIZE_MAX,
+  MEDIA_PAGE_SIZE,
+  OPTION_VALUE_MAX_LENGTH,
+  PRODUCT_IMAGES_MAX,
+} from '../../common/limits';
 import { MediaKind, MediaPurpose } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { catalogueIdSchema } from '../catalogue/catalogue-common';
@@ -96,8 +101,80 @@ export const productPhotoIdsField = z
     }
   });
 
-// PUT products/:id/images (PRD-11): the product's photos; an empty list removes them all.
-export const productImagesSchema = z.object({ mediaIds: productPhotoIdsField });
+// ATR-19 (PD-2, PD-16): a design as a photos save names it: by a key the request makes up, with the id of a design the
+// product already has (left out for a new one), and its name: the seller's, or the one the shop's screen gives it.
+export const DESIGN_KEY_MAX_LENGTH = 40;
+const designKeySchema = z.string().trim().min(1).max(DESIGN_KEY_MAX_LENGTH);
+export const productDesignSchema = z.object({
+  key: designKeySchema,
+  id: catalogueIdSchema.optional(),
+  name: z.string().trim().min(1).max(OPTION_VALUE_MAX_LENGTH).optional(),
+});
+export type ProductDesignInput = z.infer<typeof productDesignSchema>;
+
+// PRD-11, ATR-19: one photo, in its place, and the design it shows by its key, or null for a plain photo.
+export const productPhotoSchema = z.object({
+  mediaId: catalogueIdSchema,
+  design: designKeySchema.nullable(),
+});
+
+// PUT products/:id/images (PRD-11, ATR-19): the product's photos, either as before (`mediaIds`, every one plain) or
+// with their designs (`photos` and `designs`); an empty list removes them all. Every design shows at least one photo,
+// and every photo's design is listed.
+export const productImagesSchema = z
+  .object({
+    mediaIds: productPhotoIdsField.optional(),
+    photos: z.array(productPhotoSchema).max(PRODUCT_IMAGES_MAX).optional(),
+    designs: z.array(productDesignSchema).max(PRODUCT_IMAGES_MAX).optional(),
+  })
+  .superRefine((input, ctx) => {
+    const problem = (path: (string | number)[], code: FieldProblemCode, message: string) => {
+      ctx.addIssue({ code: 'custom', path, message, params: { problem: code } });
+    };
+    if ((input.mediaIds === undefined) === (input.photos === undefined)) {
+      problem(
+        ['photos'],
+        FieldProblemCode.Required,
+        'Send the photos one way: mediaIds or photos.',
+      );
+      return;
+    }
+    if (input.photos === undefined) {
+      if (input.designs !== undefined)
+        problem(['designs'], FieldProblemCode.NotAllowed, 'Designs come with photos.');
+      return;
+    }
+    const designs = input.designs ?? [];
+    const seenPhotos = new Set<string>();
+    input.photos.forEach((photo, index) => {
+      if (seenPhotos.has(photo.mediaId))
+        problem(['photos', index, 'mediaId'], FieldProblemCode.NotAllowed, 'List each photo once.');
+      seenPhotos.add(photo.mediaId);
+    });
+    const keys = new Set<string>();
+    const ids = new Set<string>();
+    designs.forEach((design, index) => {
+      if (keys.has(design.key))
+        problem(['designs', index, 'key'], FieldProblemCode.NotAllowed, 'List each design once.');
+      keys.add(design.key);
+      if (design.id !== undefined) {
+        if (ids.has(design.id))
+          problem(['designs', index, 'id'], FieldProblemCode.NotAllowed, 'List each design once.');
+        ids.add(design.id);
+      }
+    });
+    const shown = new Set<string>();
+    input.photos.forEach((photo, index) => {
+      if (photo.design === null) return;
+      if (!keys.has(photo.design))
+        problem(['photos', index, 'design'], FieldProblemCode.NotAllowed, 'Name a listed design.');
+      shown.add(photo.design);
+    });
+    designs.forEach((design, index) => {
+      if (!shown.has(design.key))
+        problem(['designs', index], FieldProblemCode.TooFew, 'A design shows at least one photo.');
+    });
+  });
 export type ProductImagesInput = z.infer<typeof productImagesSchema>;
 
 // PUT shop-settings/logo (TEN-16): the shop's logo, one of its ready images, or null for its monogram.

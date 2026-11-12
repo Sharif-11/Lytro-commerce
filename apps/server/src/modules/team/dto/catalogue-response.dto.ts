@@ -238,6 +238,15 @@ export const productDetailSchema = z.object({
     })
     .nullable(),
   images: z.array(productImageViewSchema),
+  // ATR-19 (PD-2, PD-14): the live designs, each with its photos in order, the first its cover.
+  designs: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      number: z.number().int(),
+      photoIds: z.array(z.string()),
+    }),
+  ),
   video: productVideoViewSchema.nullable(),
   deliveryZoneIds: z.array(z.string()),
   // CMB-01: an ordinary product or a combo, and a combo's parts in order (empty for an ordinary product).

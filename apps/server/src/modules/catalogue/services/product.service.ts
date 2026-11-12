@@ -89,6 +89,7 @@ import type {
   ModifierGroupView,
 } from '../types/catalogue';
 import { TaxClasses } from './tax-classes';
+import { ProductDesigns, refuseDesign } from './product-designs';
 import { CatalogueActivity, type ResolvedActor } from './catalogue-activity';
 import { CatalogueImages, refuseUnattachable } from './catalogue-images';
 import { ComboParts, comboZones, type ComboPartValues } from './combo-parts';
@@ -226,6 +227,7 @@ export class ProductService {
     @Inject(SizeChartService) private readonly sizeCharts: SizeChartService,
     @Inject(ComboParts) private readonly combos: ComboParts,
     @Inject(TaxClasses) private readonly taxes: TaxClasses,
+    @Inject(ProductDesigns) private readonly designs: ProductDesigns,
   ) {}
 
   /** LIM-02, PRD-04: the products the shop's limit counts. */
@@ -359,6 +361,7 @@ export class ProductService {
         shop.id,
         input.variantAttributes ?? [],
         input.variants,
+        null,
       );
       const described = await this.resolveDescriptions(
         tx,
@@ -568,6 +571,10 @@ export class ProductService {
         })),
       );
 
+      // ATR-19 (PD-13): the copy's own designs, which its variants and photos then show.
+      const designCopies = await this.designs.copy(tx, shop.id, productId, copy.id);
+      const ownDesign = (optionId: string | null): string | null =>
+        optionId === null ? null : (designCopies.get(optionId) ?? optionId);
       const variants = await this.products.listVariants(tx, shop.id, productId, false);
       const variantValues = await this.products.listVariantValues(
         tx,
@@ -579,7 +586,15 @@ export class ProductService {
         const row = await this.products.insertVariant(tx, {
           tenantId: shop.id,
           productId: copy.id,
-          combinationKey: variant.combinationKey,
+          combinationKey: variant.combinationKey
+            .split('&')
+            .map((pair) => {
+              const [attributeId, optionId] = pair.split('=');
+              return optionId === undefined
+                ? pair
+                : `${String(attributeId)}=${String(ownDesign(optionId))}`;
+            })
+            .join('&'),
           price: variant.price,
           weightKg: variant.weightKg,
           deliveryCharge: variant.deliveryCharge,
@@ -589,7 +604,12 @@ export class ProductService {
         });
         for (const value of variantValues) {
           if (value.variantId === variant.id) {
-            copiedValues.push({ ...value, productId: copy.id, variantId: row.id });
+            copiedValues.push({
+              ...value,
+              productId: copy.id,
+              variantId: row.id,
+              optionId: ownDesign(value.optionId) ?? value.optionId,
+            });
           }
         }
       }
@@ -607,7 +627,10 @@ export class ProductService {
           tx,
           shop.id,
           copy.id,
-          photos.map((photo) => photo.mediaId),
+          photos.map((photo) => ({
+            mediaId: photo.mediaId,
+            designOptionId: ownDesign(photo.designOptionId),
+          })),
         );
       }
       // DLV-07: the copy goes where the original goes.
@@ -647,17 +670,49 @@ export class ProductService {
     productId: string,
     input: ProductImagesInput,
     actor: CatalogueActor,
+    stock?: ProductStockHooks,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
     return this.transactions.run(async (tx) => {
       await this.findLive(tx, shop.id, productId);
+      // ATR-19 (PD-16): the designs as this save names them, then the photos showing them.
+      const saved = await this.designs.save(tx, shop.id, productId, input);
+      const field = input.photos === undefined ? 'mediaIds' : 'photos';
       try {
-        await this.photos.setProductImages(tx, shop.id, productId, input.mediaIds);
+        await this.photos.setProductImages(tx, shop.id, productId, saved.photos);
       } catch (error) {
-        refuseUnattachable(error, 'mediaIds');
+        refuseDesign(error, field);
+        refuseUnattachable(error, field);
+      }
+      if (saved.retired.length > 0) {
+        // A design no photo shows stops being offered, and its variants with it, unless units are held for orders.
+        await this.designs.retire(tx, shop.id, saved.retired);
+        const variants = await this.products.listVariants(tx, shop.id, productId, true);
+        const going = variants.filter(
+          (row) =>
+            row.deletedAt === null &&
+            saved.retired.some((id) =>
+              row.combinationKey.split('&').some((pair) => pair.endsWith(`=${id}`)),
+            ),
+        );
+        await this.products
+          .retireVariants(
+            tx,
+            shop.id,
+            going.map((row) => row.id),
+          )
+          .catch(refuseHeld);
+        await this.products.refreshPriceRange(tx, shop.id, productId);
+        await stock?.refreshStockState(tx, shop.id, productId);
       }
       await this.record(tx, shop.id, who, AuditAction.ProductImagesSaved, productId, {
-        mediaIds: input.mediaIds,
+        mediaIds: saved.photos.map((photo) => photo.mediaId),
+        ...(input.photos === undefined
+          ? {}
+          : {
+              designs: saved.photos.filter((photo) => photo.designOptionId !== null).length,
+              retiredDesigns: saved.retired.length,
+            }),
       });
       await this.products.bumpVersion(tx, shop.id);
       return this.detail(tx, shop.id, productId);
@@ -910,7 +965,13 @@ export class ProductService {
           .filter((row) => row.role === AttributeRole.VariantDefining)
           .map((row) => row.attributeId),
       );
-      const matrix = await this.resolveMatrix(tx, shop.id, input.variantAttributes, input.variants);
+      const matrix = await this.resolveMatrix(
+        tx,
+        shop.id,
+        input.variantAttributes,
+        input.variants,
+        productId,
+      );
       const wanted = new Set(matrix.attributes.map((entry) => entry.attribute.id));
       // ATR-15: once ordered, an attribute neither starts nor stops splitting the product.
       const moving = current.some(
@@ -1116,7 +1177,12 @@ export class ProductService {
   ): Promise<void> {
     if (input.imageIds && input.imageIds.length > 0) {
       try {
-        await this.photos.setProductImages(tx, tenantId, productId, input.imageIds);
+        await this.photos.setProductImages(
+          tx,
+          tenantId,
+          productId,
+          input.imageIds.map((mediaId) => ({ mediaId, designOptionId: null })),
+        );
       } catch (error) {
         refuseUnattachable(error, 'imageIds');
       }
@@ -1672,6 +1738,7 @@ export class ProductService {
     tenantId: string,
     input: MatrixInput,
     variants: VariantSpec[] | undefined,
+    productId: string | null,
   ): Promise<ResolvedMatrix> {
     const problems: InvalidField[] = [];
     const attributes = new Map(
@@ -1714,11 +1781,22 @@ export class ProductService {
         return;
       }
       entry.optionIds.forEach((optionId, position) => {
-        if (options.get(optionId)?.attributeId !== attribute.id) {
+        const option = options.get(optionId);
+        if (option?.attributeId !== attribute.id) {
           problems.push({
             field: `variantAttributes.${String(index)}.optionIds.${String(position)}`,
             problem: ServerFieldProblemCode.NotFound,
             messageKey: 'OptionNotOfAttribute',
+          });
+        } else if (
+          attribute.photoDesigns &&
+          (productId === null || option.productId !== productId || option.retiredAt !== null)
+        ) {
+          // ATR-19 (PD-13): a variant's design is one of its own product's live designs.
+          problems.push({
+            field: `variantAttributes.${String(index)}.optionIds.${String(position)}`,
+            problem: ServerFieldProblemCode.NotFound,
+            messageKey: 'DesignNotOfProduct',
           });
         }
       });
@@ -1812,6 +1890,14 @@ export class ProductService {
           field: `${at}.attributeId`,
           problem: ServerFieldProblemCode.NotFound,
           messageKey: 'AttributeNotFound',
+        });
+        return;
+      }
+      if (attribute.photoDesigns) {
+        problems.push({
+          field: `${at}.attributeId`,
+          problem: FieldProblemCode.NotAllowed,
+          messageKey: 'DesignsAddedByPhotos',
         });
         return;
       }
@@ -2365,6 +2451,7 @@ export class ProductService {
       variants: variantViews,
       sizeChart: await this.sizeChartOf(tx, tenantId, product),
       ...(await this.images.ofProduct(tx, tenantId, productId, product.videoId)),
+      designs: (await this.designs.of(tx, tenantId, [productId])).get(productId) ?? [],
       deliveryZoneIds: await this.products.listDeliveryZoneIds(tx, tenantId, productId),
       kind: product.kind,
       parts:

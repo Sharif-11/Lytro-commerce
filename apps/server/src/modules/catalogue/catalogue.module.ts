@@ -4,6 +4,7 @@ import {
   DrizzleAttributeStore,
   DrizzleCatalogueDataStore,
   DrizzleCatalogueImageStore,
+  DrizzleDesignStore,
   DrizzleCatalogueTransactions,
   DrizzleCategoryStore,
   DrizzleOptionSetStore,
@@ -22,6 +23,7 @@ import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { TaxClasses } from './services/tax-classes';
 import { AttributeService } from './services/attribute.service';
 import { CatalogueActivity } from './services/catalogue-activity';
+import { ProductDesigns } from './services/product-designs';
 import { CatalogueEraser } from './services/catalogue-eraser';
 import { CatalogueImages } from './services/catalogue-images';
 import { CatalogueVersion } from './services/catalogue-version';
@@ -38,6 +40,7 @@ import {
   ATTRIBUTE_STORE,
   CATALOGUE_DATA_STORE,
   CATALOGUE_IMAGE_STORE,
+  DESIGN_STORE,
   CATALOGUE_TRANSACTIONS,
   CATEGORY_STORE,
   OPTION_SET_STORE,
@@ -71,6 +74,8 @@ import {
     TaxClasses,
     { provide: CATALOGUE_DATA_STORE, useClass: DrizzleCatalogueDataStore },
     { provide: CATALOGUE_IMAGE_STORE, useClass: DrizzleCatalogueImageStore },
+    { provide: DESIGN_STORE, useClass: DrizzleDesignStore },
+    ProductDesigns,
     MediaLinks,
     CatalogueImages,
     CatalogueActivity,
@@ -95,6 +100,8 @@ import {
     // For the media module (Slice 6), whose screens show images the same way.
     MediaLinks,
     CatalogueImages,
+    // ATR-19: a product's designs, for the public catalogue, the feed and the order picker.
+    ProductDesigns,
     // For the day-60 deletion (LIF-19).
     CatalogueEraser,
     // TAX-01 (Slice 4.6a): the tax settings routes.
