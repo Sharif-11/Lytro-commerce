@@ -239,6 +239,11 @@ export interface LineAttributeSnapshot {
   unitKind: string | null;
   /** Splits the product into variants (Size: L) rather than describing it (Material: cotton). */
   variantDefining: boolean;
+  /**
+   * ATR-19, ATR-20 (PD-6): the value is a photo design's name ("ডিজাইন 2"). The seller's screens and the parcel label
+   * show it; a shopper's never do, since the line's photo shows the design. Absent on lines from before.
+   */
+  design?: true;
 }
 
 /** MNU-02 (Slice 4.6b): one modifier option chosen on a line, as it stood: its group, its name and its price change. */
