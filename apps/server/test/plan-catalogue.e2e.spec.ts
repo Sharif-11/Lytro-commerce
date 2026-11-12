@@ -190,6 +190,26 @@ describeIfDatabase('plans (PLN-01 to PLN-12, PLN-16)', () => {
     expect(plan.limits.staff).toBeTypeOf('number');
   });
 
+  it('RAT-01: GET /rates gives the rates a shop is shown, with no session, for the pricing page', async () => {
+    const response = await get('/rates');
+    expect(response.status).toBe(200);
+    const rates = response.body as { key: string; value: string }[];
+    const keys = rates.map((rate) => rate.key);
+    // What the marketing site's pay-as-you-go card and fee note read.
+    for (const key of [
+      'payg_order_fee_min',
+      'payg_order_fee_pct',
+      'payg_product_fee',
+      'listener_verification_pct',
+      'gateway_verification_pct',
+    ]) {
+      expect(keys).toContain(key);
+    }
+    // The chat-reply rate is stored but offered nowhere (D7-1), so it is never published.
+    expect(keys).not.toContain('ai_reply');
+    for (const rate of rates) expect(Number(rate.value)).not.toBeNaN();
+  });
+
   it(
     "Lytro's own plans (Trial, Pay-as-you-go) can't be put on sale, renamed or deleted; their limits still change",
     async () => {
