@@ -362,6 +362,19 @@ only adds concrete artifacts to it, nothing new in process:
   (`DATABASE_READ_URL`, which the server uses from Slice 9.2's second part). A file kept from an earlier setup gets
   any line it lacks (the read role's password), and nothing in it changes.
 
+### 9c. As built (Slice 9.2, the server side)
+
+- **Two pools** (D9-13, DAT-44): the write pool (`DATABASE_URL`), which everything uses unless it says otherwise, and
+  the read pool (`DATABASE_READ_URL`, the read-only role). The storefront's and public API's catalogue reads run on
+  the read pool (Slice 9.2's read); a code check (`read-pool-reads.spec.ts`) finds any write or row lock in what they
+  call, and the role refuses one at run time. A read whose connection was lost is tried once more (DAT-23).
+- **The write pool's watch** (DAT-44): at start and every 30 seconds each process asks whether its write pool reaches
+  the primary. `GET /health/ready` asks afresh; Caddy balances by it and `deploy.sh` waits for it before the next
+  process (D9-12).
+- **"Can't save"** (D9-14, DAT-42, DAT-47): while the write pool can't reach the primary, writes answer 503 with
+  `Retry-After: 30` in the owner's words, and reads go on. Nothing is ever written to a standby: a write pool that
+  reaches one makes the ready check fail.
+
 ## 10. Open, deliberately deferred
 
 Settled by Phase 9's plan and Slice 9.1:

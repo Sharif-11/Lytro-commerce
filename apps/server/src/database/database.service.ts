@@ -2,6 +2,7 @@ import { Inject, Injectable, type OnApplicationShutdown } from '@nestjs/common';
 import { DatabaseConnector, type DatabaseHandle, type PoolSettings } from '@lytronix/db';
 import { ENV } from '../config/tokens';
 import type { Env } from '../config/env';
+import { isLostConnection } from './lost-connection';
 
 type LimitSettings = Pick<
   Env,
@@ -55,6 +56,19 @@ export class DatabaseService implements OnApplicationShutdown {
             ...shared,
             applicationName: 'lytronix-server-reads',
           });
+  }
+
+  /**
+   * DAT-23: a read whose connection was lost under it (a restart, a failover, a dropped link) is tried once more, on a
+   * fresh connection. Only reads: a write is retried by its caller's idempotency key, never here.
+   */
+  async readRetrying<T>(read: () => Promise<T>): Promise<T> {
+    try {
+      return await read();
+    } catch (error) {
+      if (!isLostConnection(error)) throw error;
+      return read();
+    }
   }
 
   async onApplicationShutdown(): Promise<void> {

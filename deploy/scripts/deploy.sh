@@ -68,6 +68,21 @@ release_of() {
     "fetch('http://127.0.0.1:3000/health').then((r) => r.json()).then((b) => process.stdout.write(b.data.version + ' ' + b.data.role))"
 }
 
+# D9-12, D9-21 (Slice 9.2): the process's ready check answers 200, its database reached as the primary, before the next
+# process is touched.
+wait_ready() {
+  local service="$1" waited=0
+  until docker exec "$(container_of "$service")" node -e \
+    "fetch('http://127.0.0.1:3000/health/ready').then((r) => process.exit(r.status === 200 ? 0 : 1), () => process.exit(1))"; do
+    if [ "$waited" -ge 60 ]; then
+      say "$service not ready after 60s"
+      return 1
+    fi
+    sleep 3
+    waited=$((waited + 3))
+  done
+}
+
 roll_server() {
   local service="$1" role="$2" answer
   say "replacing $service"
@@ -78,7 +93,8 @@ roll_server() {
     say "$service answers '$answer', expected '$RELEASE $role'"
     return 1
   fi
-  say "$service on $RELEASE"
+  wait_ready "$service"
+  say "$service on $RELEASE, ready"
 }
 
 say "release $RELEASE, edge $EDGE_TAG, pooler $PGBOUNCER_TAG"

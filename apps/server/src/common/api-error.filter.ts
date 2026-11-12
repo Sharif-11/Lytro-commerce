@@ -20,6 +20,7 @@ import { headerValue, type HttpRequest } from './http';
 import { resolveLanguage } from './i18n/accept-language';
 import type { MessageKey } from './i18n/message-key';
 import { translate } from './i18n/messages';
+import { isLostConnection } from '../database/lost-connection';
 import { PrimaryWatch } from '../database/primary-watch';
 import { SAVING_RETRY_AFTER_SECONDS } from './guards/saving.guard';
 
@@ -68,32 +69,6 @@ const SHARED_PROBLEMS: readonly FieldProblemCode[] = Object.values(FieldProblemC
 // two identically is correct, not just convenient: a malformed id can never match a real row either, and
 // doing anything else would tell a caller "that at least looks like a valid id" -- a shape of information
 // leak this app already avoids elsewhere (TEN-03's not_found-not-forbidden rule, the same reasoning).
-// The codes and words a lost or refused database connection comes with: the driver's own, and PostgreSQL's class 08
-// (connection exception) and 57P0x (the server shutting down or not yet up).
-const LOST_CONNECTION_CODES = new Set([
-  'ECONNREFUSED',
-  'ECONNRESET',
-  'ETIMEDOUT',
-  'EPIPE',
-  '57P01',
-  '57P02',
-  '57P03',
-]);
-const LOST_CONNECTION_WORDS =
-  /Connection terminated|timeout exceeded when trying to connect|Client has encountered a connection error/i;
-
-/** D9-14, DAT-42: whether the database was lost under this request, looking through the errors that wrap it. */
-function isLostConnection(exception: unknown): boolean {
-  for (let error: unknown = exception, depth = 0; error && depth < 5; depth += 1) {
-    const code: unknown = Reflect.get(Object(error), 'code');
-    if (typeof code === 'string' && (LOST_CONNECTION_CODES.has(code) || code.startsWith('08')))
-      return true;
-    if (error instanceof Error && LOST_CONNECTION_WORDS.test(error.message)) return true;
-    error = Reflect.get(Object(error), 'cause');
-  }
-  return false;
-}
-
 function isInvalidInputSyntax(exception: unknown): boolean {
   const source = exception instanceof Error && exception.cause ? exception.cause : exception;
   if (typeof source !== 'object' || source === null) return false;

@@ -25,7 +25,8 @@ import { DatabaseService } from '../database.service';
 @Injectable()
 export class DrizzlePublicCatalogueStore implements PublicCatalogueStore {
   constructor(
-    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'reads'>,
+    @Inject(DatabaseService)
+    private readonly database: Pick<DatabaseService, 'reads' | 'readRetrying'>,
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(PublicCatalogueRepository) private readonly catalogue: PublicCatalogueRepository,
     @Inject(CategoryRepository) private readonly categories: CategoryRepository,
@@ -35,10 +36,11 @@ export class DrizzlePublicCatalogueStore implements PublicCatalogueStore {
   /**
    * D9-13 (Slice 9.2's read: the storefront and the public API first): every read of the public catalogue runs on the
    * read pool, as the read-only role, inside its own read-only transaction that still sets the shop for row-level
-   * security. Nothing here writes (read-pool-reads.spec.ts checks the code; the role refuses at run time).
+   * security. Nothing here writes (read-pool-reads.spec.ts checks the code; the role refuses at run time), so a read
+   * whose connection was lost is safely tried once more (DAT-23).
    */
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
-    return this.transactions.run(this.database.reads.db, work);
+    return this.database.readRetrying(() => this.transactions.run(this.database.reads.db, work));
   }
 
   versions(tx: Transaction, tenantId: string): Promise<CatalogueVersions> {
