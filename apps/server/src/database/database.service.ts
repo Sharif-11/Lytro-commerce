@@ -25,23 +25,40 @@ export function connectionLimitsOf(
 }
 
 /**
- * Owns the connection pool for the application role. Closed at the very last step of shutting down, so whatever
- * still writes while the modules stop (the API request counts' last flush, RED-04) finds it open.
+ * Owns the connection pools. Closed at the very last step of shutting down, so whatever still writes while the modules
+ * stop (the API request counts' last flush, RED-04) finds them open.
+ *
+ * D9-13, DAT-44: two pools. `handle` writes, always on the primary, and is what everything uses unless it says
+ * otherwise. `reads` is for code marked as a read: the read-only role (DAT-45), on the primary until a standby exists.
+ * Without a read address (a developer's database) it is the write pool itself.
  */
 @Injectable()
 export class DatabaseService implements OnApplicationShutdown {
   readonly handle: DatabaseHandle;
+  readonly reads: DatabaseHandle;
 
   constructor(@Inject(ENV) env: Env) {
-    this.handle = new DatabaseConnector().connect(env.DATABASE_URL, {
+    const connector = new DatabaseConnector();
+    const shared = {
       max: env.DATABASE_POOL_MAX,
       connectionTimeoutMillis: env.DATABASE_CONNECT_TIMEOUT_MS,
       ...connectionLimitsOf(env),
+    };
+    this.handle = connector.connect(env.DATABASE_URL, {
+      ...shared,
       applicationName: 'lytronix-server',
     });
+    this.reads =
+      env.DATABASE_READ_URL === undefined
+        ? this.handle
+        : connector.connect(env.DATABASE_READ_URL, {
+            ...shared,
+            applicationName: 'lytronix-server-reads',
+          });
   }
 
-  onApplicationShutdown(): Promise<void> {
-    return this.handle.close();
+  async onApplicationShutdown(): Promise<void> {
+    if (this.reads !== this.handle) await this.reads.close();
+    await this.handle.close();
   }
 }

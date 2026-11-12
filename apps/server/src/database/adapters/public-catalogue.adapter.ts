@@ -25,15 +25,20 @@ import { DatabaseService } from '../database.service';
 @Injectable()
 export class DrizzlePublicCatalogueStore implements PublicCatalogueStore {
   constructor(
-    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'reads'>,
     @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
     @Inject(PublicCatalogueRepository) private readonly catalogue: PublicCatalogueRepository,
     @Inject(CategoryRepository) private readonly categories: CategoryRepository,
     @Inject(ComboRepository) private readonly combos: ComboRepository,
   ) {}
 
+  /**
+   * D9-13 (Slice 9.2's read: the storefront and the public API first): every read of the public catalogue runs on the
+   * read pool, as the read-only role, inside its own read-only transaction that still sets the shop for row-level
+   * security. Nothing here writes (read-pool-reads.spec.ts checks the code; the role refuses at run time).
+   */
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
-    return this.transactions.run(this.database.handle.db, work);
+    return this.transactions.run(this.database.reads.db, work);
   }
 
   versions(tx: Transaction, tenantId: string): Promise<CatalogueVersions> {
