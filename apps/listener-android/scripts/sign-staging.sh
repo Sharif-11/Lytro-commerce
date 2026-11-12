@@ -9,8 +9,12 @@ set -euo pipefail
 
 unsigned="${1:?Name the unsigned APK}"
 out="${2:?Name a folder to write into}"
-properties="${LYTRO_LISTENER_STAGING_KEY:?Set LYTRO_LISTENER_STAGING_KEY to the staging key's properties file}"
-sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:?Set ANDROID_HOME to the Android SDK}}"
+properties="${LYTRO_LISTENER_STAGING_KEY:?Set LYTRO_LISTENER_STAGING_KEY to the properties file of the staging key}"
+sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+if [ -z "$sdk" ]; then
+  echo "Set ANDROID_HOME to the Android SDK" >&2
+  exit 2
+fi
 
 prop() { grep -m1 "^$1=" "$properties" | cut -d= -f2-; }
 tools="$(ls -d "$sdk"/build-tools/* | sort -V | tail -1)"

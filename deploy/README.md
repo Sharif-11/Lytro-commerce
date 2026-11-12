@@ -156,3 +156,19 @@ Optional, and best switched on once the first deploy works. In Cloudflare (`docs
 - **The dumps before each deploy:** `/opt/lytro/backups/pre-deploy/`, the last five. Slice 9.3 brings the real backups.
 - **Security updates** install themselves; the server restarts at 04:00 when one needs it, and every container comes
   back by itself.
+
+## The listener app on staging
+
+Staging's shops get their own copy of the listener app ("Lytro Listener (Staging)", its own app id, so it installs beside
+the real one). It talks to staging only and is signed with a throwaway staging key that stays on your computer.
+
+1. **Its downloads bucket, once.** Cloudflare → R2 → Create bucket `lytro-staging-downloads`; Settings → Custom
+   Domains → `download-staging.lytro.app`; leave its r2.dev address off. On the server, in `website.env`, remove the `#` before
+   `LISTENER_DOWNLOAD_URL=` and set it to `https://download-staging.lytro.app`; then deploy again.
+2. **Each new version.** The Listener app workflow builds it unsigned on every change to the app: open the run, download
+   `listener-staging-unsigned`, unzip it, and sign it on your computer:
+   ```
+   LYTRO_LISTENER_STAGING_KEY=<the staging key's .properties>      apps/listener-android/scripts/sign-staging.sh app-staging-unsigned.apk <a folder>
+   ```
+   It prints the key's fingerprint; check it against the one in your password manager. Upload the APK to the bucket
+   first, then `latest.json` (the page reads `latest.json`, so it never points at a file not there yet).
