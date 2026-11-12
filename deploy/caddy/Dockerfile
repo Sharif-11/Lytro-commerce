@@ -7,9 +7,9 @@
 #
 # apps/server/test/caddy-edge.e2e.spec.ts runs this image (CADDY_IMAGE) in front of the real server.
 
-# Caddy 2.9 with the plugin's v0.2.1: the pair released together. Caddy 2.10 moved DNS plugins to libdns 1.0, so moving
-# Caddy up means moving the plugin with it.
-ARG CADDY_VERSION=2.9.1
+# The plugin's v0.2.1 is built on libdns 1.0 and certmagic 0.23, which Caddy 2.10 brought in: on Caddy 2.9 the build
+# pulls them in over 2.9's own. Moving either one means checking the pair again.
+ARG CADDY_VERSION=2.10.0
 
 FROM caddy:${CADDY_VERSION}-builder AS builder
 ARG CLOUDFLARE_DNS_VERSION=v0.2.1
@@ -19,10 +19,11 @@ FROM caddy:${CADDY_VERSION}
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 COPY deploy/Caddyfile /etc/caddy/Caddyfile
 # The image refuses to build if the Caddyfile doesn't hold up as production reads it: the Cloudflare challenge on the
-# wildcard site, two API processes, and the static volume's paths. The values here are placeholders, never used.
+# wildcard site, two API processes, and the static volume's paths. The values here are placeholders, never used; the
+# plugin checks a token's shape (40 letters, digits, - or _) even when only validating.
 RUN PLATFORM_DOMAIN=staging.lytro.app \
     ACME_EMAIL=ops@example.com \
-    CLOUDFLARE_DNS_API_TOKEN=placeholder \
+    CLOUDFLARE_DNS_API_TOKEN=validation-only-not-a-real-token-0000000 \
     TRUSTED_EDGE_SECRET=placeholder-placeholder-placeholder \
     SERVER_UPSTREAM="api-1:3000 api-2:3000" \
     ROBOTS=robots_noindex \
