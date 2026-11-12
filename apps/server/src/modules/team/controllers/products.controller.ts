@@ -114,7 +114,8 @@ export class ProductsController {
   @ResponseMessage('ProductImagesSaved')
   @ApiOperation({
     summary:
-      "Set the product's photos, in the order shown, from the shop's ready images; an empty list removes them (PRD-11)",
+      "Set the product's photos, in the order shown, from the shop's ready images, each a plain photo or one of its " +
+      'designs; a design no photo shows retires with its variants; an empty list removes them (PRD-11, ATR-19)',
   })
   @ApiBody({ type: ProductImagesDto })
   @ZodResponse({ type: ProductDetailDto })
@@ -128,6 +129,7 @@ export class ProductsController {
       this.catalogue.idOf(id, 'ProductNotFound'),
       body,
       this.catalogue.actorOf(request),
+      this.stock,
     );
   }
 

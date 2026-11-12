@@ -224,7 +224,7 @@ export class MediaService {
   /**
    * MED-09, STO-07: deletes the item -- it leaves every product, category, swatch, logo and brand image it showed on,
    * and an image size chart goes with its image -- so usage drops at once; its stored files go in the deletion job
-   * (MED-07).
+   * (MED-07). ATR-20 (PD-8): a photo an order shows is kept while any order does, so the order never loses it.
    */
   async delete(tenantId: string, id: string, actor: CatalogueActor): Promise<void> {
     const who = await this.activity.resolve(tenantId, actor);
@@ -232,6 +232,17 @@ export class MediaService {
       const row = await this.store.lockMedia(tx, tenantId, id);
       if (!row) throw new ApiError('not_found', 'MediaNotFound', {});
       const uses = await this.store.usesOf(tx, tenantId, id);
+      if (uses.pastOrders > 0) {
+        throw new ApiError(
+          'conflict',
+          'MediaKeptForOrders',
+          { count: uses.pastOrders },
+          undefined,
+          {
+            count: uses.pastOrders,
+          },
+        );
+      }
       const keys = await this.store.deleteMedia(tx, tenantId, id);
       if (keys.length > 0) {
         const payload: MediaDeletePayload = { keys };

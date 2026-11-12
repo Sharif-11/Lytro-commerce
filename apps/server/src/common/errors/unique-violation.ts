@@ -11,6 +11,7 @@ export class UniqueViolation extends Error {
       | 'transactionId'
       | 'slug'
       | 'sku'
+      | 'design'
       | 'combination'
       | 'name'
       | 'value'

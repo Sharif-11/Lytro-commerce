@@ -48,6 +48,9 @@ export const attributes = tenant.table(
     unitKind: unitKind('unit_kind'),
     // ATR-10: kept for the products that use it, gone from suggestions and the picker.
     retiredAt: timestamp('retired_at', { withTimezone: true }),
+    // ATR-19 (PD-13): the one platform attribute whose values are a product's own photos, its designs. Its options
+    // each belong to one product; it is never listed, edited or added by hand, only through a product's photos.
+    photoDesigns: boolean('photo_designs').notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => [
@@ -57,6 +60,9 @@ export const attributes = tenant.table(
     uniqueIndex('attributes_platform_name_idx')
       .on(sql`lower(${t.name})`)
       .where(sql`${t.tenantId} IS NULL`),
+    uniqueIndex('attributes_photo_designs_idx')
+      .on(t.photoDesigns)
+      .where(sql`${t.photoDesigns}`),
     check(
       'attributes_unit_check',
       sql`(${t.dataType} = 'number_with_unit') = (${t.unitKind} IS NOT NULL)`,
@@ -79,6 +85,9 @@ export const attributeOptions = tenant.table(
     // own value takes an image; deleting the image clears it.
     swatchColor: varchar('swatch_color', { length: 7 }),
     swatchImageId: uuid('swatch_image_id'),
+    // ATR-19 (PD-13): a design's product. A design is one product's own; its number is its sort order, given once and
+    // never reused (PD-14).
+    productId: uuid('product_id'),
     sortOrder: integer('sort_order').notNull().default(0),
     retiredAt: timestamp('retired_at', { withTimezone: true }),
     createdAt: createdAt(),
@@ -86,12 +95,28 @@ export const attributeOptions = tenant.table(
   (t) => [
     // Lets a value row prove its option belongs to its attribute (DAT-02).
     unique('attribute_options_attribute_id_key').on(t.attributeId, t.id),
+    // Lets a product photo name its design within its own shop (DAT-02).
+    unique('attribute_options_tenant_id_key').on(t.tenantId, t.id),
     uniqueIndex('attribute_options_platform_value_idx')
       .on(t.attributeId, sql`lower(${t.value})`)
       .where(sql`${t.tenantId} IS NULL`),
     uniqueIndex('attribute_options_tenant_value_idx')
       .on(t.tenantId, t.attributeId, sql`lower(${t.value})`)
-      .where(sql`${t.tenantId} IS NOT NULL`),
+      .where(sql`${t.tenantId} IS NOT NULL AND ${t.productId} IS NULL`),
+    // A live design's name is unique within its product, so every product can have its own "ডিজাইন 1"; a retired
+    // design frees its name.
+    uniqueIndex('attribute_options_product_value_idx')
+      .on(t.tenantId, t.productId, t.attributeId, sql`lower(${t.value})`)
+      .where(sql`${t.productId} IS NOT NULL AND ${t.retiredAt} IS NULL`),
+    foreignKey({
+      name: 'attribute_options_product_fk',
+      columns: [t.tenantId, t.productId],
+      foreignColumns: [products.tenantId, products.id],
+    }).onDelete('cascade'),
+    check(
+      'attribute_options_product_check',
+      sql`${t.productId} IS NULL OR ${t.tenantId} IS NOT NULL`,
+    ),
     check('attribute_options_swatch_check', sql`${t.swatchColor} ~ '^#[0-9A-Fa-f]{6}$'`),
     check(
       'attribute_options_swatch_one_check',

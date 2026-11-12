@@ -30,6 +30,12 @@ export interface PublicCatalogueStore {
     tenantId: string,
     comboIds: string[],
   ): Promise<ComboPartStockRow[]>;
+  /** CMB-06, ATR-20 (PD-4): each variant's options as a shopper reads them ("M"), never a design's name. */
+  shopperVariantLabels(
+    tx: Transaction,
+    tenantId: string,
+    variantIds: string[],
+  ): Promise<Map<string, string>>;
   /** PRD-03, Slice 12b: each category's number of active products, its subcategories' included. */
   countCategoryProducts(tx: Transaction, tenantId: string): Promise<CategoryProductCount[]>;
   /** ATR-18, Slice 12b: the swatches of these products' list cards. */

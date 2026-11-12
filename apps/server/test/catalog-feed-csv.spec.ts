@@ -11,7 +11,11 @@ const PRODUCT = '11111111-1111-4111-8111-111111111111';
 const RED = '22222222-2222-4222-8222-222222222222';
 const BLUE = '33333333-3333-4333-8333-333333333333';
 
-function variant(variantId: string, stockState: StockState): FeedVariantRow {
+function variant(
+  variantId: string,
+  stockState: StockState,
+  designId: string | null = null,
+): FeedVariantRow {
   return {
     productId: PRODUCT,
     productSlug: 'সুতি-পাঞ্জাবি',
@@ -21,20 +25,21 @@ function variant(variantId: string, stockState: StockState): FeedVariantRow {
     variantId,
     price: '1500.00',
     stockState,
+    designId,
   };
 }
 
 function storeWith(
   images: FeedImageRow[],
   attributes: FeedAttributeRow[],
+  variants: FeedVariantRow[] = [variant(RED, StockState.Low), variant(BLUE, StockState.Out)],
 ): Pick<
   PublicCatalogueStore,
   'run' | 'listFeedVariants' | 'listFeedImages' | 'listFeedAttributes'
 > {
   return {
     run: <T>(work: (tx: Transaction) => Promise<T>) => work({} as Transaction),
-    listFeedVariants: () =>
-      Promise.resolve([variant(RED, StockState.Low), variant(BLUE, StockState.Out)]),
+    listFeedVariants: () => Promise.resolve(variants),
     listFeedImages: () => Promise.resolve(images),
     listFeedAttributes: () => Promise.resolve(attributes),
   };
@@ -58,6 +63,7 @@ describe('a catalog feed row (FED-02, FED-03)', () => {
       productId: PRODUCT,
       mediaId: `media-${String(index)}`,
       hash: `hash${String(index)}`,
+      designId: null,
     }));
     const csv = await csvOf(
       storeWith(images, [
@@ -90,6 +96,35 @@ describe('a catalog feed row (FED-02, FED-03)', () => {
     expect(red).toContain(
       `,https://my-shop.lytro.app/l/${encodeURIComponent('সুতি-পাঞ্জাবি')}?v=${RED},`,
     );
+  });
+
+  it("leads a design's variant with its design's photos, cover first, then the plain ones (PD-23)", async () => {
+    const STRIPED = '44444444-4444-4444-8444-444444444444';
+    const BLACK = '55555555-5555-4555-8555-555555555555';
+    const photo = (name: string, designId: string | null): FeedImageRow => ({
+      productId: PRODUCT,
+      mediaId: name,
+      hash: 'h',
+      designId,
+    });
+    const url = (name: string) => `https://media.lytro.app/tenants/${SHOP}/${name}/h.webp`;
+    const csv = await csvOf(
+      storeWith(
+        [
+          photo('black-front', BLACK),
+          photo('striped-front', STRIPED),
+          photo('striped-back', STRIPED),
+          photo('pair', null),
+        ],
+        [],
+        [variant(RED, StockState.In, STRIPED), variant(BLUE, StockState.In, BLACK)],
+      ),
+    );
+    const [, striped, black] = csv.split('\n');
+    expect(striped).toContain(`,${url('striped-front')},"${url('striped-back')},${url('pair')}",`);
+    expect(striped).not.toContain('black-front');
+    expect(black).toContain(`,${url('black-front')},${url('pair')},`);
+    expect(black).not.toContain('striped');
   });
 
   it('leaves the photo columns empty for a product with none', async () => {

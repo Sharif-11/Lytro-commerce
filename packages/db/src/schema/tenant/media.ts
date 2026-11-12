@@ -109,11 +109,18 @@ export const productImages = tenant.table(
     productId: uuid('product_id').notNull(),
     mediaId: uuid('media_id').notNull(),
     sortOrder: integer('sort_order').notNull(),
+    // ATR-19 (PD-2, PD-13): the design this photo shows, one of its own product's; NULL is a plain photo. Its foreign
+    // key, (tenant_id, design_option_id) to attribute_options(tenant_id, id) ON DELETE SET NULL (design_option_id), is
+    // written by hand in 0129, since drizzle cannot express the column list.
+    designOptionId: uuid('design_option_id'),
   },
   (t) => [
     primaryKey({ name: 'product_images_pkey', columns: [t.tenantId, t.productId, t.mediaId] }),
     uniqueIndex('product_images_order_idx').on(t.tenantId, t.productId, t.sortOrder),
     index('product_images_media_idx').on(t.tenantId, t.mediaId),
+    index('product_images_design_idx')
+      .on(t.tenantId, t.designOptionId)
+      .where(sql`${t.designOptionId} IS NOT NULL`),
     foreignKey({
       name: 'product_images_product_fk',
       columns: [t.tenantId, t.productId],

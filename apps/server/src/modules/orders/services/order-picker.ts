@@ -83,6 +83,15 @@ export class OrderPicker {
     const stock = await this.stock.view(tenantId, productId, false);
     const own = new Map(stock.variants.map((variant) => [variant.variantId, variant]));
     const tracked = stock.stockTracking === StockTracking.Tracked;
+    // ATR-20 (PD-22): each design's cover, its first photo, so staff pick a design by its photo.
+    const photoById = new Map(product.images.map((image) => [image.id, image.urls.thumbnail]));
+    const coverOf = new Map(
+      product.designs.flatMap((design) => {
+        const first = design.photoIds[0];
+        const url = first === undefined ? undefined : photoById.get(first);
+        return url === undefined ? [] : [[design.id, url] as const];
+      }),
+    );
     // CMB-03: each part's variants with the units their own products have on sale.
     const parts = [];
     for (const part of product.parts) {
@@ -119,6 +128,7 @@ export class OrderPicker {
           ? product.variants.map((variant) => ({
               variantId: variant.id,
               label: '',
+              image: null,
               price: variant.effectivePrice,
               onSale: product.active,
               available: onSale(stock),
@@ -128,6 +138,9 @@ export class OrderPicker {
               .map((variant) => ({
                 variantId: variant.id,
                 label: labelOf(product, variant.optionIds),
+                image:
+                  variant.optionIds.map((id) => coverOf.get(id)).find((url) => url !== undefined) ??
+                  null,
                 price: variant.effectivePrice,
                 onSale: product.active && variant.active,
                 available: tracked ? (own.get(variant.id)?.available ?? '0.000') : null,

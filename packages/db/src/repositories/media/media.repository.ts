@@ -80,6 +80,9 @@ export interface MediaSize {
   id: string;
   bytes: number;
   durationMs: number | null;
+  /** PD-28: an image's or a video's pixels, when the processing job recorded them. */
+  width: number | null;
+  height: number | null;
 }
 
 /** PRD-11: one photo of a product, in its place, with its stored files. */
@@ -87,6 +90,14 @@ export interface ProductImageRow {
   productId: string;
   mediaId: string;
   sortOrder: number;
+  /** ATR-19 (PD-2): the design it shows, or null for a plain photo. */
+  designOptionId: string | null;
+}
+
+/** PRD-11, ATR-19: a photo as a save places it: which item, and the design it shows, if any. */
+export interface ProductPhotoPlacement {
+  mediaId: string;
+  designOptionId: string | null;
 }
 
 // MED-03, MED-04, STO-01, PRD-11: a shop's media and where it is attached. Every method sets the shop's tenant context.
@@ -196,6 +207,8 @@ export class MediaRepository {
       .select({
         id: media.id,
         durationMs: media.durationMs,
+        width: media.width,
+        height: media.height,
         bytes: sql<string>`coalesce(sum(${mediaObjects.bytes}), 0)::text`,
       })
       .from(media)
@@ -209,6 +222,8 @@ export class MediaRepository {
       id: row.id,
       bytes: Number(row.bytes),
       durationMs: row.durationMs,
+      width: row.width,
+      height: row.height,
     }));
   }
 
@@ -379,6 +394,7 @@ export class MediaRepository {
         productId: productImages.productId,
         mediaId: productImages.mediaId,
         sortOrder: productImages.sortOrder,
+        designOptionId: productImages.designOptionId,
       })
       .from(productImages)
       .where(
@@ -387,21 +403,30 @@ export class MediaRepository {
       .orderBy(asc(productImages.productId), asc(productImages.sortOrder));
   }
 
-  /** PRD-11: the product's photos become these, in this order. */
+  /**
+   * PRD-11, ATR-19: the product's photos become these, in this order, each showing its design or none. Every save
+   * rewrites them all, so a photo's design travels with it here (PD-16).
+   */
   async setProductImages(
     tx: Transaction,
     tenantId: string,
     productId: string,
-    mediaIds: string[],
+    photos: ProductPhotoPlacement[],
   ): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
     await tx
       .delete(productImages)
       .where(and(eq(productImages.tenantId, tenantId), eq(productImages.productId, productId)));
-    if (mediaIds.length === 0) return;
-    await tx
-      .insert(productImages)
-      .values(mediaIds.map((mediaId, sortOrder) => ({ tenantId, productId, mediaId, sortOrder })));
+    if (photos.length === 0) return;
+    await tx.insert(productImages).values(
+      photos.map((photo, sortOrder) => ({
+        tenantId,
+        productId,
+        mediaId: photo.mediaId,
+        sortOrder,
+        designOptionId: photo.designOptionId,
+      })),
+    );
   }
 
   /** PRD-11: how many photos the product shows now. */

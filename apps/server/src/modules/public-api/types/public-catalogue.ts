@@ -50,6 +50,8 @@ export interface PublicProductOption {
   dataType: AttributeDataType;
   unitKind: string | null;
   values: PublicOptionValue[];
+  /** ATR-19 (PD-4): its values are the product's designs, chosen by tapping a photo; its name is never shown. */
+  designs: boolean;
 }
 
 /** ATR-02: a fact about the product, such as its material, written out. */
@@ -92,7 +94,8 @@ export interface PublicProductDetail {
   condition: ItemCondition;
   primaryCategoryId: string | null;
   categoryIds: string[];
-  images: ImageView[];
+  /** PRD-11, ATR-19, PD-28: its photos in order, each with its pixels and the design it shows (null: plain). */
+  images: (ImageView & { width: number | null; height: number | null; designId: string | null })[];
   video: VideoView | null;
   options: PublicProductOption[];
   attributes: PublicProductAttribute[];
@@ -128,7 +131,14 @@ export interface PublicComboPart {
   productName: string;
   image: ImageView | null;
   choice: boolean;
-  variants: { variantId: string; productName: string; label: string; available: boolean }[];
+  /** ATR-20 (PD-4): `label` never names a design; `image` is a design's cover, so a shopper picks it by its photo. */
+  variants: {
+    variantId: string;
+    productName: string;
+    label: string;
+    image: ImageView | null;
+    available: boolean;
+  }[];
 }
 
 /** PRD-03: a visible category, with its visible subcategories in the shop's order. */

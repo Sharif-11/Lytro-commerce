@@ -105,6 +105,8 @@ const orderItemSchema = z.object({
       dataType: z.nativeEnum(AttributeDataType),
       unitKind: z.string().nullable(),
       variantDefining: z.boolean(),
+      // ATR-19 (PD-9): a photo design's name, which the seller's screens and the parcel label show.
+      design: z.literal(true).optional(),
     }),
   ),
   captured: z.array(z.object({ attributeId: z.string(), name: z.string(), value: z.string() })),
@@ -142,6 +144,7 @@ const orderItemSchema = z.object({
           dataType: z.nativeEnum(AttributeDataType),
           unitKind: z.string().nullable(),
           variantDefining: z.boolean(),
+          design: z.literal(true).optional(),
         }),
       ),
       quantity: z.string(),
@@ -325,6 +328,7 @@ export class OrderPickerProductDto extends createZodDto(
       z.object({
         variantId: z.string(),
         label: z.string(),
+        image: z.string().nullable(),
         price: z.string(),
         onSale: z.boolean(),
         available: z.string().nullable(),

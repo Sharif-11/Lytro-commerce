@@ -36,7 +36,9 @@ function itemsOf(lines: OrderLineRecord[]): ShopperItemView[] {
     .map((line) => ({
       variantId: line.variantId,
       productName: line.productName,
-      attributes: line.attributeValues.filter((value) => value.variantDefining),
+      // ATR-20 (PD-6): a shopper knows a design by its photo, so its name is left out.
+      attributes: line.attributeValues.filter((value) => value.variantDefining && !value.design),
+      thumbnail: line.thumbnailUrl,
       quantity: line.quantity,
       stockUnit: line.stockUnit,
       unitPrice: line.unitPrice,
@@ -65,7 +67,9 @@ function trackedItemsOf(
         .sort((a, b) => a.partPosition - b.partPosition)
         .map((component) => ({
           productName: component.productName,
-          attributes: component.attributeValues.filter((value) => value.variantDefining),
+          attributes: component.attributeValues.filter(
+            (value) => value.variantDefining && !value.design,
+          ),
           quantity: component.quantity,
         })),
     };

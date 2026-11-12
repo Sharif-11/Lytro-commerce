@@ -44,6 +44,8 @@ const itemSchema = z.object({
       variantDefining: z.boolean(),
     }),
   ),
+  // ATR-20 (PD-6): the photo the line was ordered with.
+  thumbnail: z.string().nullable(),
   quantity: z.string(),
   stockUnit: z.nativeEnum(StockUnit),
   unitPrice: z.string(),
