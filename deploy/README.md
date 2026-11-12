@@ -84,14 +84,24 @@ For production, use `PLATFORM_DOMAIN=lytro.app`, leave out `ROBOTS`, and add thi
 
 In the repository's Settings:
 
-- **Environments** → New environment → `staging`.
-- **Secrets and variables → Actions → Secrets:**
+- **Environments → `staging`** (deploys from `main` only). Its secrets, so no other job ever sees the deploy key:
   - `STAGING_HOST`: the server's address;
   - `STAGING_SSH_KEY`: the whole of `lytro-github-deploy` (the private file);
-  - `STAGING_KNOWN_HOSTS`: the output of `ssh-keyscan -t ed25519 <address>`.
-- **Variables:**
+  - `STAGING_KNOWN_HOSTS`: the output of `ssh-keyscan <address>`, every host key the server offers (a provider's image
+    may hold only an RSA key).
+- **Secrets and variables → Actions → Variables:**
   - `STAGING_DOMAIN`: `staging.lytro.app`;
   - `DEPLOY_ENABLED`: `true` (only once steps 1 to 4 are done).
+
+Or with the GitHub CLI, from `cmd` (its `<` passes a file as it is):
+
+```
+gh secret set STAGING_HOST --env staging --body <address>
+gh secret set STAGING_SSH_KEY --env staging < lytro-github-deploy
+ssh-keyscan <address> > known_hosts.txt
+gh secret set STAGING_KNOWN_HOSTS --env staging < known_hosts.txt
+gh variable set STAGING_DOMAIN --body staging.lytro.app
+```
 
 The first time the Deploy workflow builds on `main`, GitHub makes the five `lytro-*` packages **private**. Make each
 public, once: your profile → Packages → the package → Package settings → Change visibility → Public. The server pulls
