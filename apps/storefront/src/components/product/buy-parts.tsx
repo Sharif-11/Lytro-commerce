@@ -9,7 +9,7 @@ import {
   StockUnit,
   type UnitKind,
 } from '@lytronix/validators/enums';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, type Ref, useState } from 'react';
 import type {
   DeliveryEstimate,
   DeliveryZoneView,
@@ -18,6 +18,8 @@ import type {
   ProductVariant,
   PublicProduct,
 } from '@/lib/api/storefront-api';
+import { countWord } from '@/lib/order/order-form';
+import { designSoldOut, type PhotoCard } from '@/lib/product/designs';
 import { quantityRule, stepped, typedQuantity } from '@/lib/product/quantity';
 import type { Selection, VariantChoice } from '@/lib/product/variant-choice';
 import { money, plainNumber, type Words } from '@/lib/i18n/words';
@@ -98,9 +100,77 @@ function swatchStyle(value: OptionValue) {
   return { background: value.swatchColor ?? 'var(--sunken)' };
 }
 
+/**
+ * ATR-19, ATR-20 (PD-4, PD-17, `product-photos`): the product's design photos as cards, in the gallery's order, with no
+ * name or number. A tap chooses that photo's design: the card is ringed and ticked, the design's other photos lightly
+ * ringed. A design that can't be bought is greyed with "শেষ" and can't be chosen. `nudge` shakes them once, when the
+ * shopper tried to buy before choosing.
+ */
+export function PhotoCards({
+  product,
+  cards,
+  designId,
+  tapped,
+  nudge,
+  words,
+  onTap,
+  cardsRef,
+}: {
+  product: PublicProduct;
+  cards: PhotoCard[];
+  designId: string | undefined;
+  /** The photo tapped, of the chosen design; null when the design came from a link. */
+  tapped: number | null;
+  nudge: boolean;
+  words: Words;
+  onTap: (card: PhotoCard) => void;
+  cardsRef?: Ref<HTMLDivElement>;
+}) {
+  if (cards.length === 0) return null;
+  // The photo ringed and ticked: the one tapped, else (a shared link's design) its cover.
+  const shown =
+    cards.find((card) => card.designId === designId && card.at === tapped) ??
+    cards.find((card) => card.designId === designId);
+  return (
+    <div className="opt" ref={cardsRef}>
+      <div
+        className={`pcards${cards.length > 5 ? ' many' : ''}${nudge ? ' nudge' : ''}`}
+        role="radiogroup"
+        aria-label={product.name}
+      >
+        {cards.map((card) => {
+          const off = designSoldOut(product, card.designId);
+          const on = card === shown;
+          const same = !on && designId !== undefined && card.designId === designId;
+          return (
+            <button
+              key={card.at}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              aria-label={words.t('pd_photo', { n: card.at + 1 })}
+              className={`pcard${on ? ' on' : ''}${same ? ' same' : ''}${off ? ' off' : ''}`}
+              disabled={off}
+              onClick={() => {
+                onTap(card);
+              }}
+            >
+              <i style={{ backgroundImage: `url("${card.image.urls.thumbnail}")` }} />
+              <span className="tk">
+                <Icon name="check" />
+              </span>
+              {off ? <b>{words.t('out')}</b> : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /** ATR-04, ATR-07, ATR-18: one row per variant-defining attribute; a value that names nothing buyable with the other
     picks is struck through, but can still be picked, so the shopper sees why. The size chart's link sits on the first
-    row, as drawn. */
+    row, as drawn. The designs option is chosen by its photos instead (PD-4), so it has no row. */
 export function OptionRows({
   product,
   choice,
@@ -116,7 +186,8 @@ export function OptionRows({
   onPick: (attributeId: string, valueId: string) => void;
   sizeChartLink: ReactNode;
 }) {
-  if (product.options.length === 0) {
+  const rows = product.options.filter((option) => !option.designs);
+  if (rows.length === 0) {
     return sizeChartLink ? (
       <div className="opt">
         <div className="lb">
@@ -128,7 +199,7 @@ export function OptionRows({
   }
   return (
     <>
-      {product.options.map((option, row) => {
+      {rows.map((option, row) => {
         const pickedId = selection[option.attributeId];
         const picked = option.values.find((value) => value.id === pickedId);
         const swatches = option.values.some((value) => value.swatchColor ?? value.swatchImage);
@@ -183,7 +254,12 @@ function unitName(unit: StockUnit | undefined, words: Words): string {
     : words.t(UNIT_WORD[unit as keyof typeof UNIT_WORD]);
 }
 
-/** The quantity: whole numbers from one. */
+// UOM-05 (PD-19): the units a count is in; a measured unit sold in whole packs (INV-24) keeps its plain number.
+const COUNTED: StockUnit[] = [StockUnit.Piece, StockUnit.Dozen, StockUnit.Pack, StockUnit.Box];
+const counted = (unit: StockUnit | undefined) =>
+  (unit ?? StockUnit.Piece) as StockUnit.Piece | StockUnit.Dozen | StockUnit.Pack | StockUnit.Box;
+
+/** The quantity: whole numbers from one, with its unit ("1 পিস"). */
 export function Quantity({
   value,
   unit,
@@ -286,7 +362,11 @@ export function Stepper({
       >
         <Icon name="minus" />
       </button>
-      <span aria-live="polite">{value}</span>
+      <span aria-live="polite">
+        {unit === undefined || COUNTED.includes(unit)
+          ? `${String(value)} ${countWord(counted(unit), value, words)}`
+          : value}
+      </span>
       <button
         type="button"
         aria-label="+"

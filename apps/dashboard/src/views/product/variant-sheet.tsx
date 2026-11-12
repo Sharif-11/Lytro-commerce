@@ -23,6 +23,7 @@ export function VariantSheet({
   readOnly,
   onChange,
   onClose,
+  designed = false,
 }: {
   /** The variant being set; null while the sheet is shut. */
   row: VariantRow | null;
@@ -34,6 +35,8 @@ export function VariantSheet({
   readOnly: boolean;
   onChange: (patch: Partial<VariantRow>) => void;
   onClose: () => void;
+  /** PD-10 (Part 40's `pd-variant`): a design product's variant, whose empty SKU is filled when saved. */
+  designed?: boolean;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
   const weighed = row !== null && (row.weightKg.trim() !== '' || settings.weightKg.trim() !== '');
@@ -55,6 +58,7 @@ export function VariantSheet({
             <Field
               label={t('skuCol')}
               value={row.sku}
+              help={designed ? t('pdSkuFilled') : undefined}
               error={problems.sku}
               maxLength={SKU_MAX_LENGTH}
               readOnly={readOnly}

@@ -104,9 +104,18 @@ describe('the answer to an order (ORD-02)', () => {
 describe('a quantity in words', () => {
   const words = new Words('en');
 
-  it('names a measure, and lets a count stand alone', () => {
-    expect(quantityText('1.000', StockUnit.Piece, words)).toBe('1');
+  it('names the unit of a measure and of a count alike (UOM-05, PD-19)', () => {
+    expect(quantityText('1.000', StockUnit.Piece, words)).toBe('1 piece');
+    expect(quantityText('3.000', StockUnit.Piece, words)).toBe('3 pieces');
     expect(quantityText('1.500', StockUnit.Kg, words)).toBe('1.5 kg');
-    expect(quantityText('2.000', StockUnit.Pack, words)).toBe('2');
+    expect(quantityText('2.000', StockUnit.Pack, words)).toBe('2 packs');
+    expect(quantityText('2.000', StockUnit.Dozen, words)).toBe('2 dozen');
+  });
+
+  it('writes the Bangla unit once, whatever the count', () => {
+    const bangla = new Words('bn');
+    expect(quantityText('1.000', StockUnit.Piece, bangla)).toBe('1 পিস');
+    expect(quantityText('2.000', StockUnit.Dozen, bangla)).toBe('2 ডজন');
+    expect(quantityText('0.500', StockUnit.Kg, bangla)).toBe('0.5 কেজি');
   });
 });

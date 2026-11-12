@@ -342,6 +342,8 @@ describeIfDatabase("a product's photos as its designs (ATR-19, PD-2, PD-13, PD-1
     expect((reused.body as Detail).designs.map(({ name, number }) => ({ name, number }))).toEqual([
       { name: 'ডিজাইন 1', number: 2 },
     ]);
+    // PD-14: the next new design takes a number never used, so the form can name it to match.
+    expect((reused.body as { nextDesignNumber: number }).nextDesignNumber).toBe(3);
   });
 
   it('keeps the Design attribute off the attribute screens and their option routes', async () => {
@@ -357,6 +359,109 @@ describeIfDatabase("a product's photos as its designs (ATR-19, PD-2, PD-13, PD-1
       attributes: [{ attributeId: design, role: 'informational', optionIds: [] }],
     });
     expect(described.status).toBe(400);
+  });
+
+  it("gives the product form the Design attribute's id, so its variants can split by design (PD-13)", async () => {
+    const shop = await openShop(port, texts, 'designs');
+    const { design } = await attributeIds(shop);
+    const defaults = await shop.get('/product-defaults');
+    expect(defaults.status, JSON.stringify(defaults.body)).toBe(200);
+    expect((defaults.body as { designAttributeId: string }).designAttributeId).toBe(design);
+  });
+
+  it('makes a new product with its designs, its variants by design and size, and their stock, in one request (PD-16, INV-03)', async () => {
+    const shop = await openShop(port, texts, 'designs');
+    const [black = '', striped = '', back = '', pair = ''] = await photos(shop, 4);
+    const { size, design } = await attributeIds(shop);
+    const [s54 = '', s56 = ''] = await sizes(shop, size, ['54', '56']);
+    // The form makes up an id-like key for each new design, and its variants name the design by it.
+    const one = randomUUID();
+    const two = randomUUID();
+    const made = await shop.post('/products', {
+      name: 'Abaya',
+      basePrice: 2450,
+      stockTracking: 'tracked',
+      photos: [
+        { mediaId: black, design: one },
+        { mediaId: striped, design: two },
+        { mediaId: back, design: two },
+        { mediaId: pair, design: null },
+      ],
+      designs: [
+        { key: one, name: 'ডিজাইন 1' },
+        { key: two, name: 'স্ট্রাইপ' },
+      ],
+      variantAttributes: [
+        { attributeId: design, optionIds: [one, two] },
+        { attributeId: size, optionIds: [s54, s56] },
+      ],
+      variants: [
+        { optionIds: [one, s54], openingStock: 3 },
+        { optionIds: [one, s56] },
+        { optionIds: [two, s54], openingStock: 5 },
+        { optionIds: [two, s56], openingStock: 2 },
+      ],
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    const detail = made.body as Detail;
+    expect(
+      detail.designs.map(({ name, number, photoIds }) => ({ name, number, photoIds })),
+    ).toEqual([
+      { name: 'ডিজাইন 1', number: 1, photoIds: [black] },
+      { name: 'স্ট্রাইপ', number: 2, photoIds: [striped, back] },
+    ]);
+    const [first, second] = detail.designs.map((row) => row.id);
+    expect(detail.images.map((image) => image.designId)).toEqual([first, second, second, null]);
+    // Each variant is one of its own designs and a size; none names a key.
+    expect(detail.variants).toHaveLength(4);
+    for (const row of detail.variants) {
+      expect([first, second]).toContain(row.optionIds.find((id) => id === first || id === second));
+      expect(row.optionIds).not.toContain(one);
+      expect(row.optionIds).not.toContain(two);
+    }
+    const stripe54 = detail.variants.find(
+      (row) => row.optionIds.includes(String(second)) && row.optionIds.includes(s54),
+    );
+    // PD-10: its SKU is filled as an edit's would be.
+    expect(stripe54?.sku).toMatch(/^[A-Z]+-D2-54$/);
+    // INV-03: the stock on the shelf went to the variants it was typed on.
+    const stock = await shop.get(`/products/${detail.id}/stock`);
+    expect(stock.status, JSON.stringify(stock.body)).toBe(200);
+    const held = new Map(
+      (stock.body as { variants: { variantId: string; onHand: string }[] }).variants.map((row) => [
+        row.variantId,
+        Number(row.onHand),
+      ]),
+    );
+    expect(held.get(String(stripe54?.id))).toBe(5);
+  });
+
+  it('refuses a new product whose photos come both ways, or whose designs are not new and keyed like ids', async () => {
+    const shop = await openShop(port, texts, 'designs');
+    const [black = ''] = await photos(shop, 1);
+    const key = randomUUID();
+    const base = { name: 'Abaya', basePrice: 2450, stockTracking: 'not_tracked' };
+    const both = await shop.post('/products', {
+      ...base,
+      imageIds: [black],
+      photos: [{ mediaId: black, design: null }],
+    });
+    expect(both.status).toBe(400);
+    expect(Object.keys(fieldsOf(both))).toContain('photos');
+    const withId = await shop.post('/products', {
+      ...base,
+      photos: [{ mediaId: black, design: key }],
+      designs: [{ key, id: randomUUID() }],
+    });
+    expect(withId.status).toBe(400);
+    expect(Object.keys(fieldsOf(withId))).toContain('designs.0.id');
+    const shortKey = await shop.post('/products', {
+      ...base,
+      photos: [{ mediaId: black, design: 'a' }],
+      designs: [{ key: 'a' }],
+    });
+    expect(shortKey.status).toBe(400);
+    expect(Object.keys(fieldsOf(shortKey))).toContain('designs.0.key');
   });
 });
 
@@ -451,7 +556,11 @@ describeIfDatabase(
       const { detail, photos: p } = await designedBurka(shop);
       const striped = detail.designs[1];
       const variant = detail.variants.find((row) => row.optionIds.includes(String(striped?.id)));
+      // ATR-15 (PD-11): the editor learns whether an order names the product, so it can keep its split fixed.
+      expect((detail as Detail & { hasOrders: boolean }).hasOrders).toBe(false);
       const orderId = await order(shop, String(variant?.id));
+      const ordered = (await shop.get(`/products/${detail.id}`)).body as { hasOrders: boolean };
+      expect(ordered.hasOrders).toBe(true);
       const read = async () =>
         (await shop.get(`/orders/${orderId}`)).body as {
           trackingId: string;
@@ -491,10 +600,19 @@ describeIfDatabase(
 
       // PD-22: the order picker shows the design's variant by its design's cover.
       const picker = (await shop.get(`/orders/picker/${detail.id}`)).body as {
-        variants: { variantId: string; image: string | null }[];
+        variants: {
+          variantId: string;
+          image: string | null;
+          design: { id: string; name: string } | null;
+          restLabel: string;
+        }[];
       };
       const picked = picker.variants.find((row) => row.variantId === variant?.id);
       expect(picked?.image).toContain(p.stripedBack);
+      // Grouped by design, each row the size alone (the picker draws the design's photo and name above them).
+      expect(picked?.design).toEqual({ id: striped?.id, name: 'স্ট্রাইপ' });
+      // Either size of the design: the label names the size alone, never the design.
+      expect(picked?.restLabel).toMatch(/^5[46]-Irani burka$/);
 
       // PD-6: the shopper's tracking shows the photo, never the design's name.
       const key = await shop.post('/api-keys', { name: 'Website', websites: [SITE] });

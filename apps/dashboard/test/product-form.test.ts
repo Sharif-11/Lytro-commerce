@@ -29,6 +29,7 @@ const SAVED: ProductForm = {
   primaryCategoryId: 'c-tshirts',
   active: true,
   imageIds: ['m-1', 'm-2'],
+  photoDesigns: { 'm-1': null, 'm-2': null },
   videoId: null,
 };
 
@@ -107,11 +108,21 @@ describe('the product form (TENANT-DASHBOARD-DESIGN §7.4)', () => {
     expect(changedParts(SAVED, { ...SAVED, primaryCategoryId: null, categoryIds: [] })).toEqual([
       { part: 'fields', body: { categoryIds: [], primaryCategoryId: null } },
     ]);
+    // PD-16: the photos always go with their designs (none here), so a plain photo is said to be one.
     expect(
       changedParts(SAVED, { ...SAVED, description: '', imageIds: ['m-2', 'm-1'], videoId: 'v-1' }),
     ).toEqual([
       { part: 'fields', body: { description: null } },
-      { part: 'images', body: { mediaIds: ['m-2', 'm-1'] } },
+      {
+        part: 'images',
+        body: {
+          photos: [
+            { mediaId: 'm-2', design: null },
+            { mediaId: 'm-1', design: null },
+          ],
+          designs: [],
+        },
+      },
       { part: 'video', body: { mediaId: 'v-1' } },
     ]);
   });
@@ -213,10 +224,12 @@ describe('the product form (TENANT-DASHBOARD-DESIGN §7.4)', () => {
   });
 
   it('keeps as saved only the parts that went through', () => {
-    const typed = { ...SAVED, name: 'Tee', imageIds: ['m-1'] };
+    const typed = { ...SAVED, name: 'Tee', imageIds: ['m-1'], photoDesigns: { 'm-1': null } };
     const saved = withSaved(SAVED, typed, ['fields']);
     expect(saved).toEqual({ ...SAVED, name: 'Tee' });
-    expect(changedParts(saved, typed)).toEqual([{ part: 'images', body: { mediaIds: ['m-1'] } }]);
+    expect(changedParts(saved, typed)).toEqual([
+      { part: 'images', body: { photos: [{ mediaId: 'm-1', design: null }], designs: [] } },
+    ]);
   });
 
   it('files the first category ticked as primary, and passes it on when unticked (PRD-15)', () => {

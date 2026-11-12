@@ -217,6 +217,7 @@ export function makeProduct(spec: ProductSpec): ProductFixture {
       name: 'Size',
       dataType: AttributeDataType.EnumSingle,
       unitKind: null,
+      designs: false,
       values: sizes.map((size) => ({
         id: optionFor('size', size),
         value: size,
@@ -231,6 +232,7 @@ export function makeProduct(spec: ProductSpec): ProductFixture {
       name: 'Colour',
       dataType: AttributeDataType.EnumSingle,
       unitKind: null,
+      designs: false,
       values: colours.map(([name, swatch]) => ({
         id: optionFor('colour', name),
         value: name,
@@ -357,6 +359,160 @@ export function panjabi(language: Language, extra: Partial<ProductSpec> = {}): P
   return made;
 }
 
+// ATR-19, ATR-20 (PHOTO-DESIGNS-PLAN): the sketch's stand-ins for a burka's design photos (lytro-storefront.html, PHOTO_SW),
+// drawn as 600×900 pictures, the 2:3 the sketch's gallery takes (PD-28). Each is its gradient's angle and stops.
+const PHOTO_STOPS: { angle: number; stops: [string, number][] }[] = [
+  {
+    angle: 160,
+    stops: [
+      ['#2b2b2b', 0],
+      ['#0d0d0d', 0.6],
+      ['#3a3a3a', 1],
+    ],
+  },
+  {
+    angle: 160,
+    stops: [
+      ['#1f2a44', 0],
+      ['#1f2a44', 0.3],
+      ['#c9a9a6', 0.3],
+      ['#c9a9a6', 0.45],
+      ['#1f2a44', 0.45],
+      ['#1f2a44', 0.7],
+      ['#c9a9a6', 0.7],
+      ['#c9a9a6', 1],
+    ],
+  },
+  {
+    angle: 200,
+    stops: [
+      ['#1f2a44', 0],
+      ['#1f2a44', 0.22],
+      ['#c9a9a6', 0.22],
+      ['#c9a9a6', 0.34],
+      ['#1f2a44', 0.34],
+      ['#1f2a44', 0.58],
+      ['#c9a9a6', 0.58],
+      ['#c9a9a6', 0.7],
+      ['#1f2a44', 0.7],
+      ['#1f2a44', 1],
+    ],
+  },
+  {
+    angle: 160,
+    stops: [
+      ['#a07b86', 0],
+      ['#7d5b66', 1],
+    ],
+  },
+  {
+    angle: 160,
+    stops: [
+      ['#5a3b2a', 0],
+      ['#3b2418', 1],
+    ],
+  },
+  {
+    angle: 160,
+    stops: [
+      ['#f4f1ec', 0],
+      ['#d9d2c7', 1],
+    ],
+  },
+];
+
+/** A design photo as the browser draws it: an SVG picture of the sketch's gradient. */
+export function designPhoto(index: number): string {
+  const { angle, stops } = PHOTO_STOPS[index % PHOTO_STOPS.length] ?? { angle: 160, stops: [] };
+  const radians = (angle * Math.PI) / 180;
+  const dx = Math.sin(radians) / 2;
+  const dy = -Math.cos(radians) / 2;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900"><defs><linearGradient id="g" x1="${String(0.5 - dx)}" y1="${String(0.5 - dy)}" x2="${String(0.5 + dx)}" y2="${String(0.5 + dy)}">${stops.map(([colour, at]) => `<stop offset="${String(at)}" stop-color="${colour}"/>`).join('')}</linearGradient></defs><rect width="600" height="900" fill="url(#g)"/></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+/** Which design each photo shows: photos 2 and 3 are one design's two angles (the sketch's PHOTO_DESIGN). */
+export const PHOTO_DESIGNS = [1, 2, 2, 3, 4, 5];
+/** The design the sketch draws sold out (its SOLD_DESIGN). */
+export const SOLD_DESIGN = 4;
+export const designId = (n: number) => `designed-design-${String(n)}`;
+/** A design variant's id, by its design's number and its size (`designedVariant(2, 'L')`). */
+export const designedVariant = (n: number, size: string) => idOf(`designed-D${String(n)}-${size}`);
+
+/**
+ * ATR-19 (PD-1, PD-4): Megh's Cotton panjabi as the sketch's `product-photos` draws it -- its photos its designs, design ×
+ * size its variants -- or, with `designs`, another number of designs; the design's name is the server's, never shown.
+ */
+export function designed(
+  language: Language,
+  options: { designs?: number[]; slug?: string; name?: string; sizes?: string[] } = {},
+): ProductFixture {
+  const base = panjabi(language);
+  const photos = options.designs ?? PHOTO_DESIGNS;
+  const numbers = [...new Set(photos)];
+  const sizes = options.sizes ?? ['S', 'M', 'L', 'XL', 'XXL'];
+  const sizeId = (size: string) => `designed-size-${size}`;
+  const variants: ProductVariant[] = numbers.flatMap((n) =>
+    sizes.map((size) => {
+      const out = n === SOLD_DESIGN;
+      return {
+        id: designedVariant(n, size),
+        optionIds: [designId(n), sizeId(size)],
+        price: '1250.00',
+        stockState: out ? StockState.Out : StockState.In,
+        available: !out,
+      };
+    }),
+  );
+  const product: PublicProduct = {
+    ...base.product,
+    id: 'designed',
+    slug: options.slug ?? 'irani-burka',
+    name: options.name ?? base.product.name,
+    images: photos.map((n, at) => ({
+      id: `designed-photo-${String(at + 1)}`,
+      urls: { main: designPhoto(at), thumbnail: designPhoto(at) },
+      width: 600,
+      height: 900,
+      designId: designId(n),
+    })),
+    options: [
+      {
+        attributeId: 'designed-design',
+        name: pick(language, 'ডিজাইন', 'Design'),
+        dataType: AttributeDataType.EnumSingle,
+        unitKind: null,
+        designs: true,
+        values: numbers.map((n) => ({
+          id: designId(n),
+          value: pick(language, `ডিজাইন ${String(n)}`, `Design ${String(n)}`),
+          swatchColor: null,
+          swatchImage: null,
+        })),
+      },
+      {
+        attributeId: 'designed-size',
+        name: pick(language, 'সাইজ', 'Size'),
+        dataType: AttributeDataType.EnumSingle,
+        unitKind: null,
+        designs: false,
+        values: sizes.map((size) => ({
+          id: sizeId(size),
+          value: size,
+          swatchColor: null,
+          swatchImage: null,
+        })),
+      },
+    ],
+    variants,
+  };
+  return {
+    product,
+    tax: base.tax ?? null,
+    card: { ...base.card, id: 'designed', slug: product.slug, name: product.name, swatches: [] },
+  };
+}
+
 export const WRAP = idOf('wrap');
 export const GIFT_WRAP = {
   id: idOf('gift-wrap'),
@@ -460,9 +616,16 @@ export function eidCombo(language: Language): ProductFixture {
                 variantId: `combo-${size}`,
                 productName: panjabiName,
                 label: size,
+                image: null,
                 available: true,
               })),
-              { variantId: 'combo-XXL', productName: panjabiName, label: 'XXL', available: false },
+              {
+                variantId: 'combo-XXL',
+                productName: panjabiName,
+                label: 'XXL',
+                image: null,
+                available: false,
+              },
             ],
           },
           {
@@ -472,7 +635,13 @@ export function eidCombo(language: Language): ProductFixture {
             image: null,
             choice: false,
             variants: [
-              { variantId: 'combo-lungi', productName: lungi, label: '', available: true },
+              {
+                variantId: 'combo-lungi',
+                productName: lungi,
+                label: '',
+                image: null,
+                available: true,
+              },
             ],
           },
         ],
@@ -651,6 +820,7 @@ export function trackedOrder(
         variantId: idOf('panjabi-M White'),
         productName: pick(language, 'কটন পাঞ্জাবি', 'Cotton Panjabi'),
         attributes: [size, colour],
+        thumbnail: null,
         quantity: '1.000',
         stockUnit: StockUnit.Piece,
         unitPrice: '1300.00',
@@ -671,6 +841,7 @@ export function trackedOrder(
         variantId: idOf('eid-v'),
         productName: pick(language, 'ঈদ কম্বো', 'Eid combo'),
         attributes: [],
+        thumbnail: null,
         quantity: '1.000',
         stockUnit: StockUnit.Piece,
         unitPrice: '1500.00',

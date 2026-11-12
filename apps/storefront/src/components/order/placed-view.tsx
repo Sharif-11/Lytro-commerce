@@ -1,18 +1,22 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import type { ShopperItem } from '@/lib/api/storefront-api';
 import { type Language, plainNumber, Words } from '@/lib/i18n/words';
 import { placedPhoneKey } from '@/lib/order/order-form';
 import { Icon } from '../icon';
+import { itemDetail, SummaryLine } from './order-parts';
 
 /** ORD-02, LND-11 (`confirm-cod`, `e48-landing-placed`): the order placed -- its number, the shop's call, the tracking ID
     and what happens next. No SMS is promised (Phase 7). The shopper's number comes from the phone that placed it, the
-    server never giving one back (ORD-17); opened anywhere else it says the shop will call them (`e48-placed-later`). */
+    server never giving one back (ORD-17); opened anywhere else it says the shop will call them (`e48-placed-later`). Its
+    items are listed as tracking lists them, each with the photo it was ordered with (ORD-17, PD-6). */
 export function PlacedView({
   language,
   orderNumber,
   trackingId,
   codAmount,
+  items,
   landing,
   offerAccount,
 }: {
@@ -20,6 +24,7 @@ export function PlacedView({
   orderNumber: string;
   trackingId: string;
   codAmount: string;
+  items: ShopperItem[];
   landing?: boolean;
   /** CUS-07: the way to an account, for someone not signed in; never at the order itself. */
   offerAccount?: boolean;
@@ -86,6 +91,20 @@ export function PlacedView({
         <a className="btn primary lg block" href={`/track/${trackingId}`}>
           {words.t('cf_track')}
         </a>
+        {items.length > 0 ? (
+          <div className="card2" style={{ width: '100%', textAlign: 'left' }}>
+            <h3>{words.t('tr_items')}</h3>
+            {items.map((item, position) => (
+              <SummaryLine
+                key={position}
+                name={item.productName}
+                image={item.thumbnail}
+                detail={itemDetail(item, words)}
+                total={item.itemTotal}
+              />
+            ))}
+          </div>
+        ) : null}
         <div className="card2" style={{ width: '100%', textAlign: 'left' }}>
           <h3>{words.t('cf_next')}</h3>
           <div className="tl">

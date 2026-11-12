@@ -96,9 +96,9 @@ test.describe('the order', () => {
   }) => {
     const shop = await openShop(page);
     await page.goto(shop.url(`/l/cotton-panjabi?v=${idOf('panjabi-XL Navy')}`));
-    await expect(page.locator('.side .cl .vr')).toHaveText('XL · Navy × 1');
+    await expect(page.locator('.side .cl .vr')).toHaveText('XL · Navy × 1 piece');
     await page.locator('.buy .qty').getByRole('button', { name: '+' }).click();
-    await expect(page.locator('.side .cl .vr')).toHaveText('XL · Navy × 2');
+    await expect(page.locator('.side .cl .vr')).toHaveText('XL · Navy × 2 pieces');
     await fillOrderForm(page);
     await expect(page.locator('.side .sum .r.total .price')).toHaveText('৳2,570');
     await expect(confirm(page)).toBeEnabled();

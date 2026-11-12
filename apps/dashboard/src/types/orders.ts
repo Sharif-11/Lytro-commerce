@@ -79,7 +79,13 @@ export interface LineAttribute {
   dataType: AttributeDataType;
   unitKind: string | null;
   variantDefining: boolean;
+  /** ATR-20 (PD-9): the design the shopper chose, by its name for the seller. */
+  design?: true;
 }
+
+/** ATR-20 (PD-9): whether an item is a design product's, so the seller's screens name its design and SKU. */
+export const hasDesign = (item: { attributes: readonly LineAttribute[] }): boolean =>
+  item.attributes.some((attribute) => attribute.design === true);
 
 /** MNU-02: a modifier option chosen, already in the item's unit price. */
 export interface LineModifier {
@@ -286,6 +292,12 @@ export interface OrderPickerProduct {
   variants: {
     variantId: string;
     label: string;
+    /** ATR-20 (PD-22): a design's variant's design cover, so staff pick by photo; null for others. */
+    image: string | null;
+    /** Its design, so a product's variants are grouped by design; null for others. */
+    design: { id: string; name: string } | null;
+    /** Its other values without its design ("54"); `label` for others. */
+    restLabel: string;
     price: string;
     onSale: boolean;
     available: string | null;

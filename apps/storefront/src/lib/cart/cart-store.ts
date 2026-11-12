@@ -139,6 +139,16 @@ export class CartStore {
     this.save(this.lines().filter((held) => lineKey(held) !== key));
   }
 
+  /** PD-21: a line just removed, put back where it was (Undo); onto the same line, if one was added meanwhile. */
+  restore(line: CartLine, at: number): void {
+    const lines = this.lines();
+    const same = lines.find((held) => lineKey(held) === lineKey(line));
+    if (same) same.quantity += line.quantity;
+    else if (lines.length >= ORDER_LINES_MAX) return;
+    else lines.splice(Math.min(Math.max(at, 0), lines.length), 0, line);
+    this.save(lines);
+  }
+
   /** An order was placed: its lines leave the cart. */
   clear(): void {
     this.save([]);

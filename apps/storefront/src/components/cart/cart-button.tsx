@@ -3,15 +3,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { areaCookieValue } from '@/lib/area';
 import { PaymentPolicy } from '@lytronix/validators/enums';
-import { checkCart, type CheckedCart, type CheckedLine, totalWith } from '@/lib/cart/cart-check';
-import { browserCart, CART_OPEN, type CartLine, estimateItemOf } from '@/lib/cart/cart-store';
+import { checkCart, type CheckedCart, type CheckedLine } from '@/lib/cart/cart-check';
+import {
+  browserCart,
+  CART_OPEN,
+  type CartLine,
+  estimateItemOf,
+  lineKey,
+} from '@/lib/cart/cart-store';
 import { type Language, money, Words } from '@/lib/i18n/words';
 import { countedUnits } from '@/lib/product/quantity';
 import type { DeliveryEstimate, EstimateItem } from '@/lib/api/storefront-api';
 import { Icon } from '../icon';
 import { InShell } from '../in-shell';
 import { LineExtras, TaxRows } from '../order/order-parts';
-import { rangeText, Stepper } from '../product/buy-parts';
+import { Stepper } from '../product/buy-parts';
 import { AreaSheet, DeliveryBanner, Sheet } from '../product/sheets';
 import { useDeliveryEstimate } from '../product/use-delivery';
 import { useCart } from './use-cart';
@@ -24,12 +30,35 @@ export interface CartButtonProps {
   startOpen?: boolean;
 }
 
+// PD-21: how long a removed line can be put back.
+const UNDO_MS = 5000;
+
 /** SFT-05, SFT-20: the header's cart, its count, and the drawer it opens (the prototype's cartSheet). */
 export function CartButton(props: CartButtonProps) {
   const words = useMemo(() => new Words(props.language), [props.language]);
   const lines = useCart();
   const [open, setOpen] = useState<'cart' | 'area' | null>(props.startOpen ? 'cart' : null);
   const [areaId, setAreaId] = useState(props.areaId);
+  // PD-21: the line last removed, and where it was, while it can be put back.
+  const [removed, setRemoved] = useState<{ line: CartLine; at: number } | null>(null);
+  useEffect(() => {
+    if (!removed) return;
+    const timer = setTimeout(() => {
+      setRemoved(null);
+    }, UNDO_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [removed]);
+  const remove = useCallback(
+    (key: string) => {
+      const at = (lines ?? []).findIndex((held) => lineKey(held) === key);
+      const line = lines?.[at];
+      browserCart().remove(key);
+      if (line) setRemoved({ line, at });
+    },
+    [lines],
+  );
   useEffect(() => {
     const show = () => {
       setOpen('cart');
@@ -73,8 +102,27 @@ export function CartButton(props: CartButtonProps) {
             onArea={() => {
               setOpen('area');
             }}
+            onRemove={remove}
             onClose={close}
           />
+        </InShell>
+      ) : null}
+      {removed ? (
+        <InShell>
+          <div className="toast" role="status">
+            <Icon name="check" />
+            <span>{words.t('cart_removed')}</span>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                browserCart().restore(removed.line, removed.at);
+                setRemoved(null);
+              }}
+            >
+              {words.t('cart_undo')}
+            </button>
+          </div>
         </InShell>
       ) : null}
       {open === 'area' ? (
@@ -106,6 +154,7 @@ function CartDrawer({
   areaId,
   shopPhone,
   onArea,
+  onRemove,
   onClose,
 }: {
   words: Words;
@@ -114,6 +163,7 @@ function CartDrawer({
   areaId: number | null;
   shopPhone: string | null;
   onArea: () => void;
+  onRemove: (key: string) => void;
   onClose: () => void;
 }) {
   const answer = useDeliveryEstimate(null, items, areaId);
@@ -169,7 +219,7 @@ function CartDrawer({
     >
       <div>
         {cart.lines.map((checked) => (
-          <CartLineRow key={checked.key} checked={checked} words={words} />
+          <CartLineRow key={checked.key} checked={checked} words={words} onRemove={onRemove} />
         ))}
       </div>
       {cart.orderable ? (
@@ -182,17 +232,29 @@ function CartDrawer({
   );
 }
 
-function CartLineRow({ checked, words }: { checked: CheckedLine; words: Words }) {
+/** One line: its photo (the chosen design's cover, PD-6), name, choices, quantity with its unit, and the trash button
+    beside it (PD-21), as the prototype's `cartLines` draws them. */
+function CartLineRow({
+  checked,
+  words,
+  onRemove,
+}: {
+  checked: CheckedLine;
+  words: Words;
+  onRemove: (key: string) => void;
+}) {
   const { line, state, key } = checked;
   const remove = (
     <button
       type="button"
-      className="rm"
+      className="rmi"
+      aria-label={words.t('remove')}
+      title={words.t('remove')}
       onClick={() => {
-        browserCart().remove(key);
+        onRemove(key);
       }}
     >
-      {words.t('remove')}
+      <Icon name="trash" />
     </button>
   );
   const thumb = line.image ? (
@@ -249,24 +311,27 @@ function CartLineRow({ checked, words }: { checked: CheckedLine; words: Words })
           <div className="note">{words.t('line_was', { p: money(checked.was) })}</div>
         ) : null}
         <div className="row">
-          <Stepper
-            value={line.quantity}
-            unit={line.stockUnit}
-            sharedStock={line.sharedStock ?? false}
-            words={words}
-            onChange={(next) => {
-              browserCart().setQuantity(key, next);
-            }}
-          />
+          <span className="qrm">
+            <Stepper
+              value={line.quantity}
+              unit={line.stockUnit}
+              sharedStock={line.sharedStock ?? false}
+              words={words}
+              onChange={(next) => {
+                browserCart().setQuantity(key, next);
+              }}
+            />
+            {remove}
+          </span>
           <span className="price">{checked.total === null ? '' : money(checked.total)}</span>
         </div>
-        {remove}
       </div>
     </div>
   );
 }
 
-/** The cart's sum: its items, the delivery (the exact charge once an area is set, the range before), and the total. */
+/** The cart's sum: its items, the delivery (the exact charge once an address is set; before it, the shop's highest charge
+    and the way to the exact one, PD-25), and one total. */
 function Summary({
   cart,
   estimate,
@@ -284,9 +349,9 @@ function Summary({
     areaSet && estimate?.deliverable === true && estimate.deliveryCharge !== null
       ? Number(estimate.deliveryCharge)
       : null;
-  const range = exact === null ? (estimate?.range ?? null) : null;
-  // As the prototype's summary draws its two area links.
-  const areaLink = (key: 'change' | 'deliv_area', bold: boolean) => (
+  const highest = exact === null && estimate?.range ? Number(estimate.range.to) : null;
+  // As the prototype's summary draws its two address links.
+  const areaLink = (key: 'change' | 'deliv_area' | 'deliv_exact', bold: boolean) => (
     <button
       type="button"
       className="lnk"
@@ -296,9 +361,7 @@ function Summary({
       {words.t(key)}
     </button>
   );
-  const worked = totalWith(cart.subtotal, exact, range);
-  const total =
-    worked.from === worked.to ? money(worked.from) : `${money(worked.from)} – ${money(worked.to)}`;
+  const total = money(cart.subtotal + (exact ?? highest ?? 0));
   return (
     <>
       <div className="sum">
@@ -319,12 +382,16 @@ function Summary({
             ) : null}
           </span>
           <span>
-            {exact !== null ? money(exact) : areaLink(areaSet ? 'change' : 'deliv_area', true)}
+            {exact !== null
+              ? money(exact)
+              : highest !== null
+                ? money(highest)
+                : areaLink(areaSet ? 'change' : 'deliv_area', true)}
           </span>
         </div>
-        {exact === null && range !== null ? (
-          <div className="r" style={{ fontSize: 12, color: 'var(--subtle)' }}>
-            <span>{rangeText(range, words)}</span>
+        {exact === null && highest !== null ? (
+          <div className="r" style={{ fontSize: 13 }}>
+            {areaLink(areaSet ? 'change' : 'deliv_exact', true)}
           </div>
         ) : null}
         <div className="r total">

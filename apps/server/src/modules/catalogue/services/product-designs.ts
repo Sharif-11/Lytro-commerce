@@ -22,6 +22,8 @@ export interface DesignsSaved {
   photos: ProductPhotoPlacement[];
   /** Designs no photo shows any more: retired now, so their variants go too (PD-16). */
   retired: string[];
+  /** Each design's id by the save's key, so a new product's variants can name a design made in the same request. */
+  ids: Map<string, string>;
 }
 
 /**
@@ -41,6 +43,12 @@ export class ProductDesigns {
     return this.designs.designAttributeId(tx, tenantId);
   }
 
+  /** PD-14: the number a product's next new design takes, one past any it ever had (never reused). */
+  async nextNumber(tx: Transaction, tenantId: string, productId: string): Promise<number> {
+    const all = await this.designs.listDesigns(tx, tenantId, [productId], true);
+    return all.reduce((most, design) => Math.max(most, design.number), 0) + 1;
+  }
+
   /** PD-16: applies the save's designs, and returns where each photo goes and which designs retired. */
   async save(
     tx: Transaction,
@@ -53,7 +61,7 @@ export class ProductDesigns {
     if (input.photos === undefined) {
       // As before (PRD-11): every photo plain, so every design goes.
       const photos = (input.mediaIds ?? []).map((mediaId) => ({ mediaId, designOptionId: null }));
-      return { photos, retired: live.map((design) => design.id) };
+      return { photos, retired: live.map((design) => design.id), ids: new Map() };
     }
 
     // Every design is checked before anything is written: a name the database refuses would end the transaction, so
@@ -142,7 +150,7 @@ export class ProductDesigns {
     }));
     const kept = new Set(byKey.values());
     const retired = live.filter((design) => !kept.has(design.id)).map((design) => design.id);
-    return { photos, retired };
+    return { photos, retired, ids: byKey };
   }
 
   /**
