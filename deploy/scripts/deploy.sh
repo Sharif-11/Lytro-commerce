@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# Deploys one release to this server (Phase 9 Slice 9.1, D9-12). Run by /opt/lytro/bin/lytro-ssh, the only command
+# GitHub's deploy key may run, from the release's own copy of deploy/ (so the compose file is always the release's):
+#
+#   deploy.sh <release> <edge-tag>
+#
+# In order, stopping at the first failure (the API keeps answering from whichever process is still on the old release):
+#   1. pull the release's images                 5. the worker, then api-1, then api-2, each healthy on <release> before
+#   2. the database and Redis up                    the next is touched, so one API process always answers
+#   3. a dump of the database                    6. the dashboard's and console's files, then the edge
+#   4. migrations, then pg-boss's schema         7. the website and the storefront
+# LYTRO_SKIP_PULL=1 uses images already on this machine (CI's rehearsal builds them there).
+# Migrations only add, so the old release keeps working beside the new one while it rolls (ENGINEERING-STANDARDS §7).
+# Rolling back is deploying the previous release again.
+set -euo pipefail
+
+RELEASE="${1:?usage: deploy.sh <release> <edge-tag>}"
+EDGE_TAG="${2:?usage: deploy.sh <release> <edge-tag>}"
+LYTRO_HOME="${LYTRO_HOME:-/opt/lytro}"
+DEPLOY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# How many pre-deploy dumps and release folders to keep.
+KEEP_DUMPS=5
+KEEP_RELEASES=5
+
+export LYTRO_HOME RELEASE EDGE_TAG
+
+say() { printf '[deploy %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+
+# This server's settings (REGISTRY and its memory sizes), then the release being deployed.
+dc() {
+  docker compose --project-directory "$DEPLOY_DIR" -f "$DEPLOY_DIR/compose.yml" \
+    --env-file "$LYTRO_HOME/settings.env" "$@"
+}
+
+container_of() { dc ps -q "$1"; }
+
+# Waits until a service's container reports healthy, or fails after the limit.
+wait_healthy() {
+  local service="$1" limit="${2:-180}" waited=0 id status
+  id="$(container_of "$service")"
+  while :; do
+    status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$id")"
+    case "$status" in
+      # `running` is what a container without a health check (the edge) reports once started.
+      healthy | running) return 0 ;;
+      unhealthy | exited | dead)
+        say "$service is $status"
+        docker logs --tail 50 "$id" || true
+        return 1
+        ;;
+    esac
+    if [ "$waited" -ge "$limit" ]; then
+      say "$service not healthy after ${limit}s ($status)"
+      docker logs --tail 50 "$id" || true
+      return 1
+    fi
+    sleep 3
+    waited=$((waited + 3))
+  done
+}
+
+# What an API or worker process says it runs, from its own /health (D9-11).
+release_of() {
+  docker exec "$(container_of "$1")" node -e \
+    "fetch('http://127.0.0.1:3000/health').then((r) => r.json()).then((b) => process.stdout.write(b.data.version + ' ' + b.data.role))"
+}
+
+roll_server() {
+  local service="$1" role="$2" answer
+  say "replacing $service"
+  dc up -d --no-deps "$service"
+  wait_healthy "$service"
+  answer="$(release_of "$service")"
+  if [ "$answer" != "$RELEASE $role" ]; then
+    say "$service answers '$answer', expected '$RELEASE $role'"
+    return 1
+  fi
+  say "$service on $RELEASE"
+}
+
+say "release $RELEASE, edge $EDGE_TAG"
+
+if [ -n "${LYTRO_SKIP_PULL:-}" ]; then
+  say '1. using the images on this machine'
+else
+  say '1. pulling images'
+  dc pull --quiet edge api-1 worker website storefront
+  dc --profile tools pull --quiet migrate static
+fi
+
+say '2. database and Redis'
+dc up -d --wait postgres redis
+
+say '3. dumping the database'
+mkdir -p "$LYTRO_HOME/backups/pre-deploy"
+dump="$LYTRO_HOME/backups/pre-deploy/$(date -u +%Y%m%dT%H%M%SZ)-$RELEASE.dump"
+dc exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' > "$dump.partial"
+mv "$dump.partial" "$dump"
+say "dump: $dump ($(du -h "$dump" | cut -f1))"
+ls -1t "$LYTRO_HOME"/backups/pre-deploy/*.dump | tail -n +$((KEEP_DUMPS + 1)) | xargs -r rm -f
+
+say '4. migrations'
+dc --profile tools run --rm migrate
+
+say '5. the worker and the API'
+roll_server worker worker
+roll_server api-1 api
+roll_server api-2 api
+
+# Before the website and the storefront: they reach the API through the edge's internal listener (deploy/Caddyfile).
+say "6. the dashboard's and console's files, then the edge"
+dc --profile tools run --rm static
+dc up -d --no-deps edge
+wait_healthy edge 60
+
+say '7. the website and the storefront'
+dc up -d --no-deps website storefront
+wait_healthy website
+wait_healthy storefront
+
+# What this server runs now, for anyone running `docker compose` here by hand (deploy/README.md).
+printf 'RELEASE=%s\nEDGE_TAG=%s\n' "$RELEASE" "$EDGE_TAG" > "$LYTRO_HOME/state/release.env.next"
+mv "$LYTRO_HOME/state/release.env.next" "$LYTRO_HOME/state/release.env"
+ln -sfn "$DEPLOY_DIR" "$LYTRO_HOME/state/current.next"
+mv -fT "$LYTRO_HOME/state/current.next" "$LYTRO_HOME/state/current"
+
+# Old release folders, and images no container has used for a week (a rollback past that pulls again).
+ls -1dt "$LYTRO_HOME"/releases/*/ 2> /dev/null | tail -n +$((KEEP_RELEASES + 1)) | xargs -r rm -rf || true
+docker image prune --all --force --filter 'until=168h' > /dev/null
+
+say "done: $RELEASE is live"

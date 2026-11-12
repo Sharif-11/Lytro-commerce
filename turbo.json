@@ -11,7 +11,9 @@
         "SITE_URL",
         "LIVE_FEATURES",
         "CONTACT_WEBHOOK_URL",
-        "SUPPORT_EMAIL"
+        "SUPPORT_EMAIL",
+        "NEXT_STANDALONE",
+        "STOREFRONT_BUILD_ID"
       ]
     },
     "typecheck": {
@@ -21,7 +23,7 @@
     "test": {
       "dependsOn": ["^build"],
       "env": ["DATABASE_TEST_ADMIN_URL"],
-      "passThroughEnv": ["CI"],
+      "passThroughEnv": ["CI", "CADDY_IMAGE"],
       "cache": false
     },
     "test:e2e": {

@@ -7,8 +7,13 @@ const run = promisify(execFile);
 
 // The production edge config itself, never a copy: what this runs is what a deployment runs (KNOWN-GAPS §141).
 const CADDYFILE = resolve(__dirname, '../../../../deploy/Caddyfile');
-// The image the edge runs in. A deployment builds its own with a DNS plugin (DEPLOYMENT.md §3); the routing is the same.
-const IMAGE = 'caddy:2';
+// The image the edge runs in: the deployment's own (deploy/caddy/Dockerfile, Caddy with the Cloudflare DNS plugin, D9-10),
+// which CI builds and names in CADDY_IMAGE. A computer without it runs plain Caddy, whose routing is the same.
+export const EDGE_IMAGE = process.env['CADDY_IMAGE'] ?? 'caddy:2';
+const IMAGE = EDGE_IMAGE;
+// The test's hosts are *.localhost, whose certificates Caddy signs itself: never the Cloudflare challenge production's
+// wildcard site uses (deploy/Caddyfile's WILDCARD_TLS).
+const TEST_SETTINGS = { WILDCARD_TLS: 'wildcard_tls_auto' };
 const READY_WITHIN_MS = 60_000;
 
 /** True when a Docker engine answers here. CI always has one; a computer without it skips the edge's spec. */
@@ -56,13 +61,21 @@ export class CaddyEdge {
       '--mount',
       `type=bind,source=${CADDYFILE},target=/etc/caddy/Caddyfile,readonly`,
     ];
-    for (const [name, value] of Object.entries(this.env)) args.push('--env', `${name}=${value}`);
+    for (const [name, value] of Object.entries({ ...TEST_SETTINGS, ...this.env })) {
+      args.push('--env', `${name}=${value}`);
+    }
     args.push(IMAGE);
     this.id = (await run('docker', args)).stdout.trim();
     const mapped =
       (await run('docker', ['port', this.id, '443/tcp'])).stdout.trim().split('\n')[0] ?? '';
     this.port = Number(mapped.slice(mapped.lastIndexOf(':') + 1));
     await this.ready();
+  }
+
+  /** The Caddy modules the edge image carries. */
+  async modules(): Promise<string[]> {
+    const { stdout } = await run('docker', ['run', '--rm', IMAGE, 'caddy', 'list-modules']);
+    return stdout.split('\n').map((line) => line.trim());
   }
 
   async stop(): Promise<void> {

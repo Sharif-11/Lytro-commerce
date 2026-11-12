@@ -2,6 +2,9 @@ import { createHash } from 'node:crypto';
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import type { SendOptions } from 'pg-boss';
 import { SECOND_MS } from '../../../../common/time';
+import type { Env } from '../../../../config/env';
+import { runsJobs } from '../../../../config/server-role';
+import { ENV } from '../../../../config/tokens';
 import type { OutboxStore } from '../ports/outbox-store';
 import { OUTBOX_STORE } from '../tokens';
 import { PgBossClient } from './pg-boss-client';
@@ -41,10 +44,12 @@ export class JobRelay implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(OUTBOX_STORE) private readonly outbox: OutboxStore,
     @Inject(PgBossClient) private readonly pgBoss: PgBossClient,
+    @Inject(ENV) private readonly env: Pick<Env, 'SERVER_ROLE'>,
   ) {}
 
   onModuleInit(): void {
-    if (process.env['NODE_ENV'] === 'test') return;
+    // D9-11: the relay sends to the job queue, which only a process that runs jobs starts.
+    if (process.env['NODE_ENV'] === 'test' || !runsJobs(this.env.SERVER_ROLE)) return;
     this.timer = setInterval(() => {
       this.runDue().catch((error: unknown) => {
         console.error(
