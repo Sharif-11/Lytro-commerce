@@ -99,6 +99,8 @@ export interface ProductOption {
   dataType: AttributeDataType;
   unitKind: UnitKind | null;
   values: OptionValue[];
+  /** ATR-19 (PD-4): its values are the product's designs, chosen by tapping a photo; its name is never shown. */
+  designs: boolean;
 }
 export interface ProductAttribute {
   name: string;
@@ -115,6 +117,12 @@ export interface ProductVariant {
   price: string;
   stockState: StockState;
   available: boolean;
+}
+/** PRD-11, ATR-19, PD-28: a product photo, with its pixels (null when not known) and the design it shows (null: plain). */
+export interface ProductImage extends ImageView {
+  width: number | null;
+  height: number | null;
+  designId: string | null;
 }
 /** PRD-17: a size chart is a table of short text, or a ready image in its place. */
 export interface SizeChart {
@@ -136,7 +144,7 @@ export interface PublicProduct {
   condition: ItemCondition;
   primaryCategoryId: string | null;
   categoryIds: string[];
-  images: ImageView[];
+  images: ProductImage[];
   video: { id: string; urls: { video: string; poster: string } } | null;
   options: ProductOption[];
   attributes: ProductAttribute[];
@@ -171,7 +179,14 @@ export interface PublicComboPart {
   productName: string;
   image: ImageView | null;
   choice: boolean;
-  variants: { variantId: string; productName: string; label: string; available: boolean }[];
+  /** ATR-20 (PD-4): `label` never names a design; `image` is a design's cover, so a shopper picks it by its photo. */
+  variants: {
+    variantId: string;
+    productName: string;
+    label: string;
+    image: ImageView | null;
+    available: boolean;
+  }[];
 }
 export interface PublicCombo {
   saving: string | null;
@@ -297,7 +312,10 @@ export interface ShopperPaymentMethod {
 export interface ShopperItem {
   variantId: string | null;
   productName: string;
+  /** Never a design's name, which the photo shows (PD-6). */
   attributes: { name: string; value: string; variantDefining: boolean }[];
+  /** ATR-20 (PD-6, PD-7): the photo the line was ordered with, a design's cover for a design; null for none. */
+  thumbnail: string | null;
   quantity: string;
   stockUnit: StockUnit;
   unitPrice: string;

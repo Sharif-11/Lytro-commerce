@@ -11,7 +11,7 @@ import { SkeletonRows } from '@/components/ui/skeleton';
 import { code128 } from '@/lib/code128';
 import { bangladeshiPhone } from '@/lib/phone';
 import { useShell } from '@/shell/shell-context';
-import type { Order } from '@/types/orders';
+import { hasDesign, type Order } from '@/types/orders';
 import { Segments } from '../product/value-sheet';
 import { atCounter, useOrderWords } from './order-words';
 
@@ -132,15 +132,59 @@ export function OrderLabel({ order, size }: { order: Order; size: LabelSize }): 
       </div>
       {small ? null : (
         <div className="border-t border-dashed border-black pt-1">
-          {t('labelItems', {
-            count: order.items.length,
-            items: order.items
-              .map((item) => `${item.productName} ×${String(Number(item.quantity))}`)
-              .join(', '),
-          })}
+          <LabelItems order={order} />
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * The 3×3 label's items (ORD-19): "name ×qty", and a design's line its design, size and SKU (PD-9, Part 40's
+ * `pd-print`), "Irani burka (Stripe · 54 · IB-D2-54) ×1"; a SKU never breaks across lines.
+ */
+function LabelItems({ order }: { order: Order }): React.JSX.Element {
+  const { t } = useTranslation('orders');
+  const words = useOrderWords();
+  // The sentence's own words around the list, as the language puts them.
+  const [before = '', after = ''] = t('labelItems', {
+    count: order.items.length,
+    items: '\u0000',
+  }).split('\u0000');
+  return (
+    <>
+      {before}
+      {order.items.map((item, index) => {
+        const quantity = `×${String(Number(item.quantity))}`;
+        const details = hasDesign(item)
+          ? [words.variant(item), item.sku].filter((each): each is string => Boolean(each))
+          : [];
+        return (
+          <span key={item.id}>
+            {index > 0 ? ', ' : null}
+            {item.productName}
+            {details.length > 0 ? (
+              <>
+                {' ('}
+                {details.map((each, at) => (
+                  <span key={each}>
+                    {at > 0 ? ' · ' : null}
+                    {at === details.length - 1 && item.sku ? (
+                      <span className="whitespace-nowrap">{each}</span>
+                    ) : (
+                      each
+                    )}
+                  </span>
+                ))}
+                {')'}
+              </>
+            ) : null}{' '}
+            {quantity}
+          </span>
+        );
+      })}
+      {after}
+    </>
   );
 }
 

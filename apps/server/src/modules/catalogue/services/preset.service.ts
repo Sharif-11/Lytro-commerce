@@ -26,6 +26,7 @@ import type {
   ProductFormDefaults,
 } from '../types/catalogue';
 import { CatalogueActivity } from './catalogue-activity';
+import { ProductDesigns } from './product-designs';
 import { ShopPaymentPolicyService } from './shop-payment-policy.service';
 
 // A shop that has not chosen a type gets what "Other" gives: pieces, counted, no batches or serials.
@@ -89,6 +90,7 @@ export class PresetService {
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(ShopPaymentPolicyService) private readonly shopPolicy: ShopPaymentPolicyService,
+    @Inject(ProductDesigns) private readonly designs: ProductDesigns,
   ) {}
 
   async list(): Promise<PresetView[]> {
@@ -117,7 +119,11 @@ export class PresetService {
     return this.transactions.run(async (tx) => {
       const defaults = await this.defaultsWithin(tx, shop, categoryId);
       if (!defaults) throw new ApiError('not_found', 'CategoryNotFound', {});
-      return { ...defaults, shopPaymentPolicy: await this.shopPolicy.within(tx, shop.id) };
+      return {
+        ...defaults,
+        shopPaymentPolicy: await this.shopPolicy.within(tx, shop.id),
+        designAttributeId: await this.designs.attributeId(tx, shop.id),
+      };
     });
   }
 

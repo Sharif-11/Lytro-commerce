@@ -143,6 +143,8 @@ export interface ProductDefaults extends PresetDefaults {
  */
 export interface ProductFormDefaults extends ProductDefaults {
   shopPaymentPolicy: ShopPaymentPolicy;
+  /** ATR-19 (PD-13): the attribute a product's designs belong to, so the form can split its variants by them. */
+  designAttributeId: string;
 }
 
 export interface PresetView {
@@ -271,6 +273,10 @@ export interface ProductDetail {
   images: ProductImageView[];
   /** ATR-19 (PD-2, PD-14): its live designs in number order, each with its photos; empty for a product without. */
   designs: DesignView[];
+  /** PD-14: the number its next new design takes (numbers are never reused, retired ones included). */
+  nextDesignNumber: number;
+  /** ATR-15 (PD-11): whether any order names it; once one does, what splits its variants is fixed. */
+  hasOrders: boolean;
   /** PRD-11: its one video, or null. */
   video: ProductVideoView | null;
   /** DLV-07: the zones it may be delivered to; empty means wherever the shop delivers. */

@@ -72,10 +72,13 @@ sudo PLATFORM_DOMAIN=staging.lytro.app PLATFORM_ADDRESSES=<address> ACME_EMAIL=<
   bash /root/lytro-deploy/scripts/make-env.sh
 ```
 
-It writes `/opt/lytro/env/*.env` with every secret Lytro makes itself, and never prints one. Then fill in what only the
-outside services can give: `sudo nano /opt/lytro/env/server.env`, then `sudo nano /opt/lytro/env/edge.env`. Remove the
-`#` before each line you fill. Copy `DATA_ENCRYPTION_KEY` from `server.env` into your password manager: without it,
-the couriers' and wallets' saved logins can't be read back (RUNBOOKS "The credential sealing key").
+It writes `/opt/lytro/env/*.env` with every secret Lytro makes itself, and never prints one. Each file lists every
+setting its app reads, in three groups: made by the script (leave them), **required** (empty: fill each in), and
+optional (commented, with where each comes from: remove the `#` to turn one on). Fill in the required ones with
+`sudo nano /opt/lytro/env/server.env` (BulkSMSBD's key and sender ID, Resend's key and its webhook's secret, Gemini's
+key) and `sudo nano /opt/lytro/env/edge.env` (the Cloudflare token). Copy `DATA_ENCRYPTION_KEY` from `server.env` into
+your password manager: without it, the couriers' and wallets' saved logins can't be read back (RUNBOOKS "The
+credential sealing key").
 
 For production, use `PLATFORM_DOMAIN=lytro.app`, leave out `ROBOTS`, and add this server's memory sizes to
 `/opt/lytro/settings.env` (the names are in `compose.yml`).

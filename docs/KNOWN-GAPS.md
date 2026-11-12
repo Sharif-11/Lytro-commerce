@@ -2557,16 +2557,17 @@ The close-out (PHASE-8-PLAN §11) fixed what its three reviews found, apart from
 
 ## 145. `ATR-19`, `ATR-20`: what photo designs' server leaves open — found 2026-11-12, open
 
-- **The dashboard and the storefront still read photos as before.** The server PR comes first, as PHOTO-DESIGNS-PLAN §4
-  orders: the dashboard saves `{ mediaIds }`, so every photo stays plain and no product gets a design until the dashboard
-  PR, and the storefront shows no photo cards until its own.
-- **The dashboard's photo sheet still warns that past orders lose a photo** (`pastOrdersLost`), though since PD-8 the
-  server keeps it: deleting it from the media library answers `MediaKeptForOrders`, and a photo taken off a product
-  stays in the shop's media. The dashboard PR changes the words.
+- **Closed by the screens PR (2026-11-12):** the dashboard saves photos with their designs and the storefront offers them
+  by photo; the photos sheet says a photo orders show is kept for them (PD-8), no longer that past orders lose it; the
+  3×3 label names a design line's design, size and SKU (PD-9).
 - **A combo line keeps no photo of the design chosen inside it.** The line keeps the combo's own cover and each part
   its design's name, so the seller's order page names that design, and the shopper's tracking shows the part's product
   and size only. The public combo offers its designs by photo (PD-4); the order line does not yet keep that photo.
-- **The parcel label's design and SKU wait for the dashboard.** The server gives each order line its design's name and
-  its SKU (PD-9); the label (ORD-19) draws only the product names until the dashboard PR.
 - **A filled SKU is not refilled when a design is renamed.** PD-10 fills a SKU only when it is empty, by the design's
   number, which never changes, so it never goes stale; a SKU the seller typed is left alone.
+- **The photos sheet doesn't say which designs orders name.** Part 40's sketch draws "অর্ডারে আছে" beside a design in the
+  sheet's list; the server says whether the product has orders (`hasOrders`), not which designs they name, so the list
+  shows each design's photo count only.
+- **A product with stock and no designs makes a design without asking first.** Its new photos arrive plain (PD-11), and
+  a photo's step warns that making it a design remakes the variants and stops the old ones selling; it doesn't ask first
+  as removing an option holding stock does (`sh-remove-option`).

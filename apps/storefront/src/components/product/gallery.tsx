@@ -1,8 +1,9 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { type CSSProperties, useRef, useState } from 'react';
 import type { PublicProduct } from '@/lib/api/storefront-api';
 import type { Words } from '@/lib/i18n/words';
+import { galleryShapeOf } from '@/lib/product/designs';
 import { Icon } from '../icon';
 
 type Slide =
@@ -10,8 +11,20 @@ type Slide =
   | { kind: 'video'; video: string; poster: string };
 
 /** LND-01, PRD-11: the product's photos and its video, as the prototype's gallery lays them out: one large frame with
-    dots on a phone (swipe or tap a dot), thumbnails beside it on a wide screen. */
-export function Gallery({ product, words }: { product: PublicProduct; words: Words }) {
+    dots on a phone (swipe or tap a dot), thumbnails beside it on a wide screen. It is circular (PD-5): past the last comes
+    the first. Its frame takes the first photo's shape (PD-28), and on a computer the window's height (PD-18). A page that
+    moves it -- a tapped photo card (PD-4) -- holds `index`; swiping only moves it, never choosing anything. */
+export function Gallery({
+  product,
+  words,
+  index: held,
+  onIndex,
+}: {
+  product: PublicProduct;
+  words: Words;
+  index?: number;
+  onIndex?: (next: number) => void;
+}) {
   const slides: Slide[] = [
     ...product.images.map((image) => ({
       kind: 'image' as const,
@@ -28,13 +41,18 @@ export function Gallery({ product, words }: { product: PublicProduct; words: Wor
         ]
       : []),
   ];
-  const [index, setIndex] = useState(0);
+  const [own, setOwn] = useState(0);
+  const index = held ?? own;
   const touchStart = useRef<number | null>(null);
   const current = slides[index];
   const videoIndex = slides.findIndex((slide) => slide.kind === 'video');
   const show = (next: number) => {
-    setIndex((next + slides.length) % slides.length);
+    const at = (next + slides.length) % slides.length;
+    setOwn(at);
+    onIndex?.(at);
   };
+  const shape = galleryShapeOf(product);
+  const frame = { aspectRatio: String(shape), '--ar': String(shape) } as CSSProperties;
   const label = (slide: Slide, at: number) =>
     slide.kind === 'video' ? words.t('video') : `${String(at + 1)} / ${String(slides.length)}`;
 
@@ -65,6 +83,7 @@ export function Gallery({ product, words }: { product: PublicProduct; words: Wor
       <div className="gallery">
         <div
           className="main"
+          style={frame}
           onTouchStart={(event) => {
             touchStart.current = event.touches[0]?.clientX ?? null;
           }}

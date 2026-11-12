@@ -118,62 +118,81 @@ export const productPhotoSchema = z.object({
   design: designKeySchema.nullable(),
 });
 
+// ATR-19: a product's photos with their designs, as the photos route and a new product take them.
+export const productPhotosField = z.array(productPhotoSchema).max(PRODUCT_IMAGES_MAX);
+export const productDesignsField = z.array(productDesignSchema).max(PRODUCT_IMAGES_MAX);
+
+/**
+ * ATR-19 (PD-16): photos with their designs: each photo listed once, each design once (by key and by id), every photo's
+ * design listed, and every design showing at least one photo.
+ */
+export function checkPhotoDesigns(
+  input: {
+    photos?: z.infer<typeof productPhotosField>;
+    designs?: z.infer<typeof productDesignsField>;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  const problem = (path: (string | number)[], code: FieldProblemCode, message: string) => {
+    ctx.addIssue({ code: 'custom', path, message, params: { problem: code } });
+  };
+  if (input.photos === undefined) {
+    if (input.designs !== undefined)
+      problem(['designs'], FieldProblemCode.NotAllowed, 'Designs come with photos.');
+    return;
+  }
+  const designs = input.designs ?? [];
+  const seenPhotos = new Set<string>();
+  input.photos.forEach((photo, index) => {
+    if (seenPhotos.has(photo.mediaId))
+      problem(['photos', index, 'mediaId'], FieldProblemCode.NotAllowed, 'List each photo once.');
+    seenPhotos.add(photo.mediaId);
+  });
+  const keys = new Set<string>();
+  const ids = new Set<string>();
+  designs.forEach((design, index) => {
+    if (keys.has(design.key))
+      problem(['designs', index, 'key'], FieldProblemCode.NotAllowed, 'List each design once.');
+    keys.add(design.key);
+    if (design.id !== undefined) {
+      if (ids.has(design.id))
+        problem(['designs', index, 'id'], FieldProblemCode.NotAllowed, 'List each design once.');
+      ids.add(design.id);
+    }
+  });
+  const shown = new Set<string>();
+  input.photos.forEach((photo, index) => {
+    if (photo.design === null) return;
+    if (!keys.has(photo.design))
+      problem(['photos', index, 'design'], FieldProblemCode.NotAllowed, 'Name a listed design.');
+    shown.add(photo.design);
+  });
+  designs.forEach((design, index) => {
+    if (!shown.has(design.key))
+      problem(['designs', index], FieldProblemCode.TooFew, 'A design shows at least one photo.');
+  });
+}
+
 // PUT products/:id/images (PRD-11, ATR-19): the product's photos, either as before (`mediaIds`, every one plain) or
 // with their designs (`photos` and `designs`); an empty list removes them all. Every design shows at least one photo,
 // and every photo's design is listed.
 export const productImagesSchema = z
   .object({
     mediaIds: productPhotoIdsField.optional(),
-    photos: z.array(productPhotoSchema).max(PRODUCT_IMAGES_MAX).optional(),
-    designs: z.array(productDesignSchema).max(PRODUCT_IMAGES_MAX).optional(),
+    photos: productPhotosField.optional(),
+    designs: productDesignsField.optional(),
   })
   .superRefine((input, ctx) => {
-    const problem = (path: (string | number)[], code: FieldProblemCode, message: string) => {
-      ctx.addIssue({ code: 'custom', path, message, params: { problem: code } });
-    };
     if ((input.mediaIds === undefined) === (input.photos === undefined)) {
-      problem(
-        ['photos'],
-        FieldProblemCode.Required,
-        'Send the photos one way: mediaIds or photos.',
-      );
+      ctx.addIssue({
+        code: 'custom',
+        path: ['photos'],
+        message: 'Send the photos one way: mediaIds or photos.',
+        params: { problem: FieldProblemCode.Required },
+      });
       return;
     }
-    if (input.photos === undefined) {
-      if (input.designs !== undefined)
-        problem(['designs'], FieldProblemCode.NotAllowed, 'Designs come with photos.');
-      return;
-    }
-    const designs = input.designs ?? [];
-    const seenPhotos = new Set<string>();
-    input.photos.forEach((photo, index) => {
-      if (seenPhotos.has(photo.mediaId))
-        problem(['photos', index, 'mediaId'], FieldProblemCode.NotAllowed, 'List each photo once.');
-      seenPhotos.add(photo.mediaId);
-    });
-    const keys = new Set<string>();
-    const ids = new Set<string>();
-    designs.forEach((design, index) => {
-      if (keys.has(design.key))
-        problem(['designs', index, 'key'], FieldProblemCode.NotAllowed, 'List each design once.');
-      keys.add(design.key);
-      if (design.id !== undefined) {
-        if (ids.has(design.id))
-          problem(['designs', index, 'id'], FieldProblemCode.NotAllowed, 'List each design once.');
-        ids.add(design.id);
-      }
-    });
-    const shown = new Set<string>();
-    input.photos.forEach((photo, index) => {
-      if (photo.design === null) return;
-      if (!keys.has(photo.design))
-        problem(['photos', index, 'design'], FieldProblemCode.NotAllowed, 'Name a listed design.');
-      shown.add(photo.design);
-    });
-    designs.forEach((design, index) => {
-      if (!shown.has(design.key))
-        problem(['designs', index], FieldProblemCode.TooFew, 'A design shows at least one photo.');
-    });
+    checkPhotoDesigns(input, ctx);
   });
 export type ProductImagesInput = z.infer<typeof productImagesSchema>;
 

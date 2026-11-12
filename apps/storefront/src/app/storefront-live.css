@@ -176,6 +176,29 @@ button.vb.gone {
   color: var(--subtle);
 }
 
+/* ATR-19 (PD-4): a photo card is a button holding the design's real photo, cropped from the top so faces stay in view. */
+.pcard i {
+  background-position: center top;
+  background-size: cover;
+}
+.pcard:disabled {
+  cursor: default;
+}
+
+/* ATR-20 (PD-4): a combo's choice offers a design by its photo, beside the size its label names. */
+button.vb.pic {
+  gap: 8px;
+  padding-left: 4px;
+}
+button.vb.pic img {
+  width: 26px;
+  height: 32px;
+  border-radius: 6px;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
 /* LND-07: a measured product's number can be typed, as drawn (`e48-product-kg`). */
 .qty.measured input {
   width: 48px;

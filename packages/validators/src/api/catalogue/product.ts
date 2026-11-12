@@ -30,7 +30,12 @@ import {
   StockUnit,
 } from '../../db/enums';
 import { serialsField } from '../inventory/stock';
-import { productPhotoIdsField } from '../media/media';
+import {
+  checkPhotoDesigns,
+  productDesignsField,
+  productPhotoIdsField,
+  productPhotosField,
+} from '../media/media';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { newBatchField } from '../inventory/stock';
 import { productDeliveryZonesSchema, sizeChartSchema } from './extras';
@@ -455,6 +460,49 @@ function checkCombo(
   }
 }
 
+/**
+ * ATR-19 (PD-16): a new product's photos come one way, `imageIds` or `photos`; its designs are all new, each named by a
+ * key shaped like an id so its variants can name it; a combo has none (CMB-01).
+ */
+function checkNewDesigns(
+  value: {
+    imageIds?: string[];
+    photos?: z.infer<typeof productPhotosField>;
+    designs?: z.infer<typeof productDesignsField>;
+    kind?: ProductKind;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  if (value.imageIds !== undefined && value.photos !== undefined) {
+    refuse(
+      ctx,
+      ['photos'],
+      FieldProblemCode.NotAllowed,
+      'Send the photos one way: imageIds or photos.',
+    );
+    return;
+  }
+  checkPhotoDesigns(value, ctx);
+  (value.designs ?? []).forEach((design, index) => {
+    if (design.id !== undefined)
+      refuse(
+        ctx,
+        ['designs', index, 'id'],
+        FieldProblemCode.NotAllowed,
+        'A new product has no designs yet.',
+      );
+    if (!z.string().uuid().safeParse(design.key).success)
+      refuse(
+        ctx,
+        ['designs', index, 'key'],
+        FieldProblemCode.InvalidFormat,
+        'A new design is named by an id-like key.',
+      );
+  });
+  if (value.kind === ProductKind.Combo && (value.designs ?? []).length > 0)
+    refuse(ctx, ['designs'], FieldProblemCode.NotAllowed, 'A combo has no designs; its parts do.');
+}
+
 // POST products (PRD-01, ATR-03, ATR-11): the product, its attributes and its variants in one request, saved in
 // one transaction. With no variant-defining attributes it gets one default variant (ATR-04); with some and no
 // `variants`, one variant for every combination of the chosen options. With `sharedStock` (INV-24) its variants draw on
@@ -473,6 +521,10 @@ export const createProductSchema = z
     attributes: attributesField.optional(),
     // PRD-11: its photos and its one video, saved with it (agreed for Slice 11.7a: a new product is one request).
     imageIds: productPhotoIdsField.optional(),
+    // ATR-19 (PD-16): or its photos with their designs, as PUT products/:id/images takes them. A variant names a new
+    // design by its key in place of an option id, so the request's keys look like ids.
+    photos: productPhotosField.optional(),
+    designs: productDesignsField.optional(),
     videoId: catalogueIdSchema.optional(),
     // DLV-07, PRD-17: the zones it may be delivered to (none: wherever the shop delivers) and its own size chart, saved
     // with it too (Slice 11.7c keeps a new product one request).
@@ -485,6 +537,7 @@ export const createProductSchema = z
   .superRefine((value, ctx) => {
     checkFields(value, ctx);
     checkCombo(value, ctx);
+    checkNewDesigns(value, ctx);
     checkMatrix(value, ctx);
     checkRoles(value, ctx);
     checkSharing({ ...value, sharedStock: value.sharedStock ?? false }, ctx);

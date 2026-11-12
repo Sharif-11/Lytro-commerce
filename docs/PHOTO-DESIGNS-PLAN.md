@@ -114,18 +114,20 @@ changes against the prototype's screens.
 
 ## 4. Build
 
-Three pull requests, each from `main`, server first and screens last (as every phase does):
+Two pull requests, each from `main`, server first and screens last (as every phase does). The dashboard and the
+storefront were planned as two; the owner made them one after the server merged (2026-11-12: "after server PR merged the
+remaining two into one"):
 
-1. **The server.** Migration 0129 (PD-13: the `attributes.photo_designs` flag and the platform attribute,
+1. **The server** (merged as #350). Migration 0129 (PD-13: the `attributes.photo_designs` flag and the platform attribute,
    `attribute_options.product_id`, `product_images.design_option_id`; order lines' photos already had their index), the
    photo-and-design save (PD-16), variants and limits (PD-15), the order line's cover (PD-7), keeping ordered photos
    (PD-8), SKUs (PD-10), the public product's designs, the label's item line's data (PD-9: each line's design name and
    SKU; the dashboard draws the label), tracking's and the confirmation's items (PD-6), the feed (PD-23).
-2. **The dashboard.** The photo sheet's designs (PD-2, PD-3, PD-11, PD-14), the variants card showing designs as photos,
-   the order editor's and combo editor's picker by photo (PD-22), the order page's cover and SKU, the label. Sketched
-   first in `lytro-dashboard.html`.
-3. **The storefront.** The built pages with only §2's changes (PD-4 to PD-6, PD-12, PD-17 to PD-21, PD-24 to PD-26),
-   as `lytro-storefront.html` draws them.
+2. **The screens: the dashboard and the storefront together.** The dashboard: the photo sheet's designs (PD-2, PD-3,
+   PD-11, PD-14), the variants card showing designs as photos, the order editor's and combo editor's picker by photo
+   (PD-22), the order page's cover and SKU, the label; sketched first in `lytro-dashboard.html` (Part 40,
+   `TENANT-DASHBOARD-DESIGN.md` §7.42). The storefront: the built pages with only §2's changes (PD-4 to PD-6, PD-12, PD-17
+   to PD-21, PD-24 to PD-26), as `lytro-storefront.html` draws them.
 
 **Tests** prove each PD row against its words, with a sabotage pass on PD-7 and PD-8 (an order's photo must survive
 every edit) and on PD-4 (an order always carries the design that was chosen). Each PR runs the checks in

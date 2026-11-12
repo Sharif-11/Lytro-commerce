@@ -33,6 +33,7 @@ const CLOTHING: ProductDefaults = {
   suggestedCategories: [],
   upFrontFields: [],
   shopPaymentPolicy: { defaultPaymentPolicy: PaymentPolicy.None, defaultAdvanceAmount: null },
+  designAttributeId: 'a-design',
 };
 const PHONES: ProductDefaults = {
   ...CLOTHING,

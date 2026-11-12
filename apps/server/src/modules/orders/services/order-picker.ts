@@ -92,6 +92,7 @@ export class OrderPicker {
         return url === undefined ? [] : [[design.id, url] as const];
       }),
     );
+    const designById = new Map(product.designs.map((design) => [design.id, design]));
     // CMB-03: each part's variants with the units their own products have on sale.
     const parts = [];
     for (const part of product.parts) {
@@ -129,22 +130,35 @@ export class OrderPicker {
               variantId: variant.id,
               label: '',
               image: null,
+              design: null,
+              restLabel: '',
               price: variant.effectivePrice,
               onSale: product.active,
               available: onSale(stock),
             }))
           : product.variants
               .filter((variant) => !own.get(variant.id)?.retired)
-              .map((variant) => ({
-                variantId: variant.id,
-                label: labelOf(product, variant.optionIds),
-                image:
-                  variant.optionIds.map((id) => coverOf.get(id)).find((url) => url !== undefined) ??
-                  null,
-                price: variant.effectivePrice,
-                onSale: product.active && variant.active,
-                available: tracked ? (own.get(variant.id)?.available ?? '0.000') : null,
-              })),
+              .map((variant) => {
+                const design = variant.optionIds
+                  .map((id) => designById.get(id))
+                  .find((found) => found !== undefined);
+                return {
+                  variantId: variant.id,
+                  label: labelOf(product, variant.optionIds),
+                  image:
+                    variant.optionIds
+                      .map((id) => coverOf.get(id))
+                      .find((url) => url !== undefined) ?? null,
+                  design: design ? { id: design.id, name: design.name } : null,
+                  restLabel: labelOf(
+                    product,
+                    variant.optionIds.filter((id) => id !== design?.id),
+                  ),
+                  price: variant.effectivePrice,
+                  onSale: product.active && variant.active,
+                  available: tracked ? (own.get(variant.id)?.available ?? '0.000') : null,
+                };
+              }),
       parts,
       modifierGroups: product.modifierGroups,
       asked: product.attributes

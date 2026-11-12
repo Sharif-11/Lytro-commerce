@@ -20,6 +20,8 @@ export interface DraftLine {
   productName: string;
   /** The variant's options ("L · Black"); empty for a product's one variant. */
   label: string;
+  /** ATR-20 (PD-22): its picture: the design's cover it was picked by, or the line's own; null for none. */
+  image: string | null;
   combo: boolean;
   /** The variant's own price, as the line shows it; the list price for a saved line. */
   base: string;
@@ -229,6 +231,7 @@ export function draftOf(order: Order, words: LineWords = UNSAID): OrderDraft {
       variantId: item.variantId ?? '',
       productName: item.productName,
       ...words(item),
+      image: item.thumbnail?.url ?? null,
       combo: item.components.length > 0,
       base: item.listPrice,
       price: item.unitPrice,

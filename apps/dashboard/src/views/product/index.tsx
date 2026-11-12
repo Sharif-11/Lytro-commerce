@@ -41,6 +41,7 @@ import {
   isDirty,
   NEW_PRODUCT,
   problemsOf,
+  withDesignIds,
   withIds,
   withSaved,
   type ProductForm,
@@ -70,6 +71,8 @@ import { LinkCard } from './link-card';
 import { MediaSheet } from './media-sheet';
 import { PhotoStrip } from './photo-strip';
 import { useProductMedia } from './product-media';
+import { usePhotoDesigns } from './use-photo-designs';
+import { photosOf, withDesignWord } from '@/lib/photo-designs';
 import { StorageFullBanner } from './storage-full-banner';
 import { AddOnsCard } from './addons-card';
 import { MoreSettings } from './more-settings';
@@ -133,7 +136,9 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
   const navigate = useNavigate();
   const { slug, viewer, showToast } = useShell();
   const mayManage = allows(viewer, [Permission.ProductsManage]);
-  const [saved, setSaved] = useState<ProductForm>(product ? formOf(product) : NEW_PRODUCT);
+  const [saved, setSaved] = useState<ProductForm>(() =>
+    product ? withDesignWord(formOf(product), t('pdDesign')) : NEW_PRODUCT,
+  );
   const [form, setForm] = useState<ProductForm>(saved);
   const [tried, setTried] = useState(false);
   const [serverProblems, setServerProblems] = useState<Record<string, string>>({});
@@ -186,13 +191,11 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
   // Set once the page itself leaves (after a save, a copy or a removal), so nothing asks first.
   const leaving = useRef(false);
   const [mediaOpen, setMediaOpen] = useState(false);
-  // MED-03: each item joins the photos, or becomes the video, once prepared.
+  // MED-03: each item joins the photos, or becomes the video, once prepared; a photo as a design when it may be one.
+  const addPhoto = useRef<(id: string) => void>(() => undefined);
   const media = useProductMedia(product, (item) => {
-    setForm((current) =>
-      item.kind === MediaKind.Video
-        ? { ...current, videoId: item.id }
-        : { ...current, imageIds: [...current.imageIds, item.id] },
-    );
+    if (item.kind === MediaKind.Video) setForm((current) => ({ ...current, videoId: item.id }));
+    else addPhoto.current(item.id);
   });
   const photos = form.imageIds.flatMap((id) => {
     const item = media.items.get(id);
@@ -200,6 +203,23 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
   });
   const video = (form.videoId ? media.items.get(form.videoId) : undefined) ?? null;
   const uploading = media.uploads.some((each) => each.stage !== 'refused');
+  // ATR-19 (§7.42): the photos as designs, and the design split following them.
+  const designAttributeId = isCombo ? null : (defaults.data?.designAttributeId ?? null);
+  const designs = usePhotoDesigns({
+    form,
+    setForm,
+    saved,
+    product,
+    designAttributeId,
+    combo: isCombo,
+    stock: stock.data,
+    items: media.items,
+    onChange: () => {
+      setServerProblems({});
+      setMatrixProblems({});
+    },
+  });
+  addPhoto.current = designs.addPhoto;
 
   /**
    * PRD-11, agreed 2026-10-27: what the product let go of, and what this visit uploaded and left unsaved, deleted when
@@ -422,7 +442,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     if (own.name || own.price || own.parts || overLimit(form.splits) || measuredSerials) return;
     if (form.splits.some((each) => each.options.length === 0)) return;
     if (product === null) {
-      create.mutate(createBody(form), {
+      create.mutate(createBody(form, designs.labels), {
         onSuccess: (made) => {
           forget([...made.images.map((image) => image.id), made.video?.id ?? null], []);
           showToast(savedWords(made));
@@ -442,23 +462,24 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
       });
       return;
     }
-    const parts = changedParts(saved, form);
+    const parts = changedParts(saved, form, designs.labels);
     if (parts.length === 0) return;
     save.mutate(parts, {
       onSuccess: (outcome) => {
         const refused = new Set(outcome.refused.map((each) => each.part));
+        // PD-16: the designs the photos save made are named by their ids from now on.
         const next = withSaved(
           saved,
-          form,
+          withDesignIds(form, outcome.designIds, outcome.product),
           parts.map((each) => each.part).filter((part) => !refused.has(part)),
           outcome.product,
         );
         setSaved(next);
         // The variants this save made are saved ones now.
-        setForm((current) => ({
-          ...current,
-          variants: withIds(current.variants, outcome.product),
-        }));
+        setForm((current) => {
+          const named = withDesignIds(current, outcome.designIds, outcome.product);
+          return { ...named, variants: withIds(named.variants, outcome.product) };
+        });
         forget(
           [...next.imageIds, next.videoId, ...form.imageIds, form.videoId],
           [...saved.imageIds, saved.videoId],
@@ -616,6 +637,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
                 onAddPhotos={media.addPhotos}
                 onAddVideo={media.addVideo}
                 onDismiss={media.dismiss}
+                designs={form.designs.length}
               />
             }
           />
@@ -669,6 +691,17 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
                 readOnly={!mayManage}
                 problems={matrixProblems}
                 onChange={update}
+                designs={
+                  designAttributeId === null
+                    ? null
+                    : {
+                        attributeId: designAttributeId,
+                        coverOf: (key) => media.items.get(photosOf(form, key)[0] ?? '')?.thumbnail,
+                        onPhotos: () => {
+                          setMediaOpen(true);
+                        },
+                      }
+                }
                 onHeldSerials={
                   mayReadStock
                     ? (variantId) => {
@@ -809,6 +842,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         }}
       />
       {tracking.question}
+      {designs.dialog}
       <MediaSheet
         open={mediaOpen}
         photos={photos}
@@ -817,12 +851,11 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         storage={media.storage}
         storageFull={media.storageFull}
         readOnly={!mayManage}
-        onReorder={(imageIds) => {
-          update({ imageIds });
-        }}
+        designs={designs.sheet}
+        onReorder={designs.reorder}
         onRemove={(id) => {
           if (id === form.videoId) update({ videoId: null });
-          else update({ imageIds: form.imageIds.filter((each) => each !== id) });
+          else designs.removePhoto(id);
         }}
         onDismiss={media.dismiss}
         onAddPhotos={media.addPhotos}

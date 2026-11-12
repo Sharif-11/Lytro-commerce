@@ -39,7 +39,14 @@ import { walletColour } from '@/lib/wallet-marks';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { CourierConnection } from '@/types/couriers';
-import type { Order, OrderCall, OrderHistory, OrderItem, OrderPayment } from '@/types/orders';
+import {
+  hasDesign,
+  type Order,
+  type OrderCall,
+  type OrderHistory,
+  type OrderItem,
+  type OrderPayment,
+} from '@/types/orders';
 import { OrderFraud } from '@/views/fraud/fraud-card';
 import { OrderSmsCard } from '@/views/sms/order-sms';
 import { takeBookedEdit } from './booked-edit';
@@ -584,6 +591,12 @@ function ItemsCard({ items }: { items: OrderItem[] }): React.JSX.Element {
                   ) : null}
                 </span>
                 {variant ? <span className="text-[14px] text-fg-muted">{variant}</span> : null}
+                {/* PD-9 (Part 40's `pd-order`): a design's line names its SKU, as the label does. */}
+                {hasDesign(item) && item.sku ? (
+                  <span className="text-[14px] text-fg-muted">
+                    SKU <span className="font-mono text-[13px] tracking-[0.02em]">{item.sku}</span>
+                  </span>
+                ) : null}
                 {item.components.length > 0 ? (
                   <span className="text-[14px] text-fg-muted">
                     {t('inside', { items: words.inside(item) })}

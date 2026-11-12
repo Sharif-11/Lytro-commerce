@@ -119,6 +119,18 @@ export const APP_COPY = {
   unit_kg: ['কেজি', 'kg'],
   unit_ml: ['মি.লি.', 'ml'],
   unit_l: ['লিটার', 'L'],
+  // UOM-05 (PD-19): a counted unit beside its quantity, as the prototype's "1 পিস" (u_piece) writes a piece.
+  u_dozen: ['ডজন', 'dozen'],
+  u_dozens: ['ডজন', 'dozen'],
+  u_pack: ['প্যাক', 'pack'],
+  u_packs: ['প্যাক', 'packs'],
+  u_box: ['বক্স', 'box'],
+  u_boxes: ['বক্স', 'boxes'],
+  // PD-21 (STOREFRONT-DESIGN §7f): a cart line taken out, and the way to put it back, for 5 seconds.
+  cart_removed: ['কার্ট থেকে সরানো হলো', 'Removed from your cart'],
+  cart_undo: ['ফিরিয়ে আনুন', 'Undo'],
+  // ATR-19 (PD-4): a photo card's name for a screen reader; nothing is written on the card.
+  pd_photo: ['ছবি {n}', 'Photo {n}'],
   // Slice 12b: the search overlay's way out, which the prototype writes in place; Bangla by the user's glossary.
   cancel: ['ক্যানসেল', 'Cancel'],
   // The prototype's counts, for exactly one ("1 products" otherwise); Bangla has one form.

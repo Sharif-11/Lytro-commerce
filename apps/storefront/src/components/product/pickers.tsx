@@ -245,7 +245,7 @@ export function ComboInside({
                         <button
                           key={variant.variantId}
                           type="button"
-                          className={`vb${on ? ' on' : ''}${variant.available ? '' : ' gone'}`}
+                          className={`vb${on ? ' on' : ''}${variant.available ? '' : ' gone'}${variant.image ? ' pic' : ''}`}
                           aria-pressed={on}
                           disabled={!variant.available}
                           onClick={() => {
@@ -254,6 +254,8 @@ export function ComboInside({
                             );
                           }}
                         >
+                          {/* ATR-20 (PD-4): a design is offered by its photo, its label never naming it. */}
+                          {variant.image ? <img src={variant.image.urls.thumbnail} alt="" /> : null}
                           {text}
                         </button>
                       );

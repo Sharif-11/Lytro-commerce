@@ -31,12 +31,16 @@ done
 
 step() { printf '\n== %s\n' "$*"; }
 export DEBIAN_FRONTEND=noninteractive
+# A provider's image often carries its own sshd_config; an upgrade keeps every changed file as it is, never stopping to
+# ask (the admin's settings sit in drop-in files anyway).
+export UCF_FORCE_CONFFOLD=1
+apt_get() { apt-get -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "$@"; }
 
 step 'time zone and packages'
 timedatectl set-timezone Asia/Dhaka
-apt-get update -q
-apt-get -yq upgrade
-apt-get install -yq ca-certificates curl gnupg ufw unattended-upgrades
+apt_get update -q
+apt_get -yq upgrade
+apt_get install -yq ca-certificates curl gnupg ufw unattended-upgrades
 
 step 'security updates by themselves, a restart at 04:00 when one needs it'
 cat > /etc/apt/apt.conf.d/20auto-upgrades << 'EOF'
@@ -69,8 +73,8 @@ if ! command -v docker > /dev/null; then
   codename="$(. /etc/os-release && echo "$VERSION_CODENAME")"
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $codename stable" \
     > /etc/apt/sources.list.d/docker.list
-  apt-get update -q
-  apt-get install -yq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  apt_get update -q
+  apt_get install -yq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 fi
 # Containers keep running while Docker itself restarts (an update), and no log grows without end.
 cat > /etc/docker/daemon.json << 'EOF'
@@ -131,9 +135,11 @@ PasswordAuthentication no
 KbdInteractiveAuthentication no
 PubkeyAuthentication yes
 EOF
+# Ubuntu 24.04 starts SSH on demand (ssh.socket), and only the running daemon makes the folder the check needs.
+install -d -m 755 /run/sshd
 sshd -t
 systemctl restart ssh
 
 step 'done'
 echo "Before closing this session, check in a second terminal that you can log in: ssh $ADMIN_USER@<server address>"
-echo 'Next: make-env.sh, then the registry login (deploy/README.md).'
+echo 'Next: make-env.sh (deploy/README.md, step 4).'

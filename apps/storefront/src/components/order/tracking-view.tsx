@@ -2,10 +2,9 @@ import { OrderStatus, PaymentSessionState } from '@lytronix/validators/enums';
 import type { TrackedItem, TrackedOrder, TrackingStepName } from '@/lib/api/storefront-api';
 import { dayMonthTime } from '@/lib/i18n/dates';
 import { money, plainNumber, type Words } from '@/lib/i18n/words';
-import { quantityText } from '@/lib/order/order-form';
 import { minutesLeft } from '@/lib/order/payment-return';
 import { Icon } from '../icon';
-import { LineExtras, SummaryLine, TaxRows } from './order-parts';
+import { itemDetail, LineExtras, SummaryLine, TaxRows } from './order-parts';
 
 // ORD-17, SFT-08 (the prototype's `tracking`, Slice 4.8e): the ID search, the order's steps with their times, its courier
 // once shipped, and its items and totals beside them. Never the customer's address or phone.
@@ -143,12 +142,6 @@ function CourierNews({
       </span>
     </div>
   );
-}
-
-function itemDetail(item: TrackedItem, words: Words): string {
-  const options = item.attributes.map((row) => row.value).join(' · ');
-  const quantity = quantityText(item.quantity, item.stockUnit, words);
-  return options === '' ? `× ${quantity}` : `${options} × ${quantity}`;
 }
 
 function partsOf(item: TrackedItem): string | null {
@@ -327,7 +320,7 @@ export function TrackingView({
             <SummaryLine
               key={position}
               name={item.productName}
-              image={null}
+              image={item.thumbnail}
               detail={itemDetail(item, words)}
               total={item.itemTotal}
             >

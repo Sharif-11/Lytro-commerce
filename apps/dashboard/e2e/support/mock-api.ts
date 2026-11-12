@@ -970,6 +970,15 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
     const detail = item ? mediaDetail(products, item[1] ?? '') : null;
     if (item && detail && method === 'GET') return ok(detail);
     if (item && detail && method === 'DELETE') {
+      // PD-8: a photo an order shows is kept; the server says how many orders.
+      const orders = products.pastOrders?.[item[1] ?? ''] ?? 0;
+      if (orders > 0) {
+        return route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: refusal('conflict', 'Orders show this photo.', { count: orders }),
+        });
+      }
       delete products.media?.[item[1] ?? ''];
       return ok({ ok: true });
     }

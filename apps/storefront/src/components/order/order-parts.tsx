@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import type { TaxLine } from '@/lib/api/storefront-api';
+import type { ShopperItem, TaxLine } from '@/lib/api/storefront-api';
 import { money, plainNumber, type Words } from '@/lib/i18n/words';
+import { quantityText } from '@/lib/order/order-form';
 import { Icon } from '../icon';
 
 // The prototype's order lines and totals (`e48Line`, `e48Sum`), as the checkout, the landing page and tracking show them.
@@ -71,6 +72,13 @@ export function SummaryLine({
       </div>
     </div>
   );
+}
+
+/** An ordered item's values and quantity with its unit ("54 × 1 পিস"); the server leaves out a design's name (PD-6). */
+export function itemDetail(item: ShopperItem, words: Words): string {
+  const options = item.attributes.map((row) => row.value).join(' · ');
+  const quantity = quantityText(item.quantity, item.stockUnit, words);
+  return options === '' ? `× ${quantity}` : `${options} × ${quantity}`;
 }
 
 /** An item left out of the total: why, and Remove. */

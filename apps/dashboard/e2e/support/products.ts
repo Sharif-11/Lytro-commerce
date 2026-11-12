@@ -37,6 +37,14 @@ export interface ProductFixture {
   /** The values of each variant-defining attribute; their product is the variants. */
   options?: string[][];
   imageIds?: string[];
+  /** ATR-19 (PD-2): the design each photo shows, by the design's id; a photo left out is plain. */
+  photoDesigns?: Record<string, string | null>;
+  /** ATR-19 (PD-14): its live designs, in number order. */
+  designs?: { id: string; name: string; number: number }[];
+  /** PD-14: the number its next new design takes; one past its designs' when left out. */
+  nextDesignNumber?: number;
+  /** ATR-15 (PD-11): whether an order names it. */
+  hasOrders?: boolean;
   videoId?: string | null;
   /** Slice 11.7b: its variants as saved; made from `options` when left out. */
   matrix?: MatrixFixture;
@@ -379,7 +387,16 @@ export function productDetail(
       id,
       urls: { main: picture(id), thumbnail: picture(id) },
       bytes: 820_000,
+      width: 600,
+      height: 900,
+      designId: product.photoDesigns?.[id] ?? null,
     })),
+    designs: (product.designs ?? []).map((design) => ({
+      ...design,
+      photoIds: (product.imageIds ?? []).filter((id) => product.photoDesigns?.[id] === design.id),
+    })),
+    nextDesignNumber: nextDesignOf(product),
+    hasOrders: product.hasOrders ?? false,
     video: product.videoId
       ? {
           id: product.videoId,
@@ -389,6 +406,86 @@ export function productDetail(
         }
       : null,
     updatedAt: new Date().toISOString(),
+  };
+}
+
+/** PD-14: the number a product's next new design takes. */
+const nextDesignOf = (product: ProductFixture): number =>
+  product.nextDesignNumber ??
+  (product.designs ?? []).reduce((most, design) => Math.max(most, design.number), 0) + 1;
+
+/** A photos save's designs and photos, as PUT /products/:id/images and a new product send them (ATR-19). */
+interface SentPhotos {
+  photos: { mediaId: string; design: string | null }[];
+  designs?: { key: string; id?: string; name?: string }[];
+}
+
+/**
+ * PD-16, as the server saves them: each design by its key, a new one taking the next number never used; the photos with
+ * their designs; a design no photo shows retired, its variants with it. Returns each design's id by its key.
+ */
+function savePhotos(product: ProductFixture, sent: SentPhotos): Map<string, string> {
+  const current = product.designs ?? [];
+  let next = nextDesignOf(product);
+  const ids = new Map<string, string>();
+  const kept: { id: string; name: string; number: number }[] = [];
+  for (const design of sent.designs ?? []) {
+    const was = design.id ? current.find((each) => each.id === design.id) : undefined;
+    if (was) {
+      kept.push({ ...was, name: design.name ?? was.name });
+      ids.set(design.key, was.id);
+    } else {
+      const id = `d-new-${String((made += 1))}`;
+      kept.push({ id, name: design.name ?? `D${String(next)}`, number: next });
+      ids.set(design.key, id);
+      next += 1;
+    }
+  }
+  product.imageIds = sent.photos.map((photo) => photo.mediaId);
+  product.photoDesigns = Object.fromEntries(
+    sent.photos.map((photo) => [
+      photo.mediaId,
+      photo.design === null ? null : (ids.get(photo.design) ?? null),
+    ]),
+  );
+  const shown = new Set(Object.values(product.photoDesigns));
+  product.designs = kept
+    .filter((design) => shown.has(design.id))
+    .sort((a, b) => a.number - b.number);
+  product.nextDesignNumber = next;
+  const retired = new Set(current.filter((was) => !shown.has(was.id)).map((was) => was.id));
+  if (retired.size > 0 && product.matrix) {
+    product.matrix = {
+      splits: product.matrix.splits.map((split) => ({
+        ...split,
+        optionIds: split.optionIds.filter((id) => !retired.has(id)),
+      })),
+      rows: product.matrix.rows.filter((row) => !row.optionIds.some((id) => retired.has(id))),
+    };
+  }
+  return ids;
+}
+
+/** A new product's variants name a new design by its key; the key becomes the design's id (PD-16). */
+function withDesignIds(body: Record<string, unknown>, ids: ReadonlyMap<string, string>) {
+  const swap = (optionIds: unknown) =>
+    Array.isArray(optionIds)
+      ? (optionIds as unknown[]).map((id): unknown => ids.get(String(id)) ?? id)
+      : optionIds;
+  return {
+    ...body,
+    variantAttributes: Array.isArray(body.variantAttributes)
+      ? (body.variantAttributes as Record<string, unknown>[]).map((entry) => ({
+          ...entry,
+          optionIds: swap(entry.optionIds),
+        }))
+      : body.variantAttributes,
+    variants: Array.isArray(body.variants)
+      ? (body.variants as Record<string, unknown>[]).map((row) => ({
+          ...row,
+          optionIds: swap(row.optionIds),
+        }))
+      : body.variants,
   };
 }
 
@@ -632,7 +729,11 @@ export function productWrite(
     };
     if (body) {
       saveSettings(product, body);
-      createdMatrix(product, body, fixture);
+      // ATR-19 (PD-16): its photos with their designs, then the variants naming them.
+      const ids = Array.isArray(body.photos)
+        ? savePhotos(product, body as unknown as SentPhotos)
+        : new Map<string, string>();
+      createdMatrix(product, withDesignIds(body, ids), fixture);
     }
     fixture.products.unshift(product);
     return { data: productDetail(product, language, fixture) };
@@ -691,7 +792,17 @@ export function productWrite(
         },
       };
     }
-    product.imageIds = body?.mediaIds as string[];
+    if (Array.isArray(body?.photos)) savePhotos(product, body as unknown as SentPhotos);
+    else {
+      // As before: every photo plain, so every design goes (PD-16).
+      savePhotos(product, {
+        photos: ((body?.mediaIds as string[] | undefined) ?? []).map((mediaId) => ({
+          mediaId,
+          design: null,
+        })),
+        designs: [],
+      });
+    }
     return answer();
   }
   if (method === 'PUT' && part === '/video') {
