@@ -1,49 +1,242 @@
 name: Deploy
 
-# Pipeline: verify -> staging (automatic) -> production (manual approval).
-# Deploy jobs run only when the repository variable DEPLOY_ENABLED is "true",
-# so this file is safe to merge before servers exist.
+# Phase 9 Slice 9.1 (D9-10, D9-12, ENGINEERING-STANDARDS §7): every merge to main is verified, built once into images,
+# deployed to staging and checked there from outside. Production takes the exact images that passed staging, by hand,
+# and stays off until a production server exists (PRODUCTION_ENABLED).
+#
+# Repository settings (deploy/README.md):
+#   vars.DEPLOY_ENABLED          "true" once the staging server is set up; until then, images are built but not deployed
+#   vars.STAGING_DOMAIN          staging.lytro.app
+#   secrets.STAGING_HOST         the staging server's address
+#   secrets.STAGING_SSH_KEY      the private half of the deploy key; its public half may only run deploys there
+#   secrets.STAGING_KNOWN_HOSTS  the server's SSH host key, so GitHub never trusts whoever answers at that address
+#   vars.LYTRO_CHECK_ENABLED     "true" once the demonstration shop exists, with secrets.LYTRO_CHECK_* (OBS-08's check)
 on:
   push:
     branches: [main]
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Release tag to promote to production, e.g. v1.0.0'
+      release:
+        description: 'The 40-character commit to promote to production (it must have passed staging)'
         required: true
 
+permissions:
+  contents: read
+
+# One deploy at a time per server, never cancelled halfway.
+concurrency:
+  group: deploy-${{ github.event_name == 'push' && 'staging' || 'production' }}
+  cancel-in-progress: false
+
 jobs:
-  # Runs ci.yml itself (checkout, Postgres service, typecheck/lint/format/test/build, the admin E2E suite)
-  # rather than keeping a second, separately-maintained copy of those same steps — that duplication is
-  # exactly how this job drifted out of sync with ci.yml's own Postgres service and E2E steps before.
+  # Runs ci.yml itself, rather than a second copy of its steps that could drift from it.
   verify:
+    if: github.event_name == 'push'
     uses: ./.github/workflows/ci.yml
 
-  deploy-staging:
+  # One build of each image per commit, pushed to GitHub's container registry. The images are public, as the repository
+  # is: they hold its code and never a secret, so the server pulls them with no token (Slice 9.1's read, 2026-11-12).
+  images:
     needs: verify
-    if: github.event_name == 'push' && vars.DEPLOY_ENABLED == 'true'
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    environment:
-      name: staging
-      url: ${{ vars.STAGING_URL }}
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      registry: ${{ steps.names.outputs.registry }}
+      edge_tag: ${{ steps.names.outputs.edge_tag }}
     steps:
       - uses: actions/checkout@v5
-      # TODO(infra): build the server image, run migrations against a fresh backup,
-      # deploy to the staging host, then run the scripted order-and-payment smoke test.
-      # Requires the staging host (Phase 1 infrastructure decision) and its secrets.
-      - run: echo "Staging deploy steps are added when the staging host exists."
 
-  deploy-production:
-    needs: deploy-staging
-    if: github.event_name == 'workflow_dispatch' && vars.DEPLOY_ENABLED == 'true'
+      # The registry's names are lowercase; the account's isn't.
+      - name: Name the images
+        id: names
+        run: |
+          echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          echo "edge_tag=$(sh deploy/caddy/image-tag.sh)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Server
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: server
+          build-args: RELEASE=${{ github.sha }}
+          tags: ${{ steps.names.outputs.registry }}/lytro-server:${{ github.sha }}
+          push: true
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=release
+          cache-to: type=gha,scope=release,mode=max
+
+      - name: Website
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: website
+          build-args: RELEASE=${{ github.sha }}
+          tags: ${{ steps.names.outputs.registry }}/lytro-website:${{ github.sha }}
+          push: true
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=release
+
+      - name: Storefront
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: storefront
+          build-args: RELEASE=${{ github.sha }}
+          tags: ${{ steps.names.outputs.registry }}/lytro-storefront:${{ github.sha }}
+          push: true
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=release
+
+      - name: Dashboard and console files
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: static
+          build-args: RELEASE=${{ github.sha }}
+          tags: ${{ steps.names.outputs.registry }}/lytro-static:${{ github.sha }}
+          push: true
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=release
+
+      # Tagged by what goes into it, so it is built (and Caddy replaced on the server) only when Caddy or the Caddyfile
+      # changed.
+      - name: Is the edge image built already?
+        id: edge
+        run: |
+          if docker buildx imagetools inspect "${{ steps.names.outputs.registry }}/lytro-edge:${{ steps.names.outputs.edge_tag }}" > /dev/null 2>&1; then
+            echo "built=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "built=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Edge
+        if: steps.edge.outputs.built != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/caddy/Dockerfile
+          tags: ${{ steps.names.outputs.registry }}/lytro-edge:${{ steps.names.outputs.edge_tag }}
+          push: true
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=edge
+          cache-to: type=gha,scope=edge,mode=max
+
+  deploy-staging:
+    needs: images
+    if: github.event_name == 'push' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    environment:
+      name: staging
+      url: https://app.${{ vars.STAGING_DOMAIN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: The deploy key
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.STAGING_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      # The server unpacks this release's deploy/ folder and runs its deploy.sh (deploy/scripts/lytro-ssh): pull, dump,
+      # migrate, then each process replaced while the others answer.
+      - name: Deploy to staging
+        run: |
+          tar -czf - deploy | ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes \
+            "deploy@${{ secrets.STAGING_HOST }}" deploy "${{ github.sha }}" "${{ needs.images.outputs.edge_tag }}"
+
+      # From outside, by name, over HTTPS: each host answers from what is meant to answer it.
+      - name: Check staging from outside
+        env:
+          DOMAIN: ${{ vars.STAGING_DOMAIN }}
+        run: bash deploy/scripts/outside-check.sh "$DOMAIN"
+
+      - name: The order-and-payment check (OBS-08)
+        if: vars.LYTRO_CHECK_ENABLED == 'true'
+        env:
+          LYTRO_CHECK_API: https://api.${{ vars.STAGING_DOMAIN }}
+          LYTRO_CHECK_KEY: ${{ secrets.LYTRO_CHECK_KEY }}
+          LYTRO_CHECK_ORIGIN: ${{ secrets.LYTRO_CHECK_ORIGIN }}
+          LYTRO_CHECK_VARIANT: ${{ secrets.LYTRO_CHECK_VARIANT }}
+          LYTRO_CHECK_LOCATION: ${{ secrets.LYTRO_CHECK_LOCATION }}
+          LYTRO_CHECK_PHONE: ${{ secrets.LYTRO_CHECK_PHONE }}
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile --filter @lytronix/server...
+          pnpm --filter @lytronix/server exec tsx scripts/order-payment-check.ts
+
+      # Only images that passed staging may be promoted (ENGINEERING-STANDARDS §7, CD rule 2).
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Mark the images as passed
+        run: |
+          for name in server website storefront static; do
+            docker buildx imagetools create \
+              -t "${{ needs.images.outputs.registry }}/lytro-$name:passed-${{ github.sha }}" \
+              "${{ needs.images.outputs.registry }}/lytro-$name:${{ github.sha }}"
+          done
+
+  promote-production:
+    if: github.event_name == 'workflow_dispatch' && vars.PRODUCTION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     environment:
       name: production
-      url: ${{ vars.PRODUCTION_URL }}
+      url: https://app.${{ vars.PRODUCTION_DOMAIN }}
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.version }}
-      # TODO(infra): promote the exact artifact that passed staging (never rebuild),
-      # run migrations against a fresh backup first, then deploy with a health check.
-      - run: echo "Production deploy steps are added when the production host exists."
+          ref: ${{ inputs.release }}
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: The release passed staging
+        id: release
+        run: |
+          [[ "${{ inputs.release }}" =~ ^[0-9a-f]{40}$ ]] || { echo 'the release is a 40-character commit'; exit 1; }
+          registry="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
+          for name in server website storefront static; do
+            docker buildx imagetools inspect "$registry/lytro-$name:passed-${{ inputs.release }}" > /dev/null
+          done
+          echo "edge_tag=$(sh deploy/caddy/image-tag.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: The deploy key
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.PRODUCTION_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Deploy to production
+        run: |
+          tar -czf - deploy | ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes \
+            "deploy@${{ secrets.PRODUCTION_HOST }}" deploy "${{ inputs.release }}" "${{ steps.release.outputs.edge_tag }}"
+
+      - name: Check production from outside
+        env:
+          DOMAIN: ${{ vars.PRODUCTION_DOMAIN }}
+        run: bash deploy/scripts/outside-check.sh "$DOMAIN"

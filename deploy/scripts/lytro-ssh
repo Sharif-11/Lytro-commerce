@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# The only command GitHub's deploy key may run on a server (Slice 9.1): ~deploy/.ssh/authorized_keys names this file as
+# the key's forced command, so whatever the connection asks for arrives here as SSH_ORIGINAL_COMMAND and nothing else
+# runs. Installed at /opt/lytro/bin/lytro-ssh by setup-server.sh, owned by root.
+#
+#   deploy <release> <edge-tag>   with the release's deploy/ folder as a gzipped tar on standard input: unpacks it into
+#                                 /opt/lytro/releases/<release>/ and runs its scripts/deploy.sh
+#   status                        what the server runs now
+set -euo pipefail
+
+LYTRO_HOME="${LYTRO_HOME:-/opt/lytro}"
+read -r -a args <<< "${SSH_ORIGINAL_COMMAND:-}"
+
+case "${args[0]:-}" in
+  deploy)
+    release="${args[1]:-}"
+    edge_tag="${args[2]:-}"
+    if ! [[ "$release" =~ ^[0-9a-f]{40}$ ]] || ! [[ "$edge_tag" =~ ^[0-9a-f]{16}$ ]]; then
+      echo 'usage: deploy <40-character commit> <16-character edge tag>' >&2
+      exit 64
+    fi
+    target="$LYTRO_HOME/releases/$release"
+    incoming="$LYTRO_HOME/releases/.incoming-$release"
+    rm -rf "$incoming"
+    mkdir -p "$incoming"
+    # Only the deploy/ folder, never owner or mode bits from the archive, never a path outside it.
+    tar -xzf - --no-same-owner --no-same-permissions -C "$incoming" deploy
+    rm -rf "$target"
+    mv -T "$incoming" "$target"
+    exec bash "$target/deploy/scripts/deploy.sh" "$release" "$edge_tag"
+    ;;
+  status)
+    cat "$LYTRO_HOME/state/release.env" 2>/dev/null || echo 'nothing deployed yet'
+    docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}'
+    ;;
+  *)
+    echo 'allowed: deploy <release> <edge-tag> | status' >&2
+    exit 64
+    ;;
+esac

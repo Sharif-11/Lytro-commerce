@@ -1,0 +1,18 @@
+# What the image build (Dockerfile) never needs: installed packages and build output (the build makes its own), local
+# settings and secrets, version control, and the apps that aren't built into an image.
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/test-results
+**/playwright-report
+**/*.log
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.github
+.husky/_
+apps/listener-android
+docs

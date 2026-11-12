@@ -1,0 +1,133 @@
+name: Deploy rehearsal
+
+# Slice 9.1 (D9-10 to D9-12, PHASE-9-PLAN §10: "anything a server runs is proven"): on a pull request that changes how
+# Lytro is built or deployed, every image is built, and deploy/scripts/deploy.sh deploys them on this runner exactly as on
+# a server: a fresh database made by its first-start script, migrations, the two API processes and the worker each
+# checked on this release, the files, the edge, the website and the storefront. Every host is then called by name over
+# HTTPS (deploy/scripts/outside-check.sh), and the same release is deployed a second time, as a rerun would be.
+on:
+  pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - deploy/**
+      - .github/workflows/deploy.yml
+      - .github/workflows/deploy-rehearsal.yml
+      - apps/server/src/main.ts
+      - apps/server/src/app/**
+      - apps/server/src/config/**
+      - apps/*/next.config.ts
+      - package.json
+      - pnpm-lock.yaml
+      - turbo.json
+
+permissions:
+  contents: read
+
+jobs:
+  rehearse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      LYTRO_HOME: ${{ github.workspace }}/../lytro-home
+      REGISTRY: lytro-rehearsal
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Name the edge image
+        id: names
+        run: echo "edge_tag=$(sh deploy/caddy/image-tag.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Server image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: server
+          build-args: RELEASE=${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/lytro-server:${{ github.sha }}
+          load: true
+          cache-from: type=gha,scope=release
+          cache-to: type=gha,scope=release,mode=max
+
+      - name: Website image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: website
+          build-args: RELEASE=${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/lytro-website:${{ github.sha }}
+          load: true
+          cache-from: type=gha,scope=release
+
+      - name: Storefront image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: storefront
+          build-args: RELEASE=${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/lytro-storefront:${{ github.sha }}
+          load: true
+          cache-from: type=gha,scope=release
+
+      - name: Dashboard and console files image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: static
+          build-args: RELEASE=${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/lytro-static:${{ github.sha }}
+          load: true
+          cache-from: type=gha,scope=release
+
+      - name: Edge image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/caddy/Dockerfile
+          tags: ${{ env.REGISTRY }}/lytro-edge:${{ steps.names.outputs.edge_tag }}
+          load: true
+          cache-from: type=gha,scope=edge
+          cache-to: type=gha,scope=edge,mode=max
+
+      # The settings a server's setup makes (make-env.sh), for PLATFORM_DOMAIN=localhost so Caddy signs every host's
+      # certificate itself. In production the server refuses to start without its outside services' keys, so stand-ins
+      # are given; nothing here sends a message.
+      - name: The server's settings
+        run: |
+          sudo groupadd --force deploy
+          sudo LYTRO_HOME="$LYTRO_HOME" PLATFORM_DOMAIN=localhost PLATFORM_ADDRESSES=127.0.0.1 \
+            ACME_EMAIL=rehearsal@example.com ROBOTS=robots_noindex bash deploy/scripts/make-env.sh
+          printf '%s\n' BULKSMSBD_API_KEY=rehearsal BULKSMSBD_SENDER_ID=8809600000000 RESEND_API_KEY=re_rehearsal \
+            RESEND_WEBHOOK_SECRET=whsec_rehearsal GEMINI_API_KEY=rehearsal | sudo tee -a "$LYTRO_HOME/env/server.env" > /dev/null
+          echo WILDCARD_TLS=wildcard_tls_auto | sudo tee -a "$LYTRO_HOME/env/edge.env" > /dev/null
+          echo "REGISTRY=$REGISTRY" | sudo tee "$LYTRO_HOME/settings.env" > /dev/null
+          sudo install -d "$LYTRO_HOME/state" "$LYTRO_HOME/releases" "$LYTRO_HOME/backups"
+
+      - name: Deploy
+        run: sudo LYTRO_HOME="$LYTRO_HOME" LYTRO_SKIP_PULL=1 bash deploy/scripts/deploy.sh "${{ github.sha }}" "${{ steps.names.outputs.edge_tag }}"
+
+      - name: Every host answers
+        run: CHECK_ADDRESS=127.0.0.1 CHECK_INSECURE=1 bash deploy/scripts/outside-check.sh localhost
+
+      - name: Staging's hosts aren't indexed
+        run: |
+          curl --silent --insecure --head --resolve app.localhost:443:127.0.0.1 https://app.localhost/ \
+            | grep -i '^x-robots-tag: noindex, nofollow'
+
+      - name: Deploy the same release again
+        run: sudo LYTRO_HOME="$LYTRO_HOME" LYTRO_SKIP_PULL=1 bash deploy/scripts/deploy.sh "${{ github.sha }}" "${{ steps.names.outputs.edge_tag }}"
+
+      - name: Every host still answers
+        run: CHECK_ADDRESS=127.0.0.1 CHECK_INSECURE=1 WAIT_SECONDS=30 bash deploy/scripts/outside-check.sh localhost
+
+      - name: What ran, if anything failed
+        if: failure()
+        run: |
+          sudo docker ps --all --format '{{.Names}}\t{{.Image}}\t{{.Status}}'
+          for name in $(sudo docker ps --all --format '{{.Names}}'); do
+            echo "::group::$name"
+            sudo docker logs --tail 80 "$name" 2>&1 || true
+            echo '::endgroup::'
+          done

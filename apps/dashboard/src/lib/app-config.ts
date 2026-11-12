@@ -5,9 +5,19 @@ export class AppConfig {
   readonly siteUrl: string;
   readonly apiBase = '/api/v1';
 
-  constructor(env: ImportMetaEnv = import.meta.env) {
-    this.platformDomain = env.VITE_PLATFORM_DOMAIN ?? 'lytro.app';
-    this.siteUrl = (env.VITE_SITE_URL ?? 'https://lytro.app').replace(/\/+$/, '');
+  /**
+   * One build serves every environment (Phase 9 §3.6): served from `app.<domain>`, the dashboard takes its platform domain
+   * from its own address, so staging's `app.staging.lytro.app` names shops `<slug>.staging.lytro.app`. A setting given at
+   * build time still wins (development, where the address is localhost); `lytro.app` otherwise.
+   */
+  constructor(
+    env: ImportMetaEnv = import.meta.env,
+    // No `location` outside a browser (the unit tests load this file in Node).
+    hostname: string = typeof location === 'undefined' ? '' : location.hostname,
+  ) {
+    const served = hostname.startsWith('app.') ? hostname.slice('app.'.length) : null;
+    this.platformDomain = env.VITE_PLATFORM_DOMAIN ?? served ?? 'lytro.app';
+    this.siteUrl = (env.VITE_SITE_URL ?? `https://${this.platformDomain}`).replace(/\/+$/, '');
   }
 
   /** A shop's public address (TEN-31). */

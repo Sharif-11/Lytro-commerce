@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { serverRoleSchema } from './server-role';
 
 // SEC-10: a key for the secret box, 32 bytes written in base64.
 const encryptionKey = z
@@ -13,6 +14,10 @@ const encryptionKey = z
 // Every setting the server reads, validated once at startup (ENGINEERING-STANDARDS §2).
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  // D9-11: `api`, `worker` or `all` (the default: one process does both, as in development and tests).
+  SERVER_ROLE: serverRoleSchema,
+  // The release this process runs, the commit its image was built from; /health reports it, so a deploy can check it.
+  RELEASE: z.string().trim().min(1).optional(),
   PORT: z.coerce.number().int().positive().default(3000),
   HOST: z.string().min(1).default('0.0.0.0'),
   DATABASE_URL: z

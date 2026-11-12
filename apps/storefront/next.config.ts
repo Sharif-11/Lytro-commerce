@@ -10,6 +10,9 @@ const STOREFRONT_BUILD_ID = process.env['STOREFRONT_BUILD_ID'] ?? String(Date.no
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Slice 9.1: the image build sets NEXT_STANDALONE=1, so the build carries its own server and only the packages it uses
+  // (`.next/standalone`); development, CI and `next start` keep the standard build.
+  ...(process.env['NEXT_STANDALONE'] === '1' ? { output: 'standalone' as const } : {}),
   // The monorepo root, so file tracing follows workspace packages and never a stray lockfile above the repo.
   outputFileTracingRoot: path.join(__dirname, '../../'),
   // Every page's title and link-preview tags render in <head> before the body, for every visitor, not only the crawlers

@@ -1,35 +1,48 @@
-# Production edge config for docs/DEPLOYMENT.md's routing rules (§5). Implements that document; doesn't
-# restate its reasoning — read DEPLOYMENT.md first if a rule here looks surprising, it probably explains why.
+# The edge config for docs/DEPLOYMENT.md's routing rules (§5). Implements that document; doesn't restate its reasoning —
+# read DEPLOYMENT.md first if a rule here looks surprising, it probably explains why.
 #
-# Status: not yet deployed anywhere (DEPLOYMENT.md's own status line: "planned, not yet built — no server
-# exists to point DNS at"). Written and validated (`caddy validate`) against that plan so the actual VPS
-# setup is "point DNS here and run this," not a rewrite.
+# It runs in the edge image (deploy/caddy/Dockerfile: Caddy with the Cloudflare DNS plugin), which checks this file with
+# `caddy validate` when it is built, under deploy/compose.yml's container names (Slice 9.1, D9-10). Every host is named
+# from PLATFORM_DOMAIN, the server's own setting (R1, R2), so one deployment file names the domain for both; lytro.app when
+# it isn't set, staging.lytro.app on staging (D9-9). apps/server/test/caddy-edge.e2e.spec.ts runs this file in that image
+# in front of the server under PLATFORM_DOMAIN=localhost, and sends each kind of outside call through it.
 #
-# Service names below (server, website, storefront) match DEPLOYMENT.md §2's topology diagram — a production
-# docker-compose (or equivalent) is expected to name its containers the same way; override via the {$...}
-# environment placeholders if it doesn't.
-#
-# Every host is named from PLATFORM_DOMAIN, the server's own setting (R1, R2), so one deployment file names the domain
-# for both; lytro.app when it isn't set. apps/server/test/caddy-edge.e2e.spec.ts runs this file in Caddy in front of the
-# server under PLATFORM_DOMAIN=localhost, and sends each kind of outside call through it.
+# SERVER_UPSTREAM may name several API processes, space-separated ("api-1:3000 api-2:3000", D9-11): Caddy spreads requests
+# over them, checks each one's /health, and retries a request on another while one is being replaced, so a deploy that
+# replaces them one at a time loses nothing (D9-12). The worker process is never named here.
 {
-	# DEPLOYMENT.md §3: Caddy's built-in ACME client needs the DNS-01 challenge for *.lytro.app's wildcard
-	# cert, which needs a DNS-provider plugin (built in via xcaddy) and that provider's own directive here —
-	# neither the VPS provider nor the DNS registrar is chosen yet (§10's own "open, deliberately deferred"
-	# list). Fill in once both are: for example, for Cloudflare DNS,
-	#   acme_dns cloudflare {$CLOUDFLARE_API_TOKEN}
-	# and rebuild this Caddy image with that plugin (xcaddy build --with github.com/caddy-dns/cloudflare).
 	email {$ACME_EMAIL}
 
 	# TEN-13 (Slice 13): a shop's own domain gets its certificate the first time it is asked for (On-Demand TLS), and
 	# only once the backend says a shop serves that name now -- its active domain or that domain's twin. Caddy adds
-	# `?domain=<name>`; any answer but 2xx refuses, so no certificate is spent on a name nobody verified.
+	# `?domain=<name>`; any answer but 2xx refuses, so no certificate is spent on a name nobody verified. Asked through
+	# the internal listener below, so any healthy API process answers.
 	on_demand_tls {
-		ask http://{$SERVER_UPSTREAM:server:3000}/api/v1/internal/domains/ask
+		ask http://localhost:8080/api/v1/internal/domains/ask
 	}
 }
 
 # --- Shared pieces (DEPLOYMENT.md §5, §6) ---
+
+# How Caddy reaches the API processes: round robin, each one's /health checked every few seconds, and a request whose
+# process is down (being replaced, D9-12) tried again on another for up to 10 seconds.
+(server_balancing) {
+	lb_policy round_robin
+	lb_try_duration 10s
+	lb_try_interval 250ms
+	fail_duration 10s
+	health_uri /health
+	health_interval 5s
+	health_timeout 3s
+}
+
+# The API with the edge secret attached (§6), for the hosts whose browsers and outside services reach it through Caddy.
+(server_proxy) {
+	reverse_proxy {$SERVER_UPSTREAM:server:3000} {
+		header_up x-lytronix-edge-secret {$TRUSTED_EDGE_SECRET}
+		import server_balancing
+	}
+}
 
 # /api/* -> reverse-proxy to the backend unchanged, with the edge secret attached (§6). Only the two app
 # hosts import this: the marketing site and the storefront call the backend server-side instead (§5), so a
@@ -38,10 +51,34 @@
 # passes the request through with nothing stripped.
 (api_proxy) {
 	handle /api/* {
-		reverse_proxy {$SERVER_UPSTREAM:server:3000} {
-			header_up x-lytronix-edge-secret {$TRUSTED_EDGE_SECRET}
-		}
+		import server_proxy
 	}
+}
+
+# The wildcard certificate for every shop's subdomain (`*.lytro.app`) needs the DNS-01 challenge, through Cloudflare's
+# API with a token that can only edit this domain's DNS records (D9-10; never the server's media token,
+# CLOUDFLARE_API_TOKEN). Set on the wildcard site alone: a global `acme_dns` would apply to shops' own domains too, whose
+# DNS isn't ours (TEN-13). WILDCARD_TLS names the snippet; the Caddy test uses `wildcard_tls_auto`, Caddy's own local
+# certificate for *.localhost.
+(wildcard_tls_dns) {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_DNS_API_TOKEN}
+		resolvers 1.1.1.1 1.0.0.1
+	}
+}
+
+(wildcard_tls_auto) {
+	# Caddy's default for the name.
+}
+
+# Whether search engines may index these hosts. Staging sets ROBOTS=robots_noindex, so nothing on staging.lytro.app is
+# indexed beside lytro.app (D9-9).
+(robots_allow) {
+	# Indexing is each app's own business (the website's robots.txt).
+}
+
+(robots_noindex) {
+	header X-Robots-Tag "noindex, nofollow"
 }
 
 # A static SPA build: no process, Caddy serves dist/ directly (§8), falling back to index.html for any
@@ -91,17 +128,23 @@
 
 # lytro.app: the marketing site only (apps/website). www redirects to the apex.
 www.{$PLATFORM_DOMAIN:lytro.app} {
+	import {$ROBOTS:robots_allow}
 	redir https://{$PLATFORM_DOMAIN:lytro.app}{uri} permanent
 }
 
+# One website process: while it restarts in a deploy, a request waits for it (up to 10 seconds) instead of failing.
 {$PLATFORM_DOMAIN:lytro.app} {
-	reverse_proxy {$WEBSITE_UPSTREAM:website:3003}
+	import {$ROBOTS:robots_allow}
+	reverse_proxy {$WEBSITE_UPSTREAM:website:3003} {
+		lb_try_duration 10s
+	}
 }
 
 # app.lytro.app: sign-up, sign-in, create-shop, the OAuth callback and every shop's dashboard at /<slug>
 # (apps/dashboard, TEN-31), under its own Content Security Policy. The session cookie is host-only here (TEN-29).
 app.{$PLATFORM_DOMAIN:lytro.app} {
 	import dashboard_csp
+	import {$ROBOTS:robots_allow}
 	import api_proxy
 	import dashboard_spa
 }
@@ -110,6 +153,7 @@ app.{$PLATFORM_DOMAIN:lytro.app} {
 # Security Policy. The operator session cookie is host-only here (TEN-29).
 admin.{$PLATFORM_DOMAIN:lytro.app} {
 	import operator_csp
+	import {$ROBOTS:robots_allow}
 	import api_proxy
 	import operator_spa
 }
@@ -118,9 +162,8 @@ admin.{$PLATFORM_DOMAIN:lytro.app} {
 # Slice 5.8's part 2). The backend's PaymentPageHost turns every address on this host into one of the page's own routes,
 # so nothing else on the server can be reached from here. No wildcard below takes it: an exact host wins.
 pay.{$PLATFORM_DOMAIN:lytro.app} {
-	reverse_proxy {$SERVER_UPSTREAM:server:3000} {
-		header_up x-lytronix-edge-secret {$TRUSTED_EDGE_SECRET}
-	}
+	import {$ROBOTS:robots_allow}
+	import server_proxy
 }
 
 # api.lytro.app: what other services call, at /v1/... (API-14): the public API with a key, a wallet's return, the listener
@@ -129,18 +172,21 @@ pay.{$PLATFORM_DOMAIN:lytro.app} {
 # decided in one place. No rewrite and no path rules here: the server doesn't serve /api/v1/... on this host (KNOWN-GAPS
 # §141).
 api.{$PLATFORM_DOMAIN:lytro.app} {
-	reverse_proxy {$SERVER_UPSTREAM:server:3000} {
-		header_up x-lytronix-edge-secret {$TRUSTED_EDGE_SECRET}
-	}
+	import {$ROBOTS:robots_allow}
+	import server_proxy
 }
 
 # *.lytro.app (any other single-label host — a shop's own subdomain): the storefront and landing pages only
 # (apps/storefront). No dashboard and no /api on a shop host (§5). Covers every tenant automatically; `app`,
 # `admin`, `api`, `pay` and `www` are reserved labels (TEN-26), so no shop can take them.
 *.{$PLATFORM_DOMAIN:lytro.app} {
+	import {$WILDCARD_TLS:wildcard_tls_dns}
+	import {$ROBOTS:robots_allow}
 	# storefront reads Host itself to resolve which tenant to render (SFT-01) — Caddy passes Host through
 	# unmodified by default, no explicit header handling needed here.
-	reverse_proxy {$STOREFRONT_UPSTREAM:storefront:3001}
+	reverse_proxy {$STOREFRONT_UPSTREAM:storefront:3001} {
+		lb_try_duration 10s
+	}
 }
 
 # --- Custom domains (TEN-09, TEN-11, TEN-13, TEN-24, Slice 13) ---
@@ -154,5 +200,29 @@ https:// {
 	tls {
 		on_demand
 	}
-	reverse_proxy {$STOREFRONT_UPSTREAM:storefront:3001}
+	import {$ROBOTS:robots_allow}
+	reverse_proxy {$STOREFRONT_UPSTREAM:storefront:3001} {
+		lb_try_duration 10s
+	}
+}
+
+# --- Inside the deployment only (D9-12) ---
+#
+# The website and the storefront call the API from their own servers (§5), and the certificate check above asks it too.
+# They come here, never published outside the deployment's network, so the API processes are balanced and health-checked
+# for them as for browsers. The storefront sends the shopper's address with its own edge secret (SFT-11); Caddy keeps
+# that address exactly as sent, or the server would take the storefront's own address for the shopper's.
+http://:8080 {
+	@forwarded header_regexp X-Forwarded-For .+
+	handle @forwarded {
+		reverse_proxy {$SERVER_UPSTREAM:server:3000} {
+			header_up X-Forwarded-For {http.request.header.X-Forwarded-For}
+			import server_balancing
+		}
+	}
+	handle {
+		reverse_proxy {$SERVER_UPSTREAM:server:3000} {
+			import server_balancing
+		}
+	}
 }

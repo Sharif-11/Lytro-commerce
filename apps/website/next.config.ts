@@ -6,6 +6,9 @@ import path from 'node:path';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Slice 9.1: the image build sets NEXT_STANDALONE=1, so the build carries its own server and only the packages it uses
+  // (`.next/standalone`); development, CI and `next start` keep the standard build.
+  ...(process.env['NEXT_STANDALONE'] === '1' ? { output: 'standalone' as const } : {}),
   // The monorepo root, so file tracing follows workspace packages and never a stray lockfile above the repo.
   outputFileTracingRoot: path.join(__dirname, '../../'),
   images: {

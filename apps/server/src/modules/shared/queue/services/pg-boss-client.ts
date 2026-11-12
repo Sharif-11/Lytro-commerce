@@ -1,5 +1,6 @@
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { PgBoss } from 'pg-boss';
+import { runsJobs } from '../../../../config/server-role';
 import { ENV } from '../../../../config/tokens';
 import type { Env } from '../../../../config/env';
 
@@ -11,8 +12,13 @@ import type { Env } from '../../../../config/env';
 @Injectable()
 export class PgBossClient implements OnModuleInit, OnModuleDestroy {
   readonly boss: PgBoss;
+  // D9-11: only a process that runs jobs starts the queue. An API process leaves it stopped, holds none of its
+  // connections, and never sends to it: its jobs reach the queue through the outbox and the worker's relay.
+  private readonly starts: boolean;
+  private started = false;
 
-  constructor(@Inject(ENV) env: Pick<Env, 'DATABASE_URL'>) {
+  constructor(@Inject(ENV) env: Pick<Env, 'DATABASE_URL'> & Partial<Pick<Env, 'SERVER_ROLE'>>) {
+    this.starts = runsJobs(env.SERVER_ROLE ?? 'all');
     this.boss = new PgBoss({
       connectionString: env.DATABASE_URL,
       schema: 'pgboss',
@@ -29,10 +35,13 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
+    if (!this.starts) return;
     await this.boss.start();
+    this.started = true;
   }
 
   async onModuleDestroy(): Promise<void> {
+    if (!this.started) return;
     await this.boss.stop();
   }
 }
