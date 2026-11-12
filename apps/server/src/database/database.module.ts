@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import {
   AccountRepository,
+  DatabaseProbe,
   ChallengeRepository,
   SlugRepository,
   SessionRepository,
@@ -109,6 +110,7 @@ import {
 import { EnvironmentParser } from '../config/env';
 import { ENV } from '../config/tokens';
 import { DatabaseService } from './database.service';
+import { PrimaryWatch } from './primary-watch';
 
 // Repositories and the transaction runner are providers, with their class as the token.
 @Global()
@@ -116,6 +118,9 @@ import { DatabaseService } from './database.service';
   providers: [
     { provide: ENV, useFactory: () => new EnvironmentParser().parse() },
     DatabaseService,
+    // D9-21, DAT-44: what the write and read pools reach, at start and every 30 seconds.
+    { provide: DatabaseProbe, useFactory: () => new DatabaseProbe() },
+    PrimaryWatch,
     { provide: TransactionRunner, useFactory: () => new TransactionRunner() },
     { provide: AccountRepository, useFactory: () => new AccountRepository() },
     { provide: ChallengeRepository, useFactory: () => new ChallengeRepository() },
@@ -430,6 +435,7 @@ import { DatabaseService } from './database.service';
   exports: [
     ENV,
     DatabaseService,
+    PrimaryWatch,
     TransactionRunner,
     ActivityLogRepository,
     JobOutboxRepository,

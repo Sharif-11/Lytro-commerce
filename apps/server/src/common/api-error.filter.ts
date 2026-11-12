@@ -4,6 +4,7 @@ import {
   HttpException,
   Inject,
   Logger,
+  Optional,
   type ExceptionFilter,
 } from '@nestjs/common';
 import type { ApiErrorBody, ApiFieldError, ErrorCode } from '@lytronix/shared-types';
@@ -19,6 +20,8 @@ import { headerValue, type HttpRequest } from './http';
 import { resolveLanguage } from './i18n/accept-language';
 import type { MessageKey } from './i18n/message-key';
 import { translate } from './i18n/messages';
+import { PrimaryWatch } from '../database/primary-watch';
+import { SAVING_RETRY_AFTER_SECONDS } from './guards/saving.guard';
 
 // The subset of the HTTP response this filter uses, so the file does not depend on Express types.
 interface HttpResponse {
@@ -65,6 +68,32 @@ const SHARED_PROBLEMS: readonly FieldProblemCode[] = Object.values(FieldProblemC
 // two identically is correct, not just convenient: a malformed id can never match a real row either, and
 // doing anything else would tell a caller "that at least looks like a valid id" -- a shape of information
 // leak this app already avoids elsewhere (TEN-03's not_found-not-forbidden rule, the same reasoning).
+// The codes and words a lost or refused database connection comes with: the driver's own, and PostgreSQL's class 08
+// (connection exception) and 57P0x (the server shutting down or not yet up).
+const LOST_CONNECTION_CODES = new Set([
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'EPIPE',
+  '57P01',
+  '57P02',
+  '57P03',
+]);
+const LOST_CONNECTION_WORDS =
+  /Connection terminated|timeout exceeded when trying to connect|Client has encountered a connection error/i;
+
+/** D9-14, DAT-42: whether the database was lost under this request, looking through the errors that wrap it. */
+function isLostConnection(exception: unknown): boolean {
+  for (let error: unknown = exception, depth = 0; error && depth < 5; depth += 1) {
+    const code: unknown = Reflect.get(Object(error), 'code');
+    if (typeof code === 'string' && (LOST_CONNECTION_CODES.has(code) || code.startsWith('08')))
+      return true;
+    if (error instanceof Error && LOST_CONNECTION_WORDS.test(error.message)) return true;
+    error = Reflect.get(Object(error), 'cause');
+  }
+  return false;
+}
+
 function isInvalidInputSyntax(exception: unknown): boolean {
   const source = exception instanceof Error && exception.cause ? exception.cause : exception;
   if (typeof source !== 'object' || source === null) return false;
@@ -100,7 +129,11 @@ function clientErrorStatus(exception: unknown): number | null {
  */
 @Catch()
 export class ApiErrorFilter implements ExceptionFilter {
-  constructor(@Inject(RequestErrors) private readonly errors: RequestErrors) {}
+  constructor(
+    @Inject(RequestErrors) private readonly errors: RequestErrors,
+    // Optional for the specs that mount this filter without the database module.
+    @Optional() @Inject(PrimaryWatch) private readonly watch?: Pick<PrimaryWatch, 'check'>,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<HttpResponse>();
@@ -152,6 +185,30 @@ export class ApiErrorFilter implements ExceptionFilter {
       response
         .status(HTTP_STATUS.not_found)
         .json(this.body(HTTP_STATUS.not_found, translate('PageNotFound', lang), 'not_found', {}));
+      return;
+    }
+
+    // D9-14, DAT-42 (Slice 9.2): the database went away under this request. Nothing was saved; the answer is a retry
+    // hint, in the owner's words for a write, and the watch looks again now rather than within 30 seconds.
+    if (isLostConnection(exception)) {
+      void this.watch?.check();
+      const method = String(Reflect.get(Object(request), 'method') ?? 'GET').toUpperCase();
+      const key: MessageKey = ['GET', 'HEAD', 'OPTIONS'].includes(method)
+        ? 'SomethingWentWrong'
+        : 'SavingPaused';
+      logger.warn(`the database was lost under a ${method} request`);
+      this.errors.unavailable(request, key);
+      response.setHeader('Retry-After', String(SAVING_RETRY_AFTER_SECONDS));
+      response
+        .status(HTTP_STATUS.service_unavailable)
+        .json(
+          this.body(
+            HTTP_STATUS.service_unavailable,
+            translate(key, lang),
+            'service_unavailable',
+            {},
+          ),
+        );
       return;
     }
 
