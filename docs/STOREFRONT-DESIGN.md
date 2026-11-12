@@ -312,8 +312,8 @@ the cart keep their built design; only these changes are made (PD-27), drawn in 
 `product-photos`, `product-photos-chosen`, `product-photos-nudge`, `landing-photos` and `cart`.
 
 - **Photo cards** (`product-photos`, ATR-19, ATR-20, PD-4): a product with more than one design shows its design photos
-  as cards in the option row, above the size: every photo that is a design, in the gallery's order, in the photos' own
-  4:5 shape, five filling the row and more scrolling sideways. No label, number or name. A product with one design
+  as cards in the option row, above the size: every photo that is a design, in the gallery's order, at 4:5 cropped from
+  the top so faces stay in view, five filling the row and more scrolling sideways. No label, number or name. A product with one design
   shows none (PD-12); plain photos are in the gallery only.
 - **Choosing** (`product-photos-chosen`): nothing is chosen when the page opens. A tap on a card rings and ticks it,
   lightly rings the same design's other photos, and moves the gallery to the tapped photo. A sold-out design is greyed
@@ -322,8 +322,10 @@ the cart keep their built design; only these changes are made (PD-27), drawn in 
   once; the buttons keep their words.
 - **The quantity's unit** (UOM-05, PD-19): "1 পিস", "2 ডজন", on the product page, the landing page and its summary, the
   cart, checkout, the confirmation and tracking.
-- **Desktop** (PD-18): the product photo is sized to the window's height, at most 800 px tall, so the whole photo is
-  seen beside the name, the price and the choices. Phones and tablets keep the full-width photo.
+- **The gallery's shape** (PD-28): the gallery takes the shape of the product's first photo, held between 9:16 and
+  1:1, so a tall photo shows whole, head to hem; the product's other photos fill the same box.
+- **Desktop** (PD-18): the product photo is sized to the window's height, at most 800 px tall, in that shape, so the
+  whole photo is seen beside the name, the price and the choices. Phones and tablets keep the full-width photo.
 - **The landing page** (`landing-photos`): the same cards and photo; its summary shows the chosen design's cover, the
   size and the quantity with its unit.
 - **The cart** (`cart`, PD-21): as built, with the chosen design's cover on the line, the unit on the quantity, and a

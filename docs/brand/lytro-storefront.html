@@ -423,7 +423,7 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
   .hero h1{font-size:36px}
   .pdp{display:grid;grid-template-columns:auto minmax(0,1fr);gap:40px;align-items:start}
   .pdp .gal{position:sticky;top:0;display:grid;grid-template-columns:72px auto;gap:12px;--ph:min(calc(var(--vh, 100svh) - 150px), 800px)}
-  .pdp .gal .gallery .main{height:var(--ph);width:calc(var(--ph) * .8);aspect-ratio:auto}
+  .pdp .gal .gallery .main{height:var(--ph);width:calc(var(--ph) * var(--ar, .8));aspect-ratio:auto}
   .pdp .gal .thumbs{max-height:var(--ph);overflow-y:auto}
   .thumbs{display:flex;flex-direction:column;gap:8px}
   .thumbs i{display:block;width:72px;height:90px;border-radius:8px;background:var(--sunken);border:2px solid transparent}
@@ -709,7 +709,7 @@ function gallery(p, o) {
   o = o || {};
   if (o.photos) {
     const at = o.pick == null ? 0 : o.pick;
-    return `<div class="gal"><div class="thumbs">${PHOTO_SW.map((g, i) => `<i class="${i === at ? 'on' : ''}" style="background:${g}"></i>`).join('')}</div><div class="gallery"><div class="main" style="background:${PHOTO_SW[at]}"><button class="fav">${I.heart}</button><div class="dots">${PHOTO_SW.map((g, i) => `<i class="${i === at ? 'on' : ''}"></i>`).join('')}</div></div></div></div>`;
+    return `<div class="gal"><div class="thumbs">${PHOTO_SW.map((g, i) => `<i class="${i === at ? 'on' : ''}" style="background:${g}"></i>`).join('')}</div><div class="gallery"><div class="main" style="background:${PHOTO_SW[at]};aspect-ratio:${PHOTO_SHAPE};--ar:${PHOTO_SHAPE}"><button class="fav">${I.heart}</button><div class="dots">${PHOTO_SW.map((g, i) => `<i class="${i === at ? 'on' : ''}"></i>`).join('')}</div></div></div></div>`;
   }
   return `<div class="gal"><div class="thumbs"><i class="on"></i><i></i><i></i>${p.video ? '<i></i>' : ''}</div><div class="gallery"><div class="main"><span class="ph">${pName(p).slice(0, 1)}</span>${p.video ? `<span class="vid">${I.play}${t('video')}</span>` : ''}<button class="fav">${I.heart}</button><div class="dots"><i class="on"></i><i></i><i></i>${p.video ? '<i></i>' : ''}</div></div></div></div>`;
 }
@@ -717,6 +717,9 @@ function gallery(p, o) {
 const PHOTO_SW = ['linear-gradient(160deg,#2b2b2b,#0d0d0d 60%,#3a3a3a)', 'linear-gradient(160deg,#1f2a44 0 30%,#c9a9a6 30% 45%,#1f2a44 45% 70%,#c9a9a6 70%)', 'linear-gradient(200deg,#1f2a44 0 22%,#c9a9a6 22% 34%,#1f2a44 34% 58%,#c9a9a6 58% 70%,#1f2a44 70%)', 'linear-gradient(160deg,#a07b86,#7d5b66)', 'linear-gradient(160deg,#5a3b2a,#3b2418)', 'linear-gradient(160deg,#f4f1ec,#d9d2c7)'];
 // Which design each photo shows (photos 2 and 3 are one design's two angles), and the design that is sold out.
 const PHOTO_DESIGN = [0, 1, 1, 2, 3, 4]; const SOLD_DESIGN = 3;
+// PD-28: the gallery takes the first photo's shape (width over height, held between 9:16 and 1:1); this sample's
+// photos are tall, 2:3.
+const PHOTO_SHAPE = 2 / 3;
 // o.pick: the index chosen, or none; o.nudge: Buy was tapped before choosing (the cards shake once).
 const photoCards = (o) => `<div class="opt"><div class="pcards ${PHOTO_SW.length > 5 ? 'many' : ''} ${o.nudge ? 'nudge' : ''}">${PHOTO_SW.map((g, i) => { const off = PHOTO_DESIGN[i] === SOLD_DESIGN; const on = i === o.pick; const same = !on && o.pick != null && PHOTO_DESIGN[i] === PHOTO_DESIGN[o.pick]; return `<span class="pcard ${on ? 'on' : ''} ${same ? 'same' : ''} ${off ? 'off' : ''}"><i style="background:${g}"></i><span class="tk">${I.check}</span>${off ? `<b>${t('out')}</b>` : ''}</span>`; }).join('')}</div></div>`;
 function buyBox(p, o) {

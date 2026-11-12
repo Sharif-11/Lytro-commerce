@@ -1,7 +1,7 @@
 # Photo designs plan: a product's photos are its designs
 
 Status: agreed 2026-11-12, built after Phase 8's close-out (#348) and before Phase 9's code slices. PD-1 to PD-12 were
-settled with the owner that day, and PD-21 and PD-25 to PD-27 from the owner's review of the screens. PD-13 to PD-20 and
+settled with the owner that day, and PD-21, PD-25 to PD-27 and PD-28 from the owner's review of the screens. PD-13 to PD-20 and
 PD-22 to PD-24 follow from them or from existing requirements, and are raised with this plan, so the owner can overrule
 any of them.
 
@@ -75,7 +75,7 @@ shopper gets exactly the design they chose, and the seller sends exactly that de
 | PD-15 | **Limits.** | The design attribute counts as one of ATR-14's 3 variant-defining attributes and toward its 100 variants; a product has at most 50 photos (PRD-11), so at most 50 designs. |
 | PD-16 | **Saving.** | One request sets a product's photos and designs together (which photos, their order, their designs and names), and returns each design's option id, before its variants are saved. Option ids never change while a design keeps a photo, so its variants and stock stay. |
 | PD-17 | **A sold-out design.** | Its card is greyed with "শেষ" and can't be chosen (ATR-07). |
-| PD-18 | **Desktop.** | On the product page and the landing page, the photo is sized to the window's height (4:5, at most 800 px tall), so the whole photo is seen beside the name, the price and the choices without scrolling. The rest of each page is as built. |
+| PD-18 | **Desktop.** | On the product page and the landing page, the photo is sized to the window's height (in the gallery's shape, PD-28, at most 800 px tall), so the whole photo is seen beside the name, the price and the choices without scrolling. The rest of each page is as built. |
 | PD-19 | **Units.** | The quantity shows its unit for counted units as well ("1 পিস", "2 ডজন"), as it already does for measured ones. |
 | PD-20 | **The size chart.** | Unchanged: the "সাইজ চার্ট" link opens it, as built; it is never one of the photos. |
 | PD-21 | **The cart** (the owner, 2026-11-12: the built cart is good, "except the trash icon and unit and choosen image"). | **Kept exactly as built**, with three changes: the line shows the chosen design's cover; the quantity shows its unit; and a trash button (34 px, as tall as the quantity box, named "সরান") replaces the "সরান" text, beside the quantity. Removing a line shows "কার্ট থেকে সরানো হলো" with "ফিরিয়ে আনুন" (undo) for 5 seconds, in the built toast's style. |
@@ -85,6 +85,7 @@ shopper gets exactly the design they chose, and the seller sends exactly that de
 | PD-25 | **The delivery charge before the address is known** (the owner, 2026-11-12: "when there is no choosen address you should render the maximum one"). | The cart and the landing page's form show **the shop's highest delivery charge** and **one total**, not a range, with the link "সঠিক ডেলিভারি চার্জ জানতে আপনার অ্যাড্রেস দিন" (the landing form: "সঠিক ডেলিভারি চার্জ জানতে থানা বাছুন"); once the address or thana is known, the exact charge (SFT-20). Amends SFT-20 and LND-08, and `STOREFRONT-DESIGN.md` §6's "a range until the thana is chosen". |
 | PD-26 | **Asking for the shopper's address** (the owner, 2026-11-12: "elaka => address", then "sothik delivery charge janthe apnar address din"). | The prompts that ask for the address to work out the delivery charge say **"অ্যাড্রেস"**. In the built storefront's words (`apps/storefront/src/lib/i18n/copy.ts`): `deliv_area` becomes "আপনার অ্যাড্রেস দিন" / "Set your address", `area_title` "আপনার অ্যাড্রেস" / "Your address", and `area_save` "অ্যাড্রেস ঠিক করুন" / "Set address". The address form's own fields ("পুরো ঠিকানা", "ডেলিভারি ঠিকানা", saved addresses) keep their built words. |
 | PD-27 | **No redesign** (the owner, 2026-11-12). | The product page, the landing page and the cart keep their built look. From a redesign drawn on 2026-11-12, only the photo cards and their choosing (PD-4) are kept; its numbers, "ডিজাইন" labels, "এই ডিজাইন নিন" buttons on the photos, guiding button words and new layout were turned down and are not built. |
+| PD-28 | **The gallery's shape** (the owner, 2026-11-12, choosing "Photo's own shape" over a whole photo inside 4:5 and over today's 4:5 crop). | The product page's and the landing page's gallery **takes the shape of the product's first photo**, so a tall photo (2:3) shows whole, head to hem; the product's other photos fill that same box. The shape is held between 9:16 and 1:1, so a very tall photo isn't a strip and a wide one shows square. The photo cards (PD-4) stay 4:5, cropped from the top so faces stay in view. Listing cards elsewhere are unchanged. Needs each photo's width and height in the public product. |
 
 ---
 
