@@ -131,7 +131,14 @@ export interface PublicComboPart {
   productName: string;
   image: ImageView | null;
   choice: boolean;
-  variants: { variantId: string; productName: string; label: string; available: boolean }[];
+  /** ATR-20 (PD-4): `label` never names a design; `image` is a design's cover, so a shopper picks it by its photo. */
+  variants: {
+    variantId: string;
+    productName: string;
+    label: string;
+    image: ImageView | null;
+    available: boolean;
+  }[];
 }
 
 /** PRD-03: a visible category, with its visible subcategories in the shop's order. */

@@ -514,23 +514,23 @@ describeIfDatabase(
   },
 );
 
+/** The product as the shop's website reads it, by a public key. */
+async function readPublic(shop: ShopClient, slug: string): Promise<unknown> {
+  const key = await shop.post('/api-keys', { name: 'Website', websites: [SITE] });
+  const answer = await sendExact(port, 'GET', `/v1/catalogue/products/${slug}`, undefined, {
+    host: API_HOST,
+    authorization: `Bearer ${(key.body as { key: string }).key}`,
+    origin: SITE,
+  });
+  expect(answer.status, JSON.stringify(answer.body)).toBe(200);
+  return answer.body;
+}
+
 describeIfDatabase('the public product (ATR-19, PD-4, PD-28)', () => {
   it('marks the designs option, and gives each photo its design and pixels', async () => {
     const shop = await openShop(port, texts, 'designs');
     const { detail } = await designedBurka(shop);
-    const key = await shop.post('/api-keys', { name: 'Website', websites: [SITE] });
-    const answer = await sendExact(
-      port,
-      'GET',
-      `/v1/catalogue/products/${detail.slug}`,
-      undefined,
-      {
-        host: API_HOST,
-        authorization: `Bearer ${(key.body as { key: string }).key}`,
-        origin: SITE,
-      },
-    );
-    expect(answer.status, JSON.stringify(answer.body)).toBe(200);
+    const answer = { body: await readPublic(shop, detail.slug) };
     const product = answer.body as {
       images: {
         id: string;
@@ -549,5 +549,40 @@ describeIfDatabase('the public product (ATR-19, PD-4, PD-28)', () => {
       detail.images.map((image) => image.designId),
     );
     expect(product.images[0]).toMatchObject({ width: 600, height: 900 });
+  });
+
+  it("offers a combo's designs by their photos, never by their names (CMB-06, PD-4, PD-6)", async () => {
+    const shop = await openShop(port, texts, 'designs');
+    const { detail, photos: shots, sizes } = await designedBurka(shop, 'Combo burka');
+    const [one, two] = detail.designs;
+    const variantOf = (designId: string | undefined, sizeId: string) =>
+      detail.variants.find(
+        (row) => row.optionIds.includes(String(designId)) && row.optionIds.includes(sizeId),
+      )?.id ?? '';
+    const made = await shop.post('/products', {
+      name: 'Eid pair',
+      basePrice: 6000,
+      kind: 'combo',
+      parts: [
+        { quantity: 1, variantIds: [variantOf(one?.id, sizes.s54), variantOf(two?.id, sizes.s56)] },
+        { quantity: 1, variantIds: [variantOf(two?.id, sizes.s54)] },
+      ],
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    const box = (await readPublic(shop, (made.body as Detail).slug)) as {
+      combo: {
+        parts: {
+          image: { id: string } | null;
+          variants: { label: string; image: { id: string } | null }[];
+        }[];
+      };
+    };
+    const [choice, fixed] = box.combo.parts;
+    expect(choice?.variants.map((row) => ({ label: row.label, image: row.image?.id }))).toEqual([
+      { label: '54-Combo burka', image: shots.black },
+      { label: '56-Combo burka', image: shots.stripedFront },
+    ]);
+    // PD-6: a fixed part shows its own design's cover, not the product's first photo (another design's).
+    expect(fixed?.image?.id).toBe(shots.stripedFront);
   });
 });

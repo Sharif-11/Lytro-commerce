@@ -95,7 +95,9 @@ export function comboFigures(rows: ComboPartStockRow[]): Map<string, ComboFigure
       ofParts.push({
         position,
         value: (Math.round(partValue) / 1000).toFixed(2),
-        coverMediaId: first.coverMediaId,
+        // PD-6: a fixed part of one design shows that design.
+        coverMediaId:
+          (variants.length === 1 ? first.designCoverMediaId : null) ?? first.coverMediaId,
       });
       const weights = priced.map((row) => (row.weightKg === null ? null : milli(row.weightKg)));
       weight =

@@ -139,6 +139,7 @@ export class PublicProductDetailDto extends createZodDto(
                 variantId: z.string(),
                 productName: z.string(),
                 label: z.string(),
+                image: imageViewSchema.nullable(),
                 available: z.boolean(),
               }),
             ),

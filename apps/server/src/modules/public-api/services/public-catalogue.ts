@@ -147,7 +147,12 @@ export class PublicCatalogue {
       const photos = await this.images.viewsOf(
         tx,
         tenantId,
-        rows.map((row) => row.coverMediaId),
+        rows.flatMap((row) => [row.coverMediaId, row.designCoverMediaId]),
+      );
+      const labels = await this.store.shopperVariantLabels(
+        tx,
+        tenantId,
+        rows.map((row) => row.variantId),
       );
       const parts = detail.parts.map((part): PublicComboPart => {
         const offered = part.variants.flatMap((variant) => {
@@ -158,7 +163,8 @@ export class PublicCatalogue {
             {
               variantId: variant.variantId,
               productName: variant.productName,
-              label: variant.label,
+              label: labels.get(variant.variantId) ?? '',
+              image: photos.get(row.designCoverMediaId ?? '') ?? null,
               available: units === null || units > 0,
             },
           ];
@@ -168,7 +174,13 @@ export class PublicCatalogue {
           position: part.position,
           quantity: part.quantity,
           productName: part.variants[0]?.productName ?? '',
-          image: photos.get(first?.coverMediaId ?? '') ?? null,
+          // PD-6: a fixed part of one design shows that design, never another design's photo.
+          image:
+            photos.get(
+              (part.variants.length === 1 ? first?.designCoverMediaId : null) ??
+                first?.coverMediaId ??
+                '',
+            ) ?? null,
           choice: part.variants.length > 1,
           variants: offered,
         };

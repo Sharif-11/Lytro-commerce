@@ -60,6 +60,14 @@ export class DrizzlePublicCatalogueStore implements PublicCatalogueStore {
     return this.combos.listPartStock(tx, tenantId, comboIds);
   }
 
+  shopperVariantLabels(
+    tx: Transaction,
+    tenantId: string,
+    variantIds: string[],
+  ): Promise<Map<string, string>> {
+    return this.combos.variantLabels(tx, tenantId, variantIds, false);
+  }
+
   countCategoryProducts(tx: Transaction, tenantId: string): Promise<CategoryProductCount[]> {
     return this.catalogue.countCategoryProducts(tx, tenantId);
   }
