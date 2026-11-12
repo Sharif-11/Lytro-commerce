@@ -149,14 +149,15 @@ describeIfDatabase('sign-up by phone, end to end', () => {
       [phone],
     );
     expect(sms.rows).toHaveLength(1);
-    // SMS-18, D8-70: the owner's words, with the shop's name and address, sent through the real path to the provider -- 63
-    // characters, one unit.
-    const words = 'আপনার শপ Fashion House এখন লাইভ: http://fashion-house.localhost';
+    // SMS-18 (amended 2026-11-12): the owner's words, with the shop's name and its dashboard's address, sent through the
+    // real path to the provider -- 86 characters here, two units.
+    const words =
+      'আপনার শপ Fashion House তৈরি হয়েছে। শপ চালান এখানে: http://app.localhost/fashion-house';
     expect(sms.rows[0]?.body).toBe(words);
     expect(texts.sent.filter((text) => text.toPhone === phone).map((text) => text.body)).toContain(
       words,
     );
-    expect(Array.from(words)).toHaveLength(63);
+    expect(Array.from(words)).toHaveLength(86);
 
     // Skipping the set-password offer (P1-E01) leaves the account exactly as code sign-up made it: no password.
     const account = await admin.query<{ password_hash: string | null }>(

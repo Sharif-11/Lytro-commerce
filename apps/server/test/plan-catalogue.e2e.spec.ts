@@ -191,6 +191,33 @@ describeIfDatabase('plans (PLN-01 to PLN-12, PLN-16)', () => {
   });
 
   it(
+    "Lytro's own plans (Trial, Pay-as-you-go) can't be put on sale, renamed or deleted; their limits still change",
+    async () => {
+      // Found on staging 2026-11-12: Trial put on sale in the console stopped every new shop.
+      const headers = await operatorHeaders();
+      const list = (await get('/operator/plans', headers)).body as (PlanBody & {
+        name: string;
+        limits: Record<string, number | null>;
+      })[];
+      for (const name of ['Trial', 'Pay-as-you-go']) {
+        const plan = list.find((row) => row.name === name);
+        if (!plan) throw new Error(`${name} isn't seeded`);
+        expect((await patch(`/operator/plans/${plan.id}`, { forSale: true }, headers)).status).toBe(
+          409,
+        );
+        expect(
+          (await patch(`/operator/plans/${plan.id}`, { name: `${name} 2` }, headers)).status,
+        ).toBe(409);
+        expect((await del(`/operator/plans/${plan.id}`, headers)).status).toBe(409);
+        const limits = await patch(`/operator/plans/${plan.id}`, { limits: plan.limits }, headers);
+        expect(limits.status).toBe(200);
+        expect(limits.body).toMatchObject({ name, forSale: false });
+      }
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
+  it(
     'PLN-02/D2-3: editing a plan increments its version and the previous version is retrievable',
     async () => {
       const headers = await operatorHeaders();

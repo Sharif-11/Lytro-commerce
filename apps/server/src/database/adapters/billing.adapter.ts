@@ -3,6 +3,7 @@ import {
   BillingTermsRepository,
   PAYG_PLAN_NAME,
   PlanAssignmentsRepository,
+  TRIAL_PLAN_NAME,
   PlanLimitOverridesRepository,
   PlanPricesRepository,
   PlansRepository,
@@ -83,6 +84,10 @@ export class DrizzlePlansStore implements PlansStore {
 
   isReferenced(tx: Transaction, id: string) {
     return this.plans.isReferenced(tx, id);
+  }
+
+  isPlatformPlan(name: string): boolean {
+    return name === TRIAL_PLAN_NAME || name === PAYG_PLAN_NAME;
   }
 
   shopsByVersion(tx: Transaction) {

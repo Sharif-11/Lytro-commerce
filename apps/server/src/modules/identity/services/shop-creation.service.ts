@@ -67,7 +67,7 @@ export class ShopCreationService {
           ownerPhone: phone.phone,
           ownerEmail: email?.email ?? null,
           ownerName,
-          liveUrl: this.settings.shopUrl(address),
+          dashboardUrl: this.settings.dashboardUrl(address),
         });
         await this.sessions.attachTenant(tx, session.id, created.tenantId);
         await this.trialLimiter.record(tx, phone.id, ip);

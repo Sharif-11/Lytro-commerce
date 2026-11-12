@@ -32,6 +32,11 @@ export interface PlansStore {
   findPayAsYouGo(tx: Transaction): Promise<PlanRecord | null>;
   update(tx: Transaction, id: string, edit: PlanEditValues): Promise<PlanRecord | null>;
   isReferenced(tx: Transaction, id: string): Promise<boolean>;
+  /**
+   * Whether a plan is one of Lytro's own (Trial, Pay-as-you-go): given by Lytro itself and found by name, so never for
+   * sale, renamed or deleted (found on staging 2026-11-12).
+   */
+  isPlatformPlan(name: string): boolean;
   shopsByVersion(tx: Transaction): Promise<{ planId: string; version: number; shops: number }[]>;
   delete(tx: Transaction, id: string): Promise<void>;
   listVersions(tx: Transaction, planId: string): Promise<PlanVersionRecord[]>;

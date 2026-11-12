@@ -108,6 +108,11 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This plan is in use. Retire it instead of deleting it.',
     bn: 'এই প্ল্যানটি ব্যবহৃত হচ্ছে। ডিলিট না করে রিটায়ার করুন।',
   },
+  // Found on staging 2026-11-12: Trial and Pay-as-you-go are Lytro's own plans, found by name and never sold.
+  PlatformPlanFixed: {
+    en: "Trial and Pay-as-you-go are Lytro's own plans: they can't be put on sale, renamed or deleted. Their limits can be changed.",
+    bn: 'ট্রায়াল আর পে-অ্যাজ-ইউ-গো Lytro-র নিজের প্ল্যান: এগুলো সেলের জন্য দেওয়া, নাম বদলানো বা ডিলিট করা যায় না। লিমিট বদলানো যায়।',
+  },
   PriceNotFound: {
     en: 'No price is set for this plan and billing term.',
     bn: 'এই প্ল্যান এবং বিলিং মেয়াদের জন্য কোনো দাম নির্ধারিত নেই।',

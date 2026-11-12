@@ -96,6 +96,16 @@ export class PlansService {
   async update(id: string, edit: PlanEditValues, operator: PlanOperator): Promise<PlanRecord> {
     try {
       return await this.store.run(async (tx) => {
+        const current = await this.store.findById(tx, id);
+        if (!current) throw new ApiError('not_found', 'PlanNotFound', {});
+        // Lytro's own plans (Trial, Pay-as-you-go) are given by Lytro and found by name: found on staging 2026-11-12, one
+        // put on sale stopped every new shop. Their limits may change; nothing else here.
+        if (
+          this.store.isPlatformPlan(current.name) &&
+          (edit.forSale === true || (edit.name !== undefined && edit.name !== current.name))
+        ) {
+          throw new ApiError('conflict', 'PlatformPlanFixed', {});
+        }
         const updated = await this.store.update(tx, id, edit);
         if (!updated) throw new ApiError('not_found', 'PlanNotFound', {});
         // Only the fields the caller set: Zod fills the others in as an explicit `undefined`.
@@ -132,6 +142,9 @@ export class PlansService {
     await this.store.run(async (tx) => {
       const plan = await this.store.findById(tx, id);
       if (!plan) throw new ApiError('not_found', 'PlanNotFound', {});
+      if (this.store.isPlatformPlan(plan.name)) {
+        throw new ApiError('conflict', 'PlatformPlanFixed', {});
+      }
       if (await this.store.isReferenced(tx, id)) {
         throw new ApiError('conflict', 'PlanInUse', {});
       }

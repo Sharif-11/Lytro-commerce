@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ENV } from '../../config/tokens';
 import type { Env } from '../../config/env';
-import { shopOrigin } from '../../common/shop-address';
+import { shopDashboardUrl, shopOrigin } from '../../common/shop-address';
 import {
   DrizzleChallengeStore,
   DrizzleSignupGateway,
@@ -191,6 +191,7 @@ import {
       useFactory: (env: Env) => ({
         now: (): Date => new Date(),
         shopUrl: (address: string): string => shopOrigin(env, address),
+        dashboardUrl: (address: string): string => shopDashboardUrl(env, address),
       }),
     },
     OneTimeCodeService,
