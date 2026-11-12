@@ -34,6 +34,12 @@ export interface PlanCatalogue {
   prices: PlanPrice[];
 }
 
+/** RAT-01: one of the platform's current rates (`GET /rates`), as stored: `payg_order_fee_pct` "1.50" is 1.5%. */
+export interface PlatformRate {
+  key: string;
+  value: string;
+}
+
 export class PlansApi {
   constructor(private readonly api: ServerApi) {}
 
@@ -55,5 +61,10 @@ export class PlansApi {
       terms: terms.filter((term) => term.visible).sort((a, b) => a.displayOrder - b.displayOrder),
       prices,
     };
+  }
+
+  /** The current rates pay-as-you-go and payment verification charge, or null when the backend cannot be reached. */
+  rates(): Promise<PlatformRate[] | null> {
+    return this.api.get<PlatformRate[]>('/rates');
   }
 }
