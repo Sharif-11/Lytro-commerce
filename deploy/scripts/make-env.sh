@@ -50,6 +50,8 @@ OWNER_PASSWORD="$(existing postgres.env POSTGRES_PASSWORD)"
 OWNER_PASSWORD="${OWNER_PASSWORD:-$(secret 24)}"
 APP_PASSWORD="$(existing postgres.env LYTRO_APP_DB_PASSWORD)"
 APP_PASSWORD="${APP_PASSWORD:-$(secret 24)}"
+READ_PASSWORD="$(existing postgres.env LYTRO_READ_DB_PASSWORD)"
+READ_PASSWORD="${READ_PASSWORD:-$(secret 24)}"
 
 write() {
   local name="$1" file="$ENV_DIR/$1"
@@ -64,16 +66,43 @@ write() {
   echo "wrote $name"
 }
 
+# A file kept from an earlier release's setup may lack a line this release adds (the read role's password, Slice 9.2):
+# it is added, and nothing already in the file changes.
+add_missing() {
+  local name="$1" key="$2" value="$3" file="$ENV_DIR/$1"
+  if [ -f "$file" ] && ! grep -q "^$key=" "$file"; then
+    printf '%s=%s\n' "$key" "$value" >> "$file"
+    echo "added $key to $name"
+  fi
+}
+
 write postgres.env <<EOF
 POSTGRES_USER=lytronix
 POSTGRES_PASSWORD=$OWNER_PASSWORD
 POSTGRES_DB=lytronix
 LYTRO_APP_DB_PASSWORD=$APP_PASSWORD
+LYTRO_READ_DB_PASSWORD=$READ_PASSWORD
 EOF
+add_missing postgres.env LYTRO_READ_DB_PASSWORD "$READ_PASSWORD"
 
 write migrate.env <<EOF
 # The schema owner: migrations and pg-boss's schema (deploy/compose.yml's migrate step).
 DATABASE_URL=postgres://lytronix:$OWNER_PASSWORD@postgres:5432/lytronix
+EOF
+
+# The API's, over server.env (deploy/compose.yml's x-api): through PgBouncer, which sets the API's limits (DAT-23), as
+# the application role for writes and the read-only role for the reads code marks (Slice 9.2, D9-13). The worker and
+# the migrations keep the direct addresses.
+write server-api.env <<EOF
+DATABASE_URL=postgres://lytronix_app:$APP_PASSWORD@pgbouncer:6432/lytronix
+DATABASE_READ_URL=postgres://lytronix_read:$READ_PASSWORD@pgbouncer:6432/lytronix
+DATABASE_THROUGH_POOLER=true
+EOF
+
+# The pooler's: the two roles it logs in as (deploy/pgbouncer).
+write pgbouncer.env <<EOF
+PGBOUNCER_APP_PASSWORD=$APP_PASSWORD
+PGBOUNCER_READ_PASSWORD=$READ_PASSWORD
 EOF
 
 vapid

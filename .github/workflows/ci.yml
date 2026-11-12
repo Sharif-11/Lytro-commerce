@@ -17,7 +17,8 @@ jobs:
     # Database tests need a real Postgres; the superuser here creates the test database and roles.
     services:
       postgres:
-        image: postgres:16
+        # 17, as staging and production run (Slice 9.2's read): transaction_timeout is tested here.
+        image: postgres:17
         env:
           POSTGRES_PASSWORD: ci_only_password
         ports:
@@ -191,3 +192,31 @@ jobs:
             apps/server/test-results/
             apps/server/playwright-report/
           retention-days: 14
+
+  # Phase 9 exit criterion 5 (Slice 9.2, DAT-41 to DAT-47): a real primary and a standby streaming from it. Reads go to
+  # the standby, a write never lands there, and stopping the primary gives "can't save" while reads go on.
+  standby:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: What the server's tests import
+        run: pnpm exec turbo run build --filter=@lytronix/server^...
+      - name: A primary and a streaming standby
+        run: bash .github/scripts/standby/start.sh
+      - name: Reads on the standby, no write there, and "can't save" with the primary stopped
+        working-directory: apps/server
+        env:
+          STANDBY_PRIMARY_ADMIN_URL: postgres://postgres:ci_only_password@localhost:5441/postgres
+        run: pnpm exec vitest run test/standby.e2e.spec.ts
+      - name: The databases' logs, if anything failed
+        if: failure()
+        run: |
+          docker logs pg-primary 2>&1 | tail -40 || true
+          docker logs pg-standby 2>&1 | tail -40 || true

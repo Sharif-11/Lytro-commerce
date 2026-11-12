@@ -349,6 +349,41 @@ only adds concrete artifacts to it, nothing new in process:
   set on the wildcard site alone, because a global `acme_dns` would also apply to shops' own domains (§7), whose DNS
   isn't ours.
 
+### 9b. As built (Slice 9.2, the database side)
+
+- **PostgreSQL 17** on every server and in CI (Slice 9.2's read), for `transaction_timeout`. A developer's database
+  may stay on 16; the server sends 17's setting only where it is configured.
+- **PgBouncer** (`deploy/pgbouncer`), in transaction mode, in front of PostgreSQL for the API processes only (D9-13,
+  DAT-11). The image is built from Alpine's package and tagged by a hash of its inputs, like the edge's; `deploy.sh`
+  computes the same tag from the release's own files. The worker's job queue (pg-boss) and the migrations connect to
+  PostgreSQL directly: pg-boss keeps state per session, and migrations run as the owner.
+- **The limits** (DAT-23): every connection PgBouncer opens runs `SET statement_timeout = 10000; SET
+  transaction_timeout = 5000` first (`connect_query`). PgBouncer in transaction mode refuses or drops limits a client
+  sends when it connects, so the API sends none (`DATABASE_THROUGH_POOLER=true`). The worker, connecting directly,
+  sends its own: the same 10-second statement limit and a 60-second transaction limit (`WORKER_TRANSACTION_TIMEOUT_MS`),
+  since a background job (a shop's deletion, a night's purge) may hold a transaction longer than an API request, though
+  never without end.
+- **Two roles for the server:** `lytronix_app` (writes) and `lytronix_read` (DAT-45: SELECT only, read-only by default,
+  under row-level security; `DATABASE-SCHEMA.md` §3). `deploy.sh` makes any that are missing before each migration run,
+  so a database made before a role existed gets it on its next deploy.
+- **The settings files:** `make-env.sh` adds `pgbouncer.env` (the two roles' passwords) and `server-api.env`, which the
+  API containers read over `server.env`: their addresses through PgBouncer, for writes (`DATABASE_URL`) and reads
+  (`DATABASE_READ_URL`, which the server uses from Slice 9.2's second part). A file kept from an earlier setup gets
+  any line it lacks (the read role's password), and nothing in it changes.
+
+### 9c. As built (Slice 9.2, the server side)
+
+- **Two pools** (D9-13, DAT-44): the write pool (`DATABASE_URL`), which everything uses unless it says otherwise, and
+  the read pool (`DATABASE_READ_URL`, the read-only role). The storefront's and public API's catalogue reads run on
+  the read pool (Slice 9.2's read); a code check (`read-pool-reads.spec.ts`) finds any write or row lock in what they
+  call, and the role refuses one at run time. A read whose connection was lost is tried once more (DAT-23).
+- **The write pool's watch** (DAT-44): at start and every 30 seconds each process asks whether its write pool reaches
+  the primary. `GET /health/ready` asks afresh; Caddy balances by it and `deploy.sh` waits for it before the next
+  process (D9-12).
+- **"Can't save"** (D9-14, DAT-42, DAT-47): while the write pool can't reach the primary, writes answer 503 with
+  `Retry-After: 30` in the owner's words, and reads go on. Nothing is ever written to a standby: a write pool that
+  reaches one makes the ready check fail.
+
 ## 10. Open, deliberately deferred
 
 Settled by Phase 9's plan and Slice 9.1:

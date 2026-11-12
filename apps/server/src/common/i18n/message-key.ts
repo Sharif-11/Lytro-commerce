@@ -20,6 +20,7 @@ export const MESSAGE_KEYS = [
   'PermissionDenied',
   'PageNotFound',
   'SomethingWentWrong',
+  'SavingPaused',
   'SettingValueInvalid',
   'PleaseTryAgain',
   'IdempotencyKeyConflict',
