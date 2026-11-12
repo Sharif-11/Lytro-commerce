@@ -21,6 +21,14 @@ val releaseKey: Properties? = providers.environmentVariable("LYTRO_LISTENER_KEY"
     ?.takeIf { it.exists() }
     ?.let { file -> Properties().apply { file.inputStream().use { load(it) } } }
 
+// Staging (2026-11-12, the owner's pick): a copy for staging.lytro.app that sits beside the real app, with its own id and name,
+// staging's API, and a throwaway key of its own in the file LYTRO_LISTENER_STAGING_KEY names (made by new-release-key.sh in
+// another folder). The release key is never used for it.
+val stagingKey: Properties? = providers.environmentVariable("LYTRO_LISTENER_STAGING_KEY").orNull
+    ?.let { File(it) }
+    ?.takeIf { it.exists() }
+    ?.let { file -> Properties().apply { file.inputStream().use { load(it) } } }
+
 // Where the app sends a shop for an update and the first install (LISTENER-APP-DESIGN 6); the page itself is Slice 5.8's.
 val downloadUrl = "https://lytro.app/listener"
 
@@ -47,6 +55,14 @@ android {
                 keyPassword = releaseKey.getProperty("keyPassword")
             }
         }
+        if (stagingKey != null) {
+            create("staging") {
+                storeFile = File(stagingKey.getProperty("storeFile"))
+                storePassword = stagingKey.getProperty("storePassword")
+                keyAlias = stagingKey.getProperty("keyAlias")
+                keyPassword = stagingKey.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
@@ -68,6 +84,19 @@ android {
             buildConfigField("String", "API_HOST_HEADER", "\"\"")
             buildConfigField("String", "SUPPORT_WHATSAPP", "\"${releaseKey?.getProperty("supportWhatsapp").orEmpty().filter { it.isDigit() }}\"")
             if (releaseKey != null) signingConfig = signingConfigs.getByName("release")
+        }
+        // Built as a release is (shrunk, not debuggable), for staging: its own id, so both install on one phone, and its name from
+        // src/staging/res. Signed only with the staging key; without one it builds unsigned, and listenerStagingRelease refuses.
+        create("staging") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".staging"
+            versionNameSuffix = "-staging"
+            matchingFallbacks += listOf("release")
+            buildConfigField("String", "API_BASE_URL", "\"https://api.staging.lytro.app/v1/listener/\"")
+            buildConfigField("String", "API_HOST_HEADER", "\"\"")
+            buildConfigField("String", "DOWNLOAD_URL", "\"https://staging.lytro.app/listener\"")
+            buildConfigField("String", "SUPPORT_WHATSAPP", "\"${stagingKey?.getProperty("supportWhatsapp").orEmpty().filter { it.isDigit() }}\"")
+            signingConfig = if (stagingKey != null) signingConfigs.getByName("staging") else null
         }
     }
 
@@ -151,5 +180,36 @@ tasks.register("listenerRelease") {
         println("Release $version: $apk")
         println("SHA-256: $sha256")
         println("Upload to the downloads bucket: ${apk.name}, then latest.json")
+    }
+}
+
+val checkStagingKey = tasks.register("checkStagingKey") {
+    doLast {
+        check(stagingKey != null) {
+            "No staging key. Set LYTRO_LISTENER_STAGING_KEY to its properties file (scripts/new-release-key.sh, in its own folder)."
+        }
+    }
+}
+
+tasks.matching { it.name == "preStagingBuild" }.configureEach { mustRunAfter(checkStagingKey) }
+
+// Staging's copy (2026-11-12): the APK and the latest.json staging.lytro.app/listener reads, for the staging downloads bucket.
+tasks.register("listenerStagingRelease") {
+    group = "release"
+    description = "Builds staging's signed APK, with the staging key on this computer."
+    dependsOn(checkStagingKey, "assembleStaging")
+    doLast {
+        val version = "${android.defaultConfig.versionName}-staging"
+        val out = layout.buildDirectory.dir("staging-release").get().asFile.apply { mkdirs() }
+        val apk = out.resolve("lytro-listener-$version.apk")
+        layout.buildDirectory.file("outputs/apk/staging/app-staging.apk").get().asFile.copyTo(apk, overwrite = true)
+        val sha256 = MessageDigest.getInstance("SHA-256").digest(apk.readBytes()).joinToString("") { "%02x".format(it) }
+        out.resolve("${apk.name}.sha256").writeText("$sha256  ${apk.name}\n")
+        out.resolve("latest.json").writeText(
+            """{"version":"$version","file":"${apk.name}","sha256":"$sha256","bytes":${apk.length()}}""" + "\n",
+        )
+        println("Staging $version: $apk")
+        println("SHA-256: $sha256")
+        println("Upload to the staging downloads bucket: ${apk.name}, then latest.json")
     }
 }
