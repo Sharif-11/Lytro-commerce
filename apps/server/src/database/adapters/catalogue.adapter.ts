@@ -672,6 +672,10 @@ export class DrizzleProductStore implements ProductStore {
     }
   }
 
+  takenSkus(tx: Transaction, tenantId: string, skus: string[]): Promise<string[]> {
+    return this.variants.takenSkus(tx, tenantId, skus);
+  }
+
   async retireVariants(tx: Transaction, tenantId: string, ids: string[]): Promise<void> {
     try {
       await this.variants.retireVariants(tx, tenantId, ids);

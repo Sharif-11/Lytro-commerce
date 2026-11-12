@@ -166,6 +166,23 @@ export class VariantRepository {
    * Retires variants no longer offered. Their option rows go (a retired variant names nothing); the variant row
    * stays, with its combination key, so stock history keeps its subject and the same combination can come back.
    */
+  /** PD-10: which of these SKUs a live variant of the shop already has. */
+  async takenSkus(tx: Transaction, tenantId: string, skus: string[]): Promise<string[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    if (skus.length === 0) return [];
+    const rows = await tx
+      .select({ sku: productVariants.sku })
+      .from(productVariants)
+      .where(
+        and(
+          eq(productVariants.tenantId, tenantId),
+          inArray(productVariants.sku, skus),
+          isNull(productVariants.deletedAt),
+        ),
+      );
+    return rows.flatMap((row) => (row.sku === null ? [] : [row.sku]));
+  }
+
   async retireVariants(tx: Transaction, tenantId: string, ids: string[]): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
     if (ids.length === 0) return;

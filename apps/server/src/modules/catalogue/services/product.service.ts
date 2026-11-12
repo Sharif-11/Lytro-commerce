@@ -21,6 +21,7 @@ import {
   normalizeSerial,
   SerialFormat,
   ServerFieldProblemCode,
+  SKU_MAX_LENGTH,
   ItemCondition,
   StockState,
   StockTracking,
@@ -1015,6 +1016,7 @@ export class ProductService {
         input.variants,
         shared,
       );
+      await this.fillDesignSkus(tx, shop.id, productId);
       if (switching) {
         if (shared) await this.ensureStockHolder(tx, shop.id, productId);
         else await this.retireStockHolder(tx, shop.id, productId);
@@ -2117,6 +2119,85 @@ export class ProductService {
     await this.products.insertVariantValues(tx, values);
   }
 
+  /**
+   * PD-10: a design product's live variants without a SKU get one: the product's initials (from its link name), its
+   * design's number, then its other values, e.g. IB-D2-54, at most 64 characters and unique among the shop's live
+   * variants (a -2, -3... when taken). A product without designs is left as it is.
+   */
+  private async fillDesignSkus(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+  ): Promise<void> {
+    const designs = (await this.designs.of(tx, tenantId, [productId])).get(productId) ?? [];
+    if (designs.length === 0) return;
+    const product = await this.findLive(tx, tenantId, productId);
+    const variants = (await this.products.listVariants(tx, tenantId, productId, false)).filter(
+      (row) => row.sku === null && !row.isStockHolder,
+    );
+    if (variants.length === 0) return;
+    const numbers = new Map(designs.map((design) => [design.id, design.number]));
+    const order = new Map(
+      (await this.products.listProductAttributes(tx, tenantId, productId)).map((row) => [
+        row.attributeId,
+        row.sortOrder,
+      ]),
+    );
+    const pairsOf = (key: string) =>
+      key === ''
+        ? []
+        : key.split('&').map((pair) => {
+            const [attributeId = '', optionId = ''] = pair.split('=');
+            return { attributeId, optionId };
+          });
+    const optionIds = [
+      ...new Set(
+        variants.flatMap((row) => pairsOf(row.combinationKey).map((pair) => pair.optionId)),
+      ),
+    ];
+    const values = new Map(
+      (await this.attributes.findOptions(tx, tenantId, optionIds)).map((option) => [
+        option.id,
+        option.value,
+      ]),
+    );
+    const initials =
+      product.slug
+        .split('-')
+        .filter((word) => /^[a-z0-9]/i.test(word))
+        .slice(0, 3)
+        .map((word) => word.charAt(0).toUpperCase())
+        .join('') || 'P';
+    const wanted = variants.map((row) => {
+      const pairs = pairsOf(row.combinationKey);
+      const design = pairs.find((pair) => numbers.has(pair.optionId));
+      const others = pairs
+        .filter((pair) => pair !== design)
+        .sort((a, b) => (order.get(a.attributeId) ?? 0) - (order.get(b.attributeId) ?? 0))
+        .map((pair) => (values.get(pair.optionId) ?? '').toUpperCase().replace(/[^A-Z0-9.]/g, ''))
+        .filter((part) => part !== '');
+      const parts = [
+        initials,
+        ...(design ? [`D${String(numbers.get(design.optionId))}`] : []),
+        ...others,
+      ];
+      return { row, sku: parts.join('-').slice(0, SKU_MAX_LENGTH - 3) };
+    });
+    const candidates = wanted.flatMap(({ sku }) => [
+      sku,
+      ...[2, 3, 4, 5, 6, 7, 8, 9].map((n) => `${sku}-${String(n)}`),
+    ]);
+    const taken = new Set(await this.products.takenSkus(tx, tenantId, candidates));
+    for (const { row, sku } of wanted) {
+      const free = [sku, ...[2, 3, 4, 5, 6, 7, 8, 9].map((n) => `${sku}-${String(n)}`)].find(
+        (c) => !taken.has(c),
+      );
+      if (free === undefined) continue;
+      taken.add(free);
+      await this.products.updateVariant(tx, tenantId, row.id, { sku: free });
+    }
+  }
+
   private refuseTakenSlug(): never {
     throw new FieldsError(
       [{ field: 'slug', problem: ServerFieldProblemCode.Taken, messageKey: 'ProductSlugTaken' }],
@@ -2235,9 +2316,20 @@ export class ProductService {
       const detail = await this.detail(tx, tenantId, productId);
       const described = detail.attributes.filter((row) => row.role === AttributeRole.Informational);
       const photo = detail.images[0];
+      // ATR-20 (PD-7): a design's variant shows its design's cover, the design's first photo, whichever the shopper
+      // tapped; every other variant, the product's first photo.
+      const photoById = new Map(detail.images.map((image) => [image.id, image]));
+      const coverOf = new Map(
+        detail.designs.map((design) => [
+          design.id,
+          design.photoIds[0] === undefined ? undefined : photoById.get(design.photoIds[0]),
+        ]),
+      );
       const zones = await this.zonesWithin(tx, tenantId, detail);
       for (const variant of detail.variants) {
         const effective = effectiveVariant(detail, variant);
+        const designId = variant.optionIds.find((id) => coverOf.has(id));
+        const cover = (designId === undefined ? undefined : coverOf.get(designId)) ?? photo;
         found.push({
           productId,
           productName: detail.name,
@@ -2271,6 +2363,7 @@ export class ProductService {
                       dataType: attribute.dataType,
                       unitKind: attribute.unitKind,
                       variantDefining: true,
+                      ...(coverOf.has(option.id) ? { design: true as const } : {}),
                     },
                   ]
                 : [];
@@ -2303,7 +2396,7 @@ export class ProductService {
               dataType: row.dataType,
             })),
           deliveryZoneIds: zones,
-          thumbnail: photo ? { mediaId: photo.id, url: photo.urls.thumbnail } : null,
+          thumbnail: cover ? { mediaId: cover.id, url: cover.urls.thumbnail } : null,
         });
       }
     }

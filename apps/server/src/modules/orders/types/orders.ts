@@ -449,8 +449,10 @@ export type OrderCreated =
 export interface ShopperItemView {
   variantId: string | null;
   productName: string;
-  /** ATR-09: the values that make the variant (Size: L). */
+  /** ATR-09: the values that make the variant (Size: L); never a design's name, which the photo shows (PD-6). */
   attributes: LineAttributeSnapshot[];
+  /** ATR-20 (PD-6, PD-7): the photo the line was ordered with, a design's cover for a design; null for none. */
+  thumbnail: string | null;
   quantity: string;
   stockUnit: StockUnit;
   unitPrice: string;
