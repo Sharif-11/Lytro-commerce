@@ -305,6 +305,37 @@ Read agreed 2026-11-06; drawn under "Couriers · Phase 6 Slice 6.7".
 - **The link to check:** Steadfast's real tracking pages are `steadfast.com.bd/tl/` with a token of its own, not `/t/`
   with the tracking code as Lytro builds them (`KNOWN-GAPS` §112). The first real parcel confirms which works.
 
+## 7f. Photo designs (2026-11-12)
+
+From `PHOTO-DESIGNS-PLAN.md`, whose decisions (PD-1 to PD-27) are the reference. The product page, the landing page and
+the cart keep their built design; only these changes are made (PD-27), drawn in the prototype's screens
+`product-photos`, `product-photos-chosen`, `product-photos-nudge`, `landing-photos` and `cart`.
+
+- **Photo cards** (`product-photos`, ATR-19, ATR-20, PD-4): a product with more than one design shows its design photos
+  as cards in the option row, above the size: every photo that is a design, in the gallery's order, in the photos' own
+  4:5 shape, five filling the row and more scrolling sideways. No label, number or name. A product with one design
+  shows none (PD-12); plain photos are in the gallery only.
+- **Choosing** (`product-photos-chosen`): nothing is chosen when the page opens. A tap on a card rings and ticks it,
+  lightly rings the same design's other photos, and moves the gallery to the tapped photo. A sold-out design is greyed
+  with "শেষ" (PD-17). Swiping the gallery never chooses, and the gallery stays circular, as built (PD-5).
+- **Buying before choosing** (`product-photos-nudge`): Add to cart, Buy now or Order scrolls to the cards, which shake
+  once; the buttons keep their words.
+- **The quantity's unit** (UOM-05, PD-19): "1 পিস", "2 ডজন", on the product page, the landing page and its summary, the
+  cart, checkout, the confirmation and tracking.
+- **Desktop** (PD-18): the product photo is sized to the window's height, at most 800 px tall, so the whole photo is
+  seen beside the name, the price and the choices. Phones and tablets keep the full-width photo.
+- **The landing page** (`landing-photos`): the same cards and photo; its summary shows the chosen design's cover, the
+  size and the quantity with its unit.
+- **The cart** (`cart`, PD-21): as built, with the chosen design's cover on the line, the unit on the quantity, and a
+  trash button beside the quantity in place of the "সরান" text. Removing a line shows "কার্ট থেকে সরানো হলো" with
+  "ফিরিয়ে আনুন" for 5 seconds.
+- **The delivery charge before the address is known** (PD-25, PD-26; this replaces the range in §5 and §6): the cart
+  and the landing page's summary show the shop's highest charge and one total, with "সঠিক ডেলিভারি চার্জ জানতে আপনার
+  অ্যাড্রেস দিন" in the cart and "সঠিক ডেলিভারি চার্জ জানতে থানা বাছুন" on the landing page; the exact charge once it is
+  known. The prompts that ask for the address say "অ্যাড্রেস".
+- **After ordering** (PD-6): the confirmation and tracking list the items with the chosen design's cover, the size and
+  the quantity. No shopper's screen names the design.
+
 ## 8. Later phases, drawn in full
 
 Phase 4, orders: drawn again in §7a as Phase 4 built it -- checkout, the confirmation, tracking, the account and the

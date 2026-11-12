@@ -62,7 +62,7 @@ shopper gets exactly the design they chose, and the seller sends exactly that de
 | PD-7 | **What the order keeps.** | The order line keeps the variant and the **cover of the chosen design**. Deleting, reordering or regrouping the product's photos later, or renaming the design, never changes a past order's photo. |
 | PD-8 | **A photo that an order shows.** | **Kept as long as any order line shows it,** and it counts toward the shop's storage. Removing it from the product is allowed; deleting the file is refused while orders use it, with how many (amends MED-09, ORD-46, ORD-47). |
 | PD-9 | **What the seller acts on.** | The order page, the order editor and the confirmation call show the cover with the design's name and the size. **The parcel label (ORD-19) names the design, the size and the SKU** on each item line. There is no separate packing list. |
-| PD-10 | **SKUs.** | A variant of a product with designs that has no SKU gets one when saved: the product's initials, the design and the other values, e.g. `IB-D2-54`, made unique in the shop. The seller can change it. |
+| PD-10 | **SKUs.** | A variant of a product with designs that has no SKU gets one when saved: the product's initials, the design and the other values, e.g. `IB-D2-54`, made unique in the shop. The initials come from the product's link name (`irani-burka` gives `IB`), so a Bangla name gives Latin letters too. The seller can change it. |
 | PD-11 | **Products that exist today.** | They keep their photos as plain photos, and their variants and stock unchanged. PD-3's default applies to photos added later, **except** that a product which already has variants with stock or orders and no designs keeps new photos plain until the seller turns designs on (re-keying its variants is refused after orders, ATR-15). |
 | PD-12 | **One design.** | A product with only one design shows no photo cards; that design is chosen. |
 
@@ -82,7 +82,7 @@ shopper gets exactly the design they chose, and the seller sends exactly that de
 | PD-22 | **Orders not tapped by a shopper.** | The order editor and a combo's choice picker offer a product's variants by design cover and size, never by text alone; an order can't be saved with a design-product line that has no design. |
 | PD-23 | **The feed** (FED-02). | A variant row's `image_link` is its design's cover, and `additional_image_link` the design's other photos, then the product's plain photos. |
 | PD-24 | **A shared link** (LND-06). | `?v=<variant>` opens with that variant's design and size chosen, and the gallery on its cover. |
-| PD-25 | **The delivery charge before the address is known** (the owner, 2026-11-12: "when there is no choosen address you should render the maximum one"). | The cart and the landing page's form show **the shop's highest delivery charge** and **one total**, not a range, with the link "সঠিক ডেলিভারি চার্জ জানতে আপনার অ্যাড্রেস দিন" (the landing form: "সঠিক ডেলিভারি চার্জ জানতে থানা বাছুন"); once the address or thana is known, the exact charge (SFT-20). Amends SFT-20 and LND-07's "a range until the thana is chosen". |
+| PD-25 | **The delivery charge before the address is known** (the owner, 2026-11-12: "when there is no choosen address you should render the maximum one"). | The cart and the landing page's form show **the shop's highest delivery charge** and **one total**, not a range, with the link "সঠিক ডেলিভারি চার্জ জানতে আপনার অ্যাড্রেস দিন" (the landing form: "সঠিক ডেলিভারি চার্জ জানতে থানা বাছুন"); once the address or thana is known, the exact charge (SFT-20). Amends SFT-20 and LND-08, and `STOREFRONT-DESIGN.md` §6's "a range until the thana is chosen". |
 | PD-26 | **Asking for the shopper's address** (the owner, 2026-11-12: "elaka => address", then "sothik delivery charge janthe apnar address din"). | The prompts that ask for the address to work out the delivery charge say **"অ্যাড্রেস"**. In the built storefront's words (`apps/storefront/src/lib/i18n/copy.ts`): `deliv_area` becomes "আপনার অ্যাড্রেস দিন" / "Set your address", `area_title` "আপনার অ্যাড্রেস" / "Your address", and `area_save` "অ্যাড্রেস ঠিক করুন" / "Set address". The address form's own fields ("পুরো ঠিকানা", "ডেলিভারি ঠিকানা", saved addresses) keep their built words. |
 | PD-27 | **No redesign** (the owner, 2026-11-12). | The product page, the landing page and the cart keep their built look. From a redesign drawn on 2026-11-12, only the photo cards and their choosing (PD-4) are kept; its numbers, "ডিজাইন" labels, "এই ডিজাইন নিন" buttons on the photos, guiding button words and new layout were turned down and are not built. |
 
@@ -90,7 +90,8 @@ shopper gets exactly the design they chose, and the seller sends exactly that de
 
 ## 3. Requirement changes (`SRS-detailed.md`)
 
-Amended in the docs commit of this work, with the date 2026-11-12:
+Amended in the docs commit of this work, with the date 2026-11-12. `STOREFRONT-DESIGN.md` §7f describes the storefront's
+changes against the prototype's screens.
 
 | Row | Change |
 |---|---|
@@ -101,7 +102,7 @@ Amended in the docs commit of this work, with the date 2026-11-12:
 | PRD-11 | A photo is a design by default (PD-3, PD-11). |
 | SFT-04, LND-01 | The photo cards, nothing chosen until tapped, the gallery showing a tapped design's cover, and the photo sized to the window on desktop (PD-4, PD-17, PD-18). |
 | SFT-05 | The cart line's design cover, its unit and its trash button (PD-6, PD-19, PD-21). |
-| SFT-20, LND-07 | The highest charge and one total before the address is known; "অ্যাড্রেস" (PD-25, PD-26). |
+| SFT-20, LND-08 | The highest charge and one total before the address is known; "অ্যাড্রেস" (PD-25, PD-26). LND-08 is the landing form's totals row; LND-07 lists its fields and is unchanged. |
 | ORD-17, ORD-19 | The confirmation page and tracking list items with photos; the label names design, size and SKU (PD-6, PD-9). |
 | ORD-46, ORD-47, MED-09 | A photo an order shows is kept, not best effort (PD-8). |
 | UOM-05 (new) | The unit on every quantity (PD-19). |
