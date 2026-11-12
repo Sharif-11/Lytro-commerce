@@ -56,3 +56,25 @@ describe('a transaction held open past its limit (DAT-23)', () => {
     expect(answer.rows).toEqual([{ one: 1 }]);
   });
 });
+
+describe('a connection the database ends while it is lent out', () => {
+  // A restart, a failover or transaction_timeout ends the session under a transaction. The query fails; the client
+  // also emits 'error', which nothing may leave unheard, or the process ends (Vitest reports it as an unhandled error).
+  it('fails the query in flight and leaves the process running', async () => {
+    const lent = new DatabaseConnector().connect(testDbUrl(ADMIN_URL), { max: 1 });
+    try {
+      await expect(
+        lent.db.transaction(async (tx) => {
+          const { rows } = await tx.execute<{ pid: number }>(sql`SELECT pg_backend_pid() AS pid`);
+          await probe.query('SELECT pg_terminate_backend($1)', [rows[0]?.pid]);
+          await tx.execute(sql`SELECT 1`);
+        }),
+      ).rejects.toThrow();
+      // The pool goes on with a fresh connection.
+      const after = await lent.db.execute<{ one: number }>(sql`SELECT 1 AS one`);
+      expect(after.rows).toEqual([{ one: 1 }]);
+    } finally {
+      await lent.close();
+    }
+  });
+});
