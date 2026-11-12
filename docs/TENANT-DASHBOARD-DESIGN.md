@@ -2129,6 +2129,22 @@ comes before the variants; a new product is created first, then its photos and v
 (`{ id, name, number, photoIds }`) and images' `designId`; `GET /orders/picker/:id` variants' `image`; the order's
 `items[].thumbnail`, `sku` and `attributes[].design`.
 
+### 7.43 A category's picture, and how every picture upload shows its progress (small fixes, 2026-11-13)
+
+Prototype: the group "Small fixes · 2026-11-13" in `docs/brand/lytro-dashboard.html` (8 screens).
+
+- **A category's picture (PRD-03).** The category sheet gains a **ছবি** row under the name: a 72 px tile with "ছবি দিন"
+  until one is set, and beside it "দোকানের হোমে ক্যাটাগরির গোল ঘরে দেখায়। না দিলে নামের প্রথম অক্ষর।" Once set, the
+  picture with **বদলান** and **সরান**. The server has taken `imageId` since #177 and the storefront's home already
+  shows it; only the dashboard had no way to set it.
+- **Every picture upload says how it is going,** in the product photos' built words and tile: "আপলোড N%" with a bar
+  while the file goes up, then "তৈরি হচ্ছে · 30 সেকেন্ডে" while it is prepared, and a refusal's reason ("6 MB · লিমিট
+  5 MB") with **আরেকটি ছবি দিন**. Save (and Replace) wait while a picture is on its way. This covers the category's
+  picture, the size chart's picture (a product's or a category's, one sheet) and a swatch from a photo, which until
+  now only greyed their button.
+- A swatch's "ছবি থেকে" chip carries the same: "আপলোড N%" with a thin bar inside the chip; the other swatch choices
+  wait until it is done.
+
 ## 8. Screens designed for later phases
 
 Kept in the prototype under "Later phases (design only)", exactly as designed on 2026-10-20, so the
