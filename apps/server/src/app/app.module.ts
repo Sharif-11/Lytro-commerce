@@ -3,6 +3,7 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { ZodSerializerInterceptor } from 'nestjs-zod';
 import { GracefulShutdownModule } from '@tygra/nestjs-graceful-shutdown';
 import { ApiErrorFilter } from '../common/api-error.filter';
+import { runsJobs, serverRoleOf } from '../config/server-role';
 import { RequestIdModule } from '../common/request-id/request-id.module';
 import { ResponseEnvelopeInterceptor } from '../common/interceptors/response-envelope.interceptor';
 import { DatabaseModule } from '../database/database.module';
@@ -29,6 +30,10 @@ const shutdownImports: DynamicModule[] =
     ? []
     : [GracefulShutdownModule.forRoot({ gracefulShutdownTimeout: 10000 })];
 
+// D9-11: an API process registers no job workers, so it never starts the job queue; the worker process (and a process
+// in the `all` role, as in development and tests) registers every one.
+const jobImports = runsJobs(serverRoleOf(process.env)) ? [QueueWorkersModule] : [];
+
 @Module({
   imports: [
     ...shutdownImports,
@@ -43,7 +48,7 @@ const shutdownImports: DynamicModule[] =
     ShopAppModule,
     AuditModule,
     QueueModule,
-    QueueWorkersModule,
+    ...jobImports,
   ],
   controllers:
     process.env['NODE_ENV'] === 'test'
