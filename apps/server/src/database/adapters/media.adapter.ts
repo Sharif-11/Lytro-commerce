@@ -99,11 +99,10 @@ export class DrizzleMediaStore implements MediaStore {
     overrides: { limitKey: string; value: unknown }[];
     addons: AddonUnits[];
   }> {
-    const [info, overrides, addons] = await Promise.all([
-      this.tenants.findBillingInfo(tx, tenantId),
-      this.overrides.listForTenant(tx, tenantId),
-      this.addonPurchases.activeUnits(tx, tenantId),
-    ]);
+    // In turn: the transaction's one connection runs one query at a time.
+    const info = await this.tenants.findBillingInfo(tx, tenantId);
+    const overrides = await this.overrides.listForTenant(tx, tenantId);
+    const addons = await this.addonPurchases.activeUnits(tx, tenantId);
     return { snapshot: info?.planSnapshot ?? null, overrides, addons };
   }
 

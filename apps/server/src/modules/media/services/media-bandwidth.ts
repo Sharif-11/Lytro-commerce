@@ -314,14 +314,14 @@ export class MediaBandwidth {
 
   /** Every shop's overrides, limit add-ons and packs -- or one shop's, in `tx` when given. */
   private async allowancesOf(tenantId?: string, tx?: Transaction): Promise<Allowances> {
-    const [overrides, addons, bought, taken] = await Promise.all([
+    const overrides =
       tenantId === undefined
-        ? this.store.listOverridesFor(BANDWIDTH_KEY)
-        : this.store.listShopOverrides(tenantId),
-      this.store.listLimitAddons(tenantId, tx),
-      this.store.listPacksBought(tenantId, tx),
-      this.store.listPacksTaken(tenantId, tx),
-    ]);
+        ? await this.store.listOverridesFor(BANDWIDTH_KEY)
+        : await this.store.listShopOverrides(tenantId);
+    // In turn: a transaction's one connection runs one query at a time.
+    const addons = await this.store.listLimitAddons(tenantId, tx);
+    const bought = await this.store.listPacksBought(tenantId, tx);
+    const taken = await this.store.listPacksTaken(tenantId, tx);
     return {
       overrides: byShop(overrides.filter((row) => row.limitKey === BANDWIDTH_KEY)),
       addons: totals(addons),

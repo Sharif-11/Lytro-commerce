@@ -8,5 +8,7 @@ export default defineConfig({
     // The slowest single tests (writers racing each other, password hashing) take several seconds, too close to the
     // default 5 s. A test that needs longer still sets its own limit.
     testTimeout: 15_000,
+    // Fails a spec whose code sends two queries at once on one connection (pg 9 refuses them).
+    setupFiles: ['./test/support/one-query-per-connection.ts'],
   },
 });
