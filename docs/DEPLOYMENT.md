@@ -238,6 +238,15 @@ for `active`) with zero infrastructure work on this platform's side per tenant.
    shop's bandwidth and writes the blocked list and each shop's website addresses. Without the token, nothing is
    counted or blocked.
 
+**Staging's media** (Phase 9 Slice 9.1) is the same, apart in every part, so nothing staging does reaches production:
+buckets `lytro-staging-uploads`, `lytro-staging-media` and `lytro-staging-evidence`; the KV namespace
+`lytro-staging-media-edge`; the dataset `lytro_staging_media_usage` (the server's `MEDIA_USAGE_DATASET`); and the
+Worker `lytro-media-staging` at `https://media-staging.lytro.app`, one level under lytro.app so Cloudflare's own
+certificate covers it. `wrangler deploy --env staging` deploys it, and its secrets are put with `--env staging`. Its
+traffic fits the Workers Free plan. The uploads bucket's CORS policy allows `PUT` with `content-type` from
+`https://app.staging.lytro.app` and `https://admin.staging.lytro.app` only. The processing and deletion keys are limited
+to the staging server's address; the signer's can't be (the browser uses its links), nor the Worker's.
+
 **Payment screenshots (Slice 8.5, D8-47).** Their own private bucket: make one named `lytro-evidence` (or set
 `MEDIA_EVIDENCE_BUCKET`), with no public address and no custom domain, and add it to the processing and deletion keys
 (RUNBOOKS' key inventory). Never give the media Worker's token access to it.

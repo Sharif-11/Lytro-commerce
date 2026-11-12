@@ -20,4 +20,20 @@
   // Secrets, set with `wrangler secret put` (or `.dev.vars` for `wrangler dev`), never written here (MED-07):
   // R2_ENDPOINT, R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY (an Object Read only token), and MEDIA_LINK_SECRET.
   "observability": { "enabled": true },
+  // Staging (Phase 9 Slice 9.1): `wrangler deploy --env staging` makes the Worker `lytro-media-staging` at its own
+  // address, over staging's own media bucket, store and dataset, so nothing staging does reaches production's. One
+  // level under lytro.app, so Cloudflare's own certificate covers it. Its secrets are put with `--env staging`.
+  "env": {
+    "staging": {
+      "routes": [{ "pattern": "media-staging.lytro.app", "custom_domain": true }],
+      "kv_namespaces": [{ "binding": "MEDIA_EDGE", "id": "5acdeb372d814be0b8a2b551ed6ab357" }],
+      "analytics_engine_datasets": [
+        { "binding": "MEDIA_USAGE", "dataset": "lytro_staging_media_usage" },
+      ],
+      "vars": {
+        "R2_BUCKET": "lytro-staging-media",
+        "DASHBOARD_ORIGINS": "https://app.staging.lytro.app,https://admin.staging.lytro.app",
+      },
+    },
+  },
 }
