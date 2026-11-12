@@ -1,8 +1,9 @@
 # Deployment
 
-Status: planned, not yet built — no server exists to point DNS at. Written now so the frontend work (slice 9 and
-onward) is built against a real target from the start, instead of a shape that turns out to need rework once a
-VPS exists. Nothing here is infrastructure that currently runs; this is the plan for when it does.
+Status: built in Phase 9 Slice 9.1 (2026-11-12). Every container, the edge, the deploy and the server's setup are in
+`deploy/` and `.github/workflows/deploy.yml`, proven by the deploy rehearsal on each change to them. `deploy/README.md`
+is the procedure. Staging (`staging.lytro.app`, D9-9) runs on a 2 vCPU / 3 GB BDIX server; production comes with Slice
+9.10 (D9-24).
 
 ## 1. Why this shape
 
@@ -308,14 +309,46 @@ only adds concrete artifacts to it, nothing new in process:
   point back to it. The existing rollback story still applies (§7: "the previous container image stays
   available and redeployable in one step").
 
+### 9a. As built (Slice 9.1)
+
+- **Images** (`Dockerfile`, `deploy/caddy/Dockerfile`), built once per commit by the Deploy workflow and pushed to
+  ghcr.io, public as the repository is:
+  - `lytro-server`: the API or the worker by `SERVER_ROLE` (D9-11), and the migration step;
+  - `lytro-website` and `lytro-storefront`: Next's standalone builds;
+  - `lytro-static`: the dashboard's and console's files. A one-off container publishes them into the edge's volume
+    and switches a `current` link in one step. The release before is kept for a rollback, and no container restarts
+    (§9's "cheaper deploy");
+  - `lytro-edge`: Caddy with the Cloudflare DNS plugin, tagged by a hash of its inputs, so it's replaced only when
+    Caddy or the Caddyfile changes.
+- **One server** (`deploy/compose.yml`):
+  - two API processes and one worker (D9-11);
+  - Caddy balances the API processes and checks each one's `/health`. An internal listener (`:8080`) does the same
+    for the website's and storefront's own calls;
+  - every process has a memory ceiling sized for staging's 3 GB; PostgreSQL has none and is killed last;
+  - Redis runs, ready for Slice 9.4.
+- **A deploy** (`deploy/scripts/deploy.sh`, D9-12):
+  1. pull the images;
+  2. dump the database;
+  3. migrate, then install pg-boss's schema, as the owner;
+  4. replace the worker, `api-1` and `api-2` in turn, each healthy on the new release before the next;
+  5. publish the static files and update the edge;
+  6. replace the website and the storefront.
+
+  GitHub reaches the server with a key whose only command is the deploy (`deploy/scripts/lytro-ssh`). Production
+  takes only images that passed staging.
+- **Certificates:** `*.<domain>` by DNS-01 through Cloudflare, with a token that can only edit lytro.app's DNS. It's
+  set on the wildcard site alone, because a global `acme_dns` would also apply to shops' own domains (§7), whose DNS
+  isn't ours.
+
 ## 10. Open, deliberately deferred
 
-Not blocking any of the frontend work in `docs/PHASE-1-PLAN.md`; revisit once an actual VPS exists to deploy to:
+Settled by Phase 9's plan and Slice 9.1:
+- the VPS: staging on BDIX, 2 vCPU / 3 GB (D9-9), production 4 vCPU / 6 GB (D9-24);
+- the website and the storefront: their own containers (D9-10);
+- backups: the deploy dumps the database first, and Slice 9.3 brings pgBackRest and nightly dumps (D9-18).
 
-- The VPS provider and sizing.
-- Backup strategy for the Postgres volume (the local dev `docker-compose.yml` has none; production needs one).
-- Whether `website` and `storefront` really need separate containers from day one, or could share one Node
-  process initially to save RAM on a small VPS, splitting later once traffic justifies it.
+Still open:
+
 - **Cloudflare in front of Caddy**, if added later: a pure addition, not a redesign. Caddy's routing rules
   (§5) don't change at all — Cloudflare just forwards to Caddy's IP, invisible to every app behind it. The
   only changes are environment config, not code: `CLIENT_IP_HEADER=cf-connecting-ip` and
