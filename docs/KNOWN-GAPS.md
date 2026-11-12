@@ -2554,3 +2554,19 @@ The close-out (PHASE-8-PLAN §11) fixed what its three reviews found, apart from
 - **Next release:** the shop page's failed webhooks and open tickets (ADM-03, D8-1).
 - **What only the real world shows:** MED-12's match with a real Cloudflare invoice (§138), a real payment through Lytro's
   own bKash merchant account (§137), and API-28's redirect, a manual check in Phase 9.
+
+## 145. `ATR-19`, `ATR-20`: what photo designs' server leaves open — found 2026-11-12, open
+
+- **The dashboard and the storefront still read photos as before.** The server PR comes first, as PHOTO-DESIGNS-PLAN §4
+  orders: the dashboard saves `{ mediaIds }`, so every photo stays plain and no product gets a design until the dashboard
+  PR, and the storefront shows no photo cards until its own.
+- **The dashboard's photo sheet still warns that past orders lose a photo** (`pastOrdersLost`), though since PD-8 the
+  server keeps it: deleting it from the media library answers `MediaKeptForOrders`, and a photo taken off a product
+  stays in the shop's media. The dashboard PR changes the words.
+- **A combo line keeps no photo of the design chosen inside it.** The line keeps the combo's own cover and each part
+  its design's name, so the seller's order page names that design, and the shopper's tracking shows the part's product
+  and size only. The public combo offers its designs by photo (PD-4); the order line does not yet keep that photo.
+- **The parcel label's design and SKU wait for the dashboard.** The server gives each order line its design's name and
+  its SKU (PD-9); the label (ORD-19) draws only the product names until the dashboard PR.
+- **A filled SKU is not refilled when a design is renamed.** PD-10 fills a SKU only when it is empty, by the design's
+  number, which never changes, so it never goes stale; a SKU the seller typed is left alone.

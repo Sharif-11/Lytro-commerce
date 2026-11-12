@@ -688,11 +688,15 @@ CREATE TABLE tenant.product_images (                -- PRD-11 ordering of images
     product_id      uuid NOT NULL,
     media_id        uuid NOT NULL,
     sort_order      integer NOT NULL CHECK (sort_order >= 0),
+    design_option_id uuid,                        -- ATR-19 (PD-13, 0129): the design it shows; NULL = a plain photo
     PRIMARY KEY (tenant_id, product_id, media_id),
     UNIQUE (tenant_id, product_id, sort_order),
     FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id) ON DELETE CASCADE,
-    FOREIGN KEY (tenant_id, media_id)   REFERENCES tenant.media(tenant_id, id) ON DELETE CASCADE
+    FOREIGN KEY (tenant_id, media_id)   REFERENCES tenant.media(tenant_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_id, design_option_id) REFERENCES tenant.attribute_options(tenant_id, id)
+        ON DELETE SET NULL (design_option_id)
 );
+CREATE INDEX ON tenant.product_images (tenant_id, design_option_id) WHERE design_option_id IS NOT NULL;
 -- Up to 10 per product (PRD-11, checked by the request); each a ready image of the shop's (§3.5's attach trigger).
 -- Saving a product's photos replaces the set; a duplicated product shows the same items (PRD-18).
 
@@ -740,10 +744,12 @@ CREATE TABLE tenant.attributes (                    -- ATL-01: one table, two sc
     data_type       tenant.attribute_data_type NOT NULL,
     unit_kind       tenant.unit_kind,             -- number_with_unit only
     retired_at      timestamptz,                  -- ATR-10
+    photo_designs   boolean NOT NULL DEFAULT false, -- ATR-19 (PD-13, 0129): the one platform "Design" attribute
     CHECK ((data_type = 'number_with_unit') = (unit_kind IS NOT NULL))
 );
 CREATE UNIQUE INDEX ON tenant.attributes (tenant_id, lower(name)) WHERE tenant_id IS NOT NULL;
 CREATE UNIQUE INDEX ON tenant.attributes (lower(name)) WHERE tenant_id IS NULL;
+CREATE UNIQUE INDEX ON tenant.attributes (photo_designs) WHERE photo_designs;    -- at most one
 -- RLS exception, the one table in §3 that needs it: SELECT allows tenant_id IS NULL OR the tenant's
 -- own rows; INSERT/UPDATE/DELETE allow only the tenant's own rows (platform rows are written by the
 -- operator through the control-plane connection).
@@ -757,11 +763,29 @@ CREATE TABLE tenant.attribute_options (
     swatch_image_id uuid,                         -- ATR-18, optional; at most one of the two
     sort_order      integer NOT NULL DEFAULT 0,
     retired_at      timestamptz,
+    product_id      uuid,                         -- ATR-19 (PD-13, 0129): a design, one product's own value
     CHECK (swatch_color IS NULL OR swatch_image_id IS NULL),
-    UNIQUE (attribute_id, id)                     -- lets a value row prove its option belongs to its attribute
+    CHECK (product_id IS NULL OR tenant_id IS NOT NULL),
+    UNIQUE (attribute_id, id),                    -- lets a value row prove its option belongs to its attribute
+    UNIQUE (tenant_id, id),                       -- lets a product photo name its design (0129)
+    FOREIGN KEY (tenant_id, product_id) REFERENCES tenant.products(tenant_id, id) ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX ON tenant.attribute_options (attribute_id, lower(value)) WHERE tenant_id IS NULL;
-CREATE UNIQUE INDEX ON tenant.attribute_options (tenant_id, attribute_id, lower(value)) WHERE tenant_id IS NOT NULL;
+CREATE UNIQUE INDEX ON tenant.attribute_options (tenant_id, attribute_id, lower(value))
+    WHERE tenant_id IS NOT NULL AND product_id IS NULL;
+CREATE UNIQUE INDEX ON tenant.attribute_options (tenant_id, product_id, attribute_id, lower(value))
+    WHERE product_id IS NOT NULL;
+-- ATR-19, ATR-20 (photo designs, PD-13, migration 0129): a product's photos are its designs. One platform attribute,
+-- "Design", is `enum_single` with `photo_designs` set (a flag, not a new data type); its options are each one product's
+-- (`product_id`), numbered by `sort_order`, a number never reused, so two products may each have "ডিজাইন 1". A product
+-- photo names its design (`product_images.design_option_id`), so a design's photos are its product's photos with that
+-- option, in photo order, the first its cover. Triggers refuse what the keys cannot: an option of the design attribute
+-- without a product, or any other with one (`catalogue_design_product`); a photo naming another product's design
+-- (`catalogue_design_photo`); the design attribute as anything but variant-defining (`catalogue_design_role`, in
+-- `check_product_attribute`); a variant valued by another product's design (`catalogue_design_variant`, in
+-- `check_variant_value`). The attribute is never in a shop's list or the platform library's, and no route adds a value
+-- to it but saving the product's photos. An order line keeps its design's cover as `thumbnail` and its value with
+-- `design: true` in `attribute_values` (`tenant.order_lines`), so later edits never change a past order's photo.
 -- Decided in Slice 1: an option carries its own scope, so a shop adds its own values ("Ruby 05") to a platform
 -- attribute ("Shade") and two shops may each hold the same value. Only enum-single, enum-multi and
 -- number-with-unit attributes hold options; a number-with-unit option is a number in its unit kind's base unit
@@ -1608,10 +1632,12 @@ CREATE TABLE tenant.order_lines (                  -- ORD-46: a self-sufficient 
     -- everything below is copied at order time, never read live:
     product_name    varchar(200) NOT NULL,
     sku             varchar(64),
-    attribute_values jsonb NOT NULL DEFAULT '[]',   -- ATR-09, ATL-06: [{ name, value, dataType, unitKind, variantDefining }]
+    attribute_values jsonb NOT NULL DEFAULT '[]',   -- ATR-09, ATL-06: [{ name, value, dataType, unitKind, variantDefining,
+                                                    --   design? }]; design: true marks a photo design's name (ATR-20)
     captured_values jsonb NOT NULL DEFAULT '[]',    -- ATR-08: [{ attributeId, name, value }]
     modifiers       jsonb NOT NULL DEFAULT '[]',    -- MNU-02 (4.6b): [{ groupId, groupName, optionId, optionName, priceChange }]
-    thumbnail_media_id uuid,                        -- MED-09's count; best effort (ORD-47)
+    thumbnail_media_id uuid,                        -- MED-09's count; best effort (ORD-47); a design's cover (PD-7),
+                                                    -- kept while any order shows it (PD-8)
     thumbnail_url   text,
     stock_unit      tenant.stock_unit NOT NULL,
     list_price      numeric(12,2) NOT NULL,         -- the variant's price when ordered
