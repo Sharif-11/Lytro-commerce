@@ -39,10 +39,13 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm --filter=@lytronix/
 # --- The server ------------------------------------------------------------------------------------------------------
 FROM ${NODE_IMAGE} AS server
 ARG RELEASE=local
+# FONTCONFIG_FILE: text is drawn with the server's own fonts only (apps/server/assets/fonts/README.md); the slim image
+# has no fontconfig set-up, which logged an error on every monogram.
 ENV NODE_ENV=production \
     RELEASE=${RELEASE} \
     HOME=/home/node \
-    PORT=3000
+    PORT=3000 \
+    FONTCONFIG_FILE=/app/assets/fonts/fonts.conf
 WORKDIR /app
 COPY --from=build --chown=node:node /out/server /app
 USER node

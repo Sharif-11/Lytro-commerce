@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -10,5 +11,8 @@ export default defineConfig({
     testTimeout: 15_000,
     // Fails a spec whose code sends two queries at once on one connection (pg 9 refuses them).
     setupFiles: ['./test/support/one-query-per-connection.ts'],
+    // Text is drawn with the server's own fonts and nothing else, as in its image (Dockerfile): a font file it can't
+    // read draws nothing here too, instead of falling back to whatever fonts this machine has.
+    env: { FONTCONFIG_FILE: fileURLToPath(new URL('./assets/fonts/fonts.conf', import.meta.url)) },
   },
 });
