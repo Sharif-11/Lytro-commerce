@@ -4,6 +4,7 @@ import {
   HttpException,
   Inject,
   Logger,
+  Optional,
   type ExceptionFilter,
 } from '@nestjs/common';
 import type { ApiErrorBody, ApiFieldError, ErrorCode } from '@lytronix/shared-types';
@@ -19,6 +20,9 @@ import { headerValue, type HttpRequest } from './http';
 import { resolveLanguage } from './i18n/accept-language';
 import type { MessageKey } from './i18n/message-key';
 import { translate } from './i18n/messages';
+import { isLostConnection } from '../database/lost-connection';
+import { PrimaryWatch } from '../database/primary-watch';
+import { SAVING_RETRY_AFTER_SECONDS } from './guards/saving.guard';
 
 // The subset of the HTTP response this filter uses, so the file does not depend on Express types.
 interface HttpResponse {
@@ -100,7 +104,11 @@ function clientErrorStatus(exception: unknown): number | null {
  */
 @Catch()
 export class ApiErrorFilter implements ExceptionFilter {
-  constructor(@Inject(RequestErrors) private readonly errors: RequestErrors) {}
+  constructor(
+    @Inject(RequestErrors) private readonly errors: RequestErrors,
+    // Optional for the specs that mount this filter without the database module.
+    @Optional() @Inject(PrimaryWatch) private readonly watch?: Pick<PrimaryWatch, 'check'>,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<HttpResponse>();
@@ -152,6 +160,30 @@ export class ApiErrorFilter implements ExceptionFilter {
       response
         .status(HTTP_STATUS.not_found)
         .json(this.body(HTTP_STATUS.not_found, translate('PageNotFound', lang), 'not_found', {}));
+      return;
+    }
+
+    // D9-14, DAT-42 (Slice 9.2): the database went away under this request. Nothing was saved; the answer is a retry
+    // hint, in the owner's words for a write, and the watch looks again now rather than within 30 seconds.
+    if (isLostConnection(exception)) {
+      void this.watch?.check();
+      const method = String(Reflect.get(Object(request), 'method') ?? 'GET').toUpperCase();
+      const key: MessageKey = ['GET', 'HEAD', 'OPTIONS'].includes(method)
+        ? 'SomethingWentWrong'
+        : 'SavingPaused';
+      logger.warn(`the database was lost under a ${method} request`);
+      this.errors.unavailable(request, key);
+      response.setHeader('Retry-After', String(SAVING_RETRY_AFTER_SECONDS));
+      response
+        .status(HTTP_STATUS.service_unavailable)
+        .json(
+          this.body(
+            HTTP_STATUS.service_unavailable,
+            translate(key, lang),
+            'service_unavailable',
+            {},
+          ),
+        );
       return;
     }
 

@@ -20,6 +20,11 @@ export interface PoolSettings {
   connectionTimeoutMillis?: number;
   /** Milliseconds one statement may run before the database cancels it. 0 disables the limit. */
   statementTimeoutMillis?: number;
+  /**
+   * Milliseconds a transaction may stay open before the database ends the session (PostgreSQL 17's
+   * transaction_timeout, DAT-23). Only on a direct connection: behind PgBouncer the pooler sets it (deploy/pgbouncer).
+   */
+  transactionTimeoutMillis?: number;
   /** Name shown for these connections in the database's activity view. */
   applicationName?: string;
 }
@@ -35,10 +40,21 @@ export class DatabaseConnector {
       connectionTimeoutMillis: settings.connectionTimeoutMillis,
       statement_timeout: settings.statementTimeoutMillis,
       application_name: settings.applicationName,
+      ...(settings.transactionTimeoutMillis === undefined
+        ? {}
+        : { options: `-c transaction_timeout=${String(settings.transactionTimeoutMillis)}` }),
     });
     // A connection lost while idle: the pool replaces it, but an 'error' event nobody listens for ends the process.
     pool.on('error', (error) => {
       console.error(`[database] idle connection lost: ${error.message}`);
+    });
+    // And one lost while lent out: PostgreSQL ending a transaction held past transaction_timeout (DAT-23), a restart,
+    // a failover. The query in flight fails by itself; the client then emits 'error' too, which unheard would end the
+    // process. Heard here, it's logged, and the pool drops the client when it comes back.
+    pool.on('connect', (client) => {
+      client.on('error', (error) => {
+        console.error(`[database] connection lost while in use: ${error.message}`);
+      });
     });
     return {
       db: drizzle(pool, { schema }),
