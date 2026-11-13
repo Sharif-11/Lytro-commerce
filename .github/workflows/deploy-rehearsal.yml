@@ -157,13 +157,42 @@ jobs:
           fi
           cat sleep.err
 
+      # Slice 9.6 (DAT-17, D9-20, OBS-02): statements over 200 ms are logged and every statement is counted, every
+      # container logs to the journal, and the jobs check answers on the API host with nothing late on a new server.
+      - name: Slow queries, the journal and the jobs check
+        run: |
+          sql() {
+            sudo docker exec lytro-postgres-1 sh -c "psql -X -A -t -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c '$1'"
+          }
+          test "$(sql 'SHOW log_min_duration_statement')" = '200ms'
+          test "$(sql 'SELECT count(*) > 0 FROM pg_stat_statements')" = 't'
+          for name in lytro-api-1-1 lytro-worker-1 lytro-postgres-1 lytro-edge-1; do
+            test "$(sudo docker inspect --format '{{.HostConfig.LogConfig.Type}}' "$name")" = journald
+          done
+          sudo journalctl --no-pager -n 3 CONTAINER_NAME=lytro-api-1-1
+          curl --silent --show-error --fail --insecure --resolve api.localhost:443:127.0.0.1 \
+            https://api.localhost/health/jobs | tee jobs.json
+          jq -e '.data.status == "ok"' jobs.json
+
       - name: Staging's hosts aren't indexed
         run: |
           curl --silent --insecure --head --resolve app.localhost:443:127.0.0.1 https://app.localhost/ \
             | grep -i '^x-robots-tag: noindex, nofollow'
 
+      # Slice 9.6 (D9-3, OBS-05): the monitor's Grafana account named, as a stand-in: a Prometheus that takes the
+      # monitor's remote writes and evaluates deploy/monitoring/alerts.yml on them. The next deploy starts the monitor.
+      - name: The monitor's settings, with a stand-in for Grafana Cloud
+        run: |
+          printf 'global:\n  evaluation_interval: 15s\nrule_files: [/rules/alerts.yml]\n' > "$RUNNER_TEMP/prometheus.yml"
+          sudo docker run -d --name fake-grafana --network lytro_internal \
+            -v "$PWD/deploy/monitoring:/rules:ro" -v "$RUNNER_TEMP/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+            prom/prometheus:v3.15.1 --config.file=/etc/prometheus/prometheus.yml --web.enable-remote-write-receiver
+          sudo sed -i -e 's#^GRAFANA_METRICS_URL=$#GRAFANA_METRICS_URL=http://fake-grafana:9090/api/v1/write#' \
+            -e 's#^GRAFANA_METRICS_USER=$#GRAFANA_METRICS_USER=1#' \
+            -e 's#^GRAFANA_CLOUD_TOKEN=$#GRAFANA_CLOUD_TOKEN=rehearsal#' "$LYTRO_HOME/env/monitoring.env"
+
       # A rerun: its release folder is made again under the running database, which must keep its first-start scripts
-      # (step 4 runs them) and isn't replaced.
+      # (step 4 runs them) and isn't replaced. The monitor starts, its account now named.
       - name: Deploy the same release again
         run: |
           set -o pipefail
@@ -173,9 +202,36 @@ jobs:
           if grep 'the database was replaced' rerun.log; then
             echo 'a rerun of the same release replaced the database'; exit 1
           fi
+          grep '8. the monitor' rerun.log
 
       - name: Every host still answers
         run: CHECK_ADDRESS=127.0.0.1 CHECK_INSECURE=1 WAIT_SECONDS=30 bash deploy/scripts/outside-check.sh localhost
+
+      # Every figure an alert reads reaches Grafana's stand-in, named by its server, and no alert rule fails to evaluate.
+      - name: The monitor sends every figure the alerts read
+        run: |
+          count() {
+            sudo docker exec fake-grafana wget -qO- "http://localhost:9090/api/v1/query?query=$1" | jq '.data.result | length'
+          }
+          for metric in node_cpu_seconds_total node_memory_MemAvailable_bytes node_filesystem_avail_bytes \
+            node_vmstat_pswpout node_load1 pg_up pg_stat_activity_count pg_settings_max_connections \
+            pg_stat_archiver_failed_count pg_stat_statements_calls_total pg_stat_statements_seconds_total redis_up \
+            caddy_http_request_duration_seconds_count; do
+            for _ in $(seq 1 36); do
+              [ "$(count "$metric")" -gt 0 ] && break
+              sleep 5
+            done
+            if [ "$(count "$metric")" -eq 0 ]; then echo "no $metric"; exit 1; fi
+            echo "ok $metric"
+          done
+          value() {
+            sudo docker exec fake-grafana wget -qO- "http://localhost:9090/api/v1/query?query=$1" | jq -r "$2"
+          }
+          test "$(value pg_up '.data.result[0].value[1]')" = 1
+          test "$(value redis_up '.data.result[0].value[1]')" = 1
+          test "$(value pg_up '.data.result[0].metric.server')" = localhost
+          sudo docker exec fake-grafana wget -qO- http://localhost:9090/api/v1/rules \
+            | jq -e '[.data.groups[].rules[]] | length == 14 and all(.health != "err")'
 
       # A deploy that replaces the database under both running API processes, as a new database image does (Slice 9.3's
       # did on staging, 2026-11-13): the pooler is restarted with it, and deploy.sh's ready checks find both API processes

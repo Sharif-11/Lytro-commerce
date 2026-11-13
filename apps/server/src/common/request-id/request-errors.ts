@@ -1,6 +1,7 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type { RequestErrorRow } from '@lytronix/db';
 import { REQUEST_ERROR_KEEP_DAYS, SHOP_ERRORS_COUNT_HOURS } from '@lytronix/validators';
+import { ErrorTracker } from '../error-tracking/error-tracker';
 import type { RequestErrorStore } from './ports/request-error-store';
 import { REQUEST_ERROR_STORE } from './tokens';
 
@@ -33,11 +34,19 @@ export interface FaultedRequest {
 export class RequestErrors {
   private readonly logger = new Logger(RequestErrors.name);
 
-  constructor(@Inject(REQUEST_ERROR_STORE) private readonly store: RequestErrorStore) {}
+  constructor(
+    @Inject(REQUEST_ERROR_STORE) private readonly store: RequestErrorStore,
+    @Optional() @Inject(ErrorTracker) private readonly tracker?: Pick<ErrorTracker, 'capture'>,
+  ) {}
 
-  /** An unexpected fault (500). */
+  /** An unexpected fault (500), kept for its shop and sent to the error tracker (OBS-03, Slice 9.6). */
   fault(request: FaultedRequest, exception: unknown): void {
     this.keep(request, 500, this.kindOf(exception));
+    this.tracker?.capture(exception, {
+      requestId: request.requestId,
+      tenantId: this.shopOf(request),
+      route: this.routeOf(request) ?? undefined,
+    });
   }
 
   /** A refusal because something Lytro depends on is down (503), by its message key. */
@@ -68,21 +77,15 @@ export class RequestErrors {
   }
 
   private keep(request: FaultedRequest, status: 500 | 503, kind: string): void {
-    // A route a guard set to no shop (null, an account-level one) keeps nothing; only one no guard reached yet falls back
-    // to the shop its session is on.
-    const tenantId =
-      request.tenant === undefined
-        ? (request.session?.tenantId ?? null)
-        : (request.tenant?.id ?? null);
+    const tenantId = this.shopOf(request);
     const requestId = request.requestId;
     if (tenantId === null || requestId === undefined) return;
-    const path = request.route?.path;
     this.store
       .record({
         tenantId,
         requestId,
         method: (request.method ?? 'GET').slice(0, 10),
-        route: typeof path === 'string' ? path.slice(0, ROUTE_LENGTH) : null,
+        route: this.routeOf(request),
         status,
         kind: kind.slice(0, KIND_LENGTH),
       })
@@ -91,6 +94,22 @@ export class RequestErrors {
           `a server fault couldn't be kept for its shop: ${error instanceof Error ? error.name : 'unknown'}`,
         );
       });
+  }
+
+  /**
+   * The shop a request was for. A route a guard set to no shop (null, an account-level one) has none; only one no guard
+   * reached yet falls back to the shop its session is on.
+   */
+  private shopOf(request: FaultedRequest): string | null {
+    return request.tenant === undefined
+      ? (request.session?.tenantId ?? null)
+      : (request.tenant?.id ?? null);
+  }
+
+  /** The route's pattern, never its values. */
+  private routeOf(request: FaultedRequest): string | null {
+    const path = request.route?.path;
+    return typeof path === 'string' ? path.slice(0, ROUTE_LENGTH) : null;
   }
 
   /** D8-23: the fault's class, with the database's code when it has one; never its message. */

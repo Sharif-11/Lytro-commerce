@@ -50,6 +50,7 @@ expect 'the dashboard' "app.$DOMAIN" / '200'
 expect 'the API through the dashboard host' "app.$DOMAIN" /api/v1/auth/providers '200'
 expect 'the console' "admin.$DOMAIN" / '200'
 expect 'the public API refuses a call without a key' "api.$DOMAIN" /v1/shop '401'
+expect 'the API is ready, as the uptime check asks' "api.$DOMAIN" /health/ready '200'
 expect 'the payment page host answers from the server' "pay.$DOMAIN" /not-a-page '404'
 expect 'a shop that does not exist: the storefront' "no-such-shop-check.$DOMAIN" / '404'
 

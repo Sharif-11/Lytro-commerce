@@ -386,3 +386,149 @@ listener pairing are counted in PostgreSQL.
    `/opt/lytro/settings.env` and deploy again. Production runs `256mb` (RED-01); staging `64mb`.
 
 **Afterwards.** Counts start again from empty, so limits are briefly looser. Nothing needs repairing.
+
+## 12. Monitoring and alerts (D9-3, D9-20, OBS-01 to OBS-08, MON-01, MON-03, DAT-17, DAT-25, DAT-27, DAT-55)
+
+**What wakes the owner (Slice 9.6's read, 2026-11-13).** Only what stops shops selling or puts data at risk: the API not
+ready from outside, the order probe failing, the database down, the disk over 90%, archiving failing. Everything else is
+an email and a silent push. Where things are:
+
+| What | Where |
+| --- | --- |
+| The server's, database's, Redis's and edge's figures, and their alerts | Grafana Cloud, sent by the monitor (`deploy/alloy/config.alloy`); the rules in `deploy/monitoring/alerts.yml` |
+| Uptime checks and the order probe | Grafana Cloud's synthetic monitoring (12.1, step 3) |
+| Errors from the API, the worker and the dashboard | Sentry |
+| Log lines, 14 days | The server's journal, as JSON (12.2) |
+| Late jobs and backups | `https://api.<domain>/health/jobs` |
+| A page or a phone call | Grafana IRM's phone app |
+
+### 12.1 Setting it up
+
+Once for the accounts, then once per server. Two-factor on both accounts, at most 3 members (DAT-28).
+
+1. **Grafana Cloud** (free): make the stack, put the IRM app on the owner's phone, and make an access policy token that
+   may write metrics and read and write rules. On the server, `sudo nano /opt/lytro/env/monitoring.env` and fill in
+   `GRAFANA_METRICS_URL` (the stack's Prometheus remote write address, ending `/api/prom/push`), `GRAFANA_METRICS_USER`
+   (its number) and `GRAFANA_CLOUD_TOKEN`. The next deploy starts the monitor (its log says `8. the monitor`). Then
+   load the alerts: `sudo bash /opt/lytro/state/current/monitoring/sync-alerts.sh`, and again whenever `alerts.yml`
+   changes.
+2. **Where alerts go** (Grafana, Alerting, Notification policies): `severity=page` to the IRM integration, escalating
+   from a push to a phone call; `severity=notify` to email and a silent push. Each alert links its runbook step below
+   (OBS-06).
+3. **Uptime checks** (Synthetic monitoring, one HTTP check each), from 2 probe locations outside Bangladesh, alerting
+   after 2 failures in a row (OBS-01). For production:
+
+   | Check | Address | Answer | Every | Severity |
+   | --- | --- | --- | --- | --- |
+   | API ready | `https://api.lytro.app/health/ready` | 200 | 1 min | page |
+   | Dashboard | `https://app.lytro.app/` | 200 | 5 min | page |
+   | Payment page | `https://pay.lytro.app/not-a-page`, answered by the server | 404 | 5 min | page |
+   | Media | one of the probe shop's product photos | 200 | 5 min | page |
+   | Jobs | `https://api.lytro.app/health/jobs` | 200 | 5 min | notify |
+   | Order probe | a scripted check, `deploy/monitoring/probe.js` (step 5) | passes | 15 min | page |
+
+   Staging gets the same checks on its own hosts, every one `notify`: staging never wakes anyone. If the free plan's
+   allowance of checks is tight, check the API every 2 minutes.
+4. **Sentry**: two projects. The server's DSN goes in `server.env` as `SENTRY_DSN` (and `SENTRY_ENVIRONMENT=staging`
+   on staging). The dashboard's goes in GitHub (Settings, Secrets and variables, Actions, Variables) as
+   `DASHBOARD_SENTRY_DSN`, and its `https://<host>` part in `edge.env` as `SENTRY_INGEST_ORIGIN`, so the dashboard's
+   Content Security Policy lets it through. In each project, alert by email on a new issue and on a spike.
+5. **The order probe** (OBS-08), on each server: the owner makes a shop named "Lytro probe" with one product whose
+   stock never runs out, an advance on every order with a payment method on, and SMS events, fraud checks and staff
+   notifications all off. The operator lifts its order limit. Make a public key for it with the website
+   `https://probe.lytro.app` (staging: `https://probe.staging.lytro.app`). Fill the key, the variant, a delivery area's
+   location ID and the owner's own phone into `probe.js`, and paste it into a scripted check. It places 96 orders a
+   day, all in that shop.
+6. **A server set up before Slice 9.6** (staging): run `deploy/scripts/make-env.sh` again (it adds the monitor's
+   database password and writes `monitoring.env`, keeping every other file), and `deploy/scripts/setup-server.sh` (its
+   journal settings: 14 days, then deleted).
+
+Then fire every alert once on the server, by causing what it watches (Phase 9 exit criterion 6).
+
+### 12.2 Finding things
+
+- **A request, by the ID a seller read out** (`K7MQ-4XR2`): `sudo journalctl --since -2d -o cat
+  CONTAINER_NAME=lytro-api-1-1 CONTAINER_NAME=lytro-api-2-1 | grep K7MQ-4XR2 | jq .` Each line names its shop
+  (`shopId`); the request line has the route, status, time and outside time.
+- **A job's lines**: `sudo journalctl --since -1d -o cat CONTAINER_NAME=lytro-worker-1 | grep CapacityTick | jq .`
+- **Slow queries** (DAT-17, reviewed before launch): statements over 200 ms are in the database's log
+  (`sudo journalctl -o cat CONTAINER_NAME=lytro-postgres-1 | grep duration`), and every statement's totals in
+  `pg_stat_statements`: in `sudo docker exec -it lytro-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'`,
+  `SELECT round(mean_exec_time) AS ms, calls, left(query, 120) FROM pg_stat_statements ORDER BY 1 DESC LIMIT 20;`.
+  Check each hot endpoint's plan (the catalogue, an order, a payment session, an upload) for a scan of a shop's table
+  without an index.
+
+### 12.3 What each alert means
+
+#### ServerCpuHigh
+
+CPU over 70% for 15 minutes. `sudo docker stats --no-stream` says which container. A video conversion or a night's job
+is brief; a lasting climb with traffic means DAT-55's second server is near.
+
+#### ServerCpuSteal
+
+The provider takes over 10% of the CPU. Nothing in Lytro causes it: ask the provider, and move if it lasts.
+
+#### ServerMemoryHigh
+
+Memory over 80%. `sudo docker stats --no-stream`: a process at its ceiling (`compose.yml`'s `mem_limit`) is restarted
+by Docker when it crosses it. Read that process's lines before raising its ceiling in `settings.env`.
+
+#### ServerSwapping
+
+Memory is being written out to swap: the server is short of memory, and everything slows. As ServerMemoryHigh.
+
+#### ServerDiskHigh
+
+The disk is over 70%. `sudo du -xh --max-depth=1 / | sort -h | tail`. The usual: old images
+(`sudo docker image prune`), the pre-deploy dumps (`/opt/lytro/backups/pre-deploy`, five kept), the journal
+(`journalctl --disk-usage`).
+
+#### ServerDiskFull
+
+**Pages.** The disk is over 90%, and PostgreSQL stops when it fills. Free space now (ServerDiskHigh's list), then grow
+the disk.
+
+#### ServerPeakLoadHalf
+
+DAT-55: the busiest 5 minutes of the last day used half the CPU. With the paying shops' and revenue's email (the
+measure's other two), it says the second server is due. Plan it; nothing is broken.
+
+#### DatabaseDown
+
+**Pages.** The monitor can't reach PostgreSQL. `sudo docker ps --filter name=postgres`, then
+`sudo docker logs --tail 80 lytro-postgres-1`. A full disk or a crash: start it as §11 step 3 starts Redis
+(`up -d postgres`), then the pooler (`up -d --force-recreate pgbouncer`). If it won't start, §10.5.
+
+#### DatabaseConnectionsHigh
+
+Over 70% of `max_connections` in use. `SELECT usename, state, count(*) FROM pg_stat_activity GROUP BY 1, 2;` Long
+"idle in transaction" is a bug; many active, load.
+
+#### ArchiveFailing
+
+**Pages.** Archiving the write-ahead log keeps failing, so point-in-time recovery falls behind. §10.1: the database's
+log names the cause, mostly R2's key or the network.
+
+#### SlowQuery
+
+A statement averages over 200 ms. Find it by its `queryid` in `pg_stat_statements` (12.2) and check its plan.
+
+#### RedisDown
+
+§11.
+
+#### ErrorRateHigh
+
+Over 5% of requests end in a server error. Sentry says which error; the request lines (12.2) say which route.
+
+#### MonitorSilent
+
+No figures from any server for 15 minutes, so every alert here is blind. `sudo docker logs --tail 50 lytro-monitor-1`:
+a token that expired, or a stopped monitor (start it as §11 step 3 does, with `--profile monitoring up -d monitor`).
+
+#### The uptime checks and the order probe
+
+The API not ready: `curl -s https://api.<domain>/health/ready | jq` says which way the database is. The order probe
+failed: its check's log names the step; place the same order by hand. Jobs late: `/health/jobs` names them, and each
+job's lines are in the journal (12.2); a late backup is §10.1.

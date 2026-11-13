@@ -103,7 +103,10 @@ jobs:
         with:
           context: .
           target: static
-          build-args: RELEASE=${{ github.sha }}
+          # OBS-03 (Slice 9.6): the dashboard's errors go to Sentry once the repository's variable names its project.
+          build-args: |
+            RELEASE=${{ github.sha }}
+            DASHBOARD_SENTRY_DSN=${{ vars.DASHBOARD_SENTRY_DSN }}
           tags: ${{ steps.names.outputs.registry }}/lytro-static:${{ github.sha }}
           push: true
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}

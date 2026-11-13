@@ -4,18 +4,21 @@ How staging (and later production) is set up and deployed (Phase 9 Slice 9.1). E
 folder; a server holds only its secrets (`/opt/lytro/env`) and what it has deployed. `docs/DEPLOYMENT.md` explains the
 design; this is the procedure.
 
-| File                       | What it is                                                                                                                                                                                             |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `compose.yml`              | Every container on one server: edge, two API processes, the worker, website, storefront, PostgreSQL, Redis                                                                                             |
-| `Caddyfile`, `caddy/`      | The edge: every host's routing, certificates, and its image (Caddy with the Cloudflare DNS plugin)                                                                                                     |
-| `postgres/10-app-role.sh`  | Makes the roles the app connects as (writes, and reads only): on first start, and before each migration. Each deploy copies it to `/opt/lytro/state/postgres-init`, the one folder the database mounts |
-| `pgbouncer/`               | The API's pooler: its image, and the start script that writes its settings and limits                                                                                                                  |
-| `static/publish.sh`        | Publishes a release's dashboard and console files into the edge's volume                                                                                                                               |
-| `scripts/setup-server.sh`  | A fresh Ubuntu 24.04 server made ready, once, as root                                                                                                                                                  |
-| `scripts/make-env.sh`      | The server's settings and secrets, written once                                                                                                                                                        |
-| `scripts/lytro-ssh`        | The one command GitHub's deploy key may run on the server                                                                                                                                              |
-| `scripts/deploy.sh`        | One deploy: pull, dump, migrate, replace each process in turn                                                                                                                                          |
-| `scripts/outside-check.sh` | Every host checked from outside, after each deploy                                                                                                                                                     |
+| File                                                             | What it is                                                                                                                                                                                             |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `compose.yml`                                                    | Every container on one server: edge, two API processes, the worker, website, storefront, PostgreSQL, Redis                                                                                             |
+| `Caddyfile`, `caddy/`                                            | The edge: every host's routing, certificates, and its image (Caddy with the Cloudflare DNS plugin)                                                                                                     |
+| `postgres/10-app-role.sh`                                        | Makes the roles the app connects as (writes, and reads only): on first start, and before each migration. Each deploy copies it to `/opt/lytro/state/postgres-init`, the one folder the database mounts |
+| `postgres/20-query-statistics.sh`, `postgres/30-monitor-role.sh` | Every statement's totals (`pg_stat_statements`, DAT-17), and the monitor's pg_monitor role (Slice 9.6); run as `10-app-role.sh` is                                                                     |
+| `pgbouncer/`                                                     | The API's pooler: its image, and the start script that writes its settings and limits                                                                                                                  |
+| `static/publish.sh`                                              | Publishes a release's dashboard and console files into the edge's volume                                                                                                                               |
+| `alloy/config.alloy`                                             | The monitor: the server's, database's, Redis's and edge's figures to Grafana Cloud (Slice 9.6)                                                                                                         |
+| `monitoring/`                                                    | The alerts Grafana evaluates (`alerts.yml`), the script that loads them, and the 15-minute order probe (`probe.js`)                                                                                    |
+| `scripts/setup-server.sh`                                        | A fresh Ubuntu 24.04 server made ready, once, as root                                                                                                                                                  |
+| `scripts/make-env.sh`                                            | The server's settings and secrets, written once                                                                                                                                                        |
+| `scripts/lytro-ssh`                                              | The one command GitHub's deploy key may run on the server                                                                                                                                              |
+| `scripts/deploy.sh`                                              | One deploy: pull, dump, migrate, replace each process in turn                                                                                                                                          |
+| `scripts/outside-check.sh`                                       | Every host checked from outside, after each deploy                                                                                                                                                     |
 
 ## What you need first
 
@@ -207,6 +210,13 @@ how to restore). Two buckets, each with its own key, and keys only the owner kee
 6. **Deploy again** (re-run the latest Deploy workflow): deploy.sh sees the archive's settings, PostgreSQL restarts once
    with archiving on (a few seconds), and the backup service runs its first night at once. Check with
    `docs/RUNBOOKS.md` §10.1.
+
+## Monitoring
+
+The monitor, the alerts, the uptime checks, Sentry and the order probe (Phase 9 Slice 9.6) start once their accounts
+exist: [RUNBOOKS.md §12](../docs/RUNBOOKS.md#12-monitoring-and-alerts-d9-3-d9-20-obs-01-to-obs-08-mon-01-mon-03-dat-17-dat-25-dat-27-dat-55)
+says how, and what each alert means. Until then the monitor doesn't run, no error is sent anywhere, and the logs are
+only on the server: JSON lines in its journal, kept 14 days (`journalctl CONTAINER_NAME=lytro-api-1-1`).
 
 ## Day to day
 

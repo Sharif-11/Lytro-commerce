@@ -10,6 +10,7 @@ import { DatabaseModule } from '../database/database.module';
 import { LimitsModule } from '../modules/shared/limits/limits.module';
 import { OutsideCallsModule } from '../modules/shared/outside-calls/outside-calls.module';
 import { DegradedModeModule } from '../modules/degraded-mode/degraded-mode.module';
+import { MonitoringModule } from '../modules/monitoring/monitoring.module';
 import { HealthController } from '../modules/health/health.controller';
 import { ReadyController } from '../modules/health/ready.controller';
 import { SavingGuard } from '../common/guards/saving.guard';
@@ -46,6 +47,7 @@ const jobImports = runsJobs(serverRoleOf(process.env)) ? [QueueWorkersModule] : 
     LimitsModule,
     OutsideCallsModule,
     DegradedModeModule,
+    MonitoringModule,
     RequestIdModule,
     SecretsModule,
     TenancyModule,

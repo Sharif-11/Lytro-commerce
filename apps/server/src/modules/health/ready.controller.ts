@@ -1,6 +1,7 @@
 import { Controller, Get, Inject, Optional, Res } from '@nestjs/common';
 import { SkipEdge } from '../../common/decorators/skip-edge';
 import { SkipTenant } from '../../common/decorators/skip-tenant';
+import { UptimeCheck } from '../../common/decorators/uptime-check';
 import { type DatabaseState, PrimaryWatch } from '../../database/primary-watch';
 import type { SharedStoreState } from '../shared/limits/ports/limit-store';
 import { SharedLimitStore } from '../shared/limits/services/shared-limit-store';
@@ -23,11 +24,12 @@ interface StatusResponse {
  * deploy's rollout use it; `/health` stays the liveness check. Ready while the write pool reaches the primary, or
  * while it reaches nothing but the read pool still answers (reads go on, writes are refused with a retry hint,
  * DAT-42). Not ready when nothing answers, or when the write pool reaches a standby, so nothing is ever written there.
- * Each call checks afresh.
+ * Each call checks afresh. The outside uptime check calls it on the API host (OBS-01, Slice 9.6).
  */
 @Controller('health/ready')
 @SkipTenant()
 @SkipEdge()
+@UptimeCheck()
 export class ReadyController {
   constructor(
     @Inject(PrimaryWatch) private readonly watch: Pick<PrimaryWatch, 'check'>,
