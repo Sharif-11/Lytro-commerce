@@ -21,7 +21,7 @@ import { prepareTestDatabase } from './support/database';
 // D9-15, RED-02, RED-03, RED-05, RED-11, MON-04 (Slice 9.4): what every API copy and server share, each "server" here
 // its own connection pool. The exact limits allow exactly the limit together; a lease has one holder at a time and
 // lapses by itself; an outage is told once; two job workers never run a scheduled pass at once. With a Redis
-// (REDIS_TEST_URL, CI's verify job), two processes' Redis windows count together.
+// (REDIS_TEST_URL, CI's unit job), two processes' Redis windows count together.
 const ADMIN = process.env['DATABASE_TEST_ADMIN_URL'];
 const REDIS_URL = process.env['REDIS_TEST_URL'];
 const DB_NAME = 'lytronix_limits_test';
