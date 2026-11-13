@@ -41,6 +41,7 @@ jobs:
         run: |
           echo "edge_tag=$(sh deploy/caddy/image-tag.sh)" >> "$GITHUB_OUTPUT"
           echo "pgbouncer_tag=$(sh deploy/pgbouncer/image-tag.sh)" >> "$GITHUB_OUTPUT"
+          echo "database_tag=$(sh deploy/database/image-tag.sh)" >> "$GITHUB_OUTPUT"
 
       - name: Server image
         uses: docker/build-push-action@v6
@@ -99,6 +100,14 @@ jobs:
           context: .
           file: deploy/pgbouncer/Dockerfile
           tags: ${{ env.REGISTRY }}/lytro-pgbouncer:${{ steps.names.outputs.pgbouncer_tag }}
+          load: true
+
+      - name: Database image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/database/Dockerfile
+          tags: ${{ env.REGISTRY }}/lytro-database:${{ steps.names.outputs.database_tag }}
           load: true
 
       # The settings a server's setup makes (make-env.sh), for PLATFORM_DOMAIN=localhost so Caddy signs every host's

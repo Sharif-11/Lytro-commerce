@@ -9,6 +9,7 @@
 #   2. the database, Redis and the pooler up        the next is touched, so one API process always answers
 #   3. a dump of the database                    6. the dashboard's and console's files, then the edge
 #   4. the roles, migrations, pg-boss's schema   7. the website and the storefront
+#      and the nightly backups' service
 # LYTRO_SKIP_PULL=1 uses images already on this machine (CI's rehearsal builds them there).
 # Migrations only add, so the old release keeps working beside the new one while it rolls (ENGINEERING-STANDARDS §7).
 # Rolling back is deploying the previous release again.
@@ -22,10 +23,22 @@ DEPLOY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 KEEP_DUMPS=5
 KEEP_RELEASES=5
 
-# The pooler's image is tagged by what goes into it, as the edge's is; this release's copy of deploy/ says which.
+# The pooler's image is tagged by what goes into it, as the edge's is; this release's copy of deploy/ says which. So is
+# the database's, with WAL-G and the backup scripts (Slice 9.3).
 PGBOUNCER_TAG="$(sh "$DEPLOY_DIR/pgbouncer/image-tag.sh")"
+DATABASE_TAG="$(sh "$DEPLOY_DIR/database/image-tag.sh")"
 
-export LYTRO_HOME RELEASE EDGE_TAG PGBOUNCER_TAG
+# Point-in-time recovery's archive (Slice 9.3, DAT-34) runs once backup.env holds everything it needs, and not before:
+# a server whose backups aren't set up yet (CI's rehearsal) keeps its write-ahead log to itself.
+backup_setting() { sed -n "s/^$1=//p" "$LYTRO_HOME/env/backup.env" 2> /dev/null | head -n 1; }
+PG_ARCHIVE_MODE=off
+if [ -n "$(backup_setting BACKUP_R2_ENDPOINT)" ] && [ -n "$(backup_setting BACKUP_PITR_BUCKET)" ] &&
+  [ -n "$(backup_setting BACKUP_PITR_KEY_ID)" ] && [ -n "$(backup_setting BACKUP_PITR_KEY_SECRET)" ] &&
+  [ -n "$(backup_setting BACKUP_PITR_ENCRYPTION_KEY)" ]; then
+  PG_ARCHIVE_MODE=on
+fi
+
+export LYTRO_HOME RELEASE EDGE_TAG PGBOUNCER_TAG DATABASE_TAG PG_ARCHIVE_MODE
 
 say() { printf '[deploy %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 
@@ -97,13 +110,13 @@ roll_server() {
   say "$service on $RELEASE, ready"
 }
 
-say "release $RELEASE, edge $EDGE_TAG, pooler $PGBOUNCER_TAG"
+say "release $RELEASE, edge $EDGE_TAG, pooler $PGBOUNCER_TAG, database $DATABASE_TAG, archive $PG_ARCHIVE_MODE"
 
 if [ -n "${LYTRO_SKIP_PULL:-}" ]; then
   say '1. using the images on this machine'
 else
   say '1. pulling images'
-  dc pull --quiet edge pgbouncer api-1 worker website storefront
+  dc pull --quiet edge pgbouncer postgres backup api-1 worker website storefront
   dc --profile tools pull --quiet migrate static
 fi
 
@@ -123,6 +136,8 @@ say '4. roles and migrations'
 # that added one (the read role, Slice 9.2) gets it here, as an empty one gets it when it first starts.
 dc exec -T postgres sh /docker-entrypoint-initdb.d/10-app-role.sh
 dc --profile tools run --rm migrate
+# The nightly backups (Slice 9.3): replaced when its image changed, waiting for 05:30 Dhaka otherwise.
+dc up -d --no-deps backup
 
 say '5. the worker and the API'
 roll_server worker worker
@@ -141,8 +156,8 @@ wait_healthy website
 wait_healthy storefront
 
 # What this server runs now, for anyone running `docker compose` here by hand (deploy/README.md).
-printf 'RELEASE=%s\nEDGE_TAG=%s\nPGBOUNCER_TAG=%s\n' "$RELEASE" "$EDGE_TAG" "$PGBOUNCER_TAG" \
-  > "$LYTRO_HOME/state/release.env.next"
+printf 'RELEASE=%s\nEDGE_TAG=%s\nPGBOUNCER_TAG=%s\nDATABASE_TAG=%s\n' "$RELEASE" "$EDGE_TAG" "$PGBOUNCER_TAG" \
+  "$DATABASE_TAG" > "$LYTRO_HOME/state/release.env.next"
 mv "$LYTRO_HOME/state/release.env.next" "$LYTRO_HOME/state/release.env"
 ln -sfn "$DEPLOY_DIR" "$LYTRO_HOME/state/current.next"
 mv -fT "$LYTRO_HOME/state/current.next" "$LYTRO_HOME/state/current"

@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# The backup service's whole job (Phase 9 Slice 9.3, the owner's 05:30): runs lytro-nightly every day at
+# BACKUP_AT_UTC, 23:30 UTC by default, which is 05:30 in Dhaka (Bangladesh keeps no summer time). That's after the
+# 03:00-05:00 patch window and the 04:00 update restart (DAT-24).
+#
+# When it starts and the last good night is more than 26 hours old (a new server, or one that was down at 05:30), it
+# runs at once, so a gap never waits a day. On a server without backup settings (CI's rehearsal, a developer's
+# machine) it only says so and waits.
+set -uo pipefail
+. lytro-pg-env
+
+say() { printf '[scheduler %s] %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
+trap 'say "stopping"; exit 0' TERM INT
+
+at="${BACKUP_AT_UTC:-23:30}"
+if ! date -u -d "today $at" > /dev/null 2>&1; then
+  say "BACKUP_AT_UTC '$at' isn't a time of day"
+  exit 64
+fi
+
+configured() {
+  [ -n "${BACKUP_PITR_BUCKET:-}" ] && [ -n "${BACKUP_PITR_KEY_ID:-}" ] && [ -n "${BACKUP_DUMP_BUCKET:-}" ] &&
+    [ -n "${BACKUP_DUMP_KEY_ID:-}" ] && [ -n "${BACKUP_DUMP_RECIPIENT:-}" ] && [ -n "${BACKUP_PITR_ENCRYPTION_KEY:-}" ]
+}
+
+pause() { sleep "$1" & wait $!; }
+
+if ! configured; then
+  say 'backups are not set up on this server (backup.env); nothing will run'
+  while :; do pause 86400; done
+fi
+
+last_good() { jq -r '.finished_at_epoch // 0' "$BACKUP_WORK_DIR/status/last-good.json" 2> /dev/null || echo 0; }
+
+if [ $(($(date -u +%s) - $(last_good))) -gt $((26 * 3600)) ]; then
+  say 'no good backup in the last 26 hours: running now'
+  lytro-nightly || say 'the run failed (see above)'
+fi
+
+while :; do
+  now="$(date -u +%s)"
+  next="$(date -u -d "today $at" +%s)"
+  [ "$next" -le "$now" ] && next="$(date -u -d "tomorrow $at" +%s)"
+  say "next run $(date -u -d "@$next" +%Y-%m-%dT%H:%MZ)"
+  pause $((next - now))
+  lytro-nightly || say 'the run failed (see above)'
+done

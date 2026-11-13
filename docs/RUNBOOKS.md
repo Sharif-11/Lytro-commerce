@@ -234,3 +234,126 @@ removes it.
 - **Set once, in Cloudflare:** an object lifecycle rule on the uploads bucket that deletes objects 7 days after upload.
   Nothing reads the uploads bucket after a request's own minutes.
 - **Check:** R2, the uploads bucket, Settings, Object lifecycle rules. KNOWN-GAPS §144 records it until it is set.
+
+## 10. Backups and restores (D9-18, D9-19, BKP-01 to BKP-03, DAT-22 to DAT-40, DAT-54, DAT-57)
+
+**What runs (Phase 9 Slice 9.3).** Everything is in the database image, `lytro-database` (`deploy/database/`):
+PostgreSQL 17 with WAL-G, age and the backup scripts.
+
+- **The archive, for restoring to a minute (DAT-34):** the `postgres` container sends each finished write-ahead-log file
+  to the archive's R2 bucket, at least every 60 seconds (`archive_command = lytro-archive`). It's switched on by
+  deploy.sh once `backup.env` holds the archive's settings.
+- **Every night at 05:30 Dhaka (the owner's time):** the `backup` service runs `lytro-nightly`. If the last good night is
+  more than 26 hours old when it starts, it runs at once. In order:
+  - **the nightly dump (DAT-22, DAT-30):** every table counted in one held snapshot, `pg_dump` of that same snapshot,
+    checked readable, encrypted with age to the owner's public key, then uploaded with a manifest (counts, size,
+    checksum), and the manifest last;
+  - **the base backup:** full on Fridays, otherwise what changed since Friday's. The oldest are then deleted, keeping 3
+    full ones (14 to 21 days).
+- **The buckets** (one key each, IP-locked to the server; the app never has either, DAT-28):
+
+  | Bucket | Holds | Lock (nothing deleted or replaced) | Then |
+  |---|---|---|---|
+  | `…-pitr` | WAL-G's base backups and archived log, under `pg17/` | 14 days | WAL-G deletes past 3 full backups |
+  | `…-dumps` | `nightly/<yyyy>/<mm>/<stamp>.dump.age` and `.manifest.json.age` | 29 days | lifecycle rule: deleted at 29 days, gone by day 30 (LIF-22) |
+
+  R2 has no write-only key. The locks are what stop anyone with the server's keys deleting backups (D9-18 as amended),
+  and the dumps are unreadable without the owner's private key.
+- **Who holds what:**
+
+  | What | Server (`/opt/lytro/env/backup.env`) | Owner's offline copy |
+  |---|---|---|
+  | Archive encryption key (`BACKUP_PITR_ENCRYPTION_KEY`) | yes (made by make-env.sh) | yes |
+  | Read-only restore token (both buckets) | no | yes |
+  | age private key (dumps) | **never** | yes |
+  | age public key (`BACKUP_DUMP_RECIPIENT`) | yes | yes |
+
+  Without the owner's copies, a lost server's backups can't be read by anyone.
+
+### 10.1 Is it working?
+
+On the server:
+- `sudo docker logs --tail 40 lytro-backup-1`: the last night's `[dump]`, `[base]` and `[nightly]` lines, and the next run.
+- `sudo docker exec lytro-backup-1 cat /var/lib/lytro-backup/status/nightly.json`: `"ok": true` and its time.
+- `sudo docker exec lytro-postgres-1 psql -U lytronix -Atc "SELECT last_archived_time, failed_count FROM pg_stat_archiver"`:
+  the last archived file a minute or so ago. A rising `failed_count` means the archive is failing, and the log piles
+  up on the server's disk until it works again.
+
+Slice 9.6's alerts watch these (DAT-27: a backup or dump older than 26 hours, archiving more than 5 minutes behind).
+
+### 10.2 The monthly drill: restore the latest dump and count it (DAT-22, DAT-29, BKP-02)
+
+On the owner's computer, with Docker:
+1. Fill a copy of `deploy/restore/restore.env.example` from the offline copies, kept **outside every repository**.
+2. Read the image's name from the server: `ssh lytro@<server> cat /opt/lytro/state/release.env`, then
+   `<REGISTRY>/lytro-database:<DATABASE_TAG>` (REGISTRY is in `/opt/lytro/settings.env`).
+3. Run:
+   `docker run --rm --env-file <restore.env> -v <the age private key file>:/keys/dump.key:ro <image> lytro-restore-dump latest`
+4. Pass: `Differences: none`. Copy the printed lines into a drill record (`docs/drills/`, a PR).
+
+### 10.3 The quarterly drill: restore to a minute (DAT-29, DAT-34, BKP-01, BKP-03)
+
+`docker run --rm --env-file <restore.env> <image> lytro-restore-pitr --to 2026-11-20T10:42:00+06:00`
+
+It picks the newest base backup before that time, replays the archive up to it, and prints the last transaction
+replayed (just before the minute), each table's rows and the newest payment (every payment up to the minute is
+there: BKP-03). Record it in `docs/drills/`.
+
+### 10.4 Restoring one shop (DAT-26)
+
+When a shop lost data, by its own mistake or a fault, with the time just before the loss:
+1. `sudo bash /opt/lytro/state/current/restore/shop.sh --shop <shop id> --to <time>`: a dry run. It makes a scratch copy
+   of the database at that time beside the live one (several minutes), then prints what it would add, table by table.
+2. If that's right, run it again with `--apply`.
+
+What it does: it adds the shop's rows the live database is missing, exactly as they were, and never changes a row that
+exists (the owner's rule, 2026-11-13: "bring back what's missing"). A row whose unique value another row now holds (a
+tracking ID) is skipped, and so is anything hanging off it. Every other shop's rows are fingerprinted before and
+after in the same transaction; any difference undoes everything. It never brings back sign-ins, used codes, messages
+waiting to be sent or usage meters. Media has no backup (MED-06): a deleted shop's photos come back as rows whose files
+are gone. The quarterly rehearsal deletes a test shop's orders and payments on staging and brings them back.
+
+### 10.5 Restoring onto a new server (DAT-40, DAT-54: service back from R2 within 4 hours)
+
+1. A new server, set up as `deploy/README.md` steps 2 to 4 say (setup-server.sh, then make-env.sh). Put the backup
+   settings into its `backup.env` (the archive key from the offline copy).
+2. Fill its empty database volume from the archive, stopping cleanly:
+   `sudo docker run --rm --env-file /opt/lytro/env/backup.env --env-file /opt/lytro/env/postgres.env -v lytro_pgdata:/var/lib/postgresql/data <image> lytro-restore-pitr --to latest --data /var/lib/postgresql/data`
+   If the archive can't be used, restore the latest dump instead (§10.2's command with `--serve`, then `pg_dump`
+   from it into the new database).
+3. Deploy the release that was running (GitHub, Deploy workflow, run again), point the DNS records at the new server,
+   and run the outside check (`deploy/README.md`).
+4. Record the elapsed time and the smoke tests in `docs/drills/` (the yearly drill restores onto a server outside
+   Bangladesh).
+
+### 10.6 Failover to a replica (DAT-37 as amended by D9-2): once a second server exists
+
+Only after the monitor's alert, and only if the main database is really down:
+1. On the replica's server, run `lytro-db-failover` from the image with `FAILOVER_REPLICAS` (each replica),
+   `FAILOVER_OLD_PRIMARY`, `FAILOVER_FENCE` (stops the old one and sets its restart policy to `no`),
+   `FAILOVER_SWITCH` (the database name's DNS record, 30-second TTL) and `FAILOVER_REPLICATION` (how replicas connect,
+   `{host}` for the new main).
+2. It picks the replica that has replayed furthest. **It refuses if the old main still takes writes.** It fences the
+   old main, promotes, proves a write, points the other replicas at the new main and switches the apps, then prints
+   each step's time (DAT-23: within 10 minutes).
+3. Then (DAT-39): reconcile the last 30 minutes before the failure against wallet receipts and the SMS log, and re-verify
+   or re-enter any missing payment.
+4. The old main database comes back only as a replica (§10.7), never started as a main.
+
+### 10.7 Adding a replica (DAT-57), or rebuilding the old main as one
+
+1. On the main database, once: a replication role (`CREATE ROLE lytronix_replica REPLICATION LOGIN PASSWORD …`), and a
+   `pg_hba.conf` line letting it replicate from the new server's address.
+2. On the new server, with its empty database volume:
+   `sudo docker run --rm -e REPLICA_SOURCE='host=<main> user=lytronix_replica password=…' -v lytro_pgdata:/var/lib/postgresql/data <image> lytro-db-add-replica --wait`
+   It copies the main database (`pg_basebackup`), starts it as a replica, waits until it has caught up, and stops it.
+3. Start it with the compose file, check its lag, then add it to `DATABASE_READ_URL` and the load balancer. Nothing
+   routes to it before that, so the shops never notice (DAT-57). CI rehearses this on every change
+   (`.github/scripts/backups/failover.sh`); staging rehearses it before the first real one.
+
+### 10.8 A new PostgreSQL major version
+
+The archive keeps each major version under its own folder (`BACKUP_PITR_PREFIX`, `pg17` now). A move to 18 takes a new
+base backup into `pg18/` straight after; the dumps carry on. The move itself is `deploy/README.md` "Moving PostgreSQL to
+a new major version". Staging's move from 16 to 17 on 2026-11-12 (Slice 9.2) took about 2 minutes of downtime: counts,
+`pg_dump`, a new volume, `pg_restore`, counts equal.

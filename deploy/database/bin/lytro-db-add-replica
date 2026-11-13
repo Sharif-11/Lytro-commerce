@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# Makes a new replica of the main database, or rebuilds the old main one as a replica after a failover (Phase 9 Slice
+# 9.3, DAT-57, D9-2). Runs in the database image on the new replica's server, with its empty database volume mounted:
+#
+#   REPLICA_SOURCE='<conninfo>' lytro-db-add-replica [--data <folder>] [--wait]
+#
+#   REPLICA_SOURCE   the main database, as a role with REPLICATION (e.g. host=10.0.0.1 user=lytronix_replica
+#                    password=...); its pg_hba.conf must let that role connect for replication
+#
+#   1. copies the main database with pg_basebackup (a fast checkpoint, the write-ahead log streamed alongside) and
+#      writes standby.signal and primary_conninfo, so it starts as a replica of that database
+#   2. with --wait, starts it here, waits until it has caught up (its lag under REPLICA_MAX_LAG_BYTES, 16 MB), prints
+#      the lag, and stops it cleanly; then the server's compose file starts it for good
+# Then it goes into the read pool (DATABASE_READ_URL) and the load balancer, as RUNBOOKS.md "Adding a replica" says.
+# The copy holds no traffic until then, so adding it never touches the shops (DAT-57).
+set -euo pipefail
+
+data=/var/lib/postgresql/data
+wait=
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --data) data="${2:-}"; shift 2 ;;
+    --wait) wait=1; shift ;;
+    *)
+      echo 'usage: REPLICA_SOURCE=<conninfo> lytro-db-add-replica [--data <folder>] [--wait]' >&2
+      exit 64
+      ;;
+  esac
+done
+: "${REPLICA_SOURCE:?REPLICA_SOURCE (the main database, as a replication role) is not set}"
+
+say() { printf '[add-replica %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+started="$(date -u +%s)"
+
+if [ -d "$data" ] && [ -n "$(ls -A "$data" 2> /dev/null)" ]; then
+  say "$data isn't empty; a replica is only made in an empty folder (move the old one aside first)"
+  exit 1
+fi
+install -d -o postgres -g postgres -m 700 "$data"
+gosu postgres pg_basebackup -d "$REPLICA_SOURCE" -D "$data" -R -X stream --checkpoint=fast
+copied="$(date -u +%s)"
+say "copied in $((copied - started)) s"
+
+if [ -z "$wait" ]; then
+  say "ready: start it with the server's compose file, then add it to the read pool (RUNBOOKS.md)"
+  exit 0
+fi
+
+log=/tmp/add-replica.log
+gosu postgres pg_ctl -D "$data" -l "$log" -w -t 300 -o "-c archive_mode=off ${RESTORE_PG_OPTIONS:-}" start > /dev/null
+export PGHOST=/var/run/postgresql PGUSER="${RESTORE_DB_USER:-${POSTGRES_USER:-lytronix}}" PGDATABASE=postgres
+max="${REPLICA_MAX_LAG_BYTES:-16777216}"
+lag=
+for _ in $(seq 1 300); do
+  # How far behind the main database's current position this copy has replayed.
+  head="$(psql "$REPLICA_SOURCE dbname=postgres" -X -A -t -q -c 'SELECT pg_current_wal_lsn()' 2> /dev/null || true)"
+  if [ -n "$head" ] && [ "$(psql -X -A -t -q -c 'SELECT pg_is_in_recovery()' 2> /dev/null || true)" = t ]; then
+    lag="$(psql -X -A -t -q -c "SELECT pg_wal_lsn_diff('$head', coalesce(pg_last_wal_replay_lsn(), '0/0'))::bigint" \
+      2> /dev/null || true)"
+    if [ -n "$lag" ] && [ "$lag" -le "$max" ]; then break; fi
+  fi
+  sleep 2
+done
+caught="$(date -u +%s)"
+gosu postgres pg_ctl -D "$data" -m fast -w stop > /dev/null
+if [ -z "$lag" ] || [ "$lag" -gt "$max" ]; then
+  say "it never caught up (lag ${lag:-unknown} bytes); its log:"
+  tail -n 20 "$log" >&2
+  exit 1
+fi
+echo
+echo "- Replica copied in $((copied - started)) s, caught up in $((caught - copied)) s (lag $lag bytes, under $max)"
+echo "- Next: start it with the server's compose file, add it to DATABASE_READ_URL and the load balancer (RUNBOOKS.md)"

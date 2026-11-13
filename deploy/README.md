@@ -141,8 +141,8 @@ sudo docker volume rm lytro_pgdata
 ```
 
 Then deploy the release that names the new version (re-run its Deploy workflow). PostgreSQL starts empty, the roles
-are made, and the migrations run. To keep the data, restore the dump before that deploy's migrations, as Slice 9.3's
-restore runbook will say; staging's test data can simply be made again.
+are made, and the migrations run. To keep the data, restore the dump before that deploy's migrations (Slice 9.2's
+move of staging from 16 to 17 did: `docs/RUNBOOKS.md` §10.8), then take a new base backup (§10.8).
 
 ## Media (photos)
 
@@ -165,13 +165,44 @@ Optional, and best switched on once the first deploy works. In Cloudflare (`docs
 5. **The server:** fill the `MEDIA_` and `CLOUDFLARE_` lines in `server.env` (with `MEDIA_USAGE_DATASET`) and the two
    `MEDIA_` lines in `edge.env`, remove their `#`, and deploy again.
 
+## Backups
+
+Set up once per server, best after the first deploy works (Phase 9 Slice 9.3; `docs/RUNBOOKS.md` §10 says what runs and
+how to restore). Two buckets, each with its own key, and keys only the owner keeps.
+
+1. **R2 buckets (Cloudflare → R2):** `<env>-pitr` and `<env>-dumps` (staging: `lytro-staging-pitr`,
+   `lytro-staging-dumps`), neither public.
+2. **Their locks and rules (each bucket → Settings):**
+   - `…-pitr`: a bucket lock rule, no prefix, 14 days.
+   - `…-dumps`: a bucket lock rule, no prefix, 29 days; and an object lifecycle rule deleting objects 29 days after
+     upload. R2 removes an expired object within a day, so every dump is gone by day 30 (LIF-22, DAT-30).
+3. **Three Account API tokens (R2 → Manage API tokens):**
+
+   | Token                   | Permission          | Buckets               | Client IP                                           |
+   | ----------------------- | ------------------- | --------------------- | --------------------------------------------------- |
+   | `<env>-pitr`            | Object Read & Write | the pitr bucket only  | the server's address                                |
+   | `<env>-dumps`           | Object Read & Write | the dumps bucket only | the server's address                                |
+   | `<env>-backups-restore` | Object Read only    | both                  | none: it never goes on a server; the owner keeps it |
+
+4. **The owner's age key, on the owner's computer** (the dumps are encrypted to it; its private half never touches a
+   server): `docker run --rm --entrypoint age-keygen <REGISTRY>/lytro-database:<DATABASE_TAG>` prints both halves. Keep
+   the whole output offline; the `age1…` line is the public key.
+5. **On the server:** `sudo -s`, then `nano /opt/lytro/env/backup.env` (make-env.sh made it, with the archive's
+   encryption key: keep an offline copy of `BACKUP_PITR_ENCRYPTION_KEY` too). Fill `BACKUP_R2_ENDPOINT`
+   (`https://<account id>.r2.cloudflarestorage.com`), the two buckets, the two server tokens' key IDs and secrets, and
+   `BACKUP_DUMP_RECIPIENT` (the `age1…` line).
+6. **Deploy again** (re-run the latest Deploy workflow): deploy.sh sees the archive's settings, PostgreSQL restarts once
+   with archiving on (a few seconds), and the backup service runs its first night at once. Check with
+   `docs/RUNBOOKS.md` §10.1.
+
 ## Day to day
 
 - **What runs:** `ssh lytro@<address>`, then `sudo docker ps`; or `cat /opt/lytro/state/release.env`.
 - **A container's log:** `sudo docker logs --tail 100 lytro-api-1-1` (and `lytro-worker-1`, `lytro-edge-1`, ...).
 - **Rolling back:** re-run an earlier commit's Deploy workflow (Actions → Deploy → that run → Re-run all jobs). It
   deploys that commit's images again. Migrations only ever add, so the older code runs on the newer database.
-- **The dumps before each deploy:** `/opt/lytro/backups/pre-deploy/`, the last five. Slice 9.3 brings the real backups.
+- **The dumps before each deploy:** `/opt/lytro/backups/pre-deploy/`, the last five, for a quick rollback on the server.
+  The real backups are in R2 ("Backups" above; `docs/RUNBOOKS.md` §10).
 - **Security updates** install themselves; the server restarts at 04:00 when one needs it, and every container comes
   back by itself.
 

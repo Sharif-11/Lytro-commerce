@@ -220,3 +220,35 @@ jobs:
         run: |
           docker logs pg-primary 2>&1 | tail -40 || true
           docker logs pg-standby 2>&1 | tail -40 || true
+
+  # Phase 9 Slice 9.3 (D9-18, D9-19, DAT-22, DAT-26, DAT-34, DAT-37, DAT-57): the backups and restores as the servers run
+  # them, from the database image (deploy/database), with a test S3 store standing in for R2. A night's backups, the dump
+  # restored and counted, the archive restored to a minute, one shop's missing rows brought back on the real schema;
+  # then failover to the furthest replica and a replica added.
+  backups:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: What the server's tests import
+        run: pnpm exec turbo run build --filter=@lytronix/server^...
+      - name: The database image, a test store, and a primary archiving to it
+        run: bash .github/scripts/backups/start.sh
+      - name: A night's backups, the dump restored and counted, a minute restored, one shop's rows brought back
+        working-directory: apps/server
+        env:
+          BACKUP_TEST_ADMIN_URL: postgres://postgres:ci_only_password@localhost:5443/postgres
+          BACKUP_TEST_DIR: /tmp/lytro-backups
+        run: pnpm exec vitest run test/backups.e2e.spec.ts
+      - name: Failover to the furthest replica, and the old primary rebuilt as a replica
+        run: bash .github/scripts/backups/failover.sh
+      - name: The containers' logs, if anything failed
+        if: failure()
+        run: |
+          for c in pg-backups backups-s3 pitr-src; do echo "== $c"; docker logs "$c" 2>&1 | tail -40 || true; done

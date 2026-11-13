@@ -105,6 +105,33 @@ PGBOUNCER_APP_PASSWORD=$APP_PASSWORD
 PGBOUNCER_READ_PASSWORD=$READ_PASSWORD
 EOF
 
+# The backups' (Slice 9.3, D9-18, DAT-28): only the database and backup containers read it, never the app's. The
+# archive's encryption key is made here; the rest comes from Cloudflare and the owner (deploy/README.md "Backups").
+# Archiving starts on the first deploy after the archive's lines are all filled in.
+ARCHIVE_KEY="$(existing backup.env BACKUP_PITR_ENCRYPTION_KEY)"
+ARCHIVE_KEY="${ARCHIVE_KEY:-$(secret 32)}"
+write backup.env <<EOF
+# Made by make-env.sh: the archive's encryption key. Keep the owner's offline copy: without it the archive can't be
+# read, by anyone.
+BACKUP_PITR_ENCRYPTION_KEY=$ARCHIVE_KEY
+
+# From Cloudflare (deploy/README.md "Backups"): the account's R2 address, and each bucket with its own key.
+BACKUP_R2_ENDPOINT=
+# The archive, for restoring to a minute: locked 14 days.
+BACKUP_PITR_BUCKET=
+BACKUP_PITR_KEY_ID=
+BACKUP_PITR_KEY_SECRET=
+# The nightly dump: locked 29 days, then deleted, gone by day 30.
+BACKUP_DUMP_BUCKET=
+BACKUP_DUMP_KEY_ID=
+BACKUP_DUMP_KEY_SECRET=
+
+# The owner's age public key (age1...): dumps are encrypted to it. Its private key never comes to a server.
+BACKUP_DUMP_RECIPIENT=
+EOF
+add_missing backup.env BACKUP_PITR_ENCRYPTION_KEY "$ARCHIVE_KEY"
+add_missing backup.env BACKUP_DUMP_RECIPIENT ''
+
 vapid
 write server.env <<EOF
 # The server's settings (deploy/README.md, step 4). Three groups: made here, required, and optional.

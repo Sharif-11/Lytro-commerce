@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# The nightly logical dump (Phase 9 Slice 9.3, DAT-22, DAT-30, BKP-01), run by the backup service (lytro-nightly).
+#
+#   1. one snapshot of the database, held open: every table's row count is read in it, and pg_dump dumps it, so the
+#      counts are exactly what the dump holds (DAT-22's restore test compares against them)
+#   2. the dump is checked readable (pg_restore --list), then encrypted with age to the owner's public key
+#      (BACKUP_DUMP_RECIPIENT): the server can write a dump but never read one back, and a stolen key reads nothing
+#   3. it goes to the dumps' bucket (lytro-store), then, last, its manifest: the counts, sizes and checksum. A dump
+#      without a manifest is incomplete; restores refuse it.
+#
+# Names: nightly/<yyyy>/<mm>/<yyyymmddThhmmssZ>.dump.age and .manifest.json.age. The bucket's lock keeps each for 29
+# days, its lifecycle rule deletes it then, so it's gone by day 30 (DAT-30, LIF-22). Local files go once uploaded.
+set -euo pipefail
+. lytro-pg-env
+
+: "${BACKUP_DUMP_RECIPIENT:?BACKUP_DUMP_RECIPIENT is not set (the age public key of the owner, backup.env)}"
+
+say() { printf '[dump %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+
+stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+dest="$(date -u +%Y/%m)/$stamp"
+tmp="$BACKUP_WORK_DIR/dump-$stamp"
+mkdir -p "$tmp" "$BACKUP_WORK_DIR/status"
+chmod 700 "$tmp"
+trap 'rm -rf "$tmp"' EXIT
+
+# 1. A transaction that holds one snapshot while the counts and the dump read it.
+coproc HOLD { psql -X -A -t -q -v ON_ERROR_STOP=1; }
+printf '%s\n' 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;' 'SELECT pg_export_snapshot();' >&"${HOLD[1]}"
+if ! IFS= read -r -t 60 snapshot <&"${HOLD[0]}" || [ -z "$snapshot" ]; then
+  say 'could not hold a snapshot of the database'
+  exit 1
+fi
+say "snapshot $snapshot"
+
+# Every table pg_dump dumps, counted exactly (superuser: row security doesn't hide rows).
+psql -X -A -t -q -v ON_ERROR_STOP=1 -F $'\t' > "$tmp/counts.tsv" << SQL
+BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;
+SET TRANSACTION SNAPSHOT '$snapshot';
+SELECT format('SELECT %L, count(*) FROM %I.%I', n.nspname || '.' || c.relname, n.nspname, c.relname)
+  FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+ WHERE c.relkind = 'r' AND n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname !~ '^pg_toast'
+ ORDER BY 1 \gexec
+COMMIT;
+SQL
+
+pg_dump -Fc --snapshot="$snapshot" -f "$tmp/db.dump"
+printf 'COMMIT;\n' >&"${HOLD[1]}"
+eval "exec ${HOLD[1]}>&-"
+wait "$HOLD_PID" || true
+
+# 2. Readable, then encrypted.
+pg_restore --list "$tmp/db.dump" > /dev/null
+age -r "$BACKUP_DUMP_RECIPIENT" -o "$tmp/db.dump.age" "$tmp/db.dump"
+rm -f "$tmp/db.dump"
+bytes="$(stat -c %s "$tmp/db.dump.age")"
+sha="$(sha256sum "$tmp/db.dump.age" | cut -d' ' -f1)"
+tables="$(wc -l < "$tmp/counts.tsv" | tr -d ' ')"
+rows="$(awk -F'\t' '{ s += $2 } END { print s + 0 }' "$tmp/counts.tsv")"
+version="$(psql -X -A -t -q -c 'SHOW server_version')"
+# Who owns the database, and every role it may name, so a restore can make them first and keep owners and grants.
+owner="$(psql -X -A -t -q -c 'SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = current_database()')"
+roles="$(psql -X -A -t -q -c "SELECT coalesce(json_agg(rolname ORDER BY rolname), '[]') FROM pg_roles WHERE rolname !~ '^pg_'")"
+
+jq -n --arg made "$stamp" --arg database "$PGDATABASE" --arg version "$version" --arg sha "$sha" \
+  --arg owner "$owner" --argjson roles "$roles" --argjson bytes "$bytes" --rawfile counts "$tmp/counts.tsv" '{
+    format: 1, made_at: $made, database: $database, owner: $owner, roles: $roles, server_version: $version,
+    dump: { bytes: $bytes, sha256: $sha },
+    counts: ($counts | split("\n") | map(select(length > 0) | split("\t") | { key: .[0], value: (.[1] | tonumber) })
+             | from_entries)
+  }' > "$tmp/manifest.json"
+age -r "$BACKUP_DUMP_RECIPIENT" -o "$tmp/manifest.json.age" "$tmp/manifest.json"
+rm -f "$tmp/manifest.json"
+
+# 3. The dump, then its manifest: written once each, never replaced.
+lytro-store st put --no-compress --no-encrypt "$tmp/db.dump.age" "$dest.dump.age"
+lytro-store st put --no-compress --no-encrypt "$tmp/manifest.json.age" "$dest.manifest.json.age"
+
+jq -n --arg name "$dest" --arg made "$stamp" --argjson bytes "$bytes" --argjson tables "$tables" \
+  --argjson rows "$rows" --argjson at "$(date -u +%s)" \
+  '{ name: $name, made_at: $made, bytes: $bytes, tables: $tables, rows: $rows, finished_at_epoch: $at }' \
+  > "$BACKUP_WORK_DIR/status/dump.json"
+say "uploaded nightly/$dest.dump.age: $bytes bytes, $tables tables, $rows rows"

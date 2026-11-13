@@ -384,12 +384,32 @@ only adds concrete artifacts to it, nothing new in process:
   `Retry-After: 30` in the owner's words, and reads go on. Nothing is ever written to a standby: a write pool that
   reaches one makes the ready check fail.
 
+### 9d. As built (Slice 9.3, backups and restores)
+
+- **One image for the database and its backups** (`deploy/database`, tagged by a hash of its inputs like the pooler's):
+  PostgreSQL 17 on Debian 13 (pinned, so text sorts as it did when the data was written), WAL-G, age and the scripts.
+  The `postgres` service archives to R2 when `backup.env` holds the archive's settings (deploy.sh sets
+  `PG_ARCHIVE_MODE`); the `backup` service runs the nightly dump and base backup at 05:30 Dhaka.
+- **WAL-G, not pgBackRest** (D9-18 as amended; DAT-34 names both): R2 has no write-only key, so a bucket lock is what
+  keeps backups from being deleted or replaced, and a lock refuses any overwrite. WAL-G writes each object once;
+  pgBackRest rewrites its own manifest while a backup runs.
+- **Keys** (DAT-28): `backup.env` reaches only the database and backup containers. Each bucket has its own
+  IP-locked key. The archive's encryption key is on the server and in the owner's offline copy. The dump is encrypted
+  to the owner's age public key, so the server can't read a dump back.
+- **Restores** are scripts in the image, run beside a live database or anywhere with Docker: a dump into a scratch
+  database, counted (`lytro-restore-dump`); the archive to a minute (`lytro-restore-pitr`), into scratch or a new
+  server's volume; one shop's missing rows (`lytro-restore-shop`, through `deploy/restore/shop.sh`); failover and
+  adding a replica (`lytro-db-failover`, `lytro-db-add-replica`). CI's `backups` job runs them all against a test S3
+  store (Versity's gateway) on every change. `docs/RUNBOOKS.md` §10 is the operator's side; `docs/drills/` holds the
+  drill records.
+
 ## 10. Open, deliberately deferred
 
 Settled by Phase 9's plan and Slice 9.1:
 - the VPS: staging on BDIX, 2 vCPU / 3 GB (D9-9), production 4 vCPU / 6 GB (D9-24);
 - the website and the storefront: their own containers (D9-10);
-- backups: the deploy dumps the database first, and Slice 9.3 brings pgBackRest and nightly dumps (D9-18).
+- backups: the deploy dumps the database first; Slice 9.3 added WAL-G's archive and the nightly dump to R2 (D9-18,
+  §9d).
 
 Still open:
 

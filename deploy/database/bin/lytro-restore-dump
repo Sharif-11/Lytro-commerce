@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+# Restores a nightly dump into a scratch database and checks it (Phase 9 Slice 9.3, DAT-22, DAT-29, BKP-02). Runs in
+# the database image on any machine with Docker, never against a live database (deploy/restore/dump.sh runs it):
+#
+#   lytro-restore-dump [latest | <yyyymmddThhmmssZ>] [--serve]
+#
+#   1. finds the dump (the newest with a manifest, or the one named), downloads it with the owner's read-only key
+#   2. checks its checksum against the manifest, decrypts both with the owner's age identity (/keys/dump.key)
+#   3. restores it into a new database in this container, owners and grants as they were (the roles made first)
+#   4. counts every table and compares with the counts taken in the dump's own snapshot
+# and prints the lines a drill record needs (docs/drills/). Exits 1 if any count differs.
+#
+# --serve keeps the scratch database running afterwards on port 5432, for a one-shop restore to read from
+# (lytro-restore-shop); it prints how to reach it, with a password made for this run.
+set -euo pipefail
+
+which=latest
+serve=
+for arg in "$@"; do
+  case "$arg" in
+    --serve) serve=1 ;;
+    latest) which=latest ;;
+    [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]T[0-9][0-9][0-9][0-9][0-9][0-9]Z) which="$arg" ;;
+    *)
+      echo 'usage: lytro-restore-dump [latest | <yyyymmddThhmmssZ>] [--serve]' >&2
+      exit 64
+      ;;
+  esac
+done
+
+identity="${BACKUP_DUMP_IDENTITY:-/keys/dump.key}"
+if [ ! -r "$identity" ]; then
+  echo "the owner's age identity isn't readable at $identity (mount it read-only there)" >&2
+  exit 66
+fi
+
+say() { printf '[restore-dump %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+started="$(date -u +%s)"
+work=/tmp/restore-dump
+rm -rf "$work"
+mkdir -p "$work"
+
+# 1. The dump: only names with a manifest beside them count (an upload cut short has none).
+manifests="$(lytro-store st ls -r 2> /dev/null | awk '$NF ~ /\.manifest\.json\.age$/ { print $NF }' | sort)"
+if [ "$which" = latest ]; then
+  manifest="$(printf '%s\n' "$manifests" | tail -n 1)"
+else
+  manifest="$(printf '%s\n' "$manifests" | grep "/$which\.manifest\.json\.age\$" || true)"
+fi
+if [ -z "$manifest" ]; then
+  say "no complete dump found ($which)"
+  exit 1
+fi
+name="${manifest%.manifest.json.age}"
+say "dump nightly/$name"
+lytro-store st get --no-decompress --no-decrypt "$name.manifest.json.age" "$work/manifest.json.age" 2> /dev/null
+lytro-store st get --no-decompress --no-decrypt "$name.dump.age" "$work/db.dump.age" 2> /dev/null
+
+# 2. Checked, then decrypted.
+age -d -i "$identity" -o "$work/manifest.json" "$work/manifest.json.age"
+want="$(jq -r '.dump.sha256' "$work/manifest.json")"
+got="$(sha256sum "$work/db.dump.age" | cut -d' ' -f1)"
+if [ "$want" != "$got" ]; then
+  say "the dump's checksum doesn't match its manifest ($got, expected $want)"
+  exit 1
+fi
+age -d -i "$identity" -o "$work/db.dump" "$work/db.dump.age"
+rm -f "$work/db.dump.age"
+chmod 644 "$work/db.dump"
+fetched="$(date -u +%s)"
+
+# 3. A scratch cluster in this container, its roles made first, then the dump.
+data=/tmp/restore-dump-data
+rm -rf "$data"
+install -d -o postgres -g postgres -m 700 "$data"
+gosu postgres initdb -D "$data" -U postgres -A trust > /dev/null
+password="$(head -c 18 /dev/urandom | base64 | tr -d '/+=')"
+if [ -n "$serve" ]; then
+  echo "host all all all scram-sha-256" >> "$data/pg_hba.conf"
+fi
+gosu postgres pg_ctl -D "$data" -l /tmp/restore-dump.log -w \
+  -o "-c listen_addresses='${serve:+*}' -c archive_mode=off -c max_connections=40" start > /dev/null
+export PGHOST=/var/run/postgresql PGUSER=postgres
+psql -X -q -v ON_ERROR_STOP=1 -v password="$password" -d postgres << 'SQL'
+ALTER ROLE postgres PASSWORD :'password';
+SQL
+
+database="$(jq -r '.database' "$work/manifest.json")"
+owner="$(jq -r '.owner // "postgres"' "$work/manifest.json")"
+jq -r '.roles // [] | .[]' "$work/manifest.json" | while IFS= read -r role; do
+  [ "$role" = postgres ] && continue
+  psql -X -q -v ON_ERROR_STOP=1 -v role="$role" -d postgres << 'SQL'
+SELECT format('CREATE ROLE %I NOLOGIN', :'role') WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'role') \gexec
+SQL
+done
+psql -X -q -v ON_ERROR_STOP=1 -v db="$database" -v owner="$owner" -d postgres << 'SQL'
+SELECT format('CREATE DATABASE %I OWNER %I', :'db', :'owner') \gexec
+SQL
+pg_restore -d "$database" --exit-on-error -j 2 "$work/db.dump"
+rm -f "$work/db.dump"
+restored="$(date -u +%s)"
+
+# 4. Every table counted and compared with the dump's own counts.
+psql -X -A -t -q -v ON_ERROR_STOP=1 -F $'\t' -d "$database" > "$work/counts.tsv" << 'SQL'
+SELECT format('SELECT %L, count(*) FROM %I.%I', n.nspname || '.' || c.relname, n.nspname, c.relname)
+  FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+ WHERE c.relkind = 'r' AND n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname !~ '^pg_toast'
+ ORDER BY 1 \gexec
+SQL
+report="$(jq -n --slurpfile m "$work/manifest.json" --rawfile got "$work/counts.tsv" '
+  ($m[0].counts) as $want
+  | ($got | split("\n") | map(select(length > 0) | split("\t") | { key: .[0], value: (.[1] | tonumber) })
+     | from_entries) as $have
+  | {
+      tables_dump: ($want | length), tables_restored: ($have | length),
+      rows_dump: ([$want[]] | add // 0), rows_restored: ([$have[]] | add // 0),
+      differences: [ (($want | keys) + ($have | keys) | unique)[] as $t
+                     | select($want[$t] != $have[$t])
+                     | { table: $t, dump: $want[$t], restored: $have[$t] } ]
+    }')"
+finished="$(date -u +%s)"
+
+made="$(jq -r '.made_at' "$work/manifest.json")"
+version="$(jq -r '.server_version' "$work/manifest.json")"
+bytes="$(jq -r '.dump.bytes' "$work/manifest.json")"
+echo
+echo "- Dump: nightly/$name (made $made, PostgreSQL $version, $bytes bytes encrypted)"
+echo "- Fetched and decrypted in $((fetched - started)) s; restored in $((restored - fetched)) s; checked in $((finished - restored)) s; $((finished - started)) s in all"
+printf '%s\n' "$report" | jq -r '"- Tables: \(.tables_dump) in the dump, \(.tables_restored) restored. Rows: \(.rows_dump) in the dump, \(.rows_restored) restored."'
+if [ "$(printf '%s\n' "$report" | jq '.differences | length')" = 0 ]; then
+  echo '- Differences: none'
+  result=0
+else
+  echo '- Differences:'
+  printf '%s\n' "$report" | jq -r '.differences[] | "  - \(.table): \(.dump // "absent") in the dump, \(.restored // "absent") restored"'
+  result=1
+fi
+
+if [ -n "$serve" ]; then
+  echo
+  say "serving the restored database: postgres://postgres:$password@$(hostname -i | cut -d' ' -f1):5432/$database"
+  trap 'gosu postgres pg_ctl -D "$data" -m fast -w stop > /dev/null; exit 0' TERM INT
+  while :; do sleep 3600 & wait $!; done
+fi
+exit "$result"

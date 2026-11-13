@@ -1,0 +1,6 @@
+#!/bin/sh
+# PostgreSQL's archive_command (Slice 9.3, DAT-34): sends one finished write-ahead-log file to the archive. PostgreSQL
+# runs it for every file, at least every 60 seconds (archive_timeout), and keeps the file until this succeeds, so a
+# failure here is retried, never lost. Archiving is switched on by PG_ARCHIVE_MODE=on in the server's settings.env.
+set -eu
+exec lytro-walg wal-push "$1"

@@ -2571,3 +2571,25 @@ The close-out (PHASE-8-PLAN §11) fixed what its three reviews found, apart from
 - **A product with stock and no designs makes a design without asking first.** Its new photos arrive plain (PD-11), and
   a photo's step warns that making it a design remakes the variants and stops the old ones selling; it doesn't ask first
   as removing an option holding stock does (`sh-remove-option`).
+
+## 146. `DAT-27`, `DAT-29`, `DAT-40`, `DAT-57`, `BKP-01`: what Slice 9.3's backups leave open — found 2026-11-13, open
+
+Slice 9.3 built the backups and every restore, proven in CI against a test S3 store (`backups` job). What waits:
+
+1. **The first real backups and drills on staging** run after this slice merges: the database image is built only
+   by main's Deploy run, and the first deploy with backup settings restarts PostgreSQL once with archiving on. The
+   first drill records (`docs/drills/`) follow then; DAT-40 and DAT-54's restore onto a fresh server is drilled before
+   launch.
+2. **The alerts** (DAT-27: a base backup or dump older than 26 hours, archiving more than 5 minutes behind) are Slice
+   9.6's. They watch the backup service's `status/*.json` and `pg_stat_archiver` (`docs/RUNBOOKS.md` §10.1). Until
+   then, a failing night shows only in the backup service's log.
+3. **No write-only key.** R2 has none, so the server's dump key can list and read the dumps bucket (each dump is
+   encrypted to the owner's key, which no server holds), and the archive key can read the archive (WAL-G reads the
+   week's full backup to take a differential). Neither can delete or replace anything inside its bucket's lock (BKP-01
+   and DAT-28 as amended).
+4. **No standby yet** (D9-23): the servers have no replication role or `pg_hba.conf` line for one. They're made when a
+   second server arrives (`docs/RUNBOOKS.md` §10.7). Failover and adding a replica are proven in CI only.
+5. **A restored shop's media:** media has no backup (MED-06). A deleted shop's files are gone from R2, so its restored
+   media rows point at nothing.
+6. **A column added since the backup with no default** would make a one-shop restore fail as a whole, rolled back with
+   nothing kept. A column with a default takes it.
