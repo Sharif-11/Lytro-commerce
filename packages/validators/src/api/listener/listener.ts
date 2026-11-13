@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  LISTENER_APP_VERSION_MAX_LENGTH,
   LISTENER_CODE_LENGTH,
   LISTENER_DEVICE_NAME_MAX_LENGTH,
   LISTENER_INSTALLATION_ID_MAX_LENGTH,
@@ -8,18 +9,26 @@ import {
   LISTENER_RECENT_MAX,
   LISTENER_SENDER_MAX_LENGTH,
 } from '../../common/limits';
+import { LISTENER_APP_VERSION_PATTERN } from '../../common/listener-release';
 import { ListenerMessageStatus } from '../../db/enums';
 
 // LSN-09 (Phase 5 Slice 5.4a): a pairing code's letters -- no 0/O, 1/I/L, so it reads aloud and types without mistakes.
 export const LISTENER_CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 
-// LSN-18: an app version, `major.minor.patch`.
+// LSN-18: the oldest app version the operator lets call, `major.minor.patch`: numbers only.
 const APP_VERSION = /^\d{1,4}\.\d{1,4}\.\d{1,4}$/;
 
-/** LSN-18: an app version's three parts, compared in order: negative when `a` is older than `b`. */
+/** A version's three numbers, any tag after them left off (`1.0.0-staging` is 1, 0, 0). */
+const numbersOf = (version: string): number[] =>
+  (version.split('-')[0] ?? '').split('.').map(Number);
+
+/**
+ * LSN-18: two versions' three numbers, compared in order: negative when `a` is older than `b`. A tag counts for nothing,
+ * so a staging build `1.0.0-staging` meets a minimum of 1.0.0, as the same build without its tag would.
+ */
 export function compareAppVersions(a: string, b: string): number {
-  const left = a.split('.').map(Number);
-  const right = b.split('.').map(Number);
+  const left = numbersOf(a);
+  const right = numbersOf(b);
   for (let index = 0; index < 3; index += 1) {
     const diff = (left[index] ?? 0) - (right[index] ?? 0);
     if (diff !== 0) return diff;
@@ -27,7 +36,18 @@ export function compareAppVersions(a: string, b: string): number {
   return 0;
 }
 
+/** LSN-18: the minimum app version the operator sets (`listener_min_app_version`): numbers only. */
 export const appVersionField = z.string().trim().regex(APP_VERSION, 'Like 1.2.3.');
+
+/**
+ * LSN-18: the version a phone's app gives (`x-app-version`): numbers, or with one tag, as staging's build is
+ * `1.0.0-staging` (its versionNameSuffix). Kept on the phone's row as given.
+ */
+export const appBuildVersionField = z
+  .string()
+  .trim()
+  .max(LISTENER_APP_VERSION_MAX_LENGTH)
+  .regex(LISTENER_APP_VERSION_PATTERN, 'Like 1.2.3.');
 
 // LSN-11: the app's own installation ID, made once on the phone, which a device token is bound to.
 export const installationIdField = z

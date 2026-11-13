@@ -22,8 +22,11 @@ export interface ListenerAppRead {
   release: ListenerAppView | null;
 }
 
-// "1.2.3", or with one tag, as staging's copy is "1.0.0-staging" (its downloads host serves staging.lytro.app/listener).
-const VERSION = /^\d+\.\d+\.\d+(-[0-9A-Za-z]+)?$/;
+/**
+ * LSN-18: a Listener build's version, `major.minor.patch`, or with one tag, as staging's build is `1.0.0-staging` -- the
+ * version a release names and the one the app sends (`x-app-version`). The operator's minimum is numbers only.
+ */
+export const LISTENER_APP_VERSION_PATTERN = /^\d{1,4}\.\d{1,4}\.\d{1,4}(-[0-9A-Za-z]+)?$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const FILE = /^[A-Za-z0-9._-]+\.apk$/;
 
@@ -31,7 +34,7 @@ const FILE = /^[A-Za-z0-9._-]+\.apk$/;
 export function listenerReleaseOf(body: unknown, base: string): ListenerRelease | null {
   if (typeof body !== 'object' || body === null) return null;
   const { version, file, sha256, bytes } = body as Record<string, unknown>;
-  if (typeof version !== 'string' || !VERSION.test(version)) return null;
+  if (typeof version !== 'string' || !LISTENER_APP_VERSION_PATTERN.test(version)) return null;
   if (typeof file !== 'string' || !FILE.test(file)) return null;
   if (typeof sha256 !== 'string' || !SHA256.test(sha256)) return null;
   if (typeof bytes !== 'number' || !Number.isInteger(bytes) || bytes <= 0) return null;
