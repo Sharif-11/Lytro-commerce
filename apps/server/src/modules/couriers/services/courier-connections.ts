@@ -20,7 +20,7 @@ import { LIMIT_STORE } from '../../shared/limits/tokens';
 import { DAY_MS, MINUTE_MS } from '../../../common/time';
 import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
-import { SecretBox, SecretPurpose } from '../../shared/secrets/secret-box';
+import { SecretBox, SecretPurpose, SecretUnreadable } from '../../shared/secrets/secret-box';
 import {
   CourierNoAnswer,
   PICKUP_STORE_ID,
@@ -67,7 +67,11 @@ export interface CourierConnectionView {
   courierKey: CourierKey;
   name: string;
   isDefault: boolean;
-  hasCredentials: true;
+  /**
+   * Slice 9.7: false when the saved login can no longer be opened (the sealing key changed without a re-seal); the
+   * connection then shows as refused, for the owner to enter the login again, never as a failed list.
+   */
+  hasCredentials: boolean;
   state: CourierConnectionState;
   connectedAt: Date;
   /** CRR-02, D6-3: whether its messages are arriving, none yet, or arriving without the token. */
@@ -726,12 +730,13 @@ export class CourierConnections {
     const platform = states.get(row.courierKey);
     const retiring = platform?.state === RetireState.Retiring;
     const adapter = this.adapterOf(row.courierKey);
+    const credentials = this.readableCredentials(row);
     return {
       courierKey: row.courierKey,
       name: adapter.name,
       isDefault: row.isDefault,
-      hasCredentials: true,
-      state: row.state,
+      hasCredentials: credentials !== null,
+      state: credentials === null ? CourierConnectionState.LoginRefused : row.state,
       connectedAt: row.createdAt,
       messages:
         row.unsignedAt !== null &&
@@ -746,7 +751,7 @@ export class CourierConnections {
         (row.lastMessageAt === null || row.lastMessageAt < row.pasteWarnedAt)
           ? row.pasteWarnedAt
           : null,
-      pickupStore: this.storeOf(row),
+      pickupStore: credentials === null ? null : this.storeOf(row, credentials),
       retiring,
       suggestedKey: retiring ? platform.suggestedKey : null,
       backSince: retiring ? null : (back.get(row.id) ?? null),
@@ -754,9 +759,21 @@ export class CourierConnections {
     };
   }
 
-  private storeOf(row: SelectCourierConnection): { id: string; name: string } | null {
+  /** The saved login, or null when it can't be opened: shown as needing the login again (Slice 9.7). */
+  private readableCredentials(row: SelectCourierConnection): Record<string, string> | null {
+    try {
+      return this.opened(row, row.tenantId).account.credentials;
+    } catch (error) {
+      if (error instanceof SecretUnreadable) return null;
+      throw error;
+    }
+  }
+
+  private storeOf(
+    row: SelectCourierConnection,
+    credentials: Record<string, string>,
+  ): { id: string; name: string } | null {
     if (!this.adapterOf(row.courierKey).pickupStores) return null;
-    const { credentials } = this.opened(row, row.tenantId).account;
     const id = credentials[PICKUP_STORE_ID];
     return id ? { id, name: credentials[PICKUP_STORE_NAME] ?? '' } : null;
   }

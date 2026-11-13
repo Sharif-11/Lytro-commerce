@@ -12,7 +12,7 @@ import {
 import { ApiError } from '../../../common/api-error';
 import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
-import { SecretBox, SecretPurpose } from '../../shared/secrets/secret-box';
+import { SecretBox, SecretPurpose, SecretUnreadable } from '../../shared/secrets/secret-box';
 import { TenantSummaries } from '../../tenancy/services/tenant-summaries.service';
 import type { CourierNews, MessageHeaders } from '../ports/courier-adapter';
 import type { CourierNotifier } from '../ports/courier-notifier';
@@ -113,7 +113,9 @@ export class CourierMessages {
     }
     // CRR-27, read agreed 2026-11-05: answered at any good address, because it moves nothing and doesn't even count as a message arriving.
     if (adapter.isAddressTest?.(rawBody)) return { stored: null, tenantId: null, answerHeaders };
-    const secrets = this.secretsFrom(connection.messageSecrets, tenantId);
+    // Slice 9.7: a pair that can no longer be opened is an address nobody knows, never a server fault.
+    const secrets = this.readableSecrets(connection.messageSecrets, tenantId);
+    if (!secrets) throw new ApiError('not_found', 'CourierAddressNotKnown', {});
     const now = this.clock();
     if (!adapter.verifyMessage(secrets.token, rawBody, headers)) {
       this.logger.warn(`a ${courierKey} message failed verification on tenant ${tenantId}`);
@@ -199,9 +201,8 @@ export class CourierMessages {
     return this.store.run(tenantId, async (tx) => {
       const connection = await this.store.findConnection(tx, tenantId, courierKey);
       if (!connection) throw new ApiError('not_found', 'CourierNotConnected', {});
-      if (connection.messageSecrets) {
-        return this.addressFrom(this.secretsFrom(connection.messageSecrets, tenantId));
-      }
+      const secrets = this.readableSecrets(connection.messageSecrets, tenantId);
+      if (secrets) return this.addressFrom(secrets);
       return this.newPair(tx, tenantId, courierKey, connection.id);
     });
   }
@@ -241,8 +242,9 @@ export class CourierMessages {
     courierKey: CourierKey,
     connection: { id: string; messageSecrets: Buffer | null },
   ): Promise<MessageAddress> | MessageAddress {
-    return connection.messageSecrets
-      ? this.addressFrom(this.secretsFrom(connection.messageSecrets, tenantId))
+    const secrets = this.readableSecrets(connection.messageSecrets, tenantId);
+    return secrets
+      ? this.addressFrom(secrets)
       : this.newPair(tx, tenantId, courierKey, connection.id);
   }
 
@@ -275,6 +277,21 @@ export class CourierMessages {
       connectionId,
     });
     return this.addressFrom(secrets);
+  }
+
+  /**
+   * Slice 9.7: the sealed pair, or null where there's none or it can no longer be opened (the sealing key changed
+   * without a re-seal). Such a pair is no use to anyone, so a new one is made the next time the address is asked for.
+   */
+  private readableSecrets(sealed: Buffer | null, tenantId: string): MessageSecrets | null {
+    if (sealed === null) return null;
+    try {
+      return this.secretsFrom(sealed, tenantId);
+    } catch (error) {
+      if (!(error instanceof SecretUnreadable)) throw error;
+      this.logger.warn(`a courier message pair on tenant ${tenantId} can't be opened`);
+      return null;
+    }
   }
 
   private secretsFrom(sealed: Buffer, tenantId: string): MessageSecrets {

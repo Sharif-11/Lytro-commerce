@@ -33,7 +33,7 @@ export interface CourierConnection {
   courierKey: CourierKey;
   name: string;
   isDefault: boolean;
-  hasCredentials: true;
+  hasCredentials: boolean;
   /** A refused Pathao login is `login_refused` (Slice 6.3). */
   state: CourierConnectionState;
   connectedAt: string;
