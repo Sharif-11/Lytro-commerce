@@ -213,6 +213,10 @@ GEMINI_API_KEY=
 # DAT-55 (Slice 9.6): what a second server would cost a month, in taka; the operators are told when the plans bring in
 # over 4 times it. Unset, only the paying shops' count (30) tells them.
 # SECOND_SERVER_MONTHLY_TAKA=
+# OBS-03 (Slice 9.6): the server's errors to Sentry (its project's DSN); unset, none are sent. The environment names this
+# server in Sentry: staging or production.
+# SENTRY_DSN=
+# SENTRY_ENVIRONMENT=production
 
 # Tuning: the built-in values are right; listed so nothing is hidden. Unset means the built-in value.
 # DATABASE_POOL_MAX=5

@@ -52,7 +52,7 @@ afterAll(async () => {
 });
 
 describeIfDatabase('job heartbeats and the jobs check (Slice 9.6)', () => {
-  it('records a heartbeat for a pass that finished, none for one that failed', async () => {
+  it('records a heartbeat for a pass that finished, none for one that failed, and reports the failure', async () => {
     const done = `monitoring-done-${randomUUID().slice(0, 8)}`;
     const failing = `monitoring-failing-${randomUUID().slice(0, 8)}`;
     const worker = new PgBossClient(
@@ -60,7 +60,10 @@ describeIfDatabase('job heartbeats and the jobs check (Slice 9.6)', () => {
       undefined,
       undefined,
       new JobHeartbeats(monitoring, () => new Date()),
+      // OBS-03: a failed job goes to the error tracker with its queue.
+      { capture: (_error, scope) => reported.push(scope.job ?? '') },
     );
+    const reported: string[] = [];
     let ran = 0;
     let failed = 0;
     try {
@@ -84,6 +87,7 @@ describeIfDatabase('job heartbeats and the jobs check (Slice 9.6)', () => {
       await worker.onModuleDestroy();
     }
     expect([ran, failed]).toEqual([1, 1]);
+    expect(reported).toEqual([failing]);
     const beats = await monitoring.heartbeatsOf([done, failing]);
     expect([...beats.keys()]).toEqual([done]);
   }, 40_000);

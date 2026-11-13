@@ -158,6 +158,9 @@ const envSchema = z.object({
   // DAT-55 (Slice 9.6): what a second server would cost a month, in taka. Unset, revenue never says it's time for one;
   // the paying shops' count still does.
   SECOND_SERVER_MONTHLY_TAKA: z.coerce.number().positive().optional(),
+  // OBS-03 (Slice 9.6): Sentry's address for the server's errors; unset, none are sent. Its environment names the server.
+  SENTRY_DSN: z.string().url().optional(),
+  SENTRY_ENVIRONMENT: z.string().trim().min(1).default('production'),
   TRIAL_LIMIT_PER_IP: z.coerce.number().int().positive().optional(),
   TRIAL_LIMIT_WINDOW_DAYS: z.coerce.number().int().positive().optional(),
   // Connection pool (ENGINEERING-STANDARDS §5). Defaults suit one server; size the total for each deployment.

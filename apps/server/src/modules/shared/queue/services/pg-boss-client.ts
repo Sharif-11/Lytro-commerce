@@ -7,6 +7,7 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { PgBoss, type WorkHandler } from 'pg-boss';
+import { ErrorTracker } from '../../../../common/error-tracking/error-tracker';
 import { DegradedMode } from '../../../degraded-mode/services/degraded-mode';
 import { JobHeartbeats } from '../../../monitoring/services/job-heartbeats';
 import { Leases } from '../../limits/services/leases';
@@ -41,6 +42,7 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
     @Optional()
     @Inject(JobHeartbeats)
     private readonly heartbeats?: Pick<JobHeartbeats, 'finished'>,
+    @Optional() @Inject(ErrorTracker) errors?: Pick<ErrorTracker, 'capture'>,
   ) {
     this.starts = runsJobs(env.SERVER_ROLE ?? 'all');
     this.boss = new PgBoss({
@@ -56,6 +58,33 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
     this.boss.on('error', (error: Error & { queue?: string }) => {
       console.error(`[job-queue] ${error.queue ? `${error.queue}: ` : ''}${error.message}`);
     });
+    if (errors) this.reportFailedJobs(errors);
+  }
+
+  /**
+   * OBS-03 (Slice 9.6): every job whose handler fails is reported to the error tracker, whichever way its worker
+   * registered it (`workOnce`, or `boss.work` itself), then thrown on as before, so pg-boss retries it as it would.
+   */
+  private reportFailedJobs(errors: Pick<ErrorTracker, 'capture'>): void {
+    const work = this.boss.work.bind(this.boss) as (
+      name: string,
+      ...rest: unknown[]
+    ) => Promise<string>;
+    const reporting = (name: string, ...rest: unknown[]): Promise<string> => {
+      const handler = rest.at(-1);
+      if (typeof handler === 'function') {
+        rest[rest.length - 1] = async (jobs: unknown): Promise<unknown> => {
+          try {
+            return await (handler as (jobs: unknown) => Promise<unknown>)(jobs);
+          } catch (error) {
+            errors.capture(error, { job: name });
+            throw error;
+          }
+        };
+      }
+      return work(name, ...rest);
+    };
+    (this.boss as unknown as { work: typeof reporting }).work = reporting;
   }
 
   async onModuleInit(): Promise<void> {
