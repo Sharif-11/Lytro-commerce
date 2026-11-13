@@ -7,8 +7,11 @@ export interface OutsideTime {
   outsideCalls: number;
 }
 
-interface RequestState extends OutsideTime {
+/** One request's state, as its log lines read it. */
+export interface RequestState extends OutsideTime {
   requestId: string;
+  /** LOG-01 (Slice 9.6): the shop the request is for, once a guard has found it (ShopLogContext). */
+  shopId?: string;
 }
 
 /**
@@ -23,6 +26,25 @@ export class RequestContext {
 
   run<T>(requestId: string, work: () => T): T {
     return this.store.run({ requestId, outsideMs: 0, outsideCalls: 0 }, work);
+  }
+
+  /**
+   * The current request's own state, for what reads it after the request's work is done (its request line, Slice 9.6),
+   * when this context is gone; undefined outside a request.
+   */
+  current(): Readonly<RequestState> | undefined {
+    return this.store.getStore();
+  }
+
+  /** LOG-01 (Slice 9.6): the shop the current request is for, from the guard that found it; outside a request, nothing. */
+  setShop(shopId: string | null): void {
+    const state = this.store.getStore();
+    if (state && shopId !== null) state.shopId = shopId;
+  }
+
+  /** The current request's shop, or undefined outside a request or before a guard found one. */
+  shopId(): string | undefined {
+    return this.store.getStore()?.shopId;
   }
 
   /** The current request's ID, or undefined outside a request (start-up, a queue job). */

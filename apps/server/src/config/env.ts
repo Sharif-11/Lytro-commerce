@@ -161,6 +161,8 @@ const envSchema = z.object({
   // OBS-03 (Slice 9.6): Sentry's address for the server's errors; unset, none are sent. Its environment names the server.
   SENTRY_DSN: z.string().url().optional(),
   SENTRY_ENVIRONMENT: z.string().trim().min(1).default('production'),
+  // D9-20 (Slice 9.6): JSON log lines (production's default) or Nest's readable text (everywhere else's).
+  LOG_FORMAT: z.enum(['json', 'text']).optional(),
   TRIAL_LIMIT_PER_IP: z.coerce.number().int().positive().optional(),
   TRIAL_LIMIT_WINDOW_DAYS: z.coerce.number().int().positive().optional(),
   // Connection pool (ENGINEERING-STANDARDS §5). Defaults suit one server; size the total for each deployment.
