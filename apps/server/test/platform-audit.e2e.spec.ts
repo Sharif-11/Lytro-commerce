@@ -259,6 +259,30 @@ describeIfDatabase('every operator action commits with its platform audit entry 
     });
   });
 
+  it('a plan marked suggested (PLN-21), in the platform log or not at all', async () => {
+    const plans = app.get(PlansService);
+    const plan = await plans.create(
+      {
+        name: `Suggested ${freshSlug()}`,
+        description: null,
+        rank: 910_000 + Math.floor(Math.random() * 1000),
+        forSale: true,
+        limits: { staff: 1, products: 10 },
+        features: {},
+      },
+      operator,
+    );
+    await refused('plan_updated', () => plans.setSuggested(plan.id, true, operator));
+    expect(await count('control.plans WHERE id = $1 AND suggested', [plan.id])).toBe(0);
+    await plans.setSuggested(plan.id, true, operator);
+    expect(await count('control.plans WHERE id = $1 AND suggested', [plan.id])).toBe(1);
+    expect((await entries('plan_updated')).at(-1)).toMatchObject({
+      actor_id: operator.operatorId,
+      summary: { newValue: { suggested: true }, version: 1 },
+    });
+    await plans.setSuggested(plan.id, false, operator);
+  });
+
   it('a plan assigned, with the shop untouched when it fails', async () => {
     const tenantId = await seedShop(admin, `Shop ${freshSlug()}`, freshSlug(), 'trial');
     const planId = await plan(`Assigned ${freshSlug()}`);

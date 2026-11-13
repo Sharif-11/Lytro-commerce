@@ -33,6 +33,9 @@ export const plans = control.table(
     version: integer('version').notNull().default(1),
     limits: jsonb('limits').$type<PlanLimits>().notNull(),
     features: jsonb('features').$type<Record<string, boolean>>().notNull().default({}),
+    // PLN-21: the plan the pricing page highlights. A marketing mark, not a plan term: never in plan_versions, and
+    // setting it never bumps `version`.
+    suggested: boolean('suggested').notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => [
@@ -40,6 +43,10 @@ export const plans = control.table(
     uniqueIndex('plans_rank_for_sale_idx')
       .on(t.rank)
       .where(sql`${t.forSale}`),
+    // PLN-21: at most one plan is suggested.
+    uniqueIndex('plans_one_suggested_idx')
+      .on(t.suggested)
+      .where(sql`${t.suggested}`),
   ],
 );
 

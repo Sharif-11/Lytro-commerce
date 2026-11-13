@@ -44,6 +44,7 @@ export const MESSAGE_KEYS = [
   'PlanRankTaken',
   'PlanInUse',
   'PlatformPlanFixed',
+  'PlanNotOnPricingPage',
   'PriceNotFound',
   'InvoiceNotFound',
   'PlanPaymentNotFound',

@@ -1,4 +1,4 @@
-import { count, eq, isNotNull, sql } from 'drizzle-orm';
+import { and, count, eq, isNotNull, ne, sql } from 'drizzle-orm';
 import type { PlanLimits } from '@lytronix/validators';
 import {
   planAssignments,
@@ -41,6 +41,32 @@ export class PlansRepository {
   async findById(db: Executor, id: string): Promise<SelectPlan | null> {
     const rows = await db.select().from(plans).where(eq(plans.id, id)).limit(1);
     return rows[0] ?? null;
+  }
+
+  /** PLN-21: the plan row, locked for the rest of the transaction, so a concurrent edit waits or is seen. */
+  async findByIdForUpdate(db: Executor, id: string): Promise<SelectPlan | null> {
+    const rows = await db.select().from(plans).where(eq(plans.id, id)).limit(1).for('update');
+    return rows[0] ?? null;
+  }
+
+  /** PLN-21: one mark change at a time, so two operators marking different plans at once never clash on the index. */
+  async lockSuggestion(db: Executor): Promise<void> {
+    await db.execute(sql`SELECT pg_advisory_xact_lock(hashtext('control.plans.suggested'))`);
+  }
+
+  /**
+   * PLN-21: marks or unmarks one plan. Marking clears the mark from any other plan first. Not a plan edit: no version
+   * snapshot and no version bump (PLN-02 versions a plan's terms; the mark is not one).
+   */
+  async setSuggested(db: Executor, id: string, suggested: boolean): Promise<SelectPlan | null> {
+    if (suggested) {
+      await db
+        .update(plans)
+        .set({ suggested: false })
+        .where(and(eq(plans.suggested, true), ne(plans.id, id)));
+    }
+    const [row] = await db.update(plans).set({ suggested }).where(eq(plans.id, id)).returning();
+    return row ?? null;
   }
 
   /** PLN-10: for-sale plans only, for the tenant-facing/public list. Never returns a not-for-sale row. */
@@ -87,6 +113,7 @@ export class PlansRepository {
    * clean `conflict`.
    */
   async isReferenced(db: Executor, id: string): Promise<boolean> {
+    // Awaited one at a time (a query builder runs only when awaited): the caller's transaction is one connection.
     const checks = [
       db
         .select({ id: planAssignments.id })
@@ -115,8 +142,10 @@ export class PlansRepository {
         .where(eq(scheduledPlanChanges.targetPlanId, id))
         .limit(1),
     ];
-    const results = await Promise.all(checks);
-    return results.some((rows) => rows.length > 0);
+    for (const check of checks) {
+      if ((await check).length > 0) return true;
+    }
+    return false;
   }
 
   /** PLN-02: how many shops sit on each version of each plan, as their snapshots say. */

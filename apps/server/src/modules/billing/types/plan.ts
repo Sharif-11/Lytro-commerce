@@ -9,6 +9,8 @@ export interface PlanRecord {
   version: number;
   limits: PlanLimits;
   features: Record<string, boolean>;
+  /** PLN-21: the plan the pricing page highlights; at most one is. */
+  suggested: boolean;
   createdAt: Date;
 }
 

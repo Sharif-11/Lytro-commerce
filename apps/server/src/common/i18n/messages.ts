@@ -113,6 +113,11 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: "Trial and Pay-as-you-go are Lytro's own plans: they can't be put on sale, renamed or deleted. Their limits can be changed.",
     bn: 'ট্রায়াল আর পে-অ্যাজ-ইউ-গো Lytro-র নিজের প্ল্যান: এগুলো সেলের জন্য দেওয়া, নাম বদলানো বা ডিলিট করা যায় না। লিমিট বদলানো যায়।',
   },
+  // PLN-21: the suggested plan is the one the pricing page highlights, so it must be on that page.
+  PlanNotOnPricingPage: {
+    en: 'Only a plan on the pricing page can be suggested: one for sale, or Pay-as-you-go.',
+    bn: 'শুধু প্রাইসিং পেজে থাকা প্ল্যান সাজেস্টেড হতে পারে: বিক্রির জন্য থাকা প্ল্যান, বা পে-অ্যাজ-ইউ-গো।',
+  },
   PriceNotFound: {
     en: 'No price is set for this plan and billing term.',
     bn: 'এই প্ল্যান এবং বিলিং মেয়াদের জন্য কোনো দাম নির্ধারিত নেই।',

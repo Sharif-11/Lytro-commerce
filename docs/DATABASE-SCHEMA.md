@@ -258,9 +258,12 @@ CREATE TABLE control.plans (
                                                  -- `staff` counts the owner: Trial 1 (owner only), Starter 2 (D21);
                                                  -- a plan with no `staff` key gets 1 seat
     features        jsonb NOT NULL DEFAULT '{}',
+    suggested       boolean NOT NULL DEFAULT false, -- PLN-21: the plan the pricing page highlights; not a plan
+                                                 -- term, so never in plan_versions and never a version bump
     created_at      timestamptz NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX ON control.plans (rank) WHERE for_sale = true; -- PLN-16
+CREATE UNIQUE INDEX plans_one_suggested_idx ON control.plans (suggested) WHERE suggested; -- PLN-21: at most one
 
 CREATE TABLE control.billing_terms (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),

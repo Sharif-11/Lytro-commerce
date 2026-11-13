@@ -48,6 +48,7 @@ export const planSchema = z.object({
   version: z.number(),
   limits: planLimitsSchema,
   features: z.record(z.string(), z.boolean()),
+  suggested: z.boolean(), // PLN-21
   createdAt: z.date(),
 });
 export class PlanDto extends createZodDto(planSchema) {}
