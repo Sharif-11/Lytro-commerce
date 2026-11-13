@@ -73,6 +73,9 @@ export class PlansService {
             .filter((each) => each.planId === plan.id)
             .map(({ version, shops }) => ({ version, shops })),
           deletable: !(await this.store.isReferenced(tx, plan.id)),
+          // PLN-21: the console's suggested-plan switch reads these; the plan names stay the server's to know.
+          trial: this.store.isPlatformPlan(plan.name) && !this.store.isPayAsYouGo(plan.name),
+          onPricingPage: this.onPricingPage(plan),
         });
       }
       return rows;

@@ -409,6 +409,30 @@ describeIfDatabase('the suggested plan (PLN-21)', () => {
     expect(await suggestedNames()).toEqual(['Starter']);
   };
 
+  it('tells the console which plan is the Trial and which ones the pricing page shows', async () => {
+    const headers = await operatorHeaders();
+    const retired = await post(
+      '/operator/plans',
+      { name: `Retired ${freshSlug()}`, rank: 9702, forSale: false, limits: LIMITS },
+      headers,
+    );
+    const list = (await get('/operator/plans', headers)).body as (NamedPlan & {
+      trial: boolean;
+      onPricingPage: boolean;
+    })[];
+    const flagsOf = (name: string) => {
+      const row = list.find((each) => each.name === name);
+      return row ? { trial: row.trial, onPricingPage: row.onPricingPage } : null;
+    };
+    expect(flagsOf('Trial')).toEqual({ trial: true, onPricingPage: false });
+    expect(flagsOf('Pay-as-you-go')).toEqual({ trial: false, onPricingPage: true });
+    expect(flagsOf('Starter')).toEqual({ trial: false, onPricingPage: true });
+    expect(flagsOf((retired.body as NamedPlan).name)).toEqual({
+      trial: false,
+      onPricingPage: false,
+    });
+  });
+
   it(
     'Starter starts suggested; marking another plan moves the mark, with no new version and an audit entry',
     async () => {

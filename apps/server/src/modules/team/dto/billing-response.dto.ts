@@ -58,6 +58,8 @@ export class PlanListDto extends createZodDto(planSchema.array()) {}
 export const operatorPlanSchema = planSchema.extend({
   shopsByVersion: z.array(z.object({ version: z.number(), shops: z.number() })),
   deletable: z.boolean(),
+  trial: z.boolean(),
+  onPricingPage: z.boolean(),
 });
 export class OperatorPlanListDto extends createZodDto(operatorPlanSchema.array()) {}
 
