@@ -216,7 +216,7 @@ export const billingPriceSchema = z.object({
 });
 export class BillingPriceListDto extends createZodDto(billingPriceSchema.array()) {}
 
-// BIL-12: control.invoices.
+// BIL-12: control.invoices. `kind` is purchase, renewal, upgrade, addon, credit_note or (Slice 9.8) top_up.
 export const invoiceSchema = z.object({
   id: z.string(),
   tenantId: z.string(),
@@ -242,6 +242,13 @@ export const invoiceSchema = z.object({
   // ADM-14: marked "recorded by the platform"; ADM-15: on a credit note, the invoice it takes back.
   recordedByPlatform: z.boolean(),
   reversesInvoiceId: z.string().nullable(),
+  // D9-7, LEG-03 (Slice 9.8): the VAT it carries, all five or none -- none until Lytro is registered, and none on an invoice
+  // paid from the balance, whose VAT the top-up's own invoice carried. Prices include VAT: vatAmount is part of amount.
+  sellerName: z.string().nullable(),
+  sellerAddress: z.string().nullable(),
+  sellerBin: z.string().nullable(),
+  vatRate: z.string().nullable(),
+  vatAmount: z.string().nullable(),
   issuedAt: z.date(),
   // LIF-21: true for an invoice of the owner's earlier, deleted shop, listed alongside this shop's own.
   earlierShop: z.boolean(),

@@ -17,6 +17,13 @@ import {
   emailField,
   HELP_HOUR_MAX,
   LISTENER_SENDER_MAX_LENGTH,
+  isPrintedLine,
+  isPublishedPrivacyVersion,
+  isPublishedTermsVersion,
+  isVatBin,
+  isVatRate,
+  VAT_SELLER_ADDRESS_MAX,
+  VAT_SELLER_NAME_MAX,
 } from '@lytronix/validators';
 import { FieldsError } from '../../../common/api-error';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
@@ -86,9 +93,9 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
   [PlatformSettingKey.OrderLimitMode]:
     "Past the period's order-handling limit: block, or allow with a prompt to upgrade (QTA-03).",
   [PlatformSettingKey.TermsVersion]:
-    'The terms of service in force, which a new account accepts: change it when new terms are published (LEG-01).',
+    'The terms of service in force, which a new account accepts: a published version, named by the day it takes effect (LEG-01).',
   [PlatformSettingKey.PrivacyVersion]:
-    'The privacy policy in force, which a new account accepts: change it when a new policy is published (LEG-01).',
+    'The privacy policy in force, which a new account accepts: a published version, named by the day it takes effect (LEG-01).',
   [PlatformSettingKey.AddressReadProvider]:
     "The AI that reads a customer's delivery details from a pasted message: gemini (AI-10, D7-4).",
   [PlatformSettingKey.AddressReadModel]:
@@ -117,6 +124,14 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'The hour Lytro starts answering the help line, every day, 0 to 23 in Dhaka (D8-68).',
   [PlatformSettingKey.HelpClosesHour]:
     'The hour Lytro stops answering the help line, every day, 0 to 23 in Dhaka (D8-68).',
+  [PlatformSettingKey.VatBin]:
+    "Lytro's VAT registration number (BIN), 9 or 13 digits; invoices carry VAT once all four VAT settings are set (D9-7, LEG-03).",
+  [PlatformSettingKey.VatRate]:
+    'The VAT rate in per cent, such as 15; prices include it, and an invoice shows the part that is VAT (D9-7).',
+  [PlatformSettingKey.VatSellerName]:
+    'The name Lytro is registered for VAT under, as its invoices print it (D9-7).',
+  [PlatformSettingKey.VatSellerAddress]:
+    'The address Lytro is registered for VAT at, as its invoices print it (D9-7).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -124,9 +139,17 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
 const isPositiveInt = (value: unknown): boolean =>
   typeof value === 'number' && Number.isInteger(value) && value > 0;
 const isAppVersion = (value: unknown): boolean => appVersionField.safeParse(value).success;
-// LEG-01: a version's name, such as a date.
-const isLegalVersion = (value: unknown): boolean =>
-  typeof value === 'string' && value.trim() !== '' && value.length <= 40;
+// LEG-01 (Slice 9.8): only a version whose text is published, so sign-up never records one that has none.
+const isTermsVersion = (value: unknown): boolean => isPublishedTermsVersion(value);
+const isPrivacyVersion = (value: unknown): boolean => isPublishedPrivacyVersion(value);
+// D9-7 (Slice 9.8): Lytro's VAT registration, each cleared with an empty string.
+const cleared = (value: unknown): boolean => value === '';
+const isVatBinOrCleared = (value: unknown): boolean => cleared(value) || isVatBin(value);
+const isVatRateOrCleared = (value: unknown): boolean => cleared(value) || isVatRate(value);
+const isSellerNameOrCleared = (value: unknown): boolean =>
+  cleared(value) || isPrintedLine(value, VAT_SELLER_NAME_MAX);
+const isSellerAddressOrCleared = (value: unknown): boolean =>
+  cleared(value) || isPrintedLine(value, VAT_SELLER_ADDRESS_MAX);
 // LSN-16: a list of senders, each as an SMS names it.
 const isSenderList = (value: unknown): boolean =>
   Array.isArray(value) &&
@@ -191,8 +214,8 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.ListenerSenders]: isSenderList,
   [PlatformSettingKey.NewShopPaymentCapDays]: isPositiveInt,
   [PlatformSettingKey.OrderLimitMode]: isOrderLimitMode,
-  [PlatformSettingKey.TermsVersion]: isLegalVersion,
-  [PlatformSettingKey.PrivacyVersion]: isLegalVersion,
+  [PlatformSettingKey.TermsVersion]: isTermsVersion,
+  [PlatformSettingKey.PrivacyVersion]: isPrivacyVersion,
   [PlatformSettingKey.AddressReadProvider]: isAiProvider,
   [PlatformSettingKey.AddressReadModel]: isModelName,
   [PlatformSettingKey.AddressReadsPerShopPerMinute]: isPositiveInt,
@@ -207,6 +230,10 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.HelpPhone]: isLocalMobileOrCleared,
   [PlatformSettingKey.HelpOpensHour]: isHour,
   [PlatformSettingKey.HelpClosesHour]: isHour,
+  [PlatformSettingKey.VatBin]: isVatBinOrCleared,
+  [PlatformSettingKey.VatRate]: isVatRateOrCleared,
+  [PlatformSettingKey.VatSellerName]: isSellerNameOrCleared,
+  [PlatformSettingKey.VatSellerAddress]: isSellerAddressOrCleared,
 };
 
 // D8-77: the help line's two hours, each checked against the other.

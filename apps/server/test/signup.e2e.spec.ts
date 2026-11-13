@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlatformSettingKey } from '@lytronix/validators';
+import type * as Validators from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
@@ -13,6 +14,17 @@ import { prepareTestDatabase } from './support/database';
 import { openShop } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 import { cookieFrom, type HttpResult, postJson } from './support/http';
+
+// LEG-01 (Slice 9.8): a version may be set only once its text is published. This file publishes a later terms version of
+// its own, to see a new account record it.
+vi.mock('@lytronix/validators', async (importOriginal) => {
+  const actual = await importOriginal<typeof Validators>();
+  return {
+    ...actual,
+    isPublishedTermsVersion: (value: unknown): boolean =>
+      actual.isPublishedTermsVersion(value) || value === '2027-01-15',
+  };
+});
 
 // Sign-up by phone over real HTTP and the real database (P1-E01 to P1-E04, AUTH-05 to AUTH-11, AUTH-28, TRL-01).
 // Runs only when DATABASE_TEST_ADMIN_URL is set, which CI always does.
@@ -273,7 +285,7 @@ describeIfDatabase('sign-up by phone, end to end', () => {
 });
 
 describeIfDatabase('what an account accepted (LEG-01)', () => {
-  const FIRST = '2026-11-04';
+  const FIRST = '2026-11-20';
   const LATER = '2027-01-15';
 
   async function acceptedBy(phone: string) {

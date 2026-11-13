@@ -14,6 +14,7 @@ import { FieldsError, type InvalidField } from '../../../common/api-error';
 import type { ModifierGroupView, OrderableVariant } from '../../catalogue/types/catalogue';
 import {
   fromPaisa,
+  includedTaxOf,
   quantityTimesCost,
   toPaisa,
   weightExtraPaisa,
@@ -246,7 +247,7 @@ export function priceOrder(input: PricingInput): OrderPrice {
     if (rate === 0n || itemTotal === 0n) return 0n;
     const share = subtotal > 0n ? (orderDiscount * itemTotal) / subtotal : 0n;
     const base = max(itemTotal - share, 0n);
-    return (base * rate + (10000n + rate) / 2n) / (10000n + rate);
+    return includedTaxOf(base, line.taxRate ?? '0');
   });
   const anyZoneLine = input.lines.some((line) => line.ownDeliveryCharge === null);
   // PRD-08: a prepaid line, or one asking its delivery charge first, asks the order's delivery charge once.

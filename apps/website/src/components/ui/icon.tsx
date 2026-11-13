@@ -26,6 +26,7 @@ const paths = {
   code: 'm8 8-4 4 4 4m8-8 4 4-4 4M14 5l-4 14',
   scan: 'M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M4 12h16',
   alert: 'M12 3 2 20h20L12 3Zm0 7v4m0 3v1',
+  info: 'M12 20.5a8.5 8.5 0 1 0 0-17 8.5 8.5 0 0 0 0 17ZM12 11v5M12 8h.01',
   calendar: 'M4 6h16v15H4V6Zm0 5h16M8 3v5m8-5v5',
   tag: 'M3 12V3h9l9 9-9 9-9-9Zm5-5h.01',
   refresh: 'M20 12a8 8 0 1 1-2.3-5.7L20 8m0-5v5h-5',

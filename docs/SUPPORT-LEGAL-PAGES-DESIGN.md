@@ -1,6 +1,6 @@
 # Support and legal pages design: Help, Notices and status, Terms, Privacy
 
-Status: v1 design, 2026-10-18. A working prototype of all four is `docs/brand/lytro-support-legal.html` (open in a browser; needs internet for Google Fonts). This document is the spec behind it. Together with `LANDING-PAGE-DESIGN.md` and `SITE-PAGES-DESIGN.md` it covers every link in the landing page footer.
+Status: v1 design, 2026-10-18. A working prototype of all four is `docs/brand/lytro-support-legal.html` (open in a browser; needs internet for Google Fonts). This document is the spec behind it. Together with `LANDING-PAGE-DESIGN.md` and `SITE-PAGES-DESIGN.md` it covers every link in the landing page footer. Terms and Privacy are built (Phase 9 Slice 9.8, 2026-11) from the owner's own Bangla texts; §3 to §6 describe what shipped.
 
 | Footer link | Page | Route | Spec |
 | --- | --- | --- | --- |
@@ -48,23 +48,26 @@ All four live in `apps/website`. The Notices page reads the same notices the ope
 
 ## 3. Terms of service (`/terms`)
 
-**Job.** State the deal in words a seller can read on a phone, and satisfy LEG-1, which requires the terms to state the plan lifecycle, no refund after a period has started, balance freezing, deletion timing, media and data retention, and the use of hashed cross-tenant fraud data.
+**Job.** State the deal in words a seller can read on a phone, and satisfy LEG-02's checklist: the plan lifecycle, no refund once a period has started, the balance frozen and never refunded, deletion timing, retention, media in Cloudflare R2 with no separate backup, support seeing a dashboard only once the seller approves, orders, payments and invoices kept while the shop is active, and stored logins used only automatically for the shop's own work and never opened by anyone at Lytro. DAT-54 adds the one-server disclosure. LEG-02's hashed cross-tenant fraud data is next release's, so clause 8 says the check uses no other shop's data, and the sharing joins as a new version, with notice, when it ships.
 
-**Structure.** A draft banner (legal review pending), a sticky section index from 900 px, and eleven clauses. Each clause opens with a "Plainly" summary box, then the bullets. The lapsed-plan clause is a labelled table of the five stages (grace days 0 to 3, read-only 3 to 7, locked 7 to 15, archived 15 to 60, deletion at 60) taken from LIF-05 to LIF-12.
+**Text.** Written by the owner in Bangla (2026-11-13); the English is its translation, block for block, and the Bangla prevails. No draft banner: the texts are published without a lawyer's review (D9-6). "We" is Lytro, Chittagong (the header's সেবাদাতা line); disputes go to the courts of Chittagong.
+
+**Structure.** The title in the band; the header lines (version, the day it takes effect, the provider); a sticky section index from 900 px; the preamble; twelve numbered clauses. Most clauses open with a "Plainly" summary box, then subheadings, sub-labels, bullets and numbered points. The lapsed-plan clause lists the stages under bold sub-labels with today's defaults from the platform settings (grace days 0 to 3, read-only 3 to 7, locked 7 to 15, archived 15 to 60, deletion at 60).
 
 | Clause | Source |
 | --- | --- |
-| 1 Your account and shop | AUTH-01, AUTH-28, TEN-16, TEN-18 |
-| 2 Trial, plans and fees | SRS §free trial, PLN-7a, DWN-1, LIF-1, LIF-5 |
-| 3 Balance and top-ups | BAL-2, BAL-3, BAL-4 |
-| 4 If a plan lapses | LIF-02 to LIF-12 |
-| 5 Your customers' money | SRS §money handling, PAY-05 |
-| 6 Couriers and SMS | SRS §couriers, SMS-2 |
-| 7 Fraud data | LEG-1 (hashed cross-tenant data) |
-| 8 Acceptable use | LSN-1, marketing plan quality rules |
-| 9 Your data and deletion | AUD-3, CHT-4, §orders are never deleted, LEG-2 |
-| 10 Availability and liability | OBS-2, DAT-7a, DAT-8; liability wording marked for counsel |
-| 11 Changes and contact | 15-day notice is a proposal |
+| 1 আপনার অ্যাকাউন্ট ও অনলাইন দোকান | AUTH-01, AUTH-28, TEN-16, TEN-18 |
+| 2 ফ্রি ট্রায়াল, সাবস্ক্রিপশন ও ফি | TRL-07, PYG-02, PLN-07, UPG, DWN-01, BIL-18, LIF-01 |
+| 3 ব্যালেন্স, টাকা যোগ করা ও ইনভয়েস | BAL-02, BAL-06, BAL-17, BAL-18; every payment to Lytro has an invoice, top-ups included, with any VAT inside the price (D9-7, the 9.8 read) |
+| 4 প্ল্যান শেষ হলে বা দোকান বন্ধ করলে | LIF-02 to LIF-20, PYG-21 |
+| 5 আপনার কাস্টমারের পেমেন্ট | PAY-05 |
+| 6 ক্রেতার পেমেন্ট ও আর্থিক দায়বদ্ধতা | the owner's own clause: Lytro is software, never a payment intermediary between a shop and its buyers |
+| 7 কুরিয়ার, SMS ও অন্যান্য সার্ভিস | couriers, SMS, reading orders; LEG-02's use of stored logins |
+| 8 ফেক অর্ডার চেক | Slice 7.5 as built: the shop's own orders, and Steadfast's figures when the shop connected Steadfast |
+| 9 Lytro-তে যেসব কাজ করা যাবে না | LIF-24 |
+| 10 আপনার ব্যবসার তথ্য ও ডেটা | LIF-16, ORD-50, AUD-06, AUD-07, MED-06, ADM-05 |
+| 11 সার্ভিসের নির্ভরযোগ্যতা ও দায়বদ্ধতা | DAT-54 (one server, a 4-hour recovery target, 48 hours' notice of maintenance); liability capped at the fees paid in the 3 months before a claim (the 9.8 read) |
+| 12 শর্ত পরিবর্তন, আইন ও যোগাযোগ | 15 days' notice on the notice board and by email, at once for a change that only helps sellers; Bangladesh law, Chittagong's courts, the Bangla prevails; support@lytro.app (the 9.8 read) |
 
 ---
 
@@ -72,20 +75,20 @@ All four live in `apps/website`. The Notices page reads the same notices the ope
 
 **Job.** Explain to sellers and to sellers' customers what is collected, why, where it lives and how to have it erased, and satisfy LEG-2.
 
-**Structure.** Draft banner, sticky index, ten sections with "Plainly" boxes and labelled tables for "what we collect" and "how long we keep it".
+**Text and structure.** Written by the owner in Bangla, translated block for block, the Bangla prevailing; the same band, header lines and sticky index as the terms, and ten numbered sections with "Plainly" boxes, subheadings, bold sub-labels, bullets and one table ("how long we keep it").
 
 | Section | Source |
 | --- | --- |
-| 1 Who this covers | Shoppers are the tenant's customers; Lytro processes on the tenant's behalf |
-| 2 What we collect | AUTH, TEN, VER (transaction ID and sender number), AUD-1; never PINs or cards (PAY-05) |
-| 3 The Listener app | VER-1, LSN-1, LSN-3: reads only bKash and Nagad SMS, uploads amount, ID, sender, time; token bound to one tenant and installation; revocable |
-| 4 How we use it | fraud check on hashed numbers; essential messages; no sale of data |
-| 5 Who we share with | couriers, SMS gateway, payment gateways when connected, hosting and backups, authorities when required |
-| 6 Where it lives | DAT-7 (BDIX servers), DAT-8 (encrypted backups, drills), TEN-01, TEN-29, SEC rows |
-| 7 How long we keep it | §orders never deleted while active, AUD-3, CHT-4, LIF deletion at day 60; fraud-hash and security-log periods marked for counsel |
-| 8 Your rights | export in every state (LIF-06, LIF-11), shop deletion (LIF-19), shopper erasure (LEG-2) |
-| 9 Cookies | SEC-7 session cookie, language cookie, tenant-added pixels are the tenant's responsibility |
-| 10 Contact | reply and erasure periods marked for confirmation |
+| 1 এই পলিসি কাদের জন্য? | Shoppers are the shop's customers; Lytro processes their data on the shop's behalf; the Bangla prevails |
+| 2 আমরা কী কী তথ্য সংগ্রহ করি? | AUTH, TEN, VER (transaction ID and sender number), AUD-01, payment screenshots, shoppers' saved addresses; never PINs or cards (PAY-05) |
+| 3 Listener App কীভাবে কাজ করে? | VER-01, LSN-01, LSN-03: uploads only transaction SMS from Lytro's sender list; the text kept 90 days; test mode; revocable at once; Lytro reads its own wallet SMS on its own phone |
+| 4 আপনার তথ্য আমরা কী কাজে ব্যবহার করি? | running the shop, the fake-order check as built (no cross-shop data), the account and payments, security, support's approved view; no sale of data |
+| 5 কার সঙ্গে আপনার তথ্য শেয়ার করি? | couriers, the SMS gateway, the email service, bKash, Gemini for reading orders, Google and Facebook sign-in, Meta only when the shop connects it, browser push, Cloudflare, error-reporting and uptime services, authorities when required |
+| 6 আপনার তথ্য কোথায় সংরক্ষণ করা হয়? | the database in Bangladesh; media, backups and some services outside; row-level security, secure cookies, hashed or sealed secrets |
+| 7 কতদিন আপনার তথ্য সংরক্ষণ করি? | orders, payments and invoices while the shop is active; the activity log by plan, money entries 24 months; messages as received 90 days (Slice 9.5); payment screenshots 24 months; server logs 14 days (Slice 9.6); deleted data gone from every backup within 30 days (Slice 9.3, LIF-22) |
+| 8 আপনার কী কী অধিকার আছে? | export (LIF-16), shop deletion (LIF-19), a customer's deletion through the shop (CUS-09) or support@lytro.app |
+| 9 আমরা কী কী Cookie ব্যবহার করি? | what the code sets: the sign-in cookie, the language cookie, the storefront's delivery-area cookie; cart and recent searches in browser storage; a shop's own Meta pixel on its product landing pages only |
+| 10 প্রাইভেসি নিয়ে যোগাযোগ | support@lytro.app or the help line; a reply within 2 working days, a deletion finished within 30 days (the 9.8 read) |
 
 ---
 
@@ -95,15 +98,21 @@ All four live in `apps/website`. The Notices page reads the same notices the ope
 | --- | --- | --- | --- |
 | Help | `/help`, `/help/<slug>` | `help/index.tsx`, `help/article.tsx`, `help/search.tsx` | Markdown in `content/help/` |
 | Notices | `/notices` | `notices/status-board.tsx`, `notices/list.tsx` | public notices from `control.notices`; status from the check results |
-| Terms | `/terms` | `legal/doc.tsx` with a sticky index | Markdown in `content/legal/terms.bn.md`, `.en.md` |
-| Privacy | `/privacy` | same `legal/doc.tsx` | Markdown in `content/legal/privacy.bn.md`, `.en.md` |
-| Footer | all | `footer.tsx` | replace `#` links with the four routes once the pages exist |
+| Terms | `/terms`, `/terms/<version>` (built, Slice 9.8) | `app/(legal)/terms/`, `components/legal/legal-route.tsx` and `legal-page.tsx`; the look in `app/(legal)/legal.css` | Markdown in `src/content/legal/terms/<version>.bn.md`, `.en.md` |
+| Privacy | `/privacy`, `/privacy/<version>` (built, Slice 9.8) | `app/(legal)/privacy/`, the same components | Markdown in `src/content/legal/privacy/<version>.bn.md`, `.en.md` |
+| Footer | all | `layout/site-footer.tsx` | Terms and Privacy linked under Company since Slice 9.8; Help and Notices join when their pages exist |
+
+**Terms and privacy as built (Slice 9.8).**
+- **Text.** Each version is two Markdown files, the owner's Bangla and its English, in the small subset `lib/legal/legal-markdown.ts` reads (no Markdown package): `#` the title; the header lines `**ভার্সন:** …`, `**কার্যকর হবে:** …`, `**সেবাদাতা:** …`, shown as the version line; `##` numbered sections, which make the index; `###` subheadings; paragraphs with `**bold**`; a wholly bold paragraph as a sub-label; the `**সহজ কথায়:**` / `**Plainly:**` line as the summary box; other `**Label:** value` lines as contact lines (an email becomes a mail link, `lytro.app` the site, the help line the contact page); `- ` bullets; paragraphs numbered "১." or "1."; tables; `---`. The files are built into the pages (next.config.ts imports `.md` as text), so a deployment carries no files beside the build. A test fails when the English's structure differs from the Bangla's (sections, their numbers, summaries and every block's kind and size).
+- **Versions.** A version is named by the day it takes effect (`2026-11-20`; the 9.8 read). The published names are `PUBLISHED_TERMS_VERSIONS` and `PUBLISHED_PRIVACY_VERSIONS` in `@lytronix/validators`; the website's library is typed by them, so a version without its text, or text for an unpublished version, fails the typecheck, and a test checks the content folders hold exactly those files and that each file's header names its own version. Every published version stays readable at `/terms/<version>` and `/privacy/<version>`, with a line pointing to the version in force; any other name is a 404.
+- **The version in force.** `/terms` and `/privacy` show the version the server names (`GET /legal-versions`, the platform settings `terms_version` and `privacy_version` that sign-up records, LEG-01), kept for a minute. When the server can't be reached, or names a version with no text, they show the newest published version that has taken effect by today in Dhaka, and before the first takes effect, the first.
+- **Look.** The prototype's rules scoped to `.legal-page`, with every text at 14 px or more and the index heading in neutral-700; the blocks the final texts add (subheadings, sub-labels, numbered points, the table, contact lines) take the prototype's own type, colours and borders; the sticky index and the section anchors clear the site's sticky navbar. The prototype's two pages still hold the earlier draft wording; they follow this text once the owner approves it.
 
 ---
 
 ## 6. Open items
 
-- Both legal texts are drafts for a lawyer. Clauses marked "[to be settled with counsel]" are: liability cap, fraud-hash retention, security-log retention, erasure response time, and the 15-day change notice.
-- Retention periods follow LEG-2: set after an accountant's and a lawyer's advice.
+- The terms and privacy policy are published without a lawyer's review (D9-6, PHASE-9-PLAN §9). The review, when the business can pay for it, publishes its changes as new versions with the 15 days' notice.
+- LEG-02's hashed cross-tenant fraud data joins both texts as a new version, with notice, when that check ships (next release).
+- OD-46's legal minimum for order, payment and invoice records is still an accountant's question; the texts promise only what's built (never deleted for age while the shop is active).
 - The example notices and the "all systems normal" board on the prototype are illustrative; the live page shows real data only.
-- WhatsApp support needs the real number before the footer link can point at it.

@@ -64,6 +64,7 @@ import { ADDON_NOT_TAKEN, addonPaymentToBalanceWords } from './billing-notice-wo
 import { BillingTermsService } from './billing-terms.service';
 import { addonLine } from './plan-invoicing.service';
 import { ShopLimitsService } from './shop-limits.service';
+import { TopUpInvoicing } from './top-up-invoicing';
 import { AccountNotices } from '../../notifications/services/account-notices';
 import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 
@@ -167,6 +168,7 @@ export class AddonPurchaseService {
     @Inject(AddonPackService) private readonly packs: AddonPackService,
     @Inject(PlanPaymentsService) private readonly payments: PlanPaymentsService,
     @Inject(BalanceService) private readonly balance: BalanceService,
+    @Inject(TopUpInvoicing) private readonly topUps: TopUpInvoicing,
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(AuditService) private readonly audit: AuditService,
@@ -614,15 +616,18 @@ export class AddonPurchaseService {
     await this.store.cancelPurchase(tx, purchase.id);
     // D8-40: money that came by a wallet is a top-up now, as BIL-06's is, so the revenue report counts it once, when the
     // balance is spent, and not also as an add-on paid for.
+    // Slice 9.8: that top-up is invoiced as every top-up is. Money paid from the balance just goes back to it, with no invoice.
     if (payment.transactionId !== null) {
-      await this.payments.asTopUpWithin(tx, payment, payment.amount, this.clock());
+      const topUp = await this.payments.asTopUpWithin(tx, payment, payment.amount, this.clock());
+      await this.topUps.creditWithin(tx, topUp, payment.amount);
+    } else {
+      await this.balance.credit(tx, {
+        tenantId,
+        type: LedgerEntryType.TopUp,
+        amount: payment.amount,
+        reference: { planPaymentId: payment.id },
+      });
     }
-    await this.balance.credit(tx, {
-      tenantId,
-      type: LedgerEntryType.TopUp,
-      amount: payment.amount,
-      reference: { planPaymentId: payment.id },
-    });
     await this.audit.record(tx, {
       tenantId,
       actorType: ActorType.User,

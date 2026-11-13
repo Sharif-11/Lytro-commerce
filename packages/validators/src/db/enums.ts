@@ -903,6 +903,12 @@ export enum PlatformSettingKey {
   HelpPhone = 'help_phone',
   HelpOpensHour = 'help_opens_hour',
   HelpClosesHour = 'help_closes_hour',
+  // D9-7, LEG-03 (Slice 9.8): Lytro's VAT registration. Lytro's invoices carry VAT only once all four are set; empty
+  // until then, so registering later needs no code.
+  VatBin = 'vat_bin',
+  VatRate = 'vat_rate',
+  VatSellerName = 'vat_seller_name',
+  VatSellerAddress = 'vat_seller_address',
 }
 
 // AI-10, D7-4: the AIs Lytro can read a pasted message with. One today; the setting names which.
@@ -1037,13 +1043,17 @@ export enum InvoiceKind {
   Addon = 'addon',
   // ADM-15, D8-49: takes back a reversed manual entry's invoice, which stays as it was. Its amount is negative.
   CreditNote = 'credit_note',
+  // BIL-12 (Slice 9.8): a balance top-up's receipt, from this release on; VAT inside it once Lytro is registered (D9-7).
+  TopUp = 'top_up',
 }
 
-// BIL-12, PLN-14: one line of an invoice -- the plan, an add-on, or an upgrade's credit (negative).
+// BIL-12, PLN-14: one line of an invoice -- the plan, an add-on, an upgrade's credit (negative), or a top-up.
 export enum InvoiceLineKind {
   Plan = 'plan',
   Addon = 'addon',
   Credit = 'credit',
+  // BIL-12 (Slice 9.8): the money a top-up put on the balance.
+  TopUp = 'top_up',
 }
 
 // PLN-13: what an add-on is. A limit add-on raises a limit for the period; a pack is used up as it is consumed

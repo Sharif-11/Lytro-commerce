@@ -97,7 +97,7 @@ describeIfDatabase('sign-in by emailed code (AUTH-08, AUTH-12)', () => {
        WHERE i.kind = 'email' AND i.value = $1`,
       [email.toLowerCase()],
     );
-    expect(account.rows).toEqual([{ terms_version: '2026-11-04', privacy_version: '2026-11-04' }]);
+    expect(account.rows).toEqual([{ terms_version: '2026-11-20', privacy_version: '2026-11-20' }]);
   });
 
   it('signs a returning address into the same account, and treats the address case-insensitively', async () => {

@@ -119,6 +119,8 @@ overrule any of them when reviewing this plan.
 | D9-23 | **Not built in Phase 9.** | **When a second server arrives** (DAT-55's trigger): AVL-01 to AVL-04, DAT-21's replication, DAT-43's weights, DAT-53's check after a real failover, and standby-first deploys (AVL-05, DAT-24), as DAT-56 says. D9-13 and D9-19 build their code; the servers come then. **With the shop API** (next release, D8-1): SEC-15 and SEC-05's outgoing webhooks. **When something pushes live:** RED-08. **At 50 paying shops:** D9-3's rest of OBS. **Phase 10's launch list:** the checks that need production keys (a real bKash payment §107/§137, Gemini on a billed key §125, real parcels, MED-12 against a real invoice §138). | §3.3 |
 | D9-24 | **The production server** (DAT-19, DAT-20, DAT-35). | A BDIX KVM VPS of 4 vCPU, 6 GB and 100 GB NVMe that meets DAT-20 (its international bandwidth stated), PostgreSQL set as DAT-35 says. Bought early enough for D9-5's test. | Slice 9.10 |
 | D9-25 | **Screens.** | Last, sketched first: the console's degraded-mode switch, its list of reconciliation differences and the VAT settings; the read-only and degraded banners in the dashboard and the storefront. | Slice 9.9 |
+| D9-26 | **Invoices for top-ups, and where VAT sits** (Slice 9.8's read, 2026-11-13; BIL-12, LEG-03). Pay-as-you-go shops pay Lytro only by top-ups, which had no invoice. | **Every confirmed top-up is invoiced** from Slice 9.8 on (no backfill), in the transaction that credits it, and a reversed manual top-up's invoice is taken back by a credit note (D8-49). Once all four VAT settings are set (BIN, rate, registered name, address), an invoice for money paid in by wallet or bank states them and the VAT its amount includes: **prices include VAT**, so nothing is added. An invoice paid from the balance states none, since the top-up that filled the balance carried that money's VAT; a credit note states its invoice's, negated. | Slices 9.8, 9.9; 9.5's reconciliation counts top-up invoices |
+| D9-27 | **Terms and privacy versions** (Slice 9.8's read, 2026-11-13; LEG-01, LEG-02). | Each version is **named by the day it takes effect**. A version may be put in force only once its text is published (one list in `@lytronix/validators`); every published version stays readable at `/terms/<version>` and `/privacy/<version>`. Sign-up and the website read the version in force from the same settings (`GET /legal-versions`), so a page always shows what sign-up records. The texts state only what Lytro does when they take effect; **the Bangla text counts** if the two differ. A change that affects sellers takes effect at least 15 days after notice on the notice board and by email; one that only helps them, at once. | Slice 9.8 |
 
 ### 2.1 Points left to each slice's read
 
@@ -332,6 +334,19 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
     out, at new versions recorded by sign-up.
   - The VAT fields on Lytro's invoices (D9-7).
   - Amends LEG-03 and OD-08.
+- **Read 2026-11-13** (the owner's answers; D9-26 and D9-27 record what follows from them):
+  1. Versions are named by the day they take effect, as the settings already were.
+  2. The fraud clause states only what's built: Steadfast's figures and the shop's own orders. Hashed cross-shop data
+     joins as a new version, with notice, when FRD-09 to FRD-13 ship.
+  3. At least 15 days' notice, on the notice board and by email, before a change that affects sellers; a change that
+     only helps them applies at once.
+  4. Liability is capped at the fees the shop paid Lytro in the 3 months before the claim.
+  5. "We" is Lytro, Dhaka, with no other business name.
+  6. If the Bangla and English texts differ, the Bangla counts.
+  7. VAT is included in the price; the invoice shows the part that is VAT.
+  8. Top-ups are invoiced from this release on (D9-26).
+  9. A privacy question is answered within 2 working days, and an erasure finished within 30 days.
+  10. The contact address is support@lytro.app.
 
 ### Slice 9.9: the screens
 - **Depends on:** 9.2, 9.5, 9.8; a sketch first.

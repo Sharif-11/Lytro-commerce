@@ -32,6 +32,8 @@ export * from './api/notifications/notifications';
 export * from './common/notification-kinds';
 export * from './common/notice-markdown';
 export * from './common/rate-names';
+export * from './common/legal-versions';
+export * from './common/vat';
 export * from './api/notices/notices';
 export * from './api/listener/listener';
 export * from './api/customers/customer';

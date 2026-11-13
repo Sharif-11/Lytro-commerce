@@ -42,6 +42,12 @@ export interface NewInvoice {
   planPaymentId: string | null;
   recordedByPlatform?: boolean;
   reversesInvoiceId?: string | null;
+  // D9-7: all five or none (invoices_vat_check).
+  sellerName?: string | null;
+  sellerAddress?: string | null;
+  sellerBin?: string | null;
+  vatRate?: string | null;
+  vatAmount?: string | null;
 }
 
 /** BIL-12, PLN-14: one line of an invoice, in its order. */

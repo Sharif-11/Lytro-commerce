@@ -13,6 +13,7 @@ import { DrizzleTrialCreationStore } from '../../database/adapters/trial-creatio
 import { MailModule } from '../shared/mail/mail.module';
 import { MessagingModule } from '../shared/messaging/messaging.module';
 import { AuditModule } from '../audit/audit.module';
+import { LegalModule } from '../legal/legal.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { BalanceModule } from '../balance/balance.module';
 import { BillingModule } from '../billing/billing.module';
@@ -85,6 +86,7 @@ import {
   // the leaf AuditModule, never IdentityModule back.
   imports: [
     PlatformSettingsModule,
+    LegalModule,
     TenancyModule,
     MessagingModule,
     MailModule,

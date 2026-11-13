@@ -628,6 +628,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   ManualEntryReversed: { en: 'Entry reversed.', bn: 'এন্ট্রি রিভার্স হয়েছে।' },
   MediaCostsRead: { en: 'Media costs retrieved.', bn: 'মিডিয়া খরচ পাওয়া গেছে।' },
   HelpLineRead: { en: 'Help line retrieved.', bn: 'হেল্প লাইন পাওয়া গেছে।' },
+  LegalVersionsRead: {
+    en: 'Terms and privacy policy versions retrieved.',
+    bn: 'টার্মস আর প্রাইভেসি পলিসির ভার্সন পাওয়া গেছে।',
+  },
   ListenerAppReleaseRead: {
     en: 'Listener app version retrieved.',
     bn: 'লিসেনার অ্যাপের ভার্সন পাওয়া গেছে।',
