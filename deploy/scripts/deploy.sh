@@ -121,7 +121,22 @@ else
 fi
 
 say '2. database, Redis and the pooler'
+# The database's first-start scripts, copied where no deploy deletes them and the mount never moves (compose.yml), before
+# PostgreSQL starts, so an empty volume's first start finds them.
+init_dir="$LYTRO_HOME/state/postgres-init"
+install -d -m 755 "$init_dir"
+rm -f "$init_dir"/*.sh
+install -m 755 "$DEPLOY_DIR"/postgres/*.sh "$init_dir/"
+database_before="$(container_of postgres)"
 dc up -d --wait postgres redis pgbouncer
+# PgBouncer looks the database's name up itself, through a resolver that keeps its own answers (c-ares). While a replaced
+# container was gone the name had no address, and PgBouncer went on failing "DNS lookup failed" long after the new one
+# answered, so neither API process could reach the database (staging, 2026-11-13). A new database means a fresh pooler.
+if [ -n "$database_before" ] && [ "$(container_of postgres)" != "$database_before" ]; then
+  say 'the database was replaced: restarting the pooler'
+  dc restart pgbouncer
+  wait_healthy pgbouncer 60
+fi
 
 say '3. dumping the database'
 mkdir -p "$LYTRO_HOME/backups/pre-deploy"

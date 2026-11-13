@@ -146,9 +146,12 @@ services:
       - archive_command=lytro-archive %p
       - -c
       - archive_timeout=60
+    # The first-start scripts (deploy/postgres), from the one folder deploy.sh copies them to. Never from a release's own
+    # folder: lytro-ssh makes that again on every run, which emptied this mount under the running database, and a mount
+    # that moved with each release would replace the database on every deploy (staging, 2026-11-13).
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./postgres:/docker-entrypoint-initdb.d:ro
+      - ${LYTRO_HOME:-/opt/lytro}/state/postgres-init:/docker-entrypoint-initdb.d:ro
     shm_size: 256m
     # Killed last when memory runs out (D9-11).
     oom_score_adj: -900
