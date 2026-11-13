@@ -1,7 +1,14 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
-import { AuditAction, CourierNewsSource, TenantState, type CourierKey } from '@lytronix/validators';
+import {
+  AuditAction,
+  CourierNewsSource,
+  RAW_MESSAGE_MAX_BYTES,
+  RawMessageOutcome,
+  TenantState,
+  type CourierKey,
+} from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
@@ -18,6 +25,19 @@ const TOKEN_BYTES = 32;
 const MESSAGE_PATH = '/v1/webhooks/couriers/';
 // The owner hears at most this often that messages are arriving unsigned.
 const UNSIGNED_NOTICE_EVERY_MS = 24 * 60 * 60 * 1000;
+// DAT-51: the headers a courier's message is read by, kept with it; never a token or a signature.
+const KEPT_HEADERS: readonly string[] = ['content-type', 'idempotency-key'];
+
+/** DAT-51: of a message's headers, only those it is read by, each as one string. */
+function keptHeaders(headers: MessageHeaders): Record<string, string> {
+  const kept: Record<string, string> = {};
+  for (const name of KEPT_HEADERS) {
+    const value = headers[name];
+    if (typeof value === 'string') kept[name] = value;
+    else if (Array.isArray(value) && typeof value[0] === 'string') kept[name] = value[0];
+  }
+  return kept;
+}
 
 /** CRR-02: what a seller pastes into the courier's panel. */
 export interface MessageAddress {
@@ -100,7 +120,21 @@ export class CourierMessages {
       await this.noteUnsigned(tenantId, connection.id, connection.unsignedAt, courierKey, now);
       throw new ApiError('unauthenticated', 'CourierMessageNotVerified', {});
     }
-    const news = adapter.readMessage(rawBody, headers);
+    // DAT-51, D9-16 (Phase 9 Slice 9.5): kept as it arrived, committed before it is read or answered, so neither a reading that
+    // fails nor a failover between here and the answer loses it. An unreadable one stays for the operator (DAT-52).
+    const rawId = await this.store.run(tenantId, (tx) =>
+      this.store.keepRaw(tx, tenantId, {
+        courierKey,
+        body: rawBody.subarray(0, RAW_MESSAGE_MAX_BYTES).toString('utf8'),
+        headers: keptHeaders(headers),
+      }),
+    );
+    let news: CourierNews | null;
+    try {
+      news = adapter.readMessage(rawBody, headers);
+    } catch {
+      news = null;
+    }
     const event = await this.store.run(tenantId, async (tx) => {
       await this.store.updateConnection(
         tx,
@@ -110,10 +144,20 @@ export class CourierMessages {
         { lastMessageAt: now },
         now,
       );
-      if (news === null) return null;
-      return this.storeNews(tx, tenantId, courierKey, news, CourierNewsSource.Message);
+      const stored =
+        news === null
+          ? null
+          : await this.storeNews(tx, tenantId, courierKey, news, CourierNewsSource.Message);
+      await this.store.markRaw(
+        tx,
+        tenantId,
+        rawId,
+        news === null ? RawMessageOutcome.Unread : RawMessageOutcome.Read,
+        stored,
+      );
+      return stored;
     });
-    if (news === null) this.logger.warn(`a ${courierKey} message could not be read`);
+    if (news === null) this.logger.warn(`a ${courierKey} message could not be read; it is kept`);
     return { stored: event, tenantId, answerHeaders };
   }
 

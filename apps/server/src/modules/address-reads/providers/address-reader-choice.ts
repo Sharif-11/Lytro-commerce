@@ -1,4 +1,5 @@
 import { AiProvider } from '@lytronix/validators';
+import type { CircuitBreaker } from '../../../common/circuit-breaker';
 import type { Env } from '../../../config/env';
 import type { AddressReaders } from '../ports/address-reader';
 import { GeminiAddressReader, type AiFetch } from './gemini-address-reader';
@@ -20,6 +21,7 @@ export function aiModeOf(env: Pick<Env, 'NODE_ENV' | 'AI_FORCE_REAL'>): AiMode {
 export function addressReadersFor(
   env: Pick<Env, 'NODE_ENV' | 'AI_FORCE_REAL' | 'GEMINI_BASE_URL' | 'GEMINI_API_KEY'>,
   fetchAi: AiFetch,
+  breaker?: CircuitBreaker,
 ): AddressReaders {
   if (aiModeOf(env) === 'stand-in') return { [AiProvider.Gemini]: new StandInAddressReader() };
   if (!env.GEMINI_API_KEY) {
@@ -30,6 +32,7 @@ export function addressReadersFor(
     [AiProvider.Gemini]: new GeminiAddressReader(
       { baseUrl: env.GEMINI_BASE_URL, apiKey: env.GEMINI_API_KEY },
       fetchAi,
+      breaker,
     ),
   };
 }

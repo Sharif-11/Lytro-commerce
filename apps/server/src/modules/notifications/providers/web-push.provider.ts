@@ -35,7 +35,7 @@ export class WebPushProvider implements PushProvider {
   constructor(
     private readonly vapid: VapidSettings,
     private readonly fetchPush: PushFetch,
-    breaker: CircuitBreaker = new CircuitBreaker(),
+    breaker: CircuitBreaker = new CircuitBreaker({ service: 'web-push' }),
   ) {
     this.publicKey = vapid.publicKey;
     this.breaker = breaker;

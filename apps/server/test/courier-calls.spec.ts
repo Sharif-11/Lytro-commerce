@@ -1,9 +1,11 @@
+import type { ModuleRef } from '@nestjs/core';
 import { describe, expect, it, vi } from 'vitest';
 import { CourierCallAction, CourierKey } from '@lytronix/validators';
+import { RequestContext } from '../src/common/request-id/request-context';
 import { HOUR_MS } from '../src/common/time';
 import type { CourierStore } from '../src/modules/couriers/ports/courier-store';
 import { CourierCalls } from '../src/modules/couriers/services/courier-calls';
-import type { OperatorAlerts } from '../src/modules/shared/mail/services/operator-alerts';
+import { OutsideCalls } from '../src/modules/shared/outside-calls/services/outside-calls';
 
 // PRF-05, carried in from the Phase 6 close-out, and FRD-11: an opened courier circuit alerts the operators, once an hour
 // for one courier however many shops' circuits open; a fraud check that keeps failing never stops the shop's bookings.
@@ -13,9 +15,11 @@ function setUp() {
   let now = new Date('2026-11-08T06:00:00Z').getTime();
   const alert = vi.fn(() => Promise.resolve(1));
   const store = { recordUse: () => Promise.resolve() } as unknown as CourierStore;
-  const calls = new CourierCalls(store, () => new Date(now), {
-    alert,
-  } as unknown as OperatorAlerts);
+  // The shared breakers (Slice 9.5) find the operators' email when a circuit first opens.
+  const outside = new OutsideCalls(new RequestContext(), {
+    get: () => ({ alert }),
+  } as unknown as ModuleRef);
+  const calls = new CourierCalls(store, () => new Date(now), outside);
   const failing = () => Promise.reject(new Error('away'));
   const fail = async (
     tenantId: string,

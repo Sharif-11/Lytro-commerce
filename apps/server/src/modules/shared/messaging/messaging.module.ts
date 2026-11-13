@@ -4,6 +4,7 @@ import { ENV } from '../../../config/tokens';
 import { DrizzleMessageStore } from '../../../database/adapters/messaging.adapter';
 import { QueueModule } from '../queue/queue.module';
 import type { SmsFetch } from './providers/bulksmsbd.provider';
+import { OutsideCalls } from '../outside-calls/services/outside-calls';
 import { smsProviderFor } from './providers/sms-provider-choice';
 import { MessagingService } from './services/messaging.service';
 import { SmsWorker } from './services/sms-worker';
@@ -22,8 +23,9 @@ import { MESSAGE_STORE, MESSAGING_CLOCK, SMS_FETCH, SMS_PROVIDER } from './token
     },
     {
       provide: SMS_PROVIDER,
-      inject: [ENV, SMS_FETCH],
-      useFactory: (env: Env, fetchSms: SmsFetch) => smsProviderFor(env, fetchSms),
+      inject: [ENV, SMS_FETCH, OutsideCalls],
+      useFactory: (env: Env, fetchSms: SmsFetch, outside: OutsideCalls) =>
+        smsProviderFor(env, fetchSms, outside.breaker('bulksmsbd')),
     },
     { provide: MESSAGING_CLOCK, useValue: (): Date => new Date() },
     MessagingService,

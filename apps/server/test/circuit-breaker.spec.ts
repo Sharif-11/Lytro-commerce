@@ -4,6 +4,7 @@ import {
   BREAKER_OPEN_MS,
   CircuitBreaker,
   CircuitOpen,
+  type OutsideCall,
 } from '../src/common/circuit-breaker';
 
 // PRF-05: five failures in a row open a circuit; for a minute calls fail fast with no attempt; then one trial decides.
@@ -11,7 +12,7 @@ describe('the circuit breaker (PRF-05)', () => {
   function setUp() {
     let now = 1_000_000;
     let attempts = 0;
-    const breaker = new CircuitBreaker(() => now);
+    const breaker = new CircuitBreaker({ clock: () => now });
     const failing = () => {
       attempts += 1;
       return Promise.reject(new Error('away'));
@@ -40,14 +41,12 @@ describe('the circuit breaker (PRF-05)', () => {
   it('says once that a closed circuit opened, not again while a trial keeps it open (Phase 6 close-out)', async () => {
     let now = 1_000_000;
     const opened: [string, number][] = [];
-    const breaker = new CircuitBreaker(
-      () => now,
-      undefined,
-      undefined,
-      (circuit, failures) => {
+    const breaker = new CircuitBreaker({
+      clock: () => now,
+      onOpen: ({ circuit, failures }) => {
         opened.push([circuit, failures]);
       },
-    );
+    });
     const failing = () => Promise.reject(new Error('away'));
     for (let index = 0; index < BREAKER_FAILURES; index += 1) {
       await expect(breaker.call('courier:a', failing)).rejects.toThrow('away');
@@ -140,6 +139,68 @@ describe('the circuit breaker (PRF-05)', () => {
     // Its minute still runs from when it opened.
     later(BREAKER_OPEN_MS / 2);
     await expect(breaker.call('p', working)).resolves.toBe('ok');
+  });
+
+  // PRF-04, D9-17 (Slice 9.5): every call is told, timed apart from Lytro's own work, with the names Slice 9.6 reads.
+  it('tells each call: the service, the circuit, how long it took and how it went', async () => {
+    let now = 1_000_000;
+    let clockMs = 0;
+    const calls: OutsideCall[] = [];
+    const breaker = new CircuitBreaker({
+      service: (circuit) => circuit.split(':')[1] ?? circuit,
+      clock: () => now,
+      timer: () => clockMs,
+      onCall: (call) => {
+        calls.push(call);
+      },
+    });
+    const slowly = (answer: Promise<string>) => () => {
+      clockMs += 40;
+      return answer;
+    };
+    await breaker.call('shop-a:steadfast', slowly(Promise.resolve('ok')));
+    for (let index = 0; index < BREAKER_FAILURES; index += 1) {
+      await expect(
+        breaker.call('shop-a:steadfast', slowly(Promise.reject(new Error('away')))),
+      ).rejects.toThrow('away');
+    }
+    await expect(
+      breaker.call('shop-a:steadfast', slowly(Promise.resolve('ok'))),
+    ).rejects.toBeInstanceOf(CircuitOpen);
+    expect(calls[0]).toEqual({
+      service: 'steadfast',
+      circuit: 'shop-a:steadfast',
+      ms: 40,
+      outcome: 'ok',
+    });
+    expect(calls.slice(1, -1).map((call) => [call.outcome, call.ms])).toEqual(
+      Array.from({ length: BREAKER_FAILURES }, () => ['failed', 40]),
+    );
+    // Refused: the circuit was open, so nothing went out and no time was spent.
+    expect(calls.at(-1)).toEqual({
+      service: 'steadfast',
+      circuit: 'shop-a:steadfast',
+      ms: 0,
+      outcome: 'refused',
+    });
+    now += BREAKER_OPEN_MS;
+  });
+
+  it('names one service for every circuit when given one, and says so when it opens', async () => {
+    const opened: string[] = [];
+    const breaker = new CircuitBreaker({
+      service: 'r2',
+      onOpen: ({ service, circuit }) => {
+        opened.push(`${service} ${circuit}`);
+      },
+    });
+    expect(breaker.serviceOf('r2:lytro-media')).toBe('r2');
+    for (let index = 0; index < BREAKER_FAILURES; index += 1) {
+      await expect(
+        breaker.call('r2:lytro-media', () => Promise.reject(new Error('away'))),
+      ).rejects.toThrow('away');
+    }
+    expect(opened).toEqual(['r2 r2:lytro-media']);
   });
 
   it('lets only one trial out at a time', async () => {

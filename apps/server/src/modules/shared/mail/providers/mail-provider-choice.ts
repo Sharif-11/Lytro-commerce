@@ -1,3 +1,4 @@
+import type { CircuitBreaker } from '../../../../common/circuit-breaker';
 import type { Env } from '../../../../config/env';
 import type { MailProvider } from '../ports/mail-provider';
 import { ConsoleMailProvider } from './console-mail.provider';
@@ -23,6 +24,7 @@ export function mailProviderFor(
     'NODE_ENV' | 'EMAIL_FORCE_REAL' | 'RESEND_BASE_URL' | 'RESEND_API_KEY' | 'MAIL_FROM'
   >,
   fetchMail: MailFetch,
+  breaker?: CircuitBreaker,
 ): MailProvider {
   if (mailModeOf(env) !== 'send') return new ConsoleMailProvider();
   if (!env.RESEND_API_KEY) {
@@ -32,5 +34,6 @@ export function mailProviderFor(
   return new ResendMailProvider(
     { baseUrl: env.RESEND_BASE_URL, apiKey: env.RESEND_API_KEY, from: env.MAIL_FROM },
     fetchMail,
+    breaker,
   );
 }

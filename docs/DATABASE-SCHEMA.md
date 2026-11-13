@@ -1992,6 +1992,23 @@ CREATE TABLE tenant.courier_events (
 CREATE INDEX ON tenant.courier_events (parcel_id, received_at);
 CREATE INDEX ON tenant.courier_events (tenant_id, received_at) WHERE applied_at IS NULL;
 
+-- DAT-51, D9-16 (Phase 9 Slice 9.5, migration 0132): each verified courier message as it arrived, kept in its own
+-- transaction before it is read or answered; one that can't be read stays `unread` for the reconciliation. Only the
+-- headers it is read by (content-type, idempotency-key); an unverified message keeps no body. Removed at [90] days
+-- (RAW_MESSAGE_KEPT_DAYS) and with the shop's courier data. RLS like courier_events.
+CREATE TABLE tenant.courier_raw_messages (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id    uuid NOT NULL,
+    courier_key  text NOT NULL,
+    body         text NOT NULL,                                -- as received, up to 64 KB
+    headers      jsonb NOT NULL DEFAULT '{}',
+    outcome      text NOT NULL DEFAULT 'received',             -- received | read | unread
+    event_id     uuid,                                         -- the courier_events row it gave, once read
+    received_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX ON tenant.courier_raw_messages (tenant_id, received_at);
+CREATE INDEX ON tenant.courier_raw_messages (tenant_id, received_at) WHERE outcome <> 'read';
+
 -- CRR-11, CRR-20: finds a message's shop before any tenant data is read; goes when the courier is disconnected or the address replaced.
 CREATE TABLE control.courier_message_routes (
     token_hash      text PRIMARY KEY,                  -- SHA-256 of the address's token
@@ -2241,6 +2258,50 @@ CREATE TABLE control.media_reconciliations (               -- MED-04 (built in S
     CHECK (strays_deleted BETWEEN 0 AND stray_files)
 );
 CREATE INDEX ON control.media_reconciliations (tenant_id, created_at DESC);
+
+-- DAT-51, D9-16 (Phase 9 Slice 9.5, migration 0132): a wallet gateway sends no message of its own, so its answer to each
+-- execute and query is kept as it came, before the caller acts on it. tenant_id null for Lytro's own account (session_id
+-- is then the plan payment). Removed at [90] days, and a shop's with its payment methods.
+CREATE TABLE control.gateway_answers (
+    id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id          uuid,
+    method             text NOT NULL,
+    action             text NOT NULL,                          -- execute | query
+    session_id         uuid,                                   -- a shop's payment session, or Lytro's plan payment
+    payment_id         varchar(100) NOT NULL,                  -- the gateway's own reference
+    answer             text NOT NULL,                          -- as received
+    received_at        timestamptz NOT NULL DEFAULT now(),
+    transaction_status varchar(40)                             -- the answer's own word: 'Completed' or not
+);
+CREATE INDEX ON control.gateway_answers (received_at);
+CREATE INDEX ON control.gateway_answers (session_id, received_at);
+CREATE INDEX ON control.gateway_answers (tenant_id);
+
+-- DAT-52, D9-16, OD-44 (Phase 9 Slice 9.5, migration 0132): the daily reconciliation at 06:00 Asia/Dhaka over yesterday --
+-- each day run once, and each difference kept once per day, kind and subject, with the operator's word on it.
+CREATE TABLE control.reconciliation_runs (
+    day     date PRIMARY KEY,
+    ran_at  timestamptz NOT NULL DEFAULT now(),
+    found   integer NOT NULL DEFAULT 0,
+    counts  jsonb NOT NULL DEFAULT '{}'                        -- differences found by kind
+);
+CREATE TABLE control.reconciliation_differences (
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    day         date NOT NULL,                                 -- the Asia/Dhaka day compared
+    kind        text NOT NULL,                                 -- ReconciliationDifferenceKind
+    subject     text NOT NULL,                                 -- the payment, message, order or shop it is about
+    tenant_id   uuid,
+    expected    numeric(14,2),                                 -- where an amount differs
+    found       numeric(14,2),
+    details     jsonb NOT NULL DEFAULT '{}',                   -- ids and counts only, never a secret
+    state       text NOT NULL DEFAULT 'open',                  -- open | resolved
+    note        text,                                          -- the operator's word, on resolving
+    resolved_by uuid,
+    resolved_at timestamptz,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (day, kind, subject)                                -- a re-run adds nothing
+);
+CREATE INDEX ON control.reconciliation_differences (state, day);
 -- One row per shop per night, only for a shop where the two differ. The same run deletes uploads started over a day
 -- ago and never finished, and refuses items still processing an hour after they started (failure
 -- `processing_failed`), telling the shop. Day 60 deletes a lapsed shop's rows with its media.

@@ -3,6 +3,7 @@ import type { Env } from '../../../config/env';
 import { ENV } from '../../../config/tokens';
 import { DrizzleMailStore } from '../../../database/adapters/mail.adapter';
 import { DrizzleOperatorInboxes } from '../../../database/adapters/operator-inboxes.adapter';
+import { OutsideCalls } from '../outside-calls/services/outside-calls';
 import { mailProviderFor } from './providers/mail-provider-choice';
 import type { MailFetch } from './providers/resend-mail.provider';
 import { MailService } from './services/mail.service';
@@ -21,8 +22,9 @@ import { MAIL_CLOCK, MAIL_FETCH, MAIL_PROVIDER, MAIL_STORE, OPERATOR_INBOXES } f
     },
     {
       provide: MAIL_PROVIDER,
-      inject: [ENV, MAIL_FETCH],
-      useFactory: (env: Env, fetchMail: MailFetch) => mailProviderFor(env, fetchMail),
+      inject: [ENV, MAIL_FETCH, OutsideCalls],
+      useFactory: (env: Env, fetchMail: MailFetch, outside: OutsideCalls) =>
+        mailProviderFor(env, fetchMail, outside.breaker('resend')),
     },
     { provide: MAIL_STORE, useClass: DrizzleMailStore },
     { provide: MAIL_CLOCK, useValue: (): Date => new Date() },

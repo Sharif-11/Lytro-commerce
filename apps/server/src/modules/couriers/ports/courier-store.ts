@@ -5,6 +5,7 @@ import type {
   CourierParcelPatch,
   NewCourierCredentialUse,
   NewCourierEvent,
+  NewCourierRawMessage,
   NewCourierParcel,
   NewCourierPayout,
   ParcelCheckWindow,
@@ -17,7 +18,12 @@ import type {
   SelectCourierPayout,
   Transaction,
 } from '@lytronix/db';
-import type { RetireState, CourierConnectionState, CourierKey } from '@lytronix/validators';
+import type {
+  RetireState,
+  CourierConnectionState,
+  CourierKey,
+  RawMessageOutcome,
+} from '@lytronix/validators';
 
 /** Phase 6 Slice 6.1: each shop's courier connections, its parcels and the log of its credentials' uses. */
 export interface CourierStore {
@@ -107,6 +113,16 @@ export interface CourierStore {
     connectionId: string,
     patch: CourierConnectionPatch,
     now: Date,
+  ): Promise<void>;
+  /** DAT-51 (Phase 9 Slice 9.5): a verified message kept as it arrived, before it is read; its id. */
+  keepRaw(tx: Transaction, tenantId: string, message: NewCourierRawMessage): Promise<string>;
+  /** DAT-51: what reading the kept message gave -- the news it stored, or nothing it could read. */
+  markRaw(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    outcome: RawMessageOutcome,
+    eventId: string | null,
   ): Promise<void>;
   /** CRR-13: stored once; null when it has come before. */
   insertEvent(

@@ -6,6 +6,7 @@ import {
   type WalletAccountType,
 } from '@lytronix/validators';
 import {
+  gatewayAnswers,
   gatewayCredentialUses,
   paymentMethodsOn,
   paymentMethodWays,
@@ -263,5 +264,7 @@ export class PaymentMethodRepository {
     await tx.delete(paymentMethodWays).where(eq(paymentMethodWays.tenantId, tenantId));
     // SEC-11 (Slice 5.7): the log of its credentials' uses goes with the shop.
     await tx.delete(gatewayCredentialUses).where(eq(gatewayCredentialUses.tenantId, tenantId));
+    // DAT-51 (Phase 9 Slice 9.5): its checkouts' gateway answers too; Lytro's own name no shop and stay their days.
+    await tx.delete(gatewayAnswers).where(eq(gatewayAnswers.tenantId, tenantId));
   }
 }
