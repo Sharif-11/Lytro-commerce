@@ -279,6 +279,8 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   - pgBackRest and the nightly dump to R2 (D9-18).
   - The restore, one-shop restore, failover and add-replica scripts with their runbooks (D9-2, D9-19).
   - The first drills on staging. Amends DAT-37 (D9-2).
+- **Shipped:** #357 (2026-11-13), with WAL-G in place of pgBackRest (D9-18 as amended). The read's answers are in
+  the PR. The first staging drills follow its deploy (KNOWN-GAPS §146).
 
 ### Slice 9.4: limits across servers
 - **Depends on:** 9.1.
