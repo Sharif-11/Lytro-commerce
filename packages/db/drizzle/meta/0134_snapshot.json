@@ -1,6 +1,6 @@
 {
-  "id": "08fd713d-c018-455f-abcd-4df7dcee3f94",
-  "prevId": "44a9b191-1486-4156-84c9-b70af29bb86d",
+  "id": "7ac97f8c-056f-4e86-910f-c8cb7b166dd7",
+  "prevId": "f9a6e49a-6273-4c2c-9d8d-526097b69799",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3434,7 +3434,7 @@
       "checkConstraints": {
         "invoice_lines_kind_check": {
           "name": "invoice_lines_kind_check",
-          "value": "\"control\".\"invoice_lines\".\"kind\" in ('plan','addon','credit')"
+          "value": "\"control\".\"invoice_lines\".\"kind\" in ('plan','addon','credit','top_up')"
         }
       },
       "isRLSEnabled": false
@@ -3567,6 +3567,36 @@
           "primaryKey": false,
           "notNull": false
         },
+        "seller_name": {
+          "name": "seller_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "seller_address": {
+          "name": "seller_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "seller_bin": {
+          "name": "seller_bin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vat_rate": {
+          "name": "vat_rate",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vat_amount": {
+          "name": "vat_amount",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "issued_at": {
           "name": "issued_at",
           "type": "timestamp with time zone",
@@ -3617,7 +3647,11 @@
       "checkConstraints": {
         "invoices_kind_check": {
           "name": "invoices_kind_check",
-          "value": "\"control\".\"invoices\".\"kind\" in ('purchase','renewal','upgrade','addon','credit_note')"
+          "value": "\"control\".\"invoices\".\"kind\" in ('purchase','renewal','upgrade','addon','credit_note','top_up')"
+        },
+        "invoices_vat_check": {
+          "name": "invoices_vat_check",
+          "value": "num_nulls(\"control\".\"invoices\".\"seller_name\", \"control\".\"invoices\".\"seller_address\", \"control\".\"invoices\".\"seller_bin\", \"control\".\"invoices\".\"vat_rate\", \"control\".\"invoices\".\"vat_amount\") in (0, 5)"
         }
       },
       "isRLSEnabled": false
