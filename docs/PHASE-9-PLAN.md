@@ -354,6 +354,17 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
     the hashed `/assets/` files, re-checked every time for `index.html`. Found on staging 2026-11-13: the dashboard's
     script went out as 1.38 MB and the console's as 0.92 MB, uncompressed and without a cache rule; the owner put the
     fix here. The website and storefront (Next.js) already compress and cache their own files.
+  - Migrations made safe for production (the owner, 2026-11-13), on top of DAT-04's expand-then-contract:
+    - each migration sets a short `lock_timeout` and retries, so an `ALTER TABLE` waiting behind a slow query never
+      queues every request behind it;
+    - indexes on big tables are made `CONCURRENTLY`, and checks and foreign keys are added `NOT VALID` and then
+      validated, so neither blocks writes;
+    - a CI check fails a migration that drops, renames, changes a type or makes a column required, unless it is
+      marked as the planned contract step of an earlier expand;
+    - a new value (a kind, a state) is written only by a release after one that can read it, and a test runs the
+      previous release's reads against the new data, so a rollback never meets data it can't read;
+    - large backfills run as batched jobs, not inside a migration, and a migration's time is measured on the
+      restore drill's copy before it runs on production.
 
 ### Slice 9.8: terms, privacy and tax
 - **Depends on:** 9.0; can run beside any slice.
