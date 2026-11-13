@@ -10,6 +10,8 @@ const TEST_APP_ROLE = 'lytronix_app';
 const TEST_APP_PASSWORD = 'lytronix_app_local_only';
 /** The read pool's role (D9-13): SELECT only, read-only by default; its grants follow the application role's. */
 const TEST_READ_PASSWORD = 'lytronix_read_local_only';
+/** The advisory lock the suites take turns by while they make or change the shared roles; any fixed number. */
+const TEST_ROLES_LOCK = 7_310_913;
 
 /** A connection URL pointed at another database, and as another user when given one. */
 function withDatabase(url: string, database: string, user?: string, password?: string): string {
@@ -41,18 +43,7 @@ export class TestDatabasePreparer {
     const maintenance = new pg.Client({ connectionString: adminUrl });
     await maintenance.connect();
     try {
-      await maintenance.query(`
-        DO $$ BEGIN
-          IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${TEST_APP_ROLE}') THEN
-            CREATE ROLE ${TEST_APP_ROLE} LOGIN PASSWORD '${TEST_APP_PASSWORD}' NOSUPERUSER NOBYPASSRLS;
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${READ_ROLE}') THEN
-            CREATE ROLE ${READ_ROLE} LOGIN PASSWORD '${TEST_READ_PASSWORD}' NOSUPERUSER NOBYPASSRLS;
-          END IF;
-          ALTER ROLE ${READ_ROLE} SET default_transaction_read_only = on;
-        -- Suites start side by side: another can make the role between this one's look and its make.
-        EXCEPTION WHEN duplicate_object OR unique_violation THEN NULL;
-        END $$`);
+      await this.ensureRoles(maintenance);
       await maintenance.query(`DROP DATABASE IF EXISTS ${database} WITH (FORCE)`);
       await maintenance.query(`CREATE DATABASE ${database}`);
     } finally {
@@ -67,6 +58,35 @@ export class TestDatabasePreparer {
       appDbUrl: withDatabase(adminUrl, database, TEST_APP_ROLE, TEST_APP_PASSWORD),
       readDbUrl: withDatabase(adminUrl, database, READ_ROLE, TEST_READ_PASSWORD),
     };
+  }
+
+  /**
+   * The application's and the read pool's roles, made if missing, and the read pool's kept read-only. Suites start side
+   * by side and the roles are the cluster's, shared by all: two suites changing one role at once collide in Postgres's
+   * catalog ("tuple concurrently updated", which failed a deploy's verify on 2026-11-13). So one suite at a time, by a
+   * lock every suite's admin connection to the maintenance database shares, held until this step commits.
+   */
+  async ensureRoles(maintenance: pg.Client): Promise<void> {
+    await maintenance.query('BEGIN');
+    try {
+      await maintenance.query('SELECT pg_advisory_xact_lock($1)', [TEST_ROLES_LOCK]);
+      await maintenance.query(`
+        DO $$ BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${TEST_APP_ROLE}') THEN
+            CREATE ROLE ${TEST_APP_ROLE} LOGIN PASSWORD '${TEST_APP_PASSWORD}' NOSUPERUSER NOBYPASSRLS;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${READ_ROLE}') THEN
+            CREATE ROLE ${READ_ROLE} LOGIN PASSWORD '${TEST_READ_PASSWORD}' NOSUPERUSER NOBYPASSRLS;
+          END IF;
+          ALTER ROLE ${READ_ROLE} SET default_transaction_read_only = on;
+        -- A process outside the lock (an older checkout's tests) can still make a role between the look and the make.
+        EXCEPTION WHEN duplicate_object OR unique_violation THEN NULL;
+        END $$`);
+      await maintenance.query('COMMIT');
+    } catch (error) {
+      await maintenance.query('ROLLBACK');
+      throw error;
+    }
   }
 }
 
