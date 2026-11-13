@@ -354,17 +354,28 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
     the hashed `/assets/` files, re-checked every time for `index.html`. Found on staging 2026-11-13: the dashboard's
     script went out as 1.38 MB and the console's as 0.92 MB, uncompressed and without a cache rule; the owner put the
     fix here. The website and storefront (Next.js) already compress and cache their own files.
-  - Migrations made safe for production (the owner, 2026-11-13), on top of DAT-04's expand-then-contract:
-    - each migration sets a short `lock_timeout` and retries, so an `ALTER TABLE` waiting behind a slow query never
-      queues every request behind it;
-    - indexes on big tables are made `CONCURRENTLY`, and checks and foreign keys are added `NOT VALID` and then
-      validated, so neither blocks writes;
-    - a CI check fails a migration that drops, renames, changes a type or makes a column required, unless it is
-      marked as the planned contract step of an earlier expand;
-    - a new value (a kind, a state) is written only by a release after one that can read it, and a test runs the
-      previous release's reads against the new data, so a rollback never meets data it can't read;
-    - large backfills run as batched jobs, not inside a migration, and a migration's time is measured on the
-      restore drill's copy before it runs on production.
+  - Migrations made safe for production (the owner, 2026-11-13), on top of DAT-04's expand-then-contract. A deploy
+    runs the old and new code side by side on the new schema, and a rollback runs the old code on it:
+    - **How they run:** each migration sets a short `lock_timeout` and retries, so a change waiting behind a slow
+      query never queues every request behind it. A statement that can't run inside a transaction
+      (`CREATE INDEX CONCURRENTLY`) runs as its own step, since a migration otherwise runs in one.
+    - **A CI check fails a migration** that, outside a step marked as the planned contract of an earlier expand:
+      drops or renames a column or table; changes a column's type; makes a column required (`SET NOT NULL`, or
+      a new `NOT NULL` column with no default); adds a column whose default is volatile (a random
+      id, `clock_timestamp()`), which rewrites the table; builds an index without `CONCURRENTLY`; adds a check, a foreign key or a
+      unique rule without `NOT VALID` and a later `VALIDATE` (a unique rule from an index built concurrently,
+      `USING INDEX`); or updates or deletes rows. A contract step must also name what it removes as already
+      gone from the previous release's schema, which the check confirms.
+    - **Rollback safety:** a new value (a kind, a state, a JSON shape) is written only by a release after one that
+      can read it, and a test runs the previous release's reads against the new data. Narrowing what a column may
+      hold moves the data first, then the rule.
+    - **Data:** backfills and data fixes run as batched jobs that can run twice, after a dump, never as one large
+      update; a migration's time is measured on the restore drill's copy before it runs on production.
+    - **The recipes**, in `ENGINEERING-STANDARDS.md` §5: a new required column (nullable, backfill, a `NOT VALID`
+      check, then required); changing an existing column with data (a new column, write both, backfill, switch
+      reads, stop writing the old, drop it releases later); a change of meaning or units is always a new column,
+      never values reinterpreted in place, since no check can catch it; a pure rename stays in the code (Drizzle's
+      field name over the old column's); and drizzle-kit's output is trusted only for additions.
 
 ### Slice 9.8: terms, privacy and tax
 - **Depends on:** 9.0; can run beside any slice.

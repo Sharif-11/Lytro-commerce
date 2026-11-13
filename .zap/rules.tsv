@@ -1,0 +1,3 @@
+10035	FAIL	(Strict-Transport-Security Header: SEC-04, set by deploy/Caddyfile on every host)
+10021	FAIL	(X-Content-Type-Options Header Missing: SEC-04)
+10020	FAIL	(Anti-clickjacking Header: SEC-04, X-Frame-Options DENY)
