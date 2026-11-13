@@ -3,8 +3,10 @@ import { LedgerEntryType } from '../../db/enums';
 
 // One ledger type or several, comma-separated (`type=order_fee,product_fee`): a statement chip such as Fees covers more
 // than one kind of row (Slice 11.5b). A single type reads as before.
+// SEC-12: the longest list there is names every type once.
 const ledgerTypesField = z
   .string()
+  .max(Object.values(LedgerEntryType).join(',').length)
   .transform((value) => value.split(','))
   .pipe(z.array(z.nativeEnum(LedgerEntryType)).min(1));
 

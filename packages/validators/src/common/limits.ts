@@ -26,6 +26,9 @@ export const BUSINESS_ADDRESS_MAX_LENGTH = 300;
 // unhandled Postgres error instead of a clean validation message -- the bound belongs in the schema, at the
 // one place every such amount is defined, not rediscovered per field.
 export const MONEY_AMOUNT_MAX = 9_999_999_999.99;
+// SEC-12 (Phase 9 Slice 9.7): a taka figure written as text, as a response or a notice carries it -- the widest column,
+// 14 digits, signed and with its point, is 16 characters.
+export const MONEY_TEXT_MAX_LENGTH = 20;
 
 // BAL-13: a balance at or below this many taka is low -- the owner is told once per crossing, and Home says so.
 export const LOW_BALANCE_AMOUNT = 50;
@@ -76,6 +79,8 @@ export const OPTION_SET_NAME_MAX_LENGTH = 60;
 export const OPTION_SET_MAX_OPTIONS = 50;
 // ATR-18, BRN-02: a colour, as #RRGGBB -- an option's swatch, a brand identity's colours.
 export const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
+// SEC-12: the pattern's own length, #RRGGBB.
+export const HEX_COLOR_MAX_LENGTH = 7;
 // DLV-01: delivery zones. A shop starts with "Inside Dhaka city" at 70 TK and the fallback at 130 TK, and may hold
 // up to 20 zones in all. A zone's areas are capped by what exists: 64 zillas, 11 cities, every thana.
 export const DELIVERY_ZONE_NAME_MAX_LENGTH = 60;
@@ -274,3 +279,11 @@ export const EVIDENCE_CONTENT_TYPES = [
 ] as const;
 export type EvidenceContentType = (typeof EVIDENCE_CONTENT_TYPES)[number];
 export const EVIDENCE_KEPT_MONTHS = 24;
+// SEC-12 (Phase 9 Slice 9.7): the reason an operator gives for an action, which goes on the audit log with it (Phase 8
+// exit criterion 5).
+export const OPERATOR_REASON_MAX_LENGTH = 500;
+// SEC-12: a page link's opaque cursor, base64url of a little JSON. The longest, the shop list's by name, holds the
+// shop's name (NAME_MAX_LENGTH characters, at most six bytes each as JSON writes them): under 600 characters.
+export const PAGE_CURSOR_MAX_LENGTH = 1000;
+// SEC-12: a key of an object a request sends as a map: a courier credential's name, a plan feature's, a price's.
+export const RECORD_KEY_MAX_LENGTH = 60;

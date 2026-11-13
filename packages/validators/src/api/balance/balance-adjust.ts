@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { MONEY_AMOUNT_MAX } from '../../common/limits';
+import { MONEY_AMOUNT_MAX, OPERATOR_REASON_MAX_LENGTH } from '../../common/limits';
+import { textField } from '../../common/text';
 
 // POST /operator/tenants/:id/balance-adjust: an operator's manual correction (BAL-17). Signed amount; a reason
 // is required so an empty one is rejected before it ever reaches the service. Bounded to what `numeric(12,2)`
@@ -9,6 +10,6 @@ export const adjustBalanceSchema = z.object({
     .number()
     .refine((value) => value !== 0, 'Enter a non-zero amount.')
     .refine((value) => Math.abs(value) <= MONEY_AMOUNT_MAX, 'Enter a smaller amount.'),
-  reason: z.string().trim().min(1, 'A reason is required.'),
+  reason: textField(OPERATOR_REASON_MAX_LENGTH),
 });
 export type AdjustBalanceInput = z.infer<typeof adjustBalanceSchema>;
