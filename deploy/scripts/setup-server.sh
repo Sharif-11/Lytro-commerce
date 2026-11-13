@@ -76,12 +76,24 @@ if ! command -v docker > /dev/null; then
   apt_get update -q
   apt_get install -yq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 fi
-# Containers keep running while Docker itself restarts (an update), and no log grows without end.
+# D9-20, LOG-03 (Slice 9.6): every container's log goes to the journal, which keeps 14 days and deletes the rest. Its
+# files turn over daily, so nothing outlives the limit by more than a day; never over 2 GB; and a burst of lines is never
+# dropped.
+mkdir -p /etc/systemd/journald.conf.d
+cat > /etc/systemd/journald.conf.d/90-lytro.conf << 'EOF'
+[Journal]
+Storage=persistent
+MaxRetentionSec=14day
+MaxFileSec=1day
+SystemMaxUse=2G
+RateLimitIntervalSec=0
+EOF
+systemctl restart systemd-journald
+# Containers keep running while Docker itself restarts (an update); their logs go to the journal (deploy/compose.yml).
 cat > /etc/docker/daemon.json << 'EOF'
 {
   "live-restore": true,
-  "log-driver": "json-file",
-  "log-opts": { "max-size": "10m", "max-file": "5" }
+  "log-driver": "journald"
 }
 EOF
 systemctl enable --now docker

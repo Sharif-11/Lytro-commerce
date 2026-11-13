@@ -147,9 +147,10 @@ say "dump: $dump ($(du -h "$dump" | cut -f1))"
 ls -1t "$LYTRO_HOME"/backups/pre-deploy/*.dump | tail -n +$((KEEP_DUMPS + 1)) | xargs -r rm -f
 
 say '4. roles and migrations'
-# The roles the server connects as, made if missing (deploy/postgres/10-app-role.sh): a database made before a release
-# that added one (the read role, Slice 9.2) gets it here, as an empty one gets it when it first starts.
-dc exec -T postgres sh /docker-entrypoint-initdb.d/10-app-role.sh
+# Every first-start script again (deploy/postgres), each safe to rerun: a database made before a release that added a
+# role (the read role, Slice 9.2) or an extension (pg_stat_statements, Slice 9.6) gets it here, as an empty one does
+# when it first starts.
+dc exec -T postgres sh -c 'for script in /docker-entrypoint-initdb.d/*.sh; do sh "$script" || exit 1; done'
 dc --profile tools run --rm migrate
 # The nightly backups (Slice 9.3): replaced when its image changed, waiting for 05:30 Dhaka otherwise.
 dc up -d --no-deps backup

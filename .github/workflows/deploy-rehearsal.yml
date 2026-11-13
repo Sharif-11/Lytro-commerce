@@ -157,6 +157,23 @@ jobs:
           fi
           cat sleep.err
 
+      # Slice 9.6 (DAT-17, D9-20, OBS-02): statements over 200 ms are logged and every statement is counted, every
+      # container logs to the journal, and the jobs check answers on the API host with nothing late on a new server.
+      - name: Slow queries, the journal and the jobs check
+        run: |
+          sql() {
+            sudo docker exec lytro-postgres-1 sh -c "psql -X -A -t -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c '$1'"
+          }
+          test "$(sql 'SHOW log_min_duration_statement')" = '200ms'
+          test "$(sql 'SELECT count(*) > 0 FROM pg_stat_statements')" = 't'
+          for name in lytro-api-1-1 lytro-worker-1 lytro-postgres-1 lytro-edge-1; do
+            test "$(sudo docker inspect --format '{{.HostConfig.LogConfig.Type}}' "$name")" = journald
+          done
+          sudo journalctl --no-pager -n 3 CONTAINER_NAME=lytro-api-1-1
+          curl --silent --show-error --fail --insecure --resolve api.localhost:443:127.0.0.1 \
+            https://api.localhost/health/jobs | tee jobs.json
+          jq -e '.data.status == "ok"' jobs.json
+
       - name: Staging's hosts aren't indexed
         run: |
           curl --silent --insecure --head --resolve app.localhost:443:127.0.0.1 https://app.localhost/ \

@@ -1,6 +1,7 @@
 import { Controller, Get, Inject, Res } from '@nestjs/common';
 import { SkipEdge } from '../../../common/decorators/skip-edge';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
+import { UptimeCheck } from '../../../common/decorators/uptime-check';
 import { JobsCheck, type JobsReport } from '../services/jobs-check';
 
 // The part of the HTTP response this uses, so the file doesn't depend on Express's types.
@@ -15,6 +16,7 @@ interface StatusResponse {
 @Controller('health/jobs')
 @SkipTenant()
 @SkipEdge()
+@UptimeCheck()
 export class JobsCheckController {
   constructor(@Inject(JobsCheck) private readonly jobs: Pick<JobsCheck, 'report'>) {}
 

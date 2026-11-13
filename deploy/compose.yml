@@ -28,9 +28,11 @@ x-server: &server
   networks: [internal]
   # The API's own shutdown waits 10 s for requests in flight; a job worker's pg-boss waits up to 30 s for running jobs.
   stop_grace_period: 45s
+  # D9-20, LOG-03 (Slice 9.6): to the server's journal, which keeps 14 days and deletes the rest (setup-server.sh), so a
+  # quiet service's lines never outlive the limit as a size-only rotation would let them. `docker logs` still reads them.
   logging: &logging
-    driver: json-file
-    options: { max-size: 10m, max-file: '5' }
+    driver: journald
+    options: { tag: '{{.Name}}' }
 
 x-api: &api
   <<: *server
@@ -136,8 +138,14 @@ services:
       - maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-64MB}
       - -c
       - max_connections=${PG_MAX_CONNECTIONS:-60}
+      # DAT-17 (Slice 9.6): every statement over 200 ms in the log, and every statement's totals in pg_stat_statements
+      # (deploy/postgres/20-query-statistics.sh makes the extension), for the slow-query review (RUNBOOKS.md).
       - -c
-      - log_min_duration_statement=1000
+      - log_min_duration_statement=${PG_SLOW_QUERY_MS:-200}
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=top
       # Point-in-time recovery (DAT-34): every finished write-ahead-log file to R2, at least each minute. deploy.sh
       # sets PG_ARCHIVE_MODE=on once backup.env holds the archive's settings, off before (CI's rehearsal).
       - -c
