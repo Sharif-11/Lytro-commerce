@@ -25,7 +25,7 @@ export class CourierAreasTickWorker implements OnModuleInit {
       {},
       { tz: COURIER_AREAS_TZ },
     );
-    await this.pgBoss.boss.work(QueueName.CourierAreasTick, () => this.run());
+    await this.pgBoss.workOnce(QueueName.CourierAreasTick, () => this.run());
   }
 
   async run(): Promise<void> {

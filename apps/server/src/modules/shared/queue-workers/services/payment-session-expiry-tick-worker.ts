@@ -27,7 +27,7 @@ export class PaymentSessionExpiryTickWorker implements OnModuleInit {
       PAYMENT_SESSION_TICK_CRON,
       {},
     );
-    await this.pgBoss.boss.work(QueueName.PaymentSessionExpiryTick, async () => {
+    await this.pgBoss.workOnce(QueueName.PaymentSessionExpiryTick, async () => {
       const result = await this.expiry.runTick(new Date());
       if (result.expired > 0) {
         this.logger.log(

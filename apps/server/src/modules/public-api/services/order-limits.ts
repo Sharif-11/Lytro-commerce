@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { Transaction } from '@lytronix/db';
 import { PlatformSettingKey } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
@@ -25,7 +26,8 @@ export const TRACKING_READS_PER_VISITOR_PER_MINUTE = 60;
  * on top of the request limit every public call meets. A visitor is held to 10 orders a minute; the shop's shoppers
  * together to the operator's figures for orders and for payment sessions, flood guards that never cap a plan's demand
  * (QTA-07), and their refusals are counted so the operator can see a real shop meet them. Staff orders and payment
- * links are never held. In memory, exact while there is one server (D3-2); Phase 9 moves them.
+ * links are never held. Orders and sessions are counted exactly in PostgreSQL, tracking reads in the shared limit
+ * store (Slice 9.4).
  */
 @Injectable()
 export class OrderLimits {
@@ -39,7 +41,7 @@ export class OrderLimits {
   /** Lets a shopper's order through, or refuses it with 429: the visitor's window first, then the shop's. */
   async admitOrder(shop: ApiShop, request: HttpRequest, now: Date): Promise<void> {
     const visitor = this.clientIp.resolve(request) ?? 'unknown';
-    const own = this.limits.ordersPerVisitor(
+    const own = await this.limits.ordersPerVisitor(
       shop.row.id,
       visitor,
       ORDERS_PER_VISITOR_PER_MINUTE,
@@ -48,7 +50,7 @@ export class OrderLimits {
     if (!own.allowed) {
       throw new ApiError('rate_limited', 'TooManyOrders', {}, secondsOf(own.resetMs));
     }
-    const shared = this.limits.ordersPerShop(shop.row.id, await this.perShop(), now);
+    const shared = await this.limits.ordersPerShop(shop.row.id, await this.perShop(), now);
     if (!shared.allowed) {
       this.quota.refusedOrder(shop, now);
       throw new ApiError('rate_limited', 'TooManyOrders', {}, secondsOf(shared.resetMs));
@@ -59,11 +61,11 @@ export class OrderLimits {
    * RTE-08 (Slice 5.2b): lets a checkout open its payment session, or refuses the order with 429 -- checked just before
    * the session opens, so a cash-on-delivery order never meets it.
    */
-  async admitSession(shop: ApiShop, now: Date): Promise<void> {
+  async admitSession(shop: ApiShop, now: Date, tx?: Transaction): Promise<void> {
     const setting = await this.settings.current(PlatformSettingKey.PaymentSessionsPerShopPerMinute);
     const limit =
       typeof setting?.value === 'number' ? setting.value : DEFAULT_SESSIONS_PER_SHOP_PER_MINUTE;
-    const verdict = this.limits.sessionsPerShop(shop.row.id, limit, now);
+    const verdict = await this.limits.sessionsPerShop(shop.row.id, limit, now, tx);
     if (!verdict.allowed) {
       this.quota.refusedSession(shop, now);
       throw new ApiError('rate_limited', 'TooManyOrders', {}, secondsOf(verdict.resetMs));
@@ -71,9 +73,9 @@ export class OrderLimits {
   }
 
   /** Lets a visitor's tracking read through, or refuses it with 429. */
-  admitTracking(shop: ApiShop, request: HttpRequest, now: Date): void {
+  async admitTracking(shop: ApiShop, request: HttpRequest, now: Date): Promise<void> {
     const visitor = this.clientIp.resolve(request) ?? 'unknown';
-    const verdict = this.limits.trackingPerVisitor(
+    const verdict = await this.limits.trackingPerVisitor(
       shop.row.id,
       visitor,
       TRACKING_READS_PER_VISITOR_PER_MINUTE,

@@ -25,7 +25,7 @@ export class EvidenceSweepWorker implements OnModuleInit {
       {},
       { tz: EVIDENCE_SWEEP_TZ },
     );
-    await this.pgBoss.boss.work(QueueName.EvidenceSweep, async () => {
+    await this.pgBoss.workOnce(QueueName.EvidenceSweep, async () => {
       const removed = await this.evidence.sweep();
       this.logger.log(`payment screenshots removed: ${String(removed)}`);
     });

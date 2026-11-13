@@ -22,7 +22,7 @@ export class MediaBandwidthTickWorker implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     await this.pgBoss.boss.createQueue(QueueName.MediaBandwidthTick);
     await this.pgBoss.boss.schedule(QueueName.MediaBandwidthTick, BANDWIDTH_TICK_CRON, {});
-    await this.pgBoss.boss.work(QueueName.MediaBandwidthTick, async () => {
+    await this.pgBoss.workOnce(QueueName.MediaBandwidthTick, async () => {
       const result = await this.bandwidth.runMinute();
       if (result.written > 0) {
         this.logger.log(

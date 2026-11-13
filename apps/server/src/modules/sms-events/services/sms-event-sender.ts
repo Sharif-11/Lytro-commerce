@@ -32,6 +32,7 @@ import type { SmsEventStore, SmsOrderFacts, SmsShop } from '../ports/sms-event-s
 import { SMS_EVENT_STORE, SMS_EVENTS_CLOCK } from '../tokens';
 import type { SmsEventJob } from './sms-event-queue';
 import { isOn, templateOf } from './sms-settings.service';
+import { Leases } from '../../shared/limits/services/leases';
 
 // SMS-08: how often, and from how far apart (backing off), a failed SMS event is tried again.
 export const SMS_EVENT_RETRIES = 3;
@@ -52,6 +53,11 @@ interface Prepared {
 }
 
 /** Thrown to have the job try again later, once the failed try is logged and given back. */
+// §136 (Slice 9.4): one capped shop's send holds its turn this long at most (the provider's own timeouts), and the
+// next waits this long for it.
+const SPEND_TURN_LEASE_MS = 60_000;
+const SPEND_TURN_WAIT_MS = 30_000;
+
 export class SmsEventSendFailed extends Error {
   constructor(event: SmsEvent, cause: unknown) {
     super(`SMS event ${event} not sent: ${cause instanceof Error ? cause.message : String(cause)}`);
@@ -82,6 +88,7 @@ export class SmsEventSender {
     @Inject(DomainService) private readonly domains: DomainService,
     @Inject(ENV) private readonly env: Env,
     @Inject(SMS_EVENTS_CLOCK) private readonly clock: () => Date,
+    @Inject(Leases) private readonly leases: Pick<Leases, 'inTurn'>,
   ) {}
 
   async send(job: SmsEventJob): Promise<void> {
@@ -92,7 +99,7 @@ export class SmsEventSender {
     ]);
     if (!shop || !order || !isOn(settings, job.event)) return;
     const prepared = await this.prepare(job.event, job, settings, shop, order);
-    if (prepared) await this.chargeAndSend(job, shop, settings, prepared);
+    if (prepared) await this.capped(job, shop, settings, prepared);
   }
 
   /** Who it goes to and what it says, or nothing when this order has no one to send it to. */
@@ -152,6 +159,34 @@ export class SmsEventSender {
       return trackingPageUrl(this.env, shop.slug, host, order.trackingId);
     }
     return order.trackingLink ?? order.trackingCode ?? '';
+  }
+
+  /**
+   * SMS-13, §136 (Slice 9.4): with a month's spend cap set, the shop's sends take turns -- the check, the send and its log
+   * one after another -- so two at once can't both pass the cap. The turn waits up to half a minute; past that the job
+   * is tried again later rather than sent unchecked. Without a cap, nothing to wait for.
+   */
+  private async capped(
+    job: SmsEventJob,
+    shop: SmsShop,
+    settings: SelectSmsSettings | null,
+    sms: Prepared,
+  ): Promise<void> {
+    if ((settings?.monthlySpendCap ?? null) === null) {
+      await this.chargeAndSend(job, shop, settings, sms);
+      return;
+    }
+    const turn = await this.leases.inTurn(
+      `sms-spend:${job.tenantId}`,
+      SPEND_TURN_LEASE_MS,
+      SPEND_TURN_WAIT_MS,
+      () => this.chargeAndSend(job, shop, settings, sms),
+    );
+    if (!turn.held)
+      throw new SmsEventSendFailed(
+        sms.event,
+        new Error("the shop's spend cap is being checked by another send"),
+      );
   }
 
   private async chargeAndSend(

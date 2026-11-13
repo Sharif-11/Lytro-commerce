@@ -165,6 +165,12 @@ Optional, and best switched on once the first deploy works. In Cloudflare (`docs
 5. **The server:** fill the `MEDIA_` and `CLOUDFLARE_` lines in `server.env` (with `MEDIA_USAGE_DATASET`) and the two
    `MEDIA_` lines in `edge.env`, remove their `#`, and deploy again.
 
+## Redis
+
+make-env.sh writes `redis.env` (its password) and puts `REDIS_URL` in `server.env`, adding it to a `server.env` an
+earlier release made. Staging runs Redis with 64 MB. For production, put `REDIS_MAXMEMORY=256mb` and
+`REDIS_MEMORY=320m` in `/opt/lytro/settings.env` (RED-01). If it stops answering, see `docs/RUNBOOKS.md` §11.
+
 ## Backups
 
 Set up once per server, best after the first deploy works (Phase 9 Slice 9.3; `docs/RUNBOOKS.md` §10 says what runs and

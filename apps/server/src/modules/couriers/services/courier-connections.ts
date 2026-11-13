@@ -15,7 +15,8 @@ import {
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { CircuitOpen } from '../../../common/circuit-breaker';
-import { SlidingWindow } from '../../../common/sliding-window';
+import type { LimitStore } from '../../shared/limits/ports/limit-store';
+import { LIMIT_STORE } from '../../shared/limits/tokens';
 import { DAY_MS, MINUTE_MS } from '../../../common/time';
 import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
@@ -106,9 +107,9 @@ export interface OpenedConnection {
 @Injectable()
 export class CourierConnections {
   private readonly logger = new Logger('CourierConnections');
-  private readonly failures = new SlidingWindow(CONNECT_WINDOW_MS);
 
   constructor(
+    @Inject(LIMIT_STORE) private readonly limitStore: LimitStore,
     @Inject(COURIER_STORE) private readonly store: CourierStore,
     @Inject(COURIER_ADAPTER_STORE) private readonly adapterStates: CourierAdapterStore,
     @Inject(CourierRegistry) private readonly registry: CourierRegistry,
@@ -175,9 +176,9 @@ export class CourierConnections {
     // Checked first so a refusal costs no call to the courier, and again under the lock when saving.
     this.refuseUnavailable(adapter, this.stateOf(states, adapter.key), saved !== null);
     const credentials = this.credentialsOf(adapter, input, saved, tenantId);
-    const bucket = `${tenantId}:${adapter.key}`;
+    const bucket = `courier-connect:${tenantId}:${adapter.key}`;
     const now = this.clock();
-    if (!this.failures.peek(bucket, CONNECT_FAILURES, now.getTime()).allowed) {
+    if (!(await this.limitStore.peek(bucket, CONNECT_FAILURES, CONNECT_WINDOW_MS, now)).allowed) {
       throw new ApiError(
         'rate_limited',
         'CourierConnectTooManyTries',
@@ -549,7 +550,7 @@ export class CourierConnections {
         },
       );
       if (answer.outcome === 'accepted') return answer.credentials;
-      this.failures.take(bucket, CONNECT_FAILURES, now.getTime());
+      await this.limitStore.take(bucket, CONNECT_FAILURES, CONNECT_WINDOW_MS, now);
       const { message } = answer.refusal;
       throw new ApiError(
         'conflict',

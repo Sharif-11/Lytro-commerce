@@ -8,7 +8,7 @@
 #   website     the marketing site        storefront  every shop's storefront
 #   postgres    the database (17), sending its write-ahead log to R2 when backups are set up (Slice 9.3)
 #   backup      the nightly backups at 05:30 Dhaka: the encrypted dump, then the base backup (Slice 9.3, D9-18)
-#   redis       for Slice 9.4's limits; nothing uses it yet (D9-1)
+#   redis       the shared limits and gateway tokens (Slice 9.4, D9-1, D9-15), password-protected, nothing kept
 #   pgbouncer   the API's pooler (Slice 9.2, D9-13): the worker and the migrations connect to postgres directly
 #   migrate     one-off: migrations, then pg-boss's schema, as the owner (deploy.sh, after a dump)
 #   static      one-off: publishes a release's dashboard and console files into the edge's volume
@@ -201,19 +201,24 @@ services:
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
-    # Limits and counters only (Slice 9.4): nothing in it has to survive a restart.
+    # Limits, leases' companions and shared tokens only (Slice 9.4): nothing in it has to survive a restart, and every
+    # key Lytro writes expires. Hardened as RED-01 says (D9-1): a password (given on standard input, never on a command
+    # line a process list shows), the commands that wipe or reconfigure it switched off, no persistence, and eviction
+    # only among keys with an expiry. REDIS_MAXMEMORY in settings.env: 64mb on staging, 256mb in production.
+    env_file: ${LYTRO_HOME:-/opt/lytro}/env/redis.env
     command:
-      [
-        'redis-server',
-        '--save',
-        '',
-        '--appendonly',
-        'no',
-        '--maxmemory',
-        '64mb',
-        '--maxmemory-policy',
-        'allkeys-lru',
-      ]
+      - sh
+      - -c
+      - >-
+        printf 'requirepass %s\n' "$$REDIS_PASSWORD" |
+        exec redis-server - --save '' --appendonly no --maxmemory ${REDIS_MAXMEMORY:-64mb}
+        --maxmemory-policy volatile-lru --rename-command FLUSHALL '' --rename-command FLUSHDB ''
+        --rename-command CONFIG '' --rename-command DEBUG '' --rename-command KEYS '' --rename-command SHUTDOWN ''
+    healthcheck:
+      test: ['CMD-SHELL', 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 20
     networks: [internal]
     mem_limit: ${REDIS_MEMORY:-96m}
     logging: *logging

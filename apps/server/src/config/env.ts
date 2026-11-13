@@ -160,6 +160,10 @@ const envSchema = z.object({
   // D9-13, DAT-45: the read pool, as the read-only role (SELECT only, read-only transactions). Code marks a read for it
   // explicitly; everything else writes. Unset (a developer's database), reads go through the write pool.
   DATABASE_READ_URL: z.string().min(1).optional(),
+  // Slice 9.4 (D9-1, D9-15, RED-01 to RED-05): the shared Redis that keeps every API copy's limits in one count
+  // (redis://:<password>@redis:6379). Without it each process counts alone, which is right for one process (a
+  // developer's machine, the tests); the servers always set it.
+  REDIS_URL: z.string().min(1).optional(),
   // Slice 9.2 (D9-13, DAT-23): the API reaches the database through PgBouncer, which sets the statement and transaction
   // limits on every connection it opens (deploy/pgbouncer). A client's own would be refused there, so none is sent.
   DATABASE_THROUGH_POOLER: z

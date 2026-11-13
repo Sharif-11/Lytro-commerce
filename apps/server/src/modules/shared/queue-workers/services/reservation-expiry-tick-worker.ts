@@ -22,7 +22,7 @@ export class ReservationExpiryTickWorker implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     await this.pgBoss.boss.createQueue(QueueName.ReservationExpiryTick);
     await this.pgBoss.boss.schedule(QueueName.ReservationExpiryTick, RESERVATION_TICK_CRON, {});
-    await this.pgBoss.boss.work(QueueName.ReservationExpiryTick, async () => {
+    await this.pgBoss.workOnce(QueueName.ReservationExpiryTick, async () => {
       const result = await this.expiry.runTick(new Date());
       if (result.released > 0) {
         this.logger.log(

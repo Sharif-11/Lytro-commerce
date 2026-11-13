@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { CredentialUseAction } from '@lytronix/validators';
 import type { CredentialUse } from '../src/modules/gateway/ports/wallet-gateway';
 import { BkashGateway } from '../src/modules/gateway/services/bkash-gateway';
+import { SharedGatewayTokens } from '../src/modules/gateway/services/shared-gateway-tokens';
 
 // Phase 5 Slice 5.7: the real bKash sandbox, which only ever runs by hand on a computer holding credentials: CI uses
 // test/support/fake-bkash.ts. BKASH_SANDBOX_ENV_FILE names a local file outside every repo, with BKASH_APP_KEY, BKASH_APP_SECRET,
@@ -68,6 +69,12 @@ describeIfCredentials('the real bKash sandbox', () => {
         tokenCallsSince: () => Promise.resolve(0),
       },
       () => new Date(),
+      // One process, no Redis: the token stays in this gateway, and its turn to ask is always now.
+      new SharedGatewayTokens(
+        null,
+        { seal: () => Buffer.alloc(0), open: () => '' },
+        { inTurn: async (_key, _lease, _wait, work) => ({ held: true, value: await work() }) },
+      ),
     );
     const account = {
       tenantId: randomUUID(),

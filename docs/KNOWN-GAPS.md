@@ -2593,3 +2593,23 @@ Slice 9.3 built the backups and every restore, proven in CI against a test S3 st
    media rows point at nothing.
 6. **A column added since the backup with no default** would make a one-shop restore fail as a whole, rolled back with
    nothing kept. A column with a default takes it.
+
+## 147. `D9-15`, `RED-04`, `RTE-12`, `DAT-44`: what Slice 9.4's limits leave open — found 2026-11-13, open
+
+Slice 9.4 counts every rate limit once across API processes and servers, the exact ones in PostgreSQL. It moves the
+one-server state (§107's token, §119's starts and fee notice, §136's cap) into leases, and runs every scheduled pass
+once at a time. What it leaves:
+
+1. **The read-your-writes marker** (DAT-44 to DAT-47): with one database server there's no replica to read stale data
+   from, so the marker waits for the second database server (the owner's answer, 2026-11-13). Until then, dashboard
+   lists stay on the write pool (Slice 9.2's read).
+2. **The public API's per-process figures** (RTE-06, RTE-12): `RequestQuota` remembers the visitors it refused per
+   process, so with two API processes one visitor may be counted twice (at most double, a figure only). Each process
+   also keeps its own hourly count, so the fast-spend alert sees one process's share and may fire late. The monthly
+   totals and the limits themselves are exact (RED-04's flush).
+3. **Sign-in and sign-up counts take no lock** (AUTH-14, SUP-08, TRL): `SignInLockout`, `SignupRateLimiter` and
+   `TrialLimiter` count rows in PostgreSQL, shared by every process, but without a lock, so a burst of requests at once
+   may pass a few over the limit. This was so before Slice 9.4. The codes they guard are locked (one-time codes,
+   shopper codes).
+4. **Circuit breakers are per process** (D9-17): each process opens its own. Slice 9.5 takes them on.
+5. **Redis down tells the operators by email only**: phone alerts come with Slice 9.6's monitoring (D9-3).

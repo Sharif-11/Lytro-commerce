@@ -33,8 +33,8 @@ export class ShopperGate {
     return signedIn;
   }
 
-  admitCode(shop: ApiShop, request: HttpRequest, now: Date): void {
-    const verdict = this.limits.codesPerVisitor(
+  async admitCode(shop: ApiShop, request: HttpRequest, now: Date): Promise<void> {
+    const verdict = await this.limits.codesPerVisitor(
       shop.row.id,
       this.clientIp.resolve(request) ?? 'unknown',
       CODES_PER_VISITOR_PER_MINUTE,
@@ -45,8 +45,8 @@ export class ShopperGate {
     }
   }
 
-  admitSignin(shop: ApiShop, request: HttpRequest, now: Date): void {
-    const verdict = this.limits.signinsPerVisitor(
+  async admitSignin(shop: ApiShop, request: HttpRequest, now: Date): Promise<void> {
+    const verdict = await this.limits.signinsPerVisitor(
       shop.row.id,
       this.clientIp.resolve(request) ?? 'unknown',
       SIGNINS_PER_VISITOR_PER_MINUTE,

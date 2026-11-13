@@ -30,7 +30,7 @@ export class CourierNightTickWorker implements OnModuleInit {
       {},
       { tz: COURIER_NIGHT_TZ },
     );
-    await this.pgBoss.boss.work(QueueName.CourierNightTick, async () => {
+    await this.pgBoss.workOnce(QueueName.CourierNightTick, async () => {
       try {
         const result = await this.checks.runNight();
         this.logger.log(

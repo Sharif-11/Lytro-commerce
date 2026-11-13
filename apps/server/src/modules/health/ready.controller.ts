@@ -1,13 +1,16 @@
-import { Controller, Get, Inject, Res } from '@nestjs/common';
+import { Controller, Get, Inject, Optional, Res } from '@nestjs/common';
 import { SkipEdge } from '../../common/decorators/skip-edge';
 import { SkipTenant } from '../../common/decorators/skip-tenant';
 import { type DatabaseState, PrimaryWatch } from '../../database/primary-watch';
+import type { SharedStoreState } from '../shared/limits/ports/limit-store';
+import { SharedLimitStore } from '../shared/limits/services/shared-limit-store';
 
 export interface ReadyReport {
   status: 'ready' | 'not_ready';
   database: DatabaseState;
-  // Slice 9.4 brings Redis's own answer.
-  redis: 'not_configured';
+  // Slice 9.4 (D9-21): whether the shared Redis answers. Down never makes a process not ready: its limits are counted
+  // in memory meanwhile (RED-05).
+  redis: SharedStoreState;
 }
 
 // The part of the HTTP response this uses, so the file doesn't depend on Express's types.
@@ -26,7 +29,10 @@ interface StatusResponse {
 @SkipTenant()
 @SkipEdge()
 export class ReadyController {
-  constructor(@Inject(PrimaryWatch) private readonly watch: Pick<PrimaryWatch, 'check'>) {}
+  constructor(
+    @Inject(PrimaryWatch) private readonly watch: Pick<PrimaryWatch, 'check'>,
+    @Optional() @Inject(SharedLimitStore) private readonly limits?: Pick<SharedLimitStore, 'state'>,
+  ) {}
 
   @Get()
   async ready(@Res({ passthrough: true }) response: StatusResponse): Promise<ReadyReport> {
@@ -35,6 +41,7 @@ export class ReadyController {
       database.writes === 'primary' ||
       (database.writes === 'unreachable' && database.reads === 'up');
     if (!ready) response.status(503);
-    return { status: ready ? 'ready' : 'not_ready', database, redis: 'not_configured' };
+    const redis = this.limits?.state() ?? 'not_configured';
+    return { status: ready ? 'ready' : 'not_ready', database, redis };
   }
 }

@@ -143,12 +143,12 @@ export class PublicShopperController {
   })
   @ApiBody({ type: ShopperCodeDto })
   @ZodResponse({ type: ShopperCodeSentDto })
-  sendCode(
+  async sendCode(
     @Body(new ZodValidationPipe(ShopperCodeDto.schema)) body: ShopperCodeInput,
     @Req() request: PublicApiRequest,
   ): Promise<ShopperCodeSent> {
     const shop = this.shopOf(request);
-    this.gate.admitCode(shop, request, this.clock());
+    await this.gate.admitCode(shop, request, this.clock());
     return this.codes.send(
       { id: shop.row.id, name: shop.row.shopName },
       body.phone,
@@ -163,12 +163,12 @@ export class PublicShopperController {
   })
   @ApiBody({ type: ShopperSignupDto })
   @ZodResponse({ type: ShopperSignedInDto })
-  signUp(
+  async signUp(
     @Body(new ZodValidationPipe(ShopperSignupDto.schema)) body: ShopperSignupInput,
     @Req() request: PublicApiRequest,
   ): Promise<ShopperSignedIn> {
     const shop = this.shopOf(request);
-    this.gate.admitSignin(shop, request, this.clock());
+    await this.gate.admitSignin(shop, request, this.clock());
     return this.accounts.signUp(shop.row.id, body);
   }
 
@@ -178,12 +178,12 @@ export class PublicShopperController {
   @ApiOperation({ summary: 'Sign in with phone and password, no code (CUS-03)' })
   @ApiBody({ type: ShopperSigninDto })
   @ZodResponse({ type: ShopperSignedInDto })
-  signIn(
+  async signIn(
     @Body(new ZodValidationPipe(ShopperSigninDto.schema)) body: ShopperSigninInput,
     @Req() request: PublicApiRequest,
   ): Promise<ShopperSignedIn> {
     const shop = this.shopOf(request);
-    this.gate.admitSignin(shop, request, this.clock());
+    await this.gate.admitSignin(shop, request, this.clock());
     return this.accounts.signIn(shop.row.id, body);
   }
 

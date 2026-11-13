@@ -28,8 +28,19 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # Slice 9.4 (D9-15): the shared limit store's Redis, for test/limits.e2e.spec.ts (REDIS_TEST_URL).
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       DATABASE_TEST_ADMIN_URL: postgres://postgres:ci_only_password@localhost:5432/postgres
+      REDIS_TEST_URL: redis://localhost:6379
       # What a pull request is compared with to see what it affects; read only with --affected.
       TURBO_SCM_BASE: origin/${{ github.base_ref }}
       TURBO_SCM_HEAD: HEAD

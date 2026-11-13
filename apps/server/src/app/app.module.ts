@@ -7,6 +7,7 @@ import { runsJobs, serverRoleOf } from '../config/server-role';
 import { RequestIdModule } from '../common/request-id/request-id.module';
 import { ResponseEnvelopeInterceptor } from '../common/interceptors/response-envelope.interceptor';
 import { DatabaseModule } from '../database/database.module';
+import { LimitsModule } from '../modules/shared/limits/limits.module';
 import { HealthController } from '../modules/health/health.controller';
 import { ReadyController } from '../modules/health/ready.controller';
 import { SavingGuard } from '../common/guards/saving.guard';
@@ -40,6 +41,7 @@ const jobImports = runsJobs(serverRoleOf(process.env)) ? [QueueWorkersModule] : 
   imports: [
     ...shutdownImports,
     DatabaseModule,
+    LimitsModule,
     RequestIdModule,
     SecretsModule,
     TenancyModule,

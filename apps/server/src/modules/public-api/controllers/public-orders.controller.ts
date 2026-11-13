@@ -179,7 +179,7 @@ export class PublicOrdersController {
     const shop = request.apiShop;
     if (!shop) throw new Error('the public key guard names the shop');
     const now = this.clock();
-    this.limits.admitTracking(shop, request, now);
+    await this.limits.admitTracking(shop, request, now);
     const id = trackingId.toUpperCase();
     if (!TRACKING_ID.test(id)) throw new ApiError('not_found', 'OrderNotFound', {});
     const tracked = await this.tracking.track(shop.row.id, id);

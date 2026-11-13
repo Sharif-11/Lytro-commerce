@@ -107,7 +107,7 @@ export class ListenerPairing {
   ): Promise<ListenerPaired> {
     const now = this.clock();
     const caller = ip ?? 'unknown';
-    this.limits.refusePairing(caller, now);
+    await this.limits.refusePairing(caller, now);
     const version = await this.rules.refuseOldApp(appVersion);
     const outcome = await this.store.run<Outcome<ListenerPaired>>(async (tx) => {
       const code = await this.store.lockCode(tx, listenerHashOf(input.code));
@@ -160,7 +160,7 @@ export class ListenerPairing {
       };
     });
     if ('refused' in outcome) {
-      this.limits.failedPairing(caller, now);
+      await this.limits.failedPairing(caller, now);
       throw outcome.refused;
     }
     return outcome.done;

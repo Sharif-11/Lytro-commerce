@@ -403,6 +403,24 @@ only adds concrete artifacts to it, nothing new in process:
   store (Versity's gateway) on every change. `docs/RUNBOOKS.md` §10 is the operator's side; `docs/drills/` holds the
   drill records.
 
+### 9e. As built (Slice 9.4, limits across servers)
+
+- **One limit store** (D9-15, `modules/shared/limits`): every everyday rate limit asks one store, Redis-backed. It
+  counts each bucket as an exact sliding window with one atomic Lua script, so every API process and server shares one
+  count. Without `REDIS_URL` (development, tests) it counts in memory at the full limit. While Redis is down it counts
+  in memory at half each, and the operators get one email when the outage starts and one when it ends
+  (`control.service_states`).
+- **Exact limits in PostgreSQL** (RED-11): orders per visitor and per shop, payment sessions (in the order's own
+  transaction), shopper sign-up codes per visitor, and failed listener pairings. Each allowed request is a
+  `control.limit_events` row under an advisory lock on its bucket.
+- **Leases** (`control.leases`): a payment's start (a second tap waits its turn, §119), a wallet account's token fetch
+  (§107, with the token itself shared sealed through Redis), a once-a-day notice, a capped shop's SMS sends (§136),
+  and every scheduled pass (MON-04, `PgBossClient.workOnce`). A lease lapses by itself, so a stopped process never
+  blocks for longer than its lease. Leases work through PgBouncer, where a session's advisory lock would not.
+- **Redis** (RED-01 as amended): password from `redis.env` (given on standard input, never in a process list), the
+  wiping and configuring commands switched off, no persistence, eviction only of keys with an expiry, and
+  `REDIS_MAXMEMORY` from settings.env (64 MB on staging, 256 MB in production). `GET /health/ready` reports it.
+
 ## 10. Open, deliberately deferred
 
 Settled by Phase 9's plan and Slice 9.1:
