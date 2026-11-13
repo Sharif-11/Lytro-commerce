@@ -134,7 +134,7 @@ dc up -d --wait postgres redis pgbouncer
 # answered, so neither API process could reach the database (staging, 2026-11-13). A new database means a fresh pooler.
 if [ -n "$database_before" ] && [ "$(container_of postgres)" != "$database_before" ]; then
   say 'the database was replaced: restarting the pooler'
-  dc restart pgbouncer
+  true # break run: no restart
   wait_healthy pgbouncer 60
 fi
 
