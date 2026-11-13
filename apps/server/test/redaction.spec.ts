@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { redactText, redactValue } from '../src/common/logging/redaction';
+import { redactText, redactValue } from '@lytronix/shared-types';
 
 // LOG-02, D9-20, OBS-03 (Slice 9.6): what a log line or a reported error may never carry.
 describe('the redaction list', () => {

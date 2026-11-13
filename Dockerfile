@@ -16,6 +16,9 @@ ARG NODE_IMAGE=node:24-bookworm-slim
 FROM ${NODE_IMAGE} AS build
 # The commit this image is built from: the storefront's service worker version (CCH-10) and every image's RELEASE.
 ARG RELEASE=local
+# OBS-03 (Slice 9.6): the dashboard's Sentry address, public as every browser sees it (the repository's
+# DASHBOARD_SENTRY_DSN variable); empty, the dashboard sends nothing.
+ARG DASHBOARD_SENTRY_DSN=
 ENV PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH \
     CI=1 \
@@ -26,7 +29,8 @@ WORKDIR /repo
 COPY . .
 # Every package, with its install scripts: ffmpeg-static downloads the Linux ffmpeg the worker converts videos with.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile
-RUN NEXT_STANDALONE=1 STOREFRONT_BUILD_ID=${RELEASE} pnpm turbo run build \
+RUN NEXT_STANDALONE=1 STOREFRONT_BUILD_ID=${RELEASE} VITE_RELEASE=${RELEASE} VITE_SENTRY_DSN=${DASHBOARD_SENTRY_DSN} \
+    pnpm turbo run build \
       --filter=@lytronix/server \
       --filter=@lytronix/website \
       --filter=@lytronix/storefront \

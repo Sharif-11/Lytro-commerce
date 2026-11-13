@@ -36,7 +36,9 @@ function policyHeaders(): Record<string, string> {
       name.toLowerCase(),
       value
         .replaceAll('{$MEDIA_PUBLIC_BASE_URL}', MEDIA)
-        .replaceAll('{$MEDIA_STORAGE_ENDPOINT}', STORAGE),
+        .replaceAll('{$MEDIA_STORAGE_ENDPOINT}', STORAGE)
+        // Unset, as Caddy leaves it where no Sentry project is named.
+        .replaceAll(' {$SENTRY_INGEST_ORIGIN}', ''),
     ]),
   );
 }

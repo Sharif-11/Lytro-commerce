@@ -4,6 +4,12 @@ export class AppConfig {
   readonly platformDomain: string;
   readonly siteUrl: string;
   readonly apiBase = '/api/v1';
+  /** OBS-03 (Slice 9.6): Sentry's address for this build; null, no error is sent. */
+  readonly sentryDsn: string | null;
+  /** The commit this build was made from, which names its errors. */
+  readonly release: string;
+  /** Which server the dashboard runs on, by its address: production, staging, or development elsewhere. */
+  readonly environment: string;
 
   /**
    * One build serves every environment (Phase 9 §3.6): served from `app.<domain>`, the dashboard takes its platform domain
@@ -18,6 +24,14 @@ export class AppConfig {
     const served = hostname.startsWith('app.') ? hostname.slice('app.'.length) : null;
     this.platformDomain = env.VITE_PLATFORM_DOMAIN ?? served ?? 'lytro.app';
     this.siteUrl = (env.VITE_SITE_URL ?? `https://${this.platformDomain}`).replace(/\/+$/, '');
+    this.sentryDsn = env.VITE_SENTRY_DSN || null;
+    this.release = env.VITE_RELEASE ?? 'local';
+    this.environment =
+      served === null
+        ? 'development'
+        : served === 'lytro.app'
+          ? 'production'
+          : (served.split('.')[0] ?? served);
   }
 
   /** A shop's public address (TEN-31). */

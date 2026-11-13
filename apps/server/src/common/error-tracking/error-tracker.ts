@@ -2,7 +2,7 @@ import { Inject, Injectable, Optional, type OnApplicationShutdown } from '@nestj
 import * as Sentry from '@sentry/node';
 import type { Env } from '../../config/env';
 import { ENV } from '../../config/tokens';
-import { redactText, redactValue } from '../logging/redaction';
+import { redactText, redactValue } from '@lytronix/shared-types';
 
 /** What a reported error is tagged with, so it's found from a seller's ID or a shop's page. */
 export interface ErrorScope {

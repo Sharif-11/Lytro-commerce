@@ -273,4 +273,8 @@ CLOUDFLARE_DNS_API_TOKEN=
 # With media only: the same two addresses as server.env's, for the dashboard's and console's Content Security Policy.
 # MEDIA_PUBLIC_BASE_URL=
 # MEDIA_STORAGE_ENDPOINT=
+
+# With the dashboard's errors going to Sentry (OBS-03, the repository's DASHBOARD_SENTRY_DSN variable): its ingest
+# address, the DSN's https://<host> part, for the dashboard's Content Security Policy.
+# SENTRY_INGEST_ORIGIN=
 EOF

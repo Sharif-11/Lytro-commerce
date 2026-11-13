@@ -121,9 +121,10 @@
 # Both addresses are the server's own settings, so one deployment file feeds the server and Caddy. No inline
 # script or style: a shop's theme sets its colours through the CSSOM, never a <style> element. No plugin, no
 # framing, no <base>. The Permissions-Policy keeps the camera for the dashboard's own IMEI scanning and turns
-# off what it never uses. apps/dashboard/e2e/csp.spec.ts reads this block and walks every screen under it.
+# off what it never uses. apps/dashboard/e2e/csp.spec.ts reads this block and walks every screen under it. Its errors
+# go to Sentry's ingest address (SENTRY_INGEST_ORIGIN in edge.env, OBS-03, Slice 9.6); unset, it adds nothing.
 (dashboard_csp) {
-	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' {$MEDIA_PUBLIC_BASE_URL}; media-src 'self' blob: {$MEDIA_PUBLIC_BASE_URL}; connect-src 'self' {$MEDIA_STORAGE_ENDPOINT}; manifest-src 'self'; worker-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' {$MEDIA_PUBLIC_BASE_URL}; media-src 'self' blob: {$MEDIA_PUBLIC_BASE_URL}; connect-src 'self' {$MEDIA_STORAGE_ENDPOINT} {$SENTRY_INGEST_ORIGIN}; manifest-src 'self'; worker-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 	header Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=()"
 }
 
