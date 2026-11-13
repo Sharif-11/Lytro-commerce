@@ -1590,7 +1590,7 @@ Fixed: `DatabaseService` closes its pool in `onApplicationShutdown`, the last st
 the pool closes. `request-quota-shutdown.e2e.spec.ts` counts requests, stops the application and finds them stored.
 The `lastUsedAt` check now waits for the write (`expect.poll`).
 
-## 81. `SEC-10`: no secrets manager is chosen, and nothing seals every stored value again after a rotation — open, found 2026-10-21
+## 81. `SEC-10`: no secrets manager is chosen, and nothing seals every stored value again after a rotation — found 2026-10-21, closed 2026-11-14
 
 Found while building Phase 3 Slice 9b, the first stored credentials (a shop's Conversions API token, its catalog feed
 link). The server reads its sealing key from `DATA_ENCRYPTION_KEY` and refuses to start in production without it,
@@ -1600,6 +1600,12 @@ decision not yet made. Separately, a rotation keeps the old key as `DATA_ENCRYPT
 is sealed again, and today that means each shop regenerating its feed link and re-entering its token (RUNBOOKS §3).
 A job that re-seals every value with the current key should come with courier and gateway credentials (Phases 5-6),
 when there are more of them.
+
+**Closed by Phase 9 Slice 9.7.** D9-8 settled the manager: the key is a root-only file on the server
+(`$LYTRO_HOME/env/data-encryption.key`, mode 600), handed to the API and worker as a compose secret and read by the
+image's entrypoint as root before the server runs as `node`; reading it by hand is a dated entry in RUNBOOKS §3's
+break-glass record. `node dist/reseal.js` seals every stored value in its seven columns again with the current key, shop
+by shop, and names what it couldn't open (RUNBOOKS §3).
 
 ## 82. `RTE-01`, `SFT-11`, `SFT-15`: a plan's per-minute key limit caps a whole storefront — decided 2026-10-21, built 2026-10-29
 
@@ -2247,9 +2253,8 @@ The close-out (PHASE-6-PLAN §11) fixed what it found that could be fixed in the
   limits on every path that settles one, the minute pass's too.
 - **An opened circuit tells no one but the log (`PRF-05`).** Each courier account's circuit opens after five failures and the server
   logs it; the operator's alert waits for Phase 7's notifications (plan §3.2).
-- **Sealed values after a key rotation (`SEC-10`, §81).** §81 meant the job that seals every stored value again with the current key to
-  come with the courier and gateway credentials. It isn't built, so after a rotation they stay sealed with the previous key until each
-  shop connects again.
+- **Sealed values after a key rotation (`SEC-10`, §81): closed by Slice 9.7,** whose re-seal job (`node dist/reseal.js`, RUNBOOKS §3)
+  seals the courier and gateway credentials again with the current key, with every other stored secret.
 - **The retiring banner's last case (`CRR-25`).** A retiring courier still a shop's default, after the shop has connected the suggested
   one, still shows "Connect {courier}"; no words are drawn for it.
 - **Suspected, needing a live courier to confirm:**
@@ -2544,13 +2549,13 @@ The close-out (PHASE-8-PLAN §11) fixed what its three reviews found, apart from
   Workers line alone passes the budget.
 - **A sandbox top-up spent later counts as earned.** The revenue report skips test payments to Lytro's wallets, but
   spending comes from the shop's ledger, which doesn't record that its money came from a sandbox.
-- **Meta's catalogue feed isn't guarded against spreadsheet formulas,** though every other CSV is. Meta reads it, and an
-  apostrophe would show on Facebook.
+- **Meta's catalogue feed and spreadsheet formulas: closed by Slice 9.7.** A cell that starts like a formula gets a
+  leading space there, not the apostrophe the other CSVs use, which would show on Facebook.
 - **The audit log's shop filter reads each entry's summary** for the shop a payment, notice or listener entry names, with
   no index, so it slows as the log grows. An index needs a migration.
 - **A lost phone that was the shop's listener stays paired** until the owner unpairs it (D8-87).
-- **No test walks every operator route as a seller.** Each module's own spec refuses a seller on its routes, and every
-  operator controller carries the operator guard.
+- **Every operator route walked as a seller: closed by Slice 9.7** (`operator-routes.e2e.spec.ts`, found in the running
+  application).
 - **Next release:** the shop page's failed webhooks and open tickets (ADM-03, D8-1).
 - **What only the real world shows:** MED-12's match with a real Cloudflare invoice (§138), a real payment through Lytro's
   own bKash merchant account (§137), and API-28's redirect, a manual check in Phase 9.
@@ -2613,3 +2618,24 @@ once at a time. What it leaves:
    shopper codes).
 4. **Circuit breakers are per process** (D9-17): each process opens its own. Slice 9.5 takes them on.
 5. **Redis down tells the operators by email only**: phone alerts come with Slice 9.6's monitoring (D9-3).
+
+## 148. `SEC-03`, `SEC-15`, `D9-4`, `DAT-04`: what Slice 9.7's security pass leaves open — found 2026-11-14, open
+
+The pass is recorded in `SECURITY-PASS.md`. What it leaves:
+
+1. **Two dependencies on a dated allow-list** (`.github/audit-allowlist.json`, until 2026-12-15): Drizzle ORM before
+   0.45.2 (GHSA-gpj5-g38j-94v9, SQL identifiers built from input; every raw piece of SQL and identifier Lytro writes comes from
+   its own constants, never from a request) and the zod 4 copy
+   below 4.6.6 (GHSA-mrhx-c7xc-m3w5). Each is a major upgrade with its own pull request next (the owner's answer,
+   2026-11-14). CI fails on any other high or critical advisory, and on these after the date.
+2. **The ZAP scan is passive** (my call at the read): it reads headers, cookies and pages and sends no attacks, so SEC-03's
+   "automated scan" is this plus `sql-injection.e2e.spec.ts`. Its first run is against staging after this slice's
+   deploy; its findings are fixed or added here then.
+3. **SEC-15 waits for tenant webhooks** (API-12), with the next release.
+4. **The previous-release check reads the dashboard only.** The storefront's and the console's reads aren't walked, and
+   a new value inside a JSON column or a text column with no check list has no record in the schema to find. The four
+   lines every migration's pull request states (ENGINEERING-STANDARDS §5: readers before writers) cover those by hand.
+5. **The migration check reads SQL by its shape, not a parser.** An `UPDATE` inside a `WITH`, or SQL a function builds
+   when it runs, passes unseen.
+6. **Migrations 0001 to 0134 are trusted as they ran.** Four were edited after running in development (0021, 0029,
+   0062, 0067) and 0039 to 0043 carry early times, so the runner checks order and unchanged text from 0135 on.

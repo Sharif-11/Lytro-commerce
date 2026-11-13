@@ -75,7 +75,8 @@ Nothing is deployed. There is:
 6. **Every day-one alert has fired once on staging**, by causing what it watches: uptime, disk, memory, backup age,
    archive lag, a missed job heartbeat, an error spike, Redis down, an opened circuit.
 7. **The security pass is recorded:** each of SEC-01 to SEC-16 with its evidence; the scanners' findings fixed or listed
-   in `KNOWN-GAPS.md` with a reason.
+   in `KNOWN-GAPS.md` with a reason. Recorded in `SECURITY-PASS.md` (Slice 9.7, 2026-11-14); the ZAP scan's first
+   findings follow the deploy (KNOWN-GAPS §148).
 8. **The terms and privacy policy are on the website** in Bangla and English, at the versions sign-up records (LEG-01,
    LEG-02), and say that launch runs on one server (DAT-54).
 9. CI is green on `main`, and the pull-request flow has been used for every slice.
