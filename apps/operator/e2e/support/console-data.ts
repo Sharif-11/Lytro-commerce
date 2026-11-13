@@ -56,6 +56,11 @@ export function drawnPlans(): Record<string, unknown>[] {
     createdAt: '2026-07-14T00:00:00.000Z',
     shopsByVersion,
     deletable: false,
+    // PLN-21, as the sketch draws it: Starter is the suggested plan; the pricing page shows the plans for sale and
+    // Pay-as-you-go, never the Trial.
+    suggested: id === 'p-starter',
+    trial: id === 'p-trial',
+    onPricingPage: forSale || id === 'p-payg',
   });
   const small = { custom_domain: false, ai_reply: false, api: true, payment_page: true };
   const large = { custom_domain: true, ai_reply: true, api: true, payment_page: true };
