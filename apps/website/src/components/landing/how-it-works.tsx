@@ -1,5 +1,3 @@
-import { Container } from '@/components/ui/container';
-import { SectionHeading } from '@/components/ui/section-heading';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import type { Language } from '@/lib/i18n/language';
 
@@ -33,27 +31,30 @@ const steps: { title: Bilingual; body: Bilingual }[] = [
   },
 ];
 
+/** The sketch's three numbered steps: stacked on a phone, three across from 640 px, joined by a dashed line from
+    900 px. */
 export function HowItWorks({ language }: { language: Language }) {
   const copy = new Copy(language);
   return (
-    <section id="how" className="scroll-mt-16 bg-white">
-      <Container className="py-16 sm:py-20">
-        <SectionHeading eyebrow={copy.of(text.eyebrow)} title={copy.of(text.title)} />
-        <ol className="mx-auto mt-10 grid max-w-[960px] gap-4 sm:grid-cols-3">
+    <section className="sec" id="how">
+      <div className="wrap">
+        <div className="sec-head center">
+          <span className="eyebrow">
+            <i />
+            <span>{copy.of(text.eyebrow)}</span>
+          </span>
+          <h2>{copy.of(text.title)}</h2>
+        </div>
+        <ol className="hgrid">
           {steps.map((step, index) => (
-            <li
-              key={step.title.en}
-              className="relative rounded-card border border-line bg-white p-5 shadow-card"
-            >
-              <span className="num flex h-10 w-10 items-center justify-center rounded-full bg-accent-500 text-[16px] font-extrabold text-ink">
-                {index + 1}
-              </span>
-              <h3 className="heading mt-4 text-[18px] text-ink">{copy.of(step.title)}</h3>
-              <p className="mt-2 text-[15px] text-neutral-700">{copy.of(step.body)}</p>
+            <li key={step.title.en} className="step card">
+              <span className="n">{index + 1}</span>
+              <h3>{copy.of(step.title)}</h3>
+              <p>{copy.of(step.body)}</p>
             </li>
           ))}
         </ol>
-      </Container>
+      </div>
     </section>
   );
 }

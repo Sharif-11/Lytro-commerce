@@ -83,6 +83,37 @@ export function nameOf(addon: Pick<Addon, 'labelEn' | 'labelBn'>, language: stri
   return language === 'bn' ? addon.labelBn : addon.labelEn;
 }
 
+/**
+ * PLN-13: an add-on named by what one adds, as the sketch names them ("আরও 500 প্রোডাক্ট", "1 GB স্টোরেজ",
+ * "10 GB ব্যান্ডউইথ", "1,00,000 রিকোয়েস্ট"), from the catalogue's own size, so a size the operator changes reads
+ * right. A feature, or a limit the page doesn't know, keeps the catalogue's label. No size (or 0) keeps the label too,
+ * so the seat's "একটা সিট" never meets 0 (Bangla's `_one` covers it).
+ */
+export function sizedName(
+  addon: Pick<Addon, 'limitKey' | 'unitSize' | 'labelEn' | 'labelBn'>,
+  t: T,
+  language: string,
+): string {
+  const size = addon.unitSize;
+  if (size === null || size <= 0) return nameOf(addon, language);
+  // Bangla groups lakhs (1,00,000), as taka amounts are written.
+  const n = size.toLocaleString(language === 'bn' ? 'en-IN' : 'en-US');
+  switch (addon.limitKey) {
+    case 'products':
+      return t('aoNameProducts', { n });
+    case 'staff':
+      return t('aoNameSeats', { count: size });
+    case 'storage_mb':
+      return t('aoNameStorage', { size: usageSize(size * BYTES_PER_MB, size * BYTES_PER_MB) });
+    case 'bandwidth_gb':
+      return t('aoNameBandwidth', { size: usageSize(size * BYTES_PER_GB, BYTES_PER_GB) });
+    case 'requests_monthly':
+      return t('aoNameRequests', { n });
+    default:
+      return nameOf(addon, language);
+  }
+}
+
 /** How an add-on the shop has will renew, or why it will not; `warn` where it needs the seller. */
 export function renewalLine(
   owned: ShopAddon,
@@ -181,7 +212,10 @@ export function endingBanner(
   const move = limitWithout(ending, figures);
   if (key !== 'alBanner' && key !== 'alBannerBrand' && !move) return null;
   const limit = move ? limitValue(move.limitKey, move.to) : undefined;
-  return { text: t(key, { name: nameOf(ending, language), count: days, limit }), addon: ending };
+  return {
+    text: t(key, { name: sizedName(ending, t, language), count: days, limit }),
+    addon: ending,
+  };
 }
 
 /** A limit's figure: "600", or storage in its unit, "3 GB". */
@@ -244,7 +278,7 @@ export function boughtToast(
   t: T,
   language: string,
 ): string {
-  const name = nameOf(context.addon, language);
+  const name = sizedName(context.addon, t, language);
   const on = context.move
     ? t('abBought', {
         name,

@@ -4,3 +4,5 @@ export const LISTENER_STORE = Symbol('LISTENER_STORE');
 export const LISTENER_NOTIFIER = Symbol('LISTENER_NOTIFIER');
 // The listener's clock, so a test may move time.
 export const LISTENER_CLOCK = Symbol('LISTENER_CLOCK');
+// TENANT-DASHBOARD-DESIGN §7.44: how the app's latest.json is read from its downloads host, so a test may answer instead.
+export const LISTENER_RELEASE_FETCH = Symbol('LISTENER_RELEASE_FETCH');

@@ -182,6 +182,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   features: { en: 'Features', bn: 'ফিচার' },
   format: { en: 'Serial type', bn: 'সিরিয়াল টাইপ' },
   forSale: { en: 'For sale', bn: 'ফর সেল' },
+  suggested: { en: 'Suggested plan', bn: 'সাজেস্টেড প্ল্যান' },
   fulfillmentStatus: { en: 'Delivery status', bn: 'ডেলিভারি স্ট্যাটাস' },
   fulfilmentType: { en: 'Order type', bn: 'অর্ডারের ধরন' },
   full: { en: 'Whole amount due', bn: 'পুরো ডিউ' },

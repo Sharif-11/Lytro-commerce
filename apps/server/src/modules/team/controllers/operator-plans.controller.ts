@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -27,7 +28,12 @@ import { PlanAssignmentService } from '../../billing/services/plan-assignment.se
 import { PlansService, type PlanOperator } from '../../billing/services/plans.service';
 import type { PlanAssignmentRecord } from '../../billing/types/plan-assignment';
 import type { OperatorPlanRecord, PlanRecord, PlanVersionRecord } from '../../billing/types/plan';
-import { AssignPlanDto, CreatePlanDto, UpdatePlanDto } from '../dto/billing.dto';
+import {
+  AssignPlanDto,
+  CreatePlanDto,
+  SetPlanSuggestedDto,
+  UpdatePlanDto,
+} from '../dto/billing.dto';
 import {
   PlanAssignmentDto,
   OperatorPlanListDto,
@@ -102,6 +108,20 @@ export class OperatorPlansController {
     @Req() request: OperatorSessionRequest,
   ): Promise<PlanRecord> {
     return this.plans.update(id, body, this.operatorOf(request));
+  }
+
+  // PLN-21: marks or unmarks the plan the pricing page highlights. Not a plan edit, so no new version.
+  @Put(':id/suggested')
+  @ResponseMessage('PlanUpdated')
+  @ApiOperation({ summary: 'Mark or unmark the plan the pricing page suggests' })
+  @ApiBody({ type: SetPlanSuggestedDto })
+  @ZodResponse({ type: PlanDto })
+  setSuggested(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(SetPlanSuggestedDto.schema)) body: SetPlanSuggestedDto,
+    @Req() request: OperatorSessionRequest,
+  ): Promise<PlanRecord> {
+    return this.plans.setSuggested(id, body.suggested, this.operatorOf(request));
   }
 
   @Delete(':id')

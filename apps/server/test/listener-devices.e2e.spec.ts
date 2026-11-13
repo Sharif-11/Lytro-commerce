@@ -104,6 +104,7 @@ interface DeviceList {
     status: string;
     online: boolean;
     revokeReason: string | null;
+    appVersion: string;
   }[];
   active: number;
   limit: number | null;
@@ -369,6 +370,20 @@ describeIfDatabase("the plan's phones and the shop's state (LSN-07, LSN-08, LSN-
       expect((await heartbeat(phone, { version: null })).status).toBe(426);
       expect((await pair('ABCDEFGH', 'install-old00001', { version: '1.0.5' })).status).toBe(426);
       expect((await heartbeat(phone, { version: '1.10.0' })).status).toBe(200);
+
+      // A staging build gives its tag (versionNameSuffix "-staging"): its numbers meet the minimum or don't, as the
+      // same build's would, and the phone keeps the version as the app gave it.
+      expect((await heartbeat(phone, { version: '1.1.9-staging' })).status).toBe(426);
+      expect((await heartbeat(phone, { version: '1.2.0-staging' })).status).toBe(200);
+      const kept = (await devicesOf(shop)).devices.find((each) => each.id === phone.deviceId);
+      expect(kept?.appVersion).toBe('1.2.0-staging');
+      // Two tags, or longer than the phone's row keeps, is no version.
+      expect((await heartbeat(phone, { version: '1.2.0-staging-x' })).status).toBe(426);
+      expect((await heartbeat(phone, { version: `1.2.0-${'a'.repeat(20)}` })).status).toBe(426);
+      // The operator's minimum stays numbers only.
+      await expect(
+        settings.set(PlatformSettingKey.ListenerMinAppVersion, '1.2.0-staging', randomUUID()),
+      ).rejects.toThrow();
     } finally {
       await settings.set(PlatformSettingKey.ListenerMinAppVersion, '1.0.0', randomUUID());
     }

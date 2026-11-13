@@ -17,7 +17,7 @@ import type { ShopUsage } from '@/types/usage';
 import { AutoBuyCard } from '@/views/usage/auto-buy-card';
 import { changedAmount } from '@/views/plan/words';
 import { invoiceNumber } from '@/views/billing/payment-words';
-import { nameOf, packMetric } from './addon-words';
+import { packMetric, sizedName } from './addon-words';
 
 interface PackSheetProps {
   /** The packs on sale, as GET /addons prices them. */
@@ -73,7 +73,7 @@ export function PackSheet({
       { addonId: offer.addon.id, quantity: 1, amount: Number(amount) },
       {
         onSuccess: (result) => {
-          const added = t('pkBought', { name: nameOf(offer.addon, i18n.language) });
+          const added = t('pkBought', { name: sizedName(offer.addon, t, i18n.language) });
           onDone(
             result.invoice
               ? `${added} · ${t('abInvoice', {
@@ -126,7 +126,7 @@ export function PackSheet({
             >
               <span className="min-w-0 flex-1">
                 <span className="block text-[15px] font-semibold">
-                  {nameOf(each.addon, i18n.language)}
+                  {sizedName(each.addon, t, i18n.language)}
                 </span>
                 <span className="mt-0.5 block text-[13px] text-fg-muted">{t('aoPackCarry')}</span>
               </span>

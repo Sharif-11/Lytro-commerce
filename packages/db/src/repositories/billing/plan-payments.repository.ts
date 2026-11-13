@@ -459,17 +459,16 @@ export class PlanPaymentsRepository {
       filter.kind ? eq(planPayments.kind, filter.kind) : undefined,
       filter.state ? stateCondition(filter.state) : undefined,
     );
-    const [payments, counted] = await Promise.all([
-      this.selectWithNames(tx)
-        .where(where)
-        .orderBy(desc(planPayments.quotedAt), desc(planPayments.id))
-        .limit(filter.limit)
-        .offset((filter.page - 1) * filter.limit),
-      tx
-        .select({ total: sql<number>`count(*)::int` })
-        .from(planPayments)
-        .where(where),
-    ]);
+    // In turn: a transaction's one connection runs one query at a time.
+    const payments = await this.selectWithNames(tx)
+      .where(where)
+      .orderBy(desc(planPayments.quotedAt), desc(planPayments.id))
+      .limit(filter.limit)
+      .offset((filter.page - 1) * filter.limit);
+    const counted = await tx
+      .select({ total: sql<number>`count(*)::int` })
+      .from(planPayments)
+      .where(where);
     return { payments, total: counted[0]?.total ?? 0 };
   }
 

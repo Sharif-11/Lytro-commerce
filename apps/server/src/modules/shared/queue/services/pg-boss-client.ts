@@ -66,11 +66,6 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * MON-04, D9-15 (Slice 9.4): a scheduled pass, never two at once however many workers run: each run holds the queue's
-   * lease while it works, and a run that finds it held (the last one still going on another worker) is skipped. pg-boss
-   * already makes one job per schedule tick; this keeps consecutive ticks apart.
-   */
-  /**
    * DAT-38, D9-14 (Slice 9.5): a queue degraded mode can hold back (DegradedMode's PAUSED_QUEUES). While it's on, each
    * job is put back to be looked at again in a few minutes, the same work, instead of running now; it never counts as a
    * failure or uses up a retry. Off, the jobs run as `work` runs them.
@@ -90,6 +85,11 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+  /**
+   * MON-04, D9-15 (Slice 9.4): a scheduled pass, never two at once however many workers run: each run holds the queue's
+   * lease while it works, and a run that finds it held (the last one still going on another worker) is skipped. pg-boss
+   * already makes one job per schedule tick; this keeps consecutive ticks apart.
+   */
   workOnce<T = object>(name: string, handler: WorkHandler<T>): Promise<string> {
     return this.boss.work<T>(name, async (jobs) => {
       if (!this.leases) {

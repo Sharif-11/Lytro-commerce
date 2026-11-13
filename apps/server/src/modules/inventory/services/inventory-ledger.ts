@@ -280,6 +280,7 @@ export class InventoryLedger {
             variantId: row.variantId,
             available: row.available,
             threshold: product.lowStockThreshold,
+            unit: product.stockUnit,
           });
           crossed.push(row.variantId);
         } else if (!low && row.lowNotified) {

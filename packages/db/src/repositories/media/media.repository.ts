@@ -280,81 +280,79 @@ export class MediaRepository {
       eq(media.status, MediaStatus.Ready),
       filter.kind !== null ? eq(media.kind, filter.kind) : undefined,
     );
-    const [rows, totals] = await Promise.all([
-      tx
-        .select()
-        .from(media)
-        .where(where)
-        .orderBy(desc(media.createdAt), desc(media.id))
-        .offset(filter.offset)
-        .limit(filter.limit),
-      tx.select({ total: count() }).from(media).where(where),
-    ]);
+    // In turn: the transaction's one connection runs one query at a time.
+    const rows = await tx
+      .select()
+      .from(media)
+      .where(where)
+      .orderBy(desc(media.createdAt), desc(media.id))
+      .offset(filter.offset)
+      .limit(filter.limit);
+    const totals = await tx.select({ total: count() }).from(media).where(where);
     return { rows, total: totals[0]?.total ?? 0 };
   }
 
   /** MED-09: where the item is attached. */
   async usesOf(tx: Transaction, tenantId: string, id: string): Promise<MediaUses> {
     await this.transactions.setTenantContext(tx, tenantId);
+    // In turn, each awaited before the next: the transaction's one connection runs one query at a time.
     const counted = async (query: Promise<{ n: number }[]>): Promise<number> =>
       (await query)[0]?.n ?? 0;
-    const [photos, videos, cats, swatches, charts, logos, pastOrders, brands] = await Promise.all([
-      counted(
-        tx
-          .select({ n: count() })
-          .from(productImages)
-          .where(and(eq(productImages.tenantId, tenantId), eq(productImages.mediaId, id))),
-      ),
-      counted(
-        tx
-          .select({ n: count() })
-          .from(products)
-          .where(and(eq(products.tenantId, tenantId), eq(products.videoId, id))),
-      ),
-      counted(
-        tx
-          .select({ n: count() })
-          .from(categories)
-          .where(and(eq(categories.tenantId, tenantId), eq(categories.imageId, id))),
-      ),
-      counted(
-        tx
-          .select({ n: count() })
-          .from(attributeOptions)
-          .where(
-            and(eq(attributeOptions.tenantId, tenantId), eq(attributeOptions.swatchImageId, id)),
+    const photos = await counted(
+      tx
+        .select({ n: count() })
+        .from(productImages)
+        .where(and(eq(productImages.tenantId, tenantId), eq(productImages.mediaId, id))),
+    );
+    const videos = await counted(
+      tx
+        .select({ n: count() })
+        .from(products)
+        .where(and(eq(products.tenantId, tenantId), eq(products.videoId, id))),
+    );
+    const cats = await counted(
+      tx
+        .select({ n: count() })
+        .from(categories)
+        .where(and(eq(categories.tenantId, tenantId), eq(categories.imageId, id))),
+    );
+    const swatches = await counted(
+      tx
+        .select({ n: count() })
+        .from(attributeOptions)
+        .where(
+          and(eq(attributeOptions.tenantId, tenantId), eq(attributeOptions.swatchImageId, id)),
+        ),
+    );
+    const charts = await counted(
+      tx
+        .select({ n: count() })
+        .from(sizeCharts)
+        .where(and(eq(sizeCharts.tenantId, tenantId), eq(sizeCharts.imageId, id))),
+    );
+    const logos = await counted(
+      tx
+        .select({ n: count() })
+        .from(shopSettings)
+        .where(and(eq(shopSettings.tenantId, tenantId), eq(shopSettings.logoMediaId, id))),
+    );
+    const pastOrders = await counted(
+      tx
+        .select({ n: countDistinct(orderLines.orderId) })
+        .from(orderLines)
+        .where(and(eq(orderLines.tenantId, tenantId), eq(orderLines.thumbnailMediaId, id))),
+    );
+    const brands = await counted(
+      tx
+        .select({ n: count() })
+        .from(brandIdentities)
+        .where(
+          and(
+            eq(brandIdentities.tenantId, tenantId),
+            or(eq(brandIdentities.darkLogoMediaId, id), eq(brandIdentities.iconMediaId, id)),
           ),
-      ),
-      counted(
-        tx
-          .select({ n: count() })
-          .from(sizeCharts)
-          .where(and(eq(sizeCharts.tenantId, tenantId), eq(sizeCharts.imageId, id))),
-      ),
-      counted(
-        tx
-          .select({ n: count() })
-          .from(shopSettings)
-          .where(and(eq(shopSettings.tenantId, tenantId), eq(shopSettings.logoMediaId, id))),
-      ),
-      counted(
-        tx
-          .select({ n: countDistinct(orderLines.orderId) })
-          .from(orderLines)
-          .where(and(eq(orderLines.tenantId, tenantId), eq(orderLines.thumbnailMediaId, id))),
-      ),
-      counted(
-        tx
-          .select({ n: count() })
-          .from(brandIdentities)
-          .where(
-            and(
-              eq(brandIdentities.tenantId, tenantId),
-              or(eq(brandIdentities.darkLogoMediaId, id), eq(brandIdentities.iconMediaId, id)),
-            ),
-          ),
-      ),
-    ]);
+        ),
+    );
     return {
       products: photos,
       videos,

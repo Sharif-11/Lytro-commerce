@@ -64,6 +64,8 @@ export interface Plan {
   version: number;
   limits: PlanLimits;
   features: Record<string, boolean>;
+  /** PLN-21: the plan the pricing page highlights; at most one is. */
+  suggested: boolean;
   createdAt: string;
 }
 
@@ -71,6 +73,10 @@ export interface Plan {
 export interface OperatorPlan extends Plan {
   shopsByVersion: { version: number; shops: number }[];
   deletable: boolean;
+  /** The free trial, which no shop buys and the pricing page never shows. */
+  trial: boolean;
+  /** PLN-21: whether the pricing page shows this plan (for sale, or Pay-as-you-go), so it can be the suggested one. */
+  onPricingPage: boolean;
 }
 
 export interface PlanVersion {

@@ -196,6 +196,8 @@ export const LISTENER_HEARTBEATS_PER_HOUR = 4;
 export const LISTENER_FLAGS_MAX = 3;
 export const LISTENER_DEVICE_NAME_MAX_LENGTH = 60;
 export const LISTENER_INSTALLATION_ID_MAX_LENGTH = 100;
+// LSN-18: the longest version a phone's app may give (`1.0.0-staging` is 13), as the phone's row keeps it.
+export const LISTENER_APP_VERSION_MAX_LENGTH = 20;
 export const LISTENER_REVOKED_KEPT_DAYS = 30;
 export const LISTENER_CODES_KEPT_DAYS = 1;
 // LSN-13 to LSN-17, LSN-04 (Phase 5 Slice 5.4b): a phone's uploads a minute and a shop's; a batch's messages, a request's

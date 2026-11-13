@@ -1,5 +1,5 @@
 import type { Page, Route } from '@playwright/test';
-import type { HelpLineView } from '@lytronix/validators';
+import type { HelpLineView, ListenerAppRead } from '@lytronix/validators';
 import {
   billingPrices,
   ONE_MONTH,
@@ -51,7 +51,12 @@ import { deliveryAnswer, drawnDelivery, type DeliveryFixture } from './delivery'
 import { salesAnswer, type SalesFixture } from './sales';
 import { taxAnswer } from './tax';
 import { drawnMethods, methodsAnswer, type PaymentMethodsFixture } from './payment-methods';
-import { drawnShopPayments, shopPaymentsAnswer, type ShopPaymentsFixture } from './shop-payments';
+import {
+  DRAWN_LISTENER_APP,
+  drawnShopPayments,
+  shopPaymentsAnswer,
+  type ShopPaymentsFixture,
+} from './shop-payments';
 import { figuresAnswer, shopBatchesAnswer, stockPageAnswer, stockRead, stockWrite } from './stock';
 import { customerIdOf, customersAnswer, drawnCustomers, type CustomersFixture } from './customers';
 import { homeOrders, meghOrders, ordersAnswer, type OrdersFixture } from './orders';
@@ -191,6 +196,8 @@ export interface ShopState {
   phase7?: Phase7Fixture;
   /** Slice 8.8: Lytro's help line (GET /help-line); the drawn one, both numbers, 9 am to 10 pm, unless a test says. */
   helpLine?: HelpLineView;
+  /** §7.44: the listener app's release (GET /listener/app); the drawn 1.0.0, 2.8 MB, unless a test says. */
+  listenerApp?: ListenerAppRead;
   /** Slice 8.8: requests the server answers with a fault and its error ID, or a refusal (`p88-err-*`). */
   faults?: Fault[];
 }
@@ -387,6 +394,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     stock: { low: 1, out: 1 },
     home: {},
     helpLine: DRAWN_HELP_LINE,
+    listenerApp: DRAWN_LISTENER_APP,
     faults: [],
     ...given,
     money: { ...given.money },
@@ -577,6 +585,7 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   }
   if (path === '/auth/providers') return { providers: ['google', 'facebook'] };
   if (path === '/help-line') return state.helpLine;
+  if (path === '/listener/app') return state.listenerApp;
   return FIRST_BUILD_READS[path] ?? {};
 }
 

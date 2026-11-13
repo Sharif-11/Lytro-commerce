@@ -14,62 +14,45 @@ const text = {
   },
 } satisfies Record<string, Bilingual>;
 
-/** The public tracking page a customer opens from the shipping SMS (TRK-01). */
+/** The public tracking page a customer opens from the shipping SMS (TRK-01), in a browser frame (site.css `.track`). */
 export function TrackingFrame({ language }: { language: Language }) {
   const copy = new Copy(language);
   const steps = [
-    { label: copy.of(text.placed), done: true },
-    { label: copy.of(text.confirmed), done: true },
-    { label: copy.of(text.withCourier), done: true, current: true },
-    { label: copy.of(text.delivered), done: false },
+    { label: copy.of(text.placed), state: 'done' },
+    { label: copy.of(text.confirmed), state: 'done' },
+    { label: copy.of(text.withCourier), state: 'now' },
+    { label: copy.of(text.delivered), state: undefined },
   ];
   return (
-    <div aria-hidden="true" className="space-y-3">
-      <div className="overflow-hidden rounded-card border border-line bg-white shadow-lift">
-        <div className="flex items-center gap-2 border-b border-line bg-neutral-50 px-3 py-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-neutral-200" />
-          <span className="h-2.5 w-2.5 rounded-full bg-neutral-200" />
-          <span className="num ml-2 min-w-0 flex-1 truncate rounded-md bg-white px-2 py-1 text-[11px] text-neutral-700">
-            lytro.app/t/6f2k91
-          </span>
+    <>
+      <div className="bar2" aria-hidden="true">
+        <span className="dots">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="url">
+          <Icon name="lock" size={13} />
+          lytro.app/t/6f2k91
+        </span>
+      </div>
+      <div className="track" aria-hidden="true">
+        <div className="top">
+          <b>#1040 · Rahim Gadgets</b>
+          <span className="chip ship">{copy.of(text.shipped)}</span>
         </div>
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between gap-2">
-            <p className="num text-[14px] font-bold text-ink">#1040 · Rahim Gadgets</p>
-            <span className="rounded-full bg-brand-100 px-2.5 py-0.5 text-[11px] font-bold text-brand-800">
-              {copy.of(text.shipped)}
-            </span>
-          </div>
-          <ol className="mt-4 space-y-3">
-            {steps.map((step) => (
-              <li key={step.label} className="flex items-center gap-3">
-                <span
-                  className={`flex h-6 w-6 items-center justify-center rounded-full ${
-                    step.done
-                      ? step.current
-                        ? 'bg-brand-700 text-white'
-                        : 'bg-success-soft text-success'
-                      : 'border border-neutral-200 bg-white'
-                  }`}
-                >
-                  {step.done ? (
-                    <Icon name={step.current ? 'truck' : 'check'} size={14} strokeWidth={2.5} />
-                  ) : null}
-                </span>
-                <span
-                  className={`text-[13px] ${step.done ? 'font-semibold text-ink' : 'text-neutral-700'}`}
-                >
-                  {step.label}
-                </span>
-              </li>
-            ))}
-          </ol>
+        <div className="steps">
+          {steps.map((step) => (
+            <div key={step.label} className={step.state}>
+              {step.label}
+            </div>
+          ))}
+        </div>
+        <div className="sms">
+          <Icon name="sms" size={16} />
+          <span>{copy.of(text.sms)}</span>
         </div>
       </div>
-      <div className="flex items-start gap-2.5 rounded-card border border-line bg-white px-3.5 py-3 text-[12px] text-neutral-700 shadow-card">
-        <Icon name="sms" size={18} className="mt-0.5 text-brand-700" />
-        <p className="num">{copy.of(text.sms)}</p>
-      </div>
-    </div>
+    </>
   );
 }

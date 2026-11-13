@@ -6,6 +6,8 @@ import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { PlansService } from '../../billing/services/plans.service';
 import { BillingTermsService } from '../../billing/services/billing-terms.service';
+import { RateService } from '../../balance/services/rate.service';
+import type { RateValue } from '../../balance/types/rate';
 import type { PlanRecord } from '../../billing/types/plan';
 import type { BillingTermRecord } from '../../billing/types/billing-term';
 import type { PlanPriceRecord } from '../../billing/types/billing-term';
@@ -15,6 +17,7 @@ import {
   PlanListDto,
   PlanPriceListDto,
 } from '../dto/billing-response.dto';
+import { RateValueDto } from '../dto/balance-response.dto';
 
 // PLN-10, TRM-02/13, D2-12: platform-wide data, reachable by an anonymous marketing-site visitor and a
 // signed-in tenant alike -- no key or session, the same reason sign-up endpoints skip tenant resolution.
@@ -25,6 +28,7 @@ export class PlansController {
   constructor(
     @Inject(PlansService) private readonly plans: PlansService,
     @Inject(BillingTermsService) private readonly terms: BillingTermsService,
+    @Inject(RateService) private readonly rates: RateService,
   ) {}
 
   @Get('plans')
@@ -68,5 +72,16 @@ export class PlansController {
     const plan = await this.plans.findById(id);
     if (!plan.forSale) throw new ApiError('not_found', 'PlanNotFound', {});
     return this.terms.listPricesForPlan(id);
+  }
+
+  // RAT-01, RAT-06: the platform's current rates, as a shop's balance page shows them (`GET /balance/current-rates`), for
+  // the marketing site's pricing: pay-as-you-go's order and product fees and the payment verification fees. They are
+  // published prices, so public like the plans above.
+  @Get('rates')
+  @ResponseMessage('RatesRetrieved')
+  @ApiOperation({ summary: 'Get the current platform rates' })
+  @ZodResponse({ type: [RateValueDto] })
+  listRates(): Promise<RateValue[]> {
+    return this.rates.list();
   }
 }

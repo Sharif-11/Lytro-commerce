@@ -17,6 +17,7 @@ export function CategoryForm({
   categories,
   isNew,
   nameError,
+  picture = null,
   onChange,
   onPickParent,
 }: {
@@ -25,6 +26,8 @@ export function CategoryForm({
   /** A new category's name says what it takes and its type that it only sets defaults; an existing one's, what changes. */
   isNew: boolean;
   nameError?: string;
+  /** §7.43: its picture's row, under the name. */
+  picture?: React.ReactNode;
   onChange: (draft: CategoryFields) => void;
   onPickParent: () => void;
 }): React.JSX.Element {
@@ -44,6 +47,7 @@ export function CategoryForm({
           onChange({ ...draft, name: event.target.value });
         }}
       />
+      {picture}
       <PickField
         label={t('catParent')}
         value={parent?.name ?? t('catTop')}

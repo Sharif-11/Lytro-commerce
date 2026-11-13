@@ -4,7 +4,8 @@ name: Deploy rehearsal
 # Lytro is built or deployed, every image is built, and deploy/scripts/deploy.sh deploys them on this runner exactly as on
 # a server: a fresh database made by its first-start script, migrations, the two API processes and the worker each
 # checked on this release, the files, the edge, the website and the storefront. Every host is then called by name over
-# HTTPS (deploy/scripts/outside-check.sh), and the same release is deployed a second time, as a rerun would be.
+# HTTPS (deploy/scripts/outside-check.sh), and the same release is deployed a second time, as a rerun would be, and a
+# third with the database replaced under the running API processes.
 on:
   pull_request:
     paths:
@@ -124,8 +125,12 @@ jobs:
           echo "REGISTRY=$REGISTRY" | sudo tee "$LYTRO_HOME/settings.env" > /dev/null
           sudo install -d "$LYTRO_HOME/state" "$LYTRO_HOME/releases" "$LYTRO_HOME/backups"
 
+      # Every deploy here arrives as GitHub's do on a server: deploy/ as a tar through lytro-ssh, which unpacks it into the
+      # release's own folder, made again on every run, and runs that copy's deploy.sh.
       - name: Deploy
-        run: sudo LYTRO_HOME="$LYTRO_HOME" LYTRO_SKIP_PULL=1 bash deploy/scripts/deploy.sh "${{ github.sha }}" "${{ steps.names.outputs.edge_tag }}"
+        run: |
+          tar -czf - deploy | sudo LYTRO_HOME="$LYTRO_HOME" LYTRO_SKIP_PULL=1 \
+            SSH_ORIGINAL_COMMAND="deploy ${{ github.sha }} ${{ steps.names.outputs.edge_tag }}" bash deploy/scripts/lytro-ssh
 
       - name: Every host answers
         run: CHECK_ADDRESS=127.0.0.1 CHECK_INSECURE=1 bash deploy/scripts/outside-check.sh localhost
@@ -157,10 +162,35 @@ jobs:
           curl --silent --insecure --head --resolve app.localhost:443:127.0.0.1 https://app.localhost/ \
             | grep -i '^x-robots-tag: noindex, nofollow'
 
+      # A rerun: its release folder is made again under the running database, which must keep its first-start scripts
+      # (step 4 runs them) and isn't replaced.
       - name: Deploy the same release again
-        run: sudo LYTRO_HOME="$LYTRO_HOME" LYTRO_SKIP_PULL=1 bash deploy/scripts/deploy.sh "${{ github.sha }}" "${{ steps.names.outputs.edge_tag }}"
+        run: |
+          set -o pipefail
+          tar -czf - deploy | sudo LYTRO_HOME="$LYTRO_HOME" LYTRO_SKIP_PULL=1 \
+            SSH_ORIGINAL_COMMAND="deploy ${{ github.sha }} ${{ steps.names.outputs.edge_tag }}" bash deploy/scripts/lytro-ssh \
+            | tee rerun.log
+          if grep 'the database was replaced' rerun.log; then
+            echo 'a rerun of the same release replaced the database'; exit 1
+          fi
 
       - name: Every host still answers
+        run: CHECK_ADDRESS=127.0.0.1 CHECK_INSECURE=1 WAIT_SECONDS=30 bash deploy/scripts/outside-check.sh localhost
+
+      # A deploy that replaces the database under both running API processes, as a new database image does (Slice 9.3's
+      # did on staging, 2026-11-13): the pooler is restarted with it, and deploy.sh's ready checks find both API processes
+      # reaching the database through it.
+      - name: Deploy with the database replaced
+        run: |
+          set -o pipefail
+          echo PG_WORK_MEM=5MB | sudo tee -a "$LYTRO_HOME/settings.env" > /dev/null
+          tar -czf - deploy | sudo LYTRO_HOME="$LYTRO_HOME" LYTRO_SKIP_PULL=1 \
+            SSH_ORIGINAL_COMMAND="deploy ${{ github.sha }} ${{ steps.names.outputs.edge_tag }}" bash deploy/scripts/lytro-ssh \
+            | tee replaced.log
+          grep 'the database was replaced: restarting the pooler' replaced.log
+          test "$(sudo docker exec lytro-postgres-1 sh -c 'psql -X -A -t -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SHOW work_mem"')" = '5MB'
+
+      - name: Every host answers after the database was replaced
         run: CHECK_ADDRESS=127.0.0.1 CHECK_INSECURE=1 WAIT_SECONDS=30 bash deploy/scripts/outside-check.sh localhost
 
       - name: What ran, if anything failed

@@ -2129,6 +2129,55 @@ comes before the variants; a new product is created first, then its photos and v
 (`{ id, name, number, photoIds }`) and images' `designId`; `GET /orders/picker/:id` variants' `image`; the order's
 `items[].thumbnail`, `sku` and `attributes[].design`.
 
+### 7.43 A category's picture, and how every picture upload shows its progress (small fixes, 2026-11-13)
+
+Prototype: the group "Small fixes · 2026-11-13" in `docs/brand/lytro-dashboard.html` (8 screens).
+
+- **A category's picture (PRD-03).** The category sheet gains a **ছবি** row under the name: a 72 px tile with "ছবি দিন"
+  until one is set, and beside it "দোকানের হোমে ক্যাটাগরির গোল ঘরে দেখায়। না দিলে নামের প্রথম অক্ষর।" Once set, the
+  picture with **বদলান** and **সরান**. The server has taken `imageId` since #177 and the storefront's home already
+  shows it; only the dashboard had no way to set it.
+- **Every picture upload says how it is going,** in the product photos' built words and tile: "আপলোড N%" with a bar
+  while the file goes up, then "তৈরি হচ্ছে · 30 সেকেন্ডে" while it is prepared, and a refusal's reason ("6 MB · লিমিট
+  5 MB") with **আরেকটি ছবি দিন**. Save (and Replace) wait while a picture is on its way. This covers the category's
+  picture, the size chart's picture (a product's or a category's, one sheet) and a swatch from a photo, which until
+  now only greyed their button.
+- A swatch's "ছবি থেকে" chip carries the same: "আপলোড N%" with a thin bar inside the chip; the other swatch choices
+  wait until it is done.
+
+### 7.44 The Listener app's download, and how to install it, inside the dashboard (small fixes, 2026-11-13)
+
+Prototype: the group "Small fixes · 2026-11-13: the Listener app's download" in `docs/brand/lytro-dashboard.html` (5
+screens). Asked by the owner on 2026-11-13: the app's download button and its steps in the dashboard, on the phones
+page and in the pair sheet, not only on the website.
+
+- **No phone paired yet** (`lp35-first`): the setup card becomes **Lytro Listener অ্যাপ**, with "Play Store-এ নেই, Lytro
+  থেকে সরাসরি নিন। শুধু Android ফোনে চলে।" and one primary button, **Android-এর জন্য ডাউনলোড**, straight to the APK.
+  Under it, the version and size ("ভার্সন 1.0.0 · 2.8 MB") from the download host's `latest.json`.
+- **On a computer** the card adds the download's own link as a QR: "কম্পিউটারে দেখছেন? ফোনের ক্যামেরা দিয়ে এই QR স্ক্যান
+  করুন, ফোনেই ডাউনলোড হবে", since the app goes on the phone while the owner often sets up from a computer.
+- **How to install it,** four steps, the two that stop people included:
+  1. download on the phone with the shop's bKash SIM, then open the file;
+  2. turn on “এই সোর্স থেকে অনুমতি দিন” when the phone asks;
+  3. tap “আরও দেখুন”, then “তবুও ইনস্টল করুন”, if Play Protect warns;
+  4. open the app, let it read SMS, then pair from here.
+- **Phones paired** (`lp35`): the old "Download the app and setup guide" link on the website becomes a row: the app's
+  name, its version and size, and **কীভাবে ইনস্টল করবেন**, which opens the app's sheet.
+- **The app's sheet** (`sh-lp35-app`): the same button, QR (computer) and steps.
+- **The pair sheet** (`sh-lp35-pair`): "অ্যাপ এখনও নেই? ডাউনলোড করুন" opens the app's sheet in the dashboard rather
+  than the website.
+- **The release can't be read** (`lp35-app-noinfo`): `latest.json` names the file, so without it there is nothing to
+  link to. The card says "অ্যাপটি এখন ডাউনলোড করা যাচ্ছে না। একটু পরে আবার দেখুন।" with no button and no QR, as the
+  website's `/listener` page does; the steps stay.
+- **Where the release comes from (the build):** the dashboard is one build for every environment and can't work out
+  the download host (`download-staging.lytro.app` doesn't follow from `staging.lytro.app`). So the server knows it:
+  `LISTENER_DOWNLOAD_URL` in the server's settings, as the website has it. A keyless `GET /api/v1/listener/app` (the
+  dashboard's host, like `/help-line`) returns `{ release }`: the current release, `{ version, url, bytes }`, read
+  from `latest.json` and checked by the one check the website's `/listener` page uses (`listenerReleaseOf` in
+  `@lytronix/validators`: the file always on that host, the version a release's), kept 5 minutes, or `null` when
+  there's none to offer. The dashboard shows the version and size from it, links the button to `url`, and draws `url`
+  as the QR.
+
 ## 8. Screens designed for later phases
 
 Kept in the prototype under "Later phases (design only)", exactly as designed on 2026-10-20, so the

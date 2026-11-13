@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { ApiClientError } from '@lytronix/api-client';
 import { MediaKind, MediaPurpose } from '@lytronix/validators';
 import { useStorageUsage } from '@/api/media';
-import { isImageFile, isVideoFile, MediaUpload, UploadRefused } from '@/lib/media-upload';
+import { isImageFile, isVideoFile, MediaUpload, refusalOf } from '@/lib/media-upload';
 import { tenantSession } from '@/session/tenant-session';
 import type { MediaView } from '@/types/media';
 import type { ProductDetail } from '@/types/product';
@@ -127,16 +127,7 @@ export function useProductMedia(product: ProductDetail | null, onReady: (item: M
           setUploads((current) => current.filter((each) => each.key !== key));
           return;
         }
-        const fields = error instanceof ApiClientError ? error.fieldProblems() : {};
-        const reason =
-          error instanceof UploadRefused
-            ? error.reason
-            : 'bytes' in fields
-              ? 'too_large'
-              : 'contentType' in fields
-                ? 'not_supported'
-                : 'not_uploaded';
-        change(key, { stage: 'refused', reason });
+        change(key, { stage: 'refused', reason: refusalOf(error) });
       });
   }
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { LISTENER_DOWNLOAD_DEFAULT_URL } from '@lytronix/validators';
 import { serverRoleSchema } from './server-role';
 
 // SEC-10: a key for the secret box, 32 bytes written in base64.
@@ -109,6 +110,9 @@ const envSchema = z.object({
   // Origin is refused. Default in production: https://app.<PLATFORM_DOMAIN> and https://admin.<PLATFORM_DOMAIN>.
   DASHBOARD_ORIGIN: z.string().url().optional(),
   OPERATOR_ORIGIN: z.string().url().optional(),
+  // TENANT-DASHBOARD-DESIGN §7.44: where the listener app's file and its latest.json live, as the website has it --
+  // download-staging.lytro.app on staging, which doesn't follow from PLATFORM_DOMAIN.
+  LISTENER_DOWNLOAD_URL: z.string().url().default(LISTENER_DOWNLOAD_DEFAULT_URL),
   // The edge (any proxy in front of the server) adds this secret to every request it forwards (decision R3).
   TRUSTED_EDGE_SECRET: z.string().min(32).optional(),
   // A second accepted secret, set only while the edge's secret is being rotated (no downtime).

@@ -258,9 +258,12 @@ CREATE TABLE control.plans (
                                                  -- `staff` counts the owner: Trial 1 (owner only), Starter 2 (D21);
                                                  -- a plan with no `staff` key gets 1 seat
     features        jsonb NOT NULL DEFAULT '{}',
+    suggested       boolean NOT NULL DEFAULT false, -- PLN-21: the plan the pricing page highlights; not a plan
+                                                 -- term, so never in plan_versions and never a version bump
     created_at      timestamptz NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX ON control.plans (rank) WHERE for_sale = true; -- PLN-16
+CREATE UNIQUE INDEX plans_one_suggested_idx ON control.plans (suggested) WHERE suggested; -- PLN-21: at most one
 
 CREATE TABLE control.billing_terms (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1989,7 +1992,7 @@ CREATE TABLE tenant.courier_events (
 CREATE INDEX ON tenant.courier_events (parcel_id, received_at);
 CREATE INDEX ON tenant.courier_events (tenant_id, received_at) WHERE applied_at IS NULL;
 
--- DAT-51, D9-16 (Phase 9 Slice 9.5, migration 0131): each verified courier message as it arrived, kept in its own
+-- DAT-51, D9-16 (Phase 9 Slice 9.5, migration 0132): each verified courier message as it arrived, kept in its own
 -- transaction before it is read or answered; one that can't be read stays `unread` for the reconciliation. Only the
 -- headers it is read by (content-type, idempotency-key); an unverified message keeps no body. Removed at [90] days
 -- (RAW_MESSAGE_KEPT_DAYS) and with the shop's courier data. RLS like courier_events.
@@ -2256,7 +2259,7 @@ CREATE TABLE control.media_reconciliations (               -- MED-04 (built in S
 );
 CREATE INDEX ON control.media_reconciliations (tenant_id, created_at DESC);
 
--- DAT-51, D9-16 (Phase 9 Slice 9.5, migration 0131): a wallet gateway sends no message of its own, so its answer to each
+-- DAT-51, D9-16 (Phase 9 Slice 9.5, migration 0132): a wallet gateway sends no message of its own, so its answer to each
 -- execute and query is kept as it came, before the caller acts on it. tenant_id null for Lytro's own account (session_id
 -- is then the plan payment). Removed at [90] days, and a shop's with its payment methods.
 CREATE TABLE control.gateway_answers (
@@ -2274,7 +2277,7 @@ CREATE INDEX ON control.gateway_answers (received_at);
 CREATE INDEX ON control.gateway_answers (session_id, received_at);
 CREATE INDEX ON control.gateway_answers (tenant_id);
 
--- DAT-52, D9-16, OD-44 (Phase 9 Slice 9.5, migration 0131): the daily reconciliation at 06:00 Asia/Dhaka over yesterday --
+-- DAT-52, D9-16, OD-44 (Phase 9 Slice 9.5, migration 0132): the daily reconciliation at 06:00 Asia/Dhaka over yesterday --
 -- each day run once, and each difference kept once per day, kind and subject, with the operator's word on it.
 CREATE TABLE control.reconciliation_runs (
     day     date PRIMARY KEY,

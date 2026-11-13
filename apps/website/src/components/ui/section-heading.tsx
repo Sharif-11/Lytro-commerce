@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react';
+import { Paragraphs } from './paragraphs';
 
-/** Eyebrow, headline and lead that open every section of the landing page, in one of two tones. */
+/**
+ * Eyebrow, headline and lead that open every section of the landing page, in one of two tones. A lead written as text
+ * may run to several paragraphs, a blank line between each.
+ */
 export function SectionHeading({
   eyebrow,
   title,
@@ -26,7 +30,11 @@ export function SectionHeading({
       <Heading className={`heading mt-3 text-[26px] sm:text-[32px] lg:text-[38px] ${titleColour}`}>
         {title}
       </Heading>
-      {lead ? <p className={`mt-4 text-[17px] ${leadColour}`}>{lead}</p> : null}
+      {typeof lead === 'string' && lead !== '' ? (
+        <Paragraphs text={lead} className={`mt-4 text-[17px] ${leadColour}`} />
+      ) : lead ? (
+        <p className={`mt-4 text-[17px] ${leadColour}`}>{lead}</p>
+      ) : null}
     </div>
   );
 }

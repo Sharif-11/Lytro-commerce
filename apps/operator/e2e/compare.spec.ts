@@ -455,6 +455,12 @@ const PAIRS: Pair[] = [
     path: '/plans',
     then: (page) => page.getByRole('button', { name: /(Edit|এডিট) Starter/ }).click(),
   },
+  // PLN-21: the suggested-plan switch on a plan that isn't the suggested one.
+  {
+    screen: 'plan-edit-suggest',
+    path: '/plans',
+    then: (page) => page.getByRole('button', { name: /(Edit|এডিট) Growth/ }).click(),
+  },
   { screen: 'plan-new', path: '/plans', then: press('New plan', 'নতুন প্ল্যান') },
   {
     screen: 'plan-versions',

@@ -14,7 +14,7 @@ import {
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { fromPaisa, unitsTimesRate } from '../../balance/services/money';
-import { shopOrigin, trackingPageUrl } from '../../../common/shop-address';
+import { shopDashboardUrl, trackingPageUrl } from '../../../common/shop-address';
 import { usageCycleEnd, usageCycleStart } from '../../../common/time';
 import type { Env } from '../../../config/env';
 import { ENV } from '../../../config/tokens';
@@ -164,7 +164,7 @@ export class SmsSettingsService {
     const words: Readonly<Record<EssentialSms, string>> = {
       shopper_code: shopperCodeText(language, shop.shopName, SAMPLE_CODE),
       staff_reset_code: resetCodeText(SAMPLE_CODE),
-      shop_ready: shopReadyText(shop.shopName, shopOrigin(this.env, shop.slug)),
+      shop_ready: shopReadyText(shop.shopName, shopDashboardUrl(this.env, shop.slug)),
     };
     return {
       events,

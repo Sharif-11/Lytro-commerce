@@ -1,13 +1,13 @@
-import { useMemo, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MediaPurpose } from '@lytronix/validators';
+import { useStorageUsage } from '@/api/media';
 import { Icon } from '@/components/icon';
 import { Chip } from '@/components/ui/chips';
 import { Eyebrow } from '@/components/ui/page';
-import { useErrorText } from '@/hooks/use-error-text';
-import { MediaUpload } from '@/lib/media-upload';
-import { tenantSession } from '@/session/tenant-session';
 import type { OptionSwatch } from '@/types/product';
+import { refusalText } from './upload-tile';
+import { usePictureUpload } from './use-picture-upload';
 
 /** The six colours the palette draws; any other comes from the browser's colour picker (11.7b read). */
 const PALETTE = ['#10201F', '#1D4ED8', '#C8323B', '#1B7A43', '#F2A516', '#FFFFFF'];
@@ -63,34 +63,29 @@ export function SwatchPalette({
   onPaint: (choice: SwatchChoice) => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
-  const upload = useMemo(() => new MediaUpload(tenantSession.client), []);
   const photoInput = useRef<HTMLInputElement>(null);
   const colourInput = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  // §7.43: From a photo says how far its upload is, and the other choices wait for it.
+  const pictureUpload = usePictureUpload(MediaPurpose.SwatchImage);
+  const upload = pictureUpload.upload;
+  const uploading = pictureUpload.busy;
+  const storage = useStorageUsage({ enabled: upload?.stage === 'refused' });
   const other =
     swatch.swatchColor !== null &&
     !PALETTE.some((colour) => sameColour(swatch.swatchColor, colour));
 
   async function paintPhoto(file: File): Promise<void> {
-    setUploading(true);
-    setUploadError(null);
-    try {
-      const media = await upload.upload(file, MediaPurpose.SwatchImage);
-      onPaint({
-        swatchImageId: media.id,
-        swatchColor: null,
-        swatchImage: { id: media.id, urls: media.urls ?? { main: '', thumbnail: '' } },
-      });
-    } catch (failure) {
-      setUploadError(errorText(failure));
-    } finally {
-      setUploading(false);
-    }
+    const media = await pictureUpload.start(file);
+    if (!media) return;
+    onPaint({
+      swatchImageId: media.id,
+      swatchColor: null,
+      swatchImage: { id: media.id, urls: media.urls ?? { main: '', thumbnail: '' } },
+    });
   }
 
-  const problem = uploadError ?? error;
+  const percent = upload?.stage === 'sending' ? Math.round(upload.fraction * 100) : 0;
+  const problem = upload?.stage === 'refused' ? refusalText(upload, storage.data, t) : error;
   return (
     <div className="flex flex-col gap-2">
       <Eyebrow>{t('swatchFor', { name })}</Eyebrow>
@@ -101,7 +96,7 @@ export function SwatchPalette({
             size="lg"
             aria-label={colour}
             on={sameColour(swatch.swatchColor, colour)}
-            disabled={busy}
+            disabled={busy || uploading}
             onClick={() => {
               onPaint({ swatchColor: colour });
             }}
@@ -112,7 +107,12 @@ export function SwatchPalette({
             />
           </Chip>
         ))}
-        <Chip size="lg" on={other} disabled={busy} onClick={() => colourInput.current?.click()}>
+        <Chip
+          size="lg"
+          on={other}
+          disabled={busy || uploading}
+          onClick={() => colourInput.current?.click()}
+        >
           {other && swatch.swatchColor ? (
             <span
               className="size-5 rounded-full border border-black/12"
@@ -123,17 +123,35 @@ export function SwatchPalette({
         </Chip>
         <Chip
           size="lg"
-          on={swatch.swatchImage !== null}
+          on={swatch.swatchImage !== null || uploading}
           disabled={uploading || busy}
+          className={uploading ? 'relative overflow-hidden' : undefined}
           onClick={() => photoInput.current?.click()}
         >
-          <Icon name="camera" size={16} />
-          {t('fromPhoto')}
+          {upload && uploading ? (
+            <>
+              <Icon name={upload.stage === 'sending' ? 'image' : 'refresh'} size={16} />
+              {upload.stage === 'sending' ? t('upSending', { percent }) : t('upPreparing')}
+              {upload.stage === 'sending' ? (
+                <span className="absolute inset-x-0 bottom-0 h-[3px]">
+                  <i
+                    className="block h-full bg-white/75"
+                    style={{ width: `${String(percent)}%` }}
+                  />
+                </span>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <Icon name="camera" size={16} />
+              {t('fromPhoto')}
+            </>
+          )}
         </Chip>
         <Chip
           size="lg"
           on={swatch.swatchColor === null && swatch.swatchImage === null}
-          disabled={busy}
+          disabled={busy || uploading}
           onClick={() => {
             onPaint({ swatchColor: null });
           }}

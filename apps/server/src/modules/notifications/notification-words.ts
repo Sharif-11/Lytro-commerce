@@ -7,6 +7,7 @@ import {
   ParcelAttention,
   ParcelReading,
   PAYMENT_METHOD_NAMES,
+  StockUnit,
   type CourierKey,
   type PaymentMethod,
 } from '@lytronix/validators';
@@ -311,20 +312,54 @@ export function paymentMethodBackText(method: PaymentMethod): NotificationText {
   };
 }
 
+/**
+ * UOM-01: each stock unit's name after a figure, as the dashboard names them (its `su_*` words): pieces are counted
+ * ("3টি", "3"), the rest named ("3.5 কেজি", "3.5 kg"). `bnOf` is the Bangla possessive ("3টির", "3.5 কেজির"); English
+ * has one and many.
+ */
+const STOCK_UNIT_WORDS: Record<StockUnit, { bn: string; bnOf: string; en: [string, string] }> = {
+  [StockUnit.Piece]: { bn: 'টি', bnOf: 'টির', en: ['', ''] },
+  [StockUnit.Kg]: { bn: ' কেজি', bnOf: ' কেজির', en: [' kg', ' kg'] },
+  [StockUnit.G]: { bn: ' গ্রাম', bnOf: ' গ্রামের', en: [' g', ' g'] },
+  [StockUnit.Liter]: { bn: ' লিটার', bnOf: ' লিটারের', en: [' L', ' L'] },
+  [StockUnit.Ml]: { bn: ' মি.লি.', bnOf: ' মি.লি.-এর', en: [' ml', ' ml'] },
+  [StockUnit.Dozen]: { bn: ' ডজন', bnOf: ' ডজনের', en: [' dozen', ' dozen'] },
+  [StockUnit.Pack]: { bn: ' প্যাক', bnOf: ' প্যাকের', en: [' pack', ' packs'] },
+  [StockUnit.Box]: { bn: ' বক্স', bnOf: ' বক্সের', en: [' box', ' boxes'] },
+};
+
+/** A stored quantity ("3.000", "3.500") as people write it: "3", "3.5" -- the dashboard writes it the same way. */
+function figure(quantity: string): string {
+  return String(Number(quantity));
+}
+
+/** A stored quantity with its unit, in each way a notice uses it. */
+function amountIn(quantity: string, unit: StockUnit): { bn: string; bnOf: string; en: string } {
+  const words = STOCK_UNIT_WORDS[unit];
+  const shown = figure(quantity);
+  return {
+    bn: `${shown}${words.bn}`,
+    bnOf: `${shown}${words.bnOf}`,
+    en: `${shown}${Number(quantity) === 1 ? words.en[0] : words.en[1]}`,
+  };
+}
+
 /** INV-08: a variant's stock fell to its threshold. */
 export function lowStockText(input: {
   productName: string;
   available: string;
   threshold: string;
+  unit: StockUnit;
 }): NotificationText {
+  const left = amountIn(input.available, input.unit);
   return {
     bn: {
       title: `স্টক কম: ${input.productName}`,
-      body: `মাত্র ${input.available}টি বাকি (অ্যালার্ট ${input.threshold}-এ)।`,
+      body: `মাত্র ${left.bn} বাকি (অ্যালার্ট ${figure(input.threshold)}-এ)।`,
     },
     en: {
       title: `Low stock: ${input.productName}`,
-      body: `Only ${input.available} left (alert at ${input.threshold}).`,
+      body: `Only ${left.en} left (alert at ${figure(input.threshold)}).`,
     },
   };
 }
@@ -334,18 +369,20 @@ export function batchExpiringText(input: {
   productName: string;
   batchCode: string | null;
   quantity: string;
+  unit: StockUnit;
   expiresOn: string;
 }): NotificationText {
   const bnBatch = input.batchCode === null ? 'একটি ব্যাচের' : `ব্যাচ ${input.batchCode}-এর`;
   const enBatch = input.batchCode === null ? 'A batch' : `Batch ${input.batchCode}`;
+  const held = amountIn(input.quantity, input.unit);
   return {
     bn: {
       title: `মেয়াদ শেষ হচ্ছে: ${input.productName}`,
-      body: `${bnBatch} ${input.quantity}টির মেয়াদ ${input.expiresOn}-এ শেষ হবে।`,
+      body: `${bnBatch} ${held.bnOf} মেয়াদ ${input.expiresOn}-এ শেষ হবে।`,
     },
     en: {
       title: `Expiring soon: ${input.productName}`,
-      body: `${enBatch}: ${input.quantity} expire on ${input.expiresOn}.`,
+      body: `${enBatch}: ${held.en} expire on ${input.expiresOn}.`,
     },
   };
 }
@@ -355,15 +392,18 @@ export function heldStockExpiredText(input: {
   productName: string;
   reserved: string;
   short: string;
+  unit: StockUnit;
 }): NotificationText {
+  const reserved = amountIn(input.reserved, input.unit);
+  const short = amountIn(input.short, input.unit);
   return {
     bn: {
       title: `অর্ডারে রাখা স্টকের মেয়াদ শেষ: ${input.productName}`,
-      body: `অর্ডারের জন্য রাখা ${input.reserved}টির মধ্যে ${input.short}টির মেয়াদ শেষ হয়ে গেছে।`,
+      body: `অর্ডারের জন্য রাখা ${reserved.bnOf} মধ্যে ${short.bnOf} মেয়াদ শেষ হয়ে গেছে।`,
     },
     en: {
       title: `Held stock expired: ${input.productName}`,
-      body: `${input.short} of the ${input.reserved} held for orders have expired.`,
+      body: `${short.en} of the ${reserved.en} held for orders have expired.`,
     },
   };
 }

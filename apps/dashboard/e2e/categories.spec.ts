@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
-import { drawnProducts, type ProductsFixture } from './support/products';
+import { drawnProducts, MEDIA_UPLOAD_PREFIX, type ProductsFixture } from './support/products';
 
 // TENANT-DASHBOARD-DESIGN §7.5, Slice 11.8: Categories -- the tree with each row's products, Hidden and the type it
 // behaves like; the switch that shows or hides at once; New category and Add a sub-category with where it sits as a step;
@@ -31,6 +31,26 @@ async function open(page: Page, state: ShopState = {}): Promise<ApiLog> {
 
 function main(page: Page) {
   return page.getByRole('main');
+}
+
+const MB = 1024 * 1024;
+
+/** A picture the browser sends, of the given size. */
+function file(name: string, bytes = 2048) {
+  return { name, mimeType: 'image/jpeg', buffer: Buffer.alloc(bytes, 1) };
+}
+
+/** Holds every file's upload until `release`, so how far it is can be seen and what saves it waits (§7.43). */
+async function holdUploads(page: Page): Promise<() => void> {
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(`**${MEDIA_UPLOAD_PREFIX}**`, async (route) => {
+    await held;
+    await route.fulfill({ status: 200 });
+  });
+  return release;
 }
 
 function sheet(page: Page) {
@@ -118,6 +138,7 @@ test('adds a category where it sits, marked new, and says so', async ({ page }) 
     parentId: 'c-tshirts',
     visible: true,
     behavesLike: 'clothing',
+    imageId: null,
   });
   await expect(row(page, 'Shirts')).toContainText('New');
   await expect(row(page, 'Shirts')).toContainText('└');
@@ -201,6 +222,83 @@ test('edits a category: its name, where it sits, what it suggests and its own ch
       (call) => call.method === 'DELETE' && call.path === '/categories/c-tshirts/size-chart',
     ),
   ).toBe(true);
+});
+
+test("a category's picture says how far its upload is, then shows, and Save sends it (§7.43)", async ({
+  page,
+}) => {
+  const log = await open(page);
+  const release = await holdUploads(page);
+  await row(page, 'T-shirts').click();
+  await expect(sheet(page).getByRole('button', { name: 'Add photo' })).toBeVisible();
+  await sheet(page).locator('input[type=file]').first().setInputFiles(file('tees.jpg'));
+  await expect(
+    sheet(page)
+      .getByRole('status')
+      .filter({ hasText: /^Uploading \d+%/ }),
+  ).toBeVisible();
+  await expect(sheet(page).getByRole('button', { name: 'Save' })).toBeDisabled();
+  release();
+  await expect(sheet(page).getByRole('button', { name: 'Replace', exact: true })).toBeVisible();
+  await expect(sheet(page).getByRole('button', { name: 'Save' })).toBeEnabled();
+  await expectAccessible(page);
+  await sheet(page).getByRole('button', { name: 'Save' }).click();
+  await expect(sheet(page)).toHaveCount(0);
+  const sentPicture = log.sent('PATCH', '/categories/c-tshirts') as
+    { imageId?: unknown } | undefined;
+  expect(Object.keys(sentPicture ?? {})).toEqual(['imageId']);
+  expect(sentPicture?.imageId).toMatch(/^m-up-/);
+
+  // Opened again it has the picture; Remove leaves Add photo, and Save clears it.
+  await row(page, 'T-shirts').click();
+  await sheet(page).getByRole('button', { name: 'Remove', exact: true }).click();
+  await expect(sheet(page).getByRole('button', { name: 'Add photo' })).toBeVisible();
+  await sheet(page).getByRole('button', { name: 'Save' }).click();
+  await expect(sheet(page)).toHaveCount(0);
+  expect(log.sent('PATCH', '/categories/c-tshirts')).toEqual({ imageId: null });
+});
+
+test("a category's picture over the limit says so, with Choose another, and Save still works (§7.43)", async ({
+  page,
+}) => {
+  await open(page);
+  await row(page, 'T-shirts').click();
+  await sheet(page)
+    .locator('input[type=file]')
+    .first()
+    .setInputFiles(file('big.jpg', 6 * MB));
+  await expect(
+    sheet(page).getByRole('alert').filter({ hasText: '6 MB · limit 5 MB' }),
+  ).toBeVisible();
+  await expect(sheet(page).getByRole('button', { name: 'Choose another' })).toBeVisible();
+  await expect(sheet(page).getByRole('button', { name: 'Save' })).toBeEnabled();
+});
+
+test("a category's chart picture shows its upload in the picture's place, and Done waits (§7.43)", async ({
+  page,
+}) => {
+  const log = await open(page);
+  const release = await holdUploads(page);
+  await row(page, 'T-shirts').click();
+  await sheet(page)
+    .getByRole('button', { name: / Edit$/ })
+    .click();
+  await sheet(page).getByRole('radio', { name: 'Picture' }).click();
+  await sheet(page).locator('input[type=file]').first().setInputFiles(file('chart.jpg'));
+  await expect(
+    sheet(page)
+      .getByRole('status')
+      .filter({ hasText: /^Uploading \d+%/ }),
+  ).toBeVisible();
+  await expect(sheet(page).getByRole('button', { name: 'Done' })).toBeDisabled();
+  release();
+  await expect(sheet(page).getByRole('img', { name: 'Size chart' })).toBeVisible();
+  await sheet(page).getByRole('button', { name: 'Done' }).click();
+  await sheet(page).getByRole('button', { name: 'Save' }).click();
+  await expect(sheet(page)).toHaveCount(0);
+  const chart = log.sent('PUT', '/categories/c-tshirts/size-chart') as
+    { imageId?: unknown } | undefined;
+  expect(chart?.imageId).toMatch(/^m-up-/);
 });
 
 test('the ⋯ menu moves a category among its siblings and adds one under it', async ({

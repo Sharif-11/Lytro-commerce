@@ -1,20 +1,28 @@
-import { Container } from '@/components/ui/container';
 import { Icon } from '@/components/ui/icon';
-import { SectionHeading } from '@/components/ui/section-heading';
+import { whatsappHref } from '@/lib/contact/help-line-words';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import type { Language } from '@/lib/i18n/language';
 
 const text = {
   eyebrow: { bn: 'প্রশ্ন থাকতে পারে', en: 'Questions' },
   title: { bn: 'সোজা উত্তর', en: 'Straight answers' },
+  lead: {
+    bn: 'DM-এ সেলাররা যা জিজ্ঞেস করেন, সেগুলোরই উত্তর, যেভাবে ওখানে দিই সেভাবে।',
+    en: 'The questions sellers ask us in DMs, answered the way we answer there.',
+  },
+  leadWhatsapp: {
+    bn: 'আরও কিছু জানতে চাইলে WhatsApp-এ লিখুন।',
+    en: 'Anything else, write to us on WhatsApp.',
+  },
+  ask: { bn: 'WhatsApp-এ জিজ্ঞেস করুন', en: 'Ask on WhatsApp' },
 } satisfies Record<string, Bilingual>;
 
 const items: { q: Bilingual; a: Bilingual }[] = [
   {
     q: { bn: 'মাসিক ফি দিতে হবে?', en: 'Do I have to pay a monthly fee?' },
     a: {
-      bn: 'না। পে-অ্যাজ-ইউ-গো-তে দোকান খোলা ফ্রি, শুধু অর্ডার ডেলিভার হলেই ছোট একটা ফি কাটে। পরে ফিক্সড প্ল্যান সস্তা পড়লে সেখানে যেতে পারবেন।',
-      en: 'No. On pay-as-you-go, opening the shop is free and a small fee is charged only when an order is delivered. You can move to a fixed plan later if that works out cheaper for you.',
+      bn: 'না। পে-অ্যাজ-ইউ-গো-তে দোকান খোলা ফ্রি, অর্ডার কুরিয়ারে বুক বা শিপ হলে তবেই ছোট একটা ফি কাটে। পরে ফিক্সড প্ল্যান সস্তা পড়লে সেখানে যেতে পারবেন।',
+      en: 'No. On pay-as-you-go, opening the shop is free and a small fee is charged only when an order is booked with a courier or shipped. You can move to a fixed plan later if that works out cheaper for you.',
     },
   },
   {
@@ -60,30 +68,46 @@ const items: { q: Bilingual; a: Bilingual }[] = [
   },
 ];
 
-/** Native disclosure elements: no script, the first answer open so answers are visibly there, and one
-    open at a time through the shared `name`. */
-export function Faq({ language }: { language: Language }) {
+/** The sketch's FAQ: the heading (and a WhatsApp button when the help line has a number) beside a numbered list of
+    native disclosure elements, the first answer open and one open at a time through the shared `name`. */
+export function Faq({ language, whatsapp }: { language: Language; whatsapp: string | null }) {
   const copy = new Copy(language);
+  const lead =
+    whatsapp !== null ? `${copy.of(text.lead)} ${copy.of(text.leadWhatsapp)}` : copy.of(text.lead);
   return (
-    <section id="faq" className="scroll-mt-16 bg-white">
-      <Container className="py-16 sm:py-20">
-        <SectionHeading eyebrow={copy.of(text.eyebrow)} title={copy.of(text.title)} />
-        <div className="mx-auto mt-10 max-w-[760px] divide-y divide-line rounded-card border border-line bg-white shadow-card">
+    <section className="sec tint" id="faq">
+      <div className="wrap faq-wrap">
+        <div className="faq-head">
+          <span className="eyebrow">
+            <i />
+            <span>{copy.of(text.eyebrow)}</span>
+          </span>
+          <h2>{copy.of(text.title)}</h2>
+          <p>{lead}</p>
+          {whatsapp !== null ? (
+            <a href={whatsappHref(whatsapp)} className="btn btn-outline btn-sm">
+              <Icon name="message" size={18} />
+              <span>{copy.of(text.ask)}</span>
+            </a>
+          ) : null}
+        </div>
+        <div className="faq-list">
           {items.map((item, index) => (
-            <details key={item.q.en} name="faq" open={index === 0} className="group px-5">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 text-[16px] font-bold text-ink [&::-webkit-details-marker]:hidden">
-                {copy.of(item.q)}
-                <Icon
-                  name="chevron"
-                  size={20}
-                  className="text-brand-700 transition-transform group-open:rotate-180"
-                />
+            <details key={item.q.en} name="faq" open={index === 0}>
+              <summary>
+                <span className="n">{String(index + 1).padStart(2, '0')}</span>
+                <span className="q">{copy.of(item.q)}</span>
+                <span className="tg" aria-hidden="true">
+                  <Icon name="plus" size={20} strokeWidth={2.4} />
+                </span>
               </summary>
-              <p className="pb-5 text-[15px] text-neutral-700">{copy.of(item.a)}</p>
+              <div className="a">
+                <p>{copy.of(item.a)}</p>
+              </div>
             </details>
           ))}
         </div>
-      </Container>
+      </div>
     </section>
   );
 }

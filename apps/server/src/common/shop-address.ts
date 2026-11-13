@@ -15,6 +15,20 @@ export function shopOrigin(
   return hostOrigin(env, `${slug}.${env.PLATFORM_DOMAIN}`);
 }
 
+// DEPLOYMENT §4: the dashboard's own host, where every shop is run from, at /<slug>.
+export const DASHBOARD_LABEL = 'app';
+
+/**
+ * SMS-18 (amended 2026-11-12, the owner's word on staging): where a shop is run from, its dashboard,
+ * `app.<PLATFORM_DOMAIN>/<slug>`. The shop-ready SMS sends this, not the storefront; the dashboard shows the storefront.
+ */
+export function shopDashboardUrl(
+  env: { NODE_ENV: string; PLATFORM_DOMAIN: string },
+  slug: string,
+): string {
+  return `${hostOrigin(env, `${DASHBOARD_LABEL}.${env.PLATFORM_DOMAIN}`)}/${slug}`;
+}
+
 /**
  * Slice 13: the shop's main address -- its own domain while that serves (TEN-09), else its address on the platform.
  * What a shop's links and previews point to, so a shopper never goes through a redirect to reach it.

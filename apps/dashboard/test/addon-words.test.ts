@@ -11,6 +11,7 @@ import {
   limitMove,
   limitWithout,
   renewalLine,
+  sizedName,
   switchable,
   usesBought,
 } from '../src/views/addons/addon-words';
@@ -151,7 +152,8 @@ describe('the add-ons list (TENANT-DASHBOARD-DESIGN §7.25)', () => {
     const soon = new Date(Date.now() + 7 * DAY_MS - 60_000).toISOString();
     const storage = owned(STORAGE, { renewal: AddonRenewal.Off, endsSoon: true, expiresAt: soon });
     expect(endingBanner([owned(PRODUCTS), storage], FIGURES, t, 'en')?.text).toBe(
-      'alBannerStorage {"name":"extra_storage en","count":7,"limit":"1 GB"}',
+      // Named by what it adds (sizedName), as the row is.
+      'alBannerStorage {"name":"aoNameStorage {\\"size\\":\\"1 GB\\"}","count":7,"limit":"1 GB"}',
     );
     expect(endingBanner([owned(PRODUCTS)], FIGURES, t, 'en')).toBeNull();
     // The limit it returns to is not known until the usage page is read.
@@ -200,10 +202,40 @@ describe('the Buy sheet and what it leaves (PLN-14, LIM-03)', () => {
         'en',
       ),
     ).toBe(
-      'abBought {"name":"extra_products en","limit":"lim.products","value":"1,100"} · abInvoice {"number":"invoiceNo {\\"number\\":\\"000215\\"}","amount":"৳199"}',
+      'abBought {"name":"aoNameProducts {\\"n\\":\\"500\\"}","limit":"lim.products","value":"1,100"} · abInvoice {"number":"invoiceNo {\\"number\\":\\"000215\\"}","amount":"৳199"}',
     );
     expect(boughtToast({ addon: BRAND, move: null, invoice: null }, t, 'bn')).toBe(
       'abBoughtFeature {"name":"brand_identity bn"}',
+    );
+  });
+});
+
+describe("an add-on named by what one adds (PLN-13, the sketch's names)", () => {
+  it('names each limit and pack by its size, from the catalogue', () => {
+    expect(sizedName(PRODUCTS, t, 'en')).toBe('aoNameProducts {"n":"500"}');
+    expect(sizedName(addon('extra_seat', AddonKind.Limit, 'staff', 1), t, 'bn')).toBe(
+      'aoNameSeats {"count":1}',
+    );
+    expect(sizedName(addon('extra_storage', AddonKind.Limit, 'storage_mb', 1024), t, 'en')).toBe(
+      'aoNameStorage {"size":"1 GB"}',
+    );
+    expect(sizedName(addon('bandwidth_pack', AddonKind.Pack, 'bandwidth_gb', 10), t, 'en')).toBe(
+      'aoNameBandwidth {"size":"10 GB"}',
+    );
+  });
+
+  it('groups a Bangla count in lakhs and an English one in thousands', () => {
+    const requests = addon('request_pack', AddonKind.Pack, 'requests_monthly', 100_000);
+    expect(sizedName(requests, t, 'bn')).toBe('aoNameRequests {"n":"1,00,000"}');
+    expect(sizedName(requests, t, 'en')).toBe('aoNameRequests {"n":"100,000"}');
+  });
+
+  it("keeps the catalogue's label for a feature and for a size it doesn't have", () => {
+    expect(sizedName(addon('brand_identity', AddonKind.Feature, null, null), t, 'bn')).toBe(
+      'brand_identity bn',
+    );
+    expect(sizedName(addon('extra_seat', AddonKind.Limit, 'staff', 0), t, 'en')).toBe(
+      'extra_seat en',
     );
   });
 });

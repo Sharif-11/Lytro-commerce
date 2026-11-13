@@ -354,6 +354,128 @@ test('a delete the server now refuses stays open and says why', async ({ page })
   await expect(panel.getByText('A shop just bought this plan.')).toBeVisible();
 });
 
+// PLN-21: the suggested plan, the one the landing page highlights.
+const SAVED_AT_ONCE = 'Saved at once; the plan keeps its version.';
+const suggestedSwitch = (page: Page, plan: string) =>
+  page
+    .getByRole('dialog', { name: `Edit ${plan}` })
+    .getByRole('switch', { name: 'Suggested plan' });
+const chips = (page: Page) => main(page).getByText('suggested', { exact: true });
+
+test('the suggested plan carries a chip in the matrix, and no other plan does', async ({
+  page,
+}) => {
+  await open(page);
+  await expect(chips(page)).toHaveCount(1);
+  await expect(
+    main(page).getByRole('row').nth(3).getByText('suggested', { exact: true }),
+  ).toBeVisible();
+});
+
+test('the switch moves the mark the moment it is flipped, and records no version', async ({
+  page,
+}) => {
+  const log = await open(page);
+  await editOf(page, 'Growth').click();
+  const panel = page.getByRole('dialog', { name: 'Edit Growth' });
+  const mark = suggestedSwitch(page, 'Growth');
+  await expect(mark).not.toBeChecked();
+  await expect(
+    panel.getByText(
+      `Turn it on and the landing page highlights this plan instead of Starter. ${SAVED_AT_ONCE}`,
+    ),
+  ).toBeVisible();
+
+  await mark.click();
+  await expect(mark).toBeChecked();
+  await expect(
+    panel.getByText(`The landing page highlights this plan. ${SAVED_AT_ONCE}`),
+  ).toBeVisible();
+  expect(log.sent('PUT', '/operator/plans/p-growth/suggested')).toEqual({ suggested: true });
+  await expect(chips(page)).toHaveCount(1);
+  await expect(
+    main(page).getByRole('row').nth(4).getByText('suggested', { exact: true }),
+  ).toBeVisible();
+  // Not a plan edit: the panel stays open, nothing is patched, and Growth is still v2.
+  await expect(panel).toBeVisible();
+  expect(log.calls.filter((call) => call.method === 'PATCH')).toHaveLength(0);
+  await expect(main(page).getByRole('row').nth(4)).toContainText('v2');
+
+  await mark.click();
+  await expect(mark).not.toBeChecked();
+  expect(log.sent('PUT', '/operator/plans/p-growth/suggested')).toEqual({ suggested: false });
+  await expect(chips(page)).toHaveCount(0);
+  await expect(
+    panel.getByText(`Turn it on and the landing page highlights this plan. ${SAVED_AT_ONCE}`),
+  ).toBeVisible();
+});
+
+test('a mark the server refuses flips back and says why', async ({ page }) => {
+  const log = await open(page);
+  await editOf(page, 'Growth').click();
+  // Taken off sale in another tab after this page read the list: the server now refuses the mark.
+  const growth = log.state.plans.find((plan) => plan.id === 'p-growth');
+  if (growth) growth.onPricingPage = false;
+  const mark = suggestedSwitch(page, 'Growth');
+  await mark.click();
+  await expect(
+    page
+      .getByRole('dialog', { name: 'Edit Growth' })
+      .getByText(
+        'Only a plan on the pricing page can be suggested: one for sale, or Pay-as-you-go.',
+      ),
+  ).toBeVisible();
+  await expect(mark).not.toBeChecked();
+  await expect(
+    main(page).getByRole('row').nth(3).getByText('suggested', { exact: true }),
+  ).toBeVisible();
+});
+
+test('the Trial and a new plan have no switch; a plan off the pricing page has it greyed', async ({
+  page,
+}) => {
+  const legacy = {
+    ...drawnPlans()[4],
+    id: 'p-legacy',
+    name: 'Legacy',
+    rank: 5,
+    forSale: false,
+    onPricingPage: false,
+    suggested: false,
+  };
+  await open(page, { plans: [...drawnPlans(), legacy] });
+  await editOf(page, 'Trial').click();
+  const trial = page.getByRole('dialog', { name: 'Edit Trial' });
+  await expect(trial.getByRole('switch', { name: 'For sale' })).toBeVisible();
+  await expect(trial.getByRole('switch', { name: 'Suggested plan' })).toHaveCount(0);
+  await trial.getByRole('button', { name: 'Cancel' }).click();
+
+  await editOf(page, 'Legacy').click();
+  await expect(suggestedSwitch(page, 'Legacy')).toBeDisabled();
+  await expect(
+    page
+      .getByRole('dialog', { name: 'Edit Legacy' })
+      .getByText('Only a plan on the pricing page (for sale, or pay-as-you-go) can be suggested.'),
+  ).toBeVisible();
+  await page
+    .getByRole('dialog', { name: 'Edit Legacy' })
+    .getByRole('button', { name: 'Cancel' })
+    .click();
+
+  // Pay-as-you-go is not for sale, yet the pricing page shows it.
+  await editOf(page, 'Pay-as-you-go').click();
+  await expect(suggestedSwitch(page, 'Pay-as-you-go')).toBeEnabled();
+  await page
+    .getByRole('dialog', { name: 'Edit Pay-as-you-go' })
+    .getByRole('button', { name: 'Cancel' })
+    .click();
+
+  await main(page).getByRole('button', { name: 'New plan' }).click();
+  await expect(
+    page.getByRole('dialog', { name: 'New plan' }).getByRole('switch', { name: 'Suggested plan' }),
+  ).toHaveCount(0);
+});
+
 test('a failed read says so and can be tried again', async ({ page }) => {
   const log = await mockApi(page, { failing: { '/operator/billing-terms/prices': 503 } });
   await page.goto('/plans');

@@ -90,6 +90,7 @@ interface PlanBody {
   version: number;
   rank: number;
   forSale: boolean;
+  suggested: boolean;
 }
 
 beforeAll(async () => {
@@ -189,6 +190,53 @@ describeIfDatabase('plans (PLN-01 to PLN-12, PLN-16)', () => {
     expect(plan.limits.products).toBeTypeOf('number');
     expect(plan.limits.staff).toBeTypeOf('number');
   });
+
+  it('RAT-01: GET /rates gives the rates a shop is shown, with no session, for the pricing page', async () => {
+    const response = await get('/rates');
+    expect(response.status).toBe(200);
+    const rates = response.body as { key: string; value: string }[];
+    const keys = rates.map((rate) => rate.key);
+    // What the marketing site's pay-as-you-go card and fee note read.
+    for (const key of [
+      'payg_order_fee_min',
+      'payg_order_fee_pct',
+      'payg_product_fee',
+      'listener_verification_pct',
+      'gateway_verification_pct',
+    ]) {
+      expect(keys).toContain(key);
+    }
+    // The chat-reply rate is stored but offered nowhere (D7-1), so it is never published.
+    expect(keys).not.toContain('ai_reply');
+    for (const rate of rates) expect(Number(rate.value)).not.toBeNaN();
+  });
+
+  it(
+    "Lytro's own plans (Trial, Pay-as-you-go) can't be put on sale, renamed or deleted; their limits still change",
+    async () => {
+      // Found on staging 2026-11-12: Trial put on sale in the console stopped every new shop.
+      const headers = await operatorHeaders();
+      const list = (await get('/operator/plans', headers)).body as (PlanBody & {
+        name: string;
+        limits: Record<string, number | null>;
+      })[];
+      for (const name of ['Trial', 'Pay-as-you-go']) {
+        const plan = list.find((row) => row.name === name);
+        if (!plan) throw new Error(`${name} isn't seeded`);
+        expect((await patch(`/operator/plans/${plan.id}`, { forSale: true }, headers)).status).toBe(
+          409,
+        );
+        expect(
+          (await patch(`/operator/plans/${plan.id}`, { name: `${name} 2` }, headers)).status,
+        ).toBe(409);
+        expect((await del(`/operator/plans/${plan.id}`, headers)).status).toBe(409);
+        const limits = await patch(`/operator/plans/${plan.id}`, { limits: plan.limits }, headers);
+        expect(limits.status).toBe(200);
+        expect(limits.body).toMatchObject({ name, forSale: false });
+      }
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
 
   it(
     'PLN-02/D2-3: editing a plan increments its version and the previous version is retrievable',
@@ -326,6 +374,178 @@ describeIfDatabase('plans (PLN-01 to PLN-12, PLN-16)', () => {
         [tenantId],
       );
       expect(platform.rows[0]?.count).toBe('1');
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+});
+
+// PLN-21: the plan the pricing page highlights. One mark at most, only on a plan that page shows, never a new version.
+describeIfDatabase('the suggested plan (PLN-21)', () => {
+  type NamedPlan = PlanBody & { name: string };
+  const named = async (headers: Record<string, string>, name: string): Promise<NamedPlan> => {
+    const list = (await get('/operator/plans', headers)).body as NamedPlan[];
+    const plan = list.find((row) => row.name === name);
+    if (!plan) throw new Error(`${name} is not seeded`);
+    return plan;
+  };
+  const suggestedNames = async (): Promise<string[]> => {
+    const result = await admin.query<{ name: string }>(
+      'SELECT name FROM control.plans WHERE suggested ORDER BY name',
+    );
+    return result.rows.map((row) => row.name);
+  };
+  const mark = (headers: Record<string, string>, id: string, suggested: boolean) =>
+    put(`/operator/plans/${id}/suggested`, { suggested }, headers);
+  const forSalePlan = async (headers: Record<string, string>, rank: number): Promise<PlanBody> => {
+    const created = await post(
+      '/operator/plans',
+      { name: `Suggest ${freshSlug()}`, rank, forSale: true, limits: LIMITS },
+      headers,
+    );
+    return created.body as PlanBody;
+  };
+  const markStarter = async (headers: Record<string, string>): Promise<void> => {
+    expect((await mark(headers, (await named(headers, 'Starter')).id, true)).status).toBe(200);
+    expect(await suggestedNames()).toEqual(['Starter']);
+  };
+
+  it('tells the console which plan is the Trial and which ones the pricing page shows', async () => {
+    const headers = await operatorHeaders();
+    const retired = await post(
+      '/operator/plans',
+      { name: `Retired ${freshSlug()}`, rank: 9702, forSale: false, limits: LIMITS },
+      headers,
+    );
+    const list = (await get('/operator/plans', headers)).body as (NamedPlan & {
+      trial: boolean;
+      onPricingPage: boolean;
+    })[];
+    const flagsOf = (name: string) => {
+      const row = list.find((each) => each.name === name);
+      return row ? { trial: row.trial, onPricingPage: row.onPricingPage } : null;
+    };
+    expect(flagsOf('Trial')).toEqual({ trial: true, onPricingPage: false });
+    expect(flagsOf('Pay-as-you-go')).toEqual({ trial: false, onPricingPage: true });
+    expect(flagsOf('Starter')).toEqual({ trial: false, onPricingPage: true });
+    expect(flagsOf((retired.body as NamedPlan).name)).toEqual({
+      trial: false,
+      onPricingPage: false,
+    });
+  });
+
+  it(
+    'Starter starts suggested; marking another plan moves the mark, with no new version and an audit entry',
+    async () => {
+      const headers = await operatorHeaders();
+      const starter = await named(headers, 'Starter');
+      // Migration 0130's seed (the user, 2026-11-13: "the starter is the suggested plan").
+      expect(await suggestedNames()).toEqual(['Starter']);
+      expect((await get('/plans')).body as PlanBody[]).toContainEqual(
+        expect.objectContaining({ id: starter.id, suggested: true }),
+      );
+
+      const other = await forSalePlan(headers, 9700);
+      const marked = await mark(headers, other.id, true);
+      expect(marked.status).toBe(200);
+      expect(marked.body).toMatchObject({ id: other.id, suggested: true, version: 1 });
+      const publicList = (await get('/plans')).body as PlanBody[];
+      expect(publicList.filter((plan) => plan.suggested).map((plan) => plan.id)).toEqual([
+        other.id,
+      ]);
+      expect((await get(`/operator/plans/${other.id}/versions`, headers)).body).toEqual([]);
+      const audit = await admin.query<{ summary: unknown }>(
+        `SELECT summary FROM control.platform_audit_log WHERE action = 'plan_updated' AND target_id = $1`,
+        [other.id],
+      );
+      expect(audit.rows).toHaveLength(1);
+      expect(audit.rows[0]?.summary).toMatchObject({ newValue: { suggested: true } });
+
+      // Unmarking always works, and leaves no plan suggested.
+      const unmarked = await mark(headers, other.id, false);
+      expect(unmarked.body).toMatchObject({ suggested: false, version: 1 });
+      expect(await suggestedNames()).toEqual([]);
+
+      await markStarter(headers);
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
+  it(
+    'only a plan the pricing page shows can be marked: Trial and a retired plan are refused, Pay-as-you-go can be',
+    async () => {
+      const headers = { ...(await operatorHeaders()), 'accept-language': 'en' };
+      const trial = await named(headers, 'Trial');
+      const refusedTrial = await mark(headers, trial.id, true);
+      expect(refusedTrial.status).toBe(409);
+      expect(errorOf(refusedTrial)).toMatchObject({ code: 'conflict' });
+      expect((errorOf(refusedTrial) as { message: string }).message).toContain('pricing page');
+      const retired = await post(
+        '/operator/plans',
+        { name: `Retired ${freshSlug()}`, rank: 9701, forSale: false, limits: LIMITS },
+        headers,
+      );
+      expect((await mark(headers, (retired.body as PlanBody).id, true)).status).toBe(409);
+      // Turning a mark off is never refused.
+      expect((await mark(headers, trial.id, false)).status).toBe(200);
+      expect(await suggestedNames()).toEqual(['Starter']);
+
+      const payg = await named(headers, 'Pay-as-you-go');
+      expect((await mark(headers, payg.id, true)).status).toBe(200);
+      expect((await get('/plans/pay-as-you-go')).body).toMatchObject({ suggested: true });
+      // Pay-as-you-go is never for sale, yet the pricing page shows it: an edit keeps its mark.
+      const edited = await patch(`/operator/plans/${payg.id}`, { forSale: false }, headers);
+      expect(edited.body).toMatchObject({ suggested: true });
+      expect(await suggestedNames()).toEqual(['Pay-as-you-go']);
+
+      // A tenant owner never reaches the route.
+      const owner = await ownerHeaders();
+      expect((await mark(owner, trial.id, true)).status).toBe(401);
+
+      await markStarter(headers);
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
+  it(
+    'retiring the suggested plan clears its mark in the same change',
+    async () => {
+      const headers = await operatorHeaders();
+      const plan = await forSalePlan(headers, 9702);
+      expect((await mark(headers, plan.id, true)).status).toBe(200);
+      const retired = await patch(`/operator/plans/${plan.id}`, { forSale: false }, headers);
+      expect(retired.status).toBe(200);
+      expect(retired.body).toMatchObject({ forSale: false, suggested: false, version: 2 });
+      expect(await suggestedNames()).toEqual([]);
+      const audit = await admin.query<{ summary: { newValue: unknown } }>(
+        `SELECT summary FROM control.platform_audit_log WHERE action = 'plan_updated' AND target_id = $1
+         ORDER BY created_at`,
+        [plan.id],
+      );
+      expect(audit.rows.at(-1)?.summary.newValue).toEqual({ forSale: false, suggested: false });
+
+      await markStarter(headers);
+    },
+    BCRYPT_TIMEOUT_MS,
+  );
+
+  it(
+    'two operators marking different plans at once leave exactly one suggested, never a failure',
+    async () => {
+      const headers = await operatorHeaders();
+      const first = await forSalePlan(headers, 9703);
+      const second = await forSalePlan(headers, 9704);
+      for (let round = 0; round < 8; round += 1) {
+        const [a, b] = await Promise.all([
+          mark(headers, first.id, true),
+          mark(headers, second.id, true),
+        ]);
+        expect([a.status, b.status]).toEqual([200, 200]);
+        expect(await suggestedNames()).toHaveLength(1);
+        // Cleared again, so the next round races two fresh marks.
+        await mark(headers, first.id, false);
+        await mark(headers, second.id, false);
+      }
+      await markStarter(headers);
     },
     BCRYPT_TIMEOUT_MS,
   );

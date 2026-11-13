@@ -9,7 +9,8 @@ import { UploadTile } from './upload-tile';
 /** A 72 px tile (the prototype's `.thumb.lg`). */
 const TILE =
   'relative flex size-[72px] flex-none items-center justify-center overflow-hidden rounded-button bg-linear-135 from-neutral-100 to-neutral-200 text-neutral-400';
-const ADD =
+/** The dashed tile that adds a picture: the strip's Add photo and Add video, a category's Add picture (§7.43). */
+export const ADD_TILE =
   'flex size-[72px] flex-none flex-col items-center justify-center gap-1 rounded-button border border-dashed border-line-strong bg-surface text-[12px] text-primary';
 
 /**
@@ -107,12 +108,16 @@ export function PhotoStrip({
           ) : null
         ) : (
           <>
-            <button type="button" className={ADD} onClick={() => photoInput.current?.click()}>
+            <button type="button" className={ADD_TILE} onClick={() => photoInput.current?.click()}>
               <Icon name="camera" />
               {t('addPhoto')}
             </button>
             {video ? null : (
-              <button type="button" className={ADD} onClick={() => videoInput.current?.click()}>
+              <button
+                type="button"
+                className={ADD_TILE}
+                onClick={() => videoInput.current?.click()}
+              >
                 <Icon name="image" />
                 {t('addVideo')}
               </button>

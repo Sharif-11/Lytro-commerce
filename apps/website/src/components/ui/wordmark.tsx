@@ -6,11 +6,15 @@ export function Wordmark({
   className,
 }: {
   height?: number;
-  tone?: 'dark' | 'light';
+  /** `css` takes the colours from the `--wm-mark-c` and `--wm-text-c` custom properties (site.css `.wm`), so a bar
+      that changes colour as the page scrolls recolours the wordmark with it. */
+  tone?: 'dark' | 'light' | 'css';
   className?: string;
 }) {
-  const colour = tone === 'dark' ? '#0e6b66' : '#ffffff';
-  const text = tone === 'dark' ? '#10201f' : '#ffffff';
+  const colour =
+    tone === 'css' ? 'var(--wm-mark-c, #0e6b66)' : tone === 'dark' ? '#0e6b66' : '#ffffff';
+  const text =
+    tone === 'css' ? 'var(--wm-text-c, #10201f)' : tone === 'dark' ? '#10201f' : '#ffffff';
   const width = Math.round((height * 142) / 64);
   return (
     <svg
@@ -25,7 +29,7 @@ export function Wordmark({
         <path
           d="M15 15V49H31L49 29"
           fill="none"
-          stroke={colour}
+          style={{ stroke: colour }}
           strokeWidth={10}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -37,8 +41,7 @@ export function Wordmark({
         fontSize={42}
         fontWeight={800}
         letterSpacing={-1.3}
-        fill={text}
-        style={{ fontFamily: 'var(--font-jakarta), Inter, system-ui, sans-serif' }}
+        style={{ fill: text, fontFamily: 'var(--font-jakarta), Inter, system-ui, sans-serif' }}
       >
         ytro
       </text>

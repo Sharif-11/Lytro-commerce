@@ -52,6 +52,9 @@ function plansAnswer(
       createdAt: NOW,
       shopsByVersion: [],
       deletable: true,
+      suggested: false,
+      trial: false,
+      onPricingPage: body?.forSale === true,
     };
     state.plans.push(created);
     return { data: created };
@@ -73,6 +76,25 @@ function plansAnswer(
     }
     return OK;
   }
+  // PLN-21: marking moves the one mark; only a plan the pricing page shows can be marked, unmarking always works.
+  const mark = /^\/operator\/plans\/([^/]+)\/suggested$/.exec(path);
+  if (mark) {
+    const plan = state.plans.find((each) => each.id === mark[1]);
+    if (!plan) return { refused: [404, 'not_found', 'This plan was not found.'] };
+    const suggested = body?.suggested === true;
+    if (suggested && plan.onPricingPage !== true) {
+      return {
+        refused: [
+          409,
+          'conflict',
+          'Only a plan on the pricing page can be suggested: one for sale, or Pay-as-you-go.',
+        ],
+      };
+    }
+    if (suggested) for (const each of state.plans) each.suggested = false;
+    plan.suggested = suggested;
+    return { data: plan };
+  }
   const one = /^\/operator\/plans\/([^/]+)$/.exec(path);
   if (!one) return undefined;
   const plan = state.plans.find((each) => each.id === one[1]);
@@ -89,6 +111,9 @@ function plansAnswer(
     recordedAt: NOW,
   });
   Object.assign(plan, body, { version: Number(plan.version) + 1 });
+  // A plan taken off the pricing page takes its mark with it, as the server does.
+  plan.onPricingPage = plan.forSale === true || plan.id === 'p-payg';
+  if (!plan.onPricingPage) plan.suggested = false;
   return { data: plan };
 }
 

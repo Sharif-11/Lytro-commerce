@@ -1,8 +1,9 @@
 import { useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { errorMessage } from '@lytronix/api-client';
 import { Button, CheckboxRow, TextArea, TextField } from '@lytronix/ui';
 import type { PlanLimits } from '@lytronix/validators';
-import { useCreatePlan, usePlanVersions, useUpdatePlan } from '@/api/plans';
+import { useCreatePlan, usePlanVersions, useSetPlanSuggested, useUpdatePlan } from '@/api/plans';
 import { ActionPanel } from '@/components/ui/action-panel';
 import { ConsoleIcon } from '@/components/ui/console-icon';
 import { INLINE_FIELD, NOTE, QUIET_BUTTON, SMALL_BUTTON, TWO_FIELDS } from '@/components/ui/sizes';
@@ -14,6 +15,7 @@ import { formatDay } from '@/lib/format';
 import { canBeUnlimited, LIMIT_KEYS, limitLabelKey, type LimitKey } from '@/lib/limit-keys';
 import type { OperatorPlan } from '@/types/operator';
 import { shopsOn, versionLines } from './plan-history';
+import { suggestionSwitch } from './suggestion';
 
 interface LimitDraft {
   value: string;
@@ -61,6 +63,7 @@ export function PlanEditor({
   const toast = useToast();
   const create = useCreatePlan();
   const update = useUpdatePlan();
+  const suggest = useSetPlanSuggested();
   const versions = usePlanVersions(plan?.id ?? null);
   const highestRank = Math.max(-1, ...allPlans.map((each) => each.rank));
   const [name, setName] = useState(plan?.name ?? '');
@@ -77,6 +80,11 @@ export function PlanEditor({
   const [addingFlag, setAddingFlag] = useState<string | null>(null);
   const saving = plan ? update : create;
   const problems = problemsOf(saving.error, t, ['name', 'rank', 'description']);
+  // PLN-21: the mark saves the moment the switch moves, apart from "Save as vN"; while it saves, the switch shows the
+  // new position, and a refusal puts it back with the server's reason in the panel's banner.
+  const markShown = suggest.isPending ? suggest.variables.suggested : (plan?.suggested ?? false);
+  const suggestion = plan ? suggestionSwitch(plan, allPlans, markShown) : { shown: false as const };
+  const suggestProblem = suggest.isError ? errorMessage(suggest.error, t) : null;
 
   function setLimit(key: LimitKey, patch: Partial<LimitDraft>): void {
     setDrafts((current) => ({ ...current, [key]: { ...current[key], ...patch } }));
@@ -142,7 +150,7 @@ export function PlanEditor({
       actionLabel={plan ? t('plans.saveAs', { n: plan.version + 1 }) : t('plans.create')}
       pending={saving.isPending}
       canSubmit={name.trim() !== ''}
-      error={problems.banner}
+      error={problems.banner ?? suggestProblem}
       onSubmit={submit}
     >
       <div className={TWO_FIELDS}>
@@ -182,6 +190,25 @@ export function PlanEditor({
         }}
       />
       <Switch checked={forSale} onChange={setForSale} label={t('plans.forSale')} showLabel />
+      {plan && suggestion.shown ? (
+        <div className="mt-3 flex flex-col gap-3">
+          <Switch
+            checked={markShown}
+            onChange={(suggested) => {
+              suggest.mutate({ id: plan.id, suggested });
+            }}
+            label={t('plans.suggested')}
+            showLabel
+            disabled={!suggestion.enabled}
+            busy={suggest.isPending}
+          />
+          <div className={NOTE}>
+            {suggestion.note.key === 'plans.suggestedMove'
+              ? t(suggestion.note.key, { name: suggestion.note.name })
+              : t(suggestion.note.key)}
+          </div>
+        </div>
+      ) : null}
       <div className="h-px bg-line" />
       <h3 className="text-[15px] font-semibold">{t('plans.limits')}</h3>
       <div className="flex flex-col rounded-lg border border-line">

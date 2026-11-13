@@ -66,10 +66,10 @@ export class MessagingService {
   async queueShopReady(
     tx: Transaction,
     phone: string,
-    shop: { name: string; liveUrl: string },
+    shop: { name: string; dashboardUrl: string },
     tenantId: string,
   ): Promise<QueuedMessage> {
-    const body = shopReadyText(shop.name, shop.liveUrl);
+    const body = shopReadyText(shop.name, shop.dashboardUrl);
     const id = await this.store.insert(tx, {
       toPhone: phone,
       kind: SmsKind.ShopReady,

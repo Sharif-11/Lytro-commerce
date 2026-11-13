@@ -24,10 +24,11 @@ export function shopperCodeText(language: Language, shopName: string, code: stri
 }
 
 /**
- * TEN-05, SMS-18, D8-19, D8-70 (Slice 8.7's read, the owner's words): a new shop's name and address, to its owner. On a
- * lytro.app address the words take 38 of a unit's 67 characters, so a name and its address of up to 29 together (a 14-letter
- * name) go as one SMS, longer as two; Lytro's cost either way (AUTH-21).
+ * TEN-05, SMS-18, D8-19; amended 2026-11-12 (the owner's word on staging, replacing D8-70's "এখন লাইভ" and the storefront's
+ * address): a new shop's name and where to run it, its dashboard, to its owner. On lytro.app the words and the dashboard's
+ * address take 61 characters before the name and the shop's address, so a name and address of up to 9 together go as one
+ * SMS (৳0.55), longer as two (৳1.10); Lytro's cost either way (AUTH-21).
  */
-export function shopReadyText(shopName: string, liveUrl: string): string {
-  return `আপনার শপ ${shopName} এখন লাইভ: ${liveUrl}`;
+export function shopReadyText(shopName: string, dashboardUrl: string): string {
+  return `আপনার শপ ${shopName} তৈরি হয়েছে। শপ চালান এখানে: ${dashboardUrl}`;
 }

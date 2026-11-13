@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -8,5 +9,11 @@ export default defineConfig({
     // The slowest single tests (writers racing each other, password hashing) take several seconds, too close to the
     // default 5 s. A test that needs longer still sets its own limit.
     testTimeout: 15_000,
+    // Fails a spec whose code sends two queries at once on one connection (pg 9 refuses them).
+    setupFiles: ['./test/support/one-query-per-connection.ts'],
+    // Text is drawn with the server's own fonts and nothing else, as in its image (Dockerfile): a font file it can't
+    // read draws nothing here too, instead of falling back to whatever fonts this machine has.
+    // __dirname, not import.meta: the server's tsconfig is CommonJS, and Vite fills __dirname in for a config file.
+    env: { FONTCONFIG_FILE: resolve(__dirname, 'assets/fonts/fonts.conf') },
   },
 });

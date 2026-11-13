@@ -1,6 +1,4 @@
-import { Container } from '@/components/ui/container';
-import { Icon, type IconName } from '@/components/ui/icon';
-import { SectionHeading } from '@/components/ui/section-heading';
+import { Icon } from '@/components/ui/icon';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import type { Language } from '@/lib/i18n/language';
 
@@ -19,9 +17,8 @@ const text = {
 } satisfies Record<string, Bilingual>;
 
 // MARKETING-PLAN.md §2: the five pains, each paired with the feature that answers it.
-const pairs: { icon: IconName; before: Bilingual; after: Bilingual }[] = [
+const pairs: { before: Bilingual; after: Bilingual }[] = [
   {
-    icon: 'alert',
     before: {
       bn: 'ফেক আর রিটার্ন অর্ডারে কুরিয়ার ফি আর স্টক, দুটোই নষ্ট হয়।',
       en: 'Fake and returned orders burn courier fees and stock.',
@@ -32,7 +29,6 @@ const pairs: { icon: IconName; before: Bilingual; after: Bilingual }[] = [
     },
   },
   {
-    icon: 'clock',
     before: {
       bn: 'হাতে অর্ডার কনফার্ম আর কুরিয়ার বুক করতে প্রতিদিন ঘণ্টার পর ঘণ্টা যায়।',
       en: 'Confirming orders and booking couriers by hand takes hours every day.',
@@ -43,7 +39,6 @@ const pairs: { icon: IconName; before: Bilingual; after: Bilingual }[] = [
     },
   },
   {
-    icon: 'message',
     before: {
       bn: 'কাস্টমার বারবার জিজ্ঞেস করে, “আমার অর্ডার কোথায়?”',
       en: 'Customers keep asking “where is my order?”',
@@ -54,7 +49,6 @@ const pairs: { icon: IconName; before: Bilingual; after: Bilingual }[] = [
     },
   },
   {
-    icon: 'wallet',
     before: {
       bn: 'বিকাশ-নগদের পেমেন্ট অর্ডারের সাথে মেলাতে গিয়ে ভুল হয়।',
       en: 'Matching bKash and Nagad payments to orders goes wrong.',
@@ -65,73 +59,67 @@ const pairs: { icon: IconName; before: Bilingual; after: Bilingual }[] = [
     },
   },
   {
-    icon: 'lock',
     before: {
       bn: 'কাজ করবে কিনা না জেনে মাসিক ফি দিতে চান না।',
       en: 'You do not want to pay a monthly fee before you know it works.',
     },
     after: {
-      bn: 'অর্ডার ডেলিভার হলে তবেই ফি। দোকান খোলা ফ্রি।',
-      en: 'Pay only when an order is delivered. Opening the shop is free.',
+      bn: 'অর্ডার কুরিয়ারে গেলে তবেই ফি। দোকান খোলা ফ্রি।',
+      en: 'A fee only when an order goes to the courier. Opening the shop is free.',
     },
   },
 ];
 
+/** The sketch's before-and-after cards: stacked on a phone, side by side from 640 px with the column names above them,
+    and an arrow between from 900 px. */
 export function Problems({ language }: { language: Language }) {
   const copy = new Copy(language);
   return (
-    <section className="bg-neutral-50">
-      <Container className="py-16 sm:py-20">
-        <SectionHeading
-          eyebrow={copy.of(text.eyebrow)}
-          title={copy.of(text.title)}
-          lead={copy.of(text.lead)}
-        />
-        <div className="mx-auto mt-10 max-w-[900px] overflow-hidden rounded-card border border-line bg-white shadow-card">
-          <div className="hidden grid-cols-[1fr_auto_1fr] border-b border-line bg-neutral-50 px-5 py-3 text-[12px] font-bold uppercase tracking-[0.12em] sm:grid">
-            <span className="text-neutral-700">{copy.of(text.before)}</span>
-            <span className="w-10" />
-            <span className="text-brand-700">{copy.of(text.after)}</span>
-          </div>
-          <ul className="divide-y divide-line">
-            {pairs.map((pair) => (
-              <li
-                key={pair.before.en}
-                className="grid gap-3 px-4 py-4 sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-4 sm:px-5"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-danger-soft text-danger">
-                    <Icon name={pair.icon} size={18} />
-                  </span>
-                  <div>
-                    <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-neutral-700 sm:hidden">
-                      {copy.of(text.before)}
-                    </p>
-                    <p className="text-[15px] text-neutral-700">{copy.of(pair.before)}</p>
-                  </div>
-                </div>
-                <span
-                  className="hidden w-10 justify-center text-brand-700 sm:flex"
-                  aria-hidden="true"
-                >
-                  <Icon name="arrow" size={20} />
-                </span>
-                <div className="flex items-start gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-800">
-                    <Icon name="check" size={18} strokeWidth={2.5} />
-                  </span>
-                  <div>
-                    <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-700 sm:hidden">
-                      {copy.of(text.after)}
-                    </p>
-                    <p className="text-[15px] font-semibold text-ink">{copy.of(pair.after)}</p>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+    <section className="sec" id="problems">
+      <div className="wrap">
+        <div className="sec-head center">
+          <span className="eyebrow">
+            <i />
+            <span>{copy.of(text.eyebrow)}</span>
+          </span>
+          <h2>{copy.of(text.title)}</h2>
+          <p>{copy.of(text.lead)}</p>
         </div>
-      </Container>
+        <div className="pair-h" aria-hidden="true">
+          <span>{copy.of(text.before)}</span>
+          <span />
+          <span>{copy.of(text.after)}</span>
+        </div>
+        <ul className="pairs">
+          {pairs.map((pair) => (
+            <li key={pair.before.en} className="pair card">
+              <div className="before">
+                <span className="ico">
+                  <Icon name="x" size={14} strokeWidth={2.2} />
+                </span>
+                <span>
+                  <span className="sr-only">{copy.of(text.before)}: </span>
+                  {copy.of(pair.before)}
+                </span>
+              </div>
+              <div className="mid" aria-hidden="true">
+                <i>
+                  <Icon name="arrow" size={16} />
+                </i>
+              </div>
+              <div className="after">
+                <span className="ico">
+                  <Icon name="check" size={14} strokeWidth={2.4} />
+                </span>
+                <span>
+                  <span className="sr-only">{copy.of(text.after)}: </span>
+                  {copy.of(pair.after)}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }

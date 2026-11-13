@@ -207,6 +207,10 @@ GEMINI_API_KEY=
 # CLOUDFLARE_API_TOKEN=
 # MEDIA_EDGE_KV_NAMESPACE_ID=
 
+# Where the payment listener app downloads from, for the dashboard's download button (built-in:
+# https://download.lytro.app). Set it as website.env's is.
+# LISTENER_DOWNLOAD_URL=
+
 # Tuning: the built-in values are right; listed so nothing is hidden. Unset means the built-in value.
 # DATABASE_POOL_MAX=5
 # DATABASE_CONNECT_TIMEOUT_MS=5000

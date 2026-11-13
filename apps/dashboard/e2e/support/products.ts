@@ -649,7 +649,15 @@ export function productWrite(
   if (method === 'POST' && path === '/media/uploads') {
     // The logo's upload is Settings' own (support/settings.ts).
     const purpose = body?.purpose;
-    if (purpose !== 'product_image' && purpose !== 'product_video' && purpose !== 'swatch_image') {
+    // §7.43: a size chart's and a category's picture too.
+    const pictures = [
+      'product_image',
+      'product_video',
+      'swatch_image',
+      'size_chart_image',
+      'category_image',
+    ];
+    if (typeof purpose !== 'string' || !pictures.includes(purpose)) {
       return undefined;
     }
     if (fixture.storage?.full) {
