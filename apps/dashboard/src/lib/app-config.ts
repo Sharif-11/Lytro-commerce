@@ -46,11 +46,6 @@ export class AppConfig {
   contactUrl(): string {
     return `${this.siteUrl}/contact`;
   }
-
-  /** The listener app's download page and setup guide (SITE-PAGES-DESIGN §6), the address the app itself opens. */
-  listenerAppUrl(): string {
-    return `${this.siteUrl}/listener`;
-  }
 }
 
 export const appConfig = new AppConfig();

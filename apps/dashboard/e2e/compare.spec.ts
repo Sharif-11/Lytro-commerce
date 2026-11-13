@@ -1975,6 +1975,26 @@ const PAYMENTS_AND_PHONES: Pair[] = [
   })),
   pay35('sh-lp35-pair', '/settings/listener', firstButton('ফোন পেয়ার করুন')),
   pay35('sh-lp35-phone', '/settings/listener', firstButton(/Rumana/)),
+  // §7.44 (small fixes, 2026-11-13): the app's download, its sheet, a release that can't be read, and on a computer the QR.
+  pay35('sh-lp35-app', '/settings/listener', firstButton(/Lytro Listener অ্যাপ/)),
+  {
+    ...pay35('lp35-app-noinfo', '/settings/listener', undefined, () => ({
+      ...drawnShopPayments(),
+      phones: [],
+    })),
+    state: {
+      shopPayments: { ...drawnShopPayments(), phones: [] },
+      listenerApp: { release: null },
+    },
+  },
+  {
+    ...pay35('lp35-first', '/settings/listener', undefined, () => ({
+      ...drawnShopPayments(),
+      phones: [],
+    })),
+    name: 'lp35-first-desktop',
+    device: 'desktop',
+  },
   o35('sh-o35-link', owesAdvance, firstButton('পেমেন্ট লিংক পাঠান')),
   o35('sh-o35-link-made', owesAdvance, async (page) => {
     await firstButton('পেমেন্ট লিংক পাঠান')(page);

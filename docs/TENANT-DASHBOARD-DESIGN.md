@@ -2171,11 +2171,12 @@ page and in the pair sheet, not only on the website.
   website's `/listener` page does; the steps stay.
 - **Where the release comes from (the build):** the dashboard is one build for every environment and can't work out
   the download host (`download-staging.lytro.app` doesn't follow from `staging.lytro.app`). So the server knows it:
-  `LISTENER_DOWNLOAD_URL` in the server's settings, as the website has it. A keyless `GET /v1/listener/app` returns the
-  current release, `{ version, url, bytes }` read from `latest.json` and checked the way the website's
-  `ListenerReleases` checks it (the file always on that host, the version a release's), kept 5 minutes, or `null`
-  when there's none to offer. The dashboard shows the version and size from it, links the button to `url`, and draws
-  `url` as the QR.
+  `LISTENER_DOWNLOAD_URL` in the server's settings, as the website has it. A keyless `GET /api/v1/listener/app` (the
+  dashboard's host, like `/help-line`) returns `{ release }`: the current release, `{ version, url, bytes }`, read
+  from `latest.json` and checked by the one check the website's `/listener` page uses (`listenerReleaseOf` in
+  `@lytronix/validators`: the file always on that host, the version a release's), kept 5 minutes, or `null` when
+  there's none to offer. The dashboard shows the version and size from it, links the button to `url`, and draws `url`
+  as the QR.
 
 ## 8. Screens designed for later phases
 

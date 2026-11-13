@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ListenerAppRead } from '@lytronix/validators';
 import { HOME_QUERY_KEY } from '@/api/home';
 import { tenantSession } from '@/session/tenant-session';
 import type {
@@ -20,6 +21,18 @@ export function useListenerPhones(options: { enabled?: boolean; pollMs?: number 
     queryFn: () => tenantSession.client.get<ListenerPhones>('/listener/devices'),
     enabled: options.enabled ?? true,
     refetchInterval: options.pollMs ?? false,
+  });
+}
+
+/**
+ * GET /listener/app (§7.44): the app's current release, for its download button, version and size, and QR. Public and
+ * kept five minutes by the server, so read as rarely; `release` null means there's no download to offer now.
+ */
+export function useListenerApp() {
+  return useQuery({
+    queryKey: ['listener', 'app'] as const,
+    queryFn: () => tenantSession.client.get<ListenerAppRead>('/listener/app'),
+    staleTime: 5 * 60_000,
   });
 }
 

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { ListenerReleases, releaseOf, sizeInMegabytes } from '../src/lib/listener/release';
+import { ListenerReleases, sizeInMegabytes } from '../src/lib/listener/release';
 
+// What counts as a release is checked once, in @lytronix/validators (test/listener-release.spec.ts); here, how the
+// page asks for it.
 const BASE = 'https://download.lytro.app';
 const GOOD = {
   version: '1.2.3',
@@ -12,32 +14,6 @@ const GOOD = {
 function answering(body: unknown, status = 200): typeof fetch {
   return () => Promise.resolve(new Response(JSON.stringify(body), { status }));
 }
-
-describe('releaseOf', () => {
-  it('reads a release, the file always on the bucket', () => {
-    expect(releaseOf(GOOD, BASE)).toEqual({
-      version: '1.2.3',
-      url: `${BASE}/lytro-listener-1.2.3.apk`,
-      sha256: 'a'.repeat(64),
-      bytes: 9_000_000,
-    });
-  });
-
-  it.each([
-    ['another site', { ...GOOD, file: 'https://evil.example/app.apk' }],
-    ['a path out of the bucket', { ...GOOD, file: '../other/app.apk' }],
-    ['not an APK', { ...GOOD, file: 'lytro-listener.exe' }],
-    ['a short checksum', { ...GOOD, sha256: 'abc' }],
-    ['a checksum in capitals', { ...GOOD, sha256: 'A'.repeat(64) }],
-    ['a loose version', { ...GOOD, version: 'latest' }],
-    ['no size', { ...GOOD, bytes: 0 }],
-    ['a size in words', { ...GOOD, bytes: '9 MB' }],
-    ['nothing', null],
-    ['a list', []],
-  ])('refuses %s', (_name, body) => {
-    expect(releaseOf(body, BASE)).toBeNull();
-  });
-});
 
 describe('sizeInMegabytes', () => {
   it('rounds, and never says 0', () => {
