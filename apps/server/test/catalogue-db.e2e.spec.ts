@@ -245,7 +245,10 @@ describeIfDatabase(
     });
 
     it('refuses a fourth variant-defining attribute (ATL-03)', async () => {
-      const ids = await Promise.all(['Size', 'Color', 'Fabric', 'Material'].map(platformAttribute));
+      // One at a time: `admin` is one connection (test/support/one-query-per-connection.ts).
+      const ids: string[] = [];
+      for (const name of ['Size', 'Color', 'Fabric', 'Material'])
+        ids.push(await platformAttribute(name));
       await expect(
         asShop(shopA, async (query) => {
           const productId = await product(query, shopA, 'four-way');
