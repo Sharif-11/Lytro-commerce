@@ -9,7 +9,8 @@ export interface ListenerRelease {
   bytes: number;
 }
 
-const VERSION = /^\d+\.\d+\.\d+$/;
+// "1.2.3", or with one tag, as staging's copy is "1.0.0-staging" (its downloads bucket serves staging.lytro.app/listener).
+const VERSION = /^\d+\.\d+\.\d+(-[0-9A-Za-z]+)?$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const FILE = /^[A-Za-z0-9._-]+\.apk$/;
 const MEGABYTE = 1024 * 1024;
