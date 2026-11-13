@@ -195,10 +195,12 @@ export function GatewaySheet({
           setAccountId(event.target.value);
         }}
       />
+      {/* SEC-08 (Slice 9.7): the app key and secret are masked as typed, and no browser fills or keeps them. */}
       <Field
         label={t('pmGwKey')}
+        type="password"
         value={appKey}
-        autoComplete="off"
+        autoComplete="new-password"
         autoCapitalize="none"
         spellCheck={false}
         onChange={(event) => {
@@ -209,7 +211,7 @@ export function GatewaySheet({
         label={t('pmGwSecret')}
         type="password"
         value={appSecret}
-        autoComplete="off"
+        autoComplete="new-password"
         onChange={(event) => {
           setAppSecret(event.target.value);
         }}
