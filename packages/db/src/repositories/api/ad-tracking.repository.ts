@@ -1,5 +1,9 @@
 import { eq } from 'drizzle-orm';
-import { adTrackingSettings, type SelectAdTrackingSettings } from '../../schema';
+import {
+  adTrackingCredentialUses,
+  adTrackingSettings,
+  type SelectAdTrackingSettings,
+} from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 
 // LND-15 to LND-17: a shop's ad tracking, one row. Every method sets the shop's tenant context itself, so row-level
@@ -48,6 +52,29 @@ export class AdTrackingRepository {
     const row = rows[0];
     if (!row) throw new Error('upsert returned no ad tracking row');
     return row;
+  }
+
+  /** SEC-11 (Slice 9.7): one use of the shop's Conversions API token, never the token. */
+  async recordUse(
+    tx: Transaction,
+    values: {
+      tenantId: string;
+      action: string;
+      orderId: string | null;
+      succeeded: boolean;
+      at: Date;
+    },
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, values.tenantId);
+    await tx.insert(adTrackingCredentialUses).values(values);
+  }
+
+  /** LIF-19's day-60 deletion only: removing the token keeps its uses, which a dispute may still need. */
+  async deleteUses(tx: Transaction, tenantId: string): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .delete(adTrackingCredentialUses)
+      .where(eq(adTrackingCredentialUses.tenantId, tenantId));
   }
 
   /** LND-17 removal, and LIF-19's day-60 deletion. */

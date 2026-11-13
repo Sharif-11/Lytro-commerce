@@ -17,6 +17,14 @@ export const reportQuerySchema = z
   .superRefine(checkPeriod);
 export type ReportQuery = z.infer<typeof reportQuerySchema>;
 
+// GET /operator/tenants/:id/credential-uses.csv (SEC-11, Phase 9 Slice 9.7): one shop's credential uses over whole
+// Asia/Dhaka days, both given.
+export const credentialUsesExportQuerySchema = z
+  .object({ dateFrom: calendarDayField, dateTo: calendarDayField })
+  .strict()
+  .superRefine(checkPeriod);
+export type CredentialUsesExportQuery = z.infer<typeof credentialUsesExportQuerySchema>;
+
 // GET /operator/reports/consumers: the shops that used most of one thing in the period.
 export const consumersQuerySchema = z
   .object({

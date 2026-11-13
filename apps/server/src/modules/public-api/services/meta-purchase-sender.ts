@@ -57,11 +57,13 @@ export class MetaPurchaseSender {
       );
       this.logger.log(`credential used: ${use}: sent`);
     } catch (error) {
+      await this.adTracking.recordUse(job.tenantId, order.id, false);
       // The token travels in the request body only, so no error from the call can carry it.
       this.logger.warn(
         `credential used: ${use}: failed (${error instanceof Error ? error.message : 'error'})`,
       );
       throw error;
     }
+    await this.adTracking.recordUse(job.tenantId, order.id, true);
   }
 }

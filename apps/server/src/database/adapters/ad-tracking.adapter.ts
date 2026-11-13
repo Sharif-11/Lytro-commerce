@@ -43,6 +43,20 @@ export class DrizzleAdTrackingStore implements AdTrackingStore {
   delete(tx: Transaction, tenantId: string): Promise<void> {
     return this.settings.delete(tx, tenantId);
   }
+
+  recordUse(values: {
+    tenantId: string;
+    action: string;
+    orderId: string | null;
+    succeeded: boolean;
+    at: Date;
+  }): Promise<void> {
+    return this.run((tx) => this.settings.recordUse(tx, values));
+  }
+
+  deleteUses(tx: Transaction, tenantId: string): Promise<void> {
+    return this.settings.deleteUses(tx, tenantId);
+  }
 }
 
 @Injectable()

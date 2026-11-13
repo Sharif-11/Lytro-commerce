@@ -83,6 +83,9 @@ import { OperatorCourierAreasController } from './controllers/operator-courier-a
 import { OperatorLocationsController } from './controllers/operator-locations.controller';
 import { OperatorCourierRetiringController } from './controllers/operator-courier-retiring.controller';
 import { OperatorCouriersController } from './controllers/operator-couriers.controller';
+import { OperatorCredentialUsesController } from './controllers/operator-credential-uses.controller';
+import { DrizzleCredentialUseLog } from '../../database/adapters/credential-use-log.adapter';
+import { CREDENTIAL_USE_LOG, CredentialUseExport } from './services/credential-use-export';
 import { AddressReadsModule } from '../address-reads/address-reads.module';
 import { FraudChecksModule } from '../fraud-checks/fraud-checks.module';
 import { MediaCostsModule } from '../media-costs/media-costs.module';
@@ -270,6 +273,7 @@ import { NoticesModule } from '../notices/notices.module';
     OperatorNoticesController,
     OperatorDegradedModeController,
     OperatorCouriersController,
+    OperatorCredentialUsesController,
     OperatorCourierAreasController,
     OperatorLocationsController,
     OperatorCourierRetiringController,
@@ -282,6 +286,9 @@ import { NoticesModule } from '../notices/notices.module';
     HomeController,
   ],
   providers: [
+    // SEC-11 (Slice 9.7): a shop's credential uses as a CSV.
+    { provide: CREDENTIAL_USE_LOG, useClass: DrizzleCredentialUseLog },
+    CredentialUseExport,
     DegradedSwitch,
     OperatorShops,
     OperatorShopReads,

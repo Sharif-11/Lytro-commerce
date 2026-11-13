@@ -491,3 +491,51 @@ describeIfDatabase('a courier login that can no longer be opened (Slice 9.7)', (
     expect((after.body as { address: string }).address).not.toBe(before.address);
   });
 });
+
+// SEC-11 (Slice 9.7): a shop's every use of its stored credentials, couriers', gateways' and Meta's, as the operator's
+// CSV over whole Dhaka days: this shop's only, never a credential.
+describeIfDatabase("a shop's credential uses as a CSV (Slice 9.7)", () => {
+  it('lists its courier, gateway and Meta uses of the period, and none of another shop', async () => {
+    const shop = await steadfastShop();
+    const other = await steadfastShop();
+    await admin.query(
+      `INSERT INTO tenant.courier_credential_uses (tenant_id, courier_key, action, succeeded) VALUES ($1, 'steadfast', 'book', true)`,
+      [shop.tenantId],
+    );
+    await admin.query(
+      `INSERT INTO tenant.gateway_credential_uses (tenant_id, method, action, account_id, succeeded)
+       VALUES ($1, 'bkash', 'grant_token', $2, false)`,
+      [shop.tenantId, randomUUID()],
+    );
+    await admin.query(
+      `INSERT INTO tenant.ad_tracking_credential_uses (tenant_id, action, succeeded) VALUES ($1, 'purchase_sent', true), ($2, 'purchase_sent', true)`,
+      [shop.tenantId, other.tenantId],
+    );
+    const today = new Date(Date.now() + 6 * 60 * 60_000).toISOString().slice(0, 10);
+    const headers = await operatorHeaders();
+    const answer = await fetch(
+      `http://127.0.0.1:${String(port)}/api/v1/operator/tenants/${shop.tenantId}/credential-uses.csv?dateFrom=${today}&dateTo=${today}`,
+      { headers },
+    );
+    expect(answer.status).toBe(200);
+    expect(answer.headers.get('content-type')).toContain('text/csv');
+    const lines = (await answer.text()).trim().split('\n');
+    expect(lines[0]).toBe('time,credential,provider,action,reference,result');
+    const kinds = lines
+      .slice(1)
+      .map((line) => line.split(',').slice(1, 3).join(' '))
+      .sort();
+    // Connecting Steadfast checked its keys: a courier use of its own, besides the one written here.
+    expect(kinds.filter((kind) => kind === 'gateway bkash')).toHaveLength(1);
+    expect(kinds.filter((kind) => kind === 'meta meta')).toHaveLength(1);
+    expect(kinds.filter((kind) => kind === 'courier steadfast').length).toBeGreaterThanOrEqual(1);
+    expect(lines.some((line) => line.endsWith(',failed'))).toBe(true);
+
+    // A period that ends before it starts is refused.
+    const backwards = await fetch(
+      `http://127.0.0.1:${String(port)}/api/v1/operator/tenants/${shop.tenantId}/credential-uses.csv?dateFrom=${today}&dateTo=2020-01-01`,
+      { headers },
+    );
+    expect(backwards.status).toBe(400);
+  });
+});
