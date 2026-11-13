@@ -69,6 +69,14 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
+      # D9-4 (Slice 9.7): no high or critical advisory in the production dependencies, but those allowed with a reason and
+      # a date in .github/audit-allowlist.json. An audit that can't be read fails.
+      - name: Dependency audit
+        run: |
+          node --test .github/scripts/audit-gate.test.mjs
+          pnpm audit --prod --json > audit.json || true
+          node .github/scripts/audit-gate.mjs audit.json
+
   unit:
     name: Unit and server tests
     needs: scope
