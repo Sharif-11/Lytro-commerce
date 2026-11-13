@@ -135,6 +135,35 @@ jobs:
       - name: Every host answers
         run: CHECK_ADDRESS=127.0.0.1 CHECK_INSECURE=1 bash deploy/scripts/outside-check.sh localhost
 
+      # Slice 9.7 (SEC-10, D9-8): the sealing key in its own file, root's alone, never in server.env; the API process,
+      # which needs it to start in production, runs as node (uid 1000), and node can't read the file.
+      - name: The sealing key is root's alone
+        run: |
+          test "$(sudo stat -c '%U:%G %a' "$LYTRO_HOME/env/data-encryption.key")" = 'root:root 600'
+          if sudo grep -q '^DATA_ENCRYPTION_KEY=' "$LYTRO_HOME/env/server.env"; then
+            echo 'the key is still in server.env'; exit 1
+          fi
+          sudo docker top lytro-api-1-1 -o uid,args | tee top.txt
+          grep 'node dist/main.js' top.txt | grep -v docker-init | grep -E '^ *1000 '
+          if sudo docker exec -u node lytro-api-1-1 cat /run/secrets/data_encryption_key > /dev/null 2>&1; then
+            echo 'the server user can read the key file'; exit 1
+          fi
+
+      # A server set up before Slice 9.7 kept the key in server.env: running make-env.sh again moves it, unchanged.
+      - name: An older server's key moves to its own file
+        run: |
+          key="$(sudo cat "$LYTRO_HOME/env/data-encryption.key")"
+          sudo rm "$LYTRO_HOME/env/data-encryption.key"
+          echo "DATA_ENCRYPTION_KEY=$key" | sudo tee -a "$LYTRO_HOME/env/server.env" > /dev/null
+          sudo LYTRO_HOME="$LYTRO_HOME" PLATFORM_DOMAIN=localhost PLATFORM_ADDRESSES=127.0.0.1 \
+            ACME_EMAIL=rehearsal@example.com ROBOTS=robots_noindex bash deploy/scripts/make-env.sh | tee make-env.log
+          grep 'moved DATA_ENCRYPTION_KEY out of server.env' make-env.log
+          test "$(sudo cat "$LYTRO_HOME/env/data-encryption.key")" = "$key"
+          test "$(sudo stat -c '%U:%G %a' "$LYTRO_HOME/env/data-encryption.key")" = 'root:root 600'
+          if sudo grep -q '^DATA_ENCRYPTION_KEY=' "$LYTRO_HOME/env/server.env"; then
+            echo 'the key is still in server.env'; exit 1
+          fi
+
       # Slice 9.2 (D9-13, DAT-23, DAT-45): through PgBouncer, the API's role runs under the 5-second transaction limit and
       # the 10-second statement limit, and the read role can read but never write.
       - name: The pooler holds its limits and the read role only reads

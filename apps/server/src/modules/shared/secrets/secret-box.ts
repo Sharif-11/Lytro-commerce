@@ -84,6 +84,15 @@ export class SecretBox {
     ]);
   }
 
+  /** SEC-10 (Slice 9.7): whether the current key sealed this value, so a re-seal leaves it be. */
+  sealedWithCurrent(sealed: Buffer): boolean {
+    return (
+      sealed.length >= HEADER_BYTES &&
+      sealed[0] === FORMAT &&
+      sealed.subarray(1, 1 + FINGERPRINT_BYTES).equals(fingerprintOf(this.current))
+    );
+  }
+
   open(sealed: Buffer, purpose: SecretPurpose, tenantId: string): string {
     if (sealed.length < HEADER_BYTES || sealed[0] !== FORMAT) throw new SecretUnreadable();
     const key = this.keys.get(sealed.subarray(1, 1 + FINGERPRINT_BYTES).toString('hex'));

@@ -158,6 +158,26 @@ add_missing backup.env BACKUP_PITR_ENCRYPTION_KEY "$ARCHIVE_KEY"
 add_missing backup.env BACKUP_DUMP_RECIPIENT ''
 
 vapid
+
+# SEC-10, D9-8 (Slice 9.7): the sealing key in a file only root reads, which compose hands to the server's processes
+# (deploy/server/entrypoint.sh). Copy it into a password manager. A server set up before kept it in server.env: it moves
+# here unchanged, and leaves server.env.
+KEY_FILE="$ENV_DIR/data-encryption.key"
+if [ ! -e "$KEY_FILE" ]; then
+  key="$(existing server.env DATA_ENCRYPTION_KEY)"
+  (
+    umask 077
+    printf '%s\n' "${key:-$(openssl rand -base64 32)}" > "$KEY_FILE"
+  )
+  chown root:root "$KEY_FILE"
+  chmod 600 "$KEY_FILE"
+  echo "wrote data-encryption.key"
+fi
+if [ -e "$ENV_DIR/server.env" ] && grep -q '^DATA_ENCRYPTION_KEY=' "$ENV_DIR/server.env"; then
+  sed -i '/^DATA_ENCRYPTION_KEY=/d' "$ENV_DIR/server.env"
+  echo "moved DATA_ENCRYPTION_KEY out of server.env"
+fi
+
 write server.env <<EOF
 # The server's settings (deploy/README.md, step 4). Three groups: made here, required, and optional.
 

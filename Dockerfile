@@ -54,7 +54,10 @@ ENV NODE_ENV=production \
     FONTCONFIG_FILE=/app/assets/fonts/fonts.conf
 WORKDIR /app
 COPY --from=build --chown=node:node /out/server /app
-USER node
+# SEC-10, D9-8 (Slice 9.7): started as root only to read the sealing key's root-only file, then run as `node`
+# (deploy/server/entrypoint.sh).
+COPY --chmod=755 deploy/server/entrypoint.sh /usr/local/bin/lytro-server-entrypoint
+ENTRYPOINT ["lytro-server-entrypoint"]
 EXPOSE 3000
 # Liveness only (D9-21's ready check comes in Slice 9.2). The slim image has no curl.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=60s --retries=3 \

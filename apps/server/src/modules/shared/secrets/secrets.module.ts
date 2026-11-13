@@ -6,11 +6,11 @@ import { SecretBox, type SecretBoxKeys } from './secret-box';
 import { SECRET_BOX_KEYS } from './tokens';
 
 /**
- * SEC-10: the keys from the environment, which on real servers a secrets manager sets (env.ts requires the current
- * one in production). Outside production, with none set, a key made at start-up and gone at the next: values sealed
- * with it do not outlive the process.
+ * SEC-10: the keys from the environment, where a server's entrypoint puts them from its root-only key file (D9-8,
+ * Slice 9.7; env.ts requires the current one in production). Outside production, with none set, a key made at start-up
+ * and gone at the next: values sealed with it do not outlive the process.
  */
-function keysOf(env: Env): SecretBoxKeys {
+export function keysOf(env: Env): SecretBoxKeys {
   const current = env.DATA_ENCRYPTION_KEY;
   const previous = env.DATA_ENCRYPTION_PREVIOUS_KEY;
   if (current) {

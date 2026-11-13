@@ -132,26 +132,47 @@ are its row in `control.media_bandwidth` (Slice 7b).
 
 ---
 
-## 3. The credential sealing key: `DATA_ENCRYPTION_KEY` (SEC-01, SEC-10)
+## 3. The credential sealing key: `DATA_ENCRYPTION_KEY` (SEC-01, SEC-10, D9-8)
 
-**What this is:** the key the server seals stored credentials with -- a shop's Meta Conversions API token and its
-catalog feed link today, courier and gateway credentials from Phases 5-6. Each sealed value names the key that
-sealed it (a 4-byte fingerprint), so a second key can be brought in while the first is retired.
+**What this is:** the key the server seals stored credentials with: a shop's Meta Conversions API token, catalogue feed
+link and storefront key, its courier logins and message tokens, its wallet's gateway login, and Lytro's own gateway
+login. Each sealed value names the key that sealed it (a 4-byte fingerprint), so a second key can be brought in while
+the first is retired.
 
-- **Where it lives:** set from a secrets manager on real servers, as the application's own runtime secret, never in
-  a file in the repository or a build artifact (SEC-10). The server refuses to start in production without it.
-  Outside production, left unset, the server makes a key at start-up that is gone at the next: sealed values do not
-  outlive the process there, and a feed link made with it must be made again.
+- **Where it lives (D9-8, Slice 9.7):** in `/opt/lytro/env/data-encryption.key`, a file only root reads
+  (`root:root 600`), never in `server.env`, the repository or an image. Compose hands it to the API processes and the
+  worker; their start (`deploy/server/entrypoint.sh`) reads it as root, then the server runs as `node`, which can't
+  read the file. An offline copy stays in the owner's password manager. The server refuses to start in production
+  without it. Outside production, left unset, the server makes a key at start-up that is gone at the next.
+- **A server set up before Slice 9.7** kept it in `server.env`: run `deploy/scripts/make-env.sh` again, which moves it
+  into the file unchanged. A deploy stops at its start until the file exists.
+- **Rolling back past Slice 9.7** (deploying a release from before it): that release reads the key from `server.env`,
+  never from the file. Copy the file's first line back into `server.env` as `DATA_ENCRYPTION_KEY=...` first (record
+  it below), then deploy it; take the line out again when 9.7 or later is deployed. Until 9.7's deploy has replaced the
+  processes, nothing may recreate them from an older release's files either: they would start without the key.
+- **Reading the file is a break-glass action.** Nobody opens it in the normal run of things. Whoever does writes a line
+  in the table below first: the date, who, and why. A copy for the password manager is made once, when the server is
+  set up, and recorded here too.
+
+  | Date (UTC) | Who | Why |
+  | ---------- | --- | --- |
+
 - **Make one:** `openssl rand -base64 32`.
-- **Rotate it** (once a year, or at once if it may have leaked):
-  1. Set `DATA_ENCRYPTION_PREVIOUS_KEY` to the current key, and `DATA_ENCRYPTION_KEY` to a new one. Restart.
-     New values are sealed with the new key; values sealed with the old one still open.
-  2. Have each value sealed again: a shop's feed link by `POST /catalog-feed/regenerate`, a Conversions API token by
-     entering it again. There is no job that does this for every shop yet (KNOWN-GAPS §81).
-  3. Once no value names the old key, unset `DATA_ENCRYPTION_PREVIOUS_KEY` and restart.
-- **If a key is lost:** values sealed with it cannot be opened. The dashboard answers "make a new link" for the
-  feed (the old link keeps working for Meta, found by its hash, until the shop makes a new one), and the token must
-  be entered again.
+- **Change it** (once a year, or at once if it may have leaked):
+  1. Write the new key on the file's first line and the current one on its second
+     (`sudo nano /opt/lytro/env/data-encryption.key`), and record it in the table above. Deploy (or restart the API
+     processes and the worker). New values are sealed with the new key; values sealed with the old one still open.
+  2. Seal every stored value again with the new key:
+     `cd /opt/lytro/state/current`, then
+     `set -a; . /opt/lytro/settings.env; . /opt/lytro/state/release.env; set +a`, then
+     `sudo -E docker compose run --rm --no-deps worker node dist/reseal.js`. It prints, for each column, how many it
+     sealed again and how many were current already, and is safe to run again. It exits 3 and names each value neither
+     key opens (by its column and its shop): that shop enters the value again.
+  3. Once it reports nothing sealed with the old key, delete the file's second line and deploy again. Update the
+     password manager's copy.
+- **If a key is lost:** values sealed with it can't be opened. A courier login then shows as needing the login again,
+  the feed answers "make a new link" (the old link keeps working for Meta, found by its hash, until the shop makes a new
+  one), and the Conversions API token and gateway logins must be entered again. Nothing fails a list or a page.
 
 ## 4. Is the per-visitor limit refusing real shoppers? (RTE-06)
 
