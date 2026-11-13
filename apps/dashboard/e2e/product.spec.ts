@@ -191,6 +191,7 @@ test('picks categories: ticks, the primary, none, and a new one made in a step o
     parentId: 'c-tshirts',
     visible: true,
     behavesLike: null,
+    imageId: null,
   });
   await sheet(page).getByRole('button', { name: 'Done' }).click();
   await save(page).click();
