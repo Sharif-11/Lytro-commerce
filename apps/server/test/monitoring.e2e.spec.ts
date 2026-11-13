@@ -2,17 +2,17 @@ import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { JobHeartbeatRepository, type PreparedDatabase } from '@lytronix/db';
+import { CapacityRepository, JobHeartbeatRepository, type PreparedDatabase } from '@lytronix/db';
 import { EnvironmentParser } from '../src/config/env';
 import { DrizzleMonitoringDatabase } from '../src/database/adapters/monitoring.adapter';
 import { DatabaseService } from '../src/database/database.service';
 import { JobHeartbeats } from '../src/modules/monitoring/services/job-heartbeats';
 import { JobsCheck } from '../src/modules/monitoring/services/jobs-check';
 import { PgBossClient } from '../src/modules/shared/queue/services/pg-boss-client';
-import { prepareTestDatabase } from './support/database';
+import { prepareTestDatabase, seedShop } from './support/database';
 
 // OBS-02 (Slice 9.6): a scheduled job's pass records its heartbeat as the app's role, and the jobs' check reads
-// pg-boss's own schedule against it, on a migrated database.
+// pg-boss's own schedule against it, on a migrated database. DAT-55: the second server's figures, as the app reads them.
 const ADMIN = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_monitoring_test';
 const describeIfDatabase = ADMIN ? describe : describe.skip;
@@ -35,7 +35,11 @@ beforeAll(async () => {
       OTP_SECRET: 'monitoring-e2e-otp-secret-0123456789abcdef',
     }),
   );
-  monitoring = new DrizzleMonitoringDatabase(database, new JobHeartbeatRepository());
+  monitoring = new DrizzleMonitoringDatabase(
+    database,
+    new JobHeartbeatRepository(),
+    new CapacityRepository(),
+  );
   admin = new pg.Client({ connectionString: urls.adminDbUrl });
   await admin.connect();
   ready = true;
@@ -109,4 +113,37 @@ describeIfDatabase('job heartbeats and the jobs check (Slice 9.6)', () => {
     expect((await monitoring.archive()).mode).toBe('off');
     expect((await check.report()).overdue.filter((name) => name.startsWith('backup:'))).toEqual([]);
   }, 40_000);
+
+  it('counts the shops in a paid period and their plans’ revenue a month (DAT-55)', async () => {
+    const before = await monitoring.capacityFigures();
+    // A plan sold for 3 months at 1,500 TK: 500 TK a month.
+    const term = await admin.query<{ id: string }>(
+      `INSERT INTO control.billing_terms (label_bn, label_en, months, visible, display_order)
+       VALUES ('৩ মাস', '3 months', 3, false, 99) RETURNING id`,
+    );
+    const plan = await admin.query<{ id: string }>(
+      'SELECT id FROM control.plans ORDER BY created_at LIMIT 1',
+    );
+    const termId = term.rows[0]?.id;
+    const planId = plan.rows[0]?.id;
+    await admin.query(
+      'INSERT INTO control.plan_prices (plan_id, billing_term_id, price) VALUES ($1, $2, 1500)',
+      [planId, termId],
+    );
+    const tag = randomUUID().slice(0, 8);
+    const paying = await seedShop(admin, 'Paying shop', `cap-paying-${tag}`);
+    await admin.query(
+      'UPDATE control.tenants SET plan_id = $2, billing_term_id = $3 WHERE id = $1',
+      [paying, planId, termId],
+    );
+    // Given its plan by the operator, with no term: paying, but adds no revenue.
+    await seedShop(admin, 'Assigned shop', `cap-assigned-${tag}`);
+    // Neither a trial nor a lapsed shop pays.
+    await seedShop(admin, 'Trial shop', `cap-trial-${tag}`, 'trial');
+    await seedShop(admin, 'Lapsed shop', `cap-grace-${tag}`, 'grace');
+
+    const after = await monitoring.capacityFigures();
+    expect(after.payingShops - before.payingShops).toBe(2);
+    expect(after.monthlyRevenue - before.monthlyRevenue).toBeCloseTo(500, 2);
+  });
 });

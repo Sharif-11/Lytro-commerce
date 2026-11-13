@@ -1,4 +1,4 @@
-import type { ArchiveState, ScheduledJobBeat } from '@lytronix/db';
+import type { ArchiveState, CapacityFigures, ScheduledJobBeat } from '@lytronix/db';
 
 /** The job heartbeats' table (migration 0134), pg-boss's schedule and the archive's state (Slice 9.6). */
 export interface MonitoringDatabase {
@@ -8,4 +8,6 @@ export interface MonitoringDatabase {
   scheduledJobs(): Promise<ScheduledJobBeat[]>;
   /** Read on the primary. */
   archive(): Promise<ArchiveState>;
+  /** DAT-55: paying shops and their plans' revenue a month. */
+  capacityFigures(): Promise<CapacityFigures>;
 }

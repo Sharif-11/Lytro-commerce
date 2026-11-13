@@ -200,6 +200,10 @@ export {
   type ScheduledJobBeat,
 } from './repositories/platform/job-heartbeat.repository';
 export {
+  CapacityRepository,
+  type CapacityFigures,
+} from './repositories/platform/capacity.repository';
+export {
   LytroPaymentMethodsRepository,
   type NewPlatformBankAccount,
 } from './repositories/billing/lytro-payment-methods.repository';

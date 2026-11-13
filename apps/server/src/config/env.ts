@@ -155,6 +155,9 @@ const envSchema = z.object({
   // window (days). Same reasoning as SIGNUP_RATE_LIMIT_PER_IP above -- nearly every e2e test calls POST
   // /shops more than once from the same loopback IP, so only production defaults to the strict SRS value.
   TRIAL_LIMIT_PER_IDENTITY: z.coerce.number().int().positive().optional(),
+  // DAT-55 (Slice 9.6): what a second server would cost a month, in taka. Unset, revenue never says it's time for one;
+  // the paying shops' count still does.
+  SECOND_SERVER_MONTHLY_TAKA: z.coerce.number().positive().optional(),
   TRIAL_LIMIT_PER_IP: z.coerce.number().int().positive().optional(),
   TRIAL_LIMIT_WINDOW_DAYS: z.coerce.number().int().positive().optional(),
   // Connection pool (ENGINEERING-STANDARDS §5). Defaults suit one server; size the total for each deployment.

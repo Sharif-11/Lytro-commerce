@@ -210,6 +210,9 @@ GEMINI_API_KEY=
 # Where the payment listener app downloads from, for the dashboard's download button (built-in:
 # https://download.lytro.app). Set it as website.env's is.
 # LISTENER_DOWNLOAD_URL=
+# DAT-55 (Slice 9.6): what a second server would cost a month, in taka; the operators are told when the plans bring in
+# over 4 times it. Unset, only the paying shops' count (30) tells them.
+# SECOND_SERVER_MONTHLY_TAKA=
 
 # Tuning: the built-in values are right; listed so nothing is hidden. Unset means the built-in value.
 # DATABASE_POOL_MAX=5

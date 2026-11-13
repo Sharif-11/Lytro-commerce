@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { JobHeartbeatRepository, type ArchiveState, type ScheduledJobBeat } from '@lytronix/db';
+import {
+  CapacityRepository,
+  JobHeartbeatRepository,
+  type ArchiveState,
+  type CapacityFigures,
+  type ScheduledJobBeat,
+} from '@lytronix/db';
 import type { MonitoringDatabase } from '../../modules/monitoring/ports/monitoring-database';
 import { DatabaseService } from '../database.service';
 
@@ -9,6 +15,7 @@ export class DrizzleMonitoringDatabase implements MonitoringDatabase {
   constructor(
     @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
     @Inject(JobHeartbeatRepository) private readonly heartbeats: JobHeartbeatRepository,
+    @Inject(CapacityRepository) private readonly capacity: CapacityRepository,
   ) {}
 
   private get db() {
@@ -29,5 +36,9 @@ export class DrizzleMonitoringDatabase implements MonitoringDatabase {
 
   archive(): Promise<ArchiveState> {
     return this.heartbeats.archive(this.db);
+  }
+
+  capacityFigures(): Promise<CapacityFigures> {
+    return this.capacity.figures(this.db);
   }
 }

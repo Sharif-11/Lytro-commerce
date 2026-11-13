@@ -626,6 +626,8 @@ export enum QueueName {
   ReconciliationTick = 'reconciliation_tick',
   // DAT-51, D9-16 (Phase 9 Slice 9.5): each night, the raw courier messages and gateway answers past their days removed.
   RawMessagePurgeTick = 'raw_message_purge_tick',
+  // DAT-55 (Phase 9 Slice 9.6): each morning, whether paying shops or revenue say it's time for a second server.
+  CapacityTick = 'capacity_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
