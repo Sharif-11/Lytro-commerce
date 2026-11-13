@@ -181,8 +181,13 @@ export class EveryKind {
        VALUES ($1, 'purchase', 899), ($1, 'top_up', 500)`,
       [tenantId],
     );
+    // With a line: the invoice list reads its lines' kinds too.
     await admin.query(
-      `INSERT INTO control.invoices (tenant_id, number, kind, amount) VALUES ($1, $2, 'top_up', 500)`,
+      `WITH invoice AS (
+         INSERT INTO control.invoices (tenant_id, number, kind, amount) VALUES ($1, $2, 'top_up', 500) RETURNING id
+       )
+       INSERT INTO control.invoice_lines (invoice_id, position, kind, description, amount)
+       SELECT id, 1, 'top_up', 'Balance top-up', 500 FROM invoice`,
       [tenantId, 9_000_000 + Math.floor(Math.random() * 900_000)],
     );
     // The seat carries its add-on's limit and size, as buying one copies them: every read of the shop's limits sums them.
