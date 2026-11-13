@@ -1,0 +1,10 @@
+# Sourced by the backup scripts (Slice 9.3): psql, pg_dump and WAL-G connect with the PG* variables, taken from the
+# database's own settings (postgres.env) when they aren't set. In the backup service the database is the `postgres`
+# host on the compose network; in the database container itself, its local socket.
+export PGUSER="${PGUSER:-${POSTGRES_USER:-postgres}}"
+export PGDATABASE="${PGDATABASE:-${POSTGRES_DB:-$PGUSER}}"
+if [ -z "${PGPASSWORD:-}" ] && [ -n "${POSTGRES_PASSWORD:-}" ]; then
+  export PGPASSWORD="$POSTGRES_PASSWORD"
+fi
+export PGDATA="${PGDATA:-/var/lib/postgresql/data}"
+export BACKUP_WORK_DIR="${BACKUP_WORK_DIR:-/var/lib/lytro-backup}"

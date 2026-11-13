@@ -132,6 +132,51 @@ jobs:
           cache-from: type=gha,scope=edge
           cache-to: type=gha,scope=edge,mode=max
 
+      # The API's pooler (Slice 9.2), tagged by what goes into it as the edge is. deploy.sh computes the same tag.
+      - name: Is the pooler image built already?
+        id: pgbouncer
+        run: |
+          tag="$(sh deploy/pgbouncer/image-tag.sh)"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if docker buildx imagetools inspect "${{ steps.names.outputs.registry }}/lytro-pgbouncer:$tag" > /dev/null 2>&1; then
+            echo "built=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "built=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Pooler
+        if: steps.pgbouncer.outputs.built != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/pgbouncer/Dockerfile
+          tags: ${{ steps.names.outputs.registry }}/lytro-pgbouncer:${{ steps.pgbouncer.outputs.tag }}
+          push: true
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      # The database with WAL-G and the backup scripts (Slice 9.3), tagged by what goes into it. deploy.sh computes the
+      # same tag.
+      - name: Is the database image built already?
+        id: database
+        run: |
+          tag="$(sh deploy/database/image-tag.sh)"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if docker buildx imagetools inspect "${{ steps.names.outputs.registry }}/lytro-database:$tag" > /dev/null 2>&1; then
+            echo "built=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "built=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Database
+        if: steps.database.outputs.built != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/database/Dockerfile
+          tags: ${{ steps.names.outputs.registry }}/lytro-database:${{ steps.database.outputs.tag }}
+          push: true
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
   deploy-staging:
     needs: images
     if: github.event_name == 'push' && vars.DEPLOY_ENABLED == 'true'

@@ -25,7 +25,7 @@ export class RequestErrorPurgeTickWorker implements OnModuleInit {
       {},
       { tz: REQUEST_ERROR_PURGE_TZ },
     );
-    await this.pgBoss.boss.work(QueueName.RequestErrorPurgeTick, async () => {
+    await this.pgBoss.workOnce(QueueName.RequestErrorPurgeTick, async () => {
       const removed = await this.errors.purge(new Date());
       if (removed > 0) this.logger.log(`server fault clean-up: ${String(removed)} removed`);
     });

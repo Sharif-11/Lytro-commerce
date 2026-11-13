@@ -2,11 +2,14 @@ import 'dotenv/config';
 import pg from 'pg';
 import { QueueBootstrapper } from './bootstrap-queue';
 import { MigrationRunner } from './migrate';
+import { READ_ROLE } from './read-role';
 
 /** The application's own role (D25): it logs in, and is never a superuser nor past row-level security. */
 const TEST_APP_ROLE = 'lytronix_app';
 /** Its password on a test or local database only; a deployment sets its own. */
 const TEST_APP_PASSWORD = 'lytronix_app_local_only';
+/** The read pool's role (D9-13): SELECT only, read-only by default; its grants follow the application role's. */
+const TEST_READ_PASSWORD = 'lytronix_read_local_only';
 
 /** A connection URL pointed at another database, and as another user when given one. */
 function withDatabase(url: string, database: string, user?: string, password?: string): string {
@@ -17,10 +20,14 @@ function withDatabase(url: string, database: string, user?: string, password?: s
   return parsed.toString();
 }
 
-/** A prepared database's two addresses: the admin's, which bypasses row-level security, and the application's. */
+/**
+ * A prepared database's addresses: the admin's, which bypasses row-level security, the application's, and the read
+ * pool's (D9-13).
+ */
 export interface PreparedDatabase {
   adminDbUrl: string;
   appDbUrl: string;
+  readDbUrl: string;
 }
 
 /**
@@ -39,6 +46,10 @@ export class TestDatabasePreparer {
           IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${TEST_APP_ROLE}') THEN
             CREATE ROLE ${TEST_APP_ROLE} LOGIN PASSWORD '${TEST_APP_PASSWORD}' NOSUPERUSER NOBYPASSRLS;
           END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${READ_ROLE}') THEN
+            CREATE ROLE ${READ_ROLE} LOGIN PASSWORD '${TEST_READ_PASSWORD}' NOSUPERUSER NOBYPASSRLS;
+          END IF;
+          ALTER ROLE ${READ_ROLE} SET default_transaction_read_only = on;
         -- Suites start side by side: another can make the role between this one's look and its make.
         EXCEPTION WHEN duplicate_object OR unique_violation THEN NULL;
         END $$`);
@@ -54,6 +65,7 @@ export class TestDatabasePreparer {
     return {
       adminDbUrl,
       appDbUrl: withDatabase(adminUrl, database, TEST_APP_ROLE, TEST_APP_PASSWORD),
+      readDbUrl: withDatabase(adminUrl, database, READ_ROLE, TEST_READ_PASSWORD),
     };
   }
 }

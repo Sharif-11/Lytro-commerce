@@ -6,7 +6,10 @@
 #   api-1/2     the API, two processes replaced one at a time (D9-11, D9-12)
 #   worker      every job (D9-11), never routed to
 #   website     the marketing site        storefront  every shop's storefront
-#   postgres    the database              redis       for Slice 9.4's limits; nothing uses it yet (D9-1)
+#   postgres    the database (17), sending its write-ahead log to R2 when backups are set up (Slice 9.3)
+#   backup      the nightly backups at 05:30 Dhaka: the encrypted dump, then the base backup (Slice 9.3, D9-18)
+#   redis       the shared limits and gateway tokens (Slice 9.4, D9-1, D9-15), password-protected, nothing kept
+#   pgbouncer   the API's pooler (Slice 9.2, D9-13): the worker and the migrations connect to postgres directly
 #   migrate     one-off: migrations, then pg-boss's schema, as the owner (deploy.sh, after a dump)
 #   static      one-off: publishes a release's dashboard and console files into the edge's volume
 #
@@ -31,6 +34,15 @@ x-server: &server
 
 x-api: &api
   <<: *server
+  # server-api.env over server.env: the API reaches the database through PgBouncer, which sets its limits (DAT-23).
+  env_file:
+    - ${LYTRO_HOME:-/opt/lytro}/env/server.env
+    - ${LYTRO_HOME:-/opt/lytro}/env/server-api.env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    pgbouncer:
+      condition: service_healthy
   mem_limit: ${API_MEMORY:-384m}
   environment: &api-environment
     SERVER_ROLE: api
@@ -74,6 +86,9 @@ services:
       NODE_OPTIONS: --max-old-space-size=${WORKER_HEAP_MB:-320}
       # Video conversion writes its files here (media-processor); a folder in the container, kept off the image.
       TMPDIR: /tmp
+      # Straight to postgres, so it sets its own limits: a background job (a shop's deletion, a night's purge) may hold a
+      # transaction longer than the API's 5 s, never without end (DAT-23; the API's are PgBouncer's).
+      DATABASE_TRANSACTION_TIMEOUT_MS: ${WORKER_TRANSACTION_TIMEOUT_MS:-60000}
 
   website:
     image: ${REGISTRY:?}/lytro-website:${RELEASE:?}
@@ -101,9 +116,14 @@ services:
     logging: *logging
 
   postgres:
-    image: postgres:16
+    # 17 for transaction_timeout, DAT-23's whole-transaction limit (Slice 9.2's read), with WAL-G and the backup scripts
+    # (deploy/database, Slice 9.3), tagged by what goes into it as the pooler's image is.
+    image: ${REGISTRY:?}/lytro-database:${DATABASE_TAG:?}
     restart: unless-stopped
-    env_file: ${LYTRO_HOME:-/opt/lytro}/env/postgres.env
+    # backup.env: the archive's key, for archive_command. The app's containers never get it (DAT-28).
+    env_file:
+      - ${LYTRO_HOME:-/opt/lytro}/env/postgres.env
+      - ${LYTRO_HOME:-/opt/lytro}/env/backup.env
     command:
       - postgres
       - -c
@@ -118,6 +138,14 @@ services:
       - max_connections=${PG_MAX_CONNECTIONS:-60}
       - -c
       - log_min_duration_statement=1000
+      # Point-in-time recovery (DAT-34): every finished write-ahead-log file to R2, at least each minute. deploy.sh
+      # sets PG_ARCHIVE_MODE=on once backup.env holds the archive's settings, off before (CI's rehearsal).
+      - -c
+      - archive_mode=${PG_ARCHIVE_MODE:-off}
+      - -c
+      - archive_command=lytro-archive %p
+      - -c
+      - archive_timeout=60
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgres:/docker-entrypoint-initdb.d:ro
@@ -132,22 +160,65 @@ services:
     networks: [internal]
     logging: *logging
 
+  pgbouncer:
+    image: ${REGISTRY:?}/lytro-pgbouncer:${PGBOUNCER_TAG:?}
+    restart: unless-stopped
+    env_file: ${LYTRO_HOME:-/opt/lytro}/env/pgbouncer.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+    mem_limit: ${PGBOUNCER_MEMORY:-48m}
+    logging: *logging
+
+  # The nightly backups (Slice 9.3, D9-18): lytro-scheduler runs lytro-nightly at 23:30 UTC, 05:30 in Dhaka (the owner's
+  # time), and at once if the last good night is over 26 hours old. It reads the database's files read-only for the
+  # base backup and connects as the owner for the dump; it holds both backup keys and the database's owner password,
+  # and nothing routes to it. Without backup settings it only waits.
+  backup:
+    image: ${REGISTRY:?}/lytro-database:${DATABASE_TAG:?}
+    restart: unless-stopped
+    user: postgres
+    command: ['lytro-scheduler']
+    env_file:
+      - ${LYTRO_HOME:-/opt/lytro}/env/postgres.env
+      - ${LYTRO_HOME:-/opt/lytro}/env/backup.env
+    environment:
+      PGHOST: postgres
+      BACKUP_AT_UTC: ${BACKUP_AT_UTC:-23:30}
+      # WAL-G is a Go program: kept under the container's ceiling.
+      GOMEMLIMIT: ${BACKUP_GOMEMLIMIT:-200MiB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data:ro
+      - backup-work:/var/lib/lytro-backup
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+    mem_limit: ${BACKUP_MEMORY:-320m}
+    logging: *logging
+
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
-    # Limits and counters only (Slice 9.4): nothing in it has to survive a restart.
+    # Limits, leases' companions and shared tokens only (Slice 9.4): nothing in it has to survive a restart, and every
+    # key Lytro writes expires. Hardened as RED-01 says (D9-1): a password (given on standard input, never on a command
+    # line a process list shows), the commands that wipe or reconfigure it switched off, no persistence, and eviction
+    # only among keys with an expiry. REDIS_MAXMEMORY in settings.env: 64mb on staging, 256mb in production.
+    env_file: ${LYTRO_HOME:-/opt/lytro}/env/redis.env
     command:
-      [
-        'redis-server',
-        '--save',
-        '',
-        '--appendonly',
-        'no',
-        '--maxmemory',
-        '64mb',
-        '--maxmemory-policy',
-        'allkeys-lru',
-      ]
+      - sh
+      - -c
+      - >-
+        printf 'requirepass %s\n' "$$REDIS_PASSWORD" |
+        exec redis-server - --save '' --appendonly no --maxmemory ${REDIS_MAXMEMORY:-64mb}
+        --maxmemory-policy volatile-lru --rename-command FLUSHALL '' --rename-command FLUSHDB ''
+        --rename-command CONFIG '' --rename-command DEBUG '' --rename-command KEYS '' --rename-command SHUTDOWN ''
+    healthcheck:
+      test: ['CMD-SHELL', 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 20
     networks: [internal]
     mem_limit: ${REDIS_MEMORY:-96m}
     logging: *logging
@@ -178,6 +249,7 @@ networks:
 
 volumes:
   pgdata:
+  backup-work:
   caddy-data:
   caddy-config:
   static:

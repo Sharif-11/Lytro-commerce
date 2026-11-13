@@ -30,7 +30,7 @@ export class MediaReconcileTickWorker implements OnModuleInit {
         tz: RECONCILE_TZ,
       },
     );
-    await this.pgBoss.boss.work(QueueName.MediaReconcileTick, async () => {
+    await this.pgBoss.workOnce(QueueName.MediaReconcileTick, async () => {
       const result = await this.reconciler.runNightly();
       this.logger.log(
         `media run: ${String(result.shops)} shops, ${String(result.differing)} differing, ` +

@@ -34,7 +34,7 @@ export class LifecycleTickWorker implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     await this.pgBoss.boss.createQueue(QueueName.LifecycleTick);
     await this.pgBoss.boss.schedule(QueueName.LifecycleTick, LIFECYCLE_TICK_CRON, {});
-    await this.pgBoss.boss.work(QueueName.LifecycleTick, async () => {
+    await this.pgBoss.workOnce(QueueName.LifecycleTick, async () => {
       const now = new Date();
       await this.trials.convertExpiredTrials();
       await this.downgrade.applyDueChanges(now);

@@ -31,7 +31,8 @@
 	lb_try_duration 10s
 	lb_try_interval 250ms
 	fail_duration 10s
-	health_uri /health
+	# Slice 9.2 (D9-21): the ready check, so a process whose write pool reaches a standby, or nothing at all, is skipped.
+	health_uri /health/ready
 	health_interval 5s
 	health_timeout 3s
 }

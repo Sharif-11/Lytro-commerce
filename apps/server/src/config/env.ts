@@ -161,6 +161,22 @@ const envSchema = z.object({
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(5),
   DATABASE_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
   DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
+  // D9-13, DAT-45: the read pool, as the read-only role (SELECT only, read-only transactions). Code marks a read for it
+  // explicitly; everything else writes. Unset (a developer's database), reads go through the write pool.
+  DATABASE_READ_URL: z.string().min(1).optional(),
+  // Slice 9.4 (D9-1, D9-15, RED-01 to RED-05): the shared Redis that keeps every API copy's limits in one count
+  // (redis://:<password>@redis:6379). Without it each process counts alone, which is right for one process (a
+  // developer's machine, the tests); the servers always set it.
+  REDIS_URL: z.string().min(1).optional(),
+  // Slice 9.2 (D9-13, DAT-23): the API reaches the database through PgBouncer, which sets the statement and transaction
+  // limits on every connection it opens (deploy/pgbouncer). A client's own would be refused there, so none is sent.
+  DATABASE_THROUGH_POOLER: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  // DAT-23: how long a transaction may stay open on a direct connection (the worker's), PostgreSQL 17's
+  // transaction_timeout. Unset sends none: PostgreSQL 16, which a developer's database may be, doesn't know it.
+  DATABASE_TRANSACTION_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
   // Google and Facebook sign-in (AUTH-24). Off until the provider is registered; the flow stays tested either way.
   GOOGLE_SIGN_IN_ENABLED: z
     .enum(['true', 'false'])

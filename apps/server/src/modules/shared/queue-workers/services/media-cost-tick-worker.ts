@@ -19,7 +19,7 @@ export class MediaCostTickWorker implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     await this.pgBoss.boss.createQueue(QueueName.MediaCostTick);
     await this.pgBoss.boss.schedule(QueueName.MediaCostTick, MEDIA_COST_CRON);
-    await this.pgBoss.boss.work(QueueName.MediaCostTick, async () => {
+    await this.pgBoss.workOnce(QueueName.MediaCostTick, async () => {
       const result = await this.costs.pull();
       if (result.days > 0) {
         this.logger.log(

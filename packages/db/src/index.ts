@@ -2,6 +2,8 @@
 export * from './schema';
 export { DatabaseConnector, type Database, type DatabaseHandle, type PoolSettings } from './client';
 export { MigrationRunner } from './migrate';
+export { ReadRoleGrants, READ_ROLE } from './read-role';
+export { DatabaseProbe, type DatabaseServing } from './database-probe';
 export { ActivityLogPurger } from './purge-activity-log';
 export { QueueBootstrapper } from './bootstrap-queue';
 export { TestDatabasePreparer, type PreparedDatabase } from './prepare-database';
@@ -186,6 +188,12 @@ export {
   type ApiUsageRow,
 } from './repositories/api/api-usage.repository';
 export { UsageWarningRepository } from './repositories/usage/usage-warning.repository';
+export {
+  LeaseRepository,
+  LimitEventRepository,
+  ServiceStateRepository,
+  type ExactVerdict,
+} from './repositories/platform/limits.repository';
 export {
   LytroPaymentMethodsRepository,
   type NewPlatformBankAccount,

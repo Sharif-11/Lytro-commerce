@@ -17,6 +17,7 @@ import type {
 } from '../ports/wallet-gateway';
 import { GatewayError } from '../ports/wallet-gateway';
 import { BKASH_URLS, CREDENTIAL_USE_LOG, GATEWAY_CLOCK, GATEWAY_FETCH } from '../tokens';
+import { SharedGatewayTokens } from './shared-gateway-tokens';
 
 /** The gateway's addresses; each is the host and version, as `https://tokenized.sandbox.bka.sh/v2`. */
 export interface BkashUrls {
@@ -66,6 +67,7 @@ export class BkashGateway implements WalletGateway {
     @Inject(GATEWAY_FETCH) private readonly send: typeof fetch,
     @Inject(CREDENTIAL_USE_LOG) private readonly log: CredentialUseLog,
     @Inject(GATEWAY_CLOCK) private readonly clock: () => Date,
+    @Inject(SharedGatewayTokens) private readonly shared: SharedGatewayTokens,
   ) {}
 
   isConfigured(credentials: Readonly<Record<string, string>>): boolean {
@@ -74,6 +76,7 @@ export class BkashGateway implements WalletGateway {
 
   forget(accountId: string): void {
     this.tokens.delete(accountId);
+    void this.shared.forget(accountId);
   }
 
   /** WAL-13: a token for these credentials, one held still vouching for them; no payment is made. */
@@ -167,18 +170,50 @@ export class BkashGateway implements WalletGateway {
     );
   }
 
-  /** SEC-09: the account's token, grown old only to be refreshed. */
+  /** SEC-09: the account's token, grown old only to be refreshed; one for every process (§107, Slice 9.4). */
   private tokenOf(account: GatewayAccount): Promise<string> {
     const held = this.tokens.get(account.accountId);
     const now = this.clock();
     if (held && now.getTime() < held.refreshAfter) return Promise.resolve(held.idToken);
     const running = this.asking.get(account.accountId);
     if (running) return running;
-    const asking = this.askForToken(account, held, now).finally(() => {
+    const asking = this.sharedToken(account, held, now).finally(() => {
       this.asking.delete(account.accountId);
     });
     this.asking.set(account.accountId, asking);
     return asking;
+  }
+
+  /**
+   * §107 (Slice 9.4): the token every process shares, from Redis; else this process's turn to ask bKash, one process at a
+   * time, checking Redis again first in case another just asked. The hourly count is read inside the turn, so it's exact
+   * across processes. When the turn never comes, the token this process has serves while bKash still takes it.
+   */
+  private async sharedToken(
+    account: GatewayAccount,
+    held: HeldToken | undefined,
+    now: Date,
+  ): Promise<string> {
+    const kept = await this.shared.get(account);
+    if (kept && now.getTime() < kept.refreshAfter) {
+      this.tokens.set(account.accountId, kept);
+      return kept.idToken;
+    }
+    const turn = await this.shared.inTurn(account.accountId, async () => {
+      const again = await this.shared.get(account);
+      if (again && this.clock().getTime() < again.refreshAfter) {
+        this.tokens.set(account.accountId, again);
+        return again.idToken;
+      }
+      const idToken = await this.askForToken(account, again ?? kept ?? held, now);
+      const fresh = this.tokens.get(account.accountId);
+      if (fresh) await this.shared.put(account, fresh, now);
+      return idToken;
+    });
+    if (turn.held) return turn.value;
+    const known = held ?? kept;
+    if (known) return known.idToken;
+    throw new GatewayError('another process is asking bKash for the token', 'token_busy');
   }
 
   /** bKash blocks an app for an hour past [2] token calls, so the third isn't made. */

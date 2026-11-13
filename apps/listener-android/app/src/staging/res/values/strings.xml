@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Staging's copy (2026-11-12): named apart from the real app on the same phone. -->
+<resources>
+    <string name="app_name" translatable="false">Lytro Listener (Staging)</string>
+</resources>

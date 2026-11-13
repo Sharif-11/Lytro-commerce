@@ -2571,3 +2571,45 @@ The close-out (PHASE-8-PLAN §11) fixed what its three reviews found, apart from
 - **A product with stock and no designs makes a design without asking first.** Its new photos arrive plain (PD-11), and
   a photo's step warns that making it a design remakes the variants and stops the old ones selling; it doesn't ask first
   as removing an option holding stock does (`sh-remove-option`).
+
+## 146. `DAT-27`, `DAT-29`, `DAT-40`, `DAT-57`, `BKP-01`: what Slice 9.3's backups leave open — found 2026-11-13, open
+
+Slice 9.3 built the backups and every restore, proven in CI against a test S3 store (`backups` job). What waits:
+
+1. **The first real backups and drills on staging** run after this slice merges: the database image is built only
+   by main's Deploy run, and the first deploy with backup settings restarts PostgreSQL once with archiving on. The
+   first drill records (`docs/drills/`) follow then; DAT-40 and DAT-54's restore onto a fresh server is drilled before
+   launch.
+2. **The alerts** (DAT-27: a base backup or dump older than 26 hours, archiving more than 5 minutes behind) are Slice
+   9.6's. They watch the backup service's `status/*.json` and `pg_stat_archiver` (`docs/RUNBOOKS.md` §10.1). Until
+   then, a failing night shows only in the backup service's log.
+3. **No write-only key.** R2 has none, so the server's dump key can list and read the dumps bucket (each dump is
+   encrypted to the owner's key, which no server holds), and the archive key can read the archive (WAL-G reads the
+   week's full backup to take a differential). Neither can delete or replace anything inside its bucket's lock (BKP-01
+   and DAT-28 as amended).
+4. **No standby yet** (D9-23): the servers have no replication role or `pg_hba.conf` line for one. They're made when a
+   second server arrives (`docs/RUNBOOKS.md` §10.7). Failover and adding a replica are proven in CI only.
+5. **A restored shop's media:** media has no backup (MED-06). A deleted shop's files are gone from R2, so its restored
+   media rows point at nothing.
+6. **A column added since the backup with no default** would make a one-shop restore fail as a whole, rolled back with
+   nothing kept. A column with a default takes it.
+
+## 147. `D9-15`, `RED-04`, `RTE-12`, `DAT-44`: what Slice 9.4's limits leave open — found 2026-11-13, open
+
+Slice 9.4 counts every rate limit once across API processes and servers, the exact ones in PostgreSQL. It moves the
+one-server state (§107's token, §119's starts and fee notice, §136's cap) into leases, and runs every scheduled pass
+once at a time. What it leaves:
+
+1. **The read-your-writes marker** (DAT-44 to DAT-47): with one database server there's no replica to read stale data
+   from, so the marker waits for the second database server (the owner's answer, 2026-11-13). Until then, dashboard
+   lists stay on the write pool (Slice 9.2's read).
+2. **The public API's per-process figures** (RTE-06, RTE-12): `RequestQuota` remembers the visitors it refused per
+   process, so with two API processes one visitor may be counted twice (at most double, a figure only). Each process
+   also keeps its own hourly count, so the fast-spend alert sees one process's share and may fire late. The monthly
+   totals and the limits themselves are exact (RED-04's flush).
+3. **Sign-in and sign-up counts take no lock** (AUTH-14, SUP-08, TRL): `SignInLockout`, `SignupRateLimiter` and
+   `TrialLimiter` count rows in PostgreSQL, shared by every process, but without a lock, so a burst of requests at once
+   may pass a few over the limit. This was so before Slice 9.4. The codes they guard are locked (one-time codes,
+   shopper codes).
+4. **Circuit breakers are per process** (D9-17): each process opens its own. Slice 9.5 takes them on.
+5. **Redis down tells the operators by email only**: phone alerts come with Slice 9.6's monitoring (D9-3).

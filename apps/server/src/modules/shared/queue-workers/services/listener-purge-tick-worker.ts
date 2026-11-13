@@ -30,7 +30,7 @@ export class ListenerPurgeTickWorker implements OnModuleInit {
       {},
       { tz: LISTENER_PURGE_TZ },
     );
-    await this.pgBoss.boss.work(QueueName.ListenerPurgeTick, async () => {
+    await this.pgBoss.workOnce(QueueName.ListenerPurgeTick, async () => {
       const now = new Date();
       const purged = await this.devices.purge(now);
       const redacted = await this.receipts.redactOld(now);

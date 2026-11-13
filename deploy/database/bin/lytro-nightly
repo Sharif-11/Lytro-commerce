@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# One night's backups (Phase 9 Slice 9.3, D9-18): the encrypted dump, then the base backup, one after the other so the
+# small server never runs both at once. Each is tried even if the other failed; the run fails if either did, and
+# status/nightly.json says which (lytro-backup-status reads it; Slice 9.6's alerts watch it, DAT-27).
+set -uo pipefail
+. lytro-pg-env
+
+say() { printf '[nightly %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+
+mkdir -p "$BACKUP_WORK_DIR/status"
+started="$(date -u +%s)"
+say 'starting'
+
+dump=ok
+lytro-dump || dump=failed
+base=ok
+lytro-base-backup || base=failed
+
+finished="$(date -u +%s)"
+jq -n --arg dump "$dump" --arg base "$base" --argjson started "$started" --argjson finished "$finished" \
+  '{ dump: $dump, base: $base, started_at_epoch: $started, finished_at_epoch: $finished,
+     ok: ($dump == "ok" and $base == "ok") }' > "$BACKUP_WORK_DIR/status/nightly.json"
+if [ "$dump" = ok ] && [ "$base" = ok ]; then
+  jq '.' "$BACKUP_WORK_DIR/status/nightly.json" > "$BACKUP_WORK_DIR/status/last-good.json"
+  say "done in $((finished - started)) s"
+  exit 0
+fi
+say "FAILED: dump $dump, base backup $base"
+exit 1

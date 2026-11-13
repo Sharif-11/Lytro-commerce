@@ -484,6 +484,14 @@ CREATE POLICY tenant_isolation ON tenant.orders
 -- (SET LOCAL app.tenant_id = '...') right after the tenant is resolved (TEN-24/DAT-03).
 ```
 
+**The read pool's role** (Slice 9.2, D9-13, DAT-45): `lytronix_read` logs in like the application role, never a
+superuser and never BYPASSRLS, so every policy above applies to it too. It holds SELECT on exactly what the application
+role may SELECT (USAGE on its schemas, EXECUTE on its functions), granted by the migration runner after every run
+(`packages/db/src/read-role.ts`), so no migration names it. pg-boss's tables are left out. It holds no other right,
+and the role opens every transaction read-only (`default_transaction_read_only = on`). It is made with the
+application role: `deploy/postgres/10-app-role.sh` on a server, `scripts/db/create-app-role.sql` on a developer's
+database (optional there), and the test database preparer.
+
 ### 3.1 Staff, roles
 
 ```sql

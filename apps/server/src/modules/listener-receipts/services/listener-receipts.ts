@@ -82,7 +82,7 @@ export class ListenerReceipts {
       throw new PayloadTooLargeException();
     }
     const now = this.clock();
-    this.limits.admitUpload(device.id, device.tenantId ?? LYTRO_BUCKET, now);
+    await this.limits.admitUpload(device.id, device.tenantId ?? LYTRO_BUCKET, now);
     const senders = await this.rules.senders();
     const results: ListenerUploadResult[] = [];
     for (const message of input.messages) {
@@ -313,7 +313,7 @@ export class ListenerReceipts {
 
   /** LSN-14: past [500] messages in an hour the phone is flagged to its owner and Lytro -- once, however long it goes on. */
   private async watchVolume(device: SelectListenerDevice, count: number, now: Date): Promise<void> {
-    if (!this.limits.overVolume(device.id, count, now)) return;
+    if (!(await this.limits.overVolume(device.id, count, now))) return;
     const flagged = await this.store.run(async (tx) => {
       if (!(await this.store.flagVolume(tx, device.id, now, new Date(now.getTime() - HOUR_MS)))) {
         return false;

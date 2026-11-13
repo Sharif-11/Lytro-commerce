@@ -35,9 +35,19 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v5
 
-      # A throwaway debug key signs what PRs build; the real key never comes near GitHub (agreed 2026-11-03).
-      - name: Logic tests, lint and both builds
-        run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease --console=plain
+      # A throwaway debug key signs what PRs build; the real key never comes near GitHub (agreed 2026-11-03). Staging's copy
+      # builds unsigned here: its own throwaway key stays on the owner's computer too, which signs the APK kept below.
+      - name: Logic tests, lint and the builds
+        run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease :app:assembleStaging --console=plain
+
+      # Staging's copy, unsigned, to be signed with the staging key off GitHub and put in the staging downloads bucket
+      # (deploy/README "The listener app on staging").
+      - name: Keep staging's unsigned APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: listener-staging-unsigned
+          path: apps/listener-android/app/build/outputs/apk/staging/
+          retention-days: 14
 
       - name: Keep the reports
         if: always()

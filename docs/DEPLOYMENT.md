@@ -238,6 +238,15 @@ for `active`) with zero infrastructure work on this platform's side per tenant.
    shop's bandwidth and writes the blocked list and each shop's website addresses. Without the token, nothing is
    counted or blocked.
 
+**Staging's media** (Phase 9 Slice 9.1) is the same, apart in every part, so nothing staging does reaches production:
+buckets `lytro-staging-uploads`, `lytro-staging-media` and `lytro-staging-evidence`; the KV namespace
+`lytro-staging-media-edge`; the dataset `lytro_staging_media_usage` (the server's `MEDIA_USAGE_DATASET`); and the
+Worker `lytro-media-staging` at `https://media-staging.lytro.app`, one level under lytro.app so Cloudflare's own
+certificate covers it. `wrangler deploy --env staging` deploys it, and its secrets are put with `--env staging`. Its
+traffic fits the Workers Free plan. The uploads bucket's CORS policy allows `PUT` with `content-type` from
+`https://app.staging.lytro.app` and `https://admin.staging.lytro.app` only. The processing and deletion keys are limited
+to the staging server's address; the signer's can't be (the browser uses its links), nor the Worker's.
+
 **Payment screenshots (Slice 8.5, D8-47).** Their own private bucket: make one named `lytro-evidence` (or set
 `MEDIA_EVIDENCE_BUCKET`), with no public address and no custom domain, and add it to the processing and deletion keys
 (RUNBOOKS' key inventory). Never give the media Worker's token access to it.
@@ -340,12 +349,85 @@ only adds concrete artifacts to it, nothing new in process:
   set on the wildcard site alone, because a global `acme_dns` would also apply to shops' own domains (§7), whose DNS
   isn't ours.
 
+### 9b. As built (Slice 9.2, the database side)
+
+- **PostgreSQL 17** on every server and in CI (Slice 9.2's read), for `transaction_timeout`. A developer's database
+  may stay on 16; the server sends 17's setting only where it is configured.
+- **PgBouncer** (`deploy/pgbouncer`), in transaction mode, in front of PostgreSQL for the API processes only (D9-13,
+  DAT-11). The image is built from Alpine's package and tagged by a hash of its inputs, like the edge's; `deploy.sh`
+  computes the same tag from the release's own files. The worker's job queue (pg-boss) and the migrations connect to
+  PostgreSQL directly: pg-boss keeps state per session, and migrations run as the owner.
+- **The limits** (DAT-23): every connection PgBouncer opens runs `SET statement_timeout = 10000; SET
+  transaction_timeout = 5000` first (`connect_query`). PgBouncer in transaction mode refuses or drops limits a client
+  sends when it connects, so the API sends none (`DATABASE_THROUGH_POOLER=true`). The worker, connecting directly,
+  sends its own: the same 10-second statement limit and a 60-second transaction limit (`WORKER_TRANSACTION_TIMEOUT_MS`),
+  since a background job (a shop's deletion, a night's purge) may hold a transaction longer than an API request, though
+  never without end.
+- **Two roles for the server:** `lytronix_app` (writes) and `lytronix_read` (DAT-45: SELECT only, read-only by default,
+  under row-level security; `DATABASE-SCHEMA.md` §3). `deploy.sh` makes any that are missing before each migration run,
+  so a database made before a role existed gets it on its next deploy.
+- **The settings files:** `make-env.sh` adds `pgbouncer.env` (the two roles' passwords) and `server-api.env`, which the
+  API containers read over `server.env`: their addresses through PgBouncer, for writes (`DATABASE_URL`) and reads
+  (`DATABASE_READ_URL`, which the server uses from Slice 9.2's second part). A file kept from an earlier setup gets
+  any line it lacks (the read role's password), and nothing in it changes.
+
+### 9c. As built (Slice 9.2, the server side)
+
+- **Two pools** (D9-13, DAT-44): the write pool (`DATABASE_URL`), which everything uses unless it says otherwise, and
+  the read pool (`DATABASE_READ_URL`, the read-only role). The storefront's and public API's catalogue reads run on
+  the read pool (Slice 9.2's read); a code check (`read-pool-reads.spec.ts`) finds any write or row lock in what they
+  call, and the role refuses one at run time. A read whose connection was lost is tried once more (DAT-23).
+- **The write pool's watch** (DAT-44): at start and every 30 seconds each process asks whether its write pool reaches
+  the primary. `GET /health/ready` asks afresh; Caddy balances by it and `deploy.sh` waits for it before the next
+  process (D9-12).
+- **"Can't save"** (D9-14, DAT-42, DAT-47): while the write pool can't reach the primary, writes answer 503 with
+  `Retry-After: 30` in the owner's words, and reads go on. Nothing is ever written to a standby: a write pool that
+  reaches one makes the ready check fail.
+
+### 9d. As built (Slice 9.3, backups and restores)
+
+- **One image for the database and its backups** (`deploy/database`, tagged by a hash of its inputs like the pooler's):
+  PostgreSQL 17 on Debian 13 (pinned, so text sorts as it did when the data was written), WAL-G, age and the scripts.
+  The `postgres` service archives to R2 when `backup.env` holds the archive's settings (deploy.sh sets
+  `PG_ARCHIVE_MODE`); the `backup` service runs the nightly dump and base backup at 05:30 Dhaka.
+- **WAL-G, not pgBackRest** (D9-18 as amended; DAT-34 names both): R2 has no write-only key, so a bucket lock is what
+  keeps backups from being deleted or replaced, and a lock refuses any overwrite. WAL-G writes each object once;
+  pgBackRest rewrites its own manifest while a backup runs.
+- **Keys** (DAT-28): `backup.env` reaches only the database and backup containers. Each bucket has its own
+  IP-locked key. The archive's encryption key is on the server and in the owner's offline copy. The dump is encrypted
+  to the owner's age public key, so the server can't read a dump back.
+- **Restores** are scripts in the image, run beside a live database or anywhere with Docker: a dump into a scratch
+  database, counted (`lytro-restore-dump`); the archive to a minute (`lytro-restore-pitr`), into scratch or a new
+  server's volume; one shop's missing rows (`lytro-restore-shop`, through `deploy/restore/shop.sh`); failover and
+  adding a replica (`lytro-db-failover`, `lytro-db-add-replica`). CI's `backups` job runs them all against a test S3
+  store (Versity's gateway) on every change. `docs/RUNBOOKS.md` §10 is the operator's side; `docs/drills/` holds the
+  drill records.
+
+### 9e. As built (Slice 9.4, limits across servers)
+
+- **One limit store** (D9-15, `modules/shared/limits`): every everyday rate limit asks one store, Redis-backed. It
+  counts each bucket as an exact sliding window with one atomic Lua script, so every API process and server shares one
+  count. Without `REDIS_URL` (development, tests) it counts in memory at the full limit. While Redis is down it counts
+  in memory at half each, and the operators get one email when the outage starts and one when it ends
+  (`control.service_states`).
+- **Exact limits in PostgreSQL** (RED-11): orders per visitor and per shop, payment sessions (in the order's own
+  transaction), shopper sign-up codes per visitor, and failed listener pairings. Each allowed request is a
+  `control.limit_events` row under an advisory lock on its bucket.
+- **Leases** (`control.leases`): a payment's start (a second tap waits its turn, §119), a wallet account's token fetch
+  (§107, with the token itself shared sealed through Redis), a once-a-day notice, a capped shop's SMS sends (§136),
+  and every scheduled pass (MON-04, `PgBossClient.workOnce`). A lease lapses by itself, so a stopped process never
+  blocks for longer than its lease. Leases work through PgBouncer, where a session's advisory lock would not.
+- **Redis** (RED-01 as amended): password from `redis.env` (given on standard input, never in a process list), the
+  wiping and configuring commands switched off, no persistence, eviction only of keys with an expiry, and
+  `REDIS_MAXMEMORY` from settings.env (64 MB on staging, 256 MB in production). `GET /health/ready` reports it.
+
 ## 10. Open, deliberately deferred
 
 Settled by Phase 9's plan and Slice 9.1:
 - the VPS: staging on BDIX, 2 vCPU / 3 GB (D9-9), production 4 vCPU / 6 GB (D9-24);
 - the website and the storefront: their own containers (D9-10);
-- backups: the deploy dumps the database first, and Slice 9.3 brings pgBackRest and nightly dumps (D9-18).
+- backups: the deploy dumps the database first; Slice 9.3 added WAL-G's archive and the nightly dump to R2 (D9-18,
+  §9d).
 
 Still open:
 

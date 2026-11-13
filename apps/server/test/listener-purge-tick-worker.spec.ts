@@ -36,7 +36,7 @@ describe('the listener purge (LSN-05)', () => {
       },
     } as unknown as ListenerReceipts;
     const worker = new ListenerPurgeTickWorker(
-      { boss } as unknown as PgBossClient,
+      { boss, workOnce: boss.work } as unknown as PgBossClient,
       devices,
       receipts,
     );

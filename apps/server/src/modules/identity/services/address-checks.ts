@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ApiError } from '../../../common/api-error';
-import { SlidingWindow } from '../../../common/sliding-window';
+import type { LimitStore } from '../../shared/limits/ports/limit-store';
+import { LIMIT_STORE } from '../../shared/limits/tokens';
 import { MINUTE_MS } from '../../../common/time';
 import { SlugService } from '../../tenancy/services/slug.service';
 import type { AddressCheckView } from '../types/address-check-view';
@@ -16,13 +17,18 @@ const CHECKS_PER_MINUTE = 60;
  */
 @Injectable()
 export class AddressChecks {
-  private readonly window = new SlidingWindow(MINUTE_MS);
-
-  constructor(@Inject(SlugService) private readonly slugs: SlugService) {}
+  constructor(
+    @Inject(SlugService) private readonly slugs: SlugService,
+    @Inject(LIMIT_STORE) private readonly limitStore: LimitStore,
+  ) {}
 
   async check(subscriberId: string, address: string, now = Date.now()): Promise<AddressCheckView> {
-    this.window.sweep(now);
-    const verdict = this.window.take(subscriberId, CHECKS_PER_MINUTE, now);
+    const verdict = await this.limitStore.take(
+      `address-check:${subscriberId}`,
+      CHECKS_PER_MINUTE,
+      MINUTE_MS,
+      new Date(now),
+    );
     if (!verdict.allowed) {
       throw new ApiError('rate_limited', 'TooManyRequests', {}, Math.ceil(verdict.resetMs / 1000));
     }

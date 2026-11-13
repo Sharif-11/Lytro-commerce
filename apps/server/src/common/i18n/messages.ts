@@ -52,6 +52,12 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Something went wrong. Please try again.',
     bn: 'কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার ট্রাই করুন।',
   },
+  // D9-14, DAT-42 (Slice 9.2): the database can't save for now, and reads go on. The owner's words from Slice 9.2's
+  // read, never "read-only".
+  SavingPaused: {
+    en: "Because of a problem, changes won't be saved for a few minutes. Please try again shortly.",
+    bn: 'একটা সমস্যার কারণে কয়েক মিনিট কোনো পরিবর্তন সেভ হবে না। একটু পরে আবার চেষ্টা করুন।',
+  },
   SettingValueInvalid: {
     en: 'This value is not valid for this setting.',
     bn: 'এই সেটিংয়ের জন্য মানটি সঠিক নয়।',

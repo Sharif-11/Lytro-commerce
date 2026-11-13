@@ -1,5 +1,5 @@
 import { Module, type DynamicModule } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ZodSerializerInterceptor } from 'nestjs-zod';
 import { GracefulShutdownModule } from '@tygra/nestjs-graceful-shutdown';
 import { ApiErrorFilter } from '../common/api-error.filter';
@@ -7,7 +7,10 @@ import { runsJobs, serverRoleOf } from '../config/server-role';
 import { RequestIdModule } from '../common/request-id/request-id.module';
 import { ResponseEnvelopeInterceptor } from '../common/interceptors/response-envelope.interceptor';
 import { DatabaseModule } from '../database/database.module';
+import { LimitsModule } from '../modules/shared/limits/limits.module';
 import { HealthController } from '../modules/health/health.controller';
+import { ReadyController } from '../modules/health/ready.controller';
+import { SavingGuard } from '../common/guards/saving.guard';
 import { ThrowTestController } from '../modules/health/throw-test.controller';
 import { AuditModule } from '../modules/audit/audit.module';
 import { QueueModule } from '../modules/shared/queue/queue.module';
@@ -38,6 +41,7 @@ const jobImports = runsJobs(serverRoleOf(process.env)) ? [QueueWorkersModule] : 
   imports: [
     ...shutdownImports,
     DatabaseModule,
+    LimitsModule,
     RequestIdModule,
     SecretsModule,
     TenancyModule,
@@ -52,10 +56,12 @@ const jobImports = runsJobs(serverRoleOf(process.env)) ? [QueueWorkersModule] : 
   ],
   controllers:
     process.env['NODE_ENV'] === 'test'
-      ? [HealthController, ThrowTestController]
-      : [HealthController],
+      ? [HealthController, ReadyController, ThrowTestController]
+      : [HealthController, ReadyController],
   providers: [
     { provide: APP_FILTER, useClass: ApiErrorFilter },
+    // DAT-42 (Slice 9.2): while the database can't save, anything that may write is refused with a retry hint.
+    { provide: APP_GUARD, useClass: SavingGuard },
     // Order matters: ResponseEnvelopeInterceptor must wrap the already-validated value, so
     // ZodSerializerInterceptor (registered second, innermost) runs on the raw controller return first.
     { provide: APP_INTERCEPTOR, useClass: ResponseEnvelopeInterceptor },

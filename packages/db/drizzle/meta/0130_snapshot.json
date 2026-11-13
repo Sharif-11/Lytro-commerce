@@ -1,5 +1,5 @@
 {
-  "id": "9afcb451-381f-4ee6-848d-61e22c6e84b3",
+  "id": "79430267-8968-4afe-a3ce-19e5bbe6b3f3",
   "prevId": "fe4624a7-7fe2-4af3-a111-ff3f3c2b9c9d",
   "version": "7",
   "dialect": "postgresql",
@@ -270,13 +270,6 @@
           "notNull": true,
           "default": "'{}'::jsonb"
         },
-        "suggested": {
-          "name": "suggested",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -298,22 +291,6 @@
           ],
           "isUnique": true,
           "where": "\"control\".\"plans\".\"for_sale\"",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "plans_one_suggested_idx": {
-          "name": "plans_one_suggested_idx",
-          "columns": [
-            {
-              "expression": "suggested",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"control\".\"plans\".\"suggested\"",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -18482,6 +18459,132 @@
           "value": "\"control\".\"manual_payment_entries\".\"reverses_entry_id\" IS NOT NULL OR (\n        \"control\".\"manual_payment_entries\".\"transaction_id\" IS NOT NULL AND \"control\".\"manual_payment_entries\".\"paid_at\" IS NOT NULL\n        AND (\"control\".\"manual_payment_entries\".\"evidence_id\" IS NOT NULL OR \"control\".\"manual_payment_entries\".\"evidence_line\" IS NOT NULL)\n        AND (\n          (\"control\".\"manual_payment_entries\".\"wallet_id\" IS NOT NULL AND \"control\".\"manual_payment_entries\".\"bank_account_id\" IS NULL AND \"control\".\"manual_payment_entries\".\"sender_number\" IS NOT NULL)\n          OR (\"control\".\"manual_payment_entries\".\"bank_account_id\" IS NOT NULL AND \"control\".\"manual_payment_entries\".\"wallet_id\" IS NULL AND \"control\".\"manual_payment_entries\".\"sender_number\" IS NULL)\n        )\n      )"
         }
       },
+      "isRLSEnabled": false
+    },
+    "control.leases": {
+      "name": "leases",
+      "schema": "control",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "holder": {
+          "name": "holder",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "until": {
+          "name": "until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "leases_until_idx": {
+          "name": "leases_until_idx",
+          "columns": [
+            {
+              "expression": "until",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "control.limit_events": {
+      "name": "limit_events",
+      "schema": "control",
+      "columns": {
+        "bucket": {
+          "name": "bucket",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "at": {
+          "name": "at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "limit_events_bucket_at_idx": {
+          "name": "limit_events_bucket_at_idx",
+          "columns": [
+            {
+              "expression": "bucket",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "control.service_states": {
+      "name": "service_states",
+      "schema": "control",
+      "columns": {
+        "service": {
+          "name": "service",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "down_since": {
+          "name": "down_since",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "changed_at": {
+          "name": "changed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
       "isRLSEnabled": false
     }
   },

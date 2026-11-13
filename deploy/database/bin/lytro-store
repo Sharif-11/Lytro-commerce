@@ -1,0 +1,24 @@
+#!/bin/sh
+# WAL-G's storage commands pointed at the nightly dumps' bucket (Slice 9.3, DAT-22, DAT-30): `st put`, `st ls`, `st get`.
+# The dumps are encrypted with age before they get here, so WAL-G neither compresses nor encrypts them again.
+#
+#   BACKUP_DUMP_BUCKET           the dumps' bucket: locked so nothing in it can be deleted or replaced for 29 days, and
+#                                emptied of anything that old by its lifecycle rule, so a dump is gone by day 30
+#   BACKUP_DUMP_KEY_ID/_SECRET   the server's key for that bucket only; on a restore, the owner's read-only key
+set -eu
+
+: "${BACKUP_R2_ENDPOINT:?BACKUP_R2_ENDPOINT is not set (backup.env)}"
+: "${BACKUP_DUMP_BUCKET:?BACKUP_DUMP_BUCKET is not set (backup.env)}"
+: "${BACKUP_DUMP_KEY_ID:?BACKUP_DUMP_KEY_ID is not set (backup.env)}"
+: "${BACKUP_DUMP_KEY_SECRET:?BACKUP_DUMP_KEY_SECRET is not set (backup.env)}"
+
+export AWS_ENDPOINT="$BACKUP_R2_ENDPOINT"
+export AWS_ACCESS_KEY_ID="$BACKUP_DUMP_KEY_ID"
+export AWS_SECRET_ACCESS_KEY="$BACKUP_DUMP_KEY_SECRET"
+export AWS_REGION="${BACKUP_S3_REGION:-auto}"
+export AWS_S3_FORCE_PATH_STYLE=true
+export WALG_S3_PREFIX="s3://$BACKUP_DUMP_BUCKET/nightly"
+# Nothing of the archive's settings leaks in from the environment.
+unset WALG_LIBSODIUM_KEY WALG_LIBSODIUM_KEY_TRANSFORM WALG_COMPRESSION_METHOD
+
+exec wal-g "$@"

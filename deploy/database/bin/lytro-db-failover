@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# Makes a replica the main database when the main one has failed (Phase 9 Slice 9.3, DAT-37 as amended by D9-2).
+# One command, run by the operator after the monitor's alert (never by itself); RUNBOOKS.md "Failover" says when.
+#
+#   FAILOVER_REPLICAS='<url> <url> ...'     every replica, connecting as a superuser
+#   FAILOVER_OLD_PRIMARY=<url>              the failed main database (it may not answer)
+#   FAILOVER_FENCE='<command>'              stops the old main database and keeps it from starting by itself
+#                                           (on servers: an ssh that stops its container and sets restart=no)
+#   FAILOVER_SWITCH='<command>'             points the apps at the new main database; {host} is replaced by its
+#                                           address (on servers: the database name's DNS record, 30-second TTL)
+#   FAILOVER_REPLICATION='<conninfo>'       how a replica connects to the main one for streaming; {host} replaced
+#   lytro-db-failover
+#
+#   1. reads every replica's replay position and picks the one that has replayed furthest (D9-2)
+#   2. if the old main database still answers as a main (not in recovery), stops: two writable databases would split
+#      the data. Otherwise fences it (FAILOVER_FENCE), so it can't come back as a main by itself.
+#   3. promotes the chosen replica and proves it takes a write
+#   4. points every other replica at it (primary_conninfo, reloaded), and checks they stream from it
+#   5. runs FAILOVER_SWITCH, and prints the record DAT-23's drill keeps (each step's time; the whole within 10 minutes)
+# The old main database rejoins only as a replica, rebuilt with lytro-db-add-replica, never started as a main (D9-2).
+set -euo pipefail
+
+: "${FAILOVER_REPLICAS:?FAILOVER_REPLICAS (every replica's URL) is not set}"
+: "${FAILOVER_OLD_PRIMARY:?FAILOVER_OLD_PRIMARY (the failed main database's URL) is not set}"
+: "${FAILOVER_FENCE:?FAILOVER_FENCE (the command that stops the old main database) is not set}"
+: "${FAILOVER_SWITCH:?FAILOVER_SWITCH (the command that points the apps at the new one) is not set}"
+: "${FAILOVER_REPLICATION:?FAILOVER_REPLICATION (how a replica connects to the main one, with {host}) is not set}"
+
+say() { printf '[failover %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+q() { psql "$1" -X -A -t -q -v ON_ERROR_STOP=1 -c "$2"; }
+host_of() { sed -E 's#^[a-z]+://([^@]*@)?([^:/?]+).*#\2#' <<< "$1"; }
+started="$(date -u +%s)"
+
+# 1. The replica that has replayed furthest.
+best=
+best_lsn=
+for url in $FAILOVER_REPLICAS; do
+  if ! state="$(q "$url" "SELECT pg_is_in_recovery(), coalesce(pg_last_wal_replay_lsn()::text, '0/0')" 2> /dev/null)"; then
+    say "$(host_of "$url"): not answering, left out"
+    continue
+  fi
+  recovering="${state%%|*}"
+  lsn="${state#*|}"
+  if [ "$recovering" != t ]; then
+    say "$(host_of "$url") is not a replica (already a main database?): stopping, nothing changed"
+    exit 1
+  fi
+  say "$(host_of "$url"): replayed to $lsn"
+  if [ -z "$best" ] || [ "$(q "$url" "SELECT pg_wal_lsn_diff('$lsn', '$best_lsn') > 0")" = t ]; then
+    best="$url"
+    best_lsn="$lsn"
+  fi
+done
+if [ -z "$best" ]; then
+  say 'no replica answers: restore from the backups instead (RUNBOOKS.md "Restoring onto a new server")'
+  exit 1
+fi
+new_host="$(host_of "$best")"
+say "the furthest replica is $new_host (replayed to $best_lsn)"
+
+# 2. The old main database: never two writable ones.
+if old="$(q "$FAILOVER_OLD_PRIMARY" 'SELECT pg_is_in_recovery()' 2> /dev/null)" && [ "$old" = f ]; then
+  say "the old main database $(host_of "$FAILOVER_OLD_PRIMARY") still answers and takes writes: this is not a failure to fail over from. Nothing changed."
+  exit 1
+fi
+say 'fencing the old main database'
+if ! sh -c "$FAILOVER_FENCE"; then
+  say 'the fence command failed: stopping before anything is promoted. Fence it by hand, then run this again.'
+  exit 1
+fi
+fenced="$(date -u +%s)"
+
+# 3. Promote, and prove it takes a write (a transaction ID can't be given out during recovery).
+say "promoting $new_host"
+q "$best" 'SELECT pg_promote(wait => true, wait_seconds => 120)' > /dev/null
+if [ "$(q "$best" 'SELECT pg_is_in_recovery()')" != f ]; then
+  say 'the replica did not finish promoting'
+  exit 1
+fi
+xid="$(q "$best" 'SELECT txid_current()')"
+promoted="$(date -u +%s)"
+say "$new_host is the main database and takes writes (transaction $xid)"
+
+# 4. The other replicas follow it (they move to its new timeline as they stream).
+conninfo="${FAILOVER_REPLICATION//\{host\}/$new_host}"
+others=0
+for url in $FAILOVER_REPLICAS; do
+  [ "$url" = "$best" ] && continue
+  if ! q "$url" 'SELECT 1' > /dev/null 2>&1; then
+    say "$(host_of "$url"): not answering; rebuild it with lytro-db-add-replica when it's back"
+    continue
+  fi
+  psql "$url" -X -q -o /dev/null -v ON_ERROR_STOP=1 -v conninfo="$conninfo" << 'SQL'
+ALTER SYSTEM SET primary_conninfo = :'conninfo';
+SELECT pg_reload_conf();
+SQL
+  others=$((others + 1))
+  say "$(host_of "$url") now follows $new_host"
+done
+streaming=0
+for _ in $(seq 1 60); do
+  streaming="$(q "$best" "SELECT count(*) FROM pg_stat_replication WHERE state = 'streaming'")"
+  [ "$streaming" -ge "$others" ] && break
+  sleep 2
+done
+followed="$(date -u +%s)"
+
+# 5. The apps.
+switch="${FAILOVER_SWITCH//\{host\}/$new_host}"
+if ! sh -c "$switch"; then
+  say "the switch command failed: point the apps at $new_host by hand (RUNBOOKS.md \"Failover\")"
+  exit 1
+fi
+switched="$(date -u +%s)"
+
+echo
+echo "- New main database: $new_host (it had replayed to $best_lsn); the old one fenced"
+echo "- Fenced in $((fenced - started)) s; promoted and writing in $((promoted - fenced)) s; $streaming of $others other replicas streaming from it in $((followed - promoted)) s; apps switched in $((switched - followed)) s"
+echo "- $((switched - started)) s in all (DAT-23: within 10 minutes of the operator's approval)"
+echo '- Next: the last 30 minutes before the failure are checked against outside records (DAT-39, RUNBOOKS.md)'
+if [ "$streaming" -lt "$others" ]; then
+  say "only $streaming of $others other replicas stream from $new_host yet: check them"
+  exit 2
+fi

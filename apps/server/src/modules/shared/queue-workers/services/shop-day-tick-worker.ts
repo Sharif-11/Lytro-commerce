@@ -21,7 +21,7 @@ export class ShopDayTickWorker implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     await this.pgBoss.boss.createQueue(QueueName.ShopDayTick);
     await this.pgBoss.boss.schedule(QueueName.ShopDayTick, SHOP_DAY_CRON, {}, { tz: SHOP_DAY_TZ });
-    await this.pgBoss.boss.work(QueueName.ShopDayTick, async () => {
+    await this.pgBoss.workOnce(QueueName.ShopDayTick, async () => {
       const result = await this.days.run();
       this.logger.log(
         `shops' days: ${String(result.days)} recorded for ${String(result.shops)} shops`,

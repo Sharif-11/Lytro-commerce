@@ -1,6 +1,9 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { QueueName } from '@lytronix/validators';
 import { IdempotencyService } from '../../../../common/idempotency/idempotency.service';
+import { DAY_MS } from '../../../../common/time';
+import { ExactLimits } from '../../limits/services/exact-limits';
+import { Leases } from '../../limits/services/leases';
 import { PgBossClient } from '../../queue/services/pg-boss-client';
 
 // API-11: in the small hours in Asia/Dhaka, when the fewest orders are being made.
@@ -19,6 +22,8 @@ export class IdempotencyPurgeTickWorker implements OnModuleInit {
   constructor(
     @Inject(PgBossClient) private readonly pgBoss: PgBossClient,
     @Inject(IdempotencyService) private readonly idempotency: IdempotencyService,
+    @Inject(ExactLimits) private readonly exact: Pick<ExactLimits, 'purgeBefore'>,
+    @Inject(Leases) private readonly leases: Pick<Leases, 'purgeLapsed'>,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -29,9 +34,16 @@ export class IdempotencyPurgeTickWorker implements OnModuleInit {
       {},
       { tz: PURGE_TICK_TZ },
     );
-    await this.pgBoss.boss.work(QueueName.IdempotencyPurgeTick, async () => {
-      const gone = await this.idempotency.purgeExpired(new Date());
+    await this.pgBoss.workOnce(QueueName.IdempotencyPurgeTick, async () => {
+      const now = new Date();
+      const gone = await this.idempotency.purgeExpired(now);
       this.logger.log(`idempotency purge: ${String(gone)} keys past their 24 hours removed`);
+      // Slice 9.4: the exact limits' rows past every window, and leases a stopped process left lapsed.
+      const events = await this.exact.purgeBefore(new Date(now.getTime() - DAY_MS));
+      const leases = await this.leases.purgeLapsed(now);
+      this.logger.log(
+        `limits purge: ${String(events)} old limit rows and ${String(leases)} lapsed leases removed`,
+      );
     });
   }
 }
