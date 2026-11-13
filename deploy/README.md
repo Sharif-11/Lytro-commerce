@@ -4,18 +4,18 @@ How staging (and later production) is set up and deployed (Phase 9 Slice 9.1). E
 folder; a server holds only its secrets (`/opt/lytro/env`) and what it has deployed. `docs/DEPLOYMENT.md` explains the
 design; this is the procedure.
 
-| File                       | What it is                                                                                                 |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `compose.yml`              | Every container on one server: edge, two API processes, the worker, website, storefront, PostgreSQL, Redis |
-| `Caddyfile`, `caddy/`      | The edge: every host's routing, certificates, and its image (Caddy with the Cloudflare DNS plugin)         |
-| `postgres/10-app-role.sh`  | Makes the roles the app connects as (writes, and reads only): on first start, and before each migration    |
-| `pgbouncer/`               | The API's pooler: its image, and the start script that writes its settings and limits                      |
-| `static/publish.sh`        | Publishes a release's dashboard and console files into the edge's volume                                   |
-| `scripts/setup-server.sh`  | A fresh Ubuntu 24.04 server made ready, once, as root                                                      |
-| `scripts/make-env.sh`      | The server's settings and secrets, written once                                                            |
-| `scripts/lytro-ssh`        | The one command GitHub's deploy key may run on the server                                                  |
-| `scripts/deploy.sh`        | One deploy: pull, dump, migrate, replace each process in turn                                              |
-| `scripts/outside-check.sh` | Every host checked from outside, after each deploy                                                         |
+| File                       | What it is                                                                                                                                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `compose.yml`              | Every container on one server: edge, two API processes, the worker, website, storefront, PostgreSQL, Redis                                                                                             |
+| `Caddyfile`, `caddy/`      | The edge: every host's routing, certificates, and its image (Caddy with the Cloudflare DNS plugin)                                                                                                     |
+| `postgres/10-app-role.sh`  | Makes the roles the app connects as (writes, and reads only): on first start, and before each migration. Each deploy copies it to `/opt/lytro/state/postgres-init`, the one folder the database mounts |
+| `pgbouncer/`               | The API's pooler: its image, and the start script that writes its settings and limits                                                                                                                  |
+| `static/publish.sh`        | Publishes a release's dashboard and console files into the edge's volume                                                                                                                               |
+| `scripts/setup-server.sh`  | A fresh Ubuntu 24.04 server made ready, once, as root                                                                                                                                                  |
+| `scripts/make-env.sh`      | The server's settings and secrets, written once                                                                                                                                                        |
+| `scripts/lytro-ssh`        | The one command GitHub's deploy key may run on the server                                                                                                                                              |
+| `scripts/deploy.sh`        | One deploy: pull, dump, migrate, replace each process in turn                                                                                                                                          |
+| `scripts/outside-check.sh` | Every host checked from outside, after each deploy                                                                                                                                                     |
 
 ## What you need first
 
