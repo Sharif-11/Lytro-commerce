@@ -52,6 +52,8 @@ APP_PASSWORD="$(existing postgres.env LYTRO_APP_DB_PASSWORD)"
 APP_PASSWORD="${APP_PASSWORD:-$(secret 24)}"
 READ_PASSWORD="$(existing postgres.env LYTRO_READ_DB_PASSWORD)"
 READ_PASSWORD="${READ_PASSWORD:-$(secret 24)}"
+MONITOR_PASSWORD="$(existing postgres.env LYTRO_MONITOR_DB_PASSWORD)"
+MONITOR_PASSWORD="${MONITOR_PASSWORD:-$(secret 24)}"
 REDIS_PASSWORD="$(existing redis.env REDIS_PASSWORD)"
 REDIS_PASSWORD="${REDIS_PASSWORD:-$(secret 24)}"
 
@@ -84,8 +86,10 @@ POSTGRES_PASSWORD=$OWNER_PASSWORD
 POSTGRES_DB=lytronix
 LYTRO_APP_DB_PASSWORD=$APP_PASSWORD
 LYTRO_READ_DB_PASSWORD=$READ_PASSWORD
+LYTRO_MONITOR_DB_PASSWORD=$MONITOR_PASSWORD
 EOF
 add_missing postgres.env LYTRO_READ_DB_PASSWORD "$READ_PASSWORD"
+add_missing postgres.env LYTRO_MONITOR_DB_PASSWORD "$MONITOR_PASSWORD"
 
 write migrate.env <<EOF
 # The schema owner: migrations and pg-boss's schema (deploy/compose.yml's migrate step).
@@ -110,6 +114,20 @@ EOF
 # The shared Redis's password (Slice 9.4, RED-01); the server reaches it as REDIS_URL (server.env).
 write redis.env <<EOF
 REDIS_PASSWORD=$REDIS_PASSWORD
+EOF
+
+# The monitor's (Slice 9.6, D9-3, deploy/alloy): it reads the database's figures as a pg_monitor role
+# (deploy/postgres/30-monitor-role.sh) and sends them, the server's, Redis's and the edge's to Grafana Cloud. It starts
+# on the first deploy after the three Grafana lines are filled in (deploy/README.md "Monitoring").
+write monitoring.env <<EOF
+MONITOR_DATABASE_URL=postgres://lytronix_monitor:$MONITOR_PASSWORD@postgres:5432/lytronix?sslmode=disable
+SERVER_NAME=$PLATFORM_DOMAIN
+
+# From Grafana Cloud, the stack's Prometheus details: the remote write address, its user (a number), and an access
+# policy token that may write metrics and rules.
+GRAFANA_METRICS_URL=
+GRAFANA_METRICS_USER=
+GRAFANA_CLOUD_TOKEN=
 EOF
 
 # The backups' (Slice 9.3, D9-18, DAT-28): only the database and backup containers read it, never the app's. The

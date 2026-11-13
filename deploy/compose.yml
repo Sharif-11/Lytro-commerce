@@ -10,6 +10,7 @@
 #   backup      the nightly backups at 05:30 Dhaka: the encrypted dump, then the base backup (Slice 9.3, D9-18)
 #   redis       the shared limits and gateway tokens (Slice 9.4, D9-1, D9-15), password-protected, nothing kept
 #   pgbouncer   the API's pooler (Slice 9.2, D9-13): the worker and the migrations connect to postgres directly
+#   monitor     the server's, database's, Redis's and edge's figures to Grafana Cloud (Slice 9.6), once it's set up
 #   migrate     one-off: migrations, then pg-boss's schema, as the owner (deploy.sh, after a dump)
 #   static      one-off: publishes a release's dashboard and console files into the edge's volume
 #
@@ -234,6 +235,36 @@ services:
     mem_limit: ${REDIS_MEMORY:-96m}
     logging: *logging
 
+  # Grafana Alloy (Slice 9.6, D9-3, OBS-05, DAT-25, MON-03): the host's, the database's, Redis's and the edge's figures
+  # to Grafana Cloud each minute, where the alerts are. deploy.sh starts it once monitoring.env names the Grafana account,
+  # from a copy of deploy/alloy/config.alloy in a folder no deploy deletes (as the database's first-start scripts); a
+  # changed copy replaces it (MONITOR_CONFIG_SHA). It reads the host's /proc, /sys and / read-only, and the database as
+  # pg_monitor only.
+  monitor:
+    image: grafana/alloy:v1.21.2
+    profiles: [monitoring]
+    restart: unless-stopped
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=127.0.0.1:12345
+      - --disable-reporting
+    env_file:
+      - ${LYTRO_HOME:-/opt/lytro}/env/monitoring.env
+      - ${LYTRO_HOME:-/opt/lytro}/env/redis.env
+    environment:
+      MONITOR_CONFIG_SHA: ${MONITOR_CONFIG_SHA:-}
+    volumes:
+      - ${LYTRO_HOME:-/opt/lytro}/state/monitor/config.alloy:/etc/alloy/config.alloy:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
+      - monitor-data:/var/lib/alloy/data
+    networks: [internal]
+    mem_limit: ${MONITOR_MEMORY:-192m}
+    logging: *logging
+
   migrate:
     <<: *server
     profiles: [tools]
@@ -264,3 +295,4 @@ volumes:
   caddy-data:
   caddy-config:
   static:
+  monitor-data:

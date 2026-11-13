@@ -20,6 +20,10 @@
 	on_demand_tls {
 		ask http://localhost:8080/api/v1/internal/domains/ask
 	}
+
+	# MON-03 (Slice 9.6): every request's count and time by status code, for the error-rate alert, read by the monitor on
+	# the internal listener at :9180 below. No host label: shops' own domains would make one series each.
+	metrics
 }
 
 # --- Shared pieces (DEPLOYMENT.md §5, §6) ---
@@ -227,4 +231,9 @@ http://:8080 {
 			import server_balancing
 		}
 	}
+}
+
+# The monitor's view of every request (Slice 9.6, MON-03): never published, read inside the deployment's network only.
+http://:9180 {
+	metrics
 }
