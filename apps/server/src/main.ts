@@ -17,6 +17,8 @@ class Application {
     const app = await NestFactory.create<NestExpressApplication>(AppModule, {
       // CRR-11: a courier's signature is over the body exactly as it arrived.
       rawBody: true,
+      // D9-20 (Slice 9.6): Nest's start-up lines wait for the app's own logger (HttpSetup), so they're JSON too.
+      bufferLogs: true,
     });
     new HttpSetup().apply(app);
 
