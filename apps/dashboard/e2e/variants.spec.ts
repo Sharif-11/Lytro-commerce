@@ -258,7 +258,7 @@ test('a swatch from a photo says how far its upload is, and the other choices wa
         (call) =>
           call.method === 'PATCH' &&
           call.path.startsWith('/attributes/a-2/options/') &&
-          typeof call.body?.swatchImageId === 'string',
+          typeof (call.body as { swatchImageId?: unknown } | undefined)?.swatchImageId === 'string',
       ),
     )
     .toBe(true);
