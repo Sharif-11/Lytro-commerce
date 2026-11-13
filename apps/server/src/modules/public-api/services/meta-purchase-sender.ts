@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
-import { CircuitBreaker } from '../../../common/circuit-breaker';
+import { CircuitBreaker, CircuitOpen } from '../../../common/circuit-breaker';
 import { OutsideCalls } from '../../shared/outside-calls/services/outside-calls';
 import { LocationService } from '../../delivery/services/location.service';
 import { OrderTracking } from '../../orders/services/order-tracking';
@@ -57,7 +57,10 @@ export class MetaPurchaseSender {
       );
       this.logger.log(`credential used: ${use}: sent`);
     } catch (error) {
-      await this.adTracking.recordUse(job.tenantId, order.id, false);
+      // An open circuit refused the call before the token went anywhere: nothing was used.
+      if (!(error instanceof CircuitOpen)) {
+        await this.adTracking.recordUse(job.tenantId, order.id, false);
+      }
       // The token travels in the request body only, so no error from the call can carry it.
       this.logger.warn(
         `credential used: ${use}: failed (${error instanceof Error ? error.message : 'error'})`,
