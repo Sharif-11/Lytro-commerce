@@ -29,6 +29,7 @@ import {
   courierMessageRoutes,
   courierParcels,
   courierPayouts,
+  courierRawMessages,
   orders,
   type SelectCourierConnection,
   type SelectCourierCredentialUse,
@@ -1041,6 +1042,8 @@ export class CourierRepository {
   /** LIF-19: the day-60 deletion's couriers step. Parcels go with their orders too; this is safe to run either way. */
   async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
+    // DAT-51 (Phase 9 Slice 9.5): its messages as they arrived go with its news.
+    await tx.delete(courierRawMessages).where(eq(courierRawMessages.tenantId, tenantId));
     await tx.delete(courierEvents).where(eq(courierEvents.tenantId, tenantId));
     await tx.delete(courierPayouts).where(eq(courierPayouts.tenantId, tenantId));
     await tx.delete(courierMessageRoutes).where(eq(courierMessageRoutes.tenantId, tenantId));

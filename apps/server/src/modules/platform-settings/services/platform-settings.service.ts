@@ -11,6 +11,8 @@ import {
   appVersionField,
   cloudflarePricesSchema,
   CLOUDFLARE_BILLING_DAY_MAX,
+  DEGRADED_FACTOR_MAX,
+  degradedModeValueSchema,
   DEFAULT_HELP_CLOSES_HOUR,
   DEFAULT_HELP_OPENS_HOUR,
   bdMobileNumber,
@@ -117,6 +119,10 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'The hour Lytro starts answering the help line, every day, 0 to 23 in Dhaka (D8-68).',
   [PlatformSettingKey.HelpClosesHour]:
     'The hour Lytro stops answering the help line, every day, 0 to 23 in Dhaka (D8-68).',
+  [PlatformSettingKey.DegradedMode]:
+    'Degraded mode, on or off, and the notice it put up: changed only by its own switch (DAT-38).',
+  [PlatformSettingKey.DegradedFactor]:
+    'What degraded mode divides every per-minute rate limit by, 2 to 10 (DAT-38).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -159,6 +165,11 @@ const isLocalMobile = (value: unknown): boolean =>
 const isLocalMobileOrCleared = (value: unknown): boolean => value === '' || isLocalMobile(value);
 const isHour = (value: unknown): boolean =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= HELP_HOUR_MAX;
+// DAT-38 (Slice 9.5): the switch's stored form, and a factor that still lets some requests through.
+const isDegradedMode = (value: unknown): boolean =>
+  degradedModeValueSchema.safeParse(value).success;
+const isDegradedFactor = (value: unknown): boolean =>
+  isPositiveInt(value) && (value as number) >= 2 && (value as number) <= DEGRADED_FACTOR_MAX;
 
 const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.TrialDays]: isPositiveInt,
@@ -207,6 +218,8 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.HelpPhone]: isLocalMobileOrCleared,
   [PlatformSettingKey.HelpOpensHour]: isHour,
   [PlatformSettingKey.HelpClosesHour]: isHour,
+  [PlatformSettingKey.DegradedMode]: isDegradedMode,
+  [PlatformSettingKey.DegradedFactor]: isDegradedFactor,
 };
 
 // D8-77: the help line's two hours, each checked against the other.

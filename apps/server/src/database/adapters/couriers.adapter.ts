@@ -3,6 +3,7 @@ import {
   ActivityLogRepository,
   CourierAdapterRepository,
   CourierRepository,
+  RawMessageRepository,
   TenantRepository,
   TransactionRunner,
   type BlockingParcelRow,
@@ -12,6 +13,7 @@ import {
   type NewCourierCredentialUse,
   type NewCourierEvent,
   type NewCourierParcel,
+  type NewCourierRawMessage,
   type NewCourierPayout,
   type ParcelCheckWindow,
   type PayoutParcelRow,
@@ -28,6 +30,7 @@ import {
   type RetireState,
   type CourierConnectionState,
   type CourierKey,
+  type RawMessageOutcome,
 } from '@lytronix/validators';
 import { UniqueViolation } from '../../common/errors/unique-violation';
 import type { CourierStore } from '../../modules/couriers/ports/courier-store';
@@ -47,6 +50,7 @@ export class DrizzleCourierStore implements CourierStore {
     @Inject(TenantRepository) private readonly tenants: TenantRepository,
     @Inject(CourierAdapterRepository) private readonly adapters: CourierAdapterRepository,
     @Inject(ActivityLogRepository) private readonly log: ActivityLogRepository,
+    @Inject(RawMessageRepository) private readonly raw: RawMessageRepository,
   ) {}
 
   run<T>(tenantId: string, work: (tx: Transaction) => Promise<T>): Promise<T> {
@@ -219,6 +223,20 @@ export class DrizzleCourierStore implements CourierStore {
     now: Date,
   ): Promise<void> {
     return this.couriers.updateConnection(tx, tenantId, connectionId, patch, now);
+  }
+
+  keepRaw(tx: Transaction, tenantId: string, message: NewCourierRawMessage): Promise<string> {
+    return this.raw.insertCourier(tx, tenantId, message);
+  }
+
+  markRaw(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    outcome: RawMessageOutcome,
+    eventId: string | null,
+  ): Promise<void> {
+    return this.raw.markCourier(tx, tenantId, id, outcome, eventId);
   }
 
   insertEvent(

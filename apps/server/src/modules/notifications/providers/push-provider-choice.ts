@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import type { CircuitBreaker } from '../../../common/circuit-breaker';
 import type { Env } from '../../../config/env';
 import type {
   PushMessage,
@@ -48,6 +49,7 @@ export function pushProviderFor(
     'NODE_ENV' | 'PUSH_FORCE_REAL' | 'VAPID_PUBLIC_KEY' | 'VAPID_PRIVATE_KEY' | 'VAPID_SUBJECT'
   >,
   fetchPush: PushFetch,
+  breaker?: CircuitBreaker,
 ): PushProvider {
   const mode = pushModeOf(env);
   if (mode !== 'send')
@@ -63,5 +65,6 @@ export function pushProviderFor(
       subject: env.VAPID_SUBJECT,
     },
     fetchPush,
+    breaker,
   );
 }

@@ -80,6 +80,7 @@ import {
 import { BookOrderDto, CancelParcelDto, SettleParcelDto } from '../dto/couriers.dto';
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
+import { PausedWhileDegraded } from '../../degraded-mode/paused-while-degraded';
 
 // ORD-01, ORD-13: the route an order is made at, as its idempotency key is scoped to it (D4-8).
 const CREATE_PATH = '/orders';
@@ -176,6 +177,7 @@ export class OrdersController {
   }
 
   @Post('read-address')
+  @PausedWhileDegraded()
   @HttpCode(200)
   @RequirePermission(Permission.OrdersManage)
   @ResponseMessage('AddressRead')

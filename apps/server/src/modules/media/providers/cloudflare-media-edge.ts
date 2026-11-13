@@ -1,4 +1,5 @@
 import { MEDIA_BLOCKED_KEY, mediaOriginsKey } from '@lytronix/shared-types';
+import { CircuitBreaker, CircuitOpen } from '../../../common/circuit-breaker';
 import {
   EdgeUnavailable,
   type EdgeStoreChanges,
@@ -50,6 +51,8 @@ export class CloudflareMediaEdge implements MediaEdge {
     private readonly settings: CloudflareEdgeSettings,
     private readonly fetcher: (url: string, init: RequestInit) => Promise<Response> = (url, init) =>
       fetch(url, init),
+    // PRF-05 (Slice 9.5): usage and the shared store each through their own circuit.
+    private readonly breaker: CircuitBreaker = new CircuitBreaker({ service: 'cloudflare' }),
   ) {}
 
   async usageByMinute(from: Date, to: Date): Promise<MediaUsageTotal[]> {
@@ -65,6 +68,7 @@ export class CloudflareMediaEdge implements MediaEdge {
       'FORMAT JSON',
     ].join(' ');
     const answer = (await this.call(
+      'cloudflare:analytics',
       `${API}/accounts/${this.settings.accountId}/analytics_engine/sql`,
       { method: 'POST', body: query },
     )) as UsageAnswer;
@@ -92,6 +96,7 @@ export class CloudflareMediaEdge implements MediaEdge {
     const { accountId, kvNamespaceId } = this.settings;
     for (let start = 0; start < pairs.length; start += BULK_PAIRS) {
       const answer = (await this.call(
+        'cloudflare:kv',
         `${API}/accounts/${accountId}/storage/kv/namespaces/${kvNamespaceId}/bulk`,
         {
           method: 'PUT',
@@ -104,7 +109,21 @@ export class CloudflareMediaEdge implements MediaEdge {
     }
   }
 
+  /** PRF-05 (Slice 9.5): one call to Cloudflare's API, through its circuit; an open one is Cloudflare being away. */
   private async call(
+    circuit: string,
+    url: string,
+    request: { method: string; body: string; headers?: Record<string, string> },
+  ): Promise<unknown> {
+    try {
+      return await this.breaker.call(circuit, () => this.ask(url, request));
+    } catch (error) {
+      if (error instanceof CircuitOpen) throw new EdgeUnavailable(error.message);
+      throw error;
+    }
+  }
+
+  private async ask(
     url: string,
     request: { method: string; body: string; headers?: Record<string, string> },
   ): Promise<unknown> {

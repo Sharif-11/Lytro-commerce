@@ -2,6 +2,7 @@ import { OauthProvider } from '@lytronix/validators';
 import { z } from 'zod';
 import { ApiError } from '../../../common/api-error';
 import type { OauthProfile, OauthProviderPort } from '../ports/oauth-provider';
+import { OauthCalls } from './oauth-calls';
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
@@ -21,6 +22,8 @@ export class GoogleOauthProvider implements OauthProviderPort {
   constructor(
     private readonly clientId: string,
     private readonly clientSecret: string,
+    // PRF-05 (Slice 9.5): Google's calls go through its circuit.
+    private readonly calls: OauthCalls = new OauthCalls('google'),
   ) {}
 
   authorizeUrl(input: { state: string; codeChallenge: string; redirectUri: string }): string {
@@ -40,7 +43,7 @@ export class GoogleOauthProvider implements OauthProviderPort {
     codeVerifier: string;
     redirectUri: string;
   }): Promise<OauthProfile> {
-    const token = await fetch(TOKEN_URL, {
+    const token = await this.calls.send(TOKEN_URL, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -56,7 +59,7 @@ export class GoogleOauthProvider implements OauthProviderPort {
     if (!token.ok || !tokenBody.success)
       throw new ApiError('unauthenticated', 'GoogleSignInNotConfirmed', {});
 
-    const info = await fetch(USERINFO_URL, {
+    const info = await this.calls.send(USERINFO_URL, {
       headers: { authorization: `Bearer ${tokenBody.data.access_token}` },
     });
     const profile = profileReply.safeParse(await info.json().catch(() => null));

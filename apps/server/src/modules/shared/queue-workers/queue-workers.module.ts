@@ -54,6 +54,9 @@ import { RequestErrorPurgeTickWorker } from './services/request-error-purge-tick
 import { MediaCostTickWorker } from './services/media-cost-tick-worker';
 import { ShopDayTickWorker } from './services/shop-day-tick-worker';
 import { EvidenceSweepWorker } from './services/evidence-sweep-worker';
+import { ReconciliationModule } from '../../reconciliation/reconciliation.module';
+import { ReconciliationTickWorker } from './services/reconciliation-tick-worker';
+import { RawMessagePurgeTickWorker } from './services/raw-message-purge-tick-worker';
 
 // D27/D2-6: registers pg-boss queues and their work handlers. Kept apart from QueueModule (the queue mechanism
 // itself, SCL-08, D25) and from MessagingModule/BillingModule (the delivery/lifecycle business rules), so
@@ -85,6 +88,7 @@ import { EvidenceSweepWorker } from './services/evidence-sweep-worker';
     PaymentEvidenceModule,
     NotificationsModule,
     NoticesModule,
+    ReconciliationModule,
   ],
   providers: [
     SmsRetryWorker,
@@ -116,6 +120,8 @@ import { EvidenceSweepWorker } from './services/evidence-sweep-worker';
     MediaCostTickWorker,
     ShopDayTickWorker,
     EvidenceSweepWorker,
+    ReconciliationTickWorker,
+    RawMessagePurgeTickWorker,
     NotificationPurgeTickWorker,
     NoticePublishTickWorker,
   ],

@@ -16,6 +16,7 @@ import {
   BellPaymentMethodNotifier,
   BellPaymentNotifier,
 } from './notifiers/bell-notifiers';
+import { OutsideCalls } from '../shared/outside-calls/services/outside-calls';
 import { pushProviderFor } from './providers/push-provider-choice';
 import type { PushFetch } from './providers/web-push.provider';
 import { AccountNotices } from './services/account-notices';
@@ -52,8 +53,9 @@ const NOTIFIERS = [
     },
     {
       provide: PUSH_PROVIDER,
-      inject: [ENV, PUSH_FETCH],
-      useFactory: (env: Env, fetchPush: PushFetch) => pushProviderFor(env, fetchPush),
+      inject: [ENV, PUSH_FETCH, OutsideCalls],
+      useFactory: (env: Env, fetchPush: PushFetch, outside: OutsideCalls) =>
+        pushProviderFor(env, fetchPush, outside.breaker('web-push')),
     },
     { provide: NOTIFICATIONS_CLOCK, useValue: (): Date => new Date() },
     Notifications,

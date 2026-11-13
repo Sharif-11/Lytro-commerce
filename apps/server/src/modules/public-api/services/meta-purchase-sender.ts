@@ -1,5 +1,6 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { CircuitBreaker } from '../../../common/circuit-breaker';
+import { OutsideCalls } from '../../shared/outside-calls/services/outside-calls';
 import { LocationService } from '../../delivery/services/location.service';
 import { OrderTracking } from '../../orders/services/order-tracking';
 import type { MetaConversions } from '../ports/meta-conversions';
@@ -26,14 +27,18 @@ export interface MetaPurchasePayload {
 @Injectable()
 export class MetaPurchaseSender {
   private readonly logger = new Logger('MetaConversions');
-  private readonly breaker = new CircuitBreaker();
+  private readonly breaker: CircuitBreaker;
 
   constructor(
     @Inject(AdTrackingService) private readonly adTracking: AdTrackingService,
     @Inject(OrderTracking) private readonly orders: OrderTracking,
     @Inject(LocationService) private readonly locations: LocationService,
     @Inject(META_CONVERSIONS) private readonly meta: MetaConversions,
-  ) {}
+    // PRF-04, PRF-05 (Slice 9.5): the shared breaker, timed and alerting.
+    @Optional() @Inject(OutsideCalls) outside?: OutsideCalls,
+  ) {
+    this.breaker = outside?.breaker('meta') ?? new CircuitBreaker({ service: 'meta' });
+  }
 
   async send(job: MetaPurchasePayload): Promise<void> {
     const credentials = await this.adTracking.purchaseCredentials(job.tenantId);

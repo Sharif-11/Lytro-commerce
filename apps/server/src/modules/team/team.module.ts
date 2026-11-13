@@ -77,6 +77,8 @@ import { FraudChecksController } from './controllers/fraud-checks.controller';
 import { NotificationsController, PushController } from './controllers/notifications.controller';
 import { NoticesController } from './controllers/notices.controller';
 import { OperatorNoticesController } from './controllers/operator-notices.controller';
+import { OperatorDegradedModeController } from './controllers/operator-degraded-mode.controller';
+import { DegradedSwitch } from '../degraded-mode/services/degraded-switch';
 import { OperatorCourierAreasController } from './controllers/operator-courier-areas.controller';
 import { OperatorLocationsController } from './controllers/operator-locations.controller';
 import { OperatorCourierRetiringController } from './controllers/operator-courier-retiring.controller';
@@ -84,6 +86,8 @@ import { OperatorCouriersController } from './controllers/operator-couriers.cont
 import { AddressReadsModule } from '../address-reads/address-reads.module';
 import { FraudChecksModule } from '../fraud-checks/fraud-checks.module';
 import { MediaCostsModule } from '../media-costs/media-costs.module';
+import { ReconciliationModule } from '../reconciliation/reconciliation.module';
+import { OperatorReconciliationController } from './controllers/operator-reconciliation.controller';
 import { HelpLineModule } from '../help-line/help-line.module';
 import { PaymentMethodRetiringModule } from '../payment-method-types/payment-method-retiring.module';
 import { ReportsModule } from '../reports/reports.module';
@@ -182,6 +186,7 @@ import { NoticesModule } from '../notices/notices.module';
     AddressReadsModule,
     FraudChecksModule,
     MediaCostsModule,
+    ReconciliationModule,
     PaymentMethodRetiringModule,
     HelpLineModule,
     ReportsModule,
@@ -204,6 +209,7 @@ import { NoticesModule } from '../notices/notices.module';
     OperatorShopActionsController,
     OperatorRecentChangesController,
     OperatorMediaCostsController,
+    OperatorReconciliationController,
     OperatorPaymentMethodTypesController,
     HelpLineController,
     OperatorReportsController,
@@ -258,6 +264,7 @@ import { NoticesModule } from '../notices/notices.module';
     PushController,
     NoticesController,
     OperatorNoticesController,
+    OperatorDegradedModeController,
     OperatorCouriersController,
     OperatorCourierAreasController,
     OperatorLocationsController,
@@ -271,6 +278,7 @@ import { NoticesModule } from '../notices/notices.module';
     HomeController,
   ],
   providers: [
+    DegradedSwitch,
     OperatorShops,
     OperatorShopReads,
     StaffSigninService,

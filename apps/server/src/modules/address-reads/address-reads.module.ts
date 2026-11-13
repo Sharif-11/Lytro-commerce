@@ -5,6 +5,7 @@ import { DrizzleAddressReadStore } from '../../database/adapters/address-reads.a
 import { BalanceModule } from '../balance/balance.module';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
+import { OutsideCalls } from '../shared/outside-calls/services/outside-calls';
 import { addressReadersFor } from './providers/address-reader-choice';
 import type { AiFetch } from './providers/gemini-address-reader';
 import { AddressReads } from './services/address-reads';
@@ -22,8 +23,9 @@ import { ADDRESS_READ_CLOCK, ADDRESS_READ_STORE, ADDRESS_READERS, AI_FETCH } fro
     },
     {
       provide: ADDRESS_READERS,
-      inject: [ENV, AI_FETCH],
-      useFactory: (env: Env, fetchAi: AiFetch) => addressReadersFor(env, fetchAi),
+      inject: [ENV, AI_FETCH, OutsideCalls],
+      useFactory: (env: Env, fetchAi: AiFetch, outside: OutsideCalls) =>
+        addressReadersFor(env, fetchAi, outside.breaker('gemini')),
     },
     { provide: ADDRESS_READ_CLOCK, useValue: (): Date => new Date() },
     AddressReads,

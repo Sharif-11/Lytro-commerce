@@ -211,6 +211,15 @@ export const LISTENER_RECEIVED_AHEAD_MINUTES = 5;
 export const LISTENER_RECEIVED_OLDEST_DAYS = 7;
 export const LISTENER_TEST_MODE_MINUTES = 10;
 export const LISTENER_TEXT_KEPT_DAYS = 90;
+// DAT-51, D9-16 (Phase 9 Slice 9.5, the user 2026-11-13): how long a courier's message and a gateway's answer are kept as they
+// arrived, then removed.
+export const RAW_MESSAGE_KEPT_DAYS = 90;
+// DAT-52 (Phase 9 Slice 9.5, the user 2026-11-13): what is still unmatched this long after it happened is a difference.
+export const RECONCILIATION_UNMATCHED_HOURS = 24;
+// DAT-52: the note an operator writes when resolving a difference.
+export const RECONCILIATION_NOTE_MAX_LENGTH = 500;
+// DAT-51: how much of a courier's message is kept; a message is a status update, never this long.
+export const RAW_MESSAGE_MAX_BYTES = 64 * 1024;
 // LSN-16: the senders whose SMS count as a wallet's, when the operator has set no list of their own.
 export const LISTENER_SENDERS: readonly string[] = ['bKash'];
 export const LISTENER_SENDER_MAX_LENGTH = 30;

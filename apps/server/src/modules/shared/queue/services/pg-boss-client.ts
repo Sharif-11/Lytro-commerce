@@ -7,6 +7,7 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { PgBoss, type WorkHandler } from 'pg-boss';
+import { DegradedMode } from '../../../degraded-mode/services/degraded-mode';
 import { Leases } from '../../limits/services/leases';
 import { runsJobs } from '../../../../config/server-role';
 import { ENV } from '../../../../config/tokens';
@@ -15,6 +16,8 @@ import type { Env } from '../../../../config/env';
 // MON-04 (Slice 9.4): a scheduled pass holds its name this long at most; a worker that stopped mid-pass frees it when
 // it lapses, so another takes over within two passes of a quarter of an hour.
 const PASS_LEASE_MS = 15 * 60_000;
+// DAT-38 (Slice 9.5): how long a job degraded mode holds back waits before it is looked at again.
+export const PAUSED_JOB_WAIT_SECONDS = 5 * 60;
 
 /**
  * Owns pg-boss's lifecycle and its own connection pool, kept separate from the app's request pool so continuous
@@ -33,6 +36,7 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(ENV) env: Pick<Env, 'DATABASE_URL'> & Partial<Pick<Env, 'SERVER_ROLE'>>,
     @Optional() @Inject(Leases) private readonly leases?: Pick<Leases, 'hold'>,
+    @Optional() @Inject(DegradedMode) private readonly degraded?: Pick<DegradedMode, 'pauses'>,
   ) {
     this.starts = runsJobs(env.SERVER_ROLE ?? 'all');
     this.boss = new PgBoss({
@@ -66,6 +70,26 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
    * lease while it works, and a run that finds it held (the last one still going on another worker) is skipped. pg-boss
    * already makes one job per schedule tick; this keeps consecutive ticks apart.
    */
+  /**
+   * DAT-38, D9-14 (Slice 9.5): a queue degraded mode can hold back (DegradedMode's PAUSED_QUEUES). While it's on, each
+   * job is put back to be looked at again in a few minutes, the same work, instead of running now; it never counts as a
+   * failure or uses up a retry. Off, the jobs run as `work` runs them.
+   */
+  workPausable<T extends object>(name: string, handler: WorkHandler<T>): Promise<string> {
+    return this.boss.work<T>(name, async (jobs) => {
+      if (this.degraded && (await this.degraded.pauses(name))) {
+        for (const job of jobs) {
+          await this.boss.send(name, job.data, { startAfter: PAUSED_JOB_WAIT_SECONDS });
+        }
+        this.logger.log(
+          `${name}: degraded mode is on, so ${String(jobs.length)} job(s) wait ${String(PAUSED_JOB_WAIT_SECONDS)} s`,
+        );
+        return;
+      }
+      await handler(jobs);
+    });
+  }
+
   workOnce<T = object>(name: string, handler: WorkHandler<T>): Promise<string> {
     return this.boss.work<T>(name, async (jobs) => {
       if (!this.leases) {

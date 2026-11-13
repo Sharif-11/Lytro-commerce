@@ -2,11 +2,13 @@ import {
   Inject,
   Injectable,
   Logger,
+  Optional,
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
 import type { Redis } from 'ioredis';
 import type { WindowVerdict } from '../../../../common/sliding-window';
+import { DegradedMode } from '../../../degraded-mode/services/degraded-mode';
 import type { LimitStore, SharedStoreState } from '../ports/limit-store';
 import { LIMITS_REDIS } from '../tokens';
 import { MemoryLimitStore } from './memory-limit-store';
@@ -26,7 +28,8 @@ const STARTUP_GRACE_MS = 15_000;
 /**
  * D9-15, RED-02 to RED-05 (Slice 9.4): every rate limit's one store (LIMIT_STORE). The shared Redis when it answers;
  * this process's memory when there's no Redis at all (REDIS_URL unset: a developer's machine, the tests), at the full
- * limit; and the same memory while Redis is down, at half the limit. Its callers never know which.
+ * limit; and the same memory while Redis is down, at half the limit. Its callers never know which. DAT-38 (Slice 9.5):
+ * while degraded mode is on, every limit counted over a minute or less is divided by its factor first, here alone.
  */
 @Injectable()
 export class SharedLimitStore implements LimitStore, OnModuleInit, OnModuleDestroy {
@@ -42,6 +45,9 @@ export class SharedLimitStore implements LimitStore, OnModuleInit, OnModuleDestr
   constructor(
     @Inject(LIMITS_REDIS) private readonly redis: Redis | null,
     @Inject(RedisOutage) private readonly outage: Pick<RedisOutage, 'down' | 'up'>,
+    @Optional()
+    @Inject(DegradedMode)
+    private readonly degraded?: Pick<DegradedMode, 'divisor'>,
   ) {
     this.shared = redis ? new RedisLimitStore(redis) : null;
   }
@@ -78,16 +84,23 @@ export class SharedLimitStore implements LimitStore, OnModuleInit, OnModuleDestr
     windowMs: number,
     now: Date,
   ): Promise<WindowVerdict> {
-    if (!this.shared) return this.memory[kind](bucket, limit, windowMs, now);
+    const allowed = await this.allowedNow(limit, windowMs);
+    if (!this.shared) return this.memory[kind](bucket, allowed, windowMs, now);
     if (this.answering) {
       try {
-        return await this.shared[kind](bucket, limit, windowMs, now);
+        return await this.shared[kind](bucket, allowed, windowMs, now);
       } catch (error) {
         this.lost(error);
       }
     }
-    const share = Math.max(1, Math.floor(limit / FALLBACK_SHARE));
+    const share = Math.max(1, Math.floor(allowed / FALLBACK_SHARE));
     return this.memory[kind](bucket, share, windowMs, now);
+  }
+
+  /** DAT-38 (Slice 9.5): the limit as it stands now: divided while degraded mode is on, if it counts over a minute. */
+  private async allowedNow(limit: number, windowMs: number): Promise<number> {
+    const divisor = this.degraded ? await this.degraded.divisor(windowMs) : 1;
+    return divisor > 1 ? Math.max(1, Math.floor(limit / divisor)) : limit;
   }
 
   /** Redis failed a request: memory answers from now, and Redis is tried again every few seconds. */

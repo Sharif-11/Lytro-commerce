@@ -29,6 +29,8 @@ import { IdentitiesService } from './services/identities.service';
 import { DrizzleOauthStateStore } from '../../database/adapters/oauth-state.adapter';
 import { FacebookOauthProvider } from './providers/facebook-oauth.provider';
 import { GoogleOauthProvider } from './providers/google-oauth.provider';
+import { OauthCalls } from './providers/oauth-calls';
+import { OutsideCalls } from '../shared/outside-calls/services/outside-calls';
 import { LegalAcceptance } from './services/legal-acceptance';
 import { OauthService } from './services/oauth.service';
 import { MeController } from './controllers/me.controller';
@@ -113,15 +115,23 @@ import {
     { provide: SESSION_STORE, useClass: DrizzleSessionStore },
     {
       provide: GOOGLE_PROVIDER,
-      inject: [ENV],
-      useFactory: (env: Env) =>
-        new GoogleOauthProvider(env.GOOGLE_CLIENT_ID ?? '', env.GOOGLE_CLIENT_SECRET ?? ''),
+      inject: [ENV, OutsideCalls],
+      useFactory: (env: Env, outside: OutsideCalls) =>
+        new GoogleOauthProvider(
+          env.GOOGLE_CLIENT_ID ?? '',
+          env.GOOGLE_CLIENT_SECRET ?? '',
+          new OauthCalls('google', outside.breaker('google')),
+        ),
     },
     {
       provide: FACEBOOK_PROVIDER,
-      inject: [ENV],
-      useFactory: (env: Env) =>
-        new FacebookOauthProvider(env.FACEBOOK_APP_ID ?? '', env.FACEBOOK_APP_SECRET ?? ''),
+      inject: [ENV, OutsideCalls],
+      useFactory: (env: Env, outside: OutsideCalls) =>
+        new FacebookOauthProvider(
+          env.FACEBOOK_APP_ID ?? '',
+          env.FACEBOOK_APP_SECRET ?? '',
+          new OauthCalls('facebook', outside.breaker('facebook')),
+        ),
     },
     {
       provide: OAUTH_PROVIDERS,

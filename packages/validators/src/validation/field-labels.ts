@@ -92,6 +92,8 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   off: { en: 'Switched off', bn: 'বন্ধ করা' },
   offset: { en: 'Page start', bn: 'পেজের শুরু' },
   oldRate: { en: 'Old rate', bn: 'আগের রেট' },
+  // DAT-38 (Slice 9.5): degraded mode's switch.
+  on: { en: 'Switched on', bn: 'চালু করা' },
   p256dh: { en: 'Push key', bn: 'পুশ কি' },
   pinned: { en: 'Pinned', bn: 'পিন করা' },
   publishAt: { en: 'Publish time', bn: 'পাবলিশের সময়' },
@@ -112,6 +114,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   text: { en: 'Text', bn: 'টেক্সট' },
   receivedAt: { en: 'Received at', bn: 'পাওয়ার সময়' },
   days: { en: 'Days', bn: 'দিন' },
+  day: { en: 'Day', bn: 'দিন' },
   codOrders: { en: 'Check COD orders', bn: 'COD অর্ডার চেক' },
   components: { en: 'Combo items', bn: 'কম্বোর আইটেম' },
   condition: { en: 'Condition', bn: 'কন্ডিশন' },
