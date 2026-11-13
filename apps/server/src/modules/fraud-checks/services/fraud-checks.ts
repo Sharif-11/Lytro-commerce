@@ -1,10 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  type OnModuleDestroy,
-  type OnModuleInit,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { SelectFraudCheck, SelectFraudRule } from '@lytronix/db';
 import {
   CourierKey,
@@ -25,7 +19,8 @@ import {
 import { ApiError } from '../../../common/api-error';
 import { MESSAGE_KEYS, type MessageKey } from '../../../common/i18n/message-key';
 import { translate } from '../../../common/i18n/messages';
-import { SlidingWindow } from '../../../common/sliding-window';
+import type { LimitStore } from '../../shared/limits/ports/limit-store';
+import { LIMIT_STORE } from '../../shared/limits/tokens';
 import { DAY_MS, MINUTE_MS, SECOND_MS } from '../../../common/time';
 import { BalanceService } from '../../balance/services/balance.service';
 import { rateToPaisa, toPaisa } from '../../balance/services/money';
@@ -155,12 +150,11 @@ function ruleViewOf(row: SelectFraudRule | null): FraudRuleView {
  *   the order is never held up, and a check that can't run is skipped.
  */
 @Injectable()
-export class FraudChecks implements OnModuleInit, OnModuleDestroy {
+export class FraudChecks {
   private readonly logger = new Logger(FraudChecks.name);
-  private readonly windows = new SlidingWindow(MINUTE_MS);
-  private sweeper: NodeJS.Timeout | null = null;
 
   constructor(
+    @Inject(LIMIT_STORE) private readonly limitStore: LimitStore,
     @Inject(FRAUD_CHECK_STORE) private readonly store: FraudCheckStore,
     @Inject(CourierFraudScores) private readonly scores: CourierFraudScores,
     @Inject(BalanceService) private readonly balance: BalanceService,
@@ -169,17 +163,6 @@ export class FraudChecks implements OnModuleInit, OnModuleDestroy {
     @Inject(TenantSummaries) private readonly shops: TenantSummaries,
     @Inject(FRAUD_CHECK_CLOCK) private readonly clock: () => Date,
   ) {}
-
-  onModuleInit(): void {
-    this.sweeper = setInterval(() => {
-      this.windows.sweep(Date.now());
-    }, MINUTE_MS);
-    this.sweeper.unref();
-  }
-
-  onModuleDestroy(): void {
-    if (this.sweeper) clearInterval(this.sweeper);
-  }
 
   /** FRD-01: a check staff asked for. */
   async run(actor: FraudCheckActor, phone: string): Promise<FraudCheckView> {
@@ -389,7 +372,12 @@ export class FraudChecks implements OnModuleInit, OnModuleDestroy {
     const setting = await this.settings.current(PlatformSettingKey.FraudChecksPerShopPerMinute);
     const limit =
       typeof setting?.value === 'number' ? setting.value : DEFAULT_FRAUD_CHECKS_PER_SHOP_PER_MINUTE;
-    const verdict = this.windows.take(`fraud-check:${tenantId}`, limit, this.clock().getTime());
+    const verdict = await this.limitStore.take(
+      `fraud-check:${tenantId}`,
+      limit,
+      MINUTE_MS,
+      this.clock(),
+    );
     if (!verdict.allowed) {
       throw new ApiError(
         'rate_limited',

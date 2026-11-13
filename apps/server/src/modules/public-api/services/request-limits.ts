@@ -1,7 +1,11 @@
-import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { limitOf, type PlanLimits } from '@lytronix/validators';
 import { MINUTE_MS } from '../../../common/time';
-import { SlidingWindow, type WindowVerdict } from '../../../common/sliding-window';
+import type { Transaction } from '@lytronix/db';
+import type { WindowVerdict } from '../../../common/sliding-window';
+import type { LimitStore } from '../../shared/limits/ports/limit-store';
+import { ExactLimits } from '../../shared/limits/services/exact-limits';
+import { LIMIT_STORE } from '../../shared/limits/tokens';
 
 /** A limit as the API applies it: a number, or null for unlimited (PLN-19). */
 export type AppliedLimit = number | null;
@@ -14,62 +18,69 @@ export function monthlyLimit(limits: PlanLimits | null): AppliedLimit {
   return limitOf(limits, 'requests_monthly');
 }
 
-// How often the windows drop buckets nobody is using.
-const SWEEP_EVERY_MS = MINUTE_MS;
-
 /**
- * RTE-06, D3-2: the per-minute limit, in memory: each visitor's sliding window across one shop's keys. A public key
- * has no window of its own (KNOWN-GAPS §82). Exact while there is one server; Phase 9 moves the windows to the shared
- * Redis behind these calls.
+ * RTE-06, D3-2, D9-15 (Slice 9.4): the per-minute windows on the public API, one count for every API copy and server.
+ * A visitor's requests, sign-ins and tracking reads in the shared limit store (Redis; half each per process while it's
+ * down); a visitor's orders, every shopper's orders and payment sessions in a shop, and a visitor's sign-up codes
+ * exact, in PostgreSQL (RED-11). A public key has no window of its own (KNOWN-GAPS §82).
  */
 @Injectable()
-export class RequestLimits implements OnModuleInit, OnModuleDestroy {
-  private readonly windows = new SlidingWindow(MINUTE_MS);
-  private sweeper: NodeJS.Timeout | null = null;
-
-  onModuleInit(): void {
-    this.sweeper = setInterval(() => {
-      this.windows.sweep(Date.now());
-    }, SWEEP_EVERY_MS);
-    this.sweeper.unref();
-  }
-
-  onModuleDestroy(): void {
-    if (this.sweeper) clearInterval(this.sweeper);
-  }
+export class RequestLimits {
+  constructor(
+    @Inject(LIMIT_STORE) private readonly store: LimitStore,
+    @Inject(ExactLimits) private readonly exact: ExactLimits,
+  ) {}
 
   /** RTE-06: one visitor's requests to one shop. */
-  perVisitor(tenantId: string, ip: string, limit: number, now: Date): WindowVerdict {
-    return this.windows.take(`ip:${tenantId}:${ip}`, limit, now.getTime());
+  perVisitor(tenantId: string, ip: string, limit: number, now: Date): Promise<WindowVerdict> {
+    return this.store.take(`ip:${tenantId}:${ip}`, limit, MINUTE_MS, now);
   }
 
-  /** RTE-06, LND-12: one visitor's orders in one shop. */
-  ordersPerVisitor(tenantId: string, ip: string, limit: number, now: Date): WindowVerdict {
-    return this.windows.take(`order-ip:${tenantId}:${ip}`, limit, now.getTime());
+  /** RTE-06, LND-12, RED-11: one visitor's orders in one shop, exact. */
+  ordersPerVisitor(tenantId: string, ip: string, limit: number, now: Date): Promise<WindowVerdict> {
+    return this.exact.take(`order-ip:${tenantId}:${ip}`, limit, MINUTE_MS, now);
   }
 
-  /** RTE-08 (amended 2026-10-30): every shopper's orders in one shop together, a flood guard. */
-  ordersPerShop(tenantId: string, limit: number, now: Date): WindowVerdict {
-    return this.windows.take(`order-shop:${tenantId}`, limit, now.getTime());
+  /** RTE-08 (amended 2026-10-30), RED-11: every shopper's orders in one shop together, a flood guard, exact. */
+  ordersPerShop(tenantId: string, limit: number, now: Date): Promise<WindowVerdict> {
+    return this.exact.take(`order-shop:${tenantId}`, limit, MINUTE_MS, now);
   }
 
-  /** RTE-08 (amended 2026-10-31): every shopper's payment sessions in one shop together, a flood guard. */
-  sessionsPerShop(tenantId: string, limit: number, now: Date): WindowVerdict {
-    return this.windows.take(`session-shop:${tenantId}`, limit, now.getTime());
+  /**
+   * RTE-08 (amended 2026-10-31), RED-11: every shopper's payment sessions in one shop together, a flood guard, exact;
+   * counted in the order's own transaction, so an order that fails counts no session.
+   */
+  sessionsPerShop(
+    tenantId: string,
+    limit: number,
+    now: Date,
+    tx?: Transaction,
+  ): Promise<WindowVerdict> {
+    return this.exact.take(`session-shop:${tenantId}`, limit, MINUTE_MS, now, tx);
   }
 
-  /** RTE-06, CUS-04: one visitor's sign-up code requests in one shop. */
-  codesPerVisitor(tenantId: string, ip: string, limit: number, now: Date): WindowVerdict {
-    return this.windows.take(`code-ip:${tenantId}:${ip}`, limit, now.getTime());
+  /** RTE-06, CUS-04, RED-11: one visitor's sign-up code requests in one shop, exact. */
+  codesPerVisitor(tenantId: string, ip: string, limit: number, now: Date): Promise<WindowVerdict> {
+    return this.exact.take(`code-ip:${tenantId}:${ip}`, limit, MINUTE_MS, now);
   }
 
   /** CUS-03: one visitor's sign-up and sign-in attempts in one shop. */
-  signinsPerVisitor(tenantId: string, ip: string, limit: number, now: Date): WindowVerdict {
-    return this.windows.take(`signin-ip:${tenantId}:${ip}`, limit, now.getTime());
+  signinsPerVisitor(
+    tenantId: string,
+    ip: string,
+    limit: number,
+    now: Date,
+  ): Promise<WindowVerdict> {
+    return this.store.take(`signin-ip:${tenantId}:${ip}`, limit, MINUTE_MS, now);
   }
 
   /** ORD-17: one visitor's tracking reads in one shop. */
-  trackingPerVisitor(tenantId: string, ip: string, limit: number, now: Date): WindowVerdict {
-    return this.windows.take(`track-ip:${tenantId}:${ip}`, limit, now.getTime());
+  trackingPerVisitor(
+    tenantId: string,
+    ip: string,
+    limit: number,
+    now: Date,
+  ): Promise<WindowVerdict> {
+    return this.store.take(`track-ip:${tenantId}:${ip}`, limit, MINUTE_MS, now);
   }
 }

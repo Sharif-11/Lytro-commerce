@@ -28,7 +28,7 @@ export class InventoryExpiryTickWorker implements OnModuleInit {
       {},
       { tz: EXPIRY_TICK_TZ },
     );
-    await this.pgBoss.boss.work(QueueName.InventoryExpiryTick, async () => {
+    await this.pgBoss.workOnce(QueueName.InventoryExpiryTick, async () => {
       const result = await this.expiry.runDaily(new Date());
       this.logger.log(
         `expiry pass: ${String(result.shops)} shops, ${String(result.refreshed)} variants refreshed, ${String(result.notices)} notices`,

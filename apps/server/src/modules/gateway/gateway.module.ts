@@ -9,6 +9,7 @@ import { PaymentMethodsModule } from '../payment-methods/payment-methods.module'
 import { PaymentReviewModule } from '../payment-review/payment-review.module';
 import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
 import { BkashGateway, type BkashUrls } from './services/bkash-gateway';
+import { SharedGatewayTokens } from './services/shared-gateway-tokens';
 import { CredentialUses } from './services/credential-uses';
 import { GatewayAccounts } from './services/gateway-accounts';
 import { GatewayCheckouts } from './services/gateway-checkout';
@@ -47,6 +48,7 @@ import {
     { provide: GATEWAY_CLOCK, useValue: (): Date => new Date() },
     { provide: GATEWAY_CALLBACK_ORIGIN, inject: [ENV], useFactory: (env: Env) => apiOrigin(env) },
     BkashGateway,
+    SharedGatewayTokens,
     GatewayRegistry,
     GatewayAccounts,
     GatewayCheckouts,

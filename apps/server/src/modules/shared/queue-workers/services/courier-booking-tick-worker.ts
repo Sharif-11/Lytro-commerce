@@ -19,7 +19,7 @@ export class CourierBookingTickWorker implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     await this.pgBoss.boss.createQueue(QueueName.CourierBookingTick);
     await this.pgBoss.boss.schedule(QueueName.CourierBookingTick, COURIER_BOOKING_CRON, {});
-    await this.pgBoss.boss.work(QueueName.CourierBookingTick, async () => {
+    await this.pgBoss.workOnce(QueueName.CourierBookingTick, async () => {
       const result = await this.pass.runTick();
       if (result.settled > 0) {
         this.logger.log(`courier bookings: ${String(result.settled)} parcels settled`);

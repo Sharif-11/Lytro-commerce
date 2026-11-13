@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
 import { LedgerEntryType, RateKey } from '@lytronix/validators';
-import { SlidingWindow } from '../../../common/sliding-window';
 import { DAY_MS } from '../../../common/time';
+import { Leases } from '../../shared/limits/services/leases';
 import type { LowBalanceNotifier } from '../ports/low-balance-notifier';
 import { LOW_BALANCE_NOTIFIER } from '../tokens';
 import { BalanceService } from './balance.service';
@@ -20,12 +20,11 @@ export type VerificationFeeOutcome = 'charged' | 'nothing' | 'short';
  */
 @Injectable()
 export class VerificationFees {
-  private readonly shortNotices = new SlidingWindow(DAY_MS);
-
   constructor(
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(RateService) private readonly rates: RateService,
     @Inject(LOW_BALANCE_NOTIFIER) private readonly notifier: LowBalanceNotifier,
+    @Inject(Leases) private readonly leases: Pick<Leases, 'once'>,
   ) {}
 
   /**
@@ -96,15 +95,17 @@ export class VerificationFees {
     return 'charged';
   }
 
-  /** WAL-21: at most once a day, since BAL-13's notice only fires on a crossing. */
+  /**
+   * WAL-21: at most once a day, since BAL-13's notice only fires on a crossing -- once across every API copy, server and
+   * restart (Slice 9.4, §119), claimed in the payment's own transaction.
+   */
   private async tellShort(
     tx: Transaction,
     tenantId: string,
     balance: string,
     now: Date,
   ): Promise<void> {
-    this.shortNotices.sweep(now.getTime());
-    if (this.shortNotices.take(tenantId, 1, now.getTime()).allowed) {
+    if (await this.leases.once(`fee-short:${tenantId}`, DAY_MS, now, tx)) {
       await this.notifier.notifyFeeShort(tx, tenantId, balance);
     }
   }

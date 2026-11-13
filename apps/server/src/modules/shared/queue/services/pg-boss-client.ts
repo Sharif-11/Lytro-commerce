@@ -1,8 +1,20 @@
-import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
-import { PgBoss } from 'pg-boss';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  Optional,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from '@nestjs/common';
+import { PgBoss, type WorkHandler } from 'pg-boss';
+import { Leases } from '../../limits/services/leases';
 import { runsJobs } from '../../../../config/server-role';
 import { ENV } from '../../../../config/tokens';
 import type { Env } from '../../../../config/env';
+
+// MON-04 (Slice 9.4): a scheduled pass holds its name this long at most; a worker that stopped mid-pass frees it when
+// it lapses, so another takes over within two passes of a quarter of an hour.
+const PASS_LEASE_MS = 15 * 60_000;
 
 /**
  * Owns pg-boss's lifecycle and its own connection pool, kept separate from the app's request pool so continuous
@@ -16,8 +28,12 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
   // connections, and never sends to it: its jobs reach the queue through the outbox and the worker's relay.
   private readonly starts: boolean;
   private started = false;
+  private readonly logger = new Logger('PgBossClient');
 
-  constructor(@Inject(ENV) env: Pick<Env, 'DATABASE_URL'> & Partial<Pick<Env, 'SERVER_ROLE'>>) {
+  constructor(
+    @Inject(ENV) env: Pick<Env, 'DATABASE_URL'> & Partial<Pick<Env, 'SERVER_ROLE'>>,
+    @Optional() @Inject(Leases) private readonly leases?: Pick<Leases, 'hold'>,
+  ) {
     this.starts = runsJobs(env.SERVER_ROLE ?? 'all');
     this.boss = new PgBoss({
       connectionString: env.DATABASE_URL,
@@ -43,5 +59,24 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy(): Promise<void> {
     if (!this.started) return;
     await this.boss.stop();
+  }
+
+  /**
+   * MON-04, D9-15 (Slice 9.4): a scheduled pass, never two at once however many workers run: each run holds the queue's
+   * lease while it works, and a run that finds it held (the last one still going on another worker) is skipped. pg-boss
+   * already makes one job per schedule tick; this keeps consecutive ticks apart.
+   */
+  workOnce<T = object>(name: string, handler: WorkHandler<T>): Promise<string> {
+    return this.boss.work<T>(name, async (jobs) => {
+      if (!this.leases) {
+        await handler(jobs);
+        return;
+      }
+      const run = await this.leases.hold(`job:${name}`, PASS_LEASE_MS, () => handler(jobs));
+      if (!run.held)
+        this.logger.log(
+          `${name}: the last pass is still running on another worker; this one skipped`,
+        );
+    });
   }
 }

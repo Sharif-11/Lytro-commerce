@@ -70,3 +70,4 @@ export * from './control/shop-days';
 export * from './control/media-costs';
 export * from './control/payment-method-types';
 export * from './control/manual-payment-entries';
+export * from './control/limits';

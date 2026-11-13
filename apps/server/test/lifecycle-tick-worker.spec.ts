@@ -36,7 +36,7 @@ function fakePgBoss(): {
     },
   };
   return {
-    client: { boss } as unknown as PgBossClient,
+    client: { boss, workOnce: boss.work } as unknown as PgBossClient,
     calls,
     runWork: async () => {
       if (!handler) throw new Error('no work handler was registered');

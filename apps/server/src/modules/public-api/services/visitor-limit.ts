@@ -41,7 +41,7 @@ export class VisitorLimit {
   ): Promise<void> {
     const limit = await this.perMinute();
     const visitor = this.clientIp.resolve(request) ?? 'unknown';
-    const verdict = this.limits.perVisitor(shop.row.id, visitor, limit, now);
+    const verdict = await this.limits.perVisitor(shop.row.id, visitor, limit, now);
     response.setHeader('X-RateLimit-Limit', String(limit));
     response.setHeader('X-RateLimit-Remaining', String(verdict.remaining));
     response.setHeader('X-RateLimit-Reset', String(secondsOf(verdict.resetMs)));

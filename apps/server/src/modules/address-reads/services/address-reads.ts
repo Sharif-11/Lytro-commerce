@@ -1,10 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  type OnModuleDestroy,
-  type OnModuleInit,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   AiProvider,
   LedgerEntryType,
@@ -14,7 +8,8 @@ import {
   type AddressRead,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
-import { SlidingWindow } from '../../../common/sliding-window';
+import type { LimitStore } from '../../shared/limits/ports/limit-store';
+import { LIMIT_STORE } from '../../shared/limits/tokens';
 import { MINUTE_MS, SECOND_MS } from '../../../common/time';
 import { BalanceService } from '../../balance/services/balance.service';
 import { rateToPaisa, toPaisa } from '../../balance/services/money';
@@ -61,16 +56,15 @@ export interface AddressReadFigures {
  * the shop can't pay for is refused before the AI is asked: no balance left at the rate and no allowance use left, or a
  * frozen balance. A read that found nothing to use, or an answer that couldn't be used, or no answer, costs nothing.
  * Otherwise an allowance pays, the soonest to end first, or the balance at the rate, never below zero; the trial pays
- * the same way (ORD-34). The per-minute window is in memory, exact while there is one server (D3-2).
+ * the same way (ORD-34). The per-minute window is the shared limit store's (Slice 9.4).
  */
 @Injectable()
-export class AddressReads implements OnModuleInit, OnModuleDestroy {
+export class AddressReads {
   private readonly logger = new Logger(AddressReads.name);
-  private readonly windows = new SlidingWindow(MINUTE_MS);
-  private sweeper: NodeJS.Timeout | null = null;
   private places: Promise<PlaceMatcher> | null = null;
 
   constructor(
+    @Inject(LIMIT_STORE) private readonly limitStore: LimitStore,
     @Inject(ADDRESS_READERS) private readonly readers: AddressReaders,
     @Inject(ADDRESS_READ_STORE) private readonly store: AddressReadStore,
     @Inject(BalanceService) private readonly balance: BalanceService,
@@ -116,17 +110,6 @@ export class AddressReads implements OnModuleInit, OnModuleDestroy {
     }));
   }
 
-  onModuleInit(): void {
-    this.sweeper = setInterval(() => {
-      this.windows.sweep(Date.now());
-    }, MINUTE_MS);
-    this.sweeper.unref();
-  }
-
-  onModuleDestroy(): void {
-    if (this.sweeper) clearInterval(this.sweeper);
-  }
-
   async read(actor: AddressReadActor, text: string): Promise<AddressRead> {
     const rate = await this.rate();
     await this.refuseIfUnpaid(actor.tenantId, rate);
@@ -148,7 +131,12 @@ export class AddressReads implements OnModuleInit, OnModuleDestroy {
       typeof setting?.value === 'number'
         ? setting.value
         : DEFAULT_ADDRESS_READS_PER_SHOP_PER_MINUTE;
-    const verdict = this.windows.take(`address-read:${tenantId}`, limit, this.clock().getTime());
+    const verdict = await this.limitStore.take(
+      `address-read:${tenantId}`,
+      limit,
+      MINUTE_MS,
+      this.clock(),
+    );
     if (!verdict.allowed) {
       throw new ApiError(
         'rate_limited',

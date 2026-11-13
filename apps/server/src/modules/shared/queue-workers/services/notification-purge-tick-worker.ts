@@ -25,7 +25,7 @@ export class NotificationPurgeTickWorker implements OnModuleInit {
       {},
       { tz: NOTIFICATION_PURGE_TZ },
     );
-    await this.pgBoss.boss.work(QueueName.NotificationPurgeTick, async () => {
+    await this.pgBoss.workOnce(QueueName.NotificationPurgeTick, async () => {
       const removed = await this.purge.run(new Date());
       if (removed > 0) this.logger.log(`notification clean-up: ${String(removed)} removed`);
     });

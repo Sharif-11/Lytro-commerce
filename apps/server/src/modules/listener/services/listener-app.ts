@@ -82,7 +82,7 @@ export class ListenerApp {
   /** LSN-03, LSN-13: the phone reports it is alive -- seen now, on this version; [4] an hour. */
   async heartbeat(device: SelectListenerDevice, appVersion: string): Promise<ListenerConnected> {
     const now = this.clock();
-    this.limits.admitHeartbeat(device.id, now);
+    await this.limits.admitHeartbeat(device.id, now);
     const shop = await this.store.run(async (tx) => {
       await this.store.touch(tx, device.id, now, appVersion);
       return device.tenantId === null ? null : this.store.shopOf(tx, device.tenantId);

@@ -23,6 +23,11 @@ import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import { OperatorAlerts } from '../../shared/mail/services/operator-alerts';
 import { LytroPaymentMethods } from './lytro-payment-methods';
 import { pageIsOpen } from './lytro-payment-pages';
+import { Leases } from '../../shared/limits/services/leases';
+// §119 (Slice 9.4): a payment's start holds its name while it asks bKash, for long enough to cover the gateway's own
+// timeouts; a second tap on any API copy waits its turn this long, then pays on the page.
+const START_LEASE_MS = 60_000;
+const START_WAIT_MS = 25_000;
 
 /** PAY-06: bKash's address, or null for the shop to pay on the page instead. */
 export interface StartedLytroCheckout {
@@ -38,7 +43,10 @@ export interface StartedLytroCheckout {
 export class LytroCheckouts {
   private readonly logger = new Logger('LytroCheckouts');
 
-  /** Starts in flight on this server, so a second tap shares the first's payment at bKash. */
+  /**
+   * Starts in flight in this process, so a second tap here shares the first's payment at bKash; a tap on another API
+   * copy waits its turn under the start's lease (§119, Slice 9.4).
+   */
   private readonly starting = new Map<string, Promise<StartedLytroCheckout>>();
 
   constructor(
@@ -48,15 +56,21 @@ export class LytroCheckouts {
     @Inject(OperatorAlerts) private readonly operators: OperatorAlerts,
     @Inject(GATEWAY_CALLBACK_ORIGIN) private readonly origin: string,
     @Inject(GATEWAY_CLOCK) private readonly clock: () => Date,
+    @Inject(Leases) private readonly leases: Pick<Leases, 'inTurn'>,
   ) {}
 
   start(ref: string, method: PaymentMethod): Promise<StartedLytroCheckout> {
     const key = `${ref}:${method}`;
     const running = this.starting.get(key);
     if (running) return running;
-    const begun = this.startOnce(ref, method).finally(() => {
-      this.starting.delete(key);
-    });
+    const begun = this.leases
+      .inTurn(`lytro-checkout:${key}`, START_LEASE_MS, START_WAIT_MS, () =>
+        this.startOnce(ref, method),
+      )
+      .then((turn): StartedLytroCheckout => (turn.held ? turn.value : { redirectUrl: null }))
+      .finally(() => {
+        this.starting.delete(key);
+      });
     this.starting.set(key, begun);
     return begun;
   }

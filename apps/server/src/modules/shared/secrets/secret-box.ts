@@ -17,6 +17,8 @@ export enum SecretPurpose {
   CourierCredentials = 'courier_credentials',
   // CRR-03 (Slice 6.2): a connection's message address token and signing token.
   CourierMessages = 'courier_messages',
+  // §107 (Slice 9.4): a wallet account's token, shared through Redis by every process.
+  GatewayToken = 'gateway_token',
 }
 
 /** The key new values are sealed with, and the one before it while values are moved over (32 bytes each). */

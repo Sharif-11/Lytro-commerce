@@ -357,3 +357,32 @@ The archive keeps each major version under its own folder (`BACKUP_PITR_PREFIX`,
 base backup into `pg18/` straight after; the dumps carry on. The move itself is `deploy/README.md` "Moving PostgreSQL to
 a new major version". Staging's move from 16 to 17 on 2026-11-12 (Slice 9.2) took about 2 minutes of downtime: counts,
 `pg_dump`, a new volume, `pg_restore`, counts equal.
+
+## 11. Redis is down (D9-15, RED-01 to RED-05)
+
+**What it holds (Phase 9 Slice 9.4).** Every everyday rate limit, counted once for all API copies and servers: a
+visitor's requests a minute, sign-ins, tracking reads, address and fraud checks, courier calls, the listener's uploads
+and heartbeats. Also each wallet account's bKash token, sealed. Nothing in it has to survive a restart: every key
+expires, and none is saved to disk. Exact limits are never in it: orders, payment sessions, shopper sign-up codes and
+listener pairing are counted in PostgreSQL.
+
+**What happens when it stops answering.** Nothing stops working:
+- Each API process counts the everyday limits in its own memory at **half** each, so the two on a server together stay
+  about the same (the owner's answer, 2026-11-13).
+- A process that just started gives Redis 15 seconds before counting it as down, so a deploy sends no email.
+- After about 15 seconds of failed tries, the operators get **one email**: "Redis is down", however many processes
+  noticed. When it answers again, one more: "Redis is back", with how long it was out.
+- bKash tokens stay in each process for the outage. The two-an-hour limit still holds, because token calls take turns
+  through the database.
+- `GET /health/ready` reports `redis: down`, and the process stays ready.
+
+**What to do:**
+1. `ssh lytro@<server>`, then `sudo docker ps --filter name=redis`: is `lytro-redis-1` up and healthy?
+2. `sudo docker logs --tail 50 lytro-redis-1`: an out-of-memory kill, or a crash.
+3. Restart it: `cd /opt/lytro/state/current`, then
+   `set -a; . /opt/lytro/settings.env; . /opt/lytro/state/release.env; set +a`, then
+   `sudo -E docker compose up -d redis`. Every process notices within 5 seconds, and the "back" email follows.
+4. If it was memory: raise `REDIS_MAXMEMORY` (and `REDIS_MEMORY`, the container's ceiling) in
+   `/opt/lytro/settings.env` and deploy again. Production runs `256mb` (RED-01); staging `64mb`.
+
+**Afterwards.** Counts start again from empty, so limits are briefly looser. Nothing needs repairing.

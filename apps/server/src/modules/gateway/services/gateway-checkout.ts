@@ -26,6 +26,11 @@ import type { PaymentPageSession } from '../../payment-sessions/types/payment-se
 import type { GatewayAccount, GatewayStanding, WalletGateway } from '../ports/wallet-gateway';
 import { GATEWAY_CALLBACK_ORIGIN, GATEWAY_CLOCK } from '../tokens';
 import { GatewayRegistry } from './gateway-registry';
+import { Leases } from '../../shared/limits/services/leases';
+// §119 (Slice 9.4): a payment's start holds its name while it asks bKash, for long enough to cover the gateway's own
+// timeouts; a second tap on any API copy waits its turn this long, then pays on the page.
+const START_LEASE_MS = 60_000;
+const START_WAIT_MS = 25_000;
 
 /**
  * VER-09: whether an order can still take this money. It only moves at execute, so a shopper isn't charged for an order cancelled while
@@ -77,7 +82,10 @@ export interface StartedCheckout {
 export class GatewayCheckouts {
   private readonly logger = new Logger('GatewayCheckouts');
 
-  /** Starts in flight on this server, so a second tap shares the first's payment at bKash (found at the Phase 5 close-out). */
+  /**
+   * Starts in flight in this process, so a second tap here shares the first's payment at bKash (found at the Phase 5
+   * close-out); a tap on another API copy waits its turn under the start's lease (§119, Slice 9.4).
+   */
   private readonly starting = new Map<string, Promise<StartedCheckout>>();
 
   constructor(
@@ -90,6 +98,7 @@ export class GatewayCheckouts {
     @Inject(PAYMENT_NOTIFIER) private readonly notifier: PaymentNotifier,
     @Inject(GATEWAY_CALLBACK_ORIGIN) private readonly origin: string,
     @Inject(GATEWAY_CLOCK) private readonly clock: () => Date,
+    @Inject(Leases) private readonly leases: Pick<Leases, 'inTurn'>,
   ) {}
 
   /**
@@ -100,9 +109,14 @@ export class GatewayCheckouts {
     const key = `${tenantId}:${ref}:${method}`;
     const running = this.starting.get(key);
     if (running) return running;
-    const begun = this.startOnce(tenantId, ref, method).finally(() => {
-      this.starting.delete(key);
-    });
+    const begun = this.leases
+      .inTurn(`checkout:${key}`, START_LEASE_MS, START_WAIT_MS, () =>
+        this.startOnce(tenantId, ref, method),
+      )
+      .then((turn): StartedCheckout => (turn.held ? turn.value : { redirectUrl: null }))
+      .finally(() => {
+        this.starting.delete(key);
+      });
     this.starting.set(key, begun);
     return begun;
   }

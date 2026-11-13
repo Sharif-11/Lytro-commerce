@@ -16,6 +16,7 @@ import type {
 } from '../src/modules/listener/ports/listener-notifier';
 import { ListenerDevices } from '../src/modules/listener/services/listener-devices';
 import { ListenerLimits } from '../src/modules/listener/services/listener-limits';
+import { MemoryLimitStore } from '../src/modules/shared/limits/services/memory-limit-store';
 import { LISTENER_CLOCK, LISTENER_NOTIFIER } from '../src/modules/listener/tokens';
 import { ListenerReceipts } from '../src/modules/listener-receipts/services/listener-receipts';
 import type {
@@ -962,17 +963,15 @@ describeIfDatabase('limits on uploads (LSN-07, LSN-13, LSN-14, LSN-19, LSN-20)',
     // The heartbeat has its own limit, so a phone that uploaded still reports.
     expect((await beat(phone)).status).toBe(200);
 
-    const limits = new ListenerLimits();
+    // The shop's own window, on the in-memory store (one process; the pairing limit, in PostgreSQL, isn't used here).
+    const unused = (): Promise<never> => Promise.reject(new Error('not used'));
+    const limits = new ListenerLimits(new MemoryLimitStore(), { take: unused, peek: unused });
     const now = new Date();
     for (let index = 0; index < 120; index += 1) {
-      limits.admitUpload(`phone-${String(index)}`, 'shop', now);
+      await limits.admitUpload(`phone-${String(index)}`, 'shop', now);
     }
-    expect(() => {
-      limits.admitUpload('phone-121', 'shop', now);
-    }).toThrow();
-    expect(() => {
-      limits.admitUpload('phone-122', 'another-shop', now);
-    }).not.toThrow();
+    await expect(limits.admitUpload('phone-121', 'shop', now)).rejects.toThrow();
+    await expect(limits.admitUpload('phone-122', 'another-shop', now)).resolves.toBeUndefined();
   });
 
   it('stores nothing from a shop that may not listen, and answers a revoked phone 401 (LSN-07, LSN-19)', async () => {

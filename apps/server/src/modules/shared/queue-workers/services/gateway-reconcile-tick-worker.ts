@@ -21,7 +21,7 @@ export class GatewayReconcileTickWorker implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     await this.pgBoss.boss.createQueue(QueueName.GatewayReconcileTick);
     await this.pgBoss.boss.schedule(QueueName.GatewayReconcileTick, GATEWAY_RECONCILE_CRON, {});
-    await this.pgBoss.boss.work(QueueName.GatewayReconcileTick, async () => {
+    await this.pgBoss.workOnce(QueueName.GatewayReconcileTick, async () => {
       const result = await this.reconcile.runTick(new Date());
       const lytro = await this.lytro.reconcile(new Date());
       if (lytro > 0) this.logger.log(`Lytro's checkout: ${String(lytro)} payments settled`);

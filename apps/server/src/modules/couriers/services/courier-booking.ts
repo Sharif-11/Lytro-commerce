@@ -18,7 +18,8 @@ import {
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { CircuitOpen } from '../../../common/circuit-breaker';
-import { SlidingWindow } from '../../../common/sliding-window';
+import type { LimitStore } from '../../shared/limits/ports/limit-store';
+import { LIMIT_STORE } from '../../shared/limits/tokens';
 import type { MessageKey } from '../../../common/i18n/message-key';
 import { MINUTE_MS } from '../../../common/time';
 import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/catalogue-activity';
@@ -79,9 +80,9 @@ interface Claim {
 @Injectable()
 export class CourierBooking {
   private readonly logger = new Logger('CourierBooking');
-  private readonly window = new SlidingWindow(MINUTE_MS);
 
   constructor(
+    @Inject(LIMIT_STORE) private readonly limitStore: LimitStore,
     @Inject(COURIER_STORE) private readonly store: CourierStore,
     @Inject(CourierRegistry) private readonly registry: CourierRegistry,
     @Inject(CourierConnections) private readonly connections: CourierConnections,
@@ -100,7 +101,7 @@ export class CourierBooking {
     input: BookOrderInput,
     actor: CatalogueActor,
   ): Promise<OrderView> {
-    this.takeCall(shop.id);
+    await this.takeCall(shop.id);
     const who = await this.activity.resolve(shop.id, actor);
     // Before the claim: nothing is set aside for a login that has ended, and renewing proves nothing about the parcel.
     await this.connections.renewIfDue(shop.id, input.courierKey);
@@ -464,10 +465,13 @@ export class CourierBooking {
   }
 
   /** CRR-19: bookings a shop may make in a minute. */
-  private takeCall(tenantId: string): void {
-    const now = this.clock().getTime();
-    this.window.sweep(now);
-    const verdict = this.window.take(tenantId, COURIER_CALLS_PER_MINUTE, now);
+  private async takeCall(tenantId: string): Promise<void> {
+    const verdict = await this.limitStore.take(
+      `courier-book:${tenantId}`,
+      COURIER_CALLS_PER_MINUTE,
+      MINUTE_MS,
+      this.clock(),
+    );
     if (!verdict.allowed) {
       throw new ApiError(
         'rate_limited',

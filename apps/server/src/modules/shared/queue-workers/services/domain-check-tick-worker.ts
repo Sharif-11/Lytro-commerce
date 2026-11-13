@@ -22,7 +22,7 @@ export class DomainCheckTickWorker implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     await this.pgBoss.boss.createQueue(QueueName.DomainCheckTick);
     await this.pgBoss.boss.schedule(QueueName.DomainCheckTick, DOMAIN_CHECK_CRON, {});
-    await this.pgBoss.boss.work(QueueName.DomainCheckTick, async () => {
+    await this.pgBoss.workOnce(QueueName.DomainCheckTick, async () => {
       const run = await this.domains.runChecks(new Date());
       if (run.checked === 0) return;
       this.logger.log(

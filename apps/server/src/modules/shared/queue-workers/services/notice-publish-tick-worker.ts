@@ -19,7 +19,7 @@ export class NoticePublishTickWorker implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     await this.pgBoss.boss.createQueue(QueueName.NoticePublishTick);
     await this.pgBoss.boss.schedule(QueueName.NoticePublishTick, NOTICE_PUBLISH_CRON, {});
-    await this.pgBoss.boss.work(QueueName.NoticePublishTick, async () => {
+    await this.pgBoss.workOnce(QueueName.NoticePublishTick, async () => {
       const result = await this.publisher.runTick(new Date());
       if (result.notices > 0) {
         this.logger.log(`notices: ${String(result.notices)} sent to ${String(result.shops)} shops`);

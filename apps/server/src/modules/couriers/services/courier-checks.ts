@@ -18,7 +18,8 @@ import {
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { CircuitOpen } from '../../../common/circuit-breaker';
-import { SlidingWindow } from '../../../common/sliding-window';
+import type { LimitStore } from '../../shared/limits/ports/limit-store';
+import { LIMIT_STORE } from '../../shared/limits/tokens';
 import { DAY_MS, HOUR_MS, MINUTE_MS } from '../../../common/time';
 import { OrderFulfilment } from '../../orders/services/order-fulfilment';
 import { OrderService } from '../../orders/services/order.service';
@@ -60,9 +61,9 @@ export interface NightResult {
 @Injectable()
 export class CourierChecks {
   private readonly logger = new Logger('CourierChecks');
-  private readonly window = new SlidingWindow(MINUTE_MS);
 
   constructor(
+    @Inject(LIMIT_STORE) private readonly limitStore: LimitStore,
     @Inject(COURIER_STORE) private readonly store: CourierStore,
     @Inject(CourierConnections) private readonly connections: CourierConnections,
     @Inject(CourierCalls) private readonly calls: CourierCalls,
@@ -92,7 +93,7 @@ export class CourierChecks {
 
   /** CRR-14: one order's parcel, by a person. Within the limit, or finished, it shows what's saved with no call. */
   async sync(tenantId: string, orderId: string): Promise<OrderView> {
-    this.takeCall(tenantId);
+    await this.takeCall(tenantId);
     const now = this.clock();
     const parcel = await this.store.run(tenantId, async (tx) => {
       const order = await this.fulfilment.lockWithin(tx, tenantId, orderId);
@@ -382,10 +383,13 @@ export class CourierChecks {
   }
 
   /** CRR-19: Sync shares a shop's limit with booking in spirit, by its own window. */
-  private takeCall(tenantId: string): void {
-    const now = this.clock().getTime();
-    this.window.sweep(now);
-    const verdict = this.window.take(tenantId, COURIER_CALLS_PER_MINUTE, now);
+  private async takeCall(tenantId: string): Promise<void> {
+    const verdict = await this.limitStore.take(
+      `courier-sync:${tenantId}`,
+      COURIER_CALLS_PER_MINUTE,
+      MINUTE_MS,
+      this.clock(),
+    );
     if (!verdict.allowed) {
       throw new ApiError(
         'rate_limited',

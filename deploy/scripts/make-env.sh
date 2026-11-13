@@ -52,6 +52,8 @@ APP_PASSWORD="$(existing postgres.env LYTRO_APP_DB_PASSWORD)"
 APP_PASSWORD="${APP_PASSWORD:-$(secret 24)}"
 READ_PASSWORD="$(existing postgres.env LYTRO_READ_DB_PASSWORD)"
 READ_PASSWORD="${READ_PASSWORD:-$(secret 24)}"
+REDIS_PASSWORD="$(existing redis.env REDIS_PASSWORD)"
+REDIS_PASSWORD="${REDIS_PASSWORD:-$(secret 24)}"
 
 write() {
   local name="$1" file="$ENV_DIR/$1"
@@ -105,6 +107,11 @@ PGBOUNCER_APP_PASSWORD=$APP_PASSWORD
 PGBOUNCER_READ_PASSWORD=$READ_PASSWORD
 EOF
 
+# The shared Redis's password (Slice 9.4, RED-01); the server reaches it as REDIS_URL (server.env).
+write redis.env <<EOF
+REDIS_PASSWORD=$REDIS_PASSWORD
+EOF
+
 # The backups' (Slice 9.3, D9-18, DAT-28): only the database and backup containers read it, never the app's. The
 # archive's encryption key is made here; the rest comes from Cloudflare and the owner (deploy/README.md "Backups").
 # Archiving starts on the first deploy after the archive's lines are all filled in.
@@ -141,6 +148,7 @@ NODE_ENV=production
 PLATFORM_DOMAIN=$PLATFORM_DOMAIN
 PLATFORM_ADDRESSES=$PLATFORM_ADDRESSES
 DATABASE_URL=postgres://lytronix_app:$APP_PASSWORD@postgres:5432/lytronix
+REDIS_URL=redis://:$REDIS_PASSWORD@redis:6379
 TRUSTED_EDGE_SECRET=$EDGE_SECRET
 STOREFRONT_SECRET=$STOREFRONT_SECRET
 OTP_SECRET=$(secret 32)
@@ -213,6 +221,7 @@ GEMINI_API_KEY=
 # DATA_ENCRYPTION_PREVIOUS_KEY=
 # TRUSTED_EDGE_SECRET_NEXT=
 EOF
+add_missing server.env REDIS_URL "redis://:$REDIS_PASSWORD@redis:6379"
 
 write website.env <<EOF
 # Made by make-env.sh: leave them as they are.

@@ -189,6 +189,12 @@ export {
 } from './repositories/api/api-usage.repository';
 export { UsageWarningRepository } from './repositories/usage/usage-warning.repository';
 export {
+  LeaseRepository,
+  LimitEventRepository,
+  ServiceStateRepository,
+  type ExactVerdict,
+} from './repositories/platform/limits.repository';
+export {
   LytroPaymentMethodsRepository,
   type NewPlatformBankAccount,
 } from './repositories/billing/lytro-payment-methods.repository';

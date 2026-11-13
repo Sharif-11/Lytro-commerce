@@ -102,7 +102,7 @@ export class PublicOrderService {
       // shop's payment sessions are flooding (RTE-08), when the order is refused with them.
       let payment: OrderPaymentLink | null = null;
       if (made.order.paymentStatus === OrderPaymentStatus.PendingVerification && input.payment) {
-        await this.limits.admitSession(shop, now);
+        await this.limits.admitSession(shop, now, tx);
         payment = await this.sessions.openForCheckoutWithin(
           tx,
           tenantId,
