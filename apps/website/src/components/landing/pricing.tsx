@@ -1,5 +1,3 @@
-import { Container } from '@/components/ui/container';
-import { SectionHeading } from '@/components/ui/section-heading';
 import type { Plan, PlanCatalogue, PlatformRate } from '@/lib/api/plans-api';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import type { Language } from '@/lib/i18n/language';
@@ -67,9 +65,9 @@ const text = {
   bandwidthUnlimited: { bn: 'আনলিমিটেড ব্যান্ডউইথ', en: 'Unlimited bandwidth' },
   requests: { bn: 'মাসে {n} API রিকোয়েস্ট', en: '{n} API requests a month' },
   requestsUnlimited: { bn: 'আনলিমিটেড API রিকোয়েস্ট', en: 'Unlimited API requests' },
-  phonesOne: { bn: '১টি ফোনে লিসেনার', en: 'Listener on 1 phone' },
-  phones: { bn: '{n}টি ফোনে লিসেনার', en: 'Listener on {n} phones' },
-  phonesUnlimited: { bn: 'আনলিমিটেড ফোনে লিসেনার', en: 'Listener on unlimited phones' },
+  phonesOne: { bn: '১টি পেমেন্ট লিসেনার', en: '1 payment listener' },
+  phones: { bn: '{n}টি পেমেন্ট লিসেনার', en: '{n} payment listeners' },
+  phonesUnlimited: { bn: 'আনলিমিটেড পেমেন্ট লিসেনার', en: 'Unlimited payment listeners' },
   brandIdentity: {
     bn: 'ব্র্যান্ড আইডেন্টিটি: আপনার রং, ফন্ট আর লোগো',
     en: 'Brand identity: your colours, fonts and logo',
@@ -325,27 +323,26 @@ export function Pricing({
     signInUrl: urls.signIn(),
   };
 
+  // The sketch's section head; the cards add the term toggle under it, since the toggle and the cards share a state.
+  const head = (
+    <>
+      <span className="eyebrow">
+        <i />
+        <span>{copy.of(text.eyebrow)}</span>
+      </span>
+      <h2>{copy.of(text.title)}</h2>
+      <p>{copy.of(text.lead)}</p>
+    </>
+  );
+
   return (
-    <section id="pricing" className="scroll-mt-16 bg-neutral-50">
-      <Container className="py-16 sm:py-20">
-        <SectionHeading
-          eyebrow={copy.of(text.eyebrow)}
-          title={copy.of(text.title)}
-          lead={copy.of(text.lead)}
-        />
-        <PricingCards language={language} payg={payg} view={view} />
-        {!view ? (
-          <p className="mx-auto mt-6 max-w-[640px] rounded-control bg-accent-100 px-4 py-3 text-center text-[14px] text-accent-700">
-            {copy.of(text.unavailable)}
-          </p>
-        ) : null}
-        <p className="mx-auto mt-8 max-w-[760px] text-center text-[14px] text-neutral-700">
-          {builder.feesNote(rates)}
-        </p>
-        <p className="mx-auto mt-3 max-w-[760px] text-center text-[14px] text-neutral-700">
-          {copy.of(text.note)}
-        </p>
-      </Container>
+    <section className="sec tint" id="pricing">
+      <div className="wrap">
+        <PricingCards language={language} head={head} payg={payg} view={view} />
+        {!view ? <p className="pwarn">{copy.of(text.unavailable)}</p> : null}
+        <p className="pnote">{builder.feesNote(rates)}</p>
+        <p className="pnote">{copy.of(text.note)}</p>
+      </div>
     </section>
   );
 }

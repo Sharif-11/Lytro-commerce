@@ -1,7 +1,4 @@
-import { Container } from '@/components/ui/container';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { Paragraphs } from '@/components/ui/paragraphs';
-import { SectionHeading } from '@/components/ui/section-heading';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import type { Language } from '@/lib/i18n/language';
 
@@ -75,28 +72,39 @@ const rules: { icon: IconName; title: Bilingual; body: Bilingual }[] = [
   },
 ];
 
+/** The sketch's six numbered cards, in one, two or three columns. */
 export function WhyLytro({ language }: { language: Language }) {
   const copy = new Copy(language);
   return (
-    <section id="why" className="scroll-mt-16 bg-brand-900 text-white">
-      <div className="dot-grid pointer-events-none absolute inset-0" aria-hidden="true" />
-      <Container className="relative py-16 sm:py-20">
-        <SectionHeading tone="light" eyebrow={copy.of(text.eyebrow)} title={copy.of(text.title)} />
-        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {rules.map((rule) => (
-            <li
-              key={rule.title.en}
-              className="rounded-card border border-white/12 bg-white/6 p-5 backdrop-blur-sm"
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-500 text-ink">
-                <Icon name={rule.icon} size={20} strokeWidth={2.4} />
-              </span>
-              <h3 className="heading mt-4 text-[18px] text-white">{copy.of(rule.title)}</h3>
-              <Paragraphs text={copy.of(rule.body)} className="mt-2 text-[15px] text-white/85" />
-            </li>
+    <section className="sec" id="why">
+      <div className="wrap">
+        <div className="sec-head center">
+          <span className="eyebrow">
+            <i />
+            <span>{copy.of(text.eyebrow)}</span>
+          </span>
+          <h2>{copy.of(text.title)}</h2>
+        </div>
+        <div className="wgrid">
+          {rules.map((rule, index) => (
+            <article key={rule.title.en} className="wcard card">
+              <div className="ic">
+                <Icon name={rule.icon} size={22} />
+              </div>
+              <span className="no">{String(index + 1).padStart(2, '0')}</span>
+              <h3>{copy.of(rule.title)}</h3>
+              <div className="body">
+                {copy
+                  .of(rule.body)
+                  .split('\n\n')
+                  .map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
+                  ))}
+              </div>
+            </article>
           ))}
-        </ul>
-      </Container>
+        </div>
+      </div>
     </section>
   );
 }

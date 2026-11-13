@@ -1,14 +1,10 @@
+import type { ReactNode } from 'react';
 import { InventoryCard } from '@/components/mockups/inventory-card';
 import { StatsCard } from '@/components/mockups/stats-card';
-import { CheckList } from '@/components/ui/check-list';
-import { Container } from '@/components/ui/container';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { Paragraphs } from '@/components/ui/paragraphs';
-import { SectionHeading } from '@/components/ui/section-heading';
 import type { LiveFeatures } from '@/lib/features';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import type { Language } from '@/lib/i18n/language';
-import type { ReactNode } from 'react';
 
 const text = {
   eyebrow: { bn: 'ফিচার', en: 'Features' },
@@ -80,15 +76,6 @@ interface Card {
   vignette: (copy: Copy) => ReactNode;
 }
 
-const pill = (tone: string, label: string) => (
-  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap ${tone}`}>
-    {label}
-  </span>
-);
-
-// One vignette line: its text and its pill side by side, the pill dropping under the text on a narrow card.
-const ROW =
-  'flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-lg bg-neutral-50 px-2.5 py-1.5';
 const cards: Card[] = [
   {
     icon: 'shield',
@@ -101,19 +88,16 @@ const cards: Card[] = [
       en: "Before a parcel goes to the courier, check the buyer's phone number against its past orders. See how often parcels came back or were cancelled, then decide.",
     },
     vignette: (copy) => (
-      <div className="space-y-1.5 text-[12px]">
-        <div className={ROW}>
-          <span className="num text-ink">017XXXXX842</span>
-          {pill('bg-danger-soft text-danger', copy.of({ bn: '৩টি রিটার্ন', en: '3 returns' }))}
+      <>
+        <div className="r">
+          <span className="k num">017XXXXX842</span>
+          <span className="chip risk">{copy.of({ bn: '৩টি রিটার্ন', en: '3 returns' })}</span>
         </div>
-        <div className={ROW}>
-          <span className="num text-ink">019XXXXX310</span>
-          {pill(
-            'bg-success-soft text-success',
-            copy.of({ bn: '১২টি ডেলিভারি', en: '12 delivered' }),
-          )}
+        <div className="r">
+          <span className="k num">019XXXXX310</span>
+          <span className="chip ok">{copy.of({ bn: '১২টি ডেলিভারি', en: '12 delivered' })}</span>
         </div>
-      </div>
+      </>
     ),
   },
   {
@@ -124,13 +108,17 @@ const cards: Card[] = [
       en: "Book the courier from the order itself, with your own Steadfast or Pathao account. No more typing the details into the courier's website. Tracking and delivery updates come back to your shop.",
     },
     vignette: (copy) => (
-      <div className={`${ROW} text-[12px]`}>
-        <span className="num text-ink">#1040 · Steadfast</span>
-        {pill(
-          'bg-brand-100 text-brand-800',
-          copy.of({ bn: 'পার্সেল পথে আছে', en: 'Parcel on the way' }),
-        )}
-      </div>
+      <>
+        <div className="r">
+          <span className="k num">#1040 · Steadfast</span>
+          <span className="chip ship">
+            {copy.of({ bn: 'পার্সেল পথে আছে', en: 'Parcel on the way' })}
+          </span>
+        </div>
+        <div className="bar">
+          <i style={{ width: '66%' }} />
+        </div>
+      </>
     ),
   },
   {
@@ -141,21 +129,21 @@ const cards: Card[] = [
       en: 'When a customer sends money by bKash or Nagad, Lytro reads the payment SMS and works out which order it is for. That order is then marked Paid.',
     },
     vignette: (copy) => (
-      <div className="rounded-lg bg-neutral-50 px-2.5 py-1.5 text-[12px]">
-        <div className="flex items-center justify-between">
-          <span className="num text-ink">bKash</span>
-          <span className="num font-bold text-ink">৳3,490</span>
+      <>
+        <div className="r">
+          <span className="k num">bKash</span>
+          <b>৳3,490</b>
         </div>
-        <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-neutral-700">
-          <span>
+        <div className="r">
+          <span className="k">
             {copy.of({
               bn: 'অর্ডার #1042-এর পেমেন্ট মিলেছে',
               en: 'Payment matched to order #1042',
             })}
           </span>
-          {pill('bg-success-soft text-success', copy.of({ bn: 'পেমেন্ট সম্পন্ন', en: 'Paid' }))}
+          <span className="chip ok">{copy.of({ bn: 'পেমেন্ট সম্পন্ন', en: 'Paid' })}</span>
         </div>
-      </div>
+      </>
     ),
   },
   {
@@ -166,12 +154,11 @@ const cards: Card[] = [
       en: "Make your own online shop with your shop's name, logo and colours. Customers browse your products, add them to a cart and order directly.\n\nDelivery charges, online payment and cash on delivery: set everything up your way.",
     },
     vignette: (copy) => (
-      <div className={`${ROW} text-[12px]`}>
-        <span className="num text-ink">rahim-gadgets.lytro.app</span>
-        {pill(
-          'bg-success-soft text-success',
-          copy.of({ bn: 'আপনার দোকান এখন অনলাইনে', en: 'Your shop is online' }),
-        )}
+      <div className="r">
+        <span className="k num">rahim-gadgets.lytro.app</span>
+        <span className="chip ok">
+          {copy.of({ bn: 'আপনার দোকান এখন অনলাইনে', en: 'Your shop is online' })}
+        </span>
       </div>
     ),
   },
@@ -183,21 +170,20 @@ const cards: Card[] = [
       en: 'Whoever handles orders in your shop can only work on orders. Whoever keeps the accounts works on the accounts. Give each person access for their own job.\n\nYou can also see who changed what, and when.',
     },
     vignette: (copy) => (
-      <div className="space-y-1.5 text-[12px]">
-        <div className={ROW}>
-          <span className="text-ink">
+      <>
+        <div className="r">
+          <span className="k">
             Sumi · {copy.of({ bn: 'শুধু অর্ডার দেখার অনুমতি', en: 'May see orders only' })}
           </span>
-          {pill('bg-neutral-100 text-neutral-700', copy.of({ bn: 'স্টাফ', en: 'Staff' }))}
+          <span className="chip plain">{copy.of({ bn: 'স্টাফ', en: 'Staff' })}</span>
         </div>
-        <div className={ROW}>
-          <span className="text-ink">Rahim · {copy.of({ bn: 'মালিক', en: 'Owner' })}</span>
-          {pill(
-            'bg-brand-100 text-brand-800',
-            copy.of({ bn: 'সবকিছুর নিয়ন্ত্রণ', en: 'In charge of everything' }),
-          )}
+        <div className="r">
+          <span className="k">Rahim · {copy.of({ bn: 'মালিক', en: 'Owner' })}</span>
+          <span className="chip ship">
+            {copy.of({ bn: 'সবকিছুর নিয়ন্ত্রণ', en: 'In charge of everything' })}
+          </span>
         </div>
-      </div>
+      </>
     ),
   },
   {
@@ -208,20 +194,27 @@ const cards: Card[] = [
       en: 'Add the sizes, colours or models of one product separately, and see how much of each variant is in stock. Stock updates on its own with every order, sale and return.',
     },
     vignette: (copy) => (
-      <div className="space-y-1.5 text-[12px]">
-        <div className={ROW}>
-          <span className="text-ink">Kurti · M · {copy.of({ bn: 'মেরুন', en: 'Maroon' })}</span>
-          <span className="num font-bold text-ink">{copy.of({ bn: '১৪টি', en: '14' })}</span>
+      <>
+        <div className="r">
+          <span className="k">Kurti · M · {copy.of({ bn: 'মেরুন', en: 'Maroon' })}</span>
+          <b>{copy.of({ bn: '১৪টি', en: '14' })}</b>
         </div>
-        <div className={ROW}>
-          <span className="text-ink">Kurti · L · {copy.of({ bn: 'মেরুন', en: 'Maroon' })}</span>
-          {pill('bg-accent-100 text-accent-700', copy.of({ bn: '২টি বাকি', en: '2 left' }))}
+        <div className="r">
+          <span className="k">Kurti · L · {copy.of({ bn: 'মেরুন', en: 'Maroon' })}</span>
+          <span className="chip pending">{copy.of({ bn: '২টি বাকি', en: '2 left' })}</span>
         </div>
-      </div>
+      </>
     ),
   },
 ];
 
+/** A card's body in one or more paragraphs, written with a blank line between each. */
+function paragraphs(body: string): ReactNode {
+  return body.split('\n\n').map((paragraph) => <p key={paragraph}>{paragraph}</p>);
+}
+
+/** The sketch's features: two spotlights with a picture each (from 640 px the picture sits beside the words), then six
+    cards in one, two or three columns. */
 export function Features({ language, live }: { language: Language; live: LiveFeatures }) {
   const copy = new Copy(language);
   const spotlights = [
@@ -244,59 +237,59 @@ export function Features({ language, live }: { language: Language; live: LiveFea
   ].filter((item) => item !== null);
 
   return (
-    <section id="features" className="scroll-mt-16 bg-white">
-      <Container className="py-16 sm:py-20">
-        <SectionHeading
-          eyebrow={copy.of(text.eyebrow)}
-          title={copy.of(text.title)}
-          lead={copy.of(text.lead)}
-        />
+    <section className="sec tint" id="features">
+      <div className="wrap">
+        <div className="sec-head">
+          <span className="eyebrow">
+            <i />
+            <span>{copy.of(text.eyebrow)}</span>
+          </span>
+          <h2>{copy.of(text.title)}</h2>
+          <p>{copy.of(text.lead)}</p>
+        </div>
 
         {spotlights.length > 0 ? (
-          <div className="mt-10 grid gap-5 lg:grid-cols-2">
+          <div className="spots">
             {spotlights.map((spot) => (
-              <article
-                key={spot.key}
-                className="grid gap-6 rounded-sheet border border-line bg-brand-50 p-5 sm:p-7 lg:grid-cols-[1fr_280px]"
-              >
-                <div>
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-700 text-white">
-                    <Icon name={spot.icon} size={22} />
-                  </span>
-                  <h3 className="heading mt-4 text-[22px] text-ink">{copy.of(spot.data.title)}</h3>
-                  <p className="mt-2 text-[15px] text-neutral-700">{copy.of(spot.data.body)}</p>
-                  <CheckList
-                    className="mt-4"
-                    items={spot.data.points.map((point) => copy.of(point))}
-                  />
+              <article key={spot.key} className="spot card">
+                <div className="txt">
+                  <div className="hdr">
+                    <div className="ic">
+                      <Icon name={spot.icon} size={22} />
+                    </div>
+                    <h3>{copy.of(spot.data.title)}</h3>
+                  </div>
+                  <p>{copy.of(spot.data.body)}</p>
+                  <ul>
+                    {spot.data.points.map((point) => (
+                      <li key={point.en}>
+                        <Icon name="check" size={18} strokeWidth={2.4} />
+                        <span>{copy.of(point)}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div className="self-center">{spot.art}</div>
+                {spot.art}
               </article>
             ))}
           </div>
         ) : null}
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="fgrid">
           {cards.map((card) => (
-            <article
-              key={card.title.en}
-              className="flex flex-col rounded-card border border-line bg-white p-5 shadow-card transition-shadow hover:shadow-lift"
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100 text-brand-800">
-                <Icon name={card.icon} size={20} />
-              </span>
-              <h3 className="heading mt-4 text-[18px] text-ink">{copy.of(card.title)}</h3>
-              <Paragraphs
-                text={copy.of(card.body)}
-                className="mt-2 flex-1 text-[15px] text-neutral-700"
-              />
-              <div className="mt-4" aria-hidden="true">
+            <article key={card.title.en} className="fcard card">
+              <div className="ic">
+                <Icon name={card.icon} size={22} />
+              </div>
+              <h3>{copy.of(card.title)}</h3>
+              <div className="body">{paragraphs(copy.of(card.body))}</div>
+              <div className="vig" aria-hidden="true">
                 {card.vignette(copy)}
               </div>
             </article>
           ))}
         </div>
-      </Container>
+      </div>
     </section>
   );
 }

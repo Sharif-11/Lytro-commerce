@@ -1,5 +1,3 @@
-import { ButtonLink } from '@/components/ui/button';
-import { Container } from '@/components/ui/container';
 import { Mark } from '@/components/ui/mark';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import type { Language } from '@/lib/i18n/language';
@@ -17,6 +15,8 @@ const text = {
   secondary: { bn: 'প্রাইসিং দেখুন', en: 'See pricing' },
 } satisfies Record<string, Bilingual>;
 
+/** The sketch's closing band, shared by the landing and the about page: the mark drawing itself in, the line, and the
+    marigold button with a quiet second one. `id="final-cta"` is where the start bar hides. */
 export function FinalCta({
   language,
   signInUrl,
@@ -30,23 +30,21 @@ export function FinalCta({
 }) {
   const copy = new Copy(language);
   return (
-    <section id="final-cta" className="relative overflow-hidden bg-brand-900 text-white">
-      <div className="dot-grid pointer-events-none absolute inset-0" aria-hidden="true" />
-      <Container className="relative flex flex-col items-center py-16 text-center sm:py-20">
-        <Mark size={44} color="#f8cf6e" />
-        <h2 className="display mt-5 max-w-[720px] text-[28px] text-white sm:text-[38px]">
-          {copy.of(text.title)}
-        </h2>
-        <p className="mt-3 text-[17px] text-white/85">{copy.of(text.lead)}</p>
-        <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-          <ButtonLink href={signInUrl} tone="accent" size="lg">
+    <section className="final" id="final-cta">
+      <div className="glow" aria-hidden="true" />
+      <div className="wrap">
+        <Mark size={56} draw className="markbig" />
+        <h2>{copy.of(text.title)}</h2>
+        <p>{copy.of(text.lead)}</p>
+        <div className="acts">
+          <a href={signInUrl} className="btn btn-accent">
             {copy.of(text.cta)}
-          </ButtonLink>
-          <ButtonLink href={secondaryHref} tone="light-outline" size="lg">
+          </a>
+          <a href={secondaryHref} className="btn btn-ghost">
             {secondaryLabel ?? copy.of(text.secondary)}
-          </ButtonLink>
+          </a>
         </div>
-      </Container>
+      </div>
     </section>
   );
 }

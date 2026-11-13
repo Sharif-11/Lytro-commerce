@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { buttonClass } from '@/components/ui/button';
-import { CheckList } from '@/components/ui/check-list';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { Icon } from '@/components/ui/icon';
 import type { Language } from '@/lib/i18n/language';
 
 // What the server hands the client: every figure already computed, every label already in both languages.
@@ -44,20 +43,29 @@ export interface PaygView {
   signInUrl: string;
 }
 
-/** A card's lines, then what else it gives in a quieter list below a dashed line (the sketch's `ul.more`). */
+/** A card's lines, then what else it gives in a quieter list below a dashed line (site.css `.plan ul.more`). */
 function PlanLines({ lines, more }: { lines: string[]; more: string[] }) {
   return (
-    <div className="mt-4 flex-1">
-      <CheckList circled items={lines} />
+    <>
+      <ul>
+        {lines.map((line) => (
+          <li key={line}>
+            <Icon name="check" size={18} strokeWidth={2.4} />
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
       {more.length > 0 ? (
-        <CheckList
-          circled
-          quiet
-          items={more}
-          className="mt-4 border-t border-dashed border-line pt-3"
-        />
+        <ul className="more">
+          {more.map((line) => (
+            <li key={line}>
+              <Icon name="check" size={16} strokeWidth={2.4} />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
       ) : null}
-    </div>
+    </>
   );
 }
 
@@ -66,120 +74,97 @@ const text = {
   perTerm: { bn: 'মোট', en: 'total' },
   choose: { bn: 'নিন', en: 'Choose' },
   off: { bn: 'কম', en: 'off' },
-  goTo: { bn: 'প্ল্যান', en: 'Plan' },
+  terms: { bn: 'বিলিং মেয়াদ', en: 'Billing term' },
+  plans: { bn: 'প্ল্যান', en: 'Plans' },
 } as const;
 
-/** Phones only: the card row is a snap carousel that advances on its own every few seconds, stops while the
-    visitor touches or scrolls it, and resumes a while after they let go. Off from 640 px, where the cards
-    are a grid, and for visitors who prefer reduced motion. */
-const PHONE_QUERY = '(max-width: 639px)';
-const ROTATE_EVERY_MS = 4500;
-const RESUME_AFTER_MS = 9000;
-
+/** The card row on a phone (site.css `.pscroll`): each card's left edge, and which card sits at the row's start. */
 class CardRow {
   constructor(private readonly element: HTMLElement) {}
 
-  /** Each card's left edge, in scroll coordinates. */
-  stops(): number[] {
-    return Array.from(this.element.children)
-      .filter((child): child is HTMLElement => child instanceof HTMLElement)
-      .map((child) => child.offsetLeft - this.element.offsetLeft);
+  private cards(): HTMLElement[] {
+    return Array.from(this.element.querySelectorAll<HTMLElement>('.plan'));
   }
 
-  /** The index of the card nearest the current scroll position. */
+  private start(): number {
+    const padding = Number.parseFloat(getComputedStyle(this.element).paddingLeft) || 0;
+    return this.element.getBoundingClientRect().left + padding;
+  }
+
+  /** The card nearest the row's start; the last one once the row is scrolled to its end. */
   current(): number {
-    const stops = this.stops();
+    const cards = this.cards();
+    const atEnd =
+      this.element.scrollLeft + this.element.clientWidth >= this.element.scrollWidth - 4;
+    if (atEnd && this.element.scrollLeft > 0) return cards.length - 1;
+    const start = this.start();
     let best = 0;
-    for (let index = 0; index < stops.length; index += 1) {
-      const stop = stops[index] ?? 0;
-      const bestStop = stops[best] ?? 0;
-      if (Math.abs(stop - this.element.scrollLeft) < Math.abs(bestStop - this.element.scrollLeft)) {
-        best = index;
-      }
-    }
+    cards.forEach((card, index) => {
+      const distance = Math.abs(card.getBoundingClientRect().left - start);
+      const bestDistance = Math.abs((cards[best]?.getBoundingClientRect().left ?? 0) - start);
+      if (distance < bestDistance) best = index;
+    });
     return best;
   }
 
-  goTo(index: number, smooth: boolean): void {
-    const left = this.stops()[index] ?? 0;
-    this.element.scrollTo({ left, behavior: smooth ? 'smooth' : 'auto' });
+  /** Brings a card to the row's start. */
+  goTo(index: number): void {
+    const card = this.cards()[index];
+    if (!card) return;
+    this.element.scrollBy({
+      left: card.getBoundingClientRect().left - this.start(),
+      behavior: 'smooth',
+    });
   }
 }
 
+/** The sketch's pricing (LANDING-PAGE-DESIGN.md §3 row 8): the heading with the term toggle under it, then the cards
+    as a swipe row on a phone, the next card peeking in and dots under it that follow the swipe and bring a card in
+    when tapped; a two-column grid from 640 px and four across from 1100 px. The highlighted card is the one with
+    `hot` (site.css `.plan.hot`, with its `.badge`). */
 export function PricingCards({
   language,
+  head,
   payg,
   view,
 }: {
   language: Language;
+  /** The section's eyebrow, headline and lead, rendered on the server. */
+  head: ReactNode;
   payg: PaygView;
   view: PricingView | null;
 }) {
   const [termId, setTermId] = useState(view?.defaultTermId ?? '');
   const [active, setActive] = useState(0);
   const rowRef = useRef<HTMLDivElement>(null);
-  const pausedUntil = useRef(0);
 
-  const cardCount = 1 + (view?.plans.length ?? 0);
+  const names = [payg.name, ...(view?.plans.map((plan) => plan.name) ?? [])];
   const baseTerm = view?.terms.find((term) => term.id === termId);
   const monthlyTerm = baseTerm?.months === 1;
 
   useEffect(() => {
     const element = rowRef.current;
-    if (!element || cardCount < 2) return;
+    if (!element || names.length < 2) return;
     const row = new CardRow(element);
-    const media = window.matchMedia(PHONE_QUERY);
-    let visible = false;
-
     const onScroll = () => {
       setActive(row.current());
     };
-    const pause = () => {
-      pausedUntil.current = Date.now() + RESUME_AFTER_MS;
-    };
-    const tick = () => {
-      if (!media.matches || !visible || Date.now() < pausedUntil.current) return;
-      row.goTo((row.current() + 1) % cardCount, true);
-    };
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        visible = entries.some((entry) => entry.isIntersecting);
-      },
-      { threshold: 0.4 },
-    );
-    observer.observe(element);
     element.addEventListener('scroll', onScroll, { passive: true });
-    for (const name of ['pointerdown', 'touchstart', 'wheel', 'keydown'] as const) {
-      element.addEventListener(name, pause, { passive: true });
-    }
-    const timer = window.setInterval(tick, ROTATE_EVERY_MS);
-
     return () => {
-      window.clearInterval(timer);
-      observer.disconnect();
       element.removeEventListener('scroll', onScroll);
-      for (const name of ['pointerdown', 'touchstart', 'wheel', 'keydown'] as const) {
-        element.removeEventListener(name, pause);
-      }
     };
-  }, [cardCount]);
+  }, [names.length]);
 
-  const jumpTo = (index: number) => {
-    const element = rowRef.current;
-    if (!element) return;
-    pausedUntil.current = Date.now() + RESUME_AFTER_MS;
-    new CardRow(element).goTo(index, true);
+  const goTo = (index: number) => {
+    if (rowRef.current) new CardRow(rowRef.current).goTo(index);
   };
 
   return (
-    <div>
-      {view && view.terms.length > 1 ? (
-        <div className="mt-8 flex justify-center">
-          <div
-            role="group"
-            className="inline-flex max-w-full flex-wrap justify-center gap-1 rounded-full border border-neutral-200 bg-white p-1"
-          >
+    <>
+      <div className="sec-head center">
+        {head}
+        {view && view.terms.length > 1 ? (
+          <div className="term" role="group" aria-label={text.terms[language]}>
             {view.terms.map((term) => (
               <button
                 key={term.id}
@@ -188,112 +173,84 @@ export function PricingCards({
                 onClick={() => {
                   setTermId(term.id);
                 }}
-                className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-[14px] font-bold transition-colors ${
-                  term.id === termId ? 'bg-brand-700 text-white' : 'text-neutral-700 hover:text-ink'
-                }`}
               >
-                {term.label}
+                <span>{term.label}</span>
                 {term.savingPercent > 0 ? (
-                  <span
-                    className={`num rounded-full px-2 py-0.5 text-[11px] ${
-                      term.id === termId
-                        ? 'bg-white/20 text-white'
-                        : 'bg-accent-100 text-accent-700'
-                    }`}
-                  >
+                  <span className="save">
                     {String(term.savingPercent)}% {text.off[language]}
                   </span>
                 ) : null}
               </button>
             ))}
           </div>
-        </div>
-      ) : null}
-
-      <div
-        ref={rowRef}
-        className="snap-row mt-7 -mx-4 flex snap-x snap-mandatory gap-3.5 overflow-x-auto px-4 pt-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-4"
-      >
-        {/* The sketch's `.plan.hot`: the badge sits on the top edge, kept to one line so it never grows
-            under the row's top padding. */}
-        <article className="plan-hot relative flex w-[min(82vw,320px)] shrink-0 snap-center flex-col rounded-card px-5 py-[22px] sm:w-auto">
-          <span className="absolute -top-[13px] left-[18px] max-w-[calc(100%-36px)] truncate rounded-full bg-accent-500 px-3 py-1 text-[12px] font-bold text-ink shadow-[0_6px_14px_-6px_rgba(242,165,22,0.9)]">
-            {payg.badge}
-          </span>
-          <h3 className="heading text-[19px] text-ink">{payg.name}</h3>
-          <p className="mt-2 min-h-[42px] text-[14px] text-neutral-700">{payg.description}</p>
-          <p className="mt-4 flex items-baseline gap-1.5 border-t border-line pt-3">
-            <span className="num text-[34px] font-bold leading-none tracking-tight text-ink">
-              {payg.price}
-            </span>
-            <span className="text-[14px] text-neutral-700">{text.perMonth[language]}</span>
-          </p>
-          <PlanLines lines={payg.lines} more={payg.more} />
-          <a href={payg.signInUrl} className={`mt-5 ${buttonClass('accent', 'lg')}`}>
-            {payg.cta}
-          </a>
-        </article>
-
-        {view?.plans.map((plan) => {
-          const price = plan.prices[termId];
-          const href = plan.signInUrls[termId] ?? plan.signInUrls[view.defaultTermId] ?? '#';
-          return (
-            <article
-              key={plan.id}
-              className="flex w-[min(82vw,320px)] shrink-0 snap-center flex-col rounded-card border border-line bg-white px-5 py-[22px] shadow-card sm:w-auto"
-            >
-              <h3 className="heading text-[19px] text-ink">{plan.name}</h3>
-              <p className="mt-2 min-h-[42px] text-[14px] text-neutral-700">
-                {plan.description ?? ''}
-              </p>
-              {price ? (
-                <p className="mt-4 flex flex-wrap items-baseline gap-x-1.5 border-t border-line pt-3">
-                  <span className="num text-[34px] font-bold leading-none tracking-tight text-ink">
-                    {price.monthly}
-                  </span>
-                  <span className="text-[14px] text-neutral-700">{text.perMonth[language]}</span>
-                  {!monthlyTerm ? (
-                    <span className="num mt-1 w-full text-[13px] text-neutral-700">
-                      {price.total} {text.perTerm[language]}
-                    </span>
-                  ) : null}
-                </p>
-              ) : (
-                <p className="mt-4 border-t border-line pt-3 text-[14px] text-neutral-700">—</p>
-              )}
-              <PlanLines lines={plan.lines} more={plan.more} />
-              <a href={href} className={`mt-5 ${buttonClass('primary', 'lg')}`}>
-                {language === 'bn'
-                  ? `${plan.name} ${text.choose.bn}`
-                  : `${text.choose.en} ${plan.name}`}
-              </a>
-            </article>
-          );
-        })}
+        ) : null}
       </div>
 
-      {cardCount > 1 ? (
-        <div className="mt-2 flex justify-center gap-1.5 sm:hidden">
-          {Array.from({ length: cardCount }, (_, index) => (
+      <div className="pscroll" ref={rowRef}>
+        <div className="pgrid">
+          <article className="plan card hot">
+            <span className="badge">{payg.badge}</span>
+            <h3 className="bn-name">{payg.name}</h3>
+            <p className="who">{payg.description}</p>
+            <p className="price">
+              <b>{payg.price}</b>
+              <span>{text.perMonth[language]}</span>
+            </p>
+            <PlanLines lines={payg.lines} more={payg.more} />
+            <a href={payg.signInUrl} className="btn btn-accent">
+              {payg.cta}
+            </a>
+          </article>
+
+          {view?.plans.map((plan) => {
+            const price = plan.prices[termId];
+            const href = plan.signInUrls[termId] ?? plan.signInUrls[view.defaultTermId] ?? '#';
+            return (
+              <article key={plan.id} className="plan card">
+                <h3>{plan.name}</h3>
+                {plan.description ? <p className="who">{plan.description}</p> : null}
+                {price ? (
+                  <p className="price">
+                    <b>{price.monthly}</b>
+                    <span>{text.perMonth[language]}</span>
+                    {!monthlyTerm ? (
+                      <small>
+                        {price.total} {text.perTerm[language]}
+                      </small>
+                    ) : null}
+                  </p>
+                ) : (
+                  <p className="price">
+                    <span>—</span>
+                  </p>
+                )}
+                <PlanLines lines={plan.lines} more={plan.more} />
+                <a href={href} className="btn btn-primary">
+                  {language === 'bn'
+                    ? `${plan.name} ${text.choose.bn}`
+                    : `${text.choose.en} ${plan.name}`}
+                </a>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+
+      {names.length > 1 ? (
+        <div className="pdots" role="group" aria-label={text.plans[language]}>
+          {names.map((name, index) => (
             <button
-              key={index}
+              key={name}
               type="button"
-              aria-label={`${text.goTo[language]} ${String(index + 1)}`}
-              aria-current={index === active ? 'true' : undefined}
+              aria-label={name}
+              aria-current={index === active ? 'true' : 'false'}
               onClick={() => {
-                jumpTo(index);
+                goTo(index);
               }}
-              className="flex h-8 w-8 items-center justify-center"
-            >
-              <span
-                className={`block h-1.5 rounded-full transition-all ${
-                  index === active ? 'w-[18px] bg-brand-700' : 'w-1.5 bg-neutral-200'
-                }`}
-              />
-            </button>
+            />
           ))}
         </div>
       ) : null}
-    </div>
+    </>
   );
 }

@@ -138,14 +138,14 @@ describe('what else a plan gives, in its quieter list (small fixes 14(d))', () =
       '2 GB storage',
       '30 GB bandwidth a month',
       '200,000 API requests a month',
-      'Listener on 1 phone',
+      '1 payment listener',
     ]);
     const bn = new PricingViewBuilder(new Copy('bn'), urls).build(withLimits(STARTER_LIMITS));
     expect(bn?.plans[0]?.more).toEqual([
       '২ GB স্টোরেজ',
       'মাসে ৩০ GB ব্যান্ডউইথ',
       'মাসে ২,০০,০০০ API রিকোয়েস্ট',
-      '১টি ফোনে লিসেনার',
+      '১টি পেমেন্ট লিসেনার',
     ]);
     // Bangla figures are grouped too, in lakhs.
     expect(bn?.plans[0]?.lines).toContain('১,০০০ প্রোডাক্ট');
@@ -157,7 +157,7 @@ describe('what else a plan gives, in its quieter list (small fixes 14(d))', () =
     );
     expect(view?.plans[0]?.more).toEqual([
       'আনলিমিটেড স্টোরেজ',
-      '৩টি ফোনে লিসেনার',
+      '৩টি পেমেন্ট লিসেনার',
       'ব্র্যান্ড আইডেন্টিটি: আপনার রং, ফন্ট আর লোগো',
     ]);
     expect(view?.plans[0]?.lines).toContain('আনলিমিটেড প্রোডাক্ট');
@@ -187,7 +187,7 @@ describe('what else a plan gives, in its quieter list (small fixes 14(d))', () =
       '250 MB storage',
       '10 GB bandwidth a month',
       '100,000 API requests a month',
-      'Listener on 1 phone',
+      '1 payment listener',
     ]);
     expect(en.paygMore(null)).toEqual([]);
   });

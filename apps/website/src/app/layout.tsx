@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 import { SiteEnvironment } from '@/lib/env';
 import { requestLanguage } from '@/lib/i18n/read-language';
 import './globals.css';
+// After globals.css: the sketch's look (site.css), whose unlayered rules sit above Tailwind's base layer.
+import './site.css';
 
 // BRAND-IDENTITY.md §5: Plus Jakarta Sans for the wordmark and English headlines, Inter for UI and digits,
 // Noto Sans Bengali for Bangla. The files are in the repo (src/fonts, with their licences), so neither the build nor

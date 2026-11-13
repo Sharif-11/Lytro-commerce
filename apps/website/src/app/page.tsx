@@ -1,3 +1,4 @@
+import { Contact } from '@/components/landing/contact';
 import { Faq } from '@/components/landing/faq';
 import { Features } from '@/components/landing/features';
 import { FinalCta } from '@/components/landing/final-cta';
@@ -13,6 +14,7 @@ import { ZeroRisk } from '@/components/landing/zero-risk';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteNav } from '@/components/layout/site-nav';
 import { StickyCta } from '@/components/layout/sticky-cta';
+import { HelpLineApi } from '@/lib/api/help-line-api';
 import { PlansApi } from '@/lib/api/plans-api';
 import { ServerApi } from '@/lib/api/server-api';
 import { SiteEnvironment } from '@/lib/env';
@@ -31,6 +33,8 @@ const sticky = {
   action: { bn: 'শুরু করুন', en: 'Start' },
 };
 
+/** The landing page, top to bottom as the approved mobile-first sketch draws it (LANDING-PAGE-DESIGN.md §3,
+    docs/brand/lytro-landing-v2.html); its look is app/site.css. */
 export default async function LandingPage() {
   const language = await requestLanguage.read();
   const env = SiteEnvironment.current();
@@ -46,16 +50,17 @@ export default async function LandingPage() {
     revalidateSeconds: 60,
   });
   const plansApi = new PlansApi(api);
-  const [catalogue, rates, paygPlan] = await Promise.all([
+  const [catalogue, rates, paygPlan, helpLine] = await Promise.all([
     plansApi.catalogue(),
     plansApi.rates(),
     plansApi.payAsYouGo(),
+    new HelpLineApi(env).current(),
   ]);
 
   return (
     <>
-      <SiteNav language={language} />
-      <main>
+      <SiteNav language={language} overHero />
+      <main className="lp">
         <Hero
           language={language}
           signInUrl={urls.signIn()}
@@ -77,7 +82,8 @@ export default async function LandingPage() {
         />
         <Proof language={language} />
         <ZeroRisk language={language} />
-        <Faq language={language} />
+        <Faq language={language} whatsapp={helpLine?.whatsapp ?? null} />
+        <Contact language={language} helpLine={helpLine} email={env.support.email} />
         <FinalCta language={language} signInUrl={urls.signIn()} />
       </main>
       <SiteFooter language={language} />

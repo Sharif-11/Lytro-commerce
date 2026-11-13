@@ -1,9 +1,12 @@
+import Image from 'next/image';
 import Link from 'next/link';
-import { buttonClass } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import { Mark } from '@/components/ui/mark';
 import { Wordmark } from '@/components/ui/wordmark';
 import { SiteEnvironment } from '@/lib/env';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import type { Language } from '@/lib/i18n/language';
+import { liveServices } from '@/lib/services';
 import { AppUrls } from '@/lib/urls';
 import { LanguageToggle } from './language-toggle';
 import { NavShell } from './nav-shell';
@@ -18,6 +21,8 @@ const text = {
   contact: { bn: 'যোগাযোগ', en: 'Contact' },
   login: { bn: 'লগইন', en: 'Log in' },
   cta: { bn: 'ফ্রি দোকান খুলুন', en: 'Open a free shop' },
+  start: { bn: 'শুরু করুন', en: 'Start' },
+  language: { bn: 'ভাষা', en: 'Language' },
   note: {
     bn: '৩০ দিন ফ্রি ট্রায়াল। কার্ড নেই, মাসিক ফি নেই।',
     en: '30-day free trial. No card, no monthly fee.',
@@ -27,19 +32,26 @@ const text = {
   home: { bn: 'Lytro হোম', en: 'Lytro home' },
 } satisfies Record<string, Bilingual>;
 
-/** Sticky, 64 px, blurred white with a hairline (LANDING-PAGE-DESIGN.md §4). Phones and tablets get the
-    wordmark, the বাং/EN toggle and the burger; the links, log in and the one marigold button appear at the
-    desktop breakpoint, and until then they live in the sheet. */
-export function SiteNav({ language }: { language: Language }) {
+/** The sketch's capsule navbar (LANDING-PAGE-DESIGN.md §4). Phones get the wordmark, a short marigold "Start" and the
+    burger; the বাং/EN pill joins from 640 px; the links, the long button label and the burger's end come at 900 px;
+    log in at 1100 px. Until then the links, log in and the language live in the sheet. `overHero` is the landing
+    page's dark glass over its hero. */
+export function SiteNav({
+  language,
+  overHero = false,
+}: {
+  language: Language;
+  overHero?: boolean;
+}) {
   const copy = new Copy(language);
   const env = SiteEnvironment.current();
   const urls = new AppUrls(env.appUrl);
 
-  const desktopLinks = [
+  const barLinks = [
     { href: '/#features', label: copy.of(text.features) },
+    { href: '/#why', label: copy.of(text.why) },
     { href: '/#pricing', label: copy.of(text.pricing) },
     { href: '/#faq', label: copy.of(text.faq) },
-    { href: '/about', label: copy.of(text.about) },
     { href: '/contact', label: copy.of(text.contact) },
   ];
   const sheetLinks = [
@@ -51,38 +63,67 @@ export function SiteNav({ language }: { language: Language }) {
     { href: '/about', label: copy.of(text.about) },
     { href: '/contact', label: copy.of(text.contact) },
   ];
-  const login = { href: urls.logIn(), label: copy.of(text.login) };
-  const cta = { href: urls.signIn(), label: copy.of(text.cta) };
 
   const bar = (
     <>
-      <Link href="/" aria-label={copy.of(text.home)} className="flex shrink-0 items-center">
-        <Wordmark height={28} />
+      <Link href="/" aria-label={copy.of(text.home)} className="wm">
+        <Wordmark height={40} tone="css" />
       </Link>
-
-      <nav className="ml-4 hidden items-center gap-0.5 lg:flex" aria-label="Primary">
-        {desktopLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="rounded-control px-3 py-2 text-[15px] font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-ink"
-          >
+      <nav className="nav-links" aria-label="Main">
+        {barLinks.map((link) => (
+          <Link key={link.href} href={link.href}>
             {link.label}
           </Link>
         ))}
       </nav>
+      <span className="spacer" />
+      <LanguageToggle language={language} />
+      <a href={urls.logIn()} className="login">
+        {copy.of(text.login)}
+      </a>
+      <a href={urls.signIn()} className="btn btn-accent cta-top">
+        <Mark size={18} />
+        <span className="long">{copy.of(text.cta)}</span>
+        <span className="short">{copy.of(text.start)}</span>
+      </a>
+    </>
+  );
 
-      <div className="ml-auto flex items-center gap-2">
+  const sheet = (
+    <>
+      <div className="sheet-top">
+        <span>{copy.of(text.language)}</span>
         <LanguageToggle language={language} />
-        {/* Wrapped so `hidden` is not overridden by the button's own display class. */}
-        <div className="hidden items-center gap-2 lg:flex">
-          <a href={login.href} className={buttonClass('ghost')}>
-            {login.label}
-          </a>
-          <a href={cta.href} className={buttonClass('accent')}>
-            {cta.label}
-          </a>
-        </div>
+      </div>
+      <nav aria-label="Menu">
+        {sheetLinks.map((link) => (
+          <Link key={link.href} href={link.href}>
+            <span>{link.label}</span>
+            <Icon name="arrow" size={20} />
+          </Link>
+        ))}
+      </nav>
+      <div className="acts">
+        <a href={urls.signIn()} className="btn btn-accent">
+          {copy.of(text.cta)}
+        </a>
+        <a href={urls.logIn()} className="btn btn-ghost">
+          {copy.of(text.login)}
+        </a>
+        <p className="note">{copy.of(text.note)}</p>
+      </div>
+      <div className="logos">
+        {liveServices.map((service) => (
+          <span key={service.name}>
+            <Image
+              src={service.src}
+              alt={service.name}
+              width={service.width}
+              height={service.height}
+              style={{ width: 'auto' }}
+            />
+          </span>
+        ))}
       </div>
     </>
   );
@@ -90,10 +131,8 @@ export function SiteNav({ language }: { language: Language }) {
   return (
     <NavShell
       bar={bar}
-      links={sheetLinks}
-      login={login}
-      cta={cta}
-      note={copy.of(text.note)}
+      sheet={sheet}
+      overHero={overHero}
       labels={{ open: copy.of(text.openMenu), close: copy.of(text.closeMenu) }}
     />
   );
