@@ -270,6 +270,7 @@
   .plan ul.more{gap:6px;color:var(--n700);padding-top:12px;border-top:1px dashed var(--line-strong)} .plan ul.more li svg{width:16px;height:16px;margin-top:4px}
   .plan .btn{width:100%;margin-top:auto}
   .plan.hot{background:var(--teal-900);color:#fff;border-color:var(--teal-900);box-shadow:var(--shadow-lg)} .plan.hot .who,.plan.hot .price span,.plan.hot ul.more{color:var(--teal-100)} .plan.hot li svg{color:var(--teal-300)} .plan.hot ul.more{border-top-color:rgba(255,255,255,.28)}
+  .plan.hot li.no{color:var(--teal-100)} .plan.hot li.no span{text-decoration-color:var(--teal-300)} .plan.hot li.no svg{color:var(--teal-300)}
   .plan .badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--mari-500);color:var(--ink);font-size:.875rem;font-weight:700;line-height:1.3;padding:4px 12px;border-radius:999px;box-shadow:var(--shadow-sm)}
   .pdots{display:flex;justify-content:center;margin-top:2px}
   .pdots button{width:44px;height:44px;padding:0;border:0;background:transparent;display:grid;place-items:center;cursor:pointer}
@@ -488,7 +489,7 @@
             <input type="text" id="shop-slug" placeholder="আপনার দোকানের নাম" data-en-placeholder="Your shop name" autocomplete="off" autocapitalize="none" aria-label="Shop name">
             <span class="suffix">.lytro.app</span>
           </div>
-          <button type="submit" class="btn btn-accent"><span data-en="Claim my shop">দোকান নিন</span><svg><use href="#arrow"/></svg></button>
+          <button type="submit" class="btn btn-accent"><span data-en="Create your online store">অনলাইন স্টোর তৈরি করুন</span><svg><use href="#arrow"/></svg></button>
         </form>
         <div class="micro">
           <span><svg><use href="#check"/></svg><i data-en="30-day free trial">৩০ দিন ফ্রি ট্রায়াল</i></span>
@@ -701,8 +702,7 @@
       </div>
       <div class="pscroll" id="pscroll">
         <div class="pgrid">
-          <div class="plan card hot">
-            <span class="badge" data-en="Most sellers start here">বেশিরভাগ সেলার এখান থেকেই শুরু</span>
+          <div class="plan card">
             <h3 class="bn-name" data-en="Pay-as-you-go">পে-অ্যাজ-ইউ-গো</h3>
             <div class="who" data-en="For a shop that wants to try before paying">যে দোকান আগে দেখে তারপর দিতে চায়</div>
             <div class="price"><b>৳0</b><span data-en="per month">/ মাস</span></div>
@@ -719,16 +719,19 @@
               <li><svg><use href="#check"/></svg><span data-en="250 MB storage">২৫০ MB স্টোরেজ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="10 GB bandwidth a month">মাসে ১০ GB ব্যান্ডউইথ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="100,000 API requests a month">মাসে ১,০০,০০০ API রিকোয়েস্ট</span></li>
-              <li><svg><use href="#check"/></svg><span data-en="Listener on 1 phone">১টি ফোনে লিসেনার</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="1 payment listener">১টি পেমেন্ট লিসেনার</span></li>
             </ul>
-            <a href="#" class="btn btn-accent" data-en="Open a free shop">ফ্রি দোকান খুলুন</a>
+            <a href="#" class="btn btn-outline" data-en="Open a free shop">ফ্রি দোকান খুলুন</a>
           </div>
-          <div class="plan card">
+          <div class="plan card hot">
+            <span class="badge" data-en="Suggested plan">সাজেস্টেড প্ল্যান</span>
             <h3>Starter</h3>
             <div class="who" data-en="For a steady page with a few orders a day">দিনে কয়েকটা অর্ডারের স্থির পেজের জন্য</div>
             <div class="price"><b data-m="৳449" data-y="৳4,741">৳449</b><span data-m="/ মাস" data-y="/ বছর" data-en-m="per month" data-en-y="per year">/ মাস</span></div>
             <ul>
-              <li><svg><use href="#check"/></svg><span data-en="Your own storefront included">নিজের স্টোরফ্রন্ট সহ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Storefront, orders, courier booking, fake-order check">স্টোরফ্রন্ট, অর্ডার, কুরিয়ার বুকিং, ফেক অর্ডার চেক</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="bKash and Nagad payment matching">বিকাশ-নগদ পেমেন্ট ম্যাচিং</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Top up a balance for SMS and paid features">SMS আর পেইড ফিচারের জন্য ব্যালেন্স টপ-আপ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="100 products">১০০ প্রোডাক্ট</span></li>
               <li><svg><use href="#check"/></svg><span data-en="300 orders handled a month">মাসে ৩০০ অর্ডার হ্যান্ডলিং</span></li>
               <li><svg><use href="#check"/></svg><span data-en="2 seats: you + 1 staff">২টি সিট: আপনি + ১ জন স্টাফ</span></li>
@@ -739,16 +742,18 @@
               <li><svg><use href="#check"/></svg><span data-en="2 GB storage">২ GB স্টোরেজ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="30 GB bandwidth a month">মাসে ৩০ GB ব্যান্ডউইথ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="200,000 API requests a month">মাসে ২,০০,০০০ API রিকোয়েস্ট</span></li>
-              <li><svg><use href="#check"/></svg><span data-en="Listener on 1 phone">১টি ফোনে লিসেনার</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="1 payment listener">১টি পেমেন্ট লিসেনার</span></li>
             </ul>
-            <a href="#" class="btn btn-outline" data-en="Choose Starter">Starter নিন</a>
+            <a href="#" class="btn btn-accent" data-en="Choose Starter">Starter নিন</a>
           </div>
           <div class="plan card">
             <h3>Growth</h3>
             <div class="who" data-en="For a shop that wants its own domain and a team">নিজের ডোমেইন আর টিম চাওয়া দোকানের জন্য</div>
             <div class="price"><b data-m="৳699" data-y="৳7,381">৳699</b><span data-m="/ মাস" data-y="/ বছর" data-en-m="per month" data-en-y="per year">/ মাস</span></div>
             <ul>
-              <li><svg><use href="#check"/></svg><span data-en="Your own storefront included">নিজের স্টোরফ্রন্ট সহ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Storefront, orders, courier booking, fake-order check">স্টোরফ্রন্ট, অর্ডার, কুরিয়ার বুকিং, ফেক অর্ডার চেক</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="bKash and Nagad payment matching">বিকাশ-নগদ পেমেন্ট ম্যাচিং</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Top up a balance for SMS and paid features">SMS আর পেইড ফিচারের জন্য ব্যালেন্স টপ-আপ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="1,000 products">১,০০০ প্রোডাক্ট</span></li>
               <li><svg><use href="#check"/></svg><span data-en="1,500 orders handled a month">মাসে ১,৫০০ অর্ডার হ্যান্ডলিং</span></li>
               <li><svg><use href="#check"/></svg><span data-en="5 seats: you + 4 staff">৫টি সিট: আপনি + ৪ জন স্টাফ</span></li>
@@ -759,16 +764,18 @@
               <li><svg><use href="#check"/></svg><span data-en="10 GB storage">১০ GB স্টোরেজ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="100 GB bandwidth a month">মাসে ১০০ GB ব্যান্ডউইথ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="600,000 API requests a month">মাসে ৬,০০,০০০ API রিকোয়েস্ট</span></li>
-              <li><svg><use href="#check"/></svg><span data-en="Listener on 3 phones">৩টি ফোনে লিসেনার</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="3 payment listeners">৩টি পেমেন্ট লিসেনার</span></li>
             </ul>
-            <a href="#" class="btn btn-primary" data-en="Choose Growth">Growth নিন</a>
+            <a href="#" class="btn btn-outline" data-en="Choose Growth">Growth নিন</a>
           </div>
           <div class="plan card">
             <h3>Pro</h3>
             <div class="who" data-en="For a brand with daily volume and priority support">প্রতিদিন ভলিউম আর প্রায়োরিটি সাপোর্ট চাওয়া ব্র্যান্ডের জন্য</div>
             <div class="price"><b data-m="৳999" data-y="৳10,549">৳999</b><span data-m="/ মাস" data-y="/ বছর" data-en-m="per month" data-en-y="per year">/ মাস</span></div>
             <ul>
-              <li><svg><use href="#check"/></svg><span data-en="Your own storefront included">নিজের স্টোরফ্রন্ট সহ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Storefront, orders, courier booking, fake-order check">স্টোরফ্রন্ট, অর্ডার, কুরিয়ার বুকিং, ফেক অর্ডার চেক</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="bKash and Nagad payment matching">বিকাশ-নগদ পেমেন্ট ম্যাচিং</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Top up a balance for SMS and paid features">SMS আর পেইড ফিচারের জন্য ব্যালেন্স টপ-আপ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="5,000 products">৫,০০০ প্রোডাক্ট</span></li>
               <li><svg><use href="#check"/></svg><span data-en="6,000 orders handled a month">মাসে ৬,০০০ অর্ডার হ্যান্ডলিং</span></li>
               <li><svg><use href="#check"/></svg><span data-en="15 seats: you + 14 staff">১৫টি সিট: আপনি + ১৪ জন স্টাফ</span></li>
@@ -779,7 +786,7 @@
               <li><svg><use href="#check"/></svg><span data-en="50 GB storage">৫০ GB স্টোরেজ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="300 GB bandwidth a month">মাসে ৩০০ GB ব্যান্ডউইথ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="2,000,000 API requests a month">মাসে ২০,০০,০০০ API রিকোয়েস্ট</span></li>
-              <li><svg><use href="#check"/></svg><span data-en="Listener on 10 phones">১০টি ফোনে লিসেনার</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="10 payment listeners">১০টি পেমেন্ট লিসেনার</span></li>
               <li><svg><use href="#check"/></svg><span data-en="Brand identity: your colours, fonts and logo">ব্র্যান্ড আইডেন্টিটি: আপনার রং, ফন্ট আর লোগো</span></li>
             </ul>
             <a href="#" class="btn btn-outline" data-en="Choose Pro">Pro নিন</a>
