@@ -71,8 +71,8 @@ const pairs: { icon: IconName; before: Bilingual; after: Bilingual }[] = [
       en: 'You do not want to pay a monthly fee before you know it works.',
     },
     after: {
-      bn: 'অর্ডার ডেলিভার হলে তবেই ফি। দোকান খোলা ফ্রি।',
-      en: 'Pay only when an order is delivered. Opening the shop is free.',
+      bn: 'অর্ডার কুরিয়ারে গেলে তবেই ফি। দোকান খোলা ফ্রি।',
+      en: 'A fee only when an order goes to the courier. Opening the shop is free.',
     },
   },
 ];

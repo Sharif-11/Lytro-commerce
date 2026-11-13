@@ -6,8 +6,8 @@ import type { Language } from '@/lib/i18n/language';
 
 const text = {
   title: {
-    bn: 'আজই দোকান খুলুন। বিক্রি হলে তবেই ফি।',
-    en: 'Open your shop today. Pay when you sell.',
+    bn: 'আজই দোকান খুলুন। অর্ডার পাঠালে তবেই ফি।',
+    en: 'Open your shop today. Pay when you ship.',
   },
   lead: {
     bn: 'তিন মিনিট, একটা ফোন নম্বর, কার্ড লাগবে না।',

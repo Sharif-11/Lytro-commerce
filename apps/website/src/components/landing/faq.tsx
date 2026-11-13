@@ -13,8 +13,8 @@ const items: { q: Bilingual; a: Bilingual }[] = [
   {
     q: { bn: 'মাসিক ফি দিতে হবে?', en: 'Do I have to pay a monthly fee?' },
     a: {
-      bn: 'না। পে-অ্যাজ-ইউ-গো-তে দোকান খোলা ফ্রি, শুধু অর্ডার ডেলিভার হলেই ছোট একটা ফি কাটে। পরে ফিক্সড প্ল্যান সস্তা পড়লে সেখানে যেতে পারবেন।',
-      en: 'No. On pay-as-you-go, opening the shop is free and a small fee is charged only when an order is delivered. You can move to a fixed plan later if that works out cheaper for you.',
+      bn: 'না। পে-অ্যাজ-ইউ-গো-তে দোকান খোলা ফ্রি, অর্ডার কুরিয়ারে বুক বা শিপ হলে তবেই ছোট একটা ফি কাটে। পরে ফিক্সড প্ল্যান সস্তা পড়লে সেখানে যেতে পারবেন।',
+      en: 'No. On pay-as-you-go, opening the shop is free and a small fee is charged only when an order is booked with a courier or shipped. You can move to a fixed plan later if that works out cheaper for you.',
     },
   },
   {
