@@ -7,6 +7,9 @@
 // Key: "METHOD /path", exactly as the route is registered (for example "GET /orders/:id").
 // Value: what the case checks. Every case expects `not_found` for another shop's ID (TEN-03).
 //
+// Since Slice 9.7, every dashboard route taking an ID is also called with another shop's real IDs, found in the running
+// application rather than listed here, and must answer as it answers an ID that never existed (foreign-ids.e2e.spec.ts).
+//
 // GET /me: a dashboard call naming a shop the person doesn't belong to answers 404 (TEN-31), and the summary shows only
 // the shop the call names. Checked over HTTP in test/dashboard.e2e.spec.ts and test/staff.e2e.spec.ts.
 // The identity routes: a signed-in account can list, add and remove only its own identities (AUTH-26). Checked in

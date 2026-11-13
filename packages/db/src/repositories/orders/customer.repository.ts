@@ -7,6 +7,7 @@ import {
   gt,
   ilike,
   inArray,
+  isNotNull,
   isNull,
   ne,
   notInArray,
@@ -294,10 +295,18 @@ export class CustomerRepository {
         .update(paymentSessions)
         .set({ senderNumber: null, updatedAt: now })
         .where(and(eq(paymentSessions.tenantId, tenantId), inArray(paymentSessions.orderId, ids)));
+      // Only payments that hold one: emptying an empty number is no change of the number, and the payments' guard
+      // refuses any other change to a voided or refunded payment (a cash refund failed the delete, Slice 9.7).
       await tx
         .update(orderPayments)
         .set({ senderNumber: null })
-        .where(and(eq(orderPayments.tenantId, tenantId), inArray(orderPayments.orderId, ids)));
+        .where(
+          and(
+            eq(orderPayments.tenantId, tenantId),
+            inArray(orderPayments.orderId, ids),
+            isNotNull(orderPayments.senderNumber),
+          ),
+        );
       // Slice 5.4b: a receipt on its orders keeps its ID and amount, and loses the number and the text that names it.
       await tx
         .update(listenerMessages)
