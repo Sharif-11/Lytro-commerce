@@ -1839,6 +1839,35 @@ def('t67-tracking-redx', { group: G67, label: "· RedX's words, in the shopper's
 def('t67-tracking-partly', { group: G67, label: '· partly delivered', url: 'megh.lytro.app/track/K7F2M9QX', render: () => shell(trHdr(), `<div class="banner warn">${I.info}<span>${t('t67Partly')}</span></div>${t67Track({ c: 'Steadfast', code: '15BAEB8A', when: L('আজ 5:10', 'today 5:10'), words: L('আংশিক ডেলিভারি হয়েছে।', 'Partly delivered.') })}`) });
 def('t67-tracking-back', { group: G67, label: '· coming back to the shop', url: 'megh.lytro.app/track/K7F2M9QX', render: () => shell(trHdr(), `<div class="banner warn">${I.info}<span>${t('t67Back')}</span></div>${t67Track({ c: 'Steadfast', code: '15BAEB8A', when: L('আজ 6:00', 'today 6:00'), words: L('পার্সেলটি ফেরত যাচ্ছে।', 'The parcel is on its way back.') })}`) });
 
+/* ---------- Phase 9 Slice 9.9 (sketch, 2026-11-13): the can't-save banner for shoppers, in 9.2's words, at the top of
+   every page and at checkout (Confirm paused); and a Privacy link to Lytro's policy beside "Powered by Lytro". Degraded
+   mode shows nothing here: shoppers' orders and payments are not paused (the owner's read). ---------- */
+const G99 = 'Phase 9 · Slice 9.9 (sketch)';
+Object.assign(S, {
+  p99CantOrder: ['একটা সমস্যার কারণে কয়েক মিনিট এই শপে অর্ডার দেওয়া যাচ্ছে না। একটু পরে আবার চেষ্টা করুন।', "Because of a problem, orders can't be placed in this shop for a few minutes. Please try again shortly."],
+  p99OrderPaused: ['কিছুক্ষণ অর্ডার দেওয়া যাচ্ছে না', 'Orders paused for a few minutes'],
+  p99Privacy: ['প্রাইভেসি', 'Privacy'],
+});
+const p99Banner = () => `<div class="banner warn p99-banner">${I.info}<span>${t('p99CantOrder')}</span></div>`;
+const p99FootBase = foot;
+foot = (o) => p99FootBase(o).replace(`${I.pb}</div></div></footer>`, `<span class="p99-pbr">${I.pb}<a class="p99-priv" href="https://lytro.app/privacy" target="_blank" rel="noopener">${t('p99Privacy')}</a></span></div></div></footer>`);
+def('p99-cant-order', { group: G99, label: 'Home · orders can\'t be placed for a few minutes (banner)', url: 'megh.lytro.app', render: () => shell({}, p99Banner() + homePage()) });
+def('p99-cant-order-checkout', { group: G99, label: '· at checkout: Confirm paused', url: 'megh.lytro.app/checkout', render: () => {
+  const h = shell(coHdr48(), e48Checkout({ banner: p99Banner(), place: `${I.clock || ''} ${t('p99OrderPaused')}` }));
+  const btnAt = 'class="btn primary lg block"  onclick=';
+  if (!h.includes(btnAt)) throw new Error('Part 99: the checkout\'s Confirm button moved');
+  return h.split(btnAt).join('class="btn primary lg block" disabled onclick=');
+} });
+def('p99-footer', { group: G99, label: 'Footer · the Privacy link beside Powered by Lytro', url: 'megh.lytro.app', render: () => shell({}, homePage()) });
+document.head.insertAdjacentHTML('beforeend', `<style>
+/* Part 99 (Slice 9.9, sketch) */
+.p99-banner{margin-bottom:12px}
+.p99-pbr{display:inline-flex;flex-direction:column;align-items:flex-end;gap:6px}
+.foot .pb:has(.p99-pbr) > span:first-child{white-space:nowrap}
+.foot .p99-priv{font-size:14px;color:var(--n700);text-decoration:underline;text-underline-offset:3px;font-weight:500}
+</style>`);
+/* ---------- end of Part 99 (Slice 9.9 sketch) ---------- */
+
 /* ---------- toolbar ---------- */
 (function init() {
   const sel = document.getElementById('selScreen'); const groups = {};

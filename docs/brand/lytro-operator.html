@@ -375,6 +375,46 @@ svg.mk{stroke-width:10}
 .stat.lk{text-align:left;cursor:pointer;font:inherit}
 .stat.lk:hover{border-color:var(--line-strong)}
 @container (min-width: 1024px){.grid-side{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}}
+/* Phase 9 Slice 9.9 (sketch, 2026-11-13): limited mode on Today, the money check, VAT. Text added here is 14 px or larger. */
+.p99-dg{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.p99-ic{width:40px;height:40px;border-radius:10px;background:var(--n100);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.p99-ic svg{width:20px;height:20px}
+.p99-on{border-color:var(--warning)}
+.p99-on .p99-ic{background:var(--warning-soft);color:var(--warning)}
+.p99-dgb{flex:1 1 240px;min-width:0;display:flex;flex-direction:column;gap:4px}
+.p99-dgh{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.p99-act{flex:none}
+.p99-txt{font-size:14px;line-height:1.5;color:var(--n700);white-space:normal;overflow-wrap:anywhere}
+.p99-strong{font-size:14px;font-weight:600;color:var(--ink)}
+.p99 .st{font-size:14px;height:26px}
+.p99-list{margin:12px -16px -16px;border-top:1px solid var(--line)}
+.p99 .row .l1{white-space:normal;font-size:15px}
+.p99 .row .l2{font-size:14px;color:var(--n700);white-space:normal}
+.p99-warn{color:var(--warning)}
+.p99-k{font-size:15px;font-weight:600;color:var(--ink)}
+.p99-links{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:14px}
+.p99-links a{color:var(--primary);font-weight:600}
+.p99-res{margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--n50);border:1px solid var(--line)}
+.p99-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.p99-filters .chip{font-size:14px}
+.p99-filters .chip .c{font-size:14px}
+.p99-sel{min-width:0;max-width:100%}
+.p99-sel .select{height:36px;font-size:14px;max-width:100%}
+.p99-err{font-size:14px;color:var(--danger)}
+.p99-lnk{color:var(--primary);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.p99-prev{max-width:440px;padding:12px 14px}
+.p99-kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px dashed var(--line);font-size:14px;color:var(--ink)}
+.p99-kv:nth-child(2){border-top:0}
+.p99-kv span:first-child{color:var(--n700)}
+.p99-kv span:last-child{text-align:right;min-width:0;overflow-wrap:anywhere}
+.p99-tot{font-weight:600;border-top:1px solid var(--ink)}
+.p99 .tbl .cl{font-size:14px}
+.p99 .field label,.p99 .help{font-size:14px}
+.p99 .mono{font-size:14px}
+.p99 .btn.sm{font-size:14px}
+.p99 .field .err{font-size:14px}
+.frame .p99 .tbl .thead{font-size:14px;color:var(--n700)}
+.frame .p99 .tbl .td .cl{font-size:14px;color:var(--n700)}
 </style>
 </head>
 <body>
@@ -3898,6 +3938,273 @@ NAV.splice(NAV.findIndex((g) => g.grp === 'nav_catalogue'), 0, { grp: 'p88_nav_r
 LATER_NAV.items = LATER_NAV.items.filter(([k]) => !['reports', 'audit', 'manual'].includes(k));
 for (const id of ['later-reports', 'later-audit', 'later-manual']) delete SCREENS[id];
 /* ---------- end of Phase 8 Slice 8.8 ---------- */
+
+/* ---------- Phase 9 Slice 9.9 (sketch, 2026-11-13): limited mode (degraded mode, DAT-38) on Today, the money check, VAT in Settings.
+   The owner's read: the switch sits on Today with a count of open differences; the money check is its own page in
+   the menu; shops are told by a banner in their dashboard, never by email; VAT is Settings group 16. ---------- */
+const P99G = 'Phase 9 · Slice 9.9 screens (sketch)';
+Object.assign(S, {
+  p99_dg: ['Limited mode', 'লিমিটেড মোড'],
+  p99_on: ['On', 'চালু'], p99_off: ['Off', 'বন্ধ'],
+  p99_dg_off_d: ['Off. Every shop works as usual.', 'বন্ধ। সব শপ স্বাভাবিকভাবে চলছে।'],
+  p99_dg_on_d: ['On since {t}, by {by}. Exports, reports and reading orders from messages wait; orders and payments run.', '{t} থেকে চালু, {by} চালু করেছেন। এক্সপোর্ট, রিপোর্ট আর মেসেজ থেকে অর্ডার পড়া অপেক্ষায়; অর্ডার আর পেমেন্ট চলছে।'],
+  p99_dg_factor: ['While on, every shop\'s per-minute limits ÷{n}', 'চালু থাকলে প্রতিটা শপের মিনিটপ্রতি লিমিট ÷{n}'],
+  p99_dg_factor_go: ['Change in Settings', 'সেটিংসে বদলান'],
+  p99_dg_factor_where: ['The divider is set in Settings, Limited mode.', 'কত দিয়ে ভাগ হবে, সেটা সেটিংসের লিমিটেড মোডে ঠিক করা যায়।'],
+  se_g17: ['VAT', 'VAT'],
+  sn_degraded_factor: ['Per-minute limits divided by', 'মিনিটপ্রতি লিমিট যত দিয়ে ভাগ হবে'],
+  p99_factor_v: ['÷{n} while on', 'চালু থাকলে ÷{n}'],
+  p99_factor_help: ['A whole number from 2 to 10. Plan limits never change.', '2 থেকে 10-এর মধ্যে একটা পূর্ণ সংখ্যা। প্ল্যানের লিমিট কখনো বদলায় না।'],
+  p99_dg_turn_on: ['Turn on', 'চালু করুন'], p99_dg_turn_off: ['Turn off', 'বন্ধ করুন'],
+  p99_dg_on_t: ['Turn limited mode on?', 'লিমিটেড মোড চালু করবেন?'],
+  p99_dg_on_sub: ['For when the server is under too much load. You can turn it off any time.', 'সার্ভারে খুব বেশি চাপ পড়লে। যেকোনো সময় বন্ধ করা যায়।'],
+  p99_dg_pauses: ['Paused while it is on', 'চালু থাকলে বন্ধ থাকবে'],
+  p99_dg_pauses_l: ['Exports and CSV downloads · the reports · reading orders from messages. Their jobs wait, and run once it is off.', 'এক্সপোর্ট আর CSV ডাউনলোড · রিপোর্ট · মেসেজ থেকে অর্ডার পড়া। এগুলোর কাজ অপেক্ষায় থাকবে, বন্ধ করলে চলবে।'],
+  p99_dg_keeps: ['Keeps working', 'চলতে থাকবে'],
+  p99_dg_keeps_l: ['Orders · payments and their verification · courier booking · sign-in', 'অর্ডার · পেমেন্ট আর পেমেন্ট ভেরিফিকেশন · কুরিয়ার বুকিং · লগইন'],
+  p99_dg_limits: ['Every shop\'s per-minute limits are divided by {n}. Plan limits don\'t change.', 'প্রতিটা শপের মিনিটপ্রতি লিমিট {n} দিয়ে ভাগ হবে। প্ল্যানের লিমিট বদলাবে না।'],
+  p99_dg_told: ['Every shop\'s dashboard shows a banner while it is on. No email or SMS goes out.', 'চালু থাকা পর্যন্ত প্রতিটা শপের ড্যাশবোর্ডে একটা ব্যানার দেখাবে। কোনো ইমেইল বা SMS যাবে না।'],
+  p99_dg_off_t: ['Turn limited mode off?', 'লিমিটেড মোড বন্ধ করবেন?'],
+  p99_dg_off_sub: ['On since {t}.', '{t} থেকে চালু।'],
+  p99_dg_off_body: ['Exports, reports and reading orders start again, the waiting jobs run, limits go back to normal, and the banner leaves every dashboard.', 'এক্সপোর্ট, রিপোর্ট আর মেসেজ থেকে অর্ডার পড়া আবার চালু হবে, অপেক্ষায় থাকা কাজগুলো চলবে, লিমিট আগের মতো হবে, আর সব ড্যাশবোর্ড থেকে ব্যানার সরে যাবে।'],
+  p99_dg_on_toast: ['Limited mode is on. Every dashboard shows the banner.', 'লিমিটেড মোড চালু হয়েছে। সব ড্যাশবোর্ডে ব্যানার দেখাচ্ছে।'],
+  p99_dg_off_toast: ['Limited mode is off. The banner is gone.', 'লিমিটেড মোড বন্ধ হয়েছে। ব্যানার সরে গেছে।'],
+  p99_mc: ['Money check', 'টাকা মেলানো'],
+  p99_mc_card: ['Money check', 'টাকা মেলানো'],
+  p99_mc_card_v: ['{n} open', '{n}টি খোলা'],
+  p99_mc_card_d: ['Yesterday\'s money was checked at 06:00. Open differences wait for someone to look.', 'গতকালের টাকার হিসাব সকাল 6:00-এ মেলানো হয়েছে। খোলা পার্থক্যগুলো দেখার অপেক্ষায়।'],
+  p99_mc_card_none: ['Everything matched at 06:00.', 'সকাল 6:00-এ সব মিলেছে।'],
+  p99_mc_sub: ['Every morning at 06:00 (Dhaka), yesterday\'s money is compared: Lytro\'s payments with their SMS and bKash answers, top-ups with their credits, each balance with its records, SMS and order fees with what was charged. A difference stays here until someone resolves it.', 'প্রতিদিন সকাল 6:00-এ (ঢাকা) গতকালের টাকার হিসাব মেলানো হয়: Lytro-র পেমেন্টের সাথে SMS আর bKash-এর উত্তর, টপ-আপের সাথে ব্যালেন্সে যোগ, প্রতিটা ব্যালেন্সের সাথে তার হিসাব, SMS আর অর্ডার ফির সাথে কাটা টাকা। কোনো পার্থক্য পেলে এখানে থাকে, যতক্ষণ না কেউ সমাধান করে।'],
+  p99_mc_open: ['Open', 'খোলা'], p99_mc_resolved: ['Resolved', 'সমাধান হয়েছে'],
+  p99_mc_day: ['Day', 'দিন'], p99_mc_kind_all: ['Every kind', 'সব ধরন'],
+  p99_c_day: ['Day', 'দিন'], p99_c_what: ['What doesn\'t match', 'কী মিলছে না'], p99_c_shop: ['Shop', 'শপ'],
+  p99_c_exp: ['Should be', 'হওয়ার কথা'], p99_c_found: ['Found', 'পাওয়া গেছে'],
+  p99_lytro: ['Lytro\'s own', 'Lytro-র নিজের'],
+  p99_inv_one: ['1 invoice', '1টি ইনভয়েস'], p99_inv_none: ['No invoice', 'কোনো ইনভয়েস নেই'],
+  p99_open_shop: ['Open the shop', 'শপ দেখুন'], p99_open_receipt: ['Open the receipt', 'রিসিট দেখুন'], p99_open_pay: ['Open the payment', 'পেমেন্ট দেখুন'], p99_open_order: ['Open the order', 'অর্ডার দেখুন'],
+  p99_resolve: ['Mark resolved', 'সমাধান হয়েছে'],
+  p99_rs_t: ['Mark this difference resolved?', 'এই পার্থক্যের সমাধান হয়েছে?'],
+  p99_rs_note: ['What did you find or do?', 'কী পেলেন বা কী করলেন?'],
+  p99_rs_note_ph: ['e.g. The SMS came late; matched by hand to the payment.', 'যেমন: SMS দেরিতে এসেছিল; হাতে পেমেন্টের সাথে মিলিয়েছি।'],
+  p99_rs_help: ['Required, up to 500 characters. It stays with the difference for whoever looks later.', 'লিখতেই হবে, 500 অক্ষর পর্যন্ত। পরে যে দেখবে, তার জন্য পার্থক্যের সাথে থেকে যাবে।'],
+  p99_rs_empty: ['Write what you found or did first.', 'আগে কী পেলেন বা কী করলেন লিখুন।'],
+  p99_rs_done: ['Resolved. It moved to Resolved.', 'সমাধান হয়েছে। এটা "সমাধান হয়েছে"-তে গেছে।'],
+  p99_rs_by: ['Resolved by {by} · {d}', '{by} সমাধান করেছেন · {d}'],
+  p99_mc_empty_t: ['Nothing to check for yesterday', 'গতকালের হিসাবে মেলানোর কিছু নেই'],
+  p99_mc_empty_d: ['All of yesterday\'s money matched. The next check runs tomorrow at 06:00.', 'গতকালের সব টাকা মিলেছে। পরের হিসাব কাল সকাল 6:00-এ।'],
+  p99_mc_ran: ['Checked {d} at 06:00 · {n} shops', '{d} সকাল 6:00-এ মেলানো · {n}টি শপ'],
+  p99_k_payment_without_proof: ['Verified with no proof', 'প্রমাণ ছাড়া ভেরিফাই হয়েছে'],
+  p99_kd_payment_without_proof: ['A payment to Lytro was verified, but no wallet SMS and no bKash answer matches it.', 'Lytro-কে করা একটা পেমেন্ট ভেরিফাই হয়েছে, কিন্তু কোনো ওয়ালেট SMS বা bKash-এর উত্তর এর সাথে মেলেনি।'],
+  p99_k_wallet_money_unclaimed: ['Money arrived, nobody claimed it', 'টাকা এসেছে, কেউ দাবি করেনি'],
+  p99_kd_wallet_money_unclaimed: ['A Lytro wallet\'s SMS says money arrived; no payment claimed it in 24 hours.', 'Lytro-র ওয়ালেটের SMS বলছে টাকা এসেছে; 24 ঘণ্টায় কোনো পেমেন্ট এটা দাবি করেনি।'],
+  p99_k_proof_without_payment: ['Paid, but still not verified', 'টাকা এসেছে, পেমেন্ট এখনো ভেরিফাই হয়নি'],
+  p99_kd_proof_without_payment: ['An SMS or a bKash answer matched a payment, but the payment is still not verified 24 hours on.', 'একটা SMS বা bKash-এর উত্তর পেমেন্টের সাথে মিলেছে, কিন্তু 24 ঘণ্টা পরেও পেমেন্টটা ভেরিফাই হয়নি।'],
+  p99_k_top_up_credit_mismatch: ['Top-up credited wrong', 'টপ-আপ ঠিকমতো ব্যালেন্সে যোগ হয়নি'],
+  p99_kd_top_up_credit_mismatch: ['A verified top-up was added to the balance with a different amount, or not exactly once.', 'ভেরিফাই হওয়া টপ-আপ অন্য পরিমাণে, বা ঠিক একবার না, ব্যালেন্সে যোগ হয়েছে।'],
+  p99_k_balance_payment_mismatch: ['Paid from the balance, charged wrong', 'ব্যালেন্স থেকে পেমেন্ট, টাকা ঠিকমতো কাটেনি'],
+  p99_kd_balance_payment_mismatch: ['A plan or add-on paid from the balance wasn\'t charged its price.', 'ব্যালেন্স থেকে কেনা প্ল্যান বা অ্যাড-অনের পুরো দাম কাটা হয়নি।'],
+  p99_k_invoice_mismatch: ['No invoice, or more than one', 'ইনভয়েস নেই, বা একাধিক'],
+  p99_kd_invoice_mismatch: ['A paid plan, add-on or top-up doesn\'t have exactly one invoice.', 'পেইড প্ল্যান, অ্যাড-অন বা টপ-আপের ঠিক একটা ইনভয়েস নেই।'],
+  p99_k_balance_drift: ['Balance doesn\'t match its records', 'ব্যালেন্স আর তার হিসাব মিলছে না'],
+  p99_kd_balance_drift: ['The shop\'s balance differs from the sum of its balance records.', 'শপের ব্যালেন্স আর ব্যালেন্সের সব লেনদেনের যোগফল আলাদা।'],
+  p99_k_sms_charge_mismatch: ['SMS charges don\'t match the SMS sent', 'SMS-এর চার্জ আর পাঠানো SMS মিলছে না'],
+  p99_kd_sms_charge_mismatch: ['What the balance paid for SMS yesterday differs from the SMS logged.', 'গতকাল SMS-এর জন্য ব্যালেন্স থেকে যা কেটেছে, আর পাঠানো SMS-এর হিসাব আলাদা।'],
+  p99_k_order_fee_mismatch: ['Order fee charged wrong', 'অর্ডার ফি ঠিকমতো কাটেনি'],
+  p99_kd_order_fee_mismatch: ['An order\'s fee differs from the rate, or was charged more than once.', 'একটা অর্ডারের ফি রেটের সাথে মেলেনি, বা একাধিকবার কেটেছে।'],
+  p99_k_courier_message_unread: ['Courier message not read', 'কুরিয়ারের মেসেজ পড়া যায়নি'],
+  p99_kd_courier_message_unread: ['A courier\'s message couldn\'t be read. It is kept as it came, for checking.', 'কুরিয়ারের একটা মেসেজ পড়া যায়নি। যেমন এসেছে তেমনই রাখা আছে, দেখার জন্য।'],
+  p99_k_shop_payment_without_proof: ['Shop\'s payment marked paid with no proof', 'প্রমাণ ছাড়া শপের পেমেন্ট পেইড'],
+  p99_kd_shop_payment_without_proof: ['A customer\'s payment was marked paid without an SMS or a gateway answer.', 'কাস্টমারের একটা পেমেন্ট কোনো SMS বা গেটওয়ের উত্তর ছাড়াই পেইড করা হয়েছে।'],
+  se_g16: ['Limited mode', 'লিমিটেড মোড'],
+  sn_vat_bin: ['VAT registration number (BIN)', 'VAT রেজিস্ট্রেশন নম্বর (BIN)'],
+  sn_vat_rate: ['VAT rate', 'VAT-এর হার'],
+  sn_vat_seller_name: ['Registered name', 'রেজিস্টার্ড নাম'],
+  sn_vat_seller_address: ['Registered address', 'রেজিস্টার্ড ঠিকানা'],
+  p99_vat_note: ['Lytro\'s invoices show VAT only once all four are set. Prices include it: an invoice shows how much of its amount is VAT, and its total never changes. An invoice paid from the balance shows none, since the top-up\'s invoice did.', 'চারটাই সেট করা হলে তবেই Lytro-র ইনভয়েসে VAT দেখাবে। দামের মধ্যেই VAT ধরা: ইনভয়েসে দেখাবে মোট টাকার কতটা VAT, মোট টাকা বদলাবে না। ব্যালেন্স থেকে পেমেন্টের ইনভয়েসে VAT দেখাবে না, কারণ টপ-আপের ইনভয়েসে দেখানো হয়েছে।'],
+  p99_vat_off: ['Not shown on invoices: {n} of 4 set', 'ইনভয়েসে দেখাচ্ছে না: 4টির {n}টি সেট'],
+  p99_vat_on: ['Shown on every new invoice', 'প্রতিটা নতুন ইনভয়েসে দেখাচ্ছে'],
+  p99_vat_preview: ['How a ৳449 plan\'s invoice reads once all four are set', 'চারটাই সেট হলে ৳449 প্ল্যানের ইনভয়েস যেভাবে দেখাবে'],
+  p99_mushak_t: ['Tax invoice (Mushak-6.3)', 'কর চালানপত্র (মূসক-৬.৩)'],  p99_issued: ['issued', 'ইস্যু'], p99_buyer: ['Buyer', 'ক্রেতা'],
+  p99_vat_unset: ['Lytro · BIN, name and address once set', 'Lytro · সেট করলে BIN, নাম আর ঠিকানা'],
+  p99_vat_plain: ['Until then, and on invoices paid from the balance, the invoice stays as it is today: no title, no VAT lines, no buyer block.', 'ততদিন, আর ব্যালেন্স থেকে পেমেন্টের ইনভয়েসে, ইনভয়েস আজকের মতোই থাকবে: কোনো শিরোনাম, VAT-এর লাইন বা ক্রেতার অংশ নেই।'],
+  p99_vat_incl: ['VAT included ({r}%)', 'এর মধ্যে VAT ({r}%)'],
+  p99_vat_seller: ['Seller', 'বিক্রেতা'],
+  p99_vat_total: ['Total', 'মোট'],
+  p99_vat_bin_help: ['9 digits, or 13 with the branch, e.g. 123456789-0101.', '9 অঙ্ক, বা শাখাসহ 13, যেমন 123456789-0101।'],
+  p99_vat_rate_help: ['Above 0 and at most 100, up to two decimals.', '0-এর বেশি, 100 পর্যন্ত, দুই দশমিক পর্যন্ত।'],
+  p99_vat_bin_bad: ['A BIN is 9 digits, or 13 with the branch.', 'BIN হয় 9 অঙ্কের, বা শাখাসহ 13 অঙ্কের।'],
+});
+
+/* Today: the limited-mode card first, with the open differences' count. */
+let P99_DG = { on: false, since: '2026-10-21T13:52:00+06:00', by: 'ops@lytro.app', factor: 2 };
+let P99_OPEN = 3;
+const p99Card = () => {
+  const on = P99_DG.on;
+  const state = on ? st('warn', t('p99_on')) : st('ok', t('p99_off'));
+  const desc = on ? t('p99_dg_on_d', { t: dateT(P99_DG.since), by: P99_DG.by }) : t('p99_dg_off_d');
+  const act = on ? btn(t('p99_dg_turn_off'), 'ghost', "go('p99-dg-turn-off')") : btn(t('p99_dg_turn_on'), 'ghost', "go('p99-dg-turn-on')");
+  const money = `<button class="row p99-mc" onclick="go('${P99_OPEN ? 'p99-money' : 'p99-money-empty'}')"><span class="lead">${I.receipt}</span><span class="body"><span class="l1">${t('p99_mc_card')} · <b class="${P99_OPEN ? 'p99-warn' : ''}">${P99_OPEN ? t('p99_mc_card_v', { n: P99_OPEN }) : t('p99_mc_card_none')}</b></span><span class="l2">${t('p99_mc_card_d')}</span></span>${I.chev}</button>`;
+  return `<div class="card p99 ${on ? 'p99-on' : ''}"><div class="p99-dg"><span class="p99-ic">${I.signal}</span><div class="p99-dgb"><div class="p99-dgh"><h3 style="margin:0">${t('p99_dg')}</h3>${state}</div><div class="p99-txt">${desc}</div><div class="p99-txt p99-strong">${t('p99_dg_factor', { n: P99_DG.factor })} · <a href="#" class="p99-lnk" onclick="go('p99-settings-limited');return false">${t('p99_dg_factor_go')}</a></div></div><div class="p99-act">${act}</div></div><div class="list p99-list">${money}</div></div>`;
+};
+const p99TodayBase = SCREENS.today.render;
+SCREENS.today.render = () => {
+  const page = p99TodayBase();
+  if (ST.data === 'error') return page;
+  const at = page.indexOf('<div class="sechead">');
+  return at < 0 ? page : page.slice(0, at) + p99Card() + page.slice(at);
+};
+const p99With = (dg, open, fn) => { const was = [P99_DG, P99_OPEN]; P99_DG = { ...P99_DG, ...dg }; P99_OPEN = open; try { return fn(); } finally { [P99_DG, P99_OPEN] = was; } };
+const p99Today = { base: 'today', nav: 'today', group: P99G, url: 'admin.lytro.app/' };
+const p99OnSheet = () => sheet(t('p99_dg_on_t'), t('p99_dg_on_sub'), `
+  <div class="p99" style="display:flex;flex-direction:column;gap:12px">
+    ${consequence(`<b>${t('p99_dg_pauses')}</b><br>${t('p99_dg_pauses_l')}`, 'danger')}
+    ${consequence(`<b>${t('p99_dg_keeps')}</b><br>${t('p99_dg_keeps_l')}`, 'ok')}
+    <div class="p99-txt">${t('p99_dg_limits', { n: P99_DG.factor })} ${t('p99_dg_factor_where')}</div>
+    <div class="p99-txt">${t('p99_dg_told')}</div>
+  </div>`, `${btn(t('cancel'), 'ghost', "go('p99-today')")}${btn(t('p99_dg_turn_on'), 'primary', "go('p99-dg-on-now')")}`, { close: 'p99-today' });
+const p99OffSheet = () => sheet(t('p99_dg_off_t'), t('p99_dg_off_sub', { t: dateT(P99_DG.since) }), `<div class="p99"><div class="p99-txt">${t('p99_dg_off_body')}</div></div>`, `${btn(t('cancel'), 'ghost', "go('p99-today-on')")}${btn(t('p99_dg_turn_off'), 'primary', "go('p99-dg-off-now')")}`, { close: 'p99-today-on' });
+def('p99-today', { ...p99Today, label: 'Today · limited mode off, 3 open money differences', render: () => p99With({ on: false }, 3, () => SCREENS.today.render()) });
+def('p99-dg-turn-on', { ...p99Today, base: 'p99-today', label: '· turn limited mode on (sheet)', render: () => p99With({ on: false }, 3, () => SCREENS.today.render()), sheet: p99OnSheet });
+def('p99-dg-on-now', { ...p99Today, label: '· turned on (toast)', render: () => p99With({ on: true, since: '2026-10-21T14:30:00+06:00' }, 3, () => SCREENS.today.render()), toast: () => t('p99_dg_on_toast') });
+def('p99-today-on', { ...p99Today, label: 'Today · limited mode on', render: () => p99With({ on: true }, 3, () => SCREENS.today.render()) });
+def('p99-dg-turn-off', { ...p99Today, base: 'p99-today-on', label: '· turn it off (sheet)', render: () => p99With({ on: true }, 3, () => SCREENS.today.render()), sheet: () => p99With({ on: true }, 3, p99OffSheet) });
+def('p99-dg-off-now', { ...p99Today, label: '· turned off (toast)', render: () => p99With({ on: false }, 3, () => SCREENS.today.render()), toast: () => t('p99_dg_off_toast') });
+def('p99-today-matched', { ...p99Today, label: 'Today · everything matched this morning', render: () => p99With({ on: false }, 0, () => SCREENS.today.render()) });
+
+/* The money check: yesterday's differences, open first; resolved ones keep who, when and the note. */
+const P99_DAY = '2026-10-20';
+const P99_DIFFS = [
+  { id: 'd1', kind: 'invoice_mismatch', ten: 'ten-0015', exp: '1', found: '0', count: true, pay: true, state: 'open' },
+  { id: 'd2', kind: 'top_up_credit_mismatch', ten: 'ten-0040', exp: '500.00', found: '0.00', pay: true, state: 'open' },
+  { id: 'd3', kind: 'wallet_money_unclaimed', ten: null, exp: null, found: '1,280.00', sms: '01711 000231 · TrxID 7HQ2KD', state: 'open' },
+  { id: 'd4', kind: 'order_fee_mismatch', ten: 'ten-0034', exp: '25.00', found: '50.00', order: true, state: 'resolved', by: 'ops@lytro.app', at: '2026-10-21T10:20:00+06:00', note: ['Charged twice by a retried booking; the second charge was reversed by an adjustment.', 'বুকিং আবার চেষ্টা করায় দুবার কেটেছিল; দ্বিতীয়টা অ্যাডজাস্টমেন্টে ফেরত দিয়েছি।'] },
+  { id: 'd5', kind: 'courier_message_unread', ten: 'ten-0001', exp: null, found: null, courier: 'Steadfast', state: 'resolved', by: 'ops@lytro.app', at: '2026-10-21T10:41:00+06:00', note: ['Steadfast sent a new status word; reported to them, the parcel was delivered.', 'Steadfast নতুন একটা স্ট্যাটাস শব্দ পাঠিয়েছে; ওদের জানিয়েছি, পার্সেল ডেলিভার্ড।'] },
+];
+const p99Kind = (k) => `<div class="p99-k">${t('p99_k_' + k)}</div><div class="p99-txt">${t('p99_kd_' + k)}</div>`;
+const p99Amt = (v) => (v === null ? '<span class="p99-txt">—</span>' : `<span class="money">৳${v}</span>`);
+const p99Rows = (list) => list.map((d) => {
+  const ten = d.ten ? tenantOf(d.ten) : null;
+  const links = [ten ? `<a href="#" onclick="go('tenant');return false">${t('p99_open_shop')}</a>` : '', d.pay ? `<a href="#" onclick="go('queue-payment');return false">${t('p99_open_pay')}</a>` : '', d.sms ? `<a href="#" onclick="go('receipts');return false">${t('p99_open_receipt')}</a>` : '', d.order ? `<a href="#" onclick="go('tenant');return false">${t('p99_open_order')}</a>` : ''].filter(Boolean).join('');
+  const resolved = d.state === 'resolved' ? `<div class="p99-res"><div class="p99-strong">${t('p99_rs_by', { by: d.by, d: dateT(d.at) })}</div><div class="p99-txt">“${L.lang === 'bn' ? d.note[1] : d.note[0]}”</div></div>` : '';
+  return { cells: {
+    what: `${p99Kind(d.kind)}${d.sms ? `<div class="p99-txt mono">${d.sms}</div>` : ''}${d.courier ? `<div class="p99-txt">${d.courier}</div>` : ''}${resolved}${links ? `<div class="p99-links">${links}</div>` : ''}`,
+    shop: ten ? `<div class="p99-strong">${ten.name}</div><div class="p99-txt">${ten.slug}.lytro.app</div>` : `<span class="st mute plain">${t('p99_lytro')}</span>`,
+    day: `<span class="p99-txt">${dateS(P99_DAY)}</span>`,
+    exp: d.count ? `<span class="p99-strong">${t('p99_inv_one')}</span>` : p99Amt(d.exp),
+    found: d.count ? `<span class="p99-strong">${t('p99_inv_none')}</span>` : p99Amt(d.found),
+    acts: d.state === 'open' ? btn(t('p99_resolve'), 'ghost sm', "go('p99-money-resolve')") : st('ok', t('p99_mc_resolved')),
+  } };
+});
+const p99MoneyPage = (o) => {
+  o = o || {};
+  const list = o.empty ? [] : P99_DIFFS.filter((d) => d.state === (o.resolved ? 'resolved' : 'open'));
+  const cols = [
+    { k: 'what', label: t('p99_c_what'), w: 'minmax(220px,2.2fr)', cls: 'main' },
+    { k: 'shop', label: t('p99_c_shop'), w: 'minmax(140px,1.2fr)' },
+    { k: 'day', label: t('p99_c_day'), w: '110px' },
+    { k: 'exp', label: t('p99_c_exp'), w: '100px', cls: 'r' },
+    { k: 'found', label: t('p99_c_found'), w: '100px', cls: 'r' },
+    { k: 'acts', label: '', w: '150px', cls: 'acts' },
+  ];
+  const openN = o.empty ? 0 : P99_DIFFS.filter((d) => d.state === 'open').length;
+  const resN = o.empty ? 0 : P99_DIFFS.filter((d) => d.state === 'resolved').length;
+  const filters = `<div class="p99-filters"><div class="chips" style="margin:0;padding:0"><button class="chip ${o.resolved ? '' : 'on'}" onclick="go('p99-money')">${t('p99_mc_open')}<span class="c">${openN}</span></button><button class="chip ${o.resolved ? 'on' : ''}" onclick="go('p99-money-resolved')">${t('p99_mc_resolved')}<span class="c">${resN}</span></button></div><span class="p99-sel">${select([['y', `${t('p99_mc_day')}: ${dateS(P99_DAY)}`]], 'y')}</span><span class="p99-sel">${select([['all', t('p99_mc_kind_all')], ...Object.keys(S).filter((k) => k.startsWith('p99_k_')).map((k) => [k.slice(6), t(k)])], 'all')}</span></div>`;
+  const empty = emptyBox(t('p99_mc_empty_t'), t('p99_mc_empty_d'), 'check');
+  return `<div class="ttl"><div><h1>${t('p99_mc')}</h1><div class="sub">${t('p99_mc_sub')}</div></div></div>
+  <div class="p99"><div class="p99-txt" style="margin:-4px 0 12px">${t('p99_mc_ran', { d: dateS('2026-10-21'), n: 214 })}</div>${filters}${ST.data === 'error' ? errorBox() : table(cols, p99Rows(list), empty)}</div>`;
+};
+const p99Money = { nav: 'moneycheck', group: P99G, url: 'admin.lytro.app/money-check', bandTitle: 'p99_mc' };
+def('p99-money', { ...p99Money, label: 'Money check · yesterday\'s open differences', render: () => p99MoneyPage() });
+def('p99-money-resolve', { ...p99Money, base: 'p99-money', label: '· mark one resolved, with a note (sheet)', render: () => p99MoneyPage(), sheet: () => sheet(t('p99_rs_t'), `${t('p99_k_top_up_credit_mismatch')} · Arif Electronics · ৳500.00 → ৳0.00`, `<div class="p99">${field(t('p99_rs_note'), textarea('', t('p99_rs_note_ph')), t('p99_rs_help'))}</div>`, `${btn(t('cancel'), 'ghost', "go('p99-money')")}${btn(t('p99_resolve'), 'primary', "go('p99-money-resolved-now')")}`, { close: 'p99-money' }) });
+def('p99-money-resolve-empty', { ...p99Money, base: 'p99-money', label: '· refused: the note is empty (sheet)', render: () => p99MoneyPage(), sheet: () => sheet(t('p99_rs_t'), `${t('p99_k_top_up_credit_mismatch')} · Arif Electronics · ৳500.00 → ৳0.00`, `<div class="p99">${field(t('p99_rs_note'), `<textarea class="textarea" style="border-color:var(--danger)"></textarea>`, null, t('p99_rs_empty'))}<div class="p99-txt" style="margin-top:6px">${t('p99_rs_help')}</div></div>`, `${btn(t('cancel'), 'ghost', "go('p99-money')")}${btn(t('p99_resolve'), 'primary', "go('p99-money-resolve-empty')")}`, { close: 'p99-money' }) });
+def('p99-money-resolved-now', { ...p99Money, label: '· resolved (toast)', render: () => p99MoneyPage(), toast: () => t('p99_rs_done') });
+def('p99-money-resolved', { ...p99Money, label: '· the resolved ones: who, when, the note', render: () => p99MoneyPage({ resolved: true }) });
+def('p99-money-empty', { ...p99Money, label: '· nothing to check for yesterday', render: () => p99MoneyPage({ empty: true }) });
+def('p99-money-error', { ...p99Money, label: '· the server did not answer', render: () => { const d = ST.data; ST.data = 'error'; try { return p99MoneyPage(); } finally { ST.data = d; } } });
+S.moneycheck = S.p99_mc;
+NAV.find((g) => g.grp === 'p88_nav_records').items.unshift(['moneycheck', 'p99-money', 'receipt']);
+const p99SidebarBase = sidebar;
+sidebar = (active) => {
+  const html = p99SidebarBase(active);
+  const n = ST.screen === 'p99-today-matched' || ST.screen === 'p99-money-empty' ? 0 : P99_DIFFS.filter((d) => d.state === 'open').length;
+  const key = `<span>${t('moneycheck')}</span></button>`;
+  return n ? html.replace(key, `<span>${t('moneycheck')}</span><span class="cnt">${n}</span></button>`) : html;
+};
+
+/* Settings: group 16, VAT -- four rows, the note, and how an invoice's line will read. */
+SETTINGS.push(
+  { key: 'vat_bin', value: null, group: 17, unit: 'p99bin', desc: "Lytro's VAT registration number (BIN), 9 or 13 digits; invoices carry VAT once all four VAT settings are set (D9-7, LEG-03).", updatedAt: '2026-11-13', by: null },
+  { key: 'vat_rate', value: null, group: 17, unit: 'p99rate', desc: 'The VAT rate in per cent, such as 15; prices include it, and an invoice shows the part that is VAT (D9-7).', updatedAt: '2026-11-13', by: null },
+  { key: 'vat_seller_name', value: null, group: 17, unit: 'p99text', desc: 'The name Lytro is registered for VAT under, as its invoices print it (D9-7).', updatedAt: '2026-11-13', by: null },
+  { key: 'vat_seller_address', value: null, group: 17, unit: 'p99text', desc: 'The address Lytro is registered for VAT at, as its invoices print it (D9-7).', updatedAt: '2026-11-13', by: null },
+);
+P37_GROUPS.push(16, 17);
+SETTINGS.push({ key: 'degraded_factor', value: 2, group: 16, unit: 'p99factor', desc: 'What limited mode (degraded mode) divides every shop\'s per-minute rate limits by, 2 to 10; plan limits never change (DAT-38, D9-14).', updatedAt: '2026-11-13', by: null });
+const P99_VAT_SET = { vat_bin: '004512367-0101', vat_rate: '15', vat_seller_name: 'Lytro', vat_seller_address: 'House 12, Road 4, Nasirabad, Chattogram 4000' };
+const p99WithVat = (vals, fn) => { const rows = SETTINGS.filter((s) => s.group === 17); const was = rows.map((s) => [s.value, s.by, s.updatedAt]); rows.forEach((s) => { if (vals[s.key] !== undefined) { s.value = vals[s.key]; s.by = 'ops@lytro.app'; s.updatedAt = '2026-11-20'; } }); try { return fn(); } finally { rows.forEach((s, i) => { [s.value, s.by, s.updatedAt] = was[i]; }); } };
+const p99SettingValueBase = settingValue;
+settingValue = (s) => {
+  if (s.unit === 'p99factor') return `<span class="money" style="font-size:20px">${t('p99_factor_v', { n: s.value })}</span>`;
+  if (s.unit === 'p99bin' || s.unit === 'p99rate' || s.unit === 'p99text') {
+    if (s.value === null) return st('warn', t('p88_not_set'));
+    if (s.unit === 'p99rate') return `<span class="money" style="font-size:20px">${s.value}%</span>`;
+    return `<span class="${s.unit === 'p99bin' ? 'mono' : ''}" style="font-weight:600;overflow-wrap:anywhere;white-space:normal">${s.value}</span>`;
+  }
+  return p99SettingValueBase(s);
+};
+let p99VatErr = null;
+const p99SettingEditorBase = settingEditor;
+settingEditor = (s) => {
+  if (s.unit === 'p99factor') return `<div class="p99" style="flex:1 1 100%;display:flex;flex-direction:column;gap:6px"><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="input inline mono" value="${s.value}" style="width:90px"><input class="input" placeholder="${t('reason')}" style="height:36px;width:220px;max-width:100%">${btn(t('save'), 'primary sm', "go('p99-settings-limited')")}${btn(t('cancel'), 'ghost sm', "go('p99-settings-limited')")}</span><div class="p99-txt">${t('p99_factor_help')}</div></div>`;
+  if (!['p99bin', 'p99rate', 'p99text'].includes(s.unit)) return p99SettingEditorBase(s);
+  const save = `${btn(t('save'), 'primary sm', "go('p99-settings-vat')")}${btn(t('cancel'), 'ghost sm', "go('p99-settings-vat')")}`;
+  const reason = `<input class="input" placeholder="${t('reason')}" style="height:36px;width:220px;max-width:100%">`;
+  const bad = p99VatErr === s.key;
+  const ctl = s.unit === 'p99bin' ? `<input class="input inline mono" value="${bad ? '12345678' : ''}" placeholder="123456789-0101" style="width:190px;max-width:100%${bad ? ';border-color:var(--danger)' : ''}">`
+    : s.unit === 'p99rate' ? `<input class="input inline mono" value="" placeholder="15" style="width:90px">`
+      : `<input class="input" value="" style="height:36px;width:320px;max-width:100%">`;
+  const help = s.unit === 'p99bin' ? (bad ? `<div class="p99-err">${t('p99_vat_bin_bad')}</div>` : `<div class="p99-txt">${t('p99_vat_bin_help')}</div>`) : s.unit === 'p99rate' ? `<div class="p99-txt">${t('p99_vat_rate_help')}</div>` : '';
+  return `<div class="p99" style="flex:1 1 100%;display:flex;flex-direction:column;gap:6px"><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${ctl}${reason}${save}</span>${help}</div>`;
+};
+CHANGE_SCREEN.p99factor = 'p99-setting-factor';
+CHANGE_SCREEN.p99bin = 'p99-setting-vat-bin';
+CHANGE_SCREEN.p99rate = 'p99-setting-vat-bin';
+CHANGE_SCREEN.p99text = 'p99-setting-vat-bin';
+const p99VatHead = () => {
+  const rows = SETTINGS.filter((s) => s.group === 17);
+  const set = rows.filter((s) => s.value !== null).length;
+  const on = set === 4;
+  const v = (k) => rows.find((s) => s.key === k).value;
+  const rate = on ? Number(v('vat_rate')) : 15;
+  const vat = (Math.round(449 * rate / (100 + rate) * 100) / 100).toFixed(2);
+  const seller = on ? `${v('vat_seller_name')} · BIN <span class="mono">${v('vat_bin')}</span><br>${v('vat_seller_address')}` : `${t('p99_vat_unset')}`;
+  return `<div class="p99" style="display:flex;flex-direction:column;gap:10px;margin:8px 0 0">
+    <div class="p99-txt">${t('p99_vat_note')}</div>
+    <div>${on ? st('ok', t('p99_vat_on')) : st('warn', t('p99_vat_off', { n: set }))}</div>
+    <div class="card p99-prev"><div class="p99-txt" style="margin-bottom:6px">${t('p99_vat_preview')}</div>
+      <div class="p99-strong" style="font-size:15px;margin-bottom:4px">${t('p99_mushak_t')}</div>
+      <div class="p99-kv"><span>INV-000214 · ${t('p99_issued')}</span><span>${dateT('2026-11-20T09:31:00+06:00')}</span></div>
+      <div class="p99-kv"><span>${t('p99_vat_seller')}</span><span>${seller}</span></div>
+      <div class="p99-kv"><span>${t('p99_buyer')}</span><span>Megh Fashion · Rumana<br>Shop 12, Rapa Plaza, Dhanmondi, Dhaka</span></div>
+      <div class="p99-kv"><span>Starter · 1 ${L.lang === 'bn' ? 'মাস' : 'month'}</span><span class="money">৳449.00</span></div>
+      <div class="p99-kv"><span>${t('p99_vat_incl', { r: rate })}</span><span class="money">৳${vat}</span></div>
+      <div class="p99-kv p99-tot"><span>${t('p99_vat_total')}</span><span class="money">৳449.00</span></div>
+      <div class="p99-txt" style="margin-top:8px">${t('p99_vat_plain')}</div></div></div>`;
+};
+const p99SettingsBase = settingsPage;
+settingsPage = (o) => {
+  const page = p99SettingsBase(o);
+  const head = `<div id="p37-g17"><div class="sechead"><h2>${t('se_g17')}</h2></div>`;
+  return page.split(head).join(head + p99VatHead());
+};
+const p99Set = { base: 'settings', nav: 'settings', group: P99G, url: 'admin.lytro.app/settings', bandTitle: 'settings', anchor: 'p37-g17' };
+def('p99-settings-limited', { ...p99Set, anchor: 'p37-g16', label: 'Settings · Limited mode: the divider', render: () => settingsPage() });
+def('p99-setting-factor', { ...p99Set, anchor: 'p37-g16', label: '· change the divider (2 to 10)', render: () => settingsPage({ editing: 'degraded_factor' }) });
+def('p99-settings-vat', { ...p99Set, label: 'Settings · VAT, nothing set yet', render: () => settingsPage() });
+def('p99-setting-vat-bin', { ...p99Set, label: '· set the BIN', render: () => settingsPage({ editing: 'vat_bin' }) });
+def('p99-setting-vat-bad', { ...p99Set, label: '· refused: not a BIN', render: () => { p99VatErr = 'vat_bin'; try { return settingsPage({ editing: 'vat_bin' }); } finally { p99VatErr = null; } } });
+def('p99-settings-vat-set', { ...p99Set, label: '· all four set: shown on every new invoice', render: () => p99WithVat(P99_VAT_SET, () => settingsPage()) });
+/* ---------- end of Phase 9 Slice 9.9 (sketch) ---------- */
 
 (function init() {
   const sel = document.getElementById('selScreen'); const groups = {};
