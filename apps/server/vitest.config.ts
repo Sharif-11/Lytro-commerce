@@ -1,4 +1,4 @@
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -13,6 +13,7 @@ export default defineConfig({
     setupFiles: ['./test/support/one-query-per-connection.ts'],
     // Text is drawn with the server's own fonts and nothing else, as in its image (Dockerfile): a font file it can't
     // read draws nothing here too, instead of falling back to whatever fonts this machine has.
-    env: { FONTCONFIG_FILE: fileURLToPath(new URL('./assets/fonts/fonts.conf', import.meta.url)) },
+    // __dirname, not import.meta: the server's tsconfig is CommonJS, and Vite fills __dirname in for a config file.
+    env: { FONTCONFIG_FILE: resolve(__dirname, 'assets/fonts/fonts.conf') },
   },
 });
