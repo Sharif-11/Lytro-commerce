@@ -151,7 +151,7 @@ services:
     # that moved with each release would replace the database on every deploy (staging, 2026-11-13).
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ${LYTRO_HOME:-/opt/lytro}/state/postgres-init:/docker-entrypoint-initdb.d:ro
+      - ./postgres:/docker-entrypoint-initdb.d:ro
     shm_size: 256m
     # Killed last when memory runs out (D9-11).
     oom_score_adj: -900
