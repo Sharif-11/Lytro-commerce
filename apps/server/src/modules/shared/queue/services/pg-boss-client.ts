@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { PgBoss, type WorkHandler } from 'pg-boss';
 import { DegradedMode } from '../../../degraded-mode/services/degraded-mode';
+import { JobHeartbeats } from '../../../monitoring/services/job-heartbeats';
 import { Leases } from '../../limits/services/leases';
 import { runsJobs } from '../../../../config/server-role';
 import { ENV } from '../../../../config/tokens';
@@ -37,6 +38,9 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
     @Inject(ENV) env: Pick<Env, 'DATABASE_URL'> & Partial<Pick<Env, 'SERVER_ROLE'>>,
     @Optional() @Inject(Leases) private readonly leases?: Pick<Leases, 'hold'>,
     @Optional() @Inject(DegradedMode) private readonly degraded?: Pick<DegradedMode, 'pauses'>,
+    @Optional()
+    @Inject(JobHeartbeats)
+    private readonly heartbeats?: Pick<JobHeartbeats, 'finished'>,
   ) {
     this.starts = runsJobs(env.SERVER_ROLE ?? 'all');
     this.boss = new PgBoss({
@@ -88,16 +92,19 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
   /**
    * MON-04, D9-15 (Slice 9.4): a scheduled pass, never two at once however many workers run: each run holds the queue's
    * lease while it works, and a run that finds it held (the last one still going on another worker) is skipped. pg-boss
-   * already makes one job per schedule tick; this keeps consecutive ticks apart.
+   * already makes one job per schedule tick; this keeps consecutive ticks apart. OBS-02 (Slice 9.6): each pass that ran
+   * and finished records its heartbeat, which the jobs' check (/health/jobs) holds against the schedule.
    */
   workOnce<T = object>(name: string, handler: WorkHandler<T>): Promise<string> {
     return this.boss.work<T>(name, async (jobs) => {
       if (!this.leases) {
         await handler(jobs);
+        await this.heartbeats?.finished(name);
         return;
       }
       const run = await this.leases.hold(`job:${name}`, PASS_LEASE_MS, () => handler(jobs));
-      if (!run.held)
+      if (run.held) await this.heartbeats?.finished(name);
+      else
         this.logger.log(
           `${name}: the last pass is still running on another worker; this one skipped`,
         );

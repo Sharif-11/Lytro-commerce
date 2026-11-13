@@ -108,6 +108,7 @@ import {
   LeaseRepository,
   LimitEventRepository,
   ServiceStateRepository,
+  JobHeartbeatRepository,
   BrandIdentityRepository,
   AdTrackingRepository,
   CatalogFeedRepository,
@@ -380,6 +381,7 @@ import { PrimaryWatch } from './primary-watch';
     { provide: LimitEventRepository, useFactory: () => new LimitEventRepository() },
     { provide: LeaseRepository, useFactory: () => new LeaseRepository() },
     { provide: ServiceStateRepository, useFactory: () => new ServiceStateRepository() },
+    { provide: JobHeartbeatRepository, useFactory: () => new JobHeartbeatRepository() },
     {
       provide: BrandIdentityRepository,
       inject: [TransactionRunner],
@@ -563,6 +565,7 @@ import { PrimaryWatch } from './primary-watch';
     LimitEventRepository,
     LeaseRepository,
     ServiceStateRepository,
+    JobHeartbeatRepository,
     BrandIdentityRepository,
   ],
 })

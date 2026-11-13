@@ -1,20 +1,29 @@
 #!/usr/bin/env bash
 # One night's backups (Phase 9 Slice 9.3, D9-18): the encrypted dump, then the base backup, one after the other so the
 # small server never runs both at once. Each is tried even if the other failed; the run fails if either did, and
-# status/nightly.json says which (lytro-backup-status reads it; Slice 9.6's alerts watch it, DAT-27).
+# status/nightly.json says which (lytro-backup-status reads it). Each that succeeded records its heartbeat in the
+# database, which the jobs' check holds to DAT-27's 26 hours (Slice 9.6, OBS-02).
 set -uo pipefail
 . lytro-pg-env
 
 say() { printf '[nightly %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+
+# The same names as the server's jobs check (apps/server/src/modules/monitoring/services/jobs-check.ts). One that can't
+# be written fails nothing here: the check then finds that backup late, which is the alert to act on.
+heartbeat() {
+  psql -X -q -v ON_ERROR_STOP=1 -c "INSERT INTO control.job_heartbeats (name, finished_at) VALUES ('$1', now())
+    ON CONFLICT (name) DO UPDATE SET finished_at = excluded.finished_at" > /dev/null 2>&1 ||
+    say "the $1 heartbeat wasn't recorded"
+}
 
 mkdir -p "$BACKUP_WORK_DIR/status"
 started="$(date -u +%s)"
 say 'starting'
 
 dump=ok
-lytro-dump || dump=failed
+if lytro-dump; then heartbeat backup:dump; else dump=failed; fi
 base=ok
-lytro-base-backup || base=failed
+if lytro-base-backup; then heartbeat backup:base; else base=failed; fi
 
 finished="$(date -u +%s)"
 jq -n --arg dump "$dump" --arg base "$base" --argjson started "$started" --argjson finished "$finished" \
