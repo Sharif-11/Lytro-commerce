@@ -1,0 +1,37 @@
+#!/bin/sh
+# WAL-G with the archive's settings (Slice 9.3, D9-18, DAT-34), from backup.env's names. Every backup and restore
+# script calls WAL-G through this, so the bucket, the key, the encryption and the compression are set in one place.
+#
+#   BACKUP_R2_ENDPOINT           https://<account>.r2.cloudflarestorage.com (or a test store's address)
+#   BACKUP_PITR_BUCKET           the archive's bucket, locked so nothing in it can be deleted or replaced for 14 days
+#   BACKUP_PITR_KEY_ID/_SECRET   the server's key for that bucket only; on a restore, the owner's read-only key
+#   BACKUP_PITR_ENCRYPTION_KEY   64 hex characters (libsodium); on the server and in the owner's offline copy
+#   BACKUP_PITR_PREFIX           the folder in the bucket, one per PostgreSQL major version (default pg17)
+#   BACKUP_S3_REGION             auto for R2 (a test store may want us-east-1)
+set -eu
+
+: "${BACKUP_R2_ENDPOINT:?BACKUP_R2_ENDPOINT is not set (backup.env)}"
+: "${BACKUP_PITR_BUCKET:?BACKUP_PITR_BUCKET is not set (backup.env)}"
+: "${BACKUP_PITR_KEY_ID:?BACKUP_PITR_KEY_ID is not set (backup.env)}"
+: "${BACKUP_PITR_KEY_SECRET:?BACKUP_PITR_KEY_SECRET is not set (backup.env)}"
+: "${BACKUP_PITR_ENCRYPTION_KEY:?BACKUP_PITR_ENCRYPTION_KEY is not set (backup.env)}"
+
+export AWS_ENDPOINT="$BACKUP_R2_ENDPOINT"
+export AWS_ACCESS_KEY_ID="$BACKUP_PITR_KEY_ID"
+export AWS_SECRET_ACCESS_KEY="$BACKUP_PITR_KEY_SECRET"
+export AWS_REGION="${BACKUP_S3_REGION:-auto}"
+export AWS_S3_FORCE_PATH_STYLE=true
+export WALG_S3_PREFIX="s3://$BACKUP_PITR_BUCKET/${BACKUP_PITR_PREFIX:-pg17}"
+export WALG_LIBSODIUM_KEY="$BACKUP_PITR_ENCRYPTION_KEY"
+export WALG_LIBSODIUM_KEY_TRANSFORM=hex
+export WALG_COMPRESSION_METHOD=zstd
+# A file already archived is never replaced (the bucket's lock would refuse it anyway).
+export WALG_PREVENT_WAL_OVERWRITE=true
+# Daily backups hold what changed since the week's full one (a differential, DAT-34), never a chain of increments.
+export WALG_DELTA_MAX_STEPS=6
+export WALG_DELTA_ORIGIN=LATEST_FULL
+# Gentle on a small server: two uploads at once.
+export WALG_UPLOAD_CONCURRENCY="${BACKUP_UPLOAD_CONCURRENCY:-2}"
+export WALG_DOWNLOAD_CONCURRENCY="${BACKUP_DOWNLOAD_CONCURRENCY:-4}"
+
+exec wal-g "$@"

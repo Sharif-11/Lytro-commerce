@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+# Restores the database as it was at a chosen moment, from the archive (Phase 9 Slice 9.3, DAT-34, BKP-01, BKP-03,
+# DAT-40, DAT-54). Runs in the database image (deploy/restore/pitr.sh and deploy/restore/server.sh run it):
+#
+#   lytro-restore-pitr --to <time> [--data <folder>] [--serve]
+#
+#   <time>   ISO 8601 with its zone, e.g. 2026-11-13T10:42:00+06:00, or `latest` (everything archived)
+#
+#   1. picks the newest base backup that finished before <time>, and fetches it (decrypted with the archive's key)
+#   2. replays the archived write-ahead log up to <time>, then opens the copy for writes (promote)
+#   3. prints the lines a drill record needs: the base backup, the last transaction replayed, the time taken, and
+#      every table's rows, with the newest payment (BKP-03: every payment up to <time> is there)
+#
+# Without --data it restores into a scratch folder in this container, checks, and stops (a drill). --data <folder>
+# restores into that folder instead, for a new server: its empty database volume, mounted here; the copy is stopped
+# cleanly at the end, ready for `docker compose up postgres`. --serve keeps a scratch copy running on port 5432 for a
+# one-shop restore (lytro-restore-shop), with a password made for this run.
+#
+# The copy never sends its own write-ahead log anywhere (archive_mode=off while it's here), and the owner's read-only
+# key couldn't write to the bucket anyway. Its connection and worker limits stay at least the source's, or replay stops
+# (DAT-35's parity): PostgreSQL's defaults cover the servers' settings; RESTORE_PG_OPTIONS adds `-c` settings if not.
+set -euo pipefail
+
+target=
+data=
+serve=
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --to) target="${2:-}"; shift 2 ;;
+    --data) data="${2:-}"; shift 2 ;;
+    --serve) serve=1; shift ;;
+    *)
+      echo 'usage: lytro-restore-pitr --to <ISO time with zone | latest> [--data <folder>] [--serve]' >&2
+      exit 64
+      ;;
+  esac
+done
+if [ -z "$target" ]; then
+  echo 'usage: lytro-restore-pitr --to <ISO time with zone | latest> [--data <folder>] [--serve]' >&2
+  exit 64
+fi
+if [ "$target" != latest ] && ! target_epoch="$(date -u -d "$target" +%s 2> /dev/null)"; then
+  echo "can't read the time '$target' (use e.g. 2026-11-13T10:42:00+06:00)" >&2
+  exit 64
+fi
+
+say() { printf '[restore-pitr %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+started="$(date -u +%s)"
+# The restored cluster's own superuser (the servers' POSTGRES_USER), reached on the local socket.
+export PGHOST=/var/run/postgresql PGUSER="${RESTORE_DB_USER:-${POSTGRES_USER:-lytronix}}" PGDATABASE=postgres
+
+# 1. The base backup.
+backups="$(lytro-walg backup-list --detail --json 2> /dev/null || echo '[]')"
+if [ "$target" = latest ]; then
+  base="$(printf '%s' "$backups" | jq -r 'max_by(.finish_time) | .backup_name // empty')"
+else
+  base="$(printf '%s' "$backups" | jq -r --argjson t "$target_epoch" '
+    map(select((.finish_time | sub("\\.[0-9]+"; "") | fromdateiso8601) < $t)) | max_by(.finish_time) | .backup_name // empty')"
+fi
+if [ -z "$base" ]; then
+  say "no base backup finished before $target"
+  exit 1
+fi
+say "base backup $base, then the archive up to $target"
+
+dir="${data:-/tmp/restore-pitr-data}"
+if [ -z "$data" ]; then
+  rm -rf "$dir"
+fi
+if [ -d "$dir" ] && [ -n "$(ls -A "$dir" 2> /dev/null)" ]; then
+  say "$dir isn't empty; a restore only goes into an empty folder"
+  exit 1
+fi
+install -d -o postgres -g postgres -m 700 "$dir"
+gosu postgres lytro-walg backup-fetch "$dir" "$base" 2>&1 | grep -v '^INFO' || true
+if [ ! -f "$dir/PG_VERSION" ]; then
+  say 'the base backup did not unpack'
+  exit 1
+fi
+fetched="$(date -u +%s)"
+
+# 2. Replay to the moment, then open.
+{
+  echo "restore_command = 'lytro-walg wal-fetch %f %p'"
+  echo "recovery_target_timeline = 'latest'"
+  echo "recovery_target_action = 'promote'"
+  if [ "$target" != latest ]; then
+    echo "recovery_target_time = '$target'"
+  fi
+} >> "$dir/postgresql.auto.conf"
+gosu postgres touch "$dir/recovery.signal"
+log=/tmp/restore-pitr.log
+listen=
+[ -n "$serve" ] && listen='*'
+if ! gosu postgres pg_ctl -D "$dir" -l "$log" -w -t 3600 \
+  -o "-c archive_mode=off -c listen_addresses='$listen' ${RESTORE_PG_OPTIONS:-}" start > /dev/null 2>&1; then
+  say 'the copy did not start; its log:'
+  tail -n 30 "$log" >&2
+  exit 1
+fi
+
+for _ in $(seq 1 3600); do
+  if [ "$(psql -X -A -t -q -c 'SELECT pg_is_in_recovery()' 2> /dev/null)" = f ]; then
+    break
+  fi
+  sleep 1
+done
+if [ "$(psql -X -A -t -q -c 'SELECT pg_is_in_recovery()' 2> /dev/null)" != f ]; then
+  say 'the copy never finished replaying; its log:'
+  tail -n 30 "$log" >&2
+  exit 1
+fi
+replayed="$(date -u +%s)"
+
+# 3. What came back.
+# Absent when nothing was committed between the base backup and the target: not a failure.
+last="$({ grep -oE '(last completed transaction was at log time|recovery stopping (before|after) commit of transaction [0-9]+, time) [^"]*' "$log" || true; } | tail -n 1)"
+psql -X -A -t -q -v ON_ERROR_STOP=1 -F $'\t' -d "${RESTORE_DB_NAME:-${POSTGRES_DB:-lytronix}}" > /tmp/restore-pitr-counts.tsv << 'SQL' || true
+SELECT format('SELECT %L, count(*) FROM %I.%I', n.nspname || '.' || c.relname, n.nspname, c.relname)
+  FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+ WHERE c.relkind = 'r' AND n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname !~ '^pg_toast'
+ ORDER BY 1 \gexec
+SQL
+# Checked for first: a statement naming a table that isn't there fails before it runs (a copy of an older database).
+newest_payment='no payments table'
+if [ "$(psql -X -A -t -q -d "${RESTORE_DB_NAME:-${POSTGRES_DB:-lytronix}}" \
+  -c "SELECT to_regclass('tenant.payments') IS NOT NULL" 2> /dev/null)" = t ]; then
+  newest_payment="$(psql -X -A -t -q -d "${RESTORE_DB_NAME:-${POSTGRES_DB:-lytronix}}" \
+    -c "SELECT coalesce(max(verified_at)::text, 'none') FROM tenant.payments" 2> /dev/null || echo unknown)"
+fi
+finished="$(date -u +%s)"
+
+echo
+echo "- Target: $target; base backup $base"
+echo "- ${last:-replay finished (no transaction time in the log)}"
+echo "- Fetched in $((fetched - started)) s; replayed in $((replayed - fetched)) s; $((finished - started)) s in all"
+echo "- Tables: $(wc -l < /tmp/restore-pitr-counts.tsv | tr -d ' '); rows: $(awk -F'\t' '{ s += $2 } END { print s + 0 }' /tmp/restore-pitr-counts.tsv)"
+echo "- Newest payment: $newest_payment"
+
+if [ -n "$data" ]; then
+  gosu postgres pg_ctl -D "$dir" -m fast -w stop > /dev/null
+  say "restored into $dir and stopped cleanly; start it with the server's compose file"
+elif [ -n "$serve" ]; then
+  password="$(head -c 18 /dev/urandom | base64 | tr -d '/+=')"
+  psql -X -q -v ON_ERROR_STOP=1 -v role="$PGUSER" -v password="$password" << 'SQL'
+SELECT format('ALTER ROLE %I PASSWORD %L', :'role', :'password') \gexec
+SQL
+  say "serving the restored copy: postgres://$PGUSER:$password@$(hostname -i | cut -d' ' -f1):5432/${RESTORE_DB_NAME:-${POSTGRES_DB:-lytronix}}"
+  trap 'gosu postgres pg_ctl -D "$dir" -m fast -w stop > /dev/null; exit 0' TERM INT
+  while :; do sleep 3600 & wait $!; done
+else
+  gosu postgres pg_ctl -D "$dir" -m fast -w stop > /dev/null
+fi

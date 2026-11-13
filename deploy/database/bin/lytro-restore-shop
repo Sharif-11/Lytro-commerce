@@ -1,0 +1,266 @@
+#!/usr/bin/env bash
+# Brings back one shop's missing rows from a restored copy (Phase 9 Slice 9.3, DAT-26; the owner's rule, 2026-11-13:
+# "bring back what's missing"). Runs in the database image (deploy/restore/shop.sh runs it beside a scratch copy):
+#
+#   RESTORE_FROM_URL=<the restored copy> RESTORE_INTO_URL=<the live database> lytro-restore-shop --shop <id> [--apply]
+#
+# Both URLs connect as a superuser (row security and triggers are set aside for this, as below). The live database's
+# own tables say what to copy, so a table added since the backup is never missed:
+#   - every table in `tenant` and `control` with a tenant_id column, the shop's rows only
+#   - control.tenants, the shop's own row
+#   - a table with no tenant_id of its own whose foreign key points at one that has (an invoice's lines), through it
+# except what must never come back from a backup: sign-ins, codes and keys used once, messages waiting to be sent, and
+# usage meters (NEVER_RESTORE below).
+#
+# What it does, all in ONE transaction on the live database:
+#   1. fingerprints every OTHER shop's rows (count and a hash of each table's rows)
+#   2. adds each of the shop's rows the live database doesn't have (by primary key), as it was in the copy. A row that
+#      exists is never changed. A row whose unique value is now held by another row (a tracking ID, a slug) is skipped
+#      and counted. Triggers are off (session_replication_role = replica): restored stock movements, ledger lines and
+#      reservations don't move the live totals a second time, and rows go in whatever their order.
+#   3. fingerprints the other shops again: any difference rolls everything back (DAT-26's check).
+# Without --apply the transaction is rolled back at the end: a dry run that reports exactly what --apply would add.
+# The shop's copied rows wait in a schema of their own (lytro_restore_<run>), dropped at the end either way.
+set -euo pipefail
+
+# Never brought back: a restore must not revive a sign-in or a used code, resend a message, or count usage twice.
+NEVER_RESTORE=(
+  control.sessions
+  control.idempotency_keys
+  control.listener_pairing_codes
+  control.sms_outbox
+  control.request_errors
+  control.usage_warnings
+  control.api_usage
+  control.api_usage_daily
+  control.media_bandwidth
+  control.media_bandwidth_daily
+  control.essential_sms_usage
+  control.shop_days
+  tenant.shopper_sessions
+  tenant.shopper_codes
+  tenant.push_subscriptions
+)
+
+shop=
+apply=
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --shop) shop="${2:-}"; shift 2 ;;
+    --apply) apply=1; shift ;;
+    *)
+      echo 'usage: RESTORE_FROM_URL=... RESTORE_INTO_URL=... lytro-restore-shop --shop <id> [--apply]' >&2
+      exit 64
+      ;;
+  esac
+done
+if ! [[ "$shop" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
+  echo "--shop needs the shop's id (a uuid), got '$shop'" >&2
+  exit 64
+fi
+: "${RESTORE_FROM_URL:?RESTORE_FROM_URL (the restored copy) is not set}"
+: "${RESTORE_INTO_URL:?RESTORE_INTO_URL (the live database) is not set}"
+
+say() { printf '[restore-shop %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+started="$(date -u +%s)"
+run="$(date -u +%Y%m%d%H%M%S)"
+stage="lytro_restore_$run"
+from() { psql "$RESTORE_FROM_URL" -X -A -t -q -v ON_ERROR_STOP=1 "$@"; }
+into() { psql "$RESTORE_INTO_URL" -X -A -t -q -v ON_ERROR_STOP=1 "$@"; }
+
+if [ "$(from -c "SELECT count(*) FROM control.tenants WHERE id = '$shop'")" = 0 ]; then
+  say "the restored copy has no shop $shop"
+  exit 1
+fi
+never="$(printf "'%s'," "${NEVER_RESTORE[@]}")"
+never="${never%,}"
+
+# The plan, from the live database's catalogue: what to copy and how each table's rows are told apart. One line each:
+# kind, table, the shop's filter, the other shops' filter, the primary key's columns. Split on \x1f, not a tab: bash
+# runs adjacent tabs together, and a table reached through its parent has no filter of its own for the other shops.
+into -F $'\x1f' > /tmp/restore-shop-plan.tsv << SQL
+WITH tenant_tables AS (
+  SELECT c.oid, quote_ident(n.nspname) || '.' || quote_ident(c.relname) AS name
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    JOIN pg_attribute a ON a.attrelid = c.oid AND a.attname = 'tenant_id' AND NOT a.attisdropped
+   WHERE c.relkind = 'r' AND n.nspname IN ('tenant', 'control')
+),
+children AS (
+  SELECT DISTINCT ON (c.oid) c.oid, quote_ident(n.nspname) || '.' || quote_ident(c.relname) AS name,
+         format('EXISTS (SELECT 1 FROM %s p WHERE p.tenant_id = %L AND %s)', p.name, '$shop',
+                (SELECT string_agg(format('p.%I = s.%I', pa.attname, ca.attname), ' AND ')
+                   FROM unnest(con.confkey, con.conkey) AS k(pk, ck)
+                   JOIN pg_attribute pa ON pa.attrelid = con.confrelid AND pa.attnum = k.pk
+                   JOIN pg_attribute ca ON ca.attrelid = con.conrelid AND ca.attnum = k.ck)) AS filter
+    FROM pg_constraint con
+    JOIN pg_class c ON c.oid = con.conrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    JOIN tenant_tables p ON p.oid = con.confrelid
+   WHERE con.contype = 'f' AND c.relkind = 'r' AND n.nspname IN ('tenant', 'control')
+     AND c.oid NOT IN (SELECT oid FROM tenant_tables)
+   ORDER BY c.oid, con.conname
+),
+planned AS (
+  SELECT 0 AS ord, 'root' AS kind, 'control.tenants' AS name, format('s.id = %L', '$shop') AS mine,
+         format('s.id <> %L', '$shop') AS others, 'control.tenants'::regclass AS oid
+  UNION ALL
+  SELECT 1, 'table', name, format('s.tenant_id = %L', '$shop'), format('s.tenant_id IS DISTINCT FROM %L', '$shop'), oid
+    FROM tenant_tables
+  UNION ALL
+  SELECT 2, 'child', name, filter, NULL, oid FROM children
+)
+SELECT p.kind, p.name, p.mine, coalesce(p.others, ''),
+       coalesce((SELECT string_agg(quote_ident(a.attname), ',' ORDER BY k.i)
+                   FROM pg_index ix
+                   CROSS JOIN LATERAL unnest(ix.indkey) WITH ORDINALITY AS k(attnum, i)
+                   JOIN pg_attribute a ON a.attrelid = ix.indrelid AND a.attnum = k.attnum
+                  WHERE ix.indrelid = p.oid AND ix.indisprimary), '')
+  FROM planned p
+ WHERE p.name NOT IN ($never)
+ ORDER BY p.ord, p.name;
+SQL
+say "shop $shop: $(wc -l < /tmp/restore-shop-plan.tsv | tr -d ' ') tables to look at"
+
+# The shop's rows from the copy into the staging schema, column by column as both sides have them (a column added
+# since the backup keeps its default; one generated by the database is left to it).
+into -c "CREATE SCHEMA $stage"
+cleanup() { into -c "DROP SCHEMA IF EXISTS $stage CASCADE" > /dev/null 2>&1 || true; }
+trap cleanup EXIT
+
+: > /tmp/restore-shop-tables.tsv
+while IFS=$'\x1f' read -r kind name mine others pk; do
+  [ -z "$name" ] && continue
+  if [ "$(from -c "SELECT to_regclass('$name') IS NOT NULL")" != t ]; then
+    printf '%s\tnot in the backup\n' "$name" >> /tmp/restore-shop-notes.txt
+    continue
+  fi
+  cols="$(into -c "SELECT string_agg(quote_ident(attname), ',' ORDER BY attnum) FROM pg_attribute
+                    WHERE attrelid = '$name'::regclass AND attnum > 0 AND NOT attisdropped AND attgenerated = ''")"
+  have="$(from -c "SELECT string_agg(quote_ident(attname), ',') FROM pg_attribute
+                     WHERE attrelid = '$name'::regclass AND attnum > 0 AND NOT attisdropped")"
+  common="$(comm -12 <(tr ',' '\n' <<< "$cols" | sort) <(tr ',' '\n' <<< "$have" | sort) | paste -sd, -)"
+  # Keep the live table's column order.
+  common="$(tr ',' '\n' <<< "$cols" | grep -Fxf <(tr ',' '\n' <<< "$common") | paste -sd, -)"
+  copy="${stage}.\"$(printf '%s' "$name" | tr -d '"' | tr '.' '_')\""
+  into -c "CREATE TABLE $copy AS SELECT $common FROM $name WITH NO DATA"
+  from -c "\\copy (SELECT $common FROM $name s WHERE $mine) TO STDOUT" |
+    into -c "\\copy $copy ($common) FROM STDIN"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$kind" "$name" "$copy" "$common" "$others" "$pk" "$mine" \
+    >> /tmp/restore-shop-tables.tsv
+done < /tmp/restore-shop-plan.tsv
+copied="$(date -u +%s)"
+
+# The plan as a table the transaction reads.
+into -c "CREATE TABLE $stage.plan (ord serial, kind text, name text, copy text, cols text, others text, pk text,
+                                    mine text, in_backup bigint, missing bigint, added bigint, orphaned bigint DEFAULT 0)"
+into -c "\\copy $stage.plan (kind, name, copy, cols, others, pk, mine) FROM '/tmp/restore-shop-tables.tsv'"
+
+# One transaction: fingerprints, the additions, fingerprints again; committed only with --apply.
+finish=ROLLBACK
+[ -n "$apply" ] && finish=COMMIT
+into -F $'\t' > /tmp/restore-shop-report.tsv << SQL
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+SET LOCAL session_replication_role = replica;
+CREATE TEMP TABLE lytro_others (name text PRIMARY KEY, before text, after text) ON COMMIT DROP;
+DO \$do\$
+DECLARE
+  r record;
+  print text;
+  n bigint;
+  v_missing bigint;
+  v_added bigint;
+  v_removed bigint;
+  pk_match text;
+  f record;
+BEGIN
+  FOR r IN SELECT * FROM $stage.plan WHERE others <> '' LOOP
+    EXECUTE format('SELECT count(*) || '':'' || coalesce(sum(hashtextextended(s::text, 0)), 0) FROM %s s WHERE %s',
+                   r.name, r.others) INTO print;
+    INSERT INTO lytro_others VALUES (r.name, print, NULL);
+  END LOOP;
+
+  FOR r IN SELECT * FROM $stage.plan ORDER BY ord LOOP
+    EXECUTE format('SELECT count(*) FROM %s', r.copy) INTO n;
+    IF r.pk <> '' THEN
+      SELECT string_agg(format('t.%s = s.%s', c, c), ' AND ') INTO pk_match FROM unnest(string_to_array(r.pk, ',')) c;
+      EXECUTE format('SELECT count(*) FROM %s s WHERE NOT EXISTS (SELECT 1 FROM %s t WHERE %s)', r.copy, r.name, pk_match)
+        INTO v_missing;
+      EXECUTE format('WITH ins AS (INSERT INTO %s (%s) OVERRIDING SYSTEM VALUE SELECT %s FROM %s s
+                        WHERE NOT EXISTS (SELECT 1 FROM %s t WHERE %s) ON CONFLICT DO NOTHING RETURNING 1)
+                      SELECT count(*) FROM ins', r.name, r.cols, r.cols, r.copy, r.name, pk_match) INTO v_added;
+    ELSE
+      EXECUTE format('SELECT count(*) FROM (SELECT %s FROM %s EXCEPT ALL SELECT %s FROM %s s WHERE %s) d',
+                     r.cols, r.copy, r.cols, r.name, coalesce(nullif(replace(r.others, 'IS DISTINCT FROM', '='), ''), 'true'))
+        INTO v_missing;
+      EXECUTE format('WITH ins AS (INSERT INTO %s (%s) OVERRIDING SYSTEM VALUE
+                        SELECT %s FROM %s EXCEPT ALL SELECT %s FROM %s s WHERE %s RETURNING 1)
+                      SELECT count(*) FROM ins', r.name, r.cols, r.cols, r.copy, r.cols, r.name,
+                     coalesce(nullif(replace(r.others, 'IS DISTINCT FROM', '='), ''), 'true')) INTO v_added;
+    END IF;
+    UPDATE $stage.plan SET in_backup = n, missing = v_missing, added = v_added WHERE ord = r.ord;
+  END LOOP;
+
+  -- With triggers off, foreign keys aren't checked either: a row brought back whose parent didn't come back (skipped
+  -- for a clash, or not in the backup) is taken out again, and so on down, until none is left. Rows that were already
+  -- here satisfied their keys before, so only rows this run added can be taken out.
+  LOOP
+    v_removed := 0;
+    FOR f IN
+      SELECT p.ord, p.name AS child, p.mine, con.confrelid::regclass::text AS parent,
+             (SELECT string_agg(format('p.%I = s.%I', pa.attname, ca.attname), ' AND ')
+                FROM unnest(con.confkey, con.conkey) AS k(pk, ck)
+                JOIN pg_attribute pa ON pa.attrelid = con.confrelid AND pa.attnum = k.pk
+                JOIN pg_attribute ca ON ca.attrelid = con.conrelid AND ca.attnum = k.ck) AS match,
+             (SELECT string_agg(format('s.%I IS NOT NULL', ca.attname), ' AND ')
+                FROM unnest(con.conkey) AS k(ck)
+                JOIN pg_attribute ca ON ca.attrelid = con.conrelid AND ca.attnum = k.ck) AS present
+        FROM $stage.plan p
+        JOIN pg_constraint con ON con.conrelid = p.name::regclass AND con.contype = 'f'
+       WHERE p.added > 0
+    LOOP
+      EXECUTE format('WITH d AS (DELETE FROM %s s WHERE %s AND %s AND NOT EXISTS (SELECT 1 FROM %s p WHERE %s)
+                        RETURNING 1) SELECT count(*) FROM d', f.child, f.mine, f.present, f.parent, f.match) INTO n;
+      IF n > 0 THEN
+        UPDATE $stage.plan SET orphaned = orphaned + n WHERE ord = f.ord;
+        v_removed := v_removed + n;
+      END IF;
+    END LOOP;
+    EXIT WHEN v_removed = 0;
+  END LOOP;
+  UPDATE $stage.plan SET added = added - orphaned WHERE orphaned > 0;
+
+  FOR r IN SELECT * FROM $stage.plan WHERE others <> '' LOOP
+    EXECUTE format('SELECT count(*) || '':'' || coalesce(sum(hashtextextended(s::text, 0)), 0) FROM %s s WHERE %s',
+                   r.name, r.others) INTO print;
+    UPDATE lytro_others SET after = print WHERE name = r.name;
+  END LOOP;
+  IF EXISTS (SELECT 1 FROM lytro_others WHERE before IS DISTINCT FROM after) THEN
+    RAISE EXCEPTION 'another shop''s rows changed (%): nothing is kept',
+      (SELECT string_agg(name, ', ') FROM lytro_others WHERE before IS DISTINCT FROM after);
+  END IF;
+END
+\$do\$;
+SELECT 'row', name, in_backup, missing, added FROM $stage.plan WHERE in_backup > 0 ORDER BY ord;
+SELECT 'others', count(*), 0, 0, 0 FROM lytro_others;
+$finish;
+SQL
+finished="$(date -u +%s)"
+
+echo
+echo "- Shop: $shop; $([ -n "$apply" ] && echo 'APPLIED' || echo 'dry run, nothing kept')"
+awk -F'\t' '$1 == "row" { b += $3; m += $4; a += $5 }
+  END { printf "- In the backup: %d rows; missing from the live database: %d; added: %d", b, m, a;
+        if (m > a) printf " (%d skipped: a unique value now held by another row, or a parent row that did not come back)", m - a; print "" }' \
+  /tmp/restore-shop-report.tsv
+awk -F'\t' '$1 == "others" { printf "- Other shops: %d tables fingerprinted before and after, unchanged\n", $2 }' \
+  /tmp/restore-shop-report.tsv
+awk -F'\t' '$1 == "row" && $4 > 0 { printf "  - %s: %d missing, %d added\n", $2, $4, $5 }' /tmp/restore-shop-report.tsv
+if [ -s /tmp/restore-shop-notes.txt ]; then
+  awk -F'\t' '{ printf "  - %s: %s\n", $1, $2 }' /tmp/restore-shop-notes.txt
+fi
+media="$(awk -F'\t' '$1 == "row" && $2 == "tenant.media_objects" { print $5 }' /tmp/restore-shop-report.tsv)"
+if [ "${media:-0}" -gt 0 ]; then
+  echo "- $media media files' rows came back; their files are in R2 only if the shop's files weren't deleted (MED-06: media has no backup)"
+fi
+echo "- Copied in $((copied - started)) s; checked and $([ -n "$apply" ] && echo added || echo 'tried') in $((finished - copied)) s"

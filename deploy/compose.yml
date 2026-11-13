@@ -6,7 +6,9 @@
 #   api-1/2     the API, two processes replaced one at a time (D9-11, D9-12)
 #   worker      every job (D9-11), never routed to
 #   website     the marketing site        storefront  every shop's storefront
-#   postgres    the database (17)         redis       for Slice 9.4's limits; nothing uses it yet (D9-1)
+#   postgres    the database (17), sending its write-ahead log to R2 when backups are set up (Slice 9.3)
+#   backup      the nightly backups at 05:30 Dhaka: the encrypted dump, then the base backup (Slice 9.3, D9-18)
+#   redis       for Slice 9.4's limits; nothing uses it yet (D9-1)
 #   pgbouncer   the API's pooler (Slice 9.2, D9-13): the worker and the migrations connect to postgres directly
 #   migrate     one-off: migrations, then pg-boss's schema, as the owner (deploy.sh, after a dump)
 #   static      one-off: publishes a release's dashboard and console files into the edge's volume
@@ -114,10 +116,14 @@ services:
     logging: *logging
 
   postgres:
-    # 17 for transaction_timeout, DAT-23's whole-transaction limit (Slice 9.2's read).
-    image: postgres:17
+    # 17 for transaction_timeout, DAT-23's whole-transaction limit (Slice 9.2's read), with WAL-G and the backup scripts
+    # (deploy/database, Slice 9.3), tagged by what goes into it as the pooler's image is.
+    image: ${REGISTRY:?}/lytro-database:${DATABASE_TAG:?}
     restart: unless-stopped
-    env_file: ${LYTRO_HOME:-/opt/lytro}/env/postgres.env
+    # backup.env: the archive's key, for archive_command. The app's containers never get it (DAT-28).
+    env_file:
+      - ${LYTRO_HOME:-/opt/lytro}/env/postgres.env
+      - ${LYTRO_HOME:-/opt/lytro}/env/backup.env
     command:
       - postgres
       - -c
@@ -132,6 +138,14 @@ services:
       - max_connections=${PG_MAX_CONNECTIONS:-60}
       - -c
       - log_min_duration_statement=1000
+      # Point-in-time recovery (DAT-34): every finished write-ahead-log file to R2, at least each minute. deploy.sh
+      # sets PG_ARCHIVE_MODE=on once backup.env holds the archive's settings, off before (CI's rehearsal).
+      - -c
+      - archive_mode=${PG_ARCHIVE_MODE:-off}
+      - -c
+      - archive_command=lytro-archive %p
+      - -c
+      - archive_timeout=60
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgres:/docker-entrypoint-initdb.d:ro
@@ -155,6 +169,33 @@ services:
         condition: service_healthy
     networks: [internal]
     mem_limit: ${PGBOUNCER_MEMORY:-48m}
+    logging: *logging
+
+  # The nightly backups (Slice 9.3, D9-18): lytro-scheduler runs lytro-nightly at 23:30 UTC, 05:30 in Dhaka (the owner's
+  # time), and at once if the last good night is over 26 hours old. It reads the database's files read-only for the
+  # base backup and connects as the owner for the dump; it holds both backup keys and the database's owner password,
+  # and nothing routes to it. Without backup settings it only waits.
+  backup:
+    image: ${REGISTRY:?}/lytro-database:${DATABASE_TAG:?}
+    restart: unless-stopped
+    user: postgres
+    command: ['lytro-scheduler']
+    env_file:
+      - ${LYTRO_HOME:-/opt/lytro}/env/postgres.env
+      - ${LYTRO_HOME:-/opt/lytro}/env/backup.env
+    environment:
+      PGHOST: postgres
+      BACKUP_AT_UTC: ${BACKUP_AT_UTC:-23:30}
+      # WAL-G is a Go program: kept under the container's ceiling.
+      GOMEMLIMIT: ${BACKUP_GOMEMLIMIT:-200MiB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data:ro
+      - backup-work:/var/lib/lytro-backup
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+    mem_limit: ${BACKUP_MEMORY:-320m}
     logging: *logging
 
   redis:
@@ -203,6 +244,7 @@ networks:
 
 volumes:
   pgdata:
+  backup-work:
   caddy-data:
   caddy-config:
   static:

@@ -1,3 +1,8 @@
 # Shell scripts keep Unix line endings in every checkout, Windows included: Git Bash runs them on the owner's computer
 # (the listener's key and signing scripts), and a carriage return left on each line breaks them there.
 *.sh text eol=lf
+
+# So do the database image's scripts, which have no .sh ending, and the restore folder (Slice 9.3): the image copies
+# them as they are on disk, and bash rejects a carriage return.
+deploy/database/** text eol=lf
+deploy/restore/** text eol=lf
