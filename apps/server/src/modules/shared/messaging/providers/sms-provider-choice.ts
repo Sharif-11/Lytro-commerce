@@ -1,3 +1,4 @@
+import type { CircuitBreaker } from '../../../../common/circuit-breaker';
 import type { Env } from '../../../../config/env';
 import type { SmsProvider } from '../ports/sms-provider';
 import { BulkSmsBdProvider, type SmsFetch } from './bulksmsbd.provider';
@@ -26,6 +27,7 @@ export function smsProviderFor(
     | 'BULKSMSBD_SENDER_ID'
   >,
   fetchSms: SmsFetch,
+  breaker?: CircuitBreaker,
 ): SmsProvider {
   if (smsModeOf(env) !== 'send') return new ConsoleSmsProvider();
   if (!env.BULKSMSBD_API_KEY || !env.BULKSMSBD_SENDER_ID) {
@@ -39,5 +41,6 @@ export function smsProviderFor(
       senderId: env.BULKSMSBD_SENDER_ID,
     },
     fetchSms,
+    breaker,
   );
 }

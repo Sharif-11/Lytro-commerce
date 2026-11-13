@@ -79,7 +79,7 @@ export class GeminiAddressReader implements AddressReader {
   constructor(
     private readonly settings: GeminiSettings,
     private readonly fetchAi: AiFetch,
-    breaker: CircuitBreaker = new CircuitBreaker(),
+    breaker: CircuitBreaker = new CircuitBreaker({ service: 'gemini' }),
   ) {
     if (!settings.baseUrl.startsWith('https://')) {
       throw new Error('Gemini is only called over HTTPS');

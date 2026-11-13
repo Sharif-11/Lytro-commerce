@@ -239,6 +239,13 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Google did not confirm your sign-in.',
     bn: 'গুগল আপনার লগইন কনফার্ম করেনি।',
   },
+  // PRF-05 (Slice 9.5): the provider is away, or its circuit is open.
+  SignInProviderNotAnswering: {
+    en: (p) =>
+      `${p['provider'] === 'facebook' ? 'Facebook' : 'Google'} isn’t answering right now. Try again in a minute, or sign in with your phone number.`,
+    bn: (p) =>
+      `${p['provider'] === 'facebook' ? 'ফেসবুক' : 'গুগল'} এখন সাড়া দিচ্ছে না। এক মিনিট পরে আবার চেষ্টা করুন, বা ফোন নম্বর দিয়ে লগইন করুন।`,
+  },
   CodeAlreadyUsed: {
     en: 'This code has already been used.',
     bn: 'এই কোডটি আগেই ব্যবহার করা হয়েছে।',
@@ -592,6 +599,17 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   SettingsListed: { en: 'Settings retrieved.', bn: 'সেটিংসগুলো পাওয়া গেছে।' },
   SettingUpdated: { en: 'Setting updated.', bn: 'সেটিং আপডেট হয়েছে।' },
+  // DAT-38 (Slice 9.5): degraded mode. PausedForLoad says what the owner's notice says (2026-11-13).
+  DegradedModeShown: { en: 'Degraded mode retrieved.', bn: 'ডিগ্রেডেড মোড পাওয়া গেছে।' },
+  DegradedModeSwitched: { en: 'Degraded mode changed.', bn: 'ডিগ্রেডেড মোড বদলানো হয়েছে।' },
+  DegradedModeOwnSwitch: {
+    en: 'Turn degraded mode on or off with its own switch, which also tells the shops.',
+    bn: 'ডিগ্রেডেড মোড তার নিজের সুইচ দিয়ে চালু বা বন্ধ করুন, তাতে শপগুলোকেও জানানো হয়।',
+  },
+  PausedForLoad: {
+    en: 'This is paused for a while. Orders and payments work as usual; please try again later.',
+    bn: 'এটা কিছুক্ষণ বন্ধ আছে। অর্ডার আর পেমেন্ট ঠিকমতো চলছে; একটু পরে আবার চেষ্টা করুন।',
+  },
   ShopSettingsRetrieved: { en: 'Shop settings retrieved.', bn: 'শপের সেটিংস পাওয়া গেছে।' },
   ShopSettingsUpdated: { en: 'Shop settings updated.', bn: 'শপের সেটিংস আপডেট হয়েছে।' },
   ExportRequested: { en: 'Export requested.', bn: 'এক্সপোর্ট রিকোয়েস্ট করা হয়েছে।' },
@@ -627,6 +645,23 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   ManualEntryRecorded: { en: 'Payment recorded.', bn: 'পেমেন্ট রেকর্ড হয়েছে।' },
   ManualEntryReversed: { en: 'Entry reversed.', bn: 'এন্ট্রি রিভার্স হয়েছে।' },
   MediaCostsRead: { en: 'Media costs retrieved.', bn: 'মিডিয়া খরচ পাওয়া গেছে।' },
+  // DAT-52 (Phase 9 Slice 9.5): the daily reconciliation's differences.
+  ReconciliationDifferencesListed: {
+    en: 'Reconciliation differences retrieved.',
+    bn: 'হিসাবের গরমিলগুলো পাওয়া গেছে।',
+  },
+  ReconciliationDifferenceResolved: {
+    en: 'The difference is resolved.',
+    bn: 'গরমিলটি মীমাংসা হয়েছে।',
+  },
+  ReconciliationDifferenceNotFound: {
+    en: 'That difference was not found.',
+    bn: 'গরমিলটি পাওয়া যায়নি।',
+  },
+  ReconciliationDifferenceResolvedAlready: {
+    en: 'This difference has already been resolved.',
+    bn: 'এই গরমিলটি আগেই মীমাংসা হয়েছে।',
+  },
   HelpLineRead: { en: 'Help line retrieved.', bn: 'হেল্প লাইন পাওয়া গেছে।' },
   LegalVersionsRead: {
     en: 'Terms and privacy policy versions retrieved.',

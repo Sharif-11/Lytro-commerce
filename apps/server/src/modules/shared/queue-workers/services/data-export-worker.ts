@@ -19,7 +19,8 @@ export class DataExportWorker implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     await this.pgBoss.boss.createQueue(QueueName.DataExport);
-    await this.pgBoss.boss.work<DataExportPayload>(QueueName.DataExport, async (jobs) => {
+    // DAT-38 (Slice 9.5): held back while degraded mode is on.
+    await this.pgBoss.workPausable<DataExportPayload>(QueueName.DataExport, async (jobs) => {
       for (const job of jobs) {
         await this.exports.generate(job.data.tenantId, job.data.exportId);
       }

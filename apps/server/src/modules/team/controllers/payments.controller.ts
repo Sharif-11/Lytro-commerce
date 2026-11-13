@@ -34,6 +34,7 @@ import {
 } from '../dto/payments.dto';
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
+import { PausedWhileDegraded } from '../../degraded-mode/paused-while-degraded';
 
 // PAY-19: the raw response the CSV route writes to, the narrow shape the balance statement's export uses.
 interface RawResponse {
@@ -72,6 +73,7 @@ export class PaymentsController {
   }
 
   @Get('export')
+  @PausedWhileDegraded()
   @RequirePermission(Permission.PaymentsRead)
   @ApiOperation({ summary: "The same payments as CSV, the list's filters applied (PAY-19)" })
   async export(

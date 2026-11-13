@@ -300,6 +300,30 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   - Raw messages kept first, and the daily reconciliation (D9-16).
   - Degraded mode's server side (D9-14).
   - Circuit breakers on every outside call, each alerting, and outside time logged apart (D9-17).
+- **Read, 2026-11-13 (outside calls and degraded mode):**
+  - Degraded mode divides only the per-minute rate limits, by 2 unless the operator sets another factor (2 to 10,
+    the `degraded_factor` setting). Plan limits and longer windows (sign-in codes an hour) never change, and neither
+    do the exact limits that guard orders, payment sessions and sign-in codes.
+  - The switch is its own route, which also posts the owner's notice to every shop, pinned, and takes it down: "কিছুক্ষণ
+    এক্সপোর্ট, রিপোর্ট আর মেসেজ থেকে অর্ডার পড়া বন্ধ থাকবে। অর্ডার আর পেমেন্ট ঠিকমতো চলছে।" / "Exports, reports and
+    reading orders from messages are paused for a while. Orders and payments work as usual."
+  - While on, the heavy routes are refused with 503 and a retry hint (a shop's export and CSV downloads, the operator's
+    reports, reading an order from a message), and the export and Meta purchase queues wait. No bulk import exists yet.
+  - New breakers: R2 (a circuit per bucket), Cloudflare's API, Google and Facebook sign-in. Each opened circuit is
+    emailed to the operators once an hour per service. Each call is a log line (`service`, `circuit`, `ms`, `outcome`),
+    and a request's sums (`outsideMs`, `outsideCalls`) sit beside its ID for Slice 9.6's request line.
+- **Read, 2026-11-13 (raw messages and the reconciliation):**
+  - A verified courier message is kept as it arrived (body, and only the headers it is read by) in its own transaction
+    before it is read or answered; one Lytro can't read is kept, marked unread, not dropped. An unverified one keeps no
+    body. A wallet gateway sends no message of its own, so its answers to execute and query are what is kept, before the
+    caller acts on them. Both are removed at **90 days** (`RAW_MESSAGE_KEPT_DAYS`), and a shop's go with its data.
+  - The reconciliation runs at **06:00 Asia/Dhaka**, after the 05:30 backup, over yesterday. A difference is **any amount
+    off by even one paisa, or anything still unmatched 24 hours after it happened** -- so money arriving at Lytro's wallets
+    is looked at a day later than the rest. Lytro's own money is checked whole (proof behind each verification, each
+    top-up's credit, each balance-paid plan's charges, one invoice per paid plan, each balance against its ledger, a day's
+    SMS against their charges, each order fee against its own figures, unreadable courier messages); a shop's own order
+    payments only for being marked paid by Lytro with nothing behind them. Each difference is kept once (a re-run adds
+    nothing), the operators are emailed counts and kinds, and the operator resolves each with a note (audited).
 
 ### Slice 9.6: monitoring and logs
 - **Depends on:** 9.1, 9.3, 9.4.
@@ -326,6 +350,10 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
     needing reconnection instead of failing `GET /couriers/connections` with a 500 (found in development,
     2026-11-12), as storefront keys and catalogue feeds already do.
   - The ZAP baseline and a dependency audit in CI.
+  - The dashboard's and console's static files compressed (zstd and gzip, made once at build) and cached: a year for
+    the hashed `/assets/` files, re-checked every time for `index.html`. Found on staging 2026-11-13: the dashboard's
+    script went out as 1.38 MB and the console's as 0.92 MB, uncompressed and without a cache rule; the owner put the
+    fix here. The website and storefront (Next.js) already compress and cache their own files.
 
 ### Slice 9.8: terms, privacy and tax
 - **Depends on:** 9.0; can run beside any slice.
@@ -361,6 +389,9 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   - The fixes it calls for.
   - The search and media measurements earlier phases left for real servers (CCH-12, MED-05).
   - DAT-54's restore onto a fresh server, drilled on the same machine.
+  - Whether Cloudflare's proxy (a CDN) goes in front of the apps, decided from the measurements (the owner, 2026-11-13).
+    Media is already served and cached by Cloudflare. The proxy would change how real visitor addresses reach the rate
+    limits, how TLS is issued and whether shops' own domains can sit behind it, and may route visitors off BDIX.
 
 ---
 

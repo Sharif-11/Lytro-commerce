@@ -67,6 +67,7 @@ describeIfCredentials('the real bKash sandbox', () => {
           return Promise.resolve();
         },
         tokenCallsSince: () => Promise.resolve(0),
+        keepAnswer: () => Promise.resolve(),
       },
       () => new Date(),
       // One process, no Redis: the token stays in this gateway, and its turn to ask is always now.

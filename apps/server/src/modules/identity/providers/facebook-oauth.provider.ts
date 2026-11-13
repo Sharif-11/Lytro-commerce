@@ -2,6 +2,7 @@ import { OauthProvider } from '@lytronix/validators';
 import { z } from 'zod';
 import { ApiError } from '../../../common/api-error';
 import type { OauthProfile, OauthProviderPort } from '../ports/oauth-provider';
+import { OauthCalls } from './oauth-calls';
 
 const DIALOG = 'https://www.facebook.com/v19.0';
 const API = 'https://graph.facebook.com/v19.0';
@@ -16,6 +17,8 @@ export class FacebookOauthProvider implements OauthProviderPort {
   constructor(
     private readonly appId: string,
     private readonly appSecret: string,
+    // PRF-05 (Slice 9.5): Facebook's calls go through its circuit.
+    private readonly calls: OauthCalls = new OauthCalls('facebook'),
   ) {}
 
   authorizeUrl(input: { state: string; codeChallenge: string; redirectUri: string }): string {
@@ -38,7 +41,7 @@ export class FacebookOauthProvider implements OauthProviderPort {
     tokenUrl.searchParams.set('client_secret', this.appSecret);
     tokenUrl.searchParams.set('redirect_uri', input.redirectUri);
     tokenUrl.searchParams.set('code', input.code);
-    const token = await fetch(tokenUrl);
+    const token = await this.calls.send(tokenUrl);
     const tokenBody = tokenReply.safeParse(await token.json().catch(() => null));
     if (!token.ok || !tokenBody.success)
       throw new ApiError('unauthenticated', 'FacebookSignInNotConfirmed', {});
@@ -46,7 +49,7 @@ export class FacebookOauthProvider implements OauthProviderPort {
     const meUrl = new URL(`${API}/me`);
     meUrl.searchParams.set('fields', 'id,email');
     meUrl.searchParams.set('access_token', tokenBody.data.access_token);
-    const me = await fetch(meUrl);
+    const me = await this.calls.send(meUrl);
     const profile = profileReply.safeParse(await me.json().catch(() => null));
     if (!me.ok || !profile.success)
       throw new ApiError('unauthenticated', 'FacebookSignInNotConfirmed', {});

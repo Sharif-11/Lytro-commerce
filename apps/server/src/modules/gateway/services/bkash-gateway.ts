@@ -1,12 +1,14 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import {
   bdMobileNumber,
   CredentialUseAction,
   GATEWAY_CALL_TIMEOUT_SECONDS,
   GATEWAY_TOKEN_CALLS_PER_HOUR,
+  GatewayAnswerAction,
   PaymentMethod,
 } from '@lytronix/validators';
 import { CircuitBreaker } from '../../../common/circuit-breaker';
+import { OutsideCalls } from '../../shared/outside-calls/services/outside-calls';
 import { HOUR_MS, MINUTE_MS } from '../../../common/time';
 import type {
   CredentialUseLog,
@@ -38,6 +40,11 @@ const FIELDS = ['appKey', 'appSecret', 'username', 'password'] as const;
 const REFRESH_AFTER_MS = 50 * MINUTE_MS;
 // VER-09: bKash's answers meaning this payment was already executed; ask where it stands.
 const ALREADY_EXECUTED: ReadonlySet<string> = new Set(['2062', '2068', '2117']);
+// DAT-51: the calls whose answer says where a payment stands, and so is kept.
+const ANSWER_ACTIONS: ReadonlyMap<CredentialUseAction, GatewayAnswerAction> = new Map([
+  [CredentialUseAction.Execute, GatewayAnswerAction.Execute],
+  [CredentialUseAction.Query, GatewayAnswerAction.Query],
+]);
 
 function textOf(reply: Reply, field: string): string | null {
   const value = reply[field];
@@ -60,7 +67,7 @@ export class BkashGateway implements WalletGateway {
   private readonly logger = new Logger('BkashGateway');
   private readonly tokens = new Map<string, HeldToken>();
   private readonly asking = new Map<string, Promise<string>>();
-  private readonly breaker = new CircuitBreaker();
+  private readonly breaker: CircuitBreaker;
 
   constructor(
     @Inject(BKASH_URLS) private readonly urls: BkashUrls,
@@ -68,7 +75,11 @@ export class BkashGateway implements WalletGateway {
     @Inject(CREDENTIAL_USE_LOG) private readonly log: CredentialUseLog,
     @Inject(GATEWAY_CLOCK) private readonly clock: () => Date,
     @Inject(SharedGatewayTokens) private readonly shared: SharedGatewayTokens,
-  ) {}
+    // PRF-04, PRF-05 (Slice 9.5): the shared breaker, timed and alerting; a gateway made by hand (a live test) has its own.
+    @Optional() @Inject(OutsideCalls) outside?: OutsideCalls,
+  ) {
+    this.breaker = outside?.breaker('bkash') ?? new CircuitBreaker({ service: 'bkash' });
+  }
 
   isConfigured(credentials: Readonly<Record<string, string>>): boolean {
     return FIELDS.every((field) => (credentials[field] ?? '') !== '');
@@ -162,12 +173,27 @@ export class BkashGateway implements WalletGateway {
     body: Reply,
   ): Promise<Reply> {
     const token = await this.tokenOf(account);
-    return this.logged(account, action, () =>
+    const reply = await this.logged(account, action, () =>
       this.post(account, `/tokenized-checkout${path}`, body, {
         authorization: token,
         'x-app-key': account.credentials['appKey'] ?? '',
       }),
     );
+    const answered = ANSWER_ACTIONS.get(action);
+    if (answered !== undefined) {
+      // DAT-51, D9-16 (Phase 9 Slice 9.5): bKash's word on the payment, kept as it came before the caller acts on it.
+      await this.log.keepAnswer({
+        tenantId: account.tenantId,
+        method: this.method,
+        action: answered,
+        sessionId: account.sessionId,
+        paymentId: typeof body['paymentId'] === 'string' ? body['paymentId'] : '',
+        answer: JSON.stringify(reply),
+        transactionStatus: textOf(reply, 'transactionStatus'),
+        at: this.clock(),
+      });
+    }
+    return reply;
   }
 
   /** SEC-09: the account's token, grown old only to be refreshed; one for every process (§107, Slice 9.4). */

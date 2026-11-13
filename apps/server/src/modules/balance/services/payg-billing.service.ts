@@ -7,6 +7,16 @@ import { BalanceService } from './balance.service';
 import { RateService } from './rate.service';
 import { fromPaisa, percentOf, rateToPaisa, toPaisa } from './money';
 
+/**
+ * PYG-02: an order's fee in paisa -- the greater of the minimum flat amount and a percentage of its grand total. The one rule:
+ * charging uses it, and the daily reconciliation (DAT-52) works a charged fee out again from the figures its entry names.
+ */
+export function orderFeePaisa(orderTotal: string, minimum: string, percent: string): bigint {
+  const minPaisa = rateToPaisa(minimum);
+  const pctPaisa = percentOf(toPaisa(orderTotal), percent);
+  return pctPaisa > minPaisa ? pctPaisa : minPaisa;
+}
+
 /** PYG-02, PYG-14: an order's fee as worked out, with the rates it was worked out on. */
 export interface OrderFeeQuote {
   amount: string;
@@ -92,9 +102,7 @@ export class PayAsYouGoBillingService {
     ]);
     if (!min || !pct) throw new Error('payg order fee rates are not seeded');
 
-    const minPaisa = rateToPaisa(min.value);
-    const pctPaisa = percentOf(toPaisa(orderTotal), pct.value);
-    const feePaisa = pctPaisa > minPaisa ? pctPaisa : minPaisa;
+    const feePaisa = orderFeePaisa(orderTotal, min.value, pct.value);
     if (feePaisa === 0n) return null;
     return { amount: fromPaisa(feePaisa), minimum: min.value, percent: pct.value };
   }

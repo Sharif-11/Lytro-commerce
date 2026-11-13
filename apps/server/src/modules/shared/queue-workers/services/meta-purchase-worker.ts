@@ -26,7 +26,8 @@ export class MetaPurchaseWorker implements OnModuleInit {
       retryBackoff: true,
       notify: true,
     });
-    await this.pgBoss.boss.work<MetaPurchasePayload>(QueueName.MetaPurchase, async (jobs) => {
+    // DAT-38 (Slice 9.5): held back while degraded mode is on, as its retries can wait.
+    await this.pgBoss.workPausable<MetaPurchasePayload>(QueueName.MetaPurchase, async (jobs) => {
       for (const job of jobs) {
         await this.sender.send(job.data);
       }

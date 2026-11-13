@@ -2,6 +2,11 @@ name: CI
 
 # A pull request runs the checks it could fail (.github/scripts/ci-scope.mjs). Main's one full run is Deploy's verify job,
 # which calls this workflow, so a merge isn't checked twice.
+#
+# Each check runs on a machine of its own, all at once, and the two longest browser suites are split across machines
+# (Playwright's shards): a full run takes about as long as its slowest part, not the sum (on one machine it took ~1h50m,
+# 2026-11-13). The last job, verify, is the one main's ruleset requires: it passes when every other job passed or had
+# nothing this change could fail.
 on:
   pull_request:
   # Lets deploy.yml call this workflow directly for its own verify step, instead of keeping a second,
@@ -9,15 +14,70 @@ on:
   # steps below get added to this file without deploy.yml ever following along was exactly this problem.
   workflow_call:
 
+env:
+  # What a pull request is compared with to see what it affects; read only with --affected.
+  TURBO_SCM_BASE: origin/${{ github.base_ref }}
+  TURBO_SCM_HEAD: HEAD
+
 jobs:
-  # The ruleset requires this job, so a check a change can't fail is skipped step by step: a path filter on the workflow
-  # would leave the pull request waiting for a result that never comes.
-  verify:
+  # What this change can make fail; every job below runs or skips by it.
+  scope:
+    runs-on: ubuntu-latest
+    outputs:
+      affected: ${{ steps.scope.outputs.affected }}
+      code: ${{ steps.scope.outputs.code }}
+      dashboard: ${{ steps.scope.outputs.dashboard }}
+      storefront: ${{ steps.scope.outputs.storefront }}
+      paymentPage: ${{ steps.scope.outputs.paymentPage }}
+      operator: ${{ steps.scope.outputs.operator }}
+      walkthrough: ${{ steps.scope.outputs.walkthrough }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The whole history: in a shallow checkout Turborepo counts everything as changed.
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup
+
+      - name: Test the rules for what runs
+        run: node --test .github/scripts/ci-scope.test.mjs
+
+      - name: Work out what this change can affect
+        id: scope
+        run: node .github/scripts/ci-scope.mjs
+
+  checks:
+    name: Typecheck, lint and format
+    needs: scope
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup
+
+      - name: Typecheck
+        if: needs.scope.outputs.code == 'true'
+        run: pnpm typecheck
+
+      # After the typecheck, which builds the packages whose types the typed lint rules read.
+      - name: Lint
+        if: needs.scope.outputs.code == 'true'
+        run: pnpm exec turbo run lint ${{ needs.scope.outputs.affected }}
+
+      - name: Format check
+        run: pnpm format:check
+
+  unit:
+    name: Unit and server tests
+    needs: scope
+    if: needs.scope.outputs.code == 'true'
     runs-on: ubuntu-latest
     # Database tests need a real Postgres; the superuser here creates the test database and roles.
     services:
-      postgres:
-        # 17, as staging and production run (Slice 9.2's read): transaction_timeout is tested here.
+      # 17, as staging and production run (Slice 9.2's read): transaction_timeout is tested here.
+      postgres: &postgres
         image: postgres:17
         env:
           POSTGRES_PASSWORD: ci_only_password
@@ -38,55 +98,22 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-    env:
+    env: &test-databases
       DATABASE_TEST_ADMIN_URL: postgres://postgres:ci_only_password@localhost:5432/postgres
       REDIS_TEST_URL: redis://localhost:6379
-      # What a pull request is compared with to see what it affects; read only with --affected.
-      TURBO_SCM_BASE: origin/${{ github.base_ref }}
-      TURBO_SCM_HEAD: HEAD
     steps:
       - uses: actions/checkout@v5
         with:
-          # The whole history: in a shallow checkout Turborepo counts everything as changed.
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
-
-      # Node 24, the active LTS (Node 20 reached its end of life in April 2026); the media Worker's tests run in
-      # Miniflare, which needs Node 22 or later.
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Test the rules for what runs
-        run: node --test .github/scripts/ci-scope.test.mjs
-
-      - name: Work out what this change can affect
-        id: scope
-        run: node .github/scripts/ci-scope.mjs
-
-      - name: Typecheck
-        if: steps.scope.outputs.code == 'true'
-        run: pnpm typecheck
-
-      - name: Lint
-        if: steps.scope.outputs.code == 'true'
-        run: pnpm exec turbo run lint ${{ steps.scope.outputs.affected }}
-
-      - name: Format check
-        run: pnpm format:check
+      - uses: ./.github/actions/setup
 
       # Slice 9.1 (D9-10): the edge image the deployment runs (Caddy with the Cloudflare DNS plugin), which the server's
       # Caddy spec runs in front of the server. Its build checks deploy/Caddyfile as production reads it.
       - name: Set up Docker builds
-        if: steps.scope.outputs.code == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Build the edge image
-        if: steps.scope.outputs.code == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -97,90 +124,111 @@ jobs:
           cache-to: type=gha,scope=edge,mode=max
 
       - name: Unit tests
-        if: steps.scope.outputs.code == 'true'
         # Through Turborepo directly: `pnpm test` is pnpm's own command, and refuses --affected.
-        run: pnpm exec turbo run test ${{ steps.scope.outputs.affected }}
+        run: pnpm exec turbo run test ${{ needs.scope.outputs.affected }}
         env:
           CADDY_IMAGE: lytro-edge:ci
 
-      - name: Build all apps
-        if: steps.scope.outputs.code == 'true'
-        run: pnpm build
+  # The dashboard's screens in a real browser against a mocked API, on a phone and a desktop
+  # (TENANT-DASHBOARD-DESIGN §11), and each one beside the prototype's drawing of it, kept as pictures for the pull
+  # request. The walkthrough against a real server is server-browser's.
+  dashboard:
+    name: Dashboard browser tests (${{ matrix.shard }})
+    needs: scope
+    if: needs.scope.outputs.dashboard == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      # Every shard to the end, so one failure doesn't hide another's.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v5
 
-      # The browser comes from Playwright's own servers; --with-deps adds a few fonts (Japanese, Chinese, Thai, fallback)
-      # through apt, from Ubuntu's mirrors. Every library the browser needs is already on the runner's image. When the
-      # mirrors can't be reached (2026-11-11: no *.ubuntu.com name resolved for hours, and apt failed after 14 minutes
-      # of retries), the run goes on with the browser alone and says so. Our screens are Bangla and English, and each
-      # picture pair draws the app and its prototype in the same browser, so the pairs stay comparable.
+      - uses: ./.github/actions/setup
+
+      - name: Build the dashboard
+        run: pnpm exec turbo run build --filter=@lytronix/dashboard...
+
       - name: Install the test browser
-        if: steps.scope.outputs.browser == 'true'
         working-directory: apps/dashboard
-        run: |
-          if getent hosts archive.ubuntu.com security.ubuntu.com > /dev/null &&
-            pnpm exec playwright install --with-deps chromium; then
-            exit 0
-          fi
-          echo "::warning title=Test browser without its extra fonts::Ubuntu's package mirrors could not be reached, so the browser was installed without the fonts --with-deps adds."
-          pnpm exec playwright install chromium
+        run: bash ../../.github/scripts/install-test-browser.sh
 
-      # The dashboard's screens in a real browser against a mocked API, on a phone and a desktop
-      # (TENANT-DASHBOARD-DESIGN §11), and each one beside the prototype's drawing of it, kept as pictures for the
-      # pull request. The walkthrough against a real server follows.
       - name: Dashboard browser tests
-        if: steps.scope.outputs.dashboard == 'true'
         working-directory: apps/dashboard
-        run: pnpm exec playwright test
-
-      # The storefront's pages in a real browser against a mocked server, on a phone and a desktop (KNOWN-GAPS §105), and
-      # each one beside the prototype's drawing of it, kept as pictures for the pull request.
-      - name: Storefront browser tests
-        if: steps.scope.outputs.storefront == 'true'
-        working-directory: apps/storefront
-        run: pnpm exec playwright test
-
-      # Slice 5.8's part 2: the payment page in a real browser, drawn from fixtures under its real policy, on a phone and a
-      # desktop, each screen beside the prototype's drawing of it, kept as pictures for the pull request.
-      - name: Payment page browser tests
-        if: steps.scope.outputs.paymentPage == 'true'
-        working-directory: apps/server
-        run: pnpm exec playwright test
-
-      # The console's screens in a real browser against a mocked API, on a phone and a desktop (OPERATOR-CONSOLE-DESIGN
-      # §17), and each one beside the sketch's drawing of it, kept as pictures for the pull request.
-      - name: Console browser tests
-        if: steps.scope.outputs.operator == 'true'
-        working-directory: apps/operator
-        run: pnpm exec playwright test
-
-      # Slice 11.13b (PHASE-3-PLAN Slice 11's "done when"): a clothing, a cosmetics and a grocery seller sign up, make a
-      # product, add stock, count it and buy more, on a phone in Bangla, against the built server and a fresh database
-      # (walkthrough/global-setup.ts), never meeting inventory jargon or a field the shop type does not use.
-      - name: Dashboard walkthrough against the real server
-        if: steps.scope.outputs.walkthrough == 'true'
-        working-directory: apps/dashboard
-        run: pnpm exec playwright test -c playwright.walkthrough.config.ts
+        run: pnpm exec playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - name: Keep the dashboard's pictures and report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dashboard-browser-tests
+          name: dashboard-browser-tests-${{ matrix.shard }}
           if-no-files-found: ignore
           path: |
             apps/dashboard/test-results/
             apps/dashboard/playwright-report/
           retention-days: 14
 
+  # The console's screens in a real browser against a mocked API, on a phone and a desktop (OPERATOR-CONSOLE-DESIGN
+  # §17), and each one beside the sketch's drawing of it, kept as pictures for the pull request.
+  console:
+    name: Console browser tests (${{ matrix.shard }})
+    needs: scope
+    if: needs.scope.outputs.operator == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ./.github/actions/setup
+
+      - name: Build the console
+        run: pnpm exec turbo run build --filter=@lytronix/operator...
+
+      - name: Install the test browser
+        working-directory: apps/operator
+        run: bash ../../.github/scripts/install-test-browser.sh
+
+      - name: Console browser tests
+        working-directory: apps/operator
+        run: pnpm exec playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
       - name: Keep the console's pictures and report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: console-browser-tests
+          name: console-browser-tests-${{ matrix.shard }}
           if-no-files-found: ignore
           path: |
             apps/operator/test-results/
             apps/operator/playwright-report/
           retention-days: 14
+
+  # The storefront's pages in a real browser against a mocked server, on a phone and a desktop (KNOWN-GAPS §105), and
+  # each one beside the prototype's drawing of it, kept as pictures for the pull request.
+  storefront:
+    name: Storefront browser tests
+    needs: scope
+    if: needs.scope.outputs.storefront == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ./.github/actions/setup
+
+      - name: Build the storefront
+        run: pnpm exec turbo run build --filter=@lytronix/storefront...
+
+      - name: Install the test browser
+        working-directory: apps/storefront
+        run: bash ../../.github/scripts/install-test-browser.sh
+
+      - name: Storefront browser tests
+        working-directory: apps/storefront
+        run: pnpm exec playwright test
 
       - name: Keep the storefront's pictures and report
         if: always()
@@ -193,6 +241,43 @@ jobs:
             apps/storefront/playwright-report/
           retention-days: 14
 
+  # The two browser suites that run the server's own code: the payment page and the dashboard walkthrough.
+  server-browser:
+    name: Payment page and walkthrough browser tests
+    needs: scope
+    if: needs.scope.outputs.paymentPage == 'true' || needs.scope.outputs.walkthrough == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres: *postgres
+    env: *test-databases
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ./.github/actions/setup
+
+      # Every app: the walkthrough runs the built dashboard against the built server.
+      - name: Build all apps
+        run: pnpm build
+
+      - name: Install the test browser
+        working-directory: apps/server
+        run: bash ../../.github/scripts/install-test-browser.sh
+
+      # Slice 5.8's part 2: the payment page in a real browser, drawn from fixtures under its real policy, on a phone and a
+      # desktop, each screen beside the prototype's drawing of it, kept as pictures for the pull request.
+      - name: Payment page browser tests
+        if: needs.scope.outputs.paymentPage == 'true'
+        working-directory: apps/server
+        run: pnpm exec playwright test
+
+      # Slice 11.13b (PHASE-3-PLAN Slice 11's "done when"): a clothing, a cosmetics and a grocery seller sign up, make a
+      # product, add stock, count it and buy more, on a phone in Bangla, against the built server and a fresh database
+      # (walkthrough/global-setup.ts), never meeting inventory jargon or a field the shop type does not use.
+      - name: Dashboard walkthrough against the real server
+        if: needs.scope.outputs.walkthrough == 'true'
+        working-directory: apps/dashboard
+        run: pnpm exec playwright test -c playwright.walkthrough.config.ts
+
       - name: Keep the payment page's pictures and report
         if: always()
         uses: actions/upload-artifact@v4
@@ -204,6 +289,31 @@ jobs:
             apps/server/playwright-report/
           retention-days: 14
 
+      - name: Keep the walkthrough's pictures and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: walkthrough-browser-tests
+          if-no-files-found: ignore
+          path: |
+            apps/dashboard/test-results/
+            apps/dashboard/playwright-report/
+          retention-days: 14
+
+  # The check main's ruleset requires, and what Deploy's images wait for. It always runs: a required check that is
+  # skipped counts as passed, so a failed or cancelled job above must fail this one, not skip it.
+  verify:
+    needs: [scope, checks, unit, dashboard, console, storefront, server-browser]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every job passed, or had nothing this change could fail
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<< "$NEEDS"
+          jq -e '.scope.result == "success" and all(.[]; .result == "success" or .result == "skipped")' <<< "$NEEDS" > /dev/null
+
   # Phase 9 exit criterion 5 (Slice 9.2, DAT-41 to DAT-47): a real primary and a standby streaming from it. Reads go to
   # the standby, a write never lands there, and stopping the primary gives "can't save" while reads go on.
   standby:
@@ -211,12 +321,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - name: What the server's tests import
         run: pnpm exec turbo run build --filter=@lytronix/server^...
       - name: A primary and a streaming standby
@@ -241,12 +346,7 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - name: What the server's tests import
         run: pnpm exec turbo run build --filter=@lytronix/server^...
       - name: The database image, a test store, and a primary archiving to it

@@ -55,6 +55,7 @@ import {
   RateValueDto,
 } from '../dto/balance-response.dto';
 import { PlanPaymentDto } from '../dto/billing-response.dto';
+import { PausedWhileDegraded } from '../../degraded-mode/paused-while-degraded';
 
 // BAL-14: the raw response object the CSV export route writes to directly -- same narrow local shape
 // `DataExportController`'s own download route already uses, not express's own type.
@@ -138,6 +139,7 @@ export class BalanceController {
   }
 
   @Get('ledger/export')
+  @PausedWhileDegraded()
   @RequirePermission(Permission.BalanceRead)
   @ApiOperation({ summary: "Download the shop's balance statement as CSV (BAL-14)" })
   @ApiQuery(LEDGER_TYPES_QUERY)

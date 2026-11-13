@@ -1,3 +1,4 @@
+import { CircuitBreaker, CircuitOpen } from '../../../common/circuit-breaker';
 import { R2UsageUnavailable, type R2DayFigures, type R2Usage } from '../ports/r2-usage';
 import { addDays } from '../services/media-cost-estimate';
 import { priceClassOf } from '../services/r2-actions';
@@ -53,6 +54,8 @@ export class CloudflareR2Usage implements R2Usage {
     private readonly settings: CloudflareR2Settings,
     private readonly fetcher: (url: string, init: RequestInit) => Promise<Response> = (url, init) =>
       fetch(url, init),
+    // PRF-05 (Slice 9.5): Cloudflare's GraphQL API through its circuit.
+    private readonly breaker: CircuitBreaker = new CircuitBreaker({ service: 'cloudflare' }),
   ) {}
 
   async days(days: readonly string[]): Promise<R2DayFigures[]> {
@@ -118,7 +121,20 @@ export class CloudflareR2Usage implements R2Usage {
     return [...buckets.values()];
   }
 
+  /** PRF-05 (Slice 9.5): one GraphQL call, through its circuit; an open one is Cloudflare being away. */
   private async call(body: {
+    query: string;
+    variables: Record<string, string>;
+  }): Promise<GraphqlAnswer> {
+    try {
+      return await this.breaker.call('cloudflare:r2-usage', () => this.ask(body));
+    } catch (error) {
+      if (error instanceof CircuitOpen) throw new R2UsageUnavailable(error.message);
+      throw error;
+    }
+  }
+
+  private async ask(body: {
     query: string;
     variables: Record<string, string>;
   }): Promise<GraphqlAnswer> {

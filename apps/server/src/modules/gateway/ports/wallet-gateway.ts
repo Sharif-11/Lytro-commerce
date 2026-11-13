@@ -1,4 +1,4 @@
-import type { CredentialUseAction, PaymentMethod } from '@lytronix/validators';
+import type { CredentialUseAction, GatewayAnswerAction, PaymentMethod } from '@lytronix/validators';
 
 /** ADM-10: stands where a shop's ID goes on a call with Lytro's own keys, which belong to no shop. */
 export const LYTRO_GATEWAY_OWNER = 'lytro';
@@ -74,8 +74,25 @@ export interface CredentialUse {
   at: Date;
 }
 
+/**
+ * DAT-51, D9-16 (Phase 9 Slice 9.5): a gateway's answer to an execute or a query, as it came -- what stands for a callback,
+ * since a wallet gateway sends none of its own. Its tenant is LYTRO_GATEWAY_OWNER for Lytro's own account.
+ */
+export interface GatewayAnswer {
+  tenantId: string;
+  method: PaymentMethod;
+  action: GatewayAnswerAction;
+  sessionId: string | null;
+  paymentId: string;
+  answer: string;
+  transactionStatus: string | null;
+  at: Date;
+}
+
 export interface CredentialUseLog {
   record(use: CredentialUse): Promise<void>;
+  /** DAT-51: an answer kept before anything is done with it; a failure here stops the call's caller, as no answer would. */
+  keepAnswer(answer: GatewayAnswer): Promise<void>;
   /** How many times this account asked for a token since then, worked or not. */
   tokenCallsSince(tenantId: string, accountId: string, since: Date): Promise<number>;
 }

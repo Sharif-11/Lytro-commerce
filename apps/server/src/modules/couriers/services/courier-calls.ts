@@ -1,8 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CourierCallAction } from '@lytronix/validators';
-import { CircuitBreaker } from '../../../common/circuit-breaker';
-import { HOUR_MS } from '../../../common/time';
-import { OperatorAlerts } from '../../shared/mail/services/operator-alerts';
+import type { CircuitBreaker, OpenedCircuit } from '../../../common/circuit-breaker';
+import { OutsideCalls, type OutsideAlert } from '../../shared/outside-calls/services/outside-calls';
 import type { CourierAdapter } from '../ports/courier-adapter';
 import type { CourierStore } from '../ports/courier-store';
 import { COURIER_CLOCK, COURIER_STORE } from '../tokens';
@@ -16,8 +15,17 @@ export interface CourierCallContext {
   action: CourierCallAction;
 }
 
-/** PRF-05: how often the operators are emailed about one courier, however many shops' circuits open while it's down. */
-const COURIER_ALERT_EVERY_MS = HOUR_MS;
+/** A courier circuit is `<shop>:<courier>`, with `:fraud` after it for fraud checks (FRD-11); the service is the courier. */
+const courierOf = (circuit: string): string => circuit.split(':')[1] ?? circuit;
+
+/** PRF-05: the operators' email when a courier's circuit opens, naming the shop it opened for. */
+const courierAlert = (opened: OpenedCircuit): OutsideAlert => ({
+  subject: `A courier's calls have stopped: ${opened.service}`,
+  body:
+    `After ${String(opened.failures)} failures in a row, Lytro stopped calling ${opened.service} for shop ` +
+    `${opened.circuit.split(':')[0] ?? opened.circuit}. It tries once more each minute and carries on when a call ` +
+    "works. Other shops or a later outage of this courier within the hour aren't emailed; the server's log names each one.",
+});
 
 /**
  * CRR-26, SEC-11, PRF-05 (Phase 6 Slice 6.1): every call to a courier goes through here: a circuit per shop per courier, so one shop's
@@ -29,44 +37,18 @@ const COURIER_ALERT_EVERY_MS = HOUR_MS;
 export class CourierCalls {
   private readonly logger = new Logger('CourierCalls');
   private readonly breaker: CircuitBreaker;
-  private readonly alerted = new Map<string, number>();
 
   constructor(
     @Inject(COURIER_STORE) private readonly store: CourierStore,
     @Inject(COURIER_CLOCK) private readonly clock: () => Date,
-    @Inject(OperatorAlerts) private readonly operators: OperatorAlerts,
+    @Inject(OutsideCalls) outside: OutsideCalls,
   ) {
-    this.breaker = new CircuitBreaker(
-      () => this.clock().getTime(),
-      undefined,
-      undefined,
-      (circuit, failures) => {
-        this.opened(circuit, failures);
-      },
-    );
-  }
-
-  /** PRF-05: said in the server's log every time, and to the operators once an hour for each courier. */
-  private opened(circuit: string, failures: number): void {
-    this.logger.error(
-      `the courier circuit ${circuit} opened after ${String(failures)} failures in a row`,
-    );
-    const [tenantId, courier = circuit] = circuit.split(':');
-    const now = this.clock().getTime();
-    if (now - (this.alerted.get(courier) ?? -COURIER_ALERT_EVERY_MS) < COURIER_ALERT_EVERY_MS) {
-      return;
-    }
-    this.alerted.set(courier, now);
-    this.operators
-      .alert(
-        `A courier's calls have stopped: ${courier}`,
-        `After ${String(failures)} failures in a row, Lytro stopped calling ${courier} for shop ${String(tenantId)}. ` +
-          'It tries once more each minute and carries on when a call works. Other shops or a later outage of this ' +
-          "courier within the hour aren't emailed; the server's log names each one.",
-      )
-      .catch((error: unknown) => {
-        this.logger.error('could not alert the operators about a courier circuit', error as Error);
-      });
+    // PRF-05 (Slice 9.5): the shared breaker says each call and each opened circuit as every outside call's does, and
+    // emails the operators once an hour for each courier, however many shops' circuits open while it's down.
+    this.breaker = outside.breaker(courierOf, {
+      clock: () => this.clock().getTime(),
+      alert: courierAlert,
+    });
   }
 
   async run<T extends { outcome: string }>(

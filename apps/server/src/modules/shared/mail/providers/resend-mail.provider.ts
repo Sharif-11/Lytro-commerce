@@ -47,7 +47,7 @@ export class ResendMailProvider implements MailProvider {
   constructor(
     private readonly settings: ResendSettings,
     private readonly fetchMail: MailFetch,
-    breaker: CircuitBreaker = new CircuitBreaker(),
+    breaker: CircuitBreaker = new CircuitBreaker({ service: 'resend' }),
   ) {
     if (!settings.baseUrl.startsWith('https://')) {
       throw new Error('Resend is only called over HTTPS');

@@ -10,6 +10,7 @@ import { SessionGuard } from '../../identity/guards/session.guard';
 import { DataExportService } from '../../data-export/services/data-export.service';
 import type { DataExportRecord } from '../../data-export/types/data-export';
 import { DataExportDto, DataExportListDto } from '../dto/data-export-response.dto';
+import { PausedWhileDegraded } from '../../degraded-mode/paused-while-degraded';
 
 // Minimal shape of the raw response object this controller writes to directly for the download route --
 // narrower than importing express's own type, matching this codebase's own preference for small local
@@ -38,6 +39,7 @@ export class DataExportController {
   ) {}
 
   @Post()
+  @PausedWhileDegraded()
   @Dashboard({ lapsed: true, readOnlyWrite: true })
   @ResponseMessage('ExportRequested')
   @ApiOperation({ summary: "Request an export of the shop's own data" })

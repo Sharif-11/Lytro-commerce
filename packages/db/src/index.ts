@@ -426,6 +426,19 @@ export {
   type NewLytroMessage,
 } from './repositories/listener/lytro-message.repository';
 export {
+  RawMessageRepository,
+  type NewCourierRawMessage,
+  type NewGatewayAnswer,
+} from './repositories/couriers/raw-message.repository';
+export {
+  ReconciliationRepository,
+  type ChargedOrderFee,
+  type DifferenceFilter,
+  type LedgerAgainst,
+  type PaymentFigure,
+  type Window as ReconciliationWindow,
+} from './repositories/billing/reconciliation.repository';
+export {
   ListenerMessageRepository,
   type ListenerMessageCounts,
   type ListenerMessageFilter,

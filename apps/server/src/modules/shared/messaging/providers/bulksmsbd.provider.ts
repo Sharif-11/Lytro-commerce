@@ -60,7 +60,7 @@ export class BulkSmsBdProvider implements SmsProvider {
   constructor(
     private readonly settings: BulkSmsBdSettings,
     private readonly fetchSms: SmsFetch,
-    breaker: CircuitBreaker = new CircuitBreaker(),
+    breaker: CircuitBreaker = new CircuitBreaker({ service: 'bulksmsbd' }),
   ) {
     if (!settings.baseUrl.startsWith('https://')) {
       throw new Error('BulkSMSBD is only called over HTTPS');

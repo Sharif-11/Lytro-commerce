@@ -622,6 +622,10 @@ export enum QueueName {
   ShopDataDeletion = 'shop_data_deletion',
   // D8-47 (Phase 8 Slice 8.5): each night, removes payment screenshots past their two years.
   EvidenceSweep = 'evidence_sweep',
+  // DAT-52, D9-16 (Phase 9 Slice 9.5): at 06:00 in Asia/Dhaka, yesterday's money compared, each difference listed.
+  ReconciliationTick = 'reconciliation_tick',
+  // DAT-51, D9-16 (Phase 9 Slice 9.5): each night, the raw courier messages and gateway answers past their days removed.
+  RawMessagePurgeTick = 'raw_message_purge_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -752,6 +756,56 @@ export enum PlatformAuditAction {
   PaymentMethodTypeRetired = 'payment_method_type_retired',
   PaymentMethodTypeRetireUndone = 'payment_method_type_retire_undone',
   PaymentMethodTypeRemoved = 'payment_method_type_removed',
+  // DAT-52 (Phase 9 Slice 9.5): the operator saying what was done about a difference the daily reconciliation found.
+  ReconciliationDifferenceResolved = 'reconciliation_difference_resolved',
+}
+
+// DAT-51, D9-16 (Phase 9 Slice 9.5): what became of a courier's message kept as it arrived. `received` is stored and not yet
+// read -- what one stays as when reading it failed part-way -- `read` gave news, `unread` could not be read and is kept for
+// the operator.
+export enum RawMessageOutcome {
+  Received = 'received',
+  Read = 'read',
+  Unread = 'unread',
+}
+
+// DAT-51 (Phase 9 Slice 9.5): which of a wallet gateway's calls an answer kept as received was the reply to.
+export enum GatewayAnswerAction {
+  Execute = 'execute',
+  Query = 'query',
+}
+
+// DAT-52, D9-16 (Phase 9 Slice 9.5): what the daily reconciliation reports. Lytro's own money is checked whole; a shop's own
+// order payments only for being marked paid with nothing to show it.
+export enum ReconciliationDifferenceKind {
+  // A plan, add-on or top-up payment Lytro itself verified with no wallet SMS, gateway answer or manual entry behind it.
+  PaymentWithoutProof = 'payment_without_proof',
+  // Money a Lytro wallet's SMS says arrived that no seller's payment claimed in 24 hours.
+  WalletMoneyUnclaimed = 'wallet_money_unclaimed',
+  // A matched Lytro wallet SMS, or a completed gateway answer, whose payment is still not verified 24 hours on.
+  ProofWithoutPayment = 'proof_without_payment',
+  // A verified top-up without exactly one balance credit of the amount that arrived.
+  TopUpCreditMismatch = 'top_up_credit_mismatch',
+  // A plan or add-on paid from the balance whose charges don't come to its price.
+  BalancePaymentMismatch = 'balance_payment_mismatch',
+  // A verified plan or add-on payment without exactly one invoice.
+  InvoiceMismatch = 'invoice_mismatch',
+  // A shop's balance that isn't the sum of its ledger.
+  BalanceDrift = 'balance_drift',
+  // A shop's day of SMS costs that isn't what its SMS charges, less their reversals, took.
+  SmsChargeMismatch = 'sms_charge_mismatch',
+  // An order fee other than its own worked-out amount, or an order charged more than once.
+  OrderFeeMismatch = 'order_fee_mismatch',
+  // A courier's message kept as it arrived that could not be read.
+  CourierMessageUnread = 'courier_message_unread',
+  // A shop's order payment marked paid by Lytro with no SMS or gateway answer behind it.
+  ShopPaymentWithoutProof = 'shop_payment_without_proof',
+}
+
+// DAT-52 (Phase 9 Slice 9.5): a difference waits for the operator, then says what they did.
+export enum ReconciliationDifferenceState {
+  Open = 'open',
+  Resolved = 'resolved',
 }
 
 // BAL-02: what a balance-ledger entry is for. One list, shared by every module that ever charges or credits a
@@ -903,6 +957,10 @@ export enum PlatformSettingKey {
   HelpPhone = 'help_phone',
   HelpOpensHour = 'help_opens_hour',
   HelpClosesHour = 'help_closes_hour',
+  // DAT-38, D9-14 (Phase 9 Slice 9.5's read, 2026-11-13): degraded mode, the operator's switch, and what it divides every
+  // per-minute rate limit by. The switch is changed only through its own route, which posts and withdraws its notice.
+  DegradedMode = 'degraded_mode',
+  DegradedFactor = 'degraded_factor',
   // D9-7, LEG-03 (Slice 9.8): Lytro's VAT registration. Lytro's invoices carry VAT only once all four are set; empty
   // until then, so registering later needs no code.
   VatBin = 'vat_bin',

@@ -28,6 +28,7 @@ import {
   RevenueReportDto,
   ShopsReportDto,
 } from '../dto/operator-reports.dto';
+import { PausedWhileDegraded } from '../../degraded-mode/paused-while-degraded';
 
 // The raw response a CSV route writes to, the same narrow shape the balance statement's export uses.
 interface RawResponse {
@@ -59,6 +60,7 @@ export class OperatorReportsController {
   ) {}
 
   @Get('reports/revenue')
+  @PausedWhileDegraded()
   @ResponseMessage('RevenueReportRead')
   @ApiOperation({
     summary:
@@ -72,6 +74,7 @@ export class OperatorReportsController {
   }
 
   @Get('reports/revenue/export')
+  @PausedWhileDegraded()
   @ApiOperation({ summary: 'The revenue report as a CSV' })
   async revenueCsv(
     @Query(new ZodValidationPipe(ReportQueryDto.schema)) query: ReportQuery,
@@ -82,6 +85,7 @@ export class OperatorReportsController {
   }
 
   @Get('reports/shops')
+  @PausedWhileDegraded()
   @ResponseMessage('ShopsReportRead')
   @ApiOperation({
     summary:
@@ -95,6 +99,7 @@ export class OperatorReportsController {
   }
 
   @Get('reports/shops/export')
+  @PausedWhileDegraded()
   @ApiOperation({ summary: 'The shops report as a CSV' })
   async shopsCsv(
     @Query(new ZodValidationPipe(ReportQueryDto.schema)) query: ReportQuery,
@@ -105,6 +110,7 @@ export class OperatorReportsController {
   }
 
   @Get('reports/consumers')
+  @PausedWhileDegraded()
   @ResponseMessage('ConsumersReportRead')
   @ApiOperation({
     summary:
@@ -118,6 +124,7 @@ export class OperatorReportsController {
   }
 
   @Get('reports/consumers/export')
+  @PausedWhileDegraded()
   @ApiOperation({ summary: 'The top consumers as a CSV, with each owner phone' })
   async consumersCsv(
     @Query(new ZodValidationPipe(ConsumersQueryDto.schema)) query: ConsumersQuery,

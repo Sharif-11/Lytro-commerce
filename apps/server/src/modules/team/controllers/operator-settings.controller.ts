@@ -62,7 +62,13 @@ export class OperatorSettingsController {
   ): Promise<{ ok: true }> {
     const session = request.operatorSession;
     if (!session) throw new ApiError('unauthenticated', 'SignInToContinue', {});
-    await this.settings.set(parseKey(key), body.value, session.operatorId, body.reason);
+    const setting = parseKey(key);
+    // DAT-38 (Slice 9.5): degraded mode comes on and off through its own switch, which puts its notice up and takes it
+    // down with it; changed here, the shops would never be told.
+    if (setting === PlatformSettingKey.DegradedMode) {
+      throw new ApiError('conflict', 'DegradedModeOwnSwitch', {});
+    }
+    await this.settings.set(setting, body.value, session.operatorId, body.reason);
     return { ok: true };
   }
 }

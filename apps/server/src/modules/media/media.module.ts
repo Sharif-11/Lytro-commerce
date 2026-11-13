@@ -7,6 +7,7 @@ import { DrizzleBandwidthStore, DrizzleMediaStore } from '../../database/adapter
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
+import { OutsideCalls } from '../shared/outside-calls/services/outside-calls';
 import { QueueModule } from '../shared/queue/queue.module';
 import type { MediaEdge } from './ports/media-edge';
 import type { MediaStorage } from './ports/media-storage';
@@ -46,39 +47,46 @@ const FFMPEG_SETTINGS: FfmpegSettings = {
 };
 
 /** D3-4: the S3-compatible store when one is set up (all its keys are then required, env.ts); else none. */
-function mediaStorage(env: Env): MediaStorage {
+function mediaStorage(env: Env, outside: OutsideCalls): MediaStorage {
   const endpoint = env.MEDIA_STORAGE_ENDPOINT;
   if (!endpoint) return new UnconfiguredMediaStorage();
   const key = (accessKeyId?: string, secretAccessKey?: string) => {
     if (!accessKeyId || !secretAccessKey) throw new Error('media storage keys are required');
     return { accessKeyId, secretAccessKey };
   };
-  return new S3MediaStorage({
-    endpoint,
-    region: env.MEDIA_STORAGE_REGION,
-    pathStyle: env.MEDIA_STORAGE_PATH_STYLE,
-    uploadsBucket: env.MEDIA_UPLOADS_BUCKET,
-    mediaBucket: env.MEDIA_BUCKET,
-    evidenceBucket: env.MEDIA_EVIDENCE_BUCKET,
-    signer: key(env.MEDIA_SIGNER_ACCESS_KEY, env.MEDIA_SIGNER_SECRET_KEY),
-    processor: key(env.MEDIA_PROCESSOR_ACCESS_KEY, env.MEDIA_PROCESSOR_SECRET_KEY),
-    deleter: key(env.MEDIA_DELETER_ACCESS_KEY, env.MEDIA_DELETER_SECRET_KEY),
-  });
+  return new S3MediaStorage(
+    {
+      endpoint,
+      region: env.MEDIA_STORAGE_REGION,
+      pathStyle: env.MEDIA_STORAGE_PATH_STYLE,
+      uploadsBucket: env.MEDIA_UPLOADS_BUCKET,
+      mediaBucket: env.MEDIA_BUCKET,
+      evidenceBucket: env.MEDIA_EVIDENCE_BUCKET,
+      signer: key(env.MEDIA_SIGNER_ACCESS_KEY, env.MEDIA_SIGNER_SECRET_KEY),
+      processor: key(env.MEDIA_PROCESSOR_ACCESS_KEY, env.MEDIA_PROCESSOR_SECRET_KEY),
+      deleter: key(env.MEDIA_DELETER_ACCESS_KEY, env.MEDIA_DELETER_SECRET_KEY),
+    },
+    outside.breaker('r2'),
+  );
 }
 
 /** MED-10, BND-01: Cloudflare when its token is set (its account and store are then required, env.ts); else none. */
-function mediaEdge(env: Env): MediaEdge {
+function mediaEdge(env: Env, outside: OutsideCalls): MediaEdge {
   const apiToken = env.CLOUDFLARE_API_TOKEN;
   const accountId = env.CLOUDFLARE_ACCOUNT_ID;
   const kvNamespaceId = env.MEDIA_EDGE_KV_NAMESPACE_ID;
   if (!apiToken) return new UnconfiguredMediaEdge();
   if (!accountId || !kvNamespaceId) throw new Error('the media edge needs its account and store');
-  return new CloudflareMediaEdge({
-    accountId,
-    apiToken,
-    kvNamespaceId,
-    dataset: env.MEDIA_USAGE_DATASET,
-  });
+  return new CloudflareMediaEdge(
+    {
+      accountId,
+      apiToken,
+      kvNamespaceId,
+      dataset: env.MEDIA_USAGE_DATASET,
+    },
+    undefined,
+    outside.breaker('cloudflare'),
+  );
 }
 
 // D3-4, MED-01 to MED-04, MED-09, STO-01 to STO-07: tenant media -- uploads, processing, the library, storage use, and
@@ -93,12 +101,12 @@ function mediaEdge(env: Env): MediaEdge {
     UsageWarningsModule,
   ],
   providers: [
-    { provide: MEDIA_STORAGE, inject: [ENV], useFactory: mediaStorage },
+    { provide: MEDIA_STORAGE, inject: [ENV, OutsideCalls], useFactory: mediaStorage },
     { provide: MEDIA_STORE, useClass: DrizzleMediaStore },
     { provide: MEDIA_NOTIFIER, useExisting: BellMediaNotifier },
     { provide: FFMPEG, useValue: FFMPEG_SETTINGS },
     { provide: MEDIA_CLOCK, useValue: () => new Date() },
-    { provide: MEDIA_EDGE, inject: [ENV], useFactory: mediaEdge },
+    { provide: MEDIA_EDGE, inject: [ENV, OutsideCalls], useFactory: mediaEdge },
     { provide: BANDWIDTH_STORE, useClass: DrizzleBandwidthStore },
     {
       provide: BANDWIDTH_SETTINGS,

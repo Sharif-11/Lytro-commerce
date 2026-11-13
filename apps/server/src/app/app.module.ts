@@ -8,6 +8,8 @@ import { RequestIdModule } from '../common/request-id/request-id.module';
 import { ResponseEnvelopeInterceptor } from '../common/interceptors/response-envelope.interceptor';
 import { DatabaseModule } from '../database/database.module';
 import { LimitsModule } from '../modules/shared/limits/limits.module';
+import { OutsideCallsModule } from '../modules/shared/outside-calls/outside-calls.module';
+import { DegradedModeModule } from '../modules/degraded-mode/degraded-mode.module';
 import { HealthController } from '../modules/health/health.controller';
 import { ReadyController } from '../modules/health/ready.controller';
 import { SavingGuard } from '../common/guards/saving.guard';
@@ -42,6 +44,8 @@ const jobImports = runsJobs(serverRoleOf(process.env)) ? [QueueWorkersModule] : 
     ...shutdownImports,
     DatabaseModule,
     LimitsModule,
+    OutsideCallsModule,
+    DegradedModeModule,
     RequestIdModule,
     SecretsModule,
     TenancyModule,
