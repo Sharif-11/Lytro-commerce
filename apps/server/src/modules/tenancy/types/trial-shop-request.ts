@@ -6,5 +6,6 @@ export interface TrialShopRequest {
   ownerPhone: string;
   ownerEmail: string | null;
   ownerName: string;
-  liveUrl: string;
+  // SMS-18 (amended 2026-11-12): where the owner runs the shop, which the shop-ready SMS sends.
+  dashboardUrl: string;
 }

@@ -1,7 +1,17 @@
 // The shop's incoming payments and listener phones as Part 35 draws them (docs/brand/lytro-dashboard.html). Dates count back from
 // now, so the day groups read today and yesterday whenever the test runs.
+import type { ListenerAppRead } from '@lytronix/validators';
 
 const MINUTE = 60 * 1000;
+
+/** §7.44: the listener app's release as the prototype draws it (`P35_APP`): version 1.0.0, 2.8 MB. */
+export const DRAWN_LISTENER_APP: ListenerAppRead = {
+  release: {
+    version: '1.0.0',
+    url: 'https://download.lytro.app/lytro-listener-1.0.0.apk',
+    bytes: 2_923_023,
+  },
+};
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 const ago = (ms: number): string => new Date(Date.now() - ms).toISOString();

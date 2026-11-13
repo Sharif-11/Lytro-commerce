@@ -73,6 +73,9 @@ export class PlansService {
             .filter((each) => each.planId === plan.id)
             .map(({ version, shops }) => ({ version, shops })),
           deletable: !(await this.store.isReferenced(tx, plan.id)),
+          // PLN-21: the console's suggested-plan switch reads these; the plan names stay the server's to know.
+          trial: this.store.isPlatformPlan(plan.name) && !this.store.isPayAsYouGo(plan.name),
+          onPricingPage: this.onPricingPage(plan),
         });
       }
       return rows;
@@ -96,14 +99,29 @@ export class PlansService {
   async update(id: string, edit: PlanEditValues, operator: PlanOperator): Promise<PlanRecord> {
     try {
       return await this.store.run(async (tx) => {
-        const updated = await this.store.update(tx, id, edit);
-        if (!updated) throw new ApiError('not_found', 'PlanNotFound', {});
+        const current = await this.store.findById(tx, id);
+        if (!current) throw new ApiError('not_found', 'PlanNotFound', {});
+        // Lytro's own plans (Trial, Pay-as-you-go) are given by Lytro and found by name: found on staging 2026-11-12, one
+        // put on sale stopped every new shop. Their limits may change; nothing else here.
+        if (
+          this.store.isPlatformPlan(current.name) &&
+          (edit.forSale === true || (edit.name !== undefined && edit.name !== current.name))
+        ) {
+          throw new ApiError('conflict', 'PlatformPlanFixed', {});
+        }
+        const edited = await this.store.update(tx, id, edit);
+        if (!edited) throw new ApiError('not_found', 'PlanNotFound', {});
+        // PLN-21: a plan that leaves the pricing page takes its mark with it.
+        const unmarked = edited.suggested && !this.onPricingPage(edited);
+        const updated = unmarked
+          ? ((await this.store.setSuggested(tx, id, false)) ?? edited)
+          : edited;
         // Only the fields the caller set: Zod fills the others in as an explicit `undefined`.
         const changed = Object.fromEntries(
           Object.entries(edit).filter(([, value]) => value !== undefined),
         );
         await this.audit(tx, operator, PlatformAuditAction.PlanUpdated, id, {
-          newValue: changed,
+          newValue: unmarked ? { ...changed, suggested: false } : changed,
           version: updated.version,
         });
         return updated;
@@ -116,6 +134,31 @@ export class PlansService {
       }
       throw error;
     }
+  }
+
+  /**
+   * PLN-21: marks the plan the pricing page highlights, clearing any other's mark, or unmarks it. Only a plan the
+   * pricing page shows (for sale, or Pay-as-you-go) can be marked; unmarking always works. Mark changes run one at a
+   * time with the plan row locked, so two operators at once leave exactly one mark, and a plan retired meanwhile is
+   * refused. Not a plan edit: no new version. Audited with the change or not at all (ADM-08).
+   */
+  async setSuggested(id: string, suggested: boolean, operator: PlanOperator): Promise<PlanRecord> {
+    return this.store.run(async (tx) => {
+      await this.store.lockSuggestion(tx);
+      const plan = await this.store.findByIdForUpdate(tx, id);
+      if (!plan) throw new ApiError('not_found', 'PlanNotFound', {});
+      if (suggested && !this.onPricingPage(plan)) {
+        throw new ApiError('conflict', 'PlanNotOnPricingPage', {});
+      }
+      if (plan.suggested === suggested) return plan;
+      const updated = await this.store.setSuggested(tx, id, suggested);
+      if (!updated) throw new ApiError('not_found', 'PlanNotFound', {});
+      await this.audit(tx, operator, PlatformAuditAction.PlanUpdated, id, {
+        newValue: { suggested },
+        version: updated.version,
+      });
+      return updated;
+    });
   }
 
   listVersions(planId: string): Promise<PlanVersionRecord[]> {
@@ -132,6 +175,9 @@ export class PlansService {
     await this.store.run(async (tx) => {
       const plan = await this.store.findById(tx, id);
       if (!plan) throw new ApiError('not_found', 'PlanNotFound', {});
+      if (this.store.isPlatformPlan(plan.name)) {
+        throw new ApiError('conflict', 'PlatformPlanFixed', {});
+      }
       if (await this.store.isReferenced(tx, id)) {
         throw new ApiError('conflict', 'PlanInUse', {});
       }
@@ -140,6 +186,11 @@ export class PlansService {
         oldValue: { name: plan.name, rank: plan.rank },
       });
     });
+  }
+
+  /** PLN-21, PYG-01: the pricing page shows the plans for sale and Pay-as-you-go. */
+  private onPricingPage(plan: PlanRecord): boolean {
+    return plan.forSale || this.store.isPayAsYouGo(plan.name);
   }
 
   private audit(

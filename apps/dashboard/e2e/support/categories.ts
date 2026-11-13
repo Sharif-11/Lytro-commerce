@@ -16,6 +16,8 @@ export interface CategoryStateFixture {
   sortOrder?: number;
   suggested?: string[];
   chartImageId?: string;
+  /** PRD-03: its picture (§7.43). */
+  imageId?: string;
   /** Its products where a drawing shows more than the fixture's products file under it. */
   productCount?: number;
 }
@@ -77,7 +79,12 @@ function categoryView(
     productCount: state.productCount ?? filedIn(fixture, id),
     suggestedAttributeIds: state.suggested ?? [],
     behavesLike: state.behavesLike ?? null,
-    image: null,
+    image: state.imageId
+      ? {
+          id: state.imageId,
+          urls: { main: `/pic/${state.imageId}`, thumbnail: `/pic/${state.imageId}` },
+        }
+      : null,
     sizeChart: fixture.charts?.[id] ?? null,
     sizeChartImage: state.chartImageId
       ? {
@@ -131,6 +138,7 @@ export function categoryWrite(
       visible: body?.visible !== false,
       behavesLike: (body?.behavesLike as string | null | undefined) ?? null,
       sortOrder: typeof body?.sortOrder === 'number' ? body.sortOrder : 0,
+      ...(typeof body?.imageId === 'string' ? { imageId: body.imageId } : {}),
     });
     return answer(id);
   }
@@ -167,6 +175,10 @@ export function categoryWrite(
     if (typeof body?.visible === 'boolean') state.visible = body.visible;
     if (body && 'behavesLike' in body) state.behavesLike = body.behavesLike as string | null;
     if (typeof body?.sortOrder === 'number') state.sortOrder = body.sortOrder;
+    if (body && 'imageId' in body) {
+      if (typeof body.imageId === 'string') state.imageId = body.imageId;
+      else delete state.imageId;
+    }
     return answer(id);
   }
   if (method === 'DELETE') {

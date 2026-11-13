@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   MediaPurpose,
@@ -6,14 +6,14 @@ import {
   SIZE_CHART_MAX_COLUMNS,
   SIZE_CHART_MAX_ROWS,
 } from '@lytronix/validators';
+import { useStorageUsage } from '@/api/media';
 import { Icon } from '@/components/icon';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
-import { MediaUpload } from '@/lib/media-upload';
 import { BLANK_CHART, type ChartForm } from '@/lib/product-settings';
-import { tenantSession } from '@/session/tenant-session';
 import { ChoiceList, ChoiceRow } from './choice-list';
+import { UploadTile } from './upload-tile';
+import { usePictureUpload } from './use-picture-upload';
 import { Segments } from './value-sheet';
 
 /**
@@ -59,17 +59,17 @@ export function SizeChartSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
-  const upload = useMemo(() => new MediaUpload(tenantSession.client), []);
   const picture = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<ChartForm>(chart);
-  const [uploading, setUploading] = useState(false);
-  const [problem, setProblem] = useState<string | null>(null);
+  // §7.43: the picture's upload says how far it is, and Done waits for it.
+  const pictureUpload = usePictureUpload(MediaPurpose.SizeChartImage);
+  const uploading = pictureUpload.busy;
+  const storage = useStorageUsage({ enabled: pictureUpload.upload?.stage === 'refused' });
 
   useEffect(() => {
     if (!open) return;
     setDraft(chart);
-    setProblem(null);
+    pictureUpload.dismiss();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -85,19 +85,12 @@ export function SizeChartSheet({
   };
 
   async function attach(file: File): Promise<void> {
-    setUploading(true);
-    setProblem(null);
-    try {
-      const media = await upload.upload(file, MediaPurpose.SizeChartImage);
-      setDraft((current) => ({
-        ...current,
-        image: { id: media.id, urls: media.urls ?? { main: '', thumbnail: '' } },
-      }));
-    } catch (error) {
-      setProblem(errorText(error));
-    } finally {
-      setUploading(false);
-    }
+    const media = await pictureUpload.start(file);
+    if (!media) return;
+    setDraft((current) => ({
+      ...current,
+      image: { id: media.id, urls: media.urls ?? { main: '', thumbnail: '' } },
+    }));
   }
 
   return (
@@ -232,7 +225,14 @@ export function SizeChartSheet({
                 </>
               ) : (
                 <>
-                  {draft.image ? (
+                  {pictureUpload.upload ? (
+                    <UploadTile
+                      upload={pictureUpload.upload}
+                      storage={storage.data}
+                      panel
+                      onDismiss={pictureUpload.dismiss}
+                    />
+                  ) : draft.image ? (
                     <div className="overflow-hidden rounded-card border border-line bg-neutral-100">
                       <img
                         src={draft.image.urls.main}
@@ -246,13 +246,13 @@ export function SizeChartSheet({
                       <Button
                         tone="outline"
                         size="sm"
-                        busy={uploading}
+                        disabled={uploading}
                         onClick={() => picture.current?.click()}
                       >
                         <Icon name="camera" />
                         {draft.image ? t('replace') : t('chartAddPicture')}
                       </Button>
-                      {draft.image ? (
+                      {draft.image && !uploading ? (
                         <Button
                           tone="outline"
                           size="sm"
@@ -265,11 +265,6 @@ export function SizeChartSheet({
                       ) : null}
                     </div>
                   )}
-                  {problem ? (
-                    <p role="alert" className="text-[13px] font-medium text-danger-text">
-                      {problem}
-                    </p>
-                  ) : null}
                   <p className="text-[14px] text-fg-muted">{t('chartPicHint')}</p>
                   <input
                     ref={picture}

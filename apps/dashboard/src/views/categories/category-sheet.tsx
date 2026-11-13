@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
+import { MediaPurpose } from '@lytronix/validators';
 import { useAttributes } from '@/api/attributes';
 import {
   NO_CATEGORY,
@@ -19,10 +20,13 @@ import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
 import { BLANK_CHART, chartBody, type ChartForm } from '@/lib/product-settings';
 import type { CategorySummary } from '@/types/catalogue';
+import type { ImageView } from '@/types/me';
 import { ScopeTag } from '../attributes/scope-tag';
 import { SizeChartSheet } from '../product/size-chart-sheet';
 import { ChartField } from '../product/type-cards';
+import { usePictureUpload } from '../product/use-picture-upload';
 import { CategoryForm, ParentChoice } from './category-form';
+import { CategoryPicture } from './category-picture';
 
 /** What the sheet is open on: a new category (at the top, or under one), or one to edit. */
 export type CategorySheetFor =
@@ -50,6 +54,7 @@ const fieldsOf = (category: CategorySummary): CategoryFields => ({
   parentId: category.parentId,
   visible: category.visible,
   behavesLike: category.behavesLike,
+  imageId: category.image?.id ?? null,
 });
 
 /**
@@ -93,6 +98,9 @@ export function CategorySheet({
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<unknown>(null);
+  /** §7.43: its picture as shown, and the upload putting one there. */
+  const [picture, setPicture] = useState<ImageView | null>(null);
+  const pictureUpload = usePictureUpload(MediaPurpose.CategoryImage);
 
   useEffect(() => {
     if (!open) return;
@@ -102,6 +110,8 @@ export function CategorySheet({
         ? fieldsOf(editing)
         : { ...NO_CATEGORY, parentId: of.kind === 'new' ? of.parentId : null },
     );
+    setPicture(editing?.image ?? null);
+    pictureUpload.dismiss();
     setSuggested(editing?.suggestedAttributeIds ?? []);
     setChartDraft(chartOfCategory(editing));
     setCharted(hasContent(chartOfCategory(editing)));
@@ -160,6 +170,13 @@ export function CategorySheet({
   const back = () => {
     setStep('form');
   };
+
+  async function attachPicture(file: File): Promise<void> {
+    const media = await pictureUpload.start(file);
+    if (!media) return;
+    setPicture({ id: media.id, urls: media.urls ?? { main: '', thumbnail: '' } });
+    setDraft((current) => ({ ...current, imageId: media.id }));
+  }
 
   if (step === 'parent') {
     return (
@@ -246,7 +263,7 @@ export function CategorySheet({
         }
         onClose={onClose}
         footer={
-          <Button wide busy={busy} onClick={() => void save()}>
+          <Button wide busy={busy} disabled={pictureUpload.busy} onClick={() => void save()}>
             {t('save')}
           </Button>
         }
@@ -256,6 +273,18 @@ export function CategorySheet({
           categories={categories}
           isNew={!editing}
           nameError={tried && draft.name.trim() === '' ? t('errName') : problems.name}
+          picture={
+            <CategoryPicture
+              image={picture}
+              upload={pictureUpload.upload}
+              onFile={(file) => void attachPicture(file)}
+              onRemove={() => {
+                setPicture(null);
+                setDraft((current) => ({ ...current, imageId: null }));
+              }}
+              onDismiss={pictureUpload.dismiss}
+            />
+          }
           onChange={setDraft}
           onPickParent={() => {
             setStep('parent');

@@ -14,6 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import {
   enumTuple,
+  LISTENER_APP_VERSION_MAX_LENGTH,
   LISTENER_DEVICE_NAME_MAX_LENGTH,
   LISTENER_INSTALLATION_ID_MAX_LENGTH,
   LISTENER_SENDER_MAX_LENGTH,
@@ -68,7 +69,7 @@ export const listenerDevices = control.table(
     tenantId: uuid('tenant_id').references(() => tenants.id),
     name: varchar('name', { length: LISTENER_DEVICE_NAME_MAX_LENGTH }).notNull(),
     model: varchar('model', { length: 100 }),
-    appVersion: varchar('app_version', { length: 20 }).notNull(),
+    appVersion: varchar('app_version', { length: LISTENER_APP_VERSION_MAX_LENGTH }).notNull(),
     installationId: varchar('installation_id', {
       length: LISTENER_INSTALLATION_ID_MAX_LENGTH,
     }).notNull(),

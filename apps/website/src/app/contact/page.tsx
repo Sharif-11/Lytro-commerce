@@ -5,6 +5,7 @@ import { Container } from '@/components/ui/container';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { SectionHeading } from '@/components/ui/section-heading';
 import { HelpLineApi } from '@/lib/api/help-line-api';
+import { channelWords } from '@/lib/contact/channel-words';
 import {
   displayNumber,
   HelpLineWords,
@@ -28,8 +29,7 @@ export const metadata: Metadata = {
 // the console (GET /help-line, D8-69, D8-73), so placeholders cannot ship: a number not set, or cleared, is not shown,
 // and with neither the hours go too. Email comes from the environment.
 const text = {
-  eyebrow: { bn: 'যোগাযোগ', en: 'Contact' },
-  title: { bn: 'একজন মানুষের সাথে কথা বলুন, বটের সাথে নয়', en: 'Talk to a person, not a bot' },
+  ...channelWords,
   lead: {
     bn: 'সেটআপে আটকে গেছেন, কোন প্ল্যান মানায় বুঝছেন না, বা কলে ডেমো চান? মেসেজ দিন। বাংলা বা ইংরেজিতে উত্তর দিই, প্রতিদিন {opens} থেকে {closes}।',
     en: 'Stuck on setup, unsure which plan fits, or want a demo on a call? Message us. We answer in Bangla or English, every day, {opens} to {closes}.',
@@ -38,23 +38,8 @@ const text = {
     bn: 'সেটআপে আটকে গেছেন, কোন প্ল্যান মানায় বুঝছেন না, বা কলে ডেমো চান? মেসেজ দিন। বাংলা বা ইংরেজিতে উত্তর দিই।',
     en: 'Stuck on setup, unsure which plan fits, or want a demo on a call? Message us. We answer in Bangla or English.',
   },
-  whatsapp: { bn: 'WhatsApp', en: 'WhatsApp' },
-  whatsappSub: {
-    bn: 'সবচেয়ে দ্রুত। যেখানে আটকে আছেন তার স্ক্রিনশট পাঠান।',
-    en: 'Fastest. Send a screenshot of where you are stuck.',
-  },
   whatsappAction: { bn: 'মেসেজ', en: 'Message' },
-  phone: { bn: 'ফোন', en: 'Phone' },
-  phoneSub: {
-    bn: 'কলে বা স্ক্রিন শেয়ারে লাইভ ডেমোর জন্য।',
-    en: 'For a live demo on a call or screen share.',
-  },
   phoneAction: { bn: 'কল', en: 'Call' },
-  email: { bn: 'ইমেইল', en: 'Email' },
-  emailSub: {
-    bn: 'পার্টনারশিপ, এজেন্সি, যেখানে লিখিত রেকর্ড দরকার।',
-    en: 'Partnerships, agencies, anything that needs a paper trail.',
-  },
   emailAction: { bn: 'লিখুন', en: 'Write' },
   noChannels: {
     bn: 'সাপোর্ট লাইন চালু হলে এখানে WhatsApp, ফোন আর ইমেইল বসবে। ততদিন নিচের ফর্মটা ব্যবহার করুন।',

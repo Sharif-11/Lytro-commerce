@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ListenerShopRow, SelectListenerDevice, Transaction } from '@lytronix/db';
 import {
-  appVersionField,
+  appBuildVersionField,
   AuditResult,
   compareAppVersions,
   limitOf,
@@ -81,10 +81,13 @@ export class ListenerRules {
     return shop;
   }
 
-  /** LSN-18: an app without a version, or older than the platform's minimum, must update first. */
+  /**
+   * LSN-18: an app without a version, or older than the platform's minimum, must update first. A build's tag
+   * (staging's `1.0.0-staging`) is compared by its numbers, and the version is kept as the app gave it.
+   */
   async refuseOldApp(version: string | undefined): Promise<string> {
     const minimum = await this.minAppVersion();
-    const parsed = appVersionField.safeParse(version);
+    const parsed = appBuildVersionField.safeParse(version);
     if (!parsed.success || compareAppVersions(parsed.data, minimum) < 0) {
       throw new ApiError('app_update_required', 'ListenerAppUpdateRequired', { minimum });
     }

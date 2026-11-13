@@ -193,6 +193,13 @@ export function PriceMatrix({
                     <StatusChip tone={plan.forSale ? 'ok' : 'mute'} plain>
                       {t(plan.forSale ? 'plans.forSaleChip' : 'plans.notForSale')}
                     </StatusChip>{' '}
+                    {plan.suggested ? (
+                      <>
+                        <StatusChip tone="info" plain>
+                          {t('plans.suggestedChip')}
+                        </StatusChip>{' '}
+                      </>
+                    ) : null}
                     · {t('plans.rank')} {plan.rank}
                   </div>
                 </td>

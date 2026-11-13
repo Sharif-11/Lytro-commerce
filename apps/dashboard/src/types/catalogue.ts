@@ -58,6 +58,8 @@ export interface CategorySummary {
   suggestedAttributeIds: string[];
   /** PST-06: the shop type its products behave like; null follows its parent, then the shop. */
   behavesLike: string | null;
+  /** PRD-03: its picture, shown in its circle on the shop's home; null when it has none. */
+  image: ImageView | null;
   /** PRD-17: its own chart, a table or a picture; null when it has none. */
   sizeChart: string[][] | null;
   sizeChartImage: ImageView | null;

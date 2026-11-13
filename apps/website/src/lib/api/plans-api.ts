@@ -11,6 +11,9 @@ export interface Plan {
   forSale: boolean;
   limits: PlanLimits;
   features?: Record<string, boolean>;
+  /** PLN-21: the plan the operator marked for the pricing page to highlight; at most one. Absent from a server
+      older than the mark, which reads as not suggested. */
+  suggested?: boolean;
 }
 
 export interface BillingTerm {
@@ -34,6 +37,12 @@ export interface PlanCatalogue {
   prices: PlanPrice[];
 }
 
+/** RAT-01: one of the platform's current rates (`GET /rates`), as stored: `payg_order_fee_pct` "1.50" is 1.5%. */
+export interface PlatformRate {
+  key: string;
+  value: string;
+}
+
 export class PlansApi {
   constructor(private readonly api: ServerApi) {}
 
@@ -55,5 +64,15 @@ export class PlansApi {
       terms: terms.filter((term) => term.visible).sort((a, b) => a.displayOrder - b.displayOrder),
       prices,
     };
+  }
+
+  /** The current rates pay-as-you-go and payment verification charge, or null when the backend cannot be reached. */
+  rates(): Promise<PlatformRate[] | null> {
+    return this.api.get<PlatformRate[]>('/rates');
+  }
+
+  /** PYG-01: pay-as-you-go's own limits, for its card, or null when the backend cannot be reached. */
+  payAsYouGo(): Promise<Plan | null> {
+    return this.api.get<Plan>('/plans/pay-as-you-go');
   }
 }

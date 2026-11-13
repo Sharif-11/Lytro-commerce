@@ -48,6 +48,7 @@ export const planSchema = z.object({
   version: z.number(),
   limits: planLimitsSchema,
   features: z.record(z.string(), z.boolean()),
+  suggested: z.boolean(), // PLN-21
   createdAt: z.date(),
 });
 export class PlanDto extends createZodDto(planSchema) {}
@@ -57,6 +58,8 @@ export class PlanListDto extends createZodDto(planSchema.array()) {}
 export const operatorPlanSchema = planSchema.extend({
   shopsByVersion: z.array(z.object({ version: z.number(), shops: z.number() })),
   deletable: z.boolean(),
+  trial: z.boolean(),
+  onPricingPage: z.boolean(),
 });
 export class OperatorPlanListDto extends createZodDto(operatorPlanSchema.array()) {}
 

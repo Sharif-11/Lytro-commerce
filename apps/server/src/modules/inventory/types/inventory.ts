@@ -144,6 +144,8 @@ export interface HeldStockExpiredNotice {
   reserved: string;
   /** How many of the held units are expired, with nothing sellable to ship in their place. */
   short: string;
+  /** UOM-01: the product's stock unit, which the notice names. */
+  unit: StockUnit;
 }
 
 /** INV-14: one serial-numbered unit, as the shop sees it. */
@@ -175,6 +177,8 @@ export interface BatchExpiryNotice {
   batchCode: string | null;
   expiresOn: string;
   quantity: string;
+  /** UOM-01: the product's stock unit, which the notice names. */
+  unit: StockUnit;
 }
 
 /** INV-12, INV-13: one open batch, as the shop sees it. */
@@ -224,6 +228,8 @@ export interface LowStockNotice {
   variantId: string;
   available: string;
   threshold: string;
+  /** UOM-01: the product's stock unit, which the notice names. */
+  unit: StockUnit;
 }
 
 export interface VariantStockView {

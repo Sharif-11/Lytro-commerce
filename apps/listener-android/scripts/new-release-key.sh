@@ -19,8 +19,18 @@ if [ -n "${JAVA_HOME:-}" ]; then keytool_bin="$JAVA_HOME/bin/keytool"; fi
 # Git Bash on Windows writes one folder two ways (/d/x and D:/x), so both sides go through the same `pwd`, and Git itself is asked too:
 # this repo is public, so a key must never be able to land inside it.
 repo="$(cd "$(cd "$(dirname "$0")" && git rev-parse --show-toplevel)" && pwd -P)"
+# The nearest folder that exists. Git Bash sees D:/x's drive as "D:", which is never a folder and is its own dirname, so the
+# walk goes through /d/x; and a walk that stops moving ends there rather than looping forever.
 parent="$folder"
-while [ ! -d "$parent" ]; do parent="$(dirname "$parent")"; done
+if command -v cygpath >/dev/null 2>&1; then parent="$(cygpath -u "$parent")"; fi
+while [ ! -d "$parent" ]; do
+  next="$(dirname "$parent")"
+  if [ "$next" = "$parent" ]; then
+    echo "Refusing: none of the folders above $folder exists." >&2
+    exit 2
+  fi
+  parent="$next"
+done
 case "$(cd "$parent" && pwd -P)/" in
   "$repo"/*)
     echo "Refusing: $folder is inside this repo, and this repo is public." >&2

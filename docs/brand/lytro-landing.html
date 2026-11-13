@@ -323,6 +323,9 @@
   .plan li svg { width: 18px; height: 18px; flex: none; color: var(--teal-700); background: var(--teal-50); border-radius: 50%; padding: 3px; margin-top: 2px; }
   .plan li.no { color: var(--n500); }
   .plan li.no svg { color: var(--n400); background: var(--n50); }
+  /* Small fixes 14(d), 2026-11-13: what else a plan gives, in a quieter group under the main lines. */
+  .plan ul.more { gap: 6px; font-size: 0.875rem; color: var(--n700); padding-top: 12px; border-top: 1px dashed var(--line); }
+  .plan ul.more li svg { width: 16px; height: 16px; }
   .plan .btn { width: 100%; margin-top: 2px; }
   .pdots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
   .pdots i { width: 6px; height: 6px; border-radius: 50%; background: var(--n200); transition: width 0.2s; }
@@ -641,8 +644,8 @@
     <div class="wrap">
       <div class="sec-head">
         <span class="eyebrow" data-en="Features">ফিচার</span>
-        <h2 data-en="Everything a real shop needs, nothing you have to set up">একটা আসল দোকানের যা যা লাগে, সেটআপ ছাড়াই</h2>
-        <p data-en="Built for a seller who runs the whole business from one phone.">যিনি এক ফোন থেকে পুরো ব্যবসা চালান, তার জন্যই বানানো।</p>
+        <h2 data-en="All of your online shop's work, in one place">আপনার অনলাইন দোকানের সব কাজ, এক জায়গায়</h2>
+        <p data-en="If you run the whole business on your own from your phone, Lytro is for you. From taking orders to payments, couriers, stock and staff, do it all from one place.">আপনি যদি একাই মোবাইল দিয়ে পুরো ব্যবসা সামলান, তাহলে Lytro আপনার জন্য। অর্ডার নেওয়া থেকে শুরু করে পেমেন্ট, কুরিয়ার, স্টক ও কর্মচারী পরিচালনা—সবকিছু করুন একটি জায়গা থেকেই।</p>
       </div>
       <div class="spots">
         <div class="spot card">
@@ -690,39 +693,41 @@
       <div class="fgrid">
         <div class="fcard card">
           <div class="ic"><svg><use href="#shield"/></svg></div>
-          <h3 data-en="Fake-order check">ফেক অর্ডার চেক</h3>
-          <p data-en="Every new order's phone number is checked against return and cancel history before you spend a taka on courier.">কুরিয়ারে এক টাকা খরচের আগেই প্রতিটা নতুন অর্ডারের নম্বর রিটার্ন আর ক্যানসেলের রেকর্ডে মিলিয়ে দেখা হয়।</p>
-          <div class="vig"><div class="r"><span class="k">017XXXXX842</span><span class="chip risk" data-en="3 returns">৩ রিটার্ন</span></div><div class="r"><span class="k">019XXXXX310</span><span class="chip ok" data-en="12 delivered">১২ ডেলিভারড</span></div></div>
+          <h3 data-en="Know if an order is fake, before you ship">অর্ডারটি ভুয়া কি না, আগে থেকেই জানুন</h3>
+          <p data-en="Before a parcel goes to the courier, check the buyer's phone number against its past orders. See how often parcels came back or were cancelled, then decide.">কুরিয়ারে পাঠানোর আগে ক্রেতার ফোন নম্বরের আগের অর্ডারের রেকর্ড যাচাই করুন। আগে কতবার পার্সেল রিটার্ন বা ক্যানসেল হয়েছে, তা দেখে সিদ্ধান্ত নিন।</p>
+          <div class="vig"><div class="r"><span class="k">017XXXXX842</span><span class="chip risk" data-en="3 returns">৩টি রিটার্ন</span></div><div class="r"><span class="k">019XXXXX310</span><span class="chip ok" data-en="12 delivered">১২টি ডেলিভারি</span></div></div>
         </div>
         <div class="fcard card">
           <div class="ic"><svg><use href="#truck"/></svg></div>
-          <h3 data-en="One-tap courier">এক ট্যাপে কুরিয়ার</h3>
-          <p data-en="Book Steadfast or Pathao from the order itself with your own courier account. Tracking and status come back automatically.">নিজের কুরিয়ার অ্যাকাউন্ট দিয়ে অর্ডার থেকেই Steadfast বা Pathao বুক করুন। ট্র্যাকিং আর স্ট্যাটাস নিজে থেকেই আসে।</p>
-          <div class="vig"><div class="r"><span class="k">#1040 · Steadfast</span><span class="chip ship" data-en="In transit">পথে আছে</span></div><div class="bar"><i style="width:66%"></i></div></div>
+          <h3 data-en="Book the courier in one click">এক ক্লিকেই কুরিয়ার বুকিং</h3>
+          <p data-en="Book the courier from the order itself, with your own Steadfast or Pathao account. No more typing the details into the courier's website. Tracking and delivery updates come back to your shop.">অর্ডার থেকেই আপনার Steadfast বা Pathao অ্যাকাউন্ট ব্যবহার করে কুরিয়ার বুক করুন। বারবার কুরিয়ার ওয়েবসাইটে গিয়ে তথ্য দেওয়ার দরকার নেই। পার্সেলের ট্র্যাকিং ও ডেলিভারি আপডেট চলে আসবে আপনার দোকানেই।</p>
+          <div class="vig"><div class="r"><span class="k">#1040 · Steadfast</span><span class="chip ship" data-en="Parcel on the way">পার্সেল পথে আছে</span></div><div class="bar"><i style="width:66%"></i></div></div>
         </div>
         <div class="fcard card">
           <div class="ic"><svg><use href="#sms"/></svg></div>
-          <h3 data-en="Payments match themselves">পেমেন্ট নিজেই মিলে যায়</h3>
-          <p data-en="A small listener app on your phone reads the bKash and Nagad receipt SMS and marks the right order paid.">ফোনে ছোট একটা লিসেনার অ্যাপ বিকাশ-নগদের রিসিট SMS পড়ে ঠিক অর্ডারটাকে পেইড করে দেয়।</p>
-          <div class="vig"><div class="r"><span class="k">bKash · TrxID 9KL2M</span><b class="num">৳3,490</b></div><div class="r"><span class="k"><i data-en="Matched to #1042">#1042-এর সাথে মিলেছে</i></span><span class="chip ok" data-en="Paid">পেইড</span></div></div>
+          <h3 data-en="Payments match automatically">পেমেন্ট মিলবে অটোমেটিক</h3>
+          <p data-en="When a customer sends money by bKash or Nagad, Lytro reads the payment SMS and works out which order it is for. That order is then marked Paid.">কাস্টমার বিকাশ বা নগদে টাকা পাঠালে পেমেন্টের SMS থেকে Lytro নিজেই বুঝে নেবে কোন অর্ডারের টাকা এসেছে। এরপর সেই অর্ডার Paid হিসেবে চিহ্নিত হবে।</p>
+          <div class="vig"><div class="r"><span class="k">bKash</span><b class="num">৳3,490</b></div><div class="r"><span class="k"><i data-en="Payment matched to order #1042">অর্ডার #1042-এর পেমেন্ট মিলেছে</i></span><span class="chip ok" data-en="Paid">পেমেন্ট সম্পন্ন</span></div></div>
         </div>
         <div class="fcard card">
           <div class="ic"><svg><use href="#store"/></svg></div>
-          <h3 data-en="Your own storefront">নিজের স্টোরফ্রন্ট</h3>
-          <p data-en="A real shop page with your name, logo and colours, cart, delivery charge by district, and online or cash-on-delivery checkout.">আপনার নাম, লোগো আর রঙে আসল দোকানের পেজ, কার্ট, জেলা অনুযায়ী ডেলিভারি চার্জ, অনলাইন বা ক্যাশ অন ডেলিভারি চেকআউট।</p>
-          <div class="vig"><div class="r"><span class="k">rahim-gadgets.lytro.app</span><span class="chip ship" data-en="Live">লাইভ</span></div><div class="r"><span class="k"><i data-en="Custom domain on Growth and Pro">Growth ও Pro-তে নিজের ডোমেইন</i></span></div></div>
+          <h3 data-en="Your own online shop">আপনার নিজের অনলাইন দোকান</h3>
+          <p data-en="Make your own online shop with your shop's name, logo and colours. Customers browse your products, add them to a cart and order directly.">আপনার দোকানের নাম, লোগো ও পছন্দের রঙ দিয়ে তৈরি করুন নিজের অনলাইন শপ। কাস্টমার পণ্য দেখবে, কার্টে যোগ করবে এবং সরাসরি অর্ডার করতে পারবে।</p>
+          <p data-en="Delivery charges, online payment and cash on delivery: set everything up your way.">ডেলিভারি চার্জ, অনলাইন পেমেন্ট ও ক্যাশ অন ডেলিভারি—সবকিছু নিজের মতো সাজিয়ে নিন।</p>
+          <div class="vig"><div class="r"><span class="k">rahim-gadgets.lytro.app</span><span class="chip ship" data-en="Your shop is online">আপনার দোকান এখন অনলাইনে</span></div></div>
         </div>
         <div class="fcard card">
           <div class="ic"><svg><use href="#users"/></svg></div>
-          <h3 data-en="Staff with their own roles">স্টাফ, যার যার রোলে</h3>
-          <p data-en="Give a packer, a page manager or an accountant exactly the pages they need. Every change is logged with who did it.">প্যাকার, পেজ ম্যানেজার বা হিসাবরক্ষক, যার যতটুকু দরকার ততটুকুই দিন। কে কী বদলালো, সবই লগে থাকে।</p>
-          <div class="vig"><div class="r"><span class="k">Sumi · <i data-en="Orders only">শুধু অর্ডার</i></span><span class="chip" style="background:var(--n100);color:var(--n700)" data-en="Staff">স্টাফ</span></div><div class="r"><span class="k">Rahim · <i data-en="Owner">মালিক</i></span><span class="chip pending" data-en="All">সব</span></div></div>
+          <h3 data-en="Share the work with your staff">কর্মচারীদের কাজ ভাগ করে দিন</h3>
+          <p data-en="Whoever handles orders in your shop can only work on orders. Whoever keeps the accounts works on the accounts. Give each person access for their own job.">আপনার দোকানে যিনি অর্ডার দেখবেন, তিনি শুধু অর্ডারের কাজই করতে পারবেন। যিনি হিসাব রাখবেন, তিনি হিসাবের কাজ করবেন। সবাইকে নিজের কাজ অনুযায়ী অনুমতি দিন।</p>
+          <p data-en="You can also see who changed what, and when.">কে কখন কোন তথ্য পরিবর্তন করেছেন, সেটাও দেখতে পারবেন আপনি।</p>
+          <div class="vig"><div class="r"><span class="k">Sumi · <i data-en="May see orders only">শুধু অর্ডার দেখার অনুমতি</i></span><span class="chip" style="background:var(--n100);color:var(--n700)" data-en="Staff">স্টাফ</span></div><div class="r"><span class="k">Rahim · <i data-en="Owner">মালিক</i></span><span class="chip pending" data-en="In charge of everything">সবকিছুর নিয়ন্ত্রণ</span></div></div>
         </div>
         <div class="fcard card">
           <div class="ic"><svg><use href="#boxes"/></svg></div>
-          <h3 data-en="Variants and stock">ভ্যারিয়েন্ট আর স্টক</h3>
-          <p data-en="Size, colour, model: type an attribute and the variants appear. Stock moves with every order, return and purchase.">সাইজ, রঙ, মডেল: অ্যাট্রিবিউট লিখলেই ভ্যারিয়েন্ট তৈরি। প্রতিটা অর্ডার, রিটার্ন আর কেনার সাথে স্টক নিজে বদলায়।</p>
-          <div class="vig"><div class="r"><span class="k">Kurti · M · <i data-en="Maroon">মেরুন</i></span><b class="num">14</b></div><div class="r"><span class="k">Kurti · L · <i data-en="Maroon">মেরুন</i></span><span class="chip pending" data-en="2 left">২টা বাকি</span></div></div>
+          <h3 data-en="Products, sizes and stock">পণ্য, সাইজ ও স্টকের হিসাব</h3>
+          <p data-en="Add the sizes, colours or models of one product separately, and see how much of each variant is in stock. Stock updates on its own with every order, sale and return.">একই পণ্যের বিভিন্ন সাইজ, রঙ বা মডেল আলাদাভাবে যোগ করুন। প্রতিটি ভ্যারিয়েন্টের স্টক কত আছে, তা দেখুন। অর্ডার, বিক্রি ও রিটার্ন অনুযায়ী স্টকের হিসাব নিজে থেকেই আপডেট হবে।</p>
+          <div class="vig"><div class="r"><span class="k">Kurti · M · <i data-en="Maroon">মেরুন</i></span><b class="num" data-en="14">১৪টি</b></div><div class="r"><span class="k">Kurti · L · <i data-en="Maroon">মেরুন</i></span><span class="chip pending" data-en="2 left">২টি বাকি</span></div></div>
         </div>
       </div>
     </div>
@@ -731,17 +736,16 @@
   <section class="why" id="why">
     <div class="wrap">
       <div class="sec-head center">
-        <span class="eyebrow" data-en="Why Lytro">কেন Lytro</span>
-        <h2 data-en="Built the way a seller would build it">একজন সেলার নিজে বানালে যেভাবে বানাতো, সেভাবেই</h2>
-        <p data-en="The rules that make Lytro different are simple, and each one is written into the product, not just the brochure.">Lytro-কে আলাদা করে যে নিয়মগুলো, সেগুলো সহজ, আর প্রতিটা প্রোডাক্টের ভেতরে লেখা, শুধু ব্রোশিওরে নয়।</p>
+        <span class="eyebrow" data-en="Why Lytro?">কেন Lytro?</span>
+        <h2 data-en="We built what an online seller really needs.">একজন অনলাইন ব্যবসায়ীর যেসব সুবিধা সত্যিই দরকার, সেগুলোই আমরা তৈরি করেছি।</h2>
       </div>
       <div class="wgrid">
-        <div class="wcard card"><div class="ic"><svg><use href="#bank"/></svg></div><h3 data-en="Money goes straight to you">টাকা সরাসরি আপনার কাছে</h3><p data-en="Customers pay your own bKash, Nagad or bank. Lytro never holds, settles or delays your money.">কাস্টমার পেমেন্ট করে আপনার নিজের বিকাশ, নগদ বা ব্যাংকে। Lytro কখনো আপনার টাকা ধরে রাখে না, দেরিও করায় না।</p></div>
-        <div class="wcard card"><div class="ic"><svg><use href="#percent"/></svg></div><h3 data-en="A flat fee, not a percentage">ফ্ল্যাট ফি, পার্সেন্টেজ নয়</h3><p data-en="One small fixed fee per delivered order. A ৳50,000 order costs you the same as a ৳500 one.">ডেলিভার হওয়া অর্ডারপ্রতি ছোট একটা নির্দিষ্ট ফি। ৳50,000-এর অর্ডারে আর ৳500-এর অর্ডারে খরচ একই।</p></div>
-        <div class="wcard card"><div class="ic"><svg><use href="#truck"/></svg></div><h3 data-en="Your own courier account">নিজের কুরিয়ার অ্যাকাউন্ট</h3><p data-en="Steadfast and Pathao are booked on your credentials. Your rates, your payouts, your relationship.">Steadfast আর Pathao বুক হয় আপনার নিজের অ্যাকাউন্টে। রেট আপনার, পেআউট আপনার, সম্পর্কটাও আপনার।</p></div>
-        <div class="wcard card"><div class="ic"><svg><use href="#globe"/></svg></div><h3 data-en="Bangla everywhere, phone first">সব বাংলায়, ফোন থেকেই</h3><p data-en="Dashboard, SMS, invoices and tracking page all read in Bangla, with English a tap away. Built for a phone, not shrunk from a desktop.">ড্যাশবোর্ড, SMS, ইনভয়েস আর ট্র্যাকিং পেজ, সব বাংলায়, ইংরেজি এক ট্যাপ দূরে। ফোনের জন্য বানানো, ডেস্কটপ ছোট করে নয়।</p></div>
-        <div class="wcard card"><div class="ic"><svg><use href="#db"/></svg></div><h3 data-en="Your data, backed up every night">আপনার ডেটা, প্রতি রাতে ব্যাকআপ</h3><p data-en="Each shop's data is kept apart from every other shop, encrypted backups run nightly, and every change is logged with who made it.">প্রতিটা দোকানের ডেটা অন্য দোকান থেকে আলাদা, প্রতি রাতে এনক্রিপ্টেড ব্যাকআপ, আর কে কী বদলালো তার লগ থাকে।</p></div>
-        <div class="wcard card"><div class="ic"><svg><use href="#code"/></svg></div><h3 data-en="Works with the website you already have">যে ওয়েবসাইট আছে, তার সাথেও চলে</h3><p data-en="Have your own site or a developer? Use the same API the storefront uses and keep Lytro for orders, couriers and payments.">নিজের সাইট বা ডেভেলপার আছে? স্টোরফ্রন্ট যে API ব্যবহার করে সেটাই নিন, আর অর্ডার, কুরিয়ার আর পেমেন্টের জন্য Lytro রাখুন।</p></div>
+        <div class="wcard card"><div class="ic"><svg><use href="#bank"/></svg></div><h3 data-en="Your money stays with you">আপনার টাকা থাকবে আপনার কাছেই</h3><p data-en="Customers pay straight into your own bKash, Nagad or bank account. Lytro never holds your sales money, and you never wait to withdraw it from us.">কাস্টমারের পেমেন্ট সরাসরি আপনার নিজের বিকাশ, নগদ বা ব্যাংক অ্যাকাউন্টে যাবে। Lytro আপনার বিক্রির টাকা আটকে রাখবে না। পেমেন্ট পাওয়ার জন্য আমাদের কাছ থেকে টাকা তোলার অপেক্ষাও করতে হবে না।</p></div>
+        <div class="wcard card"><div class="ic"><svg><use href="#percent"/></svg></div><h3 data-en="No charge when you check payments yourself">নিজে পেমেন্ট মিলিয়ে নিলে কোনো চার্জ নেই</h3><p data-en="Verify a payment yourself and there is no extra fee. A service charge applies only when Lytro verifies payments automatically or takes them for you.">আপনি নিজে পেমেন্ট যাচাই করলে কোনো অতিরিক্ত ফি নেই। শুধু Lytro-এর মাধ্যমে অটোমেটিক পেমেন্ট যাচাই বা পেমেন্ট সুবিধা ব্যবহার করলেই প্রযোজ্য সার্ভিস চার্জ দিতে হবে।</p></div>
+        <div class="wcard card"><div class="ic"><svg><use href="#truck"/></svg></div><h3 data-en="Your courier account, your control">কুরিয়ার অ্যাকাউন্ট আপনার, নিয়ন্ত্রণও আপনার</h3><p data-en="Book parcels with your own Steadfast or Pathao account. The courier's rates, payments and other records all stay in your own account.">Steadfast বা Pathao-এর নিজের অ্যাকাউন্ট দিয়েই পার্সেল বুক করুন। কুরিয়ারের রেট, পেমেন্ট ও অন্যান্য হিসাব আপনার নিজের অ্যাকাউন্টেই থাকবে।</p></div>
+        <div class="wcard card"><div class="ic"><svg><use href="#globe"/></svg></div><h3 data-en="Run your whole shop in Bangla">পুরো দোকান চালান বাংলা ভাষায়</h3><p data-en="Orders, products, accounts, invoices and delivery details all read in Bangla. Switch to English with one tap when you need to.">অর্ডার, পণ্য, হিসাব, ইনভয়েস ও ডেলিভারির তথ্য—সবকিছু বাংলায় দেখুন। প্রয়োজনে এক ট্যাপেই ইংরেজিতে পরিবর্তন করুন।</p><p data-en="Lytro is made to be easy on a phone. You don't need a computer.">মোবাইল থেকেই সহজে ব্যবহার করার জন্য তৈরি Lytro। কম্পিউটার থাকা বাধ্যতামূলক নয়।</p></div>
+        <div class="wcard card"><div class="ic"><svg><use href="#db"/></svg></div><h3 data-en="Keep your business data safe">আপনার ব্যবসার তথ্য নিরাপদে রাখুন</h3><p data-en="Your shop's data is kept apart from every other shop's. An encrypted backup of your data is made every day, and there is a record of who changed what, and when.">আপনার দোকানের তথ্য অন্য দোকান থেকে আলাদা থাকবে। প্রতিদিন আপনার ডেটার এনক্রিপ্টেড ব্যাকআপ রাখা হবে। পাশাপাশি কে কখন কী পরিবর্তন করেছেন, তার রেকর্ডও থাকবে।</p></div>
+        <div class="wcard card"><div class="ic"><svg><use href="#code"/></svg></div><h3 data-en="Already have a website? No problem!">আগে থেকেই ওয়েবসাইট আছে? সমস্যা নেই!</h3><p data-en="Even with your own website or developer, you can use Lytro. Connect your website to Lytro through the API.">আপনার নিজের ওয়েবসাইট বা ডেভেলপার থাকলেও Lytro ব্যবহার করতে পারবেন। API-এর মাধ্যমে আপনার ওয়েবসাইটকে Lytro-এর সঙ্গে যুক্ত করুন।</p><p data-en="Your website keeps running as before, and Lytro handles orders, payments and couriers.">আপনার ওয়েবসাইট আগের মতোই চলবে, আর অর্ডার, পেমেন্ট ও কুরিয়ারের কাজ সামলাবে Lytro।</p></div>
       </div>
     </div>
   </section>
@@ -816,10 +820,19 @@
             <div class="who" data-en="For a shop that wants to try before paying">যে দোকান আগে দেখে তারপর দিতে চায়</div>
             <div class="price"><b>৳0</b><span data-en="per month">/ মাস</span></div>
             <ul>
-              <li><svg><use href="#check"/></svg><span data-en="A small fee only when an order is delivered">অর্ডার ডেলিভার হলে তবেই ছোট একটা ফি</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Per order, once it is booked with a courier or shipped: 1.5% of it, at least ৳20">অর্ডার কুরিয়ারে বুক বা শিপ হলে অর্ডারের 1.5%, কমপক্ষে ৳20</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Adding products is free">প্রোডাক্ট যোগ করা ফ্রি</span></li>
               <li><svg><use href="#check"/></svg><span data-en="Storefront, orders, courier booking, fake-order check">স্টোরফ্রন্ট, অর্ডার, কুরিয়ার বুকিং, ফেক অর্ডার চেক</span></li>
               <li><svg><use href="#check"/></svg><span data-en="bKash and Nagad payment matching">বিকাশ-নগদ পেমেন্ট ম্যাচিং</span></li>
               <li><svg><use href="#check"/></svg><span data-en="Top up a balance for SMS and paid features">SMS আর পেইড ফিচারের জন্য ব্যালেন্স টপ-আপ</span></li>
+            </ul>
+            <ul class="more">
+              <li><svg><use href="#check"/></svg><span data-en="Up to 25 products">২৫টি প্রোডাক্ট পর্যন্ত</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="1 seat: just you">১টি সিট: শুধু আপনি</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="250 MB storage">২৫০ MB স্টোরেজ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="10 GB bandwidth a month">মাসে ১০ GB ব্যান্ডউইথ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="100,000 API requests a month">মাসে ১,০০,০০০ API রিকোয়েস্ট</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="1 payment listener">১টি পেমেন্ট লিসেনার</span></li>
             </ul>
             <a href="#" class="btn btn-accent" data-en="Open a free shop">ফ্রি দোকান খুলুন</a>
           </div>
@@ -831,9 +844,15 @@
               <li><svg><use href="#check"/></svg><span data-en="Your own storefront included">নিজের স্টোরফ্রন্ট সহ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="100 products">১০০ প্রোডাক্ট</span></li>
               <li><svg><use href="#check"/></svg><span data-en="300 orders handled a month">মাসে ৩০০ অর্ডার হ্যান্ডলিং</span></li>
-              <li><svg><use href="#check"/></svg><span data-en="2 staff seats">২ স্টাফ সিট</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="2 seats: you + 1 staff">২টি সিট: আপনি + ১ জন স্টাফ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="10 free SMS a month">মাসে ১০টি ফ্রি SMS</span></li>
               <li class="no"><svg><use href="#x"/></svg><span data-en="Custom domain">নিজের ডোমেইন</span></li>
+            </ul>
+            <ul class="more">
+              <li><svg><use href="#check"/></svg><span data-en="2 GB storage">২ GB স্টোরেজ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="30 GB bandwidth a month">মাসে ৩০ GB ব্যান্ডউইথ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="200,000 API requests a month">মাসে ২,০০,০০০ API রিকোয়েস্ট</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="1 payment listener">১টি পেমেন্ট লিসেনার</span></li>
             </ul>
             <a href="#" class="btn btn-outline" data-en="Choose Starter">Starter নিন</a>
           </div>
@@ -845,9 +864,15 @@
               <li><svg><use href="#check"/></svg><span data-en="Your own storefront included">নিজের স্টোরফ্রন্ট সহ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="1,000 products">১,০০০ প্রোডাক্ট</span></li>
               <li><svg><use href="#check"/></svg><span data-en="1,500 orders handled a month">মাসে ১,৫০০ অর্ডার হ্যান্ডলিং</span></li>
-              <li><svg><use href="#check"/></svg><span data-en="5 staff seats">৫ স্টাফ সিট</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="5 seats: you + 4 staff">৫টি সিট: আপনি + ৪ জন স্টাফ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="15 free SMS a month">মাসে ১৫টি ফ্রি SMS</span></li>
               <li><svg><use href="#check"/></svg><span data-en="Custom domain">নিজের ডোমেইন</span></li>
+            </ul>
+            <ul class="more">
+              <li><svg><use href="#check"/></svg><span data-en="10 GB storage">১০ GB স্টোরেজ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="100 GB bandwidth a month">মাসে ১০০ GB ব্যান্ডউইথ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="600,000 API requests a month">মাসে ৬,০০,০০০ API রিকোয়েস্ট</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="3 payment listeners">৩টি পেমেন্ট লিসেনার</span></li>
             </ul>
             <a href="#" class="btn btn-primary" data-en="Choose Growth">Growth নিন</a>
           </div>
@@ -859,9 +884,16 @@
               <li><svg><use href="#check"/></svg><span data-en="Your own storefront included">নিজের স্টোরফ্রন্ট সহ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="5,000 products">৫,০০০ প্রোডাক্ট</span></li>
               <li><svg><use href="#check"/></svg><span data-en="6,000 orders handled a month">মাসে ৬,০০০ অর্ডার হ্যান্ডলিং</span></li>
-              <li><svg><use href="#check"/></svg><span data-en="15 staff seats">১৫ স্টাফ সিট</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="15 seats: you + 14 staff">১৫টি সিট: আপনি + ১৪ জন স্টাফ</span></li>
               <li><svg><use href="#check"/></svg><span data-en="20 free SMS a month">মাসে ২০টি ফ্রি SMS</span></li>
               <li><svg><use href="#check"/></svg><span data-en="Custom domain, same-day support">নিজের ডোমেইন, সেম-ডে সাপোর্ট</span></li>
+            </ul>
+            <ul class="more">
+              <li><svg><use href="#check"/></svg><span data-en="50 GB storage">৫০ GB স্টোরেজ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="300 GB bandwidth a month">মাসে ৩০০ GB ব্যান্ডউইথ</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="2,000,000 API requests a month">মাসে ২০,০০,০০০ API রিকোয়েস্ট</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="10 payment listeners">১০টি পেমেন্ট লিসেনার</span></li>
+              <li><svg><use href="#check"/></svg><span data-en="Brand identity: your colours, fonts and logo">ব্র্যান্ড আইডেন্টিটি: আপনার রং, ফন্ট আর লোগো</span></li>
             </ul>
             <a href="#" class="btn btn-outline" data-en="Choose Pro">Pro নিন</a>
           </div>

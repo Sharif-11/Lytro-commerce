@@ -38,6 +38,8 @@ const paths = {
   map: 'M12 21s6-5.5 6-11a6 6 0 1 0-12 0c0 5.5 6 11 6 11Zm0-9a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z',
   layers: 'm12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5',
   sparkle: 'M12 3v4m0 10v4m9-9h-4M7 12H3m14.5-6.5-3 3m-7 7-3 3m0-13 3 3m7 7 3 3',
+  plus: 'M12 5v14M5 12h14',
+  play: 'M8 6.5v11l9-5.5-9-5.5Z',
 } as const;
 
 export type IconName = keyof typeof paths;

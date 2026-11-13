@@ -302,6 +302,14 @@ feature flags as chips with strike-through for off, the version sentence ("v3 re
 records v4; shops already on v3 keep it until they renew", PLN-02), a link to the version history, Delete
 disabled with the reference count. The button is "Save as v4", or "Create plan".
 
+**Suggested plan** (small fixes, 2026-11-13): under the for-sale switch, a "Suggested plan" switch (সাজেস্টেড
+প্ল্যান) that saves the moment it is flipped (`PUT /operator/plans/:id/suggested`) and records no new version: it
+is how the landing page is told which card to highlight, not a term of the plan. One plan at a time, so turning
+it on moves the mark, and the note under it names the plan it moves from. A new plan and the Trial have no
+switch; a plan the pricing page doesn't show (not for sale, other than Pay-as-you-go) has it off and greyed, with
+the reason. The matrix shows a "suggested" chip beside the for-sale one. Prototype screens `plan-edit` and
+`plan-edit-suggest`.
+
 **Version history** (panel): each version with its date and what changed, the current one marked, and how
 many shops sit on each. **Delete refused** (dialog): the count that blocks it and PLN-08.
 

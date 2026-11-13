@@ -3,6 +3,7 @@ import {
   BillingTermsRepository,
   PAYG_PLAN_NAME,
   PlanAssignmentsRepository,
+  TRIAL_PLAN_NAME,
   PlanLimitOverridesRepository,
   PlanPricesRepository,
   PlansRepository,
@@ -58,6 +59,10 @@ export class DrizzlePlansStore implements PlansStore {
     return this.plans.findById(tx, id);
   }
 
+  findByIdForUpdate(tx: Transaction, id: string) {
+    return this.plans.findByIdForUpdate(tx, id);
+  }
+
   listForSale(tx: Transaction) {
     return this.plans.listForSale(tx);
   }
@@ -83,6 +88,22 @@ export class DrizzlePlansStore implements PlansStore {
 
   isReferenced(tx: Transaction, id: string) {
     return this.plans.isReferenced(tx, id);
+  }
+
+  isPlatformPlan(name: string): boolean {
+    return name === TRIAL_PLAN_NAME || name === PAYG_PLAN_NAME;
+  }
+
+  isPayAsYouGo(name: string): boolean {
+    return name === PAYG_PLAN_NAME;
+  }
+
+  lockSuggestion(tx: Transaction) {
+    return this.plans.lockSuggestion(tx);
+  }
+
+  setSuggested(tx: Transaction, id: string, suggested: boolean) {
+    return this.plans.setSuggested(tx, id, suggested);
   }
 
   shopsByVersion(tx: Transaction) {

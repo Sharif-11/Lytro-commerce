@@ -10,12 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { rowClass, RowChevron, RowLead, RowList } from '@/components/ui/list-row';
 import { StatusTag } from '@/components/ui/status-tag';
-import { appConfig } from '@/lib/app-config';
 import { formatDayMonth } from '@/lib/dates';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import type { ListenerPhone } from '@/types/payments';
+import { AppCard, AppRow, AppSheet } from './app-download';
 import { PairSheet } from './pair-sheet';
 import { spanWords } from './phone-health';
 import { PhoneSheet } from './phone-sheet';
@@ -27,16 +27,6 @@ const GONE_WORD: Record<ListenerRevokeReason, string> = {
   [ListenerRevokeReason.Flags]: 'lpGoneFlags',
   [ListenerRevokeReason.InstallationBlocked]: 'lpGoneBlocked',
 };
-
-const appLinkClass = 'inline-flex items-center gap-1 font-semibold text-primary underline';
-
-function AppLink({ children }: { children: React.ReactNode }): React.JSX.Element {
-  return (
-    <a href={appConfig.listenerAppUrl()} target="_blank" rel="noreferrer" className={appLinkClass}>
-      {children} <Icon name="external" />
-    </a>
-  );
-}
 
 function PhoneRow({
   phone,
@@ -71,7 +61,8 @@ function PhoneRow({
 
 /**
  * Listener phones (TENANT-DASHBOARD-DESIGN §7.37, the prototype's `lp35`, LSN-02, LSN-20, Slice 5.8's part 4): the phones reading
- * this shop's payment SMS. Pairing stops at the plan's limit (LSN-08), and a phone cancelled stays listed with why.
+ * this shop's payment SMS. Pairing stops at the plan's limit (LSN-08), and a phone cancelled stays listed with why. The app's
+ * download and how to install it are here too (§7.44): a card before the first phone, a row after.
  */
 export function ListenerPhonesView(): React.JSX.Element {
   const { t } = useTranslation('menu');
@@ -79,6 +70,7 @@ export function ListenerPhonesView(): React.JSX.Element {
   const canManage = allows(viewer, [Permission.ListenerManage]);
   const phones = useListenerPhones();
   const [pairing, setPairing] = useState(false);
+  const [appOpen, setAppOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const data = phones.data;
@@ -125,19 +117,7 @@ export function ListenerPhonesView(): React.JSX.Element {
           </Banner>
         ) : null}
         {flagged ? <Banner tone="warn">{t('lpFlags')}</Banner> : null}
-        {data && active.length === 0 ? (
-          <Card>
-            <h2 className="mt-0 mb-2 text-[16px] font-semibold">{t('lpStepsTitle')}</h2>
-            <ol className="m-0 flex list-decimal flex-col gap-1.5 ps-5 text-[15px]">
-              <li>{t('lpStep1')}</li>
-              <li>{t('lpStep2')}</li>
-              <li>{t('lpStep3')}</li>
-            </ol>
-            <div className="mt-3">
-              <AppLink>{t('lpGetApp')}</AppLink>
-            </div>
-          </Card>
-        ) : null}
+        {data && active.length === 0 ? <AppCard /> : null}
         {active.length > 0 && data ? (
           <Card flush>
             <div className="num bg-neutral-50 px-4 py-2 text-[13px] font-semibold text-fg-muted">
@@ -186,9 +166,11 @@ export function ListenerPhonesView(): React.JSX.Element {
           </Card>
         ) : null}
         {active.length > 0 ? (
-          <div>
-            <AppLink>{t('lpGetApp')}</AppLink>
-          </div>
+          <AppRow
+            onOpen={() => {
+              setAppOpen(true);
+            }}
+          />
         ) : null}
       </div>
       {pairing ? (
@@ -196,6 +178,17 @@ export function ListenerPhonesView(): React.JSX.Element {
           known={data?.devices.map((each) => each.id) ?? []}
           onClose={() => {
             setPairing(false);
+          }}
+          onNoApp={() => {
+            setPairing(false);
+            setAppOpen(true);
+          }}
+        />
+      ) : null}
+      {appOpen ? (
+        <AppSheet
+          onClose={() => {
+            setAppOpen(false);
           }}
         />
       ) : null}

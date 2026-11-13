@@ -442,10 +442,9 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
     tenantId: string,
     cycle: Pick<ApiUsageRow, 'packUsed' | 'packFree'>,
   ): Promise<CyclePacks> {
-    const [bought, taken] = await Promise.all([
-      this.store.packsBought(tenantId, tx),
-      this.store.packsTaken(tenantId, tx),
-    ]);
+    // In turn: the transaction's one connection runs one query at a time.
+    const bought = await this.store.packsBought(tenantId, tx);
+    const taken = await this.store.packsTaken(tenantId, tx);
     return cyclePacks(bought, taken, cycle);
   }
 

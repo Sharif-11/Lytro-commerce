@@ -1,7 +1,5 @@
 import { StorefrontFrame } from '@/components/mockups/storefront-frame';
 import { TrackingFrame } from '@/components/mockups/tracking-frame';
-import { Container } from '@/components/ui/container';
-import { SectionHeading } from '@/components/ui/section-heading';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import type { Language } from '@/lib/i18n/language';
 
@@ -17,30 +15,37 @@ const text = {
   trackingSub: { bn: 'SMS-এর লিংক থেকে খোলে', en: 'opened from the SMS link' },
 } satisfies Record<string, Bilingual>;
 
-/** Shown only when the storefront is live (LIVE_FEATURES includes `showcase`). */
+/** Shown only when the storefront is live (LIVE_FEATURES includes `showcase`): the sketch's two browser frames, side
+    by side from 640 px, each with its caption. */
 export function Showcase({ language }: { language: Language }) {
   const copy = new Copy(language);
   return (
-    <section id="showcase" className="scroll-mt-16 bg-neutral-50">
-      <Container className="py-16 sm:py-20">
-        <SectionHeading eyebrow={copy.of(text.eyebrow)} title={copy.of(text.title)} />
-        <div className="mx-auto mt-10 grid max-w-[960px] gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-start">
-          <figure>
+    <section className="sec tint" id="showcase">
+      <div className="wrap">
+        <div className="sec-head">
+          <span className="eyebrow">
+            <i />
+            <span>{copy.of(text.eyebrow)}</span>
+          </span>
+          <h2>{copy.of(text.title)}</h2>
+        </div>
+        <div className="show">
+          <figure className="frame">
             <StorefrontFrame language={language} />
-            <figcaption className="mt-3 text-center text-[14px] text-neutral-700">
-              <span className="font-bold text-ink">{copy.of(text.storefront)}</span> ·{' '}
-              {copy.of(text.storefrontSub)}
+            <figcaption className="cap">
+              <h3>{copy.of(text.storefront)}</h3>
+              <span>{copy.of(text.storefrontSub)}</span>
             </figcaption>
           </figure>
-          <figure>
+          <figure className="frame">
             <TrackingFrame language={language} />
-            <figcaption className="mt-3 text-center text-[14px] text-neutral-700">
-              <span className="font-bold text-ink">{copy.of(text.tracking)}</span> ·{' '}
-              {copy.of(text.trackingSub)}
+            <figcaption className="cap">
+              <h3>{copy.of(text.tracking)}</h3>
+              <span>{copy.of(text.trackingSub)}</span>
             </figcaption>
           </figure>
         </div>
-      </Container>
+      </div>
     </section>
   );
 }

@@ -116,15 +116,22 @@ them without a token. They hold only the public repository's code, never a secre
 Re-run the latest Deploy workflow on `main` (Actions → Deploy → Re-run all jobs), or merge anything. Its staging job
 deploys, then checks every host from outside. The first certificates can take a minute.
 
-Then make the first operator (the console's sign-in), on the server:
+A run reads `DEPLOY_ENABLED` when it is queued, so one queued before the variable was `true` skips its staging job.
+Re-running only that job reads the variable again: `gh run rerun <run id> --job <the deploy-staging job's id>` (the ids
+are in `gh run view <run id> --json jobs`).
+
+Then make the first operator (the console's sign-in), on the server. In a root shell: `settings.env` is readable by
+root and the deploy group only.
 
 ```
+sudo -s
 cd /opt/lytro/state/current
 set -a; . /opt/lytro/settings.env; . /opt/lytro/state/release.env; set +a
 read -rs PASSWORD   # type it, then Enter; it isn't shown or kept in the history
-sudo -E docker compose --profile tools run --rm migrate \
+docker compose --profile tools run --rm migrate \
   node node_modules/@lytronix/db/dist/create-operator.js <your email> "$PASSWORD"
 unset PASSWORD
+exit
 ```
 
 ## Moving PostgreSQL to a new major version

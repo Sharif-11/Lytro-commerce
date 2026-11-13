@@ -1,35 +1,42 @@
 'use client';
 
-import Link from 'next/link';
-import { type ReactNode, useEffect, useState } from 'react';
-import { buttonClass } from '@/components/ui/button';
+import { type MouseEvent, type ReactNode, useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/icon';
 
-export interface MenuLink {
-  href: string;
-  label: string;
-}
+/** The width from which the bar shows its links and the phone sheet is gone (site.css, 900 px). */
+const DESKTOP_QUERY = '(min-width: 900px)';
 
-/** The bar and its phone sheet, exactly as the sketch lays them out: a 64 px sticky bar, and under the
-    desktop breakpoint a burger that opens a white panel filling the screen below the bar. The panel is a
-    sibling of the bar, never inside it, because the bar's blur would otherwise become the panel's
-    positioning box. `bar` is the server-rendered content of the bar (wordmark, links, toggle, buttons). */
+/** The sketch's floating capsule and its phone sheet. On the landing page (`overHero`) the capsule floats over the
+    hero as dark glass and turns to white glass once the hero has scrolled past; on every other page it sits in the
+    page's flow, white from the start, so their own first sections are never covered. Under 900 px the burger opens
+    the full-screen dark sheet; the sheet is a sibling of the bar, never inside it, because the bar's blur would
+    otherwise become the sheet's positioning box. `bar` and `sheet` are server-rendered. */
 export function NavShell({
   bar,
-  links,
-  login,
-  cta,
-  note,
+  sheet,
+  overHero,
   labels,
 }: {
   bar: ReactNode;
-  links: MenuLink[];
-  login: MenuLink;
-  cta: MenuLink;
-  note: string;
+  sheet: ReactNode;
+  overHero: boolean;
   labels: { open: string; close: string };
 }) {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(!overHero);
+
+  useEffect(() => {
+    if (!overHero) return;
+    const hero = document.getElementById('hero');
+    const update = () => {
+      setScrolled(hero ? window.scrollY > hero.offsetHeight - 80 : window.scrollY > 0);
+    };
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', update);
+    };
+  }, [overHero]);
 
   useEffect(() => {
     if (!open) return;
@@ -38,67 +45,53 @@ export function NavShell({
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false);
     };
+    const desktop = window.matchMedia(DESKTOP_QUERY);
+    const onWide = () => {
+      if (desktop.matches) setOpen(false);
+    };
     window.addEventListener('keydown', onKey);
+    desktop.addEventListener('change', onWide);
     return () => {
       document.body.style.overflow = previous;
       window.removeEventListener('keydown', onKey);
+      desktop.removeEventListener('change', onWide);
     };
   }, [open]);
 
-  const close = () => {
-    setOpen(false);
+  // Any link in the sheet takes the visitor somewhere, so the sheet closes behind it.
+  const closeOnLink = (event: MouseEvent<HTMLDivElement>) => {
+    if (event.target instanceof Element && event.target.closest('a')) setOpen(false);
   };
+
+  const headerClass = ['nav', overHero ? '' : 'nav-flow', scrolled ? 'scrolled' : '']
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-[1160px] items-center gap-2 px-4 sm:px-6 lg:px-8">
+      <header className={headerClass}>
+        <div className="navbar">
           {bar}
           <button
             type="button"
+            className="burger"
             aria-label={open ? labels.close : labels.open}
             aria-expanded={open}
             aria-controls="mobile-menu"
             onClick={() => {
               setOpen((value) => !value);
             }}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control border border-line-strong bg-white text-ink hover:bg-neutral-50 lg:hidden"
           >
-            <Icon name={open ? 'x' : 'menu'} size={22} />
+            <Icon name={open ? 'x' : 'menu'} size={20} />
           </button>
         </div>
       </header>
-
       <div
         id="mobile-menu"
-        hidden={!open}
-        className="fixed inset-x-0 top-16 bottom-0 z-40 overflow-y-auto bg-white lg:hidden"
+        className={open ? 'mobile-menu open' : 'mobile-menu'}
+        onClick={closeOnLink}
       >
-        <nav
-          aria-label="Menu"
-          className="mx-auto grid w-full max-w-[1160px] gap-1 px-4 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6"
-        >
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={close}
-              className="flex min-h-12 items-center rounded-control px-3 text-[18px] font-semibold text-ink hover:bg-neutral-50"
-            >
-              {link.label}
-            </Link>
-          ))}
-          <a
-            href={login.href}
-            className="flex min-h-12 items-center rounded-control px-3 text-[18px] font-semibold text-ink hover:bg-neutral-50"
-          >
-            {login.label}
-          </a>
-          <a href={cta.href} className={`mt-3 ${buttonClass('accent', 'lg')}`}>
-            {cta.label}
-          </a>
-          <p className="mt-4 px-3 text-[14px] text-neutral-700">{note}</p>
-        </nav>
+        {sheet}
       </div>
     </>
   );

@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { DAY_ONE, mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
 import { drawnMethods } from './support/payment-methods';
 import {
+  DRAWN_LISTENER_APP,
   drawnShopPayments,
   OLD_PHONE,
   phone,
@@ -16,7 +17,39 @@ import {
 // code, and the ways in from Payment methods and Home's checklist. Each test runs on a phone and on a desktop.
 
 const PAGE = '/settings/listener';
-const APP_PAGE = 'https://lytro.app/listener';
+// §7.44: the app's file, straight from its downloads host, as GET /listener/app gives it.
+const APP_FILE = 'https://download.lytro.app/lytro-listener-1.0.0.apk';
+const INSTALL_STEPS = [
+  "On the phone with the shop's bKash SIM, tap Download; when it's done, open the file",
+  'If the phone asks, turn on “Allow from this source” in its settings, then come back',
+  'If Play Protect warns you, tap “More details”, then “Install anyway”',
+  'Open the app, let it read SMS, then pair the phone from here',
+];
+
+/** The download, its version and size, the QR on a computer only, and the four steps. */
+async function expectTheApp(page: Page, where: ReturnType<Page['getByRole']>): Promise<void> {
+  await expect(where.getByRole('link', { name: 'Download for Android' })).toHaveAttribute(
+    'href',
+    APP_FILE,
+  );
+  await expect(where).toContainText('Version 1.0.0 · 2.8 MB');
+  await expect(where).toContainText("It isn't on the Play Store: get it straight from Lytro.");
+  await expect(where.getByRole('listitem')).toHaveText(INSTALL_STEPS);
+  const qr = where.getByRole('img', { name: 'QR code to download the app' });
+  const onPhone = (page.viewportSize()?.width ?? 0) < 1024;
+  if (onPhone) {
+    await expect(qr).toBeHidden();
+    return;
+  }
+  await expect(qr).toBeVisible();
+  // The squares drawn are the file's own link, so a phone's camera downloads that file.
+  const { modules } = QRCode.create(APP_FILE, { errorCorrectionLevel: 'M' });
+  let squares = 0;
+  for (let y = 0; y < modules.size; y += 1) {
+    for (let x = 0; x < modules.size; x += 1) if (modules.get(y, x)) squares += 1;
+  }
+  expect(((await qr.locator('path').getAttribute('d')) ?? '').match(/M/g)).toHaveLength(squares);
+}
 
 async function open(
   page: Page,
@@ -90,11 +123,24 @@ test('the phones: how each is doing, against the plan, and those cancelled', asy
   await expect(main(page)).toContainText('Cancelled phones');
   await expect(main(page)).toContainText('Old phone');
   await expect(main(page)).toContainText('Cancelled from the shop');
-  await expect(main(page).getByRole('link', { name: /Download the app/ })).toHaveAttribute(
-    'href',
-    APP_PAGE,
+  await expect(main(page).getByRole('button', { name: /The Lytro Listener app/ })).toContainText(
+    'Version 1.0.0 · 2.8 MB · How to install',
   );
   await expectAccessible(page);
+});
+
+test("the app's row opens its download and how to install it (§7.44)", async ({ page }) => {
+  const log = await open(page);
+  await main(page)
+    .getByRole('button', { name: /The Lytro Listener app/ })
+    .click();
+  const app = sheet(page);
+  await expect(app.getByRole('heading', { name: 'The Lytro Listener app' })).toBeVisible();
+  await expectTheApp(page, app);
+  expect(log.calls.filter((call) => call.path === '/listener/app')).toHaveLength(1);
+  await expectAccessible(page);
+  await app.getByRole('button', { name: 'Close' }).click();
+  await expect(app).toBeHidden();
 });
 
 test("a phone that hasn't reported yet hasn't been seen", async ({ page }) => {
@@ -131,19 +177,42 @@ test('every way a phone can be cancelled has its own words', async ({ page }) =>
   await expect(main(page)).toContainText('Lytro blocked the app on this phone');
 });
 
-test('none yet says how to set it up, with the guide', async ({ page }) => {
+test("none yet shows the app's card: its download, and how to install it (§7.44)", async ({
+  page,
+}) => {
   const fixture = drawnShopPayments();
   fixture.phones = [];
   await open(page, fixture);
-  await expect(main(page)).toContainText('How to set it up');
-  await expect(main(page)).toContainText("Install the app on the phone with the shop's bKash SIM");
-  await expect(main(page).getByRole('link', { name: /Download the app/ })).toHaveAttribute(
-    'href',
-    APP_PAGE,
-  );
+  await expect(main(page).getByRole('heading', { name: 'The Lytro Listener app' })).toBeVisible();
+  await expectTheApp(page, main(page));
+  await expect(main(page).getByRole('button', { name: /The Lytro Listener app/ })).toHaveCount(0);
   await expect(main(page)).not.toContainText('phones paired');
   await expect(main(page).getByRole('button', { name: 'Pair a phone' })).toBeVisible();
   await expectAccessible(page);
+});
+
+test("with no release to offer, there's no button or QR, only why, and the steps (§7.44)", async ({
+  page,
+}) => {
+  const fixture = drawnShopPayments();
+  fixture.phones = [];
+  await open(page, fixture, { listenerApp: { release: null } });
+  await expect(main(page)).toContainText(
+    "The app can't be downloaded right now. Please try again shortly.",
+  );
+  await expect(main(page).getByRole('link', { name: 'Download for Android' })).toHaveCount(0);
+  await expect(main(page).getByRole('img', { name: 'QR code to download the app' })).toHaveCount(0);
+  await expect(main(page).getByRole('listitem')).toHaveText(INSTALL_STEPS);
+  await expectAccessible(page);
+});
+
+test('with phones and no release, the row still opens how to install it', async ({ page }) => {
+  await open(page, drawnShopPayments(), { listenerApp: { release: null } });
+  const row = main(page).getByRole('button', { name: /The Lytro Listener app/ });
+  await expect(row).toContainText('How to install');
+  await expect(row).not.toContainText('Version');
+  await row.click();
+  await expect(sheet(page)).toContainText("The app can't be downloaded right now.");
 });
 
 test('a plan with no limit just says how many', async ({ page }) => {
@@ -270,7 +339,6 @@ test('Pair: a code as a QR and as text, and it holds the app’s link', async ({
   await expect(pairing).toContainText(/This code is open for (9:\d\d|10:00) more/);
   await expect(pairing).toContainText('Waiting for the phone…');
   await expect(pairing).toContainText('Scan this QR, or type the code');
-  await expect(pairing.getByRole('link', { name: /No app yet/ })).toHaveAttribute('href', APP_PAGE);
 
   // The squares drawn are the link's own, not a picture of something else.
   const link = 'lytro-listener://pair?code=K7MP4X2H';
@@ -292,6 +360,17 @@ test('Pair: a code as a QR and as text, and it holds the app’s link', async ({
   if (onPhone) await expect(inApp).toBeVisible();
   else await expect(inApp).toBeHidden();
   await expectAccessible(page);
+});
+
+test("Pair's No app yet? opens the app's download in its place (§7.44)", async ({ page }) => {
+  await open(page);
+  await main(page).getByRole('button', { name: 'Pair a phone' }).click();
+  await expect(sheet(page)).toContainText('K7MP 4X2H');
+  await sheet(page).getByRole('button', { name: 'No app yet? Download it' }).click();
+  await expect(sheet(page)).toHaveCount(1);
+  await expect(sheet(page).getByRole('heading', { name: 'The Lytro Listener app' })).toBeVisible();
+  await expect(sheet(page)).not.toContainText('K7MP 4X2H');
+  await expectTheApp(page, sheet(page));
 });
 
 test('the code is made once for one opening', async ({ page }) => {
@@ -388,8 +467,14 @@ test('reads in Bangla, with no key showing', async ({ page }) => {
   await expect(main(page)).toContainText('অফলাইন');
   await expect(main(page)).toContainText('4 মিনিট আগে দেখা গেছে');
   await expect(main(page)).toContainText('ক্যানসেল করা ফোন');
+  await expect(main(page).getByRole('button', { name: /Lytro Listener অ্যাপ/ })).toContainText(
+    'ভার্সন 1.0.0 · 2.8 MB · কীভাবে ইনস্টল করবেন',
+  );
   await main(page).getByRole('button', { name: 'ফোন পেয়ার করুন' }).click();
   await expect(sheet(page)).toContainText('ফোনের অপেক্ষায়…');
+  await sheet(page).getByRole('button', { name: 'অ্যাপ এখনও নেই? ডাউনলোড করুন' }).click();
+  await expect(sheet(page).getByRole('link', { name: 'Android-এর জন্য ডাউনলোড' })).toBeVisible();
+  await expect(sheet(page)).toContainText('যেভাবে ইনস্টল করবেন');
   expect(await page.locator('body').innerText()).not.toMatch(/\b(sp|lp)[A-Z][A-Za-z]+\b/);
 });
 
@@ -405,4 +490,5 @@ test('fits a narrow phone', async ({ page }) => {
 test('uses the fixtures it is given', () => {
   expect(SHOP_PHONE.online).toBe(false);
   expect(OLD_PHONE.status).toBe('revoked');
+  expect(DRAWN_LISTENER_APP.release?.url).toBe(APP_FILE);
 });

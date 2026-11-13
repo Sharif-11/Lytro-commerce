@@ -133,6 +133,18 @@ async function reserve(
   lines: ReservationLine[],
   options: { orderId?: string; awaitingPayment?: boolean; now?: Date } = {},
 ): Promise<ReservationRecord[]> {
+  return (await readied(shop, lines, options))();
+}
+
+/**
+ * Seeds the order, then hands back its reservation to run later. The race tests seed one order at a time -- `admin` is
+ * one connection (test/support/one-query-per-connection.ts) -- and race only the reservations, which is what they test.
+ */
+async function readied(
+  shop: ShopClient,
+  lines: ReservationLine[],
+  options: { orderId?: string; awaitingPayment?: boolean; now?: Date } = {},
+): Promise<() => Promise<ReservationRecord[]>> {
   const orderId = options.orderId ?? randomUUID();
   await seedOrderFor(
     admin,
@@ -140,6 +152,15 @@ async function reserve(
     orderId,
     lines.map((entry) => entry.orderLineId),
   );
+  return () => hold(shop, orderId, lines, options);
+}
+
+function hold(
+  shop: ShopClient,
+  orderId: string,
+  lines: ReservationLine[],
+  options: { awaitingPayment?: boolean; now?: Date },
+): Promise<ReservationRecord[]> {
   return inTx((tx) =>
     app
       .get(ReservationService)
@@ -449,10 +470,11 @@ describeIfDatabase('holding stock for orders (INV-15, PRD-07)', () => {
     const shop = await openShop(port, texts, 'last-unit');
     for (let round = 0; round < 5; round += 1) {
       const { product, variantId } = await simple(shop, `Last one ${String(round)}`, 1);
-      const results = await Promise.allSettled([
-        reserve(shop, [line(variantId, 1)]),
-        reserve(shop, [line(variantId, 1)]),
-      ]);
+      const holds = [
+        await readied(shop, [line(variantId, 1)]),
+        await readied(shop, [line(variantId, 1)]),
+      ];
+      const results = await Promise.allSettled(holds.map((go) => go()));
       expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
       const refused = results.find((result) => result.status === 'rejected');
       expect((refused as PromiseRejectedResult).reason).toMatchObject({
@@ -473,9 +495,10 @@ describeIfDatabase('holding stock for orders (INV-15, PRD-07)', () => {
   it('gives ten simultaneous orders for five units five holds and five conflicts, never below zero (INV-05)', async () => {
     const shop = await openShop(port, texts, 'rush');
     const { product, variantId } = await simple(shop, 'Rush soap', 5);
-    const results = await Promise.allSettled(
-      Array.from({ length: 10 }, () => reserve(shop, [line(variantId, 1)])),
-    );
+    const holds: (() => Promise<ReservationRecord[]>)[] = [];
+    for (let order = 0; order < 10; order += 1)
+      holds.push(await readied(shop, [line(variantId, 1)]));
+    const results = await Promise.allSettled(holds.map((go) => go()));
     expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(5);
     for (const result of results) {
       if (result.status === 'rejected') expect(result.reason).toMatchObject({ code: 'conflict' });
@@ -500,9 +523,9 @@ describeIfDatabase('holding stock for orders (INV-15, PRD-07)', () => {
         variantAttributes: [{ attributeId, optionIds: ids }],
         variants: ids.map((id) => ({ optionIds: [id], openingStock: 1 })),
       });
-      const results = await Promise.allSettled(
-        kurti.variants.map((row) => reserve(shop, [line(row.id, 1)])),
-      );
+      const holds: (() => Promise<ReservationRecord[]>)[] = [];
+      for (const row of kurti.variants) holds.push(await readied(shop, [line(row.id, 1)]));
+      const results = await Promise.allSettled(holds.map((go) => go()));
       expect(results.map((result) => result.status)).toEqual(['fulfilled', 'fulfilled']);
       // CCH-08: the public state the second writer stored saw the first writer's hold.
       expect(await publicState(shop, kurti.id)).toBe('out');

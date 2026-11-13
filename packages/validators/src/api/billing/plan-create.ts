@@ -23,3 +23,10 @@ export const updatePlanSchema = z.object({
   features: z.record(z.boolean()).optional(),
 });
 export type UpdatePlanInput = z.infer<typeof updatePlanSchema>;
+
+// PUT /operator/plans/:id/suggested (PLN-21): marks or unmarks the plan the pricing page highlights. Its own route, not
+// a PATCH field: the mark is not a plan term, so it never makes a new version.
+export const setPlanSuggestedSchema = z.object({
+  suggested: z.boolean(),
+});
+export type SetPlanSuggestedInput = z.infer<typeof setPlanSuggestedSchema>;

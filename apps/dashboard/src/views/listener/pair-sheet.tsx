@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { buttonClass } from '@/components/ui/classes';
 import { QrCode } from '@/components/ui/qr-code';
 import { Sheet } from '@/components/ui/sheet';
-import { appConfig } from '@/lib/app-config';
 import type { PairingCode } from '@/types/payments';
 
 // While the sheet is open it looks for the new phone this often, so pairing shows here by itself.
@@ -31,15 +30,18 @@ const pairLink = (code: string): string => `lytro-listener://pair?code=${code}`;
 
 /**
  * Pair a phone (the prototype's `sh-lp35-pair`, LSN-01, LSN-09): a single-use code as a QR and as text, open 10 minutes. It makes a
- * code on opening, and watches for the phone that uses it.
+ * code on opening, and watches for the phone that uses it. "No app yet?" opens the app's own sheet (§7.44).
  */
 export function PairSheet({
   known,
   onClose,
+  onNoApp,
 }: {
   /** The phones here when it opens, so a new one can be told apart. */
   known: readonly string[];
   onClose: () => void;
+  /** The app's download and how to install it, in place of this sheet. */
+  onNoApp: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('menu');
   const make = useMakePairingCode();
@@ -165,14 +167,13 @@ export function PairSheet({
           <p className="m-0 flex items-center gap-2 text-[14px] text-fg-muted">
             <Icon name="clock" /> {t('lpWaiting')}
           </p>
-          <a
-            href={appConfig.listenerAppUrl()}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 font-semibold text-primary underline"
+          <button
+            type="button"
+            onClick={onNoApp}
+            className="inline-flex items-center gap-1 self-start font-semibold text-primary underline"
           >
-            {t('lpNoApp')} <Icon name="external" />
-          </a>
+            <Icon name="download" size={16} /> {t('lpNoApp')}
+          </button>
         </>
       ) : null}
     </Sheet>

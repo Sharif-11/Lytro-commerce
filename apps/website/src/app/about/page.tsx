@@ -4,6 +4,7 @@ import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteNav } from '@/components/layout/site-nav';
 import { Container } from '@/components/ui/container';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { Paragraphs } from '@/components/ui/paragraphs';
 import { SectionHeading } from '@/components/ui/section-heading';
 import { SiteEnvironment } from '@/lib/env';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
@@ -13,7 +14,7 @@ import { AppUrls } from '@/lib/urls';
 export const metadata: Metadata = {
   title: 'আমাদের সম্পর্কে',
   description:
-    'Lytro শুরু হয়েছিল ঢাকার একটা গ্যাজেটের দোকানের নিজের টুল হিসেবে। সেই দোকানটা আজও প্রতিদিন এটাতেই চলে।',
+    'আমরা নিজেরাও অনলাইন ব্যবসা করি। Lytro তৈরি হয়েছে আমাদের নিজেদের অনলাইন ব্যবসার প্রয়োজন থেকে।',
   alternates: { canonical: '/about' },
 };
 
@@ -21,40 +22,36 @@ export const metadata: Metadata = {
 const text = {
   eyebrow: { bn: 'আমাদের সম্পর্কে', en: 'About' },
   title: {
-    bn: 'আমরা আগে সেলার। সফটওয়্যারটা পরে এসেছে।',
-    en: 'We are sellers first. The software came second.',
+    bn: 'আমরা নিজেরাও অনলাইন ব্যবসা করি। তাই আপনার সমস্যাগুলো বুঝি।',
+    en: 'We run an online business too, so we know your problems.',
   },
   lead: {
-    bn: 'Lytro শুরু হয়েছিল ঢাকার একটা গ্যাজেটের দোকানের নিজের টুল হিসেবে, ফেক অর্ডারে টাকা আর কুরিয়ারে ঘণ্টা হারানো বন্ধ করতে। সেই দোকানটা আজও প্রতিদিন এটাতেই চলে। এখন আপনারটাও চলবে।',
-    en: 'Lytro began as the tool one Dhaka gadget shop built to stop losing money on fake orders and lost hours on couriers. It still runs that shop every day. Now it runs yours.',
+    bn: 'Lytro তৈরি হয়েছে আমাদের নিজেদের অনলাইন ব্যবসার প্রয়োজন থেকে। অর্ডার সামলানো, ভুয়া অর্ডার চেনা, পেমেন্টের হিসাব মেলানো আর কুরিয়ার বুক করতে গিয়ে প্রতিদিন অনেক সময় নষ্ট হতো।\n\nনিজেদের এই সমস্যাগুলোর সমাধান করতে গিয়েই Lytro-এর শুরু। এখন সেই সুবিধাগুলোই আমরা নিয়ে এসেছি আপনার ব্যবসার জন্য।',
+    en: 'Lytro grew out of what our own online business needed. Handling orders, spotting fake ones, matching payments and booking couriers cost us hours every day.\n\nLytro began as our fix for those problems. Now we have brought the same tools to your business.',
   },
-  storyEyebrow: { bn: 'গল্পটা', en: 'The story' },
+  storyEyebrow: { bn: 'আমাদের গল্প', en: 'Our story' },
   storyTitle: {
-    bn: 'বোর্ডরুমে নয়, দোকানের কাউন্টারে বানানো',
-    en: 'Built on a shop counter, not in a boardroom',
-  },
-  story1: {
-    bn: 'Lytronix ঢাকায় ব্যাটারি আর গ্যাজেট বিক্রি করে, বেশিরভাগই একটা ফেসবুক পেজ আর একটা ফোন দিয়ে। অর্ডার থাকতো মেসেঞ্জারে আর খাতায়। প্রতিদিন কেউ একজন কুরিয়ার পোর্টালে ঠিকানা টাইপ করতো, বিকাশের SMS হাতে হাতে অর্ডারের সাথে মেলাতো, আর এমন নম্বরে শিপ করতো যেটা আগেই তিনটা পার্সেল ফেরত দিয়েছে।',
-    en: 'Lytronix sells batteries and gadgets in Dhaka, mostly through a Facebook page and a phone. Orders lived in Messenger and a notebook. Every day someone typed addresses into a courier portal, matched bKash SMS to orders by hand, and shipped to numbers that had returned three parcels before.',
-  },
-  story2: {
-    bn: 'তাই আমরা নিজেদের দরকারি টুলটা বানালাম: অর্ডারের জন্য এক স্ক্রিন, এক ট্যাপে কুরিয়ার বুকিং, পেমেন্ট SMS পড়ার ছোট একটা অ্যাপ, আর এমন একটা চেক যেটা মনে রাখে কোন নম্বর আমাদের ঠকিয়েছে। কাজ হলো। পরিচিত সেলাররা চাইলো। Lytro সেই টুলটাই, নতুন করে বানানো, যাতে যেকোনো দোকান ব্যবহার করতে পারে, বাংলায়, ফোন থেকে।',
-    en: 'So we built the tool we needed: one screen for orders, a courier booking that took one tap, a small app that read payment SMS, and a check that remembered which numbers had burned us. It worked. Sellers we knew asked for it. Lytro is that tool, rebuilt so any shop can use it, in Bangla, from a phone.',
+    bn: 'একটি দোকানের প্রয়োজন থেকেই Lytro-এর শুরু',
+    en: "Lytro began with one shop's needs",
   },
   quote: {
-    bn: 'আপনি যে অ্যাকাউন্ট পান, আমরা নিজেদের দোকানও সেটাতেই চালাই। একই সাইন-আপ, একই লিমিট, একই ফি। কিছু ভাঙলে আগে আমাদেরই ভাঙে।',
-    en: 'We run our own shop on the same account you get. Same sign-up, same limits, same fees. When something breaks, it breaks for us first.',
+    bn: 'Lytro শুধু অন্যদের জন্য তৈরি কোনো সফটওয়্যার নয়। আমরা নিজেরাও এটি ব্যবহার করি। আপনার দোকানে যে সুবিধা থাকবে, আমাদের দোকানেও সেই একই সুবিধা থাকবে।',
+    en: 'Lytro is not software we made only for others. We use it ourselves. Whatever your shop has, our shop has too.',
   },
   story3: {
-    bn: 'Lytro বানায় Lytronix, ঢাকার একটা কোম্পানি। প্ল্যাটফর্মটা আলাদা প্রোডাক্ট, নিজের টিম, সাপোর্ট লাইন আর অ্যাকাউন্ট নিয়ে; ব্যাটারির দোকানটা শুধু এর প্রথম কাস্টমার।',
-    en: 'Lytro is made by Lytronix, a Dhaka company. The platform is a separate product with its own team, support line and accounts; the battery shop is simply its first customer.',
+    bn: 'Lytro তৈরি করেছে Lytronix। এটি আমাদের আলাদা একটি সফটওয়্যার প্রোডাক্ট, যার নিজস্ব প্ল্যাটফর্ম, টিম ও সাপোর্ট ব্যবস্থা রয়েছে।',
+    en: 'Lytro is made by Lytronix. It is our separate software product, with its own platform, team and support.',
   },
-  timelineEyebrow: { bn: 'সময়রেখা', en: 'Timeline' },
-  timelineTitle: { bn: 'আগে, তারপর, এখন, পরে', en: 'Before, then, now, next' },
+  factsTitle: { bn: 'আমাদের পরিচয় এক নজরে', en: 'Who we are, at a glance' },
+  timelineEyebrow: { bn: 'আমাদের পথচলা', en: 'Our journey' },
+  timelineTitle: {
+    bn: 'যেভাবে শুরু, যেভাবে এগিয়ে যাচ্ছি',
+    en: 'How we started, and where we are going',
+  },
   beliefsEyebrow: { bn: 'আমরা যা বিশ্বাস করি', en: 'What we believe' },
   beliefsTitle: {
-    bn: 'ছয়টা নিয়ম, প্রোডাক্টের ভেতরে লেখা',
-    en: 'Six rules, written into the product',
+    bn: 'ছয়টি বিষয়, যেগুলো মেনেই Lytro তৈরি করছি',
+    en: 'Six things we hold to as we build Lytro',
   },
   teamEyebrow: { bn: 'টিম', en: 'The team' },
   teamTitle: { bn: 'ছোট, ঢাকায়, নাগালের মধ্যে', en: 'Small, in Dhaka, reachable' },
@@ -66,68 +63,121 @@ const text = {
   talk: { bn: 'আগে কথা বলুন', en: 'Talk to us first' },
 } satisfies Record<string, Bilingual>;
 
-const facts: { value: string; label: Bilingual }[] = [
+// The story in order: how the shop ran, what each order cost us, then what we did about it.
+const story: { before: Bilingual[]; pains: Bilingual[]; after: Bilingual[] } = {
+  before: [
+    {
+      bn: 'Lytronix একটি বাংলাদেশি ব্যাটারি ও গ্যাজেট ব্যবসা। আমাদের ব্যবসার অনেক কাজই চলত Facebook পেজ, Messenger আর একটি মোবাইল ফোনের মাধ্যমে।',
+      en: 'Lytronix is a Bangladeshi battery and gadget business. Much of our work ran through a Facebook page, Messenger and one mobile phone.',
+    },
+    {
+      bn: 'প্রতিদিন নতুন অর্ডার আসত। কিন্তু প্রতিটি অর্ডার সামলাতে ছিল অনেক ঝামেলা।',
+      en: 'New orders came in every day, and every one of them was a hassle to handle.',
+    },
+  ],
+  pains: [
+    {
+      bn: 'কাস্টমারের ঠিকানা বারবার কুরিয়ার ওয়েবসাইটে লিখতে হতো।',
+      en: "We typed customers' addresses into the courier's website again and again.",
+    },
+    {
+      bn: 'বিকাশ বা নগদের পেমেন্ট SMS দেখে হাতে হাতে হিসাব মেলাতে হতো।',
+      en: 'We matched bKash and Nagad payment SMS to orders by hand.',
+    },
+    {
+      bn: 'ভুয়া অর্ডার বা আগের রিটার্নের রেকর্ড যাচাই করা কঠিন ছিল।',
+      en: 'Checking for fake orders or past returns was hard.',
+    },
+    {
+      bn: 'অর্ডার, পেমেন্ট ও স্টকের হিসাব রাখতে অনেক সময় চলে যেত।',
+      en: 'Keeping track of orders, payments and stock took a lot of time.',
+    },
+  ],
+  after: [
+    {
+      bn: 'আমরা বুঝতে পারলাম, এই সমস্যাগুলো শুধু আমাদের নয়। বাংলাদেশের অসংখ্য অনলাইন ব্যবসায়ী প্রতিদিন একই সমস্যার মুখোমুখি হন।',
+      en: 'We realised these problems were not only ours. Countless online sellers in Bangladesh face the same ones every day.',
+    },
+    {
+      bn: 'তাই নিজেদের কাজ সহজ করতে আমরা একটি সফটওয়্যার তৈরি করলাম। যেখানে অর্ডার, পেমেন্ট, কুরিয়ার ও ব্যবসার অন্যান্য কাজ এক জায়গা থেকেই করা যায়।',
+      en: 'So to make our own work easier, we built software where orders, payments, couriers and the rest of the business are all handled from one place.',
+    },
+    { bn: 'সেই সফটওয়্যারই আজকের Lytro।', en: "That software is today's Lytro." },
+    {
+      bn: 'এখন আমরা চাই, ছোট বা বড় যেকোনো অনলাইন ব্যবসায়ী যেন সহজেই এই সুবিধাগুলো ব্যবহার করতে পারেন।',
+      en: 'Now we want every online seller, small or large, to be able to use it easily.',
+    },
+  ],
+};
+
+const facts: { value: Bilingual; label: Bilingual }[] = [
   {
-    value: '2',
+    value: { bn: '২টি কাজ', en: '2 jobs' },
     label: {
-      bn: 'ব্যবসা: একটা ব্যাটারি বেচে, একটা Lytro বানায়',
-      en: 'businesses: one sells batteries, one builds Lytro',
+      bn: 'একটি অনলাইন ব্যবসা পরিচালনা এবং একটি সফটওয়্যার তৈরি।',
+      en: 'Running an online business, and building software.',
     },
   },
   {
-    value: '1',
+    value: { bn: 'নিজের দোকান', en: 'Our own shop' },
     label: {
-      bn: 'প্রথম টেন্যান্ট, আমাদের নিজের দোকান, আপনার মতো একই শর্তে',
-      en: 'first tenant, our own shop, on the same terms as yours',
+      bn: 'Lytro-এর প্রথম ব্যবহারকারী আমাদের নিজেদের ব্যবসা।',
+      en: "Lytro's first user is our own business.",
     },
   },
   {
-    value: '৳0',
-    label: { bn: 'শুরু করতে মাসিক ফি, সবার জন্য', en: 'monthly fee to start, for everyone' },
+    value: { bn: '৳০', en: '৳0' },
+    label: {
+      bn: 'শুরু করার জন্য কোনো মাসিক সাবস্ক্রিপশন ফি নেই।',
+      en: 'No monthly subscription fee to start.',
+    },
   },
   {
-    value: 'BD',
+    value: { bn: 'বাংলাদেশ', en: 'Bangladesh' },
     label: {
-      bn: 'ডেটা বাংলাদেশে BDIX সার্ভারে, প্রতি রাতে ব্যাকআপ',
-      en: 'data hosted in Bangladesh on BDIX servers, backed up nightly',
+      bn: 'বাংলাদেশি ব্যবসায়ীদের কথা মাথায় রেখেই তৈরি।',
+      en: 'Made with Bangladeshi sellers in mind.',
     },
   },
 ];
 
 const timeline: { when: Bilingual; title: Bilingual; body: Bilingual }[] = [
   {
-    when: { bn: 'আগে', en: 'Before' },
+    when: { bn: '১. শুরুতে — নিজেদের ব্যবসার সমস্যা', en: "1. At first: our own shop's problem" },
     title: {
-      bn: 'একটা খাতা, মেসেঞ্জার আর তিনটা কুরিয়ার পোর্টাল',
-      en: 'A notebook, Messenger and three courier portals',
+      bn: 'অর্ডার ছিল Messenger-এ, হিসাব ছিল খাতায়',
+      en: 'Orders in Messenger, accounts in a notebook',
     },
     body: {
-      bn: 'Lytronix-এর দোকান চলে যেভাবে বেশিরভাগ দোকান চলে।',
-      en: 'The Lytronix shop runs the way most shops do.',
-    },
-  },
-  {
-    when: { bn: 'তারপর', en: 'Then' },
-    title: { bn: 'একটা দোকানের জন্য একটা টুল', en: 'A tool for one shop' },
-    body: {
-      bn: 'অর্ডার, কুরিয়ার বুকিং, পেমেন্ট SMS আর ফ্রড চেক, নিজেদের জন্য বানানো।',
-      en: 'Orders, courier booking, payment SMS and a fraud check, built for ourselves.',
+      bn: 'অর্ডার, পেমেন্ট, কুরিয়ার ও স্টকের হিসাব রাখতে প্রতিদিন অনেক সময় নষ্ট হতো। ভুলও হতো অনেক।',
+      en: 'Keeping track of orders, payments, couriers and stock wasted hours every day, and mistakes were common.',
     },
   },
   {
-    when: { bn: 'এখন', en: 'Now' },
-    title: { bn: 'Lytro, সব দোকানের জন্য', en: 'Lytro, for every shop' },
+    when: { bn: '২. এরপর — নিজেদের জন্য একটি সমাধান', en: '2. Then: a fix for ourselves' },
+    title: { bn: 'সব কাজ এক জায়গায় আনার চেষ্টা', en: 'Bringing all the work into one place' },
     body: {
-      bn: 'গোড়া থেকে নতুন করে প্ল্যাটফর্ম হিসেবে বানানো, বাংলায়, ফোন থেকে, বিক্রি হলে তবেই ফি।',
-      en: 'Rebuilt from the ground up as a platform, in Bangla, phone first, pay when you sell.',
+      bn: 'অর্ডার ম্যানেজমেন্ট, কুরিয়ার বুকিং, পেমেন্ট যাচাই ও ভুয়া অর্ডার চেনার সুবিধা নিয়ে তৈরি হলো আমাদের নিজস্ব সফটওয়্যার।',
+      en: 'We built our own software for managing orders, booking couriers, verifying payments and spotting fake orders.',
     },
   },
   {
-    when: { bn: 'পরে', en: 'Next' },
-    title: { bn: 'স্টক, পরিসংখ্যান আর আরও কুরিয়ার', en: 'Stock, statistics and more couriers' },
+    when: { bn: '৩. এখন — Lytro সবার জন্য', en: '3. Now: Lytro for everyone' },
+    title: { bn: 'আপনার ব্যবসাও চলুক আরও সহজে', en: 'Let your business run more easily too' },
     body: {
-      bn: 'ফিচার লাইভ হলে তবেই লিস্টে ওঠে। নোটিশ বোর্ডে চোখ রাখুন।',
-      en: 'We list a feature only when it is live. Watch the notice board.',
+      bn: 'নিজেদের অভিজ্ঞতা থেকে তৈরি সেই সমাধানকে আমরা একটি পূর্ণাঙ্গ প্ল্যাটফর্ম হিসেবে সাজিয়েছি, যেন অন্য ব্যবসায়ীরাও ব্যবহার করতে পারেন।',
+      en: 'We turned what we built from our own experience into a complete platform, so other sellers can use it too.',
+    },
+  },
+  {
+    when: {
+      bn: '৪. সামনে — আরও সুবিধা, আরও সহজ ব্যবসা',
+      en: '4. Next: more features, an easier business',
+    },
+    title: { bn: 'আপনার ব্যবসার সঙ্গে Lytro-ও এগিয়ে যাবে', en: 'Lytro grows with your business' },
+    body: {
+      bn: 'আমরা নতুন নতুন সুবিধা যুক্ত করছি, যাতে পণ্য, অর্ডার, হিসাব ও ব্যবসার প্রতিদিনের কাজ আরও সহজ হয়।',
+      en: 'We keep adding features that make products, orders, accounts and the everyday work of a business easier.',
     },
   },
 ];
@@ -135,50 +185,53 @@ const timeline: { when: Bilingual; title: Bilingual; body: Bilingual }[] = [
 const beliefs: { icon: IconName; title: Bilingual; body: Bilingual }[] = [
   {
     icon: 'wallet',
-    title: { bn: 'আপনার টাকা আমাদের হাত দিয়ে যায় না', en: 'Your money never passes through us' },
+    title: { bn: '১. আপনার টাকা, আপনার কাছেই থাকবে', en: '1. Your money stays with you' },
     body: {
-      bn: 'কাস্টমার পেমেন্ট করে আপনার নিজের বিকাশ, নগদ বা ব্যাংকে। আমরা ধরে রাখি না, দেরিও করাই না।',
-      en: 'Customers pay your own bKash, Nagad or bank. We never hold, settle or delay it.',
+      bn: 'কাস্টমার আপনার নিজের বিকাশ, নগদ বা ব্যাংক অ্যাকাউন্টে টাকা দেবেন। Lytro আপনার বিক্রির টাকা নিজের কাছে রাখবে না। পেমেন্ট পাওয়ার জন্য আমাদের কাছে অপেক্ষাও করতে হবে না।',
+      en: 'Customers pay into your own bKash, Nagad or bank account. Lytro never keeps your sales money, and you never wait on us to get paid.',
     },
   },
   {
     icon: 'check',
-    title: { bn: 'যা লাইভ, শুধু সেটাই দাবি করি', en: 'We only claim what is live' },
+    title: { bn: '২. যা তৈরি হয়েছে, শুধু সেটাই দেখাই', en: '2. We only show what is built' },
     body: {
-      bn: 'শূন্য দেখানো কাউন্টার নেই, নিজেরা লেখা রিভিউ নেই, প্রাইসিং পেজে “শিগগিরই আসছে” ফিচার নেই।',
-      en: 'No counters that show zero, no quotes we wrote ourselves, no features that are “coming soon” on the pricing page.',
+      bn: 'যে সুবিধাগুলো সত্যিই ব্যবহার করতে পারবেন, আমরা সেগুলোই দেখাই। এখনো তৈরি হয়নি এমন ফিচারকে চালু বলে প্রচার করি না। আমাদের কাছে বিশ্বাসই সবচেয়ে গুরুত্বপূর্ণ।',
+      en: 'We show only the features you can really use. We never advertise an unfinished feature as live. Trust matters most to us.',
     },
   },
   {
     icon: 'globe',
-    title: { bn: 'বাংলা আগে, পরে অনুবাদ নয়', en: 'Bangla first, not translated later' },
+    title: { bn: '৩. বাংলা ভাষাই আমাদের প্রথম পছন্দ', en: '3. Bangla comes first' },
     body: {
-      bn: 'প্রতিটা স্ক্রিন, SMS আর ইনভয়েস আগে বাংলায় লেখা, সেলাররা যে শব্দ ব্যবহার করে সেভাবে। ইংরেজি একটা টগল।',
-      en: 'Every screen, SMS and invoice is written in Bangla first, in the words sellers use. English is a toggle.',
+      bn: 'Lytro তৈরি হয়েছে বাংলাদেশের ব্যবসায়ীদের জন্য। তাই ড্যাশবোর্ড থেকে শুরু করে অর্ডার, ইনভয়েস ও অন্যান্য কাজ—সবকিছু বাংলায় সহজভাবে বোঝার মতো করে তৈরি করছি। চাইলে ইংরেজিও ব্যবহার করতে পারবেন।',
+      en: 'Lytro is made for sellers in Bangladesh, so everything from the dashboard to orders and invoices is written to be easy to follow in Bangla. You can use English too.',
     },
   },
   {
     icon: 'lock',
-    title: { bn: 'আপনার দোকানের ডেটা শুধু আপনার', en: "Your shop's data is yours alone" },
+    title: { bn: '৪. আপনার ব্যবসার তথ্য আপনারই থাকবে', en: '4. Your business data stays yours' },
     body: {
-      bn: 'প্রতিটা রিকোয়েস্ট আপনার দোকানের সাথে মিলিয়ে দেখা হয়। কে কী বদলালো তার লগ থাকে। প্রতি রাতে ব্যাকআপ।',
-      en: 'Every request is checked against your shop. Every change is logged with who made it. Backups run every night.',
+      bn: 'প্রতিটি দোকানের তথ্য আলাদাভাবে সংরক্ষণ করা হয়। কে কখন কী পরিবর্তন করেছেন, তার রেকর্ড থাকে। আপনার গুরুত্বপূর্ণ তথ্যের জন্য নিয়মিত ব্যাকআপের ব্যবস্থাও রয়েছে।',
+      en: "Each shop's data is stored separately. There is a record of who changed what, and when. Your important data is backed up regularly.",
     },
   },
   {
     icon: 'truck',
-    title: { bn: 'আপনার কুরিয়ার, আপনার রেট', en: 'Your couriers, your rates' },
+    title: { bn: '৫. আপনার কুরিয়ার, আপনার অ্যাকাউন্ট', en: '5. Your courier, your account' },
     body: {
-      bn: 'কুরিয়ার বুক হয় আপনার নিজের অ্যাকাউন্টে। আপনি আর যারা পার্সেল পৌঁছায়, তাদের মাঝে আমরা বসি না।',
-      en: 'Couriers are booked on your own account. We do not sit between you and the people who deliver your parcels.',
+      bn: 'Steadfast বা Pathao-তে পার্সেল বুক হবে আপনার নিজের অ্যাকাউন্ট থেকে। কুরিয়ারের রেট ও পেমেন্টের নিয়ন্ত্রণও থাকবে আপনার হাতে।',
+      en: "Parcels are booked with Steadfast or Pathao from your own account. The courier's rates and payments stay in your hands.",
     },
   },
   {
     icon: 'message',
-    title: { bn: 'একজন মানুষ উত্তর দেয়', en: 'A person answers' },
+    title: {
+      bn: '৬. সমস্যায় পড়লে পাশে পাবেন একজন মানুষ',
+      en: '6. A person helps when you are stuck',
+    },
     body: {
-      bn: 'প্রথম দোকানের সেটআপে সাহায্য ফ্রি, WhatsApp-এ বা কলে, বাংলায়।',
-      en: 'Setup help for your first shop is free, on WhatsApp or a call, in Bangla.',
+      bn: 'নতুন দোকান তৈরি করতে বা Lytro ব্যবহার করতে সমস্যা হলে আমাদের সঙ্গে যোগাযোগ করুন। WhatsApp বা ফোনে বাংলায় সহায়তা পাবেন।\n\nকারণ আমরা জানি, নতুন একটি সফটওয়্যার ব্যবহার শুরু করাটা সবার জন্য সহজ নয়।',
+      en: 'If you have trouble setting up a new shop or using Lytro, contact us. You get help in Bangla, on WhatsApp or by phone.\n\nBecause we know starting with new software is not easy for everyone.',
     },
   },
 ];
@@ -238,8 +291,17 @@ export default async function AboutPage() {
                 title={copy.of(text.storyTitle)}
               />
               <div className="mt-6 space-y-5 text-[17px] text-neutral-700">
-                <p>{copy.of(text.story1)}</p>
-                <p>{copy.of(text.story2)}</p>
+                {story.before.map((paragraph) => (
+                  <p key={paragraph.en}>{copy.of(paragraph)}</p>
+                ))}
+                <ul className="list-disc space-y-2 pl-6 marker:text-accent-500">
+                  {story.pains.map((pain) => (
+                    <li key={pain.en}>{copy.of(pain)}</li>
+                  ))}
+                </ul>
+                {story.after.map((paragraph) => (
+                  <p key={paragraph.en}>{copy.of(paragraph)}</p>
+                ))}
                 <blockquote className="border-l-4 border-accent-500 bg-brand-50 px-5 py-4 text-[18px] font-semibold text-ink">
                   {copy.of(text.quote)}
                 </blockquote>
@@ -251,14 +313,17 @@ export default async function AboutPage() {
 
         <section className="bg-neutral-50">
           <Container className="py-12 sm:py-16">
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <h2 className="heading text-center text-[22px] text-ink sm:text-[26px]">
+              {copy.of(text.factsTitle)}
+            </h2>
+            <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {facts.map((fact) => (
                 <li
                   key={fact.label.en}
                   className="rounded-card border border-line bg-white p-5 shadow-card"
                 >
                   <p className="num text-[34px] font-extrabold leading-none text-brand-800">
-                    {fact.value}
+                    {copy.of(fact.value)}
                   </p>
                   <p className="mt-3 text-[15px] text-neutral-700">{copy.of(fact.label)}</p>
                 </li>
@@ -310,7 +375,10 @@ export default async function AboutPage() {
                     <Icon name={belief.icon} size={20} strokeWidth={2.4} />
                   </span>
                   <h3 className="heading mt-4 text-[18px] text-white">{copy.of(belief.title)}</h3>
-                  <p className="mt-2 text-[15px] text-white/85">{copy.of(belief.body)}</p>
+                  <Paragraphs
+                    text={copy.of(belief.body)}
+                    className="mt-2 text-[15px] text-white/85"
+                  />
                 </li>
               ))}
             </ul>

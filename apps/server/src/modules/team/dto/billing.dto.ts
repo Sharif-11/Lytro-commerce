@@ -17,6 +17,7 @@ import {
   setAutoRenewSchema,
   setPlanLimitOverrideSchema,
   setPlanPriceSchema,
+  setPlanSuggestedSchema,
   targetDowngradePlanSchema,
   updateAddonSchema,
   updateBillingTermSchema,
@@ -27,6 +28,7 @@ import { createZodDto } from 'nestjs-zod';
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
 export class CreatePlanDto extends createZodDto(createPlanSchema) {}
 export class UpdatePlanDto extends createZodDto(updatePlanSchema) {}
+export class SetPlanSuggestedDto extends createZodDto(setPlanSuggestedSchema) {}
 export class CreateBillingTermDto extends createZodDto(createBillingTermSchema) {}
 export class UpdateBillingTermDto extends createZodDto(updateBillingTermSchema) {}
 export class SetPlanPriceDto extends createZodDto(setPlanPriceSchema) {}

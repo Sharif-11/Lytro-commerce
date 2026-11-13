@@ -1,5 +1,6 @@
 // The one place this app reads process.env (CODING-CONVENTIONS §6, "Configuration", applied to the site).
 // Everything else receives settings through a constructor or a prop.
+import { LISTENER_DOWNLOAD_DEFAULT_URL } from '@lytronix/validators/common';
 
 /** Lytro's support email. Its WhatsApp and phone are the help line's, which the operator sets (GET /help-line, D8-69). */
 export interface SupportContact {
@@ -32,7 +33,7 @@ export class SiteEnvironment {
     );
     this.contactWebhookUrl = SiteEnvironment.blankToUndefined(env.CONTACT_WEBHOOK_URL);
     this.listenerDownloadUrl = SiteEnvironment.trimSlash(
-      env.LISTENER_DOWNLOAD_URL ?? 'https://download.lytro.app',
+      env.LISTENER_DOWNLOAD_URL ?? LISTENER_DOWNLOAD_DEFAULT_URL,
     );
     this.support = {
       email: SiteEnvironment.blankToUndefined(env.SUPPORT_EMAIL) ?? null,

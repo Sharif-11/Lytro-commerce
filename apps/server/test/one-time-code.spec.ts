@@ -215,6 +215,7 @@ function build(state: World) {
   const settings: SignupSettings = {
     now: () => state.now,
     shopUrl: (address) => `http://${address}.localhost:3000`,
+    dashboardUrl: (address) => `http://app.localhost:3000/${address}`,
   };
 
   const essentialSmsUsageStore: EssentialSmsUsageStore = {

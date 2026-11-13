@@ -166,10 +166,9 @@ export class MediaService {
     return this.store.run(async (tx) => {
       const row = await this.store.findMedia(tx, tenantId, id);
       if (!row) throw new ApiError('not_found', 'MediaNotFound', {});
-      const [objects, uses] = await Promise.all([
-        this.store.listObjects(tx, tenantId, [id]),
-        this.store.usesOf(tx, tenantId, id),
-      ]);
+      // In turn: the transaction's one connection runs one query at a time.
+      const objects = await this.store.listObjects(tx, tenantId, [id]);
+      const uses = await this.store.usesOf(tx, tenantId, id);
       return { ...this.view(tenantId, row, objects), uses };
     });
   }
@@ -206,9 +205,10 @@ export class MediaService {
   /** STO-01, STO-02: what the shop stores now, and its limit. */
   async usage(tenantId: string): Promise<StorageUsage> {
     return this.store.run(async (tx) => {
-      const [usedBytes, limitMb, imageMaxMb, videoMaxMb] = await Promise.all([
-        this.store.storedBytes(tx, tenantId),
-        this.limits.storageMb(tx, tenantId),
+      // In turn: the transaction's one connection runs one query at a time.
+      const usedBytes = await this.store.storedBytes(tx, tenantId);
+      const limitMb = await this.limits.storageMb(tx, tenantId);
+      const [imageMaxMb, videoMaxMb] = await Promise.all([
         this.limits.maxMb(MediaKind.Image),
         this.limits.maxMb(MediaKind.Video),
       ]);

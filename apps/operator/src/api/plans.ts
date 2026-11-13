@@ -3,6 +3,7 @@ import type {
   AssignPlanInput,
   CreatePlanInput,
   SetPlanPriceInput,
+  SetPlanSuggestedInput,
   UpdatePlanInput,
 } from '@lytronix/validators';
 import { BILLING_TERMS_QUERY_KEY } from '@/api/billing-terms';
@@ -57,6 +58,31 @@ export function useUpdatePlan() {
     mutationFn: ({ id, ...input }: UpdatePlanInput & { id: string }) =>
       operatorSession.client.patch<Plan>(`/operator/plans/${id}`, input),
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY });
+    },
+  });
+}
+
+/**
+ * PLN-21: marks the plan the pricing page highlights (clearing any other's mark) or unmarks it. Saved at once and not a
+ * plan edit, so no new version. Refused with 409 for a plan that page doesn't show.
+ */
+export function useSetPlanSuggested() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, suggested }: SetPlanSuggestedInput & { id: string }) =>
+      operatorSession.client.put<Plan>(`/operator/plans/${id}/suggested`, { suggested }),
+    onSuccess: (saved) => {
+      // The list shows the move at once (one mark at a time), then reads it back.
+      queryClient.setQueryData<OperatorPlan[]>(PLANS_QUERY_KEY, (plans) =>
+        plans?.map((each) =>
+          each.id === saved.id
+            ? { ...each, ...saved }
+            : saved.suggested && each.suggested
+              ? { ...each, suggested: false }
+              : each,
+        ),
+      );
       void queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY });
     },
   });

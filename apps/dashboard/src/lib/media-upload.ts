@@ -1,4 +1,4 @@
-import type { ApiClient } from '@lytronix/api-client';
+import { ApiClientError, type ApiClient } from '@lytronix/api-client';
 import {
   IMAGE_CONTENT_TYPES,
   MediaKind,
@@ -20,6 +20,21 @@ export class UploadRefused extends Error {
   constructor(readonly reason: string) {
     super(reason);
   }
+}
+
+/**
+ * Why an upload failed, as its tile names it: the server's own reason once it looked at the file, a size or type the
+ * request was refused for, full storage (STO-03), or not sent at all.
+ */
+export function refusalOf(error: unknown): string {
+  if (error instanceof UploadRefused) return error.reason;
+  if (error instanceof ApiClientError) {
+    if (error.code === 'plan_limit_reached') return 'storage_full';
+    const fields = error.fieldProblems();
+    if ('bytes' in fields) return 'too_large';
+    if ('contentType' in fields) return 'not_supported';
+  }
+  return 'not_uploaded';
 }
 
 /** Whether the browser may send this file as an image at all (STO-04); the server checks what it really is. */

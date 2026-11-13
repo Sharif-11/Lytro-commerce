@@ -70,7 +70,7 @@ export class ShopIcons {
         font: `${bangla ? 'Noto Sans Bengali' : 'Inter'} Bold`,
         fontfile: join(
           this.fontsDir,
-          bangla ? 'noto-sans-bengali-bengali-wght-normal.woff2' : 'inter-latin-wght-normal.woff2',
+          bangla ? 'noto-sans-bengali-bengali-wght-normal.ttf' : 'inter-latin-wght-normal.ttf',
         ),
         rgba: true,
         width: box,

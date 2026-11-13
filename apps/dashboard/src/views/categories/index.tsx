@@ -5,6 +5,7 @@ import { CATEGORY_MAX_DEPTH, Permission } from '@lytronix/validators';
 import { useProductDefaults } from '@/api/attributes';
 import { useCategories } from '@/api/catalogue';
 import {
+  NO_CATEGORY,
   useCreateCategory,
   useDeleteCategory,
   useMoveCategory,
@@ -85,7 +86,7 @@ export function CategoriesView(): React.JSX.Element {
     setProblem(null);
     try {
       for (const name of suggested) {
-        await create.mutateAsync({ name, parentId: null, visible: true, behavesLike: null });
+        await create.mutateAsync({ ...NO_CATEGORY, name });
       }
       toast.show(t('catSeededToast', { count: suggested.length }));
     } catch (error) {
