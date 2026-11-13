@@ -38,6 +38,16 @@ export function divideRounded(dividend: bigint, divisor: bigint): bigint {
   return dividend < 0n ? -rounded : rounded;
 }
 
+/**
+ * TAX-02 (agreed 2026-10-30), D9-7 (Slice 9.8): the tax an amount includes at `rate` per cent (two decimals), in paisa --
+ * amount x rate / (100 + rate), rounded half away from zero to the paisa. Prices include the tax, so nothing is added.
+ */
+export function includedTaxOf(paisa: bigint, rate: string): bigint {
+  const hundredths = toPaisa(rate);
+  if (hundredths <= 0n) return 0n;
+  return divideRounded(paisa * hundredths, 10000n + hundredths);
+}
+
 /** BAL-16: units (two decimals) times a rate (up to four), in paisa, rounded to the paisa. */
 export function unitsTimesRate(units: string, rate: string): bigint {
   return divideRounded(toScaled(units, 2) * toScaled(rate, FINE_DECIMALS), FINE_SCALE);

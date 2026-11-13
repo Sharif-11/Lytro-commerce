@@ -15,6 +15,13 @@ const nextConfig: NextConfig = {
     // Every image on the site is a local SVG or PNG in /public; nothing is loaded from another host.
     remotePatterns: [],
   },
+  // Slice 9.8: the terms and privacy texts (src/content/legal/*.md) are imported as plain strings and built into the
+  // pages, so a deployment needs no files beside the build. src/types/markdown.d.ts types them; vitest.config.ts reads
+  // them the same way.
+  webpack: (config: { module: { rules: unknown[] } }) => {
+    config.module.rules.push({ test: /\.md$/, type: 'asset/source' });
+    return config;
+  },
 };
 
 export default nextConfig;

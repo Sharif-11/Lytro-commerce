@@ -663,6 +663,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     bn: 'এই গরমিলটি আগেই মীমাংসা হয়েছে।',
   },
   HelpLineRead: { en: 'Help line retrieved.', bn: 'হেল্প লাইন পাওয়া গেছে।' },
+  LegalVersionsRead: {
+    en: 'Terms and privacy policy versions retrieved.',
+    bn: 'টার্মস আর প্রাইভেসি পলিসির ভার্সন পাওয়া গেছে।',
+  },
   ListenerAppReleaseRead: {
     en: 'Listener app version retrieved.',
     bn: 'লিসেনার অ্যাপের ভার্সন পাওয়া গেছে।',

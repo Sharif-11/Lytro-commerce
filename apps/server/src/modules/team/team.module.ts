@@ -89,6 +89,7 @@ import { MediaCostsModule } from '../media-costs/media-costs.module';
 import { ReconciliationModule } from '../reconciliation/reconciliation.module';
 import { OperatorReconciliationController } from './controllers/operator-reconciliation.controller';
 import { HelpLineModule } from '../help-line/help-line.module';
+import { LegalModule } from '../legal/legal.module';
 import { PaymentMethodRetiringModule } from '../payment-method-types/payment-method-retiring.module';
 import { ReportsModule } from '../reports/reports.module';
 import { ManualEntriesModule } from '../manual-entries/manual-entries.module';
@@ -97,6 +98,7 @@ import { OperatorManualEntriesController } from './controllers/operator-manual-e
 import { OperatorMediaCostsController } from './controllers/operator-media-costs.controller';
 import { OperatorPaymentMethodTypesController } from './controllers/operator-payment-method-types.controller';
 import { HelpLineController } from './controllers/help-line.controller';
+import { LegalVersionsController } from './controllers/legal-versions.controller';
 import { OperatorReportsController } from './controllers/operator-reports.controller';
 import { CouriersModule } from '../couriers/couriers.module';
 import { CustomersController } from './controllers/customers.controller';
@@ -189,6 +191,7 @@ import { NoticesModule } from '../notices/notices.module';
     ReconciliationModule,
     PaymentMethodRetiringModule,
     HelpLineModule,
+    LegalModule,
     ReportsModule,
     ManualEntriesModule,
     PaymentEvidenceModule,
@@ -212,6 +215,7 @@ import { NoticesModule } from '../notices/notices.module';
     OperatorReconciliationController,
     OperatorPaymentMethodTypesController,
     HelpLineController,
+    LegalVersionsController,
     OperatorReportsController,
     OperatorManualEntriesController,
     OperatorPaymentPagesController,

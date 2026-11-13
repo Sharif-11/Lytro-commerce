@@ -124,11 +124,16 @@ async function ledger(
   );
 }
 
-async function invoiceFor(tenantId: string, paymentId: string, amount: string): Promise<void> {
+async function invoiceFor(
+  tenantId: string,
+  paymentId: string,
+  amount: string,
+  kind: 'purchase' | 'top_up' = 'purchase',
+): Promise<void> {
   await admin.query(
     `INSERT INTO control.invoices (tenant_id, number, kind, amount, plan_payment_id)
-     VALUES ($1, $2, 'purchase', $3, $4)`,
-    [tenantId, Math.floor(Math.random() * 1e12), amount, paymentId],
+     VALUES ($1, $2, $3, $4, $5)`,
+    [tenantId, Math.floor(Math.random() * 1e12), kind, amount, paymentId],
   );
 }
 
@@ -191,11 +196,13 @@ describeIfDatabase('the daily reconciliation (DAT-52)', () => {
       verifiedBy: byOperator,
     });
     await ledger(shopA, 'top_up', '500', { planPaymentId: planted['topUpRight'] });
+    await invoiceFor(shopA, planted['topUpRight'], '500', 'top_up');
     planted['topUpUncredited'] = await payment(shopA, {
       kind: 'top_up',
       amount: '400',
       verifiedBy: byOperator,
     });
+    await invoiceFor(shopA, planted['topUpUncredited'], '400', 'top_up');
     planted['topUpWrongAmount'] = await payment(shopA, {
       kind: 'top_up',
       amount: '300',
@@ -203,6 +210,14 @@ describeIfDatabase('the daily reconciliation (DAT-52)', () => {
       verifiedBy: byOperator,
     });
     await ledger(shopA, 'top_up', '250', { planPaymentId: planted['topUpWrongAmount'] });
+    await invoiceFor(shopA, planted['topUpWrongAmount'], '300', 'top_up');
+    // D9-26 (Slice 9.8): a top-up has its own invoice, like a plan.
+    planted['topUpNoInvoice'] = await payment(shopA, {
+      kind: 'top_up',
+      amount: '200',
+      verifiedBy: byOperator,
+    });
+    await ledger(shopA, 'top_up', '200', { planPaymentId: planted['topUpNoInvoice'] });
 
     planted['fromBalanceRight'] = await payment(shopA, {
       kind: 'purchase',
@@ -339,6 +354,10 @@ describeIfDatabase('the daily reconciliation (DAT-52)', () => {
       expected: '300.00',
       found: '250.00',
     });
+  });
+
+  it('holds a verified top-up to exactly one invoice (D9-26)', () => {
+    expect(of(found, planted['topUpNoInvoice'] ?? '')).toEqual([Kind.InvoiceMismatch]);
   });
 
   it('holds a plan paid from the balance to charges of its price', () => {

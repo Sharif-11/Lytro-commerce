@@ -3,7 +3,6 @@ import {
   ActorType,
   AuditAction,
   AuditResult,
-  LedgerEntryType,
   PlanPaymentKind,
   PlatformActorType,
   PlatformAuditAction,
@@ -12,7 +11,6 @@ import type { Transaction } from '@lytronix/db';
 import { ApiError } from '../../../common/api-error';
 import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
-import { BalanceService } from '../../balance/services/balance.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
 import { TenantService } from '../../tenancy/services/tenant.service';
@@ -21,14 +19,15 @@ import type { QueuedPayment } from '../types/addon';
 import { AddonPurchaseService } from './addon-purchase.service';
 import { AddonRenewalService } from './addon-renewal.service';
 import { PurchaseService } from './purchase.service';
+import { TopUpInvoicing } from './top-up-invoicing';
 import { UpgradeService } from './upgrade.service';
 
 /**
- * D2-1/ADM-06: the operator's one queue for every pending plan_payments row. Approving a top-up credits the
- * balance; approving a purchase/renewal/upgrade activates the plan via `PurchaseService.activate`, and an add-on via
- * `AddonPurchaseService.activate` (PLN-14) -- each in the same transaction as `PlanPaymentsService.approve`'s
- * state-machine change and transaction-ID registration, so a rejected/failed activation never leaves a
- * verified-but-not-applied payment behind.
+ * D2-1/ADM-06: the operator's one queue for every pending plan_payments row. Approving a top-up credits the balance and
+ * issues its invoice (Slice 9.8); approving a purchase/renewal/upgrade activates the plan via `PurchaseService.activate`,
+ * and an add-on via `AddonPurchaseService.activate` (PLN-14) -- each in the same transaction as
+ * `PlanPaymentsService.approve`'s state-machine change and transaction-ID registration, so a rejected/failed activation
+ * never leaves a verified-but-not-applied payment behind.
  */
 @Injectable()
 export class PaymentQueueService {
@@ -38,7 +37,7 @@ export class PaymentQueueService {
     @Inject(UpgradeService) private readonly upgrade: UpgradeService,
     @Inject(AddonPurchaseService) private readonly addons: AddonPurchaseService,
     @Inject(AddonRenewalService) private readonly renewals: AddonRenewalService,
-    @Inject(BalanceService) private readonly balance: BalanceService,
+    @Inject(TopUpInvoicing) private readonly topUps: TopUpInvoicing,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
@@ -116,12 +115,7 @@ export class PaymentQueueService {
 
     if (payment.kind === PlanPaymentKind.TopUp) {
       const credited = payment.amountArrived ?? payment.amount;
-      await this.balance.credit(tx, {
-        tenantId: payment.tenantId,
-        type: LedgerEntryType.TopUp,
-        amount: credited,
-        reference: { planPaymentId: payment.id },
-      });
+      await this.topUps.creditWithin(tx, payment, credited);
       await this.audit.record(tx, {
         tenantId: payment.tenantId,
         actorType: ActorType.User,
@@ -183,12 +177,7 @@ export class PaymentQueueService {
         now,
       );
       await this.renewals.cancelFor(tx, payment.id);
-      await this.balance.credit(tx, {
-        tenantId: payment.tenantId,
-        type: LedgerEntryType.TopUp,
-        amount: arrived,
-        reference: { planPaymentId: payment.id },
-      });
+      await this.topUps.creditWithin(tx, payment, arrived);
       await this.audit.record(tx, {
         tenantId: payment.tenantId,
         actorType: ActorType.PlatformSupport,

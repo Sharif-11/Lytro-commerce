@@ -164,7 +164,8 @@ export class ReconciliationRepository {
     return result.rows.map((row) => ({ id: row.id, tenantId: row.tenant_id, amount: row.amount }));
   }
 
-  /** BIL-12: plans and add-ons paid in the window that don't have exactly one invoice (a credit note is not one). */
+  /** BIL-12, D9-26: plans, add-ons and top-ups paid in the window that don't have exactly one invoice (a credit note is
+   *  not one). Top-ups have invoices since Slice 9.8. */
   async invoiceCountsOff(
     db: Executor,
     window: Window,
@@ -178,7 +179,7 @@ export class ReconciliationRepository {
       SELECT p.id, p.tenant_id, p.amount,
         (SELECT count(*)::int FROM control.invoices i WHERE i.plan_payment_id = p.id AND i.kind <> 'credit_note') AS invoices
       FROM control.plan_payments p
-      WHERE p.status = 'verified' AND p.kind IN ('purchase', 'renewal', 'upgrade', 'addon') AND NOT p.test
+      WHERE p.status = 'verified' AND p.kind IN ('purchase', 'renewal', 'upgrade', 'addon', 'top_up') AND NOT p.test
         AND p.verified_at >= ${at(window.from)} AND p.verified_at < ${at(window.to)}
         AND (SELECT count(*) FROM control.invoices i WHERE i.plan_payment_id = p.id AND i.kind <> 'credit_note') <> 1`);
     return result.rows.map((row) => ({

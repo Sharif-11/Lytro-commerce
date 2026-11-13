@@ -335,7 +335,8 @@ CREATE TABLE control.invoices (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id       uuid NOT NULL REFERENCES control.tenants(id),
     number          bigint NOT NULL UNIQUE,      -- gap-free, from a locked counter row, not a sequence (DAT-07)
-    kind            text NOT NULL CHECK (kind IN ('purchase', 'renewal', 'upgrade', 'addon')), -- BIL-12, PLN-14; no default
+    kind            text NOT NULL CHECK (kind IN ('purchase', 'renewal', 'upgrade', 'addon', 'credit_note', 'top_up')),
+                                                 -- BIL-12, PLN-14, D8-49; top_up since migration 0133 (Slice 9.8); no default
     plan_snapshot   jsonb,                       -- null on an add-on's own invoice (PLN-14), which names no plan
     amount          numeric(10,2) NOT NULL,
     credit_amount   numeric(10,2) NOT NULL DEFAULT 0, -- UPG-03/UPG-15: the credit line shown on an upgrade invoice
@@ -356,17 +357,26 @@ CREATE TABLE control.invoices (
     plan_payment_id uuid,                        -- BIL-19: the payment this is the receipt of, copied at issue (an id, no
                                                  -- foreign key, decided 2026-10-23); older invoices filled by their
                                                  -- transaction ID in migration 0080, the rest null
-    issued_at       timestamptz NOT NULL DEFAULT now()
+    -- D9-7, LEG-03 (Slice 9.8, migration 0133): VAT, copied at issue once all four VAT platform settings are set. Prices
+    -- include VAT: vat_amount is the part of amount that is VAT. Null while Lytro isn't registered and on an invoice
+    -- paid from the balance (its money's VAT was on the top-up's own invoice); a credit note copies its invoice's, negated.
+    seller_name     text,
+    seller_address  text,
+    seller_bin      text,
+    vat_rate        numeric(5,2),
+    vat_amount      numeric(10,2),
+    issued_at       timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT invoices_vat_check CHECK (num_nulls(seller_name, seller_address, seller_bin, vat_rate, vat_amount) IN (0, 5))
 );
 CREATE UNIQUE INDEX ON control.invoices (plan_payment_id) WHERE plan_payment_id IS NOT NULL; -- one invoice per payment
 
 -- BIL-12, PLN-14: what an invoice is for, line by line -- the plan at its term's full price, each add-on, an
--- upgrade's credit (negative) -- adding up to its amount. Invoices issued before migration 0073 have none.
+-- upgrade's credit (negative), a top-up (Slice 9.8) -- adding up to its amount. Invoices issued before migration 0073 have none.
 CREATE TABLE control.invoice_lines (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     invoice_id      uuid NOT NULL REFERENCES control.invoices(id),
     position        integer NOT NULL,
-    kind            text NOT NULL CHECK (kind IN ('plan', 'addon', 'credit')),
+    kind            text NOT NULL CHECK (kind IN ('plan', 'addon', 'credit', 'top_up')), -- top_up: Slice 9.8
     description     text NOT NULL,
     quantity        integer NOT NULL DEFAULT 1,
     amount          numeric(10,2) NOT NULL,
@@ -417,6 +427,9 @@ CREATE TABLE control.platform_settings (
 -- short interval) rather than an environment variable or a deploy-time config file, so a change
 -- here takes effect immediately for every server without a restart or redeploy (RAT-02's
 -- "immediate effect" rule, generalized to every setting this table holds).
+-- Slice 9.8 (migration 0133): vat_bin, vat_rate, vat_seller_name and vat_seller_address hold Lytro's VAT registration
+-- (D9-7), empty until set; invoices carry VAT only once all four are set. terms_version and privacy_version may
+-- name only a version whose text is published (LEG-01), and the website's GET /legal-versions reads them.
 ```
 
 ### 2.5 Canonical locations and courier mapping

@@ -322,12 +322,20 @@ describeIfDatabase('recording a payment (ADM-14)', () => {
     expect((link.body as { url: string }).url).toMatch(/^memory:\/\/evidence\//);
   });
 
-  it('credits a top-up with what arrived, below the seller minimum too, and issues no invoice', async () => {
+  it('credits a top-up with what arrived, below the seller minimum too, and issues its invoice (Slice 9.8)', async () => {
     const client = await shop();
     const entry = await recorded(client.tenantId, { amount: 50, amountConfirmation: 50 });
     expect(entry.kind).toBe('top_up');
     expect((await tenant(client.tenantId)).balance_amount).toBe('50.00');
-    expect(await invoicesOf(client)).toHaveLength(0);
+    const invoices = await invoicesOf(client);
+    expect(invoices).toHaveLength(1);
+    expect(invoices[0]).toMatchObject({
+      kind: 'top_up',
+      amount: '50.00',
+      recordedByPlatform: true,
+      paymentMethod: 'wallet',
+      reversesInvoiceId: null,
+    });
   });
 
   it("records an upgrade at the server's price and restarts the period", async () => {
@@ -718,6 +726,14 @@ describeIfDatabase('reversing an entry (ADM-15)', () => {
       [client.tenantId],
     );
     expect(rows[0]).toMatchObject({ type: 'adjustment', amount: '-5000.00' });
+    // Slice 9.8: the top-up's invoice is taken back with a credit note, as a plan's is (D8-49).
+    const invoices = await invoicesOf(client);
+    const original = invoices.find((invoice) => invoice.kind === 'top_up');
+    expect(original?.amount).toBe('5000.00');
+    expect(invoices.find((invoice) => invoice.kind === 'credit_note')).toMatchObject({
+      amount: '-5000.00',
+      reversesInvoiceId: original?.id,
+    });
     // Taken back once only.
     expect((await reverse(entry.id)).status).toBe(409);
     expect((await tenant(client.tenantId)).balance_amount).toBe('-3000.00');

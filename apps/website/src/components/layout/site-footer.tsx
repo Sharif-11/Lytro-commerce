@@ -27,6 +27,8 @@ const text = {
   company: { bn: 'কোম্পানি', en: 'Company' },
   about: { bn: 'আমাদের সম্পর্কে', en: 'About us' },
   contact: { bn: 'যোগাযোগ', en: 'Contact' },
+  terms: { bn: 'টার্মস', en: 'Terms' },
+  privacy: { bn: 'প্রাইভেসি', en: 'Privacy' },
   listener: { bn: 'লিসেনার অ্যাপ', en: 'Listener app' },
   made: {
     bn: 'ঢাকায় তৈরি, সারা বাংলাদেশের সেলারদের জন্য',
@@ -41,8 +43,8 @@ interface FooterLink {
 }
 
 /** The sketch's footer: the wordmark, the line about Lytro and the Bangla lockup, then three link columns and the
-    company line. Only pages that exist are linked (LANDING-PAGE-DESIGN.md §3 row 14): Terms, Privacy and Notices join
-    when those routes ship. WhatsApp support is the help line's, when one is set (D8-69). */
+    company line. Only pages that exist are linked (LANDING-PAGE-DESIGN.md §3 row 14): Terms and Privacy since Slice 9.8,
+    Notices when its route ships. WhatsApp support is the help line's, when one is set (D8-69). */
 export async function SiteFooter({ language }: { language: Language }) {
   const copy = new Copy(language);
   const env = SiteEnvironment.current();
@@ -68,6 +70,8 @@ export async function SiteFooter({ language }: { language: Language }) {
   const company: FooterLink[] = [
     { href: '/about', label: copy.of(text.about) },
     { href: '/contact', label: copy.of(text.contact) },
+    { href: '/terms', label: copy.of(text.terms) },
+    { href: '/privacy', label: copy.of(text.privacy) },
   ];
 
   const columns = [
@@ -110,7 +114,7 @@ export async function SiteFooter({ language }: { language: Language }) {
           </div>
         </div>
         <div className="legal">
-          <span>© 2026 Lytro by Lytronix</span>
+          <span>© 2026 Lytro</span>
           <span>{copy.of(text.made)}</span>
         </div>
       </div>

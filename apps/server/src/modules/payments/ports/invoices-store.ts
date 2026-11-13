@@ -29,16 +29,26 @@ export interface NewInvoiceValues {
   reversesInvoiceId?: string | null;
 }
 
+/** D9-7, LEG-03 (Slice 9.8): the VAT an invoice carries -- the seller as registered, the rate and the VAT it includes. */
+export interface InvoiceVat {
+  sellerName: string;
+  sellerAddress: string;
+  sellerBin: string;
+  vatRate: string;
+  vatAmount: string;
+}
+
 /** control.invoices / control.invoice_counters (BIL-12/13, DAT-07). */
 export interface InvoicesStore {
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
   /** DAT-07: locks the one counter row and returns the next gap-free number, inside the caller's `tx`. */
   takeNextNumber(tx: Transaction): Promise<number>;
-  /** BIL-12: the invoice and its lines, in the caller's transaction. */
+  /** BIL-12: the invoice, its VAT when it carries any (D9-7), and its lines, in the caller's transaction. */
   insert(
     tx: Transaction,
     number: number,
     values: NewInvoiceValues,
+    vat: InvoiceVat | null,
     lines: readonly InvoiceLine[],
   ): Promise<InvoiceRecord>;
   findById(tx: Transaction, id: string): Promise<InvoiceRecord | null>;

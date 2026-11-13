@@ -1,0 +1,280 @@
+/* The terms and privacy pages (Slice 9.8), after the sketch docs/brand/lytro-support-legal.html (#page-terms,
+   #page-privacy): a dark band, then one reading column with a sticky section index from 900 px. The sketch's rules,
+   scoped to `.legal-page` so nothing else on the site changes, with three kinds of change only: every text is 14 px or
+   larger (the sketch has some 12 and 13 px labels); the index's heading is neutral-700, not neutral-500 (secondary text
+   stays dark for Bangla strokes); and the blocks the final texts use beyond the sketch's (subheadings, sub-labels,
+   numbered points, tables, contact lines, a rule) take the sketch's own type, colours and borders. The sticky index and
+   the section anchors clear the site's own sticky navbar, where the sketch cleared its own bar and prototype switcher. */
+.legal-page {
+  line-height: 1.7;
+}
+.legal-page .wrap {
+  max-width: 1040px;
+}
+
+/* The band */
+.legal-page .band {
+  position: relative;
+  background: var(--teal-900);
+  color: var(--white);
+  overflow: hidden;
+  isolation: isolate;
+  padding-block: 40px;
+}
+.legal-page .band .glow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(70% 50% at 85% 10%, rgba(62, 196, 185, 0.26), transparent 62%),
+    linear-gradient(180deg, var(--teal-900), var(--teal-950));
+}
+.legal-page .crumbs {
+  font-family: var(--f-ui);
+  font-size: 0.875rem;
+  color: var(--teal-200);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.legal-page .crumbs b {
+  color: var(--white);
+  font-weight: 500;
+}
+.legal-page .band h1 {
+  margin: 14px 0 0;
+  font-size: clamp(1.75rem, 1.2rem + 2.6vw, 2.6rem);
+  line-height: 1.25;
+  font-weight: 800;
+  text-wrap: balance;
+}
+
+/* The reading column */
+.legal-page .legal-body {
+  padding-top: 28px;
+  padding-bottom: 48px;
+}
+.legal-page .legal-wrap {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+.legal-page .toc {
+  display: none;
+}
+.legal-page .toc-title {
+  margin: 0;
+  padding: 0 10px 8px;
+  font-family: var(--f-ui);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--n700);
+}
+html[lang='bn'] .legal-page .toc-title {
+  font-family: var(--f-bn);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.legal-page .toc ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+  font-size: 0.875rem;
+}
+.legal-page .toc a {
+  display: block;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: var(--n700);
+  border-left: 2px solid transparent;
+}
+.legal-page .toc a:hover {
+  background: var(--n50);
+  color: var(--ink);
+}
+.legal-page .doc {
+  max-width: calc(72 * var(--ch));
+  min-width: 0;
+  display: grid;
+  gap: 26px;
+}
+.legal-page .doc a {
+  color: var(--teal-700);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.legal-page .doc .meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-family: var(--f-ui);
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.legal-page .doc .superseded {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--n700);
+}
+.legal-page .doc .intro {
+  display: grid;
+  gap: 12px;
+}
+.legal-page .doc .intro p {
+  margin: 0;
+  font-size: 1.0625rem;
+}
+.legal-page .doc hr {
+  margin: 4px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line-strong);
+}
+.legal-page .clause {
+  display: grid;
+  gap: 10px;
+  /* On top of the page's own scroll padding for the sticky navbar (site.css). */
+  scroll-margin-top: 8px;
+}
+.legal-page .clause h2 {
+  margin: 0;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.legal-page .clause h3 {
+  margin: 8px 0 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+}
+html[lang='en'] .legal-page :is(.band h1, .clause h2) {
+  font-family: var(--f-display);
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+}
+.legal-page .clause h2 small {
+  font-family: var(--f-ui);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--teal-700);
+}
+.legal-page .clause p,
+.legal-page .clause li {
+  margin: 0;
+  font-size: 0.9875rem;
+  color: var(--n700);
+}
+.legal-page .clause b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.legal-page .clause .sublabel {
+  margin-top: 4px;
+}
+.legal-page .clause ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: disc;
+  display: grid;
+  gap: 6px;
+}
+.legal-page .clause .numbered {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.legal-page .clause .numbered li {
+  display: flex;
+  gap: 8px;
+}
+.legal-page .clause .numbered .n {
+  flex: none;
+  font-weight: 600;
+  color: var(--teal-700);
+}
+.legal-page .plain {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 14px;
+  border: 1px solid var(--teal-100);
+  border-radius: 12px;
+  background: var(--teal-50);
+  font-size: 0.9rem;
+  color: var(--teal-900);
+}
+.legal-page .plain svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-top: 2px;
+  color: var(--teal-700);
+}
+.legal-page .plain b {
+  font-weight: 600;
+  color: inherit;
+}
+.legal-page .table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+}
+.legal-page table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.legal-page th,
+.legal-page td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.legal-page thead th {
+  border-top: 0;
+  background: var(--n50);
+  color: var(--ink);
+  font-weight: 700;
+}
+.legal-page td {
+  color: var(--n700);
+}
+.legal-page td:first-child {
+  color: var(--ink);
+}
+
+@media (min-width: 640px) {
+  .legal-page .legal-body {
+    padding-bottom: 64px;
+  }
+}
+@media (min-width: 900px) {
+  .legal-page .legal-wrap {
+    grid-template-columns: 240px 1fr;
+    gap: 40px;
+    align-items: start;
+  }
+  .legal-page .toc {
+    display: block;
+    position: sticky;
+    top: calc(var(--nav-h) + 32px);
+    /* Twelve sections can be taller than a short laptop screen. */
+    max-height: calc(100vh - var(--nav-h) - 48px);
+    overflow-y: auto;
+  }
+}

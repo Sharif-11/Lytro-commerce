@@ -12,7 +12,11 @@ import {
 } from '@lytronix/db';
 import { PaymentCancelReason, PlanPaymentKind } from '@lytronix/validators';
 import { UniqueViolation } from '../../common/errors/unique-violation';
-import type { InvoicesStore, NewInvoiceValues } from '../../modules/payments/ports/invoices-store';
+import type {
+  InvoicesStore,
+  InvoiceVat,
+  NewInvoiceValues,
+} from '../../modules/payments/ports/invoices-store';
 import type { InvoiceLine, InvoiceRecord } from '../../modules/payments/types/invoice';
 import type {
   NewPlanPaymentValues,
@@ -44,9 +48,10 @@ export class DrizzleInvoicesStore implements InvoicesStore {
     tx: Transaction,
     number: number,
     values: NewInvoiceValues,
+    vat: InvoiceVat | null,
     lines: readonly InvoiceLine[],
   ): Promise<InvoiceRecord> {
-    const row = await this.invoices.insert(tx, { ...values, number });
+    const row = await this.invoices.insert(tx, { ...values, ...vat, number });
     await this.invoices.insertLines(tx, row.id, lines);
     return { ...row, lines: [...lines] };
   }

@@ -128,8 +128,8 @@ describeIfDatabase('Google and Facebook sign-in (AUTH-24, AUTH-27)', () => {
     expect(account.rows[0]?.password_hash).toBeNull();
     // LEG-01: signing up by Google accepts them as a code does.
     expect(account.rows[0]).toMatchObject({
-      terms_version: '2026-11-04',
-      privacy_version: '2026-11-04',
+      terms_version: '2026-11-20',
+      privacy_version: '2026-11-20',
     });
   });
 

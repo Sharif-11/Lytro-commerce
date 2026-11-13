@@ -10,8 +10,6 @@ import {
   ActorType,
   AuditAction,
   AuditResult,
-  InvoiceKind,
-  InvoiceLineKind,
   MANUAL_ENTRY_CONFIRM_ABOVE_TAKA,
   MANUAL_ENTRY_DAILY_ENTRIES,
   ManualEntryKind,
@@ -32,7 +30,7 @@ import { DAY_MS, dhakaDayStart, startOfDayDhaka } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
-import { fromPaisa, toPaisa } from '../../balance/services/money';
+import { toPaisa } from '../../balance/services/money';
 import { TopUpService } from '../../balance/services/top-up.service';
 import { AddonRenewalService } from '../../billing/services/addon-renewal.service';
 import {
@@ -200,6 +198,9 @@ export class ManualEntries {
           amount: entry.amount,
           reference: { manualEntryId: entry.id, reason, operatorId },
         });
+        // D8-49, BIL-12 (Slice 9.8): a top-up has its invoice from this release on; one recorded before has none to take back.
+        const invoice = await this.invoices.findForPaymentWithin(tx, payment.id);
+        if (invoice) await this.invoices.takeBackWithin(tx, invoice);
       } else {
         // D8-48: only while the shop is still on what this entry gave it; a later payment, an extension or a downgrade
         // would otherwise be wiped out.
@@ -385,38 +386,7 @@ export class ManualEntries {
     }
     const invoice = await this.invoices.findForPaymentWithin(tx, payment.id);
     if (!invoice) throw new Error('a plan entry has no invoice to take back');
-    const amount = fromPaisa(-toPaisa(invoice.amount));
-    await this.invoices.issue(
-      tx,
-      {
-        tenantId: invoice.tenantId,
-        kind: InvoiceKind.CreditNote,
-        planSnapshot: invoice.planSnapshot,
-        amount,
-        creditAmount: '0',
-        billingTermLabel: invoice.billingTermLabel,
-        shopName: invoice.shopName ?? '',
-        ownerName: invoice.ownerName,
-        planName: invoice.planName,
-        planVersion: invoice.planVersion,
-        periodStart: invoice.periodStart,
-        periodEnd: invoice.periodEnd,
-        discountAmount: '0',
-        paymentMethod: invoice.paymentMethod ?? 'wallet',
-        paymentReference: invoice.paymentReference,
-        planPaymentId: null,
-        recordedByPlatform: true,
-        reversesInvoiceId: invoice.id,
-      },
-      [
-        {
-          kind: InvoiceLineKind.Credit,
-          description: `Takes back invoice #${String(invoice.number)}`,
-          quantity: 1,
-          amount,
-        },
-      ],
-    );
+    await this.invoices.takeBackWithin(tx, invoice);
   }
 
   private async tellEveryone(

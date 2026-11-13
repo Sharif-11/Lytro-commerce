@@ -179,7 +179,7 @@ export class Reconciliation {
     return differences;
   }
 
-  /** BIL-12: one invoice for each plan or add-on paid. */
+  /** BIL-12, D9-26: one invoice for each plan, add-on or top-up paid. */
   private async invoices(window: ReconciliationWindow): Promise<Difference[]> {
     return (await this.store.invoiceCountsOff(window)).map((payment) => ({
       kind: ReconciliationDifferenceKind.InvoiceMismatch,

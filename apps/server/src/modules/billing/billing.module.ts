@@ -54,6 +54,7 @@ import { PaymentScreenshotsService } from './services/payment-screenshots.servic
 import { PaymentEvidenceModule } from '../payment-evidence/payment-evidence.module';
 import { PaymentQueueService } from './services/payment-queue.service';
 import { PlanInvoicingService } from './services/plan-invoicing.service';
+import { TopUpInvoicing } from './services/top-up-invoicing';
 import { PurchaseService } from './services/purchase.service';
 import { ShopLimitsService } from './services/shop-limits.service';
 import { TrialLifecycleService } from './services/trial-lifecycle.service';
@@ -129,6 +130,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     AddonPackService,
     TrialLifecycleService,
     PlanInvoicingService,
+    TopUpInvoicing,
     PurchaseService,
     UpgradeService,
     DowngradeService,

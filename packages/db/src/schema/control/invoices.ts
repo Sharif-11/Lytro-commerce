@@ -71,6 +71,14 @@ export const invoices = control.table(
     recordedByPlatform: boolean('recorded_by_platform').notNull().default(false),
     // ADM-15, D8-49: on a credit note, the invoice it takes back -- a plain id, like plan_payment_id.
     reversesInvoiceId: uuid('reverses_invoice_id'),
+    // D9-7, LEG-03 (Slice 9.8): VAT, copied at issue once Lytro is registered -- the seller's registered name, address and
+    // BIN, the rate, and the VAT the amount includes (prices include VAT). All five or none: null while Lytro isn't
+    // registered, and on an invoice paid from the balance, whose VAT the top-up's own invoice carried.
+    sellerName: text('seller_name'),
+    sellerAddress: text('seller_address'),
+    sellerBin: text('seller_bin'),
+    vatRate: numeric('vat_rate', { precision: 5, scale: 2 }),
+    vatAmount: numeric('vat_amount', { precision: 10, scale: 2 }),
     issuedAt: timestamp('issued_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -81,6 +89,10 @@ export const invoices = control.table(
           .map((v) => `'${v}'`)
           .join(','),
       )})`,
+    ),
+    check(
+      'invoices_vat_check',
+      sql`num_nulls(${t.sellerName}, ${t.sellerAddress}, ${t.sellerBin}, ${t.vatRate}, ${t.vatAmount}) in (0, 5)`,
     ),
     uniqueIndex('invoices_plan_payment_id_idx')
       .on(t.planPaymentId)

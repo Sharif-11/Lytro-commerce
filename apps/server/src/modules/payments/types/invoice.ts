@@ -29,6 +29,12 @@ export interface InvoiceRecord {
   recordedByPlatform: boolean;
   /** ADM-15, D8-49: on a credit note, the invoice it takes back. */
   reversesInvoiceId: string | null;
+  /** D9-7 (Slice 9.8): the VAT it carries, all five or none -- none until Lytro is registered, and when paid from the balance. */
+  sellerName: string | null;
+  sellerAddress: string | null;
+  sellerBin: string | null;
+  vatRate: string | null;
+  vatAmount: string | null;
   issuedAt: Date;
   /** BIL-12, PLN-14: what it is for, line by line; none on invoices issued before lines existed. */
   lines: InvoiceLine[];

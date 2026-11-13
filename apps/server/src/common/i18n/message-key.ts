@@ -682,6 +682,8 @@ export const MESSAGE_KEYS = [
   'PaymentMethodRemovalBlocked',
   // Phase 8 Slice 8.7: Lytro's help line (D8-4).
   'HelpLineRead',
+  // Phase 9 Slice 9.8: the terms and privacy versions in force, for the website's /terms and /privacy.
+  'LegalVersionsRead',
   // Small fixes, 2026-11-13: the listener app's current release, for the dashboard's download (TENANT-DASHBOARD-DESIGN §7.44).
   'ListenerAppReleaseRead',
   'PaymentAccountNotFound',

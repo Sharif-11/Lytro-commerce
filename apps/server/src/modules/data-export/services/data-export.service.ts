@@ -213,6 +213,10 @@ export class DataExportService {
         discountAmount: invoice.discountAmount,
         paymentMethod: invoice.paymentMethod ?? '',
         paymentReference: invoice.paymentReference ?? '',
+        // D9-7 (Slice 9.8): the VAT it carries, empty while Lytro isn't registered.
+        sellerBin: invoice.sellerBin ?? '',
+        vatRate: invoice.vatRate ?? '',
+        vatAmount: invoice.vatAmount ?? '',
         issuedAt: invoice.issuedAt.toISOString(),
       }));
       archive.append(
@@ -231,6 +235,9 @@ export class DataExportService {
           'discountAmount',
           'paymentMethod',
           'paymentReference',
+          'sellerBin',
+          'vatRate',
+          'vatAmount',
           'issuedAt',
         ]),
         { name: 'payments.csv' },

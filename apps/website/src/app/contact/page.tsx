@@ -54,7 +54,7 @@ const text = {
     bn: 'WhatsApp-এ লিখে রাখুন, খোলার পর উত্তর দিই',
     en: 'Leave a WhatsApp; we reply when we open',
   },
-  addressTitle: { bn: 'Lytronix, ঢাকা', en: 'Lytronix, Dhaka' },
+  addressTitle: { bn: 'Lytro, চট্টগ্রাম', en: 'Lytro, Chittagong' },
   addressSub: { bn: 'দেখা করতে আগে সময় নিন।', en: 'Visits by appointment.' },
 } satisfies Record<string, Bilingual>;
 
