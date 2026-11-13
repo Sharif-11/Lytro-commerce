@@ -288,6 +288,9 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   - The limit store with Redis and in-process versions, and the fallback and its alert (D9-15).
   - PostgreSQL counters for the exact limits, and the one-server state moved out of memory.
   - Scheduled jobs once at a time.
+- **Shipped:** #358 (2026-11-13), in one PR as the read asked: migration 0130, leases for the one-server state and
+  the passes. On staging, make-env.sh is rerun after its deploy for Redis's password and `REDIS_URL` (deploy/README,
+  "Redis"). What it leaves open is KNOWN-GAPS §147.
 
 ### Slice 9.5: money safety and outside calls
 - **Depends on:** 9.2, 9.4.
