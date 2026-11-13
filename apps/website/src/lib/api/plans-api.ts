@@ -11,6 +11,9 @@ export interface Plan {
   forSale: boolean;
   limits: PlanLimits;
   features?: Record<string, boolean>;
+  /** PLN-21: the plan the operator marked for the pricing page to highlight; at most one. Absent from a server
+      older than the mark, which reads as not suggested. */
+  suggested?: boolean;
 }
 
 export interface BillingTerm {

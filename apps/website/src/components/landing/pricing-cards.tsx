@@ -13,13 +13,21 @@ export interface PricingTermView {
   savingPercent: number;
 }
 
+/** One line on a plan card: what the plan gives, ticked, or what it doesn't, crossed out. */
+export interface PlanLine {
+  text: string;
+  on: boolean;
+}
+
 export interface PricingPlanView {
   id: string;
   name: string;
   description: string | null;
-  lines: string[];
+  /** PLN-21: the plan the operator marked as suggested, drawn as the highlighted card with the badge. */
+  hot: boolean;
+  lines: PlanLine[];
   /** What else it gives, for the card's quieter list (storage, bandwidth, API, phones, brand identity). */
-  more: string[];
+  more: PlanLine[];
   /** Per term id: the full price and its monthly equivalent, both already formatted. */
   prices: Record<string, { total: string; monthly: string } | undefined>;
   signInUrls: Record<string, string | undefined>;
@@ -32,44 +40,68 @@ export interface PricingView {
 }
 
 export interface PaygView {
-  badge: string;
   name: string;
   description: string;
   price: string;
-  lines: string[];
+  /** PLN-21: pay-as-you-go can be the suggested plan too. */
+  hot: boolean;
+  lines: PlanLine[];
   /** Its own limits, for the card's quieter list; empty when they couldn't be read. */
-  more: string[];
+  more: PlanLine[];
   cta: string;
   signInUrl: string;
 }
 
+/** One list of a card's lines: a tick for what the plan gives, a cross and a strike for what it doesn't (site.css
+    `.plan li.no`), which a screen reader hears as "not included". */
+function LineList({
+  lines,
+  size,
+  className,
+  language,
+}: {
+  lines: PlanLine[];
+  size: number;
+  className?: string;
+  language: Language;
+}) {
+  return (
+    <ul className={className}>
+      {lines.map((line) => (
+        <li key={line.text} className={line.on ? undefined : 'no'}>
+          <Icon name={line.on ? 'check' : 'x'} size={size} strokeWidth={line.on ? 2.4 : 2.2} />
+          <span>
+            {line.on ? null : <span className="sr-only">{text.notIncluded[language]}</span>}
+            {line.text}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** A card's lines, then what else it gives in a quieter list below a dashed line (site.css `.plan ul.more`). */
-function PlanLines({ lines, more }: { lines: string[]; more: string[] }) {
+function PlanLines({
+  lines,
+  more,
+  language,
+}: {
+  lines: PlanLine[];
+  more: PlanLine[];
+  language: Language;
+}) {
   return (
     <>
-      <ul>
-        {lines.map((line) => (
-          <li key={line}>
-            <Icon name="check" size={18} strokeWidth={2.4} />
-            <span>{line}</span>
-          </li>
-        ))}
-      </ul>
+      <LineList lines={lines} size={18} language={language} />
       {more.length > 0 ? (
-        <ul className="more">
-          {more.map((line) => (
-            <li key={line}>
-              <Icon name="check" size={16} strokeWidth={2.4} />
-              <span>{line}</span>
-            </li>
-          ))}
-        </ul>
+        <LineList lines={more} size={16} className="more" language={language} />
       ) : null}
     </>
   );
 }
 
 const text = {
+  notIncluded: { bn: 'নেই: ', en: 'Not included: ' },
   perMonth: { bn: '/ মাস', en: 'per month' },
   perTerm: { bn: 'মোট', en: 'total' },
   choose: { bn: 'নিন', en: 'Choose' },
@@ -120,17 +152,21 @@ class CardRow {
 
 /** The sketch's pricing (LANDING-PAGE-DESIGN.md §3 row 8): the heading with the term toggle under it, then the cards
     as a swipe row on a phone, the next card peeking in and dots under it that follow the swipe and bring a card in
-    when tapped; a two-column grid from 640 px and four across from 1100 px. The highlighted card is the one with
-    `hot` (site.css `.plan.hot`, with its `.badge`). */
+    when tapped; a two-column grid from 640 px and four across from 1100 px. The plan the operator marked as
+    suggested is the highlighted card (site.css `.plan.hot`, with its `.badge` and the accent button); the others
+    are white with an outline button. */
 export function PricingCards({
   language,
   head,
+  badge,
   payg,
   view,
 }: {
   language: Language;
   /** The section's eyebrow, headline and lead, rendered on the server. */
   head: ReactNode;
+  /** The highlighted card's badge. */
+  badge: string;
   payg: PaygView;
   view: PricingView | null;
 }) {
@@ -187,17 +223,18 @@ export function PricingCards({
       </div>
 
       <div className="pscroll" ref={rowRef}>
-        <div className="pgrid">
-          <article className="plan card hot">
-            <span className="badge">{payg.badge}</span>
+        {/* How many cards the plans make: a row with fewer than four sizes to them and sits centred (site.css). */}
+        <div className="pgrid" data-plans={Math.min(names.length, 4)}>
+          <article className={payg.hot ? 'plan card hot' : 'plan card'}>
+            {payg.hot ? <span className="badge">{badge}</span> : null}
             <h3 className="bn-name">{payg.name}</h3>
             <p className="who">{payg.description}</p>
             <p className="price">
               <b>{payg.price}</b>
               <span>{text.perMonth[language]}</span>
             </p>
-            <PlanLines lines={payg.lines} more={payg.more} />
-            <a href={payg.signInUrl} className="btn btn-accent">
+            <PlanLines lines={payg.lines} more={payg.more} language={language} />
+            <a href={payg.signInUrl} className={payg.hot ? 'btn btn-accent' : 'btn btn-outline'}>
               {payg.cta}
             </a>
           </article>
@@ -206,7 +243,8 @@ export function PricingCards({
             const price = plan.prices[termId];
             const href = plan.signInUrls[termId] ?? plan.signInUrls[view.defaultTermId] ?? '#';
             return (
-              <article key={plan.id} className="plan card">
+              <article key={plan.id} className={plan.hot ? 'plan card hot' : 'plan card'}>
+                {plan.hot ? <span className="badge">{badge}</span> : null}
                 <h3>{plan.name}</h3>
                 {plan.description ? <p className="who">{plan.description}</p> : null}
                 {price ? (
@@ -224,8 +262,8 @@ export function PricingCards({
                     <span>—</span>
                   </p>
                 )}
-                <PlanLines lines={plan.lines} more={plan.more} />
-                <a href={href} className="btn btn-primary">
+                <PlanLines lines={plan.lines} more={plan.more} language={language} />
+                <a href={href} className={plan.hot ? 'btn btn-accent' : 'btn btn-outline'}>
                   {language === 'bn'
                     ? `${plan.name} ${text.choose.bn}`
                     : `${text.choose.en} ${plan.name}`}
