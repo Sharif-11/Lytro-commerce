@@ -179,6 +179,30 @@ jobs:
           curl --silent --insecure --head --resolve app.localhost:443:127.0.0.1 https://app.localhost/ \
             | grep -i '^x-robots-tag: noindex, nofollow'
 
+      # Slice 9.7 (SEC-04, D9-22): the security headers, and the dashboard's files compressed once and cached: a hashed
+      # file a year as zstd or gzip, a page checked every time, and a hashed file that isn't there a 404, never the app.
+      - name: The headers, and the dashboard's files compressed and cached
+        run: |
+          headers() {
+            curl --silent --insecure --output /dev/null --dump-header - --resolve app.localhost:443:127.0.0.1 \
+              -H "Accept-Encoding: $2" "https://app.localhost$1" | tr -d '\r'
+          }
+          page="$(headers /some-shop/orders 'zstd, gzip')"
+          echo "$page"
+          echo "$page" | grep -i '^cache-control: no-cache$'
+          echo "$page" | grep -i '^strict-transport-security: max-age=31536000; includeSubDomains$'
+          echo "$page" | grep -i '^x-content-type-options: nosniff$'
+          echo "$page" | grep -i '^x-frame-options: DENY$'
+          script="$(curl --silent --insecure --resolve app.localhost:443:127.0.0.1 https://app.localhost/ \
+            | grep -o '/assets/index-[A-Za-z0-9_-]*\.js' | head -n 1)"
+          test -n "$script"
+          for encoding in zstd gzip; do
+            answer="$(headers "$script" "$encoding")"
+            echo "$answer" | grep -i "^content-encoding: $encoding$"
+            echo "$answer" | grep -i '^cache-control: public, max-age=31536000, immutable$'
+          done
+          headers /assets/not-there.js gzip | grep '^HTTP/[0-9.]* 404'
+
       # Slice 9.6 (D9-3, OBS-05): the monitor's Grafana account named, as a stand-in: a Prometheus that takes the
       # monitor's remote writes and evaluates deploy/monitoring/alerts.yml on them. The next deploy starts the monitor.
       - name: The monitor's settings, with a stand-in for Grafana Cloud

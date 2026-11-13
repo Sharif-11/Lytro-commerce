@@ -119,6 +119,26 @@
 	header X-Robots-Tag "noindex, nofollow"
 }
 
+# Slice 9.7: the dashboard's and the console's files as Caddy sends them. Each text file is compressed when the image
+# is built (deploy/static/compress.mjs), and the one a browser accepts is sent. A hashed file under /assets/ never
+# changes under its name, so it's kept a year; everything else (index.html, the service worker) is checked every time,
+# so a deploy reaches every browser at once.
+(spa_files) {
+	@hashed path /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	@shell not path /assets/*
+	header @shell Cache-Control "no-cache"
+	# Only a page falls back to the app: a hashed file that isn't there is a 404, never index.html kept a year.
+	@page {
+		not path /assets/*
+		not file
+	}
+	rewrite @page /index.html
+	file_server {
+		precompressed zstd gzip
+	}
+}
+
 # A static SPA build: no process, Caddy serves dist/ directly (§8), falling back to index.html for any
 # unmatched path so the client-side router takes over. Inside its own `handle`, so it only ever sees what /api/*
 # did not take: Caddy runs `try_files` (a rewrite) before any `handle`, so at the top level it rewrote every API
@@ -126,16 +146,14 @@
 (dashboard_spa) {
 	handle {
 		root * {$DASHBOARD_DIST_PATH:/srv/dashboard/dist}
-		try_files {path} /index.html
-		file_server
+		import spa_files
 	}
 }
 
 (operator_spa) {
 	handle {
 		root * {$OPERATOR_DIST_PATH:/srv/operator/dist}
-		try_files {path} /index.html
-		file_server
+		import spa_files
 	}
 }
 

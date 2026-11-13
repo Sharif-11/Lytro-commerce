@@ -36,6 +36,8 @@ RUN NEXT_STANDALONE=1 STOREFRONT_BUILD_ID=${RELEASE} VITE_RELEASE=${RELEASE} VIT
       --filter=@lytronix/storefront \
       --filter=@lytronix/dashboard \
       --filter=@lytronix/operator
+# Slice 9.7: the dashboard's and the console's files compressed once, beside each (.zst, .gz), for Caddy to send.
+RUN node deploy/static/compress.mjs apps/dashboard/dist apps/operator/dist
 # The server with its production packages only, the workspace's own (db with its migrations, validators,
 # shared-types) copied in.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm --filter=@lytronix/server deploy --prod /out/server
