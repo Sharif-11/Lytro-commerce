@@ -15,8 +15,7 @@ const FULL_ORDERS = Number(__ENV.FULL_ORDERS || 3600);
 const SMALL_ORDERS = Number(__ENV.SMALL_ORDERS || 100);
 const CUSTOMERS = Number(__ENV.CUSTOMERS || 1000);
 
-// Every order to place, as [shop, its number in that shop], the shops taken in turn so all of them fill at once:
-// PUBLIC_ORDERS_PER_SHOP_PER_MINUTE (60) holds each shop, not the run.
+// Every order to place, as [shop, its number in that shop], the shops taken in turn so all of them fill at once.
 const plan = new SharedArray('orders', () => {
   const wanted = roster.shops.map((shop) => (shop.full ? FULL_ORDERS : SMALL_ORDERS));
   const orders = [];
@@ -28,13 +27,31 @@ const plan = new SharedArray('orders', () => {
   return orders;
 });
 
+// A shop takes 60 orders a minute (public_orders_per_shop_per_minute, Slice 4.2): each one here gets PER_SHOP of them,
+// all shops at once while the small ones still need orders, then the full ones alone. Staging's shakedown found the run
+// otherwise outran it (1,050 refused, 2026-11-14).
+const PER_SHOP = Number(__ENV.PER_SHOP || 50);
+const shopsAll = roster.shops.length;
+const shopsFull = roster.shops.filter((shop) => shop.full).length;
+const together = Math.min(SMALL_ORDERS, FULL_ORDERS);
+const fullAlone = shopsFull > 0 ? Math.max(0, FULL_ORDERS - SMALL_ORDERS) : 0;
+const seconds = (orders) => `${String(Math.ceil((orders * 60) / PER_SHOP))}s`;
+
 export const options = {
   scenarios: {
     orders: {
-      executor: 'shared-iterations',
-      vus: Number(__ENV.VUS || 60),
-      iterations: plan.length,
-      maxDuration: '8h',
+      executor: 'ramping-arrival-rate',
+      timeUnit: '1m',
+      startRate: shopsAll * PER_SHOP,
+      stages: [
+        { target: shopsAll * PER_SHOP, duration: seconds(together) },
+        { target: Math.max(1, shopsFull * PER_SHOP), duration: '1s' },
+        { target: Math.max(1, shopsFull * PER_SHOP), duration: seconds(fullAlone) },
+        // The tail: arrivals left over after the plan's last order do nothing.
+        { target: 1, duration: '30s' },
+      ],
+      preAllocatedVUs: Math.max(10, Math.ceil((shopsAll * PER_SHOP) / 60) * 3),
+      maxVUs: Number(__ENV.VUS || 300),
     },
   },
   summaryTrendStats: ['p(95)'],
@@ -52,7 +69,9 @@ function fateOf(nth) {
 }
 
 export default function placeOne() {
-  const [index, nth] = plan[exec.scenario.iterationInTest];
+  const next = plan[exec.scenario.iterationInTest];
+  if (!next) return;
+  const [index, nth] = next;
   const shop = roster.shops[index];
   const cod = shop.products.filter((product) => !product.advance);
   const product = cod[(nth * 7) % cod.length];
@@ -82,6 +101,8 @@ export default function placeOne() {
     console.error(`${shop.slug} #${String(nth)}: ${String(placed.status)} ${placed.body}`);
     return;
   }
+  // A seeding run again: an order an earlier run placed comes back as it was (API-11's replay), already moved on.
+  if (placed.headers['Idempotent-Replay'] === 'true') return;
   const fate = fateOf(nth);
   if (fate === 'placed') return;
 

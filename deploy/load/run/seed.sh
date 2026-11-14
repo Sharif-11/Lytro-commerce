@@ -50,20 +50,33 @@ k6() {
     "$K6_IMAGE" run --quiet "$@"
 }
 
-say "1. signing up the shops ($RUN)"
-ROSTER=/out/shops.json k6 seed-shops.js
-say '2. making them paying shops with room for a year'
-sql "$DEPLOY_DIR/load/sql/seed-limits.sql"
-say "2b. the load test's operator, who reads reports during the run (DAT-18); disarm.sh removes it"
-export OPERATOR_EMAIL="load-test-$RUN@$DOMAIN" OPERATOR_PASSWORD
-# Twenty characters: the most a password may have (PASSWORD_MAX_LENGTH).
-OPERATOR_PASSWORD="$(openssl rand -hex 10)"
-dc --profile tools run --rm --no-deps -T migrate \
-  node node_modules/@lytronix/db/dist/create-operator.js "$OPERATOR_EMAIL" "$OPERATOR_PASSWORD" > /dev/null
-say '3. their catalogues, website keys, bKash numbers and paired phones'
-ROSTER_IN=/out/shops.json ROSTER=/out/roster.json k6 seed-catalogue.js
-say "4. a year of orders (the longest step)"
-ROSTER_IN=/out/roster.json k6 seed-orders.js
+# FROM_STEP picks a stopped seeding up where it stopped: the roster the earlier steps wrote stays, and an order an earlier
+# run placed comes back as it was.
+FROM_STEP="${FROM_STEP:-1}"
+step() { [ "$FROM_STEP" -le "$1" ]; }
+
+if step 1; then
+  say "1. signing up the shops ($RUN)"
+  ROSTER=/out/shops.json k6 seed-shops.js
+fi
+if step 2; then
+  say '2. making them paying shops with room for a year'
+  sql "$DEPLOY_DIR/load/sql/seed-limits.sql"
+  say "2b. the load test's operator, who reads reports during the run (DAT-18); disarm.sh removes it"
+  export OPERATOR_EMAIL="load-test-$RUN@$DOMAIN" OPERATOR_PASSWORD
+  # Twenty characters: the most a password may have (PASSWORD_MAX_LENGTH).
+  OPERATOR_PASSWORD="$(openssl rand -hex 10)"
+  dc --profile tools run --rm --no-deps -T migrate \
+    node node_modules/@lytronix/db/dist/create-operator.js "$OPERATOR_EMAIL" "$OPERATOR_PASSWORD" > /dev/null
+fi
+if step 3; then
+  say '3. their catalogues, website keys, bKash numbers and paired phones'
+  ROSTER_IN=/out/shops.json ROSTER=/out/roster.json k6 seed-catalogue.js
+fi
+if step 4; then
+  say "4. a year of orders (the longest step)"
+  ROSTER_IN=/out/roster.json k6 seed-orders.js
+fi
 say '5. spreading them over the year'
 sql "$DEPLOY_DIR/load/sql/spread-year.sql"
 say "done: the roster is $WORK/out/roster.json; copy it to the load machine"
