@@ -51,7 +51,6 @@ const AT_ONE = {
   websiteOrders: 4.14,
   sellers: 480,
 };
-const PHONES_A_MINUTE = shops.length / 15;
 
 function stages(perMinute) {
   if (MODE === 'ceiling') {
@@ -88,11 +87,13 @@ const scenarios = {
   storefrontOrders: scenario('storefrontOrder', AT_ONE.storefrontOrders, 5),
   websiteOrders: scenario('websiteOrder', AT_ONE.websiteOrders, 5),
   sellers: scenario('seller', AT_ONE.sellers, 20),
+  // Each shop's phone once every 15 minutes, never sooner: the server takes 4 beats an hour (LSN-03), and staging's
+  // shakedown found a rate rounded up to a minute made 10 phones beat every 10 minutes.
   phones: {
     executor: 'constant-arrival-rate',
     exec: 'phone',
-    rate: Math.max(1, Math.round(PHONES_A_MINUTE)),
-    timeUnit: '1m',
+    rate: shops.length,
+    timeUnit: '15m',
     duration: MODE === 'ceiling' ? '100m' : `${String(RAMP_MINUTES + MINUTES + 1)}m`,
     preAllocatedVUs: 2,
   },
