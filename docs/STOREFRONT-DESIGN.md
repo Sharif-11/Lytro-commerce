@@ -357,6 +357,31 @@ Prototype: the group "Phase 9 · Slice 9.9" in `docs/brand/lytro-storefront.html
 - **The Privacy link** (`p99-footer`): **প্রাইভেসি** / **Privacy** under the Powered by Lytro mark in every footer, a
   new tab to `https://lytro.app/privacy`, the policy that also covers the shop's customers (Slice 9.8).
 
+## 7h. A page the shop is too busy to give (Phase 9 Slice 9.10)
+
+Prototype: the group "Phase 9 · Slice 9.10 (sketch)" in `docs/brand/lytro-storefront.html` (Part 910). Staging's load
+test (2026-11-14) found a storefront page answering Next's error page whenever the server said "too many requests"
+(429, RTE-06) or "busy" (503): 10,184 times in 15 minutes.
+
+- **A whole page** (`p910-busy`): when the server is too busy to give what a page needs (its shop, products, product,
+  cart, checkout, tracking or account), the page is drawn the way the offline page is:
+  - the shop's mark;
+  - **শপটি এই মুহূর্তে খুব ব্যস্ত** / **The shop is very busy right now**;
+  - "এক মিনিট পরে আবার চেষ্টা করুন। আপনার কার্টে রাখা জিনিস ঠিক থাকবে।" / "Please try again in a minute. Anything
+    in your cart stays there.";
+  - **আবার চেষ্টা করুন** / **Try again**, which loads the same page;
+  - under it, with a clock, "৩০ সেকেন্ড পরে পেজটি নিজেই আবার খুলবে" / "The page tries again by itself in 30 seconds",
+    the wait the server named (Retry-After), 30 seconds when it names none;
+  - Powered by Lytro.
+
+  The page tells search engines not to keep it (`noindex`).
+- **A figure the page asks for itself** (`p910-busy-delivery`): the delivery charge, refused as too busy, says
+  **এখন দেখা যাচ্ছে না** / **can't be shown right now** with **আবার চাপুন** / **Try again** in its place. The rest of the page
+  stays. "Load more" in a list does the same under the list. Checkout keeps its own words for a busy server
+  (`e48-checkout-busy`), and an order refused because orders can't be saved keeps 7g's.
+- **Only "too many" and "busy" are drawn this way.** Any other fault keeps the error page, so a real fault is never
+  dressed up as a wait.
+
 ## 8. Later phases, drawn in full
 
 Phase 4, orders: drawn again in §7a as Phase 4 built it -- checkout, the confirmation, tracking, the account and the
