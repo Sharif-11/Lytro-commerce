@@ -183,6 +183,15 @@ export interface Invoice {
   discountAmount?: string | null;
   paymentMethod?: PaidByMethod | null;
   paymentReference?: string | null;
+  /** D9-7, D9-26 (Slice 9.8): Lytro's VAT registration and the VAT the amount includes, as they stood at issue. All five
+      are null until Lytro is registered, and on an invoice paid from the balance (its top-up's invoice carried the VAT). */
+  sellerName?: string | null;
+  sellerAddress?: string | null;
+  sellerBin?: string | null;
+  vatRate?: string | null;
+  vatAmount?: string | null;
+  // D9-29 (Slice 9.9): the shop's address as it stood at issue, Mushak-6.3's buyer; null on earlier invoices.
+  shopAddress?: string | null;
 }
 
 /** GET /billing/cancellation (LIF-01). */

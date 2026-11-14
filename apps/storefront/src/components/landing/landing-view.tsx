@@ -17,6 +17,7 @@ import { lineImageOf } from '@/lib/product/designs';
 import { quantityRule } from '@/lib/product/quantity';
 import { VariantChoice } from '@/lib/product/variant-choice';
 import { Icon } from '../icon';
+import { OrdersPausedBanner } from '../shell';
 import { LineExtras, NoticeBanner, TaxRows } from '../order/order-parts';
 import { AdvanceRows, PayChooser, PayNextHint } from '../order/pay-chooser';
 import { PlacedView } from '../order/placed-view';
@@ -249,6 +250,9 @@ export function LandingView(props: LandingViewProps) {
     );
   } else if (notice?.kind === 'busy') {
     banner = <NoticeBanner tone="warn" title={words.t('e48BusyT')} text={words.t('e48BusyP')} />;
+  } else if (notice?.kind === 'paused') {
+    // D9-14 (Slice 9.9): the order was refused because orders can't be saved for a few minutes; trying again later works.
+    banner = <OrdersPausedBanner words={words} role="alert" />;
   } else if (notice?.kind === 'failed' || notice?.kind === 'recheck') {
     banner = <NoticeBanner tone="bad" title={words.t('e48FailT')} text={words.t('e48FailP')} />;
   } else if (problems.length > 0) {

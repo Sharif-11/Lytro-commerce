@@ -126,6 +126,7 @@ whichever step it locked; the button returns when the server would answer again,
 
 **Job:** what needs a person, then what changed.
 
+- *Limited mode* (Slice 9.9, D9-28): first, a card saying whether degraded mode is on ("Limited mode" here), since when and by whom, and what it divides every shop's per-minute limits by, with Change in Settings. Turn on asks first in a panel: what pauses (exports and CSV downloads, the reports, reading orders from messages), what keeps working (orders, payments and their verification, courier booking, sign-in), the division, and that every dashboard shows a banner with no email or SMS. Turn off says what starts again. Under it, the money check's open differences (marigold above zero) open their page.
 - Four figures from the queue itself: needs review (BIL-06, the amount differs, with the first case in
   words), pending (with the wallets involved), taka waiting, oldest waiting (with the shop). The first
   figure is flagged in marigold when it is above zero.
@@ -234,7 +235,7 @@ ADM-16, D8-47 to D8-56). In *Daily*, under the queue, since it is the queue's ot
 - **Payments** card, first after the facts: the payment page's state with Suspend or Restore and, when
   suspended, its date and reason (TVR-03); the new-shop cap, on or off and whether that is the shop's kind or set
   for this shop, with Change (TVR-04: as its kind says, on, or off, and from v7.1 a reason); and the credential log with its last use,
-  opening `/shops/:slug/credentials` (SEC-11: when, wallet, action, payment, result, never a key).
+  opening `/shops/:slug/credentials` (SEC-11: when, wallet, action, payment, result, never a key). From Slice 9.9 that page has Download CSV, with the note that the list shows gateway keys only while the CSV also has couriers and Meta: a panel of two days, the last 30 unless changed (a Last 30 days chip puts them back), "To" before "From" refused under the field, and the server's CSV saved as `credential-uses-<from>-to-<to>.csv`.
 - **Couriers** card, after the payments cards (v4): the courier key log with its last use, opening
   `/shops/:slug/courier-keys` (SEC-11: when, courier, action, the order, result, never a key; the actions are checked
   the keys, booked a parcel, looked for a parcel by our number, cancelled a parcel, asked where a parcel is, renewed the
@@ -357,7 +358,7 @@ follow Phase 7: the fake-order check ৳0.00 at launch (D7-7), the SMS part 67 c
 
 ## 9. Settings (`/settings`)
 
-All 46 values from `/operator/settings` (v7), in fifteen groups with a chip row to jump between them, wrapping from
+All 51 values from `/operator/settings` (Slice 9.9), in seventeen groups with a chip row to jump between them, wrapping from
 640 px: *Trial and top-up*;
 *Lifecycle after a paid period ends* (LIF-26); *Orders and stock*; *Requests and limits*; *Online payments* (the
 new-shop cap, TVR-04); *Listener phones* (offline window, oldest app, the sender list); *Media*; *Catalogue in the
@@ -376,7 +377,7 @@ under the field otherwise, "The closing hour must be after the opening hour (9)"
 closing hour (22)", whichever is changed; with a line on where the numbers show and that one stands in for the other) and *Media costs* (D8-58 to D8-61: the budget in whole dollars a month, the alert's percent, the
 alert's address, "Not set" until set with the note that the alert is only logged till then, the billing day 1 to 28, and
 Cloudflare's prices as one line that opens a panel of its nine figures, refused unless each price is 0 to 1,000 and each
-allowance a whole number). Each row shows the server's description, the last change
+allowance a whole number); and from Slice 9.9 *Limited mode* (the divider, shown "÷2 while on", a whole number 2 to 10, refused under the field otherwise) and *VAT* (D9-7, D9-29: Lytro's BIN, its rate as text, and the registered name and address, each "Not set" until given and cleared by saving it empty; above them a line that invoices show VAT only once all four are set, a chip saying how many are, and a ৳449 plan's invoice as it will read in the Mushak-6.3 form; a BIN or rate the server would refuse is refused under the field). Each row shows the server's description, the last change
 and who made it, the value large with its unit, and Change, which edits inline with a reason field (ADM-11). The
 sender list edits one per line, the order limit is a choice of two, and a terms or privacy version warns that it
 changes the same day new text is published. A value the server refuses (not a whole number of 1 or more) says so under
@@ -576,6 +577,10 @@ Payment methods (§10), which is how shops pay Lytro; a line under the title lin
 - **Remove** (panel): every shop's accounts, switch and way for it go, with a line in each shop's log; past payments keep
   what they were paid into; it leaves Lytro's own page too; no notice goes, since the retiring one said so; it can't be
   undone.
+
+## 10e0. Money check (`/money-check`)
+
+**Job** (Slice 9.9, DAT-52, D9-16, D9-28): what the daily money check (06:00 Dhaka, over yesterday) found, and the operator's word on each. First of the records in the menu, with the open count. The line under the title says when the check last ran. Chips for Open and Resolved with their counts, a day and a kind to narrow by. Each row: what doesn't match, in plain words and one line (the eleven kinds), the shop by name and address or "Lytro's own", the day, what it should be and what was found (taka to the paisa; an invoice count in words), and links to the shop, to a payment still in the queue, or to Lytro's receipts. Mark resolved opens a panel whose note is required (up to 500 characters), refused in words when empty; a resolved row shows who resolved it, when, and the note. Empty: "Nothing to check".
 
 ## 10e. Reports (`/reports`)
 

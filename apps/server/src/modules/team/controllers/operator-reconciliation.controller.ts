@@ -24,6 +24,7 @@ import {
 } from '../../operator/guards/operator-session.guard';
 import {
   ReconciliationDifferences,
+  type ListedDifferenceRecord,
   type ReconciliationDifferenceRecord,
 } from '../../reconciliation/services/reconciliation-differences';
 import {
@@ -61,19 +62,21 @@ export class OperatorReconciliationController {
   async list(
     @Query(new ZodValidationPipe(ReconciliationListQueryDto.schema)) query: ReconciliationListQuery,
   ): Promise<{
-    differences: ReconciliationDifferenceRecord[];
+    differences: ListedDifferenceRecord[];
     page: number;
     limit: number;
     total: number;
     pages: number;
+    lastRun: { day: string; ranAt: Date } | null;
   }> {
-    const { rows, total } = await this.differences.list(query);
+    const { rows, total, lastRun } = await this.differences.list(query);
     return {
       differences: rows,
       page: query.page,
       limit: query.limit,
       total,
       pages: Math.ceil(total / query.limit),
+      lastRun,
     };
   }
 

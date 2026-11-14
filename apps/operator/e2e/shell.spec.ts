@@ -35,6 +35,8 @@ const DESTINATIONS = [
   ['Wallet types', '/wallet-types'],
   // Slice 7.7: Notices left Later for Platform, as the sketch's v5 draws it.
   ['Notices', '/notices'],
+  // Slice 9.9: the daily money check, first of the records.
+  ['Money check', '/money-check'],
   ['Reports', '/reports'],
   ['Audit log', '/audit'],
   ['Media costs', '/media-costs'],

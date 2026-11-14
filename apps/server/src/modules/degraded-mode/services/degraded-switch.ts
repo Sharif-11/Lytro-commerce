@@ -15,7 +15,8 @@ import { DegradedMode, type DegradedState } from './degraded-mode';
  * DAT-38, D9-14 (Phase 9 Slice 9.5): the operator's switch. On, it takes effect first, then puts the owner's notice up
  * for every shop, pinned; off, it takes the notice down first, then goes off -- so a change that stops halfway is
  * finished by flipping it again, and never leaves a notice up with the mode off. Each step is in the platform audit log
- * (the setting's change, the notice's).
+ * (the setting's change, the notice's). Slice 9.9 (the owner's read, 2026-11-13): the notice is an ordinary one, never
+ * emailed -- shops are told by the dashboard's banner, which reads the switch itself (NoticeBoard's summary).
  */
 @Injectable()
 export class DegradedSwitch {
@@ -40,7 +41,7 @@ export class DegradedSwitch {
           {
             ...DEGRADED_NOTICE,
             category: NoticeCategory.Maintenance,
-            severity: NoticeSeverity.Important,
+            severity: NoticeSeverity.Info,
             audience: { kind: NoticeAudienceKind.All },
             publishAt: new Date(),
             pinned: true,

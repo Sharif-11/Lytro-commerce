@@ -7,8 +7,14 @@ import {
   PlanPaymentKind,
   PlanPaymentPageFrom,
 } from '@lytronix/validators';
-import { formatTaka } from '@lytronix/ui';
-import { useBillingPrices, useCancelPayment, useInvoice, useOpenPaymentPage } from '@/api/billing';
+import { formatTaka, formatTakaExact } from '@lytronix/ui';
+import {
+  useBillingPrices,
+  useCancelPayment,
+  useInvoice,
+  useInvoices,
+  useOpenPaymentPage,
+} from '@/api/billing';
 import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
@@ -26,6 +32,7 @@ import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { BillingPayment, Invoice } from '@/types/billing';
 import { HowToPaySheet } from '@/views/plan/how-to-pay-sheet';
+import { explainsNoVat, type InvoiceVat, issuedOf, vatOf } from './invoice-vat';
 import { PaymentState } from './payment-row';
 import { ScreenshotCard } from './screenshot-card';
 import {
@@ -61,22 +68,137 @@ function Step({ step, sameDay }: { step: TimelineStep; sameDay: string }): React
   return <TimelineRow dot={step.dot} text={step.text} sub={step.sub} when={when} />;
 }
 
-/** A paid plan payment's receipt (BIL-12, the prototype's invoice card), its limits under a disclosure. */
-function InvoiceCard({ invoice }: { invoice: Invoice }): React.JSX.Element {
+/**
+ * An invoice's head: its number, the PDF to come, and -- on a tax invoice, once Lytro is registered (D9-7) -- the
+ * Mushak-6.3 title over the number (the prototype's `p99-invoice-vat`).
+ */
+function InvoiceHead({
+  invoice,
+  vat,
+}: {
+  invoice: Invoice;
+  vat: InvoiceVat | null;
+}): React.JSX.Element {
   const { t } = useTranslation('money');
+  const number = (
+    <h2 className="num text-[17px] font-semibold">{invoiceNumber(invoice.number, t)}</h2>
+  );
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      {vat ? (
+        <div>
+          <div className="mb-0.5 text-[14px] font-semibold text-neutral-700">{t('p99.mushak')}</div>
+          {number}
+        </div>
+      ) : (
+        number
+      )}
+      <Button tone="outline" size="xs" disabled>
+        <Icon name="download" />
+        PDF · {t('pdfLater')}
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * A tax invoice's two parties (Mushak-6.3, Slice 9.9): the shop as it stood at issue -- its name, its owner and its
+ * address -- and Lytro with its BIN and registered address.
+ */
+function InvoiceParties({
+  invoice,
+  vat,
+}: {
+  invoice: Invoice;
+  vat: InvoiceVat;
+}): React.JSX.Element {
+  const { t } = useTranslation('money');
+  const buyer = [invoice.shopName, invoice.ownerName].filter(Boolean).join(' · ');
+  return (
+    <>
+      <Kv
+        label={t('p99.buyer')}
+        wrap
+        value={
+          <>
+            {buyer}
+            {invoice.shopAddress ? (
+              <>
+                <br />
+                {invoice.shopAddress}
+              </>
+            ) : null}
+          </>
+        }
+      />
+      <Kv
+        label={t('p99.seller')}
+        wrap
+        value={
+          <>
+            {vat.sellerName} · BIN <span className="num">{vat.sellerBin}</span>
+            <br />
+            {vat.sellerAddress}
+          </>
+        }
+      />
+    </>
+  );
+}
+
+/** How an invoice was paid, and who it names: an invoice without VAT names the owner, then the shop. */
+function PaidAndBilled({
+  invoice,
+  vat,
+}: {
+  invoice: Invoice;
+  vat: InvoiceVat | null;
+}): React.JSX.Element {
+  const { t } = useTranslation('money');
+  return (
+    <>
+      {invoice.paymentMethod ? (
+        <Kv
+          label={t('paidBy')}
+          value={
+            invoice.paymentMethod === 'balance'
+              ? t('psBalance')
+              : t(invoice.paymentMethod === 'bank' ? 'trxBank' : 'trx', {
+                  trx: invoice.paymentReference ?? '',
+                })
+          }
+        />
+      ) : null}
+      {vat ? (
+        <InvoiceParties invoice={invoice} vat={vat} />
+      ) : invoice.ownerName || invoice.shopName ? (
+        <Kv
+          label={t('billedTo')}
+          value={[invoice.ownerName, invoice.shopName].filter(Boolean).join(' · ')}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * A paid plan payment's receipt (BIL-12, the prototype's invoice card), its limits under a disclosure. Once Lytro is
+ * registered (D9-7, Slice 9.9) one paid in by wallet or bank is a Mushak-6.3 tax invoice: titled, issued with its time,
+ * the VAT its price includes, the buyer and the seller. One paid from the balance shows no VAT, and says why.
+ */
+function InvoiceCard({ invoice }: { invoice: Invoice }): React.JSX.Element {
+  const { t, i18n } = useTranslation('money');
   const discount = Number(invoice.discountAmount ?? 0);
   const price = Number(invoice.amount) + discount + Number(invoice.creditAmount);
   const snapshot = invoice.planSnapshot;
+  const vat = vatOf(invoice);
+  const fromBalance = invoice.paymentMethod === 'balance' && vat === null;
+  const invoices = useInvoices({ enabled: fromBalance });
+  const explain = fromBalance && explainsNoVat(invoice, invoices.data ?? []);
   return (
     <Card>
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="num text-[17px] font-semibold">{invoiceNumber(invoice.number, t)}</h2>
-        <Button tone="outline" size="xs" disabled>
-          <Icon name="download" />
-          PDF · {t('pdfLater')}
-        </Button>
-      </div>
-      <Kv label={t('issued')} value={formatDayMonthYear(invoice.issuedAt)} />
+      <InvoiceHead invoice={invoice} vat={vat} />
+      <Kv label={t('issued')} value={issuedOf(invoice, vat !== null, i18n.language)} />
       {invoice.periodStart && invoice.periodEnd ? (
         <Kv
           label={t('period')}
@@ -98,24 +220,15 @@ function InvoiceCard({ invoice }: { invoice: Invoice }): React.JSX.Element {
       ) : null}
       <Kv label={t('price')} value={formatTaka(price)} />
       <Kv label={t('discount')} value={formatTaka(discount)} />
-      <Kv label={t('grandTotal')} value={formatTaka(invoice.amount)} total />
-      {invoice.paymentMethod ? (
-        <Kv
-          label={t('paidBy')}
-          value={
-            invoice.paymentMethod === 'balance'
-              ? t('psBalance')
-              : t(invoice.paymentMethod === 'bank' ? 'trxBank' : 'trx', {
-                  trx: invoice.paymentReference ?? '',
-                })
-          }
-        />
+      {vat ? (
+        <Kv label={t('p99.vatIncl', { r: vat.rate })} value={formatTakaExact(vat.amount)} />
       ) : null}
-      {invoice.ownerName || invoice.shopName ? (
-        <Kv
-          label={t('billedTo')}
-          value={[invoice.ownerName, invoice.shopName].filter(Boolean).join(' · ')}
-        />
+      <Kv label={t('grandTotal')} value={formatTaka(invoice.amount)} total />
+      <PaidAndBilled invoice={invoice} vat={vat} />
+      {explain ? (
+        <p className="mt-2.5 border-t border-dashed border-line pt-2.5 text-[14px] leading-[1.5] text-neutral-700">
+          {t('p99.vatNoteBal')}
+        </p>
       ) : null}
       {snapshot ? (
         <details className="mt-2">
@@ -128,6 +241,28 @@ function InvoiceCard({ invoice }: { invoice: Invoice }): React.JSX.Element {
           </p>
         </details>
       ) : null}
+    </Card>
+  );
+}
+
+/**
+ * A top-up's own invoice (D9-26, the prototype's `p99-billing-topup`): every confirmed top-up gets one, its kind and
+ * what was added to the balance; once Lytro is registered, a Mushak-6.3 tax invoice with the VAT its amount includes.
+ */
+function TopUpInvoiceCard({ invoice }: { invoice: Invoice }): React.JSX.Element {
+  const { t, i18n } = useTranslation('money');
+  const vat = vatOf(invoice);
+  return (
+    <Card>
+      <InvoiceHead invoice={invoice} vat={vat} />
+      <Kv label={t('issued')} value={issuedOf(invoice, vat !== null, i18n.language)} />
+      <Kv label={t('p99.kind')} value={t('p99.kindTopUp')} />
+      <Kv label={t('p99.added')} value={formatTaka(invoice.amount)} />
+      {vat ? (
+        <Kv label={t('p99.vatIncl', { r: vat.rate })} value={formatTakaExact(vat.amount)} />
+      ) : null}
+      <Kv label={t('grandTotal')} value={formatTaka(invoice.amount)} total />
+      <PaidAndBilled invoice={invoice} vat={vat} />
     </Card>
   );
 }
@@ -204,8 +339,9 @@ export function PaymentDetail({ payment }: { payment: BillingPayment }): React.J
   const cancel = useCancelPayment();
   const [sheet, setSheet] = useState<'finish' | 'again' | null>(null);
   const planKind = payment.kind !== PlanPaymentKind.TopUp && payment.kind !== PlanPaymentKind.Addon;
-  const invoice = useInvoice(planKind && payment.invoice ? payment.invoice.id : null);
   const topUp = payment.kind === PlanPaymentKind.TopUp;
+  // A plan's invoice, and since Slice 9.8 a top-up's (D9-26).
+  const invoice = useInvoice((planKind || topUp) && payment.invoice ? payment.invoice.id : null);
   const mayAct =
     !payment.earlierShop &&
     allows(viewer, [topUp ? Permission.BalanceManage : Permission.PaymentsManage]);
@@ -348,6 +484,7 @@ export function PaymentDetail({ payment }: { payment: BillingPayment }): React.J
         </div>
       </Card>
       {planKind && invoice.data ? <InvoiceCard invoice={invoice.data} /> : null}
+      {topUp && invoice.data ? <TopUpInvoiceCard invoice={invoice.data} /> : null}
       {sheet === 'finish' ? (
         <FinishPayingSheet
           payment={payment}

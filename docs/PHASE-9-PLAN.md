@@ -122,6 +122,8 @@ overrule any of them when reviewing this plan.
 | D9-25 | **Screens.** | Last, sketched first: the console's degraded-mode switch, its list of reconciliation differences and the VAT settings; the read-only and degraded banners in the dashboard and the storefront. | Slice 9.9 |
 | D9-26 | **Invoices for top-ups, and where VAT sits** (Slice 9.8's read, 2026-11-13; BIL-12, LEG-03). Pay-as-you-go shops pay Lytro only by top-ups, which had no invoice. | **Every confirmed top-up is invoiced** from Slice 9.8 on (no backfill), in the transaction that credits it, and a reversed manual top-up's invoice is taken back by a credit note (D8-49). Once all four VAT settings are set (BIN, rate, registered name, address), an invoice for money paid in by wallet or bank states them and the VAT its amount includes: **prices include VAT**, so nothing is added. An invoice paid from the balance states none, since the top-up that filled the balance carried that money's VAT; a credit note states its invoice's, negated. | Slices 9.8, 9.9; 9.5's reconciliation counts top-up invoices |
 | D9-27 | **Terms and privacy versions** (Slice 9.8's read, 2026-11-13; LEG-01, LEG-02). | Each version is **named by the day it takes effect**. A version may be put in force only once its text is published (one list in `@lytronix/validators`); every published version stays readable at `/terms/<version>` and `/privacy/<version>`. Sign-up and the website read the version in force from the same settings (`GET /legal-versions`), so a page always shows what sign-up records. The texts state only what Lytro does when they take effect; **the Bangla text counts** if the two differ. A change that affects sellers takes effect at least 15 days after notice on the notice board and by email; one that only helps them, at once. | Slice 9.8 |
+| D9-28 | **The screens** (Slice 9.9's read, 2026-11-13; D9-14, D9-16, D9-25). | The console calls degraded mode **"Limited mode" / "লিমিটেড মোড"** (the server's names stay). Its switch sits on **Today**, with the count of the money check's open differences; the differences are a page of their own, **"Money check" / "টাকা মেলানো"**, first of the records in the menu; its divider is set in **Settings** (a group of its own). Shops are told by a **banner in the dashboard, never by email**: the switch's notice stays on the board as a plain one. **The storefront shows no limited-mode banner** (shoppers' orders and payments run), only the can't-save one: amends D9-25. The can't-save banner shows from the state the apps already read (the notice summary, the storefront's context) and after any refused save. | Slice 9.9 |
+| D9-29 | **The tax invoice's form** (Slice 9.9's read, 2026-11-13; LEG-03, D9-7). | Once all four VAT settings are set, Lytro's invoices take **Mushak-6.3's** form: titled "কর চালানপত্র (মূসক-৬.৩)", with the time of issue, the seller and the buyer -- the shop, its owner and its address, **copied at issue** like the rest (migration 0136). Hidden until then, so registering needs no code. An invoice paid from the balance carries no VAT and no title (D9-26); an accountant confirms that before registering. | Slice 9.9 |
 
 ### 2.1 Points left to each slice's read
 
@@ -402,6 +404,14 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
 ### Slice 9.9: the screens
 - **Depends on:** 9.2, 9.5, 9.8; a sketch first.
 - **Delivers:** D9-25's screens.
+- **Read 2026-11-13** (the owner's answers, D9-28 and D9-29; the sketch approved, then built after 9.6's and 9.7's backends):
+  1. Shops are told of limited mode by a banner in their dashboard, never by email.
+  2. The storefront shows no limited-mode banner, only the can't-save one (amends D9-25).
+  3. The switch is on the console's Today, with the money check's open count; the money check is its own page.
+  4. Its name is "Limited mode" / "লিমিটেড মোড".
+  5. Its divider is changed in Settings.
+  6. Invoices take Mushak-6.3's form once Lytro is registered, hidden until then.
+  7. Slice 9.7's credential-use export gets its button on the shop's credential log (its sketch approved 2026-11-14).
 
 ### Slice 9.10: the load test
 - **Depends on:** every other slice; the production server (D9-24).

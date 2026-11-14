@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { OpenShopPage, PageFrame } from '@/lib/storefront';
-import { Footer, Header, Shell } from './shell';
+import { Footer, Header, OrdersPausedBanner, Shell } from './shell';
 
 /** A storefront page (not a landing page): the header with the categories, search and the cart, the page, and the
     footer. `back` pages have a way back and a title on a phone; `current` lights a category's header link. */
@@ -47,6 +47,7 @@ export function ShopShell({
       }
       footer={<Footer shop={page.info} language={language} landing={false} storefrontOn />}
     >
+      {page.savingPaused ? <OrdersPausedBanner words={page.words} /> : null}
       {children}
     </Shell>
   );

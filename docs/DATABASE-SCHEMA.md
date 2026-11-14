@@ -345,6 +345,9 @@ CREATE TABLE control.invoices (
     -- invoices issued before migration 0045.
     shop_name       text,
     owner_name      text,
+    -- Slice 9.9 (D9-29, migration 0136): the buyer's address for Mushak-6.3, the shop's business address as it stood
+    -- at issue; null when the shop had none, and on invoices issued before it.
+    shop_address    text,
     plan_name       text,
     plan_version    integer,
     period_start    timestamptz,

@@ -12,11 +12,32 @@ import { useShell } from './shell-context';
 const TRIAL_WARNING_DAYS = 3;
 
 /**
- * TENANT-DASHBOARD-DESIGN §4.6 and §7.20: the one banner at the top of the page, the first that applies -- the
- * owner's bounced email (NTF-06), the shop's lifecycle (trial, grace, read-only), then being offline. The support view's
- * bar (ADM-05) joins with Phase 8; urgent notices scroll in their own band under the bars (NTC-04). Its way out goes to the plan, for whoever may see the plan.
+ * TENANT-DASHBOARD-DESIGN §4.6, §7.20 and §7.45: the banners at the top of the page. Lytro's own state comes first, each
+ * while it holds (Slice 9.9, the prototype's `p99-banners-stack`): changes can't be saved for now (D9-14, 9.2's words),
+ * then limited mode (DAT-38, 9.5's notice words, never emailed). Then the one banner of the shop's own that applies
+ * first -- the owner's bounced email (NTF-06), the shop's lifecycle (trial, grace, read-only), then being offline.
+ * Urgent notices scroll in their own band under the bars (NTC-04).
  */
 export function ShellBanner(): React.JSX.Element | null {
+  const { t } = useTranslation('shell');
+  const { savingPaused, limitedMode } = useShell();
+  const shop = <ShopBanner />;
+  if (!savingPaused && !limitedMode) return shop;
+  return (
+    <>
+      {savingPaused ? <Banner tone="warn">{t('p99.cantSave')}</Banner> : null}
+      {limitedMode ? (
+        <Banner tone="info">
+          <b>{t('p99.limitedT')}</b> {t('p99.limitedB')}
+        </Banner>
+      ) : null}
+      {shop}
+    </>
+  );
+}
+
+/** The shop's own banner, the first that applies. Its way out goes to the plan, for whoever may see the plan. */
+function ShopBanner(): React.JSX.Element | null {
   const { t } = useTranslation('shell');
   const { slug, tenant, viewer, emailBounced } = useShell();
   const online = useOnline();

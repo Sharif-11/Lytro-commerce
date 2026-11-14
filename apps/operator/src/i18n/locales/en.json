@@ -80,7 +80,8 @@
     "account": "Account",
     "couriers": "Couriers",
     "walletTypes": "Wallet types",
-    "mediaCosts": "Media costs"
+    "mediaCosts": "Media costs",
+    "moneyCheck": "Money check"
   },
   "signIn": {
     "title": "Operator sign-in",
@@ -467,7 +468,9 @@
       "12": "Fraud checks",
       "13": "Notifications",
       "14": "Help line",
-      "15": "Media costs"
+      "15": "Media costs",
+      "16": "Limited mode",
+      "17": "VAT"
     },
     "units": {
       "days": "days",
@@ -517,6 +520,30 @@
       "workersMonthly": "Workers plan, a month",
       "workersIncludedMillions": "Workers requests included, millions",
       "workersPerMillion": "Workers past that, a million"
+    },
+    "divisorWords": "÷{{n}} while on",
+    "factorHelp": "A whole number from 2 to 10. Plan limits never change.",
+    "factorBad": "A whole number from 2 to 10.",
+    "vatBinHelp": "9 digits, or 13 with the branch, e.g. 123456789-0101.",
+    "vatBinBad": "A BIN is 9 digits, or 13 with the branch.",
+    "vatRateHelp": "Above 0 and at most 100, up to two decimals.",
+    "vatRateBad": "A rate is above 0 and at most 100, with up to two decimals.",
+    "vatTextBad": "Too long, or holds a character that can't be printed.",
+    "vatClearHelp": "Leave it empty to clear it.",
+    "vat": {
+      "note": "Lytro's invoices show VAT only once all four are set. Prices include it: an invoice shows how much of its amount is VAT, and its total never changes. An invoice paid from the balance shows none, since the top-up's invoice did.",
+      "off": "Not shown on invoices: {{n}} of 4 set",
+      "on": "Shown on every new invoice",
+      "preview": "How a ৳449 plan's invoice reads once all four are set",
+      "mushak": "Tax invoice (Mushak-6.3)",
+      "issued": "issued",
+      "seller": "Seller",
+      "buyer": "Buyer",
+      "unset": "Lytro · BIN, name and address once set",
+      "samplePlan": "Starter · 1 month",
+      "included": "VAT included ({{r}}%)",
+      "total": "Total",
+      "plain": "Until then, and on invoices paid from the balance, the invoice stays as it is today: no title, no VAT lines, no buyer block."
     }
   },
   "settingNames": {
@@ -565,7 +592,12 @@
     "media_budget_alert_percent": "Alert at",
     "media_cost_alert_email": "Alert goes to",
     "cloudflare_billing_day": "Billing period starts",
-    "cloudflare_prices": "Cloudflare's prices"
+    "cloudflare_prices": "Cloudflare's prices",
+    "degraded_factor": "Per-minute limits divided by",
+    "vat_bin": "VAT registration number (BIN)",
+    "vat_rate": "VAT rate",
+    "vat_seller_name": "Registered name",
+    "vat_seller_address": "Registered address"
   },
   "wallets": {
     "lead": "How shops can pay Lytro for plans, add-ons and top-ups, and how each payment is confirmed. Shops see only the methods turned on here.",
@@ -1028,7 +1060,37 @@
     "figuresThisMonth": "This month so far, from the reports",
     "figuresShops": "Shops",
     "figuresOpened": "Opened",
-    "figuresEarned": "Earned"
+    "figuresEarned": "Earned",
+    "limited": {
+      "title": "Limited mode",
+      "on": "On",
+      "off": "Off",
+      "offDetail": "Off. Every shop works as usual.",
+      "onDetail": "On since {{t}}, by {{by}}. Exports, reports and reading orders from messages wait; orders and payments run.",
+      "onDetailSince": "On since {{t}}. Exports, reports and reading orders from messages wait; orders and payments run.",
+      "factor": "While on, every shop's per-minute limits ÷{{n}}",
+      "factorGo": "Change in Settings",
+      "turnOn": "Turn on",
+      "turnOff": "Turn off",
+      "onTitle": "Turn limited mode on?",
+      "onSub": "For when the server is under too much load. You can turn it off any time.",
+      "pauses": "Paused while it is on",
+      "pausesList": "Exports and CSV downloads · the reports · reading orders from messages. Their jobs wait, and run once it is off.",
+      "keeps": "Keeps working",
+      "keepsList": "Orders · payments and their verification · courier booking · sign-in",
+      "limits": "Every shop's per-minute limits are divided by {{n}}. Plan limits don't change.",
+      "factorWhere": "The divider is set in Settings, Limited mode.",
+      "told": "Every shop's dashboard shows a banner while it is on. No email or SMS goes out.",
+      "offTitle": "Turn limited mode off?",
+      "offSub": "On since {{t}}.",
+      "offBody": "Exports, reports and reading orders start again, the waiting jobs run, limits go back to normal, and the banner leaves every dashboard.",
+      "onToast": "Limited mode is on. Every dashboard shows the banner.",
+      "offToast": "Limited mode is off. The banner is gone.",
+      "money": "Money check",
+      "moneyOpen": "{{n}} open",
+      "moneyNone": "Everything matched at 06:00.",
+      "moneyDetail": "Yesterday's money was checked at 06:00. Open differences wait for someone to look."
+    }
   },
   "figures": {
     "needsReview": "Needs review",
@@ -1191,7 +1253,17 @@
     "perMonth": "mo",
     "pageRestored": "{{shop}}'s payment page takes payments again.",
     "capSaved": "New-shop cap saved.",
-    "notFound": "No shop here"
+    "notFound": "No shop here",
+    "cuButton": "Download CSV",
+    "cuListNote": "This list shows gateway keys only; the CSV also has couriers and Meta.",
+    "cuTitle": "Credential uses as a CSV",
+    "cuFrom": "From",
+    "cuTo": "To",
+    "cuLast30": "Last 30 days",
+    "cuHelp": "Every use of this shop’s stored courier, gateway and Meta keys, never the keys: the time, which key, the provider, what was done, the order or payment it was for, and whether it worked. Whole days in Dhaka time, both included; up to 200,000 rows, oldest first.",
+    "cuBad": "\"To\" can’t be before \"From\".",
+    "cuDownload": "Download",
+    "cuDone": "The CSV is downloading."
   },
   "p88shops": {
     "ownerPhone": "Owner's phone",
@@ -2022,5 +2094,63 @@
     "errPlans": "Choose at least one plan.",
     "errStates": "Choose at least one state.",
     "errShop": "Choose the shop."
+  },
+  "moneyCheck": {
+    "lead": "Every morning at 06:00 (Dhaka), yesterday's money is compared: Lytro's payments with their SMS and bKash answers, top-ups with their credits, each balance with its records, SMS and order fees with what was charged. A difference stays here until someone resolves it.",
+    "ran": "Checked {{d}} at {{time}}",
+    "open": "Open",
+    "resolved": "Resolved",
+    "day": "Day",
+    "anyDay": "Every day",
+    "kindAll": "Every kind",
+    "what": "What doesn't match",
+    "shop": "Shop",
+    "expected": "Should be",
+    "found": "Found",
+    "lytro": "Lytro's own",
+    "invoices_one": "{{count}} invoice",
+    "invoices_other": "{{count}} invoices",
+    "noInvoice": "No invoice",
+    "openShop": "Open the shop",
+    "openReceipt": "Open the receipt",
+    "openPayment": "Open the payment",
+    "resolve": "Mark resolved",
+    "resolveTitle": "Mark this difference resolved?",
+    "note": "What did you find or do?",
+    "notePlaceholder": "e.g. The SMS came late; matched by hand to the payment.",
+    "noteHelp": "Required, up to {{max}} characters. It stays with the difference for whoever looks later.",
+    "noteEmpty": "Write what you found or did first.",
+    "resolvedToast": "Resolved. It moved to Resolved.",
+    "resolvedBy": "Resolved by {{by}} · {{d}}",
+    "emptyTitle": "Nothing to check",
+    "emptyHint": "All of the money checked matched. The next check runs tomorrow at 06:00.",
+    "emptyResolvedTitle": "Nothing resolved yet",
+    "emptyResolvedHint": "Differences you mark resolved stay here, with their note.",
+    "kinds": {
+      "payment_without_proof": "Verified with no proof",
+      "wallet_money_unclaimed": "Money arrived, nobody claimed it",
+      "proof_without_payment": "Paid, but still not verified",
+      "top_up_credit_mismatch": "Top-up credited wrong",
+      "balance_payment_mismatch": "Paid from the balance, charged wrong",
+      "invoice_mismatch": "No invoice, or more than one",
+      "balance_drift": "Balance doesn't match its records",
+      "sms_charge_mismatch": "SMS charges don't match the SMS sent",
+      "order_fee_mismatch": "Order fee charged wrong",
+      "courier_message_unread": "Courier message not read",
+      "shop_payment_without_proof": "Shop's payment marked paid with no proof"
+    },
+    "kindHints": {
+      "payment_without_proof": "A payment to Lytro was verified, but no wallet SMS and no bKash answer matches it.",
+      "wallet_money_unclaimed": "A Lytro wallet's SMS says money arrived; no payment claimed it in 24 hours.",
+      "proof_without_payment": "An SMS or a bKash answer matched a payment, but the payment is still not verified 24 hours on.",
+      "top_up_credit_mismatch": "A verified top-up was added to the balance with a different amount, or not exactly once.",
+      "balance_payment_mismatch": "A plan or add-on paid from the balance wasn't charged its price.",
+      "invoice_mismatch": "A paid plan, add-on or top-up doesn't have exactly one invoice.",
+      "balance_drift": "The shop's balance differs from the sum of its balance records.",
+      "sms_charge_mismatch": "What the balance paid for SMS yesterday differs from the SMS logged.",
+      "order_fee_mismatch": "An order's fee differs from the rate, or was charged more than once.",
+      "courier_message_unread": "A courier's message couldn't be read. It is kept as it came, for checking.",
+      "shop_payment_without_proof": "A customer's payment was marked paid without an SMS or a gateway answer."
+    }
   }
 }

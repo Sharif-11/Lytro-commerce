@@ -449,6 +449,7 @@ export {
   type ChargedOrderFee,
   type DifferenceFilter,
   type LedgerAgainst,
+  type ListedReconciliationDifference,
   type PaymentFigure,
   type Window as ReconciliationWindow,
 } from './repositories/billing/reconciliation.repository';

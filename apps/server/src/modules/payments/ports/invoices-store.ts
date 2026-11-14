@@ -13,6 +13,11 @@ export interface NewInvoiceValues {
   // BIL-12: the rest of what the invoice states, as it stands at issue.
   shopName: string;
   ownerName: string | null;
+  /**
+   * Slice 9.9 (Mushak-6.3's buyer): left out, the shop's business address as it stands at issue; a credit note gives
+   * its invoice's.
+   */
+  shopAddress?: string | null;
   planName: string | null;
   planVersion: number | null;
   /** Null for a pack (PLN-15), which is used up rather than run for a period. */
@@ -51,6 +56,8 @@ export interface InvoicesStore {
     vat: InvoiceVat | null,
     lines: readonly InvoiceLine[],
   ): Promise<InvoiceRecord>;
+  /** Slice 9.9: the shop's business address now (TEN-30), null when it has none. */
+  shopAddressOf(tx: Transaction, tenantId: string): Promise<string | null>;
   findById(tx: Transaction, id: string): Promise<InvoiceRecord | null>;
   findForPayment(tx: Transaction, planPaymentId: string): Promise<InvoiceRecord | null>;
   listForTenant(tx: Transaction, tenantId: string): Promise<InvoiceRecord[]>;

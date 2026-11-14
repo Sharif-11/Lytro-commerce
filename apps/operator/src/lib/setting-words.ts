@@ -19,6 +19,7 @@ export const COUNTED: readonly SettingUnit[] = [
   'hours',
   'dayOfMonth',
   'usd',
+  'divisor',
 ];
 
 /** D8-68: an hour of the help line as a 24-hour time, "09:00". */
@@ -51,7 +52,16 @@ export function settingChangeWords(key: string, from: unknown, to: unknown, t: T
 /** A setting's number with what it counts, or its words: "30 days", "৳100", "Block". */
 export function settingWords(key: string, value: unknown, t: TFunction): string {
   const unit = settingUnitOf(key);
-  if ((unit === 'phone' || unit === 'email') && isUnset(value)) return t('settings.notSet');
+  if (
+    (unit === 'phone' ||
+      unit === 'email' ||
+      unit === 'vatBin' ||
+      unit === 'vatRate' ||
+      unit === 'vatText') &&
+    isUnset(value)
+  ) {
+    return t('settings.notSet');
+  }
   if (value === null || value === undefined) return '–';
   if (Array.isArray(value)) return value.join(', ');
   const plain = typeof value === 'string' ? value : JSON.stringify(value);
@@ -70,6 +80,10 @@ export function settingWords(key: string, value: unknown, t: TFunction): string 
       return t('settings.dayOfMonth', { n: plain });
     case 'prices':
       return pricesWords(value, t);
+    case 'divisor':
+      return t('settings.divisorWords', { n: plain });
+    case 'vatRate':
+      return `${plain}%`;
     case 'days':
     case 'minutes':
     case 'percent':

@@ -42,6 +42,7 @@ import {
   type MoneyMockState,
 } from './p88-money-mock';
 import { recordsAnswer, recordsDefaults, type RecordsMockState } from './p88-records-mock';
+import { p99Answer, p99Defaults, type P99MockState } from './p99-mock';
 import { pricingAnswer, type PricingState } from './pricing-mock';
 
 // The console against a mocked API: each /api/v1 call answered in the server's own envelope ({ success, statusCode,
@@ -79,7 +80,8 @@ export interface ConsoleState
     Partial<CourierMockState>,
     Partial<NoticeMockState>,
     Partial<MoneyMockState>,
-    Partial<RecordsMockState> {
+    Partial<RecordsMockState>,
+    Partial<P99MockState> {
   language?: Language;
   /** Whether the browser starts signed in. */
   signedIn?: boolean;
@@ -363,6 +365,9 @@ function consoleAnswer(
   if (assigned) return { data: { id: 'assign-1', planId: assigned[1] } };
   const recorded = recordsAnswer(path, url, state);
   if (recorded) return recorded;
+  // Slice 9.9: limited mode's switch and the money check.
+  const checked = p99Answer(method, path, url, body, state);
+  if (checked) return checked;
   const couriered = courierAnswer(method, path, url, body, state);
   if (couriered) return couriered;
   const noticed = noticeAnswer(method, path, url, body, state);
@@ -517,6 +522,7 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
     ...noticeDefaults(),
     ...moneyDefaults(),
     ...recordsDefaults(),
+    ...p99Defaults(),
     now: NOW,
     failing: {},
     refuseWrite: null,
@@ -538,6 +544,8 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
   state.rateHistory = structuredClone(state.rateHistory);
   state.manualEntries = structuredClone(state.manualEntries);
   state.walletTypes = structuredClone(state.walletTypes);
+  state.differences = structuredClone(state.differences);
+  state.settings = structuredClone(state.settings);
   state.payments = withShots(state.payments);
   const log: ApiLog = {
     calls: [],

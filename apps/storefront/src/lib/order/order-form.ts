@@ -82,6 +82,8 @@ export type OrderOutcome =
   | { kind: 'cap' }
   /** Too many tries (RTE-06, RTE-08). */
   | { kind: 'busy' }
+  /** D9-14 (Slice 9.9): orders can't be saved for a few minutes; nothing was placed, and the same key tries again later. */
+  | { kind: 'paused' }
   /** It may not have arrived: the same key tried again makes one order (SFT-06). */
   | { kind: 'failed' }
   /** The same key was already spent on a different order: a new try needs a new key. */
@@ -111,6 +113,10 @@ export function readOrderAnswer(status: number, answer: OrderAnswer | null): Ord
   const code = answer?.code ?? null;
   const details = answer?.details ?? {};
   if (status === 429) return { kind: 'busy' };
+  // Only the server's own "changes can't be saved" says paused; every other 503 may or may not have reached it.
+  if (status === 503 && code === 'service_unavailable' && details['savingPaused'] === true) {
+    return { kind: 'paused' };
+  }
   if (code === 'idempotency_conflict') return { kind: 'key_spent' };
   if (status >= 500 || answer === null) return { kind: 'failed' };
   const fields = refusedFields(details);

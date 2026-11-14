@@ -4204,6 +4204,39 @@ def('p99-settings-vat', { ...p99Set, label: 'Settings · VAT, nothing set yet', 
 def('p99-setting-vat-bin', { ...p99Set, label: '· set the BIN', render: () => settingsPage({ editing: 'vat_bin' }) });
 def('p99-setting-vat-bad', { ...p99Set, label: '· refused: not a BIN', render: () => { p99VatErr = 'vat_bin'; try { return settingsPage({ editing: 'vat_bin' }); } finally { p99VatErr = null; } } });
 def('p99-settings-vat-set', { ...p99Set, label: '· all four set: shown on every new invoice', render: () => p99WithVat(P99_VAT_SET, () => settingsPage()) });
+/* SEC-11 (Slice 9.7's export, drawn in 9.9): the shop's credential log gains a CSV of every stored-key use -- couriers,
+   gateways and Meta -- for a date range, the last 30 days unless changed. */
+Object.assign(S, {
+  p99_cu_btn: ['Download CSV', 'CSV ডাউনলোড'],
+  p99_cu_t: ['Credential uses as a CSV', 'ক্রেডেনশিয়াল ব্যবহারের CSV'],
+  p99_cu_from: ['From', 'থেকে'], p99_cu_to: ['To', 'পর্যন্ত'],
+  p99_cu_last30: ['Last 30 days', 'গত 30 দিন'],
+  p99_cu_help: ['Every use of this shop’s stored courier, gateway and Meta keys, never the keys: the time, which key, the provider, what was done, the order or payment it was for, and whether it worked. Whole days in Dhaka time, both included; up to 200,000 rows, oldest first.', 'এই শপের রাখা কুরিয়ার, গেটওয়ে আর Meta কী-র প্রতিটা ব্যবহার, কী নিজে নয়: সময়, কোন কী, কোন প্রোভাইডার, কী করা হয়েছে, কোন অর্ডার বা পেমেন্টের জন্য, আর কাজ হয়েছে কিনা। ঢাকার সময়ে পুরো দিন, দুই তারিখই ধরে; সর্বোচ্চ 200,000 সারি, পুরোনোটা আগে।'],
+  p99_cu_list_note: ['This list shows gateway keys only; the CSV also has couriers and Meta.', 'এই তালিকায় শুধু গেটওয়ে কী; CSV-তে কুরিয়ার আর Meta-ও আছে।'],
+  p99_cu_bad: ['"To" can’t be before "From".', '"পর্যন্ত" তারিখ "থেকে"-র আগে হতে পারে না।'],
+  p99_cu_dl: ['Download', 'ডাউনলোড'],
+  p99_cu_done: ['The CSV is downloading.', 'CSV ডাউনলোড হচ্ছে।'],
+});
+const p99CredPage = () => {
+  const page = credentialsPage();
+  const sub = `<div class="sub">${t('cl_sub')}</div></div>`;
+  const action = `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">${btn(I.down + t('p99_cu_btn'), 'ghost', "go('p99-credential-uses-sheet')")}<span class="p99-txt" style="font-size:14px;max-width:300px;text-align:right">${t('p99_cu_list_note')}</span></div>`;
+  return page.includes(sub) ? page.replace(sub, sub + action) : page;
+};
+const p99CredSheet = (o) => sheet(t('p99_cu_t'), `${T1.name} · ${T1.slug}.lytro.app`, `<div class="p99" style="display:flex;flex-direction:column;gap:12px">
+    <div class="chips"><span class="chip on" style="font-size:14px">${t('p99_cu_last30')}</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      ${field(t('p99_cu_from'), `<input class="input" type="date" value="${o.from}" ${o.bad ? 'style="border-color:var(--danger)"' : ''}>`)}
+      ${field(t('p99_cu_to'), `<input class="input" type="date" value="${o.to}" ${o.bad ? 'style="border-color:var(--danger)"' : ''}>`, '', o.bad ? t('p99_cu_bad') : '')}
+    </div>
+    <div class="p99-txt">${t('p99_cu_help')}</div>
+  </div>`, `${btn(t('cancel'), 'ghost', "go('p99-credential-uses')")}${btn(I.down + t('p99_cu_dl'), 'primary', o.bad ? '' : "go('p99-credential-uses-done')", o.bad ? 'disabled' : '')}`, { close: 'p99-credential-uses' });
+const p99Cred = { base: 'tenant', nav: 'tenants', group: P99G, url: 'admin.lytro.app/shops/rahim-fashion/credentials', bandTitle: 'tenants', back: 'tenant', render: p99CredPage };
+def('p99-credential-uses', { ...p99Cred, label: 'Shop · credential log with its CSV (SEC-11)' });
+def('p99-credential-uses-sheet', { ...p99Cred, label: '· CSV: pick the days (last 30 by default)', sheet: () => p99CredSheet({ from: '2026-09-22', to: '2026-10-21' }) });
+def('p99-credential-uses-bad', { ...p99Cred, label: '· CSV: "to" before "from" (refused)', sheet: () => p99CredSheet({ from: '2026-10-21', to: '2026-10-01', bad: true }) });
+def('p99-credential-uses-done', { ...p99Cred, label: '· CSV downloading (toast)', toast: () => t('p99_cu_done') });
+
 /* ---------- end of Phase 9 Slice 9.9 (sketch) ---------- */
 
 (function init() {

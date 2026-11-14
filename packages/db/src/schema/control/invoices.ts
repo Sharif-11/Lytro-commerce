@@ -54,6 +54,9 @@ export const invoices = control.table(
     // invoices issued before these columns existed.
     shopName: text('shop_name'),
     ownerName: text('owner_name'),
+    // Slice 9.9 (Mushak-6.3, D9-7): the buyer's address as the shop's business address stood at issue; null when the shop
+    // had none, and on invoices issued before it was copied.
+    shopAddress: text('shop_address'),
     planName: text('plan_name'),
     planVersion: integer('plan_version'),
     periodStart: timestamp('period_start', { withTimezone: true }),

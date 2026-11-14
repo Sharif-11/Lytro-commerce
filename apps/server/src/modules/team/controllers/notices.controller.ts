@@ -24,11 +24,13 @@ import { DashboardGuard, type DashboardRequest } from '../../identity/guards/das
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { NoticeBoard } from '../../notices/services/notice-board';
 import type {
+  DashboardNoticeSummary,
   NoticeBoardPage,
-  NoticeSummary,
   NoticeView,
   NoticeViewer,
 } from '../../notices/types/notice';
+import { DegradedMode } from '../../degraded-mode/services/degraded-mode';
+import { PrimaryWatch } from '../../../database/primary-watch';
 import { Notifications } from '../../notifications/services/notifications';
 import {
   NoticeAcknowledgedDto,
@@ -57,6 +59,8 @@ export class NoticesController {
     @Inject(NoticeBoard) private readonly board: NoticeBoard,
     @Inject(Notifications) private readonly notifications: Notifications,
     @Inject(CatalogueRequest) private readonly request: CatalogueRequest,
+    @Inject(DegradedMode) private readonly degraded: Pick<DegradedMode, 'on'>,
+    @Inject(PrimaryWatch) private readonly watch: Pick<PrimaryWatch, 'canSave'>,
   ) {}
 
   @Get()
@@ -83,9 +87,14 @@ export class NoticesController {
       'What every dashboard page shows of the notices: the badge, urgent banners, important prompts, what the owner must acknowledge, the next maintenance window (NTC-03, NTC-04, NTC-05, NTC-14)',
   })
   @ZodResponse({ type: NoticeSummaryDto })
-  async summary(@Req() request: DashboardRequest): Promise<NoticeSummary> {
+  async summary(@Req() request: DashboardRequest): Promise<DashboardNoticeSummary> {
     const { viewer, owner } = await this.viewer(request);
-    return this.board.summary(viewer, this.language(request), owner);
+    // Slice 9.9: every page polls this, so it also carries the two states the dashboard's banners show.
+    const [summary, limitedMode] = await Promise.all([
+      this.board.summary(viewer, this.language(request), owner),
+      this.degraded.on(),
+    ]);
+    return { ...summary, limitedMode, savingPaused: !this.watch.canSave() };
   }
 
   @Get(':id')

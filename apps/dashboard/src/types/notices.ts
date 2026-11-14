@@ -58,4 +58,8 @@ export interface NoticeSummary {
   prompts: NoticeBrief[];
   toAcknowledge: NoticeBrief[];
   maintenance: NoticeCountdown | null;
+  // D9-14, DAT-38 (Slice 9.9): changes can't be saved for now, and Lytro's limited mode is on, as the server knows it
+  // when the summary is read. Optional, so an older server's summary still reads.
+  savingPaused?: boolean;
+  limitedMode?: boolean;
 }

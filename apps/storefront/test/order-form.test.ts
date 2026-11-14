@@ -99,6 +99,20 @@ describe('the answer to an order (ORD-02)', () => {
     expect(readOrderAnswer(500, null)).toEqual({ kind: 'failed' });
     expect(readOrderAnswer(400, null)).toEqual({ kind: 'failed' });
   });
+
+  it('reads orders not being saved for a few minutes (D9-14) from that answer alone', () => {
+    const paused = { code: 'service_unavailable', details: { savingPaused: true } };
+    expect(readOrderAnswer(503, paused)).toEqual({ kind: 'paused' });
+    // Degraded mode's pause, a provider not answering, or the storefront's own server not reaching Lytro: other 503s.
+    expect(readOrderAnswer(503, { code: 'service_unavailable', details: {} })).toEqual({
+      kind: 'failed',
+    });
+    expect(readOrderAnswer(503, { code: 'service_unavailable' })).toEqual({ kind: 'failed' });
+    expect(readOrderAnswer(503, { code: 'unavailable', details: { savingPaused: true } })).toEqual({
+      kind: 'failed',
+    });
+    expect(readOrderAnswer(500, paused)).toEqual({ kind: 'failed' });
+  });
 });
 
 describe('a quantity in words', () => {

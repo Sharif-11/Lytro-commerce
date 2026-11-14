@@ -34,6 +34,7 @@ let app: INestApplication;
 let port: number;
 let admin: pg.Client;
 let operator: Record<string, string> = {};
+let operatorEmail = '';
 const texts = new SmsCapture();
 
 beforeAll(async () => {
@@ -50,6 +51,7 @@ beforeAll(async () => {
     .compile();
   ({ app, port } = await listenOn(moduleRef));
   const email = `operator.${randomUUID().slice(0, 8)}@lytronix.internal`;
+  operatorEmail = email;
   await admin.query(
     'INSERT INTO control.operator_accounts (email, password_hash) VALUES ($1, $2)',
     [email, await hash(PASSWORD, 12)],
@@ -440,8 +442,29 @@ describeIfDatabase("the operator's word on a difference (DAT-52, ADM-08)", () =>
   it('lists the open ones, resolves one with a note in the audit log, and refuses it twice', async () => {
     const listed = await getJson(port, '/operator/reconciliation/differences', operator);
     expect(listed.status, JSON.stringify(listed.body)).toBe(200);
-    const page = listed.body as { differences: { id: string; state: string }[]; total: number };
+    const page = listed.body as {
+      differences: {
+        id: string;
+        state: string;
+        tenantId: string | null;
+        shopName: string | null;
+        shopSlug: string | null;
+      }[];
+      total: number;
+      lastRun: { day: string; ranAt: string } | null;
+    };
     expect(page.total).toBeGreaterThan(0);
+    // Slice 9.9: each row names its shop, and the page says when the check last ran.
+    expect(page.lastRun?.day).toBe(yesterday);
+    expect(typeof page.lastRun?.ranAt).toBe('string');
+    for (const row of page.differences) {
+      if (row.tenantId) {
+        expect(row.shopName, row.id).toEqual(expect.any(String));
+        expect(row.shopSlug, row.id).toEqual(expect.any(String));
+      } else {
+        expect(row).toMatchObject({ shopName: null, shopSlug: null });
+      }
+    }
     const target = page.differences[0];
     if (!target) throw new Error('no difference to resolve');
     expect(target.state).toBe('open');
@@ -491,9 +514,12 @@ describeIfDatabase("the operator's word on a difference (DAT-52, ADM-08)", () =>
       '/operator/reconciliation/differences?state=resolved',
       operator,
     );
-    expect(
-      (resolvedList.body as { differences: { id: string }[] }).differences.map((row) => row.id),
-    ).toContain(target.id);
+    const resolvedRows = (
+      resolvedList.body as { differences: { id: string; resolvedByEmail: string | null }[] }
+    ).differences;
+    expect(resolvedRows.map((row) => row.id)).toContain(target.id);
+    // Slice 9.9: who resolved it, by email, for the console to show.
+    expect(resolvedRows.find((row) => row.id === target.id)?.resolvedByEmail).toBe(operatorEmail);
     const signedOut = await getJson(port, '/operator/reconciliation/differences');
     expect(signedOut.status).toBe(401);
   });

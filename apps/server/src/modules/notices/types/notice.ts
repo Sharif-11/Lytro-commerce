@@ -68,6 +68,15 @@ export interface NoticeSummary {
   maintenance: NoticeCountdown | null;
 }
 
+/**
+ * Slice 9.9 (D9-14, D9-25): the summary as the dashboard reads it, with the two states its banners show: degraded mode
+ * ("Limited mode" to the operator) is on, and saving is paused because the database can't be written (DAT-42).
+ */
+export interface DashboardNoticeSummary extends NoticeSummary {
+  limitedMode: boolean;
+  savingPaused: boolean;
+}
+
 /** NTC-01, NTC-08, NTC-09: a notice as the operator sees it -- both languages, where it stands, what came of it. */
 export interface OperatorNoticeView {
   id: string;

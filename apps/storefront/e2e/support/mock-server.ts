@@ -774,6 +774,7 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
         mainHost: null,
         publicOrigin: origin,
       },
+      savingPaused: state.fixture.savingPaused ?? false,
     });
     return;
   }

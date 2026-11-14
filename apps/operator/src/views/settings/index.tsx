@@ -10,13 +10,14 @@ import { LoadFailed } from '@/components/ui/load-failed';
 import { NOTE, SMALL_BUTTON } from '@/components/ui/sizes';
 import { useToast } from '@/components/ui/use-toast';
 import { formatDay } from '@/lib/format';
-import { SETTING_GROUPS, SETTING_SHAPES, type SettingShape } from '@/lib/setting-shapes';
+import { SETTING_GROUPS, SETTING_SHAPES, VAT_GROUP, type SettingShape } from '@/lib/setting-shapes';
 import { settingWords } from '@/lib/setting-words';
 import type { PlatformSetting } from '@/types/operator';
 import { PricesPanel } from './prices-panel';
 import { SettingEditor } from './setting-editor';
 import { SettingValue } from './setting-value';
 import { TimelineCard } from './timeline-card';
+import { VatPreview } from './vat-preview';
 
 const groupId = (group: number): string => `settings-group-${String(group)}`;
 const HELP_GROUP = 14;
@@ -93,7 +94,10 @@ function SettingRow({
   );
 }
 
-/** OPERATOR-CONSOLE-DESIGN §9: every platform value that is not a rate, in fifteen groups (v7's help line and media costs). */
+/**
+ * OPERATOR-CONSOLE-DESIGN §9: every platform value that is not a rate, in seventeen groups (v7's help line and media
+ * costs, Slice 9.9's limited mode and VAT).
+ */
 export function Settings(): React.JSX.Element {
   const { t } = useTranslation();
   const settings = useSettings();
@@ -121,6 +125,8 @@ export function Settings(): React.JSX.Element {
       {number === HELP_GROUP ? (
         <div className={`${NOTE} -mt-1.5`}>{t('settings.helpNote')}</div>
       ) : null}
+      {/* D9-7 (Slice 9.9): when invoices show VAT, and how one will read. */}
+      {number === VAT_GROUP ? <VatPreview rows={rows} /> : null}
       <div className="overflow-hidden rounded-card border border-line bg-surface">
         {SETTING_SHAPES.filter((shape) => shape.group === number).map((shape) => {
           const setting = rows.find((each) => each.key === shape.key);
@@ -164,7 +170,7 @@ export function Settings(): React.JSX.Element {
         </section>
       ) : (
         <>
-          {/* Fifteen groups: on a phone the chips run off the edge; from 640 px they wrap (v5). */}
+          {/* Seventeen groups: on a phone the chips run off the edge; from 640 px they wrap (v5). */}
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
             {SETTING_GROUPS.map((number) => (
               <a key={number} href={`#${groupId(number)}`} className={chipClass(false)}>

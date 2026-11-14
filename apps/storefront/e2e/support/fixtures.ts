@@ -75,6 +75,8 @@ export interface ShopFixture {
   nextCodes: { status: number; code: string }[];
   /** How long a shopper waits to ask for a code again. */
   resendAfterSeconds: number;
+  /** D9-14 (Slice 9.9): the context says orders can't be saved for now. */
+  savingPaused?: boolean;
 }
 
 /** An order as the mocked server was sent it. */

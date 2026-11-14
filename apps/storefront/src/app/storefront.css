@@ -230,6 +230,11 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .banner.bad{background:var(--danger-soft);border-color:#f3c3c6;color:#7a1f25}
 .banner.warn{background:var(--warning-soft);border-color:#f1d996;color:#6a4203}
 .banner.info{background:var(--accent-soft);border-color:transparent;color:var(--accent-text)}
+/* Part 99 (Slice 9.9): orders can't be placed for a few minutes, above the page; the Privacy link under the mark. */
+.banner.paused{margin-bottom:12px}
+.foot .pbr{display:inline-flex;flex-direction:column;align-items:flex-end;gap:6px}
+.foot .pb:has(.pbr) > span:first-child{white-space:nowrap}
+.foot .priv{font-size:14px;color:var(--n700);text-decoration:underline;text-underline-offset:3px;font-weight:500}
 .banner.ok{background:var(--success-soft);border-color:#bfe3cb;color:#155c33}
 .banner svg.i{width:18px;height:18px;margin-top:1px}
 .card2{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:16px;display:flex;flex-direction:column;gap:12px}

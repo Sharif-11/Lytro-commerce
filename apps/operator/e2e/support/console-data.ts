@@ -1515,7 +1515,7 @@ export const OPERATOR_ID = 'op-1';
 export function drawnSettings(): Record<string, unknown>[] {
   const setting = (
     key: string,
-    value: number | string | string[] | Record<string, number>,
+    value: number | string | string[] | Record<string, number | boolean | null>,
     description: string,
     changed?: { at: string; by: string | null },
   ) => ({
@@ -1775,6 +1775,43 @@ export function drawnSettings(): Record<string, unknown>[] {
       },
       "Cloudflare's R2 and Workers prices and monthly allowances, in US dollars, that the media costs estimate uses (D8-60).",
       { at: '2026-11-10T00:00:00.000Z', by: null },
+    ),
+    // Slice 9.9: limited mode (degraded mode) -- its switch, read on Today, and its divider -- and Lytro's VAT.
+    setting(
+      'degraded_mode',
+      { on: false, noticeId: null },
+      'Degraded mode, on or off, and the notice it put up: changed only by its own switch (DAT-38).',
+      { at: '2026-10-21T07:52:00.000Z', by: 'ops@lytro.app' },
+    ),
+    setting(
+      'degraded_factor',
+      2,
+      "What limited mode (degraded mode) divides every shop's per-minute rate limits by, 2 to 10; plan limits never change (DAT-38, D9-14).",
+      { at: '2026-11-13T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'vat_bin',
+      '',
+      "Lytro's VAT registration number (BIN), 9 or 13 digits; invoices carry VAT once all four VAT settings are set (D9-7, LEG-03).",
+      { at: '2026-11-13T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'vat_rate',
+      '',
+      'The VAT rate in per cent, such as 15; prices include it, and an invoice shows the part that is VAT (D9-7).',
+      { at: '2026-11-13T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'vat_seller_name',
+      '',
+      'The name Lytro is registered for VAT under, as its invoices print it (D9-7).',
+      { at: '2026-11-13T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'vat_seller_address',
+      '',
+      'The address Lytro is registered for VAT at, as its invoices print it (D9-7).',
+      { at: '2026-11-13T00:00:00.000Z', by: null },
     ),
   ];
 }

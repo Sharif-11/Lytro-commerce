@@ -126,7 +126,10 @@ test.describe('header and footer (SFT-13, SFT-21, TEN-18)', () => {
       '/track',
     );
     await expect(footer.getByRole('link', { name: 'Categories' })).toBeVisible();
-    await expect(footer.locator('.pb a')).toHaveAttribute('href', 'https://lytro.app');
+    await expect(footer.getByRole('link', { name: 'Powered by Lytro' })).toHaveAttribute(
+      'href',
+      'https://lytro.app',
+    );
     await expect(footer.locator('.pb svg')).toHaveAttribute('aria-label', /Powered by Lytro/);
   });
 

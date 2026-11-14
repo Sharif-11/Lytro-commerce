@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { StorefrontSecretGuard } from '../../../common/guards/storefront-secret.guard';
+import { PrimaryWatch } from '../../../database/primary-watch';
 import {
   StorefrontContextService,
   type StorefrontContext,
@@ -23,6 +24,8 @@ const storefrontContextSchema = z.object({
       publicOrigin: z.string(),
     })
     .nullable(),
+  // Slice 9.9 (D9-14, D9-25): orders can't be placed while the database can't be written, so the shop shows its banner.
+  savingPaused: z.boolean(),
 });
 class StorefrontContextDto extends createZodDto(storefrontContextSchema) {}
 
@@ -36,14 +39,18 @@ class StorefrontContextDto extends createZodDto(storefrontContextSchema) {}
 export class StorefrontContextController {
   constructor(
     @Inject(StorefrontContextService) private readonly context: StorefrontContextService,
+    @Inject(PrimaryWatch) private readonly watch: Pick<PrimaryWatch, 'canSave'>,
   ) {}
 
   @Get('context')
   @ResponseMessage('ShopRetrieved')
   @ZodResponse({ type: StorefrontContextDto })
-  read(@Query('host') host: string | undefined): Promise<StorefrontContext> {
-    return host
-      ? this.context.forHost(host)
-      : Promise.resolve({ outcome: 'not_found', shop: null });
+  async read(
+    @Query('host') host: string | undefined,
+  ): Promise<StorefrontContext & { savingPaused: boolean }> {
+    const context: StorefrontContext = host
+      ? await this.context.forHost(host)
+      : { outcome: 'not_found', shop: null };
+    return { ...context, savingPaused: !this.watch.canSave() };
   }
 }

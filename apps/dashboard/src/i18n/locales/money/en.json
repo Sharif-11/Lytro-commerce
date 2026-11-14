@@ -543,5 +543,15 @@
     "shotWhenDay": "on {{day}} at {{time}}",
     "tlShot": "You sent a screenshot",
     "pendingShot": "Add a screenshot"
+  },
+  "p99": {
+    "kind": "Kind",
+    "kindTopUp": "Top-up",
+    "added": "Added to the balance",
+    "seller": "Seller",
+    "buyer": "Buyer",
+    "vatIncl": "VAT included ({{r}}%)",
+    "mushak": "Tax invoice (Mushak-6.3)",
+    "vatNoteBal": "Paid from the balance, so this invoice shows no VAT: the top-up that put the money in the balance showed it on its own invoice."
   }
 }

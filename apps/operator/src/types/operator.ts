@@ -18,6 +18,8 @@ import type {
   PlatformAuditAction,
   ProductFormField,
   RateKey,
+  ReconciliationDifferenceKind,
+  ReconciliationDifferenceState,
   SerialFormat,
   StockTracking,
   StockUnit,
@@ -505,4 +507,41 @@ export interface LedgerEntry {
   amount: string;
   balanceAfter: string;
   createdAt: string;
+}
+
+/** `DegradedModeDto` (Slice 9.5): degraded mode, the console's "Limited mode", as it stands. */
+export interface DegradedModeState {
+  on: boolean;
+  noticeId: string | null;
+  factor: number;
+}
+
+/** `listedReconciliationDifferenceSchema` (Slices 9.5, 9.9): one difference the daily money check found. */
+export interface ReconciliationDifference {
+  id: string;
+  day: string;
+  kind: ReconciliationDifferenceKind;
+  subject: string;
+  tenantId: string | null;
+  shopName: string | null;
+  shopSlug: string | null;
+  expected: string | null;
+  found: string | null;
+  details: Record<string, string | number | null>;
+  state: ReconciliationDifferenceState;
+  note: string | null;
+  resolvedBy: string | null;
+  resolvedByEmail: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+}
+
+/** `reconciliationDifferencePageSchema` (Slices 9.5, 9.9): a page of them, and when the check last ran. */
+export interface ReconciliationDifferencePage {
+  differences: ReconciliationDifference[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+  lastRun: { day: string; ranAt: string } | null;
 }

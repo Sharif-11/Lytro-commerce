@@ -22,7 +22,7 @@ import type { MessageKey } from './i18n/message-key';
 import { translate } from './i18n/messages';
 import { isLostConnection } from '../database/lost-connection';
 import { PrimaryWatch } from '../database/primary-watch';
-import { SAVING_RETRY_AFTER_SECONDS } from './guards/saving.guard';
+import { SAVING_PAUSED_DETAILS, SAVING_RETRY_AFTER_SECONDS } from './guards/saving.guard';
 
 // The subset of the HTTP response this filter uses, so the file does not depend on Express types.
 interface HttpResponse {
@@ -181,7 +181,7 @@ export class ApiErrorFilter implements ExceptionFilter {
             HTTP_STATUS.service_unavailable,
             translate(key, lang),
             'service_unavailable',
-            {},
+            key === 'SavingPaused' ? { ...SAVING_PAUSED_DETAILS } : {},
           ),
         );
       return;

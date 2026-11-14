@@ -44,6 +44,8 @@ export interface StorefrontShopContext {
 export interface StorefrontContext {
   outcome: 'open' | 'closed' | 'not_found';
   shop: StorefrontShopContext | null;
+  // D9-14 (Slice 9.9): orders can't be saved for now, as the server knows it; absent from an older server's answer.
+  savingPaused?: boolean;
 }
 
 export interface ImageView {

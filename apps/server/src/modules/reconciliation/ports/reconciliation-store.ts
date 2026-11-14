@@ -3,6 +3,7 @@ import type {
   DifferenceFilter,
   InsertReconciliationDifference,
   LedgerAgainst,
+  ListedReconciliationDifference,
   PaymentFigure,
   ReconciliationWindow,
   SelectCourierRawMessage,
@@ -89,7 +90,9 @@ export interface ReconciliationStore {
   list(
     filter: DifferenceFilter,
     page: { offset: number; limit: number },
-  ): Promise<{ rows: SelectReconciliationDifference[]; total: number }>;
+  ): Promise<{ rows: ListedReconciliationDifference[]; total: number }>;
+  /** Slice 9.9: the newest run, null before the first. */
+  lastRun(): Promise<{ day: string; ranAt: Date } | null>;
   findDifference(tx: Transaction, id: string): Promise<SelectReconciliationDifference | null>;
   resolve(
     tx: Transaction,
