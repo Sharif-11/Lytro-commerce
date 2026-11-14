@@ -1,0 +1,52 @@
+# The load test's changes to a server's deployment (Phase 9 Slice 9.10), laid over deploy/compose.yml by
+# deploy/load/run/arm.sh. The next deploy (deploy.sh, without this file) takes every one of them off again.
+#
+# - Every outside service goes to the stand-in (deploy/load/outside): no SMS, courier, bKash, email or Gemini call leaves
+#   the server, and each provider's key is replaced, so none reaches the stand-in either.
+# - The limits one load machine meets are raised, since all the load comes from one address: the sign-up burst's
+#   (CODE_SMS_PER_IP_PER_HOUR, SIGNUP_RATE_LIMIT_PER_IP, TRIAL_LIMIT_PER_IP). The report names each.
+# - The stand-in's codes listener is published on this machine's loopback only, for the load machine's SSH tunnel.
+
+x-load-environment: &load-environment
+  NODE_EXTRA_CA_CERTS: /outside-certs/ca.pem
+  BULKSMSBD_BASE_URL: https://outside:8443/bulksmsbd/api
+  BULKSMSBD_API_KEY: load-test-not-a-key
+  BULKSMSBD_SENDER_ID: load-test
+  STEADFAST_API_URL: https://outside:8443/steadfast/api/v1
+  PATHAO_API_URL: https://outside:8443/pathao/aladdin/api/v1
+  REDX_API_URL: https://outside:8443/redx/v1.0.0-beta
+  BKASH_SANDBOX_URL: https://outside:8443/bkash/v2
+  BKASH_PRODUCTION_URL: https://outside:8443/bkash/v2
+  RESEND_BASE_URL: https://outside:8443/resend
+  RESEND_API_KEY: load-test-not-a-key
+  GEMINI_BASE_URL: https://outside:8443/gemini/v1beta
+  GEMINI_API_KEY: load-test-not-a-key
+  CODE_SMS_PER_IP_PER_HOUR: '100000'
+  SIGNUP_RATE_LIMIT_PER_IP: '100000'
+  TRIAL_LIMIT_PER_IP: '100000'
+
+services:
+  outside:
+    image: lytro-outside:load
+    build:
+      # Relative to deploy/, the folder of the first compose file.
+      context: ./load/outside
+    restart: unless-stopped
+    volumes:
+      - outside-certs:/certs
+    ports:
+      - '127.0.0.1:18081:8081'
+    networks: [internal]
+
+  api-1:
+    environment: *load-environment
+    volumes: ['outside-certs:/outside-certs:ro']
+  api-2:
+    environment: *load-environment
+    volumes: ['outside-certs:/outside-certs:ro']
+  worker:
+    environment: *load-environment
+    volumes: ['outside-certs:/outside-certs:ro']
+
+volumes:
+  outside-certs:

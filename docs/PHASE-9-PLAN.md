@@ -124,6 +124,7 @@ overrule any of them when reviewing this plan.
 | D9-27 | **Terms and privacy versions** (Slice 9.8's read, 2026-11-13; LEG-01, LEG-02). | Each version is **named by the day it takes effect**. A version may be put in force only once its text is published (one list in `@lytronix/validators`); every published version stays readable at `/terms/<version>` and `/privacy/<version>`. Sign-up and the website read the version in force from the same settings (`GET /legal-versions`), so a page always shows what sign-up records. The texts state only what Lytro does when they take effect; **the Bangla text counts** if the two differ. A change that affects sellers takes effect at least 15 days after notice on the notice board and by email; one that only helps them, at once. | Slice 9.8 |
 | D9-28 | **The screens** (Slice 9.9's read, 2026-11-13; D9-14, D9-16, D9-25). | The console calls degraded mode **"Limited mode" / "লিমিটেড মোড"** (the server's names stay). Its switch sits on **Today**, with the count of the money check's open differences; the differences are a page of their own, **"Money check" / "টাকা মেলানো"**, first of the records in the menu; its divider is set in **Settings** (a group of its own). Shops are told by a **banner in the dashboard, never by email**: the switch's notice stays on the board as a plain one. **The storefront shows no limited-mode banner** (shoppers' orders and payments run), only the can't-save one: amends D9-25. The can't-save banner shows from the state the apps already read (the notice summary, the storefront's context) and after any refused save. | Slice 9.9 |
 | D9-29 | **The tax invoice's form** (Slice 9.9's read, 2026-11-13; LEG-03, D9-7). | Once all four VAT settings are set, Lytro's invoices take **Mushak-6.3's** form: titled "কর চালানপত্র (মূসক-৬.৩)", with the time of issue, the seller and the buyer -- the shop, its owner and its address, **copied at issue** like the rest (migration 0136). Hidden until then, so registering needs no code. An invoice paid from the balance carries no VAT and no title (D9-26); an accountant confirms that before registering. | Slice 9.9 |
+| D9-30 | **The production server's size** (staging's load test, 2026-11-14; amends D9-24, and DAT-19's, DAT-32's and DAT-35's sizes for it). | Staging's 2 vCPU carried about the capacity model's 1× peak for 100 shops before CPU ran out; the database was never the limit. The production server is **8 vCPU and 16 GB** with at least 100 GB of NVMe (the owner, over 8 GB), month to month from a provider meeting DAT-20, so it can be swapped if the load test finds its cores oversold. PostgreSQL's memory is sized to it through `settings.env` (`PG_SHARED_BUFFERS` about 4 GB, `PG_EFFECTIVE_CACHE_SIZE` about 10 GB), with the other settings DAT-35 names kept equal on any standby. Bought when 9.10's first pull request is done. | Slice 9.10 |
 
 ### 2.1 Points left to each slice's read
 
@@ -425,6 +426,65 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   - Whether Cloudflare's proxy (a CDN) goes in front of the apps, decided from the measurements (the owner, 2026-11-13).
     Media is already served and cached by Cloudflare. The proxy would change how real visitor addresses reach the rate
     limits, how TLS is issued and whether shops' own domains can sit behind it, and may route visitors off BDIX.
+- **Read 2026-11-14** (the owner's answers):
+  1. **The load:** twice the capacity model's peak for 100 shops (`SRS-detailed.md`, SCL-01's document). That is about
+     0.46 new orders a second, 92 catalogue requests a second and 16 dashboard and API requests a second. The model's
+     own row counts only the 40% of catalogue requests that miss a shared cache in front of the server. Lytro has no
+     such cache (Slice 9's read: every request is counted), so all 92 reach the API, and its own cache answers the
+     repeats. They come from about 12 shoppers' visits a second, of some 4 pages each, which the storefront renders.
+     It passes or fails at that load. Then the load keeps rising until something breaks, and the report says where:
+     how far one server goes, for DAT-55's 50%-of-ceiling trigger.
+  2. **The launch sign-up burst:** 200 sign-ups in 10 minutes, on top of the normal load. Each one is a phone code, its
+     check and a new shop.
+  3. **The data:** 50 shops, each with a year of the model's shop: 300 products, 1,000 customers and 3,600 orders
+     (about 180,000 orders). The other 50 shops of the traffic are small, as new shops are.
+  4. **Outside services:** stand-ins only. One stand-in answers for BulkSMSBD, the three couriers, bKash, Resend and
+     Gemini, each with a realistic delay. No SMS is sent and no provider's account is touched.
+  5. **Where the load comes from** for the production run: the staging server. It is a BDIX VPS too, so the traffic
+     takes the path a Bangladeshi shopper's does.
+  6. **Cloudflare's proxy** goes in front of the apps only if the numbers call for it: the storefront's first byte slower
+     than 800 ms at the 95th percentile from Bangladeshi networks, or the server more than 60% busy at twice the peak.
+  7. **MED-05's three networks:** a small timing page, which the owner opens on Grameenphone data, Robi or Banglalink
+     data, and home broadband.
+  8. **The production server** is bought when the staging shakedown passes, about 3 to 4 weeks before launch.
+  9. **Two pull requests**, as an exception to one per slice, since the real run waits for the server. The first has
+     the scripts, the data, the stand-ins, the timing page, and the staging shakedown with its fixes. The second has
+     the production run's report and fixes, DAT-54's restore drill, and the Cloudflare decision.
+- **After staging's shakedown** (2026-11-14, `docs/drills/2026-11-14-load-staging.md`; the owner's answers):
+  1. **The first pull request fixes the storefront's busy pages**, as sketched (STOREFRONT-DESIGN §7h, approved). The
+     other findings stay in the report for a later fix: estimates writing the default zones, a busy pool answered as
+     "saving paused", and a shop's catalogue lock holding a connection.
+  2. **The production server is bigger**: 8 vCPU and 16 GB (D9-30).
+  3. **Shop pages cached at the edge** are what carry 1,000 shops and more (the owner asked about 1,000 to 2,500 shops at
+     300 orders a month and 1% conversion: up to 290 visits a second at peak). Planned before about 300 shops, from the
+     production run's numbers.
+- **How it's built** (my calls at the read):
+  - **The tool:** k6, as Slice 9.6's monitor probe already is.
+  - **The traffic:**
+    - shoppers on the storefront: pages, search, delivery estimates and orders;
+    - shops' own websites, through their public keys;
+    - sellers with the dashboard open, which polls its notices every minute, and their commonest writes;
+    - paired phones' heartbeats and receipts;
+    - the payment page;
+    - the sign-up burst;
+    - operator reports during the run (DAT-18).
+  - **The data** is made through the server's own routes, so every row keeps the application's rules. The seeder runs
+    inside the server's network, where each order can carry its own visitor address. Afterwards a year is spread over
+    the orders' times.
+  - **The limits:** one machine sends the load, so it counts as one visitor per shop. The sign-up burst and the ramp past
+    the pass level would meet the per-address limits. Those are raised for the run only, and the report lists each one.
+  - **The stand-in** serves HTTPS from a certificate authority of its own, which the server is told to trust, and keeps
+    the sign-in codes it receives so the burst can read them back.
+  - **The pass report** goes in `docs/drills/`. It holds:
+    - DAT-32's checklist of settings in place;
+    - the error rate (under 1%) and API reads' 95th percentile (under 500 ms);
+    - search's 95th percentile (under 300 ms, CCH-12) and Redis checks' (under 10 ms, RED-03);
+    - connection errors (none, DAT-11), memory (under 80%) and swap (none);
+    - order creation while reports run (DAT-18);
+    - CPU, database queries a second, the buffer cache's hit ratio and the slowest queries;
+    - the ceiling, and the Cloudflare decision with its numbers.
+  - **After the production run,** the server is restored from R2 as DAT-54 drills it, timed against 4 hours, and wiped
+    for launch.
 
 ---
 
