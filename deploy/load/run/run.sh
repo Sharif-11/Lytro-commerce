@@ -13,8 +13,21 @@ set -euo pipefail
 : "${TARGET:?the server under test, as ssh reaches it: deploy@<address>}"
 : "${DOMAIN:?its PLATFORM_DOMAIN}"
 MODE="${MODE:-pass}"
-LOAD_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-OUT="$PWD/out"
+# A Linux load machine shares its network with the container, so the tunnel is at 127.0.0.1. Docker on Windows or a Mac
+# (a developer's machine, as for staging's shakedown) reaches it as host.docker.internal, and Git Bash's paths go to it
+# as Windows names them (pwd -W), with its path rewriting off.
+export MSYS_NO_PATHCONV=1
+if [ "$(uname -s)" = Linux ]; then
+  network=(--network host)
+  outside=http://127.0.0.1:18081
+else
+  network=()
+  outside=http://host.docker.internal:18081
+fi
+here() { (cd "$1" && (pwd -W 2> /dev/null || pwd)); }
+LOAD_DIR="$(here "$(dirname "$0")/..")"
+mkdir -p out
+OUT="$(here out)"
 K6_IMAGE="${K6_IMAGE:-grafana/k6:1.0.0}"
 NAME="$MODE-$(date -u +%Y%m%dT%H%M%SZ)"
 export MODE DOMAIN TARGET_IP FACTOR MINUTES RAMP_MINUTES SIGNUPS SIGNUP_MINUTES SIGNUP_START_MINUTES STEP MAX_FACTOR SKIP
@@ -39,9 +52,9 @@ trap stop EXIT
 
 say "$MODE: k6 from here through Caddy"
 # As this user, to write the results here (the image runs as a user of its own).
-docker run --rm --user "$(id -u):$(id -g)" --network host -v "$LOAD_DIR/k6:/scripts:ro" -v "$OUT:/out" -w /scripts -e ROSTER_IN=/out/roster.json \
-  -e MODE -e DOMAIN -e TARGET_IP -e FACTOR -e MINUTES -e RAMP_MINUTES -e SIGNUPS -e SIGNUP_MINUTES \
-  -e SIGNUP_START_MINUTES -e STEP -e MAX_FACTOR -e SKIP \
-  -e OUTSIDE=http://127.0.0.1:18081 -e SUMMARY="/out/$NAME-k6.json" \
+docker run --rm --user "$(id -u):$(id -g)" "${network[@]}" -v "$LOAD_DIR/k6:/scripts:ro" -v "$OUT:/out" -w /scripts \
+  -e ROSTER_IN=/out/roster.json -e MODE -e DOMAIN -e TARGET_IP -e FACTOR -e MINUTES -e RAMP_MINUTES -e SIGNUPS \
+  -e SIGNUP_MINUTES -e SIGNUP_START_MINUTES -e STEP -e MAX_FACTOR -e SKIP \
+  -e OUTSIDE="$outside" -e SUMMARY="/out/$NAME-k6.json" \
   "$K6_IMAGE" run load.js | tee "$OUT/$NAME-k6.txt"
 say "done: $OUT/$NAME-*"
