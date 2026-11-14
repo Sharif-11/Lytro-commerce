@@ -435,6 +435,9 @@ jobs:
         run: pnpm exec turbo run build --filter=@lytronix/server^...
       - name: The database image, a test store, and a primary archiving to it
         run: bash .github/scripts/backups/start.sh
+      # deploy.sh's proof that archiving works, with a working key and a wrong one (2026-11-14).
+      - name: The archive check passes a working archive and fails one that can't be written
+        run: bash .github/scripts/backups/archive-check.sh
       - name: A night's backups, the dump restored and counted, a minute restored, one shop's rows brought back
         working-directory: apps/server
         env:
@@ -446,4 +449,4 @@ jobs:
       - name: The containers' logs, if anything failed
         if: failure()
         run: |
-          for c in pg-backups backups-s3 pitr-src; do echo "== $c"; docker logs "$c" 2>&1 | tail -40 || true; done
+          for c in pg-backups backups-s3 pitr-src pg-archive-denied; do echo "== $c"; docker logs "$c" 2>&1 | tail -40 || true; done

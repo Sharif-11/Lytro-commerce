@@ -302,6 +302,12 @@ On the server:
 
 Slice 9.6's alerts watch these (DAT-27: a backup or dump older than 26 hours, archiving more than 5 minutes behind).
 
+**A deploy that stops at "the archive can't be written."** Every deploy with archiving on makes the database send one
+file and waits for it (`lytro-archive-check`, added 2026-11-14). Staging's archive key could read its bucket but not
+write to it, and the write-ahead log PostgreSQL kept filled the disk. When nothing is sent, the deploy turns archiving
+off again, names the store's error code (`AccessDenied`, `SignatureDoesNotMatch`, ...) and stops before the dump. Give
+the archive's key Object Read & Write on its own bucket, or put the right key in `backup.env`, then deploy again.
+
 ### 10.2 The monthly drill: restore the latest dump and count it (DAT-22, DAT-29, BKP-02)
 
 On the owner's computer, with Docker:
