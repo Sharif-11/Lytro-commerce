@@ -160,5 +160,11 @@
     "idCopied": "Error ID copied",
     "productsDidntLoad": "Products didn't load",
     "tryAgain": "Try again"
+  },
+  "p99": {
+    "cantSave": "Because of a problem, changes won't be saved for a few minutes. You can still see everything; please try again shortly.",
+    "limitedT": "Exports, reports and reading orders from messages are paused for a while.",
+    "limitedB": "Orders and payments work as usual.",
+    "savePaused": "Saving paused"
   }
 }

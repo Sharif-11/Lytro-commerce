@@ -4,12 +4,21 @@ import {
   type ReconciliationDifferenceKind,
 } from '@lytronix/validators';
 import {
+  operatorAccounts,
   reconciliationDifferences,
   reconciliationRuns,
+  tenants,
   type InsertReconciliationDifference,
   type SelectReconciliationDifference,
 } from '../../schema';
 import type { Executor, Transaction, TransactionRunner } from '../../transactions';
+
+/** DAT-52, Slice 9.9: a difference as the console lists it -- the shop by name and address, the resolver by email. */
+export interface ListedReconciliationDifference extends SelectReconciliationDifference {
+  shopName: string | null;
+  shopSlug: string | null;
+  resolvedByEmail: string | null;
+}
 
 /** A window of time: [from, to). */
 export interface Window {
@@ -381,19 +390,37 @@ export class ReconciliationRepository {
     return rows.length > 0;
   }
 
+  /** Slice 9.9: the newest run -- the day it checked and when -- for the console's money check; null before the first. */
+  async lastRun(db: Executor): Promise<{ day: string; ranAt: Date } | null> {
+    const rows = await db
+      .select({ day: reconciliationRuns.day, ranAt: reconciliationRuns.ranAt })
+      .from(reconciliationRuns)
+      .orderBy(desc(reconciliationRuns.day))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  /** DAT-52, Slice 9.9: a page of differences, each with the shop it is about (if any) and who resolved it, by email. */
   async list(
     db: Executor,
     filter: DifferenceFilter,
     page: { offset: number; limit: number },
-  ): Promise<{ rows: SelectReconciliationDifference[]; total: number }> {
+  ): Promise<{ rows: ListedReconciliationDifference[]; total: number }> {
     const where = and(
       eq(reconciliationDifferences.state, filter.state),
       filter.day === undefined ? undefined : eq(reconciliationDifferences.day, filter.day),
       filter.kind === undefined ? undefined : eq(reconciliationDifferences.kind, filter.kind),
     );
     const rows = await db
-      .select()
+      .select({
+        difference: reconciliationDifferences,
+        shopName: tenants.shopName,
+        shopSlug: tenants.slug,
+        resolvedByEmail: operatorAccounts.email,
+      })
       .from(reconciliationDifferences)
+      .leftJoin(tenants, eq(tenants.id, reconciliationDifferences.tenantId))
+      .leftJoin(operatorAccounts, eq(operatorAccounts.id, reconciliationDifferences.resolvedBy))
       .where(where)
       .orderBy(desc(reconciliationDifferences.day), reconciliationDifferences.createdAt)
       .limit(page.limit)
@@ -402,7 +429,15 @@ export class ReconciliationRepository {
       .select({ total: count() })
       .from(reconciliationDifferences)
       .where(where);
-    return { rows, total: totals?.total ?? 0 };
+    return {
+      rows: rows.map(({ difference, shopName, shopSlug, resolvedByEmail }) => ({
+        ...difference,
+        shopName,
+        shopSlug,
+        resolvedByEmail,
+      })),
+      total: totals?.total ?? 0,
+    };
   }
 
   /** An open difference resolved with the operator's note; null when there is none open by that id. */

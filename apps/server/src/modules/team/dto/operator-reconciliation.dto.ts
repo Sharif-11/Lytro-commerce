@@ -30,12 +30,22 @@ export const reconciliationDifferenceSchema = z.object({
 });
 export class ReconciliationDifferenceDto extends createZodDto(reconciliationDifferenceSchema) {}
 
+// Slice 9.9: as the console's list shows it -- the shop it is about by name and address (null for Lytro's own money),
+// and who resolved it by email.
+export const listedReconciliationDifferenceSchema = reconciliationDifferenceSchema.extend({
+  shopName: z.string().nullable(),
+  shopSlug: z.string().nullable(),
+  resolvedByEmail: z.string().nullable(),
+});
+
 export const reconciliationDifferencePageSchema = z.object({
-  differences: z.array(reconciliationDifferenceSchema),
+  differences: z.array(listedReconciliationDifferenceSchema),
   page: z.number(),
   limit: z.number(),
   total: z.number(),
   pages: z.number(),
+  // Slice 9.9: the newest run, the day it checked and when it ran; null before the first.
+  lastRun: z.object({ day: z.string(), ranAt: z.date() }).nullable(),
 });
 export class ReconciliationDifferencePageDto extends createZodDto(
   reconciliationDifferencePageSchema,

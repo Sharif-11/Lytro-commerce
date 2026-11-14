@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@lytronix/ui';
 import { useCredentialUses, useShop } from '@/api/shops';
 import { ConsoleIcon } from '@/components/ui/console-icon';
 import { ConsolePage, PageTitle } from '@/components/ui/console-page';
@@ -10,6 +11,7 @@ import { Pager } from '@/components/ui/pager';
 import { StatusChip } from '@/components/ui/status-chip';
 import { formatSessionTime } from '@/lib/session-time';
 import type { CredentialUse } from '@/types/operator';
+import { CredentialUsesExport } from './credential-uses-export';
 
 const PER_PAGE = 20;
 
@@ -20,6 +22,7 @@ export function ShopCredentials(): React.JSX.Element {
   const shop = useShop(id);
   const [page, setPage] = useState(1);
   const uses = useCredentialUses(id, page, PER_PAGE);
+  const [exporting, setExporting] = useState(false);
 
   const columns: Column<CredentialUse>[] = [
     {
@@ -73,7 +76,31 @@ export function ShopCredentials(): React.JSX.Element {
         <ConsoleIcon name="chev" />
         <span>{t('shop.credentials')}</span>
       </div>
-      <PageTitle title={t('shop.credentials')} lead={t('shop.credentialsLead')} />
+      <PageTitle
+        title={t('shop.credentials')}
+        lead={t('shop.credentialsLead')}
+        actions={
+          // SEC-11 (Slice 9.9): the CSV covers every stored key, where this list shows the gateway's only.
+          <div className="flex flex-col items-start gap-1.5 sm:items-end">
+            <Button
+              type="button"
+              tone="outline"
+              small
+              fit
+              disabled={!shop.data}
+              onClick={() => {
+                setExporting(true);
+              }}
+            >
+              <ConsoleIcon name="down" size={18} />
+              {t('shop.cuButton')}
+            </Button>
+            <span className="max-w-[300px] text-[14px] text-neutral-700 sm:text-right">
+              {t('shop.cuListNote')}
+            </span>
+          </div>
+        }
+      />
       {uses.isError ? (
         <LoadFailed
           onRetry={() => {
@@ -96,6 +123,16 @@ export function ShopCredentials(): React.JSX.Element {
         />
       )}
       <Pager page={page} pages={uses.data?.pages ?? 1} onPage={setPage} />
+      {exporting && shop.data ? (
+        <CredentialUsesExport
+          shopId={id}
+          shopName={shop.data.shopName}
+          shopSlug={shop.data.slug}
+          onClose={() => {
+            setExporting(false);
+          }}
+        />
+      ) : null}
     </ConsolePage>
   );
 }

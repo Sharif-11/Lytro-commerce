@@ -154,6 +154,42 @@ describeIfDatabase('degraded mode (DAT-38, D9-14)', () => {
     expect(audited.rows.map((row) => row.summary.newValue.on)).toEqual([true, true, false]);
   });
 
+  it('shows shops a banner, not an email: the summary says limited mode is on, the notice is a plain one (Slice 9.9)', async () => {
+    const shop = await openShop(port, texts, 'limited');
+    const ownerEmail = `owner.${randomUUID().slice(0, 8)}@example.com`;
+    await admin.query(
+      "UPDATE tenant.users SET email = $2, language = 'en' WHERE tenant_id = $1 AND is_owner",
+      [shop.tenantId, ownerEmail],
+    );
+    const summary = async (): Promise<{
+      limitedMode: boolean;
+      savingPaused: boolean;
+      prompts: unknown[];
+    }> => {
+      const read = await shop.get('/notices/summary');
+      expect(read.status, JSON.stringify(read.body)).toBe(200);
+      return read.body as { limitedMode: boolean; savingPaused: boolean; prompts: unknown[] };
+    };
+    expect(await summary()).toMatchObject({ limitedMode: false, savingPaused: false });
+
+    expect((await turn(true)).status).toBe(200);
+    // The banner reads the switch; the notice stays on the board but asks nobody and emails nobody.
+    expect(await summary()).toMatchObject({ limitedMode: true, savingPaused: false, prompts: [] });
+    const notice = await admin.query<{ severity: string }>(
+      'SELECT n.severity FROM control.notices n WHERE n.title_en = $1 ORDER BY n.created_at DESC LIMIT 1',
+      [DEGRADED_NOTICE.titleEn],
+    );
+    expect(notice.rows[0]?.severity).toBe('info');
+    const mailed = await admin.query<{ count: number }>(
+      'SELECT count(*)::int AS count FROM control.mail_outbox WHERE to_email = $1',
+      [ownerEmail],
+    );
+    expect(mailed.rows[0]?.count).toBe(0);
+
+    expect((await turn(false)).status).toBe(200);
+    expect(await summary()).toMatchObject({ limitedMode: false });
+  });
+
   it('divides by the factor the operator sets', async () => {
     const set = await patchJson(
       port,

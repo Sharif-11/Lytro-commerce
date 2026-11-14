@@ -230,6 +230,8 @@ export const invoiceSchema = z.object({
   // BIL-12: null only on invoices issued before these fields existed.
   shopName: z.string().nullable(),
   ownerName: z.string().nullable(),
+  // Slice 9.9 (Mushak-6.3's buyer): the shop's business address at issue; null when it had none, and on older invoices.
+  shopAddress: z.string().nullable(),
   planName: z.string().nullable(),
   planVersion: z.number().nullable(),
   periodStart: z.date().nullable(),

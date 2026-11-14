@@ -338,6 +338,25 @@ the cart keep their built design; only these changes are made (PD-27), drawn in 
 - **After ordering** (PD-6): the confirmation and tracking list the items with the chosen design's cover, the size and
   the quantity. No shopper's screen names the design.
 
+## 7g. Orders that can't be placed for a few minutes, and the Privacy link (Phase 9 Slice 9.9)
+
+Prototype: the group "Phase 9 · Slice 9.9" in `docs/brand/lytro-storefront.html` (Part 99), approved by the owner on
+2026-11-14. Lytro's limited mode (DAT-38) shows nothing here: orders and payments keep working in it (the owner,
+2026-11-13, amending D9-25).
+
+- **The banner** (D9-14; `p99-cant-order`): while the server says orders can't be saved for now (the storefront
+  context's `savingPaused`, read with the shop, kept a few seconds), every storefront page shows a warning above its
+  content in the owner's words from Slice 9.2's read: "একটা সমস্যার কারণে কয়েক মিনিট এই শপে অর্ডার দেওয়া যাচ্ছে না।
+  একটু পরে আবার চেষ্টা করুন।"
+- **At checkout** (`p99-cant-order-checkout`): the banner takes the banners' place, and Place order becomes a disabled
+  **কিছুক্ষণ অর্ডার দেওয়া যাচ্ছে না** / **Orders paused for a few minutes**, with the clock. The same happens when an
+  order is refused because orders can't be saved (503, `savingPaused`): nothing was placed, everything typed stays,
+  and after the server's 30 seconds Place order comes back and sends the same key, so it makes one order whenever it
+  goes through. Every other 503 stays "it may not have arrived, tap again". A landing page's form shows the same banner
+  for that refusal.
+- **The Privacy link** (`p99-footer`): **প্রাইভেসি** / **Privacy** under the Powered by Lytro mark in every footer, a
+  new tab to `https://lytro.app/privacy`, the policy that also covers the shop's customers (Slice 9.8).
+
 ## 8. Later phases, drawn in full
 
 Phase 4, orders: drawn again in §7a as Phase 4 built it -- checkout, the confirmation, tracking, the account and the

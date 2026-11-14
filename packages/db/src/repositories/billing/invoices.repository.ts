@@ -1,6 +1,6 @@
 import { asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { InvoiceLineKind } from '@lytronix/validators';
-import { invoiceCounters, invoiceLines, invoices, type SelectInvoice } from '../../schema';
+import { invoiceCounters, invoiceLines, invoices, tenants, type SelectInvoice } from '../../schema';
 import type { Executor } from '../../transactions';
 
 // DAT-07/BIL-12: the single locked counter row invoice numbers come from. Never a native sequence.
@@ -32,6 +32,8 @@ export interface NewInvoice {
   billingTermLabel: string | null;
   shopName: string;
   ownerName: string | null;
+  /** Slice 9.9: the shop's business address at issue (Mushak-6.3's buyer). */
+  shopAddress?: string | null;
   planName: string | null;
   planVersion: number | null;
   periodStart: Date | null;
@@ -87,6 +89,17 @@ export class InvoicesRepository {
       byInvoice.set(invoiceId, [...(byInvoice.get(invoiceId) ?? []), line]);
     }
     return byInvoice;
+  }
+
+  /** Slice 9.9: the shop's business address as it stands now (TEN-30), copied onto the invoice being issued. */
+  async shopAddressOf(tx: Executor, tenantId: string): Promise<string | null> {
+    const rows = await tx
+      .select({ address: tenants.businessAddress })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+    const address = rows[0]?.address?.trim();
+    return address ? address : null;
   }
 
   async insert(tx: Executor, values: NewInvoice): Promise<SelectInvoice> {

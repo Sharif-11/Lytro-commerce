@@ -102,6 +102,8 @@ describe('a write while the database cannot save (DAT-42, DAT-47)', () => {
         code: 'service_unavailable',
         messageKey: 'SavingPaused',
         retryAfterSeconds: SAVING_RETRY_AFTER_SECONDS,
+        // Slice 9.9: how the dashboard and the storefront tell it from the other 503s, for their banner.
+        details: { savingPaused: true },
       });
     }
   });
@@ -144,7 +146,7 @@ describe('a database connection lost under a request (DAT-42)', () => {
       statusCode: 503,
       message:
         "Because of a problem, changes won't be saved for a few minutes. Please try again shortly.",
-      errors: { code: 'service_unavailable' },
+      errors: { code: 'service_unavailable', details: { savingPaused: true } },
     });
     expect(result.check).toHaveBeenCalledOnce();
   });
@@ -159,7 +161,10 @@ describe('a database connection lost under a request (DAT-42)', () => {
   });
 
   it('is a 503 with a retry hint for a read too, and any other fault stays a 500', () => {
-    expect(answer('GET', new Error('Connection terminated unexpectedly')).status).toBe(503);
+    const read = answer('GET', new Error('Connection terminated unexpectedly'));
+    expect(read.status).toBe(503);
+    // A read wasn't a save: no "saving is paused" banner for it.
+    expect((read.body as { errors: { details: unknown } }).errors.details).toEqual({});
     expect(answer('POST', new Error('something else')).status).toBe(500);
   });
 });

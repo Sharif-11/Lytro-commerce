@@ -76,6 +76,9 @@ export class NoticeSummaryDto extends createZodDto(
         underWay: z.boolean(),
       })
       .nullable(),
+    // Slice 9.9 (D9-14, D9-25): the dashboard's two banners -- degraded mode is on; saving is paused (DAT-42).
+    limitedMode: z.boolean(),
+    savingPaused: z.boolean(),
   }),
 ) {}
 

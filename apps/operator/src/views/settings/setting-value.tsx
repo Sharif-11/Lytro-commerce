@@ -23,6 +23,24 @@ export function SettingValue({
   if (unit === 'phone' || unit === 'email') {
     return <span className="mono font-semibold [overflow-wrap:anywhere]">{String(value)}</span>;
   }
+  // Slice 9.9 (D9-7): Lytro's VAT registration, each part not set until the operator gives it.
+  if ((unit === 'vatBin' || unit === 'vatRate' || unit === 'vatText') && isUnset(value)) {
+    return <StatusChip tone="warn">{t('settings.notSet')}</StatusChip>;
+  }
+  if (unit === 'vatRate') return <span className={LARGE_VALUE}>{String(value)}%</span>;
+  if (unit === 'vatBin' || unit === 'vatText') {
+    return (
+      <span
+        className={`${unit === 'vatBin' ? 'mono' : ''} font-semibold whitespace-normal [overflow-wrap:anywhere]`}
+      >
+        {String(value)}
+      </span>
+    );
+  }
+  // Slice 9.9 (D9-14): what limited mode divides the per-minute limits by.
+  if (unit === 'divisor') {
+    return <span className={LARGE_VALUE}>{t('settings.divisorWords', { n: String(value) })}</span>;
+  }
   if (unit === 'hour' || unit === 'usd') {
     return (
       <span className={LARGE_VALUE}>

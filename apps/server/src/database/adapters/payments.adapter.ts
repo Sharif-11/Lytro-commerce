@@ -56,6 +56,10 @@ export class DrizzleInvoicesStore implements InvoicesStore {
     return { ...row, lines: [...lines] };
   }
 
+  shopAddressOf(tx: Transaction, tenantId: string): Promise<string | null> {
+    return this.invoices.shopAddressOf(tx, tenantId);
+  }
+
   async findById(tx: Transaction, id: string): Promise<InvoiceRecord | null> {
     const row = await this.invoices.findById(tx, id);
     return row ? ((await this.withLines(tx, [row]))[0] ?? null) : null;

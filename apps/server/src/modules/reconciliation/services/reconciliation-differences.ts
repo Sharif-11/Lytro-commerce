@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { SelectReconciliationDifference } from '@lytronix/db';
+import type { ListedReconciliationDifference, SelectReconciliationDifference } from '@lytronix/db';
 import {
   AuditResult,
   PlatformActorType,
@@ -16,6 +16,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** DAT-52: a difference as kept, for the operator's routes. */
 export type ReconciliationDifferenceRecord = SelectReconciliationDifference;
+
+/** Slice 9.9: a difference as the console's list shows it, with its shop and who resolved it. */
+export type ListedDifferenceRecord = ListedReconciliationDifference;
 
 /** The operator resolving a difference, as the platform audit log names them (ADM-08). */
 export interface ResolvingOperator {
@@ -35,14 +38,19 @@ export class ReconciliationDifferences {
     @Inject(RECONCILIATION_CLOCK) private readonly clock: () => Date,
   ) {}
 
-  list(query: ReconciliationListQuery): Promise<{
-    rows: SelectReconciliationDifference[];
+  async list(query: ReconciliationListQuery): Promise<{
+    rows: ListedReconciliationDifference[];
     total: number;
+    lastRun: { day: string; ranAt: Date } | null;
   }> {
-    return this.store.list(
-      { state: query.state, day: query.day, kind: query.kind },
-      { offset: (query.page - 1) * query.limit, limit: query.limit },
-    );
+    const [page, lastRun] = await Promise.all([
+      this.store.list(
+        { state: query.state, day: query.day, kind: query.kind },
+        { offset: (query.page - 1) * query.limit, limit: query.limit },
+      ),
+      this.store.lastRun(),
+    ]);
+    return { ...page, lastRun };
   }
 
   resolve(

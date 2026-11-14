@@ -2178,6 +2178,40 @@ page and in the pair sheet, not only on the website.
   there's none to offer. The dashboard shows the version and size from it, links the button to `url`, and draws `url`
   as the QR.
 
+### 7.45 Phase 9 for the seller: changes that can't be saved now, Lytro's limited mode, a top-up's invoice, and VAT
+
+Prototype: the group "Phase 9 · Slice 9.9" in `docs/brand/lytro-dashboard.html` (Part 99, screens `p99-*`), approved by
+the owner on 2026-11-14.
+
+- **Changes can't be saved for a few minutes** (D9-14, DAT-42; `p99-cant-save`): while the database can't save, the
+  server refuses every write with 503 and a retry hint, `errors.details.savingPaused` set (Slice 9.2's SavingGuard, and
+  its answer when the database is lost under a request). Every page shows, first among its banners, a warning in the
+  owner's words from Slice 9.2's read: "একটা সমস্যার কারণে কয়েক মিনিট কোনো পরিবর্তন সেভ হবে না। সবকিছু দেখতে পারবেন,
+  একটু পরে আবার চেষ্টা করুন।" It shows when the notice summary (read every minute) says `savingPaused`, or as soon as any
+  call is refused that way, and holds for the refusal's retry hint (30 seconds) or until a save goes through. Only that
+  answer counts: degraded mode's PausedForLoad, a courier or a provider not answering are other 503s and never show it.
+  Never called "read-only" (the owner, 2026-11-12).
+- **Saving paused** (`p99-cant-save-product`): while the banner shows, a page's action bar holds one disabled
+  **সেভ এখন বন্ধ** / **Saving paused** (with the clock) in place of its actions, at .6 opacity, and gives them back by
+  itself. A form's own error banner adds nothing for that refusal: the page's banner says it once, with no error ID,
+  since it is a wait and not a fault. A page without the shell's banners (Renew) shows it in the form as a warning.
+- **Limited mode** (DAT-38, the owner's 2026-11-13 answer; `p99-degraded`): while Lytro's operator has limited mode on,
+  every page shows an information banner with 9.5's notice words, "**কিছুক্ষণ এক্সপোর্ট, রিপোর্ট আর মেসেজ থেকে অর্ডার
+  পড়া বন্ধ থাকবে।** অর্ডার আর পেমেন্ট ঠিকমতো চলছে।", read from the notice summary's `limitedMode`. Nothing is emailed.
+- **Where the banners sit** (`p99-banners-stack`): an urgent notice's band under the bars, then can't-save, then limited
+  mode, then the shop's own one banner (bounced email, trial, grace, offline), as §4.6 orders it.
+- **A top-up's invoice** (D9-26; `p99-billing-topup`): a top-up's payment shows its own invoice card, like a plan's:
+  the number, issued, **ধরন: টপ-আপ**, **ব্যালেন্সে যোগ হয়েছে**, the total, how it was paid, and who it was billed to.
+- **A tax invoice once Lytro is registered** (D9-7, Mushak-6.3; `p99-invoice-vat`, `p99-billing-topup-vat`): an invoice
+  issued with all of Lytro's VAT fields is titled **কর চালানপত্র (মূসক-৬.৩)** over its number, shows the time of issue
+  beside the day ("10 Oct 2026, সকাল 9:31"), a line **এর মধ্যে VAT (15%)** with the VAT its price includes, and in place
+  of "billed to" the **ক্রেতা** (the shop's name, its owner and its address, copied at issue) and the **বিক্রেতা** (Lytro,
+  its BIN and its registered address). An invoice issued before registration stays exactly as it was.
+- **A plan paid from the balance** (`p99-invoice-balance`): no VAT and no Mushak-6.3 title, since the top-up that filled
+  the balance carried it (the accountant to confirm). Once a tax invoice of the shop's was issued before it, a line under
+  it says why: "ব্যালেন্স থেকে পেমেন্ট, তাই এই ইনভয়েসে VAT নেই: যে টপ-আপে ব্যালেন্সে টাকা এসেছিল, তার ইনভয়েসে VAT
+  দেখানো হয়েছে।"
+
 ## 8. Screens designed for later phases
 
 Kept in the prototype under "Later phases (design only)", exactly as designed on 2026-10-20, so the

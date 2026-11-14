@@ -325,6 +325,10 @@ export const COPY = {
   t67Track: ["{c}-এর পেজে ট্র্যাক করুন", "Track on {c}"],
   t67Partly: ["অর্ডারের কিছু অংশ ডেলিভারি হয়েছে, বাকিটা শপে ফেরত যাচ্ছে।", "Part of the order was delivered; the rest is going back to the shop."],
   t67Back: ["পার্সেলটি শপে ফেরত যাচ্ছে। কোনো প্রশ্ন থাকলে শপকে কল করুন।", "The parcel is going back to the shop. Call the shop with any questions."],
+  // Part 99 (Slice 9.9): orders can't be placed for a few minutes (D9-14, 9.2's words), and the Privacy link.
+  p99CantOrder: ["একটা সমস্যার কারণে কয়েক মিনিট এই শপে অর্ডার দেওয়া যাচ্ছে না। একটু পরে আবার চেষ্টা করুন।", "Because of a problem, orders can't be placed in this shop for a few minutes. Please try again shortly."],
+  p99OrderPaused: ["কিছুক্ষণ অর্ডার দেওয়া যাচ্ছে না", "Orders paused for a few minutes"],
+  p99Privacy: ["প্রাইভেসি", "Privacy"],
 } as const satisfies Record<string, readonly [string, string]>;
 
 export type CopyKey = keyof typeof COPY;

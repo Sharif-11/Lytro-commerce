@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { buttonClass } from '@/components/ui/classes';
 import { Toast } from '@/components/ui/toast';
 import { useDocumentTitle } from '@/hooks/use-document-title';
+import { useRefusedSaving } from '@/hooks/use-saving-paused';
 import { useToast } from '@/hooks/use-toast';
 import type { MeResponse, MeTenant } from '@/types/me';
 import { AppBar } from './app-bar';
@@ -139,6 +140,7 @@ function BareShell({
   children: ReactNode;
 }): React.JSX.Element {
   const toast = useToast();
+  const refusedSaving = useRefusedSaving();
   const shell: ShellState = {
     slug,
     tenant,
@@ -147,6 +149,10 @@ function BareShell({
     signIn: me.signIn,
     staffPhone: me.phone,
     emailBounced: me.emailBounced ?? false,
+    // A page without the shell reads no notices, so only a refused save says changes can't be saved.
+    savingPaused: refusedSaving,
+    limitedMode: false,
+    showsBanners: false,
     roles: me.roles,
     screen: undefined,
     counts: { stock: null, billing: null, orders: null, notices: null },
@@ -191,6 +197,9 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
   const home = useHome();
   // NTC-03, NTC-04, NTC-14: what every page shows of Lytro's notices, for whoever may read them.
   const notices = useNoticeSummary({ enabled: allows(viewer, [Permission.NoticesRead]) });
+  // D9-14, DAT-38 (Slice 9.9): the server's word on saving and on limited mode comes with the summary, read every minute;
+  // a save refused for it says so at once.
+  const refusedSaving = useRefusedSaving();
   const toast = useToast();
   const [plusOpen, setPlusOpen] = useState(false);
   const [recordTitle, setRecordTitle] = useState<string | null>(null);
@@ -222,6 +231,9 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
     signIn: me.signIn,
     staffPhone: me.phone,
     emailBounced: me.emailBounced ?? false,
+    savingPaused: refusedSaving || notices.data?.savingPaused === true,
+    limitedMode: notices.data?.limitedMode === true,
+    showsBanners: true,
     roles: me.roles,
     screen,
     counts: {

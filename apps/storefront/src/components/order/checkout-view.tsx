@@ -16,6 +16,7 @@ import { type Language, money, plainNumber, Words } from '@/lib/i18n/words';
 import { ADDRESS_MAX, lineQuantityText, NAME_MAX, NOTE_MAX } from '@/lib/order/order-form';
 import { useCart } from '../cart/use-cart';
 import { Icon } from '../icon';
+import { OrdersPausedBanner } from '../shell';
 import { rangeText } from '../product/buy-parts';
 import { AreaFields, DeliveryBanner, zillaOf } from '../product/sheets';
 import { useLocations, useSettledEstimate } from '../product/use-delivery';
@@ -32,7 +33,12 @@ export interface CheckoutViewProps {
   addresses: ShopperAddress[];
   /** WAL-06, SFT-10: how this shop can be paid first. */
   methods: ShopperPaymentMethod[];
+  /** D9-14 (Slice 9.9): the server said orders can't be saved for now when the page was made. */
+  savingPaused: boolean;
 }
+
+/** How long Place order waits while orders can't be saved: the server's own retry hint (SAVING_RETRY_AFTER_SECONDS). */
+const ORDERS_PAUSED_WAIT_MS = 30_000;
 
 /** The note an item left out of the total carries. */
 function offNote(line: CheckedLine, words: Words): string {
@@ -67,7 +73,22 @@ export function CheckoutView(props: CheckoutViewProps) {
         : {}),
     },
   });
-  const { fields, problems, notice, placing } = form;
+  const { fields, problems, notice, placing, setNotice } = form;
+  // D9-14 (Slice 9.9, `p99-cant-order-checkout`): while orders can't be saved -- the server said so for this page, or
+  // refused the order for it -- the page says so and Place order waits. After the server's wait it may be tried again;
+  // the same key makes one order whenever it goes through.
+  const [waiting, setWaiting] = useState(props.savingPaused);
+  const paused = waiting || notice?.kind === 'paused';
+  useEffect(() => {
+    if (!paused) return;
+    const timer = window.setTimeout(() => {
+      setWaiting(false);
+      setNotice((held) => (held?.kind === 'paused' ? null : held));
+    }, ORDERS_PAUSED_WAIT_MS);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [paused, setNotice]);
   const locations = useLocations(true);
   const [zillaId, setZillaId] = useState<number | null>(null);
   // The lines the shop refused as sold out, and those found to need paying first, by their keys.
@@ -123,6 +144,7 @@ export function CheckoutView(props: CheckoutViewProps) {
     offLines.length === 0 &&
     !undeliverable &&
     !placing &&
+    !paused &&
     (thana === null || answer.settled);
 
   const remove = (key: string) => {
@@ -197,7 +219,11 @@ export function CheckoutView(props: CheckoutViewProps) {
   ) : null;
 
   let banner = null;
-  if (firstHeld) {
+  if (paused) {
+    banner = (
+      <OrdersPausedBanner words={words} role={notice?.kind === 'paused' ? 'alert' : 'status'} />
+    );
+  } else if (firstHeld) {
     banner = (
       <>
         <NoticeBanner
@@ -521,11 +547,17 @@ export function CheckoutView(props: CheckoutViewProps) {
                 void place();
               }}
             >
-              {!paying
-                ? words.t('e48Place')
-                : advance === null
-                  ? words.t('pay58PlaceAny')
-                  : words.t('place_adv', { n: plainNumber(advance) })}
+              {paused ? (
+                <>
+                  <Icon name="clock" /> {words.t('p99OrderPaused')}
+                </>
+              ) : !paying ? (
+                words.t('e48Place')
+              ) : advance === null ? (
+                words.t('pay58PlaceAny')
+              ) : (
+                words.t('place_adv', { n: plainNumber(advance) })
+              )}
             </button>
             {paying ? <PayNextHint words={words} /> : null}
           </div>

@@ -2,7 +2,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mockApi, type ConsoleState } from './support/mock-api';
 
-// OPERATOR-CONSOLE-DESIGN §9: every platform value that is not a rate, in fifteen groups (v5 adds Phase 6's and 7's, v7 Phase 8's).
+// OPERATOR-CONSOLE-DESIGN §9: every platform value that is not a rate, in seventeen groups (v5 adds Phase 6's and 7's,
+// v7 Phase 8's, Slice 9.9 limited mode's divider and Lytro's VAT).
 
 async function open(page: Page, state: ConsoleState = {}) {
   const log = await mockApi(page, state);
@@ -25,12 +26,12 @@ async function typeReason(page: Page): Promise<void> {
 const timeline = (page: Page) =>
   main(page).locator('section').filter({ hasText: 'What these numbers do' });
 
-test('shows all 46 in their fifteen groups, each saying what its number counts', async ({
+test('shows all 51 in their seventeen groups, each saying what its number counts', async ({
   page,
 }) => {
   await open(page);
-  await expect(main(page).getByRole('button', { name: /^Change:/ })).toHaveCount(46);
-  await expect(main(page).getByRole('heading', { level: 2 })).toHaveCount(15);
+  await expect(main(page).getByRole('button', { name: /^Change:/ })).toHaveCount(51);
+  await expect(main(page).getByRole('heading', { level: 2 })).toHaveCount(17);
   await expect(main(page).locator('#settings-group-1')).toContainText('30 days');
   await expect(main(page).locator('#settings-group-1')).toContainText('৳50,000');
   await expect(main(page).locator('#settings-group-3')).toContainText('30 minutes');

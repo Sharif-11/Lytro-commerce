@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useErrorText } from '@/hooks/use-error-text';
 import { requestIdOf } from '@/lib/help-line';
+import { isSavingPaused } from '@/lib/saving-paused';
 import { ShellContext } from '@/shell/shell-context';
 
 /**
@@ -15,8 +16,14 @@ import { ShellContext } from '@/shell/shell-context';
  * sheet's action says so. A server fault (500, 503) adds its error ID under it to copy or send Lytro (Slice 8.8's
  * `p88-err-save`, `p88-err-busy`, `p88-err-sheet`); a refusal keeps its sentence alone (`p88-err-refused`).
  */
-export function ErrorBanner({ error }: { error: unknown }): React.JSX.Element {
+export function ErrorBanner({ error }: { error: unknown }): React.JSX.Element | null {
   const errorText = useErrorText();
+  const shell = useContext(ShellContext);
+  // D9-14 (Slice 9.9): a save refused because changes can't be saved now is a wait, not a fault. The page's banner says
+  // so, and its action bar holds "Saving paused", so the form adds nothing; a page without that banner says it here.
+  if (isSavingPaused(error)) {
+    return shell?.showsBanners ? null : <Banner tone="warn">{errorText(error)}</Banner>;
+  }
   const id = requestIdOf(error);
   const banner = <Banner tone="bad">{errorText(error)}</Banner>;
   if (id === null) return banner;

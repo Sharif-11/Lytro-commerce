@@ -5,10 +5,12 @@ interface KvProps {
   value: ReactNode;
   /** The sum's line: both sides in the text colour, a little heavier. */
   total?: boolean;
+  /** A figure that runs to lines (an invoice's buyer and seller, Slice 9.9): wraps at 70% of the row. */
+  wrap?: boolean;
 }
 
 /** A label and its figure on one line, a hairline between two of them (the prototype's `.kv`). */
-export function Kv({ label, value, total = false }: KvProps): React.JSX.Element {
+export function Kv({ label, value, total = false, wrap = false }: KvProps): React.JSX.Element {
   return (
     <div className="kv flex justify-between gap-3 py-2 text-[15px] [.kv+&]:border-t [.kv+&]:border-line">
       <span className={total ? 'text-[16px] font-semibold text-fg' : 'text-fg-muted'}>{label}</span>
@@ -16,7 +18,10 @@ export function Kv({ label, value, total = false }: KvProps): React.JSX.Element 
         className={[
           'num text-right',
           total ? 'text-[16px] font-semibold text-fg' : 'font-medium',
-        ].join(' ')}
+          wrap ? 'max-w-[70%] leading-[1.5] whitespace-normal [overflow-wrap:anywhere]' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
       >
         {value}
       </span>

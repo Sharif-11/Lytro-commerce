@@ -46,6 +46,7 @@ interface Invoice {
   amount: string;
   paymentMethod: string | null;
   planPaymentId: string | null;
+  shopAddress: string | null;
   sellerName: string | null;
   sellerAddress: string | null;
   sellerBin: string | null;
@@ -293,6 +294,28 @@ describeIfDatabase("every top-up invoiced, and VAT on Lytro's invoices (BIL-12, 
     } finally {
       await unregistered();
     }
+  });
+
+  it("copies the shop's address at issue as Mushak-6.3's buyer, and a later move never changes it (Slice 9.9)", async () => {
+    const shop = await openShop(port, texts, 'taxd');
+    // No address set yet: the invoice says none.
+    expect((await invoiceFor(shop, await toppedUp(shop, 200))).shopAddress).toBeNull();
+    await admin.query('UPDATE control.tenants SET business_address = $2 WHERE id = $1', [
+      shop.tenantId,
+      'Shop 12, Rapa Plaza, Dhanmondi, Dhaka',
+    ]);
+    const first = await invoiceFor(shop, await toppedUp(shop, 300));
+    expect(first.shopAddress).toBe('Shop 12, Rapa Plaza, Dhanmondi, Dhaka');
+    await admin.query('UPDATE control.tenants SET business_address = $2 WHERE id = $1', [
+      shop.tenantId,
+      'House 3, Road 1, Gulshan, Dhaka',
+    ]);
+    expect((await invoiceFor(shop, await toppedUp(shop, 400))).shopAddress).toBe(
+      'House 3, Road 1, Gulshan, Dhaka',
+    );
+    expect((await invoiceFor(shop, first.planPaymentId ?? '')).shopAddress).toBe(
+      'Shop 12, Rapa Plaza, Dhanmondi, Dhaka',
+    );
   });
 
   it('holds the five VAT fields together in the database: all or none', async () => {

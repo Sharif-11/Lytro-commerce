@@ -91,6 +91,8 @@ test('a quiet day says nothing is waiting, and flags nothing', async ({ page }) 
     receipts: [],
     changes: [],
     lytroPhones: [],
+    // Slice 9.9: and nothing in the money check.
+    differences: [],
   });
   await page.goto('/');
   const main = page.getByRole('main');

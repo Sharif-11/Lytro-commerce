@@ -9,6 +9,7 @@ import {
   type LedgerAgainst,
   type PaymentFigure,
   type ReconciliationWindow,
+  type ListedReconciliationDifference,
   type SelectCourierRawMessage,
   type SelectReconciliationDifference,
   type Transaction,
@@ -135,8 +136,12 @@ export class DrizzleReconciliationStore implements ReconciliationStore {
   list(
     filter: DifferenceFilter,
     page: { offset: number; limit: number },
-  ): Promise<{ rows: SelectReconciliationDifference[]; total: number }> {
+  ): Promise<{ rows: ListedReconciliationDifference[]; total: number }> {
     return this.figures.list(this.db, filter, page);
+  }
+
+  lastRun(): Promise<{ day: string; ranAt: Date } | null> {
+    return this.figures.lastRun(this.db);
   }
 
   findDifference(tx: Transaction, id: string): Promise<SelectReconciliationDifference | null> {

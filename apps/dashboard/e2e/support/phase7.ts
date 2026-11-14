@@ -1001,6 +1001,10 @@ export function readsOffer(standing: { trial?: boolean; payg?: boolean }): Recor
 /** Part 37's side of a shop, for one test. */
 export interface Phase7Fixture {
   notices?: NoticesFixture | null;
+  /** D9-14 (Slice 9.9): the summary says changes can't be saved for now. */
+  savingPaused?: boolean;
+  /** DAT-38 (Slice 9.9): the summary says Lytro's limited mode is on. */
+  limitedMode?: boolean;
   bell?: BellFixture | null;
   bellRead?: boolean;
   /** The kinds switched off (NTF-04). */
@@ -1062,7 +1066,13 @@ export function phase7Answer(
   const { language, writes } = context;
   // Notices.
   if (method === 'GET' && path === '/notices/summary') {
-    return { data: summaryOf(fixture.notices ?? null, language) };
+    return {
+      data: {
+        ...(summaryOf(fixture.notices ?? null, language) as Record<string, unknown>),
+        savingPaused: fixture.savingPaused ?? false,
+        limitedMode: fixture.limitedMode ?? false,
+      },
+    };
   }
   if (method === 'GET' && path === '/notices') {
     if (!fixture.notices) return { data: { items: [], unread: 0, next: null } };

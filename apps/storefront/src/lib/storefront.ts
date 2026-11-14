@@ -56,6 +56,8 @@ export type ShopPage =
       info: PublicShop;
       shopper: ShopperRequest;
       words: Words;
+      /** D9-14 (Slice 9.9): orders can't be placed for a few minutes, as the server said when the shop was named. */
+      savingPaused: boolean;
     }
   | { state: 'closed'; words: Words }
   | { state: 'missing'; words: Words };
@@ -70,7 +72,14 @@ export const loadShopPage = cache(async (): Promise<ShopPage> => {
   if (context.outcome === 'closed') return { state: 'closed', words };
   if (context.outcome !== 'open' || !context.shop) return { state: 'missing', words };
   const info = await storefrontApi.shop(context.shop, shopper);
-  return { state: 'open', shop: context.shop, info, shopper, words };
+  return {
+    state: 'open',
+    shop: context.shop,
+    info,
+    shopper,
+    words,
+    savingPaused: context.savingPaused === true,
+  };
 });
 
 /**

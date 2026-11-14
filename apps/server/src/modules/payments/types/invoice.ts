@@ -16,6 +16,8 @@ export interface InvoiceRecord {
   // BIL-12: copied at issue. Null only on invoices issued before these fields existed.
   shopName: string | null;
   ownerName: string | null;
+  /** Slice 9.9 (Mushak-6.3's buyer): the shop's business address at issue; null when it had none. */
+  shopAddress: string | null;
   planName: string | null;
   planVersion: number | null;
   periodStart: Date | null;

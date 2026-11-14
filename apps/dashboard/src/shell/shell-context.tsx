@@ -16,6 +16,13 @@ export interface ShellState {
   roles: string[];
   /** NTF-06, D7-38: the owner's email bounces, so Lytro stopped emailing it (the banner on every page). */
   emailBounced: boolean;
+  /** D9-14 (Slice 9.9): changes can't be saved for now -- the server says so, or a save was just refused for it. The
+      banner on every page, and the action bar's "Saving paused". */
+  savingPaused: boolean;
+  /** DAT-38 (Slice 9.9): Lytro's limited mode is on -- exports, reports and reading orders wait (the banner, no email). */
+  limitedMode: boolean;
+  /** Whether the page carries the shell's banners (ShellBanner); a page without the shell (Renew) doesn't. */
+  showsBanners: boolean;
   /** The phone a staff sign-in was made with, for its Account; null for the person's own sign-in. */
   staffPhone: string | null;
   /** The screen the shell frames now, from its route. */

@@ -3,8 +3,9 @@ import { randomUUID } from 'node:crypto';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AppModule } from '../src/app/app.module';
+import { PrimaryWatch } from '../src/database/primary-watch';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
@@ -146,11 +147,33 @@ describeIfDatabase("the storefront's context (Slice 12, TEN-08, SFT-12, SFT-16)"
     expect((await context('nobody-here.localhost')).body).toEqual({
       outcome: 'not_found',
       shop: null,
+      savingPaused: false,
     });
     expect((await context('app.localhost')).body).toMatchObject({ outcome: 'not_found' });
     const slug = `sf-closed-${String(Date.now())}`;
     await seedShop(admin, 'Closed shop', slug, 'read_only');
-    expect((await context(`${slug}.localhost`)).body).toEqual({ outcome: 'closed', shop: null });
+    expect((await context(`${slug}.localhost`)).body).toEqual({
+      outcome: 'closed',
+      shop: null,
+      savingPaused: false,
+    });
+  });
+
+  it("says when orders cannot be placed because saving is paused, for the shop's banner (Slice 9.9, DAT-42)", async () => {
+    const shop = await openShop(port, texts, 'sfpause');
+    expect((await context(`${shop.slug}.localhost`)).body).toMatchObject({
+      outcome: 'open',
+      savingPaused: false,
+    });
+    const paused = vi.spyOn(app.get(PrimaryWatch), 'canSave').mockReturnValue(false);
+    try {
+      expect((await context(`${shop.slug}.localhost`)).body).toMatchObject({
+        outcome: 'open',
+        savingPaused: true,
+      });
+    } finally {
+      paused.mockRestore();
+    }
   });
 
   it("shows the key in the shop's list as Lytro's, never changed or revoked, and outside the 20", async () => {

@@ -30,8 +30,13 @@ export class InvoicesService {
     lines: readonly InvoiceLine[],
   ): Promise<InvoiceRecord> {
     const vat = await this.vatOf(tx, values);
+    // Slice 9.9 (Mushak-6.3): the buyer's address as it stands at issue, so a later move never changes a past invoice.
+    const shopAddress =
+      values.shopAddress !== undefined
+        ? values.shopAddress
+        : await this.store.shopAddressOf(tx, values.tenantId);
     const number = await this.store.takeNextNumber(tx);
-    return this.store.insert(tx, number, values, vat, lines);
+    return this.store.insert(tx, number, { ...values, shopAddress }, vat, lines);
   }
 
   /**
@@ -51,6 +56,7 @@ export class InvoicesService {
         billingTermLabel: invoice.billingTermLabel,
         shopName: invoice.shopName ?? '',
         ownerName: invoice.ownerName,
+        shopAddress: invoice.shopAddress,
         planName: invoice.planName,
         planVersion: invoice.planVersion,
         periodStart: invoice.periodStart,

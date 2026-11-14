@@ -266,12 +266,35 @@ export function Footer({
           <span>
             © {new Date().getFullYear()} {shop.name}
           </span>
-          <a href="https://lytro.app" rel="noopener" style={{ color: 'inherit' }}>
-            <Icon name="pb" />
-          </a>
+          {/* Part 99 (Slice 9.9): Lytro's privacy policy, which covers the shop's customers too, under the mark. */}
+          <span className="pbr">
+            <a href="https://lytro.app" rel="noopener" style={{ color: 'inherit' }}>
+              <Icon name="pb" />
+            </a>
+            <a className="priv" href="https://lytro.app/privacy" target="_blank" rel="noopener">
+              {words.t('p99Privacy')}
+            </a>
+          </span>
         </div>
       </div>
     </footer>
+  );
+}
+
+/** D9-14 (Slice 9.9, the prototype's `p99-cant-order`): orders can't be placed in this shop for a few minutes. */
+export function OrdersPausedBanner({
+  words,
+  role = 'status',
+}: {
+  words: Words;
+  /** `alert` when an order was just refused for it, so it is read out and scrolled to. */
+  role?: 'status' | 'alert';
+}) {
+  return (
+    <div className="banner warn paused" role={role}>
+      <Icon name="info" />
+      <span>{words.t('p99CantOrder')}</span>
+    </div>
   );
 }
 

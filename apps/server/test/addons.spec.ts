@@ -67,6 +67,7 @@ function invoice(
     planPaymentId: null,
     recordedByPlatform: false,
     reversesInvoiceId: null,
+    shopAddress: null,
     sellerName: null,
     sellerAddress: null,
     sellerBin: null,

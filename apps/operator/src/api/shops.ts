@@ -94,6 +94,21 @@ export function useCredentialUses(id: string, page: number, limit: number) {
   });
 }
 
+/**
+ * SEC-11 (Slice 9.7's export, its button Slice 9.9's): every use of a shop's stored courier, gateway and Meta keys over
+ * whole Dhaka days, both included, as the server's CSV, named as the server names it.
+ */
+export async function credentialUsesCsv(
+  id: string,
+  dateFrom: string,
+  dateTo: string,
+): Promise<{ name: string; file: Blob }> {
+  const file = await operatorSession.client.file(
+    `/operator/tenants/${id}/credential-uses.csv?dateFrom=${dateFrom}&dateTo=${dateTo}`,
+  );
+  return { name: `credential-uses-${dateFrom}-to-${dateTo}.csv`, file };
+}
+
 function useShopWrite<Input extends { shopId: string }, Answer>(
   write: (input: Input) => Promise<Answer>,
 ) {

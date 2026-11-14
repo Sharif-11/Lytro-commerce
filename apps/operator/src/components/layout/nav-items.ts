@@ -19,6 +19,7 @@ export type ConsolePath =
   | '/catalogue/attributes'
   | '/catalogue/option-sets'
   | '/reports'
+  | '/money-check'
   | '/audit'
   | '/inbox'
   | '/notices'
@@ -26,7 +27,7 @@ export type ConsolePath =
   | '/manual'
   | '/account';
 
-export type NavCount = 'queue' | 'reports';
+export type NavCount = 'queue' | 'reports' | 'moneyCheck';
 
 export interface NavItem {
   to: ConsolePath;
@@ -80,6 +81,8 @@ export const navGroups: NavGroup[] = [
   {
     labelKey: 'nav.records',
     items: [
+      // Slice 9.9 (D9-16, DAT-52): the daily money check's differences, first of what happened.
+      { to: '/money-check', labelKey: 'nav.moneyCheck', icon: 'receipt', count: 'moneyCheck' },
       { to: '/reports', labelKey: 'nav.reports', icon: 'chart' },
       { to: '/audit', labelKey: 'nav.audit', icon: 'history' },
       { to: '/media-costs', labelKey: 'nav.mediaCosts', icon: 'cloud' },

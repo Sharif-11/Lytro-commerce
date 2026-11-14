@@ -6,6 +6,7 @@ import { ConsolePage, PageTitle, SectionTitle } from '@/components/ui/console-pa
 import { LoadFailed } from '@/components/ui/load-failed';
 import { QueueFigures } from '@/views/queue/queue-figures';
 import { AlsoWaiting } from './also-waiting';
+import { LimitedModeCard } from './limited-mode-card';
 import { PlatformFigures } from './platform-figures';
 import { RecentChanges } from './recent-changes';
 
@@ -47,6 +48,8 @@ export function Today(): React.JSX.Element {
           </>
         }
       />
+      {/* Slice 9.9 (D9-14): limited mode and the money check, first of all (the owner's read). */}
+      <LimitedModeCard />
       <SectionTitle>{t('today.needsYou')}</SectionTitle>
       {queue.isError ? (
         <LoadFailed

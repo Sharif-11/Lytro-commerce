@@ -23,16 +23,28 @@ export type SettingUnit =
   | 'email'
   | 'usd'
   | 'dayOfMonth'
-  | 'prices';
+  | 'prices'
+  // Slice 9.9 (D9-14): what limited mode divides the per-minute limits by, 2 to 10.
+  | 'divisor'
+  // Slice 9.9 (D9-7): Lytro's VAT registration -- its BIN, its rate as text ("15"), and the name and address it prints.
+  | 'vatBin'
+  | 'vatRate'
+  | 'vatText';
 
 export interface SettingShape {
   key: string;
-  /** Which of the page's fifteen groups it sits in (OPERATOR-CONSOLE-DESIGN §9; v5's four Phase 6 and 7 groups, v7's two). */
+  /**
+   * Which of the page's seventeen groups it sits in (OPERATOR-CONSOLE-DESIGN §9; v5's four Phase 6 and 7 groups, v7's two,
+   * Slice 9.9's limited mode and VAT).
+   */
   group: number;
   unit: SettingUnit;
 }
 
-export const SETTING_GROUPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as const;
+export const SETTING_GROUPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] as const;
+
+/** Slice 9.9 (D9-7): the VAT group, which shows how an invoice will read above its four rows. */
+export const VAT_GROUP = 17;
 
 /** D8-76: a setting stored empty is one not set, such as a help number never given or cleared. */
 export const isUnset = (value: unknown): boolean =>
@@ -95,7 +107,19 @@ export const SETTING_SHAPES: readonly SettingShape[] = [
   { key: PlatformSettingKey.MediaCostAlertEmail, group: 15, unit: 'email' },
   { key: PlatformSettingKey.CloudflareBillingDay, group: 15, unit: 'dayOfMonth' },
   { key: PlatformSettingKey.CloudflarePrices, group: 15, unit: 'prices' },
+  // DAT-38, D9-14 (Slice 9.9): the console's "Limited mode" (degraded mode); its switch is on Today.
+  { key: PlatformSettingKey.DegradedFactor, group: 16, unit: 'divisor' },
+  // D9-7, LEG-03 (Slice 9.9): Lytro's VAT registration; invoices carry VAT once all four are set.
+  { key: PlatformSettingKey.VatBin, group: VAT_GROUP, unit: 'vatBin' },
+  { key: PlatformSettingKey.VatRate, group: VAT_GROUP, unit: 'vatRate' },
+  { key: PlatformSettingKey.VatSellerName, group: VAT_GROUP, unit: 'vatText' },
+  { key: PlatformSettingKey.VatSellerAddress, group: VAT_GROUP, unit: 'vatText' },
 ];
+
+/** Slice 9.9: the four VAT settings, by the order the page shows them. */
+export const VAT_KEYS: readonly string[] = SETTING_SHAPES.filter(
+  (shape) => shape.group === VAT_GROUP,
+).map((shape) => shape.key);
 
 export function settingUnitOf(key: string): SettingUnit | undefined {
   return SETTING_SHAPES.find((shape) => shape.key === key)?.unit;

@@ -1,0 +1,1 @@
+ALTER TABLE "control"."invoices" ADD COLUMN "shop_address" text;

@@ -790,7 +790,7 @@ export enum ReconciliationDifferenceKind {
   TopUpCreditMismatch = 'top_up_credit_mismatch',
   // A plan or add-on paid from the balance whose charges don't come to its price.
   BalancePaymentMismatch = 'balance_payment_mismatch',
-  // A verified plan or add-on payment without exactly one invoice.
+  // A verified plan, add-on or top-up payment without exactly one invoice (top-ups since Slice 9.8, D9-26).
   InvoiceMismatch = 'invoice_mismatch',
   // A shop's balance that isn't the sum of its ledger.
   BalanceDrift = 'balance_drift',

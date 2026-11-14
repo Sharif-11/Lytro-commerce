@@ -65,6 +65,7 @@ export default async function CheckoutPage() {
         shopper={signedIn}
         addresses={addresses}
         methods={methods}
+        savingPaused={page.savingPaused}
       />
     </Shell>
   );

@@ -412,6 +412,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Small fixes · 2026-11-13: a category's picture, upload states"><option value="sh-category-edit">Category · picture row, none yet</option><option value="sh-category-image-up">· uploading</option><option value="sh-category-image-prep">· preparing</option><option value="sh-category-image-bad">· too large</option><option value="sh-category-image-set">· set: replace, remove</option><option value="sh-sizechart-picture-up">Size chart picture · uploading</option><option value="sh-sizechart-picture-prep">· preparing</option><option value="sh-options-colour-up">Swatch from a photo · uploading</option></optgroup>
       <optgroup label="Small fixes · 2026-11-13: the Listener app's download"><option value="lp35-first">Listener phones · no phone yet: the app's card</option><option value="lp35">· phones paired: the app's row</option><option value="sh-lp35-app">· the app: download and how to install (sheet)</option><option value="sh-lp35-pair">· Pair a phone: No app yet? opens it (sheet)</option><option value="lp35-app-noinfo">· the release can't be read: no download now</option></optgroup>
       <optgroup label="Photo designs (Part 40)"><option value="pd-product">Product editor · a burka whose photos are its designs, and its variants</option><option value="pd-photos">· Photos and video: each photo names its design (sheet)</option><option value="pd-photo">· a photo: another angle of Stripe (sheet)</option><option value="pd-photo-own">· a photo: its own design (sheet)</option><option value="pd-photos-new">· two photos added: two new designs (sheet)</option><option value="pd-photo-plain">· the second is not a design (sheet)</option><option value="pd-photos-plain">· after: one new design, one plain photo (sheet)</option><option value="pd-photos-ordered">· a product with orders: new photos stay plain (sheet)</option><option value="pd-photo-locked">· its photo: can’t be a design (sheet)</option><option value="pd-photos-kept">· removing a photo 12 orders show: they keep it (sheet)</option><option value="sh-media-past">· the same on the T-shirt, replacing “past orders lose it” (sheet)</option><option value="dlg-pd-retire">· removing a design’s last photo, with stock (dialog)</option><option value="pd-photos-held">· refused: units held for orders (sheet)</option><option value="pd-variant">· a variant: its SKU filled when saved (sheet)</option><option value="pd-add-variant">New order · add an item: the designs by photo, then the size (sheet)</option><option value="pd-order-new">· the line added: the design’s photo and name</option><option value="pd-combo-part">New combo · a part: tick designs and sizes by photo (sheet)</option><option value="pd-order">Order · the line’s design photo, name, size and SKU</option><option value="pd-print">· print the 3×3 label: design, size and SKU (sheet)</option></optgroup>
+      <optgroup label="Phase 9 · Slice 9.9 (sketch): banners, top-up invoices, VAT"><option value="p99-cant-save">Home · changes can't be saved for a few minutes (banner)</option><option value="p99-cant-save-product">· the product editor: Save paused</option><option value="p99-banners-stack">· with an urgent notice and the grace banner</option><option value="p99-degraded">Home · limited mode on (banner, no email)</option><option value="p99-degraded-orders">· the same banner on Orders</option><option value="p99-billing-topup">Billing · a top-up and its own invoice</option><option value="p99-billing-topup-vat">· the top-up's Tax invoice (Mushak-6.3), once registered</option><option value="p99-invoice-vat">· a plan's Tax invoice (Mushak-6.3), VAT included</option><option value="p99-invoice-balance">· a plan paid from the balance, registered: no VAT, no Mushak-6.3 (accountant to confirm)</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option></optgroup>
     </select>
   </label>
@@ -8358,6 +8359,80 @@ SCREENS['pd-order'] = { ...SCREENS.order, render: () => { const h = SCREENS.orde
 /* ---------- The 3×3 label's item line: design, size and SKU (PD-9); the 2×3 shows no items, as built ---------- */
 const pd40Label = () => o29Label('33').replace(`${L('2টি আইটেম: কটন টি-শার্ট ×2, ঈদ কম্বো ×1', '2 items: Cotton T-shirt ×2, Eid combo ×1')}`, `${L('2টি আইটেম: ইরানি বোরকা (স্ট্রাইপ · 54 · <span style="white-space:nowrap">IB-D2-54</span>) ×1, জর্জেট হিজাব ×1', '2 items: Irani burka (Stripe · 54 · <span style="white-space:nowrap">IB-D2-54</span>) ×1, Georgette hijab ×1')}`);
 SCREENS['pd-print'] = { ...SCREENS['o29-print'], render: () => SCREENS['pd-order'].render(), sheet: () => { const h = SCREENS['o29-print'].sheet(); const old = o29Label('33'); return h.split(pd40Must(h, old, 'the label')).join(pd40Label()); } };
+/* ---------- Phase 9 Slice 9.9 (sketch, 2026-11-13): the can't-save banner, the degraded banner, top-up invoices, VAT lines.
+   The owner's read: degraded mode is told by this banner only, never by email; the can't-save banner shows as soon as the
+   dashboard learns of it and after any failed save, in 9.2's words. ---------- */
+Object.assign(S, {
+  p99CantSave: ['একটা সমস্যার কারণে কয়েক মিনিট কোনো পরিবর্তন সেভ হবে না। সবকিছু দেখতে পারবেন, একটু পরে আবার চেষ্টা করুন।', "Because of a problem, changes won't be saved for a few minutes. You can still see everything; please try again shortly."],
+  p99DgT: ['কিছুক্ষণ এক্সপোর্ট, রিপোর্ট আর মেসেজ থেকে অর্ডার পড়া বন্ধ থাকবে।', 'Exports, reports and reading orders from messages are paused for a while.'],
+  p99DgB: ['অর্ডার আর পেমেন্ট ঠিকমতো চলছে।', 'Orders and payments work as usual.'],
+  p99SavePaused: ['সেভ এখন বন্ধ', 'Saving paused'],
+  p99KindL: ['ধরন', 'Kind'], p99KindTopUp: ['টপ-আপ', 'Top-up'], p99KindPlan: ['প্ল্যান', 'Plan'],
+  p99Added: ['ব্যালেন্সে যোগ হয়েছে', 'Added to the balance'],
+  p99Seller: ['বিক্রেতা', 'Seller'],
+  p99VatIncl: ['এর মধ্যে VAT ({r}%)', 'VAT included ({r}%)'],
+  p99Mushak: ['কর চালানপত্র (মূসক-৬.৩)', 'Tax invoice (Mushak-6.3)'], p99Buyer: ['ক্রেতা', 'Buyer'],
+  p99VatNoteBal: ['ব্যালেন্স থেকে পেমেন্ট, তাই এই ইনভয়েসে VAT নেই: যে টপ-আপে ব্যালেন্সে টাকা এসেছিল, তার ইনভয়েসে VAT দেখানো হয়েছে।', "Paid from the balance, so this invoice shows no VAT: the top-up that put the money in the balance showed it on its own invoice."],
+});
+let P99_STATE = {};
+const _banners99 = banners;
+banners = function () {
+  const out = [];
+  if (P99_STATE.cantSave) out.push(banner('warn', t('p99CantSave')));
+  if (P99_STATE.degraded) out.push(banner('info', `<b>${t('p99DgT')}</b> ${t('p99DgB')}`));
+  return out.join('') + _banners99();
+};
+const _render99 = render;
+render = function () {
+  P99_STATE = (SCREENS[ST.screen] || {}).p99 || {};
+  _render99();
+};
+
+/* The can't-save banner on Home, in the product editor (Save paused), and stacked under an urgent notice and the grace banner. */
+SCREENS['p99-cant-save'] = { ...SCREENS.home, p99: { cantSave: true } };
+SCREENS['p99-cant-save-product'] = { ...SCREENS.product, p99: { cantSave: true }, render: () => {
+  const h = SCREENS.product.render();
+  const save = `<div class="actionbar"><button class="btn p" >${t('save')}</button></div>`;
+  if (!h.includes(save)) throw new Error('Part 99: the product editor\'s save button moved');
+  return h.split(save).join(`<div class="actionbar"><button class="btn p" disabled>${ic('clock')} ${t('p99SavePaused')}</button></div>`);
+} };
+SCREENS['p99-banners-stack'] = { ...SCREENS.home, shop37: 'grace', p99: { cantSave: true }, band37: () => p37Marquee(P37_MQ()) };
+/* Limited mode (degraded mode): a banner while the operator's switch is on, nothing emailed. */
+SCREENS['p99-degraded'] = { ...SCREENS.home, p99: { degraded: true } };
+SCREENS['p99-degraded-orders'] = { ...SCREENS.orders, p99: { degraded: true } };
+
+/* Billing: a top-up's own invoice; Lytro's VAT on an invoice once registered; a plan paid from the balance shows none. */
+const P99_SELLER = () => `Lytro · BIN <span class="num">004512367-0101</span><br>${L('বাড়ি 12, রোড 4, নাসিরাবাদ, চট্টগ্রাম 4000', 'House 12, Road 4, Nasirabad, Chattogram 4000')}`;
+const p99Vat = (amount, rate) => (Math.round(amount * rate / (100 + rate) * 100) / 100);
+const p99Paisa = (n) => '৳' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/* Once all four VAT settings are set, an invoice that carries VAT is a Mushak-6.3: titled, issued with its time, and with
+   the buyer as copied at issue next to the seller. An invoice without VAT (unregistered, or paid from the balance) stays
+   as it is today -- for the accountant to confirm that a balance-paid invoice needs no Mushak-6.3 (D9-26). */
+const p99InvHead = (no, mushak) => `<div class="sechead">${mushak ? `<div><div class="p99-mushak">${t('p99Mushak')}</div><h2 class="num">${no}</h2></div>` : `<h2 class="num">${no}</h2>`}${btn('o xs', ic('download') + ' PDF · ' + t('pdfLater'), 'disabled')}</div>`;
+const P99_BUYER = () => `${L('মেঘ ফ্যাশন', 'Megh Fashion')} · ${L('রুমানা', 'Rumana')}<br>${L('শপ 12, রাপা প্লাজা, ধানমন্ডি, ঢাকা', 'Shop 12, Rapa Plaza, Dhanmondi, Dhaka')}`;
+const p99Parties = () => `${kv(t('p99Buyer'), P99_BUYER(), 'p99-seller')}${kv(t('p99Seller'), P99_SELLER(), 'p99-seller')}`;
+const p99TopUpInvoice = (vat) => `<div class="card">${p99InvHead('INV-000221', vat)}${kv(t('issued'), vat ? '19 Oct 2026, ' + L('বিকাল 4:12', '4:12 pm') : '19 Oct 2026')}${kv(t('p99KindL'), t('p99KindTopUp'))}${kv(t('p99Added'), money(500))}${vat ? kv(t('p99VatIncl', { r: 15 }), p99Paisa(p99Vat(500, 15))) : ''}${kv(t('grandTotal'), money(500), 'total')}${kv(t('paidBy'), 'bKash · TrxID 9F2KQ7')}${vat ? p99Parties() : kv(t('billedTo'), L('রুমানা · মেঘ ফ্যাশন', 'Rumana · Megh Fashion'))}</div>`;
+const p99PlanInvoice = (o) => `<div class="card">${p99InvHead(o.no, o.vat)}${kv(t('issued'), o.vat ? o.issued + ', ' + L('সকাল 9:31', '9:31 am') : o.issued)}${kv(t('period'), o.period)}${kv(t('plan'), 'Starter v3 · ' + L('1 মাস', '1 month'))}${kv(t('price'), money(449))}${kv(t('discount'), money(0))}${o.vat ? kv(t('p99VatIncl', { r: 15 }), p99Paisa(p99Vat(449, 15))) : ''}${kv(t('grandTotal'), money(449), 'total')}${kv(t('paidBy'), o.paidBy)}${o.vat ? p99Parties() : kv(t('billedTo'), L('রুমানা · মেঘ ফ্যাশন', 'Rumana · Megh Fashion'))}${o.balNote ? `<p class="p99-note">${t('p99VatNoteBal')}</p>` : ''}</div>`;
+const p99Billing = (sel, rows, detail) => {
+  const list = `${title('secBilling')}${secChips('money', 'billing')}${chips([{ l: t('all'), on: true }, { l: t('blChecking') }, { l: t('blPaid') }, { l: t('blRejected') }])}<div class="card flush"><div class="daylbl">${L('অক্টোবর 2026', 'October 2026')}</div><div class="list">${rows.map((p) => blRow(p, p.id === sel)).join('')}</div></div>`;
+  return `<div class="split detail-only"><div class="list-col">${list}</div><div class="detail">${detail}</div></div>`;
+};
+const P99_TOPUP = () => ({ ...BL().topupPaid, id: 'p99-billing-topup', inv: 'INV-000221', t2: L('বিকাল 4:12', '4:12 pm') });
+const P99_BAL = () => ({ ...BL().sep, id: 'p99-invoice-balance', date: '10 Oct 2026', time: L('সকাল 9:00', '9:00 am'), inv: 'INV-000215', plan: ['Starter', L('1 মাস', '1 month'), '10 Oct – 9 Nov 2026'] });
+const p99Detail = (p, card) => { const d = blDetail(p); return d.includes(blInvoiceCard()) ? d.split(blInvoiceCard()).join(card) : d + card; };
+SCREENS['p99-billing-topup'] = { ...BL_BASE, back: true, base: 'billing', path: '/billing/pay_9f2kq7', render: () => { const B = BL(); const tp = P99_TOPUP(); return p99Billing(tp.id, [B.checking, tp, B.paid], p99Detail(tp, p99TopUpInvoice(false))); } };
+SCREENS['p99-billing-topup-vat'] = { ...BL_BASE, back: true, base: 'billing', path: '/billing/pay_9f2kq7', render: () => { const B = BL(); const tp = P99_TOPUP(); return p99Billing(tp.id, [B.checking, tp, B.paid], p99Detail(tp, p99TopUpInvoice(true))); } };
+SCREENS['p99-invoice-vat'] = { ...BL_BASE, back: true, base: 'billing', path: '/billing/pay_5kd9qw', render: () => { const B = BL(); return p99Billing(B.paid.id, [B.checking, P99_TOPUP(), B.paid], p99Detail(B.paid, p99PlanInvoice({ no: 'INV-000214', issued: '10 Oct 2026', period: '10 Oct – 9 Nov 2026', paidBy: 'bKash · TrxID 5KD9QW', vat: true }))); } };
+SCREENS['p99-invoice-balance'] = { ...BL_BASE, back: true, base: 'billing', path: '/billing/pay_2bal10', render: () => { const B = BL(); const bal = P99_BAL(); return p99Billing(bal.id, [B.checking, P99_TOPUP(), bal], p99Detail(bal, p99PlanInvoice({ no: 'INV-000215', issued: '10 Oct 2026', period: '10 Oct – 9 Nov 2026', paidBy: L('ব্যালেন্স থেকে', 'From the balance'), balNote: true }))); } };
+
+document.head.insertAdjacentHTML('beforeend', `<style>
+/* Part 99 (Slice 9.9, sketch) */
+.p99-note{font-size:14px;line-height:1.5;color:var(--n700);margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.kv.p99-seller .v{text-align:right;font-weight:500;line-height:1.5;white-space:normal;overflow-wrap:anywhere;max-width:70%}
+.actionbar .btn[disabled]{opacity:.6}
+.p99-mushak{font-size:14px;font-weight:600;color:var(--n700);margin-bottom:2px}
+</style>`);
+/* ---------- end of Part 99 (Slice 9.9 sketch) ---------- */
 </script>
 </body>
 </html>
