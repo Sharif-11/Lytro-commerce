@@ -12,6 +12,8 @@ set -euo pipefail
 
 : "${TARGET:?the server under test, as ssh reaches it: deploy@<address>}"
 : "${DOMAIN:?its PLATFORM_DOMAIN}"
+# Options for every ssh and scp, as one string (a key, a known-hosts file): SSH_OPTS="-i <key> -o UserKnownHostsFile=<file>".
+SSH_OPTS="${SSH_OPTS:-}"
 MODE="${MODE:-pass}"
 # A Linux load machine shares its network with the container, so the tunnel is at 127.0.0.1. Docker on Windows or a Mac
 # (a developer's machine, as for staging's shakedown) reaches it as host.docker.internal, and Git Bash's paths go to it
@@ -36,15 +38,15 @@ say() { printf '[run %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 [ -f "$OUT/roster.json" ] || { say "no $OUT/roster.json: copy seed.sh's roster here"; exit 1; }
 
 say "tunnel to $TARGET's stand-in"
-ssh -o ExitOnForwardFailure=yes -N -L 18081:127.0.0.1:18081 "$TARGET" &
+ssh $SSH_OPTS -o ExitOnForwardFailure=yes -N -L 18081:127.0.0.1:18081 "$TARGET" &
 tunnel=$!
 say "the load test's operator signs in afresh"
-ssh "$TARGET" 'sudo bash /opt/lytro/state/current/load/run/reset-operator.sh'
+ssh $SSH_OPTS "$TARGET" 'sudo bash /opt/lytro/state/current/load/run/reset-operator.sh'
 say 'measuring on the target'
-ssh "$TARGET" "sudo nohup bash /opt/lytro/state/current/load/run/measure.sh '$NAME' > /dev/null 2>&1 & echo \$! > /tmp/lytro-measure.pid"
+ssh $SSH_OPTS "$TARGET" "sudo nohup bash /opt/lytro/state/current/load/run/measure.sh '$NAME' > /dev/null 2>&1 & echo \$! > /tmp/lytro-measure.pid"
 stop() {
-  ssh "$TARGET" 'sudo kill -TERM "$(cat /tmp/lytro-measure.pid)" 2> /dev/null; sleep 5' || true
-  scp -q "$TARGET:/opt/lytro/state/load/out/$NAME-*" "$OUT/" 2> /dev/null ||
+  ssh $SSH_OPTS "$TARGET" 'sudo kill -TERM "$(cat /tmp/lytro-measure.pid)" 2> /dev/null; sleep 5' || true
+  scp $SSH_OPTS -q "$TARGET:/opt/lytro/state/load/out/$NAME-*" "$OUT/" 2> /dev/null ||
     say "copy the measurements by hand: /opt/lytro/state/load/out/$NAME-* on the target (readable by root)"
   kill "$tunnel" 2> /dev/null || true
 }
