@@ -1,0 +1,42 @@
+name: ZAP baseline
+
+# D9-4, SEC-04 (Phase 9 Slice 9.7): a passive OWASP ZAP baseline scan of staging each week, and whenever it's run by hand.
+# Passive only: it reads what each host sends (headers, cookies, pages it can reach) and attacks nothing, so no shop's
+# data or payment is touched. Production is never scanned from here. A missing security header fails the run
+# (.zap/rules.tsv); every other finding opens or updates the run's issue, and the report is kept 14 days.
+on:
+  schedule:
+    # Mondays at 03:30 in Dhaka (Sunday 21:30 UTC), after the night's jobs.
+    - cron: '30 21 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - https://staging.lytro.app/
+          - https://app.staging.lytro.app/
+          - https://admin.staging.lytro.app/
+          - https://api.staging.lytro.app/health/ready
+          - https://pay.staging.lytro.app/not-a-page
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Scan
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: ${{ matrix.target }}
+          rules_file_name: .zap/rules.tsv
+          # Alpha rules too; a warning alone doesn't fail the run, a rule marked FAIL does.
+          cmd_options: '-a -I'
+          issue_title: 'ZAP baseline: ${{ matrix.target }}'
+          artifact_name: zap-report-${{ strategy.job-index }}
+          fail_action: true

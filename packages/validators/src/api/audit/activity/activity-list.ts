@@ -1,10 +1,13 @@
 import { z } from 'zod';
+import { PAGE_CURSOR_MAX_LENGTH } from '../../../common/limits';
 import { AuditAction, AuditResult } from '../../../db/enums';
 
 // One action or several, comma-separated (`action=sign_in,sign_out`): an Activity chip covers a group of actions
 // (ACTIVITY_GROUPS), filtered on the server so a page is never empty while older matches exist (Slice 11.6).
+// SEC-12: the longest list there is names every action once.
 const auditActionsField = z
   .string()
+  .max(Object.values(AuditAction).join(',').length)
   .transform((value) => value.split(','))
   .pipe(z.array(z.nativeEnum(AuditAction)).min(1));
 
@@ -17,7 +20,7 @@ export const listActivitySchema = z.object({
   // "Failed only": the entries whose result was a failure (AUD-02).
   result: z.nativeEnum(AuditResult).optional(),
   // Opaque: the created-at and id of the last row the caller saw.
-  cursor: z.string().min(1).optional(),
+  cursor: z.string().min(1).max(PAGE_CURSOR_MAX_LENGTH).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 export type ListActivityQuery = z.infer<typeof listActivitySchema>;

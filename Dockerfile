@@ -16,6 +16,9 @@ ARG NODE_IMAGE=node:24-bookworm-slim
 FROM ${NODE_IMAGE} AS build
 # The commit this image is built from: the storefront's service worker version (CCH-10) and every image's RELEASE.
 ARG RELEASE=local
+# OBS-03 (Slice 9.6): the dashboard's Sentry address, public as every browser sees it (the repository's
+# DASHBOARD_SENTRY_DSN variable); empty, the dashboard sends nothing.
+ARG DASHBOARD_SENTRY_DSN=
 ENV PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH \
     CI=1 \
@@ -26,12 +29,15 @@ WORKDIR /repo
 COPY . .
 # Every package, with its install scripts: ffmpeg-static downloads the Linux ffmpeg the worker converts videos with.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile
-RUN NEXT_STANDALONE=1 STOREFRONT_BUILD_ID=${RELEASE} pnpm turbo run build \
+RUN NEXT_STANDALONE=1 STOREFRONT_BUILD_ID=${RELEASE} VITE_RELEASE=${RELEASE} VITE_SENTRY_DSN=${DASHBOARD_SENTRY_DSN} \
+    pnpm turbo run build \
       --filter=@lytronix/server \
       --filter=@lytronix/website \
       --filter=@lytronix/storefront \
       --filter=@lytronix/dashboard \
       --filter=@lytronix/operator
+# Slice 9.7: the dashboard's and the console's files compressed once, beside each (.zst, .gz), for Caddy to send.
+RUN node deploy/static/compress.mjs apps/dashboard/dist apps/operator/dist
 # The server with its production packages only, the workspace's own (db with its migrations, validators,
 # shared-types) copied in.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm --filter=@lytronix/server deploy --prod /out/server
@@ -48,7 +54,10 @@ ENV NODE_ENV=production \
     FONTCONFIG_FILE=/app/assets/fonts/fonts.conf
 WORKDIR /app
 COPY --from=build --chown=node:node /out/server /app
-USER node
+# SEC-10, D9-8 (Slice 9.7): started as root only to read the sealing key's root-only file, then run as `node`
+# (deploy/server/entrypoint.sh).
+COPY --chmod=755 deploy/server/entrypoint.sh /usr/local/bin/lytro-server-entrypoint
+ENTRYPOINT ["lytro-server-entrypoint"]
 EXPOSE 3000
 # Liveness only (D9-21's ready check comes in Slice 9.2). The slim image has no curl.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=60s --retries=3 \

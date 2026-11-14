@@ -78,6 +78,75 @@ Most of this is already decided in `DATABASE-SCHEMA.md`; this section is the *ha
 - **Every migration is expand-then-contract** (DAT-04, already decided): add the new column/table nullable, deploy, backfill, only then make it required and remove the old shape in a later migration — never a single migration that breaks the previous release.
 - **`EXPLAIN ANALYZE` on anything touching a hot endpoint** (catalogue read, order create, payment session, upload — DAT-17) before it merges, not after it's slow in production.
 
+### Migrations in production (Phase 9 Slice 9.7)
+
+A deploy runs the old and the new release side by side on the new schema, and a rollback runs the old one on it. So a
+migration never breaks the release before it, and never holds a table's lock long enough to queue every request
+behind it.
+
+**How they run** (`packages/db/src/migrate.ts`, the pipeline's migration step and every test database):
+- Each file runs in its own transaction. Every statement waits at most 3 seconds for a lock; when the wait runs out the
+  file is rolled back and tried again after 1, 2, 4, 8 and 15 seconds, then the run fails with none of that file applied
+  and the files before it kept. One run at a time (an advisory lock).
+- A file with the line `-- outside-transaction` runs one statement at a time, each tried again the same way:
+  `CREATE INDEX CONCURRENTLY` can't run in a transaction. Each part between drizzle-kit's breakpoints is one
+  `CREATE [UNIQUE] INDEX CONCURRENTLY IF NOT EXISTS` or `DROP INDEX CONCURRENTLY IF EXISTS`, so a run can be repeated;
+  an index a failed build left invalid is dropped and built again.
+- From 0135 on, each migration's time (the journal's `when`) is later than every migration's before it, and a migration
+  that ran on a database never changes there: the runner refuses both. A migration merged second is regenerated so it
+  comes last. 0001 to 0134 ran under drizzle's own runner and stay as they are (0039 to 0043's times are out of order;
+  0021, 0029, 0062 and 0067 changed after they ran in development).
+- The history is still drizzle's own table (`drizzle.__drizzle_migrations`), so a release from before this runner reads
+  the same history after a rollback.
+
+**What CI refuses** (`packages/db/src/check-migrations.ts`, the checks job's "Migration rules"): an edit to, or removal
+of, any migration already merged; and in a new migration, unless the same file creates the table:
+- dropping or renaming a column or table, renaming an enum value, changing a column's type, making a column required
+  (`SET NOT NULL`), and updating, deleting or writing rows of a shop's table (`tenant.*`), except in a contract step;
+- a new `NOT NULL` column with no default; a default worked out row by row (`gen_random_uuid()`, `clock_timestamp()`,
+  `random()`, a serial), which rewrites the table under its lock;
+- an index built without `CONCURRENTLY`; a check or foreign key added without `NOT VALID`, or validated in the file that
+  adds it; a unique or primary key rule not made `USING INDEX` from an index built concurrently;
+- changing Lytro's own `control.*` rows without a `-- reference-data:` line saying why (adding them is how settings
+  arrive, and needs none).
+
+| A line of its own in the file | Means |
+| --- | --- |
+| `-- outside-transaction` | Runs one statement at a time, for `CONCURRENTLY` |
+| `-- contract-of: 0140_orders_total_minor` | The planned contract of that expand, which an earlier release shipped. CI confirms each column or table it drops or renames is already gone from the previous release's schema (main's newest drizzle-kit snapshot) |
+| `-- reference-data: the new plan's suggested flag` | Changes Lytro's own settings rows, and says why |
+
+**The recipes:**
+1. **A new required column.** Add it nullable, and have the code write it. A batched job fills the old rows. Add
+   `CHECK (col IS NOT NULL) NOT VALID`, and `VALIDATE` it in a later file. The next release's contract step sets
+   `NOT NULL`, which uses the validated check instead of a scan, and drops the check. A fixed or stable default
+   (`DEFAULT 'new' NOT NULL`, `DEFAULT now()`) is a one-step add: PostgreSQL stores it without touching the rows.
+2. **Changing a column that holds data** (its type, its shape). Add a new column, and write both. A batched job fills
+   the new one. Switch the reads, then stop writing the old one. Drop it as a contract step once the schema has let go
+   of it, a release later.
+3. **A change of meaning or units is always a new column** (`total` in taka becomes `total_minor` in paisa), never values
+   reinterpreted in place: no check can catch it.
+4. **A pure rename stays in the code.** Drizzle's field name goes over the old column's (`customerNote: text('note')`);
+   the column keeps its name.
+5. **drizzle-kit's output is trusted only for additions.** Anything else it writes is rewritten by hand to a recipe:
+   - an index on an existing table moves to its own `-- outside-transaction` file;
+   - a check or foreign key gets `NOT VALID`;
+   - a check's list of values widened (drizzle-kit drops and re-adds it) gets `NOT VALID` on the re-add, and needs no
+     `VALIDATE`, since a wider list can't fail old rows.
+6. **A new value** (a kind, a state, a JSON shape) is written only by a release after one that can read it. Release N
+   adds it and teaches every reader (the API's response schemas, the dashboard, the console); release N+1 writes it. CI's
+   previous-release job runs main's server image against this branch's schema holding every value new since main, and
+   calls its read routes: a value written by the release that adds it fails there. Narrowing what a column may hold
+   moves the data first, then the rule.
+7. **Data:** backfills and fixes are batched jobs that can run twice, after a dump, never one large update in a
+   migration. Before a migration runs on production, it is timed on the restore drill's copy (RUNBOOKS §10.2's restore
+   with `--serve`, then the release's `node dist/migrate.js` against it).
+
+Every pull request with a migration says in its description: its **kind** (add, change existing, remove, fix data);
+its **recipe step** ("expand, 1 of 4", "contract of #NNN", "single-step add"); its **rollback note** (what the previous
+release does on the new schema and data); and **readers before writers** (each new value is readable by the previous
+release, or why not).
+
 ## 6. Caching strategy
 
 Already fully specified in `SRS-detailed.md` §14.3 (CCH-01 to CCH-13) and `SRS.md`'s PRF-2 — restated here only as the one-line summary worth keeping in mind while coding: **device cache → Cloudflare edge → in-process memory cache → PostgreSQL, in that order, with a per-tenant catalogue version as the invalidation key instead of purging, and checkout/order-creation never served from any cache.** Nothing new to design here; the discipline is not accidentally adding a second caching mechanism that doesn't respect that version key.

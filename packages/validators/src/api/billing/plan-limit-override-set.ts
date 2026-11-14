@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { OPERATOR_REASON_MAX_LENGTH } from '../../common/limits';
+import { textField } from '../../common/text';
 import { planLimitsSchema } from '../../db/plans/plan-limits';
 
 // POST /operator/tenants/:id/limit-overrides (PLN-11): one override per (tenant, limit key); a required reason.
@@ -10,6 +12,6 @@ export const setPlanLimitOverrideSchema = z.object({
   limitKey: z.enum(limitKeys),
   // PLN-19: null overrides a limit to unlimited, exactly like a numeric override caps it.
   value: z.union([z.number().int().nonnegative(), z.boolean(), z.null()]),
-  reason: z.string().trim().min(1, 'A reason is required.'),
+  reason: textField(OPERATOR_REASON_MAX_LENGTH),
 });
 export type SetPlanLimitOverrideInput = z.infer<typeof setPlanLimitOverrideSchema>;

@@ -1,0 +1,133 @@
+# The server's alerts (Phase 9 Slice 9.6, D9-3, DAT-25, DAT-27, DAT-55, MON-03, OBS-06), evaluated by Grafana Cloud on
+# the figures the monitor sends (deploy/alloy/config.alloy). Loaded by deploy/monitoring/sync-alerts.sh. Each has a
+# severity, `page` (wakes the owner through Grafana IRM: shops can't sell, or data is at risk) or `notify` (email and a
+# silent push), and the runbook step that says what to do (OBS-06). The uptime checks and the 15-minute probe alert from
+# Grafana's synthetic monitoring instead (RUNBOOKS.md, "Monitoring").
+groups:
+  - name: lytro-server
+    rules:
+      - alert: ServerCpuHigh
+        expr: 100 * (1 - avg by (server) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 70
+        for: 15m
+        labels: { severity: notify }
+        annotations:
+          summary: '{{ $labels.server }}: CPU above 70% for 15 minutes ({{ $value | printf "%.0f" }}%)'
+          runbook_url: https://github.com/Sharif-11/Lytro-commerce/blob/main/docs/RUNBOOKS.md#servercpuhigh
+
+      - alert: ServerCpuSteal
+        expr: 100 * avg by (server) (rate(node_cpu_seconds_total{mode="steal"}[5m])) > 10
+        for: 15m
+        labels: { severity: notify }
+        annotations:
+          summary: '{{ $labels.server }}: the provider takes over 10% of the CPU ({{ $value | printf "%.0f" }}%)'
+          runbook_url: https://github.com/Sharif-11/Lytro-commerce/blob/main/docs/RUNBOOKS.md#servercpusteal
+
+      - alert: ServerMemoryHigh
+        expr: 100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 80
+        for: 10m
+        labels: { severity: notify }
+        annotations:
+          summary: '{{ $labels.server }}: memory above 80% ({{ $value | printf "%.0f" }}%)'
+          runbook_url: https://github.com/Sharif-11/Lytro-commerce/blob/main/docs/RUNBOOKS.md#servermemoryhigh
+
+      # DAT-25's "swap in use": pages being written out to swap, not the few the kernel parks there and never needs.
+      - alert: ServerSwapping
+        expr: rate(node_vmstat_pswpout[5m]) > 0
+        for: 15m
+        labels: { severity: notify }
+        annotations:
+          summary: '{{ $labels.server }}: memory is being swapped out'
+          runbook_url: https://github.com/Sharif-11/Lytro-commerce/blob/main/docs/RUNBOOKS.md#serverswapping
+
+      - alert: ServerDiskHigh
+        expr: 100 * (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) > 70
+        for: 10m
+        labels: { severity: notify }
+        annotations:
+          summary: '{{ $labels.server }}: disk above 70% ({{ $value | printf "%.0f" }}%)'
+          runbook_url: https://github.com/Sharif-11/Lytro-commerce/blob/main/docs/RUNBOOKS.md#serverdiskhigh
+
+      - alert: ServerDiskFull
+        expr: 100 * (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) > 90
+        for: 5m
+        labels: { severity: page }
+        annotations:
+          summary: '{{ $labels.server }}: disk above 90% ({{ $value | printf "%.0f" }}%): the database stops when it fills'
+          runbook_url: https://github.com/Sharif-11/Lytro-commerce/blob/main/docs/RUNBOOKS.md#serverdiskfull
+
+      # DAT-55's third measure: the busiest 5 minutes of the last day used half the server's CPU.
+      - alert: ServerPeakLoadHalf
+        expr: max_over_time((100 * (1 - avg by (server) (rate(node_cpu_seconds_total{mode="idle"}[5m]))))[1d:5m]) > 50
+        labels: { severity: notify }
+        annotations:
+          summary: '{{ $labels.server }}: peak load reached {{ $value | printf "%.0f" }}% of the CPU in the last day (DAT-55)'
+          runbook_url: https://github.com/Sharif-11/Lytro-commerce/blob/main/docs/RUNBOOKS.md#serverpeakloadhalf
+
+  - name: lytro-database
+    rules:
+      - alert: DatabaseDown
+        expr: pg_up == 0
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: "{{ $labels.server }}: the database doesn't answer the monitor"
+          runbook_url: https://github.com/Sharif-11/Lytro-commerce/blob/main/docs/RUNBOOKS.md#databasedown
+
+      - alert: DatabaseConnectionsHigh
+        expr: sum by (server) (pg_stat_activity_count) / max by (server) (pg_settings_max_connections) > 0.7
+        for: 10m
+        labels: { severity: notify }
+        annotations:
+          summary: "{{ $labels.server }}: over 70% of the database's connections in use"
+          runbook_url: https://github.com/Sharif-11/Lytro-commerce/blob/main/docs/RUNBOOKS.md#databaseconnectionshigh
+
+      # DAT-25, DAT-27: the write-ahead-log archive keeps failing (PostgreSQL retries each minute), so point-in-time
+      # recovery is falling behind. How far behind it is, a quiet database aside, is the jobs check's (/health/jobs).
+      - alert: ArchiveFailing
+        expr: increase(pg_stat_archiver_failed_count[10m]) > 2
+        for: 5m
+        labels: { severity: page }
+        annotations:
+          summary: '{{ $labels.server }}: archiving the write-ahead log keeps failing'
+          runbook_url: https://github.com/Sharif-11/Lytro-commerce/blob/main/docs/RUNBOOKS.md#archivefailing
+
+      # DAT-17: a statement averaging over 200 ms across the last 15 minutes.
+      - alert: SlowQuery
+        expr: >-
+          rate(pg_stat_statements_seconds_total[15m]) / rate(pg_stat_statements_calls_total[15m]) > 0.2
+          and rate(pg_stat_statements_calls_total[15m]) > 0
+        for: 15m
+        labels: { severity: notify }
+        annotations:
+          summary: '{{ $labels.server }}: query {{ $labels.queryid }} averages {{ $value | humanizeDuration }}'
+          runbook_url: https://github.com/Sharif-11/Lytro-commerce/blob/main/docs/RUNBOOKS.md#slowquery
+
+  - name: lytro-services
+    rules:
+      # RED-05: the limits go on counting in each process's memory meanwhile, so shops still sell.
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 5m
+        labels: { severity: notify }
+        annotations:
+          summary: "{{ $labels.server }}: Redis doesn't answer; limits count per process"
+          runbook_url: https://github.com/Sharif-11/Lytro-commerce/blob/main/docs/RUNBOOKS.md#redisdown
+
+      # MON-03: over 5% of requests through the edge ended in a server error, for 5 minutes.
+      - alert: ErrorRateHigh
+        expr: >-
+          sum by (server) (rate(caddy_http_request_duration_seconds_count{code=~"5.."}[5m]))
+          / sum by (server) (rate(caddy_http_request_duration_seconds_count[5m])) > 0.05
+        for: 5m
+        labels: { severity: notify }
+        annotations:
+          summary: '{{ $labels.server }}: {{ $value | humanizePercentage }} of requests failed with a server error'
+          runbook_url: https://github.com/Sharif-11/Lytro-commerce/blob/main/docs/RUNBOOKS.md#errorratehigh
+
+      # OBS-07, in part: the monitor itself stopped sending, so every alert above is blind.
+      - alert: MonitorSilent
+        expr: absent_over_time(node_load1[15m])
+        labels: { severity: notify }
+        annotations:
+          summary: No figures from any server's monitor for 15 minutes
+          runbook_url: https://github.com/Sharif-11/Lytro-commerce/blob/main/docs/RUNBOOKS.md#monitorsilent

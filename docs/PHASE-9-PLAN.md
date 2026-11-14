@@ -75,7 +75,8 @@ Nothing is deployed. There is:
 6. **Every day-one alert has fired once on staging**, by causing what it watches: uptime, disk, memory, backup age,
    archive lag, a missed job heartbeat, an error spike, Redis down, an opened circuit.
 7. **The security pass is recorded:** each of SEC-01 to SEC-16 with its evidence; the scanners' findings fixed or listed
-   in `KNOWN-GAPS.md` with a reason.
+   in `KNOWN-GAPS.md` with a reason. Recorded in `SECURITY-PASS.md` (Slice 9.7, 2026-11-14); the ZAP scan's first
+   findings follow the deploy (KNOWN-GAPS §148).
 8. **The terms and privacy policy are on the website** in Bangla and English, at the versions sign-up records (LEG-01,
    LEG-02), and say that launch runs on one server (DAT-54).
 9. CI is green on `main`, and the pull-request flow has been used for every slice.
@@ -90,7 +91,7 @@ Nothing is deployed. There is:
 |---|---|---|---|
 | D9-1 | **Where Redis runs.** RED-01, DAT-19 and DAT-56 give it its own small server from day one. | **On the main server, in its own container, from launch**, hardened as RED-01 says (password, dangerous commands off, a [256] MB cap evicting only keys with an expiry, no persistence). Production uses the Redis code from day one. It moves to its own server, reached over the private tunnel, when a second app server arrives: an address change, no code. Amends RED-01, DAT-19 and DAT-56. | Slices 9.1, 9.4 |
 | D9-2 | **Replacing a failed main database**, once a standby exists. The owner asked whether the requirements support one writer, many read replicas and promotion on failure. They do, with failover by one command (DAT-37), but its steps name one standby only. | **One command, as DAT-37 says** (no Patroni or automatic promotion). Extended to any number of replicas: promote the replica that has replayed furthest; point the other replicas at it; the old main server rejoins as a replica only after the data checks (AVL-04), rewound or rebuilt from a base backup, never started as a main server. | Slices 9.2, 9.3 |
-| D9-3 | **Monitoring at launch.** OD-43 times the full stack to 50 paying shops, but DAT-54 and MON-01 require some alerts from day one. | **OD-43's providers on their free plans from launch:** UptimeRobot for uptime and job heartbeats, Sentry for errors, Grafana Cloud for the server's and the database's alerts. Alerts reach the owner through their phone apps and email. Paid plans, log shipping and the dashboards (OBS-04's shipping, OBS-05, OBS-06, OBS-09 to OBS-11) at 50 paying shops, as OD-43 says. | Slice 9.6 |
+| D9-3 | **Monitoring at launch.** OD-43 times the full stack to 50 paying shops, but DAT-54 and MON-01 require some alerts from day one. | **OD-43's providers on their free plans from launch:** Sentry for errors, Grafana Cloud for the server's and the database's alerts and, as amended by Slice 9.6's read (2026-11-13), for the uptime checks too: UptimeRobot dropped, and the job heartbeats are Lytro's own (a check page, `/health/jobs`, that the uptime check watches). Alerts reach the owner through Grafana IRM's phone app and email; only what stops shops selling or risks data wakes them. Paid plans, log shipping and the dashboards (OBS-04's shipping, OBS-05, OBS-06, OBS-09 to OBS-11) at 50 paying shops, as OD-43 says. | Slice 9.6 |
 | D9-4 | **Who does the security pass.** | **Us, with free scanners:** each SEC row checked and fixed with tests; an OWASP ZAP baseline scan against staging; a dependency audit in CI. No paid penetration test before launch. | Slice 9.7 |
 | D9-5 | **Where the load test runs** (DAT-32: one 4 vCPU / 6 GB server). | **On the production server, before launch:** bought a few weeks early, tested while empty, wiped, then launched on. A first run on staging shakes the scripts out. | Slice 9.10 |
 | D9-6 | **The terms and privacy policy** (LEG-02). LEG-03 and OD-08 want a legal review before launch. | **Drafted by us** in Bangla and English from LEG-02, DAT-54's disclosure and `SUPPORT-LEGAL-PAGES-DESIGN.md` §3 and §4. **No lawyer reviews them before launch;** a review of the terms, payment handling and VAT follows when the business can pay for it. Amends LEG-03 and OD-08. | Slice 9.8 |
@@ -329,7 +330,7 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
 - **Depends on:** 9.1, 9.3, 9.4.
 - **Delivers:**
   - JSON logs with redaction, kept 14 days (D9-20).
-  - Sentry, UptimeRobot's checks and job heartbeats, and Grafana Cloud's host and database alerts (D9-3; MON-01,
+  - Sentry, Grafana Cloud's uptime checks and our own job heartbeats, and its host and database alerts (D9-3; MON-01,
     MON-03, DAT-25, DAT-27).
   - The 15-minute order-and-payment probe (OBS-08).
   - The slow-query log and `pg_stat_statements` (DAT-17).
@@ -354,17 +355,28 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
     the hashed `/assets/` files, re-checked every time for `index.html`. Found on staging 2026-11-13: the dashboard's
     script went out as 1.38 MB and the console's as 0.92 MB, uncompressed and without a cache rule; the owner put the
     fix here. The website and storefront (Next.js) already compress and cache their own files.
-  - Migrations made safe for production (the owner, 2026-11-13), on top of DAT-04's expand-then-contract:
-    - each migration sets a short `lock_timeout` and retries, so an `ALTER TABLE` waiting behind a slow query never
-      queues every request behind it;
-    - indexes on big tables are made `CONCURRENTLY`, and checks and foreign keys are added `NOT VALID` and then
-      validated, so neither blocks writes;
-    - a CI check fails a migration that drops, renames, changes a type or makes a column required, unless it is
-      marked as the planned contract step of an earlier expand;
-    - a new value (a kind, a state) is written only by a release after one that can read it, and a test runs the
-      previous release's reads against the new data, so a rollback never meets data it can't read;
-    - large backfills run as batched jobs, not inside a migration, and a migration's time is measured on the
-      restore drill's copy before it runs on production.
+  - Migrations made safe for production (the owner, 2026-11-13), on top of DAT-04's expand-then-contract. A deploy
+    runs the old and new code side by side on the new schema, and a rollback runs the old code on it:
+    - **How they run:** each migration sets a short `lock_timeout` and retries, so a change waiting behind a slow
+      query never queues every request behind it. A statement that can't run inside a transaction
+      (`CREATE INDEX CONCURRENTLY`) runs as its own step, since a migration otherwise runs in one.
+    - **A CI check fails a migration** that, outside a step marked as the planned contract of an earlier expand:
+      drops or renames a column or table; changes a column's type; makes a column required (`SET NOT NULL`, or
+      a new `NOT NULL` column with no default); adds a column whose default is volatile (a random
+      id, `clock_timestamp()`), which rewrites the table; builds an index without `CONCURRENTLY`; adds a check, a foreign key or a
+      unique rule without `NOT VALID` and a later `VALIDATE` (a unique rule from an index built concurrently,
+      `USING INDEX`); or updates or deletes rows. A contract step must also name what it removes as already
+      gone from the previous release's schema, which the check confirms.
+    - **Rollback safety:** a new value (a kind, a state, a JSON shape) is written only by a release after one that
+      can read it, and a test runs the previous release's reads against the new data. Narrowing what a column may
+      hold moves the data first, then the rule.
+    - **Data:** backfills and data fixes run as batched jobs that can run twice, after a dump, never as one large
+      update; a migration's time is measured on the restore drill's copy before it runs on production.
+    - **The recipes**, in `ENGINEERING-STANDARDS.md` §5: a new required column (nullable, backfill, a `NOT VALID`
+      check, then required); changing an existing column with data (a new column, write both, backfill, switch
+      reads, stop writing the old, drop it releases later); a change of meaning or units is always a new column,
+      never values reinterpreted in place, since no check can catch it; a pure rename stays in the code (Drizzle's
+      field name over the old column's); and drizzle-kit's output is trusted only for additions.
 
 ### Slice 9.8: terms, privacy and tax
 - **Depends on:** 9.0; can run beside any slice.

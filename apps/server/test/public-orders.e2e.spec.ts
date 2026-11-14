@@ -1298,6 +1298,10 @@ describeIfDatabase("Meta's server-side Purchase (LND-16, PRF-05)", () => {
         order_id: made.orderNumber,
       },
     });
+    // SEC-11 (Slice 9.7): the token's use is logged with its order and result, never its value.
+    expect(await credentialUses(shop.tenantId)).toEqual([
+      { action: 'purchase_sent', order_id: await orderIdOf(made.trackingId), succeeded: true },
+    ]);
   });
 
   it('leaves the order alone while Meta is away, and stops calling it after five failures in a row', async () => {
@@ -1322,5 +1326,24 @@ describeIfDatabase("Meta's server-side Purchase (LND-16, PRF-05)", () => {
     }
     await expect(sender.send(job)).rejects.toThrow('open');
     expect(meta.calls).toBe(5);
+    // Each failed use is logged as one, and the refused call through the open circuit used nothing.
+    const uses = await credentialUses(shop.tenantId);
+    expect(uses.map((use) => use.succeeded)).toEqual([false, false, false, false, false]);
   });
 });
+
+/** SEC-11: the uses of a shop's Conversions API token, oldest first. */
+async function credentialUses(
+  tenantId: string,
+): Promise<{ action: string; order_id: string | null; succeeded: boolean }[]> {
+  const { rows } = await admin.query<{
+    action: string;
+    order_id: string | null;
+    succeeded: boolean;
+  }>(
+    `SELECT action, order_id, succeeded FROM tenant.ad_tracking_credential_uses
+     WHERE tenant_id = $1 ORDER BY at, id`,
+    [tenantId],
+  );
+  return rows;
+}

@@ -1,0 +1,56 @@
+// The monitor (Phase 9 Slice 9.6, D9-3, OBS-05, DAT-25, MON-03): Grafana Alloy, reading the server's, the database's,
+// Redis's and the edge's figures each minute and sending them to Grafana Cloud, where the alerts are
+// (deploy/monitoring/alerts.yml). Its settings are monitoring.env's (deploy/scripts/make-env.sh) and redis.env's.
+// No figure carries a shop: OBS-05 keeps per-shop figures in the database.
+
+// The host: CPU (with steal), memory and swap, disks, load and the network, from the host's own /proc, /sys and /
+// (mounted read-only in compose.yml).
+prometheus.exporter.unix "host" {
+  procfs_path    = "/host/proc"
+  sysfs_path     = "/host/sys"
+  rootfs_path    = "/host/root"
+  set_collectors = ["cpu", "meminfo", "filesystem", "loadavg", "diskstats", "netdev", "vmstat", "pressure"]
+
+  filesystem {
+    mount_points_exclude = "^/(dev|proc|run|sys|boot/efi|var/lib/docker/.+|var/lib/containerd/.+)($|/)"
+    fs_types_exclude     = "^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|tmpfs)$"
+  }
+}
+
+// The database, as the pg_monitor role (deploy/postgres/30-monitor-role.sh): whether it answers, its connections
+// against max_connections, the archive's age, and every statement's totals (pg_stat_statements, DAT-17).
+prometheus.exporter.postgres "database" {
+  data_source_names  = [sys.env("MONITOR_DATABASE_URL")]
+  enabled_collectors = ["stat_statements"]
+}
+
+// Redis (Slice 9.4): whether it answers, its memory and evictions.
+prometheus.exporter.redis "redis" {
+  redis_addr     = "redis:6379"
+  redis_password = sys.env("REDIS_PASSWORD")
+}
+
+prometheus.scrape "everything" {
+  targets = array.concat(
+    prometheus.exporter.unix.host.targets,
+    prometheus.exporter.postgres.database.targets,
+    prometheus.exporter.redis.redis.targets,
+    // The edge's requests by status code (the Caddyfile's internal :9180 listener), for the error rate.
+    [{"__address__" = "edge:9180", "job" = "edge"}],
+  )
+  scrape_interval = "60s"
+  forward_to      = [prometheus.remote_write.grafana.receiver]
+}
+
+prometheus.remote_write "grafana" {
+  endpoint {
+    url = sys.env("GRAFANA_METRICS_URL")
+
+    basic_auth {
+      username = sys.env("GRAFANA_METRICS_USER")
+      password = sys.env("GRAFANA_CLOUD_TOKEN")
+    }
+  }
+  // Which server each figure is from: its platform domain (lytro.app, staging.lytro.app).
+  external_labels = {"server" = sys.env("SERVER_NAME")}
+}

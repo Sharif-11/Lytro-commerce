@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BRAND_FONTS } from '../../common/brand';
-import { HEX_COLOR_PATTERN } from '../../common/limits';
+import { HEX_COLOR_MAX_LENGTH, HEX_COLOR_PATTERN } from '../../common/limits';
 import { BrandCorners, BrandFont, BrandSpacing } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { catalogueIdSchema } from '../catalogue/catalogue-common';
@@ -9,6 +9,7 @@ const colorField = z
   .string()
   .trim()
   .regex(HEX_COLOR_PATTERN)
+  .max(HEX_COLOR_MAX_LENGTH)
   .transform((color) => color.toLowerCase());
 
 // PUT brand (BRN-02, BRN-03, BRN-07): the shop's own identity, saved whole -- its three colours, its heading and body

@@ -10,6 +10,16 @@ export interface AdTrackingStore {
     values: { tenantId: string; metaPixelId: string | null; metaCapiTokenEnc: Buffer | null },
   ): Promise<SelectAdTrackingSettings>;
   delete(tx: Transaction, tenantId: string): Promise<void>;
+  /** SEC-11 (Slice 9.7): one use of the shop's Conversions API token. */
+  recordUse(values: {
+    tenantId: string;
+    action: string;
+    orderId: string | null;
+    succeeded: boolean;
+    at: Date;
+  }): Promise<void>;
+  /** LIF-19's day-60 deletion only. */
+  deleteUses(tx: Transaction, tenantId: string): Promise<void>;
 }
 
 /** FED-01, FED-05: each shop's feed link, found by its token's hash before the shop is known. */

@@ -1,0 +1,2 @@
+export const MONITORING_DATABASE = Symbol('MONITORING_DATABASE');
+export const MONITORING_CLOCK = Symbol('MONITORING_CLOCK');

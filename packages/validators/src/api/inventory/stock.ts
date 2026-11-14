@@ -39,7 +39,7 @@ export const newBatchField = z.object({
 
 // INV-14, INV-23: serials as entered, one per unit. Whether each is an IMEI with its check digit, and whether it is
 // already held, depend on the product and the shop, so the server checks them and names the line that is wrong.
-const serialField = z
+export const serialField = z
   .string()
   .min(1)
   .max(SERIAL_MAX_LENGTH * 2);

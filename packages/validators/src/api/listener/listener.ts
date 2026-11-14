@@ -7,6 +7,7 @@ import {
   LISTENER_RECEIPT_PAGE_SIZE,
   LISTENER_RECENT_DEFAULT,
   LISTENER_RECENT_MAX,
+  LISTENER_REQUEST_MAX_BYTES,
   LISTENER_SENDER_MAX_LENGTH,
 } from '../../common/limits';
 import { LISTENER_APP_VERSION_PATTERN } from '../../common/listener-release';
@@ -37,7 +38,11 @@ export function compareAppVersions(a: string, b: string): number {
 }
 
 /** LSN-18: the minimum app version the operator sets (`listener_min_app_version`): numbers only. */
-export const appVersionField = z.string().trim().regex(APP_VERSION, 'Like 1.2.3.');
+export const appVersionField = z
+  .string()
+  .trim()
+  .regex(APP_VERSION, 'Like 1.2.3.')
+  .max(LISTENER_APP_VERSION_MAX_LENGTH);
 
 /**
  * LSN-18: the version a phone's app gives (`x-app-version`): numbers, or with one tag, as staging's build is
@@ -93,7 +98,9 @@ export const listenerUploadSchema = z
         z
           .object({
             sender: z.string().trim().min(1).max(LISTENER_SENDER_MAX_LENGTH),
-            text: z.string().min(1),
+            // SEC-12: no SMS is this long (255 parts at most), so a real message still reaches the upload's own size
+            // check, whose 413 the app skips past; a 400 here would hold up its queue.
+            text: z.string().min(1).max(LISTENER_REQUEST_MAX_BYTES),
             receivedAt: z.coerce.date(),
           })
           .strict(),

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { SelectAdTrackingSettings } from '@lytronix/db';
 import { AuditAction, type UpdateAdTrackingInput } from '@lytronix/validators';
 import { SECOND_MS } from '../../../common/time';
@@ -31,6 +31,7 @@ function viewOf(row: SelectAdTrackingSettings | null): AdTrackingView {
 @Injectable()
 export class AdTrackingService {
   private readonly pixels = new ExpiringCache<string | null>(PIXEL_KEPT_MS, PIXELS_KEPT);
+  private readonly useLogger = new Logger('MetaConversions');
 
   constructor(
     @Inject(AD_TRACKING_STORE) private readonly store: AdTrackingStore,
@@ -132,9 +133,32 @@ export class AdTrackingService {
     };
   }
 
-  /** LIF-19: the day-60 deletion. */
+  /**
+   * SEC-11 (Slice 9.7): a purchase sent to Meta with the shop's token, kept in its own log for the operator and a
+   * dispute. A log that can't be written is told, never failing the purchase that was sent.
+   */
+  async recordUse(tenantId: string, orderId: string, succeeded: boolean): Promise<void> {
+    try {
+      await this.store.recordUse({
+        tenantId,
+        action: 'purchase_sent',
+        orderId,
+        succeeded,
+        at: new Date(),
+      });
+    } catch (error) {
+      this.useLogger.warn(
+        `the use of tenant ${tenantId}'s token couldn't be logged: ${error instanceof Error ? error.name : 'error'}`,
+      );
+    }
+  }
+
+  /** LIF-19: the day-60 deletion, the token's uses with it. */
   async deleteAllForTenant(tenantId: string): Promise<void> {
-    await this.store.run((tx) => this.store.delete(tx, tenantId));
+    await this.store.run(async (tx) => {
+      await this.store.delete(tx, tenantId);
+      await this.store.deleteUses(tx, tenantId);
+    });
     this.pixels.delete(tenantId);
   }
 }

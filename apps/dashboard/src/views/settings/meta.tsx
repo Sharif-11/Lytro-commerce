@@ -138,7 +138,8 @@ export function MetaView(): React.JSX.Element {
                   label={t('adCapi')}
                   name="conversionsApiToken"
                   type="password"
-                  autoComplete="off"
+                  // SEC-08 (Slice 9.7): no browser fills or keeps the token.
+                  autoComplete="new-password"
                   placeholder="EAAG…"
                   value={token}
                   error={problems['conversionsApiToken']}

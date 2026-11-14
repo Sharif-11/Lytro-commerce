@@ -20,9 +20,46 @@
 	on_demand_tls {
 		ask http://localhost:8080/api/v1/internal/domains/ask
 	}
+
+	# MON-03 (Slice 9.6): every request's count and time by status code, for the error-rate alert, read by the monitor on
+	# the internal listener at :9180 below. No host label: shops' own domains would make one series each.
+	metrics
 }
 
 # --- Shared pieces (DEPLOYMENT.md §5, §6) ---
+
+# SEC-04, D9-22 (Slice 9.7): the security headers every host sends, set here once. HSTS for a year over lytro.app and
+# every subdomain of it (the owner's answer, 2026-11-13; not on the browsers' preload list yet); no type sniffed, no page
+# framed by another site, and a link's destination told the origin it left, at most. Deferred, so they win over any a
+# proxied app sets.
+(hsts) {
+	header >Strict-Transport-Security "max-age=31536000; includeSubDomains"
+}
+
+(no_sniff_no_frame) {
+	header >X-Content-Type-Options "nosniff"
+	header >X-Frame-Options "DENY"
+}
+
+(security_headers) {
+	import hsts
+	import no_sniff_no_frame
+	header >Referrer-Policy "strict-origin-when-cross-origin"
+}
+
+# The console and the API: a link out tells the next site nothing.
+(security_headers_private) {
+	import hsts
+	import no_sniff_no_frame
+	header >Referrer-Policy "no-referrer"
+}
+
+# A shop's own domain: HSTS without includeSubDomains, since its other subdomains are the shop's, not Lytro's.
+(security_headers_own_domain) {
+	header >Strict-Transport-Security "max-age=31536000"
+	import no_sniff_no_frame
+	header >Referrer-Policy "strict-origin-when-cross-origin"
+}
 
 # How Caddy reaches the API processes: round robin, each one's /health checked every few seconds, and a request whose
 # process is down (being replaced, D9-12) tried again on another for up to 10 seconds.
@@ -82,6 +119,26 @@
 	header X-Robots-Tag "noindex, nofollow"
 }
 
+# Slice 9.7: the dashboard's and the console's files as Caddy sends them. Each text file is compressed when the image
+# is built (deploy/static/compress.mjs), and the one a browser accepts is sent. A hashed file under /assets/ never
+# changes under its name, so it's kept a year; everything else (index.html, the service worker) is checked every time,
+# so a deploy reaches every browser at once.
+(spa_files) {
+	@hashed path /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	@shell not path /assets/*
+	header @shell Cache-Control "no-cache"
+	# Only a page falls back to the app: a hashed file that isn't there is a 404, never index.html kept a year.
+	@page {
+		not path /assets/*
+		not file
+	}
+	rewrite @page /index.html
+	file_server {
+		precompressed zstd gzip
+	}
+}
+
 # A static SPA build: no process, Caddy serves dist/ directly (§8), falling back to index.html for any
 # unmatched path so the client-side router takes over. Inside its own `handle`, so it only ever sees what /api/*
 # did not take: Caddy runs `try_files` (a rewrite) before any `handle`, so at the top level it rewrote every API
@@ -89,16 +146,14 @@
 (dashboard_spa) {
 	handle {
 		root * {$DASHBOARD_DIST_PATH:/srv/dashboard/dist}
-		try_files {path} /index.html
-		file_server
+		import spa_files
 	}
 }
 
 (operator_spa) {
 	handle {
 		root * {$OPERATOR_DIST_PATH:/srv/operator/dist}
-		try_files {path} /index.html
-		file_server
+		import spa_files
 	}
 }
 
@@ -121,20 +176,23 @@
 # Both addresses are the server's own settings, so one deployment file feeds the server and Caddy. No inline
 # script or style: a shop's theme sets its colours through the CSSOM, never a <style> element. No plugin, no
 # framing, no <base>. The Permissions-Policy keeps the camera for the dashboard's own IMEI scanning and turns
-# off what it never uses. apps/dashboard/e2e/csp.spec.ts reads this block and walks every screen under it.
+# off what it never uses. apps/dashboard/e2e/csp.spec.ts reads this block and walks every screen under it. Its errors
+# go to Sentry's ingest address (SENTRY_INGEST_ORIGIN in edge.env, OBS-03, Slice 9.6); unset, it adds nothing.
 (dashboard_csp) {
-	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' {$MEDIA_PUBLIC_BASE_URL}; media-src 'self' blob: {$MEDIA_PUBLIC_BASE_URL}; connect-src 'self' {$MEDIA_STORAGE_ENDPOINT}; manifest-src 'self'; worker-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' {$MEDIA_PUBLIC_BASE_URL}; media-src 'self' blob: {$MEDIA_PUBLIC_BASE_URL}; connect-src 'self' {$MEDIA_STORAGE_ENDPOINT} {$SENTRY_INGEST_ORIGIN}; manifest-src 'self'; worker-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 	header Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=()"
 }
 
 # lytro.app: the marketing site only (apps/website). www redirects to the apex.
 www.{$PLATFORM_DOMAIN:lytro.app} {
+	import security_headers
 	import {$ROBOTS:robots_allow}
 	redir https://{$PLATFORM_DOMAIN:lytro.app}{uri} permanent
 }
 
 # One website process: while it restarts in a deploy, a request waits for it (up to 10 seconds) instead of failing.
 {$PLATFORM_DOMAIN:lytro.app} {
+	import security_headers
 	import {$ROBOTS:robots_allow}
 	reverse_proxy {$WEBSITE_UPSTREAM:website:3003} {
 		lb_try_duration 10s
@@ -144,6 +202,7 @@ www.{$PLATFORM_DOMAIN:lytro.app} {
 # app.lytro.app: sign-up, sign-in, create-shop, the OAuth callback and every shop's dashboard at /<slug>
 # (apps/dashboard, TEN-31), under its own Content Security Policy. The session cookie is host-only here (TEN-29).
 app.{$PLATFORM_DOMAIN:lytro.app} {
+	import security_headers
 	import dashboard_csp
 	import {$ROBOTS:robots_allow}
 	import api_proxy
@@ -153,6 +212,7 @@ app.{$PLATFORM_DOMAIN:lytro.app} {
 # admin.lytro.app: the operator console (apps/operator, its own build, D3-12), under its own strict Content
 # Security Policy. The operator session cookie is host-only here (TEN-29).
 admin.{$PLATFORM_DOMAIN:lytro.app} {
+	import security_headers_private
 	import operator_csp
 	import {$ROBOTS:robots_allow}
 	import api_proxy
@@ -163,6 +223,7 @@ admin.{$PLATFORM_DOMAIN:lytro.app} {
 # Slice 5.8's part 2). The backend's PaymentPageHost turns every address on this host into one of the page's own routes,
 # so nothing else on the server can be reached from here. No wildcard below takes it: an exact host wins.
 pay.{$PLATFORM_DOMAIN:lytro.app} {
+	import hsts
 	import {$ROBOTS:robots_allow}
 	import server_proxy
 }
@@ -173,6 +234,7 @@ pay.{$PLATFORM_DOMAIN:lytro.app} {
 # decided in one place. No rewrite and no path rules here: the server doesn't serve /api/v1/... on this host (KNOWN-GAPS
 # §141).
 api.{$PLATFORM_DOMAIN:lytro.app} {
+	import security_headers_private
 	import {$ROBOTS:robots_allow}
 	import server_proxy
 }
@@ -181,6 +243,7 @@ api.{$PLATFORM_DOMAIN:lytro.app} {
 # (apps/storefront). No dashboard and no /api on a shop host (§5). Covers every tenant automatically; `app`,
 # `admin`, `api`, `pay` and `www` are reserved labels (TEN-26), so no shop can take them.
 *.{$PLATFORM_DOMAIN:lytro.app} {
+	import security_headers
 	import {$WILDCARD_TLS:wildcard_tls_dns}
 	import {$ROBOTS:robots_allow}
 	# storefront reads Host itself to resolve which tenant to render (SFT-01) — Caddy passes Host through
@@ -198,6 +261,7 @@ api.{$PLATFORM_DOMAIN:lytro.app} {
 # domain that is not active answers the storefront's own not-found (TEN-25); the storefront leads a domain's twin and
 # the shop's subdomain to the active domain with a 308 (Slice 13's read, points 2 and 3).
 https:// {
+	import security_headers_own_domain
 	tls {
 		on_demand
 	}
@@ -226,4 +290,9 @@ http://:8080 {
 			import server_balancing
 		}
 	}
+}
+
+# The monitor's view of every request (Slice 9.6, MON-03): never published, read inside the deployment's network only.
+http://:9180 {
+	metrics
 }

@@ -329,6 +329,11 @@ describeIfDatabase('the public API host (API-03 to API-05, API-08, API-14, API-2
     expect((await callApi('/v1/plans', key)).status).toBe(404);
     expect((await callApi('/api/v1/public/shop', key)).status).toBe(404);
     expect((await callApi('/shop', key)).status).toBe(404);
+    // OBS-01 (Slice 9.6): but for the outside uptime check's two health pages, called with no key; /health, which names
+    // the release, stays inside.
+    expect((await getJson(port, '/health/ready', { host: API_HOST })).status).toBe(200);
+    expect((await getJson(port, '/health/jobs', { host: API_HOST })).status).toBe(200);
+    expect((await getJson(port, '/health', { host: API_HOST })).status).toBe(404);
   });
 
   it('answers a preflight from a registered website, and refuses one from any other', async () => {

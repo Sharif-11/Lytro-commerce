@@ -249,6 +249,16 @@ describeIfDatabase('sign-up by phone, end to end', () => {
     );
     expect(noCsrf.status).toBe(403);
     expect(noCsrf.body).toMatchObject({ error: { code: 'forbidden' } });
+
+    // Slice 9.7: a token is its own session's, so another session's real token is refused too.
+    const other = await enter(texts.freshPhone());
+    const borrowed = await post(
+      '/shops',
+      { ownerName: 'Anon', shopName: 'Anon Shop' },
+      { cookie: entered.cookie, 'x-csrf-token': other.csrfToken },
+    );
+    expect(borrowed.status).toBe(403);
+    expect(borrowed.body).toMatchObject({ error: { code: 'forbidden' } });
   });
 
   it('locks the code after five wrong codes, even when the sixth is correct (AUTH-06)', async () => {

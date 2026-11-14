@@ -30,4 +30,22 @@ describe('the dashboard names shops after the domain it is served on', () => {
     expect(named.platformDomain).toBe('lytro.test');
     expect(named.siteUrl).toBe('https://site.test');
   });
+
+  it('names the server its errors come from by its address, and sends none without a Sentry address (OBS-03)', () => {
+    expect(new AppConfig(noSettings, 'app.lytro.app').environment).toBe('production');
+    expect(new AppConfig(noSettings, 'app.staging.lytro.app').environment).toBe('staging');
+    expect(new AppConfig(noSettings, 'localhost').environment).toBe('development');
+    expect(new AppConfig(noSettings, 'app.lytro.app').sentryDsn).toBeNull();
+    const built = new AppConfig(
+      {
+        VITE_SENTRY_DSN: 'https://public@sentry.example/2',
+        VITE_RELEASE: '854f8a0b',
+      } as ImportMetaEnv,
+      'app.lytro.app',
+    );
+    expect([built.sentryDsn, built.release]).toEqual([
+      'https://public@sentry.example/2',
+      '854f8a0b',
+    ]);
+  });
 });

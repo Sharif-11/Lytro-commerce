@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import sharp from 'sharp';
+import sharp, { type Sharp } from 'sharp';
 import { MediaRefused } from '../../../common/errors/media-refused';
 
 // STO-04: the long edge of the stored image and of its thumbnail, and the WebP quality of both.
@@ -71,7 +71,7 @@ export class ImageProcessor {
     }
   }
 
-  private async variant(image: sharp.Sharp, longEdge: number): Promise<ImageVariant> {
+  private async variant(image: Sharp, longEdge: number): Promise<ImageVariant> {
     const { data, info } = await image
       .resize({ width: longEdge, height: longEdge, fit: 'inside', withoutEnlargement: true })
       .webp({ quality: WEBP_QUALITY })

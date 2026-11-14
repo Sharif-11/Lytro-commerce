@@ -21,7 +21,7 @@ import { CourierNightTickWorker } from '../src/modules/shared/queue-workers/serv
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { FakeSteadfast, freshSteadfastKeys } from './support/fake-steadfast';
-import { cookieFrom, getJson, postJson, type HttpResult } from './support/http';
+import { cookieFrom, getJson, postJson, postToApiHost, type HttpResult } from './support/http';
 import { errorOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
@@ -453,5 +453,89 @@ describeIfDatabase("a shop's courier key log names the order (SEC-11, Slice 6.7)
       orderId: null,
       orderNumber: null,
     });
+  });
+});
+
+// Slice 9.7 (found in development, 2026-11-12): a courier's saved login or message pair that can no longer be opened (the
+// sealing key changed without a re-seal) shows as needing the login again, never as a failed list, as storefront keys
+// and catalogue feeds already do.
+describeIfDatabase('a courier login that can no longer be opened (Slice 9.7)', () => {
+  it('shows as refused with no credentials, makes a fresh message address, and turns an old one away', async () => {
+    const shop = await steadfastShop();
+    const before = (await shop.get('/couriers/connections/steadfast/address')).body as {
+      address: string;
+    };
+    await admin.query(
+      `UPDATE tenant.courier_connections SET credentials = decode('00', 'hex'), message_secrets = decode('00', 'hex')
+       WHERE tenant_id = $1 AND courier_key = 'steadfast'`,
+      [shop.tenantId],
+    );
+
+    const listed = await shop.get('/couriers/connections');
+    expect(listed.status, JSON.stringify(listed.body)).toBe(200);
+    const found = (listed.body as { connections: Record<string, unknown>[] }).connections.find(
+      (each) => each['courierKey'] === 'steadfast',
+    );
+    expect(found).toMatchObject({
+      hasCredentials: false,
+      state: 'login_refused',
+      pickupStore: null,
+    });
+
+    // A message to the old address is an address nobody knows now, not a server fault.
+    const old = await postToApiHost(port, before.address, { consignment_id: 1 });
+    expect(old.status, JSON.stringify(old.body)).toBe(404);
+
+    const after = await shop.get('/couriers/connections/steadfast/address');
+    expect(after.status, JSON.stringify(after.body)).toBe(200);
+    expect((after.body as { address: string }).address).not.toBe(before.address);
+  });
+});
+
+// SEC-11 (Slice 9.7): a shop's every use of its stored credentials, couriers', gateways' and Meta's, as the operator's
+// CSV over whole Dhaka days: this shop's only, never a credential.
+describeIfDatabase("a shop's credential uses as a CSV (Slice 9.7)", () => {
+  it('lists its courier, gateway and Meta uses of the period, and none of another shop', async () => {
+    const shop = await steadfastShop();
+    const other = await steadfastShop();
+    await admin.query(
+      `INSERT INTO tenant.courier_credential_uses (tenant_id, courier_key, action, succeeded) VALUES ($1, 'steadfast', 'book', true)`,
+      [shop.tenantId],
+    );
+    await admin.query(
+      `INSERT INTO tenant.gateway_credential_uses (tenant_id, method, action, account_id, succeeded)
+       VALUES ($1, 'bkash', 'grant_token', $2, false)`,
+      [shop.tenantId, randomUUID()],
+    );
+    await admin.query(
+      `INSERT INTO tenant.ad_tracking_credential_uses (tenant_id, action, succeeded) VALUES ($1, 'purchase_sent', true), ($2, 'purchase_sent', true)`,
+      [shop.tenantId, other.tenantId],
+    );
+    const today = new Date(Date.now() + 6 * 60 * 60_000).toISOString().slice(0, 10);
+    const headers = await operatorHeaders();
+    const answer = await fetch(
+      `http://127.0.0.1:${String(port)}/api/v1/operator/tenants/${shop.tenantId}/credential-uses.csv?dateFrom=${today}&dateTo=${today}`,
+      { headers },
+    );
+    expect(answer.status).toBe(200);
+    expect(answer.headers.get('content-type')).toContain('text/csv');
+    const lines = (await answer.text()).trim().split('\n');
+    expect(lines[0]).toBe('time,credential,provider,action,reference,result');
+    const kinds = lines
+      .slice(1)
+      .map((line) => line.split(',').slice(1, 3).join(' '))
+      .sort();
+    // Connecting Steadfast checked its keys: a courier use of its own, besides the one written here.
+    expect(kinds.filter((kind) => kind === 'gateway bkash')).toHaveLength(1);
+    expect(kinds.filter((kind) => kind === 'meta meta')).toHaveLength(1);
+    expect(kinds.filter((kind) => kind === 'courier steadfast').length).toBeGreaterThanOrEqual(1);
+    expect(lines.some((line) => line.endsWith(',failed'))).toBe(true);
+
+    // A period that ends before it starts is refused.
+    const backwards = await fetch(
+      `http://127.0.0.1:${String(port)}/api/v1/operator/tenants/${shop.tenantId}/credential-uses.csv?dateFrom=${today}&dateTo=2020-01-01`,
+      { headers },
+    );
+    expect(backwards.status).toBe(400);
   });
 });

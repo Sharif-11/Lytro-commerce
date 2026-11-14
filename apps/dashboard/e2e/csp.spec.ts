@@ -36,7 +36,9 @@ function policyHeaders(): Record<string, string> {
       name.toLowerCase(),
       value
         .replaceAll('{$MEDIA_PUBLIC_BASE_URL}', MEDIA)
-        .replaceAll('{$MEDIA_STORAGE_ENDPOINT}', STORAGE),
+        .replaceAll('{$MEDIA_STORAGE_ENDPOINT}', STORAGE)
+        // Unset, as Caddy leaves it where no Sentry project is named.
+        .replaceAll(' {$SENTRY_INGEST_ORIGIN}', ''),
     ]),
   );
 }
@@ -132,11 +134,13 @@ test('the Caddyfile holds the dashboard’s policy, every address filled in', ()
     'camera=(self), microphone=(), geolocation=(), payment=()',
   );
   expect(Object.values(headers).join(' ')).not.toContain('{$');
-  // The app's host imports it. Every host is named from PLATFORM_DOMAIN, lytro.app when unset (KNOWN-GAPS §141).
+  // The app's host imports it, with every host's security headers (Slice 9.7). Every host is named from PLATFORM_DOMAIN,
+  // lytro.app when unset (KNOWN-GAPS §141).
   const caddyfile = readFileSync(root('../../deploy/Caddyfile'), 'utf8').replaceAll('\r\n', '\n');
-  expect(caddyfile.includes('\napp.{$PLATFORM_DOMAIN:lytro.app} {\n\timport dashboard_csp\n')).toBe(
-    true,
-  );
+  const app =
+    /\napp\.\{\$PLATFORM_DOMAIN:lytro\.app\} \{\n([\s\S]*?)\n\}/.exec(caddyfile)?.[1] ?? '';
+  expect(app).toContain('\timport dashboard_csp\n');
+  expect(app).toContain('\timport security_headers\n');
 });
 
 test.describe('every screen under the policy', () => {

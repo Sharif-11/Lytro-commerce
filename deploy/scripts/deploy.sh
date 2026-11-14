@@ -9,7 +9,7 @@
 #   2. the database, Redis and the pooler up        the next is touched, so one API process always answers
 #   3. a dump of the database                    6. the dashboard's and console's files, then the edge
 #   4. the roles, migrations, pg-boss's schema   7. the website and the storefront
-#      and the nightly backups' service
+#      and the nightly backups' service         8. the monitor, once monitoring.env names the Grafana account
 # LYTRO_SKIP_PULL=1 uses images already on this machine (CI's rehearsal builds them there).
 # Migrations only add, so the old release keeps working beside the new one while it rolls (ENGINEERING-STANDARDS §7).
 # Rolling back is deploying the previous release again.
@@ -38,9 +38,25 @@ if [ -n "$(backup_setting BACKUP_R2_ENDPOINT)" ] && [ -n "$(backup_setting BACKU
   PG_ARCHIVE_MODE=on
 fi
 
+# The monitor (Slice 9.6) runs once monitoring.env names the Grafana account, and not before.
+monitor_setting() { sed -n "s/^$1=//p" "$LYTRO_HOME/env/monitoring.env" 2> /dev/null | head -n 1; }
+MONITOR=off
+if [ -n "$(monitor_setting GRAFANA_METRICS_URL)" ] && [ -n "$(monitor_setting GRAFANA_METRICS_USER)" ] &&
+  [ -n "$(monitor_setting GRAFANA_CLOUD_TOKEN)" ]; then
+  MONITOR=on
+fi
+
 export LYTRO_HOME RELEASE EDGE_TAG PGBOUNCER_TAG DATABASE_TAG PG_ARCHIVE_MODE
 
 say() { printf '[deploy %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+
+# SEC-10, D9-8 (Slice 9.7): the sealing key sits in its own root-only file, which compose hands to the server's processes.
+# A server set up before keeps it in server.env until make-env.sh is run again, which moves it: stop here, before
+# anything is touched, rather than half-way.
+if [ ! -e "$LYTRO_HOME/env/data-encryption.key" ]; then
+  say "no $LYTRO_HOME/env/data-encryption.key: run deploy/scripts/make-env.sh again (it moves the sealing key there)"
+  exit 1
+fi
 
 # This server's settings (REGISTRY and its memory sizes), then the release being deployed.
 dc() {
@@ -110,7 +126,7 @@ roll_server() {
   say "$service on $RELEASE, ready"
 }
 
-say "release $RELEASE, edge $EDGE_TAG, pooler $PGBOUNCER_TAG, database $DATABASE_TAG, archive $PG_ARCHIVE_MODE"
+say "release $RELEASE, edge $EDGE_TAG, pooler $PGBOUNCER_TAG, database $DATABASE_TAG, archive $PG_ARCHIVE_MODE, monitor $MONITOR"
 
 if [ -n "${LYTRO_SKIP_PULL:-}" ]; then
   say '1. using the images on this machine'
@@ -118,6 +134,7 @@ else
   say '1. pulling images'
   dc pull --quiet edge pgbouncer postgres backup api-1 worker website storefront
   dc --profile tools pull --quiet migrate static
+  if [ "$MONITOR" = on ]; then dc --profile monitoring pull --quiet monitor; fi
 fi
 
 say '2. database, Redis and the pooler'
@@ -147,9 +164,10 @@ say "dump: $dump ($(du -h "$dump" | cut -f1))"
 ls -1t "$LYTRO_HOME"/backups/pre-deploy/*.dump | tail -n +$((KEEP_DUMPS + 1)) | xargs -r rm -f
 
 say '4. roles and migrations'
-# The roles the server connects as, made if missing (deploy/postgres/10-app-role.sh): a database made before a release
-# that added one (the read role, Slice 9.2) gets it here, as an empty one gets it when it first starts.
-dc exec -T postgres sh /docker-entrypoint-initdb.d/10-app-role.sh
+# Every first-start script again (deploy/postgres), each safe to rerun: a database made before a release that added a
+# role (the read role, Slice 9.2) or an extension (pg_stat_statements, Slice 9.6) gets it here, as an empty one does
+# when it first starts.
+dc exec -T postgres sh -c 'for script in /docker-entrypoint-initdb.d/*.sh; do sh "$script" || exit 1; done'
 dc --profile tools run --rm migrate
 # The nightly backups (Slice 9.3): replaced when its image changed, waiting for 05:30 Dhaka otherwise.
 dc up -d --no-deps backup
@@ -169,6 +187,17 @@ say '7. the website and the storefront'
 dc up -d --no-deps website storefront
 wait_healthy website
 wait_healthy storefront
+
+# Its config copied where no deploy deletes it (compose.yml), and the monitor replaced when that copy changed.
+if [ "$MONITOR" = on ]; then
+  say '8. the monitor'
+  install -d -m 755 "$LYTRO_HOME/state/monitor"
+  install -m 644 "$DEPLOY_DIR/alloy/config.alloy" "$LYTRO_HOME/state/monitor/config.alloy"
+  MONITOR_CONFIG_SHA="$(sha256sum "$LYTRO_HOME/state/monitor/config.alloy" | cut -c1-16)"
+  export MONITOR_CONFIG_SHA
+  dc --profile monitoring up -d --no-deps monitor
+  wait_healthy monitor 60
+fi
 
 # What this server runs now, for anyone running `docker compose` here by hand (deploy/README.md).
 printf 'RELEASE=%s\nEDGE_TAG=%s\nPGBOUNCER_TAG=%s\nDATABASE_TAG=%s\n' "$RELEASE" "$EDGE_TAG" "$PGBOUNCER_TAG" \

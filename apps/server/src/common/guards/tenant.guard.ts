@@ -6,6 +6,7 @@ import { SKIP_TENANT } from '../decorators/skip-tenant';
 import { SKIP_EDGE } from '../decorators/skip-edge';
 import { DASHBOARD, type DashboardOptions } from '../decorators/dashboard';
 import { PUBLIC_API } from '../decorators/public-api';
+import { UPTIME_CHECK } from '../decorators/uptime-check';
 import type { CachedTenant } from '../../modules/tenancy/types/cached-tenant';
 import { HostClassifier } from '../../modules/tenancy/services/host-classifier';
 import { TenantResolver } from '../../modules/tenancy/services/tenant-resolver.service';
@@ -48,6 +49,10 @@ export class TenantGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
+    const uptimeCheck = this.reflector.getAllAndOverride<boolean | undefined>(UPTIME_CHECK, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     const request = context.switchToHttp().getRequest<TenantRequest>();
 
     if (
@@ -58,12 +63,14 @@ export class TenantGuard implements CanActivate {
       throw new ApiError('forbidden', 'RequestNotAccepted');
     }
     // API-14, TEN-02: a public API route answers only on the API host at /v1/..., and its own guard takes the shop
-    // from the key. Nothing else answers on the API host: it takes key authentication only.
+    // from the key. Nothing else answers on the API host, it takes key authentication only, but for the two health pages
+    // the outside uptime check calls (OBS-01, Slice 9.6).
     if (publicApi) {
       if (request.publicApi !== true) throw new ApiError('not_found', 'PageNotFound');
       return true;
     }
     if (this.hosts.classify(headerValue(request.headers.host)).kind === 'api') {
+      if (uptimeCheck) return true;
       throw new ApiError('not_found', 'PageNotFound');
     }
     if (skip || dashboard) return true;

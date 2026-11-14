@@ -6,7 +6,8 @@
 #   account's address> ROBOTS=robots_noindex bash make-env.sh
 #
 # It makes every secret Lytro makes itself (the edge secret, the storefront's, the sign-in codes', the sealing key, both
-# database passwords, the push keys) and writes each where it belongs, the same value everywhere it must match. What
+# database passwords, the push keys) and writes each where it belongs, the same value everywhere it must match. The
+# sealing key goes in a file of its own, root's alone (0600, SEC-10). What
 # only an outside service can give is left as a commented line to fill in (deploy/README.md lists them). It never
 # overwrites a file that exists, so running it twice changes nothing; delete a file to make it again.
 #
@@ -52,6 +53,8 @@ APP_PASSWORD="$(existing postgres.env LYTRO_APP_DB_PASSWORD)"
 APP_PASSWORD="${APP_PASSWORD:-$(secret 24)}"
 READ_PASSWORD="$(existing postgres.env LYTRO_READ_DB_PASSWORD)"
 READ_PASSWORD="${READ_PASSWORD:-$(secret 24)}"
+MONITOR_PASSWORD="$(existing postgres.env LYTRO_MONITOR_DB_PASSWORD)"
+MONITOR_PASSWORD="${MONITOR_PASSWORD:-$(secret 24)}"
 REDIS_PASSWORD="$(existing redis.env REDIS_PASSWORD)"
 REDIS_PASSWORD="${REDIS_PASSWORD:-$(secret 24)}"
 
@@ -84,8 +87,10 @@ POSTGRES_PASSWORD=$OWNER_PASSWORD
 POSTGRES_DB=lytronix
 LYTRO_APP_DB_PASSWORD=$APP_PASSWORD
 LYTRO_READ_DB_PASSWORD=$READ_PASSWORD
+LYTRO_MONITOR_DB_PASSWORD=$MONITOR_PASSWORD
 EOF
 add_missing postgres.env LYTRO_READ_DB_PASSWORD "$READ_PASSWORD"
+add_missing postgres.env LYTRO_MONITOR_DB_PASSWORD "$MONITOR_PASSWORD"
 
 write migrate.env <<EOF
 # The schema owner: migrations and pg-boss's schema (deploy/compose.yml's migrate step).
@@ -110,6 +115,20 @@ EOF
 # The shared Redis's password (Slice 9.4, RED-01); the server reaches it as REDIS_URL (server.env).
 write redis.env <<EOF
 REDIS_PASSWORD=$REDIS_PASSWORD
+EOF
+
+# The monitor's (Slice 9.6, D9-3, deploy/alloy): it reads the database's figures as a pg_monitor role
+# (deploy/postgres/30-monitor-role.sh) and sends them, the server's, Redis's and the edge's to Grafana Cloud. It starts
+# on the first deploy after the three Grafana lines are filled in (deploy/README.md "Monitoring").
+write monitoring.env <<EOF
+MONITOR_DATABASE_URL=postgres://lytronix_monitor:$MONITOR_PASSWORD@postgres:5432/lytronix?sslmode=disable
+SERVER_NAME=$PLATFORM_DOMAIN
+
+# From Grafana Cloud, the stack's Prometheus details: the remote write address, its user (a number), and an access
+# policy token that may write metrics and rules.
+GRAFANA_METRICS_URL=
+GRAFANA_METRICS_USER=
+GRAFANA_CLOUD_TOKEN=
 EOF
 
 # The backups' (Slice 9.3, D9-18, DAT-28): only the database and backup containers read it, never the app's. The
@@ -140,10 +159,30 @@ add_missing backup.env BACKUP_PITR_ENCRYPTION_KEY "$ARCHIVE_KEY"
 add_missing backup.env BACKUP_DUMP_RECIPIENT ''
 
 vapid
+
+# SEC-10, D9-8 (Slice 9.7): the sealing key in a file only root reads, which compose hands to the server's processes
+# (deploy/server/entrypoint.sh). Copy it into a password manager. A server set up before kept it in server.env: it moves
+# here unchanged, and leaves server.env.
+KEY_FILE="$ENV_DIR/data-encryption.key"
+if [ ! -e "$KEY_FILE" ]; then
+  key="$(existing server.env DATA_ENCRYPTION_KEY)"
+  (
+    umask 077
+    printf '%s\n' "${key:-$(openssl rand -base64 32)}" > "$KEY_FILE"
+  )
+  chown root:root "$KEY_FILE"
+  chmod 600 "$KEY_FILE"
+  echo "wrote data-encryption.key"
+fi
+if [ -e "$ENV_DIR/server.env" ] && grep -q '^DATA_ENCRYPTION_KEY=' "$ENV_DIR/server.env"; then
+  sed -i '/^DATA_ENCRYPTION_KEY=/d' "$ENV_DIR/server.env"
+  echo "moved DATA_ENCRYPTION_KEY out of server.env"
+fi
+
 write server.env <<EOF
 # The server's settings (deploy/README.md, step 4). Three groups: made here, required, and optional.
 
-# Made by make-env.sh on this server: leave them as they are. Copy DATA_ENCRYPTION_KEY into a password manager.
+# Made by make-env.sh on this server: leave them as they are. The sealing key isn't here: it is data-encryption.key.
 NODE_ENV=production
 PLATFORM_DOMAIN=$PLATFORM_DOMAIN
 PLATFORM_ADDRESSES=$PLATFORM_ADDRESSES
@@ -152,7 +191,6 @@ REDIS_URL=redis://:$REDIS_PASSWORD@redis:6379
 TRUSTED_EDGE_SECRET=$EDGE_SECRET
 STOREFRONT_SECRET=$STOREFRONT_SECRET
 OTP_SECRET=$(secret 32)
-DATA_ENCRYPTION_KEY=$(openssl rand -base64 32)
 OAUTH_CALLBACK_BASE=https://app.$PLATFORM_DOMAIN
 CLIENT_IP_HEADER=x-forwarded-for
 CLIENT_IP_FORMAT=list
@@ -210,6 +248,13 @@ GEMINI_API_KEY=
 # Where the payment listener app downloads from, for the dashboard's download button (built-in:
 # https://download.lytro.app). Set it as website.env's is.
 # LISTENER_DOWNLOAD_URL=
+# DAT-55 (Slice 9.6): what a second server would cost a month, in taka; the operators are told when the plans bring in
+# over 4 times it. Unset, only the paying shops' count (30) tells them.
+# SECOND_SERVER_MONTHLY_TAKA=
+# OBS-03 (Slice 9.6): the server's errors to Sentry (its project's DSN); unset, none are sent. The environment names this
+# server in Sentry: staging or production.
+# SENTRY_DSN=
+# SENTRY_ENVIRONMENT=production
 
 # Tuning: the built-in values are right; listed so nothing is hidden. Unset means the built-in value.
 # DATABASE_POOL_MAX=5
@@ -221,8 +266,8 @@ GEMINI_API_KEY=
 # TRIAL_LIMIT_PER_IP=
 # TRIAL_LIMIT_WINDOW_DAYS=
 
-# Only while changing a key (RUNBOOKS): the old sealing key, and the edge secret coming in.
-# DATA_ENCRYPTION_PREVIOUS_KEY=
+# Only while changing the edge secret (RUNBOOKS): the one coming in. The old sealing key, while changing that, is
+# data-encryption.key's second line (RUNBOOKS §3).
 # TRUSTED_EDGE_SECRET_NEXT=
 EOF
 add_missing server.env REDIS_URL "redis://:$REDIS_PASSWORD@redis:6379"
@@ -266,4 +311,8 @@ CLOUDFLARE_DNS_API_TOKEN=
 # With media only: the same two addresses as server.env's, for the dashboard's and console's Content Security Policy.
 # MEDIA_PUBLIC_BASE_URL=
 # MEDIA_STORAGE_ENDPOINT=
+
+# With the dashboard's errors going to Sentry (OBS-03, the repository's DASHBOARD_SENTRY_DSN variable): its ingest
+# address, the DSN's https://<host> part, for the dashboard's Content Security Policy.
+# SENTRY_INGEST_ORIGIN=
 EOF

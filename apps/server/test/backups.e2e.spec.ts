@@ -136,7 +136,7 @@ describeIfBackups('backups and restores (Slice 9.3)', () => {
 
   it(
     'takes a night’s backups, and the dump restores with every table’s rows as its snapshot counted them',
-    () => {
+    async () => {
       const night = docker([
         'run',
         '--rm',
@@ -158,6 +158,11 @@ describeIfBackups('backups and restores (Slice 9.3)', () => {
       expect(night.status, night.out).toBe(0);
       expect(night.out).toMatch(/uploaded nightly\/\d{4}\/\d{2}\/\d{8}T\d{6}Z\.dump\.age/);
       expect(night.out).toMatch(/made base_/);
+      // OBS-02, DAT-27 (Slice 9.6): each backup's heartbeat, for the jobs' check.
+      const beats = await admin.query<{ name: string }>(
+        `SELECT name FROM control.job_heartbeats WHERE name LIKE 'backup:%' AND finished_at > now() - interval '1 hour' ORDER BY name`,
+      );
+      expect(beats.rows.map((row) => row.name)).toEqual(['backup:base', 'backup:dump']);
 
       const drill = inImage(
         ['lytro-restore-dump', 'latest'],
