@@ -154,6 +154,22 @@ if [ -n "$database_before" ] && [ "$(container_of postgres)" != "$database_befor
   dc restart pgbouncer
   wait_healthy pgbouncer 60
 fi
+# Archiving proven, not only configured (2026-11-14): staging's archive key could read its bucket but not write to it,
+# every file failed, and the write-ahead log PostgreSQL kept filled the disk with nobody told. With archiving on, the
+# database must send a file within three minutes; if it can't, archiving goes off again, so nothing piles up, and the
+# deploy stops here, naming the store's error code, before the dump or anything after it.
+if [ "$PG_ARCHIVE_MODE" = on ] && ! dc exec -T postgres lytro-archive-check; then
+  codes="$(dc logs --since 15m postgres 2>&1 |
+    grep -oE '\b(AccessDenied|InvalidAccessKeyId|SignatureDoesNotMatch|NoSuchBucket|RequestTimeTooSkewed|ExpiredToken)\b|status code: [0-9]{3}' |
+    sort -u | tr '\n' ' ' || true)"
+  say "the archive can't be written (${codes:-no error code in the log}): turning archiving off again"
+  PG_ARCHIVE_MODE=off
+  dc up -d --wait postgres
+  dc restart pgbouncer
+  wait_healthy pgbouncer 60
+  say "fix backup.env's archive key: it must be able to write to the $(backup_setting BACKUP_PITR_BUCKET) bucket. Then deploy again."
+  exit 1
+fi
 
 say '3. dumping the database'
 mkdir -p "$LYTRO_HOME/backups/pre-deploy"

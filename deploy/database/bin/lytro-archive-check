@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Proves the write-ahead-log archive works on this server, run by deploy.sh in the database container each time it
+# deploys with archiving on (2026-11-14). Staging's archive key could read its bucket but not write to it: every file
+# failed, PostgreSQL kept each one, and 18 GB of write-ahead log filled the disk with nobody told.
+#
+# It closes the current write-ahead-log file and waits for the archiver to send it. It exits 0 once a file is archived,
+# and 1 when attempts keep failing with nothing archived, or when nothing is archived within LYTRO_ARCHIVE_CHECK_SECONDS
+# (180 by default). deploy.sh turns archiving off again on 1. It prints counts, file names and times only: the store's
+# own error text stays in this container's log.
+set -euo pipefail
+. lytro-pg-env
+
+limit="${LYTRO_ARCHIVE_CHECK_SECONDS:-180}"
+# Three failed tries in a row is what PostgreSQL makes before it waits a minute to try that file again.
+failures_allowed=3
+
+say() { printf 'archive check: %s\n' "$*"; }
+query() { psql -X -qAt -v ON_ERROR_STOP=1 -c "$1"; }
+counts() { query 'SELECT archived_count, failed_count FROM pg_stat_archiver' | tr '|' ' '; }
+
+if [ "$(query 'SHOW archive_mode')" != on ]; then
+  say 'archive_mode is off: nothing to check'
+  exit 1
+fi
+
+read -r archived_before failed_before <<< "$(counts)"
+# A checkpoint writes to the log, so there is always something for the switch to close and send.
+query 'CHECKPOINT'
+query 'SELECT pg_switch_wal()' > /dev/null
+
+waited=0
+while [ "$waited" -lt "$limit" ]; do
+  sleep 2
+  waited=$((waited + 2))
+  read -r archived failed <<< "$(counts)"
+  if [ "$archived" -gt "$archived_before" ]; then
+    say "working: $((archived - archived_before)) file(s) sent in ${waited}s"
+    exit 0
+  fi
+  if [ $((failed - failed_before)) -ge "$failures_allowed" ]; then
+    say "failing: $((failed - failed_before)) attempts failed and nothing was sent in ${waited}s"
+    say "last failed: $(query "SELECT coalesce(last_failed_wal, '-') || ' at ' || coalesce(last_failed_time::text, '-') FROM pg_stat_archiver")"
+    exit 1
+  fi
+done
+say "nothing was sent in ${limit}s"
+exit 1
