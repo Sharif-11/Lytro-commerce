@@ -54,7 +54,7 @@ Then, back on the server: `bash /opt/lytro/state/current/load/run/disarm.sh`. Th
 
 ## The report
 
-`docs/drills/load-test-<server>-<day>.md`:
+`docs/drills/<yyyy-mm-dd>-load-<server>.md` (the drills' own naming, `docs/drills/README.md`):
 
 - DAT-32's checklist of what was in place: the PostgreSQL memory settings, two API processes and one worker, the pooler,
   pools of at most 5, and no export or migration running;
