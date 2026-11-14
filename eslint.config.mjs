@@ -172,6 +172,19 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
   },
   {
+    // Phase 9 Slice 9.10: the load test's scripts run in k6, not Node, which gives each script these.
+    files: ['deploy/load/k6/**/*.js'],
+    languageOptions: {
+      globals: {
+        __ENV: 'readonly',
+        __VU: 'readonly',
+        __ITER: 'readonly',
+        open: 'readonly',
+        console: 'readonly',
+      },
+    },
+  },
+  {
     // CODING-CONVENTIONS.md §1: applications never import the database package except through the server; nor
     // do the packages they share.
     files: [
