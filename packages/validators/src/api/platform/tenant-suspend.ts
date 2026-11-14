@@ -1,8 +1,10 @@
 import { z } from 'zod';
+import { OPERATOR_REASON_MAX_LENGTH } from '../../common/limits';
+import { textField } from '../../common/text';
 
 // POST /operator/tenants/:id/suspend (LIF-24): an operator's cause, recorded with the suspension.
 export const suspendTenantSchema = z.object({
-  reason: z.string().trim().min(1, 'A reason is required.'),
+  reason: textField(OPERATOR_REASON_MAX_LENGTH),
 });
 export type SuspendTenantInput = z.infer<typeof suspendTenantSchema>;
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PAGE_CURSOR_MAX_LENGTH } from '../../common/limits';
 import { bdMobileNumber } from '../../common/phone';
 import { TenantState } from '../../db/enums';
 
@@ -32,12 +33,12 @@ export function phoneSearchOf(query: string): PhoneSearch | null {
 // GET /operator/tenants (ADM-02, D8-7): the operator's shop list, searched by shop name, address or the owner's phone,
 // filtered by state and plan, sorted, in keyset pages (the same discipline listActivitySchema already follows).
 export const searchTenantsSchema = z.object({
-  query: z.string().trim().min(1).optional(),
+  query: z.string().trim().min(1).max(100).optional(),
   // Pay-as-you-go is a state, so this filter also finds those shops apart (PYG-13).
   state: z.nativeEnum(TenantState).optional(),
   planId: z.string().uuid().optional(),
   sort: z.nativeEnum(TenantSort).default(TenantSort.Newest),
-  cursor: z.string().min(1).optional(),
+  cursor: z.string().min(1).max(PAGE_CURSOR_MAX_LENGTH).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 export type SearchTenantsQuery = z.infer<typeof searchTenantsSchema>;

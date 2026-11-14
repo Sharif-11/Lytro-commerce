@@ -1,7 +1,11 @@
 import { z } from 'zod';
 import { emailField } from '../auth/auth-code';
 import { phoneField } from '../identity/phone-signup/phone-signup-common';
-import { BUSINESS_ADDRESS_MAX_LENGTH, NAME_MAX_LENGTH } from '../../common/limits';
+import {
+  BUSINESS_ADDRESS_MAX_LENGTH,
+  MONEY_TEXT_MAX_LENGTH,
+  NAME_MAX_LENGTH,
+} from '../../common/limits';
 import { nonNegativeMoneyField } from '../../common/money';
 import { PaymentPolicy } from '../../db/enums';
 
@@ -13,14 +17,14 @@ import { PaymentPolicy } from '../../db/enums';
 // "the shop's own settings" API shape -- the service layer hides that split, not the request/response shape.
 export const shopSettingsSchema = z.object({
   // TEN-19: the shop's name, which the dashboard, the tab title and new installs follow; the address never changes.
-  shopName: z.string(),
-  contactPhone: z.string().nullable(),
-  contactEmail: z.string().nullable(),
-  businessAddress: z.string().nullable(),
-  extraDeliveryChargePerKg: z.string(),
+  shopName: z.string().max(NAME_MAX_LENGTH),
+  contactPhone: z.string().max(30).nullable(),
+  contactEmail: z.string().max(254).nullable(),
+  businessAddress: z.string().max(BUSINESS_ADDRESS_MAX_LENGTH).nullable(),
+  extraDeliveryChargePerKg: z.string().max(MONEY_TEXT_MAX_LENGTH),
   // PRD-08: what a product with no payment policy of its own follows.
   defaultPaymentPolicy: z.nativeEnum(PaymentPolicy),
-  defaultAdvanceAmount: z.string().nullable(),
+  defaultAdvanceAmount: z.string().max(MONEY_TEXT_MAX_LENGTH).nullable(),
   // SFT-16: the shared storefront is on.
   storefrontEnabled: z.boolean(),
 });

@@ -80,9 +80,9 @@ It writes `/opt/lytro/env/*.env` with every secret Lytro makes itself, and never
 setting its app reads, in three groups: made by the script (leave them), **required** (empty: fill each in), and
 optional (commented, with where each comes from: remove the `#` to turn one on). Fill in the required ones with
 `sudo nano /opt/lytro/env/server.env` (BulkSMSBD's key and sender ID, Resend's key and its webhook's secret, Gemini's
-key) and `sudo nano /opt/lytro/env/edge.env` (the Cloudflare token). Copy `DATA_ENCRYPTION_KEY` from `server.env` into
-your password manager: without it, the couriers' and wallets' saved logins can't be read back (RUNBOOKS "The
-credential sealing key").
+key) and `sudo nano /opt/lytro/env/edge.env` (the Cloudflare token). The sealing key is in
+`/opt/lytro/env/data-encryption.key`, root's alone: copy it into your password manager once (a break-glass read, so
+note it in RUNBOOKS §3's record). Without it, the couriers' and wallets' saved logins can't be read back.
 
 For production, use `PLATFORM_DOMAIN=lytro.app`, leave out `ROBOTS`, and add this server's memory sizes to
 `/opt/lytro/settings.env` (the names are in `compose.yml`).

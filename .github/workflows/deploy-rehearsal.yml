@@ -135,6 +135,36 @@ jobs:
       - name: Every host answers
         run: CHECK_ADDRESS=127.0.0.1 CHECK_INSECURE=1 bash deploy/scripts/outside-check.sh localhost
 
+      # Slice 9.7 (SEC-10, D9-8): the sealing key in its own file, root's alone, never in server.env; the API process,
+      # which needs it to start in production, runs as node (uid 1000), and node can't read the file.
+      - name: The sealing key is root's alone
+        run: |
+          test "$(sudo stat -c '%U:%G %a' "$LYTRO_HOME/env/data-encryption.key")" = 'root:root 600'
+          if sudo grep -q '^DATA_ENCRYPTION_KEY=' "$LYTRO_HOME/env/server.env"; then
+            echo 'the key is still in server.env'; exit 1
+          fi
+          # docker top needs the pid column in what it asks ps for.
+          sudo docker top lytro-api-1-1 -o pid,uid,args | tee top.txt
+          grep 'node dist/main.js' top.txt | grep -v docker-init | grep -E '^ *[0-9]+ +1000 '
+          if sudo docker exec -u node lytro-api-1-1 cat /run/secrets/data_encryption_key > /dev/null 2>&1; then
+            echo 'the server user can read the key file'; exit 1
+          fi
+
+      # A server set up before Slice 9.7 kept the key in server.env: running make-env.sh again moves it, unchanged.
+      - name: An older server's key moves to its own file
+        run: |
+          key="$(sudo cat "$LYTRO_HOME/env/data-encryption.key")"
+          sudo rm "$LYTRO_HOME/env/data-encryption.key"
+          echo "DATA_ENCRYPTION_KEY=$key" | sudo tee -a "$LYTRO_HOME/env/server.env" > /dev/null
+          sudo LYTRO_HOME="$LYTRO_HOME" PLATFORM_DOMAIN=localhost PLATFORM_ADDRESSES=127.0.0.1 \
+            ACME_EMAIL=rehearsal@example.com ROBOTS=robots_noindex bash deploy/scripts/make-env.sh | tee make-env.log
+          grep 'moved DATA_ENCRYPTION_KEY out of server.env' make-env.log
+          test "$(sudo cat "$LYTRO_HOME/env/data-encryption.key")" = "$key"
+          test "$(sudo stat -c '%U:%G %a' "$LYTRO_HOME/env/data-encryption.key")" = 'root:root 600'
+          if sudo grep -q '^DATA_ENCRYPTION_KEY=' "$LYTRO_HOME/env/server.env"; then
+            echo 'the key is still in server.env'; exit 1
+          fi
+
       # Slice 9.2 (D9-13, DAT-23, DAT-45): through PgBouncer, the API's role runs under the 5-second transaction limit and
       # the 10-second statement limit, and the read role can read but never write.
       - name: The pooler holds its limits and the read role only reads
@@ -178,6 +208,30 @@ jobs:
         run: |
           curl --silent --insecure --head --resolve app.localhost:443:127.0.0.1 https://app.localhost/ \
             | grep -i '^x-robots-tag: noindex, nofollow'
+
+      # Slice 9.7 (SEC-04, D9-22): the security headers, and the dashboard's files compressed once and cached: a hashed
+      # file a year as zstd or gzip, a page checked every time, and a hashed file that isn't there a 404, never the app.
+      - name: The headers, and the dashboard's files compressed and cached
+        run: |
+          headers() {
+            curl --silent --insecure --output /dev/null --dump-header - --resolve app.localhost:443:127.0.0.1 \
+              -H "Accept-Encoding: $2" "https://app.localhost$1" | tr -d '\r'
+          }
+          page="$(headers /some-shop/orders 'zstd, gzip')"
+          echo "$page"
+          echo "$page" | grep -i '^cache-control: no-cache$'
+          echo "$page" | grep -i '^strict-transport-security: max-age=31536000; includeSubDomains$'
+          echo "$page" | grep -i '^x-content-type-options: nosniff$'
+          echo "$page" | grep -i '^x-frame-options: DENY$'
+          script="$(curl --silent --insecure --resolve app.localhost:443:127.0.0.1 https://app.localhost/ \
+            | grep -o '/assets/index-[A-Za-z0-9_-]*\.js' | head -n 1)"
+          test -n "$script"
+          for encoding in zstd gzip; do
+            answer="$(headers "$script" "$encoding")"
+            echo "$answer" | grep -i "^content-encoding: $encoding$"
+            echo "$answer" | grep -i '^cache-control: public, max-age=31536000, immutable$'
+          done
+          headers /assets/not-there.js gzip | grep '^HTTP/[0-9.]* 404'
 
       # Slice 9.6 (D9-3, OBS-05): the monitor's Grafana account named, as a stand-in: a Prometheus that takes the
       # monitor's remote writes and evaluates deploy/monitoring/alerts.yml on them. The next deploy starts the monitor.

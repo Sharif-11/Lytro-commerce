@@ -162,7 +162,7 @@ const courierConnectionSchema = z.object({
   courierKey: z.nativeEnum(CourierKey),
   name: z.string(),
   isDefault: z.boolean(),
-  hasCredentials: z.literal(true),
+  hasCredentials: z.boolean(),
   state: z.nativeEnum(CourierConnectionState),
   connectedAt: z.coerce.date(),
   messages: z.nativeEnum(CourierMessagesState),

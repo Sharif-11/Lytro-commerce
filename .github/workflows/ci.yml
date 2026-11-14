@@ -69,6 +69,24 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
+      # Phase 9 Slice 9.7 (ENGINEERING-STANDARDS §5): a new migration that would break the release running beside it or
+      # before it fails here, and so does any edit to a migration already merged. A pull request is compared with where
+      # it started from main; main's own run (Deploy's verify) with the commit before it.
+      - name: Migration rules
+        run: |
+          pnpm exec turbo run build --filter=@lytronix/db
+          base="${TURBO_SCM_BASE}"
+          if [ "${GITHUB_EVENT_NAME}" != "pull_request" ]; then base="HEAD^"; fi
+          node packages/db/dist/check-migrations.js --base "${base}"
+
+      # D9-4 (Slice 9.7): no high or critical advisory in the production dependencies, but those allowed with a reason and
+      # a date in .github/audit-allowlist.json. An audit that can't be read fails.
+      - name: Dependency audit
+        run: |
+          node --test .github/scripts/audit-gate.test.mjs
+          pnpm audit --prod --json > audit.json || true
+          node .github/scripts/audit-gate.mjs audit.json
+
   unit:
     name: Unit and server tests
     needs: scope
@@ -300,10 +318,76 @@ jobs:
             apps/dashboard/playwright-report/
           retention-days: 14
 
+  # Phase 9 Slice 9.7 (ENGINEERING-STANDARDS §5, recipe 6): main's server image is the release running beside this one
+  # while it deploys, and the one a rollback goes back to. When this change touches the schema, that image reads it here,
+  # holding every value new since main, through every shop route that reads (test/previous-release.e2e.spec.ts).
+  previous-release:
+    name: The previous release reads this schema
+    needs: scope
+    if: needs.scope.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres: *postgres
+    env: *test-databases
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Does this change touch the schema?
+        id: schema
+        run: |
+          base="${TURBO_SCM_BASE}"
+          if [ "${GITHUB_EVENT_NAME}" != "pull_request" ]; then base="HEAD^"; fi
+          base="$(git merge-base "${base}" HEAD)"
+          echo "base=${base}" >> "$GITHUB_OUTPUT"
+          if git diff --quiet "${base}" HEAD -- packages/db/drizzle; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No migration changed: the previous release already runs on this schema."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The newest of main's commits with a server image: Deploy builds one for each, after its own checks.
+      - name: Find the previous release's image
+        id: previous
+        if: steps.schema.outputs.changed == 'true'
+        run: |
+          registry="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
+          for commit in $(git rev-list --first-parent -n 30 "${{ steps.schema.outputs.base }}"); do
+            if docker manifest inspect "${registry}/lytro-server:${commit}" > /dev/null 2>&1; then
+              echo "image=${registry}/lytro-server:${commit}" >> "$GITHUB_OUTPUT"
+              newest="$(git show "${commit}:packages/db/drizzle/meta/_journal.json" | node -e \
+                "let s='';process.stdin.on('data',(d)=>{s+=d;}).on('end',()=>{console.log(JSON.parse(s).entries.at(-1).tag.slice(0,4));});")"
+              git show "${commit}:packages/db/drizzle/meta/${newest}_snapshot.json" > "${RUNNER_TEMP}/previous-snapshot.json"
+              echo "Previous release: ${commit}, schema at ${newest}"
+              exit 0
+            fi
+          done
+          echo "::error::None of main's last 30 commits has a server image"
+          exit 1
+
+      - uses: ./.github/actions/setup
+        if: steps.schema.outputs.changed == 'true'
+
+      - name: What the server's tests import
+        if: steps.schema.outputs.changed == 'true'
+        run: |
+          pnpm exec turbo run build --filter=@lytronix/server^...
+          docker pull "${{ steps.previous.outputs.image }}"
+
+      - name: The previous release reads this schema
+        if: steps.schema.outputs.changed == 'true'
+        working-directory: apps/server
+        env:
+          PREVIOUS_SERVER_IMAGE: ${{ steps.previous.outputs.image }}
+          PREVIOUS_SCHEMA_SNAPSHOT: ${{ runner.temp }}/previous-snapshot.json
+        run: pnpm exec vitest run test/previous-release.e2e.spec.ts
+
   # The check main's ruleset requires, and what Deploy's images wait for. It always runs: a required check that is
   # skipped counts as passed, so a failed or cancelled job above must fail this one, not skip it.
   verify:
-    needs: [scope, checks, unit, dashboard, console, storefront, server-browser]
+    needs: [scope, checks, unit, dashboard, console, storefront, server-browser, previous-release]
     if: always()
     runs-on: ubuntu-latest
     steps:

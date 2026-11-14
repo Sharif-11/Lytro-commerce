@@ -6,6 +6,9 @@ import { FieldProblemCode } from '../../validation/field-problem';
 
 const WALLET_FIELDS = ['transactionId', 'senderNumber', 'amountPaid'] as const;
 
+/** BIL-02, BAL-03: the wallet number a payment was sent from, as the seller types it. */
+export const senderNumberField = z.string().trim().min(1).max(30);
+
 /**
  * BIL-02: a wallet payment names its transaction ID, the number it was sent from and the amount sent. Each one
  * missing is reported on its own field (API-16), so the form can point at exactly what to fill in.
@@ -46,7 +49,7 @@ export const confirmPurchaseSchema = z
     paymentId: z.string().uuid(),
     method: z.enum(PLAN_PAYMENT_METHODS),
     transactionId: transactionIdField.optional(),
-    senderNumber: z.string().trim().min(1).optional(),
+    senderNumber: senderNumberField.optional(),
     amountPaid: z.coerce.number().positive().optional(),
     // ADM-17, D8-15: a screenshot of the payment, if the seller adds one.
     evidenceKey: evidenceKeyField.optional(),

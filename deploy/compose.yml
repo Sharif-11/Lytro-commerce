@@ -23,6 +23,9 @@ x-server: &server
   init: true
   restart: unless-stopped
   env_file: ${LYTRO_HOME:-/opt/lytro}/env/server.env
+  # SEC-10, D9-8 (Slice 9.7): the sealing key, from a file only root reads; the image's entrypoint reads it as root and
+  # runs the server as `node`.
+  secrets: [data_encryption_key]
   depends_on:
     postgres:
       condition: service_healthy
@@ -271,6 +274,8 @@ services:
     restart: 'no'
     # The owner's DATABASE_URL: migrations change the schema, which the app role can't (deploy/README.md).
     env_file: ${LYTRO_HOME:-/opt/lytro}/env/migrate.env
+    # The migrations never open a sealed value.
+    secrets: []
     environment:
       RELEASE: ${RELEASE:?}
     command:
@@ -285,6 +290,10 @@ services:
     volumes:
       - static:/srv/static
     networks: [internal]
+
+secrets:
+  data_encryption_key:
+    file: ${LYTRO_HOME:-/opt/lytro}/env/data-encryption.key
 
 networks:
   internal:

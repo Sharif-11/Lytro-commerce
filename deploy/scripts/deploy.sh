@@ -50,6 +50,14 @@ export LYTRO_HOME RELEASE EDGE_TAG PGBOUNCER_TAG DATABASE_TAG PG_ARCHIVE_MODE
 
 say() { printf '[deploy %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 
+# SEC-10, D9-8 (Slice 9.7): the sealing key sits in its own root-only file, which compose hands to the server's processes.
+# A server set up before keeps it in server.env until make-env.sh is run again, which moves it: stop here, before
+# anything is touched, rather than half-way.
+if [ ! -e "$LYTRO_HOME/env/data-encryption.key" ]; then
+  say "no $LYTRO_HOME/env/data-encryption.key: run deploy/scripts/make-env.sh again (it moves the sealing key there)"
+  exit 1
+fi
+
 # This server's settings (REGISTRY and its memory sizes), then the release being deployed.
 dc() {
   docker compose --project-directory "$DEPLOY_DIR" -f "$DEPLOY_DIR/compose.yml" \

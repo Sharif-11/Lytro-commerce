@@ -272,10 +272,15 @@ describeIfDatabase('resetting a forgotten password (AUTH-17, AUTH-18, AUTH-19)',
     const old = await signInWith(phone, PASSWORD).then(toSession);
 
     await post('/auth/forgot-password', { phone });
-    const reset = await post('/auth/forgot-password/verify', { phone, code: texts.codeFor(phone) });
+    const code = texts.codeFor(phone);
+    const reset = await post('/auth/forgot-password/verify', { phone, code });
     expect(reset.status).toBe(200);
     const pending = toSession(reset);
     expect(pending).toMatchObject({ next: 'set-password' });
+    // SEC-07 (checked in Slice 9.7): the code opened one session, and opens no other.
+    const reused = await post('/auth/forgot-password/verify', { phone, code });
+    expect(reused.status).not.toBe(200);
+    expect(reused.headers['set-cookie']).toBeUndefined();
 
     const blocked = await post(
       '/shops',

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MONEY_TEXT_MAX_LENGTH } from '../../common/limits';
 import { isNoticeLinkTarget, noticeLinksIn } from '../../common/notice-markdown';
 import {
   NoticeAudienceKind,
@@ -176,7 +177,8 @@ export type NoticeUpdateInput = z.infer<typeof noticeUpdateSchema>;
 const rateFigure = z
   .string()
   .trim()
-  .regex(/^\d{1,8}(\.\d{1,4})?$/);
+  .regex(/^\d{1,8}(\.\d{1,4})?$/)
+  .max(MONEY_TEXT_MAX_LENGTH);
 
 /**
  * NTC-12, NTC-13: a template, and the variables it fills in. A rate-change template given the change

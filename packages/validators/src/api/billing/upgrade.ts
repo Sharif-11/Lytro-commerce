@@ -2,7 +2,7 @@ import { evidenceKeyField } from './payment-evidence';
 import { z } from 'zod';
 import { transactionIdField } from '../../common/transaction-id';
 import { PLAN_PAYMENT_METHODS } from '../../db/enums';
-import { requireWalletFields } from './purchase';
+import { requireWalletFields, senderNumberField } from './purchase';
 
 // POST /billing/upgrade/quote (UPG-01/02): the higher-ranked plan and term the tenant wants to price.
 export const quoteUpgradeSchema = z.object({
@@ -22,7 +22,7 @@ export const confirmUpgradeSchema = z
     paymentId: z.string().uuid(),
     method: z.enum(PLAN_PAYMENT_METHODS),
     transactionId: transactionIdField.optional(),
-    senderNumber: z.string().trim().min(1).optional(),
+    senderNumber: senderNumberField.optional(),
     amountPaid: z.coerce.number().positive().optional(),
     // ADM-17, D8-15: a screenshot of the payment, if the seller adds one.
     evidenceKey: evidenceKeyField.optional(),

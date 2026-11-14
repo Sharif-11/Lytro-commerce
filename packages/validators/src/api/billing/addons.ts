@@ -8,7 +8,7 @@ import {
   PLAN_PAYMENT_METHODS,
 } from '../../db/enums';
 import { planLimitsSchema } from '../../db/plans/plan-limits';
-import { requireWalletFields } from './purchase';
+import { requireWalletFields, senderNumberField } from './purchase';
 
 // PLN-13: the limit a limit add-on raises (and, from Slice 10a.3, a pack tops up): any usage limit of 2.1.
 const limitKeys = Object.keys(planLimitsSchema.shape).filter(
@@ -27,7 +27,8 @@ export const createAddonSchema = z
     key: z
       .string()
       .trim()
-      .regex(/^[a-z][a-z0-9_]{1,49}$/),
+      .regex(/^[a-z][a-z0-9_]{1,49}$/)
+      .max(50),
     kind: z.nativeEnum(AddonKind),
     limitKey: z
       .enum([...limitKeys, ...allowanceServices] as [string, ...string[]])
@@ -98,7 +99,7 @@ export const confirmAddonSchema = z
     paymentId: z.string().uuid(),
     method: z.enum(PLAN_PAYMENT_METHODS).default('balance'),
     transactionId: transactionIdField.optional(),
-    senderNumber: z.string().trim().min(1).optional(),
+    senderNumber: senderNumberField.optional(),
     amountPaid: z.coerce.number().positive().optional(),
     // ADM-17, D8-15: a screenshot of the payment, if the seller adds one.
     evidenceKey: evidenceKeyField.optional(),

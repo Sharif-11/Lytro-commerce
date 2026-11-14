@@ -24,6 +24,7 @@ import {
   MODIFIER_OPTIONS_MAX,
 } from '../../common/limits';
 import { bdMobileNumber } from '../../common/phone';
+import { textField } from '../../common/text';
 import { transactionIdField } from '../../common/transaction-id';
 import {
   CallOutcome,
@@ -43,17 +44,13 @@ import {
   priceField,
   quantityField,
 } from '../catalogue/catalogue-common';
-import { serialsField } from '../inventory/stock';
+import { serialField, serialsField } from '../inventory/stock';
 import { checkoutPaymentSchema } from '../payment-methods/payment-sessions';
 
 type Ctx = z.RefinementCtx;
 
 function refuse(ctx: Ctx, path: (string | number)[], problem: FieldProblemCode, message: string) {
   ctx.addIssue({ code: 'custom', path, message, params: { problem } });
-}
-
-export function textField(max: number) {
-  return z.string().trim().min(1).max(max);
 }
 
 // ORD-01: a Bangladeshi mobile number, kept in its local form (01XXXXXXXXX).
@@ -462,8 +459,8 @@ export type HandOverOrderInput = z.infer<typeof handOverOrderSchema>;
 
 const returnedSerialsField = z
   .object({
-    sellable: z.array(z.string().min(1)).max(1000),
-    damaged: z.array(z.string().min(1)).max(1000),
+    sellable: z.array(serialField).max(1000),
+    damaged: z.array(serialField).max(1000),
   })
   .optional();
 

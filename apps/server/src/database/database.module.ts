@@ -98,6 +98,7 @@ import {
   PaymentMethodTypeRepository,
   CourierRepository,
   GatewayCredentialUseRepository,
+  CredentialUseExportRepository,
   ListenerMessageRepository,
   LytroMessageRepository,
   RawMessageRepository,
@@ -298,6 +299,12 @@ import { PrimaryWatch } from './primary-watch';
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) =>
         new GatewayCredentialUseRepository(transactions),
+    },
+    {
+      provide: CredentialUseExportRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) =>
+        new CredentialUseExportRepository(transactions),
     },
     {
       provide: CourierRepository,
@@ -553,6 +560,7 @@ import { PrimaryWatch } from './primary-watch';
     PaymentListRepository,
     ListenerRepository,
     GatewayCredentialUseRepository,
+    CredentialUseExportRepository,
     CourierRepository,
     CourierAreaRepository,
     CourierAdapterRepository,

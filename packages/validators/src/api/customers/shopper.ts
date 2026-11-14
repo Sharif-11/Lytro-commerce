@@ -9,8 +9,9 @@ import {
   SHOPPER_ORDER_PAGE_SIZE,
 } from '../../common/limits';
 import { newPasswordField } from '../auth/auth-password';
+import { textField } from '../../common/text';
 import { codeField } from '../identity/phone-signup/phone-signup-common';
-import { orderPhoneField, textField } from '../orders/order';
+import { orderPhoneField } from '../orders/order';
 
 // CUS-03, CUS-04 (Phase 4 Slice 4.4b, agreed 2026-10-30): a shopper makes an account with a code sent once to the
 // phone -- paid from the shop's balance -- then a name and a password, and signs in with the phone and password after.

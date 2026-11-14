@@ -1,0 +1,14 @@
+[
+  {
+    "advisory": "GHSA-gpj5-g38j-94v9",
+    "package": "drizzle-orm",
+    "until": "2026-12-15",
+    "why": "SQL injection through improperly escaped identifiers; fixed only in 0.45.2 (we're on 0.36). Our identifiers are never taken from a request (raw SQL only names fixed tables and columns). Its own PR right after Slice 9.7, the owner's answer of 2026-11-14."
+  },
+  {
+    "advisory": "GHSA-mrhx-c7xc-m3w5",
+    "package": "zod",
+    "until": "2026-12-15",
+    "why": "Memory use while validating oversized constrained collections; fixed only in Zod 4 (we're on 3). Request bodies are capped in size before validation, and every array has a longest length. Its own PR right after Slice 9.7, the owner's answer of 2026-11-14."
+  }
+]

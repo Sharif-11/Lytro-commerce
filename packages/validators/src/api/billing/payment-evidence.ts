@@ -11,11 +11,12 @@ export const evidenceUploadSchema = z
   .strict();
 export type EvidenceUploadInput = z.infer<typeof evidenceUploadSchema>;
 
-// The key the upload's signed link was made for, as `POST .../evidence` returned it.
+// The key the upload's signed link was made for, as `POST .../evidence` returned it: 82 characters at most.
 export const evidenceKeyField = z
   .string()
   .trim()
-  .regex(/^evidence\/(?:operator|[0-9a-f-]{36})\/[0-9a-f-]{36}$/);
+  .regex(/^evidence\/(?:operator|[0-9a-f-]{36})\/[0-9a-f-]{36}$/)
+  .max(100);
 
 // ADM-17, D8-15 (Phase 8 Slice 8.8): a screenshot for a payment already sent on the payment page, while Lytro checks it.
 export const paymentEvidenceAttachSchema = z.object({ evidenceKey: evidenceKeyField }).strict();

@@ -6,7 +6,8 @@
 #   account's address> ROBOTS=robots_noindex bash make-env.sh
 #
 # It makes every secret Lytro makes itself (the edge secret, the storefront's, the sign-in codes', the sealing key, both
-# database passwords, the push keys) and writes each where it belongs, the same value everywhere it must match. What
+# database passwords, the push keys) and writes each where it belongs, the same value everywhere it must match. The
+# sealing key goes in a file of its own, root's alone (0600, SEC-10). What
 # only an outside service can give is left as a commented line to fill in (deploy/README.md lists them). It never
 # overwrites a file that exists, so running it twice changes nothing; delete a file to make it again.
 #
@@ -158,10 +159,30 @@ add_missing backup.env BACKUP_PITR_ENCRYPTION_KEY "$ARCHIVE_KEY"
 add_missing backup.env BACKUP_DUMP_RECIPIENT ''
 
 vapid
+
+# SEC-10, D9-8 (Slice 9.7): the sealing key in a file only root reads, which compose hands to the server's processes
+# (deploy/server/entrypoint.sh). Copy it into a password manager. A server set up before kept it in server.env: it moves
+# here unchanged, and leaves server.env.
+KEY_FILE="$ENV_DIR/data-encryption.key"
+if [ ! -e "$KEY_FILE" ]; then
+  key="$(existing server.env DATA_ENCRYPTION_KEY)"
+  (
+    umask 077
+    printf '%s\n' "${key:-$(openssl rand -base64 32)}" > "$KEY_FILE"
+  )
+  chown root:root "$KEY_FILE"
+  chmod 600 "$KEY_FILE"
+  echo "wrote data-encryption.key"
+fi
+if [ -e "$ENV_DIR/server.env" ] && grep -q '^DATA_ENCRYPTION_KEY=' "$ENV_DIR/server.env"; then
+  sed -i '/^DATA_ENCRYPTION_KEY=/d' "$ENV_DIR/server.env"
+  echo "moved DATA_ENCRYPTION_KEY out of server.env"
+fi
+
 write server.env <<EOF
 # The server's settings (deploy/README.md, step 4). Three groups: made here, required, and optional.
 
-# Made by make-env.sh on this server: leave them as they are. Copy DATA_ENCRYPTION_KEY into a password manager.
+# Made by make-env.sh on this server: leave them as they are. The sealing key isn't here: it is data-encryption.key.
 NODE_ENV=production
 PLATFORM_DOMAIN=$PLATFORM_DOMAIN
 PLATFORM_ADDRESSES=$PLATFORM_ADDRESSES
@@ -170,7 +191,6 @@ REDIS_URL=redis://:$REDIS_PASSWORD@redis:6379
 TRUSTED_EDGE_SECRET=$EDGE_SECRET
 STOREFRONT_SECRET=$STOREFRONT_SECRET
 OTP_SECRET=$(secret 32)
-DATA_ENCRYPTION_KEY=$(openssl rand -base64 32)
 OAUTH_CALLBACK_BASE=https://app.$PLATFORM_DOMAIN
 CLIENT_IP_HEADER=x-forwarded-for
 CLIENT_IP_FORMAT=list
@@ -246,8 +266,8 @@ GEMINI_API_KEY=
 # TRIAL_LIMIT_PER_IP=
 # TRIAL_LIMIT_WINDOW_DAYS=
 
-# Only while changing a key (RUNBOOKS): the old sealing key, and the edge secret coming in.
-# DATA_ENCRYPTION_PREVIOUS_KEY=
+# Only while changing the edge secret (RUNBOOKS): the one coming in. The old sealing key, while changing that, is
+# data-encryption.key's second line (RUNBOOKS §3).
 # TRUSTED_EDGE_SECRET_NEXT=
 EOF
 add_missing server.env REDIS_URL "redis://:$REDIS_PASSWORD@redis:6379"

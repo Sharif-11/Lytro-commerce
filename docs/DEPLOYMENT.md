@@ -278,9 +278,12 @@ server (`/api/v1/help-line`, kept five minutes), so its container needs `SERVER_
 `SUPPORT_WHATSAPP` and `SUPPORT_PHONE` are gone, as is the dashboard's `VITE_SUPPORT_WHATSAPP`: the numbers are set in the
 console (RUNBOOKS §6). `SUPPORT_EMAIL` stays.
 
-**The credential sealing key** (Phase 3 Slice 9b): set `DATA_ENCRYPTION_KEY` (32 random bytes, base64) on the server
-from a secrets manager, never from a committed file; the server refuses to start in production without it. Its
-rotation is RUNBOOKS §3.
+**The credential sealing key** (Phase 3 Slice 9b; SEC-10 as D9-8 amends it, Slice 9.7): 32 random bytes, base64, in
+the root-only file `$LYTRO_HOME/env/data-encryption.key` (mode 600), never in an env file or a committed one.
+`deploy/make-env.sh` writes it, and moves the key out of an older `server.env`. Compose hands it to the API and worker
+containers as a secret; the image's entrypoint reads it as root into `DATA_ENCRYPTION_KEY` and then runs the server as
+`node`. The server refuses to start in production without it, and `deploy.sh` stops before touching anything if the file
+is missing. Its rotation, the re-seal job and the break-glass record are RUNBOOKS §3.
 
 **SMS** (Phase 7 Slice 7.1, D7-21): set `BULKSMSBD_API_KEY` and `BULKSMSBD_SENDER_ID` on the server from a secrets
 manager, never from a committed file. Production, staging included, sends every SMS for real and refuses to start

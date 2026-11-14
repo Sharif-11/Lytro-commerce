@@ -7,7 +7,11 @@ import {
   COURIER_RETIRE_REASON_MAX_LENGTH,
   PARCEL_NOTE_MAX_LENGTH,
 } from '../../common/courier-limits';
-import { ORDER_LINES_MAX, TRACKING_CODE_MAX_LENGTH } from '../../common/limits';
+import {
+  ORDER_LINES_MAX,
+  RECORD_KEY_MAX_LENGTH,
+  TRACKING_CODE_MAX_LENGTH,
+} from '../../common/limits';
 import { CourierAreaState, CourierKey } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { itemSerialsSchema, serialsOnce } from '../orders/order';
@@ -20,7 +24,10 @@ import { itemSerialsSchema, serialsOnce } from '../orders/order';
 export const connectCourierSchema = z
   .object({
     courierKey: z.nativeEnum(CourierKey),
-    credentials: z.record(z.string().trim().max(COURIER_FIELD_MAX_LENGTH)),
+    credentials: z.record(
+      z.string().max(RECORD_KEY_MAX_LENGTH),
+      z.string().trim().max(COURIER_FIELD_MAX_LENGTH),
+    ),
   })
   .strict();
 export type ConnectCourierInput = z.infer<typeof connectCourierSchema>;

@@ -223,4 +223,22 @@ describeIfEdge('every outside call through the edge (deploy/Caddyfile, KNOWN-GAP
     const onAppHost = await edge.send('app.localhost', 'GET', '/api/v1/me');
     expect(onAppHost.status, onAppHost.text).toBe(401);
   });
+
+  it('sends the security headers on every host, HSTS over the domain and its subdomains (SEC-04, D9-22)', async () => {
+    const hsts = 'max-age=31536000; includeSubDomains';
+    for (const [host, path, referrer] of [
+      ['app.localhost', '/api/v1/me', 'strict-origin-when-cross-origin'],
+      ['admin.localhost', '/api/v1/operator/me', 'no-referrer'],
+      ['api.localhost', '/v1/shop', 'no-referrer'],
+    ] as const) {
+      const answer = await edge.send(host, 'GET', path);
+      expect(answer.headers['strict-transport-security'], host).toBe(hsts);
+      expect(answer.headers['x-content-type-options'], host).toBe('nosniff');
+      expect(answer.headers['x-frame-options'], host).toBe('DENY');
+      expect(answer.headers['referrer-policy'], host).toBe(referrer);
+    }
+    // The payment page sets its own type, referrer and framing rules (PAY-23); the edge adds HSTS only.
+    const pay = await edge.send('pay.localhost', 'GET', '/not-a-page');
+    expect(pay.headers['strict-transport-security']).toBe(hsts);
+  });
 });

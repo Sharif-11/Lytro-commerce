@@ -38,9 +38,14 @@ describe('a CSV cell', () => {
     expect(cell(undefined)).toBe('');
   });
 
-  it('keeps every value as written in a feed a machine reads', () => {
+  it('starts a cell a spreadsheet would run with a space in a feed a machine reads, never an apostrophe (Slice 9.7)', () => {
+    expect(cell('=1+1', 'machine')).toBe(' =1+1');
+    expect(cell('+cmd, then', 'machine')).toBe('" +cmd, then"');
+    expect(cell('@SUM(A1)', 'machine')).toBe(' @SUM(A1)');
+    expect(cell('-2+3+cmd', 'machine')).toBe(' -2+3+cmd');
+    // A bullet, a plain number and plain text stay exactly as written.
     expect(cell('- 100% cotton', 'machine')).toBe('- 100% cotton');
-    expect(cell('=1+1', 'machine')).toBe('=1+1');
-    expect(cell('+cmd, then', 'machine')).toBe('"+cmd, then"');
+    expect(cell('-5.50', 'machine')).toBe('-5.50');
+    expect(cell('Cotton shirt', 'machine')).toBe('Cotton shirt');
   });
 });
