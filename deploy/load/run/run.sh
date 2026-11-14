@@ -46,7 +46,8 @@ say 'measuring on the target'
 ssh $SSH_OPTS "$TARGET" "sudo nohup bash /opt/lytro/state/current/load/run/measure.sh '$NAME' > /dev/null 2>&1 & echo \$! > /tmp/lytro-measure.pid"
 stop() {
   ssh $SSH_OPTS "$TARGET" 'sudo kill -TERM "$(cat /tmp/lytro-measure.pid)" 2> /dev/null; sleep 5' || true
-  scp $SSH_OPTS -q "$TARGET:/opt/lytro/state/load/out/$NAME-*" "$OUT/" 2> /dev/null ||
+  # Through sudo: the folder is root's and the deploy group's, and the SSH user may be in neither (staging's isn't).
+  ssh $SSH_OPTS "$TARGET" "sudo sh -c 'cd /opt/lytro/state/load/out && tar -c $NAME-*'" | tar -x -C "$OUT" ||
     say "copy the measurements by hand: /opt/lytro/state/load/out/$NAME-* on the target (readable by root)"
   kill "$tunnel" 2> /dev/null || true
 }
