@@ -235,6 +235,10 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .foot .pbr{display:inline-flex;flex-direction:column;align-items:flex-end;gap:6px}
 .foot .pb:has(.pbr) > span:first-child{white-space:nowrap}
 .foot .priv{font-size:14px;color:var(--n700);text-decoration:underline;text-underline-offset:3px;font-weight:500}
+/* Part 910 (Slice 9.10): a page the shop is too busy to give, its clock line; a delivery charge it couldn't read. */
+.bare .auto{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--n700)}
+.bare .auto svg{width:16px;height:16px}
+.busy-line{color:var(--n700)}
 .banner.ok{background:var(--success-soft);border-color:#bfe3cb;color:#155c33}
 .banner svg.i{width:18px;height:18px;margin-top:1px}
 .card2{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:16px;display:flex;flex-direction:column;gap:12px}

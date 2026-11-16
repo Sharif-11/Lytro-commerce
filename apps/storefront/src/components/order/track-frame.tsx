@@ -1,14 +1,27 @@
 import type { ReactNode } from 'react';
-import { loadFrame, type OpenShopPage } from '@/lib/storefront';
+import { loadFrame, type OpenShopPage, type PageFrame } from '@/lib/storefront';
 import { Footer, Header, Shell } from '../shell';
 import { ShopShell } from '../shop-shell';
 
+/** The storefront's frame for tracking, or null while the storefront is off; read by the page itself, so a server too
+    busy for it shows the busy page (Slice 9.10). */
+export function loadTrackFrame(page: OpenShopPage): Promise<PageFrame | null> {
+  return page.shop.storefrontEnabled ? loadFrame(page) : Promise.resolve(null);
+}
+
 /** ORD-17, LND-11, LND-02: tracking in the storefront's frame, or, while the storefront is off, the landing page's: a
     landing page's confirmation leads here, and a landing page keeps working with the storefront off. */
-export async function TrackFrame({ page, children }: { page: OpenShopPage; children: ReactNode }) {
+export function TrackFrame({
+  page,
+  frame,
+  children,
+}: {
+  page: OpenShopPage;
+  frame: PageFrame | null;
+  children: ReactNode;
+}) {
   const { words } = page;
-  if (page.shop.storefrontEnabled) {
-    const frame = await loadFrame(page);
+  if (frame !== null) {
     return (
       <ShopShell page={page} frame={frame} back="/" title={words.t('tr_title')}>
         {children}

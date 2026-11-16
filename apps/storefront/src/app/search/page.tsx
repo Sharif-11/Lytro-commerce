@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { ProductList } from '@/components/catalogue/product-list';
 import { Icon } from '@/components/icon';
 import { OfflinePage } from '@/components/pages';
@@ -17,19 +18,21 @@ interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const page = await loadShopPage();
-  if (page.state !== 'open' || !page.shop.storefrontEnabled) return {};
-  const q = searchOf(await searchParams);
-  return {
-    metadataBase: new URL(page.shop.publicOrigin),
-    title:
-      q === null ? page.info.name : `${page.words.t('results_for', { q })} · ${page.info.name}`,
-    robots: { index: false, follow: true },
-  };
-}
+export const generateMetadata = withBusyMetadata(
+  async ({ searchParams }: Props): Promise<Metadata> => {
+    const page = await loadShopPage();
+    if (page.state !== 'open' || !page.shop.storefrontEnabled) return {};
+    const q = searchOf(await searchParams);
+    return {
+      metadataBase: new URL(page.shop.publicOrigin),
+      title:
+        q === null ? page.info.name : `${page.words.t('results_for', { q })} · ${page.info.name}`,
+      robots: { index: false, follow: true },
+    };
+  },
+);
 
-export default async function SearchPage({ searchParams }: Props) {
+export default withBusyPage(async function SearchPage({ searchParams }: Props) {
   const query = await searchParams;
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
@@ -84,4 +87,4 @@ export default async function SearchPage({ searchParams }: Props) {
       </div>
     </Frame>
   );
-}
+});

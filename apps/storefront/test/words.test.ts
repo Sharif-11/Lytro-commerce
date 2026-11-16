@@ -34,6 +34,14 @@ describe('Words (I18N-01)', () => {
     expect(new Words('en').t('save', { n: 170 })).toBe('Save ৳170');
   });
 
+  it("writes a busy page's wait in the shopper's own digits, as the prototype does (Part 910)", () => {
+    expect(new Words('bn').digits(30)).toBe('৩০');
+    expect(new Words('bn').t('p910BusyAuto', { n: new Words('bn').digits(7) })).toBe(
+      '৭ সেকেন্ড পরে পেজটি নিজেই আবার খুলবে',
+    );
+    expect(new Words('en').digits(30)).toBe('30');
+  });
+
   it('writes money as the prototype does, in both languages', () => {
     expect(money('1850.00')).toBe('৳1,850');
     expect(money(12_500.5)).toBe('৳12,500.50');

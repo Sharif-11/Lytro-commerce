@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { SignUpView } from '@/components/account/sign-up-view';
+import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { OfflinePage } from '@/components/pages';
 import { ShopShell } from '@/components/shop-shell';
 import { signInPage } from '@/lib/account/account-page';
@@ -13,7 +14,7 @@ interface Props {
   searchParams: Promise<{ next?: string | string[] }>;
 }
 
-export async function generateMetadata(): Promise<Metadata> {
+export const generateMetadata = withBusyMetadata(async (): Promise<Metadata> => {
   const page = await loadShopPage();
   if (page.state !== 'open') return {};
   return {
@@ -21,9 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${page.words.t('e48SignUp')} · ${page.info.name}`,
     robots: { index: false, follow: false },
   };
-}
+});
 
-export default async function SignUpPage({ searchParams }: Props) {
+export default withBusyPage(async function SignUpPage({ searchParams }: Props) {
   const next = safeNext((await searchParams).next);
   const opened = await signInPage(next);
   if ('closed' in opened) return <OfflinePage words={opened.words} />;
@@ -34,4 +35,4 @@ export default async function SignUpPage({ searchParams }: Props) {
       <SignUpView language={page.words.language} next={next} shopPhone={page.info.contact.phone} />
     </ShopShell>
   );
-}
+});

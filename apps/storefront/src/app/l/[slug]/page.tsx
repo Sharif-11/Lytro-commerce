@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { PaymentPolicy } from '@lytronix/validators/enums';
+import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { LandingView } from '@/components/landing/landing-view';
 import { MetaPixel } from '@/components/landing/meta-pixel';
 import { OfflinePage } from '@/components/pages';
@@ -20,7 +21,7 @@ interface Props {
   searchParams: Promise<{ v?: string | string[] }>;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export const generateMetadata = withBusyMetadata(async ({ params }: Props): Promise<Metadata> => {
   const { slug } = await params;
   const page = await loadShopPage();
   if (page.state !== 'open') return {};
@@ -32,9 +33,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     page.shop.publicOrigin,
     `/l/${read.product.slug}`,
   );
-}
+});
 
-export default async function LandingPage({ params, searchParams }: Props) {
+export default withBusyPage(async function LandingPage({ params, searchParams }: Props) {
   const [{ slug }, { v }] = await Promise.all([params, searchParams]);
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
@@ -95,4 +96,4 @@ export default async function LandingPage({ params, searchParams }: Props) {
       ) : null}
     </>
   );
-}
+});

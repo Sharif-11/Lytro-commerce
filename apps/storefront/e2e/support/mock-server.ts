@@ -15,7 +15,13 @@ import type {
   TrackedOrder,
 } from '../../src/lib/api/storefront-api';
 import { lineImageOf } from '../../src/lib/product/designs';
-import { CODE, type ProductFixture, type SentOrder, type ShopFixture } from './fixtures';
+import {
+  CODE,
+  type ProductFixture,
+  type Refusal,
+  type SentOrder,
+  type ShopFixture,
+} from './fixtures';
 
 // The server as the storefront's own server meets it, over HTTP, because the pages are rendered there: which shop a host
 // serves, the public catalogue, the estimate and order creation. A test names its own shop (`POST /__shop`), by a slug
@@ -431,6 +437,23 @@ function place(
   send(response, 201, placed);
 }
 
+// Slice 9.10: the codes the server's own refusals carry.
+const REFUSAL_CODES: Record<number, string> = {
+  429: 'rate_limited',
+  503: 'service_unavailable',
+  500: 'internal_error',
+};
+
+/** Refuses the request as the shop's fixture says, with the wait it names; false when this path isn't refused. */
+function refuse(fixture: ShopFixture, path: string, response: ServerResponse): boolean {
+  const refusal = fixture.refusals?.find((row) => row.path === path);
+  if (!refusal) return false;
+  if (refusal.retryAfter !== undefined)
+    response.setHeader('retry-after', String(refusal.retryAfter));
+  fail(response, refusal.status, REFUSAL_CODES[refusal.status] ?? 'internal_error');
+  return true;
+}
+
 const textOf = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback);
 const onlyDigits = (phone: unknown) => textOf(phone).replace(/\D/g, '');
 const WRONG_TRIES_LOCK = 5;
@@ -650,6 +673,7 @@ async function publicApi(
 ): Promise<void> {
   const { fixture } = state;
   const path = url.pathname;
+  if (refuse(fixture, path, response)) return;
   const shopperPath = /^\/v1\/shopper\/(.+)$/.exec(path)?.[1];
   if (shopperPath) {
     await shopperApi(state, shopperPath, url, request, response);
@@ -739,6 +763,14 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
       shopperRequests: 0,
     });
     send(response, 201, { slug: fixture.slug });
+    return;
+  }
+  // Slice 9.10: what the shop's server refuses from now on, an empty list lifting every refusal.
+  const refusals = /^\/__refusals\/(.+)$/.exec(path);
+  if (refusals?.[1] && request.method === 'POST') {
+    const state = shops.get(refusals[1]);
+    if (state) state.fixture.refusals = (await readBody(request)) as Refusal[];
+    send(response, state ? 200 : 404, { slug: refusals[1] });
     return;
   }
   const orders = /^\/__orders\/(.+)$/.exec(path);

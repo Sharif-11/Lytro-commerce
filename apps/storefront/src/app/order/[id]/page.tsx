@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { PaymentReturnView } from '@/components/order/payment-return-view';
 import { PlacedView } from '@/components/order/placed-view';
 import { OfflinePage } from '@/components/pages';
 import { Header, Shell } from '@/components/shell';
+import { ShopBusy } from '@/lib/api/storefront-api';
 import { paymentStandingOf } from '@/lib/order/payment-return';
 import { loadShopPage, shopperToken, storefrontApi } from '@/lib/storefront';
 
@@ -16,7 +18,7 @@ interface Props {
   searchParams: Promise<{ pay?: string }>;
 }
 
-export async function generateMetadata(): Promise<Metadata> {
+export const generateMetadata = withBusyMetadata(async (): Promise<Metadata> => {
   const page = await loadShopPage();
   if (page.state !== 'open') return {};
   return {
@@ -24,15 +26,17 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${page.words.t('cf_h')} · ${page.info.name}`,
     robots: { index: false, follow: false },
   };
-}
+});
 
-export default async function OrderPlacedPage({ params, searchParams }: Props) {
+export default withBusyPage(async function OrderPlacedPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { pay } = await searchParams;
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
   if (page.state === 'missing') notFound();
   const read = await storefrontApi.track(page.shop, page.shopper, decodeURIComponent(id));
+  // Too many looks just now is a wait, not an order that is gone (Slice 9.10): the busy page, not not-found.
+  if (read.kind === 'busy') throw new ShopBusy(429, read.retryAfter, 'the order');
   if (read.kind !== 'found') notFound();
   const language = page.words.language;
   const signedIn = (await shopperToken()) !== null;
@@ -74,4 +78,4 @@ export default async function OrderPlacedPage({ params, searchParams }: Props) {
       )}
     </Shell>
   );
-}
+});

@@ -378,7 +378,9 @@ export interface TrackedOrder extends ShopperTotals {
   courierReturning: boolean;
 }
 export type TrackingRead =
-  { kind: 'found'; order: TrackedOrder } | { kind: 'missing' } | { kind: 'busy' };
+  | { kind: 'found'; order: TrackedOrder }
+  | { kind: 'missing' }
+  | { kind: 'busy'; retryAfter: number };
 
 /** CUS-03, CUS-05: a shopper's account in this shop; the phone is the account and never changes. */
 export interface ShopperView {
@@ -436,6 +438,46 @@ export interface ShopperRequest {
 export type ProductRead =
   { kind: 'found'; product: PublicProduct } | { kind: 'moved'; slug: string } | { kind: 'missing' };
 
+// Slice 9.10 (STOREFRONT-DESIGN §7h): "too many requests" (429, RTE-06) and "busy" (503) mean wait, not that something is
+// wrong, so a page says so and tries again after the server's wait. Every other refusal stays a fault and shows the error
+// page, so a real fault is never dressed up as a wait.
+const BUSY_STATUSES: readonly number[] = [429, 503];
+/** How long a busy page waits when the server names no wait. */
+export const DEFAULT_RETRY_SECONDS = 30;
+
+/** Whether a status says the server was too busy to answer (429 or 503). */
+export function isBusyStatus(status: number): boolean {
+  return BUSY_STATUSES.includes(status);
+}
+
+/** The whole seconds a Retry-After header asks for, 30 when it names none. At least one, so a page never asks again at
+    once; the server itself always sends whole seconds. */
+export function retryAfterSeconds(header: string | null | undefined): number {
+  const text = header?.trim() ?? '';
+  return /^\d+$/.test(text) ? Math.max(1, Number(text)) : DEFAULT_RETRY_SECONDS;
+}
+
+/** A read the server was too busy to give: its status, passed on as it came, and the seconds it asked to be left. */
+export class ShopBusy extends Error {
+  constructor(
+    readonly status: number,
+    readonly retryAfter: number,
+    what: string,
+  ) {
+    super(
+      `the server was too busy to give ${what} (status ${String(status)}); try again in ${String(retryAfter)} s`,
+    );
+    this.name = 'ShopBusy';
+  }
+}
+
+/** Throws ShopBusy when the server was too busy to give what the page needs; any other answer is the caller's to read. */
+export function throwIfBusy(answer: ServerAnswer<unknown>, what: string): void {
+  if (isBusyStatus(answer.status)) {
+    throw new ShopBusy(answer.status, retryAfterSeconds(answer.retryAfter), what);
+  }
+}
+
 // TEN-27: which shop a host serves is kept 5 seconds at most, so a removed domain, a suspended or archived shop, and a
 // domain gone back to its subdomain all show within the 5 seconds the server's own lookup is held to.
 const CONTEXT_TTL_MS = 5_000;
@@ -447,6 +489,8 @@ const SHELL_TTL_MS = 60_000;
 export class StorefrontApi {
   private readonly contexts = new Map<string, { at: number; context: StorefrontContext }>();
   private readonly shells = new Map<string, { at: number; read: Promise<unknown> }>();
+  // Slice 9.10: each shop as last read, so a page the server is too busy to give still wears the shop's own mark.
+  private readonly lastShops = new Map<string, PublicShop>();
 
   constructor(
     private readonly server: Pick<ServerApi, 'send'>,
@@ -467,6 +511,7 @@ export class StorefrontApi {
       headers: this.internalHeaders(),
     });
     if (answer.status !== 200 || !answer.data) {
+      throwIfBusy(answer, 'the shop this host serves');
       throw new Error(`the server did not name the shop (status ${String(answer.status)})`);
     }
     this.contexts.set(name, { at: this.now(), context: answer.data });
@@ -474,12 +519,19 @@ export class StorefrontApi {
   }
 
   shop(shop: StorefrontShopContext, shopper: ShopperRequest): Promise<PublicShop> {
-    return this.kept(`${shop.slug} shop`, async () =>
-      StorefrontApi.required(
+    return this.kept(`${shop.slug} shop`, async () => {
+      const info = StorefrontApi.required(
         await this.call<PublicShop>(shop, shopper, 'GET', '/v1/shop'),
         'the shop',
-      ),
-    );
+      );
+      this.lastShops.set(shop.slug, info);
+      return info;
+    });
+  }
+
+  /** The shop as it was last read, for a page drawn while the server is too busy to read it again; null before any. */
+  lastShop(slug: string): PublicShop | null {
+    return this.lastShops.get(slug) ?? null;
   }
 
   categories(shop: StorefrontShopContext, shopper: ShopperRequest): Promise<PublicCategory[]> {
@@ -599,7 +651,10 @@ export class StorefrontApi {
       `/v1/track/${encodeURIComponent(trackingId)}`,
     );
     if (answer.status === 404) return { kind: 'missing' };
-    if (answer.status === 429) return { kind: 'busy' };
+    // Too many looks: tracking says so in its own words (`e48BusyP`); a busy server (503) is the busy page's.
+    if (answer.status === 429) {
+      return { kind: 'busy', retryAfter: retryAfterSeconds(answer.retryAfter) };
+    }
     return { kind: 'found', order: StorefrontApi.required(answer, 'the order') };
   }
 
@@ -678,6 +733,7 @@ export class StorefrontApi {
 
   private static required<T>(answer: ServerAnswer<T>, what: string): T {
     if (answer.status >= 200 && answer.status < 300 && answer.data !== null) return answer.data;
+    throwIfBusy(answer, what);
     throw new Error(
       `the server did not give ${what} (status ${String(answer.status)}${answer.code ? `, ${answer.code}` : ''})`,
     );

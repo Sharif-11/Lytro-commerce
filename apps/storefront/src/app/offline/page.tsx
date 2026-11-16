@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { withBusyPage } from '@/components/busy-page';
 import { OfflinePage, OfflineUnsavedPage } from '@/components/pages';
 import { loadShopPage } from '@/lib/storefront';
 
@@ -9,9 +10,9 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
-export default async function OfflineUnsaved() {
+export default withBusyPage(async function OfflineUnsaved() {
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
   if (page.state === 'missing' || !page.shop.storefrontEnabled) notFound();
   return <OfflineUnsavedPage words={page.words} shop={page.info} />;
-}
+});

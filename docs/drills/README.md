@@ -11,6 +11,7 @@ choice). They are the records DAT-29, BKP-02, DAT-26, DAT-40, DAT-54 and DAT-57 
 | `shop` | quarterly | §10.4 | a test shop's deleted orders and payments come back; every other shop's fingerprint is unchanged |
 | `server` | yearly, and before launch | §10.5 | service back from R2 on a new server (outside Bangladesh for the yearly one) within 4 hours |
 | `failover` | before the first real standby, then quarterly | §10.6, §10.7 | a promoted replica takes writes within 10 minutes; the old main is fenced |
+| `load` | before launch, on staging then the production server (Phase 9 Slice 9.10) | `deploy/load/README.md` | twice the capacity model's 100-shop peak with errors under 1%, API reads under 500 ms and search under 300 ms at the 95th percentile |
 
 ## The record
 
