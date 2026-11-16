@@ -24,7 +24,7 @@ import { Gallery } from './gallery';
 import { AddOnGroups, AskedFields, ComboInside, usePicks } from './pickers';
 import { AreaSheet, DeliveryBanner, ShareLinks, ShareSheet, SizeChartSheet } from './sheets';
 import { useDesignChoice } from './use-design-choice';
-import { useDeliveryEstimate } from './use-delivery';
+import { useSettledEstimate } from './use-delivery';
 
 export interface ProductViewProps {
   language: Language;
@@ -70,7 +70,8 @@ export function ProductView(props: ProductViewProps) {
   const unavailable = !soldOut && !designs.needed && (variant === null || !variant.available);
   // Only what can be bought is priced: a sold-out choice keeps the last answer instead of reading as undeliverable.
   const items = variant?.available ? [{ variantId: variant.id, quantity }] : null;
-  const estimate = useDeliveryEstimate(props.initialEstimate, items, areaId);
+  const delivery = useSettledEstimate(props.initialEstimate, items, areaId);
+  const { estimate } = delivery;
 
   useEffect(() => {
     if (!toast) return;
@@ -199,6 +200,7 @@ export function ProductView(props: ProductViewProps) {
               onArea={() => {
                 setSheet('area');
               }}
+              busy={delivery.busy ? { onRetry: delivery.retry } : null}
             />
             <PayLine product={product} words={words} />
             <LimitedLine product={product} zones={zones} words={words} />

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { HomeView } from '@/components/home/home-view';
+import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
+import { HomeView, loadHome } from '@/components/home/home-view';
 import { OfflinePage } from '@/components/pages';
 import { loadShopPage } from '@/lib/storefront';
 
@@ -8,7 +9,7 @@ import { loadShopPage } from '@/lib/storefront';
 // link to the cart works. The cart itself lives in the shopper's browser (SFT-05).
 export const dynamic = 'force-dynamic';
 
-export async function generateMetadata(): Promise<Metadata> {
+export const generateMetadata = withBusyMetadata(async (): Promise<Metadata> => {
   const page = await loadShopPage();
   if (page.state !== 'open' || !page.shop.storefrontEnabled) return {};
   return {
@@ -16,11 +17,11 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${page.words.t('cart_title')} · ${page.info.name}`,
     robots: { index: false, follow: true },
   };
-}
+});
 
-export default async function CartPage() {
+export default withBusyPage(async function CartPage() {
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
   if (page.state === 'missing' || !page.shop.storefrontEnabled) notFound();
-  return <HomeView page={page} startCartOpen />;
-}
+  return <HomeView page={page} home={await loadHome(page)} startCartOpen />;
+});

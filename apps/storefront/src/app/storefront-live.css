@@ -215,3 +215,16 @@ button.vb.pic img {
   padding: 0 8px 0 4px;
   font-weight: 600;
 }
+
+/* Slice 9.10 (STOREFRONT-DESIGN §7h): a list's next page the server was too busy to give, said under the list in the
+   delivery line's words and look (`p910-busy-delivery`), its Try again where Show more was. */
+.more-busy {
+  text-align: center;
+  font-size: 14px;
+}
+.more-busy .lnk {
+  color: var(--accent-text);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}

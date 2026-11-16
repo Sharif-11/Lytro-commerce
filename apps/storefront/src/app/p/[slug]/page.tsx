@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
+import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { OfflinePage } from '@/components/pages';
 import { ProductCard } from '@/components/product-card';
 import { ProductView } from '@/components/product/product-view';
@@ -21,7 +22,7 @@ interface Props {
   searchParams: Promise<{ v?: string | string[] }>;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export const generateMetadata = withBusyMetadata(async ({ params }: Props): Promise<Metadata> => {
   const { slug } = await params;
   const page = await loadShopPage();
   if (page.state !== 'open' || !page.shop.storefrontEnabled) return {};
@@ -33,9 +34,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     page.shop.publicOrigin,
     `/p/${read.product.slug}`,
   );
-}
+});
 
-export default async function ProductPage({ params, searchParams }: Props) {
+export default withBusyPage(async function ProductPage({ params, searchParams }: Props) {
   const [{ slug }, { v }] = await Promise.all([params, searchParams]);
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
@@ -94,4 +95,4 @@ export default async function ProductPage({ params, searchParams }: Props) {
       ) : null}
     </ShopShell>
   );
-}
+});

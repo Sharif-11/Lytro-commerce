@@ -20,6 +20,8 @@ export function languageCookieValue(language: Language): string {
   return `${LANGUAGE_COOKIE}=${language}; Path=/; Max-Age=${String(LANGUAGE_COOKIE_MAX_AGE)}; SameSite=Lax`;
 }
 
+const BANGLA_DIGITS = '০১২৩৪৫৬৭৮৯';
+
 /** Every word on a page, in the shopper's language, as the prototype writes them. */
 export class Words {
   constructor(readonly language: Language) {}
@@ -44,6 +46,14 @@ export class Words {
   /** One of two words the shop or the platform gave in both languages. */
   pick(bilingual: { bn: string; en: string }): string {
     return this.language === 'bn' ? bilingual.bn : bilingual.en;
+  }
+
+  /** A whole number in the shopper's own digits, as the prototype writes a busy page's wait (৩০ in Bangla, Part 910). */
+  digits(n: number): string {
+    const text = String(n);
+    return this.language === 'bn'
+      ? text.replace(/\d/g, (digit) => BANGLA_DIGITS[Number(digit)] ?? digit)
+      : text;
   }
 }
 

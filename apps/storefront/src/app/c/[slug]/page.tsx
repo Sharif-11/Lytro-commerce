@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { ListView } from '@/components/catalogue/list-view';
 import { OfflinePage } from '@/components/pages';
 import { ShopShell } from '@/components/shop-shell';
@@ -15,7 +16,7 @@ interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export const generateMetadata = withBusyMetadata(async ({ params }: Props): Promise<Metadata> => {
   const { slug } = await params;
   const page = await loadShopPage();
   if (page.state !== 'open' || !page.shop.storefrontEnabled) return {};
@@ -24,9 +25,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     metadataBase: new URL(page.shop.publicOrigin),
     title: found ? `${found.category.name} · ${page.info.name}` : page.info.name,
   };
-}
+});
 
-export default async function CategoryPage({ params, searchParams }: Props) {
+export default withBusyPage(async function CategoryPage({ params, searchParams }: Props) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
@@ -88,4 +89,4 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       />
     </ShopShell>
   );
-}
+});

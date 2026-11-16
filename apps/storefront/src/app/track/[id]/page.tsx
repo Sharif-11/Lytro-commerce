@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { TrackFrame } from '@/components/order/track-frame';
+import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
+import { loadTrackFrame, TrackFrame } from '@/components/order/track-frame';
 import { TrackingRefused, TrackingView } from '@/components/order/tracking-view';
 import { OfflinePage } from '@/components/pages';
 import { loadShopPage, storefrontApi } from '@/lib/storefront';
@@ -13,7 +14,7 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata(): Promise<Metadata> {
+export const generateMetadata = withBusyMetadata(async (): Promise<Metadata> => {
   const page = await loadShopPage();
   if (page.state !== 'open') return {};
   return {
@@ -21,17 +22,20 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${page.words.t('tr_title')} · ${page.info.name}`,
     robots: { index: false, follow: false },
   };
-}
+});
 
-export default async function TrackedOrderPage({ params }: Props) {
+export default withBusyPage(async function TrackedOrderPage({ params }: Props) {
   const { id } = await params;
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
   if (page.state === 'missing') notFound();
   const trackingId = decodeURIComponent(id).toUpperCase();
-  const read = await storefrontApi.track(page.shop, page.shopper, trackingId);
+  const [read, frame] = await Promise.all([
+    storefrontApi.track(page.shop, page.shopper, trackingId),
+    loadTrackFrame(page),
+  ]);
   return (
-    <TrackFrame page={page}>
+    <TrackFrame page={page} frame={frame}>
       {read.kind === 'found' ? (
         <TrackingView
           order={read.order}
@@ -43,4 +47,4 @@ export default async function TrackedOrderPage({ params }: Props) {
       )}
     </TrackFrame>
   );
-}
+});

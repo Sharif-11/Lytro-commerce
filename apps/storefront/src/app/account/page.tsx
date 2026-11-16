@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { AccountHead } from '@/components/account/account-parts';
 import { OrdersView } from '@/components/account/orders-view';
+import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { OfflinePage } from '@/components/pages';
 import { ShopShell } from '@/components/shop-shell';
 import { accountPage } from '@/lib/account/account-page';
@@ -9,7 +10,7 @@ import { loadFrame, loadOrders, loadShopPage } from '@/lib/storefront';
 // ORD-18, CUS-05 (`account-orders`): My account: every order with this phone. Signed out, it leads to Sign in.
 export const dynamic = 'force-dynamic';
 
-export async function generateMetadata(): Promise<Metadata> {
+export const generateMetadata = withBusyMetadata(async (): Promise<Metadata> => {
   const page = await loadShopPage();
   if (page.state !== 'open') return {};
   return {
@@ -17,9 +18,9 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${page.words.t('account')} · ${page.info.name}`,
     robots: { index: false, follow: false },
   };
-}
+});
 
-export default async function AccountPage() {
+export default withBusyPage(async function AccountPage() {
   const opened = await accountPage('/account');
   if ('closed' in opened) return <OfflinePage words={opened.words} />;
   const { page, shopper } = opened;
@@ -34,4 +35,4 @@ export default async function AccountPage() {
       />
     </ShopShell>
   );
-}
+});

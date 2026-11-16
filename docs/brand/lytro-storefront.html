@@ -1868,6 +1868,36 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 </style>`);
 /* ---------- end of Part 99 (Slice 9.9 sketch) ---------- */
 
+/* ---------- Phase 9 Slice 9.10 (sketch, 2026-11-14): a page the server is too busy to give. Staging's load test found a
+   storefront page answering Next's error page when the API said "too many requests" (429) or "busy" (503). Now the
+   page says so calmly, the way the offline page does, and tries again by itself after the server's wait; a figure the
+   page asks for itself (the delivery charge) says it can't be shown and offers Try again. ---------- */
+const G910 = 'Phase 9 · Slice 9.10 (sketch)';
+Object.assign(S, {
+  p910BusyH: ['শপটি এই মুহূর্তে খুব ব্যস্ত', 'The shop is very busy right now'],
+  p910BusyP: ['এক মিনিট পরে আবার চেষ্টা করুন। আপনার কার্টে রাখা জিনিস ঠিক থাকবে।', 'Please try again in a minute. Anything in your cart stays there.'],
+  p910BusyAuto: ['{n} সেকেন্ড পরে পেজটি নিজেই আবার খুলবে', 'The page tries again by itself in {n} seconds'],
+  p910BusyBtn: ['আবার চেষ্টা করুন', 'Try again'],
+  p910DelivBusy: ['এখন দেখা যাচ্ছে না', "can't be shown right now"],
+  p910DelivAgain: ['আবার চাপুন', 'Try again'],
+});
+def('p910-busy', { group: G910, label: 'A page the shop is too busy to give right now (429 or 503)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => `<div class="bare"><div class="box">${logo()}<h1>${t('p910BusyH')}</h1><p>${t('p910BusyP')}</p><button class="btn primary" onclick="go('product')">${t('p910BusyBtn')}</button><div class="p910-auto">${I.clock}<span>${t('p910BusyAuto', { n: L('৩০', '30') })}</span></div><div style="color:var(--subtle)">${I.pb}</div></div></div>` });
+def('p910-busy-delivery', { group: G910, label: '· the page came, but its delivery charge was too busy to read', url: 'megh.lytro.app/p/cotton-panjabi', render: () => {
+  const h = shell(pHdr(P[0]), productPage(P[0], { area: true }), buybar(P[0]));
+  const at = `<b>${t('deliv_est')}</b>: `;
+  const from = h.indexOf(at);
+  const to = from < 0 ? -1 : h.indexOf('</span></div>', from);
+  if (from < 0 || to < 0) throw new Error('Part 910: the product page\'s delivery line moved');
+  return `${h.slice(0, from + at.length)}<span class="p910-busy-line">${t('p910DelivBusy')}</span> · <span class="lnk" onclick="go('product-area')">${t('p910DelivAgain')}</span>${h.slice(to)}`;
+} });
+document.head.insertAdjacentHTML('beforeend', `<style>
+/* Part 910 (Slice 9.10, sketch) */
+.bare .p910-auto{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--n700)}
+.bare .p910-auto svg{width:16px;height:16px}
+.p910-busy-line{color:var(--n700)}
+</style>`);
+/* ---------- end of Part 910 (Slice 9.10 sketch) ---------- */
+
 /* ---------- toolbar ---------- */
 (function init() {
   const sel = document.getElementById('selScreen'); const groups = {};

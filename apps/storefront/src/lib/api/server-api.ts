@@ -18,6 +18,8 @@ export interface ServerAnswer<T> {
   data: T | null;
   code: string | null;
   details: Record<string, unknown>;
+  /** The Retry-After header as it came, when it came: how long a busy server asks to be left (Slice 9.10). */
+  retryAfter?: string | null;
 }
 
 export interface ServerCall {
@@ -34,6 +36,7 @@ export interface ServerBytes {
   status: number;
   contentType: string | null;
   body: Buffer;
+  retryAfter: string | null;
 }
 
 /** Sends calls to the server's address and unwraps its envelope. */
@@ -57,6 +60,7 @@ export class ServerApi {
       data: envelope?.success ? ((envelope.data ?? null) as T | null) : null,
       code: envelope && !envelope.success ? (envelope.errors?.code ?? null) : null,
       details: envelope?.errors?.details ?? {},
+      retryAfter: answer.retryAfter,
     };
   }
 
@@ -95,6 +99,7 @@ export class ServerApi {
               status: incoming.statusCode ?? 502,
               contentType: incoming.headers['content-type'] ?? null,
               body: Buffer.concat(chunks),
+              retryAfter: incoming.headers['retry-after'] ?? null,
             });
           });
           incoming.on('error', reject);

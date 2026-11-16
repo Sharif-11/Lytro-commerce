@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { ServiceWorker } from '@/components/service-worker';
 import { iconPath, themeColor } from '@/lib/app/app-manifest';
 import { LANGUAGE_COOKIE, parseLanguage } from '@/lib/i18n/words';
-import { leadToMainAddress, loadShopPage } from '@/lib/storefront';
+import { leadToMainAddress, loadShopPageUnlessBusy } from '@/lib/storefront';
 import './fonts.css';
 import './storefront.css';
 import './storefront-live.css';
@@ -12,10 +12,12 @@ import './storefront-live.css';
 // SFT-01: one app for every shop; the host names the shop, so each page reads it and sets its own title and tags. For
 // an open shop, the frame adds the tab's icon and the iPhone's (BRN-02, Slice 12c) and, while its storefront is on, the
 // app manifest (SFT-14); a closed shop's page names no shop (LIF-07), so it has neither. A shop whose own domain serves
-// is answered there only (Slice 13).
+// is answered there only (Slice 13). A shop the server was too busy to give (Slice 9.10) gets none of the frame's own:
+// the page shows the busy page, which says noindex itself.
 export async function generateMetadata(): Promise<Metadata> {
   const base: Metadata = { title: 'Lytro', robots: { index: true, follow: true } };
-  const page = await loadShopPage();
+  const page = await loadShopPageUnlessBusy();
+  if (page === null) return { ...base, robots: null };
   if (page.state !== 'open') return base;
   return {
     ...base,
@@ -30,19 +32,19 @@ export async function generateMetadata(): Promise<Metadata> {
 /** The phone's bar in the shop's main colour while its identity shows, else Lytro's (BRN-02). */
 export async function generateViewport(): Promise<Viewport> {
   const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' };
-  const page = await loadShopPage();
-  return page.state === 'open' ? { ...viewport, themeColor: themeColor(page.info) } : viewport;
+  const page = await loadShopPageUnlessBusy();
+  return page?.state === 'open' ? { ...viewport, themeColor: themeColor(page.info) } : viewport;
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const language = parseLanguage((await cookies()).get(LANGUAGE_COOKIE)?.value);
-  const page = await loadShopPage();
-  await leadToMainAddress(page);
+  const page = await loadShopPageUnlessBusy();
+  if (page !== null) await leadToMainAddress(page);
   return (
     <html lang={language}>
       <body>
         {children}
-        {page.state === 'open' && page.shop.storefrontEnabled ? <ServiceWorker /> : null}
+        {page?.state === 'open' && page.shop.storefrontEnabled ? <ServiceWorker /> : null}
       </body>
     </html>
   );

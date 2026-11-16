@@ -51,6 +51,14 @@ export type NextOrder =
   /** The connection drops; with `placed`, only after the order was made, as a timeout can. */
   | { drop: { placed: boolean } };
 
+/** Slice 9.10: a public API path the server refuses, by its exact pathname, until the test lifts it: as too busy (429,
+    503, with the wait it names, if any) or as broken (500). */
+export interface Refusal {
+  path: string;
+  status: number;
+  retryAfter?: number;
+}
+
 export interface ShopFixture {
   slug: string;
   outcome: 'open' | 'closed';
@@ -77,6 +85,8 @@ export interface ShopFixture {
   resendAfterSeconds: number;
   /** D9-14 (Slice 9.9): the context says orders can't be saved for now. */
   savingPaused?: boolean;
+  /** Slice 9.10: what the server refuses for now. */
+  refusals?: Refusal[];
 }
 
 /** An order as the mocked server was sent it. */
