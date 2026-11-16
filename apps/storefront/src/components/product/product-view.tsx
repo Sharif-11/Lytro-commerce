@@ -8,6 +8,7 @@ import { type Language, money, Words } from '@/lib/i18n/words';
 import { lineImageOf } from '@/lib/product/designs';
 import { quantityRule } from '@/lib/product/quantity';
 import { VariantChoice } from '@/lib/product/variant-choice';
+import type { ShopChat } from '@/lib/shop/shop-chat';
 import { Icon } from '../icon';
 import {
   DeliveryLine,
@@ -23,6 +24,7 @@ import {
 import { Gallery } from './gallery';
 import { AddOnGroups, AskedFields, ComboInside, usePicks } from './pickers';
 import { AreaSheet, DeliveryBanner, ShareLinks, ShareSheet, SizeChartSheet } from './sheets';
+import { ShopChatRow } from './shop-chat-row';
 import { useDesignChoice } from './use-design-choice';
 import { useSettledEstimate } from './use-delivery';
 
@@ -33,6 +35,8 @@ export interface ProductViewProps {
   category: string | null;
   zones: DeliveryZoneView[];
   shopPhone: string | null;
+  /** SFT-21 (UI/UX batch 2): the shop's WhatsApp and Messenger, for the row under the buttons. */
+  chat: ShopChat;
   linkedVariantId: string | null;
   areaId: number | null;
   initialEstimate: DeliveryEstimate | null;
@@ -234,6 +238,7 @@ export function ProductView(props: ProductViewProps) {
               </>
             )}
           </div>
+          <ShopChatRow chat={props.chat} words={words} />
           <div className="acc">
             {product.description ? (
               <details open>

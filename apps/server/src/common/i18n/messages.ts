@@ -214,6 +214,14 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'This add-on is bought one at a time.',
     bn: 'এই অ্যাড-অন একবারে একটিই কেনা যায়।',
   },
+  AddonAmountTooLarge: {
+    en: 'That many costs more than one payment can hold. Buy fewer at a time.',
+    bn: 'এতগুলোর দাম এক পেমেন্টে নেওয়া যায় না। একবারে কম করে কিনুন।',
+  },
+  AddonPriced: {
+    en: 'Price worked out.',
+    bn: 'দাম হিসাব হয়েছে।',
+  },
   AddonAlreadyActive: {
     en: 'Your shop already has this add-on.',
     bn: 'আপনার শপে এই অ্যাড-অন আগে থেকেই চালু আছে।',

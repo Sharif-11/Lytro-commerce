@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { BillingInfoRow, Transaction } from '@lytronix/db';
 import {
   ActorType,
-  ADDON_QUANTITY_MAX,
+  ADDON_OFFER_QUANTITIES,
   ADDON_WARNING_DAYS,
   AddonKind,
   AddonPurchaseStatus,
@@ -21,6 +21,7 @@ import {
   PlanPaymentStatus,
   TenantState,
   type PlanLimits,
+  type AddonPriceQuery,
   type QuoteAddonInput,
 } from '@lytronix/validators';
 import { NotificationKind } from '@lytronix/validators';
@@ -43,6 +44,7 @@ import { ADDONS_STORE, CLOCK } from '../tokens';
 import type {
   ActiveAddon,
   AddonOffer,
+  AddonPriceView,
   AddonPurchaseRecord,
   AddonPurchaseResult,
   AddonQuote,
@@ -59,7 +61,7 @@ import {
   NOT_RENEWING,
   type OwnPeriod,
 } from './addon-renewal.service';
-import { assertAmountSeen } from './amount-seen';
+import { assertAmountHeld, assertAmountSeen } from './amount-seen';
 import { ADDON_NOT_TAKEN, addonPaymentToBalanceWords } from './billing-notice-words';
 import { BillingTermsService } from './billing-terms.service';
 import { addonLine } from './plan-invoicing.service';
@@ -216,7 +218,7 @@ export class AddonPurchaseService {
       }
       // PLN-15: a pack's price is fixed and it has no end; it is bought by `POST /addons/packs`.
       if (pack) {
-        const amounts = upTo(ADDON_QUANTITY_MAX).map((quantity) =>
+        const amounts = upTo(ADDON_OFFER_QUANTITIES).map((quantity) =>
           Number(packPrice(addon, quantity)),
         );
         const price = amounts[0] ?? null;
@@ -233,7 +235,7 @@ export class AddonPurchaseService {
           },
         ];
       }
-      const most = addon.kind === AddonKind.Feature ? 1 : ADDON_QUANTITY_MAX;
+      const most = addon.kind === AddonKind.Feature ? 1 : ADDON_OFFER_QUANTITIES;
       const amounts = upTo(most).map((quantity) =>
         this.priceOf(addon, quantity, buying.period, now),
       );
@@ -266,6 +268,34 @@ export class AddonPurchaseService {
   }
 
   /**
+   * PLN-14 (UI/UX batch 2): what `quantity` of an add-on costs now, held nowhere -- the buy sheet asks it for a quantity
+   * past the offer's first ADDON_OFFER_QUANTITIES. Refused as a quote of that quantity would be; a pack's price is fixed.
+   */
+  async price(tenantId: string, input: AddonPriceQuery): Promise<AddonPriceView> {
+    const now = this.clock();
+    const buying = await this.buyingOf(tenantId, now);
+    if (!buying) throw new ApiError('plan_feature_unavailable', 'AddonNotAvailable', {});
+    const addon = await this.store.run((tx) => this.store.findById(tx, input.addonId));
+    if (!addon) throw new ApiError('not_found', 'AddonNotFound', {});
+    if (addon.kind === AddonKind.Pack) {
+      if (addon.retiredAt) throw new ApiError('not_found', 'AddonNotFound', {});
+      const amount = packPrice(addon, input.quantity);
+      assertAmountHeld(amount);
+      return { quantity: input.quantity, amount: Number(amount), uses: null };
+    }
+    const refusal = refusalOf(addon, input.quantity, await this.holdingsOf(tenantId, buying.info));
+    if (refusal) throw refusal;
+    const amount = this.priceOf(addon, input.quantity, buying.period, now);
+    assertAmountHeld(amount.toFixed(2));
+    const uses =
+      addon.kind === AddonKind.Allowance && addon.unitSize !== null
+        ? input.quantity *
+          allowanceUnitUses(addon.unitSize, addon.price, input.quantity, amount.toFixed(2))
+        : null;
+    return { quantity: input.quantity, amount, uses };
+  }
+
+  /**
    * PLN-14, BIL-09: prices the add-on to the period's end and holds the price for 30 minutes -- the request, made when
    * the seller commits, refused when the price is no longer the one shown (`assertAmountSeen`).
    */
@@ -279,6 +309,7 @@ export class AddonPurchaseService {
     if (refusal) throw refusal;
 
     const amount = this.priceOf(addon, input.quantity, buying.period, now).toFixed(2);
+    assertAmountHeld(amount);
     assertAmountSeen(input.amount, amount);
     return this.store.run(async (tx) => {
       const payment = await this.payments.quote(

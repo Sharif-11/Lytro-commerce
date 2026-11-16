@@ -559,3 +559,27 @@ a token that expired, or a stopped monitor (start it as §11 step 3 does, with `
 The API not ready: `curl -s https://api.<domain>/health/ready | jq` says which way the database is. The order probe
 failed: its check's log names the step; place the same order by hand. Jobs late: `/health/jobs` names them, and each
 job's lines are in the journal (12.2); a late backup is §10.1.
+
+## 13. The brand icon beside Lytro's emails (BIMI)
+
+Mail apps don't take a sender's icon from the email itself: they read it from DNS, by BIMI. Lytro's logo for it is
+`https://lytro.app/bimi/lytro.svg` (the website's `public/bimi/lytro.svg`, SVG Tiny PS: square, a title, no script or
+link). Lytro sends from `MAIL_FROM`, by default `Lytro <no-reply@mail.lytro.app>`, so the records are for
+`mail.lytro.app` and its organisational domain `lytro.app`.
+
+1. **Mail must already pass DMARC.** Resend signs as `mail.lytro.app` (DKIM) and its SPF covers it: in Resend's
+   dashboard the domain shows "Verified". A domain that isn't must be fixed first, or step 2 sends Lytro's mail to spam.
+2. **DMARC at enforcement.** In Cloudflare DNS (lytro.app), the TXT record `_dmarc` (for `lytro.app`) and, when present,
+   `_dmarc.mail` must say `p=quarantine` or `p=reject`, `pct=100`, and no `sp=none`. Start with quarantine and a report
+   address you read, for example `v=DMARC1; p=quarantine; pct=100; rua=mailto:dmarc@lytro.app`. Watch the reports for a
+   week before moving on: any of Lytro's own mail that fails is fixed at its sender, not by loosening the policy.
+3. **The BIMI record.** TXT `default._bimi.mail` (for `mail.lytro.app`):
+   `v=BIMI1; l=https://lytro.app/bimi/lytro.svg; a=`. The empty `a=` says there is no certificate.
+4. **Check.** `dig +short TXT default._bimi.mail.lytro.app` and `dig +short TXT _dmarc.lytro.app` show both records; the
+   BIMI Group's checker (bimigroup.org, "BIMI Inspector") reads the record, the policy and the SVG together and names
+   what's wrong. `curl -sI https://lytro.app/bimi/lytro.svg` answers 200 with `image/svg+xml`.
+
+**What shows it.** Yahoo Mail and some other apps show the logo with these records alone, once the sender has a good
+reputation. **Gmail and Apple Mail show it only with a paid mark certificate** (a VMC, or Gmail's cheaper CMC), which
+goes in `a=` as its `.pem` link; until then they keep the letter icon. Buying one is the owner's decision (the
+2026-11-16 answer was the free route).

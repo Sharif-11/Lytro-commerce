@@ -94,7 +94,9 @@ drawer; checkout, the landing page and tracking split into form and summary.
 navigation at all (LND-01).
 
 **Footer** (SFT-21): the shop's name and logo, whichever of its contact phone, email and address are set
-(TEN-30), links to categories, tracking, the account and the language, and "Powered by Lytro".
+(TEN-30), links to categories, tracking, the account and the language, and "Powered by Lytro". Since UI/UX batch 2
+the contact block also lists whichever of the shop's WhatsApp ("01711 223 344"), Messenger ("m.me/<username>")
+and Facebook page ("facebook.com/<page>") are set, each with its icon, opening in a new tab.
 
 ## 2. Home (`/`)
 
@@ -132,7 +134,9 @@ it (`product-unavailable`). Quantity. Three lines with icons: delivery (the rang
 after "Set your area", a sheet with district and thana from the canonical list, CUS-08, SFT-20), payment
 ("Cash on delivery · Pay when it arrives", or "৳200 advance, the rest on delivery" when the product's policy
 needs one, PRD-08), and "Delivers to Dhaka city only" when a product is limited (DLV-07). Add to cart and
-Buy now. Description exactly as typed, details from the informational attributes (ATR-09), care and
+Buy now. Under them (UI/UX batch 2, SFT-21) the ask row: "প্রশ্ন আছে? শপকে সরাসরি মেসেজ দিন" with a WhatsApp and a
+Messenger button, whichever the shop set, each opening that app's chat with the shop in a new tab; neither set, no
+row. Description exactly as typed, details from the informational attributes (ATR-09), care and
 returns from the shop's text. Share: copy, WhatsApp, Facebook. "You may also like": up to eight products from the
 same main category, in the shop's order, the product itself left out; none for a product with no category, and
 never on a landing page (LND-01).

@@ -253,6 +253,109 @@ describeIfDatabase('shop contact settings (TEN-30)', () => {
   });
 });
 
+describeIfDatabase("the shop's chat contacts (TEN-30, SFT-21; UI/UX batch 2)", () => {
+  function fieldsOf(result: HttpResult): string[] {
+    const fields = (errorOf(result) as { details?: { fields?: { field: string }[] } }).details
+      ?.fields;
+    return (fields ?? []).map((entry) => entry.field);
+  }
+
+  it('starts with WhatsApp, Messenger and the Facebook page unset', async () => {
+    const who = await owner();
+    expect((await get('/shop-settings', shopCall(who))).body).toMatchObject({
+      whatsapp: null,
+      messenger: null,
+      facebookPage: null,
+    });
+  });
+
+  it('keeps each in one form, whatever form the seller typed or pasted', async () => {
+    const who = await owner();
+    const cases: [Record<string, string>, Record<string, string>][] = [
+      [
+        {
+          whatsapp: '+880 1711-234567',
+          messenger: '@megh.fashion',
+          facebookPage: 'facebook.com/meghfashion/',
+        },
+        {
+          whatsapp: '01711234567',
+          messenger: 'megh.fashion',
+          facebookPage: 'https://www.facebook.com/meghfashion',
+        },
+      ],
+      [
+        {
+          whatsapp: '8801811234567',
+          messenger: 'https://m.me/meghfashion?ref=page',
+          facebookPage: 'https://m.facebook.com/profile.php?id=100012345678901&ref=x',
+        },
+        {
+          whatsapp: '01811234567',
+          messenger: 'meghfashion',
+          facebookPage: 'https://www.facebook.com/profile.php?id=100012345678901',
+        },
+      ],
+      [
+        { messenger: 'www.messenger.com/t/megh-fashion', facebookPage: 'https://fb.com/megh' },
+        { messenger: 'megh-fashion', facebookPage: 'https://www.facebook.com/megh' },
+      ],
+    ];
+    for (const [typed, kept] of cases) {
+      const saved = await patch('/shop-settings', typed, shopCall(who));
+      expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+      expect(saved.body).toMatchObject(kept);
+      expect((await get('/shop-settings', shopCall(who))).body).toMatchObject(kept);
+    }
+  });
+
+  it('refuses what is not a Bangladeshi mobile, a Messenger username or a Facebook page, keeping the old values', async () => {
+    const who = await owner();
+    const good = {
+      whatsapp: '01711234567',
+      messenger: 'meghfashion',
+      facebookPage: 'https://www.facebook.com/meghfashion',
+    };
+    expect((await patch('/shop-settings', good, shopCall(who))).status).toBe(200);
+    const refused = await patch(
+      '/shop-settings',
+      {
+        whatsapp: '0171123',
+        messenger: 'https://m.me/megh fashion',
+        facebookPage: 'https://instagram.com/meghfashion',
+      },
+      shopCall(who),
+    );
+    expect(refused.status).toBe(400);
+    expect(errorOf(refused)).toMatchObject({ code: 'validation_error' });
+    expect(fieldsOf(refused).sort()).toEqual(['facebookPage', 'messenger', 'whatsapp']);
+    for (const facebookPage of ['https://www.facebook.com/', 'facebook.com/profile.php?id=abc']) {
+      expect((await patch('/shop-settings', { facebookPage }, shopCall(who))).status).toBe(400);
+    }
+    expect((await get('/shop-settings', shopCall(who))).body).toMatchObject(good);
+  });
+
+  it('clears one with null or an empty box, leaving the others as they were', async () => {
+    const who = await owner();
+    await patch(
+      '/shop-settings',
+      { whatsapp: '01711234567', messenger: 'meghfashion', facebookPage: 'facebook.com/megh' },
+      shopCall(who),
+    );
+    const cleared = await patch(
+      '/shop-settings',
+      { whatsapp: null, messenger: '  ' },
+      shopCall(who),
+    );
+    expect(cleared.status).toBe(200);
+    expect(cleared.body).toMatchObject({
+      whatsapp: null,
+      messenger: null,
+      facebookPage: 'https://www.facebook.com/megh',
+    });
+  });
+});
+
 describeIfDatabase("the shop's name (TEN-19)", () => {
   it('renames the shop: the settings, the account summary and the activity follow; the address never changes', async () => {
     const who = await owner();

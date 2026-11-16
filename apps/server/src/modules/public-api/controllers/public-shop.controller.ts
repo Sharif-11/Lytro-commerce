@@ -31,6 +31,10 @@ const publicShopViewSchema = z.object({
     phone: z.string().nullable(),
     email: z.string().nullable(),
     address: z.string().nullable(),
+    // SFT-21 (UI/UX batch 2): where shoppers chat with the shop; added keys, each null when unset.
+    whatsapp: z.string().nullable(),
+    messenger: z.string().nullable(),
+    facebookPage: z.string().nullable(),
   }),
   deliveryZones: z.array(
     z.object({
@@ -82,6 +86,9 @@ export class PublicShopController {
         phone: contact?.contactPhone ?? null,
         email: contact?.contactEmail ?? null,
         address: contact?.businessAddress ?? null,
+        whatsapp: contact?.whatsapp ?? null,
+        messenger: contact?.messenger ?? null,
+        facebookPage: contact?.facebookPage ?? null,
       },
       deliveryZones: delivery.zones.map((zone) => ({
         id: zone.id,

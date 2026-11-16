@@ -159,6 +159,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /ad-tracking',
       'GET /addons',
       'GET /addons/mine',
+      'GET /addons/price',
       'GET /api-keys',
       'GET /attributes',
       'GET /balance',

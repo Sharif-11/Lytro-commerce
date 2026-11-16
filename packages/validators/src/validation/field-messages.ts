@@ -177,6 +177,20 @@ const CODE_FORMAT: Translation = {
 const FIELD_MESSAGES: Readonly<Record<string, Partial<Record<FieldProblemCode, Translation>>>> = {
   phone: { [FieldProblemCode.InvalidFormat]: PHONE_FORMAT },
   contactPhone: { [FieldProblemCode.InvalidFormat]: PHONE_FORMAT },
+  // SFT-21 (UI/UX batch 2): the shop's chats.
+  whatsapp: { [FieldProblemCode.InvalidFormat]: PHONE_FORMAT },
+  messenger: {
+    [FieldProblemCode.InvalidFormat]: {
+      en: 'Enter the Messenger username or link, such as m.me/yourshop.',
+      bn: 'Messenger ইউজারনেম বা লিংক দিন, যেমন m.me/yourshop।',
+    },
+  },
+  facebookPage: {
+    [FieldProblemCode.InvalidFormat]: {
+      en: 'Enter the Facebook page link, such as facebook.com/yourshop.',
+      bn: 'Facebook পেজের লিংক দিন, যেমন facebook.com/yourshop।',
+    },
+  },
   code: {
     [FieldProblemCode.InvalidFormat]: CODE_FORMAT,
     [FieldProblemCode.WrongLength]: CODE_FORMAT,

@@ -953,6 +953,13 @@
       "when": 1794637336434,
       "tag": "0136_invoice_shop_address",
       "breakpoints": true
+    },
+    {
+      "idx": 137,
+      "version": "7",
+      "when": 1794853194025,
+      "tag": "0137_shop_chat_contacts",
+      "breakpoints": true
     }
   ]
 }

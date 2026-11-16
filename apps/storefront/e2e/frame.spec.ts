@@ -103,6 +103,17 @@ test.describe('cards (SFT-03)', () => {
 
     await page.goto(shop.url('/p/chiffon-hijab'));
     await expect(page.locator('.pricerow .st.ok')).toHaveText('In stock');
+    // UI/UX batch 2 (2.2): a shopper asks the shop on WhatsApp or Messenger, right under the buttons.
+    const ask = page.locator('.ask');
+    await expect(ask.locator('.ask-t')).toHaveText('A question? Message the shop directly');
+    await expect(ask.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute(
+      'href',
+      'https://wa.me/8801711223344',
+    );
+    await expect(ask.getByRole('link', { name: 'Messenger' })).toHaveAttribute(
+      'href',
+      'https://m.me/meghfashion',
+    );
     await page.goto(shop.url('/p/kids-frock'));
     await expect(page.locator('.pricerow .st.out')).toHaveText('Sold out');
   });
@@ -121,6 +132,22 @@ test.describe('header and footer (SFT-13, SFT-21, TEN-18)', () => {
     );
     await expect(footer.getByRole('link', { name: 'hello@meghfashion.com' })).toBeVisible();
     await expect(footer.getByText('Shop 12, Rapa Plaza')).toBeVisible();
+    // UI/UX batch 2 (2.2): the shop's WhatsApp, Messenger and Facebook page, each opening in a new tab.
+    const chats: [string, string, string][] = [
+      ["The shop's WhatsApp", '01711 223 344', 'https://wa.me/8801711223344'],
+      ["The shop's Messenger", 'm.me/meghfashion', 'https://m.me/meghfashion'],
+      [
+        "The shop's Facebook page",
+        'facebook.com/meghfashion',
+        'https://www.facebook.com/meghfashion',
+      ],
+    ];
+    for (const [name, text, href] of chats) {
+      const link = footer.getByRole('link', { name, exact: true });
+      await expect(link).toHaveText(text);
+      await expect(link).toHaveAttribute('href', href);
+      await expect(link).toHaveAttribute('target', '_blank');
+    }
     await expect(footer.getByRole('link', { name: 'Track order' })).toHaveAttribute(
       'href',
       '/track',
@@ -147,6 +174,10 @@ test.describe('header and footer (SFT-13, SFT-21, TEN-18)', () => {
     }));
     await page.goto(shop.url('/'));
     await expect(page.locator('footer.foot .contact')).toHaveCount(0);
+    await page.goto(shop.url('/p/chiffon-hijab'));
+    await expect(page.locator('.pricerow')).toBeVisible();
+    await expect(page.locator('.ask')).toHaveCount(0);
+    await page.goto(shop.url('/'));
     await expect(page.locator('footer.foot .fshop')).toContainText('Quiet Shop');
   });
 

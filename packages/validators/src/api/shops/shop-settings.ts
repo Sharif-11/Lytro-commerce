@@ -7,6 +7,13 @@ import {
   NAME_MAX_LENGTH,
 } from '../../common/limits';
 import { nonNegativeMoneyField } from '../../common/money';
+import {
+  FACEBOOK_PAGE_MAX_LENGTH,
+  MESSENGER_USERNAME_MAX_LENGTH,
+  facebookPageField,
+  messengerUsernameField,
+  whatsAppNumberField,
+} from '../../common/social-contacts';
 import { PaymentPolicy } from '../../db/enums';
 
 // TEN-30: a tenant's own support/contact details, set from dashboard settings any time after onboarding --
@@ -21,6 +28,11 @@ export const shopSettingsSchema = z.object({
   contactPhone: z.string().max(30).nullable(),
   contactEmail: z.string().max(254).nullable(),
   businessAddress: z.string().max(BUSINESS_ADDRESS_MAX_LENGTH).nullable(),
+  // TEN-30, SFT-21 (UI/UX batch 2): where shoppers chat with the shop. WhatsApp as 01XXXXXXXXX, Messenger as the
+  // username, the Facebook page as https://www.facebook.com/<page>; each null when unset.
+  whatsapp: z.string().max(30).nullable(),
+  messenger: z.string().max(MESSENGER_USERNAME_MAX_LENGTH).nullable(),
+  facebookPage: z.string().max(FACEBOOK_PAGE_MAX_LENGTH).nullable(),
   extraDeliveryChargePerKg: z.string().max(MONEY_TEXT_MAX_LENGTH),
   // PRD-08: what a product with no payment policy of its own follows.
   defaultPaymentPolicy: z.nativeEnum(PaymentPolicy),
@@ -35,6 +47,10 @@ export const updateShopSettingsSchema = z.object({
   contactPhone: phoneField.nullable().optional(),
   contactEmail: emailField.nullable().optional(),
   businessAddress: z.string().trim().max(BUSINESS_ADDRESS_MAX_LENGTH).nullable().optional(),
+  // TEN-30, SFT-21: an empty box or null clears each; a pasted m.me or facebook.com link is accepted and kept in one form.
+  whatsapp: whatsAppNumberField.optional(),
+  messenger: messengerUsernameField.optional(),
+  facebookPage: facebookPageField.optional(),
   extraDeliveryChargePerKg: nonNegativeMoneyField.optional(),
   // PRD-08: the shop-wide default payment policy. A partial advance needs its amount (checked by the server
   // against the stored policy, since either may change alone); no other policy takes one.

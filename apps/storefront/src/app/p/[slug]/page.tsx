@@ -8,6 +8,7 @@ import { ShopShell } from '@/components/shop-shell';
 import { categoryById, findCategory } from '@/lib/catalogue/browse';
 import { keptQuery, productOpening } from '@/lib/product/opening';
 import { productMetadata } from '@/lib/product/product-metadata';
+import { shopChatOf } from '@/lib/shop/shop-chat';
 import { loadFrame, loadProduct, loadShopPage, storefrontApi } from '@/lib/storefront';
 
 // SFT-04: a product's page in the shop's storefront, at /p/<slug>. Every request is rendered and counted (SFT-15);
@@ -76,6 +77,7 @@ export default withBusyPage(async function ProductPage({ params, searchParams }:
         category={primary?.name ?? null}
         zones={page.info.deliveryZones}
         shopPhone={page.info.contact.phone}
+        chat={shopChatOf(page.info.contact)}
         linkedVariantId={opening.linkedVariantId}
         areaId={opening.areaId}
         initialEstimate={opening.estimate}

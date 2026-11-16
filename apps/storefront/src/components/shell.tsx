@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { PublicBrand, PublicCategory, PublicShop } from '@/lib/api/storefront-api';
 import { storefrontTheme } from '@/lib/brand/brand-theme';
 import { type Language, Words } from '@/lib/i18n/words';
+import { shopChatOf } from '@/lib/shop/shop-chat';
 import { CartButton } from './cart/cart-button';
 import { Icon } from './icon';
 import { LanguageSwitch } from './language-switch';
@@ -207,8 +208,8 @@ export function Header({
   );
 }
 
-/** SFT-21: the shop's name and logo, and whichever of its phone, email and address are set; none set, no contact
-    block. The storefront's links lead to its categories, tracking, the account and the language; the landing page's lead
+/** SFT-21: the shop's name and logo, and whichever of its phone, email, address, WhatsApp, Messenger and Facebook page
+    are set (the last three from UI/UX batch 2); none set, no contact block. The storefront's links lead to its categories, tracking, the account and the language; the landing page's lead
     out to the shop, only while its storefront is on (SFT-16), and to tracking. */
 export function Footer({
   shop,
@@ -223,7 +224,14 @@ export function Footer({
 }) {
   const words = new Words(language);
   const { phone, email, address } = shop.contact;
-  const hasContact = phone !== null || email !== null || address !== null;
+  const chat = shopChatOf(shop.contact);
+  const hasContact =
+    phone !== null ||
+    email !== null ||
+    address !== null ||
+    chat.whatsapp !== null ||
+    chat.messenger !== null ||
+    chat.facebook !== null;
   return (
     <footer className="foot">
       <div className="cols">
@@ -250,6 +258,45 @@ export function Footer({
                 <div>
                   <Icon name="pin" />
                   <span>{address}</span>
+                </div>
+              ) : null}
+              {chat.whatsapp ? (
+                <div>
+                  <Icon name="wa" />
+                  <a
+                    href={chat.whatsapp.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={words.t('shop_whatsapp')}
+                  >
+                    {chat.whatsapp.label}
+                  </a>
+                </div>
+              ) : null}
+              {chat.messenger ? (
+                <div>
+                  <Icon name="msgr" />
+                  <a
+                    href={chat.messenger.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={words.t('shop_messenger')}
+                  >
+                    {chat.messenger.label}
+                  </a>
+                </div>
+              ) : null}
+              {chat.facebook ? (
+                <div>
+                  <Icon name="fb" />
+                  <a
+                    href={chat.facebook.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={words.t('shop_facebook')}
+                  >
+                    {chat.facebook.label}
+                  </a>
                 </div>
               ) : null}
             </div>

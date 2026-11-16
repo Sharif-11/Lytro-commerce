@@ -230,7 +230,14 @@ describeIfDatabase('public API keys in the dashboard (API-01, API-02, API-21)', 
       brand: null,
       // Slice 12: the logo, contact details and zones the storefront shows.
       logo: null,
-      contact: { phone: null, email: null, address: null },
+      contact: {
+        phone: null,
+        email: null,
+        address: null,
+        whatsapp: null,
+        messenger: null,
+        facebookPage: null,
+      },
       deliveryZones: [
         expect.objectContaining({ charge: '70.00', noDelivery: false }),
         expect.objectContaining({ charge: '130.00', noDelivery: false }),
@@ -258,7 +265,14 @@ describeIfDatabase('the public API host (API-03 to API-05, API-08, API-14, API-2
       brand: null,
       // Slice 12: the logo, contact details and zones the storefront shows.
       logo: null,
-      contact: { phone: null, email: null, address: null },
+      contact: {
+        phone: null,
+        email: null,
+        address: null,
+        whatsapp: null,
+        messenger: null,
+        facebookPage: null,
+      },
       deliveryZones: [
         expect.objectContaining({ charge: '70.00', noDelivery: false }),
         expect.objectContaining({ charge: '130.00', noDelivery: false }),

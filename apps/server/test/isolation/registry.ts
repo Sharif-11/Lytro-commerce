@@ -265,6 +265,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // shop's own.
   'GET /addons':
     "prices the platform-wide catalogue against the session shop's own period and limits",
+  // UI/UX batch 2, checked in test/addons.e2e.spec.ts: priced against the session shop's own period and limits.
+  'GET /addons/price': "prices against the session shop's own period and limits only",
   'GET /addons/mine': "lists only the session shop's own add-ons",
   'POST /addons/quote': 'creates an add-on quote scoped to the session shop only',
   'POST /addons/purchase': "another shop's payment id answers not_found",

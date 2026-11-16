@@ -211,7 +211,14 @@ CREATE TABLE control.tenants (
     -- PLN-15: the auto-buy switches for bandwidth and request packs, off by default. Added by migration
     -- 0076_addon_packs.sql.
     auto_buy_bandwidth     boolean NOT NULL DEFAULT false,
-    auto_buy_requests      boolean NOT NULL DEFAULT false
+    auto_buy_requests      boolean NOT NULL DEFAULT false,
+    -- TEN-30, SFT-21 (UI/UX batch 2, migration 0137_shop_chat_contacts.sql): the shop's chat contacts, beside
+    -- its contact phone, email and business address, each null until set and cleared at the day-60 deletion
+    -- (LIF-19): a WhatsApp number in its local form (01XXXXXXXXX), a Messenger username, and a Facebook page
+    -- link kept as https://www.facebook.com/<page>. The storefront builds wa.me/88<number> and m.me/<username>.
+    whatsapp               varchar(30),
+    messenger              varchar(100),
+    facebook_page          varchar(300)
 );
 CREATE INDEX ON control.tenants (subscriber_id);
 CREATE INDEX ON control.tenants (state);

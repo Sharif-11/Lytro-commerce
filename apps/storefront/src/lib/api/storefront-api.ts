@@ -84,7 +84,15 @@ export interface PublicShop {
   slug: string;
   metaPixelId: string | null;
   logo: ImageView | null;
-  contact: { phone: string | null; email: string | null; address: string | null };
+  contact: {
+    phone: string | null;
+    email: string | null;
+    address: string | null;
+    // SFT-21 (UI/UX batch 2): where shoppers chat with the shop; absent from an older server's answer.
+    whatsapp?: string | null;
+    messenger?: string | null;
+    facebookPage?: string | null;
+  };
   deliveryZones: DeliveryZoneView[];
   brand: PublicBrand | null;
 }

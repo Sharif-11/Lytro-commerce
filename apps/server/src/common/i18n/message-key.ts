@@ -70,6 +70,8 @@ export const MESSAGE_KEYS = [
   'AddonNotAvailable',
   'AddonNotFound',
   'AddonOnlyOne',
+  'AddonAmountTooLarge',
+  'AddonPriced',
   'AddonAlreadyActive',
   'AddonLimitUnlimited',
   'AddonKeyTaken',

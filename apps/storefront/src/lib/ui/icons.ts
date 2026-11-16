@@ -35,6 +35,7 @@ export const ICONS = {
   home: "<svg class=\"i\" viewBox=\"0 0 24 24\"><path d=\"M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z\"/></svg>",
   wa: "<svg class=\"i\" viewBox=\"0 0 24 24\"><path d=\"M4 20l1.3-3.8A8 8 0 1 1 8.4 19z\"/><path d=\"M9 9c0 3 3 6 6 6l1.5-1.5-2-1-1 1a5 5 0 0 1-2.5-2.5l1-1-1-2z\"/></svg>",
   fb: "<svg class=\"i\" viewBox=\"0 0 24 24\"><path d=\"M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8z\"/></svg>",
+  msgr: "<svg class=\"i\" viewBox=\"0 0 24 24\"><path d=\"M12 3C7 3 3 6.7 3 11.3c0 2.6 1.3 4.9 3.3 6.4V21l3-1.7c.9.3 1.8.4 2.7.4 5 0 9-3.7 9-8.4S17 3 12 3z\"/><path d=\"m7 13.5 3.2-3.4 2.3 2.3 4-2.6-3.2 3.4-2.3-2.3z\"/></svg>",
   filter: "<svg class=\"i\" viewBox=\"0 0 24 24\"><path d=\"M3 5h18l-7 8v6l-4 2v-8z\"/></svg>",
   sort: "<svg class=\"i\" viewBox=\"0 0 24 24\"><path d=\"M4 6h16M7 12h10M10 18h4\"/></svg>",
   camera: "<svg class=\"i\" viewBox=\"0 0 24 24\"><path d=\"M4 8h3l2-3h6l2 3h3v11H4z\"/><circle cx=\"12\" cy=\"13\" r=\"3.5\"/></svg>",
