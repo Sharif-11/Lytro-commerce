@@ -234,6 +234,21 @@ export function useAddStock(productId: string) {
   });
 }
 
+/**
+ * POST /products/:id/stock-additions (the fixes PR, 2026-11-14): the saved product's quick Add stock boxes, every
+ * variant's at once -- all added, or none, the failing row named in the answer's details (`index`, `variantId`).
+ */
+export function useAddStocks(productId: string) {
+  const changed = useStockChanged(productId);
+  return useMutation({
+    mutationFn: (additions: { variantId: string; quantity: number }[]) =>
+      tenantSession.client.post<ProductStock>(`/products/${productId}/stock-additions`, {
+        additions,
+      }),
+    onSuccess: changed,
+  });
+}
+
 /** POST …/batches/:batchId/write-off (INV-13): what an expired batch holds, written off. */
 export function useWriteOff(productId: string) {
   const changed = useStockChanged(productId);

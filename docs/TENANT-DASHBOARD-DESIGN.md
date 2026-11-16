@@ -454,7 +454,7 @@ the limit, Add product and Duplicate show the banner at once instead of the edit
   opens that option's palette under the row: the six drawn colours, Other colour (the browser's colour picker), From a
   photo (a small picture of the shop's as the swatch, MED-03; no sampling) and None. A library colour's swatch is fixed,
   "Library colour · fixed", since it shows the same in every shop (ATR-18, `sh-options-colour`).
-- **The table.** The first 6 variants show, then "Show all n" (`pf-clothing`). Fill all, under Price and Opening stock,
+- **The table.** The first 6 variants show, then "Show all n" (`pf-clothing`). Fill all, under Price and Stock,
   opens a sheet: the value and which variants, all or those of one option, each with its count (ATR-17, `sh-fill`).
   On a product that exists, Stock is "Can sell", read-only (`GET /products/:id/stock`); stock is added from the Stock
   card. A variant added later starts at 0, marked New, and the table opens in full (`product-size-added`).
@@ -1415,7 +1415,7 @@ to confirm. Pieces of later phases -- courier booking (Phase 6), the fraud check
 reading an order from a pasted message (Phase 7), checking bKash and Nagad payments automatically (Phase 5) -- are
 drawn greyed with "Later" so the design stays whole; **the built screens hide them** until their phase.
 
-- **The list** (`orders`): the day's work first. Tabs To confirm · Confirmed · On hold · Shipped · All, each with its
+- **The list** (`orders`): the day's work first. Tabs To confirm · Confirmed · Processing · On hold · Shipped · All, each with its
   count; Delivered, Returned and Cancelled sit under **More** (`o29-more`), Cancelled with its reason filter (ORD-52).
   Search by name, phone or order number and the dates placed, From and To, Clear or Show orders (ORD-13, `o29-dates`,
   drawn 2026-10-31 as 4.8a was built). Rows under Today, Yesterday and Earlier: the full
@@ -2211,6 +2211,37 @@ the owner on 2026-11-14.
   the balance carried it (the accountant to confirm). Once a tax invoice of the shop's was issued before it, a line under
   it says why: "ব্যালেন্স থেকে পেমেন্ট, তাই এই ইনভয়েসে VAT নেই: যে টপ-আপে ব্যালেন্সে টাকা এসেছিল, তার ইনভয়েসে VAT
   দেখানো হয়েছে।"
+
+### 7.46 The orders and products fixes (2026-11-14)
+
+The owner's fixes PR; the sketch was approved as drawn, less the "খালি রাখলে নিজে থেকে" words in the table's head.
+
+- **Processing** is a tab of its own after Confirmed, with its count, between Confirmed and On hold (`status=processing`).
+- **An order paid in advance is confirmed by itself** once a payment for it is verified, whoever verified it. Its history
+  says **পেমেন্ট ভেরিফাইড, তাই নিজে থেকে কনফার্মড** (the server's `payment_verified` note, no one's name); the Calls
+  card says **কল লাগবে না** with no Confirm call button; in the Confirmed list it carries **অগ্রিম পেমেন্ট ভেরিফাইড**
+  where other orders show their note, and it never shows under To confirm. The price summary shows what was paid and
+  what is still to collect, named **ক্যাশ অন ডেলিভারি** on a delivery order and Due at the counter.
+- **Each item line** shows its SKU, the quantity in its unit and the price per unit (**২ পিস × ৳450/পিস**,
+  **1.5 kg × ৳78/kg**; a pack is counted in pieces), and the line's total. A picture is a button: it opens the large
+  picture in a sheet with the product and variant, Previous and Next through the order's pictures, **1 / N**, and the
+  SKU and quantity line under it.
+- **A payment verified by itself** (the Listener's SMS or a gateway checkout) says **নিজে থেকে ভেরিফাইড** with how
+  (**লিসেনার SMS মিলিয়েছে · time**, **bKash চেকআউটে পেমেন্ট · time**). It has no Void, and a lock line says why and
+  that money given back is a Refund; Refund stays. The server refuses a void of it as well.
+- **The courier card** shows the tracking code and the tracking link on rows of their own, the link as the address
+  itself; each has **কপি** and copying says **কপি হয়েছে**. The by-hand shipping card is unchanged.
+- **The product's variant table.** On a new product every counted variant takes its price (৳ inside the box), its
+  stock with the unit beside it (**স্টক (পিস)**) and its SKU; an empty SKU shows the one the server makes on save, as a
+  hint only (the shared rule: the name's initials, then each option, `CP-S`; a design's `D2` first). Fill all stays on
+  Price and Stock (ATR-17). Below 0, or a fraction of a unit that can't be split, is said under its box once Save is
+  tried, and a SKU another variant has is said under the SKU box. Packs sharing one stock take it in the **শেয়ার করা
+  স্টক (unit)** field.
+- **Quick add stock on a saved product.** A counted product's table (not batch, not serial, not one shared stock) for a
+  member with stock to read and manage puts the SKU under each name and a **স্টক যোগ (পিস)** box per row with **এখন
+  বিক্রি করা যাবে N পিস** under it. Save adds every number typed in one request, all or none; the row that stopped it
+  is marked, and success says **Nটি ভ্যারিয়েন্টে M পিস স্টক যোগ হয়েছে**. The Stock card's Add stock button stays for a
+  reason, a batch or a cost.
 
 ## 8. Screens designed for later phases
 

@@ -23,6 +23,8 @@ import {
   useRemoveProduct,
   useSaveProduct,
 } from '@/api/products';
+import { useAddStocks } from '@/api/stock';
+import { quickAdditions, quickTotal } from '@/lib/quick-stock';
 import { ErrorBanner } from '@/components/error-banner';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Banner } from '@/components/ui/banner';
@@ -186,6 +188,28 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
   const canMake = quote ?? (isCombo ? (stock.data?.combo ?? undefined) : undefined);
   const create = useCreateProduct();
   const save = useSaveProduct(product?.id ?? '');
+  // The fixes PR (`fx-product-quick`, 2026-11-14): a saved, counted product's quick Add stock box on each variant row, for
+  // someone who may add stock -- added on Save, all of them or none. Batches and serials keep the Stock card's sheet.
+  const addStocks = useAddStocks(product?.id ?? '');
+  const [quick, setQuick] = useState<Record<string, string>>({});
+  const [quickRefused, setQuickRefused] = useState<Record<string, string>>({});
+  const countedPlainly = (settings: ProductSettings, shared: boolean): boolean =>
+    settings.stockTracking === StockTracking.Tracked &&
+    !settings.batchTracked &&
+    !settings.serialTracked &&
+    !shared;
+  const offersQuick =
+    product !== null &&
+    !isCombo &&
+    mayReadStock &&
+    mayManageStock &&
+    countedPlainly(saved.settings, saved.sharedStock) &&
+    countedPlainly(form.settings, form.sharedStock);
+  const savedIds = new Set(form.variants.flatMap((row) => (row.id === null ? [] : [row.id])));
+  const quickRead = quickAdditions(
+    offersQuick ? Object.fromEntries(Object.entries(quick).filter(([id]) => savedIds.has(id))) : {},
+    saved.settings.stockUnit,
+  );
   const duplicate = useDuplicateProduct(product?.id ?? '');
   const remove = useRemoveProduct(product?.id ?? '');
   // Set once the page itself leaves (after a save, a copy or a removal), so nothing asks first.
@@ -232,7 +256,8 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     );
   }
 
-  const dirty = isDirty(saved, form) || uploading;
+  const quickTyped = quickRead.additions.length > 0 || Object.keys(quickRead.problems).length > 0;
+  const dirty = isDirty(saved, form) || uploading || quickTyped;
   const blocker = useBlocker({
     shouldBlockFn: () => !leaving.current && dirty,
     enableBeforeUnload: () => !leaving.current && dirty,
@@ -375,6 +400,40 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     form.settings.stockTracking === StockTracking.Tracked &&
     isMeasured(form.settings.stockUnit);
   const own = problemsOf(form);
+  // A quick Add stock box that can't be added, said under it once Save is tried; or what the server said of its row.
+  const unitWord = t(`su_${saved.settings.stockUnit}`);
+  const quickProblems: Record<string, string> = {
+    ...(tried
+      ? Object.fromEntries(
+          Object.entries(quickRead.problems).map(([id, problem]) => [
+            id,
+            problem === 'whole' ? t('errStockWhole', { unit: unitWord }) : t('errStockNegative'),
+          ]),
+        )
+      : {}),
+    ...quickRefused,
+  };
+  // A new product's stock typed in the table (`fx-pf-new-bad`), checked as the quick boxes are once Save is tried: 0 or
+  // more, and whole where the unit can't be split.
+  const openingRead =
+    product === null && kind.tracked && !kind.batch && !form.sharedStock
+      ? quickAdditions(
+          Object.fromEntries(form.variants.map((row, at) => [String(at), row.openingStock])),
+          form.settings.stockUnit,
+        ).problems
+      : {};
+  const openingUnit = t(`su_${form.settings.stockUnit}`);
+  const tableProblems: Record<string, string> = {
+    ...(tried
+      ? Object.fromEntries(
+          Object.entries(openingRead).map(([at, problem]) => [
+            `variants.${at}.openingStock`,
+            problem === 'whole' ? t('errStockWhole', { unit: openingUnit }) : t('errStockNegative'),
+          ]),
+        )
+      : {}),
+    ...matrixProblems,
+  };
   const problems: Record<string, string | undefined> = {
     name: tried && own.name ? t('errName') : serverProblems.name,
     price:
@@ -400,7 +459,8 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
       overLimit(form.splits) || (tried && form.splits.some((each) => each.options.length === 0))
         ? 'variants'
         : undefined,
-    rows: Object.keys(matrixProblems).length > 0 ? 'rows' : undefined,
+    rows: Object.keys(tableProblems).length > 0 ? 'rows' : undefined,
+    quick: Object.keys(quickProblems).length > 0 ? 'quick' : undefined,
     // CMB-01: Save tried with nothing inside, or a part the server refused.
     parts:
       (tried && own.parts) || Object.keys(serverProblems).some((key) => key.startsWith('parts'))
@@ -441,6 +501,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     setStop(null);
     if (own.name || own.price || own.parts || overLimit(form.splits) || measuredSerials) return;
     if (form.splits.some((each) => each.options.length === 0)) return;
+    if (Object.keys(quickRead.problems).length > 0 || Object.keys(openingRead).length > 0) return;
     if (product === null) {
       create.mutate(createBody(form, designs.labels), {
         onSuccess: (made) => {
@@ -463,9 +524,14 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
       return;
     }
     const parts = changedParts(saved, form, designs.labels);
-    if (parts.length === 0) return;
+    if (parts.length === 0) {
+      addQuickStock();
+      return;
+    }
     save.mutate(parts, {
       onSuccess: (outcome) => {
+        // The quick Add stock boxes go after the product's own changes, whatever those came to.
+        addQuickStock();
         const refused = new Set(outcome.refused.map((each) => each.part));
         // PD-16: the designs the photos save made are named by their ids from now on.
         const next = withSaved(
@@ -521,6 +587,46 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     });
   }
 
+  /**
+   * The quick Add stock boxes, added together (the fixes PR): all of them, or none with the row that stopped it marked
+   * by what the server said of it.
+   */
+  function addQuickStock(): void {
+    const additions = quickRead.additions;
+    if (additions.length === 0) return;
+    addStocks.mutate(additions, {
+      onSuccess: () => {
+        setQuick({});
+        setQuickRefused({});
+        showToast(
+          t('stockAddedN', {
+            count: additions.length,
+            n: Number(quickTotal(additions).toFixed(3)),
+            unit: unitWord,
+          }),
+        );
+      },
+      onError: (error) => {
+        if (!(error instanceof ApiClientError)) return;
+        const refused: Record<string, string> = {};
+        for (const [field, message] of Object.entries(error.fieldProblems())) {
+          const found = /^additions\.(\d+)\./.exec(field);
+          const id = found ? additions[Number(found[1])]?.variantId : undefined;
+          if (id) refused[id] = message;
+        }
+        const { index, variantId } = error.details;
+        const at =
+          typeof variantId === 'string'
+            ? variantId
+            : typeof index === 'number'
+              ? additions[index]?.variantId
+              : undefined;
+        if (at !== undefined && refused[at] === undefined) refused[at] = error.message;
+        setQuickRefused(refused);
+      },
+    });
+  }
+
   function copy(): void {
     if (room.data?.full) {
       setStop({ kind: 'limit', refused: false });
@@ -539,7 +645,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     });
   }
 
-  const busy = create.isPending || save.isPending;
+  const busy = create.isPending || save.isPending || addStocks.isPending;
   const title = product ? (
     isCombo ? (
       <>
@@ -615,6 +721,10 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
       {create.isError && !(create.error instanceof ApiClientError) ? (
         <ErrorBanner error={create.error} />
       ) : null}
+      {/* The quick Add stock that failed with no row to mark: the server's sentence, above the page. */}
+      {addStocks.isError && Object.keys(quickRefused).length === 0 ? (
+        <ErrorBanner error={addStocks.error} />
+      ) : null}
       <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
         <div className="flex flex-col gap-section">
           <BasicsCard
@@ -689,7 +799,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
                 suggestedIds={defaults.data?.suggestedAttributeIds ?? []}
                 stock={stock.data}
                 readOnly={!mayManage}
-                problems={matrixProblems}
+                problems={tableProblems}
                 onChange={update}
                 designs={
                   designAttributeId === null
@@ -706,6 +816,19 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
                   mayReadStock
                     ? (variantId) => {
                         setStockSheet({ kind: 'serials', variantId });
+                      }
+                    : null
+                }
+                quick={
+                  offersQuick
+                    ? {
+                        values: quick,
+                        problems: quickProblems,
+                        onChange: (variantId, value) => {
+                          setQuick((current) => ({ ...current, [variantId]: value }));
+                          setQuickRefused({});
+                          addStocks.reset();
+                        },
                       }
                     : null
                 }

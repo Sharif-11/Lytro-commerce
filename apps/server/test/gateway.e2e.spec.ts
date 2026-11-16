@@ -862,6 +862,25 @@ describeIfDatabase(
       expect(await balanceOf(setup.shop)).toMatchObject({ amount: '97.00', held: '0.00' });
       // No fee rate raised since changes what was set aside (RAT-15).
       expect(lowBalance.feeShort.filter((row) => row.tenantId === setup.shop.tenantId)).toEqual([]);
+
+      // ORD-51: the advance bKash verified confirms the order with no call and no person. ORD-15: it is never voided.
+      const order = (await setup.shop.get(`/orders/${done.order_id}`)).body as {
+        status: string;
+        confirmedBy: unknown;
+        history: { field: string; note: string | null; by: unknown }[];
+        payments: { id: string; verificationLevel: string }[];
+      };
+      expect(order).toMatchObject({ status: 'confirmed', confirmedBy: null });
+      expect(order.history).toContainEqual(
+        expect.objectContaining({ field: 'confirmed', note: 'payment_verified', by: null }),
+      );
+      expect(order.payments[0]?.verificationLevel).toBe('gateway');
+      const voiding = await setup.shop.post(
+        `/orders/${done.order_id}/payments/${order.payments[0]?.id ?? ''}/void`,
+        { reason: 'Recorded by mistake' },
+      );
+      expect(voiding.status, JSON.stringify(voiding.body)).toBe(409);
+      expect(errorOf(voiding).message).toBe(said('AutoVerifiedPaymentKept'));
     });
 
     it('settles once, however many times the shopper is returned (VER-09)', async () => {

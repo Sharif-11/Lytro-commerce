@@ -37,6 +37,7 @@ import {
   type UpdateOrderInput,
 } from '@lytronix/validators';
 import { ApiError, FieldsError, type InvalidField } from '../../../common/api-error';
+import { largeImageUrlOf } from '../../../common/media-links';
 import { OrderKept } from '../../../common/errors/order-kept';
 import {
   IdempotencyService,
@@ -222,7 +223,11 @@ function itemView(line: OrderLineRecord, components: SelectOrderLineComponent[])
     captured: line.capturedValues,
     thumbnail:
       line.thumbnailMediaId !== null && line.thumbnailUrl !== null
-        ? { mediaId: line.thumbnailMediaId, url: line.thumbnailUrl }
+        ? {
+            mediaId: line.thumbnailMediaId,
+            url: line.thumbnailUrl,
+            largeUrl: largeImageUrlOf(line.thumbnailUrl),
+          }
         : null,
     stockUnit: line.stockUnit,
     listPrice: line.listPrice,

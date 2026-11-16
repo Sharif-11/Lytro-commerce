@@ -3,6 +3,7 @@ import type { NewOrderHistory, Transaction } from '@lytronix/db';
 import {
   AuditAction,
   PaymentMethod,
+  VerificationLevel,
   type OrderPaymentInput,
   type RefundPaymentInput,
   type VoidPaymentInput,
@@ -20,7 +21,8 @@ import { PaymentRecorder, paymentEntryOf, paymentWords } from './payment-recorde
  * ORD-15, ORD-43 (Phase 4 Slice 4.3b, read agreed 2026-10-30): payments staff record on an order, and voiding one
  * recorded by mistake. A voided payment stays in the order's payments, marked void with who voided it, when and why;
  * it no longer counts, so what is due goes back up. The cash on delivery collected when an order was delivered or handed
- * over is never voided: it is what Delivered means (agreed 2026-10-30). Since Phase 5 (Slice 5.3) a payment may be marked
+ * over is never voided: it is what Delivered means (agreed 2026-10-30), nor (fixes 2026-11-14) a payment the listener or a
+ * gateway verified. Since Phase 5 (Slice 5.3) a payment may be marked
  * refunded, a record only (PAY-20): it stops counting as a void does, and the order shows refunded once every payment
  * is (ORD-44).
  */
@@ -74,6 +76,11 @@ export class OrderPayments {
       }
       if (payment.method === PaymentMethod.CashOnDelivery) {
         throw new ApiError('conflict', 'CashOnDeliveryKept', {});
+      }
+      // ORD-15 (fixes 2026-11-14, the owner): money the listener or a gateway verified came in for certain -- only what a
+      // person verified by hand may be voided as recorded by mistake. A refund still records money given back.
+      if (payment.verificationLevel !== VerificationLevel.Manual) {
+        throw new ApiError('conflict', 'AutoVerifiedPaymentKept', {});
       }
       await this.store.voidPayment(tx, tenantId, payment.id, {
         voidedBy: who.id,

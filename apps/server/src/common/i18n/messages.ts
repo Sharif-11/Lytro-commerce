@@ -1488,6 +1488,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Stock added.',
     bn: 'স্টক যোগ হয়েছে।',
   },
+  StocksAdded: {
+    en: "Stock added to the product's variants.",
+    bn: 'প্রোডাক্টের ভ্যারিয়েন্টগুলোতে স্টক যোগ হয়েছে।',
+  },
   BatchesRetrieved: {
     en: 'Batches retrieved.',
     bn: 'ব্যাচগুলো পাওয়া গেছে।',
@@ -1919,6 +1923,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   CashOnDeliveryKept: {
     en: "Cash on delivery is collected when the order is delivered, so it can't be voided.",
     bn: 'অর্ডার ডেলিভারড হলে ক্যাশ অন ডেলিভারি কালেক্ট হয়, তাই এটি ভয়েড করা যায় না।',
+  },
+  AutoVerifiedPaymentKept: {
+    en: "This payment was verified automatically, so it can't be voided. If you gave the money back, mark it refunded.",
+    bn: 'এই পেমেন্ট নিজে থেকে ভেরিফাইড হয়েছে, তাই ভয়েড করা যায় না। টাকা ফেরত দিয়ে থাকলে রিফান্ড হিসেবে মার্ক করুন।',
   },
   OrderPaymentRecorded: {
     en: 'Payment recorded.',

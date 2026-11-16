@@ -136,7 +136,7 @@ test("the order: who and where, the customer's note, the items with a combo insi
   await expect(main(page)).toContainText('No calls yet');
   await expect(main(page)).toContainText('Inside: Cotton panjabi · M, Check lungi');
   await expect(main(page)).toContainText('+ Gift wrap ৳50');
-  await expect(main(page)).toContainText('2 × ৳450');
+  await expect(main(page)).toContainText('2 pcs × ৳450/pc');
   await expect(main(page)).toContainText('Delivery · Inside Dhaka');
   await expect(main(page)).toContainText('Includes VAT 5% ৳42.86');
   await expect(main(page)).toContainText('Cash on delivery৳3,470');

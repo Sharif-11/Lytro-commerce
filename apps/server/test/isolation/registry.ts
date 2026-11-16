@@ -194,6 +194,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'PUT /products/:id/variants/:variantId/cost': "another shop's product or variant answers 404",
   'POST /products/:id/variants/:variantId/stock-additions':
     "another shop's product or variant answers 404",
+  // Fixes 2026-11-14 (the quick stock boxes), checked in test/stock-additions.e2e.spec.ts.
+  'POST /products/:id/stock-additions':
+    "another shop's product, or a variant of it, answers 404 and adds nothing",
   'GET /products/:id/variants/:variantId/stock-history':
     "another shop's product or variant answers 404",
   // Phase 3 Slice 2b, checked in test/inventory.e2e.spec.ts.

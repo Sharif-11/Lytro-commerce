@@ -18,6 +18,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   active: { en: 'Active', bn: 'অ্যাক্টিভ' },
   activity_retention_days: { en: 'Activity log days', bn: 'অ্যাক্টিভিটি লগের দিন' },
   actorId: { en: 'User', bn: 'ইউজার' },
+  additions: { en: 'Stock to add', bn: 'যোগ করার স্টক' },
   addonId: { en: 'Add-on', bn: 'অ্যাড-অন' },
   address: { en: 'Shop URL', bn: 'শপের লিংক' },
   advanceAmount: { en: 'Advance amount', bn: 'অ্যাডভান্স অ্যামাউন্ট' },

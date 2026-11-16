@@ -8,6 +8,7 @@ import {
   Permission,
 } from '@lytronix/validators';
 import type { Order, OrderPayment } from '@/types/orders';
+import { autoVerified } from './order-auto';
 import { atCounter } from './order-words';
 
 /**
@@ -91,14 +92,15 @@ export function choicesOf(order: Order, may: (permission: Permission) => boolean
 }
 
 /**
- * A payment staff may void (agreed 2026-10-30): live, not refunded (Slice 5.3), and not the cash on delivery a delivery
- * collected.
+ * A payment staff may void (agreed 2026-10-30): live, not refunded (Slice 5.3), not the cash on delivery a delivery
+ * collected, and verified by staff -- one the gateway or the listener verified stays (the fixes PR, 2026-11-14).
  */
 export const voidable = (payment: OrderPayment, may: (permission: Permission) => boolean) =>
   may(Permission.PaymentsManage) &&
   payment.voided === null &&
   payment.refunded === null &&
-  payment.method !== PaymentMethod.CashOnDelivery;
+  payment.method !== PaymentMethod.CashOnDelivery &&
+  !autoVerified(payment);
 
 /** A payment staff may mark refunded (PAY-20): any live one, cash on delivery collected included. */
 export const refundable = (payment: OrderPayment, may: (permission: Permission) => boolean) =>

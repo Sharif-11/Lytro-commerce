@@ -43,6 +43,7 @@ import { SessionGuard } from '../../identity/guards/session.guard';
 import {
   AddSerialsDto,
   AddStockDto,
+  AddStocksDto,
   CorrectSerialDto,
   ProductBatchesDto,
   SerialPageDto,
@@ -255,6 +256,30 @@ export class InventoryController {
       this.catalogue.tenantIdOf(request),
       this.catalogue.idOf(id, 'ProductNotFound'),
       this.catalogue.idOf(variantId, 'ProductNotFound'),
+      body,
+      this.catalogue.actorOf(request),
+      this.arrivals,
+    );
+  }
+
+  @Post('stock-additions')
+  @HttpCode(200)
+  @RequirePermission(Permission.InventoryManage)
+  @ResponseMessage('StocksAdded')
+  @ApiOperation({
+    summary:
+      "Add stock that arrived on several of the product's variants at once, each recorded as the single route records one; all or nothing (INV-06)",
+  })
+  @ApiBody({ type: AddStocksDto })
+  @ZodResponse({ type: ProductStockViewDto })
+  addStocks(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(AddStocksDto.schema)) body: AddStocksDto,
+    @Req() request: DashboardRequest,
+  ): Promise<ProductStockView> {
+    return this.stock.addStocks(
+      this.catalogue.tenantIdOf(request),
+      this.catalogue.idOf(id, 'ProductNotFound'),
       body,
       this.catalogue.actorOf(request),
       this.arrivals,

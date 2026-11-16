@@ -361,6 +361,8 @@ export interface ProductStore {
     patch: VariantChange,
   ): Promise<VariantRecord | null>;
   retireVariants(tx: Transaction, tenantId: string, ids: string[]): Promise<void>;
+  /** PD-10: held to the transaction's end, so two saves of a shop never take the same automatic SKU. */
+  holdSkus(tx: Transaction, tenantId: string): Promise<void>;
   /** PD-10: which of these SKUs a live variant of the shop already has. */
   takenSkus(tx: Transaction, tenantId: string, skus: string[]): Promise<string[]>;
   insertVariantValues(tx: Transaction, rows: VariantValueRecord[]): Promise<void>;

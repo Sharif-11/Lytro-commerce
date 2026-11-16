@@ -29,6 +29,21 @@ export interface TableColumns {
   canSell: ReadonlyMap<string, string> | null;
   /** INV-24: the unit each variant's pack of the shared stock is in; null when the variants hold their own. */
   pack: StockUnit | null;
+  /** The product's unit, which a variant's stock is counted in (the fixes PR: "Stock (pcs)", "6 pcs"). */
+  unit: StockUnit;
+  /** The fixes PR (`fx-pf-new`): a new product's SKU per variant, typed in the table. */
+  sku: boolean;
+}
+
+/**
+ * The fixes PR's quick Add stock (`fx-product-quick`, 2026-11-14): a saved, counted product's box per variant, what it
+ * can sell now under it, its SKU under its name; all added on Save, or none.
+ */
+export interface QuickStock {
+  values: Readonly<Record<string, string>>;
+  /** A box's problem, by its variant id: the words to say under it. */
+  problems: Readonly<Record<string, string>>;
+  onChange: (variantId: string, value: string) => void;
 }
 
 function Head({ sticky, children }: { sticky?: boolean; children: ReactNode }): React.JSX.Element {
@@ -44,36 +59,42 @@ function Head({ sticky, children }: { sticky?: boolean; children: ReactNode }): 
   );
 }
 
-function Cell({
+/** A typed box (the prototype's `.in`), boxed red with its problem under it when the server or the check refuses it. */
+function Box({
   value,
   label,
-  wide,
+  width,
   placeholder,
+  prefix,
   suffix,
   invalid,
+  error,
   readOnly,
   numeric,
   onChange,
 }: {
   value: string;
   label: string;
-  wide?: boolean;
+  width: 'narrow' | 'wide' | 'sku';
   placeholder?: string;
+  prefix?: string;
   suffix?: string;
   invalid: boolean;
+  error?: string;
   readOnly: boolean;
   numeric: boolean;
   onChange: (value: string) => void;
 }): React.JSX.Element {
   return (
-    <td className="border-b border-line px-2.5 py-2">
+    <>
       <span
         className={[
           'flex h-9 items-center gap-1 rounded-control border bg-surface px-2 focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-focus',
-          wide ? 'w-[110px]' : 'w-[92px]',
+          width === 'sku' ? 'w-[150px]' : width === 'wide' ? 'w-[110px]' : 'w-[92px]',
           invalid ? 'border-danger' : 'border-line-strong',
         ].join(' ')}
       >
+        {prefix ? <span className="text-[13px] text-fg-muted">{prefix}</span> : null}
         <input
           aria-label={label}
           aria-invalid={invalid || undefined}
@@ -83,7 +104,11 @@ function Cell({
           inputMode={numeric ? 'decimal' : undefined}
           className={[
             'min-w-0 flex-1 bg-transparent outline-none placeholder:text-fg-muted',
-            numeric ? 'num text-right' : 'text-left text-fg-muted',
+            numeric
+              ? 'num text-right'
+              : width === 'sku'
+                ? 'font-mono text-[14px]'
+                : 'text-left text-fg-muted',
           ].join(' ')}
           onChange={(event) => {
             onChange(event.target.value);
@@ -91,6 +116,19 @@ function Cell({
         />
         {suffix ? <span className="text-[13px] text-fg-muted">{suffix}</span> : null}
       </span>
+      {error ? (
+        <span className="mt-1 block max-w-[180px] text-[14px] leading-[1.4] whitespace-normal text-danger-text">
+          {error}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
+function Cell(props: Parameters<typeof Box>[0]): React.JSX.Element {
+  return (
+    <td className="border-b border-line px-2.5 py-2 align-top">
+      <Box {...props} />
     </td>
   );
 }
@@ -113,7 +151,7 @@ function SheetCell({
   onOpen: () => void;
 }): React.JSX.Element {
   return (
-    <td className="border-b border-line px-2.5 py-2">
+    <td className="border-b border-line px-2.5 py-2 align-top">
       <button
         type="button"
         aria-label={label}
@@ -133,10 +171,13 @@ function SheetCell({
 
 /**
  * The variant table (TENANT-DASHBOARD-DESIGN §7.4, Part 14; ATR-11, ATR-17): a row per variant with its price (empty
- * follows the product's, shown greyed), and as the product is: its pack of a shared stock, a new product's opening
- * stock, a saved one's "Can sell" (a variant this edit adds starts at 0, marked New). Fill all heads Price and Opening
- * stock. The first 6 show, then "Show all"; the limits line ends it. A variant's SKU is set in its sheet, opened from its
- * name, which is marked when the server refuses a field the sheet holds (design v3.15).
+ * follows the product's, shown greyed), and as the product is: its pack of a shared stock, a new product's stock in its
+ * unit and its SKU (the fixes PR, 2026-11-14: an empty SKU shows the one it is given), a saved one's "Can sell" -- or,
+ * where it may add stock, a quick Add stock box with what it can sell now under it and its SKU under its name (a
+ * variant this edit adds starts at 0, marked New). Fill all heads Price and the new product's Stock. The first 6 show,
+ * then "Show all"; the limits line ends it. A
+ * variant's other settings are set in its sheet, opened from its name, which is marked when the server refuses a field
+ * the sheet holds (design v3.15).
  */
 export function VariantTable({
   rows,
@@ -155,6 +196,8 @@ export function VariantTable({
   onSerials,
   onHeld,
   pictureOf,
+  autoSku,
+  quick = null,
 }: {
   rows: readonly VariantRow[];
   splits: readonly SplitAttribute[];
@@ -178,17 +221,24 @@ export function VariantTable({
   pictureOf?: (optionIds: readonly string[]) => string | undefined;
   /** Opens a saved variant's serials (the Stock card's IMEI / serials sheet). */
   onHeld: (index: number) => void;
+  /** The SKU a variant left without one is given, shown greyed in its empty box (the fixes PR). */
+  autoSku: (optionIds: readonly string[]) => string;
+  /** A saved product's quick Add stock; null where it isn't offered. */
+  quick?: QuickStock | null;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
   const words = useVariantWords();
   const batchText = useBatchText();
   const shown = showAll ? rows : rows.slice(0, SHOWN_VARIANTS);
   const fresh = !isNew && rows.some((row) => row.id === null);
+  const canSell = quick ? null : columns.canSell;
   const span =
     2 +
     (columns.pack ? 1 : 0) +
     (columns.opening ? 1 : 0) +
-    (columns.canSell ? 1 : 0) +
+    (canSell ? 1 : 0) +
+    (quick ? 1 : 0) +
+    (columns.sku ? 1 : 0) +
     (columns.serials ? 1 : 0) +
     (columns.held ? 1 : 0);
   const fill = (column: FillColumn) =>
@@ -203,13 +253,17 @@ export function VariantTable({
         {t('fillAll')}
       </button>
     );
-  const unit = columns.pack ? t(`su_${columns.pack}`) : '';
+  const packUnit = columns.pack ? t(`su_${columns.pack}`) : '';
+  const unit = t(`su_${columns.unit}`);
+  const note = quick ? t('tableQuickNote') : columns.sku ? t('tableNewNote') : null;
   return (
     <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
       <table className="min-w-full border-collapse text-[14px]">
         <thead>
           <tr>
-            <Head sticky>{columns.pack ? t('packCol') : t('variantCol')}</Head>
+            <Head sticky>
+              {columns.pack ? t('packCol') : quick ? t('variantSkuCol') : t('variantCol')}
+            </Head>
             {columns.pack ? <Head>{t('packHolds')}</Head> : null}
             <Head>
               {t('price')}
@@ -218,11 +272,13 @@ export function VariantTable({
             {columns.opening && columns.batch ? <Head>{t('openingBatch')}</Head> : null}
             {columns.opening && !columns.batch ? (
               <Head>
-                {t('openingStock')}
+                {`${t('stockCol')} (${unit})`}
                 {fill('openingStock')}
               </Head>
             ) : null}
-            {columns.canSell ? <Head>{t('canSell')}</Head> : null}
+            {canSell ? <Head>{t('canSell')}</Head> : null}
+            {quick ? <Head>{`${t('addStockCol')} (${unit})`}</Head> : null}
+            {columns.sku ? <Head>{t('skuCol')}</Head> : null}
             {columns.serials ? <Head>{t('openingSerials')}</Head> : null}
             {columns.held ? <Head>{t('heldSerialsTitle')}</Head> : null}
           </tr>
@@ -231,22 +287,40 @@ export function VariantTable({
           {shown.map((row) => {
             const index = rows.indexOf(row);
             const name = words.variant(row.optionIds, splits);
+            const at = (field: string) => `variants.${String(index)}.${field}`;
             const bad = (field: string) =>
               Object.keys(problems).some(
-                (key) =>
-                  key === `variants.${String(index)}.${field}` ||
-                  key.startsWith(`variants.${String(index)}.${field}.`),
+                (key) => key === at(field) || key.startsWith(`${at(field)}.`),
               );
             const kept = keptOf(row.openingSerials).length;
-            const refused = Object.values(sheetProblems(problems, index));
+            // The SKU is in the table now, so a refused SKU is said under its box, not on the name.
+            const refused = Object.entries(sheetProblems(problems, index))
+              .filter(([field]) => !(field === 'sku' && (columns.sku || quick)))
+              .map(([, message]) => message);
+            const skuBox = (
+              <Box
+                value={row.sku}
+                label={t('cellSku', { variant: name })}
+                width="sku"
+                placeholder={autoSku(row.optionIds)}
+                prefix={quick ? 'SKU' : undefined}
+                invalid={bad('sku')}
+                error={problems[at('sku')]}
+                readOnly={readOnly}
+                numeric={false}
+                onChange={(sku) => {
+                  onRow(index, { sku });
+                }}
+              />
+            );
             return (
               <tr key={keyOf(row.optionIds)}>
-                <td className="sticky left-0 z-[1] border-b border-line bg-surface px-2.5 py-2 whitespace-nowrap">
+                <td className="sticky left-0 z-[1] border-b border-line bg-surface px-2.5 py-2 align-top whitespace-nowrap">
                   <button
                     type="button"
                     aria-label={[t('openVariant', { variant: name }), ...refused].join(' · ')}
                     className={[
-                      'inline-flex items-center gap-1 text-left underline underline-offset-2',
+                      'inline-flex min-h-9 items-center gap-1 text-left underline underline-offset-2',
                       refused.length > 0
                         ? 'text-danger-text decoration-danger-text'
                         : 'decoration-line-strong',
@@ -269,13 +343,16 @@ export function VariantTable({
                     {name}
                     {refused.length > 0 ? <Icon name="alert" size={14} /> : null}
                   </button>
+                  {quick ? <div className="mt-0.5">{skuBox}</div> : null}
                 </td>
                 {columns.pack ? (
                   <Cell
                     value={row.packAmount}
                     label={t('cellPack', { variant: name })}
-                    suffix={unit}
+                    width="narrow"
+                    suffix={packUnit}
                     invalid={bad('packAmount')}
+                    error={problems[at('packAmount')]}
                     readOnly={readOnly}
                     numeric
                     onChange={(packAmount) => {
@@ -287,7 +364,10 @@ export function VariantTable({
                   value={row.price}
                   placeholder={basePrice}
                   label={t('cellPrice', { variant: name })}
+                  width="narrow"
+                  prefix="৳"
                   invalid={bad('price')}
+                  error={problems[at('price')]}
                   readOnly={readOnly}
                   numeric
                   onChange={(price) => {
@@ -309,7 +389,11 @@ export function VariantTable({
                   <Cell
                     value={row.openingStock}
                     label={t('cellOpening', { variant: name })}
+                    width="narrow"
+                    placeholder="0"
+                    suffix={unit}
                     invalid={bad('openingStock')}
+                    error={problems[at('openingStock')]}
                     readOnly={readOnly}
                     numeric
                     onChange={(openingStock) => {
@@ -317,7 +401,7 @@ export function VariantTable({
                     }}
                   />
                 ) : null}
-                {columns.canSell ? (
+                {canSell ? (
                   <td className="num border-b border-line px-2.5 py-2 whitespace-nowrap">
                     {row.id === null ? (
                       <>
@@ -327,9 +411,44 @@ export function VariantTable({
                         </StatusTag>
                       </>
                     ) : (
-                      (columns.canSell.get(row.id) ?? '')
+                      (canSell.get(row.id) ?? '')
                     )}
                   </td>
+                ) : null}
+                {quick ? (
+                  <td className="border-b border-line px-2.5 py-2 align-top">
+                    {row.id === null ? (
+                      <span className="num inline-flex min-h-9 items-center gap-1 whitespace-nowrap">
+                        0{' '}
+                        <StatusTag tone="info" small>
+                          {t('newVariant')}
+                        </StatusTag>
+                      </span>
+                    ) : (
+                      <>
+                        <Box
+                          value={quick.values[row.id] ?? ''}
+                          label={t('cellAddStock', { variant: name })}
+                          width="narrow"
+                          placeholder="+"
+                          suffix={unit}
+                          invalid={quick.problems[row.id] !== undefined}
+                          error={quick.problems[row.id]}
+                          readOnly={readOnly}
+                          numeric
+                          onChange={(value) => {
+                            if (row.id) quick.onChange(row.id, value);
+                          }}
+                        />
+                        <span className="num mt-1 block text-[14px] whitespace-nowrap text-fg-muted">
+                          {t('canSellNow', { n: columns.canSell?.get(row.id) ?? '0', unit })}
+                        </span>
+                      </>
+                    )}
+                  </td>
+                ) : null}
+                {columns.sku ? (
+                  <td className="border-b border-line px-2.5 py-2 align-top">{skuBox}</td>
                 ) : null}
                 {columns.serials ? (
                   <SheetCell
@@ -383,6 +502,7 @@ export function VariantTable({
           </tr>
         </tbody>
       </table>
+      {note ? <p className="mt-2 text-[14px] leading-[1.5] text-fg-muted">{note}</p> : null}
     </div>
   );
 }

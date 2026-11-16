@@ -176,6 +176,7 @@ test('a lipstick by size: each size its own opening batch, from its cell', async
     'Variant',
     'PriceFill all',
     'Opening batch',
+    'SKU',
   ]);
   const cell = table.getByRole('button', { name: 'Opening batch of S' });
   await expect(cell).toHaveText('add batch');
@@ -208,7 +209,8 @@ test('a phone by size: serials typed one by one, each checked, the flagged ones 
   await expect(table.getByRole('columnheader')).toHaveText([
     'Variant',
     'PriceFill all',
-    'Opening stockFill all',
+    'Stock (pcs)Fill all',
+    'SKU',
     'Opening serials',
   ]);
   await table.getByLabel('Opening stock of 128 GB').fill('2');
@@ -350,4 +352,43 @@ test('with no camera Scan says so; a camera the browser blocks says how to allow
   await expect(blocked).toContainText('The camera is blocked for this site.');
   await expect(blocked.getByRole('button', { name: 'Try again' })).toBeVisible();
   await expectAccessible(other);
+});
+
+test('a new product by size: each size its price, its stock in pcs and its SKU, in the table', async ({
+  page,
+}) => {
+  const log = await open(
+    page,
+    typed({ presetKey: 'fashion', stockUnit: 'piece', suggestedAttributeIds: [] }),
+  );
+  await named(page, 'Cotton polo', '650');
+  await sizes(page, ['S', 'M']);
+  const table = main(page).getByRole('region', { name: 'Options and variants' }).getByRole('table');
+  // The fixes PR (2026-11-14): stock with its unit and the SKU per variant; Fill all stays on Price and Stock.
+  await expect(table.getByRole('columnheader')).toHaveText([
+    'Variant',
+    'PriceFill all',
+    'Stock (pcs)Fill all',
+    'SKU',
+  ]);
+  // The SKU made when it is left empty, as a hint only.
+  await expect(table.getByLabel('SKU of S')).toHaveAttribute('placeholder', 'CP-S');
+  await expect(main(page)).toContainText('A SKU left empty is made for you when you save.');
+  await table.getByLabel('Opening stock of S').fill('-2');
+  await table.getByLabel('Opening stock of M').fill('8.5');
+  await save(page).click();
+  await expect(table.getByText('Enter 0 or more')).toBeVisible();
+  await expect(table.getByText("pcs can't be split: enter a whole number")).toBeVisible();
+  expect(sent(log, 'POST', '/products')).toEqual([]);
+  await table.getByLabel('Opening stock of S').fill('12');
+  await table.getByLabel('Opening stock of M').fill('8');
+  await table.getByLabel('Price of M').fill('700');
+  await table.getByLabel('SKU of M').fill('POLO-M');
+  await expectAccessible(page);
+  await save(page).click();
+  await expect(page).toHaveURL(`/${SLUG}/products`);
+  expect(sent(log, 'POST', '/products')[0]?.variants).toMatchObject([
+    { sku: null, openingStock: 12 },
+    { sku: 'POLO-M', openingStock: 8, price: 700 },
+  ]);
 });

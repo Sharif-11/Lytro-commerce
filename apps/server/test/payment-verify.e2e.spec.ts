@@ -396,8 +396,9 @@ describeIfDatabase('verifying a payment by hand (VER-01, VER-12, PAY-15, D5-9)',
 
     const verified = await verify(setup.shop, typed.sessionId);
     expect(verified.status, JSON.stringify(verified.body)).toBe(200);
+    // ORD-51: a verified advance confirms the order by itself.
     expect(verified.body).toMatchObject({
-      status: 'pending',
+      status: 'confirmed',
       paymentStatus: 'paid',
       due: (Number(before.grandTotal) - 300).toFixed(2),
       payments: [
@@ -462,7 +463,7 @@ describeIfDatabase('verifying a payment by hand (VER-01, VER-12, PAY-15, D5-9)',
     const part = await verify(setup.shop, typed.sessionId, { amount: 250 });
     expect(part.status, JSON.stringify(part.body)).toBe(200);
     expect(part.body).toMatchObject({
-      status: 'pending',
+      status: 'confirmed',
       paymentStatus: 'partially_paid',
       due: (Number(before.grandTotal) - 250).toFixed(2),
       payments: [{ amount: '250.00', transactionId: 'PART123456' }],

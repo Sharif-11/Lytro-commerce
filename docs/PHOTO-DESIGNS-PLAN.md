@@ -62,7 +62,7 @@ shopper gets exactly the design they chose, and the seller sends exactly that de
 | PD-7 | **What the order keeps.** | The order line keeps the variant and the **cover of the chosen design**. Deleting, reordering or regrouping the product's photos later, or renaming the design, never changes a past order's photo. |
 | PD-8 | **A photo that an order shows.** | **Kept as long as any order line shows it,** and it counts toward the shop's storage. Removing it from the product is allowed; deleting the file is refused while orders use it, with how many (amends MED-09, ORD-46, ORD-47). |
 | PD-9 | **What the seller acts on.** | The order page, the order editor and the confirmation call show the cover with the design's name and the size. **The parcel label (ORD-19) names the design, the size and the SKU** on each item line. There is no separate packing list. |
-| PD-10 | **SKUs.** | A variant of a product with designs that has no SKU gets one when saved: the product's initials, the design and the other values, e.g. `IB-D2-54`, made unique in the shop. The initials come from the product's link name (`irani-burka` gives `IB`), so a Bangla name gives Latin letters too. The seller can change it. |
+| PD-10 | **SKUs.** | A variant of a product with designs that has no SKU gets one when saved: the product's initials, the design and the other values, e.g. `IB-D2-54`, made unique in the shop. The initials come from the product's link name (`irani-burka` gives `IB`), so a Bangla name gives Latin letters too. The seller can change it. **Amended 2026-11-14 (the owner):** every product's variants do, with designs or without (`PJ-S-WH`; a product with one variant takes its initials alone), when the product is made, copied or its variants are saved; taken, it takes the first free of `-2` to `-99`. A SKU the seller typed is kept as typed. |
 | PD-11 | **Products that exist today.** | They keep their photos as plain photos, and their variants and stock unchanged. PD-3's default applies to photos added later, **except** that a product which already has variants with stock or orders and no designs keeps new photos plain until the seller turns designs on (re-keying its variants is refused after orders, ATR-15). |
 | PD-12 | **One design.** | A product with only one design shows no photo cards; that design is chosen. |
 
@@ -108,7 +108,7 @@ changes against the prototype's screens.
 | ORD-46, ORD-47, MED-09 | A photo an order shows is kept, not best effort (PD-8). |
 | UOM-05 (new) | The unit on every quantity (PD-19). |
 | FED-02 | The design cover as `image_link` (PD-23). |
-| SKU (ATR-05) | Filled when empty for products with designs (PD-10). |
+| SKU (ATR-05) | Filled when empty, for every product (PD-10, as amended 2026-11-14). |
 
 ---
 

@@ -4,7 +4,7 @@ import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AuditAction } from '@lytronix/validators';
+import { AuditAction, ORDER_CONFIRMED_BY_PAYMENT_NOTE } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
@@ -61,12 +61,20 @@ interface Payment {
 interface Order {
   id: string;
   status: string;
+  confirmedAt: string | null;
+  confirmedBy: { id: string } | null;
   paymentStatus: string;
   grandTotal: string;
   advanceDue: string;
   due: string;
   items: { id: string; variantId: string; quantity: string }[];
-  history: { field: string; from: string | null; to: string | null; note: string | null }[];
+  history: {
+    field: string;
+    from: string | null;
+    to: string | null;
+    note: string | null;
+    by: { id: string } | null;
+  }[];
   payments: Payment[];
 }
 
@@ -197,7 +205,7 @@ describeIfDatabase('recording payments on an order (ORD-15, ORD-43)', () => {
       voided: null,
     });
     expect(part.payments[0]?.verifiedBy?.id).toEqual(expect.any(String));
-    expect(part.history.at(-1)).toMatchObject({
+    expect(part.history.find((row) => row.field === 'payment_status')).toMatchObject({
       field: 'payment_status',
       from: 'unverified',
       to: 'partially_paid',
@@ -511,6 +519,67 @@ describeIfDatabase('voiding a payment recorded by mistake (agreed 2026-10-30)', 
   });
 });
 
+describeIfDatabase(
+  'verified advance confirms the order by itself (ORD-51, fixes 2026-11-14)',
+  () => {
+    it('confirms a pending order on any advance, a part or the whole, with no person and no call', async () => {
+      const shop = await openShop(port, texts, 'auto-confirm');
+      const lamp = await product(shop, 'Lamp', 300);
+      const order = await place(shop, lamp);
+      expect(order).toMatchObject({ status: 'pending', confirmedAt: null });
+      // Only the delivery charge, in advance: still enough.
+      const part = await paid(shop, order, bkash(70));
+      expect(part).toMatchObject({ status: 'confirmed', confirmedBy: null });
+      expect(part.confirmedAt).not.toBeNull();
+      expect(part.history.at(-1)).toMatchObject({
+        field: 'confirmed',
+        from: null,
+        to: 'confirmed',
+        note: ORDER_CONFIRMED_BY_PAYMENT_NOTE,
+        by: null,
+      });
+      // A second payment confirms nothing again.
+      const rest = await paid(shop, part, { method: 'cash', amount: 600 });
+      expect(rest.history.filter((row) => row.field === 'confirmed')).toHaveLength(1);
+    });
+
+    it('leaves an order already confirmed, held for a call back, or cancelled as it is', async () => {
+      const shop = await openShop(port, texts, 'auto-confirm-not');
+      const lamp = await product(shop, 'Lamp', 300);
+
+      const called = await place(shop, lamp);
+      expect((await shop.post(`/orders/${called.id}/calls`, { outcome: 'confirmed' })).status).toBe(
+        200,
+      );
+      const calledPaid = await paid(shop, called, bkash(100));
+      expect(calledPaid.confirmedBy).not.toBeNull();
+      expect(calledPaid.history.filter((row) => row.field === 'confirmed')).toHaveLength(1);
+
+      const held = await place(shop, lamp);
+      const callBack = await shop.post(`/orders/${held.id}/calls`, {
+        outcome: 'call_back_later',
+        callBackAt: new Date(Date.now() + 3_600_000).toISOString(),
+      });
+      expect(callBack.status, JSON.stringify(callBack.body)).toBe(200);
+      const heldPaid = await paid(shop, held, bkash(100));
+      expect(heldPaid).toMatchObject({ status: 'hold', confirmedAt: null });
+    });
+
+    it('keeps a payment a person verified voidable, and confirmed stays confirmed', async () => {
+      const shop = await openShop(port, texts, 'auto-confirm-void');
+      const order = await paid(
+        shop,
+        await place(shop, await product(shop, 'Lamp', 300)),
+        bkash(100),
+      );
+      expect(order.status).toBe('confirmed');
+      const voided = await voidPayment(shop, order, order.payments[0]?.id ?? '');
+      expect(voided.status, JSON.stringify(voided.body)).toBe(200);
+      expect((voided.body as Order).status).toBe('confirmed');
+    });
+  },
+);
+
 describeIfDatabase('a payment received with a new order (ORD-22, agreed 2026-10-30)', () => {
   it('saves the order and its verified payment together, the payment taken off what is due', async () => {
     const shop = await openShop(port, texts, 'new');
@@ -520,8 +589,9 @@ describeIfDatabase('a payment received with a new order (ORD-22, agreed 2026-10-
       payment: bkash(500),
     });
     expect(made.status, JSON.stringify(made.body)).toBe(201);
+    // ORD-51: the advance that came with it confirms it, with no call.
     expect(made.body).toMatchObject({
-      status: 'pending',
+      status: 'confirmed',
       paymentStatus: 'partially_paid',
       due: '170.00',
       payments: [{ method: 'bkash', amount: '500.00', voided: null }],
@@ -529,6 +599,7 @@ describeIfDatabase('a payment received with a new order (ORD-22, agreed 2026-10-
     expect((made.body as Order).history.map((row) => [row.field, row.to])).toEqual([
       ['created', 'pending'],
       ['payment_status', 'partially_paid'],
+      ['confirmed', 'confirmed'],
     ]);
     expect(await activity(shop.tenantId, AuditAction.OrderCreated)).toBe(1);
     expect(await activity(shop.tenantId, AuditAction.OrderPaymentRecorded)).toBe(1);

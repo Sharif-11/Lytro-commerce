@@ -21,7 +21,10 @@ import {
   normalizeSerial,
   SerialFormat,
   ServerFieldProblemCode,
-  SKU_MAX_LENGTH,
+  AUTO_SKU_LAST_SUFFIX,
+  autoSkuChoices,
+  autoSkuDesignPart,
+  autoSkuOf,
   ItemCondition,
   StockState,
   StockTracking,
@@ -129,6 +132,8 @@ function money(value: number | null | undefined): string | null | undefined {
 
 // PRD-18: what a copy's name ends with.
 const COPY_SUFFIX = ' (copy)';
+// PD-10: an automatic SKU is looked for among itself and -2 to -9 first; further suffixes only when all are taken.
+const AUTO_SKU_FIRST_CHOICES = 9;
 
 /** PRD-18: "<name> (copy)", the name shortened if it would not fit otherwise. */
 function copyName(name: string): string {
@@ -435,8 +440,8 @@ export class ProductService {
       await this.writeMatrixAttributes(tx, shop.id, product.id, matrix, new Set());
       await this.writeDescriptions(tx, shop.id, product.id, described, matrix.attributes.length);
       await this.writeVariants(tx, shop.id, product.id, matrix.planned, [], variants, shared);
-      // PD-10: a new design product's variants without a SKU get one too.
-      if (designIds.size > 0) await this.fillDesignSkus(tx, shop.id, product.id);
+      // PD-10: a new product's variants without a SKU get one.
+      await this.fillSkus(tx, shop.id, product.id);
       await this.products.refreshPriceRange(tx, shop.id, product.id);
       if (combo) {
         await this.combos.write(tx, shop.id, product.id, parts);
@@ -628,6 +633,8 @@ export class ProductService {
       await this.products.insertVariantValues(tx, copiedValues);
       // INV-24: the copy shares its stock the same way, with a stock holder of its own, empty.
       if (source.sharedStock) await this.ensureStockHolder(tx, shop.id, copy.id);
+      // PRD-18, PD-10: a SKU is one variant's alone, so the copy's variants get SKUs of their own.
+      await this.fillSkus(tx, shop.id, copy.id);
 
       const chart = await this.charts.findChart(tx, shop.id, { productId });
       const content = chart ? chartContent(chart) : null;
@@ -1027,7 +1034,7 @@ export class ProductService {
         input.variants,
         shared,
       );
-      await this.fillDesignSkus(tx, shop.id, productId);
+      await this.fillSkus(tx, shop.id, productId);
       if (switching) {
         if (shared) await this.ensureStockHolder(tx, shop.id, productId);
         else await this.retireStockHolder(tx, shop.id, productId);
@@ -2106,6 +2113,7 @@ export class ProductService {
         const row = found
           ? await this.products.updateVariant(tx, tenantId, found.id, {
               ...change,
+              ...(await this.lapsedSkuOf(tx, tenantId, found, change)),
               deletedAt: null,
             })
           : await this.products.insertVariant(tx, {
@@ -2146,22 +2154,19 @@ export class ProductService {
   }
 
   /**
-   * PD-10: a design product's live variants without a SKU get one: the product's initials (from its link name), its
-   * design's number, then its other values, e.g. IB-D2-54, at most 64 characters and unique among the shop's live
-   * variants (a -2, -3... when taken). A product without designs is left as it is.
+   * PD-10, ATR-05 (amended 2026-11-14, the owner): a product's live variants without a SKU get one, whatever the product
+   * -- its initials, its design's number when it has designs, then its other values, e.g. IB-D2-54 or PJ-S-WH (the one
+   * rule, autoSkuOf), unique among the shop's live variants (-2, -3... when taken). A SKU the seller typed is never
+   * touched, nor is the hidden holder of a shared stock given one.
    */
-  private async fillDesignSkus(
-    tx: Transaction,
-    tenantId: string,
-    productId: string,
-  ): Promise<void> {
-    const designs = (await this.designs.of(tx, tenantId, [productId])).get(productId) ?? [];
-    if (designs.length === 0) return;
-    const product = await this.findLive(tx, tenantId, productId);
+  private async fillSkus(tx: Transaction, tenantId: string, productId: string): Promise<void> {
     const variants = (await this.products.listVariants(tx, tenantId, productId, false)).filter(
       (row) => row.sku === null && !row.isStockHolder,
     );
     if (variants.length === 0) return;
+    await this.products.holdSkus(tx, tenantId);
+    const product = await this.findLive(tx, tenantId, productId);
+    const designs = (await this.designs.of(tx, tenantId, [productId])).get(productId) ?? [];
     const numbers = new Map(designs.map((design) => [design.id, design.number]));
     const order = new Map(
       (await this.products.listProductAttributes(tx, tenantId, productId)).map((row) => [
@@ -2187,41 +2192,59 @@ export class ProductService {
         option.value,
       ]),
     );
-    const initials =
-      product.slug
-        .split('-')
-        .filter((word) => /^[a-z0-9]/i.test(word))
-        .slice(0, 3)
-        .map((word) => word.charAt(0).toUpperCase())
-        .join('') || 'P';
-    const wanted = variants.map((row) => {
+    let waiting = variants.map((row) => {
       const pairs = pairsOf(row.combinationKey);
       const design = pairs.find((pair) => numbers.has(pair.optionId));
       const others = pairs
         .filter((pair) => pair !== design)
         .sort((a, b) => (order.get(a.attributeId) ?? 0) - (order.get(b.attributeId) ?? 0))
-        .map((pair) => (values.get(pair.optionId) ?? '').toUpperCase().replace(/[^A-Z0-9.]/g, ''))
-        .filter((part) => part !== '');
-      const parts = [
-        initials,
-        ...(design ? [`D${String(numbers.get(design.optionId))}`] : []),
-        ...others,
-      ];
-      return { row, sku: parts.join('-').slice(0, SKU_MAX_LENGTH - 3) };
+        .map((pair) => values.get(pair.optionId) ?? '');
+      const designNumber = design ? numbers.get(design.optionId) : undefined;
+      return {
+        row,
+        sku: autoSkuOf(product.slug, [
+          ...(designNumber !== undefined ? [autoSkuDesignPart(designNumber)] : []),
+          ...others,
+        ]),
+      };
     });
-    const candidates = wanted.flatMap(({ sku }) => [
-      sku,
-      ...[2, 3, 4, 5, 6, 7, 8, 9].map((n) => `${sku}-${String(n)}`),
-    ]);
-    const taken = new Set(await this.products.takenSkus(tx, tenantId, candidates));
-    for (const { row, sku } of wanted) {
-      const free = [sku, ...[2, 3, 4, 5, 6, 7, 8, 9].map((n) => `${sku}-${String(n)}`)].find(
-        (c) => !taken.has(c),
-      );
-      if (free === undefined) continue;
-      taken.add(free);
-      await this.products.updateVariant(tx, tenantId, row.id, { sku: free });
+    // The SKU itself and -2 to -9 first, as nearly every shop needs no more; -10 to -99 only for what is still without.
+    const taken = new Set<string>();
+    for (const [from, to] of [
+      [1, AUTO_SKU_FIRST_CHOICES],
+      [AUTO_SKU_FIRST_CHOICES + 1, AUTO_SKU_LAST_SUFFIX],
+    ] as const) {
+      if (waiting.length === 0) break;
+      const choices = waiting.flatMap(({ sku }) => autoSkuChoices(sku, from, to));
+      for (const sku of await this.products.takenSkus(tx, tenantId, choices)) taken.add(sku);
+      const without: typeof waiting = [];
+      for (const each of waiting) {
+        const free = autoSkuChoices(each.sku, from, to).find((choice) => !taken.has(choice));
+        if (free === undefined) {
+          without.push(each);
+          continue;
+        }
+        taken.add(free);
+        await this.products.updateVariant(tx, tenantId, each.row.id, { sku: free });
+      }
+      waiting = without;
     }
+  }
+
+  /**
+   * PD-10: a variant coming back from retired keeps its SKU, unless a live variant took that SKU while it was away and
+   * this save types none: then it comes back without one, and is given a free one (fillSkus), never refused for a SKU
+   * nobody typed.
+   */
+  private async lapsedSkuOf(
+    tx: Transaction,
+    tenantId: string,
+    retired: VariantRecord,
+    change: VariantChange,
+  ): Promise<{ sku: null } | Record<string, never>> {
+    if (retired.sku === null || change.sku !== undefined) return {};
+    const taken = await this.products.takenSkus(tx, tenantId, [retired.sku]);
+    return taken.length > 0 ? { sku: null } : {};
   }
 
   private refuseTakenSlug(): never {

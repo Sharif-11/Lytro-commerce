@@ -500,6 +500,7 @@ export const MESSAGE_KEYS = [
   'BestSellersRetrieved',
   'PeriodTooLong',
   'StockAdded',
+  'StocksAdded',
   'BatchesRetrieved',
   'BatchWrittenOff',
   'SerialsRetrieved',
@@ -627,6 +628,7 @@ export const MESSAGE_KEYS = [
   'OrderPaymentNotFound',
   'PaymentAlreadyVoided',
   'CashOnDeliveryKept',
+  'AutoVerifiedPaymentKept',
   'OrderPaymentRecorded',
   'OrderPaymentVoided',
   // Phase 4 Slice 4.4a: the shop's customers, and deleting one at a privacy request (CUS-02, CUS-09).

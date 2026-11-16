@@ -644,6 +644,96 @@ async function readPublic(shop: ShopClient, slug: string): Promise<unknown> {
   return answer.body;
 }
 
+describeIfDatabase('a SKU for every variant saved without one (PD-10, ATR-05)', () => {
+  const skuOf = (detail: Detail, optionId: string) =>
+    detail.variants.find((variant) => variant.optionIds.includes(optionId))?.sku;
+
+  it('fills a product without designs, on create and when its variants are saved, and keeps a typed one', async () => {
+    const shop = await openShop(port, texts, 'auto-sku');
+    const { size } = await attributeIds(shop);
+    const [small = '', medium = '', large = ''] = await sizes(shop, size, ['S', 'M', 'L']);
+    const made = await shop.post('/products', {
+      name: 'Polo Jersey',
+      basePrice: 450,
+      stockTracking: 'not_tracked',
+      variantAttributes: [{ attributeId: size, optionIds: [small, medium] }],
+      variants: [{ optionIds: [small] }, { optionIds: [medium], sku: 'MY-OWN-1' }],
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(201);
+    const detail = made.body as Detail;
+    expect(skuOf(detail, small)).toBe('PJ-S');
+    expect(skuOf(detail, medium)).toBe('MY-OWN-1');
+
+    const saved = await shop.put(`/products/${detail.id}/variants`, {
+      variantAttributes: [{ attributeId: size, optionIds: [small, medium, large] }],
+    });
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+    const after = saved.body as Detail;
+    expect(skuOf(after, small)).toBe('PJ-S');
+    expect(skuOf(after, medium)).toBe('MY-OWN-1');
+    expect(skuOf(after, large)).toBe('PJ-L');
+  });
+
+  it('gives a product with one variant its initials, the next free when the shop has them, and refuses a typed duplicate', async () => {
+    const shop = await openShop(port, texts, 'auto-sku-one');
+    const one = async (name: string, variants?: unknown) => {
+      const made = await shop.post('/products', {
+        name,
+        basePrice: 300,
+        stockTracking: 'not_tracked',
+        ...(variants === undefined ? {} : { variants }),
+      });
+      return made;
+    };
+    const skus: (string | null | undefined)[] = [];
+    for (const name of ['Lamp', 'Light', 'Lantern']) {
+      const made = await one(name);
+      expect(made.status, JSON.stringify(made.body)).toBe(201);
+      skus.push((made.body as Detail).variants[0]?.sku);
+    }
+    expect(skus).toEqual(['L', 'L-2', 'L-3']);
+    const typed = await one('Lock', [{ optionIds: [], sku: 'L-2' }]);
+    expect(typed.status, JSON.stringify(typed.body)).toBe(409);
+    expect(fieldsOf(typed)).toEqual({ 'variants.0.sku': 'taken' });
+  });
+
+  it('gives a variant that comes back a free SKU when another took its own meanwhile', async () => {
+    const shop = await openShop(port, texts, 'auto-sku-back');
+    const { size } = await attributeIds(shop);
+    const [small = ''] = await sizes(shop, size, ['S']);
+    const plain = { basePrice: 300, stockTracking: 'not_tracked' };
+    const mug = (await shop.post('/products', { name: 'Mug', ...plain })).body as Detail;
+    expect(mug.variants[0]?.sku).toBe('M');
+    // Sold by size now: its one variant is retired, keeping its SKU, which another product then takes.
+    const sized = await shop.put(`/products/${mug.id}/variants`, {
+      variantAttributes: [{ attributeId: size, optionIds: [small] }],
+    });
+    expect(sized.status, JSON.stringify(sized.body)).toBe(200);
+    expect(skuOf(sized.body as Detail, small)).toBe('M-S');
+    const mat = (await shop.post('/products', { name: 'Mat', ...plain })).body as Detail;
+    expect(mat.variants[0]?.sku).toBe('M');
+    // Back to one variant: it returns without the SKU that is the mat's now, and takes the next free.
+    const back = await shop.put(`/products/${mug.id}/variants`, {
+      variantAttributes: [],
+      variants: [{ optionIds: [] }],
+    });
+    expect(back.status, JSON.stringify(back.body)).toBe(200);
+    expect((back.body as Detail).variants.map((variant) => variant.sku)).toEqual(['M-2']);
+  });
+
+  it('never gives two saves of one shop the same SKU', async () => {
+    const shop = await openShop(port, texts, 'auto-sku-race');
+    const made = await Promise.all(
+      ['Pen', 'Pot', 'Pan', 'Pin'].map((name) =>
+        shop.post('/products', { name, basePrice: 20, stockTracking: 'not_tracked' }),
+      ),
+    );
+    expect(made.map((each) => each.status)).toEqual([201, 201, 201, 201]);
+    const skus = made.map((each) => (each.body as Detail).variants[0]?.sku);
+    expect([...skus].sort()).toEqual(['P', 'P-2', 'P-3', 'P-4']);
+  });
+});
+
 describeIfDatabase('the public product (ATR-19, PD-4, PD-28)', () => {
   it('marks the designs option, and gives each photo its design and pixels', async () => {
     const shop = await openShop(port, texts, 'designs');

@@ -301,7 +301,7 @@ test('Edit order from the menu: as the order is, a quantity changed, and only wh
       ],
     },
   ]);
-  await expect(main(page)).toContainText('3 × ৳450');
+  await expect(main(page)).toContainText('3 pcs × ৳450/pc');
 });
 
 test('someone who may only read orders has no New order', async ({ page }) => {

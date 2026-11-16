@@ -3,6 +3,7 @@ import { createZodDto } from 'nestjs-zod';
 import {
   addSerialsSchema,
   addStockSchema,
+  addStocksSchema,
   checkSerialsSchema,
   correctSerialSchema,
   SerialStatus,
@@ -22,6 +23,7 @@ import { variantAttributeViewSchema } from './catalogue-response.dto';
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
 export class SetStockDto extends createZodDto(setStockSchema) {}
 export class AddStockDto extends createZodDto(addStockSchema) {}
+export class AddStocksDto extends createZodDto(addStocksSchema) {}
 export class AddSerialsDto extends createZodDto(addSerialsSchema) {}
 export class CorrectSerialDto extends createZodDto(correctSerialSchema) {}
 export class CheckSerialsDto extends createZodDto(checkSerialsSchema) {}
