@@ -423,7 +423,8 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   - The fixes it calls for.
   - The search and media measurements earlier phases left for real servers (CCH-12, MED-05).
   - DAT-54's restore onto a fresh server, drilled on the same machine.
-  - Whether Cloudflare's proxy (a CDN) goes in front of the apps, decided from the measurements (the owner, 2026-11-13).
+  - Whether Cloudflare's proxy (a CDN) goes in front of the apps, decided from the measurements (the owner, 2026-11-13;
+    for shop pages, decided yes on 2026-11-14 for cost, below).
     Media is already served and cached by Cloudflare. The proxy would change how real visitor addresses reach the rate
     limits, how TLS is issued and whether shops' own domains can sit behind it, and may route visitors off BDIX.
 - **Read 2026-11-14** (the owner's answers):
@@ -455,9 +456,23 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
      other findings stay in the report for a later fix: estimates writing the default zones, a busy pool answered as
      "saving paused", and a shop's catalogue lock holding a connection.
   2. **The production server is bigger**: 8 vCPU and 16 GB (D9-30).
-  3. **Shop pages cached at the edge** are what carry 1,000 shops and more (the owner asked about 1,000 to 2,500 shops at
-     300 orders a month and 1% conversion: up to 290 visits a second at peak). Planned before about 300 shops, from the
-     production run's numbers.
+  3. **Shop pages are cached at Cloudflare's edge, before launch** (the owner: "allow as much shoppers as we can but
+     reduce infrastructure cost"). The owner asked about 1,000 to 2,500 shops at 300 orders a month and 1% conversion:
+     up to 290 visits a second at peak, which rendering every page would need 25 to 150 vCPU for.
+     - What's cached: a shop's home, category and product pages, for shoppers who aren't signed in, for **5 minutes**
+       (the owner, 2026-11-14, over 30 to 60 seconds); search results for 60 seconds, since their phrases are endless.
+     - Cleared when it matters: a seller's save of a product, price, stock, category or shop setting, and a product
+       selling out through orders, drop that shop's cached pages at Cloudflare. A seller sees their change at once, and
+       "in stock" is never minutes wrong. A page past its time is served while a fresh one is built
+       (stale-while-revalidate), so no shopper waits for the rebuild.
+     - What never is: the cart, checkout, account, payment and the dashboard.
+     - This replaces answer 6: the proxy goes in front of shop pages for cost, not only if the numbers call for it.
+     - It's built in 9.10 before the production run, so the run tests what will serve shoppers, after its own read
+       (certificates, real visitor addresses, shops' own domains).
+  4. **A shop's monthly request allowance counts only its own website's use of the public API.** Browsing its Lytro
+     storefront is uncounted, since a cached page never reaches the server. This amends Slice 9's "every request is
+     counted" (RTE-04) for the storefront's own traffic. At 1% conversion an ordinary shop's browsing alone would have
+     passed Starter's 200,000.
 - **How it's built** (my calls at the read):
   - **The tool:** k6, as Slice 9.6's monitor probe already is.
   - **The traffic:**

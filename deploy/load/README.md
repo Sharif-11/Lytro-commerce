@@ -16,6 +16,12 @@ rising until something breaks.
   Docker.
 - `sql/`: the seeder's steps run as the database's owner (`seed-limits.sql`, `spread-year.sql`).
 - `run/`: the scripts below.
+- `apps/website/public/timing.html`, served by the website as `https://<domain>/timing.html`: MED-05's timing from a
+  phone's own network. The owner opens it on three networks (the owner's answer, 2026-11-14) as
+  `https://<domain>/timing.html?shop=<a shop's address>&media=<a media file's full URL>`, and pastes back what it shows:
+  the API's health, a shop's page, and one media file missed and then hit in Cloudflare's cache. It sends nothing
+  anywhere. Shop pages go behind Cloudflare's edge cache before launch whatever these show (the owner, 2026-11-14); the
+  shop page's numbers are its before picture, and the media's are MED-05's.
 
 ## A run, in order
 

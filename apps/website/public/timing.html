@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="bn">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Lytro · network timing</title>
+    <!--
+  Phase 9 Slice 9.10 (MED-05, D9-5; the owner's answer, 2026-11-14): how fast Lytro answers from a Bangladeshi network.
+  The owner opens it on three networks (Grameenphone data, Robi or Banglalink data, home broadband) and pastes back what
+  it shows. It times, from this phone:
+  - a shop's storefront page, the before picture for the edge cache that goes in front of shop pages before launch;
+  - one media file, first never asked for (a cache miss) and then asked again (a hit), which MED-05 asks for;
+  - the API's health check, the server's own path, as the baseline.
+  Usage: https://<domain>/timing.html?shop=<a shop's address>&media=<a media file's full URL>
+  It sends nothing anywhere: the results stay on the page until copied.
+-->
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #0f172a;
+        --n700: #334155;
+        --line: #e2e8f0;
+        --brand: #0f6b5e;
+      }
+      body {
+        margin: 0;
+        font:
+          16px/1.5 system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        color: var(--ink);
+        background: #fff;
+      }
+      main {
+        max-width: 34rem;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 4px;
+      }
+      p {
+        margin: 0 0 12px;
+        color: var(--n700);
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin: 16px 0 6px;
+      }
+      select,
+      input,
+      button,
+      textarea {
+        font: inherit;
+      }
+      select,
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      button {
+        margin-top: 16px;
+        width: 100%;
+        padding: 12px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--brand);
+        color: #fff;
+        font-weight: 700;
+      }
+      button:disabled {
+        opacity: 0.5;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+        font-size: 15px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 8px 6px;
+        border-bottom: 1px solid var(--line);
+      }
+      td.n {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        min-height: 9rem;
+        margin-top: 16px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font:
+          13px/1.4 ui-monospace,
+          monospace;
+      }
+      .note {
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>লাইট্রোর গতি মাপা</h1>
+      <p>
+        এই ফোনের নেটওয়ার্ক থেকে লাইট্রোর পেজ আর ছবি কত তাড়াতাড়ি আসে, তা মাপে। এক-দুই মিনিট লাগে।
+      </p>
+      <label for="network">কোন নেটওয়ার্ক?</label>
+      <select id="network">
+        <option value="">বেছে নিন</option>
+        <option>Grameenphone data</option>
+        <option>Robi data</option>
+        <option>Banglalink data</option>
+        <option>Teletalk data</option>
+        <option>Home broadband</option>
+        <option>Office broadband</option>
+      </select>
+      <button id="run" disabled>মাপা শুরু করুন</button>
+      <p class="note" id="status"></p>
+      <table id="results" hidden>
+        <thead>
+          <tr>
+            <th>কী</th>
+            <th class="n">মাঝামাঝি</th>
+            <th class="n">সবচেয়ে ধীর</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <textarea id="copy" readonly hidden></textarea>
+      <button id="copyBtn" hidden>কপি করুন</button>
+    </main>
+    <script>
+      (() => {
+        const ROUNDS = 10;
+        const params = new URLSearchParams(location.search);
+        // The server measured: this page's own, or another's (a test from elsewhere).
+        const domain = params.get('domain') || location.host;
+        const shop = params.get('shop');
+        const media = params.get('media');
+        const $ = (id) => document.getElementById(id);
+        const network = $('network');
+        const run = $('run');
+        network.addEventListener('change', () => {
+          run.disabled = !network.value;
+        });
+
+        // One request's time to its first byte where the server allows reading it (Timing-Allow-Origin), else to the whole
+        // answer: either way from this phone, never cached by the browser.
+        // `cors` shows whether the answer was the file (a refusal counts as failed); `no-cors` only times it.
+        async function timeOnce(url, mode) {
+          const started = performance.now();
+          const answer = await fetch(url, { mode, cache: 'no-store', credentials: 'omit' });
+          if (mode === 'cors' && !answer.ok) throw new Error(String(answer.status));
+          await answer.arrayBuffer().catch(() => null);
+          const total = performance.now() - started;
+          const entry = performance.getEntriesByName(url).pop();
+          const firstByte =
+            entry && entry.responseStart > 0 ? entry.responseStart - entry.startTime : null;
+          return Math.round(firstByte ?? total);
+        }
+        const summary = (times) => {
+          const sorted = [...times].sort((a, b) => a - b);
+          return {
+            median: sorted[Math.floor(sorted.length / 2)],
+            slowest: sorted[sorted.length - 1],
+          };
+        };
+
+        run.addEventListener('click', async () => {
+          run.disabled = true;
+          const rows = [];
+          const measure = async (name, makeUrl, mode) => {
+            $('status').textContent = `${name} মাপা হচ্ছে…`;
+            const times = [];
+            for (let round = 0; round < ROUNDS; round += 1) {
+              try {
+                times.push(await timeOnce(makeUrl(round), mode));
+              } catch {
+                times.push(NaN);
+              }
+            }
+            const ok = times.filter((t) => !Number.isNaN(t));
+            rows.push({
+              name,
+              ...(ok.length ? summary(ok) : { median: NaN, slowest: NaN }),
+              failed: times.length - ok.length,
+            });
+          };
+          const fresh = () => `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
+          await measure(
+            'API health (the server itself)',
+            () => `https://api.${domain}/health?t=${fresh()}`,
+            'no-cors',
+          );
+          if (shop)
+            await measure(
+              `Storefront page (${shop})`,
+              () => `https://${shop}.${domain}/?t=${fresh()}`,
+              'no-cors',
+            );
+          if (media) {
+            // Read as a page reads a file it may check, if the media host allows it; else timed only.
+            const mode = await timeOnce(media, 'cors').then(
+              () => 'cors',
+              () => 'no-cors',
+            );
+            // A query string never asked for before: Cloudflare has nothing kept for it, so the file comes from storage.
+            await measure(
+              'Media, never asked for (cache miss)',
+              () => `${media}${media.includes('?') ? '&' : '?'}t=${fresh()}`,
+              mode,
+            );
+            // The same address each time: after the first, Cloudflare answers from its own copy.
+            const kept = `${media}${media.includes('?') ? '&' : '?'}kept=${Date.now()}`;
+            await timeOnce(kept, mode).catch(() => null);
+            await measure('Media, asked again (cache hit)', () => kept, mode);
+            if (mode === 'no-cors')
+              rows.push({
+                name: '(media timed without seeing its answer: the host allows no CORS)',
+                median: '-',
+                slowest: '-',
+                failed: 0,
+              });
+          }
+          const body = $('results').querySelector('tbody');
+          body.innerHTML = rows
+            .map(
+              (r) =>
+                `<tr><td>${r.name}${r.failed ? ` (${r.failed} failed)` : ''}</td><td class="n">${r.median} ms</td><td class="n">${r.slowest} ms</td></tr>`,
+            )
+            .join('');
+          $('results').hidden = false;
+          const when = new Date().toISOString().slice(0, 16).replace('T', ' ');
+          $('copy').value = [
+            `Lytro timing · ${network.value} · ${domain} · ${when} UTC · ${ROUNDS} rounds`,
+            ...rows.map(
+              (r) =>
+                `${r.name}: median ${r.median} ms, slowest ${r.slowest} ms${r.failed ? `, ${r.failed} failed` : ''}`,
+            ),
+          ].join('\n');
+          $('copy').hidden = false;
+          $('copyBtn').hidden = false;
+          $('status').textContent =
+            shop && media
+              ? 'হয়ে গেছে। নিচের লেখাটা কপি করে পাঠান।'
+              : 'হয়ে গেছে। (লিংকে shop বা media না থাকায় কিছু মাপা হয়নি।)';
+          run.disabled = false;
+        });
+        $('copyBtn').addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText($('copy').value);
+            $('copyBtn').textContent = 'কপি হয়েছে';
+          } catch {
+            $('copy').select();
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
