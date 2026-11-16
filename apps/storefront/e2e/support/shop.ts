@@ -5,6 +5,7 @@ import {
   idOf,
   type Language,
   meghShop,
+  type Refusal,
   RUMANA_PASSWORD,
   type SentOrder,
   type ShopFixture,
@@ -26,6 +27,8 @@ export interface OpenShop {
     shopperRequests: number;
     shoppers: ShopperFixture[];
   }>;
+  /** Slice 9.10: what the server refuses from now on; none lifts every refusal. */
+  refuse: (refusals: Refusal[]) => Promise<void>;
 }
 
 /** A shop of the test's own, at its own host: `<slug>.localhost` reaches the app, and the host names the shop (TEN-08).
@@ -62,6 +65,14 @@ export async function openShop(
         };
       };
       return body.data;
+    },
+    refuse: async (refusals) => {
+      const answer = await fetch(`${MOCK}/__refusals/${slug}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(refusals),
+      });
+      expect(answer.status).toBe(200);
     },
   };
 }

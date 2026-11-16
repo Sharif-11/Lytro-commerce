@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
-import { TrackFrame } from '@/components/order/track-frame';
+import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
+import { loadTrackFrame, TrackFrame } from '@/components/order/track-frame';
 import { TrackingStart } from '@/components/order/tracking-view';
 import { OfflinePage } from '@/components/pages';
 import { loadShopPage } from '@/lib/storefront';
@@ -12,7 +13,7 @@ interface Props {
   searchParams: Promise<{ id?: string | string[] }>;
 }
 
-export async function generateMetadata(): Promise<Metadata> {
+export const generateMetadata = withBusyMetadata(async (): Promise<Metadata> => {
   const page = await loadShopPage();
   if (page.state !== 'open') return {};
   return {
@@ -20,18 +21,19 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${page.words.t('tr_title')} · ${page.info.name}`,
     robots: { index: false, follow: false },
   };
-}
+});
 
-export default async function TrackPage({ searchParams }: Props) {
+export default withBusyPage(async function TrackPage({ searchParams }: Props) {
   const { id } = await searchParams;
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
   if (page.state === 'missing') notFound();
   const typed = typeof id === 'string' ? id.trim() : '';
   if (typed !== '') redirect(`/track/${encodeURIComponent(typed.toUpperCase())}`);
+  const frame = await loadTrackFrame(page);
   return (
-    <TrackFrame page={page}>
+    <TrackFrame page={page} frame={frame}>
       <TrackingStart words={page.words} />
     </TrackFrame>
   );
-}
+});

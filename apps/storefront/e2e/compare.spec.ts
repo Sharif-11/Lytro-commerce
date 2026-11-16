@@ -55,6 +55,8 @@ interface Pair {
   then?: (page: Page, language: Language) => Promise<void>;
   /** The frames it is drawn in; the phone and the computer unless it says. */
   devices?: Device[];
+  /** The page's clock held still from the start, so a countdown reads what the drawing says. */
+  stillClock?: boolean;
 }
 
 const pick = (language: Language, bn: string, en: string) => (language === 'bn' ? bn : en);
@@ -1227,6 +1229,22 @@ const PAIRS: Pair[] = [
       await page.locator('.hdr button.ib').last().click();
     },
   },
+  // Phase 9 Slice 9.10 (STOREFRONT-DESIGN §7h): a page the shop is too busy to give, and a delivery charge it couldn't
+  // read, the server answering "too many requests" with no wait named, so the page waits the drawn 30 seconds.
+  {
+    name: 'busy',
+    screen: 'p910-busy',
+    path: '/p/cotton-panjabi',
+    shop: () => ({ refusals: [{ path: '/v1/catalogue/products/cotton-panjabi', status: 429 }] }),
+    stillClock: true,
+  },
+  {
+    name: 'busy-delivery',
+    screen: 'p910-busy-delivery',
+    path: '/p/cotton-panjabi',
+    shop: () => ({ refusals: [{ path: '/v1/delivery-estimate', status: 429 }] }),
+    area: THANA.mirpur,
+  },
 ];
 
 const LANGUAGES: Language[] = ['bn', 'en'];
@@ -1252,11 +1270,19 @@ test.describe('the built storefront beside the prototype', () => {
           });
           await drawing.selectOption('#selScreen', pair.screen);
           await drawing.waitForTimeout(400);
-          await drawing.locator('#frame .shell').screenshot({ path: `${out}-prototype.png` });
+          // A bare page (offline, busy) is drawn without the shell, filling the frame.
+          await drawing
+            .locator('#frame .shell, #frame .bare')
+            .first()
+            .screenshot({ path: `${out}-prototype.png` });
           await drawing.close();
 
           const context = await browser.newContext({ viewport: area, serviceWorkers: 'block' });
           const app = await context.newPage();
+          if (pair.stillClock) {
+            await app.clock.install();
+            await app.clock.pauseAt(Date.now() + 1_000);
+          }
           const shop = await openShop(app, pair.shop ?? (() => ({})), language);
           if (pair.cart) await seedCart(app, pair.cart(language));
           if (pair.area) await seedArea(app, shop, pair.area);

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { CheckoutView } from '@/components/order/checkout-view';
 import { OfflinePage } from '@/components/pages';
 import { Footer, Header, Shell } from '@/components/shell';
@@ -15,7 +16,7 @@ import {
 // browser's; never kept by any cache (CCH-07).
 export const dynamic = 'force-dynamic';
 
-export async function generateMetadata(): Promise<Metadata> {
+export const generateMetadata = withBusyMetadata(async (): Promise<Metadata> => {
   const page = await loadShopPage();
   if (page.state !== 'open' || !page.shop.storefrontEnabled) return {};
   return {
@@ -23,9 +24,9 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${page.words.t('co_title')} · ${page.info.name}`,
     robots: { index: false, follow: false },
   };
-}
+});
 
-export default async function CheckoutPage() {
+export default withBusyPage(async function CheckoutPage() {
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
   // SFT-16: a switched-off storefront answers its paths with not-found.
@@ -69,4 +70,4 @@ export default async function CheckoutPage() {
       />
     </Shell>
   );
-}
+});

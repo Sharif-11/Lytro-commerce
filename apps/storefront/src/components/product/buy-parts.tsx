@@ -388,23 +388,40 @@ export function rangeText(range: { from: string; to: string }, words: Words): st
     : words.t('deliv_range', { from: money(range.from), to: money(range.to) });
 }
 
-/** SFT-20: the delivery line: the exact charge once the shopper's area is known, else the range and a way to set it. */
+/** SFT-20: the delivery line: the exact charge once the shopper's area is known, else the range and a way to set it. A
+    charge the server was too busy to work out says so in its place, with Try again (Slice 9.10, `p910-busy-delivery`). */
 export function DeliveryLine({
   estimate,
   areaSet,
   words,
   onArea,
+  busy,
 }: {
   estimate: DeliveryEstimate | null;
   areaSet: boolean;
   words: Words;
   onArea: () => void;
+  busy?: { onRetry: () => void } | null;
 }) {
   const link = (key: 'change' | 'deliv_area') => (
     <button type="button" className="lnk" onClick={onArea}>
       {words.t(key)}
     </button>
   );
+  if (busy) {
+    return (
+      <div className="line">
+        <Icon name="truck" />
+        <span>
+          <b>{words.t('deliv_est')}</b>:{' '}
+          <span className="busy-line">{words.t('p910DelivBusy')}</span> ·{' '}
+          <button type="button" className="lnk" onClick={busy.onRetry}>
+            {words.t('p910DelivAgain')}
+          </button>
+        </span>
+      </div>
+    );
+  }
   if (areaSet && estimate?.zone && estimate.deliverable && estimate.deliveryCharge !== null) {
     return (
       <div className="line">

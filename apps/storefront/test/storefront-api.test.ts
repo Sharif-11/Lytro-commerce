@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { ServerAnswer, ServerCall } from '../src/lib/api/server-api';
-import { StorefrontApi, type StorefrontShopContext } from '../src/lib/api/storefront-api';
+import {
+  retryAfterSeconds,
+  ShopBusy,
+  StorefrontApi,
+  type StorefrontShopContext,
+} from '../src/lib/api/storefront-api';
 import { StorefrontEnvironment } from '../src/lib/env';
 
 const env = new StorefrontEnvironment({
@@ -124,7 +129,7 @@ describe('StorefrontApi', () => {
     const api = new StorefrontApi(fake, env);
     expect(await api.track(shop, shopper, 'K7F2M9QX')).toEqual({ kind: 'found', order });
     expect(await api.track(shop, shopper, 'NOPE')).toEqual({ kind: 'missing' });
-    expect(await api.track(shop, shopper, 'K7F2M9QX')).toEqual({ kind: 'busy' });
+    expect(await api.track(shop, shopper, 'K7F2M9QX')).toEqual({ kind: 'busy', retryAfter: 30 });
     expect(fake.calls[0]?.path).toBe('/v1/track/K7F2M9QX');
   });
 
@@ -148,12 +153,14 @@ describe('StorefrontApi', () => {
   it('answers null for items the server refuses, and fails loudly on anything else', async () => {
     const fake = server(
       { status: 422, data: null, code: 'validation_failed', details: {} },
-      { status: 503, data: null, code: null, details: {} },
+      { status: 500, data: null, code: 'internal_error', details: {} },
     );
     const api = new StorefrontApi(fake, env);
     const body = { items: [{ variantId: 'v1', quantity: 1 }] };
     expect(await api.estimate(shop, shopper, body)).toBeNull();
-    await expect(api.estimate(shop, shopper, body)).rejects.toThrow(/status 503/);
+    const failed = api.estimate(shop, shopper, body);
+    await expect(failed).rejects.toThrow(/status 500/);
+    await expect(failed).rejects.not.toBeInstanceOf(ShopBusy);
   });
 
   it('keeps the shop and its categories a minute per shop; a failed read is asked again (Slice 12b)', async () => {
@@ -206,5 +213,114 @@ describe('StorefrontApi', () => {
       '/v1/catalogue/products',
       '/v1/catalogue/products?category=hidden',
     ]);
+  });
+});
+
+/** An answer the server gives when it is too busy, or broken, with the wait it names if any. */
+const refused = (status: number, retryAfter?: string): ServerAnswer<unknown> => ({
+  status,
+  data: null,
+  code: status === 429 ? 'rate_limited' : null,
+  details: {},
+  retryAfter: retryAfter ?? null,
+});
+
+/** What a call threw, so a test can say what kind of fault it was. */
+async function thrown(call: Promise<unknown>): Promise<unknown> {
+  try {
+    await call;
+  } catch (error) {
+    return error;
+  }
+  throw new Error('the call did not throw');
+}
+
+describe('a server too busy to answer (Slice 9.10, RTE-06)', () => {
+  it("is a wait for 429 and 503, carrying the server's own wait", async () => {
+    const api = new StorefrontApi(server(refused(429, '12'), refused(503, '45')), env);
+    const many = await thrown(api.shop(shop, shopper));
+    expect(many).toBeInstanceOf(ShopBusy);
+    expect(many).toMatchObject({ status: 429, retryAfter: 12 });
+    const busy = await thrown(api.locations(shop, shopper));
+    expect(busy).toBeInstanceOf(ShopBusy);
+    expect(busy).toMatchObject({ status: 503, retryAfter: 45 });
+  });
+
+  it('waits 30 seconds when the server names no wait', async () => {
+    const api = new StorefrontApi(server(refused(429)), env);
+    expect(await thrown(api.product(shop, shopper, 'cotton-panjabi'))).toMatchObject({
+      status: 429,
+      retryAfter: 30,
+    });
+  });
+
+  it('stays a fault for 500 and 404, so a real fault still shows the error page', async () => {
+    const api = new StorefrontApi(server(refused(500, '12'), refused(404)), env);
+    const broken = await thrown(api.shop(shop, shopper));
+    expect(broken).toBeInstanceOf(Error);
+    expect(broken).not.toBeInstanceOf(ShopBusy);
+    const missing = await thrown(api.categories(shop, shopper));
+    expect(missing).not.toBeInstanceOf(ShopBusy);
+    expect(missing).toMatchObject({ message: expect.stringMatching(/status 404/) as unknown });
+  });
+
+  it('is a wait when the server is too busy to name the shop a host serves', async () => {
+    const api = new StorefrontApi(server(refused(503, '5'), refused(500)), env);
+    expect(await thrown(api.context('megh.lytro.app'))).toMatchObject({
+      status: 503,
+      retryAfter: 5,
+    });
+    expect(await thrown(api.context('megh.lytro.app'))).not.toBeInstanceOf(ShopBusy);
+  });
+
+  it("is a wait for any page's list, product or estimate, but not for an order refused as paused", async () => {
+    const paused: ServerAnswer<unknown> = {
+      status: 503,
+      data: null,
+      code: 'service_unavailable',
+      details: { savingPaused: true },
+      retryAfter: '30',
+    };
+    const api = new StorefrontApi(server(refused(429), refused(503), paused), env);
+    expect(await thrown(api.products(shop, shopper, {}))).toBeInstanceOf(ShopBusy);
+    const body = { items: [{ variantId: 'v1', quantity: 1 }] };
+    expect(await thrown(api.estimate(shop, shopper, body))).toBeInstanceOf(ShopBusy);
+    // D9-14 (Slice 9.9): an order refused because orders can't be saved comes back as it came, for checkout to read.
+    expect(await api.placeOrder(shop, shopper, {}, 'key-1')).toEqual(paused);
+  });
+
+  it("keeps the shop's last good read for a busy page, which a busy read never erases", async () => {
+    let now = 1_000;
+    const api = new StorefrontApi(server(ok({ name: 'Megh' }), refused(429)), env, () => now);
+    expect(api.lastShop('megh')).toBeNull();
+    await api.shop(shop, shopper);
+    expect(api.lastShop('megh')).toEqual({ name: 'Megh' });
+    // Past the minute the shop is kept, the next read is refused as too busy; the last good one stays for the busy page.
+    now += 61_000;
+    expect(await thrown(api.shop(shop, shopper))).toBeInstanceOf(ShopBusy);
+    expect(api.lastShop('megh')).toEqual({ name: 'Megh' });
+    expect(api.lastShop('another-shop')).toBeNull();
+  });
+
+  it('tells tracking how long too many looks wait', async () => {
+    const api = new StorefrontApi(server(refused(429, '20')), env);
+    expect(await api.track(shop, shopper, 'K7F2M9QX')).toEqual({ kind: 'busy', retryAfter: 20 });
+  });
+});
+
+describe('retryAfterSeconds (Slice 9.10)', () => {
+  it('reads whole seconds, at least one', () => {
+    expect(retryAfterSeconds('12')).toBe(12);
+    expect(retryAfterSeconds(' 7 ')).toBe(7);
+    expect(retryAfterSeconds('0')).toBe(1);
+  });
+
+  it('is 30 seconds when the header is missing or names no whole seconds', () => {
+    expect(retryAfterSeconds(null)).toBe(30);
+    expect(retryAfterSeconds(undefined)).toBe(30);
+    expect(retryAfterSeconds('')).toBe(30);
+    expect(retryAfterSeconds('-3')).toBe(30);
+    expect(retryAfterSeconds('1.5')).toBe(30);
+    expect(retryAfterSeconds('Wed, 21 Oct 2026 07:28:00 GMT')).toBe(30);
   });
 });

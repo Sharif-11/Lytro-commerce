@@ -329,6 +329,13 @@ export const COPY = {
   p99CantOrder: ["একটা সমস্যার কারণে কয়েক মিনিট এই শপে অর্ডার দেওয়া যাচ্ছে না। একটু পরে আবার চেষ্টা করুন।", "Because of a problem, orders can't be placed in this shop for a few minutes. Please try again shortly."],
   p99OrderPaused: ["কিছুক্ষণ অর্ডার দেওয়া যাচ্ছে না", "Orders paused for a few minutes"],
   p99Privacy: ["প্রাইভেসি", "Privacy"],
+  // Part 910 (Slice 9.10, STOREFRONT-DESIGN §7h): a page the shop is too busy to give, and a figure it couldn't read.
+  p910BusyH: ["শপটি এই মুহূর্তে খুব ব্যস্ত", "The shop is very busy right now"],
+  p910BusyP: ["এক মিনিট পরে আবার চেষ্টা করুন। আপনার কার্টে রাখা জিনিস ঠিক থাকবে।", "Please try again in a minute. Anything in your cart stays there."],
+  p910BusyAuto: ["{n} সেকেন্ড পরে পেজটি নিজেই আবার খুলবে", "The page tries again by itself in {n} seconds"],
+  p910BusyBtn: ["আবার চেষ্টা করুন", "Try again"],
+  p910DelivBusy: ["এখন দেখা যাচ্ছে না", "can't be shown right now"],
+  p910DelivAgain: ["আবার চাপুন", "Try again"],
 } as const satisfies Record<string, readonly [string, string]>;
 
 export type CopyKey = keyof typeof COPY;

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import {
+  isBusyStatus,
   type ProductCard as Card,
   type ProductPage,
   type ProductQuery,
@@ -15,7 +16,8 @@ import { ProductCard } from '../product-card';
 import { Sheet } from '../product/sheets';
 
 /** CCH-11: a list's grid and "Show more", which asks the storefront for the page after the last one shown (one counted
-    call each) and adds it to the grid. Without a number of what is left: the server keeps no count of it. */
+    call each) and adds it to the grid. Without a number of what is left: the server keeps no count of it. A page the
+    server was too busy to give says so under the list, with Try again in the button's place (Slice 9.10). */
 export function ProductList({
   language,
   products,
@@ -34,11 +36,13 @@ export function ProductList({
   const [shown, setShown] = useState(products);
   const [cursor, setCursor] = useState(nextCursor);
   const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
   const more = async () => {
     if (cursor === null || loading) return;
     setLoading(true);
     try {
       const response = await fetch(`/api/products?${productQueryString({ ...query, cursor })}`);
+      setBusy(isBusyStatus(response.status));
       if (!response.ok) return;
       const page = (await response.json()) as ProductPage;
       setShown((before) => [...before, ...page.products]);
@@ -49,6 +53,28 @@ export function ProductList({
       setLoading(false);
     }
   };
+  const ask = () => {
+    void more();
+  };
+  let after = null;
+  if (cursor !== null && busy) {
+    after = (
+      <div className="more-busy">
+        <span className="busy-line">{words.t('p910DelivBusy')}</span> ·{' '}
+        <button type="button" className="lnk" disabled={loading} onClick={ask}>
+          {words.t('p910DelivAgain')}
+        </button>
+      </div>
+    );
+  } else if (cursor !== null) {
+    after = (
+      <div style={{ textAlign: 'center' }}>
+        <button type="button" className="btn ghost" disabled={loading} onClick={ask}>
+          {words.t('load_more')}
+        </button>
+      </div>
+    );
+  }
   return (
     <>
       <div className="grid">
@@ -56,20 +82,7 @@ export function ProductList({
           <ProductCard key={product.id} product={product} words={words} now={now} />
         ))}
       </div>
-      {cursor !== null ? (
-        <div style={{ textAlign: 'center' }}>
-          <button
-            type="button"
-            className="btn ghost"
-            disabled={loading}
-            onClick={() => {
-              void more();
-            }}
-          >
-            {words.t('load_more')}
-          </button>
-        </div>
-      ) : null}
+      {after}
     </>
   );
 }

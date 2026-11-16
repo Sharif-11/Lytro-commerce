@@ -11,8 +11,10 @@ import {
   type ShopperOrderPage,
   type ShopperRequest,
   type ShopperView,
+  ShopBusy,
   StorefrontApi,
   type StorefrontShopContext,
+  throwIfBusy,
 } from './api/storefront-api';
 import { StorefrontEnvironment } from './env';
 import { LANGUAGE_COOKIE, parseLanguage, Words } from './i18n/words';
@@ -64,11 +66,16 @@ export type ShopPage =
 
 export type OpenShopPage = Extract<ShopPage, { state: 'open' }>;
 
+/** Which shop the shopper's host names (TEN-08), asked once per request. */
+const loadContext = cache(async () => {
+  const shopper = await shoppers.read();
+  return { shopper, context: await storefrontApi.context(shopper.host) };
+});
+
 /** The shop this request is for, read once per request however many parts of the page ask. */
 export const loadShopPage = cache(async (): Promise<ShopPage> => {
-  const shopper = await shoppers.read();
+  const { shopper, context } = await loadContext();
   const words = new Words(shopper.language);
-  const context = await storefrontApi.context(shopper.host);
   if (context.outcome === 'closed') return { state: 'closed', words };
   if (context.outcome !== 'open' || !context.shop) return { state: 'missing', words };
   const info = await storefrontApi.shop(context.shop, shopper);
@@ -81,6 +88,30 @@ export const loadShopPage = cache(async (): Promise<ShopPage> => {
     savingPaused: context.savingPaused === true,
   };
 });
+
+/** The shop this request is for, or null when the server was too busy to give it (Slice 9.10): the root frame around a
+    page then asks nothing more of it, and the page itself shows the busy page. */
+export async function loadShopPageUnlessBusy(): Promise<ShopPage | null> {
+  try {
+    return await loadShopPage();
+  } catch (error) {
+    if (error instanceof ShopBusy) return null;
+    throw error;
+  }
+}
+
+/** What a page the server was too busy to give shows of its shop (Slice 9.10, `p910-busy`): the shopper's language, and
+    the shop as last read once the server has named it for this request. A host it couldn't name shows no shop, as a
+    closed shop's page names none (LIF-07). Nothing here asks the server again. */
+export async function loadBusyFace(): Promise<{ words: Words; shop: PublicShop | null }> {
+  const shopper = await shoppers.read();
+  const named = await loadContext().catch(() => null);
+  const slug = named?.context.outcome === 'open' ? named.context.shop?.slug : undefined;
+  return {
+    words: new Words(shopper.language),
+    shop: slug === undefined ? null : storefrontApi.lastShop(slug),
+  };
+}
 
 /**
  * Slice 13 (its read, point 3): a shop whose own domain serves answers there only. Its Lytro address and the domain's
@@ -121,6 +152,8 @@ export const loadShopper = cache(async (): Promise<ShopperView | null> => {
     'me',
     token,
   );
+  // A busy server hasn't refused the sign-in: the page waits, rather than sending a signed-in shopper to sign in again.
+  throwIfBusy(answer, 'who is signed in');
   return answer.status === 200 ? answer.data : null;
 });
 
@@ -135,6 +168,8 @@ export async function loadAddresses(page: OpenShopPage): Promise<ShopperAddress[
     'addresses',
     token,
   );
+  // Busy is not "none saved": the page waits instead of showing an empty list.
+  throwIfBusy(answer, 'the saved addresses');
   return answer.data?.addresses ?? [];
 }
 
@@ -152,6 +187,7 @@ export async function loadOrders(
     `orders?page=${String(number)}`,
     token,
   );
+  throwIfBusy(answer, 'the orders');
   return answer.data;
 }
 

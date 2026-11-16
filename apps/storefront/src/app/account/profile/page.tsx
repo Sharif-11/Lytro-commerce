@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { AccountHead } from '@/components/account/account-parts';
 import { ProfileView } from '@/components/account/profile-view';
+import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { OfflinePage } from '@/components/pages';
 import { ShopShell } from '@/components/shop-shell';
 import { accountPage } from '@/lib/account/account-page';
@@ -9,7 +10,7 @@ import { loadFrame, loadShopPage } from '@/lib/storefront';
 // CUS-05 (`e48-profile`): the shopper's name, phone and password.
 export const dynamic = 'force-dynamic';
 
-export async function generateMetadata(): Promise<Metadata> {
+export const generateMetadata = withBusyMetadata(async (): Promise<Metadata> => {
   const page = await loadShopPage();
   if (page.state !== 'open') return {};
   return {
@@ -17,9 +18,9 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${page.words.t('e48Profile')} · ${page.info.name}`,
     robots: { index: false, follow: false },
   };
-}
+});
 
-export default async function AccountProfilePage() {
+export default withBusyPage(async function AccountProfilePage() {
   const opened = await accountPage('/account/profile');
   if ('closed' in opened) return <OfflinePage words={opened.words} />;
   const { page, shopper } = opened;
@@ -31,4 +32,4 @@ export default async function AccountProfilePage() {
       <ProfileView language={language} name={shopper.name} phone={shopper.phone} />
     </ShopShell>
   );
-}
+});
