@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { MediaCache } from '../ports/media-cache';
+import type { EdgeCache } from '../../shared/edge-cache/ports/edge-cache';
+import { EDGE_CACHE } from '../../shared/edge-cache/tokens';
 import type { MediaStorage } from '../ports/media-storage';
-import { MEDIA_CACHE, MEDIA_STORAGE } from '../tokens';
+import { MEDIA_STORAGE } from '../tokens';
 import type { MediaDeletePayload } from './media.service';
 
 /**
@@ -15,7 +16,7 @@ import type { MediaDeletePayload } from './media.service';
 export class MediaDeleter {
   constructor(
     @Inject(MEDIA_STORAGE) private readonly storage: MediaStorage,
-    @Inject(MEDIA_CACHE) private readonly cache: MediaCache,
+    @Inject(EDGE_CACHE) private readonly cache: Pick<EdgeCache, 'purgeFolder'>,
   ) {}
 
   async delete(payload: MediaDeletePayload): Promise<void> {

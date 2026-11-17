@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import type { Transaction } from '@lytronix/db';
 import {
   AuditAction,
@@ -77,6 +78,7 @@ export class CategoryService {
     @Inject(SIZE_CHART_STORE) private readonly charts: SizeChartStore,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(CatalogueImages) private readonly images: CatalogueImages,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   list(tenantId: string): Promise<CategoryView[]> {
@@ -135,6 +137,7 @@ export class CategoryService {
         { name: row.name, parentId, ...(behavesLike !== null ? { behavesLike } : {}) },
       );
       await this.products.bumpVersion(tx, tenantId);
+      await this.edge.shop(tx, tenantId);
       return view(row, 0, [], null, await this.images.viewsOf(tx, tenantId, [row.imageId]));
     });
   }
@@ -186,6 +189,7 @@ export class CategoryService {
         { ...input },
       );
       await this.products.bumpVersion(tx, tenantId);
+      await this.edge.shop(tx, tenantId);
       const [shown] = await this.views(tx, tenantId, [row]);
       if (!shown) throw new ApiError('not_found', 'CategoryNotFound', {});
       return shown;
@@ -253,6 +257,7 @@ export class CategoryService {
           { parentId, afterId },
         );
         await this.products.bumpVersion(tx, tenantId);
+        await this.edge.shop(tx, tenantId);
       }
       return this.views(tx, tenantId, await this.categories.listCategories(tx, tenantId));
     });
@@ -297,6 +302,7 @@ export class CategoryService {
         { name: current.name, productsMoved: holding },
       );
       await this.products.bumpVersion(tx, tenantId);
+      await this.edge.shop(tx, tenantId);
     });
   }
 

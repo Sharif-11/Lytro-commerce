@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import {
   ActorType,
   AuditAction,
@@ -43,6 +44,7 @@ export class PlanExtensionService {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
     @Inject(CLOCK) private readonly clock: () => Date,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   async extend(input: {
@@ -108,6 +110,7 @@ export class PlanExtensionService {
       };
     });
     this.tenantCache.invalidateTenant(input.tenantId); // TEN-27: within 5s, not the cache's own 60s TTL.
+    await this.edge.shopLater(input.tenantId); // D9-32: and the pages Cloudflare keeps.
     return extension;
   }
 }

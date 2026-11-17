@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import {
   ActorType,
   AuditAction,
@@ -37,6 +38,7 @@ export class ShopDataDeletionService {
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
     @Inject(JOB_QUEUE) private readonly jobQueue: JobQueue,
     @Inject(CLOCK) private readonly clock: () => Date,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   async request(input: {
@@ -108,5 +110,6 @@ export class ShopDataDeletionService {
       await this.jobQueue.enqueue(tx, QueueName.ShopDataDeletion, { tenantId: shop.id });
     });
     this.tenantCache.invalidateTenant(shop.id); // TEN-27: offline within 5s, not the cache's own 60s TTL.
+    await this.edge.shopLater(shop.id); // D9-32: and the pages Cloudflare keeps.
   }
 }

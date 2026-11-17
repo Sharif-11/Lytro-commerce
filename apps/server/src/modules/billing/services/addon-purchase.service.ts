@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import type { BillingInfoRow, Transaction } from '@lytronix/db';
 import {
   ActorType,
@@ -178,6 +179,7 @@ export class AddonPurchaseService {
     @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(TenantCache) private readonly tenantCache: TenantCache,
     @Inject(CLOCK) private readonly clock: () => Date,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   /**
@@ -385,6 +387,7 @@ export class AddonPurchaseService {
     });
     // The storefront's cached shop carries its limits; the new one applies from the next request.
     this.tenantCache.invalidateTenant(tenantId);
+    await this.edge.shopLater(tenantId); // D9-32: and the pages Cloudflare keeps.
     return result;
   }
 

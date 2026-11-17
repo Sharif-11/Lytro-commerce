@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import type {
   ProductExportRow,
   ModifierGroupRow,
@@ -234,6 +235,7 @@ export class ProductService {
     @Inject(ComboParts) private readonly combos: ComboParts,
     @Inject(TaxClasses) private readonly taxes: TaxClasses,
     @Inject(ProductDesigns) private readonly designs: ProductDesigns,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   /** LIM-02, PRD-04: the products the shop's limit counts. */
@@ -486,6 +488,7 @@ export class ProductService {
         ...(opening.length > 0 ? { openingStock: opening.length } : {}),
       });
       await this.products.bumpVersion(tx, shop.id);
+      await this.edge.listing(tx, shop.id, [product.id]);
       return this.detail(tx, shop.id, product.id);
     });
   }
@@ -676,6 +679,7 @@ export class ProductService {
         duplicateOf: productId,
       });
       await this.products.bumpVersion(tx, shop.id);
+      await this.edge.listing(tx, shop.id, [copy.id]);
       return this.detail(tx, shop.id, copy.id);
     });
   }
@@ -734,6 +738,7 @@ export class ProductService {
             }),
       });
       await this.products.bumpVersion(tx, shop.id);
+      await this.edge.products(tx, shop.id, [productId]);
       return this.detail(tx, shop.id, productId);
     });
   }
@@ -757,6 +762,7 @@ export class ProductService {
         mediaId: input.mediaId,
       });
       await this.products.bumpVersion(tx, shop.id);
+      await this.edge.products(tx, shop.id, [productId]);
       return this.detail(tx, shop.id, productId);
     });
   }
@@ -782,6 +788,7 @@ export class ProductService {
         deliveryZoneIds: zoneIds,
       });
       await this.products.bumpVersion(tx, shop.id);
+      await this.edge.products(tx, shop.id, [productId]);
       return this.detail(tx, shop.id, productId);
     });
   }
@@ -953,6 +960,16 @@ export class ProductService {
         ...(priceChanged ? { oldPrice: current.basePrice, newPrice: updated.basePrice } : {}),
       });
       await this.products.bumpVersion(tx, shop.id);
+      // D9-32: shown or hidden, or moved between categories, changes the lists; any other field, its own pages.
+      if (
+        input.active !== undefined ||
+        input.categoryIds !== undefined ||
+        input.primaryCategoryId !== undefined
+      ) {
+        await this.edge.listing(tx, shop.id, [productId]);
+      } else {
+        await this.edge.products(tx, shop.id, [productId]);
+      }
       return this.detail(tx, shop.id, productId);
     });
   }
@@ -1049,6 +1066,7 @@ export class ProductService {
         ...(switching ? { sharedStock: shared } : {}),
       });
       await this.products.bumpVersion(tx, shop.id);
+      await this.edge.products(tx, shop.id, [productId]);
       return this.detail(tx, shop.id, productId);
     });
   }
@@ -1084,6 +1102,7 @@ export class ProductService {
         attributes: described.map((entry) => entry.attribute.id),
       });
       await this.products.bumpVersion(tx, shop.id);
+      await this.edge.products(tx, shop.id, [productId]);
       return this.detail(tx, shop.id, productId);
     });
   }
@@ -1118,6 +1137,7 @@ export class ProductService {
           to: slug,
         });
         await this.products.bumpVersion(tx, shop.id);
+        await this.edge.products(tx, shop.id, [productId]);
       }
       return this.detail(tx, shop.id, productId);
     });
@@ -1151,6 +1171,7 @@ export class ProductService {
         hard,
       });
       await this.products.bumpVersion(tx, shop.id);
+      await this.edge.listing(tx, shop.id, [productId]);
     });
   }
 
@@ -1178,6 +1199,7 @@ export class ProductService {
           name: product.name,
         });
         await this.products.bumpVersion(tx, shop.id);
+        await this.edge.listing(tx, shop.id, [productId]);
       }
       return this.detail(tx, shop.id, productId);
     });

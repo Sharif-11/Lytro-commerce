@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import type { BillingInfoRow } from '@lytronix/db';
 import {
   ActorType,
@@ -82,6 +83,7 @@ export class AddonLifecycleService {
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   async runTick(now: Date): Promise<AddonTickResult> {
@@ -157,6 +159,7 @@ export class AddonLifecycleService {
         }
       });
       this.tenantCache.invalidateTenant(tenantId);
+      await this.edge.shopLater(tenantId); // D9-32: and the pages Cloudflare keeps.
     }
     return ended.length;
   }

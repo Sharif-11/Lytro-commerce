@@ -4,6 +4,7 @@ import { AuditModule } from '../audit/audit.module';
 import { IdentityModule } from '../identity/identity.module';
 import { StaffModule } from '../staff/staff.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
+import { EdgeCacheModule } from '../shared/edge-cache/edge-cache.module';
 import { OperatorModule } from '../operator/operator.module';
 import { BalanceModule } from '../balance/balance.module';
 import { BillingModule } from '../billing/billing.module';
@@ -154,6 +155,8 @@ import { NoticesModule } from '../notices/notices.module';
 // is Phase 2's actual plan/term/invoice logic module (PHASE-2-PLAN.md's architecture table), not an HTTP layer.
 @Module({
   imports: [
+    // D9-32: a shop's settings drop the pages Cloudflare keeps.
+    EdgeCacheModule,
     NotificationsModule,
     NoticesModule,
     CouriersModule,
