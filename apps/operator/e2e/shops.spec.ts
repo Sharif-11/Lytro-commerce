@@ -390,13 +390,15 @@ test.describe("a shop's page", () => {
     await expect(addons).toContainText('renewal off');
     await expect(addons).toContainText('paid on the payment page');
     await expect(addons).toContainText('৳149/mo');
-    await expect(addons).toContainText('6.2 GB left · auto-buy on');
     await expect(addons).toContainText('40,000 left · auto-buy off');
+    // The request pack is the only one (D9-31).
+    await expect(addons).not.toContainText('GB left');
     const limits = card(page, 'Effective limits');
     await expect(limits).toContainText('Products: 600');
     await expect(limits).toContainText('plan 100 · add-ons +500');
     await expect(limits).toContainText('Storage: 2 GB');
-    await expect(limits).toContainText('Bandwidth: 50 GB');
+    // Media bandwidth is no limit (D9-31).
+    await expect(limits).not.toContainText('Bandwidth');
   });
 
   test('its credential log opens on its own page, without a key in sight', async ({ page }) => {

@@ -22,8 +22,6 @@ import { packMetric, sizedName } from './addon-words';
 interface PackSheetProps {
   /** The packs on sale, as GET /addons prices them. */
   packs: AddonOffer[];
-  /** The pack to open on: the one Usage's link named. */
-  metric: 'bandwidth' | 'requests';
   usage: ShopUsage | undefined;
   canManage: boolean;
   onClose: () => void;
@@ -31,13 +29,12 @@ interface PackSheetProps {
 }
 
 /**
- * Buy a pack (TENANT-DASHBOARD-DESIGN §7.25, the prototype's `sh-pack-buy`): the two packs, each adding once and
+ * Buy a pack (TENANT-DASHBOARD-DESIGN §7.25, the prototype's `sh-pack-buy`): the packs on sale, each adding once and
  * carried over until used; from the balance only, so a short balance says so with Top up; the auto-buy switches. The
  * purchase carries the price shown and is refused when it changed since (BIL-09).
  */
 export function PackSheet({
   packs,
-  metric,
   usage,
   canManage,
   onClose,
@@ -51,11 +48,7 @@ export function PackSheet({
   const buy = useBuyPacks();
   const [chosen, setChosen] = useState<string>(
     () =>
-      packs.find(
-        (each) =>
-          packMetric(each.addon) ===
-          (metric === 'requests' ? UsageMetric.Requests : UsageMetric.Bandwidth),
-      )?.addon.id ??
+      packs.find((each) => packMetric(each.addon) === UsageMetric.Requests)?.addon.id ??
       packs[0]?.addon.id ??
       '',
   );

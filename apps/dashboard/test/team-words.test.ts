@@ -42,7 +42,6 @@ function usageWith(suggestions: ShopUsage['suggestions']): ShopUsage {
     cycleStart: '2026-10-01T00:00:00.000Z',
     cycleEnd: '2026-11-01T00:00:00.000Z',
     metrics: [],
-    bandwidthDays: [],
     requestDays: [],
     suggestions,
     fastSpendAlertedAt: null,

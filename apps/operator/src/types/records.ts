@@ -107,15 +107,7 @@ export interface MediaCosts {
       objects: number;
     }[];
   };
-  workers: {
-    requests: number;
-    bytes: number;
-    billableMillions: number;
-    monthly: Dollars;
-    cost: Dollars;
-  };
   total: Dollars;
-  topShops: { tenantId: string; name: string; slug: string; requests: number; bytes: number }[];
   periods: { dateFrom: string; dateTo: string }[];
   prices: {
     r2ClassAPerMillion: number;
@@ -124,8 +116,5 @@ export interface MediaCosts {
     r2FreeClassAMillions: number;
     r2FreeClassBMillions: number;
     r2FreeStorageGbMonths: number;
-    workersMonthly: number;
-    workersIncludedMillions: number;
-    workersPerMillion: number;
   };
 }

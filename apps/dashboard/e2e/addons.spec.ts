@@ -9,7 +9,7 @@ import type { AddonsFixture, UsageFixture } from './support/usage';
 
 const HAS_THREE: AddonsFixture = {
   owned: [{ key: 'extra_products' }, { key: 'extra_seat' }, { key: 'brand_identity' }],
-  packsLeft: { bandwidth: 6.2, requests: 61_400 },
+  packsLeft: { requests: 61_400 },
 };
 
 async function open(
@@ -73,11 +73,12 @@ test('lists every add-on with its price and one action, and how what the shop ha
     main(page).getByRole('switch', { name: 'Renew · Extra 500 products' }),
   ).toBeChecked();
   await expect(row(page, '1 GB storage').getByRole('button', { name: 'Buy' })).toBeVisible();
-  await expect(row(page, '10 GB bandwidth')).toContainText('6.2 GB left');
   await expect(row(page, '100,000 requests')).toContainText('61,400 left');
   await expect(
-    main(page).getByRole('switch', { name: 'Buy a 10 GB pack when bandwidth reaches 100%' }),
+    main(page).getByRole('switch', { name: 'Buy a 100,000 pack when requests reach 100%' }),
   ).toBeVisible();
+  // The request pack is the only one: media bandwidth is no limit (D9-31).
+  await expect(main(page).getByText(/bandwidth/i)).toHaveCount(0);
   await expectAccessible(page);
 });
 
@@ -201,11 +202,11 @@ test('opens an add-on from its link, and a short balance greys the pack with Top
   await expect(sheet(page).getByText('2 → 3 seats')).toBeVisible();
 
   await page.unrouteAll();
-  await open(page, {}, { money: { balance: '12.00' } }, '/addons?pack=bandwidth');
+  await open(page, {}, { money: { balance: '12.00' } }, '/addons?pack=requests');
   await expect(sheet(page).getByRole('alert')).toContainText(
-    'this pack needs ৳30. Packs are paid from the balance only.',
+    'this pack needs ৳20. Packs are paid from the balance only.',
   );
-  await expect(sheet(page).getByRole('button', { name: 'Buy · ৳30' })).toBeDisabled();
+  await expect(sheet(page).getByRole('button', { name: 'Buy · ৳20' })).toBeDisabled();
 });
 
 test('a trial buys none, grace renews first, and pay-as-you-go renews from the balance', async ({
@@ -268,7 +269,7 @@ test('Plan and the pay-as-you-go page show what the shop has, with the way to al
     `/${SLUG}/addons`,
   );
   await expect(main(page).getByText(/^3 add-ons active · renew with the plan on/)).toBeVisible();
-  await expect(main(page).getByText('6.2 GB left')).toBeVisible();
+  await expect(main(page).getByText('61,400 left')).toBeVisible();
 
   await page.unrouteAll();
   await open(

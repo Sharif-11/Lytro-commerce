@@ -161,7 +161,6 @@ const STAGING_STARTER = plan(
     staff: 1,
     paired_devices: 1,
     storage_mb: 2048,
-    bandwidth_gb: 50,
     essential_sms_total: 4,
     essential_sms_monthly: 8,
     requests_monthly: 1_000_000,
@@ -180,7 +179,6 @@ const STAGING_PAYG = plan(
     staff: 1,
     paired_devices: 1,
     storage_mb: 500,
-    bandwidth_gb: 10,
     essential_sms_total: 5,
     essential_sms_monthly: 3,
     requests_monthly: 200_000,
@@ -203,7 +201,7 @@ describe("staging's plans, as the cards read them", () => {
     ]);
     expect(texts(view?.plans[0]?.more)).toEqual([
       '২ GB স্টোরেজ',
-      'মাসে ৫০ GB ব্যান্ডউইথ',
+      'আনলিমিটেড ব্যান্ডউইথ',
       'মাসে ১০,০০,০০০ API রিকোয়েস্ট',
       '১টি পেমেন্ট লিসেনার',
       '৯০ দিনের অ্যাক্টিভিটি লগ',
@@ -223,7 +221,7 @@ describe("staging's plans, as the cards read them", () => {
     ]);
     expect(texts(payg.more)).toEqual([
       '৫০০ MB স্টোরেজ',
-      'মাসে ১০ GB ব্যান্ডউইথ',
+      'আনলিমিটেড ব্যান্ডউইথ',
       'মাসে ২,০০,০০০ API রিকোয়েস্ট',
       '১টি পেমেন্ট লিসেনার',
       '৩০ দিনের অ্যাক্টিভিটি লগ',

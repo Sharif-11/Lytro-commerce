@@ -328,7 +328,8 @@ export interface ShopAddon {
 }
 
 export interface ShopPack {
-  metric: 'bandwidth' | 'requests';
+  // RTE-11: request packs; bandwidth's went with D9-31.
+  metric: 'requests';
   left: number;
   autoBuy: boolean;
 }

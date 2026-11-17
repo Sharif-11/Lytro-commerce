@@ -21,14 +21,7 @@ const TAKEN: string = ServerFieldProblemCode.Taken;
 
 const FIELDS = ['key', 'unitSize', 'price', 'labelEn', 'labelBn'];
 // The limits a shop runs out of, as drawn. An item on another keeps it.
-const RAISABLE = [
-  'products',
-  'staff',
-  'storage_mb',
-  'bandwidth_gb',
-  'requests_monthly',
-  'orders_handled_monthly',
-];
+const RAISABLE = ['products', 'staff', 'storage_mb', 'requests_monthly', 'orders_handled_monthly'];
 // D7-17: the paid services an allowance can cover, and the rate each one's uses are paid at otherwise.
 const SERVICES: readonly AllowanceService[] = Object.values(AllowanceService);
 const SERVICE_RATES: Record<AllowanceService, RateKey> = {

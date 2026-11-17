@@ -127,7 +127,6 @@ export function PaygPage({ openPlanId }: { openPlanId: string | null }): React.J
                     t('lProducts', { n: limitFigure('products', limits.products) }),
                     t('lSeats', { n: limitFigure('staff', limits.staff) }),
                     limits.storage_mb == null ? null : megabytes(limits.storage_mb),
-                    limitFigure('bandwidth_gb', limits.bandwidth_gb),
                   ]
                     .filter(Boolean)
                     .join(' · ')}

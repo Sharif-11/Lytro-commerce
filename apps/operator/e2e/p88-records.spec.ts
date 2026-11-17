@@ -203,19 +203,20 @@ test.describe('the audit log', () => {
 });
 
 test.describe('media costs', () => {
-  test("this period's estimate against the budget, R2 by bucket and the Worker", async ({
+  test("this period's estimate against the budget, R2 by bucket, and no Worker (D9-31)", async ({
     page,
   }) => {
     await open(page, '/media-costs');
-    await expect(main(page)).toContainText('$5.81');
+    await expect(main(page)).toContainText('$0.21');
     await expect(main(page)).toContainText('21 of 31 days read');
-    await expect(main(page)).toContainText('58% of the budget');
+    await expect(main(page)).toContainText('2% of the budget');
     await expect(main(page)).toContainText('The alert goes at 80% · ops@lytro.app');
     await expect(main(page)).toContainText('0.62 million · 1 million free · 0 billable');
     await expect(main(page)).toContainText('Shop media');
     await expect(main(page)).toContainText('Payment screenshots');
     await expect(main(page)).toContainText('Account, not a bucket');
-    await expect(main(page)).toContainText('11.3 million');
+    await expect(main(page)).not.toContainText('The media Worker');
+    await expect(main(page)).not.toContainText('Shops with the most requests');
   });
 
   test('past the alert it says where the alert went, marked for a person', async ({ page }) => {
@@ -236,12 +237,12 @@ test.describe('media costs', () => {
     await expect(page).toHaveURL('/settings');
   });
 
-  test("without Cloudflare it says R2 wasn't read and shows the Worker alone", async ({ page }) => {
+  test("without Cloudflare it says R2 wasn't read, and shows no card", async ({ page }) => {
     await open(page, '/media-costs', { mediaCosts: offMediaCosts() });
     await expect(main(page)).toContainText("Cloudflare isn't connected");
     await expect(main(page)).not.toContainText('R2 storage');
     await expect(main(page)).not.toContainText('Buckets');
-    await expect(main(page)).toContainText('The media Worker');
+    await expect(main(page)).not.toContainText('The media Worker');
   });
 
   test('a past period can be read', async ({ page }) => {
@@ -269,7 +270,7 @@ test('the Records pages read in Bangla', async ({ page }) => {
   await expect(main(page)).toContainText('মেয়াদ বাড়ানো');
   await expect(main(page)).toContainText('দুই দিন bKash বন্ধ ছিল');
   await page.goto('/media-costs');
-  await expect(main(page)).toContainText('বাজেটের 58%');
+  await expect(main(page)).toContainText('বাজেটের 2%');
   await page.goto('/reports');
   await expect(main(page)).toContainText('মোটটা কীভাবে হলো');
 });

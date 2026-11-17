@@ -27,7 +27,6 @@ import {
 } from '@/views/records/parts';
 
 type Bucket = MediaCostsView['r2']['buckets'][number];
-type TopShop = MediaCostsView['topShops'][number] & { rank: number };
 
 const dollars = (value: string | number): string => usd(Number(value));
 
@@ -40,8 +39,9 @@ function bucketWord(bucket: string): string {
 
 /**
  * OPERATOR-CONSOLE-DESIGN §10g, MED-12, D8-57 to D8-64 (Slice 8.6's route): what Cloudflare will bill Lytro for media this
- * period, held against the budget, in US dollars as Cloudflare bills: R2 by operation and storage, the media Worker, each
- * bucket, and the shops with the most requests. The budget, its alert and the prices are changed in Settings.
+ * period, held against the budget, in US dollars as Cloudflare bills: R2 by operation and storage, and each bucket.
+ * Public media is served from Cloudflare's cache, which bills nothing, so there is no Worker line (D9-31). The budget,
+ * its alert and the prices are changed in Settings.
  */
 export function MediaCosts(): React.JSX.Element {
   const { t } = useTranslation();
@@ -88,7 +88,7 @@ export function MediaCosts(): React.JSX.Element {
   }
   if (!data) return <ConsolePage>{head}</ConsolePage>;
 
-  const { budget, r2, workers, prices } = data;
+  const { budget, r2, prices } = data;
   const over = budget.usedPercent >= budget.alertPercent;
   const line = (used: string, free: string, billable: number) =>
     t('mediaCosts.line', { u: used, f: free, b: billable });
@@ -155,36 +155,6 @@ export function MediaCosts(): React.JSX.Element {
     },
   ];
 
-  const shopColumns: Column<TopShop>[] = [
-    {
-      key: 'n',
-      label: '#',
-      width: '36px',
-      cell: (shop) => <span className="text-fg-muted tabular-nums">{shop.rank}</span>,
-    },
-    {
-      key: 's',
-      label: t('mediaCosts.shop'),
-      width: 'minmax(150px,1.6fr)',
-      main: true,
-      cell: (shop) => shop.name,
-    },
-    {
-      key: 'r',
-      label: t('mediaCosts.requests'),
-      width: '110px',
-      right: true,
-      cell: (shop) => <span className="tabular-nums">{countWords(shop.requests)}</span>,
-    },
-    {
-      key: 'b',
-      label: t('mediaCosts.bytes'),
-      width: '100px',
-      right: true,
-      cell: (shop) => <span className="tabular-nums">{bytesWords(shop.bytes)}</span>,
-    },
-  ];
-
   const r2Card = data.connected ? (
     <ConsoleCard>
       <CardHead title={t('mediaCosts.r2')} aside={<CardMoney>{dollars(r2.cost)}</CardMoney>} />
@@ -237,34 +207,6 @@ export function MediaCosts(): React.JSX.Element {
       </Kvs>
     </ConsoleCard>
   ) : null;
-
-  const workersCard = (
-    <ConsoleCard>
-      <CardHead
-        title={t('mediaCosts.worker')}
-        aside={<CardMoney>{dollars(workers.cost)}</CardMoney>}
-      />
-      <Kvs>
-        <KvsRow
-          label={
-            <>
-              {t('mediaCosts.requests')}
-              <div className={NOTE}>
-                {t('mediaCosts.workerLine', {
-                  n: prices.workersIncludedMillions,
-                  b: workers.billableMillions,
-                })}
-              </div>
-            </>
-          }
-          value={t('mediaCosts.millions', { n: millions(workers.requests) })}
-        />
-        <KvsRow label={t('mediaCosts.bytes')} value={bytesWords(workers.bytes)} />
-        <KvsRow label={t('mediaCosts.monthly')} value={dollars(workers.monthly)} />
-      </Kvs>
-      <div className={`mt-2 ${NOTE}`}>{t('mediaCosts.notCounted')}</div>
-    </ConsoleCard>
-  );
 
   return (
     <ConsolePage>
@@ -328,10 +270,7 @@ export function MediaCosts(): React.JSX.Element {
           detail={data.connected && data.readAt ? t('mediaCosts.ago', { t: ago(data.readAt) }) : ''}
         />
       </RecordFigures>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {r2Card ?? workersCard}
-        {r2Card ? workersCard : null}
-      </div>
+      {r2Card}
       {data.connected ? (
         <>
           <SectionTitle>{t('mediaCosts.buckets')}</SectionTitle>
@@ -343,21 +282,11 @@ export function MediaCosts(): React.JSX.Element {
           />
         </>
       ) : null}
-      <SectionTitle>{t('mediaCosts.top')}</SectionTitle>
-      <DataTable
-        columns={shopColumns}
-        rows={data.topShops.map((shop, index) => ({ ...shop, rank: index + 1 }))}
-        rowKey={(shop) => shop.tenantId}
-        empty={null}
-      />
       <div className={NOTE}>
         {t('mediaCosts.prices', {
           a: usd(prices.r2ClassAPerMillion),
           b: usd(prices.r2ClassBPerMillion),
           c: `$${String(prices.r2StoragePerGbMonth)}`,
-          d: usd(prices.workersMonthly),
-          e: usd(prices.workersPerMillion),
-          f: prices.workersIncludedMillions,
         })}{' '}
         <Link to="/settings" className="text-primary-text underline-offset-2 hover:underline">
           {t('nav.settings')}

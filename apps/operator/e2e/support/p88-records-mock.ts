@@ -496,7 +496,7 @@ const PHONES = [
 
 function consumersOf(url: URL, empty: boolean) {
   const metric = url.searchParams.get('metric') ?? 'storage';
-  const top = metric === 'sms' ? 4200 : metric === 'bandwidth' ? 98e9 : 7.9e9;
+  const top = metric === 'sms' ? 4200 : 7.9e9;
   return {
     dateFrom: url.searchParams.get('dateFrom') ?? '2026-10-01',
     dateTo: url.searchParams.get('dateTo') ?? '2026-10-21',
@@ -513,20 +513,7 @@ function consumersOf(url: URL, empty: boolean) {
   };
 }
 
-const TOP_SHOPS: [string, number, number][] = [
-  ['Faiza Shoes', 1.84e6, 98e9],
-  ['Dhaka Gadget House', 1.21e6, 71e9],
-  ['Arif Electronics', 0.96e6, 52e9],
-  ['Rahim Fashion', 0.88e6, 47e9],
-  ['Tanvir Mobiles', 0.61e6, 33e9],
-  ['Joy Pharmacy', 0.52e6, 21e9],
-  ['Nusrat Cosmetics', 0.47e6, 26e9],
-  ['Sadia Collection', 0.41e6, 19e9],
-  ['Mim Bakery', 0.33e6, 12e9],
-  ['Keya Boutique', 0.29e6, 14e9],
-];
-
-/** The sketch's p88-media: this period, read 21 of 31 days, well under a $10 budget. */
+/** The sketch's p88-media: this period, read 21 of 31 days, well under a $10 budget; R2 is the whole bill (D9-31). */
 export function drawnMediaCosts(): Record<string, unknown> {
   return {
     period: { dateFrom: '2026-10-01', dateTo: '2026-10-31', days: 31, daysRecorded: 21 },
@@ -536,7 +523,7 @@ export function drawnMediaCosts(): Record<string, unknown> {
       amount: '10.00',
       alertPercent: 80,
       alertAt: '8.00',
-      usedPercent: 58,
+      usedPercent: 2,
       alertEmail: 'ops@lytro.app',
       alertSentAt: null,
     },
@@ -575,21 +562,7 @@ export function drawnMediaCosts(): Record<string, unknown> {
         },
       ],
     },
-    workers: {
-      requests: 11_300_000,
-      bytes: 612e9,
-      billableMillions: 2,
-      monthly: '5.00',
-      cost: '5.60',
-    },
-    total: '5.81',
-    topShops: TOP_SHOPS.map(([name, requests, bytes], index) => ({
-      tenantId: `ten-m${String(index)}`,
-      name,
-      slug: name.toLowerCase().replace(/[^a-z]+/g, '-'),
-      requests,
-      bytes,
-    })),
+    total: '0.21',
     periods: [
       { dateFrom: '2026-10-01', dateTo: '2026-10-31' },
       { dateFrom: '2026-09-01', dateTo: '2026-09-30' },
@@ -602,9 +575,6 @@ export function drawnMediaCosts(): Record<string, unknown> {
       r2FreeClassAMillions: 1,
       r2FreeClassBMillions: 10,
       r2FreeStorageGbMonths: 10,
-      workersMonthly: 5,
-      workersIncludedMillions: 10,
-      workersPerMillion: 0.3,
     },
   };
 }
