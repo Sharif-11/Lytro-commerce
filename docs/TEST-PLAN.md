@@ -480,6 +480,17 @@ Steps: 1) Attempt to request another tenant's media prefix directly. 2) Upload v
 Expected: cross-tenant prefix request returns 404; a valid upload lands under the tenant's real prefix within 30 seconds; a failed-validation file is deleted from the temporary area and never counts toward storage; the daily reconciliation catches the out-of-band R2 deletion and alerts above a 0.5% mismatch; the read-only Worker key cannot write.
 Covers: `MED-01` to `MED-04`, `MED-06` to `MED-11`.
 
+**S05-21 Shop pages at Cloudflare's edge (added 2026-11-17, D9-32).**
+Steps: 1) Open a product page twice as a new shopper in Bangla, once from a Facebook link (`?fbclid=`) and once from a
+`?v=` link. 2) Open it with the English switch, then signed in. 3) Change its price in the dashboard; open it again
+within 20 seconds; sell its last piece through an order and open it again. 4) Make the server answer busy while the
+page's time has run out. 5) Browse the shop for a minute and read its request count.
+Expected: the second open, whatever its query, is answered by the edge (`cf-cache-status: HIT`), and the `?v=` link still
+opens on its design and size; English and signed-in opens are never answered by the edge; the new price and "sold out"
+show on the next open; while the server is busy the last good page is handed out, and a shopper who reaches the server
+gets the busy page with a 503; the request count hasn't moved.
+Covers: `SFT-11`, `SFT-15`, `LND-14`, `RTE-04`, `D9-32`.
+
 ---
 
 ## S06 — Couriers and fraud (CRR, FRD)

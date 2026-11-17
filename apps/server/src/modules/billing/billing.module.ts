@@ -47,6 +47,7 @@ import { ShopDataDeletionService } from './services/shop-data-deletion.service';
 import { AddressReadsModule } from '../address-reads/address-reads.module';
 import { FraudChecksModule } from '../fraud-checks/fraud-checks.module';
 import { QueueModule } from '../shared/queue/queue.module';
+import { EdgeCacheModule } from '../shared/edge-cache/edge-cache.module';
 import { SmsEventsModule } from '../sms-events/sms-events.module';
 import { PlanLimitOverridesService } from './services/plan-limit-overrides.service';
 import { PaymentCancellationService } from './services/payment-cancellation.service';
@@ -75,6 +76,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
 // no shell -- every UI piece is slice 8.
 @Module({
   imports: [
+    // D9-32: a shop's state, plan or add-ons changing drops the pages Cloudflare keeps.
+    EdgeCacheModule,
     AddressReadsModule,
     FraudChecksModule,
     QueueModule,

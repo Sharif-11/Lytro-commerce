@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
+import { EdgeMark } from '@/components/edge-mark';
 import { OfflinePage } from '@/components/pages';
 import { ProductCard } from '@/components/product-card';
 import { ProductView } from '@/components/product/product-view';
@@ -11,8 +12,9 @@ import { productMetadata } from '@/lib/product/product-metadata';
 import { shopChatOf } from '@/lib/shop/shop-chat';
 import { loadFrame, loadProduct, loadShopPage, storefrontApi } from '@/lib/storefront';
 
-// SFT-04: a product's page in the shop's storefront, at /p/<slug>. Every request is rendered and counted (SFT-15);
-// nothing here is kept by a shared cache.
+// SFT-04: a product's page in the shop's storefront, at /p/<slug>. Kept at Cloudflare's edge whatever its query (a
+// `?v=` link and an ad's click ID alike), never counted, and tagged by the product and each it suggests (Slice 9.10,
+// D9-32); rendered for each shopper who is signed in or reads English.
 export const dynamic = 'force-dynamic';
 
 // Slice 12b's read: "You may also like" shows up to eight from the product's main category.
@@ -71,6 +73,7 @@ export default withBusyPage(async function ProductPage({ params, searchParams }:
       title={product.name}
       current={found?.top.slug}
     >
+      <EdgeMark page={page} products={[product, ...also]} />
       <ProductView
         language={words.language}
         product={product}
@@ -81,6 +84,7 @@ export default withBusyPage(async function ProductPage({ params, searchParams }:
         linkedVariantId={opening.linkedVariantId}
         areaId={opening.areaId}
         initialEstimate={opening.estimate}
+        openInBrowser={opening.openInBrowser}
         shareUrl={`${page.shop.publicOrigin}/p/${product.slug}`}
       />
       {also.length > 0 ? (

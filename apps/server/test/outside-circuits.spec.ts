@@ -6,8 +6,8 @@ import { BREAKER_FAILURES } from '../src/common/circuit-breaker';
 import { StorageUnavailable } from '../src/common/errors/media-refused';
 import { R2UsageUnavailable } from '../src/modules/media-costs/ports/r2-usage';
 import { CloudflareR2Usage } from '../src/modules/media-costs/providers/cloudflare-r2-usage';
-import { CacheUnavailable } from '../src/modules/media/ports/media-cache';
-import { CloudflareMediaCache } from '../src/modules/media/providers/cloudflare-media-cache';
+import { CacheUnavailable } from '../src/modules/shared/edge-cache/ports/edge-cache';
+import { CloudflareEdgeCache } from '../src/modules/shared/edge-cache/providers/cloudflare-edge-cache';
 import { S3MediaStorage } from '../src/modules/media/providers/s3-media-storage';
 import { OauthCalls } from '../src/modules/identity/providers/oauth-calls';
 
@@ -72,7 +72,7 @@ describe('the new circuits (PRF-05, D9-17)', () => {
 
     it("the media cache's purge stops calling after five failures, still answering as Cloudflare being away", async () => {
       const { fetcher, calls } = failing();
-      const cache = new CloudflareMediaCache(
+      const cache = new CloudflareEdgeCache(
         { zoneId: 'z', apiToken: 't', mediaBaseUrl: 'https://media.lytro.app' },
         fetcher,
       );

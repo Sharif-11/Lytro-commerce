@@ -16,6 +16,7 @@ import {
 } from '../../database/adapters/catalogue.adapter';
 import { MediaLinks } from '../../common/media-links';
 import { AuditModule } from '../audit/audit.module';
+import { EdgeCacheModule } from '../shared/edge-cache/edge-cache.module';
 import { BalanceModule } from '../balance/balance.module';
 import { StaffModule } from '../staff/staff.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
@@ -58,7 +59,15 @@ import {
 // balance (the pay-as-you-go product fee joins the creation's transaction, PYG-16), audit, staff (naming the owner)
 // and tenancy (the shop's business type); nothing in those depends back on it. Inventory (Slice 2) will.
 @Module({
-  imports: [AuditModule, BalanceModule, StaffModule, TenancyModule, UsageWarningsModule],
+  imports: [
+    AuditModule,
+    BalanceModule,
+    StaffModule,
+    TenancyModule,
+    UsageWarningsModule,
+    // D9-32: a catalogue change drops the shop pages Cloudflare keeps.
+    EdgeCacheModule,
+  ],
   providers: [
     { provide: CATALOGUE_TRANSACTIONS, useClass: DrizzleCatalogueTransactions },
     { provide: ATTRIBUTE_STORE, useClass: DrizzleAttributeStore },

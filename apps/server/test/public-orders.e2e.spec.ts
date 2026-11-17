@@ -17,6 +17,7 @@ import type {
   MetaServerEvent,
 } from '../src/modules/public-api/ports/meta-conversions';
 import { MetaPurchaseSender } from '../src/modules/public-api/services/meta-purchase-sender';
+import { DEFAULT_ORDERS_PER_SHOP_PER_MINUTE } from '../src/modules/public-api/services/order-limits';
 import { RequestQuota } from '../src/modules/public-api/services/request-quota';
 import { META_CONVERSIONS } from '../src/modules/public-api/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
@@ -779,7 +780,11 @@ describeIfDatabase('the per-minute windows on orders (RTE-06, RTE-08, LND-12)', 
         ).toEqual([1]);
       }
     } finally {
-      await settings.set(PlatformSettingKey.PublicOrdersPerShopPerMinute, 60, randomUUID());
+      await settings.set(
+        PlatformSettingKey.PublicOrdersPerShopPerMinute,
+        DEFAULT_ORDERS_PER_SHOP_PER_MINUTE,
+        randomUUID(),
+      );
     }
   }, 60_000);
 });
@@ -788,15 +793,16 @@ describeIfDatabase("orders past the month's requests (QTA-07, RTE-03, agreed 202
   it('still takes an order and answers what checkout reads, counting them, while the rest stops', async () => {
     const shop = await openShop(port, texts, 'po');
     const lamp = await product(shop, 'Lamp', 300, 5);
-    const sf = await storefrontKey(shop);
+    // D9-32: the shop's own website's key; its Lytro storefront's is neither counted nor stopped (below).
+    const own = await ownKey(shop);
     await app
       .get(PlanLimitOverridesService)
       .set(shop.tenantId, 'requests_monthly', 2, 'request stop test', randomUUID());
     const quota = app.get(RequestQuota);
-    let browsing = await call(sf, 'GET', '/v1/shop', undefined);
+    let browsing = await call(own, 'GET', '/v1/shop', undefined);
     for (let tries = 0; tries < 10 && browsing.status === 200; tries += 1) {
       await quota.flush();
-      browsing = await call(sf, 'GET', '/v1/shop', undefined);
+      browsing = await call(own, 'GET', '/v1/shop', undefined);
     }
     expect(browsing.status).toBe(429);
     expect(errorOf(browsing).code).toBe('quota_exceeded');
@@ -807,13 +813,13 @@ describeIfDatabase("orders past the month's requests (QTA-07, RTE-03, agreed 202
 
     const who = await shopper(shop);
     const items = [{ variantId: lamp.variantId, quantity: 1 }];
-    expect((await call(sf, 'GET', '/v1/locations', undefined)).status).toBe(200);
-    const seen = await call(sf, 'POST', '/v1/delivery-estimate', {
+    expect((await call(own, 'GET', '/v1/locations', undefined)).status).toBe(200);
+    const seen = await call(own, 'POST', '/v1/delivery-estimate', {
       locationId: who.locationId,
       items,
     });
     expect(seen.status, JSON.stringify(seen.body)).toBe(200);
-    expect((await placed(sf, { ...who, items })).status).toBe('pending');
+    expect((await placed(own, { ...who, items })).status).toBe('pending');
     expect(await ordersOf(shop)).toBe(1);
 
     // They count, and everything else is still stopped.
@@ -823,7 +829,41 @@ describeIfDatabase("orders past the month's requests (QTA-07, RTE-03, agreed 202
       [shop.tenantId],
     );
     expect(Number(after[0]?.requests)).toBeGreaterThanOrEqual(Number(before[0]?.requests) + 3);
-    expect((await call(sf, 'GET', '/v1/shop', undefined)).status).toBe(429);
+    expect((await call(own, 'GET', '/v1/shop', undefined)).status).toBe(429);
+  });
+
+  it("never counts or stops the shop's Lytro storefront (D9-32, amends RTE-04)", async () => {
+    const shop = await openShop(port, texts, 'po');
+    const sf = await storefrontKey(shop);
+    const own = await ownKey(shop);
+    await app
+      .get(PlanLimitOverridesService)
+      .set(shop.tenantId, 'requests_monthly', 2, 'storefront uncounted test', randomUUID());
+    const quota = app.get(RequestQuota);
+    const counted = async (): Promise<number> => {
+      await quota.flush();
+      const { rows } = await admin.query<{ requests: string }>(
+        'SELECT coalesce(sum(requests), 0)::text AS requests FROM control.api_usage WHERE tenant_id = $1',
+        [shop.tenantId],
+      );
+      return Number(rows[0]?.requests);
+    };
+
+    // The website's key is counted, and stopped once the month's requests are used up.
+    let website = await call(own, 'GET', '/v1/shop', undefined);
+    for (let tries = 0; tries < 10 && website.status === 200; tries += 1) {
+      await quota.flush();
+      website = await call(own, 'GET', '/v1/shop', undefined);
+    }
+    expect(website.status).toBe(429);
+    const before = await counted();
+    expect(before).toBeGreaterThanOrEqual(2);
+
+    // The storefront's is still served, and none of it is counted.
+    for (let index = 0; index < 5; index += 1) {
+      expect((await call(sf, 'GET', '/v1/shop', undefined)).status).toBe(200);
+    }
+    expect(await counted()).toBe(before);
   });
 });
 

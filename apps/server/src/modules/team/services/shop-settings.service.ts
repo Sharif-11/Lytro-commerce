@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import type { ContactDetailsRow } from '@lytronix/db';
 import {
   ActorType,
@@ -33,6 +34,7 @@ export class ShopSettingsService {
     @Inject(ShopPaymentPolicyService) private readonly paymentPolicy: ShopPaymentPolicyService,
     @Inject(MediaService) private readonly media: MediaService,
     @Inject(ShopStorefrontService) private readonly storefront: ShopStorefrontService,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   async get(tenantId: string): Promise<ShopSettingsView> {
@@ -111,6 +113,8 @@ export class ShopSettingsService {
     if (input.storefrontEnabled !== undefined) {
       summary.storefrontEnabled = await this.storefront.set(tenantId, input.storefrontEnabled);
     }
+    // D9-32: the shop's name, contact details, delivery rate, payment policy and storefront switch show on its pages.
+    if (Object.keys(summary).length > 0) await this.edge.shopLater(tenantId);
 
     const actorId = actingUserId ?? (await this.staff.ownerId(tenantId));
     await this.audit.recordStandalone({

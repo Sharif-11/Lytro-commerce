@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import type { Transaction } from '@lytronix/db';
 import {
   ActorType,
@@ -59,6 +60,7 @@ export class DomainService {
     @Inject(HostClassifier) private readonly hosts: HostClassifier,
     @Inject(TenantCache) private readonly cache: TenantCache,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   /** The Domain page's read: whether the plan includes a domain, and the shop's domain with its records. */
@@ -128,6 +130,7 @@ export class DomainService {
       return this.viewIn(tx, shop);
     });
     this.cache.invalidateTenant(shop.id); // TEN-27: within 5 seconds, not the cache's own minute.
+    await this.edge.shopLater(shop.id); // D9-32: and the pages Cloudflare keeps.
     return view;
   }
 
@@ -188,7 +191,10 @@ export class DomainService {
       }
       return { status: updated.status, outcome };
     });
-    if (result?.outcome?.servingChanged) this.cache.invalidateTenant(domain.tenantId);
+    if (result?.outcome?.servingChanged) {
+      this.cache.invalidateTenant(domain.tenantId);
+      await this.edge.shopLater(domain.tenantId); // D9-32: and the pages Cloudflare keeps.
+    }
     return result?.status ?? domain.status;
   }
 

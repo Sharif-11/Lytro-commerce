@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import { CourierConnections } from '../../couriers/services/courier-connections';
 import { AddressReads } from '../../address-reads/services/address-reads';
 import { FraudChecks } from '../../fraud-checks/services/fraud-checks';
@@ -148,6 +149,7 @@ export class LifecycleService {
     @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(PlatformSettingsService) private readonly settings: PlatformSettingsService,
     @Inject(CLOCK) private readonly clock: () => Date,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   /**
@@ -407,7 +409,10 @@ export class LifecycleService {
       return true;
     });
     // TEN-27: invalidated within 5 seconds of a tenant being archived, not left to the cache's own 60s TTL.
-    if (moved && to === TenantState.Archived) this.tenantCache.invalidateTenant(tenantId);
+    if (moved && to === TenantState.Archived) {
+      this.tenantCache.invalidateTenant(tenantId);
+      await this.edge.shopLater(tenantId); // D9-32: and the pages Cloudflare keeps.
+    }
     return moved;
   }
 
@@ -441,6 +446,7 @@ export class LifecycleService {
     });
     if (!begun) return false;
     this.tenantCache.invalidateTenant(tenantId);
+    await this.edge.shopLater(tenantId); // D9-32: and the pages Cloudflare keeps.
     await this.staff.deleteAllForTenant({ id: tenantId, planLimits: null });
     await this.dataExports.deleteAllForTenant(tenantId); // LIF-16/19: exports go with the rest of the data.
     // Phase 3: purchases and suppliers, the stock ledger and levels, then (Phase 4) the orders those held stock for and
@@ -684,6 +690,7 @@ export class LifecycleService {
         });
         // TEN-27: this pass's own archival, same invalidation `transition()` gives the normal lapse ladder.
         this.tenantCache.invalidateTenant(candidate.id);
+        await this.edge.shopLater(candidate.id); // D9-32: and the pages Cloudflare keeps.
         transitioned += 1;
         continue;
       }
@@ -898,6 +905,7 @@ export class LifecycleService {
       );
     });
     this.tenantCache.invalidateTenant(tenantId); // TEN-27: the public side goes offline at once.
+    await this.edge.shopLater(tenantId); // D9-32: and the pages Cloudflare keeps.
   }
 
   /**
@@ -954,6 +962,7 @@ export class LifecycleService {
       });
     });
     this.tenantCache.invalidateTenant(tenantId); // TEN-27: within 5s, not the cache's own 60s TTL.
+    await this.edge.shopLater(tenantId); // D9-32: and the pages Cloudflare keeps.
   }
 
   /**
@@ -1022,5 +1031,6 @@ export class LifecycleService {
       });
     });
     this.tenantCache.invalidateTenant(tenantId); // TEN-27: within 5s, not the cache's own 60s TTL.
+    await this.edge.shopLater(tenantId); // D9-32: and the pages Cloudflare keeps.
   }
 }

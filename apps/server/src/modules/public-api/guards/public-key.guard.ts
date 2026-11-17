@@ -1,5 +1,6 @@
 import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ApiKeyPurpose } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { TAKES_ORDERS } from '../../../common/decorators/public-api';
 import { headerValue, type HttpRequest, type HttpResponse } from '../../../common/http';
@@ -30,7 +31,9 @@ const BEARER = /^Bearer\s+(\S+)$/i;
  * (missing, unknown, revoked or expired is 401), the website it is used from (403), the shop open (LIF-07), the
  * visitor's requests in the last minute, then the shop's requests this cycle (429). A key has no per-minute limit of
  * its own: every shopper's request carries the shop's one key, so it would hold back the whole shop (KNOWN-GAPS
- * §82). The shop comes from the key alone, never from the request.
+ * §82). The shop comes from the key alone, never from the request. D9-32 (amends RTE-04): the shop's Lytro storefront's
+ * own key is not counted against the cycle's requests, nor stopped by them -- a shop's allowance is its own website's
+ * use of the API, and browsing its storefront is Cloudflare's to serve.
  */
 @Injectable()
 export class PublicKeyGuard implements CanActivate {
@@ -72,9 +75,11 @@ export class PublicKeyGuard implements CanActivate {
     }
 
     await this.visitors.admit(shop, request, response, now);
-    const takesOrders = this.reflector.get<boolean>(TAKES_ORDERS, context.getHandler());
-    if (!(await this.quota.take(shop, now, takesOrders))) {
-      throw new ApiError('quota_exceeded', 'RequestsUsedUp', {});
+    if (key.purpose !== ApiKeyPurpose.Storefront) {
+      const takesOrders = this.reflector.get<boolean>(TAKES_ORDERS, context.getHandler());
+      if (!(await this.quota.take(shop, now, takesOrders))) {
+        throw new ApiError('quota_exceeded', 'RequestsUsedUp', {});
+      }
     }
 
     request.tenant = {

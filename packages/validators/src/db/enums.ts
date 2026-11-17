@@ -628,6 +628,9 @@ export enum QueueName {
   RawMessagePurgeTick = 'raw_message_purge_tick',
   // DAT-55 (Phase 9 Slice 9.6): each morning, whether paying shops or revenue say it's time for a second server.
   CapacityTick = 'capacity_tick',
+  // D9-32 (Phase 9 Slice 9.10): shop pages Cloudflare keeps to drop, queued in the transaction that changed them, sent in
+  // batches within Cloudflare's purge rate.
+  EdgePurge = 'edge_purge',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an

@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import type { BillingInfoRow, Transaction } from '@lytronix/db';
 import {
   ACTIVITY_RETENTION_DAYS_WHEN_UNSET,
@@ -113,6 +114,7 @@ export class DowngradeService {
     @Inject(MessagingService) private readonly sms: MessagingService,
     @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(CLOCK) private readonly clock: () => Date,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   /** DWN-01: schedules a downgrade; re-scheduling replaces any existing one (the row is upserted). */
@@ -407,6 +409,7 @@ export class DowngradeService {
 
     await this.afterSwap(tenantId, now, payg, periodEnd, retentionShrink);
     this.tenantCache.invalidateTenant(tenantId);
+    await this.edge.shopLater(tenantId); // D9-32: and the pages Cloudflare keeps.
   }
 
   /**

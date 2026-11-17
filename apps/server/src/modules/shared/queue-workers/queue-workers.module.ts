@@ -53,6 +53,8 @@ import { NoticePublishTickWorker } from './services/notice-publish-tick-worker';
 import { RequestErrorPurgeTickWorker } from './services/request-error-purge-tick-worker';
 import { MediaCostTickWorker } from './services/media-cost-tick-worker';
 import { CapacityTickWorker } from './services/capacity-tick-worker';
+import { EdgePurgeWorker } from './services/edge-purge-worker';
+import { EdgeCacheModule } from '../edge-cache/edge-cache.module';
 import { ShopDayTickWorker } from './services/shop-day-tick-worker';
 import { EvidenceSweepWorker } from './services/evidence-sweep-worker';
 import { ReconciliationModule } from '../../reconciliation/reconciliation.module';
@@ -90,6 +92,7 @@ import { RawMessagePurgeTickWorker } from './services/raw-message-purge-tick-wor
     NotificationsModule,
     NoticesModule,
     ReconciliationModule,
+    EdgeCacheModule,
   ],
   providers: [
     SmsRetryWorker,
@@ -120,6 +123,7 @@ import { RawMessagePurgeTickWorker } from './services/raw-message-purge-tick-wor
     RequestErrorPurgeTickWorker,
     MediaCostTickWorker,
     CapacityTickWorker,
+    EdgePurgeWorker,
     ShopDayTickWorker,
     EvidenceSweepWorker,
     ReconciliationTickWorker,

@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import { randomBytes, randomUUID } from 'node:crypto';
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -49,6 +51,8 @@ let edge: CaddyEdge;
 let shop: ShopClient;
 const steadfast = new FakeSteadfast();
 const texts = new SmsCapture();
+// Slice 9.10, D9-32: a stand-in for the storefront, which answers with the headers it was sent.
+let storefront: Server | undefined;
 
 beforeAll(async () => {
   if (!ADMIN_URL || !DOCKER) return;
@@ -73,9 +77,18 @@ beforeAll(async () => {
   ({ app, port } = await listenOn(moduleRef, {
     host: process.platform === 'linux' ? '0.0.0.0' : '127.0.0.1',
   }));
+  storefront = createServer((request, response) => {
+    response.setHeader('content-type', 'application/json');
+    response.end(JSON.stringify(request.headers));
+  });
+  await new Promise<void>((listening) => {
+    storefront?.listen(0, process.platform === 'linux' ? '0.0.0.0' : '127.0.0.1', listening);
+  });
+  const storefrontPort = (storefront.address() as AddressInfo).port;
   edge = new CaddyEdge({
     PLATFORM_DOMAIN: 'localhost',
     SERVER_UPSTREAM: `host.docker.internal:${String(port)}`,
+    STOREFRONT_UPSTREAM: `host.docker.internal:${String(storefrontPort)}`,
     TRUSTED_EDGE_SECRET: EDGE_SECRET,
     ACME_EMAIL: 'edge-test@example.com',
   });
@@ -87,6 +100,7 @@ afterAll(async () => {
   if (!ADMIN_URL || !DOCKER) return;
   await edge.stop();
   await app?.close();
+  storefront?.close();
 });
 
 /** The server's own words for a refusal, as its error envelope carries them; the edge's own 404 has none. */
@@ -240,5 +254,28 @@ describeIfEdge('every outside call through the edge (deploy/Caddyfile, KNOWN-GAP
     // The payment page sets its own type, referrer and framing rules (PAY-23); the edge adds HSTS only.
     const pay = await edge.send('pay.localhost', 'GET', '/not-a-page');
     expect(pay.headers['strict-transport-security']).toBe(hsts);
+  });
+
+  it("gives the storefront the shopper's address alone, never one a caller outside Cloudflare names (Slice 9.10, D9-32)", async () => {
+    const forged = {
+      'cf-connecting-ip': '203.0.113.7',
+      'x-forwarded-for': '198.51.100.9',
+      'x-lytro-edge-render': '1',
+      'x-lytro-edge-host': 'another.localhost',
+    };
+    // A shop's own domain shares the storefront's rule (storefront_proxy), but its certificate needs a verified domain.
+    for (const host of ['megh.localhost']) {
+      const answer = await edge.send(host, 'GET', '/p/kurti', undefined, forged);
+      expect(answer.status, host).toBe(200);
+      const sent = answer.json as Record<string, string | undefined>;
+      // This test's own address as Caddy sees it: one address, not the ones the caller named.
+      expect(sent['x-forwarded-for'], host).toMatch(/^[0-9a-f.:]+$/i);
+      expect(sent['x-forwarded-for'], host).not.toContain('203.0.113.7');
+      expect(sent['x-forwarded-for'], host).not.toContain('198.51.100.9');
+      // The storefront's own render headers never come from outside.
+      expect(sent['x-lytro-edge-render'], host).toBeUndefined();
+      expect(sent['x-lytro-edge-host'], host).toBeUndefined();
+      expect(sent['host'], host).toBe(host);
+    }
   });
 });

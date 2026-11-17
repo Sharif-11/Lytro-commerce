@@ -1,4 +1,4 @@
-import { Logger, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import ffmpegPath from 'ffmpeg-static';
 import type { Env } from '../../config/env';
 import { ENV } from '../../config/tokens';
@@ -7,12 +7,10 @@ import { CatalogueModule } from '../catalogue/catalogue.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { OutsideCalls } from '../shared/outside-calls/services/outside-calls';
+import { EdgeCacheModule } from '../shared/edge-cache/edge-cache.module';
 import { QueueModule } from '../shared/queue/queue.module';
-import type { MediaCache } from './ports/media-cache';
 import type { MediaStorage } from './ports/media-storage';
-import { CloudflareMediaCache } from './providers/cloudflare-media-cache';
 import { S3MediaStorage } from './providers/s3-media-storage';
-import { UnconfiguredMediaCache } from './providers/unconfigured-media-cache';
 import { UnconfiguredMediaStorage } from './providers/unconfigured-media-storage';
 import { ImageProcessor } from './services/image-processor';
 import { MediaDeleter } from './services/media-deleter';
@@ -25,7 +23,6 @@ import { VideoProcessor, type FfmpegSettings } from './services/video-processor'
 import {
   BANDWIDTH_STORE,
   FFMPEG,
-  MEDIA_CACHE,
   MEDIA_CLOCK,
   MEDIA_NOTIFIER,
   MEDIA_STORAGE,
@@ -67,30 +64,6 @@ function mediaStorage(env: Env, outside: OutsideCalls): MediaStorage {
   );
 }
 
-/**
- * D9-31: Cloudflare's cache in front of the media bucket, purged through its API when the token, the zone and the media
- * address are all set; else nothing is kept in front of the media, so nothing needs purging.
- */
-function mediaCache(env: Env, outside: OutsideCalls): MediaCache {
-  const apiToken = env.CLOUDFLARE_API_TOKEN;
-  const zoneId = env.CLOUDFLARE_ZONE_ID;
-  const mediaBaseUrl = env.MEDIA_PUBLIC_BASE_URL;
-  if (!apiToken || !zoneId || !mediaBaseUrl) {
-    // A server with Cloudflare's token but no zone would leave a deleted shop's files in Cloudflare's cache.
-    if (apiToken && mediaBaseUrl) {
-      new Logger('MediaCache').warn(
-        "CLOUDFLARE_ZONE_ID is not set: a deleted shop's media stays in Cloudflare's cache",
-      );
-    }
-    return new UnconfiguredMediaCache();
-  }
-  return new CloudflareMediaCache(
-    { apiToken, zoneId, mediaBaseUrl },
-    undefined,
-    outside.breaker('cloudflare'),
-  );
-}
-
 // D3-4, MED-01 to MED-04, MED-09, STO-01 to STO-07: tenant media -- uploads, processing, the library, storage use, and
 // deleting. It depends on catalogue (a deletion changes what the public pages show, CCH-02, and is logged like a
 // catalogue change), platform settings (the per-file limits) and the queue; nothing in those depends back on it.
@@ -102,6 +75,8 @@ function mediaCache(env: Env, outside: OutsideCalls): MediaCache {
     QueueModule,
     // LIM-01: the storage warnings processed media can cross.
     UsageWarningsModule,
+    // D9-31: a lapsed shop's files dropped from Cloudflare's cache once deleted.
+    EdgeCacheModule,
   ],
   providers: [
     { provide: MEDIA_STORAGE, inject: [ENV, OutsideCalls], useFactory: mediaStorage },
@@ -109,7 +84,6 @@ function mediaCache(env: Env, outside: OutsideCalls): MediaCache {
     { provide: MEDIA_NOTIFIER, useExisting: BellMediaNotifier },
     { provide: FFMPEG, useValue: FFMPEG_SETTINGS },
     { provide: MEDIA_CLOCK, useValue: () => new Date() },
-    { provide: MEDIA_CACHE, inject: [ENV, OutsideCalls], useFactory: mediaCache },
     { provide: BANDWIDTH_STORE, useClass: DrizzleBandwidthStore },
     ImageProcessor,
     VideoProcessor,

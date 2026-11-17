@@ -2662,3 +2662,38 @@ limit (the owner, 2026-11-17). What it leaves:
    batches tags; this purge can join it.
 6. **A pack's size in Bangla** is written 100,000 on the usage page and its auto-buy switch, where the prototype and
    the add-ons sheet write 1,00,000 (`packSize` uses en-US). It was so before; it is on the small-fixes list.
+
+## 150. `D9-32`, `SFT-11`, `SFT-15`: what shop pages at Cloudflare's edge leave open — found 2026-11-17, open
+
+A shop's pages are kept at Cloudflare's edge for every shopper who isn't signed in and reads Bangla, purged by tag when
+what they show changes, and browsing a shop's storefront is no longer counted (the owner, 2026-11-14 and 2026-11-16).
+What it leaves:
+
+1. **Cloudflare's side is the owner's to switch** in production (DEPLOYMENT §9f): the wildcard record proxied, Full
+   (strict), Always Online off, the two cache rules. Whether the Free plan takes the rule's cookie conditions is
+   confirmed there; without them a kept Bangla page could reach an English or signed-in shopper, so nothing is switched
+   on until it does.
+2. **Staging can't show the edge**: its shop hosts are two levels down, which Cloudflare's free certificate doesn't
+   cover. The production run's viral and flash-sale scenarios are the first real test (9.10's second pull request).
+3. **Shops' own domains are rendered for every visit** (the owner's answer): a viral shop on its own domain reaches the
+   server for each page. Cloudflare for SaaS would put them behind the edge.
+4. **"Load more" and the cart aren't kept**: a shopper scrolling past a list's first page asks the server for each next
+   page (`/api/products`), as before.
+5. **A `?v=` link and the remembered area come after the first paint** on a kept page: the page opens on the product's
+   first choice and photo and the shop's highest charge, then the browser applies the link's design and size and the
+   area's exact charge, within a second or two on a slow phone. A page rendered for one shopper still opens on them.
+6. **A suggestion rail can be up to 5 minutes late with a new product**: listing pages are purged when a product is
+   added, hidden or shown, product pages (whose "You may also like" lists a category's products) only for products they
+   already show.
+7. **While orders can't be saved (D9-14)**, a shop's pages show that line and so are kept nowhere: every visit renders
+   at the server until the pause ends.
+8. **Purges share 5 calls a minute** with a lapsed shop's media purge, 100 tags each. Past about 500 tags a minute
+   they wait their turn, and a page then lasts at most its 5 minutes.
+9. **The server still answers callers who skip the edge** by its address; the per-visitor limits apply to them as
+   before. Accepting shop hosts only from Cloudflare's addresses would close that.
+10. **A new shop name or Meta pixel can reach a kept page a minute late**: the purge goes out about 5 seconds after the
+    change, while another API process may still hold the old name (the public key's shop cache) or pixel for up to a
+    minute, and a page built in that minute is kept up to its 5 minutes.
+11. **Tax classes and the shop's payment methods queue no purge**: shown prices already include tax, a product's
+    delivery charge with its tax lines lasts at most 5 minutes, and payment methods show only at checkout, which is
+    never kept.
