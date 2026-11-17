@@ -25,6 +25,8 @@ import { prepareTestDatabase, seedShop } from './support/database';
 import { postJson } from './support/http';
 import { SmsCapture } from './support/sms-capture';
 
+import { failsWith } from './support/database-errors';
+
 // ADM-08 (KNOWN-GAPS §70): every operator action and its platform audit entry commit together or not at all. Each
 // case makes the platform log refuse that one action's entry, the way a crash or a dropped connection would lose it,
 // and checks the action left nothing behind; the actions that wrote no entry at all before (plans, a billing term
@@ -72,7 +74,7 @@ async function refused(action: string, work: () => Promise<unknown>): Promise<vo
      FOR EACH ROW WHEN (NEW.action = '${action}') EXECUTE FUNCTION public.refuse_audit()`,
   );
   try {
-    await expect(work()).rejects.toThrow(/audit write lost/);
+    await failsWith(work(), /audit write lost/);
   } finally {
     await admin.query('DROP TRIGGER refuse_audit ON control.platform_audit_log');
   }
