@@ -91,7 +91,9 @@ test('shows a staff member only what their role reaches, and turns a deep link a
   await open(page, '/orders', { isOwner: false, permissions: ['balance:read'], stock: null });
   // Orders needs orders:read, so the deep link lands on Home with the reason.
   await expect(page).toHaveURL(`/${SLUG}`);
-  await expect(page.getByRole('status').getByText('ওই পাতাটা আপনার রোলে নেই।')).toBeVisible();
+  await expect(
+    page.getByRole('status').getByText('এই পেজ দেখার অনুমতি আপনার রোলে নেই।'),
+  ).toBeVisible();
   await expect(hubs(page).getByRole('link')).toHaveText(['হোম', 'ওয়ালেট', 'মেনু']);
   // No search without products to find, and no + without anything to start.
   await expect(page.getByRole('link', { name: 'সার্চ' })).toHaveCount(0);

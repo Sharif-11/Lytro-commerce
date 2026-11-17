@@ -156,7 +156,7 @@ test('1.5: a new owner sets a password with no Skip', async ({ page }) => {
 test('1.6: set-up asks only the shop type, and saves only that', async ({ page }) => {
   const log = await mockOnboarding(page, { signedIn: true, hasShop: true });
   await page.goto('/set-up');
-  await expect(page.getByText('একটা প্রশ্ন। এখন বাদ দেওয়া যায়, পরে বদলানোও যায়।')).toBeVisible();
+  await expect(page.getByText('একটা প্রশ্ন। চাইলে এখন স্কিপ করে পরে বদলাতে পারবেন।')).toBeVisible();
   await expect(page.getByRole('button', { name: 'সিটি বা জেলা সার্চ করুন' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'এখন বাদ দিন' })).toBeVisible();
   await page.getByRole('button', { name: 'পোশাক' }).click();

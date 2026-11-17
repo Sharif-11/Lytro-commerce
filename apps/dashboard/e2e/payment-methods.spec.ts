@@ -446,7 +446,7 @@ test('keys that can no longer be read say so, and Enter again opens the sheet', 
   page,
 }) => {
   await open(page, unreadableMethods('en'));
-  await expect(card(page, 'bKash')).toContainText("bKash's keys can no longer be read");
+  await expect(card(page, 'bKash')).toContainText('The saved bKash keys no longer work');
   await card(page, 'bKash').getByRole('button', { name: 'Enter again' }).click();
   await expect(sheet(page).getByRole('heading', { name: 'Connect bKash checkout' })).toBeVisible();
   await expect(sheet(page).getByLabel('The account that receives the money')).toHaveValue(

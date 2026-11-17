@@ -363,7 +363,7 @@ export function AttributeSheet({
               </div>
             </div>
           ) : null}
-          <p className="text-[14px] text-fg-muted">{own ? t('retireNote') : t('libOptions')}</p>
+          {own ? <p className="text-[14px] text-fg-muted">{t('retireNote')}</p> : null}
         </>
       ) : null}
     </Sheet>

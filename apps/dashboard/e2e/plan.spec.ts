@@ -141,7 +141,7 @@ test('upgrades, and says so when the amount changed before the tap, charging not
 }) => {
   const log = await open(page, { money: { balance: '900.00', amountChangedTo: '415.00' } });
   await main(page).getByRole('button', { name: 'আপগ্রেড · ৳400 দিতে হবে' }).click();
-  await expect(sheet(page).getByText('Starter প্ল্যানের অব্যবহৃত 20 দিনের ক্রেডিট')).toBeVisible();
+  await expect(sheet(page).getByText('Starter প্ল্যানের বাকি 20 দিনের ক্রেডিট')).toBeVisible();
   await expect(
     sheet(page).getByText('প্রোডাক্ট: 100 → 1,000 · স্টাফ সিট: 2 → 5 · মাসিক অর্ডার: 300 → 1,500'),
   ).toBeVisible();

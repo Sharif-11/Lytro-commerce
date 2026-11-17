@@ -226,7 +226,6 @@ export function PasteSheet({
             <li key={step}>{t(step)}</li>
           ))}
         </ol>
-        <p className="mt-2 text-[14px] text-fg-muted">{t('crPanelWords')}</p>
       </div>
       <p className="text-[14px] text-fg-muted">{again ? t('crAddrPrivate') : t('crOptional')}</p>
       {again && onNewPair ? (

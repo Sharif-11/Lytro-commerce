@@ -88,17 +88,17 @@ test.describe('SMS settings', () => {
       .toBe(true);
   });
 
-  test('the monthly cap is at least ৳1, counted over the cycle the server names', async ({
+  test('the monthly limit is at least ৳1, counted over the cycle the server names', async ({
     page,
   }) => {
     const log = await open(page, '/settings/sms');
     await expect(main(page).getByText(/order SMS stop until 1 Dec/)).toBeVisible();
-    await main(page).getByRole('button', { name: 'Set a cap' }).click();
-    const cap = sheet(page, 'Monthly SMS cap');
-    await cap.getByLabel('Monthly SMS cap').fill('0.5');
+    await main(page).getByRole('button', { name: 'Set a limit' }).click();
+    const cap = sheet(page, 'Monthly SMS limit');
+    await cap.getByLabel('Monthly SMS limit').fill('0.5');
     await cap.getByRole('button', { name: 'Save' }).click();
     await expect(cap.getByText('Enter at least ৳1.')).toBeVisible();
-    await cap.getByLabel('Monthly SMS cap').fill('300');
+    await cap.getByLabel('Monthly SMS limit').fill('300');
     await cap.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('SMS settings saved')).toBeVisible();
     expect(log.phase7.sms.at(-1)).toEqual({ monthlySpendCap: 300 });

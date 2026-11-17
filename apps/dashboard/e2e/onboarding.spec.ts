@@ -26,7 +26,7 @@ test('asks an owner verified by Google for a phone before Create shop, keeping w
   await expect(page).toHaveURL('/verify-phone');
   await expect(page.getByRole('heading', { name: 'Add your phone number' })).toBeVisible();
   await expect(page.getByText("You're signed in with Google.", { exact: false })).toBeVisible();
-  await expect(page.getByText('The code costs you nothing.', { exact: false })).toBeVisible();
+  await expect(page.getByText('The code is free.', { exact: false })).toBeVisible();
   await expect(page.getByText('Your link: megh.lytro.app')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Back to sign-in' })).toBeVisible();
   await expect(page.getByRole('button', { name: /skip/i })).toHaveCount(0);
@@ -240,7 +240,7 @@ test('continues without paying from the checkout, on the trial, to the password 
   await page.getByRole('button', { name: 'শপ তৈরি করুন' }).click();
   await expect(page).toHaveURL('/checkout');
 
-  await page.getByRole('button', { name: 'এখন না দিয়েই এগিয়ে যান' }).click();
+  await page.getByRole('button', { name: 'পেমেন্ট ছাড়াই চালিয়ে যান' }).click();
   await expect(page).toHaveURL('/set-password?required=false');
   // Nothing was bought: no quote, no purchase.
   expect(log.calls.some((call) => call.method === 'POST' && call.path.startsWith('/billing'))).toBe(
@@ -331,7 +331,7 @@ test('checks the three password rules as they are typed, and holds Save until al
   // Long enough and has a digit, but it is a phone number.
   await expect(rules.filter({ hasText: 'আপনার ফোন নম্বর নয়' })).not.toHaveClass(/text-success/);
   await page.getByRole('button', { name: 'পাসওয়ার্ড সেভ করুন' }).click();
-  await expect(page.getByText('পাসওয়ার্ডটা নিয়মগুলো মানছে না।')).toBeVisible();
+  await expect(page.getByText('পাসওয়ার্ডটা নিয়ম অনুযায়ী হয়নি।')).toBeVisible();
   expect(log.sent('POST', '/auth/password')).toBeUndefined();
   await field.fill('megh2026');
   for (const rule of ['8 থেকে 20 অক্ষর', 'অন্তত একটা সংখ্যা', 'আপনার ফোন নম্বর নয়']) {

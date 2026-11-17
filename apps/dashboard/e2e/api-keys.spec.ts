@@ -63,7 +63,7 @@ test('the key Lytro keeps for the storefront comes first, marked, with nothing t
   await expect(main(page).getByRole('button', { name: /Lytro storefront/ })).toHaveCount(0);
   await expect(main(page).getByRole('button', { name: 'Revoke' })).toHaveCount(2);
   await expect(
-    main(page).getByText('The first key is the one Lytro keeps for your storefront.', {
+    main(page).getByText("The first key runs your storefront, so it can't be changed or revoked.", {
       exact: false,
     }),
   ).toBeVisible();
@@ -72,7 +72,9 @@ test('the key Lytro keeps for the storefront comes first, marked, with nothing t
 
 test('the requests show only to whoever may read the shop’s usage', async ({ page }) => {
   const log = await open(page, { isOwner: false, permissions: ['keys:manage'] });
-  await expect(main(page).getByText('To rotate:', { exact: false })).toBeVisible();
+  await expect(
+    main(page).getByText('The first key runs your storefront', { exact: false }),
+  ).toBeVisible();
   await expect(main(page).getByText('requests this cycle', { exact: false })).toHaveCount(0);
   expect(log.calls.some((call) => call.path === '/usage')).toBe(false);
 });

@@ -467,7 +467,6 @@ function LogTab(): React.JSX.Element {
   }
   return (
     <>
-      <p className="text-[14px] text-fg-muted">{t('p37LogLead')}</p>
       <Card flush>
         <div className="flex flex-col [&>*+*]:border-t [&>*+*]:border-line">
           {rows.map((row) => (

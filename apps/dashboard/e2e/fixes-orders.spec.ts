@@ -316,10 +316,10 @@ test('in Bangla: the tab, the tag, the lines and the lock say what the sketch sa
 }) => {
   await open(page, '/orders?tab=confirmed', { language: 'bn' });
   await expect(main(page).getByRole('button', { name: /^প্রসেসিং/ })).toBeVisible();
-  await expect(row(page, MAHIN)).toContainText('অগ্রিম পেমেন্ট ভেরিফাইড');
+  await expect(row(page, MAHIN)).toContainText('অ্যাডভান্স পেমেন্ট ভেরিফাইড');
   await page.goto(`/${SLUG}/orders/o-48`);
   await expect(main(page)).toContainText(
-    'কল লাগবে না: অগ্রিম পেমেন্ট ভেরিফাইড হয়েছে, তাই অর্ডার নিজে থেকে কনফার্মড।',
+    'কল লাগবে না: অ্যাডভান্স পেমেন্ট ভেরিফাই হয়েছে, তাই অর্ডার নিজে থেকেই কনফার্ম হয়েছে।',
   );
   await expect(main(page)).toContainText('পেমেন্ট ভেরিফাইড, তাই নিজে থেকে কনফার্মড');
   await expect(main(page)).toContainText('নিজে থেকে ভেরিফাইড');

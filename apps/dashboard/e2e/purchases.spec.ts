@@ -238,7 +238,7 @@ test('a placed purchase changes its items until the first delivery, and is cance
   ]);
   await main(page).getByRole('button', { name: 'Cancel purchase' }).click();
   const ask = sheet(page, 'Cancel this purchase?');
-  await expect(ask).toContainText('Its number is never reused.');
+  await expect(ask).toContainText('It leaves "coming".');
   await ask.getByRole('button', { name: 'Cancel purchase' }).click();
   await expect(main(page)).toContainText('nothing had arrived');
   await expect(main(page).getByText('Cancelled', { exact: true })).toBeVisible();

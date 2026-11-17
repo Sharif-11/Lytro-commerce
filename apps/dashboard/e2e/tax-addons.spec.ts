@@ -46,7 +46,7 @@ test('Settings shows Tax with what it holds; the page lists the classes and mark
   await expect(row).toContainText('VAT 5% default · 3 classes');
   await row.click();
   await expect(page).toHaveURL(`/${SLUG}/settings/tax`);
-  await expect(main(page)).toContainText('A class says how much of a price is tax');
+  await expect(main(page)).toContainText('A class sets how much of a price is tax');
   await expect(main(page).getByRole('button', { name: /^VAT 5%/ })).toContainText('Default');
   await expect(main(page).getByRole('button', { name: /^VAT 15%/ })).toContainText('15%');
   await expectAccessible(page);

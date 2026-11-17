@@ -171,7 +171,6 @@ export function RowSheet({
               ) : null}
             </RowList>
           </div>
-          <p className="text-[14px] text-fg-muted">{t('rowSheetNote')}</p>
         </>
       ) : null}
     </Sheet>

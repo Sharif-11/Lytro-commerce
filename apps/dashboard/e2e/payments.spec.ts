@@ -301,7 +301,7 @@ test('phone receipts: what really arrived, money with no order included', async 
   const log = await open(page);
   await tab(page, 'Phone receipts').click();
   await expect(page).toHaveURL(new RegExp(`/${SLUG}${PAGE}\\?tab=receipts`));
-  await expect(main(page)).toContainText('The payment SMS your phone has read');
+  await expect(main(page)).toContainText('Every payment SMS your phone read, matched or not.');
   await expect(main(page).getByRole('button', { name: /৳450/ })).toContainText('Needs review');
   await expect(main(page).getByRole('button', { name: /৳1,500/ })).toContainText('No order');
   await expect(main(page).getByRole('button', { name: /৳500/ })).toContainText('Matched');

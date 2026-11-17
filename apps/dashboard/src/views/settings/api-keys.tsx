@@ -135,8 +135,8 @@ export function ApiKeysView(): React.JSX.Element {
       {listed?.some(isLytros) ? (
         <p className="text-[14px] text-fg-muted">{t('akStorefrontNote')}</p>
       ) : null}
-      <Card>
-        {requests ? (
+      {requests ? (
+        <Card>
           <p className="text-[15px] text-fg-muted">
             {t('akLimit', {
               requests:
@@ -145,9 +145,8 @@ export function ApiKeysView(): React.JSX.Element {
                   : `${requests.used.toLocaleString('en-US')} / ${requests.limit.toLocaleString('en-US')}`,
             })}
           </p>
-        ) : null}
-        <p className={`text-[14px] text-fg-muted ${requests ? 'mt-1.5' : ''}`}>{t('akRotate')}</p>
-      </Card>
+        </Card>
+      ) : null}
 
       <NewKeySheet
         open={adding}

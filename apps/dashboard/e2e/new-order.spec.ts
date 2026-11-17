@@ -169,7 +169,7 @@ test('Change price sets a line’s price by hand; one less than one takes the li
   await addItem(page, 'Cotton T-shirt', 'L · Black');
   await main(page).getByRole('button', { name: 'Change price' }).click();
   const price = sheet(page, 'Change price');
-  await expect(price).toContainText("It was ৳450. The change stays in the order's history.");
+  await expect(price.getByText('It was ৳450.', { exact: true })).toBeVisible();
   await price.getByLabel('Price for each').fill('420');
   await price.getByRole('button', { name: 'Save' }).click();
   await expect(main(page)).toContainText('L · Black · ৳420 · set by hand');
@@ -322,7 +322,7 @@ test('what the seller marked asked when ordering comes last, optional; the answe
     .getByRole('button', { name: /^Chocolate cake/ })
     .click();
   const asking = sheet(page, 'Chocolate cake · ৳850');
-  await expect(asking).toContainText('Optional. It stays on the order with this item.');
+  await expect(asking.getByText('Optional.', { exact: true })).toBeVisible();
   await asking.getByLabel('Message on the cake').fill('Happy birthday Rafi');
   await expectAccessible(page);
   await asking.getByRole('button', { name: 'Add to the order · ৳850' }).click();

@@ -4579,7 +4579,9 @@ function editorPairs(): Pair[] {
         await page.getByRole('dialog').getByLabel('নাম', { exact: true }).fill('শার্ট');
       },
     }),
-    one('sh-link', '/products/p-1', { then: tap('ভ্যারিয়েন্ট বেছে লিংকে ?v= যোগ হয়।') }),
+    one('sh-link', '/products/p-1', {
+      then: tap('ভ্যারিয়েন্ট বাছলে লিংকটা সরাসরি সেই ভ্যারিয়েন্টে খুলবে।'),
+    }),
     one('sh-delete', '/products/p-1', {
       then: async (page) => {
         await page.getByRole('main').getByText('আরও সেটিংস').click();

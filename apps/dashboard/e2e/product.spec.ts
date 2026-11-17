@@ -248,7 +248,9 @@ test('the link: Copy, a variant for it, and changing it', async ({ page }) => {
   const log = await open(page, 'p-1', {
     products: { ...drawnProducts(), refuse: { slug: 'taken' } },
   });
-  await main(page).getByRole('button', { name: 'Pick a variant to add ?v= to the link.' }).click();
+  await main(page)
+    .getByRole('button', { name: 'Pick a variant and the link opens on it.' })
+    .click();
   await sheet(page).getByLabel('Pick a variant (optional)').selectOption({ label: 'M · Black' });
   await expect(sheet(page).getByText('megh.lytro.app/l/cotton-t-shirt?v=p-1-v3')).toBeVisible();
   await sheet(page).getByText('Change the link', { exact: true }).first().click();

@@ -88,7 +88,6 @@ export function MetaView(): React.JSX.Element {
               autoComplete="off"
               placeholder={t('adPixelPh')}
               value={pixel}
-              help={t('adPixelHelp')}
               error={problems['metaPixelId']}
               onChange={(event) => {
                 setPixel(event.target.value.replace(/\D/g, ''));
@@ -163,7 +162,6 @@ export function MetaView(): React.JSX.Element {
               </div>
             )}
             <p className="text-[14px] text-fg-muted">{t('adCapiHelp')}</p>
-            <p className="text-[14px] text-fg-muted">{t('adLog')}</p>
           </Card>
         </div>
         <Card className="flex flex-col gap-3">
