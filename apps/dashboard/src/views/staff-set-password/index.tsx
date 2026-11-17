@@ -1,4 +1,5 @@
 import { useState, type SyntheticEvent } from 'react';
+import { PASSWORD_MAX_LENGTH } from '@lytronix/validators';
 import { useTranslation } from 'react-i18next';
 import { useStaffSetPassword } from '@/api/auth';
 import { ErrorBanner } from '@/components/error-banner';
@@ -36,6 +37,7 @@ export function StaffSetPassword(): React.JSX.Element {
           label={t('pwNew')}
           name="newPassword"
           type="password"
+          maxLength={PASSWORD_MAX_LENGTH}
           autoComplete="new-password"
           placeholder="••••••••"
           value={password}

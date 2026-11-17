@@ -1,4 +1,6 @@
 export const CATALOGUE_TRANSACTIONS = Symbol('CATALOGUE_TRANSACTIONS');
+// Slice 9.10: how a shop's catalogue changes take their turns (CatalogueWrites).
+export const CATALOGUE_WRITE_SETTINGS = Symbol('CATALOGUE_WRITE_SETTINGS');
 export const ATTRIBUTE_STORE = Symbol('ATTRIBUTE_STORE');
 export const CATEGORY_STORE = Symbol('CATEGORY_STORE');
 export const PRODUCT_STORE = Symbol('PRODUCT_STORE');

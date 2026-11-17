@@ -1,7 +1,7 @@
 import { AddonKind, AddonRenewal, UsageMetric } from '@lytronix/validators';
 import { daysUntil, formatTaka } from '@lytronix/ui';
 import { formatDayMonth } from '@/lib/dates';
-import { usageSize } from '@/lib/limits';
+import { formatCount, usageSize } from '@/lib/limits';
 import type { Addon, AddonOffer, ShopAddon, ShopPack } from '@/types/addons';
 import type { PricedAddon } from '@/types/billing';
 import type { UsageFigure } from '@/types/usage';
@@ -95,8 +95,7 @@ export function sizedName(
 ): string {
   const size = addon.unitSize;
   if (size === null || size <= 0) return nameOf(addon, language);
-  // Bangla groups lakhs (1,00,000), as taka amounts are written.
-  const n = size.toLocaleString(language === 'bn' ? 'en-IN' : 'en-US');
+  const n = formatCount(size, language);
   switch (addon.limitKey) {
     case 'products':
       return t('aoNameProducts', { n });

@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   AddonPurchaseRepository,
-  MediaBandwidthRepository,
   MediaRepository,
   PlanLimitOverridesRepository,
   ShopSettingsRepository,
@@ -12,7 +11,6 @@ import {
 } from '@lytronix/db';
 import type { MediaKind, MediaPurpose, PlanLimits } from '@lytronix/validators';
 import { MediaNotAttachable } from '../../common/errors/media-refused';
-import type { BandwidthStore } from '../../modules/media/ports/bandwidth-store';
 import type { MediaStore } from '../../modules/media/ports/media-store';
 import type {
   MediaObjectRecord,
@@ -163,20 +161,5 @@ export class DrizzleMediaStore implements MediaStore {
 
   insertReconciliation(tx: Transaction, row: MediaReconciliation): Promise<void> {
     return this.media.insertReconciliation(tx, row);
-  }
-}
-
-/**
- * control.media_bandwidth and control.media_bandwidth_daily, kept from before D9-31 until a later release drops them:
- * only a lapsed shop's rows are still removed (LIF-19).
- */
-@Injectable()
-export class DrizzleBandwidthStore implements BandwidthStore {
-  constructor(
-    @Inject(MediaBandwidthRepository) private readonly bandwidth: MediaBandwidthRepository,
-  ) {}
-
-  deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
-    return this.bandwidth.deleteAllForTenant(tx, tenantId);
   }
 }

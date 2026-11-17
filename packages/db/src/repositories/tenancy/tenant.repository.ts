@@ -964,7 +964,6 @@ export class TenantRepository {
         downgradedAt: tenants.downgradedAt,
         downgradeOverLimit: tenants.downgradeOverLimit,
         downgradeFinalWarningAt: tenants.downgradeFinalWarningAt,
-        autoBuyBandwidth: tenants.autoBuyBandwidth,
         autoBuyRequests: tenants.autoBuyRequests,
       })
       .from(tenants)
@@ -973,11 +972,11 @@ export class TenantRepository {
     return rows[0] ?? null;
   }
 
-  /** PLN-15: the shop's auto-buy switches, either or both. */
+  /** PLN-15: the shop's auto-buy switch for request packs. */
   async setPackAutoBuy(
     tx: Executor,
     tenantId: string,
-    values: { autoBuyBandwidth?: boolean; autoBuyRequests?: boolean },
+    values: { autoBuyRequests?: boolean },
   ): Promise<void> {
     await tx.update(tenants).set(values).where(eq(tenants.id, tenantId));
   }
@@ -1059,8 +1058,7 @@ export interface BillingInfoRow {
   downgradedAt: Date | null;
   downgradeOverLimit: string[] | null;
   downgradeFinalWarningAt: Date | null;
-  /** PLN-15: the auto-buy switches for bandwidth and request packs. */
-  autoBuyBandwidth: boolean;
+  /** PLN-15: the auto-buy switch for request packs. */
   autoBuyRequests: boolean;
 }
 

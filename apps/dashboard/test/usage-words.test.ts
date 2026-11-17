@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { AddonKind, UsageMetric } from '@lytronix/validators';
-import { usageSize } from '../src/lib/limits';
+import { formatCount, usageSize } from '../src/lib/limits';
 import type { AddonOffer } from '../src/types/addons';
 import type { ShopUsage, UsageFigure } from '../src/types/usage';
 import {
   bannerOf,
   cycleDays,
+  packSize,
   raiseItems,
   worstFigure,
   type BannerContext,
@@ -279,6 +280,13 @@ describe('"To raise it" under each metric (LIM-01, agreed for Slice 11.5c)', () 
 });
 
 describe('the figures as the page writes them', () => {
+  it("writes a pack's size as the add-ons sheet does: lakhs in Bangla, thousands in English (§149)", () => {
+    const pack = { unitSize: 100_000 } as Parameters<typeof packSize>[0];
+    expect(packSize(pack, 'bn')).toBe('1,00,000');
+    expect(packSize(pack, 'en')).toBe('100,000');
+    expect(formatCount(2_500_000, 'bn')).toBe('25,00,000');
+  });
+
   it('writes bytes in the unit of their limit, as the email does', () => {
     expect(usageSize(0.9 * GB, 2 * GB)).toBe('0.9 GB');
     expect(usageSize(30 * GB, 30 * GB)).toBe('30 GB');

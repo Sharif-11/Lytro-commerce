@@ -7,10 +7,17 @@ import {
   type OperatorAccountRow,
   OperatorAccountRepository,
   OperatorBackupCodeRepository,
+  OperatorCreator,
   OperatorSessionRepository,
   PlatformAuditLogRepository,
 } from '../src/index';
-import { PlatformActorType, PlatformAuditAction, AuditResult } from '@lytronix/validators';
+import {
+  PlatformActorType,
+  PlatformAuditAction,
+  AuditResult,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+} from '@lytronix/validators';
 
 import { ADMIN_URL, appDbUrl, testDbUrl } from './config';
 import { connect } from './helpers';
@@ -74,6 +81,28 @@ describe('operator accounts (ADM-01)', () => {
     const created = await createAccount();
     expect((await accounts.findByEmail(handle.db, created.email))?.email).toBe(created.email);
     expect(await accounts.findByEmail(handle.db, email())).toBeNull();
+  });
+});
+
+describe('create-operator (ADM-01)', () => {
+  // The owner, 2026-11-17: every Lytro password is 8 to 20 characters, the console's sign-in included, so the script
+  // refuses any other before it touches the database.
+  it('refuses a password the console would never take, and makes one of 20 characters', async () => {
+    for (const password of [
+      'a'.repeat(PASSWORD_MIN_LENGTH - 1),
+      'a'.repeat(PASSWORD_MAX_LENGTH + 1),
+    ]) {
+      await expect(
+        new OperatorCreator().run('postgres://nobody@127.0.0.1:1/none', email(), password),
+      ).rejects.toThrow('the password must be 8 to 20 characters');
+    }
+    const longest = email();
+    const { id } = await new OperatorCreator().run(
+      testDbUrl(ADMIN_URL),
+      longest,
+      'a'.repeat(PASSWORD_MAX_LENGTH),
+    );
+    expect((await accounts.findByEmail(handle.db, longest))?.id).toBe(id);
   });
 });
 

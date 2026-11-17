@@ -1,4 +1,5 @@
 import { useState, type SyntheticEvent } from 'react';
+import { PASSWORD_MAX_LENGTH } from '@lytronix/validators';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError, errorMessage } from '@lytronix/api-client';
 import { Button, ErrorBanner, TextField } from '@lytronix/ui';
@@ -105,6 +106,7 @@ export function CodesPanel({
           label={t('signIn.password')}
           name="password"
           type="password"
+          maxLength={PASSWORD_MAX_LENGTH}
           autoComplete="current-password"
           required
           data-autofocus

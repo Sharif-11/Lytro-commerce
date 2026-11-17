@@ -3,7 +3,7 @@ import { control } from '../shared';
 import { tenants } from './tenancy';
 
 // LIM-01: the highest share of a limit a shop was warned of in one cycle, for each metric, so each warning is sent
-// once. Bandwidth and API requests keep theirs beside their own counts (`media_bandwidth`, `api_usage`).
+// once. API requests keep theirs beside their own counts (`api_usage`).
 export const usageWarnings = control.table(
   'usage_warnings',
   {

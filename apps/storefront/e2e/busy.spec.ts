@@ -36,8 +36,10 @@ test.describe('a page the shop is too busy to give (p910-busy)', () => {
     ).toBeVisible();
     // Megh Fashion's mark, its first letter, as it has no logo.
     await expect(page.locator('.bare .logo')).toHaveText('M');
-    // In the page, as the offline page and the prototype carry it (unsized there, so drawn without width).
-    await expect(page.locator('.bare svg[aria-label="Powered by Lytro"]')).toBeAttached();
+    // Powered by Lytro, as the offline page carries it, sized as the footer's (small fixes, 2026-11-17).
+    const mark = page.locator('.bare svg[aria-label="Powered by Lytro"]');
+    await expect(mark).toBeVisible();
+    expect((await mark.boundingBox())?.height).toBe(16);
     await expect(robots(page)).toHaveCount(1);
     await expect(robots(page)).toHaveAttribute('content', 'noindex');
   });

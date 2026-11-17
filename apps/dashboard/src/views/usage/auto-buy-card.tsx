@@ -28,7 +28,7 @@ export function AutoBuyCard({
   help: 'uAutoBuyHelp' | 'pkCap';
   inSheet?: boolean;
 }): React.JSX.Element | null {
-  const { t } = useTranslation('money');
+  const { t, i18n } = useTranslation('money');
   const offers = useAddonOffers();
   const setAutoBuy = useSetAutoBuy();
   const rows = usage.packs.filter((pack) => pack.offer !== null);
@@ -41,7 +41,9 @@ export function AutoBuyCard({
       {rows.map((pack) => {
         if (!isServing(pack.metric)) return null;
         const offer = packOffer(offers.data ?? [], pack.metric);
-        const label = t(WORDS[pack.metric], { size: offer ? packSize(offer.addon) : '' });
+        const label = t(WORDS[pack.metric], {
+          size: offer ? packSize(offer.addon, i18n.language) : '',
+        });
         return (
           <div key={pack.metric}>
             <SwitchRow

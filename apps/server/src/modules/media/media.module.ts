@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import ffmpegPath from 'ffmpeg-static';
 import type { Env } from '../../config/env';
 import { ENV } from '../../config/tokens';
-import { DrizzleBandwidthStore, DrizzleMediaStore } from '../../database/adapters/media.adapter';
+import { DrizzleMediaStore } from '../../database/adapters/media.adapter';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
@@ -20,14 +20,7 @@ import { MediaProcessor } from './services/media-processor';
 import { MediaReconciler } from './services/media-reconciler';
 import { MediaService } from './services/media.service';
 import { VideoProcessor, type FfmpegSettings } from './services/video-processor';
-import {
-  BANDWIDTH_STORE,
-  FFMPEG,
-  MEDIA_CLOCK,
-  MEDIA_NOTIFIER,
-  MEDIA_STORAGE,
-  MEDIA_STORE,
-} from './tokens';
+import { FFMPEG, MEDIA_CLOCK, MEDIA_NOTIFIER, MEDIA_STORAGE, MEDIA_STORE } from './tokens';
 import { BellMediaNotifier } from '../notifications/notifiers/bell-notifiers';
 import { NotificationsModule } from '../notifications/notifications.module';
 
@@ -84,7 +77,6 @@ function mediaStorage(env: Env, outside: OutsideCalls): MediaStorage {
     { provide: MEDIA_NOTIFIER, useExisting: BellMediaNotifier },
     { provide: FFMPEG, useValue: FFMPEG_SETTINGS },
     { provide: MEDIA_CLOCK, useValue: () => new Date() },
-    { provide: BANDWIDTH_STORE, useClass: DrizzleBandwidthStore },
     ImageProcessor,
     VideoProcessor,
     MediaLimits,

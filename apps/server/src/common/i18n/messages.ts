@@ -58,6 +58,12 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: "Because of a problem, changes won't be saved for a few minutes. Please try again shortly.",
     bn: 'একটা সমস্যার কারণে কয়েক মিনিট কোনো পরিবর্তন সেভ হবে না। একটু পরে আবার চেষ্টা করুন।',
   },
+  // Small fixes, 2026-11-17: every database connection stayed in use (9.10's shakedown); nothing is lost. The storefront's
+  // busy page says the same of a shop (STOREFRONT-DESIGN §7h).
+  ServerBusy: {
+    en: 'The server is very busy right now. Please try again in a moment.',
+    bn: 'সার্ভার এই মুহূর্তে খুব ব্যস্ত। একটু পরে আবার চেষ্টা করুন।',
+  },
   SettingValueInvalid: {
     en: 'This value is not valid for this setting.',
     bn: 'এই সেটিংয়ের জন্য মানটি সঠিক নয়।',
