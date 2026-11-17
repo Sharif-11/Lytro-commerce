@@ -184,6 +184,11 @@ describe('a database connection lost under a request (DAT-42)', () => {
     expect(answer('GET', busy, 'bn').body).toMatchObject({
       message: 'সার্ভার এই মুহূর্তে খুব ব্যস্ত। একটু পরে আবার চেষ্টা করুন।',
     });
+    // Slice 9.10: a shop's catalogue that stayed locked past a change's wait (lock_timeout) is busy too.
+    const locked = new Error('Failed query', {
+      cause: Object.assign(new Error('canceling statement due to lock timeout'), { code: '55P03' }),
+    });
+    expect(answer('PATCH', locked)).toMatchObject({ status: 503, headers: { 'Retry-After': '5' } });
     // A new connection that couldn't be made is still lost.
     const unmade = new Error('Connection terminated due to connection timeout');
     expect(answer('POST', unmade).body).toMatchObject({

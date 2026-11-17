@@ -33,6 +33,14 @@ export class TransactionRunner {
   }
 
   /**
+   * Slice 9.10: how long the rest of the transaction waits for a lock before PostgreSQL gives up (`lock_timeout`, local
+   * to the transaction; its error is `55P03`), so a write that can't have its turn soon frees its pooled connection.
+   */
+  async limitLockWait(tx: Transaction, milliseconds: number): Promise<void> {
+    await tx.execute(sql`SELECT set_config('lock_timeout', ${`${String(milliseconds)}ms`}, true)`);
+  }
+
+  /**
    * True when a unique constraint was violated and its name contains the fragment. Services use it to turn a race
    * (two sign-ups with the same phone or address) into a clear answer rather than a 500.
    */

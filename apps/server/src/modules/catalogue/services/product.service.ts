@@ -106,6 +106,7 @@ import { SizeChartService } from './size-chart.service';
 import { nextFreeSlug, slugOf } from './slug';
 import { variantAttributesOf } from './variant-attributes';
 import { planVariants, type MatrixProblem, type PlannedVariant } from './variant-matrix';
+import { CatalogueWrites } from './catalogue-writes';
 
 type VariantSpec = NonNullable<CreateProductInput['variants']>[number];
 type DescriptionInput = SaveProductAttributesInput['attributes'][number];
@@ -220,6 +221,7 @@ const EXPORT_BATCH = 500;
 export class ProductService {
   constructor(
     @Inject(CATALOGUE_TRANSACTIONS) private readonly transactions: CatalogueTransactions,
+    @Inject(CatalogueWrites) private readonly writes: CatalogueWrites,
     @Inject(PRODUCT_STORE) private readonly products: ProductStore,
     @Inject(CATEGORY_STORE) private readonly categories: CategoryStore,
     @Inject(ATTRIBUTE_STORE) private readonly attributes: AttributeStore,
@@ -349,7 +351,7 @@ export class ProductService {
     stock?: ProductStockHooks,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(shop.id, async (tx) => {
       // PRD-04: product creations count against the limit one after the other.
       await this.products.lockCatalogue(tx, shop.id);
       await this.refuseOverLimit(tx, shop);
@@ -506,7 +508,7 @@ export class ProductService {
     stock?: ProductStockHooks,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(shop.id, async (tx) => {
       await this.products.lockCatalogue(tx, shop.id);
       await this.refuseOverLimit(tx, shop);
       const source = await this.findLive(tx, shop.id, productId);
@@ -696,7 +698,7 @@ export class ProductService {
     stock?: ProductStockHooks,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(shop.id, async (tx) => {
       await this.findLive(tx, shop.id, productId);
       // ATR-19 (PD-16): the designs as this save names them, then the photos showing them.
       const saved = await this.designs.save(tx, shop.id, productId, input);
@@ -751,7 +753,7 @@ export class ProductService {
     actor: CatalogueActor,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(shop.id, async (tx) => {
       await this.findLive(tx, shop.id, productId);
       try {
         await this.products.updateProduct(tx, shop.id, productId, { videoId: input.mediaId });
@@ -775,7 +777,7 @@ export class ProductService {
     actor: CatalogueActor,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(shop.id, async (tx) => {
       await this.findLive(tx, shop.id, productId);
       const zoneIds = await this.limitDeliveryZones(
         tx,
@@ -824,7 +826,7 @@ export class ProductService {
     stock?: ProductStockHooks,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(shop.id, async (tx) => {
       const current = await this.findLive(tx, shop.id, productId);
       this.refuseComboStock(current, input);
       const change = this.changedFields(current, input);
@@ -987,7 +989,7 @@ export class ProductService {
     stock?: ProductStockHooks,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(shop.id, async (tx) => {
       const product = await this.findLive(tx, shop.id, productId);
       this.refuseComboVariants(product);
       // INV-24: left out, sharing stays as it is; switching it needs a counted product without serials, holding nothing.
@@ -1079,7 +1081,7 @@ export class ProductService {
     actor: CatalogueActor,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(shop.id, async (tx) => {
       await this.findLive(tx, shop.id, productId);
       const current = await this.products.listProductAttributes(tx, shop.id, productId);
       const splitting = current.filter((row) => row.role === AttributeRole.VariantDefining);
@@ -1118,7 +1120,7 @@ export class ProductService {
     actor: CatalogueActor,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(shop.id, async (tx) => {
       await this.products.lockCatalogue(tx, shop.id);
       const product = await this.findLive(tx, shop.id, productId);
       if (slug !== product.slug) {
@@ -1155,7 +1157,7 @@ export class ProductService {
     stock?: ProductStockHooks,
   ): Promise<void> {
     const who = await this.activity.resolve(shop.id, actor);
-    await this.transactions.run(async (tx) => {
+    await this.writes.run(shop.id, async (tx) => {
       const product = await this.products.findProduct(tx, shop.id, productId, true);
       if (!product) throw new ApiError('not_found', 'ProductNotFound', {});
       if (hard) {
@@ -1186,7 +1188,7 @@ export class ProductService {
     stock?: ProductStockHooks,
   ): Promise<ProductDetail> {
     const who = await this.activity.resolve(shop.id, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(shop.id, async (tx) => {
       await this.products.lockCatalogue(tx, shop.id);
       const product = await this.products.findProduct(tx, shop.id, productId, true);
       if (!product) throw new ApiError('not_found', 'ProductNotFound', {});
