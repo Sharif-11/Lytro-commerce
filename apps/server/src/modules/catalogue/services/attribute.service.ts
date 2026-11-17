@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import type { Transaction } from '@lytronix/db';
 import {
   AttributeDataType,
@@ -117,6 +118,7 @@ export class AttributeService {
     @Inject(PRODUCT_STORE) private readonly products: ProductStore,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(CatalogueImages) private readonly images: CatalogueImages,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   list(tenantId: string, includeRetired: boolean): Promise<AttributeView[]> {
@@ -216,7 +218,10 @@ export class AttributeService {
         },
       );
       // CCH-02: a renamed attribute reads differently on every product page that shows it.
-      if (input.name !== undefined) await this.products.bumpVersion(tx, tenantId);
+      if (input.name !== undefined) {
+        await this.products.bumpVersion(tx, tenantId);
+        await this.edge.shop(tx, tenantId);
+      }
       const options = await this.attributes.listOptions(tx, tenantId, [row.id], true);
       return attributeView(row, options, await this.swatchesOf(tx, tenantId, options));
     });
@@ -343,6 +348,7 @@ export class AttributeService {
         row.swatchImageId !== current.swatchImageId
       ) {
         await this.products.bumpVersion(tx, tenantId);
+        await this.edge.shop(tx, tenantId);
       }
       return optionView(row, await this.swatchesOf(tx, tenantId, [row]));
     });

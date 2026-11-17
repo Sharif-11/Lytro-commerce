@@ -12,9 +12,9 @@ import { secondsOf } from './visitor-limit';
 
 // RTE-06, LND-12: a visitor's orders a minute to one shop.
 export const ORDERS_PER_VISITOR_PER_MINUTE = 10;
-// RTE-08 (amended 2026-10-30): shoppers' orders a minute to one shop, every plan alike, when the operator has set no
-// figure of their own.
-export const DEFAULT_ORDERS_PER_SHOP_PER_MINUTE = 60;
+// RTE-08 (amended 2026-10-30; 180 since D9-32, 2026-11-17): shoppers' orders a minute to one shop, every plan alike,
+// when the operator has set no figure of their own.
+export const DEFAULT_ORDERS_PER_SHOP_PER_MINUTE = 180;
 // RTE-08 (amended 2026-10-31, Slice 5.2b): shoppers' payment sessions a minute to one shop, every plan alike, when the
 // operator has set no figure of their own.
 export const DEFAULT_SESSIONS_PER_SHOP_PER_MINUTE = 60;

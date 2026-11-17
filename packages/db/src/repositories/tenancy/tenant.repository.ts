@@ -190,6 +190,16 @@ export class TenantRepository {
     return rows[0] ?? null;
   }
 
+  /** D9-32: the shop's slug, which names its pages in Cloudflare's cache. */
+  async slugOf(db: Executor, id: string): Promise<string | null> {
+    const rows = await db
+      .select({ slug: tenants.slug })
+      .from(tenants)
+      .where(eq(tenants.id, id))
+      .limit(1);
+    return rows[0]?.slug ?? null;
+  }
+
   /** TEN-31: the shop a dashboard page names by its slug. */
   async findSummaryBySlug(db: Database, slug: string): Promise<TenantSummaryRow | null> {
     const rows = await this.summaryQuery(db).where(eq(tenants.slug, slug)).limit(1);

@@ -25,6 +25,7 @@ import { Gallery } from './gallery';
 import { AddOnGroups, AskedFields, ComboInside, usePicks } from './pickers';
 import { AreaSheet, DeliveryBanner, ShareLinks, ShareSheet, SizeChartSheet } from './sheets';
 import { ShopChatRow } from './shop-chat-row';
+import { type BrowserOpening, useBrowserOpening } from './use-browser-opening';
 import { useDesignChoice } from './use-design-choice';
 import { useSettledEstimate } from './use-delivery';
 
@@ -40,6 +41,8 @@ export interface ProductViewProps {
   linkedVariantId: string | null;
   areaId: number | null;
   initialEstimate: DeliveryEstimate | null;
+  /** Slice 9.10: a page Cloudflare's edge keeps; the browser applies the `?v=` link and the area after the first paint. */
+  openInBrowser?: boolean;
   shareUrl: string;
 }
 
@@ -74,8 +77,23 @@ export function ProductView(props: ProductViewProps) {
   const unavailable = !soldOut && !designs.needed && (variant === null || !variant.available);
   // Only what can be bought is priced: a sold-out choice keeps the last answer instead of reading as undeliverable.
   const items = variant?.available ? [{ variantId: variant.id, quantity }] : null;
-  const delivery = useSettledEstimate(props.initialEstimate, items, areaId);
+  const delivery = useSettledEstimate(props.initialEstimate, items, areaId, product.id);
   const { estimate } = delivery;
+  const { openOn } = designs;
+  useBrowserOpening(
+    props.openInBrowser === true,
+    useCallback(
+      (opening: BrowserOpening) => {
+        if (opening.linkedVariantId !== null) {
+          const linked = choice.opening(opening.linkedVariantId);
+          setSelection(linked);
+          openOn(linked);
+        }
+        if (opening.areaId !== null) setAreaId(opening.areaId);
+      },
+      [choice, openOn],
+    ),
+  );
 
   useEffect(() => {
     if (!toast) return;

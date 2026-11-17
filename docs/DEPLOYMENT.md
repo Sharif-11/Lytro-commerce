@@ -82,7 +82,7 @@ implement the earlier path-split layout (the dashboard on the apex and on every 
 | `pay.lytro.app` | VPS IP | the hosted payment page for manual payments, and the return address for wallet gateways (PAY-01, PAY-06); Phase 5 |
 | `download.lytro.app` | the downloads bucket (an R2 custom domain, not the VPS) | the listener app's file and `latest.json` (§8, SITE-PAGES-DESIGN §6) |
 | `media.lytro.app` | the media bucket's own custom domain behind Cloudflare's cache (not the VPS) | every shop's public media (MED-02, D9-31): Cloudflare's cache, then R2 on a miss; nothing is counted per shop |
-| `*.lytro.app` (wildcard) | VPS IP | every shop's public pages: storefront and landing pages (`apps/storefront`) only. Covers every tenant automatically; no per-shop DNS entry is ever created. `app`, `admin` and `www` are reserved labels (TEN-26), so no shop can take them. |
+| `*.lytro.app` (wildcard) | VPS IP, **proxied by Cloudflare** in production (D9-32, §9f); DNS only on staging | every shop's public pages: storefront and landing pages (`apps/storefront`) only. Covers every tenant automatically; no per-shop DNS entry is ever created. `app`, `admin` and `www` are reserved labels (TEN-26), so no shop can take them. |
 
 ## 5. Routing rules
 
@@ -422,6 +422,47 @@ only adds concrete artifacts to it, nothing new in process:
   wiping and configuring commands switched off, no persistence, eviction only of keys with an expiry, and
   `REDIS_MAXMEMORY` from settings.env (64 MB on staging, 256 MB in production). `GET /health/ready` reports it.
 
+### 9f. As built (Slice 9.10, shop pages at Cloudflare's edge, D9-32)
+
+- **What's kept:** a shop's home, category, product, landing, new-arrivals and search pages on `<slug>.lytro.app`, for
+  shoppers who aren't signed in and read Bangla: 5 minutes (search 1), then handed out stale for 10 more while a fresh
+  copy is fetched, and for a day while the server is down or busy. One product's delivery charge
+  (`GET /api/estimate?p=&v=&q=&a=`) is kept the same way. Nothing else is: the cart, checkout, account, orders,
+  tracking, English and signed-in shoppers, and every shop's own domain.
+- **Who decides:** the storefront. Its middleware renders a page it may keep once more inside itself (`lib/edge`) and
+  answers with `Cloudflare-CDN-Cache-Control` and `Cache-Tag`, or with a 503 for a busy server's page. Browsers get
+  `no-store`. Cloudflare's cache rule only makes shop hosts eligible and skips the two cookies; the origin's headers
+  set every lifetime.
+- **Purges:** the server queues tags in the change's own transaction (`EdgePurges`, the job outbox), and a worker sends
+  them by tag every 12 seconds at most (`CLOUDFLARE_API_TOKEN` with Zone Cache Purge, `CLOUDFLARE_ZONE_ID`; the same
+  ones that purge a lapsed shop's media). The tags are `lytro`, `s:<shop>`, `l:<shop>` and `p:<product>`. Without the
+  token and zone nothing is purged, and a page lasts its 5 minutes.
+- **Real addresses:** Caddy trusts `CF-Connecting-IP` only from Cloudflare's published ranges (global `servers`
+  options) and hands the storefront that one address in `X-Forwarded-For`, so the per-visitor limits still see each
+  shopper. The server's own `CLIENT_IP_HEADER` stays `x-forwarded-for`. Re-read cloudflare.com/ips when Cloudflare
+  announces a change.
+- **Staging** stays DNS only: `<slug>.staging.lytro.app` is two levels down, which Cloudflare's free certificate doesn't
+  cover. The storefront still sends the headers there, and nothing reads them.
+
+**Switching it on in production** (the owner, in Cloudflare's dashboard, once the production server serves):
+1. **DNS:** set the `*.lytro.app` record to **Proxied**. The apex, `www`, `app`, `admin`, `api` and `pay` keep their
+   own records, as they are.
+2. **SSL/TLS → Overview:** **Full (strict)**. Caddy's own wildcard certificate serves the Cloudflare-to-server leg.
+3. **Caching → Configuration:** **Always Online off** (it switches off stale-while-revalidate); Browser Cache TTL
+   **Respect existing headers**.
+4. **Caching → Tiered Cache:** Smart Tiered Cache on (already on for media).
+5. **Caching → Cache Rules**, two rules, in this order:
+   - *Shop pages:* when the hostname ends with `.lytro.app`, isn't `media.lytro.app` or `download.lytro.app`, and the
+     cookie contains neither `lytro-shopper=` nor `lytro-lang=en`, then **Eligible for cache**, Edge TTL **Use
+     cache-control header if present, bypass cache if not**, Browser TTL **Respect origin**.
+   - *Shop pages whatever their query:* the same hosts, and the URI path is `/` or starts with `/p/` or `/l/`, then
+     Cache key → Query string → **Ignore query string**.
+   If the Free plan refuses a cookie condition, stop and tell the developer: English and signed-in shoppers must
+   never get a kept page.
+6. **Check:** fetch a product page twice, `cf-cache-status` reads `MISS` then `HIT`; with the cookie `lytro-lang=en`
+   it reads `BYPASS` or `DYNAMIC`; change the product's price in the dashboard and within about 20 seconds the next
+   fetch reads `MISS` with the new price.
+
 ## 10. Open, deliberately deferred
 
 Settled by Phase 9's plan and Slice 9.1:
@@ -432,10 +473,7 @@ Settled by Phase 9's plan and Slice 9.1:
 
 Still open:
 
-- **Cloudflare in front of Caddy**, if added later: a pure addition, not a redesign. Caddy's routing rules
-  (§5) don't change at all — Cloudflare just forwards to Caddy's IP, invisible to every app behind it. The
-  only changes are environment config, not code: `CLIENT_IP_HEADER=cf-connecting-ip` and
-  `CLIENT_IP_FORMAT=single` (both already supported by `ClientIp`'s existing config shape — no code change),
-  and optionally swapping Caddy's Let's Encrypt wildcard cert for a Cloudflare Origin Certificate on the
-  Cloudflare→Caddy leg (simpler, ~15-year validity, no ACME DNS-01 dance needed once Cloudflare owns the
-  visitor-facing TLS leg via its free Universal SSL).
+- **Cloudflare in front of the other hosts** (`app`, `admin`, `api`, `pay`, the apex): shop pages went behind it in
+  Slice 9.10 (§9f, D9-32). The others stay DNS only; proxying one is a DNS switch, since Caddy already reads the
+  shopper's address from Cloudflare (§9f).
+- **Shops' own domains behind Cloudflare:** they need Cloudflare for SaaS (KNOWN-GAPS §150).

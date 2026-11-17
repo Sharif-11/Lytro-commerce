@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { ListView } from '@/components/catalogue/list-view';
+import { EdgeMark } from '@/components/edge-mark';
 import { OfflinePage } from '@/components/pages';
 import { ShopShell } from '@/components/shop-shell';
 import { listParams } from '@/lib/catalogue/browse';
@@ -38,6 +39,7 @@ export default withBusyPage(async function NewArrivalsPage({ searchParams }: Pro
   const { words } = page;
   return (
     <ShopShell page={page} frame={frame} back="/" title={words.t('new_in')}>
+      <EdgeMark page={page} listing products={list?.products ?? []} />
       <ListView
         words={words}
         heading={

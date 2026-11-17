@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import type { SizeChartContent, SizeChartOwner, Transaction } from '@lytronix/db';
 import { AuditAction, type SizeChartInput } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
@@ -41,6 +42,7 @@ export class SizeChartService {
     @Inject(CATEGORY_STORE) private readonly categories: CategoryStore,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(CatalogueImages) private readonly images: CatalogueImages,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   async setOnProduct(
@@ -62,6 +64,7 @@ export class SizeChartService {
         { sizeChart: 'set' },
       );
       await this.products.bumpVersion(tx, tenantId);
+      await this.edge.shop(tx, tenantId);
       return this.shown(tx, tenantId, chart);
     });
   }
@@ -85,6 +88,7 @@ export class SizeChartService {
         { sizeChart: 'removed' },
       );
       await this.products.bumpVersion(tx, tenantId);
+      await this.edge.shop(tx, tenantId);
     });
   }
 
@@ -107,6 +111,7 @@ export class SizeChartService {
         { sizeChart: 'set' },
       );
       await this.products.bumpVersion(tx, tenantId);
+      await this.edge.shop(tx, tenantId);
       return this.shown(tx, tenantId, chart);
     });
   }
@@ -129,6 +134,7 @@ export class SizeChartService {
         { sizeChart: 'removed' },
       );
       await this.products.bumpVersion(tx, tenantId);
+      await this.edge.shop(tx, tenantId);
     });
   }
 

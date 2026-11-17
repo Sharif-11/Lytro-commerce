@@ -35,6 +35,7 @@ import {
 import { Gallery } from '../product/gallery';
 import { AddOnGroups, AskedFields, ComboInside, usePicks } from '../product/pickers';
 import { AreaFields, DeliveryBanner, SizeChartSheet, zillaOf } from '../product/sheets';
+import { type BrowserOpening, useBrowserOpening } from '../product/use-browser-opening';
 import { useDesignChoice } from '../product/use-design-choice';
 import { useLocations, useSettledEstimate } from '../product/use-delivery';
 import { pixelEvent } from './pixel-events';
@@ -48,6 +49,8 @@ export interface LandingViewProps {
   linkedVariantId: string | null;
   areaId: number | null;
   initialEstimate: DeliveryEstimate | null;
+  /** Slice 9.10: a page Cloudflare's edge keeps; the browser applies the `?v=` link and the area after the first paint. */
+  openInBrowser?: boolean;
   /** WAL-06, SFT-10: how this shop can be paid first; asked for only when the product needs it. */
   methods: ShopperPaymentMethod[];
 }
@@ -113,8 +116,25 @@ export function LandingView(props: LandingViewProps) {
     props.initialEstimate,
     line ? [estimateItemOf(line)] : null,
     fields.thanaId,
+    product.id,
   );
   const { estimate } = answer;
+  const { setThana } = placing;
+  const { openOn } = designs;
+  useBrowserOpening(
+    props.openInBrowser === true,
+    useCallback(
+      (opening: BrowserOpening) => {
+        if (opening.linkedVariantId !== null) {
+          const linked = choice.opening(opening.linkedVariantId);
+          setSelection(linked);
+          openOn(linked);
+        }
+        if (opening.areaId !== null) setThana(opening.areaId);
+      },
+      [choice, openOn, setThana],
+    ),
+  );
   const price = variant?.price ?? product.minPrice;
   const worked = price === null ? 0 : (Number(price) + picks.addOnsPrice) * quantity;
   // The server's own sum once it has answered for what is picked now (LND-08), the same sum until then.

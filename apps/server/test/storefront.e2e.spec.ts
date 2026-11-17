@@ -119,7 +119,9 @@ describeIfDatabase("the storefront's context (Slice 12, TEN-08, SFT-12, SFT-16)"
     expect((await context(`${shop.slug}.localhost`)).status).toBe(200);
   });
 
-  it("counts the storefront's calls toward the shop's monthly requests, as any website's (SFT-15, RTE-03)", async () => {
+  // D9-32 (amends SFT-15, RTE-04): a shop's allowance is its own website's use of the API; browsing its Lytro storefront
+  // is Cloudflare's to serve, and is never counted.
+  it("leaves the storefront's calls out of the shop's monthly requests (D9-32)", async () => {
     const shop = await openShop(port, texts, 'sf-count');
     const before = (await shop.get('/usage')).body as {
       metrics: { metric: string; used: number }[];
@@ -131,7 +133,8 @@ describeIfDatabase("the storefront's context (Slice 12, TEN-08, SFT-12, SFT-16)"
       expect((await asStorefront('GET', '/v1/shop', storefront)).status).toBe(200);
     }
     const after = (await shop.get('/usage')).body as typeof before;
-    expect(used(after)).toBe(used(before) + 3);
+    expect(used(before)).toBeGreaterThanOrEqual(0);
+    expect(used(after)).toBe(used(before));
   });
 
   it('names an open shop with one storefront key, and none for an unknown or a closed one', async () => {

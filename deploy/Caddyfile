@@ -24,6 +24,14 @@
 	# MON-03 (Slice 9.6): every request's count and time by status code, for the error-rate alert, read by the monitor on
 	# the internal listener at :9180 below. No host label: shops' own domains would make one series each.
 	metrics
+
+	# Slice 9.10, D9-32: Cloudflare's edge is in front of shops' Lytro addresses, so a request from one of its addresses
+	# names its shopper in CF-Connecting-IP, and {client_ip} is that shopper; from anywhere else the header is ignored and
+	# the caller's own address stands. Cloudflare's published ranges (cloudflare.com/ips, read 2026-11-17).
+	servers {
+		trusted_proxies static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+		client_ip_headers CF-Connecting-IP
+	}
 }
 
 # --- Shared pieces (DEPLOYMENT.md §5, §6) ---
@@ -107,6 +115,18 @@
 
 (wildcard_tls_auto) {
 	# Caddy's default for the name.
+}
+
+# The storefront, for a shop's subdomain and its own domain alike (§5). It reads the shopper's address from
+# X-Forwarded-For, set here to {client_ip} alone: the shopper Cloudflare names, or the caller itself (Slice 9.10, D9-32).
+# The headers the storefront sends itself, to render a page for Cloudflare's edge, never come from outside.
+(storefront_proxy) {
+	request_header -X-Lytro-Edge-Render
+	request_header -X-Lytro-Edge-Host
+	reverse_proxy {$STOREFRONT_UPSTREAM:storefront:3001} {
+		header_up X-Forwarded-For {client_ip}
+		lb_try_duration 10s
+	}
 }
 
 # Whether search engines may index these hosts. Staging sets ROBOTS=robots_noindex, so nothing on staging.lytro.app is
@@ -247,10 +267,8 @@ api.{$PLATFORM_DOMAIN:lytro.app} {
 	import {$WILDCARD_TLS:wildcard_tls_dns}
 	import {$ROBOTS:robots_allow}
 	# storefront reads Host itself to resolve which tenant to render (SFT-01) — Caddy passes Host through
-	# unmodified by default, no explicit header handling needed here.
-	reverse_proxy {$STOREFRONT_UPSTREAM:storefront:3001} {
-		lb_try_duration 10s
-	}
+	# unmodified by default. Cloudflare's edge keeps its pages for every shopper alike (Slice 9.10, D9-32).
+	import storefront_proxy
 }
 
 # --- Custom domains (TEN-09, TEN-11, TEN-13, TEN-24, Slice 13) ---
@@ -266,9 +284,8 @@ https:// {
 		on_demand
 	}
 	import {$ROBOTS:robots_allow}
-	reverse_proxy {$STOREFRONT_UPSTREAM:storefront:3001} {
-		lb_try_duration 10s
-	}
+	# Not behind Cloudflare at launch (D9-32): the shopper's own address stands.
+	import storefront_proxy
 }
 
 # --- Inside the deployment only (D9-12) ---

@@ -190,6 +190,18 @@ describe('StorefrontApi', () => {
     ]);
   });
 
+  it("reads the frame fresh for the edge's page, and holds that read for the pages after (Slice 9.10)", async () => {
+    const fake = server(ok({ name: 'Megh' }), ok({ name: 'Megh, renamed' }));
+    let now = 1_000;
+    const api = new StorefrontApi(fake, env, () => now);
+    expect(await api.shop(shop, shopper)).toEqual({ name: 'Megh' });
+    now += 10_000;
+    // A purge just cleared the edge: its page must not wear the frame held from before the change.
+    expect(await api.shop(shop, { ...shopper, forEdge: true })).toEqual({ name: 'Megh, renamed' });
+    expect(await api.shop(shop, shopper)).toEqual({ name: 'Megh, renamed' });
+    expect(fake.calls).toHaveLength(2);
+  });
+
   it("asks for a list's category, search, order, stock and cursor; an unknown category is null (Slice 12b)", async () => {
     const page = { products: [], nextCursor: null };
     const fake = server(ok(page), ok(page), {

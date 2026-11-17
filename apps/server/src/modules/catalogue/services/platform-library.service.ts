@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import type { PresetPatch, Transaction } from '@lytronix/db';
 import {
   AuditResult,
@@ -71,6 +72,7 @@ export class PlatformLibraryService {
     @Inject(PLATFORM_LIBRARY_STORE) private readonly library: PlatformLibraryStore,
     @Inject(PRESET_STORE) private readonly presets: PresetStore,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   // --- Presets (PST-04) ---
@@ -204,6 +206,7 @@ export class PlatformLibraryService {
       if (!row) throw new ApiError('not_found', 'AttributeNotFound', {});
       // KNOWN-GAPS §66: a renamed or retired platform attribute shows differently in every shop using it.
       await this.library.bumpVersion(tx);
+      await this.edge.everything(tx);
       await this.audit(
         tx,
         operator,
@@ -287,6 +290,7 @@ export class PlatformLibraryService {
       if (!updated) throw new ApiError('not_found', 'OptionNotFound', {});
       // KNOWN-GAPS §66: so does a platform value renamed, re-coloured or retired.
       await this.library.bumpVersion(tx);
+      await this.edge.everything(tx);
       await this.audit(
         tx,
         operator,

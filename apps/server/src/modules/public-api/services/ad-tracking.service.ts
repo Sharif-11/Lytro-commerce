@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import type { SelectAdTrackingSettings } from '@lytronix/db';
 import { AuditAction, type UpdateAdTrackingInput } from '@lytronix/validators';
 import { SECOND_MS } from '../../../common/time';
@@ -37,6 +38,7 @@ export class AdTrackingService {
     @Inject(AD_TRACKING_STORE) private readonly store: AdTrackingStore,
     @Inject(SecretBox) private readonly box: SecretBox,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   async view(tenantId: string): Promise<AdTrackingView> {
@@ -82,6 +84,8 @@ export class AdTrackingService {
             : { conversionsApi: token === null ? 'removed' : hadToken ? 'replaced' : 'connected' }),
         },
       );
+      // D9-32: the shop's pages load its Pixel.
+      if (pixelFrom !== input.metaPixelId) await this.edge.shop(tx, tenantId);
       return saved;
     });
     this.pixels.delete(tenantId);
@@ -103,6 +107,8 @@ export class AdTrackingService {
         { type: 'ad_tracking', id: tenantId },
         { metaPixelId: current.metaPixelId, conversionsApi: current.metaCapiTokenEnc !== null },
       );
+      // D9-32: the shop's pages load its Pixel.
+      if (current.metaPixelId !== null) await this.edge.shop(tx, tenantId);
     });
     this.pixels.delete(tenantId);
   }
