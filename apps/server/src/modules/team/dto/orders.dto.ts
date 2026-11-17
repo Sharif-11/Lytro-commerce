@@ -38,6 +38,7 @@ import {
   voidPaymentSchema,
   ProductKind,
   SerialFormat,
+  coercedDateField,
 } from '@lytronix/validators';
 
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
@@ -82,7 +83,7 @@ export const taxLineSchema = z.object({ name: z.string(), rate: z.string(), amou
 export const openedPaymentSchema = z.object({
   paymentUrl: z.string(),
   amount: z.string(),
-  expiresAt: z.coerce.date(),
+  expiresAt: coercedDateField(),
 });
 export class OpenedPaymentDto extends createZodDto(openedPaymentSchema) {}
 
@@ -161,8 +162,8 @@ const orderViewSchema = z.object({
   paymentStatus: z.enum(OrderPaymentStatus),
   fulfillmentStatus: z.enum(FulfillmentStatus),
   override: z.enum(StatusOverride).nullable(),
-  holdUntil: z.coerce.date().nullable(),
-  confirmedAt: z.coerce.date().nullable(),
+  holdUntil: coercedDateField().nullable(),
+  confirmedAt: coercedDateField().nullable(),
   confirmedBy: personSchema,
   fulfilmentType: z.enum(FulfilmentType),
   customerId: z.string().nullable(),
@@ -185,7 +186,7 @@ const orderViewSchema = z.object({
   extraChargePerKg: z.string(),
   cancelReason: z.enum(CancelReason).nullable(),
   cancelNote: z.string().nullable(),
-  cancelledAt: z.coerce.date().nullable(),
+  cancelledAt: coercedDateField().nullable(),
   subtotal: z.string(),
   deliveryCharge: z.string(),
   deliveryChargeByHand: z.boolean(),
@@ -198,23 +199,23 @@ const orderViewSchema = z.object({
   courierName: z.string().nullable(),
   trackingCode: z.string().nullable(),
   trackingLink: z.string().nullable(),
-  shippedAt: z.coerce.date().nullable(),
-  deliveredAt: z.coerce.date().nullable(),
-  handledAt: z.coerce.date().nullable(),
+  shippedAt: coercedDateField().nullable(),
+  deliveredAt: coercedDateField().nullable(),
+  handledAt: coercedDateField().nullable(),
   notes: z.string().nullable(),
   shopperNote: z.string().nullable(),
   createdBy: personSchema,
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
+  createdAt: coercedDateField(),
+  updatedAt: coercedDateField(),
   items: z.array(orderItemSchema),
   calls: z.array(
     z.object({
       id: z.string(),
       outcome: z.enum(CallOutcome),
-      callBackAt: z.coerce.date().nullable(),
+      callBackAt: coercedDateField().nullable(),
       note: z.string().nullable(),
       by: personSchema,
-      at: z.coerce.date(),
+      at: coercedDateField(),
     }),
   ),
   unansweredCalls: z.number(),
@@ -225,7 +226,7 @@ const orderViewSchema = z.object({
       to: z.string().nullable(),
       note: z.string().nullable(),
       by: personSchema,
-      at: z.coerce.date(),
+      at: coercedDateField(),
     }),
   ),
   payments: z.array(
@@ -236,9 +237,9 @@ const orderViewSchema = z.object({
       senderNumber: z.string().nullable(),
       transactionId: z.string().nullable(),
       verifiedBy: personSchema,
-      verifiedAt: z.coerce.date(),
-      voided: z.object({ by: personSchema, at: z.coerce.date(), reason: z.string() }).nullable(),
-      refunded: z.object({ by: personSchema, at: z.coerce.date(), note: z.string() }).nullable(),
+      verifiedAt: coercedDateField(),
+      voided: z.object({ by: personSchema, at: coercedDateField(), reason: z.string() }).nullable(),
+      refunded: z.object({ by: personSchema, at: coercedDateField(), note: z.string() }).nullable(),
       verificationLevel: z.enum(VerificationLevel),
       sessionId: z.string().nullable(),
     }),
@@ -260,21 +261,21 @@ const orderViewSchema = z.object({
       refusal: z.string().nullable(),
       settled: z.boolean(),
       settleProblem: z.string().nullable(),
-      createdAt: z.coerce.date(),
+      createdAt: coercedDateField(),
       reading: z.enum(ParcelReading).nullable(),
       cashCollected: z.string().nullable(),
       codAtCourier: z.string().nullable(),
-      lastNewsAt: z.coerce.date().nullable(),
+      lastNewsAt: coercedDateField().nullable(),
       noNews: z.boolean(),
       attention: z.enum(ParcelAttention).nullable(),
-      paidAt: z.coerce.date().nullable(),
+      paidAt: coercedDateField().nullable(),
       payoutId: z.string().nullable(),
       news: z.array(
         z.object({
           source: z.enum(CourierNewsSource),
           rawStatus: z.string().nullable(),
           message: z.object({ en: z.string().nullable(), bn: z.string().nullable() }),
-          at: z.coerce.date(),
+          at: coercedDateField(),
         }),
       ),
     })
@@ -413,8 +414,8 @@ const orderPageSchema = z.object({
       grandTotal: z.string(),
       codAmount: z.string(),
       cancelReason: z.enum(CancelReason).nullable(),
-      holdUntil: z.coerce.date().nullable(),
-      createdAt: z.coerce.date(),
+      holdUntil: coercedDateField().nullable(),
+      createdAt: coercedDateField(),
       // Slice 4.8a: where it goes, and the calls that went unanswered.
       area: z
         .object({

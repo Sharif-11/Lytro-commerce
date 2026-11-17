@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 
+import { dateField } from '@lytronix/validators';
+
 export const operatorSignedInSchema = z.object({ csrfToken: z.string() });
 export class OperatorSignedInDto extends createZodDto(operatorSignedInSchema) {}
 
@@ -18,7 +20,7 @@ export const operatorMeSchema = z.object({
   id: z.string(),
   email: z.string(),
   unusedBackupCodes: z.number(),
-  signedInAt: z.date(),
+  signedInAt: dateField(),
   userAgent: z.string().nullable(),
 });
 export class OperatorMeDto extends createZodDto(operatorMeSchema) {}

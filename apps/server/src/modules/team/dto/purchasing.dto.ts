@@ -10,6 +10,7 @@ import {
   StockUnit,
   updatePurchaseOrderSchema,
   updateSupplierSchema,
+  dateField,
 } from '@lytronix/validators';
 import { variantAttributeViewSchema } from './catalogue-response.dto';
 import { unitQuantitySchema } from './inventory.dto';
@@ -32,14 +33,14 @@ const supplierViewSchema = z.object({
   postalAddress: z.string().nullable(),
   notes: z.string().nullable(),
   archived: z.boolean(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  createdAt: dateField(),
+  updatedAt: dateField(),
 });
 export class SupplierViewDto extends createZodDto(supplierViewSchema) {}
 
 const supplierPageSchema = z.object({
   // PUR-01: each with when it was last bought from (a placed purchase not cancelled), or null.
-  suppliers: z.array(supplierViewSchema.extend({ lastPurchaseAt: z.date().nullable() })),
+  suppliers: z.array(supplierViewSchema.extend({ lastPurchaseAt: dateField().nullable() })),
   page: z.number(),
   limit: z.number(),
   total: z.number(),
@@ -56,9 +57,9 @@ const purchaseOrderViewSchema = z.object({
   supplier: purchaseSupplierSchema,
   expectedOn: z.string().nullable(),
   notes: z.string().nullable(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  orderedAt: z.date().nullable(),
+  createdAt: dateField(),
+  updatedAt: dateField(),
+  orderedAt: dateField().nullable(),
   closeReason: z.string().nullable(),
   items: z.array(
     z.object({
@@ -86,7 +87,7 @@ const purchaseOrderViewSchema = z.object({
   receipts: z.array(
     z.object({
       id: z.string(),
-      receivedAt: z.date(),
+      receivedAt: dateField(),
       actor: z.object({ userId: z.string(), name: z.string().nullable() }).nullable(),
       note: z.string().nullable(),
       items: z.array(
@@ -120,8 +121,8 @@ const purchaseOrderPageSchema = z.object({
       status: z.enum(PurchaseStatus),
       supplier: purchaseSupplierSchema,
       expectedOn: z.string().nullable(),
-      createdAt: z.date(),
-      orderedAt: z.date().nullable(),
+      createdAt: dateField(),
+      orderedAt: dateField().nullable(),
       items: z.number(),
       // PUR-05: what it orders, unit by unit, and (placed and open) what is still to come.
       units: z.array(unitQuantitySchema),
@@ -147,7 +148,7 @@ const purchaseHistoryPageSchema = z.object({
       purchaseOrderId: z.string(),
       number: z.number().nullable(),
       supplier: purchaseSupplierSchema,
-      receivedAt: z.date(),
+      receivedAt: dateField(),
       accepted: z.string(),
       rejected: z.string(),
       rejectReason: z.string().nullable(),

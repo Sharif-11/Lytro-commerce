@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { AddonKind, AddonRenewal, UsageMetric } from '@lytronix/validators';
+import { AddonKind, AddonRenewal, UsageMetric, dateField } from '@lytronix/validators';
 import { invoiceSchema, planPaymentSchema } from './billing-response.dto';
 
 // PLN-13: control.addons, one item of the catalogue.
@@ -13,8 +13,8 @@ export const addonSchema = z.object({
   price: z.string(),
   labelEn: z.string(),
   labelBn: z.string(),
-  retiredAt: z.date().nullable(),
-  createdAt: z.date(),
+  retiredAt: dateField().nullable(),
+  createdAt: dateField(),
 });
 export class AddonDto extends createZodDto(addonSchema) {}
 export class AddonListDto extends createZodDto(addonSchema.array()) {}
@@ -31,7 +31,7 @@ export class OperatorAddonListDto extends createZodDto(operatorAddonSchema.array
 export const addonOfferSchema = z.object({
   addon: addonSchema,
   price: z.number().nullable(),
-  expiresAt: z.date().nullable(),
+  expiresAt: dateField().nullable(),
   blockedBy: z.string().nullable(),
   amounts: z.array(z.number()),
   // PLN-20, D7-64: an allowance's uses for each quantity, beside `amounts`; null for anything else.
@@ -54,7 +54,7 @@ export const addonQuoteSchema = z.object({
   payment: planPaymentSchema,
   addon: addonSchema,
   quantity: z.number(),
-  expiresAt: z.date(),
+  expiresAt: dateField(),
 });
 export class AddonQuoteDto extends createZodDto(addonQuoteSchema) {}
 
@@ -86,8 +86,8 @@ export const shopAddonsSchema = z.object({
       limitKey: z.string().nullable(),
       unitSize: z.number().nullable(),
       quantity: z.number(),
-      startsAt: z.date().nullable(),
-      expiresAt: z.date(),
+      startsAt: dateField().nullable(),
+      expiresAt: dateField(),
       renews: z.boolean(),
       renewal: z.enum(AddonRenewal),
       endsSoon: z.boolean(),

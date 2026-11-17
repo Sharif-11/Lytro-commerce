@@ -16,6 +16,7 @@ import {
   StockTracking,
   StockUnit,
   variantCostSchema,
+  dateField,
 } from '@lytronix/validators';
 
 import { variantAttributeViewSchema } from './catalogue-response.dto';
@@ -137,7 +138,7 @@ export const stockHistoryPageSchema = z.object({
       serials: z.array(z.string()),
       note: z.string().nullable(),
       actor: actorSchema.nullable(),
-      createdAt: z.date(),
+      createdAt: dateField(),
     }),
   ),
   page: z.number(),
@@ -162,7 +163,7 @@ const stockCheckSummarySchema = z.object({
   number: z.number(),
   note: z.string().nullable(),
   actor: actorSchema.nullable(),
-  createdAt: z.date(),
+  createdAt: dateField(),
   totals: stockCheckTotalsSchema,
 });
 
@@ -246,7 +247,7 @@ const batchViewSchema = z.object({
   expiresOn: z.string().nullable(),
   noExpiry: z.boolean(),
   quantity: z.string(),
-  receivedAt: z.date(),
+  receivedAt: dateField(),
   state: z.enum(BatchState),
 });
 
@@ -283,7 +284,7 @@ export const serialViewSchema = z.object({
   status: z.enum(SerialStatus),
   receivedMovementId: z.number().nullable(),
   leftMovementId: z.number().nullable(),
-  createdAt: z.date(),
+  createdAt: dateField(),
 });
 export class SerialViewDto extends createZodDto(serialViewSchema) {}
 

@@ -21,6 +21,7 @@ import {
   PaymentReviewReason,
   type ListenerRecentQuery,
   type ListenerUploadInput,
+  coercedDateField,
 } from '@lytronix/validators';
 import { PublicApiRoute } from '../../../common/decorators/public-api';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -43,7 +44,7 @@ class ListenerUploadedDto extends createZodDto(
         ignoredReason: z.enum(ListenerIgnoredReason).nullable(),
       }),
     ),
-    testModeUntil: z.coerce.date().nullable(),
+    testModeUntil: coercedDateField().nullable(),
   }),
 ) {}
 class ListenerRecentDto extends createZodDto(
@@ -59,7 +60,7 @@ class ListenerRecentDto extends createZodDto(
         reviewReason: z.enum(PaymentReviewReason).nullable(),
         ignoredReason: z.enum(ListenerIgnoredReason).nullable(),
         orderNumber: z.string().nullable(),
-        receivedAt: z.coerce.date(),
+        receivedAt: coercedDateField(),
       }),
     ),
     today: z.object({ verified: z.number(), waiting: z.number(), toCheck: z.number() }),

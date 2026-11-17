@@ -12,6 +12,7 @@ import {
   PaymentMethod,
   PaymentReviewReason,
   renameListenerDeviceSchema,
+  coercedDateField,
 } from '@lytronix/validators';
 
 // LSN-01, LSN-02, LSN-08, LSN-20, LSN-21 (Phase 5 Slice 5.4a): a shop's listener phones, and Lytro's blocks.
@@ -23,11 +24,11 @@ export const listenerDeviceSchema = z.object({
   name: z.string(),
   model: z.string().nullable(),
   appVersion: z.string(),
-  pairedAt: z.coerce.date(),
-  lastSeenAt: z.coerce.date().nullable(),
+  pairedAt: coercedDateField(),
+  lastSeenAt: coercedDateField().nullable(),
   online: z.boolean(),
   status: z.enum(ListenerDeviceStatus),
-  revokedAt: z.coerce.date().nullable(),
+  revokedAt: coercedDateField().nullable(),
   revokeReason: z.enum(ListenerRevokeReason).nullable(),
   flags: z.number(),
   uploadsToday: z.number(),
@@ -49,7 +50,7 @@ export class ListenerDeviceListDto extends createZodDto(
   }),
 ) {}
 export class ListenerCodeDto extends createZodDto(
-  z.object({ code: z.string(), expiresAt: z.coerce.date() }),
+  z.object({ code: z.string(), expiresAt: coercedDateField() }),
 ) {}
 // Agreed 2026-11-02 (Slice 5.4b read): the receipts staff list and search; VER-06: what Lytro reads of the unreadable.
 export class ListenerReceiptsQueryDto extends createZodDto(listenerReceiptsQuerySchema) {}
@@ -66,7 +67,7 @@ export class ReceiptPageDto extends createZodDto(
         reviewReason: z.enum(PaymentReviewReason).nullable(),
         ignoredReason: z.enum(ListenerIgnoredReason).nullable(),
         orderNumber: z.string().nullable(),
-        receivedAt: z.coerce.date(),
+        receivedAt: coercedDateField(),
         senderNumber: z.string().nullable(),
         deviceId: z.string(),
         text: z.string().nullable(),
@@ -88,7 +89,7 @@ export const lytroReceiptSchema = z.object({
   reviewReason: z.enum(PaymentReviewReason).nullable(),
   ignoredReason: z.enum(ListenerIgnoredReason).nullable(),
   orderNumber: z.string().nullable(),
-  receivedAt: z.coerce.date(),
+  receivedAt: coercedDateField(),
   senderNumber: z.string().nullable(),
   deviceId: z.string(),
   planPaymentId: z.string().nullable(),
@@ -113,7 +114,7 @@ export class CredentialUsePageDto extends createZodDto(
         accountId: z.string(),
         sessionId: z.string().nullable(),
         succeeded: z.boolean(),
-        at: z.coerce.date(),
+        at: coercedDateField(),
       }),
     ),
     page: z.number(),

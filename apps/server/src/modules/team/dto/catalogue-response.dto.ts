@@ -12,6 +12,7 @@ import {
   StockTracking,
   ProductKind,
   StockUnit,
+  dateField,
 } from '@lytronix/validators';
 import {
   imageViewSchema,
@@ -132,7 +133,7 @@ export const productPageSchema = z.object({
       // CMB-01 (Slice 4.8a): an ordinary product or a combo.
       kind: z.enum(ProductKind),
       image: imageViewSchema.nullable(),
-      createdAt: z.date(),
+      createdAt: dateField(),
     }),
   ),
   page: z.number(),
@@ -295,8 +296,8 @@ export const productDetailSchema = z.object({
       ),
     }),
   ),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  createdAt: dateField(),
+  updatedAt: dateField(),
 });
 export class ProductDetailDto extends createZodDto(productDetailSchema) {}
 

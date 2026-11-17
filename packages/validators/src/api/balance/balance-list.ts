@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { LedgerEntryType } from '../../db/enums';
+import { coercedDateField } from '../../common/dates';
 
 // One ledger type or several, comma-separated (`type=order_fee,product_fee`): a statement chip such as Fees covers more
 // than one kind of row (Slice 11.5b). A single type reads as before.
@@ -13,8 +14,8 @@ const ledgerTypesField = z
 // GET /balance/ledger: filters for the statement page (BAL-14). Keyset pagination, never OFFSET.
 export const listLedgerSchema = z.object({
   type: ledgerTypesField.optional(),
-  dateFrom: z.coerce.date().optional(),
-  dateTo: z.coerce.date().optional(),
+  dateFrom: coercedDateField().optional(),
+  dateTo: coercedDateField().optional(),
   // Opaque: the id of the last row the caller saw.
   cursor: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
@@ -25,7 +26,7 @@ export type ListLedgerQuery = z.infer<typeof listLedgerSchema>;
 // range, not one page.
 export const exportLedgerSchema = z.object({
   type: ledgerTypesField.optional(),
-  dateFrom: z.coerce.date().optional(),
-  dateTo: z.coerce.date().optional(),
+  dateFrom: coercedDateField().optional(),
+  dateTo: coercedDateField().optional(),
 });
 export type ExportLedgerQuery = z.infer<typeof exportLedgerSchema>;

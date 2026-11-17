@@ -10,6 +10,7 @@ import {
   rejectShopperPaymentSchema,
   VerificationLevel,
   verifyShopperPaymentSchema,
+  coercedDateField,
 } from '@lytronix/validators';
 
 // VER-01, PAY-14, PAY-19 (Phase 5 Slice 5.3): the shop's payments, verified or rejected by hand.
@@ -27,11 +28,11 @@ export const paymentListItemSchema = z.object({
   amount: z.string(),
   senderNumber: z.string().nullable(),
   transactionId: z.string().nullable(),
-  at: z.coerce.date(),
+  at: coercedDateField(),
   source: z.enum(PaymentSessionSource).nullable(),
   verificationLevel: z.enum(VerificationLevel).nullable(),
   decidedBy: personSchema,
-  decidedAt: z.coerce.date().nullable(),
+  decidedAt: coercedDateField().nullable(),
   rejectReason: z.enum(PaymentRejectReason).nullable(),
   note: z.string().nullable(),
   test: z.boolean(),
@@ -40,7 +41,7 @@ export const paymentListItemSchema = z.object({
     .object({
       amount: z.string(),
       senderNumber: z.string().nullable(),
-      receivedAt: z.coerce.date(),
+      receivedAt: coercedDateField(),
     })
     .nullable(),
 });

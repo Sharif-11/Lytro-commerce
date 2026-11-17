@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { calendarDayField } from '../../common/dates';
+import { calendarDayField, coercedDateField } from '../../common/dates';
 import {
   ATTRIBUTES_PER_PRODUCT_MAX,
   CALL_NOTE_MAX_LENGTH,
@@ -342,7 +342,7 @@ export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;
 export const logCallSchema = z
   .object({
     outcome: z.enum(CallOutcome),
-    callBackAt: z.coerce.date().optional(),
+    callBackAt: coercedDateField().optional(),
     reason: z.enum(CancelReason).optional(),
     note: textField(CALL_NOTE_MAX_LENGTH).optional(),
   })

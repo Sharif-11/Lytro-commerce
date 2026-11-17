@@ -9,6 +9,7 @@ import {
   smsLogQuerySchema,
   smsReportQuerySchema,
   smsSettingsUpdateSchema,
+  dateField,
 } from '@lytronix/validators';
 
 export class SmsSettingsUpdateDto extends createZodDto(smsSettingsUpdateSchema) {}
@@ -54,8 +55,8 @@ export class SmsSettingsDto extends createZodDto(
     shopName: z.string(),
     monthlySpendCap: z.string().nullable(),
     spentThisMonth: z.string(),
-    cycleStart: z.date(),
-    cycleEnd: z.date(),
+    cycleStart: dateField(),
+    cycleEnd: dateField(),
     unitSize: z.number().int(),
     rate: z.string(),
   }),

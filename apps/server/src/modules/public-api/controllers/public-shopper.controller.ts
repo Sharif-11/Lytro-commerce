@@ -32,6 +32,7 @@ import {
   type ShopperProfileInput,
   type ShopperSigninInput,
   type ShopperSignupInput,
+  coercedDateField,
 } from '@lytronix/validators';
 import { OkDto } from '../../../common/dto/ok.dto';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -67,11 +68,11 @@ const shopperSchema = z.object({
   id: z.string(),
   name: z.string(),
   phone: z.string(),
-  createdAt: z.coerce.date(),
+  createdAt: coercedDateField(),
 });
 class ShopperViewDto extends createZodDto(shopperSchema) {}
 class ShopperSignedInDto extends createZodDto(
-  z.object({ token: z.string(), expiresAt: z.coerce.date(), shopper: shopperSchema }),
+  z.object({ token: z.string(), expiresAt: coercedDateField(), shopper: shopperSchema }),
 ) {}
 class ShopperCodeSentDto extends createZodDto(
   z.object({ expiresInSeconds: z.number(), resendAfterSeconds: z.number() }),
@@ -105,7 +106,7 @@ class ShopperOrderPageDto extends createZodDto(
         trackingId: z.string(),
         status: z.enum(OrderStatus),
         grandTotal: z.string(),
-        createdAt: z.coerce.date(),
+        createdAt: coercedDateField(),
       }),
     ),
     page: z.number(),

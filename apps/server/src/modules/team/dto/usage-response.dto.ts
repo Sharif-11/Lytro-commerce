@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { UsageMetric } from '@lytronix/validators';
+import { UsageMetric, dateField } from '@lytronix/validators';
 
 const suggestionSchema = z.discriminatedUnion('kind', [
   z.object({
@@ -32,8 +32,8 @@ const suggestionSchema = z.discriminatedUnion('kind', [
 // LIM-01, LIM-02: the usage page's answer. A null limit is unlimited (PLN-19); `level` is the highest share reached, or
 // `stopped` past the grace; `suggestions` are what would give room once any metric is near its limit.
 export const shopUsageSchema = z.object({
-  cycleStart: z.date(),
-  cycleEnd: z.date(),
+  cycleStart: dateField(),
+  cycleEnd: dateField(),
   metrics: z.array(
     z.object({
       metric: z.enum(UsageMetric),
@@ -48,7 +48,7 @@ export const shopUsageSchema = z.object({
         .union([z.literal(50), z.literal(80), z.literal(95), z.literal(100), z.literal('stopped')])
         .nullable(),
       // LIM-01 (Slice 11.5c): requests only, when the cycle's pace uses the allowance up before its end.
-      runsOutAt: z.date().nullable(),
+      runsOutAt: dateField().nullable(),
     }),
   ),
   // Each Asia/Dhaka day's API requests in the cycle, for the chart and the run-out date (Slice 11.5a.2).
@@ -56,7 +56,7 @@ export const shopUsageSchema = z.object({
   suggestions: z
     .object({ first: suggestionSchema, alternative: suggestionSchema.nullable() })
     .nullable(),
-  fastSpendAlertedAt: z.date().nullable(),
+  fastSpendAlertedAt: dateField().nullable(),
   // RTE-11, PLN-15: the pack for sale and how auto-buy stands, for API requests.
   packs: z.array(
     z.object({
@@ -80,7 +80,7 @@ export const shopUsageSchema = z.object({
       key: z.literal('address_reads'),
       rate: z.string(),
       allowance: z
-        .object({ used: z.number(), total: z.number(), left: z.number(), endsAt: z.date() })
+        .object({ used: z.number(), total: z.number(), left: z.number(), endsAt: dateField() })
         .nullable(),
       outsideAllowance: z.object({ count: z.number(), cost: z.string() }),
     }),

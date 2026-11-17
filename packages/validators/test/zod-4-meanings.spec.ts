@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import * as everything from '../src';
+import { coercedDateField, dateField } from '../src';
 import { defOf, walkSchema } from './support/schema-walk';
 
-// Two schemas that mean something else in Zod 4 than they meant in Zod 3, when this package moved (2026-11-17). Each
+// Schemas that mean something else in Zod 4 than they meant in Zod 3, when this package moved (2026-11-17). Each
 // test finds them in every schema exported here, so a new one fails here rather than in a shop's request.
 
 /** Each export's findings, as `export: path`. */
@@ -77,5 +78,35 @@ describe('no record wants every key of a list (Zod 4)', () => {
     expect(wholeRecordsIn(z.partialRecord(keys, z.boolean()))).toEqual([]);
     expect(z.record(keys, z.boolean()).safeParse({ a: true }).success).toBe(false);
     expect(z.partialRecord(keys, z.boolean()).safeParse({ a: true }).success).toBe(true);
+  });
+});
+
+// Zod 4's JSON Schema has no Date, and the API's docs are written by it as the server starts: a plain z.date() stopped
+// the server (2026-11-17). Every date is dateField() or coercedDateField(), documented as an ISO 8601 string.
+function undocumentedDatesIn(schema: z.ZodType): string[] {
+  const found: string[] = [];
+  walkSchema(schema, ({ schema: part, def, path }) => {
+    if (def.type === 'date' && part._zod.toJSONSchema === undefined) {
+      found.push(path || '(the whole value)');
+    }
+  });
+  return found;
+}
+
+describe('every date says how the docs write it (Zod 4)', () => {
+  it('is dateField() or coercedDateField()', () => {
+    expect(acrossExports(undocumentedDatesIn)).toEqual([]);
+  });
+
+  it('finds a plain one, and writes the shared ones as date-time strings', () => {
+    expect(undocumentedDatesIn(z.object({ at: z.date() }))).toEqual(['at']);
+    expect(
+      z.toJSONSchema(z.object({ at: dateField(), since: coercedDateField().nullable() })),
+    ).toMatchObject({
+      properties: {
+        at: { type: 'string', format: 'date-time' },
+        since: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
+      },
+    });
   });
 });

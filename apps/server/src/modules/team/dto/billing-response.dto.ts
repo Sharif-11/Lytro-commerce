@@ -8,6 +8,8 @@ import {
   PAID_BY_METHODS,
   planLimitsSchema,
   PaymentMethod,
+  coercedDateField,
+  dateField,
 } from '@lytronix/validators';
 
 export const billingTermSchema = z.object({
@@ -19,8 +21,8 @@ export const billingTermSchema = z.object({
   displayOrder: z.number(),
   defaultDiscountPct: z.string().nullable(),
   tenantId: z.string().nullable(),
-  retiredAt: z.date().nullable(),
-  createdAt: z.date(),
+  retiredAt: dateField().nullable(),
+  createdAt: dateField(),
 });
 export class BillingTermDto extends createZodDto(billingTermSchema) {}
 export class BillingTermListDto extends createZodDto(billingTermSchema.array()) {}
@@ -49,7 +51,7 @@ export const planSchema = z.object({
   limits: planLimitsSchema,
   features: z.record(z.string(), z.boolean()),
   suggested: z.boolean(), // PLN-21
-  createdAt: z.date(),
+  createdAt: dateField(),
 });
 export class PlanDto extends createZodDto(planSchema) {}
 export class PlanListDto extends createZodDto(planSchema.array()) {}
@@ -73,7 +75,7 @@ export const planVersionSchema = z.object({
   forSale: z.boolean(),
   limits: planLimitsSchema,
   features: z.record(z.string(), z.boolean()),
-  recordedAt: z.date(),
+  recordedAt: dateField(),
 });
 export class PlanVersionListDto extends createZodDto(planVersionSchema.array()) {}
 
@@ -81,10 +83,10 @@ export const planAssignmentSchema = z.object({
   id: z.string(),
   tenantId: z.string(),
   planId: z.string(),
-  expiry: z.date().nullable(),
+  expiry: dateField().nullable(),
   reason: z.string(),
   assignedBy: z.string(),
-  assignedAt: z.date(),
+  assignedAt: dateField(),
 });
 export class PlanAssignmentDto extends createZodDto(planAssignmentSchema) {}
 
@@ -95,7 +97,7 @@ export const planLimitOverrideSchema = z.object({
   value: z.unknown(),
   reason: z.string(),
   setBy: z.string(),
-  setAt: z.date(),
+  setAt: dateField(),
 });
 export class PlanLimitOverrideDto extends createZodDto(planLimitOverrideSchema) {}
 // The list says who set each one, by email; a single one's reply does not need it.
@@ -116,25 +118,25 @@ export const planPaymentSchema = z.object({
   billingTermId: z.string().nullable(),
   amount: z.string(),
   creditAmount: z.string(),
-  quotedAt: z.coerce.date(),
+  quotedAt: coercedDateField(),
   status: z.string(),
   senderNumber: z.string().nullable(),
   transactionId: z.string().nullable(),
   verifiedBy: z.string().nullable(),
-  verifiedAt: z.coerce.date().nullable(),
+  verifiedAt: coercedDateField().nullable(),
   // BIL-19: when the transaction ID was submitted, and the operator's note on a rejection.
-  submittedAt: z.coerce.date().nullable(),
+  submittedAt: coercedDateField().nullable(),
   note: z.string().nullable(),
   // BIL-19: on a cancelled request, who closed it -- the shop, or its newer request of the same kind.
   cancelReason: z.enum(PaymentCancelReason).nullable(),
-  createdAt: z.coerce.date(),
+  createdAt: coercedDateField(),
 });
 export class PlanPaymentDto extends createZodDto(planPaymentSchema) {}
 
 // UPG-06: an upgrade's quote, with the period it would run were it confirmed now (UPG-09 starts it at confirmation).
 export const upgradeQuoteSchema = planPaymentSchema.extend({
-  periodStart: z.coerce.date(),
-  periodEnd: z.coerce.date(),
+  periodStart: coercedDateField(),
+  periodEnd: coercedDateField(),
 });
 export class UpgradeQuoteDto extends createZodDto(upgradeQuoteSchema) {}
 
@@ -148,8 +150,8 @@ export const paymentAddonSchema = z.object({
   quantity: z.number(),
   price: z.string(),
   status: z.string(),
-  startsAt: z.date().nullable(),
-  expiresAt: z.date(),
+  startsAt: dateField().nullable(),
+  expiresAt: dateField(),
 });
 export const queuedPaymentSchema = planPaymentSchema.extend({
   addons: z.array(paymentAddonSchema),
@@ -182,7 +184,7 @@ export const billingPaymentSchema = planPaymentSchema.extend({
   addons: z.array(paymentAddonSchema),
   earlierShop: z.boolean(),
   // ADM-17, D8-15 (Slice 8.8): when the seller's screenshot of it was sent, its type and its size; null when none was.
-  evidenceSentAt: z.date().nullable(),
+  evidenceSentAt: dateField().nullable(),
   evidenceType: z.string().nullable(),
   evidenceBytes: z.number().nullable(),
 });
@@ -234,8 +236,8 @@ export const invoiceSchema = z.object({
   shopAddress: z.string().nullable(),
   planName: z.string().nullable(),
   planVersion: z.number().nullable(),
-  periodStart: z.date().nullable(),
-  periodEnd: z.date().nullable(),
+  periodStart: dateField().nullable(),
+  periodEnd: dateField().nullable(),
   discountAmount: z.string(),
   paymentMethod: z.enum(PAID_BY_METHODS).nullable(),
   paymentReference: z.string().nullable(),
@@ -251,7 +253,7 @@ export const invoiceSchema = z.object({
   sellerBin: z.string().nullable(),
   vatRate: z.string().nullable(),
   vatAmount: z.string().nullable(),
-  issuedAt: z.date(),
+  issuedAt: dateField(),
   // LIF-21: true for an invoice of the owner's earlier, deleted shop, listed alongside this shop's own.
   earlierShop: z.boolean(),
   // BIL-12, PLN-14: line by line -- the plan, each add-on, an upgrade's credit (negative); none on older invoices.
@@ -273,21 +275,21 @@ export const scheduledPlanChangeSchema = z.object({
   tenantId: z.string(),
   kind: z.string(),
   targetPlanId: z.string().nullable(),
-  effectiveAt: z.date(),
-  createdAt: z.date(),
+  effectiveAt: dateField(),
+  createdAt: dateField(),
 });
 export class ScheduledPlanChangeDto extends createZodDto(scheduledPlanChangeSchema) {}
 
 // PYG-01, PYG-10, LIF-15: choosing pay-as-you-go -- scheduled for the paid period's end, or done at once.
 export const payAsYouGoChoiceSchema = z.object({
   effective: z.enum(['period_end', 'now']),
-  effectiveAt: z.date().nullable(),
+  effectiveAt: dateField().nullable(),
 });
 export class PayAsYouGoChoiceDto extends createZodDto(payAsYouGoChoiceSchema) {}
 
 // LIF-01: null means no cancellation is currently scheduled.
 export const cancellationStatusSchema = z.object({
-  cancelledAt: z.date().nullable(),
+  cancelledAt: dateField().nullable(),
 });
 export class CancellationStatusDto extends createZodDto(cancellationStatusSchema) {}
 
@@ -304,10 +306,10 @@ export class OverLimitItemListDto extends createZodDto(overLimitItemSchema.array
 export const downgradeChecklistSchema = z.object({
   checklist: z
     .object({
-      downgradedAt: z.date(),
-      endsAt: z.date(),
+      downgradedAt: dateField(),
+      endsAt: dateField(),
       items: z.array(overLimitItemSchema.extend({ fixed: z.boolean() })),
-      finalWarningAt: z.date().nullable(),
+      finalWarningAt: dateField().nullable(),
     })
     .nullable(),
 });

@@ -1,18 +1,18 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { OrderStatus, TenantState } from '@lytronix/validators';
+import { OrderStatus, TenantState, dateField } from '@lytronix/validators';
 import { SmsLogDto } from './sms.dto';
 import { shopUsageSchema } from './usage-response.dto';
 
 // ADM-03 (Phase 8 Slice 8.2): the operator's shop page, the figures it opens with and the lists behind them.
-const sinceCountSchema = z.object({ since: z.date(), count: z.number().int() });
+const sinceCountSchema = z.object({ since: dateField(), count: z.number().int() });
 
 export const operatorShopFiguresSchema = z.object({
   balance: z.object({ amount: z.string(), frozen: z.boolean(), held: z.string() }),
   usage: shopUsageSchema.pick({ cycleStart: true, cycleEnd: true, metrics: true, payPerUse: true }),
   errors: sinceCountSchema,
   failedSms: z.object({
-    since: z.date(),
+    since: dateField(),
     shop: z.object({ failed: z.number().int(), blocked: z.number().int() }),
     lytro: z.number().int(),
   }),
@@ -23,7 +23,7 @@ export const operatorShopFiguresSchema = z.object({
       name: z.string().nullable(),
       phone: z.string().nullable(),
       isOwner: z.boolean(),
-      lastAt: z.date().nullable(),
+      lastAt: dateField().nullable(),
     })
     .array(),
   paymentsWaiting: z.object({
@@ -44,7 +44,7 @@ export const shopErrorPageSchema = z.object({
       route: z.string().nullable(),
       status: z.number().int(),
       kind: z.string(),
-      createdAt: z.date(),
+      createdAt: dateField(),
     })
     .array(),
   // The `before` that asks for the next page; null when this was the last.
@@ -72,7 +72,7 @@ export const shopFailedSmsSchema = z.object({
       toPhone: z.string(),
       attempts: z.number().int(),
       lastError: z.string().nullable(),
-      createdAt: z.date(),
+      createdAt: dateField(),
     })
     .array(),
 });
@@ -81,7 +81,7 @@ export class ShopFailedSmsDto extends createZodDto(shopFailedSmsSchema) {}
 // ADM-04, D8-12 (Slice 8.3): where the extended period now ends, and whether a lapsed shop came back.
 export class PlanExtensionDto extends createZodDto(
   z.object({
-    periodEnd: z.date(),
+    periodEnd: dateField(),
     state: z.enum(TenantState),
     restored: z.boolean(),
   }),

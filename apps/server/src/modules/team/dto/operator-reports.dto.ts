@@ -7,6 +7,7 @@ import {
   LedgerEntryType,
   reportQuerySchema,
   TenantState,
+  dateField,
 } from '@lytronix/validators';
 
 // ADM-08, ADM-09 (Phase 8 Slice 8.4): the operator's reports and audit log list, as the console reads them.
@@ -93,7 +94,7 @@ export const auditLogPageSchema = z.object({
       targetId: z.string().nullable(),
       result: z.string(),
       summary: z.unknown(),
-      createdAt: z.date(),
+      createdAt: dateField(),
       shop: z.object({ id: z.string(), name: z.string(), slug: z.string() }).nullable(),
     }),
   ),

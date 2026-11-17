@@ -10,6 +10,7 @@ import {
   TenantState,
 } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
+import { coercedDateField } from '../../common/dates';
 
 /** NTC-01: a notice's title, at most 120 characters in each language. */
 export const NOTICE_TITLE_MAX = 120;
@@ -51,14 +52,14 @@ const noticeShape = {
   severity: z.enum(NoticeSeverity),
   audience: noticeAudienceSchema,
   // NTC-01, NTC-11: when it goes live; left out, the notice is a draft.
-  publishAt: z.coerce.date().nullable().optional(),
-  endsAt: z.coerce.date().nullable().optional(),
+  publishAt: coercedDateField().nullable().optional(),
+  endsAt: coercedDateField().nullable().optional(),
   pinned: z.boolean().optional(),
   // NTC-05: the owner must click "I understand".
   requiresAck: z.boolean().optional(),
   // NTC-14, D7-55: a maintenance window, which the dashboard counts down to.
-  windowStartsAt: z.coerce.date().nullable().optional(),
-  windowEndsAt: z.coerce.date().nullable().optional(),
+  windowStartsAt: coercedDateField().nullable().optional(),
+  windowEndsAt: coercedDateField().nullable().optional(),
   // NTC-13: the rate change this notice tells of (control.rate_history's ID), linked when it is published.
   rateChangeId: z.number().int().positive().nullable().optional(),
 };
@@ -190,12 +191,12 @@ export const noticeTemplateSchema = z
     variables: z
       .object({
         rateChangeId: z.number().int().positive().optional(),
-        date: z.coerce.date().optional(),
+        date: coercedDateField().optional(),
         rateKey: z.enum(RateKey).optional(),
         oldRate: rateFigure.optional(),
         newRate: rateFigure.optional(),
-        windowStartsAt: z.coerce.date().optional(),
-        windowEndsAt: z.coerce.date().optional(),
+        windowStartsAt: coercedDateField().optional(),
+        windowEndsAt: coercedDateField().optional(),
       })
       .strict()
       .default({}),

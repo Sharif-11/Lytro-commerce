@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { BillingPaymentState } from '@lytronix/validators';
+import { BillingPaymentState, dateField } from '@lytronix/validators';
 
 // BAL-03, BIL-04: submitted payments the operator is still checking.
 const beingCheckedSchema = z.object({ count: z.number(), amount: z.string() });
@@ -42,7 +42,7 @@ export const homeViewSchema = z.object({
     })
     .nullable(),
   staffWithoutPassword: z.number().nullable(),
-  fastSpendAlertedAt: z.date().nullable(),
+  fastSpendAlertedAt: dateField().nullable(),
   // SUP-01: the owner's set-up checklist, as far as the server can tell it.
   checklist: z
     .object({

@@ -5,6 +5,7 @@ import {
   PaymentPageReportReason,
   PaymentPageReportStatus,
   paymentPageReportListSchema,
+  coercedDateField,
 } from '@lytronix/validators';
 
 // ADM-12 (Phase 5 Slice 5.2b): the operator's queue of payment page reports.
@@ -27,8 +28,8 @@ export class PaymentPageReportListDto extends createZodDto(
         note: z.string().nullable(),
         ip: z.string().nullable(),
         status: z.enum(PaymentPageReportStatus),
-        createdAt: z.coerce.date(),
-        handledAt: z.coerce.date().nullable(),
+        createdAt: coercedDateField(),
+        handledAt: coercedDateField().nullable(),
       }),
     ),
   }),

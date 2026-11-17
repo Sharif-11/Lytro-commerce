@@ -37,6 +37,19 @@ function messagesOf(schema: z.ZodType, value: unknown, language: Language): stri
 
 // API-16, I18N-01: each failed field gets a stable problem code and a plain message, in Bangla or English.
 describe('what is wrong with each field', () => {
+  it('says a choice left out is required, and one not on the list is not allowed (Zod 4)', () => {
+    const choice = z.object({ reason: z.enum({ Late: 'late', Other: 'other' }) });
+    expect(fieldProblemsOf(failureOf(choice, {}))).toEqual([
+      { field: 'reason', problem: 'required' },
+    ]);
+    expect(fieldProblemsOf(failureOf(choice, { reason: null }))).toEqual([
+      { field: 'reason', problem: 'required' },
+    ]);
+    expect(fieldProblemsOf(failureOf(choice, { reason: 'bored' }))).toEqual([
+      { field: 'reason', problem: 'not_allowed' },
+    ]);
+  });
+
   it('says a password is too short, and by how much, in both languages', () => {
     const problems = fieldProblemsOf(failureOf(setPasswordSchema, { newPassword: 'abc' }));
     expect(problems).toEqual([{ field: 'newPassword', problem: 'too_short', min: 8 }]);

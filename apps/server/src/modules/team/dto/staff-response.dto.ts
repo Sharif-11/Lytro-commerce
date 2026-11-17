@@ -1,13 +1,15 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 
+import { dateField } from '@lytronix/validators';
+
 export const staffMemberSchema = z.object({
   id: z.string(),
   phone: z.string().nullable(),
   name: z.string().nullable(),
   isOwner: z.boolean(),
   active: z.boolean(),
-  createdAt: z.date(),
+  createdAt: dateField(),
   // STF-13, AUTH-31: "Password not set" until the member chooses their own.
   mustSetPassword: z.boolean(),
   roleIds: z.array(z.string()),

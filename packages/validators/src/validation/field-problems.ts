@@ -106,8 +106,12 @@ function problemsOf(issue: core.$ZodIssue): FieldProblem[] {
           return [{ field, problem: FieldProblemCode.InvalidFormat }];
       }
 
-    // Zod 3's `invalid_enum_value` and `invalid_literal`.
+    // Zod 3's `invalid_enum_value` and `invalid_literal`. Zod 4's enum reports a missing value here too, where Zod 3's
+    // checked its type first: a value not given is still required (a cancel with no reason, ORD-52).
     case 'invalid_value':
+      if (issue.input === undefined || issue.input === null) {
+        return [{ field, problem: FieldProblemCode.Required }];
+      }
       return [{ field, problem: FieldProblemCode.NotAllowed }];
 
     // Zod 3's `invalid_union_discriminator` is a union issue naming its discriminator in Zod 4, on the discriminator's

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { LedgerEntryType, RateKey, TenantState } from '@lytronix/validators';
+import { LedgerEntryType, RateKey, TenantState, dateField } from '@lytronix/validators';
 
 // BAL-01, BAL-04: the balance, and the top-up bounds the sheet states before a quote (the quote still holds to them).
 export const balanceViewSchema = z.object({
@@ -34,7 +34,7 @@ export const ledgerEntrySchema = z.object({
   rateUsed: z.string().nullable(),
   reference: z.unknown(),
   balanceAfter: z.string(),
-  createdAt: z.date(),
+  createdAt: dateField(),
 });
 export class LedgerEntryDto extends createZodDto(ledgerEntrySchema) {}
 
@@ -47,7 +47,7 @@ export class LedgerPageDto extends createZodDto(ledgerPageSchema) {}
 export const rateValueSchema = z.object({
   key: z.enum(RateKey),
   value: z.string(),
-  effectiveFrom: z.date(),
+  effectiveFrom: dateField(),
 });
 export class RateValueDto extends createZodDto(rateValueSchema) {}
 
@@ -63,7 +63,7 @@ export const platformWalletSchema = z.object({
   label: z.string().nullable(),
   enabled: z.boolean(),
   displayOrder: z.number(),
-  createdAt: z.date(),
+  createdAt: dateField(),
 });
 export class PlatformWalletDto extends createZodDto(platformWalletSchema) {}
 
@@ -75,7 +75,7 @@ export const rateHistoryEntrySchema = z.object({
   changedBy: z.string().nullable(),
   changedByEmail: z.string().nullable(),
   noticeId: z.string().nullable(),
-  changedAt: z.date(),
+  changedAt: dateField(),
 });
 export class RateHistoryEntryDto extends createZodDto(rateHistoryEntrySchema) {}
 
@@ -86,12 +86,12 @@ export const tenantSummarySchema = z.object({
   slug: z.string(),
   shopName: z.string(),
   state: z.enum(TenantState),
-  suspendedAt: z.date().nullable(),
+  suspendedAt: dateField().nullable(),
   planId: z.string().nullable(),
   planName: z.string().nullable(),
   planVersion: z.number().nullable(),
   overrideCount: z.number(),
-  periodEnd: z.date().nullable(),
+  periodEnd: dateField().nullable(),
   // D8-24: the owner's phone, so a search by it shows which shop matched.
   ownerPhone: z.string().nullable(),
 });

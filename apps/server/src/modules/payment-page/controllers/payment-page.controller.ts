@@ -33,6 +33,7 @@ import {
   type PaymentIdChangeInput,
   type PaymentPageReportInput,
   type PaymentSubmissionInput,
+  coercedDateField,
 } from '@lytronix/validators';
 import { ClientIp } from '../../../common/client-ip';
 import { PublicApiRoute } from '../../../common/decorators/public-api';
@@ -82,7 +83,7 @@ class PaymentPageDto extends createZodDto(
     source: z.enum(PaymentSessionSource),
     amount: z.string(),
     state: z.enum(PaymentSessionState),
-    expiresAt: z.coerce.date(),
+    expiresAt: coercedDateField(),
     method: z.enum(PaymentMethod).nullable(),
     methods: z.array(
       z.object({
@@ -120,7 +121,7 @@ class PaymentPageDto extends createZodDto(
         method: z.enum(PaymentMethod),
         transactionId: z.string(),
         senderNumber: z.string().nullable(),
-        submittedAt: z.coerce.date(),
+        submittedAt: coercedDateField(),
       })
       .nullable(),
   }),

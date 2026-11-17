@@ -9,6 +9,7 @@ import {
   publicOrderSchema,
   StockUnit,
   type PublicOrderInput,
+  coercedDateField,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
@@ -68,7 +69,7 @@ class PlacedOrderDto extends createZodDto(
     orderNumber: z.string(),
     trackingId: z.string(),
     status: z.enum(OrderStatus),
-    createdAt: z.coerce.date(),
+    createdAt: coercedDateField(),
     items: z.array(itemSchema),
     ...totals,
     purchaseEventId: z.string(),
@@ -83,7 +84,7 @@ class TrackedOrderDto extends createZodDto(
     timeline: z.array(
       z.object({
         step: z.enum(['placed', 'confirmed', 'shipped', 'delivered', 'cancelled']),
-        at: z.coerce.date(),
+        at: coercedDateField(),
       }),
     ),
     items: z.array(
@@ -108,7 +109,7 @@ class TrackedOrderDto extends createZodDto(
       })
       .nullable(),
     courierMessage: z
-      .object({ en: z.string().nullable(), bn: z.string().nullable(), at: z.coerce.date() })
+      .object({ en: z.string().nullable(), bn: z.string().nullable(), at: coercedDateField() })
       .nullable(),
     // Slice 6.7: the courier says the parcel is going back to the shop.
     courierReturning: z.boolean(),

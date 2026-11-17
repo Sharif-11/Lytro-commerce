@@ -2,7 +2,12 @@ import { Body, Controller, HttpCode, Inject, Post, Req, UseGuards } from '@nestj
 import { ApiBody, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createZodDto, ZodResponse } from 'nestjs-zod';
 import { z } from 'zod';
-import { listenerPairSchema, PaymentMethod, type ListenerPairInput } from '@lytronix/validators';
+import {
+  listenerPairSchema,
+  PaymentMethod,
+  type ListenerPairInput,
+  coercedDateField,
+} from '@lytronix/validators';
 import { ClientIp } from '../../../common/client-ip';
 import { PublicApiRoute } from '../../../common/decorators/public-api';
 import { OkDto } from '../../../common/dto/ok.dto';
@@ -18,7 +23,7 @@ class ListenerPairDto extends createZodDto(listenerPairSchema) {}
 const appFacts = {
   accounts: z.array(z.object({ method: z.enum(PaymentMethod), number: z.string() })),
   senders: z.array(z.string()),
-  testModeUntil: z.coerce.date().nullable(),
+  testModeUntil: coercedDateField().nullable(),
 };
 class ListenerPairedDto extends createZodDto(
   z.object({
@@ -34,13 +39,13 @@ class ListenerConnectedDto extends createZodDto(
   z.object({
     status: z.literal('connected'),
     heartbeatMinutes: z.number(),
-    serverTime: z.coerce.date(),
+    serverTime: coercedDateField(),
     deviceName: z.string(),
     shopName: z.string(),
     ...appFacts,
   }),
 ) {}
-class ListenerTestModeDto extends createZodDto(z.object({ testModeUntil: z.coerce.date() })) {}
+class ListenerTestModeDto extends createZodDto(z.object({ testModeUntil: coercedDateField() })) {}
 
 const APP_VERSION_HEADER = {
   name: 'x-app-version',

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { calendarDayField, checkPeriod } from '../../common/dates';
+import { calendarDayField, checkPeriod, coercedDateField } from '../../common/dates';
 import { BANK_REFERENCE_MAX_LENGTH } from '../../common/limits';
 import {
   bankReferenceField,
@@ -120,7 +120,7 @@ export const manualEntrySchema = z
     bankAccountId: z.guid().optional(),
     transactionId: z.string().trim().min(1).max(BANK_REFERENCE_MAX_LENGTH),
     senderNumber: z.string().trim().min(1).max(30).optional(),
-    paidAt: z.coerce.date(),
+    paidAt: coercedDateField(),
     // ADM-14: the evidence, a screenshot or a line of a statement.
     evidenceKey: evidenceKeyField.optional(),
     evidenceLine: z.string().trim().min(1).max(REASON_MAX).optional(),
