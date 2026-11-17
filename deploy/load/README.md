@@ -30,7 +30,8 @@ On the **server under test**, as root, from the live release:
 1. `bash /opt/lytro/state/current/load/run/arm.sh`. Add `--ceiling` for the ramp past twice the peak: it also raises RTE-06's
    120 requests a minute per visitor, since all the load comes from one address.
 2. `RUN=lt bash /opt/lytro/state/current/load/run/seed.sh`, about an hour and a half. For a quick shakedown, make it smaller:
-   `SHOPS=10 FULL_SHOPS=5 FULL_PRODUCTS=50 FULL_ORDERS=300 CUSTOMERS=100`.
+   `SHOPS=10 FULL_SHOPS=5 FULL_PRODUCTS=50 FULL_ORDERS=300 CUSTOMERS=100`. A second seeding on the same server needs its
+   own `RUN` and `PHONE_OFFSET` (e.g. `RUN=lt3 PHONE_OFFSET=3000`): the owners an earlier seeding signed up stay.
 3. Copy `/opt/lytro/state/load/out/roster.json` to the load machine's `./out/roster.json`.
 
 On the **load machine** (the staging server, for the production run), which reaches the server under test by SSH:

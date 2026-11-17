@@ -101,6 +101,20 @@ describe('StorefrontApi', () => {
     expect(fake.calls).toHaveLength(2);
   });
 
+  it('asks once for a host however many pages ask at once, and asks again after a failed read (Slice 9.10)', async () => {
+    const context = { outcome: 'open', shop };
+    const failed = { status: 503, data: null, code: null, details: {} };
+    const fake = server(ok(context), failed, ok(context));
+    const api = new StorefrontApi(fake, env, () => 1_000);
+    const answers = await Promise.all([1, 2, 3, 4, 5].map(() => api.context('megh.lytro.app')));
+    expect(answers).toEqual([context, context, context, context, context]);
+    expect(fake.calls).toHaveLength(1);
+    // Another host's read fails; it isn't kept, so the next page asks again.
+    await expect(api.context('rumana.lytro.app')).rejects.toThrow();
+    expect(await api.context('rumana.lytro.app')).toEqual(context);
+    expect(fake.calls).toHaveLength(3);
+  });
+
   it('sends an order with its key, as the shop, and gives back the answer as it came (SFT-06)', async () => {
     const refused: ServerAnswer<unknown> = {
       status: 409,
@@ -190,13 +204,17 @@ describe('StorefrontApi', () => {
     ]);
   });
 
-  it("reads the frame fresh for the edge's page, and holds that read for the pages after (Slice 9.10)", async () => {
+  it("gives the edge's page a frame a few seconds old at most, and holds it for the pages after (Slice 9.10)", async () => {
     const fake = server(ok({ name: 'Megh' }), ok({ name: 'Megh, renamed' }));
     let now = 1_000;
     const api = new StorefrontApi(fake, env, () => now);
     expect(await api.shop(shop, shopper)).toEqual({ name: 'Megh' });
-    now += 10_000;
-    // A purge just cleared the edge: its page must not wear the frame held from before the change.
+    // Within the 4 seconds the edge allows, its page takes the frame held.
+    now += 3_000;
+    expect(await api.shop(shop, { ...shopper, forEdge: true })).toEqual({ name: 'Megh' });
+    expect(fake.calls).toHaveLength(1);
+    // A purge comes 5 seconds after a change at the soonest: its page must not wear the frame from before it.
+    now += 7_000;
     expect(await api.shop(shop, { ...shopper, forEdge: true })).toEqual({ name: 'Megh, renamed' });
     expect(await api.shop(shop, shopper)).toEqual({ name: 'Megh, renamed' });
     expect(fake.calls).toHaveLength(2);
