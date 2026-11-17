@@ -21,6 +21,7 @@ export const MESSAGE_KEYS = [
   'PageNotFound',
   'SomethingWentWrong',
   'SavingPaused',
+  'ServerBusy',
   'SettingValueInvalid',
   'PleaseTryAgain',
   'IdempotencyKeyConflict',

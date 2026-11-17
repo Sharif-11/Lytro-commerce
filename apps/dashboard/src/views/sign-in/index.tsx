@@ -2,7 +2,7 @@ import { useEffect, useState, type SyntheticEvent } from 'react';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { Trans, useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
-import { OauthProvider } from '@lytronix/validators';
+import { OauthProvider, PASSWORD_MAX_LENGTH } from '@lytronix/validators';
 import {
   useOauthProviders,
   useRequestSigninCode,
@@ -131,6 +131,7 @@ export function SignIn(): React.JSX.Element {
             label={t('passwordLabel')}
             name="password"
             type="password"
+            maxLength={PASSWORD_MAX_LENGTH}
             autoComplete="current-password"
             value={password}
             onChange={(event) => {

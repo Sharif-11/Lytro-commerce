@@ -342,6 +342,8 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .bare .box .logo{width:56px;height:56px;border-radius:16px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:26px}
 .bare .box h1{font-family:var(--font-display);font-size:22px;font-weight:700}
 .bare .box p{color:var(--muted);font-size:15px;line-height:1.55}
+/* Small fixes 2026-11-17: Powered by Lytro under a bare page, sized as the footer's (it drew at no width). */
+.bare .box svg[aria-label="Powered by Lytro"]{height:16px;width:auto}
 .pwa{position:absolute;left:12px;right:12px;bottom:12px;background:var(--text);color:var(--bg);border-radius:16px;padding:14px;display:flex;gap:12px;align-items:center;z-index:25;box-shadow:var(--shadow-pop)}
 .pwa .ic{width:44px;height:44px;border-radius:12px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:20px;flex:none}
 .pwa .b{flex:1;min-width:0;font-size:13px;line-height:1.4}

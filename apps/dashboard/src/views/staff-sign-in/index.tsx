@@ -1,4 +1,5 @@
 import { useState, type SyntheticEvent } from 'react';
+import { PASSWORD_MAX_LENGTH } from '@lytronix/validators';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useStaffSignIn } from '@/api/auth';
@@ -51,6 +52,7 @@ export function StaffSignIn(): React.JSX.Element {
           label={t('passwordLabel')}
           name="password"
           type="password"
+          maxLength={PASSWORD_MAX_LENGTH}
           autoComplete="current-password"
           placeholder="••••••••"
           value={password}

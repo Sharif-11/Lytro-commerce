@@ -1,6 +1,6 @@
 'use client';
 
-import { bdMobileNumber } from '@lytronix/validators/common';
+import { bdMobileNumber, PASSWORD_MAX_LENGTH } from '@lytronix/validators/common';
 import { useCallback, useMemo, useState } from 'react';
 import { whatsAppLink } from '@/lib/account/shopper-cookie';
 import { type Language, Words } from '@/lib/i18n/words';
@@ -107,6 +107,7 @@ export function SignInView({
             id="si-password"
             className={refusal === 'wrong' ? 'input bad' : 'input'}
             type="password"
+            maxLength={PASSWORD_MAX_LENGTH}
             autoComplete="current-password"
             value={password}
             onChange={(event) => {

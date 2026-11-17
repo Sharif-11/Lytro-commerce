@@ -16,6 +16,11 @@ export function limitFigure(key: LimitKey, value: number | null | undefined): st
   return value.toLocaleString('en-US');
 }
 
+/** A count as a seller reads it in their language: Bangla groups lakhs (1,00,000), English thousands (100,000). */
+export function formatCount(value: number, language: string): string {
+  return value.toLocaleString(language === 'bn' ? 'en-IN' : 'en-US');
+}
+
 /** Storage in the unit a seller reads: whole gigabytes from 1 GB up, else megabytes. */
 export function megabytes(value: number): string {
   if (value < MB_PER_GB) return `${Math.round(value).toLocaleString('en-US')} MB`;

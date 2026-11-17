@@ -96,7 +96,7 @@ export const apiUsage = control.table(
     // RTE-12: when the operators were last told of a fast hour's spending, so they are told at most once a day.
     fastSpendAlertedAt: timestamp('fast_spend_alerted_at', { withTimezone: true }),
     // RTE-11, PLN-15: what the cycle took from the shop's request packs, and the grace use written off when a pack was
-    // bought past the allowance; packs auto-buy bought this cycle, and one asked for or failed -- as media_bandwidth.
+    // bought past the allowance; packs auto-buy bought this cycle, and one asked for or failed.
     packUsed: bigint('pack_used', { mode: 'number' }).notNull().default(0),
     packFree: bigint('pack_free', { mode: 'number' }).notNull().default(0),
     autoPacks: integer('auto_packs').notNull().default(0),

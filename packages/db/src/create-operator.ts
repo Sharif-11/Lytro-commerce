@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { hash } from 'bcryptjs';
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@lytronix/validators';
 import { DatabaseConnector } from './client';
 import { OperatorAccountRepository } from './repositories/operator/operator-account.repository';
 
@@ -11,10 +12,17 @@ const BCRYPT_COST = 12;
  * Creates one operator account, with no TOTP enrollment yet (ADM-01: that happens on first sign-in). Run as
  * its own privileged pipeline step, the same way migrations do (ENGINEERING-STANDARDS §7): never from the live
  * app, which has no credential that can INSERT into `control.operator_accounts` (migration 0024). Reusable for
- * operator #1 now and operator #2+ later (OD-32) — there is no separate one-time "seed" script.
+ * operator #1 now and operator #2+ later (OD-32) — there is no separate one-time "seed" script. The password keeps
+ * every Lytro password's length, 8 to 20 characters (the owner, 2026-11-17: 20 at most everywhere): the console's
+ * sign-in refuses any other, so an operator made with a longer one could never sign in.
  */
 export class OperatorCreator {
   async run(connectionString: string, email: string, password: string): Promise<{ id: string }> {
+    if (password.length < PASSWORD_MIN_LENGTH || password.length > PASSWORD_MAX_LENGTH) {
+      throw new Error(
+        `the password must be ${String(PASSWORD_MIN_LENGTH)} to ${String(PASSWORD_MAX_LENGTH)} characters`,
+      );
+    }
     const handle = new DatabaseConnector().connect(connectionString, {
       max: 1,
       statementTimeoutMillis: 0,
