@@ -7,6 +7,7 @@ import {
   isBusyStatus,
   type Locations,
 } from '@/lib/api/storefront-api';
+import { estimateQueryString } from '@/lib/product/estimate-query';
 
 /** An estimate as the browser last had it answered: for which items and area, and whether the server was too busy. */
 interface EstimateAnswer {
@@ -27,13 +28,15 @@ export interface SettledEstimate {
 // SFT-20, LND-08: the delivery charge for what the shopper has picked, worked out by the server's one pricing function
 // (never here). The page's first render brings the first answer; a change of item, quantity or area asks again. With
 // no first answer (the cart, Slice 12b), it asks at once. `settled` says the answer is for what is on the page now, so a
-// checkout never places an order on the charge of the thana before.
+// checkout never places an order on the charge of the thana before. A product or landing page names its product, so a
+// charge for one of its variants alone is asked in the form Cloudflare's edge keeps (Slice 9.10, estimate-query.ts).
 export function useSettledEstimate(
   initial: DeliveryEstimate | null,
   items: EstimateItem[] | null,
   areaId: number | null,
+  productId?: string,
 ): SettledEstimate {
-  const key = items === null ? null : JSON.stringify({ items, areaId });
+  const key = items === null ? null : JSON.stringify({ items, areaId, productId });
   const [answer, setAnswer] = useState<EstimateAnswer>({
     key: initial === null ? null : key,
     estimate: initial,
@@ -71,14 +74,34 @@ async function fetchEstimate(
   key: string,
   signal: AbortSignal,
 ): Promise<Omit<EstimateAnswer, 'key'>> {
-  const { items, areaId } = JSON.parse(key) as { items: EstimateItem[]; areaId: number | null };
+  const { items, areaId, productId } = JSON.parse(key) as {
+    items: EstimateItem[];
+    areaId: number | null;
+    productId?: string;
+  };
+  const [only] = items;
+  const kept =
+    productId !== undefined &&
+    only !== undefined &&
+    items.length === 1 &&
+    (only.modifiers === undefined || only.modifiers.length === 0);
   try {
-    const response = await fetch('/api/estimate', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(areaId === null ? { items } : { items, locationId: areaId }),
-      signal,
-    });
+    const response = kept
+      ? await fetch(
+          `/api/estimate?${estimateQueryString({
+            productId,
+            variantId: only.variantId,
+            quantity: only.quantity,
+            areaId,
+          })}`,
+          { signal },
+        )
+      : await fetch('/api/estimate', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(areaId === null ? { items } : { items, locationId: areaId }),
+          signal,
+        });
     if (response.ok) {
       return { estimate: (await response.json()) as DeliveryEstimate | null, busy: false };
     }

@@ -6,7 +6,9 @@ import { VariantChoice } from './variant-choice';
 
 /** What a product or landing page opens with, worked out on the server so the first paint is already right: the
     variant a `?v=` link names (LND-06), the shopper's remembered area, and the delivery charge for the two when
-    that variant can be bought (SFT-20). */
+    that variant can be bought (SFT-20). A page for Cloudflare's edge (Slice 9.10, D9-32) is the same for every
+    shopper, so it opens on the product's own first choice and no area, and the browser applies the link and the area
+    after its first paint (`openInBrowser`). */
 export async function productOpening(
   page: OpenShopPage,
   product: PublicProduct,
@@ -15,9 +17,11 @@ export async function productOpening(
   linkedVariantId: string | null;
   areaId: number | null;
   estimate: DeliveryEstimate | null;
+  openInBrowser: boolean;
 }> {
-  const linkedVariantId = typeof v === 'string' && v.length > 0 ? v : null;
-  const areaId = parseArea((await cookies()).get(AREA_COOKIE)?.value);
+  const openInBrowser = page.shopper.forEdge === true;
+  const linkedVariantId = !openInBrowser && typeof v === 'string' && v.length > 0 ? v : null;
+  const areaId = openInBrowser ? null : parseArea((await cookies()).get(AREA_COOKIE)?.value);
   const choice = new VariantChoice(product.options, product.variants);
   const variant = choice.variantFor(choice.initial(linkedVariantId));
   const estimate = variant?.available
@@ -29,7 +33,7 @@ export async function productOpening(
         })
         .catch(() => null)
     : null;
-  return { linkedVariantId, areaId, estimate };
+  return { linkedVariantId, areaId, estimate, openInBrowser };
 }
 
 /** The query string a moved link keeps (`?v=`), so the redirect lands on the same variant. */

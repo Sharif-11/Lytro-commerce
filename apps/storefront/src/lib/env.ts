@@ -14,6 +14,8 @@ export class StorefrontEnvironment {
   readonly storefrontSecret: string | undefined;
   /** D14: the header the edge sets with the shopper's address, read from each request and passed on as it came. */
   readonly clientIpHeader: string;
+  /** Slice 9.10: this storefront's own address, where the middleware renders a page the edge may keep. */
+  readonly selfUrl: string;
 
   constructor(env: Readonly<Record<string, string | undefined>> = process.env) {
     this.serverUrl = StorefrontEnvironment.trimSlash(env.SERVER_URL ?? 'http://localhost:3000');
@@ -21,6 +23,9 @@ export class StorefrontEnvironment {
     this.edgeSecret = StorefrontEnvironment.blankToUndefined(env.TRUSTED_EDGE_SECRET);
     this.storefrontSecret = StorefrontEnvironment.blankToUndefined(env.STOREFRONT_SECRET);
     this.clientIpHeader = (env.CLIENT_IP_HEADER ?? 'x-forwarded-for').toLowerCase();
+    this.selfUrl = StorefrontEnvironment.trimSlash(
+      env.STOREFRONT_SELF_URL ?? `http://127.0.0.1:${env.PORT ?? '3001'}`,
+    );
   }
 
   /** The process-wide settings, read once. Tests build their own instance from a plain object instead. */

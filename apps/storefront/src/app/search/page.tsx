@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { ProductList } from '@/components/catalogue/product-list';
+import { EdgeMark } from '@/components/edge-mark';
 import { Icon } from '@/components/icon';
 import { OfflinePage } from '@/components/pages';
 import { SearchPanel } from '@/components/search/search-panel';
@@ -10,8 +11,9 @@ import { searchOf } from '@/lib/catalogue/browse';
 import { loadFrame, loadShopPage, storefrontApi } from '@/lib/storefront';
 
 // CCH-12, STOREFRONT-DESIGN §3: a search's results, at /search?q=, in the search panel the prototype draws over the
-// page: one counted call per search, made when the shopper submits it. Without a search, the panel's recent searches
-// and categories. Never indexed: a search's page is the shopper's, not the shop's.
+// page: one call per search, made when the shopper submits it, and kept at Cloudflare's edge for a minute (Slice 9.10,
+// D9-32). Without a search, the panel's recent searches and categories. Never indexed: a search's page is the
+// shopper's, not the shop's.
 export const dynamic = 'force-dynamic';
 
 interface Props {
@@ -76,6 +78,7 @@ export default withBusyPage(async function SearchPage({ searchParams }: Props) {
   }
   return (
     <Frame language={words.language} brand={page.info.brand}>
+      <EdgeMark page={page} listing products={list?.products ?? []} />
       <div className="shell">
         <SearchPanel
           key={q ?? ''}
