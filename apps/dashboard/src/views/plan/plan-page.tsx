@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Permission, TenantState } from '@lytronix/validators';
+import { Permission, planCardTaka, TenantState, UsageMetric } from '@lytronix/validators';
 import { daysUntil } from '@lytronix/ui';
 import {
   useCancelScheduledChange,
@@ -24,25 +24,20 @@ import { formatDayMonth } from '@/lib/dates';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
+import { useCurrentRates } from '@/api/balance';
+import { useUsage } from '@/api/usage';
 import { usePaymentNotices } from '@/views/billing/notices';
 import { PaymentBanner } from '@/views/billing/payment-banner';
 import type { PlanPriceOption } from '@/types/billing';
 import type { MeTenant } from '@/types/me';
 import { AddonsCard } from '@/views/addons/addons-card';
-import { TermChips } from './change-plan';
 import { DowngradeSheet } from './downgrade-sheet';
 import { lapseDays, termLabel } from './figures';
 import { HowToPaySheet } from './how-to-pay-sheet';
-import {
-  CurrentCard,
-  Disclosure,
-  PlanCard,
-  PlanRow,
-  TightStat,
-  TightStats,
-  YouAreHere,
-} from './parts';
-import { taka, useLimitLines, usePaygLines } from './words';
+import { Disclosure, MineCard, MineLine, PeriodBar } from './parts';
+import { HOT_OUTLINE, useCardLines } from './card-lines';
+import { OnThisPlan, PlanGrid, PlanOffer, TermPicker } from './plan-cards';
+import { taka } from './words';
 import { usePaygFees } from './payg-fees';
 import { PaygSwitchSheet } from './payg-switch-sheet';
 import { CancelledBanner, DowngradeChecklistCard, ScheduledBanner } from './plan-banners';
@@ -76,9 +71,9 @@ export function PlanPage({ openPlanId }: { openPlanId: string | null }): React.J
   const undo = useUndoCancellation();
   const choosePayg = useChoosePayAsYouGo();
   const fees = usePaygFees();
-  const limitLines = useLimitLines();
-  const paygLines = usePaygLines(fees);
   const notices = usePaymentNotices();
+  const rates = useCurrentRates();
+  const usage = useUsage({ enabled: allows(viewer, [Permission.PaymentsRead]) });
   const [sheet, setSheet] = useState<OpenSheet | null>(null);
 
   const state = tenant.state;
@@ -93,6 +88,15 @@ export function PlanPage({ openPlanId }: { openPlanId: string | null }): React.J
   const label = term ? termLabel(term, i18n.language) : '';
   const per = term && term.months > 1 ? t('perTerm', { term: label }) : t('perMonth');
   const currentLimits = own ? catalogue.planOf(own.planId) : undefined;
+  const cards = useCardLines(
+    [payg.data, ...options.map((option) => catalogue.planOf(option.planId))],
+    rates.data,
+  );
+  // The orders this period counts: the plan's month, or a trial's whole life (QTA-01, QTA-04).
+  const handled =
+    usage.data?.metrics.find(
+      (figure) => figure.metric === (trial ? UsageMetric.OrdersTotal : UsageMetric.OrdersMonthly),
+    ) ?? null;
   const sheetOption =
     sheet && 'planId' in sheet
       ? options.find((option) => option.planId === sheet.planId)
@@ -124,14 +128,13 @@ export function PlanPage({ openPlanId }: { openPlanId: string | null }): React.J
     void navigate({ to: '/$shop/plan', params: { shop: slug }, search: {}, replace: true });
   }, [asked, canManage, navigate, slug]);
 
-  function action(option: PlanPriceOption): React.JSX.Element | null {
-    if (option.move === 'renewal' && !trial) return <YouAreHere />;
+  function action(option: PlanPriceOption, hot: boolean): React.JSX.Element | null {
+    if (option.move === 'renewal' && !trial) return <OnThisPlan hot={hot} />;
     if (!canManage) return null;
     if (option.move === 'upgrade') {
       return (
         <Button
-          tone="accent"
-          size="sm"
+          tone={hot ? 'accent' : 'primary'}
           wide
           disabled={option.amount === null || option.blockedBy !== null}
           onClick={() => {
@@ -146,8 +149,8 @@ export function PlanPage({ openPlanId }: { openPlanId: string | null }): React.J
       return (
         <Button
           tone="outline"
-          size="sm"
           wide
+          className={hot ? HOT_OUTLINE : undefined}
           disabled={change !== null}
           onClick={() => {
             setSheet({ kind: 'downgrade', planId: option.planId });
@@ -159,13 +162,13 @@ export function PlanPage({ openPlanId }: { openPlanId: string | null }): React.J
     }
     return (
       <Button
-        size="sm"
+        tone={hot ? 'accent' : 'outline'}
         wide
         onClick={() => {
           pay(option);
         }}
       >
-        {t('takePlan', { plan: option.planName })}
+        {t('ux2.take', { p: option.planName })}
       </Button>
     );
   }
@@ -219,170 +222,179 @@ export function PlanPage({ openPlanId }: { openPlanId: string | null }): React.J
         <DowngradeChecklistCard checklist={checklist.data} planName={tenant.planName} />
       ) : null}
       <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
-        <div className="flex min-w-0 flex-col gap-section">
-          <CurrentCard>
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[14px] text-fg-muted">{t('yourPlan')}</span>
-              {lapsing ? (
-                <StatusTag tone="warn">{t('grace')}</StatusTag>
-              ) : trial ? (
-                <StatusTag tone="info">{t('trial')}</StatusTag>
-              ) : (
-                <StatusTag tone="ok">{t('active')}</StatusTag>
-              )}
-            </div>
-            <h2 className="mt-0.5 mb-3 text-[24px] font-bold">
-              {trial
-                ? t('trial')
-                : tenant.billingTerm
-                  ? t('planTerm', {
-                      plan: tenant.planName ?? '',
-                      term: termLabel(tenant.billingTerm, i18n.language),
-                    })
-                  : (tenant.planName ?? '')}
-            </h2>
-            <TightStats>
-              {trial ? (
-                <TightStat label={t('trialDaysLeft')} value={days ?? 0} note={t('thenPayg')} />
-              ) : (
-                <TightStat label={t('daysLeft')} value={lapsing ? 0 : (days ?? 0)} note={end} />
-              )}
-              <TightStat
-                label={t('nextPay')}
-                value={trial || !own?.amount ? '—' : taka(own.amount)}
-                note={trial ? undefined : lapsing ? t('overdue') : end}
-              />
-            </TightStats>
-            {canManage ? (
-              <div className="mt-3.5 flex flex-wrap gap-2">
-                {trial ? (
-                  <Button
-                    tone="accent"
-                    onClick={() => {
-                      document.getElementById(PLAN_CARDS)?.scrollIntoView({ block: 'start' });
-                    }}
-                  >
-                    {t('pickPlan')}
-                  </Button>
-                ) : cancelled ? (
-                  <Button
-                    tone="accent"
-                    busy={undo.isPending}
-                    onClick={() => {
-                      undo.mutate(undefined, {
-                        onSuccess: () => {
-                          showToast(t('undone'));
-                        },
-                      });
-                    }}
-                  >
-                    {t('keep')}
-                  </Button>
-                ) : own?.amount ? (
-                  <Button
-                    tone="accent"
-                    onClick={() => {
-                      pay(own);
-                    }}
-                  >
-                    {t('renewFor', { amount: taka(own.amount) })}
-                  </Button>
-                ) : null}
-                <Link
-                  to="/$shop/billing"
-                  params={{ shop: slug }}
-                  className={buttonClass('ghost', 'md')}
-                >
-                  {t('seeBilling')}
-                </Link>
-              </div>
-            ) : null}
-            {!trial && canManage && !cancelled ? (
-              <AutoRenew tenant={tenant} amount={own?.amount ?? null} />
-            ) : null}
-          </CurrentCard>
-          <div id={PLAN_CARDS} className="scroll-mt-4">
-            <SectionHead>{t('changePlan')}</SectionHead>
-            <div className="mt-2">
-              <TermChips
-                terms={catalogue.terms}
-                table={catalogue.table}
-                termId={term?.id ?? null}
-                onPick={catalogue.pickTerm}
-              />
-            </div>
-            {catalogue.error ? (
-              <div className="mt-3">
-                <ErrorBanner error={catalogue.error} />
-              </div>
-            ) : null}
-            <div className="mt-3">
-              <PlanRow>
-                {options.map((option) => (
-                  <PlanCard
-                    key={option.planId}
-                    name={option.planName}
-                    price={taka(option.price)}
-                    per={per}
-                    lines={limitLines(catalogue.planOf(option.planId))}
-                    current={!trial && option.move === 'renewal'}
-                    action={action(option)}
-                  />
-                ))}
-                {payg.data ? (
-                  <PlanCard
-                    dashed
-                    name={t('payg')}
-                    price="৳0"
-                    per={t('perMonth')}
-                    lines={paygLines(payg.data)}
-                    action={
-                      canManage && change === null ? (
-                        <Button
-                          tone="outline"
-                          size="sm"
-                          wide
-                          busy={choosePayg.isPending}
-                          onClick={() => {
-                            if (active) {
-                              setSheet({ kind: 'payg' });
-                              return;
-                            }
-                            choosePayg.mutate();
-                          }}
-                        >
-                          {active ? t('switchPayg') : t('choose')}
-                        </Button>
-                      ) : null
-                    }
-                  />
-                ) : null}
-              </PlanRow>
-            </div>
+        <MineCard>
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[14px] text-neutral-700">{t('yourPlan')}</span>
+            {lapsing ? (
+              <StatusTag tone="warn">{t('grace')}</StatusTag>
+            ) : trial ? (
+              <StatusTag tone="info">{t('trial')}</StatusTag>
+            ) : (
+              <StatusTag tone="ok">{t('active')}</StatusTag>
+            )}
           </div>
-        </div>
-        <div className="flex min-w-0 flex-col gap-section">
-          <AddonsCard />
-          {active && canManage && !cancelled && change === null ? (
-            <Disclosure title={t('stopTitle')}>
-              <p className="mt-2 mb-3 text-[14px] text-fg-muted">
-                {stopDays
-                  ? t('stopNote', { viewOnly: stopDays.viewOnly, deleted: stopDays.deleted })
-                  : null}
-              </p>
+          <h2 className="text-[24px] font-bold">
+            {trial
+              ? t('trial')
+              : tenant.billingTerm
+                ? t('planTerm', {
+                    plan: tenant.planName ?? '',
+                    term: termLabel(tenant.billingTerm, i18n.language),
+                  })
+                : (tenant.planName ?? '')}
+          </h2>
+          <p className="num text-[15px] text-neutral-700">
+            {trial
+              ? t('ux2.planTrialLeft', { n: days ?? 0 })
+              : lapsing
+                ? `${end} · ${t('overdue')}`
+                : t('ux2.planUntil', { d: end, n: days ?? 0 })}
+          </p>
+          <PeriodBar
+            daysLeft={lapsing ? 0 : (days ?? 0)}
+            months={tenant.billingTerm?.months ?? 1}
+          />
+          {trial || !own?.amount ? null : (
+            <MineLine label={t('nextPay')} value={`${taka(own.amount)} · ${end}`} />
+          )}
+          {handled ? (
+            <MineLine
+              label={t('ux2.planHandled')}
+              value={`${handled.used.toLocaleString('en-US')} / ${handled.limit === null ? '∞' : handled.limit.toLocaleString('en-US')}`}
+            />
+          ) : null}
+          {canManage ? (
+            trial ? (
               <Button
-                tone="outline"
-                size="sm"
+                tone="accent"
+                wide
                 onClick={() => {
-                  setSheet({ kind: 'stop' });
+                  document.getElementById(PLAN_CARDS)?.scrollIntoView({ block: 'start' });
                 }}
               >
-                <span className="text-danger">{t('cancelAtEnd')}</span>
+                {t('pickPlan')}
               </Button>
-            </Disclosure>
+            ) : cancelled ? (
+              <Button
+                tone="accent"
+                wide
+                busy={undo.isPending}
+                onClick={() => {
+                  undo.mutate(undefined, {
+                    onSuccess: () => {
+                      showToast(t('undone'));
+                    },
+                  });
+                }}
+              >
+                {t('keep')}
+              </Button>
+            ) : own?.amount ? (
+              <Button
+                tone="accent"
+                wide
+                onClick={() => {
+                  pay(own);
+                }}
+              >
+                {t('renewFor', { amount: taka(own.amount) })}
+              </Button>
+            ) : null
           ) : null}
-        </div>
+          <div className="flex justify-center">
+            <Link
+              to="/$shop/billing"
+              params={{ shop: slug }}
+              className={`${buttonClass('ghost', 'sm')} min-h-10 !text-[15px]`}
+            >
+              {t('seeBilling')}
+            </Link>
+          </div>
+          {!trial && canManage && !cancelled ? (
+            <AutoRenew tenant={tenant} amount={own?.amount ?? null} />
+          ) : null}
+        </MineCard>
+        <AddonsCard />
       </div>
+      <div id={PLAN_CARDS} className="flex scroll-mt-4 flex-col gap-3">
+        <SectionHead>{t('changePlan')}</SectionHead>
+        <TermPicker
+          terms={catalogue.terms}
+          table={catalogue.table}
+          termId={term?.id ?? null}
+          onPick={catalogue.pickTerm}
+        />
+        {catalogue.error ? <ErrorBanner error={catalogue.error} /> : null}
+        <PlanGrid>
+          {payg.data ? (
+            <PlanOffer
+              name={t('payg')}
+              who={payg.data.description}
+              price={planCardTaka(0)}
+              card={cards.payg(payg.data)}
+              hot={payg.data.suggested === true}
+              start={trial && payg.data.suggested === true}
+              action={
+                canManage && change === null ? (
+                  <Button
+                    tone={payg.data.suggested === true && !active ? 'accent' : 'outline'}
+                    wide
+                    className={payg.data.suggested === true && active ? HOT_OUTLINE : undefined}
+                    busy={choosePayg.isPending}
+                    onClick={() => {
+                      if (active) {
+                        setSheet({ kind: 'payg' });
+                        return;
+                      }
+                      choosePayg.mutate();
+                    }}
+                  >
+                    {active ? t('ux2.toPayg') : t('ux2.pickPayg')}
+                  </Button>
+                ) : null
+              }
+            />
+          ) : null}
+          {options.map((option) => {
+            const plan = catalogue.planOf(option.planId);
+            const hot = plan?.suggested === true;
+            const mine = !trial && option.move === 'renewal';
+            const months = term?.months ?? 1;
+            return (
+              <PlanOffer
+                key={option.planId}
+                name={option.planName}
+                who={plan?.description ?? null}
+                price={planCardTaka(Number(option.price) / months)}
+                termNote={months > 1 ? `${taka(option.price)}${per}` : null}
+                card={cards.of(plan)}
+                mine={mine}
+                hot={hot}
+                start={mine || (trial && hot)}
+                action={action(option, hot)}
+              />
+            );
+          })}
+        </PlanGrid>
+      </div>
+      {active && canManage && !cancelled && change === null ? (
+        <Disclosure title={t('stopTitle')}>
+          <p className="mt-2 mb-3 text-[14px] text-fg-muted">
+            {stopDays
+              ? t('stopNote', { viewOnly: stopDays.viewOnly, deleted: stopDays.deleted })
+              : null}
+          </p>
+          <Button
+            tone="outline"
+            size="sm"
+            onClick={() => {
+              setSheet({ kind: 'stop' });
+            }}
+          >
+            <span className="text-danger">{t('cancelAtEnd')}</span>
+          </Button>
+        </Disclosure>
+      ) : null}
       {sheet?.kind === 'pay' && sheetOption && term ? (
         <HowToPaySheet option={sheetOption} termId={term.id} onClose={close} onDone={finish} />
       ) : null}
@@ -443,10 +455,10 @@ function AutoRenew({
   const setAutoRenew = useSetAutoRenew();
   const [on, setOn] = useState(tenant.autoRenewEnabled);
   return (
-    <div className="mt-3 flex min-h-10 items-center gap-3 border-t border-brand-200 pt-3.5">
+    <div className="flex min-h-10 items-center gap-3 border-t border-brand-200 pt-3">
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-[15px] font-medium">{t('autoRenew')}</span>
-        <span className="truncate text-[14px] text-fg-muted">
+        <span className="text-[14px] text-fg-muted">
           {tenant.periodEnd && amount
             ? t('autoRenewNote', {
                 date: formatDayMonth(tenant.periodEnd),

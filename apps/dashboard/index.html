@@ -7,10 +7,35 @@
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <link rel="stylesheet" href="/splash.css" />
     <title>Lytro</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- The first open's splash (public/splash.css), until the app draws its first screen in its place. -->
+      <div class="splash" role="status" aria-label="লোড হচ্ছে…">
+        <div class="splash-in">
+          <span class="splash-mark">
+            <svg viewBox="0 0 64 64" width="46" height="46" aria-hidden="true">
+              <path
+                d="M15 15V49H31L49 29"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="10"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <b class="splash-word">lytro</b>
+          <span class="splash-bar" aria-hidden="true"><i></i></span>
+          <p class="splash-slow">
+            <b>একটু সময় লাগছে…</b>
+            <span>ধীর ইন্টারনেটে প্রথমবার খুলতে একটু বেশি সময় লাগে।</span>
+          </p>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

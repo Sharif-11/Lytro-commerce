@@ -10,10 +10,11 @@ import { useMe, useSignOut } from '@/api/me';
 import { OnboardingFrame } from '@/components/onboarding/frame';
 import { Button } from '@/components/ui/button';
 import { buttonClass } from '@/components/ui/classes';
-import { Toast } from '@/components/ui/toast';
+import { ToastStack } from '@/components/ui/toast';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { useRefusedSaving } from '@/hooks/use-saving-paused';
 import { useToast } from '@/hooks/use-toast';
+import { connectionSignal } from '@/lib/connection';
 import type { MeResponse, MeTenant } from '@/types/me';
 import { AppBar } from './app-bar';
 import { DeskHeader } from './desk-header';
@@ -27,6 +28,8 @@ import { LegacyPage } from './shell-page';
 import { SideColumn } from './side-column';
 import { TabBar } from './tab-bar';
 import { LeadTo } from './lead-to';
+import { NetBar } from './net-bar';
+import { Splash } from './splash';
 import { useShopManifest } from './use-shop-manifest';
 import { Unavailable } from '@/views/unavailable';
 import { ImportantPrompt, NoticeBands, UpdatePrompt } from '@/views/notices/notice-bands';
@@ -53,9 +56,8 @@ export function AppShell({ slug, children }: AppShellProps): React.JSX.Element {
   // BRN-02: the shop's identity while it shows, on this shop's screens only.
   useBrandTheme(tenant?.slug === slug ? tenant.brand : null);
 
-  if (me.isLoading) {
-    return <p className="p-6 text-center text-[15px] text-neutral-700">{t('common.loading')}</p>;
-  }
+  // Loading (Fixes · UI/UX batch 2): the splash index.html showed while the code loaded stays until the shop is read.
+  if (me.isLoading) return <Splash />;
 
   // AUTH-22, LIF-11: staff on a locked, archived or suspended shop are refused by /me itself.
   if (me.isError && me.error instanceof ApiClientError && me.error.code === 'tenant_offline') {
@@ -164,7 +166,7 @@ function BareShell({
   return (
     <ShellContext.Provider value={shell}>
       {children}
-      <Toast message={toast.message} />
+      <ToastStack toasts={toast.toasts} onDismiss={toast.dismiss} />
     </ShellContext.Provider>
   );
 }
@@ -208,6 +210,14 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
   // §9: a deep link to a section this person may not open lands on Home, with a word on why.
   const allowed = screen ? mayOpen(screen, viewer) : true;
   const showToast = toast.show;
+  // Item 1.1 (the prototype's `ux-offline-tap`): a change tapped while the connection was gone says so.
+  useEffect(
+    () =>
+      connectionSignal.subscribe(() => {
+        showToast(t('ux2.tapOff'), { tone: 'error' });
+      }),
+    [showToast, t],
+  );
   // PAYMENT-PAGE-DESIGN §8: back from the payment page. What it says proves nothing; the screens read the truth, and this only says thanks.
   useEffect(() => {
     const address = new URL(window.location.href);
@@ -254,7 +264,9 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
 
   return (
     <ShellContext.Provider value={shell}>
-      <div className="flex h-dvh flex-col bg-page font-ui text-[14px] leading-[1.45] text-fg">
+      {/* Item 1.2: the shell is fixed to the screen, so the page scrolls inside `main` and the tab bar never moves with it,
+          on a browser without dynamic viewport units too, and whatever the browser's own bars do. */}
+      <div className="fixed inset-0 flex flex-col overflow-hidden bg-page font-ui text-[14px] leading-[1.45] text-fg">
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
           <Rail />
           <SideColumn />
@@ -262,6 +274,7 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
             <AppBar canSearch={canSearch} canAdd={canAdd} />
             <DeskHeader canSearch={canSearch} canAdd={canAdd} />
             <NoticeBands summary={notices.data} />
+            <NetBar />
             <main className="min-h-0 flex-1 overflow-auto [-webkit-overflow-scrolling:touch]">
               {screen?.legacy ? <LegacyPage>{children}</LegacyPage> : allowed ? children : null}
             </main>
@@ -278,7 +291,7 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
           <ImportantPrompt prompts={notices.data.prompts} />
         ) : null}
         <UpdatePrompt />
-        <Toast message={toast.message} />
+        <ToastStack toasts={toast.toasts} onDismiss={toast.dismiss} />
       </div>
     </ShellContext.Provider>
   );

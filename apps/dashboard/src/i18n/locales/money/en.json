@@ -136,7 +136,6 @@
   "blTlSubmittedRef": "Payment submitted · Reference {{trx}}",
   "blTlSubmittedTrx": "Payment submitted · TrxID {{trx}}",
   "blTopUp": "Balance top-up",
-  "buys": "About {{sms}} SMS at today's rate",
   "cancelAtEnd": "Cancel at period end",
   "changePlan": "Change plan",
   "choose": "Choose",
@@ -230,7 +229,6 @@
   "payByWalletAny": "Pay by wallet",
   "payFromBalance": "Pay {{amount}} from balance",
   "payg": "Pay-as-you-go",
-  "paygFees": "{{min}} or {{pct}}% per order · {{product}} per product",
   "pdfLater": "PDF later",
   "period": "Period",
   "perMonth": "/month",
@@ -324,7 +322,6 @@
   "thenPayg": "then pay-as-you-go",
   "today": "Today",
   "topUp": "Top up",
-  "topupBounds": "{{min}} to {{max}}",
   "topUps": "Top-ups",
   "topupTitle": "Top up",
   "trial": "Trial",
@@ -389,7 +386,6 @@
   "wSmsSent": "A free SMS went too.",
   "wStopped": "Images stopped: {{used}} of {{limit}}. The notice went at 100%, serving ran to {{percent}}%, now the storefront shows placeholders. The extra is never charged.",
   "yesterday": "Yesterday",
-  "youAreHere": "You are here",
   "yourPlan": "Your plan",
   "uOrdersTrial": "Orders handled in your trial",
   "uPerDay": "resets each day",
@@ -523,7 +519,6 @@
   "goToPage": "Go to the payment page · {{amount}}",
   "payOnPage": "Pay on the payment page",
   "abPage": "On the payment page · active when confirmed",
-  "tuNotePage": "Next you pay on the payment page; it is added when it matches.",
   "p88money": {
     "shotTitle": "Screenshot of the payment",
     "shotLead": "Optional. It helps Lytro check faster, and only Lytro sees it. JPG, PNG, WebP or PDF, up to 5 MB.",
@@ -553,5 +548,22 @@
     "vatIncl": "VAT included ({{r}}%)",
     "mushak": "Tax invoice (Mushak-6.3)",
     "vatNoteBal": "Paid from the balance, so this invoice shows no VAT: the top-up that put the money in the balance showed it on its own invoice."
+  },
+  "ux2": {
+    "topErr": "Select an amount between {{min}} and {{max}} taka.",
+    "planUntil": "Until {{d}} · {{n}} days left",
+    "planTrialLeft": "{{n}} trial days left · then pay-as-you-go",
+    "planHandled": "Orders handled this period",
+    "termOff": "{{p}}% off",
+    "termFull": "Full price",
+    "perMo": "/ month",
+    "badgeYours": "Your plan",
+    "badgeSug": "Suggested plan",
+    "here": "You are on this plan",
+    "take": "Choose {{p}}",
+    "toPayg": "Pay-as-you-go at period end",
+    "pickPayg": "Choose pay-as-you-go",
+    "swipe": "Swipe to see the other plans",
+    "notIncluded": "Not included:"
   }
 }

@@ -2266,10 +2266,11 @@ architecture is whole when each phase arrives. Their endpoints do not exist yet.
 
 | State | What the screen shows |
 | --- | --- |
-| Loading | Skeleton rows in the list's own shape; the title and chips drawn at once. |
+| Loading | The first open shows the Lytro splash (index.html, then the shell while `/me` loads). After that the title, tabs and known headings come at once and only what the server sends shimmers, in its own shape (`components/ui/skeleton.tsx`: list rows, the order's cards, Home's jobs and tiles). After 8 s a "Taking a little longer…" line appears. A busy button shows a spinner and keeps its label and width; Show more adds three shimmer rows. Reduced motion stops the shimmer (UI/UX batch 2). |
 | Empty | One sentence on what will appear and the one button that starts it. |
-| Error | The server's `message` in one sentence with Retry; never a code. A server fault (500, 503) adds its error ID from `X-Request-Id` with Copy and Send on WhatsApp (Slice 8.8, §7.41); a refusal never does. `plan_limit_reached` becomes the banner of §7.3 naming the limit and the way to room; `tenant_offline` becomes the lifecycle banner. |
-| Offline | The offline banner; lists show what was loaded; forms keep what was typed. |
+| Error | The server's `message` in one sentence with Retry; never a code. A server fault (500, 503) adds its error ID from `X-Request-Id` with Copy and Send on WhatsApp (Slice 8.8, §7.41); a refusal never does. `plan_limit_reached` becomes the banner of §7.3 naming the limit and the way to room; `tenant_offline` becomes the lifecycle banner. A request that never reached the server says the connection is gone, not "something went wrong" (`useErrorText`, UI/UX batch 2 item 1.3). |
+| Offline | A bar under the app bar on every page: "No internet · showing what was already loaded" with Try again, then "Back online" for 3 s. Lists keep what was loaded. A page that never loaded shows a "No internet" card with Try again in place of its shimmer. Save buttons wait offline ("No internet") and the form keeps what was typed. A change tapped offline says so in a toast (UI/UX batch 2 item 1.1). |
+| Toasts | One design (UI/UX batch 2 item 1.4): ink, with a coloured edge for success, error or info, an optional action such as Undo, and Close on an error. At most two at once, the newest lowest. Success and info last 4 s; an error or an action lasts 8 s. On a phone they sit above the tab bar and above a page's action bar; from 1024 px they sit at the bottom right, 380 px wide. |
 | No permission | The section is not in the navigation; a deep link lands on Home with a toast. |
 | Read-only | Controls that write are absent, not disabled; the banner explains once. |
 

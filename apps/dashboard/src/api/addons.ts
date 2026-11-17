@@ -10,7 +10,13 @@ import { HOME_QUERY_KEY } from '@/api/home';
 import { PAYMENTS_QUERY_KEY } from '@/api/payment-keys';
 import { USAGE_QUERY_KEY } from '@/api/usage';
 import { tenantSession } from '@/session/tenant-session';
-import type { AddonOffer, AddonPurchaseResult, AddonQuote, ShopAddons } from '@/types/addons';
+import type {
+  AddonOffer,
+  AddonPrice,
+  AddonPurchaseResult,
+  AddonQuote,
+  ShopAddons,
+} from '@/types/addons';
 
 export const ADDONS_QUERY_KEY = ['addons'] as const;
 const MINE_QUERY_KEY = [...ADDONS_QUERY_KEY, 'mine'] as const;
@@ -21,6 +27,22 @@ export function useAddonOffers(options: { enabled?: boolean } = {}) {
     queryKey: ADDONS_QUERY_KEY,
     queryFn: () => tenantSession.client.get<AddonOffer[]>('/addons'),
     enabled: options.enabled ?? true,
+  });
+}
+
+/**
+ * Item 4.2: an add-on has no most to buy; the offer prices the first ten, and this any quantity past them, held nowhere
+ * (the quote still makes the request). Only asked when `quantity` is past the offer's own amounts.
+ */
+export function useAddonPrice(addonId: string, quantity: number, enabled: boolean) {
+  return useQuery({
+    queryKey: [...ADDONS_QUERY_KEY, 'price', addonId, quantity],
+    queryFn: () =>
+      tenantSession.client.get<AddonPrice>(
+        `/addons/price?addonId=${encodeURIComponent(addonId)}&quantity=${String(quantity)}`,
+      ),
+    enabled,
+    retry: false,
   });
 }
 

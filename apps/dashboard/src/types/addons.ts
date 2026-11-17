@@ -72,6 +72,15 @@ export interface ShopAddons {
 }
 
 /** POST /addons/quote: the request, made when the seller commits (BIL-09). */
+/** GET /addons/price (Fixes · UI/UX batch 2, item 4.2): any quantity's price now, past the offer's first ten. */
+export interface AddonPrice {
+  quantity: number;
+  /** Whole taka due now for that many. */
+  amount: number;
+  /** An allowance's uses for that many; null for anything else. */
+  uses: number | null;
+}
+
 export interface AddonQuote {
   payment: PlanPayment;
   addon: Addon;

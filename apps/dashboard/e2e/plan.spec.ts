@@ -71,19 +71,24 @@ test("shows a paid plan's card, its term, and each plan's one move, without aski
 }) => {
   const log = await open(page);
   await expect(main(page).getByRole('heading', { name: 'Starter · 1 মাস' })).toBeVisible();
-  await expect(main(page).getByText('আপনি এখানে')).toBeVisible();
+  // UI/UX batch 2 (4.3, 5.1, 5.2): the website's cards, the shop's own marked.
+  await expect(main(page).getByText('আপনি এই প্ল্যানে আছেন')).toBeVisible();
+  await expect(main(page).getByText('আপনার প্ল্যান', { exact: true }).last()).toBeVisible();
   await expect(main(page).getByRole('button', { name: 'আপগ্রেড · ৳400 দিতে হবে' })).toBeVisible();
   await expect(main(page).getByRole('button', { name: 'আপগ্রেড · ৳700 দিতে হবে' })).toBeVisible();
-  await expect(main(page).getByRole('button', { name: 'মেয়াদ শেষে বদলান' })).toBeVisible();
   await expect(
-    main(page).getByText(
-      'প্রতি অর্ডারে ৳20 বা অর্ডার ভ্যালুর 1.5%—যেটি বেশি · প্রতি নতুন প্রোডাক্টে ৳10',
-    ),
+    main(page).getByRole('button', { name: 'মেয়াদ শেষে পে-অ্যাজ-ইউ-গো' }),
   ).toBeVisible();
-  await expect(main(page).getByText('25টি প্রোডাক্ট')).toBeVisible();
+  await expect(
+    main(page).getByText('অর্ডার কুরিয়ারে বুক বা শিপ হলে অর্ডারের 1.5%, কমপক্ষে ৳20'),
+  ).toBeVisible();
+  await expect(main(page).getByText('প্রতিটি নতুন প্রোডাক্টে ৳10')).toBeVisible();
+  await expect(main(page).getByText('25 প্রোডাক্ট', { exact: true })).toBeVisible();
   // Choosing another term reads that term's figures, still without a request.
-  await main(page).getByRole('button', { name: '3 মাস · 5% ডিসকাউন্ট' }).click();
-  await expect(main(page).getByText('৳1,280', { exact: true }).first()).toBeVisible();
+  await main(page)
+    .getByRole('button', { name: /^3 মাস/ })
+    .click();
+  await expect(main(page).getByText('৳1,280/3 মাস', { exact: true }).first()).toBeVisible();
   expect(quoted(log)).toBe(false);
   expect(log.calls.some((call) => call.path === '/billing/prices')).toBe(true);
 });
@@ -251,7 +256,7 @@ test('a scheduled move down says what will be over the limit, and keeps the plan
 
 test('switches to pay-as-you-go at the period end, with the limits that fall', async ({ page }) => {
   const log = await open(page);
-  await main(page).getByRole('button', { name: 'মেয়াদ শেষে বদলান' }).click();
+  await main(page).getByRole('button', { name: 'মেয়াদ শেষে পে-অ্যাজ-ইউ-গো' }).click();
   await expect(
     sheet(page).getByText(
       'লিমিট কমবে: প্রোডাক্ট: 100 → 25 · স্টাফ সিট: 2 → 1 · স্টোরেজ: 2 GB → 250 MB · ব্যান্ডউইথ: 30 GB → 10 GB',
@@ -275,7 +280,7 @@ test('a trial picks a plan, and nobody without payments:manage is offered a move
 
   await page.unrouteAll();
   await open(page, { isOwner: false, permissions: ['payments:read'] });
-  await expect(main(page).getByText('আপনি এখানে')).toBeVisible();
+  await expect(main(page).getByText('আপনি এই প্ল্যানে আছেন')).toBeVisible();
   await expect(main(page).getByRole('button', { name: /দিতে হবে|নামুন|রিনিউ/ })).toHaveCount(0);
 });
 
@@ -283,7 +288,7 @@ test("a pay-as-you-go shop's page: this month's fees, the balance, the rates and
   page,
 }) => {
   const log = await open(page, { state: 'pay_as_you_go' });
-  await expect(main(page).getByRole('heading', { name: 'পে-অ্যাজ-ইউ-গো' })).toBeVisible();
+  await expect(main(page).getByRole('heading', { name: 'পে-অ্যাজ-ইউ-গো', level: 2 })).toBeVisible();
   await expect(main(page).getByText('৳612')).toBeVisible();
   await expect(main(page).getByText('৳412.50')).toBeVisible();
   await expect(main(page).getByText('25টি প্রোডাক্ট · 1টি সিট · 250 MB · 10 GB')).toBeVisible();

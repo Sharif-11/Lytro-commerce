@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
-import { BUSINESS_ADDRESS_MAX_LENGTH, NAME_MAX_LENGTH } from '@lytronix/validators';
+import {
+  BUSINESS_ADDRESS_MAX_LENGTH,
+  FACEBOOK_PAGE_MAX_LENGTH,
+  facebookPageUrlOf,
+  MESSENGER_USERNAME_MAX_LENGTH,
+  messengerUsernameOf,
+  NAME_MAX_LENGTH,
+} from '@lytronix/validators';
 import { useSetLogo, useShopSettings, useUpdateShopSettings } from '@/api/shop-settings';
 import { useBusinessType, usePresets, useSetBusinessType } from '@/api/shop-setup';
 import { ErrorBanner } from '@/components/error-banner';
@@ -22,11 +29,17 @@ import { ShellPage } from '@/shell/shell-page';
 
 const blankToNull = (value: string): string | null => (value.trim() === '' ? null : value.trim());
 
+/** The Facebook page as a seller would write it: the stored https://www.facebook.com/<page> without its scheme. */
+const shortPageLink = (url: string): string => url.replace(/^https:\/\/(www\.)?/i, '');
+
+type ContactErrors = Partial<Record<'whatsapp' | 'messenger' | 'facebookPage', string>>;
+
 /**
  * Shop details (TENANT-DASHBOARD-DESIGN §7.16, the prototype's `shopdetails`): the shop's name (TEN-19: the shell, its
  * tab title and new installs follow; the link never changes), its logo (TEN-16, uploaded as the media manager will),
- * what it mainly sells (PST-01: new products' defaults only), and the contact details its storefront shows (TEN-30);
- * beside them the shop's link with Copy. One Save for the page.
+ * what it mainly sells (PST-01: new products' defaults only), and the contact details its storefront shows (TEN-30) --
+ * with WhatsApp, Messenger and the Facebook page (Fixes · UI/UX batch 2, item 2.1, the prototype's `ux-shop-contact`),
+ * each read by the shared rules the server keeps them by; beside them the shop's link with Copy. One Save for the page.
  */
 export function ShopDetailsView(): React.JSX.Element {
   const { t, i18n } = useTranslation('menu');
@@ -45,6 +58,10 @@ export function ShopDetailsView(): React.JSX.Element {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [messenger, setMessenger] = useState('');
+  const [facebookPage, setFacebookPage] = useState('');
+  const [contactErrors, setContactErrors] = useState<ContactErrors>({});
   const [type, setTypeValue] = useState('');
   const [logoError, setLogoError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -57,6 +74,9 @@ export function ShopDetailsView(): React.JSX.Element {
     );
     setEmail(settings.data.contactEmail ?? '');
     setAddress(settings.data.businessAddress ?? '');
+    setWhatsapp(settings.data.whatsapp ? bangladeshiPhone.localPart(settings.data.whatsapp) : '');
+    setMessenger(settings.data.messenger ?? '');
+    setFacebookPage(settings.data.facebookPage ? shortPageLink(settings.data.facebookPage) : '');
   }, [settings.data]);
 
   useEffect(() => {
@@ -65,11 +85,21 @@ export function ShopDetailsView(): React.JSX.Element {
 
   async function save(): Promise<void> {
     const contactPhone = phone.trim() === '' ? null : bangladeshiPhone.fromLocalPart(phone);
-    if (contactPhone !== null && !bangladeshiPhone.isValid(contactPhone)) {
-      setPhoneError(t('phoneInvalid'));
-      return;
+    const whatsappNumber = whatsapp.trim() === '' ? null : bangladeshiPhone.fromLocalPart(whatsapp);
+    const wrong: ContactErrors = {};
+    if (whatsappNumber !== null && !bangladeshiPhone.isValid(whatsappNumber)) {
+      wrong.whatsapp = t('ux2.waE');
     }
-    setPhoneError(null);
+    if (messenger.trim() !== '' && messengerUsernameOf(messenger) === null) {
+      wrong.messenger = t('ux2.msE');
+    }
+    if (facebookPage.trim() !== '' && facebookPageUrlOf(facebookPage) === null) {
+      wrong.facebookPage = t('ux2.fbE');
+    }
+    const badPhone = contactPhone !== null && !bangladeshiPhone.isValid(contactPhone);
+    setPhoneError(badPhone ? t('phoneInvalid') : null);
+    setContactErrors(wrong);
+    if (badPhone || Object.keys(wrong).length > 0) return;
     setSaving(true);
     try {
       await update.mutateAsync({
@@ -77,6 +107,9 @@ export function ShopDetailsView(): React.JSX.Element {
         contactPhone,
         contactEmail: blankToNull(email),
         businessAddress: blankToNull(address),
+        whatsapp: whatsappNumber,
+        messenger: blankToNull(messenger),
+        facebookPage: blankToNull(facebookPage),
       });
       if (type !== '' && type !== businessType.data) await setType.mutateAsync(type);
       toast.show(t('saved'));
@@ -189,6 +222,52 @@ export function ShopDetailsView(): React.JSX.Element {
               error={phoneError ?? problems['contactPhone']}
               onChange={(event) => {
                 setPhone(event.target.value.replace(/[^\d\s-]/g, ''));
+              }}
+            />
+            <Field
+              label={t('ux2.waL')}
+              name="whatsapp"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="off"
+              prefix="+880"
+              placeholder="1XXXXXXXXX"
+              help={t('ux2.waH')}
+              value={whatsapp}
+              error={contactErrors.whatsapp ?? problems['whatsapp']}
+              onChange={(event) => {
+                setWhatsapp(event.target.value.replace(/[^\d\s-]/g, ''));
+              }}
+            />
+            <Field
+              label={t('ux2.msL')}
+              name="messenger"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              prefix="m.me/"
+              maxLength={MESSENGER_USERNAME_MAX_LENGTH + 40}
+              help={t('ux2.msH')}
+              value={messenger}
+              error={contactErrors.messenger ?? problems['messenger']}
+              onChange={(event) => {
+                setMessenger(event.target.value);
+              }}
+            />
+            <Field
+              label={t('ux2.fbL')}
+              name="facebookPage"
+              type="url"
+              inputMode="url"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              maxLength={FACEBOOK_PAGE_MAX_LENGTH}
+              help={t('ux2.fbH')}
+              value={facebookPage}
+              error={contactErrors.facebookPage ?? problems['facebookPage']}
+              onChange={(event) => {
+                setFacebookPage(event.target.value);
               }}
             />
             <Field

@@ -27,7 +27,7 @@ import { buttonClass } from '@/components/ui/classes';
 import { Kv } from '@/components/ui/kv';
 import { RowList } from '@/components/ui/list-row';
 import { SectionHead } from '@/components/ui/page';
-import { SkeletonRows } from '@/components/ui/skeleton';
+import { OrderSkeleton } from '@/components/ui/skeleton';
 import { StatusTag, type StatusTone } from '@/components/ui/status-tag';
 import { Taka } from '@/components/ui/taka';
 import { TimelineRow, type TimelineDot } from '@/components/ui/timeline';
@@ -85,13 +85,7 @@ const CALL_LOOK: Record<CallOutcome, { tone: StatusTone; dot: TimelineDot; word:
 export function OrderDetail({ orderId }: { orderId: string }): React.JSX.Element {
   const order = useOrder(orderId);
   if (order.data) return <OrderBody order={order.data} />;
-  return order.isError ? (
-    <ErrorBanner error={order.error} />
-  ) : (
-    <Card flush>
-      <SkeletonRows count={4} />
-    </Card>
-  );
+  return order.isError ? <ErrorBanner error={order.error} /> : <OrderSkeleton />;
 }
 
 function OrderBody({ order }: { order: Order }): React.JSX.Element {

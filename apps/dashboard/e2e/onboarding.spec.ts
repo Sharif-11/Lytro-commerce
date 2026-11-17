@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { envelope, SLUG } from './support/mock-api';
-import { BOGURA, mockOnboarding, STARTER, TWELVE_MONTHS, typeCode } from './support/onboarding-api';
+import { mockOnboarding, STARTER, TWELVE_MONTHS, typeCode } from './support/onboarding-api';
 
 // TENANT-DASHBOARD-DESIGN §6, Slice 11.4a: the steps before a shop -- sign-in, the code, create-shop, the checkout,
 // a password, set-up -- and the doors beside them (staff, a forgotten password, the shop picker), against a mocked
@@ -216,23 +216,13 @@ test('walks a new owner from the website to Home: code, shop, checkout, password
   await page.getByRole('button', { name: 'পাসওয়ার্ড সেভ করুন' }).click();
 
   await expect(page).toHaveURL('/set-up');
+  // UI/UX batch 2, item 1.6: only the shop type; the shop starts with the Dhaka city zones the server makes.
   await page.getByRole('button', { name: 'পোশাক' }).click();
-  await page.getByRole('button', { name: 'সিটি বা জেলা সার্চ করুন' }).click();
-  const sheet = page.getByRole('dialog', { name: 'সিটি বা জেলা সার্চ করুন' });
-  await sheet.getByRole('searchbox').fill('বগুড়া');
-  await sheet.getByRole('button', { name: 'বগুড়া জেলা' }).click();
-  await expect(page.getByRole('button', { name: 'বগুড়া জেলা' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
-  await expect(page.getByText('বগুড়া জেলা-র ভেতরে')).toBeVisible();
   await page.getByRole('button', { name: 'সেভ করে ড্যাশবোর্ডে যান' }).click();
 
   await expect(page).toHaveURL(`/${SLUG}`);
   expect(log.sent('PUT', '/business-type')).toEqual({ businessType: 'clothing' });
-  expect(log.sent('PUT', '/delivery-zones/home-area')).toEqual({
-    areas: { cityCodes: [], zillaIds: [BOGURA], locationIds: [] },
-  });
+  expect(log.sent('PUT', '/delivery-zones/home-area')).toBeUndefined();
 });
 
 test('continues without paying from the checkout, on the trial, to the password step (AUTH-29)', async ({

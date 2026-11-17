@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PlanPaymentPageFrom, RateKey } from '@lytronix/validators';
+import { PlanPaymentPageFrom } from '@lytronix/validators';
 import { formatTaka } from '@lytronix/ui';
 import { useQuoteTopUp } from '@/api/balance';
 import { useOpenPaymentPage, usePlatformWallets } from '@/api/billing';
@@ -10,11 +10,7 @@ import { chipClass } from '@/components/ui/classes';
 import { Field } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { WalletMarks } from '@/components/wallet-marks';
-import type { RateValue } from '@/types/balance';
-
-// The quick amounts the sketch offers, and the one it opens on.
-const QUICK = [200, 500, 1000, 2000];
-const OPENS_ON = 500;
+import { openingTopUp, outsideTopUp, quickTopUps } from './top-up-words';
 
 /** The sheet's two steps (the prototype's `.steps`): the amount here, then the payment page. */
 function Steps(): React.JSX.Element {
@@ -32,24 +28,23 @@ function Steps(): React.JSX.Element {
 interface TopUpSheetProps {
   /** BAL-04: the lowest and highest amounts the platform takes now, said before the request. */
   bounds: { min: number; max: number };
-  rates: RateValue[] | undefined;
   onClose: () => void;
 }
 
 /**
- * Top up (TENANT-DASHBOARD-DESIGN §7.11, BAL-03, BAL-04): the amount, with the quick amounts, what it buys in SMS at
- * today's rate and the platform's bounds; Continue makes the request with that amount (BIL-09) and opens the payment page
- * (§7.19). The banner on Balance then says it is being checked.
+ * Top up (TENANT-DASHBOARD-DESIGN §7.11, BAL-03, BAL-04; the prototype's `ux-topup`): the amount and the quick amounts
+ * ৳10–৳100 inside the platform's live bounds, nothing else to read (Fixes · UI/UX batch 2, items 4.1 and 4.4); an
+ * amount outside the bounds says which are allowed. Continue makes the request with that amount (BIL-09) and opens the
+ * payment page (§7.19). The banner on Balance then says it is being checked.
  */
-export function TopUpSheet({ bounds, rates, onClose }: TopUpSheetProps): React.JSX.Element {
+export function TopUpSheet({ bounds, onClose }: TopUpSheetProps): React.JSX.Element {
   const { t } = useTranslation('money');
   const wallets = usePlatformWallets();
   const quote = useQuoteTopUp();
   const openPage = useOpenPaymentPage();
-  const [amount, setAmount] = useState(String(OPENS_ON));
+  const [amount, setAmount] = useState(() => String(openingTopUp(bounds)));
   const value = Number(amount.replace(/[^\d]/g, ''));
-  const fits = value >= bounds.min && value <= bounds.max;
-  const smsRate = Number(rates?.find((rate) => rate.key === RateKey.SmsPerUnit)?.value ?? 0);
+  const fits = !outsideTopUp(value, bounds);
   const title = t('topupTitle');
 
   return (
@@ -87,13 +82,20 @@ export function TopUpSheet({ bounds, rates, onClose }: TopUpSheetProps): React.J
         prefix="৳"
         inputMode="numeric"
         value={amount}
-        help={t('topupBounds', { min: formatTaka(bounds.min), max: formatTaka(bounds.max) })}
+        error={
+          amount !== '' && !fits
+            ? t('ux2.topErr', {
+                min: bounds.min.toLocaleString('en-US'),
+                max: bounds.max.toLocaleString('en-US'),
+              })
+            : undefined
+        }
         onChange={(event) => {
           setAmount(event.target.value.replace(/[^\d,]/g, ''));
         }}
       />
       <div className="flex flex-wrap gap-2">
-        {QUICK.map((each) => (
+        {quickTopUps(bounds).map((each) => (
           <button
             key={each}
             type="button"
@@ -107,13 +109,7 @@ export function TopUpSheet({ bounds, rates, onClose }: TopUpSheetProps): React.J
           </button>
         ))}
       </div>
-      {smsRate > 0 && value > 0 ? (
-        <p className="text-[14px] text-fg-muted">
-          {t('buys', { sms: Math.floor(value / smsRate).toLocaleString('en-US') })}
-        </p>
-      ) : null}
       <WalletMarks wallets={wallets.data ?? []} />
-      <p className="text-[14px] text-fg-muted">{t('tuNotePage')}</p>
       {quote.isError ? <ErrorBanner error={quote.error} /> : null}
       {openPage.isError ? <ErrorBanner error={openPage.error} /> : null}
     </Sheet>

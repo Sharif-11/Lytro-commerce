@@ -20,7 +20,7 @@ import { Chip } from '@/components/ui/chips';
 import { buttonClass } from '@/components/ui/classes';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SearchField } from '@/components/ui/search-field';
-import { SkeletonRows } from '@/components/ui/skeleton';
+import { SkeletonRows, SlowLine } from '@/components/ui/skeleton';
 import { useShopAddress } from '@/hooks/use-shop-address';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -187,9 +187,10 @@ export function OrdersScreen({
         <p className="text-[14px] text-fg-muted">{t('crLookLead')}</p>
       ) : null}
       {list.isError ? <ErrorBanner error={list.error} /> : null}
+      {list.isPending ? <SlowLine /> : null}
       <Card flush>
         {list.isPending ? (
-          <SkeletonRows count={4} />
+          <SkeletonRows count={6} day />
         ) : orders.length === 0 ? (
           <p className="flex min-h-16 items-center px-4 text-[14px] text-fg-muted">
             {filtered ? t('noneMatch') : t('noneHere')}
@@ -214,6 +215,7 @@ export function OrdersScreen({
             }
           />
         )}
+        {list.isFetchingNextPage ? <SkeletonRows count={3} from={2} /> : null}
       </Card>
       {list.hasNextPage ? (
         <Button

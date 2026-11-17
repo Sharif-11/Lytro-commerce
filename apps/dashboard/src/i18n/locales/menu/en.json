@@ -1065,5 +1065,19 @@
     "retiring": "Being retired",
     "retiringOn": "Lytro is retiring {{name}}. It keeps working for now, checkout included. When it is removed, its accounts go with it, so keep another payment method on for your customers.",
     "retiringOff": "Lytro is retiring {{name}}. You set it up, so you can switch it back on until it is removed, and your saved number stays until then."
+  },
+  "ux2": {
+    "waL": "WhatsApp number",
+    "waH": "Customers can message this number on WhatsApp from your storefront.",
+    "waE": "Enter an 11-digit mobile number starting with 01.",
+    "msL": "Messenger link or username",
+    "msH": "For example: meghfashion or m.me/meghfashion",
+    "msE": "Enter the page's username or its m.me link, such as m.me/meghfashion.",
+    "fbL": "Facebook page link",
+    "fbH": "For example: facebook.com/meghfashion",
+    "fbE": "Enter a facebook.com page link, such as facebook.com/meghfashion.",
+    "mPlanS": "{{plan}} · {{n}} days left",
+    "mBillS": "Payments and invoices",
+    "mUsageS": "How much of your limits is used"
   }
 }

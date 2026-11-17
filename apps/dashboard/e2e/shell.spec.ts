@@ -131,10 +131,13 @@ test("says where the shop stands: its trial, the trial's last days, grace and re
 test('says when the browser is offline (§9)', async ({ page, context }) => {
   await open(page, '/orders');
   await expect(page.getByRole('link', { name: /^#261031-0047/ })).toBeVisible();
+  // UI/UX batch 2, item 1.1: a bar under the app bar, then "Back online" for a moment.
   await context.setOffline(true);
-  await expect(page.getByText(/^ইন্টারনেট নেই।/)).toBeVisible();
+  await expect(page.getByText('আগে লোড হওয়া তথ্য দেখা যাচ্ছে')).toBeVisible();
+  await expect(page.getByRole('link', { name: /^#261031-0047/ })).toBeVisible();
   await context.setOffline(false);
-  await expect(page.getByText(/^ইন্টারনেট নেই।/)).toHaveCount(0);
+  await expect(page.getByText('আবার অনলাইন')).toBeVisible();
+  await expect(page.getByText('আগে লোড হওয়া তথ্য দেখা যাচ্ছে')).toHaveCount(0);
 });
 
 test('opens the + menu with what can be started, and Top up opens the top-up sheet (§4.5)', async ({

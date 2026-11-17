@@ -14,8 +14,8 @@ export function useMe() {
   });
 }
 
-/** Ends the session and always returns to /sign-in: a failed sign-out call must not trap the person on a
-    screen they asked to leave, so the redirect happens either way. */
+/** Ends the session and always returns to /sign-in, password first (item 1.5: they have an account): a failed
+    sign-out call must not trap the person on a screen they asked to leave, so the redirect happens either way. */
 export function useSignOut() {
   const navigate = useNavigate();
   return useMutation({
@@ -26,7 +26,7 @@ export function useSignOut() {
     onSettled: () => {
       tenantSession.clear();
       signUpIntent.clear();
-      void navigate({ to: '/sign-in', search: {} });
+      void navigate({ to: '/sign-in', search: { mode: 'password' } });
     },
   });
 }

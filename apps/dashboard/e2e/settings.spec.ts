@@ -90,6 +90,10 @@ test('Shop details shows what is saved and saves the name, contact and shop type
     contactPhone: '+8801811222333',
     contactEmail: 'hello@megh.example',
     businessAddress: null,
+    // UI/UX batch 2, item 2.1: the storefront's WhatsApp, Messenger and Facebook page, left empty.
+    whatsapp: null,
+    messenger: null,
+    facebookPage: null,
   });
   expect(log.sent('PUT', '/business-type')).toEqual({ businessType: 'cosmetics' });
   // TEN-19: the dashboard follows the new name at once, without a reload; the shop's link unchanged.

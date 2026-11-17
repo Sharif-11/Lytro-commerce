@@ -143,6 +143,12 @@ export const HUBS: readonly Hub[] = [
   },
 ];
 
+/**
+ * Fixes · UI/UX batch 2, item 5.3 (the prototype's `ux-menu`): Plan, Billing and Usage also have rows of their own on the
+ * Menu, and lead its side column on a wide screen. They stay the Wallet's sections and open the same pages.
+ */
+export const MENU_MONEY_SECTIONS: readonly SectionId[] = ['plan', 'billing', 'usage'];
+
 /** What decides what a person sees: the owner sees everything; staff see what their permissions reach. */
 export interface Viewer {
   isOwner: boolean;

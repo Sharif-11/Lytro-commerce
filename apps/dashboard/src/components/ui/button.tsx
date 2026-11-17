@@ -10,7 +10,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   busy?: boolean;
 }
 
-/** The dashboard's button (the prototype's `.btn`): 48 px, or 36 and 32 px for the smaller rows. */
+/**
+ * The dashboard's button (the prototype's `.btn`): 48 px, or 36 and 32 px for the smaller rows. At work it shows a
+ * spinner where its icon is and keeps its label and width (Fixes · UI/UX batch 2's `ux-loading-save`; index.css).
+ */
 export function Button({
   tone = 'primary',
   size = 'md',
@@ -19,6 +22,7 @@ export function Button({
   className,
   type = 'button',
   disabled,
+  children,
   ...rest
 }: ButtonProps): React.JSX.Element {
   return (
@@ -26,8 +30,14 @@ export function Button({
       type={type}
       disabled={disabled === true || busy}
       aria-busy={busy || undefined}
+      data-busy={busy || undefined}
+      data-size={size}
+      data-wide={wide || undefined}
       className={[buttonClass(tone, size, wide), className].filter(Boolean).join(' ')}
       {...rest}
-    />
+    >
+      {busy ? <span className="btn-spin" aria-hidden="true" /> : null}
+      {children}
+    </button>
   );
 }

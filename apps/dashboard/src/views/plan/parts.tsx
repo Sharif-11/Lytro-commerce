@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
+import { periodDone } from './figures';
 
 /** One figure of the plan card's three (the prototype's `.stats.tight .stat`). */
 export function TightStat({
@@ -30,6 +30,55 @@ export function TightStats({ children }: { children: ReactNode }): React.JSX.Ele
 /** The plan card's frame: teal-50 with a teal-200 hairline (the prototype's current-plan card). */
 export function CurrentCard({ children }: { children: ReactNode }): React.JSX.Element {
   return <div className="rounded-card border border-brand-200 bg-primary-soft p-4">{children}</div>;
+}
+
+/**
+ * The shop's own plan (Fixes · UI/UX batch 2, the prototype's `.ux-mine`): teal-50 with a teal-200 hairline, its parts
+ * 10 px apart -- what it is, until when, how far through, the next payment and the orders handled, the one action.
+ */
+export function MineCard({ children }: { children: ReactNode }): React.JSX.Element {
+  return (
+    <div className="flex min-w-0 flex-col gap-2.5 rounded-card border border-brand-200 bg-primary-soft p-card">
+      {children}
+    </div>
+  );
+}
+
+/** One figure on the plan's own card (the prototype's `.ux-mine .kv`), under a teal-200 rule. */
+export function MineLine({
+  label,
+  value,
+}: {
+  label: ReactNode;
+  value: ReactNode;
+}): React.JSX.Element {
+  return (
+    <div className="flex justify-between gap-3 border-t border-brand-200 py-2 text-[15px]">
+      <span className="text-neutral-700">{label}</span>
+      <span className="num text-right font-medium">{value}</span>
+    </div>
+  );
+}
+
+/** The period's bar (the prototype's `.bar.ux-bar`): 8 px, the part gone in the brand's colour. */
+export function PeriodBar({
+  daysLeft,
+  months,
+}: {
+  daysLeft: number;
+  months: number;
+}): React.JSX.Element {
+  return (
+    <div
+      className="-mt-0.5 mb-0.5 h-2 overflow-hidden rounded-full bg-neutral-100"
+      aria-hidden="true"
+    >
+      <i
+        className="block h-full rounded-full bg-primary"
+        style={{ width: `${String(periodDone(daysLeft, months))}%` }}
+      />
+    </div>
+  );
 }
 
 /** The plan cards, a sideways row on a phone and in the page's padding from 640 px (the prototype's `.hscroll`). */
@@ -83,16 +132,6 @@ export function PlanCard({
         ))}
       </ul>
       {action}
-    </div>
-  );
-}
-
-/** The shop's own plan in place of a button (the prototype's `.st.info`, 36 px). */
-export function YouAreHere(): React.JSX.Element {
-  const { t } = useTranslation('money');
-  return (
-    <div className="flex h-9 items-center justify-center rounded-full bg-info-soft px-2 text-[14px] font-semibold text-info">
-      {t('youAreHere')}
     </div>
   );
 }

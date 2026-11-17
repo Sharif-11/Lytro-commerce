@@ -68,3 +68,102 @@ html[lang='bn'] .notice-body {
   margin-left: 2px;
   vertical-align: -2px;
 }
+
+/* Fixes · UI/UX batch 2, item 1.4 (the prototype's `.shell:has(.main .actionbar) .ux-toasts`): on a phone and a tablet a
+   page with an action bar holds its toasts above the bar, so a toast never covers the main action. */
+@media (max-width: 1023.98px) {
+  body:has([data-action-bar]) .toast-stack {
+    bottom: calc(164px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Loading (Fixes · UI/UX batch 2, the prototype's `.ux-sk`): what the server sends shimmers in the shape it will take, a
+   slow soft sweep; still under reduced motion. */
+.skeleton {
+  position: relative;
+  display: block;
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-neutral-100);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.7), transparent);
+  animation: skeleton-sweep 1.8s ease-in-out infinite;
+}
+@keyframes skeleton-sweep {
+  60%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+/* The kind line's three dots after 8 s (the prototype's `.ux-dots`). */
+.slow-dots i {
+  animation: slow-dot 1.4s ease-in-out infinite;
+}
+.slow-dots i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.slow-dots i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes slow-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+/* A button at work (the prototype's `.ux-busy`): a spinner where its icon is, or in room taken from its padding, the
+   label kept, its width held, in full colour rather than faded like a disabled one. */
+button[data-busy] {
+  cursor: progress;
+}
+button[data-busy]:disabled {
+  opacity: 1;
+}
+button[data-busy] > svg {
+  display: none;
+}
+button[data-busy][data-size='md']:not([data-wide]):not(:has(> svg)) {
+  padding-inline: 7px;
+}
+button[data-busy][data-size='sm']:not([data-wide]):not(:has(> svg)) {
+  padding-inline: 1px;
+}
+button[data-busy][data-size='xs']:not([data-wide]):not(:has(> svg)) {
+  padding-inline: 0;
+}
+.btn-spin {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.8s linear infinite;
+}
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    display: none;
+  }
+  .slow-dots i {
+    animation: none;
+  }
+  .btn-spin {
+    animation-duration: 2.4s;
+  }
+}

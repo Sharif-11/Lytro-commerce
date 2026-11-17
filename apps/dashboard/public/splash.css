@@ -1,0 +1,123 @@
+/* Loading (Fixes · UI/UX batch 2; the prototype's `ux-loading-splash`): the first open shows the Lytro mark, gently
+   breathing, its stroke drawn once, and a small bar moving -- before the app's code arrives (index.html links this file,
+   since the dashboard's content security policy allows no inline style), and while the shop is read (shell/splash.tsx
+   uses the same classes). After 8 s a kind line says a slow connection takes longer. Still under reduced motion. */
+.splash {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #ffffff;
+  font-family: inherit;
+}
+.splash-in {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 300px;
+  text-align: center;
+}
+.splash-mark {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 24px;
+  background: #0e6b66;
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(14, 107, 102, 0.22);
+  animation: splash-breathe 2.4s ease-in-out infinite;
+}
+.splash-mark path {
+  stroke-dasharray: 80;
+  animation: splash-draw 0.9s ease-out 0.1s 1 both;
+}
+.splash-word {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #10201f;
+}
+.splash-bar {
+  position: relative;
+  width: 120px;
+  height: 4px;
+  margin-top: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eef2f2;
+}
+.splash-bar i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  border-radius: 999px;
+  background: #0e6b66;
+  animation: splash-bar 2s ease-in-out infinite;
+}
+/* The kind line, shown after 8 s: without the app's code, by a delayed animation; with it, by shell/splash.tsx. */
+.splash-slow {
+  opacity: 0;
+  animation: splash-show 0.3s ease-out 8s 1 forwards;
+}
+.splash-slow b {
+  display: block;
+  margin-top: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #10201f;
+}
+.splash-slow span {
+  display: block;
+  margin-top: 4px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #3b4847;
+}
+@keyframes splash-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+@keyframes splash-draw {
+  from {
+    stroke-dashoffset: 80;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes splash-bar {
+  0%,
+  100% {
+    left: 0;
+  }
+  50% {
+    left: 60%;
+  }
+}
+@keyframes splash-show {
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .splash-mark,
+  .splash-mark path,
+  .splash-bar i {
+    animation: none;
+  }
+  .splash-mark path {
+    stroke-dashoffset: 0;
+  }
+  .splash-bar i {
+    left: 30%;
+  }
+}

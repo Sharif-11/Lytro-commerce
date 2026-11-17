@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Permission } from '@lytronix/validators';
+import { Permission, planCardTaka } from '@lytronix/validators';
 import { formatTakaExact } from '@lytronix/ui';
-import { useBalance } from '@/api/balance';
+import { useBalance, useCurrentRates } from '@/api/balance';
 import { useCloseShop, usePayAsYouGoPlan } from '@/api/billing';
 import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
@@ -21,8 +21,11 @@ import { usePaymentNotices } from '@/views/billing/notices';
 import { PaymentBanner } from '@/views/billing/payment-banner';
 import { AddonsCard } from '@/views/addons/addons-card';
 import { HowToPaySheet } from './how-to-pay-sheet';
-import { CurrentCard, Disclosure, PlanCard, PlanRow, TightStat, TightStats } from './parts';
-import { taka, useLimitLines } from './words';
+import { CurrentCard, Disclosure, TightStat, TightStats } from './parts';
+import { useCardLines } from './card-lines';
+import { OnThisPlan, PlanGrid, PlanOffer, TermPicker } from './plan-cards';
+import { termLabel } from './figures';
+import { taka } from './words';
 import { usePaygFees } from './payg-fees';
 import { usePlanCatalogue } from './use-catalogue';
 
@@ -50,7 +53,7 @@ export function PaygPage({ openPlanId }: { openPlanId: string | null }): React.J
   const balance = useBalance({ enabled: allows(viewer, [Permission.BalanceRead]) });
   const payg = usePayAsYouGoPlan();
   const fees = usePaygFees();
-  const limitLines = useLimitLines();
+  const rates = useCurrentRates();
   const notices = usePaymentNotices();
   const [choice, setChoice] = useState<string | null>(null);
   const chosen = catalogue.options.find((option) => option.planId === choice);
@@ -64,6 +67,10 @@ export function PaygPage({ openPlanId }: { openPlanId: string | null }): React.J
   }, [asked, canManage, navigate, slug]);
   const [closing, setClosing] = useState(false);
   const term = catalogue.term;
+  const cards = useCardLines(
+    [payg.data, ...catalogue.options.map((option) => catalogue.planOf(option.planId))],
+    rates.data,
+  );
   const limits = payg.data?.limits;
 
   return (
@@ -137,41 +144,6 @@ export function PaygPage({ openPlanId }: { openPlanId: string | null }): React.J
             </div>
             <p className="mt-2 text-[14px] text-fg-muted">{t('pyFeeBalance')}</p>
           </Card>
-          <div>
-            <SectionHead>{t('changePlan')}</SectionHead>
-            {catalogue.error ? (
-              <div className="mt-3">
-                <ErrorBanner error={catalogue.error} />
-              </div>
-            ) : null}
-            <div className="mt-3">
-              <PlanRow>
-                {catalogue.options.map((option, index) => (
-                  <PlanCard
-                    key={option.planId}
-                    name={option.planName}
-                    price={taka(option.price)}
-                    per={t('perMonth')}
-                    lines={limitLines(catalogue.planOf(option.planId))}
-                    action={
-                      canManage && option.amount && term ? (
-                        <Button
-                          tone={index === 0 ? 'accent' : 'outline'}
-                          size="sm"
-                          wide
-                          onClick={() => {
-                            setChoice(option.planId);
-                          }}
-                        >
-                          {t('takePlan', { plan: option.planName })}
-                        </Button>
-                      ) : null
-                    }
-                  />
-                ))}
-              </PlanRow>
-            </div>
-          </div>
         </div>
         <div className="flex min-w-0 flex-col gap-section">
           <AddonsCard />
@@ -190,6 +162,63 @@ export function PaygPage({ openPlanId }: { openPlanId: string | null }): React.J
             </Disclosure>
           ) : null}
         </div>
+      </div>
+      <div className="flex flex-col gap-3">
+        <SectionHead>{t('changePlan')}</SectionHead>
+        <TermPicker
+          terms={catalogue.terms}
+          table={catalogue.table}
+          termId={term?.id ?? null}
+          onPick={catalogue.pickTerm}
+        />
+        {catalogue.error ? <ErrorBanner error={catalogue.error} /> : null}
+        <PlanGrid>
+          {payg.data ? (
+            <PlanOffer
+              name={t('payg')}
+              who={payg.data.description}
+              price={planCardTaka(0)}
+              card={cards.payg(payg.data)}
+              mine
+              hot={payg.data.suggested === true}
+              start
+              action={<OnThisPlan hot={payg.data.suggested === true} />}
+            />
+          ) : null}
+          {catalogue.options.map((option) => {
+            const plan = catalogue.planOf(option.planId);
+            const hot = plan?.suggested === true;
+            const months = term?.months ?? 1;
+            return (
+              <PlanOffer
+                key={option.planId}
+                name={option.planName}
+                who={plan?.description ?? null}
+                price={planCardTaka(Number(option.price) / months)}
+                termNote={
+                  months > 1 && term
+                    ? `${taka(option.price)}${t('perTerm', { term: termLabel(term, i18n.language) })}`
+                    : null
+                }
+                card={cards.of(plan)}
+                hot={hot}
+                action={
+                  canManage && option.amount && term ? (
+                    <Button
+                      tone={hot ? 'accent' : 'outline'}
+                      wide
+                      onClick={() => {
+                        setChoice(option.planId);
+                      }}
+                    >
+                      {t('ux2.take', { p: option.planName })}
+                    </Button>
+                  ) : null
+                }
+              />
+            );
+          })}
+        </PlanGrid>
       </div>
       {chosen && term ? (
         <HowToPaySheet

@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Permission, TenantState } from '@lytronix/validators';
 import { daysUntil } from '@lytronix/ui';
 import { Banner } from '@/components/ui/banner';
-import { useOnline } from '@/hooks/use-online';
 import { daysSince } from '@/lib/dates';
 import { allows } from './hubs';
 import { useShell } from './shell-context';
@@ -15,7 +14,8 @@ const TRIAL_WARNING_DAYS = 3;
  * TENANT-DASHBOARD-DESIGN §4.6, §7.20 and §7.45: the banners at the top of the page. Lytro's own state comes first, each
  * while it holds (Slice 9.9, the prototype's `p99-banners-stack`): changes can't be saved for now (D9-14, 9.2's words),
  * then limited mode (DAT-38, 9.5's notice words, never emailed). Then the one banner of the shop's own that applies
- * first -- the owner's bounced email (NTF-06), the shop's lifecycle (trial, grace, read-only), then being offline.
+ * first -- the owner's bounced email (NTF-06), the shop's lifecycle (trial, grace, read-only). Being offline has its own
+ * bar under the app bar (shell/net-bar.tsx, item 1.1).
  * Urgent notices scroll in their own band under the bars (NTC-04).
  */
 export function ShellBanner(): React.JSX.Element | null {
@@ -40,7 +40,6 @@ export function ShellBanner(): React.JSX.Element | null {
 function ShopBanner(): React.JSX.Element | null {
   const { t } = useTranslation('shell');
   const { slug, tenant, viewer, emailBounced } = useShell();
-  const online = useOnline();
 
   const toPlans = (label: string): React.JSX.Element | undefined =>
     allows(viewer, [Permission.PaymentsRead]) ? (
@@ -95,6 +94,5 @@ function ShopBanner(): React.JSX.Element | null {
       </Banner>
     );
   }
-  if (!online) return <Banner tone="neutral">{t('bOffline')}</Banner>;
   return null;
 }

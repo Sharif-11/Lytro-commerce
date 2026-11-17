@@ -48,7 +48,6 @@ export function BalanceView({ openTopUp }: { openTopUp: boolean }): React.JSX.El
     topUp && data ? (
       <TopUpSheet
         bounds={{ min: data.topUpMin, max: data.topUpMax }}
-        rates={rates.data}
         onClose={() => {
           setTopUp(false);
         }}

@@ -3,7 +3,7 @@ import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { RECOVERY_NOTE_KEY, useSetPassword } from '@/api/auth';
 import { ErrorBanner } from '@/components/error-banner';
-import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
+import { OnboardingFrame } from '@/components/onboarding/frame';
 import { Notice } from '@/components/onboarding/notice';
 import { PasswordRules } from '@/components/onboarding/password-rules';
 import { Button } from '@/components/ui/button';
@@ -19,9 +19,10 @@ function readRecoveryNote(): boolean {
 }
 
 /**
- * Step 3 (AUTH-19, 20, 27, 28; the prototype's `ob-password`): optional, with the three rules checked as the owner
- * types, and "Skip for now" -- unless the session must set one after a reset (AUTH-19), when it is required and the
- * owner's steps are over. A Facebook-only account is told that Facebook is its only way back in.
+ * Step 3 (AUTH-19, 20, 27, 28; the prototype's `ux-password`): every new owner sets a password, with the three rules
+ * checked as they type, and no Skip (Fixes · UI/UX batch 2, item 1.5) -- accounts made before are not asked. After a
+ * reset (AUTH-19) the session must set one too, and the owner's steps are over. A Facebook-only account is told that
+ * Facebook is its only way back in.
  */
 export function SetPassword(): React.JSX.Element {
   const { t } = useTranslation('onboarding');
@@ -73,13 +74,6 @@ export function SetPassword(): React.JSX.Element {
           {t('pwSave')}
         </Button>
       </form>
-      {search.required ? null : (
-        <StepLinks>
-          <button type="button" onClick={goOn}>
-            {t('pwSkip')}
-          </button>
-        </StepLinks>
-      )}
     </OnboardingFrame>
   );
 }

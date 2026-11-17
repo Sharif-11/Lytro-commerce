@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { AddonKind, PlanPaymentPageFrom } from '@lytronix/validators';
 import { formatTaka, formatTakaExact } from '@lytronix/ui';
-import { ADDONS_QUERY_KEY, usePurchaseAddon, useQuoteAddon } from '@/api/addons';
+import { ADDONS_QUERY_KEY, useAddonPrice, usePurchaseAddon, useQuoteAddon } from '@/api/addons';
 import { useBalance } from '@/api/balance';
 import { useOpenPaymentPage, usePlatformWallets } from '@/api/billing';
 import { Banner } from '@/components/ui/banner';
@@ -14,6 +14,7 @@ import { Quantity } from '@/components/ui/quantity';
 import { Sheet } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { WalletMarks } from '@/components/wallet-marks';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useErrorText } from '@/hooks/use-error-text';
 import { formatDayMonth } from '@/lib/dates';
 import { walletNames, walletProviders } from '@/lib/wallet-marks';
@@ -41,7 +42,8 @@ interface BuySheetProps {
  * Buy an add-on (TENANT-DASHBOARD-DESIGN §7.25, the prototype's `sh-addon-buy`): how many, the limit before and after,
  * due now for the days left -- the server's own amount for that many -- and then what it renews for; from the balance
  * (on at once) or by the platform's wallets, whose step opens in the sheet until Phase 5's page; the renewal switch,
- * sent with the request. The request is made only on the tap that commits, with the amount shown (BIL-09).
+ * sent with the request. The request is made only on the tap that commits, with the amount shown (BIL-09). Any
+ * quantity, typed or stepped (Fixes · UI/UX batch 2, item 4.2): the offer prices the first ten, the server any more.
  */
 export function BuySheet({
   offer,
@@ -68,18 +70,27 @@ export function BuySheet({
   const addon = offer.addon;
   const allowance = addon.kind === AddonKind.Allowance;
   const name = allowance ? t('p37UReads') : sizedName(addon, t, i18n.language);
-  const uses = usesBought(offer, quantity);
-  const amount = changed ?? String(offer.amounts[quantity - 1] ?? offer.price ?? 0);
+  // Past the offer's own amounts, the server prices the quantity once the typing rests.
+  const priced = quantity <= offer.amounts.length;
+  const asked = useDebouncedValue(quantity, 400);
+  const price = useAddonPrice(addon.id, asked, !priced && asked === quantity);
+  const far = priced ? null : price.data?.quantity === quantity ? price.data : null;
+  const uses = far?.uses ?? usesBought(offer, quantity);
+  const known = priced ? offer.amounts[quantity - 1] : far?.amount;
+  const amount = changed ?? (known === undefined ? null : String(known));
+  const tooMuch = !priced && price.isError ? errorText(price.error) : null;
   const available = balance.data && !balance.data.frozen ? Number(balance.data.amount) : null;
-  const enough = available !== null && available >= Number(amount);
+  const enough = available !== null && amount !== null && available >= Number(amount);
   const chosen = enough ? (method ?? 'balance') : 'wallet';
   const names = walletNames(wallets.data ?? [], i18n.language);
   const move = limitMove(addon, quantity, figures);
   const then = formatTaka((offer.renewalPrice ?? Number(addon.price)) * quantity);
   const failure = quote.error ?? purchase.error ?? openPage.error;
   const refusal = failure && changedAmount(failure) === null ? errorText(failure) : null;
+  const shown = amount === null ? '…' : formatTaka(amount);
 
   function commit(): void {
+    if (amount === null) return;
     setChanged(null);
     quote.mutate(
       { addonId: addon.id, quantity, amount: Number(amount), renews },
@@ -131,12 +142,17 @@ export function BuySheet({
       onClose={onClose}
       footer={
         <Button
-          busy={quote.isPending || purchase.isPending || openPage.isPending || openPage.isSuccess}
+          busy={
+            quote.isPending ||
+            purchase.isPending ||
+            openPage.isPending ||
+            openPage.isSuccess ||
+            (amount === null && tooMuch === null)
+          }
+          disabled={amount === null}
           onClick={commit}
         >
-          {chosen === 'balance'
-            ? t('abBtn', { amount: formatTaka(amount) })
-            : t('goToPage', { amount: formatTaka(amount) })}
+          {chosen === 'balance' ? t('abBtn', { amount: shown }) : t('goToPage', { amount: shown })}
         </Button>
       }
     >
@@ -156,7 +172,7 @@ export function BuySheet({
           </span>
           <Quantity
             value={quantity}
-            most={offer.amounts.length}
+            typed
             label={t('abQty')}
             onChange={(next) => {
               setQuantity(next);
@@ -165,6 +181,7 @@ export function BuySheet({
           />
         </div>
       )}
+      {tooMuch ? <p className="pb-2 text-[13px] font-medium text-danger">{tooMuch}</p> : null}
       {move ? <Kv label={t('abLimit')} value={limitChange(move, t)} /> : null}
       {allowance ? (
         <Kv
@@ -172,7 +189,7 @@ export function BuySheet({
           value={<span className="num">{`${String(usesLeft)} → ${String(usesLeft + uses)}`}</span>}
         />
       ) : null}
-      <Kv label={t('abNow')} value={formatTaka(amount)} total />
+      <Kv label={t('abNow')} value={shown} total />
       <p className="num text-[14px] text-fg-muted">
         {payg
           ? t('abNowNotePayg', {
@@ -247,7 +264,7 @@ export function BuySheet({
           >
             {t('abLow', {
               balance: formatTakaExact(available),
-              amount: formatTaka(amount),
+              amount: shown,
               wallets: names,
             })}
           </Banner>
