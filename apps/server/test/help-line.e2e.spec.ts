@@ -208,9 +208,6 @@ describeIfDatabase('The help line on the console (Slice 8.8)', () => {
         r2FreeClassAMillions: 1,
         r2FreeClassBMillions: 10,
         r2FreeStorageGbMonths: 10,
-        workersMonthly: 5,
-        workersIncludedMillions: 10,
-        workersPerMillion: 0.3,
       },
     });
   });
