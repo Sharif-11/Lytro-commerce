@@ -8,6 +8,7 @@ import {
   paymentEvidenceAttachSchema,
   PlanPaymentKind,
   reverseManualEntrySchema,
+  coercedDateField,
 } from '@lytronix/validators';
 
 // ADM-14, ADM-15, ADM-17 (Phase 8 Slice 8.5): manual entries and payment screenshots, as the console and the dashboard
@@ -25,21 +26,21 @@ export const evidenceUploadResponseSchema = z.object({
     url: z.string(),
     method: z.literal('PUT'),
     headers: z.record(z.string(), z.string()),
-    expiresAt: z.coerce.date(),
+    expiresAt: coercedDateField(),
   }),
 });
 export class EvidenceUploadResponseDto extends createZodDto(evidenceUploadResponseSchema) {}
 
 // ADM-17, D8-15 (Slice 8.8): a screenshot for a payment already sent, and when it was sent.
 export class PaymentEvidenceAttachDto extends createZodDto(paymentEvidenceAttachSchema) {}
-export const paymentEvidenceSentSchema = z.object({ evidenceSentAt: z.coerce.date() });
+export const paymentEvidenceSentSchema = z.object({ evidenceSentAt: coercedDateField() });
 export class PaymentEvidenceSentDto extends createZodDto(paymentEvidenceSentSchema) {}
 
-export const evidenceLinkSchema = z.object({ url: z.string(), expiresAt: z.coerce.date() });
+export const evidenceLinkSchema = z.object({ url: z.string(), expiresAt: coercedDateField() });
 export class EvidenceLinkDto extends createZodDto(evidenceLinkSchema) {}
 
 export const manualEntryPreviewResponseSchema = z.object({
-  kind: z.nativeEnum(PlanPaymentKind),
+  kind: z.enum(PlanPaymentKind),
   amount: z.string(),
   creditAmount: z.string(),
   addons: z.array(
@@ -51,7 +52,7 @@ export const manualEntryPreviewResponseSchema = z.object({
       price: z.string(),
     }),
   ),
-  periodEnd: z.coerce.date().nullable(),
+  periodEnd: coercedDateField().nullable(),
   needsConfirmation: z.boolean(),
 });
 export class ManualEntryPreviewResponseDto extends createZodDto(manualEntryPreviewResponseSchema) {}
@@ -62,22 +63,22 @@ export const manualEntryViewSchema = z.object({
   shopName: z.string(),
   shopSlug: z.string(),
   planPaymentId: z.string(),
-  kind: z.nativeEnum(PlanPaymentKind),
+  kind: z.enum(PlanPaymentKind),
   planName: z.string().nullable(),
   amount: z.string(),
   walletId: z.string().nullable(),
   bankAccountId: z.string().nullable(),
   transactionId: z.string().nullable(),
   senderNumber: z.string().nullable(),
-  paidAt: z.coerce.date().nullable(),
+  paidAt: coercedDateField().nullable(),
   evidenceId: z.string().nullable(),
   evidenceLine: z.string().nullable(),
   reason: z.string(),
   enteredBy: z.string(),
   enteredByEmail: z.string().nullable(),
   reversesEntryId: z.string().nullable(),
-  reversedBy: z.object({ id: z.string(), reason: z.string(), at: z.coerce.date() }).nullable(),
-  createdAt: z.coerce.date(),
+  reversedBy: z.object({ id: z.string(), reason: z.string(), at: coercedDateField() }).nullable(),
+  createdAt: coercedDateField(),
 });
 export class ManualEntryViewDto extends createZodDto(manualEntryViewSchema) {}
 

@@ -8,7 +8,7 @@ export class DegradedModeSwitchDto extends createZodDto(degradedModeSwitchSchema
 export class DegradedModeDto extends createZodDto(
   z.object({
     on: z.boolean(),
-    noticeId: z.string().uuid().nullable(),
+    noticeId: z.guid().nullable(),
     factor: z.number().int(),
   }),
 ) {}

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { PAGE_CURSOR_MAX_LENGTH } from '../../../common/limits';
 import { AuditAction, AuditResult } from '../../../db/enums';
+import { coercedDateField } from '../../../common/dates';
 
 // One action or several, comma-separated (`action=sign_in,sign_out`): an Activity chip covers a group of actions
 // (ACTIVITY_GROUPS), filtered on the server so a page is never empty while older matches exist (Slice 11.6).
@@ -9,16 +10,16 @@ const auditActionsField = z
   .string()
   .max(Object.values(AuditAction).join(',').length)
   .transform((value) => value.split(','))
-  .pipe(z.array(z.nativeEnum(AuditAction)).min(1));
+  .pipe(z.array(z.enum(AuditAction)).min(1));
 
 // GET activity: filters for the Activity page (AUD-04). Keyset pagination, never OFFSET.
 export const listActivitySchema = z.object({
-  dateFrom: z.coerce.date().optional(),
-  dateTo: z.coerce.date().optional(),
-  actorId: z.string().uuid().optional(),
+  dateFrom: coercedDateField().optional(),
+  dateTo: coercedDateField().optional(),
+  actorId: z.guid().optional(),
   action: auditActionsField.optional(),
   // "Failed only": the entries whose result was a failure (AUD-02).
-  result: z.nativeEnum(AuditResult).optional(),
+  result: z.enum(AuditResult).optional(),
   // Opaque: the created-at and id of the last row the caller saw.
   cursor: z.string().min(1).max(PAGE_CURSOR_MAX_LENGTH).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),

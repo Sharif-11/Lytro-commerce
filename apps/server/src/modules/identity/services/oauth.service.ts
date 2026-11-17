@@ -185,7 +185,7 @@ export class OauthService {
   }
 
   private find(name: string): OauthProviderPort {
-    const parsed = z.nativeEnum(OauthProvider).safeParse(name);
+    const parsed = z.enum(OauthProvider).safeParse(name);
     const provider = parsed.success
       ? this.providers.find((p) => p.provider === parsed.data)
       : undefined;

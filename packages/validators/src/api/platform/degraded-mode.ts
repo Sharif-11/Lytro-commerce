@@ -12,7 +12,7 @@ export const DEGRADED_FACTOR_MAX = 10;
 export const degradedModeValueSchema = z
   .object({
     on: z.boolean(),
-    noticeId: z.string().uuid().nullable(),
+    noticeId: z.guid().nullable(),
   })
   .strict();
 export type DegradedModeValue = z.infer<typeof degradedModeValueSchema>;

@@ -5,6 +5,7 @@ import {
   ReconciliationDifferenceState,
   reconciliationListQuerySchema,
   reconciliationResolveSchema,
+  dateField,
 } from '@lytronix/validators';
 
 // DAT-52 (Phase 9 Slice 9.5): the daily reconciliation's differences, as the console lists and resolves them. Amounts are
@@ -16,17 +17,17 @@ export class ReconciliationResolveDto extends createZodDto(reconciliationResolve
 export const reconciliationDifferenceSchema = z.object({
   id: z.string(),
   day: z.string(),
-  kind: z.nativeEnum(ReconciliationDifferenceKind),
+  kind: z.enum(ReconciliationDifferenceKind),
   subject: z.string(),
   tenantId: z.string().nullable(),
   expected: z.string().nullable(),
   found: z.string().nullable(),
-  details: z.record(z.union([z.string(), z.number(), z.null()])),
-  state: z.nativeEnum(ReconciliationDifferenceState),
+  details: z.record(z.string(), z.union([z.string(), z.number(), z.null()])),
+  state: z.enum(ReconciliationDifferenceState),
   note: z.string().nullable(),
   resolvedBy: z.string().nullable(),
-  resolvedAt: z.date().nullable(),
-  createdAt: z.date(),
+  resolvedAt: dateField().nullable(),
+  createdAt: dateField(),
 });
 export class ReconciliationDifferenceDto extends createZodDto(reconciliationDifferenceSchema) {}
 
@@ -45,7 +46,7 @@ export const reconciliationDifferencePageSchema = z.object({
   total: z.number(),
   pages: z.number(),
   // Slice 9.9: the newest run, the day it checked and when it ran; null before the first.
-  lastRun: z.object({ day: z.string(), ranAt: z.date() }).nullable(),
+  lastRun: z.object({ day: z.string(), ranAt: dateField() }).nullable(),
 });
 export class ReconciliationDifferencePageDto extends createZodDto(
   reconciliationDifferencePageSchema,

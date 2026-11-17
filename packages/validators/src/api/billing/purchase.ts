@@ -21,7 +21,7 @@ export function requireWalletFields(
   for (const field of WALLET_FIELDS) {
     if (value[field] === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: [field],
         params: { problem: FieldProblemCode.Required },
         message: `${field} is required for a wallet payment.`,
@@ -32,8 +32,8 @@ export function requireWalletFields(
 
 // POST /billing/quote (BIL-01): the plan and billing term the tenant wants to pay for, made when the seller commits.
 export const quotePurchaseSchema = z.object({
-  planId: z.string().uuid(),
-  billingTermId: z.string().uuid(),
+  planId: z.guid(),
+  billingTermId: z.guid(),
   // BIL-09, UPG-07: the amount the seller was shown. The server works the amount out again and refuses the quote
   // (AmountChanged, with the new amount) when it differs, so nothing is ever charged that was not shown.
   amount: z.coerce.number().positive().optional(),
@@ -46,7 +46,7 @@ export type QuotePurchaseInput = z.infer<typeof quotePurchaseSchema>;
 // still generate a DTO class from it; the wallet fields' presence is enforced by requireWalletFields instead.
 export const confirmPurchaseSchema = z
   .object({
-    paymentId: z.string().uuid(),
+    paymentId: z.guid(),
     method: z.enum(PLAN_PAYMENT_METHODS),
     transactionId: transactionIdField.optional(),
     senderNumber: senderNumberField.optional(),

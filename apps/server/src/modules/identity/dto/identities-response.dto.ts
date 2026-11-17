@@ -6,18 +6,18 @@ export const identitiesListSchema = z.object({
   identities: z.array(
     z.object({
       id: z.string(),
-      kind: z.nativeEnum(IdentityKind),
+      kind: z.enum(IdentityKind),
       value: z.string(),
     }),
   ),
 });
 export class IdentitiesListDto extends createZodDto(identitiesListSchema) {}
 
-export const oauthAttachedSchema = z.object({ attached: z.nativeEnum(IdentityKind) });
+export const oauthAttachedSchema = z.object({ attached: z.enum(IdentityKind) });
 export class OauthAttachedDto extends createZodDto(oauthAttachedSchema) {}
 
 export const oauthUrlSchema = z.object({ url: z.string() });
 export class OauthUrlDto extends createZodDto(oauthUrlSchema) {}
 
-export const oauthProvidersSchema = z.object({ providers: z.array(z.nativeEnum(OauthProvider)) });
+export const oauthProvidersSchema = z.object({ providers: z.array(z.enum(OauthProvider)) });
 export class OauthProvidersDto extends createZodDto(oauthProvidersSchema) {}

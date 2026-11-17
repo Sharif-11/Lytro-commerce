@@ -10,6 +10,7 @@ import {
   rejectShopperPaymentSchema,
   VerificationLevel,
   verifyShopperPaymentSchema,
+  coercedDateField,
 } from '@lytronix/validators';
 
 // VER-01, PAY-14, PAY-19 (Phase 5 Slice 5.3): the shop's payments, verified or rejected by hand.
@@ -21,26 +22,26 @@ const personSchema = z.object({ id: z.string(), name: z.string().nullable() }).n
 export const paymentListItemSchema = z.object({
   id: z.string(),
   kind: z.enum(['session', 'payment']),
-  status: z.nativeEnum(PaymentListStatus),
+  status: z.enum(PaymentListStatus),
   order: z.object({ id: z.string(), orderNumber: z.string() }),
-  method: z.nativeEnum(PaymentMethod),
+  method: z.enum(PaymentMethod),
   amount: z.string(),
   senderNumber: z.string().nullable(),
   transactionId: z.string().nullable(),
-  at: z.coerce.date(),
-  source: z.nativeEnum(PaymentSessionSource).nullable(),
-  verificationLevel: z.nativeEnum(VerificationLevel).nullable(),
+  at: coercedDateField(),
+  source: z.enum(PaymentSessionSource).nullable(),
+  verificationLevel: z.enum(VerificationLevel).nullable(),
   decidedBy: personSchema,
-  decidedAt: z.coerce.date().nullable(),
-  rejectReason: z.nativeEnum(PaymentRejectReason).nullable(),
+  decidedAt: coercedDateField().nullable(),
+  rejectReason: z.enum(PaymentRejectReason).nullable(),
   note: z.string().nullable(),
   test: z.boolean(),
-  reviewReason: z.nativeEnum(PaymentReviewReason).nullable(),
+  reviewReason: z.enum(PaymentReviewReason).nullable(),
   receipt: z
     .object({
       amount: z.string(),
       senderNumber: z.string().nullable(),
-      receivedAt: z.coerce.date(),
+      receivedAt: coercedDateField(),
     })
     .nullable(),
 });

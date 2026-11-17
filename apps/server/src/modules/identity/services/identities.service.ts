@@ -117,7 +117,7 @@ export class IdentitiesService {
   }
 
   async remove(subscriberId: string, identityId: string): Promise<void> {
-    if (!z.string().uuid().safeParse(identityId).success)
+    if (!z.guid().safeParse(identityId).success)
       throw new ApiError('not_found', 'PageNotFound', {});
     let emailLeft: string | null | undefined;
     const outcome = await this.gateway.run(async (tx) => {

@@ -7,6 +7,7 @@ import {
   LedgerEntryType,
   reportQuerySchema,
   TenantState,
+  dateField,
 } from '@lytronix/validators';
 
 // ADM-08, ADM-09 (Phase 8 Slice 8.4): the operator's reports and audit log list, as the console reads them.
@@ -19,7 +20,7 @@ const money = z.string();
 
 const revenueFiguresSchema = z.object({
   wallet: z.object({ purchase: money, renewal: money, upgrade: money, addon: money }),
-  balance: z.record(z.nativeEnum(LedgerEntryType), money),
+  balance: z.partialRecord(z.enum(LedgerEntryType), money),
   givenBack: money,
   manual: z.object({
     plans: money,
@@ -50,7 +51,7 @@ export const shopsReportSchema = z.object({
   dateTo: z.string(),
   now: z.object({
     total: z.number().int(),
-    byState: z.array(z.object({ state: z.nativeEnum(TenantState), count: z.number().int() })),
+    byState: z.array(z.object({ state: z.enum(TenantState), count: z.number().int() })),
     byPlan: z.array(
       z.object({
         planId: z.string().nullable(),
@@ -68,7 +69,7 @@ export class ShopsReportDto extends createZodDto(shopsReportSchema) {}
 export const consumersReportSchema = z.object({
   dateFrom: z.string(),
   dateTo: z.string(),
-  metric: z.nativeEnum(ConsumerMetric),
+  metric: z.enum(ConsumerMetric),
   shops: z.array(
     z.object({
       id: z.string(),
@@ -93,7 +94,7 @@ export const auditLogPageSchema = z.object({
       targetId: z.string().nullable(),
       result: z.string(),
       summary: z.unknown(),
-      createdAt: z.date(),
+      createdAt: dateField(),
       shop: z.object({ id: z.string(), name: z.string(), slug: z.string() }).nullable(),
     }),
   ),

@@ -5,6 +5,7 @@ import {
   ApiKeyType,
   createApiKeySchema,
   updateApiKeySchema,
+  dateField,
 } from '@lytronix/validators';
 
 // DTO classes built from the shared schemas, so each request shape is written once (ENGINEERING §4).
@@ -16,15 +17,15 @@ export class UpdateApiKeyDto extends createZodDto(updateApiKeySchema) {}
 const apiKeyViewSchema = z.object({
   id: z.string(),
   name: z.string(),
-  type: z.nativeEnum(ApiKeyType),
+  type: z.enum(ApiKeyType),
   prefix: z.string(),
   websites: z.array(z.string()),
-  expiresAt: z.date().nullable(),
-  createdAt: z.date(),
-  lastUsedAt: z.date().nullable(),
-  revokedAt: z.date().nullable(),
+  expiresAt: dateField().nullable(),
+  createdAt: dateField(),
+  lastUsedAt: dateField().nullable(),
+  revokedAt: dateField().nullable(),
   // Slice 12: "storefront" for the key Lytro keeps for the shop's storefront; null for the shop's own.
-  purpose: z.nativeEnum(ApiKeyPurpose).nullable(),
+  purpose: z.enum(ApiKeyPurpose).nullable(),
 });
 export class ApiKeyViewDto extends createZodDto(apiKeyViewSchema) {}
 export class ApiKeyListDto extends createZodDto(z.array(apiKeyViewSchema)) {}

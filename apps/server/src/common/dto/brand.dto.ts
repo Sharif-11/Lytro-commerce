@@ -4,7 +4,7 @@ import { imageViewSchema } from './media-views.dto';
 
 // BRN-02: a curated typeface pair, named as Google Fonts names its two families.
 export const brandFontPairSchema = z.object({
-  id: z.nativeEnum(BrandFont),
+  id: z.enum(BrandFont),
   bangla: z.string(),
   latin: z.string(),
   headingsOnly: z.boolean(),
@@ -25,8 +25,8 @@ export const liveBrandSchema = z.object({
     mainText: z.string(),
   }),
   fonts: z.object({ heading: brandFontPairSchema, body: brandFontPairSchema }),
-  corners: z.nativeEnum(BrandCorners),
-  spacing: z.nativeEnum(BrandSpacing),
+  corners: z.enum(BrandCorners),
+  spacing: z.enum(BrandSpacing),
   darkLogo: imageViewSchema.nullable(),
   icon: imageViewSchema.nullable(),
 });

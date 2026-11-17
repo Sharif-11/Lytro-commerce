@@ -28,6 +28,6 @@ Phase 9's exit criterion 7: each of SEC-01 to SEC-16 with its evidence, and the 
   optimiser) and 21 high. Fixed at patch level: Next.js 15.5.28, sharp 0.35.5, and overrides for multer, lodash,
   js-yaml, postcss, body-parser and zod 4's copy. Left, with a date: Drizzle ORM before 0.45.2 and zod 4.6.6's path
   (`.github/audit-allowlist.json`, until 2026-12-15, each its own pull request next; KNOWN-GAPS §148). Drizzle ORM
-  0.45.4 (drizzle-kit 0.31.11) came in its own pull request on 2026-11-17, so only zod's path is left.
+  0.45.4 (drizzle-kit 0.31.11) came in its own pull request on 2026-11-17, and Zod 4.6.7 in the next, so the list is empty.
 - **ZAP baseline** (`.github/workflows/zap-baseline.yml`): weekly and on demand against staging. Its first run follows
   this slice's deploy; what it finds is fixed or listed in §148 then.

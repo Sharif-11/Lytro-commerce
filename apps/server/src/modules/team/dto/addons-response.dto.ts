@@ -1,20 +1,20 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { AddonKind, AddonRenewal, UsageMetric } from '@lytronix/validators';
+import { AddonKind, AddonRenewal, UsageMetric, dateField } from '@lytronix/validators';
 import { invoiceSchema, planPaymentSchema } from './billing-response.dto';
 
 // PLN-13: control.addons, one item of the catalogue.
 export const addonSchema = z.object({
   id: z.string(),
   key: z.string(),
-  kind: z.nativeEnum(AddonKind),
+  kind: z.enum(AddonKind),
   limitKey: z.string().nullable(),
   unitSize: z.number().nullable(),
   price: z.string(),
   labelEn: z.string(),
   labelBn: z.string(),
-  retiredAt: z.date().nullable(),
-  createdAt: z.date(),
+  retiredAt: dateField().nullable(),
+  createdAt: dateField(),
 });
 export class AddonDto extends createZodDto(addonSchema) {}
 export class AddonListDto extends createZodDto(addonSchema.array()) {}
@@ -31,7 +31,7 @@ export class OperatorAddonListDto extends createZodDto(operatorAddonSchema.array
 export const addonOfferSchema = z.object({
   addon: addonSchema,
   price: z.number().nullable(),
-  expiresAt: z.date().nullable(),
+  expiresAt: dateField().nullable(),
   blockedBy: z.string().nullable(),
   amounts: z.array(z.number()),
   // PLN-20, D7-64: an allowance's uses for each quantity, beside `amounts`; null for anything else.
@@ -54,7 +54,7 @@ export const addonQuoteSchema = z.object({
   payment: planPaymentSchema,
   addon: addonSchema,
   quantity: z.number(),
-  expiresAt: z.date(),
+  expiresAt: dateField(),
 });
 export class AddonQuoteDto extends createZodDto(addonQuoteSchema) {}
 
@@ -80,16 +80,16 @@ export const shopAddonsSchema = z.object({
       id: z.string(),
       addonId: z.string(),
       key: z.string(),
-      kind: z.nativeEnum(AddonKind),
+      kind: z.enum(AddonKind),
       labelEn: z.string(),
       labelBn: z.string(),
       limitKey: z.string().nullable(),
       unitSize: z.number().nullable(),
       quantity: z.number(),
-      startsAt: z.date().nullable(),
-      expiresAt: z.date(),
+      startsAt: dateField().nullable(),
+      expiresAt: dateField(),
       renews: z.boolean(),
-      renewal: z.nativeEnum(AddonRenewal),
+      renewal: z.enum(AddonRenewal),
       endsSoon: z.boolean(),
       // PLN-20 (Slice 7.7): an allowance's uses still left; null for any other add-on.
       usesLeft: z.number().int().nullable(),

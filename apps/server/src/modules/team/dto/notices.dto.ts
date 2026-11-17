@@ -10,6 +10,7 @@ import {
   noticesQuerySchema,
   noticeTemplateSchema,
   noticeUpdateSchema,
+  dateField,
 } from '@lytronix/validators';
 
 // NTC-01 to NTC-18 (Phase 7 Slice 7.4): the board, the operator's desk and the templates, each request shape written once.
@@ -19,8 +20,8 @@ export class NoticeUpdateDto extends createZodDto(noticeUpdateSchema) {}
 export class NoticeTemplateDto extends createZodDto(noticeTemplateSchema) {}
 export class NoticeReachDto extends createZodDto(noticeReachSchema) {}
 
-const category = z.nativeEnum(NoticeCategory);
-const severity = z.nativeEnum(NoticeSeverity);
+const category = z.enum(NoticeCategory);
+const severity = z.enum(NoticeSeverity);
 
 const noticeViewSchema = z.object({
   id: z.string(),
@@ -34,12 +35,12 @@ const noticeViewSchema = z.object({
   language: z.enum(['bn', 'en']),
   pinned: z.boolean(),
   requiresAck: z.boolean(),
-  acknowledgedAt: z.date().nullable(),
-  publishedAt: z.date(),
-  endsAt: z.date().nullable(),
-  editedAt: z.date().nullable(),
-  windowStartsAt: z.date().nullable(),
-  windowEndsAt: z.date().nullable(),
+  acknowledgedAt: dateField().nullable(),
+  publishedAt: dateField(),
+  endsAt: dateField().nullable(),
+  editedAt: dateField().nullable(),
+  windowStartsAt: dateField().nullable(),
+  windowEndsAt: dateField().nullable(),
   read: z.boolean(),
 });
 
@@ -58,7 +59,7 @@ const noticeBriefSchema = z.object({
   title: z.string(),
   category,
   severity,
-  publishedAt: z.date(),
+  publishedAt: dateField(),
 });
 
 export class NoticeSummaryDto extends createZodDto(
@@ -71,8 +72,8 @@ export class NoticeSummaryDto extends createZodDto(
       .object({
         id: z.string(),
         title: z.string(),
-        startsAt: z.date(),
-        endsAt: z.date(),
+        startsAt: dateField(),
+        endsAt: dateField(),
         underWay: z.boolean(),
       })
       .nullable(),
@@ -84,7 +85,9 @@ export class NoticeSummaryDto extends createZodDto(
 
 export class NoticeUnreadDto extends createZodDto(z.object({ unread: z.number().int() })) {}
 
-export class NoticeAcknowledgedDto extends createZodDto(z.object({ acknowledgedAt: z.date() })) {}
+export class NoticeAcknowledgedDto extends createZodDto(
+  z.object({ acknowledgedAt: dateField() }),
+) {}
 
 const countsSchema = z.object({
   shops: z.number().int(),
@@ -104,19 +107,19 @@ const operatorNoticeSchema = z.object({
   category,
   severity,
   audience: noticeAudienceSchema,
-  publishAt: z.date().nullable(),
-  endsAt: z.date().nullable(),
+  publishAt: dateField().nullable(),
+  endsAt: dateField().nullable(),
   pinned: z.boolean(),
   requiresAck: z.boolean(),
-  windowStartsAt: z.date().nullable(),
-  windowEndsAt: z.date().nullable(),
+  windowStartsAt: dateField().nullable(),
+  windowEndsAt: dateField().nullable(),
   rateChangeId: z.number().int().nullable(),
-  status: z.nativeEnum(NoticeStatus),
+  status: z.enum(NoticeStatus),
   createdBy: z.string(),
-  createdAt: z.date(),
-  editedAt: z.date().nullable(),
-  withdrawnAt: z.date().nullable(),
-  sentAt: z.date().nullable(),
+  createdAt: dateField(),
+  editedAt: dateField().nullable(),
+  withdrawnAt: dateField().nullable(),
+  sentAt: dateField().nullable(),
   counts: countsSchema,
 });
 
@@ -133,7 +136,7 @@ export class OperatorNoticeDetailDto extends createZodDto(
       z.object({
         editedBy: z.string(),
         editedByEmail: z.string().nullable(),
-        replacedAt: z.date(),
+        replacedAt: dateField(),
         snapshot: z.record(z.string(), z.unknown()),
       }),
     ),
@@ -145,7 +148,7 @@ const noticeShopSchema = z.object({ tenantId: z.string(), slug: z.string(), shop
 export class NoticeAcknowledgmentListDto extends createZodDto(
   z.object({
     acknowledged: z.array(
-      noticeShopSchema.extend({ userId: z.string(), acknowledgedAt: z.date() }),
+      noticeShopSchema.extend({ userId: z.string(), acknowledgedAt: dateField() }),
     ),
     pending: z.array(noticeShopSchema),
     acknowledgedCount: z.number().int(),
@@ -164,8 +167,8 @@ export class NoticeDraftDto extends createZodDto(
     category,
     severity,
     requiresAck: z.boolean(),
-    windowStartsAt: z.date().nullable(),
-    windowEndsAt: z.date().nullable(),
+    windowStartsAt: dateField().nullable(),
+    windowEndsAt: dateField().nullable(),
     rateChangeId: z.number().int().nullable(),
   }),
 ) {}

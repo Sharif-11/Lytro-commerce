@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { calendarDayField, checkPeriod } from '../../common/dates';
+import { calendarDayField, checkPeriod, coercedDateField } from '../../common/dates';
 import { BANK_REFERENCE_MAX_LENGTH } from '../../common/limits';
 import {
   bankReferenceField,
@@ -17,7 +17,7 @@ const REASON_MAX = 500;
 
 function required(ctx: z.RefinementCtx, field: string, message: string): void {
   ctx.addIssue({
-    code: z.ZodIssueCode.custom,
+    code: 'custom',
     path: [field],
     params: { problem: FieldProblemCode.Required },
     message,
@@ -26,7 +26,7 @@ function required(ctx: z.RefinementCtx, field: string, message: string): void {
 
 function notAllowed(ctx: z.RefinementCtx, field: string, message: string): void {
   ctx.addIssue({
-    code: z.ZodIssueCode.custom,
+    code: 'custom',
     path: [field],
     params: { problem: FieldProblemCode.NotAllowed },
     message,
@@ -35,7 +35,7 @@ function notAllowed(ctx: z.RefinementCtx, field: string, message: string): void 
 
 function invalid(ctx: z.RefinementCtx, field: string, message: string): void {
   ctx.addIssue({
-    code: z.ZodIssueCode.custom,
+    code: 'custom',
     path: [field],
     params: { problem: FieldProblemCode.InvalidFormat },
     message,
@@ -94,10 +94,10 @@ function checkTarget(
 }
 
 const targetFields = {
-  tenantId: z.string().uuid(),
-  kind: z.nativeEnum(ManualEntryKind),
-  planId: z.string().uuid().optional(),
-  billingTermId: z.string().uuid().optional(),
+  tenantId: z.guid(),
+  kind: z.enum(ManualEntryKind),
+  planId: z.guid().optional(),
+  billingTermId: z.guid().optional(),
 };
 
 // POST /operator/manual-entries/preview: what an entry would be for this shop now, before the operator commits.
@@ -116,11 +116,11 @@ export const manualEntrySchema = z
     amount: z.coerce.number().positive().max(99_999_999),
     // ADM-15: the amount typed again, over 10,000 TK or past 10 entries in a day.
     amountConfirmation: z.coerce.number().positive().optional(),
-    walletId: z.string().uuid().optional(),
-    bankAccountId: z.string().uuid().optional(),
+    walletId: z.guid().optional(),
+    bankAccountId: z.guid().optional(),
     transactionId: z.string().trim().min(1).max(BANK_REFERENCE_MAX_LENGTH),
     senderNumber: z.string().trim().min(1).max(30).optional(),
-    paidAt: z.coerce.date(),
+    paidAt: coercedDateField(),
     // ADM-14: the evidence, a screenshot or a line of a statement.
     evidenceKey: evidenceKeyField.optional(),
     evidenceLine: z.string().trim().min(1).max(REASON_MAX).optional(),
@@ -153,8 +153,8 @@ export type ReverseManualEntryInput = z.infer<typeof reverseManualEntrySchema>;
 // GET /operator/manual-entries (ADM-16, D8-55): every entry and reversal, newest first, by shop, operator and day.
 export const manualEntryListSchema = z
   .object({
-    tenantId: z.string().uuid().optional(),
-    operatorId: z.string().uuid().optional(),
+    tenantId: z.guid().optional(),
+    operatorId: z.guid().optional(),
     dateFrom: calendarDayField.optional(),
     dateTo: calendarDayField.optional(),
     page: z.coerce.number().int().positive().default(1),

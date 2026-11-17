@@ -6,8 +6,8 @@ import { requireWalletFields, senderNumberField } from './purchase';
 
 // POST /billing/upgrade/quote (UPG-01/02): the higher-ranked plan and term the tenant wants to price.
 export const quoteUpgradeSchema = z.object({
-  planId: z.string().uuid(),
-  billingTermId: z.string().uuid(),
+  planId: z.guid(),
+  billingTermId: z.guid(),
   // BIL-09, UPG-07: the amount the seller was shown. The server works the amount out again and refuses the quote
   // (AmountChanged, with the new amount) when it differs, so nothing is ever charged that was not shown.
   amount: z.coerce.number().positive().optional(),
@@ -19,7 +19,7 @@ export type QuoteUpgradeInput = z.infer<typeof quoteUpgradeSchema>;
 // confirmPurchaseSchema, kept as its own schema since an upgrade confirm never carries a planId/billingTermId.
 export const confirmUpgradeSchema = z
   .object({
-    paymentId: z.string().uuid(),
+    paymentId: z.guid(),
     method: z.enum(PLAN_PAYMENT_METHODS),
     transactionId: transactionIdField.optional(),
     senderNumber: senderNumberField.optional(),

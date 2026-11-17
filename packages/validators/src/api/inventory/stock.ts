@@ -67,7 +67,7 @@ export function oneBatchChoice(
 export const setStockSchema = z
   .object({
     onHand: quantityField,
-    reason: z.nativeEnum(StockEditReason).optional(),
+    reason: z.enum(StockEditReason).optional(),
     note: z.string().trim().min(1).max(STOCK_NOTE_MAX_LENGTH).optional(),
     batch: newBatchField.optional(),
     batchId: catalogueIdSchema.optional(),
@@ -159,7 +159,7 @@ export const stockPageQuerySchema = z.object({
   categoryId: categoryFilterField.optional(),
   stock: z.enum([StockState.Low, StockState.Out]).optional(),
   // Slice 4.8c: the combos apart from what holds stock of its own, whose counts follow.
-  kind: z.nativeEnum(ProductKind).optional(),
+  kind: z.enum(ProductKind).optional(),
   // INV-15 (Slice 4.8c): only the products holding more for orders than is on hand.
   short: z.literal('true').optional(),
   page: z.coerce.number().int().min(1).default(1),
@@ -183,7 +183,7 @@ export type AddSerialsInput = z.infer<typeof addSerialsSchema>;
 // so before anything is saved. Read as the product's serials are (an IMEI keeps only its digits).
 export const checkSerialsSchema = z.object({
   serials: serialsField,
-  format: z.nativeEnum(SerialFormat),
+  format: z.enum(SerialFormat),
 });
 export type CheckSerialsInput = z.infer<typeof checkSerialsSchema>;
 
@@ -193,7 +193,7 @@ export type CorrectSerialInput = z.infer<typeof correctSerialSchema>;
 
 // GET products/:id/variants/:variantId/serials: a variant's serials, the ones it holds by default.
 export const serialListQuerySchema = z.object({
-  status: z.nativeEnum(SerialStatus).optional(),
+  status: z.enum(SerialStatus).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(SERIAL_PAGE_SIZE),
 });

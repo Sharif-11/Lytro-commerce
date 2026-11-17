@@ -30,8 +30,11 @@ import { tenants } from './tenancy';
 const listOf = (values: readonly string[]) =>
   sql.raw(values.map((value) => `'${value}'`).join(','));
 
-/** A notice as it stood before an edit replaced it (NTC-08), its times written as ISO strings. */
-export interface NoticeSnapshot {
+/**
+ * A notice as it stood before an edit replaced it (NTC-08), its times written as ISO strings. A type, not an interface,
+ * so it is the plain record the operator's notice page answers with (`snapshot`, a `Record<string, unknown>`).
+ */
+export type NoticeSnapshot = {
   titleBn: string | null;
   titleEn: string | null;
   bodyBn: string | null;
@@ -46,7 +49,7 @@ export interface NoticeSnapshot {
   windowStartsAt: string | null;
   windowEndsAt: string | null;
   rateChangeId: number | null;
-}
+};
 
 // NTC-01 to NTC-17 (Phase 7 Slice 7.4, read agreed 2026-11-07): Lytro's notices to shops, written by the operator. A
 // title and body in each language (at least one language whole; the board falls back to it, NTC-15), the body in the

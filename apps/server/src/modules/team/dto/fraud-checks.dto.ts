@@ -28,15 +28,15 @@ const courierFiguresSchema = z.object({
 
 // FRD-01, FRD-02, FRD-03, FRD-11: one check of a phone: its sources and what each did, the figures, and the cost.
 const fraudCheckSchema = z.object({
-  id: z.string().uuid(),
+  id: z.guid(),
   phone: z.string(),
   checkedAt: z.string(),
-  trigger: z.nativeEnum(FraudCheckTrigger),
-  orderId: z.string().uuid().nullable(),
+  trigger: z.enum(FraudCheckTrigger),
+  orderId: z.guid().nullable(),
   sources: z.array(
     z.object({
-      source: z.nativeEnum(FraudSource),
-      state: z.nativeEnum(FraudSourceState),
+      source: z.enum(FraudSource),
+      state: z.enum(FraudSourceState),
       // FRD-03: a courier answer reused within three days (FRD-04).
       cached: z.boolean(),
     }),

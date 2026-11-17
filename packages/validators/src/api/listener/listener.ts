@@ -12,6 +12,7 @@ import {
 } from '../../common/limits';
 import { LISTENER_APP_VERSION_PATTERN } from '../../common/listener-release';
 import { ListenerMessageStatus } from '../../db/enums';
+import { coercedDateField } from '../../common/dates';
 
 // LSN-09 (Phase 5 Slice 5.4a): a pairing code's letters -- no 0/O, 1/I/L, so it reads aloud and types without mistakes.
 export const LISTENER_CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
@@ -101,7 +102,7 @@ export const listenerUploadSchema = z
             // SEC-12: no SMS is this long (255 parts at most), so a real message still reaches the upload's own size
             // check, whose 413 the app skips past; a 400 here would hold up its queue.
             text: z.string().min(1).max(LISTENER_REQUEST_MAX_BYTES),
-            receivedAt: z.coerce.date(),
+            receivedAt: coercedDateField(),
           })
           .strict(),
       )
@@ -121,7 +122,7 @@ export type ListenerRecentQuery = z.infer<typeof listenerRecentQuerySchema>;
  * transaction ID, a sender number or an amount.
  */
 export const listenerReceiptsQuerySchema = z.object({
-  status: z.nativeEnum(ListenerMessageStatus).optional(),
+  status: z.enum(ListenerMessageStatus).optional(),
   q: z.string().trim().min(1).max(40).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce

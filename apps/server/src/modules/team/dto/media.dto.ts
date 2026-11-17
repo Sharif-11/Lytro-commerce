@@ -6,6 +6,7 @@ import {
   MediaStatus,
   mediaListQuerySchema,
   startUploadSchema,
+  dateField,
 } from '@lytronix/validators';
 import { imageViewSchema } from './catalogue-response.dto';
 
@@ -15,16 +16,16 @@ export class MediaListQueryDto extends createZodDto(mediaListQuerySchema) {}
 
 export const mediaViewSchema = z.object({
   id: z.string(),
-  kind: z.nativeEnum(MediaKind),
-  status: z.nativeEnum(MediaStatus),
-  purpose: z.nativeEnum(MediaPurpose),
+  kind: z.enum(MediaKind),
+  status: z.enum(MediaStatus),
+  purpose: z.enum(MediaPurpose),
   width: z.number().nullable(),
   height: z.number().nullable(),
   durationMs: z.number().nullable(),
   bytes: z.number(),
   urls: imageViewSchema.shape.urls.nullable(),
   failure: z.string().nullable(),
-  createdAt: z.date(),
+  createdAt: dateField(),
 });
 export class MediaViewDto extends createZodDto(mediaViewSchema) {}
 
@@ -47,8 +48,8 @@ export const uploadStartedSchema = z.object({
   upload: z.object({
     url: z.string(),
     method: z.literal('PUT'),
-    headers: z.record(z.string()),
-    expiresAt: z.date(),
+    headers: z.record(z.string(), z.string()),
+    expiresAt: dateField(),
   }),
 });
 export class UploadStartedDto extends createZodDto(uploadStartedSchema) {}

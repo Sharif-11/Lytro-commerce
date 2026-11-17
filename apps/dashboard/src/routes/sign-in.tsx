@@ -7,8 +7,8 @@ import { SignIn } from '@/views/sign-in';
 // password instead" opens password mode with the number it already has (`?mode=password&phone=`).
 const searchSchema = z.object({
   shop: z.string().optional(),
-  planId: z.string().uuid().optional(),
-  termId: z.string().uuid().optional(),
+  planId: z.guid().optional(),
+  termId: z.guid().optional(),
   mode: z.enum(['code', 'password']).optional(),
   phone: z.string().optional(),
 });

@@ -8,7 +8,7 @@ const DIALOG = 'https://www.facebook.com/v19.0';
 const API = 'https://graph.facebook.com/v19.0';
 
 const tokenReply = z.object({ access_token: z.string().min(1) });
-const profileReply = z.object({ id: z.string().min(1), email: z.string().email().optional() });
+const profileReply = z.object({ id: z.string().min(1), email: z.email().optional() });
 
 /** Facebook sign-in (AUTH-24). The account is matched by the Facebook account ID; an email Facebook grants is not verified (AUTH-25). */
 export class FacebookOauthProvider implements OauthProviderPort {

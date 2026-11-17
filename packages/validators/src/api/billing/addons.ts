@@ -24,7 +24,7 @@ export const createAddonSchema = z
       .trim()
       .regex(/^[a-z][a-z0-9_]{1,49}$/)
       .max(50),
-    kind: z.nativeEnum(AddonKind),
+    kind: z.enum(AddonKind),
     limitKey: z
       .enum([...limitKeys, ...allowanceServices] as [string, ...string[]])
       .nullable()
@@ -44,7 +44,7 @@ export const createAddonSchema = z
       (value.kind === AddonKind.Allowance) !== allowanceServices.includes(value.limitKey)
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['limitKey'],
         message:
           value.kind === AddonKind.Allowance
@@ -55,7 +55,7 @@ export const createAddonSchema = z
     for (const field of ['limitKey', 'unitSize'] as const) {
       if (raises === (value[field] === null)) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: [field],
           message: raises
             ? `A ${value.kind} add-on names the ${field} it adds.`
@@ -77,7 +77,7 @@ export type UpdateAddonInput = z.infer<typeof updateAddonSchema>;
 
 // POST /addons/quote (PLN-14): how many of one add-on, priced for the rest of the period.
 export const quoteAddonSchema = z.object({
-  addonId: z.string().uuid(),
+  addonId: z.guid(),
   // PLN-14 (UI/UX batch 2): any number; only an amount too large to hold is refused (AddonAmountTooLarge).
   quantity: z.number().int().min(1).default(1),
   // BIL-09, UPG-07: the amount the seller was shown. The server works the amount out again and refuses the quote
@@ -92,7 +92,7 @@ export type QuoteAddonInput = z.infer<typeof quoteAddonSchema>;
 // for the operator's queue -- the same shape as a plan purchase. The balance when no method is named.
 export const confirmAddonSchema = z
   .object({
-    paymentId: z.string().uuid(),
+    paymentId: z.guid(),
     method: z.enum(PLAN_PAYMENT_METHODS).default('balance'),
     transactionId: transactionIdField.optional(),
     senderNumber: senderNumberField.optional(),
@@ -106,7 +106,7 @@ export type ConfirmAddonInput = z.infer<typeof confirmAddonSchema>;
 // POST /addons/packs (PLN-15, RTE-11): buys packs from the balance at once -- a pack's price is fixed, so there
 // is no quote to hold.
 export const buyPacksSchema = z.object({
-  addonId: z.string().uuid(),
+  addonId: z.guid(),
   quantity: z.number().int().min(1).default(1),
   // BIL-09 (Slice 11.5c): the amount the seller was shown, refused (AmountChanged) when the price has changed since.
   amount: z.coerce.number().positive().optional(),
@@ -117,7 +117,7 @@ export type BuyPacksInput = z.infer<typeof buyPacksSchema>;
 // the offer's first ADDON_OFFER_QUANTITIES.
 export const addonPriceQuerySchema = z
   .object({
-    addonId: z.string().uuid(),
+    addonId: z.guid(),
     quantity: z.coerce.number().int().min(1),
   })
   .strict();

@@ -10,6 +10,7 @@ import {
   TenantState,
 } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
+import { coercedDateField } from '../../common/dates';
 
 /** NTC-01: a notice's title, at most 120 characters in each language. */
 export const NOTICE_TITLE_MAX = 120;
@@ -26,16 +27,16 @@ export const noticeAudienceSchema = z.discriminatedUnion('kind', [
   z
     .object({
       kind: z.literal(NoticeAudienceKind.Plans),
-      planIds: z.array(z.string().uuid()).min(1).max(50),
+      planIds: z.array(z.guid()).min(1).max(50),
     })
     .strict(),
   z
     .object({
       kind: z.literal(NoticeAudienceKind.States),
-      states: z.array(z.nativeEnum(TenantState)).min(1).max(Object.values(TenantState).length),
+      states: z.array(z.enum(TenantState)).min(1).max(Object.values(TenantState).length),
     })
     .strict(),
-  z.object({ kind: z.literal(NoticeAudienceKind.Tenant), tenantId: z.string().uuid() }).strict(),
+  z.object({ kind: z.literal(NoticeAudienceKind.Tenant), tenantId: z.guid() }).strict(),
 ]);
 export type NoticeAudience = z.infer<typeof noticeAudienceSchema>;
 
@@ -47,18 +48,18 @@ const noticeShape = {
   titleEn: title.nullable().optional(),
   bodyBn: body.nullable().optional(),
   bodyEn: body.nullable().optional(),
-  category: z.nativeEnum(NoticeCategory),
-  severity: z.nativeEnum(NoticeSeverity),
+  category: z.enum(NoticeCategory),
+  severity: z.enum(NoticeSeverity),
   audience: noticeAudienceSchema,
   // NTC-01, NTC-11: when it goes live; left out, the notice is a draft.
-  publishAt: z.coerce.date().nullable().optional(),
-  endsAt: z.coerce.date().nullable().optional(),
+  publishAt: coercedDateField().nullable().optional(),
+  endsAt: coercedDateField().nullable().optional(),
   pinned: z.boolean().optional(),
   // NTC-05: the owner must click "I understand".
   requiresAck: z.boolean().optional(),
   // NTC-14, D7-55: a maintenance window, which the dashboard counts down to.
-  windowStartsAt: z.coerce.date().nullable().optional(),
-  windowEndsAt: z.coerce.date().nullable().optional(),
+  windowStartsAt: coercedDateField().nullable().optional(),
+  windowEndsAt: coercedDateField().nullable().optional(),
   // NTC-13: the rate change this notice tells of (control.rate_history's ID), linked when it is published.
   rateChangeId: z.number().int().positive().nullable().optional(),
 };
@@ -186,16 +187,16 @@ const rateFigure = z
  */
 export const noticeTemplateSchema = z
   .object({
-    template: z.nativeEnum(NoticeTemplate),
+    template: z.enum(NoticeTemplate),
     variables: z
       .object({
         rateChangeId: z.number().int().positive().optional(),
-        date: z.coerce.date().optional(),
-        rateKey: z.nativeEnum(RateKey).optional(),
+        date: coercedDateField().optional(),
+        rateKey: z.enum(RateKey).optional(),
         oldRate: rateFigure.optional(),
         newRate: rateFigure.optional(),
-        windowStartsAt: z.coerce.date().optional(),
-        windowEndsAt: z.coerce.date().optional(),
+        windowStartsAt: coercedDateField().optional(),
+        windowEndsAt: coercedDateField().optional(),
       })
       .strict()
       .default({}),
@@ -208,14 +209,14 @@ export type NoticeTemplateInput = z.infer<typeof noticeTemplateSchema>;
  * The severity matters: an archived shop sees urgent notices only (NTC-07).
  */
 export const noticeReachSchema = z
-  .object({ audience: noticeAudienceSchema, severity: z.nativeEnum(NoticeSeverity) })
+  .object({ audience: noticeAudienceSchema, severity: z.enum(NoticeSeverity) })
   .strict();
 export type NoticeReachInput = z.infer<typeof noticeReachSchema>;
 
 /** NTC-03: a page of the board, newest first after the pinned ones, by category or words. */
 export const noticesQuerySchema = z
   .object({
-    category: z.nativeEnum(NoticeCategory).optional(),
+    category: z.enum(NoticeCategory).optional(),
     q: z.string().trim().min(1).max(100).optional(),
     limit: z.coerce.number().int().min(1).max(NOTICES_PAGE_MAX).default(20),
     // Where the page starts: the board is pinned first, then newest, and at most 24 months long.

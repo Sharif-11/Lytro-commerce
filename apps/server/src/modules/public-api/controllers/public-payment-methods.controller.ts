@@ -18,13 +18,13 @@ class PublicPaymentMethodsDto extends createZodDto(
   z.object({
     methods: z.array(
       z.object({
-        method: z.nativeEnum(PaymentMethod),
-        kind: z.nativeEnum(PaymentMethodKind),
+        method: z.enum(PaymentMethod),
+        kind: z.enum(PaymentMethodKind),
         // PAY-06: what a checkout tells the shopper of how it pays.
-        way: z.nativeEnum(PaymentWay),
+        way: z.enum(PaymentWay),
         accountName: z.string(),
         number: z.string().nullable(),
-        accountType: z.nativeEnum(WalletAccountType).nullable(),
+        accountType: z.enum(WalletAccountType).nullable(),
         note: z.string().nullable(),
         bank: z
           .object({
