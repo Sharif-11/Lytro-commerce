@@ -185,7 +185,6 @@ export function invoiceOf(id: string): unknown {
       orders_handled_monthly: 300,
       staff: 2,
       storage_mb: 2048,
-      bandwidth_gb: 30,
     },
     amount: '449.00',
     creditAmount: '0.00',

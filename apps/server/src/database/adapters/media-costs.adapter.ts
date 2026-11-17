@@ -3,9 +3,7 @@ import {
   MediaCostRepository,
   TransactionRunner,
   type MediaCostAlertRow,
-  type MediaShopUse,
   type Transaction,
-  type WorkerUse,
 } from '@lytronix/db';
 import type {
   MediaCostStore,
@@ -41,14 +39,6 @@ export class DrizzleMediaCostStore implements MediaCostStore {
 
   recordedSpan(): Promise<{ first: string; last: string } | null> {
     return this.costs.recordedSpan(this.db);
-  }
-
-  workerUse(from: string, to: string): Promise<WorkerUse> {
-    return this.costs.workerUse(this.db, from, to);
-  }
-
-  topShops(from: string, to: string, limit: number): Promise<MediaShopUse[]> {
-    return this.costs.topShops(this.db, from, to, limit);
   }
 
   recordAlert(tx: Transaction, alert: Omit<MediaCostAlertRow, 'sentAt'>): Promise<boolean> {

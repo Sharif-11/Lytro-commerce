@@ -294,9 +294,7 @@ test('shows the help line and media costs, with numbers not set yet and hours as
   await expect(media).toContainText('$10 a month');
   await expect(media).toContainText('80 %');
   await expect(media).toContainText('day 1 of each month');
-  await expect(media).toContainText(
-    'R2 $4.50 / $0.36 a million, $0.015 a GB-month · Workers $5.00 a month',
-  );
+  await expect(media).toContainText('R2 $4.50 / $0.36 a million, $0.015 a GB-month');
 });
 
 test('a help number is typed in any form and saved in the local one, a wrong one refused here', async ({
@@ -402,7 +400,7 @@ test("Cloudflare's prices change together in a panel, with a reason; a price bel
   await panel.getByRole('textbox', { name: 'R2 Class B, a million' }).fill('0.4');
   await panel.getByRole('button', { name: 'Save', exact: true }).click();
   expect(log.sent('PATCH', '/operator/settings/cloudflare_prices')).toMatchObject({
-    value: { r2ClassAPerMillion: 4.5, r2ClassBPerMillion: 0.4, workersPerMillion: 0.3 },
+    value: { r2ClassAPerMillion: 4.5, r2ClassBPerMillion: 0.4, r2StoragePerGbMonth: 0.015 },
     reason: 'Cloudflare changed its prices',
   });
   await expect(panel).toBeHidden();

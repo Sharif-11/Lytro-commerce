@@ -82,9 +82,8 @@ const text = {
   storage: { bn: '{n} স্টোরেজ', en: '{n} storage' },
   storageUnlimited: { bn: 'আনলিমিটেড স্টোরেজ', en: 'Unlimited storage' },
   storageNone: { bn: 'স্টোরেজ', en: 'Storage' },
-  bandwidth: { bn: 'মাসে {n} GB ব্যান্ডউইথ', en: '{n} GB bandwidth a month' },
+  // D9-31: media bandwidth is no limit on any plan.
   bandwidthUnlimited: { bn: 'আনলিমিটেড ব্যান্ডউইথ', en: 'Unlimited bandwidth' },
-  bandwidthNone: { bn: 'ব্যান্ডউইথ', en: 'Bandwidth' },
   requests: { bn: 'মাসে {n} API রিকোয়েস্ট', en: '{n} API requests a month' },
   requestsUnlimited: { bn: 'আনলিমিটেড API রিকোয়েস্ট', en: 'Unlimited API requests' },
   requestsNone: { bn: 'API রিকোয়েস্ট', en: 'API requests' },
@@ -310,11 +309,8 @@ export class PricingViewBuilder {
         { some: text.storage, unlimited: text.storageUnlimited, none: text.storageNone },
         (mb) => this.size(mb),
       ),
-      this.limitLine(this.limit(limits, 'bandwidth_gb'), {
-        some: text.bandwidth,
-        unlimited: text.bandwidthUnlimited,
-        none: text.bandwidthNone,
-      }),
+      // D9-31: every plan's photos and videos are served from Cloudflare's cache, uncounted.
+      this.on(this.copy.of(text.bandwidthUnlimited)),
       this.limitLine(this.limit(limits, 'requests_monthly'), {
         some: text.requests,
         unlimited: text.requestsUnlimited,

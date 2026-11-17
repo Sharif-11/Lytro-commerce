@@ -6,15 +6,14 @@ import { Card } from '@/components/ui/card';
 import { formatDayMonth } from '@/lib/dates';
 import type { ShopUsage } from '@/types/usage';
 import { SwitchNote, SwitchRow } from './usage-parts';
-import { packOffer, packSize, type PackMetric } from './usage-words';
+import { isServing, packOffer, packSize, type PackMetric } from './usage-words';
 
 const WORDS: Record<PackMetric, string> = {
-  [UsageMetric.Bandwidth]: 'pkAutoBw',
   [UsageMetric.Requests]: 'pkAutoReq',
 };
 
 /**
- * PLN-15, BND-04, RTE-11 (agreed for Slice 11.5c): a switch for each metric with packs, as the server keeps them, each
+ * PLN-15, RTE-11 (agreed for Slice 11.5c): a switch for each metric with packs, as the server keeps them, each
  * naming its pack, with what auto-buy did this cycle under it, and the line under them (`help`). Shown while the shop
  * can buy packs -- on Usage, on Add-ons, and in the pack sheet (`inSheet`, the sketch's grey card).
  */
@@ -40,6 +39,7 @@ export function AutoBuyCard({
         {t('pkAuto')}
       </h3>
       {rows.map((pack) => {
+        if (!isServing(pack.metric)) return null;
         const offer = packOffer(offers.data ?? [], pack.metric);
         const label = t(WORDS[pack.metric], { size: offer ? packSize(offer.addon) : '' });
         return (
@@ -49,9 +49,7 @@ export function AutoBuyCard({
               checked={pack.autoBuy}
               disabled={!canManage || setAutoBuy.isPending}
               onChange={(next) => {
-                setAutoBuy.mutate(
-                  pack.metric === UsageMetric.Bandwidth ? { bandwidth: next } : { requests: next },
-                );
+                setAutoBuy.mutate({ requests: next });
               }}
             />
             {pack.autoBuy && pack.autoBuyFailed ? (

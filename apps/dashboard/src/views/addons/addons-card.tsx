@@ -1,6 +1,6 @@
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { AddonKind, Permission, TenantState, UsageMetric } from '@lytronix/validators';
+import { AddonKind, Permission, TenantState } from '@lytronix/validators';
 import { useAddonOffers, useShopAddons } from '@/api/addons';
 import { useBillingPrices } from '@/api/billing';
 import { useUsage } from '@/api/usage';
@@ -47,14 +47,10 @@ export function AddonsCard(): React.JSX.Element {
   const renewing = prices.data?.find((option) => option.move === 'renewal')?.addons ?? [];
 
   function open(line: AddonLine): void {
-    const metric = packMetric(line.addon);
     void navigate({
       to: '/$shop/addons',
       params: { shop: slug },
-      search:
-        line.addon.kind === AddonKind.Pack
-          ? { pack: metric === UsageMetric.Requests ? 'requests' : 'bandwidth' }
-          : { buy: line.addon.key },
+      search: line.addon.kind === AddonKind.Pack ? { pack: 'requests' } : { buy: line.addon.key },
     });
   }
 

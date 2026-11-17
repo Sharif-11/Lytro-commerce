@@ -284,7 +284,6 @@ describeIfDatabase('buying an add-on from the balance (PLN-14, BIL-08, BIL-12)',
     expect(offers.map((offer) => offer.addon.key).sort()).toEqual([
       // Phase 7 Slice 7.6: the first allowance (PLN-20).
       'address_reads_200',
-      'bandwidth_pack',
       'brand_identity',
       'extra_products',
       'extra_seat',
@@ -335,9 +334,9 @@ describeIfDatabase('buying an add-on from the balance (PLN-14, BIL-08, BIL-12)',
       daysLeft: 20,
       renewalPrice: 149,
     });
-    expect(offers.find((each) => each.addon.key === 'bandwidth_pack')).toMatchObject({
-      price: 30,
-      amounts: [30, 60, 90, 120, 150, 180, 210, 240, 270, 300],
+    expect(offers.find((each) => each.addon.key === 'request_pack')).toMatchObject({
+      price: 20,
+      amounts: [20, 40, 60, 80, 100, 120, 140, 160, 180, 200],
       expiresAt: null,
       daysLeft: null,
       renewalPrice: null,

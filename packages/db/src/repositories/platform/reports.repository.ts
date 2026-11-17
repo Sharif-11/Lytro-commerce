@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, isNotNull, lt, lte, ne, sql } from 'drizzle-orm';
+import { and, eq, gte, inArray, isNotNull, lt, ne, sql } from 'drizzle-orm';
 import {
   IdentityKind,
   PlanPaymentKind,
@@ -8,13 +8,11 @@ import {
 import type { Executor } from '../../transactions';
 import {
   manualPaymentEntries,
-  mediaBandwidthDaily,
   planPayments,
   plans,
   subscriberIdentities,
   tenants,
 } from '../../schema';
-import type { ShopFigure } from './shop-day.repository';
 
 /** A shop as a report names it, with its owner's phone (D8-42). */
 export interface ReportShopRow {
@@ -37,7 +35,7 @@ const dhakaDay = (column: unknown) =>
   sql<string>`to_char((${column} AT TIME ZONE 'Asia/Dhaka')::date, 'YYYY-MM-DD')`;
 
 // ADM-09, D8-10, D8-40 to D8-42 (Phase 8 Slice 8.4): the reports' figures from Lytro's own tables -- payments to Lytro,
-// the shops themselves, media bandwidth -- never a shop's own rows. What shops spent from their balances comes from
+// the shops themselves -- never a shop's own rows. What shops spent from their balances comes from
 // their recorded days (ShopDayRepository).
 export class ReportsRepository {
   /**
@@ -146,20 +144,6 @@ export class ReportsRepository {
       .groupBy(tenants.state, tenants.planId, plans.name)
       .orderBy(tenants.state, plans.name);
     return rows;
-  }
-
-  /** D8-10: the shops whose media was served the most in the period, in bytes. */
-  async bandwidthTop(db: Executor, from: string, to: string, limit: number): Promise<ShopFigure[]> {
-    const bytes = sql<string>`sum(${mediaBandwidthDaily.bytes})::text`;
-    const rows = await db
-      .select({ tenantId: mediaBandwidthDaily.tenantId, value: bytes })
-      .from(mediaBandwidthDaily)
-      .where(and(gte(mediaBandwidthDaily.day, from), lte(mediaBandwidthDaily.day, to)))
-      .groupBy(mediaBandwidthDaily.tenantId)
-      .having(sql`sum(${mediaBandwidthDaily.bytes}) > 0`)
-      .orderBy(sql`sum(${mediaBandwidthDaily.bytes}) DESC`, mediaBandwidthDaily.tenantId)
-      .limit(limit);
-    return rows.map((row) => ({ tenantId: row.tenantId, value: Number(row.value) }));
   }
 
   /** The shops a report names, with each owner's phone (D8-42); a shop with no phone on record gives null. */

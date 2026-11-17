@@ -81,7 +81,7 @@ implement the earlier path-split layout (the dashboard on the apex and on every 
 | `api.lytro.app` | VPS IP | the public API at `/v1/...` (`apps/server`), API keys only (API-14) |
 | `pay.lytro.app` | VPS IP | the hosted payment page for manual payments, and the return address for wallet gateways (PAY-01, PAY-06); Phase 5 |
 | `download.lytro.app` | the downloads bucket (an R2 custom domain, not the VPS) | the listener app's file and `latest.json` (§8, SITE-PAGES-DESIGN §6) |
-| `media.lytro.app` | the media Worker (a Cloudflare Workers custom domain, not the VPS) | every shop's media (`apps/media-worker`, MED-02, BND-01): metered, then the Worker's cache, then R2. No Cloudflare cache rule sits in front of it. The media bucket's own public address stays off in production, or requests would skip the metering |
+| `media.lytro.app` | the media bucket's own custom domain behind Cloudflare's cache (not the VPS) | every shop's public media (MED-02, D9-31): Cloudflare's cache, then R2 on a miss; nothing is counted per shop |
 | `*.lytro.app` (wildcard) | VPS IP | every shop's public pages: storefront and landing pages (`apps/storefront`) only. Covers every tenant automatically; no per-shop DNS entry is ever created. `app`, `admin` and `www` are reserved labels (TEN-26), so no shop can take them. |
 
 ## 5. Routing rules
@@ -149,7 +149,7 @@ Then, per host, one rule each and no path lists:
   Every host in `deploy/Caddyfile` is named from `PLATFORM_DOMAIN`, the server's own setting, `lytro.app` when unset,
   and `apps/server/test/caddy-edge.e2e.spec.ts` runs the file in Caddy in front of the server to prove these rules.
 - **`pay.lytro.app`** → `server`, with the edge secret added: the hosted payment page, drawn by the backend, which sets a
-  Content Security Policy allowing only the page's own files and the media Worker's address for a shop's logo (PAY-23). Every
+  Content Security Policy allowing only the page's own files and the media address for a shop's logo (PAY-23). Every
   address on this host is one of the page's own routes (`PaymentPageHost`). A wallet gateway returns to the public API,
   which settles the payment and sends the shopper here, and the page redirects to the session's return address.
 - **`*.lytro.app`** (any other single-label host, a shop's own subdomain) → reverse-proxy to `storefront`,
@@ -220,36 +220,34 @@ for `active`) with zero infrastructure work on this platform's side per tenant.
 | `apps/operator` | `admin.lytro.app` | `vite build` → static `dist/` | **none** — Caddy serves the files directly | The operator console's own build, kept apart from the sellers' app (D3-12) |
 | `apps/website` | `lytro.app` | Next.js, a standard server build (not a static export) | Node container, `next start` | Content is expected to grow (testimonials, a blog later per the landing-page plan); starting server-rendered avoids re-architecting the moment something dynamic is added, and costs little extra on a VPS already running two other Node processes |
 | `apps/storefront` | `*.lytro.app`, custom domains | Next.js, standalone server build | Node container, `next start` | Must render dynamically per request — SFT-01 requires one shared app serving every tenant differently based on the request's `Host`, which a static export cannot do. Its service worker (`/sw.js`, CCH-10, Slice 12c) is versioned at build time by `STOREFRONT_BUILD_ID` (the commit; else the build's time) and served `no-cache`, so a deploy reaches installed apps on their next visit |
-| `apps/media-worker` | `media.lytro.app` | `wrangler deploy --dry-run` → bundled `dist/` | **Cloudflare Workers**, deployed with `wrangler deploy` | Metering has to happen in front of every media request, cached or not (MED-02), at Cloudflare's edge, near R2 |
 
-**The media Worker's setup** (once, in Cloudflare; Phase 3 Slice 7):
-1. The Workers Paid plan. The free plan's 100,000 requests a day cannot carry shop traffic.
-2. A KV namespace for the shared store; put its id in `apps/media-worker/wrangler.jsonc` (`MEDIA_EDGE`).
-3. An Analytics Engine dataset named `lytro_media_usage` (`MEDIA_USAGE`); it is made on the first deploy.
-4. An R2 API token, **Object Read only**, on the media bucket only. Set it and the rest as the Worker's secrets:
-   `wrangler secret put R2_ENDPOINT` (the account's S3 address), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and
-   `MEDIA_LINK_SECRET` (a long random value, shared with the server). Record the token in RUNBOOKS §2.
-5. `wrangler deploy` from `apps/media-worker`. It takes `media.lytro.app` as the Worker's custom domain.
-6. Turn the media bucket's public r2.dev address off, and set the server's `MEDIA_PUBLIC_BASE_URL` to
-   `https://media.lytro.app`.
-7. For the server's side (Slice 7b): an account API token with **Account Analytics: Read** and **Workers KV Storage:
-   Edit**. Set it in `apps/server/.env` as `CLOUDFLARE_API_TOKEN`, with `CLOUDFLARE_ACCOUNT_ID` and the KV
-   namespace's id as `MEDIA_EDGE_KV_NAMESPACE_ID`; record it in RUNBOOKS §2. Every minute the server then totals each
-   shop's bandwidth and writes the blocked list and each shop's website addresses. Without the token, nothing is
-   counted or blocked.
+**The media address's setup** (once, in Cloudflare; D9-31, 2026-11-17, replacing Phase 3 Slice 7's media Worker):
+1. Connect the custom domain `media.lytro.app` to the media bucket (R2 -> the bucket -> Settings -> Custom Domains).
+   The bucket holds nothing but `tenants/<shop>/...` (MED-01), since its address serves any key in it. Keep its r2.dev
+   address off.
+2. Its CORS policy: `GET` and `HEAD` from any origin, the `Range` header allowed, and `Content-Length`, `Content-Range`,
+   `Accept-Ranges` and `ETag` exposed (MED-13).
+3. A Cache Rule for `media.lytro.app`: eligible for cache, Edge TTL and Browser TTL a year (files are named by their
+   content, MED-08, and stored with `Cache-Control: public, max-age=31536000, immutable`). A Response Header Transform
+   Rule adds `X-Content-Type-Options: nosniff`. Turn Smart Tiered Cache on for the zone; keep Always Online off.
+4. The server's account API token (`CLOUDFLARE_API_TOKEN`, with `CLOUDFLARE_ACCOUNT_ID`): **Account Analytics: Read**
+   (media costs) and **Zone: Cache Purge** on `lytro.app` (a lapsed shop's media, MED-10), the server's address only.
+   Set `CLOUDFLARE_ZONE_ID` to lytro.app's zone id. Without it the server says so as it starts, and a lapsed shop's
+   files stay in Cloudflare's cache until they expire. Record the token in RUNBOOKS §2.
+5. Set the server's `MEDIA_PUBLIC_BASE_URL` to `https://media.lytro.app`.
+6. Retire the media Worker: remove its custom domain first (step 1 needs the name), then delete the Worker, its KV
+   namespace and its Analytics Engine dataset, and the Workers Paid plan if nothing else uses it.
 
 **Staging's media** (Phase 9 Slice 9.1) is the same, apart in every part, so nothing staging does reaches production:
-buckets `lytro-staging-uploads`, `lytro-staging-media` and `lytro-staging-evidence`; the KV namespace
-`lytro-staging-media-edge`; the dataset `lytro_staging_media_usage` (the server's `MEDIA_USAGE_DATASET`); and the
-Worker `lytro-media-staging` at `https://media-staging.lytro.app`, one level under lytro.app so Cloudflare's own
-certificate covers it. `wrangler deploy --env staging` deploys it, and its secrets are put with `--env staging`. Its
-traffic fits the Workers Free plan. The uploads bucket's CORS policy allows `PUT` with `content-type` from
-`https://app.staging.lytro.app` and `https://admin.staging.lytro.app` only. The processing and deletion keys are limited
-to the staging server's address; the signer's can't be (the browser uses its links), nor the Worker's.
+buckets `lytro-staging-uploads`, `lytro-staging-media` and `lytro-staging-evidence`, and `https://media-staging.lytro.app`
+on the staging media bucket, one level under lytro.app so Cloudflare's own certificate covers it. The uploads bucket's
+CORS policy allows `PUT` with `content-type` from `https://app.staging.lytro.app` and `https://admin.staging.lytro.app`
+only. The processing and deletion keys are limited to the staging server's address; the signer's can't be (the browser
+uses its links).
 
 **Payment screenshots (Slice 8.5, D8-47).** Their own private bucket: make one named `lytro-evidence` (or set
 `MEDIA_EVIDENCE_BUCKET`), with no public address and no custom domain, and add it to the processing and deletion keys
-(RUNBOOKS' key inventory). Never give the media Worker's token access to it.
+(RUNBOOKS' key inventory). It never gets a public address.
 
 **The listener app's downloads (Slice 5.8, part 4).** Its own public R2 bucket, so nothing else is ever public by mistake:
 

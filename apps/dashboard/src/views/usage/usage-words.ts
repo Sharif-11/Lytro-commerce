@@ -7,14 +7,19 @@ import type { ShopUsage, UsageFigure, UsagePack } from '@/types/usage';
 
 type T = (key: string, options?: Record<string, unknown>) => string;
 
-/** A metric with packs, the ones that serve shoppers (BND-03, RTE-03). */
-export type PackMetric = UsageMetric.Bandwidth | UsageMetric.Requests;
+/** A metric with packs, the one that serves shoppers (RTE-03): API requests. */
+export type PackMetric = UsageMetric.Requests;
+
+/** The limit each metric with packs tops up. */
+const PACK_LIMIT_KEY: Readonly<Record<PackMetric, string>> = {
+  [UsageMetric.Requests]: 'requests_monthly',
+};
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** The metrics that serve shoppers: past the allowance they keep serving to the grace, then stop (BND-03, RTE-03). */
+/** The metrics that serve shoppers: past the allowance they keep serving to the grace, then stop (RTE-03). */
 export function isServing(metric: UsageMetric): metric is PackMetric {
-  return metric === UsageMetric.Bandwidth || metric === UsageMetric.Requests;
+  return metric === UsageMetric.Requests;
 }
 
 /** Each metric's name, as its card and its banner say it. */
@@ -22,7 +27,6 @@ export const METRIC_KEY: Readonly<Record<UsageMetric, string>> = {
   [UsageMetric.Products]: 'uProducts',
   [UsageMetric.Seats]: 'uSeats',
   [UsageMetric.Storage]: 'uStorage',
-  [UsageMetric.Bandwidth]: 'uBandwidth',
   [UsageMetric.Requests]: 'uRequests',
   [UsageMetric.EssentialSmsMonthly]: 'uSms',
   [UsageMetric.EssentialSmsTotal]: 'uSms',
@@ -108,10 +112,9 @@ export function labelOf(addon: Addon, language: string): string {
   return language === 'bn' ? addon.labelBn : addon.labelEn;
 }
 
-/** A pack's size as its words say it: "10 GB" of bandwidth, "100,000" requests. */
+/** A pack's size as its words say it: "100,000" requests. */
 export function packSize(addon: Addon): string {
-  const size = addon.unitSize ?? 0;
-  return addon.limitKey === 'bandwidth_gb' ? `${String(size)} GB` : size.toLocaleString('en-US');
+  return (addon.unitSize ?? 0).toLocaleString('en-US');
 }
 
 /** The pack for sale for a metric, from the catalogue: what the links and the auto-buy switches name. */
@@ -119,7 +122,7 @@ export function packOffer(
   offers: readonly AddonOffer[],
   metric: PackMetric,
 ): AddonOffer | undefined {
-  const limitKey = metric === UsageMetric.Bandwidth ? 'bandwidth_gb' : 'requests_monthly';
+  const limitKey = PACK_LIMIT_KEY[metric];
   return offers.find(
     (offer) => offer.addon.kind === AddonKind.Pack && offer.addon.limitKey === limitKey,
   );
@@ -158,7 +161,7 @@ export interface BannerContext {
 
 /**
  * LIM-01's channels (agreed for Slice 11.5c): an email to an owner with an email address; a free SMS too only for
- * bandwidth and requests at 100% and at the stop, to an owner with a phone. Staff are told nothing of the owner's.
+ * requests at 100% and at the stop, to an owner with a phone. Staff are told nothing of the owner's.
  */
 function toldLine(context: BannerContext, smsToo: boolean): string {
   const channels = context.channels;
@@ -235,14 +238,12 @@ function servingBanner(
   const told = toldLine(context, true);
   if (figure.level === 100) {
     const stop = amountOf(figure, figure.stopAt ?? limit);
-    const key = figure.metric === UsageMetric.Bandwidth ? 'uUsedUpBw' : 'uUsedUpReq';
-    const text = joined(t(key, { used, limit: of, stop, end }), did, told);
+    const text = joined(t('uUsedUpReq', { used, limit: of, stop, end }), did, told);
     return { tone: 'bad', text, link: failed ? topUp : packLink };
   }
   if (figure.level === 'stopped') {
     const percent = limit ? Math.round(((figure.stopAt ?? limit) / limit) * 100) : 100;
-    const key = figure.metric === UsageMetric.Bandwidth ? 'wStopped' : 'uStoppedReq';
-    const text = joined(t(key, { used, limit: of, percent }), did, told);
+    const text = joined(t('uStoppedReq', { used, limit: of, percent }), did, told);
     return { tone: 'bad', text, link: failed ? topUp : packLink };
   }
   return null;

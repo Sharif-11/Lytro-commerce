@@ -28,28 +28,24 @@ const LIMITS: Record<string, Record<string, number>> = {
     orders_handled_monthly: 300,
     staff: 2,
     storage_mb: 2048,
-    bandwidth_gb: 30,
   },
   [GROWTH]: {
     products: 1000,
     orders_handled_monthly: 1500,
     staff: 5,
     storage_mb: 4096,
-    bandwidth_gb: 60,
   },
   [PRO]: {
     products: 5000,
     orders_handled_monthly: 6000,
     staff: 15,
     storage_mb: 8192,
-    bandwidth_gb: 120,
   },
   [PAYG]: {
     products: 25,
     orders_handled_monthly: 300,
     staff: 1,
     storage_mb: 250,
-    bandwidth_gb: 10,
   },
 };
 

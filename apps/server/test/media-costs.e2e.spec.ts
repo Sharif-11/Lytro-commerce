@@ -19,13 +19,12 @@ import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { cookieFrom, getJson, patchJson, postJson, type HttpResult } from './support/http';
-import { openShop } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
 // MED-12, D8-17, D8-57 to D8-64 (Phase 8 Slice 8.6, read agreed 2026-11-10): R2's days read from Cloudflare's analytics
-// (a stand-in here), the period's estimate against the budget, the alert to its one address once a period, the top
-// shops by the media Worker's requests, and the settings behind them. Each case keeps to its own months of 2031, so
-// none reads another's days. Runs only with DATABASE_TEST_ADMIN_URL.
+// (a stand-in here), the period's estimate against the budget, the alert to its one address once a period, and the
+// settings behind them. The media Worker's line and its top shops went with the Worker (D9-31). Each case keeps to its
+// own months of 2031, so none reads another's days. Runs only with DATABASE_TEST_ADMIN_URL.
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_media_costs_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
@@ -171,15 +170,7 @@ interface View {
       objects: number;
     }[];
   };
-  workers: {
-    requests: number;
-    bytes: number;
-    billableMillions: number;
-    monthly: string;
-    cost: string;
-  };
   total: string;
-  topShops: { tenantId: string; name: string; requests: number; bytes: number }[];
   periods: { dateFrom: string; dateTo: string }[];
 }
 
@@ -187,15 +178,6 @@ async function view(query = ''): Promise<View> {
   const answer = await getJson(port, `/operator/media-costs${query}`, operator);
   expect(answer.status, JSON.stringify(answer.body)).toBe(200);
   return answer.body as View;
-}
-
-/** The media Worker's day for a shop, as the bandwidth minute writes it (BND-08). */
-async function served(tenantId: string, day: string, requests: number, bytes = 0): Promise<void> {
-  await admin.query(
-    `INSERT INTO control.media_bandwidth_daily (tenant_id, cycle_start, day, bytes, requests)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [tenantId, `${day}T00:00:00Z`, day, bytes, requests],
-  );
 }
 
 async function alertMail(to: string): Promise<{ subject: string; body: string }[]> {
@@ -299,8 +281,6 @@ describeIfDatabase("Lytro's media costs (MED-12, D8-57 to D8-64)", () => {
         }),
       );
     }
-    const shop = await openShop(port, texts, 'mc');
-    await served(shop.tenantId, '2031-02-03', 10_500_000);
     await costs.pull();
     const page = await view();
     // 1,000,001 writes bill as 2 million, less the month's 1 million free: one million at $4.50.
@@ -310,24 +290,18 @@ describeIfDatabase("Lytro's media costs (MED-12, D8-57 to D8-64)", () => {
     // 60 GB on each of 10 days is 20 GB-months: 10 past the free 10, at $0.015.
     expect(page.r2.storage).toEqual({ gbMonths: 20, billableGbMonths: 10, cost: '0.15' });
     expect(page.r2.cost).toBe('4.65');
-    // 10.5 million requests bill as 11 million, 1 past the 10 included, on top of the $5 a month.
-    expect(page.workers).toMatchObject({
-      requests: 10_500_000,
-      billableMillions: 1,
-      monthly: '5.00',
-      cost: '5.30',
-    });
-    expect(page.total).toBe('9.95');
+    // R2 is the whole bill: public media comes from Cloudflare's cache, which bills nothing (D9-31).
+    expect(page.total).toBe('4.65');
     // The owner's $10 default (D8-58), its alert at 80%.
     expect(page.budget).toMatchObject({ amount: '10.00', alertPercent: 80, alertAt: '8.00' });
   });
 
   it('emails the one alert address once a period, and only logs while none is set', async () => {
     now = new Date('2031-03-04T10:00:00Z');
-    r2.hold('2031-03-02', bucket('lytro-media', { classA: 2_000_000 }));
+    r2.hold('2031-03-02', bucket('lytro-media', { classA: 3_000_000 }));
     const address = `owner.${randomUUID().slice(0, 8)}@example.com`;
 
-    // $5 for Workers and $4.50 for writes passes $8, but no address is set: nothing is sent, nothing is recorded.
+    // $9 for writes passes $8, but no address is set: nothing is sent, nothing is recorded.
     expect((await costs.pull()).alerted).toBe(false);
     expect((await view()).budget.alertSentAt).toBeNull();
 
@@ -335,9 +309,10 @@ describeIfDatabase("Lytro's media costs (MED-12, D8-57 to D8-64)", () => {
     expect((await costs.pull()).alerted).toBe(true);
     const sent = await alertMail(address);
     expect(sent).toHaveLength(1);
-    expect(sent[0]?.subject).toContain('95%');
+    expect(sent[0]?.subject).toContain('90%');
     expect(sent[0]?.body).toContain('2031-03-01 to 2031-03-31');
-    expect(sent[0]?.body).toContain('$9.50');
+    expect(sent[0]?.body).toContain('$9.00');
+    expect(sent[0]?.body).not.toContain('Workers');
 
     // The hours after send nothing more this period.
     now = new Date('2031-03-04T11:00:00Z');
@@ -350,18 +325,18 @@ describeIfDatabase("Lytro's media costs (MED-12, D8-57 to D8-64)", () => {
 
   it("holds the estimate against the operator's budget and percent", async () => {
     now = new Date('2031-04-04T10:00:00Z');
-    r2.hold('2031-04-02', bucket('lytro-media', { classA: 2_000_000 }));
+    r2.hold('2031-04-02', bucket('lytro-media', { classA: 3_000_000 }));
     const address = `owner.${randomUUID().slice(0, 8)}@example.com`;
     await settings({
       [PlatformSettingKey.MediaCostAlertEmail]: address,
       [PlatformSettingKey.MediaBudgetUsd]: 50,
     });
-    // $9.50 of $50 is under 80%: no alert.
+    // $9 of $50 is under 80%: no alert.
     expect((await costs.pull()).alerted).toBe(false);
     expect((await view()).budget).toMatchObject({
       amount: '50.00',
       alertAt: '40.00',
-      usedPercent: 19,
+      usedPercent: 18,
     });
 
     await settings({ [PlatformSettingKey.MediaBudgetAlertPercent]: 15 });
@@ -387,20 +362,11 @@ describeIfDatabase("Lytro's media costs (MED-12, D8-57 to D8-64)", () => {
     await settings({ [PlatformSettingKey.CloudflareBillingDay]: 1 });
   });
 
-  it("ranks the shops by the media Worker's requests, with every shop's in the Workers line", async () => {
+  it('has no Workers line and no top shops: there is no media Worker to bill (D9-31)', async () => {
     now = new Date('2031-06-20T10:00:00Z');
-    const [busy, quiet] = [await openShop(port, texts, 'mc'), await openShop(port, texts, 'mc')];
-    await served(busy.tenantId, '2031-06-02', 900, 5_000_000);
-    await served(busy.tenantId, '2031-06-03', 100, 1_000_000);
-    await served(quiet.tenantId, '2031-06-02', 40, 9_000_000);
-    // A day of the period before counts in neither.
-    await served(quiet.tenantId, '2031-05-31', 5_000);
     const page = await view();
-    expect(page.topShops.map((shop) => [shop.tenantId, shop.requests, shop.bytes])).toEqual([
-      [busy.tenantId, 1000, 6_000_000],
-      [quiet.tenantId, 40, 9_000_000],
-    ]);
-    expect(page.workers).toMatchObject({ requests: 1040, bytes: 15_000_000 });
+    expect(page).not.toHaveProperty('workers');
+    expect(page).not.toHaveProperty('topShops');
   });
 
   it('keeps past periods after Cloudflare forgets them, and steps back through them', async () => {
@@ -447,8 +413,10 @@ describeIfDatabase("Lytro's media costs (MED-12, D8-57 to D8-64)", () => {
       [PlatformSettingKey.CloudflarePrices, { r2ClassAPerMillion: 4.5 }],
       [
         PlatformSettingKey.CloudflarePrices,
-        { ...DEFAULT_CLOUDFLARE_PRICES, workersPerMillion: -1 },
+        { ...DEFAULT_CLOUDFLARE_PRICES, r2ClassBPerMillion: -1 },
       ],
+      // Workers' prices are no longer on the sheet (D9-31).
+      [PlatformSettingKey.CloudflarePrices, { ...DEFAULT_CLOUDFLARE_PRICES, workersMonthly: 5 }],
     ];
     for (const [key, value] of refused) {
       expect((await setting(key, value)).status, `${key} ${JSON.stringify(value)}`).toBe(400);

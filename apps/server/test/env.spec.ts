@@ -158,17 +158,20 @@ describe('edge settings (D14)', () => {
     );
   });
 
-  it("needs the media Worker's account and store with its Cloudflare token (MED-10)", () => {
+  it("needs Cloudflare's account with its token, and starts without the zone a purge needs (D8-57, D9-31)", () => {
     expect(() => new EnvironmentParser().parse({ ...BASE, CLOUDFLARE_API_TOKEN: 'token' })).toThrow(
-      /CLOUDFLARE_ACCOUNT_ID[\s\S]*MEDIA_EDGE_KV_NAMESPACE_ID|MEDIA_EDGE_KV_NAMESPACE_ID[\s\S]*CLOUDFLARE_ACCOUNT_ID/,
+      /CLOUDFLARE_ACCOUNT_ID/,
     );
     const env = new EnvironmentParser().parse({
       ...BASE,
       CLOUDFLARE_API_TOKEN: 'token',
       CLOUDFLARE_ACCOUNT_ID: 'account',
-      MEDIA_EDGE_KV_NAMESPACE_ID: 'namespace',
     });
-    expect(env.MEDIA_USAGE_DATASET).toBe('lytro_media_usage');
+    expect(env.CLOUDFLARE_ZONE_ID).toBeUndefined();
+    // A server whose settings still name the Worker's store starts: what it no longer reads is left alone.
+    expect(() =>
+      new EnvironmentParser().parse({ ...BASE, MEDIA_EDGE_KV_NAMESPACE_ID: 'namespace' }),
+    ).not.toThrow();
   });
 
   it('refuses production without the key credentials are sealed with, and a key of the wrong size (SEC-10)', () => {
@@ -189,11 +192,5 @@ describe('edge settings (D14)', () => {
       new EnvironmentParser().parse({ ...BASE, DATA_ENCRYPTION_PREVIOUS_KEY: DATA_KEY })
         .DATA_ENCRYPTION_PREVIOUS_KEY,
     ).toBe(DATA_KEY);
-  });
-
-  it('refuses a usage dataset name that is not a plain name, since it is written into a query', () => {
-    expect(() =>
-      new EnvironmentParser().parse({ ...BASE, MEDIA_USAGE_DATASET: 'usage; DROP' }),
-    ).toThrow(/MEDIA_USAGE_DATASET/);
   });
 });

@@ -146,7 +146,7 @@ export class AddonsController {
   @UseInterceptors(IdempotencyInterceptor)
   @RequirePermission(Permission.PaymentsManage)
   @ResponseMessage('AddonPurchased')
-  @ApiOperation({ summary: 'Buy bandwidth or request packs from the balance, at once' })
+  @ApiOperation({ summary: 'Buy request packs from the balance, at once' })
   @ZodResponse({ type: AddonPurchaseResultDto })
   buyPacks(
     @Body(new ZodValidationPipe(BuyPacksDto.schema)) body: BuyPacksDto,
@@ -158,7 +158,7 @@ export class AddonsController {
   @Patch('auto-buy')
   @RequirePermission(Permission.PaymentsManage)
   @ResponseMessage('PackAutoBuyUpdated')
-  @ApiOperation({ summary: 'Switch auto-buy of bandwidth or request packs on or off' })
+  @ApiOperation({ summary: 'Switch auto-buy of request packs on or off' })
   @ZodResponse({ type: ShopPackListDto })
   setAutoBuy(
     @Body(new ZodValidationPipe(SetPackAutoBuyDto.schema)) body: SetPackAutoBuyDto,

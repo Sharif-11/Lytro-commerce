@@ -38,7 +38,7 @@ export const shopUsageSchema = z.object({
     z.object({
       metric: z.nativeEnum(UsageMetric),
       used: z.number(),
-      // BND-04, RTE-11: for bandwidth and API requests, the cycle's allowance -- the shop's own limit, then its packs.
+      // RTE-11: for API requests, the cycle's allowance -- the shop's own limit, then its packs.
       limit: z.number().nullable(),
       packLeft: z.number().nullable(),
       stopAt: z.number().nullable(),
@@ -47,21 +47,20 @@ export const shopUsageSchema = z.object({
       level: z
         .union([z.literal(50), z.literal(80), z.literal(95), z.literal(100), z.literal('stopped')])
         .nullable(),
-      // LIM-01 (Slice 11.5c): bandwidth and requests only, when the cycle's pace uses the allowance up before its end.
+      // LIM-01 (Slice 11.5c): requests only, when the cycle's pace uses the allowance up before its end.
       runsOutAt: z.date().nullable(),
     }),
   ),
-  bandwidthDays: z.array(z.object({ day: z.string(), bytes: z.number(), requests: z.number() })),
   // Each Asia/Dhaka day's API requests in the cycle, for the chart and the run-out date (Slice 11.5a.2).
   requestDays: z.array(z.object({ day: z.string(), requests: z.number() })),
   suggestions: z
     .object({ first: suggestionSchema, alternative: suggestionSchema.nullable() })
     .nullable(),
   fastSpendAlertedAt: z.date().nullable(),
-  // BND-04, RTE-11, PLN-15: the pack for sale and how auto-buy stands, for bandwidth and API requests.
+  // RTE-11, PLN-15: the pack for sale and how auto-buy stands, for API requests.
   packs: z.array(
     z.object({
-      metric: z.enum([UsageMetric.Bandwidth, UsageMetric.Requests]),
+      metric: z.enum([UsageMetric.Requests]),
       offer: z
         .object({
           addonId: z.string(),

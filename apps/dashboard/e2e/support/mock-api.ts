@@ -776,10 +776,10 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       const quantity = Number(body?.quantity ?? 1);
       if (path === '/addons/packs') {
         const left = usage.packsLeft ?? {};
-        usage.packsLeft =
-          item?.limitKey === 'bandwidth_gb'
-            ? { ...left, bandwidth: (left.bandwidth ?? 0) + (item.unitSize ?? 0) * quantity }
-            : { ...left, requests: (left.requests ?? 0) + (item?.unitSize ?? 0) * quantity };
+        usage.packsLeft = {
+          ...left,
+          requests: (left.requests ?? 0) + (item?.unitSize ?? 0) * quantity,
+        };
         return ok({
           payment: { ...(payment('addon', null, null, amount) as object), status: 'verified' },
           invoice: { id: 'invoice-216', number: 216, amount },
@@ -863,8 +863,8 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
     if (method === 'PATCH' && path === '/addons/auto-buy') {
       // PLN-15: the usage read after it shows the switch as set.
       const usage = (money.usage ??= {});
-      const wanted = (request.postDataJSON() as { bandwidth?: unknown } | null)?.bandwidth;
-      if (typeof wanted === 'boolean') usage.autoBuy = { ...usage.autoBuy, bandwidth: wanted };
+      const wanted = (request.postDataJSON() as { requests?: unknown } | null)?.requests;
+      if (typeof wanted === 'boolean') usage.autoBuy = { ...usage.autoBuy, requests: wanted };
       return ok([]);
     }
     // Slice 11.7a: a product's own read, and the editor's writes.

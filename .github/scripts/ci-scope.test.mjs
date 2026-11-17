@@ -66,7 +66,6 @@ for (const [name, changed, reached, expected] of [
     ['code', 'browser', 'operator'],
   ],
   ['the website', ['apps/website/src/a.tsx'], ['@lytronix/website'], ['code']],
-  ['the media Worker', ['apps/media-worker/src/a.ts'], ['@lytronix/media-worker'], ['code']],
   [
     'the shared screens package',
     ['packages/ui/src/a.tsx'],

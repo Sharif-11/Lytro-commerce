@@ -204,7 +204,6 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /me/identities',
       'GET /media',
       'GET /media/:id',
-      'GET /media/bandwidth',
       'GET /media/usage',
       'GET /notices',
       'GET /notices/:id',

@@ -91,10 +91,10 @@ export interface AddonPurchaseResult {
  */
 export type ShopAddon = ActiveAddon & { renewal: AddonRenewal; endsSoon: boolean };
 
-/** BND-04, RTE-11, PLN-15: what is left of the shop's packs for one metric, and whether auto-buy is on for it. */
+/** RTE-11, PLN-15: what is left of the shop's packs for one metric, and whether auto-buy is on for it. */
 export interface ShopPack {
-  metric: UsageMetric.Bandwidth | UsageMetric.Requests;
-  /** In the metric's own unit: bytes of bandwidth, or requests. */
+  metric: UsageMetric.Requests;
+  /** In the metric's own unit: requests. */
   left: number;
   autoBuy: boolean;
 }

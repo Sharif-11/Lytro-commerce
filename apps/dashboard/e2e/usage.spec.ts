@@ -47,7 +47,6 @@ test('shows every metric, the one banner for the worst, and the ways to more roo
     '80 / 100 · total',
     '1 / 2 · total',
     '0.9 GB / 2 GB · total',
-    '18.6 GB / 30 GB · resets each cycle',
     '48,210 / 200,000 · resets each cycle',
     '6 / 10 · resets each cycle',
   ]) {
@@ -61,54 +60,53 @@ test('shows every metric, the one banner for the worst, and the ways to more roo
     'href',
     `/${SLUG}/plan?plan=${GROWTH}`,
   );
-  await expect(
-    main(page).getByRole('switch', { name: 'Buy a 10 GB pack when bandwidth reaches 100%' }),
-  ).not.toBeChecked();
+  // The one switch, for the one metric with packs; media bandwidth is no limit (D9-31).
   await expect(
     main(page).getByRole('switch', { name: 'Buy a 100,000 pack when requests reach 100%' }),
-  ).toBeVisible();
-  await expect(main(page).getByText('today · 2.4 GB')).toBeVisible();
+  ).not.toBeChecked();
+  await expect(main(page).getByRole('switch')).toHaveCount(1);
   await expect(main(page).getByText('today · 3,600')).toBeVisible();
+  await expect(main(page).getByText(/bandwidth/i)).toHaveCount(0);
   await expectAccessible(page);
 });
 
-test('dates the run-out from the server, and offers auto-buy, then the pack, as bandwidth nears its allowance', async ({
+test('dates the run-out from the server, and offers auto-buy, then the pack, as requests near their allowance', async ({
   page,
 }) => {
-  await open(page, { used: { products: 70, bandwidth: 24 }, runsOutDays: { bandwidth: 5 } });
+  await open(page, { used: { products: 70, requests: 160_000 }, runsOutDays: { requests: 5 } });
   await expect(banner(page)).toContainText(
-    'Bandwidth at 80%: 24 GB of 30 GB. At this pace the allowance runs out on',
+    'API requests at 80%: 160,000 of 200,000. At this pace the allowance runs out on',
   );
   await expect(banner(page).getByRole('link', { name: 'Turn on auto-buy' })).toHaveAttribute(
     'href',
-    `/${SLUG}/addons?pack=bandwidth`,
+    `/${SLUG}/addons?pack=requests`,
   );
   await expect(main(page).getByText(/^at this pace, runs out \d+ \w{3}$/)).toBeVisible();
 
   await page.unrouteAll();
-  await open(page, { used: { products: 70, bandwidth: 28.5 }, runsOutDays: { bandwidth: 1 } });
-  await expect(banner(page)).toContainText('Bandwidth at 95%: 28.5 GB of 30 GB.');
-  await expect(banner(page).getByRole('link', { name: 'Buy 10 GB · ৳30' })).toHaveAttribute(
+  await open(page, { used: { products: 70, requests: 190_000 }, runsOutDays: { requests: 1 } });
+  await expect(banner(page)).toContainText('API requests at 95%: 190,000 of 200,000.');
+  await expect(banner(page).getByRole('link', { name: 'Buy 100,000 · ৳20' })).toHaveAttribute(
     'href',
-    `/${SLUG}/addons?pack=bandwidth`,
+    `/${SLUG}/addons?pack=requests`,
   );
-  await expect(main(page).getByRole('link', { name: 'a 10 GB pack for ৳30' })).toBeVisible();
+  await expect(main(page).getByRole('link', { name: 'a 100,000 pack for ৳20' })).toBeVisible();
 });
 
 test('tells of the grace and its SMS past the allowance, and sends a shop whose auto-buy could not pay to top up', async ({
   page,
 }) => {
-  await open(page, { used: { products: 70, bandwidth: 31 } });
+  await open(page, { used: { products: 70, requests: 205_000 } });
   await expect(banner(page)).toContainText(
-    'Bandwidth used up: 31 GB of 30 GB. Images and videos keep showing up to 33 GB',
+    'API requests used up: 205,000 of 200,000. The catalogue keeps answering up to 220,000',
   );
   await expect(banner(page)).toContainText('An email and a free SMS went too.');
-  await expect(banner(page).getByRole('link', { name: '10 GB pack · ৳30' })).toBeVisible();
+  await expect(banner(page).getByRole('link', { name: '100,000 pack · ৳20' })).toBeVisible();
 
   await page.unrouteAll();
   await open(page, {
-    used: { products: 70, bandwidth: 30.4 },
-    autoBuy: { bandwidth: true, failed: true },
+    used: { products: 70, requests: 204_000 },
+    autoBuy: { requests: true, failed: true },
   });
   await expect(banner(page)).toContainText(
     'Auto-buy couldn’t buy a pack: the balance was too short.',
@@ -139,12 +137,12 @@ test("names a full total's add-on, and what further free SMS cost", async ({ pag
 
 test('switches auto-buy, and reads it again', async ({ page }) => {
   const log = await open(page);
-  const bandwidth = main(page).getByRole('switch', {
-    name: 'Buy a 10 GB pack when bandwidth reaches 100%',
+  const requests = main(page).getByRole('switch', {
+    name: 'Buy a 100,000 pack when requests reach 100%',
   });
-  await bandwidth.click();
-  await expect(bandwidth).toBeChecked();
-  expect(log.sent('PATCH', '/addons/auto-buy')).toEqual({ bandwidth: true });
+  await requests.click();
+  await expect(requests).toBeChecked();
+  expect(log.sent('PATCH', '/addons/auto-buy')).toEqual({ requests: true });
 });
 
 test('shows staff who may only read the figures, without the owner’s channels or a way to buy', async ({
@@ -159,7 +157,7 @@ test('shows staff who may only read the figures, without the owner’s channels 
     'Seats are full: 2 of 2. No one can be added or brought back until there is room.',
   );
   await expect(
-    main(page).getByRole('switch', { name: 'Buy a 10 GB pack when bandwidth reaches 100%' }),
+    main(page).getByRole('switch', { name: 'Buy a 100,000 pack when requests reach 100%' }),
   ).toBeDisabled();
 });
 

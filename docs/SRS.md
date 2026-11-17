@@ -88,7 +88,7 @@ There are three plans at 449, 699 and 999 TK per month (Starter lowered 2026-10-
 | --- | --- | --- | --- |
 | Price per month (TK) | 449 | 699 | 999 |
 | Media storage | 2 GB | 4 GB | 8 GB |
-| Media bandwidth per month | 30 GB | 100 GB | 300 GB |
+| Media bandwidth per month | Unlimited | Unlimited | Unlimited |
 | API access | included | included | included |
 | Hosted payment page | included | included | included |
 | Paired listener devices † | 1 | 2 | 5 |
@@ -111,7 +111,7 @@ There are three plans at 449, 699 and 999 TK per month (Starter lowered 2026-10-
 | Growth | 699 | 1,992 | 3,858 | 7,381 |
 | Pro | 999 | 2,847 | 5,514 | 10,549 |
 
-**Free trial.** 30 days (one month, extended 2026-10-02 from the original 7 days), phone-verified, no payment method. Limits (raised 2026-10-02 to match): 40 orders, 20 products, 1 staff, 1 paired listener device, 200 MB storage, 5 GB bandwidth, and 8 essential SMS in total. Trial tenants may top up a balance (amended 2026-10-15, so the balance is ready before a paid feature is needed), but cannot yet spend one — no paid feature is available during the trial. There is no separate ongoing free tier beyond this: at day 30, a tenant who hasn't subscribed automatically becomes a pay-as-you-go tenant (its real, permanent free tier, 0 TK/month) rather than being treated as a lapsed subscriber — the grace/read-only/locked/archived lifecycle applies only to a subscriber who stops paying an existing commitment, never to someone who simply never subscribed. All trial data carries over unchanged, and its tight limits widen to pay-as-you-go's the moment it happens.
+**Free trial.** 30 days (one month, extended 2026-10-02 from the original 7 days), phone-verified, no payment method. Limits (raised 2026-10-02 to match): 40 orders, 20 products, 1 staff, 1 paired listener device, 200 MB storage, unlimited bandwidth, and 8 essential SMS in total. Trial tenants may top up a balance (amended 2026-10-15, so the balance is ready before a paid feature is needed), but cannot yet spend one — no paid feature is available during the trial. There is no separate ongoing free tier beyond this: at day 30, a tenant who hasn't subscribed automatically becomes a pay-as-you-go tenant (its real, permanent free tier, 0 TK/month) rather than being treated as a lapsed subscriber — the grace/read-only/locked/archived lifecycle applies only to a subscriber who stops paying an existing commitment, never to someone who simply never subscribed. All trial data carries over unchanged, and its tight limits widen to pay-as-you-go's the moment it happens.
 
 **Requirements**
 
@@ -133,7 +133,7 @@ Upgrades start immediately and restart the billing cycle, downgrades wait for th
 
 - **UPG-1** The new plan starts as soon as payment is confirmed, paid by bKash, Nagad or balance (PLN-4) — the same choice of methods as any other plan payment.
 - **UPG-2** The tenant gets credit for the unused part of the current plan, prorated by the day and rounded to whole taka. They pay the new plan's full price for the chosen period minus that credit. The billing cycle restarts on the upgrade day and the renewal date moves.
-- **UPG-3** Usage counters (orders, free essential SMS, bandwidth, requests) reset with the new cycle.
+- **UPG-3** Usage counters (orders, free essential SMS, requests) reset with the new cycle.
 - **UPG-4** Add-ons and extra packs bought earlier stay until their own end.
 - **UPG-5** The screen shows the exact amount and the new renewal date before the tenant confirms.
 
@@ -193,7 +193,7 @@ The whole rule is one line: **a balance is active until the grace period ends.**
 
 ## 6. Metered limits
 
-Storage, media bandwidth, API requests and payment sessions have strict per-plan limits enforced on the server; SMS and AI have no cap but are paid from the balance.
+Storage, API requests and payment sessions have strict per-plan limits enforced on the server; media bandwidth is unlimited (D9-31); SMS and AI have no cap but are paid from the balance.
 
 **Enforcement pattern (all metered limits).** The tenant sees usage against the limit in the dashboard. Warnings at 50%, 80% and 95%. At 100% the action is refused (a `429` for API and media requests). A tenant may opt in to extra packs bought from the balance; without opt-in it is a hard stop. Counters reset at the start of each billing period. A shop is never taken down entirely by a limit.
 
@@ -209,19 +209,19 @@ Storage, media bandwidth, API requests and payment sessions have strict per-plan
 - **STO-1** Images are compressed and resized on upload. Per-file limits: 5 MB per image, 150 MB per video (editable).
 - **STO-2** Media is stored in Cloudflare R2 under a per-tenant path. There is no separate backup copy of media (decided); its durability relies on R2.
 
-**Media bandwidth.** Counts bytes of media delivered from the platform to visitors, per tenant and billing period.
+**Media bandwidth.** Unlimited on every plan since 2026-11-17 (D9-31): public media is served from the media bucket's own address behind Cloudflare's cache, where a request Cloudflare holds costs nothing, so it is not counted per tenant.
 
-- **BND-1** Media is served from its own address through a Cloudflare Worker that counts every request and its bytes per tenant, checks the tenant's state and quota, looks in the cache, and reads R2 only on a miss.
-- **BND-2** Limits: Starter 30 GB, Growth 100 GB, Pro 300 GB per month. At 100% media requests are refused unless the tenant opted in to extra bandwidth packs (starting price 30 TK per 10 GB).
-- **BND-3** Usage is aggregated about once a minute and a blocked-tenant list is refreshed at the same rate; a small overshoot is acceptable.
-- **BND-4** Private media (payment proofs, chat media) use signed, expiring links; public product images have stable, content-hashed links. Cloudflare's own cache is never placed in front of the Worker, so counting stays accurate.
+- **BND-1** Media is served from its own address through Cloudflare's cache, which reads R2 only on a miss; no Worker sits in front and nothing is counted per tenant.
+- **BND-2** No plan limits media bandwidth, and there are no bandwidth packs (D9-31).
+- **BND-3** Withdrawn with the Worker (D9-31): nothing is counted per tenant and no shop's media is blocked; a lapsed shop's files are purged from Cloudflare's cache once deleted.
+- **BND-4** Private media (payment proofs, chat media) use signed, expiring links; public product images have stable, content-hashed links. Private media live outside the public media bucket.
 
 **Media on Cloudflare R2 (decided).**
 
-- **MED-1** All tenant media lives in Cloudflare R2 under a per-tenant prefix; the Worker refuses any request for another tenant's prefix.
+- **MED-1** All tenant media lives in Cloudflare R2 under a per-tenant prefix; the public media bucket holds nothing else.
 - **MED-2** Uploads are signed direct uploads to a temporary area, then validated, resized and moved to the tenant's prefix by a processing job; a failed check deletes the file and it never counts as stored.
 - **MED-3** Storage usage is kept as a database row per object and reconciled daily against R2, so limits never depend on slow bucket listings.
-- **MED-4** Access keys are least-privilege and rotated every 90 days; the public-serving Worker can only read, and only a separate deletion-job key can delete objects.
+- **MED-4** Access keys are least-privilege and rotated every 90 days; only a separate deletion-job key can delete objects, and a lapsed shop's media is then purged from Cloudflare's cache.
 - **MED-5** Accepted risk: media has no separate backup. R2 protects against hardware loss (stated eleven-nines durability) but not against deletion, a compromised key or a Cloudflare account problem. The terms of service say so, and the Cloudflare account is secured with two-factor authentication and a minimum number of members.
 
 **API rate limits (all editable).**
@@ -494,7 +494,7 @@ The platform keeps three separate kinds of log and watches health at two levels:
 | --- | --- | --- | --- |
 | Application log (errors, requests, jobs) | Debugging | Operator only | 14–30 days |
 | Audit log (who did what, per tenant) | Disputes and security | Tenant reads its own; operator reads all | 6–12 months; money-related entries longer; per-plan for the tenant's view |
-| Usage log (SMS, AI, storage, bandwidth, API calls) | Billing and limits | Tenant sees its own totals; operator sees all | As long as billing disputes can arise |
+| Usage log (SMS, AI, storage, API calls) | Billing and limits | Tenant sees its own totals; operator sees all | As long as billing disputes can arise |
 
 **Requirements**
 
@@ -600,7 +600,7 @@ Provisionally, the self-managed design costs about 3,500–6,200 TK a month at l
 | Staging VPS | $4–10 (estimate) | $4–10 (estimate) |
 | Load balancing (Cloudflare) | $0 (DNS and proxy only; added with the second server at $5–10) | $5–30 (request charges are my recollection, to verify) |
 | Redis VPS (dedicated, shared by every application server, from launch) | $4–7 (small VPS) | $7–15 (resized if needed) |
-| Media on R2 and metering Worker | $7–10 | $30–50 |
+| Media on R2, behind Cloudflare's cache (no Worker since D9-31) | $1–3 | $5–10 |
 | Point-in-time archive and nightly dump on R2 | $1–3 | $3–10 |
 | Tenants' custom domains | Free (first 100 hostnames) | About $10 |
 | Monitoring, error tracking, email | $0–10 (free tools until 50 tenants) | $35–75 (estimate: the full stack from 50 tenants: paid error tracking, logs and metrics, 60-second uptime checks, transactional email) |
@@ -631,7 +631,7 @@ Several items still need a decision or a quote before build, and the main risks 
 | 1 | Behaviour above the monthly order limit | Undecided: block, or accept and prompt upgrade or extra-orders pack |
 | 2 | Refund after a period has started | Decided 2026-10-02: none, ever, including a tenant's first purchase — the one-month free trial is the pre-payment evaluation window |
 | 3 | Plan values marked † in section 4 (products, orders, staff, retention, support response) | Proposed starting values, editable |
-| 4 | Add-on and pack prices (extra orders, products, seats, storage, bandwidth, requests, fraud-check and extraction allowances) | Proposed starting values, editable |
+| 4 | Add-on and pack prices (extra orders, products, seats, storage, requests, fraud-check and extraction allowances) | Proposed starting values, editable |
 | 5 | Per-use rates (SMS, chat AI, extraction, fraud checks) | Platform settings, effective immediately; values set after verifying provider prices |
 | 6 | Provider bandwidth and transfer terms (BDIX storage, VPS) | To be confirmed with each provider before launch |
 | 7 | Nagad and Rocket gateways and receipt SMS formats | Not built; manual and phone-based verification only |
@@ -643,7 +643,7 @@ Several items still need a decision or a quote before build, and the main risks 
 | 13 | Tenant verification before the hosted payment page and gateway are enabled | Decided: verified phone number only; every tenant may use the hosted payment page; no verification tiers |
 | 14 | A second (backup) operator | Decided: none yet, solo operator for now, accepted bus-factor risk (see §15); revisit once a trusted second person is available |
 | 15 | Server size, phasing and resize timing | Decided: launch on one primary server (4 vCPU / 6 GB / 100 GB NVMe) plus a small dedicated Redis VPS; add an identical standby at a different provider at about 30 tenants or 50% load; add read replicas horizontally after that; resize before a server reaches 60% of its measured ceiling |
-| 16 | A Cloudflare Worker meters and serves media in front of R2 (decided); the Worker price in the cost model is an estimate | Decided (use); price to verify |
+| 16 | Public media is served from R2's own address behind Cloudflare's cache, with no Worker (D9-31, replacing the metering Worker) | Decided |
 | 17 | Promotion mode (decided: semi-automatic, confirming DAT-10); Redis placement (decided: one shared instance on its own dedicated VPS from launch, exact global limits, no per-server division) | Decided |
 | 18 | A national or international outage takes both servers offline for users outside BDIX | Accepted risk |
 | 19 | Traffic distribution product: Cloudflare Load Balancing (decided — purpose-built for the weighted-steering and health-check requirements; a Tunnel solves a different problem); request pricing to verify | Decided (product); price to verify |
@@ -663,7 +663,7 @@ Several items still need a decision or a quote before build, and the main risks 
 | A scam tenant uses the hosted payment page | Victims lose money; the platform's name is harmed | Verified phone only (decided), report link, instant suspension, optional new-tenant volume limit |
 | Launch-week support overload | Slow answers, tenants leave | Self-service onboarding, load test, canned replies, status page |
 | SMS or OTP abuse | Balance drained, cost to the platform | OTP limits per phone, IP and tenant; free allowance small; empty-balance rule |
-| Bandwidth or storage overrun | Provider throttles or bills extra | Strict per-plan limits, per-tenant metering, capacity alerts at 70% |
+| Storage overrun, or media traffic past what Cloudflare's cache carries | Provider throttles or bills extra | Strict per-plan storage limits, Cloudflare's cache in front of media, capacity alerts at 70% |
 | Cross-tenant data leak | Serious trust and legal harm | Tenant filter in the data layer, tests, no tenant ID from requests |
 | A provider or server outage | Store down | Warm standby at another provider, DNS failover, backups |
 | SMS listener phone offline | Payments wait for manual checks | Offline detection, tenant notification, manual fallback, gateway option |

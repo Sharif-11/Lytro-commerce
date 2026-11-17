@@ -8,8 +8,7 @@ import type {
   SelectMedia,
   SelectMediaObject,
 } from '@lytronix/db';
-import type { MediaKind, MediaPurpose, MediaStatus, PackAutoBuyState } from '@lytronix/validators';
-import type { CyclePacks } from '../../../common/usage-warnings';
+import type { MediaKind, MediaPurpose, MediaStatus } from '@lytronix/validators';
 import type { MediaUrls } from '../../../common/media-links';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
@@ -70,33 +69,4 @@ export interface StorageUsage {
   limitBytes: number | null;
   imageMaxMb: number;
   videoMaxMb: number;
-}
-
-/** BND-08: one Asia/Dhaka calendar day of the cycle's bandwidth. */
-export interface BandwidthDay {
-  day: string;
-  bytes: number;
-  requests: number;
-}
-
-/**
- * BND-01, BND-06, BND-08: the shop's media bandwidth this cycle -- the bytes sent and the requests answered -- its
- * limit (null is unlimited, PLN-19), and its days, which total the cycle.
- */
-export interface BandwidthUsage {
-  cycleStart: Date;
-  usedBytes: number;
-  requests: number;
-  /** BND-04: the cycle's allowance -- the shop's own limit, then its packs; null is unlimited. */
-  limitBytes: number | null;
-  /** The shop's own limit, without packs; the grace is a share of it (BND-03). */
-  ownLimitBytes: number | null;
-  packs: CyclePacks;
-  /** BND-04: what is left of the shop's bandwidth packs, carried on until used. */
-  packLeftBytes: number;
-  /** PLN-15: auto-buy of bandwidth packs, and how it stands this cycle. */
-  autoBuy: boolean;
-  autoPacks: number;
-  autoBuyState: PackAutoBuyState | null;
-  days: BandwidthDay[];
 }

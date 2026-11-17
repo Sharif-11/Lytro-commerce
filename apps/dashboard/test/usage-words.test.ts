@@ -25,7 +25,7 @@ function figure(
   limit: number | null,
   given: Partial<UsageFigure> = {},
 ): UsageFigure {
-  const serving = metric === UsageMetric.Bandwidth || metric === UsageMetric.Requests;
+  const serving = metric === UsageMetric.Requests;
   const share = limit ? (used * 100) / limit : 0;
   const level = share >= 100 ? 100 : share >= 95 ? 95 : share >= 80 ? 80 : share >= 50 ? 50 : null;
   return {
@@ -34,7 +34,7 @@ function figure(
     limit,
     packLeft: serving ? 0 : null,
     stopAt: serving && limit ? limit * 1.1 : null,
-    unit: metric === UsageMetric.Storage || metric === UsageMetric.Bandwidth ? 'bytes' : 'count',
+    unit: metric === UsageMetric.Storage ? 'bytes' : 'count',
     perCycle: serving,
     level,
     runsOutAt: null,
@@ -75,7 +75,6 @@ function offer(
 const OFFERS = [
   offer('extra_products', AddonKind.Limit, 'products', 500, 149, 99),
   offer('extra_seat', AddonKind.Limit, 'staff', 1, 49, 33),
-  offer('bandwidth_pack', AddonKind.Pack, 'bandwidth_gb', 10, 30, 30),
   offer('request_pack', AddonKind.Pack, 'requests_monthly', 100000, 20, 20),
 ];
 
@@ -85,18 +84,10 @@ function usage(metrics: UsageFigure[], given: Partial<ShopUsage> = {}): ShopUsag
     cycleStart: '2026-09-30T18:00:00.000Z',
     cycleEnd: '2026-10-31T18:00:00.000Z',
     metrics,
-    bandwidthDays: [],
     requestDays: [],
     suggestions: null,
     fastSpendAlertedAt: null,
     packs: [
-      {
-        metric: UsageMetric.Bandwidth,
-        offer: { addonId: 'id-bandwidth_pack', name: '10 GB', price: 30 },
-        autoBuy: false,
-        autoPacks: 0,
-        autoBuyFailed: false,
-      },
       {
         metric: UsageMetric.Requests,
         offer: { addonId: 'id-request_pack', name: '100k', price: 20 },
@@ -123,7 +114,7 @@ describe("Usage's one banner (TENANT-DASHBOARD-DESIGN §7.24, agreed for Slice 1
   it('is for the metric nearest its stop, the card order breaking a tie', () => {
     const products = figure(UsageMetric.Products, 80, 100);
     const seats = figure(UsageMetric.Seats, 2, 2);
-    const stopped = figure(UsageMetric.Bandwidth, 34 * GB, 30 * GB, { level: 'stopped' });
+    const stopped = figure(UsageMetric.Requests, 230_000, 200_000, { level: 'stopped' });
     expect(worstFigure([products, seats])).toBe(seats);
     expect(worstFigure([products, seats, stopped])).toBe(stopped);
     const storage = figure(UsageMetric.Storage, 1.7 * GB, 2 * GB);
@@ -143,20 +134,20 @@ describe("Usage's one banner (TENANT-DASHBOARD-DESIGN §7.24, agreed for Slice 1
     );
   });
 
-  it('dates the run-out of bandwidth from the server, or says it lasts, and offers auto-buy at 80%', () => {
+  it('dates the run-out of requests from the server, or says it lasts, and offers auto-buy at 80%', () => {
     const runsOutAt = new Date(NOW + 5 * DAY_MS).toISOString();
-    const pacing = usage([figure(UsageMetric.Bandwidth, 24 * GB, 30 * GB, { runsOutAt })]);
+    const pacing = usage([figure(UsageMetric.Requests, 160_000, 200_000, { runsOutAt })]);
     const banner = bannerOf(pacing, OWNER);
     expect(banner?.text).toContain('uPaceOut {"date":"26 Oct","end":"31 Oct"}');
     expect(banner?.link).toEqual({
       kind: 'pack',
-      metric: UsageMetric.Bandwidth,
+      metric: UsageMetric.Requests,
       label: 'w80Offer',
     });
-    const lasting = usage([figure(UsageMetric.Bandwidth, 24 * GB, 30 * GB)]);
+    const lasting = usage([figure(UsageMetric.Requests, 160_000, 200_000)]);
     expect(bannerOf(lasting, OWNER)?.text).toContain('uPaceLasts {"end":"31 Oct"}');
     // With auto-buy on there is nothing to turn on.
-    const on = usage([figure(UsageMetric.Bandwidth, 24 * GB, 30 * GB)], {
+    const on = usage([figure(UsageMetric.Requests, 160_000, 200_000)], {
       packs: usage([]).packs.map((pack) => ({ ...pack, autoBuy: true })),
     });
     expect(bannerOf(on, OWNER)?.link).toBeNull();
@@ -172,14 +163,14 @@ describe("Usage's one banner (TENANT-DASHBOARD-DESIGN §7.24, agreed for Slice 1
         label: 'pkBuyLink {"size":"100,000","amount":"৳20"}',
       },
     });
-    const over = usage([figure(UsageMetric.Bandwidth, 31 * GB, 30 * GB)]);
+    const over = usage([figure(UsageMetric.Requests, 205_000, 200_000)]);
     expect(bannerOf(over, OWNER)?.text).toBe(
-      'uUsedUpBw {"used":"31 GB","limit":"30 GB","stop":"33 GB","end":"31 Oct"} uMailedSms',
+      'uUsedUpReq {"used":"205,000","limit":"200,000","stop":"220,000","end":"31 Oct"} uMailedSms',
     );
     expect(bannerOf(over, OWNER)?.link).toEqual({
       kind: 'pack',
-      metric: UsageMetric.Bandwidth,
-      label: 'pkLink {"size":"10 GB","amount":"৳30"}',
+      metric: UsageMetric.Requests,
+      label: 'pkLink {"size":"100,000","amount":"৳20"}',
     });
     expect(bannerOf(over, { ...OWNER, channels: { email: false, phone: true } })?.text).toMatch(
       / wSmsSent$/,
@@ -187,7 +178,7 @@ describe("Usage's one banner (TENANT-DASHBOARD-DESIGN §7.24, agreed for Slice 1
   });
 
   it('sends a shop whose auto-buy could not pay to top up', () => {
-    const failed = usage([figure(UsageMetric.Bandwidth, 30.4 * GB, 30 * GB)], {
+    const failed = usage([figure(UsageMetric.Requests, 204_000, 200_000)], {
       packs: usage([]).packs.map((pack) => ({ ...pack, autoBuy: true, autoBuyFailed: true })),
     });
     const banner = bannerOf(failed, OWNER);
@@ -236,15 +227,15 @@ describe('"To raise it" under each metric (LIM-01, agreed for Slice 11.5c)', () 
           monthly: 149,
         },
         {
-          addonId: 'id-bandwidth_pack',
-          key: 'bandwidth_pack',
-          name: '10 GB',
-          metric: UsageMetric.Bandwidth,
+          addonId: 'id-request_pack',
+          key: 'request_pack',
+          name: '100k',
+          metric: UsageMetric.Requests,
           quantity: 2,
-          monthly: 60,
+          monthly: 40,
         },
       ],
-      monthly: 209,
+      monthly: 189,
     },
     alternative: {
       kind: 'plan',
@@ -256,19 +247,19 @@ describe('"To raise it" under each metric (LIM-01, agreed for Slice 11.5c)', () 
     },
   };
   const products = figure(UsageMetric.Products, 80, 100);
-  const bandwidth = figure(UsageMetric.Bandwidth, 28.5 * GB, 30 * GB);
+  const requests = figure(UsageMetric.Requests, 190_000, 200_000);
   const storage = figure(UsageMetric.Storage, 1.7 * GB, 2 * GB);
-  const shop = usage([products, bandwidth, storage], { suggestions });
+  const shop = usage([products, requests, storage], { suggestions });
 
   it("names the metric's own add-on or pack from the suggestion, then the plan", () => {
     expect(raiseItems(shop, products, OFFERS, t, 'bn')).toEqual([
       { kind: 'addon', key: 'extra_products', text: 'uRaiseAddon {"name":"extra_products bn"}' },
       { kind: 'plan', planId: 'growth', text: 'uRaisePlan {"plan":"Growth"}' },
     ]);
-    expect(raiseItems(shop, bandwidth, OFFERS, t, 'en')[0]).toEqual({
+    expect(raiseItems(shop, requests, OFFERS, t, 'en')[0]).toEqual({
       kind: 'pack',
-      metric: UsageMetric.Bandwidth,
-      text: 'uRaisePacks {"count":2,"size":"10 GB","amount":"৳60"}',
+      metric: UsageMetric.Requests,
+      text: 'uRaisePacks {"count":2,"size":"100,000","amount":"৳40"}',
     });
     // A metric the suggestion has no add-on for names the plan alone.
     expect(raiseItems(shop, storage, OFFERS, t, 'en')).toEqual([

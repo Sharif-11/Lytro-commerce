@@ -12,7 +12,6 @@ import { AddressReads, type AddressReadFigures } from '../../address-reads/servi
 import { AddonPurchaseService } from '../../billing/services/addon-purchase.service';
 import type { AddonOffer } from '../../billing/types/addon';
 import { ProductService } from '../../catalogue/services/product.service';
-import { MediaBandwidth } from '../../media/services/media-bandwidth';
 import { MediaService } from '../../media/services/media.service';
 import { RequestQuota } from '../../public-api/services/request-quota';
 import { EssentialSmsUsageService } from '../../sms-usage/services/essential-sms-usage.service';
@@ -37,7 +36,7 @@ function levelOf(figure: Omit<UsageFigure, 'level'>): UsageFigure['level'] {
   return BANNER_SHARES.filter((share) => figure.used * 100 >= limit * share).pop() ?? null;
 }
 
-/** BND-04, RTE-11: the pack for sale that tops up this limit, and its price -- or null when the shop cannot buy one. */
+/** RTE-11: the pack for sale that tops up this limit, and its price -- or null when the shop cannot buy one. */
 function packOffer(offers: readonly AddonOffer[], limitKey: string): UsagePack['offer'] {
   const offer = offers.find(
     ({ addon, price }) =>
@@ -64,7 +63,6 @@ export class UsageService {
     @Inject(ProductService) private readonly products: ProductService,
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(MediaService) private readonly media: MediaService,
-    @Inject(MediaBandwidth) private readonly bandwidth: MediaBandwidth,
     @Inject(RequestQuota) private readonly requests: RequestQuota,
     @Inject(EssentialSmsUsageService) private readonly sms: EssentialSmsUsageService,
     @Inject(UsageSettings) private readonly settings: UsageSettings,
@@ -82,7 +80,6 @@ export class UsageService {
       products,
       seats,
       storage,
-      bandwidth,
       requests,
       requestDays,
       requestPacks,
@@ -94,7 +91,6 @@ export class UsageService {
       this.products.liveCount(tenant.id),
       this.staff.seatsUsed(tenant.id),
       this.media.usage(tenant.id),
-      this.bandwidth.usage(tenant.id),
       this.requests.used(tenant.id, cycleStart, now),
       this.requests.days(tenant.id, cycleStart),
       this.requests.packsOf(tenant.id, cycleStart),
@@ -131,7 +127,7 @@ export class UsageService {
         unit,
         perCycle,
         packLeft: packs ? packs.available - packTaken(used, own, packs) : null,
-        // BND-03, RTE-03: the grace after the allowance is a share of the shop's own limit.
+        // RTE-03: the grace after the allowance is a share of the shop's own limit.
         stopAt:
           serving && own !== null && allowance !== null ? allowance + (own * grace) / 100 : null,
         runsOutAt: runsOut !== null && runsOut < cycleEnd ? runsOut : null,
@@ -142,17 +138,9 @@ export class UsageService {
       figure(UsageMetric.Products, products, 'count', false),
       figure(UsageMetric.Seats, seats, 'count', false),
       figure(UsageMetric.Storage, storage.usedBytes, 'bytes', false),
-      figure(UsageMetric.Bandwidth, bandwidth.usedBytes, 'bytes', true, bandwidth.packs),
       figure(UsageMetric.Requests, requests, 'count', true, requestPacks.packs),
     ];
     const packs: UsagePack[] = [
-      {
-        metric: UsageMetric.Bandwidth,
-        offer: packOffer(offers, 'bandwidth_gb'),
-        autoBuy: bandwidth.autoBuy,
-        autoPacks: bandwidth.autoPacks,
-        autoBuyFailed: bandwidth.autoBuyState === PackAutoBuyState.Failed,
-      },
       {
         metric: UsageMetric.Requests,
         offer: packOffer(offers, 'requests_monthly'),
@@ -180,7 +168,6 @@ export class UsageService {
       cycleStart,
       cycleEnd,
       metrics,
-      bandwidthDays: bandwidth.days,
       requestDays,
       suggestions: await this.suggestions.for(tenant, metrics, offers, now),
       fastSpendAlertedAt: fastSpend,

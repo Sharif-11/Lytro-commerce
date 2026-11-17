@@ -1,22 +1,20 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import ffmpegPath from 'ffmpeg-static';
 import type { Env } from '../../config/env';
 import { ENV } from '../../config/tokens';
-import { shopOrigin } from '../../common/shop-address';
 import { DrizzleBandwidthStore, DrizzleMediaStore } from '../../database/adapters/media.adapter';
 import { CatalogueModule } from '../catalogue/catalogue.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { OutsideCalls } from '../shared/outside-calls/services/outside-calls';
 import { QueueModule } from '../shared/queue/queue.module';
-import type { MediaEdge } from './ports/media-edge';
+import type { MediaCache } from './ports/media-cache';
 import type { MediaStorage } from './ports/media-storage';
-import { CloudflareMediaEdge } from './providers/cloudflare-media-edge';
+import { CloudflareMediaCache } from './providers/cloudflare-media-cache';
 import { S3MediaStorage } from './providers/s3-media-storage';
-import { UnconfiguredMediaEdge } from './providers/unconfigured-media-edge';
+import { UnconfiguredMediaCache } from './providers/unconfigured-media-cache';
 import { UnconfiguredMediaStorage } from './providers/unconfigured-media-storage';
 import { ImageProcessor } from './services/image-processor';
-import { MediaBandwidth, type BandwidthSettings } from './services/media-bandwidth';
 import { MediaDeleter } from './services/media-deleter';
 import { MediaEraser } from './services/media-eraser';
 import { MediaLimits } from './services/media-limits';
@@ -25,11 +23,10 @@ import { MediaReconciler } from './services/media-reconciler';
 import { MediaService } from './services/media.service';
 import { VideoProcessor, type FfmpegSettings } from './services/video-processor';
 import {
-  BANDWIDTH_SETTINGS,
   BANDWIDTH_STORE,
   FFMPEG,
+  MEDIA_CACHE,
   MEDIA_CLOCK,
-  MEDIA_EDGE,
   MEDIA_NOTIFIER,
   MEDIA_STORAGE,
   MEDIA_STORE,
@@ -70,20 +67,25 @@ function mediaStorage(env: Env, outside: OutsideCalls): MediaStorage {
   );
 }
 
-/** MED-10, BND-01: Cloudflare when its token is set (its account and store are then required, env.ts); else none. */
-function mediaEdge(env: Env, outside: OutsideCalls): MediaEdge {
+/**
+ * D9-31: Cloudflare's cache in front of the media bucket, purged through its API when the token, the zone and the media
+ * address are all set; else nothing is kept in front of the media, so nothing needs purging.
+ */
+function mediaCache(env: Env, outside: OutsideCalls): MediaCache {
   const apiToken = env.CLOUDFLARE_API_TOKEN;
-  const accountId = env.CLOUDFLARE_ACCOUNT_ID;
-  const kvNamespaceId = env.MEDIA_EDGE_KV_NAMESPACE_ID;
-  if (!apiToken) return new UnconfiguredMediaEdge();
-  if (!accountId || !kvNamespaceId) throw new Error('the media edge needs its account and store');
-  return new CloudflareMediaEdge(
-    {
-      accountId,
-      apiToken,
-      kvNamespaceId,
-      dataset: env.MEDIA_USAGE_DATASET,
-    },
+  const zoneId = env.CLOUDFLARE_ZONE_ID;
+  const mediaBaseUrl = env.MEDIA_PUBLIC_BASE_URL;
+  if (!apiToken || !zoneId || !mediaBaseUrl) {
+    // A server with Cloudflare's token but no zone would leave a deleted shop's files in Cloudflare's cache.
+    if (apiToken && mediaBaseUrl) {
+      new Logger('MediaCache').warn(
+        "CLOUDFLARE_ZONE_ID is not set: a deleted shop's media stays in Cloudflare's cache",
+      );
+    }
+    return new UnconfiguredMediaCache();
+  }
+  return new CloudflareMediaCache(
+    { apiToken, zoneId, mediaBaseUrl },
     undefined,
     outside.breaker('cloudflare'),
   );
@@ -98,6 +100,7 @@ function mediaEdge(env: Env, outside: OutsideCalls): MediaEdge {
     CatalogueModule,
     PlatformSettingsModule,
     QueueModule,
+    // LIM-01: the storage warnings processed media can cross.
     UsageWarningsModule,
   ],
   providers: [
@@ -106,15 +109,8 @@ function mediaEdge(env: Env, outside: OutsideCalls): MediaEdge {
     { provide: MEDIA_NOTIFIER, useExisting: BellMediaNotifier },
     { provide: FFMPEG, useValue: FFMPEG_SETTINGS },
     { provide: MEDIA_CLOCK, useValue: () => new Date() },
-    { provide: MEDIA_EDGE, inject: [ENV, OutsideCalls], useFactory: mediaEdge },
+    { provide: MEDIA_CACHE, inject: [ENV, OutsideCalls], useFactory: mediaCache },
     { provide: BANDWIDTH_STORE, useClass: DrizzleBandwidthStore },
-    {
-      provide: BANDWIDTH_SETTINGS,
-      inject: [ENV],
-      useFactory: (env: Env): BandwidthSettings => ({
-        shopOrigin: (slug) => shopOrigin(env, slug),
-      }),
-    },
     ImageProcessor,
     VideoProcessor,
     MediaLimits,
@@ -123,15 +119,13 @@ function mediaEdge(env: Env, outside: OutsideCalls): MediaEdge {
     MediaDeleter,
     MediaEraser,
     MediaReconciler,
-    MediaBandwidth,
   ],
   exports: [
     MediaService,
-    // For the processing, deletion, nightly and minute workers, and the bandwidth route.
+    // For the processing, deletion and nightly workers.
     MediaProcessor,
     MediaDeleter,
     MediaReconciler,
-    MediaBandwidth,
     // For the day-60 deletion (LIF-19).
     MediaEraser,
     // For payment screenshots (D8-47), which live in the same store.

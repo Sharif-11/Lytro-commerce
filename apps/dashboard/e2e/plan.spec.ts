@@ -254,7 +254,7 @@ test('switches to pay-as-you-go at the period end, with the limits that fall', a
   await main(page).getByRole('button', { name: 'মেয়াদ শেষে বদলান' }).click();
   await expect(
     sheet(page).getByText(
-      'লিমিট কমবে: প্রোডাক্ট: 100 → 25 · স্টাফ সিট: 2 → 1 · স্টোরেজ: 2 GB → 250 MB · ব্যান্ডউইথ: 30 GB → 10 GB',
+      'লিমিট কমবে: প্রোডাক্ট: 100 → 25 · স্টাফ সিট: 2 → 1 · স্টোরেজ: 2 GB → 250 MB',
     ),
   ).toBeVisible();
   await sheet(page)
@@ -286,7 +286,7 @@ test("a pay-as-you-go shop's page: this month's fees, the balance, the rates and
   await expect(main(page).getByRole('heading', { name: 'পে-অ্যাজ-ইউ-গো' })).toBeVisible();
   await expect(main(page).getByText('৳612')).toBeVisible();
   await expect(main(page).getByText('৳412.50')).toBeVisible();
-  await expect(main(page).getByText('25টি প্রোডাক্ট · 1টি সিট · 250 MB · 10 GB')).toBeVisible();
+  await expect(main(page).getByText('25টি প্রোডাক্ট · 1টি সিট · 250 MB')).toBeVisible();
   await expect(main(page).getByRole('button', { name: 'Starter নিন' })).toBeVisible();
   await main(page).getByText('শপ বন্ধ করা').click();
   await main(page).getByRole('button', { name: 'শপ বন্ধ করুন' }).click();

@@ -10,7 +10,7 @@ UPDATE control.tenants
 SET state = 'active',
     plan_snapshot = coalesce(plan_snapshot, '{}'::jsonb) || jsonb_build_object(
       'products', null, 'orders_total', null, 'orders_handled_daily', null, 'orders_handled_monthly', null,
-      'requests_monthly', null, 'storage_mb', null, 'bandwidth_gb', null, 'paired_devices', 5, 'staff', 10)
+      'requests_monthly', null, 'storage_mb', null, 'paired_devices', 5, 'staff', 10)
 WHERE slug LIKE :'prefix' || '-s%';
 
 INSERT INTO tenant.balance_ledger (tenant_id, type, amount, reference)

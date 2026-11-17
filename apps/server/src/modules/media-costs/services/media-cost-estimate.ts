@@ -69,20 +69,12 @@ export interface StorageCost {
   cost: number;
 }
 
-export interface WorkersCost {
-  requests: number;
-  billableMillions: number;
-  monthly: number;
-  cost: number;
-}
-
 export interface MediaCostEstimate {
   classA: OperationsCost;
   classB: OperationsCost;
   storage: StorageCost;
   /** R2's three lines together. */
   r2: number;
-  workers: WorkersCost;
   total: number;
 }
 
@@ -98,12 +90,11 @@ function operations(count: number, freeMillions: number, perMillion: number): Op
 }
 
 /**
- * MED-12: the period's bill so far, from R2's recorded days (every bucket, D8-59) and the media Worker's requests.
- * Workers' monthly charge is in from the first day, as Cloudflare charges it.
+ * MED-12: the period's bill so far, from R2's recorded days (every bucket, D8-59). Public media is served from
+ * Cloudflare's cache in front of the bucket, which bills nothing (D9-31).
  */
 export function estimateOf(
   days: readonly R2DayFigures[],
-  workerRequests: number,
   prices: CloudflarePrices,
 ): MediaCostEstimate {
   const classA = operations(
@@ -123,15 +114,8 @@ export function estimateOf(
     billableGbMonths,
     cost: billableGbMonths * prices.r2StoragePerGbMonth,
   };
-  const workerMillions = billable(workerRequests / MILLION, prices.workersIncludedMillions);
-  const workers = {
-    requests: workerRequests,
-    billableMillions: workerMillions,
-    monthly: prices.workersMonthly,
-    cost: prices.workersMonthly + workerMillions * prices.workersPerMillion,
-  };
   const r2 = classA.cost + classB.cost + storage.cost;
-  return { classA, classB, storage, r2, workers, total: r2 + workers.cost };
+  return { classA, classB, storage, r2, total: r2 };
 }
 
 /** US dollars to two places, as the console and the alert show them. */

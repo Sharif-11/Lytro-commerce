@@ -501,22 +501,12 @@ describeIfDatabase('the shops report (D8-41)', () => {
 });
 
 describeIfDatabase('the top consumers (D8-10, D8-42)', () => {
-  it("ranks shops by SMS, storage and bandwidth, with each owner's phone, and in the CSV", async () => {
+  it("ranks shops by SMS and storage, with each owner's phone, and in the CSV", async () => {
     const small = await shop();
     const big = await shop();
     await shopDay(small.tenantId, '2024-05-10', { sms: 10, storage: 500 });
     await shopDay(small.tenantId, '2024-05-11', { sms: 0, storage: 700 });
     await shopDay(big.tenantId, '2024-05-10', { sms: 30, storage: 100 });
-    for (const [tenantId, bytes] of [
-      [small.tenantId, 1000],
-      [big.tenantId, 2000],
-    ] as const) {
-      await admin.query(
-        `INSERT INTO control.media_bandwidth_daily (tenant_id, cycle_start, day, bytes, requests)
-         VALUES ($1, $2, '2024-05-10', $3, 1)`,
-        [tenantId, noon('2024-05-01'), bytes],
-      );
-    }
     const top = async (
       metric: string,
     ): Promise<{ id: string; value: number; ownerPhone: string | null }[]> => {
@@ -527,7 +517,8 @@ describeIfDatabase('the top consumers (D8-10, D8-42)', () => {
       return (answer.body as { shops: { id: string; value: number; ownerPhone: string | null }[] })
         .shops;
     };
-    expect((await top('sms')).map((row) => [row.id, row.value])).toEqual([
+    const sms = await top('sms');
+    expect(sms.map((row) => [row.id, row.value])).toEqual([
       [big.tenantId, 30],
       [small.tenantId, 10],
     ]);
@@ -536,14 +527,17 @@ describeIfDatabase('the top consumers (D8-10, D8-42)', () => {
       [small.tenantId, 700],
       [big.tenantId, 100],
     ]);
-    const bandwidth = await top('bandwidth');
-    expect(bandwidth.map((row) => [row.id, row.value])).toEqual([
-      [big.tenantId, 2000],
-      [small.tenantId, 1000],
-    ]);
+    // Media bandwidth is no longer counted (D9-31): there is nothing to rank shops by.
+    expect(
+      (
+        await report(
+          '/operator/reports/consumers?dateFrom=2024-05-01&dateTo=2024-05-31&metric=bandwidth',
+        )
+      ).status,
+    ).toBe(400);
     const phone = await ownerPhoneOf(big.tenantId);
     expect(phone).not.toBeNull();
-    expect(bandwidth[0]?.ownerPhone).toBe(phone);
+    expect(sms[0]?.ownerPhone).toBe(phone);
     // Review C's F6: a seller may type any shop name, a spreadsheet formula too.
     await admin.query('UPDATE control.tenants SET shop_name = $2 WHERE id = $1', [
       big.tenantId,

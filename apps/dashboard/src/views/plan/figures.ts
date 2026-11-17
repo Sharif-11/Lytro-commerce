@@ -30,7 +30,7 @@ export interface LimitMove {
 
 // The limits an upgrade names, in the sketch's order (`limitsChange`), and the ones pay-as-you-go lowers (`pgLimits`).
 export const UPGRADE_LIMITS: readonly LimitKey[] = ['products', 'staff', 'orders_handled_monthly'];
-export const PAYG_LIMITS: readonly LimitKey[] = ['products', 'staff', 'storage_mb', 'bandwidth_gb'];
+export const PAYG_LIMITS: readonly LimitKey[] = ['products', 'staff', 'storage_mb'];
 
 /** The limits among `keys` the two plans set differently. */
 export function limitMoves(
@@ -68,7 +68,7 @@ export function overLimits(items: readonly OverLimitItem[]): (OverLimitItem & {
 }
 
 function figureOf(key: string, value: number): string {
-  return key === 'storage_mb' || key === 'bandwidth_gb'
+  return key === 'storage_mb'
     ? (limitFigure(key, value) ?? String(value))
     : value.toLocaleString('en-US');
 }

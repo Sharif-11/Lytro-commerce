@@ -1,13 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import {
-  AddonKind,
-  AddonRenewal,
-  Permission,
-  TenantState,
-  UsageMetric,
-} from '@lytronix/validators';
+import { AddonKind, AddonRenewal, Permission, TenantState } from '@lytronix/validators';
 import { formatTaka, formatTakaExact } from '@lytronix/ui';
 import { useAddonOffers, useSetAddonRenewal, useShopAddons } from '@/api/addons';
 import { useBalance } from '@/api/balance';
@@ -24,22 +18,14 @@ import { usePaymentNotices } from '@/views/billing/notices';
 import { PaymentBanner } from '@/views/billing/payment-banner';
 import { AutoBuyCard } from '@/views/usage/auto-buy-card';
 import { AddonRow, type RowContext } from './addon-row';
-import {
-  endingBanner,
-  groupsOf,
-  headLine,
-  packMetric,
-  sizedName,
-  type AddonLine,
-} from './addon-words';
+import { endingBanner, groupsOf, headLine, sizedName, type AddonLine } from './addon-words';
 import { BuySheet } from './buy-sheet';
 import { PackSheet } from './pack-sheet';
 import { readsOf } from '@/views/usage/per-use';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-type OpenSheet =
-  { kind: 'buy'; addonId: string } | { kind: 'pack'; metric: 'bandwidth' | 'requests' };
+type OpenSheet = { kind: 'buy'; addonId: string } | { kind: 'pack'; metric: 'requests' };
 
 /**
  * Add-ons (TENANT-DASHBOARD-DESIGN §7.25, the prototype's `addons` with Part 10's states): what the shop has renews
@@ -52,7 +38,7 @@ export function AddonsView({
   pack,
 }: {
   buy: string | null;
-  pack: 'bandwidth' | 'requests' | null;
+  pack: 'requests' | null;
 }): React.JSX.Element {
   const { t, i18n } = useTranslation('money');
   const navigate = useNavigate();
@@ -95,10 +81,7 @@ export function AddonsView({
     if (canManage && asked && asked.blockedBy === null) {
       setSheet(
         asked.addon.kind === AddonKind.Pack
-          ? {
-              kind: 'pack',
-              metric: packMetric(asked.addon) === UsageMetric.Requests ? 'requests' : 'bandwidth',
-            }
+          ? { kind: 'pack', metric: 'requests' }
           : { kind: 'buy', addonId: asked.addon.id },
       );
     }
@@ -108,10 +91,7 @@ export function AddonsView({
 
   function open(line: AddonLine): void {
     if (line.addon.kind === AddonKind.Pack) {
-      setSheet({
-        kind: 'pack',
-        metric: packMetric(line.addon) === UsageMetric.Requests ? 'requests' : 'bandwidth',
-      });
+      setSheet({ kind: 'pack', metric: 'requests' });
       return;
     }
     setSheet({ kind: 'buy', addonId: line.addon.id });
@@ -241,7 +221,6 @@ export function AddonsView({
       {sheet?.kind === 'pack' && packs.length > 0 ? (
         <PackSheet
           packs={packs}
-          metric={sheet.metric}
           usage={usage.data}
           canManage={canManage}
           onClose={() => {

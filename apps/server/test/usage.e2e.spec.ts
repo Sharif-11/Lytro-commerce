@@ -7,7 +7,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
 import { DAY_MS } from '../src/common/time';
 import { PlanLimitOverridesService } from '../src/modules/billing/services/plan-limit-overrides.service';
-import { GB } from '../src/modules/media/services/media-bandwidth';
 import { MB } from '../src/modules/media/services/media-limits';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
@@ -40,7 +39,6 @@ interface UsageBody {
   cycleStart: string;
   cycleEnd: string;
   metrics: Figure[];
-  bandwidthDays: unknown[];
 }
 
 let app: INestApplication;
@@ -139,17 +137,7 @@ describeIfDatabase('the usage page (LIM-02)', () => {
         level: null,
         runsOutAt: null,
       },
-      // BND-04, RTE-11: no packs yet; served up to the limit and its 10% grace.
-      bandwidth: {
-        used: 0,
-        limit: 5 * GB,
-        packLeft: 0,
-        stopAt: 5.5 * GB,
-        unit: 'bytes',
-        perCycle: true,
-        level: null,
-        runsOutAt: null,
-      },
+      // RTE-11: no packs yet; served up to the limit and its 10% grace. Media bandwidth is no limit (D9-31).
       requests: {
         used: 3,
         limit: 20_000,
@@ -189,7 +177,7 @@ describeIfDatabase('the usage page (LIM-02)', () => {
     expect(end).toBeGreaterThan(Date.now());
     expect(end - start).toBeGreaterThanOrEqual(28 * DAY_MS);
     expect(end - start).toBeLessThanOrEqual(31 * DAY_MS);
-    expect(body.bandwidthDays).toEqual([]);
+    expect(body).not.toHaveProperty('bandwidthDays');
   });
 
   it('lays overrides over the snapshot, and shows an unlimited limit as null (PLN-11, PLN-19)', async () => {
@@ -256,9 +244,8 @@ describeIfDatabase('the usage page (LIM-02)', () => {
     const runsOut = Date.parse(paced['requests']?.runsOutAt ?? '');
     expect(runsOut - Date.now()).toBeGreaterThan((7 / 3) * DAY_MS - 60_000);
     expect(runsOut - Date.now()).toBeLessThan((7 / 3) * DAY_MS + 60_000);
-    // Only the metrics that serve shoppers have one; bandwidth is unused, so it lasts.
+    // Only the metrics that serve shoppers have one.
     expect(paced['products']?.runsOutAt).toBeNull();
-    expect(paced['bandwidth']?.runsOutAt).toBeNull();
     // Used up, there is nothing left to run out.
     for (let made = 3; made < 10; made += 1) await call();
     expect(byMetric(await usageOf(shop))['requests']).toMatchObject({ used: 10, runsOutAt: null });

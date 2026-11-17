@@ -36,7 +36,7 @@ export interface AddonOption {
   limitKey: UsageLimitKey;
   unitSize: number;
   monthly: number;
-  /** BND-04, RTE-11: a pack -- bandwidth or API requests -- bought as a cycle needs it; its price counts per cycle. */
+  /** RTE-11: a pack of API requests, bought as a cycle needs it; its price counts per cycle. */
   pack?: boolean;
 }
 
