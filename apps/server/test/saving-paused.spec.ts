@@ -167,4 +167,27 @@ describe('a database connection lost under a request (DAT-42)', () => {
     expect((read.body as { errors: { details: unknown } }).errors.details).toEqual({});
     expect(answer('POST', new Error('something else')).status).toBe(500);
   });
+
+  // Small fixes, 2026-11-17: 9.10's shakedown read a pool whose connections stayed in use as a lost database.
+  it('a pool too busy to give a connection is busy, not lost: a short retry, no "saving paused", no check', () => {
+    const busy = new Error('Failed query', {
+      cause: new Error('timeout exceeded when trying to connect'),
+    });
+    const write = answer('POST', busy);
+    expect(write.status).toBe(503);
+    expect(write.headers['Retry-After']).toBe('5');
+    expect(write.body).toMatchObject({
+      message: 'The server is very busy right now. Please try again in a moment.',
+      errors: { code: 'service_unavailable', details: {} },
+    });
+    expect(write.check).not.toHaveBeenCalled();
+    expect(answer('GET', busy, 'bn').body).toMatchObject({
+      message: 'সার্ভার এই মুহূর্তে খুব ব্যস্ত। একটু পরে আবার চেষ্টা করুন।',
+    });
+    // A new connection that couldn't be made is still lost.
+    const unmade = new Error('Connection terminated due to connection timeout');
+    expect(answer('POST', unmade).body).toMatchObject({
+      errors: { details: { savingPaused: true } },
+    });
+  });
 });

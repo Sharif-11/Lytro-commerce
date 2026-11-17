@@ -133,6 +133,7 @@ export function ProfileView({
             id="pf-current"
             className={currentWrong ? 'input bad' : 'input'}
             type="password"
+            maxLength={PASSWORD_MAX_LENGTH}
             autoComplete="current-password"
             value={current}
             onChange={(event) => {

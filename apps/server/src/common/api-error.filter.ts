@@ -20,7 +20,7 @@ import { headerValue, type HttpRequest } from './http';
 import { resolveLanguage } from './i18n/accept-language';
 import type { MessageKey } from './i18n/message-key';
 import { translate } from './i18n/messages';
-import { isLostConnection } from '../database/lost-connection';
+import { isLostConnection, isPoolBusy } from '../database/lost-connection';
 import { PrimaryWatch } from '../database/primary-watch';
 import { SAVING_PAUSED_DETAILS, SAVING_RETRY_AFTER_SECONDS } from './guards/saving.guard';
 
@@ -29,6 +29,9 @@ interface HttpResponse {
   setHeader(name: string, value: string): void;
   status(code: number): { json(body: unknown): void };
 }
+
+// How soon a request that met a busy pool is tried again: the pool's wait is seconds, not minutes.
+const BUSY_RETRY_AFTER_SECONDS = 5;
 
 const logger = new Logger('UnhandledException');
 
@@ -160,6 +163,27 @@ export class ApiErrorFilter implements ExceptionFilter {
       response
         .status(HTTP_STATUS.not_found)
         .json(this.body(HTTP_STATUS.not_found, translate('PageNotFound', lang), 'not_found', {}));
+      return;
+    }
+
+    // Small fixes, 2026-11-17: every database connection stayed in use while this request waited for one. The database
+    // is there, so it isn't "saving paused" and the watch isn't woken: the answer is busy, tried again shortly, as a
+    // shop's busy page does (Slice 9.10).
+    if (isPoolBusy(exception)) {
+      const method = String(Reflect.get(Object(request), 'method') ?? 'GET').toUpperCase();
+      logger.warn(`every database connection stayed in use under a ${method} request`);
+      this.errors.unavailable(request, 'ServerBusy');
+      response.setHeader('Retry-After', String(BUSY_RETRY_AFTER_SECONDS));
+      response
+        .status(HTTP_STATUS.service_unavailable)
+        .json(
+          this.body(
+            HTTP_STATUS.service_unavailable,
+            translate('ServerBusy', lang),
+            'service_unavailable',
+            {},
+          ),
+        );
       return;
     }
 

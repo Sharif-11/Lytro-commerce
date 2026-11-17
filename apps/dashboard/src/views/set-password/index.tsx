@@ -1,4 +1,5 @@
 import { useState, type SyntheticEvent } from 'react';
+import { PASSWORD_MAX_LENGTH } from '@lytronix/validators';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { RECOVERY_NOTE_KEY, useSetPassword } from '@/api/auth';
@@ -60,6 +61,7 @@ export function SetPassword(): React.JSX.Element {
           label={t('pwNew')}
           name="newPassword"
           type="password"
+          maxLength={PASSWORD_MAX_LENGTH}
           autoComplete="new-password"
           value={password}
           error={rulesError}

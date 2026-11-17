@@ -2331,8 +2331,9 @@ CREATE INDEX ON control.reconciliation_differences (state, day);
 ```
 
 **Retired by D9-31 (2026-11-17):** nothing writes these tables any more; public media is served from Cloudflare's cache
-and is not counted per shop. They stay, read by nothing but a lapsed shop's deletion, until a later release drops them
-(with `control.media_usage_pull` and `control.tenants.auto_buy_bandwidth`).
+and is not counted per shop. Since migration 0140 (the small fixes of 2026-11-17) neither the code nor the Drizzle schema
+names them, with `control.media_usage_pull` and `control.tenants.auto_buy_bandwidth`; the release after drops them as
+the contract of 0140.
 
 **Built in Phase 3 Slice 7b (migration 0067, 2026-10-21):** media bandwidth (BND-01, BND-02, BND-05, BND-06, BND-08),
 with these decisions:

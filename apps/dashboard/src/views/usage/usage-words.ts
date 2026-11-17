@@ -1,7 +1,7 @@
 import { AddonKind, PACK_AUTO_BUY_CAP, UsageMetric } from '@lytronix/validators';
 import { formatTaka } from '@lytronix/ui';
 import { dayKey, formatDayMonth } from '@/lib/dates';
-import { usageSize } from '@/lib/limits';
+import { formatCount, usageSize } from '@/lib/limits';
 import type { Addon, AddonOffer } from '@/types/addons';
 import type { ShopUsage, UsageFigure, UsagePack } from '@/types/usage';
 
@@ -112,9 +112,9 @@ export function labelOf(addon: Addon, language: string): string {
   return language === 'bn' ? addon.labelBn : addon.labelEn;
 }
 
-/** A pack's size as its words say it: "100,000" requests. */
-export function packSize(addon: Addon): string {
-  return (addon.unitSize ?? 0).toLocaleString('en-US');
+/** A pack's size as its words say it, in the language shown: "1,00,000" requests in Bangla, "100,000" in English. */
+export function packSize(addon: Addon, language: string): string {
+  return formatCount(addon.unitSize ?? 0, language);
 }
 
 /** The pack for sale for a metric, from the catalogue: what the links and the auto-buy switches name. */
@@ -198,7 +198,7 @@ function servingBanner(
   const used = amountOf(figure, figure.used);
   const of = amountOf(figure, limit);
   const did = autoBuyLine(pack, usage, t);
-  const size = offer ? packSize(offer.addon) : '';
+  const size = offer ? packSize(offer.addon, context.language) : '';
   const amount = offer?.price != null ? formatTaka(offer.price) : '';
   const buy: BannerLink | null =
     offer?.price != null
@@ -384,7 +384,7 @@ export function raiseItems(
       if (offer?.addon.kind === AddonKind.Pack && isServing(figure.metric)) {
         const words = {
           count: item.quantity,
-          size: packSize(offer.addon),
+          size: packSize(offer.addon, language),
           amount: formatTaka(item.monthly),
         };
         items.push({

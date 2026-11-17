@@ -1,0 +1,5 @@
+-- D9-31, the expand step of the bandwidth tables' removal (small fixes, 2026-11-17): the code and the schema let go of
+-- control.media_bandwidth, control.media_bandwidth_daily, control.media_usage_pull and control.tenants'
+-- auto_buy_bandwidth, which nothing has read since #377. Nothing is dropped here, so the previous release, which still
+-- removes a lapsed shop's bandwidth rows, keeps working; a later release drops them as `-- contract-of:
+-- 0140_media_bandwidth_let_go`, once this snapshot, without them, is the previous release's.

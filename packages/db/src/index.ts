@@ -326,12 +326,6 @@ export {
   type ProductPhotoPlacement,
 } from './repositories/media/media.repository';
 export {
-  MediaBandwidthRepository,
-  type BandwidthCycleRow,
-  type BandwidthDayRow,
-  type EdgeShopRow,
-} from './repositories/media/media-bandwidth.repository';
-export {
   ReservationRepository,
   type NewReservation,
 } from './repositories/inventory/reservation.repository';

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { IdentityKind } from '@lytronix/validators';
+import { IdentityKind, PASSWORD_MAX_LENGTH } from '@lytronix/validators';
 import { useChangePassword, useChangeStaffPassword } from '@/api/auth';
 import { useRequestIdentityCode, useVerifyIdentity } from '@/api/identities';
 import { ErrorBanner } from '@/components/error-banner';
@@ -78,6 +78,7 @@ export function ChangePasswordSheet({
           label={t('pwCurrent')}
           name="currentPassword"
           type="password"
+          maxLength={PASSWORD_MAX_LENGTH}
           autoComplete="current-password"
           value={current}
           onChange={(event) => {
@@ -98,6 +99,7 @@ export function ChangePasswordSheet({
         label={t('pwNew')}
         name="newPassword"
         type="password"
+        maxLength={PASSWORD_MAX_LENGTH}
         autoComplete="new-password"
         placeholder={t('pwPh')}
         value={password}
@@ -109,6 +111,7 @@ export function ChangePasswordSheet({
         label={t('pwAgain')}
         name="passwordAgain"
         type="password"
+        maxLength={PASSWORD_MAX_LENGTH}
         autoComplete="new-password"
         value={again}
         error={mismatch ? t('pwMismatch') : undefined}

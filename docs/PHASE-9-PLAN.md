@@ -455,8 +455,9 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
      the production run's report and fixes, DAT-54's restore drill, and the Cloudflare decision.
 - **After staging's shakedown** (2026-11-14, `docs/drills/2026-11-14-load-staging.md`; the owner's answers):
   1. **The first pull request fixes the storefront's busy pages**, as sketched (STOREFRONT-DESIGN §7h, approved). The
-     other findings stay in the report for a later fix: estimates writing the default zones, a busy pool answered as
-     "saving paused", and a shop's catalogue lock holding a connection.
+     other findings stay in the report for a later fix: estimates writing the default zones (fixed with the edge cache,
+     #380), a busy pool answered as "saving paused" (fixed in the small fixes of 2026-11-17: busy, tried again in 5
+     seconds), and a shop's catalogue lock holding a connection (open).
   2. **The production server is bigger**: 8 vCPU and 16 GB (D9-30).
   3. **Shop pages are cached at Cloudflare's edge, before launch** (the owner: "allow as much shoppers as we can but
      reduce infrastructure cost"). The owner asked about 1,000 to 2,500 shops at 300 orders a month and 1% conversion:
