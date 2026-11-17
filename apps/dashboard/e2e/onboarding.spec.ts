@@ -387,6 +387,31 @@ test('shows only the sign-in providers the server has', async ({ page }) => {
   await expect(page.getByText('অথবা', { exact: true })).toHaveCount(0);
 });
 
+test('accepting the terms is a box, ticked at first, and nothing goes on while it is unticked (LEG-01)', async ({
+  page,
+}) => {
+  await mockOnboarding(page, { providers: ['google'] });
+  await page.goto('/sign-in');
+  const box = page.getByRole('checkbox', { name: /টার্মস আর প্রাইভেসি পলিসি মেনে নিচ্ছি/ });
+  const go = page.getByRole('button', { name: 'এগিয়ে যান' });
+  const google = page.getByRole('button', { name: 'গুগল দিয়ে চালিয়ে যান' });
+  await expect(box).toBeChecked();
+  await expect(go).toBeEnabled();
+  await expect(page.getByRole('link', { name: 'টার্মস' })).toHaveAttribute('target', '_blank');
+
+  await box.uncheck();
+  await expect(go).toBeDisabled();
+  await expect(google).toBeDisabled();
+  await expect(page.getByRole('alert')).toHaveText(
+    'চালিয়ে যেতে টার্মস আর প্রাইভেসি পলিসিতে টিক দিন।',
+  );
+
+  await box.check();
+  await expect(go).toBeEnabled();
+  await expect(google).toBeEnabled();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
 test("signs a staff member in, has them choose their own password, and opens the owner's shop (AUTH-31)", async ({
   page,
 }) => {
