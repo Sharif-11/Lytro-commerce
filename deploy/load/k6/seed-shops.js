@@ -9,6 +9,9 @@ import { visitorAddress } from './lib/target.js';
 const SHOPS = Number(__ENV.SHOPS || 100);
 // A short name for this seeding, in every shop's address: two seedings never collide.
 const RUN = __ENV.RUN || 'lt';
+// Where this seeding's owners' phones start: a server keeps the owners an earlier seeding signed up, and asking a code for
+// one of their phones again is refused (staging's recheck, 2026-11-18). Give each seeding on one server its own.
+const PHONE_OFFSET = Number(__ENV.PHONE_OFFSET || 0);
 
 export const options = { setupTimeout: '60m', vus: 1, iterations: 1, summaryTrendStats: ['p(95)'] };
 
@@ -18,7 +21,7 @@ export function setup() {
   for (let index = 0; index < SHOPS; index += 1) {
     const slug = `${RUN}-s${String(index).padStart(3, '0')}`;
     const result = signUp({
-      phone: phoneOf(0, index),
+      phone: phoneOf(0, PHONE_OFFSET + index),
       ownerName: personOf(index),
       shopName: `Load test shop ${String(index)}`,
       slug,

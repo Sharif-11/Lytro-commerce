@@ -7,7 +7,8 @@
 #
 #   sudo RUN=lt bash /opt/lytro/state/current/load/run/seed.sh
 #
-# RUN names the seeding (each shop's address starts with it). SHOPS, FULL_SHOPS, FULL_PRODUCTS, SMALL_PRODUCTS,
+# RUN names the seeding (each shop's address starts with it); PHONE_OFFSET (0) moves its owners' phones past an earlier
+# seeding's on the same server. SHOPS, FULL_SHOPS, FULL_PRODUCTS, SMALL_PRODUCTS,
 # FULL_ORDERS, SMALL_ORDERS and CUSTOMERS make it smaller (a shakedown). The roster it writes, out/roster.json in the
 # working folder below, is what the load machine needs: copy it there. Nothing here prints a secret.
 set -euo pipefail
@@ -46,7 +47,7 @@ k6() {
   docker run --rm --user 0:0 --network "$network" -v "$DEPLOY_DIR/load/k6:/scripts:ro" -v "$WORK/out:/out" -w /scripts \
     -e EDGE=http://edge:8080 -e EDGE_SECRET -e DOMAIN -e OUTSIDE=http://outside:8081 -e RUN -e ROSTER -e ROSTER_IN \
     -e OPERATOR_EMAIL -e OPERATOR_PASSWORD \
-    -e SHOPS -e FULL_SHOPS -e FULL_PRODUCTS -e SMALL_PRODUCTS -e FULL_ORDERS -e SMALL_ORDERS -e CUSTOMERS -e VUS \
+    -e PHONE_OFFSET -e SHOPS -e FULL_SHOPS -e FULL_PRODUCTS -e SMALL_PRODUCTS -e FULL_ORDERS -e SMALL_ORDERS -e CUSTOMERS -e VUS \
     "$K6_IMAGE" run --quiet "$@"
 }
 
