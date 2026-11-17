@@ -28,6 +28,7 @@ import { ProductDesigns } from './services/product-designs';
 import { CatalogueEraser } from './services/catalogue-eraser';
 import { CatalogueImages } from './services/catalogue-images';
 import { CatalogueVersion } from './services/catalogue-version';
+import { CATALOGUE_WRITE_DEFAULTS, CatalogueWrites } from './services/catalogue-writes';
 import { CategoryService } from './services/category.service';
 import { OptionSetService } from './services/option-set.service';
 import { PlatformLibraryService } from './services/platform-library.service';
@@ -43,6 +44,7 @@ import {
   CATALOGUE_IMAGE_STORE,
   DESIGN_STORE,
   CATALOGUE_TRANSACTIONS,
+  CATALOGUE_WRITE_SETTINGS,
   CATEGORY_STORE,
   OPTION_SET_STORE,
   PLATFORM_LIBRARY_STORE,
@@ -90,6 +92,8 @@ import {
     CatalogueActivity,
     CatalogueEraser,
     CatalogueVersion,
+    { provide: CATALOGUE_WRITE_SETTINGS, useValue: CATALOGUE_WRITE_DEFAULTS },
+    CatalogueWrites,
     ShopPaymentPolicyService,
     PresetService,
     AttributeService,
@@ -105,6 +109,8 @@ import {
     CATALOGUE_TRANSACTIONS,
     CatalogueActivity,
     CatalogueVersion,
+    // Slice 9.10: a shop's catalogue changes, one after another, for delivery's zones and media's photos too.
+    CatalogueWrites,
     ShopPaymentPolicyService,
     // For the media module (Slice 6), whose screens show images the same way.
     MediaLinks,

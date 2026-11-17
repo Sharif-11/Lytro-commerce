@@ -37,6 +37,7 @@ import type {
   UploadStarted,
 } from '../types/media';
 import { MB, MediaLimits } from './media-limits';
+import { CatalogueWrites } from '../../catalogue/services/catalogue-writes';
 
 // MED-03: the link a browser sends its file to lasts 15 minutes.
 const UPLOAD_LINK_SECONDS = 15 * 60;
@@ -92,6 +93,7 @@ export class MediaService {
     @Inject(CatalogueImages) private readonly images: CatalogueImages,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(CatalogueVersion) private readonly version: CatalogueVersion,
+    @Inject(CatalogueWrites) private readonly writes: CatalogueWrites,
   ) {}
 
   async startUpload(
@@ -228,7 +230,7 @@ export class MediaService {
    */
   async delete(tenantId: string, id: string, actor: CatalogueActor): Promise<void> {
     const who = await this.activity.resolve(tenantId, actor);
-    await this.store.run(async (tx) => {
+    await this.writes.run(tenantId, async (tx) => {
       const row = await this.store.lockMedia(tx, tenantId, id);
       if (!row) throw new ApiError('not_found', 'MediaNotFound', {});
       const uses = await this.store.usesOf(tx, tenantId, id);
@@ -318,7 +320,7 @@ export class MediaService {
     actor: CatalogueActor,
   ): Promise<ImageView | null> {
     const who = await this.activity.resolve(tenantId, actor);
-    return this.store.run(async (tx) => {
+    return this.writes.run(tenantId, async (tx) => {
       try {
         await this.store.setShopLogo(tx, tenantId, mediaId);
       } catch (error) {

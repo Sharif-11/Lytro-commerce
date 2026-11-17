@@ -36,6 +36,7 @@ import type {
 } from '../types/delivery';
 import { LocationService } from './location.service';
 import { homeAreaPhrase, zoneLabel } from './zone-labels';
+import { CatalogueWrites } from '../../catalogue/services/catalogue-writes';
 
 const DEFAULTS = {
   homeCityCode: DEFAULT_HOME_CITY,
@@ -83,6 +84,7 @@ function money(value: number): string {
 export class DeliveryZoneService {
   constructor(
     @Inject(CATALOGUE_TRANSACTIONS) private readonly transactions: CatalogueTransactions,
+    @Inject(CatalogueWrites) private readonly writes: CatalogueWrites,
     @Inject(DELIVERY_ZONE_STORE) private readonly zones: DeliveryZoneStore,
     @Inject(LocationService) private readonly locations: LocationService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
@@ -110,7 +112,7 @@ export class DeliveryZoneService {
     const areas = distinctAreas(input.areas);
     await this.refuseUnknownAreas(areas);
     const who = await this.activity.resolve(tenantId, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(tenantId, async (tx) => {
       await this.zones.ensureDefaults(tx, tenantId, DEFAULTS);
       await this.zones.lockZones(tx, tenantId);
       const home = (await this.zones.listZones(tx, tenantId)).find((zone) => zone.isHome);
@@ -134,7 +136,7 @@ export class DeliveryZoneService {
     const areas = distinctAreas(input.areas);
     await this.refuseUnknownAreas(areas);
     const who = await this.activity.resolve(tenantId, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(tenantId, async (tx) => {
       await this.zones.ensureDefaults(tx, tenantId, DEFAULTS);
       await this.zones.lockZones(tx, tenantId);
       if ((await this.zones.countZones(tx, tenantId)) >= MAX_DELIVERY_ZONES) {
@@ -172,7 +174,7 @@ export class DeliveryZoneService {
     actor: CatalogueActor,
   ): Promise<DeliverySettingsView> {
     const who = await this.activity.resolve(tenantId, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(tenantId, async (tx) => {
       await this.zones.ensureDefaults(tx, tenantId, DEFAULTS);
       const current = await this.find(tx, tenantId, zoneId);
       // Only the home and fallback zones have a name to fall back to.
@@ -207,7 +209,7 @@ export class DeliveryZoneService {
     const areas = distinctAreas(input.areas);
     await this.refuseUnknownAreas(areas);
     const who = await this.activity.resolve(tenantId, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(tenantId, async (tx) => {
       await this.zones.ensureDefaults(tx, tenantId, DEFAULTS);
       await this.zones.lockZones(tx, tenantId);
       const zone = await this.find(tx, tenantId, zoneId);
@@ -227,7 +229,7 @@ export class DeliveryZoneService {
     actor: CatalogueActor,
   ): Promise<DeliverySettingsView> {
     const who = await this.activity.resolve(tenantId, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(tenantId, async (tx) => {
       await this.zones.ensureDefaults(tx, tenantId, DEFAULTS);
       await this.zones.lockZones(tx, tenantId);
       const zone = await this.find(tx, tenantId, zoneId);

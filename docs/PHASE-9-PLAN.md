@@ -457,7 +457,10 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   1. **The first pull request fixes the storefront's busy pages**, as sketched (STOREFRONT-DESIGN §7h, approved). The
      other findings stay in the report for a later fix: estimates writing the default zones (fixed with the edge cache,
      #380), a busy pool answered as "saving paused" (fixed in the small fixes of 2026-11-17: busy, tried again in 5
-     seconds), and a shop's catalogue lock holding a connection (open).
+     seconds), and a shop's catalogue lock holding a connection (fixed 2026-11-17, the owner's yes: a shop's catalogue
+     changes wait their turn in each process's memory, so a shop holds at most one connection there, and a change whose
+     turn another process's change still holds gives up after 2 seconds as busy; more than 20 waiting is busy at once.
+     Orders' stock states never wait in that line. `CatalogueWrites`).
   2. **The production server is bigger**: 8 vCPU and 16 GB (D9-30).
   3. **Shop pages are cached at Cloudflare's edge, before launch** (the owner: "allow as much shoppers as we can but
      reduce infrastructure cost"). The owner asked about 1,000 to 2,500 shops at 300 orders a month and 1% conversion:

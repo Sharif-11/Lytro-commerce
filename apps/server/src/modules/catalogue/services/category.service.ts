@@ -34,6 +34,7 @@ import type { CatalogueActor, CategoryRecord, CategoryView } from '../types/cata
 import { CatalogueActivity } from './catalogue-activity';
 import { CatalogueImages, refuseUnattachable } from './catalogue-images';
 import { nextFreeSlug, slugOf } from './slug';
+import { CatalogueWrites } from './catalogue-writes';
 
 function view(
   category: CategoryRecord,
@@ -71,6 +72,7 @@ function view(
 export class CategoryService {
   constructor(
     @Inject(CATALOGUE_TRANSACTIONS) private readonly transactions: CatalogueTransactions,
+    @Inject(CatalogueWrites) private readonly writes: CatalogueWrites,
     @Inject(CATEGORY_STORE) private readonly categories: CategoryStore,
     @Inject(ATTRIBUTE_STORE) private readonly attributes: AttributeStore,
     @Inject(PRODUCT_STORE) private readonly products: ProductStore,
@@ -96,7 +98,7 @@ export class CategoryService {
     const who = await this.activity.resolve(tenantId, actor);
     const behavesLike = input.behavesLike ?? null;
     await this.refuseUnknownType(behavesLike);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(tenantId, async (tx) => {
       // D8-72: after a move renumbering its level, or before one, never during it, so the move numbers it with the rest
       // (the Phase 8 close-out's review C, S3).
       await this.categories.lockCategories(tx, tenantId);
@@ -151,7 +153,7 @@ export class CategoryService {
   ): Promise<CategoryView> {
     const who = await this.activity.resolve(tenantId, actor);
     if (input.behavesLike !== undefined) await this.refuseUnknownType(input.behavesLike);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(tenantId, async (tx) => {
       // D8-72: a new parent is checked against the tree as a move leaves it, under the move's lock, so a PATCH and a move
       // racing can never put two categories under each other (the Phase 8 close-out's review C, F5).
       if (input.parentId !== undefined) await this.categories.lockCategories(tx, tenantId);
@@ -209,7 +211,7 @@ export class CategoryService {
     actor: CatalogueActor,
   ): Promise<CategoryView[]> {
     const who = await this.activity.resolve(tenantId, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(tenantId, async (tx) => {
       await this.categories.lockCategories(tx, tenantId);
       const rows = await this.categories.listCategories(tx, tenantId);
       const current = rows.find((row) => row.id === categoryId);
@@ -274,7 +276,7 @@ export class CategoryService {
     actor: CatalogueActor,
   ): Promise<void> {
     const who = await this.activity.resolve(tenantId, actor);
-    await this.transactions.run(async (tx) => {
+    await this.writes.run(tenantId, async (tx) => {
       const current = await this.find(tx, tenantId, categoryId);
       const children = await this.categories.countChildren(tx, tenantId, categoryId);
       if (children > 0)

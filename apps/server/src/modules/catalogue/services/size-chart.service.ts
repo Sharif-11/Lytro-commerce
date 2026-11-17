@@ -14,6 +14,7 @@ import { CATALOGUE_TRANSACTIONS, CATEGORY_STORE, PRODUCT_STORE, SIZE_CHART_STORE
 import type { CatalogueActor, SizeChartRecord } from '../types/catalogue';
 import { CatalogueActivity } from './catalogue-activity';
 import { CatalogueImages, refuseUnattachable } from './catalogue-images';
+import { CatalogueWrites } from './catalogue-writes';
 
 /** PRD-17: a chart as it is stored and shown: its table, or its image (MED-03). */
 export interface SizeChartRows {
@@ -37,6 +38,7 @@ function contentOf(input: SizeChartInput): SizeChartContent {
 export class SizeChartService {
   constructor(
     @Inject(CATALOGUE_TRANSACTIONS) private readonly transactions: CatalogueTransactions,
+    @Inject(CatalogueWrites) private readonly writes: CatalogueWrites,
     @Inject(SIZE_CHART_STORE) private readonly charts: SizeChartStore,
     @Inject(PRODUCT_STORE) private readonly products: ProductStore,
     @Inject(CATEGORY_STORE) private readonly categories: CategoryStore,
@@ -52,7 +54,7 @@ export class SizeChartService {
     actor: CatalogueActor,
   ): Promise<SizeChartRows> {
     const who = await this.activity.resolve(tenantId, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(tenantId, async (tx) => {
       await this.liveProduct(tx, tenantId, productId);
       const chart = await this.put(tx, tenantId, { productId }, input);
       await this.activity.record(
@@ -76,7 +78,7 @@ export class SizeChartService {
     actor: CatalogueActor,
   ): Promise<void> {
     const who = await this.activity.resolve(tenantId, actor);
-    await this.transactions.run(async (tx) => {
+    await this.writes.run(tenantId, async (tx) => {
       await this.liveProduct(tx, tenantId, productId);
       if (!(await this.charts.deleteChart(tx, tenantId, { productId }))) return;
       await this.activity.record(
@@ -99,7 +101,7 @@ export class SizeChartService {
     actor: CatalogueActor,
   ): Promise<SizeChartRows> {
     const who = await this.activity.resolve(tenantId, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(tenantId, async (tx) => {
       await this.category(tx, tenantId, categoryId);
       const chart = await this.put(tx, tenantId, { categoryId }, input);
       await this.activity.record(
@@ -122,7 +124,7 @@ export class SizeChartService {
     actor: CatalogueActor,
   ): Promise<void> {
     const who = await this.activity.resolve(tenantId, actor);
-    await this.transactions.run(async (tx) => {
+    await this.writes.run(tenantId, async (tx) => {
       await this.category(tx, tenantId, categoryId);
       if (!(await this.charts.deleteChart(tx, tenantId, { categoryId }))) return;
       await this.activity.record(

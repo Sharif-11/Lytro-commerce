@@ -110,6 +110,10 @@ export class DrizzleCatalogueTransactions implements CatalogueTransactions {
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
     return this.transactions.run(this.database.handle.db, work);
   }
+
+  limitLockWait(tx: Transaction, milliseconds: number): Promise<void> {
+    return this.transactions.limitLockWait(tx, milliseconds);
+  }
 }
 
 @Injectable()

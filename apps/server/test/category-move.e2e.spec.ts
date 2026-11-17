@@ -341,8 +341,8 @@ describeIfDatabase('moving a category in one request (D8-72)', () => {
       const moving = move(shop, b?.id ?? '', a?.id ?? '', null);
       await untilSome(admin, 'asleep');
       const patching = shop.patch(`/categories/${a?.id ?? ''}`, { parentId: b?.id });
-      // The PATCH waits for the move, then reads the tree it left.
-      await untilSome(admin, 'waiting on a lock');
+      // The PATCH waits for the move, then reads the tree it left. Since Slice 9.10 it waits its turn in the server's
+      // memory (CatalogueWrites), holding no connection, rather than on the shop's lock in the database.
       const [moved, patched] = await Promise.all([moving, patching]);
       expect(moved.status, JSON.stringify(moved.body)).toBe(200);
       expect(patched.status, JSON.stringify(patched.body)).toBe(400);

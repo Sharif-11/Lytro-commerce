@@ -31,6 +31,7 @@ import type {
 } from '../types/catalogue';
 import { CatalogueActivity } from './catalogue-activity';
 import { CatalogueImages, refuseUnattachable } from './catalogue-images';
+import { CatalogueWrites } from './catalogue-writes';
 
 // UOM-02: a number-with-unit option is a number in its kind's base unit, up to four decimals.
 const NUMBER_VALUE = /^\d+(\.\d{1,4})?$/;
@@ -114,6 +115,7 @@ export function canonicalSwatch(swatch: string | null | undefined): string | nul
 export class AttributeService {
   constructor(
     @Inject(CATALOGUE_TRANSACTIONS) private readonly transactions: CatalogueTransactions,
+    @Inject(CatalogueWrites) private readonly writes: CatalogueWrites,
     @Inject(ATTRIBUTE_STORE) private readonly attributes: AttributeStore,
     @Inject(PRODUCT_STORE) private readonly products: ProductStore,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
@@ -189,7 +191,7 @@ export class AttributeService {
     actor: CatalogueActor,
   ): Promise<AttributeView> {
     const who = await this.activity.resolve(tenantId, actor);
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(tenantId, async (tx) => {
       const [current] = await this.attributes.findAttributes(tx, tenantId, [attributeId]);
       if (!current || current.tenantId === null) {
         throw new ApiError('not_found', 'AttributeNotFound', {});
@@ -312,7 +314,7 @@ export class AttributeService {
     optionId: string,
     input: UpdateShopOptionInput,
   ): Promise<OptionView> {
-    return this.transactions.run(async (tx) => {
+    return this.writes.run(tenantId, async (tx) => {
       const attribute = await this.holdingOptions(tx, tenantId, attributeId);
       const [current] = await this.attributes.findOptions(tx, tenantId, [optionId]);
       if (!current || current.tenantId === null || current.attributeId !== attributeId) {

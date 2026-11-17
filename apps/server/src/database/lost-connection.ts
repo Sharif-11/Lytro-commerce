@@ -37,10 +37,19 @@ export function isLostConnection(exception: unknown): boolean {
   });
 }
 
-/** Whether every pooled connection stayed in use while this request waited for one: busy, not lost. */
-export function isPoolBusy(exception: unknown): boolean {
+// PostgreSQL's code when a transaction waited for a lock longer than it allows (`lock_timeout`): a shop's catalogue
+// change whose turn didn't come soon (Slice 9.10, CatalogueWrites). Nothing else in the app limits a lock wait.
+const LOCK_WAIT_OVER = '55P03';
+
+/**
+ * Whether the database was there but too busy for this request: every pooled connection stayed in use while it waited
+ * for one, or a lock it needed stayed held past its wait. Busy, not lost: the answer is to try again shortly.
+ */
+export function isDatabaseBusy(exception: unknown): boolean {
   return anyCause(
     exception,
-    (error) => error instanceof Error && POOL_BUSY_WORDS.test(error.message),
+    (error) =>
+      Reflect.get(Object(error), 'code') === LOCK_WAIT_OVER ||
+      (error instanceof Error && POOL_BUSY_WORDS.test(error.message)),
   );
 }

@@ -75,6 +75,8 @@ export interface ProductStockHooks {
 /** Opens one transaction for a unit of catalogue work; every store method below takes it. */
 export interface CatalogueTransactions {
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
+  /** Slice 9.10: the rest of the transaction waits at most this long for a lock (CatalogueWrites). */
+  limitLockWait(tx: Transaction, milliseconds: number): Promise<void>;
 }
 
 /** ATL-01, ATR-01, ATR-02, ATR-10: the attribute library a shop sees, and its categories' suggestions. */

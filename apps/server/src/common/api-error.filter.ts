@@ -20,7 +20,7 @@ import { headerValue, type HttpRequest } from './http';
 import { resolveLanguage } from './i18n/accept-language';
 import type { MessageKey } from './i18n/message-key';
 import { translate } from './i18n/messages';
-import { isLostConnection, isPoolBusy } from '../database/lost-connection';
+import { isDatabaseBusy, isLostConnection } from '../database/lost-connection';
 import { PrimaryWatch } from '../database/primary-watch';
 import { SAVING_PAUSED_DETAILS, SAVING_RETRY_AFTER_SECONDS } from './guards/saving.guard';
 
@@ -166,12 +166,13 @@ export class ApiErrorFilter implements ExceptionFilter {
       return;
     }
 
-    // Small fixes, 2026-11-17: every database connection stayed in use while this request waited for one. The database
-    // is there, so it isn't "saving paused" and the watch isn't woken: the answer is busy, tried again shortly, as a
-    // shop's busy page does (Slice 9.10).
-    if (isPoolBusy(exception)) {
+    // Small fixes, 2026-11-17: every database connection stayed in use while this request waited for one, or (Slice
+    // 9.10's catalogue writes) a shop's catalogue stayed locked past the change's wait. The database is there, so it
+    // isn't "saving paused" and the watch isn't woken: the answer is busy, tried again shortly, as a shop's busy page
+    // does.
+    if (isDatabaseBusy(exception)) {
       const method = String(Reflect.get(Object(request), 'method') ?? 'GET').toUpperCase();
-      logger.warn(`every database connection stayed in use under a ${method} request`);
+      logger.warn(`the database was too busy for a ${method} request`);
       this.errors.unavailable(request, 'ServerBusy');
       response.setHeader('Retry-After', String(BUSY_RETRY_AFTER_SECONDS));
       response
