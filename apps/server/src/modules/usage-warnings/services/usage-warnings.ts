@@ -21,8 +21,8 @@ export interface LimitUse {
 /**
  * LIM-01: warns a shop at 50, 80 and 95 percent of a limit its own actions use up -- products, seats, storage, free
  * SMS -- once each per cycle. Called in the transaction of the write that used it, so the record of what was sent and
- * the queued notice commit with it or not at all. Bandwidth and API requests decide their own (they also tell of
- * their limit and their stop) and queue through the same notices.
+ * the queued notice commit with it or not at all. API requests decide their own (they also tell of their limit and
+ * their stop) and queue through the same notices.
  */
 @Injectable()
 export class UsageWarnings {

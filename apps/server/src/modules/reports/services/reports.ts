@@ -76,7 +76,7 @@ export interface ConsumersReport {
   dateFrom: string;
   dateTo: string;
   metric: ConsumerMetric;
-  /** The shops that used most, the largest first; bytes for storage and bandwidth, units for SMS. */
+  /** The shops that used most, the largest first; bytes for storage, units for SMS. */
   shops: {
     id: string;
     name: string;
@@ -217,9 +217,7 @@ export class Reports {
     const period = this.periodOf(query);
     const top = await (query.metric === ConsumerMetric.Storage
       ? this.store.storageTop(period.dateFrom, period.dateTo, TOP_CONSUMERS_LIMIT)
-      : query.metric === ConsumerMetric.Bandwidth
-        ? this.store.bandwidthTop(period.dateFrom, period.dateTo, TOP_CONSUMERS_LIMIT)
-        : this.store.smsTop(period.dateFrom, period.dateTo, TOP_CONSUMERS_LIMIT));
+      : this.store.smsTop(period.dateFrom, period.dateTo, TOP_CONSUMERS_LIMIT));
     const shops = new Map(
       (await this.store.shopsByIds(top.map((row) => row.tenantId))).map((shop) => [shop.id, shop]),
     );

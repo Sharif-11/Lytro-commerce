@@ -3,8 +3,7 @@ import type { Bilingual } from '../../../common/i18n/bilingual';
 import { dhakaDay as day } from '../../../common/i18n/dates';
 import { DAY_MS } from '../../../common/time';
 import type { UsageNotice } from '../../usage-warnings/types/usage-notice';
-import { GB } from '../../media/services/media-bandwidth';
-import { MB } from '../../media/services/media-limits';
+import { GB, MB } from '../../media/services/media-limits';
 import type { ShopUsage, Suggestion, Suggestions } from '../types/usage';
 import { SERVING_METRICS } from './metric-limits';
 import { runOutDate } from './pace';
@@ -21,7 +20,6 @@ const NAMES: Readonly<Record<UsageMetric, Bilingual<string>>> = {
   [UsageMetric.Products]: { bn: 'প্রোডাক্ট', en: 'products' },
   [UsageMetric.Seats]: { bn: 'স্টাফ সিট', en: 'seats' },
   [UsageMetric.Storage]: { bn: 'মিডিয়া স্টোরেজ', en: 'media storage' },
-  [UsageMetric.Bandwidth]: { bn: 'মিডিয়া ব্যান্ডউইথ', en: 'media bandwidth' },
   [UsageMetric.Requests]: { bn: 'API রিকোয়েস্ট', en: 'API requests' },
   [UsageMetric.EssentialSmsMonthly]: { bn: 'এই মাসের ফ্রি SMS', en: 'free SMS this month' },
   [UsageMetric.EssentialSmsTotal]: { bn: 'ফ্রি SMS', en: 'free SMS' },
@@ -31,15 +29,8 @@ const NAMES: Readonly<Record<UsageMetric, Bilingual<string>>> = {
   [UsageMetric.SmsSpend]: { bn: 'SMS খরচ', en: 'SMS spend' },
 };
 
-// What stops for shoppers when a metric that serves them is used up (BND-03, RTE-03).
+// What stops for shoppers when a metric that serves them is used up (RTE-03).
 const SERVED: Partial<Record<UsageMetric, Bilingual<{ what: string; stopped: string }>>> = {
-  [UsageMetric.Bandwidth]: {
-    bn: { what: 'ছবি আর ভিডিও এখনো দেখা যাচ্ছে', stopped: 'ছবি আর ভিডিও দেখানো বন্ধ হয়ে গেছে' },
-    en: {
-      what: 'images and videos are still shown',
-      stopped: 'images and videos have stopped showing',
-    },
-  },
   [UsageMetric.Requests]: {
     bn: {
       what: 'ক্যাটালগ এখনো আপনার ওয়েবসাইট আর স্টোরফ্রন্টে উত্তর দিচ্ছে',
@@ -54,7 +45,7 @@ const SERVED: Partial<Record<UsageMetric, Bilingual<{ what: string; stopped: str
 
 /** A figure as a notice writes it: bytes in GB or MB, by the size of the limit they are read against. */
 function amount(metric: UsageMetric, value: number, limit: number): string {
-  if (metric !== UsageMetric.Storage && metric !== UsageMetric.Bandwidth) return String(value);
+  if (metric !== UsageMetric.Storage) return String(value);
   return limit >= GB ? `${(value / GB).toFixed(1)} GB` : `${String(Math.round(value / MB))} MB`;
 }
 
@@ -300,8 +291,8 @@ export function operatorAlertText(
 }
 
 /**
- * LIM-01 (agreed for Slice 10): which notices also go by SMS -- the platform pays. Only bandwidth and API requests, which
- * stop shoppers: at 100 percent and at the stop always, and at 95 percent to an owner with no email.
+ * LIM-01 (agreed for Slice 10): which notices also go by SMS -- the platform pays. Only API requests, which stop
+ * shoppers: at 100 percent and at the stop always, and at 95 percent to an owner with no email.
  */
 export function smsDue(notice: UsageNotice, ownerHasEmail: boolean): boolean {
   if (!SERVING_METRICS.has(notice.metric)) return false;

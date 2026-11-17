@@ -13,7 +13,7 @@ export class UsageSettings {
     @Inject(PlatformSettingsService) private readonly settings: PlatformSettingsService,
   ) {}
 
-  /** How far past its bandwidth or API requests a shop is still served, as a percent of the limit. */
+  /** How far past its API requests a shop is still served, as a percent of the limit. */
   gracePercent(): Promise<number> {
     return this.percent(PlatformSettingKey.UsageGracePercent, DEFAULT_USAGE_GRACE_PERCENT);
   }

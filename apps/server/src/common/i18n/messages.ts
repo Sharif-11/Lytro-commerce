@@ -1666,10 +1666,6 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Storage use retrieved.',
     bn: 'স্টোরেজের ব্যবহার পাওয়া গেছে।',
   },
-  BandwidthRetrieved: {
-    en: 'Bandwidth use retrieved.',
-    bn: 'ব্যান্ডউইথের ব্যবহার পাওয়া গেছে।',
-  },
   UsageRetrieved: { en: 'Usage retrieved.', bn: 'ব্যবহার পাওয়া গেছে।' },
   MediaDeleted: { en: 'Deleted from your media.', bn: 'মিডিয়া থেকে ডিলিট করা হয়েছে।' },
   ProductImagesSaved: { en: 'Product photos saved.', bn: 'প্রোডাক্টের ছবি সেভ হয়েছে।' },

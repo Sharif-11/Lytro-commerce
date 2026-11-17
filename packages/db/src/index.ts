@@ -139,8 +139,6 @@ export {
   MediaCostRepository,
   type MediaCostAlertRow,
   type MediaCostDayRow,
-  type MediaShopUse,
-  type WorkerUse,
 } from './repositories/media/media-costs.repository';
 export {
   ShopDayRepository,

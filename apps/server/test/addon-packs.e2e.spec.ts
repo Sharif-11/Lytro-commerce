@@ -2,7 +2,6 @@ import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { MEDIA_BLOCKED_KEY, type MediaBlockedList } from '@lytronix/shared-types';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { LedgerEntryType } from '@lytronix/validators';
@@ -10,13 +9,7 @@ import { AppModule } from '../src/app/app.module';
 import { BalanceService } from '../src/modules/balance/services/balance.service';
 import { AddonPackService } from '../src/modules/billing/services/addon-pack.service';
 import { PurchaseService } from '../src/modules/billing/services/purchase.service';
-import type {
-  EdgeStoreChanges,
-  MediaEdge,
-  MediaUsageTotal,
-} from '../src/modules/media/ports/media-edge';
-import { GB, MediaBandwidth } from '../src/modules/media/services/media-bandwidth';
-import { MEDIA_CLOCK, MEDIA_EDGE, MEDIA_STORAGE } from '../src/modules/media/tokens';
+import { MEDIA_CLOCK, MEDIA_STORAGE } from '../src/modules/media/tokens';
 import { ApiKeyAuthenticator } from '../src/modules/public-api/services/api-key-authenticator';
 import { RequestQuota } from '../src/modules/public-api/services/request-quota';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
@@ -29,55 +22,25 @@ import { MemoryStorage } from './support/memory-storage';
 import { errorOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
-// Phase 3 Slice 10a.3: bandwidth and request packs. Bought from the balance in one tap (PLN-15); a cycle's use past the
-// shop's own limit is taken from its packs and what is left carries over (BND-04, RTE-11); a pack bought in the grace
-// adds its full amount on top of what is used; auto-buy at the allowance, three a cycle, and what a short balance does
-// (BND-04, PLN-15); the stop at the allowance and the grace of the shop's own limit (BND-03, RTE-03); a limit add-on
-// the media Worker and the API hold the shop to as the page does (KNOWN-GAPS §87); and what the usage page, its
-// notices and its suggestions say of packs (LIM-01). Runs only when DATABASE_TEST_ADMIN_URL is set.
+// Phase 3 Slice 10a.3: request packs. Bought from the balance in one tap (PLN-15); a cycle's use past the shop's own
+// limit is taken from its packs and what is left carries over (RTE-11); a pack bought in the grace adds its full amount
+// on top of what is used; auto-buy at the allowance, three a cycle, and what a short balance does (PLN-15); the stop at
+// the allowance and the grace of the shop's own limit (RTE-03); a limit add-on the API holds the shop to as the page
+// does (KNOWN-GAPS §87); and what the usage page, its notices and its suggestions say of packs (LIM-01). Bandwidth's
+// packs were retired with the media Worker (D9-31). Runs only when DATABASE_TEST_ADMIN_URL is set.
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
 const DB_NAME = 'lytronix_addon_packs_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
 const MINUTE_MS = 60 * 1000;
 
-/** The media Worker's usage feed and shared store, in memory. */
-class MemoryEdge implements MediaEdge {
-  readonly points: MediaUsageTotal[] = [];
-  readonly store = new Map<string, string>();
-
-  record(tenantId: string, minute: Date, bytes: number): void {
-    this.points.push({ tenantId, minute, bytes, requests: 1 });
-  }
-
-  usageByMinute(from: Date, to: Date): Promise<MediaUsageTotal[]> {
-    return Promise.resolve(
-      this.points.filter((point) => point.minute >= from && point.minute < to),
-    );
-  }
-
-  write(changes: EdgeStoreChanges): Promise<void> {
-    if (changes.blocked) this.store.set(MEDIA_BLOCKED_KEY, JSON.stringify(changes.blocked));
-    return Promise.resolve();
-  }
-
-  blocked(): MediaBlockedList {
-    return JSON.parse(this.store.get(MEDIA_BLOCKED_KEY) ?? '{}') as MediaBlockedList;
-  }
-}
-
 let app: INestApplication;
 let port: number;
 let admin: pg.Client;
 const texts = new SmsCapture();
-const edge = new MemoryEdge();
-let clockMs = Date.now() + 10 * MINUTE_MS;
+const clockMs = Date.now() + 10 * MINUTE_MS;
 let smallPlanId = '';
 let smallTermId = '';
 const ran = new Set<number>();
-
-function floorMinute(ms: number): number {
-  return Math.floor(ms / MINUTE_MS) * MINUTE_MS;
-}
 
 beforeAll(async () => {
   if (!ADMIN_URL) return;
@@ -87,9 +50,6 @@ beforeAll(async () => {
   process.env['PLATFORM_DOMAIN'] = 'localhost';
   admin = new pg.Client({ connectionString: urls.adminDbUrl });
   await admin.connect();
-  await admin.query('UPDATE control.media_usage_pull SET pulled_until = $1', [
-    new Date(floorMinute(clockMs) - 5 * MINUTE_MS),
-  ]);
   const plan = async (name: string, rank: number, limits: object, price: string) => {
     const planId =
       (
@@ -115,20 +75,19 @@ beforeAll(async () => {
   ({ planId: smallPlanId, termId: smallTermId } = await plan(
     'Small',
     980,
-    { products: 10, staff: 2, storage_mb: 10, bandwidth_gb: 1, requests_monthly: 10 },
+    { products: 10, staff: 2, storage_mb: 10, requests_monthly: 10 },
     '449.00',
   ));
   await plan(
     'Big',
     981,
-    { products: 1000, staff: 5, storage_mb: 5000, bandwidth_gb: 100, requests_monthly: 100_000 },
+    { products: 1000, staff: 5, storage_mb: 5000, requests_monthly: 100_000 },
     '699.00',
   );
-  // Packs small enough to reach in a test, in place of the seeded ones.
-  await admin.query("UPDATE control.addons SET retired_at = now() WHERE kind = 'pack'");
+  // A pack small enough to reach in a test, in place of the seeded one. Migration 0137 retired the bandwidth pack.
+  await admin.query("UPDATE control.addons SET retired_at = now() WHERE key = 'request_pack'");
   await admin.query(
     `INSERT INTO control.addons (key, kind, limit_key, unit_size, price, label_en, label_bn) VALUES
-       ('test_bandwidth_pack', 'pack', 'bandwidth_gb', 1, 10, 'Bandwidth pack', 'ব্যান্ডউইথ প্যাক'),
        ('test_request_pack', 'pack', 'requests_monthly', 10, 5, 'Request pack', 'রিকোয়েস্ট প্যাক')`,
   );
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
@@ -136,8 +95,6 @@ beforeAll(async () => {
     .useValue(texts.provider)
     .overrideProvider(MEDIA_STORAGE)
     .useValue(new MemoryStorage())
-    .overrideProvider(MEDIA_EDGE)
-    .useValue(edge)
     .overrideProvider(MEDIA_CLOCK)
     .useValue(() => new Date(clockMs))
     .compile();
@@ -184,13 +141,6 @@ async function buyPacks(shop: ShopClient, key: string, quantity = 1) {
   const bought = await shop.post('/addons/packs', { addonId: await addonId(key), quantity });
   expect(bought.status, JSON.stringify(bought.body)).toBe(201);
   return bought.body as { invoice: { kind: string; periodStart: string | null; lines: unknown[] } };
-}
-
-/** The shop's media sends these bytes, and the minute's pass runs. */
-async function serve(shop: ShopClient, bytes: number): Promise<void> {
-  clockMs += 3 * MINUTE_MS;
-  edge.record(shop.tenantId, new Date(floorMinute(clockMs) - 2 * MINUTE_MS), Math.round(bytes));
-  await app.get(MediaBandwidth).runMinute();
 }
 
 /** The shop's keys make `count` API requests now; how many were let through. Then the minute's flush. */
@@ -246,17 +196,6 @@ async function requestsFigure(shop: ShopClient) {
   );
 }
 
-async function bandwidthOf(shop: ShopClient) {
-  const answer = await shop.get('/media/bandwidth');
-  expect(answer.status, JSON.stringify(answer.body)).toBe(200);
-  return answer.body as {
-    usedBytes: number;
-    limitBytes: number | null;
-    packLeftBytes: number;
-    autoBuy: boolean;
-  };
-}
-
 async function mailTo(shop: ShopClient): Promise<{ subject: string; body: string }[]> {
   return (
     await admin.query<{ subject: string; body: string }>(
@@ -274,32 +213,37 @@ describeIfDatabase('buying packs in one tap (PLN-15, BIL-12)', () => {
       price: number | null;
       expiresAt: string | null;
     }[];
-    expect(offers.find((offer) => offer.addon.key === 'test_bandwidth_pack')).toMatchObject({
-      price: 10,
+    expect(offers.find((offer) => offer.addon.key === 'test_request_pack')).toMatchObject({
+      price: 5,
       expiresAt: null,
     });
-    const bought = await buyPacks(shop, 'test_bandwidth_pack', 2);
+    const bought = await buyPacks(shop, 'test_request_pack', 2);
     expect(bought.invoice).toMatchObject({
       kind: 'addon',
       periodStart: null,
-      lines: [{ kind: 'addon', description: 'Bandwidth pack', quantity: 2, amount: '20.00' }],
+      lines: [{ kind: 'addon', description: 'Request pack', quantity: 2, amount: '10.00' }],
     });
     const ledger = await admin.query<{ type: string; amount: string }>(
       'SELECT type, amount FROM tenant.balance_ledger WHERE tenant_id = $1 ORDER BY id DESC LIMIT 1',
       [shop.tenantId],
     );
-    expect(ledger.rows[0]).toEqual({ type: 'addon', amount: '-20.00' });
-    expect(await bandwidthOf(shop)).toMatchObject({ limitBytes: 3 * GB, packLeftBytes: 2 * GB });
+    expect(ledger.rows[0]).toEqual({ type: 'addon', amount: '-10.00' });
+    expect(await requestsFigure(shop)).toMatchObject({ limit: 30, packLeft: 20 });
     const mine = (await shop.get('/addons/mine')).body as { packs: unknown[] };
-    expect(mine.packs).toEqual([
-      { metric: 'bandwidth', left: 2 * GB, autoBuy: false },
-      { metric: 'requests', left: 0, autoBuy: false },
-    ]);
+    expect(mine.packs).toEqual([{ metric: 'requests', left: 20, autoBuy: false }]);
     // A pack has no quote to hold.
     const quoted = await shop.post('/addons/quote', {
-      addonId: await addonId('test_bandwidth_pack'),
+      addonId: await addonId('test_request_pack'),
     });
     expect(quoted.status).toBe(404);
+  });
+
+  it('no longer sells the bandwidth pack (D9-31)', async () => {
+    const shop = await onSmall();
+    const offers = (await shop.get('/addons')).body as { addon: { limitKey: string | null } }[];
+    expect(offers.some((offer) => offer.addon.limitKey === 'bandwidth_gb')).toBe(false);
+    const refused = await shop.post('/addons/packs', { addonId: await addonId('bandwidth_pack') });
+    expect(refused.status).toBe(404);
   });
 
   it('refuses packs whose price changed since it was shown, charging nothing (BIL-09, Slice 11.5c)', async () => {
@@ -333,25 +277,7 @@ describeIfDatabase('buying packs in one tap (PLN-15, BIL-12)', () => {
   });
 });
 
-describeIfDatabase('packs taken by what a cycle uses, and carried over (BND-04, RTE-11)', () => {
-  it('takes bandwidth past the limit from the packs, and stops media only past the allowance and its grace', async () => {
-    const shop = await onSmall();
-    await buyPacks(shop, 'test_bandwidth_pack');
-    // 1.5 GB of a 1 GB limit and a 1 GB pack: half the pack is taken.
-    await serve(shop, 1.5 * GB);
-    const taken = await admin.query<{ pack_used: string }>(
-      'SELECT pack_used FROM control.media_bandwidth WHERE tenant_id = $1',
-      [shop.tenantId],
-    );
-    expect(Number(taken.rows[0]?.pack_used)).toBe(0.5 * GB);
-    expect((await bandwidthOf(shop)).packLeftBytes).toBe(0.5 * GB);
-    // The grace is 10% of the shop's own 1 GB: served to 2.1 GB, stopped past it.
-    await serve(shop, 0.55 * GB);
-    expect(edge.blocked()[shop.tenantId]).toBeUndefined();
-    await serve(shop, 0.06 * GB);
-    expect(edge.blocked()[shop.tenantId]).toBe('bandwidth');
-  });
-
+describeIfDatabase('packs taken by what a cycle uses, and carried over (RTE-11)', () => {
   it("carries a request pack's rest into the next cycle", async () => {
     const shop = await onSmall();
     await buyPacks(shop, 'test_request_pack');
@@ -391,15 +317,12 @@ describeIfDatabase('packs taken by what a cycle uses, and carried over (BND-04, 
   });
 });
 
-describeIfDatabase('auto-buy (BND-04, RTE-11, PLN-15)', () => {
+describeIfDatabase('auto-buy (RTE-11, PLN-15)', () => {
   it('buys one pack at the allowance, three a cycle at most, and tells the owner each time', async () => {
     const shop = await onSmall();
     const on = await shop.patch('/addons/auto-buy', { requests: true });
     expect(on.status, JSON.stringify(on.body)).toBe(200);
-    expect(on.body).toEqual([
-      { metric: 'bandwidth', left: 0, autoBuy: false },
-      { metric: 'requests', left: 0, autoBuy: true },
-    ]);
+    expect(on.body).toEqual([{ metric: 'requests', left: 0, autoBuy: true }]);
     for (let round = 1; round <= 3; round += 1) {
       expect(await request(shop, 10)).toBe(10);
       expect(await runAutoBuys(shop)).toBe(1);
@@ -442,20 +365,25 @@ describeIfDatabase('auto-buy (BND-04, RTE-11, PLN-15)', () => {
     expect((await requestCycle(shop))?.auto_buy_state).toBeNull();
   });
 
-  it('buys bandwidth packs too, from the minute pass', async () => {
+  it("buys nothing for a bandwidth pack's job queued before D9-31", async () => {
     const shop = await onSmall();
-    await shop.patch('/addons/auto-buy', { bandwidth: true });
-    await serve(shop, 1 * GB);
-    expect(await runAutoBuys(shop)).toBe(1);
-    expect(await bandwidthOf(shop)).toMatchObject({ limitBytes: 2 * GB, autoBuy: true });
+    await shop.patch('/addons/auto-buy', { requests: true });
+    // As the queue holds it: JSON, its metric a value the enum no longer has.
+    const job = JSON.parse(
+      JSON.stringify({ tenantId: shop.tenantId, metric: 'bandwidth', cycleStart: new Date() }),
+    ) as PackAutoBuy;
+    await app.get(AddonPackService).autoBuy(job);
+    const bought = await admin.query('SELECT 1 FROM control.addon_purchases WHERE tenant_id = $1', [
+      shop.tenantId,
+    ]);
+    expect(bought.rows).toHaveLength(0);
   });
 
-  it('takes either switch or both, and logs it', async () => {
+  it('takes the request switch, and logs it', async () => {
     const shop = await onSmall();
     expect((await shop.patch('/addons/auto-buy', {})).status).toBe(400);
-    expect((await shop.patch('/addons/auto-buy', { bandwidth: true, requests: true })).status).toBe(
-      200,
-    );
+    expect((await shop.patch('/addons/auto-buy', { bandwidth: true })).status).toBe(400);
+    expect((await shop.patch('/addons/auto-buy', { requests: true })).status).toBe(200);
     const logged = await admin.query(
       "SELECT 1 FROM tenant.activity_log WHERE tenant_id = $1 AND action = 'pack_auto_buy_set'",
       [shop.tenantId],
@@ -478,16 +406,7 @@ async function buyLimitAddon(shop: ShopClient, limitKey: string, unitSize: numbe
   expect(paid.status, JSON.stringify(paid.body)).toBe(201);
 }
 
-describeIfDatabase('one limit for the page, the media Worker and the API (KNOWN-GAPS §87)', () => {
-  it('holds the media to a bandwidth limit add-on, as the usage page shows it', async () => {
-    const shop = await onSmall();
-    await buyLimitAddon(shop, 'bandwidth_gb', 1);
-    expect((await bandwidthOf(shop)).limitBytes).toBe(2 * GB);
-    // Its own 2 GB and the grace of 10% of them: served at 2.15 GB.
-    await serve(shop, 2.15 * GB);
-    expect(edge.blocked()[shop.tenantId]).toBeUndefined();
-  });
-
+describeIfDatabase('one limit for the page and the API (KNOWN-GAPS §87)', () => {
   it('holds the API to a request limit add-on, as the usage page shows it', async () => {
     const shop = await onSmall();
     await buyLimitAddon(shop, 'requests_monthly', 10);
@@ -517,19 +436,20 @@ describeIfDatabase('what the usage page and its notices say of packs (LIM-01, PL
 
   it('leads with the next plan once packs were bought two cycles running', async () => {
     const shop = await onSmall();
-    // 0.9 GB of 1 GB: near the limit.
-    await serve(shop, 0.9 * GB);
+    // 9 of 10: near the limit.
+    expect(await request(shop, 9)).toBe(9);
     const near = (await shop.get('/usage')).body as { suggestions: { first: { kind: string } } };
     expect(near.suggestions.first.kind).toBe('addons');
     // Packs bought last cycle and this one.
-    await buyPacks(shop, 'test_bandwidth_pack');
+    await buyPacks(shop, 'test_request_pack');
     await admin.query(
       `UPDATE control.addon_purchases SET purchased_at = now() - interval '35 days'
        WHERE id = (SELECT id FROM control.addon_purchases WHERE tenant_id = $1 ORDER BY purchased_at LIMIT 1)`,
       [shop.tenantId],
     );
-    await buyPacks(shop, 'test_bandwidth_pack');
-    await serve(shop, 1.75 * GB);
+    await buyPacks(shop, 'test_request_pack');
+    // 26 of the 30 its limit and two packs allow: near again.
+    expect(await request(shop, 17)).toBe(17);
     const again = (await shop.get('/usage')).body as {
       suggestions: { first: { kind: string; name?: string }; alternative: { kind: string } | null };
     };

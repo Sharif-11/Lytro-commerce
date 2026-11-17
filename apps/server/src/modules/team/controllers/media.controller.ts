@@ -21,10 +21,8 @@ import { OkDto } from '../../../common/dto/ok.dto';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
-import { MediaBandwidth } from '../../media/services/media-bandwidth';
 import { MEDIA_PURPOSE_PERMISSION, MediaService } from '../../media/services/media.service';
 import type {
-  BandwidthUsage,
   MediaDetail,
   MediaPage,
   MediaView,
@@ -32,7 +30,6 @@ import type {
   UploadStarted,
 } from '../../media/types/media';
 import {
-  BandwidthUsageDto,
   MediaDetailDto,
   MediaPageDto,
   MediaViewDto,
@@ -46,7 +43,7 @@ import { CatalogueRequest } from '../services/catalogue-request';
 // STF-11: who may add or remove media: the catalogue's managers, or for the logo the shop's settings managers. Each
 // route then checks the exact one the item's purpose needs.
 const MEDIA_WRITERS = [Permission.ProductsManage, Permission.SettingsManage] as const;
-// MED-09, STO-02, BND-08: who may see the library, the storage it uses and the bandwidth it sends.
+// MED-09, STO-02: who may see the library and the storage it uses.
 const MEDIA_READERS = [
   Permission.ProductsRead,
   Permission.ProductsManage,
@@ -63,7 +60,6 @@ const MEDIA_READERS = [
 export class MediaController {
   constructor(
     @Inject(MediaService) private readonly media: MediaService,
-    @Inject(MediaBandwidth) private readonly bandwidth: MediaBandwidth,
     @Inject(CatalogueRequest) private readonly catalogue: CatalogueRequest,
   ) {}
 
@@ -125,19 +121,6 @@ export class MediaController {
   @ZodResponse({ type: StorageUsageDto })
   usage(@Req() request: DashboardRequest): Promise<StorageUsage> {
     return this.media.usage(this.catalogue.tenantIdOf(request));
-  }
-
-  @Get('bandwidth')
-  @RequirePermission(MEDIA_READERS)
-  @ResponseMessage('BandwidthRetrieved')
-  @ApiOperation({
-    summary:
-      "The bandwidth the shop's media has sent this billing cycle, its plan's limit, and each day of it " +
-      '(BND-01, BND-06, BND-08)',
-  })
-  @ZodResponse({ type: BandwidthUsageDto })
-  bandwidthUsage(@Req() request: DashboardRequest): Promise<BandwidthUsage> {
-    return this.bandwidth.usage(this.catalogue.tenantIdOf(request));
   }
 
   @Get(':id')

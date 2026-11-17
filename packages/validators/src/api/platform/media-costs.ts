@@ -5,23 +5,22 @@ import { calendarDayField } from '../../common/dates';
 // media this month, held against a budget the operator sets, in US dollars because Cloudflare bills in them.
 
 /**
- * D8-60: Cloudflare's prices the estimate uses, in US dollars, checked 2026-11-10 against its R2 and Workers pricing
- * pages. One platform setting, so the operator follows a price change with no deploy. "Free" and "included" are the
- * month's own allowances, in millions of operations or GB-months.
+ * D8-60: Cloudflare's prices the estimate uses, in US dollars, checked 2026-11-10 against its R2 pricing page. One
+ * platform setting, so the operator follows a price change with no deploy. "Free" is the month's own allowance, in
+ * millions of operations or GB-months. (Workers' prices went with the media Worker, D9-31.)
  */
-export const cloudflarePricesSchema = z
-  .object({
-    r2ClassAPerMillion: z.number().finite().nonnegative().max(1000),
-    r2ClassBPerMillion: z.number().finite().nonnegative().max(1000),
-    r2StoragePerGbMonth: z.number().finite().nonnegative().max(1000),
-    r2FreeClassAMillions: z.number().int().nonnegative().max(1_000_000),
-    r2FreeClassBMillions: z.number().int().nonnegative().max(1_000_000),
-    r2FreeStorageGbMonths: z.number().int().nonnegative().max(1_000_000),
-    workersMonthly: z.number().finite().nonnegative().max(1000),
-    workersIncludedMillions: z.number().int().nonnegative().max(1_000_000),
-    workersPerMillion: z.number().finite().nonnegative().max(1000),
-  })
-  .strict();
+const cloudflarePricesShape = z.object({
+  r2ClassAPerMillion: z.number().finite().nonnegative().max(1000),
+  r2ClassBPerMillion: z.number().finite().nonnegative().max(1000),
+  r2StoragePerGbMonth: z.number().finite().nonnegative().max(1000),
+  r2FreeClassAMillions: z.number().int().nonnegative().max(1_000_000),
+  r2FreeClassBMillions: z.number().int().nonnegative().max(1_000_000),
+  r2FreeStorageGbMonths: z.number().int().nonnegative().max(1_000_000),
+});
+/** What the operator may save: these fields and no other. */
+export const cloudflarePricesSchema = cloudflarePricesShape.strict();
+/** What is read back: a value saved with fields since dropped (Workers', D9-31) still reads. */
+export const storedCloudflarePricesSchema = cloudflarePricesShape;
 export type CloudflarePrices = z.infer<typeof cloudflarePricesSchema>;
 
 export const DEFAULT_CLOUDFLARE_PRICES: CloudflarePrices = {
@@ -31,9 +30,6 @@ export const DEFAULT_CLOUDFLARE_PRICES: CloudflarePrices = {
   r2FreeClassAMillions: 1,
   r2FreeClassBMillions: 10,
   r2FreeStorageGbMonths: 10,
-  workersMonthly: 5,
-  workersIncludedMillions: 10,
-  workersPerMillion: 0.3,
 };
 
 /** D8-58 (the owner's pick): the month's budget, in whole US dollars, until the operator sets another. */

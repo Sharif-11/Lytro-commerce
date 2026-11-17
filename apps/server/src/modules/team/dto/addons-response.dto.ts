@@ -57,10 +57,9 @@ export const addonPurchaseResultSchema = z.object({
 });
 export class AddonPurchaseResultDto extends createZodDto(addonPurchaseResultSchema) {}
 
-// BND-04, RTE-11, PLN-15: what is left of the shop's packs for one metric (bytes of bandwidth, or requests), and
-// whether auto-buy is on for it.
+// RTE-11, PLN-15: what is left of the shop's packs for one metric (requests), and whether auto-buy is on for it.
 export const shopPackSchema = z.object({
-  metric: z.enum([UsageMetric.Bandwidth, UsageMetric.Requests]),
+  metric: z.enum([UsageMetric.Requests]),
   left: z.number(),
   autoBuy: z.boolean(),
 });

@@ -115,10 +115,6 @@ export class DrizzleReportsStore implements ReportsStore {
     return this.days.storageTop(this.db, from, to, limit);
   }
 
-  bandwidthTop(from: string, to: string, limit: number): Promise<ShopFigure[]> {
-    return this.reports.bandwidthTop(this.db, from, to, limit);
-  }
-
   shopsByIds(ids: readonly string[]): Promise<ReportShopRow[]> {
     return this.reports.shopsByIds(this.db, ids);
   }

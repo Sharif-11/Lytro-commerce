@@ -7,7 +7,6 @@ import pg from 'pg';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
-import { GB } from '../src/modules/media/services/media-bandwidth';
 import { MB } from '../src/modules/media/services/media-limits';
 import { MediaProcessor } from '../src/modules/media/services/media-processor';
 import { MEDIA_STORAGE } from '../src/modules/media/tokens';
@@ -53,7 +52,7 @@ beforeAll(async () => {
   // The plans for sale, priced by the month, as the operator would (BIL-01): the seeded Starter, and a Growth (2.1).
   await admin.query(
     `INSERT INTO control.plans (name, rank, for_sale, limits) VALUES ('Growth', 2, true,
-       '{"staff": 5, "products": 1000, "storage_mb": 5120, "bandwidth_gb": 100, "requests_monthly": 600000,
+       '{"staff": 5, "products": 1000, "storage_mb": 5120, "requests_monthly": 600000,
          "essential_sms_monthly": 15, "activity_retention_days": 90}')`,
   );
   const term = await admin.query<{ id: string }>(
@@ -145,10 +144,10 @@ function override(shop: ShopClient, key: string, value: number): Promise<unknown
 function notice(shop: ShopClient, values: Partial<UsageNotice>): UsageNotice {
   return {
     tenantId: shop.tenantId,
-    metric: UsageMetric.Bandwidth,
+    metric: UsageMetric.Requests,
     level: 95,
-    used: 0.95 * GB,
-    limit: GB,
+    used: 19_000,
+    limit: 20_000,
     cycleStart: new Date().toISOString(),
     ...values,
   };
@@ -285,12 +284,12 @@ describeIfDatabase('sending a usage notice (LIM-01, RTE-12)', () => {
     expect(await textsTo((await owner(shop)).phone)).toEqual([]);
   });
 
-  it('texts bandwidth at its limit and stop, and at 95 percent only an owner with no email', async () => {
+  it('texts API requests at their limit and stop, and at 95 percent only an owner with no email', async () => {
     const phoneOnly = await openShop(port, texts, 'send-phone-only');
     await app.get(UsageNoticeSender).send(notice(phoneOnly, { level: 95 }));
     const sms = await textsTo((await owner(phoneOnly)).phone);
     expect(sms).toEqual([
-      `Lytro: Shop ${phoneOnly.slug} has used 95% of its media bandwidth. Get more room from your dashboard.`,
+      `Lytro: Shop ${phoneOnly.slug} has used 95% of its API requests. Get more room from your dashboard.`,
     ]);
 
     const withEmail = await openShop(port, texts, 'send-with-email');
@@ -298,14 +297,14 @@ describeIfDatabase('sending a usage notice (LIM-01, RTE-12)', () => {
     const { phone } = await owner(withEmail);
     await app.get(UsageNoticeSender).send(notice(withEmail, { level: 95 }));
     expect(await textsTo(phone)).toEqual([]);
-    await app.get(UsageNoticeSender).send(notice(withEmail, { level: 100, used: GB }));
-    await app.get(UsageNoticeSender).send(notice(withEmail, { level: 'stopped', used: 1.2 * GB }));
+    await app.get(UsageNoticeSender).send(notice(withEmail, { level: 100, used: 20_000 }));
+    await app.get(UsageNoticeSender).send(notice(withEmail, { level: 'stopped', used: 22_000 }));
     expect(await textsTo(phone)).toHaveLength(2);
     const subjects = (await mailTo(email)).map((mail) => mail.subject);
     expect(subjects).toEqual([
-      `Shop ${withEmail.slug}: 95% of your media bandwidth used`,
-      `Shop ${withEmail.slug}: your media bandwidth is used up`,
-      `Shop ${withEmail.slug}: your images and videos have stopped showing`,
+      `Shop ${withEmail.slug}: 95% of your API requests used`,
+      `Shop ${withEmail.slug}: your API requests is used up`,
+      `Shop ${withEmail.slug}: your catalogue has stopped answering your website and storefront`,
     ]);
   });
 

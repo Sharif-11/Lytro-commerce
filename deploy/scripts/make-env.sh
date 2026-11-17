@@ -240,10 +240,11 @@ GEMINI_API_KEY=
 # MEDIA_DELETER_SECRET_KEY=
 # MEDIA_PUBLIC_BASE_URL=
 
-# Media's Cloudflare side (its costs and blocked list): all three or none. The media token, never the DNS one.
+# Media's Cloudflare side (its costs, and purging a lapsed shop's media): the account and the token together, and the
+# zone the media address is in. The media token, never the DNS one.
 # CLOUDFLARE_ACCOUNT_ID=
 # CLOUDFLARE_API_TOKEN=
-# MEDIA_EDGE_KV_NAMESPACE_ID=
+# CLOUDFLARE_ZONE_ID=
 
 # Where the payment listener app downloads from, for the dashboard's download button (built-in:
 # https://download.lytro.app). Set it as website.env's is.

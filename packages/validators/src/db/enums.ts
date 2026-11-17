@@ -249,9 +249,9 @@ export enum AuditAction {
   AddonEndingWarned = 'addon_ending_warned',
   // NTC-05, NTC-17 (Phase 7 Slice 7.4): the owner acknowledged one of Lytro's notices (`summary.noticeId`).
   NoticeAcknowledged = 'notice_acknowledged',
-  // PLN-15, BND-04, RTE-11: the owner switching auto-buy of bandwidth or request packs on or off.
+  // PLN-15, RTE-11: the owner switching auto-buy of request packs on or off (bandwidth's too, before D9-31).
   PackAutoBuySet = 'pack_auto_buy_set',
-  // BND-04: auto-buy reached the cycle's allowance but the balance was short of a pack. System-caused.
+  // RTE-11: auto-buy reached the cycle's allowance but the balance was short of a pack. System-caused.
   PackAutoBuyFailed = 'pack_auto_buy_failed',
   // BAL-03/BAL-05: a verified top-up credits the balance -- tenant-caused.
   BalanceToppedUp = 'balance_topped_up',
@@ -587,7 +587,7 @@ export enum QueueName {
   MediaDelete = 'media_delete',
   // MED-04: the nightly comparison of each shop's recorded files with what R2 holds.
   MediaReconcileTick = 'media_reconcile_tick',
-  // BND-02, MED-10: every minute, the media Worker's usage is totalled and its shared store brought up to date.
+  // Retired (D9-31): the media Worker's minute pass. Kept only so a server's start cancels its old schedule.
   MediaBandwidthTick = 'media_bandwidth_tick',
   // LIM-01: a usage warning to write and send, queued in the transaction that crossed its share of a limit.
   UsageNotice = 'usage_notice',
@@ -861,7 +861,6 @@ export enum UsageMetric {
   Products = 'products',
   Seats = 'seats',
   Storage = 'storage',
-  Bandwidth = 'bandwidth',
   Requests = 'requests',
   EssentialSmsMonthly = 'essential_sms_monthly',
   EssentialSmsTotal = 'essential_sms_total',
@@ -904,8 +903,8 @@ export enum PlatformSettingKey {
   // RTE-06 (editable, KNOWN-GAPS §82): how many requests one visitor may make to one shop in any minute, through its
   // public keys and its catalog feed.
   PublicRequestsPerVisitorPerMinute = 'public_requests_per_visitor_per_minute',
-  // BND-03, RTE-03 (editable): how far past 100 percent of its bandwidth or API requests a shop is still served while
-  // its owner is told, as a percent of the limit, before they stop.
+  // RTE-03 (editable): how far past 100 percent of its API requests a shop is still served while its owner is told,
+  // as a percent of the limit, before they stop.
   UsageGracePercent = 'usage_grace_percent',
   // RTE-12 (editable, KNOWN-GAPS §82): the share of a cycle's API requests that, spent in one hour, tells the owner and
   // the operator. Nothing is refused.
@@ -1201,11 +1200,11 @@ export const PACK_AUTO_BUY_CAP = 3;
 // every period there will be.
 export const PACK_NEVER_ENDS = new Date('9999-12-31T00:00:00.000Z');
 
-// BND-04, RTE-11: what a pack tops up, by the limit it raises -- media bandwidth or API requests.
-export const PACK_LIMIT_KEYS = ['bandwidth_gb', 'requests_monthly'] as const;
+// RTE-11: what a pack tops up, by the limit it raises: API requests. (The bandwidth pack was retired by D9-31.)
+export const PACK_LIMIT_KEYS = ['requests_monthly'] as const;
 export type PackLimitKey = (typeof PACK_LIMIT_KEYS)[number];
 
-// BND-04: how auto-buy stands in a cycle -- a pack asked for and not yet bought, or one the balance could not pay.
+// RTE-11: how auto-buy stands in a cycle -- a pack asked for and not yet bought, or one the balance could not pay.
 export enum PackAutoBuyState {
   Requested = 'requested',
   Failed = 'failed',
@@ -1986,7 +1985,6 @@ export enum NoticeStatus {
 // ADM-09, D8-10: what the top-consumers report ranks shops by.
 export enum ConsumerMetric {
   Storage = 'storage',
-  Bandwidth = 'bandwidth',
   Sms = 'sms',
 }
 

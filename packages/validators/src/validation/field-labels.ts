@@ -36,9 +36,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   auth: { en: 'Push secret', bn: 'পুশ সিক্রেট' },
   avgCost: { en: 'Average cost', bn: 'গড় কেনা দাম' },
   backgroundColor: { en: 'Background colour', bn: 'ব্যাকগ্রাউন্ড কালার' },
-  bandwidth: { en: 'Bandwidth auto-buy', bn: 'ব্যান্ডউইথ অটো-বাই' },
   bankName: { en: 'Bank name', bn: 'ব্যাংকের নাম' },
-  bandwidth_gb: { en: 'Bandwidth (GB)', bn: 'ব্যান্ডউইথ (GB)' },
   barcode: { en: 'Barcode', bn: 'বারকোড' },
   basePrice: { en: 'Price', bn: 'প্রাইস' },
   batch: { en: 'Batch', bn: 'ব্যাচ' },
@@ -376,10 +374,6 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   visible: { en: 'Visible', bn: 'ভিজিবল' },
   websites: { en: 'Website addresses', bn: 'ওয়েবসাইট অ্যাড্রেস' },
   weightKg: { en: 'Weight (kg)', bn: 'ওজন (কেজি)' },
-  // D8-60 (Slice 8.6): the rest of Cloudflare's price sheet, as above.
-  workersIncludedMillions: null,
-  workersMonthly: null,
-  workersPerMillion: null,
   zillaIds: { en: 'Districts', bn: 'জেলা' },
   zoneIds: { en: 'Delivery zones', bn: 'ডেলিভারি জোন' },
   // ORD-30 to ORD-34 (Phase 7 Slice 7.6): the parts of a read of delivery details.

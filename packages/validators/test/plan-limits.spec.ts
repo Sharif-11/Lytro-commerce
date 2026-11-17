@@ -10,7 +10,7 @@ describe("a shop's limits", () => {
     expect(limitOf(limits, 'storage_mb')).toBeNull();
     expect(limitOf(limits, 'staff')).toBe(1);
     expect(limitOf(limits, 'requests_monthly')).toBe(20_000);
-    expect(limitOf(null, 'bandwidth_gb')).toBe(LIMIT_WHEN_UNSET.bandwidth_gb);
+    expect(limitOf(null, 'storage_mb')).toBe(LIMIT_WHEN_UNSET.storage_mb);
   });
 
   it('lets an override win over the snapshot, unlimited included', () => {

@@ -1,7 +1,7 @@
 import { UsageMetric, type PlanLimits } from '@lytronix/validators';
 import { describe, expect, it } from 'vitest';
 import { DAY_MS } from '../src/common/time';
-import { GB } from '../src/modules/media/services/media-bandwidth';
+import { GB } from '../src/modules/media/services/media-limits';
 import { runOutDate } from '../src/modules/usage/services/pace';
 import { suggest, type PlanOption } from '../src/modules/usage/services/suggest';
 import { noticeText, smsDue } from '../src/modules/usage/services/usage-notice-text';
@@ -25,19 +25,16 @@ const STARTER = plan('Starter', 1, 449, {
   products: 100,
   staff: 2,
   storage_mb: 2048,
-  bandwidth_gb: 30,
 });
 const GROWTH = plan('Growth', 2, 699, {
   products: 1000,
   staff: 5,
   storage_mb: 5120,
-  bandwidth_gb: 100,
 });
 const PRO = plan('Pro', 3, 999, {
   products: 5000,
   staff: 15,
   storage_mb: 20480,
-  bandwidth_gb: 500,
 });
 const PLANS = [PRO, STARTER, GROWTH];
 
@@ -128,7 +125,6 @@ function usage(overrides: Partial<ShopUsage> = {}): ShopUsage {
     cycleStart: new Date(NOW.getTime() - 10 * DAY_MS),
     cycleEnd: new Date(NOW.getTime() + 20 * DAY_MS),
     metrics: [],
-    bandwidthDays: [],
     requestDays: [],
     suggestions: null,
     fastSpendAlertedAt: null,
@@ -147,7 +143,7 @@ function notice(
   return { tenantId: 't', metric, level, used, limit, cycleStart: NOW.toISOString() };
 }
 
-describe('what a usage notice says (LIM-01, BND-03, RTE-03, RTE-12)', () => {
+describe('what a usage notice says (LIM-01, RTE-03, RTE-12)', () => {
   it('says how much is used, and what would give room', () => {
     const text = noticeText(
       notice(UsageMetric.Products, 80, 16, 20),
@@ -176,16 +172,27 @@ describe('what a usage notice says (LIM-01, BND-03, RTE-03, RTE-12)', () => {
   });
 
   it('gives a metric that serves shoppers its pace through the cycle', () => {
-    // 0.8 GB in 10 days is 0.08 GB a day: the last 0.2 GB lasts about 3 days.
+    // 1,600 in 10 days is 160 a day: the last 400 last about 3 days.
     const text = noticeText(
-      notice(UsageMetric.Bandwidth, 80, 0.8 * GB, GB),
+      notice(UsageMetric.Requests, 80, 1_600, 2_000),
       'Rupa Fashion',
       usage(),
       NOW,
       10,
     );
-    expect(text.body).toContain('has used 0.8 GB of its 1.0 GB media bandwidth (80%).');
+    expect(text.body).toContain('has used 1600 of its 2000 API requests (80%).');
     expect(text.body).toContain("At this cycle's pace it runs out in about 3 days");
+  });
+
+  it('writes storage in GB or MB, by the size of its limit, and with no pace', () => {
+    const text = noticeText(
+      notice(UsageMetric.Storage, 80, 0.8 * GB, GB),
+      'Rupa Fashion',
+      usage(),
+      NOW,
+      10,
+    );
+    expect(text.body).toBe('Rupa Fashion has used 0.8 GB of its 1.0 GB media storage (80%).');
   });
 
   it('dates the run-out at the pace of the cycle so far, the figure the usage page shows too (Slice 11.5c)', () => {
@@ -199,15 +206,17 @@ describe('what a usage notice says (LIM-01, BND-03, RTE-03, RTE-12)', () => {
 
   it('tells of the limit, the grace still served, and the stop', () => {
     const atLimit = noticeText(
-      notice(UsageMetric.Bandwidth, 100, GB, GB),
+      notice(UsageMetric.Requests, 100, 2_000, 2_000),
       'Rupa Fashion',
       usage(),
       NOW,
       10,
     );
-    expect(atLimit.body).toContain('images and videos are still shown for now, up to 1.1 GB');
+    expect(atLimit.body).toContain(
+      'Its catalogue still answers your website and storefront for now, up to 2200',
+    );
     expect(atLimit.sms).toBe(
-      'Lytro: Rupa Fashion has used all its media bandwidth. It keeps working up to 110%, then stops. ' +
+      'Lytro: Rupa Fashion has used all its API requests. It keeps working up to 110%, then stops. ' +
         'Get more room from your dashboard.',
     );
     const stopped = noticeText(
@@ -236,7 +245,7 @@ describe('what a usage notice says (LIM-01, BND-03, RTE-03, RTE-12)', () => {
 
   it('keeps every message plain ASCII, so an SMS is one plain part', () => {
     const text = noticeText(
-      notice(UsageMetric.Bandwidth, 'stopped', 2 * GB, GB),
+      notice(UsageMetric.Requests, 'stopped', 2_200, 2_000),
       'Shop',
       usage(),
       NOW,
@@ -248,11 +257,11 @@ describe('what a usage notice says (LIM-01, BND-03, RTE-03, RTE-12)', () => {
 });
 
 describe('which notices go by SMS (agreed for Slice 10)', () => {
-  it('sends bandwidth and requests at their limit and stop, and at 95 percent to an owner with no email', () => {
-    expect(smsDue(notice(UsageMetric.Bandwidth, 100, 1, 1), true)).toBe(true);
+  it('sends requests at their limit and stop, and at 95 percent to an owner with no email', () => {
+    expect(smsDue(notice(UsageMetric.Requests, 100, 1, 1), true)).toBe(true);
     expect(smsDue(notice(UsageMetric.Requests, 'stopped', 1, 1), true)).toBe(true);
-    expect(smsDue(notice(UsageMetric.Bandwidth, 95, 1, 1), false)).toBe(true);
-    expect(smsDue(notice(UsageMetric.Bandwidth, 95, 1, 1), true)).toBe(false);
+    expect(smsDue(notice(UsageMetric.Requests, 95, 1, 1), false)).toBe(true);
+    expect(smsDue(notice(UsageMetric.Requests, 95, 1, 1), true)).toBe(false);
     expect(smsDue(notice(UsageMetric.Requests, 80, 1, 1), false)).toBe(false);
   });
 

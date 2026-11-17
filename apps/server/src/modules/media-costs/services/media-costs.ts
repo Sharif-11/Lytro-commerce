@@ -21,8 +21,6 @@ import { MediaCostSettings } from './media-cost-settings';
 // Cloudflare's adaptive datasets keep at least 31 days, and a billing period is never longer, so every day asked for
 // is still there. A day's figures can still grow for a while after it ends, so the last few are read again each hour.
 const SETTLING_DAYS = 3;
-// D8-64: the shops shown, by the media Worker's requests.
-const TOP_SHOPS = 10;
 // The periods the console can step back through.
 const PERIODS_SHOWN = 12;
 
@@ -65,20 +63,12 @@ export interface MediaCostsView {
     cost: string;
     buckets: MediaCostBucket[];
   };
-  workers: {
-    requests: number;
-    bytes: number;
-    billableMillions: number;
-    monthly: string;
-    cost: string;
-  };
   total: string;
-  topShops: { tenantId: string; name: string; slug: string; requests: number; bytes: number }[];
   periods: { dateFrom: string; dateTo: string }[];
   prices: CloudflarePrices;
 }
 
-/** A period's last day, as the Dhaka days of the shops' bandwidth are counted (D8-64). */
+/** A period's last day, for the page: the period runs to, not including, `to`. */
 function lastDayOf(period: BillingPeriod): string {
   return addDays(period.to, -1);
 }
@@ -104,9 +94,9 @@ function bucketsOf(days: readonly RecordedR2Day[]): MediaCostBucket[] {
 
 /**
  * MED-12, D8-17, D8-57 to D8-64 (Phase 8 Slice 8.6, read agreed 2026-11-10): what Cloudflare will bill Lytro for its
- * media. Each hour reads R2's recent days from Cloudflare's own analytics (every bucket, the whole bill), adds the
- * media Worker's requests the server already counts, and holds the period's estimate against the budget, emailing the
- * one alert address once a period when it reaches the alert's percent.
+ * media. Each hour reads R2's recent days from Cloudflare's own analytics (every bucket, the whole bill) and holds the
+ * period's estimate against the budget, emailing the one alert address once a period when it reaches the alert's
+ * percent. Public media is served from Cloudflare's cache, which bills nothing (D9-31).
  */
 @Injectable()
 export class MediaCosts {
@@ -145,16 +135,15 @@ export class MediaCosts {
   async view(query: MediaCostsQuery, now: Date = this.clock()): Promise<MediaCostsView> {
     const billingDay = await this.settings.billingDay();
     const period = periodOf(query.period ? new Date(`${query.period}T00:00:00Z`) : now, billingDay);
-    const [figures, budget, alertPercent, alertEmail, alert, top, span] = await Promise.all([
+    const [figures, budget, alertPercent, alertEmail, alert, span] = await Promise.all([
       this.figures(period),
       this.settings.budgetUsd(),
       this.settings.alertPercent(),
       this.settings.alertEmail(),
       this.store.alertOf(period.from),
-      this.store.topShops(period.from, lastDayOf(period), TOP_SHOPS),
       this.store.recordedSpan(),
     ]);
-    const { estimate, days, worker, prices } = figures;
+    const { estimate, days, prices } = figures;
     const readAt = days.reduce<Date | null>(
       (latest, day) => (latest === null || day.updatedAt > latest ? day.updatedAt : latest),
       null,
@@ -196,15 +185,7 @@ export class MediaCosts {
         cost: usd(estimate.r2),
         buckets: bucketsOf(days),
       },
-      workers: {
-        requests: worker.requests,
-        bytes: worker.bytes,
-        billableMillions: estimate.workers.billableMillions,
-        monthly: usd(estimate.workers.monthly),
-        cost: usd(estimate.workers.cost),
-      },
       total: usd(estimate.total),
-      topShops: top,
       periods: this.periodsTo(periodOf(now, billingDay), span?.first ?? null, billingDay),
       prices,
     };
@@ -213,15 +194,13 @@ export class MediaCosts {
   private async figures(period: BillingPeriod): Promise<{
     estimate: MediaCostEstimate;
     days: RecordedR2Day[];
-    worker: { requests: number; bytes: number };
     prices: CloudflarePrices;
   }> {
-    const [days, worker, prices] = await Promise.all([
+    const [days, prices] = await Promise.all([
       this.store.daysBetween(period.from, period.to),
-      this.store.workerUse(period.from, lastDayOf(period)),
       this.settings.prices(),
     ]);
-    return { estimate: estimateOf(days, worker.requests, prices), days, worker, prices };
+    return { estimate: estimateOf(days, prices), days, prices };
   }
 
   /** The current period and those before it back to the first recorded day, newest first. */
@@ -263,9 +242,8 @@ export class MediaCosts {
       `past ${String(alertPercent)}% of the $${usd(budget)} budget.`,
       '',
       `R2: $${usd(estimate.r2)} (writes $${usd(estimate.classA.cost)}, reads $${usd(estimate.classB.cost)}, storage $${usd(estimate.storage.cost)}).`,
-      `Workers: $${usd(estimate.workers.cost)}, with ${String(estimate.workers.requests)} media requests.`,
       '',
-      "The console's media costs page shows each bucket and the shops that use most.",
+      "The console's media costs page shows each bucket.",
       'This is the only alert for this period.',
     ].join('\n');
     return this.store.run(async (tx) => {

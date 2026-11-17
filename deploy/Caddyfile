@@ -169,7 +169,7 @@
 
 # The tenant dashboard's own Content Security Policy (KNOWN-GAPS §65, Slice 11.13a), on the console's model:
 # scripts, styles, fetches, the service worker and the shop's manifest from the dashboard's own origin. Beyond it:
-# - a shop's images and video from MEDIA_PUBLIC_BASE_URL, the media Worker's address (an origin, no path);
+# - a shop's images and video from MEDIA_PUBLIC_BASE_URL, the media bucket's address behind Cloudflare (an origin, no path);
 # - uploads straight to MEDIA_STORAGE_ENDPOINT, addressed path-style (MEDIA_STORAGE_PATH_STYLE, true for R2);
 # - Google Fonts' stylesheet and font files, for a shop's brand fonts (Slice 11.2, BRN-02);
 # - blob: video, which only the barcode reader's fallback for old browsers uses.

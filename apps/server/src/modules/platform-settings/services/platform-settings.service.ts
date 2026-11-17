@@ -67,7 +67,7 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
   [PlatformSettingKey.PublicRequestsPerVisitorPerMinute]:
     'How many requests one visitor may make to one shop in a minute, through its public keys (RTE-06).',
   [PlatformSettingKey.UsageGracePercent]:
-    'How far past its bandwidth or API request limit a shop is still served, as a percent of the limit (BND-03, RTE-03).',
+    'How far past its API request limit a shop is still served, as a percent of the limit (RTE-03).',
   [PlatformSettingKey.FastSpendPercent]:
     "The share of a cycle's API requests that, spent in one hour, alerts the owner and the operator (RTE-12).",
   [PlatformSettingKey.PublicOrdersPerShopPerMinute]:
