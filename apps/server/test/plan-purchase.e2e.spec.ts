@@ -22,6 +22,8 @@ import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
 import { SmsCapture } from './support/sms-capture';
 
+import { failsWith } from './support/database-errors';
+
 // Phase 2 slice 4: plan purchase, top-up and invoices (BIL-01 to BIL-18, BAL-03 to BAL-06). White-box, same
 // pattern as slice 3's trial-lifecycle spec -- services are called directly, not through HTTP, since the
 // operator/tenant session flows are already covered by other specs and this slice's own risk is the money
@@ -687,7 +689,7 @@ describeIfDatabase('balance top-up (BAL-03 to BAL-06)', () => {
        EXECUTE FUNCTION public.refuse_at_commit()`,
     );
     try {
-      await expect(queue.approve(quote.id, operatorId())).rejects.toThrow(/commit refused/);
+      await failsWith(queue.approve(quote.id, operatorId()), /commit refused/);
     } finally {
       await admin.query('DROP TRIGGER refuse_at_commit ON tenant.balance_ledger');
       await admin.query('DROP FUNCTION public.refuse_at_commit()');

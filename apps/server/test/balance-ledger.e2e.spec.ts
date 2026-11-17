@@ -21,6 +21,8 @@ import { SmsCapture } from './support/sms-capture';
 import { LowBalanceCapture } from './support/low-balance-capture';
 import { cookieFrom, getJson, patchJson, postJson, type HttpResult } from './support/http';
 
+import { failsWith } from './support/database-errors';
+
 // The balance ledger and rates, over the real database (BAL-01 to BAL-18, RAT-01 to RAT-14). Direct-service
 // tests exercise what matters most here — real Postgres locking (BAL-11) and the insert-only trigger — the
 // same reason ENGINEERING-STANDARDS' "integration test" layer injects a service against a real database rather
@@ -418,14 +420,15 @@ describeIfDatabase('balance ledger (BAL-01 to BAL-18)', () => {
        FOR EACH ROW WHEN (NEW.target_id = '${tenantId}') EXECUTE FUNCTION public.refuse_audit()`,
     );
     try {
-      await expect(
+      await failsWith(
         balance.adjustStandalone({
           tenantId,
           amount: '25.00',
           reason: 'manual correction',
           operatorId: randomUUID(),
         }),
-      ).rejects.toThrow(/audit write lost/);
+        /audit write lost/,
+      );
     } finally {
       await admin.query('DROP TRIGGER refuse_audit ON control.platform_audit_log');
       await admin.query('DROP FUNCTION public.refuse_audit()');
