@@ -52,7 +52,7 @@ test('Sales shows the month by week: the figures, each week, profit, best seller
   await expect(main(page)).toContainText('31 Oct · 6 orders');
   await expect(main(page)).toContainText('৳137,720');
   await expect(main(page)).toContainText('3 sales had no cost recorded');
-  await expect(main(page)).toContainText('Delivered orders, each on the day it was placed');
+  await expect(main(page)).toContainText('Delivered orders only, by the day each was placed');
   expect(asked(log, '/sales')[0]).toContain('dateFrom=2026-10-01&dateTo=2026-10-31&bucket=week');
   await expectAccessible(page);
 });

@@ -131,7 +131,7 @@ test('sends a screenshot for a top-up being checked: the link, the file, then th
   const log = await open(page, `/billing/${CHECKING_TOP_UP.id}`);
   const shot = shotCard(page);
   await expect(
-    shot.getByText('Optional. It helps Lytro check faster, and only Lytro sees it.', {
+    shot.getByText('Optional; it helps Lytro check faster.', {
       exact: false,
     }),
   ).toBeVisible();

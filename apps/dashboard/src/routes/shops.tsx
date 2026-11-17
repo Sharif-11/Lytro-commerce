@@ -6,7 +6,8 @@ import { Shops } from '@/views/shops';
 export const Route = createFileRoute('/shops')({
   beforeLoad: async () => {
     await tenantSession.whenReady();
-    if (!tenantSession.isSignedIn()) throw redirect({ to: '/sign-in', search: {} });
+    if (!tenantSession.isSignedIn())
+      throw redirect({ to: '/sign-in', search: { mode: 'password' } });
   },
   component: Shops,
 });

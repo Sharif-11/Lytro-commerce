@@ -1868,6 +1868,49 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 </style>`);
 /* ---------- end of Part 99 (Slice 9.9 sketch) ---------- */
 
+/* ---------- Fixes · UI/UX batch 2 (sketch, 2026-11-16), item 2.2: a shopper reaches the shop on WhatsApp or Messenger.
+   On the product page, a row under the buttons; in the footer, beside the phone, email and address the shop already
+   shows. Each shows only when the shop has set it in shop details; none set, no row and no lines. ---------- */
+const GUX = 'Fixes · UI/UX batch 2 (sketch)';
+Object.assign(I, {
+  msgr: '<svg class="i" viewBox="0 0 24 24"><path d="M12 3C7 3 3 6.7 3 11.3c0 2.6 1.3 4.9 3.3 6.4V21l3-1.7c.9.3 1.8.4 2.7.4 5 0 9-3.7 9-8.4S17 3 12 3z"/><path d="m7 13.5 3.2-3.4 2.3 2.3 4-2.6-3.2 3.4-2.3-2.3z"/></svg>',
+});
+Object.assign(S, {
+  uxAskT: ['প্রশ্ন আছে? শপকে সরাসরি মেসেজ দিন', 'A question? Message the shop directly'],
+  uxWa: ['WhatsApp', 'WhatsApp'],
+  uxMsgr: ['Messenger', 'Messenger'],
+  uxFbPage: ['Facebook পেজ', 'Facebook page'],
+});
+const UXSF = { wa: '01711 234 567', msgr: 'm.me/meghfashion', fb: 'facebook.com/meghfashion' };
+const uxSfMust = (h, s, what) => { if (h.indexOf(s) < 0) throw new Error(`UX batch 2: ${what} not found`); return s; };
+const uxAsk = (o) => (!o.wa && !o.msgr) ? '' : `<div class="ux-ask"><span class="ux-ask-t">${t('uxAskT')}</span><div class="ux-ask-b">${o.wa ? `<a class="btn ghost ux-wa" href="#" onclick="return false">${I.wa}${t('uxWa')}</a>` : ''}${o.msgr ? `<a class="btn ghost ux-ms" href="#" onclick="return false">${I.msgr}${t('uxMsgr')}</a>` : ''}</div></div>`;
+const uxFootLines = (o) => `${o.wa ? `<div>${I.wa}<a href="#" onclick="return false">${UXSF.wa}</a></div>` : ''}${o.msgr ? `<div>${I.msgr}<a href="#" onclick="return false">${UXSF.msgr}</a></div>` : ''}${o.fb ? `<div>${I.fb}<a href="#" onclick="return false">${UXSF.fb}</a></div>` : ''}`;
+const uxProduct = (o) => {
+  let h = shell(pHdr(P[0]), productPage(P[0]), buybar(P[0]));
+  const acc = '<div class="acc">';
+  h = h.split(uxSfMust(h, acc, "the product's details")).join(`${uxAsk(o)}${acc}`);
+  const addr = `<div>${I.pin}<span>${L(...SHOP.address)}</span></div></div>`;
+  return h.split(uxSfMust(h, addr, "the footer's contact block")).join(`<div>${I.pin}<span>${L(...SHOP.address)}</span></div>${uxFootLines(o)}</div>`);
+};
+def('ux-contact', { group: GUX, label: '2.2 Product · WhatsApp and Messenger under the buttons, and in the footer', url: 'megh.lytro.app/p/cotton-panjabi', render: () => uxProduct({ wa: true, msgr: true, fb: true }) });
+def('ux-contact-wa', { group: GUX, label: '· only WhatsApp set', url: 'megh.lytro.app/p/cotton-panjabi', render: () => uxProduct({ wa: true }) });
+def('ux-contact-none', { group: GUX, label: '· none set: no row, no lines (as today)', url: 'megh.lytro.app/p/cotton-panjabi', render: () => uxProduct({}) });
+def('ux-contact-home', { group: GUX, label: '· the footer on Home', url: 'megh.lytro.app', render: () => {
+  const h = shell({}, homePage());
+  const addr = `<div>${I.pin}<span>${L(...SHOP.address)}</span></div></div>`;
+  return h.split(uxSfMust(h, addr, "the footer's contact block")).join(`<div>${I.pin}<span>${L(...SHOP.address)}</span></div>${uxFootLines({ wa: true, msgr: true, fb: true })}</div>`);
+} });
+document.head.insertAdjacentHTML('beforeend', `<style>
+/* Fixes · UI/UX batch 2 (sketch) */
+.ux-ask{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--n50,#f7f9f9)}
+.ux-ask-t{font-size:15px;font-weight:600}
+.ux-ask-b{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.ux-ask-b .btn{justify-content:center;min-height:44px;font-size:15px;text-decoration:none}
+.ux-wa svg{color:#1da851}
+.ux-ms svg{color:#0a7cff}
+.foot .contact a{color:inherit;text-decoration:none}
+</style>`);
+/* ---------- end of Fixes · UI/UX batch 2 (sketch) ---------- */
 /* ---------- Phase 9 Slice 9.10 (sketch, 2026-11-14): a page the server is too busy to give. Staging's load test found a
    storefront page answering Next's error page when the API said "too many requests" (429) or "busy" (503). Now the
    page says so calmly, the way the offline page does, and tries again by itself after the server's wait; a figure the

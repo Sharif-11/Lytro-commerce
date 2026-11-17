@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SectionHead } from '@/components/ui/page';
 import { RowList } from '@/components/ui/list-row';
-import { SkeletonRows } from '@/components/ui/skeleton';
+import { SkeletonJobs } from '@/components/ui/skeleton';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { HomeView } from '@/types/home';
@@ -115,7 +115,7 @@ export function JobQueue({ home }: { home: HomeView | undefined }): React.JSX.El
       <SectionHead>{t('todayJobs')}</SectionHead>
       <Card flush className="mt-2">
         {!home ? (
-          <SkeletonRows count={3} />
+          <SkeletonJobs />
         ) : jobs.length === 0 && toAcknowledge.length === 0 ? (
           <EmptyState icon="check">{t('allClear')}</EmptyState>
         ) : (

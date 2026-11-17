@@ -23,12 +23,14 @@ import { courierName } from '@/lib/couriers';
 import { dayLabel, groupByDay } from '@/lib/dates';
 import { useShell } from '@/shell/shell-context';
 import type { OrderSummary } from '@/types/orders';
+import { advancePaid } from './order-auto';
 import { CANCEL_REASONS, atCounter, useOrderWords } from './order-words';
 import { listLineOf } from './parcel-words';
 
 const TAB_WORD: Record<OrderTab, string> = {
   pending: 'tabConfirm',
   confirmed: 'tabConfirmed',
+  processing: 'tabProcessing',
   hold: 'tabHold',
   shipped: 'tabShipped',
   all: 'tabAll',
@@ -315,6 +317,9 @@ export function OrderRow({
       <span className="text-warning">{t('noAnswer', { count: order.unansweredCalls })}</span>
     ) : order.status === OrderStatus.Cancelled && order.cancelReason ? (
       words.reason(order.cancelReason)
+    ) : advancePaid(order) ? (
+      // The fixes PR's `fx-autoconfirm-list` (2026-11-14): money already verified, so no call was needed.
+      t('paidTag')
     ) : null;
   const content = (
     <>

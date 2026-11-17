@@ -33,8 +33,8 @@ import { expectLedgerAgrees } from './support/stock-ledger';
 // PHASE-5-PLAN §1, exit criterion 2: the prepaid golden path, as one test for each verification level, each for one clothing
 // shop past its trial. A landing-page order for a shirt needing a 300 TK advance holds its stock; the payment page shows the
 // shop's active bKash account; the advance is verified by staff, by a paired phone's receipt, or at bKash's checkout; the
-// order goes from Unverified to New, to its confirming call, shipped and delivered, collecting only the cash-on-delivery
-// remainder. The fee is charged once: none by hand, 0.10% by the listener, 1.00% at the gateway. After each step `agrees`
+// order goes from Unverified to Confirmed by its verified advance alone (ORD-51, no confirming call), shipped and delivered,
+// collecting only the cash-on-delivery remainder. The fee is charged once: none by hand, 0.10% by the listener, 1.00% at the gateway. After each step `agrees`
 // reads the session, the order's two axes, its payments, the balance and its ledger and the stock, and checks that the order's
 // paid amount, the balance and the stock each re-derive from their own records. The gateway is a fake bKash, as in
 // gateway.e2e.spec.ts; bkash-sandbox.live.spec.ts is the real sandbox. Runs only when DATABASE_TEST_ADMIN_URL is set.
@@ -151,9 +151,10 @@ async function onToDelivered(
   paid: Figures,
   collected: Figures['payments'][number],
 ): Promise<Order> {
+  // ORD-51: the verified advance confirmed it, so nobody calls; a call logged anyway confirms nothing again.
   const confirming = await shop.post(`/orders/${orderId}/calls`, { outcome: 'confirmed' });
   expect(confirming.status, JSON.stringify(confirming.body)).toBe(200);
-  const confirmed: Figures = { ...paid, order: { ...paid.order, status: 'confirmed' } };
+  const confirmed: Figures = paid;
   await agrees(confirmed);
 
   const sent = await shop.post(`/orders/${orderId}/ship`, {
@@ -286,7 +287,7 @@ function paidBy(level: string, by: 'staff' | 'system', transactionId: string): F
     ...PLACED,
     session: { state: 'verified', feeHeld: '0.00', transactionId },
     order: {
-      status: 'pending',
+      status: 'confirmed',
       paymentStatus: 'paid',
       fulfillmentStatus: 'unfulfilled',
       due: '770.00',

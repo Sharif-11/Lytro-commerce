@@ -370,7 +370,6 @@ function BrandPage({ editor }: { editor: BrandEditor }): React.JSX.Element {
               setForm((current) => ({ ...current, spacing }));
             }}
           />
-          <p className="text-[14px]">{t('brNever')}</p>
         </div>
         <div className="flex flex-col gap-section">
           <PreviewCard tab={tab} onTab={setTab}>

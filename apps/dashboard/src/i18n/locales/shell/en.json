@@ -57,7 +57,6 @@
   "loading": "Loading",
   "mainNav": "Main navigation",
   "sectionNav": "This hub’s pages",
-  "bOffline": "You are offline. What was loaded still shows; the rest comes back with the connection.",
   "noAccess": "That page is not part of your role.",
   "arrivingT": "{{s}} is being rebuilt",
   "arrivingL": "This screen arrives with the next update of the dashboard.",
@@ -166,5 +165,21 @@
     "limitedT": "Exports, reports and reading orders from messages are paused for a while.",
     "limitedB": "Orders and payments work as usual.",
     "savePaused": "Saving paused"
+  },
+  "ux2": {
+    "close": "Close",
+    "netOff": "No internet",
+    "netOffSub": "Showing what was already loaded",
+    "netBack": "Back online",
+    "netBackSub": "Getting the latest",
+    "retry": "Try again",
+    "noPageT": "No internet",
+    "noPageP": "This page hasn't loaded yet. It comes back by itself when the internet returns.",
+    "saveOff": "No internet",
+    "saveKept": "What you typed is still on this page. Save once the internet is back.",
+    "tapOff": "No internet, so it wasn't done. Try again once you're back online.",
+    "slowT": "Taking a little longer…",
+    "slowP": "The connection seems slow. Hang on; it shows as soon as it loads.",
+    "splashSlowP": "On a slow connection the first open takes a little longer."
   }
 }

@@ -1182,8 +1182,10 @@ export enum BrandPair {
   StatusOnBackground = 'status_on_background',
 }
 
-// PLN-14 (agreed for Slice 10a): the most of one add-on a single purchase may buy; a feature add-on is only ever one.
-export const ADDON_QUANTITY_MAX = 10;
+// PLN-14 (agreed for Slice 10a; UI/UX batch 2, 2026-11-16): a purchase may buy any number of one add-on (the owner: no
+// cap at all); the offer prices the first ADDON_OFFER_QUANTITIES at once and GET /addons/price any other. A feature
+// add-on is only ever one.
+export const ADDON_OFFER_QUANTITIES = 10;
 
 // PLN-14 (agreed for Slice 10a.2): how long an add-on runs when the shop has no plan period to align it with -- on
 // pay-as-you-go or a no-expiry plan -- each renewed from the balance at its own end.

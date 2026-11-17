@@ -169,6 +169,13 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .kv .k{color:var(--muted)}
 .kv .v{font-weight:500}
 .desc{font-size:15px;line-height:1.65;white-space:pre-line}
+/* SFT-21 (UI/UX batch 2): a shopper asks the shop directly, on WhatsApp or Messenger. */
+.ask{display:flex;flex-direction:column;gap:10px;margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.ask-t{font-size:15px;font-weight:600}
+.ask-b{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.ask-b .btn{justify-content:center;min-height:44px;font-size:15px;text-decoration:none}
+.ask-wa svg{color:#1da851}
+.ask-ms svg{color:#0a7cff}
 .acc{border-top:1px solid var(--line)}
 .acc details{border-bottom:1px solid var(--line)}
 .acc summary{display:flex;justify-content:space-between;align-items:center;padding:14px 0;font-weight:600;font-size:15px;cursor:pointer;list-style:none}

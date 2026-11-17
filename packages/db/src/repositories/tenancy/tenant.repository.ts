@@ -763,6 +763,9 @@ export class TenantRepository {
         contactPhone: null,
         contactEmail: null,
         businessAddress: null,
+        whatsapp: null,
+        messenger: null,
+        facebookPage: null,
         suspendedReason: null,
         kycStatus: KycStatus.Unverified,
       })
@@ -897,6 +900,9 @@ export class TenantRepository {
         contactPhone: tenants.contactPhone,
         contactEmail: tenants.contactEmail,
         businessAddress: tenants.businessAddress,
+        whatsapp: tenants.whatsapp,
+        messenger: tenants.messenger,
+        facebookPage: tenants.facebookPage,
       })
       .from(tenants)
       .where(eq(tenants.id, tenantId))
@@ -1106,4 +1112,8 @@ export interface ContactDetailsRow {
   contactPhone: string | null;
   contactEmail: string | null;
   businessAddress: string | null;
+  /** SFT-21: where shoppers chat with the shop. */
+  whatsapp: string | null;
+  messenger: string | null;
+  facebookPage: string | null;
 }

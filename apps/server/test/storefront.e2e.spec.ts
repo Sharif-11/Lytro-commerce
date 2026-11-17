@@ -252,9 +252,15 @@ describeIfDatabase("the storefront's context (Slice 12, TEN-08, SFT-12, SFT-16)"
 });
 
 describeIfDatabase('what the storefront reads (TEN-16, TEN-30, DLV-01, DLV-07, CUS-08)', () => {
-  it("gives the shop's contact details and zones, and a product's zones", async () => {
+  it("gives the shop's contact details (with its chat contacts, SFT-21) and zones, and a product's zones", async () => {
     const shop = await openShop(port, texts, 'sf');
-    await shop.patch('/shop-settings', { contactPhone: '01711000000', contactEmail: null });
+    const saved = await shop.patch('/shop-settings', {
+      contactPhone: '01711000000',
+      contactEmail: null,
+      whatsapp: '+8801811000000',
+      messenger: 'https://m.me/megh.fashion',
+    });
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200);
     const sf = await open(shop);
     const read = await asStorefront('GET', '/v1/shop', sf);
     expect(read.status, JSON.stringify(read.body)).toBe(200);
@@ -264,7 +270,14 @@ describeIfDatabase('what the storefront reads (TEN-16, TEN-30, DLV-01, DLV-07, C
       deliveryZones: { id: string; charge: string; noDelivery: boolean; name: { en: string } }[];
     };
     expect(view.logo).toBeNull();
-    expect(view.contact).toEqual({ phone: '01711000000', email: null, address: null });
+    expect(view.contact).toEqual({
+      phone: '01711000000',
+      email: null,
+      address: null,
+      whatsapp: '01811000000',
+      messenger: 'megh.fashion',
+      facebookPage: null,
+    });
     expect(view.deliveryZones.map((zone) => [zone.name.en, zone.charge, zone.noDelivery])).toEqual([
       ['Inside Dhaka city', '70.00', false],
       ['Outside Dhaka city', '130.00', false],

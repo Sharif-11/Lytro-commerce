@@ -98,6 +98,11 @@ export const tenants = control.table(
     contactPhone: varchar('contact_phone', { length: 30 }),
     contactEmail: varchar('contact_email', { length: 254 }),
     businessAddress: text('business_address'),
+    // TEN-30, SFT-21 (UI/UX batch 2): where shoppers chat with the shop -- a WhatsApp number (01XXXXXXXXX), a Messenger
+    // username and a Facebook page's link -- each set from shop settings, null when unset.
+    whatsapp: varchar('whatsapp', { length: 30 }),
+    messenger: varchar('messenger', { length: 100 }),
+    facebookPage: varchar('facebook_page', { length: 300 }),
     // PST-01: the shop's main business type, which sets new products' defaults and suggestions (PST-02). Null
     // until chosen; changing it never touches existing products (PST-03).
     businessType: text('business_type').references(() => businessTypePresets.key),

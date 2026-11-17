@@ -20,6 +20,32 @@ import { spanWords } from '@/views/listener/phone-health';
 import { useOrderWords } from './order-words';
 import { ATTENTION_WORD, newsWords, READING_LOOK, readingOf } from './parcel-words';
 
+/**
+ * Copy beside a booking's tracking code or link (the fixes PR's `fx-copy`, 2026-11-14), "Copied" said in the toast the
+ * shell shows.
+ */
+function CopyIt({ text }: { text: string }): React.JSX.Element {
+  const { t } = useTranslation('orders');
+  const { showToast } = useShell();
+  return (
+    <Button
+      tone="ghost"
+      size="xs"
+      onClick={() => {
+        void navigator.clipboard.writeText(text).then(() => {
+          showToast(t('copiedIt'));
+        });
+      }}
+    >
+      <Icon name="copy" size={16} />
+      {t('copyIt')}
+    </Button>
+  );
+}
+
+/** A link as read: without its https:// (`steadfast.com.bd/t/SF-2611-0842`). */
+const linkText = (link: string): string => link.replace(/^https?:\/\//i, '');
+
 const SOURCE_WORD: Readonly<Record<CourierNewsSource, string>> = {
   [CourierNewsSource.Message]: 'crFromMsg',
   [CourierNewsSource.Check]: 'crFromCheck',
@@ -178,26 +204,35 @@ export function CourierCard({
         </div>
       ) : null}
       <CourierHead parcel={parcel} />
+      {/* The fixes PR (2026-11-14): the code and the link the booking returned, each with Copy. */}
       {parcel.trackingCode ? (
         <Kv
-          label={t('tracking')}
+          label={t('trackCode')}
           value={
-            <>
-              {parcel.trackingCode}
-              {order.trackingLink ? (
-                <>
-                  {' · '}
-                  <a
-                    href={order.trackingLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-semibold text-primary no-underline"
-                  >
-                    {t('crTrackOn', { c: name })}
-                  </a>
-                </>
-              ) : null}
-            </>
+            <span className="flex flex-wrap items-center justify-end gap-2">
+              <span className="font-mono">{parcel.trackingCode}</span>
+              <CopyIt text={parcel.trackingCode} />
+            </span>
+          }
+        />
+      ) : null}
+      {order.trackingLink ? (
+        <Kv
+          label={t('trackingLinkL')}
+          value={
+            <span className="flex flex-wrap items-center justify-end gap-2">
+              <a
+                href={order.trackingLink}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={t('crTrackOn', { c: name })}
+                className="inline-flex items-center gap-1 font-semibold text-primary no-underline [overflow-wrap:anywhere]"
+              >
+                {linkText(order.trackingLink)}
+                <Icon name="external" size={14} />
+              </a>
+              <CopyIt text={order.trackingLink} />
+            </span>
           }
         />
       ) : null}

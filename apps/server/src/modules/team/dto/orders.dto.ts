@@ -110,7 +110,7 @@ const orderItemSchema = z.object({
     }),
   ),
   captured: z.array(z.object({ attributeId: z.string(), name: z.string(), value: z.string() })),
-  thumbnail: z.object({ mediaId: z.string(), url: z.string() }).nullable(),
+  thumbnail: z.object({ mediaId: z.string(), url: z.string(), largeUrl: z.string() }).nullable(),
   stockUnit: z.nativeEnum(StockUnit),
   listPrice: z.string(),
   unitPrice: z.string(),

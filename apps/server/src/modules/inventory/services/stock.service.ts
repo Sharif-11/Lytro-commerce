@@ -9,6 +9,7 @@ import {
   StockReason,
   StockTracking,
   type AddStockInput,
+  type AddStocksInput,
   type ComboQuoteInput,
   type SetStockInput,
   type StockHistoryQuery,
@@ -78,6 +79,31 @@ type StockedProduct = { id: string } & Pick<
   | 'serialTracked'
   | 'kind'
 >;
+
+/**
+ * INV-06 (fixes 2026-11-14): a row of the quick stock boxes refused, so the whole save is -- the same refusal, naming the
+ * row: its fields under `additions.<index>.`, and `index` and `variantId` in its details.
+ */
+function refusalOfRow(error: ApiError, index: number, variantId: string): ApiError {
+  const row = { index, variantId };
+  if (error instanceof FieldsError) {
+    return new FieldsError(
+      error.fields.map((field) => ({
+        ...field,
+        field: `additions.${String(index)}.${field.field}`,
+      })),
+      error.code,
+      { ...error.details, ...row },
+    );
+  }
+  return new ApiError(
+    error.code,
+    error.messageKey,
+    { ...error.details, ...row },
+    error.retryAfterSeconds,
+    error.params,
+  );
+}
 
 /**
  * INV-06: the one-tap reason as the ledger records it. "New stock arrived" is a purchase received (PUR-07, recorded by
@@ -396,60 +422,107 @@ export class StockService implements ProductStockHooks {
   ): Promise<ProductStockView> {
     const who = await this.activity.resolve(tenantId, actor);
     return this.transactions.run(async (tx) => {
-      const variant = await this.variantOf(tx, tenantId, productId, variantId);
-      if (variant.product.stockTracking !== StockTracking.Tracked) {
-        throw new ApiError('conflict', 'MadeToOrderHasNoStock', {});
-      }
-      const packs = variant.product.sharedStock && !variant.isStockHolder;
-      const whole = packs || !MEASURED_STOCK_UNITS.includes(variant.product.stockUnit);
-      if (whole && !Number.isInteger(input.quantity)) {
-        throw new FieldsError([
-          {
-            field: 'quantity',
-            problem: FieldProblemCode.NotAllowed,
-            messageKey: packs ? 'WholePacksOnly' : 'WholeUnitsOnly',
-          },
-        ]);
-      }
-      const batch = batchChoiceOf(variant, input, true);
-      const serials = await this.serialsOf(
-        tx,
-        tenantId,
-        variant,
-        input.serials,
-        milli(input.quantity),
-      );
-      const quantity = quantityOf(milli(input.quantity));
-      const cost = input.unitCost === undefined || input.unitCost === null ? null : input.unitCost;
-      // INV-24: packs of a size arrive on the shared stock, and a pack's cost becomes a cost per unit of it.
-      const holder = packs
-        ? (await this.store.findStockHolders(tx, tenantId, [productId]))[0]
-        : variant;
-      const pack = variant.packAmount ?? '0';
-      if (!holder) throw new Error('a product sharing its stock has no stock holder');
-      await arrivals.arrived(
-        tx,
-        tenantId,
-        {
-          productId,
-          variantId: holder.variantId,
-          quantity: packs ? packsToStock(quantity, pack) : quantity,
-          unitCost:
-            cost === null ? null : packs ? unitCostOfPack(cost.toFixed(2), pack) : cost.toFixed(4),
-          supplier:
-            input.supplierId !== undefined
-              ? { id: input.supplierId }
-              : input.supplierName !== undefined
-                ? { name: input.supplierName }
-                : null,
-          note: input.note ?? null,
-          ...batch,
-          serials,
-        },
-        who,
-      );
+      await this.addStockWithin(tx, tenantId, productId, variantId, input, who, arrivals);
       return this.viewWithin(tx, tenantId, productId, true);
     });
+  }
+
+  /**
+   * INV-06 (fixes 2026-11-14, the owner): the product screen's quick stock boxes -- stock that arrived on several of the
+   * product's variants, each recorded as `addStock` records one, all in one transaction: one row refused refuses them all,
+   * its refusal naming the row (`additions.<index>.` on its fields; `index` and `variantId` in its details).
+   */
+  async addStocks(
+    tenantId: string,
+    productId: string,
+    input: AddStocksInput,
+    actor: CatalogueActor,
+    arrivals: StockArrivals,
+  ): Promise<ProductStockView> {
+    const who = await this.activity.resolve(tenantId, actor);
+    return this.transactions.run(async (tx) => {
+      for (const [index, row] of input.additions.entries()) {
+        try {
+          await this.addStockWithin(
+            tx,
+            tenantId,
+            productId,
+            row.variantId,
+            { quantity: row.quantity },
+            who,
+            arrivals,
+          );
+        } catch (error) {
+          if (error instanceof ApiError) throw refusalOfRow(error, index, row.variantId);
+          throw error;
+        }
+      }
+      return this.viewWithin(tx, tenantId, productId, true);
+    });
+  }
+
+  /** INV-06, INV-24, PUR-07: one variant's arrival, in the caller's transaction (`addStock` says how it is counted). */
+  private async addStockWithin(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    variantId: string,
+    input: AddStockInput,
+    who: ResolvedActor,
+    arrivals: StockArrivals,
+  ): Promise<void> {
+    const variant = await this.variantOf(tx, tenantId, productId, variantId);
+    if (variant.product.stockTracking !== StockTracking.Tracked) {
+      throw new ApiError('conflict', 'MadeToOrderHasNoStock', {});
+    }
+    const packs = variant.product.sharedStock && !variant.isStockHolder;
+    const whole = packs || !MEASURED_STOCK_UNITS.includes(variant.product.stockUnit);
+    if (whole && !Number.isInteger(input.quantity)) {
+      throw new FieldsError([
+        {
+          field: 'quantity',
+          problem: FieldProblemCode.NotAllowed,
+          messageKey: packs ? 'WholePacksOnly' : 'WholeUnitsOnly',
+        },
+      ]);
+    }
+    const batch = batchChoiceOf(variant, input, true);
+    const serials = await this.serialsOf(
+      tx,
+      tenantId,
+      variant,
+      input.serials,
+      milli(input.quantity),
+    );
+    const quantity = quantityOf(milli(input.quantity));
+    const cost = input.unitCost === undefined || input.unitCost === null ? null : input.unitCost;
+    // INV-24: packs of a size arrive on the shared stock, and a pack's cost becomes a cost per unit of it.
+    const holder = packs
+      ? (await this.store.findStockHolders(tx, tenantId, [productId]))[0]
+      : variant;
+    const pack = variant.packAmount ?? '0';
+    if (!holder) throw new Error('a product sharing its stock has no stock holder');
+    await arrivals.arrived(
+      tx,
+      tenantId,
+      {
+        productId,
+        variantId: holder.variantId,
+        quantity: packs ? packsToStock(quantity, pack) : quantity,
+        unitCost:
+          cost === null ? null : packs ? unitCostOfPack(cost.toFixed(2), pack) : cost.toFixed(4),
+        supplier:
+          input.supplierId !== undefined
+            ? { id: input.supplierId }
+            : input.supplierName !== undefined
+              ? { name: input.supplierName }
+              : null,
+        note: input.note ?? null,
+        ...batch,
+        serials,
+      },
+      who,
+    );
   }
 
   /** INV-09: a variant's movements, newest first, with the reference and person behind each. */

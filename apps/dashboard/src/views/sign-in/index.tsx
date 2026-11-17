@@ -14,6 +14,7 @@ import { ErrorBanner } from '@/components/error-banner';
 import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
 import { IntentChips } from '@/components/onboarding/intent-chips';
 import { Button } from '@/components/ui/button';
+import { CheckBox } from '@/components/ui/check-row';
 import { Field } from '@/components/ui/field';
 import { appConfig } from '@/lib/app-config';
 import { bangladeshiPhone } from '@/lib/phone';
@@ -37,8 +38,12 @@ function localPartOf(phone: string | undefined): string {
 /**
  * Step 1, identity (AUTH-28; TENANT-DASHBOARD-DESIGN §6, the prototype's `ob-signin`): one door for new and returning
  * people (AUTH-12). A phone with the fixed +880 and a code, or a password; Google and Facebook where the server has
- * them; the terms line (LEG-01) and the staff link (AUTH-31). What the guest brought from the website shows as chips
+ * them; the terms box (LEG-01) and the staff link (AUTH-31). What the guest brought from the website shows as chips
  * and is kept for create-shop and the checkout (AUTH-29).
+ *
+ * LEG-01 (the owner, 2026-11-17): accepting the terms and the privacy policy is a box, ticked when the page opens.
+ * Nothing goes on while it's unticked -- the code, the password and Google or Facebook all wait for it -- and a line
+ * under it says why.
  */
 export function SignIn(): React.JSX.Element {
   const { t } = useTranslation('onboarding');
@@ -48,6 +53,7 @@ export function SignIn(): React.JSX.Element {
   const [localPhone, setLocalPhone] = useState(() => localPartOf(search.phone));
   const [password, setPassword] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [agreed, setAgreed] = useState(true);
   const [intent, setIntent] = useState<SignUpIntent>(() => signUpIntent.read());
 
   // Captured once here, the one shared entry point, then read back after create-shop.
@@ -68,6 +74,7 @@ export function SignIn(): React.JSX.Element {
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
+    if (!agreed) return;
     const phone = bangladeshiPhone.fromLocalPart(localPhone);
     if (!bangladeshiPhone.isValid(phone)) {
       setPhoneError(t('invalidPhone'));
@@ -132,6 +139,37 @@ export function SignIn(): React.JSX.Element {
           />
         ) : null}
         {error ? <ErrorBanner error={error} /> : null}
+        <div className="flex flex-col gap-1">
+          <label className="flex cursor-pointer items-start gap-2.5 text-[14px] leading-[1.6] [&_a]:font-medium [&_a]:text-primary [&_a]:underline">
+            <span className="pt-px">
+              <CheckBox
+                checked={agreed}
+                onChange={() => {
+                  setAgreed(!agreed);
+                }}
+              />
+            </span>
+            <span>
+              <Trans
+                t={t}
+                i18nKey="terms"
+                components={{
+                  terms: (
+                    <a href={appConfig.termsUrl()} target="_blank" rel="noopener noreferrer" />
+                  ),
+                  privacy: (
+                    <a href={appConfig.privacyUrl()} target="_blank" rel="noopener noreferrer" />
+                  ),
+                }}
+              />
+            </span>
+          </label>
+          {agreed ? null : (
+            <p role="alert" className="text-[14px] text-danger">
+              {t('termsNeeded')}
+            </p>
+          )}
+        </div>
         {cantPay ? (
           <Button
             wide
@@ -143,7 +181,7 @@ export function SignIn(): React.JSX.Element {
             {t('usePw')}
           </Button>
         ) : (
-          <Button type="submit" wide busy={pending}>
+          <Button type="submit" wide busy={pending} disabled={!agreed}>
             {mode === 'password' ? t('signInPw') : t('cont')}
           </Button>
         )}
@@ -186,7 +224,7 @@ export function SignIn(): React.JSX.Element {
                 wide
                 className="justify-start gap-3"
                 busy={startOauth.isPending && startOauth.variables === provider}
-                disabled={startOauth.isPending}
+                disabled={startOauth.isPending || !agreed}
                 onClick={() => {
                   startOauth.mutate(provider);
                 }}
@@ -198,16 +236,6 @@ export function SignIn(): React.JSX.Element {
           </div>
         </>
       ) : null}
-      <p className="text-center text-[13px] leading-[1.6] text-fg-muted [&_a]:font-medium [&_a]:text-primary">
-        <Trans
-          t={t}
-          i18nKey="terms"
-          components={{
-            terms: <a href={appConfig.termsUrl()} />,
-            privacy: <a href={appConfig.privacyUrl()} />,
-          }}
-        />
-      </p>
       <StepLinks>
         <Link to="/staff-sign-in">{t('staffLink')}</Link>
       </StepLinks>

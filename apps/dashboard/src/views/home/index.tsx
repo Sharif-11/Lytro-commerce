@@ -9,7 +9,7 @@ import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import { doneOf, FIRST_GROUP } from './checklist';
 import { JobQueue } from './job-queue';
-import { NowTiles, TodayTiles } from './now-tiles';
+import { NowTiles, TilesSkeleton, TodayTiles } from './now-tiles';
 import { SetupChecklist, SetupDone } from './setup-checklist';
 import { ShopLinkCard } from './shop-link-card';
 
@@ -73,6 +73,7 @@ export function Home(): React.JSX.Element {
         <div className="flex min-w-0 flex-col gap-section">
           {data ? <TodayTiles home={data} /> : null}
           {data ? <NowTiles home={data} /> : null}
+          {!data && !home.isError ? <TilesSkeleton /> : null}
           {complete && !opened ? (
             <SetupDone
               onOpen={() => {

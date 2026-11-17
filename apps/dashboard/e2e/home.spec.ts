@@ -214,7 +214,7 @@ test('leaves out the days left on pay-as-you-go, which has no period', async ({ 
 test('warns above everything when a key spends fast (RTE-12)', async ({ page }) => {
   await open(page, { home: { fastSpendAlertedAt: new Date().toISOString() } });
   await expect(
-    main(page).getByText(/^গত এক ঘণ্টায় এই সাইকেলের 5%-এর বেশি রিকোয়েস্ট গেছে।/),
+    main(page).getByText(/^গত এক ঘণ্টায় এই সাইকেলের রিকোয়েস্টের 5%-এর বেশি খরচ হয়েছে।/),
   ).toBeVisible();
   await expect(main(page).getByRole('link', { name: 'কী দেখুন' })).toHaveAttribute(
     'href',

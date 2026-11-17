@@ -14,6 +14,7 @@ import type {
   StatusOverride,
   StockUnit,
   ParcelAttention,
+  VerificationLevel,
 } from '@lytronix/validators';
 import type { OrderListParcel, OrderParcel } from './couriers';
 import type { Bilingual } from './onboarding';
@@ -115,7 +116,8 @@ export interface OrderItem {
   sku: string | null;
   attributes: LineAttribute[];
   captured: { attributeId: string; name: string; value: string }[];
-  thumbnail: { mediaId: string; url: string } | null;
+  /** ORD-47: the picture as ordered; `largeUrl` (the fixes PR, 2026-11-14) is its large rendition for the lightbox. */
+  thumbnail: { mediaId: string; url: string; largeUrl?: string } | null;
   stockUnit: StockUnit;
   listPrice: string;
   unitPrice: string;
@@ -178,6 +180,8 @@ export interface OrderPayment {
   voided: { by: OrderPerson | null; at: string; reason: string } | null;
   /** PAY-20 (Slice 5.3): marked refunded -- who, when and the note; it no longer counts. */
   refunded: { by: OrderPerson | null; at: string; note: string } | null;
+  /** VER-02: how it was verified; only a manual one can be voided (the fixes PR, 2026-11-14). */
+  verificationLevel: VerificationLevel;
 }
 
 /** Mirrors `OrderView` (GET /orders/:id, ORD-14). */

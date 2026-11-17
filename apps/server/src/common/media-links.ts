@@ -42,6 +42,18 @@ export function mediaKeys(
     : { main: `${stem}.webp`, thumbnail: `${stem}.thumb.webp` };
 }
 
+/**
+ * MED-08 (fixes 2026-11-14): the full picture behind a stored thumbnail link, so a screen can show large what was kept
+ * small -- an image's thumbnail and its WebP share their stored name but for the ending. A link of any other shape is
+ * its own best large picture.
+ */
+export function largeImageUrlOf(thumbnailUrl: string): string {
+  const ending = '.thumb.webp';
+  return thumbnailUrl.endsWith(ending)
+    ? `${thumbnailUrl.slice(0, -ending.length)}.webp`
+    : thumbnailUrl;
+}
+
 /** MED-01, MED-04: everything a shop stores is under this prefix. */
 export function tenantPrefix(tenantId: string): string {
   return `tenants/${tenantId}/`;

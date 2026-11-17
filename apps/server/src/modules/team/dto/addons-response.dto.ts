@@ -41,6 +41,14 @@ export const addonOfferSchema = z.object({
 });
 export class AddonOfferListDto extends createZodDto(addonOfferSchema.array()) {}
 
+// PLN-14 (UI/UX batch 2): what a quantity costs now, held nowhere.
+export const addonPriceSchema = z.object({
+  quantity: z.number(),
+  amount: z.number(),
+  uses: z.number().nullable(),
+});
+export class AddonPriceDto extends createZodDto(addonPriceSchema) {}
+
 // PLN-14, BIL-09: a held add-on quote, paid by confirming its payment.
 export const addonQuoteSchema = z.object({
   payment: planPaymentSchema,

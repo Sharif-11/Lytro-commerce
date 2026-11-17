@@ -1,12 +1,7 @@
 import { evidenceKeyField } from './payment-evidence';
 import { z } from 'zod';
 import { transactionIdField } from '../../common/transaction-id';
-import {
-  ADDON_QUANTITY_MAX,
-  AddonKind,
-  AllowanceService,
-  PLAN_PAYMENT_METHODS,
-} from '../../db/enums';
+import { AddonKind, AllowanceService, PLAN_PAYMENT_METHODS } from '../../db/enums';
 import { planLimitsSchema } from '../../db/plans/plan-limits';
 import { requireWalletFields, senderNumberField } from './purchase';
 
@@ -83,7 +78,8 @@ export type UpdateAddonInput = z.infer<typeof updateAddonSchema>;
 // POST /addons/quote (PLN-14): how many of one add-on, priced for the rest of the period.
 export const quoteAddonSchema = z.object({
   addonId: z.string().uuid(),
-  quantity: z.number().int().min(1).max(ADDON_QUANTITY_MAX).default(1),
+  // PLN-14 (UI/UX batch 2): any number; only an amount too large to hold is refused (AddonAmountTooLarge).
+  quantity: z.number().int().min(1).default(1),
   // BIL-09, UPG-07: the amount the seller was shown. The server works the amount out again and refuses the quote
   // (AmountChanged, with the new amount) when it differs, so nothing is ever charged that was not shown.
   amount: z.coerce.number().positive().optional(),
@@ -111,11 +107,21 @@ export type ConfirmAddonInput = z.infer<typeof confirmAddonSchema>;
 // is no quote to hold.
 export const buyPacksSchema = z.object({
   addonId: z.string().uuid(),
-  quantity: z.number().int().min(1).max(ADDON_QUANTITY_MAX).default(1),
+  quantity: z.number().int().min(1).default(1),
   // BIL-09 (Slice 11.5c): the amount the seller was shown, refused (AmountChanged) when the price has changed since.
   amount: z.coerce.number().positive().optional(),
 });
 export type BuyPacksInput = z.infer<typeof buyPacksSchema>;
+
+// GET /addons/price (PLN-14, UI/UX batch 2): what any quantity of one add-on costs now, held nowhere -- for a quantity past
+// the offer's first ADDON_OFFER_QUANTITIES.
+export const addonPriceQuerySchema = z
+  .object({
+    addonId: z.string().uuid(),
+    quantity: z.coerce.number().int().min(1),
+  })
+  .strict();
+export type AddonPriceQuery = z.infer<typeof addonPriceQuerySchema>;
 
 // PATCH /addons/auto-buy (PLN-15, RTE-11): auto-buy of request packs, on or off. (Bandwidth's switch went with D9-31.)
 export const setPackAutoBuySchema = z.object({

@@ -127,9 +127,7 @@ test.describe('Settings › Couriers', () => {
     await sheet.getByRole('button', { name: 'Test and connect' }).click();
     const paste = dialog(page, 'RedX is connected');
     await expect(paste.getByText(/whk_7Qm2cX9rLp4Tn8Vb/)).toBeVisible();
-    await expect(
-      paste.getByText('Paste the address. Its key is inside it, so nothing else is needed.'),
-    ).toBeVisible();
+    await expect(paste.getByText('Paste the address. Nothing else is needed.')).toBeVisible();
     await expect(paste.getByText('tok_Hs82nKq0LbX4mW7e')).toHaveCount(0);
     await expect(paste.getByText(/^Token$|^Secret$/)).toHaveCount(0);
   });
@@ -158,7 +156,7 @@ test.describe('Settings › Couriers', () => {
     ).toBeVisible();
   });
 
-  test('five wrong tries: Steadfast locks a key at ten, so it waits five minutes', async ({
+  test('five wrong tries: Steadfast may lock the key, so it waits five minutes', async ({
     page,
   }) => {
     await open(page, '/settings/couriers', {
@@ -174,7 +172,9 @@ test.describe('Settings › Couriers', () => {
     await sheet.getByLabel('API key').fill('wrong');
     await sheet.getByLabel('Secret key').fill('wrong');
     await sheet.getByRole('button', { name: 'Test and connect' }).click();
-    await expect(sheet.getByText(/Steadfast locks a key after 10 failures/)).toBeVisible();
+    await expect(
+      sheet.getByText(/Steadfast may lock the key\. Try again in 5 minutes\./),
+    ).toBeVisible();
   });
 
   test('connected: the default, the store, and whether messages arrive', async ({ page }) => {
@@ -213,7 +213,7 @@ test.describe('Settings › Couriers', () => {
       'Pathao refused the login, so nothing books or checks with Pathao now. Log in again.',
     );
     await expect(main(page).getByRole('link', { name: /^RedX/ })).toContainText(
-      'The night check found news no message brought.',
+      'The night check found news that no message brought.',
     );
   });
 
@@ -717,7 +717,7 @@ test.describe('The Courier card', () => {
     await main(page).getByRole('button', { name: 'Sync' }).click();
     await expect.poll(() => sent(log, 'POST', '/orders/o-47/parcel/sync')).toHaveLength(1);
     await expect(
-      page.getByText('Checked within 10 minutes, so the saved answer shows.'),
+      page.getByText('Checked in the last 10 minutes; this is the latest.'),
     ).toBeVisible();
   });
 
@@ -989,9 +989,7 @@ test.describe('The Orders list', () => {
       .getByRole('button', { name: /^Needs a look/ });
     await expect(look).toContainText('1');
     await look.click();
-    await expect(
-      main(page).getByText(/What couriers reported that staff should check/),
-    ).toBeVisible();
+    await expect(main(page).getByText(/Courier news worth a look/)).toBeVisible();
     await expect(main(page).getByRole('link', { name: /^#261031-0047/ })).toHaveCount(0);
     expect(
       log.calls.some((call) => call.path === '/orders' && call.query.includes('attention=any')),
@@ -1005,7 +1003,7 @@ test.describe('Money', () => {
   }) => {
     await open(page, '/payments?tab=payouts', { couriers: couriers() });
     await expect(
-      main(page).getByText(/The payouts couriers made you, in their own figures/),
+      main(page).getByText(/What couriers paid you, in their own figures/),
     ).toBeVisible();
     const first = main(page).getByRole('button', { name: /৳18,400/ });
     await expect(first).toContainText('Bank · 14 parcels, 13 Lytro orders');

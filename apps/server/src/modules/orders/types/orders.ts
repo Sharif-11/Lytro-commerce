@@ -124,7 +124,8 @@ export interface OrderItemView {
   sku: string | null;
   attributes: LineAttributeSnapshot[];
   captured: LineCapturedSnapshot[];
-  thumbnail: { mediaId: string; url: string } | null;
+  /** ORD-47; fixes 2026-11-14: `largeUrl` is the same picture full size, for the seller to see it large. */
+  thumbnail: { mediaId: string; url: string; largeUrl: string } | null;
   stockUnit: StockUnit;
   /** ATR-05: the variant's price when ordered, and the price charged; they differ when set by hand (ORD-06). */
   listPrice: string;

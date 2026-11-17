@@ -69,6 +69,13 @@ export interface AddonOffer {
 }
 
 /** PLN-14: a quoted add-on, held like a plan quote (BIL-09), paid by confirming its payment. */
+/** PLN-14 (UI/UX batch 2): what a quantity of an add-on costs now -- held nowhere, and an allowance's uses for it. */
+export interface AddonPriceView {
+  quantity: number;
+  amount: number;
+  uses: number | null;
+}
+
 export interface AddonQuote {
   payment: PlanPaymentRecord;
   addon: AddonRecord;

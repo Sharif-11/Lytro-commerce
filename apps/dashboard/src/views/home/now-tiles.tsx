@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Permission, TenantState } from '@lytronix/validators';
 import { daysUntil, formatTaka } from '@lytronix/ui';
 import { SectionHead } from '@/components/ui/page';
+import { Bone } from '@/components/ui/skeleton';
 import { StatRow, StatTile } from '@/components/ui/stat-tile';
 import { Taka } from '@/components/ui/taka';
 import { formatDayMonth } from '@/lib/dates';
@@ -41,6 +42,59 @@ export function TodayTiles({ home }: { home: HomeView }): React.JSX.Element | nu
         </StatRow>
       </div>
     </div>
+  );
+}
+
+/**
+ * Home loading (Fixes · UI/UX batch 2's `ux-loading-home`): the tiles this person will see, their labels known, the
+ * figures shimmering -- Today for whoever may read orders, then Right now's tiles by the same permissions the server
+ * fills them by.
+ */
+export function TilesSkeleton(): React.JSX.Element {
+  const { t } = useTranslation('home');
+  const { viewer, tenant } = useShell();
+  const may = (permission: Permission): boolean => allows(viewer, [permission]);
+  const tile = (key: string, label: string, width: string): React.JSX.Element => (
+    <StatTile
+      key={key}
+      label={label}
+      value={<Bone kind="fig" width={width} />}
+      note={<Bone kind="l2" width="56%" />}
+    />
+  );
+  const now = [
+    may(Permission.ProductsRead) || may(Permission.InventoryRead)
+      ? tile('products', t('stProducts'), '30%')
+      : null,
+    may(Permission.InventoryRead) ? tile('low', t('stLow'), '30%') : null,
+    may(Permission.BalanceRead) ? tile('balance', t('stBalance'), '62%') : null,
+    may(Permission.PaymentsRead) && tenant.state !== TenantState.PayAsYouGo
+      ? tile('days', t('stDays'), '30%')
+      : null,
+  ].filter(Boolean);
+  return (
+    <>
+      {may(Permission.OrdersRead) ? (
+        <div>
+          <SectionHead>{t('todayTitle')}</SectionHead>
+          <div className="mt-2">
+            <StatRow label={t('todayTitle')}>
+              {tile('today', t('stOrdersToday'), '40%')}
+              {tile('ship', t('stToShip'), '30%')}
+              {tile('sales', t('stMonthSales'), '72%')}
+            </StatRow>
+          </div>
+        </div>
+      ) : null}
+      {now.length > 0 ? (
+        <div>
+          <SectionHead>{t('nowTitle')}</SectionHead>
+          <div className="mt-2">
+            <StatRow label={t('nowTitle')}>{now}</StatRow>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 

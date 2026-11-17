@@ -69,7 +69,15 @@ export interface PublicShopView {
   /** TEN-16: its logo, or null for its monogram. */
   logo: ImageView | null;
   /** TEN-30, SFT-21: the contact details it set; each null when unset, and then not shown. */
-  contact: { phone: string | null; email: string | null; address: string | null };
+  contact: {
+    phone: string | null;
+    email: string | null;
+    address: string | null;
+    /** SFT-21 (UI/UX batch 2): a WhatsApp number (01XXXXXXXXX), a Messenger username, a Facebook page's link. */
+    whatsapp: string | null;
+    messenger: string | null;
+    facebookPage: string | null;
+  };
   /** DLV-01, DLV-06: its delivery zones -- the charges before an area is chosen, and the names a limit shows. */
   deliveryZones: { id: string; name: Bilingual; charge: string; noDelivery: boolean }[];
 }

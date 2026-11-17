@@ -39,7 +39,8 @@ export const ORDERS_QUERY_KEY = ['orders'] as const;
 export const CUSTOMERS_QUERY_KEY = ['customers'] as const;
 
 /** The list's tabs, the day's work first (agreed in the 4.8a read); the rest sit under More. */
-export const ORDER_TABS = ['pending', 'confirmed', 'hold', 'shipped', 'all'] as const;
+// The fixes PR (2026-11-14): Processing after Confirmed, the orders booked with a courier and waiting for pickup.
+export const ORDER_TABS = ['pending', 'confirmed', 'processing', 'hold', 'shipped', 'all'] as const;
 export const MORE_TABS = ['delivered', 'returned', 'cancelled'] as const;
 /** Slice 6.7 (read agreed 2026-11-06): what couriers reported that staff should look at, after the day's tabs. */
 export const LOOK_TAB = 'look' as const;
@@ -50,6 +51,7 @@ export type OrderTab = (typeof ALL_TABS)[number];
 const STATUS_OF: Record<OrderTab, OrderStatus | null> = {
   pending: OrderStatus.Pending,
   confirmed: OrderStatus.Confirmed,
+  processing: OrderStatus.Processing,
   hold: OrderStatus.Hold,
   shipped: OrderStatus.Shipped,
   all: null,

@@ -589,6 +589,37 @@ describeIfDatabase('buying an add-on from the balance (PLN-14, BIL-08, BIL-12)',
     expect(errorOf(quote).code).toBe('conflict');
   });
 
+  it('sells any quantity, prices one past the offer list, and refuses only an amount no payment can hold (UI/UX batch 2)', async () => {
+    const shop = await onPaidPlan(smallPlanId, smallTermId, '99999.00');
+    const id = await addonId('extra_products');
+    const offer = (await offersOf(shop)).find((each) => each.addon.key === 'extra_products');
+    // The offer still prices the first ten at once.
+    expect(offer?.amounts).toHaveLength(10);
+
+    const priced = await shop.get(`/addons/price?addonId=${id}&quantity=25`);
+    expect(priced.status, JSON.stringify(priced.body)).toBe(200);
+    const price = priced.body as { quantity: number; amount: number; uses: number | null };
+    expect(price.quantity).toBe(25);
+    expect(price.uses).toBeNull();
+    // The price route answers what a quote of that quantity holds, and holds nothing itself.
+    const quote = await shop.post('/addons/quote', {
+      addonId: id,
+      quantity: 25,
+      amount: price.amount,
+    });
+    expect(quote.status, JSON.stringify(quote.body)).toBe(201);
+    expect((quote.body as { quantity: number }).quantity).toBe(25);
+
+    const tooMany = await shop.get(`/addons/price?addonId=${id}&quantity=999999999`);
+    expect(tooMany.status).toBe(400);
+    expect(errorOf(tooMany).code).toBe('validation_error');
+    const tooManyQuote = await shop.post('/addons/quote', { addonId: id, quantity: 999999999 });
+    expect(tooManyQuote.status).toBe(400);
+
+    const none = await shop.get(`/addons/price?addonId=${id}&quantity=0`);
+    expect(none.status).toBe(400);
+  });
+
   it('refuses a quote past its hold, a short balance, another shop, and a wallet payment', async () => {
     const shop = await onPaidPlan(smallPlanId, smallTermId);
     const quoteOf = async (): Promise<string> =>

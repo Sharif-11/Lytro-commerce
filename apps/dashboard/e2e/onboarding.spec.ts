@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { envelope, SLUG } from './support/mock-api';
-import { BOGURA, mockOnboarding, STARTER, TWELVE_MONTHS, typeCode } from './support/onboarding-api';
+import { mockOnboarding, STARTER, TWELVE_MONTHS, typeCode } from './support/onboarding-api';
 
 // TENANT-DASHBOARD-DESIGN §6, Slice 11.4a: the steps before a shop -- sign-in, the code, create-shop, the checkout,
 // a password, set-up -- and the doors beside them (staff, a forgotten password, the shop picker), against a mocked
@@ -26,7 +26,7 @@ test('asks an owner verified by Google for a phone before Create shop, keeping w
   await expect(page).toHaveURL('/verify-phone');
   await expect(page.getByRole('heading', { name: 'Add your phone number' })).toBeVisible();
   await expect(page.getByText("You're signed in with Google.", { exact: false })).toBeVisible();
-  await expect(page.getByText('The code costs you nothing.', { exact: false })).toBeVisible();
+  await expect(page.getByText('The code is free.', { exact: false })).toBeVisible();
   await expect(page.getByText('Your link: megh.lytro.app')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Back to sign-in' })).toBeVisible();
   await expect(page.getByRole('button', { name: /skip/i })).toHaveCount(0);
@@ -216,23 +216,13 @@ test('walks a new owner from the website to Home: code, shop, checkout, password
   await page.getByRole('button', { name: 'পাসওয়ার্ড সেভ করুন' }).click();
 
   await expect(page).toHaveURL('/set-up');
+  // UI/UX batch 2, item 1.6: only the shop type; the shop starts with the Dhaka city zones the server makes.
   await page.getByRole('button', { name: 'পোশাক' }).click();
-  await page.getByRole('button', { name: 'সিটি বা জেলা সার্চ করুন' }).click();
-  const sheet = page.getByRole('dialog', { name: 'সিটি বা জেলা সার্চ করুন' });
-  await sheet.getByRole('searchbox').fill('বগুড়া');
-  await sheet.getByRole('button', { name: 'বগুড়া জেলা' }).click();
-  await expect(page.getByRole('button', { name: 'বগুড়া জেলা' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
-  await expect(page.getByText('বগুড়া জেলা-র ভেতরে')).toBeVisible();
   await page.getByRole('button', { name: 'সেভ করে ড্যাশবোর্ডে যান' }).click();
 
   await expect(page).toHaveURL(`/${SLUG}`);
   expect(log.sent('PUT', '/business-type')).toEqual({ businessType: 'clothing' });
-  expect(log.sent('PUT', '/delivery-zones/home-area')).toEqual({
-    areas: { cityCodes: [], zillaIds: [BOGURA], locationIds: [] },
-  });
+  expect(log.sent('PUT', '/delivery-zones/home-area')).toBeUndefined();
 });
 
 test('continues without paying from the checkout, on the trial, to the password step (AUTH-29)', async ({
@@ -250,7 +240,7 @@ test('continues without paying from the checkout, on the trial, to the password 
   await page.getByRole('button', { name: 'শপ তৈরি করুন' }).click();
   await expect(page).toHaveURL('/checkout');
 
-  await page.getByRole('button', { name: 'এখন না দিয়েই এগিয়ে যান' }).click();
+  await page.getByRole('button', { name: 'পেমেন্ট ছাড়াই চালিয়ে যান' }).click();
   await expect(page).toHaveURL('/set-password?required=false');
   // Nothing was bought: no quote, no purchase.
   expect(log.calls.some((call) => call.method === 'POST' && call.path.startsWith('/billing'))).toBe(
@@ -341,7 +331,7 @@ test('checks the three password rules as they are typed, and holds Save until al
   // Long enough and has a digit, but it is a phone number.
   await expect(rules.filter({ hasText: 'আপনার ফোন নম্বর নয়' })).not.toHaveClass(/text-success/);
   await page.getByRole('button', { name: 'পাসওয়ার্ড সেভ করুন' }).click();
-  await expect(page.getByText('পাসওয়ার্ডটা নিয়মগুলো মানছে না।')).toBeVisible();
+  await expect(page.getByText('পাসওয়ার্ডটা নিয়ম অনুযায়ী হয়নি।')).toBeVisible();
   expect(log.sent('POST', '/auth/password')).toBeUndefined();
   await field.fill('megh2026');
   for (const rule of ['8 থেকে 20 অক্ষর', 'অন্তত একটা সংখ্যা', 'আপনার ফোন নম্বর নয়']) {
@@ -395,6 +385,31 @@ test('shows only the sign-in providers the server has', async ({ page }) => {
   await page.goto('/sign-in');
   await expect(page.getByRole('button', { name: 'এগিয়ে যান' })).toBeVisible();
   await expect(page.getByText('অথবা', { exact: true })).toHaveCount(0);
+});
+
+test('accepting the terms is a box, ticked at first, and nothing goes on while it is unticked (LEG-01)', async ({
+  page,
+}) => {
+  await mockOnboarding(page, { providers: ['google'] });
+  await page.goto('/sign-in');
+  const box = page.getByRole('checkbox', { name: /টার্মস আর প্রাইভেসি পলিসি মেনে নিচ্ছি/ });
+  const go = page.getByRole('button', { name: 'এগিয়ে যান' });
+  const google = page.getByRole('button', { name: 'গুগল দিয়ে চালিয়ে যান' });
+  await expect(box).toBeChecked();
+  await expect(go).toBeEnabled();
+  await expect(page.getByRole('link', { name: 'টার্মস' })).toHaveAttribute('target', '_blank');
+
+  await box.uncheck();
+  await expect(go).toBeDisabled();
+  await expect(google).toBeDisabled();
+  await expect(page.getByRole('alert')).toHaveText(
+    'চালিয়ে যেতে টার্মস আর প্রাইভেসি পলিসিতে টিক দিন।',
+  );
+
+  await box.check();
+  await expect(go).toBeEnabled();
+  await expect(google).toBeEnabled();
+  await expect(page.getByRole('alert')).toHaveCount(0);
 });
 
 test("signs a staff member in, has them choose their own password, and opens the owner's shop (AUTH-31)", async ({

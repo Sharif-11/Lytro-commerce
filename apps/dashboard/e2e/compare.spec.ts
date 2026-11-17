@@ -2812,7 +2812,7 @@ const MONEY: Pair[] = [
     device: 'phone',
     language: 'bn',
     path: '/plan',
-    then: click('মেয়াদ শেষে বদলান'),
+    then: click('মেয়াদ শেষে পে-অ্যাজ-ইউ-গো'),
   },
   {
     name: 'downgrade-checklist',
@@ -4289,7 +4289,11 @@ function stockPairs(): Pair[] {
         await sheet(page).getByLabel('SKU').fill('TS-M-BL');
         await sheet(page).getByRole('button', { name: 'ঠিক আছে' }).click();
         await main(page).getByRole('button', { name: 'সেভ করুন' }).first().click();
-        await tap(/^S · Black-এর সেটিংস · /)(page);
+        // The fixes PR (2026-11-14): the SKU another variant has is said under the table's own box.
+        await main(page)
+          .getByLabel('S · Black-এর SKU')
+          .and(page.locator('[aria-invalid="true"]'))
+          .waitFor();
       },
     }),
     one('sh-made-to-order', '/products/p-1', {
@@ -4579,7 +4583,9 @@ function editorPairs(): Pair[] {
         await page.getByRole('dialog').getByLabel('নাম', { exact: true }).fill('শার্ট');
       },
     }),
-    one('sh-link', '/products/p-1', { then: tap('ভ্যারিয়েন্ট বেছে লিংকে ?v= যোগ হয়।') }),
+    one('sh-link', '/products/p-1', {
+      then: tap('ভ্যারিয়েন্ট বাছলে লিংকটা সরাসরি সেই ভ্যারিয়েন্টে খুলবে।'),
+    }),
     one('sh-delete', '/products/p-1', {
       then: async (page) => {
         await page.getByRole('main').getByText('আরও সেটিংস').click();

@@ -153,7 +153,7 @@ test('a pale main colour fails the check: Apply is off until Use takes the neare
   await expect(sheet.getByText('needs 3:1')).toBeVisible();
   await sheet.getByRole('button', { name: 'Done' }).click();
 
-  await expect(main(page).getByText('Some colours are hard to read together.')).toBeVisible();
+  await expect(main(page).getByText('Some text is hard to read on these colours.')).toBeVisible();
   await expect(main(page).getByText('Main colour on background')).toBeVisible();
   await expect(main(page).getByRole('button', { name: 'Apply' })).toBeDisabled();
   await expect(main(page).getByRole('switch', { name: 'Use my brand' })).toBeDisabled();
@@ -279,9 +279,7 @@ test('the trial designs and saves, but cannot switch on', async ({ page }) => {
     brand: brand({ useBrand: false, allowed: false }),
   });
   await expect(
-    main(page).getByText(
-      /^On the trial you can design, preview and save your brand\. .*\(৳149\/month\)/,
-    ),
+    main(page).getByText(/^On the trial you can design and save your brand\. .*\(৳149\/month\)/),
   ).toBeVisible();
   await expect(main(page).getByRole('switch', { name: 'Use my brand' })).toBeDisabled();
   await expect(main(page).getByText('Buy the add-on to switch on')).toBeVisible();

@@ -960,6 +960,13 @@
       "when": 1794855129830,
       "tag": "0137_media_without_worker",
       "breakpoints": true
+    },
+    {
+      "idx": 138,
+      "version": "7",
+      "when": 1794903909374,
+      "tag": "0138_shop_chat_contacts",
+      "breakpoints": true
     }
   ]
 }

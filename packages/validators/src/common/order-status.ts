@@ -64,6 +64,12 @@ export function visibleOrderStatus(axes: OrderStatusAxes): OrderStatus {
   return rule.status;
 }
 
+/**
+ * ORD-51 (fixes 2026-11-14, the owner): the note on a Confirmed history entry the order wrote itself, because a payment
+ * on it was verified -- no person, no call. The seller's screens word it ("payment verified, so confirmed by itself").
+ */
+export const ORDER_CONFIRMED_BY_PAYMENT_NOTE = 'payment_verified';
+
 /** ORD-52: goods that have left the shop come back by a return, never by a cancellation. */
 export const SHIPPED_FULFILLMENT: readonly FulfillmentStatus[] = [
   FulfillmentStatus.PartiallyShipped,

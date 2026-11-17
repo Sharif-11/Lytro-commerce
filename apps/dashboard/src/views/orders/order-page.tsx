@@ -13,6 +13,7 @@ import {
   PaymentMethod,
   Permission,
   StatusOverride,
+  VerificationLevel,
 } from '@lytronix/validators';
 import { useCourierAdapters, useCourierConnections, useSettleParcel } from '@/api/couriers';
 import { useLocations } from '@/api/delivery';
@@ -26,7 +27,7 @@ import { buttonClass } from '@/components/ui/classes';
 import { Kv } from '@/components/ui/kv';
 import { RowList } from '@/components/ui/list-row';
 import { SectionHead } from '@/components/ui/page';
-import { SkeletonRows } from '@/components/ui/skeleton';
+import { OrderSkeleton } from '@/components/ui/skeleton';
 import { StatusTag, type StatusTone } from '@/components/ui/status-tag';
 import { Taka } from '@/components/ui/taka';
 import { TimelineRow, type TimelineDot } from '@/components/ui/timeline';
@@ -40,7 +41,6 @@ import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { CourierConnection } from '@/types/couriers';
 import {
-  hasDesign,
   type Order,
   type OrderCall,
   type OrderHistory,
@@ -52,8 +52,10 @@ import { OrderSmsCard } from '@/views/sms/order-sms';
 import { takeBookedEdit } from './booked-edit';
 import { CourierCard, NotBookedCard } from './courier-card';
 import { OrderSheets, type OrderSheet } from './order-actions';
+import { autoConfirmed, autoVerified, confirmedByPayment, quantityOf } from './order-auto';
 import { choicesOf, refundable, voidable } from './order-choices';
 import { atCounter, useOrderWords } from './order-words';
+import { PictureSheet } from './picture-sheet';
 
 /** ORD-47: an item's photo, as ORD-46 kept it, or the placeholder once it is gone or was never there. */
 function ItemPicture({ url }: { url: string | null }): React.JSX.Element {
@@ -83,13 +85,7 @@ const CALL_LOOK: Record<CallOutcome, { tone: StatusTone; dot: TimelineDot; word:
 export function OrderDetail({ orderId }: { orderId: string }): React.JSX.Element {
   const order = useOrder(orderId);
   if (order.data) return <OrderBody order={order.data} />;
-  return order.isError ? (
-    <ErrorBanner error={order.error} />
-  ) : (
-    <Card flush>
-      <SkeletonRows count={4} />
-    </Card>
-  );
+  return order.isError ? <ErrorBanner error={order.error} /> : <OrderSkeleton />;
 }
 
 function OrderBody({ order }: { order: Order }): React.JSX.Element {
@@ -290,7 +286,7 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
           setOpen({ kind: 'call' });
         }}
       />
-      {counter ? null : <CallsCard calls={order.calls} />}
+      {counter ? null : <CallsCard calls={order.calls} byPayment={autoConfirmed(order)} />}
       <ItemsCard items={order.items} />
       <PricingCard order={order} />
       <PaymentsCard
@@ -518,8 +514,17 @@ function CustomerCard({
   );
 }
 
-/** The calls made and how each went (ORD-51), the unanswered ones counted. */
-function CallsCard({ calls }: { calls: OrderCall[] }): React.JSX.Element {
+/**
+ * The calls made and how each went (ORD-51), the unanswered ones counted. An order its verified advance payment confirmed
+ * says no call is needed (the fixes PR's `fx-autoconfirm`, 2026-11-14).
+ */
+function CallsCard({
+  calls,
+  byPayment,
+}: {
+  calls: OrderCall[];
+  byPayment: boolean;
+}): React.JSX.Element {
   const { t } = useTranslation('orders');
   const when = useWhen();
   const missed = calls.filter((call) => call.outcome === CallOutcome.NoAnswer).length;
@@ -534,8 +539,18 @@ function CallsCard({ calls }: { calls: OrderCall[] }): React.JSX.Element {
       >
         {t('calls')}
       </SectionHead>
+      {byPayment ? (
+        <p className="mt-2 flex items-start gap-2 text-[15px] text-fg-muted">
+          <span className="mt-0.5 flex flex-none text-success">
+            <Icon name="check" />
+          </span>
+          <span>{t('noCallNeeded')}</span>
+        </p>
+      ) : null}
       {calls.length === 0 ? (
-        <p className="mt-1.5 text-[14px] text-fg-muted">{t('noCalls')}</p>
+        byPayment ? null : (
+          <p className="mt-1.5 text-[14px] text-fg-muted">{t('noCalls')}</p>
+        )
       ) : (
         <div className="mt-2">
           {calls.map((call) => {
@@ -563,23 +578,43 @@ function CallsCard({ calls }: { calls: OrderCall[] }): React.JSX.Element {
   );
 }
 
-/** The items as ordered (ORD-46): a combo's items inside it, add-ons with their price, quantity times price. */
+/**
+ * The items as ordered (ORD-46): a combo's items inside it, add-ons with their price, and -- the fixes PR's `fx-items`
+ * (2026-11-14) -- each line's SKU and its quantity in its unit times the price of one, the picture opening large.
+ */
 function ItemsCard({ items }: { items: OrderItem[] }): React.JSX.Element {
   const { t } = useTranslation('orders');
   const words = useOrderWords();
+  const [large, setLarge] = useState<string | null>(null);
+  const pictured = items.some((item) => item.thumbnail !== null);
   return (
     <Card flush>
-      <div className="px-4 pt-4 pb-1">
+      <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-1">
         <h3 className="text-[16px] font-semibold">{t('itemsTitle')}</h3>
+        {pictured ? <span className="text-[14px] text-fg-muted">{t('tapLarge')}</span> : null}
       </div>
       <RowList>
         {items.map((item) => {
           const variant = words.variant(item);
+          const quantity = quantityOf(item);
           return (
-            <div key={item.id} className="flex min-h-16 items-start gap-3 px-4 py-3">
-              <span className="flex size-12 flex-none items-center justify-center overflow-hidden rounded-button bg-gradient-to-br from-neutral-100 to-neutral-200 text-neutral-400">
-                <ItemPicture url={item.thumbnail?.url ?? null} />
-              </span>
+            <div key={item.id} className="flex min-h-[72px] items-start gap-3 px-4 py-3">
+              {item.thumbnail ? (
+                <button
+                  type="button"
+                  aria-label={t('tapLarge')}
+                  onClick={() => {
+                    setLarge(item.id);
+                  }}
+                  className="flex size-12 flex-none cursor-zoom-in items-center justify-center overflow-hidden rounded-button bg-gradient-to-br from-neutral-100 to-neutral-200 text-neutral-400"
+                >
+                  <ItemPicture url={item.thumbnail.url} />
+                </button>
+              ) : (
+                <span className="flex size-12 flex-none items-center justify-center overflow-hidden rounded-button bg-gradient-to-br from-neutral-100 to-neutral-200 text-neutral-400">
+                  <ItemPicture url={null} />
+                </span>
+              )}
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="text-[16px] font-medium">
                   {item.productName}
@@ -591,8 +626,8 @@ function ItemsCard({ items }: { items: OrderItem[] }): React.JSX.Element {
                   ) : null}
                 </span>
                 {variant ? <span className="text-[14px] text-fg-muted">{variant}</span> : null}
-                {/* PD-9 (Part 40's `pd-order`): a design's line names its SKU, as the label does. */}
-                {hasDesign(item) && item.sku ? (
+                {/* PD-9 (Part 40's `pd-order`), and every line since the fixes PR: its SKU, as the label has it. */}
+                {item.sku ? (
                   <span className="text-[14px] text-fg-muted">
                     SKU <span className="font-mono text-[13px] tracking-[0.02em]">{item.sku}</span>
                   </span>
@@ -611,7 +646,10 @@ function ItemsCard({ items }: { items: OrderItem[] }): React.JSX.Element {
                   </span>
                 ))}
                 <span className="num text-[14px] text-fg-muted">
-                  {Number(item.quantity)} × {formatTaka(item.unitPrice)}
+                  <b className="font-semibold text-fg">
+                    {t(`qty_${quantity.unit}`, { n: quantity.amount })}
+                  </b>{' '}
+                  × {formatTaka(item.unitPrice)}/{t(`per_${quantity.unit}`)}
                 </span>
                 {Number(item.returnedQuantity) > 0 ? (
                   <span className="text-[14px] text-fg-muted">
@@ -626,6 +664,14 @@ function ItemsCard({ items }: { items: OrderItem[] }): React.JSX.Element {
           );
         })}
       </RowList>
+      <PictureSheet
+        items={items}
+        itemId={large}
+        onPick={setLarge}
+        onClose={() => {
+          setLarge(null);
+        }}
+      />
     </Card>
   );
 }
@@ -667,7 +713,8 @@ function PricingCard({ order }: { order: Order }): React.JSX.Element {
         <Kv label={t('due')} value={formatTaka(0)} />
       ) : due > 0 ? (
         <Kv
-          label={counter || paid > 0 ? t('due') : t('cod')}
+          // The fixes PR (2026-11-14): what is left on a delivery is collected on delivery, an advance paid or not.
+          label={counter ? t('due') : t('cod')}
           value={<span className="font-semibold text-accent-text">{formatTaka(due)}</span>}
         />
       ) : null}
@@ -766,6 +813,14 @@ function PaymentRow({
   const cashLike =
     payment.method === PaymentMethod.CashOnDelivery || payment.method === PaymentMethod.Cash;
   const gone = payment.voided !== null || payment.refunded !== null;
+  // The fixes PR's `fx-pay-both` (2026-11-14): verified by the gateway or the listener, said so, with no Void.
+  const auto = autoVerified(payment);
+  const by =
+    payment.verificationLevel === VerificationLevel.Listener
+      ? t('byListener', { time: when(payment.verifiedAt) })
+      : payment.verificationLevel === VerificationLevel.Gateway
+        ? t('byGateway', { wallet: words.method(payment.method), time: when(payment.verifiedAt) })
+        : t('payBy', { who: payment.verifiedBy?.name ?? '', time: when(payment.verifiedAt) });
   return (
     <div className="pt-3">
       <div className="flex items-center gap-3">
@@ -790,14 +845,21 @@ function PaymentRow({
               ? words.method(payment.method)
               : t('trxId', { id: payment.transactionId })}
           </span>
-          <span className="num text-[14px] text-fg-muted">
-            {[
-              payment.senderNumber ? bangladeshiPhone.grouped(payment.senderNumber) : null,
-              t('payBy', { who: payment.verifiedBy?.name ?? '', time: when(payment.verifiedAt) }),
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </span>
+          {auto && !payment.senderNumber ? null : (
+            <span className="num text-[14px] text-fg-muted">
+              {[
+                payment.senderNumber ? bangladeshiPhone.grouped(payment.senderNumber) : null,
+                auto ? null : by,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+          )}
+          {auto ? (
+            <span className="text-[14px] text-fg-muted">
+              {gone ? null : <StatusTag tone="ok">{t('autoVerifiedTag')}</StatusTag>} {by}
+            </span>
+          ) : null}
           {payment.voided ? (
             <span className="text-[14px] text-danger-text">
               {t('voided', { reason: payment.voided.reason })}
@@ -827,6 +889,14 @@ function PaymentRow({
             </Button>
           ) : null}
         </div>
+      ) : null}
+      {auto && onRefund ? (
+        <p className="mt-1.5 ms-[52px] flex items-start gap-1.5 text-[14px] text-fg-muted">
+          <span className="mt-0.5 flex flex-none">
+            <Icon name="lock" size={14} />
+          </span>
+          {t('noVoid')}
+        </p>
       ) : null}
     </div>
   );
@@ -1003,7 +1073,10 @@ function useTimelineLine(order: Order) {
           ),
         };
       case OrderHistoryField.Confirmed:
-        return { dot: 'on', text: t('tlConfirmed'), sub: join(each.note, by(each)) };
+        // The fixes PR (2026-11-14): confirmed by its verified advance payment, no one's call.
+        return confirmedByPayment(each)
+          ? { dot: 'on', text: t('tlConfirmed'), sub: t('autoConfirmed') }
+          : { dot: 'on', text: t('tlConfirmed'), sub: join(each.note, by(each)) };
       case OrderHistoryField.StatusOverride:
         if (each.to === StatusOverride.Cancelled) {
           return {

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" viewBox="0 0 512 512">
+  <title>Lytro</title>
+  <rect width="512" height="512" fill="#FFFFFF"/>
+  <path d="M120 120V392H248L392 232" fill="none" stroke="#0E6B66" stroke-width="80" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

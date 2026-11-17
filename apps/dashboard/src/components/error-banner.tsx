@@ -1,4 +1,5 @@
 import { useContext, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useHelpLine } from '@/api/help-line';
 import { HelpSheet } from '@/components/help-sheet';
@@ -7,6 +8,7 @@ import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useErrorText } from '@/hooks/use-error-text';
+import { isConnectionFailure } from '@/lib/connection';
 import { requestIdOf } from '@/lib/help-line';
 import { isSavingPaused } from '@/lib/saving-paused';
 import { ShellContext } from '@/shell/shell-context';
@@ -36,8 +38,39 @@ export function ErrorBanner({ error }: { error: unknown }): React.JSX.Element | 
 }
 
 /**
+ * Fixes · UI/UX batch 2, item 1.1 (the prototype's `ux-offline-page`, `ux-loading-offline`): what a page or a list that
+ * never loaded shows while the connection is gone -- the shimmer stops, "Couldn't load" and Try again, which reads every
+ * page on screen again (the app also does so by itself when the connection returns).
+ */
+export function NoPage(): React.JSX.Element {
+  const { t } = useTranslation('shell');
+  const queryClient = useQueryClient();
+  return (
+    <div
+      role="alert"
+      className="flex flex-col items-center gap-2.5 px-3 py-10 text-center"
+      data-testid="no-page"
+    >
+      <span className="grid size-14 place-items-center rounded-full bg-neutral-100 text-neutral-700">
+        <Icon name="wifioff" size={28} />
+      </span>
+      <h2 className="mt-1 text-[18px] font-semibold">{t('ux2.noPageT')}</h2>
+      <p className="mb-1.5 max-w-[320px] text-[15px] text-neutral-700">{t('ux2.noPageP')}</p>
+      <Button
+        onClick={() => {
+          void queryClient.refetchQueries({ type: 'active' });
+        }}
+      >
+        <Icon name="refresh" />
+        {t('ux2.retry')}
+      </Button>
+    </div>
+  );
+}
+
+/**
  * A page that didn't load, in its card with Try again (Slice 8.8's `p88-err-load`): what didn't load, the server's
- * sentence, and a fault's error ID.
+ * sentence, and a fault's error ID. A request that never reached the server is the offline card instead (item 1.1).
  */
 export function LoadFailed({
   title,
@@ -51,6 +84,13 @@ export function LoadFailed({
   const { t } = useTranslation('shell');
   const errorText = useErrorText();
   const id = requestIdOf(error);
+  if (isConnectionFailure(error)) {
+    return (
+      <Card>
+        <NoPage />
+      </Card>
+    );
+  }
   return (
     <Card role="alert" className="flex flex-col items-start gap-2">
       <span className="text-danger">

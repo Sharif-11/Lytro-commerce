@@ -110,9 +110,16 @@ test('warns of a low balance, with Top up', async ({ page }) => {
 
 test('tops up: the amount, then the request on Continue and the payment page', async ({ page }) => {
   const log = await open(page, { money: { payments: settled } }, '/balance?topup=1');
-  await expect(sheet(page).getByText('৳100 থেকে ৳50,000')).toBeVisible();
-  await sheet(page).getByRole('button', { name: '৳1,000' }).click();
-  await expect(sheet(page).getByText('আজকের রেটে প্রায় 1,818টি SMS')).toBeVisible();
+  // UI/UX batch 2 (4.1, 4.4): the quick amounts ৳10 to ৳100 that fall inside ৳100 to ৳50,000, no SMS line; an amount
+  // outside says which are allowed.
+  await expect(sheet(page).getByRole('button', { name: '৳100', exact: true })).toBeVisible();
+  await expect(sheet(page).getByRole('button', { name: '৳50', exact: true })).toHaveCount(0);
+  await expect(sheet(page).getByText(/SMS/)).toHaveCount(0);
+  await sheet(page).getByLabel('টাকার পরিমাণ').fill('60000');
+  await expect(
+    sheet(page).getByText('100 টাকা থেকে 50,000 টাকার মধ্যে সিলেক্ট করুন।'),
+  ).toBeVisible();
+  await sheet(page).getByLabel('টাকার পরিমাণ').fill('1000');
   expect(log.calls.some((call) => call.path === '/balance/top-up/quote')).toBe(false);
   await sheet(page).getByRole('button', { name: 'পেমেন্ট পেজে যান · ৳1,000' }).click();
   await expect(page).toHaveURL('https://pay.example.test/payment-1');

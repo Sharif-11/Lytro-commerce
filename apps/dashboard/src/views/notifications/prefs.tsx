@@ -279,7 +279,6 @@ export function NotificationPrefsView(): React.JSX.Element {
                 );
               })
             )}
-            <p className="px-4 pt-2.5 pb-3.5 text-[14px] text-fg-muted">{t('p37PrefsOwn')}</p>
           </Card>
         </div>
         <div className="order-1 flex flex-col gap-4 lg:order-2">

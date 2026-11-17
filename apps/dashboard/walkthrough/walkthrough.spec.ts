@@ -79,10 +79,11 @@ const PRESETS: Preset[] = [
 
 /**
  * INV-22: the technical words a seller should never meet, in English and in formal Bangla, and a requirement id like
- * PUR-04 (agreed in the 11.13b reads). The vernacular the style guide keeps (স্টক, ইনভেন্টরি, ব্যাচ) is not among them.
+ * PUR-04 (agreed in the 11.13b reads). The vernacular the style guide keeps (স্টক, ইনভেন্টরি, ব্যাচ) is not among them,
+ * nor SKU since the fixes PR (the owner, 2026-11-14): the product screen shows each variant's SKU but never asks for
+ * one -- an empty SKU is filled in on save.
  */
 const JARGON = [
-  /\bSKU\b/i,
   /\bUOM\b/i,
   /\bunit of measure\b/i,
   /\bledger\b/i,
@@ -141,15 +142,9 @@ async function signUp(page: Page, preset: Preset): Promise<void> {
   await page.getByRole('button', { name: 'পাসওয়ার্ড সেভ করুন' }).click();
   await expect(page).toHaveURL('/set-up');
   await expectPlainWords(page);
+  // Set-up asks only the shop type (the owner, 2026-11-16); the shop starts from the Dhaka city zones (DLV-01).
   await page.getByRole('button', { name: preset.type, exact: true }).click();
-  await page.getByRole('button', { name: 'সিটি বা জেলা সার্চ করুন' }).click();
-  const area = page.getByRole('dialog', { name: 'সিটি বা জেলা সার্চ করুন' });
-  await area.getByRole('searchbox').fill('ঢাকা');
-  await area
-    .getByRole('button')
-    .filter({ hasText: /^ঢাকা সিটি/ })
-    .first()
-    .click();
+  await expect(page.getByRole('button', { name: 'সিটি বা জেলা সার্চ করুন' })).toHaveCount(0);
   await page.getByRole('button', { name: 'সেভ করে ড্যাশবোর্ডে যান' }).click();
   await expect(page).toHaveURL(`/${preset.slug}`);
   await expectPlainWords(page);

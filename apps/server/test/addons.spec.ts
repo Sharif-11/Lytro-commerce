@@ -219,7 +219,7 @@ describe('the add-ons a shop near its limit is offered beside the plans (LIM-01,
     });
   });
 
-  it('leaves add-ons out when a near metric has none, or one purchase would not be enough', () => {
+  it('leaves add-ons out when a near metric has none, and offers as many as a big need takes', () => {
     const noAddon = suggest(
       [figure(UsageMetric.Products, 95, 100), figure(UsageMetric.Requests, 95, 100)],
       { rank: 1 },
@@ -227,9 +227,25 @@ describe('the add-ons a shop near its limit is offered beside the plans (LIM-01,
       ADDONS,
     );
     expect(noAddon?.first).toMatchObject({ kind: 'plan', name: 'Growth' });
-    // 6,000 products on 100 would need 15 add-ons; one purchase buys at most 10.
-    const tooMany = suggest([figure(UsageMetric.Products, 6000, 100)], { rank: 1 }, PLANS, ADDONS);
-    expect(tooMany).toEqual({ first: { kind: 'contact' }, alternative: null });
+    // PLN-14 (the owner, 2026-11-16): one purchase has no upper number, so 6,000 products on 100 is 15 add-ons in one.
+    const many = suggest([figure(UsageMetric.Products, 6000, 100)], { rank: 1 }, PLANS, ADDONS);
+    expect(many).toEqual({
+      first: {
+        kind: 'addons',
+        monthly: 2235,
+        items: [
+          {
+            addonId: 'a1',
+            key: 'extra_products',
+            metric: 'products',
+            monthly: 2235,
+            name: 'Extra products',
+            quantity: 15,
+          },
+        ],
+      },
+      alternative: null,
+    });
   });
 
   it('prefers the add-ons on a tie, and offers none to a shop that cannot buy them', () => {

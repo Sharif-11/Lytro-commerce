@@ -34,7 +34,8 @@
     "unauthenticated": "Please sign in again.",
     "tenantOffline": "This shop is not open right now.",
     "notFound": "We could not find that.",
-    "planLimited": "This is not available on your current plan."
+    "planLimited": "This is not available on your current plan.",
+    "offline": "No internet, so it wasn't done. Try again once you're back online."
   },
   "nav": {
     "primary": "Main menu",

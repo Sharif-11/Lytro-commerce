@@ -14,13 +14,26 @@ import { useHelpSubLine } from '@/hooks/use-help-sub-line';
 import { appConfig } from '@/lib/app-config';
 import { helpLineReachable } from '@/lib/help-line';
 import { installOffers, onIphoneBrowser, useInstallOffer } from '@/lib/install-prompt';
-import { allows, hubOf, visibleSections, type SectionId } from '@/shell/hubs';
+import { daysUntil } from '@lytronix/ui';
+import { TenantState } from '@lytronix/validators';
+import {
+  allows,
+  hubOf,
+  MENU_MONEY_SECTIONS,
+  sectionOf,
+  visibleSections,
+  type SectionId,
+} from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import { InstallCard, menuRowClass, MenuRowInner } from './menu-parts';
 
 // Each Menu section's icon (the prototype's `menuRow`).
-const ICONS: Record<'team' | 'activity' | 'notices' | 'settings' | 'account', IconName> = {
+const ICONS: Partial<Record<SectionId, IconName>> = {
+  // Item 5.3 (the prototype's `ux-menu`): the Wallet's Plan, Billing and Usage.
+  plan: 'layers',
+  billing: 'file',
+  usage: 'trend',
   team: 'users',
   activity: 'activity',
   // Phase 7 (Part 37's `p37-menu`): Lytro's notices, marigold, with the unread count and its dot.
@@ -64,7 +77,7 @@ export function MenuView(): React.JSX.Element {
   const sectionRow = (id: 'team' | 'activity' | 'notices' | 'settings' | 'account') => (
     <Link key={id} to={`/$shop/${id}`} params={{ shop: slug }} className={menuRowClass}>
       <MenuRowInner
-        icon={ICONS[id]}
+        icon={ICONS[id] ?? 'menu'}
         title={
           id === 'notices' && counts.notices ? (
             <>
@@ -86,6 +99,22 @@ export function MenuView(): React.JSX.Element {
   const shopSections = (['team', 'activity', 'notices', 'settings'] as const).filter((id) =>
     sections.includes(id),
   );
+  const days = daysUntil(tenant.periodEnd);
+  const planName =
+    tenant.state === TenantState.Trial
+      ? t('trial', { ns: 'money' })
+      : tenant.state === TenantState.PayAsYouGo
+        ? t('payg', { ns: 'money' })
+        : (tenant.planName ?? '');
+  const moneySubs: Partial<Record<SectionId, string>> = {
+    plan:
+      tenant.state === TenantState.PayAsYouGo || days === null
+        ? planName
+        : t('ux2.mPlanS', { plan: planName, n: days }),
+    billing: t('ux2.mBillS'),
+    usage: t('ux2.mUsageS'),
+  };
+  const moneySections = MENU_MONEY_SECTIONS.filter((id) => allows(viewer, sectionOf(id).anyOf));
 
   return (
     <ShellPage>
@@ -114,6 +143,21 @@ export function MenuView(): React.JSX.Element {
           </span>
         </div>
       </Card>
+      {moneySections.length > 0 ? (
+        <Card flush>
+          <RowList>
+            {moneySections.map((id) => (
+              <Link key={id} to={`/$shop/${id}`} params={{ shop: slug }} className={menuRowClass}>
+                <MenuRowInner
+                  icon={ICONS[id] ?? 'money'}
+                  title={shell(sectionOf(id).label)}
+                  sub={moneySubs[id]}
+                />
+              </Link>
+            ))}
+          </RowList>
+        </Card>
+      ) : null}
       {shopSections.length > 0 ? (
         <Card flush>
           <RowList>{shopSections.map(sectionRow)}</RowList>

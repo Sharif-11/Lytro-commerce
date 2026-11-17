@@ -452,6 +452,33 @@ export function stockWrite(
     record(ofAdded, variantId, quantity, row.onHand, 'purchase_receipt', note);
     return { data: stockAnswer(ofAdded) };
   }
+  // The fixes PR (2026-11-14): the quick Add stock boxes, every variant's at once -- all added, or none, the row that
+  // stopped it named (`index`, `variantId`). A variant that has gone since the page opened is that row.
+  const together = /^\/products\/([^/]+)\/stock-additions$/.exec(path);
+  const ofBatch = productOf(fixture, together?.[1]);
+  if (method === 'POST' && together && ofBatch) {
+    const additions =
+      (body?.additions as { variantId: string; quantity: number }[] | undefined) ?? [];
+    const rows = rowsOf(ofBatch);
+    const gone = additions.findIndex((each) => !rows.some((row) => row.id === each.variantId));
+    if (gone >= 0) {
+      return {
+        refused: {
+          status: 404,
+          code: 'not_found',
+          message: 'This variant is no longer on the product.',
+          details: { index: gone, variantId: additions[gone]?.variantId },
+        },
+      };
+    }
+    for (const each of additions) {
+      const row = rows.find((found) => found.id === each.variantId);
+      if (!row) continue;
+      row.onHand = (row.onHand ?? 0) + each.quantity;
+      record(ofBatch, each.variantId, each.quantity, row.onHand, 'purchase_receipt', null);
+    }
+    return { data: stockAnswer(ofBatch) };
+  }
   // Slice 11.9: Edit stock -- the number now held, the batch it leaves or joins, the serials leaving.
   const set = /^\/products\/([^/]+)\/variants\/([^/]+)\/stock$/.exec(path);
   const ofSet = productOf(fixture, set?.[1]);

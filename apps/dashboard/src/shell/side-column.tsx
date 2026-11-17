@@ -2,20 +2,25 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { ShopMark } from '@/components/ui/shop-mark';
 import { appConfig } from '@/lib/app-config';
-import { hubOf, visibleSections } from './hubs';
+import { allows, hubOf, MENU_MONEY_SECTIONS, sectionOf, visibleSections } from './hubs';
 import { useShell } from './shell-context';
 
 /**
  * TENANT-DASHBOARD-DESIGN §4.3, the prototype's `.secnav`: from 1280 px, a 224 px white column with the shop's name
  * and address, the hub's label and its sections as text rows with their counts; it replaces the section chips. Home
- * and Orders have no sections, so no column.
+ * and Orders have no sections, so no column. The Menu's starts with Plan, Billing and Usage (item 5.3).
  */
 export function SideColumn(): React.JSX.Element | null {
   const { t } = useTranslation('shell');
   const { slug, tenant, viewer, screen, counts } = useShell();
   if (!screen) return null;
   const hub = hubOf(screen.hub);
-  const sections = visibleSections(hub, viewer);
+  // Item 5.3: the Menu's column opens with Plan, Billing and Usage, as its page does.
+  const lead =
+    hub.id === 'menu'
+      ? MENU_MONEY_SECTIONS.map(sectionOf).filter((each) => allows(viewer, each.anyOf))
+      : [];
+  const sections = [...lead, ...visibleSections(hub, viewer)];
   if (sections.length === 0) return null;
   return (
     <nav

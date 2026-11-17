@@ -171,7 +171,6 @@ export function FraudRuleView(): React.JSX.Element {
                 </span>
               </div>
             </RowList>
-            <p className="px-4 pt-2 pb-3.5 text-[14px] text-fg-muted">{t('p37FrSrcOthers')}</p>
           </Card>
           {rate !== null ? (
             <Card>

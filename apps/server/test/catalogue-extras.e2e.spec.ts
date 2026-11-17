@@ -307,8 +307,9 @@ describeIfDatabase('duplicating a product (PRD-18)', () => {
     expect(copy.slug).not.toBe(polo.slug);
     const byOption = (row: Product) =>
       Object.fromEntries(row.variants.map((variant) => [variant.optionIds.join(), variant]));
-    expect(byOption(copy)[small ?? '']).toMatchObject({ price: '480.00', sku: null });
-    expect(byOption(copy)[medium ?? '']).toMatchObject({ price: null, sku: null });
+    // PD-10: a SKU is one variant's alone, so the copy's variants are given their own, from the copy's link name.
+    expect(byOption(copy)[small ?? '']).toMatchObject({ price: '480.00', sku: 'PC-S' });
+    expect(byOption(copy)[medium ?? '']).toMatchObject({ price: null, sku: 'PC-M' });
     expect(copy.variants).toHaveLength(2);
 
     // The original keeps its own SKUs; the copy is a product of its own, and a second copy takes another slug.

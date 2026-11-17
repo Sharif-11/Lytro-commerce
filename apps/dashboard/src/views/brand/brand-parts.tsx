@@ -646,7 +646,6 @@ export function PreviewCard({
         ))}
       </ChipRow>
       {children}
-      <p className="mt-2.5 text-[14px] text-fg-muted">{t('brPvNote')}</p>
     </Card>
   );
 }

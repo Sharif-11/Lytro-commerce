@@ -449,7 +449,8 @@ describeIfDatabase('a receipt verifying its payment (VER-02 to VER-04, VER-12, W
     expect(await pageBody(ref)).toMatchObject({ state: 'verified', idChangesLeft: 0 });
     const session = await sessionOf(ref);
     const order = await orderOf(setup.shop, ref);
-    expect(order).toMatchObject({ status: 'pending', paymentStatus: 'paid' });
+    // ORD-51: the advance the listener verified confirms the order, with no call.
+    expect(order).toMatchObject({ status: 'confirmed', paymentStatus: 'paid' });
     expect(await paymentsOfOrder(session.order_id)).toMatchObject([
       {
         amount: '300.00',
@@ -459,6 +460,23 @@ describeIfDatabase('a receipt verifying its payment (VER-02 to VER-04, VER-12, W
         session_id: session.id,
       },
     ]);
+    // ORD-51: no person confirmed it; its history says the payment did.
+    expect(order['confirmedBy']).toBeNull();
+    expect(order['history']).toContainEqual(
+      expect.objectContaining({ field: 'confirmed', note: 'payment_verified', by: null }),
+    );
+    // ORD-15: money the listener verified came in for certain, so it is never voided as a mistake.
+    const [listened] = order['payments'] as { id: string; verificationLevel: string }[];
+    expect(listened?.verificationLevel).toBe('listener');
+    const voiding = await postJson(
+      port,
+      `/orders/${session.order_id}/payments/${listened?.id ?? ''}/void`,
+      { reason: 'Recorded by mistake' },
+      setup.shop.headers(),
+    );
+    expect(voiding.status, JSON.stringify(voiding.body)).toBe(409);
+    expect(errorOf(voiding).code).toBe('conflict');
+    expect(await paymentsOfOrder(session.order_id)).toHaveLength(1);
     // WAL-20: 0.10% of 300 TK, once, on its own entry naming the method.
     const fees = await feesOf(setup.shop.tenantId);
     expect(fees).toHaveLength(1);

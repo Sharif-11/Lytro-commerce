@@ -37,7 +37,7 @@ import { ADDONS_STORE, CLOCK } from '../tokens';
 import type { AddonPurchaseResult, AddonRecord, ShopPack } from '../types/addon';
 import { canTake } from './addon-eligibility';
 import { countedName, packBoughtWords, packFailedWords } from './billing-notice-words';
-import { assertAmountSeen } from './amount-seen';
+import { assertAmountHeld, assertAmountSeen } from './amount-seen';
 import { ShopLimitsService } from './shop-limits.service';
 import { AccountNotices } from '../../notifications/services/account-notices';
 import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
@@ -112,6 +112,7 @@ export class AddonPackService {
     const info = await this.billingOf(tenantId);
     if (!canTake(info, now))
       throw new ApiError('plan_feature_unavailable', 'AddonNotAvailable', {});
+    assertAmountHeld(packPrice(addon, input.quantity));
     assertAmountSeen(input.amount, packPrice(addon, input.quantity));
     return this.tenants.runStandalone((tx) =>
       this.purchase(tx, tenantId, info, addon, input.quantity, now, ActorType.User, ip ?? null),

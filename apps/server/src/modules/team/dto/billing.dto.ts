@@ -1,4 +1,5 @@
 import {
+  addonPriceQuerySchema,
   assignPlanSchema,
   buyPacksSchema,
   confirmAddonSchema,
@@ -45,6 +46,7 @@ export class SetAutoRenewDto extends createZodDto(setAutoRenewSchema) {}
 export class CreateAddonDto extends createZodDto(createAddonSchema) {}
 export class UpdateAddonDto extends createZodDto(updateAddonSchema) {}
 export class QuoteAddonDto extends createZodDto(quoteAddonSchema) {}
+export class AddonPriceQueryDto extends createZodDto(addonPriceQuerySchema) {}
 export class ConfirmAddonDto extends createZodDto(confirmAddonSchema) {}
 export class SetAddonRenewalDto extends createZodDto(setAddonRenewalSchema) {}
 export class BuyPacksDto extends createZodDto(buyPacksSchema) {}

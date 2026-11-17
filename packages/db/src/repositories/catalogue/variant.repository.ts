@@ -163,9 +163,15 @@ export class VariantRepository {
   }
 
   /**
-   * Retires variants no longer offered. Their option rows go (a retired variant names nothing); the variant row
-   * stays, with its combination key, so stock history keeps its subject and the same combination can come back.
+   * PD-10: held until the transaction ends, so two saves of one shop never give their variants the same automatic SKU:
+   * the second reads what the first took.
    */
+  async holdSkus(tx: Transaction, tenantId: string): Promise<void> {
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${`variant_skus:${tenantId}`}, 0))`,
+    );
+  }
+
   /** PD-10: which of these SKUs a live variant of the shop already has. */
   async takenSkus(tx: Transaction, tenantId: string, skus: string[]): Promise<string[]> {
     await this.transactions.setTenantContext(tx, tenantId);
@@ -183,6 +189,10 @@ export class VariantRepository {
     return rows.flatMap((row) => (row.sku === null ? [] : [row.sku]));
   }
 
+  /**
+   * Retires variants no longer offered. Their option rows go (a retired variant names nothing); the variant row
+   * stays, with its combination key, so stock history keeps its subject and the same combination can come back.
+   */
   async retireVariants(tx: Transaction, tenantId: string, ids: string[]): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
     if (ids.length === 0) return;

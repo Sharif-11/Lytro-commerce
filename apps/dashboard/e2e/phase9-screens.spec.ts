@@ -260,9 +260,7 @@ test('a plan paid from the balance shows no VAT, and once registered says why', 
   await page.reload();
   await expect(main(page).getByRole('heading', { name: 'INV-000215' })).toBeVisible();
   await expect(
-    main(page).getByText(
-      'Paid from the balance, so this invoice shows no VAT: the top-up that put the money in the balance showed it on its own invoice.',
-    ),
+    main(page).getByText("Paid from the balance, so no VAT here; it is on the top-up's invoice."),
   ).toBeVisible();
   await expect(main(page).getByText('Tax invoice (Mushak-6.3)')).toHaveCount(0);
 });

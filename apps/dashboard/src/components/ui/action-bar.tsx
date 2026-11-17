@@ -1,6 +1,7 @@
 import { useContext, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/icon';
+import { useOnline } from '@/hooks/use-online';
 import { ShellContext } from '@/shell/shell-context';
 import { Button } from './button';
 
@@ -15,6 +16,9 @@ import { Button } from './button';
  *
  * D9-14 (Slice 9.9, the prototype's `p99-cant-save-product`): while changes can't be saved, the bar holds one disabled
  * "Saving paused" in place of its actions, under the page's banner that says why; it comes back by itself once saving does.
+ *
+ * Item 1.1 (the prototype's `ux-offline-save`): while the connection is gone, Save waits the same way -- one disabled
+ * "No internet", under a line saying what was typed is still on the page -- and comes back with the connection.
  */
 export function ActionBar({
   children,
@@ -25,7 +29,12 @@ export function ActionBar({
 }): React.JSX.Element {
   const { t } = useTranslation('shell');
   const paused = useContext(ShellContext)?.savingPaused === true;
-  const actions = paused ? (
+  const online = useOnline();
+  const actions = !online ? (
+    <Button disabled className="disabled:opacity-60">
+      <Icon name="wifioff" /> {t('ux2.saveOff')}
+    </Button>
+  ) : paused ? (
     // The prototype's Part 99 holds this one at .6, a little clearer than a disabled button elsewhere.
     <Button disabled className="disabled:opacity-60">
       <Icon name="clock" /> {t('p99.savePaused')}
@@ -34,7 +43,13 @@ export function ActionBar({
     children
   );
   const bar = (
-    <div className="sticky bottom-0 z-[5] -mx-4 mt-2 -mb-6 flex gap-2 border-t border-line bg-surface px-4 pt-3 pb-5 sm:-mx-6 sm:px-6 sm:pb-4 lg:static lg:order-first lg:m-0 lg:justify-end lg:border-0 lg:bg-transparent lg:p-0 [&>*]:flex-1 lg:[&>*]:min-w-40 lg:[&>*]:flex-none">
+    <div
+      data-action-bar
+      className={`sticky bottom-0 z-[5] -mx-4 mt-2 -mb-6 flex gap-2 border-t border-line bg-surface px-4 pt-3 pb-5 sm:-mx-6 sm:px-6 sm:pb-4 lg:static lg:order-first lg:m-0 lg:justify-end lg:border-0 lg:bg-transparent lg:p-0 [&>*]:flex-1 lg:[&>*]:min-w-40 lg:[&>*]:flex-none ${online ? '' : 'flex-col items-stretch lg:flex-row lg:items-center'}`}
+    >
+      {online ? null : (
+        <p className="text-[14px] leading-[1.45] text-neutral-700 lg:hidden">{t('ux2.saveKept')}</p>
+      )}
       {actions}
     </div>
   );

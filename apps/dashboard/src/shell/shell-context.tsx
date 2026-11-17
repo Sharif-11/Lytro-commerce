@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { ToastOptions } from '@/hooks/use-toast';
 import type { MeTenant, SignInKind } from '@/types/me';
 import type { Viewer } from './hubs';
 import type { ScreenMeta } from './route-meta';
@@ -36,7 +37,8 @@ export interface ShellState {
     /** NTC-03: the notices this person hasn't opened (GET /notices/summary). */
     notices: number | null;
   };
-  showToast: (message: string) => void;
+  /** A toast over the page (item 1.4): a success unless told otherwise, with an action where one helps. */
+  showToast: (message: string, options?: ToastOptions) => void;
   openPlus: () => void;
   /** The one record a screen below its section names (a purchase's number), shown in the desktop header (v3.10). */
   recordTitle: string | null;

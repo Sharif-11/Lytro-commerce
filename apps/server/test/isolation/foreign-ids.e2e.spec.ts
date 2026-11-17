@@ -78,6 +78,10 @@ const BODIES: Readonly<Record<string, Body | ((by: Caller) => Body)>> = {
   'POST /payments/:id/reject': { reason: 'no_payment_found' },
   'POST /products/:id/variants/:variantId/serials': { serials: ['SN-WALK-1'] },
   'POST /products/:id/variants/:variantId/stock-additions': { quantity: 1 },
+  // The caller's own variant: its product then finds it, and another shop's product is refused before any variant.
+  'POST /products/:id/stock-additions': (by) => ({
+    additions: [{ variantId: by.variantId, quantity: 1 }],
+  }),
   'POST /purchase-orders/:id/close': { reason: 'The supplier ran out' },
   'POST /purchase-orders/:id/receipts': { items: [{ itemId: randomUUID(), accepted: 1 }] },
   'POST /staff/:id/password': { newPassword: 'staff-pass-2468' },

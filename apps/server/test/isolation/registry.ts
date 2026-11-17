@@ -194,6 +194,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'PUT /products/:id/variants/:variantId/cost': "another shop's product or variant answers 404",
   'POST /products/:id/variants/:variantId/stock-additions':
     "another shop's product or variant answers 404",
+  // Fixes 2026-11-14 (the quick stock boxes), checked in test/stock-additions.e2e.spec.ts.
+  'POST /products/:id/stock-additions':
+    "another shop's product, or a variant of it, answers 404 and adds nothing",
   'GET /products/:id/variants/:variantId/stock-history':
     "another shop's product or variant answers 404",
   // Phase 3 Slice 2b, checked in test/inventory.e2e.spec.ts.
@@ -260,6 +263,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // shop's own.
   'GET /addons':
     "prices the platform-wide catalogue against the session shop's own period and limits",
+  // UI/UX batch 2, checked in test/addons.e2e.spec.ts: priced against the session shop's own period and limits.
+  'GET /addons/price': "prices against the session shop's own period and limits only",
   'GET /addons/mine': "lists only the session shop's own add-ons",
   'POST /addons/quote': 'creates an add-on quote scoped to the session shop only',
   'POST /addons/purchase': "another shop's payment id answers not_found",

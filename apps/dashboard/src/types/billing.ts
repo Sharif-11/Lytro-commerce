@@ -18,6 +18,8 @@ export interface Plan {
   forSale: boolean;
   limits: PlanLimits;
   features?: Record<string, boolean>;
+  /** PLN-21: the plan the operator marked as suggested, drawn dark with its badge; absent on an older server. */
+  suggested?: boolean;
 }
 
 export interface BillingTerm {

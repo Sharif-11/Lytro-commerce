@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
   UseInterceptors,
@@ -26,6 +27,7 @@ import { AddonPackService } from '../../billing/services/addon-pack.service';
 import { AddonPurchaseService } from '../../billing/services/addon-purchase.service';
 import type {
   AddonOffer,
+  AddonPriceView,
   AddonPurchaseResult,
   AddonQuote,
   ShopAddons,
@@ -37,12 +39,14 @@ import { SessionGuard } from '../../identity/guards/session.guard';
 import { PermissionGuard } from '../guards/permission.guard';
 import {
   AddonOfferListDto,
+  AddonPriceDto,
   AddonPurchaseResultDto,
   AddonQuoteDto,
   ShopAddonsDto,
   ShopPackListDto,
 } from '../dto/addons-response.dto';
 import {
+  AddonPriceQueryDto,
   BuyPacksDto,
   ConfirmAddonDto,
   QuoteAddonDto,
@@ -78,6 +82,18 @@ export class AddonsController {
   @ZodResponse({ type: AddonOfferListDto })
   offers(@Req() request: DashboardRequest): Promise<AddonOffer[]> {
     return this.addons.offers(this.tenantIdOf(request));
+  }
+
+  @Get('price')
+  @RequirePermission(Permission.PaymentsRead)
+  @ResponseMessage('AddonPriced')
+  @ApiOperation({ summary: 'What any quantity of one add-on costs now, held nowhere (PLN-14)' })
+  @ZodResponse({ type: AddonPriceDto })
+  price(
+    @Query(new ZodValidationPipe(AddonPriceQueryDto.schema)) query: AddonPriceQueryDto,
+    @Req() request: DashboardRequest,
+  ): Promise<AddonPriceView> {
+    return this.addons.price(this.tenantIdOf(request), query);
   }
 
   @Get('mine')

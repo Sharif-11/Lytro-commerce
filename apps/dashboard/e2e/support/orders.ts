@@ -46,6 +46,10 @@ export interface OrderItemFixture {
   /** ATR-20 (PD-9): a design product's line: its SKU, and its first value the design. */
   sku?: string;
   design?: boolean;
+  /** The unit it is counted in (the fixes PR, 2026-11-14); pieces when left out. */
+  unit?: 'piece' | 'kg';
+  /** Its picture's large rendition, which the lightbox shows; the thumbnail itself when left out. */
+  large?: string;
 }
 
 export interface OrderFixture {
@@ -92,7 +96,13 @@ export interface OrderFixture {
     voided?: string | null;
     /** Marked refunded, with its note (Slice 5.3). */
     refunded?: string | null;
+    /** VER-02: verified by staff unless the listener or the gateway did (the fixes PR, 2026-11-14). */
+    level?: 'manual' | 'listener' | 'gateway';
   }[];
+  /** When its verified advance payment confirmed it, with no call (the fixes PR). */
+  confirmedByPayment?: string | null;
+  /** The tracking link its courier booking returned. */
+  trackingLink?: string | null;
   /** The advance still owed (ORD-08). */
   advanceDue?: number;
   /** What POST /orders/:id/payment-link refuses with, where a test wants that. */
@@ -402,7 +412,12 @@ export function orderSummary(order: OrderFixture, language: Language) {
     id: order.id,
     orderNumber: order.number,
     status: order.status,
-    paymentStatus: paidOf(order) >= totalOf(order) ? 'paid' : 'unverified',
+    paymentStatus:
+      paidOf(order) >= totalOf(order)
+        ? 'paid'
+        : paidOf(order) > 0
+          ? 'partially_paid'
+          : 'unverified',
     fulfillmentStatus: fulfilmentOf(order),
     source: order.source,
     fulfilmentType: order.fulfilment,
@@ -492,6 +507,16 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
       });
     }
   }
+  if (order.confirmedByPayment) {
+    history.push({
+      field: 'confirmed',
+      from: null,
+      to: 'confirmed',
+      note: 'payment_verified',
+      by: null,
+      at: order.confirmedByPayment,
+    });
+  }
   if (order.courier) {
     history.push({
       field: 'fulfillment_status',
@@ -521,10 +546,11 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
       amount: money(each.amount),
       senderNumber: each.sender ?? null,
       transactionId: each.trxId ?? null,
-      verifiedBy: by,
+      verifiedBy: (each.level ?? 'manual') === 'manual' ? by : null,
       verifiedAt: each.at,
       voided: each.voided ? { by, at: each.at, reason: each.voided } : null,
       refunded: each.refunded ? { by, at: each.at, note: each.refunded } : null,
+      verificationLevel: each.level ?? 'manual',
     })),
     ...(order.collected
       ? [
@@ -538,6 +564,7 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
             verifiedAt: dhaka(17, 10),
             voided: null,
             refunded: null,
+            verificationLevel: 'manual',
           },
         ]
       : []),
@@ -546,7 +573,10 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
     ...orderSummary(order, language),
     trackingId: `trk-${order.id}`,
     override: order.status === 'hold' ? 'hold' : order.status === 'cancelled' ? 'cancelled' : null,
-    confirmedAt: order.calls.find((call) => call.outcome === 'confirmed')?.at ?? null,
+    confirmedAt:
+      order.calls.find((call) => call.outcome === 'confirmed')?.at ??
+      order.confirmedByPayment ??
+      null,
     confirmedBy: null,
     customerId: order.erased ? null : (customerId ?? `c-${order.id}`),
     customerOrders: order.erased ? null : (order.customerOrders ?? null),
@@ -588,7 +618,7 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
     ],
     courierName: order.courier?.name ?? null,
     trackingCode: order.courier?.code ?? null,
-    trackingLink: null,
+    trackingLink: order.trackingLink ?? null,
     shippedAt: order.courier?.at ?? null,
     deliveredAt: order.status === 'delivered' ? dhaka(17, 10) : null,
     handledAt: order.courier?.at ?? null,
@@ -608,11 +638,13 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
         name: say(each.name, language) ?? '',
         value: each.value,
       })),
-      thumbnail: item.thumbnail ? { mediaId: 'm-kept', url: item.thumbnail } : null,
-      stockUnit: 'piece',
+      thumbnail: item.thumbnail
+        ? { mediaId: 'm-kept', url: item.thumbnail, largeUrl: item.large ?? item.thumbnail }
+        : null,
+      stockUnit: item.unit ?? 'piece',
       listPrice: money(item.unitPrice),
       unitPrice: money(item.unitPrice),
-      quantity: `${String(item.quantity)}.000`,
+      quantity: item.quantity.toFixed(3),
       packAmount: null,
       itemDiscount: '0.00',
       itemTotal: money(item.quantity * item.unitPrice),

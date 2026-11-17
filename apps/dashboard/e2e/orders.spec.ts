@@ -136,13 +136,11 @@ test("the order: who and where, the customer's note, the items with a combo insi
   await expect(main(page)).toContainText('No calls yet');
   await expect(main(page)).toContainText('Inside: Cotton panjabi · M, Check lungi');
   await expect(main(page)).toContainText('+ Gift wrap ৳50');
-  await expect(main(page)).toContainText('2 × ৳450');
+  await expect(main(page)).toContainText('2 pcs × ৳450/pc');
   await expect(main(page)).toContainText('Delivery · Inside Dhaka');
   await expect(main(page)).toContainText('Includes VAT 5% ৳42.86');
   await expect(main(page)).toContainText('Cash on delivery৳3,470');
-  await expect(main(page)).toContainText(
-    "No payments yet. Cash on delivery is taken when it's delivered.",
-  );
+  await expect(main(page).getByText('No payments yet.', { exact: true })).toBeVisible();
   await expect(main(page)).toContainText('You add the courier and tracking code when you ship.');
   await expect(main(page)).toContainText('Order placed');
   // Later phases' pieces are drawn greyed, and hidden here (agreed in the 4.8a read).
@@ -209,7 +207,7 @@ test('cancelling asks the reason, Other with a note, and says it lets the stock 
   const log = await open(page, '/orders/o-46');
   await fromMenu(page, 'Cancel the order');
   const cancel = sheet(page, 'Cancel the order?');
-  await expect(cancel).toContainText('Cancelling lets go of the stock it holds.');
+  await expect(cancel).toContainText('Cancelling releases the stock it holds.');
   await expect(cancel.getByRole('button', { name: 'Cancel the order' })).toBeDisabled();
   await cancel.getByRole('radio', { name: 'Other' }).click();
   await expect(cancel.getByRole('button', { name: 'Cancel the order' })).toBeDisabled();

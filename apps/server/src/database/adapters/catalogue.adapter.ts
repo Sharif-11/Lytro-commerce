@@ -672,6 +672,10 @@ export class DrizzleProductStore implements ProductStore {
     }
   }
 
+  holdSkus(tx: Transaction, tenantId: string): Promise<void> {
+    return this.variants.holdSkus(tx, tenantId);
+  }
+
   takenSkus(tx: Transaction, tenantId: string, skus: string[]): Promise<string[]> {
     return this.variants.takenSkus(tx, tenantId, skus);
   }

@@ -1,9 +1,4 @@
-import {
-  ADDON_QUANTITY_MAX,
-  type PlanLimits,
-  type UsageLimitKey,
-  type UsageMetric,
-} from '@lytronix/validators';
+import { type PlanLimits, type UsageLimitKey, type UsageMetric } from '@lytronix/validators';
 import type { SuggestedAddon, Suggestion, Suggestions, UsageFigure } from '../types/usage';
 import { metricLimit, metricLimitKey } from './metric-limits';
 
@@ -112,7 +107,6 @@ function addonSuggestion(
     const size = addon.unitSize * unit;
     const quantity =
       Math.floor((figure.used * 100 - figure.limit * NEAR_PERCENT) / (size * NEAR_PERCENT)) + 1;
-    if (quantity > ADDON_QUANTITY_MAX) return null;
     items.push({
       addonId: addon.addonId,
       key: addon.key,

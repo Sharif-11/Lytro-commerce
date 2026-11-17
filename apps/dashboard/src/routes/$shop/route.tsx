@@ -8,8 +8,9 @@ import { AppShell } from '@/shell/app-shell';
 export const Route = createFileRoute('/$shop')({
   beforeLoad: async ({ params }) => {
     await tenantSession.whenReady();
+    // Item 1.5: a link into a shop's dashboard opened signed out asks for the password first.
     if (!tenantSession.isSignedIn()) {
-      throw redirect({ to: '/sign-in', search: { shop: params.shop } });
+      throw redirect({ to: '/sign-in', search: { shop: params.shop, mode: 'password' } });
     }
   },
   component: ShopLayout,

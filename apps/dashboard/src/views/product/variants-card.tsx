@@ -1,6 +1,13 @@
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AttributeRole, StockState, type SerialFormat, type StockUnit } from '@lytronix/validators';
+import {
+  AttributeRole,
+  autoSkuDesignPart,
+  autoSkuOf,
+  StockState,
+  type SerialFormat,
+  type StockUnit,
+} from '@lytronix/validators';
 import { useAddOptions, useAttributes, useOptionSets } from '@/api/attributes';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
@@ -23,6 +30,7 @@ import {
   blankRow,
   reconcile,
   setsFor,
+  SHOWN_VARIANTS,
   variantCount,
   type Description,
   type FillColumn,
@@ -39,7 +47,7 @@ import { OptionsSheet } from './options-sheet';
 import { ValueSheet } from './value-sheet';
 import { VariantSheet } from './variant-sheet';
 import { sheetProblems } from './variant-problems';
-import { VariantTable } from './variant-table';
+import { VariantTable, type QuickStock } from './variant-table';
 import { useVariantWords } from './variant-words';
 
 /**
@@ -86,6 +94,7 @@ export function VariantsCard({
   onChange,
   onHeldSerials,
   designs = null,
+  quick = null,
 }: {
   form: ProductForm;
   saved: ProductForm;
@@ -109,6 +118,11 @@ export function VariantsCard({
     coverOf: (key: string) => string | undefined;
     onPhotos: () => void;
   } | null;
+  /**
+   * The fixes PR (`fx-product-quick`, 2026-11-14): a saved, counted product's quick Add stock box on each variant row, for
+   * someone who may add stock; null where it isn't offered.
+   */
+  quick?: QuickStock | null;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
   const words = useVariantWords();
@@ -327,8 +341,42 @@ export function VariantsCard({
       : product.stockState !== StockState.Out);
   const sets = (split: SplitAttribute) => setsFor(split.options, optionSets.data ?? []);
   const designSplit = form.splits.find((each) => each.attributeId === designs?.attributeId);
+  // The fixes PR (2026-11-14): the SKU a variant left without one is given (PD-10, validators' autoSkuOf), shown greyed
+  // in its empty box and never sent: the product's initials, its design's part, then its other values. A new design
+  // takes the next number; the server adds a -2 when the shop already has the SKU.
+  const designNumber = (key: string): number => {
+    const at = form.designs.findIndex((each) => each.key === key);
+    const known = form.designs[at]?.number;
+    if (known !== null && known !== undefined) return known;
+    const last = Math.max(0, ...form.designs.map((each) => each.number ?? 0));
+    return last + form.designs.slice(0, at + 1).filter((each) => each.number === null).length;
+  };
+  const autoSku = (optionIds: readonly string[]): string => {
+    const parts: string[] = [];
+    for (const split of form.splits) {
+      const option = split.options.find((each) => optionIds.includes(each.id));
+      if (!option) continue;
+      if (split === designSplit) parts.unshift(autoSkuDesignPart(designNumber(option.id)));
+      else parts.push(option.value);
+    }
+    return autoSkuOf(product?.slug ?? form.name, parts);
+  };
+  // The fixes PR (2026-11-14): a problem with a field the table types is said under its box; the rest, and those of the
+  // rows not shown yet, are listed under the table.
+  const boxed = new Set([
+    'price',
+    ...(shared ? ['packAmount'] : []),
+    ...(isNew && kind.tracked && !shared && !kind.batch ? ['openingStock'] : []),
+    ...(isNew || (canSell && quick) ? ['sku'] : []),
+  ]);
   const rowProblems = Object.entries(problems)
-    .filter(([field]) => field.startsWith('variants.') || field.startsWith('attributes'))
+    .filter(([field]) => {
+      if (!field.startsWith('variants.') && !field.startsWith('attributes')) return false;
+      const found = /^variants\.(\d+)\.(\w+)$/.exec(field);
+      if (!found) return true;
+      const inSight = showAll || Number(found[1]) < SHOWN_VARIANTS;
+      return !(inSight && boxed.has(found[2] ?? ''));
+    })
     .map(([, message]) => message);
 
   return (
@@ -571,6 +619,8 @@ export function VariantsCard({
             canSell,
             held: !isNew && kind.tracked && kind.serial && onHeldSerials ? held : null,
             pack: shared ? kind.unit : null,
+            unit: kind.unit,
+            sku: isNew,
           }}
           basePrice={form.price}
           isNew={isNew}
@@ -603,17 +653,21 @@ export function VariantsCard({
                 }
               : undefined
           }
+          autoSku={autoSku}
+          quick={canSell ? quick : null}
         />
       ) : null}
-      {designSplit && form.variants.length > 0 && !over ? (
+      {/* A new product's table says it under itself (the fixes PR's note), so the designs' hint is a saved one's. */}
+      {designSplit && form.variants.length > 0 && !over && !isNew ? (
         <p className="text-[14px] text-fg-muted">{t('pdSkuHint')}</p>
       ) : null}
       {isNew && shared && form.variants.length > 0 ? (
         <div className={kind.batch ? 'grid gap-3 sm:grid-cols-2' : 'contents'}>
           <Field
-            label={t('sharedOpening', { unit: t(`su_${kind.unit}`) })}
+            label={t('sharedStockIn', { unit: t(`su_${kind.unit}`) })}
             inputMode="decimal"
             className="num"
+            suffix={<span className="text-[14px] text-fg-muted">{t(`su_${kind.unit}`)}</span>}
             value={form.sharedOpeningStock}
             onChange={(event) => {
               onChange({ sharedOpeningStock: event.target.value });

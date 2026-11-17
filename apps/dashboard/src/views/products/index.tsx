@@ -12,7 +12,7 @@ import { Chip, ChipRow } from '@/components/ui/chips';
 import { EmptyState } from '@/components/ui/empty-state';
 import { RowList } from '@/components/ui/list-row';
 import { SearchField } from '@/components/ui/search-field';
-import { SkeletonRows } from '@/components/ui/skeleton';
+import { SkeletonRows, SlowLine } from '@/components/ui/skeleton';
 import {
   PRODUCT_SEGMENTS,
   SEGMENT_LABEL,
@@ -205,9 +205,10 @@ export function ProductsView({
               </Chip>
             ))}
           </ChipRow>
+          {list.isPending ? <SlowLine /> : null}
           {list.isPending ? (
             <Card flush>
-              <SkeletonRows count={4} />
+              <SkeletonRows count={7} thumb />
             </Card>
           ) : products.length === 0 && list.isSuccess ? (
             <Card>

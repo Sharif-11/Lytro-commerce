@@ -2,8 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { NewOrderHistory, OrderPatch, Transaction } from '@lytronix/db';
 import {
   AuditAction,
+  FulfillmentStatus,
+  ORDER_CONFIRMED_BY_PAYMENT_NOTE,
   OrderHistoryField,
   OrderPaymentStatus,
+  OrderStatus,
   PaymentMethod,
   ServerFieldProblemCode,
   SmsEvent,
@@ -135,6 +138,7 @@ export class PaymentRecorder {
       }
       throw error;
     }
+    this.confirmByPayment(order, entry, patch, history);
     const updated = await this.store.updateOrder(tx, tenantId, order.id, patch);
     // Agreed 2026-11-01 (Slice 5.4 read): paid in full another way, the order's page awaiting money closes, so the
     // shopper cannot pay twice; one where the shopper typed an ID is left for staff.
@@ -244,6 +248,39 @@ export class PaymentRecorder {
       return { due, paymentStatus: OrderPaymentStatus.Paid };
     }
     return { due, paymentStatus: OrderPaymentStatus.PartiallyPaid };
+  }
+
+  /**
+   * ORD-51 (fixes 2026-11-14, the owner): money in advance, verified -- however it was (staff, the listener, a gateway,
+   * and whenever: with the order or later) -- confirms an order still waiting on its confirming call, so nobody calls a
+   * shopper who has already paid. Any advance counts, the whole order or a part such as the delivery charge. Not cash on
+   * delivery (it comes with the parcel), not an order already confirmed or on its way, held, in review or cancelled by
+   * hand, nor one whose money was all given back. No person confirms it: the history says the payment did.
+   */
+  private confirmByPayment(
+    order: OrderRecord,
+    entry: PaymentEntry,
+    patch: OrderPatch,
+    history: NewOrderHistory[],
+  ): void {
+    if (
+      entry.method === PaymentMethod.CashOnDelivery ||
+      order.confirmedAt !== null ||
+      order.statusOverride !== null ||
+      order.fulfillmentStatus !== FulfillmentStatus.Unfulfilled ||
+      order.paymentStatus === OrderPaymentStatus.Refunded
+    ) {
+      return;
+    }
+    Object.assign(patch, { confirmedAt: new Date(), confirmedBy: null });
+    history.push({
+      orderId: order.id,
+      field: OrderHistoryField.Confirmed,
+      oldValue: null,
+      newValue: OrderStatus.Confirmed,
+      note: ORDER_CONFIRMED_BY_PAYMENT_NOTE,
+      changedBy: null,
+    });
   }
 
   /** ORD-14: the history's line for a payment status that moved, with what moved it. */

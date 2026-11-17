@@ -80,3 +80,9 @@ export function termLabel(
 ): string {
   return language === 'bn' ? term.labelBn : term.labelEn;
 }
+
+/** How far through its period the plan is (the prototype's `.ux-bar`); a trial and a month count 30 days. */
+export function periodDone(daysLeft: number, months: number): number {
+  const total = Math.max(1, months) * 30;
+  return Math.min(100, Math.max(0, Math.round((1 - daysLeft / total) * 100)));
+}

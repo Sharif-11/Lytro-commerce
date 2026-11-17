@@ -108,6 +108,35 @@ export const addStockSchema = z
   });
 export type AddStockInput = z.infer<typeof addStockSchema>;
 
+/** POST products/:id/stock-additions: at most this many variants' stock added in one go. */
+export const STOCK_ADDITIONS_MAX = 100;
+
+// POST products/:id/stock-additions (INV-06, fixes 2026-11-14): the product screen's quick stock boxes -- stock that
+// arrived on several of the product's variants at once, each recorded as the single route records one (received in
+// full). All or nothing: one row refused refuses them all.
+export const addStocksSchema = z
+  .object({
+    additions: z
+      .array(z.object({ variantId: catalogueIdSchema, quantity: positiveQuantityField }))
+      .min(1)
+      .max(STOCK_ADDITIONS_MAX),
+  })
+  .superRefine((value, ctx) => {
+    const seen = new Set<string>();
+    value.additions.forEach((row, index) => {
+      if (seen.has(row.variantId)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['additions', index, 'variantId'],
+          message: 'Each variant once.',
+          params: { problem: FieldProblemCode.NotAllowed },
+        });
+      }
+      seen.add(row.variantId);
+    });
+  });
+export type AddStocksInput = z.infer<typeof addStocksSchema>;
+
 // PUT products/:id/variants/:variantId/cost (INV-10): the average unit cost entered by hand, before any purchase
 // receipt sets it; null clears it to unknown. Never required, never public.
 export const variantCostSchema = z.object({
