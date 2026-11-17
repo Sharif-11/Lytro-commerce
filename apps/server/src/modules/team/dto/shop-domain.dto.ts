@@ -24,9 +24,9 @@ const domainViewSchema = z.object({
       twinActive: z.boolean(),
       records: z.array(domainRecordSchema),
       twinRecords: z.array(domainRecordSchema),
-      addedAt: z.string().datetime(),
-      checkedAt: z.string().datetime().nullable(),
-      verifiedAt: z.string().datetime().nullable(),
+      addedAt: z.iso.datetime(),
+      checkedAt: z.iso.datetime().nullable(),
+      verifiedAt: z.iso.datetime().nullable(),
     })
     .nullable(),
 });

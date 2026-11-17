@@ -20,7 +20,7 @@ import { FieldProblemCode } from '../../validation/field-problem';
 import { suspendTenantSchema } from '../platform/tenant-suspend';
 
 // PAY-04: an address the page sends the shopper back to; its website must be one of the key's (checked on the server).
-const returnAddress = z.string().trim().url().max(PAYMENT_RETURN_URL_MAX_LENGTH);
+const returnAddress = z.string().trim().check(z.url()).max(PAYMENT_RETURN_URL_MAX_LENGTH);
 
 /**
  * PAY-01, SFT-07, LND-10 (Phase 5 Slice 5.2): how a shopper's order that needs an advance is to be paid -- the method
@@ -28,7 +28,7 @@ const returnAddress = z.string().trim().url().max(PAYMENT_RETURN_URL_MAX_LENGTH)
  */
 export const checkoutPaymentSchema = z
   .object({
-    method: z.nativeEnum(PaymentMethod).optional(),
+    method: z.enum(PaymentMethod).optional(),
     returnUrl: returnAddress,
     cancelUrl: returnAddress.optional(),
   })
@@ -41,7 +41,7 @@ export type CheckoutPaymentInput = z.infer<typeof checkoutPaymentSchema>;
  */
 export const paymentSubmissionSchema = z
   .object({
-    method: z.nativeEnum(PaymentMethod),
+    method: z.enum(PaymentMethod),
     transactionId: transactionIdField,
     senderNumber: z
       .string()
@@ -64,7 +64,7 @@ export const paymentSubmissionSchema = z
 export type PaymentSubmissionInput = z.infer<typeof paymentSubmissionSchema>;
 
 /** PAY-06 (Slice 5.7): a shopper starts paying by a wallet whose shop takes its money through the wallet's own checkout. */
-export const gatewayCheckoutSchema = z.object({ method: z.nativeEnum(PaymentMethod) }).strict();
+export const gatewayCheckoutSchema = z.object({ method: z.enum(PaymentMethod) }).strict();
 export type GatewayCheckoutInput = z.infer<typeof gatewayCheckoutSchema>;
 
 /** PAY-07 (Slice 5.4b, agreed 2026-11-02): the shopper corrects the transaction ID they typed, and the number if they say. */
@@ -81,7 +81,7 @@ export type PaymentLinkInput = z.infer<typeof paymentLinkSchema>;
 /** TVR-02 (agreed 2026-10-31): why a shopper reports the payment page, and a note, needed for "something else". */
 export const paymentPageReportSchema = z
   .object({
-    reason: z.nativeEnum(PaymentPageReportReason),
+    reason: z.enum(PaymentPageReportReason),
     note: z.string().trim().max(PAGE_REPORT_NOTE_MAX_LENGTH).optional(),
   })
   .strict()
@@ -99,7 +99,7 @@ export type PaymentPageReportInput = z.infer<typeof paymentPageReportSchema>;
 
 // ADM-12: the operator's list of page reports, open ones by default.
 export const paymentPageReportListSchema = z.object({
-  status: z.nativeEnum(PaymentPageReportStatus).optional(),
+  status: z.enum(PaymentPageReportStatus).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 export type PaymentPageReportListInput = z.infer<typeof paymentPageReportListSchema>;
@@ -125,7 +125,7 @@ export type VerifyShopperPaymentInput = z.infer<typeof verifyShopperPaymentSchem
 /** PAY-14 (agreed 2026-10-31): why staff reject a payment, shown to the shopper; a note needed for "something else". */
 export const rejectShopperPaymentSchema = z
   .object({
-    reason: z.nativeEnum(PaymentRejectReason),
+    reason: z.enum(PaymentRejectReason),
     note: z.string().trim().max(PAYMENT_NOTE_MAX_LENGTH).optional(),
   })
   .strict()
@@ -146,8 +146,8 @@ export type RejectShopperPaymentInput = z.infer<typeof rejectShopperPaymentSchem
  * method and the days it came in (Asia/Dhaka), searched by sender number, transaction ID or order number.
  */
 export const paymentListQuerySchema = z.object({
-  status: z.nativeEnum(PaymentListStatus).optional(),
-  method: z.nativeEnum(PaymentMethod).optional(),
+  status: z.enum(PaymentListStatus).optional(),
+  method: z.enum(PaymentMethod).optional(),
   dateFrom: calendarDayField.optional(),
   dateTo: calendarDayField.optional(),
   q: z.string().trim().min(1).max(64).optional(),

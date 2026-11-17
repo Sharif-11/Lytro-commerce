@@ -7,7 +7,7 @@ export const createStaffSchema = z.object({
   phone: z.string().trim().min(1).max(20),
   password: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
   name: z.string().trim().min(1).max(NAME_MAX_LENGTH).optional(),
-  roleIds: z.array(z.string().uuid()).max(20).default([]),
+  roleIds: z.array(z.guid()).max(20).default([]),
 });
 export type CreateStaffInput = z.infer<typeof createStaffSchema>;
 
@@ -16,7 +16,7 @@ export type CreateStaffInput = z.infer<typeof createStaffSchema>;
 export const updateStaffSchema = z
   .object({
     active: z.boolean().optional(),
-    roleIds: z.array(z.string().uuid()).max(20).optional(),
+    roleIds: z.array(z.guid()).max(20).optional(),
     name: z.string().trim().min(1).max(NAME_MAX_LENGTH).nullable().optional(),
   })
   .refine(
@@ -30,4 +30,4 @@ export const updateStaffSchema = z
 export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
 
 // The staff id in PATCH staff/:id. Anything that is not an id is simply no such staff member.
-export const staffIdSchema = z.string().uuid();
+export const staffIdSchema = z.guid();

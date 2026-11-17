@@ -35,7 +35,7 @@ export const shopSettingsSchema = z.object({
   facebookPage: z.string().max(FACEBOOK_PAGE_MAX_LENGTH).nullable(),
   extraDeliveryChargePerKg: z.string().max(MONEY_TEXT_MAX_LENGTH),
   // PRD-08: what a product with no payment policy of its own follows.
-  defaultPaymentPolicy: z.nativeEnum(PaymentPolicy),
+  defaultPaymentPolicy: z.enum(PaymentPolicy),
   defaultAdvanceAmount: z.string().max(MONEY_TEXT_MAX_LENGTH).nullable(),
   // SFT-16: the shared storefront is on.
   storefrontEnabled: z.boolean(),
@@ -54,7 +54,7 @@ export const updateShopSettingsSchema = z.object({
   extraDeliveryChargePerKg: nonNegativeMoneyField.optional(),
   // PRD-08: the shop-wide default payment policy. A partial advance needs its amount (checked by the server
   // against the stored policy, since either may change alone); no other policy takes one.
-  defaultPaymentPolicy: z.nativeEnum(PaymentPolicy).optional(),
+  defaultPaymentPolicy: z.enum(PaymentPolicy).optional(),
   defaultAdvanceAmount: nonNegativeMoneyField.nullable().optional(),
   // SFT-16: switch the shared storefront on or off; landing pages and the API keep working either way.
   storefrontEnabled: z.boolean().optional(),

@@ -7,7 +7,7 @@ import { bankAccountInput } from '../payment-methods/payment-methods';
 export const updatePlatformPaymentMethodSchema = z
   .object({
     enabled: z.boolean().optional(),
-    way: z.nativeEnum(PaymentWay).optional(),
+    way: z.enum(PaymentWay).optional(),
   })
   .strict()
   .refine((value) => value.enabled !== undefined || value.way !== undefined, {
@@ -34,7 +34,5 @@ export const platformGatewayKeysSchema = gatewayCredentialsSchema.extend({
 export type PlatformGatewayKeysInput = z.infer<typeof platformGatewayKeysSchema>;
 
 /** PAYMENT-PAGE-DESIGN §8: a shop opens the payment page for a payment; where in the dashboard it comes back to. */
-export const openPlanPaymentPageSchema = z
-  .object({ from: z.nativeEnum(PlanPaymentPageFrom) })
-  .strict();
+export const openPlanPaymentPageSchema = z.object({ from: z.enum(PlanPaymentPageFrom) }).strict();
 export type OpenPlanPaymentPageInput = z.infer<typeof openPlanPaymentPageSchema>;

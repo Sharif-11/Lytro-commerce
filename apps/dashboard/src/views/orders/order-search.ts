@@ -10,10 +10,10 @@ export const ordersSearch = z.object({
   q: z.string().optional().catch(undefined),
   from: z.string().regex(DAY).optional().catch(undefined),
   to: z.string().regex(DAY).optional().catch(undefined),
-  reason: z.nativeEnum(CancelReason).optional().catch(undefined),
+  reason: z.enum(CancelReason).optional().catch(undefined),
   holding: z.string().min(1).optional().catch(undefined),
   holdingName: z.string().optional().catch(undefined),
-  source: z.nativeEnum(OrderSource).optional().catch(undefined),
+  source: z.enum(OrderSource).optional().catch(undefined),
 });
 
 export type OrdersSearch = z.infer<typeof ordersSearch>;

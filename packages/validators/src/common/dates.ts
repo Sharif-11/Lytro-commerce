@@ -1,6 +1,26 @@
 import { z } from 'zod';
 import { FieldProblemCode } from '../validation/field-problem';
 
+// A point in time, as the API's docs describe it. Zod 4's JSON Schema has no Date and the docs are written by Zod's own
+// converter (nestjs-zod 5, main.ts), so a plain z.date() stopped the server starting (2026-11-17). On the wire a date is
+// an ISO 8601 string, which Date's own JSON writes and z.coerce.date reads, so that is what the docs say of it.
+const DATE_TIME_JSON = { type: 'string', format: 'date-time' } as const;
+
+function documentedAsDateTime<T extends z.ZodType>(schema: T): T {
+  schema._zod.toJSONSchema = () => ({ ...DATE_TIME_JSON });
+  return schema;
+}
+
+/** A point in time a response carries: a Date, written as an ISO 8601 string. */
+export function dateField() {
+  return documentedAsDateTime(z.date());
+}
+
+/** A point in time a request sends: anything `new Date()` reads, documented as an ISO 8601 string. */
+export function coercedDateField() {
+  return documentedAsDateTime(z.coerce.date());
+}
+
 // A calendar day in Asia/Dhaka, written YYYY-MM-DD: a period's ends (INV-18), a batch's expiry date (INV-12).
 export const calendarDayField = z
   .string()

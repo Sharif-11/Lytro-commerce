@@ -9,7 +9,7 @@ export const createBillingTermSchema = z.object({
   displayOrder: z.number().int().default(0),
   defaultDiscountPct: z.number().min(0).max(100).optional(),
   // TRM-14: set only for a term visible to exactly one tenant (an enterprise deal).
-  tenantId: z.string().uuid().optional(),
+  tenantId: z.guid().optional(),
 });
 export type CreateBillingTermInput = z.infer<typeof createBillingTermSchema>;
 

@@ -22,6 +22,7 @@ import {
   retireCourierSchema,
   ParcelReading,
   refreshCourierAreasSchema,
+  coercedDateField,
 } from '@lytronix/validators';
 
 export class ConnectCourierDto extends createZodDto(connectCourierSchema) {}
@@ -37,12 +38,12 @@ export class CourierReasonDto extends createZodDto(courierReasonSchema) {}
 
 // CRR-23 (Slice 6.6): a courier as the operator sees it, and how many shops lean on it.
 const operatorCourierSchema = z.object({
-  key: z.nativeEnum(CourierKey),
+  key: z.enum(CourierKey),
   name: z.string(),
-  state: z.nativeEnum(RetireState),
-  suggestedKey: z.nativeEnum(CourierKey).nullable(),
-  retiringSince: z.coerce.date().nullable(),
-  removedAt: z.coerce.date().nullable(),
+  state: z.enum(RetireState),
+  suggestedKey: z.enum(CourierKey).nullable(),
+  retiringSince: coercedDateField().nullable(),
+  removedAt: coercedDateField().nullable(),
   shops: z.number(),
   defaultFor: z.number(),
   onTheirWay: z.number(),
@@ -62,7 +63,7 @@ export class CourierRemovedDto extends createZodDto(
 // CRR-24 (Slice 6.6): the orders holding a courier back from removal.
 export class CourierBlockingDto extends createZodDto(
   z.object({
-    courierKey: z.nativeEnum(CourierKey),
+    courierKey: z.enum(CourierKey),
     total: z.number(),
     orders: z.array(
       z.object({
@@ -71,11 +72,11 @@ export class CourierBlockingDto extends createZodDto(
         slug: z.string(),
         orderId: z.string(),
         orderNumber: z.string().nullable(),
-        reason: z.nativeEnum(CourierBlockReason),
+        reason: z.enum(CourierBlockReason),
         // Slice 6.7: the courier's last status on its way; when it finished, for one awaiting its payout.
         courierStatus: z.string().nullable(),
-        finishedAt: z.coerce.date().nullable(),
-        waitsUntil: z.coerce.date().nullable(),
+        finishedAt: coercedDateField().nullable(),
+        waitsUntil: coercedDateField().nullable(),
       }),
     ),
   }),
@@ -84,7 +85,7 @@ export class CourierBlockingDto extends createZodDto(
 // CUS-10 (Slice 6.4): one of a courier's areas, for the operator.
 const courierAreaSchema = z.object({
   id: z.string(),
-  courierKey: z.nativeEnum(CourierKey),
+  courierKey: z.enum(CourierKey),
   areaCode: z.string(),
   name: z.string(),
   districtName: z.string(),
@@ -92,8 +93,8 @@ const courierAreaSchema = z.object({
   zillaId: z.number().nullable(),
   thanaId: z.number().nullable(),
   suggestedThanaId: z.number().nullable(),
-  match: z.nativeEnum(CourierAreaMatch),
-  retiredAt: z.coerce.date().nullable(),
+  match: z.enum(CourierAreaMatch),
+  retiredAt: coercedDateField().nullable(),
 });
 export class CourierAreaDto extends createZodDto(courierAreaSchema) {}
 export class CourierAreaPageDto extends createZodDto(
@@ -111,7 +112,7 @@ export class CourierAreaPageDto extends createZodDto(
       assigned: z.number(),
       retired: z.number(),
     }),
-    lastReadAt: z.coerce.date().nullable(),
+    lastReadAt: coercedDateField().nullable(),
     tokenSet: z.boolean(),
   }),
 ) {}
@@ -143,7 +144,7 @@ export class CourierAdapterListDto extends createZodDto(
   z.object({
     adapters: z.array(
       z.object({
-        key: z.nativeEnum(CourierKey),
+        key: z.enum(CourierKey),
         name: z.string(),
         credentialFields: z.array(z.string()),
         needsArea: z.boolean(),
@@ -159,22 +160,22 @@ export class CourierAdapterListDto extends createZodDto(
 
 // CRR-03: whether it has credentials, never what they are.
 const courierConnectionSchema = z.object({
-  courierKey: z.nativeEnum(CourierKey),
+  courierKey: z.enum(CourierKey),
   name: z.string(),
   isDefault: z.boolean(),
   hasCredentials: z.boolean(),
-  state: z.nativeEnum(CourierConnectionState),
-  connectedAt: z.coerce.date(),
-  messages: z.nativeEnum(CourierMessagesState),
-  lastMessageAt: z.coerce.date().nullable(),
+  state: z.enum(CourierConnectionState),
+  connectedAt: coercedDateField(),
+  messages: z.enum(CourierMessagesState),
+  lastMessageAt: coercedDateField().nullable(),
   // CRR-15 (Slice 6.7): the night check found news no message brought.
-  messagesMissedAt: z.coerce.date().nullable(),
+  messagesMissedAt: coercedDateField().nullable(),
   pickupStore: z.object({ id: z.string(), name: z.string() }).nullable(),
   // CRR-23, CRR-25 (Slice 6.6): being retired, and the courier the operator suggests instead.
   retiring: z.boolean(),
-  suggestedKey: z.nativeEnum(CourierKey).nullable(),
+  suggestedKey: z.enum(CourierKey).nullable(),
   // Slice 6.7: when the shop was told its courier is back (c36-back, shown 7 days), and whether a lost answer can be asked again.
-  backSince: z.coerce.date().nullable(),
+  backSince: coercedDateField().nullable(),
   asksByOrderNumber: z.boolean(),
 });
 export class CourierConnectionDto extends createZodDto(courierConnectionSchema) {}
@@ -208,13 +209,13 @@ export class CourierCredentialUsePageDto extends createZodDto(
   z.object({
     uses: z.array(
       z.object({
-        courierKey: z.nativeEnum(CourierKey),
-        action: z.nativeEnum(CourierCallAction),
+        courierKey: z.enum(CourierKey),
+        action: z.enum(CourierCallAction),
         connectionId: z.string().nullable(),
         orderId: z.string().nullable(),
         orderNumber: z.string().nullable(),
         succeeded: z.boolean(),
-        at: z.coerce.date(),
+        at: coercedDateField(),
       }),
     ),
     page: z.number(),
@@ -227,14 +228,14 @@ export class CourierCredentialUsePageDto extends createZodDto(
 // CRR-17 (Slice 6.5): a payout a courier made the shop, its figures as the courier gave them.
 const courierPayoutSchema = z.object({
   id: z.string(),
-  courierKey: z.nativeEnum(CourierKey),
+  courierKey: z.enum(CourierKey),
   payoutId: z.string(),
   amount: z.string(),
   charges: z.string().nullable(),
   total: z.string().nullable(),
   method: z.string().nullable(),
-  paidAt: z.coerce.date(),
-  madeAt: z.coerce.date().nullable(),
+  paidAt: coercedDateField(),
+  madeAt: coercedDateField().nullable(),
   parcels: z.number(),
   ours: z.number(),
 });
@@ -259,7 +260,7 @@ export class CourierPayoutDto extends createZodDto(
         cod: z.string(),
         cashCollected: z.string().nullable(),
         deliveryCharge: z.string().nullable(),
-        reading: z.nativeEnum(ParcelReading).nullable(),
+        reading: z.enum(ParcelReading).nullable(),
       }),
     ),
   }),

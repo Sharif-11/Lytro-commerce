@@ -1,3 +1,5 @@
+// Before any import that may parse with Zod (Slice 11.13a's policy refuses eval).
+import './lib/parse-without-eval';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';

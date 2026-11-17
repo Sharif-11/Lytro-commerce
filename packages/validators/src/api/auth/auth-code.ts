@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { codeField, phoneField } from '../identity/phone-signup/phone-signup-common';
 
 // An email address as typed; the server lowercases it before use (AUTH-08).
-export const emailField = z.string().trim().max(254).email();
+export const emailField = z.string().trim().max(254).check(z.email());
 
 // POST auth/phone/code — request a sign-in OTP (AUTH-05, AUTH-21).
 export const requestSigninCodeSchema = z.object({

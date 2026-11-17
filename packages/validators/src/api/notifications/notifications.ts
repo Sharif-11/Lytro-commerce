@@ -10,7 +10,7 @@ export const NOTIFICATIONS_PAGE_MAX = 50;
 export const notificationsQuerySchema = z
   .object({
     limit: z.coerce.number().int().min(1).max(NOTIFICATIONS_PAGE_MAX).default(30),
-    before: z.string().uuid().optional(),
+    before: z.guid().optional(),
   })
   .strict();
 export type NotificationsQuery = z.infer<typeof notificationsQuerySchema>;
@@ -18,7 +18,7 @@ export type NotificationsQuery = z.infer<typeof notificationsQuerySchema>;
 /** NTF-01: mark some of the person's notifications read, or all of them -- one or the other. */
 export const notificationsReadSchema = z
   .object({
-    notificationIds: z.array(z.string().uuid()).min(1).max(NOTIFICATIONS_PAGE_MAX).optional(),
+    notificationIds: z.array(z.guid()).min(1).max(NOTIFICATIONS_PAGE_MAX).optional(),
     all: z.literal(true).optional(),
   })
   .strict()
@@ -40,7 +40,7 @@ export type NotificationsReadInput = z.infer<typeof notificationsReadSchema>;
  */
 export const notificationPreferencesSchema = z
   .object({
-    off: z.array(z.nativeEnum(NotificationKind)).max(Object.values(NotificationKind).length),
+    off: z.array(z.enum(NotificationKind)).max(Object.values(NotificationKind).length),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -68,7 +68,6 @@ const pushKey = z
 export const pushSubscriptionSchema = z
   .object({
     endpoint: z
-      .string()
       .url()
       .max(1000)
       .refine(isPushServiceUrl, {
@@ -82,5 +81,5 @@ export const pushSubscriptionSchema = z
 export type PushSubscriptionInput = z.infer<typeof pushSubscriptionSchema>;
 
 /** NTF-02: stop pushing to a browser. */
-export const pushUnsubscribeSchema = z.object({ endpoint: z.string().url().max(1000) }).strict();
+export const pushUnsubscribeSchema = z.object({ endpoint: z.url().max(1000) }).strict();
 export type PushUnsubscribeInput = z.infer<typeof pushUnsubscribeSchema>;

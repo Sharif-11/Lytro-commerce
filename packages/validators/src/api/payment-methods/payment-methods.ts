@@ -47,14 +47,14 @@ function walletNumberField(lengths: readonly number[]) {
 }
 
 // An account already saved keeps its id, so a payment started on it still names it.
-const accountId = z.string().uuid().optional();
+const accountId = z.guid().optional();
 
 function walletAccountInput(lengths: readonly number[]) {
   return z.object({
     id: accountId,
     accountName: text(PAYMENT_ACCOUNT_NAME_MAX_LENGTH),
     number: walletNumberField(lengths),
-    accountType: z.nativeEnum(WalletAccountType),
+    accountType: z.enum(WalletAccountType),
     note: optionalText(PAYMENT_ACCOUNT_NOTE_MAX_LENGTH),
     active: z.boolean().optional(),
   });
@@ -84,7 +84,7 @@ export type PaymentAccountInput = WalletAccountInput | BankAccountInput;
  */
 export function paymentMethodSchemaFor(method: AccountMethod) {
   const type = PAYMENT_METHOD_TYPES[method];
-  const account: z.ZodType<PaymentAccountInput, z.ZodTypeDef, unknown> =
+  const account: z.ZodType<PaymentAccountInput> =
     type.kind === PaymentMethodKind.Bank
       ? bankAccountInput
       : walletAccountInput(type.numberLengths);

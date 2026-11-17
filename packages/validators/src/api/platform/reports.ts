@@ -11,7 +11,7 @@ export const reportQuerySchema = z
   .object({
     dateFrom: calendarDayField.optional(),
     dateTo: calendarDayField.optional(),
-    bucket: z.nativeEnum(SalesBucket).default(SalesBucket.Month),
+    bucket: z.enum(SalesBucket).default(SalesBucket.Month),
   })
   .strict()
   .superRefine(checkPeriod);
@@ -30,7 +30,7 @@ export const consumersQuerySchema = z
   .object({
     dateFrom: calendarDayField.optional(),
     dateTo: calendarDayField.optional(),
-    metric: z.nativeEnum(ConsumerMetric),
+    metric: z.enum(ConsumerMetric),
   })
   .strict()
   .superRefine(checkPeriod);
@@ -39,9 +39,9 @@ export type ConsumersQuery = z.infer<typeof consumersQuerySchema>;
 // GET /operator/audit (ADM-08, D8-11): the platform audit log, newest first, filtered, in keyset pages.
 export const auditListQuerySchema = z
   .object({
-    tenantId: z.string().uuid().optional(),
-    actorId: z.string().uuid().optional(),
-    action: z.nativeEnum(PlatformAuditAction).optional(),
+    tenantId: z.guid().optional(),
+    actorId: z.guid().optional(),
+    action: z.enum(PlatformAuditAction).optional(),
     dateFrom: calendarDayField.optional(),
     dateTo: calendarDayField.optional(),
     cursor: z.coerce.number().int().positive().optional(),

@@ -5,17 +5,18 @@ import {
   PaymentMethodKind,
   paymentMethodTypeReasonSchema,
   RetireState,
+  coercedDateField,
 } from '@lytronix/validators';
 
 export class PaymentMethodTypeReasonDto extends createZodDto(paymentMethodTypeReasonSchema) {}
 
 // WAL-18 (Slice 8.7): a payment method type as the operator sees it, and what leans on it.
 const operatorPaymentMethodTypeSchema = z.object({
-  method: z.nativeEnum(PaymentMethod),
-  kind: z.nativeEnum(PaymentMethodKind),
-  state: z.nativeEnum(RetireState),
-  retiringSince: z.coerce.date().nullable(),
-  removedAt: z.coerce.date().nullable(),
+  method: z.enum(PaymentMethod),
+  kind: z.enum(PaymentMethodKind),
+  state: z.enum(RetireState),
+  retiringSince: coercedDateField().nullable(),
+  removedAt: coercedDateField().nullable(),
   shopsOn: z.number(),
   shopsWithAccounts: z.number(),
   openPayments: z.number(),

@@ -1,16 +1,20 @@
 import 'dotenv/config';
-import { randomInt, randomUUID } from 'node:crypto';
+import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { request as httpRequest } from 'node:http';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
+import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
+import { MediaProcessor } from '../src/modules/media/services/media-processor';
+import { MEDIA_STORAGE } from '../src/modules/media/tokens';
 import { CATALOGUE_CACHE_SETTINGS } from '../src/modules/public-api/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { getJson, postJson, sendExact, type HttpResult } from './support/http';
+import { MemoryStorage } from './support/memory-storage';
 import { errorOf, fieldsOf, openShop, staffWith, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
@@ -29,6 +33,7 @@ let app: INestApplication;
 let port: number;
 let admin: pg.Client;
 const texts = new SmsCapture();
+const storage = new MemoryStorage();
 
 beforeAll(async () => {
   if (!ADMIN_URL) return;
@@ -44,6 +49,8 @@ beforeAll(async () => {
     // The version is read again on every request here, so a product made just before shows at once.
     .overrideProvider(CATALOGUE_CACHE_SETTINGS)
     .useValue({ maxBytes: 100 * 1024 * 1024, maxEntryBytes: 10 * 1024 * 1024, versionMs: 1 })
+    .overrideProvider(MEDIA_STORAGE)
+    .useValue(storage)
     .compile();
   ({ app, port } = await listenOn(moduleRef));
 });
@@ -111,6 +118,27 @@ async function delivery(shop: ShopClient) {
     locationId: mirpur?.id,
     deliveryAddress: 'House 12, Road 3',
   };
+}
+
+/** A ready product photo, uploaded and processed as the dashboard's would be. */
+async function photo(shop: ShopClient): Promise<string> {
+  const jpeg = await sharp(randomBytes(400 * 300 * 3), {
+    raw: { width: 400, height: 300, channels: 3 },
+  })
+    .jpeg()
+    .toBuffer();
+  const started = await shop.post('/media/uploads', {
+    kind: 'image',
+    contentType: 'image/jpeg',
+    bytes: jpeg.length,
+    purpose: 'product_image',
+  });
+  expect(started.status, JSON.stringify(started.body)).toBe(201);
+  const { media, upload } = started.body as { media: { id: string }; upload: { url: string } };
+  expect(storage.send(upload.url, jpeg, 'image/jpeg')).toBe(200);
+  expect((await shop.post(`/media/${media.id}/finish`, {})).status).toBe(201);
+  await app.get(MediaProcessor).process(shop.tenantId, media.id);
+  return media.id;
 }
 
 async function product(
@@ -1393,6 +1421,24 @@ describeIfDatabase(
       });
       // Nothing was made.
       expect(((await shop.get('/products')).body as { total: number }).total).toBe(before.total);
+    });
+
+    it("shows each part's photo as every screen does (found by Zod 4's typing, 2026-11-17)", async () => {
+      // The quote's schema asked each photo for its bytes, which a part's photo doesn't carry: a part with a photo
+      // failed the answer's own check, a 500.
+      const shop = await openShop(port, texts, 'cmb');
+      const imageId = await photo(shop);
+      const saree = await product(shop, 'Saree', 2500, 3, { imageIds: [imageId] });
+      const quote = await shop.post('/products/combo-quote', {
+        parts: [{ quantity: 1, variantIds: [saree.variantId] }],
+      });
+      expect(quote.status, JSON.stringify(quote.body)).toBe(200);
+      const image = (quote.body as Quote).parts[0]?.image as
+        { id: string; urls: { main: string; thumbnail: string } } | undefined;
+      expect(image?.id).toBe(imageId);
+      // As every screen has a photo: where it is read from, and no bytes.
+      expect(Object.keys(image ?? {}).sort()).toEqual(['id', 'urls']);
+      expect(Object.keys(image?.urls ?? {}).sort()).toEqual(['main', 'thumbnail']);
     });
 
     it("agrees with a saved combo's stock figures, and gives no saving without a price or above it", async () => {

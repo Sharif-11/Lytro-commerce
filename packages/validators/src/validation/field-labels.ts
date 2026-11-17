@@ -278,6 +278,8 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   permissions: { en: 'Permissions', bn: 'পারমিশন' },
   phone: { en: 'Phone number', bn: 'ফোন নম্বর' },
   planId: { en: 'Plan', bn: 'প্ল্যান' },
+  // NTC-02: a notice's audience, its plans or its shops' states (named by the Zod 4 walk, 2026-11-17).
+  planIds: { en: 'Plans', bn: 'প্ল্যান' },
   postalAddress: { en: 'Address', bn: 'অ্যাড্রেস' },
   presetKey: { en: 'Shop type', bn: 'শপের ধরন' },
   price: { en: 'Price', bn: 'প্রাইস' },
@@ -339,6 +341,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   spacing: { en: 'Spacing', bn: 'ফাঁক' },
   staff: { en: 'Seats', bn: 'সিট' },
   state: null,
+  states: { en: 'States', bn: 'স্টেট' },
   status: { en: 'Status', bn: 'স্ট্যাটাস' },
   stock: { en: 'Stock', bn: 'স্টক' },
   stockTracking: { en: 'Stock tracking', bn: 'স্টক ট্র্যাকিং' },

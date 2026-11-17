@@ -14,8 +14,8 @@ import { catalogueIdSchema, queryFlag } from './catalogue-common';
 export const createAttributeSchema = z
   .object({
     name: z.string().trim().min(1).max(ATTRIBUTE_NAME_MAX_LENGTH),
-    dataType: z.nativeEnum(AttributeDataType),
-    unitKind: z.nativeEnum(UnitKind).optional(),
+    dataType: z.enum(AttributeDataType),
+    unitKind: z.enum(UnitKind).optional(),
   })
   .superRefine((value, ctx) => {
     const measured = value.dataType === AttributeDataType.NumberWithUnit;

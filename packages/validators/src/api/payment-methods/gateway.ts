@@ -20,5 +20,5 @@ export const gatewayCredentialsSchema = z
 export type GatewayCredentialsInput = z.infer<typeof gatewayCredentialsSchema>;
 
 /** PAY-06 (amended 2026-11-03, Slice 5.7 read): how the shop takes a wallet's payments. */
-export const paymentWaySchema = z.object({ way: z.nativeEnum(PaymentWay) }).strict();
+export const paymentWaySchema = z.object({ way: z.enum(PaymentWay) }).strict();
 export type PaymentWayInput = z.infer<typeof paymentWaySchema>;

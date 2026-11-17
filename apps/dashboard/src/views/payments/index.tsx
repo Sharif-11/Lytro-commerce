@@ -61,7 +61,7 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 export const paymentsSearch = z.object({
   tab: z.enum(TABS).optional().catch(undefined),
   q: z.string().optional().catch(undefined),
-  method: z.nativeEnum(PaymentMethod).optional().catch(undefined),
+  method: z.enum(PaymentMethod).optional().catch(undefined),
   from: z.string().regex(DAY).optional().catch(undefined),
   to: z.string().regex(DAY).optional().catch(undefined),
 });

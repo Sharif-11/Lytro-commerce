@@ -9,13 +9,14 @@ import {
   smsLogQuerySchema,
   smsReportQuerySchema,
   smsSettingsUpdateSchema,
+  dateField,
 } from '@lytronix/validators';
 
 export class SmsSettingsUpdateDto extends createZodDto(smsSettingsUpdateSchema) {}
 export class SmsReportQueryDto extends createZodDto(smsReportQuerySchema) {}
 export class SmsLogQueryDto extends createZodDto(smsLogQuerySchema) {}
 
-const kindSchema = z.union([z.nativeEnum(SmsLogKind), z.nativeEnum(SmsEvent)]);
+const kindSchema = z.union([z.enum(SmsLogKind), z.enum(SmsEvent)]);
 
 // SMS-12: per order before the shop has any, else a month from its last 30 days.
 const estimateSchema = z.discriminatedUnion('basis', [
@@ -25,7 +26,7 @@ const estimateSchema = z.discriminatedUnion('basis', [
 
 // SMS-02, SMS-03, SMS-10, SMS-12, SMS-19: one SMS event as the settings screen shows it.
 const smsEventSchema = z.object({
-  event: z.nativeEnum(SmsEvent),
+  event: z.enum(SmsEvent),
   recipient: z.enum(['shopper', 'owner']),
   on: z.boolean(),
   template: z.string(),
@@ -54,8 +55,8 @@ export class SmsSettingsDto extends createZodDto(
     shopName: z.string(),
     monthlySpendCap: z.string().nullable(),
     spentThisMonth: z.string(),
-    cycleStart: z.date(),
-    cycleEnd: z.date(),
+    cycleStart: dateField(),
+    cycleEnd: dateField(),
     unitSize: z.number().int(),
     rate: z.string(),
   }),
@@ -90,8 +91,8 @@ export class SmsLogDto extends createZodDto(
         toPhone: z.string(),
         units: z.number().int(),
         cost: z.string(),
-        status: z.nativeEnum(SmsLogStatus),
-        blockedReason: z.nativeEnum(SmsBlockedReason).nullable(),
+        status: z.enum(SmsLogStatus),
+        blockedReason: z.enum(SmsBlockedReason).nullable(),
         orderId: z.string().nullable(),
         orderNumber: z.string().nullable(),
         body: z.string().nullable(),

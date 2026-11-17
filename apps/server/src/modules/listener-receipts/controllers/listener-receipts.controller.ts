@@ -21,6 +21,7 @@ import {
   PaymentReviewReason,
   type ListenerRecentQuery,
   type ListenerUploadInput,
+  coercedDateField,
 } from '@lytronix/validators';
 import { PublicApiRoute } from '../../../common/decorators/public-api';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -37,13 +38,13 @@ class ListenerUploadedDto extends createZodDto(
   z.object({
     results: z.array(
       z.object({
-        status: z.nativeEnum(ListenerMessageStatus).nullable(),
+        status: z.enum(ListenerMessageStatus).nullable(),
         transactionId: z.string().nullable(),
-        reviewReason: z.nativeEnum(PaymentReviewReason).nullable(),
-        ignoredReason: z.nativeEnum(ListenerIgnoredReason).nullable(),
+        reviewReason: z.enum(PaymentReviewReason).nullable(),
+        ignoredReason: z.enum(ListenerIgnoredReason).nullable(),
       }),
     ),
-    testModeUntil: z.coerce.date().nullable(),
+    testModeUntil: coercedDateField().nullable(),
   }),
 ) {}
 class ListenerRecentDto extends createZodDto(
@@ -52,14 +53,14 @@ class ListenerRecentDto extends createZodDto(
       z.object({
         id: z.string(),
         sender: z.string(),
-        method: z.nativeEnum(PaymentMethod).nullable(),
+        method: z.enum(PaymentMethod).nullable(),
         amount: z.string().nullable(),
         transactionId: z.string().nullable(),
-        status: z.nativeEnum(ListenerMessageStatus),
-        reviewReason: z.nativeEnum(PaymentReviewReason).nullable(),
-        ignoredReason: z.nativeEnum(ListenerIgnoredReason).nullable(),
+        status: z.enum(ListenerMessageStatus),
+        reviewReason: z.enum(PaymentReviewReason).nullable(),
+        ignoredReason: z.enum(ListenerIgnoredReason).nullable(),
         orderNumber: z.string().nullable(),
-        receivedAt: z.coerce.date(),
+        receivedAt: coercedDateField(),
       }),
     ),
     today: z.object({ verified: z.number(), waiting: z.number(), toCheck: z.number() }),

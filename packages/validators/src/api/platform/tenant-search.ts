@@ -35,9 +35,9 @@ export function phoneSearchOf(query: string): PhoneSearch | null {
 export const searchTenantsSchema = z.object({
   query: z.string().trim().min(1).max(100).optional(),
   // Pay-as-you-go is a state, so this filter also finds those shops apart (PYG-13).
-  state: z.nativeEnum(TenantState).optional(),
-  planId: z.string().uuid().optional(),
-  sort: z.nativeEnum(TenantSort).default(TenantSort.Newest),
+  state: z.enum(TenantState).optional(),
+  planId: z.guid().optional(),
+  sort: z.enum(TenantSort).default(TenantSort.Newest),
   cursor: z.string().min(1).max(PAGE_CURSOR_MAX_LENGTH).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

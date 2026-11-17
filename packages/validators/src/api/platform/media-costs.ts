@@ -10,9 +10,9 @@ import { calendarDayField } from '../../common/dates';
  * millions of operations or GB-months. (Workers' prices went with the media Worker, D9-31.)
  */
 const cloudflarePricesShape = z.object({
-  r2ClassAPerMillion: z.number().finite().nonnegative().max(1000),
-  r2ClassBPerMillion: z.number().finite().nonnegative().max(1000),
-  r2StoragePerGbMonth: z.number().finite().nonnegative().max(1000),
+  r2ClassAPerMillion: z.number().nonnegative().max(1000),
+  r2ClassBPerMillion: z.number().nonnegative().max(1000),
+  r2StoragePerGbMonth: z.number().nonnegative().max(1000),
   r2FreeClassAMillions: z.number().int().nonnegative().max(1_000_000),
   r2FreeClassBMillions: z.number().int().nonnegative().max(1_000_000),
   r2FreeStorageGbMonths: z.number().int().nonnegative().max(1_000_000),

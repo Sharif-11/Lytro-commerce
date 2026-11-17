@@ -14,7 +14,7 @@ export const readAddressSchema = z
   .strict();
 export type ReadAddressInput = z.infer<typeof readAddressSchema>;
 
-const fieldState = z.nativeEnum(AddressFieldState);
+const fieldState = z.enum(AddressFieldState);
 // SEC-12: a detail is read from the message, so it is never longer than the message.
 const readDetail = z.string().max(ADDRESS_TEXT_MAX_LENGTH).nullable();
 
@@ -48,7 +48,7 @@ export const addressReadSchema = z.object({
   // ORD-34 (amended 2026-11-06): null when nothing was found, and so nothing charged.
   charged: z
     .object({
-      paidFrom: z.nativeEnum(PerUsePaidFrom),
+      paidFrom: z.enum(PerUsePaidFrom),
       amount: z.string().max(MONEY_TEXT_MAX_LENGTH),
       // PLN-20: the allowance's uses still left, when one paid.
       allowanceLeft: z.number().int().nullable(),

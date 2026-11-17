@@ -10,7 +10,7 @@ export const salesQuerySchema = z
   .object({
     dateFrom: calendarDayField.optional(),
     dateTo: calendarDayField.optional(),
-    bucket: z.nativeEnum(SalesBucket).default(SalesBucket.Week),
+    bucket: z.enum(SalesBucket).default(SalesBucket.Week),
     productId: catalogueIdSchema.optional(),
   })
   .superRefine(checkPeriod);
@@ -21,7 +21,7 @@ export const bestSellersQuerySchema = z
   .object({
     dateFrom: calendarDayField.optional(),
     dateTo: calendarDayField.optional(),
-    by: z.nativeEnum(SalesRanking).default(SalesRanking.Units),
+    by: z.enum(SalesRanking).default(SalesRanking.Units),
     limit: z.coerce.number().int().min(1).max(BEST_SELLERS_MAX).default(BEST_SELLERS_DEFAULT),
   })
   .superRefine(checkPeriod);

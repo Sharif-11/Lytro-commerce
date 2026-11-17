@@ -30,7 +30,7 @@ const productCardSchema = z.object({
   name: z.string(),
   minPrice: z.string().nullable(),
   maxPrice: z.string().nullable(),
-  stockState: z.nativeEnum(StockState),
+  stockState: z.enum(StockState),
   image: imageViewSchema.nullable(),
   createdAt: z.string(),
   swatches: z.array(optionValueSchema),
@@ -48,10 +48,10 @@ export class PublicProductDetailDto extends createZodDto(
     description: z.string().nullable(),
     minPrice: z.string().nullable(),
     maxPrice: z.string().nullable(),
-    stockState: z.nativeEnum(StockState),
-    stockUnit: z.nativeEnum(StockUnit),
+    stockState: z.enum(StockState),
+    stockUnit: z.enum(StockUnit),
     sharedStock: z.boolean(),
-    condition: z.nativeEnum(ItemCondition),
+    condition: z.enum(ItemCondition),
     primaryCategoryId: z.string().nullable(),
     categoryIds: z.array(z.string()),
     images: z.array(
@@ -66,7 +66,7 @@ export class PublicProductDetailDto extends createZodDto(
       z.object({
         attributeId: z.string(),
         name: z.string(),
-        dataType: z.nativeEnum(AttributeDataType),
+        dataType: z.enum(AttributeDataType),
         unitKind: z.string().nullable(),
         values: z.array(optionValueSchema),
         designs: z.boolean(),
@@ -75,7 +75,7 @@ export class PublicProductDetailDto extends createZodDto(
     attributes: z.array(
       z.object({
         name: z.string(),
-        dataType: z.nativeEnum(AttributeDataType),
+        dataType: z.enum(AttributeDataType),
         unitKind: z.string().nullable(),
         values: z.array(z.string()),
         text: z.string().nullable(),
@@ -88,14 +88,14 @@ export class PublicProductDetailDto extends createZodDto(
         id: z.string(),
         optionIds: z.array(z.string()),
         price: z.string(),
-        stockState: z.nativeEnum(StockState),
+        stockState: z.enum(StockState),
         available: z.boolean(),
       }),
     ),
     sizeChart: z
       .object({ rows: z.array(z.array(z.string())).nullable(), image: imageViewSchema.nullable() })
       .nullable(),
-    paymentPolicy: z.nativeEnum(PaymentPolicy),
+    paymentPolicy: z.enum(PaymentPolicy),
     advanceAmount: z.string().nullable(),
     deliveryZoneIds: z.array(z.string()),
     // MNU-01 (Slice 4.6b): the modifier groups a shopper chooses from.
@@ -120,7 +120,7 @@ export class PublicProductDetailDto extends createZodDto(
       z.object({
         attributeId: z.string(),
         name: z.string(),
-        dataType: z.nativeEnum(AttributeDataType),
+        dataType: z.enum(AttributeDataType),
       }),
     ),
     // CMB-06, CMB-09: a combo's saving and "What's inside"; null for an ordinary product.

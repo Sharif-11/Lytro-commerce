@@ -6,7 +6,7 @@ import { AccountView } from '@/views/account';
 // TENANT-DASHBOARD-DESIGN §7.17: the Menu hub's Account section. `?connected=` is the provider a connect just added,
 // back from its callback (AUTH-27).
 export const Route = createFileRoute('/$shop/account')({
-  validateSearch: z.object({ connected: z.nativeEnum(IdentityKind).optional().catch(undefined) }),
+  validateSearch: z.object({ connected: z.enum(IdentityKind).optional().catch(undefined) }),
   staticData: { screen: { hub: 'menu', section: 'account', title: 'secAccount' } },
   component: AccountRoute,
 });

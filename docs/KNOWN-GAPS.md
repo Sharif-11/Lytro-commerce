@@ -2623,10 +2623,10 @@ once at a time. What it leaves:
 
 The pass is recorded in `SECURITY-PASS.md`. What it leaves:
 
-1. **One dependency on a dated allow-list** (`.github/audit-allowlist.json`, until 2026-12-15): the zod 4 copy below
-   4.6.6 (GHSA-mrhx-c7xc-m3w5), until the Zod 4 upgrade lands in its own pull request (the owner's answer, 2026-11-14).
-   Drizzle ORM before 0.45.2 (GHSA-gpj5-g38j-94v9) left the list on 2026-11-17, upgraded to 0.45.4 with drizzle-kit
-   0.31.11. CI fails on any other high or critical advisory, and on this one after the date.
+1. **Nothing on the dated allow-list** (`.github/audit-allowlist.json` is empty since 2026-11-17): Drizzle ORM before
+   0.45.2 (GHSA-gpj5-g38j-94v9) and Zod below 4.6.6 (GHSA-mrhx-c7xc-m3w5) were on it until 2026-12-15, and each was
+   upgraded in its own pull request (the owner's answer, 2026-11-14): Drizzle ORM 0.45.4 with drizzle-kit 0.31.11, then
+   Zod 4.6.7. CI fails on any high or critical advisory.
 2. **The ZAP scan is passive** (my call at the read): it reads headers, cookies and pages and sends no attacks, so SEC-03's
    "automated scan" is this plus `sql-injection.e2e.spec.ts`. Its first run is against staging after this slice's
    deploy; its findings are fixed or added here then.

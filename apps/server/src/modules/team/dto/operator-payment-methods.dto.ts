@@ -8,6 +8,7 @@ import {
   platformGatewayKeysSchema,
   updatePlatformBankAccountSchema,
   updatePlatformPaymentMethodSchema,
+  dateField,
 } from '@lytronix/validators';
 
 export class UpdatePlatformPaymentMethodDto extends createZodDto(
@@ -29,7 +30,7 @@ const bankAccount = z.object({
   instructions: z.string().nullable(),
   enabled: z.boolean(),
   displayOrder: z.number(),
-  createdAt: z.date(),
+  createdAt: dateField(),
 });
 export class PlatformBankAccountDto extends createZodDto(bankAccount) {}
 
@@ -38,10 +39,10 @@ export class LytroPaymentMethodsDto extends createZodDto(
     methods: z.array(
       z.object({
         method: z.string(),
-        kind: z.nativeEnum(PaymentMethodKind),
+        kind: z.enum(PaymentMethodKind),
         enabled: z.boolean(),
-        way: z.nativeEnum(PaymentWay),
-        ways: z.array(z.nativeEnum(PaymentWay)),
+        way: z.enum(PaymentWay),
+        ways: z.array(z.enum(PaymentWay)),
         gateway: z
           .object({
             connected: z.boolean(),

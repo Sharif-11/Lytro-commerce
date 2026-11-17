@@ -16,6 +16,7 @@ import {
   StockTracking,
   StockUnit,
   variantCostSchema,
+  dateField,
 } from '@lytronix/validators';
 
 import { variantAttributeViewSchema } from './catalogue-response.dto';
@@ -42,10 +43,10 @@ const movedBatchSchema = z.object({
 
 export const productStockViewSchema = z.object({
   productId: z.string(),
-  stockTracking: z.nativeEnum(StockTracking),
-  stockUnit: z.nativeEnum(StockUnit),
+  stockTracking: z.enum(StockTracking),
+  stockUnit: z.enum(StockUnit),
   lowStockThreshold: z.string(),
-  state: z.nativeEnum(StockState),
+  state: z.enum(StockState),
   // CMB-02, CMB-08: a combo's "can make" (null: no part counted) and the parts that keep it from being made.
   combo: z
     .object({
@@ -74,7 +75,7 @@ export const productStockViewSchema = z.object({
       available: z.string(),
       // PUR-05: ordered and not yet received on placed, open purchases; never available.
       incoming: z.string(),
-      state: z.nativeEnum(StockState),
+      state: z.enum(StockState),
       avgCost: z.string().nullable().optional(),
     })
     .nullable(),
@@ -92,7 +93,7 @@ export const productStockViewSchema = z.object({
       missingSerials: z.number().nullable(),
       incoming: z.string().nullable(),
       packAmount: z.string().nullable(),
-      state: z.nativeEnum(StockState),
+      state: z.enum(StockState),
       avgCost: z.string().nullable().optional(),
     }),
   ),
@@ -108,7 +109,7 @@ export const stockPageSchema = z.object({
       active: z.boolean(),
       batchTracked: z.boolean(),
       serialTracked: z.boolean(),
-      serialFormat: z.nativeEnum(SerialFormat),
+      serialFormat: z.enum(SerialFormat),
       splits: z.array(variantAttributeViewSchema),
     }),
   ),
@@ -126,7 +127,7 @@ export const stockHistoryPageSchema = z.object({
       id: z.number(),
       delta: z.string(),
       onHandAfter: z.string(),
-      reason: z.nativeEnum(StockReason),
+      reason: z.enum(StockReason),
       unitCost: z.string().nullable().optional(),
       reference: z.object({ type: z.string(), id: z.string() }).nullable(),
       // CMB-05: a sale's or return's order, and the combo it went in.
@@ -137,7 +138,7 @@ export const stockHistoryPageSchema = z.object({
       serials: z.array(z.string()),
       note: z.string().nullable(),
       actor: actorSchema.nullable(),
-      createdAt: z.date(),
+      createdAt: dateField(),
     }),
   ),
   page: z.number(),
@@ -162,7 +163,7 @@ const stockCheckSummarySchema = z.object({
   number: z.number(),
   note: z.string().nullable(),
   actor: actorSchema.nullable(),
-  createdAt: z.date(),
+  createdAt: dateField(),
   totals: stockCheckTotalsSchema,
 });
 
@@ -205,7 +206,7 @@ const movedFigureSchema = z.object({
 });
 
 // UOM-01: an amount of stock in one unit.
-export const unitQuantitySchema = z.object({ unit: z.nativeEnum(StockUnit), quantity: z.string() });
+export const unitQuantitySchema = z.object({ unit: z.enum(StockUnit), quantity: z.string() });
 
 export const inventoryFiguresSchema = z.object({
   dateFrom: z.string(),
@@ -229,7 +230,7 @@ export const inventoryFiguresSchema = z.object({
   losses: movedFigureSchema.extend({
     byReason: z.array(
       movedFigureSchema.extend({
-        reason: z.nativeEnum(StockReason),
+        reason: z.enum(StockReason),
         units: z.array(unitQuantitySchema),
       }),
     ),
@@ -246,8 +247,8 @@ const batchViewSchema = z.object({
   expiresOn: z.string().nullable(),
   noExpiry: z.boolean(),
   quantity: z.string(),
-  receivedAt: z.date(),
-  state: z.nativeEnum(BatchState),
+  receivedAt: dateField(),
+  state: z.enum(BatchState),
 });
 
 export const productBatchesSchema = z.object({
@@ -261,7 +262,7 @@ export const shopBatchPageSchema = z.object({
     batchViewSchema.extend({
       productId: z.string(),
       productName: z.string(),
-      stockUnit: z.nativeEnum(StockUnit),
+      stockUnit: z.enum(StockUnit),
       avgCost: z.string().nullable().optional(),
     }),
   ),
@@ -280,10 +281,10 @@ export const serialViewSchema = z.object({
   id: z.string(),
   variantId: z.string(),
   serial: z.string(),
-  status: z.nativeEnum(SerialStatus),
+  status: z.enum(SerialStatus),
   receivedMovementId: z.number().nullable(),
   leftMovementId: z.number().nullable(),
-  createdAt: z.date(),
+  createdAt: dateField(),
 });
 export class SerialViewDto extends createZodDto(serialViewSchema) {}
 
