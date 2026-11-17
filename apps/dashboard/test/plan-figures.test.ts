@@ -16,21 +16,18 @@ const STARTER = {
   orders_handled_monthly: 300,
   staff: 2,
   storage_mb: 2048,
-  bandwidth_gb: 30,
 } as PlanLimits;
 const GROWTH = {
   products: 1000,
   orders_handled_monthly: 1500,
   staff: 5,
   storage_mb: 4096,
-  bandwidth_gb: 60,
 } as PlanLimits;
 const PAYG = {
   products: 25,
   orders_handled_monthly: 300,
   staff: 1,
   storage_mb: 250,
-  bandwidth_gb: 10,
 } as PlanLimits;
 
 describe('the plan figures (TENANT-DASHBOARD-DESIGN §7.12)', () => {
@@ -54,7 +51,6 @@ describe('the plan figures (TENANT-DASHBOARD-DESIGN §7.12)', () => {
       { key: 'products', from: '100', to: '25' },
       { key: 'staff', from: '2', to: '1' },
       { key: 'storage_mb', from: '2 GB', to: '250 MB' },
-      { key: 'bandwidth_gb', from: '30 GB', to: '10 GB' },
     ]);
   });
 
@@ -84,7 +80,6 @@ describe('limits and sizes as a seller reads them', () => {
     expect(limitFigure('products', null)).toBe('∞');
     expect(limitFigure('products', undefined)).toBeNull();
     expect(limitFigure('storage_mb', 250)).toBe('250 MB');
-    expect(limitFigure('bandwidth_gb', 10)).toBe('10 GB');
     expect(megabytes(8192)).toBe('8 GB');
   });
 

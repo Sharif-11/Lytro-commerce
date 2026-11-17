@@ -28,7 +28,7 @@ import { PaymentSessionsModule } from '../../payment-sessions/payment-sessions.m
 import { MediaDeleteWorker } from './services/media-delete-worker';
 import { MediaProcessVideoWorker } from './services/media-process-video-worker';
 import { MediaProcessWorker } from './services/media-process-worker';
-import { MediaBandwidthTickWorker } from './services/media-bandwidth-tick-worker';
+import { RetiredSchedulesWorker } from './services/retired-schedules-worker';
 import { MediaReconcileTickWorker } from './services/media-reconcile-tick-worker';
 import { UsageModule } from '../../usage/usage.module';
 import { DomainsModule } from '../../domains/domains.module';
@@ -108,7 +108,7 @@ import { RawMessagePurgeTickWorker } from './services/raw-message-purge-tick-wor
     MediaProcessVideoWorker,
     MediaDeleteWorker,
     MediaReconcileTickWorker,
-    MediaBandwidthTickWorker,
+    RetiredSchedulesWorker,
     UsageNoticeWorker,
     PackAutoBuyWorker,
     MetaPurchaseWorker,

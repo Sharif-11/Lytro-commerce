@@ -13,7 +13,7 @@ import type { PlatformSetting } from '@/types/operator';
 
 type PriceKey = keyof CloudflarePrices;
 
-/** The nine figures in the order the sheet draws them; a price carries a dollar sign, an allowance doesn't. */
+/** The six figures in the order the sheet draws them; a price carries a dollar sign, an allowance doesn't. */
 const FIELDS: readonly { key: PriceKey; price: boolean }[] = [
   { key: 'r2ClassAPerMillion', price: true },
   { key: 'r2ClassBPerMillion', price: true },
@@ -21,14 +21,11 @@ const FIELDS: readonly { key: PriceKey; price: boolean }[] = [
   { key: 'r2FreeClassAMillions', price: false },
   { key: 'r2FreeClassBMillions', price: false },
   { key: 'r2FreeStorageGbMonths', price: false },
-  { key: 'workersMonthly', price: true },
-  { key: 'workersIncludedMillions', price: false },
-  { key: 'workersPerMillion', price: true },
 ];
 
 /**
- * D8-60 (Slice 8.8): Cloudflare's R2 and Workers prices and monthly allowances, which the media costs estimate uses,
- * changed together with one reason when Cloudflare changes them.
+ * D8-60 (Slice 8.8): Cloudflare's R2 prices and monthly allowances, which the media costs estimate uses, changed
+ * together with one reason when Cloudflare changes them. (Workers' went with the media Worker, D9-31.)
  */
 export function PricesPanel({
   setting,

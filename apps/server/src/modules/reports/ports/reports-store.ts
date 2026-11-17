@@ -32,6 +32,5 @@ export interface ReportsStore {
   countsNow(): Promise<ShopCountRow[]>;
   smsTop(from: string, to: string, limit: number): Promise<ShopFigure[]>;
   storageTop(from: string, to: string, limit: number): Promise<ShopFigure[]>;
-  bandwidthTop(from: string, to: string, limit: number): Promise<ShopFigure[]>;
   shopsByIds(ids: readonly string[]): Promise<ReportShopRow[]>;
 }

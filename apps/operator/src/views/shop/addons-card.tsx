@@ -8,7 +8,6 @@ import { formatDay, taka } from '@/lib/format';
 import { limitValue } from '@/lib/limit-words';
 import type { LimitPart, ShopAddon, ShopPack } from '@/types/operator';
 
-const BYTES_PER_GB = 1024 ** 3;
 const MB_PER_GB = 1024;
 
 const KIND_TONES: Record<AddonKind, ChipTone> = {
@@ -26,11 +25,6 @@ const SHOWN_LIMITS: { key: string; wordKey: string; unit?: (value: number) => st
     key: 'storage_mb',
     wordKey: 'shop.effectiveStorage',
     unit: (value) => `${(value / MB_PER_GB).toLocaleString('en-US')} GB`,
-  },
-  {
-    key: 'bandwidth_gb',
-    wordKey: 'shop.effectiveBandwidth',
-    unit: (value) => `${value.toLocaleString('en-US')} GB`,
   },
 ];
 
@@ -70,15 +64,12 @@ function AddonRow({ addon }: { addon: ShopAddon }): React.JSX.Element {
 
 function PackRow({ pack }: { pack: ShopPack }): React.JSX.Element {
   const { t } = useTranslation();
-  const isBandwidth = pack.metric === 'bandwidth';
-  const left = isBandwidth
-    ? `${(pack.left / BYTES_PER_GB).toLocaleString('en-US', { maximumFractionDigits: 1 })} GB`
-    : pack.left.toLocaleString('en-US');
+  const left = pack.left.toLocaleString('en-US');
   return (
     <div className={LIST_ROW}>
       <RowLines
         wrap
-        title={isBandwidth ? t('shop.packBandwidth') : t('shop.packRequests')}
+        title={t('shop.packRequests')}
         detail={`${t('shop.packLeft', { v: left })} · ${pack.autoBuy ? t('shop.autoOn') : t('shop.autoOff')}`}
       />
     </div>

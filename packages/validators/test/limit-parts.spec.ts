@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { limitPartsOf, shopLimitsOf } from '../src/db/plans/plan-limits';
+import { limitPartsOf, shopLimitsOf, type PlanLimits } from '../src/db/plans/plan-limits';
 
 // PLN-11, PLN-13: the operator's shop page shows how a limit came to be, so its parts must agree with shopLimitsOf.
 describe('limitPartsOf', () => {
-  const snapshot = { products: 100, staff: 2, bandwidth_gb: null };
+  const snapshot = { products: 100, staff: 2, storage_mb: null };
 
   it('raises the plan by its add-ons', () => {
     expect(limitPartsOf(snapshot, null, { products: 500 })).toContainEqual({
@@ -37,7 +37,7 @@ describe('limitPartsOf', () => {
       effective: null,
     });
     expect(limitPartsOf(snapshot, null, null)).toContainEqual({
-      key: 'bandwidth_gb',
+      key: 'storage_mb',
       plan: null,
       overridden: false,
       override: null,
@@ -55,6 +55,12 @@ describe('limitPartsOf', () => {
       addons: 0,
       effective: 7,
     });
+  });
+
+  it("leaves out a retired limit a shop's snapshot or override still names (D9-31)", () => {
+    const stored = { ...snapshot, bandwidth_gb: 10 } as PlanLimits;
+    const parts = limitPartsOf(stored, { bandwidth_gb: 20 }, null);
+    expect(parts.map((part) => part.key)).not.toContain('bandwidth_gb');
   });
 
   it('has no parts for a shop with no plan', () => {

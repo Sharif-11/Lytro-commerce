@@ -30,7 +30,7 @@ design; this is the procedure.
    onto the server).
 4. **A Cloudflare API token that can edit lytro.app's DNS and nothing else.** Cloudflare → My Profile → API Tokens →
    Create Token → "Edit zone DNS" template → Zone Resources: Include, Specific zone, `lytro.app`. Never reuse the
-   server's media token (`CLOUDFLARE_API_TOKEN`).
+   server's media token (`CLOUDFLARE_API_TOKEN`), which reads analytics and purges media's cache.
 5. **Keys from outside services.** The server won't start without the first five:
    - BulkSMSBD: API key and sender ID;
    - Resend: API key and its webhook's signing secret;
@@ -158,22 +158,16 @@ move of staging from 16 to 17 did: `docs/RUNBOOKS.md` §10.8), then take a new b
 
 Optional, and best switched on once the first deploy works. In Cloudflare (`docs/DEPLOYMENT.md` §8, "Staging's media"):
 
-1. **R2:** the three buckets, none public; the uploads bucket's CORS policy; and four Account API tokens: the signer
-   (Object Read & Write, uploads), the processor (the same, all three buckets, the server's address only), the deleter
-   (media and evidence, the server's address only), and the Worker's (Object Read only, media).
-2. **Workers KV:** the namespace; its id is in `apps/media-worker/wrangler.jsonc`.
-3. **A token for the server's counts:** Account Analytics Read and Workers KV Storage Edit, the server's address only.
-4. **The Worker**, from `apps/media-worker` on your computer:
-   ```
-   npx wrangler login
-   npx wrangler deploy --env staging
-   npx wrangler secret put R2_ENDPOINT --env staging            # https://<account id>.r2.cloudflarestorage.com
-   npx wrangler secret put R2_ACCESS_KEY_ID --env staging       # the Worker's token
-   npx wrangler secret put R2_SECRET_ACCESS_KEY --env staging
-   npx wrangler secret put MEDIA_LINK_SECRET --env staging      # a long random value, kept in your password manager
-   ```
-5. **The server:** fill the `MEDIA_` and `CLOUDFLARE_` lines in `server.env` (with `MEDIA_USAGE_DATASET`) and the two
-   `MEDIA_` lines in `edge.env`, remove their `#`, and deploy again.
+1. **R2:** the three buckets; the uploads bucket's CORS policy; and three Account API tokens: the signer (Object Read &
+   Write, uploads), the processor (the same, all three buckets, the server's address only) and the deleter (media and
+   evidence, the server's address only).
+2. **The media address (D9-31):** the media bucket alone is public, through its custom domain (`media-staging.lytro.app`;
+   R2 -> the bucket -> Settings -> Custom Domains), with Cloudflare's cache in front of it. Its CORS policy allows `GET`
+   and `HEAD` from any origin, with the `Range` header. The uploads and evidence buckets stay private.
+3. **A token for the server:** Account Analytics Read (media costs) and Zone Cache Purge on `lytro.app` (a lapsed shop's
+   media), the server's address only.
+4. **The server:** fill the `MEDIA_` and `CLOUDFLARE_` lines in `server.env` (`CLOUDFLARE_ZONE_ID` is lytro.app's zone
+   id) and the two `MEDIA_` lines in `edge.env`, remove their `#`, and deploy again.
 
 ## Redis
 

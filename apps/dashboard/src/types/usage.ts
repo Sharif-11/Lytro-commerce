@@ -32,9 +32,9 @@ export type Suggestion =
   | { kind: 'addons'; items: SuggestedAddon[]; monthly: number }
   | { kind: 'contact' };
 
-/** BND-04, RTE-11, PLN-15: the pack for sale for a metric, and how auto-buy stands this cycle. */
+/** RTE-11, PLN-15: the pack for sale for a metric, and how auto-buy stands this cycle (requests alone since D9-31). */
 export interface UsagePack {
-  metric: UsageMetric.Bandwidth | UsageMetric.Requests;
+  metric: UsageMetric;
   offer: { addonId: string; name: string; price: number } | null;
   autoBuy: boolean;
   autoPacks: number;
@@ -47,7 +47,6 @@ export interface ShopUsage {
   /** When the per-cycle counts start again: the day after the cycle's last. */
   cycleEnd: string;
   metrics: UsageFigure[];
-  bandwidthDays: { day: string; bytes: number; requests: number }[];
   requestDays: { day: string; requests: number }[];
   suggestions: { first: Suggestion; alternative: Suggestion | null } | null;
   fastSpendAlertedAt: string | null;

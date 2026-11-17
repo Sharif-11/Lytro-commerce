@@ -61,7 +61,16 @@ beforeAll(async () => {
     (
       await admin.query<{ id: string }>(
         `INSERT INTO control.plans (name, rank, for_sale, limits) VALUES ('Console plan', 960, true, $1) RETURNING id`,
-        [JSON.stringify({ products: 100, staff: 2, storage_mb: 2048, bandwidth_gb: null })],
+        // A bandwidth figure as a plan made before D9-31 holds it.
+        [
+          JSON.stringify({
+            products: 100,
+            staff: 2,
+            storage_mb: 2048,
+            requests_monthly: null,
+            bandwidth_gb: 5,
+          }),
+        ],
       )
     ).rows[0]?.id ?? '';
   termId =
@@ -333,11 +342,13 @@ describeIfDatabase('a shop for the operator (OPERATOR-CONSOLE-DESIGN §5)', () =
         effective: 9,
       });
       // Unlimited stays unlimited.
-      expect(limit('bandwidth_gb')).toMatchObject({
+      expect(limit('requests_monthly')).toMatchObject({
         plan: null,
         overridden: false,
         effective: null,
       });
+      // A retired limit the shop's snapshot still names is left out (D9-31).
+      expect(limit('bandwidth_gb')).toBeUndefined();
     },
     SLOW_MS,
   );
@@ -896,7 +907,7 @@ describeIfDatabase('what the pricing screens read (OPERATOR-CONSOLE-DESIGN §6, 
         return row;
       };
       const seat = await read('extra_seat');
-      const pack = await read('bandwidth_pack');
+      const pack = await read('request_pack');
       const shop = await openShop(port, texts, 'console-addons');
       const bought = (
         addon: AddonRow,
@@ -927,7 +938,7 @@ describeIfDatabase('what the pricing screens read (OPERATOR-CONSOLE-DESIGN §6, 
       const seatAfter = await read('extra_seat');
       expect(seatAfter.running - seat.running).toBe(2);
       expect(seatAfter.boughtThisMonth).toBe(seat.boughtThisMonth);
-      const packAfter = await read('bandwidth_pack');
+      const packAfter = await read('request_pack');
       expect(packAfter.boughtThisMonth - pack.boughtThisMonth).toBe(3);
       expect(packAfter.running).toBe(pack.running);
     },

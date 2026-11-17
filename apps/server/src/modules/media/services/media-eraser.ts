@@ -9,9 +9,9 @@ import { BANDWIDTH_STORE, MEDIA_STORE } from '../tokens';
 import type { MediaDeletePayload } from './media.service';
 
 /**
- * LIF-19, MED-09: the day-60 deletion job's media step: every media row of the shop and its bandwidth now, and
- * everything stored under its prefix in the deletion job, whose key alone may delete (MED-07). Safe to run again: a
- * second run finds nothing.
+ * LIF-19, MED-09: the day-60 deletion job's media step: every media row of the shop and its old bandwidth records
+ * (from before D9-31) now, and everything stored under its prefix in the deletion job, whose key alone may delete
+ * (MED-07), which then drops Cloudflare's copies (D9-31). Safe to run again: a second run finds nothing.
  */
 @Injectable()
 export class MediaEraser {

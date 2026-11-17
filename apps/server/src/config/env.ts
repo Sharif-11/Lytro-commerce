@@ -212,8 +212,8 @@ const envSchema = z.object({
   // MED-03: the temporary bucket browsers upload into, and the bucket each shop's media lives in under its prefix.
   MEDIA_UPLOADS_BUCKET: z.string().min(3).default('lytro-uploads'),
   MEDIA_BUCKET: z.string().min(3).default('lytro-media'),
-  // ADM-14, ADM-17, D8-47: payment screenshots, in a private bucket the public Worker has no binding to. The processing and
-  // deletion keys need access to it.
+  // ADM-14, ADM-17, D8-47: payment screenshots, in a private bucket with no public address. The processing and deletion
+  // keys need access to it.
   MEDIA_EVIDENCE_BUCKET: z.string().min(3).default('lytro-evidence'),
   // MED-07: one key per job -- signing a browser's upload, processing it, deleting objects -- each with the least it
   // needs, kept out of the repository and rotated every 90 days.
@@ -223,19 +223,15 @@ const envSchema = z.object({
   MEDIA_PROCESSOR_SECRET_KEY: z.string().min(1).optional(),
   MEDIA_DELETER_ACCESS_KEY: z.string().min(1).optional(),
   MEDIA_DELETER_SECRET_KEY: z.string().min(1).optional(),
-  // MED-08: where public media is read from (the media Worker's address, Slice 7; the local store in development).
+  // MED-08, D9-31: where public media is read from -- the media bucket's own address behind Cloudflare's cache
+  // (`https://media.lytro.app`); the local store in development.
   MEDIA_PUBLIC_BASE_URL: z.string().url().optional(),
-  // MED-10, MED-13, BND-01, BND-02: the media Worker's side of Cloudflare -- one API token that may read the usage
-  // dataset (Account Analytics: Read) and write the shared store (Workers KV Storage: Edit), the account it is in,
-  // the store's namespace and the dataset's name. Left unset, bandwidth is neither counted nor enforced, and nothing
-  // else changes.
+  // D8-57, D9-31: Lytro's Cloudflare account, and one API token that may read its analytics (Account Analytics: Read,
+  // for media costs) and purge the zone's cache (Cache Purge, for a deleted shop's media), with the zone the media
+  // address is in. Left unset, media costs read nothing and nothing is purged.
   CLOUDFLARE_ACCOUNT_ID: z.string().min(1).optional(),
   CLOUDFLARE_API_TOKEN: z.string().min(1).optional(),
-  MEDIA_EDGE_KV_NAMESPACE_ID: z.string().min(1).optional(),
-  MEDIA_USAGE_DATASET: z
-    .string()
-    .regex(/^[A-Za-z_][A-Za-z0-9_]*$/)
-    .default('lytro_media_usage'),
+  CLOUDFLARE_ZONE_ID: z.string().min(1).optional(),
   // SEC-01, SEC-10: the key credentials are sealed with (32 random bytes, base64), set from a secrets manager on real
   // servers, never from a file in the repository; and the key before it, while a rotation moves values over.
   DATA_ENCRYPTION_KEY: encryptionKey.optional(),
@@ -300,9 +296,10 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
       }
     }
   }
-  // MED-10, BND-02: the media Worker's Cloudflare side is on only with its account and store as well as its token.
+  // D8-57: the token is on only with the account it reads. (Without CLOUDFLARE_ZONE_ID nothing is purged, and the
+  // server says so as it starts: required here, it would stop a server whose settings predate D9-31.)
   if (value.CLOUDFLARE_API_TOKEN) {
-    for (const key of ['CLOUDFLARE_ACCOUNT_ID', 'MEDIA_EDGE_KV_NAMESPACE_ID'] as const) {
+    for (const key of ['CLOUDFLARE_ACCOUNT_ID'] as const) {
       if (!value[key]) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

@@ -549,7 +549,6 @@ export const MESSAGE_KEYS = [
   'MediaListed',
   'MediaRetrieved',
   'StorageUsageRetrieved',
-  'BandwidthRetrieved',
   'UsageRetrieved',
   'MediaDeleted',
   'ProductImagesSaved',

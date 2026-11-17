@@ -176,7 +176,7 @@ export class DrizzleTenantStore implements TenantStore {
   setPackAutoBuy(
     tx: Transaction,
     tenantId: string,
-    values: { autoBuyBandwidth?: boolean; autoBuyRequests?: boolean },
+    values: { autoBuyRequests: boolean },
   ): Promise<void> {
     return this.tenants.setPackAutoBuy(tx, tenantId, values);
   }

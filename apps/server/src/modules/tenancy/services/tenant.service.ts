@@ -125,11 +125,11 @@ export class TenantService {
     return this.store.setAutoRenew(tx, tenantId, enabled);
   }
 
-  /** PLN-15: the shop's auto-buy switches for bandwidth and request packs, either or both. */
+  /** PLN-15, RTE-11: the shop's auto-buy switch for request packs. */
   setPackAutoBuy(
     tx: Transaction,
     tenantId: string,
-    values: { autoBuyBandwidth?: boolean; autoBuyRequests?: boolean },
+    values: { autoBuyRequests: boolean },
   ): Promise<void> {
     return this.store.setPackAutoBuy(tx, tenantId, values);
   }

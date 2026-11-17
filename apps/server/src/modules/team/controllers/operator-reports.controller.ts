@@ -114,7 +114,7 @@ export class OperatorReportsController {
   @ResponseMessage('ConsumersReportRead')
   @ApiOperation({
     summary:
-      "The shops that used the most storage, bandwidth or SMS in a period, with each owner's phone (D8-42)",
+      "The shops that used the most storage or SMS in a period, with each owner's phone (D8-42)",
   })
   @ZodResponse({ type: ConsumersReportDto })
   consumers(

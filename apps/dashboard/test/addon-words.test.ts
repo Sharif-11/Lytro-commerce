@@ -45,7 +45,7 @@ function addon(
 
 const PRODUCTS = addon('extra_products', AddonKind.Limit, 'products', 500);
 const STORAGE = addon('extra_storage', AddonKind.Limit, 'storage_mb', 1024);
-const PACK = addon('bandwidth_pack', AddonKind.Pack, 'bandwidth_gb', 10);
+const PACK = addon('request_pack', AddonKind.Pack, 'requests_monthly', 100_000);
 const BRAND = addon('brand_identity', AddonKind.Feature, null, null);
 
 function offer(item: Addon): AddonOffer {
@@ -218,9 +218,6 @@ describe("an add-on named by what one adds (PLN-13, the sketch's names)", () => 
     );
     expect(sizedName(addon('extra_storage', AddonKind.Limit, 'storage_mb', 1024), t, 'en')).toBe(
       'aoNameStorage {"size":"1 GB"}',
-    );
-    expect(sizedName(addon('bandwidth_pack', AddonKind.Pack, 'bandwidth_gb', 10), t, 'en')).toBe(
-      'aoNameBandwidth {"size":"10 GB"}',
     );
   });
 

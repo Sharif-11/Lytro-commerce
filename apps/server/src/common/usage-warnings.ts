@@ -15,7 +15,7 @@ export function levelOf(share: number): UsageLevel {
   throw new Error(`no usage level at ${String(share)} percent`);
 }
 
-// BND-03, RTE-03: how far past its bandwidth or API requests a shop is still served, when the operator has set none.
+// RTE-03: how far past its API requests a shop is still served, when the operator has set none.
 export const DEFAULT_USAGE_GRACE_PERCENT = 10;
 
 // RTE-12: the share of a cycle's API requests that, spent in one hour, alerts the owner and the operator.

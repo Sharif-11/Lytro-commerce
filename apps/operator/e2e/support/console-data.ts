@@ -12,7 +12,6 @@ function planLimits(
   monthly: number | null,
   staff: number,
   storage: number,
-  bandwidth: number,
   smsTotal: number | null,
   smsMonthly: number | null,
   devices: number,
@@ -24,7 +23,6 @@ function planLimits(
     orders_handled_monthly: monthly,
     staff,
     storage_mb: storage,
-    bandwidth_gb: bandwidth,
     essential_sms_total: smsTotal,
     essential_sms_monthly: smsMonthly,
     paired_devices: devices,
@@ -71,7 +69,7 @@ export function drawnPlans(): Record<string, unknown>[] {
       0,
       false,
       2,
-      planLimits(20, 40, 1, 200, 5, 8, null, 1, 30, 20000),
+      planLimits(20, 40, 1, 200, 8, null, 1, 30, 20000),
       small,
       'Thirty days to reach a first order.',
       [{ version: 2, shops: 310 }],
@@ -82,7 +80,7 @@ export function drawnPlans(): Record<string, unknown>[] {
       1,
       false,
       1,
-      planLimits(25, null, 1, 250, 10, null, 5, 1, 30, 100000),
+      planLimits(25, null, 1, 250, null, 5, 1, 30, 100000),
       small,
       'No subscription; a fee on every fulfilled order.',
       [{ version: 1, shops: 44 }],
@@ -93,7 +91,7 @@ export function drawnPlans(): Record<string, unknown>[] {
       2,
       true,
       3,
-      planLimits(100, 300, 2, 2048, 30, null, 10, 1, 30, 200000),
+      planLimits(100, 300, 2, 2048, null, 10, 1, 30, 200000),
       small,
       'A small shop with one helper.',
       [
@@ -107,7 +105,7 @@ export function drawnPlans(): Record<string, unknown>[] {
       3,
       true,
       2,
-      planLimits(1000, 1500, 5, 4096, 100, null, 15, 2, 90, 600000),
+      planLimits(1000, 1500, 5, 4096, null, 15, 2, 90, 600000),
       large,
       'A growing shop with staff and its own domain.',
       [{ version: 2, shops: 71 }],
@@ -118,7 +116,7 @@ export function drawnPlans(): Record<string, unknown>[] {
       4,
       true,
       1,
-      planLimits(5000, 6000, 15, 8192, 300, null, 20, 5, 365, 2000000),
+      planLimits(5000, 6000, 15, 8192, null, 20, 5, 365, 2000000),
       large,
       'Many staff, many devices, a year of history.',
       [{ version: 1, shops: 19 }],
@@ -136,7 +134,7 @@ export function drawnPlanVersions(): Record<string, Record<string, unknown>[]> {
     description: null,
     rank: 2,
     forSale: true,
-    limits: planLimits(products, monthly, 2, 2048, 30, null, 10, 1, 30, 200000),
+    limits: planLimits(products, monthly, 2, 2048, null, 10, 1, 30, 200000),
     features: { custom_domain: false, ai_reply: false, api: true, payment_page: true },
     recordedAt,
   });
@@ -326,9 +324,6 @@ export function drawnCatalogueAddons(): Record<string, unknown>[] {
     addon('seat', 'One seat', 'একটা সিট', 'limit', 'staff', 1, 49, { running: 118 }),
     addon('storage_1gb', '1 GB storage', '১ GB স্টোরেজ', 'limit', 'storage_mb', 1024, 29, {
       running: 63,
-    }),
-    addon('bandwidth_10gb', '10 GB bandwidth', '১০ GB ব্যান্ডউইথ', 'pack', 'bandwidth_gb', 10, 30, {
-      bought: 212,
     }),
     addon(
       'requests_100k',
@@ -768,7 +763,7 @@ export function drawnShops(): ShopFixture[] {
         {
           id: 'o-2',
           tenantId: 'ten-0034',
-          limitKey: 'bandwidth_gb',
+          limitKey: 'requests_monthly',
           value: null,
           reason: 'Eid campaign, agreed for October',
           setBy: 'op-1',
@@ -1496,16 +1491,8 @@ export function drawnAddons(): Record<string, unknown> {
       ),
     ],
     brandIdentity: true,
-    packs: [
-      { metric: 'bandwidth', left: 6.2 * 1024 ** 3, autoBuy: true },
-      { metric: 'requests', left: 40000, autoBuy: false },
-    ],
-    limits: [
-      part('products', 100, 500),
-      part('staff', 2, 1),
-      part('storage_mb', 2048, 0),
-      part('bandwidth_gb', 30, 20),
-    ],
+    packs: [{ metric: 'requests', left: 40000, autoBuy: false }],
+    limits: [part('products', 100, 500), part('staff', 2, 1), part('storage_mb', 2048, 0)],
   };
 }
 
@@ -1570,7 +1557,7 @@ export function drawnSettings(): Record<string, unknown>[] {
     setting(
       'usage_grace_percent',
       10,
-      'How far past its bandwidth or API request limit a shop is still served, as a percent of the limit (BND-03, RTE-03).',
+      'How far past its API request limit a shop is still served, as a percent of the limit (RTE-03).',
     ),
     setting(
       'fast_spend_percent',
@@ -1769,11 +1756,8 @@ export function drawnSettings(): Record<string, unknown>[] {
         r2FreeClassAMillions: 1,
         r2FreeClassBMillions: 10,
         r2FreeStorageGbMonths: 10,
-        workersMonthly: 5,
-        workersIncludedMillions: 10,
-        workersPerMillion: 0.3,
       },
-      "Cloudflare's R2 and Workers prices and monthly allowances, in US dollars, that the media costs estimate uses (D8-60).",
+      "Cloudflare's R2 prices and monthly allowances, in US dollars, that the media costs estimate uses (D8-60).",
       { at: '2026-11-10T00:00:00.000Z', by: null },
     ),
     // Slice 9.9: limited mode (degraded mode) -- its switch, read on Today, and its divider -- and Lytro's VAT.

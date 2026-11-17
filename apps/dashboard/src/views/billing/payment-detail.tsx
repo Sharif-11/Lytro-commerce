@@ -46,9 +46,12 @@ import {
 } from './payment-words';
 
 // The limits an invoice's snapshot lists, in the order the sketch writes them.
-const SNAPSHOT: readonly (
-  'products' | 'orders_handled_monthly' | 'staff' | 'storage_mb' | 'bandwidth_gb'
-)[] = ['products', 'orders_handled_monthly', 'staff', 'storage_mb', 'bandwidth_gb'];
+const SNAPSHOT: readonly ('products' | 'orders_handled_monthly' | 'staff' | 'storage_mb')[] = [
+  'products',
+  'orders_handled_monthly',
+  'staff',
+  'storage_mb',
+];
 
 /** A moment as the facts write it: "20 Oct 2026 · 11:42 am". */
 function dateTime(iso: string, language: string): string {

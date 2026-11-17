@@ -33,12 +33,12 @@ test('lists each item with its kind, unit, price and what is running', async ({ 
 
 test('a pack is one payment, and counts what went this month', async ({ page }) => {
   await open(page);
-  const pack = row(page, '10 GB bandwidth');
+  const pack = row(page, '100,000 requests');
   await expect(pack).toContainText('Pack');
-  await expect(pack).toContainText('10 GB');
-  await expect(pack).toContainText('৳30');
+  await expect(pack).toContainText('100,000');
+  await expect(pack).toContainText('৳20');
   await expect(pack).not.toContainText('/mo');
-  await expect(pack).toContainText('212 bought this month');
+  await expect(pack).toContainText('37 bought this month');
 });
 
 test('a feature raises no limit and has no unit', async ({ page }) => {

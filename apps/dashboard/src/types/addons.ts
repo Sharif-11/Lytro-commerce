@@ -57,9 +57,9 @@ export interface ShopAddon {
   usesLeft?: number | null;
 }
 
-/** What is left of the shop's packs for a metric (bytes of bandwidth, or requests), and its auto-buy switch. */
+/** What is left of the shop's packs for a metric (requests alone since D9-31), and its auto-buy switch. */
 export interface ShopPack {
-  metric: UsageMetric.Bandwidth | UsageMetric.Requests;
+  metric: UsageMetric;
   left: number;
   autoBuy: boolean;
 }

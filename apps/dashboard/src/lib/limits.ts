@@ -6,14 +6,13 @@ export type LimitKey = keyof PlanLimits;
 const MB_PER_GB = 1024;
 
 /**
- * A limit's figure as the plan cards write it: "1,000", "2 GB" or "250 MB" for storage, "10 GB" for bandwidth, and "∞"
- * when it has none. Null when the plan does not set it.
+ * A limit's figure as the plan cards write it: "1,000", "2 GB" or "250 MB" for storage, and "∞" when it has none. Null
+ * when the plan does not set it.
  */
 export function limitFigure(key: LimitKey, value: number | null | undefined): string | null {
   if (value === undefined) return null;
   if (value === null) return '∞';
   if (key === 'storage_mb') return megabytes(value);
-  if (key === 'bandwidth_gb') return `${value.toLocaleString('en-US')} GB`;
   return value.toLocaleString('en-US');
 }
 

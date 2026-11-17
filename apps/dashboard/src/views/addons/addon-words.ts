@@ -10,7 +10,6 @@ import { invoiceNumber } from '@/views/billing/payment-words';
 type T = (key: string, options?: Record<string, unknown>) => string;
 
 const BYTES_PER_MB = 1024 * 1024;
-const BYTES_PER_GB = 1024 * BYTES_PER_MB;
 
 /** One row of the add-ons list: the item, what it costs now (when for sale), and the purchase counting now. */
 export interface AddonLine {
@@ -105,8 +104,6 @@ export function sizedName(
       return t('aoNameSeats', { count: size });
     case 'storage_mb':
       return t('aoNameStorage', { size: usageSize(size * BYTES_PER_MB, size * BYTES_PER_MB) });
-    case 'bandwidth_gb':
-      return t('aoNameBandwidth', { size: usageSize(size * BYTES_PER_GB, BYTES_PER_GB) });
     case 'requests_monthly':
       return t('aoNameRequests', { n });
     default:
@@ -145,18 +142,14 @@ export function switchable(owned: ShopAddon): boolean {
   );
 }
 
-/** What is left of a pack, as its row says it: "6.2 GB left", "61,400 left". */
+/** What is left of a pack, as its row says it: "61,400 left". */
 export function packLeft(pack: ShopPack, t: T): string {
-  return pack.metric === UsageMetric.Bandwidth
-    ? t('aoPackLeft', { size: usageSize(pack.left, BYTES_PER_GB) })
-    : t('aoPackLeftReq', { count: pack.left.toLocaleString('en-US') });
+  return t('aoPackLeftReq', { count: pack.left.toLocaleString('en-US') });
 }
 
-/** The metric a pack tops up. */
+/** The metric a pack tops up: API requests, the only one with packs (D9-31). */
 export function packMetric(addon: Addon): ShopPack['metric'] | null {
-  if (addon.limitKey === 'bandwidth_gb') return UsageMetric.Bandwidth;
-  if (addon.limitKey === 'requests_monthly') return UsageMetric.Requests;
-  return null;
+  return addon.limitKey === 'requests_monthly' ? UsageMetric.Requests : null;
 }
 
 /**

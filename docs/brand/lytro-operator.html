@@ -551,7 +551,7 @@ const S = {
   pe_title: ['Edit {name}','{name} এডিট'], pe_new: ['New plan','নতুন প্ল্যান'], name: ['Name','নাম'], rank: ['Rank','র‍্যাংক'], description: ['Description','বিবরণ'], forsale: ['For sale','বিক্রির জন্য'], pe_sugg: ['Suggested plan','সাজেস্টেড প্ল্যান'], pe_sugg_on: ['The landing page highlights this plan. Saved at once; the plan keeps its version.','ল্যান্ডিং পেজে এই প্ল্যান হাইলাইট হচ্ছে। সাথে সাথে সেভ হয়, প্ল্যানের নতুন ভার্সন হয় না।'], pe_sugg_move: ['Turn it on and the landing page highlights this plan instead of {name}. Saved at once; the plan keeps its version.','চালু করলে ল্যান্ডিং পেজে {name}-এর বদলে এই প্ল্যান হাইলাইট হবে। সাথে সাথে সেভ হয়, প্ল্যানের নতুন ভার্সন হয় না।'], pe_sugg_none: ['Turn it on and the landing page highlights this plan. Saved at once; the plan keeps its version.','চালু করলে ল্যান্ডিং পেজে এই প্ল্যান হাইলাইট হবে। সাথে সাথে সেভ হয়, প্ল্যানের নতুন ভার্সন হয় না।'], pe_sugg_off: ['Only a plan on the pricing page (for sale, or pay-as-you-go) can be suggested.','শুধু প্রাইসিং পেজে থাকা প্ল্যান (বিক্রির জন্য, বা পে-অ্যাজ-ইউ-গো) সাজেস্টেড হতে পারে।'], pl_sugg: ['suggested','সাজেস্টেড'], limits: ['Limits','লিমিট'], features: ['Feature flags','ফিচার ফ্ল্যাগ'],
   pe_version: ['v{v} recorded {d}. Saving records v{n}; shops already on v{v} keep it until they renew (PLN-02).','v{v} রেকর্ড {d}। সেভ করলে v{n} হবে; v{v}-তে থাকা শপ রিনিউ না করা পর্যন্ত সেটাই রাখে (PLN-02)।'], pe_save: ['Save as v{n}','v{n} হিসেবে সেভ'], pe_create: ['Create plan','প্ল্যান তৈরি'], pe_del: ['Delete plan','প্ল্যান ডিলিট'], pe_del_blocked: ['{n} shops are on this plan; take it off sale instead.','{n}টি শপ এই প্ল্যানে; বিক্রি বন্ধ করুন।'], versions: ['Version history','ভার্সন ইতিহাস'],
   pv_line: ['v{v} "{name}" · recorded {d}','v{v} "{name}" · রেকর্ড {d}'], pv_now: ['current','বর্তমান'],
-  lim_products: ['Products','প্রোডাক্ট'], lim_orders_total: ['Orders, total','মোট অর্ডার'], lim_orders_handled_monthly: ['Orders handled a month','মাসে হ্যান্ডেল অর্ডার'], lim_staff: ['Staff seats, owner included','স্টাফ সিট, মালিকসহ'], lim_paired_devices: ['Paired devices','পেয়ার করা ডিভাইস'], lim_storage_mb: ['Storage, MB','স্টোরেজ, MB'], lim_bandwidth_gb: ['Bandwidth, GB','ব্যান্ডউইথ, GB'], lim_essential_sms_total: ['Essential SMS, total','জরুরি SMS, মোট'], lim_essential_sms_monthly: ['Essential SMS, monthly','জরুরি SMS, মাসে'], lim_activity_retention_days: ['Activity retention, days','অ্যাক্টিভিটি রিটেনশন, দিন'], lim_requests_monthly: ['API requests, monthly','API রিকোয়েস্ট, মাসে'], lim_requests_per_minute_public: ['API requests a minute, public key','API রিকোয়েস্ট/মিনিট, পাবলিক কী'],
+  lim_products: ['Products','প্রোডাক্ট'], lim_orders_total: ['Orders, total','মোট অর্ডার'], lim_orders_handled_monthly: ['Orders handled a month','মাসে হ্যান্ডেল অর্ডার'], lim_staff: ['Staff seats, owner included','স্টাফ সিট, মালিকসহ'], lim_paired_devices: ['Paired devices','পেয়ার করা ডিভাইস'], lim_storage_mb: ['Storage, MB','স্টোরেজ, MB'], lim_essential_sms_total: ['Essential SMS, total','জরুরি SMS, মোট'], lim_essential_sms_monthly: ['Essential SMS, monthly','জরুরি SMS, মাসে'], lim_activity_retention_days: ['Activity retention, days','অ্যাক্টিভিটি রিটেনশন, দিন'], lim_requests_monthly: ['API requests, monthly','API রিকোয়েস্ট, মাসে'], lim_requests_per_minute_public: ['API requests a minute, public key','API রিকোয়েস্ট/মিনিট, পাবলিক কী'],
   // terms
   tm_sub: ['How long a plan can be bought for. A retired term stays on the invoices that used it.','কত সময়ের জন্য প্ল্যান কেনা যায়। রিটায়ার্ড টার্ম যে ইনভয়েসে ছিল সেখানে থাকে।'], tm_new: ['New term','নতুন টার্ম'],
   c_term: ['Term','টার্ম'], c_months: ['Months','মাস'], c_visible: ['Visible','দেখা যায়'], c_discount: ['Pre-fill','প্রি-ফিল'], c_priced: ['Priced plans','দাম দেওয়া প্ল্যান'], tm_one: ['one shop','এক শপ'], tm_retired: ['retired {d}','রিটায়ার্ড {d}'], tm_retire: ['Retire','রিটায়ার'],
@@ -608,11 +608,11 @@ const btn = (label, cls, on, extra) => `<button class="btn ${cls}" ${on ? `oncli
 /* ---------- fixtures ---------- */
 const OP = { email: 'ops@lytro.app', name: 'Sharif', initials: 'S' };
 const PLANS = [
-  { id: 'p-trial', name: 'Trial', rank: 0, forSale: false, version: 2, refs: 310, limits: { products: 20, orders_handled_monthly: 40, staff: 1, storage_mb: 200, bandwidth_gb: 5, essential_sms_total: 8, essential_sms_monthly: null, paired_devices: 1, activity_retention_days: 30, requests_monthly: 20000, requests_per_minute_public: 60 }, features: { custom_domain: false, ai_reply: false, api: true, payment_page: true }, desc: 'Thirty days to reach a first order.' },
-  { id: 'p-payg', name: 'Pay-as-you-go', rank: 1, forSale: false, version: 1, refs: 44, limits: { products: 25, orders_handled_monthly: null, staff: 1, storage_mb: 250, bandwidth_gb: 10, essential_sms_total: null, essential_sms_monthly: 5, paired_devices: 1, activity_retention_days: 30, requests_monthly: 100000, requests_per_minute_public: 60 }, features: { custom_domain: false, ai_reply: false, api: true, payment_page: true }, desc: 'No subscription; a fee on every fulfilled order.' },
-  { id: 'p-starter', name: 'Starter', rank: 2, forSale: true, suggested: true, version: 3, refs: 188, limits: { products: 100, orders_handled_monthly: 300, staff: 2, storage_mb: 2048, bandwidth_gb: 30, essential_sms_total: null, essential_sms_monthly: 10, paired_devices: 1, activity_retention_days: 30, requests_monthly: 200000, requests_per_minute_public: 60 }, features: { custom_domain: false, ai_reply: false, api: true, payment_page: true }, desc: 'A small shop with one helper.' },
-  { id: 'p-growth', name: 'Growth', rank: 3, forSale: true, version: 2, refs: 71, limits: { products: 1000, orders_handled_monthly: 1500, staff: 5, storage_mb: 4096, bandwidth_gb: 100, essential_sms_total: null, essential_sms_monthly: 15, paired_devices: 2, activity_retention_days: 90, requests_monthly: 600000, requests_per_minute_public: 180 }, features: { custom_domain: true, ai_reply: true, api: true, payment_page: true }, desc: 'A growing shop with staff and its own domain.' },
-  { id: 'p-pro', name: 'Pro', rank: 4, forSale: true, version: 1, refs: 19, limits: { products: 5000, orders_handled_monthly: 6000, staff: 15, storage_mb: 8192, bandwidth_gb: 300, essential_sms_total: null, essential_sms_monthly: 20, paired_devices: 5, activity_retention_days: 365, requests_monthly: 2000000, requests_per_minute_public: 600 }, features: { custom_domain: true, ai_reply: true, api: true, payment_page: true }, desc: 'Many staff, many devices, a year of history.' },
+  { id: 'p-trial', name: 'Trial', rank: 0, forSale: false, version: 2, refs: 310, limits: { products: 20, orders_handled_monthly: 40, staff: 1, storage_mb: 200, essential_sms_total: 8, essential_sms_monthly: null, paired_devices: 1, activity_retention_days: 30, requests_monthly: 20000, requests_per_minute_public: 60 }, features: { custom_domain: false, ai_reply: false, api: true, payment_page: true }, desc: 'Thirty days to reach a first order.' },
+  { id: 'p-payg', name: 'Pay-as-you-go', rank: 1, forSale: false, version: 1, refs: 44, limits: { products: 25, orders_handled_monthly: null, staff: 1, storage_mb: 250, essential_sms_total: null, essential_sms_monthly: 5, paired_devices: 1, activity_retention_days: 30, requests_monthly: 100000, requests_per_minute_public: 60 }, features: { custom_domain: false, ai_reply: false, api: true, payment_page: true }, desc: 'No subscription; a fee on every fulfilled order.' },
+  { id: 'p-starter', name: 'Starter', rank: 2, forSale: true, suggested: true, version: 3, refs: 188, limits: { products: 100, orders_handled_monthly: 300, staff: 2, storage_mb: 2048, essential_sms_total: null, essential_sms_monthly: 10, paired_devices: 1, activity_retention_days: 30, requests_monthly: 200000, requests_per_minute_public: 60 }, features: { custom_domain: false, ai_reply: false, api: true, payment_page: true }, desc: 'A small shop with one helper.' },
+  { id: 'p-growth', name: 'Growth', rank: 3, forSale: true, version: 2, refs: 71, limits: { products: 1000, orders_handled_monthly: 1500, staff: 5, storage_mb: 4096, essential_sms_total: null, essential_sms_monthly: 15, paired_devices: 2, activity_retention_days: 90, requests_monthly: 600000, requests_per_minute_public: 180 }, features: { custom_domain: true, ai_reply: true, api: true, payment_page: true }, desc: 'A growing shop with staff and its own domain.' },
+  { id: 'p-pro', name: 'Pro', rank: 4, forSale: true, version: 1, refs: 19, limits: { products: 5000, orders_handled_monthly: 6000, staff: 15, storage_mb: 8192, essential_sms_total: null, essential_sms_monthly: 20, paired_devices: 5, activity_retention_days: 365, requests_monthly: 2000000, requests_per_minute_public: 600 }, features: { custom_domain: true, ai_reply: true, api: true, payment_page: true }, desc: 'Many staff, many devices, a year of history.' },
 ];
 const TERMS = [
   { id: 't1', labelEn: '1 month', labelBn: '১ মাস', months: 1, visible: true, order: 1, discount: null, tenantId: null, retiredAt: null, invoices: 412 },
@@ -630,7 +630,7 @@ const TENANTS = [
   { id: 'ten-0023', slug: 'tanvir-mobiles', name: 'Tanvir Mobiles', state: 'read_only', plan: 'Growth', planId: 'p-growth', planV: 2, periodEnd: '2026-10-15', suspendedAt: null, overrides: [] },
   { id: 'ten-0028', slug: 'keya-boutique', name: 'Keya Boutique', state: 'locked', plan: 'Starter', planId: 'p-starter', planV: 3, periodEnd: '2026-10-08', suspendedAt: null, overrides: [] },
   { id: 'ten-0031', slug: 'lal-sabuj-grocery', name: 'Lal Sabuj Grocery', state: 'archived', plan: 'Starter', planId: 'p-starter', planV: 2, periodEnd: '2026-09-20', suspendedAt: null, overrides: [] },
-  { id: 'ten-0034', slug: 'faiza-shoes', name: 'Faiza Shoes', state: 'active', plan: 'Pro', planId: 'p-pro', planV: 1, periodEnd: '2027-06-30', suspendedAt: null, overrides: [{ key: 'bandwidth_gb', value: null, reason: 'Eid campaign, agreed for October', by: 'ops@lytro.app', at: '2026-10-02' }] },
+  { id: 'ten-0034', slug: 'faiza-shoes', name: 'Faiza Shoes', state: 'active', plan: 'Pro', planId: 'p-pro', planV: 1, periodEnd: '2027-06-30', suspendedAt: null, overrides: [{ key: 'requests_monthly', value: null, reason: 'Eid campaign, agreed for October', by: 'ops@lytro.app', at: '2026-10-02' }] },
   { id: 'ten-0040', slug: 'arif-electronics', name: 'Arif Electronics', state: 'active', plan: 'Growth', planId: 'p-growth', planV: 2, periodEnd: '2026-12-01', suspendedAt: null, overrides: [] },
   { id: 'ten-0044', slug: 'mim-bakery', name: 'Mim Bakery', state: 'trial', plan: 'Trial', planId: 'p-trial', planV: 2, periodEnd: '2026-11-18', suspendedAt: null, overrides: [] },
   { id: 'ten-0051', slug: 'joy-pharmacy', name: 'Joy Pharmacy', state: 'active', plan: 'Starter', planId: 'p-starter', planV: 3, periodEnd: '2026-11-02', suspendedAt: null, overrides: [] },
@@ -955,10 +955,10 @@ Object.assign(S, {
   ar_btn: ['Retire', 'বন্ধ করুন'],
   ta_title: ['Add-ons', 'অ্যাড-অন'], ta_hint: ['Active add-ons raise this shop\'s limits on top of the plan snapshot and the overrides; packs are used up as they go (PLN-13, UPG-14).', 'চালু অ্যাড-অন স্ন্যাপশট আর ওভাররাইডের উপরে এই শপের লিমিট বাড়ায়; প্যাক খরচ হতে হতে ফুরোয় (PLN-13, UPG-14)।'],
   ta_ends: ['until {d}', '{d} পর্যন্ত'], ta_renew: ['renews with the plan', 'প্ল্যানের সাথে রিনিউ'], ta_norenew: ['renewal off', 'রিনিউ বন্ধ'], ta_paid: ['paid from the balance', 'ব্যালেন্স থেকে'], ta_paid_page: ['paid on the payment page', 'পেমেন্ট পেজে'],
-  ta_pack_bw: ['Bandwidth packs', 'ব্যান্ডউইথ প্যাক'], ta_pack_req: ['Request packs', 'রিকোয়েস্ট প্যাক'], ta_left: ['{v} left', '{v} বাকি'],
+  ta_pack_req: ['Request packs', 'রিকোয়েস্ট প্যাক'], ta_left: ['{v} left', '{v} বাকি'],
   ta_auto_on: ['auto-buy on', 'অটো-বাই চালু'], ta_auto_off: ['auto-buy off', 'অটো-বাই বন্ধ'],
   ta_effective: ['Effective limits', 'কার্যকর লিমিট'], ta_eff_hint: ['The plan\'s value, or the override that replaces it, plus add-ons. What every check reads.', 'প্ল্যানের মান, বা তার বদলে দেওয়া ওভাররাইড, সাথে অ্যাড-অন। প্রতিটা চেক এটাই পড়ে।'], ta_eff_plan: ['plan {v}', 'প্ল্যান {v}'], ta_eff_ov: ['override {v}', 'ওভাররাইড {v}'], ta_eff_ao: ['add-ons +{v}', 'অ্যাড-অন +{v}'],
-  ta_eff_products: ['Products', 'প্রোডাক্ট'], ta_eff_staff: ['Seats', 'সিট'], ta_eff_storage: ['Storage', 'স্টোরেজ'], ta_eff_bw: ['Bandwidth', 'ব্যান্ডউইথ'],
+  ta_eff_products: ['Products', 'প্রোডাক্ট'], ta_eff_staff: ['Seats', 'সিট'], ta_eff_storage: ['Storage', 'স্টোরেজ'],
   addon: ['Add-on', 'অ্যাড-অন'], qa_line: ['{name} ×{q} · {n} days to {d}', '{name} ×{q} · {d} পর্যন্ত {n} দিন'],
   qa_activate: ['Approving activates the add-on at once and raises the limit; the invoice follows. Rejecting leaves the shop as it is.', 'অ্যাপ্রুভ করলে অ্যাড-অন এখনই চালু হয়, লিমিট বাড়ে; ইনভয়েস তারপর। রিজেক্ট করলে শপ যেমন আছে তেমনই।'],
   qa_kind: ['Add-on', 'অ্যাড-অন'],
@@ -974,14 +974,13 @@ const ADDON_ITEMS = [
   { key: 'products_500', en: 'Extra 500 products', bn: 'আরও ৫০০ প্রোডাক্ট', kind: 'limit', limit: 'products', unit: 500, price: 149, max: 10, running: 41, forSale: true },
   { key: 'seat', en: 'One seat', bn: 'একটা সিট', kind: 'limit', limit: 'staff', unit: 1, price: 49, max: 10, running: 118, forSale: true },
   { key: 'storage_1gb', en: '1 GB storage', bn: '১ GB স্টোরেজ', kind: 'limit', limit: 'storage_mb', unit: 1024, price: 29, max: 10, running: 63, forSale: true },
-  { key: 'bandwidth_10gb', en: '10 GB bandwidth', bn: '১০ GB ব্যান্ডউইথ', kind: 'pack', limit: 'bandwidth_gb', unit: 10, price: 30, max: 10, running: 212, forSale: true, month: true },
   { key: 'requests_100k', en: '100,000 requests', bn: '১,০০,০০০ রিকোয়েস্ট', kind: 'pack', limit: 'requests_monthly', unit: 100000, price: 20, max: 10, running: 37, forSale: true, month: true },
   { key: 'brand_identity', en: 'Brand identity', bn: 'ব্র্যান্ড আইডেন্টিটি', kind: 'feature', limit: null, unit: null, price: 149, max: 1, running: 26, forSale: true },
   { key: 'storage_500mb', en: '500 MB storage', bn: '৫০০ MB স্টোরেজ', kind: 'limit', limit: 'storage_mb', unit: 512, price: 19, max: 10, running: 4, forSale: false, retiredAt: '2026-10-20' },
 ];
 const aoName = (a) => (L.lang === 'bn' ? a.bn : a.en);
 const kindChip = (k) => st(k === 'limit' ? 'info plain' : k === 'pack' ? 'warn plain' : 'ok plain', t('k_' + k));
-const fmtUnit = (a) => (a.unit === null ? '—' : a.limit === 'storage_mb' ? `${a.unit / 1024} GB` : a.limit === 'bandwidth_gb' ? `${a.unit} GB` : a.unit.toLocaleString('en-US'));
+const fmtUnit = (a) => (a.unit === null ? '—' : a.limit === 'storage_mb' ? `${a.unit / 1024} GB` : a.unit.toLocaleString('en-US'));
 function addonsPage() {
   const cols = [
     { k: 'item', label: t('c_item'), w: 'minmax(180px,1.4fr)', cls: 'main' },
@@ -1001,7 +1000,7 @@ function addonsPage() {
   } }));
   return `<div class="ttl"><div><h1>${t('addons')}</h1><div class="sub">${t('ao_sub')}</div></div><div class="actions">${btn(I.plus + t('ao_new'), 'primary', "go('addon-new')")}</div></div>${table(cols, rows, emptyBox(t('ao_none'), '', 'inbox'))}<div class="note">${t('ao_rule')}</div>`;
 }
-const LIMIT_KEYS = ['products', 'staff', 'storage_mb', 'bandwidth_gb', 'requests_monthly', 'orders_handled_monthly'];
+const LIMIT_KEYS = ['products', 'staff', 'storage_mb', 'requests_monthly', 'orders_handled_monthly'];
 function addonEditor(a, isNew) {
   const x = a || ADDON_ITEMS[0];
   return sheet(isNew ? t('ae_new') : t('ae_title', { name: aoName(x) }), isNew ? null : `${x.key} · ${t('ao_running', { n: x.running })}`, `
@@ -1029,10 +1028,9 @@ function addonsCard(x) {
   return `<div class="grid2">
     <div class="card"><div class="sechead"><h3>${t('ta_title')}</h3><span class="lnk" onclick="go('addons')">${t('addons')}</span></div><div class="hint">${t('ta_hint')}</div>
       <div class="list" style="margin:8px -16px 0">${active.map((r) => `<div class="row wrap"><span class="body"><span class="l1">${aoName(r.a)} <span class="num" style="color:var(--subtle);font-weight:400">×${r.q}</span> ${kindChip(r.a.kind)}</span><span class="l2">${t('ta_ends', { d: dateS(r.end) })} · ${r.renew ? t('ta_renew') : `<span style="color:var(--warning)">${t('ta_norenew')}</span>`} · ${t(r.paid)} · ${money(r.a.price)}/${L.lang === 'bn' ? 'মাস' : 'mo'}</span></span></div>`).join('')}
-      <div class="row wrap"><span class="body"><span class="l1">${t('ta_pack_bw')}</span><span class="l2 num">${t('ta_left', { v: '6.2 GB' })} · ${t('ta_auto_on')}</span></span></div>
       <div class="row wrap"><span class="body"><span class="l1">${t('ta_pack_req')}</span><span class="l2 num">${t('ta_left', { v: '40,000' })} · ${t('ta_auto_off')}</span></span></div></div></div>
     <div class="card"><div class="sechead"><h3>${t('ta_effective')}</h3></div><div class="hint">${t('ta_eff_hint')}</div><div class="list" style="margin:8px -16px -16px">
-      ${eff('ta_eff_products', 100, 0, 500, n)}${eff('ta_eff_staff', 2, 0, 1, n)}${eff('ta_eff_storage', 2048, 0, 0, (v) => (v / 1024) + ' GB')}${eff('ta_eff_bw', 30, 0, 20, (v) => v + ' GB')}</div></div>
+      ${eff('ta_eff_products', 100, 0, 500, n)}${eff('ta_eff_staff', 2, 0, 1, n)}${eff('ta_eff_storage', 2048, 0, 0, (v) => (v / 1024) + ' GB')}</div></div>
   </div>`;
 }
 def('tenant-addons', { base: 'tenants', nav: 'tenants', label: 'Shop · its add-ons and effective limits (10a)', group: 'Daily', url: 'admin.lytro.app/shops/rahim-fashion', bandTitle: 'tenants', back: 'tenants', render: () => tenantPage(T1).replace('<div class="grid2">', addonsCard(T1) + '<div class="grid2">') });
@@ -1065,7 +1063,7 @@ function plansPage(opts) {
 }
 def('plans', { nav: 'plans', label: 'Plans and prices · matrix', group: 'Pricing', url: 'admin.lytro.app/plans', bandTitle: 'plans', render: plansPage });
 function planEditor(p, isNew) {
-  const keys = ['products', 'orders_total', 'orders_handled_monthly', 'orders_handled_daily', 'staff', 'paired_devices', 'storage_mb', 'bandwidth_gb', 'essential_sms_total', 'essential_sms_monthly', 'activity_retention_days', 'requests_monthly'];
+  const keys = ['products', 'orders_total', 'orders_handled_monthly', 'orders_handled_daily', 'staff', 'paired_devices', 'storage_mb', 'essential_sms_total', 'essential_sms_monthly', 'activity_retention_days', 'requests_monthly'];
   return sheet(isNew ? t('pe_new') : t('pe_title', { name: p.name }), isNew ? null : `v${p.version} · ${t('rank')} ${p.rank}`, `
     <div class="grid2">${field(t('name'), input(isNew ? '' : p.name))}${field(t('rank'), input(isNew ? '5' : p.rank, 'mono', '', 'inputmode=numeric'))}</div>
     ${field(t('description'), textarea(isNew ? '' : p.desc))}
@@ -1285,7 +1283,7 @@ function laterPage(key, req, title, body, sketch) {
 }
 const skelTable = (n, cols) => `<div class="card flush later" style="padding:0"><div class="tbl" style="--cols:${cols.join(' ')}"><div class="thead">${cols.map(() => '<span class="skel" style="width:60%"></span>').join('')}</div>${Array.from({ length: n }).map(() => `<div class="tr">${cols.map(() => '<div class="td"><span class="skel" style="width:80%"></span></div>').join('')}</div>`).join('')}</div></div>`;
 const LATER = [
-  ['later-reports', 'ADM-09', 'reports', ['Shops by state and plan, platform revenue by week, month, quarter and year, top consumers of storage, bandwidth and SMS with CSV export.', 'স্টেট ও প্ল্যান অনুযায়ী শপ, সপ্তাহ/মাস/কোয়ার্টার/বছরে প্ল্যাটফর্মের আয়, স্টোরেজ/ব্যান্ডউইথ/SMS-এর টপ কনজিউমার, CSV এক্সপোর্ট।'], () => `<div class="stats">${['Shops', 'Paying', 'Revenue, Oct', 'Top-ups, Oct'].map((k) => `<div class="stat later" style="border-style:dashed"><span class="k">${k}</span><span class="v"><span class="skel" style="width:60px;height:24px;display:inline-block"></span></span></div>`).join('')}</div><div class="card later" style="height:220px;display:flex;align-items:center;justify-content:center;color:var(--subtle)">${I.chart} revenue by period</div>${skelTable(5, ['1.5fr', '1fr', '1fr', '1fr'])}`],
+  ['later-reports', 'ADM-09', 'reports', ['Shops by state and plan, platform revenue by week, month, quarter and year, top consumers of storage and SMS with CSV export.', 'স্টেট ও প্ল্যান অনুযায়ী শপ, সপ্তাহ/মাস/কোয়ার্টার/বছরে প্ল্যাটফর্মের আয়, স্টোরেজ/SMS-এর টপ কনজিউমার, CSV এক্সপোর্ট।'], () => `<div class="stats">${['Shops', 'Paying', 'Revenue, Oct', 'Top-ups, Oct'].map((k) => `<div class="stat later" style="border-style:dashed"><span class="k">${k}</span><span class="v"><span class="skel" style="width:60px;height:24px;display:inline-block"></span></span></div>`).join('')}</div><div class="card later" style="height:220px;display:flex;align-items:center;justify-content:center;color:var(--subtle)">${I.chart} revenue by period</div>${skelTable(5, ['1.5fr', '1fr', '1fr', '1fr'])}`],
   ['later-audit', 'ADM-08', 'audit', ['Every operator action across all shops: actor, action, shop, old and new value, reason, time. Filter by shop, actor, action and date. Entries can never be edited.', 'সব শপে অপারেটরের প্রতিটি কাজ: কে, কী, কোন শপ, আগের ও পরের মান, কারণ, সময়। শপ, অ্যাক্টর, অ্যাকশন ও তারিখে ফিল্টার। এন্ট্রি কখনো এডিট হয় না।'], () => `<div class="chips"><span class="chip off">${t('c_shop')}</span><span class="chip off">Actor</span><span class="chip off">Action</span><span class="chip off">Date</span></div>${skelTable(8, ['140px', '1fr', '1.4fr', '2fr', '120px'])}`],
   ['later-inbox', 'SUP-04, SUP-05', 'inbox', ['Tickets from owners and staff with the shop, plan, state and recent errors attached; filters by status, plan and age; canned replies; internal notes; overdue flagged against the plan\'s response target.', 'মালিক ও স্টাফের টিকিট, শপ/প্ল্যান/স্টেট ও সাম্প্রতিক এরর সহ; স্টেটাস, প্ল্যান, বয়সে ফিল্টার; রেডি উত্তর; ভেতরের নোট; প্ল্যানের রেসপন্স টার্গেট পেরোলে ফ্ল্যাগ।'], () => `<div class="chips"><span class="chip on">Open</span><span class="chip off">Overdue</span><span class="chip off">Waiting on seller</span><span class="chip off">Closed</span></div>${skelTable(6, ['1.6fr', '1fr', '100px', '100px'])}`],
   ['later-notices', 'NTC-01 to NTC-20', 'notices', ['Notices to shops: title, Bangla and English body, category, severity, audience, publish and end times, pinned, acknowledgement required; templates for rate change, maintenance, outage and policy; delivery and read counts.', 'শপগুলোকে নোটিশ: শিরোনাম, বাংলা ও ইংরেজি বডি, ক্যাটাগরি, গুরুত্ব, কাদের জন্য, প্রকাশ ও শেষের সময়, পিন, স্বীকৃতি লাগবে কি না; রেট বদল/মেইনটেন্যান্স/আউটেজ/পলিসির টেমপ্লেট; ডেলিভারি ও পড়ার সংখ্যা।'], () => `<div class="toolbar2">${btn(I.plus + 'New notice', 'primary', '', 'disabled')}${btn('Templates', 'ghost', '', 'disabled')}</div>${skelTable(5, ['2fr', '120px', '120px', '140px', '100px'])}`],
@@ -1461,7 +1459,7 @@ const SERVER_SETTINGS = [
   ['archived_days', 45, 2, 'u_days', 'How many days after locked a lapsed tenant stays archived before deletion (LIF-26, 2.3).'],
   ['reservation_expiry_minutes', 30, 3, 'u_minutes', 'How many minutes an order awaiting online payment holds its stock (INV-16).'],
   ['order_limit_mode', 'allow_with_prompt', 3, 'choice', 'Past the period\'s order-handling limit: block, or allow with a prompt to upgrade (QTA-03).'],
-  ['usage_grace_percent', 10, 4, 'u_pct', 'How far past its bandwidth or API request limit a shop is still served, as a percent of the limit (BND-03, RTE-03).'],
+  ['usage_grace_percent', 10, 4, 'u_pct', 'How far past its API request limit a shop is still served, as a percent of the limit (RTE-03).'],
   ['fast_spend_percent', 5, 4, 'u_pct', 'The share of a cycle\'s API requests that, spent in one hour, alerts the owner and the operator (RTE-12).'],
   ['public_requests_per_visitor_per_minute', 120, 4, 'u_per_min', 'How many requests one visitor may make to one shop in a minute, through its public keys (RTE-06).'],
   ['public_orders_per_shop_per_minute', 60, 4, 'u_per_min', 'How many orders shoppers may place in one shop in a minute, every plan alike (RTE-08).'],
@@ -2890,7 +2888,7 @@ Object.assign(S, {
   p88_waiting: ['Waiting for you', 'আপনার অপেক্ষায়'], p88_waiting_d: ['{a} to Lytro · {n} shopper payments wait for the seller', 'Lytro-কে {a} · {n}টা কাস্টমার পেমেন্ট সেলারের অপেক্ষায়'],
   p88_usage: ['Usage this cycle', 'এই সাইকেলের ইউজেজ'], p88_usage_d: ["{a} to {b}, as the seller's Usage page reads it", '{a} থেকে {b}, সেলারের ইউজেজ পেজ যেভাবে দেখায়'],
   p88_of: ['{a} of {b}', '{b}-এর মধ্যে {a}'],
-  p88_m_products: ['Products', 'প্রোডাক্ট'], p88_m_seats: ['Staff seats', 'স্টাফ সিট'], p88_m_storage: ['Storage', 'স্টোরেজ'], p88_m_bandwidth: ['Bandwidth', 'ব্যান্ডউইথ'],
+  p88_m_products: ['Products', 'প্রোডাক্ট'], p88_m_seats: ['Staff seats', 'স্টাফ সিট'], p88_m_storage: ['Storage', 'স্টোরেজ'],
   p88_m_requests: ['API requests', 'API রিকোয়েস্ট'], p88_m_essential_sms_monthly: ['Essential SMS', 'জরুরি SMS'], p88_m_orders_monthly: ['Orders this month', 'এই মাসের অর্ডার'],
   p88_reads: ['Address reads: {n} outside the allowance, {a}', 'ঠিকানা পড়া: অ্যালাওয়েন্সের বাইরে {n}টা, {a}'],
   p88_signins: ['Last sign-in', 'শেষ লগইন'], p88_owner: ['Owner', 'ওনার'], p88_staff: ['Staff', 'স্টাফ'], p88_never: ['Never', 'কখনো না'],
@@ -3006,7 +3004,7 @@ Object.assign(S, {
   p88_sh_total: ['Shops now', 'এখন শপ'], p88_sh_bystate: ['By state, now', 'স্টেট অনুযায়ী, এখন'], p88_sh_byplan: ['By plan, now', 'প্ল্যান অনুযায়ী, এখন'],
   p88_sh_opened: ['Opened', 'খোলা হয়েছে'], p88_sh_paying: ['First paid', 'প্রথম পেমেন্ট'], p88_sh_lapsed: ['Lapsed', 'মেয়াদ পেরিয়েছে'],
   p88_sh_note: ['Lapses are counted from the first night recorded.', 'মেয়াদ পেরোনো গোনা হচ্ছে প্রথম রেকর্ড করা রাত থেকে।'], p88_sh_moves: ['Coming and going', 'আসা-যাওয়া'],
-  p88_cn_storage: ['Storage', 'স্টোরেজ'], p88_cn_bandwidth: ['Bandwidth', 'ব্যান্ডউইথ'], p88_cn_sms: ['SMS', 'SMS'],
+  p88_cn_storage: ['Storage', 'স্টোরেজ'], p88_cn_sms: ['SMS', 'SMS'],
   p88_cn_sub: ["The 20 shops that used most in the period, each with its owner's phone, so you can call a heavy user.", 'সময়টাতে সবচেয়ে বেশি ব্যবহার করা ২০টা শপ, প্রতিটার ওনারের ফোনসহ, যাতে বেশি ব্যবহারকারীকে কল করা যায়।'],
   p88_c_used: ['Used', 'ব্যবহার'], p88_sms_units: ['{n} SMS units', '{n} SMS ইউনিট'],
 
@@ -3072,15 +3070,13 @@ Object.assign(S, {
   p88_c_bucket: ['Bucket', 'বাকেট'], p88_c_ops_a: ['Class A', 'Class A'], p88_c_ops_b: ['Class B', 'Class B'], p88_c_freeops: ['Free ops', 'ফ্রি অপস'],
   p88_c_gbm: ['GB-months', 'GB-মাস'], p88_c_size: ['Size now', 'এখন সাইজ'], p88_c_objects: ['Objects', 'অবজেক্ট'],
   p88_md_account: ['Account, not a bucket', 'অ্যাকাউন্ট, বাকেট নয়'], p88_md_bk_media: ['Shop media', 'শপের মিডিয়া'], p88_md_bk_evidence: ['Payment screenshots', 'পেমেন্টের স্ক্রিনশট'],
-  p88_md_workers: ['The media Worker', 'মিডিয়া Worker'], p88_md_requests: ['Requests', 'রিকোয়েস্ট'], p88_md_bytes: ['Bytes served', 'সার্ভ করা ডেটা'],
-  p88_md_monthly: ['Workers plan, a month', 'Workers প্ল্যান, মাসে'], p88_md_wline: ['{n} million included · {b} billable', '{n} মিলিয়ন ইনক্লুডেড · {b} বিলযোগ্য'],
-  p88_md_top: ['Shops with the most requests', 'সবচেয়ে বেশি রিকোয়েস্টের শপ'], p88_md_buckets: ['Buckets', 'বাকেট'], p88_md_lastread: ['Last read from Cloudflare', 'Cloudflare থেকে শেষ পড়া'], p88_md_total: ['Total', 'মোট'],
+  p88_md_requests: ['Requests', 'রিকোয়েস্ট'], p88_md_bytes: ['Bytes served', 'সার্ভ করা ডেটা'],
+  p88_md_buckets: ['Buckets', 'বাকেট'], p88_md_lastread: ['Last read from Cloudflare', 'Cloudflare থেকে শেষ পড়া'], p88_md_total: ['Total', 'মোট'],
   p88_md_alerted: ['The alert went to {e} on {d}, at {p}% of the budget. It goes once a period.', 'অ্যালার্ট {d}-এ {e}-তে গেছে, বাজেটের {p}%-এ। প্রতি পিরিয়ডে একবারই যায়।'],
   p88_md_noemail: ['No alert address is set, so at {p}% the alert is only logged.', 'কোনো অ্যালার্ট ঠিকানা সেট করা নেই, তাই {p}%-এ অ্যালার্ট শুধু লগে থাকবে।'],
   p88_md_set: ['Set it in Settings', 'সেটিংসে সেট করুন'],
-  p88_md_off: ["Cloudflare isn't connected: the server has no Cloudflare token, so R2 hasn't been read. The Worker's requests are still counted.", 'Cloudflare কানেক্টেড নয়: সার্ভারে Cloudflare টোকেন নেই, তাই R2 পড়া হয়নি। Worker-এর রিকোয়েস্ট তবুও গোনা হচ্ছে।'],
-  p88_md_prices: ['Prices from Settings: R2 {a} and {b} a million, {c} a GB-month; Workers {d} a month and {e} a million past {f} million.', 'সেটিংসের দাম: R2 মিলিয়নে {a} আর {b}, GB-মাসে {c}; Workers মাসে {d}, আর {f} মিলিয়নের পরে মিলিয়নে {e}।'],
-  p88_md_not_counted: ["Workers' CPU time, KV and Analytics Engine aren't counted.", 'Workers-এর CPU টাইম, KV আর Analytics Engine গোনা হয় না।'],
+  p88_md_off: ["Cloudflare isn't connected: the server has no Cloudflare token, so R2 hasn't been read.", 'Cloudflare কানেক্টেড নয়: সার্ভারে Cloudflare টোকেন নেই, তাই R2 পড়া হয়নি।'],
+  p88_md_prices: ['Prices from Settings: R2 {a} and {b} a million, {c} a GB-month.', 'সেটিংসের দাম: R2 মিলিয়নে {a} আর {b}, GB-মাসে {c}।'],
 
   /* wallet types (WAL-18, D8-65 to D8-67) */
   p88_wt_sub: ['The payment methods shops can take from their customers. Retiring one hides it from shops that never set it up; shops that did keep it. Removing it comes once nothing uses it.', 'শপগুলো কাস্টমারের কাছ থেকে যেসব পেমেন্ট মেথডে টাকা নিতে পারে। রিটায়ার করলে যারা কখনো সেট আপ করেনি তারা আর দেখবে না; যারা করেছে তারা রাখবে। কিছুই ব্যবহার না করলে তবে রিমুভ।'],
@@ -3122,11 +3118,10 @@ Object.assign(S, {
   p88_clear_num: ['Clear', 'মুছুন'], p88_clear_btn: ['Clear the number', 'নম্বর মুছুন'],
   p88_clear_cons: ["Clearing it takes this number off the dashboard, the website and Lytro's payment page. If the other number is set, it stands in; if neither is, no help button shows.", 'মুছে দিলে ড্যাশবোর্ড, ওয়েবসাইট আর Lytro-র পেমেন্ট পেজ থেকে এই নম্বর চলে যাবে। অন্য নম্বরটা সেট থাকলে সেটাই কাজ করবে; কোনোটাই না থাকলে কোনো হেল্প বাটন দেখাবে না।'],
   p88_alert_email_note: ['Until it is set, the alert is only logged.', 'সেট না হওয়া পর্যন্ত অ্যালার্ট শুধু লগে থাকে।'],
-  p88_pr_lead: ["What the estimate uses, from Cloudflare's R2 and Workers pricing pages. Change them when Cloudflare does.", 'আনুমানিক হিসাব এগুলো দিয়েই হয়, Cloudflare-এর R2 আর Workers প্রাইসিং পেজ থেকে। Cloudflare বদলালে আপনিও বদলান।'],
+  p88_pr_lead: ["What the estimate uses, from Cloudflare's R2 pricing page. Change them when Cloudflare does.", 'আনুমানিক হিসাব এগুলো দিয়েই হয়, Cloudflare-এর R2 প্রাইসিং পেজ থেকে। Cloudflare বদলালে আপনিও বদলান।'],
   p88_pr_a: ['R2 Class A, a million', 'R2 Class A, মিলিয়নে'], p88_pr_b: ['R2 Class B, a million', 'R2 Class B, মিলিয়নে'], p88_pr_s: ['R2 storage, a GB-month', 'R2 স্টোরেজ, GB-মাসে'],
   p88_pr_fa: ['Free Class A, millions a month', 'ফ্রি Class A, মাসে মিলিয়ন'], p88_pr_fb: ['Free Class B, millions a month', 'ফ্রি Class B, মাসে মিলিয়ন'], p88_pr_fs: ['Free storage, GB-months', 'ফ্রি স্টোরেজ, GB-মাস'],
-  p88_pr_wm: ['Workers plan, a month', 'Workers প্ল্যান, মাসে'], p88_pr_wi: ['Workers requests included, millions', 'Workers-এ ইনক্লুডেড রিকোয়েস্ট, মিলিয়ন'], p88_pr_wp: ['Workers past that, a million', 'এর পরে Workers, মিলিয়নে'],
-  p88_pr_summary: ['R2 {a} / {b} a million, {c} a GB-month · Workers {d} a month', 'R2 মিলিয়নে {a} / {b}, GB-মাসে {c} · Workers মাসে {d}'],
+  p88_pr_summary: ['R2 {a} / {b} a million, {c} a GB-month', 'R2 মিলিয়নে {a} / {b}, GB-মাসে {c}'],
   p88_pr_err: ['Each price is a number from 0 to 1,000, and each allowance a whole number.', 'প্রতিটা দাম ০ থেকে ১,০০০-এর মধ্যে একটা সংখ্যা, আর প্রতিটা অ্যালাওয়েন্স একটা পূর্ণ সংখ্যা।'],
 
   /* Today: the platform figures are real now */
@@ -3222,7 +3217,7 @@ const P88_FIG = {
   'ten-0001': {
     balance: { amount: 1350, frozen: false, held: 0 }, errors: 3, sms: { f: 2, b: 1, l: 1 }, courier: 2, waiting: { n: 1, a: 99, customers: 2 },
     cycle: ['2026-10-15', '2026-11-14'], reads: { n: 4, a: 8 },
-    usage: [['products', 512, 600, 'count'], ['seats', 2, 3, 'count'], ['storage', 1.31e9, 2e9, 'bytes'], ['bandwidth', 18.4e9, 50e9, 'bytes'], ['requests', 141200, 240000, 'count'], ['orders_monthly', 212, 300, 'count'], ['essential_sms_monthly', 7, 10, 'count']],
+    usage: [['products', 512, 600, 'count'], ['seats', 2, 3, 'count'], ['storage', 1.31e9, 2e9, 'bytes'], ['requests', 141200, 240000, 'count'], ['orders_monthly', 212, 300, 'count'], ['essential_sms_monthly', 7, 10, 'count']],
     signIns: [{ name: 'Rahim Uddin', phone: '01712 345678', owner: true, last: '2026-10-21T12:20:00+06:00' }, { name: 'Shila Akter', phone: '01911 220033', owner: false, last: '2026-10-18T09:10:00+06:00' }, { name: 'Karim Hossain', phone: '01715 000111', owner: false, last: null }],
     orders: { unverified: 1, pending: 4, confirmed: 6, processing: 3, shipped: 11, delivered: 182, partial_delivered: 0, completed: 0, cancelled: 9, hold: 1, in_review: 0, refunded: 0, returned: 2, rejected: 0 },
   },
@@ -3586,7 +3581,7 @@ def('p88-reports-shops', { ...P88_RP, label: 'Reports · shops', url: 'admin.lyt
 const P88_CONSUMERS = ['Faiza Shoes', 'Dhaka Gadget House', 'Arif Electronics', 'Rahim Fashion', 'Tanvir Mobiles', 'Joy Pharmacy', 'Nusrat Cosmetics', 'Sadia Collection', 'Mim Bakery', 'Keya Boutique', 'Shapla Crafts', 'Rupa Sarees', 'Hasan Tea House', 'Bornali Jewellers', 'Green Leaf Organics', 'Moon Kids Wear', 'Sylhet Spices', 'Padma Fish Mart', 'Chattala Furniture', 'Kona Handloom'];
 const P88_PHONES20 = ['01611 223300', '01819 220011', '01716 880011', '01712 345678', '01713 552200', '01755 123321', '01611 908070', '01815 345678', '01822 450045', '01911 223344', '01733 118899', '01914 560012', '01552 700300', '01675 220099', '01788 441122', '01815 990011', '01711 554433', '01921 667788', '01818 303030', '01631 909012'];
 def('p88-reports-consumers', { ...P88_RP, label: 'Reports · top consumers of storage', url: 'admin.lytro.app/reports/consumers?metric=storage', render: () => {
-  const head = `${p88RpHead('p88-reports-consumers')}<div class="note">${t('p88_cn_sub')}</div><div class="chips">${['p88_cn_storage', 'p88_cn_bandwidth', 'p88_cn_sms'].map((k, i) => `<span class="chip ${i ? '' : 'on'}">${t(k)}</span>`).join('')}</div>${p88Period({ preset: 'month', from: '2026-10-01', to: '2026-10-21' })}`;
+  const head = `${p88RpHead('p88-reports-consumers')}<div class="note">${t('p88_cn_sub')}</div><div class="chips">${['p88_cn_storage', 'p88_cn_sms'].map((k, i) => `<span class="chip ${i ? '' : 'on'}">${t(k)}</span>`).join('')}</div>${p88Period({ preset: 'month', from: '2026-10-01', to: '2026-10-21' })}`;
   if (ST.data !== 'busy') return head + (ST.data === 'error' ? errorBox() : emptyBox(t('p88_none'), '', 'chart'));
   const cols = [{ k: 'n', label: '#', w: '36px' }, { k: 's', label: t('c_shop'), w: 'minmax(150px,1.6fr)', cls: 'main' }, { k: 'p', label: t('p88_c_owner'), w: '120px' }, { k: 'v', label: t('p88_c_used'), w: '90px', cls: 'r' }];
   const rows = P88_CONSUMERS.map((name, i) => ({ cells: { n: `<span class="num" style="color:var(--muted)">${i + 1}</span>`, s: `<div>${name}</div><div style="font-size:12px;color:var(--muted);font-weight:400">${name.toLowerCase().replace(/[^a-z]+/g, '-')}.lytro.app</div>`, p: `<span class="mono">${P88_PHONES20[i]}</span>`, v: `<span class="num">${p88Bytes(Math.round(7.9e9 / (1 + i * 0.55)))}</span>` } }));
@@ -3723,13 +3718,11 @@ const P88_MEDIA = {
   budget: 10, alertPercent: 80, alertEmail: 'ops@lytro.app',
   r2: { a: { ops: 0.62, free: 1, bill: 0, cost: 0 }, b: { ops: 4.1, free: 10, bill: 0, cost: 0 }, s: { gbm: 23.4, free: 10, bill: 14, cost: 0.21 } },
   buckets: [['lytro-media', 'p88_md_bk_media', 588100, 3912000, 40210, 21.9, 34.1e9, 81240], ['lytro-evidence', 'p88_md_bk_evidence', 2410, 1880, 0, 0.04, 0.06e9, 312], ['', 'p88_md_account', 1210, 0, 18, 0, 0, 0]],
-  workers: { req: 11.3, bytes: 612e9, incl: 10, bill: 2, monthly: 5, cost: 5.6 },
-  top: [['Faiza Shoes', 1.84e6, 98e9], ['Dhaka Gadget House', 1.21e6, 71e9], ['Arif Electronics', 0.96e6, 52e9], ['Rahim Fashion', 0.88e6, 47e9], ['Tanvir Mobiles', 0.61e6, 33e9], ['Joy Pharmacy', 0.52e6, 21e9], ['Nusrat Cosmetics', 0.47e6, 26e9], ['Sadia Collection', 0.41e6, 19e9], ['Mim Bakery', 0.33e6, 12e9], ['Keya Boutique', 0.29e6, 14e9]],
 };
 function p88MediaPage(o) {
   o = o || {};
   const M = P88_MEDIA;
-  const total = o.over ? 8.4 : M.r2.s.cost + M.workers.cost;
+  const total = o.over ? 8.4 : M.r2.s.cost;
   const pct = Math.round((total / M.budget) * 100);
   const periods = [['2026-10-01', `${dateS('2026-10-01')} – ${dateS('2026-10-31')} · ${t('p88_md_running')}`], ['2026-09-01', `${dateS('2026-09-01')} – ${dateS('2026-09-30')}`], ['2026-08-01', `${dateS('2026-08-01')} – ${dateS('2026-08-31')}`]];
   const head = `${p88Title(t('media'), t('p88_md_sub'))}<div class="p88-filters">${p88Pick(t('p88_md_period'), select(periods, '2026-10-01'), true)}</div>`;
@@ -3745,15 +3738,8 @@ function p88MediaPage(o) {
       <span class="k">${t('p88_md_classB')} <span class="note">· ${t('p88_md_classB_d')}</span><div class="note">${opsLine(M.r2.b)}</div></span><span class="v">${usd(M.r2.b.cost)}</span>
       <span class="k">${t('p88_md_storage')}<div class="note">${t('p88_md_line', { u: t('p88_md_gbm', { n: M.r2.s.gbm }), f: t('p88_md_gbm', { n: M.r2.s.free }), b: M.r2.s.bill })}</div></span><span class="v">${usd(M.r2.s.cost)}</span>
     </div></div>`;
-  const workers = `<div class="card"><div class="sechead"><h3>${t('p88_md_workers')}</h3><span class="money">${usd(M.workers.cost)}</span></div><div class="p88-kvs" style="margin-top:8px">
-      <span class="k">${t('p88_md_requests')}<div class="note">${t('p88_md_wline', { n: M.workers.incl, b: M.workers.bill })}</div></span><span class="v">${t('p88_md_mops', { n: M.workers.req })}</span>
-      <span class="k">${t('p88_md_bytes')}</span><span class="v">${p88Bytes(M.workers.bytes)}</span>
-      <span class="k">${t('p88_md_monthly')}</span><span class="v">${usd(M.workers.monthly)}</span>
-    </div><div class="note" style="margin-top:8px">${t('p88_md_not_counted')}</div></div>`;
   const bcols = [{ k: 'b', label: t('p88_c_bucket'), w: 'minmax(140px,1.4fr)', cls: 'main' }, { k: 'a', label: t('p88_c_ops_a'), w: '84px', cls: 'r' }, { k: 'r', label: t('p88_c_ops_b'), w: '84px', cls: 'r' }, { k: 'g', label: t('p88_c_gbm'), w: '80px', cls: 'r' }, { k: 's', label: t('p88_c_size'), w: '80px', cls: 'r' }, { k: 'o', label: t('p88_c_objects'), w: '80px', cls: 'r' }];
   const brows = M.buckets.map(([name, k, a, b, f, g, size, objects]) => ({ cells: { b: `<div>${t(k)}</div>${name ? `<div class="p88-mono-l">${name}</div>` : ''}`, a: `<span class="num">${p88N(a)}</span>`, r: `<span class="num">${p88N(b)}</span>`, g: `<span class="num">${name ? g : '—'}</span>`, s: `<span class="num">${size ? p88Bytes(size) : '—'}</span>`, o: `<span class="num">${objects ? p88N(objects) : '—'}</span>`, f } }));
-  const tcols = [{ k: 'n', label: '#', w: '36px' }, { k: 's', label: t('c_shop'), w: 'minmax(150px,1.6fr)', cls: 'main' }, { k: 'r', label: t('p88_md_requests'), w: '110px', cls: 'r' }, { k: 'b', label: t('p88_md_bytes'), w: '100px', cls: 'r' }];
-  const trows = M.top.map(([name, r, b], i) => ({ cells: { n: `<span class="num" style="color:var(--muted)">${i + 1}</span>`, s: name, r: `<span class="num">${p88N(r)}</span>`, b: `<span class="num">${p88Bytes(b)}</span>` } }));
   const P = DEFAULT_PRICES_88;
   return `${head}${banners}
   <div class="p88-stats four">
@@ -3761,12 +3747,11 @@ function p88MediaPage(o) {
     <div class="stat p88-span" style="grid-column:span 2"><span class="k">${t('p88_md_budget')} · ${usd(M.budget)}</span><span class="v ${pct >= M.alertPercent ? 'warn' : ''}">${t('p88_md_used', { p: pct })}</span>${p88Meter(total, M.budget, M.alertPercent)}<span class="d">${t('p88_md_budget_d', { p: M.alertPercent })} · ${o.noEmail ? t('p88_not_set') : M.alertEmail}</span></div>
     ${p88Stat(t('p88_md_lastread'), o.off ? '—' : dateT(M.readAt), o.off ? '' : p88Ago(M.readAt), {})}
   </div>
-  <div class="grid2">${r2 || workers}${r2 ? workers : ''}</div>
+  ${r2}
   ${o.off ? '' : `<div class="sechead"><h2>${t('p88_md_buckets')}</h2></div>${table(bcols, brows, '')}`}
-  <div class="sechead"><h2>${t('p88_md_top')}</h2></div>${table(tcols, trows, '')}
-  <div class="note">${t('p88_md_prices', { a: usd(P.r2ClassAPerMillion), b: usd(P.r2ClassBPerMillion), c: '$' + P.r2StoragePerGbMonth, d: usd(P.workersMonthly), e: usd(P.workersPerMillion), f: P.workersIncludedMillions })} <a href="#" onclick="go('p88-settings-media');return false">${t('settings')}</a></div>`;
+  <div class="note">${t('p88_md_prices', { a: usd(P.r2ClassAPerMillion), b: usd(P.r2ClassBPerMillion), c: '$' + P.r2StoragePerGbMonth, })} <a href="#" onclick="go('p88-settings-media');return false">${t('settings')}</a></div>`;
 }
-const DEFAULT_PRICES_88 = { r2ClassAPerMillion: 4.5, r2ClassBPerMillion: 0.36, r2StoragePerGbMonth: 0.015, r2FreeClassAMillions: 1, r2FreeClassBMillions: 10, r2FreeStorageGbMonths: 10, workersMonthly: 5, workersIncludedMillions: 10, workersPerMillion: 0.3 };
+const DEFAULT_PRICES_88 = { r2ClassAPerMillion: 4.5, r2ClassBPerMillion: 0.36, r2StoragePerGbMonth: 0.015, r2FreeClassAMillions: 1, r2FreeClassBMillions: 10, r2FreeStorageGbMonths: 10 };
 const P88_MD = { nav: 'media', group: P88G, url: 'admin.lytro.app/media-costs', bandTitle: 'media' };
 def('p88-media', { ...P88_MD, label: 'Media costs · this period', render: () => p88MediaPage() });
 def('p88-media-alert', { ...P88_MD, label: 'Media costs · past the alert, email sent', render: () => p88MediaPage({ over: true }) });
@@ -3841,7 +3826,7 @@ SETTINGS.push(
   { key: 'media_budget_alert_percent', value: 80, group: 15, unit: 'u_pct', desc: 'The percent of the media budget that emails the alert address, once a billing period (MED-12).', updatedAt: '2026-11-10', by: null },
   { key: 'media_cost_alert_email', value: null, group: 15, unit: 'p88email', desc: 'The one address the media budget alert goes to (MED-12, D8-61).', updatedAt: '2026-11-10', by: null },
   { key: 'cloudflare_billing_day', value: 1, group: 15, unit: 'p88day', desc: "The day of the month Cloudflare's invoice period starts on, 1 to 28 (MED-12, D8-61).", updatedAt: '2026-11-10', by: null },
-  { key: 'cloudflare_prices', value: DEFAULT_PRICES_88, group: 15, unit: 'p88prices', desc: "Cloudflare's R2 and Workers prices and monthly allowances, in US dollars, that the media costs estimate uses (D8-60).", updatedAt: '2026-11-10', by: null },
+  { key: 'cloudflare_prices', value: DEFAULT_PRICES_88, group: 15, unit: 'p88prices', desc: "Cloudflare's R2 prices and monthly allowances, in US dollars, that the media costs estimate uses (D8-60).", updatedAt: '2026-11-10', by: null },
 );
 P37_GROUPS.push(14, 15);
 let p88SettingErr = null;
@@ -3860,7 +3845,7 @@ settingValue = (s) => {
   if (s.unit === 'p88hour') return `<span class="money" style="font-size:20px">${String(s.value).padStart(2, '0')}:00 <span style="font-size:13px;font-weight:500;color:var(--muted)">${t('p88_every_day')}</span></span>`;
   if (s.unit === 'p88usd') return `<span class="money" style="font-size:20px">$${s.value} <span style="font-size:13px;font-weight:500;color:var(--muted)">${t('u_per_month_88')}</span></span>`;
   if (s.unit === 'p88day') return `<span style="font-weight:600">${t('p88_day_of_month', { n: s.value })}</span>`;
-  if (s.unit === 'p88prices') return `<span style="font-size:13px;font-weight:500;color:var(--n700);white-space:normal">${t('p88_pr_summary', { a: usd(s.value.r2ClassAPerMillion), b: usd(s.value.r2ClassBPerMillion), c: '$' + s.value.r2StoragePerGbMonth, d: usd(s.value.workersMonthly) })}</span>`;
+  if (s.unit === 'p88prices') return `<span style="font-size:13px;font-weight:500;color:var(--n700);white-space:normal">${t('p88_pr_summary', { a: usd(s.value.r2ClassAPerMillion), b: usd(s.value.r2ClassBPerMillion), c: '$' + s.value.r2StoragePerGbMonth })}</span>`;
   return p88SettingValueBase(s);
 };
 S.u_per_month_88 = ['a month', 'মাসে'];
@@ -3914,7 +3899,7 @@ def('p88-setting-opens-order', { ...P88_SET, label: '· refused: opening at or a
 def('p88-settings-media', { ...P88_SET, label: 'Settings · media costs', anchor: 'p37-g15', render: () => settingsPage() });
 def('p88-setting-email', { ...P88_SET, label: '· set the alert address', anchor: 'p37-g15', render: () => settingsPage({ editing: 'media_cost_alert_email' }) });
 def('p88-setting-budget', { ...P88_SET, label: '· change the budget', anchor: 'p37-g15', render: () => settingsPage({ editing: 'media_budget_usd' }) });
-const p88PricesSheet = (err) => sheet(t('sn_cloudflare_prices'), t('p88_pr_lead'), `${err ? `<div class="banner bad">${I.warn}<div>${t('p88_pr_err')}</div></div>` : ''}<div class="grid2">${[['p88_pr_a', 'r2ClassAPerMillion', '$'], ['p88_pr_b', 'r2ClassBPerMillion', '$'], ['p88_pr_s', 'r2StoragePerGbMonth', '$'], ['p88_pr_fa', 'r2FreeClassAMillions'], ['p88_pr_fb', 'r2FreeClassBMillions'], ['p88_pr_fs', 'r2FreeStorageGbMonths'], ['p88_pr_wm', 'workersMonthly', '$'], ['p88_pr_wi', 'workersIncludedMillions'], ['p88_pr_wp', 'workersPerMillion', '$']].map(([k, f, cur]) => field(t(k), cur ? `<div class="inwrap"><span class="pre">$</span>${input(err && f === 'r2ClassBPerMillion' ? '-0.36' : DEFAULT_PRICES_88[f], 'mono', '', 'inputmode=decimal')}</div>` : input(DEFAULT_PRICES_88[f], 'mono', '', 'inputmode=numeric'))).join('')}</div>${field(t('reason'), textarea('', ''), t('reason_help'))}`, `${backTo('p88-settings-media')}${btn(t('save'), 'primary', "go('p88-settings-media')")}`, { row: true, close: 'p88-settings-media' });
+const p88PricesSheet = (err) => sheet(t('sn_cloudflare_prices'), t('p88_pr_lead'), `${err ? `<div class="banner bad">${I.warn}<div>${t('p88_pr_err')}</div></div>` : ''}<div class="grid2">${[['p88_pr_a', 'r2ClassAPerMillion', '$'], ['p88_pr_b', 'r2ClassBPerMillion', '$'], ['p88_pr_s', 'r2StoragePerGbMonth', '$'], ['p88_pr_fa', 'r2FreeClassAMillions'], ['p88_pr_fb', 'r2FreeClassBMillions'], ['p88_pr_fs', 'r2FreeStorageGbMonths']].map(([k, f, cur]) => field(t(k), cur ? `<div class="inwrap"><span class="pre">$</span>${input(err && f === 'r2ClassBPerMillion' ? '-0.36' : DEFAULT_PRICES_88[f], 'mono', '', 'inputmode=decimal')}</div>` : input(DEFAULT_PRICES_88[f], 'mono', '', 'inputmode=numeric'))).join('')}</div>${field(t('reason'), textarea('', ''), t('reason_help'))}`, `${backTo('p88-settings-media')}${btn(t('save'), 'primary', "go('p88-settings-media')")}`, { row: true, close: 'p88-settings-media' });
 def('p88-setting-prices', { ...P88_SET, label: '· change Cloudflare\'s prices (sheet)', anchor: 'p37-g15', render: () => settingsPage(), sheet: () => p88PricesSheet(false) });
 def('p88-setting-prices-bad', { ...P88_SET, label: '· refused: a price below 0 (sheet)', anchor: 'p37-g15', render: () => settingsPage(), sheet: () => p88PricesSheet(true) });
 

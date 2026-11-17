@@ -34,11 +34,7 @@ const SPLITS: readonly SalesBucket[] = [
 ];
 // The select's value back to its split.
 const SPLIT_OF = new Map<string, SalesBucket>(SPLITS.map((each) => [each, each]));
-const METRICS: readonly ConsumerMetric[] = [
-  ConsumerMetric.Storage,
-  ConsumerMetric.Bandwidth,
-  ConsumerMetric.Sms,
-];
+const METRICS: readonly ConsumerMetric[] = [ConsumerMetric.Storage, ConsumerMetric.Sms];
 const TABS: readonly { kind: ReportKind; view: ReportsSearch['view'] }[] = [
   { kind: 'revenue', view: undefined },
   { kind: 'shops', view: 'shops' },

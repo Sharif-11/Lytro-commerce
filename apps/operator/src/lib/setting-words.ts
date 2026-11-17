@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next';
 import {
-  cloudflarePricesSchema,
   DEFAULT_CLOUDFLARE_PRICES,
+  storedCloudflarePricesSchema,
   type CloudflarePrices,
 } from '@lytronix/validators';
 import { isUnset, settingUnitOf, type SettingUnit } from './setting-shapes';
@@ -25,9 +25,10 @@ export const COUNTED: readonly SettingUnit[] = [
 /** D8-68: an hour of the help line as a 24-hour time, "09:00". */
 export const hourWords = (hour: number): string => `${String(hour).padStart(2, '0')}:00`;
 
-/** D8-60: Cloudflare's prices as stored, read by the one shape the server checks them against. */
+/** D8-60: Cloudflare's prices as stored, read as the server reads them: a sheet saved with Workers' prices before D9-31
+    still reads, its R2 prices kept. */
 export function pricesOf(value: unknown): CloudflarePrices {
-  return cloudflarePricesSchema.safeParse(value).data ?? DEFAULT_CLOUDFLARE_PRICES;
+  return storedCloudflarePricesSchema.safeParse(value).data ?? DEFAULT_CLOUDFLARE_PRICES;
 }
 
 /** D8-60: Cloudflare's prices in one line, as the media group's row shows them. */
@@ -37,7 +38,6 @@ export function pricesWords(value: unknown, t: TFunction): string {
     a: usd(prices.r2ClassAPerMillion),
     b: usd(prices.r2ClassBPerMillion),
     c: `$${String(prices.r2StoragePerGbMonth)}`,
-    d: usd(prices.workersMonthly),
   });
 }
 

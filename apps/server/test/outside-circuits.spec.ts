@@ -6,8 +6,8 @@ import { BREAKER_FAILURES } from '../src/common/circuit-breaker';
 import { StorageUnavailable } from '../src/common/errors/media-refused';
 import { R2UsageUnavailable } from '../src/modules/media-costs/ports/r2-usage';
 import { CloudflareR2Usage } from '../src/modules/media-costs/providers/cloudflare-r2-usage';
-import { EdgeUnavailable } from '../src/modules/media/ports/media-edge';
-import { CloudflareMediaEdge } from '../src/modules/media/providers/cloudflare-media-edge';
+import { CacheUnavailable } from '../src/modules/media/ports/media-cache';
+import { CloudflareMediaCache } from '../src/modules/media/providers/cloudflare-media-cache';
 import { S3MediaStorage } from '../src/modules/media/providers/s3-media-storage';
 import { OauthCalls } from '../src/modules/identity/providers/oauth-calls';
 
@@ -70,17 +70,17 @@ describe('the new circuits (PRF-05, D9-17)', () => {
       return { fetcher, calls: () => calls };
     };
 
-    it('the edge stops calling after five failures, still answering as Cloudflare being away', async () => {
+    it("the media cache's purge stops calling after five failures, still answering as Cloudflare being away", async () => {
       const { fetcher, calls } = failing();
-      const edge = new CloudflareMediaEdge(
-        { accountId: 'a', apiToken: 't', kvNamespaceId: 'k', dataset: 'd' },
+      const cache = new CloudflareMediaCache(
+        { zoneId: 'z', apiToken: 't', mediaBaseUrl: 'https://media.lytro.app' },
         fetcher,
       );
-      const write = () => edge.write({ origins: [{ tenantId: 's', origins: [] }] });
+      const purge = () => cache.purgeFolder('tenants/s/');
       for (let index = 0; index < BREAKER_FAILURES; index += 1) {
-        await expect(write()).rejects.toBeInstanceOf(EdgeUnavailable);
+        await expect(purge()).rejects.toBeInstanceOf(CacheUnavailable);
       }
-      await expect(write()).rejects.toBeInstanceOf(EdgeUnavailable);
+      await expect(purge()).rejects.toBeInstanceOf(CacheUnavailable);
       expect(calls()).toBe(BREAKER_FAILURES);
     });
 

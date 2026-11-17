@@ -182,9 +182,9 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
   }
 
   /**
-   * RTE-11, PLN-15: a request pack of `added` requests was just bought, in `tx`. As for bandwidth (BND-04), a pack bought
-   * past the allowance adds its full amount on top of what is used -- this server's unstored count with the stored one
-   * -- the warnings start again against the new allowance, and a failed auto-buy may try again.
+   * RTE-11, PLN-15: a request pack of `added` requests was just bought, in `tx`. A pack bought past the allowance adds
+   * its full amount on top of what is used -- this server's unstored count with the stored one -- the warnings start
+   * again against the new allowance, and a failed auto-buy may try again.
    */
   async packBought(
     tx: Transaction,

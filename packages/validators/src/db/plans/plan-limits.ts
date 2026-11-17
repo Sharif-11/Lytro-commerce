@@ -19,7 +19,8 @@ export const planLimitsSchema = z.object({
   staff: unlimitedInt(),
   paired_devices: unlimitedInt(),
   storage_mb: unlimitedInt(),
-  bandwidth_gb: unlimitedInt(),
+  // Media bandwidth is no limit (D9-31): public media is served from Cloudflare's cache, uncounted. See
+  // RETIRED_LIMIT_KEYS for the `bandwidth_gb` shops' snapshots and overrides may still hold.
   essential_sms_total: unlimitedInt(),
   essential_sms_monthly: unlimitedInt(),
   // RTE-03 (2.1): requests the shop's keys may make in a billing cycle (a month from the period's start; pay-as-you-go
@@ -50,12 +51,25 @@ export const LIMIT_WHEN_UNSET: Readonly<Record<UsageLimitKey, number | null>> = 
   // The trial's one listener device (TRL-03).
   paired_devices: 1,
   storage_mb: null,
-  bandwidth_gb: null,
   essential_sms_total: null,
   essential_sms_monthly: null,
   // The Trial plan's figure (2.1), until the operator sets the plan's own.
   requests_monthly: 20_000,
 };
+
+/**
+ * Limits that no longer exist. Migration 0137 took them out of the plans; a shop's plan snapshot and its overrides
+ * may still name them, so composing a shop's limits drops them (D9-31: media bandwidth).
+ */
+export const RETIRED_LIMIT_KEYS: ReadonlySet<string> = new Set(['bandwidth_gb']);
+
+/** A shop's stored limits without the retired ones, or the same object when it names none. */
+function withoutRetired(limits: PlanLimits | null): PlanLimits | null {
+  if (limits === null || !Object.keys(limits).some((key) => RETIRED_LIMIT_KEYS.has(key))) {
+    return limits;
+  }
+  return Object.fromEntries(Object.entries(limits).filter(([key]) => !RETIRED_LIMIT_KEYS.has(key)));
+}
 
 /** AUD-06: how many days an activity log entry is kept when the shop's limits set no retention period. */
 export const ACTIVITY_RETENTION_DAYS_WHEN_UNSET = 30;
@@ -105,9 +119,10 @@ export function withOverrides(
   snapshot: PlanLimits | null,
   overrides: readonly { limitKey: string; value: unknown }[],
 ): PlanLimits | null {
-  if (overrides.length === 0) return snapshot;
-  const merged: Record<string, unknown> = { ...(snapshot ?? {}) };
-  for (const override of overrides) {
+  const kept = overrides.filter((override) => !RETIRED_LIMIT_KEYS.has(override.limitKey));
+  if (kept.length === 0) return withoutRetired(snapshot);
+  const merged: Record<string, unknown> = { ...(withoutRetired(snapshot) ?? {}) };
+  for (const override of kept) {
     merged[override.limitKey] = override.value;
   }
   return merged;
@@ -167,7 +182,7 @@ export function limitPartsOf(
   >;
   const plan = (snapshot ?? {}) as Record<string, unknown>;
   return Object.keys(effective).map((key) => {
-    const overridden = overrides !== null && key in overrides;
+    const overridden = overrides !== null && key in overrides && !RETIRED_LIMIT_KEYS.has(key);
     return {
       key,
       plan: plan[key] ?? null,

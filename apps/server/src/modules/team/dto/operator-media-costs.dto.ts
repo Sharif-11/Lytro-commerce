@@ -53,23 +53,8 @@ export const mediaCostsViewSchema = z.object({
       }),
     ),
   }),
-  workers: z.object({
-    requests: z.number().int(),
-    bytes: z.number().int(),
-    billableMillions: z.number().int(),
-    monthly: dollars,
-    cost: dollars,
-  }),
+  // R2 is the whole bill: public media is served from Cloudflare's cache, which bills nothing (D9-31).
   total: dollars,
-  topShops: z.array(
-    z.object({
-      tenantId: z.string().uuid(),
-      name: z.string(),
-      slug: z.string(),
-      requests: z.number().int(),
-      bytes: z.number().int(),
-    }),
-  ),
   periods: z.array(z.object({ dateFrom: z.string(), dateTo: z.string() })),
   prices: cloudflarePricesSchema,
 });

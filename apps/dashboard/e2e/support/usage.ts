@@ -1,8 +1,8 @@
 import { GROWTH } from './catalogue';
 
 // The usage page and the add-on catalogue against a mocked API (Slice 11.5c), the figures the prototype draws for
-// Megh Fashion on Starter: 80 of 100 products, a seat of two, 0.9 of 2 GB stored, 18.6 of 30 GB of bandwidth, 48,210
-// of 200,000 requests and 6 of 10 free SMS, 20 days into a cycle, with the sketch's day bars.
+// Megh Fashion on Starter: 80 of 100 products, a seat of two, 0.9 of 2 GB stored, 48,210 of 200,000 requests and 6 of
+// 10 free SMS, 20 days into a cycle, with the sketch's day bars. Media bandwidth is no limit (D9-31).
 
 const GB = 1024 * 1024 * 1024;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -11,7 +11,6 @@ export type Metric =
   | 'products'
   | 'seats'
   | 'storage'
-  | 'bandwidth'
   | 'requests'
   | 'essential_sms_monthly'
   | 'essential_sms_total'
@@ -21,14 +20,14 @@ export type Metric =
 
 /** The usage page's state where a test needs it to differ from the drawn shop's. */
 export interface UsageFixture {
-  /** Each metric's use, in its own unit: GB for storage and bandwidth. */
+  /** Each metric's use, in its own unit: GB for storage. */
   used?: Partial<Record<Metric, number>>;
-  /** Each metric's limit (the allowance, for bandwidth and requests), likewise; null is unlimited. */
+  /** Each metric's limit (the allowance, for requests), likewise; null is unlimited. */
   limits?: Partial<Record<Metric, number | null>>;
-  /** The server's run-out date for bandwidth or requests, in days from now. */
-  runsOutDays?: Partial<Record<'bandwidth' | 'requests', number>>;
-  /** Auto-buy for bandwidth: on, could not pay, packs bought this cycle. */
-  autoBuy?: { bandwidth?: boolean; failed?: boolean; packs?: number };
+  /** The server's run-out date for requests, in days from now. */
+  runsOutDays?: Partial<Record<'requests', number>>;
+  /** Auto-buy for requests: on, could not pay, packs bought this cycle. */
+  autoBuy?: { requests?: boolean; failed?: boolean; packs?: number };
   /** A trial: its free SMS a total of 8, and nothing for sale. */
   trial?: boolean;
 }
@@ -37,7 +36,6 @@ const DRAWN_USED: Record<Metric, number> = {
   products: 80,
   seats: 1,
   storage: 0.9,
-  bandwidth: 18.6,
   requests: 48_210,
   essential_sms_monthly: 6,
   essential_sms_total: 0,
@@ -49,7 +47,6 @@ const DRAWN_LIMITS: Record<Metric, number> = {
   products: 100,
   seats: 2,
   storage: 2,
-  bandwidth: 30,
   requests: 200_000,
   essential_sms_monthly: 10,
   essential_sms_total: 8,
@@ -57,13 +54,9 @@ const DRAWN_LIMITS: Record<Metric, number> = {
   orders_daily: 50,
   orders_total: 25,
 };
-const BYTES: ReadonlySet<Metric> = new Set(['storage', 'bandwidth']);
-const SERVING: ReadonlySet<Metric> = new Set(['bandwidth', 'requests']);
-// The sketch's bars: GB of bandwidth, and thousands of requests, a day.
-const BANDWIDTH_DAYS = [
-  0.6, 0.9, 0.5, 1.1, 1.4, 0.8, 1.6, 1.2, 0.7, 1.3, 1.9, 0.9, 1.1, 1.7, 2.2, 1.4, 0.9, 1.2, 0.8,
-  1.8, 2.4,
-];
+const BYTES: ReadonlySet<Metric> = new Set(['storage']);
+const SERVING: ReadonlySet<Metric> = new Set(['requests']);
+// The sketch's bars: thousands of requests a day.
 const REQUEST_DAYS = [
   1.2, 1.5, 1.0, 1.9, 2.2, 1.4, 2.6, 2.0, 1.3, 2.1, 3.0, 1.6, 1.9, 2.7, 3.4, 2.3, 1.5, 2.0, 1.4,
   2.9, 3.6,
@@ -81,12 +74,6 @@ const RAISES: Partial<
   },
   seats: { addonId: 'a-seat', key: 'extra_seat', name: 'One seat', monthly: 49 },
   storage: { addonId: 'a-storage', key: 'extra_storage', name: '1 GB storage', monthly: 29 },
-  bandwidth: {
-    addonId: 'a-bandwidth',
-    key: 'bandwidth_pack',
-    name: '10 GB bandwidth',
-    monthly: 30,
-  },
   requests: { addonId: 'a-requests', key: 'request_pack', name: '100,000 requests', monthly: 20 },
 };
 
@@ -126,20 +113,11 @@ export function usageAnswer(fixture: UsageFixture & AddonsFixture = {}): unknown
   const cycleStart = new Date(`${firstDay}T00:00:00+06:00`).toISOString();
   const cycleEnd = new Date(Date.parse(cycleStart) + 31 * DAY_MS).toISOString();
   const metrics: Metric[] = fixture.trial
-    ? [
-        'products',
-        'seats',
-        'storage',
-        'bandwidth',
-        'requests',
-        'orders_total',
-        'essential_sms_total',
-      ]
+    ? ['products', 'seats', 'storage', 'requests', 'orders_total', 'essential_sms_total']
     : [
         'products',
         'seats',
         'storage',
-        'bandwidth',
         'requests',
         'orders_monthly',
         'orders_daily',
@@ -154,7 +132,7 @@ export function usageAnswer(fixture: UsageFixture & AddonsFixture = {}): unknown
         ? null
         : (given ?? DRAWN_LIMITS[metric] + addedBy(fixture.owned ?? [], metric)) * scale;
     const serving = SERVING.has(metric);
-    const days = serving ? fixture.runsOutDays?.[metric as 'bandwidth' | 'requests'] : undefined;
+    const days = serving ? fixture.runsOutDays?.[metric as 'requests'] : undefined;
     return {
       metric,
       used,
@@ -195,11 +173,6 @@ export function usageAnswer(fixture: UsageFixture & AddonsFixture = {}): unknown
     cycleStart,
     cycleEnd,
     metrics: figures,
-    bandwidthDays: BANDWIDTH_DAYS.map((value, index) => ({
-      day: dhakaDay(Date.parse(cycleStart) + index * DAY_MS),
-      bytes: Math.round(value * GB),
-      requests: 0,
-    })),
     requestDays: REQUEST_DAYS.map((value, index) => ({
       day: dhakaDay(Date.parse(cycleStart) + index * DAY_MS),
       requests: Math.round(value * 1000),
@@ -212,22 +185,13 @@ export function usageAnswer(fixture: UsageFixture & AddonsFixture = {}): unknown
     fastSpendAlertedAt: null,
     packs: [
       {
-        metric: 'bandwidth',
-        offer: fixture.trial
-          ? null
-          : { addonId: 'a-bandwidth', name: '10 GB bandwidth', price: 30 },
-        autoBuy: auto.bandwidth ?? false,
-        autoPacks: auto.packs ?? 0,
-        autoBuyFailed: auto.failed ?? false,
-      },
-      {
         metric: 'requests',
         offer: fixture.trial
           ? null
           : { addonId: 'a-requests', name: '100,000 requests', price: 20 },
-        autoBuy: false,
-        autoPacks: 0,
-        autoBuyFailed: false,
+        autoBuy: auto.requests ?? false,
+        autoPacks: auto.packs ?? 0,
+        autoBuyFailed: auto.failed ?? false,
       },
     ],
   };
@@ -244,7 +208,7 @@ interface CatalogueItem {
   labelBn: string;
 }
 
-/** The catalogue as the prototype names it (PLN-13): ৳149, ৳49 and ৳29 a month, the brand, and the two packs. */
+/** The catalogue as the prototype names it (PLN-13): ৳149, ৳49 and ৳29 a month, the brand, and the request pack. */
 export const CATALOGUE: CatalogueItem[] = [
   {
     id: 'a-products',
@@ -275,16 +239,6 @@ export const CATALOGUE: CatalogueItem[] = [
     price: 29,
     labelEn: '1 GB storage',
     labelBn: '1 GB স্টোরেজ',
-  },
-  {
-    id: 'a-bandwidth',
-    key: 'bandwidth_pack',
-    kind: 'pack',
-    limitKey: 'bandwidth_gb',
-    unitSize: 10,
-    price: 30,
-    labelEn: '10 GB bandwidth',
-    labelBn: '10 GB ব্যান্ডউইথ',
   },
   {
     id: 'a-requests',
@@ -323,8 +277,8 @@ export interface OwnedFixture {
 /** The add-ons screen's state (Slice 11.5c), where a test needs it to differ from a shop with none. */
 export interface AddonsFixture {
   owned?: OwnedFixture[];
-  /** What is left of the packs: GB of bandwidth, requests. */
-  packsLeft?: { bandwidth?: number; requests?: number };
+  /** What is left of the packs: requests. */
+  packsLeft?: { requests?: number };
   /** An item's reason it cannot be bought, by key (a limit already unlimited on Pro, say). */
   blocked?: Record<string, string>;
   /** BIL-09: the server works out this amount for the next request instead of the one shown, and says so once. */
@@ -371,11 +325,10 @@ export function shopAddonsAnswer(fixture: AddonsFixture & UsageFixture = {}): un
     brandIdentity: owned.some((each) => each.key === 'brand_identity'),
     packs: [
       {
-        metric: 'bandwidth',
-        left: Math.round((fixture.packsLeft?.bandwidth ?? 0) * GB),
-        autoBuy: fixture.autoBuy?.bandwidth ?? false,
+        metric: 'requests',
+        left: fixture.packsLeft?.requests ?? 0,
+        autoBuy: fixture.autoBuy?.requests ?? false,
       },
-      { metric: 'requests', left: fixture.packsLeft?.requests ?? 0, autoBuy: false },
     ],
   };
 }

@@ -6,6 +6,7 @@ import type { MediaStore } from '../ports/media-store';
 import { MEDIA_STORE } from '../tokens';
 
 export const MB = 1024 * 1024;
+export const GB = 1024 * MB;
 
 // STO-04, STO-05: the largest file of each kind, unless the operator has set another (2.1, "editable"). A video may be
 // 150 MB (STO-05, amended 2026-10-21), so a 1-minute 1080p phone clip fits.

@@ -1,5 +1,5 @@
 {
-  "id": "4c62dbd1-243a-454c-b3c5-9dfdbd3873ef",
+  "id": "e86d8a75-a743-4371-8465-739aa3c1d960",
   "prevId": "5b15b323-48ec-4ec3-b7d9-69266ca13476",
   "version": "7",
   "dialect": "postgresql",
@@ -1217,24 +1217,6 @@
         "business_address": {
           "name": "business_address",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "whatsapp": {
-          "name": "whatsapp",
-          "type": "varchar(30)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "messenger": {
-          "name": "messenger",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "facebook_page": {
-          "name": "facebook_page",
-          "type": "varchar(300)",
           "primaryKey": false,
           "notNull": false
         },

@@ -128,7 +128,6 @@ export function shopFigures(shop: ShopFixture): Record<string, unknown> {
         metric('products', 512, 600),
         metric('seats', 2, 3),
         metric('storage', 1.31e9, 2e9, 'bytes'),
-        metric('bandwidth', 18.4e9, 50e9, 'bytes'),
         metric('requests', 141200, 240000),
         metric('orders_monthly', 212, 300),
         metric('essential_sms_monthly', 7, 10),

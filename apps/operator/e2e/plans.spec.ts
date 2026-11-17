@@ -180,7 +180,7 @@ test('the editor shows what is set, and saves the next version', async ({ page }
   ).toBeVisible();
 
   await panel.getByRole('textbox', { name: 'Products', exact: true }).fill('150');
-  await panel.getByRole('checkbox', { name: 'Unlimited Bandwidth, GB' }).check();
+  await panel.getByRole('checkbox', { name: 'Unlimited API requests, monthly' }).check();
   await panel.getByRole('textbox', { name: 'Storage, MB' }).fill('');
   await panel.getByRole('button', { name: 'ai_reply' }).click();
   await panel.getByRole('button', { name: 'Save as v4' }).click();
@@ -193,7 +193,9 @@ test('the editor shows what is set, and saves the next version', async ({ page }
   };
   expect(sent.limits.products).toBe(150);
   // Unlimited is null; an emptied limit is left out, for the reader's own default.
-  expect(sent.limits.bandwidth_gb).toBeNull();
+  expect(sent.limits.requests_monthly).toBeNull();
+  // Media bandwidth is no limit (D9-31): the editor has no field for it.
+  expect('bandwidth_gb' in sent.limits).toBe(false);
   expect('storage_mb' in sent.limits).toBe(false);
   expect(sent.limits.essential_sms_total).toBeNull();
   expect(sent.features.ai_reply).toBe(true);

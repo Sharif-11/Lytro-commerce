@@ -5165,16 +5165,17 @@ function usagePairs(): Pair[] {
     one('usage', {}),
     one('usage', {}, 'tablet'),
     one('usage', {}, 'desktop', 'en'),
-    one('usage-80', { used: { ...quiet, bandwidth: 24 }, runsOutDays: { bandwidth: 5 } }),
-    one('usage-warning', { used: { ...quiet, bandwidth: 28.5 }, runsOutDays: { bandwidth: 1 } }),
+    // Media bandwidth is no limit (D9-31): API requests, the one metric with packs, draw the serving states.
+    one('usage-80', { used: { ...quiet, requests: 160_000 }, runsOutDays: { requests: 5 } }),
+    one('usage-warning', { used: { ...quiet, requests: 190_000 }, runsOutDays: { requests: 1 } }),
     one(
       'usage-warning',
-      { used: { ...quiet, bandwidth: 28.5 }, runsOutDays: { bandwidth: 1 } },
+      { used: { ...quiet, requests: 190_000 }, runsOutDays: { requests: 1 } },
       'desktop',
       'en',
     ),
-    one('usage-100', { used: { ...quiet, bandwidth: 31 } }),
-    one('usage-stopped', { used: { ...quiet, bandwidth: 33 } }),
+    one('usage-100', { used: { ...quiet, requests: 205_000 } }),
+    one('usage-stopped', { used: { ...quiet, requests: 220_000 } }),
     one('usage-requests-95', {
       used: { ...quiet, requests: 190_000 },
       runsOutDays: { requests: 1 },
@@ -5183,14 +5184,14 @@ function usagePairs(): Pair[] {
     one('usage-storage-full', { used: { ...quiet, storage: 2 } }),
     one('usage-sms-used', { used: { ...quiet, essential_sms_monthly: 10 } }),
     one('usage-autobuy-failed', {
-      used: { ...quiet, bandwidth: 30.4 },
-      autoBuy: { bandwidth: true, failed: true },
+      used: { ...quiet, requests: 204_000 },
+      autoBuy: { requests: true, failed: true },
     }),
     one('usage-autobuy-capped', {
-      used: { ...quiet, bandwidth: 57 },
-      limits: { bandwidth: 60 },
-      runsOutDays: { bandwidth: 1 },
-      autoBuy: { bandwidth: true, packs: 3 },
+      used: { ...quiet, requests: 475_000 },
+      limits: { requests: 500_000 },
+      runsOutDays: { requests: 1 },
+      autoBuy: { requests: true, packs: 3 },
     }),
   ];
 }
@@ -5199,8 +5200,8 @@ function usagePairs(): Pair[] {
 function addonPairs(): Pair[] {
   const has: AddonsFixture & UsageFixture = {
     owned: [{ key: 'extra_products' }, { key: 'extra_seat' }, { key: 'brand_identity' }],
-    packsLeft: { bandwidth: 6.2, requests: 61_400 },
-    autoBuy: { bandwidth: true },
+    packsLeft: { requests: 61_400 },
+    autoBuy: { requests: true },
   };
   const one = (
     screen: string,
@@ -5349,21 +5350,21 @@ function addonPairs(): Pair[] {
     one('sh-addon-renew-off', has, { then: turnOff('আরও 500 প্রোডাক্ট') }),
     one('sh-addon-renew-off-seat', has, { then: turnOff('একটা সিট') }),
     one('sh-addon-renew-off-brand', has, { then: turnOff('ব্র্যান্ড আইডেন্টিটি') }),
-    one('sh-pack-buy', has, { path: '/addons?pack=bandwidth' }),
+    one('sh-pack-buy', has, { path: '/addons?pack=requests' }),
     one('sh-pack-buy-req', has, { path: '/addons?pack=requests' }),
     one('sh-pack-buy-low', has, {
-      path: '/addons?pack=bandwidth',
+      path: '/addons?pack=requests',
       shopState: { money: { balance: '12.00' } },
     }),
     one(
       'sh-pack-buy-changed',
-      { ...has, amountChangedTo: '35.00' },
+      { ...has, amountChangedTo: '25.00' },
       {
-        path: '/addons?pack=bandwidth',
+        path: '/addons?pack=requests',
         then: async (page) => {
           await page
             .getByRole('dialog')
-            .getByRole('button', { name: /· ৳30$/ })
+            .getByRole('button', { name: /· ৳20$/ })
             .click();
           await page.waitForTimeout(300);
         },
@@ -5372,7 +5373,7 @@ function addonPairs(): Pair[] {
     {
       ...one('plan', {
         owned: [{ key: 'extra_products' }, { key: 'extra_seat' }],
-        packsLeft: { bandwidth: 6.2 },
+        packsLeft: { requests: 61_400 },
       }),
       name: 'plan-addons-card',
       path: '/plan',

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
-  cloudflarePricesSchema,
+  storedCloudflarePricesSchema,
   DEFAULT_CLOUDFLARE_BILLING_DAY,
   DEFAULT_CLOUDFLARE_PRICES,
   DEFAULT_MEDIA_BUDGET_ALERT_PERCENT,
@@ -44,7 +44,7 @@ export class MediaCostSettings {
   /** D8-60: Cloudflare's prices, the defaults until the operator changes them. */
   async prices(): Promise<CloudflarePrices> {
     const setting = await this.settings.current(PlatformSettingKey.CloudflarePrices);
-    const parsed = cloudflarePricesSchema.safeParse(setting?.value);
+    const parsed = storedCloudflarePricesSchema.safeParse(setting?.value);
     return parsed.success ? parsed.data : DEFAULT_CLOUDFLARE_PRICES;
   }
 

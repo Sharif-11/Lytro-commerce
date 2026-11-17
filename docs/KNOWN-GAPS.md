@@ -2639,3 +2639,26 @@ The pass is recorded in `SECURITY-PASS.md`. What it leaves:
    when it runs, passes unseen.
 6. **Migrations 0001 to 0134 are trusted as they ran.** Four were edited after running in development (0021, 0029,
    0062, 0067) and 0039 to 0043 carry early times, so the runner checks order and unchanged text from 0135 on.
+
+## 149. `D9-31`, `MED-02`, `MED-10`: what public media without the Worker leaves open — found 2026-11-17, open
+
+Public media is served from the media bucket's own address behind Cloudflare's cache, and media bandwidth is no longer a
+limit (the owner, 2026-11-17). What it leaves:
+
+1. **Cloudflare's side is the owner's to switch** (DEPLOYMENT §8, "The media address's setup"): the bucket's custom
+   domain in place of the Worker's, its CORS policy, the cache and header rules, Smart Tiered Cache, the token's Cache
+   Purge permission with `CLOUDFLARE_ZONE_ID`, then the Worker, its KV namespace and dataset deleted, and the Workers
+   Paid plan cancelled if nothing else uses it. Staging first. Until the switch, the Worker keeps serving and counting,
+   and nothing reads what it counts.
+2. **The old bandwidth tables stay** (`control.media_bandwidth`, `control.media_bandwidth_daily`,
+   `control.media_usage_pull`, `control.tenants.auto_buy_bandwidth`): a later release drops them as the contract of
+   0137, once no release reads them.
+3. **A single file a seller deletes stays in Cloudflare's cache** until it expires: only a lapsed shop's whole folder is
+   purged (MED-10). The Worker's cache kept such files too; a seller's own file is reached only by its exact address.
+4. **A suspended or closed shop's files stay reachable** by their direct links (the owner's answer). Taking a shop's
+   media down for abuse means deleting it, which purges the folder.
+5. **The purge has no batching**: Cloudflare's free plan allows 5 purge requests a minute, and one lapsed shop is one
+   request, retried by its job when refused. The edge cache of shop pages (9.10's next read) needs a queue that
+   batches tags; this purge can join it.
+6. **A pack's size in Bangla** is written 100,000 on the usage page and its auto-buy switch, where the prototype and
+   the add-ons sheet write 1,00,000 (`packSize` uses en-US). It was so before; it is on the small-fixes list.

@@ -77,7 +77,7 @@ export interface TenantStore {
   setPackAutoBuy(
     tx: Transaction,
     tenantId: string,
-    values: { autoBuyBandwidth?: boolean; autoBuyRequests?: boolean },
+    values: { autoBuyRequests: boolean },
   ): Promise<void>;
   /** DWN-11: protects the tenant's pre-downgrade retention until `until`. */
   setRetentionFloor(

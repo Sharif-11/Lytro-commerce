@@ -77,19 +77,17 @@ again 90 days later.
 | `MEDIA_SIGNER_*` | Object Read & Write, the uploads bucket only | signing browser uploads (`S3MediaStorage.signUpload`) | — | — |
 | `MEDIA_PROCESSOR_*` | Object Read & Write, the uploads, media and evidence buckets | the processing job: reading and clearing uploads, writing media, listing for the nightly run; payment screenshots (D8-47) | — | — |
 | `MEDIA_DELETER_*` | Object Read & Write, the media and evidence buckets | the deletion jobs only (`MediaDeleter`, and the two-year removal of screenshots, D8-47) | — | — |
-| Media Worker's `R2_*` secrets | **Object Read only**, the media bucket only | serving media (`apps/media-worker`, `S3Origin`); a write fails at R2 itself | — | — |
-| `MEDIA_LINK_SECRET` (the Worker's secret and the server's setting) | signs and checks private links (BND-07) | the server signs, the Worker checks | — | — |
-| `CLOUDFLARE_API_TOKEN` (with `CLOUDFLARE_ACCOUNT_ID` and `MEDIA_EDGE_KV_NAMESPACE_ID`) | an account API token, not an R2 one: **Account Analytics: Read** and **Workers KV Storage: Edit**, this account only | the minute's bandwidth pass (`CloudflareMediaEdge`): reading the Worker's usage, writing the blocked list and each shop's website addresses to its KV store; and each hour's read of R2's own figures for the media costs page (`CloudflareR2Usage`, Slice 8.6, GraphQL analytics) | — | — |
+| `CLOUDFLARE_API_TOKEN` (with `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_ZONE_ID`) | an account API token, not an R2 one: **Account Analytics: Read**, this account, and **Zone: Cache Purge**, lytro.app only (D9-31) | each hour's read of R2's own figures for the media costs page (`CloudflareR2Usage`, Slice 8.6, GraphQL analytics); purging a lapsed shop's media folder from Cloudflare's cache (`CloudflareMediaCache`, MED-10) | — | — |
 
 **Accepted limit: R2 cannot split writing from deleting** (decided 2026-10-21, confirmed 2026-10-28, KNOWN-GAPS §78).
 R2 tokens come only as read, or read and write, per bucket, and read and write includes deleting; a Worker's R2 binding
 allows both too. So the processor's key can delete media, though no code path does: only `MediaDeleter` deletes, and
-the processor sends its own leftovers to it. The media Worker cannot write at all (its token is read only). It stays an
+the processor sends its own leftovers to it. The public media address (D9-31) cannot write at all. It stays an
 accepted risk next to the media loss entry in the risk register (SRS.md §17).
 
 **Checked on the development keys, 2026-10-28** (`lytro-dev-*` tokens on `lytro-dev-uploads` and `lytro-dev-media`):
-the signer cannot write media; the processor writes and also deletes media; the deleter deletes media; the Worker's
-token lists and reads the media bucket and is refused writing to it and reading the uploads bucket (403 each). Run the
+the signer cannot write media; the processor writes and also deletes media; the deleter deletes media. (The media
+Worker's read-only token, checked then too, was retired with the Worker, D9-31.) Run the
 check again on the production keys when they are made, and add the date here.
 
 **Check a key's scope** — after making or rotating one, from a machine with that `.env`:
@@ -116,19 +114,18 @@ deleter deletes from the media bucket: yes
 4. Revoke the old token in the dashboard, and write today's date in the table.
 
 The `CLOUDFLARE_API_TOKEN` is made and rolled under My Profile → API Tokens instead, with the two permissions the
-table names. After a restart with the new value, the server log shows no `MediaBandwidth` error within two minutes;
-then revoke the old one. While the token is refused, bandwidth is not totalled and the blocked list is not written;
-the Worker keeps serving with the last list it read, and the minutes missed are totalled once the token works again.
-With the token unset, nothing is totalled at all, then or later.
+table names. After a restart with the new value, the next hour's media costs read succeeds (the console's media costs
+page shows a new "read" time); then revoke the old one. While the token is refused, the media costs page keeps its last
+figures and a lapsed shop's purge is retried by its job until the token works again.
 
 **Budget (MED-12, Slice 8.6).** The console's media costs page reads R2's own figures from Cloudflare each hour, with the
 same `CLOUDFLARE_API_TOKEN` (its Account Analytics: Read), and holds the period's estimate against the budget setting
 (`media_budget_usd`, $10 by default). Set `media_cost_alert_email` to the address the 80% alert goes to: until it's set
 the alert is only logged. If Cloudflare's invoice period doesn't start on the 1st, set `cloudflare_billing_day` to its
 day; when Cloudflare changes a price, change `cloudflare_prices`. Cloudflare's own billing notification is still worth
-keeping as a second net, since the estimate leaves out Workers' CPU time, KV and Analytics Engine. Each shop's stored
-bytes are the sum of its rows in `tenant.media_objects`; the bytes and requests the media Worker sent for it each cycle
-are its row in `control.media_bandwidth` (Slice 7b).
+keeping as a second net. Each shop's stored bytes are the sum of its rows in `tenant.media_objects`. Public media is
+served from Cloudflare's cache and is not counted per shop (D9-31); `control.media_bandwidth` holds only what the
+retired media Worker counted, until a later release drops it.
 
 ---
 

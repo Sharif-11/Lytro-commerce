@@ -13,7 +13,7 @@ Status: draft v1, 2026-10-02. Builds on `SRS-detailed.md` §26's suite skeleton 
 **S01-01 Sign-up by phone, full trial provisioning.**
 Preconditions: none (fresh phone number).
 Steps: 1) Continue with a new Bangladeshi phone number. 2) Receive and enter the 6-digit OTP within 5 minutes. 3) In the create-shop step enter the shop name, owner name and address. 4) Skip the set-password offer and both set-up questions. 5) Land on the dashboard.
-Expected: the account exists after step 2 with no tenant; after step 3 the owner user, tenant in `trial` and unique subdomain exist; dashboard shows 30-day trial limits (40 orders, 20 products, 200 MB storage, 5 GB bandwidth, 8 essential SMS) and a setup checklist; the "shop ready" SMS arrives at the phone containing the shop's live URL; essential-SMS counter reads 0 of 8 (the sign-up code and the shop-ready SMS are both platform cost, AUTH-21).
+Expected: the account exists after step 2 with no tenant; after step 3 the owner user, tenant in `trial` and unique subdomain exist; dashboard shows 30-day trial limits (40 orders, 20 products, 200 MB storage, 8 essential SMS) and a setup checklist; the "shop ready" SMS arrives at the phone containing the shop's live URL; essential-SMS counter reads 0 of 8 (the sign-up code and the shop-ready SMS are both platform cost, AUTH-21).
 Covers: `AUTH-04`, `AUTH-05`, `AUTH-10`, `AUTH-21`, `AUTH-28`, `TRL-01`, `TRL-03`, `SMS-18`, `SMS-01`.
 
 **S01-02 Sign-up abuse limits.**
@@ -248,9 +248,9 @@ Expected: catalogue changes take effect without a deploy, and a retired item can
 Covers: `PLN-13`, `PLN-14`, `UPG-14`, `BRN-05`.
 
 **S03-26 Packs and auto-buy.**
-Steps: reach 100% of bandwidth and of API requests 1) with auto-buy off, 2) with auto-buy on and enough balance, 3) with auto-buy on and too little balance.
+Steps: reach 100% of API requests 1) with auto-buy off, 2) with auto-buy on and enough balance, 3) with auto-buy on and too little balance.
 Expected: 1) a hard stop; 2) a pack is bought, the ledger shows it, and service continues; 3) service stops (429) and no pack is bought.
-Covers: `PLN-15`, `BND-04`, `RTE-11`.
+Covers: `PLN-15`, `RTE-11`.
 
 **S03-27 Allowance add-ons for fake-order checks and order reads.**
 Steps: 1) As a trial shop and as a pay-as-you-go shop, open the add-ons screen. 2) As a Starter shop on day 10 of 30, buy a [100]-check allowance from the balance. 3) Run checks until 100 have returned a result, including one repeat within 3 days, and force one failure along the way; then run one more. 4) Set an automatic check rule, then empty the balance with the allowance used up, and place a qualifying order. 5) Buy an order-read allowance, use it up, then read one more message with enough balance and once with too little. 6) Renew the plan once with the allowance set to renew and once with renewal off, then run a check after each period end.
@@ -289,7 +289,7 @@ Covers: `UPG-13`, `UPG-15` to `UPG-17`.
 
 **S03-20 Downgrade's remaining details: period-limit reset, audit trail, device overage.**
 Steps: 1) Let a scheduled downgrade's effective date pass — check per-period counters. 2) Review the audit log for every step (schedule, cancel, apply, each block/deactivation). 3) Downgrade a tenant with more paired listener devices than the new plan allows.
-Expected: per-period limits (orders, bandwidth, requests, sessions) use the new plan's values from the effective date; every step is individually audited; excess devices keep working but new pairing is blocked and the excess appears on the 30-day checklist.
+Expected: per-period limits (orders, requests, sessions) use the new plan's values from the effective date; every step is individually audited; excess devices keep working but new pairing is blocked and the excess appears on the 30-day checklist.
 Covers: `DWN-15` to `DWN-18`.
 
 **S03-21 Trial specifics: no payment method, no balance spend, visible countdown.**
@@ -352,7 +352,7 @@ Expected: one warning sent at 80%, once per period; `block` refuses the handling
 Covers: `QTA-02`, `QTA-03`.
 
 **S04-08 Metered-limit warning cadence, generically.**
-Steps: drive storage, bandwidth, and monthly requests each to 50%, 80%, 95%, then 100%.
+Steps: drive storage and monthly requests each to 50%, 80%, 95%, then 100%.
 Expected: warnings fire at each threshold exactly once; 100% refuses the relevant action (`429` for API/media) without taking the shop down entirely; a tenant may opt into an overage pack from balance, otherwise it's a hard stop.
 Covers: `LIM-01`, `LIM-02`, `LIM-03`.
 
@@ -371,10 +371,10 @@ Steps: on Starter, fire 11 order creations in one minute, and separately 601 pay
 Expected: the 11th order creation in that minute returns 429; the 601st session in the period returns `quota_exceeded`, independent of the order-handling limit since sessions are created near order creation (unlimited), not near handling.
 Covers: `RTE-08`, `RTE-09`.
 
-**S04-12 Media bandwidth metering and reset.**
-Steps: 1) Serve media through the Worker path, including a partial (range) request. 2) Drive a tenant's monthly bandwidth to 100%. 3) Let the billing period roll over.
-Expected: the Worker counts every request and the actual bytes sent (partial requests counted by bytes actually sent, not the full file); at 100% further media requests are refused; the counter resets at the new period.
-Covers: `BND-01` to `BND-03`, `BND-05` to `BND-07`, `BND-09`.
+**S04-12 Public media through Cloudflare's cache (amended 2026-11-17, D9-31).**
+Steps: 1) Request a product image twice, then the same image with a `Range` header. 2) Read it by script from another site. 3) Let a shop lapse to its day-60 deletion and request one of its files.
+Expected: the second request and the range are answered from Cloudflare's cache with no R2 read; the script reads it (CORS open for GET); after the deletion job the file is not answered from Cloudflare's cache. Nothing is counted per shop.
+Covers: `MED-02`, `MED-10`, `MED-13`, `BND-07`.
 
 ---
 
@@ -953,7 +953,7 @@ Expected: filters return correct results; entries are immutable (can't be edited
 Covers: `ADM-08`, `ADM-15`, `ADM-16`.
 
 **S11-11 Reports and daily operator digest.**
-Steps: pull tenant-count-by-state-and-plan, revenue-by-period, and top-consumer (storage/bandwidth/SMS) reports with CSV export; check for a daily summary digest.
+Steps: pull tenant-count-by-state-and-plan, revenue-by-period, and top-consumer (storage/SMS) reports with CSV export; check for a daily summary digest.
 Expected: figures match underlying records exactly; CSV exports correctly; a daily digest surfaces the kind of cross-tenant signal an operator would otherwise have to go looking for.
 Covers: `ADM-09`, `ADM-10`, `ADM-12`.
 
@@ -1052,7 +1052,7 @@ Expected: degraded mode visibly tightens limits and pauses heavy jobs; a misrout
 Covers: `DAT-38`, `DAT-41` to `DAT-47`, `DAT-51`.
 
 **S12-17 Usage-record retention for billing disputes.**
-Steps: raise a billing dispute referencing a usage record (SMS/AI/storage/bandwidth/API calls) older than the plan's normal activity-log retention; attempt to view another tenant's usage totals.
+Steps: raise a billing dispute referencing a usage record (SMS/AI/storage/API calls) older than the plan's normal activity-log retention; attempt to view another tenant's usage totals.
 Expected: usage records relevant to billing are retained long enough to resolve a dispute, independent of the shorter activity-log retention; a tenant's own totals are visible to them and the operator only, never another tenant's.
 Covers: `LOG-04`.
 

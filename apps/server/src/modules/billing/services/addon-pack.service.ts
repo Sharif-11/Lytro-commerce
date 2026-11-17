@@ -25,7 +25,6 @@ import { packTaken } from '../../../common/usage-warnings';
 import { AuditService } from '../../audit/services/audit.service';
 import { BalanceService } from '../../balance/services/balance.service';
 import { fromPaisa, toPaisa } from '../../balance/services/money';
-import { GB, MediaBandwidth } from '../../media/services/media-bandwidth';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import { RequestQuota } from '../../public-api/services/request-quota';
@@ -43,15 +42,14 @@ import { ShopLimitsService } from './shop-limits.service';
 import { AccountNotices } from '../../notifications/services/account-notices';
 import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 
-/** The metered limit a pack tops up, for each metric that has packs. */
+/** The metered limit a pack tops up, for each metric that has packs. (Bandwidth's pack was retired by D9-31.) */
 const PACK_METRICS = {
-  bandwidth_gb: UsageMetric.Bandwidth,
   requests_monthly: UsageMetric.Requests,
 } as const;
 
 type PackMetric = (typeof PACK_METRICS)[keyof typeof PACK_METRICS];
 
-/** BND-04, RTE-11: the metric a pack tops up, or null for an item that is no pack. */
+/** RTE-11: the metric a pack tops up, or null for an item that is no pack, or a retired metric's. */
 function metricOf(addon: AddonRecord): PackMetric | null {
   if (addon.kind !== AddonKind.Pack || addon.limitKey === null) return null;
   return addon.limitKey in PACK_METRICS
@@ -75,10 +73,10 @@ function nameOf(addon: AddonRecord, quantity: number): Bilingual<string> {
 }
 
 /**
- * PLN-15, BND-04, RTE-11: bandwidth and request packs. A pack is bought from the balance only -- by one tap, or by
- * auto-buy when the cycle's allowance is reached -- and is used up rather than outlived: what a cycle uses past the
- * shop's own limit is taken from its packs, and what is left carries over. The counting passes (`MediaBandwidth`,
- * `RequestQuota`) keep each cycle's share and ask for auto-buy's packs; this buys them.
+ * PLN-15, RTE-11: request packs. A pack is bought from the balance only -- by one tap, or by auto-buy when the cycle's
+ * allowance is reached -- and is used up rather than outlived: what a cycle uses past the shop's own limit is taken
+ * from its packs, and what is left carries over. The counting pass (`RequestQuota`) keeps each cycle's share and asks
+ * for auto-buy's packs; this buys them.
  */
 @Injectable()
 export class AddonPackService {
@@ -89,7 +87,6 @@ export class AddonPackService {
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
     @Inject(ShopLimitsService) private readonly shopLimits: ShopLimitsService,
-    @Inject(MediaBandwidth) private readonly bandwidth: MediaBandwidth,
     @Inject(RequestQuota) private readonly quota: RequestQuota,
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(AccountNotices) private readonly notices: AccountNotices,
@@ -123,17 +120,18 @@ export class AddonPackService {
   }
 
   /**
-   * BND-04, RTE-11: buys the pack the counting pass asked for when the cycle's allowance was reached -- one, while
+   * RTE-11: buys the pack the counting pass asked for when the cycle's allowance was reached -- one, while
    * auto-buy is still on, the shop may still buy and the cycle's cap is not reached. When the balance is short the cycle
    * stops asking until a pack is bought, and the owner is told; when it buys, the owner is told too.
    */
   async autoBuy(job: PackAutoBuy): Promise<void> {
+    // D9-31: a bandwidth pack's job queued before bandwidth packs were retired buys nothing.
+    if (job.metric !== UsageMetric.Requests) return;
     const now = this.clock();
     const cycleStart = new Date(job.cycleStart);
-    const meter = job.metric === UsageMetric.Bandwidth ? this.bandwidth : this.quota;
+    const meter = this.quota;
     const info = await this.billingOf(job.tenantId);
-    const on =
-      job.metric === UsageMetric.Bandwidth ? info?.autoBuyBandwidth : info?.autoBuyRequests;
+    const on = info?.autoBuyRequests;
     const pack = (await this.store.run((tx) => this.store.list(tx, false))).find(
       (addon) => metricOf(addon) === job.metric,
     );
@@ -174,17 +172,14 @@ export class AddonPackService {
     }
   }
 
-  /** PLN-15: the owner switches auto-buy of bandwidth or request packs on or off. The packs as they now stand. */
+  /** PLN-15: the owner switches auto-buy of request packs on or off. The packs as they now stand. */
   async setAutoBuy(
     tenantId: string,
     input: SetPackAutoBuyInput,
     ip?: string | null,
   ): Promise<ShopPack[]> {
     await this.tenants.runStandalone(async (tx) => {
-      await this.tenants.setPackAutoBuy(tx, tenantId, {
-        autoBuyBandwidth: input.bandwidth,
-        autoBuyRequests: input.requests,
-      });
+      await this.tenants.setPackAutoBuy(tx, tenantId, { autoBuyRequests: input.requests });
       await this.audit.record(tx, {
         tenantId,
         actorType: ActorType.User,
@@ -194,31 +189,25 @@ export class AddonPackService {
         targetType: 'tenant',
         targetId: tenantId,
         result: AuditResult.Success,
-        summary: { bandwidth: input.bandwidth ?? null, requests: input.requests ?? null },
+        summary: { requests: input.requests },
       });
     });
     return this.packsOf(tenantId);
   }
 
-  /** BND-04, RTE-11, PLN-15: what is left of the shop's packs, by metric, and whether auto-buy is on for each. */
+  /** RTE-11, PLN-15: what is left of the shop's packs, by metric, and whether auto-buy is on for each. */
   async packsOf(tenantId: string): Promise<ShopPack[]> {
     const now = this.clock();
     const info = await this.billingOf(tenantId);
     if (!info) return [];
     const cycleStart = usageCycleStart(info, now);
-    const [bandwidth, requests, used, limits] = await Promise.all([
-      this.bandwidth.usage(tenantId),
+    const [requests, used, limits] = await Promise.all([
       this.quota.packsOf(tenantId, cycleStart),
       this.quota.used(tenantId, cycleStart, now),
       this.shopLimits.of(tenantId, info.planSnapshot),
     ]);
     const limit = limitOf(limits, 'requests_monthly');
     return [
-      {
-        metric: UsageMetric.Bandwidth,
-        left: bandwidth.packLeftBytes,
-        autoBuy: info.autoBuyBandwidth,
-      },
       {
         metric: UsageMetric.Requests,
         left: requests.packs.available - packTaken(used, limit, requests.packs),
@@ -298,19 +287,15 @@ export class AddonPackService {
       paidFrom: 'balance',
     });
     const units = quantity * (addon.unitSize ?? 0);
-    if (metricOf(addon) === UsageMetric.Bandwidth) {
-      await this.bandwidth.packBought(tx, tenantId, info, units * GB, now);
-    } else {
-      const limits = await this.shopLimits.of(tenantId, info.planSnapshot);
-      await this.quota.packBought(
-        tx,
-        tenantId,
-        info,
-        limitOf(limits, 'requests_monthly'),
-        units,
-        now,
-      );
-    }
+    const limits = await this.shopLimits.of(tenantId, info.planSnapshot);
+    await this.quota.packBought(
+      tx,
+      tenantId,
+      info,
+      limitOf(limits, 'requests_monthly'),
+      units,
+      now,
+    );
 
     const owner = await this.staff.ownerContactIn(tx, tenantId);
     const invoice = await this.invoices.issue(
@@ -352,9 +337,9 @@ export class AddonPackService {
     };
   }
 
-  /** BND-04: the balance was short of auto-buy's pack -- the cycle stops asking, the log says so, and the owner is told. */
+  /** RTE-11: the balance was short of auto-buy's pack -- the cycle stops asking, the log says so, and the owner is told. */
   private async failed(job: PackAutoBuy, cycleStart: Date, pack: AddonRecord): Promise<void> {
-    const meter = job.metric === UsageMetric.Bandwidth ? this.bandwidth : this.quota;
+    const meter = this.quota;
     const { amount } = await this.balance.current(job.tenantId);
     await this.tenants.runStandalone(async (tx) => {
       await meter.autoBuyDone(tx, job.tenantId, cycleStart, 'failed');
