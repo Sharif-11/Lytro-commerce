@@ -1124,41 +1124,40 @@ size-chart images.
 
 **Job.** See how close the shop is to each limit, and get room before anything stops (LIM-01, LIM-02).
 
-**Layout.** The cycle's dates. One card per metric: products, seats and storage (totals), bandwidth, API requests
-and free SMS (each cycle), each "used / limit" with its bar (amber from 80%, red from 95%). For bandwidth and
+**Layout.** The cycle's dates. One card per metric: products, seats and storage (totals), API requests and free SMS
+(each cycle), each "used / limit" with its bar (amber from 80%, red from 95%); media bandwidth is no limit (D9-31). For
 requests, when the cycle's pace would use the allowance before the cycle ends, the date it runs out ("at this pace,
 runs out 22 Oct"): the server's figure, the same one the email gives. From 80%, "To raise it:" names that metric's
 add-on or pack, taken from the server's suggestion, and the suggested plan (free SMS has no add-on, so the plan
-alone; talking to Lytro when no plan fits); each opens its sheet or the upgrade. **Auto-buy**: the two switches,
-bandwidth and requests, with what auto-buy did this cycle -- could not buy because the balance was short, or has
-bought its 3 packs (BND-04, RTE-11). Bandwidth and requests a day as bar charts (BND-08).
+alone; talking to Lytro when no plan fits); each opens its sheet or the upgrade. **Auto-buy**: the switch for
+requests, with what auto-buy did this cycle -- could not buy because the balance was short, or has bought its 3 packs
+(RTE-11). Requests a day as a bar chart.
 
 **The banner** is one, for the metric nearest its stop -- past the grace, then 100%, 95% and 80%; a tie goes to the
 card order -- worded by metric and level (prototype Part 10):
-- at 80% or 95% of a total, the room left (`usage`); of bandwidth or requests, the run-out date or that the allowance
+- at 80% or 95% of a total, the room left (`usage`); of requests, the run-out date or that the allowance
   lasts the cycle, with Turn on auto-buy at 80% (`usage-80`) and the one-tap pack at 95% (`usage-warning`,
   `usage-requests-95`);
-- bandwidth or requests at 100%, how far it keeps serving and that the extra is never charged, with the pack
+- requests at 100%, how far the catalogue keeps answering and that the extra is never charged, with the pack
   (`usage-100`); past the grace, what has stopped (`usage-stopped`);
 - a full total, what is blocked, with its add-on (`usage-seats-full`, `usage-storage-full`); the free SMS used up,
   what further essential SMS cost from the balance (`usage-sms-used`);
 - auto-buy that could not pay, with Top up (`usage-autobuy-failed`), or at its cap (`usage-autobuy-capped`).
-"An email went too" only when the owner has an email address; "a free SMS" only for bandwidth and requests at 100%
-and at the stop, the notices that go by SMS (LIM-01). Read-only staff see the banner without its link. A refusal at a
+"An email went too" only when the owner has an email address; "a free SMS" only for requests at 100% and at
+the stop, the notices that go by SMS (LIM-01). Read-only staff see the banner without its link. A refusal at a
 limit (products, seats, storage) is the banner of §7.3; the 30 days after a downgrade sit on Plan (§7.12).
 
-**Content.** `GET /usage` (each metric with its allowance, packs left, stop and run-out date; the daily bandwidth and
-requests; the suggestions, each add-on in them with its metric; the packs on offer and auto-buy),
+**Content.** `GET /usage` (each metric with its allowance, packs left, stop and run-out date; the daily requests; the suggestions, each add-on in them with its metric; the packs on offer and auto-buy),
 `PATCH /addons/auto-buy`, `POST /addons/packs`.
 
 ### 7.25 Add-ons and packs (`/addons`)
 
-**Job.** Raise one limit, top up bandwidth or requests, or switch on the brand, without changing plans (PLN-13 to
+**Job.** Raise one limit, top up API requests, or switch on the brand, without changing plans (PLN-13 to
 PLN-15, BRN-05).
 
 **Layout.** The line "3 add-ons active · renew with the plan on 9 Nov for ৳347": the add-ons that renew with the plan
 and what their renewal adds; on pay-as-you-go, "each renews from the balance at its own end". Groups: **Raise a
-limit** (products, a seat, storage), **Packs** (bandwidth, requests: "adds once and carries over until used", with
+limit** (products, a seat, storage), **Packs** (requests: "adds once and carries over until used", with
 what is left), **Features** (brand identity, with Set up). Each row: its price a month or per pack, then Active with
 its end and how it renews, or Buy. How an add-on renews: with the plan; from the balance, every 30 days, on
 pay-as-you-go or a plan with no end (`addons-payg`); "balance too short to renew"; renewal off, with its end. One that
@@ -1188,7 +1187,7 @@ trial every row reads "Needs a plan", and the brand can be designed but not swit
 "Renew first" and what the shop has keeps working until the grace ends (`addons-grace`). Read-only staff see the
 rows without Buy or the switches.
 
-**Links.** `/addons?buy=<key>` opens the Buy sheet and `/addons?pack=bandwidth|requests` the pack sheet; Usage, Plan
+**Links.** `/addons?buy=<key>` opens the Buy sheet and `/addons?pack=requests` the pack sheet; Usage, Plan
 and the pay-as-you-go page link there now, and Team, the media sheet and the brand editor will when they are built.
 Brand identity's Set up opens the brand editor once it exists (Slice 11.12).
 
@@ -2319,7 +2318,7 @@ Decided 2026-10-22.
 | Look | The values of §5 (radii 6, 10 and 16 px; background neutral-50) through the dashboard's own theme, `packages/ui` `light.css` roles. The shared base and the operator console's look do not change, proven by before-and-after captures. |
 | Components | Shell (app bar, tab bar, rail, header, side column, banners, + menu, search), sheet, dialog, list row, chips, segmented control, switch, stat tile, banner, toast, empty state, skeleton, field, quantity stepper, timeline, variant matrix, category tree, bar chart. In `packages/ui` where the console uses the same shape, else `apps/dashboard/src/components`. |
 | Words | `i18n/locales/{bn,en}.json`, one namespace per hub, taken from the prototype's Bangla and English (the vocabulary of `BRAND-IDENTITY.md` §7); Western digits throughout. |
-| Libraries | The bandwidth and request charts drawn as plain SVG; IMEI scanning with the browser's BarcodeDetector, and `@zxing/browser` loaded only where it is missing; the prototype's own line icons (Lucide in shape), carried as drawn in `components/icon.tsx`, so every icon matches the sketch; Lytro's fonts served with the app, Google Fonts only for a shop's brand fonts. |
+| Libraries | The request chart drawn as plain SVG; IMEI scanning with the browser's BarcodeDetector, and `@zxing/browser` loaded only where it is missing; the prototype's own line icons (Lucide in shape), carried as drawn in `components/icon.tsx`, so every icon matches the sketch; Lytro's fonts served with the app, Google Fonts only for a shop's brand fonts. |
 | Tests | Playwright in `apps/dashboard`: every screen's states (empty, loading, error, read-only, no permission) against a mocked API, on phone and desktop, in Bangla and English; the slice's walkthrough (clothing, cosmetics and grocery: a product, stock added, a stock check, a purchase) against a real server and database in CI. Each pull request shows its screens beside the prototype's. |
 | Security | The dashboard's Content Security Policy (KNOWN-GAPS §65) in `deploy/Caddyfile`, its media and upload origins from the environment, checked as the console's was. |
 | Order | This document; the backend reads (§10); the brand backend; the foundation and the shell; onboarding and Home; Money; Menu; products and media; categories and attributes; stock; purchasing; delivery; the brand editor and the themed dashboard; last, the policy and the walkthrough. |

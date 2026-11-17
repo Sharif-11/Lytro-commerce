@@ -208,7 +208,7 @@ CREATE TABLE control.tenants (
     deleted_at            timestamptz,
     kyc_status             text NOT NULL DEFAULT 'unverified'   -- KYC-16: unverified | pending | verified | revoked
                            CHECK (kyc_status IN ('unverified', 'pending', 'verified', 'revoked')),
-    -- PLN-15: the auto-buy switches for bandwidth and request packs, off by default. Added by migration
+    -- PLN-15: the auto-buy switches for bandwidth (unused since D9-31) and request packs, off by default. Added by migration
     -- 0076_addon_packs.sql.
     auto_buy_bandwidth     boolean NOT NULL DEFAULT false,
     auto_buy_requests      boolean NOT NULL DEFAULT false
@@ -254,7 +254,7 @@ CREATE TABLE control.plans (
     rank            integer NOT NULL,           -- PLN-16: unique among for-sale plans
     for_sale        boolean NOT NULL DEFAULT true, -- PLN-10: not-for-sale plans never returned to tenants
     version         integer NOT NULL DEFAULT 1,
-    limits          jsonb NOT NULL,             -- seats, products, storage, bandwidth, order-handling, etc (2.1)
+    limits          jsonb NOT NULL,             -- seats, products, storage, order-handling, etc (2.1); no bandwidth (0137)
                                                  -- `staff` counts the owner: Trial 1 (owner only), Starter 2 (D21);
                                                  -- a plan with no `staff` key gets 1 seat
     features        jsonb NOT NULL DEFAULT '{}',
@@ -2323,6 +2323,10 @@ CREATE INDEX ON control.reconciliation_differences (state, day);
 -- `processing_failed`), telling the shop. Day 60 deletes a lapsed shop's rows with its media.
 ```
 
+**Retired by D9-31 (2026-11-17):** nothing writes these tables any more; public media is served from Cloudflare's cache
+and is not counted per shop. They stay, read by nothing but a lapsed shop's deletion, until a later release drops them
+(with `control.media_usage_pull` and `control.tenants.auto_buy_bandwidth`).
+
 **Built in Phase 3 Slice 7b (migration 0067, 2026-10-21):** media bandwidth (BND-01, BND-02, BND-05, BND-06, BND-08),
 with these decisions:
 - **The media Worker records; the server totals.** The Worker writes one Analytics Engine data point per response
@@ -2476,7 +2480,7 @@ CREATE TABLE control.plan_assignments (
 
 CREATE TABLE control.addons (                      -- PLN-13, migration 0073
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    key             text NOT NULL UNIQUE,           -- seeded: extra_products | extra_seat | extra_storage | brand_identity | bandwidth_pack | request_pack | address_reads_200 (0113)
+    key             text NOT NULL UNIQUE,           -- seeded: extra_products | extra_seat | extra_storage | brand_identity | bandwidth_pack (retired by 0137) | request_pack | address_reads_200 (0113)
     kind            text NOT NULL CHECK (kind IN ('limit', 'pack', 'feature', 'allowance')),  -- PLN-13, amended 2026-10-18; allowance: PLN-20
     limit_key       text,                           -- the plan limit a limit add-on or a pack raises (products, staff, storage_mb, ...); the service an allowance covers (address_reads, PLN-20); null for a feature
     unit_size       integer,                        -- how much one adds, in that limit's own unit, or an allowance's uses; null for a feature

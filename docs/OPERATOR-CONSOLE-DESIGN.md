@@ -596,7 +596,7 @@ downloads the tab's `/export` for the period shown.
   from which day balance spending is counted (`recordedSince`).
 - **Shops** (`GET /operator/reports/shops`): the shops now by state and by plan, pay-as-you-go its own line; then each
   period's opened, first paid and lapsed, with a total, and the note that lapses count from the first night recorded.
-- **Top consumers** (`GET /operator/reports/consumers`): storage, bandwidth or SMS, the 20 shops that used most with each
+- **Top consumers** (`GET /operator/reports/consumers`): storage or SMS (media bandwidth is not counted, D9-31), the 20 shops that used most with each
   owner's phone (D8-42), so a heavy user can be called.
 
 ## 10f. Audit log (`/audit`)
@@ -620,14 +620,13 @@ US dollars, as Cloudflare bills.
 - The billing period, the running one first (`periods`), then three figures: the estimate so far with the days read; the
   budget with the share used as a bar marked at the alert's percent, and where the alert goes; and when R2 was last read.
 - *R2 storage*: Class A and Class B operations and storage, each with what was used, the month's free allowance and what
-  is billable, and its cost; *The media Worker*: requests with the included millions and billable ones, bytes served and
-  the plan's monthly charge, and the note that CPU time, KV and Analytics Engine aren't counted.
+  is billable, and its cost. R2 is the whole bill: public media is served from Cloudflare's cache, which bills nothing,
+  so there is no Worker card (D9-31).
 - Buckets: each with its operations, GB-months, size now and objects, the payment screenshots' bucket on its own line
-  (D8-59), and the account's own operations; then the ten shops with the most requests and their bytes.
+  (D8-59), and the account's own operations.
 - A line with the prices the estimate used, linking to Settings.
 - States: past the alert, a banner says when it went and to whom, once a period; no alert address, a line says the alert is
-  only logged, with Set it in Settings; Cloudflare not connected (no token), R2 isn't read and the Worker's figures still
-  show.
+  only logged, with Set it in Settings; Cloudflare not connected (no token), R2 isn't read.
 
 ## 11. Catalogue
 
