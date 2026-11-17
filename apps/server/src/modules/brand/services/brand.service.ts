@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
+import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import type { Transaction } from '@lytronix/db';
 import {
   AuditAction,
@@ -68,6 +69,7 @@ export class BrandService {
     @Inject(BRAND_STORE) private readonly store: BrandStore,
     @Inject(CatalogueImages) private readonly images: CatalogueImages,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(EdgePurges) private readonly edge: EdgePurges,
   ) {}
 
   /** BRN-02, BRN-06: the editor's read -- the saved identity (or Lytro's default), its check, and whether it shows. */
@@ -240,6 +242,8 @@ export class BrandService {
       if (!(error instanceof MediaNotAttachable)) throw error;
       refuseUnattachable(error, values.iconMediaId === null ? 'darkLogoId' : 'iconId');
     }
+    // D9-32: every page of the shop wears its identity.
+    await this.edge.shop(tx, tenantId);
   }
 
   private async recordSwitch(

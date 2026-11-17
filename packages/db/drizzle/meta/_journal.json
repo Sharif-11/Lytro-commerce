@@ -967,6 +967,13 @@
       "when": 1794903909374,
       "tag": "0138_shop_chat_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1794931200000,
+      "tag": "0139_edge_cache",
+      "breakpoints": true
     }
   ]
 }

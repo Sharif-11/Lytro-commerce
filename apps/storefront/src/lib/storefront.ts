@@ -16,6 +16,7 @@ import {
   type StorefrontShopContext,
   throwIfBusy,
 } from './api/storefront-api';
+import { EDGE_HOST_HEADER, EDGE_RENDER_HEADER } from './edge/edge-cache';
 import { StorefrontEnvironment } from './env';
 import { LANGUAGE_COOKIE, parseLanguage, Words } from './i18n/words';
 import { mainAddressTarget, STOREFRONT_PATH_HEADER, STOREFRONT_QUERY_HEADER } from './request-path';
@@ -32,10 +33,13 @@ export class ShopperRequests {
 
   async read(): Promise<ShopperRequest> {
     const [incoming, jar] = await Promise.all([headers(), cookies()]);
+    // Slice 9.10: the middleware's render for the edge names the shopper's host apart (lib/edge/edge-renderer.ts).
+    const forEdge = incoming.get(EDGE_RENDER_HEADER) === '1';
     return {
-      host: ShopperRequests.hostOf(incoming.get('host')),
+      host: ShopperRequests.hostOf(incoming.get(forEdge ? EDGE_HOST_HEADER : 'host')),
       clientAddress: ShopperRequests.blankToNull(incoming.get(this.settings.clientIpHeader)),
       language: parseLanguage(jar.get(LANGUAGE_COOKIE)?.value),
+      ...(forEdge ? { forEdge } : {}),
     };
   }
 

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { PaymentPolicy } from '@lytronix/validators/enums';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
+import { EdgeMark } from '@/components/edge-mark';
 import { LandingView } from '@/components/landing/landing-view';
 import { MetaPixel } from '@/components/landing/meta-pixel';
 import { OfflinePage } from '@/components/pages';
@@ -13,7 +14,8 @@ import { loadProduct, loadShopPage, storefrontApi } from '@/lib/storefront';
 
 // LND-01, LND-02: every active product's own page at /l/<slug>: that product only, no cart and no way into the
 // catalogue. It follows the shop's visibility, not the storefront switch (SFT-16), so it keeps working with the
-// storefront off. Rendered and counted on every request (LND-14).
+// storefront off. Kept at Cloudflare's edge whatever its query, where ads land, and never counted (Slice 9.10, D9-32,
+// amending LND-14); rendered for each shopper who is signed in or reads English.
 export const dynamic = 'force-dynamic';
 
 interface Props {
@@ -66,6 +68,7 @@ export default withBusyPage(async function LandingPage({ params, searchParams }:
       : Number(product.minPrice);
   return (
     <>
+      <EdgeMark page={page} products={[product]} />
       <Shell
         brand={page.info.brand}
         language={language}
@@ -88,11 +91,17 @@ export default withBusyPage(async function LandingPage({ params, searchParams }:
           linkedVariantId={opening.linkedVariantId}
           areaId={opening.areaId}
           initialEstimate={opening.estimate}
+          openInBrowser={opening.openInBrowser}
           methods={methods}
         />
       </Shell>
       {page.info.metaPixelId ? (
-        <MetaPixel pixelId={page.info.metaPixelId} contentIds={contentIds} value={value} />
+        <MetaPixel
+          pixelId={page.info.metaPixelId}
+          contentIds={contentIds}
+          value={value}
+          {...(opening.openInBrowser ? { linkable: product.variants } : {})}
+        />
       ) : null}
     </>
   );

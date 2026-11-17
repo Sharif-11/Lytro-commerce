@@ -440,6 +440,9 @@ export interface ShopperRequest {
       its own rule (CLIENT_IP_FORMAT, TRUSTED_PROXY_HOPS), as for a request the edge sent it directly. */
   clientAddress: string | null;
   language: Language;
+  /** Slice 9.10: the page is rendered for Cloudflare's edge, which keeps it for every shopper (lib/edge): the shop's
+      frame is read fresh, so a purge never hands the edge the minute-old frame this storefront holds. */
+  forEdge?: boolean;
 }
 
 /** A product read: the product, or the link it now lives at (LND-04), or nothing. */
@@ -527,14 +530,18 @@ export class StorefrontApi {
   }
 
   shop(shop: StorefrontShopContext, shopper: ShopperRequest): Promise<PublicShop> {
-    return this.kept(`${shop.slug} shop`, async () => {
-      const info = StorefrontApi.required(
-        await this.call<PublicShop>(shop, shopper, 'GET', '/v1/shop'),
-        'the shop',
-      );
-      this.lastShops.set(shop.slug, info);
-      return info;
-    });
+    return this.kept(
+      `${shop.slug} shop`,
+      async () => {
+        const info = StorefrontApi.required(
+          await this.call<PublicShop>(shop, shopper, 'GET', '/v1/shop'),
+          'the shop',
+        );
+        this.lastShops.set(shop.slug, info);
+        return info;
+      },
+      shopper.forEdge === true,
+    );
   }
 
   /** The shop as it was last read, for a page drawn while the server is too busy to read it again; null before any. */
@@ -555,6 +562,7 @@ export class StorefrontApi {
           ),
           'the categories',
         ).categories,
+      shopper.forEdge === true,
     );
   }
 
@@ -686,16 +694,17 @@ export class StorefrontApi {
     );
   }
 
-  /** One shared read per key for SHELL_TTL_MS; a failed read is not kept, so the next page asks again. */
-  private kept<T>(key: string, read: () => Promise<T>): Promise<T> {
+  /** One shared read per key for SHELL_TTL_MS; a failed read is not kept, so the next page asks again. `fresh` reads
+      past what is held (a page for the edge) and holds its answer for the pages after it. */
+  private kept<T>(key: string, read: () => Promise<T>, fresh = false): Promise<T> {
     const held = this.shells.get(key);
-    if (held && this.now() - held.at < SHELL_TTL_MS) return held.read as Promise<T>;
-    const fresh = read();
-    this.shells.set(key, { at: this.now(), read: fresh });
-    fresh.catch(() => {
-      if (this.shells.get(key)?.read === fresh) this.shells.delete(key);
+    if (!fresh && held && this.now() - held.at < SHELL_TTL_MS) return held.read as Promise<T>;
+    const reading = read();
+    this.shells.set(key, { at: this.now(), read: reading });
+    reading.catch(() => {
+      if (this.shells.get(key)?.read === reading) this.shells.delete(key);
     });
-    return fresh;
+    return reading;
   }
 
   private call<T>(

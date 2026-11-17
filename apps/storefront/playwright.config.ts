@@ -38,6 +38,8 @@ export default defineConfig({
     env: {
       SERVER_URL: `http://127.0.0.1:${String(MOCK_PORT)}`,
       PLATFORM_DOMAIN: 'localhost',
+      // Slice 9.10: where the middleware renders a page Cloudflare's edge may keep (lib/edge).
+      STOREFRONT_SELF_URL: `http://127.0.0.1:${String(STOREFRONT_PORT)}`,
     },
   },
 });

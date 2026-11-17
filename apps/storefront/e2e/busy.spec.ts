@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Page, type Response, test } from '@playwright/test';
 import { rumana, THANA } from './support/fixtures';
 import { openShop, seedArea, signIn } from './support/shop';
 
@@ -14,6 +14,8 @@ const busyHeading = (page: Page) =>
 const robots = (page: Page) => page.locator('meta[name="robots"]');
 // The line that starts with the charge's name; "Cash on delivery" is another line's.
 const deliveryLine = (page: Page) => page.locator('.line', { hasText: /^Delivery/ });
+// A page's charge, asked by GET with its query since Slice 9.10's edge cache, or a cart's by POST.
+const isEstimate = (response: Response) => new URL(response.url()).pathname === '/api/estimate';
 
 test.describe('a page the shop is too busy to give (p910-busy)', () => {
   test("says so with the shop's mark, Try again and the server's wait, and is never indexed", async ({
@@ -120,7 +122,7 @@ test.describe('a delivery charge the server is too busy to work out (p910-busy-d
       refusals: [{ path: ESTIMATE, status: 429, retryAfter: 15 }],
     }));
     await seedArea(page, shop, THANA.mirpur);
-    const refused = page.waitForResponse('**/api/estimate');
+    const refused = page.waitForResponse(isEstimate);
     await page.goto(shop.url('/p/cotton-panjabi'));
     const answer = await refused;
     // The storefront passes the server's refusal on as it came, never as its own 500.
@@ -131,7 +133,7 @@ test.describe('a delivery charge the server is too busy to work out (p910-busy-d
     await expect(busyHeading(page)).toHaveCount(0);
 
     await shop.refuse([]);
-    const asked = page.waitForResponse('**/api/estimate');
+    const asked = page.waitForResponse(isEstimate);
     await deliveryLine(page).getByRole('button', { name: 'Try again' }).click();
     expect((await asked).status()).toBe(200);
     await expect(deliveryLine(page)).toContainText('Dhaka city: ৳70');
@@ -152,7 +154,7 @@ test.describe('a delivery charge the server is too busy to work out (p910-busy-d
 
   test('a broken estimate stays a fault the storefront answers itself', async ({ page }) => {
     const shop = await openShop(page, () => ({ refusals: [{ path: ESTIMATE, status: 500 }] }));
-    const failed = page.waitForResponse('**/api/estimate');
+    const failed = page.waitForResponse(isEstimate);
     await page.goto(shop.url('/p/cotton-panjabi'));
     expect((await failed).status()).toBe(500);
     await expect(deliveryLine(page)).not.toContainText("can't be shown right now");

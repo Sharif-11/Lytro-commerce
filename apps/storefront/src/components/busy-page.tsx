@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { type PublicShop, ShopBusy } from '@/lib/api/storefront-api';
+import { EDGE_MARK_NAME, edgeMarkContent } from '@/lib/edge/edge-cache';
 import type { Words } from '@/lib/i18n/words';
 import { loadBusyFace } from '@/lib/storefront';
 import { ReloadButton } from './reload-button';
@@ -26,6 +27,8 @@ export function BusyPage({
   return (
     <>
       <meta name="robots" content="noindex" />
+      {/* Slice 9.10: the middleware answers this page with a 503 the edge never keeps (lib/edge). */}
+      <meta name={EDGE_MARK_NAME} content={edgeMarkContent({ kind: 'busy', seconds })} />
       <BarePage
         language={words.language}
         brand={shop?.brand ?? null}

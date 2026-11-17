@@ -2,13 +2,15 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { ListView } from '@/components/catalogue/list-view';
+import { EdgeMark } from '@/components/edge-mark';
 import { OfflinePage } from '@/components/pages';
 import { ShopShell } from '@/components/shop-shell';
 import { chipsFor, findCategory, listParams } from '@/lib/catalogue/browse';
 import { loadFrame, loadShopPage, storefrontApi } from '@/lib/storefront';
 
 // STOREFRONT-DESIGN §3: a category's page, at /c/<slug>: its products and its subcategories', in the shop's order
-// unless asked otherwise (`?sort=`), all or only what is in stock (`?stock=in`). Every request is rendered and counted.
+// unless asked otherwise (`?sort=`), all or only what is in stock (`?stock=in`). Kept at Cloudflare's edge, by its
+// query too, and never counted (Slice 9.10, D9-32).
 export const dynamic = 'force-dynamic';
 
 interface Props {
@@ -52,6 +54,7 @@ export default withBusyPage(async function CategoryPage({ params, searchParams }
       title={category.name}
       current={found.top.slug}
     >
+      <EdgeMark page={page} listing products={list.products} />
       <ListView
         words={words}
         heading={

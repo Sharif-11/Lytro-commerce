@@ -48,6 +48,7 @@ import { MediaModule } from '../media/media.module';
 import { OrdersModule } from '../orders/orders.module';
 import { IdempotencyModule } from '../../common/idempotency/idempotency.module';
 import { QueueModule } from '../shared/queue/queue.module';
+import { EdgeCacheModule } from '../shared/edge-cache/edge-cache.module';
 import { PublicDeliveryController } from './controllers/public-delivery.controller';
 import { PublicOrdersController } from './controllers/public-orders.controller';
 import { PublicShopperController } from './controllers/public-shopper.controller';
@@ -87,6 +88,8 @@ import {
     MediaModule,
     OrdersModule,
     QueueModule,
+    // D9-32: a Pixel's change drops the pages Cloudflare keeps.
+    EdgeCacheModule,
     TenancyModule,
     CatalogueModule,
     PlatformSettingsModule,

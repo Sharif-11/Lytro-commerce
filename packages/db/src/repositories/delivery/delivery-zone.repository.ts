@@ -35,6 +35,8 @@ export class DeliveryZoneRepository {
   /**
    * DLV-01: gives the shop its home and fallback zones if it has none yet, the home zone covering the default city.
    * Safe to call at the start of every zone transaction: a second caller, or one racing the first, changes nothing.
+   * Slice 9.10 (the staging load test): it reads first, so a shop that has both -- every estimate's case -- writes
+   * nothing.
    */
   async ensureDefaults(
     tx: Transaction,
@@ -42,21 +44,30 @@ export class DeliveryZoneRepository {
     defaults: { homeCityCode: string; homeCharge: string; fallbackCharge: string },
   ): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
-    const home = await tx.execute<{ id: string }>(sql`
-      INSERT INTO tenant.delivery_zones (tenant_id, is_home, charge)
-      VALUES (${tenantId}, true, ${defaults.homeCharge})
-      ON CONFLICT (tenant_id) WHERE is_home DO NOTHING
-      RETURNING id`);
-    const homeId = home.rows[0]?.id;
-    if (homeId !== undefined) {
-      await tx
-        .insert(deliveryZoneAreas)
-        .values({ tenantId, zoneId: homeId, cityCode: defaults.homeCityCode });
+    const held = await tx.execute<{ is_home: boolean; is_fallback: boolean }>(sql`
+      SELECT is_home, is_fallback FROM tenant.delivery_zones
+      WHERE tenant_id = ${tenantId} AND (is_home OR is_fallback)`);
+    const hasHome = held.rows.some((row) => row.is_home);
+    const hasFallback = held.rows.some((row) => row.is_fallback);
+    if (!hasHome) {
+      const home = await tx.execute<{ id: string }>(sql`
+        INSERT INTO tenant.delivery_zones (tenant_id, is_home, charge)
+        VALUES (${tenantId}, true, ${defaults.homeCharge})
+        ON CONFLICT (tenant_id) WHERE is_home DO NOTHING
+        RETURNING id`);
+      const homeId = home.rows[0]?.id;
+      if (homeId !== undefined) {
+        await tx
+          .insert(deliveryZoneAreas)
+          .values({ tenantId, zoneId: homeId, cityCode: defaults.homeCityCode });
+      }
     }
-    await tx.execute(sql`
-      INSERT INTO tenant.delivery_zones (tenant_id, is_fallback, charge)
-      VALUES (${tenantId}, true, ${defaults.fallbackCharge})
-      ON CONFLICT (tenant_id) WHERE is_fallback DO NOTHING`);
+    if (!hasFallback) {
+      await tx.execute(sql`
+        INSERT INTO tenant.delivery_zones (tenant_id, is_fallback, charge)
+        VALUES (${tenantId}, true, ${defaults.fallbackCharge})
+        ON CONFLICT (tenant_id) WHERE is_fallback DO NOTHING`);
+    }
   }
 
   /** Locks the shop's home zone, so zone writes (and the 20-zone count) happen one after the other. */

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DrizzleBrandStore } from '../../database/adapters/brand.adapter';
 import { CatalogueModule } from '../catalogue/catalogue.module';
+import { EdgeCacheModule } from '../shared/edge-cache/edge-cache.module';
 import { BrandEraser } from './services/brand-eraser';
 import { BrandService } from './services/brand.service';
 import { BRAND_STORE } from './tokens';
@@ -9,7 +10,7 @@ import { BRAND_STORE } from './tokens';
 // do, and its changes are logged the same way) and on nothing that depends back on it: the dashboard's account read,
 // the public shop read, the installed app and the day-60 deletion all read it.
 @Module({
-  imports: [CatalogueModule],
+  imports: [CatalogueModule, EdgeCacheModule],
   providers: [{ provide: BRAND_STORE, useClass: DrizzleBrandStore }, BrandService, BrandEraser],
   exports: [BrandService, BrandEraser],
 })

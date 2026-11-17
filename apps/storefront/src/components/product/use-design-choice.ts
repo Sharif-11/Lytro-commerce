@@ -16,17 +16,24 @@ const HEADER_ROOM = 72;
  * A tapped card chooses its design and moves the gallery to that photo; swiping the gallery chooses nothing. Buying
  * before choosing scrolls to the cards and shakes them once (`nudge`).
  */
+/** Where a design's cover is among the product's photos; the first photo before a design is chosen. */
+function coverAt(
+  product: PublicProduct,
+  cards: readonly PhotoCard[],
+  designId: string | undefined,
+): number {
+  if (designId === undefined || cards.length === 0) return 0;
+  return Math.max(
+    0,
+    product.images.findIndex((image) => image.designId === designId),
+  );
+}
+
 export function useDesignChoice(product: PublicProduct, selection: Selection) {
   const option = useMemo(() => designOptionOf(product), [product]);
   const cards = useMemo(() => photoCardsOf(product), [product]);
   const designId = option ? selection[option.attributeId] : undefined;
-  const [photoAt, setPhotoAt] = useState(() => {
-    if (designId === undefined || cards.length === 0) return 0;
-    return Math.max(
-      0,
-      product.images.findIndex((image) => image.designId === designId),
-    );
-  });
+  const [photoAt, setPhotoAt] = useState(() => coverAt(product, cards, designId));
   const [tapped, setTapped] = useState<number | null>(null);
   const [nudging, setNudging] = useState(false);
   const cardsRef = useRef<HTMLDivElement>(null);
@@ -70,7 +77,18 @@ export function useDesignChoice(product: PublicProduct, selection: Selection) {
     return option ? { ...picks, [option.attributeId]: card.designId } : picks;
   };
 
+  /** The gallery on the cover of the picks' design, as a page opens on a `?v=` link; on a page Cloudflare's edge keeps,
+      the browser applies the link after the first paint (Slice 9.10). */
+  const openOn = useCallback(
+    (picks: Selection) => {
+      const id = option ? picks[option.attributeId] : undefined;
+      if (id !== undefined) setPhotoAt(coverAt(product, cards, id));
+    },
+    [option, product, cards],
+  );
+
   return {
+    openOn,
     cards,
     designId,
     /** A design is still to be chosen: there are cards and none is chosen. */
