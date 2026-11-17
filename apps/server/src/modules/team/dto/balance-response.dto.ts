@@ -28,7 +28,7 @@ export class EssentialSmsUsageDto extends createZodDto(essentialSmsUsageSchema) 
 
 export const ledgerEntrySchema = z.object({
   id: z.number(),
-  type: z.nativeEnum(LedgerEntryType),
+  type: z.enum(LedgerEntryType),
   amount: z.string(),
   units: z.string().nullable(),
   rateUsed: z.string().nullable(),
@@ -45,7 +45,7 @@ export const ledgerPageSchema = z.object({
 export class LedgerPageDto extends createZodDto(ledgerPageSchema) {}
 
 export const rateValueSchema = z.object({
-  key: z.nativeEnum(RateKey),
+  key: z.enum(RateKey),
   value: z.string(),
   effectiveFrom: z.date(),
 });
@@ -69,7 +69,7 @@ export class PlatformWalletDto extends createZodDto(platformWalletSchema) {}
 
 export const rateHistoryEntrySchema = z.object({
   id: z.number(),
-  key: z.nativeEnum(RateKey),
+  key: z.enum(RateKey),
   oldValue: z.string().nullable(),
   newValue: z.string(),
   changedBy: z.string().nullable(),
@@ -85,7 +85,7 @@ export const tenantSummarySchema = z.object({
   id: z.string(),
   slug: z.string(),
   shopName: z.string(),
-  state: z.nativeEnum(TenantState),
+  state: z.enum(TenantState),
   suspendedAt: z.date().nullable(),
   planId: z.string().nullable(),
   planName: z.string().nullable(),

@@ -25,22 +25,21 @@ const envSchema = z.object({
     .string()
     .min(1, 'DATABASE_URL is required; copy apps/server/.env.example to .env'),
   // WAL-09 (Phase 5 Slice 5.7): bKash's Tokenized Checkout, host and version. Its production address is to be confirmed with bKash.
-  BKASH_SANDBOX_URL: z.string().url().default('https://tokenized.sandbox.bka.sh/v2'),
-  BKASH_PRODUCTION_URL: z.string().url().default('https://tokenized.pay.bka.sh/v2'),
+  BKASH_SANDBOX_URL: z.url().default('https://tokenized.sandbox.bka.sh/v2'),
+  BKASH_PRODUCTION_URL: z.url().default('https://tokenized.pay.bka.sh/v2'),
   // Phase 6 Slice 6.1: Steadfast's API. It has no sandbox, so every booking on it is real.
-  STEADFAST_API_URL: z.string().url().default('https://portal.packzy.com/api/v1'),
+  STEADFAST_API_URL: z.url().default('https://portal.packzy.com/api/v1'),
   // Slice 6.3: Pathao's API, and the value its page says to answer its messages with. Without it, messages are still answered, which its
   // document says is enough unless an account is strict.
-  PATHAO_API_URL: z.string().url().default('https://api-hermes.pathao.com/aladdin/api/v1'),
+  PATHAO_API_URL: z.url().default('https://api-hermes.pathao.com/aladdin/api/v1'),
   PATHAO_WEBHOOK_INTEGRATION_SECRET: z.string().min(1).optional(),
   // Slice 6.4: RedX's API, and Lytro's own RedX token, used only to read its area list (read agreed 2026-11-06). Without it the list
   // can't be read, and RedX can't book until it has been.
-  REDX_API_URL: z.string().url().default('https://openapi.redx.com.bd/v1.0.0-beta'),
+  REDX_API_URL: z.url().default('https://openapi.redx.com.bd/v1.0.0-beta'),
   REDX_AREAS_TOKEN: z.string().min(1).optional(),
   // Phase 7 Slice 7.1 (D7-2, D7-21): BulkSMSBD, only ever over HTTPS. Its login is required in production, staging
   // included; in development the stand-in logs each SMS unless SMS_FORCE_REAL is set, and then the login is required.
   BULKSMSBD_BASE_URL: z
-    .string()
     .url()
     .refine((value) => value.startsWith('https://'), { message: 'must be an https address' })
     .default('https://bulksmsbd.net/api'),
@@ -54,7 +53,6 @@ const envSchema = z.object({
   // HTTPS. Its key is required in production, staging included; in development a stand-in answers unless AI_FORCE_REAL
   // is set, and then the key is required. The key's Google project must have billing on (D7-18).
   GEMINI_BASE_URL: z
-    .string()
     .url()
     .refine((value) => value.startsWith('https://'), { message: 'must be an https address' })
     .default('https://generativelanguage.googleapis.com/v1beta'),
@@ -67,7 +65,6 @@ const envSchema = z.object({
   // webhook's signing secret (NTF-06's bounces) are required in production, staging included; in development the
   // stand-in prints each email unless EMAIL_FORCE_REAL is set, and then the key is required.
   RESEND_BASE_URL: z
-    .string()
     .url()
     .refine((value) => value.startsWith('https://'), { message: 'must be an https address' })
     .default('https://api.resend.com'),
@@ -108,11 +105,11 @@ const envSchema = z.object({
     .transform((value) => value.toLowerCase()),
   // TEN-29: the dashboard's and the operator console's own origins. A state-changing request carrying another
   // Origin is refused. Default in production: https://app.<PLATFORM_DOMAIN> and https://admin.<PLATFORM_DOMAIN>.
-  DASHBOARD_ORIGIN: z.string().url().optional(),
-  OPERATOR_ORIGIN: z.string().url().optional(),
+  DASHBOARD_ORIGIN: z.url().optional(),
+  OPERATOR_ORIGIN: z.url().optional(),
   // TENANT-DASHBOARD-DESIGN §7.44: where the listener app's file and its latest.json live, as the website has it --
   // download-staging.lytro.app on staging, which doesn't follow from PLATFORM_DOMAIN.
-  LISTENER_DOWNLOAD_URL: z.string().url().default(LISTENER_DOWNLOAD_DEFAULT_URL),
+  LISTENER_DOWNLOAD_URL: z.url().default(LISTENER_DOWNLOAD_DEFAULT_URL),
   // The edge (any proxy in front of the server) adds this secret to every request it forwards (decision R3).
   TRUSTED_EDGE_SECRET: z.string().min(32).optional(),
   // A second accepted secret, set only while the edge's secret is being rotated (no downtime).
@@ -131,7 +128,7 @@ const envSchema = z.object({
         .map((address) => address.trim())
         .filter((address) => address !== ''),
     )
-    .pipe(z.array(z.string().ip({ version: 'v4' }))),
+    .pipe(z.array(z.ipv4())),
   // The request header that carries the client's address, set by the edge (D14).
   CLIENT_IP_HEADER: z
     .string()
@@ -159,7 +156,7 @@ const envSchema = z.object({
   // the paying shops' count still does.
   SECOND_SERVER_MONTHLY_TAKA: z.coerce.number().positive().optional(),
   // OBS-03 (Slice 9.6): Sentry's address for the server's errors; unset, none are sent. Its environment names the server.
-  SENTRY_DSN: z.string().url().optional(),
+  SENTRY_DSN: z.url().optional(),
   SENTRY_ENVIRONMENT: z.string().trim().min(1).default('production'),
   // D9-20 (Slice 9.6): JSON log lines (production's default) or Nest's readable text (everywhere else's).
   LOG_FORMAT: z.enum(['json', 'text']).optional(),
@@ -203,7 +200,7 @@ const envSchema = z.object({
   // D3-4, MED-01: the S3-compatible store tenant media lives in -- Cloudflare R2, with dev buckets for development and
   // CI. Left unset, media is off: an upload answers that storage is unavailable, and nothing else changes. R2 accepts
   // path-style addressing.
-  MEDIA_STORAGE_ENDPOINT: z.string().url().optional(),
+  MEDIA_STORAGE_ENDPOINT: z.url().optional(),
   MEDIA_STORAGE_REGION: z.string().min(1).default('auto'),
   MEDIA_STORAGE_PATH_STYLE: z
     .enum(['true', 'false'])
@@ -225,7 +222,7 @@ const envSchema = z.object({
   MEDIA_DELETER_SECRET_KEY: z.string().min(1).optional(),
   // MED-08, D9-31: where public media is read from -- the media bucket's own address behind Cloudflare's cache
   // (`https://media.lytro.app`); the local store in development.
-  MEDIA_PUBLIC_BASE_URL: z.string().url().optional(),
+  MEDIA_PUBLIC_BASE_URL: z.url().optional(),
   // D8-57, D9-31: Lytro's Cloudflare account, and one API token that may read its analytics (Account Analytics: Read,
   // for media costs) and purge the zone's cache (Cache Purge, for a deleted shop's media), with the zone the media
   // address is in. Left unset, media costs read nothing and nothing is purged.
@@ -241,7 +238,7 @@ const envSchema = z.object({
 const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
   if (value.NODE_ENV === 'production' && !value.TRUSTED_EDGE_SECRET) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['TRUSTED_EDGE_SECRET'],
       message: 'required in production; at least 32 characters',
     });
@@ -249,7 +246,7 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
   // Slice 13: without the platform's address no root domain can be verified, nor told what to point at.
   if (value.NODE_ENV === 'production' && value.PLATFORM_ADDRESSES.length === 0) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['PLATFORM_ADDRESSES'],
       message: 'required in production: the IPv4 addresses a root domain points at',
     });
@@ -257,21 +254,21 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
   // Slice 12a: unset, the route that hands out each shop's storefront key is open, which only development may allow.
   if (value.NODE_ENV === 'production' && !value.STOREFRONT_SECRET) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['STOREFRONT_SECRET'],
       message: 'required in production; at least 32 characters',
     });
   }
   if (value.GOOGLE_SIGN_IN_ENABLED && (!value.GOOGLE_CLIENT_ID || !value.GOOGLE_CLIENT_SECRET)) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['GOOGLE_CLIENT_ID'],
       message: 'required when GOOGLE_SIGN_IN_ENABLED is true',
     });
   }
   if (value.FACEBOOK_SIGN_IN_ENABLED && (!value.FACEBOOK_APP_ID || !value.FACEBOOK_APP_SECRET)) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['FACEBOOK_APP_ID'],
       message: 'required when FACEBOOK_SIGN_IN_ENABLED is true',
     });
@@ -289,7 +286,7 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
     ] as const) {
       if (!value[key]) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: [key],
           message: 'required when MEDIA_STORAGE_ENDPOINT is set',
         });
@@ -302,7 +299,7 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
     for (const key of ['CLOUDFLARE_ACCOUNT_ID'] as const) {
       if (!value[key]) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: [key],
           message: 'required when CLOUDFLARE_API_TOKEN is set',
         });
@@ -317,7 +314,7 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
     for (const key of ['BULKSMSBD_API_KEY', 'BULKSMSBD_SENDER_ID'] as const) {
       if (!value[key]) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: [key],
           message:
             value.NODE_ENV === 'production'
@@ -335,7 +332,7 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
     !value.RESEND_API_KEY
   ) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['RESEND_API_KEY'],
       message:
         value.NODE_ENV === 'production'
@@ -345,7 +342,7 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
   }
   if (value.NODE_ENV === 'production' && !value.RESEND_WEBHOOK_SECRET) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['RESEND_WEBHOOK_SECRET'],
       message: "required in production: bounces are only believed with Resend's signature",
     });
@@ -358,7 +355,7 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
     for (const key of ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY'] as const) {
       if (!value[key]) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: [key],
           message:
             value.NODE_ENV === 'production'
@@ -375,7 +372,7 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
     !value.GEMINI_API_KEY
   ) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['GEMINI_API_KEY'],
       message:
         value.NODE_ENV === 'production'
@@ -385,14 +382,14 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
   }
   if (value.NODE_ENV === 'production' && !value.DATA_ENCRYPTION_KEY) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['DATA_ENCRYPTION_KEY'],
       message: 'required in production: 32 random bytes, base64',
     });
   }
   if (value.TRUSTED_EDGE_SECRET_NEXT && !value.TRUSTED_EDGE_SECRET) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['TRUSTED_EDGE_SECRET_NEXT'],
       message: 'can only be set together with TRUSTED_EDGE_SECRET',
     });

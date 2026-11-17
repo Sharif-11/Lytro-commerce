@@ -21,9 +21,9 @@ export const SMS_SPEND_CAP_MIN = 1;
  */
 export const smsSettingsUpdateSchema = z
   .object({
-    events: z.record(z.nativeEnum(SmsEvent), z.boolean()).optional(),
+    events: z.partialRecord(z.enum(SmsEvent), z.boolean()).optional(),
     templates: z
-      .record(z.nativeEnum(SmsEvent), z.string().trim().min(1).max(SMS_TEMPLATE_MAX_LENGTH))
+      .partialRecord(z.enum(SmsEvent), z.string().trim().min(1).max(SMS_TEMPLATE_MAX_LENGTH))
       .optional(),
     smsName: z.string().trim().min(1).max(NAME_MAX_LENGTH).nullable().optional(),
     monthlySpendCap: nonNegativeMoneyField
@@ -107,7 +107,7 @@ export const smsLogQuerySchema = z
   .object({
     limit: z.coerce.number().int().min(1).max(SMS_LOG_PAGE_MAX).default(50),
     before: z.coerce.number().int().positive().optional(),
-    orderId: z.string().uuid().optional(),
+    orderId: z.guid().optional(),
   })
   .strict();
 export type SmsLogQuery = z.infer<typeof smsLogQuerySchema>;

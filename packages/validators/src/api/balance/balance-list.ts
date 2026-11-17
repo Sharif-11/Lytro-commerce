@@ -8,7 +8,7 @@ const ledgerTypesField = z
   .string()
   .max(Object.values(LedgerEntryType).join(',').length)
   .transform((value) => value.split(','))
-  .pipe(z.array(z.nativeEnum(LedgerEntryType)).min(1));
+  .pipe(z.array(z.enum(LedgerEntryType)).min(1));
 
 // GET /balance/ledger: filters for the statement page (BAL-14). Keyset pagination, never OFFSET.
 export const listLedgerSchema = z.object({

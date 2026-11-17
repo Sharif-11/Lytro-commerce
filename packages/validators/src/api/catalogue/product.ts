@@ -94,21 +94,21 @@ const productFields = {
   name: z.string().trim().min(1).max(PRODUCT_NAME_MAX_LENGTH),
   description: descriptionField.nullable().optional(),
   basePrice: priceField,
-  stockUnit: z.nativeEnum(StockUnit).optional(),
-  stockTracking: z.nativeEnum(StockTracking).optional(),
+  stockUnit: z.enum(StockUnit).optional(),
+  stockTracking: z.enum(StockTracking).optional(),
   batchTracked: z.boolean().optional(),
   serialTracked: z.boolean().optional(),
   // INV-23: what its serials look like; left out, the shop type's (an IMEI for mobiles, any code otherwise).
-  serialFormat: z.nativeEnum(SerialFormat).optional(),
+  serialFormat: z.enum(SerialFormat).optional(),
   lowStockThreshold: quantityField.optional(),
   deliveryCharge: priceField.nullable().optional(),
   weightKg: weightKgField.nullable().optional(),
-  deliveryMode: z.nativeEnum(DeliveryMode).optional(),
-  paymentPolicy: z.nativeEnum(PaymentPolicy).nullable().optional(),
+  deliveryMode: z.enum(DeliveryMode).optional(),
+  paymentPolicy: z.enum(PaymentPolicy).nullable().optional(),
   advanceAmount: priceField.nullable().optional(),
   active: z.boolean().optional(),
   // FED-02: new unless the shop says otherwise.
-  condition: z.nativeEnum(ItemCondition).optional(),
+  condition: z.enum(ItemCondition).optional(),
   // TAX-01 (Slice 4.6a): its tax class, or null for untaxed; left out of a new product, the shop's default class.
   taxClassId: catalogueIdSchema.nullable().optional(),
   // MNU-01 (Slice 4.6b): its modifier groups, the whole list; never on a combo (agreed 2026-10-30).
@@ -132,7 +132,7 @@ const variantInput = z.object({
   barcode: skuField.nullable().optional(),
   weightKg: weightKgField.nullable().optional(),
   deliveryCharge: priceField.nullable().optional(),
-  deliveryMode: z.nativeEnum(DeliveryMode).nullable().optional(),
+  deliveryMode: z.enum(DeliveryMode).nullable().optional(),
   // INV-24: on a product sharing its stock, how much of it one unit of this variant uses; required there, refused
   // elsewhere.
   packAmount: positiveQuantityField.optional(),
@@ -146,7 +146,7 @@ const attributeValueInput = z.object({
   role: z.enum([AttributeRole.Informational, AttributeRole.CapturedAtOrder]),
   optionIds: z.array(catalogueIdSchema).max(MAX_VARIANTS_PER_PRODUCT).optional(),
   textValue: z.string().trim().min(1).max(PRODUCT_NAME_MAX_LENGTH).optional(),
-  numberValue: z.number().finite().optional(),
+  numberValue: z.number().optional(),
   boolValue: z.boolean().optional(),
 });
 
@@ -491,7 +491,7 @@ function checkNewDesigns(
         FieldProblemCode.NotAllowed,
         'A new product has no designs yet.',
       );
-    if (!z.string().uuid().safeParse(design.key).success)
+    if (!z.guid().safeParse(design.key).success)
       refuse(
         ctx,
         ['designs', index, 'key'],
@@ -531,7 +531,7 @@ export const createProductSchema = z
     deliveryZoneIds: productDeliveryZonesSchema.shape.zoneIds.optional(),
     sizeChart: sizeChartSchema.optional(),
     // CMB-01: a combo pack, made of `parts`; chosen now and never changed.
-    kind: z.nativeEnum(ProductKind).optional(),
+    kind: z.enum(ProductKind).optional(),
     parts: comboPartsField.optional(),
   })
   .superRefine((value, ctx) => {
@@ -643,7 +643,7 @@ export const listProductsSchema = z.object({
   categoryId: categoryFilterField.optional(),
   archived: queryFlag,
   active: queryFlag,
-  stock: z.nativeEnum(StockState).optional(),
+  stock: z.enum(StockState).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(PRODUCT_PAGE_SIZE),
 });

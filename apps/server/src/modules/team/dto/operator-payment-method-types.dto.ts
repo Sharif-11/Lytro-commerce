@@ -11,9 +11,9 @@ export class PaymentMethodTypeReasonDto extends createZodDto(paymentMethodTypeRe
 
 // WAL-18 (Slice 8.7): a payment method type as the operator sees it, and what leans on it.
 const operatorPaymentMethodTypeSchema = z.object({
-  method: z.nativeEnum(PaymentMethod),
-  kind: z.nativeEnum(PaymentMethodKind),
-  state: z.nativeEnum(RetireState),
+  method: z.enum(PaymentMethod),
+  kind: z.enum(PaymentMethodKind),
+  state: z.enum(RetireState),
   retiringSince: z.coerce.date().nullable(),
   removedAt: z.coerce.date().nullable(),
   shopsOn: z.number(),

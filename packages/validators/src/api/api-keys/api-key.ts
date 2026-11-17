@@ -58,8 +58,7 @@ const apiKeyNameField = z.string().trim().min(1).max(API_KEY_NAME_MAX_LENGTH);
 export const createApiKeySchema = z.object({
   name: apiKeyNameField,
   websites: websitesField,
-  expiresAt: z
-    .string()
+  expiresAt: z.iso
     .datetime({ offset: true })
     .transform((value) => new Date(value))
     .nullable()

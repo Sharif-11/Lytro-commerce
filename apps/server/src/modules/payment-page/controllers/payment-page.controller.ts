@@ -79,19 +79,19 @@ class PaymentPageDto extends createZodDto(
     items: z.array(
       z.object({ name: z.string(), attributes: z.array(z.string()), quantity: z.string() }),
     ),
-    source: z.nativeEnum(PaymentSessionSource),
+    source: z.enum(PaymentSessionSource),
     amount: z.string(),
-    state: z.nativeEnum(PaymentSessionState),
+    state: z.enum(PaymentSessionState),
     expiresAt: z.coerce.date(),
-    method: z.nativeEnum(PaymentMethod).nullable(),
+    method: z.enum(PaymentMethod).nullable(),
     methods: z.array(
       z.object({
-        method: z.nativeEnum(PaymentMethod),
-        kind: z.nativeEnum(PaymentMethodKind),
-        way: z.nativeEnum(PaymentWay),
+        method: z.enum(PaymentMethod),
+        kind: z.enum(PaymentMethodKind),
+        way: z.enum(PaymentWay),
         accountName: z.string(),
         number: z.string().nullable(),
-        accountType: z.nativeEnum(WalletAccountType).nullable(),
+        accountType: z.enum(WalletAccountType).nullable(),
         note: z.string().nullable(),
         bank: z
           .object({
@@ -108,16 +108,16 @@ class PaymentPageDto extends createZodDto(
     returnUrl: z.string().nullable(),
     cancelUrl: z.string().nullable(),
     rejected: z
-      .object({ reason: z.nativeEnum(PaymentRejectReason), note: z.string().nullable() })
+      .object({ reason: z.enum(PaymentRejectReason), note: z.string().nullable() })
       .nullable(),
-    review: z.object({ reason: z.nativeEnum(PaymentPageReviewReason) }).nullable(),
+    review: z.object({ reason: z.enum(PaymentPageReviewReason) }).nullable(),
     listenerOnline: z.boolean(),
     idChangesLeft: z.number(),
-    gatewayResult: z.nativeEnum(GatewayResult).nullable(),
+    gatewayResult: z.enum(GatewayResult).nullable(),
     test: z.boolean(),
     submitted: z
       .object({
-        method: z.nativeEnum(PaymentMethod),
+        method: z.enum(PaymentMethod),
         transactionId: z.string(),
         senderNumber: z.string().nullable(),
         submittedAt: z.coerce.date(),

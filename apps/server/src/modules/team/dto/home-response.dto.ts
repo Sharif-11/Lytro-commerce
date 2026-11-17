@@ -38,7 +38,7 @@ export const homeViewSchema = z.object({
       id: z.string(),
       kind: z.string(),
       amount: z.string(),
-      state: z.nativeEnum(BillingPaymentState),
+      state: z.enum(BillingPaymentState),
     })
     .nullable(),
   staffWithoutPassword: z.number().nullable(),

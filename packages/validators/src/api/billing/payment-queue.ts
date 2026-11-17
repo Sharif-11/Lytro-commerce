@@ -5,7 +5,7 @@ import { PlanPaymentKind } from '../../db/enums';
 
 // GET /operator/payment-queue (D2-1/ADM-06): optionally only one kind of payment.
 export const listPaymentQueueSchema = z.object({
-  kind: z.nativeEnum(PlanPaymentKind).optional(),
+  kind: z.enum(PlanPaymentKind).optional(),
 });
 export type ListPaymentQueueInput = z.infer<typeof listPaymentQueueSchema>;
 

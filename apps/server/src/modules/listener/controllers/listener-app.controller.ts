@@ -16,7 +16,7 @@ import type { ListenerConnected, ListenerPaired } from '../types/listener';
 
 class ListenerPairDto extends createZodDto(listenerPairSchema) {}
 const appFacts = {
-  accounts: z.array(z.object({ method: z.nativeEnum(PaymentMethod), number: z.string() })),
+  accounts: z.array(z.object({ method: z.enum(PaymentMethod), number: z.string() })),
   senders: z.array(z.string()),
   testModeUntil: z.coerce.date().nullable(),
 };

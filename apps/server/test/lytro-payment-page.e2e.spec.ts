@@ -3,7 +3,12 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { request as httpRequest } from 'node:http';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { PaymentMethod, PaymentWay, PlatformSettingKey } from '@lytronix/validators';
+import {
+  createPlatformBankAccountSchema,
+  PaymentMethod,
+  PaymentWay,
+  PlatformSettingKey,
+} from '@lytronix/validators';
 import pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
@@ -461,13 +466,14 @@ describeIfDatabase('a shop paying Lytro on the payment page', () => {
 
     it('takes a bank account and shows it to shops', async () => {
       const shop = await openShop(port, texts, 'lpm-bank');
+      // As the console's request reaches the service: through its schema.
       await methods.addBankAccount(
-        {
+        createPlatformBankAccountSchema.parse({
           bankName: 'BRAC Bank',
           accountName: 'Lytronix Ltd',
           accountNumber: '1501204567890001',
           branch: 'Gulshan',
-        },
+        }),
         OPERATOR_ID,
       );
       const { id, ref } = await topUp(shop);

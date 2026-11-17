@@ -41,7 +41,7 @@ import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
 
 function eventOf(value: string): SmsEvent {
-  const event = z.nativeEnum(SmsEvent).safeParse(value);
+  const event = z.enum(SmsEvent).safeParse(value);
   if (!event.success) throw new ApiError('not_found', 'PageNotFound', {});
   return event.data;
 }

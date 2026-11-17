@@ -15,9 +15,9 @@ export class MediaListQueryDto extends createZodDto(mediaListQuerySchema) {}
 
 export const mediaViewSchema = z.object({
   id: z.string(),
-  kind: z.nativeEnum(MediaKind),
-  status: z.nativeEnum(MediaStatus),
-  purpose: z.nativeEnum(MediaPurpose),
+  kind: z.enum(MediaKind),
+  status: z.enum(MediaStatus),
+  purpose: z.enum(MediaPurpose),
   width: z.number().nullable(),
   height: z.number().nullable(),
   durationMs: z.number().nullable(),
@@ -47,7 +47,7 @@ export const uploadStartedSchema = z.object({
   upload: z.object({
     url: z.string(),
     method: z.literal('PUT'),
-    headers: z.record(z.string()),
+    headers: z.record(z.string(), z.string()),
     expiresAt: z.date(),
   }),
 });

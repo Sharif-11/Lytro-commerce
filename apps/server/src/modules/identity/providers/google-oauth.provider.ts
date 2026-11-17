@@ -11,7 +11,7 @@ const AUTHORIZE_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const tokenReply = z.object({ access_token: z.string().min(1) });
 const profileReply = z.object({
   sub: z.string().min(1),
-  email: z.string().email().optional(),
+  email: z.email().optional(),
   email_verified: z.boolean().optional(),
 });
 

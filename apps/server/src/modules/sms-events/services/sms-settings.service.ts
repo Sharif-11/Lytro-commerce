@@ -76,7 +76,7 @@ export interface SmsEventView {
   /** SMS-19: false while it follows the platform's default. */
   edited: boolean;
   defaultTemplate: string;
-  variables: readonly SmsVariable[];
+  variables: SmsVariable[];
   /** SMS-10: the template as the shop's next SMS would read, with sample values, and its units. */
   sample: string;
   units: number;
@@ -155,7 +155,7 @@ export class SmsSettingsService {
         template,
         edited: row?.templates[event] !== undefined,
         defaultTemplate: definition.template,
-        variables: definition.variables,
+        variables: [...definition.variables],
         sample,
         units,
         estimate: estimateOf(event, counts, units, rates.rate),

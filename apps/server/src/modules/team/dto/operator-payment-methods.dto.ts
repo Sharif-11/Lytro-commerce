@@ -38,10 +38,10 @@ export class LytroPaymentMethodsDto extends createZodDto(
     methods: z.array(
       z.object({
         method: z.string(),
-        kind: z.nativeEnum(PaymentMethodKind),
+        kind: z.enum(PaymentMethodKind),
         enabled: z.boolean(),
-        way: z.nativeEnum(PaymentWay),
-        ways: z.array(z.nativeEnum(PaymentWay)),
+        way: z.enum(PaymentWay),
+        ways: z.array(z.enum(PaymentWay)),
         gateway: z
           .object({
             connected: z.boolean(),

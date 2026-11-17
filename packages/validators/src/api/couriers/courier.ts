@@ -23,7 +23,7 @@ import { itemSerialsSchema, serialsOnce } from '../orders/order';
  */
 export const connectCourierSchema = z
   .object({
-    courierKey: z.nativeEnum(CourierKey),
+    courierKey: z.enum(CourierKey),
     credentials: z.record(
       z.string().max(RECORD_KEY_MAX_LENGTH),
       z.string().trim().max(COURIER_FIELD_MAX_LENGTH),
@@ -44,8 +44,8 @@ export type SetPickupStoreInput = z.infer<typeof setPickupStoreSchema>;
 /** GET operator/courier-areas (CUS-10, Slice 6.4): a courier's areas, by how they stand, a zilla or a name. */
 export const courierAreasQuerySchema = z
   .object({
-    courierKey: z.nativeEnum(CourierKey),
-    state: z.nativeEnum(CourierAreaState).optional(),
+    courierKey: z.enum(CourierKey),
+    state: z.enum(CourierAreaState).optional(),
     zillaId: z.coerce.number().int().positive().optional(),
     q: z.string().trim().min(1).max(COURIER_FIELD_MAX_LENGTH).optional(),
     page: z.coerce.number().int().min(1).default(1),
@@ -67,20 +67,18 @@ export type AssignCourierAreaInput = z.infer<typeof assignCourierAreaSchema>;
 
 /** POST operator/courier-areas/confirm (read agreed 2026-11-06): suggested areas the operator agrees with, many at a time. */
 export const confirmCourierAreasSchema = z
-  .object({ ids: z.array(z.string().uuid()).min(1).max(COURIER_AREA_PAGE_MAX) })
+  .object({ ids: z.array(z.guid()).min(1).max(COURIER_AREA_PAGE_MAX) })
   .strict();
 export type ConfirmCourierAreasInput = z.infer<typeof confirmCourierAreasSchema>;
 
 /** POST operator/courier-areas/refresh (read agreed 2026-11-06): reads a courier's area list again now. */
-export const refreshCourierAreasSchema = z
-  .object({ courierKey: z.nativeEnum(CourierKey) })
-  .strict();
+export const refreshCourierAreasSchema = z.object({ courierKey: z.enum(CourierKey) }).strict();
 export type RefreshCourierAreasInput = z.infer<typeof refreshCourierAreasSchema>;
 
 /** GET couriers/:key/areas (CUS-12): the areas staff can choose for an order, its thana's first, then a search of its zilla. */
 export const courierAreasForOrderSchema = z
   .object({
-    orderId: z.string().uuid(),
+    orderId: z.guid(),
     q: z.string().trim().min(1).max(COURIER_FIELD_MAX_LENGTH).optional(),
   })
   .strict();
@@ -94,7 +92,7 @@ const retireReason = z.string().trim().min(1).max(COURIER_RETIRE_REASON_MAX_LENG
  * use instead, and why.
  */
 export const retireCourierSchema = z
-  .object({ suggestedKey: z.nativeEnum(CourierKey), reason: retireReason })
+  .object({ suggestedKey: z.enum(CourierKey), reason: retireReason })
   .strict();
 export type RetireCourierInput = z.infer<typeof retireCourierSchema>;
 
@@ -105,7 +103,7 @@ export type CourierReasonInput = z.infer<typeof courierReasonSchema>;
 /** GET couriers/payouts (CRR-17, Slice 6.5): the payouts a courier has made the shop, newest first, one courier's or all. */
 export const courierPayoutsQuerySchema = z
   .object({
-    courierKey: z.nativeEnum(CourierKey).optional(),
+    courierKey: z.enum(CourierKey).optional(),
     page: z.coerce.number().int().min(1).default(1),
   })
   .strict();
@@ -118,7 +116,7 @@ export type CourierPayoutsQuery = z.infer<typeof courierPayoutsQuerySchema>;
  */
 export const bookOrderSchema = z
   .object({
-    courierKey: z.nativeEnum(CourierKey).optional(),
+    courierKey: z.enum(CourierKey).optional(),
     note: z.string().trim().min(1).max(PARCEL_NOTE_MAX_LENGTH).optional(),
     weightKg: z.number().positive().max(1000).optional(),
     areaCode: z.string().trim().min(1).max(COURIER_FIELD_MAX_LENGTH).optional(),
@@ -144,7 +142,7 @@ export const settleParcelSchema = z
   .superRefine((value, ctx) => {
     if (value.outcome === 'booked' && value.consignmentId === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['consignmentId'],
         message: 'Required.',
         params: { problem: FieldProblemCode.Required },

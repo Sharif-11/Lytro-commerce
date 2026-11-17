@@ -25,15 +25,15 @@ export { imageViewSchema, videoViewSchema };
 const scope = z.enum(['platform', 'shop']);
 
 const productDefaultsFields = {
-  stockUnit: z.nativeEnum(StockUnit),
-  stockTracking: z.nativeEnum(StockTracking),
+  stockUnit: z.enum(StockUnit),
+  stockTracking: z.enum(StockTracking),
   batchTracked: z.boolean(),
   serialTracked: z.boolean(),
-  serialFormat: z.nativeEnum(SerialFormat),
+  serialFormat: z.enum(SerialFormat),
   lowStockThreshold: z.string(),
   suggestedAttributeIds: z.array(z.string()),
   suggestedCategories: z.array(z.string()),
-  upFrontFields: z.array(z.nativeEnum(ProductFormField)),
+  upFrontFields: z.array(z.enum(ProductFormField)),
 };
 
 export const productDefaultsSchema = z.object({
@@ -47,7 +47,7 @@ export class ProductDefaultsDto extends createZodDto(productDefaultsSchema) {}
 // PRD-08: the product form's defaults, with the shop's default payment policy.
 export const productFormDefaultsSchema = productDefaultsSchema.extend({
   shopPaymentPolicy: z.object({
-    defaultPaymentPolicy: z.nativeEnum(PaymentPolicy),
+    defaultPaymentPolicy: z.enum(PaymentPolicy),
     defaultAdvanceAmount: z.string().nullable(),
   }),
   // ATR-19 (PD-13): the attribute a product's designs belong to, for the variants' save.
@@ -76,7 +76,7 @@ export class OptionViewDto extends createZodDto(optionViewSchema) {}
 export const attributeViewSchema = z.object({
   id: z.string(),
   name: z.string(),
-  dataType: z.nativeEnum(AttributeDataType),
+  dataType: z.enum(AttributeDataType),
   unitKind: z.string().nullable(),
   scope,
   retired: z.boolean(),
@@ -126,11 +126,11 @@ export const productPageSchema = z.object({
       minPrice: z.string().nullable(),
       maxPrice: z.string().nullable(),
       active: z.boolean(),
-      stockState: z.nativeEnum(StockState),
+      stockState: z.enum(StockState),
       primaryCategoryId: z.string().nullable(),
       variantCount: z.number(),
       // CMB-01 (Slice 4.8a): an ordinary product or a combo.
-      kind: z.nativeEnum(ProductKind),
+      kind: z.enum(ProductKind),
       image: imageViewSchema.nullable(),
       createdAt: z.date(),
     }),
@@ -157,7 +157,7 @@ export class ProductPageDto extends createZodDto(productPageSchema) {}
 export const variantAttributeViewSchema = z.object({
   attributeId: z.string(),
   name: z.string(),
-  dataType: z.nativeEnum(AttributeDataType),
+  dataType: z.enum(AttributeDataType),
   unitKind: z.string().nullable(),
   options: z.array(
     z.object({
@@ -176,35 +176,35 @@ export const productDetailSchema = z.object({
   oldSlugs: z.array(z.string()),
   description: z.string().nullable(),
   basePrice: z.string(),
-  stockUnit: z.nativeEnum(StockUnit),
-  stockTracking: z.nativeEnum(StockTracking),
+  stockUnit: z.enum(StockUnit),
+  stockTracking: z.enum(StockTracking),
   batchTracked: z.boolean(),
   serialTracked: z.boolean(),
-  serialFormat: z.nativeEnum(SerialFormat),
+  serialFormat: z.enum(SerialFormat),
   sharedStock: z.boolean(),
   lowStockThreshold: z.string(),
   deliveryCharge: z.string().nullable(),
   weightKg: z.string().nullable(),
-  deliveryMode: z.nativeEnum(DeliveryMode),
-  effectiveDeliveryMode: z.nativeEnum(DeliveryMode),
-  paymentPolicy: z.nativeEnum(PaymentPolicy).nullable(),
+  deliveryMode: z.enum(DeliveryMode),
+  effectiveDeliveryMode: z.enum(DeliveryMode),
+  paymentPolicy: z.enum(PaymentPolicy).nullable(),
   advanceAmount: z.string().nullable(),
-  effectivePaymentPolicy: z.nativeEnum(PaymentPolicy),
+  effectivePaymentPolicy: z.enum(PaymentPolicy),
   effectiveAdvanceAmount: z.string().nullable(),
   active: z.boolean(),
   archived: z.boolean(),
-  condition: z.nativeEnum(ItemCondition),
+  condition: z.enum(ItemCondition),
   categoryIds: z.array(z.string()),
   primaryCategoryId: z.string().nullable(),
   minPrice: z.string().nullable(),
   maxPrice: z.string().nullable(),
-  stockState: z.nativeEnum(StockState),
+  stockState: z.enum(StockState),
   variantAttributes: z.array(variantAttributeViewSchema),
   attributes: z.array(
     z.object({
       attributeId: z.string(),
       name: z.string(),
-      dataType: z.nativeEnum(AttributeDataType),
+      dataType: z.enum(AttributeDataType),
       unitKind: z.string().nullable(),
       role: z.enum([AttributeRole.Informational, AttributeRole.CapturedAtOrder]),
       optionIds: z.array(z.string()),
@@ -224,11 +224,11 @@ export const productDetailSchema = z.object({
       effectivePrice: z.string(),
       weightKg: z.string().nullable(),
       deliveryCharge: z.string().nullable(),
-      deliveryMode: z.nativeEnum(DeliveryMode).nullable(),
-      effectiveDeliveryMode: z.nativeEnum(DeliveryMode),
+      deliveryMode: z.enum(DeliveryMode).nullable(),
+      effectiveDeliveryMode: z.enum(DeliveryMode),
       packAmount: z.string().nullable(),
       active: z.boolean(),
-      stockState: z.nativeEnum(StockState),
+      stockState: z.enum(StockState),
     }),
   ),
   sizeChart: z
@@ -278,7 +278,7 @@ export const productDetailSchema = z.object({
       ),
     }),
   ),
-  kind: z.nativeEnum(ProductKind),
+  kind: z.enum(ProductKind),
   parts: z.array(
     z.object({
       position: z.number(),
@@ -290,7 +290,7 @@ export const productDetailSchema = z.object({
           productName: z.string(),
           label: z.string(),
           available: z.boolean(),
-          stockUnit: z.nativeEnum(StockUnit),
+          stockUnit: z.enum(StockUnit),
         }),
       ),
     }),
@@ -317,7 +317,8 @@ export class ComboQuoteViewDto extends createZodDto(
       z.object({
         position: z.number(),
         price: z.string(),
-        image: productImageViewSchema.nullable(),
+        // The part's photo as every screen shows it (ImageView): no bytes, which only a product's own editor reads.
+        image: imageViewSchema.nullable(),
       }),
     ),
   }),

@@ -20,7 +20,7 @@ export const paymentAccountViewSchema = z.object({
   id: z.string(),
   accountName: z.string(),
   number: z.string().nullable(),
-  accountType: z.nativeEnum(WalletAccountType).nullable(),
+  accountType: z.enum(WalletAccountType).nullable(),
   note: z.string().nullable(),
   bankName: z.string().nullable(),
   accountNumber: z.string().nullable(),
@@ -46,14 +46,14 @@ export class PaymentMethodsViewDto extends createZodDto(
   z.object({
     methods: z.array(
       z.object({
-        method: z.nativeEnum(PaymentMethod),
-        kind: z.nativeEnum(PaymentMethodKind),
+        method: z.enum(PaymentMethod),
+        kind: z.enum(PaymentMethodKind),
         enabled: z.boolean(),
         // WAL-18, D8-65 (Slice 8.7): Lytro is retiring the type; it keeps working until it is removed.
         retiring: z.boolean(),
-        levels: z.array(z.nativeEnum(VerificationLevel)),
-        way: z.nativeEnum(PaymentWay),
-        ways: z.array(z.nativeEnum(PaymentWay)),
+        levels: z.array(z.enum(VerificationLevel)),
+        way: z.enum(PaymentWay),
+        ways: z.array(z.enum(PaymentWay)),
         accounts: z.array(paymentAccountViewSchema),
       }),
     ),

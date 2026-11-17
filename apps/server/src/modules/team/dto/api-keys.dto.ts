@@ -16,7 +16,7 @@ export class UpdateApiKeyDto extends createZodDto(updateApiKeySchema) {}
 const apiKeyViewSchema = z.object({
   id: z.string(),
   name: z.string(),
-  type: z.nativeEnum(ApiKeyType),
+  type: z.enum(ApiKeyType),
   prefix: z.string(),
   websites: z.array(z.string()),
   expiresAt: z.date().nullable(),
@@ -24,7 +24,7 @@ const apiKeyViewSchema = z.object({
   lastUsedAt: z.date().nullable(),
   revokedAt: z.date().nullable(),
   // Slice 12: "storefront" for the key Lytro keeps for the shop's storefront; null for the shop's own.
-  purpose: z.nativeEnum(ApiKeyPurpose).nullable(),
+  purpose: z.enum(ApiKeyPurpose).nullable(),
 });
 export class ApiKeyViewDto extends createZodDto(apiKeyViewSchema) {}
 export class ApiKeyListDto extends createZodDto(z.array(apiKeyViewSchema)) {}

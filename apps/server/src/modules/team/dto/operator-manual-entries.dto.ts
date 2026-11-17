@@ -39,7 +39,7 @@ export const evidenceLinkSchema = z.object({ url: z.string(), expiresAt: z.coerc
 export class EvidenceLinkDto extends createZodDto(evidenceLinkSchema) {}
 
 export const manualEntryPreviewResponseSchema = z.object({
-  kind: z.nativeEnum(PlanPaymentKind),
+  kind: z.enum(PlanPaymentKind),
   amount: z.string(),
   creditAmount: z.string(),
   addons: z.array(
@@ -62,7 +62,7 @@ export const manualEntryViewSchema = z.object({
   shopName: z.string(),
   shopSlug: z.string(),
   planPaymentId: z.string(),
-  kind: z.nativeEnum(PlanPaymentKind),
+  kind: z.enum(PlanPaymentKind),
   planName: z.string().nullable(),
   amount: z.string(),
   walletId: z.string().nullable(),

@@ -4,6 +4,6 @@ import { z } from 'zod';
 // to -- no billing term at all, a downgrade schedules a plan, not a priced purchase (the term is chosen
 // later, the normal way, at whatever renewal happens after the switch).
 export const targetDowngradePlanSchema = z.object({
-  planId: z.string().uuid(),
+  planId: z.guid(),
 });
 export type TargetDowngradePlanInput = z.infer<typeof targetDowngradePlanSchema>;

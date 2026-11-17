@@ -112,6 +112,8 @@ export function ProductsView({
           if (!room.data?.full) return;
           event.preventDefault();
           void navigate({
+            // From this page, so `previous` is its own search, not every page's.
+            from: '/$shop/products',
             to: '/$shop/products',
             params: { shop: slug },
             search: (previous) => ({ ...previous, limit: true }),

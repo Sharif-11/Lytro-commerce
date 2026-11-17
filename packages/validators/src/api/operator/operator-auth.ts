@@ -3,7 +3,7 @@ import { PASSWORD_MAX_LENGTH } from '../../common/limits';
 
 // ADM-01, D8: the operator console's own account space, separate from subscriber/staff sign-in. Every step
 // re-asserts email and password — there is no intermediate "pending enrollment" session to protect separately.
-export const operatorEmailField = z.string().trim().max(254).email();
+export const operatorEmailField = z.string().trim().max(254).check(z.email());
 export const operatorPasswordField = z.string().min(1).max(PASSWORD_MAX_LENGTH);
 // A TOTP code is always 6 digits; a backup code is a 10-character hex string (see TotpService). One loose
 // field covers both — the service tries the TOTP check first, then falls back to the backup-code list.

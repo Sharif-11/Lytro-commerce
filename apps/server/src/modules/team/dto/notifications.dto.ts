@@ -18,7 +18,7 @@ export class PushUnsubscribeDto extends createZodDto(pushUnsubscribeSchema) {}
 
 const notificationViewSchema = z.object({
   id: z.string(),
-  kind: z.nativeEnum(NotificationKind),
+  kind: z.enum(NotificationKind),
   title: z.string(),
   body: z.string(),
   // A dashboard path within the shop, such as /orders/<id>; the dashboard puts the shop's slug in front.
@@ -43,7 +43,7 @@ export class NotificationSwitchesDto extends createZodDto(
   z.object({
     kinds: z.array(
       z.object({
-        kind: z.nativeEnum(NotificationKind),
+        kind: z.enum(NotificationKind),
         group: z.enum(['orders', 'payments', 'couriers', 'stock', 'media', 'account']),
         on: z.boolean(),
         locked: z.boolean(),

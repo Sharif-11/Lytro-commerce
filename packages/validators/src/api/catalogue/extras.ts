@@ -102,15 +102,15 @@ export const updatePresetSchema = z
   .object({
     labelBn: z.string().trim().min(1).max(60),
     labelEn: z.string().trim().min(1).max(60),
-    defaultStockUnit: z.nativeEnum(StockUnit),
+    defaultStockUnit: z.enum(StockUnit),
     defaultBatch: z.boolean(),
     defaultSerial: z.boolean(),
-    defaultSerialFormat: z.nativeEnum(SerialFormat),
+    defaultSerialFormat: z.enum(SerialFormat),
     defaultNotTracked: z.boolean(),
     defaultLowStock: quantityField,
     suggestedAttributeIds: z.array(catalogueIdSchema).max(20),
     suggestedCategories: z.array(z.string().trim().min(1).max(CATEGORY_NAME_MAX_LENGTH)).max(20),
-    upFrontFields: z.array(z.nativeEnum(ProductFormField)).max(10),
+    upFrontFields: z.array(z.enum(ProductFormField)).max(10),
   })
   .partial()
   .superRefine((value, ctx) => {

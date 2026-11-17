@@ -7,7 +7,7 @@ import { invoiceSchema, planPaymentSchema } from './billing-response.dto';
 export const addonSchema = z.object({
   id: z.string(),
   key: z.string(),
-  kind: z.nativeEnum(AddonKind),
+  kind: z.enum(AddonKind),
   limitKey: z.string().nullable(),
   unitSize: z.number().nullable(),
   price: z.string(),
@@ -80,7 +80,7 @@ export const shopAddonsSchema = z.object({
       id: z.string(),
       addonId: z.string(),
       key: z.string(),
-      kind: z.nativeEnum(AddonKind),
+      kind: z.enum(AddonKind),
       labelEn: z.string(),
       labelBn: z.string(),
       limitKey: z.string().nullable(),
@@ -89,7 +89,7 @@ export const shopAddonsSchema = z.object({
       startsAt: z.date().nullable(),
       expiresAt: z.date(),
       renews: z.boolean(),
-      renewal: z.nativeEnum(AddonRenewal),
+      renewal: z.enum(AddonRenewal),
       endsSoon: z.boolean(),
       // PLN-20 (Slice 7.7): an allowance's uses still left; null for any other add-on.
       usesLeft: z.number().int().nullable(),

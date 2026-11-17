@@ -21,7 +21,7 @@ export const meResponseSchema = z.object({
       id: z.string(),
       slug: z.string(),
       shopName: z.string(),
-      state: z.nativeEnum(TenantState),
+      state: z.enum(TenantState),
       // LIF-24 (decided 2026-10-16): lets the dashboard shell show the narrow suspended-owner view instead
       // of the full nav, now that the owner can actually reach /me while suspended (suspendedOwner: true).
       suspended: z.boolean(),

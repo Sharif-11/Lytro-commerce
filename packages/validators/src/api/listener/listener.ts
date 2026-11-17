@@ -121,7 +121,7 @@ export type ListenerRecentQuery = z.infer<typeof listenerRecentQuerySchema>;
  * transaction ID, a sender number or an amount.
  */
 export const listenerReceiptsQuerySchema = z.object({
-  status: z.nativeEnum(ListenerMessageStatus).optional(),
+  status: z.enum(ListenerMessageStatus).optional(),
   q: z.string().trim().min(1).max(40).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce

@@ -30,7 +30,7 @@ export const operatorShopFiguresSchema = z.object({
     lytro: z.object({ count: z.number().int(), amount: z.string() }),
     customers: z.number().int(),
   }),
-  orders: z.record(z.nativeEnum(OrderStatus), z.number().int()),
+  orders: z.partialRecord(z.enum(OrderStatus), z.number().int()),
 });
 export class OperatorShopFiguresDto extends createZodDto(operatorShopFiguresSchema) {}
 
@@ -82,7 +82,7 @@ export class ShopFailedSmsDto extends createZodDto(shopFailedSmsSchema) {}
 export class PlanExtensionDto extends createZodDto(
   z.object({
     periodEnd: z.date(),
-    state: z.nativeEnum(TenantState),
+    state: z.enum(TenantState),
     restored: z.boolean(),
   }),
 ) {}

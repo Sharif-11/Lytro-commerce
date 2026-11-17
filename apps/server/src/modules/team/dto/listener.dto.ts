@@ -26,9 +26,9 @@ export const listenerDeviceSchema = z.object({
   pairedAt: z.coerce.date(),
   lastSeenAt: z.coerce.date().nullable(),
   online: z.boolean(),
-  status: z.nativeEnum(ListenerDeviceStatus),
+  status: z.enum(ListenerDeviceStatus),
   revokedAt: z.coerce.date().nullable(),
-  revokeReason: z.nativeEnum(ListenerRevokeReason).nullable(),
+  revokeReason: z.enum(ListenerRevokeReason).nullable(),
   flags: z.number(),
   uploadsToday: z.number(),
 });
@@ -59,12 +59,12 @@ export class ReceiptPageDto extends createZodDto(
     receipts: z.array(
       z.object({
         id: z.string(),
-        method: z.nativeEnum(PaymentMethod).nullable(),
+        method: z.enum(PaymentMethod).nullable(),
         amount: z.string().nullable(),
         transactionId: z.string().nullable(),
-        status: z.nativeEnum(ListenerMessageStatus),
-        reviewReason: z.nativeEnum(PaymentReviewReason).nullable(),
-        ignoredReason: z.nativeEnum(ListenerIgnoredReason).nullable(),
+        status: z.enum(ListenerMessageStatus),
+        reviewReason: z.enum(PaymentReviewReason).nullable(),
+        ignoredReason: z.enum(ListenerIgnoredReason).nullable(),
         orderNumber: z.string().nullable(),
         receivedAt: z.coerce.date(),
         senderNumber: z.string().nullable(),
@@ -81,12 +81,12 @@ export class ReceiptPageDto extends createZodDto(
 // PAY-21 (Slice 5.6): what Lytro's own phones forwarded, as the operator reads it.
 export const lytroReceiptSchema = z.object({
   id: z.string(),
-  method: z.nativeEnum(PaymentMethod).nullable(),
+  method: z.enum(PaymentMethod).nullable(),
   amount: z.string().nullable(),
   transactionId: z.string().nullable(),
-  status: z.nativeEnum(ListenerMessageStatus),
-  reviewReason: z.nativeEnum(PaymentReviewReason).nullable(),
-  ignoredReason: z.nativeEnum(ListenerIgnoredReason).nullable(),
+  status: z.enum(ListenerMessageStatus),
+  reviewReason: z.enum(PaymentReviewReason).nullable(),
+  ignoredReason: z.enum(ListenerIgnoredReason).nullable(),
   orderNumber: z.string().nullable(),
   receivedAt: z.coerce.date(),
   senderNumber: z.string().nullable(),
@@ -108,8 +108,8 @@ export class CredentialUsePageDto extends createZodDto(
   z.object({
     uses: z.array(
       z.object({
-        method: z.nativeEnum(PaymentMethod),
-        action: z.nativeEnum(CredentialUseAction),
+        method: z.enum(PaymentMethod),
+        action: z.enum(CredentialUseAction),
         accountId: z.string(),
         sessionId: z.string().nullable(),
         succeeded: z.boolean(),

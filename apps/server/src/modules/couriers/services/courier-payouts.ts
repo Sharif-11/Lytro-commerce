@@ -74,7 +74,7 @@ interface Tally {
   parcels: number;
 }
 
-const ID = z.string().uuid();
+const ID = z.guid();
 
 function viewOf(row: SelectCourierPayout): CourierPayoutView {
   return {

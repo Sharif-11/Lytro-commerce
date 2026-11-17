@@ -37,10 +37,10 @@ const PURPOSES_WITH_TARGET: readonly MediaPurpose[] = [
 // that place: the product, the category, or the attribute option; a size chart's image or the shop's logo has none.
 export const startUploadSchema = z
   .object({
-    kind: z.nativeEnum(MediaKind),
+    kind: z.enum(MediaKind),
     contentType: z.string().trim().toLowerCase().max(100),
     bytes: z.number().int().positive(),
-    purpose: z.nativeEnum(MediaPurpose),
+    purpose: z.enum(MediaPurpose),
     targetId: catalogueIdSchema.optional(),
   })
   .superRefine((value, ctx) => {
@@ -80,7 +80,7 @@ export type StartUploadInput = z.infer<typeof startUploadSchema>;
 
 // GET media (MED-09): the shop's ready media, newest first, of one kind when asked.
 export const mediaListQuerySchema = z.object({
-  kind: z.nativeEnum(MediaKind).optional(),
+  kind: z.enum(MediaKind).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(MEDIA_PAGE_SIZE),
 });

@@ -4,7 +4,7 @@ import { ProductKind, SalesBucket, SalesRanking, StockUnit } from '@lytronix/val
 
 const salesFigureSchema = z.object({
   orders: z.number(),
-  units: z.array(z.object({ unit: z.nativeEnum(StockUnit), quantity: z.string() })),
+  units: z.array(z.object({ unit: z.enum(StockUnit), quantity: z.string() })),
   revenue: z.string(),
   tax: z.string(),
   deliveryCharges: z.string().nullable(),
@@ -25,7 +25,7 @@ const salesFigureSchema = z.object({
 export const salesViewSchema = z.object({
   dateFrom: z.string(),
   dateTo: z.string(),
-  bucket: z.nativeEnum(SalesBucket),
+  bucket: z.enum(SalesBucket),
   productId: z.string().nullable(),
   buckets: z.array(salesFigureSchema.extend({ from: z.string(), to: z.string() })),
   totals: salesFigureSchema,
@@ -35,13 +35,13 @@ export class SalesViewDto extends createZodDto(salesViewSchema) {}
 export const bestSellersViewSchema = z.object({
   dateFrom: z.string(),
   dateTo: z.string(),
-  by: z.nativeEnum(SalesRanking),
+  by: z.enum(SalesRanking),
   products: z.array(
     z.object({
       productId: z.string().nullable(),
       name: z.string(),
-      kind: z.nativeEnum(ProductKind),
-      stockUnit: z.nativeEnum(StockUnit),
+      kind: z.enum(ProductKind),
+      stockUnit: z.enum(StockUnit),
       units: z.string(),
       revenue: z.string(),
       orders: z.number(),

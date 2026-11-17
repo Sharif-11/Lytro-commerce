@@ -72,7 +72,7 @@ export function CourierView({ courierKey }: { courierKey: string }): React.JSX.E
   const adapters = useCourierAdapters();
   const setDefault = useSetDefaultCourier();
   const [open, setOpen] = useState<Open | null>(null);
-  const parsed = z.nativeEnum(CourierKey).safeParse(courierKey);
+  const parsed = z.enum(CourierKey).safeParse(courierKey);
   const known = parsed.success ? parsed.data : null;
   const connection = connections.data?.find((each) => each.courierKey === known);
   const adapter = adapters.data?.find((each) => each.key === known);

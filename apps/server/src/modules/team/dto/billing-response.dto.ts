@@ -126,7 +126,7 @@ export const planPaymentSchema = z.object({
   submittedAt: z.coerce.date().nullable(),
   note: z.string().nullable(),
   // BIL-19: on a cancelled request, who closed it -- the shop, or its newer request of the same kind.
-  cancelReason: z.nativeEnum(PaymentCancelReason).nullable(),
+  cancelReason: z.enum(PaymentCancelReason).nullable(),
   createdAt: z.coerce.date(),
 });
 export class PlanPaymentDto extends createZodDto(planPaymentSchema) {}
@@ -156,12 +156,12 @@ export const queuedPaymentSchema = planPaymentSchema.extend({
   shopName: z.string(),
   shopSlug: z.string(),
   // The wallet a receipt says it arrived on: null until one of Lytro's phones has seen the money.
-  wallet: z.nativeEnum(PaymentMethod).nullable(),
+  wallet: z.enum(PaymentMethod).nullable(),
   // BIL-06 (Slice 5.6, agreed 2026-11-03): what the seller says they sent, what arrived, and why it waits. For the operator
   // only: the shop's own routes never read these.
   amountSent: z.string().nullable(),
   amountArrived: z.string().nullable(),
-  reviewReason: z.nativeEnum(PaymentReviewReason).nullable(),
+  reviewReason: z.enum(PaymentReviewReason).nullable(),
   // ADM-17, D8-15: the seller's screenshot, opened by `GET /operator/payment-queue/:id/evidence`.
   evidenceId: z.string().nullable(),
 });
@@ -170,7 +170,7 @@ export class QueuedPaymentListDto extends createZodDto(queuedPaymentSchema.array
 // BIL-19: a payment as the shop's Billing section lists it -- its state and method, what it names, the add-ons it
 // pays for, its invoice once paid, and whether it is the owner's earlier, deleted shop's (LIF-21).
 export const billingPaymentSchema = planPaymentSchema.extend({
-  state: z.nativeEnum(BillingPaymentState),
+  state: z.enum(BillingPaymentState),
   // ADM-14: marked "recorded by the platform".
   recordedByPlatform: z.boolean(),
   method: z.enum(PAID_BY_METHODS).nullable(),
@@ -257,7 +257,7 @@ export const invoiceSchema = z.object({
   // BIL-12, PLN-14: line by line -- the plan, each add-on, an upgrade's credit (negative); none on older invoices.
   lines: z.array(
     z.object({
-      kind: z.nativeEnum(InvoiceLineKind),
+      kind: z.enum(InvoiceLineKind),
       description: z.string(),
       quantity: z.number(),
       amount: z.string(),

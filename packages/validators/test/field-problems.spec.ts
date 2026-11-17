@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { z, type ZodError, type ZodTypeAny } from 'zod';
+import { z, type ZodError } from 'zod';
 import * as validators from '../src/index';
 import {
   confirmPurchaseSchema,
@@ -7,6 +7,7 @@ import {
   createBillingTermSchema,
   createShopSchema,
   FIELD_LABELS,
+  FIELD_PROBLEM_PARSE,
   fieldErrorsOf,
   FieldProblemCode,
   fieldProblemMessage,
@@ -21,14 +22,16 @@ import {
   type FieldProblem,
   type Language,
 } from '../src/index';
+import { walkSchema } from './support/schema-walk';
 
-function failureOf(schema: ZodTypeAny, value: unknown): ZodError {
-  const result = schema.safeParse(value);
+function failureOf(schema: z.ZodType, value: unknown): ZodError {
+  // As the server's validation pipe parses a request.
+  const result = schema.safeParse(value, FIELD_PROBLEM_PARSE);
   if (result.success) throw new Error('expected the value to fail');
   return result.error;
 }
 
-function messagesOf(schema: ZodTypeAny, value: unknown, language: Language): string[] {
+function messagesOf(schema: z.ZodType, value: unknown, language: Language): string[] {
   return fieldErrorsOf(fieldProblemsOf(failureOf(schema, value)), language).map((e) => e.message);
 }
 
@@ -175,36 +178,12 @@ describe('the message for a request as a whole', () => {
 // Every field of every request schema has a name a person can read, so no message falls back to "this" by
 // accident; a new field without one fails here, not in front of a shop owner.
 describe('every request field is named in both languages', () => {
-  function fieldsOf(schema: ZodTypeAny, into: Set<string>, seen = new Set<ZodTypeAny>()): void {
-    if (seen.has(schema)) return;
-    seen.add(schema);
-    const def = schema._def as Record<string, unknown> & { typeName?: string };
-    switch (def.typeName) {
-      case 'ZodObject':
-        for (const [key, child] of Object.entries(
-          (schema as z.AnyZodObject).shape as z.ZodRawShape,
-        )) {
-          into.add(key);
-          fieldsOf(child, into, seen);
-        }
-        break;
-      case 'ZodEffects':
-        fieldsOf(def['schema'] as ZodTypeAny, into, seen);
-        break;
-      case 'ZodOptional':
-      case 'ZodNullable':
-      case 'ZodDefault':
-        fieldsOf(def['innerType'] as ZodTypeAny, into, seen);
-        break;
-      case 'ZodArray':
-        fieldsOf(def['type'] as ZodTypeAny, into, seen);
-        break;
-      case 'ZodUnion':
-        for (const option of def['options'] as ZodTypeAny[]) fieldsOf(option, into, seen);
-        break;
-      default:
-        break;
-    }
+  /** The name of every field of every object inside the schema. */
+  function fieldsOf(schema: z.ZodType, into: Set<string>): void {
+    walkSchema(schema, ({ def }) => {
+      if (def.type !== 'object') return;
+      for (const key of Object.keys(def['shape'] as Record<string, unknown>)) into.add(key);
+    });
   }
 
   it('has a label, or a deliberate null, for each one', () => {

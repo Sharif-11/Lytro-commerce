@@ -26,7 +26,7 @@ export enum PublicProductSort {
 export const publicProductListSchema = z.object({
   category: z.string().trim().min(1).max(PRODUCT_SLUG_MAX_LENGTH).optional(),
   search: z.string().trim().min(1).max(PRODUCT_NAME_MAX_LENGTH).optional(),
-  sort: z.nativeEnum(PublicProductSort).optional(),
+  sort: z.enum(PublicProductSort).optional(),
   inStock: queryFlag,
   cursor: z.string().min(1).max(512).optional(),
   limit: z.coerce.number().int().min(1).max(PUBLIC_PAGE_SIZE_MAX).default(PUBLIC_PAGE_SIZE),

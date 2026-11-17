@@ -103,7 +103,7 @@ class ShopperOrderPageDto extends createZodDto(
       z.object({
         orderNumber: z.string(),
         trackingId: z.string(),
-        status: z.nativeEnum(OrderStatus),
+        status: z.enum(OrderStatus),
         grandTotal: z.string(),
         createdAt: z.coerce.date(),
       }),

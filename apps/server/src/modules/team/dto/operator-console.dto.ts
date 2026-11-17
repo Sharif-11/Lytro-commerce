@@ -8,7 +8,7 @@ export const operatorShopSchema = z.object({
   id: z.string(),
   slug: z.string(),
   shopName: z.string(),
-  state: z.nativeEnum(TenantState),
+  state: z.enum(TenantState),
   createdAt: z.date(),
   planId: z.string().nullable(),
   planName: z.string().nullable(),

@@ -210,7 +210,7 @@ const orderDetails = {
   customerName: textField(CUSTOMER_NAME_MAX_LENGTH).nullable().optional(),
   phone: orderPhoneField.nullable().optional(),
   // MNU-04: delivery unless said otherwise.
-  fulfilmentType: z.nativeEnum(FulfilmentType).optional(),
+  fulfilmentType: z.enum(FulfilmentType).optional(),
   // CUS-08: the thana delivered to; its zone sets the delivery charge (DLV-02).
   locationId: z.number().int().positive().nullable().optional(),
   deliveryAddress: textField(ORDER_ADDRESS_MAX_LENGTH).nullable().optional(),
@@ -265,39 +265,41 @@ export function fulfilmentProblems(
   return problems;
 }
 
+// The order's fields with no check across them: what a quote takes (below). Zod 4 keeps a refinement on the object
+// itself, so the quote is this object, not the checked one with its check taken off.
+const orderFields = z.object({
+  ...orderDetails,
+  status: z.enum([OrderStatus.Pending, OrderStatus.Confirmed]).optional(),
+  payment: orderPaymentSchema.optional(),
+  items: orderItemsField,
+});
+
 // POST orders (ORD-01, ORD-07): an order entered by staff. It starts pending, waiting for the confirming call, or
 // confirmed when the customer confirmed as it was entered. ORD-22 (agreed 2026-10-30): a payment received as it was
 // entered is saved with it, verified.
-export const createOrderSchema = z
-  .object({
-    ...orderDetails,
-    status: z.enum([OrderStatus.Pending, OrderStatus.Confirmed]).optional(),
-    payment: orderPaymentSchema.optional(),
-    items: orderItemsField,
-  })
-  .superRefine((value, ctx) => {
-    for (const { field, problem } of fulfilmentProblems({
-      customerName: value.customerName ?? null,
-      phone: value.phone ?? null,
-      fulfilmentType: value.fulfilmentType ?? FulfilmentType.Delivery,
-      locationId: value.locationId ?? null,
-      deliveryAddress: value.deliveryAddress ?? null,
-      tableRef: value.tableRef ?? null,
-      deliveryCharge: value.deliveryCharge ?? null,
-    })) {
-      refuse(
-        ctx,
-        [field],
-        problem,
-        problem === FieldProblemCode.Required ? 'Required.' : 'Not for this order type.',
-      );
-    }
-  });
+export const createOrderSchema = orderFields.superRefine((value, ctx) => {
+  for (const { field, problem } of fulfilmentProblems({
+    customerName: value.customerName ?? null,
+    phone: value.phone ?? null,
+    fulfilmentType: value.fulfilmentType ?? FulfilmentType.Delivery,
+    locationId: value.locationId ?? null,
+    deliveryAddress: value.deliveryAddress ?? null,
+    tableRef: value.tableRef ?? null,
+    deliveryCharge: value.deliveryCharge ?? null,
+  })) {
+    refuse(
+      ctx,
+      [field],
+      problem,
+      problem === FieldProblemCode.Required ? 'Required.' : 'Not for this order type.',
+    );
+  }
+});
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 
 // POST orders/quote (D4-9, Slice 4.8a): an order priced as it is typed. Who it is for and how it reaches them are
 // checked when it is made, so New order's totals show before the customer's details are in.
-export const quoteOrderSchema = createOrderSchema.innerType();
+export const quoteOrderSchema = orderFields;
 
 // POST /v1/orders (ORD-02, SFT-06, LND-07, D4-2): a shopper's order, delivered and paid in cash on delivery. Only what
 // a shopper chooses: a price, discount, delivery charge or status is refused by name. `source` is the Lytro
@@ -339,9 +341,9 @@ export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;
 // that cancels the order needs its reason (ORD-52), and "other" a note.
 export const logCallSchema = z
   .object({
-    outcome: z.nativeEnum(CallOutcome),
+    outcome: z.enum(CallOutcome),
     callBackAt: z.coerce.date().optional(),
-    reason: z.nativeEnum(CancelReason).optional(),
+    reason: z.enum(CancelReason).optional(),
     note: textField(CALL_NOTE_MAX_LENGTH).optional(),
   })
   .superRefine((value, ctx) => {
@@ -368,7 +370,7 @@ export type LogCallInput = z.infer<typeof logCallSchema>;
 // POST orders/:id/cancel (ORD-52): why, from the fixed list; "other" needs a note.
 export const cancelOrderSchema = z
   .object({
-    reason: z.nativeEnum(CancelReason),
+    reason: z.enum(CancelReason),
     note: textField(CANCEL_NOTE_MAX_LENGTH).optional(),
     // CRR-28: a booked order, where the courier has no cancel call: staff say they cancelled it in the courier's panel.
     courierCancelled: z.boolean().optional(),
@@ -522,18 +524,18 @@ export type DeliveryEstimateInput = z.infer<typeof deliveryEstimateSchema>;
 // GET orders (ORD-13, ORD-45, ORD-52): newest first, 20 a page; by the status shown, either axis, where it came from,
 // why it was cancelled, the days it was made (Asia/Dhaka), and a name, phone or order number.
 export const orderListQuerySchema = z.object({
-  status: z.nativeEnum(OrderStatus).optional(),
-  paymentStatus: z.nativeEnum(OrderPaymentStatus).optional(),
-  fulfillmentStatus: z.nativeEnum(FulfillmentStatus).optional(),
-  source: z.nativeEnum(OrderSource).optional(),
-  cancelReason: z.nativeEnum(CancelReason).optional(),
+  status: z.enum(OrderStatus).optional(),
+  paymentStatus: z.enum(OrderPaymentStatus).optional(),
+  fulfillmentStatus: z.enum(FulfillmentStatus).optional(),
+  source: z.enum(OrderSource).optional(),
+  cancelReason: z.enum(CancelReason).optional(),
   dateFrom: calendarDayField.optional(),
   dateTo: calendarDayField.optional(),
   q: z.string().trim().min(1).max(CUSTOMER_NAME_MAX_LENGTH).optional(),
   // CUS-02 (Slice 4.4a): one customer's orders, their history on the customer's page.
-  customerId: z.string().uuid().optional(),
+  customerId: z.guid().optional(),
   // INV-15 (Slice 4.8c, agreed 2026-11-02): the orders holding stock of this variant, for Stock's See the orders.
-  variantId: z.string().uuid().optional(),
+  variantId: z.guid().optional(),
   // Slice 6.7 (read agreed 2026-11-06): only the orders whose parcel a courier reported something staff should look at.
   attention: z.literal('any').optional(),
   page: z.coerce.number().int().min(1).default(1),

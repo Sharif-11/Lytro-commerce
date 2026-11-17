@@ -93,7 +93,7 @@ export const purchaseOrderListQuerySchema = z.object({
   status: z
     .preprocess(
       (value) => (typeof value === 'string' ? value.split(',') : value),
-      z.array(z.nativeEnum(PurchaseStatus)).min(1),
+      z.array(z.enum(PurchaseStatus)).min(1),
     )
     .optional(),
   supplierId: catalogueIdSchema.optional(),

@@ -8,9 +8,9 @@ import { ReconciliationDifferenceKind, ReconciliationDifferenceState } from '../
 /** GET operator/reconciliation/differences: open ones by default, newest day first; a day or a kind narrows it. */
 export const reconciliationListQuerySchema = z
   .object({
-    state: z.nativeEnum(ReconciliationDifferenceState).default(ReconciliationDifferenceState.Open),
+    state: z.enum(ReconciliationDifferenceState).default(ReconciliationDifferenceState.Open),
     day: calendarDayField.optional(),
-    kind: z.nativeEnum(ReconciliationDifferenceKind).optional(),
+    kind: z.enum(ReconciliationDifferenceKind).optional(),
     page: z.coerce.number().int().min(1).max(10_000).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(50),
   })

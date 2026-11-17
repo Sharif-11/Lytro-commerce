@@ -19,7 +19,7 @@ const brandContrastSchema = z.object({
   passes: z.boolean(),
   pairs: z.array(
     z.object({
-      pair: z.nativeEnum(BrandPair),
+      pair: z.enum(BrandPair),
       ratio: z.number(),
       needs: z.number(),
       passes: z.boolean(),
@@ -42,10 +42,10 @@ export const brandEditorSchema = z.object({
     mainColor: z.string(),
     accentColor: z.string(),
     backgroundColor: z.string(),
-    headingFont: z.nativeEnum(BrandFont),
-    bodyFont: z.nativeEnum(BrandFont),
-    corners: z.nativeEnum(BrandCorners),
-    spacing: z.nativeEnum(BrandSpacing),
+    headingFont: z.enum(BrandFont),
+    bodyFont: z.enum(BrandFont),
+    corners: z.enum(BrandCorners),
+    spacing: z.enum(BrandSpacing),
     darkLogo: imageViewSchema.nullable(),
     icon: imageViewSchema.nullable(),
   }),

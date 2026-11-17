@@ -8,6 +8,6 @@ export const updateRateSchema = z.object({
   // ADM-11: the reason goes on the platform audit log with the change.
   reason: suspendTenantSchema.shape.reason,
   // RAT-09: set once the operator publishes the prefilled notice for this change, if they do.
-  noticeId: z.string().uuid().optional(),
+  noticeId: z.guid().optional(),
 });
 export type UpdateRateInput = z.infer<typeof updateRateSchema>;

@@ -19,8 +19,8 @@ export class NoticeUpdateDto extends createZodDto(noticeUpdateSchema) {}
 export class NoticeTemplateDto extends createZodDto(noticeTemplateSchema) {}
 export class NoticeReachDto extends createZodDto(noticeReachSchema) {}
 
-const category = z.nativeEnum(NoticeCategory);
-const severity = z.nativeEnum(NoticeSeverity);
+const category = z.enum(NoticeCategory);
+const severity = z.enum(NoticeSeverity);
 
 const noticeViewSchema = z.object({
   id: z.string(),
@@ -111,7 +111,7 @@ const operatorNoticeSchema = z.object({
   windowStartsAt: z.date().nullable(),
   windowEndsAt: z.date().nullable(),
   rateChangeId: z.number().int().nullable(),
-  status: z.nativeEnum(NoticeStatus),
+  status: z.enum(NoticeStatus),
   createdBy: z.string(),
   createdAt: z.date(),
   editedAt: z.date().nullable(),

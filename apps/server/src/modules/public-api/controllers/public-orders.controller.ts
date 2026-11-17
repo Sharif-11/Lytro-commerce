@@ -39,7 +39,7 @@ const itemSchema = z.object({
     z.object({
       name: z.string(),
       value: z.string(),
-      dataType: z.nativeEnum(AttributeDataType),
+      dataType: z.enum(AttributeDataType),
       unitKind: z.string().nullable(),
       variantDefining: z.boolean(),
     }),
@@ -47,7 +47,7 @@ const itemSchema = z.object({
   // ATR-20 (PD-6): the photo the line was ordered with.
   thumbnail: z.string().nullable(),
   quantity: z.string(),
-  stockUnit: z.nativeEnum(StockUnit),
+  stockUnit: z.enum(StockUnit),
   unitPrice: z.string(),
   itemTotal: z.string(),
   modifiers: z.array(
@@ -67,7 +67,7 @@ class PlacedOrderDto extends createZodDto(
   z.object({
     orderNumber: z.string(),
     trackingId: z.string(),
-    status: z.nativeEnum(OrderStatus),
+    status: z.enum(OrderStatus),
     createdAt: z.coerce.date(),
     items: z.array(itemSchema),
     ...totals,
@@ -79,7 +79,7 @@ class TrackedOrderDto extends createZodDto(
   z.object({
     orderNumber: z.string(),
     trackingId: z.string(),
-    status: z.nativeEnum(OrderStatus),
+    status: z.enum(OrderStatus),
     timeline: z.array(
       z.object({
         step: z.enum(['placed', 'confirmed', 'shipped', 'delivered', 'cancelled']),
@@ -112,7 +112,7 @@ class TrackedOrderDto extends createZodDto(
       .nullable(),
     // Slice 6.7: the courier says the parcel is going back to the shop.
     courierReturning: z.boolean(),
-    payment: openedPaymentSchema.extend({ state: z.nativeEnum(PaymentSessionState) }).nullable(),
+    payment: openedPaymentSchema.extend({ state: z.enum(PaymentSessionState) }).nullable(),
   }),
 ) {}
 
@@ -145,7 +145,7 @@ export class PublicOrdersController {
     @Body(new ZodValidationPipe(PublicOrderBodyDto.schema)) body: PublicOrderInput,
     @Req() request: PublicApiRequest,
     @Res({ passthrough: true }) response: HttpResponse,
-  ): Promise<unknown> {
+  ): Promise<PlacedOrderDto> {
     const shop = request.apiShop;
     const key = request.apiKey;
     if (!shop || !key) throw new Error('the public key guard names the shop and its key');
@@ -162,7 +162,8 @@ export class PublicOrdersController {
     });
     if (!placed.replayed) return placed.order;
     response.setHeader('Idempotent-Replay', 'true');
-    return placed.body;
+    // The first answer, as it was sent; the response schema reads it again on the way out.
+    return placed.body as PlacedOrderDto;
   }
 
   @Get('track/:trackingId')

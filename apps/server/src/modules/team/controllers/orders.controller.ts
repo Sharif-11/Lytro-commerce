@@ -135,7 +135,7 @@ export class OrdersController {
     @Body(new ZodValidationPipe(CreateOrderDto.schema)) body: CreateOrderDto,
     @Req() request: DashboardRequest,
     @Res({ passthrough: true }) response: HttpResponse,
-  ): Promise<unknown> {
+  ): Promise<OrderViewDto> {
     const key = headerValue(request.headers['idempotency-key']);
     if (!key) throw new ApiError('idempotency_key_required', 'IdempotencyKeyRequired', {});
     // ORD-22, agreed 2026-10-30: recording the payment that comes with it is payments:manage's, as on its own route.
@@ -156,7 +156,8 @@ export class OrdersController {
     });
     if (!created.replayed) return created.order;
     response.setHeader('Idempotent-Replay', 'true');
-    return created.body;
+    // The first answer, as it was sent; the response schema reads it again on the way out.
+    return created.body as OrderViewDto;
   }
 
   @Post('quote')

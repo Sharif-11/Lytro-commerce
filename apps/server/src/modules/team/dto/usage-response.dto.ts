@@ -19,7 +19,7 @@ const suggestionSchema = z.discriminatedUnion('kind', [
         key: z.string(),
         name: z.string(),
         nameBn: z.string().optional(),
-        metric: z.nativeEnum(UsageMetric),
+        metric: z.enum(UsageMetric),
         quantity: z.number(),
         monthly: z.number(),
       }),
@@ -36,7 +36,7 @@ export const shopUsageSchema = z.object({
   cycleEnd: z.date(),
   metrics: z.array(
     z.object({
-      metric: z.nativeEnum(UsageMetric),
+      metric: z.enum(UsageMetric),
       used: z.number(),
       // RTE-11: for API requests, the cycle's allowance -- the shop's own limit, then its packs.
       limit: z.number().nullable(),

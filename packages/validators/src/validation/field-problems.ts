@@ -1,7 +1,14 @@
-import { ZodIssueCode, type ZodError, type ZodIssue } from 'zod';
+import type { core, ZodError } from 'zod';
 import { FieldProblemCode, type FieldProblem } from './field-problem';
 
 const PROBLEM_CODES: readonly FieldProblemCode[] = Object.values(FieldProblemCode);
+
+/**
+ * How a request is parsed for API-16: Zod 4 keeps the value it was given on an issue only when asked, and that value
+ * is how a missing field (`undefined` or `null`) is told from one of the wrong type. It stays on the issue, which
+ * `fieldProblemsOf` reads and drops: only the field and its problem leave the server.
+ */
+export const FIELD_PROBLEM_PARSE = { reportInput: true } as const;
 
 /**
  * A custom check (`refine`/`superRefine`) names its problem in `params.problem`, and may give the limit it
@@ -18,24 +25,25 @@ function customProblem(field: string, params: Record<string, unknown> | undefine
   return result;
 }
 
-function problemsOf(issue: ZodIssue): FieldProblem[] {
+function problemsOf(issue: core.$ZodIssue): FieldProblem[] {
   const field = issue.path.join('.');
   switch (issue.code) {
-    case ZodIssueCode.invalid_type:
-      if (issue.received === 'undefined' || issue.received === 'null') {
+    case 'invalid_type':
+      if (issue.input === undefined || issue.input === null) {
         return [{ field, problem: FieldProblemCode.Required }];
       }
-      if (issue.expected === 'integer')
-        return [{ field, problem: FieldProblemCode.NotWholeNumber }];
+      // Zod 4 says `int` where Zod 3 said `integer`; a number that is not finite (NaN, Infinity) is a wrong number.
+      if (issue.expected === 'int') return [{ field, problem: FieldProblemCode.NotWholeNumber }];
       if (issue.expected === 'number' || issue.expected === 'bigint') {
         return [{ field, problem: FieldProblemCode.NotANumber }];
       }
+      // An invalid Date is also this issue in Zod 4 (Zod 3's `invalid_date`).
       if (issue.expected === 'date') return [{ field, problem: FieldProblemCode.InvalidDate }];
       return [{ field, problem: FieldProblemCode.WrongType }];
 
-    case ZodIssueCode.too_small: {
+    case 'too_small': {
       const min = Number(issue.minimum);
-      switch (issue.type) {
+      switch (issue.origin) {
         case 'string':
           if (issue.exact === true)
             return [{ field, problem: FieldProblemCode.WrongLength, length: min }];
@@ -59,9 +67,9 @@ function problemsOf(issue: ZodIssue): FieldProblem[] {
       }
     }
 
-    case ZodIssueCode.too_big: {
+    case 'too_big': {
       const max = Number(issue.maximum);
-      switch (issue.type) {
+      switch (issue.origin) {
         case 'string':
           if (issue.exact === true)
             return [{ field, problem: FieldProblemCode.WrongLength, length: max }];
@@ -83,8 +91,9 @@ function problemsOf(issue: ZodIssue): FieldProblem[] {
       }
     }
 
-    case ZodIssueCode.invalid_string:
-      switch (issue.validation) {
+    // Zod 3's `invalid_string`, named by its format.
+    case 'invalid_format':
+      switch (issue.format) {
         case 'email':
           return [{ field, problem: FieldProblemCode.InvalidEmail }];
         case 'url':
@@ -97,35 +106,39 @@ function problemsOf(issue: ZodIssue): FieldProblem[] {
           return [{ field, problem: FieldProblemCode.InvalidFormat }];
       }
 
-    case ZodIssueCode.invalid_enum_value:
-    case ZodIssueCode.invalid_literal:
-    case ZodIssueCode.invalid_union_discriminator:
+    // Zod 3's `invalid_enum_value` and `invalid_literal`.
+    case 'invalid_value':
       return [{ field, problem: FieldProblemCode.NotAllowed }];
 
-    case ZodIssueCode.invalid_date:
-      return [{ field, problem: FieldProblemCode.InvalidDate }];
-
-    case ZodIssueCode.not_multiple_of:
+    // Zod 3's `invalid_union_discriminator` is a union issue naming its discriminator in Zod 4, on the discriminator's
+    // own path as before; any other union no option fits stays a wrong type.
+    case 'invalid_union':
       return [
         {
           field,
           problem:
-            Number(issue.multipleOf) === 1
-              ? FieldProblemCode.NotWholeNumber
-              : FieldProblemCode.InvalidFormat,
+            issue.discriminator === undefined
+              ? FieldProblemCode.WrongType
+              : FieldProblemCode.NotAllowed,
         },
       ];
 
-    case ZodIssueCode.not_finite:
-      return [{ field, problem: FieldProblemCode.NotANumber }];
+    case 'not_multiple_of':
+      return [
+        {
+          field,
+          problem:
+            issue.divisor === 1 ? FieldProblemCode.NotWholeNumber : FieldProblemCode.InvalidFormat,
+        },
+      ];
 
-    case ZodIssueCode.unrecognized_keys:
+    case 'unrecognized_keys':
       return issue.keys.map((key) => ({
         field: [...issue.path, key].join('.'),
         problem: FieldProblemCode.NotAllowed,
       }));
 
-    case ZodIssueCode.custom:
+    case 'custom':
       return [customProblem(field, issue.params)];
 
     default:
@@ -135,8 +148,8 @@ function problemsOf(issue: ZodIssue): FieldProblem[] {
 
 /**
  * API-16: what is wrong with each field of a request that failed its schema -- one problem per field, the first
- * one found (a missing value before its format), in the order the fields were checked. The same on the server
- * and in the dashboard, since both check the same schema.
+ * one found (a missing value before its format), in the order the fields were checked. The schema is parsed with
+ * FIELD_PROBLEM_PARSE, so a missing field reads as missing.
  */
 export function fieldProblemsOf(error: ZodError): FieldProblem[] {
   const byField = new Map<string, FieldProblem>();
