@@ -386,6 +386,20 @@ test (2026-11-14) found a storefront page answering Next's error page whenever t
 - **Only "too many" and "busy" are drawn this way.** Any other fault keeps the error page, so a real fault is never
   dressed up as a wait.
 
+## 7i. Pages kept at Cloudflare's edge (Phase 9 Slice 9.10, D9-32)
+
+Nothing new is drawn. A page every shopper sees alike -- the home, a category, a product, a landing page, new arrivals
+and a search, for a shopper who isn't signed in and reads Bangla -- is the same page for all of them, so what was one
+shopper's moves to after the first paint:
+
+- **A `?v=` link** (LND-06, PD-24): the page opens on the product's own first choice, then the browser chooses the
+  link's design and size and moves the gallery to its cover, as on a page rendered for that shopper.
+- **The remembered area** (SFT-20): the page opens on the shop's highest charge, as for a shopper with no area yet
+  (PD-25), then shows the area's exact charge once it is asked.
+- **The busy page** (7h) answers 503, so the edge never keeps it and keeps handing out the last good page instead.
+
+A signed-in or English-reading shopper's pages are still rendered for them, and open on the link and the area as before.
+
 ## 8. Later phases, drawn in full
 
 Phase 4, orders: drawn again in §7a as Phase 4 built it -- checkout, the confirmation, tracking, the account and the

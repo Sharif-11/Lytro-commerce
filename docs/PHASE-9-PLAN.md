@@ -126,6 +126,7 @@ overrule any of them when reviewing this plan.
 | D9-29 | **The tax invoice's form** (Slice 9.9's read, 2026-11-13; LEG-03, D9-7). | Once all four VAT settings are set, Lytro's invoices take **Mushak-6.3's** form: titled "কর চালানপত্র (মূসক-৬.৩)", with the time of issue, the seller and the buyer -- the shop, its owner and its address, **copied at issue** like the rest (migration 0136). Hidden until then, so registering needs no code. An invoice paid from the balance carries no VAT and no title (D9-26); an accountant confirms that before registering. | Slice 9.9 |
 | D9-30 | **The production server's size** (staging's load test, 2026-11-14; amends D9-24, and DAT-19's, DAT-32's and DAT-35's sizes for it). | Staging's 2 vCPU carried about the capacity model's 1× peak for 100 shops before CPU ran out; the database was never the limit. The production server is **8 vCPU and 16 GB** with at least 100 GB of NVMe (the owner, over 8 GB), month to month from a provider meeting DAT-20, so it can be swapped if the load test finds its cores oversold. PostgreSQL's memory is sized to it through `settings.env` (`PG_SHARED_BUFFERS` about 4 GB, `PG_EFFECTIVE_CACHE_SIZE` about 10 GB), with the other settings DAT-35 names kept equal on any standby. Bought when 9.10's first pull request is done. | Slice 9.10 |
 | D9-31 | **Public media without the Worker; bandwidth unlimited** (the owner, 2026-11-17; amends Slice 7's media Worker, BND-01 to BND-09, MED-02, MED-10, MED-13 and D8-64). | The media Worker was billed for every photo and video request, even the ones Cloudflare already held (about ৳75,000 a month at 2,500 shops), only to count and limit each shop's bandwidth. Public media is now served straight from the media bucket's custom domain behind Cloudflare's cache, where a request Cloudflare holds costs nothing and Smart Tiered Cache applies. Media bandwidth is no longer a plan limit, a pay-as-you-go line or a pack (migration 0137 retires the pack and takes `bandwidth_gb` out of the plans); the pricing cards say "Unlimited bandwidth". The Worker, its KV store and its Analytics Engine dataset are retired; nothing private was in the media bucket. A suspended or closed shop's files stay reachable by their direct links; a lapsed shop's files are purged from Cloudflare's cache by folder after they are deleted (`CLOUDFLARE_ZONE_ID`, a token with Cache Purge). Any site's script may read public media (CORS open for GET and HEAD). The old bandwidth tables stay until a later release drops them. | Slice 9.10 |
+| D9-32 | **Shop pages kept at Cloudflare's edge** (the owner, 2026-11-14 and 2026-11-16; amends SFT-11, SFT-15, LND-14, RTE-04 for the storefront and RTE-08's figure). | A shop's home, category, product, landing, new-arrivals and search pages on its Lytro address are kept at Cloudflare's edge for **5 minutes** (search **1 minute**) for every shopper who isn't signed in and reads Bangla, on the **Free plan**; a page past its time is still handed out for 10 minutes while a fresh one is fetched, and for a day while the server is down or busy. English and signed-in shoppers, the cart, checkout, account, orders and tracking are rendered for each shopper and kept nowhere. Shops' **own domains are not kept at launch**. A seller's save, and a product selling out or coming back, **purge by tag** at once: a price or stock change clears only the pages showing that product, a setting or category change the shop's pages; purges are batched every 12 seconds within the Free plan's 5 a minute. A busy server's page is a **503** the edge never keeps, so it keeps handing out the last good page. Product and landing pages are kept whatever their query (an ad's click ID never misses), so the `?v=` link and the remembered area are applied in the browser; one product's delivery charge is kept too. **Browsing a shop's storefront is never counted** against its requests; its own website's calls still are. **Per-shop orders: 180 a minute** (migration 0139, from 60). No Redis gate for flash sales until the load test's flash-sale run calls for one. | Slice 9.10 |
 
 ### 2.1 Points left to each slice's read
 
@@ -474,6 +475,49 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
      storefront is uncounted, since a cached page never reaches the server. This amends Slice 9's "every request is
      counted" (RTE-04) for the storefront's own traffic. At 1% conversion an ordinary shop's browsing alone would have
      passed Starter's 200,000.
+- **The edge cache's read** (the owner, 2026-11-16, after the viral-product question: 2,000 shoppers at once on one
+  product): "yes, i don't need staging domain now. the other point is ok". D9-32.
+  1. **No staging domain now.** Staging's `<slug>.staging.lytro.app` is two levels down, which Cloudflare's free
+     certificate doesn't cover, so staging stays uncached; the production run tests the edge cache.
+  2. **Cloudflare's Free plan**, with purges by tag batched to its 5 a minute.
+  3. **Bangla pages kept; English and signed-in shoppers rendered each time.** Bangla is the storefront's default, so
+     the edge holds one copy of a page, not one per language.
+  4. **Per-shop orders 180 a minute**, up from 60 (RTE-08): a viral product's 2,000 viewers place about 0.3 to 1 order a
+     second, and the old limit, not the database, was the wall.
+  5. **Shops' own domains uncached at launch.** A domain on another Cloudflare account can't sit behind ours without
+     Cloudflare for SaaS; revisit when a shop with its own domain goes viral.
+  6. **Pages safe to keep:** nothing on a kept page is one shopper's. The `?v=` link and the remembered area are
+     applied in the browser, and the shop's frame is read fresh for the edge.
+  7. **No Redis gate** in front of orders until the production run's flash-sale scenario fails without one. PostgreSQL
+     and the stock ledger stay the truth.
+- **How the edge cache is built** (my calls, 2026-11-17):
+  - **The storefront answers for the edge.** Next can't set a page's status or headers, so its middleware renders a page
+    the edge may keep once more inside the storefront (`lib/edge`), reads the marks the page leaves, and answers:
+    - `Cloudflare-CDN-Cache-Control: max-age=300, stale-while-revalidate=600, stale-if-error=86400` (search: 60 and
+      60), which only Cloudflare reads. Browsers get `no-store`, since a purge can't reach them.
+    - `Cache-Tag`: `lytro` on every page, `s:<shop>` on each of a shop's pages, `l:<shop>` on its listing pages,
+      `p:<product>` on every page showing that product, and on its delivery charges.
+    - A busy server's page is a **503 with Retry-After**, never kept. Cloudflare keeps handing out the last good copy,
+      and the shopper never sees a busy page another shopper got.
+    - A page with no tags (offline, not found, a redirect), one setting a cookie, or one shown while orders can't be
+      saved (D9-14) is kept nowhere.
+  - **Which requests:** a GET on `<slug>.lytro.app` for `/`, `/c/<slug>`, `/p/<slug>`, `/l/<slug>`, `/new` or
+    `/search`, with no `lytro-shopper` cookie and no `lytro-lang=en`. Cloudflare's cache rule skips the same two
+    cookies, so a kept Bangla page never reaches an English or signed-in shopper.
+  - **Query strings:** Cloudflare ignores the query for `/p/` and `/l/`. A Facebook click's `fbclid` would otherwise make
+    every click a miss, and the Free plan can only ignore all of it. The page is the same for every link; the browser
+    applies `?v=` after the first paint (the design's photo and size, the pixel's variant ID). Category, search and new
+    arrivals keep their query, which their pages need.
+  - **One product's delivery charge** is asked by GET (`/api/estimate?p=&v=&q=&a=`) and kept 5 minutes, tagged by the
+    shop and the product. A cart's charge, or one with add-ons, is still a POST kept nowhere.
+  - **Purges ride the outbox:** each change queues its tags in its own transaction (`EdgePurges`), so a purge follows
+    only a committed change. A worker sends them at most every 12 seconds, at least 5 seconds after the change, 100
+    tags a call, within the Free plan's 5 calls a minute. The same Cloudflare token and zone purge a lapsed shop's
+    media.
+  - **Real addresses:** Caddy trusts `CF-Connecting-IP` only from Cloudflare's published ranges, and gives the
+    storefront that one address. The storefront's own render headers are dropped from outside requests.
+  - **Not done here, left for later** (KNOWN-GAPS §150): kept "load more" pages, shops' own domains, Cloudflare for
+    SaaS.
 - **How it's built** (my calls at the read):
   - **The tool:** k6, as Slice 9.6's monitor probe already is.
   - **The traffic:**
