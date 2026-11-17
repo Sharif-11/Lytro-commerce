@@ -2651,8 +2651,9 @@ limit (the owner, 2026-11-17). What it leaves:
    Paid plan cancelled if nothing else uses it. Staging first. Until the switch, the Worker keeps serving and counting,
    and nothing reads what it counts.
 2. **The old bandwidth tables stay** (`control.media_bandwidth`, `control.media_bandwidth_daily`,
-   `control.media_usage_pull`, `control.tenants.auto_buy_bandwidth`): a later release drops them as the contract of
-   0137, once no release reads them.
+   `control.media_usage_pull`, `control.tenants.auto_buy_bandwidth`). Since the small fixes of 2026-11-17 (migration
+   0140) no code or schema names them, and a lapsed shop's rows stay with them; the release after drops them as the
+   contract of 0140.
 3. **A single file a seller deletes stays in Cloudflare's cache** until it expires: only a lapsed shop's whole folder is
    purged (MED-10). The Worker's cache kept such files too; a seller's own file is reached only by its exact address.
 4. **A suspended or closed shop's files stay reachable** by their direct links (the owner's answer). Taking a shop's
@@ -2660,8 +2661,8 @@ limit (the owner, 2026-11-17). What it leaves:
 5. **The purge has no batching**: Cloudflare's free plan allows 5 purge requests a minute, and one lapsed shop is one
    request, retried by its job when refused. The edge cache of shop pages (9.10's next read) needs a queue that
    batches tags; this purge can join it.
-6. **A pack's size in Bangla** is written 100,000 on the usage page and its auto-buy switch, where the prototype and
-   the add-ons sheet write 1,00,000 (`packSize` uses en-US). It was so before; it is on the small-fixes list.
+6. ~~**A pack's size in Bangla**~~ Fixed by the small fixes of 2026-11-17: the usage page and its auto-buy switch
+   write 1,00,000 in Bangla, as the add-ons sheet does (`formatCount`).
 
 ## 150. `D9-32`, `SFT-11`, `SFT-15`: what shop pages at Cloudflare's edge leave open — found 2026-11-17, open
 
