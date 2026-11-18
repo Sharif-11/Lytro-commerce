@@ -175,6 +175,9 @@ const envSchema = z.object({
   // (redis://:<password>@redis:6379). Without it each process counts alone, which is right for one process (a
   // developer's machine, the tests); the servers always set it.
   REDIS_URL: z.string().min(1).optional(),
+  // D9-33 (Slice 9.10): the page cache's own Redis, where the storefront keeps drawn shop pages; the worker's purges
+  // clear them there by tag before Cloudflare's (redis://:<password>@page-cache:6379). Unset, nothing is kept there.
+  PAGE_CACHE_REDIS_URL: z.string().min(1).optional(),
   // Slice 9.2 (D9-13, DAT-23): the API reaches the database through PgBouncer, which sets the statement and transaction
   // limits on every connection it opens (deploy/pgbouncer). A client's own would be refused there, so none is sent.
   DATABASE_THROUGH_POOLER: z

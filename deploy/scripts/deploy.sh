@@ -45,6 +45,10 @@ if [ -n "$(monitor_setting GRAFANA_METRICS_URL)" ] && [ -n "$(monitor_setting GR
   [ -n "$(monitor_setting GRAFANA_CLOUD_TOKEN)" ]; then
   MONITOR=on
 fi
+# D9-33: the page cache's Redis runs once make-env.sh has made its password (page-cache.env); a server set up before
+# runs make-env.sh again to turn it on. Without it the storefront draws every page, as before.
+PAGE_CACHE=off
+if [ -f "$LYTRO_HOME/env/page-cache.env" ]; then PAGE_CACHE=on; fi
 
 export LYTRO_HOME RELEASE EDGE_TAG PGBOUNCER_TAG DATABASE_TAG PG_ARCHIVE_MODE
 
@@ -126,7 +130,7 @@ roll_server() {
   say "$service on $RELEASE, ready"
 }
 
-say "release $RELEASE, edge $EDGE_TAG, pooler $PGBOUNCER_TAG, database $DATABASE_TAG, archive $PG_ARCHIVE_MODE, monitor $MONITOR"
+say "release $RELEASE, edge $EDGE_TAG, pooler $PGBOUNCER_TAG, database $DATABASE_TAG, archive $PG_ARCHIVE_MODE, monitor $MONITOR, page cache $PAGE_CACHE"
 
 if [ -n "${LYTRO_SKIP_PULL:-}" ]; then
   say '1. using the images on this machine'
@@ -146,6 +150,11 @@ rm -f "$init_dir"/*.sh
 install -m 755 "$DEPLOY_DIR"/postgres/*.sh "$init_dir/"
 database_before="$(container_of postgres)"
 dc up -d --wait postgres redis pgbouncer
+if [ "$PAGE_CACHE" = on ]; then
+  dc up -d --wait page-cache
+else
+  say 'no page-cache.env: shop pages are drawn for every visit until deploy/scripts/make-env.sh is run again'
+fi
 # PgBouncer looks the database's name up itself, through a resolver that keeps its own answers (c-ares). While a replaced
 # container was gone the name had no address, and PgBouncer went on failing "DNS lookup failed" long after the new one
 # answered, so neither API process could reach the database (staging, 2026-11-13). A new database means a fresh pooler.

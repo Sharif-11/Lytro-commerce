@@ -1,3 +1,4 @@
+import { STOREFRONT_BUILD_ID } from '@/lib/app/build-id';
 import { serviceWorkerSource } from '@/lib/app/service-worker';
 
 // CCH-10 (Slice 12c): the storefront's service worker, at the site's root so it may look after every page. Never kept
@@ -5,7 +6,7 @@ import { serviceWorkerSource } from '@/lib/app/service-worker';
 export const dynamic = 'force-dynamic';
 
 export function GET(): Response {
-  return new Response(serviceWorkerSource(process.env['STOREFRONT_BUILD_ID'] ?? 'dev'), {
+  return new Response(serviceWorkerSource(STOREFRONT_BUILD_ID), {
     headers: {
       'content-type': 'application/javascript; charset=utf-8',
       'cache-control': 'no-cache',

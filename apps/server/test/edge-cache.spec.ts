@@ -1,13 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { Redis } from 'ioredis';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Transaction } from '@lytronix/db';
-import { QueueName } from '@lytronix/validators';
+import {
+  CLEAR_PAGE_TAGS_AT_ONCE,
+  PAGE_TAG_KEEP_MS,
+  PAGE_TAG_TIMES_KEY,
+  QueueName,
+} from '@lytronix/validators';
 import type { MediaStorage } from '../src/modules/media/ports/media-storage';
 import { MediaDeleter } from '../src/modules/media/services/media-deleter';
 import {
   CacheUnavailable,
   type EdgeCache,
 } from '../src/modules/shared/edge-cache/ports/edge-cache';
+import type { PageCache } from '../src/modules/shared/edge-cache/ports/page-cache';
 import { CloudflareEdgeCache } from '../src/modules/shared/edge-cache/providers/cloudflare-edge-cache';
+import { RedisPageCache } from '../src/modules/shared/edge-cache/providers/redis-page-cache';
 import {
   EdgePurgeRunner,
   PURGE_SETTLE_MS,
@@ -182,28 +190,39 @@ describe('a batch of queued purges (D9-32)', () => {
         return purge(tags);
       },
     };
-    return { run: new EdgePurgeRunner(cache, timing), steps };
+    const pages: PageCache = {
+      clearTags: (tags) => {
+        steps.push(`clear ${String(tags.length)}: ${tags.slice(0, 3).join(' ')}`);
+        return Promise.resolve();
+      },
+    };
+    return { run: new EdgePurgeRunner(cache, pages, timing), steps };
   }
 
   const job = (at: number, ...tags: string[]): EdgePurgeJob => ({ tags, at });
 
-  it('waits until the newest change has settled, then sends each tag once', async () => {
+  it("waits until the newest change has settled, then clears the storefront's copies and sends each tag once", async () => {
     const { run, steps } = runner(10_000);
     await run.run([job(9_000, 's:a', 'p:1'), job(10_000, 'p:1', 'l:a')]);
-    expect(steps).toEqual([`wait ${String(PURGE_SETTLE_MS)}`, 'purge 3: s:a p:1 l:a']);
+    expect(steps).toEqual([
+      `wait ${String(PURGE_SETTLE_MS)}`,
+      'clear 3: s:a p:1 l:a',
+      'purge 3: s:a p:1 l:a',
+    ]);
   });
 
   it('does not wait for changes settled already', async () => {
     const { run, steps } = runner(100_000);
     await run.run([job(1_000, 's:a')]);
-    expect(steps).toEqual(['purge 1: s:a']);
+    expect(steps).toEqual(['clear 1: s:a', 'purge 1: s:a']);
   });
 
-  it('sends at most 100 tags a request, 12 seconds apart, within the purge rate', async () => {
+  it("clears the storefront's copies all at once, then sends at most 100 tags a request, 12 seconds apart", async () => {
     const { run, steps } = runner(100_000);
     const tags = Array.from({ length: 230 }, (_, index) => `p:${String(index)}`);
     await run.run([job(1_000, ...tags.slice(0, 120)), job(1_000, ...tags.slice(100))]);
     expect(steps).toEqual([
+      'clear 230: p:0 p:1 p:2',
       'purge 100: p:0 p:1 p:2',
       `wait ${String(PURGE_SPACING_MS)}`,
       'purge 100: p:100 p:101 p:102',
@@ -280,5 +299,55 @@ describe("queuing a purge in the change's own transaction (D9-32)", () => {
       { run: (work) => work(TX), slugOf: () => Promise.resolve('faiza') },
     );
     await expect(failing.shopLater('shop-1')).resolves.toBeUndefined();
+  });
+});
+
+// D9-33: the storefront keeps drawn pages in the page cache's own Redis under the same tags; a purge writes each tag's
+// change time there by Redis's clock first. Against a real Redis where CI's unit job has one (REDIS_TEST_URL).
+const REDIS_URL = process.env['REDIS_TEST_URL'];
+
+describe("the storefront's kept pages in the page cache's Redis (D9-33)", () => {
+  it('clears nothing where there is no page cache', async () => {
+    await expect(new RedisPageCache(null).clearTags(['s:a'])).resolves.toBeUndefined();
+  });
+
+  it("never fails the purge when the page cache doesn't answer, so Cloudflare's still goes out", async () => {
+    const gone = new Redis('redis://127.0.0.1:1', {
+      lazyConnect: true,
+      enableOfflineQueue: false,
+      maxRetriesPerRequest: 0,
+    });
+    await expect(new RedisPageCache(gone).clearTags(['s:a'])).resolves.toBeUndefined();
+    gone.disconnect();
+  });
+
+  describe.skipIf(REDIS_URL === undefined)('against a real Redis', () => {
+    let redis: Redis;
+    const tags = Array.from(
+      { length: CLEAR_PAGE_TAGS_AT_ONCE + 20 },
+      (_, index) => `p:spec-${String(process.pid)}-${String(index)}`,
+    );
+
+    beforeAll(() => {
+      redis = new Redis(REDIS_URL ?? '', { maxRetriesPerRequest: 1 });
+    });
+    afterAll(async () => {
+      await redis.hdel(PAGE_TAG_TIMES_KEY, ...tags);
+      await redis.quit();
+    });
+
+    it("writes every tag's change time by Redis's clock, more than one call takes, each kept past the longest page", async () => {
+      const [seconds] = await redis.time();
+      await new RedisPageCache(redis).clearTags(tags);
+      const times = await redis.hmget(PAGE_TAG_TIMES_KEY, ...tags);
+      for (const time of times) {
+        expect(Number(time)).toBeGreaterThanOrEqual(Number(seconds) * 1000);
+      }
+      const last = tags.at(-1) ?? '';
+      const left = (await redis.call('HPTTL', PAGE_TAG_TIMES_KEY, 'FIELDS', '1', last)) as number[];
+      expect(left[0]).toBeGreaterThan(PAGE_TAG_KEEP_MS - 5_000);
+      // The hash itself never expires: a full page cache evicts pages, never the times.
+      expect(await redis.pttl(PAGE_TAG_TIMES_KEY)).toBe(-1);
+    });
   });
 });

@@ -398,7 +398,10 @@ shopper's moves to after the first paint:
   (PD-25), then shows the area's exact charge once it is asked.
 - **The busy page** (7h) answers 503, so the edge never keeps it and keeps handing out the last good page instead.
 
-A signed-in or English-reading shopper's pages are still rendered for them, and open on the link and the area as before.
+A signed-in shopper's pages are still rendered for them, and open on the link and the area as before. Since D9-33 the
+storefront keeps its own copy of every page the edge could keep, English pages and shops' own domains included, so an
+English-reading shopper's pages open as above too: on the product's first choice and the highest charge, then the link
+and the area in the browser.
 
 ## 8. Later phases, drawn in full
 

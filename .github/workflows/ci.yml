@@ -239,6 +239,19 @@ jobs:
     needs: scope
     if: needs.scope.outputs.storefront == 'true'
     runs-on: ubuntu-latest
+    # D9-33: the page cache's Redis, for e2e/page-cache.spec.ts's second storefront (playwright.config.ts).
+    services:
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      REDIS_TEST_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v5
 

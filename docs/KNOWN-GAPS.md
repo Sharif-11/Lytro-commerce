@@ -2676,7 +2676,8 @@ What it leaves:
 2. **Staging can't show the edge**: its shop hosts are two levels down, which Cloudflare's free certificate doesn't
    cover. The production run's viral and flash-sale scenarios are the first real test (9.10's second pull request).
 3. **Shops' own domains are rendered for every visit** (the owner's answer): a viral shop on its own domain reaches the
-   server for each page. Cloudflare for SaaS would put them behind the edge.
+   server for each page. Cloudflare for SaaS would put them behind the edge. Since D9-33 the storefront answers them
+   from its own copies (§151), so each page is drawn once while it's fresh, though every visit still reaches the server.
 4. **"Load more" and the cart aren't kept**: a shopper scrolling past a list's first page asks the server for each next
    page (`/api/products`), as before.
 5. **A `?v=` link and the remembered area come after the first paint** on a kept page: the page opens on the product's
@@ -2697,3 +2698,23 @@ What it leaves:
 11. **Tax classes and the shop's payment methods queue no purge**: shown prices already include tax, a product's
     delivery charge with its tax lines lasts at most 5 minutes, and payment methods show only at checkout, which is
     never kept.
+
+## 151. `D9-33`, `RED-01`: what the storefront's own page copies leave open — found 2026-11-18, open
+
+The storefront keeps each page every shopper of its shop sees alike in a Redis of its own, cleared by the edge's tags
+(the owner, 2026-11-18). What it leaves:
+
+1. **RED-01 says one Redis.** The page cache is a second instance, so a full cache can never evict a limit; the limits'
+   instance is unchanged. The SRS isn't edited (D9-33 records the amendment).
+2. **Nothing watches the page cache's Redis.** The monitor (Slice 9.6) reads the limits' Redis only. A page cache that
+   stops answering costs speed, not sales: every page is drawn as before, and each storefront process says so once a
+   minute (`page cache: … without Redis`). Add it to the monitor if the figures ever matter.
+3. **A server set up before this release runs make-env.sh again** to turn it on (deploy/README.md "Redis"); until then
+   deploy.sh leaves it off and says so. Staging needs that once.
+4. **A clearing that fails is logged, not retried**, so Cloudflare's purge isn't held up by it: a copy it missed lasts
+   at most its lifetime, and Cloudflare may fetch it back once with what is left of that time.
+5. **§150's items 6, 10 and 11 apply to the copies too**: a suggestion rail late with a new product, a shop name or
+   pixel up to a minute late in a page drawn then, and a tax class's change unpurged, each for at most a page's lifetime.
+6. **English pages and shops' own domains open as the edge's do** (§150 item 5): on the product's first choice and the
+   highest charge, then the `?v=` link and the area in the browser.
+7. **The API processes open a connection they never use**: they share `server.env` with the worker, which alone purges.

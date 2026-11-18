@@ -175,6 +175,23 @@ make-env.sh writes `redis.env` (its password) and puts `REDIS_URL` in `server.en
 earlier release made. Staging runs Redis with 64 MB. For production, put `REDIS_MAXMEMORY=256mb` and
 `REDIS_MEMORY=320m` in `/opt/lytro/settings.env` (RED-01). If it stops answering, see `docs/RUNBOOKS.md` §11.
 
+**The page cache (D9-33)** is a second Redis, `page-cache`, where the storefront keeps the shop pages it drew for every
+shopper alike, so a page is drawn once while it's fresh, not on every visit. make-env.sh writes `page-cache.env` (its
+password) and puts `PAGE_CACHE_REDIS_URL` in `storefront.env` and `server.env` (the worker clears pages there when a
+seller's change purges them). A server set up before this release runs make-env.sh again to turn it on: until then
+deploy.sh leaves it off and says so, and every page is drawn as before. It may lose everything at any time (a restart,
+a full memory): pages are simply drawn again. Staging runs it with 64 MB. For production, put these in
+`/opt/lytro/settings.env`:
+
+```
+PAGE_CACHE_MAXMEMORY=1gb
+PAGE_CACHE_MEMORY=1200m
+```
+
+Each storefront process logs a line a minute, `page cache: N pages, X% from the copy, Y drawn, Z without Redis`
+(`docker compose logs storefront | grep 'page cache'`), and marks each page it answered `x-lytro-page-cache: hit` or
+`miss`.
+
 ## Using every core
 
 One Node process uses about one core (Slice 9.10's staging recheck). The API containers and the storefront run as

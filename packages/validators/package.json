@@ -26,6 +26,10 @@
       "types": "./dist/common/index.d.ts",
       "default": "./dist/common/index.js"
     },
+    "./edge": {
+      "types": "./dist/edge-cache-tags.d.ts",
+      "default": "./dist/edge-cache-tags.js"
+    },
     "./enums": {
       "types": "./dist/db/enums.d.ts",
       "default": "./dist/db/enums.js"
