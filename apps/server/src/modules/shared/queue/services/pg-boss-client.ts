@@ -20,6 +20,14 @@ import type { Env } from '../../../../config/env';
 const PASS_LEASE_MS = 15 * 60_000;
 // DAT-38 (Slice 9.5): how long a job degraded mode holds back waits before it is looked at again.
 export const PAUSED_JOB_WAIT_SECONDS = 5 * 60;
+// Slice 9.10 (staging's recheck, 2026-11-18): pg-boss counts every queue's jobs by reading its whole job table, once a
+// minute by default, and kept finished jobs a week: on staging 112,680 of them, read each minute. A finished job is kept
+// two days (for looking into it), every queue alike unless it says otherwise, pg-boss's own schedule queue too, and the
+// count is taken every five minutes.
+export const FINISHED_JOBS_KEPT_SECONDS = 2 * 24 * 60 * 60;
+const QUEUE_STATS_EVERY_SECONDS = 5 * 60;
+// pg-boss's own queue for sending scheduled jobs (its timekeeper), one finished job a minute for every schedule.
+const SCHEDULE_QUEUE = '__pgboss__send-it';
 
 /**
  * Owns pg-boss's lifecycle and its own connection pool, kept separate from the app's request pool so continuous
@@ -52,6 +60,7 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
       useListenNotify: true,
       max: 5,
       application_name: 'lytronix-queue',
+      monitorIntervalSeconds: QUEUE_STATS_EVERY_SECONDS,
     });
     // An 'error' event nobody listens for ends the process, so one slow or lost connection would take the whole
     // server down. pg-boss tries again by itself, so all this has to do is say what happened.
@@ -59,6 +68,20 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
       console.error(`[job-queue] ${error.queue ? `${error.queue}: ` : ''}${error.message}`);
     });
     if (errors) this.reportFailedJobs(errors);
+    this.keepFinishedJobsBriefly();
+  }
+
+  /** Every queue, made now or already there, keeps its finished jobs FINISHED_JOBS_KEPT_SECONDS unless it says. */
+  private keepFinishedJobsBriefly(): void {
+    const create = this.boss.createQueue.bind(this.boss);
+    const update = this.boss.updateQueue.bind(this.boss);
+    const keeping = async (name: string, options?: Parameters<typeof create>[1]): Promise<void> => {
+      const kept = options?.deleteAfterSeconds ?? FINISHED_JOBS_KEPT_SECONDS;
+      await create(name, { ...options, deleteAfterSeconds: kept });
+      // A queue already there keeps what it was made with, so it is told again.
+      await update(name, { deleteAfterSeconds: kept });
+    };
+    (this.boss as unknown as { createQueue: typeof keeping }).createQueue = keeping;
   }
 
   /**
@@ -91,6 +114,16 @@ export class PgBossClient implements OnModuleInit, OnModuleDestroy {
     if (!this.starts) return;
     await this.boss.start();
     this.started = true;
+    try {
+      await this.boss.updateQueue(SCHEDULE_QUEUE, {
+        deleteAfterSeconds: FINISHED_JOBS_KEPT_SECONDS,
+      });
+    } catch (error) {
+      // pg-boss's own queue: keeping its jobs the week pg-boss would is no reason not to start.
+      this.logger.warn(
+        `${SCHEDULE_QUEUE}: finished jobs kept as pg-boss keeps them (${error instanceof Error ? error.message : 'failed'})`,
+      );
+    }
   }
 
   async onModuleDestroy(): Promise<void> {

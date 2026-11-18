@@ -26,8 +26,8 @@ export class RedisOutage {
         'Redis is down: limits are counted on each server',
         [
           `The shared Redis stopped answering at ${now.toISOString()} (${reason}).`,
-          'Lytro keeps working: each API process now counts the everyday limits on its own, at half each, so together',
-          'they stay about the same. Orders, payment sessions, sign-in codes and listener pairing are counted in the',
+          'Lytro keeps working: each API process now counts the everyday limits on its own, at its share of each, so',
+          'together they stay about the same. Orders, payment sessions, sign-in codes and listener pairing are counted in the',
           'database and are unaffected.',
           'Check the redis container on the server (docs/RUNBOOKS.md, "Redis is down"). Another email follows when it',
           'answers again.',

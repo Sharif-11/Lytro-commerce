@@ -57,13 +57,15 @@ COPY --from=build --chown=node:node /out/server /app
 # SEC-10, D9-8 (Slice 9.7): started as root only to read the sealing key's root-only file, then run as `node`
 # (deploy/server/entrypoint.sh).
 COPY --chmod=755 deploy/server/entrypoint.sh /usr/local/bin/lytro-server-entrypoint
+# Slice 9.10: the API runs as WORKERS processes on its port, one by default (deploy/node/cluster.cjs).
+COPY --chown=node:node deploy/node/cluster.cjs /app/cluster.cjs
 ENTRYPOINT ["lytro-server-entrypoint"]
 EXPOSE 3000
 # Liveness only (D9-21's ready check comes in Slice 9.2). The slim image has no curl.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=60s --retries=3 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 3000) + '/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
 # deploy/compose.yml's `migrate` step runs `node node_modules/@lytronix/db/dist/migrate.js` from this image instead.
-CMD ["node", "dist/main.js"]
+CMD ["node", "cluster.cjs", "dist/main.js"]
 
 # --- The website -----------------------------------------------------------------------------------------------------
 FROM ${NODE_IMAGE} AS website
@@ -95,12 +97,14 @@ WORKDIR /app
 COPY --from=build --chown=node:node /repo/apps/storefront/.next/standalone ./
 COPY --from=build --chown=node:node /repo/apps/storefront/.next/static ./apps/storefront/.next/static
 COPY --from=build --chown=node:node /repo/apps/storefront/public ./apps/storefront/public
+# Slice 9.10: the storefront runs as WORKERS processes on its port, one by default (deploy/node/cluster.cjs).
+COPY --chown=node:node deploy/node/cluster.cjs ./cluster.cjs
 USER node
 EXPOSE 3001
 # Any answer but a server error: an unknown host answers the storefront's own not-found (SFT-16).
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=3 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:3001/').then((r) => process.exit(r.status < 500 ? 0 : 1), () => process.exit(1))"]
-CMD ["node", "apps/storefront/server.js"]
+CMD ["node", "cluster.cjs", "apps/storefront/server.js"]
 
 # --- The dashboard's and the console's files -------------------------------------------------------------------------
 FROM busybox:1.37 AS static

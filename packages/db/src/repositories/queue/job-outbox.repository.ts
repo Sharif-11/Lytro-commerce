@@ -85,4 +85,21 @@ export class JobOutboxRepository {
       .set({ status: 'sent', jobId, sentAt: new Date() })
       .where(eq(jobOutbox.id, id));
   }
+
+  /**
+   * Slice 9.10: deletes up to `limit` rows sent before `before`, oldest first, and says how many. A sent row is pg-boss's
+   * job from then on; the outbox only needed it until then, and kept, every claim and the table grew with every job.
+   */
+  async deleteSentBefore(db: Executor, before: Date, limit: number): Promise<number> {
+    const result = await db.execute(sql`
+      DELETE FROM control.job_outbox
+      WHERE id IN (
+        SELECT id FROM control.job_outbox
+        WHERE status = 'sent' AND sent_at < ${before}
+        ORDER BY id
+        LIMIT ${limit}
+      )
+    `);
+    return result.rowCount ?? 0;
+  }
 }
