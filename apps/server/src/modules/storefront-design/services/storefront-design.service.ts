@@ -217,6 +217,7 @@ export class StorefrontDesignService {
     ]);
     return {
       design,
+      live: published ?? startingDesign(start),
       startingTheme: start,
       hasDraft: draft !== null,
       isPublished: published !== null,

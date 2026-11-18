@@ -22,6 +22,8 @@ export interface StorefrontTargetView {
 export interface StorefrontEditorView {
   /** The draft, else the live design, else the shop type's starting design (SB-11). */
   design: StorefrontDesign;
+  /** SB-12: what shoppers see now -- the live design, else the starting one -- so Publish can say what changes. */
+  live: StorefrontDesign;
   /** SB-11: the theme the shop's type starts on. */
   startingTheme: StorefrontThemeKey;
   /** There are changes not yet published. */

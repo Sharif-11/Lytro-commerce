@@ -251,6 +251,18 @@ describeIfEdge('every outside call through the edge (deploy/Caddyfile, KNOWN-GAP
       expect(answer.headers['x-frame-options'], host).toBe('DENY');
       expect(answer.headers['referrer-policy'], host).toBe(referrer);
     }
+    // A shop's pages are never framed (SEC-04), but for its draft's preview, which only the dashboard may frame
+    // (STOREFRONT-BUILDER-PLAN SB-12, the owner's narrow exception, 2026-11-18).
+    const page = await edge.send('megh.localhost', 'GET', '/p/kurti');
+    expect(page.headers['x-frame-options']).toBe('DENY');
+    expect(page.headers['strict-transport-security']).toBe(hsts);
+    const preview = await edge.send('megh.localhost', 'GET', '/preview');
+    expect(preview.headers['x-frame-options']).toBeUndefined();
+    expect(preview.headers['content-security-policy']).toBe(
+      'frame-ancestors https://app.localhost',
+    );
+    expect(preview.headers['x-content-type-options']).toBe('nosniff');
+    expect(preview.headers['strict-transport-security']).toBe(hsts);
     // The payment page sets its own type, referrer and framing rules (PAY-23); the edge adds HSTS only.
     const pay = await edge.send('pay.localhost', 'GET', '/not-a-page');
     expect(pay.headers['strict-transport-security']).toBe(hsts);

@@ -31,9 +31,10 @@ export type ShopPath =
   | '/$shop/search'
   | `/$shop/${SectionId}`
   // Below a section, where a screen's Back leads (a stock check returns to the list of checks, the own domain to
-  // Storefront).
+  // Storefront, the theme gallery to the design page).
   | '/$shop/stock/checks'
   | '/$shop/settings/storefront'
+  | '/$shop/settings/storefront/design'
   | '/$shop/settings/couriers'
   // Phase 7 (Part 37): the bell's own page, and the board a notice returns to.
   | '/$shop/notifications';

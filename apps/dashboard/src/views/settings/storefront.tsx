@@ -18,12 +18,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import type { DomainView } from '@/types/domain';
+import { EditorIcon } from '@/views/design/editor-icon';
 
 /**
  * Storefront (TENANT-DASHBOARD-DESIGN §7.29, the prototype's Part 25: `sf25`, `sh-sf25-off`, `sf25-off` and their
  * toasts): the shop's link with Copy, Share and Open, and the switch (SFT-16). Off, the link answers "Nothing here" while
- * every landing page keeps working; turning it off asks first, turning it on is at once. Under it, the shop's own domain
- * (Part 28, Slice 13): once active, the link is the domain, the shop's main address.
+ * every landing page keeps working; turning it off asks first, turning it on is at once. Under it, the storefront's
+ * design (STOREFRONT-BUILDER-PLAN SB-7) and the shop's own domain (Part 28, Slice 13): once active, the link is the
+ * domain, the shop's main address.
  */
 export function StorefrontView(): React.JSX.Element {
   const { t } = useTranslation('menu');
@@ -118,6 +120,17 @@ export function StorefrontView(): React.JSX.Element {
         </Card>
         <Card flush>
           <RowList>
+            <Link
+              to="/$shop/settings/storefront/design"
+              params={{ shop: slug }}
+              className={rowClass}
+            >
+              <RowLead>
+                <EditorIcon name="palette" size={20} />
+              </RowLead>
+              <RowText title={shell('sDesign')} sub={t('sdRowLine')} />
+              <RowChevron />
+            </Link>
             <Link
               to="/$shop/settings/storefront/domain"
               params={{ shop: slug }}

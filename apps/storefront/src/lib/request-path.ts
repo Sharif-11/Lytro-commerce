@@ -3,6 +3,8 @@
 export const STOREFRONT_PATH_HEADER = 'x-storefront-path';
 // Slice 13: and its query, so a request on another of the shop's hosts is led to the same page at its main address.
 export const STOREFRONT_QUERY_HEADER = 'x-storefront-query';
+// STOREFRONT-BUILDER-PLAN SB-12: the draft's preview, at its own address (app/preview).
+export const PREVIEW_PATH = '/preview';
 
 /**
  * Slice 13 (its read, points 2 and 3): where a request on another of the shop's hosts goes -- the same path and query
@@ -15,5 +17,8 @@ export function mainAddressTarget(
   query: string,
 ): string | null {
   if (shop.mainHost === null || host === shop.mainHost) return null;
+  // STOREFRONT-BUILDER-PLAN SB-12: the draft's preview stays at the shop's Lytro address, the one host the dashboard
+  // may frame it from (deploy/Caddyfile, security_headers_shop).
+  if (path === PREVIEW_PATH) return null;
   return `${shop.publicOrigin}${path === '' ? '/' : path}${query}`;
 }

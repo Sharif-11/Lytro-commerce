@@ -4,6 +4,7 @@ import {
   brandFontsUrl,
   fontStack,
   STOREFRONT_THEMES,
+  StorefrontThemeKey,
   storefrontTokens,
   type ProductCardStyle,
   type StorefrontHeaderStyle,
@@ -127,4 +128,17 @@ export function frameBrand(info: {
     darkLogo: null,
     icon: null,
   };
+}
+
+/**
+ * SB-12: the preview with a theme the seller is trying in the gallery (`/preview?t=…&theme=studio`), on its first colour
+ * set, over the draft; the draft itself is untouched until they choose it. Anything but a theme's key leaves it as it is.
+ */
+export function triedTheme<Shop extends { design?: PublicStorefrontDesign }>(
+  shop: Shop,
+  tried: unknown,
+): Shop {
+  const theme = Object.values(StorefrontThemeKey).find((key) => key === tried);
+  if (!shop.design || theme === undefined) return shop;
+  return { ...shop, design: { ...shop.design, theme, palette: 0 } };
 }

@@ -37,6 +37,7 @@ function policyHeaders(): Record<string, string> {
       value
         .replaceAll('{$MEDIA_PUBLIC_BASE_URL}', MEDIA)
         .replaceAll('{$MEDIA_STORAGE_ENDPOINT}', STORAGE)
+        .replaceAll('{$PLATFORM_DOMAIN:lytro.app}', 'lytro.app')
         // Unset, as Caddy leaves it where no Sentry project is named.
         .replaceAll(' {$SENTRY_INGEST_ORIGIN}', ''),
     ]),
@@ -130,6 +131,8 @@ test('the Caddyfile holds the dashboard’s policy, every address filled in', ()
   const headers = policyHeaders();
   expect(headers['content-security-policy']).toContain("script-src 'self';");
   expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
+  // STOREFRONT-BUILDER-PLAN SB-12: it frames nothing but a shop's own address (the design editor's live preview).
+  expect(headers['content-security-policy']).toContain('frame-src https://*.lytro.app;');
   expect(headers['permissions-policy']).toBe(
     'camera=(self), microphone=(), geolocation=(), payment=()',
   );

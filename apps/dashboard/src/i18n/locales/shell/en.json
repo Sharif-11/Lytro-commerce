@@ -181,5 +181,8 @@
     "slowT": "Taking a little longer…",
     "slowP": "The connection seems slow. Hang on; it shows as soon as it loads.",
     "splashSlowP": "On a slow connection the first open takes a little longer."
-  }
+  },
+  "sDesign": "Storefront design",
+  "sThemes": "Pick a theme",
+  "sLogoIcon": "Logo and icon"
 }

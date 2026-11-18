@@ -6,7 +6,7 @@ import { PageKeepPolicy } from '@/lib/edge/page-keep';
 import { figuresLine, PageServer } from '@/lib/edge/page-server';
 import { connectPageCache, RedisPageStore } from '@/lib/edge/page-store';
 import { StorefrontEnvironment } from '@/lib/env';
-import { STOREFRONT_PATH_HEADER, STOREFRONT_QUERY_HEADER } from '@/lib/request-path';
+import { PREVIEW_PATH, STOREFRONT_PATH_HEADER, STOREFRONT_QUERY_HEADER } from '@/lib/request-path';
 
 // Puts each request's path and query where the pages can read them (lib/request-path.ts). A page every shopper of its
 // shop sees alike is drawn once more inside the storefront instead (lib/edge): kept in the storefront's Redis and
@@ -21,7 +21,6 @@ const pages =
   env.pageCacheRedisUrl === undefined
     ? null
     : new PageServer(new RedisPageStore(connectPageCache(env.pageCacheRedisUrl)), renderer);
-const PREVIEW_PATH = '/preview';
 
 // D9-33: how the page cache did, once a minute that it answered any page (deploy/README.md "Redis").
 if (pages !== null) {

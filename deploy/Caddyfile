@@ -62,6 +62,20 @@
 	header >Referrer-Policy "no-referrer"
 }
 
+# A shop's Lytro address (*.<domain>): as every host, except that one page may be framed, and only by the dashboard
+# (STOREFRONT-BUILDER-PLAN SB-12, the owner's answer 2026-11-18, "Allow one narrow exception"): the storefront's
+# /preview, the shop's draft design drawn beside the editor. It is read-only and opens only with a 30-minute signed
+# link; every other page keeps X-Frame-Options DENY.
+(security_headers_shop) {
+	import hsts
+	@not_preview not path /preview
+	@preview path /preview
+	header >X-Content-Type-Options "nosniff"
+	header @not_preview >X-Frame-Options "DENY"
+	header @preview >Content-Security-Policy "frame-ancestors https://app.{$PLATFORM_DOMAIN:lytro.app}"
+	header >Referrer-Policy "strict-origin-when-cross-origin"
+}
+
 # A shop's own domain: HSTS without includeSubDomains, since its other subdomains are the shop's, not Lytro's.
 (security_headers_own_domain) {
 	header >Strict-Transport-Security "max-age=31536000"
@@ -194,12 +208,13 @@
 # - Google Fonts' stylesheet and font files, for a shop's brand fonts (Slice 11.2, BRN-02);
 # - blob: video, which only the barcode reader's fallback for old browsers uses.
 # Both addresses are the server's own settings, so one deployment file feeds the server and Caddy. No inline
-# script or style: a shop's theme sets its colours through the CSSOM, never a <style> element. No plugin, no
-# framing, no <base>. The Permissions-Policy keeps the camera for the dashboard's own IMEI scanning and turns
+# script or style: a shop's theme sets its colours through the CSSOM, never a <style> element. No plugin, no <base>,
+# and no framing but a shop's own address (STOREFRONT-BUILDER-PLAN SB-12: the design editor's live preview, which the
+# shop's host lets only this host frame). The Permissions-Policy keeps the camera for the dashboard's own IMEI scanning and turns
 # off what it never uses. apps/dashboard/e2e/csp.spec.ts reads this block and walks every screen under it. Its errors
 # go to Sentry's ingest address (SENTRY_INGEST_ORIGIN in edge.env, OBS-03, Slice 9.6); unset, it adds nothing.
 (dashboard_csp) {
-	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' {$MEDIA_PUBLIC_BASE_URL}; media-src 'self' blob: {$MEDIA_PUBLIC_BASE_URL}; connect-src 'self' {$MEDIA_STORAGE_ENDPOINT} {$SENTRY_INGEST_ORIGIN}; manifest-src 'self'; worker-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' {$MEDIA_PUBLIC_BASE_URL}; media-src 'self' blob: {$MEDIA_PUBLIC_BASE_URL}; connect-src 'self' {$MEDIA_STORAGE_ENDPOINT} {$SENTRY_INGEST_ORIGIN}; manifest-src 'self'; worker-src 'self'; frame-src https://*.{$PLATFORM_DOMAIN:lytro.app}; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 	header Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=()"
 }
 
@@ -263,7 +278,7 @@ api.{$PLATFORM_DOMAIN:lytro.app} {
 # (apps/storefront). No dashboard and no /api on a shop host (§5). Covers every tenant automatically; `app`,
 # `admin`, `api`, `pay` and `www` are reserved labels (TEN-26), so no shop can take them.
 *.{$PLATFORM_DOMAIN:lytro.app} {
-	import security_headers
+	import security_headers_shop
 	import {$WILDCARD_TLS:wildcard_tls_dns}
 	import {$ROBOTS:robots_allow}
 	# storefront reads Host itself to resolve which tenant to render (SFT-01) — Caddy passes Host through

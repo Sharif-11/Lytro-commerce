@@ -51,6 +51,9 @@ export interface MeTenant {
   autoRenewEnabled: boolean;
   /** TEN-16: the shop's logo for the navigation; null for its monogram. */
   logo: ImageView | null;
+  /** SB-5: the shop's square icon (every plan), the browser tab's and the installed app's; null to make it from the
+      logo. Absent from an older server's answer. */
+  icon?: ImageView | null;
   /** BRN-07: the shop's own identity; null for Lytro's default. */
   brand: LiveBrand | null;
   /** Slice 13: the shop's own domain while it serves, its main address then; null for its Lytro address. */
