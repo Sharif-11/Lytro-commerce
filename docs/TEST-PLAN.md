@@ -491,6 +491,16 @@ show on the next open; while the server is busy the last good page is handed out
 gets the busy page with a 503; the request count hasn't moved.
 Covers: `SFT-11`, `SFT-15`, `LND-14`, `RTE-04`, `D9-32`.
 
+**S05-22 Shop pages kept in the storefront's Redis (added 2026-11-18, D9-33).**
+Steps: 1) On staging, open a product page twice in English as a new shopper, and twice on a shop's own domain. 2) Change
+its price in the dashboard; open it again within 20 seconds. 3) Open it signed in, and open the cart. 4) Stop the
+`page-cache` container and open the page; start it again. 5) Read the storefront's `page cache:` log line.
+Expected: each second open answers `x-lytro-page-cache: hit` with the same page, and the `?v=` link still opens on its
+design and size; the new price shows on the next open; signed-in pages and the cart carry no `x-lytro-page-cache`; with
+the container stopped the page still opens, drawn, and it is kept again once the container is back; the log line counts
+the opens.
+Covers: `SFT-11`, `SFT-15`, `D9-33`.
+
 ---
 
 ## S06 — Couriers and fraud (CRR, FRD)

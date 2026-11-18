@@ -15,6 +15,7 @@
   "dependencies": {
     "@lytronix/shared-types": "workspace:*",
     "@lytronix/validators": "workspace:*",
+    "ioredis": "^5",
     "next": "^15.5.28",
     "react": "^19",
     "react-dom": "^19"

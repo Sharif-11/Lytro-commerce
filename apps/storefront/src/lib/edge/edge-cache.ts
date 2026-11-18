@@ -1,3 +1,4 @@
+import { EDGE_LIFETIMES, type EdgeLifetime } from '@lytronix/validators/edge';
 import { SHOPPER_COOKIE } from '../account/shopper-cookie';
 import { LANGUAGE_COOKIE, parseLanguage } from '../i18n/language';
 
@@ -13,20 +14,12 @@ export const EDGE_RENDER_HEADER = 'x-lytro-edge-render';
 /** The shopper's host on that request: Node's fetch sends its own Host, so the page reads the shop's from here. */
 export const EDGE_HOST_HEADER = 'x-lytro-edge-host';
 
-/** How long the edge keeps a page, and how long after that it may still hand it out while it fetches a fresh one. */
-export interface EdgeLifetime {
-  maxAge: number;
-  staleWhileRevalidate: number;
-}
-
-// The owner, 2026-11-14: five minutes for the shop's pages, a minute for search, whose phrases are endless. A purge on a
-// seller's save or a sell-out ends a page's time sooner (the server's EdgePurges).
-const PAGE: EdgeLifetime = { maxAge: 300, staleWhileRevalidate: 600 };
-const SEARCH: EdgeLifetime = { maxAge: 60, staleWhileRevalidate: 60 };
+// How long the edge keeps a page: one definition with the server's purges (packages/validators, D9-32, D9-33).
+export { EDGE_LIFETIMES, type EdgeLifetime };
+const PAGE = EDGE_LIFETIMES.page;
+const SEARCH = EDGE_LIFETIMES.search;
 // While the server is down or too busy, the last good page is better than none, for up to a day.
 const STALE_IF_ERROR_SECONDS = 86_400;
-
-export const EDGE_LIFETIMES = { page: PAGE, search: SEARCH } as const;
 
 /** What the policy needs of a request, so it is tested without Next. */
 export interface EdgeRequest {
@@ -44,15 +37,35 @@ export class EdgeCachePolicy {
 
   /** The edge's lifetime for this request's page, or null when it is rendered for this shopper alone. */
   lifetimeOf(request: EdgeRequest): EdgeLifetime | null {
+    const lifetime = EdgeCachePolicy.sharedLifetimeOf(request);
+    if (lifetime === null) return null;
+    if (!this.isShopAddress(request.host)) return null;
+    if (parseLanguage(request.cookie(LANGUAGE_COOKIE)) !== 'bn') return null;
+    return lifetime;
+  }
+
+  /**
+   * How long a page every shopper of its shop sees alike is kept, whatever its address and language: the edge keeps
+   * the Bangla ones on a shop's Lytro address, the storefront's Redis every one (D9-33). Null when it is rendered for
+   * this shopper alone.
+   */
+  static sharedLifetimeOf(request: EdgeRequest): EdgeLifetime | null {
     if (request.method !== 'GET') return null;
     // The storefront's own second request, and Next's in-page navigations (none link that way today), are never kept.
     if (request.header(EDGE_RENDER_HEADER) !== null) return null;
     if (request.header('rsc') !== null || request.header('next-router-prefetch') !== null)
       return null;
-    if (!this.isShopAddress(request.host)) return null;
     if (request.cookie(SHOPPER_COOKIE) !== undefined) return null;
-    if (parseLanguage(request.cookie(LANGUAGE_COOKIE)) !== 'bn') return null;
     return EdgeCachePolicy.lifetimeOfPath(request.path);
+  }
+
+  /**
+   * Whether a kept page depends on its query. The home, product and landing pages a shared render draws never read
+   * theirs (a `?v=` link is applied in the browser), so Cloudflare's cache rule ignores it (DEPLOYMENT §9f) and the
+   * storefront's Redis does too; every other kept page is kept apart by its query.
+   */
+  static readsQuery(path: string): boolean {
+    return !(path === '/' || /^\/[pl]\/[^/]+$/.test(path));
   }
 
   /** A shop's Lytro address (`<slug>.<platform domain>`); a shop's own domain is left uncached at launch. */

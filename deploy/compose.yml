@@ -9,6 +9,7 @@
 #   postgres    the database (17), sending its write-ahead log to R2 when backups are set up (Slice 9.3)
 #   backup      the nightly backups at 05:30 Dhaka: the encrypted dump, then the base backup (Slice 9.3, D9-18)
 #   redis       the shared limits and gateway tokens (Slice 9.4, D9-1, D9-15), password-protected, nothing kept
+#   page-cache  the storefront's kept shop pages (D9-33): a Redis of its own, which may drop any page when full
 #   pgbouncer   the API's pooler (Slice 9.2, D9-13): the worker and the migrations connect to postgres directly
 #   monitor     the server's, database's, Redis's and edge's figures to Grafana Cloud (Slice 9.6), once it's set up
 #   migrate     one-off: migrations, then pg-boss's schema, as the owner (deploy.sh, after a dump)
@@ -245,6 +246,35 @@ services:
       retries: 20
     networks: [internal]
     mem_limit: ${REDIS_MEMORY:-96m}
+    logging: *logging
+
+  page-cache:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    # D9-33 (Slice 9.10): the storefront's kept shop pages, apart from the limits' Redis so a full cache never pushes a
+    # limit out. Hardened as the limits' Redis is, with its own password. Every page expires, and a full cache evicts the
+    # least used of them (volatile-lru); the tags' change times are one hash with no expiry of its own (each tag's lapses
+    # by itself), so eviction never takes them. Nothing in it has to survive a restart: the storefront draws pages again.
+    # PAGE_CACHE_MAXMEMORY in settings.env: 64mb on staging, 1gb in production (deploy/README.md "Redis").
+    # Made by make-env.sh; until a server set up before runs it again, deploy.sh leaves this service off (D9-33).
+    env_file:
+      - path: ${LYTRO_HOME:-/opt/lytro}/env/page-cache.env
+        required: false
+    command:
+      - sh
+      - -c
+      - >-
+        printf 'requirepass %s\n' "$$REDIS_PASSWORD" |
+        exec redis-server - --save '' --appendonly no --maxmemory ${PAGE_CACHE_MAXMEMORY:-64mb}
+        --maxmemory-policy volatile-lru --rename-command FLUSHALL '' --rename-command FLUSHDB ''
+        --rename-command CONFIG '' --rename-command DEBUG '' --rename-command KEYS '' --rename-command SHUTDOWN ''
+    healthcheck:
+      test: ['CMD-SHELL', 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [internal]
+    mem_limit: ${PAGE_CACHE_MEMORY:-96m}
     logging: *logging
 
   # Grafana Alloy (Slice 9.6, D9-3, OBS-05, DAT-25, MON-03): the host's, the database's, Redis's and the edge's figures
