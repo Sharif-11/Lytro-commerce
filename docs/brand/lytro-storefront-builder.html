@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lytro storefront builder (sketch)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Galada&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&family=Baloo+Da+2:wght@500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Anek+Bangla:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;700;800&family=Noto+Serif+Bengali:wght@500;600;700&family=Fraunces:ital,wght@0,600;0,700;1,600&family=Tiro+Bangla:ital@0;1&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<!--
+  Storefront builder (sketch, 2026-11-18). The owner's answers: themes + sections (no free drag-and-drop, no custom
+  code), every plan (own colours beyond a theme stay the brand identity add-on), design now and build after Phase 9,
+  no new features in the first version. Mobile first: the phone is the design, wider screens only add columns.
+  Every section fills itself from the shop's own data until the seller writes their own (Bonik AI's lesson): the
+  offers line, delivery fees, sale/new/best-seller badges, "only N left", hero slides from discounted products.
+  Photos: sample-photos/builder (Pexels licence, CREDITS.txt).
+-->
+<style>
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:#e9ecef;font-family:'Inter','Noto Sans Bengali',sans-serif;color:#1f2933}
+button{font:inherit;cursor:pointer}
+img{display:block}
+.shop .wide{display:none}
+
+/* ---------- Harness (Lytro's chrome, not the shop's) ---------- */
+.tb{position:sticky;top:0;z-index:50;background:#0e6b66;color:#fff;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:10px 16px;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.tb .ttl{font-weight:700;font-size:14px;margin-right:6px}
+.tb .grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.tb .grp>span{opacity:.85;margin-right:4px}
+.tb button{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:5px 11px;font-size:12.5px}
+.tb button.on{background:#f2a516;color:#1b1300;border-color:#f2a516;font-weight:700}
+.stage{padding:24px 16px 80px;display:flex;justify-content:center;overflow-x:auto}
+.frame{background:#fff;box-shadow:0 10px 40px rgba(15,23,42,.18);border-radius:28px;overflow:hidden;flex:none}
+.frame.phone{width:390px;border:10px solid #111;border-radius:42px}
+.frame.desktop{width:1280px;border-radius:10px}
+.note{max-width:1280px;margin:0 auto 14px;padding:0 16px;font-size:13px;color:#334155}
+.note b{color:#0e6b66}
+.shot .tb,.shot .note{display:none}.shot .stage{padding:0}.shot body{background:#fff}
+
+/* ---------- The shop (mobile first; @container adds room) ---------- */
+.shop{container-type:inline-size;background:var(--bg);color:var(--text);font-family:var(--fb);font-size:15px;line-height:1.5;position:relative;overflow:hidden}
+.shop h1,.shop h2,.shop h3{font-family:var(--fh);margin:0;line-height:1.2}
+.shop a{color:inherit;text-decoration:none}
+.wrap{padding:0 16px;margin:0 auto;max-width:1240px}
+.ico{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.sec{padding:22px 0 6px}
+
+/* section names, when shown */
+.shop.outlined [data-sec]{outline:2px dashed #7c3aed;outline-offset:-2px;position:relative}
+.shop.outlined [data-sec]::before{content:attr(data-sec);position:absolute;z-index:9;top:4px;left:4px;background:#7c3aed;color:#fff;font:600 11px/1.5 'Inter','Noto Sans Bengali',sans-serif;padding:1px 7px;border-radius:5px;pointer-events:none}
+
+/* announcement */
+.ann{background:var(--ann-bg);color:var(--ann-fg);font-size:12.5px;font-weight:600;text-align:center;padding:7px 12px}
+.ann .pill{background:var(--accent);color:var(--on-accent);border-radius:99px;padding:0 8px;margin-right:6px;font-size:11.5px}
+
+/* header: phone = menu, logo, search, cart; wide = logo, search bar, links */
+.hd{background:var(--hd-bg);color:var(--hd-fg);border-bottom:1px solid var(--line)}
+.hd .row{display:flex;align-items:center;gap:12px;height:58px}
+.logo{display:flex;align-items:center;gap:9px;font-family:var(--fh);font-weight:700;font-size:19px;color:var(--logo);white-space:nowrap}
+.logo .mk{width:36px;height:36px;border-radius:var(--r-mark);background:var(--main);color:var(--on-main);display:grid;place-items:center;font-size:17px;font-family:var(--fh)}
+.logo small{display:block;font-family:var(--fb);font-size:10.5px;font-weight:500;color:var(--muted);margin-top:-3px}
+.logo.img svg{height:36px;width:auto;display:block}
+.hd .icons{display:flex;gap:14px;margin-left:auto;align-items:center}
+.cart{position:relative;display:flex}
+.cart sup{position:absolute;top:-7px;right:-9px;background:var(--accent);color:var(--on-accent);font:700 10.5px/17px Inter;min-width:17px;height:17px;border-radius:9px;text-align:center}
+.search{display:none}
+.nav{display:flex;gap:8px;overflow-x:auto;padding:0 16px 10px;scrollbar-width:none}
+.nav a{flex:none;font-size:13px;font-weight:600;padding:5px 12px;border-radius:99px;background:var(--chip-bg);color:var(--chip-fg)}
+.nav a.on{background:var(--main);color:var(--on-main)}
+.hd.centred .row{justify-content:space-between}
+.hd.centred .logo{position:absolute;left:50%;transform:translateX(-50%)}
+.hd .menu{display:flex}
+
+/* hero */
+.hero{position:relative}
+.hero .slide{position:relative}
+.hero .dots{display:flex;gap:6px;justify-content:center;padding:10px 0 0}
+.hero .dots i{width:7px;height:7px;border-radius:99px;background:var(--line-strong)}
+.hero .dots i.on{width:20px;background:var(--main)}
+.kick{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--kick)}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:var(--r-btn);padding:12px 20px;font-weight:700;font-size:15px;background:var(--btn-bg);color:var(--btn-fg);font-family:var(--fb)}
+.btn.ghost{background:transparent;color:var(--btn-bg);box-shadow:inset 0 0 0 1.5px var(--btn-bg)}
+.btn.light{background:#fff;color:#111}
+/* split: photo above text on a phone */
+.hero.split .slide{background:var(--hero-bg);display:flex;flex-direction:column}
+.hero.split .ph{aspect-ratio:4/3;overflow:hidden}
+.hero.split .ph img{width:100%;height:100%;object-fit:cover}
+.hero.split .tx{padding:18px 16px 20px}
+.hero.split h1{font-size:30px;color:var(--hero-h)}
+.hero.split h1 em{font-style:normal;color:var(--hero-em)}
+.hero.split p{margin:8px 0 16px;color:var(--muted);font-size:14.5px}
+/* overlay: the photo fills the slide and the words sit on it */
+.hero.overlay .slide{height:470px;overflow:hidden}
+.hero.overlay .slide img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero.overlay .shade{position:absolute;inset:0;background:var(--hero-shade)}
+.hero.overlay .tx{position:absolute;left:0;right:0;bottom:0;padding:22px 18px 26px;color:#fff}
+.hero.overlay h1{font-size:32px;color:var(--hero-h)}
+.hero.overlay .kick{color:var(--hero-kick,var(--kick))}
+.hero .tx .btn{align-self:flex-start}
+.hero.overlay p{margin:8px 0 16px;font-size:14.5px;opacity:.92}
+.hero .badge{display:inline-block;background:var(--sale);color:#fff;font:700 12px/1 var(--fb);padding:5px 8px;border-radius:6px;margin-bottom:10px}
+.hero .price{font-size:18px;font-weight:700;margin:2px 0 14px}
+.hero .price s{font-weight:500;opacity:.75;font-size:14px;margin-left:6px}
+/* auto: one sale product per slide, with the two offer tiles below (Bonik's pattern) */
+.hero.auto .slide{height:400px;overflow:hidden;border-radius:var(--r-card);margin:12px 16px 0}
+.hero.auto .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 16px 0}
+.hero .tile{position:relative;height:130px;border-radius:var(--r-card);overflow:hidden;color:#fff}
+.hero .tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero .tile .shade{background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.72))}
+.hero .tile .tx{position:absolute;left:10px;right:10px;bottom:9px;font-size:12px;line-height:1.3}
+.hero .tile b{display:block;font-size:14px;font-family:var(--fh)}
+
+/* section heads */
+.sh{display:flex;align-items:center;gap:10px;margin:0 0 14px}
+.sh h2{font-size:21px;color:var(--sec-h)}
+.sh .all{margin-left:auto;font-size:13px;font-weight:700;color:var(--link);white-space:nowrap}
+.sh.centre{justify-content:center;text-align:center}
+.sh.centre .line{flex:1;height:1px;background:var(--orn)}
+.sh.centre .all{display:none}
+.sh .orn{color:var(--orn);font-size:12px}
+.sh .leaf{width:20px;height:20px;color:var(--main)}
+.sh .kick{display:block;margin-bottom:2px}
+.sh.rule{border-bottom:1px solid var(--line-strong);padding-bottom:8px}
+.sh.rule h2{font-style:italic}
+
+/* categories: phone = a swipeable row */
+.cats{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.cat{flex:none;text-align:center;font-size:13px;font-weight:600;color:var(--text)}
+.cats.circle .cat{width:84px}
+.cats.circle .cat .im{width:80px;height:80px;border-radius:50%;overflow:hidden;margin:0 auto 6px;box-shadow:0 0 0 3px var(--ring)}
+.cats.circle .cat em{display:block;font-style:normal;font-size:11px;color:var(--muted);font-weight:500}
+.cats.square .cat{width:104px;background:var(--tile-bg);border-radius:var(--r-card);padding:8px 8px 10px}
+.cats.square .cat .im{aspect-ratio:1;border-radius:calc(var(--r-card) - 4px);overflow:hidden;margin-bottom:7px}
+.cats.tall .cat{width:128px;border-radius:var(--r-card);overflow:hidden;position:relative}
+.cats.tall .cat .im{aspect-ratio:3/4}
+.cats.tall .cat span{position:absolute;left:6px;right:6px;bottom:6px;background:var(--main);color:var(--on-main);border-radius:var(--r-btn);padding:5px 6px;font-size:12.5px}
+.cats.pill .cat{display:flex;align-items:center;gap:8px;background:var(--tile-bg);border-radius:99px;padding:5px 14px 5px 5px}
+.cats.pill .cat .im{width:40px;height:40px;border-radius:50%;overflow:hidden}
+.cat .im img{width:100%;height:100%;object-fit:cover}
+
+/* product cards */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rail{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:6px;margin-right:-16px;padding-right:16px}
+.rail .card{width:160px;flex:none}
+.card{background:var(--card-bg);border-radius:var(--r-card);overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:var(--card-shadow);border:var(--card-border)}
+.card .im{position:relative;aspect-ratio:1;background:var(--img-bg)}
+.card .im img{width:100%;height:100%;object-fit:cover}
+.card .bd{padding:9px 10px 11px;display:flex;flex-direction:column;gap:3px;flex:1}
+.card .nm{font-size:13.5px;font-weight:600;line-height:1.35;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:36px}
+.card .pr{font-weight:700;font-size:15px;color:var(--price)}
+.card .pr s{color:var(--muted);font-weight:500;font-size:12.5px;margin-left:5px}
+.card .left{font-size:11.5px;font-weight:700;color:var(--sale)}
+.card .sold{font-size:11.5px;color:var(--muted)}
+.card .add{margin-top:6px;border:0;border-radius:var(--r-btn);background:var(--btn-bg);color:var(--btn-fg);font-weight:700;font-size:13px;padding:8px 6px;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--fb)}
+.card .add .ico{width:16px;height:16px}
+.tags{position:absolute;top:8px;left:8px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.tag{font:700 11px/1 var(--fb);padding:4px 7px;border-radius:6px;color:#fff}
+.tag.sale{background:var(--sale)}.tag.new{background:var(--new)}.tag.best{background:var(--best)}
+.card.framed{text-align:center}
+.card.framed .im{margin:8px 8px 0;border-radius:calc(var(--r-card) - 2px);overflow:hidden}
+.card.photo .im{aspect-ratio:3/4}
+.card.photo .add{display:none}
+.card .fav{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.9);display:grid;place-items:center;color:#222}
+.card .fav .ico{width:16px;height:16px}
+
+/* offer banners: stacked on a phone */
+.banners{display:grid;gap:12px}
+.shop .ban{position:relative;display:block;height:168px;border-radius:var(--r-card);overflow:hidden;color:#fff}
+.ban img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ban .shade{position:absolute;inset:0}
+.ban .tx{position:relative;padding:18px;max-width:72%}
+.ban .k{font-size:12.5px;font-weight:600;opacity:.95}
+.ban b{display:block;font-family:var(--fh);font-size:30px;line-height:1.1;margin:2px 0}
+.ban .s{font-size:13px;opacity:.95;margin-bottom:10px}
+.ban .btn{padding:8px 14px;font-size:13px}
+
+/* trust strip */
+.trust{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.trust .it{display:flex;gap:10px;align-items:center;background:var(--trust-bg);border-radius:var(--r-card);padding:11px 12px;font-size:12px;color:var(--muted);line-height:1.35;border:var(--trust-border)}
+.trust .it b{display:block;color:var(--text);font-size:13px}
+.trust .it .ico{color:var(--main);width:26px;height:26px}
+
+/* testimonials */
+.quotes{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;margin-right:-16px;padding-right:16px}
+.q{flex:none;width:280px;background:var(--q-bg,var(--card-bg));border-radius:var(--r-card);padding:16px;border:var(--card-border);box-shadow:var(--card-shadow);font-size:13.5px}
+.q p{margin:0 0 12px}
+.q .who{display:flex;gap:10px;align-items:center;font-size:12.5px;color:var(--muted)}
+.q .who b{display:block;color:var(--text);font-size:13px}
+.q .av{width:38px;height:38px;border-radius:50%;background:var(--accent-soft);color:var(--main);display:grid;place-items:center;font-weight:700;font-family:var(--fh)}
+
+/* footer */
+.ft{background:var(--ft-bg);color:var(--ft-fg);margin-top:26px;padding:26px 0 14px;font-size:13px}
+.ft .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.ft .about{grid-column:1/-1}
+.ft .logo{color:var(--ft-logo)}
+.ft .logo .mk{background:var(--accent);color:var(--on-accent)}
+.ft .logo small{color:inherit;opacity:.75}
+.ft h3{font-family:var(--fb);font-size:14px;margin:0 0 8px;color:var(--ft-h)}
+.ft ul{list-style:none;margin:0;padding:0;display:grid;gap:5px;opacity:.9}
+.ft .soc{display:flex;gap:10px;margin-top:12px}
+.ft .soc span{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);display:grid;place-items:center}
+.ft .base{border-top:1px solid rgba(255,255,255,.14);margin-top:20px;padding-top:12px;display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;font-size:12px;opacity:.9}
+.pbl{display:inline-flex;align-items:center;gap:6px;background:#fff;color:#0e6b66;border-radius:99px;padding:3px 10px 3px 4px;font:600 11.5px/1.4 Inter,sans-serif}
+.pbl i{width:16px;height:16px;border-radius:50%;background:#0e6b66;display:inline-block}
+.chatbtn{position:absolute;right:14px;top:640px;width:52px;height:52px;border-radius:50%;background:#25d366;color:#fff;display:grid;place-items:center;box-shadow:0 6px 16px rgba(0,0,0,.25);z-index:5}
+.chatbtn .ico{width:26px;height:26px}
+
+/* ---------- Wider screens: same sections, more room ---------- */
+@container (min-width:900px){
+  .shop .wide{display:block}.shop .narrow{display:none}
+  .wrap{padding:0 32px}
+  .sec{padding:34px 0 8px}
+  .hd .row{height:74px;gap:24px}
+  .hd .menu{display:none}
+  .logo{font-size:23px}.logo .mk{width:44px;height:44px;font-size:21px}
+  .logo.img svg{height:44px}
+  .search{display:flex;flex:1;max-width:520px;height:44px;border:1.5px solid var(--line-strong);border-radius:var(--r-btn);overflow:hidden;background:#fff}
+  .search span{flex:1;display:flex;align-items:center;padding:0 14px;color:var(--muted);font-size:14px}
+  .search i{width:54px;background:var(--main);color:var(--on-main);display:grid;place-items:center}
+  .hd .srch{display:none}
+  .nav{padding:0 32px 12px;gap:10px;justify-content:center;max-width:1240px;margin:0 auto}
+  .hd.centred .logo{position:static;transform:none}
+  .hd.centred .row{justify-content:flex-start}
+  .hero.split .slide{flex-direction:row-reverse;align-items:stretch;min-height:440px}
+  .hero.split .ph{flex:1.1;aspect-ratio:auto}
+  .hero.split .tx{flex:1;padding:56px 48px;display:flex;flex-direction:column;justify-content:center}
+  .hero.split h1{font-size:50px}
+  .hero.split p{font-size:17px;max-width:440px}
+  .hero.overlay .slide{height:540px}
+  .hero.overlay .tx{top:0;bottom:0;max-width:640px;padding:0 64px;display:flex;flex-direction:column;justify-content:center}
+  .hero.overlay .shade{background:var(--hero-shade-wide,var(--hero-shade))}
+  .hero.overlay h1{font-size:56px}
+  .hero.overlay p{font-size:17px}
+  .hero.auto{display:grid;grid-template-columns:2fr 1fr;gap:14px;padding:16px 32px 0;max-width:1240px;margin:0 auto}
+  .hero.auto .slide{height:420px;margin:0}
+  .hero.auto .tiles{grid-template-columns:1fr;margin:0;gap:14px}
+  .hero.auto .tile{height:203px}
+  .hero.auto .dots{grid-column:1}
+  .sh h2{font-size:28px}
+  .cats{overflow:visible;flex-wrap:wrap;justify-content:center;gap:18px}
+  .cats.circle .cat{width:130px}.cats.circle .cat .im{width:124px;height:124px}
+  .cats.square .cat{width:168px}
+  .cats.tall .cat{width:180px}
+  .grid{grid-template-columns:repeat(4,1fr);gap:20px}
+  .rail{margin-right:0;padding-right:0;gap:18px}
+  .rail .card{width:calc((100% - 72px) / 5)}
+  .card .nm{font-size:14.5px}
+  .banners{grid-template-columns:1fr 1fr;gap:18px}
+  .ban{height:230px}
+  .ban b{font-size:40px}
+  .ban .tx{padding:28px}
+  .trust{grid-template-columns:repeat(4,1fr);gap:14px}
+  .trust .it{padding:16px;font-size:13px}
+  .quotes{overflow:visible;margin-right:0;padding-right:0}
+  .q{flex:1}
+  .ft .cols{grid-template-columns:1.5fr 1fr 1fr 1.2fr}
+  .ft .about{grid-column:auto}
+  .chatbtn{top:auto;bottom:24px;position:absolute}
+}
+
+/* ---------- The dashboard's editor (Lytro's chrome: Settings > Storefront > Design) ---------- */
+.dash{font-family:'Inter','Noto Sans Bengali',sans-serif;background:#f3f6f6;color:#1d2a2a;min-height:844px;position:relative;font-size:15px;line-height:1.45}
+.dash *{box-sizing:border-box}
+.dash .top{background:#fff;border-bottom:1px solid #e1e8e8;height:56px;display:flex;align-items:center;gap:8px;padding:0 10px;position:relative;z-index:3}
+.dash .top h1{font-size:17px;margin:0;font-weight:700;flex:1;font-family:inherit}
+.dash .top .back{width:40px;height:40px;display:grid;place-items:center;border-radius:10px;color:#1d2a2a}
+.chip{font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.chip.draft{background:#fff1d6;color:#704400}.chip.live{background:#dff2ec;color:#0b5c4d}.chip.auto{background:#e6eefb;color:#1e3f8a}.chip.add{background:#f6e7f0;color:#7c1d4e}
+.dash .body{padding:12px 12px 120px;display:flex;flex-direction:column;gap:12px}
+.dcard{background:#fff;border-radius:16px;border:1px solid #e1e8e8;padding:14px}
+.dcard h2{font-size:15.5px;margin:0;font-weight:700;font-family:inherit;display:flex;align-items:center;gap:8px}
+.dcard .sub{font-size:13px;color:#33403f;margin:3px 0 12px}
+.dbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:44px;padding:0 16px;border-radius:10px;font-weight:700;font-size:14.5px;border:0;background:#0e6b66;color:#fff;font-family:inherit;white-space:nowrap}
+.dbtn.out{background:#fff;color:#0e6b66;box-shadow:inset 0 0 0 1.5px #0e6b66}
+.dbtn.quiet{background:#eef3f3;color:#1d2a2a}
+.dbtn.sm{height:36px;padding:0 12px;font-size:13.5px}
+.dbtn .ico{width:18px;height:18px}
+.dash .ico{stroke-width:1.9}
+.row2{display:flex;gap:10px;align-items:center}
+.srow{display:flex;align-items:center;gap:10px;padding:8px 2px;border-top:1px solid #eef2f2;min-height:60px}
+.srow:first-of-type{border-top:0}
+.srow .grip{color:#7d8d8c;display:flex;flex-direction:column;gap:2px}
+.srow .grip .ico{width:16px;height:16px}
+.srow .si{width:38px;height:38px;border-radius:10px;background:#e3f1ef;color:#0e6b66;display:grid;place-items:center;flex:none}
+.srow .si .ico{width:20px;height:20px}
+.srow .nm{flex:1;min-width:0}.srow .nm b{display:block;font-size:14.5px}.srow .nm span{font-size:12.5px;color:#33403f;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srow.off .nm,.srow.off .si{opacity:.45}
+.srow.fixed .grip{visibility:hidden}
+.srow.sel{background:#fff8e6;border-radius:12px;box-shadow:inset 0 0 0 2px #f2a516}
+.switch{width:42px;height:26px;border-radius:99px;background:#0e6b66;position:relative;flex:none}.switch::after{content:"";position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch.off{background:#c3cdcd}.switch.off::after{right:auto;left:3px}
+.chev{color:#7d8d8c}
+.dock{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #e1e8e8;padding:10px 12px 16px;display:flex;gap:10px;z-index:4}
+.dock .dbtn{flex:1}
+.mini{width:100%;overflow:hidden;border-radius:12px;border:1px solid #e1e8e8;position:relative;background:#fff}
+.mini .scale{transform-origin:0 0;position:absolute;top:0;left:0}
+.mini .scale .chatbtn{display:none}
+.tcard{display:grid;grid-template-columns:118px 1fr;gap:12px;align-items:center}
+.tcard .mini{height:178px}
+.pal{display:flex;gap:6px;margin:8px 0}
+.pal i{width:22px;height:22px;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.12) inset}
+.pal i.on{box-shadow:0 0 0 2px #fff,0 0 0 4px #0e6b66}
+.scrim{position:absolute;inset:0;background:rgba(12,24,24,.45);z-index:5}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.18);max-height:90%;overflow:auto;z-index:6}
+.sheet .grab{width:42px;height:5px;border-radius:9px;background:#cfd9d9;margin:8px auto 4px}
+.sheet .shd{display:flex;align-items:center;gap:8px;padding:4px 16px 8px}
+.sheet .shd h2{flex:1;font-size:17px;margin:0;font-family:inherit}
+.sheet .sbody{padding:4px 16px 8px}
+.sheet .dock{position:sticky;bottom:0;margin-top:8px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field>label{font-size:13.5px;font-weight:600}
+.field .in{min-height:46px;border:1.5px solid #c9d4d4;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;font-size:15px;background:#fff}
+.field .in .caret{margin-left:auto;color:#5d6d6c}
+.field .hint{font-size:12.5px;color:#33403f}
+.seg{display:flex;background:#eaf0f0;border-radius:12px;padding:3px;gap:3px}
+.seg span{flex:1;text-align:center;padding:9px 4px;border-radius:9px;font-size:13.5px;font-weight:600;color:#33403f}
+.seg span.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.14);color:#0e6b66}
+.drop{border:2px dashed #b4c4c3;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;font-size:13px;color:#33403f;background:#fafcfc}
+.drop b{display:block;color:#1d2a2a;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drop>span{min-width:0}
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.opt{border:1.5px solid #d3dddd;border-radius:12px;padding:8px;text-align:center;font-size:12px;font-weight:600;color:#33403f}
+.opt.on{border-color:#0e6b66;box-shadow:inset 0 0 0 1px #0e6b66;color:#0e6b66;background:#f1f9f8}
+.opt .dg{height:54px;border-radius:7px;background:#eef3f3;margin-bottom:6px;position:relative;overflow:hidden}
+.dg i{position:absolute;background:#b9cac9;border-radius:3px}
+.dg i.p{background:#e2b8cb}
+.radio{display:flex;gap:10px;align-items:flex-start;padding:11px 2px;border-top:1px solid #eef2f2}
+.radio:first-child{border-top:0}
+.radio .dot{width:22px;height:22px;border-radius:50%;border:2px solid #9fb0af;flex:none;margin-top:1px}
+.radio.on .dot{border:7px solid #0e6b66}
+.radio b{display:block;font-size:14.5px}.radio span{font-size:12.5px;color:#33403f}
+.kind{display:flex;gap:12px;align-items:center;padding:11px 2px;border-top:1px solid #eef2f2}
+.kind:first-child{border-top:0}
+.kind .si{width:42px;height:42px;border-radius:12px;background:#e3f1ef;color:#0e6b66;display:grid;place-items:center;flex:none}
+.kind b{display:block;font-size:14.5px}.kind span{font-size:12.5px;color:#33403f}
+.kind .plus{margin-left:auto;color:#0e6b66;font-size:22px;font-weight:600}
+.slide-row{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid #eef2f2}
+.slide-row img{width:74px;height:50px;object-fit:cover;border-radius:8px}
+.slide-row .nm{flex:1;min-width:0;font-size:13.5px}.slide-row .nm b{display:block}
+.slide-row .nm span{font-size:12px;color:#33403f}
+.note-line{font-size:12.5px;color:#33403f;background:#f1f6f6;border-radius:10px;padding:9px 11px;display:flex;gap:8px;align-items:flex-start}
+.note-line .ico{width:18px;height:18px;color:#0e6b66;flex:none;margin-top:1px}
+.toast{position:absolute;left:12px;right:12px;bottom:92px;background:#16302e;color:#fff;border-radius:12px;padding:12px 14px;font-size:13.5px;display:flex;gap:10px;align-items:center;z-index:7}
+.toast .ico{color:#6ee0c6}
+/* previews of the logo and the app icon */
+.hdprev{border:1px solid #e1e8e8;border-radius:12px;overflow:hidden;background:#fff}
+.hdprev .bar{display:flex;align-items:center;gap:10px;height:58px;padding:0 12px;border-bottom:1px solid #f1dbe5}
+.hdprev .bar .ico{width:20px;height:20px;color:#3a0f24}
+.hdprev .cap{font-size:11.5px;color:#33403f;padding:5px 10px;background:#f7f9f9}
+.home{border-radius:22px;padding:18px 14px 16px;background:linear-gradient(160deg,#2b3a67 0%,#5b4b8a 55%,#b0618a 100%);display:grid;grid-template-columns:repeat(4,1fr);gap:14px 8px;color:#fff;font-size:10.5px;text-align:center}
+.home .app{display:flex;flex-direction:column;align-items:center;gap:4px}
+.home .app i{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.22);display:block}
+.home .app.me svg{width:52px;height:52px;border-radius:14px;box-shadow:0 3px 10px rgba(0,0,0,.3)}
+.home .app span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px}
+.masks{display:flex;gap:16px;align-items:flex-end;margin-top:12px;font-size:11.5px;color:#33403f;text-align:center}
+.masks svg{display:block;margin:0 auto 4px}
+.tab{display:flex;align-items:center;gap:8px;background:#e6eaea;border-radius:10px 10px 0 0;padding:8px 12px;font-size:12.5px;width:230px;margin-top:12px}
+.tab svg{width:16px;height:16px;border-radius:3px}
+/* desktop: the editor beside a live preview */
+.dash.desk{display:grid;grid-template-columns:430px 1fr;min-height:900px}
+.dash.desk .side{background:#f3f6f6;border-right:1px solid #e1e8e8;position:relative;min-height:900px}
+.dash.desk .pane{background:#e7ecec;padding:18px 24px;display:flex;flex-direction:column;gap:12px;align-items:center}
+.dash.desk .pane .ptools{display:flex;gap:10px;align-items:center;width:100%;font-size:13px;color:#33403f}
+.dash.desk .pane .ptools .seg{width:220px;margin-left:auto}
+.dash.desk .pane .mini{border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.12);border:0}
+.dash.desk .sheet{left:50%;right:auto;top:70px;bottom:auto;width:540px;transform:translateX(-50%);border-radius:18px;max-height:none}
+.dash.desk .sheet .grab{display:none}
+.dash.desk .sheet .dock{position:static;border-radius:0 0 18px 18px}
+.hl{outline:3px solid #f2a516;outline-offset:-3px;position:relative;z-index:2}
+.dash.fix{height:844px;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="tb" id="tb"></div>
+<div class="note" id="note"></div>
+<div class="stage" id="stage"></div>
+<script>
+// ---------- language ----------
+let LANG = 'bn';
+const L = (bn, en) => (LANG === 'bn' ? bn : en);
+const T = (pair) => (Array.isArray(pair) ? L(pair[0], pair[1]) : pair);
+const money = (n) => '৳' + Number(n).toLocaleString('en-US');
+const pct = (p) => Math.round((1 - p.price / p.was) * 100);
+const img = (name) => `sample-photos/builder/${name}.jpg`;
+
+// ---------- icons ----------
+const P = {
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  cart: '<path d="M3 4h2l2.4 11h10.2L20 8H6.2"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  cash: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/>',
+  truck: '<path d="M2 6h11v10H2zM13 10h4l3 3v3h-7"/><circle cx="6" cy="17.5" r="1.7"/><circle cx="16.5" cy="17.5" r="1.7"/>',
+  shield: '<path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+  pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  wallet: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12.5h2"/><path d="M3 9h18"/>',
+  heart: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
+  leaf: '<path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19c3-4 6-7 10-9"/>',
+  wa: '<path d="M4 20l1.3-4A8 8 0 1 1 8 19z"/><path d="M9 9c0 3 2.5 6 6 6l1-1.5-2-1-1 1c-1-.5-2-1.5-2.5-2.5l1-1-1-2z"/>',
+  fb: '<path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8z"/>',
+  msg: '<path d="M12 3C7 3 3 6.6 3 11c0 2.5 1.3 4.7 3.3 6.1V21l3.1-1.7c.8.2 1.7.3 2.6.3 5 0 9-3.6 9-8s-4-8-9-8z"/>',
+};
+const ic = (name, cls = '') => `<svg class="ico ${cls}" viewBox="0 0 24 24">${P[name]}</svg>`;
+
+// ---------- themes: tokens and the default variant of each section ----------
+const THEMES = {
+  royal: {
+    name: ['রাজকীয়', 'Royal'], fits: ['পারফিউম, গয়না, প্রিমিয়াম পণ্য', 'Perfume, jewellery, premium goods'],
+    fonts: ['Galada + Playfair Display', 'Hind Siliguri + Plus Jakarta Sans'],
+    v: { bg: '#fbf7ef', text: '#1c1915', muted: '#4f483c', main: '#1c1915', 'on-main': '#f3e3b6', accent: '#c8a14b', 'on-accent': '#1c1915', 'accent-soft': '#f3e9d2',
+      fh: "'Playfair Display','Galada',serif", fb: "'Plus Jakarta Sans','Hind Siliguri',sans-serif",
+      'ann-bg': '#1c1915', 'ann-fg': '#f3e3b6', 'hd-bg': '#ffffff', 'hd-fg': '#1c1915', logo: '#1c1915', line: '#ece3cf', 'line-strong': '#d9c79b',
+      'chip-bg': '#f3e9d2', 'chip-fg': '#3b3326', 'hero-bg': '#1c1915', 'hero-h': '#e9c873', 'hero-em': '#e9c873', 'hero-shade': 'linear-gradient(90deg,rgba(18,14,8,.92) 0%,rgba(18,14,8,.6) 45%,rgba(18,14,8,.1) 100%)',
+      kick: '#c8a14b', 'btn-bg': '#c8a14b', 'btn-fg': '#1c1915', 'sec-h': '#1c1915', link: '#8a6a22', orn: '#c8a14b', ring: '#e2cc94',
+      'tile-bg': '#f3e9d2', 'card-bg': '#ffffff', 'card-shadow': 'none', 'card-border': '1px solid #e8dcc0', 'img-bg': '#f7f1e3', price: '#1c1915',
+      sale: '#b3261e', new: '#1c1915', best: '#8a6a22', 'trust-bg': '#ffffff', 'trust-border': '1px solid #e8dcc0', 'ft-bg': '#14110c', 'ft-fg': '#e8dfcc', 'ft-h': '#e9c873', 'ft-logo': '#e9c873',
+      'r-btn': '999px', 'r-card': '6px', 'r-mark': '50%' },
+    header: 'centred', hero: 'overlay', cats: 'square', card: 'framed', head: 'ornament',
+  },
+  fresh: {
+    name: ['সতেজ', 'Fresh'], fits: ['খাবার, গ্রোসারি, অর্গানিক', 'Food, grocery, organic'],
+    fonts: ['Baloo Da 2 + Poppins', 'Baloo Da 2 + Poppins'],
+    v: { bg: '#f6f9f1', text: '#18261b', muted: '#3f4f42', main: '#1f6b34', 'on-main': '#ffffff', accent: '#f08a1c', 'on-accent': '#2a1600', 'accent-soft': '#e3f0dc',
+      fh: "'Poppins','Baloo Da 2',sans-serif", fb: "'Poppins','Baloo Da 2',sans-serif",
+      'ann-bg': '#1f6b34', 'ann-fg': '#ffffff', 'hd-bg': '#ffffff', 'hd-fg': '#18261b', logo: '#1f6b34', line: '#e2ead9', 'line-strong': '#b9cdb0',
+      'chip-bg': '#e3f0dc', 'chip-fg': '#1f6b34', 'hero-bg': '#fff8ec', 'hero-h': '#18261b', 'hero-em': '#e2741a', 'hero-shade': 'none',
+      kick: '#e2741a', 'btn-bg': '#1f6b34', 'btn-fg': '#ffffff', 'sec-h': '#1f6b34', link: '#1f6b34', orn: '#9cbd8f', ring: '#cfe3c4',
+      'tile-bg': '#e3f0dc', 'card-bg': '#ffffff', 'card-shadow': '0 2px 10px rgba(31,107,52,.08)', 'card-border': '0', 'img-bg': '#f2f5ee', price: '#1f6b34',
+      sale: '#d93a1b', new: '#1f6b34', best: '#e2741a', 'trust-bg': '#ffffff', 'trust-border': '0', 'ft-bg': '#163f22', 'ft-fg': '#d9e8d3', 'ft-h': '#ffffff', 'ft-logo': '#ffffff',
+      'r-btn': '999px', 'r-card': '18px', 'r-mark': '14px' },
+    header: 'bar', hero: 'split', cats: 'circle', card: 'rounded', head: 'leaf',
+  },
+  bold: {
+    name: ['উজ্জ্বল', 'Bold'], fits: ['গ্যাজেট, ইলেকট্রনিক্স, সব ধরনের দোকান', 'Gadgets, electronics, general stores'],
+    fonts: ['Anek Bangla + DM Sans', 'Anek Bangla + DM Sans'],
+    v: { bg: '#ffffff', text: '#0d1b3e', muted: '#3a4766', main: '#1554f0', 'on-main': '#ffffff', accent: '#ffc61a', 'on-accent': '#1a1400', 'accent-soft': '#e8efff',
+      fh: "'DM Sans','Anek Bangla',sans-serif", fb: "'DM Sans','Anek Bangla',sans-serif",
+      'ann-bg': '#0d1b3e', 'ann-fg': '#ffffff', 'hd-bg': '#ffffff', 'hd-fg': '#0d1b3e', logo: '#0d1b3e', line: '#e3e8f3', 'line-strong': '#c4cfe6',
+      'chip-bg': '#eef2fb', 'chip-fg': '#0d1b3e', 'hero-bg': 'linear-gradient(160deg,#e8efff 0%,#d4e1ff 100%)', 'hero-h': '#0d1b3e', 'hero-em': '#1554f0', 'hero-shade': 'none',
+      kick: '#1554f0', 'btn-bg': '#1554f0', 'btn-fg': '#ffffff', 'sec-h': '#0d1b3e', link: '#1554f0', orn: '#c4cfe6', ring: '#d4e1ff',
+      'tile-bg': '#eef2fb', 'card-bg': '#ffffff', 'card-shadow': 'none', 'card-border': '1px solid #e3e8f3', 'img-bg': '#f4f6fb', price: '#0d1b3e',
+      sale: '#e5322d', new: '#1554f0', best: '#0f8a4a', 'trust-bg': '#eef2fb', 'trust-border': '0', 'ft-bg': '#0d1b3e', 'ft-fg': '#cfd8ee', 'ft-h': '#ffffff', 'ft-logo': '#ffffff',
+      'r-btn': '10px', 'r-card': '12px', 'r-mark': '10px' },
+    header: 'bar', hero: 'split', cats: 'square', card: 'plain', head: 'left',
+  },
+  soft: {
+    name: ['কোমল', 'Soft'], fits: ['বিউটি, কসমেটিকস, মেয়েদের ফ্যাশন', 'Beauty, cosmetics, women\'s fashion'],
+    fonts: ['Galada + Playfair Display', 'Noto Sans Bengali + Inter'],
+    v: { bg: '#fff7fa', text: '#3a0f24', muted: '#5e3447', main: '#a3195b', 'on-main': '#ffffff', accent: '#f2639e', 'on-accent': '#3a0f24', 'accent-soft': '#fde4ee',
+      fh: "'Playfair Display','Galada',serif", fb: "'Inter','Noto Sans Bengali',sans-serif",
+      'ann-bg': '#a3195b', 'ann-fg': '#ffffff', 'hd-bg': '#ffffff', 'hd-fg': '#3a0f24', logo: '#a3195b', line: '#f7d9e6', 'line-strong': '#eebbd0',
+      'chip-bg': '#fde4ee', 'chip-fg': '#a3195b', 'hero-bg': 'linear-gradient(160deg,#fde4ee 0%,#fbd0e1 100%)', 'hero-h': '#a3195b', 'hero-em': '#e2448a', 'hero-shade': 'none',
+      kick: '#e2448a', 'btn-bg': '#a3195b', 'btn-fg': '#ffffff', 'sec-h': '#a3195b', link: '#a3195b', orn: '#f2a3c4', ring: '#f9c9dc',
+      'tile-bg': '#fde4ee', 'card-bg': '#ffffff', 'card-shadow': '0 2px 12px rgba(163,25,91,.08)', 'card-border': '0', 'img-bg': '#fdf0f5', price: '#a3195b',
+      sale: '#e2448a', new: '#7b3fd1', best: '#0f8a4a', 'trust-bg': '#fde4ee', 'trust-border': '0', 'ft-bg': '#4d0c2c', 'ft-fg': '#f6d7e5', 'ft-h': '#ffffff', 'ft-logo': '#ffffff',
+      'r-btn': '999px', 'r-card': '18px', 'r-mark': '50%' },
+    header: 'bar', hero: 'split', cats: 'circle', card: 'rounded', head: 'petal',
+  },
+  studio: {
+    name: ['স্টুডিও', 'Studio'], fits: ['ফ্যাশন, পোশাক, লাইফস্টাইল', 'Fashion, clothing, lifestyle'],
+    fonts: ['Tiro Bangla + Lora', 'Hind Siliguri + Plus Jakarta Sans'],
+    v: { bg: '#f7f5f1', text: '#13213c', muted: '#444c5c', main: '#13213c', 'on-main': '#ffffff', accent: '#c9583a', 'on-accent': '#ffffff', 'accent-soft': '#e6e9f0',
+      fh: "'Lora','Tiro Bangla',serif", fb: "'Plus Jakarta Sans','Hind Siliguri',sans-serif",
+      'ann-bg': '#13213c', 'ann-fg': '#ffffff', 'hd-bg': '#f7f5f1', 'hd-fg': '#13213c', logo: '#13213c', line: '#e4e0d8', 'line-strong': '#c9c3b6',
+      'chip-bg': '#ece8e0', 'chip-fg': '#13213c', 'hero-bg': '#13213c', 'hero-h': '#ffffff', 'hero-em': '#ffffff', 'hero-shade': 'linear-gradient(180deg,rgba(10,16,30,0) 35%,rgba(10,16,30,.82) 100%)', 'hero-kick': '#f6c9b8', 'hero-shade-wide': 'linear-gradient(90deg,rgba(10,16,30,.85) 0%,rgba(10,16,30,.45) 45%,rgba(10,16,30,0) 75%)',
+      kick: '#c9583a', 'btn-bg': '#13213c', 'btn-fg': '#ffffff', 'sec-h': '#13213c', link: '#13213c', orn: '#c9c3b6', ring: '#c9c3b6',
+      'tile-bg': '#ece8e0', 'card-bg': 'transparent', 'q-bg': '#ffffff', 'card-shadow': 'none', 'card-border': '0', 'img-bg': '#ece8e0', price: '#13213c',
+      sale: '#c9583a', new: '#13213c', best: '#0f6b4a', 'trust-bg': '#ffffff', 'trust-border': '0', 'ft-bg': '#13213c', 'ft-fg': '#cfd5e2', 'ft-h': '#ffffff', 'ft-logo': '#ffffff',
+      'r-btn': '4px', 'r-card': '4px', 'r-mark': '4px' },
+    header: 'centred', hero: 'overlay', cats: 'tall', card: 'photo', head: 'kicker',
+  },
+};
+
+// ---------- the sample shops: each its own data, in its theme's default sections ----------
+const SHOPS = {
+  royal: {
+    name: ['সুগন্ধ ঘর', 'Sugondho Ghor'], tag: ['আপনার সুবাস, আপনার পরিচয়', 'Your scent, your signature'], mark: 'স',
+    cats: [['পুরুষদের পারফিউম', "Men's perfume", 'perfume-2', 18], ['মেয়েদের পারফিউম', "Women's perfume", 'perfume-4', 22], ['আতর', 'Attar', 'perfume-5', 9], ['গিফট সেট', 'Gift sets', 'perfume-7', 6], ['ডিসকভারি সেট', 'Discovery sets', 'perfume-8', 4], ['বডি মিস্ট', 'Body mist', 'perfume-6', 7]],
+    products: [
+      { n: ['উদ রয়্যাল, ১০০ মিলি', 'Oud Royale, 100 ml'], i: 'perfume-2', price: 4500, was: 5500, best: true, sold: 64 },
+      { n: ['রোজ মাস্ক, ৫০ মিলি', 'Rose Musk, 50 ml'], i: 'perfume-4', price: 2200, isNew: true },
+      { n: ['অ্যাম্বার আতর, ১২ মিলি', 'Amber Attar, 12 ml'], i: 'perfume-5', price: 850, was: 1000 },
+      { n: ['ভেলভেট গিফট বক্স', 'Velvet gift box'], i: 'perfume-7', price: 6900, was: 8000, best: true, sold: 31 },
+      { n: ['ডিসকভারি সেট (৪টি)', 'Discovery set (4 vials)'], i: 'perfume-8', price: 1800, left: 3 },
+      { n: ['ব্লাঁ, ১০০ মিলি', 'Blanc, 100 ml'], i: 'perfume-6', price: 3200, isNew: true },
+    ],
+    hero: { i: 'perfume-7', k: ['নতুন সংগ্রহ', 'New collection'], h: ['আপনার নিজের <em>সুবাস</em>', 'Discover your <em>signature scent</em>'], p: ['প্রতিটি মুডের জন্য প্রিমিয়াম পারফিউম আর আতর', 'Premium perfumes and attars for every mood'], b: ['এখনই কিনুন', 'Shop now'] },
+    banners: [
+      { i: 'perfume-8', k: ['গিফট সেটে', 'On gift sets'], b: ['২০% ছাড়', '20% off'], s: ['ঈদের উপহার এখনই', 'Eid gifts, sorted'], shade: 'linear-gradient(90deg,rgba(20,16,10,.88),rgba(20,16,10,.2))' },
+      { i: 'perfume-4', k: ['৳২,০০০+ অর্ডারে', 'Orders over ৳2,000'], b: ['ফ্রি ডেলিভারি', 'Free delivery'], s: ['সারা বাংলাদেশে', 'All over Bangladesh'], shade: 'linear-gradient(90deg,rgba(120,84,20,.9),rgba(120,84,20,.15))' },
+    ],
+    layout: ['announce', 'header', 'hero', 'cats', ['hot', 'grid'], 'banners', ['sale', 'rail'], 'trust', 'footer'],
+  },
+  fresh: {
+    name: ['রান্নাঘর', 'Rannaghor'], tag: ['ঘরের স্বাদ, দরজায়', 'Home taste, at your door'], mark: 'র',
+    cats: [['বিরিয়ানি', 'Biryani', 'food-1', 8], ['বার্গার', 'Burgers', 'food-3', 6], ['পিজ্জা', 'Pizza', 'food-4', 5], ['স্ন্যাকস', 'Snacks', 'food-5', 9], ['ড্রিংকস', 'Drinks', 'food-6', 7], ['ডেজার্ট', 'Desserts', 'food-7', 6]],
+    products: [
+      { n: ['কাচ্চি বিরিয়ানি (ফুল)', 'Kacchi biryani (full)'], i: 'food-1', price: 349, best: true, sold: 412 },
+      { n: ['চিকেন বিরিয়ানি', 'Chicken biryani'], i: 'food-2', price: 299, was: 349 },
+      { n: ['বিফ বার্গার', 'Beef burger'], i: 'food-3', price: 199, was: 249, best: true, sold: 230 },
+      { n: ['মার্গারিটা পিজ্জা', 'Margherita pizza'], i: 'food-4', price: 499, isNew: true },
+      { n: ['সমুচা (৪টি)', 'Samosa (4 pcs)'], i: 'food-5', price: 80 },
+      { n: ['আইসড কফি', 'Iced coffee'], i: 'food-6', price: 150, isNew: true },
+      { n: ['বেরি কেক (স্লাইস)', 'Berry cake (slice)'], i: 'food-7', price: 180, left: 4 },
+    ],
+    hero: { i: 'food-2', k: ['আজকের স্পেশাল', "Today's special"], h: ['গরম খাবার, <em>দরজায়</em> পৌঁছে', 'Hot food, <em>at your door</em>'], p: ['ঢাকার ভেতর ৪৫ মিনিটে, ক্যাশ অন ডেলিভারিতে', 'Within 45 minutes in Dhaka, cash on delivery'], b: ['অর্ডার করুন', 'Order now'] },
+    banners: [
+      { i: 'food-4', k: ['পিজ্জায়', 'On pizzas'], b: ['১৫% ছাড়', '15% off'], s: ['এই সপ্তাহ জুড়ে', 'All week long'], shade: 'linear-gradient(90deg,rgba(22,63,34,.92),rgba(22,63,34,.15))' },
+      { i: 'food-7', k: ['৳৫০০+ অর্ডারে', 'Orders over ৳500'], b: ['ফ্রি ডেলিভারি', 'Free delivery'], s: ['ঢাকার ভেতর', 'Inside Dhaka'], shade: 'linear-gradient(90deg,rgba(196,96,10,.92),rgba(196,96,10,.15))' },
+    ],
+    layout: ['announce', 'header', 'hero', 'cats', ['hot', 'grid'], 'banners', ['latest', 'rail'], 'trust', 'footer'],
+  },
+  bold: {
+    name: ['গ্যাজেট বাজার', 'Gadget Bazar'], tag: ['স্মার্ট পছন্দ, ভালো দামে', 'Smart picks, fair prices'], mark: 'গ',
+    cats: [['ল্যাপটপ', 'Laptops', 'tech-1', 14], ['স্মার্টফোন', 'Phones', 'tech-3', 26], ['ইয়ারবাড', 'Earbuds', 'tech-4', 19], ['হেডফোন', 'Headphones', 'tech-5', 11], ['স্মার্টওয়াচ', 'Smartwatches', 'tech-6', 9], ['অফিস', 'Office', 'tech-2', 12]],
+    products: [
+      { n: ['আল্ট্রাবুক ১৪" (১৬জিবি/৫১২জিবি)', 'Ultrabook 14" (16GB/512GB)'], i: 'tech-1', price: 72990, was: 79990 },
+      { n: ['স্মার্টফোন ৮/২৫৬ জিবি', 'Smartphone 8/256 GB'], i: 'tech-3', price: 24999, was: 27999, best: true, sold: 88 },
+      { n: ['ওয়্যারলেস ইয়ারবাড', 'Wireless earbuds'], i: 'tech-4', price: 1499, was: 1999, best: true, sold: 204 },
+      { n: ['ওয়্যারলেস হেডফোন', 'Wireless headphones'], i: 'tech-5', price: 2799, isNew: true },
+      { n: ['স্মার্টওয়াচ (অ্যামোলেড)', 'Smartwatch (AMOLED)'], i: 'tech-6', price: 3499, was: 4200, left: 2 },
+    ],
+    hero: { i: 'tech-3', k: ['সপ্তাহের ডিল', 'Deal of the week'], h: ['নতুন <em>গ্যাজেট</em>, নতুন দাম', 'Latest <em>gadgets</em>, better prices'], p: ['অরিজিনাল পণ্য, ওয়ারেন্টিসহ, সারাদেশে ডেলিভারি', 'Original products with warranty, delivered nationwide'], b: ['ডিল দেখুন', 'See deals'] },
+    banners: [
+      { i: 'tech-5', k: ['এই সপ্তাহের ডিল', 'This week only'], b: ['৩০% পর্যন্ত ছাড়', 'Up to 30% off'], s: ['হেডফোন আর ইয়ারবাডে', 'On headphones and earbuds'], shade: 'linear-gradient(90deg,rgba(13,27,62,.94),rgba(13,27,62,.2))' },
+      { i: 'tech-1', k: ['নতুন এসেছে', 'Just in'], b: ['আল্ট্রাবুক', 'Ultrabooks'], s: ['হালকা, দ্রুত, সারাদিন চার্জ', 'Light, fast, all-day battery'], shade: 'linear-gradient(90deg,rgba(21,84,240,.94),rgba(21,84,240,.15))' },
+    ],
+    layout: ['announce', 'header', 'hero', 'trust', 'cats', ['sale', 'grid'], 'banners', ['latest', 'rail'], 'footer'],
+  },
+  soft: {
+    name: ['রূপকথা বিউটি', 'Rupkotha Beauty'], tag: ['নিজের মতো সুন্দর', 'Beautiful, your way'], mark: 'রূ', logo: true,
+    cats: [['লিপস্টিক', 'Lipstick', 'beauty-2', 24], ['স্কিন কেয়ার', 'Skin care', 'beauty-3', 31], ['ক্রিম', 'Creams', 'beauty-4', 12], ['মেকআপ ব্রাশ', 'Brushes', 'beauty-6', 8], ['সেট ও কিট', 'Sets and kits', 'beauty-5', 6], ['লিকুইড লিপ', 'Liquid lips', 'beauty-1', 10]],
+    products: [
+      { n: ['ম্যাট লিপস্টিক', 'Matte lipstick'], i: 'beauty-2', price: 450, was: 600, best: true, sold: 152 },
+      { n: ['লিকুইড লিপস্টিক সেট (৫টি)', 'Liquid lipstick set (5)'], i: 'beauty-1', price: 890, isNew: true },
+      { n: ['নাইট ক্রিম, ৫০ গ্রাম', 'Night cream, 50 g'], i: 'beauty-4', price: 650, was: 800 },
+      { n: ['স্কিন কেয়ার কিট', 'Skin care kit'], i: 'beauty-3', price: 1450, best: true, sold: 76 },
+      { n: ['মেকআপ ব্রাশ সেট (৭টি)', 'Brush set (7)'], i: 'beauty-7', price: 990, was: 1250, left: 3 },
+      { n: ['ফেস ক্রিম ট্রায়ো', 'Face cream trio'], i: 'beauty-5', price: 1100, isNew: true },
+    ],
+    hero: { i: 'beauty-1', k: ['নতুন কালেকশন', 'New collection'], h: ['আপনার <em>স্বাভাবিক</em> সৌন্দর্য', 'Reveal your <em>natural</em> beauty'], p: ['অরিজিনাল কসমেটিকস, নিজের হাতে বাছাই করা', 'Original cosmetics, hand-picked'], b: ['এখনই কিনুন', 'Shop now'] },
+    banners: [
+      { i: 'beauty-3', k: ['স্কিন কেয়ারে', 'On skin care'], b: ['২০% ছাড়', '20% off'], s: ['শুধু এই মাসে', 'This month only'], shade: 'linear-gradient(90deg,rgba(163,25,91,.9),rgba(163,25,91,.12))' },
+      { i: 'beauty-5', k: ['৳৮০০+ অর্ডারে', 'Orders over ৳800'], b: ['ফ্রি ডেলিভারি', 'Free delivery'], s: ['সারাদেশে', 'Nationwide'], shade: 'linear-gradient(90deg,rgba(123,63,209,.9),rgba(123,63,209,.12))' },
+    ],
+    quotes: [[['রাত্রি আহমেদ', 'Ratri Ahmed'], ['ঢাকা', 'Dhaka'], ['লিপস্টিকের রং ছবির মতোই, ডেলিভারিও দ্রুত।', 'The shade is exactly as pictured, and delivery was quick.']], [['নুসরাত জাহান', 'Nusrat Jahan'], ['চট্টগ্রাম', 'Chattogram'], ['অরিজিনাল পণ্য পেয়েছি, প্যাকেটও সুন্দর ছিল।', 'Genuine products, beautifully packed.']], [['ফারজানা আক্তার', 'Farzana Akter'], ['সিলেট', 'Sylhet'], ['নাইট ক্রিমটা দারুণ, আবার অর্ডার করব।', 'Love the night cream, ordering again.']]],
+    layout: ['announce', 'header', 'hero', 'cats', ['latest', 'rail'], 'banners', ['hot', 'grid'], 'quotes', 'trust', 'footer'],
+  },
+  studio: {
+    name: ['মেঘ ফ্যাশন', 'Megh Fashion'], tag: ['ঐতিহ্য আর স্টাইল একসাথে', 'Tradition, styled'], mark: 'মে',
+    cats: [['পাঞ্জাবি', 'Panjabi', 'fashion-4-tall'], ['কুর্তি', 'Kurti', 'fashion-5-tall'], ['শাড়ি', 'Saree', 'fashion-6-tall'], ['শার্ট', 'Shirts', 'fashion-3-tall'], ['পোলো', 'Polo', 'fashion-1-tall'], ['নতুন', 'New in', 'fashion-7-tall']],
+    products: [
+      { n: ['এমব্রয়ডারি পাঞ্জাবি', 'Embroidered panjabi'], i: 'fashion-4-tall', price: 1450, was: 1900, best: true, sold: 58 },
+      { n: ['চিকনকারি কুর্তি', 'Chikankari kurti'], i: 'fashion-5-tall', price: 1250, isNew: true },
+      { n: ['সুতি শাড়ি', 'Cotton saree'], i: 'fashion-6-tall', price: 2200, was: 2800 },
+      { n: ['প্রিন্টেড শার্ট', 'Printed shirt'], i: 'fashion-3-tall', price: 1150, isNew: true },
+      { n: ['পাম প্রিন্ট শার্ট', 'Palm print shirt'], i: 'fashion-7-tall', price: 1050, was: 1300, left: 2 },
+    ],
+    hero: { i: 'fashion-5', k: ['ঈদ কালেকশন ২০২৬', 'Eid collection 2026'], h: ['উৎসবের নতুন পোশাক', 'New clothes for the festival'], p: ['শাড়ি, কুর্তি আর পাঞ্জাবি, নিজেদের কারখানায় তৈরি', 'Sarees, kurtis and panjabis, made in our own workshop'], b: ['কালেকশন দেখুন', 'See the collection'] },
+    banners: [
+      { i: 'fashion-4', k: ['পাঞ্জাবিতে', 'On panjabis'], b: ['২৫% ছাড়', '25% off'], s: ['ঈদ পর্যন্ত', 'Until Eid'], shade: 'linear-gradient(90deg,rgba(19,33,60,.9),rgba(19,33,60,.1))' },
+      { i: 'fashion-5', k: ['নতুন এসেছে', 'Just in'], b: ['চিকনকারি', 'Chikankari'], s: ['হাতের কাজের কুর্তি', 'Hand-worked kurtis'], shade: 'linear-gradient(90deg,rgba(201,88,58,.92),rgba(201,88,58,.1))' },
+    ],
+    quotes: [[['রাফি হাসান', 'Rafi Hasan'], ['ঢাকা', 'Dhaka'], ['পাঞ্জাবির কাপড় আর সেলাই দুটোই দারুণ।', 'The fabric and stitching are both excellent.']], [['ইমরান আহমেদ', 'Imran Ahmed'], ['চট্টগ্রাম', 'Chattogram'], ['মাপ ঠিকঠাক, দুই দিনে হাতে পেয়েছি।', 'Perfect fit, arrived in two days.']], [['তানভীর রহমান', 'Tanvir Rahman'], ['সিলেট', 'Sylhet'], ['দাম অনুযায়ী মান অনেক ভালো।', 'Great quality for the price.']]],
+    layout: ['announce', 'header', 'hero', 'cats', ['latest', 'grid'], 'banners', 'quotes', ['sale', 'rail'], 'trust', 'footer'],
+  },
+};
+
+// What every shop's sections read from its own data (the auto content).
+const DELIVERY = { dhaka: 70, outside: 130 };
+const SOURCES = {
+  latest: { title: ['নতুন এসেছে', 'Just in'], pick: (ps) => [...ps].sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0)) },
+  sale: { title: ['অফার কালেকশন', 'On sale'], pick: (ps) => ps.filter((p) => p.was).sort((a, b) => pct(b) - pct(a)) },
+  hot: { title: ['সবচেয়ে বেশি বিক্রি', 'Best sellers'], pick: (ps) => [...ps].sort((a, b) => (b.sold || 0) - (a.sold || 0)) },
+};
+const SEC_NAMES = {
+  announce: ['ঘোষণা · অটো: অফার', 'Announcement · auto: offers'], header: ['হেডার', 'Header'], hero: ['হিরো · ৩টি স্লাইড', 'Hero · 3 slides'],
+  cats: ['ক্যাটাগরি · অটো', 'Categories · auto'], banners: ['অফার ব্যানার · ২টি', 'Offer banners · 2'], trust: ['ভরসার কারণ · অটো', 'Trust strip · auto'],
+  quotes: ['ক্রেতাদের কথা', 'Testimonials'], footer: ['ফুটার', 'Footer'],
+  latest: ['প্রোডাক্ট · অটো: নতুন', 'Products · auto: newest'], sale: ['প্রোডাক্ট · অটো: ছাড়ে', 'Products · auto: on sale'], hot: ['প্রোডাক্ট · অটো: বেশি বিক্রি', 'Products · auto: best sellers'],
+};
+
+// ---------- section renderers ----------
+function head(theme, title, all = true) {
+  const kind = THEMES[theme].head;
+  const allLink = all ? `<a class="all">${L('সব দেখুন', 'See all')} →</a>` : '';
+  if (kind === 'ornament') return `<div class="sh centre"><span class="line"></span><span class="orn">◆</span><h2>${title}</h2><span class="orn">◆</span><span class="line"></span></div>`;
+  if (kind === 'petal') return `<div class="sh centre"><span class="line"></span><span class="orn">✿</span><h2>${title}</h2><span class="orn">✿</span><span class="line"></span></div>`;
+  if (kind === 'leaf') return `<div class="sh">${ic('leaf', 'leaf')}<h2>${title}</h2>${allLink}</div>`;
+  if (kind === 'kicker') return `<div class="sh rule"><h2>${title}</h2>${allLink}</div>`;
+  return `<div class="sh"><h2>${title}</h2>${allLink}</div>`;
+}
+
+function offersLine(shop) {
+  const onSale = shop.products.filter((p) => p.was);
+  const best = Math.max(...onSale.map(pct));
+  return L(`${onSale.length}টি পণ্যে ${best}% পর্যন্ত ছাড় চলছে`, `Up to ${best}% off on ${onSale.length} products`);
+}
+
+const SECTIONS = {
+  announce: (theme, shop) => `<div class="ann" data-sec="${T(SEC_NAMES.announce)}"><span class="pill">${L('অফার', 'Offer')}</span>${offersLine(shop)} · ${L(`ঢাকায় ডেলিভারি ${money(DELIVERY.dhaka)}`, `Delivery in Dhaka ${money(DELIVERY.dhaka)}`)}</div>`,
+
+  header: (theme, shop) => {
+    const kind = THEMES[theme].header;
+    const logo = shop.logo ? `<a class="logo img">${LOGO(40)}</a>` : `<a class="logo"><span class="mk">${shop.mark}</span><span>${T(shop.name)}<small>${T(shop.tag)}</small></span></a>`;
+    const nav = [L('সব পণ্য', 'All products'), L('অফার', 'Offers'), ...shop.cats.slice(0, 5).map((c) => T([c[0], c[1]]))];
+    return `<header class="hd ${kind}" data-sec="${T(SEC_NAMES.header)}"><div class="wrap row"><span class="menu">${ic('menu')}</span>${logo}<div class="search"><span>${L('পণ্য খুঁজুন...', 'Search products...')}</span><i>${ic('search')}</i></div><div class="icons"><span class="srch">${ic('search')}</span>${ic('user')}<span class="cart">${ic('cart')}<sup>2</sup></span></div></div><nav class="nav">${nav.map((n, i) => `<a class="${i === 0 ? 'on' : ''}">${n}</a>`).join('')}</nav></header>`;
+  },
+
+  hero: (theme, shop) => {
+    const kind = THEMES[theme].hero;
+    const h = shop.hero;
+    const dots = '<div class="dots"><i class="on"></i><i></i><i></i></div>';
+    if (kind === 'overlay') {
+      return `<section class="hero overlay" data-sec="${T(SEC_NAMES.hero)}"><div class="slide"><img class="narrow" src="${img(h.i)}" alt=""><img class="wide" src="${img(h.i + '-wide')}" alt=""><div class="shade"></div><div class="tx"><div class="kick">${T(h.k)}</div><h1>${T(h.h)}</h1><p>${T(h.p)}</p><a class="btn">${T(h.b)} ${ic('arrow')}</a></div></div>${dots}</section>`;
+    }
+    return `<section class="hero split" data-sec="${T(SEC_NAMES.hero)}"><div class="slide"><div class="ph"><img class="narrow" src="${img(h.i)}" alt=""><img class="wide" src="${img(h.i + '-wide')}" alt=""></div><div class="tx"><div class="kick">${T(h.k)}</div><h1>${T(h.h)}</h1><p>${T(h.p)}</p><div><a class="btn">${T(h.b)} ${ic('arrow')}</a></div></div></div>${dots}</section>`;
+  },
+
+  cats: (theme, shop) => {
+    const kind = THEMES[theme].cats;
+    const tiles = shop.cats.map(([bn, en, im, n]) => {
+      const count = n ? `<em>${L(`${n}টি পণ্য`, `${n} products`)}</em>` : '';
+      if (kind === 'tall') return `<a class="cat"><div class="im"><img src="${img(im)}" alt=""></div><span>${L(bn, en)} →</span></a>`;
+      return `<a class="cat"><div class="im"><img src="${img(im)}" alt=""></div>${L(bn, en)}${kind === 'circle' ? count : ''}</a>`;
+    });
+    return `<section class="sec" data-sec="${T(SEC_NAMES.cats)}"><div class="wrap">${head(theme, L('ক্যাটাগরি অনুযায়ী কিনুন', 'Shop by category'), false)}<div class="cats ${kind}">${tiles.join('')}</div></div></section>`;
+  },
+
+  products: (theme, shop, source, layout) => {
+    const kind = THEMES[theme].card;
+    const list = SOURCES[source].pick(shop.products).slice(0, layout === 'grid' ? 4 : 6);
+    const cards = list.map((p) => {
+      const tags = [p.was ? `<span class="tag sale">−${pct(p)}%</span>` : '', p.isNew ? `<span class="tag new">${L('নতুন', 'New')}</span>` : '', p.best ? `<span class="tag best">${L('সেরা বিক্রি', 'Best seller')}</span>` : ''].join('');
+      const note = p.left ? `<span class="left">${L(`মাত্র ${p.left}টি বাকি`, `Only ${p.left} left`)}</span>` : p.sold ? `<span class="sold">${L(`${p.sold} বার অর্ডার হয়েছে`, `Ordered ${p.sold} times`)}</span>` : '';
+      return `<a class="card ${kind}"><div class="im"><img src="${img(p.i)}" alt=""><div class="tags">${tags}</div>${kind === 'photo' ? `<span class="fav">${ic('heart')}</span>` : ''}</div><div class="bd"><span class="nm">${T(p.n)}</span><span class="pr">${money(p.price)}${p.was ? `<s>${money(p.was)}</s>` : ''}</span>${note}<button class="add">${ic('cart')} ${L('কার্টে যোগ করুন', 'Add to cart')}</button></div></a>`;
+    });
+    return `<section class="sec" data-sec="${T(SEC_NAMES[source])} · ${layout === 'rail' ? L('ক্যারোসেল', 'carousel') : L('গ্রিড', 'grid')}"><div class="wrap">${head(theme, T(SOURCES[source].title))}<div class="${layout}">${cards.join('')}</div></div></section>`;
+  },
+
+  banners: (theme, shop) => `<section class="sec" data-sec="${T(SEC_NAMES.banners)}"><div class="wrap banners">${shop.banners.map((b) => `<a class="ban"><img src="${img(b.i + '-wide')}" alt="" onerror="this.src='${img(b.i)}'"><div class="shade" style="background:${b.shade}"></div><div class="tx"><div class="k">${T(b.k)}</div><b>${T(b.b)}</b><div class="s">${T(b.s)}</div><span class="btn light">${L('দেখুন', 'Shop')} ${ic('arrow')}</span></div></a>`).join('')}</div></section>`,
+
+  trust: () => {
+    const items = [
+      ['cash', L('ক্যাশ অন ডেলিভারি', 'Cash on delivery'), L('হাতে পেয়ে টাকা দিন', 'Pay when it arrives')],
+      ['truck', L('সারাদেশে ডেলিভারি', 'Nationwide delivery'), L(`ঢাকায় ${money(DELIVERY.dhaka)} · বাইরে ${money(DELIVERY.outside)}`, `Dhaka ${money(DELIVERY.dhaka)} · outside ${money(DELIVERY.outside)}`)],
+      ['wallet', L('বিকাশ, নগদে পেমেন্ট', 'Pay by bKash, Nagad'), L('অথবা ডেলিভারিতে', 'or on delivery')],
+      ['pin', L('অর্ডার ট্র্যাক করুন', 'Track your order'), L('যেকোনো সময়', 'Any time')],
+    ];
+    return `<section class="sec" data-sec="${T(SEC_NAMES.trust)}"><div class="wrap trust">${items.map(([i, b, s]) => `<div class="it">${ic(i)}<span><b>${b}</b>${s}</span></div>`).join('')}</div></section>`;
+  },
+
+  quotes: (theme, shop) => `<section class="sec" data-sec="${T(SEC_NAMES.quotes)}"><div class="wrap">${head(theme, L('ক্রেতারা যা বলছেন', 'What our customers say'), false)}<div class="quotes">${shop.quotes.map(([name, place, text]) => `<div class="q"><p>“${T(text)}”</p><div class="who"><span class="av">${T(name).slice(0, 1)}</span><span><b>${T(name)}</b>${T(place)}</span></div></div>`).join('')}</div></div></section>`,
+
+  footer: (theme, shop) => `<footer class="ft" data-sec="${T(SEC_NAMES.footer)}"><div class="wrap"><div class="cols"><div class="about"><a class="logo"><span class="mk">${shop.mark}</span><span>${T(shop.name)}<small>${T(shop.tag)}</small></span></a><div class="soc"><span>${ic('wa')}</span><span>${ic('msg')}</span><span>${ic('fb')}</span></div></div><div><h3>${L('কেনাকাটা', 'Shop')}</h3><ul><li>${L('সব পণ্য', 'All products')}</li><li>${L('অফার', 'Offers')}</li><li>${L('নতুন এসেছে', 'Just in')}</li><li>${L('অর্ডার ট্র্যাক', 'Track order')}</li></ul></div><div><h3>${L('ক্যাটাগরি', 'Categories')}</h3><ul>${shop.cats.slice(0, 4).map((c) => `<li>${T([c[0], c[1]])}</li>`).join('')}</ul></div><div><h3>${L('যোগাযোগ', 'Contact')}</h3><ul><li>01711 223344</li><li>${L('মিরপুর ১০, ঢাকা', 'Mirpur 10, Dhaka')}</li></ul></div></div><div class="base"><span>© 2026 ${T(shop.name)}</span><span class="pbl"><i></i>Powered by Lytro</span></div></div></footer>`,
+};
+
+function renderShop(theme, outlined, light) {
+  const shop = SHOPS[theme];
+  const vars = Object.entries(THEMES[theme].v).map(([k, v]) => `--${k}:${v}`).join(';');
+  const body = shop.layout.map((s) => {
+    const key = Array.isArray(s) ? s[0] : s;
+    const html = Array.isArray(s) ? SECTIONS.products(theme, shop, s[0], s[1]) : SECTIONS[s](theme, shop);
+    return key === light ? `<div class="hl">${html}</div>` : html;
+  }).join('');
+  return `<div class="shop ${outlined ? 'outlined' : ''}" style="${vars}">${body}<span class="chatbtn">${ic('wa')}</span></div>`;
+}
+
+// ---------- harness ----------
+const STATE = { screen: 'royal', device: 'phone', outlined: false };
+// The dashboard's editor screens.
+const EDITOR = {};
+// ---------- the dashboard's editor: Settings > Storefront > Design (Lytro's own chrome) ----------
+Object.assign(P, {
+  back: '<path d="M15 5l-7 7 7 7"/>',
+  chev: '<path d="M9 5l7 7-7 7"/>',
+  up: '<path d="M6 14l6-6 6 6"/>',
+  down: '<path d="M6 10l6 6 6-6"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  mega: '<path d="M3 10v4h3l7 5V5L6 10z"/><path d="M17 9a4 4 0 0 1 0 6"/>',
+  slides: '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M10 9l4 2-4 2z"/>',
+  grid: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+  tag: '<path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1.4"/>',
+  star: '<path d="M12 4l2.5 5 5.5.8-4 3.9.9 5.5L12 16.6 7.1 19.2l.9-5.5-4-3.9 5.5-.8z"/>',
+  banner: '<rect x="3" y="6" width="8" height="12" rx="2"/><rect x="13" y="6" width="8" height="12" rx="2"/>',
+  wide: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 14h6"/>',
+  quote: '<path d="M7 7h4v4c0 3-1.5 5-4 6M15 7h4v4c0 3-1.5 5-4 6"/>',
+  store: '<path d="M4 9l2-5h12l2 5M4 9v11h16V9M4 9h16"/><path d="M10 20v-5h4v5"/>',
+  cols: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 15h18M9 15v5M15 15v5"/>',
+  header: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/>',
+  palette: '<path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-1-2 0-3 2-.5 3-.5c2.2 0 4-1.3 4-4.5C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10" cy="7.5" r="1.2"/><circle cx="14.5" cy="7.5" r="1.2"/>',
+  upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+  eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+  desktop: '<rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+});
+
+const ED = 'soft'; // the shop being edited: Rupkotha Beauty, on the Soft theme
+const LOTUS = (fill) => `<path d="M32 50c-6-6-9-13-9-20 0-6 3-12 9-18 6 6 9 12 9 18 0 7-3 14-9 20z" fill="${fill}"/><path d="M32 50c-9-2-17-8-21-17 6-3 13-3 19 0 2 6 3 12 2 17z" fill="${fill}" opacity=".72"/><path d="M32 50c9-2 17-8 21-17-6-3-13-3-19 0-2 6-3 12-2 17z" fill="${fill}" opacity=".72"/>`;
+// The seller's own logo and app icon, as uploaded (drawn here so the previews show something real).
+const LOGO = (h) => `<svg height="${h}" viewBox="0 0 236 64" xmlns="http://www.w3.org/2000/svg" aria-label="${L('রূপকথা বিউটি', 'Rupkotha Beauty')}"><g>${LOTUS('#a3195b')}</g><text x="64" y="38" font-family="Galada,serif" font-size="31" fill="#a3195b">রূপকথা</text><text x="66" y="57" font-family="Inter,sans-serif" font-size="11.5" font-weight="600" letter-spacing="5" fill="#5e3447">BEAUTY</text></svg>`;
+const ICON = (size, radius) => `<svg width="${size}" height="${size}" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="appg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde4ee"/><stop offset="1" stop-color="#f4b3cf"/></linearGradient></defs><rect width="64" height="64" rx="${radius}" fill="url(#appg)"/><g transform="translate(0 3)">${LOTUS('#a3195b')}</g></svg>`;
+
+// A shop drawn small: a phone's 390 px or a desktop's 1280 px, scaled into a box `width` wide.
+function mini(theme, width, height, wide, light) {
+  const base = wide ? 1280 : 390;
+  const k = width / base;
+  return `<div class="mini" style="height:${height}px;width:${width}px"><div class="scale" style="width:${base}px;transform:scale(${k})">${renderShop(theme, false, light)}</div></div>`;
+}
+
+const ED_ROWS = [
+  { key: 'announce', icon: 'mega', name: ['ঘোষণার লাইন', 'Announcement bar'], sum: ['অটো: অফার আর ডেলিভারি চার্জ', 'Auto: offers and delivery fees'] },
+  { key: 'header', icon: 'header', name: ['হেডার', 'Header'], sum: ['লোগো, মেনু, সার্চ, কার্ট', 'Logo, menu, search, cart'], fixed: true },
+  { key: 'hero', icon: 'slides', name: ['হিরো স্লাইড', 'Hero slides'], sum: ['৩টি স্লাইড · নিজের ছবি', '3 slides · own photos'] },
+  { key: 'cats', icon: 'grid', name: ['ক্যাটাগরি', 'Categories'], sum: ['অটো: সব ক্যাটাগরি · গোল ছবি', 'Auto: all categories · round photos'] },
+  { key: 'latest', icon: 'spark', name: ['নতুন এসেছে', 'Just in'], sum: ['অটো: নতুন ৬টি পণ্য · ক্যারোসেল', 'Auto: 6 newest · carousel'] },
+  { key: 'banners', icon: 'banner', name: ['অফার ব্যানার', 'Offer banners'], sum: ['২টি ব্যানার, পাশাপাশি', '2 banners, side by side'] },
+  { key: 'hot', icon: 'star', name: ['সবচেয়ে বেশি বিক্রি', 'Best sellers'], sum: ['অটো: বেশি বিক্রি ৪টি · গ্রিড', 'Auto: top 4 · grid'] },
+  { key: 'quotes', icon: 'quote', name: ['ক্রেতাদের কথা', 'Testimonials'], sum: ['৩টি মন্তব্য', '3 quotes'] },
+  { key: 'trust', icon: 'shield', name: ['ভরসার কারণ', 'Trust strip'], sum: ['অটো: ক্যাশ অন ডেলিভারি, চার্জ, পেমেন্ট', 'Auto: cash on delivery, fees, payment'] },
+  { key: 'about', icon: 'store', name: ['দোকানের কথা', 'About the shop'], sum: ['বন্ধ', 'Off'], off: true },
+  { key: 'footer', icon: 'cols', name: ['ফুটার', 'Footer'], sum: ['যোগাযোগ, সোশ্যাল লিংক, Powered by Lytro', 'Contact, social links, Powered by Lytro'], fixed: true },
+];
+
+function sectionRows(selected) {
+  return ED_ROWS.map((r) => `<div class="srow ${r.off ? 'off' : ''} ${r.fixed ? 'fixed' : ''} ${selected === r.key ? 'sel' : ''}"><span class="grip">${ic('up')}${ic('down')}</span><span class="si">${ic(r.icon)}</span><span class="nm"><b>${T(r.name)}</b><span>${T(r.sum)}</span></span>${r.fixed ? '' : `<span class="switch ${r.off ? 'off' : ''}"></span>`}<span class="chev">${ic('chev')}</span></div>`).join('');
+}
+
+function designBody(selected) {
+  const th = THEMES[ED];
+  return `<div class="body">
+    <div class="dcard tcard">${mini(ED, 118, 178, false)}<div><h2>${ic('palette')} ${L('থিম', 'Theme')}: ${T(th.name)}</h2><p class="sub">${T(th.fits)}</p><div class="pal"><i class="on" style="background:#a3195b"></i><i style="background:#c2410c"></i><i style="background:#6d28d9"></i></div><button class="dbtn out sm">${L('থিম বদলান', 'Change theme')}</button></div></div>
+    <div class="dcard"><div class="row2"><span style="flex:none">${LOGO(40)}</span><span style="flex:1"></span>${ICON(44, 11)}</div><p class="sub" style="margin:8px 0 10px">${L('লোগো সব পেজের উপরে; আইকন ব্রাউজারের ট্যাবে আর ক্রেতার ফোনের হোম স্ক্রিনে।', "The logo tops every page; the icon sits in the browser tab and on shoppers' home screens.")}</p><button class="dbtn out sm">${L('লোগো আর আইকন', 'Logo and icon')}</button> <span class="chip live">${L('সব প্ল্যানে', 'Every plan')}</span></div>
+    <div class="dcard"><h2>${L('হোম পেজের সেকশন', 'Home page sections')}</h2><p class="sub">${L('উপর থেকে নিচে, যেমন ক্রেতা দেখবে। “অটো” মানে দোকানের তথ্য থেকে নিজে ভরে যায়।', 'Top to bottom, as shoppers see them. “Auto” fills itself from your shop.')}</p>${sectionRows(selected)}<button class="dbtn quiet wide" style="width:100%;margin-top:10px">${ic('plus')} ${L('সেকশন যোগ করুন', 'Add a section')}</button></div>
+  </div>`;
+}
+
+function dockDesign() {
+  return `<div class="dock"><button class="dbtn out">${ic('eye')} ${L('প্রিভিউ', 'Preview')}</button><button class="dbtn">${L('প্রকাশ করুন', 'Publish')}</button></div>`;
+}
+
+function topBar(title, chip) {
+  return `<div class="top"><span class="back">${ic('back')}</span><h1>${title}</h1>${chip || ''}</div>`;
+}
+const DRAFT = () => `<span class="chip draft">${L('খসড়া · ৩টি পরিবর্তন', 'Draft · 3 changes')}</span>`;
+
+// One screen: on a phone the editor alone; on a desktop the editor beside a live preview of the draft.
+function screen(device, title, chip, body, dock, overlay, light, pane) {
+  if (device === 'phone') return `<div class="dash ${overlay ? 'fix' : ''}">${topBar(title, chip)}${body}${dock}${overlay || ''}</div>`;
+  const preview = pane || `<div class="ptools"><b>${L('লাইভ প্রিভিউ · খসড়া', 'Live preview · draft')}</b><div class="seg"><span>${ic('phone')} ${L('ফোন', 'Phone')}</span><span class="on">${ic('desktop')} ${L('ডেস্কটপ', 'Desktop')}</span></div></div>${mini(ED, 780, 820, true, light)}`;
+  return `<div class="dash desk"><div class="side">${topBar(title, chip)}${body}${dock}</div><div class="pane">${preview}</div>${overlay || ''}</div>`;
+}
+
+function sheet(title, inner, dock) {
+  return `<div class="scrim"></div><div class="sheet"><div class="grab"></div><div class="shd"><h2>${title}</h2><span class="back">${ic('plus').replace('<svg class="ico ', '<svg style="transform:rotate(45deg)" class="ico ')}</span></div><div class="sbody">${inner}</div>${dock}</div>`;
+}
+
+const PALETTES = { royal: ['#c8a14b', '#b76e79', '#1f6f5c'], fresh: ['#1f6b34', '#d9480f', '#0f766e'], bold: ['#1554f0', '#ea580c', '#7c3aed'], soft: ['#a3195b', '#c2410c', '#6d28d9'], studio: ['#13213c', '#4d5b2a', '#7a1f2b'] };
+
+Object.assign(EDITOR, {
+  'e-home': {
+    label: ['ডিজাইন পেজ', 'Design page'],
+    note: ['সেটিংস > স্টোরফ্রন্ট > ডিজাইন। থিম, লোগো আর আইকন, আর হোম পেজের সেকশন: চালু/বন্ধ, উপরে-নিচে, খুলে বদলান। সব বদল খসড়ায় থাকে, “প্রকাশ করুন” চাপলে ক্রেতারা দেখে।', 'Settings > Storefront > Design. The theme, the logo and icon, and the home page sections: on/off, up/down, open to change. Changes stay a draft until Publish.'],
+    render: (d) => screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody(), dockDesign()),
+  },
+  'e-themes': {
+    label: ['থিম বাছাই', 'Pick a theme'],
+    note: ['প্রতিটি থিম আলাদা চেহারা: ফন্ট, রং, হিরো, ক্যাটাগরি আর কার্ডের ধরন। থিম বদলালে লেখা, ছবি আর সেকশন থাকে, শুধু চেহারা বদলায়। প্রতি থিমে ৩টি রঙের সেট ফ্রি; নিজের রং আর ফন্ট ব্র্যান্ড আইডেন্টিটি অ্যাড-অনে।', 'Each theme is a look: fonts, colours, hero, category and card styles. Switching keeps your words, photos and sections. Three colour sets per theme are free; your own colours and fonts come with the brand identity add-on.'],
+    render: (d) => {
+      const cards = Object.keys(THEMES).map((k) => {
+        const on = k === ED;
+        const w = d === 'phone' ? 171 : 186;
+        return `<div class="dcard" style="padding:10px;${on ? 'box-shadow:inset 0 0 0 2px #0e6b66;border-color:#0e6b66' : ''}">${mini(k, w - 22, 250, false)}<h2 style="margin-top:9px">${T(THEMES[k].name)}${on ? ` <span class="chip live">${L('চালু', 'On')}</span>` : ''}</h2><p class="sub" style="margin:2px 0 4px;font-size:12px">${T(THEMES[k].fits)}</p><div class="pal">${PALETTES[k].map((c, i) => `<i class="${on && i === 0 ? 'on' : ''}" style="background:${c}"></i>`).join('')}</div>${on ? '' : `<button class="dbtn out sm" style="width:100%">${L('এই থিম দেখুন', 'Try this theme')}</button>`}</div>`;
+      });
+      const grid = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${cards.join('')}</div>`;
+      const body = `<div class="body"><div class="note-line">${ic('info')}<span>${T(EDITOR['e-themes'].note)}</span></div>${grid}</div>`;
+      const pane = `<div class="ptools"><b>${L('দেখছেন: স্টুডিও · খসড়ায় চালু হয়নি', 'Trying: Studio · not in your draft yet')}</b><div class="seg"><span>${ic('phone')} ${L('ফোন', 'Phone')}</span><span class="on">${ic('desktop')} ${L('ডেস্কটপ', 'Desktop')}</span></div></div>${mini('studio', 780, 760, true)}<div class="row2"><button class="dbtn out">${L('বাতিল', 'Cancel')}</button><button class="dbtn">${L('স্টুডিও থিম নিন', 'Use the Studio theme')}</button></div>`;
+      return screen(d, L('থিম বাছাই', 'Pick a theme'), '', body, '', '', null, pane);
+    },
+  },
+  'e-brand': {
+    label: ['লোগো ও আইকন', 'Logo and icon'],
+    note: ['সব প্ল্যানে (মালিকের সিদ্ধান্ত, ২০২৬-১১-১৮): লোগো আর আইকন, দুটোই আপলোডের সাথে সাথে প্রিভিউ। লোগো স্টোরফ্রন্টের হেডারে; একই আইকন ওয়েবসাইটের (ব্রাউজারের ট্যাবে) আর অ্যাপের (ফোনের হোম স্ক্রিনে, গোল আর চারকোনা দুই আকারে)। আইকন না দিলে লোগো থেকে, লোগো না থাকলে নামের প্রথম অক্ষর থেকে বানানো হয়। নিজের রং আর ফন্ট থাকে ব্র্যান্ড আইডেন্টিটি অ্যাড-অনে।', 'Every plan (the owner, 2026-11-18): both preview as soon as they upload. The logo tops the storefront; one icon serves the website (the browser tab) and the app (the phone home screen, round and rounded-square). No icon: made from the logo; no logo: the first letter of the name. Own colours and fonts stay in the brand identity add-on.'],
+    render: (d) => {
+      const header = `<div class="hdprev"><div class="bar">${ic('menu')}<span style="flex:1;display:flex;justify-content:center">${LOGO(38)}</span>${ic('search')}${ic('cart')}</div><div class="cap">${L('ফোনে আপনার দোকানের উপরে', 'At the top of your shop on a phone')}</div></div>`;
+      const logoCard = `<div class="dcard"><h2>${L('লোগো', 'Logo')}</h2><p class="sub">${L('দোকানের সব পেজের উপরে, ফুটারে আর অর্ডারের পেজে।', 'At the top of every page, in the footer and on order pages.')}</p>${header}<div class="drop" style="margin-top:12px"><span style="flex:none;background:#fff;border-radius:8px;padding:4px 6px;border:1px solid #e1e8e8">${LOGO(30)}</span><span style="flex:1"><b>rupkotha-logo.png</b>${L('৮৪০ × ২৩০ · ৪৮ কেবি', '840 × 230 · 48 KB')}</span><button class="dbtn out sm">${ic('upload')} ${L('বদলান', 'Change')}</button></div><p class="field hint" style="margin:8px 0 12px">${L('PNG, SVG বা JPG · স্বচ্ছ ব্যাকগ্রাউন্ড হলে সবচেয়ে ভালো · অন্তত ৪০০ পিক্সেল চওড়া · ২ এমবি পর্যন্ত', 'PNG, SVG or JPG · a transparent background works best · at least 400 px wide · up to 2 MB')}</p><div class="field" style="margin:0"><label>${L('হেডারে দেখাবে', 'In the header')}</label><div class="seg"><span>${L('লোগো আর দোকানের নাম', 'Logo and shop name')}</span><span class="on">${L('শুধু লোগো', 'Logo only')}</span></div><span class="hint">${L('লোগোতে নাম লেখা থাকলে “শুধু লোগো” নিন।', 'If your logo spells the name, pick “Logo only”.')}</span></div></div>`;
+      const apps = ['', '', '', '', '', '', ''].map((_, i) => `<div class="app"><i></i><span>${['Gallery', 'Camera', 'bKash', 'Maps', 'Chrome', 'Phone', 'Messages'][i]}</span></div>`);
+      apps.splice(5, 0, `<div class="app me">${ICON(52, 14)}<span>${L('রূপকথা বিউটি', 'Rupkotha Beauty')}</span></div>`);
+      const iconCard = `<div class="dcard"><h2>${L('আইকন: ওয়েবসাইট আর অ্যাপ', 'Icon: website and app')} <span class="chip live">${L('সব প্ল্যানে', 'Every plan')}</span></h2><p class="sub">${L('ব্রাউজারের ট্যাবে আপনার দোকানের পাশে, আর ক্রেতা দোকান ফোনে ইনস্টল করলে হোম স্ক্রিনে, পাশে দোকানের নাম।', "In the browser tab beside your shop's name, and on shoppers' home screens once they install your shop.")}</p><div class="home">${apps.join('')}</div><div class="masks"><div>${ICON(56, 32)}${L('অ্যান্ড্রয়েড, গোল', 'Android, round')}</div><div>${ICON(56, 13)}${L('আইফোন', 'iPhone')}</div><div>${ICON(36, 8)}${L('ছোট', 'Small')}</div></div><div class="tab">${ICON(16, 3)}<span>${L('রূপকথা বিউটি — অফার', 'Rupkotha Beauty — Offers')}</span></div><div class="cap" style="font-size:11.5px;color:#33403f;margin-top:4px">${L('ওয়েবসাইট: ব্রাউজারের ট্যাবে', 'Website: in the browser tab')}</div><div class="drop" style="margin-top:12px">${ICON(44, 10)}<span style="flex:1"><b>rupkotha-icon.png</b>${L('১০২৪ × ১০২৪ · ৬১ কেবি', '1024 × 1024 · 61 KB')}</span><button class="dbtn out sm">${ic('upload')} ${L('বদলান', 'Change')}</button></div><p class="field hint" style="margin:8px 0 0">${L('বর্গাকার, অন্তত ৫১২ × ৫১২ পিক্সেল · মূল ছবি মাঝখানের গোলের ভেতরে রাখুন, কিছু ফোন কোণা কেটে গোল করে।', 'Square, at least 512 × 512 px · keep the picture inside the centre circle: some phones cut the corners round.')}</p></div>`;
+      const body = `<div class="body">${logoCard}${iconCard}</div>`;
+      const dock = `<div class="dock"><button class="dbtn">${L('সেভ করুন', 'Save')}</button></div>`;
+      return screen(d, L('লোগো ও আইকন', 'Logo and icon'), '', body, dock, '', 'header');
+    },
+  },
+  'e-hero': {
+    label: ['হিরো স্লাইড', 'Hero slides'],
+    note: ['একটা সেকশন খুললে তার নিজের শিট। হিরো: অটো (ছাড়ের পণ্য থেকে নিজে স্লাইড) নাকি নিজের স্লাইড; ডিজাইন তিন রকম; স্লাইড ৩টি পর্যন্ত, উপরে-নিচে সরানো যায়।', 'Opening a section opens its own sheet. Hero: auto (slides made from discounted products) or your own; three designs; up to 3 slides, reorderable.'],
+    render: (d) => {
+      const dg = (kind) => kind === 'split' ? '<div class="dg"><i class="p" style="left:50%;top:0;right:0;bottom:0;border-radius:0"></i><i style="left:8px;top:14px;width:38%;height:7px"></i><i style="left:8px;top:26px;width:28%;height:5px"></i><i style="left:8px;top:38px;width:22%;height:8px;background:#7aa6a2"></i></div>'
+        : kind === 'full' ? '<div class="dg"><i class="p" style="inset:0;border-radius:0"></i><i style="left:8px;bottom:22px;width:50%;height:7px;background:#fff"></i><i style="left:8px;bottom:9px;width:24%;height:8px;background:#7aa6a2"></i></div>'
+        : '<div class="dg"><i class="p" style="left:4px;top:4px;width:62%;bottom:4px"></i><i class="p" style="right:4px;top:4px;width:28%;height:21px"></i><i class="p" style="right:4px;bottom:4px;width:28%;height:21px"></i></div>';
+      const slides = [['beauty-1-wide', ['আপনার স্বাভাবিক সৌন্দর্য', 'Reveal your natural beauty'], ['বোতাম: এখনই কিনুন → নতুন এসেছে', 'Button: Shop now → Just in']], ['beauty-3-wide', ['স্কিন কেয়ারে ২০% ছাড়', '20% off skin care'], ['বোতাম: দেখুন → অফার কালেকশন', 'Button: Shop → On sale']], ['beauty-5-wide', ['নতুন ক্রিম এসেছে', 'New creams are in'], ['বোতাম: দেখুন → ক্যাটাগরি: ক্রিম', 'Button: Shop → Category: Creams']]];
+      const inner = `<div class="field"><label>${L('কী দেখাবে', 'What it shows')}</label><div class="seg"><span>${ic('spark')} ${L('অটো: ছাড়ের পণ্য', 'Auto: discounted products')}</span><span class="on">${L('নিজের স্লাইড', 'My own slides')}</span></div></div>
+        <div class="field"><label>${L('ডিজাইন', 'Design')}</label><div class="opts"><div class="opt on">${dg('split')}${L('ছবি আর লেখা', 'Photo and words')}</div><div class="opt">${dg('full')}${L('পুরো ছবি', 'Full photo')}</div><div class="opt">${dg('tiles')}${L('স্লাইড আর দুই টাইল', 'Slide and two tiles')}</div></div></div>
+        <div class="field"><label>${L('স্লাইড (৩টির মধ্যে ৩টি)', 'Slides (3 of 3)')}</label>${slides.map(([im, h, b]) => `<div class="slide-row"><span class="grip" style="color:#7d8d8c;display:flex;flex-direction:column">${ic('up')}${ic('down')}</span><img src="${img(im)}" alt=""><span class="nm"><b>${T(h)}</b><span>${T(b)}</span></span><span class="chev">${ic('chev')}</span></div>`).join('')}</div>
+        <div class="note-line">${ic('info')}<span>${L('অটো রাখলে সবচেয়ে বেশি ছাড়ের ৩টি পণ্য নিজে থেকে স্লাইড হয়, ছবি সেই পণ্যেরই। অফার শেষ হলে স্লাইডও সরে যায়।', 'On auto, your 3 biggest discounts become the slides, with their own photos, and leave when the offer ends.')}</span></div>`;
+      const overlay = sheet(L('হিরো স্লাইড', 'Hero slides'), inner, `<div class="dock"><button class="dbtn">${L('ঠিক আছে', 'Done')}</button></div>`);
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('hero'), dockDesign(), overlay, 'hero');
+    },
+  },
+  'e-slide': {
+    label: ['একটা স্লাইড', 'One slide'],
+    note: ['একটা স্লাইড: ছবি (ফোনের জন্য কোথা থেকে কাটবে, সেই বিন্দু টেনে ঠিক করা যায়), ছোট লেখা, শিরোনাম, বিবরণ, বোতাম আর বোতাম কোথায় নেবে।', 'One slide: the photo (drag the dot to choose what a phone keeps), kicker, headline, description, the button and where it leads.'],
+    render: (d) => {
+      const field = (label, value, hint, sel) => `<div class="field"><label>${label}</label><div class="in">${value}${sel ? '<span class="caret">⌄</span>' : ''}</div>${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
+      const photo = `<div class="field"><label>${L('ছবি', 'Photo')}</label><div style="position:relative;border-radius:12px;overflow:hidden"><img src="${img('beauty-1-wide')}" alt="" style="width:100%;height:150px;object-fit:cover"><span style="position:absolute;left:46%;top:38%;width:26px;height:26px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px #0e6b66,0 2px 8px rgba(0,0,0,.4)"></span><button class="dbtn quiet sm" style="position:absolute;right:8px;bottom:8px">${ic('upload')} ${L('ছবি বদলান', 'Change photo')}</button></div><span class="hint">${L('বিন্দুটা টেনে রাখুন ছবির মূল অংশে: ফোনে ছবি চারকোনা করে কাটার সময় এই অংশ থাকবে। অন্তত ১২০০ পিক্সেল চওড়া।', 'Drag the dot onto what matters: a phone crops the photo square around it. At least 1200 px wide.')}</span></div>`;
+      const inner = photo + field(L('ছোট লেখা (ঐচ্ছিক)', 'Kicker (optional)'), L('নতুন কালেকশন', 'New collection')) + field(L('শিরোনাম', 'Headline'), L('আপনার স্বাভাবিক সৌন্দর্য', 'Reveal your natural beauty'), L('২২/৬০ অক্ষর', '22/60 characters')) + field(L('বিবরণ (ঐচ্ছিক)', 'Description (optional)'), L('অরিজিনাল কসমেটিকস, নিজের হাতে বাছাই করা', 'Original cosmetics, hand-picked')) + `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${field(L('বোতামের লেখা', 'Button'), L('এখনই কিনুন', 'Shop now'))}${field(L('বোতাম নিয়ে যাবে', 'Leads to'), L('নতুন এসেছে', 'Just in'), '', true)}</div><p class="field hint" style="margin:-6px 0 4px">${L('যেতে পারে: অফার কালেকশন, নতুন এসেছে, একটা ক্যাটাগরি বা একটা পণ্য।', 'Can lead to: On sale, Just in, a category or a product.')}</p>`;
+      const overlay = sheet(L('স্লাইড ১', 'Slide 1'), inner, `<div class="dock"><button class="dbtn quiet">${L('মুছুন', 'Remove')}</button><button class="dbtn">${L('ঠিক আছে', 'Done')}</button></div>`);
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('hero'), dockDesign(), overlay, 'hero');
+    },
+  },
+  'e-products': {
+    label: ['প্রোডাক্টের সারি', 'Product row'],
+    note: ['প্রোডাক্টের সারি: কোন পণ্য (নতুন, অফারের, বেশি বিক্রি, একটা ক্যাটাগরি, হাতে বাছাই), গ্রিড নাকি ক্যারোসেল, কয়টি। ব্যাজ নিজে থেকে বসে।', 'A product row: which products (newest, on sale, best sellers, one category, hand-picked), grid or carousel, how many. Badges set themselves.'],
+    render: (d) => {
+      const radios = [[['নতুন এসেছে', 'Just in'], ['সবচেয়ে নতুন পণ্য আগে', 'Newest products first'], true], [['অফার কালেকশন', 'On sale'], ['ছাড়ের পণ্য, বেশি ছাড় আগে', 'Discounted products, biggest first']], [['সবচেয়ে বেশি বিক্রি', 'Best sellers'], ['গত ৩০ দিনের অর্ডার থেকে', 'From the last 30 days of orders']], [['একটা ক্যাটাগরির পণ্য', 'One category'], ['যেমন: লিপস্টিক', 'For example: Lipstick']], [['হাতে বাছাই', 'Hand-picked'], ['নিজে পণ্য বেছে নিন, ১২টি পর্যন্ত', 'Choose them yourself, up to 12']]];
+      const inner = `<div class="field"><label>${L('কোন পণ্য দেখাবে', 'Which products')}</label><div>${radios.map(([b, s, on]) => `<div class="radio ${on ? 'on' : ''}"><span class="dot"></span><span><b>${T(b)}</b><span>${T(s)}</span></span></div>`).join('')}</div></div>
+        <div class="field"><label>${L('শিরোনাম', 'Title')}</label><div class="in">${L('নতুন এসেছে', 'Just in')}</div></div>
+        <div class="field"><label>${L('দেখানোর ধরন', 'Layout')}</label><div class="seg"><span>${L('গ্রিড', 'Grid')}</span><span class="on">${L('ক্যারোসেল (সোয়াইপ)', 'Carousel (swipe)')}</span></div></div>
+        <div class="field"><label>${L('কয়টি পণ্য', 'How many')}</label><div class="seg"><span>4</span><span class="on">6</span><span>8</span><span>12</span></div></div>
+        <div class="note-line">${ic('info')}<span>${L('ব্যাজ নিজে থেকে বসে: ছাড়ের %, “নতুন” (১৪ দিনের ভেতরে যোগ করা), “সেরা বিক্রি”, আর স্টক কম হলে “মাত্র ৩টি বাকি”। স্টক শেষ হলে পণ্য সারি থেকে সরে যায়।', 'Badges set themselves: the discount %, “New” (added in the last 14 days), “Best seller”, and “Only 3 left” when stock is low. Sold-out products leave the row.')}</span></div>`;
+      const overlay = sheet(L('প্রোডাক্টের সারি', 'Product row'), inner, `<div class="dock"><button class="dbtn quiet">${L('সেকশন মুছুন', 'Remove section')}</button><button class="dbtn">${L('ঠিক আছে', 'Done')}</button></div>`);
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('latest'), dockDesign(), overlay, 'latest');
+    },
+  },
+  'e-add': {
+    label: ['সেকশন যোগ', 'Add a section'],
+    note: ['যোগ করার সেকশনগুলো: প্রথম সংস্করণে শুধু যা Lytro আগে থেকেই জানে (নতুন কোনো ফিচার নয়)। একই সেকশন একাধিকবার যোগ করা যায়।', 'What can be added: in the first version, only what Lytro already knows (no new features). The same kind can be added more than once.'],
+    render: (d) => {
+      const kinds = [['slides', ['হিরো স্লাইড', 'Hero slides'], ['বড় ছবি, শিরোনাম আর বোতাম; ৩টি পর্যন্ত স্লাইড', 'Big photo, headline and button; up to 3 slides']], ['tag', ['প্রোডাক্টের সারি', 'Product row'], ['নতুন, অফারের, বেশি বিক্রি, একটা ক্যাটাগরি বা হাতে বাছাই', 'Newest, on sale, best sellers, a category or hand-picked']], ['grid', ['ক্যাটাগরি', 'Categories'], ['গোল, চারকোনা বা লম্বা ছবিতে', 'As round, square or tall photos']], ['banner', ['অফার ব্যানার', 'Offer banners'], ['একটা বা দুটো ব্যানার, পাশাপাশি', 'One or two banners, side by side']], ['wide', ['বড় ব্যানার', 'Wide banner'], ['পুরো চওড়া একটা ছবি আর একটা বোতাম', 'One full-width photo and a button']], ['shield', ['ভরসার কারণ', 'Trust strip'], ['ক্যাশ অন ডেলিভারি, ডেলিভারি চার্জ, পেমেন্ট: নিজে থেকে', 'Cash on delivery, fees, payment: automatic']], ['quote', ['ক্রেতাদের কথা', 'Testimonials'], ['আপনার ক্রেতাদের মন্তব্য, ৬টি পর্যন্ত', "Your customers' words, up to 6"]], ['store', ['দোকানের কথা', 'About the shop'], ['একটা ছবি আর কয়েক লাইন আপনার দোকান নিয়ে', 'A photo and a few lines about your shop']]];
+      const inner = `<div>${kinds.map(([i, b, s]) => `<div class="kind"><span class="si">${ic(i)}</span><span><b>${T(b)}</b><span>${T(s)}</span></span><span class="plus">+</span></div>`).join('')}</div><div class="note-line" style="margin-top:8px">${ic('info')}<span>${L('রিভিউ আর রেটিং, নিউজলেটার, উইশলিস্ট: পরে, আলাদা ফিচার হিসেবে।', 'Reviews and ratings, newsletter, wishlist: later, each its own feature.')}</span></div>`;
+      const overlay = sheet(L('সেকশন যোগ করুন', 'Add a section'), inner, '');
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody(), dockDesign(), overlay);
+    },
+  },
+  'e-publish': {
+    label: ['প্রকাশ', 'Publish'],
+    note: ['প্রকাশের আগে কী বদলাচ্ছে তা দেখায়। প্রকাশ করলে দোকানের পেজগুলো Cloudflare থেকে মুছে নতুন করে বানানো হয় (৯.১০-এর পার্জ), ক্রেতারা এক মিনিটের মধ্যে দেখে। আগের প্রকাশিত ডিজাইনে এক চাপে ফেরা যায়।', 'Before publishing it lists what changes. Publishing clears the shop\'s pages from Cloudflare (9.10\'s purge) so shoppers see it within a minute. One tap returns to the previous published design.'],
+    render: (d) => {
+      const inner = `<div>${[['palette', ['থিম: সতেজ থেকে কোমল', 'Theme: Fresh to Soft']], ['slides', ['হিরো: ৩টি নিজের স্লাইড', 'Hero: 3 slides of your own']], ['store', ['“দোকানের কথা” বন্ধ', '“About the shop” turned off']]].map(([i, t]) => `<div class="kind"><span class="si">${ic(i)}</span><span><b>${T(t)}</b></span></div>`).join('')}</div><div class="note-line" style="margin-top:6px">${ic('info')}<span>${L('ক্রেতারা এক মিনিটের মধ্যে নতুন ডিজাইন দেখবে। পছন্দ না হলে “আগের ডিজাইনে ফিরুন” এক চাপে।', 'Shoppers see the new design within a minute. Not happy? “Back to the previous design” is one tap.')}</span></div>`;
+      const overlay = sheet(L('প্রকাশ করবেন?', 'Publish?'), inner, `<div class="dock"><button class="dbtn quiet">${L('বাতিল', 'Cancel')}</button><button class="dbtn">${L('প্রকাশ করুন', 'Publish')}</button></div>`);
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody(), dockDesign(), overlay);
+    },
+  },
+});
+
+
+function render() {
+  const theme = THEMES[STATE.screen];
+  const ed = EDITOR[STATE.screen];
+  document.documentElement.lang = LANG;
+  const btn = (key, label, on, attr) => `<button class="${on ? 'on' : ''}" onclick="${attr}('${key}')">${label}</button>`;
+  document.getElementById('tb').innerHTML = `<span class="ttl">${L('স্টোরফ্রন্ট বিল্ডার · স্কেচ', 'Storefront builder · sketch')}</span>
+    <span class="grp"><span>${L('থিম', 'Themes')}</span>${Object.keys(THEMES).map((k) => btn(k, T(THEMES[k].name), STATE.screen === k, 'pick')).join('')}</span>
+    <span class="grp"><span>${L('এডিটর', 'Editor')}</span>${Object.keys(EDITOR).map((k) => btn(k, T(EDITOR[k].label), STATE.screen === k, 'pick')).join('')}</span>
+    <span class="grp"><span>${L('ডিভাইস', 'Device')}</span>${btn('phone', L('ফোন', 'Phone'), STATE.device === 'phone', 'device')}${btn('desktop', L('ডেস্কটপ', 'Desktop'), STATE.device === 'desktop', 'device')}</span>
+    <span class="grp">${btn('outline', L('সেকশনের নাম দেখান', 'Show section names'), STATE.outlined, 'toggle')}</span>
+    <span class="grp">${btn('bn', 'বাংলা', LANG === 'bn', 'lang')}${btn('en', 'English', LANG === 'en', 'lang')}</span>`;
+  document.getElementById('note').innerHTML = ed ? `<b>${T(ed.label)}</b> · ${T(ed.note)}` : theme ? `<b>${T(theme.name)}</b> · ${L('যাদের জন্য', 'For')}: ${T(theme.fits)} · ${L('ফন্ট', 'Fonts')}: ${theme.fonts[0]} / ${theme.fonts[1]} · ${L('প্রতিটি সেকশন দোকানের নিজের তথ্য থেকে নিজে ভরে যায়; বিক্রেতা চাইলে নিজের ছবি আর লেখা দেন।', "Every section fills itself from the shop's own data; the seller can put in their own photos and words.")}` : '';
+  document.getElementById('stage').innerHTML = `<div class="frame ${STATE.device}">${ed ? ed.render(STATE.device) : renderShop(STATE.screen, STATE.outlined)}</div>`;
+}
+function pick(k) { STATE.screen = k; render(); }
+function device(k) { STATE.device = k; render(); }
+function toggle() { STATE.outlined = !STATE.outlined; render(); }
+function lang(k) { LANG = k; render(); }
+// Deep links (captures and sharing): #royal/phone/bn/outlined, read again whenever the address changes.
+function fromHash() {
+  const [screen, dev, lng, outlined] = location.hash.slice(1).split('/');
+  if (THEMES[screen] || EDITOR[screen]) STATE.screen = screen;
+  if (dev === 'phone' || dev === 'desktop') STATE.device = dev;
+  if (lng === 'bn' || lng === 'en') LANG = lng;
+  STATE.outlined = outlined === 'outlined';
+  document.documentElement.classList.toggle('shot', location.hash.includes('/shot'));
+  render();
+}
+window.addEventListener('hashchange', fromHash);
+fromHash();
+</script>
+</body>
+</html>
