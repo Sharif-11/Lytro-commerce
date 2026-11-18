@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
+import { unusedMedia } from '@/api/media';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { StorefrontSectionKind } from '@lytronix/validators';
+import { StorefrontSectionKind, type StorefrontSection } from '@lytronix/validators';
 import {
   useBackDesign,
   useDiscardDraft,
@@ -22,13 +23,16 @@ import { Toast } from '@/components/ui/toast';
 import { useToast } from '@/hooks/use-toast';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
+import type { ProductSummary } from '@/types/catalogue';
+import type { ImageView } from '@/types/me';
 import type { StorefrontEditor } from '@/types/storefront-design';
 import { BrandCard, LeaveWhileSaving, SectionsCard, ThemeCard } from './design-parts';
-import { AddSheet, PublishSheet, SectionSheet } from './design-sheets';
+import { AddSheet, PublishSheet } from './design-sheets';
 import {
   addSection,
   canAddSection,
   changesOf,
+  fillsItself,
   moveSection,
   newSection,
   removeSection,
@@ -37,6 +41,8 @@ import {
   type AddableKind,
   wordsText,
 } from './design-words';
+import type { Known, Names } from './pickers';
+import { SectionEditor, type EditorTarget } from './section-editor';
 import { EditorIcon } from './editor-icon';
 import { FullPreview, PreviewPane } from './preview-pane';
 import { useDraftPreview } from './use-draft-preview';
@@ -85,7 +91,14 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
   const discard = useDiscardDraft();
   const toast = useToast();
   const [sheet, setSheet] = useState<'add' | 'publish' | null>(null);
-  const [opened, setOpened] = useState<string | null>(null);
+  const [target, setTarget] = useState<EditorTarget | null>(null);
+  // What the sheets learn while open: pictures uploaded, and the names of what the pickers read.
+  const [uploads, setUploads] = useState<Record<string, ImageView>>({});
+  const [learned, setLearned] = useState<{
+    categories: Record<string, string>;
+    products: Record<string, string>;
+  }>({ categories: {}, products: {} });
+  const [seen, setSeen] = useState<Record<string, ProductSummary>>({});
   const [asking, setAsking] = useState<Asking>(null);
   const [full, setFull] = useState(false);
 
@@ -96,10 +109,30 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
   );
   const busy = publish.isPending || back.isPending || discard.isPending;
   const hasDraft = editor.hasDraft || draft.saving;
-  const section = design.sections.find((each) => each.id === opened) ?? null;
+  const images = useMemo(() => ({ ...editor.images, ...uploads }), [editor.images, uploads]);
+  const names: Names = useMemo(
+    () => ({
+      categories: new Map([
+        ...editor.categories.map((each) => [each.id, each.name] as const),
+        ...Object.entries(learned.categories),
+      ]),
+      products: new Map([
+        ...editor.products.map((each) => [each.id, each.name] as const),
+        ...Object.entries(learned.products),
+      ]),
+    }),
+    [editor.categories, editor.products, learned],
+  );
+  const known: Known = useMemo(() => new Map(Object.entries(seen)), [seen]);
   const failure = draft.error ?? publish.error ?? back.error ?? discard.error;
 
   function add(kind: AddableKind): void {
+    if (!fillsItself(kind)) {
+      // A wide banner, testimonials or About opens its sheet first, and joins the draft with Done.
+      setSheet(null);
+      setTarget({ mode: 'new', kind, id: crypto.randomUUID() });
+      return;
+    }
     const added = newSection(kind, crypto.randomUUID());
     change(addSection(design, added));
     setSheet(null);
@@ -114,8 +147,24 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
     const gone = design.sections.find((each) => each.id === id);
     change(removeSection(design, id));
     setAsking(null);
-    setOpened(null);
+    setTarget(null);
     if (gone) toast.show(t('sdRemoved', { name: wordsText(t, sectionName(gone)) }));
+  }
+
+  /** A sheet's Done: the section in the draft, in its place, or added as a new one goes. */
+  function save(section: StorefrontSection): void {
+    const there = design.sections.some((each) => each.id === section.id);
+    change(
+      there
+        ? {
+            ...design,
+            sections: design.sections.map((each) => (each.id === section.id ? section : each)),
+          }
+        : addSection(design, section),
+    );
+    setTarget(null);
+    const name = wordsText(t, sectionName(section));
+    toast.show(there ? t('ssSaved', { name }) : t('sdAddedEnd', { name }));
   }
 
   function showPreview(): void {
@@ -164,7 +213,10 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
             onToggle={(id) => {
               change(toggleSection(design, id));
             }}
-            onOpen={setOpened}
+            onOpen={(id) => {
+              const opened = design.sections.find((each) => each.id === id);
+              if (opened) setTarget({ mode: 'edit', section: opened });
+            }}
             onFixed={(key) => {
               void navigate(
                 key === 'header'
@@ -261,20 +313,46 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
           setSheet(null);
         }}
       />
-      <SectionSheet
-        section={section}
-        editor={{ ...editor, design }}
-        disabled={busy}
-        onToggle={(id) => {
-          change(toggleSection(design, id));
-        }}
-        onRemove={(id) => {
-          setAsking({ kind: 'remove', id });
-        }}
-        onClose={() => {
-          setOpened(null);
-        }}
-      />
+      {target ? (
+        <SectionEditor
+          key={target.mode === 'edit' ? target.section.id : target.id}
+          target={target}
+          design={design}
+          editor={editor}
+          images={images}
+          names={names}
+          known={known}
+          onNamed={(kind, id, name) => {
+            setLearned((current) => ({ ...current, [kind]: { ...current[kind], [id]: name } }));
+          }}
+          onSeen={(products) => {
+            setSeen((current) => ({
+              ...current,
+              ...Object.fromEntries(products.map((product) => [product.id, product])),
+            }));
+            setLearned((current) => ({
+              ...current,
+              products: {
+                ...current.products,
+                ...Object.fromEntries(products.map((product) => [product.id, product.name])),
+              },
+            }));
+          }}
+          onUploaded={(image) => {
+            setUploads((current) => ({ ...current, [image.id]: image }));
+          }}
+          onForget={(ids) => {
+            void unusedMedia.forget(ids);
+          }}
+          onSave={save}
+          onRemove={(id) => {
+            setAsking({ kind: 'remove', id });
+          }}
+          onClose={() => {
+            setTarget(null);
+          }}
+        />
+      ) : null}
       <FullPreview
         open={full}
         src={preview}

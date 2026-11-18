@@ -262,6 +262,46 @@ page, the shop's icon). The server's merged as #388.
    - Test pictures: `e2e/storefront-design.spec.ts` shoots each `e-*` screen beside the sketch, phone and desktop,
      both languages, into `test-results/compare/storefront-*`.
 
+   **3b, sketched 2026-11-18 and approved by the owner the same day ("ok"), as built** (the sketch's `e-cats`, `e-row-cat`, `e-pick`, `e-link`,
+   `e-announce`, `e-banners`, `e-banner`, `e-wide`, `e-quotes`, `e-quote` and `e-about`, beside 3a's drawn `e-hero`,
+   `e-slide` and `e-products`). Every section opens its own sheet:
+   - **Hero:** auto or the seller's slides, its design (photo and words, full photo, slide and two tiles), up to three
+     slides moved up and down; a slide's photo with its focal point, kicker, headline, description, button and where
+     it leads.
+   - **A row of products:** which products (newest, on sale, best sellers, one category, hand-picked), its title,
+     grid or carousel, how many. One category adds the category to pick, its name the title until changed;
+     hand-picked opens a step to search and tick up to twelve, kept in the order chosen.
+   - **Categories:** an optional title (the theme's when empty) and one of four looks, the theme's own marked.
+   - **Announcement bar:** auto (what is on sale and the delivery charges) or the seller's own line, up to 120
+     characters, shown as shoppers will see it.
+   - **Offer banners:** auto (the biggest discount and the newest product) or up to two of the seller's own; a banner
+     is a slide's fields with a 40-character headline.
+   - **Wide banner** and **About the shop** open their sheet first when added; the section joins the draft once it
+     holds what it needs (a photo and a headline; a title and its words), so none is ever empty.
+   - **Testimonials:** an optional title and up to six quotes, each a name, an optional place and the words (up to
+     240 characters), moved up and down; added the same way, with its first quote.
+   - **A button's place:** On sale, Just in, Best sellers, a category or a product, each picked from a list.
+   - **The trust strip** keeps 3a's sheet: it fills itself, with nothing to write.
+   - A sheet's changes go into the draft with Done, as one save; closing a changed sheet asks first. A photo under
+     1200 px wide is turned away before it uploads. "Add a section" gains the wide banner, testimonials and About.
+   - Photos upload as the logo does (`shop_logo`, SB-14). The width a photo keeps once stored -- its long edge cut to
+     1600 px, so a tall photo loses width -- is checked before it is sent: `storefrontPhotoFits` in validators, beside
+     `IMAGE_LONG_EDGE_PX`, now the one definition the server's image processing reads too. A picture uploaded in a sheet
+     and never kept (the sheet closed, or the photo replaced before Done) is deleted (MED-09).
+   - The pickers read the shop's categories and products, so they need `products:read` beside `settings:manage`;
+     the owner has both.
+
+   **3b's named deviations from the sketch:**
+   - **The dashboard's own sheet:** a bottom sheet on a phone, a 480 px panel from the right from 640 px, where the
+     sketch centres a box on a desktop.
+   - **The whole photo shows under its focal point,** not a 150 px band: the dot's place on the picture is then the
+     place kept. The dot also moves with the arrow keys.
+   - **A hand-picked row has no "How many":** it shows what was chosen.
+   - **A row's category is the browser's own list** of the shop's categories with their counts.
+   - **Counts are in the dashboard's digits** ("12/60 অক্ষর"), as every count in the dashboard is; the sketch wrote
+     them in Bangla digits.
+   - **The trust strip keeps 3a's sheet:** its switch, and a note that it fills itself.
+
 **Tests** prove each SB row against its words, with a sabotage pass on SB-12 (a draft is never public or cached) and on
 SB-9 (an ended offer leaves the hero). Each PR runs the checks in `ENGINEERING-STANDARDS.md` §7 and a real boot of the
 built server.

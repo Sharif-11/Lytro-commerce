@@ -115,11 +115,11 @@ test('hides, moves, adds and removes sections, each saved whole to the draft', a
   await expect.poll(() => savedDraft(log)?.sections.length).toBe(10);
   expect(savedDraft(log)?.sections.at(-1)?.kind).toBe(StorefrontSectionKind.Products);
 
-  // Opened from its row: its switch, and Remove, asked first.
+  // Opened from its row, its own sheet removes it, asked first (each sheet: section-sheets.spec.ts).
   await main(page).getByRole('button', { name: 'Open Offer banners' }).click();
   const section = page.getByRole('dialog', { name: 'Offer banners' });
-  await expect(section.getByText('2 banners, side by side')).toBeVisible();
-  await section.getByRole('button', { name: 'Remove' }).click();
+  await expect(section.getByRole('radio', { name: 'My own banners' })).toBeChecked();
+  await section.getByRole('button', { name: 'Remove section' }).click();
   const asked = page.getByRole('dialog', { name: 'Remove Offer banners?' });
   await expect(asked).toContainText('To keep it for later, turn it off instead.');
   await asked.getByRole('button', { name: 'Remove' }).click();
@@ -324,7 +324,15 @@ const SKETCH = pathToFileURL(
   resolve(import.meta.dirname, '../../../docs/brand/lytro-storefront-builder.html'),
 ).href;
 
-const SHOTS: { screen: string; path: string; then?: (page: Page) => Promise<void> }[] = [
+/** The way into a sheet, in the shot's language: a row opened, then a choice or a step within it. */
+type Steps = (page: Page, say: (bn: string, en: string) => string) => Promise<void>;
+
+const openRow = async (page: Page, name: string) => {
+  await page.getByRole('main').getByRole('button', { name }).click();
+};
+const inSheet = (page: Page) => page.getByRole('dialog').last();
+
+const SHOTS: { screen: string; path: string; then?: Steps }[] = [
   { screen: 'e-home', path: PAGE },
   { screen: 'e-themes', path: `${PAGE}/themes` },
   { screen: 'e-brand', path: `${PAGE}/brand` },
@@ -344,6 +352,144 @@ const SHOTS: { screen: string; path: string; then?: (page: Page) => Promise<void
     then: async (page) => {
       await page.getByRole('button', { name: /^(Publish|প্রকাশ করুন)$/ }).click();
     },
+  },
+  // PR 3b: each section's own sheet, and the steps within one.
+  {
+    screen: 'e-hero',
+    path: PAGE,
+    then: (page, say) => openRow(page, say('হিরো স্লাইড খুলুন', 'Open Hero slides')),
+  },
+  {
+    screen: 'e-slide',
+    path: PAGE,
+    then: async (page, say) => {
+      await openRow(page, say('হিরো স্লাইড খুলুন', 'Open Hero slides'));
+      await inSheet(page)
+        .getByRole('button', { name: say('Glow for Eid খুলুন', 'Open Glow for Eid') })
+        .click();
+    },
+  },
+  {
+    screen: 'e-link',
+    path: PAGE,
+    then: async (page, say) => {
+      await openRow(page, say('হিরো স্লাইড খুলুন', 'Open Hero slides'));
+      await inSheet(page)
+        .getByRole('button', { name: say('Glow for Eid খুলুন', 'Open Glow for Eid') })
+        .click();
+      await inSheet(page)
+        .getByRole('button', { name: new RegExp(say('বোতাম নিয়ে যাবে', 'Button leads to')) })
+        .click();
+      await inSheet(page)
+        .getByRole('radio', { name: say('একটা ক্যাটাগরি', 'A category') })
+        .click();
+      await inSheet(page)
+        .getByRole('radio', { name: new RegExp(say('জ্যাকেট', 'Jackets')) })
+        .click();
+    },
+  },
+  {
+    screen: 'e-products',
+    path: PAGE,
+    then: (page, say) => openRow(page, say('নতুন এসেছে খুলুন', 'Open Just in')),
+  },
+  {
+    screen: 'e-row-cat',
+    path: PAGE,
+    then: async (page, say) => {
+      await openRow(page, say('সবচেয়ে বেশি বিক্রি খুলুন', 'Open Best sellers'));
+      await inSheet(page)
+        .getByRole('radio', { name: new RegExp(say('একটা ক্যাটাগরির', 'One category')) })
+        .click();
+      await inSheet(page).getByLabel(say('ক্যাটাগরি', 'Category')).selectOption('c-jackets');
+    },
+  },
+  {
+    screen: 'e-pick',
+    path: PAGE,
+    then: async (page, say) => {
+      await openRow(page, say('নতুন এসেছে খুলুন', 'Open Just in'));
+      await inSheet(page)
+        .getByRole('radio', { name: new RegExp(say('হাতে বাছাই', 'Hand-picked')) })
+        .click();
+      await inSheet(page)
+        .getByRole('button', { name: new RegExp(say('বাছাই করা প্রোডাক্ট', 'Chosen products')) })
+        .click();
+      for (const at of [3, 0, 4]) {
+        await inSheet(page).getByRole('checkbox').nth(at).check();
+      }
+    },
+  },
+  {
+    screen: 'e-cats',
+    path: PAGE,
+    then: (page, say) => openRow(page, say('ক্যাটাগরি খুলুন', 'Open Categories')),
+  },
+  {
+    screen: 'e-announce',
+    path: PAGE,
+    then: async (page, say) => {
+      await openRow(page, say('ঘোষণার লাইন খুলুন', 'Open Announcement bar'));
+      await inSheet(page)
+        .getByRole('radio', { name: say('নিজের লেখা', 'My own words') })
+        .click();
+      await inSheet(page)
+        .getByLabel(say('আপনার লাইন', 'Your line'))
+        .fill(
+          say(
+            'ঈদ অফার: সব লিপস্টিকে ১৫% ছাড়, ঢাকায় ফ্রি ডেলিভারি',
+            'Eid offer: 15% off every lipstick, free delivery in Dhaka',
+          ),
+        );
+    },
+  },
+  {
+    screen: 'e-banners',
+    path: PAGE,
+    then: (page, say) => openRow(page, say('অফার ব্যানার খুলুন', 'Open Offer banners')),
+  },
+  {
+    screen: 'e-banner',
+    path: PAGE,
+    then: async (page, say) => {
+      await openRow(page, say('অফার ব্যানার খুলুন', 'Open Offer banners'));
+      await inSheet(page)
+        .getByRole('button', { name: say('Up to 30% off খুলুন', 'Open Up to 30% off') })
+        .click();
+    },
+  },
+  {
+    screen: 'e-wide',
+    path: PAGE,
+    then: async (page, say) => {
+      await page
+        .getByRole('button', { name: say('সেকশন যোগ করুন', 'Add a section') })
+        .first()
+        .click();
+      await inSheet(page)
+        .getByRole('button', { name: new RegExp(say('বড় ব্যানার', 'Wide banner')) })
+        .click();
+    },
+  },
+  {
+    screen: 'e-quotes',
+    path: PAGE,
+    then: (page, say) => openRow(page, say('ক্রেতাদের কথা খুলুন', 'Open Testimonials')),
+  },
+  {
+    screen: 'e-quote',
+    path: PAGE,
+    then: async (page, say) => {
+      await openRow(page, say('ক্রেতাদের কথা খুলুন', 'Open Testimonials'));
+      await inSheet(page)
+        .getByRole('button', { name: say('Nusrat · Dhaka খুলুন', 'Open Nusrat · Dhaka') })
+        .click();
+    },
+  },
+  {
+    screen: 'e-about',
+    path: PAGE,
+    then: (page, say) => openRow(page, say('দোকানের কথা খুলুন', 'Open About the shop')),
   },
 ];
 
@@ -370,7 +516,7 @@ test.describe('beside the sketch', () => {
           await open(app, shot.path, { language });
           await app.waitForLoadState('networkidle');
           await app.evaluate(() => document.fonts.ready);
-          if (shot.then) await shot.then(app);
+          if (shot.then) await shot.then(app, (bn, en) => (language === 'bn' ? bn : en));
           await app.waitForTimeout(400);
           await app.screenshot({ path: `${out}-app.png` });
           await app.close();

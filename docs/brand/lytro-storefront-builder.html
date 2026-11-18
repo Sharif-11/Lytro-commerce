@@ -860,6 +860,166 @@ Object.assign(EDITOR, {
 });
 
 
+// ---------- the editor's section sheets (PR 3b): each section's own sheet, and the pickers a row and a button open ----------
+// A field as the slide's are drawn; `area` draws a few lines of text, `sel` a choice that opens a list.
+function fld(label, value, hint, opts = {}) {
+  const box = opts.area ? `<div class="in" style="min-height:${opts.area}px;align-items:flex-start;line-height:1.5">${value}</div>` : `<div class="in">${value}${opts.sel ? '<span class="caret">⌄</span>' : ''}</div>`;
+  return `<div class="field"><label>${label}</label>${box}${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
+}
+// A photo with its focal point, as the slide draws it.
+function photoField(label, name, hint, at = [46, 38]) {
+  return `<div class="field"><label>${label}</label><div style="position:relative;border-radius:12px;overflow:hidden"><img src="${img(name)}" alt="" style="width:100%;height:150px;object-fit:cover"><span style="position:absolute;left:${at[0]}%;top:${at[1]}%;width:26px;height:26px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px #0e6b66,0 2px 8px rgba(0,0,0,.4)"></span><button class="dbtn quiet sm" style="position:absolute;right:8px;bottom:8px">${ic('upload')} ${L('ছবি বদলান', 'Change photo')}</button></div><span class="hint">${hint}</span></div>`;
+}
+const FOCUS_HINT = () => L('বিন্দুটা টেনে রাখুন ছবির মূল অংশে: ছবি কাটার সময় এই অংশ থাকবে। অন্তত ১২০০ পিক্সেল চওড়া।', 'Drag the dot onto what matters: the photo is cropped around it. At least 1200 px wide.');
+const DOCK_SECTION = () => `<div class="dock"><button class="dbtn quiet">${L('সেকশন মুছুন', 'Remove section')}</button><button class="dbtn">${L('ঠিক আছে', 'Done')}</button></div>`;
+const DOCK_ITEM = () => `<div class="dock"><button class="dbtn quiet">${L('মুছুন', 'Remove')}</button><button class="dbtn">${L('ঠিক আছে', 'Done')}</button></div>`;
+const DOCK_DONE = () => `<div class="dock"><button class="dbtn">${L('ঠিক আছে', 'Done')}</button></div>`;
+// A step inside a sheet (a row's products, a button's place): a back arrow before its title.
+function sheetStep(title, inner, dock) {
+  return `<div class="scrim"></div><div class="sheet"><div class="grab"></div><div class="shd"><span class="back">${ic('back')}</span><h2>${title}</h2></div><div class="sbody">${inner}</div>${dock}</div>`;
+}
+const box = (on) => `<span style="width:22px;height:22px;border-radius:6px;flex:none;display:grid;place-items:center;${on ? 'background:#0e6b66;color:#fff' : 'border:2px solid #9fb0af'}">${on ? ic('check').replace('class="ico ', 'style="width:16px;height:16px;stroke-width:2.6" class="ico ') : ''}</span>`;
+const addQuiet = (words) => `<button class="dbtn quiet" style="width:100%;margin-top:4px">${ic('plus')} ${words}</button>`;
+const SAMPLE = () => SHOPS[ED];
+const bnNum = (n) => String(n).replace(/\d/g, (x) => '০১২৩৪৫৬৭৮৯'[Number(x)]);
+// How much of a field's limit its words take, as the field counts them.
+const chars = (text, max) => L(`${bnNum(text.length)}/${bnNum(max)} অক্ষর`, `${text.length}/${max} characters`);
+const CHOSEN = [3, 0, 4];
+
+// One banner's fields: a slide's, with the shorter headline a banner holds.
+function bannerInner(name, kicker, headline, button, leads) {
+  return photoField(L('ছবি', 'Photo'), name, FOCUS_HINT()) + fld(L('ছোট লেখা (ঐচ্ছিক)', 'Kicker (optional)'), kicker) + fld(L('শিরোনাম', 'Headline'), headline, chars(headline, 40)) + fld(L('বিবরণ (ঐচ্ছিক)', 'Description (optional)'), L('শুধু এই মাসে', 'This month only')) + `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${fld(L('বোতামের লেখা', 'Button'), button)}${fld(L('বোতাম নিয়ে যাবে', 'Leads to'), leads, '', { sel: true })}</div>`;
+}
+
+Object.assign(EDITOR, {
+  'e-cats': {
+    label: ['ক্যাটাগরি', 'Categories'],
+    note: ['ক্যাটাগরি সেকশন নিজে ভরে যায়: যেসব ক্যাটাগরিতে প্রোডাক্ট আছে, প্রতিটির ছবি (না থাকলে প্রথম প্রোডাক্টের ছবি)। এখানে শুধু শিরোনাম আর দেখানোর ধরন; ক্রম বদলায় শপ > ক্যাটাগরিতে।', "The categories fill themselves: each one with products, with its picture (or its first product's photo). Here only the title and the look; their order is set in Shop > Categories."],
+    render: (d) => {
+      // Three tiles in each drawing, sized to fit a quarter of the sheet.
+      const tiles = (style) => [4, 24, 44].map((x) => `<i class="p" style="left:${x}px;${style}"></i>`).join('');
+      const dg = (kind) => kind === 'circle' ? `<div class="dg">${tiles('top:18px;width:18px;height:18px;border-radius:50%')}</div>`
+        : kind === 'square' ? `<div class="dg">${tiles('top:18px;width:18px;height:18px')}</div>`
+        : kind === 'tall' ? `<div class="dg">${tiles('top:7px;width:16px;height:40px')}</div>`
+        : '<div class="dg"><i style="left:4px;top:21px;width:20px;height:11px;border-radius:9px;background:#e2b8cb"></i><i style="left:27px;top:21px;width:16px;height:11px;border-radius:9px"></i><i style="left:46px;top:21px;width:18px;height:11px;border-radius:9px"></i></div>';
+      const looks = [['circle', ['গোল ছবি', 'Round photos'], true], ['square', ['চারকোনা ছবি', 'Square photos']], ['tall', ['লম্বা ছবি', 'Tall photos']], ['pill', ['নামের পিল', 'Names in pills']]];
+      const inner = fld(L('শিরোনাম (ঐচ্ছিক)', 'Title (optional)'), `<span style="color:#7d8d8c">${L('ক্যাটাগরি অনুযায়ী কিনুন', 'Shop by category')}</span>`, L('খালি রাখলে থিমের শিরোনাম থাকে।', "Left empty, the theme's title shows."))
+        + `<div class="field"><label>${L('দেখানোর ধরন', 'Look')}</label><div class="opts" style="grid-template-columns:repeat(4,1fr)">${looks.map(([k, w, on]) => `<div class="opt ${on ? 'on' : ''}">${dg(k)}${T(w)}</div>`).join('')}</div><span class="hint">${L('কোমল থিমের নিজের ধরন: গোল ছবি।', "The Soft theme's own: round photos.")}</span></div>`
+        + `<div class="note-line">${ic('info')}<span>${L('যেসব ক্যাটাগরিতে প্রোডাক্ট আছে সব দেখায়, শপ > ক্যাটাগরির ক্রমে। নতুন ক্যাটাগরি যোগ হলে নিজে থেকে আসে।', 'Every category with products shows, in the order set in Shop > Categories. A new one appears by itself.')}</span></div>`;
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('cats'), dockDesign(), sheet(L('ক্যাটাগরি', 'Categories'), inner, DOCK_SECTION()), 'cats');
+    },
+  },
+  'e-row-cat': {
+    label: ['সারি: একটা ক্যাটাগরি', 'Row: one category'],
+    note: ['প্রোডাক্টের সারিতে “একটা ক্যাটাগরির প্রোডাক্ট” বাছলে নিচে ক্যাটাগরি বাছার ঘর আসে; শিরোনাম নিজে থেকে ক্যাটাগরির নাম নেয়, চাইলে বদলানো যায়।', "Choosing “One category” on a product row adds the category to pick; the title takes the category's name until it is changed."],
+    render: (d) => {
+      const radios = [[['নতুন এসেছে', 'Just in']], [['অফার কালেকশন', 'On sale']], [['সবচেয়ে বেশি বিক্রি', 'Best sellers']], [['একটা ক্যাটাগরির প্রোডাক্ট', 'One category'], true], [['হাতে বাছাই', 'Hand-picked']]];
+      const inner = `<div class="field"><label>${L('কোন প্রোডাক্ট দেখাবে', 'Which products')}</label><div>${radios.map(([b, on]) => `<div class="radio ${on ? 'on' : ''}" style="padding:8px 2px"><span class="dot"></span><span><b>${T(b)}</b></span></div>`).join('')}</div></div>`
+        + fld(L('ক্যাটাগরি', 'Category'), `${L('লিপস্টিক', 'Lipstick')} <span style="color:#33403f;font-size:13px">· ${L('২৪টি প্রোডাক্ট', '24 products')}</span>`, '', { sel: true })
+        + fld(L('শিরোনাম', 'Title'), L('লিপস্টিক', 'Lipstick'))
+        + `<div class="field"><label>${L('দেখানোর ধরন', 'Layout')}</label><div class="seg"><span class="on">${L('গ্রিড', 'Grid')}</span><span>${L('ক্যারোসেল (সোয়াইপ)', 'Carousel (swipe)')}</span></div></div>`
+        + `<div class="field"><label>${L('কয়টি প্রোডাক্ট', 'How many')}</label><div class="seg"><span class="on">4</span><span>6</span><span>8</span><span>12</span></div></div>`;
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('hot'), dockDesign(), sheet(L('প্রোডাক্টের সারি', 'Product row'), inner, DOCK_SECTION()), 'hot');
+    },
+  },
+  'e-pick': {
+    label: ['প্রোডাক্ট বাছাই', 'Pick products'],
+    note: ['“হাতে বাছাই” সারির প্রোডাক্ট: খুঁজে টিক দিন, ১২টি পর্যন্ত। বাছাইগুলো উপরে, যে ক্রমে দোকানে দেখাবে; তীর দিয়ে সরান। লুকানো বা মুছে ফেলা প্রোডাক্ট সারি থেকে নিজে সরে যায়।', 'A hand-picked row: search and tick, up to 12. The chosen ones sit on top in the order the shop shows them; the arrows move them. A product hidden or deleted later leaves the row by itself.'],
+    render: (d) => {
+      const products = SAMPLE().products;
+      const chosen = CHOSEN.map((at, i) => { const p = products[at]; return `<div class="slide-row"><span class="grip" style="color:#7d8d8c;display:flex;flex-direction:column">${ic('up')}${ic('down')}</span><img src="${img(p.i)}" alt="" style="width:44px;height:44px"><span class="nm"><b>${T(p.n)}</b><span>${money(p.price)}</span></span><span style="color:#7d8d8c;font-size:13px;font-weight:600">${i + 1}</span></div>`; }).join('');
+      const all = products.map((p, at) => `<div class="slide-row">${box(CHOSEN.includes(at))}<img src="${img(p.i)}" alt="" style="width:44px;height:44px"><span class="nm"><b>${T(p.n)}</b><span>${money(p.price)}${p.was ? ` · <s>${money(p.was)}</s>` : ''}</span></span></div>`).join('');
+      const inner = `<div class="field" style="margin-bottom:10px"><div class="in">${ic('search')}<span style="color:#7d8d8c">${L('প্রোডাক্ট খুঁজুন', 'Search your products')}</span></div></div>`
+        + `<div class="field" style="margin-bottom:8px"><label>${L('বাছাই করা (১২টির মধ্যে ৩টি), এই ক্রমে', 'Chosen (3 of 12), in this order')}</label>${chosen}</div>`
+        + `<div class="field"><label>${L('সব প্রোডাক্ট', 'All products')}</label>${all}</div>`;
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('hot'), dockDesign(), sheetStep(L('প্রোডাক্ট বাছুন', 'Choose products'), inner, DOCK_DONE()), 'hot');
+    },
+  },
+  'e-link': {
+    label: ['বোতাম নিয়ে যাবে', 'Button leads to'],
+    note: ['স্লাইড বা ব্যানারের বোতাম কোথায় নেবে: অফার কালেকশন, নতুন এসেছে, বেশি বিক্রি, একটা ক্যাটাগরি বা একটা প্রোডাক্ট। ক্যাটাগরি বা প্রোডাক্ট বাছলে নিচে তালিকা আসে; সেটা পরে লুকানো বা মুছে গেলে বোতাম হোম পেজে নেয়।', "Where a slide's or banner's button leads: On sale, Just in, Best sellers, a category or a product. Picking a category or a product lists them below; one hidden or deleted later leads home instead."],
+    render: (d) => {
+      const cats = SAMPLE().cats;
+      const radios = [[['অফার কালেকশন', 'On sale'], ['ছাড়ের সব প্রোডাক্ট', 'Every discounted product']], [['নতুন এসেছে', 'Just in'], ['সবচেয়ে নতুন আগে', 'Newest first']], [['সবচেয়ে বেশি বিক্রি', 'Best sellers'], ['গত ৩০ দিনের অর্ডার থেকে', 'From the last 30 days of orders']], [['একটা ক্যাটাগরি', 'A category'], null, true], [['একটা প্রোডাক্ট', 'A product'], ['খুঁজে বাছুন', 'Search and pick one']]];
+      const list = `<div style="margin:2px 0 6px 32px;border-left:2px solid #e3f1ef;padding-left:12px">${cats.map(([bn, en, im, n], at) => `<div class="radio ${at === 2 ? 'on' : ''}" style="padding:7px 2px;align-items:center"><span class="dot" style="width:20px;height:20px"></span><img src="${img(im)}" alt="" style="width:32px;height:32px;border-radius:8px;object-fit:cover"><span><b style="font-size:14px">${L(bn, en)}</b><span>${L(`${n}টি প্রোডাক্ট`, `${n} products`)}</span></span></div>`).join('')}</div>`;
+      const inner = `<div>${radios.map(([b, s, on]) => `<div class="radio ${on ? 'on' : ''}"><span class="dot"></span><span><b>${T(b)}</b>${s ? `<span>${T(s)}</span>` : ''}</span></div>${on ? list : ''}`).join('')}</div>`;
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('hero'), dockDesign(), sheetStep(L('বোতাম নিয়ে যাবে', 'Button leads to'), inner, DOCK_DONE()), 'hero');
+    },
+  },
+  'e-announce': {
+    label: ['ঘোষণার লাইন', 'Announcement bar'],
+    note: ['ঘোষণার লাইন: অটো রাখলে চলমান অফার আর ডেলিভারি চার্জ নিজে লেখে, অফার বদলালে লাইনও বদলায়; নিজের লেখা দিলে সেটাই থাকে, ১২০ অক্ষর পর্যন্ত।', 'The announcement bar: on auto it writes the offers on now and the delivery charges, and changes with them; your own words stay as written, up to 120 characters.'],
+    render: (d) => {
+      const line = L('ঈদ অফার: সব লিপস্টিকে ১৫% ছাড়, ঢাকায় ফ্রি ডেলিভারি', 'Eid offer: 15% off every lipstick, free delivery in Dhaka');
+      const bar = `<div style="background:#a3195b;color:#fff;border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:600;text-align:center;margin:-4px 0 14px">${line}</div>`;
+      const inner = `<div class="field"><label>${L('কী লেখা থাকবে', 'What it says')}</label><div class="seg"><span>${ic('spark')} ${L('অটো: অফার আর চার্জ', 'Auto: offers and fees')}</span><span class="on">${L('নিজের লেখা', 'My own words')}</span></div></div>`
+        + fld(L('আপনার লাইন', 'Your line'), line, chars(line, 120), { area: 64 })
+        + `<div class="field" style="margin-bottom:6px"><label>${L('দোকানে যেমন দেখাবে', 'As shoppers see it')}</label></div>${bar}`
+        + `<div class="note-line">${ic('info')}<span>${L('অটো রাখলে লেখে: “৬টি পণ্যে ২৫% পর্যন্ত ছাড় চলছে · ডেলিভারি ৳৭০–১৩০”, অফার শেষ হলে নিজে বদলায়। নিজের লেখা নিজে না বদলালে থেকে যায়।', 'On auto it reads “Up to 25% off on 6 products · Delivery ৳70–130” and changes when an offer ends. Your own words stay until you change them.')}</span></div>`;
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('announce'), dockDesign(), sheet(L('ঘোষণার লাইন', 'Announcement bar'), inner, DOCK_SECTION()), 'announce');
+    },
+  },
+  'e-banners': {
+    label: ['অফার ব্যানার', 'Offer banners'],
+    note: ['অফার ব্যানার: অটো রাখলে সবচেয়ে বেশি ছাড়ের প্রোডাক্ট আর সবচেয়ে নতুন প্রোডাক্ট, তাদের নিজের ছবিতে; নিজের ব্যানার দুটি পর্যন্ত, পাশাপাশি (ফোনে একটার নিচে আরেকটা)।', 'Offer banners: on auto, your biggest discount and your newest product, with their own photos; your own, up to two, side by side (one under the other on a phone).'],
+    render: (d) => {
+      const banners = [['beauty-3-wide', ['স্কিন কেয়ারে ২০% ছাড়', 'On skin care: 20% off'], ['বোতাম: দেখুন → অফার কালেকশন', 'Button: Shop → On sale']], ['beauty-5-wide', ['৳৮০০+ অর্ডারে ফ্রি ডেলিভারি', 'Free delivery over ৳800'], ['বোতাম: দেখুন → নতুন এসেছে', 'Button: Shop → Just in']]];
+      const inner = `<div class="field"><label>${L('কী দেখাবে', 'What it shows')}</label><div class="seg"><span>${ic('spark')} ${L('অটো: অফার আর নতুন', 'Auto: offers and new')}</span><span class="on">${L('নিজের ব্যানার', 'My own banners')}</span></div></div>`
+        + `<div class="field"><label>${L('ব্যানার (২টির মধ্যে ২টি)', 'Banners (2 of 2)')}</label>${banners.map(([im, h, b]) => `<div class="slide-row"><span class="grip" style="color:#7d8d8c;display:flex;flex-direction:column">${ic('up')}${ic('down')}</span><img src="${img(im)}" alt=""><span class="nm"><b>${T(h)}</b><span>${T(b)}</span></span><span class="chev">${ic('chev')}</span></div>`).join('')}</div>`
+        + `<div class="note-line">${ic('info')}<span>${L('অটো রাখলে: সবচেয়ে বেশি ছাড়ের প্রোডাক্ট (“৩০% পর্যন্ত ছাড়”) আর সবচেয়ে নতুন প্রোডাক্ট, তাদের নিজের ছবিতে, নিজে থেকে বদলায়।', 'On auto: your biggest discount (“Up to 30% off”) and your newest product, with their own photos, changing by themselves.')}</span></div>`;
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('banners'), dockDesign(), sheet(L('অফার ব্যানার', 'Offer banners'), inner, DOCK_SECTION()), 'banners');
+    },
+  },
+  'e-banner': {
+    label: ['একটা ব্যানার', 'One banner'],
+    note: ['একটা ব্যানার: স্লাইডের মতোই, শিরোনাম ৪০ অক্ষর পর্যন্ত। ছবি ১২০০ পিক্সেলের কম চওড়া হলে আপলোডের আগেই জানায়।', "One banner: as a slide, its headline up to 40 characters. A photo under 1200 px wide is turned away before it uploads."],
+    render: (d) => {
+      const inner = bannerInner('beauty-3-wide', L('স্কিন কেয়ারে', 'On skin care'), L('২০% ছাড়', '20% off'), L('দেখুন', 'Shop'), L('অফার কালেকশন', 'On sale'));
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('banners'), dockDesign(), sheet(L('ব্যানার ১', 'Banner 1'), inner, DOCK_ITEM()), 'banners');
+    },
+  },
+  'e-wide': {
+    label: ['বড় ব্যানার', 'Wide banner'],
+    note: ['বড় ব্যানার: পুরো চওড়া একটা ছবি আর একটা বোতাম। যোগ করলে প্রথমে এই শিট খোলে, ছবি আর শিরোনাম দিলে তবেই সেকশন যোগ হয় (খালি ব্যানার হয় না)।', 'A wide banner: one full-width photo and a button. Adding one opens this sheet first; the section is added once it has a photo and a headline (never an empty banner).'],
+    render: (d) => {
+      const inner = bannerInner('beauty-1-wide', L('নতুন কালেকশন', 'New collection'), L('ঈদের সাজ', 'Dressed for Eid'), L('এখনই কিনুন', 'Shop now'), L('ক্যাটাগরি: লিপস্টিক', 'Category: Lipstick'));
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody(), dockDesign(), sheet(L('বড় ব্যানার', 'Wide banner'), inner, DOCK_SECTION()));
+    },
+  },
+  'e-quotes': {
+    label: ['ক্রেতাদের কথা', 'Testimonials'],
+    note: ['ক্রেতাদের কথা: বিক্রেতা নিজে লেখেন (Lytro এখনো রিভিউ নেয় না), ৬টি পর্যন্ত, উপরে-নিচে সরানো যায়। শুধু সত্যিকারের ক্রেতার কথা, তাঁর অনুমতি নিয়ে।', "Testimonials: written by the seller (Lytro takes no reviews yet), up to 6, reorderable. Only real customers' words, with their permission."],
+    render: (d) => {
+      const quotes = SAMPLE().quotes;
+      const rows = quotes.map(([name, place, text]) => `<div class="slide-row"><span class="grip" style="color:#7d8d8c;display:flex;flex-direction:column">${ic('up')}${ic('down')}</span><span style="width:40px;height:40px;border-radius:50%;background:#fde4ee;color:#a3195b;display:grid;place-items:center;font-weight:700;flex:none">${T(name).slice(0, 1)}</span><span class="nm"><b>${T(name)} · <span style="font-weight:500">${T(place)}</span></b><span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">“${T(text)}”</span></span><span class="chev">${ic('chev')}</span></div>`).join('');
+      const inner = fld(L('শিরোনাম (ঐচ্ছিক)', 'Title (optional)'), `<span style="color:#7d8d8c">${L('ক্রেতারা যা বলছেন', 'What our customers say')}</span>`)
+        + `<div class="field"><label>${L(`মন্তব্য (৬টির মধ্যে ${bnNum(quotes.length)}টি)`, `Quotes (${quotes.length} of 6)`)}</label>${rows}${addQuiet(L('মন্তব্য যোগ করুন', 'Add a quote'))}</div>`
+        + `<div class="note-line">${ic('info')}<span>${L('শুধু সত্যিকারের ক্রেতার কথা লিখুন, তাঁর অনুমতি নিয়ে। নামের প্রথম অক্ষর ছবির জায়গায় বসে।', "Write only what real customers told you, with their permission. The first letter of the name stands in for a photo.")}</span></div>`;
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('quotes'), dockDesign(), sheet(L('ক্রেতাদের কথা', 'Testimonials'), inner, DOCK_SECTION()), 'quotes');
+    },
+  },
+  'e-quote': {
+    label: ['একটা মন্তব্য', 'One quote'],
+    note: ['একটা মন্তব্য: নাম, জায়গা (ঐচ্ছিক) আর ক্রেতা যা বলেছেন, ২৪০ অক্ষর পর্যন্ত।', 'One quote: the name, the place (optional) and what the customer said, up to 240 characters.'],
+    render: (d) => {
+      const [name, place, text] = SAMPLE().quotes[0];
+      const inner = fld(L('নাম', 'Name'), T(name)) + fld(L('জায়গা (ঐচ্ছিক)', 'Place (optional)'), T(place), L('যেমন: ঢাকা, চট্টগ্রাম', 'Like: Dhaka, Chattogram')) + fld(L('ক্রেতা যা বলেছেন', 'What they said'), T(text), chars(T(text), 240), { area: 96 });
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('quotes'), dockDesign(), sheet(L('মন্তব্য ১', 'Quote 1'), inner, DOCK_ITEM()), 'quotes');
+    },
+  },
+  'e-about': {
+    label: ['দোকানের কথা', 'About the shop'],
+    note: ['দোকানের কথা: শিরোনাম, কয়েক লাইন (৬০০ অক্ষর পর্যন্ত) আর একটা ছবি (ঐচ্ছিক)। বড় স্ক্রিনে ছবি লেখার পাশে, ফোনে উপরে। যোগ করলে প্রথমে এই শিট খোলে।', "About the shop: a title, a few lines (up to 600 characters) and a photo (optional): beside the words on a wide screen, above them on a phone. Adding one opens this sheet first."],
+    render: (d) => {
+      const story = L('২০১৯ সালে মিরপুরের ছোট একটা দোকান থেকে শুরু। আমরা শুধু অরিজিনাল কসমেটিকস রাখি, প্রতিটা নিজে যাচাই করে। আপনার ত্বকের জন্য কোনটা ভালো, জানতে চাইলে মেসেজ দিন।', 'We began in 2019 as a small shop in Mirpur. We stock only original cosmetics and check every one ourselves. Message us to ask what suits your skin.');
+      const inner = fld(L('শিরোনাম', 'Title'), L('আমাদের গল্প', 'Our story'))
+        + fld(L('লেখা', 'Text'), story, chars(story, 600), { area: 120 })
+        + photoField(L('ছবি (ঐচ্ছিক)', 'Photo (optional)'), 'beauty-6', L('বিন্দুটা টেনে রাখুন ছবির মূল অংশে। ছবি না দিলে শুধু লেখা দেখায়।', 'Drag the dot onto what matters. Without a photo, the words show alone.'), [52, 44]);
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('about'), dockDesign(), sheet(L('দোকানের কথা', 'About the shop'), inner, DOCK_SECTION()));
+    },
+  },
+});
+
 function render() {
   const theme = THEMES[STATE.screen];
   const ed = EDITOR[STATE.screen];

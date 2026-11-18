@@ -130,6 +130,9 @@ export const PURCHASE_HISTORY_PAGE_SIZE = 20;
 // PRD-11: the photos one product may show (raised from 10 on 2026-10-22), and a page of the shop's media.
 export const PRODUCT_IMAGES_MAX = 50;
 export const MEDIA_PAGE_SIZE = 40;
+// STO-04: the long edge a stored image is cut to (never enlarged): the server's processing, and what an editor checks a
+// photo against before it is sent.
+export const IMAGE_LONG_EDGE_PX = 1600;
 // API-01, API-02: a key's name, the website addresses one public key may be used from, and the live keys a shop holds.
 export const API_KEY_NAME_MAX_LENGTH = 80;
 export const API_KEY_WEBSITES_MAX = 10;

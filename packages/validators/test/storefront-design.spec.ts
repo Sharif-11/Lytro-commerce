@@ -23,6 +23,7 @@ import {
   storefrontTargets,
   StorefrontThemeKey,
   storefrontTokens,
+  storefrontPhotoFits,
 } from '../src/index';
 
 // STOREFRONT-BUILDER-PLAN: the design document (SB-8, SB-14, SB-16) and the themes (SB-7, SB-11, SB-19).
@@ -337,5 +338,17 @@ describe('the regular price and its saving (SB-10, SB-21)', () => {
     expect(createProductSchema.safeParse({ ...product, regularPrice: null }).success).toBe(true);
     const below = createProductSchema.safeParse({ ...product, regularPrice: 999 });
     expect(below.error?.issues.map((issue) => issue.path.join('.'))).toEqual(['regularPrice']);
+  });
+});
+
+describe('a slide or banner photo wide enough once stored (SB-15)', () => {
+  it('measures the width the server keeps, its long edge cut to 1600 px', () => {
+    expect(storefrontPhotoFits(1200, 800)).toBe(true);
+    expect(storefrontPhotoFits(1199, 800)).toBe(false);
+    expect(storefrontPhotoFits(4000, 3000)).toBe(true);
+    // A tall photo loses width when its long edge is cut: 1500 x 2000 is kept at 1200 x 1600, 1400 x 2000 at 1120.
+    expect(storefrontPhotoFits(1500, 2000)).toBe(true);
+    expect(storefrontPhotoFits(1400, 2000)).toBe(false);
+    expect(storefrontPhotoFits(0, 0)).toBe(false);
   });
 });
