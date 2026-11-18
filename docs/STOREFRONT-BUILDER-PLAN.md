@@ -305,3 +305,48 @@ page, the shop's icon). The server's merged as #388.
 **Tests** prove each SB row against its words, with a sabotage pass on SB-12 (a draft is never public or cached) and on
 SB-9 (an ended offer leaves the hero). Each PR runs the checks in `ENGINEERING-STANDARDS.md` §7 and a real boot of the
 built server.
+
+## 6. Banner layouts, the bar's pairs, the hero's tiles and dragged sections
+
+The owner, 2026-11-18, pointing at Bonik AI's shop (bonikai.shop/ayesha-dress-corner): "make the storefront design
+section draggable to reorder"; the banner area's "three different types of display ... offer collection, new product";
+"the seller can add multiple banner but the layout is stacked vertically always"; the announcement bar showing its
+contents "pair by pair like carousel"; the bar "hidden after scroll"; "include order track at the header". Sketched in
+`docs/brand/lytro-storefront-builder.html`: the shop's `v-top`, `v-scroll` and `v-banners`, and the editor's `e-home`
+(handles), `e-drag`, `e-hero`, `e-place`, `e-announce`, `e-banners` and `e-banners-auto`.
+
+**BL-1 to BL-11: the owner's answers (2026-11-18).**
+
+| # | Decision | Decided |
+|---|---|---|
+| BL-1 | **Reordering sections.** | Each section row gets a **handle, held and dragged** with a mouse or a finger; the arrows stay. Letting go saves the draft. The header and footer never move. (SB-1's "no free drag-and-drop" is about placing things freely on the page; moving a section in the list was always allowed.) |
+| BL-2 | **Bonik's banner.** | **"Slide and two tiles" is upgraded, not joined by a fourth design:** its slide now **rotates** (it showed one), and each tile shows what the seller picked. |
+| BL-3 | **What the seller picks.** | **Per place.** The auto slides show **Offers** (the biggest savings; the newest with nothing on sale), **Newest** or **Best sellers**. Each tile shows **On sale**, **Just in**, **Best sellers** or **a category**. Defaults: slides Offers; tiles On sale and Just in. |
+| BL-4 | **The tiles on a phone.** | **Under the slide, side by side** (as "Slide and two tiles" already draws them), not hidden as Bonik hides them. |
+| BL-5 | **The slides' choice and the other designs.** | Offers / Newest / Best sellers works for **every hero design** that fills itself. |
+| BL-6 | **Banner layouts.** | Three: **Full width** (one under another, today's phone look), **Side by side**, **Big + two** (Bonik's). **Left alone, the number decides:** one full width, two side by side, three big + two; the seller can change it. |
+| BL-7 | **How many banners.** | **Up to three** (was two). |
+| BL-8 | **A half-width banner on a phone.** | **A compact tile:** the photo, the kicker and the headline, the whole tile a link; no description or button. |
+| BL-9 | **Banners that fill themselves.** | **Per place**, as the tiles: On sale, Just in, Best sellers or a category; a new section starts with On sale, Just in, Best sellers. |
+| BL-10 | **The announcement bar.** | **One list, two items at a time**, the next two every few seconds (five items: 1-2, 3-4, 5). Three are automatic: **cash on delivery**, **the delivery charges** in the owner's words ("ঢাকায় ডেলিভারি সর্বোচ্চ ৳৭০ · ঢাকার বাইরে সর্বোচ্চ ৳১৩০"), and **the offers on now** (only while something is on sale); each can be turned off. The seller adds lines of their own; **six items in all**, reorderable. **The bar leaves as the page scrolls; the header stays** (Bonik's). |
+| BL-11 | **Order tracking in the header.** | A truck icon leading to `/track`; on a computer with "অর্ডার ট্র্যাক / অর্ডার কোথায় আছে" beside it (Bonik's). |
+
+**BL-12 to BL-20: my calls in the sketch**, each open to the owner's overrule.
+
+| # | Decision | Decided |
+|---|---|---|
+| BL-12 | **A tile's or an auto banner's words and photo.** | From the shop's data, never typed: On sale "অফার চলছে · X% পর্যন্ত ছাড়" (and "N টি পণ্যে" on a banner); Just in and Best sellers the product's name ("N বার অর্ডার হয়েছে" on a banner); a category its name and count. The photo is the first product of the collection that the slide or an earlier place does not show; with none left, the collection's last. A tap opens the collection's page (`/offers`, `/new`, `/best`, the category). |
+| BL-13 | **An empty collection** (an offer that ended, no sales in 30 days). | The place shows the next of On sale, Just in, Best sellers that no other place in the section shows, so a tile or banner never goes blank. |
+| BL-14 | **Tiles with the seller's own slides.** | The tiles stay and do not rotate with the slides. |
+| BL-15 | **A layout that no longer fits** (Big + two picked, then a banner removed). | The number's own layout until it fits again; the pick is kept. |
+| BL-16 | **The bar's timing.** | **Four seconds** a pair, sliding up. Paused while hovered or focused; with reduced motion the pair changes without sliding. Every item is in the page for screen readers; only one pair shows. |
+| BL-17 | **The bar's height.** | Every pair sits in one grid cell, so the bar keeps its tallest pair's height and nothing below it jumps; an item's parts never break inside ("ঢাকার বাইরে সর্বোচ্চ ৳১৩০" stays whole), so a long pair wraps between items. |
+| BL-18 | **The seller's own line.** | Up to **40 characters** each (the old single line held 120; a pair has to fit a phone). A saved draft's old line becomes the first own item (only staging holds any; how one longer than 40 is kept is settled at the build). |
+| BL-19 | **The header on a phone with four icons.** | Search, order tracking, account and cart; a centred logo (Royal, Studio) centres in the room between the menu and the icons, so nothing overlaps. |
+| BL-20 | **Fixes the sketch names.** | The auto slide (the tiles' design) takes the tiles' dark shade and white words on every theme (Soft, Fresh and Bold had none, leaving words on a bare photo), its button is the light one, and its discount badge no longer stretches across a computer's slide. |
+
+**Build:** after the design cards PR merges (it adds the shared handle the section rows reuse; its drag logic becomes one
+hook for both screens). One PR from main: validators (hero `slides` source and `tiles`, banners `layout` and auto
+places, the announcement's item list with a read-time upgrade of saved drafts), the storefront (the rotating bar that
+leaves on scroll, the header's tracking link, the hero's rotating slide and tiles, the banner layouts) and the dashboard
+(the handle, the hero, banners and bar sheets, the place picker).
