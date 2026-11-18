@@ -479,6 +479,12 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
      storefront is uncounted, since a cached page never reaches the server. This amends Slice 9's "every request is
      counted" (RTE-04) for the storefront's own traffic. At 1% conversion an ordinary shop's browsing alone would have
      passed Starter's 200,000.
+- **Staging's recheck** (2026-11-18, the owner's go; `docs/drills/2026-11-18-load-staging-recheck.md`): with no edge in
+  front of staging, the storefront asked the API about a third too often (each host's lookup per page under load, and
+  #380's fresh frame for every page for the edge), which tipped staging's 2 vCPU into queueing at 1×: fixed with the
+  report. Busy was answered as busy (503, never a 500), no lock waits, and a flash sale of 10 orders a second on 300 units
+  placed 297 + 3 already held, refused the rest as sold out or held to 180 a minute, and oversold nothing. The pass and
+  the viral product run again once the fix is on staging.
 - **The edge cache's read** (the owner, 2026-11-16, after the viral-product question: 2,000 shoppers at once on one
   product): "yes, i don't need staging domain now. the other point is ok". D9-32.
   1. **No staging domain now.** Staging's `<slug>.staging.lytro.app` is two levels down, which Cloudflare's free

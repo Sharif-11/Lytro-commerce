@@ -441,7 +441,8 @@ export interface ShopperRequest {
   clientAddress: string | null;
   language: Language;
   /** Slice 9.10: the page is rendered for Cloudflare's edge, which keeps it for every shopper (lib/edge): the shop's
-      frame is read fresh, so a purge never hands the edge the minute-old frame this storefront holds. */
+      frame it takes is at most a few seconds old, so a purge never hands the edge the minute-old frame this storefront
+      holds. */
   forEdge?: boolean;
 }
 
@@ -495,10 +496,15 @@ const CONTEXT_TTL_MS = 5_000;
 // Slice 12b's read: the frame every page shows -- the shop's details and its categories -- is read at most once a
 // minute per shop, as an outside site's server could keep it; a logo or a category change shows within the minute.
 const SHELL_TTL_MS = 60_000;
+// Slice 9.10 (D9-32): a page for Cloudflare's edge, which keeps it for every shopper, takes a frame read at most this
+// long ago: under the 5 seconds the server waits after a change before it purges the shop's pages (PURGE_SETTLE_MS), so
+// a purged page is never built again on the frame from before the change. Reading it afresh for every such page cost
+// staging's recheck (2026-11-18) a third of its API calls, where no edge stood in front of the storefront.
+const EDGE_FRAME_TTL_MS = 4_000;
 
 /** The server's answers the storefront's pages need, for the shop the shopper's host names. */
 export class StorefrontApi {
-  private readonly contexts = new Map<string, { at: number; context: StorefrontContext }>();
+  private readonly contexts = new Map<string, { at: number; read: Promise<StorefrontContext> }>();
   private readonly shells = new Map<string, { at: number; read: Promise<unknown> }>();
   // Slice 9.10: each shop as last read, so a page the server is too busy to give still wears the shop's own mark.
   private readonly lastShops = new Map<string, PublicShop>();
@@ -510,11 +516,21 @@ export class StorefrontApi {
   ) {}
 
   /** Which shop a host serves. Kept briefly per host, so a shopper's pages do not each ask; a shop that closes or
-      turns its storefront off is seen within the half-minute. */
-  async context(host: string): Promise<StorefrontContext> {
+      turns its storefront off is seen within the half-minute. Pages asking at once share one read (staging's recheck,
+      2026-11-18: under load each page asked for itself, 5,051 reads in 13 minutes); a failed read is not kept. */
+  context(host: string): Promise<StorefrontContext> {
     const name = host.toLowerCase();
-    const kept = this.contexts.get(name);
-    if (kept && this.now() - kept.at < CONTEXT_TTL_MS) return kept.context;
+    const held = this.contexts.get(name);
+    if (held && this.now() - held.at < CONTEXT_TTL_MS) return held.read;
+    const reading = this.readContext(name);
+    this.contexts.set(name, { at: this.now(), read: reading });
+    reading.catch(() => {
+      if (this.contexts.get(name)?.read === reading) this.contexts.delete(name);
+    });
+    return reading;
+  }
+
+  private async readContext(name: string): Promise<StorefrontContext> {
     const answer = await this.server.send<StorefrontContext>({
       method: 'GET',
       path: `/api/v1/internal/storefront/context?host=${encodeURIComponent(name)}`,
@@ -525,7 +541,6 @@ export class StorefrontApi {
       throwIfBusy(answer, 'the shop this host serves');
       throw new Error(`the server did not name the shop (status ${String(answer.status)})`);
     }
-    this.contexts.set(name, { at: this.now(), context: answer.data });
     return answer.data;
   }
 
@@ -540,7 +555,7 @@ export class StorefrontApi {
         this.lastShops.set(shop.slug, info);
         return info;
       },
-      shopper.forEdge === true,
+      shopper.forEdge === true ? EDGE_FRAME_TTL_MS : SHELL_TTL_MS,
     );
   }
 
@@ -562,7 +577,7 @@ export class StorefrontApi {
           ),
           'the categories',
         ).categories,
-      shopper.forEdge === true,
+      shopper.forEdge === true ? EDGE_FRAME_TTL_MS : SHELL_TTL_MS,
     );
   }
 
@@ -694,11 +709,11 @@ export class StorefrontApi {
     );
   }
 
-  /** One shared read per key for SHELL_TTL_MS; a failed read is not kept, so the next page asks again. `fresh` reads
-      past what is held (a page for the edge) and holds its answer for the pages after it. */
-  private kept<T>(key: string, read: () => Promise<T>, fresh = false): Promise<T> {
+  /** One shared read per key, held up to `maxAgeMs` (a minute; a page for the edge takes one under EDGE_FRAME_TTL_MS)
+      and kept for the pages after it; a failed read is not kept, so the next page asks again. */
+  private kept<T>(key: string, read: () => Promise<T>, maxAgeMs = SHELL_TTL_MS): Promise<T> {
     const held = this.shells.get(key);
-    if (!fresh && held && this.now() - held.at < SHELL_TTL_MS) return held.read as Promise<T>;
+    if (held && this.now() - held.at < maxAgeMs) return held.read as Promise<T>;
     const reading = read();
     this.shells.set(key, { at: this.now(), read: reading });
     reading.catch(() => {

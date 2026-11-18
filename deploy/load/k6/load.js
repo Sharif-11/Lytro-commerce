@@ -185,14 +185,12 @@ export function shopper() {
   pause(2);
   const product = pick(shop.products, n * 31);
   page(shop.slug, `/p/${product.slug}`);
+  // As the product page asks it since D9-32: one product's charge is a GET Cloudflare's edge keeps.
   const estimate = call(
-    'POST',
+    'GET',
     hosts.shop(shop.slug),
-    '/api/estimate',
-    {
-      locationId: pick(locations, n),
-      items: [{ variantId: product.variantId, quantity: 1 }],
-    },
+    `/api/estimate?p=${product.id}&v=${product.variantId}&q=1&a=${String(pick(locations, n))}`,
+    null,
     { tags: { kind: 'read', read: 'estimate' } },
   );
   ok(estimate, 'the delivery charge reads', [200]);

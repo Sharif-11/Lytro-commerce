@@ -12,8 +12,8 @@ rising until something breaks.
   readable on its plain listener (`:8081/codes`).
 - `compose.load.yml`: laid over the release's `deploy/compose.yml`. It runs the stand-in, points every provider at it,
   replaces each provider's key, and raises the sign-up limits that one load machine would meet.
-- `k6/`: the seeder (`seed-shops.js`, `seed-catalogue.js`, `seed-orders.js`) and the load (`load.js`). k6 1.0.0, in
-  Docker.
+- `k6/`: the seeder (`seed-shops.js`, `seed-catalogue.js`, `seed-orders.js`), the load (`load.js`) and the owner's two
+  spikes (`spike.js`). k6 1.0.0, in Docker.
 - `sql/`: the seeder's steps run as the database's owner (`seed-limits.sql`, `spread-year.sql`).
 - `run/`: the scripts below.
 - `apps/website/public/timing.html`, served by the website as `https://<domain>/timing.html`: MED-05's timing from a
@@ -30,7 +30,8 @@ On the **server under test**, as root, from the live release:
 1. `bash /opt/lytro/state/current/load/run/arm.sh`. Add `--ceiling` for the ramp past twice the peak: it also raises RTE-06's
    120 requests a minute per visitor, since all the load comes from one address.
 2. `RUN=lt bash /opt/lytro/state/current/load/run/seed.sh`, about an hour and a half. For a quick shakedown, make it smaller:
-   `SHOPS=10 FULL_SHOPS=5 FULL_PRODUCTS=50 FULL_ORDERS=300 CUSTOMERS=100`.
+   `SHOPS=10 FULL_SHOPS=5 FULL_PRODUCTS=50 FULL_ORDERS=300 CUSTOMERS=100`. A second seeding on the same server needs its
+   own `RUN` and `PHONE_OFFSET` (e.g. `RUN=lt3 PHONE_OFFSET=3000`): the owners an earlier seeding signed up stay.
 3. Copy `/opt/lytro/state/load/out/roster.json` to the load machine's `./out/roster.json`.
 
 On the **load machine** (the staging server, for the production run), which reaches the server under test by SSH:
@@ -45,6 +46,24 @@ Before k6 starts, `run.sh` resets the load operator's second factor (`reset-oper
 A run can be made smaller or shorter: `FACTOR`, `MINUTES`, `RAMP_MINUTES`, `SIGNUPS`, `SIGNUP_MINUTES`,
 `SIGNUP_START_MINUTES`, `STEP`, `MAX_FACTOR`, and `SKIP` (scenarios left out, by name: `shoppers`, `websites`,
 `storefrontOrders`, `websiteOrders`, `sellers`, `phones`, `operator`, `signups`).
+
+**The owner's two spikes** (`k6/spike.js`; the viral product, 2026-11-16, and the flash sale), each on one product of
+one shop of the roster (`SPIKE_SHOP`, `SPIKE_PRODUCT`: indexes, 0 by default):
+
+6. **The viral product**, from the load machine through the public path (Caddy, and in production Cloudflare's edge):
+   `MODE=viral TARGET=... DOMAIN=... TARGET_IP=... bash deploy/load/run/run.sh`.
+   - Each shopper lands on the product's page with an ad's click ID of its own (`?fbclid=`) and asks its delivery charge
+     as the page does (the GET Cloudflare keeps).
+   - It ramps to `VISITS` a second (67: about 2,000 shoppers on the page at once) over `RAMP_SECONDS` (60) and holds
+     for `HOLD_MINUTES` (10). `LANDING=1` lands on `/l/`.
+   - It places no orders: from one machine they'd all be one shopper, held to RTE-06's 10 a minute.
+   - Behind the edge, the server's own measurements show what of it still reached the server.
+7. **The flash sale**, on the server under test itself, as the seeder runs, so each order names a shopper of its own:
+   `STOCK=300 ORDERS=10 HOLD_MINUTES=3 bash /opt/lytro/state/current/load/run/flash.sh`.
+   - It sets the product's stock to `STOCK`, then places `ORDERS` a second on it through the shop's website key.
+   - It counts what was placed, refused as sold out (409), held to the shop's minute (429) or busy (503); a 500 fails
+     it. Afterwards it logs the units held for orders, which match what was placed and never pass `STOCK`.
+   - Run beside a viral run with `ORDERS=1`, it's the ad's shoppers ordering while the page is busy.
 
 Then, back on the server: `bash /opt/lytro/state/current/load/run/disarm.sh`. The report goes in `docs/drills/` (below).
 

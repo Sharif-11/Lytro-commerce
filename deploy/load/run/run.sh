@@ -6,8 +6,9 @@
 #
 # It opens an SSH tunnel to the stand-in's codes listener on the target (the sign-up burst reads its codes there), starts
 # measure.sh on the target, runs k6 (load.js) from this machine through Caddy, then stops the measuring and copies its
-# files here. MODE is pass or ceiling; FACTOR, MINUTES, SIGNUPS, STEP, MAX_FACTOR and SKIP are load.js's. The roster
-# from seed.sh must be at ./out/roster.json. Results go to ./out/.
+# files here. MODE is pass or ceiling; FACTOR, MINUTES, SIGNUPS, STEP, MAX_FACTOR and SKIP are load.js's. MODE=viral runs
+# spike.js's viral product instead (VISITS, RAMP_SECONDS, HOLD_MINUTES, SPIKE_SHOP, SPIKE_PRODUCT, LANDING); its flash
+# sale runs on the target itself (flash.sh). The roster from seed.sh must be at ./out/roster.json. Results go to ./out/.
 set -euo pipefail
 
 : "${TARGET:?the server under test, as ssh reaches it: deploy@<address>}"
@@ -33,6 +34,9 @@ OUT="$(here out)"
 K6_IMAGE="${K6_IMAGE:-grafana/k6:1.0.0}"
 NAME="$MODE-$(date -u +%Y%m%dT%H%M%SZ)"
 export MODE DOMAIN TARGET_IP FACTOR MINUTES RAMP_MINUTES SIGNUPS SIGNUP_MINUTES SIGNUP_START_MINUTES STEP MAX_FACTOR SKIP
+export VISITS RAMP_SECONDS HOLD_MINUTES SPIKE_SHOP SPIKE_PRODUCT LANDING
+SCRIPT=load.js
+[ "$MODE" = viral ] && SCRIPT=spike.js
 
 say() { printf '[run %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 [ -f "$OUT/roster.json" ] || { say "no $OUT/roster.json: copy seed.sh's roster here"; exit 1; }
@@ -58,6 +62,7 @@ say "$MODE: k6 from here through Caddy"
 docker run --rm --user "$(id -u):$(id -g)" "${network[@]}" -v "$LOAD_DIR/k6:/scripts:ro" -v "$OUT:/out" -w /scripts \
   -e ROSTER_IN=/out/roster.json -e MODE -e DOMAIN -e TARGET_IP -e FACTOR -e MINUTES -e RAMP_MINUTES -e SIGNUPS \
   -e SIGNUP_MINUTES -e SIGNUP_START_MINUTES -e STEP -e MAX_FACTOR -e SKIP \
+  -e VISITS -e RAMP_SECONDS -e HOLD_MINUTES -e SPIKE_SHOP -e SPIKE_PRODUCT -e LANDING \
   -e OUTSIDE="$outside" -e SUMMARY="/out/$NAME-k6.json" \
-  "$K6_IMAGE" run load.js | tee "$OUT/$NAME-k6.txt"
+  "$K6_IMAGE" run "$SCRIPT" | tee "$OUT/$NAME-k6.txt"
 say "done: $OUT/$NAME-*"
