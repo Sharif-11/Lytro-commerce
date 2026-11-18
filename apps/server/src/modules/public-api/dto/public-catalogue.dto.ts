@@ -40,6 +40,8 @@ const productCardSchema = z.object({
   left: z.number().nullable(),
   ordered: z.number(),
   bestSeller: z.boolean(),
+  // DC-1, DC-5: the design this card shows; null for a product's own card.
+  designId: z.string().nullable(),
 });
 
 export class PublicProductPageDto extends createZodDto(

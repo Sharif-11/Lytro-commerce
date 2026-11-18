@@ -42,8 +42,9 @@ import { comboFigures, comboSaving, unitsOf } from '../../inventory/services/com
 // Bumped whenever an answer's shape changes, so no shopper's browser keeps an old one under an unchanged tag. 2: a list
 // row's swatches and creation time, a category's product count (Slice 12b). 3: what a product asks (Slice 4.8e). 5: a
 // product's designs: each photo's design and pixels, the designs option marked (photo designs, ATR-19, PD-28). 6: the
-// regular prices, savings and badges' facts, a category's cover (STOREFRONT-BUILDER-PLAN SB-9, SB-10, SB-21).
-const ANSWER_FORMAT = 6;
+// regular prices, savings and badges' facts, a category's cover (STOREFRONT-BUILDER-PLAN SB-9, SB-10, SB-21). 7: a
+// card's design, and the seller's order (DC-1, DC-6).
+const ANSWER_FORMAT = 7;
 // CCH-04: the version endpoint itself is kept at most this long.
 const VERSION_MAX_AGE_SECONDS = 5;
 // FED-04: a feed is fetched on Meta's schedule; its answer is kept no longer than a product page.
@@ -294,6 +295,7 @@ export class PublicCatalogue {
         inStock: request.inStock,
         onSale: request.onSale,
         ids: request.ids,
+        designs: request.designs,
         soldSince: new Date(Date.now() - STOREFRONT_BEST_SELLER_DAYS * DAY_MS),
         after,
         limit: request.limit + 1,
@@ -304,8 +306,14 @@ export class PublicCatalogue {
           ? rows.slice(0, request.limit)
           : [...rows].sort((a, b) => picked.indexOf(a.id) - picked.indexOf(b.id));
       const last = page.at(-1);
-      const ids = page.map((row) => row.id);
+      const ids = [...new Set(page.map((row) => row.id))];
       const images = await this.images.ofProducts(tx, tenantId, ids);
+      // DC-5: a design's card shows its own cover, and no swatches (it is one design already).
+      const covers = await this.images.viewsOf(
+        tx,
+        tenantId,
+        page.flatMap((row) => (row.designCover === null ? [] : [row.designCover])),
+      );
       const swatches = await this.swatchesOf(tx, tenantId, ids);
       // SB-10: the badges' facts, one read for the page.
       const facts = new Map(
@@ -327,14 +335,18 @@ export class PublicCatalogue {
           minPrice: row.minPrice,
           maxPrice: row.maxPrice,
           stockState: row.stockState,
-          image: images.get(row.id)?.[0] ?? null,
+          image:
+            (row.designCover === null ? null : covers.get(row.designCover)) ??
+            images.get(row.id)?.[0] ??
+            null,
           createdAt: row.createdAt,
-          swatches: swatches.get(row.id) ?? [],
+          swatches: row.designId === null ? (swatches.get(row.id) ?? []) : [],
           minRegularPrice: row.minRegularPrice,
           bestDiscount: row.bestDiscount,
-          left: facts.get(row.id)?.left ?? null,
+          left: row.designId === null ? (facts.get(row.id)?.left ?? null) : row.designLeft,
           ordered: facts.get(row.id)?.ordered ?? 0,
           bestSeller: facts.get(row.id)?.bestSeller ?? false,
+          designId: row.designId,
         })),
         nextCursor:
           picked === null && rows.length > request.limit && last

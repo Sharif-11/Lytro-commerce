@@ -33,6 +33,15 @@ export interface PublicProductRow {
   createdAt: string;
   /** This row's place in the order asked for, as text, so the next page starts exactly after it. */
   position: string[];
+  /**
+   * STOREFRONT-BUILDER-PLAN DC-1, DC-5: the design this card shows, for a product with two or more designs when the
+   * list spreads them; null for a product's own card. Its prices, saving and stock above are then the design's own.
+   */
+  designId: string | null;
+  /** DC-5: the design's cover -- its first photo -- for a design's card; null otherwise. */
+  designCover: string | null;
+  /** DC-5, SB-10: "Only N left" for a design's card, by the product's rules; null otherwise or when not low. */
+  designLeft: number | null;
 }
 
 /** SB-10: what a storefront card's badges say about one product, beyond its own row. */
@@ -109,6 +118,8 @@ export interface PublicProductFilter {
   onSale: boolean;
   /** SB-9: only these products (a row of hand-picked ones); null for any. */
   ids: readonly string[] | null;
+  /** DC-1: each design of a product with two or more its own card (the storefront asks when the shop has it on). */
+  designs: boolean;
   /** SB-9: where the best-selling order's window starts (its units are counted from here); unused by other orders. */
   soldSince: Date;
   /** The last row's position on the page before; null starts at the beginning. */
@@ -145,6 +156,135 @@ export function prefixQuery(search: string): string {
 // a time, a product by its link, current or old. A list's own query reads only the columns kept on the product row and
 // pages by position, never by offset; the swatches its page shows are one read more, for that page's products only. Each method sets the shop's tenant context
 // itself, so row-level security applies.
+/** DC-1, DC-5: the figures a card shows -- a design's own for a design's card (`designCards`), else the product's. */
+export interface CardFigures {
+  design: SQL;
+  /** The design's number (its place among the product's designs); 0 for a product's own card. */
+  number: SQL;
+  price: SQL;
+  high: SQL;
+  regular: SQL;
+  discount: SQL;
+  stock: SQL;
+  cover: SQL;
+  /** SB-9: the units sold over the best-selling window (that order's joins only). */
+  units: SQL;
+}
+
+export const PRODUCT_CARD: CardFigures = {
+  design: sql`NULL::uuid`,
+  number: sql`0`,
+  price: sql`p.min_price`,
+  high: sql`p.max_price`,
+  regular: sql`p.min_regular_price`,
+  discount: sql`p.best_discount`,
+  stock: sql`p.stock_state`,
+  cover: sql`NULL::uuid`,
+  units: sql`coalesce(sold.units, 0)`,
+};
+
+export const DESIGN_CARD: CardFigures = {
+  design: sql`c.design_id`,
+  number: sql`coalesce(c.design_number, 0)`,
+  price: sql`coalesce(c.low, p.min_price)`,
+  high: sql`coalesce(c.high, p.max_price)`,
+  regular: sql`CASE WHEN c.design_id IS NULL THEN p.min_regular_price ELSE c.regular END`,
+  discount: sql`coalesce(c.discount, p.best_discount)`,
+  stock: sql`coalesce(c.stock, p.stock_state)`,
+  cover: sql`c.cover`,
+  units: sql`CASE WHEN c.design_id IS NULL THEN coalesce(sold.units, 0) ELSE coalesce(sold_design.units, 0) END`,
+};
+
+/**
+ * DC-1, DC-5: each design of a product with two or more designs on sale, as its own card -- worked out from the
+ * design's live variants as a product's own figures are (`refreshPriceRange`, the stock state of 0068): its lowest and
+ * highest price, the regular price struck through beside the lowest, its biggest saving, its best variant's stock
+ * state and the units it has, and its cover (its first photo). A product with one design or none has no row here and
+ * keeps its own card.
+ */
+export function designCards(tenantId: string): SQL {
+  return sql`WITH dv AS (
+      SELECT v.product_id, va.option_id AS design_id, o.sort_order::integer AS design_number,
+        coalesce(v.price, pp.base_price) AS price,
+        coalesce(v.regular_price, pp.regular_price) AS regular,
+        v.stock_state,
+        coalesce((SELECT sum(sl.available) FROM tenant.stock_levels sl
+          WHERE sl.tenant_id = v.tenant_id AND sl.variant_id = v.id), 0) AS available
+      FROM tenant.product_variants v
+      JOIN tenant.products pp ON pp.tenant_id = v.tenant_id AND pp.id = v.product_id
+      JOIN tenant.variant_attribute_values va ON va.tenant_id = v.tenant_id AND va.variant_id = v.id
+      JOIN tenant.attribute_options o ON o.tenant_id = va.tenant_id AND o.id = va.option_id
+        AND o.product_id = v.product_id AND o.retired_at IS NULL
+      WHERE v.tenant_id = ${tenantId} AND v.active AND v.deleted_at IS NULL AND NOT v.is_stock_holder
+    ), de AS (
+      SELECT dv.*,
+        CASE WHEN dv.regular > dv.price THEN floor((dv.regular - dv.price) * 100 / dv.regular) ELSE 0 END AS discount
+      FROM dv
+    ), dc AS (
+      SELECT de.product_id, de.design_id, de.design_number, min(de.price) AS low, max(de.price) AS high,
+        coalesce(max(de.discount), 0)::integer AS discount,
+        (CASE
+          WHEN bool_or(de.stock_state = 'in') THEN 'in'
+          WHEN bool_or(de.stock_state = 'low') THEN 'low'
+          ELSE 'out'
+        END)::tenant.stock_state AS stock,
+        sum(de.available) AS available
+      FROM de
+      GROUP BY de.product_id, de.design_id, de.design_number
+    ), cards AS (
+      SELECT dc.*,
+        (SELECT min(de.regular) FROM de
+          WHERE de.product_id = dc.product_id AND de.design_id = dc.design_id AND de.price = dc.low
+            AND de.discount >= 1) AS regular,
+        (SELECT pi.media_id FROM tenant.product_images pi
+          WHERE pi.tenant_id = ${tenantId} AND pi.product_id = dc.product_id AND pi.design_option_id = dc.design_id
+          ORDER BY pi.sort_order LIMIT 1) AS cover
+      FROM dc
+      WHERE dc.product_id IN (SELECT dc2.product_id FROM dc dc2 GROUP BY dc2.product_id HAVING count(*) >= 2)
+    )`;
+}
+
+/**
+ * DC-6, DC-7: a card's place in the seller's order, as `placed.position` -- its own row; for a design's card with none,
+ * its product's (placed while design cards were off); for a product's own card with none, its first design's. Null when
+ * the seller has not placed it.
+ */
+/**
+ * DC-8: a product's cards while design cards are on, as `c` -- each of its designs' (from `designCards`) and its own
+ * (a row of nulls, so the product's figures show) -- with `m.mode`, its way; `shownCard` says which of them show.
+ */
+export function candidateCards(): SQL {
+  return sql`LEFT JOIN tenant.storefront_product_cards m ON m.tenant_id = p.tenant_id AND m.product_id = p.id
+    LEFT JOIN LATERAL (
+      SELECT cd.product_id, cd.design_id, cd.design_number, cd.low, cd.high, cd.discount, cd.stock, cd.available,
+        cd.regular, cd.cover
+      FROM cards cd WHERE cd.product_id = p.id
+      UNION ALL
+      SELECT p.id, NULL::uuid, NULL::integer, NULL::numeric, NULL::numeric, NULL::integer, NULL::tenant.stock_state,
+        NULL::numeric, NULL::numeric, NULL::uuid
+    ) c ON true`;
+}
+
+/**
+ * DC-8: whether a candidate card shows -- a design's unless its product is set to one card; a product's own when it
+ * has no designs to spread, or is set to one card or both.
+ */
+export const SHOWN_CARD: SQL = sql`CASE
+    WHEN c.design_id IS NULL THEN coalesce(m.mode, 'designs') <> 'designs'
+      OR NOT EXISTS (SELECT 1 FROM cards cx WHERE cx.product_id = p.id)
+    ELSE coalesce(m.mode, 'designs') <> 'compact'
+  END`;
+
+export function placedCard(card: CardFigures): SQL {
+  return sql`LEFT JOIN LATERAL (
+      SELECT cp.position FROM tenant.storefront_card_positions cp
+      WHERE cp.tenant_id = p.tenant_id AND cp.product_id = p.id
+        AND (${card.design} IS NULL OR cp.design_option_id IS NULL OR cp.design_option_id = ${card.design})
+      ORDER BY (cp.design_option_id IS NOT DISTINCT FROM ${card.design}) DESC, cp.position
+      LIMIT 1
+    ) placed ON true`;
+}
+
 export class PublicCatalogueRepository {
   constructor(private readonly transactions: TransactionRunner) {}
 
@@ -165,8 +305,6 @@ export class PublicCatalogueRepository {
   ): Promise<PublicProductRow[]> {
     await this.transactions.setTenantContext(tx, tenantId);
     const where: SQL[] = [sql`p.tenant_id = ${tenantId}`, sql`p.active`, sql`p.deleted_at IS NULL`];
-    if (filter.inStock) where.push(sql`p.stock_state <> 'out'`);
-    if (filter.onSale) where.push(sql`p.best_discount > 0`);
     if (filter.ids !== null) {
       const ids = filter.ids.length > 0 ? filter.ids : [null];
       where.push(
@@ -192,7 +330,12 @@ export class PublicCatalogueRepository {
       where.push(match.condition);
       score = match.score;
     }
-    const { keys, descending } = this.orderOf(filter.sort, score);
+    // DC-1, DC-5: what a card shows -- a design's own figures for a design's card, else the product's.
+    const card = filter.designs ? DESIGN_CARD : PRODUCT_CARD;
+    if (filter.designs) where.push(SHOWN_CARD);
+    if (filter.inStock) where.push(sql`${card.stock} <> 'out'`);
+    if (filter.onSale) where.push(sql`${card.discount} > 0`);
+    const { keys, descending } = this.orderOf(filter.sort, score, card);
     const columns = keys.map(
       (key, index) => sql`${key.expression} AS ${sql.raw(`k${String(index)}`)}`,
     );
@@ -206,18 +349,37 @@ export class PublicCatalogueRepository {
       );
     }
     const direction = descending ? sql`DESC` : sql`ASC`;
-    // SB-9: the units each product sold over the window, for the best-selling order only.
-    const sold =
-      filter.sort === PublicProductSort.BestSelling
+    // SB-9: the units each product (and, for a design's card, each design) sold over the window, for the
+    // best-selling order only.
+    const selling = filter.sort === PublicProductSort.BestSelling;
+    const sold = selling
+      ? sql`LEFT JOIN (
+          SELECT l.product_id, sum(l.quantity - l.returned_quantity) AS units
+          FROM tenant.orders o
+          JOIN tenant.order_lines l ON l.tenant_id = o.tenant_id AND l.order_id = o.id
+          WHERE ${counted(tenantId, { from: filter.soldSince, to: FAR_FUTURE })}
+            AND l.returned_quantity < l.quantity AND l.product_id IS NOT NULL
+          GROUP BY l.product_id
+        ) sold ON sold.product_id = p.id`
+      : sql``;
+    const soldDesign =
+      selling && filter.designs
         ? sql`LEFT JOIN (
-            SELECT l.product_id, sum(l.quantity - l.returned_quantity) AS units
-            FROM tenant.orders o
-            JOIN tenant.order_lines l ON l.tenant_id = o.tenant_id AND l.order_id = o.id
-            WHERE ${counted(tenantId, { from: filter.soldSince, to: FAR_FUTURE })}
-              AND l.returned_quantity < l.quantity AND l.product_id IS NOT NULL
-            GROUP BY l.product_id
-          ) sold ON sold.product_id = p.id`
+          SELECT l.product_id, va.option_id AS design_id, sum(l.quantity - l.returned_quantity) AS units
+          FROM tenant.orders o
+          JOIN tenant.order_lines l ON l.tenant_id = o.tenant_id AND l.order_id = o.id
+          JOIN tenant.variant_attribute_values va ON va.tenant_id = l.tenant_id AND va.variant_id = l.variant_id
+          JOIN tenant.attribute_options ao ON ao.tenant_id = va.tenant_id AND ao.id = va.option_id
+            AND ao.product_id = l.product_id
+          WHERE ${counted(tenantId, { from: filter.soldSince, to: FAR_FUTURE })}
+            AND l.returned_quantity < l.quantity AND l.product_id IS NOT NULL
+          GROUP BY l.product_id, va.option_id
+        ) sold_design ON sold_design.product_id = p.id AND sold_design.design_id = c.design_id`
         : sql``;
+    const measured = sql.join(
+      MEASURED_STOCK_UNITS.map((unit) => sql`${unit}`),
+      sql`, `,
+    );
     const result = await tx.execute<{
       id: string;
       slug: string;
@@ -229,18 +391,35 @@ export class PublicCatalogueRepository {
       stock_state: StockState;
       created_at: string;
       position: string[];
+      design_id: string | null;
+      design_cover: string | null;
+      design_left: string | null;
     }>(sql`
+      ${filter.designs ? designCards(tenantId) : sql``}
       SELECT s.id, s.slug, s.name, s.min_price, s.max_price, s.min_regular_price, s.best_discount, s.stock_state,
         to_char(s.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS created_at,
+        s.design_id, s.design_cover, s.design_left,
         ARRAY[${sql.join(
           names.map((name) => sql`${name}::text`),
           sql`, `,
         )}] AS position
       FROM (
-        SELECT p.id, p.slug, p.name, p.min_price, p.max_price, p.min_regular_price, p.best_discount, p.stock_state,
-          p.created_at, ${sql.join(columns, sql`, `)}
+        SELECT p.id, p.slug, p.name, ${card.price} AS min_price, ${card.high} AS max_price,
+          ${card.regular} AS min_regular_price, ${card.discount} AS best_discount, ${card.stock} AS stock_state,
+          p.created_at, ${card.design} AS design_id, ${card.cover} AS design_cover,
+          ${
+            filter.designs
+              ? sql`CASE WHEN c.stock = ${StockState.Low} AND p.stock_tracking = ${StockTracking.Tracked}
+                    AND NOT p.shared_stock AND p.kind <> ${ProductKind.Combo} AND p.stock_unit NOT IN (${measured})
+                  THEN floor(c.available) END`
+              : sql`NULL::numeric`
+          } AS design_left,
+          ${sql.join(columns, sql`, `)}
         FROM tenant.products p
+        ${filter.designs ? candidateCards() : sql``}
+        ${placedCard(card)}
         ${sold}
+        ${soldDesign}
         WHERE ${sql.join(where, sql` AND `)}
       ) s
       ${conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``}
@@ -260,6 +439,9 @@ export class PublicCatalogueRepository {
       stockState: row.stock_state,
       createdAt: row.created_at,
       position: row.position,
+      designId: row.design_id,
+      designCover: row.design_cover,
+      designLeft: row.design_left === null ? null : Number(row.design_left),
     }));
   }
 
@@ -584,41 +766,64 @@ export class PublicCatalogueRepository {
   }
 
   /**
-   * Each order's keys, in one direction, so the indexes (migration 0068) serve them as one range: featured is the
-   * shop's position then newest (the position negated), price is the lowest price a product sells at.
+   * Each order's keys, in one direction, each ending with the card's design so no two cards tie. Featured is the
+   * seller's order (DC-6, DC-7): the cards they have not placed first, newest first, then the placed ones by their
+   * place. Price is the lowest price a card sells at; discount and units are its own.
    */
-  private orderOf(sort: PublicProductSort, score: SQL): { keys: OrderKey[]; descending: boolean } {
+  private orderOf(
+    sort: PublicProductSort,
+    score: SQL,
+    card: CardFigures,
+  ): { keys: OrderKey[]; descending: boolean } {
     const id: OrderKey = { expression: sql`p.id`, type: sql`uuid` };
     const created: OrderKey = { expression: sql`p.created_at`, type: sql`timestamptz` };
-    const price: OrderKey = { expression: sql`p.min_price`, type: sql`numeric` };
+    const price: OrderKey = { expression: card.price, type: sql`numeric` };
+    // A product's designs in their own order, whichever way the rest runs.
+    const descending = sort !== PublicProductSort.PriceLow;
+    const design: OrderKey = {
+      expression: descending ? sql`(-${card.number})::integer` : sql`(${card.number})::integer`,
+      type: sql`integer`,
+    };
     switch (sort) {
       case PublicProductSort.Discount:
         return {
-          keys: [{ expression: sql`p.best_discount::integer`, type: sql`integer` }, created, id],
+          keys: [
+            { expression: sql`${card.discount}::integer`, type: sql`integer` },
+            created,
+            id,
+            design,
+          ],
           descending: true,
         };
       case PublicProductSort.BestSelling:
         return {
           keys: [
-            { expression: sql`coalesce(sold.units, 0)::numeric`, type: sql`numeric` },
+            { expression: sql`${card.units}::numeric`, type: sql`numeric` },
             created,
             id,
+            design,
           ],
           descending: true,
         };
       case PublicProductSort.Featured:
         return {
-          keys: [{ expression: sql`(-p.sort_order)`, type: sql`integer` }, created, id],
+          keys: [
+            { expression: sql`(placed.position IS NULL)::integer`, type: sql`integer` },
+            { expression: sql`(-coalesce(placed.position, 0))`, type: sql`integer` },
+            created,
+            id,
+            design,
+          ],
           descending: true,
         };
       case PublicProductSort.Newest:
-        return { keys: [created, id], descending: true };
+        return { keys: [created, id, design], descending: true };
       case PublicProductSort.PriceLow:
-        return { keys: [price, id], descending: false };
+        return { keys: [price, id, design], descending: false };
       case PublicProductSort.PriceHigh:
-        return { keys: [price, id], descending: true };
+        return { keys: [price, id, design], descending: true };
       case PublicProductSort.Relevance:
-        return { keys: [{ expression: score, type: sql`float8` }, id], descending: true };
+        return { keys: [{ expression: score, type: sql`float8` }, id, design], descending: true };
     }
   }
 }

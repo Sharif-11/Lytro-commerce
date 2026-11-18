@@ -19,4 +19,6 @@ export const publicStorefrontSchema = z.object({
   categories: z.array(storefrontTargetSchema),
   products: z.array(storefrontTargetSchema),
   preview: z.boolean(),
+  // DC-2: each design of a product its own card in the shop's lists.
+  designCards: z.boolean(),
 });

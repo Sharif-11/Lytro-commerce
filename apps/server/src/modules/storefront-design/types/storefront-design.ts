@@ -3,7 +3,13 @@ import type {
   StorefrontSaleSummary,
   StorefrontTargetRow,
 } from '@lytronix/db';
-import type { StorefrontDesign, StorefrontSection, StorefrontThemeKey } from '@lytronix/validators';
+import type {
+  StockState,
+  StorefrontCardMode,
+  StorefrontDesign,
+  StorefrontSection,
+  StorefrontThemeKey,
+} from '@lytronix/validators';
 import type { ImageView } from '../../../common/media-links';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
@@ -56,6 +62,36 @@ export interface PublicStorefrontDesign {
   products: StorefrontTargetView[];
   /** SB-12: drawn from the draft, through a preview link. */
   preview: boolean;
+  /** DC-2: each design of a product its own card in the shop's lists. */
+  designCards: boolean;
+}
+
+/** DC-6: one card of the shop as the Product order screen shows it. */
+export interface StorefrontCardView {
+  productId: string;
+  /** The design it shows; null for a product's own card. */
+  designId: string | null;
+  name: string;
+  /** For the seller's eyes: the design's name and number. */
+  designName: string | null;
+  designNumber: number | null;
+  price: string | null;
+  stockState: StockState;
+  /** False for a hidden product. */
+  active: boolean;
+  image: ImageView | null;
+  /** Whether the seller has placed it (DC-7). */
+  placed: boolean;
+  /** DC-8: whether it shows in the shop under its product's way; one not shown is listed so the way can change. */
+  shown: boolean;
+  /** DC-8: its product's way -- designs, compact or both -- for a product with designs to spread; null otherwise. */
+  mode: StorefrontCardMode | null;
+}
+
+/** DC-2, DC-6: the Product order screen's read -- the switch, and every card in its default lists' order. */
+export interface StorefrontCardsView {
+  designCards: boolean;
+  cards: StorefrontCardView[];
 }
 
 /** SB-12: a short-lived link to the draft. */

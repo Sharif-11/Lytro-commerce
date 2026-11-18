@@ -3,6 +3,7 @@ import type { Transaction } from '@lytronix/db';
 import {
   AuditAction,
   STOREFRONT_PHOTO_MIN_WIDTH,
+  StorefrontCardMode,
   ServerFieldProblemCode,
   startingDesign,
   startingTheme,
@@ -14,6 +15,7 @@ import {
   type StorefrontDesign,
 } from '@lytronix/validators';
 import { ApiError, FieldsError, type InvalidField } from '../../../common/api-error';
+import { CatalogueVersion } from '../../catalogue/services/catalogue-version';
 import { CatalogueActivity } from '../../catalogue/services/catalogue-activity';
 import { CatalogueImages } from '../../catalogue/services/catalogue-images';
 import type { CatalogueActor } from '../../catalogue/types/catalogue';
@@ -22,6 +24,7 @@ import type { StorefrontDesignStore } from '../ports/storefront-design-store';
 import { STOREFRONT_DESIGN_STORE } from '../tokens';
 import type {
   PublicStorefrontDesign,
+  StorefrontCardsView,
   StorefrontDesignRecord,
   StorefrontEditorView,
   StorefrontPreviewLink,
@@ -69,6 +72,7 @@ export class StorefrontDesignService {
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(EdgePurges) private readonly edge: EdgePurges,
     @Inject(StorefrontPreviewLinks) private readonly previews: StorefrontPreviewLinks,
+    @Inject(CatalogueVersion) private readonly version: CatalogueVersion,
   ) {}
 
   /** SB-12: the editor's read. */
@@ -186,8 +190,93 @@ export class StorefrontDesignService {
         categories: targets.categories.filter((row) => row.shown).map(targetView),
         products: targets.products.filter((row) => row.shown).map(targetView),
         preview,
+        designCards: row?.designCards ?? true,
       };
     });
+  }
+
+  /** DC-2, DC-6: the Product order screen's read -- the switch, and every card in its default lists' order. */
+  cards(tenantId: string): Promise<StorefrontCardsView> {
+    return this.store.run((tx) => this.cardsIn(tx, tenantId));
+  }
+
+  /**
+   * DC-6: the seller's order, whole -- each card named once and each a card of the shop now (a product or design added
+   * meanwhile may be left out: it stays first, newest first, until placed). The shop's lists show it at once: the
+   * catalogue's version moves and its pages leave the edge.
+   */
+  saveOrder(
+    tenantId: string,
+    cards: readonly { productId: string; designId: string | null }[],
+    modes: readonly { productId: string; mode: StorefrontCardMode }[] = [],
+  ): Promise<StorefrontCardsView> {
+    return this.store.run(async (tx) => {
+      await this.store.lock(tx, tenantId);
+      const designs = await this.store.designCards(tx, tenantId);
+      const candidates = await this.store.cards(tx, tenantId, designs);
+      const known = new Set(candidates.map(cardKey));
+      // DC-8: only a product with designs to spread has a way.
+      const spreadable = new Set(
+        candidates.filter((card) => card.mode !== null).map((card) => card.productId),
+      );
+      const named = cards.map(cardKey);
+      const products = modes.map((each) => each.productId);
+      if (
+        new Set(named).size !== named.length ||
+        named.some((key) => !known.has(key)) ||
+        new Set(products).size !== products.length ||
+        products.some((id) => !spreadable.has(id))
+      ) {
+        throw new FieldsError([
+          {
+            field: 'cards',
+            problem: ServerFieldProblemCode.NotFound,
+            messageKey: 'StorefrontCardsChanged',
+          },
+        ]);
+      }
+      await this.store.replaceCardModes(tx, tenantId, modes);
+      await this.store.replaceCardPositions(tx, tenantId, cards);
+      await this.version.bump(tx, tenantId);
+      return this.cardsIn(tx, tenantId);
+    });
+  }
+
+  /** DC-2: each design its own card, or one card per product -- at once, every list of the shop. */
+  setDesignCards(tenantId: string, on: boolean): Promise<StorefrontCardsView> {
+    return this.store.run(async (tx) => {
+      await this.store.lock(tx, tenantId);
+      await this.store.setDesignCards(tx, tenantId, on);
+      await this.version.bump(tx, tenantId);
+      return this.cardsIn(tx, tenantId);
+    });
+  }
+
+  private async cardsIn(tx: Transaction, tenantId: string): Promise<StorefrontCardsView> {
+    const designCards = await this.store.designCards(tx, tenantId);
+    const rows = await this.store.cards(tx, tenantId, designCards);
+    const images = await this.images.viewsOf(
+      tx,
+      tenantId,
+      rows.flatMap((row) => (row.coverMediaId === null ? [] : [row.coverMediaId])),
+    );
+    return {
+      designCards,
+      cards: rows.map((row) => ({
+        productId: row.productId,
+        designId: row.designId,
+        name: row.name,
+        designName: row.designName,
+        designNumber: row.designNumber,
+        price: row.price,
+        stockState: row.stockState,
+        active: row.active,
+        image: row.coverMediaId === null ? null : (images.get(row.coverMediaId) ?? null),
+        placed: row.placed,
+        shown: row.shown,
+        mode: modeOf(row.mode),
+      })),
+    };
   }
 
   /** SB-9: what the shop has on sale now, for the announcement that writes itself. */
@@ -313,4 +402,14 @@ export class StorefrontDesignService {
       publishedAt: step.publishedAt !== undefined ? step.publishedAt : row.publishedAt,
     });
   }
+}
+
+/** DC-6: a card as one value -- its product, and its design or none. */
+function cardKey(card: { productId: string; designId: string | null }): string {
+  return `${card.productId}:${card.designId ?? ''}`;
+}
+
+/** DC-8: a stored way as the type, any other value (none) as no way. */
+function modeOf(value: string | null): StorefrontCardMode | null {
+  return Object.values(StorefrontCardMode).find((mode) => mode === value) ?? null;
 }
