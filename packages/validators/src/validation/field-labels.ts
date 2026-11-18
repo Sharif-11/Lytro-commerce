@@ -201,6 +201,12 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   photos: { en: 'Photos', bn: 'ছবি' },
   design: { en: 'Design', bn: 'ডিজাইন' },
   designs: { en: 'Designs', bn: 'ডিজাইন' },
+  // PUT storefront/design/cards/order (STOREFRONT-BUILDER-PLAN DC-6, DC-8): the cards in order, each a product and its
+  // design or none, and each product's way of showing.
+  cards: { en: 'Product list', bn: 'প্রোডাক্ট লিস্ট' },
+  designId: { en: 'Design', bn: 'ডিজাইন' },
+  modes: { en: 'How products show', bn: 'প্রোডাক্ট যেভাবে দেখাবে' },
+  mode: { en: 'How it shows', bn: 'যেভাবে দেখাবে' },
   // A listed item's own id, whose meaning varies by its list (a design's, so far); its message names it.
   id: null,
   includeRetired: { en: 'Show retired', bn: 'রিটায়ার্ডগুলোও দেখান' },

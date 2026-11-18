@@ -14,6 +14,8 @@ export interface ListRequest {
   onSale: boolean;
   /** SB-9: only these products, in this order (a row the seller picked); null for any. */
   ids: string[] | null;
+  /** DC-1: each design of a product with two or more its own card. */
+  designs: boolean;
   cursor: string | null;
   limit: number;
 }
@@ -35,6 +37,7 @@ export function listRequestOf(query: PublicProductListQuery): ListRequest {
     inStock: query.inStock ?? false,
     onSale: query.onSale ?? false,
     ids: query.productIds ?? null,
+    designs: query.designs ?? false,
     // SB-9: a picked row is one page of exactly its products.
     cursor: query.productIds === undefined ? (query.cursor ?? null) : null,
     limit: query.productIds === undefined ? query.limit : query.productIds.length,
@@ -49,14 +52,16 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const PRICE = /^\d{1,8}(\.\d{1,2})?$/;
 const SCORE = /^-?\d+(\.\d+)?(e[+-]?\d+)?$/i;
 const QUANTITY = /^\d{1,11}(\.\d{1,3})?$/;
+// Every order ends with the card's design number (DC-1); featured starts with whether the seller placed it and where
+// (DC-7).
 const POSITIONS: Readonly<Record<PublicProductSort, readonly RegExp[]>> = {
-  [PublicProductSort.Featured]: [INTEGER, TIME, UUID],
-  [PublicProductSort.Newest]: [TIME, UUID],
-  [PublicProductSort.PriceLow]: [PRICE, UUID],
-  [PublicProductSort.PriceHigh]: [PRICE, UUID],
-  [PublicProductSort.Relevance]: [SCORE, UUID],
-  [PublicProductSort.Discount]: [INTEGER, TIME, UUID],
-  [PublicProductSort.BestSelling]: [QUANTITY, TIME, UUID],
+  [PublicProductSort.Featured]: [INTEGER, INTEGER, TIME, UUID, INTEGER],
+  [PublicProductSort.Newest]: [TIME, UUID, INTEGER],
+  [PublicProductSort.PriceLow]: [PRICE, UUID, INTEGER],
+  [PublicProductSort.PriceHigh]: [PRICE, UUID, INTEGER],
+  [PublicProductSort.Relevance]: [SCORE, UUID, INTEGER],
+  [PublicProductSort.Discount]: [INTEGER, TIME, UUID, INTEGER],
+  [PublicProductSort.BestSelling]: [QUANTITY, TIME, UUID, INTEGER],
 };
 
 /** CCH-11: where the next page starts, as an opaque token naming its order. */

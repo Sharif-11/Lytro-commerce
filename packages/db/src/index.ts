@@ -163,6 +163,8 @@ export {
 } from './repositories/brand/brand-identity.repository';
 export {
   StorefrontDesignRepository,
+  type StorefrontCardKey,
+  type StorefrontCardRow,
   type StorefrontDesignValues,
   type StorefrontSaleSummary,
   type StorefrontTargetRow,

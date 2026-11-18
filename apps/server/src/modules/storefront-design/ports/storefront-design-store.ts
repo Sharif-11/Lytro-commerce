@@ -1,4 +1,9 @@
-import type { StorefrontDesignValues, Transaction } from '@lytronix/db';
+import type {
+  StorefrontCardKey,
+  StorefrontCardRow,
+  StorefrontDesignValues,
+  Transaction,
+} from '@lytronix/db';
 import type {
   StorefrontDesignRecord,
   StorefrontSale,
@@ -34,4 +39,21 @@ export interface StorefrontDesignStore {
     tenantId: string,
     ids: readonly string[],
   ): Promise<Map<string, number | null>>;
+  /** DC-2: whether each design of a product is its own card (on unless the shop turned it off). */
+  designCards(tx: Transaction, tenantId: string): Promise<boolean>;
+  setDesignCards(tx: Transaction, tenantId: string, on: boolean): Promise<void>;
+  /** DC-6: every card of the shop's products not archived, in its default lists' order. */
+  cards(tx: Transaction, tenantId: string, designs: boolean): Promise<StorefrontCardRow[]>;
+  /** DC-8: each named product's way (the default kept as no row). */
+  replaceCardModes(
+    tx: Transaction,
+    tenantId: string,
+    modes: readonly { productId: string; mode: string }[],
+  ): Promise<void>;
+  /** DC-6: the seller's order, whole. */
+  replaceCardPositions(
+    tx: Transaction,
+    tenantId: string,
+    cards: readonly StorefrontCardKey[],
+  ): Promise<void>;
 }

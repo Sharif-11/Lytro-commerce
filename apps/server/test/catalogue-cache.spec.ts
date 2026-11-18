@@ -84,10 +84,13 @@ describe('public list requests (CCH-03, CCH-11)', () => {
       sort: PublicProductSort.Relevance,
       inStock: false,
       onSale: false,
+      designs: false,
       ids: null,
       cursor: null,
       limit: 24,
     });
+    // DC-1: design cards only when asked.
+    expect(listRequestOf({ designs: true, limit: 24 }).designs).toBe(true);
     expect(listRequestOf({ inStock: true, limit: 24 }).inStock).toBe(true);
     // SB-9: a picked row is one page of exactly its products, whatever cursor or limit came with it.
     const picked = ['0b9f6a3e-6f3c-4f7e-9d2a-1c2b3d4e5f60', '1c2b3d4e-5f60-4718-8293-a4b5c6d7e8f9'];
@@ -106,20 +109,32 @@ describe('public list requests (CCH-03, CCH-11)', () => {
   it("reads a cursor back only for its own order and with each position's form", () => {
     const id = '0b9f6a3e-6f3c-4f7e-9d2a-1c2b3d4e5f60';
     const time = '2026-10-21 10:00:00.123456+00';
-    const cursor = cursorOf(PublicProductSort.Featured, ['0', time, id]);
-    expect(positionOf(PublicProductSort.Featured, cursor)).toEqual(['0', time, id]);
+    // DC-7: featured starts with whether the card is placed and where; DC-1: every order ends with the design's number.
+    const featured = ['0', '-3', time, id, '-2'];
+    const cursor = cursorOf(PublicProductSort.Featured, featured);
+    expect(positionOf(PublicProductSort.Featured, cursor)).toEqual(featured);
     expect(positionOf(PublicProductSort.Newest, cursor)).toBeNull();
+    // A cursor from before design cards (no design number) starts over rather than being misread.
     expect(
-      positionOf(PublicProductSort.PriceLow, cursorOf(PublicProductSort.PriceLow, ['150.00', id])),
-    ).toEqual(['150.00', id]);
+      positionOf(PublicProductSort.Featured, cursorOf(PublicProductSort.Featured, ['0', time, id])),
+    ).toBeNull();
+    expect(
+      positionOf(
+        PublicProductSort.PriceLow,
+        cursorOf(PublicProductSort.PriceLow, ['150.00', id, '1']),
+      ),
+    ).toEqual(['150.00', id, '1']);
     expect(
       positionOf(
         PublicProductSort.Relevance,
-        cursorOf(PublicProductSort.Relevance, ['1.2e-05', id]),
+        cursorOf(PublicProductSort.Relevance, ['1.2e-05', id, '0']),
       ),
-    ).toEqual(['1.2e-05', id]);
+    ).toEqual(['1.2e-05', id, '0']);
     expect(
-      positionOf(PublicProductSort.Newest, cursorOf(PublicProductSort.Newest, ["'; DROP", id])),
+      positionOf(
+        PublicProductSort.Newest,
+        cursorOf(PublicProductSort.Newest, ["'; DROP", id, '0']),
+      ),
     ).toBeNull();
     expect(positionOf(PublicProductSort.Newest, 'not-a-cursor')).toBeNull();
   });

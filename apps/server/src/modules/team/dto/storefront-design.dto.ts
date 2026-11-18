@@ -1,8 +1,12 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import {
+  StockState,
+  StorefrontCardMode,
   StorefrontThemeKey,
   saveStorefrontDesignSchema,
+  storefrontCardOrderSchema,
+  storefrontDesignCardsSchema,
   storefrontDesignSchema,
 } from '@lytronix/validators';
 import { imageViewSchema } from '../../../common/dto/media-views.dto';
@@ -33,3 +37,30 @@ export class StorefrontEditorDto extends createZodDto(storefrontEditorSchema) {}
 // SB-12: a short-lived link to the draft.
 export const storefrontPreviewLinkSchema = z.object({ token: z.string(), expiresAt: z.string() });
 export class StorefrontPreviewLinkDto extends createZodDto(storefrontPreviewLinkSchema) {}
+
+// DC-6: one card of the shop as the Product order screen shows it.
+const storefrontCardSchema = z.object({
+  productId: z.string(),
+  designId: z.string().nullable(),
+  name: z.string(),
+  designName: z.string().nullable(),
+  designNumber: z.number().nullable(),
+  price: z.string().nullable(),
+  stockState: z.enum(StockState),
+  active: z.boolean(),
+  image: imageViewSchema.nullable(),
+  placed: z.boolean(),
+  shown: z.boolean(),
+  mode: z.enum(StorefrontCardMode).nullable(),
+});
+
+// GET storefront/design/cards (DC-2, DC-6): the switch, and every card in its default lists' order.
+const storefrontCardsSchema = z.object({
+  designCards: z.boolean(),
+  cards: z.array(storefrontCardSchema),
+});
+export class StorefrontCardsDto extends createZodDto(storefrontCardsSchema) {}
+
+export class StorefrontCardOrderDto extends createZodDto(storefrontCardOrderSchema) {}
+
+export class StorefrontDesignCardsDto extends createZodDto(storefrontDesignCardsSchema) {}

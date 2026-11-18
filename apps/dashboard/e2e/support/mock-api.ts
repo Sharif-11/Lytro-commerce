@@ -39,9 +39,13 @@ import { brandAnswer, brandWrite, drawnBrand, liveBrand, type BrandFixture } fro
 import { domainAnswer, domainWrite, noDomain, ownDomainOf, type DomainFixture } from './domain';
 import {
   BUILDER_PHOTOS,
+  cardsAnswer,
+  cardsWrite,
   designAnswer,
   designWrite,
+  drawnCards,
   drawnDesign,
+  type CardsFixture,
   type DesignFixture,
 } from './storefront-design';
 import {
@@ -173,6 +177,8 @@ export interface ShopState {
   domain?: DomainFixture | null;
   /** STOREFRONT-BUILDER-PLAN: the storefront design where it differs from the builder sketch's; the editor's writes change it. */
   design?: DesignFixture | null;
+  /** DC-6 to DC-8: the shop's cards where they differ from the sketch's Product list; its writes change them. */
+  cards?: CardsFixture | null;
   /** The shop's API keys where they differ from the prototype's three; the page's writes change them. */
   keys?: KeyFixture[] | null;
   /** Facebook and Meta where it differs from the prototype's connected shop; the page's writes change it. */
@@ -391,6 +397,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     brandShows: false,
     domain: null,
     design: null,
+    cards: null,
     keys: null,
     meta: null,
     identities: null,
@@ -584,6 +591,8 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   if (domain !== undefined) return domain;
   const design = designAnswer(path, (state.design ??= drawnDesign()));
   if (design !== undefined) return design;
+  const cards = cardsAnswer(path, (state.cards ??= drawnCards()));
+  if (cards !== undefined) return cards;
   if (path === '/api-keys') return state.keys ?? drawnKeys();
   const meta = metaAnswer(path, state.meta ?? drawnMeta());
   if (meta !== undefined) return meta;
@@ -1123,6 +1132,13 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       (state.design ??= drawnDesign()),
     );
     if (designed) return ok(designed.data);
+    const cardsSaved = cardsWrite(
+      method,
+      path,
+      request.postDataJSON() as Record<string, unknown> | null,
+      (state.cards ??= drawnCards()),
+    );
+    if (cardsSaved) return ok(cardsSaved.data);
     const saved = settingsWrite(
       method,
       path,

@@ -1,7 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ShopSettings, StorefrontDesign } from '@lytronix/validators';
+import type {
+  ShopSettings,
+  StorefrontCardOrderInput,
+  StorefrontDesign,
+} from '@lytronix/validators';
 import { tenantSession } from '@/session/tenant-session';
-import type { PreviewLink, StorefrontEditor } from '@/types/storefront-design';
+import type { PreviewLink, StorefrontCards, StorefrontEditor } from '@/types/storefront-design';
 import { ME_QUERY_KEY } from './me';
 import { SHOP_SETTINGS_QUERY_KEY } from './shop-settings';
 
@@ -91,6 +95,40 @@ export function useSetLogoImage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: SHOP_SETTINGS_QUERY_KEY });
+    },
+  });
+}
+
+export const CARDS_QUERY_KEY = ['storefront-cards'] as const;
+
+/** DC-2, DC-6: the switch, and every card of the shop in its default lists' order. */
+export function useStorefrontCards() {
+  return useQuery({
+    queryKey: CARDS_QUERY_KEY,
+    queryFn: () => tenantSession.client.get<StorefrontCards>('/storefront/design/cards'),
+  });
+}
+
+/** DC-6, DC-8: the seller's order and each product's way, whole; live at once. */
+export function useSaveCardOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: StorefrontCardOrderInput) =>
+      tenantSession.client.put<StorefrontCards>('/storefront/design/cards/order', input),
+    onSuccess: (cards) => {
+      queryClient.setQueryData(CARDS_QUERY_KEY, cards);
+    },
+  });
+}
+
+/** DC-2: each design its own card, or one card per product; live at once. */
+export function useSetDesignCards() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (on: boolean) =>
+      tenantSession.client.put<StorefrontCards>('/storefront/design/cards/designs', { on }),
+    onSuccess: (cards) => {
+      queryClient.setQueryData(CARDS_QUERY_KEY, cards);
     },
   });
 }

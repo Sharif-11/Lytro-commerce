@@ -6,7 +6,10 @@ import {
   galleryShapeOf,
   lineImageOf,
   photoCardsOf,
+  withDesign,
 } from '../src/lib/product/designs';
+import { cardHref, cardKey, spreadsDesigns } from '../src/lib/design/card-links';
+import { productQueryString } from '../src/lib/api/storefront-api';
 import { VariantChoice } from '../src/lib/product/variant-choice';
 
 // ATR-19, ATR-20 (PHOTO-DESIGNS-PLAN PD-4, PD-6, PD-7, PD-12, PD-17, PD-24, PD-28): a burka whose photos are its designs.
@@ -132,5 +135,33 @@ describe('what the page opens with (PD-4, PD-12, PD-24)', () => {
       variants.filter((each) => each.id !== 'd2-54'),
     );
     expect(fewer.canBuyWith({}, 'size', '54')).toBe(false);
+  });
+});
+
+describe('design cards in the lists (STOREFRONT-BUILDER-PLAN DC-1 to DC-3)', () => {
+  it("links a design's card to its product with the design named, and keeps a product's own card as before", () => {
+    expect(cardHref({ slug: 'irani-burka', designId: 'd2' })).toBe('/p/irani-burka?d=d2');
+    expect(cardHref({ slug: 'irani-burka', designId: null })).toBe('/p/irani-burka');
+    expect(cardHref({ slug: 'irani-burka' })).toBe('/p/irani-burka');
+    // One product's cards are told apart in a list.
+    expect(cardKey({ id: 'p1', designId: 'd2' })).not.toBe(cardKey({ id: 'p1', designId: 'd1' }));
+    expect(cardKey({ id: 'p1' })).toBe(cardKey({ id: 'p1', designId: null }));
+  });
+
+  it('asks for design cards only when the shop has them on, an older server read as off', () => {
+    expect(spreadsDesigns({ design: { designCards: true } })).toBe(true);
+    expect(spreadsDesigns({ design: { designCards: false } })).toBe(false);
+    expect(spreadsDesigns({ design: {} })).toBe(false);
+    expect(spreadsDesigns({})).toBe(false);
+    expect(productQueryString({ sort: 'newest', designs: true })).toBe('sort=newest&designs=true');
+    expect(productQueryString({ sort: 'newest', designs: false })).toBe('sort=newest');
+  });
+
+  it('opens the product with the linked design chosen, and leaves an unknown one unchosen (DC-3, PD-4)', () => {
+    const choice = new VariantChoice(options, variants);
+    const opened = withDesign(burka, choice.opening(null), 'd2');
+    expect(opened['design']).toBe('d2');
+    expect(withDesign(burka, choice.opening(null), 'gone')).toEqual(choice.opening(null));
+    expect(withDesign({ images: [], options: [sizes] }, {}, 'd2')).toEqual({});
   });
 });

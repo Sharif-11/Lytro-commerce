@@ -1,5 +1,7 @@
 import {
   AnnouncementItemKind,
+  StockState,
+  StorefrontCardMode,
   ProductRowLayout,
   ProductRowSource,
   STARTING_ANNOUNCEMENT_ITEMS,
@@ -13,7 +15,12 @@ import {
   type StorefrontDesign,
   type StorefrontSection,
 } from '@lytronix/validators';
-import type { StorefrontEditor } from '../../src/types/storefront-design';
+import type {
+  StorefrontCard,
+  StorefrontCards,
+  StorefrontEditor,
+} from '../../src/types/storefront-design';
+import { isShown, modesOf } from '../../src/views/design/card-order';
 import type { ImageFixture } from './settings';
 
 // STOREFRONT-BUILDER-PLAN SB-5, SB-12: the storefront design as the server answers it (GET /storefront/design), and the
@@ -247,6 +254,105 @@ export function designWrite(
         ? { id: body.mediaId, urls: { main: PIXEL, thumbnail: PIXEL } }
         : null;
     return { data: {} };
+  }
+  return undefined;
+}
+
+/** DC-6 to DC-8: the shop's cards as the Product list reads them, kept as the page's writes change them. */
+export type CardsFixture = StorefrontCards;
+
+function sellerCard(
+  productId: string,
+  name: string,
+  photo: string,
+  price: string,
+  more: Partial<StorefrontCard> = {},
+): StorefrontCard {
+  const url = `${BUILDER_PHOTOS}${photo}.jpg`;
+  return {
+    productId,
+    designId: null,
+    name,
+    designName: null,
+    designNumber: null,
+    price,
+    stockState: StockState.In,
+    active: true,
+    image: { id: `m-${photo}`, urls: { main: url, thumbnail: url } },
+    placed: false,
+    shown: true,
+    mode: null,
+    ...more,
+  };
+}
+
+/**
+ * The sketch's Product list (`e-order`): Megh Fashion's cards, the Printed shirt in three designs (its third sold out)
+ * spread as cards and its own card not shown, and a hidden Linen panjabi kept in its place.
+ */
+export function drawnCards(): CardsFixture {
+  const shirt = { mode: StorefrontCardMode.Designs };
+  const design = (n: number, photo: string, more: Partial<StorefrontCard> = {}) =>
+    sellerCard('p-shirt', 'Printed shirt', photo, '1150.00', {
+      ...shirt,
+      designId: `d-shirt-${String(n)}`,
+      designName: `Design ${String(n)}`,
+      designNumber: n,
+      ...more,
+    });
+  return {
+    designCards: true,
+    cards: [
+      sellerCard('p-panjabi', 'Embroidered panjabi', 'fashion-4-tall', '1450.00'),
+      sellerCard('p-shirt', 'Printed shirt', 'fashion-3-tall', '1150.00', {
+        ...shirt,
+        shown: false,
+      }),
+      design(1, 'fashion-3-tall'),
+      sellerCard('p-kurti', 'Chikankari kurti', 'fashion-5-tall', '1250.00'),
+      design(2, 'fashion-7-tall'),
+      sellerCard('p-saree', 'Cotton saree', 'fashion-6-tall', '2200.00'),
+      design(3, 'fashion-1-tall', { stockState: StockState.Out }),
+      sellerCard('p-linen', 'Linen panjabi', 'fashion-4', '1690.00', { active: false }),
+    ],
+  };
+}
+
+const keyOf = (card: { productId: string; designId: string | null }) =>
+  `${card.productId}:${card.designId ?? ''}`;
+
+/** GET storefront/design/cards, else undefined. */
+export function cardsAnswer(path: string, fixture: CardsFixture): unknown {
+  return path === '/storefront/design/cards' ? fixture : undefined;
+}
+
+/** The Product list's writes: the order and the ways, and the switch. */
+export function cardsWrite(
+  method: string,
+  path: string,
+  body: Record<string, unknown> | null,
+  fixture: CardsFixture,
+): { data: unknown } | undefined {
+  if (method === 'PUT' && path === '/storefront/design/cards/order') {
+    const modes = (body?.['modes'] ?? []) as { productId: string; mode: StorefrontCardMode }[];
+    const named = (body?.['cards'] ?? []) as { productId: string; designId: string | null }[];
+    const byKey = new Map(fixture.cards.map((card) => [keyOf(card), card]));
+    const way = {
+      ...modesOf(fixture.cards),
+      ...Object.fromEntries(modes.map((m) => [m.productId, m.mode])),
+    };
+    const placed = named.flatMap((each) => byKey.get(keyOf(each)) ?? []);
+    const rest = fixture.cards.filter((card) => !placed.includes(card));
+    fixture.cards = [...placed, ...rest].map((card) => {
+      const mode = card.mode === null ? null : (way[card.productId] ?? card.mode);
+      const next = { ...card, mode, placed: placed.includes(card) };
+      return { ...next, shown: isShown({ ...next, shown: card.shown }, way) };
+    });
+    return { data: fixture };
+  }
+  if (method === 'PUT' && path === '/storefront/design/cards/designs') {
+    fixture.designCards = body?.['on'] === true;
+    return { data: fixture };
   }
   return undefined;
 }

@@ -1,3 +1,4 @@
+import { spreadsDesigns } from '@/lib/design/card-links';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
@@ -40,7 +41,12 @@ export default withBusyPage(async function CategoryPage({ params, searchParams }
   if (!found) notFound();
   const { category } = found;
   const listed = listParams(query, 'featured');
-  const asked = { category: category.slug, sort: listed.sort, inStock: listed.inStock };
+  const asked = {
+    category: category.slug,
+    sort: listed.sort,
+    inStock: listed.inStock,
+    designs: spreadsDesigns(page.info),
+  };
   const list = await storefrontApi.products(page.shop, page.shopper, asked);
   if (list === null) notFound();
 

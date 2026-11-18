@@ -266,12 +266,20 @@ describe("one product's charge, in the form the edge keeps", () => {
 });
 
 describe("the shopper's own link and area, read in the browser", () => {
-  it('takes the `?v=` link and the remembered area, and nothing else', () => {
+  it("takes the `?v=` link, a design card's `?d=` and the remembered area, and nothing else", () => {
     expect(browserOpening('?v=abc&fbclid=x', 'lytro-lang=bn; lytro-area=42')).toEqual({
       linkedVariantId: 'abc',
+      linkedDesignId: null,
       areaId: 42,
     });
-    expect(browserOpening('', 'lytro-area=bad')).toEqual({ linkedVariantId: null, areaId: null });
-    expect(browserOpening('?v=', '')).toEqual({ linkedVariantId: null, areaId: null });
+    // STOREFRONT-BUILDER-PLAN DC-3: a design card's link names its design.
+    expect(browserOpening('?d=d2', '')).toEqual({
+      linkedVariantId: null,
+      linkedDesignId: 'd2',
+      areaId: null,
+    });
+    const none = { linkedVariantId: null, linkedDesignId: null, areaId: null };
+    expect(browserOpening('', 'lytro-area=bad')).toEqual(none);
+    expect(browserOpening('?v=&d=', '')).toEqual(none);
   });
 });
