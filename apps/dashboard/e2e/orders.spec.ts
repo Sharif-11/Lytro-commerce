@@ -742,10 +742,10 @@ test('Print label: 3 × 3 with the items, 2 × 3 without, the size kept for next
     'aria-checked',
     'true',
   );
-  await expect(print).toContainText('#261031-0047');
-  await expect(print).toContainText('COD ৳3,470');
+  await expect(print).toContainText('Order261031-0047');
+  await expect(print).toContainText('Cash on delivery৳3,470');
   await expect(print).toContainText('2 items: Cotton T-shirt ×2, Eid combo ×1');
-  await expect(print.getByRole('img', { name: '261031-0047' })).toBeVisible();
+  await expect(print.getByRole('img', { name: '261031-0047', exact: true })).toBeVisible();
   await print.getByRole('radio', { name: '2 × 3 in' }).click();
   await expect(print).not.toContainText('2 items:');
   await print.getByRole('button', { name: 'Print', exact: true }).click();
@@ -774,11 +774,37 @@ test("a shipped order's label names the merchant, courier, tracking code and wei
   await fromMenu(page, 'Print label');
   const print = sheet(page, 'Print label');
   await expect(print).toContainText('Megh Fashion');
-  await expect(print).toContainText('#261031-0047');
-  await expect(print).toContainText('Pathao');
-  await expect(print).toContainText('PTH-88213');
-  await expect(print).toContainText('Weight 1.5 kg');
-  await expect(print).toContainText('COD');
+  await expect(print).toContainText('Order261031-0047');
+  await expect(print).toContainText('CourierPathao');
+  await expect(print).toContainText('IDPTH-88213');
+  await expect(print).toContainText('Weight1.5 kg');
+  await expect(print).toContainText('Cash on delivery');
+  // Sent by hand, the courier's own ID isn't Lytro's to trust: the bars and the QR hold the order number.
+  await expect(print.getByRole('img', { name: '261031-0047', exact: true })).toBeVisible();
+  await expect(print.getByRole('img', { name: 'QR code: 261031-0047' })).toBeVisible();
+});
+
+test("a label booked through Lytro carries the courier's consignment ID in its barcode and QR (§7.47)", async ({
+  page,
+}) => {
+  await open(
+    page,
+    '/orders/o-47',
+    day((orders) => {
+      const sent = order(orders, 'o-47');
+      sent.status = 'shipped';
+      sent.parcel = { courierKey: 'steadfast', cod: 3470, consignmentId: '320306388' };
+    }),
+  );
+  await fromMenu(page, 'Print label');
+  const print = sheet(page, 'Print label');
+  await expect(print.getByRole('img', { name: '320306388', exact: true })).toBeVisible();
+  await expect(print.getByRole('img', { name: 'QR code: 320306388' })).toBeVisible();
+  await expect(print).toContainText('CourierSteadfast');
+  await expect(print).toContainText('ID320306388');
+  await expect(print).toContainText('Order261031-0047');
+  await expect(print).toContainText(/Printed: \d\d\/\d\d\/\d\d \d\d:\d\d[ap]m/);
+  await expectAccessible(page);
 });
 
 test("orders picked in the list print their labels together, the list's only bulk action", async ({
