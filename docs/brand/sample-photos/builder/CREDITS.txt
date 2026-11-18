@@ -1,0 +1,38 @@
+Pexels License (https://www.pexels.com/license/): free to use, no attribution required. Cropped for the storefront
+builder sketch (lytro-storefront-builder.html): <name>.jpg 480x480, <name>-tall.jpg 480x640, <name>-wide.jpg 1280x560.
+Left out after a visual check: 15096784 (brand name on the label), 29611647 (a designer bottle), 39231289 (a cafe's
+logo), 5208827 (a console's controller).
+
+perfume-2   https://www.pexels.com/photo/three-perfume-bottles-264819/
+perfume-4   https://www.pexels.com/photo/clear-glass-perfume-bottle-with-red-lid-4735908/
+perfume-5   https://www.pexels.com/photo/a-clear-glass-perfume-bottle-with-brown-lid-on-white-surface-4735929/
+perfume-6   https://www.pexels.com/photo/a-perfume-bottle-with-an-empty-label-15574229/
+perfume-7   https://www.pexels.com/photo/luxurious-perfume-bottle-in-velvet-gift-box-36482359/
+perfume-8   https://www.pexels.com/photo/elegant-perfume-gift-box-with-fragrance-vials-30999129/
+beauty-1    https://www.pexels.com/photo/five-assorted-color-liquid-lipsticks-placed-on-glass-301367/
+beauty-2    https://www.pexels.com/photo/lipsticks-on-white-background-7256093/
+beauty-3    https://www.pexels.com/photo/top-view-of-facial-skincare-beauty-products-4841286/
+beauty-4    https://www.pexels.com/photo/cream-in-elegant-container-14473476/
+beauty-5    https://www.pexels.com/photo/different-types-of-facial-cream-on-a-white-surface-7818177/
+beauty-6    https://www.pexels.com/photo/brown-and-silver-makeup-brush-set-205923/
+beauty-7    https://www.pexels.com/photo/makeup-brushes-on-white-surface-7290613/
+food-1      https://www.pexels.com/photo/biryani-on-a-plate-9738983/
+food-2      https://www.pexels.com/photo/a-chicken-meal-in-a-stainless-steel-bowl-9609860/
+food-3      https://www.pexels.com/photo/burger-on-stainless-steel-tray-5374419/
+food-4      https://www.pexels.com/photo/delicious-margherita-pizza-with-fresh-toppings-31596394/
+food-5      https://www.pexels.com/photo/delicious-samosas-on-a-wooden-plate-36170557/
+food-6      https://www.pexels.com/photo/cold-coffee-drink-in-clear-drinking-glass-4869290/
+food-7      https://www.pexels.com/photo/a-tray-of-cakes-with-strawberries-and-blueberries-27497012/
+tech-1      https://www.pexels.com/photo/a-close-up-shot-of-a-laptop-on-a-white-background-10655906/
+tech-2      https://www.pexels.com/photo/black-pen-and-memo-pad-beside-the-laptop-9263102/
+tech-3      https://www.pexels.com/photo/selection-of-smartphones-21854468/
+tech-4      https://www.pexels.com/photo/black-wireless-earbuds-on-yellow-background-33797659/
+tech-5      https://www.pexels.com/photo/white-wireless-headphones-3394650/
+tech-6      https://www.pexels.com/photo/minimalist-white-smartwatch-on-display-31406903/
+fashion-1   https://www.pexels.com/photo/a-red-polo-shirt-blue-surface-11100293/
+fashion-2   https://www.pexels.com/photo/assorted-folded-polo-shirts-displayed-on-table-10952730/
+fashion-3   https://www.pexels.com/photo/back-view-of-man-in-shirt-and-sunglasses-19461514/
+fashion-4   https://www.pexels.com/photo/happy-men-in-traditional-clothing-8770997/
+fashion-5   https://www.pexels.com/photo/elegant-woman-in-chikankari-kurti-in-lucknow-28512787/
+fashion-6   https://www.pexels.com/photo/pretty-women-wearing-sarees-7920188/
+fashion-7   https://www.pexels.com/photo/studio-shot-of-model-wearing-shirt-in-palm-trees-print-19558385/
