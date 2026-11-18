@@ -23,6 +23,7 @@ import {
   changesOf,
   fillsItself,
   moveSection,
+  moveSectionTo,
   newSection,
   removeSection,
   sectionName,
@@ -71,6 +72,18 @@ describe('the section list (SB-8)', () => {
 describe('the edits a list makes (SB-8)', () => {
   const [first, second] = start.sections;
   if (!first || !second) throw new Error('a starting design has sections');
+
+  it('drags a section to any place, and leaves one not found or a place past the ends as it was (BL-1)', () => {
+    const ids = (design: typeof start) => design.sections.map((section) => section.id);
+    const [first, second, third] = ids(start);
+    if (!first || !second || !third) throw new Error('a starting design has three sections');
+    const moved = moveSectionTo(start, third, 0);
+    expect(ids(moved).slice(0, 3)).toEqual([third, first, second]);
+    expect(ids(moveSectionTo(moved, third, 2)).slice(0, 3)).toEqual([first, second, third]);
+    expect(moveSectionTo(start, 'gone', 0)).toBe(start);
+    expect(moveSectionTo(start, first, start.sections.length)).toBe(start);
+    expect(moveSectionTo(start, first, 0)).toBe(start);
+  });
 
   it('moves a section up or down, and leaves the ends as they are', () => {
     expect(moveSection(start, second.id, -1).sections.slice(0, 2)).toEqual([second, first]);

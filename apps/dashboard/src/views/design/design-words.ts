@@ -262,6 +262,17 @@ export function moveSection(design: StorefrontDesign, id: string, by: -1 | 1): S
   return replace(design, sections);
 }
 
+/** BL-1: a section dragged to a place in the list; one not found, or a place past either end, leaves it as it was. */
+export function moveSectionTo(design: StorefrontDesign, id: string, to: number): StorefrontDesign {
+  const at = design.sections.findIndex((section) => section.id === id);
+  if (at < 0 || to < 0 || to >= design.sections.length || to === at) return design;
+  const sections = [...design.sections];
+  const [moving] = sections.splice(at, 1);
+  if (!moving) return design;
+  sections.splice(to, 0, moving);
+  return replace(design, sections);
+}
+
 /** A section shown or hidden; hidden, it keeps everything it holds (SB-8). */
 export function toggleSection(design: StorefrontDesign, id: string): StorefrontDesign {
   return replace(
