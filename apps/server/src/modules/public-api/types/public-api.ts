@@ -89,7 +89,16 @@ export interface PublicShopView {
     facebookPage: string | null;
   };
   /** DLV-01, DLV-06: its delivery zones -- the charges before an area is chosen, and the names a limit shows. */
-  deliveryZones: { id: string; name: Bilingual; charge: string; noDelivery: boolean }[];
+  deliveryZones: {
+    id: string;
+    name: Bilingual;
+    charge: string;
+    noDelivery: boolean;
+    /** STOREFRONT-BUILDER-PLAN BL-10: the home zone, everywhere else, or one of the shop's own. */
+    kind: 'home' | 'fallback' | 'other';
+  }[];
+  /** BL-10: what each kilo past the first adds to a zone's charge ("0.00" for nothing). */
+  extraDeliveryChargePerKg: string;
 }
 
 /** LND-15 to LND-17: the shop's ad tracking as the dashboard sees it: never the Conversions API token. */

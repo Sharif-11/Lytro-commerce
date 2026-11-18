@@ -73,10 +73,34 @@ export enum StorefrontLinkKind {
   Product = 'product',
 }
 
+/** STOREFRONT-BUILDER-PLAN BL-6: how offer banners are laid out; null in a section means by their number. */
+export enum BannerLayout {
+  /** One under another, each the page's width. */
+  Full = 'full',
+  Side = 'side',
+  /** One big banner and two small ones beside it (under it on a phone). */
+  BigTwo = 'big_two',
+}
+
+/** BL-10: an item of the announcement bar: one of the three the shop's data writes, or the seller's own line. */
+export enum AnnouncementItemKind {
+  CashOnDelivery = 'cash_on_delivery',
+  Delivery = 'delivery',
+  Offers = 'offers',
+  Own = 'own',
+}
+
 // SB-8's limits. Every text has a longest length (SEC-12).
 export const STOREFRONT_SECTIONS_MAX = 12;
 export const STOREFRONT_HERO_SLIDES_MAX = 3;
-export const STOREFRONT_OFFER_BANNERS_MAX = 2;
+// BL-2: the slide-and-tiles hero's tiles.
+export const STOREFRONT_HERO_TILES = 2;
+// BL-7: up to three banners, the seller's own or filling themselves.
+export const STOREFRONT_OFFER_BANNERS_MAX = 3;
+// BL-10: the bar's items, its three automatic ones among them.
+export const STOREFRONT_ANNOUNCEMENT_ITEMS_MAX = 6;
+// BL-18: a line of the seller's own, short enough that two fit a phone's bar.
+export const STOREFRONT_ANNOUNCEMENT_LINE_MAX = 40;
 export const STOREFRONT_TESTIMONIALS_MAX = 6;
 export const STOREFRONT_PICKED_PRODUCTS_MAX = 12;
 export const STOREFRONT_ROW_COUNTS = [4, 6, 8, 12] as const;
@@ -86,7 +110,6 @@ export const STOREFRONT_KICKER_MAX = 40;
 export const STOREFRONT_BANNER_HEADLINE_MAX = 40;
 export const STOREFRONT_DESCRIPTION_MAX = 140;
 export const STOREFRONT_BUTTON_MAX = 24;
-export const STOREFRONT_ANNOUNCEMENT_MAX = 120;
 export const STOREFRONT_TITLE_MAX = 60;
 export const STOREFRONT_QUOTE_MAX = 240;
 export const STOREFRONT_PERSON_MAX = 60;
@@ -109,17 +132,68 @@ export const STOREFRONT_PREVIEW_MINUTES = 30;
 const words = (max: number) => z.string().trim().min(1).max(max);
 const maybeWords = (max: number) => words(max).nullable();
 
+const onSaleLink = z.object({ kind: z.literal(StorefrontLinkKind.OnSale) }).strict();
+const justInLink = z.object({ kind: z.literal(StorefrontLinkKind.JustIn) }).strict();
+const bestSellersLink = z.object({ kind: z.literal(StorefrontLinkKind.BestSellers) }).strict();
+const categoryLink = z
+  .object({ kind: z.literal(StorefrontLinkKind.Category), categoryId: catalogueIdSchema })
+  .strict();
+
 /** SB-16: a button's target. */
 export const storefrontLinkSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal(StorefrontLinkKind.OnSale) }).strict(),
-  z.object({ kind: z.literal(StorefrontLinkKind.JustIn) }).strict(),
-  z.object({ kind: z.literal(StorefrontLinkKind.BestSellers) }).strict(),
-  z
-    .object({ kind: z.literal(StorefrontLinkKind.Category), categoryId: catalogueIdSchema })
-    .strict(),
+  onSaleLink,
+  justInLink,
+  bestSellersLink,
+  categoryLink,
   z.object({ kind: z.literal(StorefrontLinkKind.Product), productId: catalogueIdSchema }).strict(),
 ]);
 export type StorefrontLink = z.infer<typeof storefrontLinkSchema>;
+
+/**
+ * BL-3, BL-9: what a hero tile or a banner filling itself shows: a collection of the shop's -- on sale, just in, best
+ * sellers or one category -- drawn from its data and opened by a tap. A button's targets, short of one product.
+ */
+export const storefrontCollectionSchema = z.discriminatedUnion('kind', [
+  onSaleLink,
+  justInLink,
+  bestSellersLink,
+  categoryLink,
+]);
+export type StorefrontCollection = z.infer<typeof storefrontCollectionSchema>;
+
+/** BL-3, BL-5: what a hero filling itself shows: a product row's sources, short of a category or picks. */
+export const heroSourceSchema = z.union([
+  z.literal(ProductRowSource.OnSale),
+  z.literal(ProductRowSource.Newest),
+  z.literal(ProductRowSource.BestSellers),
+]);
+export type HeroSource = z.infer<typeof heroSourceSchema>;
+
+/** BL-6: the layouts a number of banners can take, the number's own last. */
+export const BANNER_LAYOUTS: Readonly<Record<number, readonly BannerLayout[]>> = {
+  1: [BannerLayout.Full],
+  2: [BannerLayout.Full, BannerLayout.Side],
+  3: [BannerLayout.Full, BannerLayout.Side, BannerLayout.BigTwo],
+};
+
+/** BL-6, BL-15: how this many banners are laid out: the seller's pick while it fits, else the number's own. */
+export function bannerLayoutFor(count: number, chosen: BannerLayout | null): BannerLayout {
+  const fits = BANNER_LAYOUTS[count] ?? [BannerLayout.Full];
+  if (chosen !== null && fits.includes(chosen)) return chosen;
+  return fits.at(-1) ?? BannerLayout.Full;
+}
+
+/** BL-3: a hero's tiles to start with: the offers, and what is just in. */
+export const STARTING_HERO_TILES: readonly StorefrontCollection[] = [
+  { kind: StorefrontLinkKind.OnSale },
+  { kind: StorefrontLinkKind.JustIn },
+];
+/** BL-9: a new banners section's collections on auto: the offers, what is just in, the best sellers. */
+export const STARTING_BANNER_COLLECTIONS: readonly StorefrontCollection[] = [
+  { kind: StorefrontLinkKind.OnSale },
+  { kind: StorefrontLinkKind.JustIn },
+  { kind: StorefrontLinkKind.BestSellers },
+];
 
 /**
  * SB-15: a photo the seller uploaded, with its focal point in percent of the width and the height: a phone keeps a
@@ -170,12 +244,43 @@ export type Testimonial = z.infer<typeof testimonialSchema>;
 // Every section has an ID of its own (so the editor can point at it) and can be hidden without losing its content.
 const sectionBase = { id: z.guid(), visible: z.boolean() };
 
+const automaticItem = <K extends AnnouncementItemKind>(kind: K) =>
+  z.object({ kind: z.literal(kind), visible: z.boolean() }).strict();
+
+/**
+ * BL-10: an item of the bar: cash on delivery, the delivery charges or the offers on now, each written by the shop's
+ * data and turned on or off; or a line of the seller's own.
+ */
+export const announcementItemSchema = z.discriminatedUnion('kind', [
+  automaticItem(AnnouncementItemKind.CashOnDelivery),
+  automaticItem(AnnouncementItemKind.Delivery),
+  automaticItem(AnnouncementItemKind.Offers),
+  z
+    .object({
+      kind: z.literal(AnnouncementItemKind.Own),
+      text: words(STOREFRONT_ANNOUNCEMENT_LINE_MAX),
+    })
+    .strict(),
+]);
+export type AnnouncementItem = z.infer<typeof announcementItemSchema>;
+
+/** BL-10: the bar's three automatic items, each once, in the order a new bar lists them. */
+export const AUTOMATIC_ANNOUNCEMENT_ITEMS = [
+  AnnouncementItemKind.CashOnDelivery,
+  AnnouncementItemKind.Delivery,
+  AnnouncementItemKind.Offers,
+] as const;
+
+/** BL-10: a new bar: its three automatic items, all on. */
+export const STARTING_ANNOUNCEMENT_ITEMS: readonly AnnouncementItem[] =
+  AUTOMATIC_ANNOUNCEMENT_ITEMS.map((kind) => ({ kind, visible: true }));
+
 const announcementSection = z
   .object({
     ...sectionBase,
     kind: z.literal(StorefrontSectionKind.Announcement),
-    // SB-9: null is the shop's own line: its offers and its Dhaka delivery fee.
-    text: maybeWords(STOREFRONT_ANNOUNCEMENT_MAX),
+    // BL-10: shown two at a time, in this order; the offers only while something is on sale.
+    items: z.array(announcementItemSchema).max(STOREFRONT_ANNOUNCEMENT_ITEMS_MAX),
   })
   .strict();
 
@@ -183,10 +288,14 @@ const heroSection = z
   .object({
     ...sectionBase,
     kind: z.literal(StorefrontSectionKind.Hero),
-    // SB-9: auto shows the three biggest discounts (or, with none on sale, the newest products), each its own photo.
+    // SB-9, BL-3: auto shows three of the source's products, each its own photo; the offers fall back to the newest
+    // with nothing on sale.
     fill: z.enum(StorefrontFill),
+    source: heroSourceSchema,
     design: z.enum(HeroDesign).nullable(),
     slides: z.array(heroSlideSchema).max(STOREFRONT_HERO_SLIDES_MAX),
+    // BL-2, BL-3: the slide-and-tiles design's tiles, beside the slide (under it on a phone).
+    tiles: z.array(storefrontCollectionSchema).length(STOREFRONT_HERO_TILES),
   })
   .strict();
 
@@ -218,8 +327,11 @@ const offerBannersSection = z
   .object({
     ...sectionBase,
     kind: z.literal(StorefrontSectionKind.OfferBanners),
-    // SB-9: auto is two tiles from the shop's data: the biggest saving, and the newest product.
+    // SB-9, BL-9: auto draws one banner per collection, from the shop's data.
     fill: z.enum(StorefrontFill),
+    // BL-6: null lays them out by their number (bannerLayoutFor).
+    layout: z.enum(BannerLayout).nullable(),
+    collections: z.array(storefrontCollectionSchema).min(1).max(STOREFRONT_OFFER_BANNERS_MAX),
     banners: z.array(storefrontBannerSchema).max(STOREFRONT_OFFER_BANNERS_MAX),
   })
   .strict();
@@ -276,6 +388,14 @@ function refuse(ctx: z.RefinementCtx, path: (string | number)[], message: string
 /** SB-8, SB-9: what one section's fields must agree on, past their own shapes. */
 function sectionProblems(section: StorefrontSection, at: number, ctx: z.RefinementCtx): void {
   switch (section.kind) {
+    case StorefrontSectionKind.Announcement:
+      // BL-10: each automatic item once, so the editor has its switch.
+      for (const kind of AUTOMATIC_ANNOUNCEMENT_ITEMS) {
+        if (section.items.filter((item) => item.kind === kind).length !== 1) {
+          refuse(ctx, ['sections', at, 'items'], `The bar lists "${kind}" once.`);
+        }
+      }
+      return;
     case StorefrontSectionKind.Hero:
       if (section.fill === StorefrontFill.Own && section.slides.length === 0) {
         refuse(ctx, ['sections', at, 'slides'], 'Add a slide, or let the hero fill itself.');
@@ -338,6 +458,56 @@ export const storefrontDesignSchema = z
   });
 export type StorefrontDesign = z.infer<typeof storefrontDesignSchema>;
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** BL-18: a line cut to fit, at its last word break where one is near the end. */
+function cutLine(text: string, max: number): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= max) return trimmed;
+  const cut = trimmed.slice(0, max);
+  const space = cut.lastIndexOf(' ');
+  return (space > max / 2 ? cut.slice(0, space) : cut).trim();
+}
+
+/** The bar's one line, as it was saved before BL-10, as its list of items. */
+function announcementItemsOf(text: unknown): AnnouncementItem[] {
+  if (typeof text !== 'string' || text.trim() === '') return [...STARTING_ANNOUNCEMENT_ITEMS];
+  // The seller's own line stood alone, without the shop's offers and delivery charges.
+  return [
+    ...AUTOMATIC_ANNOUNCEMENT_ITEMS.map((kind) => ({ kind, visible: false })),
+    { kind: AnnouncementItemKind.Own, text: cutLine(text, STOREFRONT_ANNOUNCEMENT_LINE_MAX) },
+  ];
+}
+
+/** A section saved before the banner layouts (BL-2 to BL-18), in today's shape, as it looked; any other as it was. */
+function upgradeSection(section: unknown): unknown {
+  if (!isRecord(section)) return section;
+  switch (section.kind) {
+    case StorefrontSectionKind.Announcement: {
+      if ('items' in section) return section;
+      const { text, ...rest } = section;
+      return { ...rest, items: announcementItemsOf(text) };
+    }
+    case StorefrontSectionKind.Hero:
+      return { source: ProductRowSource.OnSale, tiles: [...STARTING_HERO_TILES], ...section };
+    case StorefrontSectionKind.OfferBanners:
+      // Filling itself it drew two: the biggest saving and the newest.
+      return { layout: null, collections: STARTING_BANNER_COLLECTIONS.slice(0, 2), ...section };
+    default:
+      return section;
+  }
+}
+
+/**
+ * BL-18: a stored design as this release reads it, before the schema does: a section saved before the banner layouts
+ * gains its new fields as it looked, and the bar's one line becomes its list.
+ */
+export function upgradeStorefrontDesign(stored: unknown): unknown {
+  if (!isRecord(stored) || !Array.isArray(stored.sections)) return stored;
+  return { ...stored, sections: stored.sections.map(upgradeSection) };
+}
+
 /** SB-15: one photo a design names, where it sits (API-16's dotted path), and whether it fills a wide band. */
 export interface StorefrontPhotoRef {
   sectionId: string;
@@ -390,11 +560,12 @@ export function storefrontPhotoRefs(design: StorefrontDesign): StorefrontPhotoRe
 /** SB-16: every category and product the design's buttons and rows name, in order, with the field that names it. */
 export function storefrontTargetRefs(design: StorefrontDesign): StorefrontTargetRef[] {
   const targets: StorefrontTargetRef[] = [];
-  const follow = (sectionId: string, at: string, link: StorefrontLink): void => {
+  // A button's target sits in its `link`; a collection is the target itself (`within` empty).
+  const follow = (sectionId: string, at: string, link: StorefrontLink, within = '.link'): void => {
     if (link.kind === StorefrontLinkKind.Category) {
       targets.push({
         sectionId,
-        field: `${at}.link.categoryId`,
+        field: `${at}${within}.categoryId`,
         kind: 'category',
         id: link.categoryId,
       });
@@ -402,7 +573,7 @@ export function storefrontTargetRefs(design: StorefrontDesign): StorefrontTarget
     if (link.kind === StorefrontLinkKind.Product) {
       targets.push({
         sectionId,
-        field: `${at}.link.productId`,
+        field: `${at}${within}.productId`,
         kind: 'product',
         id: link.productId,
       });
@@ -415,10 +586,18 @@ export function storefrontTargetRefs(design: StorefrontDesign): StorefrontTarget
         section.slides.forEach((slide, slideIndex) => {
           follow(section.id, `${at}.slides.${String(slideIndex)}`, slide.link);
         });
+        // BL-3: a tile showing a category.
+        section.tiles.forEach((tile, tileIndex) => {
+          follow(section.id, `${at}.tiles.${String(tileIndex)}`, tile, '');
+        });
         return;
       case StorefrontSectionKind.OfferBanners:
         section.banners.forEach((banner, bannerIndex) => {
           follow(section.id, `${at}.banners.${String(bannerIndex)}`, banner.link);
+        });
+        // BL-9: an automatic banner showing a category.
+        section.collections.forEach((collection, collectionIndex) => {
+          follow(section.id, `${at}.collections.${String(collectionIndex)}`, collection, '');
         });
         return;
       case StorefrontSectionKind.WideBanner:

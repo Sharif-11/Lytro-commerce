@@ -63,8 +63,13 @@ const publicShopViewSchema = z.object({
       name: z.object({ en: z.string(), bn: z.string() }),
       charge: z.string(),
       noDelivery: z.boolean(),
+      // STOREFRONT-BUILDER-PLAN BL-10: the home zone, everywhere else, or a zone of the shop's own, for the bar's
+      // delivery line ("inside up to ৳70 · outside up to ৳130").
+      kind: z.enum(['home', 'fallback', 'other']),
     }),
   ),
+  // BL-10: what a kilo over the first adds to any zone's charge; the bar says "up to" only without it (RAT-14).
+  extraDeliveryChargePerKg: z.string(),
 });
 class PublicShopViewDto extends createZodDto(publicShopViewSchema) {}
 class PublicShopQueryDto extends createZodDto(publicShopQuerySchema) {}
@@ -129,7 +134,9 @@ export class PublicShopController {
         name: zone.label,
         charge: zone.charge,
         noDelivery: zone.noDelivery,
+        kind: zone.isHome ? 'home' : zone.isFallback ? 'fallback' : 'other',
       })),
+      extraDeliveryChargePerKg: delivery.extraDeliveryChargePerKg,
     };
   }
 }
