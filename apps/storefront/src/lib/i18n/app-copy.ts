@@ -162,6 +162,10 @@ export const APP_COPY = {
   // STOREFRONT-BUILDER-PLAN: the designed home's words (docs/brand/lytro-storefront-builder.html). Delivery is the
   // range of the shop's own zones' charges, as the home said before: zones carry the shop's own names.
   sb_offer: ['অফার', 'Offer'],
+  sb_offers: ['অফার', 'Offers'],
+  sb_all: ['সব পণ্য', 'All products'],
+  sb_shop_h: ['কেনাকাটা', 'Shop'],
+  sb_contact: ['যোগাযোগ', 'Contact'],
   sb_offers_line: ['{n}টি পণ্যে {p}% পর্যন্ত ছাড় চলছে', 'Up to {p}% off on {n} products'],
   sb_delivery: ['ডেলিভারি {r}', 'Delivery {r}'],
   sb_shop_by: ['ক্যাটাগরি অনুযায়ী কিনুন', 'Shop by category'],

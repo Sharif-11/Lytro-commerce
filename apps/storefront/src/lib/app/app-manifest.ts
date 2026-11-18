@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { LYTRO_APP_COLORS } from '@lytronix/shared-types';
 import { shortNameOf } from '@lytronix/validators';
 import type { PublicShop } from '../api/storefront-api';
+import { frameBrand } from '../design/design-look';
 
 // SFT-14, CCH-10 (Slice 12c): the storefront installs as the shop's own app -- its plain name and icon, the dashboard's
 // app being the one marked "Admin" (TEN-17) -- scoped to the whole storefront, in the shop's colours.
@@ -32,11 +33,13 @@ export interface StorefrontManifest {
   icons: { src: string; sizes: string; type: 'image/png'; purpose: 'any' | 'maskable' }[];
 }
 
-/** What the app's icons show -- the name, the logo, the brand -- as a short fingerprint for their links, so a change
-    gives new icons at once. */
+/** What the app's icons show -- the name, the logo, the brand, the shop's own icon (STOREFRONT-BUILDER-PLAN SB-5) --
+    as a short fingerprint for their links, so a change gives new icons at once. A shop without an icon keeps the
+    fingerprint it had. */
 export function iconVersion(shop: PublicShop): string {
+  const icon = shop.icon ? `\u0000${shop.icon.id}` : '';
   return createHash('sha256')
-    .update(`${shop.name}\u0000${shop.logo?.id ?? ''}\u0000${shop.brand?.version ?? ''}`)
+    .update(`${shop.name}\u0000${shop.logo?.id ?? ''}\u0000${shop.brand?.version ?? ''}${icon}`)
     .digest('hex')
     .slice(0, 12);
 }
@@ -46,9 +49,10 @@ export function iconPath(shop: PublicShop, file: StoreIconFile): string {
   return `/icons/${file}?v=${iconVersion(shop)}`;
 }
 
-/** The theme colour a phone's bar and the app take: the shop's main colour while its identity shows, else Lytro's. */
+/** The theme colour a phone's bar and the app take: the shop's main colour while its identity shows, else its theme's
+    (STOREFRONT-BUILDER-PLAN SB-17), else Lytro's. */
 export function themeColor(shop: PublicShop): string {
-  return shop.brand?.colors.main ?? LYTRO_APP_COLORS.theme;
+  return frameBrand(shop)?.colors.main ?? LYTRO_APP_COLORS.theme;
 }
 
 export function storefrontManifest(shop: PublicShop): StorefrontManifest {
@@ -61,7 +65,7 @@ export function storefrontManifest(shop: PublicShop): StorefrontManifest {
     display: 'standalone',
     lang: 'bn',
     theme_color: themeColor(shop),
-    background_color: shop.brand?.colors.background ?? LYTRO_APP_COLORS.background,
+    background_color: frameBrand(shop)?.colors.background ?? LYTRO_APP_COLORS.background,
     icons: [
       { src: iconPath(shop, 'store-192.png'), sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: iconPath(shop, 'store-512.png'), sizes: '512x512', type: 'image/png', purpose: 'any' },

@@ -6,6 +6,7 @@ import { EdgeMark } from '@/components/edge-mark';
 import { OfflinePage } from '@/components/pages';
 import { ShopShell } from '@/components/shop-shell';
 import { listParams } from '@/lib/catalogue/browse';
+import { pageTheme } from '@/lib/design/design-look';
 import { loadFrame, loadShopPage, storefrontApi } from '@/lib/storefront';
 
 // STOREFRONT-DESIGN §3, Slice 12b: New arrivals, at /new -- every product, newest first, all or only what is in stock
@@ -54,6 +55,7 @@ export default withBusyPage(async function NewArrivalsPage({ searchParams }: Pro
         sortable={false}
         page={list ?? { products: [], nextCursor: null }}
         query={asked}
+        theme={pageTheme(page.info)}
       />
     </ShopShell>
   );

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { ListTheme } from '@/lib/design/list-theme';
 import { type ProductPage, type ProductQuery, productQueryString } from '@/lib/api/storefront-api';
 import { type ListParams, type ListSort, listHref } from '@/lib/catalogue/browse';
 import type { Words } from '@/lib/i18n/words';
@@ -17,6 +18,7 @@ export function ListView({
   sortable,
   page,
   query,
+  theme,
 }: {
   words: Words;
   heading: ReactNode;
@@ -27,6 +29,8 @@ export function ListView({
   sortable: boolean;
   page: ProductPage;
   query: ProductQuery;
+  /** STOREFRONT-BUILDER-PLAN SB-17: a designed shop's card and look; null, the storefront's own. */
+  theme?: ListTheme | null;
 }) {
   return (
     <>
@@ -57,6 +61,7 @@ export function ListView({
           nextCursor={page.nextCursor}
           query={query}
           now={Date.now()}
+          theme={theme}
         />
       ) : (
         <p className="sub">{words.t('no_results')}</p>

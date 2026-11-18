@@ -5,6 +5,8 @@ import {
   fontStack,
   STOREFRONT_THEMES,
   storefrontTokens,
+  type ProductCardStyle,
+  type StorefrontHeaderStyle,
   type StorefrontThemeDefinition,
   type StorefrontTokens,
 } from '@lytronix/validators';
@@ -76,6 +78,23 @@ export function designLook(design: PublicStorefrontDesign, brand: PublicBrand | 
   const variables: Record<string, string> = { '--fh': fontStack(heading), '--fb': fontStack(body) };
   for (const [name, value] of Object.entries(tokens)) variables[`--${name}`] = value;
   return { theme, variables, fontsUrl: brandFontsUrl([heading, body], HOSTED_FACES) };
+}
+
+/** SB-8, SB-17: what every page takes of its theme -- the header's and the card's styles and the look. */
+export interface PageTheme {
+  header: StorefrontHeaderStyle;
+  card: ProductCardStyle;
+  variables: Record<string, string>;
+}
+
+/** The page's theme; null where the server sent no design (an older server), when pages are drawn as before. */
+export function pageTheme(info: {
+  brand: PublicBrand | null;
+  design?: PublicStorefrontDesign;
+}): PageTheme | null {
+  if (!info.design) return null;
+  const look = designLook(info.design, info.brand);
+  return { header: look.theme.header, card: look.theme.card, variables: look.variables };
 }
 
 /**

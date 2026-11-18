@@ -4,7 +4,9 @@ import { deliveryRange, heroLine } from '@/lib/catalogue/browse';
 import type { DesignedHomeReads } from '@/lib/design/home-reads';
 import { money } from '@/lib/i18n/words';
 import { loadFrame, type OpenShopPage, type PageFrame, storefrontApi } from '@/lib/storefront';
+import { StorefrontSectionKind } from '@lytronix/validators';
 import { DesignedHome, loadDesignedHome } from '../design/designed-home';
+import { Announcement } from '../design/sections';
 import { Icon } from '../icon';
 import { ProductCard } from '../product-card';
 import { ShopShell } from '../shop-shell';
@@ -67,11 +69,23 @@ export function HomeView({
   const { words } = page;
   const design = page.info.design;
   if (design && home.designed) {
+    // SB-8: an announcement first on the page sits over the header, as the sketch draws it.
+    const [first, ...rest] = design.sections;
+    const leading = first?.kind === StorefrontSectionKind.Announcement ? first : null;
     return (
-      <ShopShell page={page} frame={frame} startCartOpen={startCartOpen} full notice={notice}>
+      <ShopShell
+        page={page}
+        frame={frame}
+        startCartOpen={startCartOpen}
+        full
+        notice={notice}
+        above={
+          leading ? <Announcement section={leading} info={page.info} words={words} /> : undefined
+        }
+      >
         <DesignedHome
           info={page.info}
-          design={design}
+          design={leading ? { ...design, sections: rest } : design}
           frame={frame}
           reads={home.designed}
           words={words}

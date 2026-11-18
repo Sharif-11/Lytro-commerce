@@ -18,9 +18,11 @@ import { describe, expect, it } from 'vitest';
 import type { ServerAnswer } from '../src/lib/api/server-api';
 import type { PublicBrand, PublicStorefrontDesign } from '../src/lib/api/storefront-api';
 import { productQueryString, StorefrontApi } from '../src/lib/api/storefront-api';
-import { designLook, frameBrand } from '../src/lib/design/design-look';
+import { iconVersion, themeColor } from '../src/lib/app/app-manifest';
+import { designLook, frameBrand, pageTheme } from '../src/lib/design/design-look';
 import { homeReadPlan, queryKey, rowQuery } from '../src/lib/design/home-reads';
 import { linkHref } from '../src/lib/design/links';
+import { firstLetter } from '../src/lib/design/marks';
 import { EdgeCachePolicy } from '../src/lib/edge/edge-cache';
 import { StorefrontEnvironment } from '../src/lib/env';
 
@@ -220,5 +222,45 @@ describe('the edge and the preview (SB-12, SB-16)', () => {
       '/v1/shop?preview=a%20b',
       '/v1/shop?preview=ended',
     ]);
+  });
+});
+
+describe('the rest of the shop in its theme (SB-5, SB-17)', () => {
+  const shop = {
+    name: 'মেঘ ফ্যাশন',
+    slug: 'megh',
+    metaPixelId: null,
+    logo: null,
+    contact: { phone: null, email: null, address: null },
+    deliveryZones: [],
+    brand: null,
+  };
+
+  it("marks a shop and a quote with their first whole letter, a Bangla letter's vowel sign kept", () => {
+    expect(firstLetter('মেঘ ফ্যাশন')).toBe('মে');
+    expect(firstLetter('  rupkotha')).toBe('R');
+    expect(firstLetter('')).toBe('');
+  });
+
+  it("gives the app's icons new links when the shop sets its own icon, and the same ones without", () => {
+    const before = iconVersion(shop);
+    expect(iconVersion({ ...shop, icon: null })).toBe(before);
+    const withIcon = iconVersion({
+      ...shop,
+      icon: { id: 'i1', urls: { main: 'm', thumbnail: 't' } },
+    });
+    expect(withIcon).not.toBe(before);
+  });
+
+  it("colours the phone's bar with the theme where no identity shows, and draws pages as before without a design", () => {
+    const soft = design([]);
+    expect(themeColor({ ...shop, design: soft })).toBe(
+      storefrontTokens(StorefrontThemeKey.Soft, 0)['main'],
+    );
+    expect(pageTheme({ brand: null })).toBeNull();
+    expect(pageTheme({ brand: null, design: soft })).toMatchObject({
+      header: STOREFRONT_THEMES[StorefrontThemeKey.Soft].header,
+      card: STOREFRONT_THEMES[StorefrontThemeKey.Soft].card,
+    });
   });
 });

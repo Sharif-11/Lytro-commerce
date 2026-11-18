@@ -6,6 +6,7 @@ import { EdgeMark } from '@/components/edge-mark';
 import { OfflinePage } from '@/components/pages';
 import { ShopShell } from '@/components/shop-shell';
 import { listParams } from '@/lib/catalogue/browse';
+import { pageTheme } from '@/lib/design/design-look';
 import { loadFrame, loadShopPage, storefrontApi } from '@/lib/storefront';
 
 // STOREFRONT-BUILDER-PLAN SB-9, SB-16: Best sellers, at /best -- every product, the most sold over the last 30 days of
@@ -54,6 +55,7 @@ export default withBusyPage(async function BestPage({ searchParams }: Props) {
         sortable={false}
         page={list ?? { products: [], nextCursor: null }}
         query={asked}
+        theme={pageTheme(page.info)}
       />
     </ShopShell>
   );

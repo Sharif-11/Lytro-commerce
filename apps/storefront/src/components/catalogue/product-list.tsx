@@ -12,6 +12,8 @@ import {
 import { type ListParams, type ListSort, listHref } from '@/lib/catalogue/browse';
 import { type Language, Words } from '@/lib/i18n/words';
 import { Icon } from '../icon';
+import type { ListTheme } from '@/lib/design/list-theme';
+import { ThemeCard } from '../design/theme-card';
 import { ProductCard } from '../product-card';
 import { Sheet } from '../product/sheets';
 
@@ -24,6 +26,7 @@ export function ProductList({
   nextCursor,
   query,
   now,
+  theme,
 }: {
   language: Language;
   products: Card[];
@@ -31,6 +34,8 @@ export function ProductList({
   /** What the list asks for, without its cursor. */
   query: ProductQuery;
   now: number;
+  /** STOREFRONT-BUILDER-PLAN SB-17: a designed shop's lists draw the theme's card; null, the storefront's own. */
+  theme?: ListTheme | null;
 }) {
   const words = useMemo(() => new Words(language), [language]);
   const [shown, setShown] = useState(products);
@@ -77,11 +82,27 @@ export function ProductList({
   }
   return (
     <>
-      <div className="grid">
-        {shown.map((product) => (
-          <ProductCard key={product.id} product={product} words={words} now={now} />
-        ))}
-      </div>
+      {theme ? (
+        <div className="sfb sfb-list" style={theme.variables}>
+          <div className="sb-grid">
+            {shown.map((product) => (
+              <ThemeCard
+                key={product.id}
+                product={product}
+                style={theme.card}
+                words={words}
+                now={now}
+              />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="grid">
+          {shown.map((product) => (
+            <ProductCard key={product.id} product={product} words={words} now={now} />
+          ))}
+        </div>
+      )}
       {after}
     </>
   );

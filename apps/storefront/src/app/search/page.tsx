@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { ProductList } from '@/components/catalogue/product-list';
+import { pageTheme } from '@/lib/design/design-look';
 import { EdgeMark } from '@/components/edge-mark';
 import { Icon } from '@/components/icon';
 import { OfflinePage } from '@/components/pages';
@@ -58,6 +59,7 @@ export default withBusyPage(async function SearchPage({ searchParams }: Props) {
           nextCursor={list.nextCursor}
           query={asked}
           now={Date.now()}
+          theme={pageTheme(page.info)}
         />
       </div>
     );

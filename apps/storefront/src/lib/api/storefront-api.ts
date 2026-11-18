@@ -154,6 +154,8 @@ export interface ProductVariant {
   id: string;
   optionIds: string[];
   price: string;
+  /** SB-21: the regular price struck through beside its price while it is on sale; absent from an older server. */
+  regularPrice?: string | null;
   stockState: StockState;
   available: boolean;
 }
@@ -176,6 +178,9 @@ export interface PublicProduct {
   description: string | null;
   minPrice: string | null;
   maxPrice: string | null;
+  /** SB-21: as the product's card shows them; absent from an older server. */
+  minRegularPrice?: string | null;
+  bestDiscount?: number;
   stockState: StockState;
   stockUnit: StockUnit;
   /** INV-24, UOM-04: whole packs only. */
