@@ -305,3 +305,35 @@ page, the shop's icon). The server's merged as #388.
 **Tests** prove each SB row against its words, with a sabotage pass on SB-12 (a draft is never public or cached) and on
 SB-9 (an ended offer leaves the hero). Each PR runs the checks in `ENGINEERING-STANDARDS.md` §7 and a real boot of the
 built server.
+
+## 5. Design cards and the product order (sketched 2026-11-18)
+
+The owner, 2026-11-18: "unwrap the product to populate the storefront ... spread each design with their variant in
+the storefront", then "the tenants can see the pre built product list in his dashboard, he can reorder product there
+which reflect ordering in customer storefront". A product's photo designs (PHOTO-DESIGNS-PLAN) each become their own
+card in the shop, and the seller sets the order of the cards. Sketch: `e-cards`, `e-order`, `e-spread` in
+`docs/brand/lytro-storefront-builder.html`; the product page opening with a design chosen is lytro-storefront.html's
+`product-photos-chosen`.
+
+| ID | Decision |
+|----|----------|
+| DC-1 | **Everywhere** (the owner): home rows, category pages, All products, New arrivals, On sale, Best sellers and search show one card per design of a product with two or more designs. One design or none: one card, as before. |
+| DC-2 | **One switch per shop, on by default** (the owner), in Settings > Storefront > Design ("Each design as its own card"). It is part of the design document, so turning it off or on is a draft change that Publish lists, and the preview shows it. |
+| DC-3 | **A design card opens the product page with that design chosen** (the owner): the tap on the card is the shopper's deliberate choice (PD rule "no mismatch"), and only the size is left to pick. The link is `/p/<slug>?d=<design>`, applied in the browser as `?v=` is (the edge keeps the page without its query). |
+| DC-4 | **No limit per row** (the owner): a product's designs all show, even if one product fills a home row. No random order. |
+| DC-5 | **A card is the product's name and the design's photo** -- no design words for the shopper (PD) -- with the design's own lowest price, its own saving and badge, and its own stock: a sold-out design leaves the lists as a sold-out product does. A category's count stays a count of products. |
+| DC-6 | **The seller's order** (the owner): a dashboard screen, Product order, lists every card -- each design apart, hidden and sold-out ones marked but kept in place -- in the shop's order. **Each card moves on its own; one order for the whole shop** (a category page shows it filtered). **Dragging on a computer; arrows and Move to top / Move to bottom on a phone** (the owner's go for dragging). Save order makes it live at once and clears the shop's pages from the edge. |
+| DC-7 | **Which lists follow it** (the owner): the default lists -- category pages, All products, and a home row of one category. New arrivals (newest), On sale (biggest saving), Best sellers (most sold) and search (best match) keep their own order. A card the seller hasn't placed -- a new product or design -- comes first, newest first, until it is moved. |
+
+**How it is built (one PR):**
+- **Storage:** the order is a list of cards kept per shop (product, and design or none, with its place), not
+  `products.sort_order`, since a design moves on its own. The switch is a field of the design document, read as on
+  when an older document has none.
+- **Public list (PRD-09):** with the switch on, the products list answers one entry per design: its card key, cover,
+  price, saving, badges and stock of that design. Featured, the default, follows the seller's order; the other sorts
+  are per card. Pages and counts are of cards. The answer format goes up, so a storefront and server out of step stay
+  correct.
+- **Storefront:** cards link with `?d=`; the product page chooses that design on opening.
+- **Dashboard:** the switch card on the design page, and the Product order screen (drag on a computer, arrows on a
+  phone, Save order).
+- **Requirements:** SFT-03 and PRD-09 are amended for design cards and the seller's order at the build.
