@@ -1,5 +1,6 @@
 'use client';
 
+import { cardKey } from '@/lib/design/card-links';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import {
@@ -87,7 +88,7 @@ export function ProductList({
           <div className="sb-grid">
             {shown.map((product) => (
               <ThemeCard
-                key={product.id}
+                key={cardKey(product)}
                 product={product}
                 style={theme.card}
                 words={words}
@@ -99,7 +100,7 @@ export function ProductList({
       ) : (
         <div className="grid">
           {shown.map((product) => (
-            <ProductCard key={product.id} product={product} words={words} now={now} />
+            <ProductCard key={cardKey(product)} product={product} words={words} now={now} />
           ))}
         </div>
       )}

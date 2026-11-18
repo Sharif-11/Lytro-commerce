@@ -577,6 +577,11 @@ export const MESSAGE_KEYS = [
   'StorefrontCategoryNotFound',
   'StorefrontProductNotFound',
   'RegularPriceBelowPrice',
+  // STOREFRONT-BUILDER-PLAN DC-2, DC-6 (2026-11-18): design cards, and the seller's order of the shop's cards.
+  'StorefrontCardsRetrieved',
+  'StorefrontOrderSaved',
+  'StorefrontDesignCardsSaved',
+  'StorefrontCardsChanged',
   // Phase 4 Slice 4.1: orders entered by staff, their calls, status and deletion (ORD-01 to ORD-14, ORD-51,
   // ORD-52), the idempotency key orders require (D4-8), and a product's splitting attributes once it has orders
   // (ATR-15).

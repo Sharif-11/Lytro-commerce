@@ -1,3 +1,4 @@
+import { cardKey, spreadsDesigns } from '@/lib/design/card-links';
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
@@ -24,7 +25,7 @@ const ALSO_LIKE = 8;
 
 interface Props {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ v?: string | string[] }>;
+  searchParams: Promise<{ v?: string | string[]; d?: string | string[] }>;
 }
 
 export const generateMetadata = withBusyMetadata(async ({ params }: Props): Promise<Metadata> => {
@@ -42,7 +43,7 @@ export const generateMetadata = withBusyMetadata(async ({ params }: Props): Prom
 });
 
 export default withBusyPage(async function ProductPage({ params, searchParams }: Props) {
-  const [{ slug }, { v }] = await Promise.all([params, searchParams]);
+  const [{ slug }, { v, d }] = await Promise.all([params, searchParams]);
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
   // SFT-16: a switched-off storefront answers its paths with not-found; landing pages are separate (/l/).
@@ -59,6 +60,7 @@ export default withBusyPage(async function ProductPage({ params, searchParams }:
   const related = primary
     ? await storefrontApi.products(page.shop, page.shopper, {
         category: primary.slug,
+        designs: spreadsDesigns(page.info),
         limit: ALSO_LIKE + 1,
       })
     : null;
@@ -85,6 +87,8 @@ export default withBusyPage(async function ProductPage({ params, searchParams }:
         shopPhone={page.info.contact.phone}
         chat={shopChatOf(page.info.contact)}
         linkedVariantId={opening.linkedVariantId}
+        // DC-3: a design card's link; on a page the edge keeps, the browser applies it with `?v=`.
+        linkedDesignId={!opening.openInBrowser && typeof d === 'string' && d.length > 0 ? d : null}
         areaId={opening.areaId}
         initialEstimate={opening.estimate}
         openInBrowser={opening.openInBrowser}
@@ -101,7 +105,7 @@ export default withBusyPage(async function ProductPage({ params, searchParams }:
               <div className="sb-rail">
                 {also.map((card) => (
                   <ThemeCard
-                    key={card.id}
+                    key={cardKey(card)}
                     product={card}
                     style={theme.card}
                     words={words}
@@ -113,7 +117,7 @@ export default withBusyPage(async function ProductPage({ params, searchParams }:
           ) : (
             <div className="rail">
               {also.map((card) => (
-                <ProductCard key={card.id} product={card} words={words} now={now} />
+                <ProductCard key={cardKey(card)} product={card} words={words} now={now} />
               ))}
             </div>
           )}

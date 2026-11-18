@@ -308,6 +308,11 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /storefront/design/publish': "publishes only the session shop's own draft",
   'POST /storefront/design/back': "puts back only the session shop's own previous design",
   'POST /storefront/design/preview': "a preview link opens only the session shop's own draft",
+  // STOREFRONT-BUILDER-PLAN DC-2, DC-6 to DC-8, checked in test/design-cards.e2e.spec.ts: a shop's cards are its own.
+  'GET /storefront/design/cards': "lists only the session shop's own products and designs",
+  'PUT /storefront/design/cards/order':
+    "orders only the session shop's own cards; another shop's product or design is not_found",
+  'PUT /storefront/design/cards/designs': "switches only the session shop's own design cards",
   'PUT /shop-settings/icon': "sets only the session shop's icon; another shop's image is not_found",
   // Phase 3 Slice 13, checked in test/custom-domains.e2e.spec.ts: a shop's own domain is its own.
   'GET /domain': "reads only the session shop's own domain",

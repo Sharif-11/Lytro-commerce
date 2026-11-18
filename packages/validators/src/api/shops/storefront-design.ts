@@ -470,6 +470,41 @@ export function storefrontTargets(design: StorefrontDesign): {
 export const saveStorefrontDesignSchema = z.object({ design: storefrontDesignSchema }).strict();
 export type SaveStorefrontDesignInput = z.infer<typeof saveStorefrontDesignSchema>;
 
+// DC-6: the most cards one order names -- far above a shop's products times their designs.
+export const STOREFRONT_CARDS_MAX = 5000;
+
+/** DC-8: how a product with two or more designs shows while design cards are on. */
+export enum StorefrontCardMode {
+  /** A card per design (the default). */
+  Designs = 'designs',
+  /** Its one card, every design together. */
+  Compact = 'compact',
+  /** Its one card and a card per design. */
+  Both = 'both',
+}
+
+// PUT storefront/cards/order (DC-6): the seller's order, whole -- every card of the shop, first to last; a product's
+// own card names no design.
+export const storefrontCardOrderSchema = z
+  .object({
+    cards: z
+      .array(
+        z.object({ productId: catalogueIdSchema, designId: catalogueIdSchema.nullable() }).strict(),
+      )
+      .max(STOREFRONT_CARDS_MAX),
+    // DC-8: how each product with designs shows; one left out keeps its way.
+    modes: z
+      .array(z.object({ productId: catalogueIdSchema, mode: z.enum(StorefrontCardMode) }).strict())
+      .max(STOREFRONT_CARDS_MAX)
+      .optional(),
+  })
+  .strict();
+export type StorefrontCardOrderInput = z.infer<typeof storefrontCardOrderSchema>;
+
+// PUT storefront/design-cards (DC-2): each design its own card, or one card per product.
+export const storefrontDesignCardsSchema = z.object({ on: z.boolean() }).strict();
+export type StorefrontDesignCardsInput = z.infer<typeof storefrontDesignCardsSchema>;
+
 // GET /v1/shop?preview=<token>: the draft, through a short-lived signed link (SB-12).
 export const STOREFRONT_PREVIEW_TOKEN_MAX = 512;
 export const publicShopQuerySchema = z.object({

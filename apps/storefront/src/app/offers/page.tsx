@@ -1,3 +1,4 @@
+import { spreadsDesigns } from '@/lib/design/card-links';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
@@ -32,7 +33,12 @@ export default withBusyPage(async function OffersPage({ searchParams }: Props) {
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
   if (page.state === 'missing' || !page.shop.storefrontEnabled) notFound();
   const listed = { ...listParams(query, 'newest'), sort: 'newest' as const };
-  const asked = { sort: 'discount', inStock: listed.inStock, onSale: true };
+  const asked = {
+    sort: 'discount',
+    inStock: listed.inStock,
+    onSale: true,
+    designs: spreadsDesigns(page.info),
+  };
   const [frame, list] = await Promise.all([
     loadFrame(page),
     storefrontApi.products(page.shop, page.shopper, asked),

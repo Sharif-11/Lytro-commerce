@@ -47,6 +47,9 @@ export const publicProductListSchema = z.object({
     .regex(PICKED_IDS_PATTERN)
     .transform((value) => [...new Set(value.toLowerCase().split(','))])
     .optional(),
+  // STOREFRONT-BUILDER-PLAN DC-1: each design of a product with two or more its own card (the storefront asks when the
+  // shop has design cards on; without it, one card per product, as before).
+  designs: queryFlag,
   cursor: z.string().min(1).max(512).optional(),
   limit: z.coerce.number().int().min(1).max(PUBLIC_PAGE_SIZE_MAX).default(PUBLIC_PAGE_SIZE),
   v: z.string().max(64).optional(),

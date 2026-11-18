@@ -26,6 +26,7 @@ import { ShellPage } from '@/shell/shell-page';
 import type { ProductSummary } from '@/types/catalogue';
 import type { ImageView } from '@/types/me';
 import type { StorefrontEditor } from '@/types/storefront-design';
+import { DesignCardsCard } from './design-cards-card';
 import { BrandCard, LeaveWhileSaving, SectionsCard, ThemeCard } from './design-parts';
 import { AddSheet, PublishSheet } from './design-sheets';
 import {
@@ -202,6 +203,12 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
             shopName={tenant.shopName}
             logo={tenant.logo}
             icon={tenant.icon ?? null}
+          />
+          <DesignCardsCard
+            slug={slug}
+            onSwitched={(on) => {
+              toast.show(t(on ? 'plSwitchedOn' : 'plSwitchedOff'));
+            }}
           />
           <SectionsCard
             editor={editor}

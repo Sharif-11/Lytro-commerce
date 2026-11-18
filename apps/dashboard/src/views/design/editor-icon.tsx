@@ -13,7 +13,9 @@ const PATHS: Readonly<
     | 'upload'
     | 'menu'
     | 'search'
-    | 'cart',
+    | 'cart'
+    | 'drag'
+    | 'more',
     string
   >
 > = {
@@ -44,6 +46,9 @@ const PATHS: Readonly<
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   cart: '<path d="M3 4h2l2.4 11h10.2L20 8H6.2"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>',
+  // The Product list's handle and menu (DC-6).
+  drag: '<circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/>',
+  more: '<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>',
 };
 
 export type EditorIconName = keyof typeof PATHS;

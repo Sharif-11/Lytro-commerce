@@ -87,3 +87,18 @@ export function galleryShapeOf(product: Pick<PublicProduct, 'images'>): number {
   if (!first || !first.width || !first.height) return DRAWN;
   return Math.min(WIDEST, Math.max(TALLEST, first.width / first.height));
 }
+
+/**
+ * STOREFRONT-BUILDER-PLAN DC-3: the picks with a design card's design chosen -- the shopper's tap on the card is the
+ * deliberate choice (PD-4) -- when the product has photo cards and that design among them; else the picks as they are.
+ */
+export function withDesign<T extends Readonly<Record<string, string>>>(
+  product: Pick<PublicProduct, 'options' | 'images'>,
+  picks: T,
+  designId: string | null | undefined,
+): T {
+  if (!designId) return picks;
+  const option = designOptionOf(product);
+  if (!option || !photoCardsOf(product).some((card) => card.designId === designId)) return picks;
+  return { ...picks, [option.attributeId]: designId };
+}

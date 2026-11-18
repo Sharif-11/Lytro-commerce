@@ -3,6 +3,8 @@ import {
   MediaRepository,
   StorefrontDesignRepository,
   TransactionRunner,
+  type StorefrontCardKey,
+  type StorefrontCardRow,
   type StorefrontDesignValues,
   type Transaction,
 } from '@lytronix/db';
@@ -64,6 +66,34 @@ export class DrizzleStorefrontDesignStore implements StorefrontDesignStore {
 
   sale(tx: Transaction, tenantId: string): Promise<StorefrontSale> {
     return this.designs.sale(tx, tenantId);
+  }
+
+  designCards(tx: Transaction, tenantId: string): Promise<boolean> {
+    return this.designs.designCards(tx, tenantId);
+  }
+
+  setDesignCards(tx: Transaction, tenantId: string, on: boolean): Promise<void> {
+    return this.designs.setDesignCards(tx, tenantId, on);
+  }
+
+  cards(tx: Transaction, tenantId: string, designs: boolean): Promise<StorefrontCardRow[]> {
+    return this.designs.cards(tx, tenantId, designs);
+  }
+
+  replaceCardModes(
+    tx: Transaction,
+    tenantId: string,
+    modes: readonly { productId: string; mode: string }[],
+  ): Promise<void> {
+    return this.designs.replaceCardModes(tx, tenantId, modes);
+  }
+
+  replaceCardPositions(
+    tx: Transaction,
+    tenantId: string,
+    cards: readonly StorefrontCardKey[],
+  ): Promise<void> {
+    return this.designs.replaceCardPositions(tx, tenantId, cards);
   }
 
   async photoWidths(

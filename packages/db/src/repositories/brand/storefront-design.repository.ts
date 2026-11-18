@@ -1,6 +1,52 @@
 import { eq, sql } from 'drizzle-orm';
-import { storefrontDesigns, tenants, type SelectStorefrontDesign } from '../../schema';
+import type { StockState } from '@lytronix/validators';
+import {
+  storefrontCardPositions,
+  storefrontDesigns,
+  storefrontProductCards,
+  tenants,
+  type SelectStorefrontDesign,
+} from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
+import {
+  DESIGN_CARD,
+  PRODUCT_CARD,
+  SHOWN_CARD,
+  candidateCards,
+  designCards,
+  placedCard,
+} from '../catalogue/public-catalogue.repository';
+
+/** DC-6: one card of the shop as the Product order screen lists it, hidden and sold-out ones too. */
+export interface StorefrontCardRow {
+  productId: string;
+  /** The design this card shows; null for a product's own card. */
+  designId: string | null;
+  /** The design's name and number, for the seller's eyes (shoppers see only its photo). */
+  designName: string | null;
+  designNumber: number | null;
+  name: string;
+  /** Its lowest price: the design's own for a design's card. */
+  price: string | null;
+  stockState: StockState;
+  /** False for a hidden product: not in the shop, but kept in its place. */
+  active: boolean;
+  /** Its picture: the design's cover, else the product's first photo. */
+  coverMediaId: string | null;
+  createdAt: Date;
+  /** Whether the seller has placed it; one not placed comes first, newest first (DC-7). */
+  placed: boolean;
+  /** DC-8: whether it shows in the shop's lists under its product's way (design cards on). */
+  shown: boolean;
+  /** DC-8: its product's way, for a product with designs to spread; null otherwise. */
+  mode: string | null;
+}
+
+/** DC-6: a card the seller places -- a product's own, or one of its designs. */
+export interface StorefrontCardKey {
+  productId: string;
+  designId: string | null;
+}
 
 /** SB-16: a category or product a design points at, as it is now; `shown` is whether shoppers can reach it. */
 // A type, not an interface, so it reads as the row type `execute` takes.
@@ -152,9 +198,129 @@ export class StorefrontDesignRepository {
     return { products: row?.products ?? 0, bestDiscount: row?.best ?? 0 };
   }
 
+  /** DC-2: whether each design of a product is its own card; on for a shop that has never turned it off. */
+  async designCards(tx: Transaction, tenantId: string): Promise<boolean> {
+    return (await this.get(tx, tenantId))?.designCards ?? true;
+  }
+
+  /** DC-2: design cards on or off, at once (not part of the draft). */
+  async setDesignCards(tx: Transaction, tenantId: string, on: boolean): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .insert(storefrontDesigns)
+      .values({ tenantId, designCards: on })
+      .onConflictDoUpdate({
+        target: storefrontDesigns.tenantId,
+        set: { designCards: on, updatedAt: sql`now()` },
+      });
+  }
+
+  /**
+   * DC-6, DC-7: every card of the shop's products not archived -- a design's own for a product with two or more when
+   * `designs`, else the product's -- in the order its default lists show them (the public list's Featured order):
+   * the ones not placed first, newest first, then the placed ones by their place.
+   */
+  async cards(tx: Transaction, tenantId: string, designs: boolean): Promise<StorefrontCardRow[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const card = designs ? DESIGN_CARD : PRODUCT_CARD;
+    const result = await tx.execute<{
+      product_id: string;
+      design_id: string | null;
+      design_name: string | null;
+      design_number: number;
+      name: string;
+      price: string | null;
+      stock_state: StockState;
+      active: boolean;
+      cover: string | null;
+      created_at: string;
+      placed: boolean;
+      shown: boolean;
+      mode: string | null;
+    }>(sql`
+      ${designs ? designCards(tenantId) : sql``}
+      SELECT p.id AS product_id, ${card.design} AS design_id, ao.value AS design_name,
+        (${card.number})::integer AS design_number, p.name, (${card.price})::text AS price,
+        ${card.stock} AS stock_state, p.active,
+        coalesce(${card.cover}, (SELECT pi.media_id FROM tenant.product_images pi
+          WHERE pi.tenant_id = p.tenant_id AND pi.product_id = p.id ORDER BY pi.sort_order LIMIT 1)) AS cover,
+        p.created_at, placed.position IS NOT NULL AS placed,
+        ${designs ? SHOWN_CARD : sql`true`} AS shown,
+        ${
+          designs
+            ? sql`CASE WHEN EXISTS (SELECT 1 FROM cards cx WHERE cx.product_id = p.id)
+                THEN coalesce(m.mode, 'designs') END`
+            : sql`NULL::text`
+        } AS mode
+      FROM tenant.products p
+      ${designs ? candidateCards() : sql``}
+      LEFT JOIN tenant.attribute_options ao ON ao.tenant_id = p.tenant_id AND ao.id = ${card.design}
+      ${placedCard(card)}
+      WHERE p.tenant_id = ${tenantId} AND p.deleted_at IS NULL
+      ORDER BY (placed.position IS NULL)::integer DESC, (-coalesce(placed.position, 0)) DESC, p.created_at DESC,
+        p.id DESC, (-${card.number})::integer DESC`);
+    return result.rows.map((row) => ({
+      productId: row.product_id,
+      designId: row.design_id,
+      designName: row.design_name,
+      designNumber: row.design_id === null ? null : row.design_number,
+      name: row.name,
+      price: row.price,
+      stockState: row.stock_state,
+      active: row.active,
+      coverMediaId: row.cover,
+      createdAt: new Date(row.created_at),
+      placed: row.placed,
+      shown: row.shown,
+      mode: row.mode,
+    }));
+  }
+
+  /** DC-8: each product's way, whole -- the default (a card per design) kept as no row. */
+  async replaceCardModes(
+    tx: Transaction,
+    tenantId: string,
+    modes: readonly { productId: string; mode: string }[],
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    for (const each of modes) {
+      await tx
+        .delete(storefrontProductCards)
+        .where(
+          sql`${storefrontProductCards.tenantId} = ${tenantId} AND ${storefrontProductCards.productId} = ${each.productId}`,
+        );
+      if (each.mode !== 'designs') {
+        await tx
+          .insert(storefrontProductCards)
+          .values({ tenantId, productId: each.productId, mode: each.mode });
+      }
+    }
+  }
+
+  /** DC-6: the seller's order, whole -- each card's place is its index; any card left out is no longer placed. */
+  async replaceCardPositions(
+    tx: Transaction,
+    tenantId: string,
+    cards: readonly StorefrontCardKey[],
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx.delete(storefrontCardPositions).where(eq(storefrontCardPositions.tenantId, tenantId));
+    if (cards.length === 0) return;
+    await tx.insert(storefrontCardPositions).values(
+      cards.map((card, position) => ({
+        tenantId,
+        productId: card.productId,
+        designOptionId: card.designId,
+        position,
+      })),
+    );
+  }
+
   /** LIF-19: removes the shop's design at day 60. */
   async deleteForTenant(tx: Transaction, tenantId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
+    await tx.delete(storefrontCardPositions).where(eq(storefrontCardPositions.tenantId, tenantId));
+    await tx.delete(storefrontProductCards).where(eq(storefrontProductCards.tenantId, tenantId));
     await tx.delete(storefrontDesigns).where(eq(storefrontDesigns.tenantId, tenantId));
   }
 }

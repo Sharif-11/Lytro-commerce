@@ -1,3 +1,4 @@
+import { cardKey } from '@/lib/design/card-links';
 import {
   CategoryTileStyle,
   ProductRowLayout,
@@ -161,7 +162,7 @@ export function ProductRow({
         <div className={section.layout === ProductRowLayout.Grid ? 'sb-grid' : 'sb-rail'}>
           {products.map((product) => (
             <ThemeCard
-              key={product.id}
+              key={cardKey(product)}
               product={product}
               style={theme.card}
               words={words}

@@ -657,8 +657,8 @@ const SECTIONS = {
   footer: (theme, shop) => `<footer class="ft" data-sec="${T(SEC_NAMES.footer)}"><div class="wrap"><div class="cols"><div class="about"><a class="logo"><span class="mk">${shop.mark}</span><span>${T(shop.name)}<small>${T(shop.tag)}</small></span></a><div class="soc"><span>${ic('wa')}</span><span>${ic('msg')}</span><span>${ic('fb')}</span></div></div><div><h3>${L('কেনাকাটা', 'Shop')}</h3><ul><li>${L('সব পণ্য', 'All products')}</li><li>${L('অফার', 'Offers')}</li><li>${L('নতুন এসেছে', 'Just in')}</li><li>${L('অর্ডার ট্র্যাক', 'Track order')}</li></ul></div><div><h3>${L('ক্যাটাগরি', 'Categories')}</h3><ul>${shop.cats.slice(0, 4).map((c) => `<li>${T([c[0], c[1]])}</li>`).join('')}</ul></div><div><h3>${L('যোগাযোগ', 'Contact')}</h3><ul><li>01711 223344</li><li>${L('মিরপুর ১০, ঢাকা', 'Mirpur 10, Dhaka')}</li></ul></div></div><div class="base"><span>© 2026 ${T(shop.name)}</span><span class="pbl"><i></i>Powered by Lytro</span></div></div></footer>`,
 };
 
-function renderShop(theme, outlined, light) {
-  const shop = SHOPS[theme];
+function renderShop(theme, outlined, light, given) {
+  const shop = given || SHOPS[theme];
   const vars = Object.entries(THEMES[theme].v).map(([k, v]) => `--${k}:${v}`).join(';');
   const body = shop.layout.map((s) => {
     const key = Array.isArray(s) ? s[0] : s;
@@ -1016,6 +1016,75 @@ Object.assign(EDITOR, {
         + fld(L('লেখা', 'Text'), story, chars(story, 600), { area: 120 })
         + photoField(L('ছবি (ঐচ্ছিক)', 'Photo (optional)'), 'beauty-6', L('বিন্দুটা টেনে রাখুন ছবির মূল অংশে। ছবি না দিলে শুধু লেখা দেখায়।', 'Drag the dot onto what matters. Without a photo, the words show alone.'), [52, 44]);
       return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('about'), dockDesign(), sheet(L('দোকানের কথা', 'About the shop'), inner, DOCK_SECTION()));
+    },
+  },
+});
+
+// ---------- design cards and the product order (the owner, 2026-11-18): each design its own card, in the seller's order ----------
+Object.assign(P, {
+  drag: '<circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/>',
+  more: '<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>',
+});
+// Megh Fashion's cards with each design spread out, in the seller's order. `d` is the design's number, for the seller's
+// eyes only (shoppers see the photo, never the word "design").
+const ORDER_CARDS = [
+  { n: ['এমব্রয়ডারি পাঞ্জাবি', 'Embroidered panjabi'], i: 'fashion-4-tall', price: 1450, was: 1900 },
+  { n: ['প্রিন্টেড শার্ট', 'Printed shirt'], compact: 3, i: 'fashion-3-tall', price: 1150 },
+  { n: ['প্রিন্টেড শার্ট', 'Printed shirt'], d: 1, i: 'fashion-3-tall', price: 1150, isNew: true },
+  { n: ['চিকনকারি কুর্তি', 'Chikankari kurti'], d: 1, i: 'fashion-5-tall', price: 1250, isNew: true },
+  { n: ['প্রিন্টেড শার্ট', 'Printed shirt'], d: 2, i: 'fashion-7-tall', price: 1150 },
+  { n: ['সুতি শাড়ি', 'Cotton saree'], i: 'fashion-6-tall', price: 2200, was: 2800 },
+  { n: ['চিকনকারি কুর্তি', 'Chikankari kurti'], d: 2, i: 'fashion-2-tall', price: 1350 },
+  { n: ['প্রিন্টেড শার্ট', 'Printed shirt'], d: 3, i: 'fashion-1-tall', price: 1150, out: true },
+  { n: ['লিনেন পাঞ্জাবি', 'Linen panjabi'], i: 'fashion-4', price: 1690, hidden: true },
+];
+const bnNo = (n) => String(n).replace(/\d/g, (x) => '০১২৩৪৫৬৭৮৯'[Number(x)]);
+const designOf = (c) => (c.d ? L(`ডিজাইন ${bnNo(c.d)} · `, `Design ${c.d} · `) : c.compact ? L(`${bnNo(c.compact)}টি ডিজাইন একসাথে · `, `All ${c.compact} designs · `) : '');
+// The owner, 2026-11-18: a product's compact card (all its designs in one) on a ground of its own in the list.
+const COMPACT_BG = '#eef6f5';
+const TAG = 'display:inline-block;width:auto;margin-left:6px;vertical-align:1px';
+const stateTag = (c) => c.out ? `<span class="chip" style="${TAG};background:#eef2f2;color:#33403f">${L('স্টক শেষ', 'Sold out')}</span>` : c.hidden ? `<span class="chip" style="${TAG};background:#eef2f2;color:#33403f">${L('লুকানো', 'Hidden')}</span>` : c.isNew ? `<span class="chip auto" style="${TAG}">${L('নতুন', 'New')}</span>` : '';
+const ORDER_NOTE = () => L('ক্যাটাগরি পেজ আর “সব প্রোডাক্ট” এই ক্রমে দেখায়। নতুন এসেছে, অফার, বেশি বিক্রি আর সার্চ নিজের ক্রমে থাকে। নতুন প্রোডাক্ট উপরে যোগ হয়।', 'Category pages and All products show your cards in this order. Just in, On sale, Best sellers and search keep their own. New products join at the top.');
+
+Object.assign(EDITOR, {
+  'e-cards': {
+    label: ['ডিজাইন আলাদা কার্ডে', 'Designs as cards'],
+    note: ['দোকানে প্রোডাক্ট: একটা প্রোডাক্টের প্রতিটি ডিজাইন দোকানে আলাদা কার্ড, নিজের ছবি আর দামে (৬টি ডিজাইনের বোরকা = ৬টি কার্ড)। সব দোকানে চালু থাকে, চাইলে বন্ধ করা যায়। কার্ডে চাপলে প্রোডাক্ট পেজ সেই ডিজাইন বাছাই করা অবস্থায় খোলে; ক্রেতা শুধু সাইজ বাছেন।', "Products in your shop: each design of a product is its own card in the shop, with its own photo and price (a burka in 6 designs = 6 cards). On in every shop, and can be turned off. Tapping a card opens the product page with that design chosen; the shopper only picks the size."],
+    render: (d) => {
+      const strip = [0, 1, 3].map((at) => { const c = ORDER_CARDS[at]; return `<div style="flex:1;min-width:0"><img src="${img(c.i)}" alt="" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:8px;display:block"><div style="font-size:11.5px;font-weight:600;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${T(c.n)}</div><div style="font-size:11.5px;color:#33403f">${money(c.price)}</div></div>`; }).join('');
+      const card = `<div class="dcard"><h2>${L('দোকানে প্রোডাক্ট', 'Products in your shop')}</h2><div class="srow" style="border-top:0;padding-top:4px"><span class="nm"><b>${L('প্রতিটি ডিজাইন আলাদা কার্ডে', 'Each design as its own card')}</b><span style="white-space:normal">${L('৬টি ডিজাইনের প্রোডাক্ট দোকানে ৬টি কার্ড, নিজের ছবি আর দামে।', 'A product in 6 designs shows as 6 cards, each with its own photo and price.')}</span></span><span class="switch"></span></div><div style="display:flex;gap:8px;margin:6px 0 12px">${strip}</div><div class="row2"><button class="dbtn out sm">${ic('drag')} ${L('প্রোডাক্ট লিস্ট', 'Product list')}</button><span class="sub" style="margin:0;font-size:12.5px">${L('কোন কার্ড আগে দেখাবে, আপনি ঠিক করুন।', 'You choose which cards come first.')}</span></div></div>`;
+      const body = designBody().replace(`<div class="dcard"><h2>${L('হোম পেজের সেকশন', 'Home page sections')}</h2>`, `${card}<div class="dcard"><h2>${L('হোম পেজের সেকশন', 'Home page sections')}</h2>`);
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), body, dockDesign());
+    },
+  },
+  'e-order': {
+    label: ['প্রোডাক্ট লিস্ট', 'Product list'],
+    note: ['প্রোডাক্ট লিস্ট: দোকানের সব কার্ড (প্রতিটি ডিজাইন আলাদা), ঠিক যে ক্রমে ক্যাটাগরি পেজ আর “সব প্রোডাক্ট” দেখাবে। হ্যান্ডেল ধরে কার্ড টেনে জায়গা বদলান, কম্পিউটারে বা ফোনে; ফোনে তীরও আছে, আর “⋯” থেকে সবার উপরে বা নিচে। স্টক শেষ বা লুকানো কার্ড দোকানে দেখায় না, কিন্তু এখানে থাকে যাতে আগে থেকে জায়গা ঠিক করা যায়। “ক্রম সেভ করুন” চাপলে সাথে সাথে দোকানে।', 'Product list: every card in the shop (each design apart), in the order category pages and All products show them. Drag a card by its handle to its place, on a computer or a phone; on a phone also the arrows, and “⋯” for top or bottom. Sold-out and hidden cards are not in the shop but stay here so their place is kept. “Save order” makes it live at once.'],
+    render: (d) => {
+      const search = `<div class="field" style="margin:0"><div class="in">${ic('search')}<span style="color:#7d8d8c">${L('কার্ড খুঁজুন', 'Find a card')}</span></div></div>`;
+      const note = `<div class="note-line">${ic('info')}<span>${ORDER_NOTE()}</span></div>`;
+      const dock = `<div class="dock"><span class="chip draft" style="align-self:center">${L('৩টি সরানো হয়েছে', '3 moved')}</span><button class="dbtn">${L('ক্রম সেভ করুন', 'Save order')}</button></div>`;
+      const row = (c, at, menu) => `<div class="srow" style="position:relative;${c.compact ? `background:${COMPACT_BG};border-radius:10px;margin:2px -6px;padding-left:8px;padding-right:8px` : ''};${c.out || c.hidden ? 'opacity:.72' : ''}"><span style="color:#7d8d8c;display:grid;place-items:center;width:22px;flex:none">${ic('drag')}</span><span class="grip">${ic('up')}${ic('down')}</span><img src="${img(c.i)}" alt="" style="width:44px;height:55px;object-fit:cover;border-radius:8px;flex:none"><span class="nm"><b>${T(c.n)}</b><span>${designOf(c)}${money(c.price)}${c.was ? ` · <s>${money(c.was)}</s>` : ''}${stateTag(c)}</span></span><span style="color:#7d8d8c;font-size:13px;font-weight:600;width:18px;text-align:right">${L(bnNo(at + 1), at + 1)}</span><span class="chev">${ic('more')}</span>${menu ? `<div style="position:absolute;right:4px;top:52px;z-index:3;background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:6px;min-width:170px;font-size:14px;font-weight:600"><div style="padding:9px 12px;border-radius:8px;background:#f1f6f6">${L('সবার উপরে নিন', 'Move to top')}</div><div style="padding:9px 12px">${L('সবার নিচে নিন', 'Move to bottom')}</div>${c.d || c.compact ? `<div style="border-top:1px solid #eef2f2;margin:4px 0;padding:8px 12px 2px;font-size:12px;color:#33403f;font-weight:600">${L('দোকানে এই প্রোডাক্ট দেখাবে', 'Show this product as')}</div>${[[L('প্রতিটি ডিজাইন আলাদা কার্ডে', 'Each design a card'), false], [L('একটা কার্ডে', 'One card'), false], [L('দুটোই', 'Both'), true]].map(([w, on]) => `<div style="padding:8px 12px;display:flex;gap:8px;align-items:center"><span style="width:16px;color:#0e6b66">${on ? ic('check') : ''}</span>${w}</div>`).join('')}` : ''}</div>` : ''}</div>`;
+      if (d === 'phone') {
+        const body = `<div class="body">${note}${search}<div class="dcard" style="padding:6px 12px">${ORDER_CARDS.map((c, at) => row(c, at, at === 1)).join('')}</div></div>`;
+        return screen(d, L('প্রোডাক্ট লিস্ট', 'Product list'), '', body, dock);
+      }
+      // A computer: the cards as the shop lays them out, one lifted and its new place marked.
+      const tile = (c, at, lifted) => `<div style="position:relative;background:${c.compact ? COMPACT_BG : '#fff'};border-radius:12px;border:1px solid #e1e8e8;padding:8px;${lifted ? 'transform:rotate(-2deg) translateY(-6px);box-shadow:0 14px 30px rgba(0,0,0,.22);border-color:#0e6b66' : ''};${c.out || c.hidden ? 'opacity:.72' : ''}"><span style="position:absolute;left:12px;top:12px;z-index:2;background:rgba(255,255,255,.92);border-radius:8px;padding:2px 7px;font-size:12px;font-weight:700">${L(bnNo(at + 1), at + 1)}</span><span style="position:absolute;right:12px;top:12px;z-index:2;background:rgba(255,255,255,.92);border-radius:8px;width:28px;height:28px;display:grid;place-items:center;color:#33403f">${ic('drag')}</span><img src="${img(c.i)}" alt="" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:8px;display:block"><div style="font-size:13px;font-weight:600;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${T(c.n)}</div><div style="font-size:12px;color:#33403f">${designOf(c)}${money(c.price)}</div><div style="margin-top:4px;min-height:20px;margin-left:-6px">${stateTag(c)}</div></div>`;
+      const slot = '<div style="border:2px dashed #0e6b66;border-radius:12px;background:#f1f9f8"></div>';
+      const order = ORDER_CARDS.map((c, at) => (at === 4 ? tile(c, at, true) : tile(c, at, false)));
+      order.splice(1, 0, slot);
+      const pane = `<div class="ptools"><b>${L('দোকানে যে ক্রমে দেখাবে · টেনে সরান', 'The order your shop shows · drag to move')}</b></div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;width:100%">${order.join('')}</div>`;
+      const body = `<div class="body">${note}${search}<div class="dcard"><h2>${L('কীভাবে সরাবেন', 'How to move')}</h2><p class="sub" style="margin-bottom:0">${L('কার্ড টেনে নতুন জায়গায় ছাড়ুন। কি-বোর্ডে: কার্ডে যান, তীর দিয়ে সরান।', 'Drag a card and drop it in its new place. With a keyboard: go to a card and move it with the arrow keys.')}</p></div></div>`;
+      return screen(d, L('প্রোডাক্ট লিস্ট', 'Product list'), '', body, dock, '', null, pane);
+    },
+  },
+  'e-spread': {
+    label: ['দোকানে ডিজাইন কার্ড', 'Design cards in the shop'],
+    note: ['ক্রেতা যা দেখেন: প্রিন্টেড শার্টের ৩টি ডিজাইন ৩টি আলাদা কার্ড, একই নাম, নিজের ছবি আর দাম; স্টক শেষ ডিজাইন দেখায় না। কার্ডে চাপলে প্রোডাক্ট পেজ সেই ডিজাইন বাছাই করা অবস্থায় খোলে (lytro-storefront.html, product-photos-chosen)।', "What shoppers see: the Printed shirt's designs are separate cards, one name, each with its own photo and price; a sold-out design does not show. Tapping one opens the product page with that design chosen (lytro-storefront.html, product-photos-chosen)."],
+    render: () => {
+      const shop = { ...SHOPS.studio, products: ORDER_CARDS.filter((c) => !c.out && !c.hidden).map(({ d, ...c }) => c) };
+      return renderShop('studio', false, null, shop);
     },
   },
 });

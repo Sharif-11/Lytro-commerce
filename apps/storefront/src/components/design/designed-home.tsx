@@ -54,7 +54,14 @@ export async function loadDesignedHome(
   const newest = { sort: 'newest', inStock: true } as const;
   const [rows, hero, offers, methods] = await Promise.all([
     Promise.all(
-      plan.rows.map(async (row) => [row.sectionId, (await read(row.query)).products] as const),
+      // DC-1: the rows spread designs when the shop has design cards on; the auto hero and banners stay a product each.
+      plan.rows.map(
+        async (row) =>
+          [
+            row.sectionId,
+            (await read({ ...row.query, designs: design.designCards === true })).products,
+          ] as const,
+      ),
     ),
     plan.hero
       ? read({ ...onSale, limit: HERO_AUTO_SLIDES }).then(async (sale) =>

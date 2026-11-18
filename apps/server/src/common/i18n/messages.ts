@@ -1751,6 +1751,16 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'That product was not found. Choose another.',
     bn: 'প্রোডাক্টটি পাওয়া যায়নি। অন্য একটি বেছে নিন।',
   },
+  StorefrontCardsRetrieved: { en: 'Product order loaded.', bn: 'প্রোডাক্টের ক্রম লোড হয়েছে।' },
+  StorefrontOrderSaved: {
+    en: 'Order saved. Shoppers see it within a minute.',
+    bn: 'ক্রম সেভ হয়েছে। এক মিনিটের মধ্যে ক্রেতারা দেখতে পাবেন।',
+  },
+  StorefrontDesignCardsSaved: { en: 'Saved.', bn: 'সেভ হয়েছে।' },
+  StorefrontCardsChanged: {
+    en: 'Your products changed meanwhile. Open the product order again and move the cards once more.',
+    bn: 'এর মধ্যে প্রোডাক্ট বদলেছে। প্রোডাক্টের ক্রম আবার খুলে কার্ডগুলো আরেকবার সাজান।',
+  },
   RegularPriceBelowPrice: {
     en: (p) => `The regular price is at least the price (${String(p.min)}).`,
     bn: (p) => `আগের দাম অন্তত প্রাইসের সমান হতে হবে (${String(p.min)})।`,

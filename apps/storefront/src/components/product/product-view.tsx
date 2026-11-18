@@ -1,5 +1,6 @@
 'use client';
 
+import { withDesign } from '@/lib/product/designs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DeliveryEstimate, DeliveryZoneView, PublicProduct } from '@/lib/api/storefront-api';
 import { areaCookieValue } from '@/lib/area';
@@ -39,6 +40,8 @@ export interface ProductViewProps {
   /** SFT-21 (UI/UX batch 2): the shop's WhatsApp and Messenger, for the row under the buttons. */
   chat: ShopChat;
   linkedVariantId: string | null;
+  /** DC-3: the design a design card's link names; null for none. */
+  linkedDesignId?: string | null;
   areaId: number | null;
   initialEstimate: DeliveryEstimate | null;
   /** Slice 9.10: a page Cloudflare's edge keeps; the browser applies the `?v=` link and the area after the first paint. */
@@ -58,7 +61,9 @@ export function ProductView(props: ProductViewProps) {
     () => new VariantChoice(product.options, product.variants),
     [product.options, product.variants],
   );
-  const [selection, setSelection] = useState(() => choice.opening(props.linkedVariantId));
+  const [selection, setSelection] = useState(() =>
+    withDesign(product, choice.opening(props.linkedVariantId), props.linkedDesignId),
+  );
   const designs = useDesignChoice(product, selection);
   const [quantity, setQuantity] = useState(
     () => quantityRule(product.stockUnit, product.sharedStock).first,
@@ -84,14 +89,18 @@ export function ProductView(props: ProductViewProps) {
     props.openInBrowser === true,
     useCallback(
       (opening: BrowserOpening) => {
-        if (opening.linkedVariantId !== null) {
-          const linked = choice.opening(opening.linkedVariantId);
+        if (opening.linkedVariantId !== null || opening.linkedDesignId !== null) {
+          const linked = withDesign(
+            product,
+            choice.opening(opening.linkedVariantId),
+            opening.linkedDesignId,
+          );
           setSelection(linked);
           openOn(linked);
         }
         if (opening.areaId !== null) setAreaId(opening.areaId);
       },
-      [choice, openOn],
+      [choice, openOn, product],
     ),
   );
 

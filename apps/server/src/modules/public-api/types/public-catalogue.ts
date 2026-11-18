@@ -45,6 +45,12 @@ export interface PublicProductCard {
   ordered: number;
   /** SB-10: "Best seller", among the shop's most sold over the last STOREFRONT_BEST_SELLER_DAYS. */
   bestSeller: boolean;
+  /**
+   * STOREFRONT-BUILDER-PLAN DC-1, DC-3, DC-5: the design this card shows, when the list spreads a product's designs;
+   * null for a product's own card. Its photo, prices, saving, stock and "Only N left" are then the design's own, and a
+   * link to it opens the product with this design chosen.
+   */
+  designId: string | null;
 }
 
 export interface PublicProductPage {

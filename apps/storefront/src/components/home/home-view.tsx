@@ -1,3 +1,4 @@
+import { cardKey } from '@/lib/design/card-links';
 import type { ReactNode } from 'react';
 import type { ProductCard as Card, ProductPage } from '@/lib/api/storefront-api';
 import { deliveryRange, heroLine } from '@/lib/catalogue/browse';
@@ -161,7 +162,7 @@ export function HomeView({
         {products.length > 0 ? (
           <div className="grid">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} words={words} now={now} />
+              <ProductCard key={cardKey(product)} product={product} words={words} now={now} />
             ))}
           </div>
         ) : (

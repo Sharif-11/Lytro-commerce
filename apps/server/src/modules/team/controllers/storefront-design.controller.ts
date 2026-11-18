@@ -21,11 +21,15 @@ import { DashboardGuard, type DashboardRequest } from '../../identity/guards/das
 import { SessionGuard } from '../../identity/guards/session.guard';
 import { StorefrontDesignService } from '../../storefront-design/services/storefront-design.service';
 import type {
+  StorefrontCardsView,
   StorefrontEditorView,
   StorefrontPreviewLink,
 } from '../../storefront-design/types/storefront-design';
 import {
   SaveStorefrontDesignDto,
+  StorefrontCardOrderDto,
+  StorefrontCardsDto,
+  StorefrontDesignCardsDto,
   StorefrontEditorDto,
   StorefrontPreviewLinkDto,
 } from '../dto/storefront-design.dto';
@@ -116,5 +120,48 @@ export class StorefrontDesignController {
   @ZodResponse({ type: StorefrontPreviewLinkDto })
   preview(@Req() request: DashboardRequest): StorefrontPreviewLink {
     return this.designs.previewLink(this.catalogue.tenantIdOf(request));
+  }
+
+  @Get('cards')
+  @RequirePermission(Permission.SettingsManage)
+  @ResponseMessage('StorefrontCardsRetrieved')
+  @ApiOperation({
+    summary:
+      "Every card of the shop -- each design apart when design cards are on -- in its default lists' order (DC-6)",
+  })
+  @ZodResponse({ type: StorefrontCardsDto })
+  cards(@Req() request: DashboardRequest): Promise<StorefrontCardsView> {
+    return this.designs.cards(this.catalogue.tenantIdOf(request));
+  }
+
+  @Put('cards/order')
+  @RequirePermission(Permission.SettingsManage)
+  @ResponseMessage('StorefrontOrderSaved')
+  @ApiOperation({
+    summary:
+      "The seller's order of the shop's cards, whole; live at once, the shop's pages leave the edge (DC-6, DC-7)",
+  })
+  @ApiBody({ type: StorefrontCardOrderDto })
+  @ZodResponse({ type: StorefrontCardsDto })
+  saveOrder(
+    @Body(new ZodValidationPipe(StorefrontCardOrderDto.schema)) body: StorefrontCardOrderDto,
+    @Req() request: DashboardRequest,
+  ): Promise<StorefrontCardsView> {
+    return this.designs.saveOrder(this.catalogue.tenantIdOf(request), body.cards, body.modes);
+  }
+
+  @Put('cards/designs')
+  @RequirePermission(Permission.SettingsManage)
+  @ResponseMessage('StorefrontDesignCardsSaved')
+  @ApiOperation({
+    summary: 'Each design of a product its own card in the shop, or not; at once (DC-2)',
+  })
+  @ApiBody({ type: StorefrontDesignCardsDto })
+  @ZodResponse({ type: StorefrontCardsDto })
+  designCards(
+    @Body(new ZodValidationPipe(StorefrontDesignCardsDto.schema)) body: StorefrontDesignCardsDto,
+    @Req() request: DashboardRequest,
+  ): Promise<StorefrontCardsView> {
+    return this.designs.setDesignCards(this.catalogue.tenantIdOf(request), body.on);
   }
 }

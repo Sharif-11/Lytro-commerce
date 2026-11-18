@@ -124,6 +124,8 @@ export interface PublicStorefrontDesign {
   categories: DesignTarget[];
   products: DesignTarget[];
   preview: boolean;
+  /** DC-2: each design of a product its own card in the lists; absent from an older server's answer (off). */
+  designCards?: boolean;
 }
 
 export interface OptionValue {
@@ -240,6 +242,11 @@ export interface PublicCombo {
 /** A product as a list shows it (PRD-09): with its card's swatches (ATR-18) and when it was added (Slice 12b). */
 export interface ProductCard {
   id: string;
+  /**
+   * STOREFRONT-BUILDER-PLAN DC-1, DC-3: the design this card shows (its photo, prices and stock the design's own), whose
+   * link opens the product with it chosen; null or absent for a product's own card.
+   */
+  designId?: string | null;
   slug: string;
   name: string;
   minPrice: string | null;
@@ -276,6 +283,8 @@ export interface ProductQuery {
   onSale?: boolean;
   /** SB-9: exactly these products, in this order (a row the seller picked). */
   productIds?: readonly string[];
+  /** STOREFRONT-BUILDER-PLAN DC-1: each design of a product with two or more its own card. */
+  designs?: boolean;
   cursor?: string;
   limit?: number;
 }
@@ -854,6 +863,7 @@ export function productQueryString(query: ProductQuery): string {
   if (query.productIds && query.productIds.length > 0) {
     search.set('productIds', query.productIds.join(','));
   }
+  if (query.designs) search.set('designs', 'true');
   if (query.cursor) search.set('cursor', query.cursor);
   if (query.limit) search.set('limit', String(query.limit));
   return search.toString();
