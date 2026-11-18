@@ -130,6 +130,45 @@ test('hides, moves, adds and removes sections, each saved whole to the draft', a
   await expect(page.getByText('Offer banners removed')).toBeVisible();
 });
 
+test('a section dragged by its handle, with a mouse or a finger, saves its new place once; the arrow keys move it one (BL-1)', async ({
+  page,
+}) => {
+  const log = await open(page);
+  const saves = () =>
+    log.calls.filter((call) => call.method === 'PUT' && call.path === '/storefront/design').length;
+  const kinds = () => savedDraft(log)?.sections.map((each) => each.kind);
+  const handle = main(page).getByRole('button', { name: 'Drag Best sellers' });
+  const target = main(page).getByRole('button', { name: 'Open Offer banners' });
+  await handle.scrollIntoViewIfNeeded();
+  const from = await handle.boundingBox();
+  const to = await target.boundingBox();
+  if (!from || !to) throw new Error('the rows are on the page');
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 12 });
+  // Held, the list shows where it would go, and nothing is saved yet.
+  await expect(main(page).getByRole('listitem').nth(5)).toContainText('Best sellers');
+  expect(saves()).toBe(0);
+  await page.mouse.up();
+  await expect.poll(saves).toBe(1);
+  expect(kinds()?.slice(3, 6)).toEqual([
+    StorefrontSectionKind.Products,
+    StorefrontSectionKind.Products,
+    StorefrontSectionKind.OfferBanners,
+  ]);
+  expect(savedDraft(log)?.sections[4]?.id).toBe('00000000-0000-4000-8000-000000000006');
+
+  // The handle with the keyboard: one place up, saved.
+  await main(page).getByRole('button', { name: 'Drag Trust strip' }).press('ArrowUp');
+  await expect.poll(saves).toBe(2);
+  expect(kinds()?.slice(6, 8)).toEqual([
+    StorefrontSectionKind.Trust,
+    StorefrontSectionKind.Testimonials,
+  ]);
+  // The header and the footer have no handle.
+  await expect(main(page).getByRole('button', { name: /^Drag (Header|Footer)$/ })).toHaveCount(0);
+});
+
 test('a colour set is one tap, saved to the draft', async ({ page }) => {
   const log = await open(page);
   await main(page).getByRole('button', { name: 'Colour set 2' }).click();
@@ -461,6 +500,26 @@ const SHOTS: { screen: string; path: string; then?: Steps }[] = [
     screen: 'e-cats',
     path: PAGE,
     then: (page, say) => openRow(page, say('ক্যাটাগরি খুলুন', 'Open Categories')),
+  },
+  {
+    // BL-1: Best sellers held over Offer banners, not yet let go.
+    screen: 'e-drag',
+    path: PAGE,
+    then: async (page, say) => {
+      const handle = page
+        .getByRole('main')
+        .getByRole('button', { name: say('সবচেয়ে বেশি বিক্রি টেনে সরান', 'Drag Best sellers') });
+      const target = page
+        .getByRole('main')
+        .getByRole('button', { name: say('অফার ব্যানার খুলুন', 'Open Offer banners') });
+      await handle.scrollIntoViewIfNeeded();
+      const from = await handle.boundingBox();
+      const to = await target.boundingBox();
+      if (!from || !to) throw new Error('the rows are on the page');
+      await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
+    },
   },
   {
     screen: 'e-announce',

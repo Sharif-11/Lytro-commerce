@@ -18,6 +18,7 @@ import type { ImageView } from '@/types/me';
 import type { StorefrontEditor } from '@/types/storefront-design';
 import { sectionIcon, sectionName, sectionRows, sectionSummary, wordsText } from './design-words';
 import { EditorIcon, type EditorIconName } from './editor-icon';
+import { dragPlace, type DragOrder } from './use-drag-order';
 import type { DraftDesign } from './use-draft';
 
 // STOREFRONT-BUILDER-PLAN SB-5, SB-7, SB-8: the design page's cards, as the sketch draws them
@@ -253,6 +254,7 @@ export function SectionsCard({
   editor,
   design,
   disabled,
+  drag,
   onMove,
   onToggle,
   onOpen,
@@ -262,6 +264,8 @@ export function SectionsCard({
   editor: Pick<StorefrontEditor, 'categories' | 'broken'>;
   design: StorefrontDesign;
   disabled: boolean;
+  /** BL-1: each section's handle, held and dragged or moved with the arrow keys. */
+  drag: DragOrder;
   onMove: (id: string, by: -1 | 1) => void;
   onToggle: (id: string) => void;
   onOpen: (id: string) => void;
@@ -281,6 +285,8 @@ export function SectionsCard({
             const fixed = FIXED[row.key];
             return (
               <li key={row.key} className={ROW}>
+                {/* The header and the footer never move: room where a section has its handle and arrows. */}
+                <span className="w-7 flex-none" />
                 <span className="w-6 flex-none" />
                 <RowIcon name={fixed.icon} dim={false} />
                 <button
@@ -303,7 +309,21 @@ export function SectionsCard({
             ? t('sdBroken')
             : wordsText(t, sectionSummary(section, { design, categories: editor.categories }));
           return (
-            <li key={section.id} className={ROW}>
+            <li
+              key={section.id}
+              {...dragPlace(index)}
+              className={`${ROW} ${drag.dragging === section.id ? LIFTED : ''}`}
+            >
+              <Handle
+                label={t('plDrag', { name })}
+                disabled={disabled}
+                onPointerDown={(event) => {
+                  drag.startDrag(event, section.id);
+                }}
+                onKeyDown={(event) => {
+                  drag.keyMove(event, index, design.sections.length);
+                }}
+              />
               <span className="flex w-6 flex-none flex-col items-center text-neutral-500">
                 <ArrowButton
                   icon="up"
@@ -363,6 +383,9 @@ export function SectionsCard({
 
 const ROW =
   'flex min-h-[60px] items-center gap-2.5 border-t border-neutral-100 px-0.5 py-2 first:border-t-0';
+// BL-1: a row held mid-drag, lifted off the list as the sketch's `e-drag` draws it.
+const LIFTED =
+  'relative z-[2] -rotate-[1.2deg] rounded-[12px] border-t-transparent bg-surface shadow-[0_14px_30px_rgba(0,0,0,0.22)] outline-2 outline-primary';
 
 function RowIcon({ name, dim }: { name: EditorIconName; dim: boolean }) {
   return (

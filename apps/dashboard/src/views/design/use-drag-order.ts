@@ -9,7 +9,12 @@ const EDGE = 72;
 const SCROLL_STEP = 14;
 
 /** The place a row's element carries, read where the pointer is: `data-drag-at` on the row (or its card). */
-export const DRAG_AT = 'data-drag-at';
+const DRAG_AT = 'data-drag-at';
+
+/** A row's place, spread onto its element: `<li {...dragPlace(at)}>`. */
+export function dragPlace(at: number): { 'data-drag-at': number } {
+  return { 'data-drag-at': at };
+}
 
 /** The arrow keys' step on a focused handle: up or left one place back, down or right one on; anything else none. */
 export function arrowStep(key: string): -1 | 0 | 1 {
