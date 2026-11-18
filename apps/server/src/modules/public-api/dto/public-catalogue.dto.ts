@@ -34,6 +34,12 @@ const productCardSchema = z.object({
   image: imageViewSchema.nullable(),
   createdAt: z.string(),
   swatches: z.array(optionValueSchema),
+  // SB-10, SB-21: the struck-through price, the saving and the badges' facts.
+  minRegularPrice: z.string().nullable(),
+  bestDiscount: z.number(),
+  left: z.number().nullable(),
+  ordered: z.number(),
+  bestSeller: z.boolean(),
 });
 
 export class PublicProductPageDto extends createZodDto(
@@ -48,6 +54,8 @@ export class PublicProductDetailDto extends createZodDto(
     description: z.string().nullable(),
     minPrice: z.string().nullable(),
     maxPrice: z.string().nullable(),
+    minRegularPrice: z.string().nullable(),
+    bestDiscount: z.number(),
     stockState: z.enum(StockState),
     stockUnit: z.enum(StockUnit),
     sharedStock: z.boolean(),
@@ -88,6 +96,7 @@ export class PublicProductDetailDto extends createZodDto(
         id: z.string(),
         optionIds: z.array(z.string()),
         price: z.string(),
+        regularPrice: z.string().nullable(),
         stockState: z.enum(StockState),
         available: z.boolean(),
       }),
@@ -155,6 +164,7 @@ interface CategoryShape {
   slug: string;
   name: string;
   image: z.infer<typeof imageViewSchema> | null;
+  cover: z.infer<typeof imageViewSchema> | null;
   productCount: number;
   children: CategoryShape[];
 }
@@ -165,6 +175,7 @@ const categorySchema: z.ZodType<CategoryShape> = z.lazy(() =>
     slug: z.string(),
     name: z.string(),
     image: imageViewSchema.nullable(),
+    cover: imageViewSchema.nullable(),
     productCount: z.number().int(),
     children: z.array(categorySchema),
   }),

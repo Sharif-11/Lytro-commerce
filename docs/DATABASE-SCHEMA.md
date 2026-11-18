@@ -328,11 +328,30 @@ CREATE TABLE tenant.shop_settings (
     default_advance_amount          numeric(10,2) CHECK (default_advance_amount >= 0),
     logo_media_id                   uuid,            -- TEN-16: a ready image of the shop's; null shows its monogram
     link_shared_at                  timestamptz,     -- SUP-01 (0077): when a shop or product link was first shared
-    storefront_enabled              boolean NOT NULL DEFAULT true    -- SFT-16 (0084): off, the storefront's pages answer not-found
+    storefront_enabled              boolean NOT NULL DEFAULT true,   -- SFT-16 (0084): off, the storefront's pages answer not-found
+    icon_media_id                   uuid             -- SB-5 (0143): every plan's square icon; null makes it from the logo
 );
 -- PRD-08's two columns were built in Phase 3 Slice 1c (0053), with the products' own rule as a check: a partial
 -- advance needs its amount, and no other policy takes one. The logo (Slice 6a, 0065) is cleared when its image is
 -- deleted (ON DELETE SET NULL (logo_media_id)), and must be a ready image of the shop's (§3.5's attach trigger).
+-- The icon (STOREFRONT-BUILDER-PLAN SB-5, 0143) is kept the same way (shop_settings_icon_fk, shop_settings_icon_ready).
+-- A shop whose brand identity saved an icon before 0143 shows that one until it sets another (no data is copied).
+
+-- SB-12, SB-14 (0143): a shop's storefront design, one row per shop that has ever saved one; none shows its shop type's
+-- starting design (SB-11). Each copy is a whole design document (`storefrontDesignSchema` in packages/validators): the
+-- draft the editor saves, the live one, and the one before it, which "Back" restores. media_ids lists every photo any
+-- copy names, so the media library counts the uses without reading the documents (no key: a deleted photo is left out
+-- where it shows). Erased at day 60 (LIF-19).
+CREATE TABLE tenant.storefront_designs (
+    tenant_id       uuid PRIMARY KEY,
+    draft           jsonb,
+    published       jsonb,
+    previous        jsonb,
+    media_ids       uuid[] NOT NULL DEFAULT '{}',
+    draft_saved_at  timestamptz,
+    published_at    timestamptz,
+    updated_at      timestamptz NOT NULL DEFAULT now()
+);
 ```
 
 ### 2.4 Invoices and platform audit
@@ -660,6 +679,7 @@ CREATE TABLE tenant.products (
     kind                tenant.product_kind NOT NULL DEFAULT 'standard',  -- CMB-01: a combo holds no stock
     description         text,
     base_price          numeric(10,2) NOT NULL CHECK (base_price >= 0),
+    regular_price       numeric(10,2) CHECK (regular_price >= 0),  -- PRD-19 (0143): on sale from; null for none
     stock_unit          tenant.stock_unit NOT NULL DEFAULT 'piece',
     stock_tracking      tenant.stock_tracking NOT NULL DEFAULT 'tracked',
     batch_tracked       boolean NOT NULL DEFAULT false,     -- INV-12
@@ -679,6 +699,10 @@ CREATE TABLE tenant.products (
     -- denormalised for list pages, kept in sync in the same transaction as any variant/stock write (CCH-11):
     min_price           numeric(10,2),
     max_price           numeric(10,2),
+    -- SB-10, PRD-19 (0143): the regular price beside the lowest price (null when not on sale) and the biggest saving
+    -- of any variant in whole percent, rounded down (0 for none); a saving of at least 1% is on sale.
+    min_regular_price   numeric(10,2),
+    best_discount       smallint NOT NULL DEFAULT 0,
     stock_state         tenant.stock_state NOT NULL DEFAULT 'out',
     -- CCH-12 (built in Slice 9a): name weighted A, description B, every word whole in both languages
     search_vector       tsvector GENERATED ALWAYS AS (
@@ -742,6 +766,7 @@ CREATE TABLE tenant.product_variants (
     sku             text,
     barcode         text,
     price           numeric(10,2) CHECK (price >= 0),   -- override; null => products.base_price
+    regular_price   numeric(10,2) CHECK (regular_price >= 0),  -- PRD-19 (0143) override; null => products.regular_price
     weight_kg       numeric(10,3),                -- ATR-13 overrides; null => product's value
     delivery_charge numeric(10,2),
     delivery_mode   tenant.delivery_mode,

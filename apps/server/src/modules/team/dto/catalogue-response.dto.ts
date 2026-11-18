@@ -126,6 +126,9 @@ export const productPageSchema = z.object({
       basePrice: z.string(),
       minPrice: z.string().nullable(),
       maxPrice: z.string().nullable(),
+      // SB-10, SB-21: the regular price beside the lowest price (null when that is not on sale), and the best saving.
+      minRegularPrice: z.string().nullable(),
+      bestDiscount: z.number(),
       active: z.boolean(),
       stockState: z.enum(StockState),
       primaryCategoryId: z.string().nullable(),
@@ -177,6 +180,8 @@ export const productDetailSchema = z.object({
   oldSlugs: z.array(z.string()),
   description: z.string().nullable(),
   basePrice: z.string(),
+  // SB-21: the regular price it is on sale from; null for none.
+  regularPrice: z.string().nullable(),
   stockUnit: z.enum(StockUnit),
   stockTracking: z.enum(StockTracking),
   batchTracked: z.boolean(),
@@ -199,6 +204,9 @@ export const productDetailSchema = z.object({
   primaryCategoryId: z.string().nullable(),
   minPrice: z.string().nullable(),
   maxPrice: z.string().nullable(),
+  // SB-10, SB-21: the regular price beside the lowest price (null when that is not on sale), and the best saving.
+  minRegularPrice: z.string().nullable(),
+  bestDiscount: z.number(),
   stockState: z.enum(StockState),
   variantAttributes: z.array(variantAttributeViewSchema),
   attributes: z.array(
@@ -223,6 +231,9 @@ export const productDetailSchema = z.object({
       barcode: z.string().nullable(),
       price: z.string().nullable(),
       effectivePrice: z.string(),
+      // SB-21: its own regular price, and the one it stands beside (its own or the product's).
+      regularPrice: z.string().nullable(),
+      effectiveRegularPrice: z.string().nullable(),
       weightKg: z.string().nullable(),
       deliveryCharge: z.string().nullable(),
       deliveryMode: z.enum(DeliveryMode).nullable(),

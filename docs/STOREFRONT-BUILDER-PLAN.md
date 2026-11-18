@@ -1,8 +1,10 @@
 # Storefront builder plan: every shop its own look
 
-Status: designed 2026-11-18, to be built after Phase 9. SB-1 to SB-6 were settled with the owner that day, and the sketch
-was approved ("its ok"). SB-7 to SB-20 follow from them, from existing requirements or from the sketch, and are raised
-with this plan so the owner can overrule any of them.
+Status: designed 2026-11-18 and being built (the owner the same day: "you can start theme building task. phase 9 is too
+length don't wait", SB-3). SB-1 to SB-6 were settled with the owner that day, and the sketch was approved ("its ok").
+SB-7 to SB-20 follow from them, from existing requirements or from the sketch, and are raised with this plan so the
+owner can overrule any of them. SB-21 is the owner's answer during the build; SB-22 to SB-29 are my calls made while
+building the server, listed so they can be overruled.
 
 **The sketch is the build target:** `docs/brand/lytro-storefront-builder.html`. It has five themes, each drawn as a sample
 shop (`royal`, `fresh`, `bold`, `soft`, `studio`), and the dashboard's editor screens (`e-home`, `e-themes`, `e-brand`,
@@ -66,8 +68,8 @@ seller touching anything,** because every section fills itself from the shop's o
 |---|---|---|
 | SB-1 | **How much a shop can change.** | **Themes + sections**: pick a theme, then show, hide, reorder and fill the home page's sections, with a live preview, a draft and Publish. **No free drag-and-drop and no custom HTML, CSS or code.** |
 | SB-2 | **Who gets it.** | **Every plan**, free (the storefront is on every plan, SFT-17). Colours and fonts of the shop's own beyond a theme's colour sets stay the **brand identity add-on** (BRN-05). |
-| SB-3 | **When.** | **Designed now, built after Phase 9**, as its own work like the photo designs. Where it falls against Phase 10 (migration and launch) is the owner's call when Phase 9 closes. |
-| SB-4 | **New features.** | **None in the first version:** only what Lytro already knows (products, categories, sale prices, sales figures, delivery fees, payment methods, the seller's own text and photos). Ratings and reviews, a newsletter, a wishlist and YouTube, TikTok and Instagram links come later, each as its own feature. |
+| SB-3 | **When.** | ~~Designed now, built after Phase 9.~~ **Amended 2026-11-18 (the owner: "phase 9 is too length don't wait"): built now,** alongside Phase 9, as its own work like the photo designs. |
+| SB-4 | **New features.** | **None in the first version:** only what Lytro already knows (products, categories, sale prices, sales figures, delivery fees, payment methods, the seller's own text and photos). **Amended 2026-11-18:** Lytro had no sale price, so the regular price is added (SB-21). Ratings and reviews, a newsletter, a wishlist and YouTube, TikTok and Instagram links come later, each as its own feature. |
 | SB-5 | **Logo and icon** (the owner: "everyone can upload icon for website and app"). | **Every plan uploads its own icon,** one square image for the website (the browser tab) and the installed app (the phone's home screen), next to the logo, each with a live preview. With no icon it is made from the logo; with no logo, from the monogram (today's rule, `app-icons.ts`). |
 | SB-6 | **Mobile first** (the owner: "all customer use mobile most of the time"). | **The phone is the design;** wider screens only add room: columns, side-by-side banners, the search bar. |
 
@@ -79,16 +81,36 @@ seller touching anything,** because every section fills itself from the shop's o
 | SB-8 | **The sections** (first version). | **Can be added, removed and repeated:**<br>• an announcement line;<br>• hero slides;<br>• categories;<br>• a product row;<br>• offer banners (one or two);<br>• a wide banner;<br>• a trust strip;<br>• testimonials;<br>• About the shop.<br>**Fixed, never removed:** the header (logo, menu, search, cart) and the footer (contact, social links, Powered by Lytro, TEN-18).<br>**Limits:**<br>• 12 sections;<br>• a hero of up to 3 slides;<br>• a product row of 4 to 12 products;<br>• 1 or 2 offer banners;<br>• up to 6 testimonials;<br>• up to 12 hand-picked products.<br>Every text field has a longest length (SEC-12); a headline is at most 60 characters. |
 | SB-9 | **Sections fill themselves** (Bonik AI's lesson). | Until the seller writes their own, each section is filled from the shop's data:<br>• **Announcement:** "N পণ্যে X% পর্যন্ত ছাড়" from the products on sale, and the Dhaka delivery fee.<br>• **Hero:** the three biggest discounts, each with its own photo; a slide leaves when its offer ends.<br>• **Categories:** every top-level category with its picture, or else its first product's photo, and its product count.<br>• **Trust strip:** cash on delivery, the delivery fees from the shop's zones, its payment methods, order tracking.<br>• **Product rows:** **newest** first; **on sale** with the biggest discount first; **best sellers** from the last 30 days of delivered orders (Slice 4.7's figures); one category; or hand-picked. Sold-out products leave a row. |
 | SB-10 | **Badges.** | Set by the data, never typed:<br>• the discount (−X%);<br>• **New** for 14 days after a product is added;<br>• **Best seller** for a shop's top sellers;<br>• **Only N left** under the product's low-stock level;<br>• **Ordered N times** from its delivered orders. |
-| SB-11 | **Where a shop starts.** | A new shop starts on **its shop type's theme** with every section on auto:<br>• fashion → Studio;<br>• cosmetics → Soft;<br>• food and grocery → Fresh;<br>• gadgets and general stores → Bold;<br>• perfume and jewellery → Royal.<br>So it looks finished with no setup. **Before launch the only shops are tenant #1 (DAT-16) and staging's test shops, so every shop moves to its type's theme the same way;** today's home page is not kept as a sixth theme. This is my call; the owner can overrule it, at the cost of one more theme. |
+| SB-11 | **Where a shop starts.** | A new shop starts on **its shop type's theme** with every section on auto:<br>• fashion → Studio;<br>• cosmetics → Soft;<br>• food and grocery → Fresh;<br>• gadgets and general stores → Bold;<br>• perfume and jewellery → Royal.<br>**As built** (`STARTING_THEME`, against the shop types Lytro has): clothing and shoes & bags → Studio; cosmetics → Soft; grocery, food & bakery and pharmacy → Fresh; electronics, mobiles & gadgets, books & stationery and other → Bold; home décor → Royal; a shop with no type, or a type added later, → Bold. There is no perfume or jewellery type yet; such a shop picks Royal.<br>So it looks finished with no setup. **Before launch the only shops are tenant #1 (DAT-16) and staging's test shops, so every shop moves to its type's theme the same way;** today's home page is not kept as a sixth theme. This is my call; the owner can overrule it, at the cost of one more theme. |
 | SB-12 | **Draft, preview and publish.** | Edits save to a **draft on the server**, so a phone and a desktop see the same draft. This differs from the brand editor's "edits stay on the page until Save" (11.2 point 2), because a home page takes longer than one sitting.<br>• **Preview:** the real storefront drawn from the draft through a short-lived signed link, never cached and never public. On a desktop it sits beside the editor; on a phone it opens full screen.<br>• **Publish:** makes the draft live and purges the shop's pages from the edge by tag (D9-32), so shoppers see it within a minute.<br>• **Back:** the previous published design is kept, and "Back to the previous design" is one tap. |
 | SB-13 | **Who may edit.** | `settings:manage`, as the brand editor. Each publish and revert is in the shop's activity log (AUD-01). |
-| SB-14 | **Storage.** | **One validated document per shop:** its theme, colour set and sections with their settings.<br>• **Three copies:** draft, published, previous.<br>• **One schema** in `packages/validators`, read by the server, the storefront and the dashboard. The Zod 4 walker guards apply.<br>• **Photos** are referred to by media ID with their own media purpose, and media uses count them.<br>• **The published copy** goes out with `/v1/shop`. |
+| SB-14 | **Storage.** | **One validated document per shop:** its theme, colour set and sections with their settings.<br>• **Three copies:** draft, published, previous.<br>• **One schema** in `packages/validators`, read by the server, the storefront and the dashboard. The Zod 4 walker guards apply.<br>• **Photos** are referred to by media ID, and media uses count them. **As built:** they are uploaded as the shop's logo images are (the `shop_logo` purpose), not under a purpose of their own: a new value of the media purpose type would break the previous release while two run side by side (Slice 9.7's old-release check), and the purpose decides nothing for them.<br>• **The published copy** goes out with `/v1/shop`. |
 | SB-15 | **Photos.** | Uploaded through the existing media pipeline. A banner or slide photo is at least 1200 px wide and stores a **focal point**: a phone keeps a square around it, a desktop a 1280 × 560 band. |
 | SB-16 | **Where a button goes.** | To on sale, just in, best sellers, a category or a product, chosen from a list, never typed. A target that is deleted falls back to the home page, and the editor says which section points at it. |
 | SB-17 | **Every other page.** | Only the home page has sections in this version. The category, search, product, cart and checkout pages take the theme's **tokens and product card**; their layout is as built. The payment page never changes beyond the shop's name and logo (PAY-05). |
 | SB-18 | **The brand identity add-on with a theme.** | With "Use my brand" on, the identity's colours, fonts, corners and spacing replace the theme's tokens. The layout (the sections and their variants) stays the theme's. |
 | SB-19 | **Contrast.** | Every theme colour set passes BRN-03 (4.5:1 body text, 3:1 large text); a test checks them all. Text over a photo always sits on the section's shade. |
 | SB-20 | **What a theme never changes.** | The fixed status colours, Powered by Lytro and Secured by Lytro (TEN-18), the floating chat button (SFT-21's contacts), cash on delivery's wording, and the order and payment flows. |
+
+
+**SB-21 agreed 2026-11-18** (the owner chose "Add a regular price (Recommended)" during the build).
+
+| # | Decision | Decided |
+|---|---|---|
+| SB-21 | **The regular price** ("আগের দাম"). Lytro had no sale price, and SB-9's "on sale" and SB-10's "−X%" need one. | **A product has an optional regular price, and a variant may override it as it overrides the price.** It is at least the price (equal is simply not on sale). A product whose price saves at least 1% against it is **on sale**: the storefront strikes the regular price through, shows the saving as a whole percent rounded down, lists it in "On sale" and the offers line, and the hero fills itself from it. **Orders charge the price, never the regular price.** Raising the price past the regular price ends the sale without an error. |
+
+**SB-22 to SB-29: my calls while building the server (2026-11-18)**, each open to the owner's overrule.
+
+| # | Decision | Decided |
+|---|---|---|
+| SB-22 | **Best seller badge.** | A shop's **5** most sold products by units over the last 30 days of delivered orders (Slice 4.7's counted orders); a product with no sale is never one. |
+| SB-23 | **"Ordered N times".** | The delivered orders that ever held the product (not only 30 days), so a long seller is not undersold. |
+| SB-24 | **"Only N left".** | Only while the product is under its low-stock level (its stock state "low"), and only for whole units of stock of its own: never a weighed product's, a shared stock's or a combo's. PRD-09 is amended to allow it. |
+| SB-25 | **Going back.** | "Back" swaps the live design and the one before, so a second tap undoes the first. It drops an unpublished draft; the editor warns first. |
+| SB-26 | **Preview link.** | Signed by the server, valid **30 minutes**, for that shop only; `/v1/shop?preview=` answers with `Cache-Control: no-store`; an ended or changed link is refused, never quietly shown the live design. |
+| SB-27 | **The icon and the brand identity.** | The icon is kept in Shop details for every plan (SB-5). An icon saved through the brand editor before this release still shows until another is set; from now the brand editor and Shop details set the one icon together. |
+| SB-28 | **Missing pieces.** | A design's photo or target deleted later is left out where it shows (a slide or banner without its photo is dropped; a button to a deleted category goes home), its pages leave the edge, and the editor lists the sections it touched (`broken`). Saving refuses a photo, category or product the shop doesn't have. |
+| SB-29 | **Picked rows and category tiles.** | The public product list takes `productIds` (up to 12, in the seller's order) for a picked row; a category without a picture of its own is covered by its first product's first photo. |
 
 ---
 
@@ -106,6 +128,10 @@ Amended in the first pull request of the build, dated that day.
 | SFT-22 (new) | Themes, colour sets and where a shop starts: SB-7, SB-11. |
 | SFT-23 (new) | Sections, their limits and their auto content: SB-8 to SB-10, SB-16. |
 | SFT-24 (new) | Draft, preview, publish and going back: SB-12, SB-13. |
+| PRD-09 | The public list may order by saving and by best selling, filter to products on sale or named, and give each card its badges' facts, "only N left" among them (SB-9, SB-10, SB-24). |
+| PRD-19 (new) | The regular price (SB-21). |
+
+Done in the server's pull request (2026-11-18).
 
 ---
 
@@ -114,7 +140,7 @@ Amended in the first pull request of the build, dated that day.
 Three pull requests, each from `main`. The server goes first and the screens follow, as every phase does.
 
 1. **The server.**
-   - **Migration:** the shop's design document (draft, published, previous) and the banner photos' media purpose.
+   - **Migration:** the shop's design document (draft, published, previous), the shop's icon and the regular price (0143; no new media purpose, SB-14).
    - **Schema:** the design document's schema in validators.
    - **API:** read and save the draft, publish (with the edge purge by tag), go back, and the signed preview link.
    - **Public reads:** the published design on `/v1/shop`, and the public catalogue's new orders, "biggest discount" and "best selling" (SB-9).

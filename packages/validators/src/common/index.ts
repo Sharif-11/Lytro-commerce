@@ -19,3 +19,5 @@ export * from './text';
 export * from './sku';
 export * from './social-contacts';
 export * from './plan-card';
+export * from './storefront-themes';
+export * from './discount';

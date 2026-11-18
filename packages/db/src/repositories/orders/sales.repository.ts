@@ -62,9 +62,10 @@ const RESERVATION_REFERENCE = 'reservation';
 /**
  * STA-01 to STA-04 (Phase 4 Slice 4.7, agreed 2026-10-30): the orders sales figures count -- delivered (a takeaway or
  * dine-in order handed over is delivered too), never cancelled, failed or refunded, with at least one unit kept -- on
- * the Asia/Dhaka day each was placed.
+ * the Asia/Dhaka day each was placed. SB-9, SB-10: a storefront's best sellers and "ordered N times" count the same
+ * orders (`o`).
  */
-function counted(tenantId: string, period: SalesPeriod): SQL {
+export function counted(tenantId: string, period: SalesPeriod): SQL {
   return sql`o.tenant_id = ${tenantId} AND o.created_at >= ${period.from} AND o.created_at < ${period.to}
     AND o.delivered_at IS NOT NULL
     AND NOT EXISTS (SELECT 1 FROM tenant.payments t WHERE t.tenant_id = o.tenant_id AND t.order_id = o.id AND t.test)

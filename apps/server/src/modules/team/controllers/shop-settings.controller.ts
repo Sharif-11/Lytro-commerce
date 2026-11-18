@@ -13,7 +13,12 @@ import { SessionGuard } from '../../identity/guards/session.guard';
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
 import { ShopSettingsService, type ShopSettingsView } from '../services/shop-settings.service';
-import { ShopLogoDto, ShopSettingsDto, UpdateShopSettingsDto } from '../dto/shop-settings.dto';
+import {
+  ShopIconDto,
+  ShopLogoDto,
+  ShopSettingsDto,
+  UpdateShopSettingsDto,
+} from '../dto/shop-settings.dto';
 
 // TEN-30: a tenant's own support/contact details. RAT-14: the one per-tenant rate (extra delivery charge
 // per kg beyond the first, Adjustable-mode products) folded into this same shape -- reachable only once a
@@ -72,6 +77,26 @@ export class ShopSettingsController {
     @Req() request: DashboardRequest,
   ): Promise<ShopSettingsView> {
     return this.settings.setLogo(
+      this.tenantIdOf(request),
+      body.mediaId,
+      this.catalogue.actorOf(request),
+    );
+  }
+
+  @Put('icon')
+  @RequirePermission(Permission.SettingsManage)
+  @ResponseMessage('ShopIconSaved')
+  @ApiOperation({
+    summary:
+      "Set the shop's square icon, on every plan, to one of its ready images, or null to make it from the logo (SB-5)",
+  })
+  @ApiBody({ type: ShopIconDto })
+  @ZodResponse({ type: ShopSettingsDto })
+  setIcon(
+    @Body(new ZodValidationPipe(ShopIconDto.schema)) body: ShopIconDto,
+    @Req() request: DashboardRequest,
+  ): Promise<ShopSettingsView> {
+    return this.settings.setIcon(
       this.tenantIdOf(request),
       body.mediaId,
       this.catalogue.actorOf(request),

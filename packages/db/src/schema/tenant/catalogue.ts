@@ -125,6 +125,9 @@ export const products = tenant.table(
     slug: text('slug').notNull(),
     description: text('description'),
     basePrice: numeric('base_price', { precision: 10, scale: 2 }).notNull(),
+    // SB-21 (the owner, 2026-11-18): the regular price it is on sale from ("আগের দাম"); null for none. Orders charge the
+    // price, never this.
+    regularPrice: numeric('regular_price', { precision: 10, scale: 2 }),
     stockUnit: stockUnit('stock_unit').notNull().default(StockUnit.Piece),
     stockTracking: stockTracking('stock_tracking').notNull().default(StockTracking.Tracked),
     batchTracked: boolean('batch_tracked').notNull().default(false),
@@ -158,6 +161,10 @@ export const products = tenant.table(
     // CCH-11: kept in step with the variants in the same transaction, for list pages.
     minPrice: numeric('min_price', { precision: 10, scale: 2 }),
     maxPrice: numeric('max_price', { precision: 10, scale: 2 }),
+    // SB-10, SB-21: kept in step the same way -- the regular price shown struck through beside the lowest price (null
+    // when that variant is not on sale), and the biggest saving of any variant in whole percent (0 for none).
+    minRegularPrice: numeric('min_regular_price', { precision: 10, scale: 2 }),
+    bestDiscount: smallint('best_discount').notNull().default(0),
     stockState: stockState('stock_state').notNull().default(StockState.Out),
     // CCH-12, DAT-13: the name and description as words, the name weighted higher. `simple` keeps every word whole in
     // both languages, since PostgreSQL has no Bangla stemmer.
@@ -331,6 +338,8 @@ export const productVariants = tenant.table(
     barcode: text('barcode'),
     // ATR-05, ATR-13: overrides; null means the product's own value.
     price: numeric('price', { precision: 10, scale: 2 }),
+    // SB-21: its own regular price, as `price` overrides the product's.
+    regularPrice: numeric('regular_price', { precision: 10, scale: 2 }),
     weightKg: numeric('weight_kg', { precision: 10, scale: 3 }),
     deliveryCharge: numeric('delivery_charge', { precision: 10, scale: 2 }),
     deliveryMode: deliveryMode('delivery_mode'),

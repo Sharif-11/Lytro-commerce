@@ -1705,6 +1705,56 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: (p) => `Choose a square image at least ${String(p.min)} px wide for the icon.`,
     bn: (p) => `আইকনের জন্য অন্তত ${String(p.min)} px-এর একটা চৌকো ছবি দিন।`,
   },
+  ShopIconSaved: { en: 'Icon saved.', bn: 'আইকন সেভ হয়েছে।' },
+  StorefrontDesignRetrieved: {
+    en: 'Storefront design loaded.',
+    bn: 'স্টোরফ্রন্টের ডিজাইন লোড হয়েছে।',
+  },
+  StorefrontDraftSaved: {
+    en: 'Draft saved. Publish it when you are ready.',
+    bn: 'ড্রাফট সেভ হয়েছে। তৈরি হলে পাবলিশ করুন।',
+  },
+  StorefrontDraftDiscarded: {
+    en: 'Your changes are discarded.',
+    bn: 'আপনার পরিবর্তনগুলো বাদ দেওয়া হয়েছে।',
+  },
+  StorefrontPublished: {
+    en: 'Published. Shoppers see it within a minute.',
+    bn: 'পাবলিশ হয়েছে। এক মিনিটের মধ্যে ক্রেতারা দেখতে পাবেন।',
+  },
+  StorefrontWentBack: {
+    en: 'The previous design is live again.',
+    bn: 'আগের ডিজাইন আবার চালু হয়েছে।',
+  },
+  StorefrontPreviewLinkMade: { en: 'Preview ready.', bn: 'প্রিভিউ তৈরি।' },
+  StorefrontNothingToPublish: {
+    en: 'There are no changes to publish.',
+    bn: 'পাবলিশ করার মতো কোনো পরিবর্তন নেই।',
+  },
+  StorefrontNothingToGoBackTo: {
+    en: 'There is no previous design to go back to.',
+    bn: 'ফিরে যাওয়ার মতো আগের কোনো ডিজাইন নেই।',
+  },
+  StorefrontPreviewEnded: {
+    en: 'This preview link has ended. Open the preview again from the editor.',
+    bn: 'এই প্রিভিউ লিংকের মেয়াদ শেষ। এডিটর থেকে আবার প্রিভিউ খুলুন।',
+  },
+  StorefrontPhotoTooNarrow: {
+    en: (p) => `Choose a photo at least ${String(p.min)} px wide, so it stays sharp on a computer.`,
+    bn: (p) => `অন্তত ${String(p.min)} px চওড়া ছবি দিন, যাতে কম্পিউটারেও ঝাপসা না দেখায়।`,
+  },
+  StorefrontCategoryNotFound: {
+    en: 'That category was not found. Choose another.',
+    bn: 'ক্যাটাগরিটি পাওয়া যায়নি। অন্য একটি বেছে নিন।',
+  },
+  StorefrontProductNotFound: {
+    en: 'That product was not found. Choose another.',
+    bn: 'প্রোডাক্টটি পাওয়া যায়নি। অন্য একটি বেছে নিন।',
+  },
+  RegularPriceBelowPrice: {
+    en: (p) => `The regular price is at least the price (${String(p.min)}).`,
+    bn: (p) => `আগের দাম অন্তত প্রাইসের সমান হতে হবে (${String(p.min)})।`,
+  },
   OrderNotFound: {
     en: 'That order was not found.',
     bn: 'অর্ডারটি পাওয়া যায়নি।',

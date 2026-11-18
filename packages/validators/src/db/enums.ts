@@ -368,6 +368,11 @@ export enum AuditAction {
   BrandSaved = 'brand_saved',
   BrandSwitchedOn = 'brand_switched_on',
   BrandSwitchedOff = 'brand_switched_off',
+  // STOREFRONT-BUILDER-PLAN (2026-11-18): the shop's icon set or removed (SB-5), and its storefront design published or
+  // put back to the one before (SB-13).
+  ShopIconSaved = 'shop_icon_saved',
+  StorefrontPublished = 'storefront_published',
+  StorefrontWentBack = 'storefront_went_back',
   // Phase 4 Slice 4.1: an order made, its details or items changed, its status moved (confirmed, held, put in review,
   // cancelled, cleared), deleted, and a call to its customer logged (AUD-01, ORD-51).
   OrderCreated = 'order_created',

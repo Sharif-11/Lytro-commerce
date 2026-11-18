@@ -216,6 +216,10 @@ export interface VariantView {
   price: string | null;
   /** ATR-05: the price it sells at, its own or the product's. */
   effectivePrice: string;
+  /** SB-21: its own regular price ("আগের দাম"); null takes the product's. */
+  regularPrice: string | null;
+  /** SB-21: the regular price it stands beside, its own or the product's; null for none. */
+  effectiveRegularPrice: string | null;
   weightKg: string | null;
   deliveryCharge: string | null;
   deliveryMode: DeliveryMode | null;
@@ -236,6 +240,8 @@ export interface ProductDetail {
   oldSlugs: string[];
   description: string | null;
   basePrice: string;
+  /** SB-21: the regular price it is on sale from; null for none. */
+  regularPrice: string | null;
   stockUnit: StockUnit;
   stockTracking: StockTracking;
   batchTracked: boolean;
@@ -263,6 +269,9 @@ export interface ProductDetail {
   primaryCategoryId: string | null;
   minPrice: string | null;
   maxPrice: string | null;
+  /** SB-10, SB-21: the regular price beside the lowest price (null when that is not on sale), and the best saving. */
+  minRegularPrice: string | null;
+  bestDiscount: number;
   stockState: StockState;
   variantAttributes: VariantAttributeView[];
   attributes: ProductAttributeView[];
@@ -374,6 +383,9 @@ export interface ProductListItem {
   basePrice: string;
   minPrice: string | null;
   maxPrice: string | null;
+  /** SB-10, SB-21: the regular price beside the lowest price (null when that is not on sale), and the best saving. */
+  minRegularPrice: string | null;
+  bestDiscount: number;
   active: boolean;
   stockState: StockState;
   primaryCategoryId: string | null;

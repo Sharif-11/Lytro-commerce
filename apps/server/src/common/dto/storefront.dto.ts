@@ -1,0 +1,22 @@
+import { z } from 'zod';
+import { StorefrontThemeKey, storefrontDesignSchema } from '@lytronix/validators';
+import { imageViewSchema } from './media-views.dto';
+
+// SB-16: a category or product a storefront design points at.
+export const storefrontTargetSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  name: z.string(),
+});
+
+// SB-14: the design shoppers see, as /v1/shop sends it -- its visible sections, the photos and the categories and
+// products it names that shoppers can reach, and whether it is the draft through a preview link.
+export const publicStorefrontSchema = z.object({
+  theme: z.enum(StorefrontThemeKey),
+  palette: z.number(),
+  sections: storefrontDesignSchema.shape.sections,
+  images: z.record(z.string(), imageViewSchema),
+  categories: z.array(storefrontTargetSchema),
+  products: z.array(storefrontTargetSchema),
+  preview: z.boolean(),
+});

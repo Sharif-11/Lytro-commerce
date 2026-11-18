@@ -17,6 +17,7 @@ import { DeliveryModule } from '../delivery/delivery.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { MediaModule } from '../media/media.module';
 import { BrandModule } from '../brand/brand.module';
+import { StorefrontDesignModule } from '../storefront-design/storefront-design.module';
 import { PaymentMethodsModule } from '../payment-methods/payment-methods.module';
 import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
 import { ListenerModule } from '../listener/listener.module';
@@ -105,6 +106,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     MediaModule,
     UsageWarningsModule,
     BrandModule,
+    StorefrontDesignModule,
     PaymentMethodsModule,
     PaymentSessionsModule,
     ListenerModule,

@@ -36,6 +36,7 @@ import { PublicApiEraser } from '../../public-api/services/public-api-eraser';
 import { UsageWarnings } from '../../usage-warnings/services/usage-warnings';
 import { MediaEraser } from '../../media/services/media-eraser';
 import { BrandEraser } from '../../brand/services/brand-eraser';
+import { StorefrontDesignEraser } from '../../storefront-design/services/storefront-design-eraser';
 import { PaymentMethodsEraser } from '../../payment-methods/services/payment-methods-eraser';
 import { PaymentSessionsEraser } from '../../payment-sessions/services/payment-sessions-eraser';
 import { ListenerDevices } from '../../listener/services/listener-devices';
@@ -131,6 +132,7 @@ export class LifecycleService {
     @Inject(UsageWarnings) private readonly usageWarnings: UsageWarnings,
     @Inject(MediaEraser) private readonly media: MediaEraser,
     @Inject(BrandEraser) private readonly brand: BrandEraser,
+    @Inject(StorefrontDesignEraser) private readonly storefrontDesign: StorefrontDesignEraser,
     @Inject(PaymentMethodsEraser) private readonly paymentMethods: PaymentMethodsEraser,
     @Inject(CourierConnections) private readonly couriers: CourierConnections,
     @Inject(SmsHistory) private readonly smsHistory: SmsHistory,
@@ -452,7 +454,7 @@ export class LifecycleService {
     // Phase 3: purchases and suppliers, the stock ledger and levels, then (Phase 4) the orders those held stock for and
     // their customers, and the shoppers' accounts (Slice 4.4b), and the replies stored for its idempotency keys (KNOWN-GAPS
     // §106), then products and everything under them, categories, attributes, option sets and the settings
-    // row, the brand identity, then its media (the rows now, every stored file under its prefix in the deletion job,
+    // row, the brand identity and the storefront design, then its media (the rows now, every stored file under its prefix in the deletion job,
     // MED-09), then the delivery zones those products' limits named, the shop's API keys and request counts, the
     // record of its usage warnings, its payment accounts (Phase 5 Slice 5.1), and its own domain (Slice 13), freed for
     // anyone to add. Each step is safe to repeat if a tick stops between them.
@@ -473,6 +475,7 @@ export class LifecycleService {
     await this.idempotency.deleteAllForTenant(tenantId);
     await this.catalogue.deleteAllForTenant(tenantId);
     await this.brand.deleteAllForTenant(tenantId);
+    await this.storefrontDesign.deleteAllForTenant(tenantId);
     await this.media.deleteAllForTenant(tenantId);
     await this.deliveryZones.deleteAllForTenant(tenantId);
     await this.publicSide.deleteAllForTenant(tenantId);

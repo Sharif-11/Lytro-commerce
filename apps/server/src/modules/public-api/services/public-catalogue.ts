@@ -6,12 +6,15 @@ import {
   FieldProblemCode,
   PlatformSettingKey,
   ProductKind,
+  STOREFRONT_BEST_SELLER_BADGES,
+  STOREFRONT_BEST_SELLER_DAYS,
   StockState,
+  discountPercent,
   type Language,
   type PublicProductListQuery,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
-import { SECOND_MS } from '../../../common/time';
+import { DAY_MS, SECOND_MS } from '../../../common/time';
 import { CatalogueImages } from '../../catalogue/services/catalogue-images';
 import { ProductService } from '../../catalogue/services/product.service';
 import type { CategoryRecord, ProductDetail } from '../../catalogue/types/catalogue';
@@ -38,8 +41,9 @@ import { comboFigures, comboSaving, unitsOf } from '../../inventory/services/com
 
 // Bumped whenever an answer's shape changes, so no shopper's browser keeps an old one under an unchanged tag. 2: a list
 // row's swatches and creation time, a category's product count (Slice 12b). 3: what a product asks (Slice 4.8e). 5: a
-// product's designs: each photo's design and pixels, the designs option marked (photo designs, ATR-19, PD-28).
-const ANSWER_FORMAT = 5;
+// product's designs: each photo's design and pixels, the designs option marked (photo designs, ATR-19, PD-28). 6: the
+// regular prices, savings and badges' facts, a category's cover (STOREFRONT-BUILDER-PLAN SB-9, SB-10, SB-21).
+const ANSWER_FORMAT = 6;
 // CCH-04: the version endpoint itself is kept at most this long.
 const VERSION_MAX_AGE_SECONDS = 5;
 // FED-04: a feed is fetched on Meta's schedule; its answer is kept no longer than a product page.
@@ -212,13 +216,23 @@ export class PublicCatalogue {
             row.products,
           ]),
         );
+        // SB-9: a category without a picture shows its first product's photo.
+        const covers = new Map(
+          (await this.store.categoryCovers(tx, shop.row.id)).map((row) => [
+            row.categoryId,
+            row.mediaId,
+          ]),
+        );
+        const coverPhotos = await this.images.viewsOf(tx, shop.row.id, [...covers.values()]);
         const children = new Map<string | null, PublicCategory[]>();
         for (const row of [...visible].reverse()) {
+          const image = row.imageId === null ? null : (images.get(row.imageId) ?? null);
           const node: PublicCategory = {
             id: row.id,
             slug: row.slug,
             name: row.name,
-            image: row.imageId === null ? null : (images.get(row.imageId) ?? null),
+            image,
+            cover: image ?? coverPhotos.get(covers.get(row.id) ?? '') ?? null,
             productCount: counts.get(row.id) ?? 0,
             children: children.get(row.id) ?? [],
           };
@@ -278,14 +292,33 @@ export class PublicCatalogue {
         search: request.search,
         sort: request.sort,
         inStock: request.inStock,
+        onSale: request.onSale,
+        ids: request.ids,
+        soldSince: new Date(Date.now() - STOREFRONT_BEST_SELLER_DAYS * DAY_MS),
         after,
         limit: request.limit + 1,
       });
-      const page = rows.slice(0, request.limit);
+      const picked = request.ids;
+      const page =
+        picked === null
+          ? rows.slice(0, request.limit)
+          : [...rows].sort((a, b) => picked.indexOf(a.id) - picked.indexOf(b.id));
       const last = page.at(-1);
       const ids = page.map((row) => row.id);
       const images = await this.images.ofProducts(tx, tenantId, ids);
       const swatches = await this.swatchesOf(tx, tenantId, ids);
+      // SB-10: the badges' facts, one read for the page.
+      const facts = new Map(
+        (
+          await this.store.cardFacts(
+            tx,
+            tenantId,
+            ids,
+            new Date(Date.now() - STOREFRONT_BEST_SELLER_DAYS * DAY_MS),
+            STOREFRONT_BEST_SELLER_BADGES,
+          )
+        ).map((row) => [row.productId, row]),
+      );
       return {
         products: page.map((row) => ({
           id: row.id,
@@ -297,9 +330,16 @@ export class PublicCatalogue {
           image: images.get(row.id)?.[0] ?? null,
           createdAt: row.createdAt,
           swatches: swatches.get(row.id) ?? [],
+          minRegularPrice: row.minRegularPrice,
+          bestDiscount: row.bestDiscount,
+          left: facts.get(row.id)?.left ?? null,
+          ordered: facts.get(row.id)?.ordered ?? 0,
+          bestSeller: facts.get(row.id)?.bestSeller ?? false,
         })),
         nextCursor:
-          rows.length > request.limit && last ? cursorOf(request.sort, last.position) : null,
+          picked === null && rows.length > request.limit && last
+            ? cursorOf(request.sort, last.position)
+            : null,
       };
     });
   }
@@ -374,6 +414,8 @@ function publicDetail(detail: ProductDetail): Omit<PublicProductDetail, 'combo'>
     description: detail.description,
     minPrice: detail.minPrice,
     maxPrice: detail.maxPrice,
+    minRegularPrice: detail.minRegularPrice,
+    bestDiscount: detail.bestDiscount,
     stockState: detail.stockState,
     stockUnit: detail.stockUnit,
     sharedStock: detail.sharedStock,
@@ -411,6 +453,11 @@ function publicDetail(detail: ProductDetail): Omit<PublicProductDetail, 'combo'>
       id: variant.id,
       optionIds: variant.optionIds,
       price: variant.effectivePrice,
+      // SB-21: struck through only while it saves at least 1%, as the lists count a sale.
+      regularPrice:
+        discountPercent(variant.effectivePrice, variant.effectiveRegularPrice) > 0
+          ? variant.effectiveRegularPrice
+          : null,
       stockState: variant.stockState,
       available: variant.stockState !== StockState.Out,
     })),

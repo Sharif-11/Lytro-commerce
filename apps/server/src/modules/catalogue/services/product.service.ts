@@ -149,11 +149,35 @@ function chartContent(chart: SizeChartRecord): SizeChartContent | null {
   return chart.tableRows !== null ? { rows: chart.tableRows } : null;
 }
 
+/** SB-21: refuses a regular price below the price it stands beside. */
+function refuseRegularBelow(regular: string | null, price: string, field: string): void {
+  if (regular === null || Number(regular) >= Number(price)) return;
+  throw new FieldsError([
+    {
+      field,
+      problem: FieldProblemCode.TooSmall,
+      messageKey: 'RegularPriceBelowPrice',
+      params: { min: price },
+    },
+  ]);
+}
+
+/** SB-21: each variant's own regular price is at least its price (its own, else the product's). */
+function checkVariantRegularPrices(variants: VariantSpec[] | undefined, basePrice: string): void {
+  (variants ?? []).forEach((spec, index) => {
+    if (spec.regularPrice === undefined || spec.regularPrice === null) return;
+    const price = spec.price === undefined || spec.price === null ? basePrice : String(spec.price);
+    refuseRegularBelow(String(spec.regularPrice), price, `variants.${String(index)}.regularPrice`);
+  });
+}
+
 function variantChangeOf(spec: VariantSpec | null): VariantChange {
   if (!spec) return {};
   const change: VariantChange = {};
   const price = money(spec.price);
   if (price !== undefined) change.price = price;
+  const regular = money(spec.regularPrice);
+  if (regular !== undefined) change.regularPrice = regular;
   const weight = money(spec.weightKg);
   if (weight !== undefined) change.weightKg = weight;
   const charge = money(spec.deliveryCharge);
@@ -282,6 +306,8 @@ export class ProductService {
         basePrice: product.basePrice,
         minPrice: product.minPrice,
         maxPrice: product.maxPrice,
+        minRegularPrice: product.minRegularPrice,
+        bestDiscount: product.bestDiscount,
         active: product.active,
         stockState: product.stockState,
         primaryCategoryId: product.primaryCategoryId,
@@ -376,6 +402,7 @@ export class ProductService {
       this.checkSerialUnits(fields);
       const shared = fields.sharedStock === true;
       this.checkPacks(input.variants, shared, fields.stockUnit);
+      checkVariantRegularPrices(input.variants, fields.basePrice);
       await this.refuseTakenSerials(tx, shop.id, input, fields, stock);
 
       // TAX-01 (agreed 2026-10-30): the class given, or the shop's default one.
@@ -955,7 +982,10 @@ export class ProductService {
         await stock?.refreshStockState(tx, shop.id, productId);
       }
       const priceChanged = updated.basePrice !== current.basePrice;
-      if (priceChanged) await this.products.refreshPriceRange(tx, shop.id, productId);
+      // SB-21: the regular price moves the struck-through price and the saving the lists show.
+      if (priceChanged || updated.regularPrice !== current.regularPrice) {
+        await this.products.refreshPriceRange(tx, shop.id, productId);
+      }
 
       await this.record(tx, shop.id, who, AuditAction.ProductUpdated, productId, {
         fields: Object.keys(input),
@@ -997,6 +1027,7 @@ export class ProductService {
       const switching = shared !== product.sharedStock;
       if (switching) await this.checkSwitch(tx, shop.id, product, shared, stock);
       this.checkPacks(input.variants, shared, product.stockUnit);
+      checkVariantRegularPrices(input.variants, product.basePrice);
       const current = await this.products.listProductAttributes(tx, shop.id, productId);
       const splitting = new Set(
         current
@@ -1711,6 +1742,7 @@ export class ProductService {
       name: input.name,
       description: input.description ?? null,
       basePrice: String(input.basePrice),
+      regularPrice: money(input.regularPrice) ?? null,
       // CMB-03: combos are ordered whole, so a combo is counted in pieces.
       stockUnit:
         input.kind === ProductKind.Combo
@@ -1746,6 +1778,17 @@ export class ProductService {
     if (input.name !== undefined) change.name = input.name;
     if (input.description !== undefined) change.description = input.description;
     if (input.basePrice !== undefined) change.basePrice = String(input.basePrice);
+    if (input.regularPrice !== undefined) {
+      change.regularPrice = money(input.regularPrice) ?? null;
+      // SB-21: a regular price set now is at least the price it will stand beside, the stored one when the edit
+      // leaves the price (the schema checks the two sent together). A price raised past a stored regular price is
+      // simply no longer on sale.
+      refuseRegularBelow(
+        change.regularPrice,
+        change.basePrice ?? current.basePrice,
+        'regularPrice',
+      );
+    }
     if (input.stockUnit !== undefined) change.stockUnit = input.stockUnit;
     if (input.serialFormat !== undefined) change.serialFormat = input.serialFormat;
     if (input.lowStockThreshold !== undefined)
@@ -2573,6 +2616,8 @@ export class ProductService {
         barcode: variant.barcode,
         price: variant.price,
         effectivePrice: effective.price,
+        regularPrice: variant.regularPrice,
+        effectiveRegularPrice: variant.regularPrice ?? product.regularPrice,
         weightKg: variant.weightKg,
         deliveryCharge: variant.deliveryCharge,
         deliveryMode: variant.deliveryMode,
@@ -2590,6 +2635,7 @@ export class ProductService {
       oldSlugs,
       description: product.description,
       basePrice: product.basePrice,
+      regularPrice: product.regularPrice,
       stockUnit: product.stockUnit,
       stockTracking: product.stockTracking,
       batchTracked: product.batchTracked,
@@ -2611,6 +2657,8 @@ export class ProductService {
       primaryCategoryId: product.primaryCategoryId,
       minPrice: product.minPrice,
       maxPrice: product.maxPrice,
+      minRegularPrice: product.minRegularPrice,
+      bestDiscount: product.bestDiscount,
       stockState: product.stockState,
       variantAttributes,
       attributes: described,

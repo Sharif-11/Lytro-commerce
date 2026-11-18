@@ -61,6 +61,7 @@ export * from './control/payment-page-reports';
 export * from './control/listener';
 export * from './tenant/media';
 export * from './tenant/brand';
+export * from './tenant/storefront-design';
 export * from './control/api-keys';
 export * from './control/media-reconciliations';
 export * from './control/platform-catalogue';

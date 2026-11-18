@@ -300,6 +300,15 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /brand': "reads only the session shop's own brand identity",
   'PUT /brand': "saves only the session shop's identity; another shop's image is not_found",
   'PUT /brand/switch': "switches only the session shop's own identity",
+  // STOREFRONT-BUILDER-PLAN, checked in test/storefront-design.e2e.spec.ts: a shop's design and icon are its own.
+  'GET /storefront/design': "reads only the session shop's own design",
+  'PUT /storefront/design':
+    "saves only the session shop's draft; another shop's photo, category or product is not_found",
+  'DELETE /storefront/design/draft': "drops only the session shop's own draft",
+  'POST /storefront/design/publish': "publishes only the session shop's own draft",
+  'POST /storefront/design/back': "puts back only the session shop's own previous design",
+  'POST /storefront/design/preview': "a preview link opens only the session shop's own draft",
+  'PUT /shop-settings/icon': "sets only the session shop's icon; another shop's image is not_found",
   // Phase 3 Slice 13, checked in test/custom-domains.e2e.spec.ts: a shop's own domain is its own.
   'GET /domain': "reads only the session shop's own domain",
   'POST /domain': 'adds a domain to the session shop only; one active on another shop is taken',

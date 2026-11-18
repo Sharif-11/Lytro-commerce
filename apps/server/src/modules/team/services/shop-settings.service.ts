@@ -18,8 +18,11 @@ import { MediaService } from '../../media/services/media.service';
 import { StaffService } from '../../staff/services/staff.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
 
-/** The shop's settings as shown, with its logo, or null for its monogram (TEN-16). */
-export type ShopSettingsView = ShopSettings & { logo: ImageView | null };
+/**
+ * The shop's settings as shown, with its logo, or null for its monogram (TEN-16), and its icon, or null to make it from
+ * the logo (SB-5).
+ */
+export type ShopSettingsView = ShopSettings & { logo: ImageView | null; icon: ImageView | null };
 
 /** TEN-30/RAT-14/PRD-08/SFT-16: a tenant's own support/contact details, its one per-tenant rate, its default payment
     policy and its storefront switch, set from dashboard settings any time after onboarding -- two different tables
@@ -59,7 +62,18 @@ export class ShopSettingsService {
       ...(await this.paymentPolicy.get(tenantId)),
       storefrontEnabled: await this.storefront.isOn(tenantId),
       logo: await this.media.logoOf(tenantId),
+      icon: await this.media.iconOf(tenantId),
     };
+  }
+
+  /** SB-5: the shop's icon becomes one of its ready images, or none to make it from the logo. */
+  async setIcon(
+    tenantId: string,
+    mediaId: string | null,
+    actor: CatalogueActor,
+  ): Promise<ShopSettingsView> {
+    await this.media.setIcon(tenantId, mediaId, actor);
+    return this.get(tenantId);
   }
 
   /** TEN-16: the shop's logo becomes one of its ready images, or none for its monogram. */

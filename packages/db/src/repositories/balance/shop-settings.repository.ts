@@ -52,6 +52,15 @@ export class ShopSettingsRepository {
       .onConflictDoUpdate({ target: shopSettings.tenantId, set: { logoMediaId } });
   }
 
+  /** SB-5: the shop's square icon, the browser tab's and the installed app's, or none to make it from the logo. */
+  async setIcon(tx: Transaction, tenantId: string, iconMediaId: string | null): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .insert(shopSettings)
+      .values({ tenantId, iconMediaId })
+      .onConflictDoUpdate({ target: shopSettings.tenantId, set: { iconMediaId } });
+  }
+
   /** SUP-01: the first time a shop or product link was copied or shared; a later share keeps the first time. */
   async markLinkShared(tx: Transaction, tenantId: string, at: Date): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);

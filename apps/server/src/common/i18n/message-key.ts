@@ -561,6 +561,22 @@ export const MESSAGE_KEYS = [
   'BrandNeedsAddon',
   'BrandContrastLow',
   'BrandIconNotSquare',
+  // STOREFRONT-BUILDER-PLAN (2026-11-18): the shop's icon (SB-5), its storefront design (SB-12 to SB-16) and a
+  // product's regular price (SB-21).
+  'ShopIconSaved',
+  'StorefrontDesignRetrieved',
+  'StorefrontDraftSaved',
+  'StorefrontDraftDiscarded',
+  'StorefrontPublished',
+  'StorefrontWentBack',
+  'StorefrontPreviewLinkMade',
+  'StorefrontNothingToPublish',
+  'StorefrontNothingToGoBackTo',
+  'StorefrontPreviewEnded',
+  'StorefrontPhotoTooNarrow',
+  'StorefrontCategoryNotFound',
+  'StorefrontProductNotFound',
+  'RegularPriceBelowPrice',
   // Phase 4 Slice 4.1: orders entered by staff, their calls, status and deletion (ORD-01 to ORD-14, ORD-51,
   // ORD-52), the idempotency key orders require (D4-8), and a product's splitting attributes once it has orders
   // (ATR-15).

@@ -667,21 +667,34 @@ export class ProductRepository {
 
   /**
    * CCH-11: the product's lowest and highest price over its live, active variants (a variant without a price of
-   * its own sells at the product's).
+   * its own sells at the product's). SB-10, SB-21: with them, the regular price struck through beside the lowest
+   * price (the lowest of those its variants at that price are on sale from; null when none is on sale), and the
+   * biggest saving of any variant in whole percent rounded down (`discountPercent`; 0 for none). A variant is on sale
+   * when that saving is at least 1%; one without a regular price of its own takes the product's.
    */
   async refreshPriceRange(tx: Transaction, tenantId: string, productId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
     await tx.execute(sql`
-      UPDATE tenant.products p SET
-        min_price = r.low, max_price = r.high
-      FROM (
-        SELECT min(coalesce(v.price, pp.base_price)) AS low, max(coalesce(v.price, pp.base_price)) AS high
+      WITH priced AS (
+        SELECT coalesce(v.price, pp.base_price) AS price,
+          coalesce(v.regular_price, pp.regular_price) AS regular
         FROM tenant.products pp
         LEFT JOIN tenant.product_variants v
           ON v.tenant_id = pp.tenant_id AND v.product_id = pp.id AND v.deleted_at IS NULL AND v.active
             AND NOT v.is_stock_holder
         WHERE pp.tenant_id = ${tenantId} AND pp.id = ${productId}
-      ) r
+      ), e AS (
+        SELECT price, regular,
+          CASE WHEN regular > price THEN floor((regular - price) * 100 / regular) ELSE 0 END AS discount
+        FROM priced
+      ), r AS (
+        SELECT min(price) AS low, max(price) AS high, coalesce(max(discount), 0) AS discount FROM e
+      )
+      UPDATE tenant.products p SET
+        min_price = r.low, max_price = r.high,
+        min_regular_price = (SELECT min(e.regular) FROM e WHERE e.price = r.low AND e.discount >= 1),
+        best_discount = r.discount
+      FROM r
       WHERE p.tenant_id = ${tenantId} AND p.id = ${productId}`);
   }
 }

@@ -10,6 +10,10 @@ export interface ListRequest {
   search: string | null;
   sort: PublicProductSort;
   inStock: boolean;
+  /** SB-9: only products on sale. */
+  onSale: boolean;
+  /** SB-9: only these products, in this order (a row the seller picked); null for any. */
+  ids: string[] | null;
   cursor: string | null;
   limit: number;
 }
@@ -29,8 +33,11 @@ export function listRequestOf(query: PublicProductListQuery): ListRequest {
     search,
     sort,
     inStock: query.inStock ?? false,
-    cursor: query.cursor ?? null,
-    limit: query.limit,
+    onSale: query.onSale ?? false,
+    ids: query.productIds ?? null,
+    // SB-9: a picked row is one page of exactly its products.
+    cursor: query.productIds === undefined ? (query.cursor ?? null) : null,
+    limit: query.productIds === undefined ? query.limit : query.productIds.length,
   };
 }
 
@@ -41,12 +48,15 @@ const TIME = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,6})?[+-]\d{2}(:\d{2})?
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const PRICE = /^\d{1,8}(\.\d{1,2})?$/;
 const SCORE = /^-?\d+(\.\d+)?(e[+-]?\d+)?$/i;
+const QUANTITY = /^\d{1,11}(\.\d{1,3})?$/;
 const POSITIONS: Readonly<Record<PublicProductSort, readonly RegExp[]>> = {
   [PublicProductSort.Featured]: [INTEGER, TIME, UUID],
   [PublicProductSort.Newest]: [TIME, UUID],
   [PublicProductSort.PriceLow]: [PRICE, UUID],
   [PublicProductSort.PriceHigh]: [PRICE, UUID],
   [PublicProductSort.Relevance]: [SCORE, UUID],
+  [PublicProductSort.Discount]: [INTEGER, TIME, UUID],
+  [PublicProductSort.BestSelling]: [QUANTITY, TIME, UUID],
 };
 
 /** CCH-11: where the next page starts, as an opaque token naming its order. */

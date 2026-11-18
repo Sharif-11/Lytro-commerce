@@ -393,4 +393,32 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   thana: { en: 'Thana', bn: 'থানা' },
   written: { en: 'As written', bn: 'যেমন লেখা' },
   zilla: { en: 'District', bn: 'জেলা' },
+  // STOREFRONT-BUILDER-PLAN: the storefront design's fields (SB-8, SB-15, SB-16).
+  banner: { en: 'Banner', bn: 'ব্যানার' },
+  banners: { en: 'Banners', bn: 'ব্যানার' },
+  button: { en: 'Button text', bn: 'বোতামের লেখা' },
+  count: { en: 'How many', bn: 'কয়টি' },
+  fill: { en: 'What it shows', bn: 'কী দেখাবে' },
+  focusX: { en: 'Focus point', bn: 'ছবির মূল অংশ' },
+  focusY: { en: 'Focus point', bn: 'ছবির মূল অংশ' },
+  headline: { en: 'Headline', bn: 'শিরোনাম' },
+  kicker: { en: 'Small line', bn: 'ছোট লেখা' },
+  layout: { en: 'Layout', bn: 'দেখানোর ধরন' },
+  link: { en: 'Leads to', bn: 'বোতাম নিয়ে যাবে' },
+  palette: { en: 'Colours', bn: 'রং' },
+  photo: { en: 'Photo', bn: 'ছবি' },
+  place: { en: 'Place', bn: 'জায়গা' },
+  // A signed link's token, never a field a seller fills.
+  preview: null,
+  productIds: { en: 'Products', bn: 'প্রোডাক্ট' },
+  // SB-9: the public product list's filter of products on sale.
+  onSale: { en: 'On sale only', bn: 'শুধু ছাড়ের প্রোডাক্ট' },
+  quotes: { en: 'Testimonials', bn: 'ক্রেতাদের কথা' },
+  // SB-21: the price a product is on sale from.
+  regularPrice: { en: 'Regular price', bn: 'আগের দাম' },
+  sections: { en: 'Sections', bn: 'সেকশন' },
+  slides: { en: 'Slides', bn: 'স্লাইড' },
+  style: { en: 'Style', bn: 'স্টাইল' },
+  theme: { en: 'Theme', bn: 'থিম' },
+  title: { en: 'Title', bn: 'শিরোনাম' },
 };
