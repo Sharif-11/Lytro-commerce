@@ -18,6 +18,7 @@ import type {
   PublicCategory,
   PublicProduct,
   PublicShop,
+  PublicStorefrontDesign,
   ShopperAddress,
   ShopperOrderRow,
   TrackedOrder,
@@ -87,6 +88,8 @@ export interface ShopFixture {
   savingPaused?: boolean;
   /** Slice 9.10: what the server refuses for now. */
   refusals?: Refusal[];
+  /** SB-12: the shop's draft design, which a preview link shows. */
+  draft?: PublicStorefrontDesign;
 }
 
 /** An order as the mocked server was sent it. */

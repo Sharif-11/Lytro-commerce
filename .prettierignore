@@ -11,6 +11,8 @@ docs
 apps/listener-android
 # Ported from the storefront prototype by script (docs/brand/lytro-storefront.html); regenerated, never hand-formatted.
 apps/storefront/src/app/storefront.css
+# STOREFRONT-BUILDER-PLAN: the builder sketch's shop CSS, ported the same way (docs/brand/lytro-storefront-builder.html).
+apps/storefront/src/app/storefront-design.css
 apps/storefront/src/lib/i18n/copy.ts
 apps/storefront/src/lib/ui/icons.ts
 # Ported from the landing sketch (docs/brand/lytro-landing-v2.html); kept in the sketch's own compact form.

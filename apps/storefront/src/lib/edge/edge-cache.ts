@@ -65,7 +65,8 @@ export class EdgeCachePolicy {
   }
 
   static lifetimeOfPath(path: string): EdgeLifetime | null {
-    if (path === '/' || path === '/new') return PAGE;
+    // STOREFRONT-BUILDER-PLAN SB-16: the offers and best-sellers lists are kept as New arrivals is.
+    if (path === '/' || path === '/new' || path === '/offers' || path === '/best') return PAGE;
     if (path === '/search') return SEARCH;
     return /^\/[cpl]\/[^/]+$/.test(path) ? PAGE : null;
   }

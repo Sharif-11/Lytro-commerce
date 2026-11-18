@@ -140,6 +140,9 @@ export const STOREFRONT_THEMES: Readonly<Record<StorefrontThemeKey, StorefrontTh
       'r-btn': '999px',
       'r-card': '6px',
       'r-mark': '50%',
+      // SB-8: the shades a first and a second banner's words sit on (the sketch's, white words on each).
+      'ban-a': 'linear-gradient(90deg,rgba(20,16,10,.88),rgba(20,16,10,.2))',
+      'ban-b': 'linear-gradient(90deg,rgba(120,84,20,.9),rgba(120,84,20,.15))',
     },
     palettes: [
       {},
@@ -242,6 +245,9 @@ export const STOREFRONT_THEMES: Readonly<Record<StorefrontThemeKey, StorefrontTh
       'r-btn': '999px',
       'r-card': '18px',
       'r-mark': '14px',
+      // SB-8: the shades a first and a second banner's words sit on (the sketch's, white words on each).
+      'ban-a': 'linear-gradient(90deg,rgba(22,63,34,.92),rgba(22,63,34,.15))',
+      'ban-b': 'linear-gradient(90deg,rgba(196,96,10,.92),rgba(196,96,10,.15))',
     },
     palettes: [
       {},
@@ -352,6 +358,9 @@ export const STOREFRONT_THEMES: Readonly<Record<StorefrontThemeKey, StorefrontTh
       'r-btn': '10px',
       'r-card': '12px',
       'r-mark': '10px',
+      // SB-8: the shades a first and a second banner's words sit on (the sketch's, white words on each).
+      'ban-a': 'linear-gradient(90deg,rgba(13,27,62,.94),rgba(13,27,62,.2))',
+      'ban-b': 'linear-gradient(90deg,rgba(21,84,240,.94),rgba(21,84,240,.15))',
     },
     palettes: [
       {},
@@ -449,6 +458,9 @@ export const STOREFRONT_THEMES: Readonly<Record<StorefrontThemeKey, StorefrontTh
       'r-btn': '999px',
       'r-card': '18px',
       'r-mark': '50%',
+      // SB-8: the shades a first and a second banner's words sit on (the sketch's, white words on each).
+      'ban-a': 'linear-gradient(90deg,rgba(163,25,91,.9),rgba(163,25,91,.12))',
+      'ban-b': 'linear-gradient(90deg,rgba(123,63,209,.9),rgba(123,63,209,.12))',
     },
     palettes: [
       {},
@@ -570,6 +582,9 @@ export const STOREFRONT_THEMES: Readonly<Record<StorefrontThemeKey, StorefrontTh
       'r-btn': '4px',
       'r-card': '4px',
       'r-mark': '4px',
+      // SB-8: the shades a first and a second banner's words sit on (the sketch's, white words on each).
+      'ban-a': 'linear-gradient(90deg,rgba(19,33,60,.9),rgba(19,33,60,.1))',
+      'ban-b': 'linear-gradient(90deg,rgba(201,88,58,.92),rgba(201,88,58,.1))',
     },
     palettes: [
       {},

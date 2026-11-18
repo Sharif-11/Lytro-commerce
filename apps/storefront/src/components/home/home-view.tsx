@@ -1,7 +1,10 @@
-import type { ProductPage } from '@/lib/api/storefront-api';
+import type { ReactNode } from 'react';
+import type { ProductCard as Card, ProductPage } from '@/lib/api/storefront-api';
 import { deliveryRange, heroLine } from '@/lib/catalogue/browse';
+import type { DesignedHomeReads } from '@/lib/design/home-reads';
 import { money } from '@/lib/i18n/words';
 import { loadFrame, type OpenShopPage, type PageFrame, storefrontApi } from '@/lib/storefront';
+import { DesignedHome, loadDesignedHome } from '../design/designed-home';
 import { Icon } from '../icon';
 import { ProductCard } from '../product-card';
 import { ShopShell } from '../shop-shell';
@@ -10,20 +13,38 @@ import { InstallCard } from './install-card';
 // The home's "New arrivals": a grid of four (STOREFRONT-DESIGN §2).
 const NEW_ON_HOME = 4;
 
-/** What the home reads besides the shop: its frame and its newest four. */
+/** What the home reads besides the shop: its frame, and its designed sections' reads (STOREFRONT-BUILDER-PLAN) or,
+    from an older server that sends no design, its newest four. */
 export interface HomeReads {
   frame: PageFrame;
   newest: ProductPage | null;
+  designed: DesignedHomeReads | null;
 }
 
 /** The home's reads, made by the page itself (home and /cart), so a server too busy for them shows the busy page
     (Slice 9.10) rather than failing inside the view. */
 export async function loadHome(page: OpenShopPage): Promise<HomeReads> {
+  const design = page.info.design;
+  if (design) {
+    const [frame, designed] = await Promise.all([loadFrame(page), loadDesignedHome(page, design)]);
+    return { frame, newest: null, designed };
+  }
   const [frame, newest] = await Promise.all([
     loadFrame(page),
     storefrontApi.products(page.shop, page.shopper, { sort: 'newest', limit: NEW_ON_HOME }),
   ]);
-  return { frame, newest };
+  return { frame, newest, designed: null };
+}
+
+/** D9-32: every product the home shows, so a change to any of them purges it from the edge. */
+export function homeProducts(home: HomeReads): Card[] {
+  if (!home.designed) return home.newest?.products ?? [];
+  const { rows, hero, offers } = home.designed;
+  return [
+    ...[...rows.values()].flat(),
+    ...hero,
+    ...[offers.saving, offers.newest].filter((card): card is Card => card !== null),
+  ];
 }
 
 /** STOREFRONT-DESIGN §2, Slice 12b's read: the home from the shop's own data only -- the hero (Welcome, its name, its
@@ -34,13 +55,31 @@ export function HomeView({
   page,
   home,
   startCartOpen,
+  notice,
 }: {
   page: OpenShopPage;
   home: HomeReads;
   startCartOpen?: boolean;
+  /** A line over the page: the draft's preview says it is one (SB-12). */
+  notice?: ReactNode;
 }) {
   const { frame, newest } = home;
   const { words } = page;
+  const design = page.info.design;
+  if (design && home.designed) {
+    return (
+      <ShopShell page={page} frame={frame} startCartOpen={startCartOpen} full notice={notice}>
+        <DesignedHome
+          info={page.info}
+          design={design}
+          frame={frame}
+          reads={home.designed}
+          words={words}
+        />
+        <InstallCard language={words.language} shopName={page.info.name} />
+      </ShopShell>
+    );
+  }
   const now = Date.now();
   const line = heroLine(frame.categories, words);
   const range = deliveryRange(page.info.deliveryZones);

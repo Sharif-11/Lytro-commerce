@@ -12,6 +12,8 @@ import type {
   PaymentWay,
   StockState,
   StockUnit,
+  StorefrontSection,
+  StorefrontThemeKey,
   UnitKind,
 } from '@lytronix/validators';
 import type { StorefrontEnvironment } from '../env';
@@ -95,6 +97,33 @@ export interface PublicShop {
   };
   deliveryZones: DeliveryZoneView[];
   brand: PublicBrand | null;
+  // STOREFRONT-BUILDER-PLAN: absent from an older server's answer, when the home is drawn as before.
+  /** SB-5: the shop's square icon; null to make it from the logo. */
+  icon?: ImageView | null;
+  /** SB-11 to SB-16: the home page's theme and sections. */
+  design?: PublicStorefrontDesign;
+  /** SB-9: what is on sale now, for the announcement that writes itself. */
+  sale?: { products: number; bestDiscount: number };
+}
+
+/** SB-16: a category or product a design's button or row names, that shoppers can reach. */
+export interface DesignTarget {
+  id: string;
+  slug: string;
+  name: string;
+}
+
+/** SB-14: the design shoppers see (or, through a preview link, the draft), with what it names resolved. */
+export interface PublicStorefrontDesign {
+  theme: StorefrontThemeKey;
+  palette: number;
+  /** The visible sections, in order. */
+  sections: StorefrontSection[];
+  /** Its photos that are still ready, by media ID; a missing one is left out. */
+  images: Record<string, ImageView>;
+  categories: DesignTarget[];
+  products: DesignTarget[];
+  preview: boolean;
 }
 
 export interface OptionValue {
@@ -214,6 +243,17 @@ export interface ProductCard {
   image: ImageView | null;
   createdAt: string;
   swatches: OptionValue[];
+  // SB-10, SB-21: absent from an older server's answer.
+  /** The regular price struck through beside the lowest price; null when that is not on sale. */
+  minRegularPrice?: string | null;
+  /** "−X%": the biggest saving, whole percent; 0 when nothing is on sale. */
+  bestDiscount?: number;
+  /** "Only N left", while under its low-stock level; null otherwise. */
+  left?: number | null;
+  /** "Ordered N times": the delivered orders that held it. */
+  ordered?: number;
+  /** "Best seller": among the shop's most sold over the last 30 days. */
+  bestSeller?: boolean;
 }
 
 export interface ProductPage {
@@ -227,6 +267,10 @@ export interface ProductQuery {
   search?: string;
   sort?: string;
   inStock?: boolean;
+  /** SB-9: only products on sale. */
+  onSale?: boolean;
+  /** SB-9: exactly these products, in this order (a row the seller picked). */
+  productIds?: readonly string[];
   cursor?: string;
   limit?: number;
 }
@@ -236,6 +280,8 @@ export interface PublicCategory {
   slug: string;
   name: string;
   image: ImageView | null;
+  /** SB-9: its picture, else its first product's photo, for the home's tiles; absent from an older server's answer. */
+  cover?: ImageView | null;
   /** Its active products, its subcategories' included (Slice 12b). */
   productCount: number;
   children: PublicCategory[];
@@ -559,6 +605,26 @@ export class StorefrontApi {
     );
   }
 
+  /**
+   * SB-12: the shop with its draft design, through a preview link. Never kept and never remembered as the shop's last
+   * read: a draft is for the one who opened the link, not for every shopper. Null when the link has ended or names
+   * another shop.
+   */
+  async shopPreview(
+    shop: StorefrontShopContext,
+    shopper: ShopperRequest,
+    token: string,
+  ): Promise<PublicShop | null> {
+    const answer = await this.call<PublicShop>(
+      shop,
+      shopper,
+      'GET',
+      `/v1/shop?preview=${encodeURIComponent(token)}`,
+    );
+    if (answer.status === 404) return null;
+    return StorefrontApi.required(answer, 'the shop');
+  }
+
   /** The shop as it was last read, for a page drawn while the server is too busy to read it again; null before any. */
   lastShop(slug: string): PublicShop | null {
     return this.lastShops.get(slug) ?? null;
@@ -779,6 +845,10 @@ export function productQueryString(query: ProductQuery): string {
   if (query.search) search.set('search', query.search);
   if (query.sort) search.set('sort', query.sort);
   if (query.inStock) search.set('inStock', 'true');
+  if (query.onSale) search.set('onSale', 'true');
+  if (query.productIds && query.productIds.length > 0) {
+    search.set('productIds', query.productIds.join(','));
+  }
   if (query.cursor) search.set('cursor', query.cursor);
   if (query.limit) search.set('limit', String(query.limit));
   return search.toString();

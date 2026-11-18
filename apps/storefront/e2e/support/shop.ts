@@ -26,6 +26,8 @@ export interface OpenShop {
     requests: number;
     shopperRequests: number;
     shoppers: ShopperFixture[];
+    /** SB-9: each product list's query string, as the pages asked it. */
+    listRequests: string[];
   }>;
   /** Slice 9.10: what the server refuses from now on; none lifts every refusal. */
   refuse: (refusals: Refusal[]) => Promise<void>;
@@ -62,6 +64,7 @@ export async function openShop(
           requests: number;
           shopperRequests: number;
           shoppers: ShopperFixture[];
+          listRequests: string[];
         };
       };
       return body.data;

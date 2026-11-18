@@ -17,7 +17,7 @@ import type { PublicBrand } from '../api/storefront-api';
 
 const WHITE = '#ffffff';
 // The faces the storefront serves itself (app/fonts.css), so Google is never asked for them.
-const HOSTED_FACES: ReadonlySet<string> = new Set([
+export const HOSTED_FACES: ReadonlySet<string> = new Set([
   'Inter',
   'Noto Sans Bengali',
   'Plus Jakarta Sans',

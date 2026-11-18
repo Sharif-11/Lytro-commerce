@@ -71,6 +71,7 @@ export function Shell({
   children,
   overlay,
   tight,
+  full,
 }: {
   language: Language;
   brand?: PublicBrand | null;
@@ -79,13 +80,17 @@ export function Shell({
   children: ReactNode;
   overlay?: ReactNode;
   tight?: boolean;
+  /** STOREFRONT-BUILDER-PLAN SB-8: the page runs edge to edge (the designed home), its sections keeping their margins. */
+  full?: boolean;
 }) {
   return (
     <Frame language={language} brand={brand}>
       <div className="shell">
         {header}
         <div className="scroll">
-          <div className={tight ? 'page tight' : 'page'}>
+          <div
+            className={['page', tight ? 'tight' : '', full ? 'full' : ''].filter(Boolean).join(' ')}
+          >
             {children}
             {footer}
           </div>
