@@ -6,6 +6,7 @@ import { EdgeMark } from '@/components/edge-mark';
 import { OfflinePage } from '@/components/pages';
 import { ShopShell } from '@/components/shop-shell';
 import { chipsFor, findCategory, listParams } from '@/lib/catalogue/browse';
+import { pageTheme } from '@/lib/design/design-look';
 import { loadFrame, loadShopPage, storefrontApi } from '@/lib/storefront';
 
 // STOREFRONT-DESIGN §3: a category's page, at /c/<slug>: its products and its subcategories', in the shop's order
@@ -89,6 +90,7 @@ export default withBusyPage(async function CategoryPage({ params, searchParams }
         sortable
         page={list}
         query={asked}
+        theme={pageTheme(page.info)}
       />
     </ShopShell>
   );

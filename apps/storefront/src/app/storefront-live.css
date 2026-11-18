@@ -230,36 +230,32 @@ button.vb.pic img {
 }
 
 /* STOREFRONT-BUILDER-PLAN SB-8: the designed home runs edge to edge; its sections (storefront-design.css) keep their
-   own margins and room, and the footer keeps the page's. */
+   own margins and room. */
 .page.full {
   padding: 0 0 120px;
   gap: 0;
   max-width: none;
 }
-.page.full > .foot {
-  margin-left: 16px;
-  margin-right: 16px;
-}
 
 /* STOREFRONT-BUILDER-PLAN SB-8: About the shop, which the sketch did not draw: the seller's words beside their photo on
    a wide screen, under it on a phone, in the theme's own type and corners. */
-.sfb .sb-about {
+.sfb .sb-about-us {
   display: grid;
   gap: 14px;
   font-size: 14.5px;
 }
-.sfb .sb-about img {
+.sfb .sb-about-us img {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
   border-radius: var(--r-card);
 }
-.sfb .sb-about p {
+.sfb .sb-about-us p {
   margin: 0;
   white-space: pre-line;
 }
 @container (min-width: 900px) {
-  .sfb .sb-about {
+  .sfb .sb-about-us {
     grid-template-columns: 1fr 1fr;
     align-items: center;
     gap: 32px;
@@ -269,4 +265,135 @@ button.vb.pic img {
 /* SB-12: the draft's preview says so at the top of the page, inside the page's margins. */
 .page.full > .banner.preview {
   margin: 12px 16px 0;
+}
+
+/* STOREFRONT-BUILDER-PLAN SB-8, SB-17: a designed shop's header and footer (storefront-design.css) around every page.
+   The storefront's own search box, its phone search, account and cart buttons sit in the sketch's places, drawn as the
+   sketch draws them: the box with its search tile on a wide screen, bare icons with the cart's count on its corner. */
+.sfb-bar {
+  flex: none;
+}
+.sfb .sb-hd .sb-logo.sb-img img {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+.sfb .sb-hd .dsearch {
+  display: none;
+}
+.sfb .sb-hd .ib,
+.sfb .sb-hd .sb-acct {
+  display: flex;
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.sfb .sb-hd .ib svg.i,
+.sfb .sb-hd .sb-acct svg {
+  width: 22px;
+  height: 22px;
+}
+.sfb .sb-hd .ib .badge {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font:
+    700 10.5px/17px Inter,
+    sans-serif;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  text-align: center;
+}
+.sfb-foot .sb-ft {
+  margin-top: 0;
+}
+.sfb .sb-ft a:not(.sb-pbl) {
+  color: inherit;
+}
+.sfb .sb-ft .sb-soc a {
+  display: contents;
+}
+.sfb .sb-ft .sb-legal {
+  display: inline-flex;
+  gap: 12px;
+  align-items: center;
+}
+.sfb .sb-ft .sb-legal button,
+.sfb .sb-ft .sb-legal a {
+  color: inherit;
+  font: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.sfb .sb-ft .sb-logo.sb-img img {
+  height: 36px;
+  width: auto;
+}
+/* The footer runs edge to edge under any page, and keeps the page's room under it for a bar fixed at the bottom. */
+.page:has(> .sfb-foot) {
+  padding-bottom: 0;
+}
+.page > .sfb-foot {
+  width: 100cqw;
+  margin-left: calc(50% - 50cqw);
+  margin-top: auto;
+}
+.page > .sfb-foot .sb-ft {
+  padding-bottom: 120px;
+}
+@container (min-width: 900px) {
+  .sfb .sb-hd .dsearch {
+    display: flex;
+    flex: 1;
+    max-width: 520px;
+  }
+  .sfb .sb-hd .dsearch .sbox {
+    flex-direction: row-reverse;
+    height: 44px;
+    padding: 0;
+    gap: 0;
+    border: 1.5px solid var(--line-strong);
+    border-radius: var(--r-btn);
+    overflow: hidden;
+    background: #fff;
+  }
+  .sfb .sb-hd .dsearch .sbox span {
+    padding: 0 14px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .sfb .sb-hd .dsearch .sbox svg.i {
+    box-sizing: border-box;
+    width: 54px;
+    height: 100%;
+    padding: 10px 16px;
+    background: var(--main);
+    color: var(--on-main);
+  }
+  .sfb .sb-hd .msearch {
+    display: none;
+  }
+  .sfb .sb-hd .sb-logo.sb-img img,
+  .sfb .sb-ft .sb-logo.sb-img img {
+    height: 44px;
+  }
+  .page > .sfb-foot .sb-ft {
+    padding-bottom: 14px;
+  }
+}
+
+/* SB-21: a product on sale says its saving beside its struck regular price, in the sale colour. */
+.st.sale {
+  background: var(--danger-soft);
+  color: #7a1f25;
 }

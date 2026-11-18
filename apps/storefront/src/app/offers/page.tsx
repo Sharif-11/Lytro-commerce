@@ -6,6 +6,7 @@ import { EdgeMark } from '@/components/edge-mark';
 import { OfflinePage } from '@/components/pages';
 import { ShopShell } from '@/components/shop-shell';
 import { listParams } from '@/lib/catalogue/browse';
+import { pageTheme } from '@/lib/design/design-look';
 import { loadFrame, loadShopPage, storefrontApi } from '@/lib/storefront';
 
 // STOREFRONT-BUILDER-PLAN SB-9, SB-16: On sale, at /offers -- every product saving at least 1%, the biggest saving
@@ -54,6 +55,7 @@ export default withBusyPage(async function OffersPage({ searchParams }: Props) {
         sortable={false}
         page={list ?? { products: [], nextCursor: null }}
         query={asked}
+        theme={pageTheme(page.info)}
       />
     </ShopShell>
   );

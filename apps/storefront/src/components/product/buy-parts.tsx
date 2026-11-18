@@ -1,6 +1,6 @@
 'use client';
 
-import { measureOf } from '@lytronix/validators/common';
+import { discountPercent, measureOf } from '@lytronix/validators/common';
 import {
   AttributeDataType,
   ItemCondition,
@@ -45,11 +45,22 @@ export function PriceRow({
   const price = variant?.price ?? product.minPrice;
   // CMB-09: a combo's price, then what its parts come to apart, and what it saves.
   const saving = product.combo?.saving ?? null;
+  // SB-21: the regular price it is on sale from, struck through, and the saving, rounded down as every card says it.
+  const regular = (variant ? variant.regularPrice : product.minRegularPrice) ?? null;
+  const off = price !== null && regular !== null ? discountPercent(price, regular) : 0;
   return (
     <div className="pricerow">
       {price !== null ? <span className="price">{money(price)}</span> : null}
       {ranged && product.maxPrice !== null ? (
         <span className="unit">– {money(product.maxPrice)}</span>
+      ) : null}
+      {off > 0 && regular !== null && saving === null ? (
+        <>
+          <span className="unit" style={{ textDecoration: 'line-through' }}>
+            {money(regular)}
+          </span>
+          <span className="st sale plain">{words.t('sb_save', { p: off })}</span>
+        </>
       ) : null}
       {saving !== null && price !== null ? (
         <>

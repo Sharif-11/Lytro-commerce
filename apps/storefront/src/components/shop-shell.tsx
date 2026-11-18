@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react';
-import { frameBrand } from '@/lib/design/design-look';
+import { frameBrand, pageTheme } from '@/lib/design/design-look';
 import type { OpenShopPage, PageFrame } from '@/lib/storefront';
-import { Footer, Header, OrdersPausedBanner, Shell } from './shell';
+import { DesignedFooter, DesignedHeader } from './design/chrome';
+import { Footer, Header, type HeaderNav, OrdersPausedBanner, Shell } from './shell';
 
 /** A storefront page (not a landing page): the header with the categories, search and the cart, the page, and the
     footer. `back` pages have a way back and a title on a phone; `current` lights a category's header link. A `full`
     page (the designed home, SB-8) runs edge to edge, its sections keeping their own margins. The frame wears the
-    shop's identity, else its theme's colour and fonts (SB-17). */
+    shop's identity, else its theme's colour and fonts (SB-17); a designed shop's every page wears its theme's header
+    and footer (SB-8), an older server's shop the storefront's own. */
 export function ShopShell({
   page,
   frame,
@@ -17,6 +19,7 @@ export function ShopShell({
   tight,
   full,
   notice,
+  above,
   children,
 }: {
   page: OpenShopPage;
@@ -29,9 +32,19 @@ export function ShopShell({
   full?: boolean;
   /** A line over the page, as the paused-orders banner is (a draft's preview says it is one, SB-12). */
   notice?: ReactNode;
+  /** SB-8: what a designed shop shows over its header (the home's announcement, as the sketch draws it). */
+  above?: ReactNode;
   children: ReactNode;
 }) {
   const language = page.words.language;
+  const nav: HeaderNav = {
+    categories: frame.categories,
+    current,
+    shopPhone: page.info.contact.phone,
+    areaId: frame.areaId,
+    startCartOpen,
+  };
+  const theme = pageTheme(page.info);
   return (
     <Shell
       language={language}
@@ -39,22 +52,37 @@ export function ShopShell({
       tight={tight}
       full={full}
       header={
-        <Header
-          shop={page.info}
-          language={language}
-          variant={back === undefined ? 'home' : 'back'}
-          title={title}
-          backHref={back}
-          nav={{
-            categories: frame.categories,
-            current,
-            shopPhone: page.info.contact.phone,
-            areaId: frame.areaId,
-            startCartOpen,
-          }}
-        />
+        theme ? (
+          <div className="sfb sfb-bar" style={theme.variables}>
+            {above}
+            <DesignedHeader
+              shop={page.info}
+              theme={theme}
+              language={language}
+              nav={nav}
+              backHref={back}
+            />
+          </div>
+        ) : (
+          <Header
+            shop={page.info}
+            language={language}
+            variant={back === undefined ? 'home' : 'back'}
+            title={title}
+            backHref={back}
+            nav={nav}
+          />
+        )
       }
-      footer={<Footer shop={page.info} language={language} landing={false} storefrontOn />}
+      footer={
+        theme ? (
+          <div className="sfb sfb-foot" style={theme.variables}>
+            <DesignedFooter shop={page.info} categories={frame.categories} language={language} />
+          </div>
+        ) : (
+          <Footer shop={page.info} language={language} landing={false} storefrontOn />
+        )
+      }
     >
       {page.savingPaused ? <OrdersPausedBanner words={page.words} /> : null}
       {notice}

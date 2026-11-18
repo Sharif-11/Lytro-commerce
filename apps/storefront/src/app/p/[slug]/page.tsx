@@ -3,10 +3,12 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { EdgeMark } from '@/components/edge-mark';
 import { OfflinePage } from '@/components/pages';
+import { ThemeCard } from '@/components/design/theme-card';
 import { ProductCard } from '@/components/product-card';
 import { ProductView } from '@/components/product/product-view';
 import { ShopShell } from '@/components/shop-shell';
 import { categoryById, findCategory } from '@/lib/catalogue/browse';
+import { pageTheme } from '@/lib/design/design-look';
 import { keptQuery, productOpening } from '@/lib/product/opening';
 import { productMetadata } from '@/lib/product/product-metadata';
 import { shopChatOf } from '@/lib/shop/shop-chat';
@@ -65,6 +67,7 @@ export default withBusyPage(async function ProductPage({ params, searchParams }:
     .slice(0, ALSO_LIKE);
   const { words } = page;
   const now = Date.now();
+  const theme = pageTheme(page.info);
   return (
     <ShopShell
       page={page}
@@ -92,11 +95,28 @@ export default withBusyPage(async function ProductPage({ params, searchParams }:
           <div className="sechead">
             <h2>{words.t('also_like')}</h2>
           </div>
-          <div className="rail">
-            {also.map((card) => (
-              <ProductCard key={card.id} product={card} words={words} now={now} />
-            ))}
-          </div>
+          {theme ? (
+            // STOREFRONT-BUILDER-PLAN SB-17: a designed shop's cards are its theme's.
+            <div className="sfb sfb-list" style={theme.variables}>
+              <div className="sb-rail">
+                {also.map((card) => (
+                  <ThemeCard
+                    key={card.id}
+                    product={card}
+                    style={theme.card}
+                    words={words}
+                    now={now}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="rail">
+              {also.map((card) => (
+                <ProductCard key={card.id} product={card} words={words} now={now} />
+              ))}
+            </div>
+          )}
         </section>
       ) : null}
     </ShopShell>

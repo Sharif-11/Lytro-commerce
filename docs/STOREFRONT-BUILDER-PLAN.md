@@ -170,8 +170,7 @@ page, the shop's icon). The server's merged as #388.
    - A server that sends no design (an older one, while two run side by side) gets the home as before.
 
    **2a's named deviations from the sketch:**
-   - **Header and footer:** the storefront's own until 2b, in the theme's colour and fonts; the announcement sits under
-     the header.
+   - **Header and footer:** the storefront's own until 2b, in the theme's colour and fonts (2b gives the theme's).
    - **The card's button:** "এখনই কিনুন" (Buy now), opening the product's page: a card can't choose a size or colour,
      so it never adds to the cart itself.
    - **No heart on photo cards:** there is no wishlist in the first version (SB-4).
@@ -189,6 +188,28 @@ page, the shop's icon). The server's merged as #388.
      screen.
    - Test pictures: `e2e/design.spec.ts` shoots each theme beside the sketch, phone and desktop, both languages, into
      `test-results/compare/builder-*`.
+
+   **2b as built (the rest of the shop):**
+   - **Every page of a designed shop wears the theme's header and footer** (SB-8): the sketch's markup in the theme's
+     style, with the storefront's own search, account, cart and language in their places. An announcement first on the
+     home page sits over the header, as the sketch draws it.
+   - **Every list draws the theme's card** (SB-17): a category, New arrivals, on sale, best sellers, search and the
+     product page's "you may also like".
+   - **The product page** strikes the regular price through beside the price, with its saving rounded down (SB-21),
+     for the chosen variant or the product's lowest price.
+   - **The shop's icon** changes the app's icon links at once (their version takes the icon), and the phone's bar and
+     the installed app take the theme's colour where no brand identity shows (SB-5, SB-17).
+
+   **2b's named deviations from the sketch:**
+   - **An inner page** shows a way back in the menu's place, and no title in the header on a phone: the page's own
+     heading says it.
+   - **The menu** leads to the home's categories: there is no menu drawer in the first version.
+   - **The cart** keeps the storefront's bag icon and its count.
+   - **No line under the shop's name:** a shop has no tagline in Lytro.
+   - **The footer's Shop list** has Best sellers in place of Just in (All products already leads to the newest), its
+     Contact list the email too, and its base the language switch and Lytro's privacy policy (Part 99) beside the year.
+   - **On a phone the footer keeps room under it** for a bar fixed at the bottom (a product's buy bar), as the page
+     did.
 3. **The dashboard.** Settings > Storefront > Design:
    - the section list;
    - the theme gallery;

@@ -43,7 +43,8 @@ test.describe('the designed home (SB-8 to SB-10)', () => {
     const home = page.locator('.sfb[data-theme="royal"]');
     await expect(home).toBeVisible();
     // The announcement writes itself from what is on sale.
-    await expect(home.locator('.sb-ann')).toContainText('Up to 18% off on 3 products');
+    // First on the page, it sits over the header (SB-8).
+    await expect(page.locator('.sfb-bar > .sb-ann')).toContainText('Up to 18% off on 3 products');
     await expect(home.locator('.sb-hero h1')).toHaveText('Discover your signature scent');
     await expect(home.locator('.sb-cat')).toHaveCount(shops.royal.cats.length);
     // Best sellers, most ordered first; then the biggest saving first.
@@ -82,11 +83,72 @@ test.describe('the designed home (SB-8 to SB-10)', () => {
     );
     await page.goto(shop.url('/offers'));
     await expect(page.locator('h1.pt')).toHaveText('On sale');
-    await expect(page.locator('.card .nm')).toHaveText([
+    // SB-17: a designed shop's lists draw the theme's card.
+    await expect(page.locator('.sfb-list .sb-card .sb-nm')).toHaveText([
       'Oud Royale, 100 ml',
       'Amber Attar, 12 ml',
       'Velvet gift box',
     ]);
+  });
+});
+
+test.describe("every page in the theme's header, footer and card (SB-8, SB-17, SB-21)", () => {
+  test("wears the theme's header and footer on an inner page, its links lit where the page is", async ({
+    page,
+    browser,
+  }) => {
+    const shops = await sketchShops(browser);
+    const shop = await openShop(page, (language) =>
+      builderShop(StorefrontThemeKey.Bold, shops.bold, language),
+    );
+    await page.goto(shop.url('/offers'));
+    const header = page.locator('.sfb-bar .sb-hd.sb-bar');
+    await expect(header).toBeVisible();
+    await expect(header.locator('.sb-nav a.sb-on')).toHaveText('Offers');
+    await expect(header.locator('.sb-nav a')).toHaveText([
+      'All products',
+      'Offers',
+      ...shops.bold.cats.slice(0, 5).map((cat) => cat[1]),
+    ]);
+    // The storefront's own search and cart, in the theme's header.
+    await header.locator('.sb-acct').waitFor();
+    await expect(page.locator('.sfb-foot .sb-ft .sb-pbl')).toHaveText('Powered by Lytro');
+    await expect(page.locator('.sfb-foot .sb-ft h3')).toContainText([
+      'Shop',
+      'Categories',
+      'Contact',
+    ]);
+    // The old header and footer are gone.
+    await expect(page.locator('.hdr')).toHaveCount(0);
+    await expect(page.locator('footer.foot')).toHaveCount(0);
+  });
+
+  test('strikes the regular price through on the product page, with its saving', async ({
+    page,
+    browser,
+  }) => {
+    const shops = await sketchShops(browser);
+    const shop = await openShop(page, (language) => {
+      const made = builderShop(StorefrontThemeKey.Royal, shops.royal, language);
+      // The product page reads the same facts its card does.
+      for (const row of made.products ?? []) {
+        row.product = {
+          ...row.product,
+          minRegularPrice: row.card.minRegularPrice ?? null,
+          bestDiscount: row.card.bestDiscount ?? 0,
+          variants: row.product.variants.map((variant) => ({
+            ...variant,
+            regularPrice: row.card.minRegularPrice ?? null,
+          })),
+        };
+      }
+      return made;
+    });
+    await page.goto(shop.url('/p/oud-royale-100-ml'));
+    const row = page.locator('.pricerow').first();
+    await expect(row.locator('.price')).toHaveText('৳4,500');
+    await expect(row.locator('.unit')).toHaveText('৳5,500');
+    await expect(row.locator('.st.sale')).toHaveText('18% off');
   });
 });
 
@@ -151,6 +213,12 @@ test.describe('the designed home beside the builder sketch', () => {
           await app.evaluate(() => document.fonts.ready);
           await app.waitForTimeout(500);
           await app.screenshot({ path: `${out}-app.png`, fullPage: true });
+          // The page scrolls inside its frame: its end, with the footer, as a second picture.
+          await app.locator('.scroll').evaluate((scroll) => {
+            scroll.scrollTop = scroll.scrollHeight;
+          });
+          await app.waitForTimeout(300);
+          await app.screenshot({ path: `${out}-app-end.png` });
           await context.close();
         });
       }

@@ -139,15 +139,18 @@ export function SearchPanel(props: SearchPanelProps) {
   );
 }
 
-/** The header's ways into search: the box on a wide screen, the icon on a phone; either opens the overlay. */
+/** The header's ways into search: the box on a wide screen, the icon on a phone; either opens the overlay. A themed
+    header (STOREFRONT-BUILDER-PLAN) places the two apart, so it asks for `only` the box or the icon. */
 export function SearchTools({
   language,
   categories,
   phoneButton,
+  only,
 }: {
   language: Language;
   categories: PublicCategory[];
   phoneButton: boolean;
+  only?: 'box' | 'button';
 }) {
   const words = useMemo(() => new Words(language), [language]);
   const [open, setOpen] = useState(false);
@@ -166,21 +169,23 @@ export function SearchTools({
   };
   return (
     <>
-      <div className="dsearch">
-        <div
-          className="sbox q"
-          role="button"
-          tabIndex={0}
-          onClick={show}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') show();
-          }}
-        >
-          <Icon name="search" />
-          <span>{words.t('search_ph')}</span>
+      {only === 'button' ? null : (
+        <div className="dsearch">
+          <div
+            className="sbox q"
+            role="button"
+            tabIndex={0}
+            onClick={show}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') show();
+            }}
+          >
+            <Icon name="search" />
+            <span>{words.t('search_ph')}</span>
+          </div>
         </div>
-      </div>
-      {phoneButton ? (
+      )}
+      {phoneButton && only !== 'box' ? (
         <button
           type="button"
           className="ib msearch"

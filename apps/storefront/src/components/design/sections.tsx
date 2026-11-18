@@ -20,7 +20,9 @@ import { money, type Words } from '@/lib/i18n/words';
 import { WALLET_NAMES } from '@/lib/order/wallet-names';
 import { DesignIcon } from './design-icon';
 import { linkHref } from '@/lib/design/links';
-import { FocusedPhoto, SectionHead, ThemeCard } from './design-parts';
+import { firstLetter } from '@/lib/design/marks';
+import { FocusedPhoto, SectionHead } from './design-parts';
+import { ThemeCard } from './theme-card';
 
 // STOREFRONT-BUILDER-PLAN SB-8 to SB-10, SB-16: the home's sections other than the hero, as the sketch draws them
 // (docs/brand/lytro-storefront-builder.html, `SECTIONS`). Each fills itself from the shop's data until the seller writes
@@ -81,8 +83,9 @@ export function Categories({
 }) {
   if (categories.length === 0) return null;
   const style = section.style ?? theme.categories;
+  // The header's menu leads here (`/#categories`).
   return (
-    <section className="sb-sec">
+    <section className="sb-sec" id="categories">
       <div className="sb-wrap">
         <SectionHead
           style={theme.head}
@@ -397,7 +400,7 @@ export function Testimonials({
             <div key={at} className="sb-q">
               <p>“{quote.text}”</p>
               <div className="sb-who">
-                <span className="sb-av">{Array.from(quote.name.trim())[0]}</span>
+                <span className="sb-av">{firstLetter(quote.name)}</span>
                 <span>
                   <b>{quote.name}</b>
                   {quote.place}
@@ -429,7 +432,7 @@ export function About({
     <section className="sb-sec">
       <div className="sb-wrap">
         <SectionHead style={theme.head} title={section.title} all={null} words={words} />
-        <div className="sb-about">
+        <div className="sb-about-us">
           {section.photo && image ? <FocusedPhoto photo={section.photo} image={image} /> : null}
           <p>{section.text}</p>
         </div>
