@@ -4,12 +4,20 @@ import { ENV } from '../../../config/tokens';
 import { DrizzleEdgePurgeStore } from '../../../database/adapters/edge-cache.adapter';
 import { OutsideCalls } from '../outside-calls/services/outside-calls';
 import { QueueModule } from '../queue/queue.module';
+import { connectRedis } from '../redis/redis-connection';
 import type { EdgeCache } from './ports/edge-cache';
 import { CloudflareEdgeCache } from './providers/cloudflare-edge-cache';
+import { RedisPageCache } from './providers/redis-page-cache';
 import { UnconfiguredEdgeCache } from './providers/unconfigured-edge-cache';
 import { EdgePurgeRunner, REAL_PURGE_TIMING } from './services/edge-purge-runner';
 import { EdgePurges } from './services/edge-purges';
-import { EDGE_CACHE, EDGE_PURGE_STORE, EDGE_PURGE_TIMING } from './tokens';
+import {
+  EDGE_CACHE,
+  EDGE_PURGE_STORE,
+  EDGE_PURGE_TIMING,
+  PAGE_CACHE,
+  PAGE_CACHE_REDIS,
+} from './tokens';
 
 /**
  * D9-31, D9-32: Cloudflare's cache in front of public media and shops' pages, purged through its API when the token and
@@ -35,11 +43,19 @@ function edgeCache(env: Env, outside: OutsideCalls): EdgeCache {
 }
 
 // D9-32: purging Cloudflare's copies, as a leaf over the job queue, so any module whose change alters a shop's pages can
-// queue a purge without an import cycle. The worker that sends them is queue-workers' (EdgePurgeWorker).
+// queue a purge without an import cycle. The worker that sends them is queue-workers' (EdgePurgeWorker). D9-33: and the
+// storefront's own copies, in the page cache's Redis when PAGE_CACHE_REDIS_URL is set.
 @Module({
   imports: [QueueModule],
   providers: [
     { provide: EDGE_CACHE, inject: [ENV, OutsideCalls], useFactory: edgeCache },
+    {
+      provide: PAGE_CACHE_REDIS,
+      inject: [ENV],
+      useFactory: (env: Env) =>
+        env.PAGE_CACHE_REDIS_URL ? connectRedis(env.PAGE_CACHE_REDIS_URL, 'PageCache') : null,
+    },
+    { provide: PAGE_CACHE, useClass: RedisPageCache },
     { provide: EDGE_PURGE_STORE, useClass: DrizzleEdgePurgeStore },
     { provide: EDGE_PURGE_TIMING, useValue: REAL_PURGE_TIMING },
     EdgePurges,

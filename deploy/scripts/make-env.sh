@@ -57,6 +57,9 @@ MONITOR_PASSWORD="$(existing postgres.env LYTRO_MONITOR_DB_PASSWORD)"
 MONITOR_PASSWORD="${MONITOR_PASSWORD:-$(secret 24)}"
 REDIS_PASSWORD="$(existing redis.env REDIS_PASSWORD)"
 REDIS_PASSWORD="${REDIS_PASSWORD:-$(secret 24)}"
+PAGE_CACHE_PASSWORD="$(existing page-cache.env REDIS_PASSWORD)"
+PAGE_CACHE_PASSWORD="${PAGE_CACHE_PASSWORD:-$(secret 24)}"
+PAGE_CACHE_URL="redis://:$PAGE_CACHE_PASSWORD@page-cache:6379"
 
 write() {
   local name="$1" file="$ENV_DIR/$1"
@@ -115,6 +118,12 @@ EOF
 # The shared Redis's password (Slice 9.4, RED-01); the server reaches it as REDIS_URL (server.env).
 write redis.env <<EOF
 REDIS_PASSWORD=$REDIS_PASSWORD
+EOF
+
+# The page cache's Redis password (D9-33): the storefront keeps drawn pages there and the worker clears them, each as
+# PAGE_CACHE_REDIS_URL (storefront.env, server.env).
+write page-cache.env <<EOF
+REDIS_PASSWORD=$PAGE_CACHE_PASSWORD
 EOF
 
 # The monitor's (Slice 9.6, D9-3, deploy/alloy): it reads the database's figures as a pg_monitor role
@@ -188,6 +197,7 @@ PLATFORM_DOMAIN=$PLATFORM_DOMAIN
 PLATFORM_ADDRESSES=$PLATFORM_ADDRESSES
 DATABASE_URL=postgres://lytronix_app:$APP_PASSWORD@postgres:5432/lytronix
 REDIS_URL=redis://:$REDIS_PASSWORD@redis:6379
+PAGE_CACHE_REDIS_URL=$PAGE_CACHE_URL
 TRUSTED_EDGE_SECRET=$EDGE_SECRET
 STOREFRONT_SECRET=$STOREFRONT_SECRET
 OTP_SECRET=$(secret 32)
@@ -272,6 +282,7 @@ GEMINI_API_KEY=
 # TRUSTED_EDGE_SECRET_NEXT=
 EOF
 add_missing server.env REDIS_URL "redis://:$REDIS_PASSWORD@redis:6379"
+add_missing server.env PAGE_CACHE_REDIS_URL "$PAGE_CACHE_URL"
 
 write website.env <<EOF
 # Made by make-env.sh: leave them as they are.
@@ -296,7 +307,9 @@ PLATFORM_DOMAIN=$PLATFORM_DOMAIN
 TRUSTED_EDGE_SECRET=$EDGE_SECRET
 STOREFRONT_SECRET=$STOREFRONT_SECRET
 CLIENT_IP_HEADER=x-forwarded-for
+PAGE_CACHE_REDIS_URL=$PAGE_CACHE_URL
 EOF
+add_missing storefront.env PAGE_CACHE_REDIS_URL "$PAGE_CACHE_URL"
 
 write edge.env <<EOF
 # Made by make-env.sh: leave them as they are.

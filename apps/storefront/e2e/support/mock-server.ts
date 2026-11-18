@@ -32,6 +32,8 @@ import {
 
 export const MOCK_PORT = 4181;
 export const STOREFRONT_PORT = 4180;
+/** D9-33: a second storefront, with the page cache's Redis (REDIS_TEST_URL), for e2e/page-cache.spec.ts alone. */
+export const PAGE_CACHE_PORT = 4182;
 
 // STOREFRONT-BUILDER-PLAN: the builder sketch's sample photos, served as a media host would, so a designed home is drawn
 // with the sketch's own pictures (fixtures' `builderPhoto`).

@@ -16,6 +16,8 @@ export class StorefrontEnvironment {
   readonly clientIpHeader: string;
   /** Slice 9.10: this storefront's own address, where the middleware renders a page the edge may keep. */
   readonly selfUrl: string;
+  /** D9-33: the page cache's own Redis, where drawn pages every shopper sees alike are kept; unset, none are. */
+  readonly pageCacheRedisUrl: string | undefined;
 
   constructor(env: Readonly<Record<string, string | undefined>> = process.env) {
     this.serverUrl = StorefrontEnvironment.trimSlash(env.SERVER_URL ?? 'http://localhost:3000');
@@ -26,6 +28,7 @@ export class StorefrontEnvironment {
     this.selfUrl = StorefrontEnvironment.trimSlash(
       env.STOREFRONT_SELF_URL ?? `http://127.0.0.1:${env.PORT ?? '3001'}`,
     );
+    this.pageCacheRedisUrl = StorefrontEnvironment.blankToUndefined(env.PAGE_CACHE_REDIS_URL);
   }
 
   /** The process-wide settings, read once. Tests build their own instance from a plain object instead. */

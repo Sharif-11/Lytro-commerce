@@ -443,6 +443,12 @@ only adds concrete artifacts to it, nothing new in process:
   announces a change.
 - **Staging** stays DNS only: `<slug>.staging.lytro.app` is two levels down, which Cloudflare's free certificate doesn't
   cover. The storefront still sends the headers there, and nothing reads them.
+- **The storefront's own copies (D9-33):** behind the edge, the storefront keeps each page it drew for every shopper
+  alike in its own Redis (`page-cache`, `PAGE_CACHE_REDIS_URL`; deploy/README.md "Redis"), English pages and shops' own
+  domains included, and answers from there while the page is fresh (`x-lytro-page-cache: hit`). The purge job clears
+  the same tags there first, then at Cloudflare, so the edge never fetches an old copy back; a copy handed to the edge
+  carries only what is left of its time. Without that Redis, or while it doesn't answer, every page is drawn as before.
+  Staging has it too, so it is proven there before the edge is.
 
 **Switching it on in production** (the owner, in Cloudflare's dashboard, once the production server serves):
 1. **DNS:** set the `*.lytro.app` record to **Proxied**. The apex, `www`, `app`, `admin`, `api` and `pay` keep their
