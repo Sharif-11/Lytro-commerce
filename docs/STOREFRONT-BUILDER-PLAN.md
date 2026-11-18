@@ -181,7 +181,8 @@ page, the shop's icon). The server's merged as #388.
    - **A hero's words have no emphasised part:** the design document's headline is plain text.
    - **A hero's dots** show only with more than one slide.
    - **One photo per slide or banner, with its focal point** (SB-15); the sketch drew separate phone and wide crops.
-   - **Banners' shade** is one fixed gradient; the sketch's per-banner colours were sample art.
+   - **Banners' shades** are each theme's two from the sketch (`ban-a`, `ban-b`), a first and a second banner in turn,
+     not one per banner: a seller doesn't choose a shade.
    - **The wallets line** names up to two of the shop's wallets as checkout writes them ("bKash, Nagad দিয়ে
      পেমেন্ট").
    - **About the shop** was not drawn: its heading and text in the theme's own style, its photo beside them on a wide

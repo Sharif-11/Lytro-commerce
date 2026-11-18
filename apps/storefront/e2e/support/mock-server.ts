@@ -725,7 +725,9 @@ async function publicApi(
     );
     // SB-9: the orders the designed home asks for; the others as listed.
     const sort = url.searchParams.get('sort');
-    if (sort === 'discount') {
+    if (sort === 'newest') {
+      rows = [...rows].sort((a, b) => Date.parse(b.card.createdAt) - Date.parse(a.card.createdAt));
+    } else if (sort === 'discount') {
       rows = [...rows].sort((a, b) => (b.card.bestDiscount ?? 0) - (a.card.bestDiscount ?? 0));
     } else if (sort === 'best_selling') {
       rows = [...rows].sort((a, b) => (b.card.ordered ?? 0) - (a.card.ordered ?? 0));

@@ -182,15 +182,16 @@ interface BannerView {
   href: string;
 }
 
-// The shade every banner's words sit on (SB-19: words over a photo always sit on the section's shade).
-const BANNER_SHADE =
-  'linear-gradient(90deg,rgba(0,0,0,.66) 0%,rgba(0,0,0,.38) 55%,rgba(0,0,0,.08) 100%)';
+/** SB-19: the theme's shade a banner's words sit on -- its first for the first banner, its second for the second. */
+function shadeOf(at: number): string {
+  return at % 2 === 0 ? 'var(--ban-a)' : 'var(--ban-b)';
+}
 
-function Banner({ banner }: { banner: BannerView }) {
+function Banner({ banner, at }: { banner: BannerView; at: number }) {
   return (
     <a className="sb-ban" href={banner.href}>
       <img src={banner.image.url} alt="" style={{ objectPosition: banner.image.position }} />
-      <div className="sb-shade" style={{ background: BANNER_SHADE }} />
+      <div className="sb-shade" style={{ background: shadeOf(at) }} />
       <div className="sb-tx">
         {banner.kicker !== null ? <div className="sb-k">{banner.kicker}</div> : null}
         <b>{banner.headline}</b>
@@ -277,8 +278,8 @@ export function OfferBanners({
   return (
     <section className="sb-sec">
       <div className="sb-wrap sb-banners">
-        {banners.map((banner) => (
-          <Banner key={banner.key} banner={banner} />
+        {banners.map((banner, at) => (
+          <Banner key={banner.key} banner={banner} at={at} />
         ))}
       </div>
     </section>
@@ -298,7 +299,7 @@ export function WideBanner({
   return (
     <section className="sb-sec">
       <div className="sb-wrap">
-        <Banner banner={banner} />
+        <Banner banner={banner} at={0} />
       </div>
     </section>
   );
