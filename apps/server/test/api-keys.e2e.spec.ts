@@ -223,13 +223,16 @@ describeIfDatabase('public API keys in the dashboard (API-01, API-02, API-21)', 
     expect((await other.post(`/api-keys/${made.id}/revoke`, {})).status).toBe(404);
     // API-10: the key's shop answers, whatever shop the request names.
     const answer = await callApi('/v1/shop', made.key, SITE, { 'x-lytro-shop': other.slug });
-    expect(answer.body).toEqual({
+    expect(withoutDesign(answer.body)).toEqual({
       name: `Shop ${owner.slug}`,
       slug: owner.slug,
       metaPixelId: null,
       brand: null,
       // Slice 12: the logo, contact details and zones the storefront shows.
       logo: null,
+      // STOREFRONT-BUILDER-PLAN SB-5, SB-9: no icon of its own, nothing on sale.
+      icon: null,
+      sale: { products: 0, bestDiscount: 0 },
       contact: {
         phone: null,
         email: null,
@@ -252,19 +255,32 @@ describeIfDatabase('public API keys in the dashboard (API-01, API-02, API-21)', 
   });
 });
 
+/**
+ * GET /v1/shop's answer without its storefront design, which storefront-design.e2e.spec.ts checks: a new shop's is its
+ * starting design, live, with nothing it names.
+ */
+function withoutDesign(body: unknown): Record<string, unknown> {
+  const { design, ...rest } = body as Record<string, unknown>;
+  expect(design).toMatchObject({ preview: false, images: {}, categories: [], products: [] });
+  return rest;
+}
+
 describeIfDatabase('the public API host (API-03 to API-05, API-08, API-14, API-23, API-24)', () => {
   it('answers a registered website with the shop the key belongs to, and the rate headers', async () => {
     const shop = await openShop(port, texts, 'pub-shop');
     const { key } = await makeKey(shop);
     const answer = await callApi('/v1/shop', key);
     expect(answer.status, JSON.stringify(answer.body)).toBe(200);
-    expect(answer.body).toEqual({
+    expect(withoutDesign(answer.body)).toEqual({
       name: `Shop ${shop.slug}`,
       slug: shop.slug,
       metaPixelId: null,
       brand: null,
       // Slice 12: the logo, contact details and zones the storefront shows.
       logo: null,
+      // STOREFRONT-BUILDER-PLAN SB-5, SB-9: no icon of its own, nothing on sale.
+      icon: null,
+      sale: { products: 0, bestDiscount: 0 },
       contact: {
         phone: null,
         email: null,

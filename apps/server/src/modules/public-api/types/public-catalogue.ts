@@ -35,6 +35,16 @@ export interface PublicProductCard {
   createdAt: string;
   /** ATR-18, Slice 12b: its first swatched choice's values on sale, such as its colours; empty for none. */
   swatches: PublicOptionValue[];
+  /** SB-21: the regular price struck through beside the lowest price; null when that is not on sale. */
+  minRegularPrice: string | null;
+  /** SB-10: "−X%", the biggest saving of any variant; 0 when nothing is on sale. */
+  bestDiscount: number;
+  /** SB-10: "Only N left", while under its low-stock level (whole units of its own stock); null otherwise. */
+  left: number | null;
+  /** SB-10: "Ordered N times", the delivered orders that held it. */
+  ordered: number;
+  /** SB-10: "Best seller", among the shop's most sold over the last STOREFRONT_BEST_SELLER_DAYS. */
+  bestSeller: boolean;
 }
 
 export interface PublicProductPage {
@@ -73,6 +83,8 @@ export interface PublicVariant {
   id: string;
   optionIds: string[];
   price: string;
+  /** SB-21: the regular price struck through beside its price, while it is on sale; null otherwise. */
+  regularPrice: string | null;
   stockState: StockState;
   available: boolean;
 }
@@ -86,6 +98,9 @@ export interface PublicProductDetail {
   description: string | null;
   minPrice: string | null;
   maxPrice: string | null;
+  /** SB-10, SB-21: as its card shows them. */
+  minRegularPrice: string | null;
+  bestDiscount: number;
   stockState: StockState;
   stockUnit: StockUnit;
   /** INV-24, UOM-04: its variants draw from one stock in whole packs, so a part of one can't be ordered. */
@@ -147,6 +162,8 @@ export interface PublicCategory {
   slug: string;
   name: string;
   image: ImageView | null;
+  /** SB-9: its picture, else the first photo of its first product, for a storefront's category tiles; null for none. */
+  cover: ImageView | null;
   /** Slice 12b: its active products, its subcategories' included (hidden ones too), as its list shows them. */
   productCount: number;
   children: PublicCategory[];

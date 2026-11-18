@@ -98,6 +98,8 @@ export class BrandService {
         darkLogoMediaId: input.darkLogoId,
         iconMediaId: input.iconId,
       });
+      // SB-5: the icon is the shop's, on every plan; the identity keeps the same one, so the two never differ.
+      await this.writeShopIcon(tx, tenantId, input.iconId);
       await this.activity.record(
         tx,
         tenantId,
@@ -143,10 +145,8 @@ export class BrandService {
     return this.store.run(async (tx) => {
       const stored = await this.store.find(tx, tenantId);
       if (!stored?.useBrand || !(await this.allowed(tx, tenantId))) return null;
-      const images = await this.images.viewsOf(tx, tenantId, [
-        stored.darkLogoMediaId,
-        stored.iconMediaId,
-      ]);
+      const icon = await this.iconOf(tx, tenantId, stored);
+      const images = await this.images.viewsOf(tx, tenantId, [stored.darkLogoMediaId, icon]);
       const tokens: Omit<LiveBrand, 'version'> = {
         colors: {
           main: stored.mainColor,
@@ -158,7 +158,7 @@ export class BrandService {
         corners: stored.corners,
         spacing: stored.spacing,
         darkLogo: images.get(stored.darkLogoMediaId ?? '') ?? null,
-        icon: images.get(stored.iconMediaId ?? '') ?? null,
+        icon: images.get(icon ?? '') ?? null,
       };
       const version = createHash('sha256')
         .update(JSON.stringify(tokens))
@@ -172,10 +172,8 @@ export class BrandService {
     const stored = await this.store.find(tx, tenantId);
     const allowed = await this.allowed(tx, tenantId);
     const design = designOf(stored ?? DEFAULT_BRAND);
-    const images = await this.images.viewsOf(tx, tenantId, [
-      stored?.darkLogoMediaId,
-      stored?.iconMediaId,
-    ]);
+    const icon = await this.iconOf(tx, tenantId, stored);
+    const images = await this.images.viewsOf(tx, tenantId, [stored?.darkLogoMediaId, icon]);
     const useBrand = stored?.useBrand ?? false;
     return {
       useBrand,
@@ -184,11 +182,36 @@ export class BrandService {
       identity: {
         ...design,
         darkLogo: images.get(stored?.darkLogoMediaId ?? '') ?? null,
-        icon: images.get(stored?.iconMediaId ?? '') ?? null,
+        icon: images.get(icon ?? '') ?? null,
       },
       contrast: brandContrast(design),
       savedAt: stored?.updatedAt.toISOString() ?? null,
     };
+  }
+
+  /**
+   * SB-5: the shop's icon -- its own, set on every plan, else the one the identity held before 0143 -- so the editor
+   * shows, and saves back, the icon every surface shows.
+   */
+  private async iconOf(
+    tx: Transaction,
+    tenantId: string,
+    stored: BrandRecord | null,
+  ): Promise<string | null> {
+    return (await this.store.shopIcon(tx, tenantId)) ?? stored?.iconMediaId ?? null;
+  }
+
+  private async writeShopIcon(
+    tx: Transaction,
+    tenantId: string,
+    iconId: string | null,
+  ): Promise<void> {
+    try {
+      await this.store.setShopIcon(tx, tenantId, iconId);
+    } catch (error) {
+      if (!(error instanceof MediaNotAttachable)) throw error;
+      refuseUnattachable(error, 'iconId');
+    }
   }
 
   /** BRN-05: the add-on held now, or a plan that includes the identity. */

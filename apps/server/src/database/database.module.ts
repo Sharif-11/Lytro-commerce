@@ -111,6 +111,7 @@ import {
   JobHeartbeatRepository,
   CapacityRepository,
   BrandIdentityRepository,
+  StorefrontDesignRepository,
   AdTrackingRepository,
   CatalogFeedRepository,
 } from '@lytronix/db';
@@ -395,6 +396,11 @@ import { PrimaryWatch } from './primary-watch';
       useFactory: (transactions: TransactionRunner) => new BrandIdentityRepository(transactions),
     },
     {
+      provide: StorefrontDesignRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new StorefrontDesignRepository(transactions),
+    },
+    {
       provide: CatalogueDataRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new CatalogueDataRepository(transactions),
@@ -575,6 +581,7 @@ import { PrimaryWatch } from './primary-watch';
     JobHeartbeatRepository,
     CapacityRepository,
     BrandIdentityRepository,
+    StorefrontDesignRepository,
   ],
 })
 export class DatabaseModule {}

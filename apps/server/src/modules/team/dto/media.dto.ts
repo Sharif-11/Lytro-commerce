@@ -39,6 +39,9 @@ export const mediaDetailSchema = mediaViewSchema.extend({
     logo: z.boolean(),
     brand: z.boolean(),
     pastOrders: z.number(),
+    // SB-5, SB-14: the shop's icon, and the storefront design (any of its copies).
+    icon: z.boolean(),
+    storefront: z.boolean(),
   }),
 });
 export class MediaDetailDto extends createZodDto(mediaDetailSchema) {}

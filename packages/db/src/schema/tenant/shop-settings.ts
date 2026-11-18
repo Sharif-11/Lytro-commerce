@@ -21,6 +21,9 @@ export const shopSettings = tenant.table(
     // TEN-16: the shop's logo, a ready image of its own; without one the shop shows its monogram. Deleting the image
     // clears it.
     logoMediaId: uuid('logo_media_id'),
+    // SB-5 (the owner, 2026-11-18): the shop's square icon, on every plan -- the browser tab's and the installed app's.
+    // Without one, the brand identity's (set before 0143), then the logo, then the monogram. Deleting the image clears it.
+    iconMediaId: uuid('icon_media_id'),
     // SUP-01: when a shop or product link was first copied or shared from the dashboard, which ticks the set-up
     // checklist's "share the shop link" on every device.
     linkSharedAt: timestamp('link_shared_at', { withTimezone: true }),

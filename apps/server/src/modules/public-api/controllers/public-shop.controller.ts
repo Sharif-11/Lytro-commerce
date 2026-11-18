@@ -1,13 +1,28 @@
-import { applyDecorators, Controller, Get, Inject, Req, UseGuards } from '@nestjs/common';
+import {
+  applyDecorators,
+  Controller,
+  Get,
+  Inject,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createZodDto, ZodResponse } from 'nestjs-zod';
 import { z } from 'zod';
+import { publicShopQuerySchema } from '@lytronix/validators';
 import { liveBrandSchema } from '../../../common/dto/brand.dto';
+import { imageViewSchema } from '../../../common/dto/media-views.dto';
+import { publicStorefrontSchema } from '../../../common/dto/storefront.dto';
+import type { HttpResponse } from '../../../common/http';
+import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { PublicApiRoute } from '../../../common/decorators/public-api';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { BrandService } from '../../brand/services/brand.service';
 import { DeliveryZoneService } from '../../delivery/services/delivery-zone.service';
 import { MediaService } from '../../media/services/media.service';
+import { StorefrontDesignService } from '../../storefront-design/services/storefront-design.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import { PublicKeyGuard, type PublicApiRequest } from '../guards/public-key.guard';
 import { AdTrackingService } from '../services/ad-tracking.service';
@@ -27,6 +42,12 @@ const publicShopViewSchema = z.object({
   logo: z
     .object({ id: z.string(), urls: z.object({ main: z.string(), thumbnail: z.string() }) })
     .nullable(),
+  // SB-5: the square icon for the browser tab and the installed app; null to make it from the logo.
+  icon: imageViewSchema.nullable(),
+  // SB-11 to SB-16: the storefront design, its photos and what it points at resolved.
+  design: publicStorefrontSchema,
+  // SB-9: what is on sale now, for the announcement that writes itself.
+  sale: z.object({ products: z.number(), bestDiscount: z.number() }),
   contact: z.object({
     phone: z.string().nullable(),
     email: z.string().nullable(),
@@ -46,6 +67,7 @@ const publicShopViewSchema = z.object({
   ),
 });
 class PublicShopViewDto extends createZodDto(publicShopViewSchema) {}
+class PublicShopQueryDto extends createZodDto(publicShopQuerySchema) {}
 
 // D3-1, API-07: the public API's first route: which shop a public key belongs to. The catalogue's routes sit behind the
 // same gate (public-catalogue.controller.ts).
@@ -59,19 +81,28 @@ export class PublicShopController {
     @Inject(MediaService) private readonly media: MediaService,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(DeliveryZoneService) private readonly zones: DeliveryZoneService,
+    @Inject(StorefrontDesignService) private readonly designs: StorefrontDesignService,
   ) {}
 
   @Get()
   @ResponseMessage('ShopRetrieved')
   @ApiOperation({
     summary:
-      "The shop this public key belongs to: its name, logo, contact details, delivery zones, the Meta Pixel its pages load and its brand identity's tokens (API-05, API-07, TEN-16, TEN-30, DLV-01, LND-15, BRN-07)",
+      "The shop this public key belongs to: its name, logo, icon, contact details, delivery zones, the Meta Pixel its pages load, its brand identity's tokens and its storefront design; with `preview`, a signed link's draft, never kept by any cache (API-05, API-07, TEN-16, TEN-30, DLV-01, LND-15, BRN-07, SB-5, SB-12, SB-14)",
   })
   @ZodResponse({ type: PublicShopViewDto })
-  async shop(@Req() request: PublicApiRequest): Promise<PublicShopView> {
+  async shop(
+    @Query(new ZodValidationPipe(PublicShopQueryDto.schema)) query: PublicShopQueryDto,
+    @Req() request: PublicApiRequest,
+    @Res({ passthrough: true }) response: HttpResponse,
+  ): Promise<PublicShopView> {
     const shop = request.apiShop;
     if (!shop) throw new Error('the public key guard names the shop');
     const tenantId = shop.row.id;
+    const preview = query.preview ?? null;
+    // SB-12: a draft is never kept by a browser, Cloudflare or the storefront's own cache.
+    if (preview !== null) response.setHeader('Cache-Control', 'no-store');
+    const design = await this.designs.live(tenantId, preview);
     const contact = await this.tenants.runStandalone((tx) =>
       this.tenants.findContactDetails(tx, tenantId),
     );
@@ -82,6 +113,9 @@ export class PublicShopController {
       metaPixelId: await this.adTracking.pixelOf(tenantId),
       brand: await this.brand.live(tenantId),
       logo: await this.media.logoOf(tenantId),
+      icon: await this.media.iconOf(tenantId),
+      design,
+      sale: await this.designs.sale(tenantId),
       contact: {
         phone: contact?.contactPhone ?? null,
         email: contact?.contactEmail ?? null,

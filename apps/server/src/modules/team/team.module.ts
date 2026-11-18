@@ -52,6 +52,8 @@ import { ListenerController } from './controllers/listener.controller';
 import { OperatorListenerController } from './controllers/operator-listener.controller';
 import { ShopSettingsController } from './controllers/shop-settings.controller';
 import { BrandController } from './controllers/brand.controller';
+import { StorefrontDesignController } from './controllers/storefront-design.controller';
+import { StorefrontDesignModule } from '../storefront-design/storefront-design.module';
 import { ShopDomainController } from './controllers/shop-domain.controller';
 import { AdTrackingController } from './controllers/ad-tracking.controller';
 import { ApiKeysController } from './controllers/api-keys.controller';
@@ -185,6 +187,7 @@ import { NoticesModule } from '../notices/notices.module';
     MediaModule,
     UsageModule,
     BrandModule,
+    StorefrontDesignModule,
     PaymentMethodsModule,
     PaymentSessionsModule,
     PaymentReviewModule,
@@ -243,6 +246,7 @@ import { NoticesModule } from '../notices/notices.module';
     OperatorPaymentQueueController,
     ShopSettingsController,
     BrandController,
+    StorefrontDesignController,
     ShopDomainController,
     ApiKeysController,
     AdTrackingController,

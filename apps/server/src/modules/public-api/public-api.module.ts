@@ -16,6 +16,7 @@ import {
   DrizzleApiUsageStore,
 } from '../../database/adapters/public-api.adapter';
 import { BrandModule } from '../brand/brand.module';
+import { StorefrontDesignModule } from '../storefront-design/storefront-design.module';
 import { PaymentMethodsModule } from '../payment-methods/payment-methods.module';
 import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
 import { DomainsModule } from '../domains/domains.module';
@@ -95,6 +96,7 @@ import {
     PlatformSettingsModule,
     UsageWarningsModule,
     BrandModule,
+    StorefrontDesignModule,
     PaymentMethodsModule,
     PaymentSessionsModule,
     // Slice 13: the storefront's context and the catalog feed name the shop's own domain while it serves.

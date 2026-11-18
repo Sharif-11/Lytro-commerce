@@ -200,6 +200,11 @@ export type ProductImagesInput = z.infer<typeof productImagesSchema>;
 export const shopLogoSchema = z.object({ mediaId: catalogueIdSchema.nullable() });
 export type ShopLogoInput = z.infer<typeof shopLogoSchema>;
 
+// PUT shop-settings/icon (SB-5): the shop's square icon, one of its ready images at least BRAND_ICON_MIN_PX a side, or
+// null to make it from the logo.
+export const shopIconSchema = z.object({ mediaId: catalogueIdSchema.nullable() });
+export type ShopIconInput = z.infer<typeof shopIconSchema>;
+
 // PUT products/:id/video (PRD-11): the product's one video, a ready video of the shop's, or null for none.
 export const productVideoSchema = z.object({ mediaId: catalogueIdSchema.nullable() });
 export type ProductVideoInput = z.infer<typeof productVideoSchema>;

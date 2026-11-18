@@ -83,10 +83,19 @@ describe('public list requests (CCH-03, CCH-11)', () => {
       search: 'cotton panjabi',
       sort: PublicProductSort.Relevance,
       inStock: false,
+      onSale: false,
+      ids: null,
       cursor: null,
       limit: 24,
     });
     expect(listRequestOf({ inStock: true, limit: 24 }).inStock).toBe(true);
+    // SB-9: a picked row is one page of exactly its products, whatever cursor or limit came with it.
+    const picked = ['0b9f6a3e-6f3c-4f7e-9d2a-1c2b3d4e5f60', '1c2b3d4e-5f60-4718-8293-a4b5c6d7e8f9'];
+    expect(listRequestOf({ productIds: picked, cursor: 'x', limit: 24 })).toMatchObject({
+      ids: picked,
+      cursor: null,
+      limit: 2,
+    });
     expect(listRequestOf({ limit: 24, v: '3.1' }).sort).toBe(PublicProductSort.Featured);
     expect(listRequestOf({ sort: PublicProductSort.Relevance, limit: 24 }).sort).toBe(
       PublicProductSort.Featured,

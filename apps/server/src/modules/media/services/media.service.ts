@@ -3,6 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
 import {
   AuditAction,
+  BRAND_ICON_MIN_PX,
   FieldProblemCode,
   MediaKind,
   MediaPurpose,
@@ -11,6 +12,7 @@ import {
   QueueName,
   ServerFieldProblemCode,
   UsageMetric,
+  brandIconFits,
   type MediaListQuery,
   type StartUploadInput,
 } from '@lytronix/validators';
@@ -259,11 +261,90 @@ export class MediaService {
         { kind: row.kind, purpose: row.purpose, uses },
       );
       // CCH-02: what the public pages show changed only when it showed somewhere. A brand image needs no bump: the
-      // identity's own version is drawn from what it shows (BRN-07), so it moves by itself.
+      // identity's own version is drawn from what it shows (BRN-07), so it moves by itself. The shop's icon and the
+      // storefront design's photos show on its pages (SB-5, SB-14), so their pages go from the edge with the bump.
       const shown =
         uses.products + uses.videos + uses.categories + uses.swatches + uses.sizeCharts > 0 ||
-        uses.logo;
+        uses.logo ||
+        uses.icon ||
+        uses.storefront;
       if (shown) await this.version.bump(tx, tenantId);
+    });
+  }
+
+  /** SB-5: the shop's icon, or null to make it from the logo (or the monogram). */
+  async iconOf(tenantId: string): Promise<ImageView | null> {
+    return this.store.run(async (tx) => {
+      const id = await this.store.shopIcon(tx, tenantId);
+      return id === null ? null : ((await this.images.viewsOf(tx, tenantId, [id])).get(id) ?? null);
+    });
+  }
+
+  /** SB-5, TEN-17: the shop's icon as stored (the processed WebP) with its fingerprint; null for none. */
+  async iconImage(tenantId: string): Promise<{ hash: string; body: Buffer } | null> {
+    const id = await this.store.run((tx) => this.store.shopIcon(tx, tenantId));
+    return id === null ? null : this.imageFile(tenantId, id);
+  }
+
+  /** SB-5, TEN-17: the fingerprint of the shop's icon as stored, or null for none. */
+  async iconFingerprint(tenantId: string): Promise<string | null> {
+    return this.store.run(async (tx) => {
+      const id = await this.store.shopIcon(tx, tenantId);
+      if (id === null) return null;
+      return (await this.store.findMedia(tx, tenantId, id))?.hash ?? null;
+    });
+  }
+
+  /**
+   * SB-5: sets the shop's icon -- on every plan -- to one of its ready images, square and at least BRAND_ICON_MIN_PX a
+   * side, or none to make it from the logo. The browser tab and the installed app show it.
+   */
+  async setIcon(
+    tenantId: string,
+    mediaId: string | null,
+    actor: CatalogueActor,
+  ): Promise<ImageView | null> {
+    const who = await this.activity.resolve(tenantId, actor);
+    return this.writes.run(tenantId, async (tx) => {
+      if (mediaId !== null) {
+        const media = await this.store.findMedia(tx, tenantId, mediaId);
+        if (media?.status !== MediaStatus.Ready || media.kind !== MediaKind.Image) {
+          throw new FieldsError([
+            {
+              field: 'mediaId',
+              problem: ServerFieldProblemCode.NotFound,
+              messageKey: 'MediaNotAttachable',
+            },
+          ]);
+        }
+        if (!brandIconFits(media.width ?? 0, media.height ?? 0)) {
+          throw new FieldsError([
+            {
+              field: 'mediaId',
+              problem: ServerFieldProblemCode.OutOfRange,
+              messageKey: 'BrandIconNotSquare',
+              params: { min: BRAND_ICON_MIN_PX },
+            },
+          ]);
+        }
+      }
+      try {
+        await this.store.setShopIcon(tx, tenantId, mediaId);
+      } catch (error) {
+        refuseUnattachable(error, 'mediaId');
+      }
+      await this.activity.record(
+        tx,
+        tenantId,
+        who,
+        AuditAction.ShopIconSaved,
+        { type: 'tenant', id: tenantId },
+        { mediaId },
+      );
+      await this.version.bump(tx, tenantId);
+      return mediaId === null
+        ? null
+        : ((await this.images.viewsOf(tx, tenantId, [mediaId])).get(mediaId) ?? null);
     });
   }
 

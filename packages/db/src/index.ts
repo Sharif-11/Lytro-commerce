@@ -162,6 +162,12 @@ export {
   type BrandIdentityValues,
 } from './repositories/brand/brand-identity.repository';
 export {
+  StorefrontDesignRepository,
+  type StorefrontDesignValues,
+  type StorefrontSaleSummary,
+  type StorefrontTargetRow,
+} from './repositories/brand/storefront-design.repository';
+export {
   PlansRepository,
   type NewPlan,
   type PlanEdit,
@@ -283,6 +289,7 @@ export {
   type FeedVariantRow,
   type PublicProductFilter,
   type PublicProductRow,
+  type PublicCardFacts,
   type PublicSwatchRow,
   type CategoryProductCount,
 } from './repositories/catalogue/public-catalogue.repository';

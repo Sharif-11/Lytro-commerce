@@ -9,6 +9,10 @@ import type {
 import type { ApiKeyPurpose, ApiKeyType, PlanLimits } from '@lytronix/validators';
 import type { ImageView } from '../../../common/media-links';
 import type { LiveBrand } from '../../brand/types/brand';
+import type {
+  PublicStorefrontDesign,
+  StorefrontSale,
+} from '../../storefront-design/types/storefront-design';
 import type { Bilingual } from '../../delivery/types/delivery';
 
 // The stored rows, as aliases of the shared types (ENGINEERING-STANDARDS §4), never copies.
@@ -68,6 +72,12 @@ export interface PublicShopView {
   brand: LiveBrand | null;
   /** TEN-16: its logo, or null for its monogram. */
   logo: ImageView | null;
+  /** SB-5: its square icon, for the browser tab and the installed app; null to make it from the logo. */
+  icon: ImageView | null;
+  /** SB-11 to SB-16: its storefront design -- the live one, the starting one, or through a preview link the draft. */
+  design: PublicStorefrontDesign;
+  /** SB-9: what is on sale now, for the announcement that writes itself. */
+  sale: StorefrontSale;
   /** TEN-30, SFT-21: the contact details it set; each null when unset, and then not shown. */
   contact: {
     phone: string | null;

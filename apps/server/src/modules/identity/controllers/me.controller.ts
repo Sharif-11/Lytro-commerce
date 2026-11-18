@@ -61,6 +61,8 @@ export interface MeResponse {
         autoRenewEnabled: boolean;
         /** TEN-16: the shop's logo, which the dashboard's navigation shows; null for its monogram. */
         logo: ImageView | null;
+        /** SB-5: the shop's icon, which the dashboard's browser tab shows; null to make it from the logo. */
+        icon: ImageView | null;
         /** BRN-07: the shop's own identity, which the dashboard applies; null for Lytro's default. */
         brand: LiveBrand | null;
         /** Slice 13: the shop's own domain while it serves, its main address then; null for its Lytro address. */
@@ -133,6 +135,7 @@ export class MeController {
     const shops = signedIn ? await this.memberships.list(signedIn) : [];
     const brand = tenant === null ? null : await this.brand.live(tenant.id);
     const logo = tenant === null ? null : await this.media.logoOf(tenant.id);
+    const icon = tenant === null ? null : await this.media.iconOf(tenant.id);
     const person =
       tenant === null ? { name: null, phone: null } : await this.staff.personOf(tenant, userId);
     const staffSignIn = signedIn ? isStaffSignIn(signedIn) : false;
@@ -167,6 +170,7 @@ export class MeController {
               periodEnd: tenant.periodEnd?.toISOString() ?? null,
               autoRenewEnabled: tenant.autoRenewEnabled,
               logo,
+              icon,
               brand,
               ownDomain: await this.domains.servingHost(tenant.id),
               ...(await this.standingOf(tenant)),

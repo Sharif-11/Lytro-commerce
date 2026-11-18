@@ -62,6 +62,10 @@ export const PUBLIC_PAGE_SIZE = 24;
 export const PUBLIC_PAGE_SIZE_MAX = 60;
 // Slice 12b: a product added within this many days shows as "New" on a storefront card.
 export const PRODUCT_NEW_DAYS = 14;
+// SB-9, SB-10: a storefront's best sellers are its products that sold most over these last days of delivered orders,
+// and a card marks the first few of them "Best seller".
+export const STOREFRONT_BEST_SELLER_DAYS = 30;
+export const STOREFRONT_BEST_SELLER_BADGES = 5;
 // LND-04: a product's link slug. Letters (Bangla included), digits and hyphens, no leading or trailing hyphen.
 export const PRODUCT_SLUG_MAX_LENGTH = 120;
 export const PRODUCT_SLUG_PATTERN = /^[\p{L}\p{M}\p{N}]+(?:-[\p{L}\p{M}\p{N}]+)*$/u;

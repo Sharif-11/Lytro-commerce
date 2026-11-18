@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   AddonPurchaseRepository,
+  BrandIdentityRepository,
   MediaRepository,
   PlanLimitOverridesRepository,
   ShopSettingsRepository,
@@ -38,6 +39,7 @@ export class DrizzleMediaStore implements MediaStore {
     @Inject(TenantRepository) private readonly tenants: TenantRepository,
     @Inject(PlanLimitOverridesRepository) private readonly overrides: PlanLimitOverridesRepository,
     @Inject(ShopSettingsRepository) private readonly settings: ShopSettingsRepository,
+    @Inject(BrandIdentityRepository) private readonly brands: BrandIdentityRepository,
     @Inject(AddonPurchaseRepository) private readonly addonPurchases: AddonPurchaseRepository,
   ) {}
 
@@ -127,6 +129,22 @@ export class DrizzleMediaStore implements MediaStore {
   async setShopLogo(tx: Transaction, tenantId: string, mediaId: string | null): Promise<void> {
     try {
       await this.settings.setLogo(tx, tenantId, mediaId);
+    } catch (error) {
+      if (this.transactions.isCheckViolation(error, MEDIA_READY_IMAGE))
+        throw new MediaNotAttachable();
+      throw error;
+    }
+  }
+
+  async shopIcon(tx: Transaction, tenantId: string): Promise<string | null> {
+    const own = (await this.settings.get(tx, tenantId))?.iconMediaId ?? null;
+    return own ?? (await this.brands.get(tx, tenantId))?.iconMediaId ?? null;
+  }
+
+  async setShopIcon(tx: Transaction, tenantId: string, mediaId: string | null): Promise<void> {
+    try {
+      await this.settings.setIcon(tx, tenantId, mediaId);
+      await this.brands.setIcon(tx, tenantId, mediaId);
     } catch (error) {
       if (this.transactions.isCheckViolation(error, MEDIA_READY_IMAGE))
         throw new MediaNotAttachable();

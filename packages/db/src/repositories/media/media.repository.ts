@@ -24,6 +24,7 @@ import {
   products,
   shopSettings,
   sizeCharts,
+  storefrontDesigns,
   type InsertMedia,
   type InsertMediaObject,
   type InsertMediaReconciliation,
@@ -73,6 +74,10 @@ export interface MediaUses {
   pastOrders: number;
   /** BRN-02: the brand identity shows it, as its logo for dark backgrounds or its square icon (KNOWN-GAPS §97). */
   brand: boolean;
+  /** SB-5: the shop's icon, the browser tab's and the installed app's. */
+  icon: boolean;
+  /** SB-14, SB-15: the storefront design shows it -- its draft, the live one, or the one before it. */
+  storefront: boolean;
 }
 
 /** STO-01, STO-09: what an item takes from the shop's storage, every file of it, and a video's length. */
@@ -353,6 +358,23 @@ export class MediaRepository {
           ),
         ),
     );
+    const icons = await counted(
+      tx
+        .select({ n: count() })
+        .from(shopSettings)
+        .where(and(eq(shopSettings.tenantId, tenantId), eq(shopSettings.iconMediaId, id))),
+    );
+    const designs = await counted(
+      tx
+        .select({ n: count() })
+        .from(storefrontDesigns)
+        .where(
+          and(
+            eq(storefrontDesigns.tenantId, tenantId),
+            sql`${id}::uuid = ANY(${storefrontDesigns.mediaIds})`,
+          ),
+        ),
+    );
     return {
       products: photos,
       videos,
@@ -362,6 +384,8 @@ export class MediaRepository {
       logo: logos > 0,
       pastOrders,
       brand: brands > 0,
+      icon: icons > 0,
+      storefront: designs > 0,
     };
   }
 

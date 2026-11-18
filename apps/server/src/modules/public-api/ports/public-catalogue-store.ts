@@ -5,6 +5,7 @@ import type {
   FeedAttributeRow,
   FeedImageRow,
   FeedVariantRow,
+  PublicCardFacts,
   PublicProductFilter,
   PublicProductRow,
   PublicSwatchRow,
@@ -44,6 +45,19 @@ export interface PublicCatalogueStore {
     tenantId: string,
     productIds: readonly string[],
   ): Promise<PublicSwatchRow[]>;
+  /** SB-10: what these products' cards say beyond their rows: units left when low, times ordered, best seller. */
+  cardFacts(
+    tx: Transaction,
+    tenantId: string,
+    productIds: readonly string[],
+    since: Date,
+    top: number,
+  ): Promise<PublicCardFacts[]>;
+  /** SB-9: each category's cover photo, for one without a picture of its own. */
+  categoryCovers(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ categoryId: string; mediaId: string }[]>;
   /** FED-01, FED-02: every variant on sale of every active product, its photos, and the named attributes' values. */
   listFeedVariants(tx: Transaction, tenantId: string): Promise<FeedVariantRow[]>;
   listFeedImages(tx: Transaction, tenantId: string): Promise<FeedImageRow[]>;

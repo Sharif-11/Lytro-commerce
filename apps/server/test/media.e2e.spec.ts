@@ -611,6 +611,8 @@ describeIfDatabase('deleting media (MED-09, STO-07, LIF-19)', () => {
       logo: true,
       brand: false,
       pastOrders: 0,
+      icon: false,
+      storefront: false,
     });
 
     const deleted = await shop.delete(`/media/${image.id}`);

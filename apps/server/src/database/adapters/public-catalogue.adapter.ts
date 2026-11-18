@@ -7,6 +7,7 @@ import {
   TransactionRunner,
   type CatalogueVersions,
   type CategoryProductCount,
+  type PublicCardFacts,
   type FeedAttributeRow,
   type FeedImageRow,
   type FeedVariantRow,
@@ -77,6 +78,23 @@ export class DrizzlePublicCatalogueStore implements PublicCatalogueStore {
 
   countCategoryProducts(tx: Transaction, tenantId: string): Promise<CategoryProductCount[]> {
     return this.catalogue.countCategoryProducts(tx, tenantId);
+  }
+
+  cardFacts(
+    tx: Transaction,
+    tenantId: string,
+    productIds: readonly string[],
+    since: Date,
+    top: number,
+  ): Promise<PublicCardFacts[]> {
+    return this.catalogue.cardFacts(tx, tenantId, productIds, since, top);
+  }
+
+  categoryCovers(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ categoryId: string; mediaId: string }[]> {
+    return this.catalogue.categoryCovers(tx, tenantId);
   }
 
   listSwatches(

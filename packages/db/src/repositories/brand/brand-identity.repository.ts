@@ -39,6 +39,18 @@ export class BrandIdentityRepository {
     return row;
   }
 
+  /**
+   * SB-5: keeps a saved identity's icon the same as the shop's icon, so the brand editor and every surface show one
+   * icon; a shop with no saved identity has nothing to keep.
+   */
+  async setIcon(tx: Transaction, tenantId: string, iconMediaId: string | null): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    await tx
+      .update(brandIdentities)
+      .set({ iconMediaId, updatedAt: sql`now()` })
+      .where(eq(brandIdentities.tenantId, tenantId));
+  }
+
   /** LIF-19: removes the shop's brand identity at day 60. */
   async deleteForTenant(tx: Transaction, tenantId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);

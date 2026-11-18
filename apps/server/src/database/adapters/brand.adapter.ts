@@ -3,6 +3,7 @@ import {
   AddonPurchaseRepository,
   BrandIdentityRepository,
   MediaRepository,
+  ShopSettingsRepository,
   TenantRepository,
   TransactionRunner,
   type SelectBrandIdentity,
@@ -46,6 +47,7 @@ export class DrizzleBrandStore implements BrandStore {
     @Inject(TenantRepository) private readonly tenants: TenantRepository,
     @Inject(AddonPurchaseRepository) private readonly addonPurchases: AddonPurchaseRepository,
     @Inject(MediaRepository) private readonly media: MediaRepository,
+    @Inject(ShopSettingsRepository) private readonly settings: ShopSettingsRepository,
   ) {}
 
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
@@ -70,6 +72,21 @@ export class DrizzleBrandStore implements BrandStore {
 
   deleteForTenant(tx: Transaction, tenantId: string): Promise<void> {
     return this.brands.deleteForTenant(tx, tenantId);
+  }
+
+  async shopIcon(tx: Transaction, tenantId: string): Promise<string | null> {
+    return (await this.settings.get(tx, tenantId))?.iconMediaId ?? null;
+  }
+
+  async setShopIcon(tx: Transaction, tenantId: string, mediaId: string | null): Promise<void> {
+    try {
+      await this.settings.setIcon(tx, tenantId, mediaId);
+    } catch (error) {
+      if (this.transactions.isCheckViolation(error, MEDIA_READY_IMAGE)) {
+        throw new MediaNotAttachable();
+      }
+      throw error;
+    }
   }
 
   async holdings(tx: Transaction, tenantId: string): Promise<BrandHoldings> {

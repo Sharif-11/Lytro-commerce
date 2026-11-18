@@ -49,6 +49,13 @@ export interface MediaStore {
   shopLogo(tx: Transaction, tenantId: string): Promise<string | null>;
   /** TEN-16: sets the logo; a media id that is not a ready image of the shop's is refused as MediaNotAttachable. */
   setShopLogo(tx: Transaction, tenantId: string, mediaId: string | null): Promise<void>;
+  /** SB-5: the shop's icon -- its own, else the one its brand identity held before 0143 -- or null for none. */
+  shopIcon(tx: Transaction, tenantId: string): Promise<string | null>;
+  /**
+   * SB-5: sets the icon, and a saved brand identity's with it, so every surface shows one icon; a media id that is not
+   * a ready image of the shop's is refused as MediaNotAttachable.
+   */
+  setShopIcon(tx: Transaction, tenantId: string, mediaId: string | null): Promise<void>;
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
 
   /** MED-04: every shop not yet deleted, for the nightly run. */

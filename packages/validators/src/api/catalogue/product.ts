@@ -94,6 +94,9 @@ const productFields = {
   name: z.string().trim().min(1).max(PRODUCT_NAME_MAX_LENGTH),
   description: descriptionField.nullable().optional(),
   basePrice: priceField,
+  // SB-21 (the owner, 2026-11-18): the regular price ("আগের দাম") it is on sale from, higher than its price; null for
+  // none. Orders charge the price, never this.
+  regularPrice: priceField.nullable().optional(),
   stockUnit: z.enum(StockUnit).optional(),
   stockTracking: z.enum(StockTracking).optional(),
   batchTracked: z.boolean().optional(),
@@ -128,6 +131,8 @@ const variantAttributeInput = z.object({
 const variantInput = z.object({
   optionIds: z.array(catalogueIdSchema).max(MAX_VARIANT_ATTRIBUTES),
   price: priceField.nullable().optional(),
+  // SB-21: its own regular price, as `price` overrides the product's; null takes the product's.
+  regularPrice: priceField.nullable().optional(),
   sku: skuField.nullable().optional(),
   barcode: skuField.nullable().optional(),
   weightKg: weightKgField.nullable().optional(),
@@ -340,6 +345,21 @@ function checkOpeningCost(
 
 /** The product's own field rules that need no stored data (INV-12/14, PRD-08, PRD-15). */
 function checkFields(value: Partial<z.infer<z.ZodObject<typeof productFields>>>, ctx: Ctx): void {
+  // SB-21: a regular price is what the product is on sale from, so never below the price (equal is simply not on sale).
+  // With only one of the two in an edit, the server checks it against the stored other.
+  if (
+    value.regularPrice !== undefined &&
+    value.regularPrice !== null &&
+    value.basePrice !== undefined &&
+    value.regularPrice < value.basePrice
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['regularPrice'],
+      message: 'The regular price is at least the price.',
+      params: { problem: FieldProblemCode.TooSmall, min: value.basePrice },
+    });
+  }
   if (
     value.stockTracking === StockTracking.NotTracked &&
     (value.batchTracked || value.serialTracked)

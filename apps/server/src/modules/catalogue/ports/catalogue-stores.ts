@@ -209,7 +209,15 @@ export interface CategoryStore {
 export type ProductChange = Partial<
   Omit<
     ProductRecord,
-    'id' | 'tenantId' | 'slug' | 'createdAt' | 'updatedAt' | 'minPrice' | 'maxPrice'
+    | 'id'
+    | 'tenantId'
+    | 'slug'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'minPrice'
+    | 'maxPrice'
+    | 'minRegularPrice'
+    | 'bestDiscount'
   >
 >;
 
@@ -220,6 +228,7 @@ export type VariantChange = Partial<
     | 'sku'
     | 'barcode'
     | 'price'
+    | 'regularPrice'
     | 'weightKg'
     | 'deliveryCharge'
     | 'deliveryMode'

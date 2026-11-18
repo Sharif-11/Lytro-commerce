@@ -1,7 +1,15 @@
 import { sql, type SQL } from 'drizzle-orm';
-import { PublicProductSort, type ItemCondition, type StockState } from '@lytronix/validators';
+import {
+  MEASURED_STOCK_UNITS,
+  ProductKind,
+  PublicProductSort,
+  StockState,
+  StockTracking,
+  type ItemCondition,
+} from '@lytronix/validators';
 import type { Transaction, TransactionRunner } from '../../transactions';
 import { escapeLike } from '../like';
+import { counted } from '../orders/sales.repository';
 
 /** CCH-02, KNOWN-GAPS §66: the shop's catalogue version and the platform library's, together naming what is shown. */
 export interface CatalogueVersions {
@@ -16,11 +24,26 @@ export interface PublicProductRow {
   name: string;
   minPrice: string | null;
   maxPrice: string | null;
+  /** SB-21: the regular price struck through beside the lowest price; null when that is not on sale. */
+  minRegularPrice: string | null;
+  /** SB-10: the biggest saving of any variant, in whole percent; 0 when nothing is on sale. */
+  bestDiscount: number;
   stockState: StockState;
   /** When it was added, as ISO text: a storefront marks a recent one "New" (Slice 12b). */
   createdAt: string;
   /** This row's place in the order asked for, as text, so the next page starts exactly after it. */
   position: string[];
+}
+
+/** SB-10: what a storefront card's badges say about one product, beyond its own row. */
+export interface PublicCardFacts {
+  productId: string;
+  /** "Only N left": its whole units left to sell while under its low-stock level; null otherwise. */
+  left: number | null;
+  /** "Ordered N times": the delivered orders that held it, ever (Slice 4.7's counted orders). */
+  ordered: number;
+  /** "Best seller": among the shop's `top` most sold over the window asked. */
+  bestSeller: boolean;
 }
 
 /**
@@ -82,10 +105,20 @@ export interface PublicProductFilter {
   sort: PublicProductSort;
   /** CCH-08, Slice 12b: only products not sold out. */
   inStock: boolean;
+  /** SB-9: only products on sale (a saving of at least 1%, SB-21). */
+  onSale: boolean;
+  /** SB-9: only these products (a row of hand-picked ones); null for any. */
+  ids: readonly string[] | null;
+  /** SB-9: where the best-selling order's window starts (its units are counted from here); unused by other orders. */
+  soldSince: Date;
   /** The last row's position on the page before; null starts at the beginning. */
   after: string[] | null;
   limit: number;
 }
+
+// SB-9, SB-10: the open ends of the windows sales are counted over.
+const EVER = new Date(0);
+const FAR_FUTURE = new Date('9999-12-31T00:00:00Z');
 
 // CCH-12: how alike a typed word and the closest word of a name must be (pg_trgm's word similarity, 0 to 1). The
 // default 0.6 misses a one-letter slip in a short English word ("panjbi" scores 0.57 against "Panjabi").
@@ -133,6 +166,16 @@ export class PublicCatalogueRepository {
     await this.transactions.setTenantContext(tx, tenantId);
     const where: SQL[] = [sql`p.tenant_id = ${tenantId}`, sql`p.active`, sql`p.deleted_at IS NULL`];
     if (filter.inStock) where.push(sql`p.stock_state <> 'out'`);
+    if (filter.onSale) where.push(sql`p.best_discount > 0`);
+    if (filter.ids !== null) {
+      const ids = filter.ids.length > 0 ? filter.ids : [null];
+      where.push(
+        sql`p.id IN (${sql.join(
+          ids.map((id) => sql`${id}::uuid`),
+          sql`, `,
+        )})`,
+      );
+    }
     if (filter.categoryIds !== null) {
       const ids = filter.categoryIds.length > 0 ? filter.categoryIds : [null];
       where.push(sql`EXISTS (
@@ -163,26 +206,41 @@ export class PublicCatalogueRepository {
       );
     }
     const direction = descending ? sql`DESC` : sql`ASC`;
+    // SB-9: the units each product sold over the window, for the best-selling order only.
+    const sold =
+      filter.sort === PublicProductSort.BestSelling
+        ? sql`LEFT JOIN (
+            SELECT l.product_id, sum(l.quantity - l.returned_quantity) AS units
+            FROM tenant.orders o
+            JOIN tenant.order_lines l ON l.tenant_id = o.tenant_id AND l.order_id = o.id
+            WHERE ${counted(tenantId, { from: filter.soldSince, to: FAR_FUTURE })}
+              AND l.returned_quantity < l.quantity AND l.product_id IS NOT NULL
+            GROUP BY l.product_id
+          ) sold ON sold.product_id = p.id`
+        : sql``;
     const result = await tx.execute<{
       id: string;
       slug: string;
       name: string;
       min_price: string | null;
       max_price: string | null;
+      min_regular_price: string | null;
+      best_discount: number;
       stock_state: StockState;
       created_at: string;
       position: string[];
     }>(sql`
-      SELECT s.id, s.slug, s.name, s.min_price, s.max_price, s.stock_state,
+      SELECT s.id, s.slug, s.name, s.min_price, s.max_price, s.min_regular_price, s.best_discount, s.stock_state,
         to_char(s.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS created_at,
         ARRAY[${sql.join(
           names.map((name) => sql`${name}::text`),
           sql`, `,
         )}] AS position
       FROM (
-        SELECT p.id, p.slug, p.name, p.min_price, p.max_price, p.stock_state, p.created_at,
-          ${sql.join(columns, sql`, `)}
+        SELECT p.id, p.slug, p.name, p.min_price, p.max_price, p.min_regular_price, p.best_discount, p.stock_state,
+          p.created_at, ${sql.join(columns, sql`, `)}
         FROM tenant.products p
+        ${sold}
         WHERE ${sql.join(where, sql` AND `)}
       ) s
       ${conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``}
@@ -197,9 +255,72 @@ export class PublicCatalogueRepository {
       name: row.name,
       minPrice: row.min_price,
       maxPrice: row.max_price,
+      minRegularPrice: row.min_regular_price,
+      bestDiscount: row.best_discount,
       stockState: row.stock_state,
       createdAt: row.created_at,
       position: row.position,
+    }));
+  }
+
+  /**
+   * SB-10: what these products' cards say beyond their own rows, in one read for the page -- the units left of one
+   * under its low-stock level (whole units of counted stock of its own; never a combo's, a shared stock's or a weighed
+   * one's), the delivered orders that ever held it, and whether it is among the shop's `top` most sold since `since`.
+   */
+  async cardFacts(
+    tx: Transaction,
+    tenantId: string,
+    productIds: readonly string[],
+    since: Date,
+    top: number,
+  ): Promise<PublicCardFacts[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    if (productIds.length === 0) return [];
+    const ids = sql.join(
+      productIds.map((id) => sql`${id}::uuid`),
+      sql`, `,
+    );
+    const measured = sql.join(
+      MEASURED_STOCK_UNITS.map((unit) => sql`${unit}`),
+      sql`, `,
+    );
+    const result = await tx.execute<{
+      product_id: string;
+      left: string | null;
+      ordered: number;
+      best_seller: boolean;
+    }>(sql`
+      WITH best AS (
+        SELECT l.product_id
+        FROM tenant.orders o
+        JOIN tenant.order_lines l ON l.tenant_id = o.tenant_id AND l.order_id = o.id
+        WHERE ${counted(tenantId, { from: since, to: FAR_FUTURE })}
+          AND l.returned_quantity < l.quantity AND l.product_id IS NOT NULL
+        GROUP BY l.product_id
+        ORDER BY sum(l.quantity - l.returned_quantity) DESC, count(DISTINCT o.id) DESC, l.product_id
+        LIMIT ${top}
+      )
+      SELECT p.id AS product_id,
+        CASE WHEN p.stock_state = ${StockState.Low} AND p.stock_tracking = ${StockTracking.Tracked}
+            AND NOT p.shared_stock AND p.kind <> ${ProductKind.Combo} AND p.stock_unit NOT IN (${measured})
+          THEN (SELECT floor(sum(sl.available)) FROM tenant.product_variants v
+            JOIN tenant.stock_levels sl ON sl.tenant_id = v.tenant_id AND sl.variant_id = v.id
+            WHERE v.tenant_id = p.tenant_id AND v.product_id = p.id AND v.active AND v.deleted_at IS NULL
+              AND NOT v.is_stock_holder)
+        END AS left,
+        (SELECT count(DISTINCT o.id)::int FROM tenant.order_lines l
+          JOIN tenant.orders o ON o.tenant_id = l.tenant_id AND o.id = l.order_id
+          WHERE l.tenant_id = p.tenant_id AND l.product_id = p.id AND l.returned_quantity < l.quantity
+            AND ${counted(tenantId, { from: EVER, to: FAR_FUTURE })}) AS ordered,
+        EXISTS (SELECT 1 FROM best b WHERE b.product_id = p.id) AS best_seller
+      FROM tenant.products p
+      WHERE p.tenant_id = ${tenantId} AND p.id IN (${ids})`);
+    return result.rows.map((row) => ({
+      productId: row.product_id,
+      left: row.left === null ? null : Number(row.left),
+      ordered: row.ordered,
+      bestSeller: row.best_seller,
     }));
   }
 
@@ -278,6 +399,34 @@ export class PublicCatalogueRepository {
         AND p.active AND p.deleted_at IS NULL
       GROUP BY s.root`);
     return result.rows.map((row) => ({ categoryId: row.category_id, products: row.products }));
+  }
+
+  /**
+   * SB-9: each category's cover for a storefront that shows a category without a picture of its own -- the first photo
+   * of the first active product in it or any category under it, in the shop's order (newest first within it). A
+   * category holding none is left out.
+   */
+  async categoryCovers(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ categoryId: string; mediaId: string }[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const result = await tx.execute<{ category_id: string; media_id: string }>(sql`
+      WITH RECURSIVE scope (root, id) AS (
+        SELECT c.id, c.id FROM tenant.categories c WHERE c.tenant_id = ${tenantId}
+        UNION ALL
+        SELECT s.root, c.id FROM tenant.categories c
+        JOIN scope s ON c.parent_id = s.id
+        WHERE c.tenant_id = ${tenantId}
+      )
+      SELECT DISTINCT ON (s.root) s.root AS category_id, pi.media_id
+      FROM scope s
+      JOIN tenant.product_categories pc ON pc.tenant_id = ${tenantId} AND pc.category_id = s.id
+      JOIN tenant.products p ON p.tenant_id = pc.tenant_id AND p.id = pc.product_id
+        AND p.active AND p.deleted_at IS NULL
+      JOIN tenant.product_images pi ON pi.tenant_id = p.tenant_id AND pi.product_id = p.id
+      ORDER BY s.root, p.sort_order, p.created_at DESC, p.id, pi.sort_order`);
+    return result.rows.map((row) => ({ categoryId: row.category_id, mediaId: row.media_id }));
   }
 
   /**
@@ -443,6 +592,20 @@ export class PublicCatalogueRepository {
     const created: OrderKey = { expression: sql`p.created_at`, type: sql`timestamptz` };
     const price: OrderKey = { expression: sql`p.min_price`, type: sql`numeric` };
     switch (sort) {
+      case PublicProductSort.Discount:
+        return {
+          keys: [{ expression: sql`p.best_discount::integer`, type: sql`integer` }, created, id],
+          descending: true,
+        };
+      case PublicProductSort.BestSelling:
+        return {
+          keys: [
+            { expression: sql`coalesce(sold.units, 0)::numeric`, type: sql`numeric` },
+            created,
+            id,
+          ],
+          descending: true,
+        };
       case PublicProductSort.Featured:
         return {
           keys: [{ expression: sql`(-p.sort_order)`, type: sql`integer` }, created, id],

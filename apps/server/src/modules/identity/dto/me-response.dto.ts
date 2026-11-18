@@ -31,6 +31,8 @@ export const meResponseSchema = z.object({
       autoRenewEnabled: z.boolean(),
       // TEN-16: the shop's logo for the dashboard's navigation; null for its monogram.
       logo: imageViewSchema.nullable(),
+      // SB-5: the shop's icon, which the dashboard's browser tab shows; null to make it from the logo.
+      icon: imageViewSchema.nullable(),
       // BRN-07: the identity the dashboard applies; null for Lytro's default.
       brand: liveBrandSchema.nullable(),
       // Slice 13: the shop's own domain while it serves (its main address); null for its Lytro address.

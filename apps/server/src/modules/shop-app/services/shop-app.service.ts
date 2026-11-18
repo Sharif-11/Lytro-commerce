@@ -21,10 +21,11 @@ const ICONS_KEPT = 300;
 /**
  * TEN-17: each shop's dashboard installs as its own app -- named after the shop with "Admin", with its logo or monogram
  * as the icon and a gear in its corner, scoped to the shop's own path, so two shops on one phone are two apps, and the
- * shop's storefront app (SFT-14, its plain name and icon, the `store-` files here) is told apart from it. With its brand identity showing (BRN-02), the
- * icon is the brand's square icon and the app takes the brand's colours. The manifest is read without a session (a
- * browser fetches it so), for any shop not deleted: a lapsed or suspended shop's owner still opens its dashboard. The
- * icons' links carry a version made from the name, the logo and the brand, so any change gives new icons at once.
+ * shop's storefront app (SFT-14, its plain name and icon, the `store-` files here) is told apart from it. The icon is the
+ * shop's own square icon, on every plan (SB-5); with its brand identity showing (BRN-02), the app takes the brand's
+ * colours. The manifest is read without a session (a browser fetches it so), for any shop not deleted: a lapsed or
+ * suspended shop's owner still opens its dashboard. The icons' links carry a version made from the name, the icon, the
+ * logo and the brand, so any change gives new icons at once.
  */
 @Injectable()
 export class ShopAppService {
@@ -42,7 +43,7 @@ export class ShopAppService {
     const shop = await this.shopOf(slug);
     if (!shop) return null;
     const brand = await this.brands.live(shop.id);
-    const version = this.versionOf(shop, brand, await this.media.logoFingerprint(shop.id));
+    const version = await this.versionOf(shop, brand);
     const path = `/${shop.slug}/`;
     const icon = (file: ShopIconFile): string =>
       `/api/v1/shops/${shop.slug}/icons/${file}?v=${version}`;
@@ -74,12 +75,12 @@ export class ShopAppService {
     const shop = await this.shopOf(slug);
     if (!shop) return null;
     const brand = await this.brands.live(shop.id);
-    const version = this.versionOf(shop, brand, await this.media.logoFingerprint(shop.id));
+    const version = await this.versionOf(shop, brand);
     const key = `${shop.id}:${version}:${file}`;
     const kept = this.icons.get(key);
     if (kept) return kept;
     // Not kept: the picture is read from storage, only now, and the icon drawn; the dashboard's with its gear.
-    const plain = await this.draw(shop, brand, file);
+    const plain = await this.draw(shop, file);
     const drawn = DASHBOARD_ICON_FILES.has(file) ? await this.drawing.withGear(plain, file) : plain;
     this.icons.set(key, drawn);
     if (this.icons.size > ICONS_KEPT) {
@@ -89,13 +90,9 @@ export class ShopAppService {
     return drawn;
   }
 
-  /** The brand's square icon while the brand shows (BRN-02), else the shop's logo, else its monogram (TEN-16). */
-  private async draw(
-    shop: TenantSummary,
-    brand: LiveBrand | null,
-    file: ShopIconFile,
-  ): Promise<Buffer> {
-    const icon = brand?.icon ? await this.media.imageFile(shop.id, brand.icon.id) : null;
+  /** The shop's square icon (SB-5), else its logo, else its monogram (TEN-16). */
+  private async draw(shop: TenantSummary, file: ShopIconFile): Promise<Buffer> {
+    const icon = await this.media.iconImage(shop.id);
     if (icon) return this.drawing.fromIcon(icon.body, file);
     const logo = await this.media.logoImage(shop.id);
     return logo
@@ -108,10 +105,14 @@ export class ShopAppService {
     return shop && shop.state !== TenantState.Deleted ? shop : null;
   }
 
-  /** A short fingerprint of what the app shows: the shop's name, its logo and its brand. */
-  private versionOf(shop: TenantSummary, brand: LiveBrand | null, logoHash: string | null): string {
+  /** A short fingerprint of what the app shows: the shop's name, its logo, its brand and its icon. */
+  private async versionOf(shop: TenantSummary, brand: LiveBrand | null): Promise<string> {
+    const logoHash = await this.media.logoFingerprint(shop.id);
+    const iconHash = await this.media.iconFingerprint(shop.id);
     return createHash('sha256')
-      .update(`${shop.shopName}\u0000${logoHash ?? ''}\u0000${brand?.version ?? ''}`)
+      .update(
+        `${shop.shopName}\u0000${logoHash ?? ''}\u0000${brand?.version ?? ''}\u0000${iconHash ?? ''}`,
+      )
       .digest('hex')
       .slice(0, 12);
   }

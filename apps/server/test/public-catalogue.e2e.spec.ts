@@ -232,6 +232,12 @@ describeIfDatabase('the public product list (PRD-09, CCH-11, CCH-12)', () => {
         'slug',
         'stockState',
         'swatches',
+        // SB-10, SB-21: the struck-through price, the saving and the badges' facts.
+        'minRegularPrice',
+        'bestDiscount',
+        'left',
+        'ordered',
+        'bestSeller',
       ].sort(),
     );
     expect(products[0]).toMatchObject({
