@@ -318,7 +318,7 @@ card in the shop, and the seller sets the order of the cards. Sketch: `e-cards`,
 | ID | Decision |
 |----|----------|
 | DC-1 | **Everywhere** (the owner): home rows, category pages, All products, New arrivals, On sale, Best sellers and search show one card per design of a product with two or more designs. One design or none: one card, as before. |
-| DC-2 | **One switch per shop, on by default** (the owner), in Settings > Storefront > Design ("Each design as its own card"). It is part of the design document, so turning it off or on is a draft change that Publish lists, and the preview shows it. |
+| DC-2 | **One switch per shop, on by default** (the owner), in Settings > Storefront > Design ("Each design as its own card"). It goes live at once, not through the draft (as built: see below). |
 | DC-3 | **A design card opens the product page with that design chosen** (the owner): the tap on the card is the shopper's deliberate choice (PD rule "no mismatch"), and only the size is left to pick. The link is `/p/<slug>?d=<design>`, applied in the browser as `?v=` is (the edge keeps the page without its query). |
 | DC-4 | **No limit per row** (the owner): a product's designs all show, even if one product fills a home row. No random order. |
 | DC-5 | **A card is the product's name and the design's photo** -- no design words for the shopper (PD) -- with the design's own lowest price, its own saving and badge, and its own stock: a sold-out design leaves the lists as a sold-out product does. A category's count stays a count of products. |
@@ -328,8 +328,7 @@ card in the shop, and the seller sets the order of the cards. Sketch: `e-cards`,
 
 **How it is built (one PR):**
 - **Storage:** the order is a list of cards kept per shop (product, and design or none, with its place), not
-  `products.sort_order`, since a design moves on its own. The switch is a field of the design document, read as on
-  when an older document has none.
+  `products.sort_order`, since a design moves on its own. The switch is a column of the shop's design row, on unless turned off.
 - **Public list (PRD-09):** with the switch on, the products list answers one entry per design: its card key, cover,
   price, saving, badges and stock of that design. Featured, the default, follows the seller's order; the other sorts
   are per card. Pages and counts are of cards. The answer format goes up, so a storefront and server out of step stay
@@ -338,3 +337,32 @@ card in the shop, and the seller sets the order of the cards. Sketch: `e-cards`,
 - **Dashboard:** the switch card on the design page, and the Product list screen (drag on a computer, arrows on a
   phone, Save order).
 - **Requirements:** SFT-03 and PRD-09 are amended for design cards and the seller's order at the build.
+
+**As built (one PR):**
+- **The switch and the Product list go live at once**, not through the draft: a key added to the design document
+  would make the previous release refuse the whole document (its schema is strict) while two releases run side by
+  side, so the switch is a column of the shop's design row instead (`storefront_designs.design_cards`). The design
+  page's card says so. This changes my own first call in DC-2.
+- **Storage (migration 0144):** `tenant.storefront_card_positions` (a product, and a design or none, with its place;
+  one row per card, no design counted as one value) and `tenant.storefront_product_cards` (a product's way, kept only
+  when not the default), each with row-level security and keys to the product and the design.
+- **The public list** spreads designs only when the storefront asks (`designs=true`), so other websites on the public
+  API keep one card per product. A design's figures are worked out from its live variants as a product's are; a
+  product's own card in "both" or "one card" shows the product's figures. Every order ends with the design's number;
+  Featured puts the cards not placed first, newest first, then the placed ones by their place (a product's own card
+  not placed takes its first design's place). Saving the order or the switch moves the catalogue's version and clears
+  the shop's pages from the edge.
+- **The storefront** asks for design cards in every list (the home's product rows, category pages, All products, New
+  arrivals, On sale, Best sellers, search, "You may also like", next pages); the auto hero and auto banners stay a
+  product each. A design's card links `?d=`, applied as `?v=` is.
+- **The Product list** reads every card that could show, so a product's way changes its cards at once; dragging uses
+  the pointer (a handle held on a phone or with a mouse), the page scrolling near an edge, and the arrow keys on the
+  handle; a search filters what shows and stops dragging until cleared; leaving unsaved asks first.
+
+**Design cards' named deviations from the sketch:**
+- **The dashboard's own parts**, as in 3a: its cards, buttons, switch, search field, status tags and page frame.
+- **Four cards a row on a wide computer, three below** (the sketch's five): the dashboard's page is narrower than the
+  sketch's pane, and five cut the names short.
+- **The menu's tick** is the dashboard's check icon.
+- **No "New" tag on a card in the Product list:** the list shows what the seller needs to place a card (its photo,
+  name, design, price, sold out or hidden).

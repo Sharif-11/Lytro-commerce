@@ -448,3 +448,32 @@ export function LeaveWhileSaving({ leaving }: { leaving: DraftDesign['leaving'] 
     </Dialog>
   );
 }
+
+/**
+ * A drag handle (the sketch's six dots, DC-6): held and moved to drag its row or card, or moved with the arrow keys.
+ * Shared by the Product list and any list of the editor that drags.
+ */
+export function Handle({
+  label,
+  disabled,
+  onPointerDown,
+  onKeyDown,
+}: {
+  label: string;
+  disabled: boolean;
+  onPointerDown: (event: React.PointerEvent) => void;
+  onKeyDown: (event: React.KeyboardEvent) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onPointerDown={onPointerDown}
+      onKeyDown={onKeyDown}
+      className="grid size-7 flex-none cursor-grab touch-none place-items-center rounded-[8px] text-neutral-500 active:cursor-grabbing disabled:cursor-default disabled:opacity-35"
+    >
+      <EditorIcon name="drag" size={18} />
+    </button>
+  );
+}

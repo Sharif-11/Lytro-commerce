@@ -350,7 +350,27 @@ CREATE TABLE tenant.storefront_designs (
     media_ids       uuid[] NOT NULL DEFAULT '{}',
     draft_saved_at  timestamptz,
     published_at    timestamptz,
-    updated_at      timestamptz NOT NULL DEFAULT now()
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    design_cards    boolean NOT NULL DEFAULT true   -- DC-2 (0144): each design its own card in the lists
+);
+
+-- DC-6, DC-7 (0144): the seller's order of the shop's cards -- a product, and one of its designs or none -- one row per
+-- card placed; a card with none comes first, newest first. Unique per card (no design counted as one value); keys to the
+-- product and the design, each cascading.
+CREATE TABLE tenant.storefront_card_positions (
+    tenant_id         uuid NOT NULL,
+    product_id        uuid NOT NULL,
+    design_option_id  uuid,
+    position          integer NOT NULL
+);
+
+-- DC-8 (0144): how a product with two or more designs shows: 'designs' (the default, kept as no row), 'compact' or
+-- 'both'.
+CREATE TABLE tenant.storefront_product_cards (
+    tenant_id   uuid NOT NULL,
+    product_id  uuid NOT NULL,
+    mode        text NOT NULL CHECK (mode IN ('designs', 'compact', 'both')),
+    PRIMARY KEY (tenant_id, product_id)
 );
 ```
 

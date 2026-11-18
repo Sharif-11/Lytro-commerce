@@ -353,6 +353,18 @@ const SHOTS: { screen: string; path: string; then?: Steps }[] = [
       await page.getByRole('button', { name: /^(Publish|প্রকাশ করুন)$/ }).click();
     },
   },
+  // Design cards (DC-2, DC-6 to DC-8): the design page's switch card, and the Product list.
+  {
+    screen: 'e-cards',
+    path: PAGE,
+    then: async (page) => {
+      await page
+        .getByRole('main')
+        .getByRole('heading', { name: /Products in your shop|দোকানে প্রোডাক্ট/ })
+        .scrollIntoViewIfNeeded();
+    },
+  },
+  { screen: 'e-order', path: `${PAGE}/products` },
   // PR 3b: each section's own sheet, and the steps within one.
   {
     screen: 'e-hero',
