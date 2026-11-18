@@ -6,12 +6,16 @@ import { AREA_COOKIE, parseArea } from '../../lib/area';
 /** What a page the edge keeps leaves to the browser: the variant a `?v=` link names (LND-06) and the remembered area. */
 export interface BrowserOpening {
   linkedVariantId: string | null;
+  /** STOREFRONT-BUILDER-PLAN DC-3: the design a design card's link names (`?d=`). */
+  linkedDesignId: string | null;
   areaId: number | null;
 }
 
 /** The link and the area as this browser holds them. */
 export function browserOpening(search: string, cookie: string): BrowserOpening {
-  const linked = new URLSearchParams(search).get('v');
+  const query = new URLSearchParams(search);
+  const linked = query.get('v');
+  const design = query.get('d');
   const prefix = `${AREA_COOKIE}=`;
   const area = cookie
     .split(';')
@@ -20,6 +24,7 @@ export function browserOpening(search: string, cookie: string): BrowserOpening {
     ?.slice(prefix.length);
   return {
     linkedVariantId: linked !== null && linked.length > 0 ? linked : null,
+    linkedDesignId: design !== null && design.length > 0 ? design : null,
     areaId: parseArea(area),
   };
 }

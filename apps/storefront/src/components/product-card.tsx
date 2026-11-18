@@ -1,3 +1,4 @@
+import { cardHref } from '@/lib/design/card-links';
 import { StockState } from '@lytronix/validators/enums';
 import type { ProductCard as Card } from '@/lib/api/storefront-api';
 import { isNew } from '@/lib/catalogue/browse';
@@ -15,7 +16,7 @@ export function ProductCard({ product, words, now }: { product: Card; words: Wor
   const ranged = product.maxPrice !== null && product.maxPrice !== product.minPrice;
   const more = product.swatches.length - SWATCHES_SHOWN;
   return (
-    <a className={`card${out ? ' out' : ''}`} href={`/p/${product.slug}`}>
+    <a className={`card${out ? ' out' : ''}`} href={cardHref(product)}>
       <div className="img">
         {product.image ? (
           <img src={product.image.urls.thumbnail} alt="" loading="lazy" />

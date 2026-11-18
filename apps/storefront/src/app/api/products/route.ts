@@ -16,7 +16,7 @@ export const GET = withBusyAnswer(async (request: Request): Promise<Response> =>
     Object.fromEntries(new URL(request.url).searchParams),
   );
   if (!parsed.success) return Response.json(null, { status: 400 });
-  const { category, search, sort, inStock, onSale, cursor, limit } = parsed.data;
+  const { category, search, sort, inStock, onSale, designs, cursor, limit } = parsed.data;
   const list = await storefrontApi.products(page.shop, page.shopper, {
     category,
     search,
@@ -24,6 +24,8 @@ export const GET = withBusyAnswer(async (request: Request): Promise<Response> =>
     inStock,
     // STOREFRONT-BUILDER-PLAN SB-9: /offers' next page lists only what is on sale, as its first did.
     onSale,
+    // DC-1: a list of design cards goes on as one, as its first page asked.
+    designs,
     cursor,
     limit,
   });

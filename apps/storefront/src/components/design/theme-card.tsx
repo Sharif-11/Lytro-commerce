@@ -1,3 +1,4 @@
+import { cardHref } from '@/lib/design/card-links';
 import { ProductCardStyle } from '@lytronix/validators/common';
 import type { ProductCard } from '@/lib/api/storefront-api';
 import { isNew } from '@/lib/catalogue/browse';
@@ -41,7 +42,7 @@ export function ThemeCard({
   const left = product.left ?? null;
   const ordered = product.ordered ?? 0;
   return (
-    <a className={`sb-card sb-${style}`} href={`/p/${product.slug}`}>
+    <a className={`sb-card sb-${style}`} href={cardHref(product)}>
       <div className="sb-im">
         {product.image ? <img src={product.image.urls.thumbnail} alt="" loading="lazy" /> : null}
         <div className="sb-tags">
