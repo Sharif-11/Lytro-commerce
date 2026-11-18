@@ -1,5 +1,6 @@
 import {
   AnnouncementItemKind,
+  announcementPairs,
   BrandCorners,
   BrandFont,
   BrandSpacing,
@@ -27,7 +28,7 @@ import type {
 import { productQueryString, StorefrontApi } from '../src/lib/api/storefront-api';
 import { iconVersion, themeColor } from '../src/lib/app/app-manifest';
 import { designLook, frameBrand, pageTheme, triedTheme } from '../src/lib/design/design-look';
-import { barItems, barPairs, deliveryParts } from '../src/lib/design/announcement';
+import { barItems, deliveryParts } from '../src/lib/design/announcement';
 import {
   collectionKey,
   collectionQuery,
@@ -326,8 +327,8 @@ describe('the announcement bar (BL-10, BL-17)', () => {
       { parts: ['Eid gifts'], pill: null },
       { parts: ['Free wrapping'], pill: null },
     ]);
-    expect(barPairs(items).map((pair) => pair.length)).toEqual([2, 2]);
-    expect(barPairs([1, 2, 3, 4, 5])).toEqual([[1, 2], [3, 4], [5]]);
+    expect(announcementPairs(items).map((pair) => pair.length)).toEqual([2, 2]);
+    expect(announcementPairs([1, 2, 3, 4, 5])).toEqual([[1, 2], [3, 4], [5]]);
     const nothingOnSale = barItems(
       [{ kind: AnnouncementItemKind.Offers, visible: true }],
       { deliveryZones: [], sale: { products: 0, bestDiscount: 0 } },

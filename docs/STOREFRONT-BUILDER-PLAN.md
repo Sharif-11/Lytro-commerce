@@ -345,6 +345,21 @@ contents "pair by pair like carousel"; the bar "hidden after scroll"; "include o
 | BL-19 | **The header on a phone with four icons.** | Search, order tracking, account and cart; a centred logo (Royal, Studio) centres in the room between the menu and the icons, so nothing overlaps. |
 | BL-20 | **Fixes the sketch names.** | The auto slide (the tiles' design) takes the tiles' dark shade and white words on every theme (Soft, Fresh and Bold had none, leaving words on a bare photo), its button is the light one, and its discount badge no longer stretches across a computer's slide. |
 
+**Named deviations from the sketch, as built:**
+- **The delivery line names the shop's own zones** ("ঢাকা সিটির ভেতরে ডেলিভারি সর্বোচ্চ ৳70 · ঢাকা সিটির বাইরে সর্বোচ্চ
+  ৳130"), not "ঢাকায় ... ঢাকার বাইরে": a shop's home area is not always Dhaka, and DLV-01 already names the home and
+  fallback zones after it (or the seller renames them). The highest of the other zones is "outside". With a charge per
+  kilo (RAT-14), each part says where it starts ("৳70 থেকে"), since "up to" would be wrong. /v1/shop gains each zone's
+  `kind` and `extraDeliveryChargePerKg` for it; the sketch now says the same. Taka amounts are in Western digits, as the
+  storefront writes every amount.
+- **The editor shows each collection by its icon and line** ("On sale · Every discounted product"), and the bar's
+  automatic items by their names ("Delivery charges"), where the sketch draws a product's photo and the live words:
+  the editor reads none of the shop's product lists for them, and the live preview beside it shows the real thing.
+- **The bar's pairs wrap only between items** (`<wbr>` after each dot): the sketch's first pair had no break point and
+  ran off a phone's edge.
+- **The auto hero's button is the light one**, and its slide and tiles keep their words on a dark shade on every theme
+  (BL-20).
+
 **Build:** after the design cards PR merges (it adds the shared handle the section rows reuse; its drag logic becomes one
 hook for both screens). One PR from main: validators (hero `slides` source and `tiles`, banners `layout` and auto
 places, the announcement's item list with a read-time upgrade of saved drafts), the storefront (the rotating bar that

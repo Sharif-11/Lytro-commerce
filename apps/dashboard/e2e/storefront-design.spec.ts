@@ -73,12 +73,12 @@ test('Storefront has the Design line, which opens the design page with its theme
   await expect(main(page).getByText('Draft · 3 changes').filter({ visible: true })).toBeVisible();
   const rows = main(page).getByRole('listitem');
   await expect(rows).toHaveText([
-    /Announcement bar\s*Auto: offers and delivery fees/,
+    /Announcement bar\s*4 lines, two at a time/,
     /Header\s*Logo, menu, search, cart/,
     /Hero slides\s*3 slides · own photos/,
     /Categories\s*Auto: all categories · round photos/,
     /Just in\s*Auto: the 6 newest · carousel/,
-    /Offer banners\s*2 banners, side by side/,
+    /Offer banners\s*3 banners · big \+ two/,
     /Best sellers\s*Auto: top 4 · grid/,
     /Testimonials\s*3 quotes/,
     /Trust strip\s*Auto: cash on delivery, fees, payment/,
@@ -357,7 +357,32 @@ const SHOTS: { screen: string; path: string; then?: Steps }[] = [
   {
     screen: 'e-hero',
     path: PAGE,
-    then: (page, say) => openRow(page, say('হিরো স্লাইড খুলুন', 'Open Hero slides')),
+    // BL-2, BL-3: switched to filling itself, as the slide-and-tiles design.
+    then: async (page, say) => {
+      await openRow(page, say('হিরো স্লাইড খুলুন', 'Open Hero slides'));
+      await inSheet(page)
+        .getByRole('radio', { name: say('অটো: দোকান থেকে', 'Auto: from your shop') })
+        .click();
+      await inSheet(page)
+        .getByRole('radio', { name: say('স্লাইড আর দুই টাইল', 'Slide and two tiles') })
+        .click();
+    },
+  },
+  {
+    screen: 'e-place',
+    path: PAGE,
+    then: async (page, say) => {
+      await openRow(page, say('হিরো স্লাইড খুলুন', 'Open Hero slides'));
+      await inSheet(page)
+        .getByRole('radio', { name: say('অটো: দোকান থেকে', 'Auto: from your shop') })
+        .click();
+      await inSheet(page)
+        .getByRole('radio', { name: say('স্লাইড আর দুই টাইল', 'Slide and two tiles') })
+        .click();
+      await inSheet(page)
+        .getByRole('button', { name: new RegExp(say('টাইল 1', 'Tile 1')) })
+        .click();
+    },
   },
   {
     screen: 'e-slide',
@@ -428,25 +453,22 @@ const SHOTS: { screen: string; path: string; then?: Steps }[] = [
   {
     screen: 'e-announce',
     path: PAGE,
-    then: async (page, say) => {
-      await openRow(page, say('ঘোষণার লাইন খুলুন', 'Open Announcement bar'));
-      await inSheet(page)
-        .getByRole('radio', { name: say('নিজের লেখা', 'My own words') })
-        .click();
-      await inSheet(page)
-        .getByLabel(say('আপনার লাইন', 'Your line'))
-        .fill(
-          say(
-            'ঈদ অফার: সব লিপস্টিকে ১৫% ছাড়, ঢাকায় ফ্রি ডেলিভারি',
-            'Eid offer: 15% off every lipstick, free delivery in Dhaka',
-          ),
-        );
-    },
+    then: (page, say) => openRow(page, say('ঘোষণার লাইন খুলুন', 'Open Announcement bar')),
   },
   {
     screen: 'e-banners',
     path: PAGE,
     then: (page, say) => openRow(page, say('অফার ব্যানার খুলুন', 'Open Offer banners')),
+  },
+  {
+    screen: 'e-banners-auto',
+    path: PAGE,
+    then: async (page, say) => {
+      await openRow(page, say('অফার ব্যানার খুলুন', 'Open Offer banners'));
+      await inSheet(page)
+        .getByRole('radio', { name: say('অটো: দোকান থেকে', 'Auto: from your shop') })
+        .click();
+    },
   },
   {
     screen: 'e-banner',

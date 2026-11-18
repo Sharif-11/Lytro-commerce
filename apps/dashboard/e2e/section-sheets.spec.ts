@@ -1,11 +1,20 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { StorefrontLinkKind, StorefrontSectionKind } from '@lytronix/validators';
+import {
+  AnnouncementItemKind,
+  BannerLayout,
+  HeroDesign,
+  ProductRowSource,
+  StorefrontFill,
+  StorefrontLinkKind,
+  StorefrontSectionKind,
+} from '@lytronix/validators';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
 
 // STOREFRONT-BUILDER-PLAN SB-8, SB-9, SB-15, SB-16 (PR 3b): each section's own sheet -- the hero and its slides, the
 // offer banners with an upload and its focal point, a row of products on one category or hand-picked, the
-// announcement's own words, and the wide banner, testimonials and About that open their sheet first. Done saves a
+// announcement bar's list (BL-10), the hero's tiles and the auto banners' collections and layout (BL-2 to BL-9), and
+// the wide banner, testimonials and About that open their sheet first. Done saves a
 // section into the draft in one save; closing a changed sheet asks first. Each test runs on a phone and a desktop.
 
 interface Saved {
@@ -98,7 +107,7 @@ test('a banner of your own: a narrow photo turned away, the focal point, and a b
     .click();
   await sheet.getByRole('button', { name: 'Add a banner' }).click();
 
-  const banner = page.getByRole('dialog', { name: 'Banner 2' });
+  const banner = page.getByRole('dialog', { name: 'Banner 3' });
   await banner.getByRole('button', { name: 'Done' }).click();
   await expect(banner.getByText('Add a photo.')).toBeVisible();
   await expect(banner.getByText('Write the headline.')).toBeVisible();
@@ -137,7 +146,7 @@ test('a banner of your own: a narrow photo turned away, the focal point, and a b
   await sheet.getByRole('button', { name: 'Done' }).click();
 
   await expect
-    .poll(() => (saved(log)?.sections[4] as { banners?: unknown[] } | undefined)?.banners?.[1])
+    .poll(() => (saved(log)?.sections[4] as { banners?: unknown[] } | undefined)?.banners?.[2])
     .toEqual({
       photo: { mediaId: 'm-logo', focusX: 55, focusY: 50 },
       kicker: null,
@@ -181,21 +190,105 @@ test('a row of products: one category, asked for until chosen; hand-picked, in t
     .toMatchObject({ source: 'picked', productIds: ['p-2', 'p-1'], categoryId: null });
 });
 
-test('the announcement in your own words, shown as shoppers see it', async ({ page }) => {
+test('the announcement bar: its automatic items switched, a line of your own, shown two at a time', async ({
+  page,
+}) => {
   const log = await open(page);
   await main(page).getByRole('button', { name: 'Open Announcement bar' }).click();
   const sheet = page.getByRole('dialog', { name: 'Announcement bar' });
-  await sheet.getByRole('radio', { name: 'My own words' }).click();
-  await sheet.getByRole('button', { name: 'Done' }).click();
-  await expect(sheet.getByText('Write your line, or let it write itself.')).toBeVisible();
-  await sheet.getByLabel('Your line').fill('Eid sale: 15% off every lipstick');
-  await expect(sheet.getByText('As shoppers see it')).toBeVisible();
+  await expect(sheet.getByText('Lines (4 of 6), in this order')).toBeVisible();
+  await expect(sheet.getByText('As shoppers see it: two at a time')).toBeVisible();
+  await sheet.getByRole('switch', { name: 'Show Offers on now' }).click();
+  await sheet.getByRole('button', { name: 'Add a line of your own' }).click();
+  const line = page.getByRole('dialog', { name: 'Your line' });
+  await line.getByRole('button', { name: 'Done' }).click();
+  await expect(line.getByText('Write your line.')).toBeVisible();
+  await line.getByLabel('Your line').fill('Free wrapping');
+  await expect(line.getByText('13/40 characters')).toBeVisible();
+  await line.getByRole('button', { name: 'Done' }).click();
+  await sheet.getByRole('button', { name: 'Move Free wrapping up' }).click();
   await sheet.getByRole('button', { name: 'Done' }).click();
   await expect
     .poll(() => saved(log)?.sections[0])
     .toMatchObject({
       kind: StorefrontSectionKind.Announcement,
-      text: 'Eid sale: 15% off every lipstick',
+      items: [
+        { kind: AnnouncementItemKind.CashOnDelivery, visible: true },
+        { kind: AnnouncementItemKind.Delivery, visible: true },
+        { kind: AnnouncementItemKind.Offers, visible: false },
+        { kind: AnnouncementItemKind.Own, text: 'Free wrapping' },
+        { kind: AnnouncementItemKind.Own, text: 'A gift with Eid orders over ৳2,000' },
+      ],
+    });
+});
+
+test('the hero filling itself: what its slides show, and the collection each tile shows', async ({
+  page,
+}) => {
+  const log = await open(page);
+  await main(page).getByRole('button', { name: 'Open Hero slides' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Hero slides' });
+  await sheet.getByRole('radio', { name: 'Auto: from your shop' }).click();
+  await sheet.getByRole('radio', { name: 'Best sellers' }).click();
+  await expect(sheet.getByText('Your 3 best sellers of the last 30 days')).toBeVisible();
+  // The tiles are the slide-and-tiles design's alone.
+  await expect(sheet.getByText('The tiles show')).toHaveCount(0);
+  await sheet.getByRole('radio', { name: 'Slide and two tiles' }).click();
+  await sheet.getByRole('button', { name: /Tile 2 · Just in/ }).click();
+  const tile = page.getByRole('dialog', { name: 'Tile 2 shows' });
+  // A tile shows a collection, never one product.
+  await expect(tile.getByRole('radio', { name: 'A product' })).toHaveCount(0);
+  await tile.getByRole('radio', { name: 'A category' }).click();
+  await tile.getByRole('radio', { name: /Jackets/ }).click();
+  await tile.getByRole('button', { name: 'Done' }).click();
+  await expect(sheet.getByRole('button', { name: /Tile 2 · Category: Jackets/ })).toBeVisible();
+  await sheet.getByRole('button', { name: 'Done' }).click();
+  await expect
+    .poll(() => saved(log)?.sections[1])
+    .toMatchObject({
+      fill: StorefrontFill.Auto,
+      source: ProductRowSource.BestSellers,
+      design: HeroDesign.SlideTiles,
+      tiles: [
+        { kind: StorefrontLinkKind.OnSale },
+        { kind: StorefrontLinkKind.Category, categoryId: 'c-jackets' },
+      ],
+    });
+});
+
+test('banners filling themselves: a collection each, and a layout that fits their number', async ({
+  page,
+}) => {
+  const log = await open(page);
+  await main(page).getByRole('button', { name: 'Open Offer banners' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Offer banners' });
+  await sheet.getByRole('radio', { name: 'Auto: from your shop' }).click();
+  await expect(sheet.getByRole('radio', { name: 'Big + two' })).toBeChecked();
+  await sheet.getByRole('button', { name: 'Open Banner 3 · Best sellers' }).click();
+  await page
+    .getByRole('dialog', { name: 'Banner 3 shows' })
+    .getByRole('button', { name: 'Remove' })
+    .click();
+  // Two banners: side by side by their number; big + two no longer fits.
+  await expect(sheet.getByRole('radio', { name: 'Side by side' })).toBeChecked();
+  await expect(sheet.getByRole('radio', { name: 'Big + two' })).toBeDisabled();
+  await sheet.getByRole('radio', { name: 'Full width' }).click();
+  await sheet.getByRole('button', { name: 'Add a banner' }).click();
+  // A banner added shows the first collection a new section starts with that the others don't.
+  const added = page.getByRole('dialog', { name: 'Banner 3 shows' });
+  await expect(added.getByRole('radio', { name: 'Best sellers' })).toBeChecked();
+  await added.getByRole('button', { name: 'Done' }).click();
+  await sheet.getByRole('button', { name: 'Done' }).click();
+  await expect
+    .poll(() => saved(log)?.sections[4])
+    .toMatchObject({
+      fill: StorefrontFill.Auto,
+      layout: BannerLayout.Full,
+      collections: [
+        { kind: StorefrontLinkKind.OnSale },
+        { kind: StorefrontLinkKind.JustIn },
+        { kind: StorefrontLinkKind.BestSellers },
+      ],
     });
 });
 

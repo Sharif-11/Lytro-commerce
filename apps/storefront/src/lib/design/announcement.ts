@@ -11,13 +11,6 @@ export interface BarItem {
   pill: string | null;
 }
 
-/** BL-10: the items two at a time, the last alone when they are odd. */
-export function barPairs<T>(items: readonly T[]): T[][] {
-  const pairs: T[][] = [];
-  for (let at = 0; at < items.length; at += 2) pairs.push(items.slice(at, at + 2));
-  return pairs;
-}
-
 /**
  * BL-10: the delivery charges in the owner's words -- the home zone's, then the highest elsewhere ("ঢাকা সিটির ভেতরে
  * ডেলিভারি সর্বোচ্চ ৳70 · ঢাকা সিটির বাইরে সর্বোচ্চ ৳130"), each zone by the name the shop gives it. A shop that adds a

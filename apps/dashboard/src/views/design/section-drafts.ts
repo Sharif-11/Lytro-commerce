@@ -1,4 +1,5 @@
 import {
+  AnnouncementItemKind,
   ProductRowSource,
   STOREFRONT_BANNER_HEADLINE_MAX,
   STOREFRONT_HEADLINE_MAX,
@@ -7,6 +8,7 @@ import {
   StorefrontSectionKind,
   type HeroSlide,
   type StorefrontBanner,
+  type StorefrontCollection,
   type StorefrontLink,
   type StorefrontPhoto,
   type StorefrontSection,
@@ -125,17 +127,13 @@ export function withSource(
 
 /** One thing a section still needs before Done, under the field it belongs to. */
 export interface SectionProblem {
-  field: 'slides' | 'banners' | 'category' | 'products' | 'quotes' | 'title' | 'text' | 'line';
+  field: 'slides' | 'banners' | 'category' | 'products' | 'quotes' | 'title' | 'text';
   words: Words;
 }
 
 /** What a section still needs before it goes into the draft; none, and Done saves it. */
 export function sectionProblems(section: StorefrontSection): SectionProblem[] {
   switch (section.kind) {
-    case StorefrontSectionKind.Announcement:
-      return section.text !== null && section.text.trim() === ''
-        ? [{ field: 'line', words: { key: 'ssNeedLine' } }]
-        : [];
     case StorefrontSectionKind.Hero:
       return section.fill === StorefrontFill.Own && section.slides.length === 0
         ? [{ field: 'slides', words: { key: 'ssNeedSlide' } }]
@@ -173,7 +171,12 @@ export function sectionProblems(section: StorefrontSection): SectionProblem[] {
 export function finishSection(section: StorefrontSection): StorefrontSection {
   switch (section.kind) {
     case StorefrontSectionKind.Announcement:
-      return { ...section, text: section.text === null ? null : section.text.trim() };
+      return {
+        ...section,
+        items: section.items.map((item) =>
+          item.kind === AnnouncementItemKind.Own ? { ...item, text: item.text.trim() } : item,
+        ),
+      };
     case StorefrontSectionKind.Categories:
     case StorefrontSectionKind.Testimonials:
       return { ...section, title: section.title === null ? null : optional(section.title) };
@@ -183,6 +186,20 @@ export function finishSection(section: StorefrontSection): StorefrontSection {
       return { ...section, title: section.title.trim(), text: section.text.trim() };
     default:
       return section;
+  }
+}
+
+/** BL-3, BL-9: what a collection is, in a line under its name. */
+export function collectionLine(collection: StorefrontCollection): Words {
+  switch (collection.kind) {
+    case StorefrontLinkKind.OnSale:
+      return { key: 'ssLinkOnSaleLine' };
+    case StorefrontLinkKind.JustIn:
+      return { key: 'ssLinkJustInLine' };
+    case StorefrontLinkKind.BestSellers:
+      return { key: 'ssLinkBestLine' };
+    case StorefrontLinkKind.Category:
+      return { key: 'ssCollectionCategoryLine' };
   }
 }
 

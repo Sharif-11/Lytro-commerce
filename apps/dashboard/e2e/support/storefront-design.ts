@@ -1,6 +1,10 @@
 import {
+  AnnouncementItemKind,
   ProductRowLayout,
   ProductRowSource,
+  STARTING_ANNOUNCEMENT_ITEMS,
+  STARTING_BANNER_COLLECTIONS,
+  STARTING_HERO_TILES,
   StorefrontFill,
   StorefrontLinkKind,
   StorefrontSectionKind,
@@ -31,13 +35,14 @@ const photo = (n: number) => ({ mediaId: id(500 + n), focusX: 50, focusY: 40 });
 
 /** Where the mock serves the sketch's own sample photos (docs/brand/sample-photos/builder). */
 export const BUILDER_PHOTOS = '/__builder/';
-// The sketch's photos the drawn design's slides (1-3) and banners (4, 5) show.
+// The sketch's photos the drawn design's slides (1-3) and banners (4-6) show.
 const PHOTOS: Readonly<Record<number, string>> = {
   1: 'beauty-1-wide',
   2: 'beauty-3-wide',
   3: 'beauty-5-wide',
   4: 'beauty-3-wide',
   5: 'beauty-5-wide',
+  6: 'beauty-1-wide',
 };
 const IMAGES = Object.fromEntries(
   Object.entries(PHOTOS).map(([n, file]) => {
@@ -47,9 +52,9 @@ const IMAGES = Object.fromEntries(
 );
 
 /**
- * The sketch's editor (docs/brand/lytro-storefront-builder.html, `ED_ROWS`): on the Soft theme, an announcement on auto,
- * three slides of the shop's own, the categories, the six newest in a carousel, two banners, the four best sellers in a
- * grid, three quotes, the trust strip, and About turned off.
+ * The sketch's editor (docs/brand/lytro-storefront-builder.html, `ED_ROWS`): on the Soft theme, an announcement of four
+ * lines, three slides of the shop's own, the categories, the six newest in a carousel, three banners, the four best
+ * sellers in a grid, three quotes, the trust strip, and About turned off.
  */
 function sketchedSections(): StorefrontSection[] {
   const slide = (n: number, headline: string) => ({
@@ -78,14 +83,25 @@ function sketchedSections(): StorefrontSection[] {
     count,
   });
   return [
-    { id: id(1), visible: true, kind: StorefrontSectionKind.Announcement, text: null },
+    {
+      id: id(1),
+      visible: true,
+      kind: StorefrontSectionKind.Announcement,
+      // BL-10: the three automatic items, and a line of the shop's own.
+      items: [
+        ...STARTING_ANNOUNCEMENT_ITEMS,
+        { kind: AnnouncementItemKind.Own, text: 'A gift with Eid orders over ৳2,000' },
+      ],
+    },
     {
       id: id(2),
       visible: true,
       kind: StorefrontSectionKind.Hero,
       fill: StorefrontFill.Own,
+      source: ProductRowSource.OnSale,
       design: null,
       slides: [slide(1, 'Glow for Eid'), slide(2, 'New lipsticks'), slide(3, 'Skin care')],
+      tiles: [...STARTING_HERO_TILES],
     },
     { id: id(3), visible: true, kind: StorefrontSectionKind.Categories, title: null, style: null },
     row(4, ProductRowSource.Newest, ProductRowLayout.Carousel, 6),
@@ -94,7 +110,14 @@ function sketchedSections(): StorefrontSection[] {
       visible: true,
       kind: StorefrontSectionKind.OfferBanners,
       fill: StorefrontFill.Own,
-      banners: [banner(4, 'Up to 30% off'), banner(5, 'Gift sets')],
+      // BL-6, BL-7: three of the shop's own, laid out by their number (big + two).
+      layout: null,
+      collections: [...STARTING_BANNER_COLLECTIONS],
+      banners: [
+        banner(4, 'Up to 30% off'),
+        banner(5, 'Gift sets'),
+        banner(6, 'A new liquid lip set'),
+      ],
     },
     row(6, ProductRowSource.BestSellers, ProductRowLayout.Grid, 4),
     {

@@ -4,6 +4,7 @@ import { formatTaka } from '@lytronix/ui';
 import {
   STOREFRONT_PICKED_PRODUCTS_MAX,
   StorefrontLinkKind,
+  type StorefrontCollection,
   type StorefrontLink,
 } from '@lytronix/validators';
 import { useCategories, useProductList, useProductSearch } from '@/api/catalogue';
@@ -65,18 +66,24 @@ export function LinkStep({
   names,
   onChange,
   onNamed,
+  label,
+  kinds,
 }: {
   link: StorefrontLink;
   names: Names;
   onChange: (link: StorefrontLink) => void;
   onNamed: (kind: 'categories' | 'products', id: string, name: string) => void;
+  /** The list's name; a button's place by default. */
+  label?: string;
+  /** The choices offered; every kind of place by default. */
+  kinds?: readonly StorefrontLinkKind[];
 }) {
   const { t } = useTranslation('menu');
   // A category or a product is chosen from its list; until one is, the kind is only being looked at.
   const [looking, setLooking] = useState<StorefrontLinkKind>(link.kind);
   return (
-    <div role="radiogroup" aria-label={t('ssLeadsTo')}>
-      {LINKS.map((choice) => {
+    <div role="radiogroup" aria-label={label ?? t('ssLeadsTo')}>
+      {LINKS.filter((choice) => !kinds || kinds.includes(choice.kind)).map((choice) => {
         const on = looking === choice.kind;
         return (
           <div key={choice.kind}>
@@ -133,6 +140,41 @@ export function LinkStep({
     </div>
   );
 }
+
+/** BL-3, BL-9: what a tile or a banner filling itself shows: one of the shop's lists or a category, never one product. */
+export function CollectionStep({
+  collection,
+  label,
+  names,
+  onChange,
+  onNamed,
+}: {
+  collection: StorefrontCollection;
+  label: string;
+  names: Names;
+  onChange: (collection: StorefrontCollection) => void;
+  onNamed: (kind: 'categories' | 'products', id: string, name: string) => void;
+}) {
+  return (
+    <LinkStep
+      link={collection}
+      names={names}
+      label={label}
+      kinds={COLLECTION_KINDS}
+      onNamed={onNamed}
+      onChange={(link) => {
+        if (link.kind !== StorefrontLinkKind.Product) onChange(link);
+      }}
+    />
+  );
+}
+
+const COLLECTION_KINDS: readonly StorefrontLinkKind[] = [
+  StorefrontLinkKind.OnSale,
+  StorefrontLinkKind.JustIn,
+  StorefrontLinkKind.BestSellers,
+  StorefrontLinkKind.Category,
+];
 
 /** The shop's categories to choose one from, each with its picture and how many products it holds. */
 function CategoryList({

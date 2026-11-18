@@ -1,4 +1,5 @@
 import {
+  announcementPairs,
   BannerLayout,
   bannerLayoutFor,
   CategoryTileStyle,
@@ -17,7 +18,7 @@ import type {
   PublicStorefrontDesign,
   ShopperPaymentMethod,
 } from '@/lib/api/storefront-api';
-import { barItems, barPairs } from '@/lib/design/announcement';
+import { barItems } from '@/lib/design/announcement';
 import {
   type CollectionFacts,
   type CollectionView,
@@ -61,7 +62,7 @@ export function Announcement({
 }) {
   const items = barItems(section.items, info, words);
   if (items.length === 0) return null;
-  return <AnnouncementBar pairs={barPairs(items)} pinned={pinned} />;
+  return <AnnouncementBar pairs={announcementPairs(items)} pinned={pinned} />;
 }
 
 /** SB-9: every top-level category with its picture (or its first product's photo) and how many products it holds. */

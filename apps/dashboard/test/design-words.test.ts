@@ -1,5 +1,8 @@
 import {
+  AnnouncementItemKind,
+  BannerLayout,
   CategoryTileStyle,
+  HeroDesign,
   ProductRowLayout,
   ProductRowSource,
   StorefrontFill,
@@ -182,8 +185,24 @@ describe('the words the editor builds (I18N-01)', () => {
       } as StorefrontSection,
       {
         ...newSection('announcement', '00000000-0000-4000-8000-000000000072'),
-        text: 'Eid sale',
+        items: [{ kind: AnnouncementItemKind.Own, text: 'Eid sale' }],
       } as StorefrontSection,
+      // BL-3, BL-6: every source an auto hero shows, every banner layout.
+      ...[ProductRowSource.OnSale, ProductRowSource.Newest, ProductRowSource.BestSellers].map(
+        (source) =>
+          ({
+            ...newSection('hero', '00000000-0000-4000-8000-000000000073'),
+            source,
+            design: HeroDesign.SlideTiles,
+          }) as StorefrontSection,
+      ),
+      ...Object.values(BannerLayout).map(
+        (layout) =>
+          ({
+            ...newSection('offers', '00000000-0000-4000-8000-000000000074'),
+            layout,
+          }) as StorefrontSection,
+      ),
     ];
     const used = new Set<string>(ADDABLE.flatMap((addable) => [addable.name, addable.line]));
     for (const section of sections) {

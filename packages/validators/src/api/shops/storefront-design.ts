@@ -271,6 +271,13 @@ export const AUTOMATIC_ANNOUNCEMENT_ITEMS = [
   AnnouncementItemKind.Offers,
 ] as const;
 
+/** BL-10: the bar's items two at a time, the last alone when they are odd (five: 1-2, 3-4, 5). */
+export function announcementPairs<T>(items: readonly T[]): T[][] {
+  const pairs: T[][] = [];
+  for (let at = 0; at < items.length; at += 2) pairs.push(items.slice(at, at + 2));
+  return pairs;
+}
+
 /** BL-10: a new bar: its three automatic items, all on. */
 export const STARTING_ANNOUNCEMENT_ITEMS: readonly AnnouncementItem[] =
   AUTOMATIC_ANNOUNCEMENT_ITEMS.map((kind) => ({ kind, visible: true }));
