@@ -1089,6 +1089,88 @@ Object.assign(EDITOR, {
   },
 });
 
+// ---------- Offers (sketch, 2026-11-18; docs/OFFERS-PLAN.md): a running offer as a home row, a button's place to go,
+// and its own page in the shop -- and that page once the offer has ended ----------
+const OF_NAME = ['ঈদ অফার', 'Eid offer'];
+const ofCut = (n) => Math.floor(n * 0.8);
+// The Eid offer's cards: today's price cut by 20%, the regular price (or the old price) struck through; each design its
+// own card, as design cards show it.
+const OF_CARDS = () => ORDER_CARDS.filter((c) => !c.out && !c.hidden && !c.compact).slice(0, 6).map(({ d, isNew, ...c }) => ({ ...c, offer: true, before: c.price, beforeWas: c.was, price: ofCut(c.price), was: c.was || c.price }));
+const OF_ENDED_CARDS = () => OF_CARDS().map((c) => ({ ...c, price: c.before, was: c.beforeWas }));
+SOURCES.offer = { title: OF_NAME, pick: (ps) => ps.filter((p) => p.offer) };
+SEC_NAMES.offer = ['প্রোডাক্ট · একটা অফার: ঈদ অফার', 'Products · an offer: Eid offer'];
+SEC_NAMES.offerHead = ['অফারের পেজ · নাম আর ছাড়', "Offer page · its name and cut"];
+SEC_NAMES.offerGrid = ['অফারের পেজ · সব প্রোডাক্ট', "Offer page · every product"];
+document.head.insertAdjacentHTML('beforeend', `<style>
+.ofhead .box{background:var(--accent-soft);border-radius:16px;padding:22px 18px;text-align:center}
+.ofhead .pill{display:inline-block;background:var(--sale);color:#fff;border-radius:99px;padding:2px 12px;font-size:12.5px;font-weight:700}
+.ofhead h1{font-size:28px;margin:8px 0 4px;color:var(--sec-h)}
+.ofhead p{color:var(--muted);font-size:15px}
+.ofhead .ended{background:var(--bg);border:1px solid rgba(0,0,0,.12);border-radius:12px;padding:14px;margin-top:14px;text-align:left;display:flex;gap:10px;align-items:flex-start;font-size:14.5px}
+.ofhead .ended b{display:block;font-size:15.5px}
+.ofhead .ended a{display:inline-block;margin-top:8px;font-weight:700;color:var(--main);text-decoration:underline}
+.ofbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:14px;color:var(--muted)}
+.ofbar .sort{border:1px solid rgba(0,0,0,.15);border-radius:10px;padding:7px 12px;color:var(--text);font-weight:600}
+@media (min-width: 700px){ .frame.desktop .ofgrid{grid-template-columns:repeat(4,1fr)} .ofhead h1{font-size:36px} .ofhead .box{padding:34px} .ofhead .ended{max-width:560px;margin:16px auto 0} }
+.frame.desktop .ofgrid{grid-template-columns:repeat(4,1fr)}
+</style>`);
+// A card as the shop's product rows draw it (SECTIONS.products), for a page of every card.
+const ofCard = (theme, p) => {
+  const kind = THEMES[theme].card;
+  const tags = [p.was ? `<span class="tag sale">−${pct(p)}%</span>` : ''].join('');
+  const note = p.left ? `<span class="left">${L(`মাত্র ${p.left}টি বাকি`, `Only ${p.left} left`)}</span>` : '';
+  return `<a class="card ${kind}"><div class="im"><img src="${img(p.i)}" alt=""><div class="tags">${tags}</div>${kind === 'photo' ? `<span class="fav">${ic('heart')}</span>` : ''}</div><div class="bd"><span class="nm">${T(p.n)}</span><span class="pr">${money(p.price)}${p.was ? `<s>${money(p.was)}</s>` : ''}</span>${note}<button class="add">${ic('cart')} ${L('কার্টে যোগ করুন', 'Add to cart')}</button></div></a>`;
+};
+SECTIONS.offerHead = (theme, shop) => `<section class="sec ofhead" data-sec="${T(SEC_NAMES.offerHead)}"><div class="wrap"><div class="box"><span class="pill">${L('অফার', 'Offer')}</span><h1>${T(OF_NAME)}</h1><p>${shop.offerEnded ? L('১৪টি পণ্য', '14 products') : L('১৪টি পণ্যে ২০% ছাড়', '20% off 14 products')}</p>${shop.offerEnded ? `<div class="ended">${ic('info')}<span><b>${L('এই অফার শেষ হয়ে গেছে', 'This offer has ended')}</b>${L('প্রোডাক্টগুলো এখন তাদের নিজের দামে।', 'The products are at their own prices now.')}<br><a>${L('এখন যেসব পণ্যে ছাড় চলছে', "What's on sale now")} →</a></span></div>` : ''}</div></div></section>`;
+SECTIONS.offerGrid = (theme, shop) => `<section class="sec" data-sec="${T(SEC_NAMES.offerGrid)}"><div class="wrap"><div class="ofbar"><span>${L('১৪টি পণ্য', '14 products')}</span><span class="sort">${L('সাজান: ফিচার্ড', 'Sort: Featured')}</span></div><div class="grid ofgrid">${shop.products.map((p) => ofCard(theme, p)).join('')}</div></div></section>`;
+const OF_SHOP = (ended) => ({ ...SHOPS.studio, products: ended ? OF_ENDED_CARDS() : OF_CARDS(), offerEnded: ended, layout: ['announce', 'header', 'offerHead', 'offerGrid', 'trust', 'footer'] });
+// On an offer's page the header's Offers link is the one lit.
+const ofLit = (h) => h.replace(`<a class="on">${L('সব পণ্য', 'All products')}</a><a class="">${L('অফার', 'Offers')}</a>`, `<a class="">${L('সব পণ্য', 'All products')}</a><a class="on">${L('অফার', 'Offers')}</a>`);
+
+Object.assign(EDITOR, {
+  'o-row': {
+    label: ['সারি: একটা অফার', 'Row: an offer'],
+    note: ['প্রোডাক্টের সারিতে “একটা অফার” বাছলে চলমান অফারগুলো থেকে একটা বাছুন। শিরোনাম অফারের নাম নেয়। অফার শেষ হলে সারিটা হোম পেজ থেকে নিজে থেকে সরে যায়; ড্যাশবোর্ডে সারিটা থাকে, “অফার শেষ” লেখা।', "Choosing “An offer” on a product row lists the running offers to pick one. The title takes the offer's name. When the offer ends the row leaves the home page by itself; in the editor it stays, marked “Offer ended”."],
+    render: (d) => {
+      const radios = [[['নতুন এসেছে', 'Just in']], [['অফার কালেকশন', 'On sale']], [['সবচেয়ে বেশি বিক্রি', 'Best sellers']], [['একটা ক্যাটাগরির প্রোডাক্ট', 'One category']], [['একটা অফার', 'An offer'], true], [['হাতে বাছাই', 'Hand-picked']]];
+      const inner = `<div class="field"><label>${L('কোন প্রোডাক্ট দেখাবে', 'Which products')}</label><div>${radios.map(([b, on]) => `<div class="radio ${on ? 'on' : ''}" style="padding:8px 2px"><span class="dot"></span><span><b>${T(b)}</b></span></div>`).join('')}</div></div>`
+        + fld(L('অফার', 'Offer'), `${T(OF_NAME)} <span style="color:#33403f;font-size:13px">· ${L('চলছে · ১৪টি পণ্য', 'Running · 14 products')}</span>`, L('শুধু চলমান অফার বাছা যায়।', 'Only a running offer can be picked.'), { sel: true })
+        + fld(L('শিরোনাম', 'Title'), T(OF_NAME))
+        + `<div class="field"><label>${L('দেখানোর ধরন', 'Layout')}</label><div class="seg"><span class="on">${L('গ্রিড', 'Grid')}</span><span>${L('ক্যারোসেল (সোয়াইপ)', 'Carousel (swipe)')}</span></div></div>`
+        + `<div class="field"><label>${L('কয়টি প্রোডাক্ট', 'How many')}</label><div class="seg"><span class="on">4</span><span>6</span><span>8</span><span>12</span></div></div>`
+        + `<div class="note-line">${ic('info')}<span>${L('“সব দেখুন” অফারের পেজ খোলে।', '“See all” opens the offer’s page.')}</span></div>`;
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('hot'), dockDesign(), sheet(L('প্রোডাক্টের সারি', 'Product row'), inner, DOCK_SECTION()), 'hot');
+    },
+  },
+  'o-link': {
+    label: ['বোতাম: একটা অফার', 'Button: an offer'],
+    note: ['স্লাইড বা ব্যানারের বোতাম একটা চলমান অফারের পেজেও নিতে পারে। অফার শেষ হলে বোতাম অফার কালেকশনে নেয়।', "A slide's or banner's button can lead to a running offer's page too. Once the offer ends, the button leads to On sale instead."],
+    render: (d) => {
+      const radios = [[['অফার কালেকশন', 'On sale'], ['ছাড়ের সব প্রোডাক্ট', 'Every discounted product']], [['একটা অফার', 'An offer'], null, true], [['নতুন এসেছে', 'Just in'], ['সবচেয়ে নতুন আগে', 'Newest first']], [['সবচেয়ে বেশি বিক্রি', 'Best sellers'], ['গত ৩০ দিনের অর্ডার থেকে', 'From the last 30 days of orders']], [['একটা ক্যাটাগরি', 'A category']], [['একটা প্রোডাক্ট', 'A product'], ['খুঁজে বাছুন', 'Search and pick one']]];
+      const offers = [[OF_NAME, ['চলছে · ১৪টি পণ্য', 'Running · 14 products'], true], [['ফ্ল্যাশ সেল', 'Flash sale'], ['শুরু হয়নি', 'Not started'], false, true]];
+      const list = `<div style="margin:2px 0 6px 32px;border-left:2px solid #e3f1ef;padding-left:12px">${offers.map(([n, s, on, off]) => `<div class="radio ${on ? 'on' : ''}" style="padding:7px 2px;align-items:center;${off ? 'opacity:.55' : ''}"><span class="dot" style="width:20px;height:20px"></span><span><b style="font-size:14px">${T(n)}</b><span>${T(s)}</span></span></div>`).join('')}</div>`;
+      const inner = `<div>${radios.map(([b, s, on]) => `<div class="radio ${on ? 'on' : ''}"><span class="dot"></span><span><b>${T(b)}</b>${s ? `<span>${T(s)}</span>` : ''}</span></div>${on ? list : ''}`).join('')}</div>`;
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('hero'), dockDesign(), sheetStep(L('বোতাম নিয়ে যাবে', 'Button leads to'), inner, DOCK_DONE()), 'hero');
+    },
+  },
+  'o-home': {
+    label: ['দোকানে অফারের সারি', 'An offer row in the shop'],
+    note: ['হোম পেজে ঈদ অফারের সারি: অফারের নাম শিরোনামে, প্রতিটি ডিজাইন আলাদা কার্ডে, আগের দাম কাটা। “সব দেখুন” অফারের পেজ খোলে।', 'The Eid offer as a home page row: its name as the title, each design its own card, the old price struck through. “See all” opens the offer’s page.'],
+    render: () => renderShop('studio', STATE.outlined, null, { ...SHOPS.studio, products: [...OF_CARDS(), ...SHOPS.studio.products], layout: ['announce', 'header', 'hero', ['offer', 'grid'], 'cats', ['latest', 'rail'], 'trust', 'footer'] }),
+  },
+  'o-page': {
+    label: ['অফারের পেজ', "The offer's page"],
+    note: ['megh.lytro.app/offers/ঈদ-অফার: অফারের নাম আর ছাড়, তারপর অফারের সব প্রোডাক্ট (ডিজাইন আলাদা কার্ডে), দোকানের ক্রমে, সাজানো বদলানো যায়। ফেসবুক অ্যাডে এই লিংক দিন।', "megh.lytro.app/offers/eid-offer: the offer's name and cut, then every product in it (designs as their own cards), in the shop's order, with Sort. The link to put in a Facebook ad."],
+    render: () => ofLit(renderShop('studio', STATE.outlined, null, OF_SHOP(false))),
+  },
+  'o-ended': {
+    label: ['অফার শেষ হলে', 'After the offer ends'],
+    note: ['পুরোনো অ্যাড থেকে কেউ এলে: “এই অফার শেষ হয়ে গেছে”, প্রোডাক্টগুলো এখনকার দামে (যেটা আগে থেকেই ছাড়ে ছিল সেটা ছাড়েই), আর এখনকার অফার কালেকশনের লিংক। ক্লিকটা নষ্ট হয় না।', 'Someone coming from an old ad sees “This offer has ended”, the products at their prices now (one already on sale before stays on sale), and a link to what is on sale now. The click is not wasted.'],
+    render: () => ofLit(renderShop('studio', STATE.outlined, null, OF_SHOP(true))),
+  },
+});
+// ---------- end of Offers (sketch) ----------
+
 function render() {
   const theme = THEMES[STATE.screen];
   const ed = EDITOR[STATE.screen];
