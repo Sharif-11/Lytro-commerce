@@ -316,9 +316,15 @@ describeIfDatabase("the seller's order (DC-6, DC-7)", () => {
     // as before for that long -- CCH-04.)
     expect((await list(key, 'designs=true&limit=10')).products.map(cardOf)[0]).toBe(`${fresh.id}:`);
 
+    // SEC-02: another shop lists only its own cards, and its product is not this shop's card.
+    const other = await openShop(port, texts, 'order-other');
+    const theirs = await product(other, 'Their saree', []);
+    expect((await sellerCards(other)).cards.map(cardOf)).toEqual([`${theirs.id}:`]);
+
     // A card that is not the shop's, or one named twice, is refused.
     for (const cards of [
       [...order, { productId: plain.id, designId: burka.designs.first }],
+      [...order, { productId: theirs.id, designId: null }],
       [...order, order[0]],
     ]) {
       const refused = await shop.put('/storefront/design/cards/order', { cards });

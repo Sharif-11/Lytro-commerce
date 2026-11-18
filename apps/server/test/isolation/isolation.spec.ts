@@ -261,6 +261,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /stock-checks',
       'GET /stock-checks/:id',
       'GET /storefront/design',
+      'GET /storefront/design/cards',
       'GET /suppliers',
       'GET /suppliers/:id',
       'GET /tax-classes',
@@ -434,6 +435,8 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'PUT /shop-settings/icon',
       'PUT /shop-settings/logo',
       'PUT /storefront/design',
+      'PUT /storefront/design/cards/designs',
+      'PUT /storefront/design/cards/order',
       'PUT /tax-classes/default',
     ]);
     expect(compareWithRegistry(routes, ISOLATION_REGISTRY)).toEqual({ uncovered: [], stale: [] });
