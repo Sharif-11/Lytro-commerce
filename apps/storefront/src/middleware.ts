@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { EdgeCachePolicy } from '@/lib/edge/edge-cache';
 import { EdgeRenderer } from '@/lib/edge/edge-renderer';
 import { StorefrontEnvironment } from '@/lib/env';
-import { STOREFRONT_PATH_HEADER, STOREFRONT_QUERY_HEADER } from '@/lib/request-path';
+import { PREVIEW_PATH, STOREFRONT_PATH_HEADER, STOREFRONT_QUERY_HEADER } from '@/lib/request-path';
 
 // Puts each request's path and query where the pages can read them (lib/request-path.ts). A page Cloudflare's edge may
 // keep (Slice 9.10, D9-32) is rendered through the EdgeRenderer instead, which gives it the edge's headers, or the 503 a
@@ -11,7 +11,6 @@ import { STOREFRONT_PATH_HEADER, STOREFRONT_QUERY_HEADER } from '@/lib/request-p
 const env = StorefrontEnvironment.shared();
 const policy = new EdgeCachePolicy(env.platformDomain);
 const renderer = new EdgeRenderer(env.selfUrl);
-const PREVIEW_PATH = '/preview';
 
 export async function middleware(request: NextRequest): Promise<Response> {
   const lifetime = policy.lifetimeOf({

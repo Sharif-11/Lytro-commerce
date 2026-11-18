@@ -15,6 +15,8 @@ export class SaveStorefrontDesignDto extends createZodDto(saveStorefrontDesignSc
 // stands, its photos, what it points at and the sections naming something gone or hidden.
 export const storefrontEditorSchema = z.object({
   design: storefrontDesignSchema,
+  // SB-12: what shoppers see now, so Publish can say what changes.
+  live: storefrontDesignSchema,
   startingTheme: z.enum(StorefrontThemeKey),
   hasDraft: z.boolean(),
   isPublished: z.boolean(),

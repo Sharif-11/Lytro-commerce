@@ -49,6 +49,7 @@ const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
 
 interface Editor {
   design: StorefrontDesign;
+  live: StorefrontDesign;
   startingTheme: StorefrontThemeKey;
   hasDraft: boolean;
   isPublished: boolean;
@@ -317,6 +318,7 @@ describeIfDatabase("a shop's storefront design (SB-11 to SB-16)", () => {
         broken: [],
       });
       expect(editor.design).toEqual(startingDesign(StorefrontThemeKey.Soft));
+      expect(editor.live).toEqual(startingDesign(StorefrontThemeKey.Soft));
 
       const key = await keyFor(shop);
       const shown = await publicShop(key);
@@ -349,6 +351,8 @@ describeIfDatabase("a shop's storefront design (SB-11 to SB-16)", () => {
       const saved = await shop.put('/storefront/design', { design: first });
       expect(saved.status, JSON.stringify(saved.body)).toBe(200);
       expect(saved.body).toMatchObject({ hasDraft: true, isPublished: false, design: first });
+      // What shoppers see is still the starting design, so Publish can say what changes.
+      expect((saved.body as Editor).live.theme).not.toBe(StorefrontThemeKey.Royal);
       expect((saved.body as Editor).draftSavedAt).not.toBeNull();
       // Not live: shoppers still see the starting design.
       expect((await publicShop(key)).design.theme).not.toBe(StorefrontThemeKey.Royal);

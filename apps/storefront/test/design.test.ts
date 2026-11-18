@@ -19,7 +19,7 @@ import type { ServerAnswer } from '../src/lib/api/server-api';
 import type { PublicBrand, PublicStorefrontDesign } from '../src/lib/api/storefront-api';
 import { productQueryString, StorefrontApi } from '../src/lib/api/storefront-api';
 import { iconVersion, themeColor } from '../src/lib/app/app-manifest';
-import { designLook, frameBrand, pageTheme } from '../src/lib/design/design-look';
+import { designLook, frameBrand, pageTheme, triedTheme } from '../src/lib/design/design-look';
 import { homeReadPlan, queryKey, rowQuery } from '../src/lib/design/home-reads';
 import { linkHref } from '../src/lib/design/links';
 import { firstLetter } from '../src/lib/design/marks';
@@ -222,6 +222,19 @@ describe('the edge and the preview (SB-12, SB-16)', () => {
       '/v1/shop?preview=a%20b',
       '/v1/shop?preview=ended',
     ]);
+  });
+
+  it('shows a theme being tried over the draft, on its first colours, and nothing else the address names', () => {
+    const draft = { ...design([]), palette: 2 };
+    expect(triedTheme({ design: draft }, 'studio').design).toEqual({
+      ...draft,
+      theme: StorefrontThemeKey.Studio,
+      palette: 0,
+    });
+    for (const other of [undefined, '', 'toString', 'STUDIO', ['studio']]) {
+      expect(triedTheme({ design: draft }, other).design).toBe(draft);
+    }
+    expect(triedTheme({}, 'studio')).toEqual({});
   });
 });
 

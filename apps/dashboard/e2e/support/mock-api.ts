@@ -36,6 +36,7 @@ import { categoryList, categoryWrite } from './categories';
 import { DRAWN_HELP_LINE, faultFor, type Fault } from './p88-help-mock';
 import { brandAnswer, brandWrite, drawnBrand, liveBrand, type BrandFixture } from './brand';
 import { domainAnswer, domainWrite, noDomain, ownDomainOf, type DomainFixture } from './domain';
+import { designAnswer, designWrite, drawnDesign, type DesignFixture } from './storefront-design';
 import {
   drawnProducts,
   MEDIA_UPLOAD_PREFIX,
@@ -163,6 +164,8 @@ export interface ShopState {
   brandShows?: boolean;
   /** Slice 13: the shop's own domain where it differs from none on a plan that includes one; the page's writes change it. */
   domain?: DomainFixture | null;
+  /** STOREFRONT-BUILDER-PLAN: the storefront design where it differs from the builder sketch's; the editor's writes change it. */
+  design?: DesignFixture | null;
   /** The shop's API keys where they differ from the prototype's three; the page's writes change them. */
   keys?: KeyFixture[] | null;
   /** Facebook and Meta where it differs from the prototype's connected shop; the page's writes change it. */
@@ -257,6 +260,7 @@ export function me(state: Required<ShopState>): unknown {
           : new Date(Date.now() + state.periodEndDays * DAY_MS).toISOString(),
       autoRenewEnabled: false,
       logo: state.settings?.logo ?? null,
+      icon: (state.design ??= drawnDesign()).icon,
       brand: state.brandShows ? liveBrand((state.brand ??= drawnBrand())) : null,
       ownDomain: ownDomainOf((state.domain ??= noDomain())),
       billingTerm: paid ? termOf(ONE_MONTH) : null,
@@ -379,6 +383,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     brand: null,
     brandShows: false,
     domain: null,
+    design: null,
     keys: null,
     meta: null,
     identities: null,
@@ -570,6 +575,8 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   if (branded !== undefined) return branded;
   const domain = domainAnswer(path, (state.domain ??= noDomain()));
   if (domain !== undefined) return domain;
+  const design = designAnswer(path, (state.design ??= drawnDesign()));
+  if (design !== undefined) return design;
   if (path === '/api-keys') return state.keys ?? drawnKeys();
   const meta = metaAnswer(path, state.meta ?? drawnMeta());
   if (meta !== undefined) return meta;
@@ -643,6 +650,10 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
   // The payment page is another site: the browser goes there, and the test stops at its door.
   await page.route('https://pay.example.test/**', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'text/html', body: '<p>payment page</p>' }),
+  );
+  // STOREFRONT-BUILDER-PLAN SB-12: the design editor frames the shop's own storefront; a stand-in, never the real one.
+  await page.route('https://*.lytro.app/**', (route: Route) =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: '<p>storefront</p>' }),
   );
   await page.route('**/api/v1/**', async (route: Route) => {
     const request = route.request();
@@ -1087,6 +1098,14 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       });
     }
     if (domain) return ok(domain.data);
+    // STOREFRONT-BUILDER-PLAN: the design editor's writes, and the icon.
+    const designed = designWrite(
+      method,
+      path,
+      request.postDataJSON() as Record<string, unknown> | null,
+      (state.design ??= drawnDesign()),
+    );
+    if (designed) return ok(designed.data);
     const saved = settingsWrite(
       method,
       path,

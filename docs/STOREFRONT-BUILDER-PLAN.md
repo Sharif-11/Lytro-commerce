@@ -217,7 +217,50 @@ page, the shop's icon). The server's merged as #388.
    - the hero, slide, product-row and add-section sheets;
    - the live preview and publish.
 
-   Pixel-perfect to the sketch's `e-*` screens.
+   Pixel-perfect to the sketch's `e-*` screens. **Amended 2026-11-18 (the owner chose "Two PRs (Recommended)"): the
+   dashboard is two pull requests, so five in all** -- 3a the design page, the theme gallery, logo and icon, the
+   preview, Publish and Back; then 3b each section's own sheet (the hero and its slides with their focal points, the
+   product rows' pickers, the banners, the testimonials, About and the announcement's words).
+
+   **3a as built:**
+   - **The draft is the server's, saved whole on each change** (SB-12): a switch, an arrow, a colour set, an added or
+     removed section each save at once, one save at a time and the newest last; a refused one puts the screen back.
+     The preview draws the draft again after each save. Leaving while one is on its way asks first.
+   - **The live preview frames the real storefront** at the shop's Lytro address, `/preview?t=<token>`, beside the
+     editor from 1024 px (phone or desktop width, scaled to fit) and over the whole screen on a phone. **The owner's
+     narrow exception to SEC-04 (2026-11-18, "Allow one narrow exception (Recommended)"):** Caddy lets only
+     `app.<domain>` frame a shop's `/preview` (`frame-ancestors`, no `X-Frame-Options`), every other page of every host
+     still refuses framing, and the dashboard's policy frames nothing but `https://*.<domain>`. A shop on its own domain
+     previews at its Lytro address, which the storefront doesn't redirect for `/preview`. The link is asked for again
+     before its 30 minutes end.
+   - **Trying a theme never touches the draft:** the gallery shows it over the draft through the preview's
+     `&theme=<key>`; "Use the … theme" puts it in the draft on its first colour set.
+   - **Publish** lists what changes against what shoppers see now (the editor's read gained `live` for it): the theme,
+     the colours, each section added, turned on or off, changed or removed, and a new order.
+   - **Back to the previous design** and **Discard the draft** are links under the sections, each asked first.
+   - **Logo and icon** upload at once and preview at once; nothing changes for shoppers until Save, and a picture
+     never saved is deleted (MED-09). The icon is checked square and at least 512 px before it is sent.
+   - The theme gallery's pictures are the sketch's own sample shops, captured once into
+     `apps/dashboard/public/storefront-themes/<theme>-<language>.jpg`.
+
+   **3a's named deviations from the sketch:**
+   - **The dashboard's own parts:** its cards (10 px corners), buttons, switches, sheets and dialogs, and its page
+     frame, header and bottom navigation, with the sketch's layout, order and words. Preview and Publish are the page's
+     action bar: at the foot on a phone, above the page from 1024 px.
+   - **The draft's chip** sits beside the title on a phone and beside the preview's heading from 1024 px, where the
+     header carries the title.
+   - **Add a section** offers the six kinds that fill themselves (hero, a row of products, categories, offer banners,
+     the trust strip, the announcement); the wide banner, testimonials and About, which need the seller's own words or
+     photos, come with their sheets in 3b. A new row of products is named by what it lists ("Just in").
+   - **A section's sheet** in 3a holds its switch and Remove (asked first); 3b fills it with what the section holds.
+     The header's row opens Logo and icon, the footer's Shop details (its contact and social links).
+   - **No "In the header: logo only / logo and name" choice:** the server keeps no such setting; the header shows the
+     logo where there is one, else the name.
+   - **"Publish?" names a section's change generally** ("“Hero slides” changed"), not what changed in it.
+   - **The logo's hint** says what Lytro takes (JPEG, PNG or WebP; no SVG).
+   - **Product, in Bangla, is প্রোডাক্ট** as everywhere in the dashboard, where the sketch's lines say পণ্য.
+   - Test pictures: `e2e/storefront-design.spec.ts` shoots each `e-*` screen beside the sketch, phone and desktop,
+     both languages, into `test-results/compare/storefront-*`.
 
 **Tests** prove each SB row against its words, with a sabotage pass on SB-12 (a draft is never public or cached) and on
 SB-9 (an ended offer leaves the hero). Each PR runs the checks in `ENGINEERING-STANDARDS.md` §7 and a real boot of the

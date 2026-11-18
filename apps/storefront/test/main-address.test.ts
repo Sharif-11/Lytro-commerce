@@ -29,3 +29,11 @@ describe('where another host of the shop leads', () => {
     ).toBeNull();
   });
 });
+
+describe("the draft's preview (STOREFRONT-BUILDER-PLAN SB-12)", () => {
+  it('stays at the Lytro address, the one host the dashboard may frame it from', () => {
+    const serving = { mainHost: 'megh.com', publicOrigin: 'https://megh.com' };
+    expect(mainAddressTarget('megh.lytro.app', serving, '/preview', '?t=abc')).toBeNull();
+    expect(mainAddressTarget('megh.lytro.app', serving, '/', '')).toBe('https://megh.com/');
+  });
+});
