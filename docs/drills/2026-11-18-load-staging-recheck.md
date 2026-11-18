@@ -67,3 +67,39 @@ Run on the server (`flash.sh`), each order a shopper of its own, through the sho
 4. **A flash sale never oversells,** and past 180 orders a minute a shop's orders are held, not failed.
 5. **The old seeded shops are read-only** (`lt-s*`, 14 November): trial shops seeded far past a trial's limits. They
    cost nothing; the production server's wipe removes such shops before launch.
+
+## The rerun, with the fix (2026-11-18 05:24 to 05:47 UTC, release `a0f02e18`, #384)
+
+Armed the same way, on the `lt3` shops (still open), without the load operator's reports (`SKIP=operator`: `disarm.sh`
+had removed it). Disarmed at 05:46 UTC.
+
+**The pass run, the model's peak, 10 minutes:**
+
+| | Before the fix | After |
+| --- | --- | --- |
+| Requests | 17,888 (22 a second) | 19,551 (24 a second) |
+| Failed | 45.8% | 20.5% |
+| API reads, 95th percentile | 45.7 s | 18.5 s |
+| Pages that loaded | 18% | 52% |
+| Dashboard reads that worked | 86% | 99% |
+| `storefront/context` reads | 5,051 | 1,325 |
+
+The fix did what it should: the API answered 23,000 calls with 7 busy answers. Staging's 2 vCPU still ran at 95%, so
+every answer was slow, as 14 November's ceiling run said they would be at 1×: the pass is the production server's (8
+vCPU, D9-30) to meet, not staging's. What the rerun found instead is how a page failed while it waited: **9,394 pages and
+charges were 500s** ("the server did not answer in time", the storefront's 10-second wait on an API call) and the rest
+timed out in the shopper's browser. A call the server can't answer in time is a busy server, so it now comes back as one:
+the busy page with a 503 the edge never keeps, "can't be shown right now" on a charge, try again at checkout (an order
+that did arrive isn't placed twice: each carries its idempotency key). Fixed with this addition.
+
+**The viral product, 8 shoppers a second on one product's page for 5 minutes,** each with a click ID of its own and the
+page's delivery charge, with no edge in front:
+
+| | |
+| --- | --- |
+| Requests | 5,040 (15 a second), none failed |
+| Time, all requests | half under 84 ms, 95% under 495 ms, 99% under 1.15 s |
+| CPU | average 69% (the storefront 43%, each API process 17%, PostgreSQL 18%) |
+
+One page every shopper asks for is cheap for the server's own caches. Staging would carry about 11 such shoppers a
+second before its CPU ran out; behind Cloudflare's edge in production, nearly all of them would never reach the server.

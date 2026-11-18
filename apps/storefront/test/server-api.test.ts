@@ -9,6 +9,13 @@ let address = '';
 
 beforeAll(async () => {
   server = createServer((request, response) => {
+    // Answers long after the storefront has stopped waiting.
+    if (request.url === '/v1/slow') {
+      setTimeout(() => {
+        response.end('{}');
+      }, 1_000);
+      return;
+    }
     if (request.url === '/v1/busy') {
       response.writeHead(429, { 'content-type': 'application/json', 'retry-after': '9' });
       response.end(JSON.stringify({ success: false, errors: { code: 'rate_limited' } }));
@@ -47,6 +54,16 @@ describe('ServerApi (Slice 9.10)', () => {
       details: {},
       retryAfter: '9',
     });
+  });
+
+  it('gives an answer the server owed too long back as busy, with no wait named', async () => {
+    const answer = await new ServerApi(address, 100).send({
+      method: 'GET',
+      path: '/v1/slow',
+      host: 'api.lytro.app',
+      headers: {},
+    });
+    expect(answer).toEqual({ status: 503, data: null, code: null, details: {}, retryAfter: null });
   });
 
   it('gives none when the answer names no wait', async () => {
