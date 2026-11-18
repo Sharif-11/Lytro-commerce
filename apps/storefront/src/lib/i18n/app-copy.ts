@@ -159,4 +159,41 @@ export const APP_COPY = {
   password_new: ['নতুন পাসওয়ার্ড', 'New password'],
   // Not drawn: the order's own discount, which staff may set, so its total still adds up.
   discount: ['ছাড়', 'Discount'],
+  // STOREFRONT-BUILDER-PLAN: the designed home's words (docs/brand/lytro-storefront-builder.html). Delivery is the
+  // range of the shop's own zones' charges, as the home said before: zones carry the shop's own names.
+  sb_offer: ['অফার', 'Offer'],
+  sb_offers_line: ['{n}টি পণ্যে {p}% পর্যন্ত ছাড় চলছে', 'Up to {p}% off on {n} products'],
+  sb_delivery: ['ডেলিভারি {r}', 'Delivery {r}'],
+  sb_shop_by: ['ক্যাটাগরি অনুযায়ী কিনুন', 'Shop by category'],
+  sb_n_products: ['{n}টি পণ্য', '{n} products'],
+  sb_just_in: ['নতুন এসেছে', 'Just in'],
+  sb_on_sale: ['অফার কালেকশন', 'On sale'],
+  sb_best_sellers: ['সবচেয়ে বেশি বিক্রি', 'Best sellers'],
+  sb_picked: ['আমাদের পছন্দ', 'Our picks'],
+  sb_best: ['সেরা বিক্রি', 'Best seller'],
+  sb_left: ['মাত্র {n}টি বাকি', 'Only {n} left'],
+  sb_ordered: ['{n} বার অর্ডার হয়েছে', 'Ordered {n} times'],
+  sb_view: ['দেখুন', 'View'],
+  sb_shop: ['দেখুন', 'Shop'],
+  sb_cod: ['ক্যাশ অন ডেলিভারি', 'Cash on delivery'],
+  sb_cod_sub: ['হাতে পেয়ে টাকা দিন', 'Pay when it arrives'],
+  sb_nationwide: ['সারাদেশে ডেলিভারি', 'Nationwide delivery'],
+  sb_pay_by: ['{w} দিয়ে পেমেন্ট', 'Pay by {w}'],
+  sb_or_cod: ['অথবা ডেলিভারিতে', 'or on delivery'],
+  sb_track: ['অর্ডার ট্র্যাক করুন', 'Track your order'],
+  sb_any_time: ['যেকোনো সময়', 'Any time'],
+  sb_quotes: ['ক্রেতারা যা বলছেন', 'What our customers say'],
+  sb_up_to: ['{p}% পর্যন্ত ছাড়', 'Up to {p}% off'],
+  sb_save: ['{p}% ছাড়', '{p}% off'],
+  sb_new_kick: ['নতুন কালেকশন', 'New collection'],
+  // SB-12: the draft's preview.
+  sb_preview_bar: [
+    'প্রিভিউ: ক্রেতারা এখনো এটা দেখছেন না। পাবলিশ করলে দেখবেন।',
+    "Preview: shoppers don't see this yet. They will once you publish.",
+  ],
+  sb_preview_ended_h: ['প্রিভিউ শেষ', 'Preview ended'],
+  sb_preview_ended: [
+    'এই প্রিভিউ লিংকের মেয়াদ শেষ। ড্যাশবোর্ড থেকে আবার প্রিভিউ খুলুন।',
+    'This preview link has ended. Open the preview again from your dashboard.',
+  ],
 } as const satisfies Record<string, readonly [string, string]>;

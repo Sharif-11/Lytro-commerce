@@ -11,6 +11,7 @@ import { STOREFRONT_PATH_HEADER, STOREFRONT_QUERY_HEADER } from '@/lib/request-p
 const env = StorefrontEnvironment.shared();
 const policy = new EdgeCachePolicy(env.platformDomain);
 const renderer = new EdgeRenderer(env.selfUrl);
+const PREVIEW_PATH = '/preview';
 
 export async function middleware(request: NextRequest): Promise<Response> {
   const lifetime = policy.lifetimeOf({
@@ -30,7 +31,10 @@ export async function middleware(request: NextRequest): Promise<Response> {
   const headers = new Headers(request.headers);
   headers.set(STOREFRONT_PATH_HEADER, request.nextUrl.pathname);
   headers.set(STOREFRONT_QUERY_HEADER, request.nextUrl.search);
-  return NextResponse.next({ request: { headers } });
+  const response = NextResponse.next({ request: { headers } });
+  // STOREFRONT-BUILDER-PLAN SB-12: a draft's preview is for the one who opened the link, never kept by any cache.
+  if (request.nextUrl.pathname === PREVIEW_PATH) response.headers.set('cache-control', 'no-store');
+  return response;
 }
 
 export const config = { matcher: ['/((?!_next/|fonts/|api/).*)'] };

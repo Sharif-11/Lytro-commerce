@@ -8,6 +8,7 @@ import { leadToMainAddress, loadShopPageUnlessBusy } from '@/lib/storefront';
 import './fonts.css';
 import './storefront.css';
 import './storefront-live.css';
+import './storefront-design.css';
 
 // SFT-01: one app for every shop; the host names the shop, so each page reads it and sets its own title and tags. For
 // an open shop, the frame adds the tab's icon and the iPhone's (BRN-02, Slice 12c) and, while its storefront is on, the

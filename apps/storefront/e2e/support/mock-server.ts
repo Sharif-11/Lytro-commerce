@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { basename, resolve } from 'node:path';
 import {
   OrderStatus,
   PaymentPolicy,
@@ -31,12 +33,20 @@ import {
 export const MOCK_PORT = 4181;
 export const STOREFRONT_PORT = 4180;
 
+// STOREFRONT-BUILDER-PLAN: the builder sketch's sample photos, served as a media host would, so a designed home is drawn
+// with the sketch's own pictures (fixtures' `builderPhoto`).
+const BUILDER_PHOTOS = resolve(__dirname, '../../../../docs/brand/sample-photos/builder');
+/** SB-12: the preview token the mock answers with the shop's draft; any other is refused as ended. */
+export const GOOD_PREVIEW = 'good-preview-token';
+
 interface ShopState {
   fixture: ShopFixture;
   orders: SentOrder[];
   placedByKey: Map<string, { hash: string; placed: unknown }>;
   /** How many order requests arrived, placed or not. */
   orderRequests: number;
+  /** SB-9: each product list's query, as the pages asked it, for a test to read. */
+  listRequests: string[];
   /** CUS-03: each sign-in's phone by its token. */
   tokens: Map<string, string>;
   /** AUTH-14: wrong passwords by phone. */
@@ -680,6 +690,16 @@ async function publicApi(
     return;
   }
   if (path === '/v1/shop') {
+    // SB-12: the draft through a preview link; an ended one is not found.
+    const preview = url.searchParams.get('preview');
+    if (preview !== null) {
+      if (preview !== GOOD_PREVIEW || !fixture.draft) {
+        fail(response, 404, 'not_found');
+        return;
+      }
+      send(response, 200, { ...fixture.info, design: { ...fixture.draft, preview: true } });
+      return;
+    }
     send(response, 200, fixture.info);
     return;
   }
@@ -692,11 +712,27 @@ async function publicApi(
     return;
   }
   if (path === '/v1/catalogue/products') {
+    state.listRequests.push(url.search);
     const limit = Number(url.searchParams.get('limit') ?? 24);
     const category = url.searchParams.get('category');
-    const rows = fixture.products.filter(
-      (row) => category === null || row.product.categoryIds.includes(category),
+    const picked = url.searchParams.get('productIds')?.split(',') ?? null;
+    let rows = fixture.products.filter(
+      (row) =>
+        (category === null || row.product.categoryIds.includes(category)) &&
+        (url.searchParams.get('inStock') !== 'true' || row.card.stockState !== StockState.Out) &&
+        (url.searchParams.get('onSale') !== 'true' || (row.card.bestDiscount ?? 0) > 0) &&
+        (picked === null || picked.includes(row.card.id)),
     );
+    // SB-9: the orders the designed home asks for; the others as listed.
+    const sort = url.searchParams.get('sort');
+    if (sort === 'discount') {
+      rows = [...rows].sort((a, b) => (b.card.bestDiscount ?? 0) - (a.card.bestDiscount ?? 0));
+    } else if (sort === 'best_selling') {
+      rows = [...rows].sort((a, b) => (b.card.ordered ?? 0) - (a.card.ordered ?? 0));
+    }
+    if (picked !== null) {
+      rows = [...rows].sort((a, b) => picked.indexOf(a.card.id) - picked.indexOf(b.card.id));
+    }
     send(response, 200, {
       products: rows.slice(0, limit).map((row) => row.card),
       nextCursor: null,
@@ -751,6 +787,17 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     response.end('<!doctype html><title>The payment page</title><h1>The payment page</h1>');
     return;
   }
+  if (path.startsWith('/__photos/')) {
+    const file = basename(decodeURIComponent(path.slice('/__photos/'.length)));
+    try {
+      const body = await readFile(resolve(BUILDER_PHOTOS, file));
+      response.writeHead(200, { 'content-type': 'image/jpeg', 'cache-control': 'max-age=3600' });
+      response.end(body);
+    } catch {
+      fail(response, 404, 'not_found');
+    }
+    return;
+  }
   if (path === '/__shop' && request.method === 'POST') {
     const fixture = (await readBody(request)) as ShopFixture;
     shops.set(fixture.slug, {
@@ -758,6 +805,7 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
       orders: [],
       placedByKey: new Map(),
       orderRequests: 0,
+      listRequests: [],
       tokens: new Map(),
       wrongTries: new Map(),
       shopperRequests: 0,
@@ -778,6 +826,7 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     const state = shops.get(orders[1]);
     send(response, 200, {
       orders: state?.orders ?? [],
+      listRequests: state?.listRequests ?? [],
       requests: state?.orderRequests ?? 0,
       shopperRequests: state?.shopperRequests ?? 0,
       shoppers: state?.fixture.shoppers ?? [],

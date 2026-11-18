@@ -4,15 +4,8 @@ import type { ReactNode } from 'react';
 import { PaymentMethod, PaymentMethodKind, PaymentWay } from '@lytronix/validators/enums';
 import type { ShopperPaymentMethod } from '@/lib/api/storefront-api';
 import { money, type Words } from '@/lib/i18n/words';
+import { WALLET_NAMES as NAMES } from '@/lib/order/wallet-names';
 import { Icon } from '../icon';
-
-/** The wallets' own names, which no language changes. */
-const NAMES: Readonly<Partial<Record<PaymentMethod, string>>> = {
-  [PaymentMethod.Bkash]: 'bKash',
-  [PaymentMethod.Nagad]: 'Nagad',
-  [PaymentMethod.Rocket]: 'Rocket',
-  [PaymentMethod.Upay]: 'Upay',
-};
 
 /** STOREFRONT-DESIGN §8a: a wallet's official mark, never recoloured; Rocket and Upay in their colours until theirs are fetched. */
 function markOf(method: PaymentMethod, words: Words): { mark: ReactNode; name: string | null } {

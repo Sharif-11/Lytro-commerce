@@ -228,3 +228,45 @@ button.vb.pic img {
   cursor: pointer;
   white-space: nowrap;
 }
+
+/* STOREFRONT-BUILDER-PLAN SB-8: the designed home runs edge to edge; its sections (storefront-design.css) keep their
+   own margins and room, and the footer keeps the page's. */
+.page.full {
+  padding: 0 0 120px;
+  gap: 0;
+  max-width: none;
+}
+.page.full > .foot {
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
+/* STOREFRONT-BUILDER-PLAN SB-8: About the shop, which the sketch did not draw: the seller's words beside their photo on
+   a wide screen, under it on a phone, in the theme's own type and corners. */
+.sfb .sb-about {
+  display: grid;
+  gap: 14px;
+  font-size: 14.5px;
+}
+.sfb .sb-about img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--r-card);
+}
+.sfb .sb-about p {
+  margin: 0;
+  white-space: pre-line;
+}
+@container (min-width: 900px) {
+  .sfb .sb-about {
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 32px;
+  }
+}
+
+/* SB-12: the draft's preview says so at the top of the page, inside the page's margins. */
+.page.full > .banner.preview {
+  margin: 12px 16px 0;
+}

@@ -137,7 +137,11 @@ Done in the server's pull request (2026-11-18).
 
 ## 4. Build
 
-Three pull requests, each from `main`. The server goes first and the screens follow, as every phase does.
+Three pull requests, each from `main`. The server goes first and the screens follow, as every phase does. **Amended
+2026-11-18 (the owner chose "Two PRs (Recommended)"): the storefront is two pull requests, so four in all** -- 2a the
+home page (themes, the sections filling themselves, the draft's preview), then 2b the rest of the shop (the theme's
+header, footer and product card on every page, the badges and the struck regular price on the lists and the product
+page, the shop's icon). The server's merged as #388.
 
 1. **The server.**
    - **Migration:** the shop's design document (draft, published, previous), the shop's icon and the regular price (0143; no new media purpose, SB-14).
@@ -152,6 +156,38 @@ Three pull requests, each from `main`. The server goes first and the screens fol
    - **Preview:** the draft drawn through its signed link.
    - **Icons:** the tab icon and the app's icon from the shop's icon.
    - **Look:** pixel-perfect to the sketch's theme screens, phone first.
+
+   **2a as built (the home page):**
+   - The sketch's shop CSS is ported by script into `apps/storefront/src/app/storefront-design.css`, scoped under
+     `.sfb` with every class named `sb-`, so it and the storefront's own rules never meet. The theme's tokens are its
+     CSS variables; the shop's identity, while it shows, replaces its colours, fonts and corners (SB-18). Every other
+     page's frame takes the theme's main colour and fonts (SB-17), until 2b gives it the theme's header and footer.
+   - **The preview is its own address, `/preview?t=<token>`**, not `/?preview=`: Cloudflare's cache key ignores the
+     query on `/` (DEPLOYMENT.md), so a cached home would answer it. It is `no-store`, a private edge mark, left by the
+     service worker, never read through the storefront's shared one-minute shop read, and not indexed.
+   - Buttons to "on sale" and "best sellers" lead to two new list pages, `/offers` and `/best`, kept at the edge as
+     New arrivals is.
+   - A server that sends no design (an older one, while two run side by side) gets the home as before.
+
+   **2a's named deviations from the sketch:**
+   - **Header and footer:** the storefront's own until 2b, in the theme's colour and fonts; the announcement sits under
+     the header.
+   - **The card's button:** "এখনই কিনুন" (Buy now), opening the product's page: a card can't choose a size or colour,
+     so it never adds to the cart itself.
+   - **No heart on photo cards:** there is no wishlist in the first version (SB-4).
+   - **Delivery** is the range of the shop's own zones' charges, as the home said before, not "in Dhaka": zones carry
+     the shop's own names.
+   - **Savings round down** (SB-21): Velvet gift box reads −13% where the sketch rounds to −14%.
+   - **A hero's words have no emphasised part:** the design document's headline is plain text.
+   - **A hero's dots** show only with more than one slide.
+   - **One photo per slide or banner, with its focal point** (SB-15); the sketch drew separate phone and wide crops.
+   - **Banners' shade** is one fixed gradient; the sketch's per-banner colours were sample art.
+   - **The wallets line** names up to two of the shop's wallets as checkout writes them ("bKash, Nagad দিয়ে
+     পেমেন্ট").
+   - **About the shop** was not drawn: its heading and text in the theme's own style, its photo beside them on a wide
+     screen.
+   - Test pictures: `e2e/design.spec.ts` shoots each theme beside the sketch, phone and desktop, both languages, into
+     `test-results/compare/builder-*`.
 3. **The dashboard.** Settings > Storefront > Design:
    - the section list;
    - the theme gallery;

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { EdgeMark } from '@/components/edge-mark';
-import { HomeView, loadHome } from '@/components/home/home-view';
+import { HomeView, homeProducts, loadHome } from '@/components/home/home-view';
 import { OfflinePage } from '@/components/pages';
 import { loadShopPage } from '@/lib/storefront';
 
@@ -23,7 +23,7 @@ export default withBusyPage(async function HomePage() {
   const home = await loadHome(page);
   return (
     <>
-      <EdgeMark page={page} listing products={home.newest?.products ?? []} />
+      <EdgeMark page={page} listing products={homeProducts(home)} />
       <HomeView page={page} home={home} />
     </>
   );

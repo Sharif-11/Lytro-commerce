@@ -9,20 +9,24 @@ export function EdgeMark({
   page,
   listing,
   products,
+  keepPrivate,
 }: {
   page: OpenShopPage;
   listing?: boolean;
   products?: readonly { id: string }[];
+  /** STOREFRONT-BUILDER-PLAN SB-12: a page for one person (a draft's preview), never kept for anyone else. */
+  keepPrivate?: boolean;
 }) {
   if (page.shopper.forEdge !== true) return null;
-  const mark: Mark = page.savingPaused
-    ? { kind: 'private' }
-    : {
-        kind: 'tags',
-        tags: shopPageTags(page.shop.slug, {
-          ...(listing === undefined ? {} : { listing }),
-          ...(products === undefined ? {} : { products }),
-        }),
-      };
+  const mark: Mark =
+    page.savingPaused || keepPrivate === true
+      ? { kind: 'private' }
+      : {
+          kind: 'tags',
+          tags: shopPageTags(page.shop.slug, {
+            ...(listing === undefined ? {} : { listing }),
+            ...(products === undefined ? {} : { products }),
+          }),
+        };
   return <meta name={EDGE_MARK_NAME} content={edgeMarkContent(mark)} />;
 }

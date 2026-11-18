@@ -20,7 +20,7 @@ const PHOTOS = 'photos';
 const PAGES_KEPT = ${String(PAGES_KEPT)};
 const PHOTOS_KEPT = ${String(PHOTOS_KEPT)};
 const OFFLINE = '/offline';
-const NEVER_KEPT = ['/api/', '/search', '/cart', '/sw.js', '/manifest.webmanifest', '/offline'];
+const NEVER_KEPT = ['/api/', '/search', '/cart', '/sw.js', '/manifest.webmanifest', '/offline', '/preview'];
 
 /** The offline page, and the scripts and styles it names, so it can show without the network. */
 async function keepOffline() {
