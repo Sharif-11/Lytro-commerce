@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IMAGE_LONG_EDGE_PX } from '../../common/limits';
 import { FieldProblemCode } from '../../validation/field-problem';
 import { catalogueIdSchema } from '../catalogue/catalogue-common';
 
@@ -93,6 +94,15 @@ export const STOREFRONT_PLACE_MAX = 40;
 export const STOREFRONT_ABOUT_MAX = 600;
 // SB-15: a slide's or a banner's photo is at least this wide, so a desktop's wide band stays sharp.
 export const STOREFRONT_PHOTO_MIN_WIDTH = 1200;
+
+/**
+ * SB-15: whether a picture this size is wide enough for a slide or a banner once stored -- its long edge cut to
+ * IMAGE_LONG_EDGE_PX, so a tall photo loses width -- as the server will find it. The editor checks before it sends.
+ */
+export function storefrontPhotoFits(width: number, height: number): boolean {
+  const kept = width * Math.min(1, IMAGE_LONG_EDGE_PX / Math.max(width, height, 1));
+  return Math.round(kept) >= STOREFRONT_PHOTO_MIN_WIDTH;
+}
 // SB-12: how long a preview link works.
 export const STOREFRONT_PREVIEW_MINUTES = 30;
 

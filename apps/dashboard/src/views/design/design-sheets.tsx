@@ -1,19 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import type { StorefrontSection } from '@lytronix/validators';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
-import { Switch } from '@/components/ui/switch';
-import type { StorefrontEditor } from '@/types/storefront-design';
 import { NoteLine } from './design-parts';
-import {
-  ADDABLE,
-  sectionIcon,
-  sectionName,
-  sectionSummary,
-  type AddableKind,
-  type DesignChange,
-  wordsText,
-} from './design-words';
+import { ADDABLE, type AddableKind, type DesignChange, wordsText } from './design-words';
 import { EditorIcon, type EditorIconName } from './editor-icon';
 
 // STOREFRONT-BUILDER-PLAN SB-8, SB-9, SB-12: the design page's sheets, as the sketch draws them
@@ -136,81 +125,6 @@ export function PublishSheet({
         )}
         <NoteLine>{t('sdPublishNote')}</NoteLine>
       </div>
-    </Sheet>
-  );
-}
-
-/**
- * A section opened from the list: what it shows, its switch, and Remove. Changing what it holds -- its slides, its
- * products, its words -- comes with each section's own sheet (STOREFRONT-BUILDER-PLAN §4, PR 3b).
- */
-export function SectionSheet({
-  section,
-  editor,
-  disabled,
-  onToggle,
-  onRemove,
-  onClose,
-}: {
-  section: StorefrontSection | null;
-  editor: Pick<StorefrontEditor, 'design' | 'categories' | 'broken'>;
-  disabled: boolean;
-  onToggle: (id: string) => void;
-  onRemove: (id: string) => void;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation('menu');
-  const name = section ? wordsText(t, sectionName(section)) : '';
-  return (
-    <Sheet
-      open={section !== null}
-      title={name}
-      onClose={onClose}
-      footer={
-        section ? (
-          <>
-            <Button
-              tone="outline"
-              disabled={disabled}
-              onClick={() => {
-                onRemove(section.id);
-              }}
-            >
-              {t('sdRemove')}
-            </Button>
-            <Button onClick={onClose}>{t('sdDone')}</Button>
-          </>
-        ) : null
-      }
-    >
-      {section ? (
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <span className="grid size-[42px] flex-none place-items-center rounded-[12px] bg-primary-soft text-primary">
-              <EditorIcon name={sectionIcon(section)} size={22} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <b className="block text-[14.5px] font-bold">
-                {t(section.visible ? 'sdShown' : 'sdHidden')}
-              </b>
-              <span className="text-[12.5px] text-fg-muted">
-                {editor.broken.includes(section.id)
-                  ? t('sdBroken')
-                  : wordsText(t, sectionSummary({ ...section, visible: true }, editor))}
-              </span>
-            </span>
-            <Switch
-              checked={section.visible}
-              label={t('sdShow', { name })}
-              disabled={disabled}
-              onChange={() => {
-                onToggle(section.id);
-              }}
-            />
-          </div>
-          <NoteLine>{t('sdHideKeeps')}</NoteLine>
-        </div>
-      ) : null}
     </Sheet>
   );
 }

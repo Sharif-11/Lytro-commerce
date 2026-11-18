@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import sharp, { type Sharp } from 'sharp';
+import { IMAGE_LONG_EDGE_PX } from '@lytronix/validators';
 import { MediaRefused } from '../../../common/errors/media-refused';
 
-// STO-04: the long edge of the stored image and of its thumbnail, and the WebP quality of both.
-export const IMAGE_LONG_EDGE_PX = 1600;
+// STO-04: the long edge of the stored image (IMAGE_LONG_EDGE_PX, shared with the editors that check a photo before
+// sending it) and of its thumbnail, and the WebP quality of both.
 export const THUMBNAIL_LONG_EDGE_PX = 300;
 const WEBP_QUALITY = 80;
 // A decompression bomb (a small file that decodes to an enormous picture) is refused before it is decoded. 50

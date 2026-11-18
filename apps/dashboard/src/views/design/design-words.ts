@@ -220,8 +220,15 @@ export function canAddSection(design: StorefrontDesign): boolean {
   return design.sections.length < STOREFRONT_SECTIONS_MAX;
 }
 
-/** What "Add a section" offers: each kind that fills itself, ready the moment it is added. */
-export type AddableKind = 'hero' | 'products' | 'categories' | 'offers' | 'trust' | 'announcement';
+/** The kinds that fill themselves, ready the moment they are added. */
+export type SelfFillingKind =
+  'hero' | 'products' | 'categories' | 'offers' | 'trust' | 'announcement';
+
+/** The kinds that need the seller's own words or photo first: their sheet opens, and they join once they hold them. */
+export type WrittenKind = 'wide' | 'quotes' | 'about';
+
+/** What "Add a section" offers, in the sketch's order (`e-add`). */
+export type AddableKind = SelfFillingKind | WrittenKind;
 
 export const ADDABLE: readonly {
   kind: AddableKind;
@@ -233,12 +240,20 @@ export const ADDABLE: readonly {
   { kind: 'products', icon: 'tag', name: 'sdKProducts', line: 'sdAddProducts' },
   { kind: 'categories', icon: 'grid', name: 'sdKCategories', line: 'sdAddCategories' },
   { kind: 'offers', icon: 'banner', name: 'sdKOffers', line: 'sdAddOffers' },
+  { kind: 'wide', icon: 'wide', name: 'sdKWide', line: 'sdAddWide' },
   { kind: 'trust', icon: 'shield', name: 'sdKTrust', line: 'sdAddTrust' },
+  { kind: 'quotes', icon: 'quote', name: 'sdKQuotes', line: 'sdAddQuotes' },
+  { kind: 'about', icon: 'store', name: 'sdKAbout', line: 'sdAddAbout' },
   { kind: 'announcement', icon: 'mega', name: 'sdKAnnouncement', line: 'sdAddAnnouncement' },
 ];
 
+/** Whether a kind is added at once, filling itself, or opens its sheet first. */
+export function fillsItself(kind: AddableKind): kind is SelfFillingKind {
+  return kind !== 'wide' && kind !== 'quotes' && kind !== 'about';
+}
+
 /** SB-9: a new section of this kind, filling itself; product rows start as the newest four in a grid. */
-export function newSection(kind: AddableKind, id: string): StorefrontSection {
+export function newSection(kind: SelfFillingKind, id: string): StorefrontSection {
   const base = { id, visible: true };
   switch (kind) {
     case 'hero':

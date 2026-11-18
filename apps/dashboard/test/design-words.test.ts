@@ -18,6 +18,7 @@ import {
   addSection,
   canAddSection,
   changesOf,
+  fillsItself,
   moveSection,
   newSection,
   removeSection,
@@ -78,6 +79,8 @@ describe('the edits a list makes (SB-8)', () => {
     expect(hidden.sections[1]).toEqual({ ...second, visible: false });
     expect(removeSection(start, second.id).sections).toHaveLength(start.sections.length - 1);
     for (const [at, addable] of ADDABLE.entries()) {
+      // A wide banner, testimonials and About open their sheet first (section-drafts.test.ts).
+      if (!fillsItself(addable.kind)) continue;
       const id = `00000000-0000-4000-8000-${String(900 + at).padStart(12, '0')}`;
       const added = addSection(start, newSection(addable.kind, id));
       expect(storefrontDesignSchema.safeParse(added).success).toBe(true);
@@ -149,8 +152,10 @@ describe('the words the editor builds (I18N-01)', () => {
   it('finds each in both dictionaries, for every kind of section, every source and every tile', () => {
     const sections: StorefrontSection[] = [
       ...Object.values(StorefrontThemeKey).flatMap((theme) => startingDesign(theme).sections),
-      ...ADDABLE.map((addable, at) =>
-        newSection(addable.kind, `00000000-0000-4000-8000-${String(at).padStart(12, '0')}`),
+      ...ADDABLE.flatMap((addable, at) =>
+        fillsItself(addable.kind)
+          ? [newSection(addable.kind, `00000000-0000-4000-8000-${String(at).padStart(12, '0')}`)]
+          : [],
       ),
       ...Object.values(ProductRowSource).map(
         (source) =>

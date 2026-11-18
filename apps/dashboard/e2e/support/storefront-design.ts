@@ -29,6 +29,23 @@ export interface DesignFixture {
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const photo = (n: number) => ({ mediaId: id(500 + n), focusX: 50, focusY: 40 });
 
+/** Where the mock serves the sketch's own sample photos (docs/brand/sample-photos/builder). */
+export const BUILDER_PHOTOS = '/__builder/';
+// The sketch's photos the drawn design's slides (1-3) and banners (4, 5) show.
+const PHOTOS: Readonly<Record<number, string>> = {
+  1: 'beauty-1-wide',
+  2: 'beauty-3-wide',
+  3: 'beauty-5-wide',
+  4: 'beauty-3-wide',
+  5: 'beauty-5-wide',
+};
+const IMAGES = Object.fromEntries(
+  Object.entries(PHOTOS).map(([n, file]) => {
+    const url = `${BUILDER_PHOTOS}${file}.jpg`;
+    return [id(500 + Number(n)), { id: id(500 + Number(n)), urls: { main: url, thumbnail: url } }];
+  }),
+);
+
 /**
  * The sketch's editor (docs/brand/lytro-storefront-builder.html, `ED_ROWS`): on the Soft theme, an announcement on auto,
  * three slides of the shop's own, the categories, the six newest in a carousel, two banners, the four best sellers in a
@@ -151,7 +168,7 @@ function editorOf(fixture: DesignFixture): StorefrontEditor {
     canGoBack: fixture.previous !== null,
     draftSavedAt: fixture.draft ? new Date().toISOString() : null,
     publishedAt: fixture.published ? new Date(Date.now() - 86_400_000).toISOString() : null,
-    images: {},
+    images: IMAGES,
     categories: [],
     products: [],
     broken: fixture.broken,

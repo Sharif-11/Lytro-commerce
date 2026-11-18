@@ -1,3 +1,4 @@
+import { basename, resolve } from 'node:path';
 import type { Page, Route } from '@playwright/test';
 import type { HelpLineView, ListenerAppRead } from '@lytronix/validators';
 import {
@@ -36,7 +37,13 @@ import { categoryList, categoryWrite } from './categories';
 import { DRAWN_HELP_LINE, faultFor, type Fault } from './p88-help-mock';
 import { brandAnswer, brandWrite, drawnBrand, liveBrand, type BrandFixture } from './brand';
 import { domainAnswer, domainWrite, noDomain, ownDomainOf, type DomainFixture } from './domain';
-import { designAnswer, designWrite, drawnDesign, type DesignFixture } from './storefront-design';
+import {
+  BUILDER_PHOTOS,
+  designAnswer,
+  designWrite,
+  drawnDesign,
+  type DesignFixture,
+} from './storefront-design';
 import {
   drawnProducts,
   MEDIA_UPLOAD_PREFIX,
@@ -650,6 +657,16 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
   // The payment page is another site: the browser goes there, and the test stops at its door.
   await page.route('https://pay.example.test/**', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'text/html', body: '<p>payment page</p>' }),
+  );
+  // STOREFRONT-BUILDER-PLAN: the design's photos are the builder sketch's own sample photos.
+  await page.route(`**${BUILDER_PHOTOS}**`, (route: Route) =>
+    route.fulfill({
+      path: resolve(
+        import.meta.dirname,
+        '../../../../docs/brand/sample-photos/builder',
+        basename(new URL(route.request().url()).pathname),
+      ),
+    }),
   );
   // STOREFRONT-BUILDER-PLAN SB-12: the design editor frames the shop's own storefront; a stand-in, never the real one.
   await page.route('https://*.lytro.app/**', (route: Route) =>
