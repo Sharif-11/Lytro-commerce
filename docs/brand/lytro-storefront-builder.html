@@ -676,7 +676,7 @@ function offersLine(shop) {
 const SECTIONS = {
   // The owner, 2026-11-18: one list, two items at a time, the next two every 4 seconds (Bonik's ticker); the bar
   // leaves as the page scrolls and the header stays.
-  announce: (theme, shop, own = []) => `<div class="ann rot" data-sec="${T(SEC_NAMES.announce)}">${annPairs(annItems(shop, own)).map((pair, at) => `<div class="fr ${at === 0 ? 'on' : ''}">${pair.join('<span class="sep">·</span>')}</div>`).join('')}</div>`,
+  announce: (theme, shop, own = []) => `<div class="ann rot" data-sec="${T(SEC_NAMES.announce)}">${annPairs(annItems(shop, own)).map((pair, at) => `<div class="fr ${at === 0 ? 'on' : ''}">${pair.join('<span class="sep">·</span><wbr>')}</div>`).join('')}</div>`,
 
   header: (theme, shop) => {
     const kind = THEMES[theme].header;
@@ -1034,10 +1034,10 @@ Object.assign(EDITOR, {
     note: ['ঘোষণার লাইন (মালিকের সিদ্ধান্ত, ২০২৬-১১-১৮): একটা তালিকা, দুটো করে দেখায়, ৪ সেকেন্ড পর পরের দুটো (৫টি থাকলে ১-২, ৩-৪, তারপর ৫)। অটো তিনটি: ক্যাশ অন ডেলিভারি, ডেলিভারি চার্জ আর চলমান অফার (অফার না থাকলে নিজে সরে যায়); প্রতিটি বন্ধ করা যায়। নিজের লাইন ৪০ অক্ষর পর্যন্ত, সব মিলিয়ে ৬টি। পেজ স্ক্রল করলে লাইনটা সরে যায়, হেডার থাকে।', 'The announcement bar (the owner, 2026-11-18): one list shown two at a time, the next two after 4 seconds (with five: 1-2, 3-4, then 5). Three are automatic: cash on delivery, the delivery charges and the offers on now (gone by itself with no offer); each can be turned off. Your own lines up to 40 characters, six in all. Scrolling the page hides the bar; the header stays.'],
     render: (d) => {
       const own = ANN_OWN();
-      const items = [[L('ক্যাশ অন ডেলিভারি', 'Cash on delivery'), true], [deliveryLine().replace(/<[^>]+>/g, ''), true], [offerItem(SAMPLE()).replace(/<span class="pill">.*?<\/span>/, ''), true], [own, false]];
+      const items = [[L('ক্যাশ অন ডেলিভারি', 'Cash on delivery'), true], [deliveryLine().replace(/<span class="sep">·<\/span><wbr>/g, ' · ').replace(/<[^>]+>/g, ''), true], [offerItem(SAMPLE()).replace(/<span class="pill">.*?<\/span>/, ''), true], [own, false]];
       const rows = items.map(([text, auto]) => `<div class="srow"><span class="grip">${ic('up')}${ic('down')}</span><span class="nm"><b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${text}</b><span>${auto ? L('অটো · শপের তথ্য থেকে', 'Auto · from your shop') : L('নিজের লেখা', 'Your own words')}</span></span>${auto ? '<span class="switch"></span>' : `<span class="chev">${ic('chev')}</span>`}</div>`).join('');
       const frames = annPairs(annItems(SAMPLE(), [own]));
-      const seen = frames.map((pair, at) => `${at ? `<div class="annstep">${L('৪ সেকেন্ড পর', 'After 4 seconds')} ↓</div>` : ''}<div class="annprev">${pair.join('<span class="sep">·</span>')}</div>`).join('') + `<div class="annstep">${L('তারপর আবার প্রথম দুটো', 'Then the first two again')}</div>`;
+      const seen = frames.map((pair, at) => `${at ? `<div class="annstep">${L('৪ সেকেন্ড পর', 'After 4 seconds')} ↓</div>` : ''}<div class="annprev">${pair.join('<span class="sep">·</span><wbr>')}</div>`).join('') + `<div class="annstep">${L('তারপর আবার প্রথম দুটো', 'Then the first two again')}</div>`;
       const inner = `<div class="field"><label>${L('লাইনগুলো (৬টির মধ্যে ৪টি), এই ক্রমে', 'Lines (4 of 6), in this order')}</label>${rows}${addQuiet(L('নিজের লাইন যোগ করুন', 'Add a line of your own'))}</div>`
         + `<div class="field" style="margin-bottom:6px"><label>${L('দোকানে যেমন দেখাবে: দুটো করে', 'As shoppers see it: two at a time')}</label></div>${seen}`
         + `<div class="note-line" style="margin-top:10px">${ic('info')}<span>${L('অফারের লাইন শুধু অফার চললে দেখায়, শেষ হলে নিজে সরে যায়। ক্রেতা পেজ নিচে স্ক্রল করলে লাইনটা সরে যায়, হেডার উপরে থাকে; একেবারে উপরে ফিরলে আবার দেখায়।', 'The offers line shows only while something is on sale. When a shopper scrolls down the bar leaves and the header stays; back at the top, it returns.')}</span></div>`;
@@ -1131,12 +1131,13 @@ Object.assign(P, {
 
 // The bar's items: cash on delivery, the highest delivery charge in and outside Dhaka (the owner's wording), the offers on
 // now (only while something is on sale), then the seller's own lines; shown two at a time.
-const deliveryLine = () => L(`<span class="nw">ঢাকায় ডেলিভারি সর্বোচ্চ ৳${bnNum(DELIVERY.dhaka)}</span> · <span class="nw">ঢাকার বাইরে সর্বোচ্চ ৳${bnNum(DELIVERY.outside)}</span>`, `<span class="nw">Delivery in Dhaka up to ${money(DELIVERY.dhaka)}</span> · <span class="nw">outside Dhaka up to ${money(DELIVERY.outside)}</span>`);
+// Each zone by the shop's name for it (DLV-01 names them after the home area until the seller renames them).
+const deliveryLine = () => L(`<span class="nw">ঢাকা সিটির ভেতরে ডেলিভারি সর্বোচ্চ ${money(DELIVERY.dhaka)}</span><span class="sep">·</span><wbr><span class="nw">ঢাকা সিটির বাইরে সর্বোচ্চ ${money(DELIVERY.outside)}</span>`, `<span class="nw">Inside Dhaka city: delivery up to ${money(DELIVERY.dhaka)}</span><span class="sep">·</span><wbr><span class="nw">Outside Dhaka city: up to ${money(DELIVERY.outside)}</span>`);
 function offerItem(shop) {
   const on = shop.products.filter((p) => p.was);
   if (on.length === 0) return null;
   const best = Math.max(...on.map(pct));
-  return `<span class="pill">${L('অফার', 'Offer')}</span>${L(`${bnNum(on.length)}টি পণ্যে ${bnNum(best)}% পর্যন্ত ছাড় চলছে`, `Up to ${best}% off on ${on.length} products`)}`;
+  return `<span class="pill">${L('অফার', 'Offer')}</span>${L(`${on.length}টি পণ্যে ${best}% পর্যন্ত ছাড় চলছে`, `Up to ${best}% off on ${on.length} products`)}`;
 }
 function annItems(shop, own = []) {
   return [`<span class="nw">${L('ক্যাশ অন ডেলিভারি', 'Cash on delivery')}</span>`, deliveryLine(), offerItem(shop), ...own].filter(Boolean);
@@ -1171,10 +1172,10 @@ function placeOf(shop, kind, skip = []) {
   if (kind === 'sale') {
     const on = shop.products.filter((x) => x.was);
     const best = Math.max(...on.map(pct));
-    return { p, i: p.i, k: L('অফার চলছে', 'Offers on'), b: L(`${bnNum(best)}% পর্যন্ত ছাড়`, `Up to ${best}% off`), s: L(`${bnNum(on.length)}টি পণ্যে`, `On ${on.length} products`) };
+    return { p, i: p.i, k: L('অফার চলছে', 'Offers on'), b: L(`${best}% পর্যন্ত ছাড়`, `Up to ${best}% off`), s: L(`${on.length}টি পণ্যে`, `On ${on.length} products`) };
   }
   if (kind === 'latest') return { p, i: p.i, k: L('নতুন এসেছে', 'Just in'), b: T(p.n), s: money(p.price) };
-  return { p, i: p.i, k: L('সবচেয়ে বেশি বিক্রি', 'Best seller'), b: T(p.n), s: L(`${bnNum(p.sold)} বার অর্ডার হয়েছে`, `Ordered ${p.sold} times`) };
+  return { p, i: p.i, k: L('সবচেয়ে বেশি বিক্রি', 'Best seller'), b: T(p.n), s: p.sold ? L(`${p.sold} বার অর্ডার হয়েছে`, `Ordered ${p.sold} times`) : '' };
 }
 
 // The hero's "Slide and two tiles", upgraded: the slide rotates through what the seller chose (offers, newest, best

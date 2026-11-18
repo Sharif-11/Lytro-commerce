@@ -1,14 +1,20 @@
-import { StorefrontSectionKind, type StorefrontSection } from '@lytronix/validators';
+import {
+  StorefrontSectionKind,
+  type StorefrontCollection,
+  type StorefrontSection,
+} from '@lytronix/validators';
 import type {
+  ProductCard,
   ProductPage,
   ProductQuery,
   PublicShop,
   PublicStorefrontDesign,
 } from '@/lib/api/storefront-api';
 import { designLook } from '@/lib/design/design-look';
+import { type CollectionFacts, collectionKey, collectionQuery } from '@/lib/design/collections';
 import {
   type DesignedHomeReads,
-  HERO_AUTO_SLIDES,
+  fallbackReads,
   homeReadPlan,
   queryKey,
 } from '@/lib/design/home-reads';
@@ -32,7 +38,8 @@ import {
 const NO_PRODUCTS: ProductPage = { products: [], nextCursor: null };
 
 /** The reads the design's sections need, made by the page itself so a busy server shows the busy page (Slice 9.10). One
-    request asked once, however many sections ask it; the auto hero reads the newest only when nothing is on sale. */
+    request asked once, however many sections ask it; an auto hero reads the newest only when its own source is empty,
+    and the standard collections are read only when one a tile or banner shows is (BL-13). */
 export async function loadDesignedHome(
   page: OpenShopPage,
   design: PublicStorefrontDesign,
@@ -50,30 +57,35 @@ export async function loadDesignedHome(
     }
     return reading;
   };
-  const onSale = { sort: 'discount', onSale: true, inStock: true } as const;
-  const newest = { sort: 'newest', inStock: true } as const;
-  const [rows, hero, offers, methods] = await Promise.all([
+  const readCollections = (collections: readonly StorefrontCollection[]) =>
+    Promise.all(
+      collections.map(async (collection) => {
+        const query = collectionQuery(collection, design.categories);
+        const products = query ? (await read(query)).products : [];
+        return [collectionKey(collection), products] as const;
+      }),
+    );
+  const [rows, heroes, chosen, methods] = await Promise.all([
     Promise.all(
       plan.rows.map(async (row) => [row.sectionId, (await read(row.query)).products] as const),
     ),
-    plan.hero
-      ? read({ ...onSale, limit: HERO_AUTO_SLIDES }).then(async (sale) =>
-          sale.products.length > 0
-            ? sale.products
-            : (await read({ ...newest, limit: HERO_AUTO_SLIDES })).products,
-        )
-      : Promise.resolve([]),
-    plan.offers
-      ? Promise.all([read({ ...onSale, limit: 1 }), read({ ...newest, limit: 1 })]).then(
-          ([sale, latest]) => ({
-            saving: sale.products[0] ?? null,
-            newest: latest.products[0] ?? null,
-          }),
-        )
-      : Promise.resolve({ saving: null, newest: null }),
+    Promise.all(
+      plan.heroes.map(async (hero) => {
+        const products = (await read(hero.query)).products;
+        return [
+          hero.sectionId,
+          products.length > 0 || !hero.fallback ? products : (await read(hero.fallback)).products,
+        ] as const;
+      }),
+    ),
+    readCollections(plan.collections),
     plan.methods ? storefrontApi.paymentMethods(page.shop, page.shopper) : Promise.resolve([]),
   ]);
-  return { rows: new Map(rows), hero, offers, methods };
+  const collections = new Map<string, ProductCard[]>(chosen);
+  for (const [key, products] of await readCollections(fallbackReads(plan, collections))) {
+    collections.set(key, products);
+  }
+  return { rows: new Map(rows), heroes: new Map(heroes), collections, methods };
 }
 
 function DesignedSection({
@@ -96,12 +108,26 @@ function DesignedSection({
   look: ReturnType<typeof designLook>;
 }) {
   const theme = look.theme;
+  // BL-12: what the tiles and the auto banners draw from.
+  const collections: CollectionFacts = {
+    lists: reads.collections,
+    categories: frame.categories,
+    sale: info.sale ?? { products: 0, bestDiscount: 0 },
+    words,
+  };
   switch (section.kind) {
     case StorefrontSectionKind.Announcement:
       return <Announcement section={section} info={info} words={words} />;
     case StorefrontSectionKind.Hero:
       return (
-        <Hero section={section} design={design} theme={theme} products={reads.hero} words={words} />
+        <Hero
+          section={section}
+          design={design}
+          theme={theme}
+          products={reads.heroes.get(section.id) ?? []}
+          collections={collections}
+          words={words}
+        />
       );
     case StorefrontSectionKind.Categories:
       return (
@@ -119,7 +145,9 @@ function DesignedSection({
         />
       );
     case StorefrontSectionKind.OfferBanners:
-      return <OfferBanners section={section} design={design} offers={reads.offers} words={words} />;
+      return (
+        <OfferBanners section={section} design={design} collections={collections} words={words} />
+      );
     case StorefrontSectionKind.WideBanner:
       return <WideBanner section={section} design={design} />;
     case StorefrontSectionKind.Trust:

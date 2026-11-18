@@ -41,12 +41,9 @@ export async function loadHome(page: OpenShopPage): Promise<HomeReads> {
 /** D9-32: every product the home shows, so a change to any of them purges it from the edge. */
 export function homeProducts(home: HomeReads): Card[] {
   if (!home.designed) return home.newest?.products ?? [];
-  const { rows, hero, offers } = home.designed;
-  return [
-    ...[...rows.values()].flat(),
-    ...hero,
-    ...[offers.saving, offers.newest].filter((card): card is Card => card !== null),
-  ];
+  const { rows, heroes, collections } = home.designed;
+  // BL-12: a tile's or a banner's collection, all it read, since its photo may move to any of them.
+  return [...rows.values(), ...heroes.values(), ...collections.values()].flat();
 }
 
 /** STOREFRONT-DESIGN §2, Slice 12b's read: the home from the shop's own data only -- the hero (Welcome, its name, its
@@ -80,7 +77,9 @@ export function HomeView({
         full
         notice={notice}
         above={
-          leading ? <Announcement section={leading} info={page.info} words={words} /> : undefined
+          leading ? (
+            <Announcement section={leading} info={page.info} words={words} pinned />
+          ) : undefined
         }
       >
         <DesignedHome

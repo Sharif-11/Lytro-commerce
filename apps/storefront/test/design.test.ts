@@ -1,8 +1,10 @@
 import {
+  AnnouncementItemKind,
   BrandCorners,
   BrandFont,
   BrandSpacing,
   fontStack,
+  HeroDesign,
   ProductRowLayout,
   ProductRowSource,
   STOREFRONT_THEMES,
@@ -16,11 +18,31 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import type { ServerAnswer } from '../src/lib/api/server-api';
-import type { PublicBrand, PublicStorefrontDesign } from '../src/lib/api/storefront-api';
+import type {
+  DeliveryZoneView,
+  ProductCard,
+  PublicBrand,
+  PublicStorefrontDesign,
+} from '../src/lib/api/storefront-api';
 import { productQueryString, StorefrontApi } from '../src/lib/api/storefront-api';
 import { iconVersion, themeColor } from '../src/lib/app/app-manifest';
 import { designLook, frameBrand, pageTheme, triedTheme } from '../src/lib/design/design-look';
-import { homeReadPlan, queryKey, rowQuery } from '../src/lib/design/home-reads';
+import { barItems, barPairs, deliveryParts } from '../src/lib/design/announcement';
+import {
+  collectionKey,
+  collectionQuery,
+  collectionViews,
+  type CollectionFacts,
+} from '../src/lib/design/collections';
+import {
+  fallbackReads,
+  hasTiles,
+  heroQuery,
+  homeReadPlan,
+  queryKey,
+  rowQuery,
+} from '../src/lib/design/home-reads';
+import { Words } from '../src/lib/i18n/words';
 import { linkHref } from '../src/lib/design/links';
 import { firstLetter } from '../src/lib/design/marks';
 import { EdgeCachePolicy } from '../src/lib/edge/edge-cache';
@@ -90,10 +112,14 @@ describe('what each product row asks for (SB-9)', () => {
     expect(rowQuery(row(ProductRowSource.Picked, { productIds: ['gone'] }), reach)).toBeNull();
   });
 
-  it("plans a starting design's reads once each: its rows, the auto hero, the offers and the trust strip's wallets", () => {
+  it("plans a starting design's reads once each: its rows, the auto hero, the banners' collections and the trust strip's wallets", () => {
     const start = startingDesign(StorefrontThemeKey.Royal);
     const plan = homeReadPlan({ ...design([]), sections: start.sections });
-    expect(plan).toMatchObject({ hero: true, offers: true, methods: true });
+    expect(plan.methods).toBe(true);
+    expect(plan.heroes).toHaveLength(1);
+    expect(plan.heroes[0]?.query).toMatchObject({ sort: 'discount', onSale: true, limit: 3 });
+    // Royal's hero is an overlay, with no tiles to read for; its banners fill themselves from three collections.
+    expect(plan.collections.map(collectionKey)).toEqual(['on_sale', 'just_in', 'best_sellers']);
     expect(plan.rows.map((each) => each.query.sort)).toEqual(['best_selling', 'discount']);
     expect(queryKey({ sort: 'newest', limit: 4 })).toBe(queryKey({ limit: 4, sort: 'newest' }));
   });
@@ -102,6 +128,212 @@ describe('what each product row asks for (SB-9)', () => {
     expect(productQueryString({ sort: 'discount', onSale: true, productIds: ['a', 'b'] })).toBe(
       'sort=discount&onSale=true&productIds=a%2Cb',
     );
+  });
+});
+
+describe("the hero's tiles and the banners' collections (BL-2 to BL-13)", () => {
+  const card = (n: number, extra: Partial<ProductCard> = {}): ProductCard =>
+    ({
+      id: `p${String(n)}`,
+      slug: `p${String(n)}`,
+      name: `Product ${String(n)}`,
+      image: { id: `i${String(n)}`, urls: { main: `/p${String(n)}.jpg` } },
+      minPrice: '500',
+      ...extra,
+    }) as unknown as ProductCard;
+  const facts = (
+    lists: Record<string, ProductCard[]>,
+    sale = { products: 2, bestDiscount: 25 },
+  ): CollectionFacts => ({
+    lists: new Map(Object.entries(lists)),
+    categories: [
+      {
+        id: CATEGORY.id,
+        slug: CATEGORY.slug,
+        name: 'Winter',
+        image: null,
+        productCount: 7,
+        children: [],
+      },
+    ],
+    sale,
+    words: new Words('en'),
+  });
+  const hero = (extra: Record<string, unknown>) =>
+    ({
+      ...startingDesign(StorefrontThemeKey.Royal).sections.find(
+        (section) => section.kind === StorefrontSectionKind.Hero,
+      ),
+      ...extra,
+    }) as Extract<StorefrontSection, { kind: StorefrontSectionKind.Hero }>;
+
+  it('reads three of the source the seller chose, the offers and best sellers falling back to the newest (BL-3, BL-5)', () => {
+    expect(heroQuery(ProductRowSource.OnSale)).toMatchObject({
+      query: { sort: 'discount', onSale: true },
+      fallback: { sort: 'newest' },
+    });
+    expect(heroQuery(ProductRowSource.BestSellers)).toMatchObject({
+      query: { sort: 'best_selling' },
+      fallback: { sort: 'newest' },
+    });
+    expect(heroQuery(ProductRowSource.Newest)).toMatchObject({
+      query: { sort: 'newest' },
+      fallback: null,
+    });
+  });
+
+  it("draws tiles only for the slide-and-tiles design, its own or its theme's (BL-2)", () => {
+    expect(hasTiles(hero({ design: null }), design([]))).toBe(false);
+    expect(hasTiles(hero({ design: HeroDesign.SlideTiles }), design([]))).toBe(true);
+    const tiles = hero({
+      design: HeroDesign.SlideTiles,
+      tiles: [
+        { kind: StorefrontLinkKind.JustIn },
+        { kind: StorefrontLinkKind.Category, categoryId: CATEGORY.id },
+      ],
+    });
+    expect(homeReadPlan(design([tiles])).collections.map(collectionKey)).toEqual([
+      'just_in',
+      'category:c1',
+    ]);
+    expect(
+      collectionQuery({ kind: StorefrontLinkKind.Category, categoryId: 'gone' }, [CATEGORY]),
+    ).toBeNull();
+  });
+
+  it("shows each collection's words, a photo the slide or an earlier place doesn't, and its page behind a tap (BL-12)", () => {
+    const views = collectionViews(
+      [{ kind: StorefrontLinkKind.OnSale }, { kind: StorefrontLinkKind.BestSellers }],
+      facts({
+        on_sale: [card(1), card(2)],
+        best_sellers: [card(2, { ordered: 12 }), card(3, { ordered: 4 })],
+      }),
+      ['p1'],
+    );
+    expect(views).toMatchObject([
+      {
+        productId: 'p2',
+        kicker: 'Offers on',
+        headline: 'Up to 25% off',
+        description: 'On 2 products',
+        href: '/offers',
+      },
+      {
+        productId: 'p3',
+        kicker: 'Best sellers',
+        headline: 'Product 3',
+        description: 'Ordered 4 times',
+        href: '/best',
+      },
+    ]);
+    const category = collectionViews(
+      [{ kind: StorefrontLinkKind.Category, categoryId: CATEGORY.id }],
+      facts({ 'category:c1': [card(5)] }),
+    );
+    expect(category).toMatchObject([
+      { productId: 'p5', kicker: '7 products', headline: 'Winter', href: '/c/winter' },
+    ]);
+  });
+
+  it('gives an empty collection the next one no other place shows, else leaves it, reading those only then (BL-13)', () => {
+    const nothingOnSale = { products: 0, bestDiscount: 0 };
+    const views = collectionViews(
+      [{ kind: StorefrontLinkKind.OnSale }, { kind: StorefrontLinkKind.JustIn }],
+      facts({ on_sale: [], just_in: [card(1)], best_sellers: [card(2)] }, nothingOnSale),
+    );
+    expect(views.map((view) => view.href)).toEqual(['/best', '/new']);
+    expect(
+      collectionViews([{ kind: StorefrontLinkKind.OnSale }], facts({ on_sale: [] }, nothingOnSale)),
+    ).toEqual([]);
+    const plan = {
+      collections: [{ kind: StorefrontLinkKind.OnSale }, { kind: StorefrontLinkKind.JustIn }],
+    } as const;
+    const full = new Map([
+      ['on_sale', [card(1)]],
+      ['just_in', [card(2)]],
+    ]);
+    expect(fallbackReads(plan, full)).toEqual([]);
+    const empty = new Map([
+      ['on_sale', []],
+      ['just_in', [card(2)]],
+    ]);
+    expect(fallbackReads(plan, empty)).toEqual([{ kind: StorefrontLinkKind.BestSellers }]);
+  });
+});
+
+describe('the announcement bar (BL-10, BL-17)', () => {
+  const zones: DeliveryZoneView[] = [
+    {
+      id: 'h',
+      name: { bn: 'ঢাকা সিটির ভেতরে', en: 'Inside Dhaka city' },
+      charge: '70.00',
+      noDelivery: false,
+      kind: 'home',
+    },
+    {
+      id: 'f',
+      name: { bn: 'ঢাকা সিটির বাইরে', en: 'Outside Dhaka city' },
+      charge: '130.00',
+      noDelivery: false,
+      kind: 'fallback',
+    },
+    {
+      id: 's',
+      name: { bn: 'সাভার', en: 'Savar' },
+      charge: '100.00',
+      noDelivery: false,
+      kind: 'other',
+    },
+    {
+      id: 'n',
+      name: { bn: 'বান্দরবান', en: 'Bandarban' },
+      charge: '300.00',
+      noDelivery: true,
+      kind: 'other',
+    },
+  ];
+  const bn = new Words('bn');
+
+  it("says the home zone's charge and the highest elsewhere, or where each starts with a charge per kilo (RAT-14)", () => {
+    expect(deliveryParts({ deliveryZones: zones, extraDeliveryChargePerKg: '0.00' }, bn)).toEqual([
+      'ঢাকা সিটির ভেতরে ডেলিভারি সর্বোচ্চ ৳70',
+      'ঢাকা সিটির বাইরে সর্বোচ্চ ৳130',
+    ]);
+    expect(deliveryParts({ deliveryZones: zones, extraDeliveryChargePerKg: '20.00' }, bn)).toEqual([
+      'ঢাকা সিটির ভেতরে ডেলিভারি ৳70 থেকে',
+      'ঢাকা সিটির বাইরে ৳100 থেকে',
+    ]);
+    // An older server names no zone's kind: the range, as before.
+    const older = zones.map((zone) => ({ ...zone, kind: undefined }));
+    expect(deliveryParts({ deliveryZones: older }, bn)).toEqual(['ডেলিভারি ৳70–৳130']);
+  });
+
+  it("lists the items in the seller's order, those off or with nothing to say left out, two at a time", () => {
+    const items = barItems(
+      [
+        { kind: AnnouncementItemKind.CashOnDelivery, visible: true },
+        { kind: AnnouncementItemKind.Delivery, visible: false },
+        { kind: AnnouncementItemKind.Offers, visible: true },
+        { kind: AnnouncementItemKind.Own, text: 'Eid gifts' },
+        { kind: AnnouncementItemKind.Own, text: 'Free wrapping' },
+      ],
+      { deliveryZones: zones, sale: { products: 3, bestDiscount: 25 } },
+      new Words('en'),
+    );
+    expect(items).toEqual([
+      { parts: ['Cash on delivery'], pill: null },
+      { parts: ['Up to 25% off on 3 products'], pill: 'Offer' },
+      { parts: ['Eid gifts'], pill: null },
+      { parts: ['Free wrapping'], pill: null },
+    ]);
+    expect(barPairs(items).map((pair) => pair.length)).toEqual([2, 2]);
+    expect(barPairs([1, 2, 3, 4, 5])).toEqual([[1, 2], [3, 4], [5]]);
+    const nothingOnSale = barItems(
+      [{ kind: AnnouncementItemKind.Offers, visible: true }],
+      { deliveryZones: [], sale: { products: 0, bestDiscount: 0 } },
+      bn,
+    );
+    expect(nothingOnSale).toEqual([]);
   });
 });
 

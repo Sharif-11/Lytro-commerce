@@ -1,4 +1,6 @@
 import {
+  BannerLayout,
+  bannerLayoutFor,
   CategoryTileStyle,
   ProductRowLayout,
   ProductRowSource,
@@ -15,9 +17,16 @@ import type {
   PublicStorefrontDesign,
   ShopperPaymentMethod,
 } from '@/lib/api/storefront-api';
+import { barItems, barPairs } from '@/lib/design/announcement';
+import {
+  type CollectionFacts,
+  type CollectionView,
+  collectionViews,
+} from '@/lib/design/collections';
 import { deliveryRange } from '@/lib/catalogue/browse';
 import { money, type Words } from '@/lib/i18n/words';
 import { WALLET_NAMES } from '@/lib/order/wallet-names';
+import { AnnouncementBar } from './announcement-bar';
 import { DesignIcon } from './design-icon';
 import { linkHref } from '@/lib/design/links';
 import { firstLetter } from '@/lib/design/marks';
@@ -30,43 +39,29 @@ import { ThemeCard } from './theme-card';
 
 type Section<K extends StorefrontSectionKind> = Extract<StorefrontSection, { kind: K }>;
 
-/** The shop's delivery charges as the home has always said them: the least and most among its zones. */
+/** The shop's delivery charges as the trust strip says them: the least and most among its zones. */
 function deliveryWords(info: PublicShop): string | null {
   const range = deliveryRange(info.deliveryZones);
   if (range === null) return null;
   return range.from === range.to ? money(range.from) : `${money(range.from)}–${money(range.to)}`;
 }
 
-/** SB-9: the seller's line, or the shop's own: what is on sale, and the delivery charges. */
+/** BL-10: the bar's items two at a time, in the seller's order; nothing to say, and it leaves. Over the header
+    (`pinned`, the page's first section), it leaves as the page scrolls. */
 export function Announcement({
   section,
   info,
   words,
+  pinned = false,
 }: {
   section: Section<StorefrontSectionKind.Announcement>;
   info: PublicShop;
   words: Words;
+  pinned?: boolean;
 }) {
-  const sale = info.sale ?? { products: 0, bestDiscount: 0 };
-  const delivery = deliveryWords(info);
-  const offers =
-    sale.products > 0
-      ? words.t('sb_offers_line', { n: sale.products, p: sale.bestDiscount })
-      : null;
-  const line =
-    section.text ??
-    [offers, delivery === null ? null : words.t('sb_delivery', { r: delivery })]
-      .filter((part): part is string => part !== null)
-      .join(' · ');
-  if (line === '') return null;
-  return (
-    <div className="sb-ann">
-      {section.text === null && offers !== null ? (
-        <span className="sb-pill">{words.t('sb_offer')}</span>
-      ) : null}
-      {line}
-    </div>
-  );
+  const items = barItems(section.items, info, words);
+  if (items.length === 0) return null;
+  return <AnnouncementBar pairs={barPairs(items)} pinned={pinned} />;
 }
 
 /** SB-9: every top-level category with its picture (or its first product's photo) and how many products it holds. */
@@ -190,11 +185,12 @@ function shadeOf(at: number): string {
   return at % 2 === 0 ? 'var(--ban-a)' : 'var(--ban-b)';
 }
 
-function Banner({ banner, at }: { banner: BannerView; at: number }) {
+function Banner({ banner, at, compact }: { banner: BannerView; at: number; compact: boolean }) {
   return (
-    <a className="sb-ban" href={banner.href}>
+    <a className={compact ? 'sb-ban sb-c' : 'sb-ban'} href={banner.href}>
       <img src={banner.image.url} alt="" style={{ objectPosition: banner.image.position }} />
       <div className="sb-shade" style={{ background: shadeOf(at) }} />
+      <div className="sb-cshade" />
       <div className="sb-tx">
         {banner.kicker !== null ? <div className="sb-k">{banner.kicker}</div> : null}
         <b>{banner.headline}</b>
@@ -228,61 +224,54 @@ function ownBanner(
   };
 }
 
-/** SB-9: the two tiles a shop's offer banners fill themselves with -- its biggest saving, and its newest product. */
-function autoBanners(
-  offers: { saving: ProductCard | null; newest: ProductCard | null },
-  words: Words,
-): BannerView[] {
-  const tiles: BannerView[] = [];
-  const { saving, newest } = offers;
-  if (saving?.image && (saving.bestDiscount ?? 0) > 0) {
-    tiles.push({
-      key: 'saving',
-      image: { url: saving.image.urls.main },
-      kicker: words.t('sb_offer'),
-      headline: words.t('sb_up_to', { p: saving.bestDiscount ?? 0 }),
-      description: saving.name,
-      button: words.t('sb_shop'),
-      href: '/offers',
-    });
-  }
-  if (newest?.image && newest.id !== saving?.id) {
-    tiles.push({
-      key: 'newest',
-      image: { url: newest.image.urls.main },
-      kicker: words.t('sb_just_in'),
-      headline: newest.name,
-      description: null,
-      button: words.t('sb_shop'),
-      href: '/new',
-    });
-  }
-  return tiles;
+/** BL-9, BL-12: a banner filling itself, for one of the collections the seller picked. */
+function collectionBanner(view: CollectionView, words: Words): BannerView {
+  return {
+    key: view.key,
+    image: { url: view.image.urls.main },
+    kicker: view.kicker,
+    headline: view.headline,
+    description: view.description,
+    button: words.t('sb_shop'),
+    href: view.href,
+  };
 }
 
-/** SB-8, SB-9: one or two offer banners, the seller's or the shop's own; none left to show, the section leaves. */
+/**
+ * SB-8, SB-9, BL-6 to BL-9: up to three offer banners, the seller's or the shop's own, laid out as the seller picked or
+ * by their number; on a phone a half-width one is a compact tile (BL-8). None left to show, the section leaves.
+ */
 export function OfferBanners({
   section,
   design,
-  offers,
+  collections,
   words,
 }: {
   section: Section<StorefrontSectionKind.OfferBanners>;
   design: PublicStorefrontDesign;
-  offers: { saving: ProductCard | null; newest: ProductCard | null };
+  /** BL-12, BL-13: what the auto banners' collections show. */
+  collections: CollectionFacts;
   words: Words;
 }) {
   const own =
     section.fill === StorefrontFill.Own
       ? section.banners.flatMap((banner, at) => ownBanner(banner, design, String(at)) ?? [])
       : [];
-  const banners = own.length > 0 ? own : autoBanners(offers, words);
+  const banners =
+    own.length > 0
+      ? own
+      : collectionViews(section.collections, collections).map((view) =>
+          collectionBanner(view, words),
+        );
   if (banners.length === 0) return null;
+  const layout = bannerLayoutFor(banners.length, section.layout);
+  const compact = (at: number): boolean =>
+    layout === BannerLayout.Side || (layout === BannerLayout.BigTwo && at > 0);
   return (
     <section className="sb-sec">
-      <div className="sb-wrap sb-banners">
+      <div className={`sb-wrap sb-banners sb-${layout} sb-n${String(banners.length)}`}>
         {banners.map((banner, at) => (
-          <Banner key={banner.key} banner={banner} at={at} />
+          <Banner key={banner.key} banner={banner} at={at} compact={compact(at)} />
         ))}
       </div>
     </section>
@@ -302,7 +291,7 @@ export function WideBanner({
   return (
     <section className="sb-sec">
       <div className="sb-wrap">
-        <Banner banner={banner} at={0} />
+        <Banner banner={banner} at={0} compact={false} />
       </div>
     </section>
   );

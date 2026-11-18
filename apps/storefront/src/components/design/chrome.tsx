@@ -83,6 +83,14 @@ export async function DesignedHeader({
         />
         <div className="sb-icons">
           <SearchTools language={language} categories={nav.categories} phoneButton only="button" />
+          {/* BL-11: order tracking, as Bonik AI's header has it; its words beside the truck on a computer. */}
+          <a className="sb-trk" href="/track" aria-label={words.t('sb_track_h')}>
+            <DesignIcon name="truck" />
+            <span>
+              <b>{words.t('sb_track_h')}</b>
+              {words.t('sb_track_where')}
+            </span>
+          </a>
           {/* Signed in it opens My account; signed out, /account leads to Sign in. */}
           <a className="sb-acct" href="/account" aria-label={words.t('account')}>
             <DesignIcon name="user" />
