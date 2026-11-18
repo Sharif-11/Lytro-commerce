@@ -238,9 +238,12 @@ describeIfDatabase('the public product list (PRD-09, CCH-11, CCH-12)', () => {
         'left',
         'ordered',
         'bestSeller',
+        // STOREFRONT-BUILDER-PLAN DC-1: the design a card shows; null for a product's own card.
+        'designId',
       ].sort(),
     );
     expect(products[0]).toMatchObject({
+      designId: null,
       minPrice: '300.00',
       maxPrice: '300.00',
       image: null,
