@@ -20,7 +20,7 @@ export function monthlyLimit(limits: PlanLimits | null): AppliedLimit {
 
 /**
  * RTE-06, D3-2, D9-15 (Slice 9.4): the per-minute windows on the public API, one count for every API copy and server.
- * A visitor's requests, sign-ins and tracking reads in the shared limit store (Redis; half each per process while it's
+ * A visitor's requests, sign-ins and tracking reads in the shared limit store (Redis; a share each per process while it's
  * down); a visitor's orders, every shopper's orders and payment sessions in a shop, and a visitor's sign-up codes
  * exact, in PostgreSQL (RED-11). A public key has no window of its own (KNOWN-GAPS §82).
  */

@@ -4,4 +4,6 @@ import type { ClaimedOutboxRow } from '@lytronix/db';
 export interface OutboxStore {
   claimDue(now: Date, leaseUntil: Date, limit: number): Promise<ClaimedOutboxRow[]>;
   markSent(id: number, jobId: string | null): Promise<void>;
+  /** Slice 9.10: deletes up to `limit` rows sent before `before`; how many it deleted. */
+  deleteSentBefore(before: Date, limit: number): Promise<number>;
 }

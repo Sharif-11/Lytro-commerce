@@ -10,7 +10,10 @@ import { JOB_QUEUE, OUTBOX_STORE } from '../src/modules/shared/queue/tokens';
 import type { OutboxStore } from '../src/modules/shared/queue/ports/outbox-store';
 import type { JobQueue } from '../src/modules/shared/queue/ports/job-queue';
 import { JobRelay } from '../src/modules/shared/queue/services/job-relay';
-import { PgBossClient } from '../src/modules/shared/queue/services/pg-boss-client';
+import {
+  FINISHED_JOBS_KEPT_SECONDS,
+  PgBossClient,
+} from '../src/modules/shared/queue/services/pg-boss-client';
 import { prepareTestDatabase } from './support/database';
 
 // The queue's own mechanics (SCL-08, D25): the enqueue step's atomicity, and the full path from enqueue through
@@ -120,5 +123,59 @@ describeIfDatabase('the job outbox and relay (SCL-08, D25)', () => {
       [QueueName.Sms],
     );
     expect(jobs.rows[0]?.n).toBe(1);
+  });
+
+  it("sweeps what it sent over a week ago, and claims through the index of what isn't sent (Slice 9.10)", async () => {
+    await admin.query(
+      `INSERT INTO control.job_outbox (queue_name, payload, status, sent_at) VALUES
+         ($1, '{"marker":"swept-old"}', 'sent', now() - interval '8 days'),
+         ($1, '{"marker":"swept-recent"}', 'sent', now() - interval '1 day')`,
+      [QueueName.Sms],
+    );
+    expect(await relay.sweepSent()).toBeGreaterThanOrEqual(1);
+    const left = await admin.query<{ marker: string }>(
+      `SELECT payload->>'marker' AS marker FROM control.job_outbox WHERE payload->>'marker' LIKE 'swept-%'`,
+    );
+    expect(left.rows).toEqual([{ marker: 'swept-recent' }]);
+
+    // The claim's own condition (job-outbox.repository.ts), with table scans off: on a test's few rows the planner would
+    // read the table whole, and this asks only whether the index of unsent rows can serve it.
+    await admin.query('BEGIN');
+    try {
+      await admin.query('SET LOCAL enable_seqscan = off');
+      const plan = await admin.query<{ 'QUERY PLAN': string }>(
+        `EXPLAIN SELECT id FROM control.job_outbox
+         WHERE status = 'pending' OR (status = 'sending' AND (lease_until IS NULL OR lease_until <= now()))
+         ORDER BY id LIMIT 20 FOR UPDATE SKIP LOCKED`,
+      );
+      expect(plan.rows.map((row) => row['QUERY PLAN']).join(' ')).toContain(
+        'job_outbox_unsent_idx',
+      );
+    } finally {
+      await admin.query('ROLLBACK');
+    }
+  });
+
+  it("keeps a queue's finished jobs two days, pg-boss's schedule queue's too, unless it says (Slice 9.10)", async () => {
+    const kept = async (name: string): Promise<number | undefined> => {
+      const row = await admin.query<{ seconds: number }>(
+        'SELECT deletion_seconds AS seconds FROM pgboss.queue WHERE name = $1',
+        [name],
+      );
+      return row.rows[0]?.seconds;
+    };
+    await pgBoss.boss.createQueue(QueueName.Sms, { notify: true });
+    expect(await kept(QueueName.Sms)).toBe(FINISHED_JOBS_KEPT_SECONDS);
+    expect(await kept('__pgboss__send-it')).toBe(FINISHED_JOBS_KEPT_SECONDS);
+
+    // A queue made before this, with pg-boss's week, is told again when it's created again at the next start.
+    await admin.query(`UPDATE pgboss.queue SET deletion_seconds = 604800 WHERE name = $1`, [
+      QueueName.Sms,
+    ]);
+    await pgBoss.boss.createQueue(QueueName.Sms, { notify: true });
+    expect(await kept(QueueName.Sms)).toBe(FINISHED_JOBS_KEPT_SECONDS);
+
+    await pgBoss.boss.createQueue('slice-9-10-own-keeping', { deleteAfterSeconds: 3600 });
+    expect(await kept('slice-9-10-own-keeping')).toBe(3600);
   });
 });

@@ -75,6 +75,9 @@ jobs:
       # Phase 9 Slice 9.10: the load test's stand-in for every outside service answers as each provider's adapter needs.
       - name: The load test's stand-in
         run: node --test "deploy/load/outside/*.test.mjs"
+      # Slice 9.10: the launcher that runs the API and the storefront as several processes on one port.
+      - name: The process launcher
+        run: node --test "deploy/node/*.test.mjs"
 
       - name: Migration rules
         run: |

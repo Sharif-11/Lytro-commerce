@@ -80,6 +80,17 @@ describe('the shared limit store (Slice 9.4)', () => {
     store.onModuleDestroy();
   });
 
+  it('counts at a quarter when each API container runs two processes, so the four stay about the limit (Slice 9.10)', async () => {
+    vi.useFakeTimers();
+    const redis = new FakeRedis();
+    redis.up = false;
+    const store = new SharedLimitStore(redis as unknown as Redis, outage(), undefined, {
+      WORKERS: 2,
+    });
+    expect(await allowedOf(store, 20, 20)).toBe(5);
+    store.onModuleDestroy();
+  });
+
   it('tells of an outage once, after three failed tries, and of its end once', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-11-13T00:00:00Z'));

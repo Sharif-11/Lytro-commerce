@@ -17,6 +17,8 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   // D9-11: `api`, `worker` or `all` (the default: one process does both, as in development and tests).
   SERVER_ROLE: serverRoleSchema,
+  // Slice 9.10: how many processes this container runs the app as (deploy/node/cluster.cjs, which reads it too).
+  WORKERS: z.coerce.number().int().min(1).max(32).default(1),
   // The release this process runs, the commit its image was built from; /health reports it, so a deploy can check it.
   RELEASE: z.string().trim().min(1).optional(),
   PORT: z.coerce.number().int().positive().default(3000),

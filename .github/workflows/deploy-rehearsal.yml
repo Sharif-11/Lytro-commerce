@@ -122,7 +122,10 @@ jobs:
           printf '%s\n' BULKSMSBD_API_KEY=rehearsal BULKSMSBD_SENDER_ID=8809600000000 RESEND_API_KEY=re_rehearsal \
             RESEND_WEBHOOK_SECRET=whsec_rehearsal GEMINI_API_KEY=rehearsal | sudo tee -a "$LYTRO_HOME/env/server.env" > /dev/null
           echo WILDCARD_TLS=wildcard_tls_auto | sudo tee -a "$LYTRO_HOME/env/edge.env" > /dev/null
-          echo "REGISTRY=$REGISTRY" | sudo tee "$LYTRO_HOME/settings.env" > /dev/null
+          # Slice 9.10: the API and the storefront as two processes each (deploy/node/cluster.cjs), as production runs
+          # them, with PgBouncer's pool sized to the API's (deploy/README.md, "Using every core").
+          printf '%s\n' "REGISTRY=$REGISTRY" API_WORKERS=2 API_MEMORY=768m STOREFRONT_WORKERS=2 STOREFRONT_MEMORY=640m \
+            PGBOUNCER_POOL_SIZE=20 | sudo tee "$LYTRO_HOME/settings.env" > /dev/null
           sudo install -d "$LYTRO_HOME/state" "$LYTRO_HOME/releases" "$LYTRO_HOME/backups"
 
       # Every deploy here arrives as GitHub's do on a server: deploy/ as a tar through lytro-ssh, which unpacks it into the
@@ -145,7 +148,13 @@ jobs:
           fi
           # docker top needs the pid column in what it asks ps for.
           sudo docker top lytro-api-1-1 -o pid,uid,args | tee top.txt
-          grep 'node dist/main.js' top.txt | grep -v docker-init | grep -E '^ *[0-9]+ +1000 '
+          # The launcher and the two API processes it starts (API_WORKERS=2), every one as node.
+          grep 'cluster.cjs dist/main.js' top.txt | grep -v docker-init > api.txt
+          test "$(wc -l < api.txt)" = 3
+          if grep -vE '^ *[0-9]+ +1000 ' api.txt; then
+            echo 'an API process runs as someone other than node'; exit 1
+          fi
+          sudo docker exec lytro-pgbouncer-1 grep -x 'default_pool_size = 20' /etc/pgbouncer/run/pgbouncer.ini
           if sudo docker exec -u node lytro-api-1-1 cat /run/secrets/data_encryption_key > /dev/null 2>&1; then
             echo 'the server user can read the key file'; exit 1
           fi

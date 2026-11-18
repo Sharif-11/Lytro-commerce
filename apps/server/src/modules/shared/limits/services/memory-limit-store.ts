@@ -4,7 +4,7 @@ import type { LimitStore } from '../ports/limit-store';
 
 /**
  * Slice 9.4: the limit store in this process's memory -- exact for one process. It answers where there's no Redis (a
- * developer's machine, the tests), and stands in while the shared Redis is down (SharedLimitStore halves the limits it
+ * developer's machine, the tests), and stands in while the shared Redis is down (SharedLimitStore divides the limits it
  * asks of it then). One sliding window per length; buckets nobody uses are dropped every minute.
  */
 export class MemoryLimitStore implements LimitStore {

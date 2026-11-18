@@ -485,6 +485,16 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   report. Busy was answered as busy (503, never a 500), no lock waits, and a flash sale of 10 orders a second on 300 units
   placed 297 + 3 already held, refused the rest as sold out or held to 180 a minute, and oversold nothing. The pass and
   the viral product run again once the fix is on staging.
+- **Using every core, and the database's two costliest queries** (2026-11-18, the owner's yes to the first three load
+  fixes after the recheck). One Node process uses about one core, so the API and the storefront run as several
+  processes on their ports (`deploy/node/cluster.cjs`, `WORKERS`): on the production server 2 in each API container
+  and 3 storefronts, with PgBouncer's pool and PostgreSQL's connections sized to them (`deploy/README.md`, "Using every
+  core"); staging keeps one. While Redis is down each API process takes its share of a limit, so RED-05's "half each"
+  for two processes is a quarter each for four. The job relay claims through an index of the rows it hasn't sent
+  (migration 0141; its claim was the database's costliest query under load) and deletes the rows it sent over a week
+  ago (0142). pg-boss keeps finished jobs 2 days, not 7, and counts its queues every 5 minutes, not every minute (its
+  count read all 112,680 finished jobs on staging, 1.9 seconds each time). Lighter dashboard polling and the
+  storefront's "load more" at the edge come next, each in its own pull request.
 - **The edge cache's read** (the owner, 2026-11-16, after the viral-product question: 2,000 shoppers at once on one
   product): "yes, i don't need staging domain now. the other point is ok". D9-32.
   1. **No staging domain now.** Staging's `<slug>.staging.lytro.app` is two levels down, which Cloudflare's free

@@ -175,6 +175,27 @@ make-env.sh writes `redis.env` (its password) and puts `REDIS_URL` in `server.en
 earlier release made. Staging runs Redis with 64 MB. For production, put `REDIS_MAXMEMORY=256mb` and
 `REDIS_MEMORY=320m` in `/opt/lytro/settings.env` (RED-01). If it stops answering, see `docs/RUNBOOKS.md` §11.
 
+## Using every core
+
+One Node process uses about one core (Slice 9.10's staging recheck). The API containers and the storefront run as
+`WORKERS` processes each on their port (`deploy/node/cluster.cjs`), one unless `/opt/lytro/settings.env` says more, and
+each process has its own heap and its own pool of `DATABASE_POOL_MAX` connections (through PgBouncer). Staging keeps one.
+For the production server (8 vCPU and 16 GB, D9-30), put these in `settings.env` and deploy again:
+
+```
+API_WORKERS=2           # in each of api-1 and api-2: 4 API processes
+API_MEMORY=768m
+STOREFRONT_WORKERS=3
+STOREFRONT_MEMORY=900m
+PGBOUNCER_POOL_SIZE=20  # at least 2 x API_WORKERS x DATABASE_POOL_MAX (5)
+PG_MAX_CONNECTIONS=100  # PgBouncer's 2 x (20 + 2), the worker's and the queue's, backups and monitoring
+```
+
+PgBouncer's pool for each role must cover every API process's pool together: with fewer, a request waits in
+PgBouncer's queue (up to two minutes) instead of being answered busy at once. Set `PG_MAX_CONNECTIONS` before the first
+deploy; changing it later restarts the database. The job worker and the website stay one process each.
+`docker compose top storefront` shows the processes.
+
 ## Backups
 
 Set up once per server, best after the first deploy works (Phase 9 Slice 9.3; `docs/RUNBOOKS.md` §10 says what runs and

@@ -54,6 +54,9 @@ x-api: &api
     SERVER_ROLE: api
     RELEASE: ${RELEASE:?}
     NODE_OPTIONS: --max-old-space-size=${API_HEAP_MB:-256}
+    # Slice 9.10: each API container's processes (deploy/node/cluster.cjs), each with its own heap and its own pool of
+    # DATABASE_POOL_MAX connections; raise API_MEMORY with it (deploy/README.md, "Using every core").
+    WORKERS: ${API_WORKERS:-1}
 
 services:
   edge:
@@ -117,6 +120,8 @@ services:
     environment:
       SERVER_URL: http://edge:8080
       NODE_OPTIONS: --max-old-space-size=${STOREFRONT_HEAP_MB:-200}
+      # Slice 9.10: the storefront's processes (deploy/node/cluster.cjs); raise STOREFRONT_MEMORY with it.
+      WORKERS: ${STOREFRONT_WORKERS:-1}
     networks: [internal]
     mem_limit: ${STOREFRONT_MEMORY:-320m}
     logging: *logging
@@ -179,6 +184,10 @@ services:
     image: ${REGISTRY:?}/lytro-pgbouncer:${PGBOUNCER_TAG:?}
     restart: unless-stopped
     env_file: ${LYTRO_HOME:-/opt/lytro}/env/pgbouncer.env
+    # Slice 9.10: its connections to PostgreSQL for each role, at least what every API process's pool asks together
+    # (2 x API_WORKERS x DATABASE_POOL_MAX), or a request waits in its queue instead of being answered busy at once.
+    environment:
+      DEFAULT_POOL_SIZE: ${PGBOUNCER_POOL_SIZE:-10}
     depends_on:
       postgres:
         condition: service_healthy

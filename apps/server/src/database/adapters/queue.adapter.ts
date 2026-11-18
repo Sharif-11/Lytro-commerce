@@ -18,4 +18,8 @@ export class DrizzleOutboxStore implements OutboxStore {
   markSent(id: number, jobId: string | null): Promise<void> {
     return this.outbox.markSent(this.database.handle.db, id, jobId);
   }
+
+  deleteSentBefore(before: Date, limit: number): Promise<number> {
+    return this.outbox.deleteSentBefore(this.database.handle.db, before, limit);
+  }
 }

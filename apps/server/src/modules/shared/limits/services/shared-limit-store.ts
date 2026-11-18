@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import type { Redis } from 'ioredis';
 import type { WindowVerdict } from '../../../../common/sliding-window';
+import { ENV } from '../../../../config/tokens';
+import type { Env } from '../../../../config/env';
 import { DegradedMode } from '../../../degraded-mode/services/degraded-mode';
 import type { LimitStore, SharedStoreState } from '../ports/limit-store';
 import { LIMITS_REDIS } from '../tokens';
@@ -15,9 +17,10 @@ import { MemoryLimitStore } from './memory-limit-store';
 import { RedisLimitStore } from './redis-limit-store';
 import { RedisOutage } from './redis-outage';
 
-// RED-05 (the owner's answer, 2026-11-13: "half each"): while Redis is down each API process allows half of every
-// limit, so the two on a server together stay about the same.
-const FALLBACK_SHARE = 2;
+// RED-05 (the owner's answer, 2026-11-13: "half each"): while Redis is down each API process allows its share of every
+// limit, so the API processes on a server together stay about the same: half each for the two API containers
+// (deploy/compose.yml's api-1 and api-2), and a share of that for each process one runs (WORKERS, Slice 9.10).
+const API_CONTAINERS = 2;
 // How often a process that lost Redis tries it again, and how many failed tries make it an outage worth an email (a
 // blip shorter than that only switches to memory and back).
 const PING_EVERY_MS = 5_000;
@@ -28,8 +31,9 @@ const STARTUP_GRACE_MS = 15_000;
 /**
  * D9-15, RED-02 to RED-05 (Slice 9.4): every rate limit's one store (LIMIT_STORE). The shared Redis when it answers;
  * this process's memory when there's no Redis at all (REDIS_URL unset: a developer's machine, the tests), at the full
- * limit; and the same memory while Redis is down, at half the limit. Its callers never know which. DAT-38 (Slice 9.5):
- * while degraded mode is on, every limit counted over a minute or less is divided by its factor first, here alone.
+ * limit; and the same memory while Redis is down, at its share of the limit. Its callers never know which. DAT-38
+ * (Slice 9.5): while degraded mode is on, every limit counted over a minute or less is divided by its factor first,
+ * here alone.
  */
 @Injectable()
 export class SharedLimitStore implements LimitStore, OnModuleInit, OnModuleDestroy {
@@ -41,6 +45,8 @@ export class SharedLimitStore implements LimitStore, OnModuleInit, OnModuleDestr
   private failedTries = 0;
   private pinger: NodeJS.Timeout | null = null;
   private readonly startedAt = Date.now();
+  /** How many API processes share a limit while Redis is down. */
+  private readonly share: number;
 
   constructor(
     @Inject(LIMITS_REDIS) private readonly redis: Redis | null,
@@ -48,8 +54,10 @@ export class SharedLimitStore implements LimitStore, OnModuleInit, OnModuleDestr
     @Optional()
     @Inject(DegradedMode)
     private readonly degraded?: Pick<DegradedMode, 'divisor'>,
+    @Optional() @Inject(ENV) env?: Partial<Pick<Env, 'WORKERS'>>,
   ) {
     this.shared = redis ? new RedisLimitStore(redis) : null;
+    this.share = API_CONTAINERS * (env?.WORKERS ?? 1);
   }
 
   onModuleInit(): void {
@@ -93,7 +101,7 @@ export class SharedLimitStore implements LimitStore, OnModuleInit, OnModuleDestr
         this.lost(error);
       }
     }
-    const share = Math.max(1, Math.floor(allowed / FALLBACK_SHARE));
+    const share = Math.max(1, Math.floor(allowed / this.share));
     return this.memory[kind](bucket, share, windowMs, now);
   }
 
@@ -109,7 +117,7 @@ export class SharedLimitStore implements LimitStore, OnModuleInit, OnModuleDestr
     this.answering = false;
     this.failedTries = 0;
     this.log.warn(
-      `Redis did not answer (${String(error)}): counting limits in memory, at half each`,
+      `Redis did not answer (${String(error)}): counting limits in memory, at 1/${String(this.share)} each`,
     );
     this.pinger = setInterval(() => void this.tryAgain(), PING_EVERY_MS);
     this.pinger.unref();
