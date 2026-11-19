@@ -84,6 +84,7 @@ import {
 } from './phase7';
 import { purchasingAnswer } from './purchases';
 import { checksAnswer } from './stock-checks';
+import { drawnOffers, offersAnswer, offersWrite, type OffersFixture } from './offers';
 import { variantRead } from './variants';
 import { PRESETS } from './presets';
 import { drawnTeam, teamAnswer, teamWrite, type TeamFixture } from './team';
@@ -179,6 +180,8 @@ export interface ShopState {
   design?: DesignFixture | null;
   /** DC-6 to DC-8: the shop's cards where they differ from the sketch's Product list; its writes change them. */
   cards?: CardsFixture | null;
+  /** OFFERS-PLAN: the shop's offers where they differ from the sketch's; the screens' writes change them. */
+  offers?: OffersFixture | null;
   /** The shop's API keys where they differ from the prototype's three; the page's writes change them. */
   keys?: KeyFixture[] | null;
   /** Facebook and Meta where it differs from the prototype's connected shop; the page's writes change it. */
@@ -398,6 +401,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     domain: null,
     design: null,
     cards: null,
+    offers: null,
     keys: null,
     meta: null,
     identities: null,
@@ -981,6 +985,26 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       state.isOwner || state.permissions.includes('inventory:manage'),
     );
     if (bought) return ok(bought.data);
+    // OFFERS-PLAN: the Offers screens' reads and writes.
+    if (path === '/offers' || path.startsWith('/offers/')) {
+      const offers = (state.offers ??= drawnOffers());
+      const answer = method === 'GET' ? offersAnswer(path, url, offers) : undefined;
+      if (answer !== undefined) return ok(answer);
+      const written = offersWrite(
+        method,
+        path,
+        request.postDataJSON() as Record<string, unknown> | null,
+        offers,
+      );
+      if (written && 'data' in written) return ok(written.data);
+      if (written) {
+        return route.fulfill({
+          status: written.status,
+          contentType: 'application/json',
+          body: refusal(written.code, 'That offer was not found.'),
+        });
+      }
+    }
     // Slice 11.7b: the attributes, option sets, a new product's defaults and a product's stock.
     const read = method === 'GET' ? variantRead(path, products, url) : undefined;
     if (read !== undefined) return ok(read);

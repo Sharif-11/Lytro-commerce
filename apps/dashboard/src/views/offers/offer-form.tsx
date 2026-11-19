@@ -195,9 +195,13 @@ export function OfferForm({ offer }: { offer: Offer | null }): React.JSX.Element
                 onShowAll={() => {
                   setShowAll(true);
                 }}
-                onRemove={(item) => {
+                onRemove={(gone) => {
                   setPicks((now) =>
-                    removePick(now, { productId: item.productId, designId: item.designId }),
+                    gone.reduce(
+                      (left, item) =>
+                        removePick(left, { productId: item.productId, designId: item.designId }),
+                      now,
+                    ),
                   );
                 }}
               />

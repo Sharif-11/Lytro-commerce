@@ -131,11 +131,9 @@ export function OfferView({ offerId }: { offerId: string }): React.JSX.Element {
 
   return (
     <ShellPage
-      title={
-        <span className="flex items-center gap-2">
-          {offer.name} <StatusTag tone={tone}>{label}</StatusTag>
-        </span>
-      }
+      title={offer.name}
+      titleInHeader
+      actions={<StatusTag tone={tone}>{label}</StatusTag>}
     >
       {failed ? <ErrorBanner error={failed} /> : null}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-start lg:gap-6">
@@ -221,13 +219,17 @@ export function OfferView({ offerId }: { offerId: string }): React.JSX.Element {
                 setShowAll(true);
               }}
               onRemove={
-                running && mayManage && offer.items.length > 1
-                  ? (item) => {
+                running && mayManage && productCount(picks) > 1
+                  ? (gone) => {
                       update.mutate({
-                        items: removePick(picks, {
-                          productId: item.productId,
-                          designId: item.designId,
-                        }),
+                        items: gone.reduce(
+                          (left, item) =>
+                            removePick(left, {
+                              productId: item.productId,
+                              designId: item.designId,
+                            }),
+                          picks,
+                        ),
                       });
                     }
                   : undefined
@@ -241,23 +243,21 @@ export function OfferView({ offerId }: { offerId: string }): React.JSX.Element {
           {running ? (
             <Button
               tone="outline"
-              className="border-danger text-danger"
               onClick={() => {
                 setAsking('end');
               }}
             >
-              {t('of.end')}
+              <span className="text-danger-text">{t('of.end')}</span>
             </Button>
           ) : (
             <>
               <Button
                 tone="outline"
-                className="text-danger"
                 onClick={() => {
                   setAsking('delete');
                 }}
               >
-                {t('of.delete')}
+                <span className="text-danger-text">{t('of.delete')}</span>
               </Button>
               <Button
                 busy={copy.isPending}

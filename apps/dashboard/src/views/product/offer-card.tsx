@@ -13,10 +13,11 @@ import type { ProductDetail } from '@/types/product';
 export function OfferCards({ product }: { product: ProductDetail }): React.JSX.Element | null {
   const { t } = useTranslation('shop');
   const { slug } = useShell();
-  if (product.offers.length === 0) return null;
+  const offers = product.offers ?? [];
+  if (offers.length === 0) return null;
   return (
     <>
-      {product.offers.map((offer) => {
+      {offers.map((offer) => {
         const running = offer.state === OfferState.Running;
         const designs = offer.designIds
           ? product.designs.filter((design) => offer.designIds?.includes(design.id))

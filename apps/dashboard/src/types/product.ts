@@ -195,8 +195,11 @@ export interface ProductDetail {
   /** ATR-15 (PD-11): whether any order names it, so what splits its variants is fixed. */
   hasOrders: boolean;
   video: ProductVideo | null;
-  /** OFFERS-PLAN OF-17: the offers not ended that hold it, and the sizes a running one has priced (locked). */
-  offers: ProductOffer[];
+  /**
+   * OFFERS-PLAN OF-17: the offers not ended that hold it, and the sizes a running one has priced (locked); absent from
+   * an older server's answer (none).
+   */
+  offers?: ProductOffer[];
   createdAt: string;
   updatedAt: string;
 }

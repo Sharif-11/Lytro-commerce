@@ -24,6 +24,14 @@ import {
 export interface ProductFixture {
   id: string;
   name: [string, string];
+  /** OFFERS-PLAN OF-17, OF-23: the offers not ended that hold it, as the editor's detail carries them. */
+  offers?: {
+    offerId: string;
+    name: string;
+    state: string;
+    designIds: string[] | null;
+    lockedVariantIds: string[];
+  }[];
   basePrice: string;
   maxPrice?: string;
   active: boolean;
@@ -292,6 +300,12 @@ function summary(product: ProductFixture, language: Language): unknown {
     primaryCategoryId: product.primaryCategoryId,
     variantCount: product.variantCount,
     image: first ? { id: first, urls: { main: picture(first), thumbnail: picture(first) } } : null,
+    // OF-23: the list's tag -- a running offer before one not started.
+    offer: (() => {
+      const held =
+        product.offers?.find((each) => each.state === 'running') ?? product.offers?.[0] ?? null;
+      return held ? { id: held.offerId, name: held.name, state: held.state } : null;
+    })(),
     createdAt: new Date().toISOString(),
   };
 }
@@ -362,6 +376,7 @@ export function productDetail(
     product.categoryIds ?? (product.primaryCategoryId ? [product.primaryCategoryId] : []);
   return {
     ...(summary(product, language) as object),
+    offers: product.offers ?? [],
     parts: partViews(product.parts ?? [], fixture.picker ?? [], language),
     taxClass:
       (fixture.tax ?? drawnTax()).classes.find((each) => each.id === product.taxClassId) ?? null,

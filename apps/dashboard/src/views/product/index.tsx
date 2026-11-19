@@ -734,11 +734,9 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
             form={form}
             problems={problems}
             readOnly={!mayManage}
-            priceLocked={
-              product?.offers.some(
-                (offer) => offer.state === OfferState.Running && offer.designIds === null,
-              ) ?? false
-            }
+            priceLocked={(product?.offers ?? []).some(
+              (offer) => offer.state === OfferState.Running && offer.designIds === null,
+            )}
             picking={picking}
             onPicking={setPicking}
             onChange={update}

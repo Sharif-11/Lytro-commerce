@@ -1,4 +1,4 @@
-import type { OfferPick } from '@/types/offers';
+import type { OfferItem, OfferPick } from '@/types/offers';
 
 // OFFERS-PLAN OF-9, OF-25: what the picker holds, as plain functions -- a product whole, or some of its designs (all of
 // them is the product whole) -- so they are tested without the screen.
@@ -59,4 +59,31 @@ export function removePick(picks: readonly OfferPick[], gone: OfferPick): OfferP
   return picks.filter(
     (pick) => !(pick.productId === gone.productId && pick.designId === gone.designId),
   );
+}
+
+/** One product's row: the product whole, or the designs of it picked, together. */
+export interface ProductRow {
+  key: string;
+  items: OfferItem[];
+}
+
+/** The items as rows: a product's picked designs in one row, as the sketch draws "2 of 5 designs: Stripe, Design 3". */
+export function rowsOf(items: readonly OfferItem[]): ProductRow[] {
+  const rows: ProductRow[] = [];
+  for (const item of items) {
+    const last = rows.at(-1);
+    const first = last?.items[0];
+    if (
+      last &&
+      first &&
+      item.designId !== null &&
+      first.designId !== null &&
+      first.productId === item.productId
+    ) {
+      last.items.push(item);
+      continue;
+    }
+    rows.push({ key: `${item.productId}:${item.designId ?? ''}`, items: [item] });
+  }
+  return rows;
 }
