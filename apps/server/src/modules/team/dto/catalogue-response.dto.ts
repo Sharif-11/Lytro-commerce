@@ -11,6 +11,7 @@ import {
   StockState,
   StockTracking,
   ProductKind,
+  OfferState,
   StockUnit,
   dateField,
 } from '@lytronix/validators';
@@ -136,6 +137,8 @@ export const productPageSchema = z.object({
       // CMB-01 (Slice 4.8a): an ordinary product or a combo.
       kind: z.enum(ProductKind),
       image: imageViewSchema.nullable(),
+      // OFFERS-PLAN OF-23: the offer holding it, for the list's tag.
+      offer: z.object({ id: z.string(), name: z.string(), state: z.enum(OfferState) }).nullable(),
       createdAt: dateField(),
     }),
   ),
@@ -305,6 +308,16 @@ export const productDetailSchema = z.object({
           stockUnit: z.enum(StockUnit),
         }),
       ),
+    }),
+  ),
+  // OFFERS-PLAN OF-17: the offers not ended that hold it, and the sizes a running one has priced (locked).
+  offers: z.array(
+    z.object({
+      offerId: z.string(),
+      name: z.string(),
+      state: z.enum(OfferState),
+      designIds: z.array(z.string()).nullable(),
+      lockedVariantIds: z.array(z.string()),
     }),
   ),
   createdAt: dateField(),

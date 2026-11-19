@@ -1009,6 +1009,13 @@
       "when": 1795016622432,
       "tag": "0144_design_cards",
       "breakpoints": true
+    },
+    {
+      "idx": 145,
+      "version": "7",
+      "when": 1795068114262,
+      "tag": "0145_offers",
+      "breakpoints": true
     }
   ]
 }

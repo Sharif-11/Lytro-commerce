@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  OFFER_SLUG_MAX_LENGTH,
   PRODUCT_NAME_MAX_LENGTH,
   PRODUCT_SLUG_MAX_LENGTH,
   PUBLIC_PAGE_SIZE,
@@ -50,6 +51,8 @@ export const publicProductListSchema = z.object({
   // STOREFRONT-BUILDER-PLAN DC-1: each design of a product with two or more its own card (the storefront asks when the
   // shop has design cards on; without it, one card per product, as before).
   designs: queryFlag,
+  // OFFERS-PLAN OF-8: only the cards of one offer (its link name), running or ended.
+  offer: z.string().trim().min(1).max(OFFER_SLUG_MAX_LENGTH).optional(),
   cursor: z.string().min(1).max(512).optional(),
   limit: z.coerce.number().int().min(1).max(PUBLIC_PAGE_SIZE_MAX).default(PUBLIC_PAGE_SIZE),
   v: z.string().max(64).optional(),

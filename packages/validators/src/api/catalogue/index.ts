@@ -6,3 +6,4 @@ export * from './business-type';
 export * from './extras';
 export * from './public-catalogue';
 export * from './tax-class';
+export * from './offer';

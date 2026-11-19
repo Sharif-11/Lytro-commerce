@@ -60,6 +60,8 @@ export interface PublicStorefrontDesign {
   /** SB-16: the categories and products it names that shoppers can reach; a link to any other goes home. */
   categories: StorefrontTargetView[];
   products: StorefrontTargetView[];
+  /** OF-8, OF-22: the running offers its rows and buttons name; a row of any other hides, a button goes to On sale. */
+  offers: StorefrontTargetView[];
   /** SB-12: drawn from the draft, through a preview link. */
   preview: boolean;
   /** DC-2: each design of a product its own card in the shop's lists. */

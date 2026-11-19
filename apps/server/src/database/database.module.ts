@@ -68,6 +68,7 @@ import {
   CatalogueDataRepository,
   StockRepository,
   ComboRepository,
+  OffersRepository,
   StockCheckRepository,
   StockBatchRepository,
   SerialRepository,
@@ -225,6 +226,12 @@ import { PrimaryWatch } from './primary-watch';
       provide: ComboRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new ComboRepository(transactions),
+    },
+    // OFFERS-PLAN: a shop's offers and the prices they set.
+    {
+      provide: OffersRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new OffersRepository(transactions),
     },
     {
       provide: StockCheckRepository,
@@ -537,6 +544,7 @@ import { PrimaryWatch } from './primary-watch';
     CatalogueDataRepository,
     StockRepository,
     ComboRepository,
+    OffersRepository,
     StockCheckRepository,
     StockBatchRepository,
     SerialRepository,

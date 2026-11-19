@@ -44,6 +44,17 @@ const productCardSchema = z.object({
   designId: z.string().nullable(),
 });
 
+// OFFERS-PLAN OF-8, OF-12: an offer by its link name.
+export class PublicOfferDto extends createZodDto(
+  z.object({
+    name: z.string(),
+    slug: z.string(),
+    state: z.enum(['running', 'ended']),
+    cut: z.object({ kind: z.enum(['percent', 'taka']), amount: z.number() }),
+    products: z.number(),
+  }),
+) {}
+
 export class PublicProductPageDto extends createZodDto(
   z.object({ products: z.array(productCardSchema), nextCursor: z.string().nullable() }),
 ) {}

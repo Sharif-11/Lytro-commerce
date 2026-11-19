@@ -10,6 +10,7 @@ import {
   CatalogueVersionViewDto,
   PublicCatalogueVersionedDto,
   PublicCategoriesDto,
+  PublicOfferDto,
   PublicProductDetailDto,
   PublicProductListQueryDto,
   PublicProductPageDto,
@@ -21,6 +22,7 @@ import type {
   CatalogueAnswer,
   CatalogueVersionView,
   PublicCategory,
+  PublicOffer,
   PublicProductDetail,
   PublicProductPage,
 } from '../types/public-catalogue';
@@ -87,6 +89,23 @@ export class PublicCatalogueController {
       response,
       await this.catalogue.product(shopOf(request), slug, langOf(request)),
     );
+  }
+
+  // OFFERS-PLAN OF-8, OF-12: an offer's page asks for it first, then its cards (`products?offer=`).
+  @Get('offers/:slug')
+  @ResponseMessage('OfferRetrieved')
+  @ApiOperation({
+    summary: 'A running or ended offer by its link name: its name, cut and products (OF-8, OF-12)',
+  })
+  @ZodResponse({ type: PublicOfferDto })
+  async offer(
+    @Param('slug') slug: string,
+    @Query(new ZodValidationPipe(PublicCatalogueVersionedDto.schema))
+    _query: PublicCatalogueVersionedDto,
+    @Req() request: PublicApiRequest,
+    @Res({ passthrough: true }) response: HttpResponse,
+  ): Promise<PublicOffer> {
+    return this.send(response, await this.catalogue.offer(shopOf(request), slug, langOf(request)));
   }
 
   @Get('categories')

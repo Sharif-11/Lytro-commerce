@@ -4,6 +4,8 @@ import type { Transaction } from '@lytronix/db';
 import {
   AttributeRole,
   FieldProblemCode,
+  OfferCutKind,
+  OfferState,
   PlatformSettingKey,
   ProductKind,
   STOREFRONT_BEST_SELLER_BADGES,
@@ -21,11 +23,14 @@ import type { CategoryRecord, ProductDetail } from '../../catalogue/types/catalo
 import { PlatformSettingsService } from '../../platform-settings/services/platform-settings.service';
 import type { CatalogueSearch, PublicCatalogueStore } from '../ports/public-catalogue-store';
 import { CATALOGUE_SEARCH, PUBLIC_CATALOGUE_STORE } from '../tokens';
+import type { OfferStore } from '../../catalogue/ports/offer-store';
+import { OFFER_STORE } from '../../catalogue/tokens';
 import type { ApiShop } from '../types/public-api';
 import type {
   CatalogueAnswer,
   CatalogueVersionView,
   PublicCategory,
+  PublicOffer,
   PublicOptionValue,
   PublicCombo,
   PublicComboPart,
@@ -83,6 +88,7 @@ export class PublicCatalogue {
     @Inject(CatalogueImages) private readonly images: CatalogueImages,
     @Inject(CatalogFeedCsv) private readonly feedCsv: CatalogFeedCsv,
     @Inject(DomainService) private readonly domains: DomainService,
+    @Inject(OFFER_STORE) private readonly offers: OfferStore,
   ) {}
 
   /** CCH-04: the one small answer a caller reads first, to put the version in the addresses after it. */
@@ -119,6 +125,29 @@ export class PublicCatalogue {
     return this.answer(shop, lang, ['products', request], maxAge, stale, () =>
       this.buildList(shop.row.id, request, after),
     );
+  }
+
+  /**
+   * OFFERS-PLAN OF-8, OF-12, OF-21: a running or ended offer by its link name; one not started, or none, is not found.
+   * Kept as the lists are (its state changes the catalogue's version).
+   */
+  async offer(shop: ApiShop, slug: string, lang: Language): Promise<CatalogueAnswer<PublicOffer>> {
+    const link = slug.toLowerCase();
+    const maxAge = await this.seconds(PlatformSettingKey.CatalogueDetailMaxAgeSeconds);
+    return this.answer(shop, lang, ['offer', link], maxAge, null, async () => {
+      const found = await this.store.run((tx) => this.offers.publicOffer(tx, shop.row.id, link));
+      if (!found) throw new ApiError('not_found', 'OfferNotFound', {});
+      return {
+        name: found.offer.name,
+        slug: found.offer.slug,
+        state: found.offer.state === OfferState.Running ? 'running' : 'ended',
+        cut: {
+          kind: found.offer.cutKind === OfferCutKind.Taka ? 'taka' : 'percent',
+          amount: found.offer.cutAmount,
+        },
+        products: new Set(found.items.map((item) => item.productId)).size,
+      };
+    });
   }
 
   /** PRD-09, LND-04: an active product's page by its link, current or old. */
@@ -288,6 +317,9 @@ export class PublicCatalogue {
     return this.store.run(async (tx) => {
       const categoryIds =
         request.category === null ? null : await this.categoryScope(tx, tenantId, request.category);
+      // OF-8: one offer's cards; an offer not public (not started, or none) has none.
+      const offer =
+        request.offer === null ? null : await this.offers.publicOffer(tx, tenantId, request.offer);
       const rows = await this.search.listProducts(tx, tenantId, {
         categoryIds,
         search: request.search,
@@ -296,6 +328,7 @@ export class PublicCatalogue {
         onSale: request.onSale,
         ids: request.ids,
         designs: request.designs,
+        offerItems: request.offer === null ? null : (offer?.items ?? []),
         soldSince: new Date(Date.now() - STOREFRONT_BEST_SELLER_DAYS * DAY_MS),
         after,
         limit: request.limit + 1,

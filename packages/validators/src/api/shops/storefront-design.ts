@@ -42,6 +42,8 @@ export enum ProductRowSource {
   BestSellers = 'best_sellers',
   Category = 'category',
   Picked = 'picked',
+  // OFFERS-PLAN OF-8, OF-22: one offer's cards, while it runs (the row hides once it ends).
+  Offer = 'offer',
 }
 
 export enum ProductRowLayout {
@@ -71,6 +73,8 @@ export enum StorefrontLinkKind {
   BestSellers = 'best_sellers',
   Category = 'category',
   Product = 'product',
+  // OFFERS-PLAN OF-8, OF-22: an offer's page while it runs; On sale once it ends.
+  Offer = 'offer',
 }
 
 // SB-8's limits. Every text has a longest length (SEC-12).
@@ -118,6 +122,7 @@ export const storefrontLinkSchema = z.discriminatedUnion('kind', [
     .object({ kind: z.literal(StorefrontLinkKind.Category), categoryId: catalogueIdSchema })
     .strict(),
   z.object({ kind: z.literal(StorefrontLinkKind.Product), productId: catalogueIdSchema }).strict(),
+  z.object({ kind: z.literal(StorefrontLinkKind.Offer), offerId: catalogueIdSchema }).strict(),
 ]);
 export type StorefrontLink = z.infer<typeof storefrontLinkSchema>;
 
@@ -206,6 +211,8 @@ const productsSection = z
     source: z.enum(ProductRowSource),
     // Only with the Category source.
     categoryId: catalogueIdSchema.nullable(),
+    // Only with the Offer source (OFFERS-PLAN); a design saved before offers has none.
+    offerId: catalogueIdSchema.nullable().optional(),
     // Only with the Picked source, in the seller's order.
     productIds: z.array(catalogueIdSchema).max(STOREFRONT_PICKED_PRODUCTS_MAX),
     title: maybeWords(STOREFRONT_TITLE_MAX),
@@ -293,12 +300,16 @@ function sectionProblems(section: StorefrontSection, at: number, ctx: z.Refineme
     case StorefrontSectionKind.Products: {
       const wantsCategory = section.source === ProductRowSource.Category;
       const wantsPicks = section.source === ProductRowSource.Picked;
+      const wantsOffer = section.source === ProductRowSource.Offer;
       if (wantsCategory !== (section.categoryId !== null)) {
         refuse(
           ctx,
           ['sections', at, 'categoryId'],
           'A category goes with the category source only.',
         );
+      }
+      if (wantsOffer !== (section.offerId !== null && section.offerId !== undefined)) {
+        refuse(ctx, ['sections', at, 'offerId'], 'An offer goes with the offer source only.');
       }
       if (wantsPicks ? section.productIds.length === 0 : section.productIds.length > 0) {
         refuse(
@@ -351,7 +362,7 @@ export interface StorefrontPhotoRef {
 export interface StorefrontTargetRef {
   sectionId: string;
   field: string;
-  kind: 'category' | 'product';
+  kind: 'category' | 'product' | 'offer';
   id: string;
 }
 
@@ -407,6 +418,9 @@ export function storefrontTargetRefs(design: StorefrontDesign): StorefrontTarget
         id: link.productId,
       });
     }
+    if (link.kind === StorefrontLinkKind.Offer) {
+      targets.push({ sectionId, field: `${at}.link.offerId`, kind: 'offer', id: link.offerId });
+    }
   };
   design.sections.forEach((section, index) => {
     const at = `sections.${String(index)}`;
@@ -431,6 +445,14 @@ export function storefrontTargetRefs(design: StorefrontDesign): StorefrontTarget
             field: `${at}.categoryId`,
             kind: 'category',
             id: section.categoryId,
+          });
+        }
+        if (section.offerId) {
+          targets.push({
+            sectionId: section.id,
+            field: `${at}.offerId`,
+            kind: 'offer',
+            id: section.offerId,
           });
         }
         section.productIds.forEach((id, pick) => {
@@ -458,12 +480,14 @@ export function storefrontMediaIds(design: StorefrontDesign): string[] {
 export function storefrontTargets(design: StorefrontDesign): {
   categoryIds: string[];
   productIds: string[];
+  /** OFFERS-PLAN: the offers its rows and buttons name. */
+  offerIds: string[];
 } {
   const refs = storefrontTargetRefs(design);
   const of = (kind: StorefrontTargetRef['kind']): string[] => [
     ...new Set(refs.filter((ref) => ref.kind === kind).map((ref) => ref.id)),
   ];
-  return { categoryIds: of('category'), productIds: of('product') };
+  return { categoryIds: of('category'), productIds: of('product'), offerIds: of('offer') };
 }
 
 // PUT /storefront/design: the draft, whole (SB-12). POST .../publish and .../back take nothing.

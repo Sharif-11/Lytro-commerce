@@ -120,6 +120,11 @@ export interface PublicProductFilter {
   ids: readonly string[] | null;
   /** DC-1: each design of a product with two or more its own card (the storefront asks when the shop has it on). */
   designs: boolean;
+  /**
+   * OFFERS-PLAN OF-8, OF-9: only one offer's cards -- every card of a product it holds whole, a design's own card for a
+   * design it holds, and a product's own card for either; null for any.
+   */
+  offerItems?: readonly { productId: string; designOptionId: string | null }[] | null;
   /** SB-9: where the best-selling order's window starts (its units are counted from here); unused by other orders. */
   soldSince: Date;
   /** The last row's position on the page before; null starts at the beginning. */
@@ -312,6 +317,21 @@ export class PublicCatalogueRepository {
           ids.map((id) => sql`${id}::uuid`),
           sql`, `,
         )})`,
+      );
+    }
+    if (filter.offerItems !== undefined && filter.offerItems !== null) {
+      const items = filter.offerItems;
+      const design = filter.designs ? sql`c.design_id` : sql`NULL::uuid`;
+      where.push(
+        items.length === 0
+          ? sql`false`
+          : sql`EXISTS (
+            SELECT 1 FROM (VALUES ${sql.join(
+              items.map((item) => sql`(${item.productId}::uuid, ${item.designOptionId}::uuid)`),
+              sql`, `,
+            )}) AS oi(product_id, design_id)
+            WHERE oi.product_id = p.id
+              AND (oi.design_id IS NULL OR ${design} IS NULL OR oi.design_id = ${design}))`,
       );
     }
     if (filter.categoryIds !== null) {

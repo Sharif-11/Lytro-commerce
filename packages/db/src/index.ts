@@ -162,6 +162,17 @@ export {
   type BrandIdentityValues,
 } from './repositories/brand/brand-identity.repository';
 export {
+  OffersRepository,
+  type OfferDesignRow,
+  type OfferHolderRow,
+  type OfferItemRow,
+  type OfferListRow,
+  type OfferPickDesignRow,
+  type OfferPickRow,
+  type OfferProductRow,
+  type OfferSizeRow,
+} from './repositories/catalogue/offers.repository';
+export {
   StorefrontDesignRepository,
   type StorefrontCardKey,
   type StorefrontCardRow,

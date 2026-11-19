@@ -16,6 +16,8 @@ export interface ListRequest {
   ids: string[] | null;
   /** DC-1: each design of a product with two or more its own card. */
   designs: boolean;
+  /** OFFERS-PLAN OF-8: only one offer's cards (its link name); null for any. */
+  offer: string | null;
   cursor: string | null;
   limit: number;
 }
@@ -38,6 +40,7 @@ export function listRequestOf(query: PublicProductListQuery): ListRequest {
     onSale: query.onSale ?? false,
     ids: query.productIds ?? null,
     designs: query.designs ?? false,
+    offer: query.offer?.toLowerCase() ?? null,
     // SB-9: a picked row is one page of exactly its products.
     cursor: query.productIds === undefined ? (query.cursor ?? null) : null,
     limit: query.productIds === undefined ? query.limit : query.productIds.length,

@@ -48,6 +48,14 @@ export const MAX_VARIANTS_PER_PRODUCT = 100;
 export const COMBO_PARTS_MAX = 10;
 export const COMBO_PART_QUANTITY_MAX = 20;
 export const COMBO_PART_VARIANTS_MAX = 100;
+// OFFERS-PLAN: an offer's name (shoppers see it) and its link name, its cut (OF-18: a percent from 1 to 90; taka off
+// up to the highest price), and how many products and designs one offer may hold.
+export const OFFER_NAME_MAX_LENGTH = 60;
+export const OFFER_SLUG_MAX_LENGTH = 80;
+export const OFFER_PERCENT_MIN = 1;
+export const OFFER_PERCENT_MAX = 90;
+export const OFFER_TAKA_MAX = 99_999_999;
+export const OFFER_ITEMS_MAX = 2000;
 // ATL-02: the attributes that may describe one product (or be asked about it when ordering, ATR-08).
 export const ATTRIBUTES_PER_PRODUCT_MAX = 50;
 // STA-01 to STA-03 (Slice 4.7): the longest period sales figures cover, and how many best sellers one read ranks.
