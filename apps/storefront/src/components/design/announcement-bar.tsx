@@ -1,11 +1,13 @@
 'use client';
 
+import { announcementPairs } from '@lytronix/validators';
 import { useEffect, useRef, useState } from 'react';
 import type { BarItem } from '@/lib/design/announcement';
 
 // STOREFRONT-BUILDER-PLAN BL-10, BL-16, BL-17: the bar's items two at a time, the next pair every few seconds. Every pair
 // sits in one grid cell, so the bar keeps the tallest's height; all are in the page for screen readers, one is seen.
-// Over the header (`pinned`), it leaves once the page scrolls and comes back at the top, as Bonik AI's does.
+// Over the header (`pinned`), it leaves once the page scrolls and comes back at the top, as Bonik AI's does. Under 360px
+// (the owner, 2026-11-19) one item at a time: both sets are drawn, the bar's width picks one, one tick turns both.
 
 const NEXT_AFTER_MS = 4_000;
 // The page has scrolled past the bar's height; back within a few pixels of the top, it returns (no flicker between).
@@ -36,21 +38,48 @@ function Item({ item }: { item: BarItem }) {
   );
 }
 
-export function AnnouncementBar({ pairs, pinned }: { pairs: BarItem[][]; pinned: boolean }) {
-  const [shown, setShown] = useState(0);
+/** One set of the bar's frames, the one `tick` names showing. */
+function Frames({
+  groups,
+  tick,
+  kind,
+}: {
+  groups: BarItem[][];
+  tick: number;
+  kind: 'two' | 'one';
+}) {
+  const shown = tick % groups.length;
+  return (
+    <div className={`sb-set sb-${kind}`}>
+      {groups.map((group, at) => (
+        <div key={at} className={at === shown ? 'sb-fr sb-on' : 'sb-fr'}>
+          {group.map((item, place) => (
+            <span key={place}>
+              {place > 0 ? <Separator /> : null}
+              <Item item={item} />
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function AnnouncementBar({ items, pinned }: { items: BarItem[]; pinned: boolean }) {
+  const [tick, setTick] = useState(0);
   const [held, setHeld] = useState(false);
   const [gone, setGone] = useState(false);
   const bar = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (pairs.length < 2 || held) return;
+    if (items.length < 2 || held) return;
     const timer = window.setInterval(() => {
-      setShown((at) => (at + 1) % pairs.length);
+      setTick((at) => at + 1);
     }, NEXT_AFTER_MS);
     return () => {
       window.clearInterval(timer);
     };
-  }, [pairs.length, held]);
+  }, [items.length, held]);
 
   useEffect(() => {
     if (!pinned) return;
@@ -85,16 +114,8 @@ export function AnnouncementBar({ pairs, pinned }: { pairs: BarItem[][]; pinned:
             setHeld(false);
           }}
         >
-          {pairs.map((pair, at) => (
-            <div key={at} className={at === shown ? 'sb-fr sb-on' : 'sb-fr'}>
-              {pair.map((item, place) => (
-                <span key={place}>
-                  {place > 0 ? <Separator /> : null}
-                  <Item item={item} />
-                </span>
-              ))}
-            </div>
-          ))}
+          <Frames groups={announcementPairs(items)} tick={tick} kind="two" />
+          <Frames groups={items.map((item) => [item])} tick={tick} kind="one" />
         </div>
       </div>
     </div>

@@ -179,6 +179,11 @@ export const APP_COPY = {
   // BL-11: the header's order tracking.
   sb_track_h: ['অর্ডার ট্র্যাক', 'Track order'],
   sb_track_where: ['অর্ডার কোথায় আছে', 'Where your order is'],
+  // The owner, 2026-11-19: the menu's drawer on a phone.
+  sb_help: ['সাহায্য', 'Help'],
+  sb_my_account: ['আমার অ্যাকাউন্ট', 'My account'],
+  sb_chat_whatsapp: ['WhatsApp-এ চ্যাট', 'Chat on WhatsApp'],
+  sb_language: ['ভাষা', 'Language'],
   sb_shop_by: ['ক্যাটাগরি অনুযায়ী কিনুন', 'Shop by category'],
   sb_n_products: ['{n}টি পণ্য', '{n} products'],
   sb_just_in: ['নতুন এসেছে', 'Just in'],

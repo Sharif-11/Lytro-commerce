@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { CheckoutView } from '@/components/order/checkout-view';
 import { OfflinePage } from '@/components/pages';
-import { Footer, Header, Shell } from '@/components/shell';
+import { ShopShell } from '@/components/shop-shell';
 import {
   loadAddresses,
   loadFrame,
@@ -38,26 +38,15 @@ export default withBusyPage(async function CheckoutPage() {
   ]);
   const addresses = signedIn === null ? [] : await loadAddresses(page);
   const language = page.words.language;
+  // SB-17: the theme's header, footer and tokens, as every other page of the shop wears them.
   return (
-    <Shell
-      brand={page.info.brand}
-      language={language}
+    <ShopShell
+      page={page}
+      frame={frame}
+      back="/cart"
+      title={page.words.t('co_title')}
       tight
-      header={
-        <Header
-          shop={page.info}
-          language={language}
-          variant="back"
-          title={page.words.t('co_title')}
-          backHref="/cart"
-          nav={{
-            categories: frame.categories,
-            shopPhone: page.info.contact.phone,
-            areaId: frame.areaId,
-          }}
-        />
-      }
-      footer={<Footer shop={page.info} language={language} landing={false} storefrontOn />}
+      pausedInPage
     >
       <CheckoutView
         language={language}
@@ -68,6 +57,6 @@ export default withBusyPage(async function CheckoutPage() {
         methods={methods}
         savingPaused={page.savingPaused}
       />
-    </Shell>
+    </ShopShell>
   );
 });
