@@ -428,6 +428,8 @@ export enum AuditAction {
   CourierAddressReplaced = 'courier_address_replaced',
   // Slice 6.3: the store a courier's parcels leave from.
   CourierPickupStoreChanged = 'courier_pickup_store_changed',
+  // The owner, 2026-11-19: a pickup store made in the courier's own account from Lytro.
+  CourierPickupStoreAdded = 'courier_pickup_store_added',
   // CRR-23, CRR-25 (Slice 6.6): Lytro retiring a courier the shop is connected to, and undoing it.
   CourierRetiring = 'courier_retiring',
   CourierRetiringUndone = 'courier_retiring_undone',

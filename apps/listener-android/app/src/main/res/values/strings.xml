@@ -148,13 +148,13 @@ never needed to draw: how long ago in hours or days, "just now", and no internet
     <string name="bat_c">ফোনভেদে মেনুর নাম আলাদা হতে পারে।</string>
     <string name="later">পরে করব</string>
     <string name="mak_xiaomi_where">সেটিংস → অ্যাপ → Lytro Listener</string>
-    <string name="mak_xiaomi_what">Autostart চালু করুন, Battery saver-এ “No restrictions” বাছুন</string>
+    <string name="mak_xiaomi_what">Autostart চালু করুন, Battery saver-এ “No restrictions” সিলেক্ট করুন</string>
     <string name="mak_oppo_where">সেটিংস → অ্যাপ ম্যানেজমেন্ট → Lytro Listener</string>
     <string name="mak_oppo_what">Battery usage-এ “Allow background activity” ও “Auto launch” চালু করুন</string>
     <string name="mak_vivo_where">সেটিংস → ব্যাটারি → Background power consumption</string>
     <string name="mak_vivo_what">Lytro Listener-কে “Allow” করুন; i Manager-এ Autostart চালু করুন</string>
     <string name="mak_samsung_where">সেটিংস → অ্যাপ → Lytro Listener → ব্যাটারি</string>
-    <string name="mak_samsung_what">“Unrestricted” বাছুন</string>
+    <string name="mak_samsung_what">“Unrestricted” সিলেক্ট করুন</string>
 
     <plurals name="held">
         <item quantity="one">%1$sটি রিসিট ফোনে জমা আছে। 7 দিন পর্যন্ত রাখা হবে।</item>

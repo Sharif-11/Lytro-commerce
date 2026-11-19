@@ -31,6 +31,7 @@ import { LeadTo } from './lead-to';
 import { NetBar } from './net-bar';
 import { Splash } from './splash';
 import { useShopManifest } from './use-shop-manifest';
+import { NotificationAlerts } from '@/views/notifications/notification-alerts';
 import { Unavailable } from '@/views/unavailable';
 import { ImportantPrompt, NoticeBands, UpdatePrompt } from '@/views/notices/notice-bands';
 
@@ -275,6 +276,7 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
             <DeskHeader canSearch={canSearch} canAdd={canAdd} />
             <NoticeBands summary={notices.data} />
             <NetBar />
+            <NotificationAlerts />
             <main className="min-h-0 flex-1 overflow-auto [-webkit-overflow-scrolling:touch]">
               {screen?.legacy ? <LegacyPage>{children}</LegacyPage> : allowed ? children : null}
             </main>

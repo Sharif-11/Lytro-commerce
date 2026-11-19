@@ -393,11 +393,21 @@ const paidOf = (order: OrderFixture) =>
 const money = (amount: number) => amount.toFixed(2);
 const counter = (order: OrderFixture) => order.fulfilment !== 'delivery';
 
+/** The options' names, in the order a fixture's values come: a design first where it has one, then size, then colour. */
+const OPTION_NAMES: Words[] = [
+  ['সাইজ', 'Size'],
+  ['রং', 'Colour'],
+];
+
 function attributes(words: Words | null | undefined, language: Language, design = false) {
   const said = say(words, language);
   return said
     ? said.split(' · ').map((value, at) => ({
-        name: '',
+        name:
+          say(
+            design && at === 0 ? ['ডিজাইন', 'Design'] : OPTION_NAMES[design ? at - 1 : at],
+            language,
+          ) ?? '',
         value,
         dataType: 'text',
         unitKind: null,
@@ -669,15 +679,25 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
       taxClassName: 'VAT',
       taxRate: '5.00',
       taxAmount: '0.00',
-      components: (item.inside ?? []).map((part, position) => ({
-        partPosition: position + 1,
-        productId: null,
-        // Each item inside by its own variant, as a damaged one is named on a return (CMB-05).
-        variantId: `cv-${String(index)}-${String(position + 1)}`,
-        productName: say(part, language) ?? '',
-        attributes: [],
-        quantity: '1.000',
-      })),
+      components: (item.inside ?? []).map((part, position) => {
+        // "Cotton panjabi · M": its name, then the values that make its variant.
+        const [name = '', ...made] = (say(part, language) ?? '').split(' · ');
+        return {
+          partPosition: position + 1,
+          productId: null,
+          // Each item inside by its own variant, as a damaged one is named on a return (CMB-05).
+          variantId: `cv-${String(index)}-${String(position + 1)}`,
+          productName: name,
+          attributes: attributes(
+            made.length > 0 ? [made.join(' · '), made.join(' · ')] : null,
+            language,
+          ),
+          quantity: '1.000',
+          sku: null,
+          stockUnit: 'piece',
+          thumbnail: null,
+        };
+      }),
     })),
     calls: order.calls.map((call, index) => ({
       id: `${order.id}-call-${String(index)}`,

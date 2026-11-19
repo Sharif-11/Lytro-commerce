@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import {
+  addPickupStoreSchema,
   bookOrderSchema,
   cancelParcelSchema,
   connectCourierSchema,
@@ -10,6 +11,7 @@ import {
   CourierMessagesState,
   setPickupStoreSchema,
   settleParcelSchema,
+  storePlacesQuerySchema,
   assignCourierAreaSchema,
   confirmCourierAreasSchema,
   courierAreasForOrderSchema,
@@ -27,6 +29,8 @@ import {
 
 export class ConnectCourierDto extends createZodDto(connectCourierSchema) {}
 export class SetPickupStoreDto extends createZodDto(setPickupStoreSchema) {}
+export class AddPickupStoreDto extends createZodDto(addPickupStoreSchema) {}
+export class StorePlacesQueryDto extends createZodDto(storePlacesQuerySchema) {}
 export class CourierAreasQueryDto extends createZodDto(courierAreasQuerySchema) {}
 export class AssignCourierAreaDto extends createZodDto(assignCourierAreaSchema) {}
 export class ConfirmCourierAreasDto extends createZodDto(confirmCourierAreasSchema) {}
@@ -150,6 +154,7 @@ export class CourierAdapterListDto extends createZodDto(
         needsArea: z.boolean(),
         needsThana: z.boolean(),
         hasStores: z.boolean(),
+        addsStores: z.boolean(),
         takesWeight: z.boolean(),
         canCancel: z.boolean(),
         retiring: z.boolean(),
@@ -202,6 +207,27 @@ export class CourierStoreListDto extends createZodDto(
     ),
     chosenId: z.string().nullable(),
   }),
+) {}
+
+// The owner, 2026-11-19: the stores after one was added, which of them is chosen, and the one just made.
+export class CourierStoreAddedDto extends createZodDto(
+  z.object({
+    stores: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        address: z.string().nullable(),
+        active: z.boolean(),
+      }),
+    ),
+    chosenId: z.string().nullable(),
+    addedId: z.string().nullable(),
+  }),
+) {}
+
+// The owner, 2026-11-19: the courier's cities, a city's zones, or a zone's areas, for a new pickup store.
+export class CourierStorePlacesDto extends createZodDto(
+  z.object({ places: z.array(z.object({ id: z.string(), name: z.string() })) }),
 ) {}
 
 // SEC-11: a shop's log of its courier credentials' uses, for the operator.

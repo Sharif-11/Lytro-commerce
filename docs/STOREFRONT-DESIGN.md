@@ -337,7 +337,7 @@ the cart keep their built design; only these changes are made (PD-27), drawn in 
   "ফিরিয়ে আনুন" for 5 seconds.
 - **The delivery charge before the address is known** (PD-25, PD-26; this replaces the range in §5 and §6): the cart
   and the landing page's summary show the shop's highest charge and one total, with "সঠিক ডেলিভারি চার্জ জানতে আপনার
-  অ্যাড্রেস দিন" in the cart and "সঠিক ডেলিভারি চার্জ জানতে থানা বাছুন" on the landing page; the exact charge once it is
+  অ্যাড্রেস দিন" in the cart and "সঠিক ডেলিভারি চার্জ জানতে থানা সিলেক্ট করুন" on the landing page; the exact charge once it is
   known. The prompts that ask for the address say "অ্যাড্রেস".
 - **After ordering** (PD-6): the confirmation and tracking list the items with the chosen design's cover, the size and
   the quantity. No shopper's screen names the design.

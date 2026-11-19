@@ -105,6 +105,10 @@ export interface OrderComponent {
   productName: string;
   attributes: LineAttribute[];
   quantity: string;
+  /** The owner, 2026-11-19: its SKU, unit and photo as ordered, or its variant's current ones on older orders. */
+  sku: string | null;
+  stockUnit: StockUnit;
+  thumbnail: { mediaId: string; url: string; largeUrl: string } | null;
 }
 
 /** Mirrors `OrderItemView`: an item as ordered (ORD-46). */

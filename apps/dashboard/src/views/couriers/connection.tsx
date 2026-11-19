@@ -229,7 +229,12 @@ export function CourierView({ courierKey }: { courierKey: string }): React.JSX.E
         />
       ) : null}
       {open?.kind === 'store' ? (
-        <StoreSheet courier={key} name={connection.name} onClose={close} />
+        <StoreSheet
+          courier={key}
+          name={connection.name}
+          canAdd={adapter.addsStores}
+          onClose={close}
+        />
       ) : null}
       {open?.kind === 'disconnect' ? (
         <DisconnectDialog

@@ -303,6 +303,7 @@ describeIfDatabase('connecting a courier (CRR-01 to CRR-05, CRR-20, SEC-11)', ()
       needsArea: false,
       needsThana: false,
       hasStores: false,
+      addsStores: false,
       takesWeight: false,
       canCancel: false,
       // CRR-23 (Slice 6.6): not being retired.

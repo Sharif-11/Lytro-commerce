@@ -373,6 +373,12 @@ export const orderLineComponents = tenant.table(
       .notNull()
       .default([]),
     quantity: numeric('quantity', { precision: 14, scale: 3 }).notNull(),
+    // The owner, 2026-11-19: each item inside a combo shows its own SKU, unit and photo, copied at order time as the
+    // line's are. Null on components ordered before; those show the variant's current ones.
+    sku: varchar('sku', { length: SKU_MAX_LENGTH }),
+    stockUnit: stockUnit('stock_unit'),
+    thumbnailMediaId: uuid('thumbnail_media_id'),
+    thumbnailUrl: text('thumbnail_url'),
   },
   (t) => [
     foreignKey({
@@ -385,6 +391,10 @@ export const orderLineComponents = tenant.table(
     check('order_line_components_quantity_check', sql`${t.quantity} > 0`),
     index('order_line_components_line_idx').on(t.tenantId, t.orderLineId),
     index('order_line_components_variant_idx').on(t.tenantId, t.variantId),
+    // ATR-20 (PD-8): a photo an order shows is kept while any order does, its combos' items too.
+    index('order_line_components_thumbnail_idx')
+      .on(t.tenantId, t.thumbnailMediaId)
+      .where(sql`${t.thumbnailMediaId} IS NOT NULL`),
   ],
 );
 

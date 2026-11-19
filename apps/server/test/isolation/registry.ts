@@ -381,6 +381,10 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'PUT /couriers/connections/:key/default': "changes only the session shop's own default",
   'GET /couriers/:key/areas': "offers areas only for the session shop's own order",
   'GET /couriers/connections/:key/stores': "lists the stores of the session shop's own connection",
+  'GET /couriers/connections/:key/store-places':
+    "lists the courier's places through the session shop's own connection",
+  'POST /couriers/connections/:key/stores':
+    "adds a store in the session shop's own courier account and chooses it there only",
   'PUT /couriers/connections/:key/store': "changes only the session shop's own pickup store",
   // Phase 6 Slice 6.5, checked in test/courier-money.e2e.spec.ts: a shop's courier payouts are its own.
   'GET /couriers/payouts': "lists only the session shop's own payouts",

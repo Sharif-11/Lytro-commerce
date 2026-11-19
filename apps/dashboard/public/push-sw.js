@@ -9,13 +9,22 @@ self.addEventListener('push', (event) => {
   } catch {
     data = { body: event.data ? event.data.text() : '' };
   }
+  // The owner, 2026-11-19 ("new notification with sharp sound"): an open dashboard is told at once, so its bell and its
+  // chime don't wait for the next minute's look; while one is in front, the system's own alert stays quiet (never two
+  // sounds), and otherwise it sounds and vibrates.
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Lytro', {
-      body: data.body || '',
-      tag: data.tag || undefined,
-      icon: '/logo.svg',
-      badge: '/logo.svg',
-      data: { url: data.url || '/' },
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const watched = windows.some((each) => each.visibilityState === 'visible' && each.focused);
+      for (const each of windows) each.postMessage({ type: 'lytro:push' });
+      return self.registration.showNotification(data.title || 'Lytro', {
+        body: data.body || '',
+        tag: data.tag || undefined,
+        icon: '/logo.svg',
+        badge: '/logo.svg',
+        data: { url: data.url || '/' },
+        silent: watched,
+        ...(watched ? {} : { vibrate: [200, 100, 200] }),
+      });
     }),
   );
 });

@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { notificationSound } from '@/lib/notification-sound';
 import { deviceName, usePushDevice } from '@/lib/push';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
@@ -77,6 +78,47 @@ export function AlwaysOn(): React.JSX.Element {
 }
 
 /** Push on this device (Part 37's `p37-push-*`, NTF-02): turn on, on with a test and off, blocked, iPhone's Home Screen. */
+/**
+ * A sharp sound for a new notification (the owner, 2026-11-19, the sketch's `snd-prefs`): on this device only, on unless
+ * switched off, with a button to hear it. The chime itself is `notificationSound`; the shell plays it.
+ */
+function SoundCard(): React.JSX.Element {
+  const { t } = useTranslation('menu');
+  const { showToast } = useShell();
+  const [on, setOn] = useState(() => notificationSound.isOn());
+  return (
+    <Card>
+      <h3 className="text-[16px] font-semibold">{t('sndT')}</h3>
+      <div className="flex items-center gap-3 pt-2 pb-1">
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-[15px] leading-[1.4] font-medium">{t('sndOn')}</span>
+          <span className="text-[13px] leading-[1.4] text-fg-muted">{t('sndOnD')}</span>
+        </span>
+        <Switch
+          checked={on}
+          label={t('sndOn')}
+          onChange={(next) => {
+            notificationSound.setOn(next);
+            setOn(next);
+          }}
+        />
+      </div>
+      <div className="mt-2">
+        <Button
+          tone="outline"
+          size="sm"
+          onClick={() => {
+            notificationSound.play();
+            showToast(t('sndPlayed'));
+          }}
+        >
+          <Icon name="bell" size={16} /> {t('sndPlay')}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 function PushCard(): React.JSX.Element {
   const { t } = useTranslation('menu');
   const { slug, showToast } = useShell();
@@ -283,6 +325,7 @@ export function NotificationPrefsView(): React.JSX.Element {
         </div>
         <div className="order-1 flex flex-col gap-4 lg:order-2">
           <PushCard />
+          <SoundCard />
           {viewer.isOwner ? (
             <Card>
               <h3 className="text-[16px] font-semibold">{t('p37MailT')}</h3>

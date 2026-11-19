@@ -23,6 +23,7 @@ export const ADAPTERS = [
     needsArea: false,
     needsThana: false,
     hasStores: false,
+    addsStores: false,
     takesWeight: false,
     canCancel: false,
     retiring: false,
@@ -34,6 +35,7 @@ export const ADAPTERS = [
     needsArea: false,
     needsThana: true,
     hasStores: true,
+    addsStores: true,
     takesWeight: true,
     canCancel: false,
     retiring: false,
@@ -45,6 +47,7 @@ export const ADAPTERS = [
     needsArea: true,
     needsThana: false,
     hasStores: true,
+    addsStores: false,
     takesWeight: true,
     canCancel: true,
     retiring: false,
@@ -110,8 +113,23 @@ export interface CouriersFixture {
     zilla: { areaCode: string; name: string; suggested: boolean }[];
   };
   stores?: { id: string; name: string; address: string | null; active: boolean }[];
+  /** The owner, 2026-11-19: a store made from Lytro waits for the courier to switch it on. */
+  newStoresWaiting?: boolean;
   payouts?: PayoutFixture[];
 }
+
+/** The owner, 2026-11-19: Pathao's own places for a new store, as its sandbox listed some. */
+const STORE_PLACES: Record<string, { id: string; name: string }[]> = {
+  city: [
+    { id: '1', name: 'Dhaka' },
+    { id: '2', name: 'Chittagong' },
+  ],
+  'zone:1': [
+    { id: '298', name: 'Dhanmondi' },
+    { id: '52', name: 'Mirpur' },
+  ],
+  'area:298': [{ id: '3069', name: 'Dhanmondi 27' }],
+};
 
 /** Part 36's `c36`: Steadfast the default with its messages arriving, and Pathao with none yet and its store chosen. */
 export function drawnCouriers(): CouriersFixture {
@@ -277,7 +295,7 @@ export function couriersAnswer(
     connection.state = 'active';
     return { data: { ...connectionView(connection), message: ADDRESS } };
   }
-  const one = /^\/couriers\/connections\/([a-z]+)(?:\/([a-z]+))?$/.exec(path);
+  const one = /^\/couriers\/connections\/([a-z]+)(?:\/([a-z-]+))?$/.exec(path);
   if (one) {
     const key = one[1] ?? '';
     const connection = connected(key);
@@ -297,6 +315,28 @@ export function couriersAnswer(
     if (method === 'GET' && action === 'stores') {
       return {
         data: { stores: fixture.stores ?? [], chosenId: connection.pickupStore?.id ?? null },
+      };
+    }
+    if (method === 'GET' && action === 'store-places') {
+      const zone = url.searchParams.get('zoneId');
+      const city = url.searchParams.get('cityId');
+      const which = zone ? `area:${zone}` : city ? `zone:${city}` : 'city';
+      return { data: { places: STORE_PLACES[which] ?? [] } };
+    }
+    if (method === 'POST' && action === 'stores') {
+      const stores = (fixture.stores ??= []);
+      const made = {
+        id: `st-new-${String(stores.length + 1)}`,
+        name: String(body?.storeName),
+        address: String(body?.storeAddress),
+        active: fixture.newStoresWaiting !== true,
+      };
+      stores.push(made);
+      if (body?.use === true && made.active) {
+        connection.pickupStore = { id: made.id, name: made.name };
+      }
+      return {
+        data: { stores, chosenId: connection.pickupStore?.id ?? null, addedId: made.id },
       };
     }
     if (method === 'PUT' && action === 'store') {

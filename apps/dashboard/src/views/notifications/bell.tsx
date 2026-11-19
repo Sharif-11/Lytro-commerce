@@ -10,7 +10,7 @@ import { NotificationRow } from './bell-rows';
 import { useOpenNotification } from './notification-words';
 
 /** How many rows the panel holds; See all opens the rest. */
-const PANEL_ROWS = 20;
+export const PANEL_ROWS = 20;
 
 /**
  * The bell (TENANT-DASHBOARD-DESIGN §7.40, Part 37's `p37-bell`; NTF-01): in both bars on every screen, its badge the

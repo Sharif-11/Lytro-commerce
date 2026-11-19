@@ -4,8 +4,13 @@ import {
   COURIER_AREA_PAGE_MAX,
   COURIER_AREA_PAGE_SIZE,
   COURIER_FIELD_MAX_LENGTH,
+  COURIER_PLACE_ID_MAX_LENGTH,
   COURIER_RETIRE_REASON_MAX_LENGTH,
   PARCEL_NOTE_MAX_LENGTH,
+  PICKUP_STORE_ADDRESS_MAX,
+  PICKUP_STORE_ADDRESS_MIN,
+  PICKUP_STORE_NAME_MAX,
+  PICKUP_STORE_NAME_MIN,
 } from '../../common/courier-limits';
 import {
   ORDER_LINES_MAX,
@@ -14,7 +19,7 @@ import {
 } from '../../common/limits';
 import { CourierAreaState, CourierKey } from '../../db/enums';
 import { FieldProblemCode } from '../../validation/field-problem';
-import { itemSerialsSchema, serialsOnce } from '../orders/order';
+import { itemSerialsSchema, orderPhoneField, serialsOnce } from '../orders/order';
 
 /**
  * CRR-02, CRR-03, SEC-08 (Phase 6 Slice 6.1): a courier's credentials, only ever in a request's body; sealed as they arrive and
@@ -40,6 +45,36 @@ export const setPickupStoreSchema = z
   .object({ storeId: z.string().trim().min(1).max(COURIER_FIELD_MAX_LENGTH) })
   .strict();
 export type SetPickupStoreInput = z.infer<typeof setPickupStoreSchema>;
+
+/** A courier's own id for a city, zone or area: digits, as Pathao's are. */
+const courierPlaceId = z.string().trim().regex(/^\d+$/).max(COURIER_PLACE_ID_MAX_LENGTH);
+
+/**
+ * GET couriers/connections/:key/store-places (the owner, 2026-11-19): the courier's own cities; with `cityId` that city's
+ * zones; with `zoneId` that zone's areas the courier collects from. A new pickup store names one of each.
+ */
+export const storePlacesQuerySchema = z
+  .object({ cityId: courierPlaceId.optional(), zoneId: courierPlaceId.optional() })
+  .strict();
+export type StorePlacesQuery = z.infer<typeof storePlacesQuerySchema>;
+
+/**
+ * POST couriers/connections/:key/stores (the owner, 2026-11-19): a new pickup store, made in the courier's own account, as
+ * Pathao takes one. `use` makes it the store bookings leave from, once the courier has it switched on.
+ */
+export const addPickupStoreSchema = z
+  .object({
+    storeName: z.string().trim().min(PICKUP_STORE_NAME_MIN).max(PICKUP_STORE_NAME_MAX),
+    contactName: z.string().trim().min(PICKUP_STORE_NAME_MIN).max(PICKUP_STORE_NAME_MAX),
+    contactNumber: orderPhoneField,
+    storeAddress: z.string().trim().min(PICKUP_STORE_ADDRESS_MIN).max(PICKUP_STORE_ADDRESS_MAX),
+    cityId: courierPlaceId,
+    zoneId: courierPlaceId,
+    areaId: courierPlaceId,
+    use: z.boolean().default(true),
+  })
+  .strict();
+export type AddPickupStoreInput = z.infer<typeof addPickupStoreSchema>;
 
 /** GET operator/courier-areas (CUS-10, Slice 6.4): a courier's areas, by how they stand, a zilla or a name. */
 export const courierAreasQuerySchema = z

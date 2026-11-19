@@ -1,14 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import { formatTaka } from '@lytronix/ui';
 import { Icon } from '@/components/icon';
 import { Sheet } from '@/components/ui/sheet';
 import type { OrderItem } from '@/types/orders';
-import { picturesOf, quantityOf } from './order-auto';
-import { useOrderWords } from './order-words';
+import { ItemChips } from './item-chips';
+import { picturesOf } from './order-auto';
 
 /**
  * An item's picture, large (the fixes PR's `fx-photo`, 2026-11-14): the shopper's chosen design or the product's
- * photo, with Previous and Next across the order's pictures and "1 / 2" over it, and the line's SKU and quantity under.
+ * photo, with Previous and Next across the order's pictures and "1 / 2" over it; under it the item's chips, as the
+ * items card shows them (the owner, 2026-11-19, the sketch's `oi-photo`).
  */
 export function PictureSheet({
   items,
@@ -23,24 +23,17 @@ export function PictureSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const words = useOrderWords();
   const pictures = picturesOf(items);
   const at = pictures.findIndex((each) => each.itemId === itemId);
   const picture = at >= 0 ? pictures[at] : undefined;
   const item = items.find((each) => each.id === itemId);
-  const variant = item ? words.variant(item) : null;
-  const quantity = item ? quantityOf(item) : null;
   const step = (by: number) => {
     const next = pictures[at + by];
     if (next) onPick(next.itemId);
   };
   return (
-    <Sheet
-      open={picture !== undefined}
-      title={item ? [item.productName, variant].filter(Boolean).join(' · ') : ''}
-      onClose={onClose}
-    >
-      {picture && item && quantity ? (
+    <Sheet open={picture !== undefined} title={item?.productName ?? ''} onClose={onClose}>
+      {picture && item ? (
         <>
           <div className="relative flex aspect-square max-h-[62vh] w-full items-center justify-between overflow-hidden rounded-[12px] bg-neutral-100 px-2.5">
             <img src={picture.url} alt="" className="absolute inset-0 size-full object-contain" />
@@ -70,17 +63,8 @@ export function PictureSheet({
               {t('pictureOf', { a: at + 1, b: pictures.length })}
             </span>
           </div>
-          <div className="mt-2.5 flex justify-between gap-3 text-[15px] text-fg-muted">
-            <span>
-              {item.sku ? (
-                <>
-                  SKU <span className="font-mono text-[14px] tracking-[0.02em]">{item.sku}</span>
-                </>
-              ) : null}
-            </span>
-            <span className="num">
-              {t(`qty_${quantity.unit}`, { n: quantity.amount })} × {formatTaka(item.unitPrice)}
-            </span>
+          <div className="mt-3">
+            <ItemChips item={item} />
           </div>
         </>
       ) : null}

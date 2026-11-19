@@ -60,7 +60,27 @@ interface Behaviour {
   whileRefreshing?: () => Promise<void>;
   /** Every token is refused from now on. */
   tokensRevoked?: boolean;
+  /** A store made from Lytro waits for Pathao to switch it on (a live account may; the sandbox didn't). */
+  newStoresWaiting?: boolean;
 }
+
+// The owner, 2026-11-19: Pathao's own places for a new store, as its sandbox listed them the same day (ids kept).
+const CITIES = [
+  { city_id: 1, city_name: 'Dhaka' },
+  { city_id: 2, city_name: 'Chittagong' },
+];
+const ZONES: Record<string, { zone_id: number; zone_name: string }[]> = {
+  '1': [
+    { zone_id: 298, zone_name: 'Dhanmondi' },
+    { zone_id: 52, zone_name: 'Mirpur' },
+  ],
+};
+const AREAS: Record<string, { area_id: number; area_name: string; pickup_available: boolean }[]> = {
+  '298': [
+    { area_id: 3069, area_name: 'Dhanmondi 27', pickup_available: true },
+    { area_id: 3070, area_name: 'Lake Circus', pickup_available: false },
+  ],
+};
 
 const LASTS_SECONDS = 90 * 24 * 60 * 60;
 
@@ -111,7 +131,14 @@ export class FakePathao {
         error: { source: 'verify-auth-token', description: 'access token is invalid' },
       });
     }
+    if (path === '/stores' && init?.method === 'POST' && body !== null)
+      return this.createStore(body);
     if (path === '/stores') return this.listStores();
+    if (path === '/city-list') return this.listOf(CITIES);
+    const zones = /^\/cities\/([^/]+)\/zone-list$/.exec(path);
+    if (zones) return this.listOf(ZONES[zones[1] ?? ''] ?? []);
+    const areas = /^\/zones\/([^/]+)\/area-list$/.exec(path);
+    if (areas) return this.listOf(AREAS[areas[1] ?? ''] ?? []);
     if (path === '/orders' && body !== null) return this.createOrder(body);
     const info = /^\/orders\/([^/]+)\/info$/.exec(path);
     if (info) return this.orderInfo(decodeURIComponent(info[1] ?? ''));
@@ -206,6 +233,53 @@ export class FakePathao {
   private endAll(): void {
     this.access.clear();
     this.refresh.clear();
+  }
+
+  private listOf(rows: unknown[]): Response {
+    return reply(200, { message: 'Listed.', type: 'success', code: 200, data: { data: rows } });
+  }
+
+  /** As its sandbox refused and took one on 2026-11-19: each field's own message, then the store and its id. */
+  private createStore(body: Record<string, unknown>): Response {
+    const text = (field: string) => (typeof body[field] === 'string' ? body[field] : '');
+    const errors: Record<string, string[]> = {};
+    if (text('name') === '') errors['name'] = ['The name field is required.'];
+    const contact = text('contact_name').length;
+    if (contact < 3 || contact > 50) {
+      errors['contact_name'] = ['The contact name must be between 3 and 50 characters.'];
+    }
+    if (!/^01[3-9]\d{8}$/.test(text('contact_number'))) {
+      errors['contact_number'] = ['Primary number must be a valid mobile number.'];
+    }
+    const address = text('address').length;
+    if (address < 15 || address > 120) {
+      errors['address'] = ['The address must be between 15 and 120 characters.'];
+    }
+    for (const field of ['city_id', 'zone_id', 'area_id']) {
+      if (typeof body[field] !== 'number')
+        errors[field] = [`The ${field.replace('_id', '')} field is required`];
+    }
+    if (Object.keys(errors).length > 0) {
+      return reply(422, {
+        message: 'Please fix the given errors',
+        type: 'error',
+        code: 422,
+        errors,
+      });
+    }
+    const storeId = 500 + this.stores.length;
+    this.stores.push({
+      store_id: storeId,
+      store_name: text('name'),
+      store_address: text('address'),
+      is_active: this.behaviour.newStoresWaiting === true ? 0 : 1,
+    });
+    return reply(200, {
+      message: 'Store created successfully!',
+      type: 'success',
+      code: 200,
+      data: { store_id: storeId, store_name: text('name') },
+    });
   }
 
   private listStores(): Response {
