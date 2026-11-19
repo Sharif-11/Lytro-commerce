@@ -7,7 +7,8 @@ import { Icon } from '../icon';
 import { ProductList, SortChip } from './product-list';
 
 /** STOREFRONT-DESIGN §3: a category's or New arrivals' page body as the prototype's categoryPage draws it -- the
-    heading, the chips, the sort chip (where the page offers orders) and "In stock only", then the grid. */
+    heading with "In stock only" on its line (the owner, 2026-11-19), the chips, the sort chip where the page offers
+    orders, then the grid. */
 export function ListView({
   words,
   heading,
@@ -34,16 +35,17 @@ export function ListView({
 }) {
   return (
     <>
-      {heading}
-      {chips}
       <div
-        style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}
+        className="list-head"
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 8,
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
       >
-        {sortable ? (
-          <SortChip language={words.language} path={path} params={params} fallback={fallback} />
-        ) : (
-          <span />
-        )}
+        {heading}
         <a
           className={params.inStock ? 'chip on' : 'chip'}
           href={listHref(path, { ...params, inStock: !params.inStock }, fallback)}
@@ -52,6 +54,12 @@ export function ListView({
           {words.t('instock_only')}
         </a>
       </div>
+      {chips}
+      {sortable ? (
+        <div style={{ display: 'flex' }}>
+          <SortChip language={words.language} path={path} params={params} fallback={fallback} />
+        </div>
+      ) : null}
       {page.products.length > 0 ? (
         <ProductList
           // A new order or filter is a new list: what "Show more" added to the old one goes with it.

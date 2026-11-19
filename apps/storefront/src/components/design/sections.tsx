@@ -1,5 +1,6 @@
 import { cardKey } from '@/lib/design/card-links';
 import {
+  announcementPairs,
   BannerLayout,
   bannerLayoutFor,
   CategoryTileStyle,
@@ -62,7 +63,7 @@ export function Announcement({
 }) {
   const items = barItems(section.items, info, words);
   if (items.length === 0) return null;
-  return <AnnouncementBar items={items} pinned={pinned} />;
+  return <AnnouncementBar pairs={announcementPairs(items)} pinned={pinned} />;
 }
 
 /** SB-9: every top-level category with its picture (or its first product's photo) and how many products it holds. */

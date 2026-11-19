@@ -70,7 +70,9 @@ test.describe('the designed home (SB-8 to SB-10)', () => {
     await expect(home).toBeVisible();
     // The announcement writes itself from what is on sale.
     // First on the page, it sits over the header (SB-8).
-    await expect(page.locator('.sfb-bar .sb-ann')).toContainText('Up to 18% off on 3 products');
+    await expect(page.locator('.sfb-bar .sb-ann:visible')).toContainText(
+      'Up to 18% off on 3 products',
+    );
     await expect(home.locator('.sb-hero h1')).toHaveText('Discover your signature scent');
     await expect(home.locator('.sb-cat')).toHaveCount(shops.royal.cats.length);
     // Best sellers, most ordered first; then the biggest saving first.
@@ -232,10 +234,12 @@ test.describe("the draft's preview (SB-12)", () => {
 });
 
 test.describe('banner layouts, the bar and the hero tiles (BL-2 to BL-17)', () => {
-  test('turns the bar two items at a time, leaves it as the page scrolls, and tracks orders from the header', async ({
+  test('turns the bar two items at a time (one on a phone), leaves it as the page scrolls, and tracks orders from the header', async ({
     page,
     browser,
-  }) => {
+  }, testInfo) => {
+    // The owner, 2026-11-19: a phone turns the items one at a time, each on one line; a computer, two at a time.
+    const phone = testInfo.project.name === 'phone';
     const shops = await sketchShops(browser);
     const shop = await openShop(page, (language) =>
       builderShop(StorefrontThemeKey.Royal, shops.royal, language),
@@ -245,14 +249,24 @@ test.describe('banner layouts, the bar and the hero tiles (BL-2 to BL-17)', () =
     await page.clock.install({ time: start });
     await page.clock.pauseAt(start + 1_000);
     await page.goto(shop.url('/'));
-    // Every pair is in the page, in the seller's order; one shows, the next after 4 seconds.
-    const pairs = page.locator('.sfb-bar .sb-ann .sb-set.sb-two .sb-fr');
-    await expect(pairs).toHaveCount(2);
+    // Every pair (every item, on a phone) is in the page, in the seller's order; one shows, the next after 4 seconds.
+    const pairs = page.locator(
+      phone ? '.sfb-bar .sb-ann.sb-one .sb-fr' : '.sfb-bar .sb-ann.sb-two .sb-fr',
+    );
+    await expect(pairs).toHaveCount(phone ? 3 : 2);
     await expect(pairs.nth(0)).toContainText('Cash on delivery');
-    await expect(pairs.nth(0)).toContainText('Inside Dhaka city: delivery up to ৳70');
-    await expect(pairs.nth(0)).toContainText('Outside Dhaka city: up to ৳130');
-    await expect(pairs.nth(1)).toContainText('Up to 18% off on 3 products');
+    const delivery = pairs.nth(phone ? 1 : 0);
+    await expect(delivery).toContainText('Inside Dhaka city: delivery up to ৳70');
+    await expect(delivery).toContainText('Outside Dhaka city: up to ৳130');
+    await expect(pairs.nth(phone ? 2 : 1)).toContainText('Up to 18% off on 3 products');
     await expect(pairs.nth(0)).toHaveClass(/sb-on/);
+    if (phone) {
+      // One centered line, however long the item: the bar no taller than one line and its padding.
+      const box = await page.locator('.sfb-bar .sb-ann.sb-one').boundingBox();
+      expect(box?.height).toBeLessThan(34);
+      await expect(page.locator('.sfb-bar .sb-ann.sb-one')).toHaveCSS('text-align', 'center');
+      await expect(page.locator('.sfb-bar .sb-ann.sb-two')).toBeHidden();
+    }
     // The cursor away from the bar (a browser's starts at the corner, on it).
     await page.mouse.move(200, 600);
     await page.clock.runFor(4_100);
@@ -269,7 +283,8 @@ test.describe('banner layouts, the bar and the hero tiles (BL-2 to BL-17)', () =
     await page.mouse.move(200, 600);
     await settled(page);
     await page.clock.runFor(4_100);
-    await expect(pairs.nth(0)).toHaveClass(/sb-on/);
+    // The next turn: back to the first pair, or on to the third item.
+    await expect(pairs.nth(phone ? 2 : 0)).toHaveClass(/sb-on/);
     const wrap = page.locator('.sfb-bar .sb-ann-wrap');
     await page.locator('.scroll').evaluate((scroll) => {
       scroll.scrollTop = 600;
@@ -336,33 +351,43 @@ test.describe('banner layouts, the bar and the hero tiles (BL-2 to BL-17)', () =
     await expect(sections.nth(3)).toHaveClass(/sb-full/);
     await expect(sections.nth(3).locator('.sb-ban.sb-c')).toHaveCount(0);
   });
+
+  // The owner, 2026-11-19: on a 320-pixel phone a long title took the banner's button past its bottom edge, and the
+  // trust strip sat to one side.
+  test("keeps a long title's button inside its banner, and centers the trust strip", async ({
+    page,
+    browser,
+  }) => {
+    const shops = await sketchShops(browser);
+    const oneBanner = await oneBannerOf(browser);
+    if (!oneBanner) throw new Error('the sketch has its one banner');
+    const screen = {
+      ...shops.studio,
+      oneBanner: {
+        ...oneBanner,
+        b: ['ভ্যাম্পায়ার ব্লাড ইউ ডি পারফিউম', 'Vampire Blood Eau de Parfum'] as [string, string],
+      },
+      layout: ['header', 'banners-one', 'trust', 'footer'],
+    };
+    // No wallets: the strip has three items, which a four-place row left to one side.
+    const shop = await openShop(page, (language) => ({
+      ...builderShop(StorefrontThemeKey.Studio, screen, language),
+      paymentMethods: [],
+    }));
+    await page.setViewportSize({ width: 320, height: 640 });
+    await page.goto(shop.url('/'));
+    const banner = page.locator('.sb-banners.sb-full .sb-ban').first();
+    await expect(banner).toBeVisible();
+    const box = await banner.boundingBox();
+    const button = await banner.locator('.sb-btn').boundingBox();
+    if (!box || !button) throw new Error('the banner and its button are on the page');
+    expect(button.y + button.height).toBeLessThanOrEqual(box.y + box.height);
+    await expect(page.locator('.sb-trust')).toHaveCSS('justify-content', 'center');
+  });
 });
 
 test.describe('phones and wide screens, beside Bonik AI (the owner, 2026-11-19)', () => {
   const isPhone = () => test.info().project.name === 'phone';
-
-  test('a small phone turns the bar one item at a time; a wider one keeps pairs', async ({
-    browser,
-  }) => {
-    const shops = await sketchShops(browser);
-    for (const [width, kind, count] of [
-      [320, 'sb-one', 3],
-      [390, 'sb-two', 2],
-    ] as const) {
-      const context = await browser.newContext({ viewport: { width, height: 760 } });
-      const page = await context.newPage();
-      const shop = await openShop(page, (language) =>
-        builderShop(StorefrontThemeKey.Royal, shops.royal, language),
-      );
-      await page.goto(shop.url('/'));
-      const shown = page.locator(`.sfb-bar .sb-ann .sb-set.${kind}`);
-      await expect(shown).toBeVisible();
-      await expect(shown.locator('.sb-fr')).toHaveCount(count);
-      await expect(shown.locator('.sb-fr').first()).toContainText('Cash on delivery');
-      await expect(page.locator('.sfb-bar .sb-ann .sb-set:not(.' + kind + ')')).toBeHidden();
-      await context.close();
-    }
-  });
 
   test('the menu opens a drawer of the lists, the categories with their counts, help and the language', async ({
     page,

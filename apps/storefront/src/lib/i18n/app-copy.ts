@@ -166,6 +166,9 @@ export const APP_COPY = {
   sb_all: ['সব পণ্য', 'All products'],
   sb_shop_h: ['কেনাকাটা', 'Shop'],
   sb_contact: ['যোগাযোগ', 'Contact'],
+  // The owner, 2026-11-19: the shop's WhatsApp and Facebook page by name in the footer's contact column.
+  sb_whatsapp: ['WhatsApp', 'WhatsApp'],
+  sb_facebook_page: ['Facebook পেজ', 'Facebook page'],
   sb_offers_line: ['{n}টি পণ্যে {p}% পর্যন্ত ছাড় চলছে', 'Up to {p}% off on {n} products'],
   sb_delivery: ['ডেলিভারি {r}', 'Delivery {r}'],
   // STOREFRONT-BUILDER-PLAN BL-10: the bar's delivery line, each zone by the shop's name for it ({z}).

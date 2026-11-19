@@ -118,8 +118,16 @@
 .sfb .sb-ban b{display:block;font-family:var(--fh);font-size:30px;line-height:1.1;margin:2px 0}
 .sfb .sb-ban .sb-s{font-size:13px;opacity:.95;margin-bottom:10px}
 .sfb .sb-ban .sb-btn{padding:8px 14px;font-size:13px}
-.sfb .sb-trust{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.sfb .sb-trust .sb-it{display:flex;gap:10px;align-items:center;background:var(--trust-bg);border-radius:var(--r-card);padding:11px 12px;font-size:12px;color:var(--muted);line-height:1.35;border:var(--trust-border)}
+/* The owner, 2026-11-19: on a phone a long title pushed a banner's button past its bottom edge. Below the computer
+   layout a wide banner's words set its height when they need more room than it has (its photo fills it either way),
+   and its title shrinks with a narrow screen. */
+@container (max-width:899.98px){
+  .sfb .sb-ban:not(.sb-c){height:auto;min-height:168px}
+  .sfb .sb-ban:not(.sb-c) b{font-size:clamp(22px,7.5cqi,30px);overflow-wrap:anywhere}
+}
+/* The owner, 2026-11-19: the strip sits centered, so three items (one turned off) leave no empty place at one end. */
+.sfb .sb-trust{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.sfb .sb-trust .sb-it{flex:0 1 calc((100% - 10px) / 2);min-width:0;display:flex;gap:10px;align-items:center;background:var(--trust-bg);border-radius:var(--r-card);padding:11px 12px;font-size:12px;color:var(--muted);line-height:1.35;border:var(--trust-border)}
 .sfb .sb-trust .sb-it b{display:block;color:var(--text);font-size:13px}
 .sfb .sb-trust .sb-it .sb-i{color:var(--main);width:26px;height:26px}
 .sfb .sb-quotes{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;margin-right:-16px;padding-right:16px}
@@ -187,8 +195,8 @@
   .sfb .sb-ban{height:230px}
   .sfb .sb-ban b{font-size:40px}
   .sfb .sb-ban .sb-tx{padding:28px}
-  .sfb .sb-trust{grid-template-columns:repeat(4,1fr);gap:14px}
-  .sfb .sb-trust .sb-it{padding:16px;font-size:13px}
+  .sfb .sb-trust{gap:14px}
+  .sfb .sb-trust .sb-it{flex-basis:calc((100% - 42px) / 4);padding:16px;font-size:13px}
   .sfb .sb-quotes{overflow:visible;margin-right:0;padding-right:0}
   .sfb .sb-q{flex:1}
   .sfb .sb-ft .sb-cols{grid-template-columns:1.5fr 1fr 1fr 1.2fr}
@@ -205,6 +213,16 @@
 .sfb .sb-ann.sb-rot .sb-fr.sb-on{opacity:1;transform:none}
 .sfb .sb-ann .sb-sep{opacity:.65;margin:0 7px}
 .sfb .sb-ann .sb-nw{white-space:nowrap}
+/* The owner, 2026-11-19: a narrow screen turns the items one at a time, each on one centered line; one too long for
+   the screen ends in "…" rather than taking a second line. A wide screen keeps the pairs (BL-17). */
+.sfb .sb-ann.sb-one{display:none}
+@container (max-width:639.98px){
+  .sfb .sb-ann.sb-two{display:none}
+  .sfb .sb-ann.sb-one{display:grid;grid-template-columns:minmax(0,1fr);padding:6px 12px}
+  .sfb .sb-ann.sb-one .sb-fr{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  /* The break a long pair may take (BL-17) is no place to break one line. */
+  .sfb .sb-ann.sb-one wbr{display:none}
+}
 .sfb .sb-hd .sb-icons{gap:12px}
 .sfb .sb-hd.sb-centred .sb-logo{position:static;transform:none;margin:0 auto}
 .sfb .sb-trk{display:flex;align-items:center;gap:8px;color:inherit}
@@ -219,7 +237,7 @@
 .sfb .sb-banners.sb-side{grid-template-columns:1fr 1fr;gap:10px}
 .sfb .sb-banners.sb-side.sb-n3{grid-template-columns:repeat(3,1fr);gap:8px}
 .sfb .sb-banners.sb-big_two{grid-template-columns:1fr 1fr;gap:10px}
-.sfb .sb-banners.sb-big_two .sb-ban:first-child{grid-column:1/-1;height:190px}
+.sfb .sb-banners.sb-big_two .sb-ban:first-child{grid-column:1/-1;height:auto;min-height:190px}
 .sfb .sb-ban.sb-c{height:150px}
 .sfb .sb-banners.sb-side.sb-n3 .sb-ban.sb-c{height:170px}
 .sfb .sb-ban .sb-cshade{display:none;position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 25%,rgba(0,0,0,.78))}
@@ -256,17 +274,10 @@
   .sfb .sb-banners.sb-big_two .sb-ban:first-child b{font-size:46px}
 }
 
-/* The owner, 2026-11-19, beside Bonik AI (the sketch's phone rules and `v-menu`): under 360px the bar one item at a
-   time; on a phone the shop's name cut short beside its mark and every hero design a compact card under the chips; on a
-   computer every hero inside the page's width; the menu's drawer. */
-.sfb .sb-ann.sb-rot .sb-set{display:grid}
-.sfb .sb-ann.sb-rot .sb-set.sb-one{display:none}
-.sfb .sb-ann.sb-rot .sb-fr{align-self:center}
+/* The owner, 2026-11-19, beside Bonik AI (the sketch's phone rules and `v-menu`): on a phone the shop's name cut short
+   beside its mark and every hero design a compact card under the chips; on a computer every hero inside the page's
+   width; the menu's drawer. (The bar's narrow screens are BL-17's, above.) */
 .sfb .sb-hd button.sb-menu{background:none;border:0;padding:0;color:inherit;cursor:pointer;font:inherit}
-@container (max-width:359.98px){
-  .sfb .sb-ann.sb-rot .sb-set.sb-two{display:none}
-  .sfb .sb-ann.sb-rot .sb-set.sb-one{display:grid}
-}
 @container (max-width:899.98px){
   .sfb .sb-hd .sb-logo{min-width:0;flex:0 1 auto;font-size:18px}
   .sfb .sb-hd .sb-logo > span:not(.sb-mk){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

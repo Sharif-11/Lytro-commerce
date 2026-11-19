@@ -1384,7 +1384,7 @@
   "ssBarSeen": "As shoppers see it: two at a time",
   "ssBarAfter": "After 4 seconds",
   "ssBarAgain": "Then the first two again",
-  "ssBarNote": "The offers line shows only while something is on sale. On a small phone (under 360 px wide) one at a time. When a shopper scrolls down the bar leaves and the header stays; back at the top, it returns.",
+  "ssBarNote": "The offers line shows only while something is on sale. On a phone (under 640 px wide) one at a time, on one line. When a shopper scrolls down the bar leaves and the header stays; back at the top, it returns.",
   "ssLineTitle": "Your line",
   "ssLineNote": "Up to 40 characters, so two fit a phone together. The preview shows how it looks.",
   "sdSrcOffers": "offers",

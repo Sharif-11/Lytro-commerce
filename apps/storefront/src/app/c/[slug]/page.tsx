@@ -8,6 +8,7 @@ import { OfflinePage } from '@/components/pages';
 import { ShopShell } from '@/components/shop-shell';
 import { chipsFor, findCategory, listParams } from '@/lib/catalogue/browse';
 import { pageTheme } from '@/lib/design/design-look';
+import { slugOfSegment } from '@/lib/request-path';
 import { loadFrame, loadShopPage, storefrontApi } from '@/lib/storefront';
 
 // STOREFRONT-DESIGN §3: a category's page, at /c/<slug>: its products and its subcategories', in the shop's order
@@ -21,7 +22,7 @@ interface Props {
 }
 
 export const generateMetadata = withBusyMetadata(async ({ params }: Props): Promise<Metadata> => {
-  const { slug } = await params;
+  const slug = slugOfSegment((await params).slug);
   const page = await loadShopPage();
   if (page.state !== 'open' || !page.shop.storefrontEnabled) return {};
   const found = findCategory((await loadFrame(page)).categories, slug.toLowerCase());
@@ -32,7 +33,8 @@ export const generateMetadata = withBusyMetadata(async ({ params }: Props): Prom
 });
 
 export default withBusyPage(async function CategoryPage({ params, searchParams }: Props) {
-  const [{ slug }, query] = await Promise.all([params, searchParams]);
+  const [{ slug: segment }, query] = await Promise.all([params, searchParams]);
+  const slug = slugOfSegment(segment);
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
   if (page.state === 'missing' || !page.shop.storefrontEnabled) notFound();

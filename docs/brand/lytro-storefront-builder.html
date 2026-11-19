@@ -448,9 +448,10 @@ img{display:block}
 
 /* ---------- Phones (the owner, 2026-11-19, beside Bonik AI): the hero a compact card seen at a glance, a clear gap under
    the category chips, the shop's name cut short beside its mark, and the menu's drawer ---------- */
-@container (max-width:359.98px){
+@container (max-width:639.98px){
   .ann.rot .set.two{display:none}
   .ann.rot .set.one{display:grid}
+  .ann.rot .set.one .fr{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
 @container (max-width:899.98px){
   .hd .logo{min-width:0;flex:0 1 auto;font-size:18px}
@@ -732,7 +733,7 @@ function offersLine(shop) {
 const SECTIONS = {
   // The owner, 2026-11-18: one list, two items at a time, the next two every 4 seconds (Bonik's ticker); the bar
   // leaves as the page scrolls and the header stays.
-  // Under 360px one item at a time (the owner, 2026-11-19): both sets are drawn, the width picks one, one tick turns both.
+  // Below 640px one item at a time on one line (the owner, 2026-11-19, #398): both sets are drawn, the width picks one.
   announce: (theme, shop, own = []) => {
     const items = annItems(shop, own);
     const set = (groups, cls) => `<div class="set ${cls}">${groups.map((group, at) => `<div class="fr ${at === 0 ? 'on' : ''}">${group.join('<span class="sep">·</span><wbr>')}</div>`).join('')}</div>`;
@@ -1101,7 +1102,7 @@ Object.assign(EDITOR, {
       const seen = frames.map((pair, at) => `${at ? `<div class="annstep">${L('৪ সেকেন্ড পর', 'After 4 seconds')} ↓</div>` : ''}<div class="annprev">${pair.join('<span class="sep">·</span><wbr>')}</div>`).join('') + `<div class="annstep">${L('তারপর আবার প্রথম দুটো', 'Then the first two again')}</div>`;
       const inner = `<div class="field"><label>${L('লাইনগুলো (৬টির মধ্যে ৪টি), এই ক্রমে', 'Lines (4 of 6), in this order')}</label>${rows}${addQuiet(L('নিজের লাইন যোগ করুন', 'Add a line of your own'))}</div>`
         + `<div class="field" style="margin-bottom:6px"><label>${L('দোকানে যেমন দেখাবে: দুটো করে', 'As shoppers see it: two at a time')}</label></div>${seen}`
-        + `<div class="note-line" style="margin-top:10px">${ic('info')}<span>${L('অফারের লাইন শুধু অফার চললে দেখায়, শেষ হলে নিজে সরে যায়। ছোট ফোনে (৩৬০ পিক্সেলের কম চওড়া) একটা করে দেখায়। ক্রেতা পেজ নিচে স্ক্রল করলে লাইনটা সরে যায়, হেডার উপরে থাকে; একেবারে উপরে ফিরলে আবার দেখায়।', 'The offers line shows only while something is on sale. On a small phone (under 360 px wide) one at a time. When a shopper scrolls down the bar leaves and the header stays; back at the top, it returns.')}</span></div>`;
+        + `<div class="note-line" style="margin-top:10px">${ic('info')}<span>${L('অফারের লাইন শুধু অফার চললে দেখায়, শেষ হলে নিজে সরে যায়। ফোনে (৬৪০ পিক্সেলের কম চওড়া) একটা করে, এক লাইনে দেখায়। ক্রেতা পেজ নিচে স্ক্রল করলে লাইনটা সরে যায়, হেডার উপরে থাকে; একেবারে উপরে ফিরলে আবার দেখায়।', 'The offers line shows only while something is on sale. On a phone (under 640 px wide) one at a time, on one line. When a shopper scrolls down the bar leaves and the header stays; back at the top, it returns.')}</span></div>`;
       return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('announce'), dockDesign(), sheet(L('ঘোষণার লাইন', 'Announcement bar'), inner, DOCK_SECTION()), 'announce', PANE(ED, swap(ED, { announce: (t, s) => SECTIONS.announce(t, s, [own]) }), 'announce'));
     },
   },

@@ -406,6 +406,15 @@ contents "pair by pair like carousel"; the bar "hidden after scroll"; "include o
 | BL-19 | **The header on a phone with four icons.** | Search, order tracking, account and cart; a centred logo (Royal, Studio) centres in the room between the menu and the icons, so nothing overlaps. |
 | BL-20 | **Fixes the sketch names.** | The auto slide (the tiles' design) takes the tiles' dark shade and white words on every theme (Soft, Fresh and Bold had none, leaving words on a bare photo), its button is the light one, and its discount badge no longer stretches across a computer's slide. |
 
+**The owner's fixes on staging (2026-11-19):**
+- **The bar on a phone** (BL-17 changed): below 640 pixels the items turn one at a time, each on one centered line
+  ending in "…" if it is still too long; a wider screen keeps the pairs.
+- **A banner's words** set its height below the computer layout when they need more room, and its title shrinks with a
+  narrow screen, so its button never falls past the bottom edge.
+- **The trust strip** sits centered: three items (one turned off) leave no empty place at one end.
+- **A list page's "In stock only"** sits on the title's line; Sort, where the page has it, stays below the chips.
+- **The footer's contact column** names the shop's WhatsApp and Facebook page, when it has them, beside the round icons.
+
 **Named deviations from the sketch, as built:**
 - **The delivery line names the shop's own zones** ("ঢাকা সিটির ভেতরে ডেলিভারি সর্বোচ্চ ৳70 · ঢাকা সিটির বাইরে সর্বোচ্চ
   ৳130"), not "ঢাকায় ... ঢাকার বাইরে": a shop's home area is not always Dhaka, and DLV-01 already names the home and
@@ -441,6 +450,6 @@ Sketched (the phone rules, `v-menu`) and approved the same day.
 | BL-22 | **The hero on a computer.** | The photo-and-words and full-photo designs sit inside the page's width (1240px, 32px sides, 16px under the header), rounded, as the slide-and-tiles one does; never edge to edge. |
 | BL-23 | **The shop's name on a phone.** | Menu, the mark, the name on one line cut with an ellipsis, then the icons; a logo picture shrinks to fit. A centred header (Royal, Studio) starts after the menu on a phone. |
 | BL-24 | **The menu.** | On a phone the menu opens a drawer: the shop's name and ✕; All products, Offers; each category with its count; Track your order, My account, Chat on WhatsApp (when the shop gave a number); the language. Escape or the scrim closes it. It is drawn into the page's frame, since the header is a container that would hold a fixed panel inside its own box. |
-| BL-25 | **The bar on a small phone.** | Under 360px one item at a time (the owner's answer; I had offered shorter delivery words): both sets are drawn and the width picks one, so nothing jumps after the page loads. |
+| BL-25 | **The bar on a small phone.** | ~~Under 360px one item at a time.~~ **Superseded the same day by the owner's staging fix under BL-17 (#398): below 640px one item at a time, each on one line, a long one ending in "…"; pairs from 640px.** |
 | BL-26 | **Checkout, as SB-17 says** (the owner, 2026-11-19: "check why this route is inconsistent with theme. does it keep old ui/ux"). | It did: checkout was still built on the plain shell, with the old header and footer and the brand's colours, not the theme's (2b gave the theme's header and footer to every page through ShopShell, and checkout was missed). Checkout now wears the theme's header (its way back leads to the cart), footer and tokens; it keeps its own "orders paused" notice, so the shell doesn't repeat it. The order's confirmation keeps its short header and takes the theme's colours and fonts. A product's landing page (`/l/...`) stays as built: its own short page for ads. |
 
