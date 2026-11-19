@@ -6,6 +6,9 @@ import {
   StorefrontFill,
   StorefrontSectionKind,
   StorefrontThemeKey,
+  STARTING_ANNOUNCEMENT_ITEMS,
+  STARTING_BANNER_COLLECTIONS,
+  STARTING_HERO_TILES,
   type StorefrontDesign,
   type StorefrontSection,
 } from '../api/shops/storefront-design';
@@ -672,13 +675,28 @@ function startingSection(section: StartingSection, at: number): StorefrontSectio
   const base = { id: startingId(at), visible: true };
   switch (section.kind) {
     case StorefrontSectionKind.Announcement:
-      return { ...base, kind: section.kind, text: null };
+      return { ...base, kind: section.kind, items: [...STARTING_ANNOUNCEMENT_ITEMS] };
     case StorefrontSectionKind.Hero:
-      return { ...base, kind: section.kind, fill: StorefrontFill.Auto, design: null, slides: [] };
+      return {
+        ...base,
+        kind: section.kind,
+        fill: StorefrontFill.Auto,
+        source: ProductRowSource.OnSale,
+        design: null,
+        slides: [],
+        tiles: [...STARTING_HERO_TILES],
+      };
     case StorefrontSectionKind.Categories:
       return { ...base, kind: section.kind, title: null, style: null };
     case StorefrontSectionKind.OfferBanners:
-      return { ...base, kind: section.kind, fill: StorefrontFill.Auto, banners: [] };
+      return {
+        ...base,
+        kind: section.kind,
+        fill: StorefrontFill.Auto,
+        layout: null,
+        collections: [...STARTING_BANNER_COLLECTIONS],
+        banners: [],
+      };
     case StorefrontSectionKind.Trust:
       return { ...base, kind: section.kind };
     case StorefrontSectionKind.Products:

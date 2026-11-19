@@ -118,8 +118,16 @@
 .sfb .sb-ban b{display:block;font-family:var(--fh);font-size:30px;line-height:1.1;margin:2px 0}
 .sfb .sb-ban .sb-s{font-size:13px;opacity:.95;margin-bottom:10px}
 .sfb .sb-ban .sb-btn{padding:8px 14px;font-size:13px}
-.sfb .sb-trust{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.sfb .sb-trust .sb-it{display:flex;gap:10px;align-items:center;background:var(--trust-bg);border-radius:var(--r-card);padding:11px 12px;font-size:12px;color:var(--muted);line-height:1.35;border:var(--trust-border)}
+/* The owner, 2026-11-19: on a phone a long title pushed a banner's button past its bottom edge. Below the computer
+   layout a wide banner's words set its height when they need more room than it has (its photo fills it either way),
+   and its title shrinks with a narrow screen. */
+@container (max-width:899.98px){
+  .sfb .sb-ban:not(.sb-c){height:auto;min-height:168px}
+  .sfb .sb-ban:not(.sb-c) b{font-size:clamp(22px,7.5cqi,30px);overflow-wrap:anywhere}
+}
+/* The owner, 2026-11-19: the strip sits centered, so three items (one turned off) leave no empty place at one end. */
+.sfb .sb-trust{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.sfb .sb-trust .sb-it{flex:0 1 calc((100% - 10px) / 2);min-width:0;display:flex;gap:10px;align-items:center;background:var(--trust-bg);border-radius:var(--r-card);padding:11px 12px;font-size:12px;color:var(--muted);line-height:1.35;border:var(--trust-border)}
 .sfb .sb-trust .sb-it b{display:block;color:var(--text);font-size:13px}
 .sfb .sb-trust .sb-it .sb-i{color:var(--main);width:26px;height:26px}
 .sfb .sb-quotes{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;margin-right:-16px;padding-right:16px}
@@ -187,10 +195,81 @@
   .sfb .sb-ban{height:230px}
   .sfb .sb-ban b{font-size:40px}
   .sfb .sb-ban .sb-tx{padding:28px}
-  .sfb .sb-trust{grid-template-columns:repeat(4,1fr);gap:14px}
-  .sfb .sb-trust .sb-it{padding:16px;font-size:13px}
+  .sfb .sb-trust{gap:14px}
+  .sfb .sb-trust .sb-it{flex-basis:calc((100% - 42px) / 4);padding:16px;font-size:13px}
   .sfb .sb-quotes{overflow:visible;margin-right:0;padding-right:0}
   .sfb .sb-q{flex:1}
   .sfb .sb-ft .sb-cols{grid-template-columns:1.5fr 1fr 1fr 1.2fr}
   .sfb .sb-ft .sb-about{grid-column:auto}
+}
+
+/* STOREFRONT-BUILDER-PLAN BL-2 to BL-20, as the sketch draws them: the bar's pairs (leaving as the page scrolls), the
+   header's order tracking, the hero's rotating slide and tiles, and the banners' three layouts. */
+.sfb .sb-ann-wrap{display:grid;grid-template-rows:1fr;transition:grid-template-rows .25s ease}
+.sfb .sb-ann-wrap.sb-gone{grid-template-rows:0fr}
+.sfb .sb-ann-in{min-height:0;overflow:hidden}
+.sfb .sb-ann.sb-rot{display:grid}
+.sfb .sb-ann.sb-rot .sb-fr{grid-area:1/1;opacity:0;transform:translateY(6px);transition:opacity .35s,transform .35s}
+.sfb .sb-ann.sb-rot .sb-fr.sb-on{opacity:1;transform:none}
+.sfb .sb-ann .sb-sep{opacity:.65;margin:0 7px}
+.sfb .sb-ann .sb-nw{white-space:nowrap}
+/* The owner, 2026-11-19: a narrow screen turns the items one at a time, each on one centered line; one too long for
+   the screen ends in "…" rather than taking a second line. A wide screen keeps the pairs (BL-17). */
+.sfb .sb-ann.sb-one{display:none}
+@container (max-width:639.98px){
+  .sfb .sb-ann.sb-two{display:none}
+  .sfb .sb-ann.sb-one{display:grid;grid-template-columns:minmax(0,1fr);padding:6px 12px}
+  .sfb .sb-ann.sb-one .sb-fr{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  /* The break a long pair may take (BL-17) is no place to break one line. */
+  .sfb .sb-ann.sb-one wbr{display:none}
+}
+.sfb .sb-hd .sb-icons{gap:12px}
+.sfb .sb-hd.sb-centred .sb-logo{position:static;transform:none;margin:0 auto}
+.sfb .sb-trk{display:flex;align-items:center;gap:8px;color:inherit}
+.sfb .sb-trk span{display:none}
+.sfb .sb-hero .sb-tx .sb-badge{align-self:flex-start}
+.sfb .sb-hero.sb-auto .sb-slide .sb-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.78))}
+.sfb .sb-hero.sb-auto h1{color:#fff}
+.sfb .sb-hero .sb-tile .sb-k{display:block;font-size:11.5px;font-weight:600;opacity:.92}
+.sfb .sb-hero.sb-auto .sb-tile b{font-size:15px}
+.sfb .sb-hero.sb-auto .sb-tile .sb-tx{padding:0}
+.sfb .sb-banners.sb-full{grid-template-columns:1fr}
+.sfb .sb-banners.sb-side{grid-template-columns:1fr 1fr;gap:10px}
+.sfb .sb-banners.sb-side.sb-n3{grid-template-columns:repeat(3,1fr);gap:8px}
+.sfb .sb-banners.sb-big_two{grid-template-columns:1fr 1fr;gap:10px}
+.sfb .sb-banners.sb-big_two .sb-ban:first-child{grid-column:1/-1;height:auto;min-height:190px}
+.sfb .sb-ban.sb-c{height:150px}
+.sfb .sb-banners.sb-side.sb-n3 .sb-ban.sb-c{height:170px}
+.sfb .sb-ban .sb-cshade{display:none;position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 25%,rgba(0,0,0,.78))}
+.sfb .sb-ban.sb-c .sb-shade{display:none}
+.sfb .sb-ban.sb-c .sb-cshade{display:block}
+.sfb .sb-ban.sb-c .sb-tx{position:absolute;left:0;right:0;bottom:0;padding:11px 12px;max-width:none}
+.sfb .sb-ban.sb-c .sb-k{font-size:11px}
+.sfb .sb-ban.sb-c b{font-size:18px;margin:1px 0 0}
+.sfb .sb-banners.sb-side.sb-n3 .sb-ban.sb-c b{font-size:15px}
+.sfb .sb-ban.sb-c .sb-s,.sfb .sb-ban.sb-c .sb-btn{display:none}
+@media (prefers-reduced-motion:reduce){
+  .sfb .sb-ann.sb-rot .sb-fr,.sfb .sb-ann-wrap{transition:none}
+}
+@container (min-width:900px){
+  .sfb .sb-hd .sb-icons{gap:18px}
+  .sfb .sb-hd.sb-centred .sb-logo{margin:0}
+  .sfb .sb-trk span{display:block;font-size:11.5px;line-height:1.25;color:var(--muted)}
+  .sfb .sb-trk b{display:block;font-size:13px;color:var(--hd-fg)}
+  .sfb .sb-hero.sb-auto .sb-tiles{grid-column:2;grid-row:1/span 2}
+  .sfb .sb-hero.sb-auto .sb-tile .sb-tx{left:16px;right:16px;bottom:14px;top:auto;padding:0;max-width:none;display:block}
+  .sfb .sb-hero.sb-auto .sb-tile .sb-k{font-size:13px}
+  .sfb .sb-hero.sb-auto .sb-tile b{font-size:22px}
+  .sfb .sb-banners.sb-side,.sfb .sb-banners.sb-side.sb-n3{gap:18px}
+  .sfb .sb-banners.sb-big_two{grid-template-columns:2fr 1fr;grid-template-rows:230px 230px;gap:18px}
+  .sfb .sb-banners.sb-big_two .sb-ban:first-child{grid-column:1;grid-row:1/3;height:auto}
+  .sfb .sb-ban.sb-c,.sfb .sb-banners.sb-side.sb-n3 .sb-ban.sb-c{height:230px}
+  .sfb .sb-ban.sb-c .sb-shade{display:block}
+  .sfb .sb-ban.sb-c .sb-cshade{display:none}
+  .sfb .sb-ban.sb-c .sb-tx{position:relative;padding:28px;max-width:80%}
+  .sfb .sb-ban.sb-c .sb-s{display:block}
+  .sfb .sb-ban.sb-c .sb-btn{display:inline-flex}
+  .sfb .sb-ban.sb-c .sb-k{font-size:12.5px}
+  .sfb .sb-ban.sb-c b,.sfb .sb-banners.sb-n3 .sb-ban b{font-size:30px}
+  .sfb .sb-banners.sb-big_two .sb-ban:first-child b{font-size:46px}
 }

@@ -1,5 +1,8 @@
 import {
+  AnnouncementItemKind,
+  BannerLayout,
   CategoryTileStyle,
+  HeroDesign,
   ProductRowLayout,
   ProductRowSource,
   StorefrontFill,
@@ -20,6 +23,7 @@ import {
   changesOf,
   fillsItself,
   moveSection,
+  moveSectionTo,
   newSection,
   removeSection,
   sectionName,
@@ -68,6 +72,18 @@ describe('the section list (SB-8)', () => {
 describe('the edits a list makes (SB-8)', () => {
   const [first, second] = start.sections;
   if (!first || !second) throw new Error('a starting design has sections');
+
+  it('drags a section to any place, and leaves one not found or a place past the ends as it was (BL-1)', () => {
+    const ids = (design: typeof start) => design.sections.map((section) => section.id);
+    const [first, second, third] = ids(start);
+    if (!first || !second || !third) throw new Error('a starting design has three sections');
+    const moved = moveSectionTo(start, third, 0);
+    expect(ids(moved).slice(0, 3)).toEqual([third, first, second]);
+    expect(ids(moveSectionTo(moved, third, 2)).slice(0, 3)).toEqual([first, second, third]);
+    expect(moveSectionTo(start, 'gone', 0)).toBe(start);
+    expect(moveSectionTo(start, first, start.sections.length)).toBe(start);
+    expect(moveSectionTo(start, first, 0)).toBe(start);
+  });
 
   it('moves a section up or down, and leaves the ends as they are', () => {
     expect(moveSection(start, second.id, -1).sections.slice(0, 2)).toEqual([second, first]);
@@ -182,8 +198,24 @@ describe('the words the editor builds (I18N-01)', () => {
       } as StorefrontSection,
       {
         ...newSection('announcement', '00000000-0000-4000-8000-000000000072'),
-        text: 'Eid sale',
+        items: [{ kind: AnnouncementItemKind.Own, text: 'Eid sale' }],
       } as StorefrontSection,
+      // BL-3, BL-6: every source an auto hero shows, every banner layout.
+      ...[ProductRowSource.OnSale, ProductRowSource.Newest, ProductRowSource.BestSellers].map(
+        (source) =>
+          ({
+            ...newSection('hero', '00000000-0000-4000-8000-000000000073'),
+            source,
+            design: HeroDesign.SlideTiles,
+          }) as StorefrontSection,
+      ),
+      ...Object.values(BannerLayout).map(
+        (layout) =>
+          ({
+            ...newSection('offers', '00000000-0000-4000-8000-000000000074'),
+            layout,
+          }) as StorefrontSection,
+      ),
     ];
     const used = new Set<string>(ADDABLE.flatMap((addable) => [addable.name, addable.line]));
     for (const section of sections) {

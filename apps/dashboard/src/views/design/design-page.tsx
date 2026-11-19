@@ -1,8 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { unusedMedia } from '@/api/media';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { StorefrontSectionKind, type StorefrontSection } from '@lytronix/validators';
+import {
+  StorefrontSectionKind,
+  type StorefrontDesign,
+  type StorefrontSection,
+} from '@lytronix/validators';
 import {
   useBackDesign,
   useDiscardDraft,
@@ -35,6 +39,7 @@ import {
   changesOf,
   fillsItself,
   moveSection,
+  moveSectionTo,
   newSection,
   removeSection,
   sectionName,
@@ -48,6 +53,7 @@ import { EditorIcon } from './editor-icon';
 import { FullPreview, PreviewPane } from './preview-pane';
 import { useDraftPreview } from './use-draft-preview';
 import { useDraftDesign } from './use-draft';
+import { useDragOrder } from './use-drag-order';
 
 /** The preview sits beside the editor from this width; under it, Preview opens it over the whole screen. */
 const DESKTOP = '(min-width: 1024px)';
@@ -125,6 +131,27 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
     [editor.categories, editor.products, learned],
   );
   const known: Known = useMemo(() => new Map(Object.entries(seen)), [seen]);
+
+  // BL-1: while a section is dragged, the list shows where it would go; letting go saves it, once.
+  const [held, setHeld] = useState<StorefrontDesign | null>(null);
+  const holding = useRef<StorefrontDesign | null>(null);
+  const drag = useDragOrder({
+    disabled: busy,
+    onOver: (id, to) => {
+      holding.current = moveSectionTo(holding.current ?? design, id, to);
+      setHeld(holding.current);
+    },
+    onStep: (at, to) => {
+      const id = design.sections[at]?.id;
+      if (id) change(moveSection(design, id, to > at ? 1 : -1));
+    },
+    onDrop: () => {
+      const moved = holding.current;
+      holding.current = null;
+      setHeld(null);
+      if (moved && moved !== design) change(moved);
+    },
+  });
   const failure = draft.error ?? publish.error ?? back.error ?? discard.error;
 
   function add(kind: AddableKind): void {
@@ -212,8 +239,9 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
           />
           <SectionsCard
             editor={editor}
-            design={design}
+            design={held ?? design}
             disabled={busy}
+            drag={drag}
             onMove={(id, by) => {
               change(moveSection(design, id, by));
             }}

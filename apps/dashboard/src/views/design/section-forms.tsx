@@ -1,12 +1,18 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  AnnouncementItemKind,
+  announcementPairs,
+  BANNER_LAYOUTS,
+  BannerLayout,
+  bannerLayoutFor,
   CategoryTileStyle,
   HeroDesign,
   ProductRowLayout,
   ProductRowSource,
   STOREFRONT_ABOUT_MAX,
-  STOREFRONT_ANNOUNCEMENT_MAX,
+  STOREFRONT_ANNOUNCEMENT_ITEMS_MAX,
+  STOREFRONT_ANNOUNCEMENT_LINE_MAX,
   STOREFRONT_BUTTON_MAX,
   STOREFRONT_DESCRIPTION_MAX,
   STOREFRONT_HERO_SLIDES_MAX,
@@ -21,9 +27,12 @@ import {
   STOREFRONT_THEMES,
   STOREFRONT_TITLE_MAX,
   StorefrontFill,
+  StorefrontLinkKind,
   StorefrontSectionKind,
   monogramLetter,
   storefrontTokens,
+  type HeroSource,
+  type StorefrontCollection,
   type StorefrontDesign,
   type StorefrontSection,
 } from '@lytronix/validators';
@@ -36,13 +45,23 @@ import { Switch } from '@/components/ui/switch';
 import type { ImageView } from '@/types/me';
 import type { StorefrontEditor } from '@/types/storefront-design';
 import { NoteLine } from './design-parts';
-import { sectionName, sectionSummary, wordsText } from './design-words';
-import { EditorIcon } from './editor-icon';
+import {
+  BANNER_LAYOUT_WORDS,
+  HERO_SOURCE_WORDS,
+  HERO_WORDS,
+  isShown,
+  sectionName,
+  sectionSummary,
+  wordsText,
+} from './design-words';
+import { EditorIcon, type EditorIconName } from './editor-icon';
 import { PhotoField } from './photo-field';
 import type { Names } from './pickers';
 import {
+  collectionLine,
   HEADLINE_MAX,
   itemLine,
+  linkWords,
   itemProblems,
   moveItem,
   quoteProblems,
@@ -108,7 +127,7 @@ function Looks<T extends string>({
   label: string;
   value: T | null;
   own: T;
-  choices: readonly { value: T; label: string; drawing: ReactNode }[];
+  choices: readonly { value: T; label: string; drawing: ReactNode; disabled?: boolean }[];
   hint: string;
   onChange: (value: T) => void;
 }) {
@@ -130,10 +149,11 @@ function Looks<T extends string>({
               type="button"
               role="radio"
               aria-checked={on}
+              disabled={choice.disabled}
               onClick={() => {
                 onChange(choice.value);
               }}
-              className={`rounded-[12px] border-[1.5px] p-2 text-center text-[12px] font-semibold ${on ? 'border-primary bg-primary-soft text-primary shadow-[inset_0_0_0_1px_var(--color-primary)]' : 'border-line-strong text-fg-muted'}`}
+              className={`rounded-[12px] border-[1.5px] p-2 text-center text-[12px] font-semibold disabled:opacity-40 ${on ? 'border-primary bg-primary-soft text-primary shadow-[inset_0_0_0_1px_var(--color-primary)]' : 'border-line-strong text-fg-muted'}`}
             >
               <span className="relative mb-1.5 block h-[54px] overflow-hidden rounded-[7px] bg-[#eef3f3]">
                 {choice.drawing}
@@ -199,12 +219,6 @@ const TILE_DRAWINGS: Readonly<Record<CategoryTileStyle, ReactNode>> = {
   ),
 };
 
-const HERO_WORDS: Readonly<Record<HeroDesign, string>> = {
-  [HeroDesign.Split]: 'ssHeroSplit',
-  [HeroDesign.Overlay]: 'ssHeroOverlay',
-  [HeroDesign.SlideTiles]: 'ssHeroTiles',
-};
-
 const TILE_WORDS: Readonly<Record<CategoryTileStyle, string>> = {
   [CategoryTileStyle.Circle]: 'ssTileCircle',
   [CategoryTileStyle.Square]: 'ssTileSquare',
@@ -243,26 +257,7 @@ function ListRow({
   const { t } = useTranslation('menu');
   return (
     <li className="flex items-center gap-2.5 border-t border-neutral-100 py-2 first:border-t-0">
-      <span className="flex w-6 flex-none flex-col items-center text-neutral-500">
-        <button
-          type="button"
-          aria-label={t('sdMoveUp', { name })}
-          disabled={first}
-          onClick={onUp}
-          className="grid h-[22px] w-6 place-items-center disabled:opacity-35"
-        >
-          <EditorIcon name="up" size={16} />
-        </button>
-        <button
-          type="button"
-          aria-label={t('sdMoveDown', { name })}
-          disabled={last}
-          onClick={onDown}
-          className="grid h-[22px] w-6 place-items-center disabled:opacity-35"
-        >
-          <EditorIcon name="down" size={16} />
-        </button>
-      </span>
+      <Arrows name={name} first={first} last={last} onUp={onUp} onDown={onDown} />
       <button
         type="button"
         aria-label={t('sdOpen', { name })}
@@ -423,6 +418,200 @@ export function QuoteForm({
   );
 }
 
+/** BL-3, BL-5: what an auto hero's slides can show, and a line on each. */
+const HERO_SOURCES = [
+  ProductRowSource.OnSale,
+  ProductRowSource.Newest,
+  ProductRowSource.BestSellers,
+] as const;
+const HERO_SOURCE_HINTS: Readonly<Record<HeroSource, string>> = {
+  [ProductRowSource.OnSale]: 'ssSlidesOffersHint',
+  [ProductRowSource.Newest]: 'ssSlidesNewestHint',
+  [ProductRowSource.BestSellers]: 'ssSlidesBestHint',
+};
+
+/** BL-10: the bar's automatic items, in words. */
+const BAR_ITEM_WORDS: Readonly<
+  Record<Exclude<AnnouncementItemKind, AnnouncementItemKind.Own>, string>
+> = {
+  [AnnouncementItemKind.CashOnDelivery]: 'ssBarCod',
+  [AnnouncementItemKind.Delivery]: 'ssBarDelivery',
+  [AnnouncementItemKind.Offers]: 'ssBarOffers',
+};
+
+/** BL-6: the sketch's drawings of the banners' three layouts (`BAN_DG`). */
+const LAYOUT_DRAWINGS: Readonly<Record<BannerLayout, ReactNode>> = {
+  [BannerLayout.Full]: (
+    <>
+      {block({ left: 6, right: 6, top: 6, height: 19 })}
+      {block({ left: 6, right: 6, bottom: 6, height: 19 })}
+    </>
+  ),
+  [BannerLayout.Side]: (
+    <>
+      {block({ left: 6, width: 'calc(50% - 9px)', top: 8, bottom: 8 })}
+      {block({ right: 6, width: 'calc(50% - 9px)', top: 8, bottom: 8 })}
+    </>
+  ),
+  [BannerLayout.BigTwo]: (
+    <>
+      {block({ left: 6, width: '58%', top: 6, bottom: 6 })}
+      {block({ right: 6, width: '28%', top: 6, height: 19 })}
+      {block({ right: 6, width: '28%', bottom: 6, height: 19 })}
+    </>
+  ),
+};
+
+const COLLECTION_ICONS: Readonly<Record<StorefrontCollection['kind'], EditorIconName>> = {
+  [StorefrontLinkKind.OnSale]: 'tag',
+  [StorefrontLinkKind.JustIn]: 'spark',
+  [StorefrontLinkKind.BestSellers]: 'star',
+  [StorefrontLinkKind.Category]: 'grid',
+};
+
+/** A collection's mark in a list, where a slide has its photo: what fills it changes with the shop's own data. */
+function CollectionMark({ collection }: { collection: StorefrontCollection }) {
+  return (
+    <span className="grid size-[50px] flex-none place-items-center rounded-[8px] bg-primary-soft text-primary">
+      <EditorIcon name={COLLECTION_ICONS[collection.kind]} size={22} />
+    </span>
+  );
+}
+
+/** BL-3: a tile's row in the hero's sheet: what it shows, and the way to change it. */
+function CollectionRow({
+  collection,
+  name,
+  names,
+  onOpen,
+}: {
+  collection: StorefrontCollection;
+  name: string;
+  names: Names;
+  onOpen: () => void;
+}) {
+  const { t } = useTranslation('menu');
+  const label = `${name} · ${wordsText(t, linkWords(collection, names))}`;
+  return (
+    <li className="border-t border-neutral-100 py-2 first:border-t-0">
+      <button
+        type="button"
+        aria-label={t('sdOpen', { name: label })}
+        onClick={onOpen}
+        className="flex w-full items-center gap-2.5 text-left"
+      >
+        <CollectionMark collection={collection} />
+        <span className="min-w-0 flex-1 text-[13.5px]">
+          <b className="block truncate font-bold">{label}</b>
+          <span className="block truncate text-[12px] text-fg-muted">
+            {wordsText(t, collectionLine(collection))}
+          </span>
+        </span>
+        <Icon name="right" className="size-[22px] flex-none text-neutral-500" />
+      </button>
+    </li>
+  );
+}
+
+/** A list row's arrows, up and down, each named for what it moves. */
+function Arrows({
+  name,
+  first,
+  last,
+  onUp,
+  onDown,
+}: {
+  name: string;
+  first: boolean;
+  last: boolean;
+  onUp: () => void;
+  onDown: () => void;
+}) {
+  const { t } = useTranslation('menu');
+  return (
+    <span className="flex w-6 flex-none flex-col items-center text-neutral-500">
+      <button
+        type="button"
+        aria-label={t('sdMoveUp', { name })}
+        disabled={first}
+        onClick={onUp}
+        className="grid h-[22px] w-6 place-items-center disabled:opacity-35"
+      >
+        <EditorIcon name="up" size={16} />
+      </button>
+      <button
+        type="button"
+        aria-label={t('sdMoveDown', { name })}
+        disabled={last}
+        onClick={onDown}
+        className="grid h-[22px] w-6 place-items-center disabled:opacity-35"
+      >
+        <EditorIcon name="down" size={16} />
+      </button>
+    </span>
+  );
+}
+
+/** BL-10: an automatic item of the bar (the sketch's `e-announce`): its arrows, its name, its switch. */
+function BarRow({
+  name,
+  on,
+  first,
+  last,
+  onUp,
+  onDown,
+  onToggle,
+}: {
+  name: string;
+  on: boolean;
+  first: boolean;
+  last: boolean;
+  onUp: () => void;
+  onDown: () => void;
+  onToggle: () => void;
+}) {
+  const { t } = useTranslation('menu');
+  return (
+    <li className="flex min-h-[60px] items-center gap-2.5 border-t border-neutral-100 py-2 first:border-t-0">
+      <Arrows name={name} first={first} last={last} onUp={onUp} onDown={onDown} />
+      <span className="min-w-0 flex-1 text-[13.5px]">
+        <b className="block truncate text-[14.5px] font-bold">{name}</b>
+        <span className="block truncate text-[12.5px] text-fg-muted">{t('ssBarAutoLine')}</span>
+      </span>
+      <Switch checked={on} label={t('sdShow', { name })} onChange={onToggle} />
+    </li>
+  );
+}
+
+/** BL-10, BL-18: a line of the seller's own for the bar. */
+export function LineForm({
+  text,
+  tried,
+  onChange,
+}: {
+  text: string;
+  tried: boolean;
+  onChange: (text: string) => void;
+}) {
+  const { t } = useTranslation('menu');
+  const count = useCount();
+  return (
+    <>
+      <Field
+        label={t('ssYourLine')}
+        value={text}
+        maxLength={STOREFRONT_ANNOUNCEMENT_LINE_MAX}
+        error={tried && text.trim() === '' ? t('ssNeedLine') : undefined}
+        help={count(text, STOREFRONT_ANNOUNCEMENT_LINE_MAX)}
+        onChange={(event) => {
+          onChange(event.target.value);
+        }}
+      />
+      <NoteLine>{t('ssLineNote')}</NoteLine>
+    </>
+  );
+}
+
 /** A section's own fields, by its kind. */
 export function MainForm({
   section,
@@ -437,6 +626,8 @@ export function MainForm({
   onCategory,
   onOpenItem,
   onOpenQuote,
+  onOpenCollection,
+  onOpenLine,
   onProducts,
   onUploaded,
 }: {
@@ -452,6 +643,10 @@ export function MainForm({
   onCategory: (categoryId: string | null) => void;
   onOpenItem: (at: number | null) => void;
   onOpenQuote: (at: number | null) => void;
+  /** BL-3, BL-9: a hero's tile or an auto banner's collection, to choose what it shows. */
+  onOpenCollection: (list: 'tiles' | 'collections', at: number | null) => void;
+  /** BL-10: a line of the seller's own for the bar; null for a new one. */
+  onOpenLine: (at: number | null) => void;
   onProducts: () => void;
   onUploaded: (image: ImageView) => void;
 }) {
@@ -470,62 +665,114 @@ export function MainForm({
 
   switch (section.kind) {
     case StorefrontSectionKind.Announcement: {
-      const own = section.text !== null;
+      // BL-10: one list, the automatic items with their switches, the seller's own lines opened to edit.
       const tokens = storefrontTokens(design.theme, design.palette);
+      const pairs = announcementPairs(section.items.filter(isShown));
+      const last = section.items.length - 1;
+      const move = (at: number, by: -1 | 1) => {
+        onChange({ ...section, items: moveItem(section.items, at, by) });
+      };
       return (
         <>
-          <Seg
-            label={t('ssSays')}
-            value={own ? 'own' : 'auto'}
-            choices={[
-              {
-                value: 'auto',
-                label: (
-                  <>
-                    <EditorIcon name="spark" size={18} />
-                    {t('ssAnnAuto')}
-                  </>
+          <div className="flex flex-col gap-1">
+            <span className="text-[14px] font-medium text-fg-muted">
+              {t('ssBarLines', {
+                count: section.items.length,
+                max: STOREFRONT_ANNOUNCEMENT_ITEMS_MAX,
+              })}
+            </span>
+            <ul>
+              {section.items.map((item, at) =>
+                item.kind === AnnouncementItemKind.Own ? (
+                  <ListRow
+                    key={at}
+                    name={item.text}
+                    line={t('ssBarOwnLine')}
+                    lead={null}
+                    first={at === 0}
+                    last={at === last}
+                    onUp={() => {
+                      move(at, -1);
+                    }}
+                    onDown={() => {
+                      move(at, 1);
+                    }}
+                    onOpen={() => {
+                      onOpenLine(at);
+                    }}
+                  />
+                ) : (
+                  <BarRow
+                    key={item.kind}
+                    name={t(BAR_ITEM_WORDS[item.kind])}
+                    on={item.visible}
+                    first={at === 0}
+                    last={at === last}
+                    onUp={() => {
+                      move(at, -1);
+                    }}
+                    onDown={() => {
+                      move(at, 1);
+                    }}
+                    onToggle={() => {
+                      onChange({
+                        ...section,
+                        items: section.items.map((each, index) =>
+                          index === at && each.kind !== AnnouncementItemKind.Own
+                            ? { ...each, visible: !each.visible }
+                            : each,
+                        ),
+                      });
+                    }}
+                  />
                 ),
-              },
-              { value: 'own', label: t('ssAnnOwn') },
-            ]}
-            onChange={(value) => {
-              onChange({ ...section, text: value === 'own' ? (section.text ?? '') : null });
-            }}
-          />
-          {own ? (
-            <>
-              <AreaField
-                label={t('ssYourLine')}
-                value={section.text ?? ''}
-                maxLength={STOREFRONT_ANNOUNCEMENT_MAX}
-                className="[&_textarea]:min-h-16"
-                error={problem('line') ?? undefined}
-                help={count(section.text ?? '', STOREFRONT_ANNOUNCEMENT_MAX)}
-                onChange={(event) => {
-                  onChange({ ...section, text: event.target.value });
+              )}
+            </ul>
+            {section.items.length < STOREFRONT_ANNOUNCEMENT_ITEMS_MAX ? (
+              <AddButton
+                onClick={() => {
+                  onOpenLine(null);
                 }}
-              />
-              {(section.text ?? '').trim() !== '' ? (
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[14px] font-medium text-fg-muted">
-                    {t('ssAsShoppersSee')}
-                  </span>
+              >
+                {t('ssAddLine')}
+              </AddButton>
+            ) : null}
+          </div>
+          {pairs.length > 0 ? (
+            <div className="flex flex-col gap-1">
+              <span className="text-[14px] font-medium text-fg-muted">{t('ssBarSeen')}</span>
+              {pairs.map((pair, at) => (
+                <div key={at} className="flex flex-col gap-1">
+                  {at > 0 ? (
+                    <span className="text-center text-[11.5px] text-fg-muted">
+                      {t('ssBarAfter')} ↓
+                    </span>
+                  ) : null}
                   <p
                     className="rounded-[10px] px-3 py-[9px] text-center text-[12.5px] font-semibold"
                     style={{ background: tokens['ann-bg'], color: tokens['ann-fg'] }}
                   >
-                    {section.text}
+                    {pair
+                      .map((item) =>
+                        item.kind === AnnouncementItemKind.Own
+                          ? item.text
+                          : t(BAR_ITEM_WORDS[item.kind]),
+                      )
+                      .join(' · ')}
                   </p>
                 </div>
+              ))}
+              {pairs.length > 1 ? (
+                <span className="text-center text-[11.5px] text-fg-muted">{t('ssBarAgain')}</span>
               ) : null}
-            </>
+            </div>
           ) : null}
-          <NoteLine>{t('ssAnnNote')}</NoteLine>
+          <NoteLine>{t('ssBarNote')}</NoteLine>
         </>
       );
     }
-    case StorefrontSectionKind.Hero:
+    case StorefrontSectionKind.Hero: {
+      const tiled = (section.design ?? theme.hero) === HeroDesign.SlideTiles;
       return (
         <>
           <Seg
@@ -547,6 +794,23 @@ export function MainForm({
               onChange({ ...section, fill });
             }}
           />
+          {section.fill === StorefrontFill.Auto ? (
+            <div className="flex flex-col gap-1.5">
+              {/* BL-3, BL-5: what the slides filling themselves show. */}
+              <Seg
+                label={t('ssSlidesShow')}
+                value={section.source}
+                choices={HERO_SOURCES.map((source) => ({
+                  value: source,
+                  label: t(HERO_SOURCE_WORDS[source]),
+                }))}
+                onChange={(source) => {
+                  onChange({ ...section, source });
+                }}
+              />
+              <p className="text-[13px] text-fg-muted">{t(HERO_SOURCE_HINTS[section.source])}</p>
+            </div>
+          ) : null}
           <Looks
             label={t('ssDesign')}
             value={section.design}
@@ -564,6 +828,26 @@ export function MainForm({
               onChange({ ...section, design: value });
             }}
           />
+          {tiled ? (
+            <div className="flex flex-col gap-1">
+              {/* BL-2, BL-3: each tile beside the slide shows a collection the seller picks. */}
+              <span className="text-[14px] font-medium text-fg-muted">{t('ssTilesShow')}</span>
+              <ul>
+                {section.tiles.map((tile, at) => (
+                  <CollectionRow
+                    key={at}
+                    collection={tile}
+                    name={t('ssTileN', { n: String(at + 1) })}
+                    names={names}
+                    onOpen={() => {
+                      onOpenCollection('tiles', at);
+                    }}
+                  />
+                ))}
+              </ul>
+              <p className="text-[13px] text-fg-muted">{t('ssTilesHint')}</p>
+            </div>
+          ) : null}
           {section.fill === StorefrontFill.Own ? (
             <div className="flex flex-col gap-1">
               <span className="text-[14px] font-medium text-fg-muted">
@@ -602,9 +886,10 @@ export function MainForm({
               {shown('slides')}
             </div>
           ) : null}
-          <NoteLine>{t('ssHeroNote')}</NoteLine>
+          <NoteLine>{t(tiled ? 'ssHeroTilesNote' : 'ssHeroNote')}</NoteLine>
         </>
       );
+    }
     case StorefrontSectionKind.Categories:
       return (
         <>
@@ -651,7 +936,11 @@ export function MainForm({
           onProducts={onProducts}
         />
       );
-    case StorefrontSectionKind.OfferBanners:
+    case StorefrontSectionKind.OfferBanners: {
+      const auto = section.fill === StorefrontFill.Auto;
+      const count = auto ? section.collections.length : section.banners.length;
+      const layout = bannerLayoutFor(Math.max(count, 1), section.layout);
+      const fits = BANNER_LAYOUTS[Math.max(count, 1)] ?? [];
       return (
         <>
           <Seg
@@ -673,13 +962,47 @@ export function MainForm({
               onChange({ ...section, fill });
             }}
           />
-          {section.fill === StorefrontFill.Own ? (
+          {auto ? (
+            <div className="flex flex-col gap-1">
+              {/* BL-9: each banner filling itself shows a collection the seller picks. */}
+              <span className="text-[14px] font-medium text-fg-muted">
+                {t('ssBanners', { count, max: STOREFRONT_OFFER_BANNERS_MAX })}
+              </span>
+              <ul>
+                {section.collections.map((collection, at) => (
+                  <ListRow
+                    key={at}
+                    name={`${t('ssBannerN', { n: String(at + 1) })} · ${wordsText(t, linkWords(collection, names))}`}
+                    line={wordsText(t, collectionLine(collection))}
+                    lead={<CollectionMark collection={collection} />}
+                    first={at === 0}
+                    last={at === count - 1}
+                    onUp={() => {
+                      onChange({ ...section, collections: moveItem(section.collections, at, -1) });
+                    }}
+                    onDown={() => {
+                      onChange({ ...section, collections: moveItem(section.collections, at, 1) });
+                    }}
+                    onOpen={() => {
+                      onOpenCollection('collections', at);
+                    }}
+                  />
+                ))}
+              </ul>
+              {count < STOREFRONT_OFFER_BANNERS_MAX ? (
+                <AddButton
+                  onClick={() => {
+                    onOpenCollection('collections', null);
+                  }}
+                >
+                  {t('ssAddBanner')}
+                </AddButton>
+              ) : null}
+            </div>
+          ) : (
             <div className="flex flex-col gap-1">
               <span className="text-[14px] font-medium text-fg-muted">
-                {t('ssBanners', {
-                  count: section.banners.length,
-                  max: STOREFRONT_OFFER_BANNERS_MAX,
-                })}
+                {t('ssBanners', { count, max: STOREFRONT_OFFER_BANNERS_MAX })}
               </span>
               <ul>
                 {section.banners.map((banner, at) => (
@@ -713,10 +1036,27 @@ export function MainForm({
               ) : null}
               {shown('banners')}
             </div>
-          ) : null}
-          <NoteLine>{t('ssBannersNote')}</NoteLine>
+          )}
+          {/* BL-6, BL-15: the layouts this many banners can take; left alone, the number's own. */}
+          <Looks
+            label={t('ssLayout')}
+            value={layout}
+            own={layout}
+            choices={Object.values(BannerLayout).map((value) => ({
+              value,
+              label: t(BANNER_LAYOUT_WORDS[value]),
+              drawing: LAYOUT_DRAWINGS[value],
+              disabled: !fits.includes(value),
+            }))}
+            hint={t('ssLayoutHint')}
+            onChange={(value) => {
+              onChange({ ...section, layout: value });
+            }}
+          />
+          <NoteLine>{t(auto ? 'ssBannersAutoNote' : 'ssBannersCompactNote')}</NoteLine>
         </>
       );
+    }
     case StorefrontSectionKind.Testimonials:
       return (
         <>

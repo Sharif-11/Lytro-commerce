@@ -1,6 +1,8 @@
 import {
+  AnnouncementItemKind,
   ProductRowLayout,
   ProductRowSource,
+  STARTING_ANNOUNCEMENT_ITEMS,
   StorefrontFill,
   StorefrontLinkKind,
   StorefrontSectionKind,
@@ -117,12 +119,6 @@ describe('what a section needs before Done (SB-8, SB-9)', () => {
       text: '',
       photo: null,
     };
-    const line: StorefrontSection = {
-      id: id(6),
-      visible: true,
-      kind: StorefrontSectionKind.Announcement,
-      text: '  ',
-    };
     const fields = (section: StorefrontSection) =>
       sectionProblems(section).map((each) => each.field);
     expect(fields(hero)).toEqual(['slides']);
@@ -131,7 +127,6 @@ describe('what a section needs before Done (SB-8, SB-9)', () => {
     expect(fields(picked)).toEqual(['products']);
     expect(fields(quotes)).toEqual(['quotes']);
     expect(fields(about)).toEqual(['title', 'text']);
-    expect(fields(line)).toEqual(['line']);
     // What it needs is just what the server's schema refuses.
     for (const section of [hero, offers, category, picked, quotes, about]) {
       expect(accepted(finishSection(section))).toBe(false);
@@ -142,13 +137,19 @@ describe('what a section needs before Done (SB-8, SB-9)', () => {
     const titled = finishSection({ ...row, title: '  ' });
     expect(titled).toMatchObject({ title: null });
     expect(accepted(titled)).toBe(true);
+    // BL-10: the bar's own lines, trimmed; its automatic items as they were.
     const own = finishSection({
       id: id(6),
       visible: true,
       kind: StorefrontSectionKind.Announcement,
-      text: ' Eid sale ',
+      items: [
+        ...STARTING_ANNOUNCEMENT_ITEMS,
+        { kind: AnnouncementItemKind.Own, text: ' Eid sale ' },
+      ],
     });
-    expect(own).toMatchObject({ text: 'Eid sale' });
+    expect(own).toMatchObject({
+      items: [...STARTING_ANNOUNCEMENT_ITEMS, { kind: AnnouncementItemKind.Own, text: 'Eid sale' }],
+    });
     expect(sectionProblems(own)).toEqual([]);
     expect(accepted(own)).toBe(true);
   });

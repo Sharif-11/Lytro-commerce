@@ -6,6 +6,7 @@ import pg from 'pg';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  AnnouncementItemKind,
   HeroDesign,
   ProductRowLayout,
   ProductRowSource,
@@ -13,6 +14,8 @@ import {
   StorefrontLinkKind,
   StorefrontSectionKind,
   StorefrontThemeKey,
+  STARTING_ANNOUNCEMENT_ITEMS,
+  STARTING_HERO_TILES,
   startingDesign,
   type StorefrontDesign,
 } from '@lytronix/validators';
@@ -150,6 +153,11 @@ async function upload(shop: ShopClient, width: number, height: number): Promise<
   return media.id;
 }
 
+/** A section as the release before saved it: without the fields this one added. */
+function without(section: object, keys: string[]): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(section).filter(([key]) => !keys.includes(key)));
+}
+
 async function editorOf(shop: ShopClient): Promise<Editor> {
   const read = await shop.get('/storefront/design');
   expect(read.status, JSON.stringify(read.body)).toBe(200);
@@ -245,14 +253,19 @@ function ownDesign(photo: string, picked: string[], categoryId: string): Storefr
         id: id(1),
         visible: true,
         kind: StorefrontSectionKind.Announcement,
-        text: 'ঈদে ২০% ছাড়',
+        items: [
+          ...STARTING_ANNOUNCEMENT_ITEMS,
+          { kind: AnnouncementItemKind.Own, text: 'ঈদে ২০% ছাড়' },
+        ],
       },
       {
         id: id(2),
         visible: true,
         kind: StorefrontSectionKind.Hero,
         fill: StorefrontFill.Own,
+        source: ProductRowSource.OnSale,
         design: HeroDesign.Overlay,
+        tiles: [...STARTING_HERO_TILES],
         slides: [
           {
             photo: { mediaId: photo, focusX: 50, focusY: 40 },
@@ -558,6 +571,70 @@ describeIfDatabase("a shop's storefront design (SB-11 to SB-16)", () => {
       await app.get(StorefrontDesignEraser).deleteAllForTenant(shop.tenantId);
       await app.get(StorefrontDesignEraser).deleteAllForTenant(shop.tenantId);
       expect(await editorOf(shop)).toMatchObject({ hasDraft: false, isPublished: false });
+    },
+    SLOW,
+  );
+  it(
+    'reads a draft and a live design saved before the banner layouts as they looked (BL-18)',
+    async () => {
+      const shop = await openShop(port, texts, 'sf-upgrade');
+      const start = startingDesign(StorefrontThemeKey.Studio);
+      expect((await shop.put('/storefront/design', { design: start })).status).toBe(200);
+      expect((await shop.post('/storefront/design/publish', {})).status).toBe(200);
+      // Saved by the release before: the bar's one line, a hero and banners without their new fields.
+      const old = {
+        ...start,
+        sections: start.sections.map((section) => {
+          switch (section.kind) {
+            case StorefrontSectionKind.Announcement:
+              return {
+                id: section.id,
+                visible: true,
+                kind: section.kind,
+                text: 'ঈদে সব শাড়িতে ছাড়',
+              };
+            case StorefrontSectionKind.Hero:
+              return without(section, ['source', 'tiles']);
+            case StorefrontSectionKind.OfferBanners:
+              return without(section, ['layout', 'collections']);
+            default:
+              return section;
+          }
+        }),
+      };
+      await admin.query(
+        `UPDATE tenant.storefront_designs SET draft = $2, published = $2 WHERE tenant_id = $1`,
+        [shop.tenantId, JSON.stringify(old)],
+      );
+      const editor = await editorOf(shop);
+      const bar = editor.design.sections.find(
+        (section) => section.kind === StorefrontSectionKind.Announcement,
+      );
+      expect(bar).toMatchObject({
+        items: [
+          { kind: AnnouncementItemKind.CashOnDelivery, visible: false },
+          { kind: AnnouncementItemKind.Delivery, visible: false },
+          { kind: AnnouncementItemKind.Offers, visible: false },
+          { kind: AnnouncementItemKind.Own, text: 'ঈদে সব শাড়িতে ছাড়' },
+        ],
+      });
+      expect(
+        editor.design.sections.find((section) => section.kind === StorefrontSectionKind.Hero),
+      ).toMatchObject({
+        source: ProductRowSource.OnSale,
+        tiles: STARTING_HERO_TILES,
+      });
+      // Shoppers see it too: the live copy is not swapped for the starting design.
+      const shown = await publicShop(await keyFor(shop));
+      expect(
+        shown.design.sections.find(
+          (section) => section.kind === StorefrontSectionKind.Announcement,
+        ),
+      ).toMatchObject({
+        items: expect.arrayContaining([
+          { kind: AnnouncementItemKind.Own, text: 'ঈদে সব শাড়িতে ছাড়' },
+        ]) as unknown,
+      });
     },
     SLOW,
   );

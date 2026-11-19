@@ -24,6 +24,13 @@ import {
   StorefrontThemeKey,
   storefrontTokens,
   storefrontPhotoFits,
+  AnnouncementItemKind,
+  BannerLayout,
+  bannerLayoutFor,
+  STARTING_ANNOUNCEMENT_ITEMS,
+  STARTING_BANNER_COLLECTIONS,
+  STARTING_HERO_TILES,
+  upgradeStorefrontDesign,
 } from '../src/index';
 
 // STOREFRONT-BUILDER-PLAN: the design document (SB-8, SB-14, SB-16) and the themes (SB-7, SB-11, SB-19).
@@ -81,13 +88,26 @@ describe('a shop that has never saved its design (SB-11)', () => {
 describe('what a design may hold (SB-8, SB-16)', () => {
   it('takes a page the seller has written', () => {
     const own = design([
-      { id: id(1), visible: true, kind: StorefrontSectionKind.Announcement, text: 'ঈদে ২০% ছাড়' },
+      {
+        id: id(1),
+        visible: true,
+        kind: StorefrontSectionKind.Announcement,
+        items: [
+          ...STARTING_ANNOUNCEMENT_ITEMS,
+          { kind: AnnouncementItemKind.Own, text: 'ঈদে ২০% ছাড়' },
+        ],
+      },
       {
         id: id(2),
         visible: true,
         kind: StorefrontSectionKind.Hero,
         fill: StorefrontFill.Own,
+        source: ProductRowSource.OnSale,
         design: null,
+        tiles: [
+          { kind: StorefrontLinkKind.JustIn },
+          { kind: StorefrontLinkKind.Category, categoryId: CATEGORY },
+        ],
         slides: [
           {
             photo: PHOTO,
@@ -113,7 +133,11 @@ describe('what a design may hold (SB-8, SB-16)', () => {
     ]);
     const parsed = storefrontDesignSchema.parse(own);
     expect(storefrontMediaIds(parsed)).toEqual([PHOTO.mediaId]);
-    expect(storefrontTargets(parsed)).toEqual({ categoryIds: [CATEGORY], productIds: [PRODUCT] });
+    expect(storefrontTargets(parsed)).toEqual({
+      categoryIds: [CATEGORY],
+      productIds: [PRODUCT],
+      offerIds: [],
+    });
   });
 
   it('refuses an own hero with no slide, a category row with no category, and two sections with one ID', () => {
@@ -128,8 +152,10 @@ describe('what a design may hold (SB-8, SB-16)', () => {
             visible: true,
             kind: StorefrontSectionKind.Hero,
             fill: StorefrontFill.Own,
+            source: ProductRowSource.OnSale,
             design: null,
             slides: [],
+            tiles: [...STARTING_HERO_TILES],
           },
         ]),
       ),
@@ -174,8 +200,10 @@ describe('what a design may hold (SB-8, SB-16)', () => {
       visible: true,
       kind: StorefrontSectionKind.Hero,
       fill: StorefrontFill.Own,
+      source: ProductRowSource.OnSale,
       design: null,
       slides,
+      tiles: [...STARTING_HERO_TILES],
     });
     expect(storefrontDesignSchema.safeParse(design([hero([slide, slide, slide])])).success).toBe(
       true,
@@ -317,6 +345,152 @@ describe('where a design names its photos and targets (SB-15, SB-16)', () => {
       { sectionId: id(1), field: 'sections.0.banner.link.productId', kind: 'product', id: PRODUCT },
       { sectionId: id(2), field: 'sections.1.categoryId', kind: 'category', id: CATEGORY },
     ]);
+  });
+});
+
+describe('banner layouts, the bar and the hero tiles (BL-2 to BL-18)', () => {
+  const banners = (extra: Record<string, unknown>) => ({
+    id: id(1),
+    visible: true,
+    kind: StorefrontSectionKind.OfferBanners,
+    fill: StorefrontFill.Auto,
+    layout: null,
+    collections: [...STARTING_BANNER_COLLECTIONS],
+    banners: [],
+    ...extra,
+  });
+  const bar = (items: unknown[]) => ({
+    id: id(1),
+    visible: true,
+    kind: StorefrontSectionKind.Announcement,
+    items,
+  });
+
+  it('lays banners out by their number, and keeps a pick only while it fits (BL-6, BL-15)', () => {
+    expect(bannerLayoutFor(1, null)).toBe(BannerLayout.Full);
+    expect(bannerLayoutFor(2, null)).toBe(BannerLayout.Side);
+    expect(bannerLayoutFor(3, null)).toBe(BannerLayout.BigTwo);
+    expect(bannerLayoutFor(3, BannerLayout.Full)).toBe(BannerLayout.Full);
+    expect(bannerLayoutFor(2, BannerLayout.Full)).toBe(BannerLayout.Full);
+    expect(bannerLayoutFor(2, BannerLayout.BigTwo)).toBe(BannerLayout.Side);
+    expect(bannerLayoutFor(1, BannerLayout.Side)).toBe(BannerLayout.Full);
+  });
+
+  it('holds up to three banners or collections, at least one collection, and a category one names its category (BL-7, BL-9)', () => {
+    expect(storefrontDesignSchema.safeParse(design([banners({})])).success).toBe(true);
+    expect(
+      storefrontDesignSchema.safeParse(
+        design([
+          banners({
+            collections: [...STARTING_BANNER_COLLECTIONS, { kind: StorefrontLinkKind.OnSale }],
+          }),
+        ]),
+      ).success,
+    ).toBe(false);
+    expect(storefrontDesignSchema.safeParse(design([banners({ collections: [] })])).success).toBe(
+      false,
+    );
+    expect(
+      storefrontDesignSchema.safeParse(
+        design([
+          banners({ collections: [{ kind: StorefrontLinkKind.Product, productId: PRODUCT }] }),
+        ]),
+      ).success,
+    ).toBe(false);
+    const parsed = storefrontDesignSchema.parse(
+      design([
+        banners({
+          layout: BannerLayout.Full,
+          collections: [{ kind: StorefrontLinkKind.Category, categoryId: CATEGORY }],
+        }),
+      ]),
+    );
+    expect(storefrontTargetRefs(parsed)).toEqual([
+      {
+        sectionId: id(1),
+        field: 'sections.0.collections.0.categoryId',
+        kind: 'category',
+        id: CATEGORY,
+      },
+    ]);
+  });
+
+  it('lists each automatic item of the bar once, takes six items and a 40-character line of the own (BL-10, BL-18)', () => {
+    const own = (text: string) => ({ kind: AnnouncementItemKind.Own, text });
+    expect(
+      storefrontDesignSchema.safeParse(design([bar([...STARTING_ANNOUNCEMENT_ITEMS])])).success,
+    ).toBe(true);
+    expect(
+      storefrontDesignSchema.safeParse(
+        design([bar([...STARTING_ANNOUNCEMENT_ITEMS, own('ক'), own('খ'), own('ক'.repeat(40))])]),
+      ).success,
+    ).toBe(true);
+    expect(
+      storefrontDesignSchema.safeParse(
+        design([bar([...STARTING_ANNOUNCEMENT_ITEMS, own('ক'), own('খ'), own('গ'), own('ঘ')])]),
+      ).success,
+    ).toBe(false);
+    expect(
+      storefrontDesignSchema.safeParse(
+        design([bar([...STARTING_ANNOUNCEMENT_ITEMS, own('ক'.repeat(41))])]),
+      ).success,
+    ).toBe(false);
+    const problems = storefrontDesignSchema
+      .safeParse(
+        design([
+          bar([...STARTING_ANNOUNCEMENT_ITEMS.slice(1), ...STARTING_ANNOUNCEMENT_ITEMS.slice(1)]),
+        ]),
+      )
+      .error?.issues.map((issue) => issue.path.join('.'));
+    expect(problems).toEqual(['sections.0.items', 'sections.0.items', 'sections.0.items']);
+  });
+
+  it('reads a design saved before them as it looked (BL-18)', () => {
+    const old = design([
+      { id: id(1), visible: true, kind: StorefrontSectionKind.Announcement, text: null },
+      {
+        id: id(2),
+        visible: true,
+        kind: StorefrontSectionKind.Hero,
+        fill: StorefrontFill.Auto,
+        design: HeroDesign.SlideTiles,
+        slides: [],
+      },
+      {
+        id: id(3),
+        visible: true,
+        kind: StorefrontSectionKind.OfferBanners,
+        fill: StorefrontFill.Auto,
+        banners: [],
+      },
+      {
+        id: id(4),
+        visible: true,
+        kind: StorefrontSectionKind.Announcement,
+        text: 'ঈদে সব শাড়িতে ২০% ছাড় আর ৳২,০০০+ অর্ডারে ফ্রি ডেলিভারি সারা দেশে',
+      },
+    ]);
+    expect(storefrontDesignSchema.safeParse(old).success).toBe(false);
+    const read = storefrontDesignSchema.parse(upgradeStorefrontDesign(old));
+    const [shopLine, hero, offers, ownLine] = read.sections;
+    expect(shopLine).toMatchObject({ items: STARTING_ANNOUNCEMENT_ITEMS });
+    expect(hero).toMatchObject({ source: ProductRowSource.OnSale, tiles: STARTING_HERO_TILES });
+    expect(offers).toMatchObject({
+      layout: null,
+      collections: STARTING_BANNER_COLLECTIONS.slice(0, 2),
+    });
+    // The seller's line stood alone; it is cut at a word to fit.
+    expect(ownLine).toMatchObject({
+      items: [
+        { kind: AnnouncementItemKind.CashOnDelivery, visible: false },
+        { kind: AnnouncementItemKind.Delivery, visible: false },
+        { kind: AnnouncementItemKind.Offers, visible: false },
+        { kind: AnnouncementItemKind.Own, text: 'ঈদে সব শাড়িতে ২০% ছাড় আর ৳২,০০০+' },
+      ],
+    });
+    // Today's shape and anything else pass through untouched.
+    expect(upgradeStorefrontDesign(read)).toEqual(read);
+    expect(upgradeStorefrontDesign(null)).toBe(null);
   });
 });
 

@@ -83,6 +83,14 @@ export async function DesignedHeader({
         />
         <div className="sb-icons">
           <SearchTools language={language} categories={nav.categories} phoneButton only="button" />
+          {/* BL-11: order tracking, as Bonik AI's header has it; its words beside the truck on a computer. */}
+          <a className="sb-trk" href="/track" aria-label={words.t('sb_track_h')}>
+            <DesignIcon name="truck" />
+            <span>
+              <b>{words.t('sb_track_h')}</b>
+              {words.t('sb_track_where')}
+            </span>
+          </a>
           {/* Signed in it opens My account; signed out, /account leads to Sign in. */}
           <a className="sb-acct" href="/account" aria-label={words.t('account')}>
             <DesignIcon name="user" />
@@ -156,10 +164,25 @@ export function DesignedFooter({
         }
       : null,
   ].filter((link) => link !== null);
+  // The owner, 2026-11-19: the shop's WhatsApp and Facebook page by name too, when it has them.
   const contact = [
     phone !== null ? (
       <li key="phone">
         <a href={`tel:${phone}`}>{phone}</a>
+      </li>
+    ) : null,
+    chat.whatsapp ? (
+      <li key="wa">
+        <a href={chat.whatsapp.href} target="_blank" rel="noopener noreferrer">
+          {words.t('sb_whatsapp')}
+        </a>
+      </li>
+    ) : null,
+    chat.facebook ? (
+      <li key="fb">
+        <a href={chat.facebook.href} target="_blank" rel="noopener noreferrer">
+          {words.t('sb_facebook_page')}
+        </a>
       </li>
     ) : null,
     email !== null ? (

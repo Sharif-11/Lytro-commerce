@@ -8,6 +8,7 @@ import {
   startingDesign,
   startingTheme,
   storefrontDesignSchema,
+  upgradeStorefrontDesign,
   storefrontMediaIds,
   storefrontPhotoRefs,
   storefrontTargetRefs,
@@ -40,7 +41,8 @@ import { StorefrontPreviewLinks } from './storefront-preview-links';
 /** A stored copy as a design; null for none, or for one this release cannot read (the starting design then shows). */
 function designOf(stored: unknown): StorefrontDesign | null {
   if (stored === null || stored === undefined) return null;
-  const parsed = storefrontDesignSchema.safeParse(stored);
+  // BL-18: a copy saved before the banner layouts reads as it looked.
+  const parsed = storefrontDesignSchema.safeParse(upgradeStorefrontDesign(stored));
   return parsed.success ? parsed.data : null;
 }
 
