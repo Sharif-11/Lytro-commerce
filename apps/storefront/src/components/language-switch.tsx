@@ -7,7 +7,14 @@ import { Icon } from './icon';
 
 /** I18N-01/02: writes the per-device cookie and renders the page again on the server in the other language, so the
     whole page switches at once and the next visit opens in it. As the header's pill or as a footer link. */
-export function LanguageSwitch({ language, as }: { language: Language; as: 'pill' | 'link' }) {
+export function LanguageSwitch({
+  language,
+  as,
+}: {
+  language: Language;
+  /** The header's pill, a footer link, or both languages side by side with this one lit (the menu's drawer). */
+  as: 'pill' | 'link' | 'both';
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const words = new Words(language);
@@ -18,6 +25,25 @@ export function LanguageSwitch({ language, as }: { language: Language; as: 'pill
       router.refresh();
     });
   };
+  if (as === 'both') {
+    return (
+      <div className="langs" role="group" aria-label={words.t('sb_language')}>
+        {(['bn', 'en'] as const).map((each) => (
+          <button
+            key={each}
+            type="button"
+            lang={each}
+            aria-pressed={each === language}
+            className={each === language ? 'on' : undefined}
+            disabled={pending}
+            onClick={each === language ? undefined : toggle}
+          >
+            {each === 'bn' ? 'বাংলা' : 'English'}
+          </button>
+        ))}
+      </div>
+    );
+  }
   if (as === 'link') {
     return (
       <a

@@ -275,3 +275,54 @@
   .sfb .sb-ban.sb-c b,.sfb .sb-banners.sb-n3 .sb-ban b{font-size:30px}
   .sfb .sb-banners.sb-big_two .sb-ban:first-child b{font-size:46px}
 }
+
+/* The owner, 2026-11-19, beside Bonik AI (the sketch's phone rules and `v-menu`): on a phone the shop's name cut short
+   beside its mark and every hero design a compact card under the chips; on a computer every hero inside the page's
+   width; the menu's drawer. (The bar's narrow screens are BL-17's, above.) */
+.sfb .sb-hd button.sb-menu{background:none;border:0;padding:0;color:inherit;cursor:pointer;font:inherit}
+@container (max-width:899.98px){
+  .sfb .sb-hd .sb-logo{min-width:0;flex:0 1 auto;font-size:18px}
+  .sfb .sb-hd .sb-logo > span:not(.sb-mk){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sfb .sb-hd .sb-logo.sb-img img{max-width:100%;object-fit:contain;object-position:left center}
+  .sfb .sb-hd.sb-centred .sb-logo{position:static;transform:none;margin:0}
+  .sfb .sb-hd .sb-icons{flex:none}
+  .sfb .sb-hero.sb-overlay .sb-slide,.sfb .sb-hero.sb-split .sb-slide,.sfb .sb-hero.sb-auto .sb-slide{margin:16px 16px 0;height:auto;aspect-ratio:1/.92;border-radius:max(var(--r-card),12px);overflow:hidden;position:relative}
+  .sfb .sb-hero.sb-split .sb-slide{display:block;background:#1b1b1b}
+  .sfb .sb-hero.sb-split .sb-ph{position:absolute;inset:0;aspect-ratio:auto}
+  .sfb .sb-hero.sb-overlay .sb-shade{background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.8))}
+  .sfb .sb-hero.sb-overlay .sb-tx,.sfb .sb-hero.sb-split .sb-tx{position:absolute;left:0;right:0;bottom:0;padding:16px;color:#fff}
+  .sfb .sb-hero.sb-split .sb-tx{background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.8) 40%)}
+  .sfb .sb-hero.sb-split h1,.sfb .sb-hero.sb-split h1 em{color:#fff}
+  .sfb .sb-hero.sb-overlay h1,.sfb .sb-hero.sb-split h1{font-size:24px}
+  .sfb .sb-hero .sb-kick{font-size:11px}
+  .sfb .sb-hero.sb-overlay p,.sfb .sb-hero.sb-split p{font-size:13px;margin:4px 0 10px;color:#fff;opacity:.92;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .sfb .sb-hero .sb-price{font-size:16px;margin:2px 0 10px}
+  .sfb .sb-hero .sb-btn{padding:9px 16px;font-size:14px}
+  .sfb .sb-hero .sb-btn .sb-i{width:18px;height:18px}
+}
+@container (min-width:900px){
+  .sfb .sb-hero.sb-overlay:not(.sb-auto),.sfb .sb-hero.sb-split{max-width:1240px;margin:0 auto;padding:16px 32px 0}
+  .sfb .sb-hero.sb-overlay:not(.sb-auto) .sb-slide,.sfb .sb-hero.sb-split .sb-slide{border-radius:max(var(--r-card),12px);overflow:hidden}
+  .sfb .sb-hero.sb-overlay:not(.sb-auto) .sb-slide{height:460px}
+  .sfb .sb-hero.sb-overlay:not(.sb-auto) .sb-tx{padding:0 56px}
+  .sfb .sb-hero.sb-overlay:not(.sb-auto) h1{font-size:48px}
+  .sfb .sb-hero.sb-split .sb-slide{min-height:420px}
+  .sfb .sb-hero.sb-split .sb-tx{padding:48px 44px}
+  .sfb .sb-hero.sb-split h1{font-size:44px}
+}
+/* the menu's drawer, drawn into the page's frame in the theme's tokens */
+.sfb.sb-drawer-root{position:fixed;inset:0;z-index:40;background:transparent;overflow:visible}
+.sfb .sb-dscrim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.sfb .sb-drawer{position:absolute;top:0;left:0;bottom:0;width:88%;max-width:340px;background:var(--bg);color:var(--text);overflow:auto;box-shadow:8px 0 30px rgba(0,0,0,.25)}
+.sfb .sb-drawer .sb-dh{display:flex;align-items:center;gap:10px;padding:18px 16px 14px;border-bottom:1px solid var(--line)}
+.sfb .sb-drawer .sb-dh b{flex:1;font-family:var(--fh);font-size:19px;line-height:1.25}
+.sfb .sb-drawer .sb-dh button{display:grid;place-items:center;width:36px;height:36px;border:0;border-radius:50%;background:none;color:inherit;cursor:pointer}
+.sfb .sb-drawer .sb-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);font-weight:600;font-size:15px;color:inherit}
+.sfb .sb-drawer .sb-row.sb-on{background:var(--accent-soft);color:var(--main)}
+.sfb .sb-drawer .sb-row > svg{width:20px;height:20px;color:var(--main);flex:none}
+.sfb .sb-drawer .sb-row .sb-n{margin-left:auto;color:var(--muted);font-weight:500;font-size:13px}
+.sfb .sb-drawer .sb-row .sb-go{margin-left:auto;color:var(--muted);display:flex}
+.sfb .sb-drawer .sb-lab{padding:18px 16px 6px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.sfb .sb-drawer .langs{display:inline-flex;margin:6px 16px 24px;border:1.5px solid var(--line-strong);border-radius:999px;padding:3px}
+.sfb .sb-drawer .langs button{padding:6px 16px;border:0;border-radius:999px;background:none;color:inherit;font:inherit;font-weight:600;font-size:14px;cursor:pointer}
+.sfb .sb-drawer .langs button.on{background:var(--main);color:var(--on-main)}
