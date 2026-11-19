@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { OfferCutKind, OfferState, Permission } from '@lytronix/validators';
 import { useDeleteOffer, useOffer, useOfferStep, useUpdateOffer } from '@/api/offers';
@@ -186,6 +186,18 @@ export function OfferView({ offerId }: { offerId: string }): React.JSX.Element {
                 </span>
                 <CopyButton text={`https://${link}`} size="xs" icon />
               </div>
+              {running ? (
+                <p className="text-[14px] text-fg-muted">
+                  {t('of.homeHint')}{' '}
+                  <Link
+                    to="/$shop/settings/storefront/design"
+                    params={{ shop: slug }}
+                    className="font-medium text-primary underline underline-offset-2"
+                  >
+                    {t('of.openDesign')}
+                  </Link>
+                </p>
+              ) : null}
             </div>
           </Card>
         </div>

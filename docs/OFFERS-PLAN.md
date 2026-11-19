@@ -1,7 +1,7 @@
 # Offers -- plan
 
-**Status:** the sketch, OF-13 to OF-25 and the build plan approved by the owner (2026-11-19, two PRs). PR 1 built
-(section 5); PR 2, the design editor's offer row and button, after PR 1 is live on staging.
+**Status:** the sketch, OF-13 to OF-25 and the build plan approved by the owner (2026-11-19, two PRs). Both built
+(section 5): PR 1 merged (#401); PR 2, the design editor's offer row and button, merges once PR 1 is live on staging.
 
 **What it is:** a seller runs a named offer ("ঈদ অফার") that cuts the price of chosen products, or of some designs of a
 product, by a percent or by taka. Shoppers see the cut price everywhere in the shop, with the old price struck through,
@@ -163,9 +163,22 @@ offer -- each its own feature later.
 
 **Named deviations from the sketch:**
 - **The dashboard's own parts** (cards, chips, fields, rows, tags, dialogs, the action bar).
-- **No "show it on the home page" hint** on the running offer's page until PR 2 adds the editor's choice it names.
+- **No "show it on the home page" hint** on the running offer's page until PR 2 adds the editor's choice it names
+  (PR 2 adds it: see below).
 - **End offer and Delete are red words** on the dashboard's outline button, as its other red actions are (the sketch
   drew a red edge too).
 - **"Started" shows the day** ("15 Nov"), as the dashboard's other dates in a line do.
 - **An offer's products are listed by name**, a product's picked designs in one row.
 - **The shop's offer page writes numbers in Western digits**, as the shop's other lines do.
+
+### As built (PR 2)
+
+- **A home row of an offer (OF-8, OF-22; the sketch's `o-row`):** the product row's source gains "An offer". Its Offer
+  field lists the running offers, each with its product count, and keeps the one the row already names, marked "Ended:
+  the row is hidden". Done asks "Choose the offer." until one is picked. The row's title defaults to the offer's name,
+  "See all" opens the offer's page, and the section's line reads "Auto: N from <offer>".
+- **A button to an offer (the sketch's `o-link`):** "Button leads to" gains "An offer", second after On sale, listing
+  the offers not ended. A running one can be picked; one not started is shown with "Not started" and cannot be. The
+  button then reads "Offer: <name>".
+- **The running offer's page** shows the home-row hint the sketch drew, with Open design.
+- **Unchanged:** the server's checks, the shop's rows and links, and `design.offers` are PR 1's. Nothing new is stored.

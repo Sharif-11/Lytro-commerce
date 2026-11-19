@@ -123,10 +123,14 @@ export function SectionEditor({
   const stepStart = useRef('');
   const start = useRef(JSON.stringify({ working: initial, item: firstItem }));
   // What a row had for each source, so coming back to one finds it.
-  const kept = useRef(
+  const kept = useRef<{ categoryId: string | null; productIds: string[]; offerId: string | null }>(
     initial?.kind === StorefrontSectionKind.Products
-      ? { categoryId: initial.categoryId, productIds: initial.productIds }
-      : { categoryId: null, productIds: [] as string[] },
+      ? {
+          categoryId: initial.categoryId,
+          productIds: initial.productIds,
+          offerId: initial.offerId ?? null,
+        }
+      : { categoryId: null, productIds: [], offerId: null },
   );
   // Pictures uploaded in this sheet; any the saved section doesn't hold are let go of.
   const mine = useRef(new Set<string>());
@@ -582,6 +586,11 @@ export function SectionEditor({
           if (working.kind !== StorefrontSectionKind.Products) return;
           kept.current = { ...kept.current, categoryId };
           setWorking({ ...working, categoryId });
+        }}
+        onOffer={(offerId) => {
+          if (working.kind !== StorefrontSectionKind.Products) return;
+          kept.current = { ...kept.current, offerId };
+          setWorking({ ...working, offerId });
         }}
         onOpenItem={openItem}
         onOpenQuote={openQuote}
