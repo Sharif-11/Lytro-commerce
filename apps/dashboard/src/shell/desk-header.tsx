@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/icon';
 import { BellButton } from '@/views/notifications/bell';
+import { AccountMenu } from './account-menu';
+import { BalancePill } from './balance-pill';
 import { useShell } from './shell-context';
 
 /** The first letter of a name as a reader sees it -- a Bangla letter with its vowel sign (রু), a Latin capital. */
@@ -82,14 +84,9 @@ export function DeskHeader({ canSearch, canAdd }: DeskHeaderProps): React.JSX.El
       >
         {t('langToggle')}
       </button>
+      <BalancePill size="lg" />
       <BellButton variant="desk" />
-      <span
-        title={personName ?? undefined}
-        aria-hidden="true"
-        className="inline-flex size-9 flex-none items-center justify-center rounded-full bg-brand-100 font-semibold text-primary-text"
-      >
-        {initial ?? <Icon name="user" size={18} />}
-      </span>
+      <AccountMenu initial={initial} />
     </header>
   );
 }

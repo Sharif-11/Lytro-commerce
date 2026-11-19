@@ -9550,8 +9550,8 @@ const bbWord = (s) => (s.tone === 'warn' ? L('কম', 'Low') : s.tone === 'bad'
 const bbShownNow = () => ST.screen === 'bb-shown' || ST.screen === 'bb-shown-low';
 /* The balance as bKash shows it (the owner, 2026-11-19): hidden behind "ব্যালেন্স দেখুন"; a tap shows it for 5 seconds,
    then it hides again; a tap on the amount while it shows opens Balance. Only the balance, no word about it (the owner:
-   "just only the balance, no comment such as kom, beshi"); its colour says it instead: amber when it can't cover the
-   next fee, red at ৳0 or below (the owner: "you can use red or the other color"). */
+   "just only the balance, no comment such as kom, beshi"); its colour says it instead: amber when low (BAL-13's ৳50, as Home and the low-balance email say), red at ৳0 or below
+   (the owner: "you can use red or the other color"). */
 const bbPill = (size) => {
   const s = bbState();
   const shown = bbShownNow();

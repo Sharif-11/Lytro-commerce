@@ -363,7 +363,8 @@ test.describe('Notifications settings', () => {
   }) => {
     await browserWithPush(page, true);
     const log = await open(page, '/menu', withKey());
-    await main(page).getByRole('button', { name: 'Sign out' }).click();
+    // Menu's first card and its last row both sign out (the owner, 2026-11-19).
+    await main(page).getByRole('button', { name: 'Sign out' }).first().click();
     await expect(page).toHaveURL(/\/sign-in/);
     const paths = log.calls.filter((c) => c.method !== 'GET').map((c) => `${c.method} ${c.path}`);
     expect(paths.indexOf('DELETE /push/subscriptions')).toBeGreaterThanOrEqual(0);
@@ -375,7 +376,8 @@ test.describe('Notifications settings', () => {
   test('a browser that never answers does not hold up signing out', async ({ page }) => {
     await browserWithPush(page, true, true);
     await open(page, '/menu', withKey());
-    await main(page).getByRole('button', { name: 'Sign out' }).click();
+    // Menu's first card and its last row both sign out (the owner, 2026-11-19).
+    await main(page).getByRole('button', { name: 'Sign out' }).first().click();
     await expect(page).toHaveURL(/\/sign-in/);
   });
 

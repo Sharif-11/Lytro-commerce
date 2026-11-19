@@ -36,6 +36,7 @@ export function MoreSettings({
   onSingle,
   onChart,
   onDuplicate,
+  duplicateNote = null,
   onRemove,
 }: {
   /** CMB-01: a combo has no chart, condition, serials or batches (`k31-combo-more`). */
@@ -63,6 +64,8 @@ export function MoreSettings({
   onChart: () => void;
   /** Duplicate, Archive and Delete for good, on a saved product; null on a new one. */
   onDuplicate: (() => void) | null;
+  /** The owner, 2026-11-19: why Duplicate is greyed out (the balance can't cover a new product's fee); null if it isn't. */
+  duplicateNote?: React.ReactNode;
   onRemove: ((how: 'archive' | 'hard') => void) | null;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
@@ -170,7 +173,13 @@ export function MoreSettings({
         </div>
         {readOnly || !onDuplicate || !onRemove ? null : (
           <div className="flex flex-wrap gap-2">
-            <Button tone="outline" size="sm" busy={busy} onClick={onDuplicate}>
+            <Button
+              tone="outline"
+              size="sm"
+              busy={busy}
+              disabled={duplicateNote !== null}
+              onClick={onDuplicate}
+            >
               <Icon name="copy" />
               {t('duplicate')}
             </Button>
@@ -194,6 +203,7 @@ export function MoreSettings({
             </Button>
           </div>
         )}
+        {readOnly || !onDuplicate ? null : duplicateNote}
       </div>
     </details>
   );

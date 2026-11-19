@@ -86,7 +86,9 @@ test('Language switches the dashboard to the other language at once', async ({ p
 
 test('Sign out ends the session and opens the sign-in page', async ({ page }) => {
   const log = await open(page);
-  await main(page).getByRole('button', { name: 'লগআউট' }).click();
+  // The owner, 2026-11-19 (`bb-menu`): Sign out on the first card, and the old last row too.
+  await expect(main(page).getByRole('button', { name: 'লগআউট' })).toHaveCount(2);
+  await main(page).getByRole('button', { name: 'লগআউট' }).first().click();
   // UI/UX batch 2, item 1.5: whoever signs out has an account, so the password comes first.
   await expect(page).toHaveURL(/\/sign-in\?mode=password$/);
   expect(log.calls.some((call) => call.method === 'POST' && call.path === '/auth/signout')).toBe(

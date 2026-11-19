@@ -154,9 +154,9 @@ test('words in a main colour too light for them take its nearest shade that read
   expect(await styleOf(add, 'background-color')).toBe('rgb(194, 124, 14)');
   expect(await styleOf(add, 'color')).toBe('rgb(16, 32, 31)');
   if (onDesktop(page)) {
-    // The person's initial on the pale tint: the words' shade, where brand-800 would read 4.41:1. The letter is
-    // hidden from screen readers, so the accessibility check below does not weigh it.
-    const initial = page.locator('span.rounded-full.bg-brand-100').first();
+    // The person's initial on the pale tint: the words' shade, where brand-800 would read 4.41:1. Since 2026-11-19 it
+    // is the button that opens your menu, so the accessibility check below weighs it too.
+    const initial = page.getByRole('button', { name: 'Your menu' });
     expect(await styleOf(initial, 'color')).toBe('rgb(151, 97, 11)');
   }
   await expectAccessible(page);
