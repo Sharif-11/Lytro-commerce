@@ -1,6 +1,6 @@
 # Tenant dashboard: the full design
 
-Status: v3.40, 2026-11-12 (photo designs for the seller -- each photo's design on the photos sheet, the design split by its photos, the pickers by photo, the order's and the label's design, size and SKU -- §7.42, Part 40); v3.39 of 2026-11-10 (Phase 8 for the seller -- the help line, the error ID on a server fault, a payment method being retired, a payment's screenshot in Billing, categories by dragging -- and the owner's six fixes, drawn for Slice 8.8, §7.41, Part 39; v3.38 of 2026-11-09: paying Lytro on the developed payment page: §7.19 is current, Part 38, reversing D5-3's amendment of 2026-11-03; v3.37 of 2026-11-07: Phase 7 for the seller -- SMS settings, the log and the report, the bell, its switches and
+Status: v3.41, 2026-11-18 (the courier label laid out as Steadfast's, §7.47); v3.40, 2026-11-12 (photo designs for the seller -- each photo's design on the photos sheet, the design split by its photos, the pickers by photo, the order's and the label's design, size and SKU -- §7.42, Part 40); v3.39 of 2026-11-10 (Phase 8 for the seller -- the help line, the error ID on a server fault, a payment method being retired, a payment's screenshot in Billing, categories by dragging -- and the owner's six fixes, drawn for Slice 8.8, §7.41, Part 39; v3.38 of 2026-11-09: paying Lytro on the developed payment page: §7.19 is current, Part 38, reversing D5-3's amendment of 2026-11-03; v3.37 of 2026-11-07: Phase 7 for the seller -- SMS settings, the log and the report, the bell, its switches and
 push, the bounced email, Lytro's notice board with its marquee and prompt, the fake order check, reading a pasted
 message and the reads allowance -- drawn for Slice 7.7, §7.40, Part 37; v3.36 of 2026-11-07: the Phase 6 close-out: editing a booked order, §7.39, Part 36's `c36-edit` and `c36-edited`; v3.35 of 2026-11-06: Couriers, booking, the order's Courier card and courier money, drawn for Phase 6 Slice 6.7, §7.39, Part 36; v3.34 of 2026-11-05: Payments and Listener phones, drawn and built together for Slice 5.8's parts 3 and 4, §7.36 to §7.38; v3.33 of 2026-11-04: Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
 shipment the balance can't pay for, serials at shipping scanned, pasted or typed, the Orders list by where an order came
@@ -1472,7 +1472,7 @@ drawn greyed with "Later" so the design stays whole; **the built screens hide th
   counting (ORD-15, ORD-22). Needs `payments:manage`.
 - **Printing** (`o29-print`, `o29-label-23`; agreed 2026-10-31, ORD-19 amended): thermal labels, **2 × 3** or **3 ×
   3 inches**, the size kept for next time. A label carries the shop and its phone, the customer's name, phone and
-  address, the order number, courier and tracking code, a barcode of the order number, the cash to collect and the
+  address, the order number, courier and tracking code, a barcode (since 2026-11-18 the parcel's ID, §7.47), the cash to collect and the
   weight; the 3 × 3 label adds the items. The payment log is not printed: the order's payments are on screen.
 - **New order** (`order-new`), one page in sections (agreed): the customer -- the phone first, a known phone offering
   its name and last address (`o29-new-known`, CUS-01) -- then **how it reaches them**: Delivery (district and thana,
@@ -2241,6 +2241,29 @@ The owner's fixes PR; the sketch was approved as drawn, less the "খালি �
   বিক্রি করা যাবে N পিস** under it. Save adds every number typed in one request, all or none; the row that stopped it
   is marked, and success says **Nটি ভ্যারিয়েন্টে M পিস স্টক যোগ হয়েছে**. The Stock card's Add stock button stays for a
   reason, a batch or a cost.
+
+### 7.47 The courier label, laid out as Steadfast's (2026-11-18)
+
+The owner, beside Steadfast's own print page: Lytro's thermal label "is not good, follow Steadfast". The two sizes and
+what a label carries (ORD-19, PD-9) stay; the layout becomes Steadfast's, top to bottom (`o29-print`, `o29-label-23`,
+`lbl-hand`, `lbl-new`, `lbl-long-23`, and Part 40's `pd-print`). Shots: C:/Users/Dell/Desktop/Lytro
+screenshots/courier-label-steadfast.
+
+- **Head:** the shop's logo in a circle (its letter, white on black, when it has none) at the left; the shop's name and
+  phone at the right; a solid rule under it. Steadfast prints its merchant ID there; Lytro keeps the shop's phone.
+- **Barcode** across the label (Code 128), its characters spaced out under it. It carries the **parcel's ID**: the
+  courier's consignment ID once the order is booked through Lytro (what the courier's hub scans), else the order number.
+- **QR and facts:** a QR of the same ID at the left; at the right the rows **Order**, **Courier**, **ID** and **Weight**,
+  small capital names and bold values. ID is the consignment ID, or the tracking code typed for a parcel sent by hand;
+  a missing value is "—" (Steadfast's "N/G"). Weight is the weight sent to the courier once booked, else the items'
+  weights. Steadfast's Delivery (Home or Point) row is left out: Lytro books home delivery only.
+- **Customer:** **Name**, **Phone** and **Address** rows; the address (the text, the thana, the district) wraps.
+- **Cash on delivery** in a box: the words at the left, the amount due at the right, large.
+- **Items**, on the 3 × 3 only (ORD-19, PD-9): "2 items: ..." in the space Steadfast leaves blank, cut off at the
+  label's foot when there are many.
+- **Foot:** "Printed: 18/11/26 05:18pm" at the left and **Lytro** · lytro.app at the right, over a thin rule.
+- No outer border: a thermal roll's edge drifts. On screen the label sits on the sheet's grey with a shadow. The names
+  follow the dashboard's language; Bangla names are 1.5 px larger and not spaced out.
 
 ## 8. Screens designed for later phases
 

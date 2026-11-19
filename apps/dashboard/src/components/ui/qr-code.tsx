@@ -21,11 +21,13 @@ export function QrCode({
   text,
   label,
   size = 176,
+  className,
 }: {
   text: string;
   /** What it holds, in words, for a screen reader. */
   label: string;
   size?: number;
+  className?: string;
 }): React.JSX.Element {
   const code = useMemo(() => squaresOf(text), [text]);
   const whole = code.size + MARGIN * 2;
@@ -33,6 +35,7 @@ export function QrCode({
     <svg
       role="img"
       aria-label={label}
+      className={className}
       width={size}
       height={size}
       viewBox={`${String(-MARGIN)} ${String(-MARGIN)} ${String(whole)} ${String(whole)}`}
