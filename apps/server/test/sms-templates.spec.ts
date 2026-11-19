@@ -37,12 +37,8 @@ describe('SMS templates', () => {
       );
       expect(units).toEqual([1, 1, 2, 1, 1, 1, 1]);
     }
-    expect(Object.values(SmsEvent).filter((event) => SMS_EVENTS[event].on)).toEqual([
-      SmsEvent.OrderPlaced,
-      SmsEvent.PaymentVerified,
-      SmsEvent.OrderShipped,
-      SmsEvent.OrderCancelled,
-    ]);
+    // The owner, 2026-11-19: every SMS starts off, so no balance is spent before the shop chooses.
+    expect(Object.values(SmsEvent).filter((event) => SMS_EVENTS[event].on)).toEqual([]);
   });
 
   it('fills what it knows, leaves no gap or hanging colon for an empty one, and keeps an unknown name', () => {

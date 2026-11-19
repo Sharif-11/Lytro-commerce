@@ -5,10 +5,12 @@ import { ApiClientError, errorMessage } from '@lytronix/api-client';
 import { formatTakaExact } from '@lytronix/ui';
 import { FraudSource, FraudSourceState, Permission, TenantState } from '@lytronix/validators';
 import { useLatestFraudCheck, useOrderFraudCheck, useRunFraudCheck } from '@/api/fraud';
+import { BalanceNote } from '@/components/balance-note';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { StatusTag } from '@/components/ui/status-tag';
+import { useBalanceGate } from '@/hooks/use-balance-gate';
 import { dayKey, formatShortDay, formatTime } from '@/lib/dates';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -218,16 +220,19 @@ function FootButton({
   children,
   onClick,
   busy,
+  blocked = false,
 }: {
   icon: 'refresh' | 'shield';
   children: React.ReactNode;
   onClick: () => void;
   busy: boolean;
+  /** The balance can't cover a check (the owner, 2026-11-19); the note beside it says so. */
+  blocked?: boolean;
 }): React.JSX.Element {
   return (
     <button
       type="button"
-      disabled={busy}
+      disabled={busy || blocked}
       onClick={onClick}
       className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-primary disabled:opacity-50"
     >
@@ -242,9 +247,18 @@ function useCheck(phone: string): {
   busy: boolean;
   refused: { text: string; minute: boolean } | null;
   fresh: FraudCheckView | null;
+  /** The owner, 2026-11-19 (`bg-fraud`): a check costs its fee; while the balance can't cover it, why. */
+  note: React.ReactNode;
 } {
   const { t } = useTranslation('orders');
-  const { showToast } = useShell();
+  const { t: shell } = useTranslation('shell');
+  const { showToast, tenant } = useShell();
+  // A trial's checks are refused for the plan, not the balance: no balance note there.
+  const short = useBalanceGate().fraudCheck();
+  const note =
+    short && tenant.state !== TenantState.Trial ? (
+      <BalanceNote short={short} what={shell('bgWhatFraud')} />
+    ) : null;
   const check = useRunFraudCheck();
   const [refused, setRefused] = useState<{ text: string; minute: boolean } | null>(null);
   const [fresh, setFresh] = useState<FraudCheckView | null>(null);
@@ -252,6 +266,7 @@ function useCheck(phone: string): {
     busy: check.isPending,
     refused,
     fresh,
+    note,
     run: () => {
       setRefused(null);
       check.mutate(
@@ -301,11 +316,13 @@ export function NewOrderFraud({ phone }: { phone: string }): React.JSX.Element |
             tone="outline"
             size="sm"
             busy={check.busy || latest.isLoading}
+            disabled={check.note !== null}
             onClick={check.run}
           >
             <Icon name="shield" size={18} /> {t('p37FrCheck')}
           </Button>
         </div>
+        {check.note}
         <div className={meta}>{t('p37FrCheckD', { c: t('p37FrFree') })}</div>
       </Frame>
     );
@@ -320,9 +337,17 @@ export function NewOrderFraud({ phone }: { phone: string }): React.JSX.Element |
         </>
       }
       foot={
-        <FootButton icon="refresh" busy={check.busy} onClick={check.run}>
-          {t('p37FrAgain')}
-        </FootButton>
+        <>
+          {check.note}
+          <FootButton
+            icon="refresh"
+            busy={check.busy}
+            blocked={check.note !== null}
+            onClick={check.run}
+          >
+            {t('p37FrAgain')}
+          </FootButton>
+        </>
       }
     />
   );
@@ -351,9 +376,17 @@ export function OrderFraud({
   const again = lapsed ? (
     <div className={meta}>{t('p37FrFrozen')}</div>
   ) : may ? (
-    <FootButton icon="refresh" busy={check.busy} onClick={check.run}>
-      {t('p37FrAgain')}
-    </FootButton>
+    <>
+      {check.note}
+      <FootButton
+        icon="refresh"
+        busy={check.busy}
+        blocked={check.note !== null}
+        onClick={check.run}
+      >
+        {t('p37FrAgain')}
+      </FootButton>
+    </>
   ) : (
     <div className={meta}>{t('p37FrNoPerm')}</div>
   );
@@ -386,11 +419,19 @@ export function OrderFraud({
       {refusal}
       <div className={meta}>{why}</div>
       {may && !lapsed ? (
-        <div className="flex justify-end">
-          <FootButton icon="shield" busy={check.busy} onClick={check.run}>
-            {t('p37FrCheck')}
-          </FootButton>
-        </div>
+        <>
+          {check.note}
+          <div className="flex justify-end">
+            <FootButton
+              icon="shield"
+              busy={check.busy}
+              blocked={check.note !== null}
+              onClick={check.run}
+            >
+              {t('p37FrCheck')}
+            </FootButton>
+          </div>
+        </>
       ) : lapsed ? (
         <div className={meta}>{t('p37FrFrozen')}</div>
       ) : null}
@@ -413,8 +454,14 @@ export function CustomerFraud({ phone }: { phone: string }): React.JSX.Element |
       <Frame flush>
         {refusal}
         <div className={meta}>{t('p37FrNotYet')}</div>
+        {check.note}
         <div className="flex justify-end">
-          <FootButton icon="shield" busy={check.busy} onClick={check.run}>
+          <FootButton
+            icon="shield"
+            busy={check.busy}
+            blocked={check.note !== null}
+            onClick={check.run}
+          >
             {t('p37FrCheck')}
           </FootButton>
         </div>
@@ -427,9 +474,17 @@ export function CustomerFraud({ phone }: { phone: string }): React.JSX.Element |
       check={shown}
       top={refusal}
       foot={
-        <FootButton icon="refresh" busy={check.busy} onClick={check.run}>
-          {t('p37FrAgain')}
-        </FootButton>
+        <>
+          {check.note}
+          <FootButton
+            icon="refresh"
+            busy={check.busy}
+            blocked={check.note !== null}
+            onClick={check.run}
+          >
+            {t('p37FrAgain')}
+          </FootButton>
+        </>
       }
     />
   );

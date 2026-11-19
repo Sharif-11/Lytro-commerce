@@ -164,6 +164,12 @@ for dir in "$(docker info --format '{{.DockerRootDir}}')" "$LYTRO_HOME"; do
   fi
 done
 
+# D9-34: a deploy ends a load test, since step 5 brings the API back with the real providers. Before anything else, any
+# run still going is told to stop, what the test queued for an outside service is answered by its stand-in or cancelled,
+# the stand-in goes and arm.sh --ceiling's per-visitor setting goes back (deploy/load/run/stand-down.sh). With no load
+# test armed, nothing happens.
+bash "$DEPLOY_DIR/load/run/stand-down.sh"
+
 if [ -n "${LYTRO_SKIP_PULL:-}" ]; then
   say '1. using the images on this machine'
 else

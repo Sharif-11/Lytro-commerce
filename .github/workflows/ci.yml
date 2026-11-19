@@ -72,9 +72,10 @@ jobs:
       # Phase 9 Slice 9.7 (ENGINEERING-STANDARDS §5): a new migration that would break the release running beside it or
       # before it fails here, and so does any edit to a migration already merged. A pull request is compared with where
       # it started from main; main's own run (Deploy's verify) with the commit before it.
-      # Phase 9 Slice 9.10: the load test's stand-in for every outside service answers as each provider's adapter needs.
-      - name: The load test's stand-in
-        run: node --test "deploy/load/outside/*.test.mjs"
+      # Phase 9 Slice 9.10: the load test's stand-in for every outside service answers as each provider's adapter needs,
+      # and (D9-34) no load reaches a server that isn't armed: armed.sh, stand-down.sh and disarm.sh's refusals.
+      - name: The load test's stand-in and guards
+        run: node --test "deploy/load/outside/*.test.mjs" "deploy/load/run/*.test.mjs"
       # Slice 9.10: the launcher that runs the API and the storefront as several processes on one port.
       - name: The process launcher
         run: node --test "deploy/node/*.test.mjs"

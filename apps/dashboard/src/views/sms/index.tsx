@@ -164,8 +164,13 @@ function SettingsTab({ settings }: { settings: SmsSettings }): React.JSX.Element
   const spent = Number(settings.spentThisMonth);
   const cap = settings.monthlySpendCap ? Number(settings.monthlySpendCap) : null;
   const share = cap ? Math.min(100, Math.round((spent / cap) * 100)) : 0;
-  const lowBalance = balance.data ? Number(balance.data.amount) < Number(settings.rate) : false;
   const toShopper = settings.events.filter((each) => each.recipient === 'shopper');
+  // The owner, 2026-11-19 (the sketch's `bg-sms`, `bg-sms-low`): customer SMS start off, so the balance isn't spent before
+  // the shop chooses; and an SMS switched on that the balance can't pay for is said plainly.
+  const anyOn = settings.events.some((each) => each.on);
+  const lowBalance =
+    anyOn && balance.data ? Number(balance.data.amount) < Number(settings.rate) : false;
+  const allCustomerOff = toShopper.every((each) => !each.on);
   const toOwner = settings.events.filter((each) => each.recipient === 'owner');
   const openCap = (): void => {
     setOpen({ kind: 'cap' });
@@ -224,9 +229,13 @@ function SettingsTab({ settings }: { settings: SmsSettings }): React.JSX.Element
             )
           }
         >
-          {t('p37LowBal', { b: formatTakaExact(balance.data.amount) })}
+          {t('smsShort', {
+            need: formatTakaExact(settings.rate),
+            have: formatTakaExact(balance.data.amount),
+          })}
         </Banner>
       ) : null}
+      {allCustomerOff && !readOnly ? <Banner tone="info">{t('smsOffNote')}</Banner> : null}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start [&>*]:min-w-0">
         <div className="flex flex-col gap-4">
           <Group title={t('p37ToCustomer')} hint={t('p37ToCustomerD')}>

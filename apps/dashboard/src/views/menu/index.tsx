@@ -7,6 +7,7 @@ import { useSignOut } from '@/api/me';
 import { useStaffList } from '@/api/staff';
 import { HelpSheet } from '@/components/help-sheet';
 import { Icon, type IconName } from '@/components/icon';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { RowList } from '@/components/ui/list-row';
 import { ShopMark } from '@/components/ui/shop-mark';
@@ -130,17 +131,30 @@ export function MenuView(): React.JSX.Element {
           />
         </div>
       ) : null}
+      {/* The shop and you, with Sign out two taps from anywhere (the owner, 2026-11-19, the sketch's `bb-menu`): on a
+          phone under them, full width; on a computer at their end. The old last row stays. */}
       <Card flush>
-        <div className="flex min-h-16 items-center gap-3 px-4 py-3">
+        <div className="flex min-h-16 flex-wrap items-center gap-3 px-4 py-3 lg:flex-nowrap">
           <ShopMark shopName={tenant.shopName} slug={slug} logo={tenant.logo} size={40} />
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="overflow-hidden text-[16px] font-medium text-ellipsis whitespace-nowrap">
               {tenant.shopName}
             </span>
-            <span className="overflow-hidden text-[14px] text-ellipsis whitespace-nowrap text-fg-muted">
+            <span className="text-[14px] text-fg-muted">
               {[appConfig.shopHost(slug), role, personName].filter(Boolean).join(' · ')}
             </span>
           </span>
+          <Button
+            tone="outline"
+            size="sm"
+            disabled={signOut.isPending}
+            onClick={() => {
+              signOut.mutate();
+            }}
+            className="basis-full border-[color-mix(in_srgb,var(--color-danger)_40%,var(--color-line))] text-danger lg:basis-auto"
+          >
+            <Icon name="logout" size={16} /> {t('signOut')}
+          </Button>
         </div>
       </Card>
       {moneySections.length > 0 ? (

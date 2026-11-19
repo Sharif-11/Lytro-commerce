@@ -24,6 +24,7 @@ import exec from 'k6/execution';
 import { Counter } from 'k6/metrics';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.1.0/index.js';
 import { Seller } from './lib/dashboard.js';
+import { armed as checkArmed, guardScenario } from './lib/guard.js';
 import { addressOf, personOf, phoneOf } from './lib/people.js';
 import { call, dataOf, EDGE, hosts, hostsOption, visitorAddress } from './lib/target.js';
 
@@ -78,7 +79,15 @@ const spike =
 
 export const options = {
   hosts: hostsOption([SHOP.slug]),
-  scenarios: { spike },
+  // D9-34: the spike stops itself once the server isn't armed (lib/guard.js), for as long as the spike lasts.
+  scenarios: {
+    spike,
+    armed: guardScenario(
+      MODE === 'flash'
+        ? `${String(HOLD_MINUTES)}m`
+        : `${String(RAMP_SECONDS + HOLD_MINUTES * 60)}s`,
+    ),
+  },
   summaryTrendStats: ['avg', 'p(50)', 'p(95)', 'p(99)', 'max'],
   thresholds: {
     // A spike may be refused as busy, never broken: no 500s.
@@ -153,6 +162,11 @@ export function visit() {
 /** One order in the flash sale. */
 export function order() {
   placeOrder(iteration());
+}
+
+/** D9-34: the guard's check, every few seconds all through the spike (lib/guard.js). */
+export function armed() {
+  checkArmed();
 }
 
 /** The flash sale's product holds STOCK, and nothing more, before the sale opens. */

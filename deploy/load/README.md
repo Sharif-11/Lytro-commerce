@@ -67,6 +67,49 @@ one shop of the roster (`SPIKE_SHOP`, `SPIKE_PRODUCT`: indexes, 0 by default):
 
 Then, back on the server: `bash /opt/lytro/state/current/load/run/disarm.sh`. The report goes in `docs/drills/` (below).
 
+## Never on a server that isn't armed (D9-34)
+
+Load places orders and signs sellers up, and each of those sends an SMS. On a server that isn't armed those SMS would
+go to the real BulkSMSBD, to made-up phone numbers that may belong to real people.
+
+Staging's live runs on 2026-11-19 found two ways it could happen. Both times the SMS were refused only because the
+balance had run out:
+
+- the first run kept placing orders for ten minutes after it was disarmed, and 49 order SMS went to the real provider;
+- the second run stopped before its disarm, but 24 of its order SMS were still queued when the worker came back on the
+  real provider.
+
+So:
+
+- **`run.sh`, `seed.sh` and `flash.sh` start only on an armed server.** `run/armed.sh` checks two things:
+  - the stand-in is running and answering;
+  - the API and the worker point every provider that `compose.load.yml` names at the stand-in.
+- **`run.sh` keeps asking every 20 seconds.** Two misses in a row stop its k6.
+- **`run.sh` stops its k6 whenever it exits.** The k6 container is named `lytro-load-<run>`, and an interrupted or
+  killed script stops it too.
+- **k6 stops itself** (exit 108) once the stand-in is gone or answers 410 (`k6/lib/guard.js`), even when nothing else
+  is left to stop it:
+  - the load, the spikes and the seeding of orders check every 10 seconds;
+  - the seeder checks before each sign-up.
+
+  Each check also tells the stand-in that a run is going (`GET /load/ping`).
+
+- **`disarm.sh` refuses while a run checked in within the last 30 seconds** (`GET /load` on the stand-in). Stop the run
+  first: on the load machine, `docker ps --filter ancestor=grafana/k6:1.0.0` lists what still runs. `disarm.sh --force`
+  disarms anyway, and the run then stops itself.
+- **Standing down comes before the real providers come back.** `disarm.sh` and every deploy run `run/stand-down.sh`,
+  which does nothing when no test is armed. In order:
+  1. The stand-in answers every run's next check 410 (`POST /load/stop`), and a run still going gets 30 seconds to
+     stop.
+  2. While the stand-in still answers, the work the test queued for an outside service drains: order and usage SMS,
+     OTP retries, couriers' fraud checks, Meta's purchase events, and the SMS and mail outboxes. It waits up to 3
+     minutes (`DRAIN_SECONDS`). Whatever is still waiting then, of what was queued since the stand-in was made, is
+     cancelled.
+  3. The stand-in goes.
+  4. The per-visitor setting `--ceiling` raised goes back.
+
+  Then `disarm.sh` restarts the API and the worker on the real providers; a deploy does it in its step 5.
+
 ## What each run leaves
 
 - In `./out/` on the load machine:

@@ -14,6 +14,7 @@ import exec from 'k6/execution';
 // k6's own end-of-run summary, which a handleSummary of one's own otherwise replaces.
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.1.0/index.js';
 import { Seller, signUp } from './lib/dashboard.js';
+import { armed as checkArmed, guardScenario } from './lib/guard.js';
 import { readReport, signInOperator } from './lib/operator.js';
 import { addressOf, personOf, phoneOf, SEARCHES } from './lib/people.js';
 import { call, dataOf, hosts, hostsOption } from './lib/target.js';
@@ -39,6 +40,8 @@ const RAMP_MINUTES = Number(__ENV.RAMP_MINUTES || 5);
 const SIGNUP_MINUTES = Number(__ENV.SIGNUP_MINUTES || 10);
 const SIGNUP_START_MINUTES = Number(__ENV.SIGNUP_START_MINUTES || 10);
 const APP_VERSION = '1.0.0';
+// The whole run, for what goes on all through it: the phones, the operator's reports and the guard.
+const RUN_LENGTH = MODE === 'ceiling' ? '100m' : `${String(RAMP_MINUTES + MINUTES + 1)}m`;
 
 // The capacity model's peak for 100 shops, a minute, at FACTOR 1. 46 catalogue requests a second: four in five from the
 // storefronts (a visit is about 8 of them) and one in five from shops' own websites (about 4 a visit); 0.23 orders a
@@ -94,7 +97,7 @@ const scenarios = {
     exec: 'phone',
     rate: shops.length,
     timeUnit: '15m',
-    duration: MODE === 'ceiling' ? '100m' : `${String(RAMP_MINUTES + MINUTES + 1)}m`,
+    duration: RUN_LENGTH,
     preAllocatedVUs: 2,
   },
 };
@@ -105,7 +108,7 @@ if (meta.operator) {
     exec: 'operator',
     rate: 2,
     timeUnit: '1m',
-    duration: MODE === 'ceiling' ? '100m' : `${String(RAMP_MINUTES + MINUTES + 1)}m`,
+    duration: RUN_LENGTH,
     preAllocatedVUs: 2,
   };
 }
@@ -124,6 +127,8 @@ if (MODE === 'pass' && SIGNUPS > 0) {
 
 // Scenarios left out by name, e.g. SKIP=shoppers,storefrontOrders on a machine with no storefront running.
 for (const name of (__ENV.SKIP || '').split(',').filter(Boolean)) delete scenarios[name];
+// D9-34: the run stops itself once the server isn't armed. Added after SKIP, which can't leave it out.
+scenarios.armed = guardScenario(RUN_LENGTH);
 
 const ceilingStop = { abortOnFail: true, delayAbortEval: '1m' };
 export const options = {
@@ -363,6 +368,11 @@ export function operator(data) {
   );
   const answer = readReport(data.operator, path);
   ok(answer, 'the report reads', [200]);
+}
+
+/** D9-34: the guard's check, every few seconds all through the run (lib/guard.js). */
+export function armed() {
+  checkArmed();
 }
 
 /** A paired phone reporting in (LSN-03), every 15 minutes. */

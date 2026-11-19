@@ -519,6 +519,13 @@ const money = (value: number): string => value.toFixed(2);
 const CYCLE_START = '2026-10-31T18:00:00.000Z';
 const CYCLE_END = '2026-11-30T18:00:00.000Z';
 
+const DRAWN_ON = new Set<SmsEvent>([
+  SmsEvent.OrderPlaced,
+  SmsEvent.PaymentVerified,
+  SmsEvent.OrderShipped,
+  SmsEvent.OrderCancelled,
+]);
+
 function smsSettingsOf(fixture: SmsFixture, language: Language): Record<string, unknown> {
   const name = fixture.smsName ?? SHOP_NAME[language];
   const events = Object.values(SmsEvent).map((event) => {
@@ -526,7 +533,8 @@ function smsSettingsOf(fixture: SmsFixture, language: Language): Record<string, 
     const template = fixture.templates?.[event] ?? definition.template;
     const sample = smsWithName(name, renderSmsTemplate(template, SAMPLE));
     const units = smsUnitsOf(sample, UNIT);
-    const on = fixture.on?.[event] ?? definition.on;
+    // The drawn shop switched its four customer SMS on; a new one starts with every SMS off (the owner, 2026-11-19).
+    const on = fixture.on?.[event] ?? (fixture.fresh ? definition.on : DRAWN_ON.has(event));
     return {
       event,
       recipient: definition.recipient,

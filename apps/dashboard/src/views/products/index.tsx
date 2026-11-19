@@ -3,6 +3,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Permission, TenantState } from '@lytronix/validators';
 import { useCategories, useProductList, useProductRoom } from '@/api/catalogue';
+import { BalanceNote } from '@/components/balance-note';
 import { ErrorBanner, LoadFailed } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import {
   segmentCount,
   type ProductSegment,
 } from '@/lib/product-segments';
+import { useBalanceGate } from '@/hooks/use-balance-gate';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
@@ -55,6 +57,7 @@ export function ProductsView({
   const navigate = useNavigate();
   const { slug, viewer, tenant } = useShell();
   const mayManage = allows(viewer, [Permission.ProductsManage]);
+  const gate = useBalanceGate();
   const [typed, setTyped] = useState(search);
   const [filtering, setFiltering] = useState(false);
   const list = useProductList({ search, segment, categoryId });
@@ -100,9 +103,17 @@ export function ProductsView({
       ? t('uncategorized')
       : (categories.data?.find((each) => each.id === categoryId)?.name ?? '');
 
+  // The owner, 2026-11-19 (the sketch's `bg-products`): on pay-as-you-go, a new product costs its fee; a balance that
+  // can't cover it greys the button out and says why under the title.
+  const short = gate.product();
   // The header's carries the plus; the empty state's does not (the prototype's `products`).
   const addProduct = (withIcon: boolean) =>
-    mayManage ? (
+    mayManage && short ? (
+      <Button size="sm" disabled aria-describedby="product-balance">
+        {withIcon ? <Icon name="plus" /> : null}
+        {t('addProduct')}
+      </Button>
+    ) : mayManage ? (
       <Link
         to="/$shop/products/new"
         params={{ shop: slug }}
@@ -144,6 +155,9 @@ export function ProductsView({
 
   return (
     <ShellPage actions={addProduct(true)}>
+      {mayManage && short ? (
+        <BalanceNote id="product-balance" short={short} what={shell('bgWhatProduct')} />
+      ) : null}
       {limitAsked && room.data?.full ? <ProductLimitBanner room={room.data} /> : null}
       {list.isError ? <ErrorBanner error={list.error} /> : null}
       {newShop ? (

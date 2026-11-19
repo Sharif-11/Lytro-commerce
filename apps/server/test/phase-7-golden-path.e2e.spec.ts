@@ -286,6 +286,16 @@ describeIfDatabase("Phase 7's golden path (PHASE-7-PLAN §1, exit criterion 3)",
     const message = (connected.body as { message: { address: string; token: string } }).message;
     const address = new URL(message.address).pathname;
     await expectAgreement(shop, ownerEndpoint);
+    // The owner, 2026-11-19: customer SMS start off; this owner switches on the four the path follows.
+    const switched = await shop.patch('/sms/settings', {
+      events: {
+        order_placed: true,
+        payment_verified: true,
+        order_shipped: true,
+        order_cancelled: true,
+      },
+    });
+    expect(switched.status, JSON.stringify(switched.body)).toBe(200);
 
     // 1. A shopper's order from the landing page: the order-placed SMS in the shop's Bangla words, its SMS name first,
     //    charged at the SMS rate; the owner's bell and push say so.

@@ -38,6 +38,27 @@ test.describe('SMS settings', () => {
     ).toHaveAttribute('aria-checked', 'false');
   });
 
+  test('a new shop starts with every SMS off, and says why (the owner, 2026-11-19)', async ({
+    page,
+  }) => {
+    await open(page, '/settings/sms', { sms: { fresh: true } });
+    for (const name of [
+      'Order placed',
+      'Payment received',
+      'Order shipped',
+      'Delivered',
+      'Order cancelled',
+    ]) {
+      await expect(main(page).getByRole('switch', { name, exact: true })).toHaveAttribute(
+        'aria-checked',
+        'false',
+      );
+    }
+    await expect(main(page)).toContainText(
+      'SMS to customers start off, so your balance isn’t spent. Switch on the ones you want; each SMS is paid from the balance.',
+    );
+  });
+
   test('a switch saves at once', async ({ page }) => {
     const log = await open(page, '/settings/sms');
     await main(page).getByRole('switch', { name: 'Delivered', exact: true }).click();
