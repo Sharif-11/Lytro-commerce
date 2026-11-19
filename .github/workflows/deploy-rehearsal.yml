@@ -254,8 +254,19 @@ jobs:
             -e 's#^GRAFANA_METRICS_USER=$#GRAFANA_METRICS_USER=1#' \
             -e 's#^GRAFANA_CLOUD_TOKEN=$#GRAFANA_CLOUD_TOKEN=rehearsal#' "$LYTRO_HOME/env/monitoring.env"
 
+      # Stand-ins for other releases' images (2026-11-19: staging's disk filled with 37 releases' images): an older
+      # release's, the running release's (release.env names it), and an image from elsewhere.
+      - name: Images of other releases
+        run: |
+          static="$REGISTRY/lytro-static:${{ github.sha }}"
+          sudo docker tag "$static" "$REGISTRY/lytro-static:an-older-release"
+          sudo docker tag "$static" "$REGISTRY/lytro-static:the-running-release"
+          sudo docker tag "$static" rehearsal/elsewhere:kept
+          sudo sed -i 's/^RELEASE=.*/RELEASE=the-running-release/' "$LYTRO_HOME/state/release.env"
+
       # A rerun: its release folder is made again under the running database, which must keep its first-start scripts
-      # (step 4 runs them) and isn't replaced. The monitor starts, its account now named.
+      # (step 4 runs them) and isn't replaced. The monitor starts, its account now named. Before the pull, the older
+      # release's image goes; the running release's, this one's and the one from elsewhere stay.
       - name: Deploy the same release again
         run: |
           set -o pipefail
@@ -266,9 +277,28 @@ jobs:
             echo 'a rerun of the same release replaced the database'; exit 1
           fi
           grep '8. the monitor' rerun.log
+          if sudo docker image inspect "$REGISTRY/lytro-static:an-older-release" > /dev/null 2>&1; then
+            echo "an older release's image was kept"; exit 1
+          fi
+          sudo docker image inspect "$REGISTRY/lytro-static:the-running-release" \
+            "$REGISTRY/lytro-static:${{ github.sha }}" rehearsal/elsewhere:kept > /dev/null
 
       - name: Every host still answers
         run: CHECK_ADDRESS=127.0.0.1 CHECK_INSECURE=1 WAIT_SECONDS=30 bash deploy/scripts/outside-check.sh localhost
+
+      # A disk without room for a release: the deploy stops before step 1, and what runs is unchanged.
+      - name: A deploy onto a full disk changes nothing
+        run: |
+          before="$(sudo cat "$LYTRO_HOME/state/release.env")"
+          if tar -czf - deploy | sudo LYTRO_HOME="$LYTRO_HOME" LYTRO_SKIP_PULL=1 LYTRO_MIN_FREE_GB=100000 \
+            SSH_ORIGINAL_COMMAND="deploy ${{ github.sha }} ${{ steps.names.outputs.edge_tag }}" bash deploy/scripts/lytro-ssh \
+            > full.log 2>&1; then
+            cat full.log; echo 'a deploy went ahead without room for it'; exit 1
+          fi
+          cat full.log
+          grep 'GB needed: stopped before anything that runs was touched' full.log
+          if grep -E '1\. (pulling|using)' full.log; then echo 'the deploy reached step 1'; exit 1; fi
+          test "$(sudo cat "$LYTRO_HOME/state/release.env")" = "$before"
 
       # Every figure an alert reads reaches Grafana's stand-in, named by its server, and no alert rule fails to evaluate.
       - name: The monitor sends every figure the alerts read
