@@ -105,6 +105,24 @@ function dayMonthYear(iso: string): { day: string; month: string; year: string }
   return { day: part('day'), month: part('month'), year: part('year') };
 }
 
+/** "18/11/26 05:18pm" in Dhaka, in either language: when a courier label was printed, as Steadfast's labels write it
+    (TENANT-DASHBOARD-DESIGN §7.47). */
+export function formatPrintedAt(iso: string): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h12',
+    timeZone: DHAKA,
+  }).formatToParts(new Date(iso));
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((each) => each.type === type)?.value ?? '';
+  const when = `${part('day')}/${part('month')}/${part('year')} ${part('hour')}:${part('minute')}`;
+  return `${when}${part('dayPeriod').toLowerCase()}`;
+}
+
 /** A day as the prototype writes it beside a figure, in either language: "9 Nov" (Dhaka's calendar). */
 export function formatDayMonth(iso: string): string {
   const { day, month } = dayMonthYear(iso);

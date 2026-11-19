@@ -120,7 +120,7 @@ export function p40Pairs(): P40Pair[] {
       scroll: /^আইটেম$/,
     },
     bn('pd-print', '/orders/o-47', {
-      state: { ...shop('bn'), orders: burkaOrders() },
+      state: { ...shop('bn'), orders: bookedBurkaOrders() },
       then: async (page) => {
         await page
           .getByRole('main')
@@ -130,4 +130,20 @@ export function p40Pairs(): P40Pair[] {
       },
     }),
   ];
+}
+
+/** The burka order booked with Steadfast, as the label sketch draws it (TENANT-DASHBOARD-DESIGN §7.47). */
+function bookedBurkaOrders(): ReturnType<typeof burkaOrders> {
+  const day = burkaOrders();
+  const drawn = day.orders.find((each) => each.id === 'o-47');
+  if (drawn) {
+    drawn.status = 'shipped';
+    drawn.parcel = {
+      courierKey: 'steadfast',
+      cod: 3470,
+      consignmentId: '184562307',
+      weightKg: 0.8,
+    };
+  }
+  return day;
 }

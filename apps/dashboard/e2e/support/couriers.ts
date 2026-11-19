@@ -354,6 +354,8 @@ export interface ParcelFixture {
   courierStatus?: string | null;
   consignmentId?: string | null;
   trackingCode?: string | null;
+  /** The weight sent with the booking, kg; none unless told. */
+  weightKg?: number | null;
   cod: number;
   cashCollected?: number | null;
   codAtCourier?: number | null;
@@ -383,7 +385,8 @@ export function parcelView(parcel: ParcelFixture) {
     courierStatus: parcel.courierStatus === undefined ? 'in_review' : parcel.courierStatus,
     cod: money(parcel.cod),
     note: null,
-    weightKg: null,
+    weightKg:
+      parcel.weightKg === undefined || parcel.weightKg === null ? null : parcel.weightKg.toFixed(3),
     areaCode: null,
     deliveryCharge:
       parcel.deliveryCharge === undefined || parcel.deliveryCharge === null

@@ -141,6 +141,23 @@ function comboDay(): OrdersFixture {
   return day;
 }
 
+/** Part 29's day with Nusrat's order booked with Steadfast, as the label sketch draws it (§7.47): the courier's
+    consignment ID, and 0.8 kg sent with the booking. */
+function bookedLabelDay(): OrdersFixture {
+  const day = meghOrders();
+  const drawn = day.orders.find((each) => each.id === 'o-47');
+  if (drawn) {
+    drawn.status = 'shipped';
+    drawn.parcel = {
+      courierKey: 'steadfast',
+      cod: 3470,
+      consignmentId: '184562307',
+      weightKg: 0.8,
+    };
+  }
+  return day;
+}
+
 /** Opens the order's more menu, as a seller does, then one of its rows if named. */
 function orderMenu(row?: string): (page: Page) => Promise<void> {
   return async (page) => {
@@ -392,6 +409,7 @@ const ORDERS: Pair[] = [
     device: 'phone',
     language: 'bn',
     path: '/orders/o-47',
+    state: { orders: bookedLabelDay() },
     then: orderMenu('লেবেল প্রিন্ট'),
   },
   {
@@ -400,6 +418,7 @@ const ORDERS: Pair[] = [
     device: 'phone',
     language: 'bn',
     path: '/orders/o-47',
+    state: { orders: bookedLabelDay() },
     then: async (page) => {
       await orderMenu('লেবেল প্রিন্ট')(page);
       await page.getByRole('dialog').getByRole('radio', { name: '2 × 3 ইঞ্চি' }).click();
