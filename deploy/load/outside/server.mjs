@@ -21,6 +21,12 @@
 //   GET /codes?phone=   the newest SMS to a number (its last 10 digits), with the first run of 4 to 8 digits in it
 //   GET /stats          calls by provider and route, SMS sent, unknown paths
 //   GET /health         200
+//   GET /load/ping      a load run's guard checking the server is armed (deploy/load/k6/lib/guard.js), every few seconds;
+//                       410 once the test is standing down, which stops the run
+//   GET /load           whether a load run is still going: a guard checked in within LOAD_RUNNING_SECONDS (30), so
+//                       disarm.sh refuses to bring the real providers back under it (D9-34)
+//   POST /load/stop     the test standing down (run/stand-down.sh): every run is told to stop at its next check, while
+//                       the stand-in goes on answering the work the test queued
 //
 // HTTPS from the certificate start.sh makes; BulkSMSBD, Resend and Gemini refuse any other address. Node's own modules,
 // nothing installed. It logs one line at start and one for each unknown path, and never a request's body: bodies carry
@@ -28,7 +34,7 @@
 //
 // Settings: PORT (8443), CODES_PORT (8081), HOST (0.0.0.0), CERT_DIR (/certs, holding server.pem and server.key),
 // LOCATIONS_FILE (locations.json beside this file: Lytro's zillas and thanas, for RedX's areas), DELAY_MS_SMS (300),
-// DELAY_MS_COURIER (400), DELAY_MS_BKASH (500), DELAY_MS_RESEND (200), DELAY_MS_GEMINI (1500).
+// DELAY_MS_COURIER (400), DELAY_MS_BKASH (500), DELAY_MS_RESEND (200), DELAY_MS_GEMINI (1500), LOAD_RUNNING_SECONDS (30).
 
 import { Buffer } from 'node:buffer';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -82,6 +88,7 @@ function settingsOf(env) {
       resend: whole('DELAY_MS_RESEND', 200),
       gemini: whole('DELAY_MS_GEMINI', 1500),
     },
+    loadRunningSeconds: whole('LOAD_RUNNING_SECONDS', 30),
   };
 }
 
@@ -1110,6 +1117,44 @@ async function bodyOf(incoming) {
   }
 }
 
+/**
+ * D9-34: when a load run's guard last checked in, and whether the test is standing down. Staging's live run
+ * (2026-11-19) went on placing orders for ten minutes after disarm.sh had brought the real providers back, and 49 order
+ * SMS went to BulkSMSBD (refused only because its balance had run out): disarm.sh now asks here first, and refuses while
+ * a guard checked in within `runningSeconds`; standing down (stand-down.sh) tells every run to stop at its next check,
+ * while the stand-in goes on answering what the test queued.
+ */
+class LoadSeen {
+  constructor(runningSeconds) {
+    this.runningMs = runningSeconds * 1000;
+    this.at = null;
+    this.stopping = false;
+  }
+
+  /** A guard's check: false once the test is standing down, which stops its run. */
+  ping() {
+    this.at = Date.now();
+    return !this.stopping;
+  }
+
+  stop() {
+    this.stopping = true;
+  }
+
+  toJSON() {
+    if (this.at === null) {
+      return { running: false, stopping: this.stopping, lastSeen: null, secondsAgo: null };
+    }
+    const ago = Math.max(0, Date.now() - this.at);
+    return {
+      running: ago <= this.runningMs,
+      stopping: this.stopping,
+      lastSeen: new Date(this.at).toISOString(),
+      secondsAgo: Math.floor(ago / 1000),
+    };
+  }
+}
+
 function send(response, reply) {
   if (reply.body === null) {
     response.writeHead(reply.status, reply.headers);
@@ -1131,6 +1176,7 @@ class OutsideServer {
     this.settings = settings;
     this.delays = new Delays(settings.delays);
     this.stats = new Stats();
+    this.load = new LoadSeen(settings.loadRunningSeconds);
     this.inbox = new SmsInbox(KEPT_MAX);
     this.providers = [
       new BulkSmsBd(this.inbox, this.stats),
@@ -1189,6 +1235,16 @@ class OutsideServer {
       if (request.path === '/health') return json(200, { ok: true });
       if (request.path === '/stats') return json(200, this.stats.toJSON());
       if (request.path === '/codes') return this.codes(request);
+      if (request.path === '/load') return json(200, this.load.toJSON());
+      if (request.path === '/load/ping') {
+        return this.load.ping()
+          ? json(200, { ok: true })
+          : json(410, { error: 'the load test is standing down: stop' });
+      }
+    }
+    if (request.method === 'POST' && request.path === '/load/stop') {
+      this.load.stop();
+      return json(200, { ok: true });
     }
     if (secure) {
       const provider = this.providers.find(
@@ -1269,7 +1325,7 @@ function main() {
       const { sms, courier, bkash, resend, gemini } = settings.delays;
       log(
         `listening on https://${settings.host}:${String(port)} (every provider) and ` +
-          `http://${settings.host}:${String(codesPort)} (codes, stats, health); delays in ms, ±30%: ` +
+          `http://${settings.host}:${String(codesPort)} (codes, stats, health, load); delays in ms, ±30%: ` +
           `sms ${String(sms)}, courier ${String(courier)}, bkash ${String(bkash)}, resend ${String(resend)}, ` +
           `gemini ${String(gemini)}; ${String(redx.areas.length)} RedX areas from ${redx.from}`,
       );

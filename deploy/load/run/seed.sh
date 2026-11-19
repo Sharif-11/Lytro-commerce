@@ -32,7 +32,9 @@ dc() {
 setting() { sed -n "s/^$1=//p" "$LYTRO_HOME/env/server.env" | head -n 1; }
 sql() { dc exec -T postgres sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v prefix="$1"' psql "$RUN" < "$1"; }
 
-[ "$(dc ps -q outside)" != '' ] || { say 'the stand-in is not running: arm.sh first'; exit 1; }
+# D9-34: a seeding signs sellers up by SMS code and places a year of orders, each with its SMS: only on an armed server.
+# Its k6 stops itself once the server isn't armed any more (k6/lib/guard.js).
+bash "$DEPLOY_DIR/load/run/armed.sh" || { say 'arm.sh first'; exit 1; }
 network="$(docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}' "$(dc ps -q api-1)" | tr ' ' '\n' | grep internal | head -n 1)"
 # Readable by the deploy group, which the load machine copies the roster as. Its sessions are the test shops' only.
 umask 027
