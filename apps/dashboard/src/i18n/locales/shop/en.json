@@ -1101,6 +1101,8 @@
     "saved_toast": "Offer saved.",
     "ended_toast": "Offer ended. The old prices are back.",
     "copied_toast": "A copy is ready. Start it when you want.",
-    "deleted_toast": "Offer deleted."
+    "deleted_toast": "Offer deleted.",
+    "homeHint": "To show it on the home page too: Storefront design › Product row › “An offer”.",
+    "openDesign": "Open design"
   }
 }

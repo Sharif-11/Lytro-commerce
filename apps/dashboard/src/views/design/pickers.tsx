@@ -6,8 +6,10 @@ import {
   StorefrontLinkKind,
   type StorefrontCollection,
   type StorefrontLink,
+  OfferState,
 } from '@lytronix/validators';
 import { useCategories, useProductList, useProductSearch } from '@/api/catalogue';
+import { useOffers } from '@/api/offers';
 import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { Button } from '@/components/ui/button';
@@ -25,6 +27,8 @@ import { EditorIcon } from './editor-icon';
 export interface Names {
   categories: Map<string, string>;
   products: Map<string, string>;
+  /** OFFERS-PLAN: the shop's offers by ID, for the rows and buttons that name one. */
+  offers: Map<string, string>;
 }
 
 /** The products the chosen ones' rows can show: their names and pictures, once read. */
@@ -54,6 +58,8 @@ function Thumb({ product }: { product: Pick<ProductSummary, 'image'> }) {
 
 const LINKS: readonly { kind: StorefrontLinkKind; name: string; line: string }[] = [
   { kind: StorefrontLinkKind.OnSale, name: 'ssLinkOnSale', line: 'ssLinkOnSaleLine' },
+  // OFFERS-PLAN OF-8, OF-22 (the sketch's `o-link`): a running offer's page; On sale once it ends.
+  { kind: StorefrontLinkKind.Offer, name: 'ssLinkAnOffer', line: 'ssLinkAnOfferLine' },
   { kind: StorefrontLinkKind.JustIn, name: 'ssLinkJustIn', line: 'ssLinkJustInLine' },
   { kind: StorefrontLinkKind.BestSellers, name: 'ssLinkBest', line: 'ssLinkBestLine' },
   { kind: StorefrontLinkKind.Category, name: 'ssLinkACategory', line: '' },
@@ -117,6 +123,14 @@ export function LinkStep({
                 onPick={(id, name) => {
                   onNamed('categories', id, name);
                   onChange({ kind: StorefrontLinkKind.Category, categoryId: id });
+                }}
+              />
+            ) : null}
+            {on && choice.kind === StorefrontLinkKind.Offer ? (
+              <OfferChoices
+                chosen={link.kind === StorefrontLinkKind.Offer ? link.offerId : null}
+                onPick={(id) => {
+                  onChange({ kind: StorefrontLinkKind.Offer, offerId: id });
                 }}
               />
             ) : null}
@@ -431,6 +445,48 @@ export function ProductsStep({
           <p className="py-2 text-[13.5px] text-fg-muted">{t('ssNoProducts')}</p>
         ) : null}
       </section>
+    </div>
+  );
+}
+
+/**
+ * OFFERS-PLAN OF-22 (the sketch's `o-link`): the shop's offers a button may lead to -- a running one; one not started is
+ * shown, and cannot be picked until it starts.
+ */
+function OfferChoices({ chosen, onPick }: { chosen: string | null; onPick: (id: string) => void }) {
+  const { t } = useTranslation('menu');
+  const offers = useOffers();
+  const shown = (offers.data?.offers ?? []).filter((offer) => offer.state !== OfferState.Ended);
+  return (
+    <div className="mt-0.5 mb-1.5 ml-8 border-l-2 border-primary-soft pl-3">
+      {shown.length === 0 ? (
+        <p className="py-2 text-[13px] text-fg-muted">{t('ssNoOffers')}</p>
+      ) : (
+        shown.map((offer) => {
+          const running = offer.state === OfferState.Running;
+          return (
+            <button
+              key={offer.id}
+              type="button"
+              role="radio"
+              aria-checked={chosen === offer.id}
+              disabled={!running}
+              className={`${ROW} disabled:opacity-55`}
+              onClick={() => {
+                onPick(offer.id);
+              }}
+            >
+              <RadioMark on={chosen === offer.id} />
+              <span className="min-w-0 flex-1">
+                <b className="block text-[14px] font-bold">{offer.name}</b>
+                <span className="text-[12.5px] text-fg-muted">
+                  {running ? t('ssOfferRunning', { count: offer.products }) : t('ssOfferWaiting')}
+                </span>
+              </span>
+            </button>
+          );
+        })
+      )}
     </div>
   );
 }
