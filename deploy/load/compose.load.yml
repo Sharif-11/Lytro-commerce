@@ -1,5 +1,8 @@
 # The load test's changes to a server's deployment (Phase 9 Slice 9.10), laid over deploy/compose.yml by
-# deploy/load/run/arm.sh. The next deploy (deploy.sh, without this file) takes every one of them off again.
+# deploy/load/run/arm.sh. The next deploy (deploy.sh, without this file) takes every one of them off again, and stands
+# the test down first (run/stand-down.sh, D9-34: runs told to stop, the test's queued SMS and the like answered by the
+# stand-in or cancelled, then the stand-in removed).
+# run/armed.sh reads the provider addresses below as its list of what must point at the stand-in.
 #
 # - Every outside service goes to the stand-in (deploy/load/outside): no SMS, courier, bKash, email or Gemini call leaves
 #   the server, and each provider's key is replaced, so none reaches the stand-in either.

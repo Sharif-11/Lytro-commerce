@@ -3,6 +3,7 @@
 // later steps and the load read. Runs through the internal edge (EDGE), so each seller has a visitor address of their
 // own, as TRIAL_LIMIT_PER_IP needs.
 import { signUp } from './lib/dashboard.js';
+import { assertArmed } from './lib/guard.js';
 import { personOf, phoneOf } from './lib/people.js';
 import { visitorAddress } from './lib/target.js';
 
@@ -20,6 +21,8 @@ export function setup() {
   const failed = [];
   for (let index = 0; index < SHOPS; index += 1) {
     const slug = `${RUN}-s${String(index).padStart(3, '0')}`;
+    // D9-34: each sign-up asks for a phone code by SMS, so none is asked once the server isn't armed.
+    assertArmed();
     const result = signUp({
       phone: phoneOf(0, PHONE_OFFSET + index),
       ownerName: personOf(index),

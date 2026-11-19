@@ -27,6 +27,8 @@ dc() {
 setting() { sed -n "s/^$1=//p" "$LYTRO_HOME/env/server.env" | head -n 1; }
 
 [ -f "$WORK/out/roster.json" ] || { say "no roster in $WORK/out: seed.sh first"; exit 1; }
+# D9-34: orders, each with its SMS, only on an armed server; k6 stops itself once it isn't (k6/lib/guard.js).
+bash "$DEPLOY_DIR/load/run/armed.sh" || { say 'arm.sh first'; exit 1; }
 network="$(docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}' "$(dc ps -q api-1)" | tr ' ' '\n' | grep internal | head -n 1)"
 export EDGE_SECRET DOMAIN STOCK ORDERS HOLD_MINUTES SPIKE_SHOP SPIKE_PRODUCT
 EDGE_SECRET="$(setting TRUSTED_EDGE_SECRET)"

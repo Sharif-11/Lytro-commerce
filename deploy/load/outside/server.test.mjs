@@ -77,6 +77,7 @@ describe('the outside stand-in', { skip }, () => {
         DELAY_MS_BKASH: '5',
         DELAY_MS_RESEND: '5',
         DELAY_MS_GEMINI: '5',
+        LOAD_RUNNING_SECONDS: '1',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -205,6 +206,34 @@ describe('the outside stand-in', { skip }, () => {
   test('health answers 200 on both ports', async () => {
     assert.equal((await call('GET', '/health')).status, 200);
     assert.equal((await plain('/health')).status, 200);
+  });
+
+  test('load: a guard check-in shows a run going until LOAD_RUNNING_SECONDS have passed (D9-34)', async () => {
+    assert.deepEqual((await plain('/load')).json, {
+      running: false,
+      stopping: false,
+      lastSeen: null,
+      secondsAgo: null,
+    });
+    assert.equal((await plain('/load/ping')).status, 200);
+    const going = (await plain('/load')).json;
+    assert.equal(going.running, true);
+    assert.equal(going.secondsAgo, 0);
+    assert.match(going.lastSeen, /^\d{4}-\d{2}-\d{2}T/);
+    // LOAD_RUNNING_SECONDS is 1 here: two seconds without a check-in and the run counts as gone.
+    await sleep(2100);
+    assert.equal((await plain('/load')).json.running, false);
+  });
+
+  test('load: standing down answers every later check 410, which stops its run; the providers go on (D9-34)', async () => {
+    const stopped = await over(httpRequest, { port: codesPort }, 'POST', '/load/stop', {});
+    assert.equal(stopped.status, 200);
+    const check = await plain('/load/ping');
+    assert.equal(check.status, 410);
+    assert.match(check.json.error, /standing down/);
+    assert.equal((await plain('/load')).json.stopping, true);
+    // What the test queued still gets its answer: the tests below call every provider after this.
+    assert.equal((await call('GET', '/health')).status, 200);
   });
 
   test('BulkSMSBD: response_code 202 and a message_id (bulksmsbd.provider.ts), after the SMS delay', async () => {
