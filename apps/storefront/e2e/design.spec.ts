@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { StorefrontThemeKey } from '@lytronix/validators';
-import { type Browser, expect, test } from '@playwright/test';
+import { type Browser, expect, type Page, test } from '@playwright/test';
 import { builderShop, type SketchShop } from './support/builder-fixtures';
 import type { Language } from './support/fixtures';
 import { GOOD_PREVIEW } from './support/mock-server';
@@ -22,6 +22,23 @@ async function sketchShops(browser: Browser): Promise<Record<StorefrontThemeKey,
   const shops = await page.evaluate<Record<StorefrontThemeKey, SketchShop>>('SHOPS');
   await page.close();
   return shops;
+}
+
+/**
+ * React's work after an event, done: it runs on a message-channel task, which the test's clock does not move, so a
+ * message sent after it arrives once it is through.
+ */
+async function settled(page: Page): Promise<void> {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = () => {
+          resolve();
+        };
+        channel.port2.postMessage(null);
+      }),
+  );
 }
 
 /** BL-6: the sketch's one full-width banner (`ONE_BANNER`), read from the sketch. */
@@ -194,16 +211,36 @@ test.describe('banner layouts, the bar and the hero tiles (BL-2 to BL-17)', () =
     const shop = await openShop(page, (language) =>
       builderShop(StorefrontThemeKey.Royal, shops.royal, language),
     );
+    // The bar's seconds are the test's to move: the clock stands still from before the page opens.
+    const start = Date.now();
+    await page.clock.install({ time: start });
+    await page.clock.pauseAt(start + 1_000);
     await page.goto(shop.url('/'));
-    // Every pair is in the page, in the seller's order; one shows, the next after a few seconds.
+    // Every pair is in the page, in the seller's order; one shows, the next after 4 seconds.
     const pairs = page.locator('.sfb-bar .sb-ann .sb-fr');
     await expect(pairs).toHaveCount(2);
     await expect(pairs.nth(0)).toContainText('Cash on delivery');
     await expect(pairs.nth(0)).toContainText('Inside Dhaka city: delivery up to ৳70');
     await expect(pairs.nth(0)).toContainText('Outside Dhaka city: up to ৳130');
     await expect(pairs.nth(1)).toContainText('Up to 18% off on 3 products');
-    await expect(pairs.nth(1)).toHaveClass(/sb-on/, { timeout: 8_000 });
+    await expect(pairs.nth(0)).toHaveClass(/sb-on/);
+    // The cursor away from the bar (a browser's starts at the corner, on it).
+    await page.mouse.move(200, 600);
+    await page.clock.runFor(4_100);
+    await expect(pairs.nth(1)).toHaveClass(/sb-on/);
     await expect(pairs.nth(0)).not.toHaveClass(/sb-on/);
+    // A mouse resting on it holds it; moved away, it turns again (BL-16).
+    // The mouse straight onto it: with the clock stopped, a hover's wait for a still frame would never end.
+    const shown = await pairs.nth(1).boundingBox();
+    if (!shown) throw new Error('the bar is on the page');
+    await page.mouse.move(shown.x + shown.width / 2, shown.y + shown.height / 2);
+    await settled(page);
+    await page.clock.runFor(9_000);
+    await expect(pairs.nth(1)).toHaveClass(/sb-on/);
+    await page.mouse.move(200, 600);
+    await settled(page);
+    await page.clock.runFor(4_100);
+    await expect(pairs.nth(0)).toHaveClass(/sb-on/);
     const wrap = page.locator('.sfb-bar .sb-ann-wrap');
     await page.locator('.scroll').evaluate((scroll) => {
       scroll.scrollTop = 600;

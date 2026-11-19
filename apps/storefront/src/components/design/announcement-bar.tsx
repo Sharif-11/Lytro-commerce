@@ -71,11 +71,12 @@ export function AnnouncementBar({ pairs, pinned }: { pairs: BarItem[][]; pinned:
       <div className="sb-ann-in">
         <div
           className="sb-ann sb-rot"
-          onMouseEnter={() => {
-            setHeld(true);
+          // BL-16: held while a mouse rests on it; a finger's tap, which also says "mouse", never holds it.
+          onPointerEnter={(event) => {
+            if (event.pointerType === 'mouse') setHeld(true);
           }}
-          onMouseLeave={() => {
-            setHeld(false);
+          onPointerLeave={(event) => {
+            if (event.pointerType === 'mouse') setHeld(false);
           }}
           onFocus={() => {
             setHeld(true);
