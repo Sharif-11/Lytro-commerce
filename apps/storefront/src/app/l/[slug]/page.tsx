@@ -10,6 +10,7 @@ import { Footer, Header, Shell } from '@/components/shell';
 import { keptQuery, productOpening } from '@/lib/product/opening';
 import { productMetadata } from '@/lib/product/product-metadata';
 import { VariantChoice } from '@/lib/product/variant-choice';
+import { pathOfSlug, slugOfSegment } from '@/lib/request-path';
 import { loadProduct, loadShopPage, storefrontApi } from '@/lib/storefront';
 
 // LND-01, LND-02: every active product's own page at /l/<slug>: that product only, no cart and no way into the
@@ -24,7 +25,7 @@ interface Props {
 }
 
 export const generateMetadata = withBusyMetadata(async ({ params }: Props): Promise<Metadata> => {
-  const { slug } = await params;
+  const slug = slugOfSegment((await params).slug);
   const page = await loadShopPage();
   if (page.state !== 'open') return {};
   const read = await loadProduct(slug);
@@ -38,13 +39,14 @@ export const generateMetadata = withBusyMetadata(async ({ params }: Props): Prom
 });
 
 export default withBusyPage(async function LandingPage({ params, searchParams }: Props) {
-  const [{ slug }, { v }] = await Promise.all([params, searchParams]);
+  const [{ slug: segment }, { v }] = await Promise.all([params, searchParams]);
+  const slug = slugOfSegment(segment);
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
   if (page.state === 'missing') notFound();
   const read = await loadProduct(slug);
   if (read === null || read.kind === 'missing') notFound();
-  if (read.kind === 'moved') permanentRedirect(`/l/${read.slug}${keptQuery(v)}`);
+  if (read.kind === 'moved') permanentRedirect(`${pathOfSlug('/l', read.slug)}${keptQuery(v)}`);
 
   const { product } = read;
   const opening = await productOpening(page, product, v);
