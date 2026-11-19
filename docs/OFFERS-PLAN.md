@@ -1,6 +1,7 @@
 # Offers -- plan
 
-**Status:** sketch for the owner's review (2026-11-19). No code until the sketch is approved.
+**Status:** the sketch and OF-13 to OF-25 approved by the owner (2026-11-19). The build plan (section 4) awaits the owner's
+review; no code until it is approved.
 
 **What it is:** a seller runs a named offer ("ঈদ অফার") that cuts the price of chosen products, or of some designs of a
 product, by a percent or by taka. Shoppers see the cut price everywhere in the shop, with the old price struck through,
@@ -27,7 +28,10 @@ and the offer gets its own page and can be a row on the home page.
 | OF-11 | Rounding | **Down to whole taka** (৳1,011.50 becomes ৳1,011). |
 | OF-12 | An ended offer's link | **"This offer has ended"**, the same products at their prices now, and a link to what is on sale now. |
 
-## 2. My calls in the sketch (for the owner to approve or change)
+## 2. My calls in the sketch (approved 2026-11-19)
+
+The owner confirmed OF-14 (Start later), OF-15 (live edits) and OF-16 (per design) by name, and the rest with the
+sketch.
 
 | # | Call | Why |
 | --- | --- | --- |
@@ -56,3 +60,84 @@ and the offer gets its own page and can be a row on the home page.
 **Design editor and shop:**
 - `o-row`, `o-link`: a home row of an offer; a button that leads to an offer.
 - `o-home`, `o-page`, `o-ended`: the row in the shop, the offer's page, and the page after the offer ends.
+
+## 4. Build plan
+
+### 4.1 Two PRs
+
+1. **Offers** -- everything below except the design editor's two new choices: the tables, the server, the public
+   reads, the dashboard's Offers screens, the product editor and products list, and the shop's offer page. The design
+   document learns to READ a home row of an offer and a button to an offer, and the shop draws them.
+2. **Offers in the design editor** -- the editor offers "An offer" for a product row and for a button, after PR 1 is
+   live on staging.
+
+Why two: the design document is checked strictly, so a release that does not know "an offer" would refuse a shop's
+whole design and show the starting design instead. Readers go first (PR 1), writers second (PR 2), so neither a deploy
+(two copies of the API side by side) nor a rollback can hit a shop's design.
+
+### 4.2 Storage (one migration, the next free number)
+
+- `tenant.offers`: name, link name (unique in the shop), cut (`percent` or `taka`, and its amount), state
+  (`waiting`, `running`, `ended`), started and ended times.
+- `tenant.offer_items`: what was picked -- a product, and one of its designs or none (none = the whole product). Kept
+  after the offer ends, for its ended page and Run it again.
+- `tenant.offer_prices`: while an offer runs, one row per size it has changed: the size's own price and regular price
+  before (each may be empty, meaning "the product's"), and the offer price. **A size can have one row only**, so no size
+  is ever in two running offers, whatever happens at the same moment.
+- Each with row-level security and keys to the shop's products, designs and sizes (deleting one removes it from the
+  offer). Migration kind: add; previous release leaves the tables unread.
+
+### 4.3 How an offer changes prices (OF-6, OF-10, OF-11, OF-17, OF-19)
+
+- **Start**: for each size picked (all sizes of a whole product, or every size of a picked design), save its price and
+  regular price as they are, then set the size's own price to the offer price and its own regular price to the old
+  regular price (or the old price when it had none). Offer price = today's price less the cut, rounded down to whole
+  taka. The product's own price is not touched, so its other designs keep selling as before.
+- **End**: put each saved price and regular price back exactly as it was, and remove the rows. Orders already placed
+  keep what they charged.
+- **Live edits** (OF-15): a product added gets its prices at once; one taken out gets its old prices back; a new cut is
+  worked out again from the saved prices.
+- **A size added later** to a design (or whole product) in a running offer joins it at the same cut.
+- **Locks**: the product editor refuses a price change to a size in a running offer, and to the product's own price
+  when the whole product is in one (each refusal names the offer).
+- **One at a time per design** (OF-16): starting, adding or Run it again refuses a product or design already in another
+  running or not-started offer, naming it.
+- **Limits** (OF-18): 1 to 90 percent; taka off a whole number from ৳1; start refuses any product that would fall
+  below ৳1, naming each.
+- Every change runs in one transaction, moves the catalogue's version and clears the shop's pages from the edge, as a
+  product save does. Starting, changing and ending each go in the shop's Activity.
+
+### 4.4 Routes
+
+- **Dashboard** (`products:read` to read, `products:manage` to change): list offers; read one (its products with each
+  price before and in the offer); a preview of prices for a cut and products before saving; create (start now or
+  later); change the name, cut or products; start; end; Run it again (a not-started copy); delete (not started or
+  ended); the picker's list (products with their designs, each marked when in another offer).
+- **Product reads** gain the offers a product's designs are in (the editor's card and locks), and the products list
+  gains each product's offer name (the tag).
+- **Public**: an offer by its link name (name, cut, running or ended; a not-started offer is not found), and the
+  product list filtered to an offer's cards (each design card in it, as design cards show them). Both counted like
+  every public request.
+
+### 4.5 Screens
+
+- **Dashboard**: Offers in Shop after Products; the list, new offer, picker, offer, change, end, ended screens; the
+  product editor's offer card and locked prices; the products list tag -- pixel-matched to the sketch.
+- **Shop**: `/offers/<name>` -- the offer's head and every card, with Sort and Load more; the ended note with "What's
+  on sale now". A home row of an offer (hidden once it ends) and a button to an offer (On sale once it ends) are drawn
+  in PR 1 and chosen in the editor in PR 2.
+
+### 4.6 Tests and checks
+
+- Server: an offers spec -- start and end put every price back exactly (own price empty or set, already on sale),
+  rounding, limits, per-design conflicts including not-started offers, live edits, a size added later, the editor's
+  refusals, an order placed during the offer keeping its price after End, the public offer read and list filter, and
+  another shop's offer or product refused; the route inventory and isolation registry, the catalogue-cache spec, field
+  labels in both languages.
+- Dashboard and shop browser tests for each screen, with pictures beside the sketch.
+- Every package's checks, Prettier, the migration rules check, a real boot of the built server.
+
+### 4.7 Not in these PRs
+
+Offer dates (start and end on their own), free delivery, spend-more discounts, coupon codes, and sales figures per
+offer -- each its own feature later.
