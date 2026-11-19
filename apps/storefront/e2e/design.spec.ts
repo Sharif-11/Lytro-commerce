@@ -121,6 +121,35 @@ test.describe('the designed home (SB-8 to SB-10)', () => {
 });
 
 test.describe("every page in the theme's header, footer and card (SB-8, SB-17, SB-21)", () => {
+  test('wears the theme at checkout too: its header with the way back to the cart, its footer and colours (SB-17)', async ({
+    page,
+    browser,
+  }) => {
+    const shops = await sketchShops(browser);
+    const shop = await openShop(page, (language) =>
+      builderShop(StorefrontThemeKey.Bold, shops.bold, language),
+    );
+    await page.goto(shop.url('/checkout'));
+    await expect(page.locator('.sfb-bar .sb-hd.sb-bar')).toBeVisible();
+    await expect(page.locator('.sfb-foot .sb-ft .sb-pbl')).toHaveText('Powered by Lytro');
+    await expect(page.locator('.hdr')).toHaveCount(0);
+    // The way back leads to the cart, where the back arrow sits on a phone.
+    if (test.info().project.name === 'phone') {
+      await expect(page.locator('.sfb-bar .sb-menu')).toHaveAttribute('href', '/cart');
+    }
+    // The page's own parts take the theme's main colour, as the theme's header has it.
+    const colour = (selector: string, name: string) =>
+      page
+        .locator(selector)
+        .first()
+        .evaluate(
+          (element, token) =>
+            getComputedStyle(element).getPropertyValue(token).trim().toLowerCase(),
+          name,
+        );
+    expect(await colour('.frame', '--accent')).toBe(await colour('.sfb-bar', '--main'));
+  });
+
   test("wears the theme's header and footer on an inner page, its links lit where the page is", async ({
     page,
     browser,
@@ -357,6 +386,112 @@ test.describe('banner layouts, the bar and the hero tiles (BL-2 to BL-17)', () =
   });
 });
 
+test.describe('phones and wide screens, beside Bonik AI (the owner, 2026-11-19)', () => {
+  const isPhone = () => test.info().project.name === 'phone';
+
+  test('the menu opens a drawer of the lists, the categories with their counts, help and the language', async ({
+    page,
+    browser,
+  }) => {
+    const shops = await sketchShops(browser);
+    const shop = await openShop(page, (language) =>
+      builderShop(StorefrontThemeKey.Royal, shops.royal, language),
+    );
+    await page.goto(shop.url('/'));
+    const menu = page.getByRole('button', { name: 'Menu' });
+    if (!isPhone()) {
+      // A computer's header holds it all.
+      await expect(menu).toBeHidden();
+      return;
+    }
+    await menu.click();
+    const drawer = page.getByRole('dialog', { name: 'Menu' });
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByRole('link', { name: 'All products' })).toHaveAttribute(
+      'href',
+      '/new',
+    );
+    await expect(drawer.getByRole('link', { name: 'Offers' })).toHaveAttribute('href', '/offers');
+    const [bn, en, , count] = shops.royal.cats[0] ?? [];
+    expect(bn).toBeTruthy();
+    await expect(
+      drawer.getByRole('link', { name: `${String(en)} ${String(count)}` }),
+    ).toBeVisible();
+    await expect(drawer.getByRole('link', { name: 'Track your order' })).toHaveAttribute(
+      'href',
+      '/track',
+    );
+    await expect(drawer.getByRole('link', { name: 'My account' })).toHaveAttribute(
+      'href',
+      '/account',
+    );
+    await expect(drawer.getByRole('link', { name: 'Chat on WhatsApp' })).toHaveAttribute(
+      'href',
+      /wa\.me/,
+    );
+    await expect(drawer.getByRole('button', { name: 'English' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    // Escape closes it, and the menu has the focus again.
+    await page.keyboard.press('Escape');
+    await expect(drawer).toBeHidden();
+    await expect(menu).toBeFocused();
+    // The scrim closes it too; বাংলা switches the shop's language.
+    await menu.click();
+    await drawer.getByRole('button', { name: 'বাংলা' }).click();
+    await expect(page.getByRole('button', { name: 'মেনু' })).toBeVisible();
+  });
+
+  test('the hero is a compact card under the chips on a phone, and inside the page on a computer', async ({
+    page,
+    browser,
+  }) => {
+    const shops = await sketchShops(browser);
+    const shop = await openShop(page, (language) =>
+      builderShop(StorefrontThemeKey.Royal, shops.royal, language),
+    );
+    await page.goto(shop.url('/'));
+    const slide = await page.locator('.sb-hero .sb-slide').first().boundingBox();
+    const chips = await page.locator('.sfb-bar .sb-nav').boundingBox();
+    const view = page.viewportSize();
+    if (!slide || !chips || !view) throw new Error('the home is on the page');
+    if (isPhone()) {
+      expect(slide.x).toBeCloseTo(16, 0);
+      expect(slide.width).toBeCloseTo(view.width - 32, 0);
+      expect(slide.height / slide.width).toBeCloseTo(0.92, 1);
+      expect(slide.y - (chips.y + chips.height)).toBeGreaterThanOrEqual(15);
+    } else {
+      // Never edge to edge: inside the page's 1240px, with its 32px sides.
+      expect(slide.x).toBeCloseTo((view.width - 1240) / 2 + 32, 0);
+      expect(slide.width).toBeCloseTo(1240 - 64, 0);
+    }
+  });
+
+  test('a long shop name is cut short beside its mark, never under the icons', async ({
+    page,
+    browser,
+  }) => {
+    test.skip(!isPhone(), 'a phone');
+    const shops = await sketchShops(browser);
+    const long = {
+      ...shops.studio,
+      name: ['সুগন্ধি আতর হাউস অ্যান্ড পারফিউম', 'Sugondhi Attar House and Perfumes'],
+    } satisfies SketchShop;
+    const shop = await openShop(page, (language) =>
+      builderShop(StorefrontThemeKey.Studio, long, language),
+    );
+    await page.goto(shop.url('/'));
+    const name = page.locator('.sfb-bar .sb-logo > span:not(.sb-mk)');
+    await expect(name).toHaveText('Sugondhi Attar House and Perfumes');
+    expect(await name.evaluate((each) => each.scrollWidth > each.clientWidth)).toBe(true);
+    const logo = await page.locator('.sfb-bar .sb-logo').boundingBox();
+    const icons = await page.locator('.sfb-bar .sb-icons').boundingBox();
+    if (!logo || !icons) throw new Error('the header is on the page');
+    expect(logo.x + logo.width).toBeLessThanOrEqual(icons.x);
+  });
+});
+
 // The built home beside the sketch's drawing of each theme, at the sketch's frame sizes, saved to test-results/compare
 // for a person to compare (no pixel baseline: fonts render a little differently on each system).
 test.describe('the designed home beside the builder sketch', () => {
@@ -408,6 +543,10 @@ test.describe('the designed home beside the builder sketch', () => {
 
   // BL-2 to BL-17: the sketch's shop screens for the bar, the header, the hero's tiles and the banner layouts.
   const screens = {
+    'v-menu': (shop: SketchShop) => ({
+      ...shop,
+      layout: ['announce', 'header', 'hero', 'cats', ['hot', 'grid']] as SketchShop['layout'],
+    }),
     'v-top': (shop: SketchShop) => ({
       ...shop,
       layout: shop.layout.map((entry) => (entry === 'hero' ? 'hero-tiles' : entry)),
@@ -423,6 +562,10 @@ test.describe('the designed home beside the builder sketch', () => {
       for (const language of languages) {
         test(`${name} on a ${device} in ${language}`, async ({ browser }) => {
           test.skip(test.info().project.name !== 'desktop', 'taken once, in the desktop project');
+          // The menu's drawer is a phone's alone, on the sketch's Royal shop.
+          const menu = name === 'v-menu';
+          test.skip(menu && device !== 'phone', "the drawer is a phone's");
+          const theme = menu ? StorefrontThemeKey.Royal : StorefrontThemeKey.Studio;
           const out = `test-results/compare/builder-${name}-${device}-${language}`;
           const drawing = await browser.newPage({ viewport: { width: 1500, height: 2400 } });
           await drawing.goto(`${SKETCH}#${name}/${device}/${language}/shot`);
@@ -442,14 +585,18 @@ test.describe('the designed home beside the builder sketch', () => {
           const app = await context.newPage();
           const shop = await openShop(
             app,
-            (lang) => builderShop(StorefrontThemeKey.Studio, screen(shops.studio, oneBanner), lang),
+            (lang) => builderShop(theme, screen(shops[theme], oneBanner), lang),
             language,
           );
           await app.goto(shop.url('/'));
           await app.waitForLoadState('networkidle');
           await app.evaluate(() => document.fonts.ready);
           await app.waitForTimeout(500);
-          await app.screenshot({ path: `${out}-app.png`, fullPage: true });
+          if (menu) {
+            await app.getByRole('button', { name: language === 'bn' ? 'মেনু' : 'Menu' }).click();
+            await app.waitForTimeout(300);
+          }
+          await app.screenshot({ path: `${out}-app.png`, fullPage: !menu });
           await context.close();
         });
       }

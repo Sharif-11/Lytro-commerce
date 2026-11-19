@@ -20,6 +20,7 @@ export function ShopShell({
   full,
   notice,
   above,
+  pausedInPage = false,
   children,
 }: {
   page: OpenShopPage;
@@ -34,6 +35,8 @@ export function ShopShell({
   notice?: ReactNode;
   /** SB-8: what a designed shop shows over its header (the home's announcement, as the sketch draws it). */
   above?: ReactNode;
+  /** The page says itself that orders are paused (checkout), so the shell doesn't say it twice. */
+  pausedInPage?: boolean;
   children: ReactNode;
 }) {
   const language = page.words.language;
@@ -84,7 +87,7 @@ export function ShopShell({
         )
       }
     >
-      {page.savingPaused ? <OrdersPausedBanner words={page.words} /> : null}
+      {page.savingPaused && !pausedInPage ? <OrdersPausedBanner words={page.words} /> : null}
       {notice}
       {children}
     </Shell>

@@ -5,6 +5,7 @@ import { PaymentReturnView } from '@/components/order/payment-return-view';
 import { PlacedView } from '@/components/order/placed-view';
 import { OfflinePage } from '@/components/pages';
 import { Header, Shell } from '@/components/shell';
+import { frameBrand } from '@/lib/design/design-look';
 import { ShopBusy } from '@/lib/api/storefront-api';
 import { paymentStandingOf } from '@/lib/order/payment-return';
 import { loadShopPage, shopperToken, storefrontApi } from '@/lib/storefront';
@@ -44,7 +45,8 @@ export default withBusyPage(async function OrderPlacedPage({ params, searchParam
   const standing = paymentStandingOf(read.order);
   return (
     <Shell
-      brand={page.info.brand}
+      // SB-17: the theme's colours and fonts under the confirmation's own short header.
+      brand={frameBrand(page.info)}
       language={language}
       tight
       header={

@@ -11,6 +11,7 @@ import { LanguageSwitch } from '../language-switch';
 import { SearchTools } from '../search/search-panel';
 import type { HeaderNav } from '../shell';
 import { DesignIcon } from './design-icon';
+import { MenuDrawer } from './menu-drawer';
 
 // STOREFRONT-BUILDER-PLAN SB-8, SB-17: the header and footer every page of a designed shop wears, as the sketch draws
 // them (docs/brand/lytro-storefront-builder.html, `SECTIONS.header` and `.footer`), in the theme's style. Their search,
@@ -64,9 +65,15 @@ export async function DesignedHeader({
     <header className={`sb-hd sb-${theme.header}`}>
       <div className="sb-wrap sb-row">
         {backHref === undefined ? (
-          <a className="sb-menu" href="/#categories" aria-label={words.t('categories')}>
-            <DesignIcon name="menu" />
-          </a>
+          // The owner, 2026-11-19: the menu opens a drawer of the lists, categories, help and language.
+          <MenuDrawer
+            shopName={shop.name}
+            categories={nav.categories}
+            whatsapp={shopChatOf(shop.contact).whatsapp}
+            language={language}
+            variables={theme.variables}
+            current={on}
+          />
         ) : (
           <a className="sb-menu" href={backHref} aria-label={words.t('back')}>
             <Icon name="back" />
@@ -265,7 +272,12 @@ export function DesignedFooter({
             </a>
           </span>
           <a className="sb-pbl" href="https://lytro.app" rel="noopener">
-            <i />
+            {/* The owner, 2026-11-19: Lytro's mark (docs/brand/lytro-mark.svg), white in the teal circle. */}
+            <i aria-hidden="true">
+              <svg viewBox="0 0 64 64">
+                <path d="M15 15V49H31L49 29" />
+              </svg>
+            </i>
             Powered by Lytro
           </a>
         </div>

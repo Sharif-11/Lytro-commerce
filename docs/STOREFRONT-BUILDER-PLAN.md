@@ -435,3 +435,21 @@ hook for both screens). One PR from main: validators (hero `slides` source and `
 places, the announcement's item list with a read-time upgrade of saved drafts), the storefront (the rotating bar that
 leaves on scroll, the header's tracking link, the hero's rotating slide and tiles, the banner layouts) and the dashboard
 (the handle, the hero, banners and bar sheets, the place picker).
+
+## 7. Phones and wide screens, beside Bonik AI
+
+The owner, 2026-11-19, on staging at 320px beside a Bonik AI shop: "the brand name, and the banner button also. the
+first banner is bigger in mobile device ... any one can look at it at a glance. And there is a clear noticable distance
+between top category section and banner section. look at the screen when we click hamburger icon"; then, on the hero's
+sheet: "when seller choose first two layout ... they take full width in larger device it does not looks good".
+Sketched (the phone rules, `v-menu`) and approved the same day.
+
+| # | Decision | Decided |
+|---|---|---|
+| BL-21 | **The hero on a phone.** | Every design is a compact card: rounded, 16px from the edges and 16px under the category chips, about as tall as it is wide, its words on the photo, a smaller headline and button. A split hero's photo fills the card. |
+| BL-22 | **The hero on a computer.** | The photo-and-words and full-photo designs sit inside the page's width (1240px, 32px sides, 16px under the header), rounded, as the slide-and-tiles one does; never edge to edge. |
+| BL-23 | **The shop's name on a phone.** | Menu, the mark, the name on one line cut with an ellipsis, then the icons; a logo picture shrinks to fit. A centred header (Royal, Studio) starts after the menu on a phone. |
+| BL-24 | **The menu.** | On a phone the menu opens a drawer: the shop's name and ✕; All products, Offers; each category with its count; Track your order, My account, Chat on WhatsApp (when the shop gave a number); the language. Escape or the scrim closes it. It is drawn into the page's frame, since the header is a container that would hold a fixed panel inside its own box. |
+| BL-25 | **The bar on a small phone.** | ~~Under 360px one item at a time.~~ **Superseded the same day by the owner's staging fix under BL-17 (#398): below 640px one item at a time, each on one line, a long one ending in "…"; pairs from 640px.** |
+| BL-26 | **Checkout, as SB-17 says** (the owner, 2026-11-19: "check why this route is inconsistent with theme. does it keep old ui/ux"). | It did: checkout was still built on the plain shell, with the old header and footer and the brand's colours, not the theme's (2b gave the theme's header and footer to every page through ShopShell, and checkout was missed). Checkout now wears the theme's header (its way back leads to the cart), footer and tokens; it keeps its own "orders paused" notice, so the shell doesn't repeat it. The order's confirmation keeps its short header and takes the theme's colours and fonts. A product's landing page (`/l/...`) stays as built: its own short page for ads. |
+
