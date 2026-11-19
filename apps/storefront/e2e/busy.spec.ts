@@ -161,4 +161,43 @@ test.describe('a delivery charge the server is too busy to work out (p910-busy-d
     expect((await failed).status()).toBe(500);
     await expect(deliveryLine(page)).not.toContainText("can't be shown right now");
   });
+
+  test("the edge's own 502, a server process that dropped the call, is a short wait, not a fault", async ({
+    page,
+  }) => {
+    // Staging's live run (2026-11-19): a connection Caddy reused after the API had closed it came back 502, and the
+    // delivery charge answered 500.
+    const shop = await openShop(page, () => ({ refusals: [{ path: ESTIMATE, status: 502 }] }));
+    await seedArea(page, shop, THANA.mirpur);
+    const refused = page.waitForResponse(isEstimate);
+    await page.goto(shop.url('/p/cotton-panjabi'));
+    const answer = await refused;
+    expect(answer.status()).toBe(503);
+    expect(answer.headers()['retry-after']).toBe('5');
+    await expect(deliveryLine(page)).toHaveText("Delivery: can't be shown right now · Try again");
+  });
+});
+
+test.describe('an order the shop is too busy to take', () => {
+  test("is busy with the server's wait, never a 500, when the shop itself is too busy to read", async ({
+    page,
+  }) => {
+    // Staging's live run at the capacity model's peak (2026-11-19): the checkout answered 500 when the server was too
+    // busy to name the shop. The order never reached the server, so the page can say busy and try again.
+    const shop = await openShop(page, () => ({
+      refusals: [{ path: '/v1/shop', status: 503, retryAfter: 7 }],
+    }));
+    await page.goto(shop.url('/'));
+    await expect(busyHeading(page)).toBeVisible();
+    const answer = await page.evaluate(async () => {
+      const sent = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'idempotency-key': 'busy-order-1' },
+        body: JSON.stringify({ customerName: 'Rahima', items: [] }),
+      });
+      const body = (await sent.json()) as unknown;
+      return { status: sent.status, wait: sent.headers.get('retry-after'), body };
+    });
+    expect(answer).toEqual({ status: 503, wait: '7', body: { code: 'busy' } });
+  });
 });

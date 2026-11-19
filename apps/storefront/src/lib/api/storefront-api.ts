@@ -563,10 +563,19 @@ export class ShopBusy extends Error {
   }
 }
 
+// The edge's own answer when an API process didn't take or finish the call (502 bad gateway, 504 its time ran out): the
+// server was too busy or between processes, not wrong, so it's a wait as a 503 is, after a short one. Staging's live run
+// (2026-11-19) saw a reused connection the API had just closed come back 502, and the delivery charge answer 500.
+const GATEWAY_STATUSES: readonly number[] = [502, 504];
+const GATEWAY_RETRY_SECONDS = 5;
+
 /** Throws ShopBusy when the server was too busy to give what the page needs; any other answer is the caller's to read. */
 export function throwIfBusy(answer: ServerAnswer<unknown>, what: string): void {
   if (isBusyStatus(answer.status)) {
     throw new ShopBusy(answer.status, retryAfterSeconds(answer.retryAfter), what);
+  }
+  if (GATEWAY_STATUSES.includes(answer.status)) {
+    throw new ShopBusy(503, GATEWAY_RETRY_SECONDS, what);
   }
 }
 

@@ -70,11 +70,15 @@ CMD ["node", "cluster.cjs", "dist/main.js"]
 # --- The website -----------------------------------------------------------------------------------------------------
 FROM ${NODE_IMAGE} AS website
 ARG RELEASE=local
+# KEEP_ALIVE_TIMEOUT (Next's own server reads it): an idle connection from Caddy is kept past Caddy's own 2 minutes, so
+# Caddy never reuses one this side has just closed, a 502 (staging's live run, 2026-11-19). The API keeps the same
+# figure in apps/server/src/app/http-setup.ts.
 ENV NODE_ENV=production \
     RELEASE=${RELEASE} \
     HOSTNAME=0.0.0.0 \
     PORT=3003 \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    KEEP_ALIVE_TIMEOUT=125000
 WORKDIR /app
 COPY --from=build --chown=node:node /repo/apps/website/.next/standalone ./
 COPY --from=build --chown=node:node /repo/apps/website/.next/static ./apps/website/.next/static
@@ -88,11 +92,13 @@ CMD ["node", "apps/website/server.js"]
 # --- The storefront --------------------------------------------------------------------------------------------------
 FROM ${NODE_IMAGE} AS storefront
 ARG RELEASE=local
+# KEEP_ALIVE_TIMEOUT: as the website's, above.
 ENV NODE_ENV=production \
     RELEASE=${RELEASE} \
     HOSTNAME=0.0.0.0 \
     PORT=3001 \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    KEEP_ALIVE_TIMEOUT=125000
 WORKDIR /app
 COPY --from=build --chown=node:node /repo/apps/storefront/.next/standalone ./
 COPY --from=build --chown=node:node /repo/apps/storefront/.next/static ./apps/storefront/.next/static

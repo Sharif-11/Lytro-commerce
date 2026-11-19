@@ -407,6 +407,63 @@ describe('answering a page from the page cache', () => {
   });
 });
 
+/** A connected Redis whose answers come late (a timed-out command) or on time, in the order given; no Redis needed. */
+class LateRedis {
+  status = 'ready';
+  asked = 0;
+  constructor(private readonly answers: ('late' | 'on time')[]) {}
+  defineCommand(): void {}
+  on(): this {
+    return this;
+  }
+  off(): this {
+    return this;
+  }
+  pageFindBuffer(): Promise<[number]> {
+    this.asked += 1;
+    return this.answers.shift() === 'late'
+      ? Promise.reject(new Error('Command timed out'))
+      : Promise.resolve([1_000]);
+  }
+}
+
+describe('a page cache whose answers come late (staging live run at the peak, 2026-11-19)', () => {
+  const storeOf = (redis: LateRedis, clock: () => number) =>
+    new RedisPageStore(redis as unknown as Redis, clock);
+
+  it('goes on asking after one late answer: on a busy storefront, a late answer is no reason to draw every page', async () => {
+    const redis = new LateRedis(['late', 'on time']);
+    const store = storeOf(redis, () => 0);
+    expect(await store.find('page:a')).toEqual({ kind: 'unavailable' });
+    expect(await store.find('page:a')).toEqual({ kind: 'missing', now: 1_000 });
+    expect(redis.asked).toBe(2);
+  });
+
+  it('leaves Redis alone for 5 seconds after five late answers in a row, then asks again', async () => {
+    let now = 0;
+    const redis = new LateRedis(['late', 'late', 'late', 'late', 'late', 'on time']);
+    const store = storeOf(redis, () => now);
+    for (let tried = 0; tried < 5; tried += 1) {
+      expect(await store.find('page:a')).toEqual({ kind: 'unavailable' });
+    }
+    expect(redis.asked).toBe(5);
+    now = 4_999;
+    expect(await store.find('page:a')).toEqual({ kind: 'unavailable' });
+    expect(redis.asked).toBe(5);
+    now = 5_000;
+    expect(await store.find('page:a')).toEqual({ kind: 'missing', now: 1_000 });
+    expect(redis.asked).toBe(6);
+  });
+
+  it('counts late answers in a row only: one on time starts the count again', async () => {
+    const answers: ('late' | 'on time')[] = ['late', 'late', 'late', 'late', 'on time'];
+    const redis = new LateRedis([...answers, 'late', 'late', 'late', 'late', 'on time']);
+    const store = storeOf(redis, () => 0);
+    for (let tried = 0; tried < 10; tried += 1) await store.find('page:a');
+    expect(redis.asked).toBe(10);
+  });
+});
+
 const redisUrl = process.env['REDIS_TEST_URL'];
 
 describe.skipIf(redisUrl === undefined)("the page cache's Redis scripts", () => {

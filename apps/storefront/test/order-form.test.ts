@@ -100,6 +100,13 @@ describe('the answer to an order (ORD-02)', () => {
     expect(readOrderAnswer(400, null)).toEqual({ kind: 'failed' });
   });
 
+  it("reads the storefront's own busy, said before the order is sent, as busy (staging's live run, 2026-11-19)", () => {
+    expect(readOrderAnswer(503, { code: 'busy' })).toEqual({ kind: 'busy' });
+    // Only that code: a 503 the server itself sent may or may not have placed the order.
+    expect(readOrderAnswer(503, { code: 'service_unavailable' })).toEqual({ kind: 'failed' });
+    expect(readOrderAnswer(500, { code: 'busy' })).toEqual({ kind: 'failed' });
+  });
+
   it('reads orders not being saved for a few minutes (D9-14) from that answer alone', () => {
     const paused = { code: 'service_unavailable', details: { savingPaused: true } };
     expect(readOrderAnswer(503, paused)).toEqual({ kind: 'paused' });
