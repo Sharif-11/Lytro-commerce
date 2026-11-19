@@ -22,3 +22,22 @@ export function mainAddressTarget(
   if (path === PREVIEW_PATH) return null;
   return `${shop.publicOrigin}${path === '' ? '/' : path}${query}`;
 }
+
+/**
+ * A product's or category's slug from its page's address (/p/, /l/, /c/), as the shop has it. Next hands a page that
+ * segment still percent-encoded when it holds letters outside ASCII -- a Bangla product's /p/অর্গানজা-শাড়ি arrives as
+ * %E0%A6%85... -- and the API, asked with it encoded once more, found nothing: every Bangla product and category page
+ * answered 404 (staging, 2026-11-19). Decoded once here; a broken escape is kept as typed, and finds nothing.
+ */
+export function slugOfSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
+/** A product's or category's own address, for a redirect: a Location header takes ASCII only, so the slug is encoded. */
+export function pathOfSlug(prefix: '/p' | '/l' | '/c', slug: string): string {
+  return `${prefix}/${encodeURIComponent(slug)}`;
+}

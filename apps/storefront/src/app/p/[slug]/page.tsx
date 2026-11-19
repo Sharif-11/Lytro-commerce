@@ -12,6 +12,7 @@ import { categoryById, findCategory } from '@/lib/catalogue/browse';
 import { pageTheme } from '@/lib/design/design-look';
 import { keptQuery, productOpening } from '@/lib/product/opening';
 import { productMetadata } from '@/lib/product/product-metadata';
+import { pathOfSlug, slugOfSegment } from '@/lib/request-path';
 import { shopChatOf } from '@/lib/shop/shop-chat';
 import { loadFrame, loadProduct, loadShopPage, storefrontApi } from '@/lib/storefront';
 
@@ -29,7 +30,7 @@ interface Props {
 }
 
 export const generateMetadata = withBusyMetadata(async ({ params }: Props): Promise<Metadata> => {
-  const { slug } = await params;
+  const slug = slugOfSegment((await params).slug);
   const page = await loadShopPage();
   if (page.state !== 'open' || !page.shop.storefrontEnabled) return {};
   const read = await loadProduct(slug);
@@ -43,14 +44,15 @@ export const generateMetadata = withBusyMetadata(async ({ params }: Props): Prom
 });
 
 export default withBusyPage(async function ProductPage({ params, searchParams }: Props) {
-  const [{ slug }, { v, d }] = await Promise.all([params, searchParams]);
+  const [{ slug: segment }, { v, d }] = await Promise.all([params, searchParams]);
+  const slug = slugOfSegment(segment);
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
   // SFT-16: a switched-off storefront answers its paths with not-found; landing pages are separate (/l/).
   if (page.state === 'missing' || !page.shop.storefrontEnabled) notFound();
   const read = await loadProduct(slug);
   if (read === null || read.kind === 'missing') notFound();
-  if (read.kind === 'moved') permanentRedirect(`/p/${read.slug}${keptQuery(v)}`);
+  if (read.kind === 'moved') permanentRedirect(`${pathOfSlug('/p', read.slug)}${keptQuery(v)}`);
 
   const { product } = read;
   const [opening, frame] = await Promise.all([productOpening(page, product, v), loadFrame(page)]);
