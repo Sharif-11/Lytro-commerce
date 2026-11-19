@@ -284,6 +284,17 @@ describe('a server too busy to answer (Slice 9.10, RTE-06)', () => {
     });
   });
 
+  it("is a short wait when the edge couldn't get a server process's answer (502, 504)", async () => {
+    // Staging's live run (2026-11-19): a reused connection the API had just closed came back 502 through Caddy, and the
+    // delivery charge answered 500.
+    const api = new StorefrontApi(server(refused(502), refused(504)), env);
+    expect(await thrown(api.shop(shop, shopper))).toMatchObject({ status: 503, retryAfter: 5 });
+    const body = { items: [{ variantId: 'v1', quantity: 1 }] };
+    const gateway = await thrown(api.estimate(shop, shopper, body));
+    expect(gateway).toBeInstanceOf(ShopBusy);
+    expect(gateway).toMatchObject({ status: 503, retryAfter: 5 });
+  });
+
   it('stays a fault for 500 and 404, so a real fault still shows the error page', async () => {
     const api = new StorefrontApi(server(refused(500, '12'), refused(404)), env);
     const broken = await thrown(api.shop(shop, shopper));

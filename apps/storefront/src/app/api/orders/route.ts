@@ -1,3 +1,4 @@
+import { ShopBusy } from '@/lib/api/storefront-api';
 import { loadShopPage, storefrontApi } from '@/lib/storefront';
 
 // SFT-06, LND-09, SFT-11: a shopper's order, sent by their browser to the storefront's own server, which holds the shop's
@@ -8,7 +9,19 @@ export const dynamic = 'force-dynamic';
 const noStore = { 'cache-control': 'no-store' };
 
 export async function POST(request: Request): Promise<Response> {
-  const page = await loadShopPage();
+  let page: Awaited<ReturnType<typeof loadShopPage>>;
+  try {
+    page = await loadShopPage();
+  } catch (error) {
+    // Staging's live run at the capacity model's peak (2026-11-19): the server was too busy to name the shop, and the
+    // checkout answered 500, an error where a shopper should be told to wait. Nothing reached the server: the page says
+    // the shop is busy, and the same key tries again.
+    if (!(error instanceof ShopBusy)) throw error;
+    return Response.json(
+      { code: 'busy' },
+      { status: 503, headers: { ...noStore, 'retry-after': String(error.retryAfter) } },
+    );
+  }
   if (page.state !== 'open') return Response.json({ code: 'not_found' }, { status: 404 });
   const body: unknown = await request.json().catch(() => null);
   const key = request.headers.get('idempotency-key');

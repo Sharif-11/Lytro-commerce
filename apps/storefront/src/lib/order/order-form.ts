@@ -112,7 +112,8 @@ export function readOrderAnswer(status: number, answer: OrderAnswer | null): Ord
   }
   const code = answer?.code ?? null;
   const details = answer?.details ?? {};
-  if (status === 429) return { kind: 'busy' };
+  // The storefront's own "busy" (api/orders/route.ts) is said before the order is sent: it never reached the server.
+  if (status === 429 || (status === 503 && code === 'busy')) return { kind: 'busy' };
   // Only the server's own "changes can't be saved" says paused; every other 503 may or may not have reached it.
   if (status === 503 && code === 'service_unavailable' && details['savingPaused'] === true) {
     return { kind: 'paused' };

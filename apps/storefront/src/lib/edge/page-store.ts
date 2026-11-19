@@ -79,8 +79,14 @@ interface PageCommands {
   pageKeep(page: string, tags: string, meta: string, html: Buffer): Promise<number>;
 }
 
-// After Redis fails to answer, it's left alone this long, so pages don't each wait on it in turn.
+// After Redis fails to answer FAILURES_BEFORE_REST times in a row, it's left alone this long, so pages don't each wait
+// on it in turn. One failure alone doesn't: on a storefront busy drawing pages, a command's timer can fire before its
+// answer, already arrived, is read. Staging's live run at the capacity model's peak (2026-11-19) drew 280 of 607 pages a
+// minute "without Redis" while Redis itself sat at 1% CPU: each late answer rested the cache for 5 seconds and sent
+// every page in them to be drawn, the very work that made the next answer late. A Redis that is down is skipped at once
+// anyway (connected(), below), so the rest is only for one that is connected but stopped answering.
 const REST_AFTER_FAILURE_MS = 5_000;
+const FAILURES_BEFORE_REST = 5;
 // A new process's first pages wait this long at most for its first connection, rather than all being drawn.
 const FIRST_CONNECTION_WAIT_MS = 1_000;
 
@@ -93,6 +99,7 @@ const FIRST_CONNECTION_WAIT_MS = 1_000;
 export class RedisPageStore implements PageStore {
   private readonly redis: Redis & PageCommands;
   private restingUntil = 0;
+  private failuresInARow = 0;
   private readonly firstConnection: Promise<void>;
   private waitedForFirst = false;
 
@@ -163,23 +170,31 @@ export class RedisPageStore implements PageStore {
   private async attempt<T>(otherwise: T, work: () => Promise<T>): Promise<T> {
     if (this.clock() < this.restingUntil || !(await this.connected())) return otherwise;
     try {
-      return await work();
+      const done = await work();
+      this.failuresInARow = 0;
+      return done;
     } catch {
-      this.restingUntil = this.clock() + REST_AFTER_FAILURE_MS;
+      this.failuresInARow += 1;
+      if (this.failuresInARow >= FAILURES_BEFORE_REST) {
+        this.failuresInARow = 0;
+        this.restingUntil = this.clock() + REST_AFTER_FAILURE_MS;
+      }
       return otherwise;
     }
   }
 }
 
 /**
- * The page cache's Redis. A page never waits on it: a command that gets no answer in a quarter of a second fails, and
- * nothing queues while it's disconnected. It keeps reconnecting in the background, and says why at most once a minute.
+ * The page cache's Redis. A page waits on it a second at most: a command that gets no answer by then fails, and nothing
+ * queues while it's disconnected. It keeps reconnecting in the background, and says why at most once a minute. The
+ * second is a busy storefront's, not Redis's (it answers in a millisecond): when it's busy, drawing the page instead
+ * takes seconds, so the copy is worth the wait (it was a quarter of a second until staging's live run, 2026-11-19).
  */
 export function connectPageCache(url: string): Redis {
   const client = new Redis(url, {
     enableOfflineQueue: false,
     maxRetriesPerRequest: 0,
-    commandTimeout: 250,
+    commandTimeout: 1_000,
     connectTimeout: 2_000,
     retryStrategy: (times) => Math.min(times * 500, 5_000),
   });
