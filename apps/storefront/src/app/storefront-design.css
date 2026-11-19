@@ -148,7 +148,9 @@
 .sfb .sb-ft .sb-soc span{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);display:grid;place-items:center}
 .sfb .sb-ft .sb-base{border-top:1px solid rgba(255,255,255,.14);margin-top:20px;padding-top:12px;display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;font-size:12px;opacity:.9}
 .sfb .sb-pbl{display:inline-flex;align-items:center;gap:6px;background:#fff;color:#0e6b66;border-radius:99px;padding:3px 10px 3px 4px;font:600 11.5px/1.4 Inter,sans-serif}
-.sfb .sb-pbl i{width:16px;height:16px;border-radius:50%;background:#0e6b66;display:inline-block}
+.sfb .sb-pbl i{width:16px;height:16px;border-radius:50%;background:#0e6b66;display:inline-grid;place-items:center}
+/* The owner, 2026-11-19: Lytro's mark in the circle (docs/brand/lytro-mark.svg). */
+.sfb .sb-pbl i svg{width:10px;height:10px;fill:none;stroke:#fff;stroke-width:11;stroke-linecap:round;stroke-linejoin:round}
 @container (min-width:900px){
   .sfb .sb-wide{display:block}
   .sfb .sb-narrow{display:none}
