@@ -202,7 +202,8 @@ img{display:block}
 .ft .soc span{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);display:grid;place-items:center}
 .ft .base{border-top:1px solid rgba(255,255,255,.14);margin-top:20px;padding-top:12px;display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;font-size:12px;opacity:.9}
 .pbl{display:inline-flex;align-items:center;gap:6px;background:#fff;color:#0e6b66;border-radius:99px;padding:3px 10px 3px 4px;font:600 11.5px/1.4 Inter,sans-serif}
-.pbl i{width:16px;height:16px;border-radius:50%;background:#0e6b66;display:inline-block}
+.pbl i{width:16px;height:16px;border-radius:50%;background:#0e6b66;display:inline-grid;place-items:center}
+.pbl i svg{width:10px;height:10px;fill:none;stroke:#fff;stroke-width:11;stroke-linecap:round;stroke-linejoin:round}
 .chatbtn{position:absolute;right:14px;top:640px;width:52px;height:52px;border-radius:50%;background:#25d366;color:#fff;display:grid;place-items:center;box-shadow:0 6px 16px rgba(0,0,0,.25);z-index:5}
 .chatbtn .ico{width:26px;height:26px}
 
@@ -731,7 +732,7 @@ const SECTIONS = {
 
   quotes: (theme, shop) => `<section class="sec" data-sec="${T(SEC_NAMES.quotes)}"><div class="wrap">${head(theme, L('ক্রেতারা যা বলছেন', 'What our customers say'), false)}<div class="quotes">${shop.quotes.map(([name, place, text]) => `<div class="q"><p>“${T(text)}”</p><div class="who"><span class="av">${T(name).slice(0, 1)}</span><span><b>${T(name)}</b>${T(place)}</span></div></div>`).join('')}</div></div></section>`,
 
-  footer: (theme, shop) => `<footer class="ft" data-sec="${T(SEC_NAMES.footer)}"><div class="wrap"><div class="cols"><div class="about"><a class="logo"><span class="mk">${shop.mark}</span><span>${T(shop.name)}<small>${T(shop.tag)}</small></span></a><div class="soc"><span>${ic('wa')}</span><span>${ic('msg')}</span><span>${ic('fb')}</span></div></div><div><h3>${L('কেনাকাটা', 'Shop')}</h3><ul><li>${L('সব পণ্য', 'All products')}</li><li>${L('অফার', 'Offers')}</li><li>${L('নতুন এসেছে', 'Just in')}</li><li>${L('অর্ডার ট্র্যাক', 'Track order')}</li></ul></div><div><h3>${L('ক্যাটাগরি', 'Categories')}</h3><ul>${shop.cats.slice(0, 4).map((c) => `<li>${T([c[0], c[1]])}</li>`).join('')}</ul></div><div><h3>${L('যোগাযোগ', 'Contact')}</h3><ul><li>01711 223344</li><li>${L('মিরপুর ১০, ঢাকা', 'Mirpur 10, Dhaka')}</li></ul></div></div><div class="base"><span>© 2026 ${T(shop.name)}</span><span class="pbl"><i></i>Powered by Lytro</span></div></div></footer>`,
+  footer: (theme, shop) => `<footer class="ft" data-sec="${T(SEC_NAMES.footer)}"><div class="wrap"><div class="cols"><div class="about"><a class="logo"><span class="mk">${shop.mark}</span><span>${T(shop.name)}<small>${T(shop.tag)}</small></span></a><div class="soc"><span>${ic('wa')}</span><span>${ic('msg')}</span><span>${ic('fb')}</span></div></div><div><h3>${L('কেনাকাটা', 'Shop')}</h3><ul><li>${L('সব পণ্য', 'All products')}</li><li>${L('অফার', 'Offers')}</li><li>${L('নতুন এসেছে', 'Just in')}</li><li>${L('অর্ডার ট্র্যাক', 'Track order')}</li></ul></div><div><h3>${L('ক্যাটাগরি', 'Categories')}</h3><ul>${shop.cats.slice(0, 4).map((c) => `<li>${T([c[0], c[1]])}</li>`).join('')}</ul></div><div><h3>${L('যোগাযোগ', 'Contact')}</h3><ul><li>01711 223344</li><li>${L('মিরপুর ১০, ঢাকা', 'Mirpur 10, Dhaka')}</li></ul></div></div><div class="base"><span>© 2026 ${T(shop.name)}</span><span class="pbl"><i><svg viewBox="0 0 64 64"><path d="M15 15V49H31L49 29"/></svg></i>Powered by Lytro</span></div></div></footer>`,
 };
 
 function renderShop(theme, outlined, light, given) {

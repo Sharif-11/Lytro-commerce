@@ -265,7 +265,12 @@ export function DesignedFooter({
             </a>
           </span>
           <a className="sb-pbl" href="https://lytro.app" rel="noopener">
-            <i />
+            {/* The owner, 2026-11-19: Lytro's mark (docs/brand/lytro-mark.svg), white in the teal circle. */}
+            <i aria-hidden="true">
+              <svg viewBox="0 0 64 64">
+                <path d="M15 15V49H31L49 29" />
+              </svg>
+            </i>
             Powered by Lytro
           </a>
         </div>
