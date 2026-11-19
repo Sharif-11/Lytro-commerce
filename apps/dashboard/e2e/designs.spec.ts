@@ -283,7 +283,9 @@ test('the order page names a design line’s SKU, and the 3 × 3 label its desig
 }) => {
   const orders = burkaOrders();
   await open(page, '/orders/o-47', { orders });
-  await expect(main(page)).toContainText('Stripe · 54');
+  // The owner, 2026-11-19: the design and each option as chips.
+  await expect(main(page)).toContainText('Design Stripe');
+  await expect(main(page)).toContainText('Size: 54');
   await expect(main(page)).toContainText('SKU IB-D2-54');
   await expect(
     main(page)
