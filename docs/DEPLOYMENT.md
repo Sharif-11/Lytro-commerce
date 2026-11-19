@@ -337,7 +337,8 @@ only adds concrete artifacts to it, nothing new in process:
   - every process has a memory ceiling sized for staging's 3 GB; PostgreSQL has none and is killed last;
   - Redis runs, ready for Slice 9.4.
 - **A deploy** (`deploy/scripts/deploy.sh`, D9-12):
-  1. pull the images;
+  1. remove the images of every release but the running one and its own; stop, changing nothing, while the disk has
+     less than 3 GB free (staging's 40 GB disk filled with old releases' images on 2026-11-19); pull the images;
   2. dump the database;
   3. migrate, then install pg-boss's schema, as the owner;
   4. replace the worker, `api-1` and `api-2` in turn, each healthy on the new release before the next;

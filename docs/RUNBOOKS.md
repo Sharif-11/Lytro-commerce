@@ -504,9 +504,14 @@ Memory is being written out to swap: the server is short of memory, and everythi
 
 #### ServerDiskHigh
 
-The disk is over 70%. `sudo du -xh --max-depth=1 / | sort -h | tail`. The usual: old images
-(`sudo docker image prune`), the pre-deploy dumps (`/opt/lytro/backups/pre-deploy`, five kept), the journal
-(`journalctl --disk-usage`).
+The disk is over 70%. `sudo du -xh --max-depth=1 / | sort -h | tail`, and `sudo docker system df` for images. The
+usual:
+- **Old images:** each deploy keeps only the running release's images and its own. `sudo docker image prune --all`
+  also removes the release before (a rollback then pulls it again) and any image no container uses.
+- **The pre-deploy dumps:** `/opt/lytro/backups/pre-deploy`, five kept.
+- **The journal:** `journalctl --disk-usage`.
+
+A deploy stops before it touches anything while the disk has less than 3 GB free, saying so.
 
 #### ServerDiskFull
 
