@@ -487,6 +487,18 @@ img{display:block}
 .drawer .langs{display:inline-flex;margin:6px 16px 24px;border:1.5px solid var(--line-strong);border-radius:999px;padding:3px}
 .drawer .langs span{padding:6px 16px;border-radius:999px;font-weight:600;font-size:14px}
 .drawer .langs span.on{background:var(--main);color:var(--on-main)}
+/* Computers (the owner, 2026-11-19): the photo-and-words and full-photo heroes sit inside the page's width as the
+   slide-and-tiles one does -- the same side margins, a gap under the header, rounded -- never edge to edge */
+@container (min-width:900px){
+  .hero.overlay:not(.auto),.hero.split{max-width:1240px;margin:0 auto;padding:16px 32px 0}
+  .hero.overlay:not(.auto) .slide,.hero.split .slide{border-radius:max(var(--r-card),12px);overflow:hidden}
+  .hero.overlay:not(.auto) .slide{height:460px}
+  .hero.overlay:not(.auto) .tx{padding:0 56px}
+  .hero.overlay:not(.auto) h1{font-size:48px}
+  .hero.split .slide{min-height:420px}
+  .hero.split .tx{padding:48px 44px}
+  .hero.split h1{font-size:44px}
+}
 </style>
 </head>
 <body>
