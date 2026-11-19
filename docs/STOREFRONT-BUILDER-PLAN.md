@@ -406,6 +406,15 @@ contents "pair by pair like carousel"; the bar "hidden after scroll"; "include o
 | BL-19 | **The header on a phone with four icons.** | Search, order tracking, account and cart; a centred logo (Royal, Studio) centres in the room between the menu and the icons, so nothing overlaps. |
 | BL-20 | **Fixes the sketch names.** | The auto slide (the tiles' design) takes the tiles' dark shade and white words on every theme (Soft, Fresh and Bold had none, leaving words on a bare photo), its button is the light one, and its discount badge no longer stretches across a computer's slide. |
 
+**The owner's fixes on staging (2026-11-19):**
+- **The bar on a phone** (BL-17 changed): below 640 pixels the items turn one at a time, each on one centered line
+  ending in "…" if it is still too long; a wider screen keeps the pairs.
+- **A banner's words** set its height below the computer layout when they need more room, and its title shrinks with a
+  narrow screen, so its button never falls past the bottom edge.
+- **The trust strip** sits centered: three items (one turned off) leave no empty place at one end.
+- **A list page's "In stock only"** sits on the title's line; Sort, where the page has it, stays below the chips.
+- **The footer's contact column** names the shop's WhatsApp and Facebook page, when it has them, beside the round icons.
+
 **Named deviations from the sketch, as built:**
 - **The delivery line names the shop's own zones** ("ঢাকা সিটির ভেতরে ডেলিভারি সর্বোচ্চ ৳70 · ঢাকা সিটির বাইরে সর্বোচ্চ
   ৳130"), not "ঢাকায় ... ঢাকার বাইরে": a shop's home area is not always Dhaka, and DLV-01 already names the home and
