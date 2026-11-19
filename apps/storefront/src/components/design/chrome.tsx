@@ -164,10 +164,25 @@ export function DesignedFooter({
         }
       : null,
   ].filter((link) => link !== null);
+  // The owner, 2026-11-19: the shop's WhatsApp and Facebook page by name too, when it has them.
   const contact = [
     phone !== null ? (
       <li key="phone">
         <a href={`tel:${phone}`}>{phone}</a>
+      </li>
+    ) : null,
+    chat.whatsapp ? (
+      <li key="wa">
+        <a href={chat.whatsapp.href} target="_blank" rel="noopener noreferrer">
+          {words.t('sb_whatsapp')}
+        </a>
+      </li>
+    ) : null,
+    chat.facebook ? (
+      <li key="fb">
+        <a href={chat.facebook.href} target="_blank" rel="noopener noreferrer">
+          {words.t('sb_facebook_page')}
+        </a>
       </li>
     ) : null,
     email !== null ? (
