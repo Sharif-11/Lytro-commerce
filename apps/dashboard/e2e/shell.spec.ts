@@ -80,7 +80,8 @@ test("opens the Menu hub's own page, where the old More address now leads too", 
   await hubs(page).getByRole('link', { name: 'মেনু' }).click();
   await expect(page).toHaveURL(`/${SLUG}/menu`);
   await expect(page.getByText('2/2 সিট')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'লগআউট' })).toBeVisible();
+  // Sign out on the first card (the owner, 2026-11-19) and the old last row.
+  await expect(page.getByRole('button', { name: 'লগআউট' })).toHaveCount(2);
 
   await page.goto(`/${SLUG}/more`);
   await expect(page).toHaveURL(`/${SLUG}/menu`);
@@ -230,4 +231,63 @@ test('passes an accessibility check on the screens it draws', async ({ page }) =
     ).toEqual([]);
     await page.unrouteAll();
   }
+});
+
+test.describe('the balance in the top bar, and a quick sign-out (the owner, 2026-11-19)', () => {
+  const pill = (page: Page) =>
+    page.getByRole('button', { name: /^(See balance|Balance ৳)/ }).filter({ visible: true });
+
+  test('the balance hides behind See balance; a tap shows it for a while, a tap on it opens Balance', async ({
+    page,
+  }) => {
+    await open(page, '/', { language: 'en' });
+    await expect(pill(page)).toHaveText('৳See balance');
+    await pill(page).click();
+    await expect(pill(page)).toHaveAccessibleName('Balance ৳412.50');
+    await expect(pill(page)).toContainText('৳412.50');
+    // It hides again by itself, as bKash's does.
+    await expect(pill(page)).toHaveAccessibleName('See balance', { timeout: 8000 });
+    await pill(page).click();
+    await pill(page).click();
+    await expect(page).toHaveURL(new RegExp(`/${SLUG}/balance$`));
+  });
+
+  test('amber when low, red when used up, nothing for whoever may not see it', async ({ page }) => {
+    await open(page, '/', {
+      language: 'en',
+      home: { balance: { amount: '12.00', low: true, freeSms: { used: 0, limit: 10 } } },
+    });
+    await expect(pill(page)).toHaveClass(/bg-warning-soft/);
+    await expect(pill(page)).toHaveText('৳See balance');
+    await open(page, '/', {
+      language: 'en',
+      home: { balance: { amount: '0.00', low: true, freeSms: { used: 0, limit: 10 } } },
+    });
+    await expect(pill(page)).toHaveClass(/bg-danger-soft/);
+    await open(page, '/', { language: 'en', home: { balance: null } });
+    await expect(
+      page.getByRole('button', { name: /^Notifications/ }).filter({ visible: true }),
+    ).toBeVisible();
+    await expect(pill(page)).toHaveCount(0);
+  });
+
+  test('a computer: the initial opens your menu, with Account, the language and Sign out', async ({
+    page,
+  }) => {
+    test.skip(isPhone(), 'A phone signs out from Menu.');
+    await open(page, '/', { language: 'en' });
+    await page.getByRole('button', { name: 'Your menu' }).click();
+    const menu = page.getByRole('menu', { name: 'Your menu' });
+    await expect(menu).toContainText('Owner');
+    await expect(menu.getByRole('menuitem', { name: 'Account' })).toHaveAttribute(
+      'href',
+      `/${SLUG}/account`,
+    );
+    await expect(menu.getByRole('menuitem', { name: /^Language/ })).toContainText('English');
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+    await page.getByRole('button', { name: 'Your menu' }).click();
+    await page.getByRole('menuitem', { name: 'Sign out' }).click();
+    await expect(page).toHaveURL(/\/sign-in\?mode=password$/);
+  });
 });

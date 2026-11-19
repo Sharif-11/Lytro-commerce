@@ -18,6 +18,7 @@ import {
 import { useCourierAdapters, useCourierConnections, useSettleParcel } from '@/api/couriers';
 import { useLocations } from '@/api/delivery';
 import { useOrder } from '@/api/orders';
+import { BalanceNote } from '@/components/balance-note';
 import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
 import { ActionBar } from '@/components/ui/action-bar';
@@ -32,6 +33,7 @@ import { StatusTag, type StatusTone } from '@/components/ui/status-tag';
 import { Taka } from '@/components/ui/taka';
 import { TimelineRow, type TimelineDot } from '@/components/ui/timeline';
 import { Button } from '@/components/ui/button';
+import { useBalanceGate } from '@/hooks/use-balance-gate';
 import { courierName } from '@/lib/couriers';
 import { dayKey, formatDayMonth } from '@/lib/dates';
 import { initialOf } from '@/lib/initial';
@@ -92,6 +94,8 @@ export function OrderDetail({ orderId }: { orderId: string }): React.JSX.Element
 
 function OrderBody({ order }: { order: Order }): React.JSX.Element {
   const { t } = useTranslation('orders');
+  const { t: shell } = useTranslation('shell');
+  const balanceGate = useBalanceGate();
   const { viewer, slug } = useShell();
   const words = useOrderWords();
   const [open, setOpen] = useState<OrderSheet | null>(null);
@@ -137,9 +141,17 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
     book;
   // QTA-03: the month's limit a ship just passed, said until the page is left.
   const [limit, setLimit] = useState<number | null>(null);
+  // The owner, 2026-11-19 (the sketch's `bg-ship`): the next step that hands the order on (hand over, book, ship) takes
+  // pay-as-you-go's order fee; a balance that can't cover it greys the step out and says why above it.
+  const waitsOnCall =
+    can.call && (order.status === OrderStatus.Pending || order.status === OrderStatus.Hold);
+  const spends = can.handOver || (!waitsOnCall && !can.settle && !can.retry && (book || can.ship));
+  const feeShort = spends ? balanceGate.order(order) : null;
 
   const next = can.handOver ? (
     <Button
+      disabled={feeShort !== null}
+      aria-describedby={feeShort ? 'order-fee-balance' : undefined}
       onClick={() => {
         setOpen({ kind: 'handover' });
       }}
@@ -185,6 +197,8 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
     </Button>
   ) : book ? (
     <Button
+      disabled={feeShort !== null}
+      aria-describedby={feeShort ? 'order-fee-balance' : undefined}
       onClick={() => {
         setOpen({ kind: 'book' });
       }}
@@ -194,6 +208,8 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
     </Button>
   ) : can.ship ? (
     <Button
+      disabled={feeShort !== null}
+      aria-describedby={feeShort ? 'order-fee-balance' : undefined}
       onClick={() => {
         setOpen({ kind: 'ship' });
       }}
@@ -312,7 +328,22 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
       {counter ? null : <DeliveryCard order={order} connected={connected} canManage={can.manage} />}
       <OrderSmsCard orderId={order.id} />
       <TimelineCard order={order} />
-      {next ? <ActionBar>{next}</ActionBar> : null}
+      {next ? (
+        <ActionBar>
+          {feeShort ? (
+            <div className="flex flex-col gap-2 lg:items-end">
+              <BalanceNote
+                id="order-fee-balance"
+                short={feeShort}
+                what={shell(can.handOver ? 'bgWhatHandOver' : 'bgWhatShip')}
+              />
+              {next}
+            </div>
+          ) : (
+            next
+          )}
+        </ActionBar>
+      ) : null}
       <OrderSheets
         order={order}
         open={open}

@@ -28,22 +28,24 @@ export interface SmsEventDefinition {
  * owner's style guide. Each fits one 67-character unit with a typical shop name, except shipped, whose link makes it
  * two whatever link it is.
  */
+// The owner, 2026-11-19: every SMS to a customer starts off, so a shop's balance isn't spent before it chooses which
+// to send; the owner switches on the ones wanted (each is paid from the balance).
 export const SMS_EVENTS: Readonly<Record<SmsEvent, SmsEventDefinition>> = {
   [SmsEvent.OrderPlaced]: {
     recipient: 'shopper',
-    on: true,
+    on: false,
     template: 'অর্ডার {order_number} পেয়েছি, মোট ৳{amount}। ধন্যবাদ!',
     variables: ['order_number', 'amount', 'customer_name'],
   },
   [SmsEvent.PaymentVerified]: {
     recipient: 'shopper',
-    on: true,
+    on: false,
     template: 'অর্ডার {order_number}-এর ৳{amount} পেমেন্ট পেয়েছি।',
     variables: ['order_number', 'amount', 'customer_name'],
   },
   [SmsEvent.OrderShipped]: {
     recipient: 'shopper',
-    on: true,
+    on: false,
     template: 'অর্ডার {order_number} পাঠানো হয়েছে: {tracking_link}',
     variables: ['order_number', 'tracking_link', 'customer_name'],
   },
@@ -55,7 +57,7 @@ export const SMS_EVENTS: Readonly<Record<SmsEvent, SmsEventDefinition>> = {
   },
   [SmsEvent.OrderCancelled]: {
     recipient: 'shopper',
-    on: true,
+    on: false,
     template: 'অর্ডার {order_number} ক্যানসেল করা হয়েছে।',
     variables: ['order_number', 'customer_name'],
   },

@@ -12,11 +12,13 @@ import {
 } from '@lytronix/validators';
 import { useReadAddress } from '@/api/fraud';
 import { useUsage } from '@/api/usage';
+import { BalanceNote } from '@/components/balance-note';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { buttonClass } from '@/components/ui/classes';
+import { useBalanceGate } from '@/hooks/use-balance-gate';
 import { useErrorText } from '@/hooks/use-error-text';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
@@ -73,6 +75,8 @@ export function ReadMessageCard({
   const { slug, viewer } = useShell();
   const errorText = useErrorText();
   const may = allows(viewer, [Permission.OrdersManage]);
+  const { t: shell } = useTranslation('shell');
+  const gate = useBalanceGate();
   const usage = useUsage({ enabled: may && allows(viewer, [Permission.PaymentsRead]) });
   const read = useReadAddress();
   const [text, setText] = useState('');
@@ -86,6 +90,9 @@ export function ReadMessageCard({
     outcome?.kind === 'done' && outcome.read.charged?.allowanceLeft != null
       ? outcome.read.charged.allowanceLeft
       : (reads?.allowance?.left ?? 0);
+  // The owner, 2026-11-19: once the add-on's reads are used up, a read costs its fee; a balance that can't cover it greys
+  // Read out and says why. Known only with the allowance read too, so a shop with reads left is never stopped.
+  const readShort = reads ? gate.read(left) : null;
   const length = Array.from(text).length;
   const bad = outcome?.kind === 'empty' || outcome?.kind === 'long' || outcome?.kind === 'image';
 
@@ -226,6 +233,7 @@ export function ReadMessageCard({
           tone={fresh ? 'primary' : 'outline'}
           size="sm"
           busy={read.isPending}
+          disabled={readShort !== null}
           onClick={submit}
         >
           <Icon name="sms" size={18} /> {t('p37RdBtn')}
@@ -241,6 +249,7 @@ export function ReadMessageCard({
           </Link>
         ) : null}
       </div>
+      {readShort ? <BalanceNote short={readShort} what={shell('bgWhatRead')} /> : null}
       {result}
       {rate !== null ? (
         <p className="text-[13px] text-fg-muted">

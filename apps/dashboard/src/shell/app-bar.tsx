@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/icon';
 import { ShopMark } from '@/components/ui/shop-mark';
 import { BellButton } from '@/views/notifications/bell';
+import { BalancePill } from './balance-pill';
 import { useShell } from './shell-context';
 
 const iconButton =
@@ -37,9 +38,19 @@ export function AppBar({ canSearch, canAdd }: BarActionsProps): React.JSX.Elemen
       ) : null}
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         {back ? null : <ShopMark shopName={tenant.shopName} slug={slug} logo={tenant.logo} />}
-        <span className="overflow-hidden text-[16px] font-semibold text-ellipsis whitespace-nowrap">
-          {back && title ? t(title) : tenant.shopName}
-        </span>
+        {back ? (
+          <span className="overflow-hidden text-[16px] font-semibold text-ellipsis whitespace-nowrap">
+            {title ? t(title) : tenant.shopName}
+          </span>
+        ) : (
+          // The owner, 2026-11-19: the balance under the shop's name, hidden until tapped.
+          <span className="flex min-w-0 flex-col leading-[1.2]">
+            <span className="overflow-hidden text-[16px] font-semibold text-ellipsis whitespace-nowrap">
+              {tenant.shopName}
+            </span>
+            <BalancePill size="sm" />
+          </span>
+        )}
       </div>
       {canSearch ? (
         <Link

@@ -80,6 +80,19 @@ interface LogRow {
 }
 
 /** The order SMS jobs queued for a shop that this spec hasn't sent yet, oldest first. */
+/** Customer SMS start off (the owner, 2026-11-19); a shop that sends them switches the four on first. */
+async function customerSmsOn(shop: ShopClient): Promise<void> {
+  const switched = await shop.patch('/sms/settings', {
+    events: {
+      order_placed: true,
+      payment_verified: true,
+      order_shipped: true,
+      order_cancelled: true,
+    },
+  });
+  expect(switched.status, JSON.stringify(switched.body)).toBe(200);
+}
+
 async function queued(tenantId: string): Promise<SmsEventJob[]> {
   const { rows } = await admin.query<{ job: string; payload: SmsEventJob }>(
     `SELECT id::text AS job, payload FROM control.job_outbox
@@ -223,11 +236,12 @@ describeIfDatabase(
         rate: string;
       };
       expect(view.events.map((row) => [row.event, row.recipient, row.on])).toEqual([
-        ['order_placed', 'shopper', true],
-        ['payment_verified', 'shopper', true],
-        ['order_shipped', 'shopper', true],
+        // The owner, 2026-11-19: every SMS to a customer starts off, so no balance is spent before the shop chooses.
+        ['order_placed', 'shopper', false],
+        ['payment_verified', 'shopper', false],
+        ['order_shipped', 'shopper', false],
         ['order_delivered', 'shopper', false],
-        ['order_cancelled', 'shopper', true],
+        ['order_cancelled', 'shopper', false],
         ['new_order_alert', 'owner', false],
         ['payment_to_verify', 'owner', false],
       ]);
@@ -368,6 +382,7 @@ describeIfDatabase(
   () => {
     it("a storefront order tells the shopper, charged at the SMS rate; the owner's alert only once it's on", async () => {
       const setup = await path.shop('smsplace');
+      await customerSmsOn(setup.shop);
       const tenantId = setup.shop.tenantId;
       const owner = await ownerPhone(tenantId);
       // The owner's phone already had its sign-up code and the shop-ready SMS.
@@ -406,6 +421,7 @@ describeIfDatabase(
 
     it('an order staff enter sends the shopper the same, never the owner an alert; takeaway sends nothing', async () => {
       const setup = await path.shop('smsstaff');
+      await customerSmsOn(setup.shop);
       const tenantId = setup.shop.tenantId;
       const owner = await ownerPhone(tenantId);
       const ownerHad = texts.countFor(owner);
@@ -424,6 +440,7 @@ describeIfDatabase(
 
     it('a payment staff record tells the shopper its own amount; shipped links the tracking page; cancelled is said', async () => {
       const setup = await path.shop('smsflow');
+      await customerSmsOn(setup.shop);
       const tenantId = setup.shop.tenantId;
       const variant = await plainVariant(setup.shop);
       const order = await staffOrder(setup, variant);
@@ -473,6 +490,7 @@ describeIfDatabase(
 
     it("with the storefront off, shipped sends the courier's own link, or its code; delivered goes once it's on", async () => {
       const setup = await path.shop('smsship');
+      await customerSmsOn(setup.shop);
       const tenantId = setup.shop.tenantId;
       await app.get(ShopStorefrontService).set(tenantId, false);
       await setup.shop.patch('/sms/settings', {
@@ -504,6 +522,7 @@ describeIfDatabase(
 
     it("a payment the shopper typed tells the owner to check it, at the moment staff are told, once it's on", async () => {
       const setup = await path.shop('smsverify');
+      await customerSmsOn(setup.shop);
       const tenantId = setup.shop.tenantId;
       const owner = await ownerPhone(tenantId);
       await setup.shop.patch('/sms/settings', { events: { payment_to_verify: true } });
@@ -524,6 +543,7 @@ describeIfDatabase(
 describeIfDatabase('SMS-06, SMS-07, SMS-08, SMS-13, SMS-15: refused, failed and capped SMS', () => {
   it('with nothing to pay, nothing is sent or charged, and the log says why; the order is untouched', async () => {
     const setup = await path.shop('smspoor');
+    await customerSmsOn(setup.shop);
     const tenantId = setup.shop.tenantId;
     await admin.query(
       `INSERT INTO tenant.balance_ledger (tenant_id, type, amount, reference)
@@ -547,6 +567,7 @@ describeIfDatabase('SMS-06, SMS-07, SMS-08, SMS-13, SMS-15: refused, failed and 
 
   it("a lapsed shop's frozen balance refuses it", async () => {
     const setup = await path.shop('smsfrozen');
+    await customerSmsOn(setup.shop);
     const tenantId = setup.shop.tenantId;
     const variant = await plainVariant(setup.shop);
     const order = await staffOrder(setup, variant);
@@ -561,6 +582,7 @@ describeIfDatabase('SMS-06, SMS-07, SMS-08, SMS-13, SMS-15: refused, failed and 
 
   it('SMS-08: a send that fails costs nothing, is logged, and is tried again; the next try charges once', async () => {
     const setup = await path.shop('smsfail');
+    await customerSmsOn(setup.shop);
     const tenantId = setup.shop.tenantId;
     const variant = await plainVariant(setup.shop);
     const before = await balanceOf(tenantId);
@@ -587,6 +609,7 @@ describeIfDatabase('SMS-06, SMS-07, SMS-08, SMS-13, SMS-15: refused, failed and 
 
   it('criterion 2: an order with two SMS retries only the one that failed, so neither goes or is charged twice', async () => {
     const setup = await path.shop('smsretry');
+    await customerSmsOn(setup.shop);
     const tenantId = setup.shop.tenantId;
     const owner = await ownerPhone(tenantId);
     const on = await setup.shop.patch('/sms/settings', {
@@ -619,6 +642,7 @@ describeIfDatabase('SMS-06, SMS-07, SMS-08, SMS-13, SMS-15: refused, failed and 
 
   it('SMS-13: at the cap the order SMS stop, with one warning at 80%', async () => {
     const setup = await path.shop('smscap');
+    await customerSmsOn(setup.shop);
     const tenantId = setup.shop.tenantId;
     const variant = await plainVariant(setup.shop);
     // Each "placed" here is one unit, 0.55 TK: two reach 1.10, the third would pass it.
@@ -650,6 +674,7 @@ describeIfDatabase('SMS-06, SMS-07, SMS-08, SMS-13, SMS-15: refused, failed and 
 
   it('SMS-15: a trial shop sends them too, charged the same', async () => {
     const shop = await openShop(port, texts, 'smstrial');
+    await customerSmsOn(shop);
     await seedBalance(admin, shop.tenantId, '20.00');
     const variant = await plainVariant(shop);
     const { zillas } = (await shop.get('/locations')).body as {
@@ -682,6 +707,7 @@ describeIfDatabase('SMS-06, SMS-07, SMS-08, SMS-13, SMS-15: refused, failed and 
 
   it('I18N-03: a template the shop rewrote in English goes out as written, untranslated', async () => {
     const setup = await path.shop('smsowntext');
+    await customerSmsOn(setup.shop);
     const tenantId = setup.shop.tenantId;
     const saved = await setup.shop.patch('/sms/settings', {
       smsName: 'Nodi',
@@ -699,8 +725,10 @@ describeIfDatabase('SMS-06, SMS-07, SMS-08, SMS-13, SMS-15: refused, failed and 
 describeIfDatabase('SMS-14, SMS-17: what a shop sees of its SMS', () => {
   it("the report's cost equals the ledger's SMS charges less what was given back; the log is the shop's own", async () => {
     const setup = await path.shop('smsreport');
+    await customerSmsOn(setup.shop);
     const tenantId = setup.shop.tenantId;
     const other = await path.shop('smsreportb');
+    await customerSmsOn(other.shop);
     const variant = await plainVariant(setup.shop);
     const first = await staffOrder(setup, variant);
     await staffOrder(setup, variant);

@@ -220,6 +220,8 @@ export interface Order {
   deliveryChargeByHand: boolean;
   discount: string;
   grandTotal: string;
+  /** PYG-02: when it was first handled (shipped, booked or handed over), the order fee taken then; null before. */
+  handledAt: string | null;
   advanceDue: string;
   codAmount: string;
   due: string;

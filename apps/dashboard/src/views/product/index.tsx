@@ -26,6 +26,7 @@ import {
 } from '@/api/products';
 import { useAddStocks } from '@/api/stock';
 import { quickAdditions, quickTotal } from '@/lib/quick-stock';
+import { BalanceNote } from '@/components/balance-note';
 import { ErrorBanner } from '@/components/error-banner';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Banner } from '@/components/ui/banner';
@@ -58,6 +59,7 @@ import {
 import { requestIdOf } from '@/lib/help-line';
 import { overLimit } from '@/lib/variant-matrix';
 import type { ProductDefaults } from '@/types/attribute';
+import { useBalanceGate } from '@/hooks/use-balance-gate';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
@@ -140,6 +142,11 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
   const navigate = useNavigate();
   const { slug, viewer, showToast } = useShell();
   const mayManage = allows(viewer, [Permission.ProductsManage]);
+  const { t: shell } = useTranslation('shell');
+  // The owner, 2026-11-19 (`bg-products`): a new product, or a copy, costs pay-as-you-go's fee; a balance that can't
+  // cover it greys Save and Duplicate out and says why. A refusal anyway (the balance moved) is said too.
+  const productShort = useBalanceGate().product();
+  const [balanceRefusal, setBalanceRefusal] = useState<ApiClientError | null>(null);
   const [saved, setSaved] = useState<ProductForm>(() =>
     product ? withDesignWord(formOf(product), t('pdDesign')) : NEW_PRODUCT,
   );
@@ -516,6 +523,8 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         onError: (error) => {
           if (error instanceof ApiClientError && error.code === 'plan_limit_reached') {
             setStop({ kind: 'limit', refused: true });
+          } else if (error instanceof ApiClientError && error.code === 'quota_exceeded') {
+            setBalanceRefusal(error);
           } else if (error instanceof ApiClientError) {
             const fields = error.fieldProblems();
             setServerProblems(fields);
@@ -642,6 +651,8 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
       onError: (error) => {
         if (error instanceof ApiClientError && error.code === 'plan_limit_reached') {
           setStop({ kind: 'limit', refused: false });
+        } else if (error instanceof ApiClientError && error.code === 'quota_exceeded') {
+          setBalanceRefusal(error);
         }
       },
     });
@@ -720,6 +731,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         <Banner tone="bad">{count === 1 ? t('fixOne') : t('fixMany', { n: count })}</Banner>
       ) : null}
       {media.storageFull && media.storage ? <StorageFullBanner storage={media.storage} /> : null}
+      {balanceRefusal ? <ErrorBanner error={balanceRefusal} /> : null}
       {create.isError && !(create.error instanceof ApiClientError) ? (
         <ErrorBanner error={create.error} />
       ) : null}
@@ -891,6 +903,9 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
               setChartOpen(true);
             }}
             onDuplicate={product ? copy : null}
+            duplicateNote={
+              productShort ? <BalanceNote short={productShort} what={shell('bgWhatCopy')} /> : null
+            }
             onRemove={product ? setRemoving : null}
           />
         </div>
@@ -910,9 +925,17 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
           ) : null}
         </div>
       </div>
+      {mayManage && product === null && productShort ? (
+        <BalanceNote id="new-product-balance" short={productShort} what={shell('bgWhatProduct')} />
+      ) : null}
       {mayManage ? (
         <ActionBar atEnd>
-          <Button busy={busy} onClick={submit}>
+          <Button
+            busy={busy}
+            disabled={product === null && productShort !== null}
+            aria-describedby={product === null && productShort ? 'new-product-balance' : undefined}
+            onClick={submit}
+          >
             {count > 0 ? (count === 1 ? t('fixOne') : t('fixMany', { n: count })) : t('save')}
           </Button>
         </ActionBar>
