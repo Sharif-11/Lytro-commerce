@@ -59,7 +59,7 @@ function Thumb({ product }: { product: Pick<ProductSummary, 'image'> }) {
 const LINKS: readonly { kind: StorefrontLinkKind; name: string; line: string }[] = [
   { kind: StorefrontLinkKind.OnSale, name: 'ssLinkOnSale', line: 'ssLinkOnSaleLine' },
   // OFFERS-PLAN OF-8, OF-22 (the sketch's `o-link`): a running offer's page; On sale once it ends.
-  { kind: StorefrontLinkKind.Offer, name: 'ssLinkAnOffer', line: 'ssLinkAnOfferLine' },
+  { kind: StorefrontLinkKind.Offer, name: 'ssLinkAnOffer', line: '' },
   { kind: StorefrontLinkKind.JustIn, name: 'ssLinkJustIn', line: 'ssLinkJustInLine' },
   { kind: StorefrontLinkKind.BestSellers, name: 'ssLinkBest', line: 'ssLinkBestLine' },
   { kind: StorefrontLinkKind.Category, name: 'ssLinkACategory', line: '' },
