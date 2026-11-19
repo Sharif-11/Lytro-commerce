@@ -8,15 +8,21 @@ import {
 } from '@lytronix/validators';
 import type { ReactNode } from 'react';
 import type { ImageView, ProductCard, PublicStorefrontDesign } from '@/lib/api/storefront-api';
+import {
+  type CollectionFacts,
+  type CollectionView,
+  collectionViews,
+} from '@/lib/design/collections';
 import { money, type Words } from '@/lib/i18n/words';
 import { DesignIcon } from './design-icon';
 import { linkHref } from '@/lib/design/links';
 import { FocusedPhoto } from './design-parts';
 import { HeroRotator } from './hero-rotator';
 
-// STOREFRONT-BUILDER-PLAN SB-8, SB-9, SB-15: the hero, as the sketch draws it -- an overlay, a split, or a slide with two
-// tiles beside it. The seller's own slides, each with its photo's focal point; or, filling itself, the shop's biggest
-// savings (the newest products with nothing on sale), each with its own photo, so an offer that ends leaves.
+// STOREFRONT-BUILDER-PLAN SB-8, SB-9, SB-15, BL-2 to BL-5: the hero, as the sketch draws it -- an overlay, a split, or a
+// rotating slide with two tiles beside it. The seller's own slides, each with its photo's focal point; or, filling
+// itself, three of its source's products (the offers, the newest or the best sellers), each with its own photo, so an
+// offer that ends leaves.
 
 type HeroSection = Extract<StorefrontSection, { kind: StorefrontSectionKind.Hero }>;
 
@@ -100,20 +106,20 @@ function SlideWords({ slide, button }: { slide: Slide; button: ReactNode }) {
   );
 }
 
-function Button({ slide }: { slide: Slide }) {
+function Button({ slide, light = false }: { slide: Slide; light?: boolean }) {
   return (
-    <a className="sb-btn" href={slide.href}>
+    <a className={light ? 'sb-btn sb-light' : 'sb-btn'} href={slide.href}>
       {slide.button} <DesignIcon name="arrow" />
     </a>
   );
 }
 
-function OverlaySlide({ slide }: { slide: Slide }) {
+function OverlaySlide({ slide, light = false }: { slide: Slide; light?: boolean }) {
   return (
     <div className="sb-slide">
       <Picture slide={slide} />
       <div className="sb-shade" />
-      <SlideWords slide={slide} button={<Button slide={slide} />} />
+      <SlideWords slide={slide} button={<Button slide={slide} light={light} />} />
     </div>
   );
 }
@@ -136,14 +142,15 @@ function SplitSlide({ slide }: { slide: Slide }) {
   );
 }
 
-function Tile({ slide }: { slide: Slide }) {
+/** BL-3, BL-12: a tile beside the slide: a collection of the shop's, and the way to its page. */
+function Tile({ view }: { view: CollectionView }) {
   return (
-    <a className="sb-tile" href={slide.href}>
-      <Picture slide={slide} />
+    <a className="sb-tile" href={view.href}>
+      <img src={view.image.urls.main} alt="" />
       <div className="sb-shade" />
       <div className="sb-tx">
-        <b>{slide.headline}</b>
-        {slide.badge ?? slide.kicker ?? slide.price?.now ?? ''}
+        <span className="sb-k">{view.kicker}</span>
+        <b>{view.headline} →</b>
       </div>
     </a>
   );
@@ -154,29 +161,43 @@ export function Hero({
   design,
   theme,
   products,
+  collections,
   words,
 }: {
   section: HeroSection;
   design: PublicStorefrontDesign;
   theme: StorefrontThemeDefinition;
-  /** SB-9: the products a hero filling itself shows. */
+  /** SB-9, BL-3: the products a hero filling itself shows. */
   products: readonly ProductCard[];
+  /** BL-3, BL-12: what the tiles' collections show. */
+  collections: CollectionFacts;
   words: Words;
 }) {
   const own = section.fill === StorefrontFill.Own ? ownSlides(section, design) : [];
   // An own hero whose every photo has gone fills itself again, so the home never opens on a hole (SB-16).
   const slides = own.length > 0 ? own : productSlides(products, words);
-  const [first, ...rest] = slides;
+  const [first] = slides;
   if (!first) return null;
   const kind = section.design ?? theme.hero;
   if (kind === HeroDesign.SlideTiles) {
+    // BL-2, BL-12: the slide rotates; each tile's photo passes over the products the slides show.
+    const tiles = collectionViews(
+      section.tiles,
+      collections,
+      products.map((product) => product.id),
+    );
     return (
       <section className="sb-hero sb-overlay sb-auto">
-        <OverlaySlide slide={first} />
-        {rest.length > 0 ? (
+        <HeroRotator
+          label={first.headline}
+          slides={slides.map((slide, at) => (
+            <OverlaySlide key={at} slide={slide} light />
+          ))}
+        />
+        {tiles.length > 0 ? (
           <div className="sb-tiles">
-            {rest.slice(0, 2).map((slide, at) => (
-              <Tile key={at} slide={slide} />
+            {tiles.map((view) => (
+              <Tile key={view.key} view={view} />
             ))}
           </div>
         ) : null}

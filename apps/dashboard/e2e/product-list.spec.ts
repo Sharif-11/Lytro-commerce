@@ -21,7 +21,7 @@ const isDesktop = () => test.info().project.name === 'desktop';
 function cards(page: Page): Locator {
   return page
     .getByRole('main')
-    .locator(isDesktop() ? '.lg\\:flex [data-card-at]' : 'ul [data-card-at]');
+    .locator(isDesktop() ? '.lg\\:flex [data-drag-at]' : 'ul [data-drag-at]');
 }
 
 async function names(page: Page): Promise<string[]> {

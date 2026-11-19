@@ -1,7 +1,12 @@
 import { StockState } from '@lytronix/validators/enums';
 import {
+  BannerLayout,
+  HeroDesign,
   ProductRowLayout,
   ProductRowSource,
+  STARTING_ANNOUNCEMENT_ITEMS,
+  STARTING_BANNER_COLLECTIONS,
+  STARTING_HERO_TILES,
   StorefrontFill,
   StorefrontLinkKind,
   StorefrontSectionKind,
@@ -9,6 +14,7 @@ import {
   type StorefrontThemeKey,
 } from '@lytronix/validators';
 import type {
+  DeliveryZoneView,
   ImageView,
   PublicCategory,
   PublicStorefrontDesign,
@@ -36,8 +42,17 @@ export interface SketchShop {
     left?: number;
   }[];
   hero: { i: string; k: Pair; h: Pair; p: Pair; b: Pair };
-  banners: { i: string; k: Pair; b: Pair; s: Pair }[];
+  banners: SketchBanner[];
   layout: (string | [string, string])[];
+  /** BL-6: the sketch's `ONE_BANNER`, for its banner-layouts screen's one full-width banner. */
+  oneBanner?: SketchBanner;
+}
+
+interface SketchBanner {
+  i: string;
+  k: Pair;
+  b: Pair;
+  s: Pair;
 }
 
 // The sketch's photos with a wide version of their own, which a seller's one photo is cropped from (SB-15).
@@ -60,6 +75,24 @@ const WIDE = new Set([
   'tech-3',
   'tech-5',
 ]);
+
+/** BL-10: the sketch's zones (`DELIVERY`): ৳70 at home, ৳130 everywhere else, named as DLV-01 names them. */
+const BUILDER_ZONES: DeliveryZoneView[] = [
+  {
+    id: 'home',
+    name: { bn: 'ঢাকা সিটির ভেতরে', en: 'Inside Dhaka city' },
+    charge: '70.00',
+    noDelivery: false,
+    kind: 'home',
+  },
+  {
+    id: 'away',
+    name: { bn: 'ঢাকা সিটির বাইরে', en: 'Outside Dhaka city' },
+    charge: '130.00',
+    noDelivery: false,
+    kind: 'fallback',
+  },
+];
 
 /** One of the sketch's photos, as the mock server serves it. */
 export function builderPhoto(name: string): string {
@@ -104,6 +137,26 @@ export function builderShop(
     images[image.id] = image;
     return { mediaId: image.id, focusX: 50, focusY };
   };
+  const banners = (
+    id: string,
+    list: SketchBanner[],
+    layout: BannerLayout | null,
+  ): Extract<StorefrontSection, { kind: StorefrontSectionKind.OfferBanners }> => ({
+    id,
+    visible: true,
+    kind: StorefrontSectionKind.OfferBanners,
+    fill: StorefrontFill.Own,
+    layout,
+    collections: [...STARTING_BANNER_COLLECTIONS],
+    banners: list.map((banner) => ({
+      photo: photo(banner.i),
+      kicker: t(banner.k),
+      headline: t(banner.b),
+      description: t(banner.s),
+      button: t(['দেখুন', 'Shop']),
+      link: { kind: StorefrontLinkKind.OnSale },
+    })),
+  });
   const categories: PublicCategory[] = sketch.cats.map(([bn, en, image, count]) => ({
     id: idOf(`cat-${en}`),
     slug: slugOf(en),
@@ -154,7 +207,28 @@ export function builderShop(
     }
     switch (entry) {
       case 'announce':
-        return [{ id, visible: true, kind: StorefrontSectionKind.Announcement, text: null }];
+        return [
+          {
+            id,
+            visible: true,
+            kind: StorefrontSectionKind.Announcement,
+            items: [...STARTING_ANNOUNCEMENT_ITEMS],
+          },
+        ];
+      case 'hero-tiles':
+        // BL-2, BL-3: the sketch's `heroTiles`: three of the biggest savings rotating beside the offers and what is new.
+        return [
+          {
+            id,
+            visible: true,
+            kind: StorefrontSectionKind.Hero,
+            fill: StorefrontFill.Auto,
+            source: ProductRowSource.OnSale,
+            design: HeroDesign.SlideTiles,
+            tiles: [...STARTING_HERO_TILES],
+            slides: [],
+          },
+        ];
       case 'hero':
         return [
           {
@@ -162,7 +236,9 @@ export function builderShop(
             visible: true,
             kind: StorefrontSectionKind.Hero,
             fill: StorefrontFill.Own,
+            source: ProductRowSource.OnSale,
             design: null,
+            tiles: [...STARTING_HERO_TILES],
             slides: [
               {
                 photo: photo(sketch.hero.i, 40),
@@ -180,22 +256,13 @@ export function builderShop(
           { id, visible: true, kind: StorefrontSectionKind.Categories, title: null, style: null },
         ];
       case 'banners':
-        return [
-          {
-            id,
-            visible: true,
-            kind: StorefrontSectionKind.OfferBanners,
-            fill: StorefrontFill.Own,
-            banners: sketch.banners.map((banner) => ({
-              photo: photo(banner.i),
-              kicker: t(banner.k),
-              headline: t(banner.b),
-              description: t(banner.s),
-              button: t(['দেখুন', 'Shop']),
-              link: { kind: StorefrontLinkKind.OnSale },
-            })),
-          },
-        ];
+      case 'banners-full':
+        return [banners(id, sketch.banners, entry === 'banners' ? null : BannerLayout.Full)];
+      case 'banners-one':
+        return sketch.oneBanner ? [banners(id, [sketch.oneBanner], null)] : [];
+      case 'banners-auto':
+        // BL-9: filling itself from the three collections a new section starts with.
+        return [{ ...banners(id, [], null), fill: StorefrontFill.Auto }];
       case 'trust':
         return [{ id, visible: true, kind: StorefrontSectionKind.Trust }];
       default:
@@ -220,6 +287,9 @@ export function builderShop(
       ...base.info,
       name: t(sketch.name),
       design,
+      // BL-10: the sketch's delivery line, the home zone and everywhere else by their default names.
+      deliveryZones: BUILDER_ZONES,
+      extraDeliveryChargePerKg: '0.00',
       sale: {
         products: onSale.length,
         bestDiscount: Math.max(0, ...onSale.map((row) => row.card.bestDiscount ?? 0)),

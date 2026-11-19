@@ -30,10 +30,7 @@ import {
 } from './card-order';
 import { Handle, NoteLine } from './design-parts';
 import { EditorIcon } from './editor-icon';
-
-// The edge of the window that scrolls the page while a card is dragged near it, and how far each move scrolls.
-const EDGE = 72;
-const SCROLL_STEP = 14;
+import { dragPlace, useDragOrder } from './use-drag-order';
 
 /**
  * Settings > Storefront > Design > Product list (STOREFRONT-BUILDER-PLAN DC-6 to DC-8, the sketch's `e-order`; the
@@ -69,7 +66,6 @@ function ProductListPage({ initial }: { initial: StorefrontCards }): React.JSX.E
   const [modes, setModes] = useState<Modes>(() => modesOf(initial.cards));
   const [query, setQuery] = useState('');
   const [menu, setMenu] = useState<string | null>(null);
-  const [dragging, setDragging] = useState<string | null>(null);
   const modesRef = useRef(modes);
   useEffect(() => {
     modesRef.current = modes;
@@ -102,51 +98,18 @@ function ProductListPage({ initial }: { initial: StorefrontCards }): React.JSX.E
     setOrder((current) => moveShown(current, modesRef.current, from, to));
   };
 
-  /** A card dragged by its handle: it moves to the place of the card under the pointer, the page scrolling near an edge. */
-  function startDrag(event: React.PointerEvent, card: StorefrontCard): void {
-    if (searching) return;
-    event.preventDefault();
-    const key = cardKey(card);
-    setDragging(key);
-    const move = (pointer: PointerEvent) => {
-      if (pointer.clientY < EDGE) window.scrollBy(0, -SCROLL_STEP);
-      else if (pointer.clientY > window.innerHeight - EDGE) window.scrollBy(0, SCROLL_STEP);
-      const over = document
-        .elementFromPoint(pointer.clientX, pointer.clientY)
-        ?.closest<HTMLElement>('[data-card-at]');
-      if (!over) return;
-      const to = Number(over.dataset['cardAt']);
+  /** A card dragged by its handle moves to the place of the card under the pointer; the arrows move it one place. */
+  const { dragging, startDrag, keyMove } = useDragOrder({
+    disabled: searching,
+    onOver: (key, to) => {
       setOrder((current) => {
         const visible = current.filter((each) => isShown(each, modesRef.current));
         const from = visible.findIndex((each) => cardKey(each) === key);
         return from < 0 || from === to ? current : moveShown(current, modesRef.current, from, to);
       });
-    };
-    const end = () => {
-      setDragging(null);
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', end);
-      window.removeEventListener('pointercancel', end);
-    };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', end);
-    window.addEventListener('pointercancel', end);
-  }
-
-  /** The handle with the keyboard: the arrows move its card one place. */
-  function keyMove(event: React.KeyboardEvent, at: number): void {
-    if (searching) return;
-    const by =
-      event.key === 'ArrowUp' || event.key === 'ArrowLeft'
-        ? -1
-        : event.key === 'ArrowDown' || event.key === 'ArrowRight'
-          ? 1
-          : 0;
-    if (by === 0) return;
-    event.preventDefault();
-    const to = at + by;
-    if (to >= 0 && to < shown.length) moveTo(at, to);
-  }
+    },
+    onStep: moveTo,
+  });
 
   function saveOrder(): void {
     save.mutate(orderInput(order, modes), {
@@ -241,17 +204,17 @@ function ProductListPage({ initial }: { initial: StorefrontCards }): React.JSX.E
                 return (
                   <li
                     key={cardKey(card)}
-                    data-card-at={at}
+                    {...dragPlace(at)}
                     className={`relative flex min-h-[64px] items-center gap-2 border-t border-neutral-100 py-2 first:border-t-0 ${isCompact(card) ? '-mx-1.5 rounded-[10px] bg-primary-soft px-1.5' : ''} ${dragging === cardKey(card) ? 'opacity-60' : ''} ${card.active && card.stockState !== StockState.Out ? '' : 'text-fg-muted'}`}
                   >
                     <Handle
                       label={t('plDrag', { name: labelOf(card) })}
                       disabled={searching}
                       onPointerDown={(event) => {
-                        startDrag(event, card);
+                        startDrag(event, cardKey(card));
                       }}
                       onKeyDown={(event) => {
-                        keyMove(event, at);
+                        keyMove(event, at, shown.length);
                       }}
                     />
                     <span className="flex w-6 flex-none flex-col items-center text-neutral-500">
@@ -307,7 +270,7 @@ function ProductListPage({ initial }: { initial: StorefrontCards }): React.JSX.E
               return (
                 <div
                   key={cardKey(card)}
-                  data-card-at={at}
+                  {...dragPlace(at)}
                   className={`relative rounded-[12px] border p-2 ${isCompact(card) ? 'bg-primary-soft' : 'bg-surface'} ${lifted ? '-translate-y-1.5 -rotate-2 border-primary shadow-[0_14px_30px_rgba(0,0,0,0.22)]' : 'border-line'} ${card.active && card.stockState !== StockState.Out ? '' : 'opacity-75'}`}
                 >
                   <span className="absolute top-3 left-3 z-[1] rounded-[8px] bg-white/90 px-[7px] py-0.5 text-[12px] font-bold">
@@ -318,10 +281,10 @@ function ProductListPage({ initial }: { initial: StorefrontCards }): React.JSX.E
                       label={t('plDrag', { name: labelOf(card) })}
                       disabled={searching}
                       onPointerDown={(event) => {
-                        startDrag(event, card);
+                        startDrag(event, cardKey(card));
                       }}
                       onKeyDown={(event) => {
-                        keyMove(event, at);
+                        keyMove(event, at, shown.length);
                       }}
                     />
                   </span>

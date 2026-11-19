@@ -168,6 +168,17 @@ export const APP_COPY = {
   sb_contact: ['যোগাযোগ', 'Contact'],
   sb_offers_line: ['{n}টি পণ্যে {p}% পর্যন্ত ছাড় চলছে', 'Up to {p}% off on {n} products'],
   sb_delivery: ['ডেলিভারি {r}', 'Delivery {r}'],
+  // STOREFRONT-BUILDER-PLAN BL-10: the bar's delivery line, each zone by the shop's name for it ({z}).
+  sb_bar_home_max: ['{z} ডেলিভারি সর্বোচ্চ {c}', '{z}: delivery up to {c}'],
+  sb_bar_home_from: ['{z} ডেলিভারি {c} থেকে', '{z}: delivery from {c}'],
+  sb_bar_away_max: ['{z} সর্বোচ্চ {c}', '{z}: up to {c}'],
+  sb_bar_away_from: ['{z} {c} থেকে', '{z}: from {c}'],
+  // BL-12: a tile's or a banner's words for the offers.
+  sb_offers_on: ['অফার চলছে', 'Offers on'],
+  sb_on_n: ['{n}টি পণ্যে', 'On {n} products'],
+  // BL-11: the header's order tracking.
+  sb_track_h: ['অর্ডার ট্র্যাক', 'Track order'],
+  sb_track_where: ['অর্ডার কোথায় আছে', 'Where your order is'],
   sb_shop_by: ['ক্যাটাগরি অনুযায়ী কিনুন', 'Shop by category'],
   sb_n_products: ['{n}টি পণ্য', '{n} products'],
   sb_just_in: ['নতুন এসেছে', 'Just in'],

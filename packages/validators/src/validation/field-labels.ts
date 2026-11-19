@@ -403,6 +403,8 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   banner: { en: 'Banner', bn: 'ব্যানার' },
   banners: { en: 'Banners', bn: 'ব্যানার' },
   button: { en: 'Button text', bn: 'বোতামের লেখা' },
+  // BL-9: what each banner filling itself shows.
+  collections: { en: 'What each banner shows', bn: 'প্রতিটি ব্যানারে কী দেখাবে' },
   count: { en: 'How many', bn: 'কয়টি' },
   fill: { en: 'What it shows', bn: 'কী দেখাবে' },
   focusX: { en: 'Focus point', bn: 'ছবির মূল অংশ' },
@@ -426,5 +428,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   slides: { en: 'Slides', bn: 'স্লাইড' },
   style: { en: 'Style', bn: 'স্টাইল' },
   theme: { en: 'Theme', bn: 'থিম' },
+  // BL-3: what each tile beside the hero's slide shows.
+  tiles: { en: 'Tiles', bn: 'টাইল' },
   title: { en: 'Title', bn: 'শিরোনাম' },
 };
