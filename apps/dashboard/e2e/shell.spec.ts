@@ -49,6 +49,8 @@ test("goes to a hub's first section and shows its sections, with where you are",
     .filter({ visible: true });
   await expect(sections.getByRole('link')).toHaveText([
     'প্রোডাক্ট',
+    // OFFERS-PLAN OF-13: Offers sits right after Products.
+    'অফার',
     'ক্যাটাগরি',
     'অ্যাট্রিবিউট',
     'স্টক2',
