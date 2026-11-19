@@ -1,7 +1,7 @@
 # Offers -- plan
 
-**Status:** the sketch and OF-13 to OF-25 approved by the owner (2026-11-19). The build plan (section 4) awaits the owner's
-review; no code until it is approved.
+**Status:** the sketch, OF-13 to OF-25 and the build plan approved by the owner (2026-11-19, two PRs). PR 1 built
+(section 5); PR 2, the design editor's offer row and button, after PR 1 is live on staging.
 
 **What it is:** a seller runs a named offer ("ঈদ অফার") that cuts the price of chosen products, or of some designs of a
 product, by a percent or by taka. Shoppers see the cut price everywhere in the shop, with the old price struck through,
@@ -141,3 +141,31 @@ whole design and show the starting design instead. Readers go first (PR 1), writ
 
 Offer dates (start and end on their own), free delivery, spend-more discounts, coupon codes, and sales figures per
 offer -- each its own feature later.
+
+## 5. As built (PR 1)
+
+- **Storage:** migration 0145 (`offers`, `offer_items`, `offer_prices`), as section 4.2. An offer sets each size's own
+  price and regular price (a product without sizes has one, its own variant), never the product's own price.
+- **Locks (OF-17):** the product editor refuses a price or regular price change to a size a running offer priced, and
+  the product's own price while the whole product is in one, naming the offer (`409`, `ProductPriceInOffer`). A
+  product copied (PRD-18) takes each size's price from before the offer.
+- **A size added later (OF-19)** joins its running offer at its cut, from its own price then (a new size of a design
+  sells at the product's price until the seller sets its own).
+- **Public:** `GET /v1/catalogue/offers/:slug` and `offer=` on the product list; the shop's design names the running
+  offers its rows and buttons point at (`design.offers`), so a row of an ended offer hides and a button goes to On
+  sale (OF-22). The design document reads `source: offer` (`offerId`) and links of kind `offer`; the editor writes
+  them in PR 2.
+- **Dashboard:** Shop › Offers after Products; the list, a new offer (or one not started) with its picker, a running
+  offer (its link, Change, live products, End), an ended one (Run it again, Delete); the product editor's offer card
+  and locked prices; the products list's tag; Activity names each start, change, end and delete.
+- **Shop:** `/offers/<link name>` (Bangla link names too) -- the offer's tag, name and line over its cards with Sort
+  and "In stock only"; once ended, the note and "What's on sale now".
+
+**Named deviations from the sketch:**
+- **The dashboard's own parts** (cards, chips, fields, rows, tags, dialogs, the action bar).
+- **No "show it on the home page" hint** on the running offer's page until PR 2 adds the editor's choice it names.
+- **End offer and Delete are red words** on the dashboard's outline button, as its other red actions are (the sketch
+  drew a red edge too).
+- **"Started" shows the day** ("15 Nov"), as the dashboard's other dates in a line do.
+- **An offer's products are listed by name**, a product's picked designs in one row.
+- **The shop's offer page writes numbers in Western digits**, as the shop's other lines do.
