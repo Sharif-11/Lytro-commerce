@@ -15,7 +15,10 @@ import type {
   CourierPayoutDetail,
   CourierPayoutPage,
   MessageAddress,
+  NewPickupStore,
   PickupStore,
+  PickupStoreAdded,
+  StorePlace,
 } from '@/types/couriers';
 import type { Order } from '@/types/orders';
 import { HOME_QUERY_KEY } from './home';
@@ -111,6 +114,54 @@ export function usePickupStores(key: CourierKey, options: { enabled?: boolean } 
         `/couriers/connections/${key}/stores`,
       ),
     enabled: options.enabled ?? true,
+  });
+}
+
+/**
+ * GET /couriers/connections/:key/store-places (the owner, 2026-11-19): the courier's cities; a city's zones; a zone's areas it
+ * collects from. Each list is read once it can be: zones once a city is chosen, areas once a zone is.
+ */
+export function useStorePlaces(
+  key: CourierKey,
+  which: { cityId?: string | null; zoneId?: string | null; enabled?: boolean },
+) {
+  const level = which.zoneId ? 'area' : which.cityId ? 'zone' : 'city';
+  const query = new URLSearchParams();
+  if (which.zoneId) query.set('zoneId', which.zoneId);
+  else if (which.cityId) query.set('cityId', which.cityId);
+  const suffix = query.size > 0 ? `?${query.toString()}` : '';
+  return useQuery({
+    queryKey: [
+      ...COURIERS_QUERY_KEY,
+      key,
+      'store-places',
+      level,
+      which.zoneId ?? which.cityId ?? '',
+    ],
+    queryFn: () =>
+      tenantSession.client.get<{ places: StorePlace[] }>(
+        `/couriers/connections/${key}/store-places${suffix}`,
+      ),
+    select: (found) => found.places,
+    enabled: which.enabled ?? true,
+    staleTime: 60 * 60 * 1000,
+  });
+}
+
+/** POST /couriers/connections/:key/stores (the owner, 2026-11-19): a new pickup store, made in the courier's account. */
+export function useAddPickupStore(key: CourierKey) {
+  const queryClient = useQueryClient();
+  const changed = useCouriersChanged();
+  return useMutation({
+    mutationFn: (store: NewPickupStore) =>
+      tenantSession.client.post<PickupStoreAdded>(`/couriers/connections/${key}/stores`, store),
+    onSuccess: (added) => {
+      queryClient.setQueryData([...COURIERS_QUERY_KEY, key, 'stores'], {
+        stores: added.stores,
+        chosenId: added.chosenId,
+      });
+      changed();
+    },
   });
 }
 

@@ -1016,6 +1016,20 @@
       "when": 1795068114262,
       "tag": "0145_offers",
       "breakpoints": true
+    },
+    {
+      "idx": 146,
+      "version": "7",
+      "when": 1795093773577,
+      "tag": "0146_order_component_snapshots",
+      "breakpoints": true
+    },
+    {
+      "idx": 147,
+      "version": "7",
+      "when": 1795093785353,
+      "tag": "0147_order_component_thumbnail_index",
+      "breakpoints": true
     }
   ]
 }

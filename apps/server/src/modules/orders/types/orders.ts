@@ -236,6 +236,13 @@ export interface OrderComponentView {
   productName: string;
   attributes: LineAttributeSnapshot[];
   quantity: string;
+  /**
+   * The owner, 2026-11-19: its SKU, unit and photo as ordered; a component ordered before these were kept shows its
+   * variant's current ones (or none, a variant gone, in pieces).
+   */
+  sku: string | null;
+  stockUnit: StockUnit;
+  thumbnail: { mediaId: string; url: string; largeUrl: string } | null;
 }
 
 /** ORD-51: one call to the customer. */

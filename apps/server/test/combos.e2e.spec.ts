@@ -82,6 +82,9 @@ interface Component {
   productName: string;
   attributes: { value: string }[];
   quantity: string;
+  sku: string | null;
+  stockUnit: string;
+  thumbnail: { mediaId: string; url: string; largeUrl: string } | null;
 }
 
 interface Order {
@@ -1505,6 +1508,86 @@ describeIfDatabase(
         weightKg: null,
         parts: [],
       });
+    });
+  },
+);
+
+describeIfDatabase(
+  "a combo's items as ordered: SKU, unit and photo (the owner, 2026-11-19)",
+  () => {
+    it("keeps each item's SKU, unit and photo, shows the current ones on an older order, and keeps the photo for it", async () => {
+      const shop = await openShop(port, texts, 'cmb');
+      const imageId = await photo(shop);
+      const made = await shop.post('/products', {
+        name: 'Kabuli burka',
+        basePrice: 900,
+        imageIds: [imageId],
+        variants: [{ optionIds: [], sku: 'KB-D2-L', openingStock: 5 }],
+      });
+      expect(made.status, JSON.stringify(made.body)).toBe(201);
+      const burka = made.body as { id: string; variants: { id: string }[] };
+      const hijab = await product(shop, 'Georgette hijab', 300, 5);
+      const pack = await combo(shop, 'Burka combo', 1100, [
+        { quantity: 1, variantIds: [burka.variants[0]?.id ?? ''] },
+        { quantity: 1, variantIds: [hijab.variantId] },
+      ]);
+      const kept = await placed(shop, [{ variantId: pack.variantId, quantity: 1 }]);
+      const older = await placed(shop, [{ variantId: pack.variantId, quantity: 1 }]);
+      const items = async (id: string) =>
+        (((await shop.get(`/orders/${id}`)).body as Order).items[0]?.components ?? []).map(
+          (component) => [
+            component.productName,
+            component.sku,
+            component.stockUnit,
+            component.thumbnail?.mediaId ?? null,
+          ],
+        );
+      const asOrdered = [
+        ['Kabuli burka', 'KB-D2-L', 'piece', imageId],
+        // A product made with no SKU gets one from its name.
+        ['Georgette hijab', 'GH', 'piece', null],
+      ];
+      expect(await items(kept.id)).toEqual(asOrdered);
+      // Kept with the order itself, not read from the product again.
+      const stored = await admin.query(
+        `SELECT c.product_name, c.sku, c.stock_unit, c.thumbnail_media_id
+         FROM tenant.order_line_components c
+         JOIN tenant.order_lines l ON l.tenant_id = c.tenant_id AND l.id = c.order_line_id
+        WHERE l.order_id = $1 ORDER BY c.position`,
+        [kept.id],
+      );
+      expect(stored.rows).toEqual([
+        {
+          product_name: 'Kabuli burka',
+          sku: 'KB-D2-L',
+          stock_unit: 'piece',
+          thumbnail_media_id: imageId,
+        },
+        {
+          product_name: 'Georgette hijab',
+          sku: 'GH',
+          stock_unit: 'piece',
+          thumbnail_media_id: null,
+        },
+      ]);
+      // An order from before these were kept: its items show their variants' current SKU, unit and photo.
+      await admin.query(
+        `UPDATE tenant.order_line_components c
+          SET sku = NULL, stock_unit = NULL, thumbnail_media_id = NULL, thumbnail_url = NULL
+         FROM tenant.order_lines l
+        WHERE l.tenant_id = c.tenant_id AND l.id = c.order_line_id AND l.order_id = $1`,
+        [older.id],
+      );
+      expect(await items(older.id)).toEqual(asOrdered);
+      // ATR-20 (PD-8): off the product, the photo stays while the order that kept it shows it.
+      expect((await shop.put(`/products/${burka.id}/images`, { mediaIds: [] })).status).toBe(200);
+      const uses = (await shop.get(`/media/${imageId}`)).body as { uses: { pastOrders: number } };
+      expect(uses.uses.pastOrders).toBe(1);
+      const refused = await shop.delete(`/media/${imageId}`);
+      expect(refused.status).toBe(409);
+      expect(errorOf(refused)).toMatchObject({ code: 'conflict' });
+      expect(await items(kept.id)).toEqual(asOrdered);
+      expect((await items(older.id))[0]?.[3]).toBeNull();
     });
   },
 );

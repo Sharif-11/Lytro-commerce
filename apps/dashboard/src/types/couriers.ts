@@ -21,6 +21,8 @@ export interface CourierAdapter {
   needsThana: boolean;
   /** Its bookings leave from one store, chosen for the connection (Slice 6.3). */
   hasStores: boolean;
+  /** The owner, 2026-11-19: a new pickup store can be made in it from Lytro. */
+  addsStores: boolean;
   takesWeight: boolean;
   /** D6-8: cancelled from Lytro; otherwise staff confirm they did it in its panel. */
   canCancel: boolean;
@@ -67,6 +69,32 @@ export interface PickupStore {
   name: string;
   address: string | null;
   active: boolean;
+}
+
+/** GET /couriers/connections/:key/store-places (the owner, 2026-11-19): a city, zone or area, as the courier names it. */
+export interface StorePlace {
+  id: string;
+  name: string;
+}
+
+/** POST /couriers/connections/:key/stores: what a new pickup store needs, as the courier takes one. */
+export interface NewPickupStore {
+  storeName: string;
+  contactName: string;
+  contactNumber: string;
+  storeAddress: string;
+  cityId: string;
+  zoneId: string;
+  areaId: string;
+  /** Bookings leave from it once the courier has it switched on. */
+  use: boolean;
+}
+
+/** POST /couriers/connections/:key/stores's answer: the stores now, which is chosen, and the one just made. */
+export interface PickupStoreAdded {
+  stores: PickupStore[];
+  chosenId: string | null;
+  addedId: string | null;
 }
 
 /** GET /couriers/:key/areas (CUS-12): the thana's areas first, then the district's matching the search. */

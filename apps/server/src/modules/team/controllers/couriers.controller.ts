@@ -20,6 +20,7 @@ import {
   type CourierAreasForOrderQuery,
   type CourierKey,
   type CourierPayoutsQuery,
+  type StorePlacesQuery,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { Dashboard } from '../../../common/decorators/dashboard';
@@ -27,7 +28,7 @@ import { RequirePermission } from '../../../common/decorators/require-permission
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { OkDto } from '../../../common/dto/ok.dto';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
-import type { PickupStore } from '../../couriers/ports/courier-adapter';
+import type { PickupStore, StorePlace } from '../../couriers/ports/courier-adapter';
 import { CourierAreaList, type CourierAreaChoice } from '../../couriers/services/courier-area-list';
 import { OrderFulfilment } from '../../orders/services/order-fulfilment';
 import {
@@ -45,6 +46,7 @@ import {
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import {
+  AddPickupStoreDto,
   ConnectCourierDto,
   CourierAdapterListDto,
   CourierConnectedDto,
@@ -55,9 +57,12 @@ import {
   CourierPayoutDto,
   CourierPayoutListDto,
   CourierPayoutsQueryDto,
+  CourierStoreAddedDto,
   CourierStoreListDto,
+  CourierStorePlacesDto,
   MessageAddressDto,
   SetPickupStoreDto,
+  StorePlacesQueryDto,
 } from '../dto/couriers.dto';
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
@@ -236,6 +241,44 @@ export class CouriersController {
     @Req() request: DashboardRequest,
   ): Promise<{ stores: PickupStore[]; chosenId: string | null }> {
     return this.connections.pickupStores(this.request.tenantIdOf(request), courierKeyOf(key));
+  }
+
+  @Get('connections/:key/store-places')
+  @RequirePermission(Permission.CouriersManage)
+  @ResponseMessage('CourierStorePlacesListed')
+  @ApiOperation({
+    summary:
+      "The courier's cities; with cityId a city's zones; with zoneId a zone's areas it collects from: what a new pickup store names (the owner, 2026-11-19)",
+  })
+  @ZodResponse({ type: CourierStorePlacesDto })
+  storePlaces(
+    @Param('key') key: string,
+    @Query(new ZodValidationPipe(StorePlacesQueryDto.schema)) query: StorePlacesQuery,
+    @Req() request: DashboardRequest,
+  ): Promise<{ places: StorePlace[] }> {
+    return this.connections.storePlaces(this.request.tenantIdOf(request), courierKeyOf(key), query);
+  }
+
+  @Post('connections/:key/stores')
+  @RequirePermission(Permission.CouriersManage)
+  @ResponseMessage('CourierPickupStoreAdded')
+  @ApiOperation({
+    summary:
+      "Makes a pickup store in the courier's own account; with use, bookings leave from it once the courier lists it active (the owner, 2026-11-19)",
+  })
+  @ApiBody({ type: AddPickupStoreDto })
+  @ZodResponse({ type: CourierStoreAddedDto, status: 201 })
+  addStore(
+    @Param('key') key: string,
+    @Body(new ZodValidationPipe(AddPickupStoreDto.schema)) body: AddPickupStoreDto,
+    @Req() request: DashboardRequest,
+  ): Promise<{ stores: PickupStore[]; chosenId: string | null; addedId: string | null }> {
+    return this.connections.addPickupStore(
+      this.request.tenantIdOf(request),
+      courierKeyOf(key),
+      body,
+      this.request.actorOf(request),
+    );
   }
 
   @Put('connections/:key/store')

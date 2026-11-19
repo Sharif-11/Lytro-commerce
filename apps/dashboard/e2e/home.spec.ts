@@ -35,7 +35,7 @@ test('shows a working shop: its jobs, its figures, the folded checklist and the 
   // The first group is done, so the checklist is one row; tapping it opens the list for this visit.
   const folded = main(page).getByRole('button', { name: /শপ প্রস্তুত করুন · 6\/6 হয়েছে/ });
   // Part 36's `c36-home`: Connect a courier is a live step now, so the folded row names only what comes later.
-  await expect(folded).toContainText('পরে, দরকার হলে: SMS ইভেন্ট বাছুন');
+  await expect(folded).toContainText('পরে, দরকার হলে: SMS ইভেন্ট সিলেক্ট করুন');
   await folded.click();
   await expect(main(page).getByRole('heading', { name: 'শপ প্রস্তুত করুন' })).toBeVisible();
   await expect(main(page).getByText('ঢাকা সিটির ভেতরে ৳70 · বাইরে ৳130')).toBeVisible();
@@ -72,7 +72,7 @@ test('opens a new shop on its checklist, with nothing in the queue yet (SUP-01)'
   );
   await expect(main(page).getByText('ফেজ 6-এ আসছে')).toHaveCount(0);
   await expect(main(page).getByText('ফেজ 7-এ আসছে')).toHaveCount(0);
-  await expect(main(page).getByRole('link', { name: /SMS ইভেন্ট বাছুন/ })).toHaveAttribute(
+  await expect(main(page).getByRole('link', { name: /SMS ইভেন্ট সিলেক্ট করুন/ })).toHaveAttribute(
     'href',
     `/${SLUG}/settings/sms`,
   );

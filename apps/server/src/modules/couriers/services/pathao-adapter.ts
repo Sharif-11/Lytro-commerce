@@ -13,7 +13,11 @@ import {
   type CourierRefusal,
   type LogInAnswer,
   type MessageHeaders,
+  type NewPickupStore,
   type ParcelBooking,
+  type StoreAddedAnswer,
+  type StorePlaceLevel,
+  type StorePlacesAnswer,
   type StoresAnswer,
   type TrackAnswer,
 } from '../ports/courier-adapter';
@@ -196,6 +200,52 @@ export class PathaoAdapter implements CourierAdapter {
       };
     });
     return { outcome: 'found', stores: stores.filter((store) => store.id !== '') };
+  }
+
+  /**
+   * The owner, 2026-11-19 (its sandbox the same day): its own cities, a city's zones, a zone's areas. An area it says it
+   * doesn't collect from (`pickup_available` false) can't hold a store, so it isn't offered.
+   */
+  async storePlaces(account: CourierAccount, which: StorePlaceLevel): Promise<StorePlacesAnswer> {
+    const [path, idField, nameField] =
+      which.level === 'city'
+        ? ['/city-list', 'city_id', 'city_name']
+        : which.level === 'zone'
+          ? [`/cities/${encodeURIComponent(which.cityId)}/zone-list`, 'zone_id', 'zone_name']
+          : [`/zones/${encodeURIComponent(which.zoneId)}/area-list`, 'area_id', 'area_name'];
+    const response = await this.request(account, 'GET', path);
+    if (response.status < 200 || response.status >= 300 || response.body === null) {
+      return { outcome: 'refused', refusal: this.refusalOrThrow(response) };
+    }
+    const rows = bodyOf(response.body['data'])?.['data'];
+    const places = (Array.isArray(rows) ? rows : []).flatMap((row: unknown) => {
+      const place = bodyOf(row);
+      if (place?.['pickup_available'] === false) return [];
+      const id = codeOf(place, idField);
+      const name = textOf(place, nameField);
+      return id !== null && name !== null ? [{ id, name }] : [];
+    });
+    return { outcome: 'found', places };
+  }
+
+  /**
+   * The owner, 2026-11-19: a new store in the merchant's account, as its sandbox took one (the store's id comes back, and
+   * the list shows it). Whether a live account's new store waits for Pathao to switch it on is unknown, so the list decides.
+   */
+  async addPickupStore(account: CourierAccount, store: NewPickupStore): Promise<StoreAddedAnswer> {
+    const response = await this.request(account, 'POST', '/stores', {
+      name: store.name,
+      contact_name: store.contactName,
+      contact_number: store.contactNumber,
+      address: store.address,
+      city_id: Number(store.cityId),
+      zone_id: Number(store.zoneId),
+      area_id: Number(store.areaId),
+    });
+    if (response.status < 200 || response.status >= 300 || response.body === null) {
+      return { outcome: 'refused', refusal: this.refusalOrThrow(response) };
+    }
+    return { outcome: 'added', storeId: codeOf(bodyOf(response.body['data']), 'store_id') };
   }
 
   /** D6-14, read agreed 2026-11-05: `booking.cod` is already whole, and a quantity like 1.5 kg goes up to the next whole number. */

@@ -333,6 +333,8 @@ describeIfDatabase('connecting Pathao (Slice 6.3, read agreed 2026-11-05)', () =
       needsArea: false,
       needsThana: true,
       hasStores: true,
+      // The owner, 2026-11-19: a store can be made in it from Lytro.
+      addsStores: true,
       takesWeight: true,
       canCancel: false,
       retiring: false,
@@ -483,6 +485,111 @@ describeIfDatabase('connecting Pathao (Slice 6.3, read agreed 2026-11-05)', () =
   it('says a courier with no stores has none to list', async () => {
     const shop = await openShop(port, texts, 'cpa');
     expect((await shop.get('/couriers/connections/steadfast/stores')).status).toBe(404);
+  });
+});
+
+describeIfDatabase('adding a Pathao pickup store from Lytro (the owner, 2026-11-19)', () => {
+  const STORE = {
+    storeName: 'Megh Fashion · Dhanmondi',
+    contactName: 'Rumana Akter',
+    contactNumber: '+880 1711-234567',
+    storeAddress: 'House 21, Road 27, Dhanmondi',
+    cityId: '1',
+    zoneId: '298',
+    areaId: '3069',
+  };
+
+  it("lists Pathao's places, areas only where it collects, and adds a store that bookings then leave from", async () => {
+    const { shop } = await connectedShop();
+    expect((await connection(shop)).pickupStore).toEqual({ id: '2', name: 'Mirpur warehouse' });
+    const places = async (query: string) =>
+      (
+        (await shop.get(`/couriers/connections/pathao/store-places${query}`)).body as {
+          places: { id: string; name: string }[];
+        }
+      ).places;
+    expect(await places('')).toEqual([
+      { id: '1', name: 'Dhaka' },
+      { id: '2', name: 'Chittagong' },
+    ]);
+    expect(await places('?cityId=1')).toEqual([
+      { id: '298', name: 'Dhanmondi' },
+      { id: '52', name: 'Mirpur' },
+    ]);
+    expect(await places('?zoneId=298')).toEqual([{ id: '3069', name: 'Dhanmondi 27' }]);
+
+    // What Pathao would refuse is refused here first, each field by name, and nothing is sent.
+    const refused = await shop.post('/couriers/connections/pathao/stores', {
+      ...STORE,
+      contactNumber: '01711',
+      storeAddress: 'Road 27',
+    });
+    expect(refused.status).toBe(400);
+    expect(Object.keys(fieldsOf(refused)).sort()).toEqual(['contactNumber', 'storeAddress']);
+    expect(
+      pathao.calls.filter((call) => call.method === 'POST' && call.path === '/stores'),
+    ).toEqual([]);
+
+    const added = await shop.post('/couriers/connections/pathao/stores', STORE);
+    expect(added.status, JSON.stringify(added.body)).toBe(201);
+    expect(added.body).toMatchObject({ addedId: '501', chosenId: '501' });
+    expect((added.body as { stores: unknown[] }).stores).toContainEqual({
+      id: '501',
+      name: 'Megh Fashion · Dhanmondi',
+      address: 'House 21, Road 27, Dhanmondi',
+      active: true,
+    });
+    expect(
+      pathao.calls.find((call) => call.method === 'POST' && call.path === '/stores')?.body,
+    ).toEqual({
+      name: 'Megh Fashion · Dhanmondi',
+      contact_name: 'Rumana Akter',
+      contact_number: '01711234567',
+      address: 'House 21, Road 27, Dhanmondi',
+      city_id: 1,
+      zone_id: 298,
+      area_id: 3069,
+    });
+    expect((await connection(shop)).pickupStore).toEqual({
+      id: '501',
+      name: 'Megh Fashion · Dhanmondi',
+    });
+    const { rows } = await admin.query(
+      'SELECT action FROM tenant.activity_log WHERE tenant_id = $1 ORDER BY created_at',
+      [shop.tenantId],
+    );
+    expect(rows.map((row: { action: string }) => row.action)).toEqual(
+      expect.arrayContaining(['courier_pickup_store_added', 'courier_pickup_store_changed']),
+    );
+
+    const { variantId } = await product(shop);
+    await booked(shop, await place(shop, variantId));
+    expect(pathao.parcels.at(-1)?.body['store_id']).toBe(501);
+  });
+
+  it('keeps the store in use while Pathao has not switched the new one on, or when asked to', async () => {
+    const { shop } = await connectedShop();
+    pathao.behaviour.newStoresWaiting = true;
+    const waiting = await shop.post('/couriers/connections/pathao/stores', STORE);
+    expect(waiting.status, JSON.stringify(waiting.body)).toBe(201);
+    expect(waiting.body).toMatchObject({ addedId: '501', chosenId: '2' });
+    expect((waiting.body as { stores: { id: string; active: boolean }[] }).stores).toContainEqual(
+      expect.objectContaining({ id: '501', active: false }),
+    );
+    pathao.behaviour.newStoresWaiting = false;
+    const kept = await shop.post('/couriers/connections/pathao/stores', {
+      ...STORE,
+      storeName: 'Megh Fashion · Uttara',
+      use: false,
+    });
+    expect(kept.body).toMatchObject({ addedId: '502', chosenId: '2' });
+    expect((await connection(shop)).pickupStore).toEqual({ id: '2', name: 'Mirpur warehouse' });
+  });
+
+  it('says a courier whose stores are made in its own panel has none to add here', async () => {
+    const shop = await openShop(port, texts, 'cpa');
+    expect((await shop.post('/couriers/connections/steadfast/stores', STORE)).status).toBe(404);
+    expect((await shop.get('/couriers/connections/steadfast/store-places')).status).toBe(404);
   });
 });
 

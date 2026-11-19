@@ -133,6 +133,33 @@ export interface PickupStore {
 export type StoresAnswer =
   { outcome: 'found'; stores: PickupStore[] } | { outcome: 'refused'; refusal: CourierRefusal };
 
+/** The owner, 2026-11-19: a city, a zone in it, or an area in that, as the courier's own lists name them. */
+export interface StorePlace {
+  id: string;
+  name: string;
+}
+
+/** Which list: the cities, a city's zones, or a zone's areas the courier collects from. */
+export type StorePlaceLevel =
+  { level: 'city' } | { level: 'zone'; cityId: string } | { level: 'area'; zoneId: string };
+
+export type StorePlacesAnswer =
+  { outcome: 'found'; places: StorePlace[] } | { outcome: 'refused'; refusal: CourierRefusal };
+
+/** The owner, 2026-11-19: a new pickup store, as the courier takes one; the number in its local form (01XXXXXXXXX). */
+export interface NewPickupStore {
+  name: string;
+  contactName: string;
+  contactNumber: string;
+  address: string;
+  cityId: string;
+  zoneId: string;
+  areaId: string;
+}
+
+export type StoreAddedAnswer =
+  { outcome: 'added'; storeId: string | null } | { outcome: 'refused'; refusal: CourierRefusal };
+
 /** CUS-10 (Slice 6.4): one of a courier's own areas, as its list gives it. */
 export interface ListedArea {
   areaCode: string;
@@ -257,6 +284,10 @@ export interface CourierAdapter {
   renewLogin?(account: CourierAccount): Promise<LogInAnswer>;
   /** Slice 6.3: for a courier whose every booking names a store, the stores it lists for this account. */
   pickupStores?(account: CourierAccount): Promise<StoresAnswer>;
+  /** The owner, 2026-11-19: for a courier whose API makes stores, its cities, zones and areas a new one names. */
+  storePlaces?(account: CourierAccount, which: StorePlaceLevel): Promise<StorePlacesAnswer>;
+  /** The owner, 2026-11-19: makes a pickup store in the courier's own account; changing or removing one stays in its panel. */
+  addPickupStore?(account: CourierAccount, store: NewPickupStore): Promise<StoreAddedAnswer>;
   /** Read agreed 2026-11-06: a courier that takes a store but goes without one, using its own default, so booking never waits. */
   readonly storeOptional?: boolean;
   /** CUS-10 (Slice 6.4): for a courier that needs its own area, its whole list; read with Lytro's own account, not a shop's. */

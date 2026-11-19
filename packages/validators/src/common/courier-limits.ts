@@ -18,6 +18,15 @@ export const DEFAULT_COURIER_CHECK_QUIET_HOURS = 24;
 export const DEFAULT_COURIER_CHECK_STOP_DAYS = 30;
 export const DEFAULT_COURIER_SYNC_MINUTES = 10;
 // CUS-10, CUS-12 (Slice 6.4): a page of a courier's areas for the operator, and how many a booking's search shows.
+// The owner, 2026-11-19: a new pickup store, as Pathao takes one (its sandbox, 2026-11-19: a contact name of 3 to 50
+// letters, an address of 15 to 120; its document gives a store's name the same 3 to 50).
+export const PICKUP_STORE_NAME_MIN = 3;
+export const PICKUP_STORE_NAME_MAX = 50;
+export const PICKUP_STORE_ADDRESS_MIN = 15;
+export const PICKUP_STORE_ADDRESS_MAX = 120;
+/** A courier's own id for a city, zone or area. */
+export const COURIER_PLACE_ID_MAX_LENGTH = 20;
+
 export const COURIER_AREA_PAGE_SIZE = 50;
 export const COURIER_AREA_PAGE_MAX = 200;
 export const COURIER_AREA_SEARCH_MAX = 50;

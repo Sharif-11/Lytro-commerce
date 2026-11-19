@@ -201,7 +201,7 @@ async function countStock(page: Page, preset: Preset): Promise<void> {
   await main(page).getByRole('link', { name: 'স্টক গুনুন' }).click();
   await main(page).getByRole('link', { name: 'নতুন গণনা' }).first().click();
   await expectPlainWords(page);
-  await main(page).getByRole('button', { name: 'প্রোডাক্ট বা ক্যাটাগরি বাছুন' }).click();
+  await main(page).getByRole('button', { name: 'প্রোডাক্ট বা ক্যাটাগরি সিলেক্ট করুন' }).click();
   const what = page.getByRole('dialog', { name: 'কী গুনবেন' });
   await what.getByRole('checkbox', { name: new RegExp(`^${preset.product}`) }).check();
   await expectPlainWords(page);

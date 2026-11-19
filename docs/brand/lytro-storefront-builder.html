@@ -940,7 +940,7 @@ Object.assign(EDITOR, {
   },
   'e-hero': {
     label: ['হিরো স্লাইড', 'Hero slides'],
-    note: ['একটা সেকশন খুললে তার নিজের শিট। হিরো: অটো রাখলে স্লাইডে কী দেখাবে বাছুন: অফার (সবচেয়ে বেশি ছাড়; ছাড় না থাকলে নতুন), নতুন বা সবচেয়ে বেশি বিক্রি, প্রতিটি প্রোডাক্ট তার নিজের ছবিতে; নয়তো নিজের স্লাইড, ৩টি পর্যন্ত, উপরে-নিচে সরানো যায়। ডিজাইন তিন রকম; “স্লাইড আর দুই টাইল”-এ স্লাইড ঘোরে আর প্রতিটি টাইলে কী দেখাবে নিজে বাছেন (মালিকের সিদ্ধান্ত, ২০২৬-১১-১৮)।', 'Opening a section opens its own sheet. Hero: on auto, choose what the slides show: offers (the biggest savings; the newest with nothing on sale), newest or best sellers, each product with its own photo; or your own slides, up to 3, reorderable. Three designs; in “Slide and two tiles” the slide rotates and you pick what each tile shows (the owner, 2026-11-18).'],
+    note: ['একটা সেকশন খুললে তার নিজের শিট। হিরো: অটো রাখলে স্লাইডে কী দেখাবে সিলেক্ট করুন: অফার (সবচেয়ে বেশি ছাড়; ছাড় না থাকলে নতুন), নতুন বা সবচেয়ে বেশি বিক্রি, প্রতিটি প্রোডাক্ট তার নিজের ছবিতে; নয়তো নিজের স্লাইড, ৩টি পর্যন্ত, উপরে-নিচে সরানো যায়। ডিজাইন তিন রকম; “স্লাইড আর দুই টাইল”-এ স্লাইড ঘোরে আর প্রতিটি টাইলে কী দেখাবে নিজে বাছেন (মালিকের সিদ্ধান্ত, ২০২৬-১১-১৮)।', 'Opening a section opens its own sheet. Hero: on auto, choose what the slides show: offers (the biggest savings; the newest with nothing on sale), newest or best sellers, each product with its own photo; or your own slides, up to 3, reorderable. Three designs; in “Slide and two tiles” the slide rotates and you pick what each tile shows (the owner, 2026-11-18).'],
     render: (d) => {
       const dg = (kind) => kind === 'split' ? '<div class="dg"><i class="p" style="left:50%;top:0;right:0;bottom:0;border-radius:0"></i><i style="left:8px;top:14px;width:38%;height:7px"></i><i style="left:8px;top:26px;width:28%;height:5px"></i><i style="left:8px;top:38px;width:22%;height:8px;background:#7aa6a2"></i></div>'
         : kind === 'full' ? '<div class="dg"><i class="p" style="inset:0;border-radius:0"></i><i style="left:8px;bottom:22px;width:50%;height:7px;background:#fff"></i><i style="left:8px;bottom:9px;width:24%;height:8px;background:#7aa6a2"></i></div>'
@@ -1078,7 +1078,7 @@ Object.assign(EDITOR, {
       const inner = `<div class="field" style="margin-bottom:10px"><div class="in">${ic('search')}<span style="color:#7d8d8c">${L('প্রোডাক্ট খুঁজুন', 'Search your products')}</span></div></div>`
         + `<div class="field" style="margin-bottom:8px"><label>${L('বাছাই করা (১২টির মধ্যে ৩টি), এই ক্রমে', 'Chosen (3 of 12), in this order')}</label>${chosen}</div>`
         + `<div class="field"><label>${L('সব প্রোডাক্ট', 'All products')}</label>${all}</div>`;
-      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('hot'), dockDesign(), sheetStep(L('প্রোডাক্ট বাছুন', 'Choose products'), inner, DOCK_DONE()), 'hot');
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('hot'), dockDesign(), sheetStep(L('প্রোডাক্ট সিলেক্ট করুন', 'Choose products'), inner, DOCK_DONE()), 'hot');
     },
   },
   'e-link': {
@@ -1086,7 +1086,7 @@ Object.assign(EDITOR, {
     note: ['স্লাইড বা ব্যানারের বোতাম কোথায় নেবে: অফার কালেকশন, নতুন এসেছে, বেশি বিক্রি, একটা ক্যাটাগরি বা একটা প্রোডাক্ট। ক্যাটাগরি বা প্রোডাক্ট বাছলে নিচে তালিকা আসে; সেটা পরে লুকানো বা মুছে গেলে বোতাম হোম পেজে নেয়।', "Where a slide's or banner's button leads: On sale, Just in, Best sellers, a category or a product. Picking a category or a product lists them below; one hidden or deleted later leads home instead."],
     render: (d) => {
       const cats = SAMPLE().cats;
-      const radios = [[['অফার কালেকশন', 'On sale'], ['ছাড়ের সব প্রোডাক্ট', 'Every discounted product']], [['নতুন এসেছে', 'Just in'], ['সবচেয়ে নতুন আগে', 'Newest first']], [['সবচেয়ে বেশি বিক্রি', 'Best sellers'], ['গত ৩০ দিনের অর্ডার থেকে', 'From the last 30 days of orders']], [['একটা ক্যাটাগরি', 'A category'], null, true], [['একটা প্রোডাক্ট', 'A product'], ['খুঁজে বাছুন', 'Search and pick one']]];
+      const radios = [[['অফার কালেকশন', 'On sale'], ['ছাড়ের সব প্রোডাক্ট', 'Every discounted product']], [['নতুন এসেছে', 'Just in'], ['সবচেয়ে নতুন আগে', 'Newest first']], [['সবচেয়ে বেশি বিক্রি', 'Best sellers'], ['গত ৩০ দিনের অর্ডার থেকে', 'From the last 30 days of orders']], [['একটা ক্যাটাগরি', 'A category'], null, true], [['একটা প্রোডাক্ট', 'A product'], ['খুঁজে সিলেক্ট করুন', 'Search and pick one']]];
       const list = `<div style="margin:2px 0 6px 32px;border-left:2px solid #e3f1ef;padding-left:12px">${cats.map(([bn, en, im, n], at) => `<div class="radio ${at === 2 ? 'on' : ''}" style="padding:7px 2px;align-items:center"><span class="dot" style="width:20px;height:20px"></span><img src="${img(im)}" alt="" style="width:32px;height:32px;border-radius:8px;object-fit:cover"><span><b style="font-size:14px">${L(bn, en)}</b><span>${L(`${n}টি প্রোডাক্ট`, `${n} products`)}</span></span></div>`).join('')}</div>`;
       const inner = `<div>${radios.map(([b, s, on]) => `<div class="radio ${on ? 'on' : ''}"><span class="dot"></span><span><b>${T(b)}</b>${s ? `<span>${T(s)}</span>` : ''}</span></div>${on ? list : ''}`).join('')}</div>`;
       return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('hero'), dockDesign(), sheetStep(L('বোতাম নিয়ে যাবে', 'Button leads to'), inner, DOCK_DONE()), 'hero');
@@ -1131,7 +1131,7 @@ Object.assign(EDITOR, {
       const inner = `<div class="field"><label>${L('কী দেখাবে', 'What it shows')}</label><div class="seg"><span class="on">${ic('spark')} ${L('অটো: দোকান থেকে', 'Auto: from your shop')}</span><span>${L('নিজের ব্যানার', 'My own banners')}</span></div></div>`
         + `<div class="field"><label>${L('ব্যানার (৩টির মধ্যে ৩টি)', 'Banners (3 of 3)')}</label>${rows}</div>`
         + layoutField(3)
-        + `<div class="note-line">${ic('info')}<span>${L('প্রতিটি ব্যানার খুলে বাছুন কী দেখাবে। কালেকশন খালি হলে (যেমন অফার শেষ) তালিকার পরেরটা দেখায়, যা আর কোনো ব্যানারে নেই।', 'Open a banner to choose what it shows. An empty collection (an offer that ended) gives way to the next one in the list that no other banner shows.')}</span></div>`;
+        + `<div class="note-line">${ic('info')}<span>${L('প্রতিটি ব্যানার খুলে সিলেক্ট করুন কী দেখাবে। কালেকশন খালি হলে (যেমন অফার শেষ) তালিকার পরেরটা দেখায়, যা আর কোনো ব্যানারে নেই।', 'Open a banner to choose what it shows. An empty collection (an offer that ended) gives way to the next one in the list that no other banner shows.')}</span></div>`;
       return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('banners'), dockDesign(), sheet(L('অফার ব্যানার', 'Offer banners'), inner, DOCK_SECTION()), 'banners', PANE(ED, swap(ED, { banners: autoBanners }), 'banners'));
     },
   },
@@ -1491,7 +1491,7 @@ const ofLit = (h) => h.replace(`<a class="on">${L('সব পণ্য', 'All pr
 Object.assign(EDITOR, {
   'o-row': {
     label: ['সারি: একটা অফার', 'Row: an offer'],
-    note: ['প্রোডাক্টের সারিতে “একটা অফার” বাছলে চলমান অফারগুলো থেকে একটা বাছুন। শিরোনাম অফারের নাম নেয়। অফার শেষ হলে সারিটা হোম পেজ থেকে নিজে থেকে সরে যায়; ড্যাশবোর্ডে সারিটা থাকে, “অফার শেষ” লেখা।', "Choosing “An offer” on a product row lists the running offers to pick one. The title takes the offer's name. When the offer ends the row leaves the home page by itself; in the editor it stays, marked “Offer ended”."],
+    note: ['প্রোডাক্টের সারিতে “একটা অফার” বাছলে চলমান অফারগুলো থেকে একটা সিলেক্ট করুন। শিরোনাম অফারের নাম নেয়। অফার শেষ হলে সারিটা হোম পেজ থেকে নিজে থেকে সরে যায়; ড্যাশবোর্ডে সারিটা থাকে, “অফার শেষ” লেখা।', "Choosing “An offer” on a product row lists the running offers to pick one. The title takes the offer's name. When the offer ends the row leaves the home page by itself; in the editor it stays, marked “Offer ended”."],
     render: (d) => {
       const radios = [[['নতুন এসেছে', 'Just in']], [['অফার কালেকশন', 'On sale']], [['সবচেয়ে বেশি বিক্রি', 'Best sellers']], [['একটা ক্যাটাগরির প্রোডাক্ট', 'One category']], [['একটা অফার', 'An offer'], true], [['হাতে বাছাই', 'Hand-picked']]];
       const inner = `<div class="field"><label>${L('কোন প্রোডাক্ট দেখাবে', 'Which products')}</label><div>${radios.map(([b, on]) => `<div class="radio ${on ? 'on' : ''}" style="padding:8px 2px"><span class="dot"></span><span><b>${T(b)}</b></span></div>`).join('')}</div></div>`
@@ -1507,7 +1507,7 @@ Object.assign(EDITOR, {
     label: ['বোতাম: একটা অফার', 'Button: an offer'],
     note: ['স্লাইড বা ব্যানারের বোতাম একটা চলমান অফারের পেজেও নিতে পারে। অফার শেষ হলে বোতাম অফার কালেকশনে নেয়।', "A slide's or banner's button can lead to a running offer's page too. Once the offer ends, the button leads to On sale instead."],
     render: (d) => {
-      const radios = [[['অফার কালেকশন', 'On sale'], ['ছাড়ের সব প্রোডাক্ট', 'Every discounted product']], [['একটা অফার', 'An offer'], null, true], [['নতুন এসেছে', 'Just in'], ['সবচেয়ে নতুন আগে', 'Newest first']], [['সবচেয়ে বেশি বিক্রি', 'Best sellers'], ['গত ৩০ দিনের অর্ডার থেকে', 'From the last 30 days of orders']], [['একটা ক্যাটাগরি', 'A category']], [['একটা প্রোডাক্ট', 'A product'], ['খুঁজে বাছুন', 'Search and pick one']]];
+      const radios = [[['অফার কালেকশন', 'On sale'], ['ছাড়ের সব প্রোডাক্ট', 'Every discounted product']], [['একটা অফার', 'An offer'], null, true], [['নতুন এসেছে', 'Just in'], ['সবচেয়ে নতুন আগে', 'Newest first']], [['সবচেয়ে বেশি বিক্রি', 'Best sellers'], ['গত ৩০ দিনের অর্ডার থেকে', 'From the last 30 days of orders']], [['একটা ক্যাটাগরি', 'A category']], [['একটা প্রোডাক্ট', 'A product'], ['খুঁজে সিলেক্ট করুন', 'Search and pick one']]];
       const offers = [[OF_NAME, ['চলছে · ১৪টি পণ্য', 'Running · 14 products'], true], [['ফ্ল্যাশ সেল', 'Flash sale'], ['শুরু হয়নি', 'Not started'], false, true]];
       const list = `<div style="margin:2px 0 6px 32px;border-left:2px solid #e3f1ef;padding-left:12px">${offers.map(([n, s, on, off]) => `<div class="radio ${on ? 'on' : ''}" style="padding:7px 2px;align-items:center;${off ? 'opacity:.55' : ''}"><span class="dot" style="width:20px;height:20px"></span><span><b style="font-size:14px">${T(n)}</b><span>${T(s)}</span></span></div>`).join('')}</div>`;
       const inner = `<div>${radios.map(([b, s, on]) => `<div class="radio ${on ? 'on' : ''}"><span class="dot"></span><span><b>${T(b)}</b>${s ? `<span>${T(s)}</span>` : ''}</span></div>${on ? list : ''}`).join('')}</div>`;

@@ -3367,7 +3367,7 @@ function stockCheckPairs(): Pair[] {
   const main = (page: Page) => page.getByRole('main');
   const sheet = (page: Page) => page.getByRole('dialog').last();
   const pick = async (page: Page, names: string[]) => {
-    await main(page).getByRole('button', { name: 'প্রোডাক্ট বা ক্যাটাগরি বাছুন' }).click();
+    await main(page).getByRole('button', { name: 'প্রোডাক্ট বা ক্যাটাগরি সিলেক্ট করুন' }).click();
     for (const name of names) await sheet(page).getByRole('checkbox', { name }).check();
   };
   const count = async (page: Page) => {
@@ -3438,7 +3438,7 @@ function stockCheckPairs(): Pair[] {
       then: async (page) => {
         await batches(page);
         await main(page)
-          .getByRole('button', { name: 'যেটা পাওয়া যায়নি, তার IMEI বাছুন' })
+          .getByRole('button', { name: 'যেটা পাওয়া যায়নি, তার IMEI সিলেক্ট করুন' })
           .click();
         await sheet(page).getByRole('checkbox').nth(2).check();
       },

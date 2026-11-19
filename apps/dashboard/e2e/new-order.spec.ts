@@ -301,7 +301,7 @@ test('Edit order from the menu: as the order is, a quantity changed, and only wh
       ],
     },
   ]);
-  await expect(main(page)).toContainText('3 pcs × ৳450/pc');
+  await expect(main(page)).toContainText('3 pcs × ৳450');
 });
 
 test('someone who may only read orders has no New order', async ({ page }) => {
@@ -348,7 +348,8 @@ test('what the seller marked asked when ordering comes last, optional; the answe
   });
   // A quote isn't told the answers: they change no price.
   expect(JSON.stringify(sent(log, 'POST', '/orders/quote'))).not.toContain('captured');
-  await expect(main(page)).toContainText('Message on the cake: Happy birthday Mina');
+  // The order shows the answer in quotes, as the customer wrote it (the owner, 2026-11-19).
+  await expect(main(page)).toContainText('Message on the cake: “Happy birthday Mina”');
 });
 
 test('an answer may be left blank; a number asked takes only a number', async ({ page }) => {
@@ -400,5 +401,5 @@ test('Edit order changes an answer, or gives one left blank, and sends only that
       ],
     },
   ]);
-  await expect(main(page)).toContainText('Message on the cake: Happy birthday Rafi');
+  await expect(main(page)).toContainText('Message on the cake: “Happy birthday Rafi”');
 });

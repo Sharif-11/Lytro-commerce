@@ -147,8 +147,8 @@ export const APP_COPY = {
   refit_t: ['{p}-এর অপশন বদলে গেছে', "{p}'s options changed"],
   combo_pick: ['প্রতিটির জন্য একটি বেছে নিন', 'Pick one for each'],
   rule_optional: ['ঐচ্ছিক · সর্বোচ্চ {n}টি', 'Optional · at most {n}'],
-  rule_pick: ['{n}টি বাছুন', 'Pick {n}'],
-  rule_range: ['{a} থেকে {b}টি বাছুন', 'Pick {a} to {b}'],
+  rule_pick: ['{n}টি সিলেক্ট করুন', 'Pick {n}'],
+  rule_range: ['{a} থেকে {b}টি সিলেক্ট করুন', 'Pick {a} to {b}'],
   // The prototype writes these in place, with its example customer.
   name_ph: ['যেমন: রুমানা আক্তার', 'e.g. Rumana Akter'],
   // Slice 4.8e, part 2: words the prototype writes in place.

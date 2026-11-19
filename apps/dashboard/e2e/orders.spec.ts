@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
 import { meghOrders, type OrderFixture } from './support/orders';
+import { drawnSettings } from './support/settings';
 
 // TENANT-DASHBOARD-DESIGN §7.31, Slice 4.8a (the prototype's `orders`, `order` and Part 29; ORD-09 to ORD-52): the list
 // with the day's work first, More with the cancel reasons, the search and the dates; the order with its customer,
@@ -134,9 +135,14 @@ test("the order: who and where, the customer's note, the items with a combo insi
   await expect(main(page)).toContainText('Please call after 2 pm');
   await expect(main(page)).toContainText('4 orders');
   await expect(main(page)).toContainText('No calls yet');
-  await expect(main(page)).toContainText('Inside: Cotton panjabi · M, Check lungi');
-  await expect(main(page)).toContainText('+ Gift wrap ৳50');
-  await expect(main(page)).toContainText('2 pcs × ৳450/pc');
+  // The owner, 2026-11-19: each item at a glance, a combo's items each on its own with its options by name.
+  await expect(main(page)).toContainText('Inside · 2 items');
+  await expect(main(page)).toContainText('Cotton panjabi');
+  await expect(main(page)).toContainText('Size: M');
+  await expect(main(page)).toContainText('1 combo × ৳2,500');
+  await expect(main(page)).toContainText('Add-on: Gift wrap +৳50');
+  await expect(main(page)).toContainText('2 pcs × ৳450');
+  await expect(main(page)).toContainText('Colour: Black');
   await expect(main(page)).toContainText('Delivery · Inside Dhaka');
   await expect(main(page)).toContainText('Includes VAT 5% ৳42.86');
   await expect(main(page)).toContainText('Cash on delivery৳3,470');
@@ -150,6 +156,47 @@ test("the order: who and where, the customer's note, the items with a combo insi
     'tel:+8801711234567',
   );
   await expectAccessible(page);
+});
+
+test("the customer's tracking ID: copied, its link, shared, and sent on WhatsApp (the owner, 2026-11-19)", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  // A computer with no share menu: Share copies the link instead.
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
+  });
+  await open(page, '/orders/o-47');
+  const card = main(page)
+    .locator('div.rounded-card')
+    .filter({ has: page.getByRole('heading', { name: 'Customer tracking', exact: true }) })
+    .last();
+  await expect(card).toContainText('trk-o-47');
+  const link = card.getByRole('link', { name: /\/track\/trk-o-47/ });
+  await expect(link).toHaveAttribute('href', /\/track\/trk-o-47$/);
+  const url = (await link.getAttribute('href')) ?? '';
+  await card.getByRole('button', { name: 'Copy' }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('trk-o-47');
+  await card.getByRole('button', { name: 'Share' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Tracking link copied' })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(url);
+  const message = `Track your order #261031-0047: ${url}`;
+  await expect(card.getByRole('link', { name: 'Send on WhatsApp' })).toHaveAttribute(
+    'href',
+    `https://wa.me/8801711234567?text=${encodeURIComponent(message)}`,
+  );
+  await expect(card).toContainText(`WhatsApp gets: “${message}”`);
+});
+
+test('no tracking card while the storefront is off, as the tracking page is its', async ({
+  page,
+}) => {
+  await open(page, '/orders/o-47', {
+    settings: { ...drawnSettings('en'), storefrontEnabled: false },
+  });
+  await expect(main(page)).toContainText('Nusrat Jahan');
+  await expect(main(page).getByRole('heading', { name: 'Customer tracking' })).toHaveCount(0);
 });
 
 test('a call is logged as it went: no answer keeps the order and counts the call; confirmed confirms it', async ({

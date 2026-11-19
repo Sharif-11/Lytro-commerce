@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
-import { DRAWN_BELL, type NoticesFixture } from './support/phase7';
+import { DRAWN_BELL, type BellFixture, type NoticesFixture } from './support/phase7';
 
 // TENANT-DASHBOARD-DESIGN §7.40, Phase 7 Slice 7.7 (Part 37): Lytro's notices -- Notices in Menu with its count, the board
 // pinned first with its categories and search, a notice with "I understand" for the owner only, a notice only in the other
@@ -236,6 +236,93 @@ test.describe('A narrow phone (NTC-19)', () => {
 });
 
 test.describe('Notifications settings', () => {
+  test('a sharp sound when a new notification comes; on to start, off on this device, heard on Play (the owner, 2026-11-19)', async ({
+    page,
+  }) => {
+    // The browser's audio, counted: each note the chime plays, and the count on the installed app's icon.
+    await page.addInitScript(() => {
+      const seen = window as unknown as { tones: number[]; badge: number | null };
+      seen.tones = [];
+      seen.badge = null;
+      class CountedAudio {
+        currentTime = 0;
+        destination = {};
+        resume(): Promise<void> {
+          return Promise.resolve();
+        }
+        createOscillator(): object {
+          const tone = {
+            type: '',
+            frequency: { value: 0 },
+            connect: (next: unknown) => next,
+            start: () => {
+              seen.tones.push(tone.frequency.value);
+            },
+            stop: () => undefined,
+          };
+          return tone;
+        }
+        createGain(): object {
+          return {
+            gain: {
+              setValueAtTime: () => undefined,
+              exponentialRampToValueAtTime: () => undefined,
+            },
+            connect: (next: unknown) => next,
+          };
+        }
+      }
+      (window as unknown as { AudioContext: unknown }).AudioContext = CountedAudio;
+      (navigator as unknown as { setAppBadge: (n: number) => Promise<void> }).setAppBadge = (n) => {
+        seen.badge = n;
+        return Promise.resolve();
+      };
+    });
+    // The mock keeps this very list, so a row added to it is the server's next answer.
+    const bell: BellFixture = [['verify', true, 30]];
+    await open(page, '/settings/notifications', { phase7: { bell } });
+    const tones = () =>
+      page.evaluate(() => (window as unknown as { tones: number[] }).tones.length);
+    const comes = async (): Promise<void> => {
+      bell.unshift(['placed', true, 0.2]);
+      // The bell looks again when the page comes back into view, as it does each minute.
+      await page.evaluate(() => {
+        window.dispatchEvent(new Event('visibilitychange'));
+      });
+    };
+    const sound = main(page).getByRole('switch', { name: 'Sound for a new notification' });
+    await expect(sound).toHaveAttribute('aria-checked', 'true');
+    // What was there when the page opened is never announced; the icon shows the unread count.
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { badge: number | null }).badge))
+      .toBe(1);
+    expect(await tones()).toBe(0);
+    // A new one: the two notes.
+    await comes();
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { badge: number | null }).badge))
+      .toBe(2);
+    await expect.poll(tones).toBe(2);
+    // Play the sound, whatever the switch says.
+    await main(page).getByRole('button', { name: 'Play the sound' }).click();
+    await expect.poll(tones).toBe(4);
+    await expect(
+      page.getByRole('status').filter({ hasText: 'This is how it sounds' }),
+    ).toBeVisible();
+    // Off on this device: a new one comes quietly, and it stays off after a reload.
+    await sound.click();
+    await expect(sound).toHaveAttribute('aria-checked', 'false');
+    await comes();
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { badge: number | null }).badge))
+      .toBe(3);
+    expect(await tones()).toBe(4);
+    await page.reload();
+    await expect(
+      main(page).getByRole('switch', { name: 'Sound for a new notification' }),
+    ).toHaveAttribute('aria-checked', 'false');
+  });
+
   test('a switch covers the bell and push; money and account are always on', async ({ page }) => {
     const log = await open(page, '/settings/notifications');
     await expect(main(page).getByText('Always on').first()).toBeVisible();
@@ -297,7 +384,11 @@ test.describe('Notifications settings', () => {
     await expect(
       main(page).getByText('Only news of what your role can see reaches you.'),
     ).toBeVisible();
-    await expect(main(page).getByRole('switch')).toHaveCount(4);
+    // The kinds their role hears, and this device's sound.
+    await expect(main(page).getByRole('switch')).toHaveCount(5);
+    await expect(
+      main(page).getByRole('switch', { name: 'Sound for a new notification' }),
+    ).toBeVisible();
     await expect(main(page).getByRole('heading', { name: 'Email' })).toHaveCount(0);
   });
 

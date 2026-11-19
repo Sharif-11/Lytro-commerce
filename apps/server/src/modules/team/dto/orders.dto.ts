@@ -149,6 +149,12 @@ const orderItemSchema = z.object({
         }),
       ),
       quantity: z.string(),
+      // The owner, 2026-11-19: each item inside a combo with its own SKU, unit and photo.
+      sku: z.string().nullable(),
+      stockUnit: z.enum(StockUnit),
+      thumbnail: z
+        .object({ mediaId: z.string(), url: z.string(), largeUrl: z.string() })
+        .nullable(),
     }),
   ),
 });

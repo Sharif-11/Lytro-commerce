@@ -5,6 +5,7 @@ import {
   ProductKind,
   ServerFieldProblemCode,
   type CreateOrderInput,
+  type StockUnit,
 } from '@lytronix/validators';
 import { ApiError, FieldsError, type InvalidField } from '../../../common/api-error';
 import type { OrderableVariant } from '../../catalogue/types/catalogue';
@@ -28,6 +29,11 @@ export interface PlannedComponent {
   productName: string;
   attributeValues: LineAttributeSnapshot[];
   quantity: string;
+  /** The owner, 2026-11-19: its SKU, unit and first photo as ordered, as a line keeps its own (ORD-46, ORD-47). */
+  sku: string | null;
+  stockUnit: StockUnit | null;
+  thumbnailMediaId: string | null;
+  thumbnailUrl: string | null;
 }
 
 /** What a line holds: its own variant, or a combo's components (PRD-07, INV-15, CMB-03). */
@@ -175,6 +181,10 @@ export class OrderCombos {
             productName: snapshot?.productName ?? row.productName,
             attributeValues: snapshot?.attributes ?? [],
             quantity: quantityOf(units),
+            sku: snapshot?.sku ?? null,
+            stockUnit: snapshot?.stockUnit ?? null,
+            thumbnailMediaId: snapshot?.thumbnail?.mediaId ?? null,
+            thumbnailUrl: snapshot?.thumbnail?.url ?? null,
           };
         }),
       ]),

@@ -322,6 +322,102 @@ test.describe('Settings › Couriers', () => {
     await expect(main(page).getByRole('button', { name: /^Pickup store/ })).toContainText('Uttara');
   });
 
+  test("a pickup store is added in Pathao from Lytro: what it needs, its places in turn, then it's the one in use", async ({
+    page,
+  }) => {
+    const log = await open(page, '/settings/couriers/pathao', { couriers: couriers() });
+    await main(page)
+      .getByRole('button', { name: /^Pickup store/ })
+      .click();
+    const stores = dialog(page, 'Pickup store');
+    await expect(stores).toContainText(
+      'Changing or removing a store is done in Pathao’s merchant panel; Pathao doesn’t let Lytro do those.',
+    );
+    await stores.getByRole('button', { name: /^Add a pickup store/ }).click();
+    const form = dialog(page, 'New pickup store');
+    // What Pathao would refuse is said first, field by field, and nothing is sent.
+    await form.getByRole('button', { name: 'Add in Pathao' }).click();
+    await expect(form.getByText('At least 15 letters: house, road, area')).toBeVisible();
+    await expect(form.getByText('Enter an 11-digit mobile number')).toBeVisible();
+    expect(sent(log, 'POST', '/couriers/connections/pathao/stores')).toEqual([]);
+
+    await form.getByLabel('Store name').fill('Megh Fashion · Dhanmondi');
+    await form.getByLabel('Contact person').fill('Rumana Akter');
+    await form.getByLabel('Mobile number').fill('1711 234 567');
+    // A city's zones, then a zone's areas, each once the one before is chosen.
+    await expect(form.getByLabel('Zone')).toBeDisabled();
+    await form.getByLabel('City').selectOption({ label: 'Dhaka' });
+    await form.getByLabel('Zone').selectOption({ label: 'Dhanmondi' });
+    await form.getByLabel('Area').selectOption({ label: 'Dhanmondi 27' });
+    await form.getByLabel('Address').fill('House 21, Road 27, Dhanmondi');
+    await expect(
+      form.getByRole('checkbox', { name: /^Bookings leave from this store/ }),
+    ).toBeChecked();
+    await expect(form).toContainText('Now: Megh Fashion · Mirpur');
+    await expectAccessible(page);
+    await form.getByRole('button', { name: 'Add in Pathao' }).click();
+    await expect
+      .poll(() => sent(log, 'POST', '/couriers/connections/pathao/stores'))
+      .toEqual([
+        {
+          storeName: 'Megh Fashion · Dhanmondi',
+          contactName: 'Rumana Akter',
+          contactNumber: '01711234567',
+          storeAddress: 'House 21, Road 27, Dhanmondi',
+          cityId: '1',
+          zoneId: '298',
+          areaId: '3069',
+          use: true,
+        },
+      ]);
+    await expect(
+      page.getByRole('status').filter({ hasText: 'Store added. Bookings now leave from it.' }),
+    ).toBeVisible();
+    await expect(main(page).getByRole('button', { name: /^Pickup store/ })).toContainText(
+      'Dhanmondi',
+    );
+  });
+
+  test('a new store Pathao has not switched on waits, and the store in use stays; none at all asks for one', async ({
+    page,
+  }) => {
+    await open(page, '/settings/couriers/pathao', {
+      couriers: { ...couriers(), newStoresWaiting: true },
+    });
+    await main(page)
+      .getByRole('button', { name: /^Pickup store/ })
+      .click();
+    await dialog(page, 'Pickup store')
+      .getByRole('button', { name: /^Add a pickup store/ })
+      .click();
+    const form = dialog(page, 'New pickup store');
+    await form.getByLabel('Store name').fill('Megh Fashion · Dhanmondi');
+    await form.getByLabel('Mobile number').fill('01711234567');
+    await form.getByLabel('City').selectOption({ label: 'Dhaka' });
+    await form.getByLabel('Zone').selectOption({ label: 'Dhanmondi' });
+    await form.getByLabel('Area').selectOption({ label: 'Dhanmondi 27' });
+    await form.getByLabel('Address').fill('House 21, Road 27, Dhanmondi');
+    await form.getByRole('button', { name: 'Add in Pathao' }).click();
+    const stores = dialog(page, 'Pickup store');
+    await expect(stores).toContainText(
+      'The store is added in Pathao, but Pathao hasn’t switched it on yet. Once it does, you can choose it here; until then bookings leave from Megh Fashion · Mirpur.',
+    );
+    await expect(stores.getByRole('radio', { name: /Megh Fashion · Dhanmondi/ })).toBeDisabled();
+    await stores.getByRole('button', { name: 'Close' }).click();
+    await expect(main(page).getByRole('button', { name: /^Pickup store/ })).toContainText('Mirpur');
+  });
+
+  test('a Pathao account with no store asks for one first', async ({ page }) => {
+    await open(page, '/settings/couriers/pathao', { couriers: { ...couriers(), stores: [] } });
+    await main(page)
+      .getByRole('button', { name: /^Pickup store/ })
+      .click();
+    const stores = dialog(page, 'Pickup store');
+    await expect(stores).toContainText('Your Pathao account has no store yet');
+    await stores.getByRole('button', { name: /Add a pickup store/ }).click();
+    await expect(dialog(page, 'New pickup store')).toBeVisible();
+  });
+
   test('the address again, and a new one that stops the old at once', async ({ page }) => {
     const log = await open(page, '/settings/couriers/pathao', { couriers: couriers() });
     await main(page)

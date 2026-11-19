@@ -1,16 +1,4 @@
-import {
-  and,
-  asc,
-  count,
-  countDistinct,
-  desc,
-  eq,
-  inArray,
-  isNull,
-  lt,
-  or,
-  sql,
-} from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import { MediaStatus, type MediaKind, type MediaPurpose } from '@lytronix/validators';
 import {
   attributeOptions,
@@ -19,7 +7,6 @@ import {
   media,
   mediaObjects,
   mediaReconciliations,
-  orderLines,
   productImages,
   products,
   shopSettings,
@@ -341,12 +328,17 @@ export class MediaRepository {
         .from(shopSettings)
         .where(and(eq(shopSettings.tenantId, tenantId), eq(shopSettings.logoMediaId, id))),
     );
-    const pastOrders = await counted(
-      tx
-        .select({ n: countDistinct(orderLines.orderId) })
-        .from(orderLines)
-        .where(and(eq(orderLines.tenantId, tenantId), eq(orderLines.thumbnailMediaId, id))),
-    );
+    // ATR-20 (PD-8): the orders showing it, on a line or on an item inside a combo (the owner, 2026-11-19), each once.
+    const shown = await tx.execute<{ n: number }>(sql`
+      SELECT count(*)::int AS n FROM (
+        SELECT l.order_id FROM tenant.order_lines l
+         WHERE l.tenant_id = ${tenantId} AND l.thumbnail_media_id = ${id}
+        UNION
+        SELECT l.order_id FROM tenant.order_line_components c
+          JOIN tenant.order_lines l ON l.tenant_id = c.tenant_id AND l.id = c.order_line_id
+         WHERE c.tenant_id = ${tenantId} AND c.thumbnail_media_id = ${id}
+      ) AS shown`);
+    const pastOrders = shown.rows[0]?.n ?? 0;
     const brands = await counted(
       tx
         .select({ n: count() })

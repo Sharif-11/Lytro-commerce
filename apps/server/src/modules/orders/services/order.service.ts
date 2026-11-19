@@ -27,6 +27,7 @@ import {
   SHIPPED_FULFILLMENT,
   SmsEvent,
   StatusOverride,
+  StockUnit,
   visibleOrderStatus,
   type CancelOrderInput,
   CancelReason,
@@ -62,6 +63,7 @@ import type {
   LineCapturedSnapshot,
   LineModifierSnapshot,
   NewOrderLine,
+  OrderComponentView,
   OrderCreated,
   OrderItemView,
   OrderLineRecord,
@@ -202,18 +204,50 @@ function totalsOf(
   };
 }
 
-function itemView(line: OrderLineRecord, components: SelectOrderLineComponent[]): OrderItemView {
+/** ORD-47: a photo as an order keeps it, with its large rendition for the lightbox. */
+function pictureOf(
+  mediaId: string | null,
+  url: string | null,
+): { mediaId: string; url: string; largeUrl: string } | null {
+  return mediaId !== null && url !== null ? { mediaId, url, largeUrl: largeImageUrlOf(url) } : null;
+}
+
+/**
+ * The owner, 2026-11-19: a combo's item as ordered, with its SKU, unit and photo. A component written before those were
+ * kept (its unit is null) shows its variant's current ones, from `current`.
+ */
+function componentView(
+  component: SelectOrderLineComponent,
+  current: ReadonlyMap<string, OrderableVariant>,
+): OrderComponentView {
+  const now =
+    component.stockUnit === null && component.variantId !== null
+      ? current.get(component.variantId)
+      : undefined;
+  return {
+    partPosition: component.partPosition,
+    productId: component.productId,
+    variantId: component.variantId,
+    productName: component.productName,
+    attributes: component.attributeValues,
+    quantity: component.quantity,
+    sku: component.sku ?? now?.sku ?? null,
+    stockUnit: component.stockUnit ?? now?.stockUnit ?? StockUnit.Piece,
+    thumbnail:
+      pictureOf(component.thumbnailMediaId, component.thumbnailUrl) ??
+      (now?.thumbnail ? pictureOf(now.thumbnail.mediaId, now.thumbnail.url) : null),
+  };
+}
+
+function itemView(
+  line: OrderLineRecord,
+  components: SelectOrderLineComponent[],
+  current: ReadonlyMap<string, OrderableVariant>,
+): OrderItemView {
   return {
     components: components
       .filter((component) => component.orderLineId === line.id)
-      .map((component) => ({
-        partPosition: component.partPosition,
-        productId: component.productId,
-        variantId: component.variantId,
-        productName: component.productName,
-        attributes: component.attributeValues,
-        quantity: component.quantity,
-      })),
+      .map((component) => componentView(component, current)),
     id: line.id,
     productId: line.productId,
     variantId: line.variantId,
@@ -221,14 +255,7 @@ function itemView(line: OrderLineRecord, components: SelectOrderLineComponent[])
     sku: line.sku,
     attributes: line.attributeValues,
     captured: line.capturedValues,
-    thumbnail:
-      line.thumbnailMediaId !== null && line.thumbnailUrl !== null
-        ? {
-            mediaId: line.thumbnailMediaId,
-            url: line.thumbnailUrl,
-            largeUrl: largeImageUrlOf(line.thumbnailUrl),
-          }
-        : null,
+    thumbnail: pictureOf(line.thumbnailMediaId, line.thumbnailUrl),
     stockUnit: line.stockUnit,
     listPrice: line.listPrice,
     unitPrice: line.unitPrice,
@@ -1707,6 +1734,14 @@ export class OrderService {
       tenantId,
       lines.map((line) => line.id),
     );
+    // Components ordered before their SKU, unit and photo were kept show their variants' current ones.
+    const dated = components.flatMap((component) =>
+      component.stockUnit === null && component.variantId !== null ? [component.variantId] : [],
+    );
+    const current =
+      dated.length > 0
+        ? await this.pricing.variantsWithin(tx, tenantId, dated)
+        : new Map<string, OrderableVariant>();
     const names = await this.staff.namesWithin(tx, tenantId, [
       ...calls.flatMap((call) => (call.calledBy !== null ? [call.calledBy] : [])),
       ...history.flatMap((row) => (row.changedBy !== null ? [row.changedBy] : [])),
@@ -1778,7 +1813,7 @@ export class OrderService {
       createdBy: person(order.createdBy),
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
-      items: lines.map((line) => itemView(line, components)),
+      items: lines.map((line) => itemView(line, components, current)),
       calls: calls.map((call) => ({
         id: call.id,
         outcome: call.outcome,

@@ -51,8 +51,10 @@ import { OrderFraud } from '@/views/fraud/fraud-card';
 import { OrderSmsCard } from '@/views/sms/order-sms';
 import { takeBookedEdit } from './booked-edit';
 import { CourierCard, NotBookedCard } from './courier-card';
+import { ComponentChips, ItemChips } from './item-chips';
+import { TrackingCard } from './tracking-card';
 import { OrderSheets, type OrderSheet } from './order-actions';
-import { autoConfirmed, autoVerified, confirmedByPayment, quantityOf } from './order-auto';
+import { autoConfirmed, autoVerified, confirmedByPayment } from './order-auto';
 import { choicesOf, refundable, voidable } from './order-choices';
 import { atCounter, useOrderWords } from './order-words';
 import { PictureSheet } from './picture-sheet';
@@ -286,6 +288,7 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
           setOpen({ kind: 'call' });
         }}
       />
+      {counter ? null : <TrackingCard order={order} />}
       {counter ? null : <CallsCard calls={order.calls} byPayment={autoConfirmed(order)} />}
       <ItemsCard items={order.items} />
       <PricingCard order={order} />
@@ -582,87 +585,84 @@ function CallsCard({
  * The items as ordered (ORD-46): a combo's items inside it, add-ons with their price, and -- the fixes PR's `fx-items`
  * (2026-11-14) -- each line's SKU and its quantity in its unit times the price of one, the picture opening large.
  */
+/**
+ * The items, each at a glance (the owner, 2026-11-19, the sketch's `oi-items`): its photo, which opens large; its name
+ * and total; then chips -- the design, the SKU, the quantity in its unit, each option by its name. A combo lists what is
+ * inside it the same way, each with its own photo.
+ */
 function ItemsCard({ items }: { items: OrderItem[] }): React.JSX.Element {
   const { t } = useTranslation('orders');
-  const words = useOrderWords();
   const [large, setLarge] = useState<string | null>(null);
   const pictured = items.some((item) => item.thumbnail !== null);
+  const photoClass =
+    'float-left mr-3 mb-1.5 flex size-16 items-center justify-center overflow-hidden rounded-[10px] bg-gradient-to-br from-neutral-100 to-neutral-200 text-neutral-400';
   return (
     <Card flush>
       <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-1">
-        <h3 className="text-[16px] font-semibold">{t('itemsTitle')}</h3>
+        <h3 className="text-[16px] font-semibold">
+          {t('itemsTitle')}{' '}
+          <span
+            aria-hidden="true"
+            className="num ml-1 inline-grid h-[22px] min-w-6 place-items-center rounded-full bg-neutral-100 px-[7px] align-[2px] text-[13px] font-semibold text-fg-muted"
+          >
+            {items.length}
+          </span>
+        </h3>
         {pictured ? <span className="text-[14px] text-fg-muted">{t('tapLarge')}</span> : null}
       </div>
       <RowList>
-        {items.map((item) => {
-          const variant = words.variant(item);
-          const quantity = quantityOf(item);
-          return (
-            <div key={item.id} className="flex min-h-[72px] items-start gap-3 px-4 py-3">
-              {item.thumbnail ? (
-                <button
-                  type="button"
-                  aria-label={t('tapLarge')}
-                  onClick={() => {
-                    setLarge(item.id);
-                  }}
-                  className="flex size-12 flex-none cursor-zoom-in items-center justify-center overflow-hidden rounded-button bg-gradient-to-br from-neutral-100 to-neutral-200 text-neutral-400"
-                >
-                  <ItemPicture url={item.thumbnail.url} />
-                </button>
-              ) : (
-                <span className="flex size-12 flex-none items-center justify-center overflow-hidden rounded-button bg-gradient-to-br from-neutral-100 to-neutral-200 text-neutral-400">
-                  <ItemPicture url={null} />
-                </span>
-              )}
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="text-[16px] font-medium">
-                  {item.productName}
-                  {item.components.length > 0 ? (
-                    <>
-                      {' '}
-                      <StatusTag tone="neutral">{t('combo')}</StatusTag>
-                    </>
-                  ) : null}
-                </span>
-                {variant ? <span className="text-[14px] text-fg-muted">{variant}</span> : null}
-                {/* PD-9 (Part 40's `pd-order`), and every line since the fixes PR: its SKU, as the label has it. */}
-                {item.sku ? (
-                  <span className="text-[14px] text-fg-muted">
-                    SKU <span className="font-mono text-[13px] tracking-[0.02em]">{item.sku}</span>
-                  </span>
-                ) : null}
-                {item.components.length > 0 ? (
-                  <span className="text-[14px] text-fg-muted">
-                    {t('inside', { items: words.inside(item) })}
-                  </span>
-                ) : null}
-                {item.modifiers.map((modifier) => (
-                  <span key={modifier.optionId} className="text-[14px] text-fg-muted">
-                    {t('addOn', { name: modifier.optionName })}{' '}
-                    {Number(modifier.priceChange) !== 0 ? (
-                      <span className="num">{formatTaka(modifier.priceChange)}</span>
-                    ) : null}
-                  </span>
-                ))}
-                <span className="num text-[14px] text-fg-muted">
-                  <b className="font-semibold text-fg">
-                    {t(`qty_${quantity.unit}`, { n: quantity.amount })}
-                  </b>{' '}
-                  × {formatTaka(item.unitPrice)}/{t(`per_${quantity.unit}`)}
-                </span>
-                {Number(item.returnedQuantity) > 0 ? (
-                  <span className="text-[14px] text-fg-muted">
-                    {t('backN', { count: Number(item.returnedQuantity) })}
-                  </span>
-                ) : null}
+        {items.map((item) => (
+          <div key={item.id} className="flow-root px-4 pt-3 pb-1.5">
+            {item.thumbnail ? (
+              <button
+                type="button"
+                aria-label={t('tapLarge')}
+                onClick={() => {
+                  setLarge(item.id);
+                }}
+                className={`${photoClass} cursor-zoom-in`}
+              >
+                <ItemPicture url={item.thumbnail.url} />
+              </button>
+            ) : (
+              <span className={photoClass}>
+                <ItemPicture url={null} />
               </span>
-              <span className="num flex-none text-[16px] font-semibold">
-                {formatTaka(item.itemTotal)}
-              </span>
+            )}
+            <div className="mb-1.5 text-[16px] leading-[1.35]">
+              <b className="num float-right ml-2.5 font-semibold">{formatTaka(item.itemTotal)}</b>
+              <span className="font-semibold [overflow-wrap:anywhere]">{item.productName}</span>
+              {item.components.length > 0 ? (
+                <>
+                  {' '}
+                  <StatusTag tone="neutral">{t('combo')}</StatusTag>
+                </>
+              ) : null}
             </div>
-          );
-        })}
+            <ItemChips item={item} />
+            {item.components.length > 0 ? (
+              <div className="clear-both mt-0.5 mb-1.5 flex flex-col gap-1.5 border-l-[3px] border-neutral-200 pl-3">
+                <div className="text-[14px] font-semibold text-fg-muted">
+                  {t('insideN', { count: item.components.length })}
+                </div>
+                {item.components.map((part) => (
+                  <div
+                    key={`${String(part.partPosition)}-${part.variantId ?? part.productName}`}
+                    className="flow-root"
+                  >
+                    <span className="float-left mr-2.5 mb-1.5 flex size-10 items-center justify-center overflow-hidden rounded-[8px] bg-gradient-to-br from-neutral-100 to-neutral-200 text-neutral-400">
+                      <ItemPicture url={part.thumbnail?.url ?? null} />
+                    </span>
+                    <div className="mb-1 text-[15px] leading-[1.35] font-semibold [overflow-wrap:anywhere]">
+                      {part.productName}
+                    </div>
+                    <ComponentChips component={part} combos={item.quantity} />
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ))}
       </RowList>
       <PictureSheet
         items={items}

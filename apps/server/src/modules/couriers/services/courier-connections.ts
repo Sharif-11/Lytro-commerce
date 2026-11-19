@@ -8,9 +8,11 @@ import {
   CourierConnectionState,
   CourierMessagesState,
   FieldProblemCode,
+  type AddPickupStoreInput,
   type ConnectCourierInput,
   type CourierKey,
   type SetPickupStoreInput,
+  type StorePlacesQuery,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
@@ -27,8 +29,11 @@ import {
   PICKUP_STORE_NAME,
   type CourierAccount,
   type CourierAdapter,
+  type CourierRefusal,
   type LogInAnswer,
   type PickupStore,
+  type StorePlace,
+  type StorePlaceLevel,
 } from '../ports/courier-adapter';
 import type { CourierAdapterStore } from '../ports/courier-adapter-store';
 import type { CourierNotifier } from '../ports/courier-notifier';
@@ -55,6 +60,8 @@ export interface CourierAdapterView {
   needsThana: boolean;
   /** Read agreed 2026-11-05: its bookings leave from one store, chosen for the connection. */
   hasStores: boolean;
+  /** The owner, 2026-11-19: a new pickup store can be made in it from Lytro. */
+  addsStores: boolean;
   takesWeight: boolean;
   /** D6-8: it can be cancelled from Lytro; otherwise staff confirm they did it in its panel. */
   canCancel: boolean;
@@ -149,6 +156,7 @@ export class CourierConnections {
         needsArea: adapter.needsArea,
         needsThana: adapter.needsThana,
         hasStores: adapter.pickupStores !== undefined,
+        addsStores: adapter.addPickupStore !== undefined,
         takesWeight: adapter.limits.weightKg !== null,
         canCancel: adapter.cancel !== undefined,
         retiring: this.stateOf(states, adapter.key) === RetireState.Retiring,
@@ -435,12 +443,7 @@ export class CourierConnections {
   ): Promise<{ stores: PickupStore[]; chosenId: string | null }> {
     const adapter = this.adapterOf(courierKey);
     if (!adapter.pickupStores) throw new ApiError('not_found', 'CourierHasNoStores', {});
-    await this.renewIfDue(tenantId, courierKey);
-    const row = await this.store.run(tenantId, (tx) =>
-      this.store.findConnection(tx, tenantId, courierKey),
-    );
-    if (!row) throw new ApiError('not_found', 'CourierNotConnected', {});
-    const { account } = this.opened(row, tenantId);
+    const { account } = await this.accountOf(tenantId, courierKey);
     return {
       stores: await this.storesOf(adapter, account),
       chosenId: account.credentials[PICKUP_STORE_ID] ?? null,
@@ -494,6 +497,75 @@ export class CourierConnections {
         await this.backOf(tx, tenantId),
       );
     });
+  }
+
+  /** The owner, 2026-11-19: the courier's cities; a city's zones; a zone's areas it collects from. A new store names one of each. */
+  async storePlaces(
+    tenantId: string,
+    courierKey: CourierKey,
+    query: StorePlacesQuery,
+  ): Promise<{ places: StorePlace[] }> {
+    const adapter = this.adapterOf(courierKey);
+    const storePlaces = adapter.storePlaces?.bind(adapter);
+    if (!storePlaces) throw new ApiError('not_found', 'CourierCannotAddStores', {});
+    const which: StorePlaceLevel =
+      query.zoneId !== undefined
+        ? { level: 'area', zoneId: query.zoneId }
+        : query.cityId !== undefined
+          ? { level: 'zone', cityId: query.cityId }
+          : { level: 'city' };
+    const { account } = await this.accountOf(tenantId, courierKey);
+    const answer = await this.asked(adapter, account, () => storePlaces(account, which));
+    return { places: answer.places };
+  }
+
+  /**
+   * The owner, 2026-11-19: a new pickup store, made in the courier's own account. With `use`, it becomes the store bookings
+   * leave from as soon as the courier lists it as active; until then the store in use stays (the sketch's `sh-ps-waiting`).
+   */
+  async addPickupStore(
+    tenantId: string,
+    courierKey: CourierKey,
+    input: AddPickupStoreInput,
+    actor: CatalogueActor,
+  ): Promise<{ stores: PickupStore[]; chosenId: string | null; addedId: string | null }> {
+    const adapter = this.adapterOf(courierKey);
+    const addPickupStore = adapter.addPickupStore?.bind(adapter);
+    if (!addPickupStore) throw new ApiError('not_found', 'CourierCannotAddStores', {});
+    const who = await this.activity.resolve(tenantId, actor);
+    const { row, account } = await this.accountOf(tenantId, courierKey);
+    const added = await this.asked(adapter, account, () =>
+      addPickupStore(account, {
+        name: input.storeName,
+        contactName: input.contactName,
+        contactNumber: input.contactNumber,
+        address: input.storeAddress,
+        cityId: input.cityId,
+        zoneId: input.zoneId,
+        areaId: input.areaId,
+      }),
+    );
+    await this.store.run(tenantId, (tx) =>
+      this.activity.record(
+        tx,
+        tenantId,
+        who,
+        AuditAction.CourierPickupStoreAdded,
+        { type: 'courier', id: row.id },
+        { courierKey, storeId: added.storeId, storeName: input.storeName },
+      ),
+    );
+    const listed = await this.pickupStores(tenantId, courierKey);
+    // Its id when the courier gave one; otherwise the newest store of that name.
+    const store =
+      listed.stores.find((each) => each.id === added.storeId) ??
+      listed.stores.filter((each) => each.name === input.storeName).at(-1) ??
+      null;
+    if (input.use && store?.active === true && store.id !== listed.chosenId) {
+      await this.setPickupStore(tenantId, courierKey, { storeId: store.id }, actor);
+      return { stores: listed.stores, chosenId: store.id, addedId: store.id };
+    }
+    return { ...listed, addedId: store?.id ?? added.storeId };
   }
 
   /** LIF-19: the day-60 deletion's couriers step. */
@@ -594,6 +666,31 @@ export class CourierConnections {
   private async storesOf(adapter: CourierAdapter, account: CourierAccount): Promise<PickupStore[]> {
     const pickupStores = adapter.pickupStores?.bind(adapter);
     if (!pickupStores) return [];
+    return (await this.asked(adapter, account, () => pickupStores(account))).stores;
+  }
+
+  /** A connection opened for one call to its courier, its login renewed first if due. */
+  private async accountOf(
+    tenantId: string,
+    courierKey: CourierKey,
+  ): Promise<{ row: SelectCourierConnection; account: CourierAccount }> {
+    await this.renewIfDue(tenantId, courierKey);
+    const row = await this.store.run(tenantId, (tx) =>
+      this.store.findConnection(tx, tenantId, courierKey),
+    );
+    if (!row) throw new ApiError('not_found', 'CourierNotConnected', {});
+    return { row, account: this.opened(row, tenantId).account };
+  }
+
+  /**
+   * One call about a shop's stores, logged as the store list's are (a harmless `test`, which a store made from here
+   * shares, as nothing is booked); a refusal in the courier's words, no answer as the courier not answering.
+   */
+  private async asked<A extends { outcome: string }>(
+    adapter: CourierAdapter,
+    account: CourierAccount,
+    call: () => Promise<A>,
+  ): Promise<Exclude<A, { outcome: 'refused' }>> {
     try {
       const answer = await this.calls.run(
         adapter,
@@ -603,10 +700,10 @@ export class CourierConnections {
           orderId: null,
           action: CourierCallAction.Test,
         },
-        () => pickupStores(account),
+        call,
       );
-      if (answer.outcome === 'found') return answer.stores;
-      const { message } = answer.refusal;
+      if (answer.outcome !== 'refused') return answer as Exclude<A, { outcome: 'refused' }>;
+      const { message } = (answer as unknown as { refusal: CourierRefusal }).refusal;
       throw new ApiError(
         'conflict',
         message === null ? 'CourierRefusedNoReason' : 'CourierRefused',

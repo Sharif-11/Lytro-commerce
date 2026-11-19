@@ -409,10 +409,10 @@ const RECENT = () => receipt('2:41 PM', '3,490', '9KL2M4PQ7X', 'rMatched', 'good
   + receipt('9:47 AM', '850', '8NP4D6GS3E', 'rDup', 'plain', 'check');
 
 const MAKER = {
-  xiaomi: ['Xiaomi', ['সেটিংস → অ্যাপ → Lytro Listener', 'Settings → Apps → Lytro Listener'], ['Autostart চালু করুন, Battery saver-এ “No restrictions” বাছুন', 'Turn on Autostart; under Battery saver choose “No restrictions”']],
+  xiaomi: ['Xiaomi', ['সেটিংস → অ্যাপ → Lytro Listener', 'Settings → Apps → Lytro Listener'], ['Autostart চালু করুন, Battery saver-এ “No restrictions” সিলেক্ট করুন', 'Turn on Autostart; under Battery saver choose “No restrictions”']],
   oppo: ['Oppo', ['সেটিংস → অ্যাপ ম্যানেজমেন্ট → Lytro Listener', 'Settings → App management → Lytro Listener'], ['Battery usage-এ “Allow background activity” ও “Auto launch” চালু করুন', 'Under Battery usage turn on “Allow background activity” and “Auto launch”']],
   vivo: ['Vivo', ['সেটিংস → ব্যাটারি → Background power consumption', 'Settings → Battery → Background power consumption'], ['Lytro Listener-কে “Allow” করুন; i Manager-এ Autostart চালু করুন', 'Allow Lytro Listener; turn on Autostart in i Manager']],
-  samsung: ['Samsung', ['সেটিংস → অ্যাপ → Lytro Listener → ব্যাটারি', 'Settings → Apps → Lytro Listener → Battery'], ['“Unrestricted” বাছুন', 'Choose “Unrestricted”']],
+  samsung: ['Samsung', ['সেটিংস → অ্যাপ → Lytro Listener → ব্যাটারি', 'Settings → Apps → Lytro Listener → Battery'], ['“Unrestricted” সিলেক্ট করুন', 'Choose “Unrestricted”']],
 };
 
 const dlg = (icon, text, yes, no, go) => `<div class="scrim"><div class="dlg"><div class="ic">${ic(icon)}</div><p>${text}</p><button data-go="${go}">${yes}</button><button data-go="${go}">${no}</button></div></div>`;

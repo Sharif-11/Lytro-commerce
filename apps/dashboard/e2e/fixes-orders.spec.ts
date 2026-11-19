@@ -239,18 +239,25 @@ test('a gateway payment has no Void; a staff-verified one beside it keeps Void',
   await expect(page.getByRole('dialog', { name: 'Void this payment?' })).toBeVisible();
 });
 
-test('each item names its SKU, its quantity in its unit and the price of one', async ({ page }) => {
+test('each item names its design, SKU, quantity in its unit with the price of one, and each option by name', async ({
+  page,
+}) => {
   await open(page, '/orders/o-48');
   const items = card(page, 'Items');
   await expect(items).toContainText('Tap a picture to see it large');
   await expect(items).toContainText('SKU IB-D2-M');
-  await expect(items).toContainText('1 pcs × ৳2,450/pc');
+  // The owner, 2026-11-19: chips, the design first, then each option as "Name: value".
+  await expect(items).toContainText('Design 2');
+  await expect(items).toContainText('Size: M');
+  await expect(items).toContainText('1 pcs × ৳2,450');
   await expect(items).toContainText('SKU TS-L-BL');
-  await expect(items).toContainText('2 pcs × ৳450/pc');
+  await expect(items).toContainText('2 pcs × ৳450');
+  await expect(items).toContainText('Size: L');
+  await expect(items).toContainText('Colour: Black');
   await expect(items).toContainText('৳900');
   // Sold by weight: a kilo and a half, at the price of a kilo.
   await expect(items).toContainText('SKU RICE-MK');
-  await expect(items).toContainText('1.5 kg × ৳78/kg');
+  await expect(items).toContainText('1.5 kg × ৳78');
   await expect(items).toContainText('৳117');
 });
 
@@ -263,7 +270,7 @@ test('an item’s picture opens large, with the next and the previous across the
   const pictures = items.getByRole('button', { name: 'Tap a picture to see it large' });
   await expect(pictures).toHaveCount(2);
   await pictures.first().click();
-  const large = page.getByRole('dialog', { name: 'Irani burka · Design 2 · M' });
+  const large = page.getByRole('dialog', { name: 'Irani burka' });
   await expect(large).toBeVisible();
   await expect(large.locator('img[src$="pic-burka-large.png"]')).toBeVisible();
   await expect(large).toContainText('1 of 2');
@@ -272,14 +279,12 @@ test('an item’s picture opens large, with the next and the previous across the
   await expect(large.getByRole('button', { name: 'Previous picture' })).toBeDisabled();
 
   await large.getByRole('button', { name: 'Next picture' }).click();
-  const next = page.getByRole('dialog', { name: 'Cotton T-shirt · L · Black' });
+  const next = page.getByRole('dialog', { name: 'Cotton T-shirt' });
   await expect(next.locator('img[src$="pic-shirt-large.png"]')).toBeVisible();
   await expect(next).toContainText('2 of 2');
   await expect(next.getByRole('button', { name: 'Next picture' })).toBeDisabled();
   await next.getByRole('button', { name: 'Previous picture' }).click();
-  await expect(page.getByRole('dialog', { name: 'Irani burka · Design 2 · M' })).toContainText(
-    '1 of 2',
-  );
+  await expect(page.getByRole('dialog', { name: 'Irani burka' })).toContainText('1 of 2');
 });
 
 test('a booked order shows its tracking code and link, each with Copy', async ({
@@ -325,11 +330,19 @@ test('in Bangla: the tab, the tag, the lines and the lock say what the sketch sa
   await expect(main(page)).toContainText('নিজে থেকে ভেরিফাইড');
   await expect(main(page)).toContainText('লিসেনার SMS মিলিয়েছে');
   await expect(main(page)).toContainText('নিজে থেকে ভেরিফাই হওয়া পেমেন্ট ভয়েড করা যায় না।');
-  await expect(main(page)).toContainText('2 পিস × ৳450/পিস');
-  await expect(main(page)).toContainText('1.5 কেজি × ৳78/কেজি');
+  await expect(main(page)).toContainText('2 পিস × ৳450');
+  await expect(main(page)).toContainText('1.5 কেজি × ৳78');
+  await expect(main(page)).toContainText('সাইজ: L');
   await expect(main(page)).toContainText('ছবিতে চাপ দিলে বড় হবে');
   await page.goto(`/${SLUG}/orders/o-42`);
   await expect(main(page)).toContainText('ট্র্যাকিং কোড');
   await expect(main(page)).toContainText('ট্র্যাকিং লিংক');
-  await expect(main(page).getByRole('button', { name: 'কপি' })).toHaveCount(2);
+  // The courier card's two; the customer's tracking card has its own.
+  await expect(
+    main(page)
+      .locator('div.rounded-card')
+      .filter({ hasText: 'ট্র্যাকিং লিংক' })
+      .last()
+      .getByRole('button', { name: 'কপি' }),
+  ).toHaveCount(2);
 });

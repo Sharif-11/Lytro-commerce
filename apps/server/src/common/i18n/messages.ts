@@ -1794,11 +1794,11 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   },
   OfferHasNoProducts: {
     en: 'This offer has no products left. Pick some first.',
-    bn: 'এই অফারে আর কোনো প্রোডাক্ট নেই। আগে প্রোডাক্ট বাছুন।',
+    bn: 'এই অফারে আর কোনো প্রোডাক্ট নেই। আগে প্রোডাক্ট সিলেক্ট করুন।',
   },
   OfferItemsChanged: {
     en: 'Some of these products or designs are no longer in your shop. Pick them again.',
-    bn: 'এর মধ্যে কিছু প্রোডাক্ট বা ডিজাইন আর শপে নেই। আবার বাছুন।',
+    bn: 'এর মধ্যে কিছু প্রোডাক্ট বা ডিজাইন আর শপে নেই। আবার সিলেক্ট করুন।',
   },
   OfferItemHeld: {
     en: (p) =>
@@ -2449,6 +2449,18 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   CourierPickupStoreChanged: {
     en: 'Pickup store changed.',
     bn: 'পিকআপ স্টোর বদলানো হয়েছে।',
+  },
+  CourierPickupStoreAdded: {
+    en: 'Pickup store added.',
+    bn: 'পিকআপ স্টোর যোগ হয়েছে।',
+  },
+  CourierStorePlacesListed: {
+    en: 'Courier places listed.',
+    bn: 'কুরিয়ারের জায়গার তালিকা।',
+  },
+  CourierCannotAddStores: {
+    en: 'A store for this courier is added in its own panel.',
+    bn: 'এই কুরিয়ারের স্টোর তার নিজের প্যানেলে যোগ করতে হয়।',
   },
   CourierHasNoAreas: {
     en: 'This courier has no areas of its own.',
