@@ -279,6 +279,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /public/catalogue/version': "the key's own shop's version only",
   'GET /public/catalogue/products': "lists and searches only the key's own shop's active products",
   'GET /public/catalogue/products/:slug': "another shop's product, by its link, is not found",
+  // OFFERS-PLAN, checked in test/offers.e2e.spec.ts: an offer's link answers only on its own shop's key.
+  'GET /public/catalogue/offers/:slug': "another shop's offer, by its link, is not found",
   'GET /public/catalogue/categories': "only the key's own shop's visible categories",
   // Phase 3 Slice 12a, checked in test/storefront.e2e.spec.ts: the delivery estimate prices the key's own shop's items
   // only; the thana list is the same platform-wide list for every shop.
@@ -391,6 +393,17 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'GET /customers/:id': "another shop's customer answers 404",
   'DELETE /customers/:id': "another shop's customer answers 404 and keeps its details",
   'POST /customers/:id/password': "another shop's customer answers 404 and their password stays",
+  // OFFERS-PLAN, checked in test/offers.e2e.spec.ts: a shop's offers and the products they hold are its own.
+  'GET /offers': "lists only the session shop's own offers",
+  'GET /offers/pickable': "lists only the session shop's own products and the offers holding them",
+  'POST /offers/preview': "another shop's product or design is not_found",
+  'POST /offers': "another shop's product or design is not_found",
+  'GET /offers/:id': "another shop's offer answers 404",
+  'PATCH /offers/:id': "another shop's offer answers 404 and keeps its products and prices",
+  'POST /offers/:id/start': "another shop's offer answers 404 and changes no price",
+  'POST /offers/:id/end': "another shop's offer answers 404 and changes no price",
+  'POST /offers/:id/copy': "another shop's offer answers 404",
+  'DELETE /offers/:id': "another shop's offer answers 404 and stays",
   // Phase 4 Slice 4.6a, checked in test/tax-classes.e2e.spec.ts: a shop's tax classes are its own.
   'GET /tax-classes': "lists only the session shop's own classes and default",
   'POST /tax-classes': 'a name another shop uses is still free here',

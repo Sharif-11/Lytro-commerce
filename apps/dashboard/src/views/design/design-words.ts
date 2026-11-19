@@ -72,6 +72,8 @@ const ROW_ICONS: Readonly<Record<ProductRowSource, SectionIcon>> = {
   [ProductRowSource.BestSellers]: 'star',
   [ProductRowSource.Category]: 'grid',
   [ProductRowSource.Picked]: 'tag',
+  // OFFERS-PLAN: an offer's row (chosen in the editor from PR 2).
+  [ProductRowSource.Offer]: 'tag',
 };
 
 export function sectionIcon(section: StorefrontSection): SectionIcon {
@@ -103,6 +105,7 @@ const ROW_NAMES: Readonly<Record<ProductRowSource, string>> = {
   [ProductRowSource.BestSellers]: 'sdRowBest',
   [ProductRowSource.Category]: 'sdRowCategory',
   [ProductRowSource.Picked]: 'sdRowPicked',
+  [ProductRowSource.Offer]: 'sdRowOffer',
 };
 
 const KIND_NAMES: Readonly<Record<StorefrontSectionKind, string>> = {

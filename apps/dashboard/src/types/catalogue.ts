@@ -1,4 +1,4 @@
-import type { ProductKind, StockState } from '@lytronix/validators';
+import type { OfferState, ProductKind, StockState } from '@lytronix/validators';
 import type { ImageView } from './me';
 
 /** Mirrors `productPageSchema` in apps/server/src/modules/team/dto/catalogue-response.dto.ts (PRD-12). */
@@ -16,6 +16,8 @@ export interface ProductSummary {
   primaryCategoryId: string | null;
   variantCount: number;
   image: ImageView | null;
+  /** OF-23: the offer holding it, a running one before one not started. */
+  offer?: { id: string; name: string; state: OfferState } | null;
   createdAt: string;
 }
 

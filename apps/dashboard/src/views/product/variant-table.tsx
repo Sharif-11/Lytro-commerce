@@ -187,6 +187,7 @@ export function VariantTable({
   isNew,
   problems,
   readOnly,
+  lockedIds = new Set<string>(),
   showAll,
   onShowAll,
   onRow,
@@ -208,6 +209,8 @@ export function VariantTable({
   /** The server's problems with the rows, by `variants.<index>.<field>`. */
   problems: Readonly<Record<string, string>>;
   readOnly: boolean;
+  /** OF-17: the sizes a running offer has priced; their price is locked until it ends or lets them go. */
+  lockedIds?: ReadonlySet<string>;
   showAll: boolean;
   onShowAll: () => void;
   onRow: (index: number, patch: Partial<VariantRow>) => void;
@@ -368,7 +371,7 @@ export function VariantTable({
                   prefix="৳"
                   invalid={bad('price')}
                   error={problems[at('price')]}
-                  readOnly={readOnly}
+                  readOnly={readOnly || (row.id !== null && lockedIds.has(row.id))}
                   numeric
                   onChange={(price) => {
                     onRow(index, { price });

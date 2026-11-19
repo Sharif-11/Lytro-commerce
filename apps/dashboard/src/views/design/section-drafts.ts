@@ -208,6 +208,9 @@ export function linkWords(
         key: 'ssLinkProduct',
         params: { name: names.products.get(link.productId) ?? '…' },
       };
+    // OFFERS-PLAN: a button to an offer's page (chosen in the editor from PR 2).
+    case StorefrontLinkKind.Offer:
+      return { key: 'ssLinkOffer' };
   }
 }
 

@@ -612,6 +612,7 @@ export function VariantsCard({
         <VariantTable
           rows={form.variants}
           splits={form.splits}
+          lockedIds={new Set(product?.offers.flatMap((offer) => offer.lockedVariantIds) ?? [])}
           columns={{
             opening: isNew && kind.tracked && !shared,
             batch: kind.batch,

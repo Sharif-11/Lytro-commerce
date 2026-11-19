@@ -687,7 +687,10 @@ export class OfferService {
         heldBy: holder ? { offerId: holder.offerId, name: holder.offerName } : null,
       });
     }
-    return views;
+    // The seller's own list: by name, a product's designs in their order.
+    return views.sort(
+      (a, b) => a.name.localeCompare(b.name) || (a.designNumber ?? 0) - (b.designNumber ?? 0),
+    );
   }
 
   private record(
