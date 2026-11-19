@@ -193,7 +193,10 @@ export function isShown(item: AnnouncementItem): boolean {
 /** The line under a section's name: what it shows, "Auto" where it fills itself; "Off" when hidden. */
 export function sectionSummary(
   section: StorefrontSection,
-  editor: Pick<StorefrontEditor, 'design' | 'categories'>,
+  editor: Pick<StorefrontEditor, 'design' | 'categories'> & {
+    /** OFFERS-PLAN: the shop's offers by ID, to name a row of one. */
+    offers?: ReadonlyMap<string, string>;
+  },
 ): Words {
   if (!section.visible) return { key: 'sdOff' };
   switch (section.kind) {
@@ -223,6 +226,10 @@ export function sectionSummary(
       }
       if (section.source === ProductRowSource.Picked) {
         return { key: 'sdSumRowPicked', params: { count: section.productIds.length, layout } };
+      }
+      if (section.source === ProductRowSource.Offer) {
+        const name = (section.offerId ? editor.offers?.get(section.offerId) : undefined) ?? '';
+        return { key: 'sdSumRowOffer', params: { name, count: section.count, layout } };
       }
       return {
         key: `sdSum${section.source === ProductRowSource.Newest ? 'Newest' : section.source === ProductRowSource.OnSale ? 'OnSale' : 'Best'}`,
