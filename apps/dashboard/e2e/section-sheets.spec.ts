@@ -10,6 +10,7 @@ import {
   StorefrontSectionKind,
 } from '@lytronix/validators';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
+import { EID_ID } from './support/offers';
 
 // STOREFRONT-BUILDER-PLAN SB-8, SB-9, SB-15, SB-16 (PR 3b): each section's own sheet -- the hero and its slides, the
 // offer banners with an upload and its focal point, a row of products on one category or hand-picked, the
@@ -188,6 +189,56 @@ test('a row of products: one category, asked for until chosen; hand-picked, in t
   await expect
     .poll(() => saved(log)?.sections[3])
     .toMatchObject({ source: 'picked', productIds: ['p-2', 'p-1'], categoryId: null });
+});
+
+// OFFERS-PLAN PR 2 (the sketch's `o-row`, `o-link`): a row of one running offer, titled with its name, and a slide's
+// button that leads to an offer's page -- an offer not started is shown and cannot be picked.
+test('a row of an offer, asked for until chosen, and a button that leads to a running offer', async ({
+  page,
+}) => {
+  const log = await open(page);
+  await main(page).getByRole('button', { name: 'Open Best sellers' }).click();
+  const row = page.getByRole('dialog', { name: 'Product row' });
+  await row.getByRole('radio', { name: /An offer/ }).click();
+  await row.getByRole('button', { name: 'Done' }).click();
+  await expect(row.getByText('Choose the offer.')).toBeVisible();
+  const offer = row.getByLabel('Offer', { exact: true });
+  // Only the running Eid offer is offered; the Flash sale has not started and the Puja offer has ended.
+  await expect(offer.locator('option')).toHaveText([
+    'Choose an offer',
+    'Eid offer · Running · 4 products',
+  ]);
+  await offer.selectOption(EID_ID);
+  await expect(row.getByLabel('Title')).toHaveAttribute('placeholder', 'Eid offer');
+  await row.getByRole('button', { name: 'Done' }).click();
+  await expect
+    .poll(() => saved(log)?.sections[5])
+    .toMatchObject({ source: 'offer', offerId: EID_ID, categoryId: null, productIds: [] });
+  await expect(
+    main(page)
+      .getByText(/from Eid offer/)
+      .first(),
+  ).toBeVisible();
+
+  await main(page).getByRole('button', { name: 'Open Hero slides' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Hero slides' });
+  await sheet.getByRole('button', { name: 'Open Glow for Eid' }).click();
+  const slide = page.getByRole('dialog', { name: 'Slide 1' });
+  await slide.getByRole('button', { name: /Button leads to/ }).click();
+  const leads = page.getByRole('dialog', { name: 'Button leads to' });
+  await leads.getByRole('radio', { name: /An offer/ }).click();
+  await expect(leads.getByRole('radio', { name: /Flash sale/ })).toBeDisabled();
+  await leads.getByRole('radio', { name: /Eid offer/ }).click();
+  await leads.getByRole('button', { name: 'Done' }).click();
+  await expect(slide.getByText('Offer: Eid offer')).toBeVisible();
+  await slide.getByRole('button', { name: 'Done' }).click();
+  await sheet.getByRole('button', { name: 'Done' }).click();
+  await expect
+    .poll(() => {
+      const hero = saved(log)?.sections[1] as { slides?: { link: unknown }[] } | undefined;
+      return hero?.slides?.[0]?.link;
+    })
+    .toEqual({ kind: StorefrontLinkKind.Offer, offerId: EID_ID });
 });
 
 test('the announcement bar: its automatic items switched, a line of your own, shown two at a time', async ({

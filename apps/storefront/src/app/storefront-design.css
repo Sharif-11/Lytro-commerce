@@ -16,6 +16,10 @@
 .sfb .sb-logo .sb-mk{width:36px;height:36px;border-radius:var(--r-mark);background:var(--main);color:var(--on-main);display:grid;place-items:center;font-size:17px;font-family:var(--fh)}
 .sfb .sb-logo small{display:block;font-family:var(--fb);font-size:10.5px;font-weight:500;color:var(--muted);margin-top:-3px}
 .sfb .sb-logo.sb-img svg{height:36px;width:auto;display:block}
+/* The owner, 2026-11-19: a long shop name ends in "…" before the header's search and icons (the footer shows it whole). */
+.sfb .sb-hd .sb-logo{min-width:0}
+.sfb .sb-hd .sb-logo .sb-mk{flex:none}
+.sfb .sb-hd .sb-logo > span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .sfb .sb-hd .sb-icons{display:flex;gap:14px;margin-left:auto;align-items:center}
 .sfb .sb-cart{position:relative;display:flex}
 .sfb .sb-cart sup{position:absolute;top:-7px;right:-9px;background:var(--accent);color:var(--on-accent);font:700 10.5px/17px Inter;min-width:17px;height:17px;border-radius:9px;text-align:center}

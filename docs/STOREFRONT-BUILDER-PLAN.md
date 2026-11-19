@@ -453,3 +453,7 @@ Sketched (the phone rules, `v-menu`) and approved the same day.
 | BL-25 | **The bar on a small phone.** | ~~Under 360px one item at a time.~~ **Superseded the same day by the owner's staging fix under BL-17 (#398): below 640px one item at a time, each on one line, a long one ending in "…"; pairs from 640px.** |
 | BL-26 | **Checkout, as SB-17 says** (the owner, 2026-11-19: "check why this route is inconsistent with theme. does it keep old ui/ux"). | It did: checkout was still built on the plain shell, with the old header and footer and the brand's colours, not the theme's (2b gave the theme's header and footer to every page through ShopShell, and checkout was missed). Checkout now wears the theme's header (its way back leads to the cart), footer and tokens; it keeps its own "orders paused" notice, so the shell doesn't repeat it. The order's confirmation keeps its short header and takes the theme's colours and fonts. A product's landing page (`/l/...`) stays as built: its own short page for ads. |
 
+**BL-23, finished later** (the owner on staging, 2026-11-19: "YES, YOU SHOULD HANDLE LONG SHOP SUCH WAY"; shipped with
+OFFERS-PLAN PR 2): the name's ellipsis never showed. The header's logo link kept its full width, so a long name pushed
+the search, account and cart icons off a narrow phone. The link may now shrink, the mark keeps its size, and the name
+ends in "…" before the icons on every theme. A design-suite test pins it at 320px.

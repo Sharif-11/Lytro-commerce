@@ -10,9 +10,11 @@
 #   3. a dump of the database                    6. the dashboard's and console's files, then the edge
 #   4. the roles, migrations, pg-boss's schema   7. the website and the storefront
 #      and the nightly backups' service         8. the monitor, once monitoring.env names the Grafana account
+# Before step 1, the images of every release but the one running and this one are removed, and the deploy stops, having
+# touched nothing that runs, while the disk has less than LYTRO_MIN_FREE_GB (3) free.
 # LYTRO_SKIP_PULL=1 uses images already on this machine (CI's rehearsal builds them there).
 # Migrations only add, so the old release keeps working beside the new one while it rolls (ENGINEERING-STANDARDS §7).
-# Rolling back is deploying the previous release again.
+# Rolling back is deploying the previous release again; its images are still here. An older one's are pulled again.
 set -euo pipefail
 
 RELEASE="${1:?usage: deploy.sh <release> <edge-tag>}"
@@ -22,6 +24,8 @@ DEPLOY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 # How many pre-deploy dumps and release folders to keep.
 KEEP_DUMPS=5
 KEEP_RELEASES=5
+# The free space a deploy needs before it touches anything: a release's images (about 1.8 GB) and the dump.
+MIN_FREE_GB="${LYTRO_MIN_FREE_GB:-3}"
 
 # The pooler's image is tagged by what goes into it, as the edge's is; this release's copy of deploy/ says which. So is
 # the database's, with WAL-G and the backup scripts (Slice 9.3).
@@ -132,6 +136,34 @@ roll_server() {
 
 say "release $RELEASE, edge $EDGE_TAG, pooler $PGBOUNCER_TAG, database $DATABASE_TAG, archive $PG_ARCHIVE_MODE, monitor $MONITOR, page cache $PAGE_CACHE"
 
+# The images of every release but the one running (release.env) and this one (2026-11-19: staging's 40 GB disk filled
+# with 37 releases' images, about 1.8 GB each, all younger than the week the prune at the end waits for, and a deploy
+# stopped half-way through step 2 with the database's first-start scripts copied empty). Only this registry's Lytro
+# images are removed, and Docker refuses to remove one that a container uses.
+release_tags() {
+  sed -n 's/^\(RELEASE\|EDGE_TAG\|PGBOUNCER_TAG\|DATABASE_TAG\)=//p' "$1" 2> /dev/null | tr '\n' ' ' || true
+}
+REGISTRY="$(sed -n 's/^REGISTRY=//p' "$LYTRO_HOME/settings.env" | head -n 1)"
+kept_tags=" $RELEASE $EDGE_TAG $PGBOUNCER_TAG $DATABASE_TAG $(release_tags "$LYTRO_HOME/state/release.env") "
+if [ -n "$REGISTRY" ]; then
+  docker images --format '{{.Repository}}:{{.Tag}}' | while read -r image; do
+    case "$image" in "$REGISTRY"/lytro-*:*) ;; *) continue ;; esac
+    case "$kept_tags" in *" ${image##*:} "*) continue ;; esac
+    printf '%s\n' "$image"
+  done | xargs -r docker image rm > /dev/null 2>&1 || true
+fi
+
+# Room for this release's images and the dump before anything that runs is touched: a disk that fills half-way leaves
+# the database's first-start scripts empty (step 2), a dump cut short, or PostgreSQL itself unable to write.
+free_gb() { df -Pk "$1" | awk 'NR == 2 { print int($4 / 1048576) }'; }
+for dir in "$(docker info --format '{{.DockerRootDir}}')" "$LYTRO_HOME"; do
+  if [ "$(free_gb "$dir")" -lt "$MIN_FREE_GB" ]; then
+    say "only $(free_gb "$dir") GB free for $dir, $MIN_FREE_GB GB needed:" \
+      'stopped before anything that runs was touched (RUNBOOKS, ServerDiskHigh)'
+    exit 1
+  fi
+done
+
 if [ -n "${LYTRO_SKIP_PULL:-}" ]; then
   say '1. using the images on this machine'
 else
@@ -231,7 +263,8 @@ mv "$LYTRO_HOME/state/release.env.next" "$LYTRO_HOME/state/release.env"
 ln -sfn "$DEPLOY_DIR" "$LYTRO_HOME/state/current.next"
 mv -fT "$LYTRO_HOME/state/current.next" "$LYTRO_HOME/state/current"
 
-# Old release folders, and images no container has used for a week (a rollback past that pulls again).
+# Old release folders, and any other image made over a week ago that no container uses (Redis's old one, say). The
+# release images were thinned before the pull.
 ls -1dt "$LYTRO_HOME"/releases/*/ 2> /dev/null | tail -n +$((KEEP_RELEASES + 1)) | xargs -r rm -rf || true
 docker image prune --all --force --filter 'until=168h' > /dev/null
 

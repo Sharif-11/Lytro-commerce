@@ -35,8 +35,10 @@ import {
   type StorefrontCollection,
   type StorefrontDesign,
   type StorefrontSection,
+  OfferState,
 } from '@lytronix/validators';
 import { useCategories } from '@/api/catalogue';
+import { useOffers } from '@/api/offers';
 import { Icon } from '@/components/icon';
 import { Button } from '@/components/ui/button';
 import { AreaField, Field, PickField, SelectField } from '@/components/ui/field';
@@ -231,6 +233,8 @@ const SOURCES: readonly { value: ProductRowSource; name: string; line: string }[
   { value: ProductRowSource.OnSale, name: 'ssSrcOnSale', line: 'ssSrcOnSaleLine' },
   { value: ProductRowSource.BestSellers, name: 'ssSrcBest', line: 'ssSrcBestLine' },
   { value: ProductRowSource.Category, name: 'ssSrcCategory', line: 'ssSrcCategoryLine' },
+  // OFFERS-PLAN OF-8, OF-22 (the sketch's `o-row`): one running offer's cards; the row hides once it ends.
+  { value: ProductRowSource.Offer, name: 'ssSrcOffer', line: 'ssSrcOfferLine' },
   { value: ProductRowSource.Picked, name: 'ssSrcPicked', line: 'ssSrcPickedLine' },
 ];
 
@@ -624,6 +628,7 @@ export function MainForm({
   onChange,
   onSource,
   onCategory,
+  onOffer,
   onOpenItem,
   onOpenQuote,
   onOpenCollection,
@@ -641,6 +646,8 @@ export function MainForm({
   onChange: (section: StorefrontSection) => void;
   onSource: (source: ProductRowSource) => void;
   onCategory: (categoryId: string | null) => void;
+  /** OFFERS-PLAN: a product row's offer chosen. */
+  onOffer: (offerId: string | null) => void;
   onOpenItem: (at: number | null) => void;
   onOpenQuote: (at: number | null) => void;
   /** BL-3, BL-9: a hero's tile or an auto banner's collection, to choose what it shows. */
@@ -933,6 +940,7 @@ export function MainForm({
           onChange={onChange}
           onSource={onSource}
           onCategory={onCategory}
+          onOffer={onOffer}
           onProducts={onProducts}
         />
       );
@@ -1167,7 +1175,7 @@ export function MainForm({
                   t,
                   sectionSummary(
                     { ...section, visible: true },
-                    { design, categories: editor.categories },
+                    { design, categories: editor.categories, offers: names.offers },
                   ),
                 )}
               </span>
@@ -1207,6 +1215,7 @@ function ProductsForm({
   onChange,
   onSource,
   onCategory,
+  onOffer,
   onProducts,
 }: {
   section: Products;
@@ -1216,10 +1225,22 @@ function ProductsForm({
   onChange: (section: StorefrontSection) => void;
   onSource: (source: ProductRowSource) => void;
   onCategory: (categoryId: string | null) => void;
+  onOffer: (offerId: string | null) => void;
   onProducts: () => void;
 }) {
   const { t } = useTranslation('menu');
   const all = useCategories({ enabled: section.source === ProductRowSource.Category });
+  // OF-22: only a running offer can be picked; the one the row names stays listed whatever it is now.
+  const offers = useOffers();
+  const offerOptions = (offers.data?.offers ?? [])
+    .filter((offer) => offer.state === OfferState.Running || offer.id === (section.offerId ?? null))
+    .map((offer) => ({
+      value: offer.id,
+      label:
+        offer.state === OfferState.Running
+          ? t('ssOfferOption', { name: offer.name, count: offer.products })
+          : t('ssOfferEnded', { name: offer.name }),
+    }));
   // The shop's categories once read; until then, the one the row names.
   const options = all.data
     ? all.data.map((category) => ({
@@ -1228,21 +1249,25 @@ function ProductsForm({
       }))
     : categories.map((category) => ({ value: category.id, label: category.name }));
   const defaultTitle =
-    section.source === ProductRowSource.Category
-      ? section.categoryId
-        ? (names.categories.get(section.categoryId) ??
-          all.data?.find((category) => category.id === section.categoryId)?.name ??
-          '')
+    section.source === ProductRowSource.Offer
+      ? section.offerId
+        ? (names.offers.get(section.offerId) ?? '')
         : ''
-      : t(
-          section.source === ProductRowSource.Newest
-            ? 'ssSrcNewest'
-            : section.source === ProductRowSource.OnSale
-              ? 'ssSrcOnSale'
-              : section.source === ProductRowSource.BestSellers
-                ? 'ssSrcBest'
-                : 'ssPickedDefault',
-        );
+      : section.source === ProductRowSource.Category
+        ? section.categoryId
+          ? (names.categories.get(section.categoryId) ??
+            all.data?.find((category) => category.id === section.categoryId)?.name ??
+            '')
+          : ''
+        : t(
+            section.source === ProductRowSource.Newest
+              ? 'ssSrcNewest'
+              : section.source === ProductRowSource.OnSale
+                ? 'ssSrcOnSale'
+                : section.source === ProductRowSource.BestSellers
+                  ? 'ssSrcBest'
+                  : 'ssPickedDefault',
+          );
   return (
     <>
       <div className="flex flex-col gap-1">
@@ -1278,6 +1303,18 @@ function ProductsForm({
           error={problem('category') ?? undefined}
           onChange={(event) => {
             onCategory(event.target.value === '' ? null : event.target.value);
+          }}
+        />
+      ) : null}
+      {section.source === ProductRowSource.Offer ? (
+        <SelectField
+          label={t('ssOffer')}
+          value={section.offerId ?? ''}
+          options={[{ value: '', label: t('ssChooseOffer') }, ...offerOptions]}
+          help={t('ssOfferOnly')}
+          error={problem('offer') ?? undefined}
+          onChange={(event) => {
+            onOffer(event.target.value === '' ? null : event.target.value);
           }}
         />
       ) : null}
@@ -1325,6 +1362,7 @@ function ProductsForm({
           }}
         />
       )}
+      {section.source === ProductRowSource.Offer ? <NoteLine>{t('ssOfferSeeAll')}</NoteLine> : null}
       <NoteLine>{t('ssBadgesNote')}</NoteLine>
     </>
   );

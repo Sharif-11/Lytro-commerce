@@ -234,6 +234,37 @@ test.describe("the draft's preview (SB-12)", () => {
 });
 
 test.describe('banner layouts, the bar and the hero tiles (BL-2 to BL-17)', () => {
+  // The owner, 2026-11-19: at 320 pixels "Sugondhi Attar House" ran under the header's search and account icons.
+  test("ends a long shop name in … before the header's icons on a narrow phone", async ({
+    page,
+    browser,
+  }) => {
+    const shops = await sketchShops(browser);
+    const shop = await openShop(page, (language) => {
+      const made = builderShop(StorefrontThemeKey.Royal, shops.royal, language);
+      return {
+        ...made,
+        info: { ...(made.info as object), name: 'Sugondhi Attar House' },
+      } as typeof made;
+    });
+    await page.setViewportSize({ width: 320, height: 640 });
+    await page.goto(shop.url('/'));
+    const name = page.locator('.sb-hd .sb-logo > span').last();
+    await expect(name).toHaveText('Sugondhi Attar House');
+    const facts = await name.evaluate((span) => {
+      const icons = document.querySelector('.sb-hd .sb-icons')?.getBoundingClientRect();
+      return {
+        right: span.getBoundingClientRect().right,
+        icons: icons?.left ?? 0,
+        clipped: span.scrollWidth > span.clientWidth,
+        ellipsis: getComputedStyle(span).textOverflow,
+      };
+    });
+    expect(facts.right).toBeLessThanOrEqual(facts.icons);
+    expect(facts.clipped).toBe(true);
+    expect(facts.ellipsis).toBe('ellipsis');
+  });
+
   test('turns the bar two items at a time (one on a phone), leaves it as the page scrolls, and tracks orders from the header', async ({
     page,
     browser,

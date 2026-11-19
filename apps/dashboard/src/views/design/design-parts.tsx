@@ -7,6 +7,7 @@ import {
   type StorefrontDesign,
   type StorefrontThemeKey,
 } from '@lytronix/validators';
+import { useOffers } from '@/api/offers';
 import { Icon } from '@/components/icon';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -273,6 +274,9 @@ export function SectionsCard({
   addButton: ReactNode;
 }) {
   const { t } = useTranslation('menu');
+  // OFFERS-PLAN: the shop's offers by ID, to name a row of one.
+  const offers = useOffers();
+  const offerNames = new Map((offers.data?.offers ?? []).map((each) => [each.id, each.name]));
   const rows = sectionRows(design);
   const last = design.sections.length - 1;
   return (
@@ -307,7 +311,14 @@ export function SectionsCard({
           const broken = editor.broken.includes(section.id);
           const line = broken
             ? t('sdBroken')
-            : wordsText(t, sectionSummary(section, { design, categories: editor.categories }));
+            : wordsText(
+                t,
+                sectionSummary(section, {
+                  design,
+                  categories: editor.categories,
+                  offers: offerNames,
+                }),
+              );
           return (
             <li
               key={section.id}

@@ -13,6 +13,7 @@ import {
   usePublishDesign,
   useStorefrontEditor,
 } from '@/api/storefront-design';
+import { useOffers } from '@/api/offers';
 import { useShopSettings } from '@/api/shop-settings';
 import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
@@ -117,6 +118,8 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
   const busy = publish.isPending || back.isPending || discard.isPending;
   const hasDraft = editor.hasDraft || draft.saving;
   const images = useMemo(() => ({ ...editor.images, ...uploads }), [editor.images, uploads]);
+  // OFFERS-PLAN: the shop's offers, to name the rows and buttons that point at one.
+  const offers = useOffers();
   const names: Names = useMemo(
     () => ({
       categories: new Map([
@@ -127,8 +130,10 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
         ...editor.products.map((each) => [each.id, each.name] as const),
         ...Object.entries(learned.products),
       ]),
+      // OFFERS-PLAN: every offer the shop has, so a row or button naming one says which.
+      offers: new Map((offers.data?.offers ?? []).map((each) => [each.id, each.name] as const)),
     }),
-    [editor.categories, editor.products, learned],
+    [editor.categories, editor.products, learned, offers.data],
   );
   const known: Known = useMemo(() => new Map(Object.entries(seen)), [seen]);
 

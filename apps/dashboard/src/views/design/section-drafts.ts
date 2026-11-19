@@ -115,19 +115,21 @@ export function quoteOf(draft: QuoteDraft): Testimonial | null {
 export function withSource(
   section: Extract<StorefrontSection, { kind: StorefrontSectionKind.Products }>,
   source: ProductRowSource,
-  kept: { categoryId: string | null; productIds: string[] },
+  kept: { categoryId: string | null; productIds: string[]; offerId?: string | null },
 ): Extract<StorefrontSection, { kind: StorefrontSectionKind.Products }> {
   return {
     ...section,
     source,
     categoryId: source === ProductRowSource.Category ? kept.categoryId : null,
+    // OFFERS-PLAN: only a row of an offer names one.
+    offerId: source === ProductRowSource.Offer ? (kept.offerId ?? null) : null,
     productIds: source === ProductRowSource.Picked ? kept.productIds : [],
   };
 }
 
 /** One thing a section still needs before Done, under the field it belongs to. */
 export interface SectionProblem {
-  field: 'slides' | 'banners' | 'category' | 'products' | 'quotes' | 'title' | 'text';
+  field: 'slides' | 'banners' | 'category' | 'offer' | 'products' | 'quotes' | 'title' | 'text';
   words: Words;
 }
 
@@ -148,6 +150,9 @@ export function sectionProblems(section: StorefrontSection): SectionProblem[] {
       }
       if (section.source === ProductRowSource.Picked && section.productIds.length === 0) {
         return [{ field: 'products', words: { key: 'ssNeedProducts' } }];
+      }
+      if (section.source === ProductRowSource.Offer && !section.offerId) {
+        return [{ field: 'offer', words: { key: 'ssNeedOffer' } }];
       }
       return [];
     case StorefrontSectionKind.Testimonials:
@@ -206,7 +211,11 @@ export function collectionLine(collection: StorefrontCollection): Words {
 /** Where a button leads, in words, naming the category or product it names. */
 export function linkWords(
   link: StorefrontLink,
-  names: { categories: Map<string, string>; products: Map<string, string> },
+  names: {
+    categories: Map<string, string>;
+    products: Map<string, string>;
+    offers?: Map<string, string>;
+  },
 ): Words {
   switch (link.kind) {
     case StorefrontLinkKind.OnSale:
@@ -227,14 +236,18 @@ export function linkWords(
       };
     // OFFERS-PLAN: a button to an offer's page (chosen in the editor from PR 2).
     case StorefrontLinkKind.Offer:
-      return { key: 'ssLinkOffer' };
+      return { key: 'ssLinkOfferNamed', params: { name: names.offers?.get(link.offerId) ?? '…' } };
   }
 }
 
 /** The line under an item in its section's list: the button's words and where it leads. */
 export function itemLine(
   item: Pick<HeroSlide, 'button' | 'link'>,
-  names: { categories: Map<string, string>; products: Map<string, string> },
+  names: {
+    categories: Map<string, string>;
+    products: Map<string, string>;
+    offers?: Map<string, string>;
+  },
 ): Words {
   return { key: 'ssItemLine', params: { button: item.button, to: linkWords(item.link, names) } };
 }
