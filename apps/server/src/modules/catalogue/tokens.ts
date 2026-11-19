@@ -15,3 +15,5 @@ export const TAX_CLASS_STORE = Symbol('TAX_CLASS_STORE');
 export const CATALOGUE_DATA_STORE = Symbol('CATALOGUE_DATA_STORE');
 export const CATALOGUE_IMAGE_STORE = Symbol('CATALOGUE_IMAGE_STORE');
 export const DESIGN_STORE = Symbol('DESIGN_STORE');
+// OFFERS-PLAN: a shop's offers and the prices they set.
+export const OFFER_STORE = Symbol('OFFER_STORE');

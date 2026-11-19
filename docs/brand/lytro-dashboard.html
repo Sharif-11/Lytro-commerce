@@ -415,6 +415,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Phase 9 · Slice 9.9 (sketch): banners, top-up invoices, VAT"><option value="p99-cant-save">Home · changes can't be saved for a few minutes (banner)</option><option value="p99-cant-save-product">· the product editor: Save paused</option><option value="p99-banners-stack">· with an urgent notice and the grace banner</option><option value="p99-degraded">Home · limited mode on (banner, no email)</option><option value="p99-degraded-orders">· the same banner on Orders</option><option value="p99-billing-topup">Billing · a top-up and its own invoice</option><option value="p99-billing-topup-vat">· the top-up's Tax invoice (Mushak-6.3), once registered</option><option value="p99-invoice-vat">· a plan's Tax invoice (Mushak-6.3), VAT included</option><option value="p99-invoice-balance">· a plan paid from the balance, registered: no VAT, no Mushak-6.3 (accountant to confirm)</option></optgroup>
       <optgroup label="Fixes · orders &amp; products (sketch)"><option value="fx-processing">Orders · the Processing tab</option><option value="fx-processing-order">· a booked order: its tracking code and link, each with Copy</option><option value="fx-copied">· copied</option><option value="fx-pending">Orders · Pending (the paid order skipped it)</option><option value="fx-autoconfirm-list">Orders · Confirmed: the order paid in advance is already here</option><option value="fx-autoconfirm">· the order: confirmed by its verified advance, no call, no Void</option><option value="fx-pay-both">· a gateway payment (no Void) and a staff-verified one (Void)</option><option value="fx-items">Order · items with SKU, quantity in its unit and price</option><option value="fx-photo">· a picture, large (1 of 2)</option><option value="fx-photo-2">· the next picture</option><option value="fx-items-kg">Order · items sold by kg (a grocery order)</option><option value="fx-photo-kg">· a picture, large</option><option value="fx-pf-new">New product · stock (pcs), price and SKU per variant</option><option value="fx-pf-new-bad">· errors: below 0, half a piece, a SKU in use</option><option value="fx-pf-new-kg">New product · packs sharing stock in kg, SKU per pack</option><option value="fx-product-quick">Saved product · quick Add stock, price and SKU per variant</option><option value="fx-product-quick-done">· saved: the stock added</option></optgroup>
       <optgroup label="Fixes · UI/UX batch 2 (sketch)"><option value="ux-offline">1.1 Offline · the bar under the app bar</option><option value="ux-offline-orders">· a list already loaded stays readable</option><option value="ux-offline-page">· a page that could not load: Try again</option><option value="ux-offline-save">· Save waits; what is typed is kept</option><option value="ux-offline-tap">· an action tapped offline (toast)</option><option value="ux-online-back">· back online</option><option value="ux-toast-success">1.4 Toasts · success</option><option value="ux-toast-error">· an error, with close</option><option value="ux-toast-info">· info</option><option value="ux-toast-action">· with Undo</option><option value="ux-toast-stack">· two at once</option><option value="ux-signin">1.5 + 3.1 Sign-in · /sign-in: code first, no Google or Facebook</option><option value="ux-signin-direct">· the dashboard opened signed out: password first</option><option value="ux-password">1.5 Set a password · no skip</option><option value="ux-password-bad">· not strong enough</option><option value="ux-setup">1.6 Set-up · only the shop type</option><option value="ux-shop-contact">2.1 Shop details · WhatsApp, Messenger, Facebook page</option><option value="ux-shop-contact-bad">· errors</option><option value="ux-topup">4.1 + 4.4 Top-up · quick ৳10–৳100, no SMS line</option><option value="ux-topup-bad">· out of range</option><option value="ux-topup-range">· a range of ৳20–৳50</option><option value="ux-addon-buy">4.2 Add-ons · buying 12, no cap of 10</option><option value="ux-plan">4.3 + 5.1 + 5.2 Plan · cards like the website, yours marked</option><option value="ux-plan-growth">· on Growth</option><option value="ux-menu">5.3 Menu · Plan, Billing and Usage as their own entries</option><option value="ux-loading-splash">Loading · first open: the splash</option><option value="ux-loading-splash-slow">· the splash after 8 s</option><option value="ux-loading-orders">· the orders list</option><option value="ux-loading-products">· the products list</option><option value="ux-loading-order">· an order</option><option value="ux-loading-home">· Home</option><option value="ux-loading-slow">· a list after 8 s</option><option value="ux-loading-offline">· the connection gone while loading</option><option value="ux-loading-save">· Save at work</option><option value="ux-loading-pay">· a sheet button at work</option><option value="ux-loading-more">· Show more at a list end</option></optgroup>
+      <optgroup label="Offers (sketch)"><option value="of-list">Offers · running, not started, ended</option><option value="of-empty">· no offers yet</option><option value="of-new">· a new offer: its name, how much off, its products</option><option value="of-pick">· pick products: a category, a product, or some of its designs (sheet)</option><option value="of-bad">· taka off more than some products cost</option><option value="of-offer">· a running offer: its link, its products, End</option><option value="of-change">· change the discount (sheet)</option><option value="of-end">· end the offer (dialog)</option><option value="of-ended">· after it ended: Run it again</option><option value="of-product">Product editor · 2 of its designs in an offer, the price locked</option><option value="of-products">Products · a product in an offer is marked</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option></optgroup>
     </select>
   </label>
@@ -9138,6 +9139,151 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 @media (prefers-reduced-motion: reduce){.ux-sk::after{display:none}.ux-splash-mark,.ux-splash-mark svg path,.ux-dots i{animation:none}.ux-splash-bar i{animation:none;left:30%}.ux-splash-mark svg path{stroke-dashoffset:0}.ux-spin{animation-duration:2.4s}}
 </style>`);
 /* ---------- end of Fixes · UI/UX batch 2 (sketch) ---------- */
+</script>
+<script>
+/* ---------- Offers (sketch, 2026-11-18): a named price cut on chosen products, or on single designs of a product.
+   docs/OFFERS-PLAN.md. The owner's answers: price cuts only; the offer sets the price (the old price struck through,
+   End puts it back) and locks it in the editor; one offer at a time per product or design; % or ৳ off from today's
+   selling price, rounded down to whole taka; its own page and a home row in the shop; an ended offer's link says so.
+   Offers sits in Shop, after Products, on the Offers screens only until it is built. ---------- */
+Object.assign(S, {
+  secOffers: ['অফার', 'Offers'],
+  ofNewT: ['নতুন অফার', 'New offer'],
+  ofEid: ['ঈদ অফার', 'Eid offer'],
+  ofPuja: ['পূজার অফার', 'Puja offer'],
+});
+SECLBL.offers = 'secOffers';
+document.head.insertAdjacentHTML('beforeend', `<style>
+@container (min-width: 1024px){ .two.of2{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)} }
+.row .l2.ofw{white-space:normal}
+.row .l1.oflink{white-space:normal;word-break:break-all}
+</style>`);
+const OF_SCREEN = (s) => typeof s === 'string' && s.startsWith('of-');
+const _renderOf = render;
+render = function () {
+  const withOffers = (list) => (list.includes('offers') ? list : [list[0], 'offers', ...list.slice(1)]);
+  const without = (list) => list.filter((s) => s !== 'offers');
+  const on = OF_SCREEN(ST.screen);
+  HUBS_CURRENT.shop = on ? withOffers(HUBS_CURRENT.shop) : without(HUBS_CURRENT.shop);
+  HUBS_LATER.shop = on ? withOffers(HUBS_LATER.shop) : without(HUBS_LATER.shop);
+  _renderOf();
+};
+
+const ofG = (a, b) => `linear-gradient(160deg,${a},${b})`;
+const ofDown = (n, pct) => Math.floor((n * (100 - pct)) / 100);
+const ofRange = (a, b) => (b ? `${money(a)}–${money(b).replace('৳', '')}` : money(a));
+const OF_LINK = () => L('megh.lytro.app/offers/ঈদ-অফার', 'megh.lytro.app/offers/eid-offer');
+/* The Eid offer's products. `price` is what the shop sells at today; `reg` an earlier regular price (already on sale);
+   `designs` the designs picked when not the whole product. */
+const OF_ITEMS = () => [
+  { n: L('ইরানি বোরকা', 'Irani burka'), g: PD40_G[1], price: 2450, designs: [PD40_DESIGNS()[1], PD40_DESIGNS()[2]], of: 5 },
+  { n: L('এমব্রয়ডারি পাঞ্জাবি', 'Embroidered panjabi'), g: ofG('#efe1c9', '#b48a5a'), price: 1450, reg: 1900 },
+  { n: L('কটন টি-শার্ট', 'Cotton T-shirt'), g: ofG('#3a3a3a', '#10201f'), price: 450, max: 490 },
+  { n: L('সিল্ক শাড়ি', 'Silk saree'), g: ofG('#c2185b', '#6a1b4d'), price: 3200 },
+  { n: L('ডেনিম জ্যাকেট', 'Denim jacket'), g: ofG('#7f9fc4', '#1f3b5a'), price: 1890 },
+  { n: L('কিডস ফ্রক', 'Kids frock'), g: ofG('#f8cf6e', '#e98aa0'), price: 650, max: 720, out: true },
+];
+const ofThumb = (g) => `<span class="thumb" style="background:${g}"></span>`;
+/* One product in an offer: what it sold at, struck through, and what it sells at in the offer. */
+const ofItem = (x, o = {}) => {
+  const pct = o.pct ?? 20;
+  const was = x.reg ? money(x.reg) : ofRange(x.price, x.max);
+  const now = o.taka ? ofRange(x.price - o.taka, x.max ? x.max - o.taka : 0) : ofRange(ofDown(x.price, pct), x.max ? ofDown(x.max, pct) : 0);
+  const bad = o.taka && x.price - o.taka < 1;
+  const l2 = x.designs
+    ? `${L(`${x.of}টির মধ্যে ${x.designs.length}টি ডিজাইন`, `${x.designs.length} of ${x.of} designs`)}: ${x.designs.map((d) => d.name).join(', ')}`
+    : x.reg ? L(`আগে থেকেই ছাড়ে: ${money(x.price)} থেকে কাটা`, `Already on sale: cut from ${money(x.price)}`)
+    : x.out ? `<span class="st neu">${t('outStock')}</span>` : L('পুরো প্রোডাক্ট', 'Whole product');
+  const trail = o.ended
+    ? `<span class="amt num">${ofRange(x.price, x.max)}</span>`
+    : bad ? `<span class="st bad">${L('দামের চেয়ে বেশি ছাড়', 'More off than its price')}</span>`
+    : `<span class="num" style="font-size:13px;color:var(--n700)"><s>${was}</s></span><span class="amt num" style="font-weight:600">${now}</span>`;
+  const remove = o.edit ? `<button class="ib" aria-label="${t('remove')}" style="color:var(--n700)">${ic('x', 18)}</button>` : '';
+  return `<div class="row"${bad ? ' style="background:var(--danger-soft)"' : ''}>${ofThumb(x.g)}<span class="body"><span class="l1">${x.n}</span><span class="l2 ofw">${l2}</span></span><span class="trail" style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">${trail}</span>${remove}</div>`;
+};
+const ofItems = (o = {}) => `<div class="card flush list">${OF_ITEMS().map((x) => ofItem(x, o)).join('')}<button class="row" style="min-height:52px;color:var(--primary);font-weight:600;justify-content:center">${L('সব 14টি দেখুন', 'Show all 14')}</button></div>`;
+const ofCutLine = (pct) => L(`${pct}% ছাড়`, `${pct}% off`);
+
+/* The Offers list: running, not started, ended. */
+const ofRow = (o) => `<button class="row" onclick="go('${o.go}')"><span class="lead" style="background:${o.ended ? 'var(--n100)' : 'var(--mar-100)'};color:${o.ended ? 'var(--n700)' : 'var(--mar-700)'}">${ic('tag')}</span><span class="body"><span class="l1">${o.n} <span class="st ${o.cls}">${o.state}</span></span><span class="l2 ofw">${o.l2}</span></span>${ic('right')}</button>`;
+const OF_ROWS = () => ({
+  running: [{ n: t('ofEid'), cls: 'ok', state: L('চলছে', 'Running'), l2: L('20% ছাড় · 14টি প্রোডাক্ট · 15 নভেম্বর থেকে', '20% off · 14 products · since 15 Nov'), go: 'of-offer' }],
+  waiting: [{ n: L('ফ্ল্যাশ সেল', 'Flash sale'), cls: 'neu', state: L('শুরু হয়নি', 'Not started'), l2: L('৳200 ছাড় · 6টি প্রোডাক্ট', '৳200 off · 6 products'), go: 'of-new' }],
+  ended: [
+    { n: t('ofPuja'), cls: 'neu', state: L('শেষ', 'Ended'), l2: L('15% ছাড় · 22টি প্রোডাক্ট · 20 অক্টোবর শেষ', '15% off · 22 products · ended 20 Oct'), go: 'of-ended', ended: true },
+    { n: L('১১.১১ সেল', '11.11 sale'), cls: 'neu', state: L('শেষ', 'Ended'), l2: L('10% ছাড় · 9টি প্রোডাক্ট · 12 নভেম্বর শেষ', '10% off · 9 products · ended 12 Nov'), go: 'of-ended', ended: true },
+  ],
+});
+const OF_PAGE = { hub: 'shop', sec: 'offers', title: 'secOffers', path: '/offers' };
+const ofListHead = () => `${title('secOffers', isRO() ? '' : btn('p sm', `${ic('plus')} ${t('ofNewT')}`, "onclick=\"go('of-new')\""))}${secChips('shop', 'offers')}`;
+SCREENS['of-empty'] = { ...OF_PAGE, render: () => `${ofListHead()}<div class="card">${empty('tag', L('এখনো কোনো অফার নেই। একটা অফারে প্রোডাক্ট বা তার কয়েকটা ডিজাইন বাছুন, কত ছাড় দেবেন লিখুন, শুরু করুন। দাম সাথে সাথে বদলায়, আগের দাম কেটে দেখায়।', 'No offers yet. Pick products, or some of their designs, say how much off, and start. Prices change at once, the old price shown struck through.'), btn('p sm', t('ofNewT'), "onclick=\"go('of-new')\""))}</div>` };
+SCREENS['of-list'] = { ...OF_PAGE, render: () => {
+  const r = OF_ROWS();
+  return `${ofListHead()}${sechead(L('চলছে', 'Running'))}<div class="card flush list">${r.running.map(ofRow).join('')}</div>${sechead(L('শুরু হয়নি', 'Not started'))}<div class="card flush list">${r.waiting.map(ofRow).join('')}</div>${sechead(L('শেষ হয়েছে', 'Ended'))}<div class="card flush list">${r.ended.map(ofRow).join('')}</div>`;
+} };
+
+/* A new offer: its name, the cut, its products with each new price, then Start (or keep it for later). */
+const ofCutCard = (o = {}) => `<div class="card" style="display:flex;flex-direction:column;gap:12px"><h3>${L('কত ছাড়', 'How much off')}</h3>${chips([{ l: L('% ছাড়', '% off'), on: !o.taka }, { l: L('৳ ছাড়', '৳ off'), on: !!o.taka }])}${field(o.taka ? L('প্রতিটি প্রোডাক্টে কত টাকা ছাড়', 'Taka off each product') : L('কত শতাংশ ছাড়', 'Percent off'), o.taka ? String(o.taka) : '20', o.taka ? { pre: '৳' } : { trail: '<span style="color:var(--n700);font-weight:600">%</span>' })}<div class="hint">${L('প্রতিটি সাইজ আর ডিজাইনের আজকের দাম থেকে কাটা হয়, পূর্ণ টাকায় নিচের দিকে (৳1,011.50 হয় ৳1,011)।', "Cut from each size's and design's price today, rounded down to whole taka (৳1,011.50 becomes ৳1,011).")}</div></div>`;
+const ofProductsHead = (n) => `<div class="sechead" style="margin-top:4px"><h2>${L(`প্রোডাক্ট · ${n}টি`, `Products · ${n}`)}</h2><button class="lnk" onclick="go('of-pick')">${ic('plus')} ${L('প্রোডাক্ট বাছুন', 'Pick products')}</button></div>`;
+const OF_NEW = { ...OF_PAGE, title: 'ofNewT', back: true, base: 'of-list', path: '/offers/new' };
+const ofNewBody = (o = {}) => `<div class="ttl"><h1>${t('ofNewT')}</h1></div>${o.top || ''}<div class="two of2"><div style="display:flex;flex-direction:column;gap:16px"><div class="card" style="display:flex;flex-direction:column;gap:12px">${field(L('অফারের নাম', "Offer's name"), t('ofEid'), { help: L('ক্রেতারা এই নাম দেখবেন, অফারের পেজে আর হোম পেজের সারিতে।', 'Shoppers see this name, on the offer\'s page and its home page row.') })}</div>${ofCutCard(o)}</div><div style="display:flex;flex-direction:column;gap:12px">${ofProductsHead(14)}${ofItems({ taka: o.taka, edit: true })}</div></div>${actionbar(btn('o', L('পরে শুরু করব', 'Start later')), btn('p', L('অফার শুরু করুন', 'Start offer'), o.taka ? 'disabled style="opacity:.5"' : ''))}`;
+SCREENS['of-new'] = { ...OF_NEW, render: () => ofNewBody() };
+SCREENS['of-bad'] = { ...OF_NEW, render: () => {
+  const h = ofNewBody({ taka: 700, top: `<div style="margin-bottom:12px">${banner('bad', L('কিডস ফ্রক আর কটন টি-শার্টের দাম ৳700-এর কম, তাই এত ছাড় হয় না। ওদের সরান বা ছাড় কমান।', 'Kids frock and Cotton T-shirt cost less than ৳700, so they cannot take that much off. Take them out or lower the amount.'))}</div>` });
+  return h;
+} };
+
+/* Picking products: a whole category at once, a product whole, or some of its designs; one already in another offer
+   cannot be picked. */
+const ofPickRow = (o) => `<div class="row" style="min-height:60px;${o.dim ? 'opacity:.6' : ''}${o.sub ? ';padding-left:44px' : ''}"><span class="checkbox ${o.on ? 'on' : ''}" style="${o.part ? 'background:var(--primary);border-color:var(--primary)' : ''}">${o.on ? ic('check') : o.part ? '<span style="width:10px;height:2.5px;background:#fff;border-radius:2px"></span>' : ''}</span>${o.sw ? pd40Sw(o.g) : ofThumb(o.g)}<span class="body"><span class="l1" style="font-size:15px">${o.n}</span><span class="l2">${o.l2}</span></span>${o.chev ? `<span style="color:var(--n700)">${ic(o.open ? 'up' : 'down')}</span>` : ''}</div>`;
+SCREENS['of-pick'] = { ...OF_NEW, render: () => ofNewBody(), base: 'of-new', sheet: () => {
+  const d = PD40_DESIGNS();
+  const rows = [
+    ofPickRow({ n: L('ইরানি বোরকা', 'Irani burka'), g: PD40_G[1], l2: L('5টির মধ্যে 2টি ডিজাইন', '2 of 5 designs'), part: true, chev: true, open: true }),
+    ...d.map((x, i) => ofPickRow({ n: x.name, g: x.g, sw: true, sub: true, on: i === 1 || i === 2, l2: money(2450) })),
+    ofPickRow({ n: L('এমব্রয়ডারি পাঞ্জাবি', 'Embroidered panjabi'), g: ofG('#efe1c9', '#b48a5a'), l2: `${money(1450)} · <s>${money(1900)}</s>`, on: true }),
+    ofPickRow({ n: L('প্রিন্টেড শার্ট', 'Printed shirt'), g: ofG('#cfe3e1', '#2f6f6a'), l2: L('3টি ডিজাইন', '3 designs'), chev: true }),
+    ofPickRow({ n: L('লিনেন পাঞ্জাবি', 'Linen panjabi'), g: ofG('#e9e4d8', '#9a8f78'), l2: `<span class="st warn">${L('ফ্ল্যাশ সেলে আছে', 'In Flash sale')}</span>`, dim: true }),
+    ofPickRow({ n: L('সিল্ক শাড়ি', 'Silk saree'), g: ofG('#c2185b', '#6a1b4d'), l2: money(3200), on: true }),
+  ];
+  const cats = chips([{ l: L('সব', 'All'), on: true }, { l: L('বোরকা', 'Burkas') }, { l: L('পাঞ্জাবি', 'Panjabi') }, { l: L('শাড়ি', 'Sarees') }, { l: L('কিডস', 'Kids') }]);
+  return sheet(L('প্রোডাক্ট বাছুন', 'Pick products'), `${searchBox(L('প্রোডাক্টের নাম', 'Product name'))}<div style="margin:10px 0 2px">${cats}</div><div class="sechead" style="margin:2px 0 4px"><span class="hint">${L('48টি প্রোডাক্ট', '48 products')}</span><button class="lnk">${L('সব বাছুন', 'Select all')}</button></div><div class="hint" style="margin:0 0 8px">${L('একটা ক্যাটাগরি বেছে “সব বাছুন” চাপলে পুরো ক্যাটাগরি যোগ হয়। ডিজাইন আছে এমন প্রোডাক্ট খুলে শুধু কয়েকটা ডিজাইন বাছা যায়।', 'Choose a category, then Select all, to add all of it. Open a product with designs to pick only some of them.')}</div><div class="card flush list">${rows.join('')}</div>`, btn('p w', L('14টি প্রোডাক্ট যোগ করুন', 'Add 14 products')));
+} };
+
+/* A running offer: its link to share, its products, changes live at once, End. */
+const ofLinkCard = (ended) => `<div class="card" style="display:flex;flex-direction:column;gap:10px"><h3>${L('অফারের লিংক', "The offer's link")}</h3><div class="row" style="padding:0;min-height:44px"><span class="body"><span class="l1 num oflink" style="font-size:15px">${OF_LINK()}</span><span class="l2 ofw">${ended ? L('ক্রেতারা “এই অফার শেষ হয়ে গেছে” দেখেন, প্রোডাক্টগুলো এখনকার দামে।', 'Shoppers see “This offer has ended”, with the products at their prices now.') : L('ফেসবুক পোস্ট বা অ্যাডে দিন: অফারের সব প্রোডাক্ট এক পেজে।', 'Share it in a Facebook post or ad: every product of the offer on one page.')}</span></span><button class="btn o xs">${ic('copy', 16)} ${t('copy')}</button></div>${ended ? '' : `<div class="hint">${L('হোম পেজেও দেখাতে চাইলে: স্টোরফ্রন্ট ডিজাইন › প্রোডাক্টের সারি › “একটা অফার”।', 'To show it on the home page too: Storefront design › Product row › “An offer”.')} <a href="#">${L('ডিজাইন খুলুন', 'Open design')}</a></div>`}</div>`;
+const ofSummary = (ended) => `<div class="card">${kv(L('ছাড়', 'Discount'), `${ofCutLine(20)}${ended ? '' : ` <button class="lnk" style="margin-left:6px" onclick="go('of-change')">${L('বদলান', 'Change')}</button>`}`)}${kv(L('শুরু', 'Started'), L('15 নভেম্বর, সকাল 10:12', '15 Nov, 10:12 am'))}${ended ? kv(L('শেষ', 'Ended'), L('20 নভেম্বর, রাত 11:40', '20 Nov, 11:40 pm')) : ''}${kv(L('প্রোডাক্ট', 'Products'), L('14টি (একটির 2টি ডিজাইন)', '14 (2 designs of one)'))}</div>`;
+const OF_OFFER = { ...OF_PAGE, title: 'ofEid', back: true, base: 'of-list', path: '/offers/eid-offer' };
+const ofOfferBody = () => `<div class="ttl"><h1>${t('ofEid')}</h1><span class="st ok">${L('চলছে', 'Running')}</span></div><div class="two of2"><div style="display:flex;flex-direction:column;gap:16px">${ofSummary(false)}${ofLinkCard(false)}</div><div style="display:flex;flex-direction:column;gap:12px">${ofProductsHead(14)}<div class="hint" style="margin-top:-6px">${L('যোগ করলে বা সরালে দোকানে সাথে সাথে দাম বদলায়।', 'Adding or taking one out changes its price in the shop at once.')}</div>${ofItems({ edit: true })}</div></div>${actionbar(btn('o', L('অফার শেষ করুন', 'End offer'), "style=\"color:var(--danger);border-color:var(--danger)\" onclick=\"go('of-end')\""))}`;
+SCREENS['of-offer'] = { ...OF_OFFER, render: ofOfferBody };
+SCREENS['of-change'] = { ...OF_OFFER, render: ofOfferBody, base: 'of-offer', sheet: () => sheet(L('ছাড় বদলান', 'Change the discount'), `${chips([{ l: L('% ছাড়', '% off'), on: true }, { l: L('৳ ছাড়', '৳ off') }])}${field(L('কত শতাংশ ছাড়', 'Percent off'), '25', { trail: '<span style="color:var(--n700);font-weight:600">%</span>' })}<div class="hint">${L('সেভ করলে অফারের 14টি প্রোডাক্টের দাম সাথে সাথে বদলাবে: অফারের আগের দাম থেকে 25% কম। যেমন ইরানি বোরকা ৳2,450 থেকে ৳1,837।', "Saving changes the 14 products' prices at once: 25% off what they cost before the offer. Irani burka, for one: ৳2,450 to ৳1,837.")}</div>`, btn('p w', t('save'))) };
+SCREENS['of-end'] = { ...OF_OFFER, render: ofOfferBody, base: 'of-offer', sheet: () => dlg(L('ঈদ অফার শেষ করবেন?', 'End the Eid offer?'), L('14টি প্রোডাক্ট অফারের আগের দামে ফিরে যাবে, এখনই। অফারের লিংক থাকবে, ক্রেতারা দেখবেন অফার শেষ হয়ে গেছে। যেসব অর্ডার আগেই হয়েছে সেগুলো অফারের দামেই থাকবে।', "14 products go back to the prices they had before the offer, now. The offer's link stays and tells shoppers the offer has ended. Orders already placed keep the offer price."), `${btn('o sm', L('না, চলুক', 'Keep it running'), "onclick=\"go('of-offer')\"")}${btn('d sm', L('অফার শেষ করুন', 'End offer'))}`, 'of-offer') };
+SCREENS['of-ended'] = { ...OF_PAGE, title: 'ofEid', back: true, base: 'of-list', path: '/offers/eid-offer', render: () => `<div class="ttl"><h1>${t('ofEid')}</h1><span class="st neu">${L('শেষ', 'Ended')}</span></div><div class="two of2"><div style="display:flex;flex-direction:column;gap:16px">${ofSummary(true)}${ofLinkCard(true)}</div><div style="display:flex;flex-direction:column;gap:12px"><div class="sechead" style="margin-top:4px"><h2>${L('প্রোডাক্ট · 14টি, এখনকার দাম', 'Products · 14, at their prices now')}</h2></div>${ofItems({ ended: true })}</div></div>${actionbar(btn('o', L('ডিলিট', 'Delete'), 'style="color:var(--danger)"'), btn('p', L('আবার চালু করুন', 'Run it again')))}` };
+
+/* The product editor while the product is in an offer: what is on offer and why its price is locked. */
+SCREENS['of-product'] = { ...PD40_PRODUCT, render: () => {
+  let h = pd40Editor();
+  // OF-17: only the offered designs' sizes are locked (here Stripe's, rows 5 and 6); the product's own price stays
+  // editable, since only some of its designs are in the offer.
+  const cell = '<td><div class="in">2450</div></td>';
+  const parts = h.split(cell);
+  if (parts.length < 7) throw new Error('Offers: the variant prices not found');
+  const lockedCell = `<td><div class="in" style="background:var(--n50);color:var(--n700);gap:6px"><s>2450</s><b style="color:var(--ink)">1960</b>${ic('lock', 14)}</div></td>`;
+  h = parts.map((p, i) => (i === 0 ? p : (i === 5 || i === 6 ? lockedCell : cell) + p)).join('');
+  const d = PD40_DESIGNS();
+  const card = `<div class="card" style="display:flex;flex-direction:column;gap:10px;border-color:var(--mar-300);background:#fffaf0"><div class="sechead"><h3 style="margin:0">${t('ofEid')} <span class="st ok">${L('চলছে', 'Running')}</span></h3><button class="lnk" onclick="go('of-offer')">${L('অফার খুলুন', 'Open offer')}</button></div><div class="chips" style="margin:0;padding:0;flex-wrap:wrap">${[d[1], d[2]].map((x) => `<span class="chip pd">${pd40Sw(x.g)}${x.name} · <s style="color:var(--n700)">${money(2450)}</s> ${money(1960)}</span>`).join('')}</div><div class="hint">${L('এই 2টি ডিজাইন অফারে আছে, বাকি 3টি আগের দামে। অফার চলার সময় এদের দাম বদলানো যায় না; অফার শেষ হলে বা এখান থেকে সরালে আগের দাম ফেরে।', 'These 2 designs are in the offer; the other 3 sell at their own price. Their prices cannot change while the offer runs; ending the offer, or taking them out of it, puts the old prices back.')}</div></div>`;
+  const at = h.indexOf('<div class="two">');
+  if (at < 0) throw new Error('Offers: the editor columns not found');
+  return `${h.slice(0, at)}<div style="margin-bottom:16px">${card}</div>${h.slice(at)}`;
+} };
+
+/* The products list marks a product in an offer. */
+SCREENS['of-products'] = { ...SCREENS.products, sec: 'products', render: () => {
+  const h = SCREENS.products.render();
+  const name = `${L('ডেনিম জ্যাকেট', 'Denim jacket')} `;
+  return h.split(name).join(`${name}<span class="st warn">${t('ofEid')}</span> `);
+} };
+/* ---------- end of Offers (sketch) ---------- */
 </script>
 </body>
 </html>

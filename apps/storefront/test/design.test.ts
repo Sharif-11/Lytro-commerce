@@ -125,6 +125,27 @@ describe('what each product row asks for (SB-9)', () => {
     expect(queryKey({ sort: 'newest', limit: 4 })).toBe(queryKey({ limit: 4, sort: 'newest' }));
   });
 
+  // OFFERS-PLAN OF-8, OF-22: a running offer's cards in the shop's order; one no longer running has no row, and a
+  // button to it leads to On sale.
+  it("asks a running offer's cards by its link name, and none for an offer no longer running", () => {
+    const offer = { id: id(9), slug: 'eid-offer', name: 'Eid offer' };
+    const withOffer = { ...reach, offers: [offer] };
+    expect(rowQuery(row(ProductRowSource.Offer, { offerId: offer.id }), withOffer)).toEqual({
+      inStock: true,
+      limit: 4,
+      sort: 'featured',
+      offer: 'eid-offer',
+    });
+    expect(rowQuery(row(ProductRowSource.Offer, { offerId: id(8) }), withOffer)).toBeNull();
+    expect(linkHref({ kind: StorefrontLinkKind.Offer, offerId: offer.id }, withOffer)).toBe(
+      '/offers/eid-offer',
+    );
+    expect(linkHref({ kind: StorefrontLinkKind.Offer, offerId: id(8) }, withOffer)).toBe('/offers');
+    expect(productQueryString({ offer: 'eid-offer', designs: true })).toBe(
+      'designs=true&offer=eid-offer',
+    );
+  });
+
   it('writes the new filters into the list request', () => {
     expect(productQueryString({ sort: 'discount', onSale: true, productIds: ['a', 'b'] })).toBe(
       'sort=discount&onSale=true&productIds=a%2Cb',

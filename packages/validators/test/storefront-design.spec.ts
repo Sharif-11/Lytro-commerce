@@ -133,7 +133,11 @@ describe('what a design may hold (SB-8, SB-16)', () => {
     ]);
     const parsed = storefrontDesignSchema.parse(own);
     expect(storefrontMediaIds(parsed)).toEqual([PHOTO.mediaId]);
-    expect(storefrontTargets(parsed)).toEqual({ categoryIds: [CATEGORY], productIds: [PRODUCT] });
+    expect(storefrontTargets(parsed)).toEqual({
+      categoryIds: [CATEGORY],
+      productIds: [PRODUCT],
+      offerIds: [],
+    });
   });
 
   it('refuses an own hero with no slide, a category row with no category, and two sections with one ID', () => {

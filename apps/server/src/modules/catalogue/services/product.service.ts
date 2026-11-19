@@ -42,6 +42,7 @@ import {
   type SaveVariantsInput,
   type UpdateProductInput,
   limitOf,
+  OfferState,
   UsageMetric,
 } from '@lytronix/validators';
 import { ApiError, FieldsError, type InvalidField } from '../../../common/api-error';
@@ -70,6 +71,7 @@ import {
   CATEGORY_STORE,
   PRODUCT_STORE,
   SIZE_CHART_STORE,
+  OFFER_STORE,
 } from '../tokens';
 import type {
   AttributeRecord,
@@ -92,6 +94,7 @@ import type {
   VariantValueRecord,
   VariantView,
   ModifierGroupView,
+  ProductOfferView,
 } from '../types/catalogue';
 import { TaxClasses } from './tax-classes';
 import { ProductDesigns, refuseDesign } from './product-designs';
@@ -107,6 +110,8 @@ import { nextFreeSlug, slugOf } from './slug';
 import { variantAttributesOf } from './variant-attributes';
 import { planVariants, type MatrixProblem, type PlannedVariant } from './variant-matrix';
 import { CatalogueWrites } from './catalogue-writes';
+import { OfferPrices } from './offer-prices';
+import type { OfferStore } from '../ports/offer-store';
 
 type VariantSpec = NonNullable<CreateProductInput['variants']>[number];
 type DescriptionInput = SaveProductAttributesInput['attributes'][number];
@@ -262,6 +267,8 @@ export class ProductService {
     @Inject(TaxClasses) private readonly taxes: TaxClasses,
     @Inject(ProductDesigns) private readonly designs: ProductDesigns,
     @Inject(EdgePurges) private readonly edge: EdgePurges,
+    @Inject(OFFER_STORE) private readonly offers: OfferStore,
+    @Inject(OfferPrices) private readonly offerPrices: OfferPrices,
   ) {}
 
   /** LIM-02, PRD-04: the products the shop's limit counts. */
@@ -299,6 +306,18 @@ export class ProductService {
         tenantId,
         rows.map(({ product }) => product.id),
       );
+      // OF-23: the offer holding each, a running one before one not started.
+      const holders = await this.offers.holders(
+        tx,
+        tenantId,
+        rows.map(({ product }) => product.id),
+        null,
+      );
+      const offerOf = (productId: string): ProductListItem['offer'] => {
+        const mine = holders.filter((row) => row.productId === productId);
+        const found = mine.find((row) => row.offerState === OfferState.Running) ?? mine[0];
+        return found ? { id: found.offerId, name: found.offerName, state: found.offerState } : null;
+      };
       const products: ProductListItem[] = rows.map(({ product, variantCount }) => ({
         id: product.id,
         name: product.name,
@@ -314,6 +333,7 @@ export class ProductService {
         variantCount,
         kind: product.kind,
         image: photos.get(product.id)?.[0] ?? null,
+        offer: offerOf(product.id),
         createdAt: product.createdAt,
       }));
       return {
@@ -631,6 +651,13 @@ export class ProductService {
         variants.map((variant) => variant.id),
       );
       const copiedValues: VariantValueRecord[] = [];
+      // OFFERS-PLAN: a size a running offer has priced is copied at its own price from before the offer.
+      const beforeOffer = new Map(
+        (await this.offers.pricesOfProducts(tx, shop.id, [productId])).map((row) => [
+          row.variantId,
+          row.priceBefore,
+        ]),
+      );
       for (const variant of variants) {
         const row = await this.products.insertVariant(tx, {
           tenantId: shop.id,
@@ -644,7 +671,9 @@ export class ProductService {
                 : `${String(attributeId)}=${String(ownDesign(optionId))}`;
             })
             .join('&'),
-          price: variant.price,
+          price: beforeOffer.has(variant.id)
+            ? (beforeOffer.get(variant.id) ?? null)
+            : variant.price,
           weightKg: variant.weightKg,
           deliveryCharge: variant.deliveryCharge,
           deliveryMode: variant.deliveryMode,
@@ -857,6 +886,7 @@ export class ProductService {
       const current = await this.findLive(tx, shop.id, productId);
       this.refuseComboStock(current, input);
       const change = this.changedFields(current, input);
+      await this.refuseProductPriceInOffer(tx, shop.id, current, change);
       // TAX-01 (Slice 4.6a): a new class, or null for untaxed; orders already made keep theirs (TAX-02).
       const taxClassId = await this.taxes.resolveWithin(tx, shop.id, input.taxClassId, false);
       if (taxClassId !== undefined) change.taxClassId = taxClassId;
@@ -1051,6 +1081,14 @@ export class ProductService {
       }
 
       const existing = await this.products.listVariants(tx, shop.id, productId, true);
+      await this.refuseSizePricesInOffer(
+        tx,
+        shop.id,
+        productId,
+        matrix.planned,
+        existing,
+        input.variants,
+      );
       const keep = new Set(matrix.planned.map((plan) => plan.key));
       const retiring = existing.filter(
         (row) => row.deletedAt === null && !keep.has(row.combinationKey),
@@ -1085,6 +1123,8 @@ export class ProductService {
         shared,
       );
       await this.fillSkus(tx, shop.id, productId);
+      // OF-19: a size added to a design (or product) in a running offer joins it at its cut.
+      await this.offerPrices.joinNewSizes(tx, shop.id, productId);
       if (switching) {
         if (shared) await this.ensureStockHolder(tx, shop.id, productId);
         else await this.retireStockHolder(tx, shop.id, productId);
@@ -1340,6 +1380,83 @@ export class ProductService {
         { combos: combos.map((combo) => ({ id: combo.id, name: combo.name })) },
         undefined,
         { combos: combos.map((combo) => combo.name).join(', ') },
+      );
+    }
+  }
+
+  /**
+   * OF-17: a product in a running offer whole keeps its own price and regular price until the offer ends or it is
+   * taken out (the sizes carry the offer's prices; this one would be put back over them at the end).
+   */
+  private async refuseProductPriceInOffer(
+    tx: Transaction,
+    tenantId: string,
+    current: ProductRecord,
+    change: ProductChange,
+  ): Promise<void> {
+    const moves = (['basePrice', 'regularPrice'] as const).filter(
+      (field) =>
+        change[field] !== undefined &&
+        (change[field] === null ? null : Number(change[field])) !==
+          (current[field] === null ? null : Number(current[field])),
+    );
+    if (moves.length === 0) return;
+    const holder = (await this.offers.holders(tx, tenantId, [current.id], null)).find(
+      (row) => row.offerState === OfferState.Running && row.designOptionId === null,
+    );
+    if (!holder) return;
+    throw new FieldsError(
+      moves.map((field) => ({
+        field,
+        problem: FieldProblemCode.NotAllowed,
+        messageKey: 'ProductPriceInOffer' as const,
+        params: { offer: holder.offerName },
+      })),
+      'conflict',
+    );
+  }
+
+  /** OF-17: no size a running offer has priced changes its price or regular price while it runs. */
+  private async refuseSizePricesInOffer(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    planned: readonly PlannedVariant<VariantSpec>[],
+    existing: readonly VariantRecord[],
+    requested: VariantSpec[] | undefined,
+  ): Promise<void> {
+    const held = await this.offers.pricesOfProducts(tx, tenantId, [productId]);
+    if (held.length === 0) return;
+    const offerOf = new Map(held.map((row) => [row.variantId, row.offerId]));
+    const live = new Map(
+      existing.filter((row) => row.deletedAt === null).map((row) => [row.combinationKey, row]),
+    );
+    const same = (sent: number | null | undefined, stored: string | null): boolean =>
+      sent === undefined ||
+      (sent === null ? stored === null : stored !== null && sent === Number(stored));
+    for (const plan of planned) {
+      const row = live.get(plan.key);
+      const offerId = row ? offerOf.get(row.id) : undefined;
+      if (!row || offerId === undefined || !plan.spec) continue;
+      const fields = (
+        [
+          ['price', same(plan.spec.price, row.price)],
+          ['regularPrice', same(plan.spec.regularPrice, row.regularPrice)],
+        ] as const
+      )
+        .filter(([, kept]) => !kept)
+        .map(([field]) => field);
+      if (fields.length === 0) continue;
+      const offer = await this.offers.find(tx, tenantId, offerId);
+      const at = requested ? requested.indexOf(plan.spec) : -1;
+      throw new FieldsError(
+        fields.map((field) => ({
+          field: at >= 0 ? `variants.${String(at)}.${field}` : 'variants',
+          problem: FieldProblemCode.NotAllowed,
+          messageKey: 'ProductPriceInOffer' as const,
+          params: { offer: offer?.name ?? '' },
+        })),
+        'conflict',
       );
     }
   }
@@ -2678,9 +2795,36 @@ export class ProductService {
       modifierGroups: (await this.products.listModifierGroups(tx, tenantId, [productId])).map(
         modifierGroupView,
       ),
+      offers: await this.offersOf(tx, tenantId, productId),
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
     };
+  }
+
+  /** OF-17: the offers not ended that hold the product, and the sizes each running one has priced. */
+  private async offersOf(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+  ): Promise<ProductOfferView[]> {
+    const holders = await this.offers.holders(tx, tenantId, [productId], null);
+    if (holders.length === 0) return [];
+    const priced = await this.offers.pricesOfProducts(tx, tenantId, [productId]);
+    return [...new Set(holders.map((row) => row.offerId))].map((offerId) => {
+      const rows = holders.filter((row) => row.offerId === offerId);
+      const first = rows[0];
+      return {
+        offerId,
+        name: first?.offerName ?? '',
+        state: first?.offerState ?? OfferState.Waiting,
+        designIds: rows.some((row) => row.designOptionId === null)
+          ? null
+          : rows.flatMap((row) => (row.designOptionId === null ? [] : [row.designOptionId])),
+        lockedVariantIds: priced
+          .filter((row) => row.offerId === offerId)
+          .map((row) => row.variantId),
+      };
+    });
   }
 
   /** PRD-08: the product's own policy and advance when it has a policy, else the shop's default pair. */

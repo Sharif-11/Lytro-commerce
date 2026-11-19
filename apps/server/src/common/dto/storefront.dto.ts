@@ -18,6 +18,8 @@ export const publicStorefrontSchema = z.object({
   images: z.record(z.string(), imageViewSchema),
   categories: z.array(storefrontTargetSchema),
   products: z.array(storefrontTargetSchema),
+  // OF-8, OF-22: the running offers its rows and buttons name.
+  offers: z.array(storefrontTargetSchema),
   preview: z.boolean(),
   // DC-2: each design of a product its own card in the shop's lists.
   designCards: z.boolean(),

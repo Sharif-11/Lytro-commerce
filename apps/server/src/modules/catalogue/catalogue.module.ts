@@ -38,6 +38,9 @@ import { ShopPaymentPolicyService } from './services/shop-payment-policy.service
 import { SizeChartService } from './services/size-chart.service';
 import { ComboParts } from './services/combo-parts';
 import { DrizzleComboStore } from '../../database/adapters/combo.adapter';
+import { OffersRepository } from '@lytronix/db';
+import { OfferPrices } from './services/offer-prices';
+import { OfferService } from './services/offer.service';
 import {
   ATTRIBUTE_STORE,
   CATALOGUE_DATA_STORE,
@@ -54,6 +57,7 @@ import {
   TAX_CLASS_STORE,
   SIZE_CHART_STORE,
   COMBO_STORE,
+  OFFER_STORE,
 } from './tokens';
 
 // D3-7: the catalogue module -- categories, products, variants, attributes, size charts, option sets, the shop-type
@@ -78,6 +82,8 @@ import {
     { provide: PRESET_STORE, useClass: DrizzlePresetStore },
     { provide: SIZE_CHART_STORE, useClass: DrizzleSizeChartStore },
     { provide: COMBO_STORE, useClass: DrizzleComboStore },
+    // OFFERS-PLAN: the repository is the store as it is.
+    { provide: OFFER_STORE, useExisting: OffersRepository },
     { provide: OPTION_SET_STORE, useClass: DrizzleOptionSetStore },
     { provide: PLATFORM_LIBRARY_STORE, useClass: DrizzlePlatformLibraryStore },
     { provide: SHOP_POLICY_STORE, useClass: DrizzleShopPolicyStore },
@@ -103,6 +109,8 @@ import {
     ComboParts,
     OptionSetService,
     PlatformLibraryService,
+    OfferPrices,
+    OfferService,
   ],
   exports: [
     // For the delivery module (Slice 1c), whose writes log and version like the catalogue's own.
@@ -129,6 +137,9 @@ import {
     ComboParts,
     OptionSetService,
     PlatformLibraryService,
+    // OFFERS-PLAN: the offers routes, and the public offer read and list.
+    OfferService,
+    OFFER_STORE,
   ],
 })
 export class CatalogueModule {}

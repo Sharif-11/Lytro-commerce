@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
 import {
   MediaKind,
+  OfferState,
   Permission,
   ProductKind,
   SerialFormat,
@@ -70,6 +71,7 @@ import { combosIn } from './in-combos';
 import { ArchivedProduct } from './archived-product';
 import { BasicsCard } from './basics-card';
 import { LinkCard } from './link-card';
+import { OfferCards } from './offer-card';
 import { MediaSheet } from './media-sheet';
 import { PhotoStrip } from './photo-strip';
 import { useProductMedia } from './product-media';
@@ -725,12 +727,16 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
       {addStocks.isError && Object.keys(quickRefused).length === 0 ? (
         <ErrorBanner error={addStocks.error} />
       ) : null}
+      {product ? <OfferCards product={product} /> : null}
       <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
         <div className="flex flex-col gap-section">
           <BasicsCard
             form={form}
             problems={problems}
             readOnly={!mayManage}
+            priceLocked={(product?.offers ?? []).some(
+              (offer) => offer.state === OfferState.Running && offer.designIds === null,
+            )}
             picking={picking}
             onPicking={setPicking}
             onChange={update}

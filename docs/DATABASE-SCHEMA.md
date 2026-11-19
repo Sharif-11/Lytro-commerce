@@ -372,6 +372,48 @@ CREATE TABLE tenant.storefront_product_cards (
     mode        text NOT NULL CHECK (mode IN ('designs', 'compact', 'both')),
     PRIMARY KEY (tenant_id, product_id)
 );
+
+-- OFFERS-PLAN (0145): a named price cut. State: waiting (made ready), running, ended (OF-14); a percent (1 to 90) or whole
+-- taka off (OF-2, OF-18); its link name, unique in the shop (OF-21).
+CREATE TABLE tenant.offers (
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id   uuid NOT NULL,
+    name        varchar(60) NOT NULL,
+    slug        text NOT NULL,
+    cut_kind    text NOT NULL,      -- 'percent' | 'taka'
+    cut_amount  integer NOT NULL,
+    state       text NOT NULL CHECK (state IN ('waiting', 'running', 'ended')),
+    started_at  timestamptz,
+    ended_at    timestamptz,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, id),
+    UNIQUE (tenant_id, slug)
+);
+
+-- OF-9 (0145): what an offer holds -- a product whole (no design) or one of its designs; once per offer (no design
+-- counted as one value); kept after it ends. Keys to the offer, the product and the design, each cascading.
+CREATE TABLE tenant.offer_items (
+    tenant_id         uuid NOT NULL,
+    offer_id          uuid NOT NULL,
+    product_id        uuid NOT NULL,
+    design_option_id  uuid
+);
+
+-- OF-6 (0145): while an offer runs, one row per size it priced: its own price and regular price before (null: the
+-- product's), the price it sold at when taken, and the offer price (at least 1). One row per size: no size is in two
+-- running offers. End writes the before-values back and drops the rows.
+CREATE TABLE tenant.offer_prices (
+    tenant_id       uuid NOT NULL,
+    variant_id      uuid NOT NULL,
+    offer_id        uuid NOT NULL,
+    product_id      uuid NOT NULL,
+    price_before    numeric(10, 2),
+    regular_before  numeric(10, 2),
+    price_at_start  numeric(10, 2) NOT NULL,
+    offer_price     numeric(10, 2) NOT NULL CHECK (offer_price >= 1),
+    PRIMARY KEY (tenant_id, variant_id)
+);
 ```
 
 ### 2.4 Invoices and platform audit

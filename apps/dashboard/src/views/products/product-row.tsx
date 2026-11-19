@@ -58,6 +58,7 @@ export function ProductRow({
         title={
           <>
             {product.name} {combo ? <StatusTag tone="neutral">{t('comboTag')}</StatusTag> : null}{' '}
+            {product.offer ? <StatusTag tone="warn">{product.offer.name}</StatusTag> : null}{' '}
             {product.active || archived ? null : (
               <StatusTag tone="neutral">{t('inactive')}</StatusTag>
             )}

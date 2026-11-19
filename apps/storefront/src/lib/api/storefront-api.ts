@@ -130,6 +130,20 @@ export interface PublicStorefrontDesign {
   preview: boolean;
   /** DC-2: each design of a product its own card in the lists; absent from an older server's answer (off). */
   designCards?: boolean;
+  /**
+   * OFFERS-PLAN OF-8, OF-22: the running offers its rows and buttons name; a row of any other hides, a button leads to
+   * On sale. Absent from an older server's answer (none).
+   */
+  offers?: DesignTarget[];
+}
+
+/** OFFERS-PLAN OF-8, OF-12: an offer as its page shows it -- its name and cut, running or ended. */
+export interface PublicOffer {
+  name: string;
+  slug: string;
+  state: 'running' | 'ended';
+  cut: { kind: 'percent' | 'taka'; amount: number };
+  products: number;
 }
 
 export interface OptionValue {
@@ -289,6 +303,8 @@ export interface ProductQuery {
   productIds?: readonly string[];
   /** STOREFRONT-BUILDER-PLAN DC-1: each design of a product with two or more its own card. */
   designs?: boolean;
+  /** OFFERS-PLAN OF-8: only one offer's cards (its link name). */
+  offer?: string;
   cursor?: string;
   limit?: number;
 }
@@ -684,6 +700,22 @@ export class StorefrontApi {
   }
 
   /** A product by its link. An old link answers with the product under its current one, so the page redirects. */
+  /** OFFERS-PLAN OF-8, OF-12: a running or ended offer by its link name; null for none (or one not started). */
+  async offer(
+    shop: StorefrontShopContext,
+    shopper: ShopperRequest,
+    slug: string,
+  ): Promise<PublicOffer | null> {
+    const answer = await this.call<PublicOffer>(
+      shop,
+      shopper,
+      'GET',
+      `/v1/catalogue/offers/${encodeURIComponent(slug)}`,
+    );
+    if (answer.status === 404) return null;
+    return StorefrontApi.required(answer, 'the offer');
+  }
+
   async product(
     shop: StorefrontShopContext,
     shopper: ShopperRequest,
@@ -868,6 +900,7 @@ export function productQueryString(query: ProductQuery): string {
     search.set('productIds', query.productIds.join(','));
   }
   if (query.designs) search.set('designs', 'true');
+  if (query.offer) search.set('offer', query.offer);
   if (query.cursor) search.set('cursor', query.cursor);
   if (query.limit) search.set('limit', String(query.limit));
   return search.toString();

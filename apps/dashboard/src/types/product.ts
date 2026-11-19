@@ -10,6 +10,7 @@ import type {
   StockUnit,
   UnitKind,
   ProductKind,
+  OfferState,
 } from '@lytronix/validators';
 import type { ComboIssue } from './attribute';
 import type { ImageView } from './me';
@@ -85,6 +86,9 @@ export interface ProductVariant {
   /** Its own price, or null to sell at the product's. */
   price: string | null;
   effectivePrice: string;
+  /** SB-21: its own regular price, and the one it shows (its own, else the product's); an offer sets both (OF-6). */
+  regularPrice?: string | null;
+  effectiveRegularPrice?: string | null;
   weightKg: string | null;
   deliveryCharge: string | null;
   deliveryMode: DeliveryMode | null;
@@ -191,6 +195,20 @@ export interface ProductDetail {
   /** ATR-15 (PD-11): whether any order names it, so what splits its variants is fixed. */
   hasOrders: boolean;
   video: ProductVideo | null;
+  /**
+   * OFFERS-PLAN OF-17: the offers not ended that hold it, and the sizes a running one has priced (locked); absent from
+   * an older server's answer (none).
+   */
+  offers?: ProductOffer[];
   createdAt: string;
   updatedAt: string;
+}
+
+/** OF-16, OF-17: an offer not ended holding the product, whole (`designIds` null) or by some of its designs. */
+export interface ProductOffer {
+  offerId: string;
+  name: string;
+  state: OfferState;
+  designIds: string[] | null;
+  lockedVariantIds: string[];
 }

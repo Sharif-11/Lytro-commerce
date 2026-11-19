@@ -718,8 +718,13 @@ async function publicApi(
     const limit = Number(url.searchParams.get('limit') ?? 24);
     const category = url.searchParams.get('category');
     const picked = url.searchParams.get('productIds')?.split(',') ?? null;
+    // OFFERS-PLAN OF-8: one offer's products, by its link name; none for an offer not public.
+    const offerName = url.searchParams.get('offer');
+    const offer =
+      offerName === null ? null : (fixture.offers ?? []).find((each) => each.slug === offerName);
     let rows = fixture.products.filter(
       (row) =>
+        (offerName === null || (offer?.productIds.includes(row.card.id) ?? false)) &&
         (category === null || row.product.categoryIds.includes(category)) &&
         (url.searchParams.get('inStock') !== 'true' || row.card.stockState !== StockState.Out) &&
         (url.searchParams.get('onSale') !== 'true' || (row.card.bestDiscount ?? 0) > 0) &&
@@ -740,6 +745,24 @@ async function publicApi(
     send(response, 200, {
       products: rows.slice(0, limit).map((row) => row.card),
       nextCursor: null,
+    });
+    return;
+  }
+  // OFFERS-PLAN OF-8, OF-12: a running or ended offer by its link name.
+  const offered = /^\/v1\/catalogue\/offers\/(.+)$/.exec(path);
+  if (offered?.[1]) {
+    const slug = decodeURIComponent(offered[1]);
+    const found = (fixture.offers ?? []).find((each) => each.slug === slug);
+    if (!found) {
+      fail(response, 404, 'not_found');
+      return;
+    }
+    send(response, 200, {
+      name: found.name,
+      slug: found.slug,
+      state: found.state,
+      cut: found.cut,
+      products: found.products,
     });
     return;
   }

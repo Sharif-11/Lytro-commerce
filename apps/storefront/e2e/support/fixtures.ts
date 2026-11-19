@@ -16,6 +16,7 @@ import type {
   ProductCard,
   ProductVariant,
   PublicCategory,
+  PublicOffer,
   PublicProduct,
   PublicShop,
   PublicStorefrontDesign,
@@ -90,6 +91,8 @@ export interface ShopFixture {
   refusals?: Refusal[];
   /** SB-12: the shop's draft design, which a preview link shows. */
   draft?: PublicStorefrontDesign;
+  /** OFFERS-PLAN: the shop's public offers (running or ended), each with the product IDs it holds. */
+  offers?: (PublicOffer & { productIds: string[] })[];
 }
 
 /** An order as the mocked server was sent it. */

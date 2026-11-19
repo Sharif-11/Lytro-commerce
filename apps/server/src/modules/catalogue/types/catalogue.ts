@@ -29,6 +29,7 @@ import type {
   StockTracking,
   StockUnit,
   TenantState,
+  OfferState,
 } from '@lytronix/validators';
 import type { ImageView, VideoView } from '../../../common/media-links';
 
@@ -298,8 +299,22 @@ export interface ProductDetail {
   taxClass: { id: string; name: string; rate: string } | null;
   /** MNU-01 (Slice 4.6b): its modifier groups in order; empty for none, and always for a combo. */
   modifierGroups: ModifierGroupView[];
+  /** OFFERS-PLAN OF-17: the offers not ended that hold it, and the sizes a running one has priced. */
+  offers: ProductOfferView[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+/**
+ * OFFERS-PLAN OF-16, OF-17: an offer not ended that holds a product, whole (`designIds` null) or by some of its designs;
+ * the sizes a running one has priced keep their prices until it ends or lets them go.
+ */
+export interface ProductOfferView {
+  offerId: string;
+  name: string;
+  state: OfferState;
+  designIds: string[] | null;
+  lockedVariantIds: string[];
 }
 
 /** MNU-01: one modifier group of a product, and its options, each with its price change and whether it is a default. */
@@ -394,6 +409,8 @@ export interface ProductListItem {
   kind: ProductKind;
   /** PRD-11: its first photo, for the list, or null. */
   image: ImageView | null;
+  /** OF-23: the offer holding it (a running one before one not started), for the list's tag. */
+  offer: { id: string; name: string; state: OfferState } | null;
   createdAt: Date;
 }
 

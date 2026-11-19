@@ -5,6 +5,7 @@ import {
   catalogueState,
   categories,
   comboParts,
+  offers,
   optionSets,
   products,
   shopSettings,
@@ -26,6 +27,8 @@ export class CatalogueDataRepository {
     await this.transactions.setTenantContext(tx, tenantId);
     // CMB-01: combos' parts first, since a part's variant is never deleted while a combo names it.
     await tx.delete(comboParts).where(eq(comboParts.tenantId, tenantId));
+    // OFFERS-PLAN: the shop's offers, with what each holds and the prices each set.
+    await tx.delete(offers).where(eq(offers.tenantId, tenantId));
     await tx.delete(products).where(eq(products.tenantId, tenantId));
     // TAX-01 (Slice 4.6a): the tax classes, once no product names them and the shop's default no longer does.
     await tx

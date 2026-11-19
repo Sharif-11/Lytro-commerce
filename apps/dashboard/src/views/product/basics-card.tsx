@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCategories } from '@/api/catalogue';
+import { Icon } from '@/components/icon';
 import { Card } from '@/components/ui/card';
 import { AreaField, Field, PickField } from '@/components/ui/field';
 import type { ProductForm } from '@/lib/product-form';
@@ -14,6 +15,7 @@ export function BasicsCard({
   form,
   problems,
   readOnly,
+  priceLocked = false,
   strip,
   picking,
   onPicking,
@@ -22,6 +24,8 @@ export function BasicsCard({
   form: ProductForm;
   problems: Record<string, string | undefined>;
   readOnly: boolean;
+  /** OF-17: the product's own price, while it is in a running offer whole. */
+  priceLocked?: boolean;
   /** The photos and video (the strip). */
   strip: ReactNode;
   /** Whether the category picker is open; the defaults line's "change" opens it too (PST-06). */
@@ -61,7 +65,9 @@ export function BasicsCard({
           prefix="৳"
           inputMode="decimal"
           value={form.price}
-          readOnly={readOnly}
+          readOnly={readOnly || priceLocked}
+          suffix={priceLocked ? <Icon name="lock" size={18} /> : undefined}
+          help={priceLocked ? t('of.locked') : undefined}
           error={problems.price}
           className="num"
           onChange={(event) => {

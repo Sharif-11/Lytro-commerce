@@ -207,6 +207,11 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   designId: { en: 'Design', bn: 'ডিজাইন' },
   modes: { en: 'How products show', bn: 'প্রোডাক্ট যেভাবে দেখাবে' },
   mode: { en: 'How it shows', bn: 'যেভাবে দেখাবে' },
+  // OFFERS-PLAN: an offer's cut and whether it starts now; a home row's or a button's offer; the public list's offer.
+  cut: { en: 'How much off', bn: 'কত ছাড়' },
+  start: { en: 'Start now', bn: 'এখনই শুরু' },
+  offerId: { en: 'Offer', bn: 'অফার' },
+  offer: { en: 'Offer', bn: 'অফার' },
   // A listed item's own id, whose meaning varies by its list (a design's, so far); its message names it.
   id: null,
   includeRetired: { en: 'Show retired', bn: 'রিটায়ার্ডগুলোও দেখান' },

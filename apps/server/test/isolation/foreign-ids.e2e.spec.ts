@@ -53,6 +53,7 @@ type Body = Readonly<Record<string, unknown>>;
 const BODIES: Readonly<Record<string, Body | ((by: Caller) => Body)>> = {
   'PATCH /addons/mine/:id': { renews: false },
   'PATCH /listener/devices/:id': { name: 'Counter phone' },
+  'PATCH /offers/:id': { name: 'Eid sale' },
   'PATCH /orders/:id': { notes: 'Leave at the gate' },
   'PATCH /products/:id/serials/:serialId': { serial: 'SN-WALK-2' },
   'PATCH /roles/:id': { name: 'Picker' },

@@ -8,6 +8,7 @@ export type SectionId =
   | 'customers'
   | 'sales'
   | 'products'
+  | 'offers'
   | 'categories'
   | 'attributes'
   | 'stock'
@@ -94,6 +95,8 @@ export const HUBS: readonly Hub[] = [
     anyOf: [],
     sections: [
       section('products', [Permission.ProductsRead]),
+      // OFFERS-PLAN OF-13: offers sit right after products.
+      section('offers', [Permission.ProductsRead]),
       section('categories', [Permission.ProductsRead]),
       section('attributes', [Permission.ProductsRead]),
       section('stock', [Permission.InventoryRead]),

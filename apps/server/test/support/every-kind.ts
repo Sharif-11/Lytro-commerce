@@ -43,6 +43,8 @@ export const ID_TARGETS: readonly { path: RegExp; table?: string; sql?: string }
   { path: /\/stock-checks\/:id$/, table: 'tenant.stock_checks' },
   { path: /\/suppliers\/:id$/, table: 'tenant.suppliers' },
   { path: /\/tax-classes\/:id$/, table: 'tenant.tax_classes' },
+  // OFFERS-PLAN: an offer and the steps it takes.
+  { path: /\/offers\/:id$/, table: 'tenant.offers' },
   {
     path: /\/me\/identities\/:id$/,
     sql: `SELECT i.id FROM control.subscriber_identities i
@@ -149,6 +151,15 @@ export class EveryKind {
     );
     made(
       await shop.post('/stock-checks', { lines: [{ variantId: setup.variantId, counted: 10 }] }),
+    );
+    // OFFERS-PLAN: an offer made ready, not started.
+    made(
+      await shop.post('/offers', {
+        name: 'Eid offer',
+        cut: { kind: 'percent', amount: 10 },
+        items: [{ productId: setup.productId, designId: null }],
+        start: false,
+      }),
     );
     made(
       await shop.post('/products', {

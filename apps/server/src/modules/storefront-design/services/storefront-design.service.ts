@@ -14,6 +14,7 @@ import {
   storefrontTargetRefs,
   storefrontTargets,
   type StorefrontDesign,
+  OfferState,
 } from '@lytronix/validators';
 import { ApiError, FieldsError, type InvalidField } from '../../../common/api-error';
 import { CatalogueVersion } from '../../catalogue/services/catalogue-version';
@@ -23,6 +24,8 @@ import type { CatalogueActor } from '../../catalogue/types/catalogue';
 import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import type { StorefrontDesignStore } from '../ports/storefront-design-store';
 import { STOREFRONT_DESIGN_STORE } from '../tokens';
+import type { OfferStore } from '../../catalogue/ports/offer-store';
+import { OFFER_STORE } from '../../catalogue/tokens';
 import type {
   PublicStorefrontDesign,
   StorefrontCardsView,
@@ -75,6 +78,7 @@ export class StorefrontDesignService {
     @Inject(EdgePurges) private readonly edge: EdgePurges,
     @Inject(StorefrontPreviewLinks) private readonly previews: StorefrontPreviewLinks,
     @Inject(CatalogueVersion) private readonly version: CatalogueVersion,
+    @Inject(OFFER_STORE) private readonly offers: OfferStore,
   ) {}
 
   /** SB-12: the editor's read. */
@@ -184,6 +188,10 @@ export class StorefrontDesignService {
       const images = await this.images.viewsOf(tx, tenantId, storefrontMediaIds(shown));
       const wanted = storefrontTargets(shown);
       const targets = await this.store.targets(tx, tenantId, wanted.categoryIds, wanted.productIds);
+      // OF-22: a row or button of an offer shows while it runs; ended, the row hides and the button goes to On sale.
+      const offers = (await this.offers.byIds(tx, tenantId, wanted.offerIds)).filter(
+        (row) => row.state === OfferState.Running,
+      );
       return {
         theme: design.theme,
         palette: design.palette,
@@ -191,6 +199,7 @@ export class StorefrontDesignService {
         images: Object.fromEntries(images),
         categories: targets.categories.filter((row) => row.shown).map(targetView),
         products: targets.products.filter((row) => row.shown).map(targetView),
+        offers: offers.map((row) => ({ id: row.id, slug: row.slug, name: row.name })),
         preview,
         designCards: row?.designCards ?? true,
       };
@@ -295,9 +304,15 @@ export class StorefrontDesignService {
     const images = await this.images.viewsOf(tx, tenantId, storefrontMediaIds(design));
     const wanted = storefrontTargets(design);
     const targets = await this.store.targets(tx, tenantId, wanted.categoryIds, wanted.productIds);
-    const reachable = new Set(
-      [...targets.categories, ...targets.products].filter((row) => row.shown).map((row) => row.id),
+    const running = (await this.offers.byIds(tx, tenantId, wanted.offerIds)).filter(
+      (row) => row.state === OfferState.Running,
     );
+    const reachable = new Set([
+      ...[...targets.categories, ...targets.products]
+        .filter((row) => row.shown)
+        .map((row) => row.id),
+      ...running.map((row) => row.id),
+    ]);
     const broken = new Set([
       ...storefrontPhotoRefs(design)
         .filter((photo) => !images.has(photo.mediaId))
@@ -363,14 +378,22 @@ export class StorefrontDesignService {
     }
     const wanted = storefrontTargets(design);
     const targets = await this.store.targets(tx, tenantId, wanted.categoryIds, wanted.productIds);
-    const known = new Set([...targets.categories, ...targets.products].map((row) => row.id));
+    const known = new Set([
+      ...[...targets.categories, ...targets.products].map((row) => row.id),
+      // OF-22: any offer of the shop's, so a design naming one that has since ended still saves.
+      ...(await this.offers.byIds(tx, tenantId, wanted.offerIds)).map((row) => row.id),
+    ]);
     for (const target of storefrontTargetRefs(design)) {
       if (known.has(target.id)) continue;
       fields.push({
         field: `design.${target.field}`,
         problem: ServerFieldProblemCode.NotFound,
         messageKey:
-          target.kind === 'category' ? 'StorefrontCategoryNotFound' : 'StorefrontProductNotFound',
+          target.kind === 'category'
+            ? 'StorefrontCategoryNotFound'
+            : target.kind === 'offer'
+              ? 'OfferNotFound'
+              : 'StorefrontProductNotFound',
       });
     }
     if (fields.length > 0) throw new FieldsError(fields);

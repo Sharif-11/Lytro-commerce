@@ -53,6 +53,18 @@ export interface PublicProductCard {
   designId: string | null;
 }
 
+/**
+ * OFFERS-PLAN OF-8, OF-12: an offer as its page in the shop shows it -- its name and cut, running or ended (the ended
+ * page says so), and how many products it holds.
+ */
+export interface PublicOffer {
+  name: string;
+  slug: string;
+  state: 'running' | 'ended';
+  cut: { kind: 'percent' | 'taka'; amount: number };
+  products: number;
+}
+
 export interface PublicProductPage {
   products: PublicProductCard[];
   /** Where the next page starts; null on the last page. */

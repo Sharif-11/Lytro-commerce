@@ -397,6 +397,11 @@ export enum AuditAction {
   // Phase 4 Slice 4.6a: a tax class named, renamed or re-rated, or made the default; and one deleted (TAX-01).
   TaxClassSaved = 'tax_class_saved',
   TaxClassDeleted = 'tax_class_deleted',
+  // OFFERS-PLAN: an offer saved (made, changed, run again), started, ended or deleted.
+  OfferSaved = 'offer_saved',
+  OfferStarted = 'offer_started',
+  OfferEnded = 'offer_ended',
+  OfferDeleted = 'offer_deleted',
   // Phase 5 Slice 5.1: a payment method's accounts saved, or the method switched on or off (WAL-01 to WAL-07).
   PaymentMethodSaved = 'payment_method_saved',
   // Phase 5 Slice 5.2b: staff made a payment link for an order (PAY-24); Lytro suspended the shop's payment page, or

@@ -163,7 +163,10 @@ export function CollectionStep({
       kinds={COLLECTION_KINDS}
       onNamed={onNamed}
       onChange={(link) => {
-        if (link.kind !== StorefrontLinkKind.Product) onChange(link);
+        // A collection is never one product, nor an offer (OFFERS-PLAN: a button may lead to one, a collection not).
+        if (link.kind !== StorefrontLinkKind.Product && link.kind !== StorefrontLinkKind.Offer) {
+          onChange(link);
+        }
       }}
     />
   );

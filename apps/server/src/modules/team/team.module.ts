@@ -110,6 +110,7 @@ import { CouriersModule } from '../couriers/couriers.module';
 import { CustomersController } from './controllers/customers.controller';
 import { SalesController } from './controllers/sales.controller';
 import { TaxClassesController } from './controllers/tax-classes.controller';
+import { OffersController } from './controllers/offers.controller';
 import { PaymentMethodsController } from './controllers/payment-methods.controller';
 import { CustomersModule } from '../customers/customers.module';
 import { ShoppersModule } from '../shoppers/shoppers.module';
@@ -286,6 +287,7 @@ import { NoticesModule } from '../notices/notices.module';
     OperatorCourierRetiringController,
     CustomersController,
     TaxClassesController,
+    OffersController,
     PaymentMethodsController,
     SalesController,
     MediaController,

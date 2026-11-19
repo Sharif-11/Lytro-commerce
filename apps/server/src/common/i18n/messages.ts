@@ -1761,6 +1761,62 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Your products changed meanwhile. Open the product order again and move the cards once more.',
     bn: 'এর মধ্যে প্রোডাক্ট বদলেছে। প্রোডাক্টের ক্রম আবার খুলে কার্ডগুলো আরেকবার সাজান।',
   },
+  OffersRetrieved: { en: 'Offers loaded.', bn: 'অফার লোড হয়েছে।' },
+  OfferRetrieved: { en: 'Offer loaded.', bn: 'অফার লোড হয়েছে।' },
+  OfferPreviewed: { en: 'Prices worked out.', bn: 'দাম হিসাব করা হয়েছে।' },
+  OfferSaved: { en: 'Offer saved.', bn: 'অফার সেভ হয়েছে।' },
+  OfferStarted: {
+    en: 'Offer started. Shoppers see the new prices within a minute.',
+    bn: 'অফার শুরু হয়েছে। এক মিনিটের মধ্যে ক্রেতারা নতুন দাম দেখতে পাবেন।',
+  },
+  OfferEnded: {
+    en: 'Offer ended. The old prices are back.',
+    bn: 'অফার শেষ হয়েছে। আগের দাম ফিরে এসেছে।',
+  },
+  OfferCopied: {
+    en: 'A copy is ready. Start it when you want.',
+    bn: 'একটা কপি রেডি। যখন চান শুরু করুন।',
+  },
+  OfferDeleted: { en: 'Offer deleted.', bn: 'অফার ডিলিট হয়েছে।' },
+  OfferNotFound: { en: 'That offer was not found.', bn: 'অফারটি পাওয়া যায়নি।' },
+  OfferNotRunning: { en: 'This offer is not running.', bn: 'এই অফারটি এখন চলছে না।' },
+  OfferAlreadyStarted: {
+    en: 'This offer has already started.',
+    bn: 'এই অফারটি আগেই শুরু হয়েছে।',
+  },
+  OfferEndedCannotChange: {
+    en: 'An ended offer cannot change. Run it again instead.',
+    bn: 'শেষ হওয়া অফার বদলানো যায় না। আবার চালু করুন।',
+  },
+  OfferRunningCannotDelete: {
+    en: 'End the offer before deleting it.',
+    bn: 'ডিলিট করার আগে অফারটি শেষ করুন।',
+  },
+  OfferHasNoProducts: {
+    en: 'This offer has no products left. Pick some first.',
+    bn: 'এই অফারে আর কোনো প্রোডাক্ট নেই। আগে প্রোডাক্ট বাছুন।',
+  },
+  OfferItemsChanged: {
+    en: 'Some of these products or designs are no longer in your shop. Pick them again.',
+    bn: 'এর মধ্যে কিছু প্রোডাক্ট বা ডিজাইন আর শপে নেই। আবার বাছুন।',
+  },
+  OfferItemHeld: {
+    en: (p) =>
+      `${String(p.product)} is already in ${String(p.offer)}. Take it out of that offer first.`,
+    bn: (p) => `${String(p.product)} আগে থেকেই ${String(p.offer)}-এ আছে। আগে ওই অফার থেকে সরান।`,
+  },
+  OfferCutTooBig: {
+    en: (p) =>
+      `${String(p.products)} cost less than that, so they cannot take that much off. Take them out or lower the amount.`,
+    bn: (p) =>
+      `${String(p.products)}-এর দাম এর চেয়ে কম, তাই এত ছাড় হয় না। ওদের সরান বা ছাড় কমান।`,
+  },
+  ProductPriceInOffer: {
+    en: (p) =>
+      `This price is locked while ${String(p.offer)} runs. End the offer, or take the product out of it, to change it.`,
+    bn: (p) =>
+      `${String(p.offer)} চলার সময় এই দাম লক থাকে। বদলাতে অফারটি শেষ করুন বা প্রোডাক্টটি অফার থেকে সরান।`,
+  },
   RegularPriceBelowPrice: {
     en: (p) => `The regular price is at least the price (${String(p.min)}).`,
     bn: (p) => `আগের দাম অন্তত প্রাইসের সমান হতে হবে (${String(p.min)})।`,

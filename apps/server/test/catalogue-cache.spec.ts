@@ -85,12 +85,15 @@ describe('public list requests (CCH-03, CCH-11)', () => {
       inStock: false,
       onSale: false,
       designs: false,
+      offer: null,
       ids: null,
       cursor: null,
       limit: 24,
     });
     // DC-1: design cards only when asked.
     expect(listRequestOf({ designs: true, limit: 24 }).designs).toBe(true);
+    // OF-8: one offer's cards, its link name as asked in any case.
+    expect(listRequestOf({ offer: 'Eid-Offer', limit: 24 }).offer).toBe('eid-offer');
     expect(listRequestOf({ inStock: true, limit: 24 }).inStock).toBe(true);
     // SB-9: a picked row is one page of exactly its products, whatever cursor or limit came with it.
     const picked = ['0b9f6a3e-6f3c-4f7e-9d2a-1c2b3d4e5f60', '1c2b3d4e-5f60-4718-8293-a4b5c6d7e8f9'];
