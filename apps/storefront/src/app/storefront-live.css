@@ -397,3 +397,51 @@ button.vb.pic img {
   background: var(--danger-soft);
   color: #7a1f25;
 }
+
+/* OFFERS-PLAN OF-8, OF-12 (the builder sketch's `o-page`, `o-ended`): an offer's page -- its tag, name and line in a
+   soft box across the page, and the note once it has ended. */
+.of-head {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  background: var(--accent-soft);
+  border-radius: 16px;
+  padding: 22px 18px;
+}
+.of-head .pt {
+  margin: 4px 0 0;
+}
+.of-pill {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: 99px;
+  padding: 2px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.of-ended {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 12px;
+  max-width: 560px;
+  width: 100%;
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 14.5px;
+}
+.of-ended b {
+  font-size: 15.5px;
+}
+.of-ended a {
+  margin-top: 6px;
+  font-weight: 700;
+  text-decoration: underline;
+}

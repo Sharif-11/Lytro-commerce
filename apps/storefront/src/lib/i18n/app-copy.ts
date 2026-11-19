@@ -214,4 +214,14 @@ export const APP_COPY = {
     'এই প্রিভিউ লিংকের মেয়াদ শেষ। ড্যাশবোর্ড থেকে আবার প্রিভিউ খুলুন।',
     'This preview link has ended. Open the preview again from your dashboard.',
   ],
+  // OFFERS-PLAN OF-8, OF-12: an offer's page -- its tag, its line, and the note once it has ended.
+  of_pill: ['অফার', 'Offer'],
+  of_line_percent: ['{n}টি পণ্যে {cut}% ছাড়', '{cut}% off {n} products'],
+  of_line_taka: ['{n}টি পণ্যে {cut} ছাড়', '{cut} off {n} products'],
+  of_ended: ['এই অফার শেষ হয়ে গেছে', 'This offer has ended'],
+  of_ended_line: [
+    'প্রোডাক্টগুলো এখন তাদের নিজের দামে।',
+    'The products are at their own prices now.',
+  ],
+  of_on_sale_now: ['এখন যেসব পণ্যে ছাড় চলছে', "What's on sale now"],
 } as const satisfies Record<string, readonly [string, string]>;

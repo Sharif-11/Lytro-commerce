@@ -28,7 +28,7 @@ type HeroSection = Extract<StorefrontSection, { kind: StorefrontSectionKind.Hero
 /** SB-9, SB-16: what a product row lists; null when it names a category or products shoppers can no longer reach. */
 export function rowQuery(
   section: ProductsSection,
-  design: Pick<PublicStorefrontDesign, 'categories' | 'products'>,
+  design: Pick<PublicStorefrontDesign, 'categories' | 'products' | 'offers'>,
 ): ProductQuery | null {
   // Sold-out products leave a row (SB-9).
   const base = { inStock: true, limit: section.count };
@@ -47,6 +47,11 @@ export function rowQuery(
       const reachable = new Set(design.products.map((row) => row.id));
       const picked = section.productIds.filter((id) => reachable.has(id)).slice(0, section.count);
       return picked.length > 0 ? { inStock: true, productIds: picked } : null;
+    }
+    // OF-8, OF-22: a running offer's cards in the shop's order; one no longer running, no row.
+    case ProductRowSource.Offer: {
+      const offer = (design.offers ?? []).find((row) => row.id === section.offerId);
+      return offer ? { ...base, sort: 'featured', offer: offer.slug } : null;
     }
   }
 }

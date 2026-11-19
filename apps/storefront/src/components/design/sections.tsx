@@ -30,7 +30,7 @@ import { money, type Words } from '@/lib/i18n/words';
 import { WALLET_NAMES } from '@/lib/order/wallet-names';
 import { AnnouncementBar } from './announcement-bar';
 import { DesignIcon } from './design-icon';
-import { linkHref } from '@/lib/design/links';
+import { linkHref, offerPath } from '@/lib/design/links';
 import { firstLetter } from '@/lib/design/marks';
 import { FocusedPhoto, SectionHead } from './design-parts';
 import { ThemeCard } from './theme-card';
@@ -130,6 +130,11 @@ function rowDefaults(
     }
     case ProductRowSource.Picked:
       return { title: words.t('sb_picked'), all: null };
+    // OF-8: an offer's row takes its name, and "See all" opens its page.
+    case ProductRowSource.Offer: {
+      const offer = (design.offers ?? []).find((row) => row.id === section.offerId);
+      return { title: offer?.name ?? '', all: offer ? offerPath(offer.slug) : null };
+    }
   }
 }
 
