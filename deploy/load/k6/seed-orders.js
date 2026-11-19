@@ -7,6 +7,7 @@ import { check } from 'k6';
 import { SharedArray } from 'k6/data';
 import exec from 'k6/execution';
 import { Seller } from './lib/dashboard.js';
+import { armed as checkArmed, guardScenario } from './lib/guard.js';
 import { addressOf, personOf, phoneOf } from './lib/people.js';
 import { call, dataOf, hosts, visitorAddress } from './lib/target.js';
 
@@ -35,7 +36,11 @@ const shopsAll = roster.shops.length;
 const shopsFull = roster.shops.filter((shop) => shop.full).length;
 const together = Math.min(SMALL_ORDERS, FULL_ORDERS);
 const fullAlone = shopsFull > 0 ? Math.max(0, FULL_ORDERS - SMALL_ORDERS) : 0;
-const seconds = (orders) => `${String(Math.ceil((orders * 60) / PER_SHOP))}s`;
+const secondsFor = (orders) => Math.ceil((orders * 60) / PER_SHOP);
+const seconds = (orders) => `${String(secondsFor(orders))}s`;
+// The orders' stages below, end to end: the guard's length.
+const TAIL_SECONDS = 30;
+const ALL_SECONDS = secondsFor(together) + 1 + secondsFor(fullAlone) + TAIL_SECONDS;
 
 export const options = {
   scenarios: {
@@ -48,11 +53,13 @@ export const options = {
         { target: Math.max(1, shopsFull * PER_SHOP), duration: '1s' },
         { target: Math.max(1, shopsFull * PER_SHOP), duration: seconds(fullAlone) },
         // The tail: arrivals left over after the plan's last order do nothing.
-        { target: 1, duration: '30s' },
+        { target: 1, duration: `${String(TAIL_SECONDS)}s` },
       ],
       preAllocatedVUs: Math.max(10, Math.ceil((shopsAll * PER_SHOP) / 60) * 3),
       maxVUs: Number(__ENV.VUS || 300),
     },
+    // D9-34: a year of orders is hours of SMS events; the seeding stops itself once the server isn't armed.
+    armed: guardScenario(`${String(ALL_SECONDS)}s`),
   },
   summaryTrendStats: ['p(95)'],
   thresholds: { checks: ['rate>0.99'] },
@@ -66,6 +73,11 @@ function fateOf(nth) {
   if (share < 88) return 'shipped';
   if (share < 95) return 'confirmed';
   return 'placed';
+}
+
+/** D9-34: the guard's check, every few seconds all through the seeding (lib/guard.js). */
+export function armed() {
+  checkArmed();
 }
 
 export default function placeOne() {
