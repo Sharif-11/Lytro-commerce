@@ -443,6 +443,44 @@ img{display:block}
   .trk b{display:block;font-size:13px;color:var(--hd-fg)}
   .hero.auto .tile .tx{top:auto;max-width:none;display:block;padding:0}
 }
+
+/* ---------- Phones (the owner, 2026-11-19, beside Bonik AI): the hero a compact card seen at a glance, a clear gap under
+   the category chips, the shop's name cut short beside its mark, and the menu's drawer ---------- */
+@container (max-width:899.98px){
+  .hd .logo{min-width:0;flex:0 1 auto;font-size:18px}
+  .hd .logo > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hd .logo small{display:none}
+  .hd.centred .logo{margin:0}
+  .hd .icons{flex:none}
+  /* every design a rounded card, 16px from the edges and under the chips, about as tall as it is wide */
+  .hero.overlay .slide,.hero.split .slide,.hero.auto .slide{margin:16px 16px 0;height:auto;aspect-ratio:1/.92;border-radius:max(var(--r-card),12px);overflow:hidden;position:relative}
+  .hero.split .slide{display:block;background:#1b1b1b}
+  .hero.split .ph{position:absolute;inset:0;aspect-ratio:auto}
+  .hero.overlay .shade{background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.8))}
+  .hero.overlay .tx,.hero.split .tx{position:absolute;left:0;right:0;bottom:0;padding:16px;color:#fff}
+  .hero.split .tx{background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.8) 40%)}
+  .hero.split h1,.hero.split h1 em{color:#fff}
+  .hero.overlay h1,.hero.split h1{font-size:24px}
+  .hero .kick{font-size:11px}
+  .hero.overlay p,.hero.split p{font-size:13px;margin:4px 0 10px;color:#fff;opacity:.92;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .hero .price{font-size:16px;margin:2px 0 10px}
+  .hero .btn{padding:9px 16px;font-size:14px}
+  .hero .btn .ico{width:18px;height:18px}
+}
+/* the menu's drawer: the shop's lists, its categories with their counts, help and the language */
+.dscrim{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:20}
+.drawer{position:absolute;top:0;left:0;bottom:0;width:88%;max-width:340px;background:var(--bg);color:var(--text);z-index:21;overflow:auto;box-shadow:8px 0 30px rgba(0,0,0,.25)}
+.drawer .dh{display:flex;align-items:center;gap:10px;padding:18px 16px 14px;border-bottom:1px solid var(--line)}
+.drawer .dh b{flex:1;font-family:var(--fh);font-size:19px;line-height:1.25}
+.drawer .row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);font-weight:600;font-size:15px}
+.drawer .row.on{background:var(--accent-soft);color:var(--main)}
+.drawer .row .ico{width:20px;height:20px;color:var(--main)}
+.drawer .row .n{margin-left:auto;color:var(--muted);font-weight:500;font-size:13px}
+.drawer .row .go{margin-left:auto;color:var(--muted)}
+.drawer .lab{padding:18px 16px 6px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.drawer .langs{display:inline-flex;margin:6px 16px 24px;border:1.5px solid var(--line-strong);border-radius:999px;padding:3px}
+.drawer .langs span{padding:6px 16px;border-radius:999px;font-weight:600;font-size:14px}
+.drawer .langs span.on{background:var(--main);color:var(--on-main)}
 </style>
 </head>
 <body>
@@ -1321,6 +1359,23 @@ Object.assign(EDITOR, {
     label: ['দোকান: বার আর হিরো', 'Shop: bar and hero'],
     note: ['মেঘ ফ্যাশন (স্টুডিও): ঘোষণার লাইন দুটো করে ঘোরে (এই পেজে চলতে দেখুন); হেডারে অর্ডার ট্র্যাক; হিরো “স্লাইড আর দুই টাইল”: স্লাইডে সবচেয়ে বেশি ছাড়ের ৩টি প্রোডাক্ট ঘোরে, টাইলে অফার কালেকশন আর নতুন এসেছে (Bonik AI-এর মতো)। ফোনে টাইল স্লাইডের নিচে পাশাপাশি।', "Megh Fashion (Studio): the bar turns two items at a time (watch it on this page); order tracking in the header; the hero's “Slide and two tiles”: the 3 biggest savings rotate on the slide, the tiles show the offers and what's just in (as Bonik AI does). On a phone the tiles sit side by side under the slide."],
     render: () => shopWith('studio', swap('studio', { hero: heroTiles })),
+  },
+  'v-menu': {
+    label: ['দোকান: মেনু', 'Shop: the menu'],
+    note: ['মেনুর (☰) ড্রয়ার, Bonik AI-এর মতো (মালিকের সিদ্ধান্ত, ২০২৬-১১-১৯): দোকানের নাম আর ✕; সব পণ্য, অফার; ক্যাটাগরি, প্রতিটির পণ্যের সংখ্যা; অর্ডার ট্র্যাক, আমার অ্যাকাউন্ট (সাইন ইন না থাকলে সাইন ইনে নেয়), WhatsApp-এ চ্যাট (দোকান নম্বর দিলে); ভাষা। শুধু ফোনে: কম্পিউটারে হেডারেই সব থাকে।', "The menu's (☰) drawer, as Bonik AI's (the owner, 2026-11-19): the shop's name and ✕; All products, Offers; the categories, each with its product count; Track your order, My account (to sign in when signed out), Chat on WhatsApp (when the shop gave a number); the language. Phones only: on a computer the header holds it all."],
+    render: () => {
+      const shop = SHOPS.royal;
+      const row = (words, end, cls = '', icon = '') => `<a class="row ${cls}">${icon ? ic(icon) : ''}<span>${words}</span>${end}</a>`;
+      const go = `<span class="go">${ic('chev')}</span>`;
+      const drawer = `<div class="dscrim"></div><nav class="drawer" aria-label="${L('মেনু', 'Menu')}"><div class="dh"><b>${T(shop.name)}</b>${ic('plus').replace('<svg class="ico ', '<svg style="transform:rotate(45deg)" class="ico ')}</div>`
+        + row(L('সব পণ্য', 'All products'), go, 'on') + row(L('অফার', 'Offers'), go)
+        + `<div class="lab">${L('ক্যাটাগরি', 'Categories')}</div>`
+        + shop.cats.map(([bn, en, , n]) => row(L(bn, en), `<span class="n">${n}</span>`)).join('')
+        + `<div class="lab">${L('সাহায্য', 'Help')}</div>`
+        + row(L('অর্ডার ট্র্যাক করুন', 'Track your order'), go, '', 'truck') + row(L('আমার অ্যাকাউন্ট', 'My account'), go, '', 'user') + row(L('WhatsApp-এ চ্যাট', 'Chat on WhatsApp'), '', '', 'wa')
+        + `<div class="lab">${L('ভাষা', 'Language')}</div><div class="langs"><span class="${LANG === 'bn' ? 'on' : ''}">বাংলা</span><span class="${LANG === 'en' ? 'on' : ''}">English</span></div></nav>`;
+      return shopWith('royal', ['announce', 'header', 'hero', 'cats', ['hot', 'grid'], { key: 'menu', fn: () => drawer }]);
+    },
   },
   'v-scroll': {
     label: ['দোকান: স্ক্রলের পর', 'Shop: scrolled'],
