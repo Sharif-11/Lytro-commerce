@@ -242,9 +242,11 @@ describeIfDatabase('public API keys in the dashboard (API-01, API-02, API-21)', 
         facebookPage: null,
       },
       deliveryZones: [
-        expect.objectContaining({ charge: '70.00', noDelivery: false }),
-        expect.objectContaining({ charge: '130.00', noDelivery: false }),
+        expect.objectContaining({ charge: '70.00', noDelivery: false, kind: 'home' }),
+        expect.objectContaining({ charge: '130.00', noDelivery: false, kind: 'fallback' }),
       ],
+      // STOREFRONT-BUILDER-PLAN BL-10: nothing added per kilo.
+      extraDeliveryChargePerKg: '0.00',
     });
   });
 
@@ -290,9 +292,11 @@ describeIfDatabase('the public API host (API-03 to API-05, API-08, API-14, API-2
         facebookPage: null,
       },
       deliveryZones: [
-        expect.objectContaining({ charge: '70.00', noDelivery: false }),
-        expect.objectContaining({ charge: '130.00', noDelivery: false }),
+        expect.objectContaining({ charge: '70.00', noDelivery: false, kind: 'home' }),
+        expect.objectContaining({ charge: '130.00', noDelivery: false, kind: 'fallback' }),
       ],
+      // STOREFRONT-BUILDER-PLAN BL-10: nothing added per kilo.
+      extraDeliveryChargePerKg: '0.00',
     });
     expect(answer.headers['access-control-allow-origin']).toBe(SITE);
     expect(answer.headers['vary']).toContain('Origin');

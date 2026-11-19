@@ -73,12 +73,12 @@ test('Storefront has the Design line, which opens the design page with its theme
   await expect(main(page).getByText('Draft · 3 changes').filter({ visible: true })).toBeVisible();
   const rows = main(page).getByRole('listitem');
   await expect(rows).toHaveText([
-    /Announcement bar\s*Auto: offers and delivery fees/,
+    /Announcement bar\s*4 lines, two at a time/,
     /Header\s*Logo, menu, search, cart/,
     /Hero slides\s*3 slides · own photos/,
     /Categories\s*Auto: all categories · round photos/,
     /Just in\s*Auto: the 6 newest · carousel/,
-    /Offer banners\s*2 banners, side by side/,
+    /Offer banners\s*3 banners · big \+ two/,
     /Best sellers\s*Auto: top 4 · grid/,
     /Testimonials\s*3 quotes/,
     /Trust strip\s*Auto: cash on delivery, fees, payment/,
@@ -128,6 +128,45 @@ test('hides, moves, adds and removes sections, each saved whole to the draft', a
     StorefrontSectionKind.OfferBanners,
   );
   await expect(page.getByText('Offer banners removed')).toBeVisible();
+});
+
+test('a section dragged by its handle, with a mouse or a finger, saves its new place once; the arrow keys move it one (BL-1)', async ({
+  page,
+}) => {
+  const log = await open(page);
+  const saves = () =>
+    log.calls.filter((call) => call.method === 'PUT' && call.path === '/storefront/design').length;
+  const kinds = () => savedDraft(log)?.sections.map((each) => each.kind);
+  const handle = main(page).getByRole('button', { name: 'Drag Best sellers' });
+  const target = main(page).getByRole('button', { name: 'Open Offer banners' });
+  await handle.scrollIntoViewIfNeeded();
+  const from = await handle.boundingBox();
+  const to = await target.boundingBox();
+  if (!from || !to) throw new Error('the rows are on the page');
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 12 });
+  // Held, the list shows where it would go, and nothing is saved yet.
+  await expect(main(page).getByRole('listitem').nth(5)).toContainText('Best sellers');
+  expect(saves()).toBe(0);
+  await page.mouse.up();
+  await expect.poll(saves).toBe(1);
+  expect(kinds()?.slice(3, 6)).toEqual([
+    StorefrontSectionKind.Products,
+    StorefrontSectionKind.Products,
+    StorefrontSectionKind.OfferBanners,
+  ]);
+  expect(savedDraft(log)?.sections[4]?.id).toBe('00000000-0000-4000-8000-000000000006');
+
+  // The handle with the keyboard: one place up, saved.
+  await main(page).getByRole('button', { name: 'Drag Trust strip' }).press('ArrowUp');
+  await expect.poll(saves).toBe(2);
+  expect(kinds()?.slice(6, 8)).toEqual([
+    StorefrontSectionKind.Trust,
+    StorefrontSectionKind.Testimonials,
+  ]);
+  // The header and the footer have no handle.
+  await expect(main(page).getByRole('button', { name: /^Drag (Header|Footer)$/ })).toHaveCount(0);
 });
 
 test('a colour set is one tap, saved to the draft', async ({ page }) => {
@@ -369,7 +408,32 @@ const SHOTS: { screen: string; path: string; then?: Steps }[] = [
   {
     screen: 'e-hero',
     path: PAGE,
-    then: (page, say) => openRow(page, say('হিরো স্লাইড খুলুন', 'Open Hero slides')),
+    // BL-2, BL-3: switched to filling itself, as the slide-and-tiles design.
+    then: async (page, say) => {
+      await openRow(page, say('হিরো স্লাইড খুলুন', 'Open Hero slides'));
+      await inSheet(page)
+        .getByRole('radio', { name: say('অটো: দোকান থেকে', 'Auto: from your shop') })
+        .click();
+      await inSheet(page)
+        .getByRole('radio', { name: say('স্লাইড আর দুই টাইল', 'Slide and two tiles') })
+        .click();
+    },
+  },
+  {
+    screen: 'e-place',
+    path: PAGE,
+    then: async (page, say) => {
+      await openRow(page, say('হিরো স্লাইড খুলুন', 'Open Hero slides'));
+      await inSheet(page)
+        .getByRole('radio', { name: say('অটো: দোকান থেকে', 'Auto: from your shop') })
+        .click();
+      await inSheet(page)
+        .getByRole('radio', { name: say('স্লাইড আর দুই টাইল', 'Slide and two tiles') })
+        .click();
+      await inSheet(page)
+        .getByRole('button', { name: new RegExp(say('টাইল 1', 'Tile 1')) })
+        .click();
+    },
   },
   {
     screen: 'e-slide',
@@ -438,27 +502,44 @@ const SHOTS: { screen: string; path: string; then?: Steps }[] = [
     then: (page, say) => openRow(page, say('ক্যাটাগরি খুলুন', 'Open Categories')),
   },
   {
-    screen: 'e-announce',
+    // BL-1: Best sellers held over Offer banners, not yet let go.
+    screen: 'e-drag',
     path: PAGE,
     then: async (page, say) => {
-      await openRow(page, say('ঘোষণার লাইন খুলুন', 'Open Announcement bar'));
-      await inSheet(page)
-        .getByRole('radio', { name: say('নিজের লেখা', 'My own words') })
-        .click();
-      await inSheet(page)
-        .getByLabel(say('আপনার লাইন', 'Your line'))
-        .fill(
-          say(
-            'ঈদ অফার: সব লিপস্টিকে ১৫% ছাড়, ঢাকায় ফ্রি ডেলিভারি',
-            'Eid offer: 15% off every lipstick, free delivery in Dhaka',
-          ),
-        );
+      const handle = page
+        .getByRole('main')
+        .getByRole('button', { name: say('সবচেয়ে বেশি বিক্রি টেনে সরান', 'Drag Best sellers') });
+      const target = page
+        .getByRole('main')
+        .getByRole('button', { name: say('অফার ব্যানার খুলুন', 'Open Offer banners') });
+      await handle.scrollIntoViewIfNeeded();
+      const from = await handle.boundingBox();
+      const to = await target.boundingBox();
+      if (!from || !to) throw new Error('the rows are on the page');
+      await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
     },
+  },
+  {
+    screen: 'e-announce',
+    path: PAGE,
+    then: (page, say) => openRow(page, say('ঘোষণার লাইন খুলুন', 'Open Announcement bar')),
   },
   {
     screen: 'e-banners',
     path: PAGE,
     then: (page, say) => openRow(page, say('অফার ব্যানার খুলুন', 'Open Offer banners')),
+  },
+  {
+    screen: 'e-banners-auto',
+    path: PAGE,
+    then: async (page, say) => {
+      await openRow(page, say('অফার ব্যানার খুলুন', 'Open Offer banners'));
+      await inSheet(page)
+        .getByRole('radio', { name: say('অটো: দোকান থেকে', 'Auto: from your shop') })
+        .click();
+    },
   },
   {
     screen: 'e-banner',

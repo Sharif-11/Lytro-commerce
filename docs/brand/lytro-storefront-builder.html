@@ -220,7 +220,7 @@ img{display:block}
   .search i{width:54px;background:var(--main);color:var(--on-main);display:grid;place-items:center}
   .hd .srch{display:none}
   .nav{padding:0 32px 12px;gap:10px;justify-content:center;max-width:1240px;margin:0 auto}
-  .hd.centred .logo{position:static;transform:none}
+  .hd.centred .logo{position:static;transform:none;margin:0}
   .hd.centred .row{justify-content:flex-start}
   .hero.split .slide{flex-direction:row-reverse;align-items:stretch;min-height:440px}
   .hero.split .ph{flex:1.1;aspect-ratio:auto}
@@ -369,6 +369,80 @@ img{display:block}
 .dash.desk .sheet .dock{position:static;border-radius:0 0 18px 18px}
 .hl{outline:3px solid #f2a516;outline-offset:-3px;position:relative;z-index:2}
 .dash.fix{height:844px;overflow:hidden}
+
+/* ---------- Banner layouts, the bar's pairs, hero tiles, dragged sections (the owner, 2026-11-18) ---------- */
+/* the announcement bar: its items two at a time, every pair in one grid cell so the bar keeps the tallest pair's height */
+.ann.rot{display:grid}
+.ann.rot .fr{grid-area:1/1;opacity:0;transform:translateY(6px);transition:opacity .35s,transform .35s}
+.ann.rot .fr.on{opacity:1;transform:none}
+.ann .sep{opacity:.65;margin:0 7px}
+/* the hero's slide and two tiles: the slide rotates; each tile a collection the seller picked */
+.hero.auto .slide .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.78))}
+.hero.auto h1{color:#fff}
+.hero .tile .k{display:block;font-size:11.5px;font-weight:600;opacity:.92}
+.hero.auto .tile b{font-size:15px}
+/* banners: full width, side by side, big + two; half-width banners on a phone are compact tiles */
+.banners.full{grid-template-columns:1fr}
+.banners.side{grid-template-columns:1fr 1fr;gap:10px}
+.banners.side.n3{grid-template-columns:repeat(3,1fr);gap:8px}
+.banners.big2{grid-template-columns:1fr 1fr;gap:10px}
+.shop .banners.big2 .ban:first-child{grid-column:1/-1;height:190px}
+.shop .ban.c{height:150px}
+.banners.side.n3 .ban.c{height:170px}
+.ban .cshade{display:none;position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 25%,rgba(0,0,0,.78))}
+.ban.c .shade{display:none}.ban.c .cshade{display:block}
+.ban.c .tx{position:absolute;left:0;right:0;bottom:0;padding:11px 12px;max-width:none}
+.ban.c .k{font-size:11px}
+.ban.c b{font-size:18px;margin:1px 0 0}
+.banners.side.n3 .ban.c b{font-size:15px}
+.ban.c .s,.ban.c .btn{display:none}
+/* a sketch caption between sections (Lytro's note, not the shop) */
+.capstrip{background:#0e6b66;color:#fff;font:600 12px/1.4 'Inter','Noto Sans Bengali',sans-serif;padding:6px 16px;margin-top:18px}
+@container (min-width:900px){
+  .hero.auto .tiles{grid-column:2;grid-row:1/span 2}
+  .hero.auto .tile .tx{left:16px;right:16px;bottom:14px;top:auto;padding:0;max-width:none;display:block}
+  .hero.auto .tile .k{font-size:13px}
+  .hero.auto .tile b{font-size:22px}
+  .banners.side{gap:18px}
+  .banners.side.n3{gap:18px}
+  .banners.big2{grid-template-columns:2fr 1fr;grid-template-rows:230px 230px;gap:18px}
+  .shop .banners.big2 .ban:first-child{grid-column:1;grid-row:1/3;height:auto}
+  .shop .ban.c,.banners.side.n3 .ban.c{height:230px}
+  .ban.c .shade{display:block}.ban.c .cshade{display:none}
+  .ban.c .tx{position:relative;padding:28px;max-width:80%}
+  .ban.c .s{display:block}.ban.c .btn{display:inline-flex}
+  .ban.c .k{font-size:12.5px}
+  .ban.c b,.banners.side.n3 .ban.c b,.banners.n3 .ban b{font-size:30px}
+  .banners.big2 .ban:first-child b{font-size:46px}
+}
+/* the editor: a section row's handle, and a row held mid-drag */
+.srow .hdl{color:#7d8d8c;display:grid;place-items:center;width:22px;flex:none}
+.srow .hdl .ico{width:18px;height:18px}
+.srow.fixed .hdl{visibility:hidden}
+.srow.lift{background:#fff;border-radius:12px;box-shadow:0 14px 30px rgba(0,0,0,.22);outline:2px solid #0e6b66;transform:rotate(-1.2deg);position:relative;z-index:2;border-top-color:transparent}
+.srow.gap{border:2px dashed #9fc9c4;border-radius:12px;min-height:60px;background:#f1f9f8}
+.opts.two{grid-template-columns:repeat(3,1fr)}
+.opt.no{opacity:.4}
+.annprev{border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:600;text-align:center;background:#a3195b;color:#fff}
+.annprev .pill{background:#f2639e;color:#3a0f24;border-radius:99px;padding:0 8px;margin-right:6px;font-size:11.5px}
+.annstep{font-size:11.5px;color:#33403f;text-align:center;margin:4px 0}
+.annprev .sep{opacity:.65;margin:0 7px}.annprev .nw{white-space:nowrap}
+/* the header's order tracking (Bonik's): a truck on a phone, the truck and two lines on a computer */
+.hd .icons{gap:12px}
+/* four icons on a phone: a centred logo centres in the room between the menu and the icons */
+.hd.centred .logo{position:static;transform:none;margin:0 auto}
+.hero .tx .badge{align-self:flex-start}
+.ann .nw{white-space:nowrap}
+.trk{display:flex;align-items:center;gap:8px;color:inherit}
+.trk span{display:none}
+.hero.auto .tile .tx{padding:0}
+@container (min-width:900px){
+  .hd .icons{gap:18px}
+  .hd.centred .logo{margin:0}
+  .trk span{display:block;font-size:11.5px;line-height:1.25;color:var(--muted)}
+  .trk b{display:block;font-size:13px;color:var(--hd-fg)}
+  .hero.auto .tile .tx{top:auto;max-width:none;display:block;padding:0}
+}
 </style>
 </head>
 <body>
@@ -576,7 +650,7 @@ const SOURCES = {
   hot: { title: ['সবচেয়ে বেশি বিক্রি', 'Best sellers'], pick: (ps) => [...ps].sort((a, b) => (b.sold || 0) - (a.sold || 0)) },
 };
 const SEC_NAMES = {
-  announce: ['ঘোষণা · অটো: অফার', 'Announcement · auto: offers'], header: ['হেডার', 'Header'], hero: ['হিরো · ৩টি স্লাইড', 'Hero · 3 slides'],
+  announce: ['ঘোষণা · দুটো করে ঘোরে', 'Announcement · two at a time'], header: ['হেডার', 'Header'], hero: ['হিরো · ৩টি স্লাইড', 'Hero · 3 slides'],
   cats: ['ক্যাটাগরি · অটো', 'Categories · auto'], banners: ['অফার ব্যানার · ২টি', 'Offer banners · 2'], trust: ['ভরসার কারণ · অটো', 'Trust strip · auto'],
   quotes: ['ক্রেতাদের কথা', 'Testimonials'], footer: ['ফুটার', 'Footer'],
   latest: ['প্রোডাক্ট · অটো: নতুন', 'Products · auto: newest'], sale: ['প্রোডাক্ট · অটো: ছাড়ে', 'Products · auto: on sale'], hot: ['প্রোডাক্ট · অটো: বেশি বিক্রি', 'Products · auto: best sellers'],
@@ -600,13 +674,15 @@ function offersLine(shop) {
 }
 
 const SECTIONS = {
-  announce: (theme, shop) => `<div class="ann" data-sec="${T(SEC_NAMES.announce)}"><span class="pill">${L('অফার', 'Offer')}</span>${offersLine(shop)} · ${L(`ঢাকায় ডেলিভারি ${money(DELIVERY.dhaka)}`, `Delivery in Dhaka ${money(DELIVERY.dhaka)}`)}</div>`,
+  // The owner, 2026-11-18: one list, two items at a time, the next two every 4 seconds (Bonik's ticker); the bar
+  // leaves as the page scrolls and the header stays.
+  announce: (theme, shop, own = []) => `<div class="ann rot" data-sec="${T(SEC_NAMES.announce)}">${annPairs(annItems(shop, own)).map((pair, at) => `<div class="fr ${at === 0 ? 'on' : ''}">${pair.join('<span class="sep">·</span><wbr>')}</div>`).join('')}</div>`,
 
   header: (theme, shop) => {
     const kind = THEMES[theme].header;
     const logo = shop.logo ? `<a class="logo img">${LOGO(40)}</a>` : `<a class="logo"><span class="mk">${shop.mark}</span><span>${T(shop.name)}<small>${T(shop.tag)}</small></span></a>`;
     const nav = [L('সব পণ্য', 'All products'), L('অফার', 'Offers'), ...shop.cats.slice(0, 5).map((c) => T([c[0], c[1]]))];
-    return `<header class="hd ${kind}" data-sec="${T(SEC_NAMES.header)}"><div class="wrap row"><span class="menu">${ic('menu')}</span>${logo}<div class="search"><span>${L('পণ্য খুঁজুন...', 'Search products...')}</span><i>${ic('search')}</i></div><div class="icons"><span class="srch">${ic('search')}</span>${ic('user')}<span class="cart">${ic('cart')}<sup>2</sup></span></div></div><nav class="nav">${nav.map((n, i) => `<a class="${i === 0 ? 'on' : ''}">${n}</a>`).join('')}</nav></header>`;
+    return `<header class="hd ${kind}" data-sec="${T(SEC_NAMES.header)}"><div class="wrap row"><span class="menu">${ic('menu')}</span>${logo}<div class="search"><span>${L('পণ্য খুঁজুন...', 'Search products...')}</span><i>${ic('search')}</i></div><div class="icons"><span class="srch">${ic('search')}</span><a class="trk" aria-label="${L('অর্ডার ট্র্যাক', 'Track order')}">${ic('truck')}<span><b>${L('অর্ডার ট্র্যাক', 'Track order')}</b>${L('অর্ডার কোথায় আছে', 'Where your order is')}</span></a>${ic('user')}<span class="cart">${ic('cart')}<sup>2</sup></span></div></div><nav class="nav">${nav.map((n, i) => `<a class="${i === 0 ? 'on' : ''}">${n}</a>`).join('')}</nav></header>`;
   },
 
   hero: (theme, shop) => {
@@ -640,7 +716,8 @@ const SECTIONS = {
     return `<section class="sec" data-sec="${T(SEC_NAMES[source])} · ${layout === 'rail' ? L('ক্যারোসেল', 'carousel') : L('গ্রিড', 'grid')}"><div class="wrap">${head(theme, T(SOURCES[source].title))}<div class="${layout}">${cards.join('')}</div></div></section>`;
   },
 
-  banners: (theme, shop) => `<section class="sec" data-sec="${T(SEC_NAMES.banners)}"><div class="wrap banners">${shop.banners.map((b) => `<a class="ban"><img src="${img(b.i + '-wide')}" alt="" onerror="this.src='${img(b.i)}'"><div class="shade" style="background:${b.shade}"></div><div class="tx"><div class="k">${T(b.k)}</div><b>${T(b.b)}</b><div class="s">${T(b.s)}</div><span class="btn light">${L('দেখুন', 'Shop')} ${ic('arrow')}</span></div></a>`).join('')}</div></section>`,
+  // The owner, 2026-11-18: one to three banners, laid out by their number unless the seller picks (BAN_DEFAULT).
+  banners: (theme, shop, layout) => bannersHtml(shop.banners, layout, T(SEC_NAMES.banners)),
 
   trust: () => {
     const items = [
@@ -714,12 +791,12 @@ function mini(theme, width, height, wide, light) {
 }
 
 const ED_ROWS = [
-  { key: 'announce', icon: 'mega', name: ['ঘোষণার লাইন', 'Announcement bar'], sum: ['অটো: অফার আর ডেলিভারি চার্জ', 'Auto: offers and delivery fees'] },
+  { key: 'announce', icon: 'mega', name: ['ঘোষণার লাইন', 'Announcement bar'], sum: ['৪টি লাইন, দুটো করে ঘোরে', '4 lines, two at a time'] },
   { key: 'header', icon: 'header', name: ['হেডার', 'Header'], sum: ['লোগো, মেনু, সার্চ, কার্ট', 'Logo, menu, search, cart'], fixed: true },
   { key: 'hero', icon: 'slides', name: ['হিরো স্লাইড', 'Hero slides'], sum: ['৩টি স্লাইড · নিজের ছবি', '3 slides · own photos'] },
   { key: 'cats', icon: 'grid', name: ['ক্যাটাগরি', 'Categories'], sum: ['অটো: সব ক্যাটাগরি · গোল ছবি', 'Auto: all categories · round photos'] },
   { key: 'latest', icon: 'spark', name: ['নতুন এসেছে', 'Just in'], sum: ['অটো: নতুন ৬টি পণ্য · ক্যারোসেল', 'Auto: 6 newest · carousel'] },
-  { key: 'banners', icon: 'banner', name: ['অফার ব্যানার', 'Offer banners'], sum: ['২টি ব্যানার, পাশাপাশি', '2 banners, side by side'] },
+  { key: 'banners', icon: 'banner', name: ['অফার ব্যানার', 'Offer banners'], sum: ['৩টি ব্যানার · বড় আর দুটো', '3 banners · big + two'] },
   { key: 'hot', icon: 'star', name: ['সবচেয়ে বেশি বিক্রি', 'Best sellers'], sum: ['অটো: বেশি বিক্রি ৪টি · গ্রিড', 'Auto: top 4 · grid'] },
   { key: 'quotes', icon: 'quote', name: ['ক্রেতাদের কথা', 'Testimonials'], sum: ['৩টি মন্তব্য', '3 quotes'] },
   { key: 'trust', icon: 'shield', name: ['ভরসার কারণ', 'Trust strip'], sum: ['অটো: ক্যাশ অন ডেলিভারি, চার্জ, পেমেন্ট', 'Auto: cash on delivery, fees, payment'] },
@@ -727,16 +804,17 @@ const ED_ROWS = [
   { key: 'footer', icon: 'cols', name: ['ফুটার', 'Footer'], sum: ['যোগাযোগ, সোশ্যাল লিংক, Powered by Lytro', 'Contact, social links, Powered by Lytro'], fixed: true },
 ];
 
-function sectionRows(selected) {
-  return ED_ROWS.map((r) => `<div class="srow ${r.off ? 'off' : ''} ${r.fixed ? 'fixed' : ''} ${selected === r.key ? 'sel' : ''}"><span class="grip">${ic('up')}${ic('down')}</span><span class="si">${ic(r.icon)}</span><span class="nm"><b>${T(r.name)}</b><span>${T(r.sum)}</span></span>${r.fixed ? '' : `<span class="switch ${r.off ? 'off' : ''}"></span>`}<span class="chev">${ic('chev')}</span></div>`).join('');
+// Each section's row: its handle (held and dragged, the owner 2026-11-18), its arrows, its switch and the way in.
+function sectionRows(selected, rows = ED_ROWS) {
+  return rows.map((r) => `<div class="srow ${r.off ? 'off' : ''} ${r.fixed ? 'fixed' : ''} ${selected === r.key ? 'sel' : ''} ${r.lift ? 'lift' : ''}"><span class="hdl">${ic('drag')}</span><span class="grip">${ic('up')}${ic('down')}</span><span class="si">${ic(r.icon)}</span><span class="nm"><b>${T(r.name)}</b><span>${T(r.sum)}</span></span>${r.fixed ? '' : `<span class="switch ${r.off ? 'off' : ''}"></span>`}<span class="chev">${ic('chev')}</span></div>`).join('');
 }
 
-function designBody(selected) {
+function designBody(selected, rows) {
   const th = THEMES[ED];
   return `<div class="body">
     <div class="dcard tcard">${mini(ED, 118, 178, false)}<div><h2>${ic('palette')} ${L('থিম', 'Theme')}: ${T(th.name)}</h2><p class="sub">${T(th.fits)}</p><div class="pal"><i class="on" style="background:#a3195b"></i><i style="background:#c2410c"></i><i style="background:#6d28d9"></i></div><button class="dbtn out sm">${L('থিম বদলান', 'Change theme')}</button></div></div>
     <div class="dcard"><div class="row2"><span style="flex:none">${LOGO(40)}</span><span style="flex:1"></span>${ICON(44, 11)}</div><p class="sub" style="margin:8px 0 10px">${L('লোগো সব পেজের উপরে; আইকন ব্রাউজারের ট্যাবে আর ক্রেতার ফোনের হোম স্ক্রিনে।', "The logo tops every page; the icon sits in the browser tab and on shoppers' home screens.")}</p><button class="dbtn out sm">${L('লোগো আর আইকন', 'Logo and icon')}</button> <span class="chip live">${L('সব প্ল্যানে', 'Every plan')}</span></div>
-    <div class="dcard"><h2>${L('হোম পেজের সেকশন', 'Home page sections')}</h2><p class="sub">${L('উপর থেকে নিচে, যেমন ক্রেতা দেখবে। “অটো” মানে দোকানের তথ্য থেকে নিজে ভরে যায়।', 'Top to bottom, as shoppers see them. “Auto” fills itself from your shop.')}</p>${sectionRows(selected)}<button class="dbtn quiet wide" style="width:100%;margin-top:10px">${ic('plus')} ${L('সেকশন যোগ করুন', 'Add a section')}</button></div>
+    <div class="dcard"><h2>${L('হোম পেজের সেকশন', 'Home page sections')}</h2><p class="sub">${L('উপর থেকে নিচে, যেমন ক্রেতা দেখবে। “অটো” মানে দোকানের তথ্য থেকে নিজে ভরে যায়।', 'Top to bottom, as shoppers see them. “Auto” fills itself from your shop.')}</p>${sectionRows(selected, rows)}<button class="dbtn quiet wide" style="width:100%;margin-top:10px">${ic('plus')} ${L('সেকশন যোগ করুন', 'Add a section')}</button></div>
   </div>`;
 }
 
@@ -799,18 +877,23 @@ Object.assign(EDITOR, {
   },
   'e-hero': {
     label: ['হিরো স্লাইড', 'Hero slides'],
-    note: ['একটা সেকশন খুললে তার নিজের শিট। হিরো: অটো (ছাড়ের পণ্য থেকে নিজে স্লাইড) নাকি নিজের স্লাইড; ডিজাইন তিন রকম; স্লাইড ৩টি পর্যন্ত, উপরে-নিচে সরানো যায়।', 'Opening a section opens its own sheet. Hero: auto (slides made from discounted products) or your own; three designs; up to 3 slides, reorderable.'],
+    note: ['একটা সেকশন খুললে তার নিজের শিট। হিরো: অটো রাখলে স্লাইডে কী দেখাবে বাছুন: অফার (সবচেয়ে বেশি ছাড়; ছাড় না থাকলে নতুন), নতুন বা সবচেয়ে বেশি বিক্রি, প্রতিটি প্রোডাক্ট তার নিজের ছবিতে; নয়তো নিজের স্লাইড, ৩টি পর্যন্ত, উপরে-নিচে সরানো যায়। ডিজাইন তিন রকম; “স্লাইড আর দুই টাইল”-এ স্লাইড ঘোরে আর প্রতিটি টাইলে কী দেখাবে নিজে বাছেন (মালিকের সিদ্ধান্ত, ২০২৬-১১-১৮)।', 'Opening a section opens its own sheet. Hero: on auto, choose what the slides show: offers (the biggest savings; the newest with nothing on sale), newest or best sellers, each product with its own photo; or your own slides, up to 3, reorderable. Three designs; in “Slide and two tiles” the slide rotates and you pick what each tile shows (the owner, 2026-11-18).'],
     render: (d) => {
       const dg = (kind) => kind === 'split' ? '<div class="dg"><i class="p" style="left:50%;top:0;right:0;bottom:0;border-radius:0"></i><i style="left:8px;top:14px;width:38%;height:7px"></i><i style="left:8px;top:26px;width:28%;height:5px"></i><i style="left:8px;top:38px;width:22%;height:8px;background:#7aa6a2"></i></div>'
         : kind === 'full' ? '<div class="dg"><i class="p" style="inset:0;border-radius:0"></i><i style="left:8px;bottom:22px;width:50%;height:7px;background:#fff"></i><i style="left:8px;bottom:9px;width:24%;height:8px;background:#7aa6a2"></i></div>'
         : '<div class="dg"><i class="p" style="left:4px;top:4px;width:62%;bottom:4px"></i><i class="p" style="right:4px;top:4px;width:28%;height:21px"></i><i class="p" style="right:4px;bottom:4px;width:28%;height:21px"></i></div>';
-      const slides = [['beauty-1-wide', ['আপনার স্বাভাবিক সৌন্দর্য', 'Reveal your natural beauty'], ['বোতাম: এখনই কিনুন → নতুন এসেছে', 'Button: Shop now → Just in']], ['beauty-3-wide', ['স্কিন কেয়ারে ২০% ছাড়', '20% off skin care'], ['বোতাম: দেখুন → অফার কালেকশন', 'Button: Shop → On sale']], ['beauty-5-wide', ['নতুন ক্রিম এসেছে', 'New creams are in'], ['বোতাম: দেখুন → ক্যাটাগরি: ক্রিম', 'Button: Shop → Category: Creams']]];
-      const inner = `<div class="field"><label>${L('কী দেখাবে', 'What it shows')}</label><div class="seg"><span>${ic('spark')} ${L('অটো: ছাড়ের পণ্য', 'Auto: discounted products')}</span><span class="on">${L('নিজের স্লাইড', 'My own slides')}</span></div></div>
-        <div class="field"><label>${L('ডিজাইন', 'Design')}</label><div class="opts"><div class="opt on">${dg('split')}${L('ছবি আর লেখা', 'Photo and words')}</div><div class="opt">${dg('full')}${L('পুরো ছবি', 'Full photo')}</div><div class="opt">${dg('tiles')}${L('স্লাইড আর দুই টাইল', 'Slide and two tiles')}</div></div></div>
-        <div class="field"><label>${L('স্লাইড (৩টির মধ্যে ৩টি)', 'Slides (3 of 3)')}</label>${slides.map(([im, h, b]) => `<div class="slide-row"><span class="grip" style="color:#7d8d8c;display:flex;flex-direction:column">${ic('up')}${ic('down')}</span><img src="${img(im)}" alt=""><span class="nm"><b>${T(h)}</b><span>${T(b)}</span></span><span class="chev">${ic('chev')}</span></div>`).join('')}</div>
-        <div class="note-line">${ic('info')}<span>${L('অটো রাখলে সবচেয়ে বেশি ছাড়ের ৩টি পণ্য নিজে থেকে স্লাইড হয়, ছবি সেই পণ্যেরই। অফার শেষ হলে স্লাইডও সরে যায়।', 'On auto, your 3 biggest discounts become the slides, with their own photos, and leave when the offer ends.')}</span></div>`;
+      const shop = SAMPLE();
+      const tiles = [['sale', ['টাইল ১', 'Tile 1']], ['latest', ['টাইল ২', 'Tile 2']]].map(([k, n]) => {
+        const p = placeOf(shop, k, heroList(shop, 'sale'));
+        return `<div class="slide-row"><img src="${img(p.i)}" alt="" style="width:50px;height:50px"><span class="nm"><b>${T(n)} · ${T(PLACE_NAMES[k])}</b><span>${p.k} · ${p.b}</span></span><span class="chev">${ic('chev')}</span></div>`;
+      }).join('');
+      const inner = `<div class="field"><label>${L('কী দেখাবে', 'What it shows')}</label><div class="seg"><span class="on">${ic('spark')} ${L('অটো: দোকান থেকে', 'Auto: from your shop')}</span><span>${L('নিজের স্লাইড', 'My own slides')}</span></div></div>
+        <div class="field"><label>${L('স্লাইডে দেখাবে', 'The slides show')}</label><div class="seg"><span class="on">${L('অফার', 'Offers')}</span><span>${L('নতুন', 'Newest')}</span><span>${L('বেশি বিক্রি', 'Best sellers')}</span></div><span class="hint">${L('সবচেয়ে বেশি ছাড়ের ৩টি প্রোডাক্ট; ছাড় না থাকলে সবচেয়ে নতুন ৩টি।', 'Your 3 biggest discounts; with nothing on sale, your 3 newest.')}</span></div>
+        <div class="field"><label>${L('ডিজাইন', 'Design')}</label><div class="opts"><div class="opt">${dg('split')}${L('ছবি আর লেখা', 'Photo and words')}</div><div class="opt">${dg('full')}${L('পুরো ছবি', 'Full photo')}</div><div class="opt on">${dg('tiles')}${L('স্লাইড আর দুই টাইল', 'Slide and two tiles')}</div></div></div>
+        <div class="field"><label>${L('টাইলে দেখাবে', 'The tiles show')}</label>${tiles}<span class="hint">${L('ফোনে স্লাইডের নিচে পাশাপাশি, কম্পিউটারে স্লাইডের পাশে উপরে-নিচে। টাইলে চাপ দিলে সেই কালেকশন খোলে।', 'Side by side under the slide on a phone, stacked beside it on a computer. A tile opens its collection.')}</span></div>
+        <div class="note-line">${ic('info')}<span>${L('নিজের স্লাইড দিলেও টাইল দুটো থাকে, স্লাইডের সাথে ঘোরে না। টাইলের ছবি সেই কালেকশনের এমন প্রোডাক্টের, যা স্লাইডে নেই।', "The tiles stay with your own slides too, and don't rotate with them. A tile's photo is a product of its collection that isn't on a slide.")}</span></div>`;
       const overlay = sheet(L('হিরো স্লাইড', 'Hero slides'), inner, `<div class="dock"><button class="dbtn">${L('ঠিক আছে', 'Done')}</button></div>`);
-      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('hero'), dockDesign(), overlay, 'hero');
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('hero'), dockDesign(), overlay, 'hero', PANE(ED, swap(ED, { hero: heroTiles }), 'hero'));
     },
   },
   'e-slide': {
@@ -842,7 +925,7 @@ Object.assign(EDITOR, {
     label: ['সেকশন যোগ', 'Add a section'],
     note: ['যোগ করার সেকশনগুলো: প্রথম সংস্করণে শুধু যা Lytro আগে থেকেই জানে (নতুন কোনো ফিচার নয়)। একই সেকশন একাধিকবার যোগ করা যায়।', 'What can be added: in the first version, only what Lytro already knows (no new features). The same kind can be added more than once.'],
     render: (d) => {
-      const kinds = [['slides', ['হিরো স্লাইড', 'Hero slides'], ['বড় ছবি, শিরোনাম আর বোতাম; ৩টি পর্যন্ত স্লাইড', 'Big photo, headline and button; up to 3 slides']], ['tag', ['প্রোডাক্টের সারি', 'Product row'], ['নতুন, অফারের, বেশি বিক্রি, একটা ক্যাটাগরি বা হাতে বাছাই', 'Newest, on sale, best sellers, a category or hand-picked']], ['grid', ['ক্যাটাগরি', 'Categories'], ['গোল, চারকোনা বা লম্বা ছবিতে', 'As round, square or tall photos']], ['banner', ['অফার ব্যানার', 'Offer banners'], ['একটা বা দুটো ব্যানার, পাশাপাশি', 'One or two banners, side by side']], ['wide', ['বড় ব্যানার', 'Wide banner'], ['পুরো চওড়া একটা ছবি আর একটা বোতাম', 'One full-width photo and a button']], ['shield', ['ভরসার কারণ', 'Trust strip'], ['ক্যাশ অন ডেলিভারি, ডেলিভারি চার্জ, পেমেন্ট: নিজে থেকে', 'Cash on delivery, fees, payment: automatic']], ['quote', ['ক্রেতাদের কথা', 'Testimonials'], ['আপনার ক্রেতাদের মন্তব্য, ৬টি পর্যন্ত', "Your customers' words, up to 6"]], ['store', ['দোকানের কথা', 'About the shop'], ['একটা ছবি আর কয়েক লাইন আপনার দোকান নিয়ে', 'A photo and a few lines about your shop']]];
+      const kinds = [['slides', ['হিরো স্লাইড', 'Hero slides'], ['বড় ছবি, শিরোনাম আর বোতাম; ৩টি পর্যন্ত স্লাইড', 'Big photo, headline and button; up to 3 slides']], ['tag', ['প্রোডাক্টের সারি', 'Product row'], ['নতুন, অফারের, বেশি বিক্রি, একটা ক্যাটাগরি বা হাতে বাছাই', 'Newest, on sale, best sellers, a category or hand-picked']], ['grid', ['ক্যাটাগরি', 'Categories'], ['গোল, চারকোনা বা লম্বা ছবিতে', 'As round, square or tall photos']], ['banner', ['অফার ব্যানার', 'Offer banners'], ['১ থেকে ৩টি ব্যানার: পুরো চওড়া, পাশাপাশি বা বড় আর দুটো', '1 to 3 banners: full width, side by side, or big + two']], ['wide', ['বড় ব্যানার', 'Wide banner'], ['পুরো চওড়া একটা ছবি আর একটা বোতাম', 'One full-width photo and a button']], ['shield', ['ভরসার কারণ', 'Trust strip'], ['ক্যাশ অন ডেলিভারি, ডেলিভারি চার্জ, পেমেন্ট: নিজে থেকে', 'Cash on delivery, fees, payment: automatic']], ['quote', ['ক্রেতাদের কথা', 'Testimonials'], ['আপনার ক্রেতাদের মন্তব্য, ৬টি পর্যন্ত', "Your customers' words, up to 6"]], ['store', ['দোকানের কথা', 'About the shop'], ['একটা ছবি আর কয়েক লাইন আপনার দোকান নিয়ে', 'A photo and a few lines about your shop']]];
       const inner = `<div>${kinds.map(([i, b, s]) => `<div class="kind"><span class="si">${ic(i)}</span><span><b>${T(b)}</b><span>${T(s)}</span></span><span class="plus">+</span></div>`).join('')}</div><div class="note-line" style="margin-top:8px">${ic('info')}<span>${L('রিভিউ আর রেটিং, নিউজলেটার, উইশলিস্ট: পরে, আলাদা ফিচার হিসেবে।', 'Reviews and ratings, newsletter, wishlist: later, each its own feature.')}</span></div>`;
       const overlay = sheet(L('সেকশন যোগ করুন', 'Add a section'), inner, '');
       return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody(), dockDesign(), overlay);
@@ -948,26 +1031,45 @@ Object.assign(EDITOR, {
   },
   'e-announce': {
     label: ['ঘোষণার লাইন', 'Announcement bar'],
-    note: ['ঘোষণার লাইন: অটো রাখলে চলমান অফার আর ডেলিভারি চার্জ নিজে লেখে, অফার বদলালে লাইনও বদলায়; নিজের লেখা দিলে সেটাই থাকে, ১২০ অক্ষর পর্যন্ত।', 'The announcement bar: on auto it writes the offers on now and the delivery charges, and changes with them; your own words stay as written, up to 120 characters.'],
+    note: ['ঘোষণার লাইন (মালিকের সিদ্ধান্ত, ২০২৬-১১-১৮): একটা তালিকা, দুটো করে দেখায়, ৪ সেকেন্ড পর পরের দুটো (৫টি থাকলে ১-২, ৩-৪, তারপর ৫)। অটো তিনটি: ক্যাশ অন ডেলিভারি, ডেলিভারি চার্জ আর চলমান অফার (অফার না থাকলে নিজে সরে যায়); প্রতিটি বন্ধ করা যায়। নিজের লাইন ৪০ অক্ষর পর্যন্ত, সব মিলিয়ে ৬টি। পেজ স্ক্রল করলে লাইনটা সরে যায়, হেডার থাকে।', 'The announcement bar (the owner, 2026-11-18): one list shown two at a time, the next two after 4 seconds (with five: 1-2, 3-4, then 5). Three are automatic: cash on delivery, the delivery charges and the offers on now (gone by itself with no offer); each can be turned off. Your own lines up to 40 characters, six in all. Scrolling the page hides the bar; the header stays.'],
     render: (d) => {
-      const line = L('ঈদ অফার: সব লিপস্টিকে ১৫% ছাড়, ঢাকায় ফ্রি ডেলিভারি', 'Eid offer: 15% off every lipstick, free delivery in Dhaka');
-      const bar = `<div style="background:#a3195b;color:#fff;border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:600;text-align:center;margin:-4px 0 14px">${line}</div>`;
-      const inner = `<div class="field"><label>${L('কী লেখা থাকবে', 'What it says')}</label><div class="seg"><span>${ic('spark')} ${L('অটো: অফার আর চার্জ', 'Auto: offers and fees')}</span><span class="on">${L('নিজের লেখা', 'My own words')}</span></div></div>`
-        + fld(L('আপনার লাইন', 'Your line'), line, chars(line, 120), { area: 64 })
-        + `<div class="field" style="margin-bottom:6px"><label>${L('দোকানে যেমন দেখাবে', 'As shoppers see it')}</label></div>${bar}`
-        + `<div class="note-line">${ic('info')}<span>${L('অটো রাখলে লেখে: “৬টি পণ্যে ২৫% পর্যন্ত ছাড় চলছে · ডেলিভারি ৳৭০–১৩০”, অফার শেষ হলে নিজে বদলায়। নিজের লেখা নিজে না বদলালে থেকে যায়।', 'On auto it reads “Up to 25% off on 6 products · Delivery ৳70–130” and changes when an offer ends. Your own words stay until you change them.')}</span></div>`;
-      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('announce'), dockDesign(), sheet(L('ঘোষণার লাইন', 'Announcement bar'), inner, DOCK_SECTION()), 'announce');
+      const own = ANN_OWN();
+      const items = [[L('ক্যাশ অন ডেলিভারি', 'Cash on delivery'), true], [deliveryLine().replace(/<span class="sep">·<\/span><wbr>/g, ' · ').replace(/<[^>]+>/g, ''), true], [offerItem(SAMPLE()).replace(/<span class="pill">.*?<\/span>/, ''), true], [own, false]];
+      const rows = items.map(([text, auto]) => `<div class="srow"><span class="grip">${ic('up')}${ic('down')}</span><span class="nm"><b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${text}</b><span>${auto ? L('অটো · শপের তথ্য থেকে', 'Auto · from your shop') : L('নিজের লেখা', 'Your own words')}</span></span>${auto ? '<span class="switch"></span>' : `<span class="chev">${ic('chev')}</span>`}</div>`).join('');
+      const frames = annPairs(annItems(SAMPLE(), [own]));
+      const seen = frames.map((pair, at) => `${at ? `<div class="annstep">${L('৪ সেকেন্ড পর', 'After 4 seconds')} ↓</div>` : ''}<div class="annprev">${pair.join('<span class="sep">·</span><wbr>')}</div>`).join('') + `<div class="annstep">${L('তারপর আবার প্রথম দুটো', 'Then the first two again')}</div>`;
+      const inner = `<div class="field"><label>${L('লাইনগুলো (৬টির মধ্যে ৪টি), এই ক্রমে', 'Lines (4 of 6), in this order')}</label>${rows}${addQuiet(L('নিজের লাইন যোগ করুন', 'Add a line of your own'))}</div>`
+        + `<div class="field" style="margin-bottom:6px"><label>${L('দোকানে যেমন দেখাবে: দুটো করে', 'As shoppers see it: two at a time')}</label></div>${seen}`
+        + `<div class="note-line" style="margin-top:10px">${ic('info')}<span>${L('অফারের লাইন শুধু অফার চললে দেখায়, শেষ হলে নিজে সরে যায়। ক্রেতা পেজ নিচে স্ক্রল করলে লাইনটা সরে যায়, হেডার উপরে থাকে; একেবারে উপরে ফিরলে আবার দেখায়।', 'The offers line shows only while something is on sale. When a shopper scrolls down the bar leaves and the header stays; back at the top, it returns.')}</span></div>`;
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('announce'), dockDesign(), sheet(L('ঘোষণার লাইন', 'Announcement bar'), inner, DOCK_SECTION()), 'announce', PANE(ED, swap(ED, { announce: (t, s) => SECTIONS.announce(t, s, [own]) }), 'announce'));
     },
   },
   'e-banners': {
     label: ['অফার ব্যানার', 'Offer banners'],
-    note: ['অফার ব্যানার: অটো রাখলে সবচেয়ে বেশি ছাড়ের প্রোডাক্ট আর সবচেয়ে নতুন প্রোডাক্ট, তাদের নিজের ছবিতে; নিজের ব্যানার দুটি পর্যন্ত, পাশাপাশি (ফোনে একটার নিচে আরেকটা)।', 'Offer banners: on auto, your biggest discount and your newest product, with their own photos; your own, up to two, side by side (one under the other on a phone).'],
+    note: ['অফার ব্যানার (মালিকের সিদ্ধান্ত, ২০২৬-১১-১৮): ৩টি পর্যন্ত, তিন রকম সাজানো: পুরো চওড়া (একটার নিচে আরেকটা), পাশাপাশি, বা বড় আর দুটো। নিজে না বাছলে সংখ্যা দেখে: ১টি পুরো চওড়া, ২টি পাশাপাশি, ৩টি বড় আর দুটো। ফোনে আধা-চওড়া ব্যানার ছোট টাইল: ছবি, ছোট লেখা আর শিরোনাম, পুরোটায় চাপ দিলে খোলে।', 'Offer banners (the owner, 2026-11-18): up to 3, in three layouts: full width (one under another), side by side, or big + two. Left alone, the number decides: 1 full width, 2 side by side, 3 big + two. On a phone a half-width banner is a compact tile: photo, kicker and headline, opened by a tap anywhere on it.'],
     render: (d) => {
-      const banners = [['beauty-3-wide', ['স্কিন কেয়ারে ২০% ছাড়', 'On skin care: 20% off'], ['বোতাম: দেখুন → অফার কালেকশন', 'Button: Shop → On sale']], ['beauty-5-wide', ['৳৮০০+ অর্ডারে ফ্রি ডেলিভারি', 'Free delivery over ৳800'], ['বোতাম: দেখুন → নতুন এসেছে', 'Button: Shop → Just in']]];
-      const inner = `<div class="field"><label>${L('কী দেখাবে', 'What it shows')}</label><div class="seg"><span>${ic('spark')} ${L('অটো: অফার আর নতুন', 'Auto: offers and new')}</span><span class="on">${L('নিজের ব্যানার', 'My own banners')}</span></div></div>`
-        + `<div class="field"><label>${L('ব্যানার (২টির মধ্যে ২টি)', 'Banners (2 of 2)')}</label>${banners.map(([im, h, b]) => `<div class="slide-row"><span class="grip" style="color:#7d8d8c;display:flex;flex-direction:column">${ic('up')}${ic('down')}</span><img src="${img(im)}" alt=""><span class="nm"><b>${T(h)}</b><span>${T(b)}</span></span><span class="chev">${ic('chev')}</span></div>`).join('')}</div>`
-        + `<div class="note-line">${ic('info')}<span>${L('অটো রাখলে: সবচেয়ে বেশি ছাড়ের প্রোডাক্ট (“৩০% পর্যন্ত ছাড়”) আর সবচেয়ে নতুন প্রোডাক্ট, তাদের নিজের ছবিতে, নিজে থেকে বদলায়।', 'On auto: your biggest discount (“Up to 30% off”) and your newest product, with their own photos, changing by themselves.')}</span></div>`;
-      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('banners'), dockDesign(), sheet(L('অফার ব্যানার', 'Offer banners'), inner, DOCK_SECTION()), 'banners');
+      const banners = [['beauty-3-wide', ['স্কিন কেয়ারে ২০% ছাড়', 'On skin care: 20% off'], ['বোতাম: দেখুন → অফার কালেকশন', 'Button: Shop → On sale']], ['beauty-5-wide', ['৳৮০০+ অর্ডারে ফ্রি ডেলিভারি', 'Free delivery over ৳800'], ['বোতাম: দেখুন → নতুন এসেছে', 'Button: Shop → Just in']], ['beauty-1-wide', ['লিকুইড লিপের নতুন সেট', 'A new liquid lip set'], ['বোতাম: দেখুন → ক্যাটাগরি: লিকুইড লিপ', 'Button: Shop → Category: Liquid lips']]];
+      const inner = `<div class="field"><label>${L('কী দেখাবে', 'What it shows')}</label><div class="seg"><span>${ic('spark')} ${L('অটো: দোকান থেকে', 'Auto: from your shop')}</span><span class="on">${L('নিজের ব্যানার', 'My own banners')}</span></div></div>`
+        + `<div class="field"><label>${L('ব্যানার (৩টির মধ্যে ৩টি)', 'Banners (3 of 3)')}</label>${banners.map(([im, h, b]) => `<div class="slide-row"><span class="grip" style="color:#7d8d8c;display:flex;flex-direction:column">${ic('up')}${ic('down')}</span><img src="${img(im)}" alt=""><span class="nm"><b>${T(h)}</b><span>${T(b)}</span></span><span class="chev">${ic('chev')}</span></div>`).join('')}</div>`
+        + layoutField(3)
+        + `<div class="note-line">${ic('info')}<span>${L('ফোনে পাশাপাশি বা ছোট দুটো ব্যানার ছোট টাইল: ছবি, ছোট লেখা আর শিরোনাম; বিবরণ আর বোতাম শুধু বড় ব্যানারে আর কম্পিউটারে।', 'On a phone, side-by-side and the two small banners are compact tiles: photo, kicker and headline; the description and button show on the big one and on a computer.')}</span></div>`;
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('banners'), dockDesign(), sheet(L('অফার ব্যানার', 'Offer banners'), inner, DOCK_SECTION()), 'banners', PANE(ED, swap(ED, { banners: (t, s) => bannersHtml([...s.banners, SOFT_THIRD], null, T(SEC_NAMES.banners)) }), 'banners'));
+    },
+  },
+  'e-banners-auto': {
+    label: ['অফার ব্যানার: অটো', 'Offer banners: auto'],
+    note: ['অটো ব্যানার: প্রতিটি ব্যানারে কী দেখাবে নিজে বাছেন: অফার কালেকশন, নতুন এসেছে, সবচেয়ে বেশি বিক্রি বা একটা ক্যাটাগরি; ছবি আর লেখা দোকানের তথ্য থেকে নিজে বদলায়। নতুন সেকশন শুরু হয় তিনটি দিয়ে: অফার, নতুন, বেশি বিক্রি।', 'Auto banners: you pick what each one shows: on sale, just in, best sellers or a category; the photo and words follow the shop by themselves. A new section starts with three: offers, new, best sellers.'],
+    render: (d) => {
+      const shop = SAMPLE();
+      const rows = autoPlaces(shop).map((p, at) => {
+        const k = p.kind;
+        return `<div class="slide-row"><span class="grip" style="color:#7d8d8c;display:flex;flex-direction:column">${ic('up')}${ic('down')}</span><img src="${img(p.i)}" alt="" style="width:50px;height:50px"><span class="nm"><b>${L(`ব্যানার ${bnNum(at + 1)}`, `Banner ${at + 1}`)} · ${T(PLACE_NAMES[k])}</b><span>${p.k} · ${p.b}</span></span><span class="chev">${ic('chev')}</span></div>`;
+      }).join('');
+      const inner = `<div class="field"><label>${L('কী দেখাবে', 'What it shows')}</label><div class="seg"><span class="on">${ic('spark')} ${L('অটো: দোকান থেকে', 'Auto: from your shop')}</span><span>${L('নিজের ব্যানার', 'My own banners')}</span></div></div>`
+        + `<div class="field"><label>${L('ব্যানার (৩টির মধ্যে ৩টি)', 'Banners (3 of 3)')}</label>${rows}</div>`
+        + layoutField(3)
+        + `<div class="note-line">${ic('info')}<span>${L('প্রতিটি ব্যানার খুলে বাছুন কী দেখাবে। কালেকশন খালি হলে (যেমন অফার শেষ) তালিকার পরেরটা দেখায়, যা আর কোনো ব্যানারে নেই।', 'Open a banner to choose what it shows. An empty collection (an offer that ended) gives way to the next one in the list that no other banner shows.')}</span></div>`;
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('banners'), dockDesign(), sheet(L('অফার ব্যানার', 'Offer banners'), inner, DOCK_SECTION()), 'banners', PANE(ED, swap(ED, { banners: autoBanners }), 'banners'));
     },
   },
   'e-banner': {
@@ -1088,6 +1190,185 @@ Object.assign(EDITOR, {
     },
   },
 });
+
+// ---------- banner layouts, the bar's pairs, the hero's tiles and dragged sections (the owner, 2026-11-18) ----------
+// Bonik AI's shop (bonikai.shop/ayesha-dress-corner) showed the way: a ticker over a sticky header, an order-tracking link
+// in the header, and a rotating slide beside two collection tiles. Each change below is drawn on the shops above.
+
+// The bar's items: cash on delivery, the highest delivery charge in and outside Dhaka (the owner's wording), the offers on
+// now (only while something is on sale), then the seller's own lines; shown two at a time.
+// Each zone by the shop's name for it (DLV-01 names them after the home area until the seller renames them).
+const deliveryLine = () => L(`<span class="nw">ঢাকা সিটির ভেতরে ডেলিভারি সর্বোচ্চ ${money(DELIVERY.dhaka)}</span><span class="sep">·</span><wbr><span class="nw">ঢাকা সিটির বাইরে সর্বোচ্চ ${money(DELIVERY.outside)}</span>`, `<span class="nw">Inside Dhaka city: delivery up to ${money(DELIVERY.dhaka)}</span><span class="sep">·</span><wbr><span class="nw">Outside Dhaka city: up to ${money(DELIVERY.outside)}</span>`);
+function offerItem(shop) {
+  const on = shop.products.filter((p) => p.was);
+  if (on.length === 0) return null;
+  const best = Math.max(...on.map(pct));
+  return `<span class="pill">${L('অফার', 'Offer')}</span>${L(`${on.length}টি পণ্যে ${best}% পর্যন্ত ছাড় চলছে`, `Up to ${best}% off on ${on.length} products`)}`;
+}
+function annItems(shop, own = []) {
+  return [`<span class="nw">${L('ক্যাশ অন ডেলিভারি', 'Cash on delivery')}</span>`, deliveryLine(), offerItem(shop), ...own].filter(Boolean);
+}
+function annPairs(items) {
+  const pairs = [];
+  for (let at = 0; at < items.length; at += 2) pairs.push(items.slice(at, at + 2));
+  return pairs;
+}
+const ANN_OWN = () => L('ঈদে ৳২,০০০+ অর্ডারে গিফট', 'A gift with Eid orders over ৳2,000');
+// The sketch turns the bar as the shop will (not in a capture).
+setInterval(() => {
+  if (document.documentElement.classList.contains('shot')) return;
+  document.querySelectorAll('.ann.rot').forEach((bar) => {
+    const frames = [...bar.querySelectorAll('.fr')];
+    if (frames.length < 2) return;
+    const at = frames.findIndex((frame) => frame.classList.contains('on'));
+    frames[at].classList.remove('on');
+    frames[(at + 1) % frames.length].classList.add('on');
+  });
+}, 4000);
+
+// A desktop's wide photo of a product or a banner, where the sample has one; otherwise its own photo.
+const wideImg = (name) => img(name.replace('-tall', '') + '-wide');
+
+// What a place shows: a hero tile, or a banner that fills itself. A collection from the shop's own data, its photo a
+// product of that collection that isn't on the slide or an earlier place (`skip`), else its last.
+const PLACE_NAMES = { sale: ['অফার কালেকশন', 'On sale'], latest: ['নতুন এসেছে', 'Just in'], hot: ['সবচেয়ে বেশি বিক্রি', 'Best sellers'], cat: ['একটা ক্যাটাগরি', 'A category'] };
+function placeOf(shop, kind, skip = []) {
+  const list = SOURCES[kind].pick(shop.products);
+  const p = list.find((x) => !skip.includes(x)) || list[list.length - 1];
+  if (kind === 'sale') {
+    const on = shop.products.filter((x) => x.was);
+    const best = Math.max(...on.map(pct));
+    return { p, i: p.i, k: L('অফার চলছে', 'Offers on'), b: L(`${best}% পর্যন্ত ছাড়`, `Up to ${best}% off`), s: L(`${on.length}টি পণ্যে`, `On ${on.length} products`) };
+  }
+  if (kind === 'latest') return { p, i: p.i, k: L('নতুন এসেছে', 'Just in'), b: T(p.n), s: money(p.price) };
+  return { p, i: p.i, k: L('সবচেয়ে বেশি বিক্রি', 'Best seller'), b: T(p.n), s: p.sold ? L(`${p.sold} বার অর্ডার হয়েছে`, `Ordered ${p.sold} times`) : '' };
+}
+
+// The hero's "Slide and two tiles", upgraded: the slide rotates through what the seller chose (offers, newest, best
+// sellers), and each tile shows the collection the seller picked for it.
+function heroList(shop, source = 'sale') {
+  const list = SOURCES[source].pick(shop.products);
+  return (list.length > 0 ? list : SOURCES.latest.pick(shop.products)).slice(0, 3);
+}
+function heroTiles(theme, shop, o = {}) {
+  const list = heroList(shop, o.slides);
+  const p = list[0];
+  const slide = `<div class="slide"><img class="narrow" src="${img(p.i)}" alt=""><img class="wide" src="${wideImg(p.i)}" alt="" onerror="this.onerror=null;this.src='${img(p.i)}'"><div class="shade"></div><div class="tx">${p.was ? `<span class="badge">−${pct(p)}%</span>` : ''}<h1>${T(p.n)}</h1><div class="price">${money(p.price)}${p.was ? `<s>${money(p.was)}</s>` : ''}</div><a class="btn light">${L('এখনই কিনুন', 'Buy now')} ${ic('arrow')}</a></div></div>`;
+  const dots = `<div class="dots">${list.map((_, at) => `<i class="${at === 0 ? 'on' : ''}"></i>`).join('')}</div>`;
+  const shown = [...list];
+  const tiles = (o.tiles || ['sale', 'latest']).map((kind) => {
+    const place = placeOf(shop, kind, shown);
+    shown.push(place.p);
+    return `<a class="tile"><img src="${img(place.i)}" alt=""><div class="shade"></div><div class="tx"><span class="k">${place.k}</span><b>${place.b} →</b></div></a>`;
+  }).join('');
+  return `<section class="hero overlay auto" data-sec="${L('হিরো · অটো: অফার · স্লাইড আর দুই টাইল', 'Hero · auto: offers · slide and two tiles')}">${slide}${dots}<div class="tiles">${tiles}</div></section>`;
+}
+
+// Banners: one to three, laid out by their number unless the seller picks. Half-width ones are compact tiles on a phone.
+const BAN_LAYOUTS = { 1: ['full'], 2: ['full', 'side'], 3: ['full', 'side', 'big2'] };
+const BAN_DEFAULT = { 1: 'full', 2: 'side', 3: 'big2' };
+function bannersHtml(list, layout, name) {
+  const kind = layout || BAN_DEFAULT[list.length];
+  const compact = (at) => kind === 'side' || (kind === 'big2' && at > 0);
+  return `<section class="sec" data-sec="${name}"><div class="wrap banners ${kind} n${list.length}">${list.map((b, at) => `<a class="ban ${compact(at) ? 'c' : ''}"><img src="${wideImg(b.i)}" alt="" onerror="this.onerror=null;this.src='${img(b.i)}'"><div class="shade" style="background:${b.shade}"></div><div class="cshade"></div><div class="tx"><div class="k">${T(b.k)}</div><b>${T(b.b)}</b><div class="s">${T(b.s)}</div><span class="btn light">${L('দেখুন', 'Shop')} ${ic('arrow')}</span></div></a>`).join('')}</div></section>`;
+}
+// A new banners section on auto starts with three places: the offers, what's new, the best sellers.
+const AUTO_PLACES = ['sale', 'latest', 'hot'];
+function autoPlaces(shop) {
+  const shown = [];
+  return AUTO_PLACES.map((kind) => {
+    const place = placeOf(shop, kind, shown);
+    shown.push(place.p);
+    return { kind, ...place };
+  });
+}
+function autoBanners(theme, shop) {
+  const list = autoPlaces(shop).map((place, at) => ({ ...place, shade: shop.banners[at % shop.banners.length].shade }));
+  return bannersHtml(list, null, L('অফার ব্যানার · অটো · ৩টি', 'Offer banners · auto · 3'));
+}
+const BAN_DG = {
+  full: '<div class="dg"><i class="p" style="left:6px;right:6px;top:6px;height:19px"></i><i class="p" style="left:6px;right:6px;bottom:6px;height:19px"></i></div>',
+  side: '<div class="dg"><i class="p" style="left:6px;width:calc(50% - 9px);top:8px;bottom:8px"></i><i class="p" style="right:6px;width:calc(50% - 9px);top:8px;bottom:8px"></i></div>',
+  big2: '<div class="dg"><i class="p" style="left:6px;width:58%;top:6px;bottom:6px"></i><i class="p" style="right:6px;width:28%;top:6px;height:19px"></i><i class="p" style="right:6px;width:28%;bottom:6px;height:19px"></i></div>',
+};
+function layoutField(n, chosen) {
+  const on = chosen || BAN_DEFAULT[n];
+  const opts = [['full', ['পুরো চওড়া', 'Full width']], ['side', ['পাশাপাশি', 'Side by side']], ['big2', ['বড় আর দুটো', 'Big + two']]];
+  return `<div class="field"><label>${L('দেখানোর ধরন', 'Layout')}</label><div class="opts">${opts.map(([k, w]) => `<div class="opt ${k === on ? 'on' : ''} ${BAN_LAYOUTS[n].includes(k) ? '' : 'no'}">${BAN_DG[k]}${T(w)}</div>`).join('')}</div><span class="hint">${L('নিজে না বাছলে সংখ্যা দেখে সাজায়: ১টি পুরো চওড়া, ২টি পাশাপাশি, ৩টি বড় আর দুটো।', 'Left alone, the number decides: 1 full width, 2 side by side, 3 big + two.')}</span></div>`;
+}
+
+// A shop drawn with some of its sections swapped (`swap`) or a list of its own: a key names a section as SECTIONS does,
+// [source, layout] a product row, { key, fn } anything else.
+function swap(theme, map) {
+  return SHOPS[theme].layout.map((s) => (typeof s === 'string' && map[s] ? { key: s, fn: map[s] } : s));
+}
+function shopWith(theme, entries, light) {
+  const shop = SHOPS[theme];
+  const vars = Object.entries(THEMES[theme].v).map(([k, v]) => `--${k}:${v}`).join(';');
+  const body = entries.map((s) => {
+    const key = Array.isArray(s) ? s[0] : typeof s === 'string' ? s : s.key;
+    const html = Array.isArray(s) ? SECTIONS.products(theme, shop, s[0], s[1]) : typeof s === 'string' ? SECTIONS[s](theme, shop) : s.fn(theme, shop);
+    return key === light ? `<div class="hl">${html}</div>` : html;
+  }).join('');
+  return `<div class="shop ${STATE.outlined ? 'outlined' : ''}" style="${vars}">${body}<span class="chatbtn">${ic('wa')}</span></div>`;
+}
+const PANE = (theme, entries, light) => `<div class="ptools"><b>${L('লাইভ প্রিভিউ · খসড়া', 'Live preview · draft')}</b><div class="seg"><span>${ic('phone')} ${L('ফোন', 'Phone')}</span><span class="on">${ic('desktop')} ${L('ডেস্কটপ', 'Desktop')}</span></div></div><div class="mini" style="height:820px;width:780px"><div class="scale" style="width:1280px;transform:scale(${780 / 1280})">${shopWith(theme, entries, light)}</div></div>`;
+const cap = (words) => ({ key: 'cap', fn: () => `<div class="capstrip">${T(words)}</div>` });
+const ONE_BANNER = { i: 'fashion-6', k: ['শাড়ির নতুন কালেকশন', 'New sarees'], b: ['সুতি শাড়ি', 'Cotton sarees'], s: ['নিজেদের তাঁতে বোনা', 'Woven on our own looms'], shade: 'linear-gradient(90deg,rgba(19,33,60,.9),rgba(19,33,60,.1))' };
+
+Object.assign(EDITOR, {
+  'v-top': {
+    label: ['দোকান: বার আর হিরো', 'Shop: bar and hero'],
+    note: ['মেঘ ফ্যাশন (স্টুডিও): ঘোষণার লাইন দুটো করে ঘোরে (এই পেজে চলতে দেখুন); হেডারে অর্ডার ট্র্যাক; হিরো “স্লাইড আর দুই টাইল”: স্লাইডে সবচেয়ে বেশি ছাড়ের ৩টি প্রোডাক্ট ঘোরে, টাইলে অফার কালেকশন আর নতুন এসেছে (Bonik AI-এর মতো)। ফোনে টাইল স্লাইডের নিচে পাশাপাশি।', "Megh Fashion (Studio): the bar turns two items at a time (watch it on this page); order tracking in the header; the hero's “Slide and two tiles”: the 3 biggest savings rotate on the slide, the tiles show the offers and what's just in (as Bonik AI does). On a phone the tiles sit side by side under the slide."],
+    render: () => shopWith('studio', swap('studio', { hero: heroTiles })),
+  },
+  'v-scroll': {
+    label: ['দোকান: স্ক্রলের পর', 'Shop: scrolled'],
+    note: ['ক্রেতা নিচে স্ক্রল করলে ঘোষণার লাইন সরে যায়, হেডার উপরে আটকে থাকে (Bonik AI-এর মতো); একেবারে উপরে ফিরলে লাইন আবার আসে।', 'Scrolling down, the bar leaves and the header stays pinned at the top (as Bonik AI does); back at the very top, the bar returns.'],
+    render: () => shopWith('studio', ['header', ['latest', 'grid'], 'banners', 'quotes']),
+  },
+  'v-banners': {
+    label: ['দোকান: ব্যানারের ধরন', 'Shop: banner layouts'],
+    note: ['ব্যানারের তিন ধরন, মেঘ ফ্যাশনে: ৩টি অটো ব্যানার “বড় আর দুটো”, ২টি নিজের ব্যানার “পাশাপাশি” (ফোনে ছোট টাইল), ১টি “পুরো চওড়া”, আর ২টি “পুরো চওড়া” যখন বিক্রেতা নিজে বাছেন। সবুজ লেখাগুলো শুধু স্কেচের, দোকানে থাকে না।', 'The three banner layouts, on Megh Fashion: 3 auto banners as “Big + two”, 2 own banners “Side by side” (compact tiles on a phone), 1 “Full width”, and 2 “Full width” when the seller picks it. The green captions are the sketch\'s, not the shop\'s.'],
+    render: () => shopWith('studio', [
+      'header',
+      cap(['৩টি অটো ব্যানার · বড় আর দুটো (৩টির নিজের ধরন)', '3 auto banners · big + two (the default for 3)']),
+      { key: 'b3', fn: autoBanners },
+      cap(['২টি নিজের ব্যানার · পাশাপাশি (২টির নিজের ধরন; ফোনে ছোট টাইল)', '2 own banners · side by side (the default for 2; compact tiles on a phone)']),
+      'banners',
+      cap(['১টি ব্যানার · পুরো চওড়া', '1 banner · full width']),
+      { key: 'b1', fn: () => bannersHtml([ONE_BANNER], null, L('অফার ব্যানার · ১টি', 'Offer banners · 1')) },
+      cap(['২টি ব্যানার · পুরো চওড়া (বিক্রেতা বাছলে)', "2 banners · full width (the seller's pick)"]),
+      { key: 'b2f', fn: (t, s) => bannersHtml(s.banners, 'full', L('অফার ব্যানার · ২টি · পুরো চওড়া', 'Offer banners · 2 · full width')) },
+      'footer',
+    ]),
+  },
+  'e-place': {
+    label: ['টাইলে কী দেখাবে', 'What a tile shows'],
+    note: ['হিরোর একটা টাইল বা একটা অটো ব্যানার খুললে এই তালিকা: অফার কালেকশন, নতুন এসেছে, সবচেয়ে বেশি বিক্রি বা একটা ক্যাটাগরি। ছবি আর লেখা দোকানের তথ্য থেকে নিজে আসে; কালেকশন খালি হলে (যেমন অফার শেষ) তালিকার পরেরটা দেখায়, যা আর কোনো টাইলে নেই।', 'Opening a hero tile or an auto banner lists: on sale, just in, best sellers or a category. The photo and words come from the shop by themselves; an empty collection (an offer that ended) gives way to the next one in the list that no other tile shows.'],
+    render: (d) => {
+      const shop = SAMPLE();
+      const radios = ['sale', 'latest', 'hot'].map((k, at) => {
+        const p = placeOf(shop, k);
+        return `<div class="radio ${at === 0 ? 'on' : ''}" style="align-items:center"><span class="dot"></span><img src="${img(p.i)}" alt="" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex:none"><span><b>${T(PLACE_NAMES[k])}</b><span>${p.k} · ${p.b}</span></span></div>`;
+      }).join('') + `<div class="radio" style="align-items:center"><span class="dot"></span><span style="width:44px;height:44px;border-radius:8px;background:#e3f1ef;color:#0e6b66;display:grid;place-items:center;flex:none">${ic('grid')}</span><span><b>${L('একটা ক্যাটাগরি', 'A category')}</b><span>${L('বাছলে নিচে ক্যাটাগরির তালিকা আসে', 'Pick it to list your categories')}</span></span></div>`;
+      const inner = `<div>${radios}</div><div class="note-line" style="margin-top:8px">${ic('info')}<span>${L('টাইলে চাপ দিলে ক্রেতা সেই কালেকশনের পেজে যায়: অফার, নতুন, বেশি বিক্রি বা ক্যাটাগরি।', "A tap takes shoppers to that collection's page: the offers, new, best sellers or the category.")}</span></div>`;
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody('hero'), dockDesign(), sheetStep(L('টাইল ১-এ দেখাবে', 'Tile 1 shows'), inner, DOCK_DONE()), 'hero', PANE(ED, swap(ED, { hero: heroTiles }), 'hero'));
+    },
+  },
+  'e-drag': {
+    label: ['সেকশন টেনে সরানো', 'Dragging a section'],
+    note: ['সেকশনের বাঁ পাশের হ্যান্ডেল ধরে টেনে উপরে-নিচে সরান, কম্পিউটারে মাউসে আর ফোনে আঙুলে (মালিকের সিদ্ধান্ত, ২০২৬-১১-১৮)। ছেড়ে দিলে জায়গা বদলায়, খসড়ায় সেভ হয়, প্রিভিউ সাথে সাথে বদলায়। তীর দুটো থাকে, এক ঘর করে সরাতে আর কিবোর্ডে। হেডার আর ফুটার নড়ে না। এখানে “সবচেয়ে বেশি বিক্রি” ধরে “অফার ব্যানার”-এর উপরে আনা হচ্ছে।', "Hold the handle at a section's left and drag it up or down, with a mouse or a finger (the owner, 2026-11-18). Letting go moves it, saves the draft and redraws the preview. The arrows stay, for one step at a time and the keyboard. The header and footer never move. Here “Best sellers” is being carried above “Offer banners”."],
+    render: (d) => {
+      const rows = ED_ROWS.filter((r) => r.key !== 'hot');
+      rows.splice(rows.findIndex((r) => r.key === 'banners'), 0, { ...ED_ROWS.find((r) => r.key === 'hot'), lift: true });
+      return screen(d, L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design'), DRAFT(), designBody(null, rows), dockDesign());
+    },
+  },
+});
+
+// Rupkotha's third banner, drawn in the editor's preview of three banners.
+const SOFT_THIRD = { i: 'beauty-1', k: ['নতুন এসেছে', 'Just in'], b: ['লিকুইড লিপ', 'Liquid lips'], s: ['৫টি রঙের নতুন সেট', 'A new set of 5 shades'], shade: 'linear-gradient(90deg,rgba(58,15,36,.9),rgba(58,15,36,.12))' };
 
 function render() {
   const theme = THEMES[STATE.screen];

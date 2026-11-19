@@ -1,11 +1,20 @@
 import {
+  AnnouncementItemKind,
+  BannerLayout,
+  bannerLayoutFor,
   CategoryTileStyle,
+  HeroDesign,
   ProductRowLayout,
   ProductRowSource,
+  STARTING_ANNOUNCEMENT_ITEMS,
+  STARTING_BANNER_COLLECTIONS,
+  STARTING_HERO_TILES,
   STOREFRONT_SECTIONS_MAX,
   STOREFRONT_THEMES,
   StorefrontFill,
   StorefrontSectionKind,
+  type AnnouncementItem,
+  type HeroSource,
   type StorefrontDesign,
   type StorefrontSection,
 } from '@lytronix/validators';
@@ -127,12 +136,56 @@ export function sectionName(section: StorefrontSection): Words {
   return { key: KIND_NAMES[section.kind] };
 }
 
-const TILE_WORDS: Readonly<Record<CategoryTileStyle, string>> = {
+/** The four category looks, in words. */
+export const TILE_WORDS: Readonly<Record<CategoryTileStyle, string>> = {
   [CategoryTileStyle.Circle]: 'sdTileCircle',
   [CategoryTileStyle.Square]: 'sdTileSquare',
   [CategoryTileStyle.Tall]: 'sdTileTall',
   [CategoryTileStyle.Pill]: 'sdTilePill',
 };
+
+/** BL-3, BL-5: what an auto hero's slides show, in words. */
+export const HERO_SOURCE_WORDS: Readonly<Record<HeroSource, string>> = {
+  [ProductRowSource.OnSale]: 'ssSlidesOffers',
+  [ProductRowSource.Newest]: 'ssSlidesNewest',
+  [ProductRowSource.BestSellers]: 'ssSlidesBest',
+};
+
+/** The hero's three designs, in words. */
+export const HERO_WORDS: Readonly<Record<HeroDesign, string>> = {
+  [HeroDesign.Split]: 'ssHeroSplit',
+  [HeroDesign.Overlay]: 'ssHeroOverlay',
+  [HeroDesign.SlideTiles]: 'ssHeroTiles',
+};
+
+/** BL-6: the banners' three layouts, in words. */
+export const BANNER_LAYOUT_WORDS: Readonly<Record<BannerLayout, string>> = {
+  [BannerLayout.Full]: 'ssLayoutFull',
+  [BannerLayout.Side]: 'ssLayoutSide',
+  [BannerLayout.BigTwo]: 'ssLayoutBigTwo',
+};
+
+// The same, as a section's line under its name says them (lower case in English, as its other lines are).
+const HERO_SOURCE_SUMS: Readonly<Record<HeroSource, string>> = {
+  [ProductRowSource.OnSale]: 'sdSrcOffers',
+  [ProductRowSource.Newest]: 'sdSrcNewest',
+  [ProductRowSource.BestSellers]: 'sdSrcBest',
+};
+const HERO_LOOK_SUMS: Readonly<Record<HeroDesign, string>> = {
+  [HeroDesign.Split]: 'sdLookSplit',
+  [HeroDesign.Overlay]: 'sdLookOverlay',
+  [HeroDesign.SlideTiles]: 'sdLookTiles',
+};
+const BANNER_LAYOUT_SUMS: Readonly<Record<BannerLayout, string>> = {
+  [BannerLayout.Full]: 'sdLayoutFull',
+  [BannerLayout.Side]: 'sdLayoutSide',
+  [BannerLayout.BigTwo]: 'sdLayoutBigTwo',
+};
+
+/** BL-10: whether an item of the bar can show: an automatic one turned on, or a line of the seller's own. */
+export function isShown(item: AnnouncementItem): boolean {
+  return item.kind === AnnouncementItemKind.Own || item.visible;
+}
 
 /** The line under a section's name: what it shows, "Auto" where it fills itself; "Off" when hidden. */
 export function sectionSummary(
@@ -142,13 +195,19 @@ export function sectionSummary(
   if (!section.visible) return { key: 'sdOff' };
   switch (section.kind) {
     case StorefrontSectionKind.Announcement:
-      return section.text === null
-        ? { key: 'sdSumAnnouncementAuto' }
-        : { key: 'sdQuoted', params: { text: section.text } };
-    case StorefrontSectionKind.Hero:
+      // BL-10: the items the bar can show, two at a time.
+      return { key: 'sdSumBar', params: { count: section.items.filter(isShown).length } };
+    case StorefrontSectionKind.Hero: {
+      const look = {
+        key: HERO_LOOK_SUMS[section.design ?? STOREFRONT_THEMES[editor.design.theme].hero],
+      };
       return section.fill === StorefrontFill.Auto
-        ? { key: 'sdSumHeroAuto' }
+        ? {
+            key: 'sdSumHeroBy',
+            params: { source: { key: HERO_SOURCE_SUMS[section.source] }, look },
+          }
         : { key: 'sdSumHeroOwn', params: { count: section.slides.length } };
+    }
     case StorefrontSectionKind.Categories: {
       const style = section.style ?? STOREFRONT_THEMES[editor.design.theme].categories;
       return { key: 'sdSumCategories', params: { style: { key: TILE_WORDS[style] } } };
@@ -167,10 +226,15 @@ export function sectionSummary(
         params: { count: section.count, layout },
       };
     }
-    case StorefrontSectionKind.OfferBanners:
+    case StorefrontSectionKind.OfferBanners: {
+      // BL-6: how many, and how they are laid out.
+      const count =
+        section.fill === StorefrontFill.Auto ? section.collections.length : section.banners.length;
+      const layout = { key: BANNER_LAYOUT_SUMS[bannerLayoutFor(count, section.layout)] };
       return section.fill === StorefrontFill.Auto
-        ? { key: 'sdSumOffersAuto' }
-        : { key: 'sdSumOffersOwn', params: { count: section.banners.length } };
+        ? { key: 'sdSumOffersAutoAs', params: { count, layout } }
+        : { key: 'sdSumOffersOwnAs', params: { count, layout } };
+    }
     case StorefrontSectionKind.WideBanner:
       return { key: 'sdQuoted', params: { text: section.banner.headline } };
     case StorefrontSectionKind.Trust:
@@ -191,6 +255,17 @@ export function moveSection(design: StorefrontDesign, id: string, by: -1 | 1): S
   const at = design.sections.findIndex((section) => section.id === id);
   const to = at + by;
   if (at < 0 || to < 0 || to >= design.sections.length) return design;
+  const sections = [...design.sections];
+  const [moving] = sections.splice(at, 1);
+  if (!moving) return design;
+  sections.splice(to, 0, moving);
+  return replace(design, sections);
+}
+
+/** BL-1: a section dragged to a place in the list; one not found, or a place past either end, leaves it as it was. */
+export function moveSectionTo(design: StorefrontDesign, id: string, to: number): StorefrontDesign {
+  const at = design.sections.findIndex((section) => section.id === id);
+  if (at < 0 || to < 0 || to >= design.sections.length || to === at) return design;
   const sections = [...design.sections];
   const [moving] = sections.splice(at, 1);
   if (!moving) return design;
@@ -261,8 +336,10 @@ export function newSection(kind: SelfFillingKind, id: string): StorefrontSection
         ...base,
         kind: StorefrontSectionKind.Hero,
         fill: StorefrontFill.Auto,
+        source: ProductRowSource.OnSale,
         design: null,
         slides: [],
+        tiles: [...STARTING_HERO_TILES],
       };
     case 'products':
       return {
@@ -282,12 +359,18 @@ export function newSection(kind: SelfFillingKind, id: string): StorefrontSection
         ...base,
         kind: StorefrontSectionKind.OfferBanners,
         fill: StorefrontFill.Auto,
+        layout: null,
+        collections: [...STARTING_BANNER_COLLECTIONS],
         banners: [],
       };
     case 'trust':
       return { ...base, kind: StorefrontSectionKind.Trust };
     case 'announcement':
-      return { ...base, kind: StorefrontSectionKind.Announcement, text: null };
+      return {
+        ...base,
+        kind: StorefrontSectionKind.Announcement,
+        items: [...STARTING_ANNOUNCEMENT_ITEMS],
+      };
   }
 }
 

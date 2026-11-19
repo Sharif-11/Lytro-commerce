@@ -60,6 +60,8 @@ export interface DeliveryZoneView {
   name: Bilingual;
   charge: string;
   noDelivery: boolean;
+  /** STOREFRONT-BUILDER-PLAN BL-10: the home zone, everywhere else, or one of the shop's own; absent from an older server. */
+  kind?: 'home' | 'fallback' | 'other';
 }
 
 /** BRN-07: a shop's own identity as tokens, while it shows; null for Lytro's default. */
@@ -104,6 +106,8 @@ export interface PublicShop {
   design?: PublicStorefrontDesign;
   /** SB-9: what is on sale now, for the announcement that writes itself. */
   sale?: { products: number; bestDiscount: number };
+  /** BL-10, RAT-14: what each kilo past the first adds to a zone's charge ("0.00" for nothing). */
+  extraDeliveryChargePerKg?: string;
 }
 
 /** SB-16: a category or product a design's button or row names, that shoppers can reach. */

@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  AnnouncementItemKind,
+  STARTING_BANNER_COLLECTIONS,
   StorefrontSectionKind,
   storefrontPhotoRefs,
+  type StorefrontCollection,
   type StorefrontDesign,
   type StorefrontSection,
 } from '@lytronix/validators';
@@ -12,9 +15,10 @@ import { Sheet } from '@/components/ui/sheet';
 import type { ImageView } from '@/types/me';
 import type { ProductSummary } from '@/types/catalogue';
 import type { StorefrontEditor } from '@/types/storefront-design';
+import { NoteLine } from './design-parts';
 import { sectionName, wordsText } from './design-words';
-import { LinkStep, ProductsStep, type Known, type Names } from './pickers';
-import { ItemForm, MainForm, QuoteForm } from './section-forms';
+import { CollectionStep, LinkStep, ProductsStep, type Known, type Names } from './pickers';
+import { ItemForm, LineForm, MainForm, QuoteForm } from './section-forms';
 import {
   finishSection,
   itemDraftOf,
@@ -45,7 +49,11 @@ type Step =
   | { kind: 'item'; at: number | null }
   | { kind: 'quote'; at: number | null }
   | { kind: 'link' }
-  | { kind: 'products' };
+  | { kind: 'products' }
+  // BL-3, BL-9: what a hero's tile or an auto banner shows; null for a banner being added.
+  | { kind: 'collection'; list: 'tiles' | 'collections'; at: number | null }
+  // BL-10: a line of the seller's own for the bar; null for a new one.
+  | { kind: 'line'; at: number | null };
 
 /** A section being added starts empty, and joins the draft once it holds what it needs. */
 function blank(target: Extract<EditorTarget, { mode: 'new' }>): StorefrontSection | null {
@@ -107,6 +115,8 @@ export function SectionEditor({
   const [working, setWorking] = useState<StorefrontSection | null>(initial);
   const [item, setItem] = useState<ItemDraft | null>(firstItem);
   const [quote, setQuote] = useState<QuoteDraft | null>(null);
+  const [collection, setCollection] = useState<StorefrontCollection | null>(null);
+  const [line, setLine] = useState<string | null>(null);
   const [steps, setSteps] = useState<Step[]>([{ kind: 'main' }]);
   const [tried, setTried] = useState(false);
   const [asking, setAsking] = useState<'close' | 'back' | null>(null);
@@ -140,7 +150,11 @@ export function SectionEditor({
       ? JSON.stringify(item) !== stepStart.current
       : step.kind === 'quote'
         ? JSON.stringify(quote) !== stepStart.current
-        : false;
+        : step.kind === 'collection'
+          ? JSON.stringify(collection) !== stepStart.current
+          : step.kind === 'line'
+            ? JSON.stringify(line) !== stepStart.current
+            : false;
   const dirty =
     JSON.stringify({ working, item: wide ? item : firstItem }) !== start.current || stepDirty;
 
@@ -263,6 +277,95 @@ export function SectionEditor({
     push({ kind: 'item', at });
   }
 
+  /** BL-3, BL-9: a tile's or an auto banner's collection; a banner added shows the first a new section starts with
+      that the others don't. */
+  function openCollection(list: 'tiles' | 'collections', at: number | null): void {
+    if (!working) return;
+    const current =
+      list === 'tiles' && working.kind === StorefrontSectionKind.Hero
+        ? working.tiles
+        : list === 'collections' && working.kind === StorefrontSectionKind.OfferBanners
+          ? working.collections
+          : null;
+    if (!current) return;
+    const draft =
+      (at === null
+        ? STARTING_BANNER_COLLECTIONS.find(
+            (start) => !current.some((each) => each.kind === start.kind),
+          )
+        : current[at]) ?? STARTING_BANNER_COLLECTIONS[0];
+    if (!draft) return;
+    stepStart.current = JSON.stringify(at === null ? null : draft);
+    setCollection(draft);
+    push({ kind: 'collection', list, at });
+  }
+
+  function finishCollection(): void {
+    if (step.kind !== 'collection' || !collection || !working) return;
+    const place = <T,>(list: readonly T[], value: T): T[] =>
+      step.at === null ? [...list, value] : list.map((each, at) => (at === step.at ? value : each));
+    if (step.list === 'tiles' && working.kind === StorefrontSectionKind.Hero) {
+      setWorking({ ...working, tiles: place(working.tiles, collection) });
+    } else if (step.list === 'collections' && working.kind === StorefrontSectionKind.OfferBanners) {
+      setWorking({ ...working, collections: place(working.collections, collection) });
+    }
+    setCollection(null);
+    pop();
+  }
+
+  function removeCollection(): void {
+    if (step.kind !== 'collection' || step.at === null) return;
+    const at = step.at;
+    if (working?.kind === StorefrontSectionKind.OfferBanners) {
+      setWorking({
+        ...working,
+        collections: working.collections.filter((_, index) => index !== at),
+      });
+    }
+    setCollection(null);
+    pop();
+  }
+
+  function openLine(at: number | null): void {
+    if (working?.kind !== StorefrontSectionKind.Announcement) return;
+    const existing = at === null ? null : working.items[at];
+    const draft = existing?.kind === AnnouncementItemKind.Own ? existing.text : '';
+    stepStart.current = JSON.stringify(draft);
+    setLine(draft);
+    push({ kind: 'line', at });
+  }
+
+  function finishLine(): void {
+    if (
+      step.kind !== 'line' ||
+      line === null ||
+      working?.kind !== StorefrontSectionKind.Announcement
+    )
+      return;
+    if (line.trim() === '') {
+      setTried(true);
+      return;
+    }
+    const made = { kind: AnnouncementItemKind.Own, text: line.trim() } as const;
+    const items =
+      step.at === null
+        ? [...working.items, made]
+        : working.items.map((each, at) => (at === step.at ? made : each));
+    setWorking({ ...working, items });
+    setLine(null);
+    pop();
+  }
+
+  function removeLine(): void {
+    if (step.kind !== 'line' || step.at === null) return;
+    const at = step.at;
+    if (working?.kind === StorefrontSectionKind.Announcement) {
+      setWorking({ ...working, items: working.items.filter((_, index) => index !== at) });
+    }
+    setLine(null);
+    pop();
+  }
+
   function openQuote(at: number | null): void {
     if (working?.kind !== StorefrontSectionKind.Testimonials) return;
     const draft = quoteDraftOf(at === null ? null : (working.quotes[at] ?? null));
@@ -273,15 +376,27 @@ export function SectionEditor({
 
   /** Back from a step: an item or quote changed asks first; a list step keeps what it chose. */
   function back(): void {
-    if ((step.kind === 'item' && !wide) || step.kind === 'quote') {
+    if (
+      (step.kind === 'item' && !wide) ||
+      step.kind === 'quote' ||
+      step.kind === 'collection' ||
+      step.kind === 'line'
+    ) {
       if (stepDirty) {
         setAsking('back');
         return;
       }
-      setItem(null);
-      setQuote(null);
+      dropStep();
     }
     pop();
+  }
+
+  /** What a step was editing, let go of. */
+  function dropStep(): void {
+    setItem(null);
+    setQuote(null);
+    setCollection(null);
+    setLine(null);
   }
 
   function close(): void {
@@ -304,17 +419,28 @@ export function SectionEditor({
                   : 0)) + 1,
             ),
           })
-        : step.kind === 'link'
-          ? t('ssLeadsTo')
-          : step.kind === 'products'
-            ? t('ssChooseProducts')
-            : wide
-              ? t('sdKWide')
-              : working?.kind === StorefrontSectionKind.Products
-                ? t('sdKProducts')
-                : working
-                  ? wordsText(t, sectionName(working))
-                  : '';
+        : step.kind === 'collection'
+          ? t(step.list === 'tiles' ? 'ssTileShows' : 'ssBannerShows', {
+              n: String(
+                (step.at ??
+                  (working?.kind === StorefrontSectionKind.OfferBanners
+                    ? working.collections.length
+                    : 0)) + 1,
+              ),
+            })
+          : step.kind === 'line'
+            ? t('ssLineTitle')
+            : step.kind === 'link'
+              ? t('ssLeadsTo')
+              : step.kind === 'products'
+                ? t('ssChooseProducts')
+                : wide
+                  ? t('sdKWide')
+                  : working?.kind === StorefrontSectionKind.Products
+                    ? t('sdKProducts')
+                    : working
+                      ? wordsText(t, sectionName(working))
+                      : '';
   const isNew = target.mode === 'new';
   const footer =
     step.kind === 'main' ? (
@@ -348,6 +474,28 @@ export function SectionEditor({
           </Button>
         )}
         <Button onClick={finishQuote}>{t('sdDone')}</Button>
+      </>
+    ) : step.kind === 'collection' ? (
+      <>
+        {/* An auto banner can go while another stays; a tile always has its two. */}
+        {step.list === 'collections' &&
+        step.at !== null &&
+        working?.kind === StorefrontSectionKind.OfferBanners &&
+        working.collections.length > 1 ? (
+          <Button tone="outline" onClick={removeCollection}>
+            {t('sdRemove')}
+          </Button>
+        ) : null}
+        <Button onClick={finishCollection}>{t('sdDone')}</Button>
+      </>
+    ) : step.kind === 'line' ? (
+      <>
+        {step.at === null ? null : (
+          <Button tone="outline" onClick={removeLine}>
+            {t('sdRemove')}
+          </Button>
+        )}
+        <Button onClick={finishLine}>{t('sdDone')}</Button>
       </>
     ) : (
       <Button onClick={pop}>{t('sdDone')}</Button>
@@ -394,6 +542,21 @@ export function SectionEditor({
         }}
       />
     );
+  } else if (step.kind === 'collection' && collection) {
+    body = (
+      <>
+        <CollectionStep
+          collection={collection}
+          label={title}
+          names={names}
+          onNamed={onNamed}
+          onChange={setCollection}
+        />
+        <NoteLine>{t('ssCollectionNote')}</NoteLine>
+      </>
+    );
+  } else if (step.kind === 'line' && line !== null) {
+    body = <LineForm text={line} tried={tried} onChange={setLine} />;
   } else if (step.kind === 'item' && item) {
     body = itemForm(item, itemKind);
   } else if (step.kind === 'quote' && quote) {
@@ -422,6 +585,8 @@ export function SectionEditor({
         }}
         onOpenItem={openItem}
         onOpenQuote={openQuote}
+        onOpenCollection={openCollection}
+        onOpenLine={openLine}
         onProducts={() => {
           push({ kind: 'products' });
         }}
@@ -461,8 +626,7 @@ export function SectionEditor({
               tone="danger"
               onClick={() => {
                 if (asking === 'back') {
-                  setItem(null);
-                  setQuote(null);
+                  dropStep();
                   setAsking(null);
                   pop();
                 } else {
