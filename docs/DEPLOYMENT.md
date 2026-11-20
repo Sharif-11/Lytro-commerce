@@ -350,8 +350,10 @@ only adds concrete artifacts to it, nothing new in process:
   GitHub reaches the server with a key whose only command is the deploy (`deploy/scripts/lytro-ssh`). Production
   takes only images that passed staging.
 - **Certificates:** `*.<domain>` by DNS-01 through Cloudflare, with a token that can only edit lytro.app's DNS. It's
-  set on the wildcard site alone, because a global `acme_dns` would also apply to shops' own domains (§7), whose DNS
-  isn't ours.
+  set on each Lytro site, never as a global `acme_dns`, because that would also apply to shops' own domains (§7), whose
+  DNS isn't ours. Since 2026-11-20 every Lytro site uses it, not only the wildcard, so production has all its
+  certificates before its DNS points at it (`deploy/README.md` §1); the deploy's outside check reaches a name DNS
+  doesn't answer yet at the server's address.
 
 ### 9b. As built (Slice 9.2, the database side)
 

@@ -49,6 +49,11 @@ its own for every staging name.
 
 `*.staging` covers `app.`, `admin.`, `api.`, `pay.` and every shop.
 
+**Production adds no records before launch.** Every Lytro host gets its certificate through Cloudflare's DNS (the
+`CLOUDFLARE_DNS_API_TOKEN` in `edge.env`), not by being reached, so the first deploy works with lytro.app's names
+pointing nowhere. The deploy's outside check reaches each name DNS doesn't answer at `PRODUCTION_HOST`. The records go
+in at the Cloudflare switch (`docs/DEPLOYMENT.md` §9f).
+
 ## 2. Your key on the server, and this folder
 
 From PowerShell on your computer, in the repository's folder (the provider's root password is asked for once):

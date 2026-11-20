@@ -6,3 +6,7 @@
 # them as they are on disk, and bash rejects a carriage return.
 deploy/database/** text eol=lf
 deploy/restore/** text eol=lf
+
+# And the deploy key's forced command (no .sh ending), which setup-server.sh installs from the checkout it runs in: from
+# a Windows checkout it arrived as `bash\r` on production and refused every deploy (2026-11-20).
+deploy/scripts/lytro-ssh text eol=lf
