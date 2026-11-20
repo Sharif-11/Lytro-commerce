@@ -12,6 +12,7 @@ import {
 import type { Transaction } from '@lytronix/db';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
+import type { CodeAsker } from './human-check';
 import { OneTimeCodeService } from './one-time-code.service';
 import { PhoneNumberFormat } from './phone-number-format';
 import { SignInAudit } from './sign-in-audit';
@@ -40,7 +41,7 @@ export class SigninService {
     @Inject(ShopUse) private readonly shopUse: ShopUse,
   ) {}
 
-  async requestCode(rawPhone: string, ip: string | null = null) {
+  async requestCode(rawPhone: string, asker: CodeAsker = { ip: null }) {
     const phone = this.requirePhone(rawPhone);
     // AUTH-21, SMS-04: a known phone signing in by code is choosing that over its own password, so the code is that
     // shop's own use -- the shop it owns, or else the one it's staff of (Slice 7.1). A brand-new phone (sign-up) has
@@ -51,7 +52,8 @@ export class SigninService {
       : null;
     return this.codes.issue(phone, ChallengeChannel.Sms, ChallengeKind.Signin, {
       countedTo: shopId === null ? null : { tenantId: shopId, kind: SmsLogKind.SigninCode },
-      ip,
+      ip: asker.ip,
+      ipCap: asker.ipCap,
     });
   }
 

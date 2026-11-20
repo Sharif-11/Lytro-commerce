@@ -266,6 +266,11 @@ GEMINI_API_KEY=
 # server in Sentry: staging or production.
 # SENTRY_DSN=
 # SENTRY_ENVIRONMENT=production
+# SUP-08, SMS-11, AUTH-09 as amended 2026-11-20: the dashboard's Turnstile widget's secret (Cloudflare → Turnstile;
+# deploy/README.md, "The bot check on code SMS"). Set, every code request needs a token Cloudflare passes, and the
+# per-address limits are raised. Put it in yourself; never in a chat. TURNSTILE_HOSTNAMES defaults to app.<domain>.
+# TURNSTILE_SECRET_KEY=
+# TURNSTILE_HOSTNAMES=
 
 # Tuning: the built-in values are right; listed so nothing is hidden. Unset means the built-in value.
 # DATABASE_POOL_MAX=5

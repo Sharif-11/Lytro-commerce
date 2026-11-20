@@ -94,6 +94,7 @@ export const MESSAGE_KEYS = [
   'SignInLinkInvalid',
   'CodeSentRecently',
   'TooManyCodesRequested',
+  'HumanCheckFailed',
   'CodeSendFailed',
   'PhoneOrPasswordWrong',
   'CurrentPasswordWrong',

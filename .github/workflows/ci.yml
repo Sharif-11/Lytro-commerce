@@ -175,6 +175,10 @@ jobs:
 
       - name: Build the dashboard
         run: pnpm exec turbo run build --filter=@lytronix/dashboard...
+        # 2026-11-20: Cloudflare's always-passes test site key, so the Turnstile widget is drawn and its tests run
+        # (e2e/turnstile.spec.ts); the browser tests answer Cloudflare's script with a stub, never Cloudflare.
+        env:
+          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
 
       - name: Install the test browser
         working-directory: apps/dashboard

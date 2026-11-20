@@ -57,6 +57,11 @@ export interface IssueOptions {
   countedTo?: CountedTo | null;
   /** SMS-11: the client address that asked, when the server can trust it (D14). Null is never counted. */
   ip?: string | null;
+  /**
+   * SMS-11 as amended 2026-11-20: a lower cap on that address for this request than the usual (CODE_SMS_PER_IP): the
+   * strict one while Cloudflare can't check the dashboard's bot token (HumanCheck).
+   */
+  ipCap?: number;
 }
 
 type Delivery =
@@ -96,7 +101,15 @@ export class OneTimeCodeService {
     const ip = options.ip ?? null;
     let prepared;
     try {
-      prepared = await this.prepare(destination, channel, kind, cooldownMs, counted, ip);
+      prepared = await this.prepare(
+        destination,
+        channel,
+        kind,
+        cooldownMs,
+        counted,
+        ip,
+        Math.min(this.smsPerIp, options.ipCap ?? Infinity),
+      );
     } catch (error) {
       if (error instanceof ShopCannotPayForCode && counted !== null) {
         await this.smsLog.record({
@@ -157,6 +170,7 @@ export class OneTimeCodeService {
     cooldownMs: number,
     counted: CountedTo | null,
     ip: string | null,
+    ipCap: number,
   ) {
     return this.gateway.run(async (tx) => {
       await this.challenges.holdRequests(
@@ -197,7 +211,7 @@ export class OneTimeCodeService {
           ip,
           channel,
           new Date(now.getTime() - HOUR_MS),
-        )) >= this.smsPerIp
+        )) >= ipCap
       ) {
         throw new ApiError('rate_limited', 'TooManyCodesRequested', {}, HOUR_MS / 1000);
       }

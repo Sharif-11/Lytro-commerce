@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/ui/site-link';
 import { Icon } from '@/components/ui/icon';
 import { Mark } from '@/components/ui/mark';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';

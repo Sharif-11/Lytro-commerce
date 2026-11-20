@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EnvironmentParser } from '../src/config/env';
+import { TURNSTILE_TEST_SECRETS } from '../src/config/turnstile';
 
 const SECRET = 'x'.repeat(32);
 const DATA_KEY = Buffer.alloc(32, 7).toString('base64');
@@ -77,6 +78,53 @@ describe('loadEnv platform settings', () => {
       }).PLATFORM_ADDRESSES,
     ).toEqual(['203.0.113.10', '198.51.100.7']);
     expect(new EnvironmentParser().parse(BASE).PLATFORM_ADDRESSES).toEqual([]);
+  });
+
+  it("2026-11-20: Turnstile's secret is optional, its pages a list, and production refuses Cloudflare's test secrets", () => {
+    const production = {
+      ...BASE,
+      NODE_ENV: 'production',
+      TRUSTED_EDGE_SECRET: SECRET,
+      STOREFRONT_SECRET: SECRET,
+      DATA_ENCRYPTION_KEY: DATA_KEY,
+      PLATFORM_ADDRESSES: '203.0.113.10',
+      BULKSMSBD_API_KEY: 'key',
+      BULKSMSBD_SENDER_ID: 'sender',
+      GEMINI_API_KEY: 'key',
+      RESEND_API_KEY: 'key',
+      RESEND_WEBHOOK_SECRET: 'whsec_c2VjcmV0',
+      VAPID_PUBLIC_KEY:
+        'BBNykCoCcw3zvOh_47IKoxj6iE_nq2XIoPa-8QseO0wXT-0DXUxzLKt8gHBkgX1F6QGkLVde6Love1mB84r11Jw',
+      VAPID_PRIVATE_KEY: 'rieyYsQvtJt6S0zEMB1SPZjCnUegO-FIvwL4XR2gFNw',
+    };
+    const parsed = new EnvironmentParser().parse(production);
+    expect(parsed.TURNSTILE_SECRET_KEY).toBeUndefined();
+    expect(parsed.TURNSTILE_HOSTNAMES).toEqual([]);
+    expect(
+      new EnvironmentParser().parse({
+        ...production,
+        TURNSTILE_SECRET_KEY: '0x4AAAAAAA-the-widget-secret',
+        TURNSTILE_HOSTNAMES: ' App.Lytro.app, ,app.staging.lytro.app ',
+      }).TURNSTILE_HOSTNAMES,
+    ).toEqual(['app.lytro.app', 'app.staging.lytro.app']);
+    for (const secret of Object.values(TURNSTILE_TEST_SECRETS)) {
+      let refusal = '';
+      try {
+        new EnvironmentParser().parse({ ...production, TURNSTILE_SECRET_KEY: secret });
+      } catch (error) {
+        refusal = error instanceof Error ? error.message : String(error);
+      }
+      expect(refusal).toMatch(/TURNSTILE_SECRET_KEY/);
+      // The refusal never repeats the value.
+      expect(refusal).not.toContain(secret);
+    }
+    // Development and the test suites may use them.
+    expect(
+      new EnvironmentParser().parse({
+        ...BASE,
+        TURNSTILE_SECRET_KEY: TURNSTILE_TEST_SECRETS.passes,
+      }).TURNSTILE_SECRET_KEY,
+    ).toBe(TURNSTILE_TEST_SECRETS.passes);
   });
 
   it("refuses production without the storefront's secret, which guards every shop's storefront key (Slice 12a)", () => {

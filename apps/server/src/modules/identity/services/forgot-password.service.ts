@@ -27,6 +27,7 @@ import type { SignedIn } from '../types/signed-in';
 import { SIGNUP_GATEWAY } from '../tokens';
 import type { SignupGateway } from '../ports/signup-gateway';
 import type { CodeIssued } from '../types/code-issued';
+import type { CodeAsker } from './human-check';
 
 type Lookup = (tx: Transaction, destination: string) => Promise<{ subscriberId: string } | null>;
 
@@ -44,13 +45,13 @@ export class ForgotPasswordService {
     @Inject(ShopUse) private readonly shopUse: ShopUse,
   ) {}
 
-  request(rawPhone: string, ip: string | null = null): Promise<CodeIssued> {
+  request(rawPhone: string, asker: CodeAsker = { ip: null }): Promise<CodeIssued> {
     return this.requestFor(
       this.phoneFormat.normalize(rawPhone),
       ChallengeChannel.Sms,
       (tx, d) => this.gateway.findSubscriberByPhone(tx, d),
       RESET_COOLDOWN_MS,
-      ip,
+      asker,
     );
   }
 
@@ -61,13 +62,13 @@ export class ForgotPasswordService {
    * enumeration-safe (AUTH-17): same silent-swallow, same generic reply regardless of account existence or
    * whether the cooldown blocked a real send -- only the cooldown duration passed to `requestFor` differs.
    */
-  resend(rawPhone: string, ip: string | null = null): Promise<CodeIssued> {
+  resend(rawPhone: string, asker: CodeAsker = { ip: null }): Promise<CodeIssued> {
     return this.requestFor(
       this.phoneFormat.normalize(rawPhone),
       ChallengeChannel.Sms,
       (tx, d) => this.gateway.findSubscriberByPhone(tx, d),
       RESEND_COOLDOWN_MS,
-      ip,
+      asker,
     );
   }
 
@@ -103,7 +104,7 @@ export class ForgotPasswordService {
     channel: ChallengeChannel,
     lookup: Lookup,
     cooldownMs: number = RESET_COOLDOWN_MS,
-    ip: string | null = null,
+    asker: CodeAsker = { ip: null },
   ): Promise<CodeIssued> {
     if (destination !== null) {
       const account = await this.gateway.run((tx) => lookup(tx, destination));
@@ -118,7 +119,8 @@ export class ForgotPasswordService {
             cooldownMs,
             countedTo:
               shopId === null ? null : { tenantId: shopId, kind: SmsLogKind.StaffResetCode },
-            ip,
+            ip: asker.ip,
+            ipCap: asker.ipCap,
           });
         } catch (error) {
           // A refused or undelivered reset code gets the same reply as success, so the caller learns nothing.

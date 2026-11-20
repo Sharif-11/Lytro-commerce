@@ -110,6 +110,26 @@ gh secret set STAGING_KNOWN_HOSTS --env staging < known_hosts.txt
 gh variable set STAGING_DOMAIN --body staging.lytro.app
 ```
 
+### The bot check on code SMS (Turnstile, 2026-11-20)
+
+Optional, and what raises the per-address limits (PHASE-9-PLAN, Slice 9.10). One widget serves both dashboards, since
+one build serves both.
+
+1. **Cloudflare → Turnstile → Add widget:** name it `Lytro dashboard`; hostnames `app.lytro.app` and
+   `app.staging.lytro.app`; mode **Managed**. Cloudflare shows a site key (public) and a secret key.
+2. **The site key**, as a repository variable: `gh variable set DASHBOARD_TURNSTILE_SITE_KEY --body <site key>`. The
+   next deploy draws the widget.
+3. **The secret key**, on each server, by you alone, never in a chat or a file in the repository:
+   `sudo nano /opt/lytro/env/server.env`, set `TURNSTILE_SECRET_KEY=<secret key>`, then restart the API
+   (`docker compose up -d api` from `/opt/lytro`). With it, every code request needs a token Cloudflare passes, and
+   production's per-address limits are the raised ones. A server refuses to start with one of Cloudflare's test secrets.
+4. **Check:** sign up on the dashboard with a new number: the code comes, and no `Turnstile` line in the server's log
+   says `refused` or `couldn't say` for it.
+
+Deploy the site key (step 2) before the secret (step 3): a server with the secret refuses every code request that
+comes without a token. Removing the secret's line and restarting the API turns the check off and puts the strict
+limits back. RUNBOOKS §14 has what to do while Cloudflare is down.
+
 The first time the Deploy workflow builds on `main`, GitHub makes the five `lytro-*` packages **private**. Make each
 public, once: your profile → Packages → the package → Package settings → Change visibility → Public. The server pulls
 them without a token. They hold only the public repository's code, never a secret.

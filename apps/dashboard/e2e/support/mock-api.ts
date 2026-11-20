@@ -88,6 +88,7 @@ import { drawnOffers, offersAnswer, offersWrite, type OffersFixture } from './of
 import { variantRead } from './variants';
 import { PRESETS } from './presets';
 import { drawnTeam, teamAnswer, teamWrite, type TeamFixture } from './team';
+import { stubTurnstile } from './turnstile-stub';
 import { screenshotAnswer } from './p88-money-mock';
 import {
   drawnLedger,
@@ -625,8 +626,10 @@ export interface ApiLog {
   phase7: Phase7Writes;
 }
 
-/** Sets the browser's language on the first load only, so a switch the test makes survives a reload (I18N-02). */
+/** Sets the browser's language on the first load only, so a switch the test makes survives a reload (I18N-02), and
+    answers Cloudflare's Turnstile script with the stub (turnstile-stub.ts). */
 export async function startIn(page: Page, language: Language): Promise<void> {
+  await stubTurnstile(page);
   await page.addInitScript((each: string) => {
     if (localStorage.getItem('lytro.language') === null)
       localStorage.setItem('lytro.language', each);

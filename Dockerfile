@@ -19,6 +19,9 @@ ARG RELEASE=local
 # OBS-03 (Slice 9.6): the dashboard's Sentry address, public as every browser sees it (the repository's
 # DASHBOARD_SENTRY_DSN variable); empty, the dashboard sends nothing.
 ARG DASHBOARD_SENTRY_DSN=
+# SUP-08, SMS-11, AUTH-09 as amended 2026-11-20: the site key of the dashboard's Turnstile widget, public as every
+# browser sees it (the repository's DASHBOARD_TURNSTILE_SITE_KEY variable); empty, no widget is drawn.
+ARG DASHBOARD_TURNSTILE_SITE_KEY=
 ENV PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH \
     CI=1 \
@@ -30,6 +33,7 @@ COPY . .
 # Every package, with its install scripts: ffmpeg-static downloads the Linux ffmpeg the worker converts videos with.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile
 RUN NEXT_STANDALONE=1 STOREFRONT_BUILD_ID=${RELEASE} VITE_RELEASE=${RELEASE} VITE_SENTRY_DSN=${DASHBOARD_SENTRY_DSN} \
+    VITE_TURNSTILE_SITE_KEY=${DASHBOARD_TURNSTILE_SITE_KEY} \
     pnpm turbo run build \
       --filter=@lytronix/server \
       --filter=@lytronix/website \
