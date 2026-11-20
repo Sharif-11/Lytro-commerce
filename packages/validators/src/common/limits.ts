@@ -68,6 +68,10 @@ export const LIST_PAGE_SIZE_MAX = 100;
 // PRD-09, CCH-11: the public catalogue's list pages.
 export const PUBLIC_PAGE_SIZE = 24;
 export const PUBLIC_PAGE_SIZE_MAX = 60;
+// Load fix 3 (the owner, 2026-11-20): the most product lists the storefront's own server asks for in one call, and the
+// longest one may be written (the query string GET /v1/catalogue/products would take).
+export const STOREFRONT_CATALOGUE_LISTS_MAX = 12;
+export const STOREFRONT_CATALOGUE_LIST_QUERY_MAX_LENGTH = 2048;
 // Slice 12b: a product added within this many days shows as "New" on a storefront card.
 export const PRODUCT_NEW_DAYS = 14;
 // SB-9, SB-10: a storefront's best sellers are its products that sold most over these last days of delivered orders,

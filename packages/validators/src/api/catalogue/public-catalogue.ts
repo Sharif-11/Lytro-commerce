@@ -5,6 +5,8 @@ import {
   PRODUCT_SLUG_MAX_LENGTH,
   PUBLIC_PAGE_SIZE,
   PUBLIC_PAGE_SIZE_MAX,
+  STOREFRONT_CATALOGUE_LIST_QUERY_MAX_LENGTH,
+  STOREFRONT_CATALOGUE_LISTS_MAX,
 } from '../../common/limits';
 import { STOREFRONT_PICKED_PRODUCTS_MAX } from '../shops/storefront-design';
 import { queryFlag } from './catalogue-common';
@@ -58,6 +60,16 @@ export const publicProductListSchema = z.object({
   v: z.string().max(64).optional(),
 });
 export type PublicProductListQuery = z.infer<typeof publicProductListSchema>;
+
+// Load fix 3 (the owner, 2026-11-20): every product list a storefront page draws, asked for in one call by the
+// storefront's own server, each written as GET /v1/catalogue/products's query string so it is read exactly as there.
+export const storefrontCatalogueListsSchema = z.object({
+  queries: z
+    .array(z.string().max(STOREFRONT_CATALOGUE_LIST_QUERY_MAX_LENGTH))
+    .min(1)
+    .max(STOREFRONT_CATALOGUE_LISTS_MAX),
+});
+export type StorefrontCatalogueListsBody = z.infer<typeof storefrontCatalogueListsSchema>;
 
 // GET /v1/catalogue/products/:slug and GET /v1/catalogue/categories (CCH-04): only the version, as above.
 export const publicCatalogueVersionedSchema = z.object({

@@ -16,6 +16,7 @@ import type {
   StorefrontThemeKey,
   UnitKind,
 } from '@lytronix/validators';
+import { STOREFRONT_CATALOGUE_LISTS_MAX } from '@lytronix/validators';
 import { VISITOR_HEADER } from '../account/visitor-cookie';
 import type { StorefrontEnvironment } from '../env';
 import type { ServerAnswer, ServerApi } from './server-api';
@@ -710,6 +711,32 @@ export class StorefrontApi {
     );
     if (answer.status === 404) return null;
     return StorefrontApi.required(answer, 'the products');
+  }
+
+  /** Load fix 3: the product lists a page draws, in one call to the storefront's own route rather than one each; in the
+      order asked, each the page products() would answer, or null for a category the server no longer shows. Over
+      STOREFRONT_CATALOGUE_LISTS_MAX they go in as few calls as that allows, side by side. */
+  async productLists(
+    shop: StorefrontShopContext,
+    shopper: ShopperRequest,
+    queries: readonly ProductQuery[],
+  ): Promise<(ProductPage | null)[]> {
+    const calls: Promise<(ProductPage | null)[]>[] = [];
+    for (let start = 0; start < queries.length; start += STOREFRONT_CATALOGUE_LISTS_MAX) {
+      const part = queries.slice(start, start + STOREFRONT_CATALOGUE_LISTS_MAX);
+      calls.push(
+        this.call<{ lists: { page: ProductPage | null }[] }>(
+          shop,
+          shopper,
+          'POST',
+          '/v1/catalogue/lists',
+          { queries: part.map(productQueryString) },
+        ).then((answer) =>
+          StorefrontApi.required(answer, 'the products').lists.map((list) => list.page),
+        ),
+      );
+    }
+    return (await Promise.all(calls)).flat();
   }
 
   /** A product by its link. An old link answers with the product under its current one, so the page redirects. */

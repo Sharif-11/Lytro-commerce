@@ -55,8 +55,16 @@ export class PublicOfferDto extends createZodDto(
   }),
 ) {}
 
-export class PublicProductPageDto extends createZodDto(
-  z.object({ products: z.array(productCardSchema), nextCursor: z.string().nullable() }),
+const productPageSchema = z.object({
+  products: z.array(productCardSchema),
+  nextCursor: z.string().nullable(),
+});
+
+export class PublicProductPageDto extends createZodDto(productPageSchema) {}
+
+// Load fix 3: the storefront's own lists, in the order asked; null for one whose category isn't shown (not found).
+export class StorefrontProductListsDto extends createZodDto(
+  z.object({ lists: z.array(z.object({ page: productPageSchema.nullable() })) }),
 ) {}
 
 export class PublicProductDetailDto extends createZodDto(

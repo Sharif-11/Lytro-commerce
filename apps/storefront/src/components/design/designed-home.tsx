@@ -12,12 +12,8 @@ import type {
 } from '@/lib/api/storefront-api';
 import { designLook } from '@/lib/design/design-look';
 import { type CollectionFacts, collectionKey, collectionQuery } from '@/lib/design/collections';
-import {
-  type DesignedHomeReads,
-  fallbackReads,
-  homeReadPlan,
-  queryKey,
-} from '@/lib/design/home-reads';
+import { ProductListBatch } from '@/lib/api/product-list-batch';
+import { type DesignedHomeReads, fallbackReads, homeReadPlan } from '@/lib/design/home-reads';
 import type { Words } from '@/lib/i18n/words';
 import { type OpenShopPage, type PageFrame, storefrontApi } from '@/lib/storefront';
 import { Hero } from './hero';
@@ -39,24 +35,19 @@ const NO_PRODUCTS: ProductPage = { products: [], nextCursor: null };
 
 /** The reads the design's sections need, made by the page itself so a busy server shows the busy page (Slice 9.10). One
     request asked once, however many sections ask it; an auto hero reads the newest only when its own source is empty,
-    and the standard collections are read only when one a tile or banner shows is (BL-13). */
+    and the standard collections are read only when one a tile or banner shows is (BL-13). Load fix 3: the lists go to
+    the server together (ProductListBatch): the rows, heroes and tiles in one call, and what those leave to read (an
+    empty hero's newest, a tile's fallback) in a second, only when there is any. */
 export async function loadDesignedHome(
   page: OpenShopPage,
   design: PublicStorefrontDesign,
 ): Promise<DesignedHomeReads> {
   const plan = homeReadPlan(design);
-  const reads = new Map<string, Promise<ProductPage>>();
-  const read = (query: ProductQuery): Promise<ProductPage> => {
-    const key = queryKey(query);
-    let reading = reads.get(key);
-    if (!reading) {
-      reading = storefrontApi
-        .products(page.shop, page.shopper, query)
-        .then((list) => list ?? NO_PRODUCTS);
-      reads.set(key, reading);
-    }
-    return reading;
-  };
+  const lists = new ProductListBatch((queries) =>
+    storefrontApi.productLists(page.shop, page.shopper, queries),
+  );
+  const read = async (query: ProductQuery): Promise<ProductPage> =>
+    (await lists.read(query)) ?? NO_PRODUCTS;
   const readCollections = (collections: readonly StorefrontCollection[]) =>
     Promise.all(
       collections.map(async (collection) => {
@@ -65,7 +56,15 @@ export async function loadDesignedHome(
         return [collectionKey(collection), products] as const;
       }),
     );
-  const [rows, heroes, chosen, methods] = await Promise.all([
+  // The tiles' fallbacks follow straight on from their own reads, beside the heroes' fallbacks, so both share a call.
+  const readAllCollections = async (): Promise<Map<string, ProductCard[]>> => {
+    const collections = new Map<string, ProductCard[]>(await readCollections(plan.collections));
+    for (const [key, products] of await readCollections(fallbackReads(plan, collections))) {
+      collections.set(key, products);
+    }
+    return collections;
+  };
+  const [rows, heroes, collections, methods] = await Promise.all([
     Promise.all(
       // DC-1: the rows spread designs when the shop has design cards on; the auto hero and banners stay a product each.
       plan.rows.map(
@@ -85,13 +84,9 @@ export async function loadDesignedHome(
         ] as const;
       }),
     ),
-    readCollections(plan.collections),
+    readAllCollections(),
     plan.methods ? storefrontApi.paymentMethods(page.shop, page.shopper) : Promise.resolve([]),
   ]);
-  const collections = new Map<string, ProductCard[]>(chosen);
-  for (const [key, products] of await readCollections(fallbackReads(plan, collections))) {
-    collections.set(key, products);
-  }
   return { rows: new Map(rows), heroes: new Map(heroes), collections, methods };
 }
 
