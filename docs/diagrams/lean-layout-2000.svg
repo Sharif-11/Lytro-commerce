@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 610" width="1100" height="610" role="img" aria-labelledby="title desc">
   <title id="title">The lean layout for 2,000 shops</title>
-  <desc id="desc">The lean layout: Cloudflare Pro in front of every host with an edge cache and a load balancer; four app servers each running the storefront and the API, one worker server and one Redis server in a CloudXen data centre in Dhaka; a dedicated PostgreSQL primary for every read and write, and a VPS hot standby. About 91,000 taka a month.</desc>
+  <desc id="desc">The lean layout: Cloudflare Pro in front of every host with an edge cache and a load balancer; four app servers each running the storefront and the API, one worker server and one Redis server in a CloudXen data centre in Dhaka; a PostgreSQL primary for every read and write, and a hot standby, all on VPS plans. About 71,000 taka a month.</desc>
   <style>
     .bg { fill: #ffffff; stroke: #d5dfde; stroke-width: 1; }
     .nd { fill: #ffffff; stroke: #7e8f8e; stroke-width: 1.2; }
@@ -108,9 +108,9 @@
 
   <rect class="nd nd-new" x="760" y="240" width="300" height="84" rx="8"/>
   <text class="d-t" x="910" y="264" text-anchor="middle">PostgreSQL primary</text>
-  <text class="d-s" x="910" y="281" text-anchor="middle">16-core dedicated · 128 GB · 1 TB NVMe</text>
+  <text class="d-s" x="910" y="281" text-anchor="middle">VPS 14 vCPU / 64 GB / 1 TB NVMe</text>
   <text class="d-s" x="910" y="297" text-anchor="middle">every read and write</text>
-  <text class="d-cost" x="910" y="314" text-anchor="middle">$252 = ৳31,437 a month</text>
+  <text class="d-cost" x="910" y="314" text-anchor="middle">$96 = ৳11,976 a month</text>
   <line class="ar" x1="680" y1="270" x2="758" y2="270" marker-end="url(#ah)"/>
   <text class="d-l" x="719" y="264" text-anchor="middle">reads, writes</text>
   <path class="ar" d="M680,412 H730 V312 H758" marker-end="url(#ah)"/>
@@ -125,7 +125,7 @@
 
   <!-- The month's total -->
   <rect class="nd-total" x="20" y="500" width="690" height="90" rx="10"/>
-  <text class="d-total" x="40" y="530">About ৳91,000 a month ($727) at 2,000 shops, all at CloudXen</text>
-  <text class="d-s" x="40" y="552">8 servers ৳60,779 · Cloudflare ৳8,733 · R2 ≈ ৳11,228 · monitoring ≈ ৳9,980</text>
-  <text class="d-s" x="40" y="572">The full 15-server layout would be about ৳2.1 lakh; the minimum 6-server one about ৳62,000.</text>
+  <text class="d-total" x="40" y="530">About ৳71,000 a month ($571) at 2,000 shops, all at CloudXen</text>
+  <text class="d-s" x="40" y="552">8 VPS ৳41,317 · Cloudflare ৳8,733 · R2 ≈ ৳11,228 · monitoring ≈ ৳9,980</text>
+  <text class="d-s" x="40" y="572">With a dedicated database server: about ৳91,000. The full 15-server layout: about ৳2.1 lakh.</text>
 </svg>
