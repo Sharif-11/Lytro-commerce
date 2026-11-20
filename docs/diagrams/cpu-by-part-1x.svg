@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 352" width="720" height="352" role="img" aria-labelledby="title desc">
+  <title id="title">Where staging's CPU went at 1x, 19 November 2026</title>
+  <desc id="desc">Average CPU per container as a share of one core, staging's 2 vCPU, 10 minutes at the 100-shop peak with the page cache on: API 59 percent, PostgreSQL 37, storefront 33, Caddy 24, PgBouncer 8, worker 7, test stand-in 4, website 3, page cache 2, Redis 2.</desc>
+  <style>
+    .bg { fill: #ffffff; stroke: #d5dfde; stroke-width: 1; }
+    .grid { stroke: #d5dfde; stroke-width: 1; }
+    .bar { fill: #107f78; }
+    .bar-test { fill: #a9b9b8; }
+    text { font-family: Inter, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .d-t { fill: #10201f; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .d-l { fill: #2c3f3e; font-size: 11px; font-weight: 500; }
+  </style>
+  <rect class="bg" x="0.5" y="0.5" width="719" height="351" rx="12"/>
+
+  <line class="grid" x1="180" y1="30" x2="180" y2="314"/>
+  <line class="grid" x1="340" y1="30" x2="340" y2="314"/>
+  <line class="grid" x1="500" y1="30" x2="500" y2="314"/>
+  <line class="grid" x1="660" y1="30" x2="660" y2="314"/>
+  <text class="d-l" x="180" y="334" text-anchor="middle">0</text>
+  <text class="d-l" x="340" y="334" text-anchor="middle">20%</text>
+  <text class="d-l" x="500" y="334" text-anchor="middle">40%</text>
+  <text class="d-l" x="660" y="334" text-anchor="end">60% of one core</text>
+
+  <g><title>API, both containers: 59% of one core (31% and 28%)</title>
+    <text class="d-t" x="170" y="52" text-anchor="end">API (2 containers)</text>
+    <path class="bar" d="M180,40 H650 a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 H180 Z"/>
+    <text class="d-t" x="662" y="52">59%</text></g>
+  <g><title>PostgreSQL: 37% of one core</title>
+    <text class="d-t" x="170" y="80" text-anchor="end">PostgreSQL</text>
+    <path class="bar" d="M180,68 H468 a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 H180 Z"/>
+    <text class="d-t" x="480" y="80">37%</text></g>
+  <g><title>Storefront: 33% of one core</title>
+    <text class="d-t" x="170" y="108" text-anchor="end">Storefront</text>
+    <path class="bar" d="M180,96 H437 a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 H180 Z"/>
+    <text class="d-t" x="449" y="108">33%</text></g>
+  <g><title>Caddy: 24% of one core</title>
+    <text class="d-t" x="170" y="136" text-anchor="end">Caddy</text>
+    <path class="bar" d="M180,124 H370 a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 H180 Z"/>
+    <text class="d-t" x="382" y="136">24%</text></g>
+  <g><title>PgBouncer: 8% of one core</title>
+    <text class="d-t" x="170" y="164" text-anchor="end">PgBouncer</text>
+    <path class="bar" d="M180,152 H241 a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 H180 Z"/>
+    <text class="d-t" x="253" y="164">8%</text></g>
+  <g><title>Worker: 7% of one core</title>
+    <text class="d-t" x="170" y="192" text-anchor="end">Worker</text>
+    <path class="bar" d="M180,180 H230 a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 H180 Z"/>
+    <text class="d-t" x="242" y="192">7%</text></g>
+  <g><title>Test stand-in for SMS, couriers, bKash, email and AI: 4% (only during tests)</title>
+    <text class="d-t" x="170" y="220" text-anchor="end">Test stand-in</text>
+    <path class="bar-test" d="M180,208 H205 a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 H180 Z"/>
+    <text class="d-t" x="217" y="220">4% (tests only)</text></g>
+  <g><title>Website: 3% of one core</title>
+    <text class="d-t" x="170" y="248" text-anchor="end">Website</text>
+    <path class="bar" d="M180,236 H200 a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 H180 Z"/>
+    <text class="d-t" x="212" y="248">3%</text></g>
+  <g><title>Page cache (Redis): 2% of one core</title>
+    <text class="d-t" x="170" y="276" text-anchor="end">Page cache</text>
+    <path class="bar" d="M180,264 H195 a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 H180 Z"/>
+    <text class="d-t" x="207" y="276">2%</text></g>
+  <g><title>Redis, shared limits: 2% of one core</title>
+    <text class="d-t" x="170" y="304" text-anchor="end">Redis (limits)</text>
+    <path class="bar" d="M180,292 H190 a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 H180 Z"/>
+    <text class="d-t" x="202" y="304">2%</text></g>
+</svg>
