@@ -196,6 +196,72 @@ counts are rough guides.
 | 4. The lean layout | 1,200–2,000 shops | Four app servers, and the worker on its own server. Shops' own domains go behind Cloudflare for SaaS. A 2,000-shop load test on a rented copy confirms it. | ৳71,000 |
 | 5. Past the estimate | when measured | A read replica when the primary passes half busy, a dedicated database server if its measurements call for it, more app servers, then separate storefront and API servers (the full layout). | up to ৳2.1 lakh |
 
+## How it grows: 500, 1,000, 2,000 and 5,000 shops
+
+The same estimate (500 orders a shop a month, 1% of visits buying, the three code fixes in), scaled in a straight
+line. The shape holds from about 1,000 to 5,000 shops. Below that it collapses to one server, and at 5,000 the database
+and Cloudflare change kind. Grow by measurement, not by count: add a server when production shows a part at half its
+capacity.
+
+| | 500 shops | 1,000 shops | 2,000 shops | 5,000 shops |
+| --- | --- | --- | --- | --- |
+| Requests at the server, peak / spike | 75 / 150 a second | 150 / 305 | 300 / 610 | 750 / 1,525 |
+| Storefront + API cores, peak / spike | 2 / 4 | 4 / 9 | 8 / 17 | 21 / 43 |
+| App servers (8 vCPU) | 1 runs everything | 3, a worker on each | 4, plus 1 worker server | 4 storefront + 4 API, plus 2 workers |
+| Database primary | on that server | 1 TB VPS | 1 TB VPS | dedicated, 128 GB, 2 TB |
+| Read replica | none | none | none | dedicated |
+| Hot standby | none, backups only | 1 TB VPS | 1 TB VPS | dedicated |
+| Redis | on that server | 1 (8 GB) | 1 (8 GB) | 2: limits 8 GB, pages 16 GB |
+| Cloudflare | Pro | Pro + load balancer | Pro + load balancer | Business + load balancer |
+| Data a year / hot data | 47 GB / 6–8 GB | 95 GB / 10–15 GB | 185 GB / 20–30 GB | 475 GB / 50–75 GB |
+| Servers | 1 | 6 | 8 | 15 |
+| **A month** | **≈ ৳13,100 ($105)** | **≈ ৳53,700 ($431)** | **≈ ৳71,260 ($571)** | **≈ ৳2.27 lakh ($1,821)** |
+| Per shop | ৳26 | ৳54 | ৳36 | ৳45 |
+
+![500 shops: one CloudXen server runs everything behind Cloudflare Pro, with backups in R2; about 13,100 taka a month.](diagrams/grow-500.svg)
+
+**500 shops:** one server runs everything, as at launch. A 10× spike would use about 85% of it, so the database moves
+out soon after, once the server is half busy at the evening peak. With no standby yet, a failure is restored from R2
+within the 4-hour target.
+
+![1,000 shops: three app servers behind Cloudflare Pro's load balancer, Redis, a PostgreSQL primary VPS and a standby of the same plan; about 53,700 taka a month.](diagrams/grow-1000.svg)
+
+**1,000 shops:** the shape appears.
+- The database gets its own VPS, with a standby.
+- Three app servers sit behind Cloudflare's load balancer, and jobs run on a worker process on each one.
+- A 10× spike still fits with one app server down.
+- Per shop it costs the most here: the database, the standby and monitoring cost about what they do at 2,000 shops.
+
+![2,000 shops: the lean layout, four app servers and a worker server behind Cloudflare Pro, Redis, a PostgreSQL primary VPS and a standby; about 71,260 taka a month.](diagrams/grow-2000.svg)
+
+**2,000 shops:** the lean layout, drawn small beside the others. The full drawing is above.
+
+![5,000 shops: storefront and API servers split, two worker servers and two Redis servers behind Cloudflare Business; a dedicated PostgreSQL primary, read replica and standby; about 2.27 lakh taka a month.](diagrams/grow-5000.svg)
+
+**5,000 shops:**
+- **The storefront and the API split** onto their own servers, so a viral shop can't slow anyone's dashboard.
+- **The database goes dedicated, with a read replica.** Its 50–75 GB of hot data passes the VPS's 64 GB, and a spike
+  would need more than its 14 vCPU.
+- **Cloudflare moves to Business,** for 10 cache clears a second.
+- **Disks:** CloudXen lists 1 TB on its dedicated servers, so the second disk has to be quoted.
+
+**Grows by adding servers:**
+- App servers, counted so that a spike still fits with one of them down.
+- Workers, which share the job queue.
+- Read replicas: the app already has a read connection to point at them.
+- Redis, with a server each for the limits and the kept pages.
+
+**Grows only by getting bigger:** the PostgreSQL primary. Every write goes to one server. At 5,000 shops that's about
+1,000 rows a second in a spike, well within one server, so it needs a bigger machine, not more of them.
+
+**Cautions:**
+- Each size scales one estimate in a straight line and inherits its assumptions. Real shops vary, and one viral shop
+  can look like a hundred.
+- Above 5,000 shops, plan it fresh. The single primary, the job queue in PostgreSQL and deploying to 15 or more servers
+  each need a design of their own.
+- The shop counts are rough guides. The trigger for each step is production's measurements reaching half of a part's
+  capacity.
+
 ## Sources
 
 - **Load:** staging's load runs of 14, 18 and 19 November 2026 (2 vCPU / 3 GB, on CloudXen), with every container's
