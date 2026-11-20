@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 600" width="1100" height="600" role="img" aria-labelledby="title desc">
+  <title id="title">Lytro on a managed cloud</title>
+  <desc id="desc">Cloudflare in Dhaka in front of one cloud region with three zones. App servers sit in all three zones. The managed PostgreSQL primary is in zone a with a synchronous standby in zone b and an optional read replica in zone c. Two managed Valkey clusters, for limits and kept pages, each have a primary and a replica in different zones. A NAT gateway gives a fixed address for calls to SMS, couriers and bKash. R2 keeps photos and our own nightly dump. An optional replica in a second region covers a whole region failing.</desc>
+  <style>
+    .bg { fill: #ffffff; stroke: #d5dfde; stroke-width: 1; }
+    .nd { fill: #ffffff; stroke: #7e8f8e; stroke-width: 1.2; }
+    .nd-back { fill: #ffffff; stroke: #7e8f8e; stroke-width: 1; }
+    .nd-inner { fill: #f1f7f6; stroke: #7e8f8e; stroke-width: 1; }
+    .nd-cf { fill: #fdf0d1; stroke: #9a6004; stroke-width: 1.2; }
+    .nd-far { fill: #ffffff; stroke: #5b4a86; stroke-width: 1.4; }
+    .nd-new { stroke: #0e6b66; stroke-width: 2; }
+    .nd-hit { fill: #ddf5f2; stroke: #0e6b66; stroke-width: 2; }
+    .nd-slow { fill: #fdf0d1; stroke: #9a6004; stroke-width: 2; }
+    .nd-down { fill: #fbe9ea; stroke: #c8323b; stroke-width: 2; }
+    .nd-total { fill: #ddf5f2; stroke: #0e6b66; stroke-width: 1.4; }
+    .region { fill: #fbf6ea; }
+    .dc { fill: #f1f7f6; stroke: #7e8f8e; stroke-width: 1.2; stroke-dasharray: 6 5; }
+    .far { fill: #f4f1f8; stroke: #5b4a86; stroke-width: 1.2; stroke-dasharray: 6 5; }
+    .ar { fill: none; stroke: #2c3f3e; stroke-width: 1.4; }
+    .ar-dash { stroke-dasharray: 5 4; }
+    .ar-far { fill: none; stroke: #5b4a86; stroke-width: 1.4; stroke-dasharray: 3 4; }
+    .ar-cut { fill: none; stroke: #c8323b; stroke-width: 2; stroke-dasharray: 4 4; }
+    .ah { fill: #2c3f3e; }
+    text { font-family: Inter, "Segoe UI", "Nirmala UI", Helvetica, Arial, sans-serif; }
+    .d-h { fill: #2c3f3e; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; }
+    .d-hf { fill: #5b4a86; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; }
+    .d-t { fill: #10201f; font-size: 13px; font-weight: 600; }
+    .d-s { fill: #2c3f3e; font-size: 11.5px; }
+    .d-l { fill: #2c3f3e; font-size: 11px; font-weight: 500; }
+    .d-x { fill: #c8323b; font-size: 16px; font-weight: 700; }
+    .d-badge { fill: #0e6b66; font-size: 12px; font-weight: 700; }
+    .d-cost { fill: #0e6b66; font-size: 11.5px; font-weight: 600; }
+    .d-total { fill: #10201f; font-size: 15px; font-weight: 700; }
+    .zone { fill: none; stroke: #7e8f8e; stroke-width: 1; stroke-dasharray: 2 4; }
+    .grid { stroke: #d5dfde; stroke-width: 1; }
+    .bar-self { fill: #107f78; }
+    .bar-managed { fill: #b9770a; }
+    .d-bad { fill: #c8323b; font-size: 11.5px; font-weight: 600; }
+    .d-ok { fill: #0e6b66; font-size: 11.5px; font-weight: 600; }
+  </style>
+  <rect class="bg" x="0.5" y="0.5" width="1099" height="599" rx="12"/>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" class="ah"/>
+    </marker>
+  </defs>
+
+  <text class="d-h" x="110" y="22" text-anchor="middle">OUTSIDE</text>
+  <rect class="nd" x="20" y="36" width="180" height="70" rx="8"/>
+  <text class="d-t" x="110" y="66" text-anchor="middle">Shoppers, sellers,</text>
+  <text class="d-t" x="110" y="84" text-anchor="middle">phones, couriers</text>
+
+  <rect class="region" x="240" y="28" width="840" height="88" rx="10"/>
+  <text class="d-h" x="256" y="46">CLOUDFLARE · DHAKA AND EVERYWHERE</text>
+  <rect class="nd-cf" x="260" y="54" width="300" height="50" rx="8"/>
+  <text class="d-t" x="410" y="75" text-anchor="middle">Edge cache · load balancer</text>
+  <text class="d-s" x="410" y="92" text-anchor="middle">kept pages served from Dhaka</text>
+  <rect class="nd-cf" x="600" y="54" width="460" height="50" rx="8"/>
+  <text class="d-t" x="830" y="75" text-anchor="middle">R2</text>
+  <text class="d-s" x="830" y="92" text-anchor="middle">photos, app files, and our own nightly encrypted dump</text>
+  <line class="ar" x1="200" y1="78" x2="258" y2="78" marker-end="url(#ah)"/>
+
+  <rect class="dc" x="40" y="144" width="1040" height="356" rx="12"/>
+  <text class="d-h" x="56" y="166">ONE CLOUD REGION · MUMBAI (OR SINGAPORE)</text>
+  <rect class="zone" x="60" y="178" width="320" height="306" rx="10"/>
+  <text class="d-l" x="72" y="196">ZONE A · its own building</text>
+  <rect class="zone" x="400" y="178" width="320" height="306" rx="10"/>
+  <text class="d-l" x="412" y="196">ZONE B</text>
+  <rect class="zone" x="740" y="178" width="320" height="306" rx="10"/>
+  <text class="d-l" x="752" y="196">ZONE C</text>
+
+  <rect class="nd" x="80" y="206" width="280" height="46" rx="8"/>
+  <text class="d-t" x="220" y="226" text-anchor="middle">App servers ×3 + the worker</text>
+  <text class="d-s" x="220" y="243" text-anchor="middle">storefront · API · PgBouncer</text>
+  <rect class="nd" x="420" y="206" width="280" height="46" rx="8"/>
+  <text class="d-t" x="560" y="226" text-anchor="middle">App servers ×3</text>
+  <text class="d-s" x="560" y="243" text-anchor="middle">storefront · API · PgBouncer</text>
+  <rect class="nd" x="760" y="206" width="280" height="46" rx="8"/>
+  <text class="d-t" x="900" y="226" text-anchor="middle">App servers ×2</text>
+  <text class="d-s" x="900" y="243" text-anchor="middle">storefront · API · PgBouncer</text>
+
+  <path class="ar" d="M410,104 V130 H220 V204" marker-end="url(#ah)"/>
+  <line class="ar" x1="560" y1="130" x2="560" y2="204" marker-end="url(#ah)"/>
+  <path class="ar" d="M560,130 H900 V204" marker-end="url(#ah)"/>
+  <path class="ar" d="M410,130 H560"/>
+
+  <rect class="nd nd-new" x="80" y="296" width="280" height="62" rx="8"/>
+  <text class="d-t" x="220" y="318" text-anchor="middle">Managed PostgreSQL · primary</text>
+  <text class="d-s" x="220" y="335" text-anchor="middle">8 vCPU / 64 GB / 1 TB</text>
+  <text class="d-s" x="220" y="350" text-anchor="middle">every write; restores to any minute, 14 days</text>
+  <rect class="nd-far" x="420" y="296" width="280" height="62" rx="8"/>
+  <text class="d-t" x="560" y="318" text-anchor="middle">Synchronous standby</text>
+  <text class="d-s" x="560" y="335" text-anchor="middle">the provider fails over to it</text>
+  <text class="d-s" x="560" y="350" text-anchor="middle">automatically, in a minute or two</text>
+  <rect class="nd" x="760" y="296" width="280" height="62" rx="8"/>
+  <text class="d-t" x="900" y="318" text-anchor="middle">Read replica (optional)</text>
+  <text class="d-s" x="900" y="335" text-anchor="middle">catalogue and reports, when</text>
+  <text class="d-s" x="900" y="350" text-anchor="middle">the primary passes half busy</text>
+  <line class="ar" x1="220" y1="252" x2="220" y2="294" marker-end="url(#ah)"/>
+  <line class="ar" x1="360" y1="327" x2="418" y2="327" marker-end="url(#ah)"/>
+  <text class="d-l" x="389" y="321" text-anchor="middle">sync</text>
+
+  <rect class="nd nd-new" x="80" y="386" width="280" height="46" rx="8"/>
+  <text class="d-t" x="220" y="405" text-anchor="middle">Managed Valkey · limits</text>
+  <text class="d-s" x="220" y="422" text-anchor="middle">primary here, replica in zone B</text>
+  <rect class="nd nd-new" x="420" y="386" width="280" height="46" rx="8"/>
+  <text class="d-t" x="560" y="405" text-anchor="middle">Managed Valkey · kept pages</text>
+  <text class="d-s" x="560" y="422" text-anchor="middle">primary here, replica in zone C</text>
+  <rect class="nd" x="760" y="386" width="280" height="46" rx="8"/>
+  <text class="d-t" x="900" y="405" text-anchor="middle">NAT gateway, one fixed address</text>
+  <text class="d-s" x="900" y="422" text-anchor="middle">for SMS, couriers, bKash allowlists</text>
+
+  <text class="d-s" x="72" y="470">Any zone can go dark: the others carry the apps, the standby takes over, and the caches' replicas take over.</text>
+
+  <rect class="far" x="40" y="516" width="520" height="66" rx="12"/>
+  <text class="d-hf" x="56" y="538">SECOND REGION · SINGAPORE (OPTIONAL)</text>
+  <text class="d-s" x="56" y="558">A cross-region replica, promoted if all of Mumbai fails.</text>
+  <text class="d-s" x="56" y="574">AWS about $976 a month more, plus its traffic.</text>
+
+  <rect class="nd-total" x="580" y="516" width="500" height="66" rx="10"/>
+  <text class="d-total" x="600" y="540">About ৳4.15 lakh a month at 2,000 shops</text>
+  <text class="d-s" x="600" y="560">AWS Mumbai, 1-year commitment, with Cloudflare, R2 and monitoring.</text>
+  <text class="d-s" x="600" y="576">On demand ৳5.36 lakh; DigitalOcean ৳4.82 lakh.</text>
+</svg>
