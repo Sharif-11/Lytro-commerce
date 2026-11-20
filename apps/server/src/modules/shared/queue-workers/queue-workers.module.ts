@@ -35,6 +35,7 @@ import { DomainsModule } from '../../domains/domains.module';
 import { DomainCheckTickWorker } from './services/domain-check-tick-worker';
 import { IdempotencyPurgeTickWorker } from './services/idempotency-purge-tick-worker';
 import { PublicApiModule } from '../../public-api/public-api.module';
+import { CardFactsTickWorker } from './services/card-facts-tick-worker';
 import { MetaPurchaseWorker } from './services/meta-purchase-worker';
 import { SmsEventsModule } from '../../sms-events/sms-events.module';
 import { SmsEventWorker } from './services/sms-event-worker';
@@ -115,6 +116,7 @@ import { RawMessagePurgeTickWorker } from './services/raw-message-purge-tick-wor
     UsageNoticeWorker,
     PackAutoBuyWorker,
     MetaPurchaseWorker,
+    CardFactsTickWorker,
     DomainCheckTickWorker,
     IdempotencyPurgeTickWorker,
     SmsEventWorker,

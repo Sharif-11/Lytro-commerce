@@ -1030,6 +1030,20 @@
       "when": 1795093785353,
       "tag": "0147_order_component_thumbnail_index",
       "breakpoints": true
+    },
+    {
+      "idx": 148,
+      "version": "7",
+      "when": 1795153646928,
+      "tag": "0148_card_facts",
+      "breakpoints": true
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1795153669911,
+      "tag": "0149_orders_updated_index",
+      "breakpoints": true
     }
   ]
 }

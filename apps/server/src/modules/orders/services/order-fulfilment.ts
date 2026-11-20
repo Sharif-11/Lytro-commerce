@@ -596,13 +596,17 @@ export class OrderFulfilment {
           changedBy: who.id,
         },
       ];
-      let updated = order;
       if (allBack) {
         history.push(this.fulfilmentHistory(order, FulfillmentStatus.Returned, null, who));
-        updated = await this.store.updateOrder(tx, tenantId, order.id, {
-          fulfillmentStatus: FulfillmentStatus.Returned,
-        });
       }
+      // SB-10 (2026-11-20): marked updated even when only some items came back, since that changes what the shop's
+      // cards count as ordered and sold (the card facts tick watches the orders' updated time).
+      const updated = await this.store.updateOrder(
+        tx,
+        tenantId,
+        order.id,
+        allBack ? { fulfillmentStatus: FulfillmentStatus.Returned } : {},
+      );
       await this.store.insertHistory(tx, tenantId, history);
       await this.customers.recountWithin(tx, tenantId, [order.customerId]);
       await this.activity.record(

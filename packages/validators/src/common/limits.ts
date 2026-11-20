@@ -74,6 +74,17 @@ export const PRODUCT_NEW_DAYS = 14;
 // and a card marks the first few of them "Best seller".
 export const STOREFRONT_BEST_SELLER_DAYS = 30;
 export const STOREFRONT_BEST_SELLER_BADGES = 5;
+// SB-10 (the owner, 2026-11-20): a card's "ordered" and best-seller facts are kept per shop and may trail a delivery or
+// a return by up to 5 minutes. The minute tick works a shop's out again once they are this many minutes old and an
+// order of its changed since (so at most a tick later than that)...
+export const CARD_FACTS_REFRESH_AFTER_MINUTES = 4;
+// ...looking back this many seconds before the last run, for a change whose transaction committed after it began (longer
+// than any transaction may run: the worker's 60 seconds)...
+export const CARD_FACTS_CHANGE_SLACK_SECONDS = 120;
+// ...and once a day whatever changed, since the best sellers' window moves on.
+export const CARD_FACTS_FULL_REFRESH_HOURS = 24;
+// Facts older than this mean the tick has stopped: a list works the shop's out live again, as before they were kept.
+export const CARD_FACTS_TRUSTED_HOURS = 25;
 // LND-04: a product's link slug. Letters (Bangla included), digits and hyphens, no leading or trailing hyphen.
 export const PRODUCT_SLUG_MAX_LENGTH = 120;
 export const PRODUCT_SLUG_PATTERN = /^[\p{L}\p{M}\p{N}]+(?:-[\p{L}\p{M}\p{N}]+)*$/u;

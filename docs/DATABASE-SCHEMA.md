@@ -414,6 +414,28 @@ CREATE TABLE tenant.offer_prices (
     offer_price     numeric(10, 2) NOT NULL CHECK (offer_price >= 1),
     PRIMARY KEY (tenant_id, variant_id)
 );
+
+-- SB-10 (0148, the owner 2026-11-20): what a storefront card says of a product from the shop's counted orders, kept so
+-- a product list stops going through the orders on every page: "Ordered N times" (counted orders that ever held it)
+-- and "Best seller" (among the shop's STOREFRONT_BEST_SELLER_BADGES most sold over STOREFRONT_BEST_SELLER_DAYS). Only a
+-- product ordered at least once has a row. Worked out again by the minute pass (`card_facts_tick`) once the facts are
+-- 4 minutes old and an order of the shop changed since (orders.updated_at, index orders_tenant_updated_idx, 0149), and
+-- once a day besides: at most 5 minutes behind a delivery or a return. "Only N left" is never kept; it's read live.
+-- A run writes only the rows that moved (new, changed, or a product no longer ordered), never the whole shop's.
+CREATE TABLE tenant.product_card_facts (
+    tenant_id    uuid NOT NULL,
+    product_id   uuid NOT NULL,      -- to tenant.products, cascading
+    ordered      integer NOT NULL CHECK (ordered > 0),
+    best_seller  boolean NOT NULL DEFAULT false,
+    PRIMARY KEY (tenant_id, product_id)
+);
+
+-- SB-10 (0148): when the shop's card facts were last worked out, by the database's clock. No row, or one over 25 hours
+-- old (the pass has stopped), and a list works the facts out from the orders, as before.
+CREATE TABLE tenant.card_fact_runs (
+    tenant_id  uuid PRIMARY KEY,      -- to control.tenants, cascading
+    worked_at  timestamptz NOT NULL
+);
 ```
 
 ### 2.4 Invoices and platform audit

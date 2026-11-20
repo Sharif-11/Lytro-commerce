@@ -322,6 +322,7 @@ export {
   type PartVariantRow,
 } from './repositories/catalogue/combo.repository';
 export { CatalogueDataRepository } from './repositories/catalogue/catalogue-data.repository';
+export { CardFactsRepository } from './repositories/catalogue/card-facts.repository';
 export {
   StockRepository,
   type NewStockMovement,

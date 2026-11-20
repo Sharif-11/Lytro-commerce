@@ -7,6 +7,7 @@ import {
   DrizzleAdTrackingStore,
   DrizzleCatalogFeedStore,
 } from '../../database/adapters/ad-tracking.adapter';
+import { DrizzleCardFactsStore } from '../../database/adapters/card-facts.adapter';
 import {
   DrizzlePublicCatalogueStore,
   PostgresCatalogueSearch,
@@ -34,6 +35,7 @@ import { AdTrackingService } from './services/ad-tracking.service';
 import { ApiKeyAuthenticator } from './services/api-key-authenticator';
 import { PublicApiEraser } from './services/public-api-eraser';
 import { ApiKeyService } from './services/api-key.service';
+import { CardFacts } from './services/card-facts';
 import { CatalogFeedCsv } from './services/catalog-feed-csv';
 import { CatalogFeedService, type CatalogFeedSettings } from './services/catalog-feed.service';
 import { CATALOGUE_CACHE_DEFAULTS, CatalogueCache } from './services/catalogue-cache';
@@ -67,6 +69,7 @@ import {
   API_CLOCK,
   API_KEY_STORE,
   API_USAGE_STORE,
+  CARD_FACTS_STORE,
   CATALOG_FEED_SETTINGS,
   CATALOG_FEED_STORE,
   CATALOGUE_CACHE_SETTINGS,
@@ -124,6 +127,9 @@ import {
     { provide: PUBLIC_CATALOGUE_STORE, useClass: DrizzlePublicCatalogueStore },
     { provide: CATALOGUE_SEARCH, useClass: PostgresCatalogueSearch },
     { provide: CATALOGUE_CACHE_SETTINGS, useValue: CATALOGUE_CACHE_DEFAULTS },
+    // SB-10: the cards' kept facts and the minute pass that works them out again.
+    { provide: CARD_FACTS_STORE, useClass: DrizzleCardFactsStore },
+    CardFacts,
     { provide: AD_TRACKING_STORE, useClass: DrizzleAdTrackingStore },
     { provide: CATALOG_FEED_STORE, useClass: DrizzleCatalogFeedStore },
     {
@@ -166,6 +172,8 @@ import {
     CatalogFeedService,
     // For the queue's worker that tells Meta of a shopper's purchase (LND-16).
     MetaPurchaseSender,
+    // For the queue's minute pass over the cards' kept facts (SB-10).
+    CardFacts,
     PublicApiEraser,
     PublicApiHost,
     RequestQuota,

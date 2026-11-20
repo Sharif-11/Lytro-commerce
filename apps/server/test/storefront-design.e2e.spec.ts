@@ -26,6 +26,7 @@ import { MediaProcessor } from '../src/modules/media/services/media-processor';
 import { MEDIA_STORAGE } from '../src/modules/media/tokens';
 import { CATALOGUE_CACHE_SETTINGS } from '../src/modules/public-api/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
+import { CardFactsTickWorker } from '../src/modules/shared/queue-workers/services/card-facts-tick-worker';
 import { StorefrontDesignEraser } from '../src/modules/storefront-design/services/storefront-design-eraser';
 import { StorefrontPreviewLinks } from '../src/modules/storefront-design/services/storefront-preview-links';
 import { listenOn } from './support/bootstrap';
@@ -112,6 +113,10 @@ beforeAll(async () => {
     // The version is read again on every request here, so an edit shows at once instead of within two seconds.
     .overrideProvider(CATALOGUE_CACHE_SETTINGS)
     .useValue({ maxBytes: 100 * 1024 * 1024, maxEntryBytes: 10 * 1024 * 1024, versionMs: 1 })
+    // SB-10: no minute pass keeping the cards' facts, so a card's badges here are worked out from the orders just made
+    // (kept ones may trail them by 5 minutes; card-facts.e2e.spec.ts proves those).
+    .overrideProvider(CardFactsTickWorker)
+    .useValue({ onModuleInit: () => Promise.resolve() })
     .compile();
   ({ app, port } = await listenOn(moduleRef));
 });
