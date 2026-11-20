@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 300" width="1000" height="300" role="img" aria-labelledby="title desc">
+  <title id="title">When data centre A goes dark</title>
+  <desc id="desc">With automatic failover, traffic moves to centre B in 30 to 60 seconds and its standby becomes the primary in about the same time, so orders work again within 1 to 2 minutes. With one command, the operator is alerted after about 3 minutes, runs the command, and orders work again after about 15 to 45 minutes. Kept shop pages are served throughout.</desc>
+  <style>
+    .bg { fill: #ffffff; stroke: #d5dfde; stroke-width: 1; }
+    .nd { fill: #ffffff; stroke: #7e8f8e; stroke-width: 1.2; }
+    .nd-back { fill: #ffffff; stroke: #7e8f8e; stroke-width: 1; }
+    .nd-inner { fill: #f1f7f6; stroke: #7e8f8e; stroke-width: 1; }
+    .nd-cf { fill: #fdf0d1; stroke: #9a6004; stroke-width: 1.2; }
+    .nd-far { fill: #ffffff; stroke: #5b4a86; stroke-width: 1.4; }
+    .nd-new { stroke: #0e6b66; stroke-width: 2; }
+    .nd-hit { fill: #ddf5f2; stroke: #0e6b66; stroke-width: 2; }
+    .nd-slow { fill: #fdf0d1; stroke: #9a6004; stroke-width: 2; }
+    .nd-down { fill: #fbe9ea; stroke: #c8323b; stroke-width: 2; }
+    .nd-total { fill: #ddf5f2; stroke: #0e6b66; stroke-width: 1.4; }
+    .region { fill: #fbf6ea; }
+    .dc { fill: #f1f7f6; stroke: #7e8f8e; stroke-width: 1.2; stroke-dasharray: 6 5; }
+    .far { fill: #f4f1f8; stroke: #5b4a86; stroke-width: 1.2; stroke-dasharray: 6 5; }
+    .ar { fill: none; stroke: #2c3f3e; stroke-width: 1.4; }
+    .ar-dash { stroke-dasharray: 5 4; }
+    .ar-far { fill: none; stroke: #5b4a86; stroke-width: 1.4; stroke-dasharray: 3 4; }
+    .ar-cut { fill: none; stroke: #c8323b; stroke-width: 2; stroke-dasharray: 4 4; }
+    .ah { fill: #2c3f3e; }
+    text { font-family: Inter, "Segoe UI", "Nirmala UI", Helvetica, Arial, sans-serif; }
+    .d-h { fill: #2c3f3e; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; }
+    .d-hf { fill: #5b4a86; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; }
+    .d-t { fill: #10201f; font-size: 13px; font-weight: 600; }
+    .d-s { fill: #2c3f3e; font-size: 11.5px; }
+    .d-l { fill: #2c3f3e; font-size: 11px; font-weight: 500; }
+    .d-x { fill: #c8323b; font-size: 16px; font-weight: 700; }
+    .d-badge { fill: #0e6b66; font-size: 12px; font-weight: 700; }
+    .d-cost { fill: #0e6b66; font-size: 11.5px; font-weight: 600; }
+    .d-total { fill: #10201f; font-size: 15px; font-weight: 700; }
+  </style>
+  <rect class="bg" x="0.5" y="0.5" width="999" height="299" rx="12"/>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" class="ah"/>
+    </marker>
+  </defs>
+  <text class="d-h" x="16" y="20">AUTOMATIC FAILOVER, WITH THE WITNESS</text>
+  <rect class="nd-down" x="16" y="30" width="220" height="56" rx="7"/>
+  <text class="d-t" x="126" y="53" text-anchor="middle">Centre A goes dark</text>
+  <text class="d-s" x="126" y="71" text-anchor="middle">0 s</text>
+  <rect class="nd" x="266" y="30" width="220" height="56" rx="7"/>
+  <text class="d-t" x="376" y="53" text-anchor="middle">Traffic moves to B</text>
+  <text class="d-s" x="376" y="71" text-anchor="middle">health checks fail · ≈ 30–60 s</text>
+  <rect class="nd" x="516" y="30" width="220" height="56" rx="7"/>
+  <text class="d-t" x="626" y="53" text-anchor="middle">B's standby becomes primary</text>
+  <text class="d-s" x="626" y="71" text-anchor="middle">the witness agrees · ≈ 30–60 s</text>
+  <rect class="nd-hit" x="766" y="30" width="218" height="56" rx="7"/>
+  <text class="d-t" x="875" y="53" text-anchor="middle">Orders work again</text>
+  <text class="d-s" x="875" y="71" text-anchor="middle">≈ 1–2 minutes in all</text>
+  <line class="ar" x1="236" y1="58" x2="264" y2="58" marker-end="url(#ah)"/>
+  <line class="ar" x1="486" y1="58" x2="514" y2="58" marker-end="url(#ah)"/>
+  <line class="ar" x1="736" y1="58" x2="764" y2="58" marker-end="url(#ah)"/>
+
+  <text class="d-h" x="16" y="126">ONE COMMAND (DAT-37, TODAY'S DECISION)</text>
+  <rect class="nd-down" x="16" y="136" width="176" height="56" rx="7"/>
+  <text class="d-t" x="104" y="159" text-anchor="middle">Centre A goes dark</text>
+  <text class="d-s" x="104" y="177" text-anchor="middle">0 s</text>
+  <rect class="nd" x="212" y="136" width="176" height="56" rx="7"/>
+  <text class="d-t" x="300" y="159" text-anchor="middle">Traffic moves to B</text>
+  <text class="d-s" x="300" y="177" text-anchor="middle">≈ 30–60 s</text>
+  <rect class="nd" x="408" y="136" width="176" height="56" rx="7"/>
+  <text class="d-t" x="496" y="159" text-anchor="middle">You're alerted</text>
+  <text class="d-s" x="496" y="177" text-anchor="middle">3 failed checks · ≈ 3 min</text>
+  <rect class="nd" x="604" y="136" width="176" height="56" rx="7"/>
+  <text class="d-t" x="692" y="159" text-anchor="middle">You run one command</text>
+  <text class="d-s" x="692" y="177" text-anchor="middle">fence, promote: ≤ 10 min</text>
+  <rect class="nd-slow" x="800" y="136" width="184" height="56" rx="7"/>
+  <text class="d-t" x="892" y="159" text-anchor="middle">Orders work again</text>
+  <text class="d-s" x="892" y="177" text-anchor="middle">≈ 15–45 min in all</text>
+  <line class="ar" x1="192" y1="164" x2="210" y2="164" marker-end="url(#ah)"/>
+  <line class="ar" x1="388" y1="164" x2="406" y2="164" marker-end="url(#ah)"/>
+  <line class="ar" x1="584" y1="164" x2="602" y2="164" marker-end="url(#ah)"/>
+  <line class="ar" x1="780" y1="164" x2="798" y2="164" marker-end="url(#ah)"/>
+
+  <rect class="nd-cf" x="16" y="222" width="968" height="60" rx="8"/>
+  <text class="d-t" x="36" y="246">Throughout: Cloudflare keeps serving the shop pages it holds, for up to a day.</text>
+  <text class="d-s" x="36" y="266">Until a primary is back, placing an order and saving in the dashboard wait with the busy page; reading works from centre B.</text>
+</svg>
