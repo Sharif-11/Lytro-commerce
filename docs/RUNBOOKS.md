@@ -585,3 +585,17 @@ link). Lytro sends from `MAIL_FROM`, by default `Lytro <no-reply@mail.lytro.app>
 reputation. **Gmail and Apple Mail show it only with a paid mark certificate** (a VMC, or Gmail's cheaper CMC), which
 goes in `a=` as its `.pem` link; until then they keep the letter icon. Buying one is the owner's decision (the
 2026-11-16 answer was the free route).
+
+## 14. Cloudflare's bot check is down (Turnstile; SUP-08, SMS-11, AUTH-09 as amended 2026-11-20)
+
+**What this is:** with `TURNSTILE_SECRET_KEY` set, every dashboard request that texts a code carries a Turnstile token,
+checked with Cloudflare (deploy/README.md, "The bot check on code SMS").
+
+- **Cloudflare can't answer the check** (the log's `Turnstile` lines say `couldn't say`; an email says Lytro has
+  stopped calling `turnstile`): nothing to do. Each code request goes on under the old 20 an hour per address until
+  Cloudflare answers again; the circuit tries once a minute. Sellers behind a busy mobile address may meet that limit.
+- **The widget itself won't load** (sellers say the code button waits, then asks them to reload; the log says
+  `refused (no token)`): remove the `TURNSTILE_SECRET_KEY` line from `/opt/lytro/env/server.env` and run
+  `docker compose up -d api` from `/opt/lytro`. The check is off and the strict limits are back. Put the line back
+  once Cloudflare's status page is green.
+- **`couldn't say (invalid-input-secret)`:** the secret is wrong. Copy it again from Cloudflare → Turnstile.

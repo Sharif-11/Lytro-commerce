@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { CodeBoxes } from '@/components/ui/code-boxes';
 import { useCountdown } from '@/hooks/use-countdown';
 import { useErrorText } from '@/hooks/use-error-text';
+import { useHumanCheck } from '@/hooks/use-human-check';
 import { bangladeshiPhone } from '@/lib/phone';
 
 /**
@@ -27,7 +28,8 @@ export function VerifyCode(): React.JSX.Element {
   const expiresIn = useCountdown(expiresInSeconds);
   const resendIn = useCountdown(resendAfterSeconds);
   const verify = useVerifyCode();
-  const resend = useRequestSigninCode();
+  const human = useHumanCheck('signin');
+  const resend = useRequestSigninCode(human.tokens);
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -96,6 +98,7 @@ export function VerifyCode(): React.JSX.Element {
           {t('usePw')}
         </Link>
       </StepLinks>
+      {human.box}
       {resend.isError ? <ErrorBanner error={resend.error} /> : null}
       {wrong ? <p className="text-[14px] text-fg-muted">{t('vLocked')}</p> : null}
     </OnboardingFrame>

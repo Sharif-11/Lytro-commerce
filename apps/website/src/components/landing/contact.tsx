@@ -1,5 +1,5 @@
 import type { HelpLineView } from '@lytronix/validators';
-import Link from 'next/link';
+import { Link } from '@/components/ui/site-link';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { channelWords } from '@/lib/contact/channel-words';
 import {

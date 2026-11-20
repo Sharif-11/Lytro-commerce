@@ -308,6 +308,12 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Too many codes were requested for this destination. Try again later.',
     bn: 'এই নম্বর বা ইমেইলের জন্য অনেকবার কোড চাওয়া হয়েছে। পরে আবার ট্রাই করুন।',
   },
+  // SUP-08, SMS-11, AUTH-09 as amended 2026-11-20: the dashboard's Turnstile token was missing, or Cloudflare didn't
+  // pass it.
+  HumanCheckFailed: {
+    en: "We couldn't confirm a person is asking. Reload the page and try again.",
+    bn: 'একজন মানুষ চাইছেন কিনা নিশ্চিত হওয়া যায়নি। পেজটা রিলোড করে আবার ট্রাই করুন।',
+  },
   CodeSendFailed: {
     en: 'We could not send your code. Try again in a minute.',
     bn: 'আপনার কোড পাঠানো যায়নি। এক মিনিট পর আবার ট্রাই করুন।',

@@ -49,7 +49,9 @@ import { PasswordService } from './services/password.service';
 import { PasswordSigninService } from './services/password-signin.service';
 import { PhoneNumberFormat } from './services/phone-number-format';
 import { SignInLockout } from './services/sign-in-lockout';
+import { addressLimitsOf } from './address-limits';
 import { AddressChecks } from './services/address-checks';
+import { HumanCheck } from './services/human-check';
 import { SignupRateLimiter } from './services/signup-rate-limiter';
 import { TrialLimiter } from './services/trial-limiter';
 import { SignedInSession } from './services/signed-in-session';
@@ -81,6 +83,7 @@ import {
   TRIAL_LIMIT_PER_IDENTITY,
   TRIAL_LIMIT_PER_IP,
   TRIAL_LIMIT_WINDOW_DAYS,
+  TURNSTILE_FETCH,
 } from './tokens';
 
 @Module({
@@ -148,19 +151,23 @@ import {
     IdentitiesService,
     { provide: SIGN_IN_FAILURE_STORE, useClass: DrizzleSignInFailureStore },
     { provide: SIGNUP_ATTEMPT_STORE, useClass: DrizzleSignupAttemptStore },
+    // SUP-08, SMS-11, AUTH-09 (amended 2026-11-20): production's per-address defaults are raised only while the
+    // dashboard's bot check is on (address-limits.ts).
     {
       provide: SIGNUP_RATE_LIMIT_PER_IP,
       inject: [ENV],
       useFactory: (env: Env): number =>
-        env.SIGNUP_RATE_LIMIT_PER_IP ?? (env.NODE_ENV === 'production' ? 10 : 1000),
+        env.SIGNUP_RATE_LIMIT_PER_IP ?? addressLimitsOf(env).signupsPerHour,
     },
     SignupRateLimiter,
     {
       provide: CODE_SMS_PER_IP,
       inject: [ENV],
       useFactory: (env: Env): number =>
-        env.CODE_SMS_PER_IP_PER_HOUR ?? (env.NODE_ENV === 'production' ? 20 : 1000),
+        env.CODE_SMS_PER_IP_PER_HOUR ?? addressLimitsOf(env).codeSmsPerHour,
     },
+    { provide: TURNSTILE_FETCH, useValue: (...args: Parameters<typeof fetch>) => fetch(...args) },
+    HumanCheck,
     AddressChecks,
     { provide: TRIAL_CREATION_STORE, useClass: DrizzleTrialCreationStore },
     {
@@ -173,7 +180,7 @@ import {
       provide: TRIAL_LIMIT_PER_IP,
       inject: [ENV],
       useFactory: (env: Env): number =>
-        env.TRIAL_LIMIT_PER_IP ?? (env.NODE_ENV === 'production' ? 1 : 1000),
+        env.TRIAL_LIMIT_PER_IP ?? addressLimitsOf(env).trialsPerWindow,
     },
     {
       provide: TRIAL_LIMIT_WINDOW_DAYS,

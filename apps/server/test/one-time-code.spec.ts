@@ -539,6 +539,27 @@ describe('SMS-11, D7-27: code SMS from one address', () => {
     expect(state.sent).toHaveLength(4);
   });
 
+  it("a request's own lower cap (Turnstile unreachable) holds that request to it, and never raises the usual", async () => {
+    const state = world();
+    const { codes } = build(state);
+    await codes.issue('01711111111', ChallengeChannel.Sms, SIGNIN, { ip: IP, ipCap: 2 });
+    await codes.issue('01722222222', ChallengeChannel.Sms, SIGNIN, { ip: IP, ipCap: 2 });
+    await expect(
+      codes.issue('01733333333', ChallengeChannel.Sms, SIGNIN, { ip: IP, ipCap: 2 }),
+    ).rejects.toMatchObject({ code: 'rate_limited', messageKey: 'TooManyCodesRequested' });
+    // A checked request goes on under the usual cap (1000 here).
+    await codes.issue('01733333333', ChallengeChannel.Sms, SIGNIN, { ip: IP });
+    expect(state.sent).toHaveLength(3);
+
+    const strict = world();
+    strict.smsPerIp = 1;
+    const tight = build(strict).codes;
+    await tight.issue('01711111111', ChallengeChannel.Sms, SIGNIN, { ip: IP, ipCap: 20 });
+    await expect(
+      tight.issue('01722222222', ChallengeChannel.Sms, SIGNIN, { ip: IP, ipCap: 20 }),
+    ).rejects.toMatchObject({ messageKey: 'TooManyCodesRequested' });
+  });
+
   it('never counts an address the server cannot trust, or an email code', async () => {
     const state = world();
     state.smsPerIp = 1;

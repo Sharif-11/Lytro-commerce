@@ -16,6 +16,7 @@ import { IntentChips } from '@/components/onboarding/intent-chips';
 import { Button } from '@/components/ui/button';
 import { CheckBox } from '@/components/ui/check-row';
 import { Field } from '@/components/ui/field';
+import { useHumanCheck } from '@/hooks/use-human-check';
 import { appConfig } from '@/lib/app-config';
 import { bangladeshiPhone } from '@/lib/phone';
 import { signUpIntent, type SignUpIntent } from '@/session/sign-up-intent';
@@ -69,7 +70,9 @@ export function SignIn(): React.JSX.Element {
 
   const providers = useOauthProviders();
   const startOauth = useStartOauth();
-  const requestCode = useRequestSigninCode();
+  // 2026-11-20: Cloudflare's bot check on the code request (sign-up and sign-in by code).
+  const human = useHumanCheck('signin');
+  const requestCode = useRequestSigninCode(human.tokens);
   const signInWithPassword = useSignInWithPassword();
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
@@ -140,6 +143,7 @@ export function SignIn(): React.JSX.Element {
           />
         ) : null}
         {error ? <ErrorBanner error={error} /> : null}
+        {human.box}
         <div className="flex flex-col gap-1">
           <label className="flex cursor-pointer items-start gap-2.5 text-[14px] leading-[1.6] [&_a]:font-medium [&_a]:text-primary [&_a]:underline">
             <span className="pt-px">

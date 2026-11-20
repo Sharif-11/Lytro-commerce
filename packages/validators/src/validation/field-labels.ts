@@ -381,6 +381,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   trackingCode: { en: 'Tracking code', bn: 'ট্র্যাকিং কোড' },
   trackingLink: { en: 'Tracking link', bn: 'ট্র্যাকিং লিংক' },
   transactionId: { en: 'Transaction ID', bn: 'ট্রানজ্যাকশন আইডি' },
+  turnstileToken: { en: 'Human check', bn: 'হিউম্যান চেক' },
   type: { en: 'Entry type', bn: 'এন্ট্রি টাইপ' },
   unitCost: { en: 'Unit cost', bn: 'প্রতি ইউনিট কেনা দাম' },
   unitKind: { en: 'What it measures', bn: 'কী মাপে' },

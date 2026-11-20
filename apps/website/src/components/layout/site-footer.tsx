@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/ui/site-link';
 import { Mark } from '@/components/ui/mark';
 import { Wordmark } from '@/components/ui/wordmark';
 import { HelpLineApi } from '@/lib/api/help-line-api';

@@ -515,6 +515,28 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   - **Orders:** 10 a minute per shopper and 60 per address. The shop's 180 is unchanged.
   - **Without the secret** (a shop's own website calling the public API from the browser), counting is by address, as
     before.
+- **lytro.app kept at the edge** (2026-11-20, the owner's yes before a Facebook ad campaign; `DEPLOYMENT.md` §9g): the
+  website's landing, about, listener, terms and privacy pages, read in Bangla, are kept at Cloudflare for the shop
+  pages' lifetime and tagged `site`. English readers, the contact page, form posts and a tap's data fetch are never
+  kept, and browsers keep nothing. The query is ignored, so an ad's `?fbclid=` and `?utm_*=` links are one kept page;
+  a test fails if a page starts reading its query or setting a cookie. The site's links aren't prefetched. **No purge**
+  on a plan, price, rate or help-line change: the website's own copies behind the edge would hand a purge the old
+  figures, so a price shows within about 6 minutes and the help line within about 15; the owner can purge tag `site`
+  by hand. Production only, and switched on by itself.
+- **The per-address limits raised behind a bot check** (2026-11-20, the owner's "Raise them + bot check"; **amends
+  SUP-08, SMS-11 and AUTH-09**): a mobile network shows many phones as one address, so the SRS's per-address values
+  would turn the campaign's sellers away.
+  - **Production's defaults, while the dashboard's Turnstile secret is set** (`TURNSTILE_SECRET_KEY`): new accounts
+    200 an hour per address (SUP-08: 10), code SMS 200 an hour (SMS-11: 20), free trials 1,000 per 90 days (AUTH-09:
+    1). One trial per identity is unchanged. Without the secret, the old values stay. A setting in `server.env` still
+    wins (`identity/address-limits.ts`).
+  - **Turnstile on every dashboard request that texts a code:** sign-up and sign-in by code, a reset and its resend. A
+    missing token, or one Cloudflare doesn't pass for that page and request, is refused (`HumanCheckFailed`, in
+    Bangla and English) and texts nothing. The widget stays out of sight unless Cloudflare wants a tap.
+  - **While Cloudflare can't say** (Siteverify down, slower than 5 seconds, its circuit open, or our secret refused),
+    the request goes on under the strict 20 an hour for its address, not refused (the owner's rule).
+  - **Not covered:** email codes (free), a signed-in owner adding a phone, the operator's owner reset, and shoppers'
+    codes on the storefront (their own limits; out of scope).
 - **The edge cache's read** (the owner, 2026-11-16, after the viral-product question: 2,000 shoppers at once on one
   product): "yes, i don't need staging domain now. the other point is ok". D9-32.
   1. **No staging domain now.** Staging's `<slug>.staging.lytro.app` is two levels down, which Cloudflare's free
