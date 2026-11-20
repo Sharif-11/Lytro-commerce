@@ -117,9 +117,10 @@
 
 # The wildcard certificate for every shop's subdomain (`*.lytro.app`) needs the DNS-01 challenge, through Cloudflare's
 # API with a token that can only edit this domain's DNS records (D9-10; never the server's media token,
-# CLOUDFLARE_API_TOKEN). Set on the wildcard site alone: a global `acme_dns` would apply to shops' own domains too, whose
-# DNS isn't ours (TEN-13). WILDCARD_TLS names the snippet; the Caddy test uses `wildcard_tls_auto`, Caddy's own local
-# certificate for *.localhost.
+# CLOUDFLARE_API_TOKEN). Every Lytro site imports it, not only the wildcard (2026-11-20, before production's first
+# deploy): a server then has all its certificates before its DNS points at it, and production stays out of DNS until
+# launch. Never a global `acme_dns`, which would apply to shops' own domains too, whose DNS isn't ours (TEN-13).
+# WILDCARD_TLS names the snippet; the Caddy test uses `wildcard_tls_auto`, Caddy's own local certificate for *.localhost.
 (wildcard_tls_dns) {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_DNS_API_TOKEN}
@@ -220,6 +221,7 @@
 
 # lytro.app: the marketing site only (apps/website). www redirects to the apex.
 www.{$PLATFORM_DOMAIN:lytro.app} {
+	import {$WILDCARD_TLS:wildcard_tls_dns}
 	import security_headers
 	import {$ROBOTS:robots_allow}
 	redir https://{$PLATFORM_DOMAIN:lytro.app}{uri} permanent
@@ -228,6 +230,7 @@ www.{$PLATFORM_DOMAIN:lytro.app} {
 # One website process: while it restarts in a deploy, a request waits for it (up to 10 seconds) instead of failing.
 {$PLATFORM_DOMAIN:lytro.app} {
 	import security_headers
+	import {$WILDCARD_TLS:wildcard_tls_dns}
 	import {$ROBOTS:robots_allow}
 	reverse_proxy {$WEBSITE_UPSTREAM:website:3003} {
 		lb_try_duration 10s
@@ -237,6 +240,7 @@ www.{$PLATFORM_DOMAIN:lytro.app} {
 # app.lytro.app: sign-up, sign-in, create-shop, the OAuth callback and every shop's dashboard at /<slug>
 # (apps/dashboard, TEN-31), under its own Content Security Policy. The session cookie is host-only here (TEN-29).
 app.{$PLATFORM_DOMAIN:lytro.app} {
+	import {$WILDCARD_TLS:wildcard_tls_dns}
 	import security_headers
 	import dashboard_csp
 	import {$ROBOTS:robots_allow}
@@ -247,6 +251,7 @@ app.{$PLATFORM_DOMAIN:lytro.app} {
 # admin.lytro.app: the operator console (apps/operator, its own build, D3-12), under its own strict Content
 # Security Policy. The operator session cookie is host-only here (TEN-29).
 admin.{$PLATFORM_DOMAIN:lytro.app} {
+	import {$WILDCARD_TLS:wildcard_tls_dns}
 	import security_headers_private
 	import operator_csp
 	import {$ROBOTS:robots_allow}
@@ -258,6 +263,7 @@ admin.{$PLATFORM_DOMAIN:lytro.app} {
 # Slice 5.8's part 2). The backend's PaymentPageHost turns every address on this host into one of the page's own routes,
 # so nothing else on the server can be reached from here. No wildcard below takes it: an exact host wins.
 pay.{$PLATFORM_DOMAIN:lytro.app} {
+	import {$WILDCARD_TLS:wildcard_tls_dns}
 	import hsts
 	import {$ROBOTS:robots_allow}
 	import server_proxy
@@ -269,6 +275,7 @@ pay.{$PLATFORM_DOMAIN:lytro.app} {
 # decided in one place. No rewrite and no path rules here: the server doesn't serve /api/v1/... on this host (KNOWN-GAPS
 # §141).
 api.{$PLATFORM_DOMAIN:lytro.app} {
+	import {$WILDCARD_TLS:wildcard_tls_dns}
 	import security_headers_private
 	import {$ROBOTS:robots_allow}
 	import server_proxy

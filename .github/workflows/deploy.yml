@@ -287,4 +287,6 @@ jobs:
       - name: Check production from outside
         env:
           DOMAIN: ${{ vars.PRODUCTION_DOMAIN }}
+          # Before launch production isn't in DNS: each name DNS doesn't answer is checked at the server's address.
+          FALLBACK_ADDRESS: ${{ secrets.PRODUCTION_HOST }}
         run: bash deploy/scripts/outside-check.sh "$DOMAIN"
