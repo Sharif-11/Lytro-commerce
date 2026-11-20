@@ -77,6 +77,16 @@ describe('the bot check on code SMS (HumanCheck)', () => {
     expect(check.on).toBe(false);
     await expect(check.check(undefined, 'signin', IP)).resolves.toBe('off');
     await expect(check.askerFor(undefined, 'signin', IP)).resolves.toEqual({ ip: IP });
+    expect(check.uncheckedAsker(IP)).toEqual({ ip: IP });
+    expect(siteverify.asked).toEqual([]);
+  });
+
+  it('keeps the strict cap on a code it does not check (adding a phone) while it is on, asking no one', () => {
+    const siteverify = new FakeSiteverify();
+    expect(checkWith(siteverify).uncheckedAsker(IP)).toEqual({
+      ip: IP,
+      ipCap: STRICT_ADDRESS_LIMITS.codeSmsPerHour,
+    });
     expect(siteverify.asked).toEqual([]);
   });
 

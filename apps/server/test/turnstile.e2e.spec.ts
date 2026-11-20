@@ -9,10 +9,12 @@ import { TURNSTILE_TEST_SECRETS } from '../src/config/turnstile';
 import { STRICT_ADDRESS_LIMITS } from '../src/modules/identity/address-limits';
 import { SITEVERIFY_URL } from '../src/modules/identity/services/human-check';
 import { TURNSTILE_FETCH } from '../src/modules/identity/tokens';
+import { MAIL_PROVIDER } from '../src/modules/shared/mail/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { postJson } from './support/http';
+import { cookieFrom, postJson } from './support/http';
+import { MailCapture } from './support/mail-capture';
 import { SmsCapture } from './support/sms-capture';
 
 // SUP-08, SMS-11, AUTH-09 as amended 2026-11-20 (the owner's "Raise them + bot check"): with the widget's secret set,
@@ -59,6 +61,7 @@ let app: INestApplication;
 let port: number;
 let admin: pg.Client;
 const texts = new SmsCapture();
+const mail = new MailCapture();
 const siteverify = new FakeSiteverify();
 
 const post = (path: string, payload: unknown, headers: Record<string, string> = {}) =>
@@ -77,6 +80,8 @@ beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(SMS_PROVIDER)
     .useValue(texts.provider)
+    .overrideProvider(MAIL_PROVIDER)
+    .useValue(mail.provider)
     .overrideProvider(TURNSTILE_FETCH)
     .useValue(siteverify.send)
     .compile();
@@ -186,5 +191,33 @@ describeIfDatabase('the bot check on code SMS (Turnstile)', () => {
     expect(stopped.body).toMatchObject({ error: { code: 'rate_limited' } });
     // PRF-05: five failures in a row open the circuit, and no call is made while it is open.
     expect(siteverify.asked.length - asksBefore).toBe(BREAKER_FAILURES);
+  });
+
+  it('keeps the strict per-address limit on adding a phone, which carries no token, for an account an email code opened', async () => {
+    // An email code is free and unchecked, so without this an account could text phones at the raised rate.
+    const email = `owner.${Math.random().toString(36).slice(2, 10)}@example.com`;
+    await post('/auth/email/code', { email });
+    const signedIn = await post('/auth/email/verify', { email, code: mail.codeFor(email) });
+    expect(signedIn.status).toBe(200);
+    const headers = {
+      host: 'localhost',
+      cookie: cookieFrom(signedIn),
+      'x-csrf-token': (signedIn.body as { csrfToken: string }).csrfToken,
+    };
+    const asksBefore = siteverify.asked.length;
+    for (let index = 0; index < STRICT_ADDRESS_LIMITS.codeSmsPerHour; index += 1) {
+      expect(
+        (await post('/me/identities/code', { kind: 'phone', value: texts.freshPhone() }, headers))
+          .status,
+      ).toBe(200);
+    }
+    const stopped = await post(
+      '/me/identities/code',
+      { kind: 'phone', value: texts.freshPhone() },
+      headers,
+    );
+    expect(stopped.status).toBe(429);
+    expect(stopped.body).toMatchObject({ error: { code: 'rate_limited' } });
+    expect(siteverify.asked.length).toBe(asksBefore);
   });
 });

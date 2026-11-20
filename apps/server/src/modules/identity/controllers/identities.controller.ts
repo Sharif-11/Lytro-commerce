@@ -25,6 +25,7 @@ import { IdentitiesListDto, OauthAttachedDto, OauthUrlDto } from '../dto/identit
 import { DashboardGuard, type DashboardRequest } from '../guards/dashboard.guard';
 import { OwnAccountGuard } from '../guards/own-account.guard';
 import { SessionGuard } from '../guards/session.guard';
+import { HumanCheck } from '../services/human-check';
 import { IdentitiesService } from '../services/identities.service';
 import type { OauthAttached } from '../types/oauth';
 import type { IdentityKind } from '@lytronix/validators';
@@ -39,6 +40,7 @@ export class IdentitiesController {
   constructor(
     @Inject(IdentitiesService) private readonly identities: IdentitiesService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
+    @Inject(HumanCheck) private readonly humanCheck: HumanCheck,
   ) {}
 
   @Get()
@@ -62,7 +64,12 @@ export class IdentitiesController {
     @Body(new ZodValidationPipe(AddIdentityCodeDto.schema)) body: AddIdentityCodeDto,
     @Req() request: DashboardRequest,
   ): Promise<CodeIssued> {
-    return this.identities.requestCode(body.kind, body.value, this.clientIp.resolve(request));
+    // No bot check on this form, so while it guards sign-up the address keeps the strict cap (HumanCheck).
+    return this.identities.requestCode(
+      body.kind,
+      body.value,
+      this.humanCheck.uncheckedAsker(this.clientIp.resolve(request)),
+    );
   }
 
   @Post('verify')

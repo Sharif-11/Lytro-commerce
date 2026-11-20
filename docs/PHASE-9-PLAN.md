@@ -542,7 +542,8 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   - **While Cloudflare can't say** (Siteverify down, slower than 5 seconds, its circuit open, or our secret refused),
     the request goes on under the strict 20 an hour for its address, not refused (the owner's rule).
   - **Not covered:** email codes (free), a signed-in owner adding a phone, the operator's owner reset, and shoppers'
-    codes on the storefront (their own limits; out of scope).
+    codes on the storefront (their own limits; out of scope). Adding a phone keeps the strict 20 an hour for its
+    address while the check is on, since an account opened by a free email code could otherwise text at 200.
 - **The edge cache's read** (the owner, 2026-11-16, after the viral-product question: 2,000 shoppers at once on one
   product): "yes, i don't need staging domain now. the other point is ok". D9-32.
   1. **No staging domain now.** Staging's `<slug>.staging.lytro.app` is two levels down, which Cloudflare's free

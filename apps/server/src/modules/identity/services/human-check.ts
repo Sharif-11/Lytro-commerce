@@ -111,6 +111,15 @@ export class HumanCheck {
     return { ip };
   }
 
+  /**
+   * Who a code SMS the bot check doesn't cover goes on as: a signed-in owner adding a phone (AUTH-26). While the check
+   * is on, the per-address limits are the raised ones, so this keeps the strict cap: an account opened by a free email
+   * code mustn't text phones at the raised rate with no token behind it.
+   */
+  uncheckedAsker(ip: string | null): CodeAsker {
+    return this.on ? { ip, ipCap: STRICT_ADDRESS_LIMITS.codeSmsPerHour } : { ip };
+  }
+
   async check(
     token: string | undefined,
     action: HumanCheckAction,
