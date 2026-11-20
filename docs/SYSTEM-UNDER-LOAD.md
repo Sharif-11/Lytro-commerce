@@ -149,6 +149,11 @@ behind one operator's address could reach the limit together and see the busy pa
 limit against measured traffic). It's a platform setting (`public_requests_per_visitor_per_minute`), so raising it
 needs no code. After launch, watch each shop's 429s.
 
+**Fixed in #416 (load fix 2):** the storefront now names each shopper by a mark of their own, beside its secret.
+- **Requests:** each shopper gets the 120 alone. Their address is held only to ten shoppers' worth (1,200).
+- **Orders:** 10 per shopper and 60 per address.
+- **A shop's own website's calls** are still counted by address.
+
 ## Each part: what it does, how it held up
 
 | Part | What it does | Under load (staging, 1×) |
