@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import { ServiceWorker } from '@/components/service-worker';
+import { VisitorCookie } from '@/components/visitor-cookie';
 import { iconPath, themeColor } from '@/lib/app/app-manifest';
 import { LANGUAGE_COOKIE, parseLanguage } from '@/lib/i18n/words';
 import { leadToMainAddress, loadShopPageUnlessBusy } from '@/lib/storefront';
@@ -46,6 +47,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <body>
         {children}
         {page?.state === 'open' && page.shop.storefrontEnabled ? <ServiceWorker /> : null}
+        {page?.state === 'open' ? <VisitorCookie /> : null}
       </body>
     </html>
   );

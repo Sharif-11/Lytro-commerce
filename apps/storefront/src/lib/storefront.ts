@@ -2,6 +2,7 @@ import { cookies, headers } from 'next/headers';
 import { permanentRedirect } from 'next/navigation';
 import { cache } from 'react';
 import { SHOPPER_COOKIE } from './account/shopper-cookie';
+import { newVisitorId, parseVisitor, VISITOR_COOKIE } from './account/visitor-cookie';
 import { AREA_COOKIE, parseArea } from './area';
 import { ServerApi } from './api/server-api';
 import {
@@ -27,7 +28,8 @@ import { mainAddressTarget, STOREFRONT_PATH_HEADER, STOREFRONT_QUERY_HEADER } fr
 const env = StorefrontEnvironment.shared();
 export const storefrontApi = new StorefrontApi(new ServerApi(env.serverUrl), env);
 
-/** The shopper's request as the server should see it: the host without a port, their address, their language. */
+/** The shopper's request as the server should see it: the host without a port, their address, their language, and
+    their own mark (RTE-06 as amended). Read once per request, so a shopper with no mark yet has one mark for it. */
 export class ShopperRequests {
   constructor(private readonly settings: StorefrontEnvironment) {}
 
@@ -39,6 +41,9 @@ export class ShopperRequests {
       host: ShopperRequests.hostOf(incoming.get(forEdge ? EDGE_HOST_HEADER : 'host')),
       clientAddress: ShopperRequests.blankToNull(incoming.get(this.settings.clientIpHeader)),
       language: parseLanguage(jar.get(LANGUAGE_COOKIE)?.value),
+      // A shopper whose page hasn't set their mark yet (their first page) is a new one for this request: such a
+      // request meets only the per-address backstop on the server.
+      visitor: parseVisitor(jar.get(VISITOR_COOKIE)?.value) ?? newVisitorId(),
       ...(forEdge ? { forEdge } : {}),
     };
   }

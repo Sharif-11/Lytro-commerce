@@ -16,6 +16,7 @@ import type {
   StorefrontThemeKey,
   UnitKind,
 } from '@lytronix/validators';
+import { VISITOR_HEADER } from '../account/visitor-cookie';
 import type { StorefrontEnvironment } from '../env';
 import type { ServerAnswer, ServerApi } from './server-api';
 
@@ -520,6 +521,9 @@ export interface ShopperRequest {
       its own rule (CLIENT_IP_FORMAT, TRUSTED_PROXY_HOPS), as for a request the edge sent it directly. */
   clientAddress: string | null;
   language: Language;
+  /** RTE-06 as amended (load fix 2): the shopper's own mark (`lytro-visitor`), or a new one for a shopper who has none
+      yet, which the server counts their requests by when the storefront's secret vouches for it. */
+  visitor: string;
   /** Slice 9.10: the page is rendered for Cloudflare's edge, which keeps it for every shopper (lib/edge): the shop's
       frame it takes is at most a few seconds old, so a purge never hands the edge the minute-old frame this storefront
       holds. */
@@ -879,12 +883,20 @@ export class StorefrontApi {
   }
 
   /** The edge secret, and with it the shopper's address: the server trusts a forwarded address only from a caller
-      holding the secret (D14), so each shopper is limited as themself, never all as the storefront. */
+      holding the secret (D14), so each shopper is limited as themself, never all as the storefront. With the
+      storefront's own secret, which the edge never adds, the shopper's mark too (RTE-06 as amended): the server then
+      counts the shopper alone, and their address only against a backstop, so phones behind one mobile network's
+      address aren't held together. */
   private edgeHeaders(shopper: ShopperRequest): Record<string, string> {
     const headers: Record<string, string> = {};
-    if (!this.env.edgeSecret) return headers;
-    headers['x-lytronix-edge-secret'] = this.env.edgeSecret;
-    if (shopper.clientAddress) headers[this.env.clientIpHeader] = shopper.clientAddress;
+    if (this.env.edgeSecret) {
+      headers['x-lytronix-edge-secret'] = this.env.edgeSecret;
+      if (shopper.clientAddress) headers[this.env.clientIpHeader] = shopper.clientAddress;
+    }
+    if (this.env.storefrontSecret) {
+      headers['x-lytro-storefront'] = this.env.storefrontSecret;
+      headers[VISITOR_HEADER] = shopper.visitor;
+    }
     return headers;
   }
 

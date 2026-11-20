@@ -789,6 +789,96 @@ describeIfDatabase('the per-minute windows on orders (RTE-06, RTE-08, LND-12)', 
   }, 60_000);
 });
 
+/** A mark like the storefront's (`lytro-visitor`): 22 base64url characters. */
+function mark(): string {
+  return randomUUID().replace(/-/g, '').slice(0, 22);
+}
+
+/** The storefront's own server's headers for one shopper behind one address: its secret, their mark, the address. */
+function asShopper(shopperMark: string, address: string): Record<string, string> {
+  return {
+    'x-lytro-storefront': SECRET,
+    'x-lytro-visitor': shopperMark,
+    'x-test-visitor': address,
+  };
+}
+
+describeIfDatabase('shoppers behind one address (RTE-06 as amended, load fix 2)', () => {
+  it("counts each storefront shopper alone, holds the address to ten shoppers' worth, and trusts no mark without the secret", async () => {
+    const settings = app.get(PlatformSettingsService);
+    await settings.set(PlatformSettingKey.PublicRequestsPerVisitorPerMinute, 3, randomUUID());
+    try {
+      const shop = await openShop(port, texts, 'cgnat');
+      const storefront = await storefrontKey(shop);
+      const website = await ownKey(shop);
+      const read = (caller: Caller, headers: Record<string, string>) =>
+        call(caller, 'GET', '/v1/shop', undefined, headers);
+      const shared = '198.51.100.7';
+
+      // Two phones behind one mobile network's address: each has the whole figure, and the next is refused.
+      const first = mark();
+      const second = mark();
+      for (let index = 0; index < 3; index += 1) {
+        expect((await read(storefront, asShopper(first, shared))).status).toBe(200);
+      }
+      const refused = await read(storefront, asShopper(first, shared));
+      expect(refused.status).toBe(429);
+      expect(errorOf(refused).code).toBe('rate_limited');
+      for (let index = 0; index < 3; index += 1) {
+        expect((await read(storefront, asShopper(second, shared))).status).toBe(200);
+      }
+
+      // The shop's own website's visitor there is counted by the address, in its own window, as before.
+      for (let index = 0; index < 3; index += 1) {
+        expect((await read(website, { 'x-test-visitor': shared })).status).toBe(200);
+      }
+      expect((await read(website, { 'x-test-visitor': shared })).status).toBe(429);
+      // A mark without the storefront's secret names no one: counted by the address, whose window is full.
+      expect(
+        (await read(storefront, { 'x-lytro-visitor': mark(), 'x-test-visitor': shared })).status,
+      ).toBe(429);
+
+      // A shopper who drops their mark each time meets the backstop: ten shoppers' worth (30), then refused.
+      const another = '198.51.100.8';
+      for (let index = 0; index < 30; index += 1) {
+        expect((await read(storefront, asShopper(mark(), another))).status).toBe(200);
+      }
+      const backstop = await read(storefront, asShopper(mark(), another));
+      expect(backstop.status).toBe(429);
+      expect(backstop.headers['x-ratelimit-remaining']).toBe('0');
+    } finally {
+      await settings.set(PlatformSettingKey.PublicRequestsPerVisitorPerMinute, 120, randomUUID());
+    }
+  }, 60_000);
+
+  it('lets each storefront shopper behind one address place 10 orders a minute, apart', async () => {
+    const shop = await openShop(port, texts, 'cgnat-orders');
+    const lamp = await product(shop, 'Lamp', 300, 50);
+    const storefront = await storefrontKey(shop);
+    const body = async () => ({
+      ...(await shopper(shop)),
+      items: [{ variantId: lamp.variantId, quantity: 1 }],
+    });
+    const shared = '198.51.100.9';
+    const place = async (shopperMark: string) =>
+      call(storefront, 'POST', '/v1/orders', await body(), {
+        ...asShopper(shopperMark, shared),
+        'idempotency-key': randomUUID(),
+      });
+    const first = mark();
+    const second = mark();
+    for (let index = 0; index < 10; index += 1) {
+      expect((await place(first)).status).toBe(201);
+      expect((await place(second)).status).toBe(201);
+    }
+    const eleventh = await place(first);
+    expect(eleventh.status).toBe(429);
+    expect(errorOf(eleventh).code).toBe('rate_limited');
+    // A third shopper there still orders: the address's 60 is far off.
+    expect((await place(mark())).status).toBe(201);
+  }, 120_000);
+});
+
 describeIfDatabase("orders past the month's requests (QTA-07, RTE-03, agreed 2026-11-04)", () => {
   it('still takes an order and answers what checkout reads, counting them, while the rest stops', async () => {
     const shop = await openShop(port, texts, 'po');

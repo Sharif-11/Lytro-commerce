@@ -28,6 +28,7 @@ const shopper = {
   host: 'megh.lytro.app',
   clientAddress: '103.10.20.30, 172.70.1.2',
   language: 'bn' as const,
+  visitor: 'Vb3sQ0mX5n_kP7rT2yW9aA',
 };
 
 /** Records every call and answers each from the list given, in order. */
@@ -50,7 +51,7 @@ const ok = (data: unknown): ServerAnswer<unknown> => ({
 });
 
 describe('StorefrontApi', () => {
-  it("calls the public API as the shop, from the shopper's own address (SFT-11, D14)", async () => {
+  it("calls the public API as the shop, from the shopper's own address, with their mark (SFT-11, D14, RTE-06)", async () => {
     const fake = server(ok({ name: 'Megh' }));
     await new StorefrontApi(fake, env).shop(shop, shopper);
     expect(fake.calls[0]).toEqual({
@@ -60,12 +61,25 @@ describe('StorefrontApi', () => {
       headers: {
         'x-lytronix-edge-secret': 'edge-secret',
         'cf-connecting-ip': '103.10.20.30, 172.70.1.2',
+        'x-lytro-storefront': 'storefront-secret',
+        'x-lytro-visitor': 'Vb3sQ0mX5n_kP7rT2yW9aA',
         authorization: 'Bearer lytro_pk_abc',
         origin: 'https://megh.lytro.app',
         'accept-language': 'bn',
       },
       body: undefined,
     });
+  });
+
+  it("names no mark without the storefront's secret, since only that secret makes the server trust one", async () => {
+    const fake = server(ok({ name: 'Megh' }));
+    const edgeOnly = new StorefrontEnvironment({
+      PLATFORM_DOMAIN: 'lytro.app',
+      TRUSTED_EDGE_SECRET: 'edge-secret',
+    });
+    await new StorefrontApi(fake, edgeOnly).shop(shop, shopper);
+    expect(fake.calls[0]?.headers).not.toHaveProperty('x-lytro-visitor');
+    expect(fake.calls[0]?.headers).not.toHaveProperty('x-lytro-storefront');
   });
 
   it('passes no address without the edge secret, since the server would not trust it', async () => {
