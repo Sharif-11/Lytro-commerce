@@ -100,8 +100,9 @@ everything already built. The rest is in the order proposed; each needs the owne
 1. **Keep card facts per shop** instead of working them out on every list. They change only when an order is delivered
    or returned, and a badge can be a few minutes old. This should save most of PostgreSQL's CPU. **Built in #411**
    (the owner's yes, 2026-11-20): kept in `tenant.product_card_facts`, at most 5 minutes behind the shop's orders.
-2. **One catalogue read per page** instead of one per product row (planned, not started). Product lists were 42% of the
-   API's time before the page cache.
+2. **One catalogue read per page** instead of one per product row. Product lists were 42% of the API's time before the
+   page cache. **Built in #418** (the owner's yes, 2026-11-20): a designed home's lists go in one
+   `POST /v1/catalogue/lists` from the storefront's own server, nine requests becoming one.
 3. Lighter dashboard polling, and the storefront's "load more" kept at Cloudflare.
 4. Later, maybe: the storefront calling the API without passing Caddy again. It would save part of Caddy's 24%, but
    Caddy's health checks are what keep a deploy invisible, so not now.
