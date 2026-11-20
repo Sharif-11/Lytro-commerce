@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 250" width="1000" height="250" role="img" aria-labelledby="title desc">
+  <title id="title">Why the app servers move with a managed database</title>
+  <desc id="desc">With app servers in Dhaka and the database in Mumbai, each page's ten or so queries cross 41 milliseconds each, about 410 milliseconds more per page, and an order holds its stock lock across several round trips. With everything in Mumbai, only one trip per uncached page crosses, from Cloudflare to the region, and queries take under a millisecond.</desc>
+  <style>
+    .bg { fill: #ffffff; stroke: #d5dfde; stroke-width: 1; }
+    .nd { fill: #ffffff; stroke: #7e8f8e; stroke-width: 1.2; }
+    .nd-back { fill: #ffffff; stroke: #7e8f8e; stroke-width: 1; }
+    .nd-inner { fill: #f1f7f6; stroke: #7e8f8e; stroke-width: 1; }
+    .nd-cf { fill: #fdf0d1; stroke: #9a6004; stroke-width: 1.2; }
+    .nd-far { fill: #ffffff; stroke: #5b4a86; stroke-width: 1.4; }
+    .nd-new { stroke: #0e6b66; stroke-width: 2; }
+    .nd-hit { fill: #ddf5f2; stroke: #0e6b66; stroke-width: 2; }
+    .nd-slow { fill: #fdf0d1; stroke: #9a6004; stroke-width: 2; }
+    .nd-down { fill: #fbe9ea; stroke: #c8323b; stroke-width: 2; }
+    .nd-total { fill: #ddf5f2; stroke: #0e6b66; stroke-width: 1.4; }
+    .region { fill: #fbf6ea; }
+    .dc { fill: #f1f7f6; stroke: #7e8f8e; stroke-width: 1.2; stroke-dasharray: 6 5; }
+    .far { fill: #f4f1f8; stroke: #5b4a86; stroke-width: 1.2; stroke-dasharray: 6 5; }
+    .ar { fill: none; stroke: #2c3f3e; stroke-width: 1.4; }
+    .ar-dash { stroke-dasharray: 5 4; }
+    .ar-far { fill: none; stroke: #5b4a86; stroke-width: 1.4; stroke-dasharray: 3 4; }
+    .ar-cut { fill: none; stroke: #c8323b; stroke-width: 2; stroke-dasharray: 4 4; }
+    .ah { fill: #2c3f3e; }
+    text { font-family: Inter, "Segoe UI", "Nirmala UI", Helvetica, Arial, sans-serif; }
+    .d-h { fill: #2c3f3e; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; }
+    .d-hf { fill: #5b4a86; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; }
+    .d-t { fill: #10201f; font-size: 13px; font-weight: 600; }
+    .d-s { fill: #2c3f3e; font-size: 11.5px; }
+    .d-l { fill: #2c3f3e; font-size: 11px; font-weight: 500; }
+    .d-x { fill: #c8323b; font-size: 16px; font-weight: 700; }
+    .d-badge { fill: #0e6b66; font-size: 12px; font-weight: 700; }
+    .d-cost { fill: #0e6b66; font-size: 11.5px; font-weight: 600; }
+    .d-total { fill: #10201f; font-size: 15px; font-weight: 700; }
+    .zone { fill: none; stroke: #7e8f8e; stroke-width: 1; stroke-dasharray: 2 4; }
+    .grid { stroke: #d5dfde; stroke-width: 1; }
+    .bar-self { fill: #107f78; }
+    .bar-managed { fill: #b9770a; }
+    .d-bad { fill: #c8323b; font-size: 11.5px; font-weight: 600; }
+    .d-ok { fill: #0e6b66; font-size: 11.5px; font-weight: 600; }
+  </style>
+  <rect class="bg" x="0.5" y="0.5" width="999" height="249" rx="12"/>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" class="ah"/>
+    </marker>
+  </defs>
+  <text class="d-h" x="16" y="20">APPS IN DHAKA, DATABASE ABROAD · DOESN'T WORK</text>
+  <rect class="nd" x="16" y="32" width="130" height="46" rx="7"/>
+  <text class="d-t" x="81" y="60" text-anchor="middle">Shopper</text>
+  <rect class="nd-cf" x="176" y="32" width="160" height="46" rx="7"/>
+  <text class="d-t" x="256" y="52" text-anchor="middle">Cloudflare</text>
+  <text class="d-s" x="256" y="68" text-anchor="middle">Dhaka</text>
+  <rect class="nd" x="366" y="32" width="160" height="46" rx="7"/>
+  <text class="d-t" x="446" y="52" text-anchor="middle">App server</text>
+  <text class="d-s" x="446" y="68" text-anchor="middle">Dhaka (BDIX)</text>
+  <rect class="nd-down" x="676" y="32" width="200" height="46" rx="7"/>
+  <text class="d-t" x="776" y="52" text-anchor="middle">Managed database</text>
+  <text class="d-s" x="776" y="68" text-anchor="middle">Mumbai</text>
+  <line class="ar" x1="146" y1="55" x2="174" y2="55" marker-end="url(#ah)"/>
+  <line class="ar" x1="336" y1="55" x2="364" y2="55" marker-end="url(#ah)"/>
+  <line class="ar-cut" x1="526" y1="48" x2="674" y2="48"/>
+  <line class="ar-cut" x1="526" y1="54" x2="674" y2="54"/>
+  <line class="ar-cut" x1="526" y1="60" x2="674" y2="60"/>
+  <text class="d-bad" x="600" y="86" text-anchor="middle">every query: 41 ms</text>
+  <text class="d-s" x="16" y="110">About 10 queries a page: about 410 ms more per page drawn. An order holds its stock lock across several round trips,</text>
+  <text class="d-s" x="16" y="127">so a flash sale's orders queue behind each other.</text>
+
+  <text class="d-h" x="16" y="160">EVERYTHING IN ONE CLOUD REGION · THE MANAGED LAYOUT</text>
+  <rect class="nd" x="16" y="172" width="130" height="46" rx="7"/>
+  <text class="d-t" x="81" y="200" text-anchor="middle">Shopper</text>
+  <rect class="nd-cf" x="176" y="172" width="160" height="46" rx="7"/>
+  <text class="d-t" x="256" y="192" text-anchor="middle">Cloudflare</text>
+  <text class="d-s" x="256" y="208" text-anchor="middle">Dhaka · kept pages</text>
+  <rect class="nd" x="486" y="172" width="160" height="46" rx="7"/>
+  <text class="d-t" x="566" y="192" text-anchor="middle">App server</text>
+  <text class="d-s" x="566" y="208" text-anchor="middle">Mumbai</text>
+  <rect class="nd-hit" x="676" y="172" width="200" height="46" rx="7"/>
+  <text class="d-t" x="776" y="192" text-anchor="middle">Managed database</text>
+  <text class="d-s" x="776" y="208" text-anchor="middle">Mumbai · under 1 ms</text>
+  <line class="ar" x1="146" y1="195" x2="174" y2="195" marker-end="url(#ah)"/>
+  <line class="ar" x1="336" y1="195" x2="484" y2="195" marker-end="url(#ah)"/>
+  <text class="d-ok" x="410" y="188" text-anchor="middle">one trip: 41 ms</text>
+  <line class="ar" x1="646" y1="195" x2="674" y2="195" marker-end="url(#ah)"/>
+  <text class="d-s" x="16" y="242">Only an uncached page crosses, once, from Cloudflare to the region. Kept pages are still served from Dhaka.</text>
+</svg>
