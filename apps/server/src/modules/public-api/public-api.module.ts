@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ClientIp } from '../../common/client-ip';
 import { apiOrigin, mainOrigin } from '../../common/shop-address';
+import { StorefrontShopper } from '../../common/storefront-shopper';
 import type { Env } from '../../config/env';
 import { ENV } from '../../config/tokens';
 import {
@@ -148,6 +149,7 @@ import {
     CatalogueVersionReader,
     PublicCatalogue,
     ClientIp,
+    StorefrontShopper,
     ApiKeyAuthenticator,
     ApiKeyService,
     PublicApiEraser,

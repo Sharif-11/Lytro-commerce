@@ -462,7 +462,12 @@ describe('the edge and the preview (SB-12, SB-16)', () => {
       mainHost: null,
       publicOrigin: 'https://megh.lytro.app',
     };
-    const shopper = { host: 'megh.lytro.app', clientAddress: null, language: 'bn' as const };
+    const shopper = {
+      host: 'megh.lytro.app',
+      clientAddress: null,
+      language: 'bn' as const,
+      visitor: 'Vb3sQ0mX5n_kP7rT2yW9aA',
+    };
     expect((await api.shop(shop, shopper)).name).toBe('Live');
     expect((await api.shopPreview(shop, shopper, 'a b'))?.name).toBe('Draft');
     expect((await api.shopPreview(shop, shopper, 'a b'))?.name).toBe('Draft again');

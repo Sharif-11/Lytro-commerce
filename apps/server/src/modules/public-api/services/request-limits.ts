@@ -36,9 +36,47 @@ export class RequestLimits {
     return this.store.take(`ip:${tenantId}:${ip}`, limit, MINUTE_MS, now);
   }
 
+  /** RTE-06 as amended (load fix 2): one storefront shopper's requests to one shop, by their own mark. */
+  perShopper(tenantId: string, shopper: string, limit: number, now: Date): Promise<WindowVerdict> {
+    return this.store.take(`v:${tenantId}:${shopper}`, limit, MINUTE_MS, now);
+  }
+
+  /**
+   * RTE-06 as amended (load fix 2): the storefront's shoppers behind one address, together, in one shop: the backstop
+   * against a shopper who drops their mark. Its own bucket, so it never takes from a shop's own website's visitors there.
+   */
+  perStorefrontAddress(
+    tenantId: string,
+    ip: string,
+    limit: number,
+    now: Date,
+  ): Promise<WindowVerdict> {
+    return this.store.take(`sf-ip:${tenantId}:${ip}`, limit, MINUTE_MS, now);
+  }
+
   /** RTE-06, LND-12, RED-11: one visitor's orders in one shop, exact. */
   ordersPerVisitor(tenantId: string, ip: string, limit: number, now: Date): Promise<WindowVerdict> {
     return this.exact.take(`order-ip:${tenantId}:${ip}`, limit, MINUTE_MS, now);
+  }
+
+  /** RTE-06 as amended (load fix 2), RED-11: one storefront shopper's orders in one shop, by their mark, exact. */
+  ordersPerShopper(
+    tenantId: string,
+    shopper: string,
+    limit: number,
+    now: Date,
+  ): Promise<WindowVerdict> {
+    return this.exact.take(`order-v:${tenantId}:${shopper}`, limit, MINUTE_MS, now);
+  }
+
+  /** RTE-06 as amended (load fix 2), RED-11: the storefront's shoppers' orders behind one address in one shop, exact. */
+  ordersFromStorefrontAddress(
+    tenantId: string,
+    ip: string,
+    limit: number,
+    now: Date,
+  ): Promise<WindowVerdict> {
+    return this.exact.take(`order-sf-ip:${tenantId}:${ip}`, limit, MINUTE_MS, now);
   }
 
   /** RTE-08 (amended 2026-10-30), RED-11: every shopper's orders in one shop together, a flood guard, exact. */
