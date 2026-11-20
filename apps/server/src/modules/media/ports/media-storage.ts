@@ -41,7 +41,10 @@ export interface MediaStorage {
   listMedia(prefix: string): Promise<StoredObject[]>;
   /** ADM-14, ADM-17, D8-47: a payment screenshot, into the private bucket no public route reads. */
   putEvidence(key: string, body: Buffer, contentType: string): Promise<void>;
-  /** D8-47: a link the operator's browser may read one screenshot by, until it expires. */
-  evidenceLink(key: string, expiresInSeconds: number): Promise<string>;
+  /**
+   * D8-47 (amended 2026-11-20): a screenshot read back by the server, which hands it to the operator itself, or null when
+   * it is gone. Never a link: R2 holds a key's address lock against every link that key signs.
+   */
+  readEvidence(key: string): Promise<Buffer | null>;
   deleteEvidence(keys: string[]): Promise<void>;
 }

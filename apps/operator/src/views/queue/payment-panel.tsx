@@ -139,7 +139,7 @@ function PaymentFacts({
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="text-[15px] font-medium">{t('queue.shot')}</span>
-            <span className="text-[13px] text-fg-muted">{t('queue.linkNote')}</span>
+            <span className="text-[13px] text-fg-muted">{t('queue.copyNote')}</span>
           </span>
           <Button
             type="button"
@@ -185,9 +185,9 @@ function QueueShotPanel({
   return (
     <ShotPanel
       title={t('queue.shotTitle', { trx: payment.transactionId ?? '' })}
-      sub={`${payment.shopName} · ${t('queue.linkNote')}`}
-      link={evidence.data}
-      failed={evidence.isError}
+      sub={`${payment.shopName} · ${t('queue.copyNote')}`}
+      file={evidence.file}
+      failed={evidence.failed}
       note={
         <Banner tone="warn" icon="warn">
           {t('queue.shotNote')}

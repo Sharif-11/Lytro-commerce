@@ -185,7 +185,7 @@
     "shot": "The seller's screenshot",
     "shotNote": "A screenshot is the seller's word, not the money. Match the TrxID against the statement.",
     "shotTitle": "Screenshot · {{trx}}",
-    "linkNote": "The link lasts five minutes.",
+    "copyNote": "Shown from Lytro's server; your browser keeps no copy.",
     "shotOpen": "Open",
     "shotGone": "The screenshot can't be read now."
   },
@@ -264,7 +264,7 @@
     "recordedTopUp": "Payment recorded. {{a}} is on {{shop}}'s balance.",
     "by": "By",
     "openShot": "Open the screenshot",
-    "linkNote": "The link lasts five minutes.",
+    "copyNote": "Shown from Lytro's server; your browser keeps no copy.",
     "gone": "This screenshot was removed after two years.",
     "reversedBy": "Reversed {{d}} by {{who}}: {{r}}",
     "reverse": "Reverse",

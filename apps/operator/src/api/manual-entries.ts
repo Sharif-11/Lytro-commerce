@@ -4,9 +4,9 @@ import type {
   ManualEntryKind,
   ManualEntryPreviewInput,
 } from '@lytronix/validators';
+import { useEvidenceFile } from '@/api/evidence';
 import { operatorSession } from '@/session/operator-session';
 import type {
-  EvidenceLink,
   EvidenceUpload,
   ManualEntry,
   ManualEntryPage,
@@ -113,16 +113,7 @@ export function useReverseEntry(id: string) {
   });
 }
 
-/** D8-47: a five-minute link to an entry's screenshot, read when the operator opens it. */
-export function useEntryEvidence(id: string | null) {
-  return useQuery({
-    queryKey: [...MANUAL_ENTRIES_QUERY_KEY, 'evidence', id],
-    queryFn: () =>
-      operatorSession.client.get<EvidenceLink>(`/operator/manual-entries/${id ?? ''}/evidence`),
-    enabled: id !== null,
-    retry: false,
-    // The link lasts five minutes; a later opening asks for a fresh one.
-    gcTime: 0,
-    staleTime: 0,
-  });
+/** D8-47: an entry's screenshot, read when the operator opens it. */
+export function useEntryEvidence(id: string) {
+  return useEvidenceFile(`/operator/manual-entries/${id}/evidence`);
 }

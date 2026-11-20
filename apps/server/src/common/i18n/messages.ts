@@ -721,7 +721,6 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     bn: 'পেমেন্টের সময় ভবিষ্যতের হতে পারে না।',
   },
   EvidenceUploadReady: { en: 'Upload link ready.', bn: 'আপলোড লিংক রেডি।' },
-  EvidenceLinkReady: { en: 'Screenshot link ready.', bn: 'স্ক্রিনশটের লিংক রেডি।' },
   EvidenceNotUploaded: {
     en: 'That screenshot was not uploaded. Please send it again.',
     bn: 'স্ক্রিনশটটি আপলোড হয়নি। আবার পাঠান।',

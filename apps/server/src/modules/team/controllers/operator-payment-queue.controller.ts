@@ -1,7 +1,19 @@
-import { Body, Controller, Get, Inject, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Post,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiProduces, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import {
+  EVIDENCE_CONTENT_TYPES,
   PlanPaymentKind,
   queuedPaymentAmountSchema,
   type QueuedPaymentAmountInput,
@@ -17,13 +29,10 @@ import {
 } from '../../operator/guards/operator-session.guard';
 import { PaymentQueueService } from '../../billing/services/payment-queue.service';
 import type { QueuedPayment } from '../../billing/types/addon';
-import {
-  PaymentEvidence,
-  type EvidenceLink,
-} from '../../payment-evidence/services/payment-evidence';
+import { sendEvidence, type EvidenceResponse } from '../../payment-evidence/evidence-response';
+import { PaymentEvidence } from '../../payment-evidence/services/payment-evidence';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
-import { EvidenceLinkDto } from '../dto/operator-manual-entries.dto';
 import { ListPaymentQueueDto, RejectPaymentDto } from '../dto/billing.dto';
 import { PlanPaymentDto, QueuedPaymentListDto } from '../dto/billing-response.dto';
 
@@ -52,15 +61,15 @@ export class OperatorPaymentQueueController {
     return this.queue.listPending(query.kind);
   }
 
-  // ADM-17, D8-15: the seller's screenshot of a payment waiting here.
+  // ADM-17, D8-15: the seller's screenshot of a payment waiting here, the file itself through the server (D8-47 as
+  // amended 2026-11-20).
   @Get(':id/evidence')
-  @ResponseMessage('EvidenceLinkReady')
-  @ApiOperation({ summary: "A link to a payment's screenshot, lasting five minutes" })
-  @ZodResponse({ type: EvidenceLinkDto })
-  async evidenceLink(@Param('id') id: string): Promise<EvidenceLink> {
+  @ApiOperation({ summary: "A payment's screenshot, the file itself" })
+  @ApiProduces(...EVIDENCE_CONTENT_TYPES)
+  async evidenceFile(@Param('id') id: string, @Res() response: EvidenceResponse): Promise<void> {
     const payment = await this.payments.find(id);
     if (payment.evidenceId === null) throw new ApiError('not_found', 'EvidenceNotFound', {});
-    return this.evidence.link(payment.evidenceId);
+    sendEvidence(response, await this.evidence.read(payment.evidenceId));
   }
 
   @Post(':id/approve')

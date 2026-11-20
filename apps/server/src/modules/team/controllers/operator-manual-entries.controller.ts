@@ -1,5 +1,17 @@
-import { Body, Controller, Get, Inject, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Post,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
+import { EVIDENCE_CONTENT_TYPES } from '@lytronix/validators';
 import { ZodResponse } from 'nestjs-zod';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
@@ -16,13 +28,12 @@ import {
   OperatorSessionGuard,
   type OperatorSessionRequest,
 } from '../../operator/guards/operator-session.guard';
+import { sendEvidence, type EvidenceResponse } from '../../payment-evidence/evidence-response';
 import {
   PaymentEvidence,
-  type EvidenceLink,
   type EvidenceUpload,
 } from '../../payment-evidence/services/payment-evidence';
 import {
-  EvidenceLinkDto,
   EvidenceUploadDto,
   EvidenceUploadResponseDto,
   ManualEntryDto,
@@ -104,12 +115,12 @@ export class OperatorManualEntriesController {
     );
   }
 
+  // D8-47 (amended 2026-11-20): the file itself, through the server, never an R2 link.
   @Get(':id/evidence')
-  @ResponseMessage('EvidenceLinkReady')
-  @ApiOperation({ summary: "A link to an entry's screenshot, lasting five minutes" })
-  @ZodResponse({ type: EvidenceLinkDto })
-  evidenceLink(@Param('id') id: string): Promise<EvidenceLink> {
-    return this.entries.evidenceLink(id);
+  @ApiOperation({ summary: "An entry's screenshot, the file itself" })
+  @ApiProduces(...EVIDENCE_CONTENT_TYPES)
+  async evidenceFile(@Param('id') id: string, @Res() response: EvidenceResponse): Promise<void> {
+    sendEvidence(response, await this.entries.evidenceFile(id));
   }
 
   private operatorId(request: OperatorSessionRequest): string {

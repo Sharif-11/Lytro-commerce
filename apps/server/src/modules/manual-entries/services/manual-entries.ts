@@ -46,7 +46,7 @@ import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
 import { AccountNotices } from '../../notifications/services/account-notices';
 import {
   PaymentEvidence,
-  type EvidenceLink,
+  type EvidenceFile,
 } from '../../payment-evidence/services/payment-evidence';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import { PlanPaymentsService } from '../../payments/services/plan-payments.service';
@@ -250,12 +250,12 @@ export class ManualEntries {
     return { entries, total, page: query.page, limit: query.limit };
   }
 
-  /** D8-47: a short link to an entry's screenshot, for the operator. */
-  async evidenceLink(id: string): Promise<EvidenceLink> {
+  /** D8-47: an entry's screenshot, for the operator. */
+  async evidenceFile(id: string): Promise<EvidenceFile> {
     const entry = await this.tenants.runStandalone((tx) => this.store.findById(tx, id));
     if (!entry) throw new ApiError('not_found', 'ManualEntryNotFound', {});
     if (entry.evidenceId === null) throw new ApiError('not_found', 'EvidenceNotFound', {});
-    return this.evidence.link(entry.evidenceId);
+    return this.evidence.read(entry.evidenceId);
   }
 
   private async recordWithin(

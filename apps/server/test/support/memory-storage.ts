@@ -103,9 +103,9 @@ export class MemoryStorage implements MediaStorage {
     return Promise.resolve();
   }
 
-  evidenceLink(key: string): Promise<string> {
+  readEvidence(key: string): Promise<Buffer | null> {
     if (this.down) return Promise.reject(new StorageUnavailable());
-    return Promise.resolve(`memory://evidence/${key}`);
+    return Promise.resolve(this.evidence.get(key) ?? null);
   }
 
   deleteEvidence(keys: string[]): Promise<void> {

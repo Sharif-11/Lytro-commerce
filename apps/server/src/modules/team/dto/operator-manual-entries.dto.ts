@@ -36,9 +36,6 @@ export class PaymentEvidenceAttachDto extends createZodDto(paymentEvidenceAttach
 export const paymentEvidenceSentSchema = z.object({ evidenceSentAt: coercedDateField() });
 export class PaymentEvidenceSentDto extends createZodDto(paymentEvidenceSentSchema) {}
 
-export const evidenceLinkSchema = z.object({ url: z.string(), expiresAt: coercedDateField() });
-export class EvidenceLinkDto extends createZodDto(evidenceLinkSchema) {}
-
 export const manualEntryPreviewResponseSchema = z.object({
   kind: z.enum(PlanPaymentKind),
   amount: z.string(),
