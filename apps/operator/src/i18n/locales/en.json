@@ -269,7 +269,7 @@
     "reversedBy": "Reversed {{d}} by {{who}}: {{r}}",
     "reverse": "Reverse",
     "shotTitle": "Screenshot · {{trx}}",
-    "shotPdf": "Open the PDF",
+    "shotPdf": "Download the PDF",
     "reverseTitle": "Reverse this entry?",
     "reverseButton": "Reverse {{a}}",
     "reverseConsPlan": "<b>{{shop}} goes back as it stood</b> before this entry: its plan, period and state, and a frozen balance. A credit note takes the invoice back, and the add-ons it carried end. The entry stays, with this reversal beside it, and its TrxID may be recorded again against the right shop.",

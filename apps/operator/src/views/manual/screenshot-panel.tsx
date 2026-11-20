@@ -9,7 +9,8 @@ import type { ManualEntry } from '@/types/manual-entries';
 
 /**
  * ADM-17, D8-47: a payment's screenshot, read through the server as the panel opens (amended 2026-11-20: never an R2
- * link). A PDF, which an image can't show, opens in its own tab; one the server no longer holds says so.
+ * link). A PDF, which an image can't show, is downloaded rather than opened in a tab: a `blob:` tab keeps the console's
+ * own policy (`object-src 'none'`), which can stop the browser's PDF viewer. One the server no longer holds says so.
  */
 export function ShotPanel({
   title,
@@ -39,8 +40,7 @@ export function ShotPanel({
       ) : !file.isImage ? (
         <a
           href={file.url}
-          target="_blank"
-          rel="noreferrer"
+          download="screenshot.pdf"
           className="mx-auto font-semibold text-primary underline"
         >
           {t('manual.shotPdf')}
