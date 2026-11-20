@@ -87,32 +87,23 @@ test('the enrol step draws its QR code under the policy', async ({ page }) => {
   expect(await refused()).toEqual([]);
 });
 
-// ADM-14, ADM-17 (Slice 8.8): a payment screenshot goes up to the storage's signed link and shows from its five-minute
-// link, both on the storage's own address.
-test('a payment screenshot uploads to the storage and shows from it under the policy', async ({
+// ADM-14, ADM-17 (Slice 8.8): a payment screenshot goes up to the storage's signed link, on the storage's own address, and
+// shows from the server's answer (D8-47 as amended 2026-11-20), the page's own `blob:` copy.
+test('a payment screenshot uploads to the storage and shows from the server under the policy', async ({
   page,
 }) => {
   const refused = await underPolicy(page);
   await mockApi(page, { paymentMethods: withBankAccount() });
-  // A real picture from the storage, so the screenshot's link draws.
-  await page.route(`${UPLOAD_ORIGIN}/shot.png`, (route) =>
+  // D8-47 as amended 2026-11-20: the server answers the screenshot itself, a real picture, which the page shows from its
+  // own copy (`blob:`).
+  await page.route('**/api/v1/operator/payment-queue/*/evidence', (route) =>
     route.fulfill({
       contentType: 'image/png',
+      headers: { 'content-security-policy': 'sandbox', 'cache-control': 'private, no-store' },
       body: Buffer.from(
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
         'base64',
       ),
-    }),
-  );
-  await page.route('**/api/v1/operator/payment-queue/*/evidence', (route) =>
-    route.fulfill({
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        statusCode: 200,
-        message: 'OK',
-        data: { url: `${UPLOAD_ORIGIN}/shot.png`, expiresAt: '2026-10-21T08:35:00.000Z' },
-      }),
     }),
   );
 
@@ -133,7 +124,7 @@ test('a payment screenshot uploads to the storage and shows from it under the po
   await expect(panel.getByText('bkash.jpg')).toBeVisible();
 
   await page.goto(`/queue/${REVIEW_RENEWAL}?step=screenshot`);
-  const shot = page.getByRole('dialog').locator(`img[src^="${UPLOAD_ORIGIN}"]`);
+  const shot = page.getByRole('dialog').locator('img[src^="blob:"]');
   await expect(shot).toBeVisible();
   await expect.poll(() => shot.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(1);
   expect(await refused()).toEqual([]);

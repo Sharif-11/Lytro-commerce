@@ -129,7 +129,7 @@ function Evidence({ entry, onShot }: { entry: ManualEntry; onShot: () => void })
           <ConsoleIcon name="image" size={18} />
           {t('manual.openShot')}
         </Button>
-        <span className={NOTE}>{t('manual.linkNote')}</span>
+        <span className={NOTE}>{t('manual.copyNote')}</span>
       </div>
     );
   }

@@ -273,7 +273,7 @@ test.describe('one entry', () => {
     ).toBeVisible();
   });
 
-  test('opens its screenshot through a five-minute link', async ({ page }) => {
+  test('opens its screenshot through the server, shown from its own copy', async ({ page }) => {
     const log = await manual(page);
     await main(page).getByRole('button', { name: 'Sadia Collection' }).click();
     await panel(page).getByRole('button', { name: 'Open the screenshot' }).click();
@@ -281,6 +281,7 @@ test.describe('one entry', () => {
       panel(page).getByRole('heading', { name: 'Screenshot · BKH4P2L9K7' }),
     ).toBeVisible();
     await expect(panel(page).getByRole('img')).toBeVisible();
+    await expect(panel(page).getByRole('img')).toHaveAttribute('src', /^blob:/);
     expect(log.calls.some((call) => call.path === '/operator/manual-entries/me-28/evidence')).toBe(
       true,
     );

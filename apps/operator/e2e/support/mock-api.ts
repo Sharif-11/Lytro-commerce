@@ -265,7 +265,11 @@ function pageOf(items: unknown[], url: URL, name: string): Record<string, unknow
   };
 }
 
-type Answer = { data: unknown } | { refused: [number, string, string, Record<string, unknown>?] };
+type Answer =
+  | { data: unknown }
+  | { refused: [number, string, string, Record<string, unknown>?] }
+  // A file the server answers itself, not JSON: a payment screenshot (D8-47).
+  | { file: { contentType: string; body: string | Buffer } };
 
 /**
  * Phase 8 exit criterion 5: the four actions that took no reason refuse one missing or blank, as the server does, so a
@@ -613,6 +617,13 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
     if (answer && 'refused' in answer) {
       const [status, code, message, details] = answer.refused;
       return refused(status, code, message, details);
+    }
+    if (answer && 'file' in answer) {
+      return route.fulfill({
+        status: 200,
+        contentType: answer.file.contentType,
+        body: answer.file.body,
+      });
     }
     if (answer) return ok(answer.data);
     return ok([]);

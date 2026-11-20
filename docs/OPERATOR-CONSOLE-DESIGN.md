@@ -167,7 +167,8 @@ whichever step it locked; the button returns when the server would answer again,
 - **Reject** (panel): nothing is credited, the seller reads the note on the plan page and can submit again;
   the note field; "Reject with note".
 - **The seller's screenshot** (v7, ADM-17, D8-15, D8-54): a payment whose seller added one shows a Screenshot row in its
-  panel, which opens it by a five-minute link (`GET /operator/payment-queue/:id/evidence`). The panel says a screenshot is
+  panel, which opens it through the server (`GET /operator/payment-queue/:id/evidence`, the file itself; D8-47 as amended
+  2026-11-20). The panel says a screenshot is
   the seller's word, not the money: the TrxID is still matched against the statement. It is optional, so most payments
   have none, and the row is simply absent.
 - Empty: "Nothing waiting. New wallet payments appear here when a seller submits a TrxID. Ones a Lytro phone
@@ -212,7 +213,7 @@ ADM-16, D8-47 to D8-56). In *Daily*, under the queue, since it is the queue's ot
   one from a reversed entry may be used again), the price changed since the preview (with the new amount), a payment time in the future, an upgrade still
   open, a frozen balance refusing a top-up.
 - **One entry** (panel): its facts (a bank entry shows the account and its reference, and no sender; in the list its
-  reference sits where a TrxID would, labelled so), its reason, and its evidence: Open the screenshot (a five-minute link), or the
+  reference sits where a TrxID would, labelled so), its reason, and its evidence: Open the screenshot (through the server), or the
   statement line as typed; after two years the screenshot is removed and the panel says so. Reverse, unless it was.
 - **Reverse** (panel): for a plan, the shop goes back as it stood (plan, period, state, a frozen balance), a credit note
   takes the invoice back and the add-ons it carried end; for a top-up, the amount comes off the balance even below zero.

@@ -13,7 +13,14 @@ import { MEDIA_STORAGE } from '../src/modules/media/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { cookieFrom, deleteJson, getJson, postJson, type HttpResult } from './support/http';
+import {
+  cookieFrom,
+  deleteJson,
+  getBinary,
+  getJson,
+  postJson,
+  type HttpResult,
+} from './support/http';
 import { MemoryStorage } from './support/memory-storage';
 import { errorOf, fieldsOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
@@ -317,9 +324,9 @@ describeIfDatabase('recording a payment (ADM-14)', () => {
     // D8-47: the file moved to the private bucket and left the temporary one.
     expect(storage.uploads.has(key)).toBe(false);
     expect(entry.evidenceId).not.toBeNull();
-    const link = await getJson(port, `/operator/manual-entries/${entry.id}/evidence`, operator);
-    expect(link.status).toBe(200);
-    expect((link.body as { url: string }).url).toMatch(/^memory:\/\/evidence\//);
+    const shot = await getBinary(port, `/operator/manual-entries/${entry.id}/evidence`, operator);
+    expect(shot.status).toBe(200);
+    expect(shot.body.equals(JPEG)).toBe(true);
   });
 
   it('credits a top-up with what arrived, below the seller minimum too, and issues its invoice (Slice 9.8)', async () => {
@@ -875,10 +882,32 @@ describeIfDatabase("a seller's screenshot (ADM-17, D8-15)", () => {
       evidenceId: string | null;
     }[];
     expect(queue.find((row) => row.id === paymentId)?.evidenceId).not.toBeNull();
-    const link = await getJson(port, `/operator/payment-queue/${paymentId}/evidence`, operator);
-    expect(link.status).toBe(200);
-    // The seller can't read it back, whatever they send.
-    expect((await client.get(`/operator/payment-queue/${paymentId}/evidence`)).status).toBe(401);
+    // D8-47 as amended 2026-11-20: the operator gets the file itself from the server, never an R2 link (R2 holds the
+    // processing key's address lock against its links), and nothing on the way keeps it.
+    const path = `/operator/payment-queue/${paymentId}/evidence`;
+    const shot = await getBinary(port, path, operator);
+    expect(shot.status).toBe(200);
+    expect(shot.body.equals(JPEG)).toBe(true);
+    const evidenceId = (await payment(paymentId)).evidence_id ?? '';
+    expect(shot.headers).toMatchObject({
+      'content-type': 'image/jpeg',
+      'content-disposition': `inline; filename="screenshot-${evidenceId}.jpg"`,
+      'cache-control': 'private, no-store',
+      'x-content-type-options': 'nosniff',
+      'content-security-policy': 'sandbox',
+    });
+    // The seller can't read it back, whatever they send, nor can anyone signed out.
+    expect((await client.get(path)).status).toBe(401);
+    const signedOut = await getBinary(port, path);
+    expect(signedOut.status).toBe(401);
+    expect(signedOut.body.includes(JPEG)).toBe(false);
+    // The store away is busy, never a 500 (MED-11).
+    storage.down = true;
+    try {
+      expect((await getBinary(port, path, operator)).status).toBe(503);
+    } finally {
+      storage.down = false;
+    }
   });
 
   it('is optional', async () => {
@@ -968,7 +997,7 @@ describeIfDatabase('removing screenshots after two years (D8-47)', () => {
     const gone = await getJson(port, `/operator/manual-entries/${old.id}/evidence`, operator);
     expect(gone.status).toBe(409);
     expect(
-      (await getJson(port, `/operator/manual-entries/${young.id}/evidence`, operator)).status,
+      (await getBinary(port, `/operator/manual-entries/${young.id}/evidence`, operator)).status,
     ).toBe(200);
     // The entry itself stays.
     const listed = (

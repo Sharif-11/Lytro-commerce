@@ -199,14 +199,16 @@ export class S3MediaStorage implements MediaStorage {
     }
   }
 
-  async evidenceLink(key: string, expiresInSeconds: number): Promise<string> {
+  async readEvidence(key: string): Promise<Buffer | null> {
     try {
-      return await getSignedUrl(
-        this.processor,
-        new GetObjectCommand({ Bucket: this.settings.evidenceBucket, Key: key }),
-        { expiresIn: expiresInSeconds },
-      );
+      return await this.stored(this.settings.evidenceBucket, async () => {
+        const object = await this.processor.send(
+          new GetObjectCommand({ Bucket: this.settings.evidenceBucket, Key: key }),
+        );
+        return object.Body ? Buffer.from(await object.Body.transformToByteArray()) : null;
+      });
     } catch (error) {
+      if (error instanceof NoSuchKey) return null;
       throw this.unavailable(error);
     }
   }

@@ -53,12 +53,6 @@ export interface ManualEntryPreview {
   needsConfirmation: boolean;
 }
 
-/** A five-minute link to a screenshot (ADM-17, D8-47). */
-export interface EvidenceLink {
-  url: string;
-  expiresAt: string;
-}
-
 /** POST /operator/manual-entries/evidence: where to send the screenshot, and the key the entry names. */
 export interface EvidenceUpload {
   key: string;

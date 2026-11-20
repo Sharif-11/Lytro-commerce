@@ -11,7 +11,7 @@ import { MEDIA_STORAGE } from '../src/modules/media/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
-import { cookieFrom, getJson, postJson, type HttpResult } from './support/http';
+import { cookieFrom, getBinary, getJson, postJson, type HttpResult } from './support/http';
 import { MemoryStorage } from './support/memory-storage';
 import { openShop } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
@@ -254,9 +254,9 @@ describeIfDatabase("Phase 8's golden path (criterion 3)", () => {
       enteredBy: operatorId,
       transactionId,
     });
-    const link = await operatorGet(`/operator/manual-entries/${entry.id}/evidence`);
-    expect(link.status).toBe(200);
-    expect((link.body as { url: string }).url).toMatch(/^memory:\/\/evidence\//);
+    const shot = await getBinary(port, `/operator/manual-entries/${entry.id}/evidence`, operator);
+    expect(shot.status).toBe(200);
+    expect(shot.body.length).toBeGreaterThan(0);
 
     // ... and the platform audit log keeps the reason (criterion 5).
     const audit = (

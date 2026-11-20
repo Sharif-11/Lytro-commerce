@@ -8,15 +8,13 @@ import {
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { StorageUnavailable } from '../../../common/errors/media-refused';
-import { addMonths, SECOND_MS } from '../../../common/time';
+import { addMonths } from '../../../common/time';
 import type { MediaStorage, SignedUpload } from '../../media/ports/media-storage';
 import { MEDIA_STORAGE } from '../../media/tokens';
 import type { PaymentEvidenceRecord, PaymentEvidenceStore } from '../ports/payment-evidence-store';
 import { PAYMENT_EVIDENCE_CLOCK, PAYMENT_EVIDENCE_STORE } from '../tokens';
 
 const UPLOAD_LINK_SECONDS = 15 * 60;
-// D8-47: long enough to open a screenshot, too short to pass around.
-const READ_LINK_SECONDS = 5 * 60;
 const RETRY_AFTER_SECONDS = 60;
 const SWEEP_BATCH = 500;
 
@@ -31,10 +29,19 @@ export interface EvidenceUpload {
   upload: SignedUpload;
 }
 
-export interface EvidenceLink {
-  url: string;
-  expiresAt: Date;
+/** D8-47: a screenshot as the server hands it to the operator: its bytes, what they are, and a name to save it by. */
+export interface EvidenceFile {
+  body: Buffer;
+  contentType: EvidenceContentType | 'application/octet-stream';
+  fileName: string;
 }
+
+const EXTENSIONS: Record<EvidenceContentType, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'application/pdf': 'pdf',
+};
 
 /** ADM-14, ADM-17: what the file's own first bytes say it is, whatever its upload claimed; null for anything else. */
 export function evidenceTypeOf(body: Buffer): EvidenceContentType | null {
@@ -57,8 +64,10 @@ export function evidenceTypeOf(body: Buffer): EvidenceContentType | null {
 /**
  * ADM-14, ADM-17, D8-14, D8-15, D8-47 (Phase 8 Slice 8.5, read agreed 2026-11-09): payment screenshots. A browser sends one
  * to the temporary bucket by a signed link. When the payment it proves is recorded, the server checks the file and copies
- * it into a private bucket no public route reads; the operator alone opens it, by a link lasting five minutes, and a
- * nightly job removes it after two years.
+ * it into a private bucket no public route reads; the operator alone opens it, through the server, and a nightly job
+ * removes it after two years. Amended 2026-11-20 (the owner's choice): the server reads the file and answers it, rather
+ * than a five-minute link, because R2 holds the processing key's address lock against every link that key signs, so the
+ * operator's browser was refused.
  */
 @Injectable()
 export class PaymentEvidence {
@@ -102,15 +111,22 @@ export class PaymentEvidence {
     return result;
   }
 
-  /** D8-47: a link to the file, for the operator alone; refused once it has been removed. */
-  async link(evidenceId: string): Promise<EvidenceLink> {
+  /**
+   * D8-47: the file itself, for the operator alone; refused once it has been removed. What it is comes from its own bytes
+   * again, as when it was kept, so the answer never claims more than the file is.
+   */
+  async read(evidenceId: string): Promise<EvidenceFile> {
     const evidence = await this.store.findById(evidenceId);
     if (!evidence) throw new ApiError('not_found', 'EvidenceNotFound', {});
     if (evidence.removedAt !== null) throw new ApiError('conflict', 'EvidenceRemoved', {});
-    const url = await this.reaching(() =>
-      this.storage.evidenceLink(evidence.objectKey, READ_LINK_SECONDS),
-    );
-    return { url, expiresAt: new Date(this.clock().getTime() + READ_LINK_SECONDS * SECOND_MS) };
+    const body = await this.reaching(() => this.storage.readEvidence(evidence.objectKey));
+    if (body === null) throw new ApiError('not_found', 'EvidenceNotFound', {});
+    const contentType = evidenceTypeOf(body);
+    return {
+      body,
+      contentType: contentType ?? 'application/octet-stream',
+      fileName: `screenshot-${evidence.id}.${contentType ? EXTENSIONS[contentType] : 'bin'}`,
+    };
   }
 
   /** D8-47: the night's removal of files past their two years. How many. */

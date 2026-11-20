@@ -326,9 +326,9 @@ export function withShots(payments: PaymentFixture[]): PaymentFixture[] {
 }
 
 // A picture the console's policy lets an <img> show, standing in for the five-minute link to the private bucket.
-export const SHOT_URL = `data:image/svg+xml;utf8,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="250"><rect width="220" height="250" fill="#fff"/><rect width="220" height="40" fill="#CF2772"/><text x="12" y="26" fill="#fff" font-family="sans-serif" font-weight="700" font-size="14">bKash</text><circle cx="110" cy="76" r="20" fill="#e3f3e9"/><text x="110" y="122" text-anchor="middle" font-family="sans-serif" font-weight="600" font-size="13">Send Money successful</text><text x="110" y="152" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="22">৳449</text><text x="12" y="190" font-family="monospace" font-size="12">To 01711000001</text><text x="12" y="210" font-family="monospace" font-size="12">TrxID BKH7A2M9Q1</text></svg>',
-)}`;
+/** The seller's screenshot the server answers, as the file itself (D8-47 as amended 2026-11-20). */
+export const SHOT_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="250"><rect width="220" height="250" fill="#fff"/><rect width="220" height="40" fill="#CF2772"/><text x="12" y="26" fill="#fff" font-family="sans-serif" font-weight="700" font-size="14">bKash</text><circle cx="110" cy="76" r="20" fill="#e3f3e9"/><text x="110" y="122" text-anchor="middle" font-family="sans-serif" font-weight="600" font-size="13">Send Money successful</text><text x="110" y="152" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="22">৳449</text><text x="12" y="190" font-family="monospace" font-size="12">To 01711000001</text><text x="12" y="210" font-family="monospace" font-size="12">TrxID BKH7A2M9Q1</text></svg>';
 export const UPLOAD_ORIGIN = 'https://evidence.test';
 
 /** The signed links a screenshot is sent to, answered as R2 would. */
@@ -337,7 +337,9 @@ export async function answerUploads(page: Page): Promise<void> {
 }
 
 type MoneyAnswer =
-  { data: unknown } | { refused: [number, string, string, Record<string, unknown>?] };
+  | { data: unknown }
+  | { refused: [number, string, string, Record<string, unknown>?] }
+  | { file: { contentType: string; body: string | Buffer } };
 
 interface MoneyContext {
   manualEntries: ManualEntryFixture[];
@@ -521,7 +523,7 @@ export function moneyAnswer(
     if (state.shotsGone.includes(shot[1] ?? '')) {
       return { refused: [404, 'not_found', 'Evidence not found.'] };
     }
-    return { data: { url: SHOT_URL, expiresAt: NOW } };
+    return { file: { contentType: 'image/svg+xml', body: SHOT_SVG } };
   }
   if (path === '/operator/payment-method-types') return { data: { types: state.walletTypes } };
   const changed = /^\/operator\/payment-method-types\/([^/]+)\/(retire|undo-retire|remove)$/.exec(

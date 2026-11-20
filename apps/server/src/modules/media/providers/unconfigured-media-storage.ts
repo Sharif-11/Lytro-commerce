@@ -43,7 +43,7 @@ export class UnconfiguredMediaStorage implements MediaStorage {
     return Promise.reject(new StorageUnavailable());
   }
 
-  evidenceLink(): Promise<string> {
+  readEvidence(): Promise<Buffer | null> {
     return Promise.reject(new StorageUnavailable());
   }
 

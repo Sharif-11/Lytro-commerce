@@ -265,7 +265,6 @@ export const MESSAGE_KEYS = [
   'ManualEntryShopGone',
   'ManualEntryPaidInFuture',
   'EvidenceUploadReady',
-  'EvidenceLinkReady',
   'EvidenceNotUploaded',
   'EvidenceNotAllowed',
   'EvidenceNotFound',
