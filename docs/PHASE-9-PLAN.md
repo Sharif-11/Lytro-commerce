@@ -505,6 +505,16 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   product list. They are kept per shop (`tenant.product_card_facts`, migrations 0148 and 0149) and worked out again by
   a minute pass once 4 minutes old with an order changed since, and daily: at most 5 minutes behind a delivery or a
   return (the owner's limit). "Only N left" stays live. Then per-shopper limits, then one catalogue read per page.
+- **Limits per shopper, not per address** (2026-11-20, the owner's yes; amends RTE-06 and LND-12 for the storefront):
+  Bangladeshi mobile networks put many phones behind one public address, and the per-visitor limits counted by address.
+  - **The shopper's own mark:** the storefront gives each shopper a mark (`lytro-visitor`, set by the page's script, so
+    a kept page never carries a cookie). The storefront's server names the shopper by it beside its own secret, which
+    the edge never adds (`x-lytro-storefront`).
+  - **Requests:** each shopper is held to the platform setting (120 a minute) alone. Their address is held to ten
+    shoppers' worth (1,200 at 120) as a backstop.
+  - **Orders:** 10 a minute per shopper and 60 per address. The shop's 180 is unchanged.
+  - **Without the secret** (a shop's own website calling the public API from the browser), counting is by address, as
+    before.
 - **The edge cache's read** (the owner, 2026-11-16, after the viral-product question: 2,000 shoppers at once on one
   product): "yes, i don't need staging domain now. the other point is ok". D9-32.
   1. **No staging domain now.** Staging's `<slug>.staging.lytro.app` is two levels down, which Cloudflare's free
