@@ -515,6 +515,12 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   - **Orders:** 10 a minute per shopper and 60 per address. The shop's 180 is unchanged.
   - **Without the secret** (a shop's own website calling the public API from the browser), counting is by address, as
     before.
+- **One catalogue read per page** (2026-11-20, the owner's yes): a designed home asked the API once per product list
+  (each row, hero and tile). The storefront now gathers the lists one render asks for and sends them in one call
+  (`POST /v1/catalogue/lists`, at most 12 lists), answered only for the storefront's own server, by its secret. Each list
+  is GET `/v1/catalogue/products`'s query string, answered by the same code and cache; a hidden category is null among
+  the rest. The call takes one place from the visitor's minute. A home with nine lists is now one request, and a second
+  only when a hero or tile falls back. The public API is unchanged.
 - **The edge cache's read** (the owner, 2026-11-16, after the viral-product question: 2,000 shoppers at once on one
   product): "yes, i don't need staging domain now. the other point is ok". D9-32.
   1. **No staging domain now.** Staging's `<slug>.staging.lytro.app` is two levels down, which Cloudflare's free

@@ -30,6 +30,7 @@ import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { PublicCatalogueController } from './controllers/public-catalogue.controller';
 import { PublicFeedController } from './controllers/public-feed.controller';
 import { PublicShopController } from './controllers/public-shop.controller';
+import { StorefrontCatalogueController } from './controllers/storefront-catalogue.controller';
 import { CatalogFeedGuard } from './guards/catalog-feed.guard';
 import { PublicKeyGuard } from './guards/public-key.guard';
 import { AdTrackingService } from './services/ad-tracking.service';
@@ -111,6 +112,7 @@ import {
   controllers: [
     PublicShopController,
     PublicCatalogueController,
+    StorefrontCatalogueController,
     PublicFeedController,
     StorefrontContextController,
     PublicDeliveryController,
