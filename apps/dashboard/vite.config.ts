@@ -28,6 +28,10 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//],
         // NTF-02: the worker shows a push and opens its page when tapped (public/push-sw.js).
         importScripts: ['push-sw.js'],
+        // Workbox leaves out (and the build fails on) any file over 2 MiB. The main chunk was 141 bytes under that on
+        // 2026-11-20: @lytronix/validators builds as CommonJS, so all of it is bundled whatever the dashboard imports,
+        // and any addition there crossed the line. 3 MiB keeps the chunk precached until it is split.
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
     }),
   ],
