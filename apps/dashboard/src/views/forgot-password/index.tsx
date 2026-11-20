@@ -6,6 +6,7 @@ import { ErrorBanner } from '@/components/error-banner';
 import { OnboardingFrame, StepLinks } from '@/components/onboarding/frame';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
+import { useHumanCheck } from '@/hooks/use-human-check';
 import { bangladeshiPhone } from '@/lib/phone';
 
 /** AUTH-17 (the prototype's `ob-forgot`): the reply is the same whether or not the number has an account. */
@@ -14,7 +15,8 @@ export function ForgotPassword(): React.JSX.Element {
   const navigate = useNavigate();
   const [localPhone, setLocalPhone] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
-  const request = useRequestPasswordReset();
+  const human = useHumanCheck('reset');
+  const request = useRequestPasswordReset(human.tokens);
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -56,6 +58,7 @@ export function ForgotPassword(): React.JSX.Element {
           }}
         />
         {request.isError ? <ErrorBanner error={request.error} /> : null}
+        {human.box}
         <Button type="submit" wide busy={request.isPending}>
           {t('fpSubmit')}
         </Button>

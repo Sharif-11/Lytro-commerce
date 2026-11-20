@@ -129,10 +129,16 @@ test.afterAll(() => {
 
 test('the Caddyfile holds the dashboard’s policy, every address filled in', () => {
   const headers = policyHeaders();
-  expect(headers['content-security-policy']).toContain("script-src 'self';");
+  // 2026-11-20: Cloudflare's Turnstile, the bot check on every form that texts a code, is the one script from elsewhere.
+  expect(headers['content-security-policy']).toContain(
+    "script-src 'self' https://challenges.cloudflare.com;",
+  );
   expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
-  // STOREFRONT-BUILDER-PLAN SB-12: it frames nothing but a shop's own address (the design editor's live preview).
-  expect(headers['content-security-policy']).toContain('frame-src https://*.lytro.app;');
+  // STOREFRONT-BUILDER-PLAN SB-12: it frames nothing but a shop's own address (the design editor's live preview), and
+  // Turnstile's frame.
+  expect(headers['content-security-policy']).toContain(
+    'frame-src https://*.lytro.app https://challenges.cloudflare.com;',
+  );
   expect(headers['permissions-policy']).toBe(
     'camera=(self), microphone=(), geolocation=(), payment=()',
   );
@@ -155,6 +161,46 @@ test.describe('every screen under the policy', () => {
     const refused = await underPolicy(page, baseURL ?? '');
     await mockOnboarding(page, { language: 'en' });
     expect(await walk(page, everyPath().signedOut, refused)).toEqual([]);
+  });
+
+  test('lets Cloudflare’s Turnstile load its script and its frame, and no other Cloudflare script (2026-11-20)', async ({
+    page,
+    baseURL,
+  }) => {
+    const refused = await underPolicy(page, baseURL ?? '');
+    // The Turnstile stub (support/turnstile-stub.ts) answers every challenges.cloudflare.com address.
+    await mockOnboarding(page, { language: 'en' });
+    await page.route('https://static.cloudflareinsights.com/**', (route) =>
+      route.fulfill({ contentType: 'text/javascript', body: '' }),
+    );
+    await page.goto('/sign-in');
+    await page.waitForLoadState('networkidle');
+    const loaded = await page.evaluate(async () => {
+      const script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&probe=1';
+      const done = new Promise<string>((settle) => {
+        script.onload = () => {
+          settle('loaded');
+        };
+        script.onerror = () => {
+          settle('refused');
+        };
+      });
+      document.head.append(script);
+      const frame = document.createElement('iframe');
+      frame.src = 'https://challenges.cloudflare.com/cdn-cgi/challenge-platform/probe';
+      document.body.append(frame);
+      const other = document.createElement('script');
+      other.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+      document.head.append(other);
+      const result = await done;
+      await new Promise((settle) => setTimeout(settle, 400));
+      return result;
+    });
+    expect(loaded).toBe('loaded');
+    expect(await refused()).toEqual([
+      'script-src-elem https://static.cloudflareinsights.com/beacon.min.js',
+    ]);
   });
 
   test('every page of a shop loads with nothing refused', async ({ page, baseURL }) => {

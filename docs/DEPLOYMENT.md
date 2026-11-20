@@ -474,6 +474,53 @@ only adds concrete artifacts to it, nothing new in process:
    it reads `BYPASS` or `DYNAMIC`; change the product's price in the dashboard and within about 20 seconds the next
    fetch reads `MISS` with the new price.
 
+### 9g. As built (Slice 9.10, lytro.app behind Cloudflare, 2026-11-20)
+
+For the owner's Facebook campaign: the marketing site's pages are kept at Cloudflare's edge, as shop pages are (§9f),
+so an ad's visitors don't each make the website draw the page.
+
+- **What's kept:** `/`, `/about`, `/listener`, `/terms` and `/privacy` on `lytro.app` and `www.lytro.app`, for
+  visitors who read Bangla: 5 minutes, then handed out stale for 10 more while a fresh copy is fetched, and for a day
+  while the website is down (the shop pages' lifetime, `EDGE_LIFETIMES.page`). Each carries `Cache-Tag: site`.
+- **What isn't:** English readers (the `lytro-lang=en` cookie gets `Cloudflare-CDN-Cache-Control: no-store`),
+  `/contact` (its form posts to a Server Action whose name changes with each release), a past legal version's own
+  address, form posts, a tap on a link (Next fetches the page's data at the same address: the browser says
+  `Sec-Fetch-Dest: empty`, and the rule below skips `?_rsc=`), robots, the sitemap, and anything else.
+- **Who decides:** the website's middleware (`apps/website/src/lib/edge/site-edge.ts`) adds the two headers. Browsers
+  get Next's own `no-store`, since a purge can't reach them. No page sets a cookie, and no page reads its query, so
+  `?fbclid=` and `?utm_*=` links are one kept page; `apps/website/test/edge-guards.test.ts` fails if either changes.
+  The site's links are never prefetched: a prefetch goes to the website itself, past the edge.
+- **No purge on a change:** plans, prices, rates and the help line reach the page through the website's own copies
+  behind the edge (plans and rates 1 minute; the help line 5 minutes at the server and 5 at the website), so a purge
+  sent with the change would fetch the old figures back. A price shows within about 6 minutes, the help line within
+  about 15. For a change that can't wait: after those minutes, Caching → Configuration → Purge Cache → Custom Purge →
+  **Tag** `site` (or **Hostname** `lytro.app` and `www.lytro.app`).
+- **After a release**, a kept page names the previous build's script files for up to 15 minutes. Cloudflare keeps
+  those files from earlier visits (a year, immutable), as for shop pages.
+- **Staging** stays DNS only; the website sends the headers there, and nothing reads them.
+
+**Switching it on in production** (the owner, in Cloudflare's dashboard, once the production website serves; it needs
+nothing else from §9f and can go on by itself):
+1. **DNS:** set the apex `lytro.app` and `www` records to **Proxied**.
+2. **SSL/TLS → Overview:** **Full (strict)** (already, if §9f is on). Caddy's own certificate serves the
+   Cloudflare-to-server leg.
+3. **Caching → Configuration:** **Always Online off**; Browser Cache TTL **Respect existing headers** (as §9f).
+4. **Caching → Cache Rules**, two rules, before §9f's:
+   - *lytro.app English:* when the hostname is `lytro.app` or `www.lytro.app` and the cookie contains `lytro-lang=en`,
+     then **Bypass cache**.
+   - *lytro.app pages:* when the hostname is `lytro.app` or `www.lytro.app`, the cookie doesn't contain
+     `lytro-lang=en`, and the query doesn't contain `_rsc=`, then **Eligible for cache**; Edge TTL **Use
+     cache-control header if present, bypass cache if not**, with a **status code TTL** of **No store** for 400-599 (a
+     failed page is never kept, whatever its headers); Browser TTL **Respect origin**; Cache key → Query string →
+     **Ignore query string**.
+   If the Free plan refuses the cookie condition, stop and tell the developer: English readers must never get a kept
+   page.
+5. **Check** (`curl -sI`, reading `cf-cache-status`):
+   - `https://lytro.app/` twice: `MISS`, then `HIT`;
+   - `https://lytro.app/?fbclid=IwAR0test&utm_source=facebook`: `HIT` (the same kept page);
+   - with `-H 'Cookie: lytro-lang=en'`: `BYPASS`;
+   - `https://lytro.app/contact`: `DYNAMIC`.
+
 ## 10. Open, deliberately deferred
 
 Settled by Phase 9's plan and Slice 9.1:
@@ -484,7 +531,7 @@ Settled by Phase 9's plan and Slice 9.1:
 
 Still open:
 
-- **Cloudflare in front of the other hosts** (`app`, `admin`, `api`, `pay`, the apex): shop pages went behind it in
-  Slice 9.10 (§9f, D9-32). The others stay DNS only; proxying one is a DNS switch, since Caddy already reads the
+- **Cloudflare in front of the other hosts** (`app`, `admin`, `api`, `pay`): shop pages went behind it in Slice 9.10
+  (§9f, D9-32), and the apex and `www` with them (§9g). The others stay DNS only; proxying one is a DNS switch, since Caddy already reads the
   shopper's address from Cloudflare (§9f).
 - **Shops' own domains behind Cloudflare:** they need Cloudflare for SaaS (KNOWN-GAPS §150).

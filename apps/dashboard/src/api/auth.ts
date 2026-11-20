@@ -10,6 +10,7 @@ import {
   verifyForgotPasswordSchema,
   verifySigninCodeSchema,
 } from '@lytronix/validators';
+import { type HumanCheckTokens, NO_HUMAN_CHECK, withToken } from '@/lib/turnstile';
 import { attachReturn } from '@/session/attach-return';
 import { tenantSession } from '@/session/tenant-session';
 import { navigateForNextStep } from '@/session/next-step';
@@ -97,14 +98,31 @@ export const RECOVERY_NOTE_KEY = 'lytro.recovery-note';
 
 // --- Phone sign-in (AUTH-01 to AUTH-12) ---
 
+/** Sends a request that texts a code with the form's Turnstile token (2026-11-20), and spends the token whatever the
+    answer: Cloudflare takes each only once. */
+async function withHumanCheck<T>(
+  human: HumanCheckTokens,
+  send: (turnstileToken: string | undefined) => Promise<T>,
+): Promise<T> {
+  const token = await human.next();
+  try {
+    return await send(token);
+  } finally {
+    human.spent();
+  }
+}
+
 /** No onSuccess baked in: the sign-in screen navigates to /verify-code, the resend button only resets its
-    countdown, so each caller supplies its own via mutate(phone, { onSuccess }). */
-export function useRequestSigninCode() {
+    countdown, so each caller supplies its own via mutate(phone, { onSuccess }). `human`: the form's Turnstile widget
+    (useHumanCheck). */
+export function useRequestSigninCode(human: HumanCheckTokens = NO_HUMAN_CHECK) {
   return useMutation({
     mutationFn: (phone: string) =>
-      tenantSession.client.post<CodeIssued>(
-        '/auth/phone/code',
-        requestSigninCodeSchema.parse({ phone }),
+      withHumanCheck(human, (turnstileToken) =>
+        tenantSession.client.post<CodeIssued>(
+          '/auth/phone/code',
+          requestSigninCodeSchema.parse(withToken({ phone }, turnstileToken)),
+        ),
       ),
   });
 }
@@ -190,23 +208,27 @@ export function useChangePassword() {
 
 // --- Forgot password (AUTH-17 to AUTH-19) ---
 
-export function useRequestPasswordReset() {
+export function useRequestPasswordReset(human: HumanCheckTokens = NO_HUMAN_CHECK) {
   return useMutation({
     mutationFn: (phone: string) =>
-      tenantSession.client.post<CodeIssued>(
-        '/auth/forgot-password',
-        forgotPasswordSchema.parse({ phone }),
+      withHumanCheck(human, (turnstileToken) =>
+        tenantSession.client.post<CodeIssued>(
+          '/auth/forgot-password',
+          forgotPasswordSchema.parse(withToken({ phone }, turnstileToken)),
+        ),
       ),
   });
 }
 
 /** AUTH-18: the verify screen's own resend, on AUTH-07's faster limits. */
-export function useResendPasswordReset() {
+export function useResendPasswordReset(human: HumanCheckTokens = NO_HUMAN_CHECK) {
   return useMutation({
     mutationFn: (phone: string) =>
-      tenantSession.client.post<CodeIssued>(
-        '/auth/forgot-password/resend',
-        forgotPasswordSchema.parse({ phone }),
+      withHumanCheck(human, (turnstileToken) =>
+        tenantSession.client.post<CodeIssued>(
+          '/auth/forgot-password/resend',
+          forgotPasswordSchema.parse(withToken({ phone }, turnstileToken)),
+        ),
       ),
   });
 }

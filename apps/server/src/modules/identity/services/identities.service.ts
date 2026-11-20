@@ -10,6 +10,7 @@ import {
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
 import { EmailFormat } from './email-format';
+import type { CodeAsker } from './human-check';
 import { OneTimeCodeService } from './one-time-code.service';
 import { OauthService } from './oauth.service';
 import type { OauthAttached } from '../types/oauth';
@@ -48,10 +49,13 @@ export class IdentitiesService {
   requestCode(
     kind: 'phone' | 'email',
     value: string,
-    ip: string | null = null,
+    asker: CodeAsker = { ip: null },
   ): Promise<CodeIssued> {
     const target = this.destination(kind, value);
-    return this.codes.issue(target.destination, target.channel, ChallengeKind.Signin, { ip });
+    return this.codes.issue(target.destination, target.channel, ChallengeKind.Signin, {
+      ip: asker.ip,
+      ipCap: asker.ipCap,
+    });
   }
 
   async verifyAdd(

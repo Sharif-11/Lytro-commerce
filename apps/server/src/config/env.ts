@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { LISTENER_DOWNLOAD_DEFAULT_URL } from '@lytronix/validators';
 import { serverRoleSchema } from './server-role';
+import { isTurnstileTestSecret } from './turnstile';
 
 // SEC-10: a key for the secret box, 32 bytes written in base64.
 const encryptionKey = z
@@ -145,11 +146,29 @@ const envSchema = z.object({
   OTP_SECRET: z.string().min(32, 'OTP_SECRET is required; at least 32 characters'),
   // SUP-08: new accounts per client IP per hour. The SRS value (10) is tight for a shared test or dev
   // machine that creates many tenants from one address in a single run, so only production defaults to it;
-  // the limiter itself is identical in every environment — this only changes the threshold.
+  // the limiter itself is identical in every environment — this only changes the threshold. Production's default is
+  // 200 while TURNSTILE_SECRET_KEY is set (the 2026-11-20 amendment, identity/address-limits.ts).
   SIGNUP_RATE_LIMIT_PER_IP: z.coerce.number().int().positive().optional(),
   // SMS-11, D7-27 (Phase 7 Slice 7.1): code SMS one client address may ask for in an hour, across every phone. Only
   // production defaults to the strict value (20), for the same reason: the e2e suites ask from one loopback address.
+  // 200 while TURNSTILE_SECRET_KEY is set.
   CODE_SMS_PER_IP_PER_HOUR: z.coerce.number().int().positive().optional(),
+  // SUP-08, SMS-11, AUTH-09 as amended 2026-11-20 (the owner's "Raise them + bot check"): the secret of the dashboard's
+  // Cloudflare Turnstile widget, in server.env only. Set, every dashboard request that texts a code (sign-up and sign-in
+  // by code, a reset and its resend) must carry a token Cloudflare passes, and production's per-address limits are the
+  // raised ones, since a mobile network shows many phones as one address. Unset, nothing is checked and the strict limits
+  // stay. Never one of Cloudflare's test secrets in production (refused below).
+  TURNSTILE_SECRET_KEY: z.string().trim().min(1).optional(),
+  // The pages a token may come from, comma-separated. Default: app.<PLATFORM_DOMAIN>, the dashboard.
+  TURNSTILE_HOSTNAMES: z
+    .string()
+    .optional()
+    .transform((value) =>
+      (value ?? '')
+        .split(',')
+        .map((hostname) => hostname.trim().toLowerCase())
+        .filter((hostname) => hostname !== ''),
+    ),
   // AUTH-09: free-trial shop creations per verified identity and per client IP, each counted over a rolling
   // window (days). Same reasoning as SIGNUP_RATE_LIMIT_PER_IP above -- nearly every e2e test calls POST
   // /shops more than once from the same loopback IP, so only production defaults to the strict SRS value.
@@ -310,6 +329,19 @@ const envWithEdgeRule = envSchema.superRefine((value, ctx) => {
         });
       }
     }
+  }
+  // 2026-11-20: Cloudflare's published test secrets pass (or fail) every token from any page, so on a real server one
+  // would raise the per-address limits with no check behind them. The message never repeats the value.
+  if (
+    value.NODE_ENV === 'production' &&
+    value.TURNSTILE_SECRET_KEY !== undefined &&
+    isTurnstileTestSecret(value.TURNSTILE_SECRET_KEY)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['TURNSTILE_SECRET_KEY'],
+      message: "is one of Cloudflare's test secrets; set the dashboard widget's own secret",
+    });
   }
   // D7-21: a server that sends SMS for real never quietly falls back to logging them.
   if (

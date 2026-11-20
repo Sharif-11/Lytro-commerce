@@ -17,3 +17,5 @@ export const GOOGLE_PROVIDER = Symbol('GOOGLE_PROVIDER');
 export const FACEBOOK_PROVIDER = Symbol('FACEBOOK_PROVIDER');
 export const OAUTH_PROVIDERS = Symbol('OAUTH_PROVIDERS');
 export const OAUTH_STATE_STORE = Symbol('OAUTH_STATE_STORE');
+// 2026-11-20: how the bot check reaches Cloudflare's Siteverify (fetch; the e2e suites answer as Cloudflare would).
+export const TURNSTILE_FETCH = Symbol('TURNSTILE_FETCH');

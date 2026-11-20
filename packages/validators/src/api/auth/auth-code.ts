@@ -4,9 +4,15 @@ import { codeField, phoneField } from '../identity/phone-signup/phone-signup-com
 // An email address as typed; the server lowercases it before use (AUTH-08).
 export const emailField = z.string().trim().max(254).check(z.email());
 
+// SUP-08, SMS-11, AUTH-09 as amended 2026-11-20: the dashboard's Turnstile token. Every request that texts a code
+// carries one when the dashboard has a widget, and the server checks it with Cloudflare when it has the widget's secret.
+// Cloudflare's tokens are at most 2,048 characters.
+export const turnstileTokenField = z.string().min(1).max(2048).optional();
+
 // POST auth/phone/code — request a sign-in OTP (AUTH-05, AUTH-21).
 export const requestSigninCodeSchema = z.object({
   phone: phoneField,
+  turnstileToken: turnstileTokenField,
 });
 export type RequestSigninCodeInput = z.infer<typeof requestSigninCodeSchema>;
 
@@ -17,9 +23,10 @@ export const verifySigninCodeSchema = z.object({
 });
 export type VerifySigninCodeInput = z.infer<typeof verifySigninCodeSchema>;
 
-// POST auth/forgot-password — request a reset code (AUTH-17).
+// POST auth/forgot-password and auth/forgot-password/resend — request a reset code (AUTH-17, AUTH-18).
 export const forgotPasswordSchema = z.object({
   phone: phoneField,
+  turnstileToken: turnstileTokenField,
 });
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 

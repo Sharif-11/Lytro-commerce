@@ -23,6 +23,7 @@ import { OwnAccountGuard } from '../guards/own-account.guard';
 import { SessionGuard } from '../guards/session.guard';
 import type { SessionRecord } from '../ports/session-store';
 import { ForgotPasswordService } from '../services/forgot-password.service';
+import { HumanCheck } from '../services/human-check';
 import { PasswordSigninService } from '../services/password-signin.service';
 import { PasswordService } from '../services/password.service';
 import { EmailSigninService } from '../services/email-signin.service';
@@ -55,6 +56,7 @@ export class AuthController {
     @Inject(PasswordService) private readonly passwords: PasswordService,
     @Inject(SessionService) private readonly sessions: SessionService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
+    @Inject(HumanCheck) private readonly humanCheck: HumanCheck,
   ) {}
 
   @Post('phone/code')
@@ -63,11 +65,17 @@ export class AuthController {
   @ApiOperation({ summary: 'Request a sign-in code by SMS' })
   @ApiBody({ type: RequestSigninCodeDto })
   @ZodResponse({ type: CodeIssuedDto })
-  requestCode(
+  async requestCode(
     @Body(new ZodValidationPipe(RequestSigninCodeDto.schema)) body: RequestSigninCodeDto,
     @Req() request: HttpRequest,
   ): Promise<CodeIssued> {
-    return this.signin.requestCode(body.phone, this.clientIp.resolve(request));
+    // Sign-up and sign-in by code: the dashboard's bot check first (2026-11-20, HumanCheck).
+    const asker = await this.humanCheck.askerFor(
+      body.turnstileToken,
+      'signin',
+      this.clientIp.resolve(request),
+    );
+    return this.signin.requestCode(body.phone, asker);
   }
 
   @Post('phone/verify')
@@ -153,11 +161,17 @@ export class AuthController {
   @ApiOperation({ summary: 'Request a password-reset code by SMS' })
   @ApiBody({ type: ForgotPasswordDto })
   @ZodResponse({ type: CodeIssuedDto })
-  requestReset(
+  async requestReset(
     @Body(new ZodValidationPipe(ForgotPasswordDto.schema)) body: ForgotPasswordDto,
     @Req() request: HttpRequest,
   ): Promise<CodeIssued> {
-    return this.forgot.request(body.phone, this.clientIp.resolve(request));
+    // A refusal here is about the token, never the account, so it may say so (AUTH-13 still holds for the phone).
+    const asker = await this.humanCheck.askerFor(
+      body.turnstileToken,
+      'reset',
+      this.clientIp.resolve(request),
+    );
+    return this.forgot.request(body.phone, asker);
   }
 
   @Post('forgot-password/resend')
@@ -169,11 +183,16 @@ export class AuthController {
   })
   @ApiBody({ type: ForgotPasswordDto })
   @ZodResponse({ type: CodeIssuedDto })
-  resendReset(
+  async resendReset(
     @Body(new ZodValidationPipe(ForgotPasswordDto.schema)) body: ForgotPasswordDto,
     @Req() request: HttpRequest,
   ): Promise<CodeIssued> {
-    return this.forgot.resend(body.phone, this.clientIp.resolve(request));
+    const asker = await this.humanCheck.askerFor(
+      body.turnstileToken,
+      'reset',
+      this.clientIp.resolve(request),
+    );
+    return this.forgot.resend(body.phone, asker);
   }
 
   @Post('forgot-password/email')

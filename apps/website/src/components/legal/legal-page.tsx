@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/ui/site-link';
 import type { ReactNode } from 'react';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteNav } from '@/components/layout/site-nav';

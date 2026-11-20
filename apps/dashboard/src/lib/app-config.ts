@@ -6,6 +6,11 @@ export class AppConfig {
   readonly apiBase = '/api/v1';
   /** OBS-03 (Slice 9.6): Sentry's address for this build; null, no error is sent. */
   readonly sentryDsn: string | null;
+  /**
+   * SUP-08, SMS-11, AUTH-09 as amended 2026-11-20: the Turnstile widget's site key for this build (one widget for the
+   * production and staging dashboards); null, no widget and no token.
+   */
+  readonly turnstileSiteKey: string | null;
   /** The commit this build was made from, which names its errors. */
   readonly release: string;
   /** Which server the dashboard runs on, by its address: production, staging, or development elsewhere. */
@@ -25,6 +30,7 @@ export class AppConfig {
     this.platformDomain = env.VITE_PLATFORM_DOMAIN ?? served ?? 'lytro.app';
     this.siteUrl = (env.VITE_SITE_URL ?? `https://${this.platformDomain}`).replace(/\/+$/, '');
     this.sentryDsn = env.VITE_SENTRY_DSN || null;
+    this.turnstileSiteKey = env.VITE_TURNSTILE_SITE_KEY?.trim() || null;
     this.release = env.VITE_RELEASE ?? 'local';
     this.environment =
       served === null

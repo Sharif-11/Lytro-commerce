@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { CodeBoxes } from '@/components/ui/code-boxes';
 import { useCountdown } from '@/hooks/use-countdown';
 import { useErrorText } from '@/hooks/use-error-text';
+import { useHumanCheck } from '@/hooks/use-human-check';
 import { bangladeshiPhone } from '@/lib/phone';
 
 /** AUTH-18 and AUTH-19 (the prototype's `ob-forgot-code`): the reset code; it opens a session that must set a password. */
@@ -23,7 +24,8 @@ export function ForgotPasswordVerify(): React.JSX.Element {
   const expiresIn = useCountdown(expiresInSeconds);
   const resendIn = useCountdown(resendAfterSeconds);
   const verify = useVerifyForgotPassword();
-  const resend = useResendPasswordReset();
+  const human = useHumanCheck('reset');
+  const resend = useResendPasswordReset(human.tokens);
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -90,6 +92,7 @@ export function ForgotPasswordVerify(): React.JSX.Element {
           {t('backSignIn')}
         </Link>
       </StepLinks>
+      {human.box}
       {resend.isError ? <ErrorBanner error={resend.error} /> : null}
     </OnboardingFrame>
   );
