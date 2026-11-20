@@ -116,22 +116,32 @@ async function product(shop: ShopClient, name: string, price: number, extra: obj
 }
 
 describeIfDatabase("the storefront's lists in one call (load fix 3)", () => {
-  it('answers each list as GET /v1/catalogue/products does, in order; a hidden category is null', async () => {
+  it("answers each list as GET /v1/catalogue/products does, in order; a hidden or another shop's category is null", async () => {
     const shop = await openShop(port, texts, 'sf-lists');
+    const other = await openShop(port, texts, 'sf-lists-other');
     const shirts = await category(shop, 'Shirts');
+    const silks = await category(other, 'Silks');
     await product(shop, 'Linen shirt', 900, { categoryIds: [shirts.id] });
     await product(shop, 'Cotton shirt', 700, { categoryIds: [shirts.id] });
     await product(shop, 'Wool scarf', 400);
+    await product(other, 'Silk scarf', 1200, { categoryIds: [silks.id] });
     const storefront = await storefrontOf(shop);
-    const queries = ['sort=newest&limit=2', `category=${shirts.slug}`, 'category=gone', ''];
+    const queries = [
+      'sort=newest&limit=2',
+      `category=${shirts.slug}`,
+      'category=gone',
+      `category=${silks.slug}`,
+      '',
+    ];
+    const notFound = new Set([2, 3]);
 
     const batch = await lists(storefront, queries);
     expect(batch.status, JSON.stringify(batch.body)).toBe(200);
     const pages = (batch.body as { lists: { page: Page | null }[] }).lists.map((list) => list.page);
     expect(pages).toHaveLength(queries.length);
-    expect(pages[2]).toBeNull();
     for (const [index, query] of queries.entries()) {
-      if (index === 2) {
+      if (notFound.has(index)) {
+        expect(pages[index]).toBeNull();
         expect((await one(storefront, query)).status).toBe(404);
         continue;
       }
@@ -142,6 +152,12 @@ describeIfDatabase("the storefront's lists in one call (load fix 3)", () => {
     expect(pages[1]?.products.map((card) => card.name).sort()).toEqual([
       'Cotton shirt',
       'Linen shirt',
+    ]);
+    // SEC-02: only the key's own shop's products; the other shop's never appear.
+    expect(pages[4]?.products.map((card) => card.name).sort()).toEqual([
+      'Cotton shirt',
+      'Linen shirt',
+      'Wool scarf',
     ]);
   });
 
