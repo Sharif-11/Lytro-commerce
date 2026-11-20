@@ -1,7 +1,8 @@
 # Scaling to 2,000 shops: the lean layout
 
 Status: a proposal, 2026-11-20. The owner chose this lean layout, all at CloudXen, over a fuller 15-server one. Nothing
-here is bought or built yet. The server layout, Redis and shops' own domains are settled in the SRS and the Phase 9
+here is bought or built yet. The database runs on a VPS and moves to a dedicated server only when its measurements
+call for it (the owner, 2026-11-20). The server layout, Redis and shops' own domains are settled in the SRS and the Phase 9
 plan (DAT-19, RED-01, D9-32), so each step below amends them when the owner approves it. The numbers come from
 staging's load runs (`SYSTEM-UNDER-LOAD.md`) and the back-of-the-envelope estimate below. A 2,000-shop load test on a
 rented production-size copy (D9-34) confirms them before anything is bought.
@@ -14,9 +15,10 @@ rented production-size copy (D9-34) confirms them before anything is bought.
 - **The layout: 8 servers.**
   - 4 app servers, each running the storefront and the API;
   - 1 worker server and 1 Redis server;
-  - a dedicated PostgreSQL primary and a VPS hot standby;
+  - a PostgreSQL primary and its hot standby, each on a 1 TB VPS;
   - all behind Cloudflare Pro with its load balancer.
-- **The cost:** about ৳91,000 ($727) a month, or ৳45 a shop. The full 15-server layout would be about ৳2.1 lakh.
+- **The cost:** about ৳71,000 ($571) a month, or ৳36 a shop. A dedicated database server would make it about
+  ৳91,000, and the full 15-server layout about ৳2.1 lakh.
 - **It depends on the three code fixes:** card facts kept per shop, one catalogue read per page, and limits per
   shopper. With them, the layout carries a 10× spike even with one app server down.
 
@@ -48,7 +50,7 @@ The 300 a second at the peak break down as:
 
 ## The lean layout
 
-![The lean layout: Cloudflare Pro with an edge cache and a load balancer in front of four app servers, a worker and Redis at CloudXen in Dhaka, a dedicated PostgreSQL primary and a VPS hot standby; about ৳91,000 a month.](diagrams/lean-layout-2000.svg)
+![The lean layout: Cloudflare Pro with an edge cache and a load balancer in front of four app servers, a worker and Redis at CloudXen in Dhaka, a PostgreSQL primary and a hot standby, all on VPS plans; about ৳71,000 a month.](diagrams/lean-layout-2000.svg)
 
 Any app server answers any request, so losing one costs a quarter of the capacity, not a whole kind of server. Each app
 server runs Caddy, the storefront, the API, PgBouncer and a spare worker process. The storefront's calls to the API are
@@ -69,12 +71,12 @@ the database, and 4 ms in jobs. These are from the 0.6× run of 2026-11-19, on C
 | Part | Evening peak | 10× spike | The lean layout has |
 | --- | --- | --- | --- |
 | Storefront + API | 12 cores (8 after the fixes) | 24 cores (17 after) | 4 × 8 vCPU = 32; with one server down, 24 |
-| Database | 4 cores (under 2 after) | 8 cores (about 3 after) | 16 cores, 32 threads, 128 GB |
+| Database | 4 cores (under 2 after) | 8 cores (about 3 after) | 14 vCPU, 64 GB: about 45% busy in a spike |
 | Jobs | about 1 core | about 2 cores | an 8 vCPU worker server, plus a spare worker process |
 | Redis | shared limits and 4–8 GB of kept pages | | 8 GB |
 
 **Data:** about 15 KB an order with its lines, stock moves and indexes, so 180–190 GB a year. That's about 3 years on 1
-TB of NVMe. The data read most often fits in the database server's 128 GB of memory: the last month's orders, the
+TB of NVMe. The data read most often fits in the database server's 64 GB of memory: the last month's orders, the
 catalogues and the customers, about 20–30 GB in all.
 
 **Bandwidth:** the servers send about 50 Mbps at the peak and 100 Mbps in a spike, well within their 1 Gbit/s ports.
@@ -95,13 +97,14 @@ the dollar.
 | App servers ×4 (BDIX VPS 320 GB: 8 vCPU, 16 GB, 320 GB NVMe) | $25.20 | ৳12,575 |
 | Worker server ×1 (the same plan) | $25.20 | ৳3,144 |
 | Redis server ×1 (BDIX VPS 150 GB: 4 vCPU, 8 GB) | $13.20 | ৳1,647 |
-| Database primary (dedicated Ryzen 9 5950X: 16 cores, 128 GB, 1 TB NVMe) | $252 | ৳31,437 |
+| Database primary (BDIX VPS 1 TB: 14 vCPU, 64 GB, 1 TB NVMe) | $96 | ৳11,976 |
 | Hot standby (BDIX VPS 1 TB: 14 vCPU, 64 GB, 1 TB NVMe) | $96 | ৳11,976 |
 | Cloudflare: Pro, a load balancer for the 4 app servers, Cloudflare for SaaS | $70 in all | ৳8,733 |
 | R2: photos and backups (estimate) | ≈ $90 in all | ৳11,228 |
 | Monitoring: Grafana Cloud Pro, Sentry Team, UptimeRobot Solo (estimate) | ≈ $80 in all | ৳9,980 |
-| **Total** | | **≈ ৳90,720 ($727)** |
-| Per shop | | ≈ ৳45 |
+| **Total** | | **≈ ৳71,260 ($571)** |
+| Per shop | | ≈ ৳36 |
+| The same with a dedicated database primary (Ryzen 9 5950X: 16 cores, 128 GB, $252) | | ≈ ৳90,720 ($727) |
 
 **Three ways to buy it:**
 
@@ -110,23 +113,27 @@ the dollar.
 | App servers (8 vCPU) | 4, storefront and API on each | 3 storefront + 4 API | 3, storefront and API on each |
 | Worker servers | 1, plus a spare worker process | 2 | 1, with Redis on it |
 | Redis | 1 small server | 3 servers | on the worker |
-| Database primary | dedicated | dedicated | VPS (14 vCPU / 64 GB) |
+| Database primary | VPS (14 vCPU / 64 GB) | dedicated | VPS (14 vCPU / 64 GB) |
 | Read replica | none until the primary is half busy | dedicated | none |
 | Hot standby | VPS | dedicated | VPS |
 | Cloudflare | Pro | Business | Pro |
 | Servers | 8 | 15 | 6 |
-| A month | ≈ ৳90,700 ($727) | ≈ ৳2.09 lakh ($1,672) | ≈ ৳62,100 ($498) |
-| Per shop | ৳45 | ৳104 | ৳31 |
+| A month | ≈ ৳71,260 ($571) | ≈ ৳2.09 lakh ($1,672) | ≈ ৳62,100 ($498) |
+| Per shop | ৳36 | ৳104 | ৳31 |
 | A 10× spike with a server down | carried | carried easily | busy pages until it's back |
 
-**Why the database gets a dedicated server:**
-- **It's the one part that can't be spread out.** Every write goes to one primary.
-- **It gets its own cores and disk.** A VPS shares them with other customers, and a database feels a busy neighbour
-  most.
-- **Faster cores.** The Ryzen 9 5950X runs each core's work about 1.5 to 2 times as fast as the VPS plans' Xeon E5 v4,
-  and every query runs on one core.
-- **128 GB of memory** keeps the hot data in memory.
-- **CloudXen states 100 Mbps of international bandwidth** for its dedicated servers.
+**Why a VPS for the database, and when it moves:**
+- **It's enough for this load.** Once card facts are kept, a spike needs about 3 fast cores, roughly 6 of the VPS's
+  Xeon cores, so the 14 vCPU plan is about 45% busy. Its 64 GB holds the 20–30 GB of hot data.
+- **A dedicated server's faster cores would barely show.** They are 1.5 to 2 times as fast, but that saves only 2–3 ms
+  on a page's light queries.
+- **The risk is neighbours on shared cores.** Monitoring watches CPU steal time. The primary moves to a dedicated
+  server, built as a replica and then promoted, once any of these happens:
+  - steal passes about 5%;
+  - reads from memory fall below about 99%;
+  - its CPU passes half at the evening peak;
+  - queries slow.
+- **The primary and the standby are the same plan,** so a failover keeps the same capacity.
 
 **What the lean layout gives up:**
 - **The storefront and API share servers,** so a viral shop's browsing competes with dashboards and orders. Cloudflare
@@ -136,8 +143,8 @@ the dollar.
   back: slower, not down.
 - **One worker server.** If it fails, a spare worker process on an app server keeps SMS, couriers and notifications
   moving.
-- **A VPS standby.** After a failover, the database runs on shared, older cores with 64 GB until a dedicated server
-  replaces it.
+- **A VPS database.** The primary and its standby share their cores with other customers. They move to a dedicated
+  server when their measurements call for it (above).
 - **Cloudflare Pro, not Business:** no 100% uptime promise and fewer firewall rules. Its 5 cache clears a second
   covers the 2–3 expected.
 
@@ -164,7 +171,7 @@ the dollar.
 | Four app servers, each with the storefront and the API | Any server answers any request, so one down costs a quarter of the capacity. Cheaper than separate kinds of server at this load. | Servers |
 | Cloudflare in front of every host, with its load balancer | Health-checked balancing across the four, a firewall and abuse limits. Replaces the single Caddy door. | Cloudflare |
 | Shops' own domains behind Cloudflare for SaaS | Today a viral shop on its own domain reaches the server for every page (KNOWN-GAPS §150). | Cloudflare |
-| The database on its own dedicated server | Every read and write goes through it. | Servers |
+| The database on its own server | Every read and write goes through it. A 1 TB VPS carries this estimate; a dedicated server comes when its measurements call for it. | Servers |
 | Redis on its own server | One set of limits and one page cache shared by every server (D9-1). | Servers |
 | A hot standby | If the primary fails, one command promotes it (DAT-37). | Servers |
 | Deploys across servers | `deploy.sh` runs on one server today. It becomes: migrate once, then replace the app servers one at a time. | Code |
@@ -184,10 +191,10 @@ counts are rough guides.
 | Step | Around | What | A month, about |
 | --- | --- | --- | --- |
 | 1. Code fixes | now, before launch | Card facts kept per shop, one catalogue read per page, limits per shopper. | ৳3,144: the production server |
-| 2. The database on its own server | 500–800 shops | The dedicated primary and the VPS standby. Cloudflare Pro, for its faster cache clears. Paid monitoring. | ৳60,000 |
-| 3. A second app server | 800–1,200 shops | Redis moves to its own server (an address change, D9-1). Cloudflare's load balancer goes in front of both app servers. Deploys learn to run across servers. | ৳65,000 |
-| 4. The lean layout | 1,200–2,000 shops | Four app servers, and the worker on its own server. Shops' own domains go behind Cloudflare for SaaS. A 2,000-shop load test on a rented copy confirms it. | ৳91,000 |
-| 5. Past the estimate | when measured | A read replica when the primary passes half busy, then more app servers, then separate storefront and API servers (the full layout). | up to ৳2.1 lakh |
+| 2. The database on its own server | 500–800 shops | The primary and its standby, each on a 1 TB VPS. Cloudflare Pro, for its faster cache clears. Paid monitoring. | ৳40,000 |
+| 3. A second app server | 800–1,200 shops | Redis moves to its own server (an address change, D9-1). Cloudflare's load balancer goes in front of both app servers. Deploys learn to run across servers. | ৳46,000 |
+| 4. The lean layout | 1,200–2,000 shops | Four app servers, and the worker on its own server. Shops' own domains go behind Cloudflare for SaaS. A 2,000-shop load test on a rented copy confirms it. | ৳71,000 |
+| 5. Past the estimate | when measured | A read replica when the primary passes half busy, a dedicated database server if its measurements call for it, more app servers, then separate storefront and API servers (the full layout). | up to ৳2.1 lakh |
 
 ## Sources
 
