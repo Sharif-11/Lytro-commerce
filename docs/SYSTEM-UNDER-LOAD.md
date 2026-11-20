@@ -3,7 +3,8 @@
 Status: written 2026-11-20 from staging's load runs of 14, 18 and 19 November (2 vCPU / 3 GB, no Cloudflare in front).
 Production's own run (Phase 9 Slice 9.10, D9-35) replaces these numbers when it's done. `DEPLOYMENT.md` §2 and
 `deploy/compose.yml` are the design; this is what the design did under load. It answers four questions: which part runs
-out first, how to fix it, whether every request passes through Caddy, and when a shopper sees the busy page.
+out first, how to fix it, whether every request passes through Caddy, and when a shopper sees the busy page. Where it
+goes from here, for 2,000 shops: `SCALING-TO-2000-SHOPS.md`.
 
 ## In short
 

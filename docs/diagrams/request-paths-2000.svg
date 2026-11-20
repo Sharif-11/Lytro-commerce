@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 400" width="1000" height="400" role="img" aria-labelledby="title desc">
+  <title id="title">How a request is served at 2,000 shops</title>
+  <desc id="desc">Most shop pages are answered at Cloudflare. A page-cache hit stops at an app server. A page drawn fresh makes one API call to PostgreSQL. An order goes to the API, the primary, and then a worker sends its SMS.</desc>
+  <style>
+    .bg { fill: #ffffff; stroke: #d5dfde; stroke-width: 1; }
+    .nd { fill: #ffffff; stroke: #7e8f8e; stroke-width: 1.2; }
+    .nd-back { fill: #ffffff; stroke: #7e8f8e; stroke-width: 1; }
+    .nd-cf { fill: #fdf0d1; stroke: #9a6004; stroke-width: 1.2; }
+    .nd-far { fill: #ffffff; stroke: #5b4a86; stroke-width: 1.4; }
+    .nd-hit { stroke: #0e6b66; stroke-width: 2.4; }
+    .nd-new { stroke: #0e6b66; stroke-width: 2; }
+    .nd-total { fill: #ddf5f2; stroke: #0e6b66; stroke-width: 1.4; }
+    .region { fill: #fbf6ea; }
+    .dc { fill: #f1f7f6; stroke: #7e8f8e; stroke-width: 1.2; stroke-dasharray: 6 5; }
+    .far { fill: #f4f1f8; stroke: #5b4a86; stroke-width: 1.2; stroke-dasharray: 6 5; }
+    .ar { fill: none; stroke: #2c3f3e; stroke-width: 1.4; }
+    .ar-dash { stroke-dasharray: 5 4; }
+    .ah { fill: #2c3f3e; }
+    text { font-family: Inter, "Segoe UI", "Nirmala UI", Helvetica, Arial, sans-serif; }
+    .d-h { fill: #2c3f3e; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; }
+    .d-hf { fill: #5b4a86; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; }
+    .d-t { fill: #10201f; font-size: 13px; font-weight: 600; }
+    .d-s { fill: #2c3f3e; font-size: 11.5px; }
+    .d-l { fill: #2c3f3e; font-size: 11px; font-weight: 500; }
+    .d-ok { fill: #0e6b66; font-size: 11.5px; font-weight: 600; }
+    .d-badge { fill: #0e6b66; font-size: 12px; font-weight: 700; }
+    .d-cost { fill: #0e6b66; font-size: 11.5px; font-weight: 600; }
+    .d-total { fill: #10201f; font-size: 15px; font-weight: 700; }
+  </style>
+  <rect class="bg" x="0.5" y="0.5" width="999" height="399" rx="12"/>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" class="ah"/>
+    </marker>
+  </defs>
+
+  <text class="d-h" x="16" y="20">A SHOP PAGE CLOUDFLARE HOLDS · MOST VISITS</text>
+  <rect class="nd" x="16" y="30" width="110" height="40" rx="7"/>
+  <text class="d-t" x="71" y="55" text-anchor="middle">Shopper</text>
+  <line class="ar" x1="126" y1="50" x2="142" y2="50" marker-end="url(#ah)"/>
+  <rect class="nd-cf nd-hit" x="144" y="30" width="110" height="40" rx="7"/>
+  <text class="d-t" x="199" y="47" text-anchor="middle">Edge cache</text>
+  <text class="d-ok" x="199" y="62" text-anchor="middle">hit</text>
+  <text class="d-s" x="276" y="54">Own domains too, once they're behind Cloudflare for SaaS.</text>
+
+  <text class="d-h" x="16" y="110">IN THE SHARED PAGE CACHE</text>
+  <rect class="nd" x="16" y="120" width="110" height="40" rx="7"/>
+  <text class="d-t" x="71" y="145" text-anchor="middle">Shopper</text>
+  <rect class="nd-cf" x="144" y="120" width="110" height="40" rx="7"/>
+  <text class="d-t" x="199" y="137" text-anchor="middle">Edge cache</text>
+  <text class="d-s" x="199" y="152" text-anchor="middle">miss</text>
+  <rect class="nd-cf" x="272" y="120" width="110" height="40" rx="7"/>
+  <text class="d-t" x="327" y="145" text-anchor="middle">Load balancer</text>
+  <rect class="nd" x="400" y="120" width="110" height="40" rx="7"/>
+  <text class="d-t" x="455" y="137" text-anchor="middle">Storefront</text>
+  <text class="d-s" x="455" y="152" text-anchor="middle">any of 4</text>
+  <rect class="nd nd-hit" x="528" y="120" width="110" height="40" rx="7"/>
+  <text class="d-t" x="583" y="137" text-anchor="middle">Page cache</text>
+  <text class="d-ok" x="583" y="152" text-anchor="middle">hit · shared</text>
+  <line class="ar" x1="126" y1="140" x2="142" y2="140" marker-end="url(#ah)"/>
+  <line class="ar" x1="254" y1="140" x2="270" y2="140" marker-end="url(#ah)"/>
+  <line class="ar" x1="382" y1="140" x2="398" y2="140" marker-end="url(#ah)"/>
+  <line class="ar" x1="510" y1="140" x2="526" y2="140" marker-end="url(#ah)"/>
+  <text class="d-s" x="660" y="144">A page drawn once serves all four servers.</text>
+
+  <text class="d-h" x="16" y="200">DRAWN FRESH</text>
+  <rect class="nd" x="16" y="210" width="110" height="40" rx="7"/>
+  <text class="d-t" x="71" y="235" text-anchor="middle">Shopper</text>
+  <rect class="nd-cf" x="144" y="210" width="110" height="40" rx="7"/>
+  <text class="d-t" x="199" y="227" text-anchor="middle">Edge cache</text>
+  <text class="d-s" x="199" y="242" text-anchor="middle">miss</text>
+  <rect class="nd-cf" x="272" y="210" width="110" height="40" rx="7"/>
+  <text class="d-t" x="327" y="235" text-anchor="middle">Load balancer</text>
+  <rect class="nd" x="400" y="210" width="110" height="40" rx="7"/>
+  <text class="d-t" x="455" y="235" text-anchor="middle">Storefront</text>
+  <rect class="nd nd-new" x="528" y="210" width="110" height="40" rx="7"/>
+  <text class="d-t" x="583" y="227" text-anchor="middle">API</text>
+  <text class="d-s" x="583" y="242" text-anchor="middle">one call a page</text>
+  <rect class="nd nd-new" x="656" y="210" width="110" height="40" rx="7"/>
+  <text class="d-t" x="711" y="227" text-anchor="middle">PostgreSQL</text>
+  <text class="d-s" x="711" y="242" text-anchor="middle">card facts kept</text>
+  <line class="ar" x1="126" y1="230" x2="142" y2="230" marker-end="url(#ah)"/>
+  <line class="ar" x1="254" y1="230" x2="270" y2="230" marker-end="url(#ah)"/>
+  <line class="ar" x1="382" y1="230" x2="398" y2="230" marker-end="url(#ah)"/>
+  <line class="ar" x1="510" y1="230" x2="526" y2="230" marker-end="url(#ah)"/>
+  <line class="ar" x1="638" y1="230" x2="654" y2="230" marker-end="url(#ah)"/>
+  <text class="d-s" x="788" y="234">Light reads, once a page.</text>
+
+  <text class="d-h" x="16" y="290">PLACING AN ORDER · NEVER CACHED</text>
+  <rect class="nd" x="16" y="300" width="110" height="40" rx="7"/>
+  <text class="d-t" x="71" y="325" text-anchor="middle">Shopper</text>
+  <rect class="nd-cf" x="144" y="300" width="110" height="40" rx="7"/>
+  <text class="d-t" x="199" y="325" text-anchor="middle">Load balancer</text>
+  <rect class="nd" x="272" y="300" width="110" height="40" rx="7"/>
+  <text class="d-t" x="327" y="317" text-anchor="middle">API</text>
+  <text class="d-s" x="327" y="332" text-anchor="middle">any of 4</text>
+  <rect class="nd" x="400" y="300" width="110" height="40" rx="7"/>
+  <text class="d-t" x="455" y="317" text-anchor="middle">Primary</text>
+  <text class="d-s" x="455" y="332" text-anchor="middle">order + stock</text>
+  <rect class="nd" x="528" y="300" width="110" height="40" rx="7"/>
+  <text class="d-t" x="583" y="317" text-anchor="middle">Worker</text>
+  <text class="d-s" x="583" y="332" text-anchor="middle">picks up the job</text>
+  <rect class="nd" x="656" y="300" width="110" height="40" rx="7"/>
+  <text class="d-t" x="711" y="325" text-anchor="middle">SMS</text>
+  <line class="ar" x1="126" y1="320" x2="142" y2="320" marker-end="url(#ah)"/>
+  <line class="ar" x1="254" y1="320" x2="270" y2="320" marker-end="url(#ah)"/>
+  <line class="ar" x1="382" y1="320" x2="398" y2="320" marker-end="url(#ah)"/>
+  <line class="ar" x1="510" y1="320" x2="526" y2="320" marker-end="url(#ah)"/>
+  <line class="ar" x1="638" y1="320" x2="654" y2="320" marker-end="url(#ah)"/>
+  <text class="d-s" x="788" y="324">The shopper is answered at the</text>
+  <text class="d-s" x="788" y="340">primary; the SMS follows.</text>
+  <path class="ar" d="M455,346 V362 H583 V346"/>
+  <text class="d-l" x="519" y="380" text-anchor="middle">through the job queue</text>
+</svg>
