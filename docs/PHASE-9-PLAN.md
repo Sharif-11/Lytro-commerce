@@ -515,6 +515,12 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   - **Orders:** 10 a minute per shopper and 60 per address. The shop's 180 is unchanged.
   - **Without the secret** (a shop's own website calling the public API from the browser), counting is by address, as
     before.
+- **One catalogue read per page** (2026-11-20, the owner's yes): a designed home asked the API once per product list
+  (each row, hero and tile). The storefront now gathers the lists one render asks for and sends them in one call
+  (`POST /v1/catalogue/lists`, at most 12 lists), answered only for the storefront's own server, by its secret. Each list
+  is GET `/v1/catalogue/products`'s query string, answered by the same code and cache; a hidden category is null among
+  the rest. The call takes one place from the visitor's minute. A home with nine lists is now one request, and a second
+  only when a hero or tile falls back. The public API is unchanged.
 - **lytro.app kept at the edge** (2026-11-20, the owner's yes before a Facebook ad campaign; `DEPLOYMENT.md` §9g): the
   website's landing, about, listener, terms and privacy pages, read in Bangla, are kept at Cloudflare for the shop
   pages' lifetime and tagged `site`. English readers, the contact page, form posts and a tap's data fetch are never

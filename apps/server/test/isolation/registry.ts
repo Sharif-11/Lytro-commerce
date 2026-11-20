@@ -282,6 +282,10 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // OFFERS-PLAN, checked in test/offers.e2e.spec.ts: an offer's link answers only on its own shop's key.
   'GET /public/catalogue/offers/:slug': "another shop's offer, by its link, is not found",
   'GET /public/catalogue/categories': "only the key's own shop's visible categories",
+  // Load fix 3 (the owner, 2026-11-20), checked in test/storefront-catalogue-lists.e2e.spec.ts: the storefront's own
+  // server only (StorefrontSecretGuard), each list read for the key's shop as GET /public/catalogue/products reads it.
+  'POST /public/catalogue/lists':
+    "lists only the key's own shop's active products; another shop's category answers null",
   // Phase 3 Slice 12a, checked in test/storefront.e2e.spec.ts: the delivery estimate prices the key's own shop's items
   // only; the thana list is the same platform-wide list for every shop.
   'GET /public/locations': 'returns the same platform-wide thana list whichever key asks',

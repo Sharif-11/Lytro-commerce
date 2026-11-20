@@ -308,6 +308,8 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   q: { en: 'Search', bn: 'সার্চ' },
   quantity: { en: 'Quantity', bn: 'কোয়ান্টিটি' },
   query: { en: 'Search', bn: 'সার্চ' },
+  // Load fix 3: the lists the storefront's own server asks for in one call, never a field a seller fills.
+  queries: null,
   // D8-60 (Slice 8.6): Cloudflare's price sheet, one setting's value; a refusal names the setting's `value`, never these.
   r2ClassAPerMillion: null,
   r2ClassBPerMillion: null,

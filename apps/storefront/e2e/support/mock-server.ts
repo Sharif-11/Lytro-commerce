@@ -677,6 +677,38 @@ function shopOfKey(request: IncomingMessage): ShopState | null {
   return bearer?.[1] ? (shops.get(bearer[1]) ?? null) : null;
 }
 
+/** A page of the shop's products as GET /v1/catalogue/products answers its query (and load fix 3's lists each). */
+function listPage(fixture: ShopFixture, params: URLSearchParams) {
+  const limit = Number(params.get('limit') ?? 24);
+  const category = params.get('category');
+  const picked = params.get('productIds')?.split(',') ?? null;
+  // OFFERS-PLAN OF-8: one offer's products, by its link name; none for an offer not public.
+  const offerName = params.get('offer');
+  const offer =
+    offerName === null ? null : (fixture.offers ?? []).find((each) => each.slug === offerName);
+  let rows = fixture.products.filter(
+    (row) =>
+      (offerName === null || (offer?.productIds.includes(row.card.id) ?? false)) &&
+      (category === null || row.product.categoryIds.includes(category)) &&
+      (params.get('inStock') !== 'true' || row.card.stockState !== StockState.Out) &&
+      (params.get('onSale') !== 'true' || (row.card.bestDiscount ?? 0) > 0) &&
+      (picked === null || picked.includes(row.card.id)),
+  );
+  // SB-9: the orders the designed home asks for; the others as listed.
+  const sort = params.get('sort');
+  if (sort === 'newest') {
+    rows = [...rows].sort((a, b) => Date.parse(b.card.createdAt) - Date.parse(a.card.createdAt));
+  } else if (sort === 'discount') {
+    rows = [...rows].sort((a, b) => (b.card.bestDiscount ?? 0) - (a.card.bestDiscount ?? 0));
+  } else if (sort === 'best_selling') {
+    rows = [...rows].sort((a, b) => (b.card.ordered ?? 0) - (a.card.ordered ?? 0));
+  }
+  if (picked !== null) {
+    rows = [...rows].sort((a, b) => picked.indexOf(a.card.id) - picked.indexOf(b.card.id));
+  }
+  return { products: rows.slice(0, limit).map((row) => row.card), nextCursor: null };
+}
+
 async function publicApi(
   state: ShopState,
   url: URL,
@@ -715,37 +747,18 @@ async function publicApi(
   }
   if (path === '/v1/catalogue/products') {
     state.listRequests.push(url.search);
-    const limit = Number(url.searchParams.get('limit') ?? 24);
-    const category = url.searchParams.get('category');
-    const picked = url.searchParams.get('productIds')?.split(',') ?? null;
-    // OFFERS-PLAN OF-8: one offer's products, by its link name; none for an offer not public.
-    const offerName = url.searchParams.get('offer');
-    const offer =
-      offerName === null ? null : (fixture.offers ?? []).find((each) => each.slug === offerName);
-    let rows = fixture.products.filter(
-      (row) =>
-        (offerName === null || (offer?.productIds.includes(row.card.id) ?? false)) &&
-        (category === null || row.product.categoryIds.includes(category)) &&
-        (url.searchParams.get('inStock') !== 'true' || row.card.stockState !== StockState.Out) &&
-        (url.searchParams.get('onSale') !== 'true' || (row.card.bestDiscount ?? 0) > 0) &&
-        (picked === null || picked.includes(row.card.id)),
-    );
-    // SB-9: the orders the designed home asks for; the others as listed.
-    const sort = url.searchParams.get('sort');
-    if (sort === 'newest') {
-      rows = [...rows].sort((a, b) => Date.parse(b.card.createdAt) - Date.parse(a.card.createdAt));
-    } else if (sort === 'discount') {
-      rows = [...rows].sort((a, b) => (b.card.bestDiscount ?? 0) - (a.card.bestDiscount ?? 0));
-    } else if (sort === 'best_selling') {
-      rows = [...rows].sort((a, b) => (b.card.ordered ?? 0) - (a.card.ordered ?? 0));
-    }
-    if (picked !== null) {
-      rows = [...rows].sort((a, b) => picked.indexOf(a.card.id) - picked.indexOf(b.card.id));
-    }
-    send(response, 200, {
-      products: rows.slice(0, limit).map((row) => row.card),
-      nextCursor: null,
+    send(response, 200, listPage(fixture, url.searchParams));
+    return;
+  }
+  // Load fix 3: the storefront's own call for every list a page draws, each a list's query string; recorded as the
+  // single lists are, so a test reads what was asked either way.
+  if (path === '/v1/catalogue/lists' && request.method === 'POST') {
+    const { queries } = (await readBody(request)) as { queries: string[] };
+    const lists = queries.map((query) => {
+      state.listRequests.push(query === '' ? '' : `?${query}`);
+      return { page: listPage(fixture, new URLSearchParams(query)) };
     });
+    send(response, 200, { lists });
     return;
   }
   // OFFERS-PLAN OF-8, OF-12: a running or ended offer by its link name.

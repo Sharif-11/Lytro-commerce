@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { STOREFRONT_CATALOGUE_LISTS_MAX } from '@lytronix/validators';
 import type { ServerAnswer, ServerCall } from '../src/lib/api/server-api';
 import {
   retryAfterSeconds,
@@ -257,6 +258,66 @@ describe('StorefrontApi', () => {
       '/v1/catalogue/products',
       '/v1/catalogue/products?category=hidden',
     ]);
+  });
+
+  it('asks for a page’s lists in one call, as their query strings, a hidden category null (load fix 3)', async () => {
+    const newest = { products: [], nextCursor: 'n1' };
+    const sale = { products: [], nextCursor: null };
+    const fake = server(ok({ lists: [{ page: newest }, { page: null }, { page: sale }] }));
+    const pages = await new StorefrontApi(fake, env).productLists(shop, shopper, [
+      { sort: 'newest', limit: 8 },
+      { category: 'hidden' },
+      { onSale: true, inStock: true },
+    ]);
+    expect(pages).toEqual([newest, null, sale]);
+    expect(fake.calls).toHaveLength(1);
+    expect(fake.calls[0]).toMatchObject({
+      method: 'POST',
+      path: '/v1/catalogue/lists',
+      host: 'api.lytro.app',
+      body: { queries: ['sort=newest&limit=8', 'category=hidden', 'inStock=true&onSale=true'] },
+    });
+    // The same shopper's mark and the storefront's secret as every catalogue read (RTE-06 as amended).
+    expect(fake.calls[0]?.headers).toMatchObject({
+      authorization: 'Bearer lytro_pk_abc',
+      'x-lytro-storefront': 'storefront-secret',
+      'x-lytro-visitor': shopper.visitor,
+    });
+  });
+
+  it('splits more lists than one call takes into calls of the most it takes, in order (load fix 3)', async () => {
+    const page = (cursor: string) => ({ products: [], nextCursor: cursor });
+    const many = Array.from({ length: STOREFRONT_CATALOGUE_LISTS_MAX + 2 }, (_, index) => ({
+      sort: 'newest' as const,
+      limit: index + 1,
+    }));
+    const first = many.slice(0, STOREFRONT_CATALOGUE_LISTS_MAX);
+    const fake = server(
+      ok({ lists: first.map((_, index) => ({ page: page(`a${String(index)}`) })) }),
+      ok({ lists: [{ page: page('b0') }, { page: page('b1') }] }),
+    );
+    const pages = await new StorefrontApi(fake, env).productLists(shop, shopper, many);
+    expect(fake.calls.map((call) => (call.body as { queries: string[] }).queries.length)).toEqual([
+      STOREFRONT_CATALOGUE_LISTS_MAX,
+      2,
+    ]);
+    expect(pages.map((each) => each?.nextCursor)).toEqual([
+      ...first.map((_, index) => `a${String(index)}`),
+      'b0',
+      'b1',
+    ]);
+  });
+
+  it('shows the busy page when the server is too busy for a page’s lists (load fix 3, §7h)', async () => {
+    const fake = server({
+      status: 503,
+      data: null,
+      code: 'service_unavailable',
+      details: {},
+      retryAfter: '5',
+    });
+    const failed = new StorefrontApi(fake, env).productLists(shop, shopper, [{ sort: 'newest' }]);
+    await expect(failed).rejects.toBeInstanceOf(ShopBusy);
   });
 });
 
