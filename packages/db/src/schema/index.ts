@@ -63,6 +63,7 @@ export * from './tenant/media';
 export * from './tenant/brand';
 export * from './tenant/storefront-design';
 export * from './tenant/offers';
+export * from './tenant/card-facts';
 export * from './control/api-keys';
 export * from './control/media-reconciliations';
 export * from './control/platform-catalogue';

@@ -500,6 +500,11 @@ Each slice's read settles its routes' exact shapes; `API-CONTRACT.md` records th
   ago (0142). pg-boss keeps finished jobs 2 days, not 7, and counts its queues every 5 minutes, not every minute (its
   count read all 112,680 finished jobs on staging, 1.9 seconds each time). Lighter dashboard polling and the
   storefront's "load more" at the edge come next, each in its own pull request.
+- **Cards' facts kept per shop** (2026-11-20, the owner's yes; `SYSTEM-UNDER-LOAD.md`): the cards' "ordered" and
+  best-seller facts took 68-86% of the database's time in every staging run, worked out from the shop's orders on each
+  product list. They are kept per shop (`tenant.product_card_facts`, migrations 0148 and 0149) and worked out again by
+  a minute pass once 4 minutes old with an order changed since, and daily: at most 5 minutes behind a delivery or a
+  return (the owner's limit). "Only N left" stays live. Then per-shopper limits, then one catalogue read per page.
 - **The edge cache's read** (the owner, 2026-11-16, after the viral-product question: 2,000 shoppers at once on one
   product): "yes, i don't need staging domain now. the other point is ok". D9-32.
   1. **No staging domain now.** Staging's `<slug>.staging.lytro.app` is two levels down, which Cloudflare's free

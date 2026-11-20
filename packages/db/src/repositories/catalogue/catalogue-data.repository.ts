@@ -2,11 +2,13 @@ import { eq } from 'drizzle-orm';
 import {
   attributeOptions,
   attributes,
+  cardFactRuns,
   catalogueState,
   categories,
   comboParts,
   offers,
   optionSets,
+  productCardFacts,
   products,
   shopSettings,
   taxClasses,
@@ -29,6 +31,9 @@ export class CatalogueDataRepository {
     await tx.delete(comboParts).where(eq(comboParts.tenantId, tenantId));
     // OFFERS-PLAN: the shop's offers, with what each holds and the prices each set.
     await tx.delete(offers).where(eq(offers.tenantId, tenantId));
+    // SB-10: the cards' kept facts, and when they were last worked out.
+    await tx.delete(productCardFacts).where(eq(productCardFacts.tenantId, tenantId));
+    await tx.delete(cardFactRuns).where(eq(cardFactRuns.tenantId, tenantId));
     await tx.delete(products).where(eq(products.tenantId, tenantId));
     // TAX-01 (Slice 4.6a): the tax classes, once no product names them and the shop's default no longer does.
     await tx

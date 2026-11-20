@@ -66,6 +66,7 @@ import {
   LocationRepository,
   DeliveryZoneRepository,
   CatalogueDataRepository,
+  CardFactsRepository,
   StockRepository,
   ComboRepository,
   OffersRepository,
@@ -413,6 +414,11 @@ import { PrimaryWatch } from './primary-watch';
       useFactory: (transactions: TransactionRunner) => new CatalogueDataRepository(transactions),
     },
     {
+      provide: CardFactsRepository,
+      inject: [TransactionRunner],
+      useFactory: (transactions: TransactionRunner) => new CardFactsRepository(transactions),
+    },
+    {
       provide: DeliveryZoneRepository,
       inject: [TransactionRunner],
       useFactory: (transactions: TransactionRunner) => new DeliveryZoneRepository(transactions),
@@ -542,6 +548,7 @@ import { PrimaryWatch } from './primary-watch';
     LocationRepository,
     DeliveryZoneRepository,
     CatalogueDataRepository,
+    CardFactsRepository,
     StockRepository,
     ComboRepository,
     OffersRepository,

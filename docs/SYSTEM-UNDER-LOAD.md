@@ -98,7 +98,8 @@ everything already built. The rest is in the order proposed; each needs the owne
 **Make each page cheaper (next, proposed):**
 
 1. **Keep card facts per shop** instead of working them out on every list. They change only when an order is delivered
-   or returned, and a badge can be a few minutes old. This should save most of PostgreSQL's CPU.
+   or returned, and a badge can be a few minutes old. This should save most of PostgreSQL's CPU. **Built in #411**
+   (the owner's yes, 2026-11-20): kept in `tenant.product_card_facts`, at most 5 minutes behind the shop's orders.
 2. **One catalogue read per page** instead of one per product row (planned, not started). Product lists were 42% of the
    API's time before the page cache.
 3. Lighter dashboard polling, and the storefront's "load more" kept at Cloudflare.
