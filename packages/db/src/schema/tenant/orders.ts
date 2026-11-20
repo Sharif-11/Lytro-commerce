@@ -218,6 +218,8 @@ export const orders = tenant.table(
         AND ${t.advanceDue} >= 0 AND ${t.codAmount} >= 0 AND ${t.advanceDue} + ${t.codAmount} = ${t.grandTotal}`,
     ),
     index('orders_tenant_created_idx').on(t.tenantId, t.createdAt.desc(), t.id.desc()),
+    // SB-10 (2026-11-20): the card facts tick asks each minute whether a shop's orders changed since its last run.
+    index('orders_tenant_updated_idx').on(t.tenantId, t.updatedAt),
     index('orders_handled_idx')
       .on(t.tenantId, t.handledAt)
       .where(sql`${t.handledAt} IS NOT NULL`),

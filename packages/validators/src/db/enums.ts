@@ -643,6 +643,9 @@ export enum QueueName {
   // D9-32 (Phase 9 Slice 9.10): shop pages Cloudflare keeps to drop, queued in the transaction that changed them, sent in
   // batches within Cloudflare's purge rate.
   EdgePurge = 'edge_purge',
+  // SB-10 (the owner, 2026-11-20): every minute, the shops whose cards' "ordered" and best-seller facts are due are
+  // worked out again and kept, so a product list reads them instead of going through the shop's orders.
+  CardFactsTick = 'card_facts_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an

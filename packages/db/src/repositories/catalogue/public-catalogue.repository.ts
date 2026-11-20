@@ -1,5 +1,6 @@
 import { sql, type SQL } from 'drizzle-orm';
 import {
+  CARD_FACTS_TRUSTED_HOURS,
   MEASURED_STOCK_UNITS,
   ProductKind,
   PublicProductSort,
@@ -10,6 +11,7 @@ import {
 import type { Transaction, TransactionRunner } from '../../transactions';
 import { escapeLike } from '../like';
 import { counted } from '../orders/sales.repository';
+import { bestSellersSince, FAR_FUTURE, orderedLine } from './card-facts.repository';
 
 /** CCH-02, KNOWN-GAPS §66: the shop's catalogue version and the platform library's, together naming what is shown. */
 export interface CatalogueVersions {
@@ -131,10 +133,6 @@ export interface PublicProductFilter {
   after: string[] | null;
   limit: number;
 }
-
-// SB-9, SB-10: the open ends of the windows sales are counted over.
-const EVER = new Date(0);
-const FAR_FUTURE = new Date('9999-12-31T00:00:00Z');
 
 // CCH-12: how alike a typed word and the closest word of a name must be (pg_trgm's word similarity, 0 to 1). The
 // default 0.6 misses a one-letter slip in a short English word ("panjbi" scores 0.57 against "Panjabi").
@@ -469,6 +467,9 @@ export class PublicCatalogueRepository {
    * SB-10: what these products' cards say beyond their own rows, in one read for the page -- the units left of one
    * under its low-stock level (whole units of counted stock of its own; never a combo's, a shared stock's or a weighed
    * one's), the delivered orders that ever held it, and whether it is among the shop's `top` most sold since `since`.
+   * The owner, 2026-11-20: the last two are the shop's kept facts (`CardFactsRepository`, worked out with the same
+   * window and number), up to 5 minutes behind its orders; a shop whose facts aren't kept, or were kept over a day ago
+   * (the tick has stopped), has them worked out here from its orders, as before. "Only N left" is always read live.
    */
   async cardFacts(
     tx: Transaction,
@@ -487,37 +488,39 @@ export class PublicCatalogueRepository {
       MEASURED_STOCK_UNITS.map((unit) => sql`${unit}`),
       sql`, `,
     );
+    const left = sql`CASE WHEN p.stock_state = ${StockState.Low} AND p.stock_tracking = ${StockTracking.Tracked}
+        AND NOT p.shared_stock AND p.kind <> ${ProductKind.Combo} AND p.stock_unit NOT IN (${measured})
+      THEN (SELECT floor(sum(sl.available)) FROM tenant.product_variants v
+        JOIN tenant.stock_levels sl ON sl.tenant_id = v.tenant_id AND sl.variant_id = v.id
+        WHERE v.tenant_id = p.tenant_id AND v.product_id = p.id AND v.active AND v.deleted_at IS NULL
+          AND NOT v.is_stock_holder)
+    END`;
+    const kept = await tx.execute<{ trusted: boolean }>(sql`
+      SELECT worked_at > now() - make_interval(hours => ${CARD_FACTS_TRUSTED_HOURS}) AS trusted
+      FROM tenant.card_fact_runs WHERE tenant_id = ${tenantId}`);
     const result = await tx.execute<{
       product_id: string;
       left: string | null;
       ordered: number;
       best_seller: boolean;
-    }>(sql`
-      WITH best AS (
-        SELECT l.product_id
-        FROM tenant.orders o
-        JOIN tenant.order_lines l ON l.tenant_id = o.tenant_id AND l.order_id = o.id
-        WHERE ${counted(tenantId, { from: since, to: FAR_FUTURE })}
-          AND l.returned_quantity < l.quantity AND l.product_id IS NOT NULL
-        GROUP BY l.product_id
-        ORDER BY sum(l.quantity - l.returned_quantity) DESC, count(DISTINCT o.id) DESC, l.product_id
-        LIMIT ${top}
-      )
-      SELECT p.id AS product_id,
-        CASE WHEN p.stock_state = ${StockState.Low} AND p.stock_tracking = ${StockTracking.Tracked}
-            AND NOT p.shared_stock AND p.kind <> ${ProductKind.Combo} AND p.stock_unit NOT IN (${measured})
-          THEN (SELECT floor(sum(sl.available)) FROM tenant.product_variants v
-            JOIN tenant.stock_levels sl ON sl.tenant_id = v.tenant_id AND sl.variant_id = v.id
-            WHERE v.tenant_id = p.tenant_id AND v.product_id = p.id AND v.active AND v.deleted_at IS NULL
-              AND NOT v.is_stock_holder)
-        END AS left,
+    }>(
+      kept.rows[0]?.trusted === true
+        ? sql`
+      SELECT p.id AS product_id, ${left} AS left, coalesce(f.ordered, 0) AS ordered,
+        coalesce(f.best_seller, false) AS best_seller
+      FROM tenant.products p
+      LEFT JOIN tenant.product_card_facts f ON f.tenant_id = p.tenant_id AND f.product_id = p.id
+      WHERE p.tenant_id = ${tenantId} AND p.id IN (${ids})`
+        : sql`
+      WITH best AS (${bestSellersSince(tenantId, since, top)})
+      SELECT p.id AS product_id, ${left} AS left,
         (SELECT count(DISTINCT o.id)::int FROM tenant.order_lines l
           JOIN tenant.orders o ON o.tenant_id = l.tenant_id AND o.id = l.order_id
-          WHERE l.tenant_id = p.tenant_id AND l.product_id = p.id AND l.returned_quantity < l.quantity
-            AND ${counted(tenantId, { from: EVER, to: FAR_FUTURE })}) AS ordered,
+          WHERE l.tenant_id = p.tenant_id AND l.product_id = p.id AND ${orderedLine(tenantId)}) AS ordered,
         EXISTS (SELECT 1 FROM best b WHERE b.product_id = p.id) AS best_seller
       FROM tenant.products p
-      WHERE p.tenant_id = ${tenantId} AND p.id IN (${ids})`);
+      WHERE p.tenant_id = ${tenantId} AND p.id IN (${ids})`,
+    );
     return result.rows.map((row) => ({
       productId: row.product_id,
       left: row.left === null ? null : Number(row.left),
