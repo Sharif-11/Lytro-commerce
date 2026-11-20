@@ -15,6 +15,8 @@ managed database, until real load or revenue justifies the cost.
 
 ## 2. Topology
 
+Drawn, with what each part did under staging's load and which requests pass through Caddy: `SYSTEM-UNDER-LOAD.md`.
+
 ```
                     ┌──────────────────────────────────────────────────────┐
                     │                     Caddy (edge)                      │

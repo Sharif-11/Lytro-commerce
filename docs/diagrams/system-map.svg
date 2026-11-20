@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 590" width="1040" height="590" role="img" aria-labelledby="title desc">
+  <title id="title">Lytro's system, part by part</title>
+  <desc id="desc">Every request into the server ends at Caddy. Inside, the storefront reaches the API through Caddy's internal listener on :8080, which balances api-1 and api-2. The database, Redis and the outside services are reached directly, never through Caddy. Photos come from Cloudflare R2, and in production Cloudflare's edge cache answers most shop pages.</desc>
+  <style>
+    .bg { fill: #ffffff; stroke: #d5dfde; stroke-width: 1; }
+    .nd { fill: #ffffff; stroke: #7e8f8e; stroke-width: 1.2; }
+    .nd-caddy { fill: #ddf5f2; stroke: #0e6b66; stroke-width: 1.4; }
+    .nd-cf { fill: #fdf0d1; stroke: #9a6004; stroke-width: 1.2; }
+    .region { fill: #fbf6ea; }
+    .boundary { fill: none; stroke: #7e8f8e; stroke-width: 1.2; stroke-dasharray: 6 5; }
+    .ar { fill: none; stroke: #2c3f3e; stroke-width: 1.4; }
+    .ar-dash { stroke-dasharray: 5 4; }
+    .ah { fill: #2c3f3e; }
+    text { font-family: Inter, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .d-h { fill: #2c3f3e; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; }
+    .d-t { fill: #10201f; font-size: 13px; font-weight: 600; }
+    .d-tb { fill: #10201f; font-size: 15px; font-weight: 700; }
+    .d-s { fill: #2c3f3e; font-size: 11.5px; }
+    .d-l { fill: #2c3f3e; font-size: 11px; font-weight: 500; }
+  </style>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" class="ah"/>
+    </marker>
+  </defs>
+  <rect class="bg" x="0.5" y="0.5" width="1039" height="589" rx="12"/>
+
+  <text class="d-h" x="105" y="22" text-anchor="middle">OUTSIDE</text>
+  <rect class="region" x="240" y="30" width="190" height="126" rx="10"/>
+  <text class="d-h" x="335" y="22" text-anchor="middle">CLOUDFLARE</text>
+  <rect class="boundary" x="450" y="66" width="580" height="500" rx="12"/>
+  <text class="d-h" x="466" y="88">OUR SERVER (ONE VPS)</text>
+
+  <!-- Outside -->
+  <rect class="nd" x="20" y="40" width="170" height="130" rx="8"/>
+  <text class="d-t" x="105" y="98" text-anchor="middle">Shoppers</text>
+  <text class="d-s" x="105" y="115" text-anchor="middle">phones and computers</text>
+
+  <rect class="nd" x="20" y="200" width="170" height="50" rx="8"/>
+  <text class="d-t" x="105" y="221" text-anchor="middle">Sellers, operator</text>
+  <text class="d-s" x="105" y="238" text-anchor="middle">app. · admin.</text>
+
+  <rect class="nd" x="20" y="270" width="170" height="50" rx="8"/>
+  <text class="d-t" x="105" y="291" text-anchor="middle">Shops' websites, phones</text>
+  <text class="d-s" x="105" y="308" text-anchor="middle">api. · keys, listener app</text>
+
+  <rect class="nd" x="20" y="340" width="170" height="50" rx="8"/>
+  <text class="d-t" x="105" y="361" text-anchor="middle">Couriers, bKash, Resend</text>
+  <text class="d-s" x="105" y="378" text-anchor="middle">their news · api. · pay.</text>
+
+  <!-- Cloudflare -->
+  <rect class="nd-cf" x="250" y="40" width="170" height="46" rx="8"/>
+  <text class="d-t" x="335" y="59" text-anchor="middle">Photos and videos</text>
+  <text class="d-s" x="335" y="76" text-anchor="middle">R2 · media.lytro.app</text>
+
+  <rect class="nd-cf" x="250" y="100" width="170" height="50" rx="8"/>
+  <text class="d-t" x="335" y="121" text-anchor="middle">Edge cache</text>
+  <text class="d-s" x="335" y="138" text-anchor="middle">shop pages · production</text>
+
+  <line class="ar" x1="190" y1="63" x2="248" y2="63" marker-end="url(#ah)"/>
+  <text class="d-l" x="220" y="57" text-anchor="middle">photos</text>
+  <line class="ar" x1="190" y1="125" x2="248" y2="125" marker-end="url(#ah)"/>
+  <text class="d-l" x="220" y="119" text-anchor="middle">pages</text>
+  <line class="ar ar-dash" x1="190" y1="162" x2="468" y2="162" marker-end="url(#ah)"/>
+  <text class="d-l" x="335" y="178" text-anchor="middle">shops' own domains</text>
+  <line class="ar" x1="420" y1="125" x2="468" y2="125" marker-end="url(#ah)"/>
+  <text class="d-l" x="445" y="119" text-anchor="middle">miss</text>
+
+  <line class="ar" x1="190" y1="225" x2="468" y2="225" marker-end="url(#ah)"/>
+  <text class="d-l" x="335" y="219" text-anchor="middle">DNS only, not through Cloudflare</text>
+  <line class="ar" x1="190" y1="295" x2="468" y2="295" marker-end="url(#ah)"/>
+  <line class="ar" x1="190" y1="365" x2="468" y2="365" marker-end="url(#ah)"/>
+
+  <!-- Caddy, the door -->
+  <rect class="nd-caddy" x="470" y="100" width="120" height="300" rx="8"/>
+  <text class="d-tb" x="530" y="238" text-anchor="middle">Caddy</text>
+  <text class="d-s" x="530" y="256" text-anchor="middle">:443 · certificates</text>
+  <text class="d-s" x="530" y="272" text-anchor="middle">routes every host</text>
+  <text class="d-s" x="530" y="300" text-anchor="middle">serves dashboard</text>
+  <text class="d-s" x="530" y="315" text-anchor="middle">and console files</text>
+
+  <!-- Apps -->
+  <rect class="nd" x="640" y="100" width="160" height="46" rx="8"/>
+  <text class="d-t" x="720" y="119" text-anchor="middle">Website</text>
+  <text class="d-s" x="720" y="136" text-anchor="middle">lytro.app</text>
+
+  <rect class="nd" x="640" y="166" width="160" height="46" rx="8"/>
+  <text class="d-t" x="720" y="185" text-anchor="middle">Storefront</text>
+  <text class="d-s" x="720" y="202" text-anchor="middle">draws every shop's pages</text>
+
+  <rect class="nd-caddy" x="640" y="236" width="160" height="36" rx="8"/>
+  <text class="d-t" x="720" y="259" text-anchor="middle">Caddy :8080 (inside)</text>
+
+  <rect class="nd" x="640" y="296" width="160" height="74" rx="8"/>
+  <text class="d-t" x="720" y="318" text-anchor="middle">API</text>
+  <text class="d-s" x="720" y="335" text-anchor="middle">api-1 · api-2</text>
+  <text class="d-s" x="720" y="352" text-anchor="middle">4 processes in production</text>
+
+  <rect class="nd" x="640" y="420" width="160" height="46" rx="8"/>
+  <text class="d-t" x="720" y="439" text-anchor="middle">Worker</text>
+  <text class="d-s" x="720" y="456" text-anchor="middle">jobs · never routed to</text>
+
+  <line class="ar" x1="590" y1="123" x2="638" y2="123" marker-end="url(#ah)"/>
+  <line class="ar" x1="590" y1="189" x2="638" y2="189" marker-end="url(#ah)"/>
+  <line class="ar" x1="590" y1="333" x2="638" y2="333" marker-end="url(#ah)"/>
+  <line class="ar" x1="720" y1="212" x2="720" y2="234" marker-end="url(#ah)"/>
+  <text class="d-l" x="728" y="227">its API calls</text>
+  <line class="ar" x1="720" y1="272" x2="720" y2="294" marker-end="url(#ah)"/>
+  <text class="d-l" x="728" y="288">balanced, health-checked</text>
+
+  <!-- Data -->
+  <rect class="nd" x="850" y="166" width="170" height="46" rx="8"/>
+  <text class="d-t" x="935" y="185" text-anchor="middle">Page cache</text>
+  <text class="d-s" x="935" y="202" text-anchor="middle">Redis · drawn pages</text>
+  <line class="ar" x1="800" y1="189" x2="848" y2="189" marker-end="url(#ah)"/>
+
+  <rect class="nd" x="850" y="236" width="170" height="36" rx="8"/>
+  <text class="d-t" x="935" y="259" text-anchor="middle">Redis · shared limits</text>
+  <path class="ar" d="M800,310 H825 V254 H848" marker-end="url(#ah)"/>
+
+  <rect class="nd" x="850" y="314" width="170" height="36" rx="8"/>
+  <text class="d-t" x="935" y="337" text-anchor="middle">PgBouncer</text>
+  <line class="ar" x1="800" y1="332" x2="848" y2="332" marker-end="url(#ah)"/>
+
+  <rect class="nd" x="850" y="380" width="170" height="60" rx="8"/>
+  <text class="d-t" x="935" y="404" text-anchor="middle">PostgreSQL 17</text>
+  <text class="d-s" x="935" y="421" text-anchor="middle">every shop's data</text>
+  <line class="ar" x1="935" y1="350" x2="935" y2="378" marker-end="url(#ah)"/>
+  <line class="ar" x1="800" y1="432" x2="848" y2="432" marker-end="url(#ah)"/>
+  <text class="d-l" x="825" y="426" text-anchor="middle">direct</text>
+
+  <rect class="nd" x="850" y="500" width="170" height="46" rx="8"/>
+  <text class="d-t" x="935" y="519" text-anchor="middle">Backup</text>
+  <text class="d-s" x="935" y="536" text-anchor="middle">dump + WAL to R2</text>
+  <line class="ar" x1="935" y1="440" x2="935" y2="498" marker-end="url(#ah)"/>
+  <text class="d-l" x="943" y="474">nightly, and every minute</text>
+
+  <!-- Outside services, called straight out -->
+  <rect class="nd" x="250" y="500" width="170" height="46" rx="8"/>
+  <text class="d-t" x="335" y="519" text-anchor="middle">SMS, couriers, bKash</text>
+  <text class="d-s" x="335" y="536" text-anchor="middle">Resend, Gemini</text>
+  <path class="ar" d="M640,358 H612 V523 H422" marker-end="url(#ah)"/>
+  <path class="ar" d="M640,452 H612"/>
+  <text class="d-l" x="516" y="516" text-anchor="middle">called directly</text>
+</svg>
