@@ -66,12 +66,14 @@ export class CardFactsRepository {
   /**
    * Works the shop's facts out again from its counted orders and keeps them, with the run's time (the transaction's,
    * by the database's clock). A product ordered at least once has a row; the best sellers are counted since `since`.
-   * Returns the products kept.
+   * Only what moved is written: a new or changed row, and a row whose product is no longer ordered. A busy shop is
+   * worked out again every few minutes while most of its products' facts stay as they were, and rewriting them all
+   * would be most of the database's writes at 2,000 shops (`docs/SCALING-TO-2000-SHOPS.md`). Returns the products kept.
    */
   async refresh(tx: Transaction, tenantId: string, since: Date, top: number): Promise<number> {
     await this.transactions.setTenantContext(tx, tenantId);
-    await tx.execute(sql`DELETE FROM tenant.product_card_facts WHERE tenant_id = ${tenantId}`);
-    const kept = await tx.execute(sql`
+    // Every part of one statement sees the same rows, so `gone` and `changed` never touch the same product.
+    const result = await tx.execute<{ products: number }>(sql`
       WITH best AS (${bestSellersSince(tenantId, since, top)}),
       ordered AS (
         SELECT l.product_id, count(DISTINCT o.id)::int AS ordered
@@ -79,14 +81,31 @@ export class CardFactsRepository {
         JOIN tenant.orders o ON o.tenant_id = l.tenant_id AND o.id = l.order_id
         WHERE l.tenant_id = ${tenantId} AND l.product_id IS NOT NULL AND ${orderedLine(tenantId)}
         GROUP BY l.product_id
+      ),
+      fresh AS (
+        SELECT p.tenant_id, p.id AS product_id, d.ordered,
+          EXISTS (SELECT 1 FROM best b WHERE b.product_id = d.product_id) AS best_seller
+        FROM ordered d
+        JOIN tenant.products p ON p.tenant_id = ${tenantId} AND p.id = d.product_id
+      ),
+      gone AS (
+        DELETE FROM tenant.product_card_facts f
+        WHERE f.tenant_id = ${tenantId}
+          AND NOT EXISTS (SELECT 1 FROM fresh n WHERE n.product_id = f.product_id)
+      ),
+      changed AS (
+        INSERT INTO tenant.product_card_facts (tenant_id, product_id, ordered, best_seller)
+        SELECT n.tenant_id, n.product_id, n.ordered, n.best_seller
+        FROM fresh n
+        LEFT JOIN tenant.product_card_facts k ON k.tenant_id = n.tenant_id AND k.product_id = n.product_id
+        WHERE k.product_id IS NULL OR (k.ordered, k.best_seller) IS DISTINCT FROM (n.ordered, n.best_seller)
+        ON CONFLICT (tenant_id, product_id)
+          DO UPDATE SET ordered = excluded.ordered, best_seller = excluded.best_seller
       )
-      INSERT INTO tenant.product_card_facts (tenant_id, product_id, ordered, best_seller)
-      SELECT p.tenant_id, p.id, d.ordered, EXISTS (SELECT 1 FROM best b WHERE b.product_id = d.product_id)
-      FROM ordered d
-      JOIN tenant.products p ON p.tenant_id = ${tenantId} AND p.id = d.product_id`);
+      SELECT count(*)::int AS products FROM fresh`);
     await tx.execute(sql`
       INSERT INTO tenant.card_fact_runs (tenant_id, worked_at) VALUES (${tenantId}, now())
       ON CONFLICT (tenant_id) DO UPDATE SET worked_at = excluded.worked_at`);
-    return kept.rowCount ?? 0;
+    return result.rows[0]?.products ?? 0;
   }
 }

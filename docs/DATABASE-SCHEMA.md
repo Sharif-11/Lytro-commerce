@@ -421,6 +421,7 @@ CREATE TABLE tenant.offer_prices (
 -- product ordered at least once has a row. Worked out again by the minute pass (`card_facts_tick`) once the facts are
 -- 4 minutes old and an order of the shop changed since (orders.updated_at, index orders_tenant_updated_idx, 0149), and
 -- once a day besides: at most 5 minutes behind a delivery or a return. "Only N left" is never kept; it's read live.
+-- A run writes only the rows that moved (new, changed, or a product no longer ordered), never the whole shop's.
 CREATE TABLE tenant.product_card_facts (
     tenant_id    uuid NOT NULL,
     product_id   uuid NOT NULL,      -- to tenant.products, cascading

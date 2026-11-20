@@ -246,6 +246,43 @@ describeIfDatabase('a shop’s kept card facts (SB-10)', () => {
   );
 
   it(
+    'writes only what moved: a product whose facts stayed the same keeps its row untouched',
+    async () => {
+      const shop = await openShop(port, texts, 'cf-writes');
+      const bowl = await product(shop, 'Bowl');
+      const cup = await product(shop, 'Cup');
+      await sold(shop, [{ variantId: bowl.variantId, quantity: 1 }]);
+      await sold(shop, [{ variantId: cup.variantId, quantity: 1 }]);
+      await runTick();
+      expect(await kept(shop)).toEqual({ [bowl.id]: [1, true], [cup.id]: [1, true] });
+      // A row's xmin is the transaction that last wrote it.
+      const writtenBy = async (): Promise<Record<string, string>> => {
+        const { rows } = await admin.query<{ product_id: string; xmin: string }>(
+          'SELECT product_id, xmin::text FROM tenant.product_card_facts WHERE tenant_id = $1',
+          [shop.tenantId],
+        );
+        return Object.fromEntries(rows.map((row) => [row.product_id, row.xmin]));
+      };
+      const before = await writtenBy();
+
+      // Another bowl sells: worked out again, only the bowl's row is written.
+      await sold(shop, [{ variantId: bowl.variantId, quantity: 1 }]);
+      await ranAgo(shop, '5 minutes');
+      await runTick();
+      expect(await kept(shop)).toEqual({ [bowl.id]: [2, true], [cup.id]: [1, true] });
+      const after = await writtenBy();
+      expect(after[bowl.id]).not.toEqual(before[bowl.id]);
+      expect(after[cup.id]).toEqual(before[cup.id]);
+
+      // A day on, nothing moved: worked out again, no row written.
+      await ranAgo(shop, '25 hours');
+      await runTick();
+      expect(await writtenBy()).toEqual(after);
+    },
+    SLOW,
+  );
+
+  it(
     'counts an item that came back: the order is marked changed, and its product is worked out again',
     async () => {
       const shop = await openShop(port, texts, 'cf-return');
