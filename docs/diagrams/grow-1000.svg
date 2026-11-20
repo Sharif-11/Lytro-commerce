@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 380" width="1000" height="380" role="img" aria-labelledby="title desc">
+  <title id="title">Lytro at 1,000 shops</title>
+  <desc id="desc">1,000 shops: three app servers behind Cloudflare Pro's load balancer, Redis, a PostgreSQL primary VPS and a standby of the same plan. About 53,700 taka a month.</desc>
+  <style>
+    .bg { fill: #ffffff; stroke: #d5dfde; stroke-width: 1; }
+    .nd { fill: #ffffff; stroke: #7e8f8e; stroke-width: 1.2; }
+    .nd-back { fill: #ffffff; stroke: #7e8f8e; stroke-width: 1; }
+    .nd-cf { fill: #fdf0d1; stroke: #9a6004; stroke-width: 1.2; }
+    .nd-far { fill: #ffffff; stroke: #5b4a86; stroke-width: 1.4; }
+    .nd-new { stroke: #0e6b66; stroke-width: 2; }
+    .nd-total { fill: #ddf5f2; stroke: #0e6b66; stroke-width: 1.4; }
+    .dc { fill: #f1f7f6; stroke: #7e8f8e; stroke-width: 1.2; stroke-dasharray: 6 5; }
+    .ar { fill: none; stroke: #2c3f3e; stroke-width: 1.4; }
+    .ar-dash { stroke-dasharray: 5 4; }
+    .ah { fill: #2c3f3e; }
+    text { font-family: Inter, "Segoe UI", "Nirmala UI", Helvetica, Arial, sans-serif; }
+    .d-h { fill: #2c3f3e; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; }
+    .d-t { fill: #10201f; font-size: 13px; font-weight: 600; }
+    .d-s { fill: #2c3f3e; font-size: 11.5px; }
+    .d-l { fill: #2c3f3e; font-size: 11px; font-weight: 500; }
+    .d-badge { fill: #0e6b66; font-size: 12px; font-weight: 700; }
+    .d-cost { fill: #0e6b66; font-size: 11.5px; font-weight: 600; }
+    .d-total { fill: #10201f; font-size: 15px; font-weight: 700; }
+  </style>
+  <rect class="bg" x="0.5" y="0.5" width="999" height="379" rx="12"/>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" class="ah"/>
+    </marker>
+  </defs>
+  <text class="d-h" x="86" y="22" text-anchor="middle">1,000 SHOPS · OUTSIDE</text>
+  <text class="d-h" x="271" y="22" text-anchor="middle">CLOUDFLARE</text>
+  <rect class="dc" x="386" y="30" width="598" height="276" rx="12"/>
+  <text class="d-h" x="402" y="50">DHAKA · CLOUDXEN · PRIVATE NETWORK</text>
+
+  <rect class="nd" x="16" y="60" width="140" height="56" rx="8"/>
+  <text class="d-t" x="86" y="84" text-anchor="middle">Shoppers, sellers,</text>
+  <text class="d-t" x="86" y="101" text-anchor="middle">phones, couriers</text>
+  <rect class="nd-cf" x="186" y="60" width="170" height="96" rx="8"/>
+  <text class="d-t" x="271" y="82" text-anchor="middle">Cloudflare Pro</text>
+  <text class="d-s" x="271" y="99" text-anchor="middle">edge cache · photos (R2)</text>
+  <text class="d-s" x="271" y="116" text-anchor="middle">load balancer · for SaaS</text>
+  <text class="d-cost" x="271" y="142" text-anchor="middle">$45 = ৳5,614 a month</text>
+  <line class="ar" x1="156" y1="88" x2="184" y2="88" marker-end="url(#ah)"/>
+
+  <rect class="nd-back" x="414" y="62" width="200" height="120" rx="8"/>
+  <rect class="nd-back" x="410" y="66" width="200" height="120" rx="8"/>
+  <rect class="nd nd-new" x="406" y="70" width="200" height="120" rx="8"/>
+  <text class="d-t" x="506" y="94" text-anchor="middle">App servers</text>
+  <text class="d-badge" x="594" y="88" text-anchor="end">×3</text>
+  <text class="d-s" x="506" y="112" text-anchor="middle">8 vCPU / 16 GB each</text>
+  <text class="d-s" x="506" y="129" text-anchor="middle">Caddy · storefront · API</text>
+  <text class="d-s" x="506" y="146" text-anchor="middle">PgBouncer · worker</text>
+  <text class="d-cost" x="506" y="172" text-anchor="middle">3 × $25.20 = ৳9,431 a month</text>
+  <line class="ar" x1="356" y1="110" x2="404" y2="110" marker-end="url(#ah)"/>
+  <text class="d-l" x="380" y="104" text-anchor="middle">miss</text>
+
+  <rect class="nd nd-new" x="680" y="70" width="284" height="46" rx="8"/>
+  <text class="d-t" x="822" y="90" text-anchor="middle">Redis · limits and pages, 8 GB</text>
+  <text class="d-cost" x="822" y="107" text-anchor="middle">$13.20 = ৳1,647 a month</text>
+  <line class="ar" x1="606" y1="93" x2="678" y2="93" marker-end="url(#ah)"/>
+  <rect class="nd nd-new" x="680" y="136" width="284" height="66" rx="8"/>
+  <text class="d-t" x="822" y="158" text-anchor="middle">PostgreSQL primary</text>
+  <text class="d-s" x="822" y="175" text-anchor="middle">VPS 14 vCPU / 64 GB / 1 TB</text>
+  <text class="d-cost" x="822" y="193" text-anchor="middle">$96 = ৳11,976 a month</text>
+  <line class="ar" x1="606" y1="165" x2="678" y2="165" marker-end="url(#ah)"/>
+  <text class="d-l" x="642" y="159" text-anchor="middle">reads, writes</text>
+  <rect class="nd-far" x="680" y="236" width="284" height="60" rx="8"/>
+  <text class="d-t" x="822" y="256" text-anchor="middle">Hot standby</text>
+  <text class="d-s" x="822" y="272" text-anchor="middle">the same VPS plan</text>
+  <text class="d-cost" x="822" y="288" text-anchor="middle">$96 = ৳11,976 a month</text>
+  <line class="ar ar-dash" x1="822" y1="202" x2="822" y2="234" marker-end="url(#ah)"/>
+  <text class="d-l" x="830" y="222">streams</text>
+
+  <rect class="nd" x="16" y="236" width="140" height="50" rx="8"/>
+  <text class="d-t" x="86" y="257" text-anchor="middle">SMS, couriers, bKash,</text>
+  <text class="d-s" x="86" y="274" text-anchor="middle">Resend, Gemini</text>
+  <path class="ar" d="M406,180 H380 V261 H158" marker-end="url(#ah)"/>
+  <text class="d-l" x="269" y="255" text-anchor="middle">called directly</text>
+
+  <rect class="nd-total" x="16" y="318" width="968" height="52" rx="10"/>
+  <text class="d-total" x="36" y="340">About ৳53,700 a month ($431) · ৳54 a shop</text>
+  <text class="d-s" x="36" y="359">6 servers ৳35,030 · Cloudflare ৳5,614 · R2 ≈ ৳5,614 · monitoring ≈ ৳7,485</text>
+</svg>
