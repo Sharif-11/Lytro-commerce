@@ -1,4 +1,4 @@
-# Site pages design: About, Contact, sign-up flow
+# Site pages design: About, Contact, sign-up flow, Developers
 
 Status: v1 design, 2026-10-18. A working prototype of all three is `docs/brand/lytro-site-pages.html` (open in a browser; needs internet for Google Fonts), also published at https://claude.ai/artifact/FzYn1B8r4Qj6kekuoNYLgw. This document is the spec behind it. Brand rules are in `BRAND-IDENTITY.md`; the landing page is in `LANDING-PAGE-DESIGN.md`.
 
@@ -105,3 +105,33 @@ few minutes, so a release shows without a redeploy. It takes the file's name fro
 the bucket, so nothing in that file can send a shop elsewhere.
 
 **Before a release exists,** or if the bucket can't be read, the page says the app isn't ready and offers Talk to us; the guide stays.
+
+---
+
+## 7. Developers (`lytro.app/developers`)
+
+Sketched 2026-11-21. The owner, after the dashboard's Developer API docs (TENANT-DASHBOARD-DESIGN §7.48): "yes you can
+place a public copy also". Drawn in `brand/lytro-site-pages.html` (`#developers`; `#developers-toc` with the list open
+on a phone; `#developers-order` with POST /v1/orders opened). Public and indexable: a developer reads it before the
+seller has made a shop or a key.
+
+**The same content as the dashboard's,** from the same definition (`DEVAPI` in the sketch; one module in the build,
+with its samples parsed against the real Zod DTOs by a test, as §7.48 sets out). What differs:
+
+- **The top:** the site's nav with **Developers** marked; a band: "Lytro API: your shop on your own website", what it
+  does, the base URL with `v1`, **Open a free shop** and **Log in for your API key**.
+- **Getting started, step 1:** open a shop, then Settings → API keys → New key, with Open a free shop and "I have a shop:
+  log in". Steps 2 and 3, the public-key note and every other part are the dashboard's.
+- **Limits:** the plan table without "your plan" or a usage bar; the owner is told at 50, 80 and 95%.
+- **The footer** gains Developers. The other pages' navs gain it when the page ships.
+
+**Layout.** Mobile first. Below 900 px: "On this page" folded at the top (4 parts, 24 routes), each route one line
+that opens, code blocks scrolling sideways. From 900 px: a 240 px list at the side, sticky under the nav, every route
+open; widening a window opens them too. A jump scrolls the page under the sticky bars; Copy shows a "Copied" toast.
+
+**Language.** Bangla first; the switch swaps every word and the samples' `Accept-Language` and `message`. Code, field
+names and JSON stay English. The English address waits on the SEO decision (the `/en/` question in the SEO to-do).
+
+**Open questions.** Those of §7.48, and: should the page carry the live plan figures (read from the plans at build or
+from a public plans route) rather than the numbers typed in the definition? Proposed: from the plans, as the pricing
+page will.
