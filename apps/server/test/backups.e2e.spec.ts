@@ -191,7 +191,7 @@ describeIfBackups('backups and restores (Slice 9.3)', () => {
 
       const restored = shellInImage(
         `lytro-restore-pitr --to '${moment}' --serve > /tmp/o 2>&1 &
-       for _ in $(seq 1 240); do grep -q 'serving the restored copy' /tmp/o && break; sleep 1; done
+       for _ in $(seq 1 240); do grep -q 'serving the restored copy' /tmp/o 2>/dev/null && break; sleep 1; done
        grep -E '^- ' /tmp/o
        psql -X -At -h /var/run/postgresql -U postgres -d ${DB_NAME} -c "SELECT count(*) FILTER (WHERE id = '${before}') || '|' || count(*) FILTER (WHERE id = '${after}') FROM tenant.orders"`,
       );
